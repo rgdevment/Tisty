@@ -55,6 +55,17 @@ describe("the places of a page written in place", () => {
     expect(spotOf(document, BODY, 21)).toEqual([item, 0]);
   });
 
+  it("writes in a step just begun before the line break that ends it, not as a paragraph after", () => {
+    const steps = "- [ ] un paso\n- [ ] \nFin";
+    sheetOf(
+      '<ul data-at="0-21"><li class="task" data-at="0-14"><span class="check"></span><span data-src="6-13">un paso</span></li>' +
+        '<li class="task" data-at="14-21"><span class="check"></span></li></ul>' +
+        '<p data-at="21-24"><span data-src="21-24">Fin</span></p>',
+    );
+    const empty = document.querySelectorAll("li")[1] as Element;
+    expect(sourceAt(steps, empty, 1)).toBe(20);
+  });
+
   it("finds no place outside every block", () => {
     sheetOf();
     expect(spotOf(document, BODY, 18)).toBeNull();

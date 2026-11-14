@@ -1,4 +1,5 @@
 import { EditorSelection, Transaction } from "@codemirror/state";
+import { EditorView } from "@codemirror/view";
 import { save as intoFile } from "@tauri-apps/plugin-dialog";
 import {
   type CSSProperties,
@@ -45,7 +46,7 @@ import { exportChoices, fileName } from "./drawing/exporting";
 import { useKeptHeight } from "./heights";
 import { edited, HOST } from "./hosting";
 import { ALT, livelyChoices } from "./livelyMenu";
-import { LivelyBelow, useFrameScroll, ViewSwitch } from "./liveSheet";
+import { LivelyBelow, useFrameScroll, type Viewing, ViewSwitch } from "./liveSheet";
 import Menu, { type Choice } from "./Menu";
 import { mended as mendedText } from "./mending";
 import Page from "./Page";
@@ -99,6 +100,8 @@ type Props = {
   readonly kept?: boolean;
   readonly inline?: boolean;
   readonly shaping?: boolean;
+  // Whoever holds the page turns its view from beside it; left out, the page wears its own switch.
+  readonly view?: Viewing;
   readonly sheet?: SheetSize;
   /** The page as it is drawn, for whoever prints it the way it is seen. */
   readonly onPage?: (page: Window | null) => void;
@@ -118,6 +121,22 @@ type Arrival = Crossing & { at: number };
 
 // A block named by its first byte in the new words, and where on the window's screen it should stand.
 type Landing = { bytes: number; y: number; turn: number };
+
+// Blocks whose drawing takes the place of their words, so they are written in the Markdown view.
+const DRAWN_OVER = new Set(["math", "widget", "mermaid"]);
+
+const cameTo = (view: EditorView | undefined) => {
+  if (!view) return;
+  view.focus();
+  view.dispatch({
+    effects: EditorView.scrollIntoView(view.state.selection.main.head, { y: "center" }),
+  });
+};
+
+const fenceInside = (text: string, at: number) => {
+  const line = text.indexOf("\n", at);
+  return line < 0 ? at : line + 1;
+};
 
 // Pictures, diagrams and the sheets they push down can arrive this long after a page is drawn.
 const HELD_FOR = 4000;
@@ -191,13 +210,21 @@ export default function Sheet(props: Readonly<Props>) {
   const putting = useRef(-1);
   const hanging = useRef(false);
   const [ready, setReady] = useState(false);
-  const [markdown, setMarkdown] = useState(false);
+  const [ownMarkdown, setOwnMarkdown] = useState(false);
+  const markdown = props.view?.markdown ?? ownMarkdown;
+  const setMarkdown = props.view?.onTurn ?? setOwnMarkdown;
+  const markdownAt = useRef<number | null>(null);
+  const markdownOn = (at: number) => {
+    markdownAt.current = at;
+    setMarkdown(true);
+  };
   // Preview is the core's own page written on in place; only the Markdown view is an editor of plain words.
   // A document and a task's page are both written on as the core draws them.
   const writable = !reading && (lively || Boolean(props.inline));
   const onPage = writable && !markdown;
   const pageWriter = useRef<{ page: Document; hands: PageWriting } | null>(null);
   const alreadyShown = useRef<string | null>(null);
+  const shownBody = useRef<string | null>(null);
   const dresser = useRef<((blocks: readonly Element[]) => void) | null>(null);
   const [turned, setTurned] = useState(0);
   const turnedNow = useRef(0);
@@ -210,6 +237,7 @@ export default function Sheet(props: Readonly<Props>) {
     choices: Choice[];
     label?: string;
     find?: string;
+    foot?: string;
     unpicked?: () => void;
   } | null>(null);
   const askedOn = useRef("");
@@ -512,7 +540,7 @@ export default function Sheet(props: Readonly<Props>) {
         : entering
           ? EditorSelection.create([EditorSelection.cursor(Math.min(caret, length), 1)])
           : { anchor: Math.min(caret, length) },
-      scrollIntoView: !whole?.lively,
+      scrollIntoView: !whole?.lively || (whole?.caret ?? 0) > 0,
     });
     if (asked) formatted(editing, read, asked);
   };
@@ -520,14 +548,19 @@ export default function Sheet(props: Readonly<Props>) {
   // biome-ignore lint/correctness/useExhaustiveDependencies: `wholly` reads only refs, so each drawing alone decides.
   useEffect(() => {
     if (!writable || !markdown || !ready || open.current || !framed()) return;
-    if (drawn !== latest.current || showing.current !== latest.current) return;
-    wholly(0, false, true);
+    if (drawn !== latest.current) return;
+    // A page drawn anew wipes whatever was laid in it, so the view waits for the drawing to land.
+    if (alreadyShown.current !== latest.current && shownBody.current !== latest.current) return;
+    const at = markdownAt.current;
+    markdownAt.current = null;
+    wholly(at ?? 0, false, true);
+    if (at !== null) requestAnimationFrame(() => cameTo(open.current?.view));
   }, [writable, markdown, ready, turned, drawn]);
 
   const [viewedFile, setViewedFile] = useState(file);
   if (viewedFile !== file) {
     setViewedFile(file);
-    setMarkdown(false);
+    setOwnMarkdown(false);
   }
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: `pageWritten` reads only refs, so the view alone decides.
@@ -546,7 +579,7 @@ export default function Sheet(props: Readonly<Props>) {
   useEffect(() => {
     if (!wholeAsked) return;
     if (writable) {
-      setMarkdown((was) => !was);
+      setMarkdown(!markdown);
       return;
     }
     if (veiled.current) left();
@@ -659,7 +692,8 @@ export default function Sheet(props: Readonly<Props>) {
     ).map((one) => ({
       key: one.key,
       label: t(one.label),
-      hint: one.hint,
+      glyph: one.icon,
+      mark: one.hint,
       onPick: () => {
         picked = true;
         back();
@@ -668,6 +702,8 @@ export default function Sheet(props: Readonly<Props>) {
         const laid = writer.slashed(one, table);
         if (table && laid)
           tables.freshAt(bytesAt(latest.current, laid.from + laid.insert.indexOf("|")));
+        if (laid && DRAWN_OVER.has(one.key))
+          markdownOn(fenceInside(latest.current, laid.from + laid.insert.indexOf("```")));
       },
     }));
     let closed = false;
@@ -679,7 +715,14 @@ export default function Sheet(props: Readonly<Props>) {
         back();
         if (slash) writer.typed("/");
       });
-    setMenu({ ...at, label: t("blocksOf"), choices, find: t("blockFind"), unpicked });
+    setMenu({
+      ...at,
+      label: t("blocksOf"),
+      choices,
+      find: t("blockFind"),
+      foot: t("slashKeys"),
+      unpicked,
+    });
   };
 
   // What the grip beside a block offers: moving it, a copy under it, or taking it away.
@@ -724,7 +767,7 @@ export default function Sheet(props: Readonly<Props>) {
             }),
         },
         { key: "copy", label: t("copyIt"), onPick: () => void copied(words).then(back) },
-        ...FORMATS.map(([word, , mark, close], index) => ({
+        ...(writer.formattable() ? FORMATS : []).map(([word, , mark, close], index) => ({
           key: `format-${word}`,
           label: t(word),
           apart: index === 0,
@@ -942,12 +985,19 @@ export default function Sheet(props: Readonly<Props>) {
     whole(`${before}${before && after ? line + line : before ? line : ""}${after}`);
   };
 
+  // On the page written in place a change from beside it is laid block by block, so nothing above it moves.
+  const rewritten = (next: string) => {
+    const writer = pageWriter.current?.hands;
+    if (onPage && writer) writer.rewrite(next);
+    else whole(next);
+  };
+
   const tables = useTables({
     latest,
     drawn: showing,
     page: () => shown.current?.document ?? null,
     frame: () => shown.current?.frameElement?.getBoundingClientRect(),
-    whole,
+    whole: rewritten,
     writing: () => Boolean(open.current),
     leave: left,
     markdown: (at, box) =>
@@ -961,7 +1011,7 @@ export default function Sheet(props: Readonly<Props>) {
     if (reading || showing.current !== latest.current) return;
     const next = widened(latest.current, at, widths);
     if (next === null) return;
-    whole(next);
+    rewritten(next);
   };
 
   const asked = (one: Extract<Went, { kind: "more" }>) => {
@@ -993,6 +1043,7 @@ export default function Sheet(props: Readonly<Props>) {
     shown: (now) => {
       alreadyShown.current = now;
       setDrawn(now);
+      setTurned((many) => many + 1);
     },
     redraw: (now) => {
       alreadyShown.current = null;
@@ -1243,8 +1294,8 @@ export default function Sheet(props: Readonly<Props>) {
         className={`tisty-sheet relative mx-auto overflow-hidden rounded-[10px] bg-sheet ${lively ? "flex min-h-0 flex-1 flex-col" : "shrink-0"} ${widthOf}`}
       >
         {!ready && <Skeleton inset={props.inline ? "46px 32px" : undefined} />}
-        {writable && !fixed && ready && (
-          <ViewSwitch markdown={markdown} onTurn={setMarkdown} inRow={!lively} />
+        {writable && !fixed && ready && !props.view?.beside && (
+          <ViewSwitch markdown={markdown} onTurn={setMarkdown} />
         )}
         <Page
           bar={BAR}
@@ -1266,6 +1317,7 @@ export default function Sheet(props: Readonly<Props>) {
           onBegin={
             onPage ? (at, seed, near) => pageWriter.current?.hands.begin(at, seed, near) : undefined
           }
+          onSource={onPage ? (at) => markdownOn(fenceInside(latest.current, at)) : undefined}
           onHintWords={
             onPage && fixed
               ? (at, hint) => pageWriter.current?.hands.hintWords(at, hint)
@@ -1303,8 +1355,9 @@ export default function Sheet(props: Readonly<Props>) {
             ).catch(() => {});
           }}
           onOutline={(heads) => said.current.onOutline?.(heads)}
-          onShown={(page) => {
+          onShown={(page, body) => {
             shown.current = page;
+            shownBody.current = body ?? null;
             pageWritten(page?.document ?? null);
             said.current.onPage?.(page);
             if (page) setReady(true);
@@ -1328,6 +1381,7 @@ export default function Sheet(props: Readonly<Props>) {
           label={menu.label ?? t("formatting")}
           choices={menu.choices}
           find={menu.find}
+          foot={menu.foot}
           keeps
           onClose={() => {
             menu.unpicked?.();

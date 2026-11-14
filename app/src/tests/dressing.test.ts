@@ -259,6 +259,34 @@ describe("dressing a drawn page", () => {
     expect(read.querySelectorAll(".widget-bar button")).toHaveLength(0);
   });
 
+  it("opens a widget's code in the Markdown view when the page is written in place", () => {
+    const code =
+      '<figure class="code" data-at="4-40"><figcaption>Rina</figcaption><pre><code class="language-widget">&lt;b&gt;42&lt;/b&gt;</code></pre></figure>';
+    const sources: number[] = [];
+    const written = page(code);
+    const reach = {
+      body: "Uno ```widget",
+      onDoc: () => {},
+      onSource: (at: number) => sources.push(at),
+    };
+    widgets(written, reach);
+    expect(written.querySelector('.widget-bar [data-asked="code"]')).not.toBeNull();
+    answered(written, { kind: "code", at: [4, 40], block: [0, 40] }, reach);
+    expect(sources).toEqual([4]);
+    const blocks: [number, number][] = [];
+    const read = page(code);
+    answered(
+      read,
+      { kind: "code", at: [4, 40], block: [4, 40] },
+      {
+        body: "",
+        onDoc: () => {},
+        onBlock: (at) => blocks.push(at),
+      },
+    );
+    expect(blocks).toEqual([[0, 0]]);
+  });
+
   it("dresses the whole page in one go", () => {
     const drawn = page(
       '<blockquote class="callout" data-callout="note"><p>x</p></blockquote><figure class="code" data-at="1-2"><pre><code class="language-widget">w</code></pre></figure><p><img src="attachments/a.png" alt=""></p>',

@@ -20,6 +20,7 @@ import { useEdge } from "./edging";
 import Fields from "./Fields";
 import History from "./History";
 import Left from "./Left";
+import { type Viewing, ViewTurn } from "./liveSheet";
 import Menu, { type Choice } from "./Menu";
 import PaceBar from "./PaceBar";
 import Panel from "./Panel";
@@ -127,6 +128,13 @@ export default function Detail({
   const signing = useSigning("inside");
   const live = task.status === "open";
   const holding = live && !task.repeat && !task.after && !task.hidden;
+  const [markdownOf, setMarkdownOf] = useState<string | null>(null);
+  const turnable = live && !held && !shaping;
+  const view: Viewing = {
+    markdown: turnable && markdownOf === task.id,
+    onTurn: (markdown) => setMarkdownOf(markdown ? task.id : null),
+    beside: true,
+  };
   useEffect(() => {
     opened.current?.focus({ preventScroll: true });
   }, [task.id]);
@@ -156,6 +164,11 @@ export default function Detail({
 
   const aside = (
     <>
+      {turnable && (
+        <div className="mb-1 flex">
+          <ViewTurn {...view} />
+        </div>
+      )}
       <Belongs
         task={task}
         whole={whole}
@@ -233,6 +246,7 @@ export default function Detail({
         onError={onError}
         onDoc={onDoc}
         shaping={shaping}
+        view={view}
         onHeld={setHeld}
         papers={papers}
         onTask={onOpenPart}

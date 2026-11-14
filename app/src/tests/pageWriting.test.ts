@@ -400,3 +400,68 @@ describe("more of writing on the page the core draws", () => {
     expect(said[said.length - 1]?.startsWith("# Hola::dog::\n")).toBe(true);
   });
 });
+
+describe("what the page written in place leaves alone", () => {
+  it("lets a field inside the page write its own words", () => {
+    const said = writer();
+    const field = document.createElement("input");
+    document.querySelector("ul")?.append(field);
+    const typed = new InputEvent("beforeinput", {
+      inputType: "insertText",
+      data: "x",
+      bubbles: true,
+      cancelable: true,
+    });
+    field.dispatchEvent(typed);
+    expect(typed.defaultPrevented).toBe(false);
+    expect(said).toEqual([]);
+  });
+
+  it("writes nothing on a block that holds no words to write among", () => {
+    const said = writer();
+    const table = document.createElement("div");
+    table.setAttribute("data-at", "8-24");
+    table.setAttribute("contenteditable", "false");
+    table.textContent = "cell";
+    document.querySelector(".page")?.append(table);
+    document.getSelection()?.collapse(table.firstChild as Text, 2);
+    asked("insertText", "o");
+    expect(said).toEqual([]);
+  });
+
+  it("takes words changed from beside the page and keeps the caret where it was", () => {
+    const said = writer();
+    writing?.rewrite(BODY.replace("primero", "primer"));
+    expect(said).toEqual([BODY.replace("primero", "primer")]);
+    writing?.rewrite(BODY.replace("primero", "primer"));
+    expect(said).toHaveLength(1);
+  });
+
+  it("begins the first line of an empty sticky note inside it", () => {
+    const body = "Uno\n\n> [!IDEA] 2026-11-13 · blue\n>\n";
+    const said = writer(body);
+    pageOf(
+      '<p data-at="0-3"><span data-src="0-3">Uno</span></p><blockquote class="callout" data-at="5-35"></blockquote>',
+    );
+    document.querySelector("blockquote")?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    expect(document.querySelector("blockquote [data-ghost]")).not.toBeNull();
+    asked("insertText", "h");
+    expect(said[said.length - 1]).toBe("Uno\n\n> [!IDEA] 2026-11-13 · blue\n> h\n");
+  });
+
+  it("puts no format on words chosen in code", () => {
+    const said = writer("```js\nlet a;\n```\n");
+    pageOf(
+      '<figure class="code" data-at="0-17"><pre><code data-src="6-13">let a;\n</code></pre></figure>',
+    );
+    const code = document.querySelector("code")?.firstChild as Text;
+    const range = document.createRange();
+    range.setStart(code, 0);
+    range.setEnd(code, 3);
+    document.getSelection()?.removeAllRanges();
+    document.getSelection()?.addRange(range);
+    expect(writing?.formattable()).toBe(false);
+    writing?.format("**", "**");
+    expect(said).toEqual([]);
+  });
+});

@@ -251,3 +251,22 @@ describe("the row menu", () => {
     expect(screen.getByRole("menu", { name: "Opciones" })).toBeTruthy();
   });
 });
+
+describe("a menu of blocks", () => {
+  it("shows each block's icon and its mark, and how the keys walk it", () => {
+    render(
+      <Menu
+        at={{ x: 20, y: 30 }}
+        choices={[{ key: "h1", label: "Título", glyph: "heading1", mark: "#", onPick: vi.fn() }]}
+        label="Bloques"
+        find="Busca un bloque"
+        foot="↑ ↓ para moverte"
+        onClose={vi.fn()}
+      />,
+    );
+    const item = screen.getByRole("menuitem");
+    expect(item.querySelector("svg.glyph")).not.toBeNull();
+    expect(item.textContent).toContain("#");
+    expect(screen.getByText("↑ ↓ para moverte")).toBeTruthy();
+  });
+});

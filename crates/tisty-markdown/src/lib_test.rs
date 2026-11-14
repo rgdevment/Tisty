@@ -493,6 +493,27 @@ fn a_page_to_write_on_names_the_bytes_of_each_piece_of_words() {
 }
 
 #[test]
+fn a_piece_drawn_as_one_element_carries_its_own_place() {
+    let text = "![Rina](rina.png)\n\nA `code` and &copy; here";
+    let drawn = html_placed(&read(text));
+    assert!(!drawn.contains("contenteditable=\"false\"><img"), "{drawn}");
+    assert!(
+        !drawn.contains("contenteditable=\"false\"><code>"),
+        "{drawn}"
+    );
+    assert!(
+        drawn.contains("contenteditable=\"false\">code</code>"),
+        "{drawn}"
+    );
+    let pieces = placed(&drawn, text);
+    assert!(pieces.iter().any(|piece| piece == "`code`"), "{pieces:?}");
+    assert!(
+        pieces.iter().any(|piece| piece == "![Rina](rina.png)"),
+        "{pieces:?}"
+    );
+}
+
+#[test]
 fn the_page_to_read_carries_no_bytes() {
     assert!(!html(&read("# Hi **you**\n\n```js\nlet a;\n```")).contains("data-src"));
 }

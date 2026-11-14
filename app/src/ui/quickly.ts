@@ -45,6 +45,21 @@ const blockOf = (node: Node | null): HTMLElement | null => {
   return element?.closest<HTMLElement>(".page > [data-at]") ?? null;
 };
 
+const inCode = (node: Node | null | undefined) =>
+  Boolean(
+    (node?.nodeType === 1 ? (node as Element) : (node?.parentElement ?? null))?.closest(
+      "pre, code",
+    ),
+  );
+
+// Code is written as it stands and a field writes its own words, so neither takes a format.
+export const unformattable = (page: Document): boolean => {
+  if (page.activeElement?.closest("input, textarea, select")) return true;
+  const chosen = page.getSelection();
+  const range = chosen?.rangeCount ? chosen.getRangeAt(0) : null;
+  return inCode(range?.startContainer) || inCode(range?.endContainer);
+};
+
 export const picked = (page: Document): Omit<Formatting, "open" | "close"> | null => {
   const chosen = page.getSelection();
   if (!chosen || chosen.isCollapsed || chosen.rangeCount === 0) return null;
@@ -93,7 +108,7 @@ export const quickly = (page: Document, reach: () => Quick) => {
   };
   const show = () => {
     const writing = page.querySelector(".editing") !== null;
-    chosen = reach().onFormat && !writing ? picked(page) : null;
+    chosen = reach().onFormat && !writing && !unformattable(page) ? picked(page) : null;
     if (!chosen || !bar) return hide();
     const box = page.getSelection()?.getRangeAt(0).getBoundingClientRect();
     const view = page.defaultView;

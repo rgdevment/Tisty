@@ -42,8 +42,17 @@ const nearest = (body: string, node: Node, offset: number): number | null => {
     }
     before = one;
   }
-  const at = before ? spanOf(before) : spanned(block.getAttribute("data-at"));
-  return at ? charsAt(body, at[1]) : null;
+  if (before) {
+    const at = spanOf(before);
+    return at ? charsAt(body, at[1]) : null;
+  }
+  const at = spanned(block.getAttribute("data-at"));
+  if (!at) return null;
+  // A block with no words yet, as a step just begun, is written before the line break that ends it.
+  const start = charsAt(body, at[0]);
+  let end = charsAt(body, at[1]);
+  while (end > start && /[\r\n]/.test(body[end - 1] ?? "")) end--;
+  return end;
 };
 
 export const sourceAt = (body: string, node: Node, offset: number): number | null => {

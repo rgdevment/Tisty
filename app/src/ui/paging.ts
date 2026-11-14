@@ -11,6 +11,7 @@ export type Went =
   | { kind: "here"; id: string }
   | { kind: "attachment"; reference: string }
   | { kind: "block"; at: [number, number] }
+  | { kind: "code"; at: [number, number]; block: [number, number] }
   | { kind: "tag"; name: string }
   | { kind: "tick"; at: [number, number] }
   | { kind: "part"; at: [number, number] }
@@ -152,6 +153,12 @@ const pressedIn = (asked: HTMLElement): Went => {
   if (asked.dataset.asked === "more") {
     const box = asked.getBoundingClientRect();
     return { kind: "more", at, target: asked.dataset.target ?? "", x: box.left, y: box.bottom };
+  }
+  if (asked.dataset.asked === "code") {
+    const widget = spanned(
+      asked.closest<HTMLElement>("figure.widget[data-at]")?.dataset.at ?? null,
+    );
+    return { kind: "code", at: widget ?? at, block: at };
   }
   if (asked.dataset.asked !== "apart") return { kind: "block", at };
   const nth = widgetsIn(asked.closest(".page > [data-at]")).indexOf(

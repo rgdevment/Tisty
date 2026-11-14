@@ -62,14 +62,14 @@ export function LivelyBelow({ children, folds, width }: Below) {
   );
 }
 
-type Turning = {
+export type Viewing = {
   readonly markdown: boolean;
   readonly onTurn: (markdown: boolean) => void;
-  /** On a task's page it stands on a row of its own, since nothing above the words leaves it room. */
-  readonly inRow?: boolean;
+  // Turned from beside the page, so the page wears no switch of its own.
+  readonly beside?: boolean;
 };
 
-export function ViewSwitch({ markdown, onTurn, inRow = false }: Turning) {
+export function ViewSwitch({ markdown, onTurn }: Viewing) {
   const tab = (plainly: boolean, word: "viewPreview" | "viewMarkdown") => (
     <button
       type="button"
@@ -84,11 +84,23 @@ export function ViewSwitch({ markdown, onTurn, inRow = false }: Turning) {
     </button>
   );
   return (
-    <div
-      className={`${inRow ? "mb-2 ml-auto w-fit" : "absolute top-3 right-4 z-10"} flex gap-0.5 rounded-full border border-hair bg-hover p-0.5`}
-    >
+    <div className="absolute top-3 right-4 z-10 flex gap-0.5 rounded-full border border-hair bg-hover p-0.5">
       {tab(false, "viewPreview")}
       {tab(true, "viewMarkdown")}
     </div>
+  );
+}
+
+// Beside a task's page one quiet word turns the view, so nothing stands over the words.
+export function ViewTurn({ markdown, onTurn }: Viewing) {
+  return (
+    <button
+      type="button"
+      aria-pressed={markdown}
+      onClick={() => onTurn(!markdown)}
+      className="-mr-1.5 ml-auto flex items-center rounded-md px-1.5 py-0.5 text-[11.5px] text-faint transition-colors hover:bg-hover hover:text-ink"
+    >
+      {t(markdown ? "viewAsPreview" : "viewAsMarkdown")}
+    </button>
   );
 }

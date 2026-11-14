@@ -166,12 +166,14 @@ const pick = (page: Document, from: number, to: number) => {
   return words;
 };
 
-const offered = () =>
-  Array.from(document.querySelectorAll('[role="menuitem"]')).map((one) => one.textContent?.trim());
+// A choice's name, without the mark or the keys beside it.
+const named = (one: Element) => one.querySelector(".truncate")?.textContent?.trim();
+
+const offered = () => Array.from(document.querySelectorAll('[role="menuitem"]')).map(named);
 
 const chosen = (label: string) =>
   Array.from(document.querySelectorAll<HTMLElement>('[role="menuitem"]'))
-    .find((one) => one.textContent?.trim() === label)
+    .find((one) => named(one) === label)
     ?.click();
 
 describe("words picked on the sheet", () => {

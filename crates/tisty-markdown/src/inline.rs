@@ -45,13 +45,9 @@ pub(crate) fn sourced(spans: &[Span], text: &str, placed: bool, out: &mut String
             Item::Words(piece) if placed => placed_words(piece, text, out),
             Item::Words(piece) => words(&text[piece], out),
             Item::Atom(one) if placed => {
-                let _ = write!(
-                    out,
-                    "<span data-src=\"{}-{}\" contenteditable=\"false\">",
-                    one.at.start, one.at.end
-                );
-                atomic(one, spans, text, &kept, out);
-                out.push_str("</span>");
+                let mut drawn = String::new();
+                atomic(one, spans, text, &kept, &mut drawn);
+                placed_atom(&drawn, &one.at, out);
             }
             Item::Atom(one) => atomic(one, spans, text, &kept, out),
         }
@@ -193,6 +189,72 @@ fn atomic(one: &Span, spans: &[Span], text: &str, kept: &HashSet<usize>, out: &m
         Mark::Html => out.push_str(&escaped(said)),
         _ => {}
     }
+}
+
+// An atom drawn as one element carries its place itself, so the page keeps the shape it has when only read.
+fn placed_atom(drawn: &str, at: &Range<usize>, out: &mut String) {
+    let place = format!(
+        " data-src=\"{}-{}\" contenteditable=\"false\"",
+        at.start, at.end
+    );
+    match lone_tag(drawn) {
+        Some(end) => {
+            out.push_str(&drawn[..end]);
+            out.push_str(&place);
+            out.push_str(&drawn[end..]);
+        }
+        None => {
+            let _ = write!(out, "<span{place}>");
+            out.push_str(drawn);
+            out.push_str("</span>");
+        }
+    }
+}
+
+const VOID: [&str; 4] = ["img", "br", "hr", "wbr"];
+
+// Where the attributes of the one element `drawn` is go, or None when it is words or several elements.
+fn lone_tag(drawn: &str) -> Option<usize> {
+    let rest = drawn.strip_prefix('<')?;
+    let name: String = rest
+        .chars()
+        .take_while(|c| c.is_ascii_alphanumeric())
+        .collect();
+    if name.is_empty() || !name.starts_with(|c: char| c.is_ascii_alphabetic()) {
+        return None;
+    }
+    let shut = drawn.find('>')?;
+    let end = if drawn[..shut].ends_with('/') {
+        shut - 1
+    } else {
+        shut
+    };
+    if VOID.contains(&name.as_str()) {
+        return (shut + 1 == drawn.len()).then_some(end);
+    }
+    let close = format!("</{name}>");
+    if !drawn.ends_with(&close) {
+        return None;
+    }
+    let open = format!("<{name}");
+    let mut depth = 0usize;
+    let mut at = 0;
+    while at < drawn.len() {
+        let here = &drawn[at..];
+        if here.starts_with(&close) {
+            depth = depth.checked_sub(1)?;
+            at += close.len();
+            if depth == 0 && at < drawn.len() {
+                return None;
+            }
+            continue;
+        }
+        if here.starts_with(&open) && here[open.len()..].starts_with(['>', ' ', '/']) {
+            depth += 1;
+        }
+        at += here.chars().next().map_or(1, char::len_utf8);
+    }
+    (depth == 0).then_some(end)
 }
 
 // An entity shows other letters than it is written with, so it is moved whole like a picture.

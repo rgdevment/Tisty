@@ -15,7 +15,7 @@ type Props = Reaching & {
   readonly wide?: number;
   readonly zoom?: number;
   readonly onOutline?: (heads: Head[]) => void;
-  readonly onShown?: (page: Window | null) => void;
+  readonly onShown?: (page: Window | null, body?: string) => void;
   readonly sheet?: Sheet;
   readonly again?: string;
   readonly cards?: string;
@@ -101,7 +101,7 @@ export default function Page(props: Readonly<Props>) {
         if (showing.current === turn) lay();
       })
       .catch(() => {});
-    reach.current.onShown?.(frame.contentWindow);
+    reach.current.onShown?.(frame.contentWindow, said);
   };
 
   const current = <K extends keyof Reaching>(asked: K): Reaching[K] | undefined =>
@@ -131,6 +131,7 @@ export default function Page(props: Readonly<Props>) {
             onBlock: current("onBlock"),
             onBegin: current("onBegin"),
             onHintWords: current("onHintWords"),
+            onSource: current("onSource"),
             onTick: current("onTick"),
             onStick: current("onStick"),
             onPart: current("onPart"),

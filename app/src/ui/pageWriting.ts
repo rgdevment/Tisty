@@ -17,6 +17,7 @@ import {
 } from "./pageMoving";
 import { patched } from "./pagePatching";
 import { GHOST, ghostAt, sourceAt, spotOf } from "./pageSpots";
+import { unformattable } from "./quickly";
 
 type Edit = { readonly from: number; readonly to: number; readonly insert: string };
 /** `lead` and `tail` wrap the first key of a line begun from a hint or a button, written only once a key comes. */
@@ -51,6 +52,8 @@ export type PageWriting = {
   readonly drawn: () => void;
   readonly stop: () => void;
   readonly format: (open: string, close: string) => void;
+  readonly formattable: () => boolean;
+  readonly rewrite: (next: string) => void;
   readonly chosen: () => string | null;
   readonly cut: () => void;
   readonly slashed: (one: Slashed, drawnWhole?: boolean) => Edit | null;
@@ -59,6 +62,8 @@ export type PageWriting = {
   readonly begin: (at: number, seed: string, near: Element) => void;
   readonly hintWords: (at: [number, number], hint: HTMLElement) => void;
 };
+
+const FIELDS = "input, textarea, select";
 
 const WRITABLE =
   ".page > :is(p, h1, h2, h3, h4, h5, h6, ul, ol, blockquote, figure.code, .footnote)";
@@ -142,6 +147,13 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
     Boolean(
       (node.nodeType === Node.ELEMENT_NODE ? (node as Element) : node.parentElement)?.closest(
         GHOST,
+      ),
+    );
+
+  const unwritable = (node: Node) =>
+    Boolean(
+      (node.nodeType === Node.ELEMENT_NODE ? (node as Element) : node.parentElement)?.closest(
+        '.page > [contenteditable="false"]',
       ),
     );
 
@@ -253,9 +265,12 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
       .catch(() => put({ ...one, insert: plain }));
   };
 
-  // A field laid over the page, as a link's address, writes its own words.
-  const onSheet = (event: Event) =>
-    Boolean(page.querySelector(".page")?.contains(event.target as Node | null));
+  // A field laid over the page or inside it, as a link's address or a table's cell, writes its own words.
+  const onSheet = (event: Event) => {
+    const target = event.target as Element | null;
+    if (target?.closest?.(FIELDS)) return false;
+    return Boolean(page.querySelector(".page")?.contains(target));
+  };
 
   const asked = (event: InputEvent) => {
     if (!onSheet(event) || event.isComposing || event.inputType === "insertCompositionText") return;
@@ -266,6 +281,8 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
     const [target] = event.getTargetRanges?.() ?? [];
     const range = target ?? chosen();
     const whole = range && !range.collapsed;
+    // A caret dropped on a table, a picture or a widget has no words under it to write among.
+    if (range && !whole && unwritable(range.startContainer)) return;
     const one = (!whole && waited(kind)) || (range && (unbegun(kind, range) ?? spanOfRange(range)));
     if (!range || !one) return;
     const text = hands.text();
@@ -326,6 +343,7 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
   };
 
   const format = (open: string, close: string) => {
+    if (unformattable(page)) return;
     const one = chosenNow();
     if (!one) return;
     if (close === "]()") return linked(one);
@@ -362,7 +380,7 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
       if (free) one.removeAttribute("contenteditable");
       else one.setAttribute("contenteditable", "false");
     }
-    for (const one of sheet.querySelectorAll(".drop-section"))
+    for (const one of sheet.querySelectorAll(".drop-section, .doc-card"))
       one.setAttribute("contenteditable", "false");
   };
 
@@ -403,20 +421,38 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
     );
   };
 
-  const begin = (at: number, seed: string, near: Element) => {
-    const text = hands.text();
+  const laidGhost = (near: Element, inside: boolean, at: number, lead: string, tail: string) => {
     for (const one of page.querySelectorAll(GHOST)) if (one !== near) one.remove();
     const titled = near.matches(".page > h1[data-title]");
     const ghost = titled ? (near as HTMLElement) : page.createElement("p");
     ghost.dataset.ghost = "";
     if (!titled) {
       ghost.append(page.createElement("br"));
-      near.after(ghost);
+      if (inside) near.append(ghost);
+      else near.after(ghost);
     }
-    const lead = `${opening(text, at, seed)}${seed}`;
-    kept = { node: ghost, offset: 0, at, lead, tail: closing(text, at) };
+    kept = { node: ghost, offset: 0, at, lead, tail };
     page.querySelector<HTMLElement>(".page")?.focus();
     page.getSelection()?.collapse(ghost, 0);
+  };
+
+  const begin = (at: number, seed: string, near: Element) => {
+    const text = hands.text();
+    laidGhost(near, false, at, `${opening(text, at, seed)}${seed}`, closing(text, at));
+  };
+
+  // A quote or a sticky note with no words yet holds no caret, so its first line is begun inside it.
+  const quoted = (event: MouseEvent) => {
+    const quote = (event.target as Element | null)?.closest?.(".page > blockquote[data-at]");
+    if (!quote || quote.querySelector(`[data-src], ${GHOST}`)) return;
+    const span = spanned(quote.getAttribute("data-at"));
+    if (!span) return;
+    const text = hands.text();
+    let at = charsAt(text, span[1]);
+    while (at > 0 && /[\r\n]/.test(text[at - 1] ?? "")) at--;
+    const line = text.slice(text.lastIndexOf("\n", at - 1) + 1, at);
+    const bare = /^\s*>\s*$/.test(line);
+    laidGhost(quote, true, at, bare ? (line.endsWith(" ") ? "" : " ") : "\n> ", "");
   };
 
   // A section's hint is a comment the page does not show as words, so it is mended in a field of its own.
@@ -530,6 +566,18 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
   };
 
   // The caret goes with the words it stood in, as far into them as it was.
+  // Words changed from beside the page, as a table's cell, are laid block by block and leave the caret where it is.
+  const rewrite = (next: string) => {
+    const text = hands.text();
+    if (next === text) return;
+    const one = changeOf(text, next);
+    undone.push({ text, at: one.from });
+    redone.length = 0;
+    kept = null;
+    hands.write(next);
+    laidOut(text, next, one);
+  };
+
   const replaced = (moved: Moved | null) => {
     if (!moved) return;
     const at = caretSpan()?.from ?? -1;
@@ -590,6 +638,7 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
   page.addEventListener("compositionstart", started);
   page.addEventListener("compositionend", ended);
   page.addEventListener("mousedown", moved);
+  page.addEventListener("click", quoted);
   page.addEventListener("keydown", moved);
   page.addEventListener("selectionchange", noted);
   page.addEventListener("keydown", keyed);
@@ -597,6 +646,8 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
   return {
     drawn,
     format,
+    formattable: () => !unformattable(page),
+    rewrite,
     chosen: () => {
       const one = chosenNow();
       return one ? hands.text().slice(one.from, one.to) : null;
@@ -621,6 +672,7 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
       plus.remove();
       ungrip();
       page.removeEventListener("mousedown", moved);
+      page.removeEventListener("click", quoted);
       page.removeEventListener("keydown", moved);
       page.removeEventListener("beforeinput", asked);
       page.removeEventListener("compositionstart", started);

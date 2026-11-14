@@ -36,6 +36,8 @@ export type Reaching = Carding & {
   readonly onBegin?: (at: number, seed: string, near: Element) => void;
   readonly onHintWords?: (at: [number, number], hint: HTMLElement) => void;
   readonly onApart?: (source: string) => void;
+  // A block whose drawing hides its words is written in the Markdown view, opened at this char.
+  readonly onSource?: (at: number) => void;
   // Bytes, as the window's own reader counts them, never converted; `nth` and what it says find it when the page is a save behind.
   readonly onDiagram?: (at: number, nth: number, source: string) => void;
   // Where on the window's own screen its choices open, under the bar of the figure.
@@ -157,7 +159,7 @@ export const widgets = (page: Document, reach?: Reaching): Lending[] => {
     name.className = "widget-name";
     name.textContent = figure.querySelector("figcaption")?.textContent ?? "";
     bar.append(name);
-    if (reach?.onBlock) bar.append(asking(page, "code", t("codeShow")));
+    if (reach?.onBlock || reach?.onSource) bar.append(asking(page, "code", t("codeShow")));
     if (reach?.onApart) bar.append(asking(page, "apart", t("viewApart")));
     const held = page.createElement("div");
     drawn.append(bar, held);
@@ -438,6 +440,17 @@ export const answered = (page: Document, asked: Went, reach: Reaching, read = ""
       ...asked,
       at: [charsAt(reach.body, asked.at[0]), charsAt(reach.body, asked.at[1])],
     });
+  if (asked.kind === "code" && reach.onSource) reach.onSource(charsAt(reach.body, asked.at[0]));
+  if (asked.kind === "code" && !reach.onSource) {
+    const block = page.querySelector<HTMLElement>(
+      `.page > [data-at="${asked.block[0]}-${asked.block[1]}"]`,
+    );
+    const at: [number, number] = [
+      charsAt(reach.body, asked.block[0]),
+      charsAt(reach.body, asked.block[1]),
+    ];
+    if (block) reach.onBlock?.(at, block, "", read);
+  }
   if (asked.kind === "apart") {
     const block = page.querySelector(`.page > [data-at="${asked.at[0]}-${asked.at[1]}"]`);
     const drawn = widgetsIn(block)[asked.nth ?? 0];
