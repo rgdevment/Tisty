@@ -485,7 +485,7 @@ None of this is needed to get started. It is here for when you need it.
 | --- | --- |
 | `Ctrl` + `Shift` + `Space` | Capture a task without opening the window |
 | `Tab` (in the quick capture) | Switch between a task and an idea for Brainstorm |
-| `Ctrl`/`⌘` + `Enter` | Complete the task you are on; in Markdown, a page break |
+| `Ctrl`/`⌘` + `Enter` | Complete the task you are on; in a document, a page break |
 | `/` | Insert something inside a document |
 | `Shift` + `Enter` | Break the line without starting a paragraph |
 | `Alt` + ↑ ↓ | Move the block or the item the caret is in |

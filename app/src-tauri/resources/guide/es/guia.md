@@ -485,7 +485,7 @@ Nada de esto hace falta para empezar. Está aquí para cuando lo necesites.
 | --- | --- |
 | `Ctrl` + `Shift` + `Space` | Capturar una tarea sin abrir la ventana |
 | `Tab` (en la captura rápida) | Cambiar entre una tarea y una idea para la Lluvia de ideas |
-| `Ctrl`/`⌘` + `Enter` | Terminar la tarea señalada; en Markdown, un salto de página |
+| `Ctrl`/`⌘` + `Enter` | Terminar la tarea señalada; en un documento, un salto de página |
 | `/` | Insertar algo dentro de un documento |
 | `Shift` + `Enter` | Saltar de línea sin empezar un párrafo |
 | `Alt` + ↑ ↓ | Mover el bloque o el elemento donde está el cursor |
