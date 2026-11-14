@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { t } from "../locales";
 import Quick from "../Quick";
+import { WINKS_ONCE_IN } from "../wink";
 
 const ipc = vi.hoisted(() => ({
   calls: [] as { cmd: string; args: Record<string, unknown> }[],
@@ -86,6 +87,7 @@ beforeEach(() => {
   win.hidden = 0;
   win.focus = null;
   win.emitted = [];
+  localStorage.clear();
 });
 
 const sent = (cmd: string) => ipc.calls.filter((one) => one.cmd === cmd);
@@ -151,7 +153,6 @@ describe("capturing without the window", () => {
     await waitFor(() =>
       expect(screen.getByRole("textbox").getAttribute("placeholder")).toBe(t("taskWink")),
     );
-    localStorage.clear();
   });
 
   it("spends no turn of the hundred while it is only made, hidden, at start", async () => {
@@ -160,10 +161,10 @@ describe("capturing without the window", () => {
     await screen.findByRole("textbox");
 
     expect(JSON.parse(localStorage.getItem("tisty.wink") ?? "{}").seen).toBe(0);
-    localStorage.clear();
   });
 
-  it("invites a task with one of its examples each time it opens", async () => {
+  it("invites a task with one of its examples each time it opens off the wink's turn", async () => {
+    localStorage.setItem("tisty.wink", JSON.stringify({ seen: 0, at: WINKS_ONCE_IN }));
     render(<Quick />);
     await screen.findByRole("textbox");
 
