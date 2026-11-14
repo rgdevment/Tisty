@@ -1,15 +1,15 @@
 [
   {
-    "version": "1.47.1",
+    "version": "1.47.0",
     "es": {
-      "text": "¿Sabías que con Tisty una tarea terminada no desaparece? Queda en el Archivo con sus pasos y notas, y si se repite cada semana o cada mes, ves cada vuelta y cuántas cumpliste. Meses después, una búsqueda te dice cómo lo hiciste. https://tisty.app",
-      "picture": "assets/screens/readme/es-01-archivo.webp",
-      "shows": "El Archivo de Tisty: las rutinas con su racha, como Llamar a la abuela y Regar las plantas, y al lado la serie de Revisión semanal con cada vuelta cumplida y la hora en que se cierra"
+      "text": "¿Sabías que en Tisty guardas una idea sin soltar lo que estás haciendo? Ctrl + Shift + Espacio abre la captura rápida, Tab la vuelve idea, la escribes y sigues. Te espera en la Lluvia de ideas como una nota adhesiva, con su fecha y su color, hasta que llegue su momento. https://tisty.app",
+      "picture": "assets/screens/readme/es-03-ideas.webp",
+      "shows": "La Lluvia de ideas de Tisty: ideas del momento como notas adhesivas de colores, cada una con su fecha y hora, sujetas con cinta o chinche"
     },
     "en": {
-      "text": "Did you know a finished task in Tisty does not disappear? It stays in the Archive with its steps and notes, and if it repeats every week or month, you see each round and how many you kept. Months later, a search tells you how you did it. https://tisty.app",
-      "picture": "assets/screens/readme/en-01-archive.webp",
-      "shows": "The Archive in Tisty: routines with their streaks, such as Call grandma and Water the plants, and beside them the Weekly review series with every round kept and the hour it closes"
+      "text": "Did you know Tisty lets you save an idea without dropping what you are doing? Ctrl + Shift + Space opens the quick capture, Tab turns it into an idea, you type it and carry on. It waits in Brainstorm as a sticky note, with its date and colour, until its moment comes. https://tisty.app",
+      "picture": "assets/screens/readme/en-03-brainstorm.webp",
+      "shows": "Brainstorm in Tisty: ideas of the moment as coloured sticky notes, each with its date and time, held by tape or a pin"
     }
   }
 ]
