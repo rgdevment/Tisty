@@ -28,9 +28,9 @@ Cómo escribir una repetición (`cada martes`, `cada 3 días`, `hasta el 30 de s
 
 Un recordatorio es una hora que eliges, y suena **en este equipo y en ningún otro**, aunque Tisty esté cerrado: una notificación del sistema y un sonido corto que puedes apagar en **Configuración › General › Avisos**.
 
-- **Con Tisty cerrado**, el aviso lo da el sistema. Cada vez que abres Tisty, y con cada recordatorio que pones, cambias o quitas, Tisty deja agendados en Windows o macOS los avisos del próximo mes, y el sistema los muestra a su hora. Sin internet y sin servidor.
+- **Con Tisty cerrado**, el aviso lo da el sistema. Cada vez que abres Tisty, y con cada recordatorio que pones, cambias o quitas, Tisty deja agendados en Windows o macOS los avisos de hasta un mes, primero los más cercanos, y el sistema los muestra a su hora. Sin internet y sin servidor.
 - **El equipo tiene que estar encendido.** Con el equipo apagado no suena nada, y Windows descarta el aviso si el equipo sigue apagado cinco minutos después de su hora.
-- **Suena una sola vez.** Con Tisty abierto, el aviso es el mismo del sistema y la ventana no repite otro. Si el equipo estuvo dormido a esa hora, Tisty te lo da al despertar.
+- **Suena una sola vez.** Con Tisty abierto, el aviso es el mismo del sistema y la ventana no repite otro. Si el equipo estuvo dormido a esa hora con Tisty abierto, Tisty te lo da al despertar.
 - **Un clic en el aviso** abre Tisty en esa tarea.
 - **Lo que llega con Tisty cerrado**, como un recordatorio que pone tu asistente o uno de otro equipo, se agenda la próxima vez que Tisty se abre. Por eso, al poner tu primer recordatorio, Tisty te ofrece abrirse al iniciar sesión; lo cambias cuando quieras en **Configuración › General › Iniciar con el equipo**.
 - **El sonido** es el de las notificaciones del sistema. Si apagas el tono corto, el aviso llega en silencio; si apagas la notificación del sistema, Tisty no agenda nada.
