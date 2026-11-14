@@ -45,7 +45,7 @@ const Room = ({
   seen: Seen;
   turned: number;
   whole: (next: string) => void;
-  passed?: (end: number) => void;
+  passed?: (end: number, table: readonly [number, number]) => void;
 }) => {
   const tables = useTables({
     latest: { current: BODY },
@@ -279,6 +279,7 @@ describe("Tab and Shift+Tab across the heads", () => {
     press(input(page), "Enter");
     await settle();
     expect(passed).toHaveBeenCalledTimes(1);
+    expect(passed.mock.calls[0]?.[1]).toEqual([0, 80]);
   });
 
   it("opens the first row with Enter from a head", async () => {

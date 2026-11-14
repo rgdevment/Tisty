@@ -4,6 +4,7 @@ import { t } from "../locales";
 import type { PlacedNear } from "../placing";
 import { blank, blockPlaced, placed } from "./pageBlocks";
 import { fieldAsked } from "./pageFields";
+import { closing, joinedAt, leftBehind, nested, opening, outdented } from "./pageLists";
 import {
   type Act,
   acted,
@@ -69,6 +70,7 @@ export type PageWriting = {
   readonly caretAt: () => number | null;
   readonly placeAt: (at: number) => void;
   readonly rewrite: (next: string) => void;
+  readonly outside: (was: string, next: string) => void;
   readonly chosen: () => string | null;
   readonly cut: () => void;
   readonly slashed: (one: Slashed, drawnWhole?: boolean) => Edit | null;
@@ -129,34 +131,6 @@ const changeOf = (was: string, now: string): Edit => {
   let end = 0;
   while (end < most - start && was[was.length - 1 - end] === now[now.length - 1 - end]) end++;
   return { from: start, to: was.length - end, insert: now.slice(start, now.length - end) };
-};
-
-// Blank lines a begun line needs before it: one to stay in the list above, two to stand apart.
-const LIST_ITEM = /^\s*(?:>\s?)*\s*(?:[-*+]|\d+[.)])\s/;
-
-const opening = (text: string, at: number, seed: string) => {
-  const before = text.slice(0, at);
-  if (!before.trim()) return "";
-  const lines = before.replace(/\s+$/, "").split("\n");
-  const joins = LIST_ITEM.test(seed) && LIST_ITEM.test(lines[lines.length - 1] ?? "");
-  const have = (/(?:\r?\n)*$/.exec(before)?.[0].match(/\n/g) ?? []).length;
-  return "\n".repeat(Math.max(0, (joins ? 1 : 2) - have));
-};
-
-// An item begun past the blank line that ends a list goes back to the list, so the list stays tight.
-const joinedAt = (text: string, at: number, seed: string) => {
-  const blank = /(?:\r?\n){2,}$/.exec(text.slice(0, at))?.[0];
-  if (!blank || !LIST_ITEM.test(seed)) return at;
-  const lines = text.slice(0, at - blank.length).split("\n");
-  if (!LIST_ITEM.test(lines[lines.length - 1] ?? "")) return at;
-  return at - blank.length + (blank.startsWith("\r") ? 2 : 1);
-};
-
-const closing = (text: string, at: number) => {
-  const after = text.slice(at);
-  if (!after.trim()) return "";
-  const have = (/^(?:\r?\n)*/.exec(after)?.[0].match(/\n/g) ?? []).length;
-  return "\n".repeat(Math.max(0, 2 - have));
 };
 
 const MARK = /\*\*|__|\+\+|~~|==|\*|_|`|\[|\]/g;
@@ -283,41 +257,6 @@ const trimmed = (text: string, one: { from: number; to: number } | null) => {
   while (from < to && /\s/.test(text[from] ?? "")) from++;
   while (to > from && /\s/.test(text[to - 1] ?? "")) to--;
   return from < to ? { from, to } : null;
-};
-
-const ITEM_LEAD = /^(\s*)((?:[-*+]|\d+[.)])\s+)/;
-
-// An empty item nested in another goes up to its parent's level instead of leaving the whole list.
-const outdented = (text: string, at: number): { edit: Edit; caret: number } | null => {
-  const start = text.lastIndexOf("\n", at - 1) + 1;
-  const ends = text.indexOf("\n", at);
-  const line = text.slice(start, ends < 0 ? text.length : ends).replace(/\r$/, "");
-  const lead = ITEM_LEAD.exec(line)?.[1].length ?? 0;
-  if (!lead || at < start + line.length || !EMPTY_ITEM.test(line)) return null;
-  const above = text.slice(0, start).split("\n").reverse();
-  const parent = above.find(
-    (one) => ITEM_LEAD.test(one) && (ITEM_LEAD.exec(one)?.[1].length ?? 0) < lead,
-  );
-  const to = parent ? (ITEM_LEAD.exec(parent)?.[1].length ?? 0) : 0;
-  return {
-    edit: { from: start, to: start + lead, insert: " ".repeat(to) },
-    caret: start + to + line.length - lead,
-  };
-};
-
-const EMPTY_ITEM = /^\s*(?:>\s?)*\s*(?:[-*+]|\d+[.)])(?:\s+(?:\[[ xX]\]\s*)?)?$/;
-const EMPTY_QUOTE = /^\s*(?:>\s?)+$/;
-
-// Enter on an item or a quote line with nothing written leaves the list or the quote, taking that line away.
-const leftBehind = (text: string, at: number): { from: number; to: number } | null => {
-  const start = text.lastIndexOf("\n", at - 1) + 1;
-  const ends = text.indexOf("\n", at);
-  const line = text.slice(start, ends < 0 ? text.length : ends).replace(/\r$/, "");
-  if (at < start + line.length || !(EMPTY_ITEM.test(line) || EMPTY_QUOTE.test(line))) return null;
-  const above = text.slice(0, Math.max(0, start - 1));
-  const before = above.lastIndexOf("\n") + 1;
-  const bare = EMPTY_QUOTE.test(line) && EMPTY_QUOTE.test(above.slice(before).replace(/\r$/, ""));
-  return { from: bare ? before : start, to: start + line.length };
 };
 
 // Words partly in a format take it whole, so the marks inside them go before the new pair goes around.
@@ -581,6 +520,7 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
     if (!onSheet(event) || event.isComposing || event.inputType === "insertCompositionText") return;
     event.preventDefault();
     const kind = event.inputType;
+    leftFrom = undefined;
     if (kind === "insertParagraph") hands.settle?.();
     typing = kind === "insertText" || kind.startsWith("delete");
     if (kind !== "insertText" && !kind.startsWith("format")) pending = null;
@@ -681,13 +621,16 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
   };
 
   let lastChosen: { from: number; to: number } | null = null;
+  let leftFrom: string | null | undefined;
   // A piece drawn whole, as code or a tag, takes no keys, so a caret dropped inside it stands right after it.
   const outOfSolid = (range: AbstractRange) => {
     const node = range.startContainer;
     const element = node.nodeType === Node.ELEMENT_NODE ? (node as Element) : node.parentElement;
     const atom = element?.closest('.page [data-src][contenteditable="false"]');
     if (!atom?.parentElement || atom.parentElement.closest('[contenteditable="false"]')) return;
-    const [holder, offset] = endOf(atom);
+    const early = node.nodeType === Node.TEXT_NODE && range.startOffset * 2 < (node as Text).length;
+    const at = Array.prototype.indexOf.call(atom.parentElement.childNodes, atom);
+    const [holder, offset] = early ? [atom.parentElement, at] : endOf(atom);
     page.getSelection()?.collapse(holder, offset);
   };
 
@@ -701,6 +644,9 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
       lastChosen = null;
       outOfSolid(range);
     }
+    if (leftFrom === undefined) return;
+    if (blockStart() !== leftFrom) hands.settle?.();
+    leftFrom = undefined;
   };
 
   const chosenNow = () => {
@@ -1138,23 +1084,37 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
 
   // The caret goes with the words it stood in, as far into them as it was.
   // Words changed from beside the page, as a table's cell, are laid block by block and leave the caret where it is.
-  const rewrite = (next: string) => {
-    const text = hands.text();
-    if (next === text) return;
-    const one = changeOf(text, next);
+  const keptAcross = (one: Edit) => {
     const held = chosen();
     const sheet = page.querySelector(".page");
     const was = held?.collapsed && sheet?.contains(held.startContainer) ? caretSpan()?.from : null;
-    undone.push({ text, at: one.from });
-    redone.length = 0;
     const by = one.insert.length - (one.to - one.from);
     kept =
       was === null || was === undefined
         ? null
         : { node: page.body, offset: -1, at: was <= one.from ? was : Math.max(one.from, was + by) };
     pending = null;
+  };
+
+  const rewrite = (next: string) => {
+    const text = hands.text();
+    if (next === text) return;
+    const one = changeOf(text, next);
+    undone.push({ text, at: one.from });
+    redone.length = 0;
+    keptAcross(one);
     hands.write(next);
     laidOut(text, next, one);
+  };
+
+  // Words from another hand are not the person's to take back, so what Ctrl+Z held before them is let go.
+  const outside = (was: string, next: string) => {
+    if (next === was) return;
+    const one = changeOf(was, next);
+    undone.length = 0;
+    redone.length = 0;
+    keptAcross(one);
+    laidOut(was, next, one);
   };
 
   const replaced = (moved: Moved | null) => {
@@ -1228,36 +1188,8 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
       if (!event.shiftKey) put({ from: at, to: at, insert: "  " });
       return;
     }
-    const text = hands.text();
-    const start = text.lastIndexOf("\n", at - 1) + 1;
-    const ends = text.indexOf("\n", at);
-    const line = text.slice(start, ends < 0 ? text.length : ends);
-    const own = ITEM_LEAD.exec(line);
-    if (!own) return;
-    const lead = own[1].length;
-    if (event.shiftKey) {
-      const above = text.slice(0, start).split("\n").reverse();
-      const parent = above.find(
-        (one) => ITEM_LEAD.test(one) && (ITEM_LEAD.exec(one)?.[1].length ?? 0) < lead,
-      );
-      const to = parent ? (ITEM_LEAD.exec(parent)?.[1].length ?? 0) : 0;
-      if (to === lead) return;
-      put(
-        { from: start, to: start + lead, insert: " ".repeat(to) },
-        Math.max(start, at - (lead - to)),
-      );
-      return;
-    }
-    const before =
-      text
-        .slice(0, Math.max(0, start - 1))
-        .split("\n")
-        .pop() ?? "";
-    const prior = ITEM_LEAD.exec(before);
-    if (!prior) return;
-    const to = (prior[1].length ?? 0) + (prior[2].length ?? 0);
-    if (to <= lead) return;
-    put({ from: start, to: start + lead, insert: " ".repeat(to) }, at + (to - lead));
+    const moved = nested(hands.text(), at, event.shiftKey);
+    if (moved) put(moved.edit, moved.caret);
   };
 
   const blockOfCaret = () => {
@@ -1265,6 +1197,9 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
     const element = node?.nodeType === Node.ELEMENT_NODE ? (node as Element) : node?.parentElement;
     return element?.closest(".page [data-at]") ?? null;
   };
+
+  // A block is told apart by where it starts, since each key draws it again as another element.
+  const blockStart = () => blockOfCaret()?.getAttribute("data-at")?.split("-")[0] ?? null;
 
   const laidAt = (spot: [Node, number]) => {
     page.getSelection()?.collapse(spot[0], spot[1]);
@@ -1364,7 +1299,7 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
     if ((event.target as Element | null)?.closest?.(".tag-list")) return;
     const held = event as KeyboardEvent;
     const across = key !== null && Boolean(held.ctrlKey || held.metaKey);
-    if (key === null || /^(ArrowUp|ArrowDown|Page)/.test(key) || across) hands.settle?.();
+    if (key === null || /^(ArrowUp|ArrowDown|Page)/.test(key) || across) leftFrom = blockStart();
     kept = null;
     pending = null;
     carried = null;
@@ -1399,6 +1334,7 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
       holder?.scrollIntoView?.({ block: "nearest" });
     },
     rewrite,
+    outside,
     chosen: () => {
       const one = chosenNow();
       return one ? hands.text().slice(one.from, one.to) : null;

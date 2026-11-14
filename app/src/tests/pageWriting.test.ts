@@ -1017,17 +1017,21 @@ describe("pieces drawn whole on the page", () => {
     expect(held?.anchorOffset).toBe(3);
   });
 
-  it("stands a caret dropped inside code just after it, where keys are written", () => {
+  it("stands a caret dropped inside code beside it, on the side of the half it fell in", () => {
     writer("Texto `cod` fin\n");
     pageOf(
       '<p data-at="0-15"><span data-src="0-6">Texto </span><code data-src="6-11" contenteditable="false">cod</code><span data-src="11-15"> fin</span></p>',
     );
     writing?.drawn();
-    document.getSelection()?.collapse(document.querySelector("code")?.firstChild as Text, 1);
-    document.dispatchEvent(new Event("selectionchange"));
-    const held = document.getSelection();
-    expect(held?.anchorNode).toBe(document.querySelector("p"));
-    expect(held?.anchorOffset).toBe(2);
+    const dropped = (at: number) => {
+      document.getSelection()?.collapse(document.querySelector("code")?.firstChild as Text, at);
+      document.dispatchEvent(new Event("selectionchange"));
+      const held = document.getSelection();
+      expect(held?.anchorNode).toBe(document.querySelector("p"));
+      return held?.anchorOffset;
+    };
+    expect(dropped(1)).toBe(1);
+    expect(dropped(2)).toBe(2);
   });
 });
 
@@ -1068,7 +1072,7 @@ describe("Ctrl+Z across a turn to the Markdown", () => {
 });
 
 describe("telling what was written once a block is left", () => {
-  it("tells at Enter, a click, a line up or down, the window left and the end, never along the line", () => {
+  it("tells once the caret lands in another block, at Enter, the window left and the end, never within one", () => {
     let told = 0;
     writer(BODY, {
       settle: () => {
@@ -1079,20 +1083,27 @@ describe("telling what was written once a block is left", () => {
       document
         .querySelector(".page")
         ?.dispatchEvent(new KeyboardEvent("keydown", { key: name, bubbles: true }));
+    const landed = (said: string) => {
+      caretIn(said, 1);
+      document.dispatchEvent(new Event("selectionchange"));
+    };
     caretIn("dos", 1);
     asked("insertText", "x");
     key("ArrowLeft");
+    landed("dos");
+    expect(told).toBe(0);
+    document.querySelector(".page")?.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
+    landed(" tres");
     expect(told).toBe(0);
     key("ArrowDown");
+    landed("primero");
     expect(told).toBe(1);
-    document.querySelector(".page")?.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
-    expect(told).toBe(2);
     asked("insertParagraph");
-    expect(told).toBe(3);
+    expect(told).toBe(2);
     window.dispatchEvent(new Event("blur"));
-    expect(told).toBe(4);
+    expect(told).toBe(3);
     writing?.stop();
     writing = null;
-    expect(told).toBe(5);
+    expect(told).toBe(4);
   });
 });
