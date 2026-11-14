@@ -51,6 +51,14 @@ describe("a table dressed to be written in place", () => {
     expect(box.querySelector("th")?.getAttribute("aria-sort")).toBe("none");
   });
 
+  it("opens a head with no name to be named instead of sorting by it", () => {
+    const made = page(TABLE.replace('<th scope="col">Servicio</th>', '<th scope="col"></th>'));
+    tabled(made);
+    const head = made.querySelector("th") as HTMLElement;
+
+    expect(tableClicked(head)).toEqual({ act: "cell", row: -1, column: 0 });
+  });
+
   it("knows a cell, a head and a click that is none of its own", () => {
     const made = dressed();
     const cell = cellOf(made, 0, 1, 2) as HTMLElement;

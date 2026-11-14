@@ -91,6 +91,9 @@ export const useTables = (
   // A cell clicked while the one left behind is still being saved opens once that save is drawn.
   const saving = useRef(0);
   const wanted = useRef<Place | null>(null);
+  // Keys pressed while the next cell is saved and opened are held for it instead of falling on the page.
+  const ahead = useRef<{ said: string; stop: () => void } | null>(null);
+  const leftover = useRef("");
   const [picking, setPicking] = useState<{
     kind: Picked;
     at: { x: number; y: number; above: number };
@@ -203,11 +206,15 @@ export const useTables = (
     const page = said.current.page();
     const at = page && placeOf(page, place.nth);
     if (how === "cancel" || !page || !at || !fresh()) return;
+    if (how !== "blur") awaited(page);
     const { row, column } = place;
     const restyled = JSON.stringify(marks) !== JSON.stringify(cell.marks);
     const changed = restyled || now.trim() !== cell.words.trim();
     if (row < 0) {
-      if (changed) edited(at, [{ kind: "rename", column, said: cell.wrap(now, marks) }]);
+      const named: TableEdit[] = changed
+        ? [{ kind: "rename", column, said: cell.wrap(now, marks) }]
+        : [];
+      onward(place, named, how);
       return;
     }
     if (!changed) {
@@ -227,11 +234,40 @@ export const useTables = (
       });
   };
 
+  const awaited = (page: Document) => {
+    if (ahead.current) return;
+    const held = { said: leftover.current, stop: () => {} };
+    leftover.current = "";
+    const caught = (event: KeyboardEvent) => {
+      if ((event.target as Element | null)?.closest?.(".table-input")) return;
+      if (event.ctrlKey || event.metaKey || event.altKey) return;
+      const moved =
+        event.key === "Tab" ? (event.shiftKey ? "" : "\t") : event.key === "Enter" ? "\n" : null;
+      if (moved === null && event.key.length !== 1) return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      held.said += moved ?? event.key;
+    };
+    const gone = setTimeout(() => held.stop(), 3000);
+    held.stop = () => {
+      clearTimeout(gone);
+      page.removeEventListener("keydown", caught, true);
+      if (ahead.current === held) ahead.current = null;
+    };
+    page.addEventListener("keydown", caught, true);
+    ahead.current = held;
+  };
+
   const onward = (place: Place, cell: TableEdit[], how: Leaving) => {
     const page = said.current.page();
     const at = page && placeOf(page, place.nth);
     if (!page || !at) return;
+    if (how !== "blur" && how !== "cancel") awaited(page);
     const { nth, row, column } = place;
+    if ((how === "up" || how === "down") && row < 0) {
+      if (cell.length) edited(at, cell);
+      return;
+    }
     if (how === "up" || how === "down") {
       const to = row + (how === "up" ? -1 : 1);
       if (to < 0 || to >= rowsCount(page, nth)) {
@@ -259,7 +295,11 @@ export const useTables = (
     const page = said.current.page();
     const at = page && placeOf(page, place.nth);
     const holder = page && cellOf(page, place.nth, place.row, place.column);
-    if (!page || !at || !holder || !fresh()) return;
+    if (!page || !at || !holder) return;
+    if (!fresh()) {
+      pending.current = place;
+      return;
+    }
     const type = cellOf(page, place.nth, -1, place.column)?.dataset.type ?? "";
     tableWritten(said.current.latest.current, at)
       .then((written) => {
@@ -288,10 +328,23 @@ export const useTables = (
         const cell = peeled(was ?? "");
         let marks = cell.marks;
         let unbar = () => {};
-        const input = typing(holder, cell.words, label, (now, how) => {
+        const held = ahead.current?.said ?? "";
+        ahead.current?.stop();
+        const step = held.search(/[\t\n]/);
+        const typed = step < 0 ? held : held.slice(0, step);
+        const input = typing(holder, typed || cell.words, label, (now, how) => {
           unbar();
           finished(place, cell, now, how, marks);
         });
+        if (typed) input.setSelectionRange(typed.length, typed.length);
+        if (step >= 0) {
+          leftover.current = held.slice(step + 1);
+          const key = held[step] === "\t" ? "Tab" : "Enter";
+          input.dispatchEvent(
+            new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true }),
+          );
+          return;
+        }
         const box = tablesIn(page)[place.nth];
         if (box)
           unbar = cellBar(

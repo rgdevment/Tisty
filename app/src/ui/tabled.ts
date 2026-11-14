@@ -64,7 +64,8 @@ export const tableClicked = (
   if (!target.closest(`${BOXES}.dressed`) || target.closest(".table-input, .col-grip")) return null;
   const cell = target.closest<HTMLTableCellElement>("td, th");
   if (!cell) return null;
-  if (cell.tagName === "TH") return { act: "sort", row: -1, column: cell.cellIndex };
+  if (cell.tagName === "TH")
+    return { act: headed(cell) ? "sort" : "cell", row: -1, column: cell.cellIndex };
   const row = cell.closest<HTMLTableRowElement>("tbody > tr")?.dataset.row;
   if (row === undefined) return null;
   return { act: "cell", row: Number(row), column: cell.cellIndex };
