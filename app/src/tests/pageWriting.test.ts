@@ -796,6 +796,17 @@ describe("what a person found writing on the page", () => {
     expect(last(said)).toContain("**Uno** **dos** tres");
   });
 
+  it("turns a paragraph with a line broken inside it into one quote, every line marked", () => {
+    const said = writer("Línea uno\nlínea dos\n");
+    pageOf(
+      '<p data-at="0-20"><span data-src="0-9">Línea uno</span><br><span data-src="10-19">línea dos</span></p>',
+    );
+    writing?.drawn();
+    caretIn("línea dos", 3);
+    writing?.slashed(block("quote"));
+    expect(last(said)).toBe("> Línea uno\n> línea dos\n");
+  });
+
   it("makes words partly bold wholly bold, with no marks left inside them", () => {
     const said = writer();
     const range = document.createRange();

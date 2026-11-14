@@ -88,19 +88,22 @@ export const acted = (
     const below = unitOf(body, tops, unit.last + 1);
     return below ? movedTo(body, unit, below.to) : null;
   }
-  const said = body.slice(unit.from, unit.to);
+  const said = body.slice(unit.from, unit.to).replace(/[\r\n]+$/, "");
+  const end = unit.from + said.length;
   if (act === "double")
     return {
-      text: `${body.slice(0, unit.to)}\n\n${said}${body.slice(unit.to)}`,
-      caret: unit.to + 2,
+      text: `${body.slice(0, end)}\n\n${said}${body.slice(end)}`,
+      caret: end + 2,
       was: unit.from,
       size: said.length,
     };
   let cut = unit.to;
   while (cut < body.length && /[\r\n]/.test(body[cut] ?? "")) cut++;
+  const kept = body.slice(0, unit.from);
+  const before = cut < body.length ? kept : kept.replace(/(?:\r?\n)+$/, "\n");
   return {
-    text: `${body.slice(0, unit.from)}${body.slice(cut)}`,
-    caret: unit.from,
+    text: `${before}${body.slice(cut)}`,
+    caret: Math.min(unit.from, before.length),
     was: unit.from,
     size: 0,
   };

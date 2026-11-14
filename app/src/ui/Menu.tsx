@@ -165,7 +165,7 @@ export default function Menu({ at, choices, label, up, keeps, find, foot, onClos
           <span className="truncate">{deeper.label}</span>
         </button>
       )}
-      {live.map((one) => (
+      {live.map((one, index) => (
         <div key={one.key}>
           {one.apart && <div className="my-1 h-px bg-hair" />}
           <button
@@ -179,8 +179,8 @@ export default function Menu({ at, choices, label, up, keeps, find, foot, onClos
               one.onPick?.();
             }}
             className={`group flex w-full items-center gap-2.5 rounded-md px-2.5 py-1.5 text-left text-[12.5px] hover:bg-hover focus:bg-hover focus:outline-none ${
-              one.danger ? "text-urgent" : "text-ink"
-            }${one.on ? " font-semibold" : ""}`}
+              sifting && sought && index === live.findIndex((it) => !it.into) ? "bg-hover " : ""
+            }${one.danger ? "text-urgent" : "text-ink"}${one.on ? " font-semibold" : ""}`}
           >
             {one.glyph ? (
               <Glyph

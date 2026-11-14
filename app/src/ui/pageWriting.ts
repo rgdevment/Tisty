@@ -854,13 +854,25 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
     return range && (unbegun("insertText", range) ?? spanOfRange(range));
   };
 
-  const blockEnd = (at: number) => {
+  const blockSpan = () => {
     const held = page.getSelection();
     const node = held?.anchorNode ?? null;
     const element = node?.nodeType === Node.ELEMENT_NODE ? (node as Element) : node?.parentElement;
-    const top = element?.closest(".page > [data-at]");
-    const span = spanned(top?.getAttribute("data-at") ?? null);
+    return spanned(element?.closest(".page > [data-at]")?.getAttribute("data-at") ?? null);
+  };
+
+  const blockEnd = (at: number) => {
+    const span = blockSpan();
     return span ? charsAt(hands.text(), span[1]) : at;
+  };
+
+  // Only a paragraph is turned whole, from its first line, as a line broken inside it still belongs to it.
+  const paragraphStart = () => {
+    const held = page.getSelection();
+    const node = held?.anchorNode ?? null;
+    const element = node?.nodeType === Node.ELEMENT_NODE ? (node as Element) : node?.parentElement;
+    const span = spanned(element?.closest(".page > p[data-at]")?.getAttribute("data-at") ?? null);
+    return span ? charsAt(hands.text(), span[0]) : null;
   };
 
   const slashed = (one: Slashed, drawnWhole = false): Edit | null => {
@@ -868,7 +880,7 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
     if (!span) return null;
     const text = hands.text();
     const end = Math.max(span.to, blockEnd(span.to));
-    const how = placed(text, span.from, end, one);
+    const how = placed(text, span.from, end, one, paragraphStart());
     if ("wrap" in how) {
       format(how.wrap, how.close);
       return null;

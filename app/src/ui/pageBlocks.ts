@@ -40,17 +40,33 @@ export const blockPlaced = (
   };
 };
 
-export const placed = (text: string, at: number, end: number, one: Slashed): Placing => {
+export const placed = (
+  text: string,
+  at: number,
+  end: number,
+  one: Slashed,
+  first: number | null = null,
+): Placing => {
   const how = "stuck" in one.put ? { block: ideaOpened(text.slice(0, at)), at: -1 } : one.put;
   if ("wrap" in how) return { wrap: how.wrap, close: how.close ?? how.wrap };
   if ("ask" in how) return { ask: how.ask, block: how.block };
   if ("inline" in how)
     return { edit: { from: at, to: at, insert: how.inline }, caret: at + how.at };
   if ("line" in how) {
-    const start = lineStart(text, at);
+    const start = first ?? lineStart(text, at);
     const lead = LEAD.exec(text.slice(start))?.[0] ?? "";
-    const caret = Math.max(start + how.line.length, at - lead.length + how.line.length);
-    return { edit: { from: start, to: start + lead.length, insert: how.line }, caret };
+    const quoted = first !== null && how.line.startsWith(">");
+    const body = quoted ? text.slice(start + lead.length, Math.max(start, end)) : "";
+    const lines = body.replace(/[\r\n]+$/, "");
+    const spread = quoted && /\n/.test(lines);
+    const insert = spread
+      ? `${how.line}${lines.replace(/\r?\n/g, (eol) => `${eol}${how.line}`)}`
+      : how.line;
+    const to = spread ? start + lead.length + lines.length : start + lead.length;
+    const caret = spread
+      ? start + insert.length
+      : Math.max(start + how.line.length, at - lead.length + how.line.length);
+    return { edit: { from: start, to, insert }, caret };
   }
   return blockPlaced(text, at, end, how.block, how.at < 0 ? how.block.length : how.at);
 };

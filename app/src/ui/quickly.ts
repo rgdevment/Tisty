@@ -111,7 +111,7 @@ export const quickly = (page: Document, reach: () => Quick) => {
     bar.style.left = `${Math.max(4, Math.min((box.left + view.scrollX) / zoom, widest))}px`;
   };
   page.addEventListener("mouseup", (event) => {
-    if (bar?.contains(event.target as Node)) return;
+    if (event.button !== 0 || bar?.contains(event.target as Node)) return;
     setTimeout(show);
   });
   page.addEventListener("keyup", () => {

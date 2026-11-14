@@ -537,14 +537,21 @@ export default function Sheet(props: Readonly<Props>) {
     const steps = stagesIn(latest.current).length > 0;
     let picked = false;
     const back = () => shown.current?.focus();
-    const choices: Choice[] = SLASHED.filter(
+    const offered = SLASHED.filter(
       (one) =>
         (!("ask" in one.put) || kinds.includes(one.put.ask)) && (one.key !== "step" || steps),
-    ).map((one) => ({
+    );
+    // Blocks come first and the formats after them, so a word sought finds a block before a mark.
+    const ordered = [
+      ...offered.filter((one) => !("wrap" in one.put)),
+      ...offered.filter((one) => "wrap" in one.put),
+    ];
+    const choices: Choice[] = ordered.map((one, index) => ({
       key: one.key,
       label: t(one.label),
       glyph: one.icon,
       mark: one.hint,
+      apart: "wrap" in one.put && !("wrap" in (ordered[index - 1]?.put ?? {})),
       onPick: () => {
         picked = true;
         back();

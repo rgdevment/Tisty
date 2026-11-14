@@ -45,6 +45,15 @@ describe("a block moved on the page written in place", () => {
     expect(acted(BODY, tops, 0, "drop")?.text.startsWith("## Uno")).toBe(true);
   });
 
+  it("doubles and drops the last block without leaving blank lines behind", () => {
+    const tops = topsOf(sheetOf());
+    const last = tops.length - 1;
+    expect(
+      acted(BODY, tops, last, "double")?.text.endsWith("2. segundo\n\n1. primero\n2. segundo\n"),
+    ).toBe(true);
+    expect(acted(BODY, tops, last, "drop")?.text.endsWith("Texto dos.\n")).toBe(true);
+  });
+
   it("lands where it is dropped, the caret in its first words", () => {
     const tops = topsOf(sheetOf());
     const unit = unitOf(BODY, tops, 0);
