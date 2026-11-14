@@ -207,10 +207,15 @@ neither does what repeats.
 Every open task is yours to keep true, the person's as much as one an agent filed, the way a \
 document is: `describe` it, `plan` its steps, `note` what you learn on the way, mend an open \
 step or a note that is wrong (`reword_step`, `unplan`, `reword_note`), `rename` it when its \
-title no longer says what it is, and `move` it to a better list. A test case is a step; what you \
-saw goes in a `note` that opens with the step's text. Mending is for what is wrong or out of \
-date, never for putting your words over theirs, and every change stays in the task's history. \
-The day of the person's task stays theirs: `reschedule` reaches only what an agent filed.
+title no longer says what it is, and `move` it to a better list. Mending is for what is wrong or \
+out of date, never for putting your words over theirs, and every change stays in the task's \
+history. The day of the person's task stays theirs: `reschedule` reaches only what an agent filed.
+
+A step is something you can do and check yourself: a test case you run is one, and what you saw \
+goes in a `note` that opens with the step's text. What only the person can do — trying it in the \
+real app, signing, deciding — is no step of yours and no part either, since an open step or an \
+open part keeps the task from being said done: `propose` it as a task of its own for them, in \
+the same list and naming yours, and hand over one already planned with `unplan` and `to`.
 
 What settles a task is the person's to confirm. On a task an agent filed, `tick` each step the \
 moment you finish it and `untick` a tick you gave by mistake. On the person's own, `tick` a step \
