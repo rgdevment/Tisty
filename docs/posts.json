@@ -1,0 +1,86 @@
+{
+  "since": "1.47.0",
+  "pinned": {
+    "id": "why-tisty",
+    "en": {
+      "text": "I got tired of explaining my project to my AI agent every morning.\n\nSo I built Tisty: tasks, documents and notes in Markdown on your own disk, and a local MCP server so Claude Code, Copilot or Cursor pick up where they left off.\n\nFree, open source, no account.",
+      "picture": "assets/screens/readme/en-07-day.webp",
+      "shows": "The day's tasks in Tisty: overdue and due soon, with their lists, priorities and tags, and the week ahead beside them"
+    },
+    "reply": {
+      "en": {
+        "text": "Try it:\n\nWindows: winget install rgdevment.Tisty\nmacOS: Homebrew or the .dmg\n\nhttps://www.tisty.app"
+      }
+    }
+  },
+  "queue": [
+    {
+      "id": "save-an-idea",
+      "en": {
+        "text": "Did you know Tisty lets you save an idea without dropping what you are doing? Ctrl + Shift + Space opens the quick capture, Tab turns it into an idea, you type it and carry on. It waits in Brainstorm as a sticky note, with its date and colour, until its moment comes. https://tisty.app",
+        "picture": "assets/screens/readme/en-03-brainstorm.webp",
+        "shows": "Brainstorm in Tisty: ideas of the moment as coloured sticky notes, each with its date and time, held by tape or a pin"
+      }
+    },
+    {
+      "id": "leave-off-habit",
+      "en": {
+        "text": "A small habit that fixed my mornings with AI agents:\n\nBefore closing a session I tell the agent: \"note what we did, what failed and what's left.\"\n\nNext day it starts from there, not from a blank chat. Works with any notes file."
+      }
+    },
+    {
+      "id": "how-did-we-fix-it",
+      "en": {
+        "text": "\"How did we fix this last time?\"\n\nThat question is why a finished task in Tisty is never thrown away. It goes to the Archive whole: steps, journal, dates.\n\nMonths later, the answer is one search away.",
+        "picture": "assets/screens/readme/en-01-archive.webp",
+        "shows": "The Archive in Tisty: routines with their streaks, such as Call grandma and Water the plants, and beside them the Weekly review series with every round kept"
+      }
+    },
+    {
+      "id": "write-down-why",
+      "en": {
+        "text": "Tip for working with AI agents: write down why, not only what.\n\nThe agent can read your code. It can't read why you rejected option B three months ago.\n\nOne line with the reason saves the whole argument next time."
+      }
+    },
+    {
+      "id": "not-only-code",
+      "en": {
+        "text": "The list I open most in Tisty isn't code.\n\nIt's groceries. Then the vet, then the paperwork I keep putting off.\n\nIt's a notes and tasks app first. The AI agent is a plus, not a requirement.",
+        "picture": "assets/screens/readme/en-07-day.webp",
+        "shows": "The day's tasks in Tisty: overdue and due soon, with their lists, priorities and tags, and the week ahead beside them"
+      }
+    },
+    {
+      "id": "what-pickup-costs",
+      "en": {
+        "text": "I measured what it costs an agent to pick up yesterday's work from a 256 KB work log.\n\nRereading the whole file: 100%.\nWith Tisty, when nothing changed: about 1%.\n\nIt asks what moved, then reads only that."
+      }
+    },
+    {
+      "id": "one-page-per-subject",
+      "en": {
+        "text": "I used to keep one notes file per session. They piled up and went stale.\n\nNow it's one page per subject, corrected in place. Fewer files, and both the agent and I can trust what's there.",
+        "picture": "assets/screens/readme/en-06-documents.webp",
+        "shows": "A document in Tisty with its outline beside it, its languages and its sheet size"
+      }
+    },
+    {
+      "id": "context-between-sessions",
+      "en": {
+        "text": "How do you keep context between AI coding sessions?\n\nMine was a NOTES.md that went stale in a week, then a TASKS.md nobody updated. Nobody = me.\n\nWhat's yours?"
+      }
+    },
+    {
+      "id": "honest-note",
+      "en": {
+        "text": "Honest note about my own app: if your notes are under ~50 KB, a plain Markdown file can be cheaper for your agent than Tisty.\n\nI measured it. It starts paying off when the log grows."
+      }
+    },
+    {
+      "id": "no-server",
+      "en": {
+        "text": "I'm one developer, not a company.\n\nSo Tisty has no server, no account and no subscription: nothing for me to run, nothing for you to pay.\n\nYour notes stay on your disk, in Markdown."
+      }
+    }
+  ]
+}
