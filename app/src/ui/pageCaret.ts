@@ -1,0 +1,194 @@
+import { charsAt, spanned } from "tisty-editor/read";
+import type { Span } from "./pageEdits";
+import { elementOf, ghostly, lineOfCaret } from "./pageNodes";
+import { endOf, GHOST, ghostAt, sourceAt, spotOf } from "./pageSpots";
+import type { Point, Writer } from "./pageWriter";
+
+export type Caret = ReturnType<typeof caretOn>;
+
+export const caretOn = (writer: Writer) => {
+  const { page, hands } = writer;
+
+  const chosen = (): AbstractRange | null => {
+    const held = page.getSelection();
+    return held?.rangeCount ? held.getRangeAt(0) : null;
+  };
+
+  const spanOfRange = (range: AbstractRange): Span | null => {
+    const text = hands.text();
+    const same = writer.kept && range.collapsed && range.startContainer === writer.kept.node;
+    if (same && writer.kept && range.startOffset === writer.kept.offset)
+      return { from: writer.kept.at, to: writer.kept.at };
+    const from = sourceAt(text, range.startContainer, range.startOffset);
+    const to = range.collapsed ? from : sourceAt(text, range.endContainer, range.endOffset);
+    if (from === null || to === null) return null;
+    return { from: Math.min(from, to), to: Math.max(from, to) };
+  };
+
+  // Out of a paragraph not yet written, going back leaves it and joins the block before.
+  const unbegun = (kind: string, range: AbstractRange): Span | null => {
+    const unlaid = writer.kept?.lead !== undefined && writer.kept.offset < 0;
+    if (!writer.kept || !range.collapsed || !(unlaid || ghostly(range.startContainer))) return null;
+    const { at } = writer.kept;
+    if (!kind.startsWith("delete") || kind.includes("Forward")) return { from: at, to: at };
+    const text = hands.text();
+    let from = at;
+    while (from > 0 && /\s/.test(text[from - 1] ?? "")) from--;
+    return { from, to: at };
+  };
+
+  const caretSpan = () => {
+    if (writer.kept && writer.kept.offset < 0) return { from: writer.kept.at, to: writer.kept.at };
+    const range = chosen();
+    return range && (unbegun("insertText", range) ?? spanOfRange(range));
+  };
+
+  const chosenNow = () => {
+    const range = chosen();
+    const one = range && !range.collapsed ? spanOfRange(range) : writer.lastChosen;
+    return one && one.from < one.to ? one : null;
+  };
+
+  // A menu of the window hands the focus back to the frame, not to the words, so the sheet takes it again.
+  const focused = () => {
+    const sheet = page.querySelector<HTMLElement>(".page");
+    if (!page.hasFocus() || !sheet || sheet.contains(page.activeElement)) return;
+    const held = page.getSelection();
+    const caret = held?.rangeCount ? held.getRangeAt(0).cloneRange() : null;
+    sheet.focus({ preventScroll: true });
+    if (!caret || !sheet.contains(caret.startContainer)) return;
+    held?.removeAllRanges();
+    held?.addRange(caret);
+  };
+
+  // A caret laid by a script never scrolls, so the line being written is brought back when it slips out of sight.
+  const inSight = (holder: Node) => {
+    const view = page.defaultView;
+    const held = page.getSelection();
+    if (!view || !page.hasFocus() || !held?.rangeCount) return;
+    const range = held.getRangeAt(0);
+    const line = elementOf(holder);
+    let box =
+      typeof range.getBoundingClientRect === "function" ? range.getBoundingClientRect() : null;
+    if (!box?.height && line) box = line.getBoundingClientRect();
+    if (!box) return;
+    const room = 48;
+    if (box.bottom > view.innerHeight - room)
+      view.scrollBy({ top: box.bottom - view.innerHeight + room });
+    else if (box.top < room / 2) view.scrollBy({ top: box.top - room / 2 });
+  };
+
+  // A collapsible's name is drawn in its summary with no place marked in the text, so the caret is counted there.
+  const summaryAt = (found: [Node, number], at: number): [Node, number] | null => {
+    const box = elementOf(found[0])?.closest("details[data-at]");
+    const summary = box?.querySelector(":scope > summary");
+    const span = spanned(box?.getAttribute("data-at") ?? null);
+    if (!summary || !span) return null;
+    const text = hands.text();
+    const start = charsAt(text, span[0]);
+    const ends = text.indexOf("\n", start);
+    const line = text.slice(start, ends < 0 ? text.length : ends).replace(/\r$/, "");
+    const name = start + (/^:::\s*details\s?/.exec(line)?.[0].length ?? line.length);
+    if (at < name || at > start + line.length) return null;
+    const words = summary.firstChild;
+    if (words?.nodeType !== Node.TEXT_NODE) return [summary, 0];
+    return [words, Math.min(at - name, (words as Text).length)];
+  };
+
+  const caretLaid = () => {
+    if (!writer.kept) return;
+    const unwritten = writer.kept.lead !== undefined || !spotOf(page, hands.text(), writer.kept.at);
+    const ghost = unwritten ? ghostAt(page, hands.text(), writer.kept.at) : null;
+    const found: [Node, number] | null = ghost
+      ? [ghost, 0]
+      : spotOf(page, hands.text(), writer.kept.at);
+    if (!found) return;
+    focused();
+    const spot = summaryAt(found, writer.kept.at) ?? found;
+    // A block drawn empty, as a heading just begun, holds no line for the caret, so it gets one.
+    const [holder] = spot;
+    const bare = holder.nodeType === Node.ELEMENT_NODE ? (holder as Element) : null;
+    if (bare && !bare.textContent && !bare.querySelector("br"))
+      bare.append(page.createElement("br"));
+    const held = page.getSelection();
+    held?.collapse(spot[0], spot[1]);
+    writer.kept = { ...writer.kept, node: spot[0], offset: spot[1] };
+    inSight(holder);
+  };
+
+  const placeAt = (at: number) => {
+    writer.kept = { node: page.body, offset: -1, at: Math.min(at, hands.text().length) };
+    page.querySelector<HTMLElement>(".page")?.focus({ preventScroll: true });
+    caretLaid();
+    elementOf(writer.kept?.node)?.scrollIntoView?.({ block: "nearest" });
+  };
+
+  const laidAt = (spot: [Node, number]) => {
+    page.getSelection()?.collapse(spot[0], spot[1]);
+    inSight(spot[0]);
+  };
+
+  // Where the menu of blocks opens: under the caret, on the window's own screen.
+  const caretPoint = (): Point => {
+    const held = page.getSelection();
+    const range = held?.rangeCount ? held.getRangeAt(0) : null;
+    const ghost = page.querySelector(GHOST);
+    let box = range?.getBoundingClientRect();
+    if (!box || (box.width === 0 && box.height === 0))
+      box = (ghost ?? lineOfCaret(range))?.getBoundingClientRect() ?? box;
+    const frame = page.defaultView?.frameElement?.getBoundingClientRect();
+    return {
+      x: (frame?.left ?? 0) + (box?.left ?? 0),
+      y: (frame?.top ?? 0) + (box?.bottom ?? 0) + 10,
+      top: (frame?.top ?? 0) + (box?.top ?? 0) - 4,
+    };
+  };
+
+  const blockEnd = (at: number) => {
+    const anchor = elementOf(page.getSelection()?.anchorNode);
+    const span = spanned(anchor?.closest(".page > [data-at]")?.getAttribute("data-at") ?? null);
+    return span ? charsAt(hands.text(), span[1]) : at;
+  };
+
+  // Only a paragraph is turned whole, from its first line, as a line broken inside it still belongs to it.
+  const paragraphStart = () => {
+    const anchor = elementOf(page.getSelection()?.anchorNode);
+    const span = spanned(anchor?.closest(".page > p[data-at]")?.getAttribute("data-at") ?? null);
+    return span ? charsAt(hands.text(), span[0]) : null;
+  };
+
+  const blockOfCaret = () =>
+    elementOf(chosen()?.startContainer)?.closest(".page [data-at]") ?? null;
+
+  // A block is told apart by where it starts, since each key draws it again as another element.
+  const blockStart = () => blockOfCaret()?.getAttribute("data-at")?.split("-")[0] ?? null;
+
+  // A piece drawn whole, as code or a tag, takes no keys, so a caret dropped inside it stands right after it.
+  const outOfSolid = (range: AbstractRange) => {
+    const node = range.startContainer;
+    const atom = elementOf(node)?.closest('.page [data-src][contenteditable="false"]');
+    if (!atom?.parentElement || atom.parentElement.closest('[contenteditable="false"]')) return;
+    const early = node.nodeType === Node.TEXT_NODE && range.startOffset * 2 < (node as Text).length;
+    const at = Array.prototype.indexOf.call(atom.parentElement.childNodes, atom);
+    const [holder, offset] = early ? [atom.parentElement, at] : endOf(atom);
+    page.getSelection()?.collapse(holder, offset);
+  };
+
+  return {
+    chosen,
+    spanOfRange,
+    unbegun,
+    caretSpan,
+    chosenNow,
+    focused,
+    caretLaid,
+    placeAt,
+    laidAt,
+    caretPoint,
+    blockEnd,
+    paragraphStart,
+    blockOfCaret,
+    blockStart,
+    outOfSolid,
+  };
+};

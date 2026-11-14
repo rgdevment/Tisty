@@ -336,6 +336,7 @@ export default function Sheet(props: Readonly<Props>) {
     setDrawn(value);
   }, [file, value, left]);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: only new words decide; the view and the file are read as they stand.
   useEffect(() => {
     open.current?.flush?.();
     if (value === latest.current) {
@@ -351,9 +352,19 @@ export default function Sheet(props: Readonly<Props>) {
     echoes.current = [];
     // Words from outside end the block being written only when they reach it: it spoke of the old ones.
     const was = latest.current;
+    settled(was);
     latest.current = value;
     settledOn.current = value;
-    if (!open.current) setDrawn(value);
+    // Words from another hand are not the person's to take back, so what Ctrl+Z held before them is let go.
+    if (turnsOn.current.file === file) {
+      const { turns } = turnsOn.current;
+      turns.undone.length = 0;
+      turns.redone.length = 0;
+      turns.left = undefined;
+    }
+    const writer = onPage ? pageWriter.current?.hands : undefined;
+    if (writer && !open.current) writer.outside(was, value);
+    else if (!open.current) setDrawn(value);
     else if (!follows.current?.(was, value)) left();
   }, [value, left]);
 
@@ -799,9 +810,11 @@ export default function Sheet(props: Readonly<Props>) {
     page: () => shown.current?.document ?? null,
     frame: () => shown.current?.frameElement?.getBoundingClientRect(),
     whole: rewritten,
-    passed: (end) => {
+    passed: (end, table) => {
       const writer = pageWriter.current?.hands;
-      const near = shown.current?.document.querySelector(".page > .table");
+      const near = shown.current?.document.querySelector(
+        `.page > .table[data-at="${table[0]}-${table[1]}"]`,
+      );
       if (!writer || !near) return;
       shown.current?.focus();
       writer.begin(Math.min(end, latest.current.length), "", near);

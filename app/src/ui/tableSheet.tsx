@@ -38,7 +38,7 @@ type Ways = {
   readonly frame: () => DOMRect | undefined;
   readonly whole: (next: string) => void;
   /** Enter on the last row leaves the table: a line begins under it, at this place in the text. */
-  readonly passed?: (end: number) => void;
+  readonly passed?: (end: number, table: readonly [number, number]) => void;
   readonly writing: () => boolean;
   readonly leave: () => void;
   readonly markdown: (at: [number, number], box: HTMLElement) => void;
@@ -138,7 +138,7 @@ export const useTables = (
         pending.current = then ?? wanted.current;
         wanted.current = null;
         said.current.whole(next);
-        if (passing) said.current.passed?.(endAfter(was, next, at));
+        if (passing) said.current.passed?.(endAfter(was, next, at), at);
       })
       .catch((why) => {
         said.current.fail(refused(why));
@@ -303,7 +303,7 @@ export const useTables = (
     const passing = !then && how === "enter";
     if (cell.length) edited(at, cell, then, undefined, passing);
     else if (then) opened(then);
-    else if (passing) said.current.passed?.(charsAt(said.current.latest.current, at[1]));
+    else if (passing) said.current.passed?.(charsAt(said.current.latest.current, at[1]), at);
   };
 
   const opened = (place: Place) => {
