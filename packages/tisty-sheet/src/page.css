@@ -1701,7 +1701,11 @@ figure.widget:hover .card-more,
   text-decoration: none;
 }
 html.lively:not(.tall) {
-  background: var(--tisty-sheet);
+  background: var(--tisty-desk);
+  scrollbar-color: transparent var(--tisty-desk);
+}
+html.lively:not(.tall):hover {
+  scrollbar-color: var(--tisty-line) var(--tisty-desk);
 }
 html.lively:not(.tall) body {
   padding: 0;

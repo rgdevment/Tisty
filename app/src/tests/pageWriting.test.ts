@@ -465,3 +465,26 @@ describe("what the page written in place leaves alone", () => {
     expect(said).toEqual([]);
   });
 });
+
+describe("a page break on the page written in place", () => {
+  const BROKEN = "Uno\n\n---\n\n## Dos\n";
+  const DRAWN_BROKEN =
+    '<p data-at="0-3"><span data-src="0-3">Uno</span></p><hr data-at="5-9" contenteditable="false">' +
+    '<h2 data-at="10-16"><span data-src="13-16">Dos</span></h2>';
+
+  it("is taken away by Backspace at the start of the block after it, that block kept as it is", () => {
+    const said = writer(BROKEN);
+    pageOf(DRAWN_BROKEN);
+    caretIn("Dos", 0);
+    asked("deleteContentBackward");
+    expect(said).toEqual(["Uno\n\n## Dos\n"]);
+  });
+
+  it("is taken away by Delete at the end of the block before it", () => {
+    const said = writer(BROKEN);
+    pageOf(DRAWN_BROKEN);
+    caretIn("Uno", 3);
+    asked("deleteContentForward");
+    expect(said).toEqual(["Uno\n\n## Dos\n"]);
+  });
+});

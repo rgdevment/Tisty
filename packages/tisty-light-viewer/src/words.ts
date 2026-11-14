@@ -148,6 +148,8 @@ const SHEET_EN: Record<ReadWord, string> = {
   untitledDoc: "Untitled",
   viewDocApart: "Open in a window of its own",
   viewSource: "Markdown",
+  viewPreview: "Preview",
+  viewMarkdown: "Markdown",
 };
 
 const SHEET_ES: Record<ReadWord, string> = {
@@ -211,6 +213,8 @@ const SHEET_ES: Record<ReadWord, string> = {
   untitledDoc: "Sin título",
   viewDocApart: "Abrir en una ventana aparte",
   viewSource: "Markdown",
+  viewPreview: "Vista previa",
+  viewMarkdown: "Markdown",
 };
 
 export type Words = {

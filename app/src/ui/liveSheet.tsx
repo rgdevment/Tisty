@@ -52,7 +52,7 @@ export function LivelyBelow({ children, folds, width }: Below) {
         type="button"
         aria-expanded={open}
         onClick={() => setOpen((was) => !was)}
-        className="flex w-full items-center gap-2 px-4 py-2 text-left text-[12.5px] text-faint hover:text-ink"
+        className="flex w-full items-center gap-1.5 px-2 py-1 text-left text-[11.5px] text-faint hover:text-ink"
       >
         <span aria-hidden>{open ? "▾" : "▸"}</span>
         <span>{t("theseLeaves")}</span>

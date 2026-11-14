@@ -1,6 +1,6 @@
 import { glyph, type ReadWord, type Say } from "tisty-sheet";
 import { offered, type Paper } from "./paper";
-import type { About, Book, Tongue } from "./side";
+import type { About, Book, Tongue, Turn } from "./side";
 import { made, pressed, toggle, tooled } from "./sideParts";
 
 type Of<K extends About["kind"]> = Extract<About, { kind: K }>;
@@ -149,6 +149,23 @@ const tongued = (page: Document, say: Say, tongues: readonly Tongue[]) =>
     ? picker(page, say, tongues)
     : segmented(page, say, tongues);
 
+// The page as drawn or as written, chosen side by side as the languages are.
+const viewed = (page: Document, say: Say, view: Turn) => {
+  const row = made(page, "div", "side-leaves side-tongues");
+  row.setAttribute("role", "group");
+  for (const [markdown, word] of [
+    [false, "viewPreview"],
+    [true, "viewMarkdown"],
+  ] as const) {
+    const button = pressed(page, "side-leaf", say(word), () => {
+      if (view.on !== markdown) view.onTurn(markdown);
+    });
+    button.setAttribute("aria-pressed", String(view.on === markdown));
+    row.append(button);
+  }
+  return row;
+};
+
 const titled = (page: Document, say: Say, panel: Of<"title">) => {
   const head = made(page, "header", "side-title-row");
   const line = made(page, "div", "side-title-line");
@@ -160,6 +177,7 @@ const titled = (page: Document, say: Say, panel: Of<"title">) => {
   head.append(line);
   if (panel.under || panel.trail?.length) head.append(trailed(page, panel));
   if (panel.tongues?.length) head.append(tongued(page, say, panel.tongues));
+  if (panel.view) head.append(viewed(page, say, panel.view));
   return head;
 };
 

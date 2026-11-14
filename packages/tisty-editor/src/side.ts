@@ -90,6 +90,7 @@ export type Panel =
       readonly under?: string;
       readonly trail?: readonly Step[];
       readonly tongues?: readonly Tongue[];
+      readonly view?: Turn;
       readonly onApart?: () => void;
       readonly onShut?: () => void;
     }

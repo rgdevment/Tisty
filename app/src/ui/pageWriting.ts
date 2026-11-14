@@ -272,12 +272,37 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
     return Boolean(page.querySelector(".page")?.contains(target));
   };
 
+  // A page break holds no words, so the key that would join a block to it takes the break away instead.
+  const pastBreak = (kind: string): { from: number; to: number } | null => {
+    const back = kind === "deleteContentBackward";
+    if (!back && kind !== "deleteContentForward") return null;
+    const range = chosen();
+    if (!range?.collapsed) return null;
+    const node = range.startContainer;
+    const element = node.nodeType === Node.ELEMENT_NODE ? (node as Element) : node.parentElement;
+    const top = element?.closest(".page > [data-at]");
+    if (!top) return null;
+    const edge = page.createRange();
+    edge.selectNodeContents(top);
+    if (back) edge.setEnd(range.startContainer, range.startOffset);
+    else edge.setStart(range.startContainer, range.startOffset);
+    if (edge.toString() !== "") return null;
+    const beside = back ? top.previousElementSibling : top.nextElementSibling;
+    const at = beside?.matches("hr[data-at]") ? spanned(beside.getAttribute("data-at")) : null;
+    if (!beside || !at) return null;
+    const until = spanned(beside.nextElementSibling?.getAttribute("data-at") ?? null)?.[0] ?? at[1];
+    const text = hands.text();
+    return { from: charsAt(text, at[0]), to: charsAt(text, until) };
+  };
+
   const asked = (event: InputEvent) => {
     if (!onSheet(event) || event.isComposing || event.inputType === "insertCompositionText") return;
     event.preventDefault();
     const kind = event.inputType;
     if (kind === "historyUndo") return turned(undone, redone);
     if (kind === "historyRedo") return turned(redone, undone);
+    const broken = pastBreak(kind);
+    if (broken) return put({ ...broken, insert: "" }, broken.from);
     const [target] = event.getTargetRanges?.() ?? [];
     const range = target ?? chosen();
     const whole = range && !range.collapsed;

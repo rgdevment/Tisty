@@ -36,6 +36,8 @@ export type ReadWord =
   | "leafNeedsSheets"
   | "sheetsShown"
   | "viewSource"
+  | "viewPreview"
+  | "viewMarkdown"
   | "cardAway"
   | "cardHere"
   | "cardGone"

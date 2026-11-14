@@ -188,6 +188,12 @@ export default function Beside(props: Props) {
           away: one.away,
           onPick: () => latest.current.onTongue?.(one),
         })),
+        view: canRaw
+          ? {
+              on: props.markdown ?? false,
+              onTurn: (on) => latest.current.onMarkdown?.(on),
+            }
+          : undefined,
         onApart: () => latest.current.onApart(),
         onShut: () => latest.current.onShut(),
       },
@@ -205,12 +211,6 @@ export default function Beside(props: Props) {
                 onTurn: (turned) => latest.current.onLandscape?.(turned),
               }
             : undefined,
-        raw: canRaw
-          ? {
-              on: props.markdown ?? false,
-              onTurn: (on) => latest.current.onMarkdown?.(on),
-            }
-          : undefined,
         exporting: props.making,
         onExport: (at) => {
           if (performance.now() - shutAt.current < REOPENS) return;
