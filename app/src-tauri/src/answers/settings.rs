@@ -100,6 +100,8 @@ pub struct About {
 #[serde(rename_all = "camelCase")]
 pub struct Settings {
     quiet: Vec<String>,
+    #[serde(default)]
+    urgent: bool,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     locale: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -125,6 +127,7 @@ pub fn settings(session: tauri::State<'_, Mutex<Session>>) -> Answer<Settings> {
 fn as_settings(session: &Session) -> Settings {
     Settings {
         quiet: session.config.muted().to_vec(),
+        urgent: session.config.urgent == Some(true),
         locale: session.config.locale.clone(),
         theme: session.config.theme,
         holds: session.config.holds.unwrap_or_default(),
@@ -145,14 +148,29 @@ pub fn keep_settings(
     let mut session = held(&session);
     let quiet = settings.quiet.clone();
     let holds = settings.holds;
+    let urgent = settings.urgent;
     session.keep(|config| {
         config.quiet = (!quiet.is_empty()).then_some(quiet);
         config.holds = Some(holds);
+        config.urgent = urgent.then_some(true);
     })?;
     let now = as_settings(&session);
     drop(session);
-    herald::respeak(&app, &now.quiet);
+    herald::respeak(&app, &now.quiet, now.urgent);
     Ok(now)
+}
+
+#[tauri::command]
+pub fn urgent_offered(booking: tauri::State<'_, crate::booking::Booking>) -> bool {
+    booking.urgent()
+}
+
+// Tisty never changes the system's own switches; it only opens the page where the person does.
+#[tauri::command]
+pub fn open_notice_settings() -> Answer<()> {
+    let page = crate::booking::settings_page().ok_or_else(|| Refusal::of("cannotOpen"))?;
+    tauri_plugin_opener::open_url(page, None::<&str>)
+        .map_err(|_| Refusal::about("cannotOpen", page.to_string()))
 }
 
 #[tauri::command]

@@ -735,6 +735,7 @@ export type Theme = "light" | "dark";
 
 export interface Settings {
   quiet: string[];
+  urgent?: boolean;
   locale?: string;
   theme?: Theme;
   holds: Holds;
