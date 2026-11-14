@@ -86,7 +86,7 @@ const KEYED: Record<string, readonly [string, string]> = {
   "shift c": ["`", "`"],
   k: ["[", "]()"],
 };
-const MARKS = ["**", "__", "++", "~~", "==", "*", "_"];
+const RUN = /^(?:\*+|_+|\+\+|~~|==(?:\{[a-z]+\})?)+/;
 const QUOTED = /^(\s*(?:>\s?)*)/;
 const LISTED = /^(\s*(?:>\s?)*\s*)([-*+]|(\d+)([.)]))(\s+)(\[[ xX]\]\s+)?/;
 
@@ -138,17 +138,14 @@ const closing = (text: string, at: number) => {
   return "\n".repeat(Math.max(0, 2 - (/^\n*/.exec(after)?.[0].length ?? 0)));
 };
 
-// A space typed at the end of formatted words goes past their closing marks, as Markdown ends a format at a word.
+// A space typed at the end of formatted words goes past the marks that close them, never ones a next word opens.
 const pastClose = (text: string, at: number): number | null => {
   if (!/\S/.test(text[at - 1] ?? "")) return null;
   const line = text.slice(text.lastIndexOf("\n", at - 1) + 1, at);
   if ((line.match(/`/g)?.length ?? 0) % 2) return null;
-  const mark = MARKS.find((one) => text.startsWith(one, at));
-  if (!mark) return null;
-  const opened = line.lastIndexOf(mark);
-  if (opened < 0 || /\s/.test(line[opened + mark.length] ?? " ")) return null;
-  const close = mark === "==" ? (/^==(?:\{[a-z]+\})?/.exec(text.slice(at))?.[0] ?? mark) : mark;
-  return at + close.length;
+  const run = RUN.exec(text.slice(at))?.[0];
+  if (!run || /[\p{L}\p{N}]/u.test(text[at + run.length] ?? "")) return null;
+  return line.includes(run.slice(0, 1)) ? at + run.length : null;
 };
 
 const CLOSERS =
@@ -156,6 +153,17 @@ const CLOSERS =
 
 const lineEndPast = (text: string, at: number) =>
   at + (CLOSERS.exec(text.slice(at))?.[0].length ?? 0);
+
+// Stars and underscores stack, so a run of three is bold and italic at once and two alone are only bold.
+const starred = (text: string, one: { from: number; to: number }, open: string) => {
+  const mark = open[0] ?? "*";
+  let before = 0;
+  while (text[one.from - before - 1] === mark) before++;
+  let after = 0;
+  while (text[one.to + after] === mark) after++;
+  const most = Math.min(before, after);
+  return open.length === 1 ? most % 2 === 1 : most >= 2;
+};
 
 const applied = (text: string, one: Edit) =>
   `${text.slice(0, one.from)}${one.insert}${text.slice(one.to)}`;
@@ -400,9 +408,10 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
   const worn = (one: { from: number; to: number }, open: string, close: string): Edit => {
     const text = hands.text();
     const inner = text.slice(one.from, one.to);
-    const around =
-      text.slice(one.from - open.length, one.from) === open &&
-      text.slice(one.to, one.to + close.length) === close;
+    const around = /^(\*|_)\1?$/.test(open)
+      ? starred(text, one, open)
+      : text.slice(one.from - open.length, one.from) === open &&
+        text.slice(one.to, one.to + close.length) === close;
     return around
       ? { from: one.from - open.length, to: one.to + close.length, insert: inner }
       : { ...one, insert: `${open}${inner}${close}` };
@@ -460,9 +469,12 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
       return;
     }
     pending = null;
+    const lead = /^\s*/.exec(typed)?.[0] ?? "";
+    const words = typed.trim();
+    const trail = typed.slice(lead.length + words.length);
     put(
-      { from: at, to: at, insert: `${wait.open}${typed}${wait.close}` },
-      at + wait.open.length + typed.length,
+      { from: at, to: at, insert: `${lead}${wait.open}${words}${wait.close}${trail}` },
+      at + lead.length + wait.open.length + words.length,
     );
   };
 

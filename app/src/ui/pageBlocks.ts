@@ -31,7 +31,13 @@ export const blockPlaced = (
     const tail = text.slice(start).startsWith("\n") || start >= text.length ? "" : "\n\n";
     return { edit: { from: start, to: start, insert: `${block}${tail}` }, caret: start + inside };
   }
-  return { edit: { from: end, to: end, insert: `\n\n${block}` }, caret: end + 2 + inside };
+  let from = end;
+  while (from > 0 && /[\r\n]/.test(text[from - 1] ?? "")) from--;
+  const body = /^\r?\n/.test(text.slice(from)) ? block.replace(/\n+$/, "") : block;
+  return {
+    edit: { from, to: from, insert: `\n\n${body}` },
+    caret: from + 2 + Math.min(inside, body.length),
+  };
 };
 
 export const placed = (text: string, at: number, end: number, one: Slashed): Placing => {

@@ -462,7 +462,7 @@ describe("a format pressed with nothing chosen", () => {
     expect(last(said).startsWith("# Hola*ab*\n")).toBe(true);
   });
 
-  it.fails("keeps a leading space of the first key outside the marks", () => {
+  it("keeps a leading space of the first key outside the marks", () => {
     const said = writer();
     caretIn("Hola", 4);
     key("b", { ctrlKey: true });
@@ -554,7 +554,7 @@ describe("words chosen earlier", () => {
     expect(last(said).startsWith("# Hola**x**\n")).toBe(true);
   });
 
-  it.fails("wrap in bold and italic together when italic is pressed on bold words", () => {
+  it("wraps in bold and italic together when italic is pressed on bold words", () => {
     const said = writer();
     choose("dos", 0, 3);
     key("i", { ctrlKey: true });
@@ -636,7 +636,7 @@ describe("a space typed at the end of formatted words", () => {
     expect(last(said)).toBe(" **dos**");
   });
 
-  it.fails("keeps the bold marks together when the words are bold and italic", () => {
+  it("keeps the bold marks together when the words are bold and italic", () => {
     const said = lineAt("***dos***", 6);
     asked("insertText", " ");
     expect(last(said)).toBe("***dos*** ");
@@ -654,7 +654,7 @@ describe("a space typed at the end of formatted words", () => {
     expect(last(said)).toBe("**a** b **c** ");
   });
 
-  it.fails("does not move a space past marks that belong to a word that follows", () => {
+  it("does not move a space past marks that belong to a word that follows", () => {
     const said = lineAt("**a**b**c**", 6);
     asked("insertText", " ");
     expect(last(said)).toBe("**a**b **c**");
@@ -909,7 +909,7 @@ describe("Ctrl and Enter", () => {
     expect(last(said)).toContain("- primero\n- segundo\n");
   });
 
-  it.fails("leaves one blank line on each side of the break after a paragraph", () => {
+  it("leaves one blank line on each side of the break after a paragraph", () => {
     const said = writer();
     caretIn("dos", 1);
     key("Enter", { ctrlKey: true });
@@ -930,7 +930,7 @@ describe("Ctrl and Enter", () => {
     expect(last(said)).toMatch(/- primero\n- segundo\n\n+---\n/);
   });
 
-  it.fails("ends the page with a single blank line before a break put after the last list", () => {
+  it("ends the page with a single blank line before a break put after the last list", () => {
     const said = writer();
     caretIn("primero", 3);
     key("Enter", { ctrlKey: true });
