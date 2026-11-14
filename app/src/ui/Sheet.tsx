@@ -658,6 +658,42 @@ export default function Sheet(props: Readonly<Props>) {
     if (!open.current) block(asked.at, asked.block, "", asked.read, asked);
   };
 
+  const pageFormat = (asked: Formatting) =>
+    pageWriter.current?.hands.format(asked.open, asked.close);
+
+  // On the page written in place, cutting and copying carry the Tisty Markdown of the words chosen.
+  const pageMenu = (at: { x: number; y: number }, asked: Menued) => {
+    const writer = pageWriter.current?.hands;
+    const words = writer?.chosen() ?? null;
+    const back = () => shown.current?.focus();
+    const choices: Choice[] = [...pictures.offered(shown.current?.document, asked.picture)];
+    if (writer && words) {
+      choices.push(
+        {
+          key: "cut",
+          label: t("cutIt"),
+          apart: choices.length > 0,
+          onPick: () =>
+            void copied(words).then(() => {
+              writer.cut();
+              back();
+            }),
+        },
+        { key: "copy", label: t("copyIt"), onPick: () => void copied(words).then(back) },
+        ...FORMATS.map(([word, , mark, close], index) => ({
+          key: `format-${word}`,
+          label: t(word),
+          apart: index === 0,
+          onPick: () => {
+            back();
+            writer.format(mark, close);
+          },
+        })),
+      );
+    }
+    if (choices.length > 0) setMenu({ ...at, choices });
+  };
+
   const chose = ({ at, block: element, read, said: words, typed }: Chosen) => {
     if (open.current) return;
     block(at, element, "", read);
@@ -724,6 +760,7 @@ export default function Sheet(props: Readonly<Props>) {
   const menued = (asked: Menued) => {
     const frame = shown.current?.frameElement?.getBoundingClientRect();
     const at = { x: (frame?.left ?? 0) + asked.x, y: (frame?.top ?? 0) + asked.y };
+    if (onPage) return pageMenu(at, asked);
     const editing = open.current?.view;
     if (asked.writing) return editing && setMenu({ ...at, choices: writingChoices(editing) });
     const { picked, block: under, picture } = asked;
@@ -1183,8 +1220,8 @@ export default function Sheet(props: Readonly<Props>) {
           onCut={reading || !fixed ? undefined : cut}
           onWiden={reading || fixed ? undefined : widen}
           onTable={reading || fixed ? undefined : tables.onTable}
-          onFormat={reading || fixed ? undefined : format}
-          onChoose={reading || fixed ? undefined : chose}
+          onFormat={reading || fixed ? undefined : onPage ? pageFormat : format}
+          onChoose={reading || fixed || onPage ? undefined : chose}
           onMend={reading || fixed ? undefined : mended}
           onMenu={fixed ? undefined : menued}
           onMore={reading || fixed ? undefined : asked}

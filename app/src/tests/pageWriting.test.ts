@@ -142,6 +142,44 @@ describe("writing on the page the core draws", () => {
     expect(said[said.length - 1]).toContain("**y dos**");
   });
 
+  it("takes a format off words already wearing it, and keeps the words chosen before a button", () => {
+    const said = writer();
+    const range = document.createRange();
+    range.setStart(piece("dos"), 0);
+    range.setEnd(piece("dos"), 3);
+    document.getSelection()?.removeAllRanges();
+    document.getSelection()?.addRange(range);
+    document.dispatchEvent(new Event("selectionchange"));
+    document.getSelection()?.removeAllRanges();
+    writing?.format("**", "**");
+    expect(said[said.length - 1]).toBe("# Hola\n\nUno dos tres\n\n- primero\n- segundo\n");
+  });
+
+  it("cuts the words chosen and hands their Markdown", () => {
+    const said = writer();
+    const range = document.createRange();
+    range.setStart(piece("Uno "), 0);
+    range.setEnd(piece("dos"), 3);
+    document.getSelection()?.removeAllRanges();
+    document.getSelection()?.addRange(range);
+    expect(writing?.chosen()).toBe("Uno **dos");
+    writing?.cut();
+    expect(said[said.length - 1]).toBe("# Hola\n\n** tres\n\n- primero\n- segundo\n");
+  });
+
+  it("keeps the caret it lays through a key, and lets it go with an arrow", () => {
+    const said = writer();
+    caretIn("Hola", 4);
+    asked("insertText", "a");
+    document.dispatchEvent(new KeyboardEvent("keydown", { key: "b" }));
+    asked("insertText", "b");
+    expect(said[said.length - 1]?.startsWith("# Holaab\n")).toBe(true);
+    document.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowLeft" }));
+    caretIn("Hola", 0);
+    asked("insertText", "¡");
+    expect(said[said.length - 1]?.startsWith("# ¡Holaab\n")).toBe(true);
+  });
+
   it("leaves tables, drawings and rules to their own hands", () => {
     writer();
     pageOf(`${PLACED}<div class="table" data-at="47-60"></div><hr data-at="61-64">`);

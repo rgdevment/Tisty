@@ -1,5 +1,7 @@
 import { bytesAt } from "tisty-editor/read";
+import { t } from "../locales";
 import type { PlacedNear } from "../placing";
+import { addressAsked } from "./pageLinking";
 import { patched } from "./pagePatching";
 import { GHOST, ghostAt, sourceAt, spotOf } from "./pageSpots";
 
@@ -20,7 +22,13 @@ const BYTES = new TextEncoder();
 // What the rest of the window reads of the page catches up once the keys rest, not on each one.
 const RESTED_MS = 250;
 
-export type PageWriting = { readonly drawn: () => void; readonly stop: () => void };
+export type PageWriting = {
+  readonly drawn: () => void;
+  readonly stop: () => void;
+  readonly format: (open: string, close: string) => void;
+  readonly chosen: () => string | null;
+  readonly cut: () => void;
+};
 
 const WRITABLE =
   ".page > :is(p, h1, h2, h3, h4, h5, h6, ul, ol, blockquote, figure.code, .footnote)";
@@ -179,8 +187,12 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
       .catch(() => put({ ...one, insert: plain }));
   };
 
+  // A field laid over the page, as a link's address, writes its own words.
+  const onSheet = (event: Event) =>
+    Boolean(page.querySelector(".page")?.contains(event.target as Node | null));
+
   const asked = (event: InputEvent) => {
-    if (event.isComposing || event.inputType === "insertCompositionText") return;
+    if (!onSheet(event) || event.isComposing || event.inputType === "insertCompositionText") return;
     event.preventDefault();
     const kind = event.inputType;
     if (kind === "historyUndo") return turned(undone, redone);
@@ -199,17 +211,62 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
     if (kind === "insertFromPaste") return pasted(one, event.dataTransfer);
     if (kind.startsWith("delete")) return put({ ...one, insert: "" }, one.from);
     const pair = PAIRS[kind];
-    if (pair && one.from < one.to) {
-      const inner = text.slice(one.from, one.to);
-      put({ ...one, insert: `${pair}${inner}${pair}` }, one.to + pair.length * 2);
-    }
+    if (pair) format(pair, pair);
   };
 
-  const started = () => {
+  let lastChosen: { from: number; to: number } | null = null;
+  const noted = () => {
+    const range = chosen();
+    const sheet = page.querySelector(".page");
+    if (range && !range.collapsed && sheet?.contains(range.startContainer))
+      lastChosen = spanOfRange(range);
+  };
+
+  const chosenNow = () => {
+    const range = chosen();
+    const one = range && !range.collapsed ? spanOfRange(range) : lastChosen;
+    return one && one.from < one.to ? one : null;
+  };
+
+  // A format already around the words is taken off, as a second press of a button undoes the first.
+  const worn = (one: { from: number; to: number }, open: string, close: string): Edit => {
+    const text = hands.text();
+    const inner = text.slice(one.from, one.to);
+    const around =
+      text.slice(one.from - open.length, one.from) === open &&
+      text.slice(one.to, one.to + close.length) === close;
+    return around
+      ? { from: one.from - open.length, to: one.to + close.length, insert: inner }
+      : { ...one, insert: `${open}${inner}${close}` };
+  };
+
+  const linked = (one: { from: number; to: number }) => {
+    const held = page.getSelection();
+    const box = held?.rangeCount ? held.getRangeAt(0).getBoundingClientRect() : null;
+    const near = box ?? page.querySelector(".page")?.getBoundingClientRect();
+    if (!near) return;
+    void addressAsked(page, near, t("linkAddress")).then((to) => {
+      if (!to) return;
+      const inner = hands.text().slice(one.from, one.to);
+      put({ ...one, insert: `[${inner}](${to})` });
+    });
+  };
+
+  const format = (open: string, close: string) => {
+    const one = chosenNow();
+    if (!one) return;
+    if (close === "]()") return linked(one);
+    const change = worn(one, open, close);
+    put(change, change.from + change.insert.length);
+  };
+
+  const started = (event: CompositionEvent) => {
+    if (!onSheet(event)) return;
     const range = chosen();
     composing = range && spanOfRange(range);
   };
   const ended = (event: CompositionEvent) => {
+    if (!onSheet(event)) return;
     const one = composing;
     composing = null;
     if (one) put({ ...one, insert: event.data ?? "" });
@@ -238,13 +295,10 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
     kept = { node: spot[0], offset: spot[1], at: kept.at };
   };
 
+  // The page's events come from its own window, so a key is told by what it carries, not by its class.
   const moved = (event: Event) => {
-    if (
-      event instanceof KeyboardEvent &&
-      !event.key.startsWith("Arrow") &&
-      !/^(Home|End|Page)/.test(event.key)
-    )
-      return;
+    const key = "key" in event ? String(event.key) : null;
+    if (key !== null && !key.startsWith("Arrow") && !/^(Home|End|Page)/.test(key)) return;
     kept = null;
   };
 
@@ -253,11 +307,22 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
   page.addEventListener("compositionend", ended);
   page.addEventListener("mousedown", moved);
   page.addEventListener("keydown", moved);
+  page.addEventListener("selectionchange", noted);
   opened();
   return {
     drawn,
+    format,
+    chosen: () => {
+      const one = chosenNow();
+      return one ? hands.text().slice(one.from, one.to) : null;
+    },
+    cut: () => {
+      const one = chosenNow();
+      if (one) put({ ...one, insert: "" }, one.from);
+    },
     stop: () => {
       told();
+      page.removeEventListener("selectionchange", noted);
       page.removeEventListener("mousedown", moved);
       page.removeEventListener("keydown", moved);
       page.removeEventListener("beforeinput", asked);

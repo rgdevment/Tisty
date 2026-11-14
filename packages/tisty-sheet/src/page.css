@@ -1718,3 +1718,17 @@ html.lively:not(.tall) .page {
 html.lively:not(.sheeted) .page {
   max-width: none;
 }
+.page-address {
+  position: absolute;
+  z-index: 20;
+  width: min(360px, 80vw);
+  padding: 6px 10px;
+  border: 1px solid var(--tisty-accent);
+  border-radius: 8px;
+  background: var(--tisty-sheet);
+  color: var(--tisty-ink);
+  font: inherit;
+  font-size: 13px;
+  box-shadow: 0 8px 24px -10px var(--tisty-cast);
+  outline: none;
+}
