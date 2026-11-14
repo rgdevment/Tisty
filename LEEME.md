@@ -1571,4 +1571,9 @@ cuál aplica a lo que tengas, y por qué. En ningún caso se retiene nada del c�
       src="https://img.shields.io/sonar/coverage/rgdevment_Tisty?server=https%3A%2F%2Fsonarcloud.io&style=flat-square&logo=sonarcloud&label=Coverage"
       alt="Cobertura"/>
   </a>
+  <a href="https://github.com/rgdevment/Tisty/actions/workflows/github-code-scanning/codeql">
+    <img
+      src="https://img.shields.io/github/actions/workflow/status/rgdevment/Tisty/github-code-scanning/codeql?style=flat-square&logo=github&label=CodeQL"
+      alt="Análisis de CodeQL"/>
+  </a>
 </p>
