@@ -4,6 +4,16 @@ import { t } from "../locales";
 import type { PlacedNear } from "../placing";
 import { blank, blockPlaced, placed } from "./pageBlocks";
 import { addressAsked } from "./pageLinking";
+import {
+  type Act,
+  acted,
+  gripped,
+  type Moved,
+  movedTo,
+  swappedItem,
+  topsOf,
+  unitOf,
+} from "./pageMoving";
 import { patched } from "./pagePatching";
 import { GHOST, ghostAt, sourceAt, spotOf } from "./pageSpots";
 
@@ -20,6 +30,7 @@ export type Hands = {
   readonly translated: (html: string | null, plain: string) => Promise<string>;
   readonly ask: Asking["ask"];
   readonly blocks: (at: { x: number; y: number }, slash: boolean) => void;
+  readonly acts: (at: { x: number; y: number }, top: Element) => void;
 };
 
 type Point = { readonly x: number; readonly y: number };
@@ -36,6 +47,7 @@ export type PageWriting = {
   readonly cut: () => void;
   readonly slashed: (one: Slashed, drawnWhole?: boolean) => Edit | null;
   readonly typed: (said: string) => void;
+  readonly unitActed: (top: Element, act: Act) => void;
 };
 
 const WRITABLE =
@@ -67,6 +79,16 @@ const parted = (text: string, at: number, inCode: boolean): string => {
   }
   const quote = QUOTED.exec(line)?.[1] ?? "";
   return quote ? `\n${quote.trimEnd()}\n${quote}` : "\n\n";
+};
+
+// A change made whole, as a block moved, is laid as the one stretch of words it altered.
+const changeOf = (was: string, now: string): Edit => {
+  const most = Math.min(was.length, now.length);
+  let start = 0;
+  while (start < most && was[start] === now[start]) start++;
+  let end = 0;
+  while (end < most - start && was[was.length - 1 - end] === now[now.length - 1 - end]) end++;
+  return { from: start, to: was.length - end, insert: now.slice(start, now.length - end) };
 };
 
 const applied = (text: string, one: Edit) =>
@@ -402,14 +424,58 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
     const edge = sheet.getBoundingClientRect().left;
     plus.hidden = false;
     plus.style.top = `${(box.top + (view?.scrollY ?? 0)) / zoom}px`;
-    plus.style.left = `${(edge + (view?.scrollX ?? 0)) / zoom + 8}px`;
+    plus.style.left = `${(edge + (view?.scrollX ?? 0)) / zoom + 16}px`;
+  };
+
+  // The caret goes with the words it stood in, as far into them as it was.
+  const replaced = (moved: Moved | null) => {
+    if (!moved) return;
+    const at = caretSpan()?.from ?? -1;
+    const inside = at >= moved.was && at <= moved.was + moved.size;
+    put(changeOf(hands.text(), moved.text), moved.caret + (inside ? at - moved.was : 0));
+  };
+
+  const unitActed = (top: Element, act: Act) => {
+    const sheet = page.querySelector(".page");
+    if (!sheet) return;
+    const tops = topsOf(sheet);
+    replaced(acted(hands.text(), tops, tops.indexOf(top), act));
+  };
+
+  const movedOnto = (top: Element, target: Element | null) => {
+    const sheet = page.querySelector(".page");
+    if (!sheet) return;
+    const text = hands.text();
+    const tops = topsOf(sheet);
+    const unit = unitOf(text, tops, tops.indexOf(top));
+    const at = spanned(target?.getAttribute("data-at") ?? null);
+    if (unit) replaced(movedTo(text, unit, at ? charsAt(text, at[0]) : text.length));
+  };
+
+  // Alt with an arrow moves the item or the block the caret stands in, as it did in the Markdown.
+  const stepped = (event: KeyboardEvent) => {
+    const way = event.key === "ArrowUp" ? -1 : 1;
+    const node = page.getSelection()?.anchorNode ?? null;
+    const element = node?.nodeType === Node.ELEMENT_NODE ? (node as Element) : node?.parentElement;
+    const sheet = page.querySelector(".page");
+    if (!element || !sheet) return;
+    event.preventDefault();
+    const item = element.closest("li[data-at]");
+    if (item && sheet.contains(item)) return replaced(swappedItem(hands.text(), item, way));
+    const top = element.closest(".page > [data-at]");
+    if (top) unitActed(top, way < 0 ? "up" : "down");
   };
 
   const keyed = (event: KeyboardEvent) => {
-    if (!onSheet(event) || event.key !== "/" || !(event.ctrlKey || event.metaKey)) return;
+    if (!onSheet(event)) return;
+    if (event.altKey && (event.key === "ArrowUp" || event.key === "ArrowDown"))
+      return stepped(event);
+    if (event.key !== "/" || !(event.ctrlKey || event.metaKey)) return;
     event.preventDefault();
     hands.blocks(caretPoint(), false);
   };
+
+  const ungrip = gripped(page, { moved: movedOnto, asked: (top, at) => hands.acts(at, top) });
 
   // The page's events come from its own window, so a key is told by what it carries, not by its class.
   const moved = (event: Event) => {
@@ -434,6 +500,7 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
       return one ? hands.text().slice(one.from, one.to) : null;
     },
     slashed,
+    unitActed,
     typed: (said) => {
       const span = caretSpan();
       if (span) put({ ...span, insert: said });
@@ -447,6 +514,7 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
       page.removeEventListener("selectionchange", noted);
       page.removeEventListener("keydown", keyed);
       plus.remove();
+      ungrip();
       page.removeEventListener("mousedown", moved);
       page.removeEventListener("keydown", moved);
       page.removeEventListener("beforeinput", asked);

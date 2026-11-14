@@ -12,7 +12,7 @@ import { copied } from "../core";
 import { t } from "../locales";
 import type { Choice } from "./Menu";
 
-const ALT = typeof navigator !== "undefined" && /Mac/.test(navigator.platform) ? "⌥" : "Alt";
+export const ALT = typeof navigator !== "undefined" && /Mac/.test(navigator.platform) ? "⌥" : "Alt";
 
 export const livelyChoices = (editing: EditorView): Choice[] => {
   const { from, to } = editing.state.selection.main;

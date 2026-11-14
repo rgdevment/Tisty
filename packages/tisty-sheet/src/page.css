@@ -1754,8 +1754,42 @@ html.lively:not(.sheeted) .page {
   border-color: var(--tisty-accent);
   color: var(--tisty-ink);
 }
+.page-grip {
+  position: absolute;
+  z-index: 15;
+  width: 14px;
+  height: 22px;
+  padding: 0;
+  border: none;
+  border-radius: 4px;
+  background: none;
+  color: var(--tisty-faint);
+  font: inherit;
+  font-size: 12px;
+  line-height: 22px;
+  letter-spacing: -2px;
+  cursor: grab;
+  user-select: none;
+}
+.page-grip:hover {
+  background: var(--tisty-hover);
+  color: var(--tisty-ink);
+}
+.page-grip:active {
+  cursor: grabbing;
+}
+.page-drop {
+  position: absolute;
+  z-index: 15;
+  height: 2px;
+  border-radius: 1px;
+  background: var(--tisty-accent);
+  pointer-events: none;
+}
 @media print {
   .page-plus,
+  .page-grip,
+  .page-drop,
   .page-address {
     display: none;
   }

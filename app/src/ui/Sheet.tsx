@@ -43,12 +43,13 @@ import { cardedAt, movedCard, putCard } from "./carded";
 import { exportChoices, fileName } from "./drawing/exporting";
 import { useKeptHeight } from "./heights";
 import { edited, HOST } from "./hosting";
-import { livelyChoices } from "./livelyMenu";
+import { ALT, livelyChoices } from "./livelyMenu";
 import { LivelyBelow, useFrameScroll, ViewSwitch } from "./liveSheet";
 import Menu, { type Choice } from "./Menu";
 import { mended as mendedText } from "./mending";
 import Page from "./Page";
 import { dressedLaid } from "./pageDressing";
+import type { Act } from "./pageMoving";
 import { type Hands, type PageWriting, writtenOn } from "./pageWriting";
 import type { Went } from "./paging";
 import { closed, joined, laid, parting } from "./parting";
@@ -678,6 +679,26 @@ export default function Sheet(props: Readonly<Props>) {
     setMenu({ ...at, label: t("blocksOf"), choices, find: t("blockFind"), unpicked });
   };
 
+  // What the grip beside a block offers: moving it, a copy under it, or taking it away.
+  const blockActs = (at: { x: number; y: number }, top: Element) => {
+    const writer = pageWriter.current?.hands;
+    if (!writer) return;
+    const act = (kind: Act) => () => {
+      shown.current?.focus();
+      writer.unitActed(top, kind);
+    };
+    setMenu({
+      ...at,
+      label: t("blocksOf"),
+      choices: [
+        { key: "up", label: t("blockUp"), keys: `${ALT} ↑`, onPick: act("up") },
+        { key: "down", label: t("blockDown"), keys: `${ALT} ↓`, onPick: act("down") },
+        { key: "double", label: t("blockDouble"), onPick: act("double") },
+        { key: "drop", label: t("blockDrop"), danger: true, apart: true, onPick: act("drop") },
+      ],
+    });
+  };
+
   const pageFormat = (asked: Formatting) =>
     pageWriter.current?.hands.format(asked.open, asked.close);
 
@@ -978,6 +999,7 @@ export default function Sheet(props: Readonly<Props>) {
     dressed: dressedLaid,
     ask: (kind, at, put, first) => said.current.asking?.ask(kind, at, put, first),
     blocks: (at, slash) => blockMenu(at, slash),
+    acts: blockActs,
     translated: (html, plain) =>
       html ? HOST.fromHtml(html) : HOST.fromText(plain).then((said) => said ?? plain),
   };

@@ -66,6 +66,7 @@ const writer = (body = BODY) => {
       if (answer !== undefined) put(answer);
     },
     blocks: (_at, slash) => menus.push(slash),
+    acts: () => {},
   });
   return said;
 };
@@ -237,5 +238,18 @@ describe("the blocks put on the page written in place", () => {
     writing?.slashed(block("diagram"));
     const now = said[said.length - 1] ?? "";
     expect(now.startsWith("# Hola\n\n```mermaid\nflowchart LR\n```\n\nUno")).toBe(true);
+  });
+});
+
+describe("blocks moved with the keys on the page written in place", () => {
+  it("moves the item the caret stands in up with Alt and an arrow", () => {
+    const said = writer();
+    caretIn("segundo", 2);
+    document
+      .querySelector(".page")
+      ?.dispatchEvent(
+        new KeyboardEvent("keydown", { key: "ArrowUp", altKey: true, bubbles: true }),
+      );
+    expect(said[said.length - 1]?.endsWith("- segundo\n- primero\n")).toBe(true);
   });
 });
