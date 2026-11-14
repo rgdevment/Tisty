@@ -166,7 +166,7 @@ Tisty knows what each answer costs, and keeps cutting it. Measured on a 256 KB M
 | Looks for something solved months ago | about 3% | 97% less |
 | Looks up one subject: the outline and one section | about 3%, 12% at worst | 88–97% less |
 
-No single write carries more than 64,000 characters, so a long log is kept as subjects in pages; no read brings more than about 12,000 characters unless the agent asks for a document whole to carry elsewhere, and past that a document asked for whole comes back as its outline; a task's page comes whole only up to about 4,000 characters, and a journal note holds at most 4,000; picking up again brings only what moved; and what is finished costs nothing until it is searched.
+No single write carries more than 64,000 characters, so a long log is kept as subjects in pages; no read brings more than about 12,000 characters unless the agent asks for a document whole to carry elsewhere, and past that a document asked for whole comes back as its outline; a task's page comes whole only up to about 4,000 characters, and a journal note holds at most 4,000; picking up again brings only what moved; what is finished costs nothing until it is searched; and a search brings ten tasks and ten documents at a time, each with the line that says it cut to 120 characters around the word.
 
 Connecting costs something too: the description of Tisty's tools weighs about a sixth of that log, a third less than it did, and a test keeps it from growing. An assistant that loads tools only as it uses them does not pay it whole; one that loads every tool each session saves 72–83%, and below some 50 KB of notes a plain file is cheaper. The counts are characters, with the JSON each answer carries included, and tokens follow them closely.
 

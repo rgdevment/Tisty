@@ -328,6 +328,9 @@ Where the saving comes from:
 - **The outline says what each section weighs** before anything is opened.
 - **Picking up again brings only what moved** since the last time.
 - **What is finished is archived**, and costs nothing until it is searched.
+- **A search brings ten tasks and ten documents at a time**, each with the line
+  that says it cut to 120 characters around the word, or titles alone when that
+  is all the agent needs.
 - **The outline points at repeated subjects and headings**, so they can be
   consolidated rather than read twice.
 
