@@ -1,4 +1,5 @@
 import { createContext, useContext } from "react";
+import { brainstormOf } from "./brainstorm";
 import type { Filed, Folded, List, Snapshot, Task } from "./core";
 import { detailOf, erasing } from "./detailing";
 import { docChoices, folderChoices, type Hands, hereChoices } from "./docMenus";
@@ -139,7 +140,16 @@ export function deskOf(state: State, data: Snapshot) {
     });
 
   const docMenu = (doc: Filed, at: { x: number; y: number }) =>
-    setMenu({ at, on: doc.id, label: t("docActions"), choices: docChoices(doc, hands) });
+    void brainstormOf()
+      .catch(() => null)
+      .then((board) =>
+        setMenu({
+          at,
+          on: doc.id,
+          label: t("docActions"),
+          choices: docChoices(doc, hands, board?.file === doc.file),
+        }),
+      );
 
   const listHands: ListHands = {
     edit: setEditingList,

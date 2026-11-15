@@ -162,4 +162,11 @@ describe("the menu of a document", () => {
     expect(pick(docChoices(other, h), "seePdf").off).toBe(true);
     expect(pick(docChoices(doc, h), "seePdf").off).toBe(false);
   });
+
+  it("offers the idea board only its copy, its shelving and its deletion", () => {
+    const board = docChoices(doc, hands(), true);
+
+    expect(board.map((one) => one.key)).toEqual(["copy", "away", "drop"]);
+    expect(board[0]?.apart).toBe(false);
+  });
 });
