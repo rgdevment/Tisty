@@ -1,0 +1,27 @@
+---
+source: crates/tisty-core/src/calendar_test.rs
+expression: "written(&saved(&long), stamp)"
+---
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//rgdevment//Tisty//EN
+CALSCALE:GREGORIAN
+BEGIN:VEVENT
+UID:01KA7B3VJ9RZ0Q8M5N2X4Y6W1T@tisty.app
+DTSTAMP:20261114T150000Z
+DTSTART:20261120T130000Z
+DTEND:20261120T133000Z
+SUMMARY:Vet & «booster» #2 + 50% off\, Rina\; ok? 🐶\\   Lucas brings t
+ he leash and the ball Lucas brings the leash and the ball Lucas brings the
+  leash and the ball
+DESCRIPTION:tisty://task?id=01KA7B3VJ9RZ0Q8M5N2X4Y6W1T
+URL:tisty://task?id=01KA7B3VJ9RZ0Q8M5N2X4Y6W1T
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:Vet & «booster» #2 + 50% off\, Rina\; ok? 🐶\\   Lucas brin
+ gs the leash and the ball Lucas brings the leash and the ball Lucas brings
+  the leash and the ball
+TRIGGER:-PT30M
+END:VALARM
+END:VEVENT
+END:VCALENDAR

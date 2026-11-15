@@ -8,6 +8,7 @@ pub mod backup;
 pub mod beside;
 pub mod brainstorm;
 pub mod cache;
+pub mod calendar;
 pub mod called;
 pub mod capture;
 pub mod closing;

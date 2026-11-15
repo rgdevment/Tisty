@@ -1,0 +1,5 @@
+---
+source: crates/tisty-core/src/calendar_test.rs
+expression: google(&saved(&odd_title()))
+---
+https://calendar.google.com/calendar/render?action=TEMPLATE&text=Vet%20%26%20%C2%ABbooster%C2%BB%20%232%20%2B%2050%25%20off%2C%20Rina%3B%20ok%3F%20%F0%9F%90%B6%5C&dates=20261120T130000Z/20261120T133000Z&details=tisty%3A%2F%2Ftask%3Fid%3D01KA7B3VJ9RZ0Q8M5N2X4Y6W1T

@@ -237,7 +237,7 @@ export default function Detail({
         </p>
       )}
       {task.status === "open" && onStepsSaid && <Vouched task={task} onAnswer={onStepsSaid} />}
-      <Fields task={task} lists={lists} known={known} onPatch={onPatch} />
+      <Fields task={task} lists={lists} known={known} onPatch={onPatch} onError={onError} />
 
       <TaskWords
         task={task}
