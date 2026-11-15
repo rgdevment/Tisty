@@ -558,11 +558,16 @@ export default function Sheet(props: Readonly<Props>) {
     if (!writer) return;
     const kinds = said.current.asking?.kinds ?? [];
     const steps = stagesIn(latest.current).length > 0;
+    // On a task's page every heading is a section, made from its own button, never from the words.
+    const sections =
+      shown.current?.document.documentElement.classList.contains("untitled") ?? false;
     let picked = false;
     const back = () => shown.current?.focus();
     const offered = SLASHED.filter(
       (one) =>
-        (!("ask" in one.put) || kinds.includes(one.put.ask)) && (one.key !== "step" || steps),
+        (!("ask" in one.put) || kinds.includes(one.put.ask)) &&
+        (one.key !== "step" || steps) &&
+        !(sections && /^h\d$/.test(one.key)),
     );
     // Blocks come first and the formats after them, so a word sought finds a block before a mark.
     const ordered = [

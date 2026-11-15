@@ -31,6 +31,11 @@ const PAIRS: Record<string, string> = {
 const SOLID_BLOCK =
   ".table, figure, details, hr, blockquote[data-callout], .front, [contenteditable='false']";
 
+const sectioned = (page: Document) => {
+  const look = page.documentElement.classList;
+  return look.contains("untitled") && !look.contains("shaping");
+};
+
 const ATOMS = "[contenteditable='false'], img, button";
 
 // A press on a page break leaves the caret on the sheet beside it, or on its label, never in words.
@@ -208,6 +213,11 @@ export const inputOn = (
       if (typed === " " && /^\s*(?:>\s?)*\[ ?\]$/.test(opened)) {
         const box = `${opened.replace(/\[ ?\]$/, "")}- [ ] `;
         return put({ from: one.from - opened.length, to: one.from, insert: box });
+      }
+      // On a task's page a heading is a section of its own, so marks typed for one stay words.
+      if (typed === " " && /^#{1,6}$/.test(opened) && sectioned(page)) {
+        const from = one.from - opened.length;
+        return put({ from, to: one.from, insert: `\\${opened} ` }, one.from + 2);
       }
       if (formats.carriedKey(text, one, typed)) return;
     }

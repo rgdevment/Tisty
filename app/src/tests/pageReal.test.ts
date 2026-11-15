@@ -164,3 +164,20 @@ describe("words a menu hands back after it closes", () => {
     expect(text()).not.toContain("fin/Tab");
   });
 });
+
+describe("a heading's marks typed on a task's page", () => {
+  it("stay words, as every heading there is a section of the task", () => {
+    document.documentElement.classList.add("untitled");
+    try {
+      const text = opened("nested");
+      caretAfter("Uno dos tres");
+      asked("insertParagraph");
+      asked("insertText", "#");
+      asked("insertText", " ");
+      asked("insertText", "Z");
+      expect(text()).toContain(`Uno dos tres\n\n${"\\"}# Z`);
+    } finally {
+      document.documentElement.classList.remove("untitled");
+    }
+  });
+});
