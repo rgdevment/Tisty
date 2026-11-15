@@ -440,6 +440,7 @@ describe("more of writing on the page the core draws", () => {
     caretIn("Hola", 4);
     writing?.slashed(block("icon"));
     expect(said[said.length - 1]?.startsWith("# Hola ::dog:: \n")).toBe(true);
+    writing?.stop();
     const again = writer();
     answers.push("::cat::");
     caretIn("Uno ", 4);
