@@ -319,7 +319,7 @@ export const diagramBar = (figure: HTMLElement, ways: BarWays) => {
 };
 
 // A formula is drawn over its words, so a quiet bar beside it opens them, as a widget's does.
-const mathBars = (page: Document) => {
+export const mathBars = (page: Document) => {
   for (const formula of page.querySelectorAll<HTMLElement>("div.math[data-at]")) {
     if (formula.querySelector(":scope > .math-bar")) continue;
     const bar = page.createElement("div");

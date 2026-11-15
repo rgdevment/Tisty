@@ -64,4 +64,13 @@ describe("the blocks the core draws again on the page written in place", () => {
     expect(stages).toEqual(["stage--1", "stage--2"]);
     expect(sheet.querySelectorAll("li.task")[1]?.getAttribute("title")).toBe("Vence mañana");
   });
+
+  it("give a formula drawn again its way to its code", () => {
+    const sheet = pageOf('<div class="math" data-at="0-20"><math></math></div>');
+    wornLaid(document, [sheet.children[0] as Element], () => true, {
+      ...REACH,
+      onSource: () => {},
+    });
+    expect(sheet.querySelector('.math-bar [data-asked="code"]')).not.toBeNull();
+  });
 });

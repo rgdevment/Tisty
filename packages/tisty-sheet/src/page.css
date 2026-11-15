@@ -617,6 +617,14 @@ figure.diagram:has(> .diagram-bar) {
   user-select: none;
   transition: opacity 0.12s;
 }
+/* A formula is often a single short line, so its bar stands level with it rather than over its top. */
+.math-bar {
+  top: 50%;
+  transform: translateY(-50%);
+}
+div.math:has(> .math-bar) {
+  min-height: 28px;
+}
 figure.diagram:hover .diagram-bar,
 .diagram-bar:focus-within,
 div.math:hover .math-bar,
