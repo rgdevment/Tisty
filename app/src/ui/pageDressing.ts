@@ -27,12 +27,8 @@ export const wornLaid = (
     sheet.append(one);
     return mark;
   });
-  if (reach.onDiagram || reach.onDiagramExport || reach.onSource)
-    diagramBars(staging, {
-      open: Boolean(reach.onDiagram),
-      out: Boolean(reach.onDiagramExport),
-      words: Boolean(reach.onSource),
-    });
+  if (reach.onDiagram || reach.onDiagramExport)
+    diagramBars(staging, { open: Boolean(reach.onDiagram), out: Boolean(reach.onDiagramExport) });
   // Rows are numbered before their cells are drawn, as on the whole page, or each cell names no row.
   if (reach.onTable) tabled(staging);
   let held: (() => void)[] = [];

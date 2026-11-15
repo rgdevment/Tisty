@@ -12,7 +12,7 @@ Cómo se escribe cada tipo de diagrama está en la guía de Markdown de Tisty: [
 
 ## Abrir uno que ya existe
 
-Pasa el puntero sobre un diagrama y pulsa **Abrir en la ventana de diagramas**, o haz doble clic sobre él. **Editar como Markdown**, en la misma barra, abre su texto Mermaid ahí mismo en la página. Un clic simple sigue abriéndolo en grande, para mirarlo. La ventana solo se abre en documentos que puedes escribir, y cada diagrama tiene una sola.
+Pasa el puntero sobre un diagrama y pulsa **Abrir en la ventana de diagramas**, o haz doble clic sobre él. Su texto Mermaid se cambia en la vista Markdown (`Ctrl`/`⌘` + `E`). Un clic simple sigue abriéndolo en grande, para mirarlo. La ventana solo se abre en documentos que puedes escribir, y cada diagrama tiene una sola.
 
 ## La ventana
 

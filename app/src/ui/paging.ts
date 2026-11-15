@@ -26,7 +26,6 @@ export type Went =
   | { kind: "picture"; nth: number }
   | { kind: "diagram"; at: [number, number] }
   | { kind: "diagramExport"; at: [number, number] }
-  | { kind: "diagramMarkdown"; at: [number, number] }
   | TableWent
   | null;
 
@@ -141,7 +140,7 @@ const pressedIn = (asked: HTMLElement): Went => {
   if (asked.dataset.asked === "table") return tablePressed(asked);
   // A diagram inside a quote or a list is named by its own place, not by the block around it.
   const diagram = asked.dataset.asked;
-  if (diagram === "diagram" || diagram === "diagramExport" || diagram === "diagramMarkdown") {
+  if (diagram === "diagram" || diagram === "diagramExport") {
     const at = spanned(asked.closest<HTMLElement>("figure.diagram[data-at]")?.dataset.at ?? null);
     return at ? { kind: diagram, at } : null;
   }

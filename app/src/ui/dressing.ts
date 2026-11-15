@@ -274,12 +274,8 @@ export const worn = (page: Document, live: () => boolean, reach?: Reaching): Wor
   if (reach?.onLanguage) languaged(page);
   const writable = Boolean(reach?.onTable);
   if (writable) tabled(page);
-  if (reach?.onDiagram || reach?.onDiagramExport || reach?.onSource)
-    diagramBars(page, {
-      open: Boolean(reach.onDiagram),
-      out: Boolean(reach.onDiagramExport),
-      words: Boolean(reach.onSource),
-    });
+  if (reach?.onDiagram || reach?.onDiagramExport)
+    diagramBars(page, { open: Boolean(reach.onDiagram), out: Boolean(reach.onDiagramExport) });
   let held: (() => void)[] = [];
   let lent: Lending[] = [];
   const read = readAs(page, {
@@ -299,7 +295,7 @@ export const worn = (page: Document, live: () => boolean, reach?: Reaching): Wor
   return { lent, kept: [...held, ...read.kept] };
 };
 
-type BarWays = { readonly open: boolean; readonly out: boolean; readonly words: boolean };
+type BarWays = { readonly open: boolean; readonly out: boolean };
 
 export const diagramBar = (figure: HTMLElement, ways: BarWays) => {
   if (figure.querySelector(":scope > .diagram-bar")) return;
@@ -314,15 +310,11 @@ export const diagramBar = (figure: HTMLElement, ways: BarWays) => {
     bar.append(one);
   };
   if (ways.out) button("diagramExport", t("diagramExport"));
-  if (ways.words) button("diagramMarkdown", t("diagramMarkdown"));
   if (ways.open) button("diagram", t("diagramOpen"));
   figure.append(bar);
 };
 
-export const diagramBars = (
-  page: Document,
-  ways: BarWays = { open: true, out: false, words: false },
-) => {
+export const diagramBars = (page: Document, ways: BarWays = { open: true, out: false }) => {
   for (const figure of page.querySelectorAll<HTMLElement>("figure.diagram[data-at]"))
     diagramBar(figure, ways);
 };
@@ -353,10 +345,6 @@ export const answered = (page: Document, asked: Went, reach: Reaching) => {
   if (asked.kind === "diagramExport") {
     const found = figureAt(page, asked.at);
     if (found) reach.onDiagramExport?.(found.nth, sourceOf(found.figure), underBar(found.figure));
-  }
-  if (asked.kind === "diagramMarkdown") {
-    const found = figureAt(page, asked.at);
-    if (found) reach.onSource?.(charsAt(reach.body, asked.at[0]));
   }
   if (asked.kind === "doc") reach.onDoc(asked.id);
   if (asked.kind === "task") reach.onTask?.(asked.id);
