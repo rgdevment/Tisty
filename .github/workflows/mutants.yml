@@ -127,22 +127,28 @@ jobs:
             || { echo "::error::the mutants ended as $RESULT"; exit 1; }
 
   window-on-the-branch:
-    name: window / the lines this branch changed
+    name: window / part ${{ matrix.part }} of 8
     needs: changes
     if: needs.changes.outputs.mutable == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        part: [1, 2, 3, 4, 5, 6, 7, 8]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
           persist-credentials: false
 
-      - name: What the branch changed in the window
+      # A branch that rewrites the editor carries thousands of mutants: one runner alone outlasts its hour.
+      - name: What the branch changed in the window, dealt out so the parts weigh the same
         id: touched
         working-directory: app
         env:
           BASE: ${{ github.event.pull_request.base.sha }}
+          PART: ${{ matrix.part }}
         run: |
           from=$(git merge-base "$BASE" HEAD)
           list=$(git diff --unified=0 --relative --diff-filter=d "$from" -- src \
@@ -157,10 +163,59 @@ jobs:
                   split($3, a, ",")
                   start = substr(a[1], 2) + 0
                   len = (a[2] == "" ? 1 : a[2] + 0)
-                  if (len > 0) print f ":" start "-" start + len - 1
+                  if (len > 0) print len, f ":" start "-" start + len - 1
+                }' \
+            | sort -rn \
+            | awk -v part="$PART" -v many=8 '
+                { range[NR] = $2; wide[NR] = $1; count = NR }
+                END {
+                  for (i = 1; i <= count; i++) {
+                    least = 1
+                    for (s = 2; s <= many; s++) if (load[s] < load[least]) least = s
+                    load[least] += wide[i]
+                    if (least == part) print range[i]
+                  }
                 }' \
             | paste -sd, -)
           echo "list=$list" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        if: steps.touched.outputs.list != ''
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - if: steps.touched.outputs.list != ''
+        run: npm ci
+
+      - name: A mutant that lives in a file this branch wrote
+        if: steps.touched.outputs.list != ''
+        working-directory: app
+        env:
+          TOUCHED: ${{ steps.touched.outputs.list }}
+        run: |
+          npx stryker run --mutate "$TOUCHED"
+          echo "::notice::survivors are in the report above and the artifact; this check does not fail on them"
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always() && steps.touched.outputs.list != ''
+        with:
+          name: mutants-branch-window-${{ matrix.part }}
+          path: app/reports/
+          retention-days: 7
+
+  packages-on-the-branch:
+    name: window / the packages this branch changed
+    needs: changes
+    if: needs.changes.outputs.mutable == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
 
       - name: What the branch changed in the packages
         id: packages
@@ -187,26 +242,17 @@ jobs:
           if [ -s "$RUNNER_TEMP/packages" ]; then echo "touched=true" >> "$GITHUB_OUTPUT"; fi
 
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        if: steps.touched.outputs.list != '' || steps.packages.outputs.touched == 'true'
+        if: steps.packages.outputs.touched == 'true'
         with:
           node-version: 22
           cache: npm
           cache-dependency-path: package-lock.json
 
-      - if: steps.touched.outputs.list != '' || steps.packages.outputs.touched == 'true'
+      - if: steps.packages.outputs.touched == 'true'
         run: npm ci
 
-      - name: A mutant that lives in a file this branch wrote
-        if: steps.touched.outputs.list != ''
-        working-directory: app
-        env:
-          TOUCHED: ${{ steps.touched.outputs.list }}
-        run: |
-          npx stryker run --mutate "$TOUCHED"
-          echo "::notice::survivors are in the report above and the artifact; this check does not fail on them"
-
       - name: A mutant that lives in a package file this branch wrote
-        if: ${{ !cancelled() && steps.packages.outputs.touched == 'true' }}
+        if: steps.packages.outputs.touched == 'true'
         run: |
           # One package that will not run still leaves the others their report.
           failed=0
@@ -217,11 +263,28 @@ jobs:
           exit "$failed"
 
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        if: always() && (steps.touched.outputs.list != '' || steps.packages.outputs.touched == 'true')
+        if: always() && steps.packages.outputs.touched == 'true'
         with:
-          name: mutants-branch-window
-          path: |
-            app/reports/
-            packages/*/reports/
+          name: mutants-branch-packages
+          path: packages/*/reports/
           retention-days: 7
 
+  # The check the branch rules wait for keeps its name, whatever parts it is made of.
+  window-summed:
+    name: window / the lines this branch changed
+    if: always()
+    needs: [changes, window-on-the-branch, packages-on-the-branch]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Every part of the window and the packages ran, or nothing mutable changed
+        env:
+          LOOKED: ${{ needs.changes.result }}
+          PARTS: ${{ needs.window-on-the-branch.result }}
+          PACKAGES: ${{ needs.packages-on-the-branch.result }}
+        run: |
+          [ "$LOOKED" = "success" ] || { echo "::error::what the branch touched could not be read ($LOOKED)"; exit 1; }
+          for one in "$PARTS" "$PACKAGES"; do
+            [ "$one" = "success" ] || [ "$one" = "skipped" ] \
+              || { echo "::error::the mutants ended as $one"; exit 1; }
+          done
