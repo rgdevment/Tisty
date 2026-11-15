@@ -15,7 +15,7 @@ You write on the same page you read, the one Tisty draws. There is no separate e
 - **`Tab` puts a list item under the one above, and `Shift` + `Tab` takes it back out.** In code, `Tab` indents with two spaces.
 - **`Backspace` at the start of an item** takes its box away first, then its bullet or its number, and the line is left as text.
 - **Tick a box with a click**, a sticky note's too. A sticky note is written inside and dragged by its paper, its tape or its pin.
-- **A click on a picture or a diagram opens it large**, to zoom in, move it around and go to the next one. A diagram brings its own bar when the pointer is over it: **Export** and **Open in the diagram window**; a double click also opens it in the [[diagram window|Diagrams]]. Its text is changed in the Markdown view. A widget brings **Show code**.
+- **A click on a picture or a diagram opens it large**, to zoom in, move it around and go to the next one. A diagram brings its own bar when the pointer is over it: **Export** and **Open in the diagram window**; a double click also opens it in the [[diagram window|Diagrams]]. Its text is changed in the Markdown view. A widget and a formula bring **Show code**, which opens the Markdown view at their code.
 - **Code is written as it is.** Inside a code block there are no formats and no spell checker, and `/` is just a slash. The label in its corner, like «rust» or «yaml», opens the list of languages to choose the colours it is drawn with. Typing `` ``` `` at the start of a line opens a code block that closes itself, and a language's name written on its first line, like `rust`, becomes its language with Enter.
 - **A page break is neither written in nor moved.** `Backspace` at the start of the block after it, or `Delete` at the end of the block before it, takes it away, and the rest stays as it was. What you type right after it starts on a new line under it.
 - **A table, a code block, a picture, a diagram, a collapsible section or a callout is not joined to what sits beside it.** `Backspace` at the start of the block after it, or `Delete` at the end of the block before it, does nothing; to take one away there is **Delete block**, on its handle.
@@ -42,7 +42,7 @@ Type `/` at the start of a line, on a blank line or after a space, and the menu 
 - The five callouts: Note, Tip, Important, Warning and Caution, and the Idea sticky note.
 - Bold, italic, underline, strikethrough, code, link and the highlight pen.
 - An icon, looked up by what it draws.
-- A new diagram, which opens the [[diagram window|Diagrams]], a copy of an existing diagram, or a Mermaid block as text; a formula, a widget and a code block. What is written as text, such as a formula or a widget, opens the Markdown view with the caret inside.
+- A new diagram, which opens the [[diagram window|Diagrams]], a copy of an existing diagram, or a Mermaid block as text; a formula, a widget and a code block. The formula, the widget and the Mermaid block come with a sample already drawn, and what you type next goes on a line under it.
 - A table, which opens on its first title.
 - A **collapsible section**: a title that folds what is under it.
 - A page break.

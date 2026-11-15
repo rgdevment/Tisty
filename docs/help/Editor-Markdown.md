@@ -15,7 +15,7 @@ Se escribe sobre la misma página que lees, la que dibuja Tisty. No hay un modo 
 - **`Tab` mete un elemento de la lista bajo el de arriba, y `Shift` + `Tab` lo saca.** En el código, `Tab` sangra con dos espacios.
 - **`Retroceso` al inicio de un elemento** quita primero su casilla y después su viñeta o su número, y la línea queda como texto.
 - **Marca una casilla con un clic**, también la de una nota adhesiva. Una nota adhesiva se escribe por dentro y se arrastra desde su papel, su cinta o su chinche.
-- **Un clic sobre una imagen o un diagrama lo abre en grande**, para acercarlo, moverlo y pasar al siguiente. Un diagrama trae su propia barra al pasar el puntero: **Exportar** y **Abrir en la ventana de diagramas**; un doble clic también lo abre en la [[ventana de diagramas|Diagramas]]. Su texto se cambia en la vista Markdown. Un widget trae **Ver código**.
+- **Un clic sobre una imagen o un diagrama lo abre en grande**, para acercarlo, moverlo y pasar al siguiente. Un diagrama trae su propia barra al pasar el puntero: **Exportar** y **Abrir en la ventana de diagramas**; un doble clic también lo abre en la [[ventana de diagramas|Diagramas]]. Su texto se cambia en la vista Markdown. Un widget y una fórmula traen **Ver código**, que abre la vista Markdown en su código.
 - **El código se escribe tal cual.** Dentro de un bloque de código no hay formatos ni corrector, y la `/` es solo una barra. La etiqueta de su esquina, como «rust» o «yaml», abre la lista de lenguajes para elegir con qué colores se dibuja. Escribir `` ``` `` al empezar una línea abre un bloque de código que se cierra solo, y el nombre de un lenguaje escrito en su primera línea, como `rust`, pasa a ser su lenguaje con Enter.
 - **Un salto de página no se escribe ni se mueve.** `Retroceso` al inicio del bloque que lo sigue, o `Supr` al final del que lo precede, lo quita, y el resto queda como estaba. Lo que escribes justo después de él empieza en una línea nueva debajo.
 - **Una tabla, un código, una imagen, un diagrama, una sección plegable o un aviso no se pegan a lo que tienen al lado.** `Retroceso` al inicio del bloque que los sigue, o `Supr` al final del que los precede, no hace nada; para quitarlos está **Borrar bloque**, en su asa.
@@ -42,7 +42,7 @@ Escribe `/` al empezar una línea, en una línea en blanco o después de un espa
 - Los cinco avisos: Nota, Consejo, Importante, Aviso y Cuidado, y la nota adhesiva de Idea.
 - Negrita, cursiva, subrayado, tachado, código, enlace y el rotulador.
 - Un icono, buscado por lo que dibuja.
-- Un diagrama nuevo, que abre la [[ventana de diagramas|Diagramas]], una copia de un diagrama existente o un bloque Mermaid como texto; una fórmula, un widget y un bloque de código. Lo que se escribe como texto, como una fórmula o un widget, abre la vista Markdown con el cursor dentro.
+- Un diagrama nuevo, que abre la [[ventana de diagramas|Diagramas]], una copia de un diagrama existente o un bloque Mermaid como texto; una fórmula, un widget y un bloque de código. La fórmula, el widget y el bloque Mermaid llegan con un ejemplo ya dibujado, y lo que escribas después sigue en un renglón debajo.
 - Una tabla, que se abre en su primer título.
 - Una **sección plegable**: un título que pliega lo que tiene debajo.
 - Un salto de página.
