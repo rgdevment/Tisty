@@ -37,6 +37,13 @@ describe("a block moved on the page written in place", () => {
     expect(acted(BODY, tops, 0, "up")).toBeNull();
   });
 
+  it("takes a title's section up past the whole section above, as down goes past the one below", () => {
+    const tops = topsOf(sheetOf());
+    expect(acted(BODY, tops, 3, "up")?.text).toBe(
+      "Intro.\n\n## Dos\n\nTexto dos.\n\n1. primero\n2. segundo\n\n## Uno\n\nTexto uno.\n",
+    );
+  });
+
   it("leaves a copy under itself, or goes with the blank lines after it", () => {
     const tops = topsOf(sheetOf());
     const doubled = acted(BODY, tops, 0, "double");

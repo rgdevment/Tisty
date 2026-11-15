@@ -73,6 +73,24 @@ export const swappedItem = (body: string, item: Element, way: -1 | 1): Moved | n
   return { text, caret, was, size: moving.length };
 };
 
+const levelOf = (one: Element | undefined) => {
+  const level = /^H([1-6])$/.exec(one?.tagName ?? "")?.[1];
+  return level ? Number(level) : null;
+};
+
+// A section goes up past the section before it, as it goes down past the next, never out of the heading above it.
+const upTo = (tops: readonly Element[], at: number): number | null => {
+  const level = levelOf(tops[at]);
+  if (level === null) return at > 0 ? at - 1 : null;
+  for (let one = at - 1; one >= 0; one--) {
+    const above = levelOf(tops[one]);
+    if (above === null || above > level) continue;
+    if (above === level) return one;
+    return one + 1 < at ? one + 1 : null;
+  }
+  return at > 0 ? 0 : null;
+};
+
 export const acted = (
   body: string,
   tops: readonly Element[],
@@ -84,7 +102,8 @@ export const acted = (
   const ended = (moved: Moved | null) =>
     moved && { ...moved, text: moved.text.replace(/(\r?\n)(?:\r?\n)+$/, "$1") };
   if (act === "up") {
-    const above = at > 0 ? spanOf(tops[at - 1]) : null;
+    const target = upTo(tops, at);
+    const above = target === null ? null : spanOf(tops[target]);
     return above ? ended(movedTo(body, unit, charsAt(body, above[0]))) : null;
   }
   if (act === "down") {
