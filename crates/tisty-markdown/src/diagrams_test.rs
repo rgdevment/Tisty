@@ -243,3 +243,54 @@ fn a_window_knows_which_diagram_it_holds_after_blocks_are_written_above_it() {
         assert_eq!(found, now.parse::<usize>().expect("an order"), "{case}");
     }
 }
+
+#[test]
+fn a_widget_is_found_by_its_tongue_and_written_over_in_its_own_place() {
+    use super::{Fence, fenced, redrawn_in};
+    let text = "```widget title=\"Rina\"\n<b>1</b>\n```\n\n```widget\n<b>1</b>\n```\n\n```mermaid\na\n```\n";
+    let found = fenced(text, Fence::Widget);
+    assert_eq!(found.len(), 2);
+    assert_eq!(found[0].source, "<b>1</b>\n");
+    let second = Place {
+        at: found[1].at.start,
+        nth: 1,
+    };
+    let (body, place) = redrawn_in(text, Fence::Widget, second, "<b>1</b>\n", "<i>2</i>")
+        .expect("the second widget");
+    assert_eq!(place, second);
+    assert_eq!(
+        body,
+        "```widget title=\"Rina\"\n<b>1</b>\n```\n\n```widget\n<i>2</i>\n```\n\n```mermaid\na\n```\n"
+    );
+    assert_eq!(
+        redrawn_in(text, Fence::Widget, second, "<b>9</b>\n", "x"),
+        None
+    );
+}
+
+#[test]
+fn a_widget_in_a_quote_or_a_crlf_file_keeps_its_marks_and_line_ends() {
+    use super::{Fence, fenced, redrawn_in};
+    let quoted = "> ```widget\n> <b>1</b>\n> ```\n";
+    let at = Place {
+        at: fenced(quoted, Fence::Widget)[0].at.start,
+        nth: 0,
+    };
+    assert_eq!(
+        redrawn_in(
+            quoted,
+            Fence::Widget,
+            at,
+            "<b>1</b>\n",
+            "<b>2</b>\n<i>3</i>"
+        )
+        .map(|one| one.0),
+        Some("> ```widget\n> <b>2</b>\n> <i>3</i>\n> ```\n".to_string()),
+    );
+    let crlf = "```widget\r\n<b>1</b>\r\n```\r\n";
+    let at = Place { at: 0, nth: 0 };
+    assert_eq!(
+        redrawn_in(crlf, Fence::Widget, at, "<b>1</b>\n", "<b>2</b>").map(|one| one.0),
+        Some("```widget\r\n<b>2</b>\r\n```\r\n".to_string()),
+    );
+}

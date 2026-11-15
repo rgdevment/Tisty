@@ -9,20 +9,40 @@ pub struct Diagram {
     inside: Option<Range<usize>>,
 }
 
+/// A block a window of its own opens and writes back: a diagram, or a widget.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Fence {
+    Diagram,
+    Widget,
+}
+
+impl Fence {
+    fn holds(self, tongue: &str) -> bool {
+        match self {
+            Self::Diagram => matches!(tongue, "mermaid" | "mmd"),
+            Self::Widget => tongue == "widget",
+        }
+    }
+}
+
 pub fn diagrams(text: &str) -> Vec<Diagram> {
+    fenced(text, Fence::Diagram)
+}
+
+pub fn fenced(text: &str, fence: Fence) -> Vec<Diagram> {
     let doc = crate::read(text);
     let mut found = Vec::new();
-    gather(doc.blocks(), text, &mut found);
+    gather(doc.blocks(), text, fence, &mut found);
     found
 }
 
-fn gather(blocks: &[Block], text: &str, found: &mut Vec<Diagram>) {
+fn gather(blocks: &[Block], text: &str, fence: Fence, found: &mut Vec<Diagram>) {
     for block in blocks {
         match &block.kind {
             Kind::Code {
                 tongue: Some(tongue),
                 ..
-            } if matches!(tongue.as_str(), "mermaid" | "mmd") => found.push(Diagram {
+            } if fence.holds(tongue) => found.push(Diagram {
                 at: block.at.clone(),
                 source: block
                     .spans
@@ -36,7 +56,7 @@ fn gather(blocks: &[Block], text: &str, found: &mut Vec<Diagram>) {
                     .zip(block.spans.last())
                     .map(|(first, last)| first.at.start..last.at.end),
             }),
-            _ => gather(&block.inner, text, found),
+            _ => gather(&block.inner, text, fence, found),
         }
     }
 }
@@ -50,8 +70,12 @@ pub struct Place {
 
 // Another diagram that merely says the same is never taken for this one: a copy is not a move.
 pub fn still(text: &str, place: Place, was: &str) -> Option<(Place, Diagram)> {
+    still_in(text, Fence::Diagram, place, was)
+}
+
+pub fn still_in(text: &str, fence: Fence, place: Place, was: &str) -> Option<(Place, Diagram)> {
     let was = was.replace('\r', "");
-    let found = diagrams(text);
+    let found = fenced(text, fence);
     let alike = found.iter().filter(|one| one.source == was).count();
     let nth = found
         .iter()
@@ -90,13 +114,27 @@ pub fn order_of(text: &str, place: Place, was: &str) -> usize {
 }
 
 pub fn redrawn(text: &str, place: Place, was: &str, now: &str) -> Option<(String, Place)> {
-    let (place, chosen) = still(text, place, was)?;
+    redrawn_in(text, Fence::Diagram, place, was, now)
+}
+
+pub fn redrawn_in(
+    text: &str,
+    fence: Fence,
+    place: Place,
+    was: &str,
+    now: &str,
+) -> Option<(String, Place)> {
+    let (place, chosen) = still_in(text, fence, place, was)?;
     Some((written_into(text, &chosen, now), place))
 }
 
 /// The diagram a window holds as the document says it now, whatever it says.
 pub fn at_place(text: &str, place: Place) -> Option<(Place, String)> {
-    let found = diagrams(text);
+    at_place_in(text, Fence::Diagram, place)
+}
+
+pub fn at_place_in(text: &str, fence: Fence, place: Place) -> Option<(Place, String)> {
+    let found = fenced(text, fence);
     let nth = found
         .iter()
         .position(|one| one.at.start == place.at)
