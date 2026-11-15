@@ -607,8 +607,7 @@ figure.diagram {
 figure.diagram:has(> .diagram-bar) {
   padding-top: 32px;
 }
-.diagram-bar,
-.math-bar {
+.diagram-bar {
   position: absolute;
   top: 2px;
   right: 6px;
@@ -617,32 +616,21 @@ figure.diagram:has(> .diagram-bar) {
   user-select: none;
   transition: opacity 0.12s;
 }
-/* A formula is often a single short line, so its bar stands level with it rather than over its top. */
-.math-bar {
-  top: 50%;
-  transform: translateY(-50%);
-}
-div.math:has(> .math-bar) {
-  min-height: 28px;
-}
 figure.diagram:hover .diagram-bar,
-.diagram-bar:focus-within,
-div.math:hover .math-bar,
-.math-bar:focus-within {
+.diagram-bar:focus-within {
   opacity: 1;
   pointer-events: auto;
 }
 @media (hover: none) {
-  .diagram-bar,
-  .math-bar {
+  .diagram-bar {
     opacity: 1;
     pointer-events: auto;
   }
 }
-:is(.diagram-bar, .math-bar) button::after {
+.diagram-bar button::after {
   content: attr(aria-label);
 }
-:is(.diagram-bar, .math-bar) button {
+.diagram-bar button {
   border: 1px solid var(--tisty-hair);
   border-radius: 6px;
   padding: 2px 8px;
@@ -652,13 +640,12 @@ div.math:hover .math-bar,
   font-size: 11.5px;
   cursor: pointer;
 }
-:is(.diagram-bar, .math-bar) button:hover {
+.diagram-bar button:hover {
   background: var(--tisty-hover);
   color: var(--tisty-ink);
 }
 @media print {
-  .diagram-bar,
-  .math-bar {
+  .diagram-bar {
     display: none;
   }
 }
@@ -723,7 +710,6 @@ figure.widget iframe {
   color: var(--tisty-ink);
 }
 div.math {
-  position: relative;
   margin: 12px 0;
   padding: 4px 0;
   overflow-x: auto;

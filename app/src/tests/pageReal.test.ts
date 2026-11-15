@@ -9,7 +9,7 @@ const PAGES = join(process.cwd(), "src/tests/pages");
 // Pages as the app drew them, caught from a real window, so what the core really marks is what is met.
 const real = (name: string) => ({
   html: readFileSync(join(PAGES, `${name}.html`), "utf8"),
-  body: readFileSync(join(PAGES, `${name}.md`), "utf8"),
+  body: readFileSync(join(PAGES, `${name}.txt`), "utf8"),
 });
 
 let writing: PageWriting | null = null;

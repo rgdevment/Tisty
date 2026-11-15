@@ -240,3 +240,54 @@ html.untitled .page > :is(.step-hint + p[data-ghost], p[data-ghost]:has(+ .add-s
   border-radius: 5px;
   box-sizing: border-box;
 }
+
+/* A formula's own bar on the page written in place, level with its line, as a diagram's sits on its drawing. */
+div.math {
+  position: relative;
+}
+div.math:has(> .math-bar) {
+  min-height: 28px;
+}
+.math-bar {
+  position: absolute;
+  top: 50%;
+  right: 6px;
+  transform: translateY(-50%);
+  opacity: 0;
+  pointer-events: none;
+  user-select: none;
+  transition: opacity 0.12s;
+}
+div.math:hover .math-bar,
+.math-bar:focus-within {
+  opacity: 1;
+  pointer-events: auto;
+}
+@media (hover: none) {
+  .math-bar {
+    opacity: 1;
+    pointer-events: auto;
+  }
+}
+.math-bar button::after {
+  content: attr(aria-label);
+}
+.math-bar button {
+  border: 1px solid var(--tisty-hair);
+  border-radius: 6px;
+  padding: 2px 8px;
+  background: var(--tisty-sheet);
+  color: var(--tisty-soft);
+  font: inherit;
+  font-size: 11.5px;
+  cursor: pointer;
+}
+.math-bar button:hover {
+  background: var(--tisty-hover);
+  color: var(--tisty-ink);
+}
+@media print {
+  .math-bar {
+    display: none;
+  }
+}
