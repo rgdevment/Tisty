@@ -64,7 +64,21 @@ fn said(item: &str, quoted: usize) -> Option<String> {
         }
         words.push(bare.trim_end().trim_end_matches('\\'));
     }
-    Some(one_line(&words.join(" "))).filter(|text| !text.is_empty())
+    Some(one_line(&uncommented(&words.join(" ")))).filter(|text| !text.is_empty())
+}
+
+// A comment is the page's own note, a section's hint left on the line: never the step's words.
+fn uncommented(words: &str) -> String {
+    let mut kept = String::new();
+    let mut rest = words;
+    while let Some(open) = rest.find("<!--") {
+        kept.push_str(&rest[..open]);
+        rest = rest[open..]
+            .find("-->")
+            .map_or("", |close| &rest[open + close + 3..]);
+    }
+    kept.push_str(rest);
+    kept
 }
 
 // A step ending in a backslash reads back without it, since in a page that mark is a line break.

@@ -537,3 +537,10 @@ fn a_step_ending_in_a_backslash_is_still_its_own_box() {
     assert_eq!(ticked(&task, body), body);
     assert_eq!(reconciled(&task, None, body), Vec::new());
 }
+
+#[test]
+fn a_comment_left_on_a_step_line_is_not_part_of_its_words() {
+    let body = "## Pasos\n- [x] Comprar pan<!-- - [ ] El primer paso -->\n- [ ] Pagar <!-- hint --> con efectivo\n- [ ] <!-- solo una pista -->\n";
+    let said: Vec<String> = stages(body).into_iter().map(|one| one.text).collect();
+    assert_eq!(said, ["Comprar pan", "Pagar con efectivo"]);
+}
