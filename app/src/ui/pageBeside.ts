@@ -15,6 +15,14 @@ import type { Writer } from "./pageWriter";
 
 export type Beside = ReturnType<typeof besideOn>;
 
+// A diagram, a formula or a widget comes drawn from a sample, so the page keeps reading as it will.
+const SAMPLES: Record<string, () => string> = {
+  mermaid: () => "```mermaid\nflowchart LR\n  A --> B\n```",
+  math: () => "```math\na^2 + b^2 = c^2\n```",
+  widget: () =>
+    `\`\`\`widget\n<div class="grid">\n  <div class="stat"><small>${t("widgetSample")}</small><b>42</b></div>\n</div>\n\`\`\``,
+};
+
 export const besideOn = (
   writer: Writer,
   caret: Caret,
@@ -99,7 +107,21 @@ export const besideOn = (
     };
   };
 
-  const slashed = (one: Slashed, drawnWhole = false): Edit | null => {
+  // A block asked for inside code goes under the code, never into its lines.
+  const outOfCode = () => {
+    const range = caret.chosen();
+    const code = range ? elementOf(range.startContainer)?.closest("figure.code") : null;
+    const top = code?.closest(".page > [data-at]");
+    const span = spanned(top?.getAttribute("data-at") ?? null);
+    if (top && span) begun.begin(charsAt(hands.text(), span[1]), "", top);
+  };
+
+  const slashed = (asked: Slashed, drawnWhole = false): Edit | null => {
+    const sample = SAMPLES[asked.key]?.();
+    const one: Slashed = sample
+      ? { ...asked, put: { block: sample, at: sample.length, blank: true } }
+      : asked;
+    outOfCode();
     if (
       writer.kept?.lead !== undefined &&
       writer.kept.at > 0 &&
@@ -117,7 +139,7 @@ export const besideOn = (
     }
     if ("edit" in how) {
       put(how.edit, how.caret, drawnWhole);
-      if (one.key === "rule") lineUnder(how.edit);
+      if (one.key === "rule" || sample) lineUnder(how.edit);
       return how.edit;
     }
     const first = !text.slice(0, span.from).trim();

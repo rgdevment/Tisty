@@ -116,9 +116,6 @@ type Props = {
 // A block named by its first byte in the new words, and where on the window's screen it should stand.
 type Landing = { bytes: number; y: number; turn: number };
 
-// Blocks whose drawing takes the place of their words, so they are written in the Markdown view.
-const DRAWN_OVER = new Set(["math", "widget", "mermaid"]);
-
 const cameTo = (view: EditorView | undefined) => {
   if (!view) return;
   view.focus();
@@ -585,8 +582,6 @@ export default function Sheet(props: Readonly<Props>) {
         const laid = writer.slashed(one, table);
         if (table && laid)
           tables.freshAt(bytesAt(latest.current, laid.from + laid.insert.indexOf("|")));
-        if (laid && DRAWN_OVER.has(one.key))
-          markdownOn(sourceIn(latest.current, laid.from + laid.insert.indexOf("```")));
       },
     }));
     let closed = false;

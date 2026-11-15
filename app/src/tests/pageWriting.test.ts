@@ -1406,3 +1406,57 @@ describe("a page break from the slash menu", () => {
     expect(said[said.length - 1]).toMatch(/^Fin\.\n\n---\n\nZ\n+$/);
   });
 });
+
+describe("a block drawn from a sample on the page written in place", () => {
+  it("puts a formula that reads at once and leaves what is typed next under it", () => {
+    const said = writer("Fin.\n");
+    pageOf('<p data-at="0-4"><span data-src="0-4">Fin.</span></p>');
+    writing?.drawn();
+    caretIn("Fin.", 4);
+    writing?.slashed(block("math"));
+    expect(said[said.length - 1]).toBe("Fin.\n\n```math\na^2 + b^2 = c^2\n```\n");
+    asked("insertText", "Z");
+    expect(said[said.length - 1]).toMatch(/^Fin\.\n\n```math\na\^2 \+ b\^2 = c\^2\n```\n\nZ\n*$/);
+  });
+
+  it("puts a diagram and a widget with words of their own, never an empty fence", () => {
+    for (const key of ["mermaid", "widget"]) {
+      const said = writer("Fin.\n");
+      pageOf('<p data-at="0-4"><span data-src="0-4">Fin.</span></p>');
+      writing?.drawn();
+      caretIn("Fin.", 4);
+      writing?.slashed(block(key));
+      const now = said[said.length - 1] ?? "";
+      expect(now).toContain(`\`\`\`${key}\n`);
+      expect(now).not.toContain(`\`\`\`${key}\n\n\`\`\``);
+    }
+  });
+});
+
+describe("blocks asked for where the words cannot take them", () => {
+  const FENCED = "Uno\n\n```js\nlet a\n```\n";
+  const FENCED_HTML =
+    '<p data-at="0-3"><span data-src="0-3">Uno</span></p>' +
+    '<figure class="code" data-at="5-20"><pre><code class="language-js"><span data-src="11-16">let a</span></code></pre></figure>';
+
+  it("puts stages asked for inside code under the code, leaving its lines whole", () => {
+    const said = writer(FENCED);
+    pageOf(FENCED_HTML);
+    writing?.drawn();
+    caretIn("let a", 5);
+    writing?.slashed(block("todo"));
+    expect(said[said.length - 1]).toBe("Uno\n\n```js\nlet a\n```\n\n- [ ] ");
+  });
+
+  it("lays a caret asked inside a widget's words on a line begun under the widget", () => {
+    const body = "Uno\n\n```widget\n<b>1</b>\n```\n";
+    const said = writer(body);
+    pageOf(
+      '<p data-at="0-3"><span data-src="0-3">Uno</span></p><figure class="widget" data-at="5-27"><div>1</div></figure>',
+    );
+    writing?.drawn();
+    writing?.placeAt(body.indexOf("<b>"));
+    writing?.slashed(block("todo"));
+    expect(said[said.length - 1]).toBe(`${body}\n- [ ] `);
+  });
+});

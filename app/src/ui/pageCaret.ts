@@ -1,10 +1,13 @@
-import { charsAt, spanned } from "tisty-editor/read";
+import { bytesAt, charsAt, spanned } from "tisty-editor/read";
 import type { Span } from "./pageEdits";
+import { closing, opening } from "./pageLists";
 import { elementOf, ghostly, lineOfCaret } from "./pageNodes";
 import { endOf, GHOST, ghostAt, sourceAt, spotOf } from "./pageSpots";
 import type { Point, Writer } from "./pageWriter";
 
 export type Caret = ReturnType<typeof caretOn>;
+
+const WHOLE = '.page > [data-at][contenteditable="false"]:not(h1, h2, h3, h4, h5, h6)';
 
 export const caretOn = (writer: Writer) => {
   const { page, hands } = writer;
@@ -113,8 +116,28 @@ export const caretOn = (writer: Writer) => {
     return [words, Math.min(at - name, (words as Text).length)];
   };
 
+  // A block drawn whole, as a widget, a formula, a table or a break, takes no caret in its source.
+  const pastWhole = (text: string, at: number) => {
+    const byte = bytesAt(text, at);
+    for (const one of page.querySelectorAll(WHOLE)) {
+      const span = spanned(one.getAttribute("data-at"));
+      if (span && span[0] <= byte && byte <= span[1]) return charsAt(text, span[1]);
+    }
+    return null;
+  };
+
   const caretLaid = () => {
     if (!writer.kept) return;
+    const text = hands.text();
+    const past = writer.kept.lead === undefined ? pastWhole(text, writer.kept.at) : null;
+    if (past !== null)
+      writer.kept = {
+        node: page.body,
+        offset: -1,
+        at: past,
+        lead: opening(text, past, ""),
+        tail: closing(text, past),
+      };
     const unwritten = writer.kept.lead !== undefined || !spotOf(page, hands.text(), writer.kept.at);
     const ghost = unwritten ? ghostAt(page, hands.text(), writer.kept.at) : null;
     const found: [Node, number] | null = ghost
