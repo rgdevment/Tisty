@@ -258,6 +258,18 @@ describe("the blocks put on the page written in place", () => {
     const now = said[said.length - 1] ?? "";
     expect(now.startsWith("# Hola\n\n```mermaid\nflowchart LR\n```\n\nUno")).toBe(true);
   });
+
+  it("gives the keys back to the page once the window has answered", () => {
+    writer();
+    const sheet = document.querySelector(".page") as HTMLElement;
+    sheet.tabIndex = -1;
+    const field = document.body.appendChild(document.createElement("input"));
+    field.focus();
+    answers.push("![Informe](tisty:doc/mac0-0001)");
+    caretIn("Hola", 4);
+    writing?.slashed(block("doc"));
+    expect(document.activeElement).toBe(sheet);
+  });
 });
 
 describe("blocks moved with the keys on the page written in place", () => {
