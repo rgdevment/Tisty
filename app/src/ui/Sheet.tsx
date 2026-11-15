@@ -19,6 +19,7 @@ import {
   markLately,
   putBlock,
   SLASHED,
+  type Slashed,
   stagesIn,
   type Widths,
   widened,
@@ -568,12 +569,27 @@ export default function Sheet(props: Readonly<Props>) {
       ...offered.filter((one) => !("wrap" in one.put)),
       ...offered.filter((one) => "wrap" in one.put),
     ];
+    // A step is named by its number, so it is chosen from the page's own steps, as the Markdown view offers them.
+    const stepsOf = (one: Slashed): Choice[] =>
+      stagesIn(latest.current).map((words, at) => {
+        const named = `[[#${at + 1}]]`;
+        return {
+          key: named,
+          label: `${at + 1}. ${words}`,
+          onPick: () => {
+            picked = true;
+            back();
+            writer.slashed({ ...one, put: { inline: named, at: named.length } });
+          },
+        };
+      });
     const choices: Choice[] = ordered.map((one, index) => ({
       key: one.key,
       label: t(one.label),
       glyph: one.icon,
       mark: one.hint,
       apart: "wrap" in one.put && !("wrap" in (ordered[index - 1]?.put ?? {})),
+      into: one.key === "step" ? { label: t(one.label), choices: stepsOf(one) } : undefined,
       onPick: () => {
         picked = true;
         back();

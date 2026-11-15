@@ -59,6 +59,9 @@ export default function Menu({ at, choices, label, up, keeps, find, foot, onClos
     (one) => !one.off && folded(`${one.label} ${one.code ?? ""}`).includes(sought),
   );
   const sifting = Boolean(find) && !deeper;
+  // Enter takes the first plain choice found; a list of its own opens only when nothing else is.
+  const plain = live.findIndex((one) => !one.into);
+  const leading = plain >= 0 ? plain : live.findIndex((one) => one.into);
 
   // Down when it fits below or there is fair room to scroll there, up over its anchor otherwise, never over the page's bar.
   useLayoutEffect(() => {
@@ -165,8 +168,9 @@ export default function Menu({ at, choices, label, up, keeps, find, foot, onClos
           onKeyDown={(e) => {
             if (e.key !== "Enter") return;
             e.preventDefault();
-            const first = live.find((one) => !one.into);
+            const first = live[leading];
             if (!first) return;
+            if (first.into) return setDeeper(first.into);
             onClose();
             first.onPick?.();
           }}
@@ -203,7 +207,7 @@ export default function Menu({ at, choices, label, up, keeps, find, foot, onClos
               if (!sifting && document.activeElement !== e.currentTarget) e.currentTarget.focus();
             }}
             className={`group flex w-full items-center gap-2.5 rounded-md px-2.5 py-1.5 text-left text-[12.5px] hover:bg-hover focus:bg-hover focus:outline-none ${
-              sifting && sought && index === live.findIndex((it) => !it.into) ? "bg-hover " : ""
+              sifting && sought && index === leading ? "bg-hover " : ""
             }${one.danger ? "text-urgent" : "text-ink"}${one.on ? " font-semibold" : ""}`}
           >
             {one.glyph ? (

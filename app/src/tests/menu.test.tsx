@@ -358,4 +358,27 @@ describe("a menu of blocks", () => {
     await userEvent.type(field, " ");
     expect(onClose).toHaveBeenCalledWith(" ");
   });
+
+  it("opens the only list found with Enter, and its first choice is then a key away", async () => {
+    const step = vi.fn();
+    render(
+      <Menu
+        at={{ x: 10, y: 10 }}
+        choices={[
+          { key: "h1", label: "Título", onPick: vi.fn() },
+          {
+            key: "step",
+            label: "Un paso",
+            into: { label: "Un paso", choices: [{ key: "1", label: "1. Pan", onPick: step }] },
+          },
+        ]}
+        label="Bloques"
+        find="Busca un bloque"
+        onClose={vi.fn()}
+      />,
+    );
+    await userEvent.type(screen.getByRole("searchbox"), "paso{Enter}");
+    await userEvent.click(screen.getByRole("menuitem", { name: "1. Pan" }));
+    expect(step).toHaveBeenCalled();
+  });
 });
