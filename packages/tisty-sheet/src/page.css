@@ -234,7 +234,8 @@ ol {
 li::marker {
   color: var(--tisty-faint);
 }
-li > p {
+li > p,
+li > :is(ul, ol) {
   margin: 2px 0;
 }
 li.task {
@@ -471,6 +472,14 @@ blockquote[data-callout="idea"][data-side="left"] {
   float: left;
   margin: 4px 20px 12px 0;
 }
+/* A narrow page leaves no room for words beside a note, so the note takes a row of its own. */
+@media (max-width: 560px) {
+  html:not(.sheeted) blockquote[data-callout="idea"][data-side] {
+    float: none;
+    max-width: 100%;
+    margin: 14px 0;
+  }
+}
 mark,
 .cm-pen {
   background: var(--tisty-pen-yellow);
@@ -594,9 +603,10 @@ figure.widget {
 figure.diagram {
   position: relative;
 }
+/* On the figure's top edge, so the bar never hides the labels at the top of the drawing. */
 .diagram-bar {
   position: absolute;
-  top: 6px;
+  top: -14px;
   right: 6px;
   opacity: 0;
   pointer-events: none;
@@ -1176,6 +1186,9 @@ details > summary + * {
 details > :last-child:not(summary) {
   margin-bottom: 12px;
 }
+details > div.table {
+  margin-inline: 14px;
+}
 sup.fnref {
   line-height: 0;
 }
@@ -1225,8 +1238,9 @@ kbd {
   width: 14px;
   height: 14px;
 }
+/* Strong enough to see a whole choice at once, in either theme, without a token of its own. */
 ::selection {
-  background: var(--tisty-accent-soft);
+  background: color-mix(in srgb, var(--tisty-accent) 28%, transparent);
 }
 
 .cm-h1 {

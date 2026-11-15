@@ -40,7 +40,7 @@ export default function Calendar({ value, inline, onPick, onClear, onClose }: Pr
     >
       <div className="mb-1.5 flex items-center">
         <Step to={-1} on={month} go={setMonth} />
-        <span className="flex-1 text-center font-medium text-ink capitalize">
+        <span className="flex-1 text-center font-medium text-ink first-letter:uppercase">
           {heading.format(month)}
         </span>
         <Step to={1} on={month} go={setMonth} />
