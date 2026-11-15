@@ -83,7 +83,9 @@ pub fn create(root: &Path, device: &DeviceId, body: &str) -> Result<Doc> {
             .write(true)
             .open(&at)
         {
-            Ok(_) => {
+            Ok(file) => {
+                // A shared or removable drive will not replace a file still open, so the empty one is closed first.
+                drop(file);
                 // `create_new` already won this name against everyone, and taking the lock here
                 // would queue creations that never contend for the same body.
                 if let Err(e) = written(root, &id, body) {
@@ -114,13 +116,16 @@ pub fn create_named(root: &Path, id: &str, body: &str) -> Result<bool> {
         .write(true)
         .open(&at)
     {
-        Ok(_) => match written(root, id, body) {
-            Ok(()) => Ok(true),
-            Err(e) => {
-                let _ = std::fs::remove_file(&at);
-                Err(e)
+        Ok(file) => {
+            drop(file);
+            match written(root, id, body) {
+                Ok(()) => Ok(true),
+                Err(e) => {
+                    let _ = std::fs::remove_file(&at);
+                    Err(e)
+                }
             }
-        },
+        }
         Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => Ok(false),
         Err(e) => Err(Error::Io(e)),
     }
