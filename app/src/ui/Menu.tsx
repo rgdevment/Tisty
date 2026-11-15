@@ -21,8 +21,8 @@ export interface Choice {
 }
 
 interface Props {
-  /** `top` is where the line the menu answers begins, so a menu put above it never covers it. */
-  at: { x: number; y: number; top?: number };
+  /** `top` is where the line the menu answers begins, so a menu put above it never covers it; `right` is its right edge. */
+  at: { x: number; y: number; top?: number; right?: number };
   choices: Choice[];
   label: string;
   /** Opened from the bottom of the screen: `at.y` is the edge the menu grows up from. */
@@ -35,8 +35,16 @@ interface Props {
 }
 
 const EDGE = 6;
+const GAP = 4;
 const TALLEST = 0.8;
 const SHORTEST = 120;
+const ROOMY_BELOW = 240;
+
+// The bar above a page holds its title and its menu, so a menu flipped up stops under it.
+const ceilingOver = (top: number) =>
+  Array.from(document.querySelectorAll(".ribbon"), (one) => one.getBoundingClientRect().bottom)
+    .filter((bottom) => bottom <= top)
+    .reduce((most, bottom) => Math.max(most, bottom), EDGE);
 
 export default function Menu({ at, choices, label, up, keeps, find, foot, onClose }: Props) {
   const card = useRef<HTMLDivElement>(null);
@@ -50,7 +58,7 @@ export default function Menu({ at, choices, label, up, keeps, find, foot, onClos
   );
   const sifting = Boolean(find) && !deeper;
 
-  // Down when it fits below, up when it fits above, and only past what the window holds does it scroll.
+  // Down when it fits below or there is fair room to scroll there, up over its anchor otherwise, never over the page's bar.
   useLayoutEffect(() => {
     const own = card.current;
     if (!own) return;
@@ -58,15 +66,21 @@ export default function Menu({ at, choices, label, up, keeps, find, foot, onClos
     const edges = own.offsetHeight - own.clientHeight;
     const tall = Math.min(own.scrollHeight + edges, Math.round(window.innerHeight * TALLEST));
     const top = at.top ?? at.y;
+    const ceiling = ceilingOver(top);
     const below = window.innerHeight - EDGE - at.y;
-    const above = top - EDGE;
-    const x = Math.max(EDGE, Math.min(at.x, window.innerWidth - box.width - EDGE));
-    if ((up || tall > below) && tall <= above) return setWhere({ x, y: top - tall, tall });
+    const above = top - GAP - ceiling;
+    const rightward = at.right !== undefined && at.x > window.innerWidth / 2;
+    const left = rightward ? (at.right ?? at.x) - box.width : at.x;
+    const x = Math.max(EDGE, Math.min(left, window.innerWidth - box.width - EDGE));
+    const over = (high: number) => ({ x, y: top - GAP - high, tall: high });
+    if (up && tall <= above) return setWhere(over(tall));
     if (tall <= below) return setWhere({ x, y: at.y, tall });
+    if (below >= ROOMY_BELOW) return setWhere({ x, y: at.y, tall: below });
+    if (tall <= above) return setWhere(over(tall));
     const roomy = Math.max(below, above);
     if (roomy < SHORTEST)
       return setWhere({ x, y: Math.max(EDGE, window.innerHeight - tall - EDGE), tall });
-    setWhere(below >= above ? { x, y: at.y, tall: below } : { x, y: top - above, tall: above });
+    setWhere(below >= above ? { x, y: at.y, tall: below } : over(above));
   }, [at, deeper, up, live.length]);
 
   useEffect(() => {
@@ -177,6 +191,9 @@ export default function Menu({ at, choices, label, up, keeps, find, foot, onClos
               if (one.into) return setDeeper(one.into);
               onClose();
               one.onPick?.();
+            }}
+            onMouseMove={(e) => {
+              if (!sifting && document.activeElement !== e.currentTarget) e.currentTarget.focus();
             }}
             className={`group flex w-full items-center gap-2.5 rounded-md px-2.5 py-1.5 text-left text-[12.5px] hover:bg-hover focus:bg-hover focus:outline-none ${
               sifting && sought && index === live.findIndex((it) => !it.into) ? "bg-hover " : ""

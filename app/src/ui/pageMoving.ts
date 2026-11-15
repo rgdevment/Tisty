@@ -1,4 +1,5 @@
 import { charsAt, spanned } from "tisty-editor/read";
+import type { Anchor } from "./dressing";
 import { movedBlock } from "./sticking";
 
 export type Unit = { readonly from: number; readonly to: number; readonly last: number };
@@ -113,7 +114,7 @@ export const acted = (
 
 type Gripping = {
   readonly moved: (top: Element, target: Element | null) => void;
-  readonly asked: (top: Element, at: { x: number; y: number }) => void;
+  readonly asked: (top: Element, at: Anchor) => void;
 };
 
 const STILL_PX = 4;
@@ -209,7 +210,13 @@ export const gripped = (
     if (was.moved) return hands.moved(over, was.target);
     const box = grip.getBoundingClientRect();
     const frame = view?.frameElement?.getBoundingClientRect();
-    hands.asked(over, { x: (frame?.left ?? 0) + box.left, y: (frame?.top ?? 0) + box.bottom + 4 });
+    const [left, top] = [frame?.left ?? 0, frame?.top ?? 0];
+    hands.asked(over, {
+      x: left + box.left,
+      y: top + box.bottom + 4,
+      top: top + box.top,
+      right: left + box.right,
+    });
   };
 
   grip.addEventListener("mousedown", (event) => {

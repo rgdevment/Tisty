@@ -1107,3 +1107,31 @@ describe("telling what was written once a block is left", () => {
     expect(told).toBe(4);
   });
 });
+
+describe("an empty step left behind", () => {
+  it("is taken away when the caret goes to another block, and the words around stay", () => {
+    const said = writer("- [ ] uno\n- [ ] \n\nFin\n");
+    pageOf(
+      '<ul data-at="0-17"><li class="task" data-at="0-10"><span data-src="6-9">uno</span></li><li class="task" data-at="10-17"></li></ul>' +
+        '<p data-at="18-21"><span data-src="18-21">Fin</span></p>',
+    );
+    writing?.drawn();
+    document.getSelection()?.collapse(document.querySelectorAll("li")[1], 0);
+    document.querySelector(".page")?.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
+    caretIn("Fin", 1);
+    document.dispatchEvent(new Event("selectionchange"));
+    expect(said[said.length - 1]).toBe("- [ ] uno\n\nFin\n");
+  });
+
+  it("stays while a word is still to come in it", () => {
+    const said = writer("- [ ] uno\n- [ ] \n\nFin\n");
+    pageOf(
+      '<ul data-at="0-17"><li class="task" data-at="0-10"><span data-src="6-9">uno</span></li><li class="task" data-at="10-17"></li></ul>' +
+        '<p data-at="18-21"><span data-src="18-21">Fin</span></p>',
+    );
+    writing?.drawn();
+    document.getSelection()?.collapse(document.querySelectorAll("li")[1], 0);
+    document.dispatchEvent(new Event("selectionchange"));
+    expect(said).toEqual([]);
+  });
+});

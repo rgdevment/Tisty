@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { sheeted } from "../src/sheeting";
+import { sheeted, sheeting } from "../src/sheeting";
 
 const laid = (blocks: [string, number, number][]) => {
   document.body.innerHTML = `<article class="page">${blocks.map(([tag]) => (tag === "hr" ? "<hr>" : `<${tag}></${tag}>`)).join("")}</article>`;
@@ -114,5 +114,30 @@ describe("sheets laid on the page", () => {
     (sheet.children[1] as HTMLElement).style.removeProperty("--fill");
     sheeted(document, { wide: 794, tall: 140, x: 10, y: 10 });
     expect((sheet.children[1] as HTMLElement).style.getPropertyValue("--fill")).toBe("");
+  });
+
+  it("takes the turns, the break labels and the last fill away when the sheets are turned off", () => {
+    const sheet = laid([
+      ["p", 10, 40],
+      ["hr", 60, 50],
+      ["p", 120, 40],
+      ["p", 170, 40],
+    ]);
+    let asked: { wide: number; tall: number; x: number; y: number; said?: string } | undefined = {
+      wide: 794,
+      tall: 140,
+      x: 10,
+      y: 10,
+      said: "Salto de página",
+    };
+    const sheets = sheeting(document, () => asked);
+    expect(sheet.querySelectorAll(".sheet-turn, .break-said").length).toBeGreaterThan(0);
+    asked = undefined;
+    sheets.lay();
+    expect(sheet.querySelectorAll(".sheet-turn, .break-said")).toHaveLength(0);
+    expect(sheet.style.getPropertyValue("--last")).toBe("");
+    expect((sheet.children[1] as HTMLElement).style.getPropertyValue("--fill")).toBe("");
+    expect(document.documentElement.classList.contains("sheeted")).toBe(false);
+    sheets.stop();
   });
 });

@@ -25,6 +25,23 @@ export const onSheet = (page: Document, event: Event) => {
 };
 
 // A caret on an empty line measures nothing, so the line's own element stands for it, never the whole sheet.
+// A caret between letters often measures nothing, so a letter beside it tells which line it stands on.
+export const caretBox = (range: Range): DOMRect | null => {
+  const box =
+    typeof range.getBoundingClientRect === "function" ? range.getBoundingClientRect() : null;
+  if (box && (box.width || box.height)) return box;
+  const node = range.startContainer;
+  if (node.nodeType !== Node.TEXT_NODE || !node.ownerDocument) return null;
+  const length = (node as Text).length;
+  const at = range.startOffset;
+  if (!length) return null;
+  const probe = node.ownerDocument.createRange();
+  probe.setStart(node, at < length ? at : at - 1);
+  probe.setEnd(node, at < length ? at + 1 : at);
+  const letter = probe.getClientRects?.()[0] ?? null;
+  return letter?.height ? letter : null;
+};
+
 export const lineOfCaret = (range: Range | null | undefined): Element | null => {
   const node = range?.startContainer;
   if (!node) return null;

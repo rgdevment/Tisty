@@ -42,6 +42,68 @@ describe("where the menu hangs", () => {
   });
 });
 
+describe("where the menu opens", () => {
+  const TALL = 300;
+  const WIDE = 210;
+  let bar: HTMLElement | null = null;
+
+  beforeEach(() => {
+    Object.defineProperty(window, "innerHeight", { configurable: true, value: 800 });
+    Object.defineProperty(window, "innerWidth", { configurable: true, value: 1200 });
+    Object.defineProperty(HTMLElement.prototype, "scrollHeight", {
+      configurable: true,
+      get() {
+        return (this as HTMLElement).getAttribute("role") === "menu" ? TALL : 0;
+      },
+    });
+    vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(function (
+      this: HTMLElement,
+    ) {
+      if (this === bar) return { top: 45, bottom: 91, left: 0, right: 1200 } as DOMRect;
+      return { top: 0, bottom: 0, left: 0, right: WIDE, width: WIDE, height: TALL } as DOMRect;
+    });
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    Reflect.deleteProperty(HTMLElement.prototype, "scrollHeight");
+    bar?.remove();
+    bar = null;
+  });
+
+  const placed = (at: { x: number; y: number; top?: number; right?: number }) => {
+    const view = render(<Menu at={at} choices={choices()} label="Opciones" onClose={vi.fn()} />);
+    const menu = screen.getByRole("menu");
+    const where = {
+      x: Number.parseFloat(menu.style.left),
+      y: Number.parseFloat(menu.style.top),
+      tall: Number.parseFloat(menu.style.maxHeight),
+    };
+    view.unmount();
+    return where;
+  };
+
+  it("goes up over its anchor near the bottom, leaving the anchor in sight", () => {
+    expect(placed({ x: 100, y: 780, top: 760 })).toMatchObject({ y: 760 - 4 - TALL, tall: TALL });
+  });
+
+  it("stays below and scrolls when there is fair room there, rather than climbing the window", () => {
+    expect(placed({ x: 100, y: 540, top: 520 })).toMatchObject({ y: 540, tall: 800 - 6 - 540 });
+  });
+
+  it("never climbs over the bar above the page", () => {
+    bar = document.createElement("div");
+    bar.className = "ribbon";
+    document.body.append(bar);
+    expect(placed({ x: 100, y: 780, top: 300 })).toMatchObject({ y: 91, tall: 300 - 4 - 91 });
+  });
+
+  it("hangs from its anchor's right edge in the right half of the window", () => {
+    expect(placed({ x: 900, y: 100, top: 80, right: 920 }).x).toBe(920 - WIDE);
+    expect(placed({ x: 100, y: 100, top: 80, right: 120 }).x).toBe(100);
+  });
+});
+
 describe("the press that opened it", () => {
   beforeEach(() => vi.useFakeTimers());
   afterEach(() => vi.useRealTimers());

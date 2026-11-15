@@ -1,4 +1,5 @@
 import { SLASHED } from "tisty-editor/edit";
+import { charsAt } from "tisty-editor/read";
 import type { Beside } from "./pageBeside";
 import type { Caret } from "./pageCaret";
 import type { Formats } from "./pageFormats";
@@ -19,6 +20,8 @@ const KEYED: Record<string, readonly [string, string]> = {
   "shift c": ["`", "`"],
   k: ["[", "]()"],
 };
+
+const EMPTY_STEP = /^[ \t]*(?:>[ \t]?)*[-*+][ \t]+\[ \][ \t]*\r?$/;
 
 export const keysOn = (
   writer: Writer,
@@ -126,6 +129,22 @@ export const keysOn = (
     hands.blocks(caret.caretPoint(), false);
   };
 
+  // A step left with no words is no step, so its empty box is taken away instead of kept in the file.
+  const leftEmpty = (from: string | null) => {
+    if (from === null) return;
+    const text = hands.text();
+    const start = charsAt(text, Number(from));
+    const ends = text.indexOf("\n", start);
+    const line = text.slice(start, ends < 0 ? text.length : ends);
+    if (!EMPTY_STEP.test(line)) return;
+    const gone = ends < 0 ? line.length : line.length + 1;
+    const begun = writer.kept?.lead !== undefined ? writer.kept : null;
+    const now = begun?.at ?? caret.caretSpan()?.from ?? start;
+    const shifted = (at: number) => (at > start ? Math.max(start, at - gone) : at);
+    put({ from: start, to: start + gone, insert: "" }, shifted(now));
+    if (begun) writer.kept = { ...begun, at: shifted(begun.at) };
+  };
+
   const noted = () => {
     beside.besideLine();
     const range = caret.chosen();
@@ -137,8 +156,11 @@ export const keysOn = (
       caret.outOfSolid(range);
     }
     if (writer.leftFrom === undefined) return;
-    if (caret.blockStart() !== writer.leftFrom) hands.settle?.();
+    const from = writer.leftFrom;
     writer.leftFrom = undefined;
+    if (caret.blockStart() === from) return;
+    leftEmpty(from);
+    hands.settle?.();
   };
 
   const ticking = (event: MouseEvent) => {

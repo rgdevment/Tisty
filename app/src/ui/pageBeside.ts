@@ -8,7 +8,7 @@ import { changeOf, type Edit } from "./pageEdits";
 import type { Formats } from "./pageFormats";
 import type { Laying } from "./pageLaying";
 import { type Act, acted, gripped, type Moved, movedTo, roomy, topsOf, unitOf } from "./pageMoving";
-import { elementOf, FIELDS, lineOfCaret } from "./pageNodes";
+import { caretBox, elementOf, FIELDS, lineOfCaret } from "./pageNodes";
 import { GHOST } from "./pageSpots";
 import type { Writer } from "./pageWriter";
 
@@ -47,20 +47,24 @@ export const besideOn = (
       return;
     }
     const ghost = page.querySelector(GHOST);
-    let box = range.getBoundingClientRect();
-    if (box.width === 0 && box.height === 0) {
+    const view = page.defaultView;
+    let box = caretBox(range);
+    if (!box) {
+      // Without a letter to measure, the line is its block's first, as tall as the block's own line.
       const line = ghost ?? lineOfCaret(range);
-      if (!line) {
+      if (!line || line.matches("hr, .sheet-turn")) {
         plus.hidden = true;
         return;
       }
-      box = line.getBoundingClientRect();
+      const block = line.getBoundingClientRect();
+      const tall = Number.parseFloat(view?.getComputedStyle(line).lineHeight ?? "") || block.height;
+      box = new DOMRect(block.left, block.top, block.width, Math.min(block.height, tall));
     }
-    const view = page.defaultView;
     const zoom = Number.parseFloat(page.documentElement.style.zoom || "1") || 1;
     const edge = sheet.getBoundingClientRect().left;
     plus.hidden = false;
-    plus.style.top = `${(box.top + (view?.scrollY ?? 0)) / zoom}px`;
+    const centred = box.top + (box.height - plus.offsetHeight) / 2;
+    plus.style.top = `${(centred + (view?.scrollY ?? 0)) / zoom}px`;
     plus.style.left = `${(edge + (view?.scrollX ?? 0)) / zoom + 18}px`;
   };
 

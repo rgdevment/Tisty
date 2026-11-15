@@ -105,8 +105,10 @@ export const quickly = (page: Document, reach: () => Quick) => {
     bar.hidden = false;
     // The page is zoomed as a whole, so what the selection measures is scaled once already.
     const zoom = Number.parseFloat(page.documentElement.style.zoom || "1") || 1;
-    const top = (box.top + view.scrollY) / zoom - bar.offsetHeight - 8;
-    bar.style.top = `${Math.max(view.scrollY / zoom + 4, top)}px`;
+    const above = (box.top + view.scrollY) / zoom - bar.offsetHeight - 8;
+    const below = (box.bottom + view.scrollY) / zoom + 8;
+    // Words at the top of the view leave no room above them, so the bar goes under them instead of over them.
+    bar.style.top = `${above < view.scrollY / zoom + 4 ? below : above}px`;
     const widest = (view.innerWidth + view.scrollX) / zoom - bar.offsetWidth - 4;
     bar.style.left = `${Math.max(4, Math.min((box.left + view.scrollX) / zoom, widest))}px`;
   };

@@ -113,6 +113,8 @@ export const useTables = (
   const [menu, setMenu] = useState<{
     x: number;
     y: number;
+    top?: number;
+    right?: number;
     label: string;
     choices: Choice[];
   } | null>(null);
@@ -523,7 +525,13 @@ export const useTables = (
       return;
     }
     const box = now.frame();
-    const at = { x: (box?.left ?? 0) + asked.x, y: (box?.top ?? 0) + asked.y };
+    const [left, top] = [box?.left ?? 0, box?.top ?? 0];
+    const at = {
+      x: left + asked.x,
+      y: top + asked.y,
+      ...(asked.top !== undefined && { top: top + asked.top }),
+      ...(asked.right !== undefined && { right: left + asked.right }),
+    };
     const name = headsNamed(page as Document, nth)[asked.column] ?? "";
     if (asked.act === "cell") {
       const place = { nth, row: asked.row, column: asked.column };
@@ -579,7 +587,7 @@ export const useTables = (
       <>
         {menu && (
           <Menu
-            at={{ x: menu.x, y: menu.y }}
+            at={{ x: menu.x, y: menu.y, top: menu.top, right: menu.right }}
             label={menu.label}
             choices={menu.choices}
             onClose={() => setMenu(null)}

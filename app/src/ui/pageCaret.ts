@@ -61,6 +61,24 @@ export const caretOn = (writer: Writer) => {
     held?.addRange(caret);
   };
 
+  const ROOM = 48;
+
+  // A page laid at its full height, as a task's, scrolls in the window around it, so the caret is shown there.
+  const inSightAround = (box: DOMRect) => {
+    const frame = page.defaultView?.frameElement as HTMLElement | null;
+    const outside = frame?.ownerDocument.defaultView;
+    if (!frame || !outside) return;
+    for (let at = frame.parentElement; at; at = at.parentElement) {
+      if (at.scrollHeight <= at.clientHeight) continue;
+      if (!/(auto|scroll)/.test(outside.getComputedStyle(at).overflowY)) continue;
+      const area = at.getBoundingClientRect();
+      const top = frame.getBoundingClientRect().top + box.top;
+      const bottom = top + box.height;
+      if (bottom > area.bottom - ROOM) at.scrollBy({ top: bottom - area.bottom + ROOM });
+      else if (top < area.top + ROOM / 2) at.scrollBy({ top: top - area.top - ROOM / 2 });
+    }
+  };
+
   // A caret laid by a script never scrolls, so the line being written is brought back when it slips out of sight.
   const inSight = (holder: Node) => {
     const view = page.defaultView;
@@ -72,10 +90,10 @@ export const caretOn = (writer: Writer) => {
       typeof range.getBoundingClientRect === "function" ? range.getBoundingClientRect() : null;
     if (!box?.height && line) box = line.getBoundingClientRect();
     if (!box) return;
-    const room = 48;
-    if (box.bottom > view.innerHeight - room)
-      view.scrollBy({ top: box.bottom - view.innerHeight + room });
-    else if (box.top < room / 2) view.scrollBy({ top: box.top - room / 2 });
+    if (page.documentElement.scrollHeight <= view.innerHeight + 1) return inSightAround(box);
+    if (box.bottom > view.innerHeight - ROOM)
+      view.scrollBy({ top: box.bottom - view.innerHeight + ROOM });
+    else if (box.top < ROOM / 2) view.scrollBy({ top: box.top - ROOM / 2 });
   };
 
   // A collapsible's name is drawn in its summary with no place marked in the text, so the caret is counted there.
@@ -116,10 +134,17 @@ export const caretOn = (writer: Writer) => {
     inSight(holder);
   };
 
-  const placeAt = (at: number) => {
+  // `stays` is how far down the window the caret's line was, so a view handed back keeps the line where the eye was.
+  const placeAt = (at: number, stays?: number) => {
     writer.kept = { node: page.body, offset: -1, at: Math.min(at, hands.text().length) };
     page.querySelector<HTMLElement>(".page")?.focus({ preventScroll: true });
     caretLaid();
+    const view = page.defaultView;
+    const range = page.getSelection()?.rangeCount ? page.getSelection()?.getRangeAt(0) : null;
+    const box = range?.getBoundingClientRect?.();
+    const scrolls = view && page.documentElement.scrollHeight > view.innerHeight + 1;
+    if (stays !== undefined && scrolls && box?.height)
+      return view.scrollBy({ top: box.top - stays });
     elementOf(writer.kept?.node)?.scrollIntoView?.({ block: "nearest" });
   };
 
@@ -190,5 +215,6 @@ export const caretOn = (writer: Writer) => {
     blockOfCaret,
     blockStart,
     outOfSolid,
+    inSight,
   };
 };

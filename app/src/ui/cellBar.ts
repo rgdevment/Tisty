@@ -47,11 +47,9 @@ export const cellBar = (
   });
   const hint = page.createElement("span");
   hint.hidden = true;
-  // Over the table's right end, never over its rows, and kept in sight while a long table scrolls.
-  const ending = () => {
-    const shown = box.getBoundingClientRect().right;
-    const table = box.querySelector(":scope > table")?.getBoundingClientRect().right ?? shown;
-    return Math.min(table, shown);
-  };
-  return docked(bar, hint, () => box.getBoundingClientRect().top, undefined, false, ending).stop;
+  // Over the cell being written, ending at its right edge, as the page's bar sits over the words chosen.
+  const cell = input.parentElement ?? box;
+  const ending = () =>
+    Math.min(cell.getBoundingClientRect().right, box.getBoundingClientRect().right);
+  return docked(bar, hint, () => cell.getBoundingClientRect().top, undefined, false, ending).stop;
 };

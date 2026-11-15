@@ -23,7 +23,7 @@ export type PageWriting = {
   readonly format: (open: string, close: string) => void;
   readonly formattable: () => boolean;
   readonly caretAt: () => number | null;
-  readonly placeAt: (at: number) => void;
+  readonly placeAt: (at: number, stays?: number) => void;
   readonly rewrite: (next: string) => void;
   readonly outside: (was: string, next: string) => void;
   readonly chosen: () => string | null;
@@ -34,6 +34,8 @@ export type PageWriting = {
   readonly begin: (at: number, seed: string, near: Element) => void;
   readonly hintWords: (at: [number, number], hint: HTMLElement) => void;
 };
+
+const SETTLED_MS = 300;
 
 export const writtenOn = (page: Document, hands: Hands): PageWriting => {
   const writer = writerOf(page, hands);
@@ -103,7 +105,11 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
     format: formats.format,
     formattable: () => !unformattable(page),
     caretAt: () => caret.caretSpan()?.from ?? null,
-    placeAt: caret.placeAt,
+    placeAt: (at: number, stays?: number) => {
+      caret.placeAt(at, stays);
+      // Drawings take their height after the first paint, so the + is laid again once they have.
+      setTimeout(beside.besideLine, SETTLED_MS);
+    },
     rewrite: history.rewrite,
     outside: history.outside,
     chosen: () => {

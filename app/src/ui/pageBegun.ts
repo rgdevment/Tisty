@@ -77,11 +77,13 @@ export const begunOn = (writer: Writer, caret: Caret, laying: Laying) => {
     if (!titled) {
       ghost.append(page.createElement("br"));
       if (inside) near.append(ghost);
+      else if (near.matches(".add-step")) near.before(ghost);
       else near.after(ghost);
     }
     writer.kept = { node: ghost, offset: 0, at, lead, tail };
     page.querySelector<HTMLElement>(".page")?.focus();
     page.getSelection()?.collapse(ghost, 0);
+    caret.inSight(ghost);
   };
 
   const begin = (asked: number, seed: string, near: Element) => {

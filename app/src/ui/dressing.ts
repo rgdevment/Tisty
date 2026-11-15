@@ -19,6 +19,9 @@ import { GLIMPSES } from "./webcarding";
 import { gripped, widening } from "./widening";
 import { type Lending, lend, notWidget } from "./widgeting";
 
+/** Where a control asked from sits on screen: under it, its top and its right edge. */
+export type Anchor = { x: number; y: number; top?: number; right?: number };
+
 export type Reaching = Carding & {
   readonly body: string;
   readonly onDoc: (file: string) => void;
@@ -33,7 +36,7 @@ export type Reaching = Carding & {
   // A block whose drawing hides its words is written in the Markdown view, opened at this char.
   readonly onSource?: (at: number) => void;
   // A code block's language, chosen from a menu that opens at this point of the page.
-  readonly onLanguage?: (at: [number, number], near: { x: number; y: number }) => void;
+  readonly onLanguage?: (at: [number, number], near: Anchor) => void;
   // Bytes, as the window's own reader counts them, never converted; `nth` and what it says find it when the page is a save behind.
   readonly onDiagram?: (at: number, nth: number, source: string) => void;
   // Where on the window's own screen its choices open, under the bar of the figure.
@@ -412,6 +415,8 @@ export const answered = (page: Document, asked: Went, reach: Reaching) => {
     reach.onLanguage?.([charsAt(reach.body, asked.at[0]), charsAt(reach.body, asked.at[1])], {
       x: asked.x,
       y: asked.y,
+      top: asked.top,
+      right: asked.right,
     });
   if (asked.kind === "apart") {
     const block = page.querySelector(`.page > [data-at="${asked.at[0]}-${asked.at[1]}"]`);

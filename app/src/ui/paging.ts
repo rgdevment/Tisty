@@ -12,7 +12,7 @@ export type Went =
   | { kind: "attachment"; reference: string }
   | { kind: "block"; at: [number, number] }
   | { kind: "code"; at: [number, number] }
-  | { kind: "codeLang"; at: [number, number]; x: number; y: number }
+  | { kind: "codeLang"; at: [number, number]; x: number; y: number; top: number; right: number }
   | { kind: "tag"; name: string }
   | { kind: "tick"; at: [number, number] }
   | { kind: "part"; at: [number, number] }
@@ -39,6 +39,8 @@ export type TableWent = {
   to?: number;
   x: number;
   y: number;
+  top?: number;
+  right?: number;
 };
 
 // A picture or a diagram, as the viewer shows it; only a kept file can be saved or opened.
@@ -132,6 +134,8 @@ const tablePressed = (asked: HTMLElement): Went => {
         column: place(asked.dataset.column),
         x: box.left,
         y: box.bottom,
+        top: box.top,
+        right: box.right,
       }
     : null;
 };
@@ -157,7 +161,9 @@ const pressedIn = (asked: HTMLElement): Went => {
   if (asked.dataset.asked === "codeLang") {
     const fenced = spanned(asked.closest<HTMLElement>("figure.code[data-at]")?.dataset.at ?? null);
     const box = asked.getBoundingClientRect();
-    return fenced ? { kind: "codeLang", at: fenced, x: box.left, y: box.bottom } : null;
+    return fenced
+      ? { kind: "codeLang", at: fenced, x: box.left, y: box.bottom, top: box.top, right: box.right }
+      : null;
   }
   if (asked.dataset.asked === "code") {
     const widget = spanned(

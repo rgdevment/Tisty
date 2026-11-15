@@ -37,6 +37,7 @@ import { inEditor, reanchored, spanOf, touches } from "./anchoring";
 import { cardedAt, movedCard, putCard } from "./carded";
 import { LANGUAGES, languageAt, spokenIn } from "./codeLanguages";
 import { exportChoices, fileName } from "./drawing/exporting";
+import type { Anchor } from "./dressing";
 import { FrameThumb } from "./frameThumb";
 import { useKeptHeight } from "./heights";
 import { edited, HOST } from "./hosting";
@@ -179,6 +180,7 @@ export default function Sheet(props: Readonly<Props>) {
   const pending = useRef<{ turn: number; caret: number; all: boolean } | null>(null);
   // Where the caret stands in the whole text, so the whole document opens where the block was.
   const caretNow = useRef<(() => number) | null>(null);
+  const caretTop = useRef<(() => number | undefined) | null>(null);
   // One fading at a time: a mark laid again outlives the timer of the one before.
   const fading = useRef<ReturnType<typeof setTimeout> | null>(null);
   const markIn = (writing: Editing["view"], at: { from: number; to: number }) => {
@@ -228,6 +230,7 @@ export default function Sheet(props: Readonly<Props>) {
     x: number;
     y: number;
     top?: number;
+    right?: number;
     choices: Choice[];
     label?: string;
     find?: string;
@@ -436,6 +439,11 @@ export default function Sheet(props: Readonly<Props>) {
       }
       return true;
     };
+    caretTop.current = () => {
+      const writing = open.current?.view;
+      if (typeof writing?.coordsAtPos !== "function") return undefined;
+      return writing.coordsAtPos(writing.state.selection.main.head)?.top;
+    };
     caretNow.current = () => {
       const writing = open.current?.view;
       const head = writing?.state.selection.main.head ?? 0;
@@ -478,10 +486,11 @@ export default function Sheet(props: Readonly<Props>) {
   // biome-ignore lint/correctness/useExhaustiveDependencies: `pageWritten` reads only refs, so the view alone decides.
   useEffect(() => {
     const back = !markdown && open.current ? (caretNow.current?.() ?? null) : null;
+    const stays = back === null ? undefined : (caretTop.current?.() ?? undefined);
     if (!markdown) left();
     if (onPage) {
       pageWritten(shown.current?.document ?? null);
-      if (back !== null) pageWriter.current?.hands.placeAt(back);
+      if (back !== null) pageWriter.current?.hands.placeAt(back, stays);
       return;
     }
     pageWriter.current?.hands.stop();
@@ -581,6 +590,7 @@ export default function Sheet(props: Readonly<Props>) {
       },
     }));
     let closed = false;
+    const stood = writer.caretAt();
     // The menu closes before it hands over what was picked, so the slash waits for that to land.
     const unpicked = () =>
       setTimeout(() => {
@@ -588,6 +598,7 @@ export default function Sheet(props: Readonly<Props>) {
         closed = true;
         back();
         if (slash) writer.typed("/");
+        else stoodAgain(stood);
       });
     setMenu({
       ...at,
@@ -599,8 +610,14 @@ export default function Sheet(props: Readonly<Props>) {
     });
   };
 
+  // A menu put away without a choice gives the caret back where it stood, or the page keeps the focus with none.
+  const stoodAgain = (stood: number | null) => {
+    shown.current?.focus();
+    if (stood !== null) pageWriter.current?.hands.placeAt(stood);
+  };
+
   // The languages a code block may be coloured in, the one it names now marked.
-  const languageMenu = ([from]: [number, number], near: { x: number; y: number }) => {
+  const languageMenu = ([from]: [number, number], near: Anchor) => {
     const now = languageAt(latest.current, from);
     if (now === null) return;
     const frame = shown.current?.frameElement?.getBoundingClientRect();
@@ -611,9 +628,12 @@ export default function Sheet(props: Readonly<Props>) {
       pageWriter.current?.hands.placeAt(sourceIn(latest.current, from));
     };
     const plain = !now || now === "text";
+    const [left, top] = [frame?.left ?? 0, frame?.top ?? 0];
     setMenu({
-      x: (frame?.left ?? 0) + near.x,
-      y: (frame?.top ?? 0) + near.y + 4,
+      x: left + near.x,
+      y: top + near.y + 4,
+      ...(near.top !== undefined && { top: top + near.top }),
+      ...(near.right !== undefined && { right: left + near.right }),
       label: t("codeLanguage"),
       find: t("codeLanguageFind"),
       choices: [
@@ -630,15 +650,21 @@ export default function Sheet(props: Readonly<Props>) {
   };
 
   // What the grip beside a block offers: moving it, a copy under it, or taking it away.
-  const blockActs = (at: { x: number; y: number }, top: Element) => {
+  const blockActs = (at: Anchor, top: Element) => {
     const writer = pageWriter.current?.hands;
     if (!writer) return;
+    const stood = writer.caretAt();
+    let picked = false;
     const act = (kind: Act) => () => {
+      picked = true;
       shown.current?.focus();
       writer.unitActed(top, kind);
     };
     setMenu({
       ...at,
+      unpicked: () => {
+        if (!picked) stoodAgain(stood);
+      },
       label: t("blocksOf"),
       choices: [
         { key: "up", label: t("blockUp"), keys: `${ALT} ↑`, onPick: act("up") },
@@ -1219,7 +1245,7 @@ export default function Sheet(props: Readonly<Props>) {
       )}
       {menu && (
         <Menu
-          at={{ x: menu.x, y: menu.y, top: menu.top }}
+          at={{ x: menu.x, y: menu.y, top: menu.top, right: menu.right }}
           label={menu.label ?? t("formatting")}
           choices={menu.choices}
           find={menu.find}
