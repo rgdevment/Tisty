@@ -619,7 +619,13 @@ label[for] {
   opacity: 0.35;
 }
 
-.leaves,
+.leaves {
+  position: relative;
+  margin-top: 46px;
+  padding: 22px 30px 26px;
+  border-radius: 0 0 10px 10px;
+  background-color: var(--tisty-sheet);
+}
 .leaves::before {
   content: "";
   position: absolute;
