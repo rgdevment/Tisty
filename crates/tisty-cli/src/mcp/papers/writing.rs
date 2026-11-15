@@ -437,7 +437,7 @@ pub(in crate::mcp) fn append_doc(paths: &Paths, args: &Value) -> Result<Value, R
     if super::super::ideas::is_sheet(&before) {
         return super::super::ideas::jotted_on(paths, &state, &mut store, kept, &said, args);
     }
-    if super::super::diary::in_the_diary(&state, &which) {
+    if super::super::diary::in_the_diary(paths, &state, &which) {
         return super::super::diary::written_today(paths, &state, &mut store, kept, &body, args);
     }
     keeps(&body)?;

@@ -389,3 +389,22 @@ fn every_other_change_to_an_open_diary_is_refused() {
     );
     assert_eq!(state.docs.len(), 3, "no page was hung under the diary");
 }
+
+#[test]
+fn an_agent_never_writes_today_into_a_locked_book_by_naming_another_year() {
+    let served = Served::new();
+    let today = santiago_today();
+    let (book, page) = served.person().writes_in_the_diary(today, "Hoy.");
+    let last_year = today.checked_sub(jiff::Span::new().years(1)).unwrap();
+    let (old_book, _) = served.person().writes_in_the_diary(last_year, "Antes.");
+    served.person().locks_doc(&book);
+    served.person().opens_the_diary_to_agents(true);
+
+    let added = served.call(
+        "append_doc",
+        json!({ "doc": old_book, "body": "Jaime called." }),
+    );
+
+    assert!(refused(&added), "{added}");
+    assert!(!served.body(&page).contains("Jaime called."));
+}

@@ -13,6 +13,12 @@ pub(super) fn task_named(state: &State, which: &str) -> Option<TaskId> {
         .filter(|id| state.tasks.get(id).is_some_and(|one| !one.hidden))
 }
 
+pub(super) fn assistant() -> String {
+    speaking_through()
+        .map(|client| tisty_core::agent::client_named(&client))
+        .unwrap_or_else(|| "assistant".to_string())
+}
+
 pub(super) fn noted_on_page(
     paths: &Paths,
     state: &State,
@@ -42,11 +48,7 @@ pub(super) fn noted_on_page(
     let spanish = tisty_core::model::spoken(config.locale.as_deref())
         .to_lowercase()
         .starts_with("es");
-    let day = jiff::Zoned::now().strftime("%Y-%m-%d %H:%M");
-    let who = speaking_through()
-        .map(|client| tisty_core::agent::client_named(&client))
-        .unwrap_or_else(|| "assistant".to_string());
-    let note = format!("**{day}** · {who}\n{}", body.trim());
+    let note = tisty_core::assistant_notes::signed_by(&assistant(), &jiff::Zoned::now(), body);
     let page = tisty_core::task_docs::of(state, owner).map(|kept| kept.file.clone());
     let folded = match replace {
         true => folding(paths, page.as_deref(), &title, body, &note, spanish)?,

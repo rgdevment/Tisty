@@ -409,7 +409,7 @@ fn admitted(paths: &Paths) -> Result<Option<(State, tisty_core::DeviceId)>, Refu
         return Ok(None);
     };
     let mut state = tisty_core::cache::project(&paths.store(), paths.cache()).map_err(hitch)?;
-    tisty_core::diary::out_of_sight(&mut state);
+    tisty_core::diary::out_of_sight(&paths.docs(), &mut state);
     // The log says who may write, not the settings file an agent could edit itself.
     Ok(state.agents.contains(&agent).then_some((state, agent)))
 }

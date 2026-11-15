@@ -146,8 +146,9 @@ fn the_first_words_of_a_year_make_its_book_and_its_month_and_the_book_names_the_
     assert_eq!(book.title.as_deref(), Some("Diario 2026"));
     assert_eq!(page.page_of, Some(book.id));
     assert_eq!(page.title.as_deref(), Some("Noviembre"));
-    assert!(within(&state, page) && within(&state, book));
-    assert_eq!(month_of_page(&state, page), Some((2026, 11)));
+    let held = books(room.path(), &state);
+    assert!(within(&held, page) && within(&held, book));
+    assert_eq!(month_of_page(room.path(), &state, page), Some((2026, 11)));
 
     let whole = named(room.path(), room.path(), &opening).unwrap().unwrap();
     assert!(
@@ -199,8 +200,22 @@ fn of_two_books_for_one_year_the_oldest_is_the_diary_and_one_that_stopped_saying
     ));
     assert_eq!(book_of(room.path(), &state, 2026).unwrap().file, first.book);
 
+    let first_id = state
+        .docs
+        .values()
+        .find(|one| one.file == first.book)
+        .unwrap()
+        .id;
+    assert!(books(room.path(), &state).contains(&first_id));
+
     crate::docs::write(room.path(), &first.book, "# Diario 2026\n").unwrap();
     assert_eq!(book_of(room.path(), &state, 2026).unwrap().file, second.id);
+    let held = books(room.path(), &state);
+    assert!(!held.contains(&first_id), "it stopped saying it is a diary");
+    let mut seen = state.clone();
+    out_of_sight(room.path(), &mut seen);
+    assert!(seen.docs.contains_key(&first_id));
+    assert!(!seen.docs.values().any(|one| one.file == second.id));
 }
 
 #[test]
@@ -294,7 +309,7 @@ fn the_tasks_closed_on_a_day_are_the_ones_done_that_day_and_not_hidden() {
 }
 
 #[test]
-fn a_locked_book_makes_no_new_month_and_is_said_locked() {
+fn a_locked_book_still_opens_its_month_but_makes_no_new_one() {
     let room = tempfile::tempdir().unwrap();
     let mut state = State::default();
     let november = opened_into(room.path(), &mut state, day("2026-11-15"), &SPANISH);
@@ -312,8 +327,13 @@ fn a_locked_book_makes_no_new_month_and_is_said_locked() {
         by: None,
     };
 
+    let later = opened(&maker, &state, day("2026-11-20"), &SPANISH).unwrap();
     let december = opened(&maker, &state, day("2026-12-01"), &SPANISH).unwrap();
 
+    assert!(
+        matches!(&later, Opened::Ready(one) if one.ops.is_empty() && one.page == november.page),
+        "a month that is there opens, locked or not: {later:?}"
+    );
     assert!(
         matches!(&december, Opened::Locked { book } if *book == november.book),
         "{december:?}"

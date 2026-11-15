@@ -1,10 +1,11 @@
 use serde_json::{Value, json};
+use tisty_core::diary::Opening;
 use tisty_core::model::Kept;
 use tisty_core::{Paths, State, Store, diary};
 
 use super::asked::text;
-use super::jsonrpc::{speaking_through, told};
-use super::{Refused, UNSETTLED, admitted, doc_named, hitch, retold};
+use super::jsonrpc::told;
+use super::{Refused, UNSETTLED, doc_named, hitch, retold};
 
 fn says_diary(body: &str) -> bool {
     tisty_markdown::front::diary(body)
@@ -59,10 +60,11 @@ pub(super) fn left_alone(paths: &Paths, name: &str, args: &Value) -> Result<(), 
     if named.is_empty() {
         return Ok(());
     }
-    let Some((state, _)) = admitted(paths)? else {
+    let state = tisty_core::cache::summarised(&paths.store(), paths.cache()).map_err(hitch)?;
+    if !state.diary_open {
         return Ok(());
-    };
-    match named.iter().find(|file| in_the_diary(&state, file)) {
+    }
+    match named.iter().find(|file| in_the_diary(paths, &state, file)) {
         Some(file) => Err(Refused::Tool(format!(
             "{} is the person's diary, and its words are theirs: nothing in it is rewritten, \
              moved, marked or put away. Add to today with `append_doc`, and only when they ask. \
@@ -73,11 +75,12 @@ pub(super) fn left_alone(paths: &Paths, name: &str, args: &Value) -> Result<(), 
     }
 }
 
-pub(super) fn in_the_diary(state: &State, file: &str) -> bool {
+pub(super) fn in_the_diary(paths: &Paths, state: &State, file: &str) -> bool {
+    let books = diary::books(&paths.docs(), state);
     state
         .docs
         .values()
-        .any(|one| one.file == file && diary::within(state, one))
+        .any(|one| one.file == file && diary::within(&books, one))
 }
 
 pub(super) fn written_today(
@@ -104,10 +107,8 @@ pub(super) fn written_today(
     let words = diary::words_for(&tisty_core::model::spoken(config.locale.as_deref()));
     let now = jiff::Zoned::now();
     let today = now.date();
-    let who = speaking_through()
-        .map(|client| tisty_core::agent::client_named(&client))
-        .unwrap_or_else(|| "assistant".to_string());
-    let signed = format!("**{}** · {who}\n{said}", now.strftime("%Y-%m-%d %H:%M"));
+    let who = super::task_notes::assistant();
+    let signed = tisty_core::assistant_notes::signed_by(&who, &now, said);
 
     let root = paths.docs();
     let device = store.device().clone();
@@ -117,10 +118,11 @@ pub(super) fn written_today(
         by: None,
     };
     let opening = match diary::opened(&maker, state, today, words).map_err(hitch)? {
-        diary::Opened::Ready(opening) => opening,
-        diary::Opened::Locked { book } => {
+        diary::Opened::Ready(opening) if !state.bolted(&opening.page) => opening,
+        diary::Opened::Ready(Opening { book, .. }) | diary::Opened::Locked { book } => {
             return Err(Refused::Tool(format!(
-                "{} is locked: the person shut it so nothing writes in it. Nothing was written.",
+                "{} is locked or put away: the person shut it so nothing writes in it. Nothing \
+                 was written.",
                 doc_named(state, &book)
             )));
         }

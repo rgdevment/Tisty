@@ -1,3 +1,4 @@
+use std::collections::BTreeSet;
 use std::path::Path;
 
 use jiff::civil::Date;
@@ -121,22 +122,33 @@ pub fn day_named(heading: &str) -> Option<i8> {
         .filter(|day| (1..=31).contains(day))
 }
 
-pub fn within(state: &State, kept: &Kept) -> bool {
-    kept.diary
-        || kept
-            .page_of
-            .and_then(|up| state.docs.get(&up))
-            .is_some_and(|book| book.diary)
+fn says_so(root: &Path, kept: &Kept) -> bool {
+    crate::docs::read(root, &kept.file).is_ok_and(|body| tisty_markdown::front::diary(&body))
 }
 
-pub fn out_of_sight(state: &mut State) {
+// The log's mark is only kept once said, so the book's own words decide whether it still is one.
+pub fn books(root: &Path, state: &State) -> BTreeSet<DocId> {
+    state
+        .docs
+        .values()
+        .filter(|one| one.diary && one.page_of.is_none() && says_so(root, one))
+        .map(|one| one.id)
+        .collect()
+}
+
+pub fn within(books: &BTreeSet<DocId>, kept: &Kept) -> bool {
+    books.contains(&kept.id) || kept.page_of.is_some_and(|up| books.contains(&up))
+}
+
+pub fn out_of_sight(root: &Path, state: &mut State) {
     if state.diary_open {
         return;
     }
+    let books = books(root, state);
     let hidden: Vec<DocId> = state
         .docs
         .values()
-        .filter(|one| within(state, one))
+        .filter(|one| within(&books, one))
         .map(|one| one.id)
         .collect();
     for id in hidden {
@@ -165,9 +177,7 @@ pub fn book_of<'a>(root: &Path, state: &'a State, year: i16) -> Option<&'a Kept>
         })
         .collect();
     books.sort_by_key(|one| one.id);
-    books.into_iter().find(|one| {
-        crate::docs::read(root, &one.file).is_ok_and(|body| tisty_markdown::front::diary(&body))
-    })
+    books.into_iter().find(|one| says_so(root, one))
 }
 
 pub fn page_of(state: &State, book: DocId, month: i8) -> Option<&Kept> {
@@ -208,11 +218,6 @@ pub struct Maker<'a> {
 pub fn opened(maker: &Maker, state: &State, date: Date, words: &Words) -> Result<Opened> {
     let mut ops = Vec::new();
     let found = book_of(maker.root, state, date.year());
-    if let Some(book) = found.filter(|one| state.shut(one.id)) {
-        return Ok(Opened::Locked {
-            book: book.file.clone(),
-        });
-    }
     let (book_id, book, book_made) = match found {
         Some(one) => (one.id, one.file.clone(), false),
         None => {
@@ -231,6 +236,7 @@ pub fn opened(maker: &Maker, state: &State, date: Date, words: &Words) -> Result
     let month = date.month();
     let (page, page_made) = match found.and_then(|_| page_of(state, book_id, month)) {
         Some(one) => (one.file.clone(), false),
+        None if state.shut(book_id) => return Ok(Opened::Locked { book }),
         None => {
             let order = crate::order::last_of(
                 state
@@ -382,9 +388,9 @@ pub fn days_on(body: &str) -> Vec<i8> {
         .collect()
 }
 
-pub fn month_of_page(state: &State, kept: &Kept) -> Option<(i16, i8)> {
+pub fn month_of_page(root: &Path, state: &State, kept: &Kept) -> Option<(i16, i8)> {
     let book = state.docs.get(&kept.page_of?)?;
-    if !book.diary {
+    if !book.diary || !says_so(root, book) {
         return None;
     }
     Some((year_of(book)?, kept.title.as_deref().and_then(month_named)?))
