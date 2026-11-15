@@ -10,6 +10,7 @@ import Tree from "../ui/Tree";
 const ipc = vi.hoisted(() => ({
   calls: [] as { cmd: string; args: Record<string, unknown> }[],
   open: false,
+  holding: false,
 }));
 
 const TODAY = { book: "a3f1-0010", page: "a3f1-0011" };
@@ -18,6 +19,7 @@ vi.mock("@tauri-apps/api/core", () => ({
   invoke: (cmd: string, args?: Record<string, unknown>) => {
     ipc.calls.push({ cmd, args: args ?? {} });
     if (cmd === "diary_of") return Promise.resolve({ book: TODAY.book, open: ipc.open });
+    if (cmd === "diary_write" && ipc.holding) return new Promise(() => {});
     if (cmd === "diary_write" || cmd === "diary_stick") return Promise.resolve(TODAY);
     return Promise.resolve(null);
   },
@@ -26,6 +28,7 @@ vi.mock("@tauri-apps/api/core", () => ({
 beforeEach(() => {
   ipc.calls = [];
   ipc.open = false;
+  ipc.holding = false;
 });
 
 const asked = (cmd: string) => ipc.calls.filter((one) => one.cmd === cmd);
@@ -97,6 +100,46 @@ describe("the diary in the library", () => {
     expect(screen.getByRole("button", { name: "Suelto" }).closest("#pages-diary")).toBeNull();
   });
 
+  it("puts the newest year on top whatever language each book is named in", () => {
+    const years: Papers = {
+      folders: [],
+      docs: [
+        {
+          id: "01P",
+          file: "a3f1-0021",
+          title: "Diary 2026",
+          folder: null,
+          archived: false,
+          away: false,
+          diary: true,
+        },
+        {
+          id: "01Q",
+          file: "a3f1-0022",
+          title: "Diario 2027",
+          folder: null,
+          archived: false,
+          away: false,
+          diary: true,
+        },
+      ],
+    };
+    render(<Tree papers={years} unfolded onOpen={vi.fn()} onFile={vi.fn()} onDiary={vi.fn()} />);
+
+    const rows = Array.from(
+      document.querySelectorAll<HTMLElement>("#pages-diary [data-row]"),
+      (one) => one.getAttribute("aria-label"),
+    );
+    expect(rows).toEqual(["Diario 2027", "Diary 2026"]);
+  });
+
+  it("keeps the tab stop on the diary's own row when only diary books are there", () => {
+    const only: Papers = { folders: [], docs: papers.docs.filter((one) => one.diary) };
+    render(<Tree papers={only} onOpen={vi.fn()} onFile={vi.fn()} onDiary={vi.fn()} />);
+
+    expect(screen.getByRole("button", { name: t("diary") }).tabIndex).toBe(0);
+  });
+
   it("shows the books where they sit when nothing gathers them", () => {
     render(<Tree papers={papers} unfolded onOpen={vi.fn()} onFile={vi.fn()} />);
 
@@ -121,6 +164,20 @@ describe("the diary's bar", () => {
       { cmd: "diary_write", args: { text: "Paseo con Rina" } },
     ]);
     expect(screen.queryByRole("textbox")).toBeNull();
+  });
+
+  it("writes once however many times the words are kept while the first is on its way", async () => {
+    ipc.holding = true;
+    render(<DiaryBar onBefore={() => Promise.resolve()} onWritten={vi.fn()} onError={vi.fn()} />);
+
+    await userEvent.click(screen.getByRole("button", { name: t("diaryWrite") }));
+    await userEvent.type(screen.getByRole("textbox", { name: t("diaryWrite") }), "Paseo");
+    await userEvent.keyboard("{Control>}{Enter}{/Control}");
+    await waitFor(() => expect(asked("diary_write")).toHaveLength(1));
+    await userEvent.keyboard("{Control>}{Enter}{/Control}");
+    await userEvent.click(screen.getByRole("button", { name: t("diaryKeep") }));
+
+    expect(asked("diary_write")).toHaveLength(1);
   });
 
   it("sticks a short note in today on Enter", async () => {

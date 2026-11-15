@@ -152,26 +152,46 @@ pub fn diary_drawn(
     one: String,
     many: String,
 ) -> tauri::ipc::Response {
-    let session = held(&session);
-    let html = super::paging::paged(&session.paths.cache().join("pages"), &body);
+    let shelf = held(&session).paths.cache().join("pages");
+    let html = super::paging::paged(&shelf, &body);
     let said = tisty_core::diary_page::Said {
         today: &today,
         one: &one,
         many: &many,
     };
-    let dressed = match session.state.docs.values().find(|one| one.file == file) {
-        Some(kept) => tisty_core::diary_page::dressed(
-            &html,
-            &body,
-            &session.state,
-            kept,
-            now().date(),
-            &jiff::tz::TimeZone::system(),
-            &said,
-        ),
-        None => html,
-    };
-    tauri::ipc::Response::new(dressed.into_bytes())
+    let dressed = seen(&held(&session), &file, |page| {
+        tisty_core::diary_page::dressed(&html, &body, page, &said)
+    });
+    tauri::ipc::Response::new(dressed.unwrap_or(html).into_bytes())
+}
+
+#[tauri::command(async)]
+pub fn diary_closed(
+    session: tauri::State<'_, Mutex<Session>>,
+    file: String,
+    body: String,
+) -> String {
+    seen(&held(&session), &file, |page| {
+        tisty_core::diary_page::print(&body, page)
+    })
+    .unwrap_or_default()
+}
+
+fn seen<T>(
+    session: &Session,
+    file: &str,
+    look: impl FnOnce(&tisty_core::diary_page::Page) -> T,
+) -> Option<T> {
+    let kept = session.state.docs.values().find(|one| one.file == file)?;
+    let root = session.paths.docs();
+    let zone = jiff::tz::TimeZone::system();
+    Some(look(&tisty_core::diary_page::Page {
+        root: &root,
+        state: &session.state,
+        kept,
+        today: now().date(),
+        zone: &zone,
+    }))
 }
 
 #[cfg(test)]

@@ -25,6 +25,8 @@ import { onMac } from "./WindowChrome";
 const STIRS = 4;
 const DIARY = "diary";
 
+const yearOf = (book: Filed): number => Number(book.title.match(/[0-9]{4}/)?.[0] ?? 0);
+
 const guestSaid = (doc: Filed) => {
   if (doc.editing && doc.guest) return fill("guestEditing", doc.guest);
   return doc.guest ? fill("guestDoc", doc.guest) : t("guestDocPlain");
@@ -273,7 +275,6 @@ export default function Tree({
     );
   });
 
-  const first = papers.folders[0]?.id ?? papers.docs[0]?.id ?? "unfiled";
   const stops = (id: string) => (reached ?? first) === id;
 
   const walk = (from: string, by: number) => {
@@ -394,7 +395,10 @@ export default function Tree({
   const gathered = (one: Filed) => Boolean(onDiary && one.diary && !one.pageOf && !one.away);
   const diaries = papers.docs
     .filter(gathered)
-    .sort((one, two) => two.title.localeCompare(one.title, undefined, { numeric: true }));
+    .sort((one, two) => yearOf(two) - yearOf(one) || two.title.localeCompare(one.title));
+  const diaryShown = Boolean(onDiary) && (!unfolded || diaries.length > 0);
+  // Only a row the tree draws can hold the tab stop: a page or a book folded away never would.
+  const first = pin?.id ?? (diaryShown ? DIARY : undefined) ?? papers.folders[0]?.id ?? "unfiled";
 
   const inside = (folder: string | null) =>
     papers.docs.filter(
@@ -845,7 +849,7 @@ export default function Tree({
         </li>
       )}
       {pin && paper(pin, 0)}
-      {onDiary && (!unfolded || diaries.length > 0) && diary(onDiary)}
+      {onDiary && diaryShown && diary(onDiary)}
       {under(null).flatMap((folder) => [branch(folder, 0)])}
 
       <li className="relative">

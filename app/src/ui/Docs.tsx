@@ -31,7 +31,7 @@ import {
   taskOf,
   viewDoc,
 } from "../core";
-import { diaryDrawn, type Today } from "../diary";
+import { diaryClosed, diaryDrawn, type Today } from "../diary";
 import { viewDiagram } from "../drawing";
 import { brainstormIn, notedIn, withLandscape, withPaper, withSheets } from "../front";
 import { keptAll, PASTED_UP_TO } from "../kept";
@@ -555,6 +555,21 @@ export default function Docs({
     taskOf(id)
       .then((one) => (onSeeTask ?? onTask)?.(one))
       .catch((e) => onError(saidPlainly(e)));
+  // A round that closed nothing on these days leaves the page as drawn.
+  const [strips, setStrips] = useState("");
+  const bodyNow = useRef(body);
+  bodyNow.current = body;
+  const diaryFile = inDiary ? open?.file : undefined;
+  useEffect(() => {
+    if (!diaryFile) return setStrips("");
+    let live = true;
+    diaryClosed(diaryFile, bodyNow.current)
+      .then((said) => live && setStrips(said))
+      .catch(() => {});
+    return () => {
+      live = false;
+    };
+  }, [diaryFile, fresh]);
 
   const { wholeAsked, allAsked } = useWholeKeys(Boolean(open), !bolted);
   const stood = useRef(new Map<string, number>());
@@ -693,6 +708,27 @@ export default function Docs({
     onTurn: (markdown) => setMarkdownOf(markdown ? (open?.file ?? null) : null),
   };
   const pageMore = bolted ? null : <PageMore {...viewing} />;
+  const placed = above ? (
+    <Ribbon
+      of={above}
+      sisters={sisters}
+      told={aboveTold}
+      here={open?.file ?? ""}
+      onOpen={(doc) => onDoc?.(doc.file)}
+      view={pageMore}
+    >
+      {!beside && spoken}
+    </Ribbon>
+  ) : (
+    ((spoken && !beside) || own?.tongueApart || pageMore) && (
+      <div className="ribbon">
+        <span className="ribbon-title">{called || t("untitledDoc")}</span>
+        {own?.tongueApart && <p role="note">{t("tongueApart")}</p>}
+        {!beside && spoken}
+        {pageMore}
+      </div>
+    )
+  );
   const laid = useMemo(() => laidIn(body), [body]);
   const leaf =
     (open && (bolted ? (sized[open.file] ?? laid.paper) : (laid.paper ?? sized[open.file]))) ||
@@ -958,7 +994,7 @@ export default function Docs({
                   onNote={onNote}
                   card={cards}
                   blurb={blurb}
-                  again={inDiary ? `${again}|${fresh}` : again}
+                  again={inDiary ? `${again}|${strips}` : again}
                   value={body}
                   seek={seek}
                   anchor={anchor}
@@ -974,15 +1010,7 @@ export default function Docs({
                   above={
                     inDiary ? (
                       <>
-                        {above && (
-                          <Ribbon
-                            of={above}
-                            sisters={sisters}
-                            told={aboveTold}
-                            here={open.file}
-                            onOpen={(doc) => onDoc?.(doc.file)}
-                          />
-                        )}
+                        {placed}
                         <DiaryBar
                           onBefore={() => {
                             flush();
@@ -992,26 +1020,8 @@ export default function Docs({
                           onError={(e) => onError(saidPlainly(e))}
                         />
                       </>
-                    ) : above ? (
-                      <Ribbon
-                        of={above}
-                        sisters={sisters}
-                        told={aboveTold}
-                        here={open.file}
-                        onOpen={(doc) => onDoc?.(doc.file)}
-                        view={pageMore}
-                      >
-                        {!beside && spoken}
-                      </Ribbon>
                     ) : (
-                      ((spoken && !beside) || own?.tongueApart || pageMore) && (
-                        <div className="ribbon">
-                          <span className="ribbon-title">{called || t("untitledDoc")}</span>
-                          {own?.tongueApart && <p role="note">{t("tongueApart")}</p>}
-                          {!beside && spoken}
-                          {pageMore}
-                        </div>
-                      )
+                      placed
                     )
                   }
                   belowFolds={!above}

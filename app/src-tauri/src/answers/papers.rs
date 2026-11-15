@@ -1028,6 +1028,7 @@ fn gathered(session: &Session) -> Vec<Filed> {
     let mut kept_in_order: Vec<&tisty_core::model::Kept> = session.state.papers().collect();
     kept_in_order.sort_by(|a, b| a.order.cmp(&b.order).then(a.id.cmp(&b.id)));
     let tongues = super::tongues::standing(&session.state);
+    let diaries = tisty_core::diary::books(&session.paths.docs(), &session.state);
     let apart = session.state.apart();
     let shelf = tisty_sharing::remembered(&session.state);
 
@@ -1071,7 +1072,7 @@ fn gathered(session: &Session) -> Vec<Filed> {
             lang: kept.lang.clone(),
             tongue: tongues.get(&kept.id).cloned(),
             tongue_apart: apart.contains(&kept.id),
-            diary: tisty_core::diary::within(&session.state, kept),
+            diary: tisty_core::diary::within(&diaries, kept),
         })
         .collect()
 }

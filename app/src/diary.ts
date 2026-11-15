@@ -27,6 +27,9 @@ export const diaryStick = (note: string): Promise<Today> => invoke("diary_stick"
 
 export const diaryAgents = (open: boolean): Promise<void> => invoke("diary_agents", { open });
 
+export const diaryClosed = (file: string, body: string): Promise<string> =>
+  invoke("diary_closed", { file, body });
+
 export const diaryDrawn = (file: string, body: string): Promise<string> =>
   invoke<ArrayBuffer>("diary_drawn", {
     file,

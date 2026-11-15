@@ -18,6 +18,7 @@ export default function DiaryBar({ onBefore, onWritten, onError }: Props) {
   const [open, setOpen] = useState<boolean | null>(null);
   const [asked, setAsked] = useState<Asked>(null);
   const [text, setText] = useState("");
+  const [keeping, setKeeping] = useState(false);
 
   useEffect(() => {
     let live = true;
@@ -44,7 +45,8 @@ export default function DiaryBar({ onBefore, onWritten, onError }: Props) {
 
   const keep = () => {
     const said = text.trim();
-    if (!said) return;
+    if (!said || keeping) return;
+    setKeeping(true);
     onBefore()
       .catch(() => {})
       .then(() => (asked === "sticking" ? diaryStick(said) : diaryWrite(said)))
@@ -53,7 +55,8 @@ export default function DiaryBar({ onBefore, onWritten, onError }: Props) {
         setAsked(null);
         onWritten(today);
       })
-      .catch(onError);
+      .catch(onError)
+      .finally(() => setKeeping(false));
   };
 
   const keys = (e: React.KeyboardEvent) => {
@@ -141,7 +144,7 @@ export default function DiaryBar({ onBefore, onWritten, onError }: Props) {
             </button>
             <button
               type="submit"
-              disabled={!text.trim()}
+              disabled={!text.trim() || keeping}
               className="rounded-md bg-accent px-2 py-1 text-[12.5px] text-white disabled:opacity-40"
             >
               {t("diaryKeep")}

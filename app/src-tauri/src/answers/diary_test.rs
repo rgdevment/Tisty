@@ -90,8 +90,12 @@ fn a_locked_book_is_not_written_by_the_diary() {
     session.commit(Op::DocLock { id }).unwrap();
 
     let refused = writing(&mut session, "Algo", day("2026-11-15")).unwrap_err();
+    let reopened = opening(&mut session, day("2026-11-20")).unwrap();
+    let december = opening(&mut session, day("2026-12-01")).unwrap_err();
 
     assert_eq!(refused.code, "documentLocked");
+    assert_eq!(reopened, today, "a locked diary still opens to read");
+    assert_eq!(december.code, "documentLocked");
     assert_eq!(body(&session, &today.page), "# Noviembre\n");
 }
 

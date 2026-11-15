@@ -69,15 +69,7 @@ fn a_day_shows_under_its_title_what_was_closed_on_it_and_today_says_so() {
     let body = "# Noviembre\n\n## Domingo 15\n\nPaseo.\n\n## Sábado 14\n\nNada.\n\n## Viernes 13\n\nTrabajo.\n";
     let html = tisty_markdown::html(&tisty_markdown::read(body));
 
-    let dressed = dressed(
-        &html,
-        body,
-        &state,
-        &page,
-        "2026-11-15".parse().unwrap(),
-        &jiff::tz::TimeZone::UTC,
-        &SAID,
-    );
+    let dressed = dressed(&html, body, &seen(room.path(), &state, &page), &SAID);
 
     let sunday = dressed.find("Domingo 15</h2>").unwrap();
     let saturday = dressed.find("Sábado 14</h2>").unwrap();
@@ -116,15 +108,41 @@ fn a_page_outside_the_diary_is_drawn_as_it_was() {
     let body = "# Notas\n\n## Domingo 15\n\nPaseo.\n";
     let html = tisty_markdown::html(&tisty_markdown::read(body));
 
-    let dressed = dressed(
-        &html,
-        body,
-        &state,
-        &page,
-        "2026-11-15".parse().unwrap(),
-        &jiff::tz::TimeZone::UTC,
-        &SAID,
-    );
+    let dressed = dressed(&html, body, &seen(room.path(), &state, &page), &SAID);
 
     assert_eq!(dressed, html);
+    assert_eq!(print(body, &seen(room.path(), &state, &page)), "");
 }
+
+#[test]
+fn the_print_changes_only_when_what_the_strips_say_does() {
+    let room = tempfile::tempdir().unwrap();
+    let mut state = State::default();
+    let page = diary(&mut state, room.path());
+    let body = "# Noviembre\n\n## Domingo 15\n\nPaseo.\n\n## Sábado 14\n\nNada.\n";
+    let before = print(body, &seen(room.path(), &state, &page));
+
+    state.apply(&ev(
+        2,
+        Op::TaskAdd {
+            id: ulid::Ulid::generate(),
+            d: crate::event::TaskAdd::new("Sigue abierta", "a1"),
+        },
+    ));
+    assert_eq!(print(body, &seen(room.path(), &state, &page)), before);
+
+    closed(&mut state, "Pagar la luz", "2026-11-14");
+    assert_ne!(print(body, &seen(room.path(), &state, &page)), before);
+}
+
+fn seen<'a>(root: &'a std::path::Path, state: &'a State, kept: &'a Kept) -> Page<'a> {
+    Page {
+        root,
+        state,
+        kept,
+        today: "2026-11-15".parse().unwrap(),
+        zone: &UTC,
+    }
+}
+
+static UTC: jiff::tz::TimeZone = jiff::tz::TimeZone::UTC;
