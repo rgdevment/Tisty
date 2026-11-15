@@ -130,3 +130,23 @@ describe("a link written alone on its line", () => {
     expect(text()).toContain("[https://tisty.app](https://tisty.app)\n\nZ\n\n- primero");
   });
 });
+
+describe("words written inside a collapsible", () => {
+  it("go under its name with Enter, and the collapsible stays whole", () => {
+    const text = opened("foldEmpty");
+    const name = document.querySelector("summary")?.firstChild as Text;
+    document.getSelection()?.collapse(name, name.length);
+    asked("insertParagraph");
+    asked("insertText", "Z");
+    expect(text()).toContain(":::details Plegable\n\nZ\n\n");
+    expect(text()).toMatch(/Z\n+:::\n/);
+  });
+
+  it("go under its name when its empty body is clicked", () => {
+    const text = opened("foldEmpty");
+    const fold = document.querySelector("details") as HTMLDetailsElement;
+    fold.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    asked("insertText", "Z");
+    expect(text()).toContain(":::details Plegable\n\nZ\n\n");
+  });
+});

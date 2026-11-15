@@ -103,7 +103,11 @@ export const begunOn = (writer: Writer, caret: Caret, laying: Laying) => {
 
   // A quote or a sticky note with no words yet holds no caret, so its first line is begun inside it.
   const quoted = (event: MouseEvent) => {
-    const quote = (event.target as Element | null)?.closest?.(".page > blockquote[data-at]");
+    const target = event.target as Element | null;
+    const fold = target?.closest?.<HTMLDetailsElement>(".page > details[data-at]");
+    if (fold && !target?.closest("summary") && !fold.querySelector(`[data-at], ${GHOST}`))
+      return intoFold(fold);
+    const quote = target?.closest?.(".page > blockquote[data-at]");
     if (!quote || quote.querySelector(`[data-src], ${GHOST}`)) return;
     const span = spanned(quote.getAttribute("data-at"));
     if (!span) return;
@@ -131,5 +135,17 @@ export const begunOn = (writer: Writer, caret: Caret, laying: Laying) => {
   const beginAbove = (at: number, seed: string, tail: string, near: Element) =>
     laidGhost(near, false, at, seed, tail, true);
 
-  return { waited, dropBegun, firstKey, typed, begin, beginAbove, quoted, hintWords };
+  // A collapsible keeps its words under its name, so a line begun in it opens right below the name.
+  const intoFold = (fold: HTMLDetailsElement) => {
+    const span = spanned(fold.getAttribute("data-at"));
+    if (!span) return;
+    const text = hands.text();
+    const named = text.indexOf("\n", charsAt(text, span[0]));
+    if (named < 0) return;
+    const at = text[named - 1] === "\r" ? named - 1 : named;
+    fold.open = true;
+    laidGhost(fold, true, at, "\n\n", closing(text, at));
+  };
+
+  return { waited, dropBegun, firstKey, typed, begin, beginAbove, intoFold, quoted, hintWords };
 };
