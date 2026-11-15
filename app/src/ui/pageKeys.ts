@@ -1,5 +1,5 @@
 import { SLASHED } from "tisty-editor/edit";
-import { charsAt } from "tisty-editor/read";
+import { bytesAt, charsAt } from "tisty-editor/read";
 import type { Beside } from "./pageBeside";
 import type { Caret } from "./pageCaret";
 import type { Formats } from "./pageFormats";
@@ -91,6 +91,7 @@ export const keysOn = (
 
   const keyed = (event: KeyboardEvent) => {
     if (!onSheet(page, event)) return;
+    if (event.key === "Escape") return leftHere();
     if (event.key === "End" && !event.shiftKey && !event.altKey) return toEnd(event);
     if (event.key === "Tab" && !event.ctrlKey && !event.metaKey && !event.altKey)
       return tabbed(event);
@@ -129,6 +130,14 @@ export const keysOn = (
     const shifted = (at: number) => (at > start ? Math.max(start, at - gone) : at);
     put({ from: start, to: start + gone, insert: "" }, shifted(now));
     if (begun) writer.kept = { ...begun, at: shifted(begun.at) };
+  };
+
+  // A step left empty with Escape goes, as it goes when the caret leaves its line.
+  const leftHere = () => {
+    const at = caret.caretSpan()?.from;
+    if (at === undefined) return;
+    const text = hands.text();
+    leftEmpty(String(bytesAt(text, text.lastIndexOf("\n", at - 1) + 1)));
   };
 
   const noted = () => {

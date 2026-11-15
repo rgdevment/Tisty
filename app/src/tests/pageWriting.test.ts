@@ -1154,6 +1154,20 @@ describe("an empty step left behind", () => {
     document.dispatchEvent(new Event("selectionchange"));
     expect(said).toEqual([]);
   });
+
+  it("is taken away with Escape, as the caret leaving it would", () => {
+    const said = writer("- [ ] uno\n- [ ] \n\nFin\n");
+    pageOf(
+      '<ul data-at="0-17"><li class="task" data-at="0-10"><span data-src="6-9">uno</span></li><li class="task" data-at="10-17"></li></ul>' +
+        '<p data-at="18-21"><span data-src="18-21">Fin</span></p>',
+    );
+    writing?.drawn();
+    writing?.placeAt(16);
+    document
+      .querySelector(".page")
+      ?.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+    expect(said[said.length - 1]).toBe("- [ ] uno\n\nFin\n");
+  });
 });
 
 describe("a key at the edge of a block drawn whole", () => {
