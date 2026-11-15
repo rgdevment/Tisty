@@ -4,7 +4,7 @@
   "testRunner": "vitest",
   "tsconfigFile": "tsconfig.none.json",
   "vitest": {
-    "configFile": "vite.config.ts"
+    "configFile": "vite.mutants.config.ts"
   },
   "coverageAnalysis": "perTest",
   "dryRunTimeoutMinutes": 20,
