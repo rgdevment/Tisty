@@ -98,7 +98,10 @@ export const spotOf = (page: Document, body: string, chars: number): [Node, numb
   const block = innermost(page, byte);
   if (!block) return null;
   let before: Element | null = null;
+  // An item's own line is its own; the words of the list nested in it belong to their items.
+  const item = block.matches("li");
   for (const one of block.querySelectorAll(PLACED)) {
+    if (item && one.closest(BLOCK) !== block) continue;
     const at = spanOf(one);
     if (!at) continue;
     if (at[0] <= byte && byte <= at[1] && !solid(one))
@@ -110,6 +113,7 @@ export const spotOf = (page: Document, body: string, chars: number): [Node, numb
     }
     before = one;
   }
+  if (!before && item) return [block, 0];
   return before ? endOf(before) : [block, block.childNodes.length];
 };
 

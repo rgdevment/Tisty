@@ -121,7 +121,10 @@ export const caretOn = (writer: Writer) => {
     const byte = bytesAt(text, at);
     for (const one of page.querySelectorAll(WHOLE)) {
       const span = spanned(one.getAttribute("data-at"));
-      if (span && span[0] <= byte && byte <= span[1]) return charsAt(text, span[1]);
+      if (!span || span[0] > byte || byte > span[1]) continue;
+      let end = charsAt(text, span[1]);
+      while (end > 0 && /[\r\n]/.test(text[end - 1] ?? "")) end--;
+      return end;
     }
     return null;
   };
@@ -151,6 +154,8 @@ export const caretOn = (writer: Writer) => {
     const bare = holder.nodeType === Node.ELEMENT_NODE ? (holder as Element) : null;
     if (bare && !bare.textContent && !bare.querySelector("br"))
       bare.append(page.createElement("br"));
+    else if (bare?.matches("li") && spot[1] === 0 && bare.firstElementChild?.matches("ul, ol"))
+      bare.prepend(page.createElement("br"));
     const held = page.getSelection();
     held?.collapse(spot[0], spot[1]);
     writer.kept = { ...writer.kept, node: spot[0], offset: spot[1] };

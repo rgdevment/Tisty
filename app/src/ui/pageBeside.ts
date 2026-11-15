@@ -123,7 +123,7 @@ export const besideOn = (
       : asked;
     outOfCode();
     const kept = writer.kept;
-    const unlaid = kept?.lead !== undefined && kept.at > 0 && hands.text()[kept.at - 1] !== "\n";
+    const unlaid = kept?.lead !== undefined && `${kept.lead}${kept.tail ?? ""}` !== "";
     // Until the page is drawn again, a line just begun is known by its place, not by what the page shows.
     const begunAt = kept && unlaid ? kept.at + (kept.lead?.length ?? 0) : null;
     if (kept && unlaid) begun.firstKey(kept, "");
@@ -152,6 +152,7 @@ export const besideOn = (
           ? blockPlaced(now, at, Math.min(end, now.length), said, said.length)
           : { edit: { from: at, to: at, insert: said }, caret: at + said.length };
         put(laid.edit, laid.caret);
+        if (how.block) lineUnder(laid.edit);
         // The picker held the keys; once it closes they belong to the page again.
         page.defaultView?.focus();
         page.querySelector<HTMLElement>(".page")?.focus({ preventScroll: true });

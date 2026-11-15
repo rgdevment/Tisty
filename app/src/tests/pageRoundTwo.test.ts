@@ -1080,7 +1080,7 @@ describe("blocks made on the page", () => {
     enter();
     await settle();
     writing?.slashed(block("numbers"));
-    expect(text()).toBe("- a\n1. ");
+    expect(text()).toBe("- a\n\n1. ");
   });
 });
 
@@ -1640,7 +1640,7 @@ describe("what the second round found on keys and blocks", () => {
     enter();
     await settle();
     writing?.slashed(block("quote"));
-    expect(text()).toBe("- a\n> ");
+    expect(text()).toBe("- a\n\n> ");
   });
 
   it("puts a title on the line begun by leaving a list", async () => {
@@ -1648,7 +1648,7 @@ describe("what the second round found on keys and blocks", () => {
     enter();
     await settle();
     writing?.slashed(block("h2"));
-    expect(text()).toBe("- a\n## ");
+    expect(text()).toBe("- a\n\n## ");
   });
 
   it("puts a page break a blank line under the list just left", async () => {
