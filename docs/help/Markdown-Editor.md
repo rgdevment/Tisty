@@ -11,12 +11,14 @@ You write on the same page you read, the one Tisty draws. There is no separate e
 - **Click wherever you like and type.** The caret lands where you clicked, and the page is drawn again as you write, the same as it reads, prints and is shared. What you write is saved as you go.
 - **The marks stay out of sight.** Bold looks bold and a heading looks like a heading. The Markdown is still underneath, and the **Markdown** view shows it as it is.
 - **The first line is the title.** There is no name to fill in anywhere: whatever you write at the top is what the document is called.
-- **Enter starts a new paragraph, and `Shift` + `Enter` only breaks the line.** In a list, Enter starts another item of the same kind; in a quote, the quote goes on; in code, it breaks the line. Enter on an empty item leaves the list, or goes up a level when it sat inside another.
+- **Enter starts a new paragraph, and `Shift` + `Enter` only breaks the line.** In a list, Enter starts another item of the same kind; in a quote, the quote goes on; in code, it breaks the line. Enter on an empty item leaves the list, or goes up a level when it sat inside another. Enter at the start of a block opens a line above it.
 - **`Tab` puts a list item under the one above, and `Shift` + `Tab` takes it back out.** In code, `Tab` indents with two spaces.
+- **`Backspace` at the start of an item** takes its box away first, then its bullet or its number, and the line is left as text.
 - **Tick a box with a click**, a sticky note's too. A sticky note is written inside and dragged by its paper, its tape or its pin.
 - **A click on a picture or a diagram opens it large**, to zoom in, move it around and go to the next one. A diagram brings its own bar when the pointer is over it: **Export** and **Open in the diagram window**; a double click also opens it in the [[diagram window|Diagrams]]. Its text is changed in the Markdown view. A widget brings **Show code**.
-- **Code is written as it is.** Inside a code block there are no formats and no spell checker, and `/` is just a slash. The label in its corner, like «rust» or «yaml», opens the list of languages to choose the colours it is drawn with.
-- **A page break is neither written in nor moved.** `Backspace` at the start of the block after it, or `Delete` at the end of the block before it, takes it away, and the rest stays as it was.
+- **Code is written as it is.** Inside a code block there are no formats and no spell checker, and `/` is just a slash. The label in its corner, like «rust» or «yaml», opens the list of languages to choose the colours it is drawn with. Typing `` ``` `` at the start of a line opens a code block that closes itself, and the word you type after it, like `rust`, is its language.
+- **A page break is neither written in nor moved.** `Backspace` at the start of the block after it, or `Delete` at the end of the block before it, takes it away, and the rest stays as it was. What you type right after it starts on a new line under it.
+- **A table, a code block, a picture, a diagram, a collapsible section or a callout is not joined to what sits beside it.** `Backspace` at the start of the block after it, or `Delete` at the end of the block before it, does nothing; to take one away there is **Delete block**, on its handle.
 - **`Ctrl`/`⌘` + `Z` undoes** and `Ctrl`/`⌘` + `Shift` + `Z` redoes, only in the document in front of you. What you wrote in the Markdown view is undone in one go when you come back.
 
 ## The format bar
@@ -26,7 +28,7 @@ Select a few words and a small bar comes up above them:
 - **Bold**, **italic**, **underline**, **strikethrough**, **code** and **link**.
 - **Four pens**: yellow, green, blue and pink.
 
-A format wraps the words selected; pressed on words that already have it, it takes it away. **Link** asks for the address in a field, and `Esc` cancels it; with no words selected, the address stands for its words. Inside code the bar does not come up.
+A format wraps the words selected, and when they cross several lines, each line gets its own; pressed on words that already have it, it takes it away. **Link** asks for the address in a field, and `Esc` cancels it; an address like `tisty.app` gets its `https://`, and with no words selected, the address stands for its words. Inside code the bar does not come up.
 
 With nothing selected, a format pressed with its shortcut or from the `/` menu starts at the next key, and what you type already comes out bold or italic. Press it again to step out of it; a space at the end of the words stays outside it too.
 
@@ -44,7 +46,7 @@ Type `/` at the start of a line, on a blank line or after a space, and the menu 
 - A table, which opens on its first title.
 - A **collapsible section**: a title that folds what is under it.
 - A page break.
-- Another document, a new document, a page that already exists or a new page, drawn as a card.
+- Another document, a new document, a page that already exists or a new page, drawn as a card. Type part of its name, and Enter takes the first one that shows.
 
 ## Moving blocks
 
@@ -71,7 +73,7 @@ In the Markdown view:
 
 - **Tags are offered after `#`.** The tags you already use come up under the caret, so one tag is never spelled two ways. ↑ ↓ picks one and Tab or Enter writes it; Esc puts the list away, and Enter with none picked still starts a paragraph.
 - **Attach a file** by dragging it onto the page, pasting it (a screenshot on the clipboard works too) or picking **Attach a file** in the `/` menu. It lands after the block you drop it on, or where the caret is, and it is kept inside Tisty with the document, not linked to a place on your disk that breaks when the file moves.
-- **Paste with its formatting.** Text copied from a web page, an email or a word processor keeps its headings, lists, bold, links, tables and coloured words, written in Tisty Markdown: a colour becomes the nearest pen of the palette. Plain text keeps its shape too: a table a terminal drew with box lines (`┌ │ ├`) becomes a table, and lines that read like code — from a code editor or a terminal — come in as a code block, unless the caret is already inside one.
+- **Paste with its formatting.** Text copied from a web page, an email or a word processor keeps its headings, lists, bold, links, tables and coloured words, written in Tisty Markdown: a colour becomes the nearest pen of the palette. A pasted block, like a list or a heading, starts on its own line, and inside a quote it stays in the quote. Plain text keeps its shape too: a table a terminal drew with box lines (`┌ │ ├`) becomes a table, and lines that read like code — from a code editor or a terminal — come in as a code block, unless the caret is already inside one.
 - **Tab and Shift + Tab walk a table's cells**, and Tab past the last one starts a new row.
 - **Drag the edge of a table's column** on the page to make it wider or narrower. The width is written as the dashes of its rule, ten pixels each.
 
