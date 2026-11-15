@@ -233,3 +233,16 @@ describe("a caret laid where the page draws nothing to write in", () => {
     }
   });
 });
+
+describe("Enter pressed on a collapsible's name", () => {
+  it("opens a line under the name rather than folding it, as the browser would", () => {
+    const text = opened("foldEmpty");
+    const name = document.querySelector("summary")?.firstChild as Text;
+    document.getSelection()?.collapse(name, name.length);
+    const press = new KeyboardEvent("keydown", { key: "Enter", bubbles: true, cancelable: true });
+    document.querySelector("summary")?.dispatchEvent(press);
+    expect(press.defaultPrevented).toBe(true);
+    asked("insertText", "Z");
+    expect(text()).toContain(":::details Plegable\n\nZ\n\n");
+  });
+});

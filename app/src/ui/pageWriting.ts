@@ -10,7 +10,7 @@ import { keysOn } from "./pageKeys";
 import { layingOn } from "./pageLaying";
 import { balanced } from "./pageMarks";
 import type { Act } from "./pageMoving";
-import { inCode, opened } from "./pageNodes";
+import { elementOf, inCode, opened } from "./pageNodes";
 import { tagList, tagMatch } from "./pageTags";
 import { type Hands, writerOf } from "./pageWriter";
 import { unformattable } from "./quickly";
@@ -99,6 +99,18 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
   page.addEventListener("mousedown", keys.ticking);
   page.addEventListener("keydown", keys.moved);
   page.addEventListener("selectionchange", keys.noted);
+  // Enter on a collapsible's name would fold it, as a click does, so it opens a line under the name instead.
+  const named = (event: KeyboardEvent) => {
+    if (event.key !== "Enter" || event.shiftKey || event.ctrlKey || event.metaKey || event.altKey)
+      return;
+    const name = elementOf(caret.chosen()?.startContainer)?.closest(
+      ".page details[data-at] > summary",
+    );
+    if (!(name?.parentElement instanceof HTMLDetailsElement)) return;
+    event.preventDefault();
+    begun.intoFold(name.parentElement);
+  };
+  page.addEventListener("keydown", named, true);
   page.addEventListener("keydown", keys.keyed);
   page.addEventListener("paste", input.pastedFiles);
   const away = () => hands.settle?.();
@@ -152,6 +164,7 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
       watching?.disconnect();
       page.removeEventListener("selectionchange", keys.noted);
       page.removeEventListener("keydown", keys.keyed);
+      page.removeEventListener("keydown", named, true);
       page.removeEventListener("paste", input.pastedFiles);
       tags.stop();
       beside.stop();
