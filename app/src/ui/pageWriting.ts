@@ -8,6 +8,7 @@ import { historyOn } from "./pageHistory";
 import { inputOn } from "./pageInput";
 import { keysOn } from "./pageKeys";
 import { layingOn } from "./pageLaying";
+import { balanced } from "./pageMarks";
 import type { Act } from "./pageMoving";
 import { inCode, opened } from "./pageNodes";
 import { tagList, tagMatch } from "./pageTags";
@@ -117,7 +118,9 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
     outside: history.outside,
     chosen: () => {
       const one = caret.chosenNow();
-      return one ? hands.text().slice(one.from, one.to) : null;
+      const text = hands.text();
+      const whole = one && balanced(text, one);
+      return whole ? text.slice(whole.from, whole.to) : null;
     },
     slashed: beside.slashed,
     unitActed: beside.unitActed,
@@ -137,7 +140,8 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
       };
     },
     cut: () => {
-      const one = caret.chosenNow();
+      const chosen = caret.chosenNow();
+      const one = chosen && balanced(hands.text(), chosen);
       if (one) laying.put({ ...one, insert: "" }, one.from);
     },
     stop: () => {

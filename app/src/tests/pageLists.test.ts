@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { pastedAround } from "../ui/pageBlocks";
 import { addressed } from "../ui/pageFormats";
 import { joinedAt, nested, openedAbove, outdented, unmarked } from "../ui/pageLists";
-import { worn, wornEach } from "../ui/pageMarks";
+import { balanced, worn, wornEach } from "../ui/pageMarks";
 
 const applied = (text: string, moved: ReturnType<typeof nested>) =>
   moved ? text.slice(0, moved.edit.from) + moved.edit.insert + text.slice(moved.edit.to) : text;
@@ -197,5 +197,22 @@ describe("a format pressed again on words chosen with their marks", () => {
 
   it("leaves bold alone when italic is asked for over it", () => {
     expect(worn("**dos**", { from: 0, to: 7 }, "*", "*").insert).not.toBe("*dos*");
+  });
+});
+
+describe("words cut or copied out of formatted words", () => {
+  const text = "Uno **dos** tres";
+  it("carry the format they start or end inside, whole", () => {
+    expect(balanced(text, { from: 0, to: 9 })).toEqual({ from: 0, to: 11 });
+    expect(balanced(text, { from: 6, to: 16 })).toEqual({ from: 4, to: 16 });
+  });
+
+  it("carry the marks of words chosen exactly, and a pen's colour with its marks", () => {
+    expect(balanced(text, { from: 6, to: 9 })).toEqual({ from: 4, to: 11 });
+    expect(balanced("a ==dos=={green} b", { from: 4, to: 7 })).toEqual({ from: 2, to: 16 });
+  });
+
+  it("leave plain words as they are", () => {
+    expect(balanced(text, { from: 0, to: 3 })).toEqual({ from: 0, to: 3 });
   });
 });

@@ -196,3 +196,17 @@ export const wornEach = (text: string, one: Span, open: string, close: string): 
     .join("");
   return { from: one.from, to: one.to, insert };
 };
+
+// Words cut or copied carry every format they start or end inside, so no mark is left without its partner.
+export const balanced = (text: string, chosen: Span): Span => {
+  let one = { ...chosen };
+  for (const mark of PAIRED) one = covered(text, one, mark);
+  for (const mark of PAIRED) {
+    const before = text.slice(one.from - mark.length, one.from);
+    if (before === mark && text.slice(one.to, one.to + mark.length) === mark)
+      one = { from: one.from - mark.length, to: one.to + mark.length };
+  }
+  const pen =
+    text.slice(one.to - 2, one.to) === "==" ? /^\{[a-z]+\}/.exec(text.slice(one.to)) : null;
+  return pen ? { from: one.from, to: one.to + pen[0].length } : one;
+};
