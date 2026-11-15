@@ -7,7 +7,7 @@ import type { Point, Writer } from "./pageWriter";
 
 export type Caret = ReturnType<typeof caretOn>;
 
-const WHOLE = '.page > [data-at][contenteditable="false"]:not(h1, h2, h3, h4, h5, h6)';
+const WHOLE = '.page > [data-at][contenteditable="false"]:not(h1, h2, h3, h4, h5, h6, .front)';
 
 export const caretOn = (writer: Writer) => {
   const { page, hands } = writer;
@@ -129,10 +129,25 @@ export const caretOn = (writer: Writer) => {
     return null;
   };
 
+  // The properties are kept off the page, so a caret come back from them stands where the words begin.
+  const pastFront = (text: string, at: number) => {
+    const front = page.querySelector(".page > .front[data-at]");
+    const span = spanned(front?.getAttribute("data-at") ?? null);
+    if (!span || bytesAt(text, at) > span[1]) return null;
+    const next = spanned(front?.nextElementSibling?.getAttribute("data-at") ?? null);
+    if (!next) return null;
+    const start = charsAt(text, next[0]);
+    return start + (/^[ \t]*(?:#{1,6}[ \t]+)?/.exec(text.slice(start))?.[0].length ?? 0);
+  };
+
   const caretLaid = () => {
     if (!writer.kept) return;
     const text = hands.text();
-    const past = writer.kept.lead === undefined ? pastWhole(text, writer.kept.at) : null;
+    const front = writer.kept.lead === undefined ? pastFront(text, writer.kept.at) : null;
+    if (front !== null) writer.kept = { node: page.body, offset: -1, at: front };
+    const shaping = page.documentElement.classList.contains("shaping");
+    const past =
+      writer.kept.lead === undefined && !shaping ? pastWhole(text, writer.kept.at) : null;
     if (past !== null)
       writer.kept = {
         node: page.body,

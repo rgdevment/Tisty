@@ -196,3 +196,40 @@ describe("keys at the edge of a collapsible that holds words", () => {
     expect(text()).toBe(was);
   });
 });
+
+describe("a caret laid where the page draws nothing to write in", () => {
+  it("stands where the words begin when it comes back from the properties", () => {
+    document.body.innerHTML =
+      '<article class="page"><dl class="front" data-at="0-18"></dl><h1 data-at="19-26"><span data-src="21-25">Pan.</span></h1></article>';
+    let text = "---\ntags: [a]\n---\n\n# Pan.\n";
+    writing = writtenOn(document, {
+      text: () => text,
+      write: (next) => {
+        text = next;
+      },
+      shown: () => {},
+      redraw: () => {},
+      near: () => Promise.reject(new Error("no core here")),
+      dressed: () => {},
+      translated: (_, plain) => Promise.resolve(plain),
+      ask: () => {},
+      blocks: () => {},
+      acts: () => {},
+    });
+    writing.drawn();
+    writing.placeAt(5);
+    asked("insertText", "Z");
+    expect(text).toBe("---\ntags: [a]\n---\n\n# ZPan.\n");
+  });
+
+  it("opens no line in the words while only a task's labels are asked for", () => {
+    document.documentElement.classList.add("shaping");
+    try {
+      const text = opened("widget");
+      writing?.placeAt(text().indexOf("<b>"));
+      expect(document.querySelector("[data-ghost]")).toBeNull();
+    } finally {
+      document.documentElement.classList.remove("shaping");
+    }
+  });
+});
