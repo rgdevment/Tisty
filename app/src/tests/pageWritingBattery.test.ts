@@ -513,7 +513,7 @@ describe("words chosen earlier", () => {
   it("are no longer reported as chosen", () => {
     writer();
     choose("dos", 0, 3);
-    expect(writing?.chosen()).toBe("dos");
+    expect(writing?.chosen()).toBe("**dos**");
     caretIn("Hola", 2);
     collapsed();
     expect(writing?.chosen()).toBeNull();

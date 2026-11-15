@@ -176,9 +176,9 @@ describe("writing on the page the core draws", () => {
     range.setEnd(piece("dos"), 3);
     document.getSelection()?.removeAllRanges();
     document.getSelection()?.addRange(range);
-    expect(writing?.chosen()).toBe("Uno **dos");
+    expect(writing?.chosen()).toBe("Uno **dos**");
     writing?.cut();
-    expect(said[said.length - 1]).toBe("# Hola\n\n** tres\n\n- primero\n- segundo\n");
+    expect(said[said.length - 1]).toBe("# Hola\n\n tres\n\n- primero\n- segundo\n");
   });
 
   it("keeps the caret it lays through a key, and lets it go with an arrow", () => {
