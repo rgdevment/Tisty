@@ -173,6 +173,7 @@ fn a_tag_that_changed_is_news_even_where_the_title_did_not() {
         flagged: None,
         ideas_flagged: Vec::new(),
         brainstorm: false,
+        diary: false,
         compacted: None,
         folder_was: None,
         task_of: None,
@@ -184,6 +185,7 @@ fn a_tag_that_changed_is_news_even_where_the_title_did_not() {
     let same = crate::event::Said {
         key: None,
         brainstorm: false,
+        diary: false,
         lang: None,
         title: "Alquiler".into(),
         bytes: Some(31),

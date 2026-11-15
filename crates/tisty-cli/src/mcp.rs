@@ -2,6 +2,7 @@ mod asked;
 mod attaching;
 mod catalogue;
 mod chores;
+mod diary;
 mod guide;
 mod handing;
 mod helping;
@@ -249,6 +250,7 @@ fn vetted(name: &str, params: &Value) -> Result<(Value, Option<Takes>), Refused>
 }
 
 fn called(paths: &Paths, name: &str, args: Value, taken: Option<&Takes>) -> Result<Value, Refused> {
+    diary::left_alone(paths, name, &args)?;
     match papers::task_pages::page_written(name, &args) {
         Some(file) => {
             papers::task_pages::on_its_page(paths, &file, || answered(paths, name, args, taken))
@@ -406,7 +408,8 @@ fn admitted(paths: &Paths) -> Result<Option<(State, tisty_core::DeviceId)>, Refu
     let Some(agent) = config.agent_id else {
         return Ok(None);
     };
-    let state = tisty_core::cache::project(&paths.store(), paths.cache()).map_err(hitch)?;
+    let mut state = tisty_core::cache::project(&paths.store(), paths.cache()).map_err(hitch)?;
+    tisty_core::diary::out_of_sight(&mut state);
     // The log says who may write, not the settings file an agent could edit itself.
     Ok(state.agents.contains(&agent).then_some((state, agent)))
 }

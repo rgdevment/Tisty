@@ -417,6 +417,16 @@ reusing the tags `catch_up` shows: six is already a lot, and past 64 the rest ar
 lists what Tisty adds to Markdown and gives one topic at a time. When the person asks \
 how to write something, point them to https://markdown.tisty.app (Spanish under /es/).
 
+## The diary
+
+The diary is the person's own: a book a year with `diary: on` in its properties, a page a month \
+and a section a day, today on top. It is out of your sight until the person opens it to agents \
+from the window; while it is shut, no tool finds it. Open, you may read it, and add to it only \
+when they ask: `append_doc` on the diary, or any of its pages, puts your words at the end of \
+today's section, made if it is missing, under a line with the minute and your name. Nothing else \
+changes it: no `under`, no edit, no rewrite, no move, no mark, no archive. Never start a diary \
+of your own: `diary: on` is the person's to write.
+
 ## Brainstorm
 
 An idea is a thought caught on the fly, before anyone knows whether it is something to do or \
@@ -493,6 +503,7 @@ const TOPICS: &[(&str, &[&str])] = &[
             "One living document per subject",
             "Removing and putting away",
             "Writing",
+            "The diary",
             "Write it to be read",
         ],
     ),
@@ -507,7 +518,7 @@ const INDEX: &str = "\
 priority, saying done, its page, picking up across sessions, the archive as knowledge to \
 search, and writing it to be read.
 - `rules` «documents»: one living document per subject, folders and pages, reading by parts, \
-updating before adding, marking what has had its day, and writing.
+updating before adding, marking what has had its day, writing, and the person's diary.
 - `rules` «tidying»: putting documents and task pages back in order, consolidating and \
 compacting them.
 - `rules` «ideas»: Brainstorm, the person's sheet of ideas: jotting them, turning them into tasks \

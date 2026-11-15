@@ -302,6 +302,31 @@ impl Person {
         made.id
     }
 
+    pub fn writes_in_the_diary(&self, date: jiff::civil::Date, text: &str) -> (String, String) {
+        let config = Config::load_or_init(&self.paths).unwrap();
+        let words = &tisty_core::diary::SPANISH;
+        let maker = tisty_core::diary::Maker {
+            root: &self.paths.docs(),
+            device: &config.device_id,
+            by: None,
+        };
+        let tisty_core::diary::Opened::Ready(opening) =
+            tisty_core::diary::opened(&maker, &self.state(), date, words).unwrap()
+        else {
+            panic!("the diary was locked");
+        };
+        self.wrote(opening.ops.clone());
+        tisty_core::diary::named(&self.paths.docs(), self.paths.data(), &opening).unwrap();
+        let was = tisty_core::docs::read(&self.paths.docs(), &opening.page).unwrap();
+        let now = tisty_core::diary::written_on(&was, date, words, text);
+        tisty_core::docs::write(&self.paths.docs(), &opening.page, &now).unwrap();
+        (opening.book, opening.page)
+    }
+
+    pub fn opens_the_diary_to_agents(&self, open: bool) {
+        self.wrote(vec![Op::DiaryAgents { open }]);
+    }
+
     pub fn saves_doc(&self, file: &str, body: &str) {
         tisty_core::docs::write(&self.paths.docs(), file, body).unwrap();
     }

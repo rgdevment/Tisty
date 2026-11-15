@@ -15,6 +15,7 @@ pub mod closing;
 pub mod config;
 pub mod counting;
 pub mod dated;
+pub mod diary;
 pub mod docs;
 pub mod doubled;
 pub mod dressing;

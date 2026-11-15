@@ -10,7 +10,7 @@ use crate::{
 };
 
 /// Tied to the event schema: an older build then misses the cache and meets the version guard.
-const SCHEMA: i64 = crate::event::SCHEMA_VERSION as i64 + 30;
+const SCHEMA: i64 = crate::event::SCHEMA_VERSION as i64 + 31;
 
 pub struct Cache {
     db: Connection,
@@ -218,6 +218,7 @@ impl Cache {
         state.sharing = serde_json::from_str(&self.meta("sharing")?).ok()?;
         state.sharing_stopped = serde_json::from_str(&self.meta("sharing_stopped")?).ok()?;
         state.sharing_editors = serde_json::from_str(&self.meta("sharing_editors")?).ok()?;
+        state.diary_open = self.meta("diary_open").as_deref() == Some("true");
         state.fill = if bodies {
             crate::state::Fill::Whole
         } else {
@@ -382,7 +383,7 @@ impl Cache {
                 }
             }
             tx.execute(
-                "INSERT OR REPLACE INTO meta VALUES ('schema', ?), ('fingerprint', ?), ('signed', ?), ('signed_before', ?), ('devices', ?), ('keys', ?), ('dropped', ?), ('retired', ?), ('shed', ?), ('agents', ?), ('assistants', ?), ('forebears', ?), ('hosts', ?), ('named', ?), ('runs', ?), ('heard', ?), ('sealed_at', ?), ('sealed', ?), ('persons', ?), ('sharing', ?), ('sharing_stopped', ?), ('sharing_editors', ?)",
+                "INSERT OR REPLACE INTO meta VALUES ('schema', ?), ('fingerprint', ?), ('signed', ?), ('signed_before', ?), ('devices', ?), ('keys', ?), ('dropped', ?), ('retired', ?), ('shed', ?), ('agents', ?), ('assistants', ?), ('forebears', ?), ('hosts', ?), ('named', ?), ('runs', ?), ('heard', ?), ('sealed_at', ?), ('sealed', ?), ('persons', ?), ('sharing', ?), ('sharing_stopped', ?), ('sharing_editors', ?), ('diary_open', ?)",
                 rusqlite::params![
                     SCHEMA.to_string(),
                     fingerprint,
@@ -406,6 +407,7 @@ impl Cache {
                     serde_json::to_string(&state.sharing).unwrap_or_default(),
                     serde_json::to_string(&state.sharing_stopped).unwrap_or_default(),
                     serde_json::to_string(&state.sharing_editors).unwrap_or_default(),
+                    state.diary_open.to_string(),
                 ],
             )?;
             tx.commit()
@@ -854,6 +856,7 @@ fn reached(
                 | crate::Op::DeviceRelease { .. }
                 | crate::Op::CloudSealed { .. }
                 | crate::Op::DeviceRemove { .. }
+                | crate::Op::DiaryAgents { .. }
                 | crate::Op::AttachKept { .. }
                 | crate::Op::AttachLetGo { .. }
                 | crate::Op::AttachRetire { .. }
