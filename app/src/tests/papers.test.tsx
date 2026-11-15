@@ -1,8 +1,11 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
+import type { Filed } from "../core";
+import { t } from "../locales";
 import { docCard, docLink, docOf } from "../markdown";
 import Composed from "../ui/Composed";
+import Papers from "../ui/Papers";
 import { composed } from "./crated";
 
 const shelf = vi.hoisted(() => ({
@@ -96,5 +99,23 @@ describe("a reference to a document of this Tisty", () => {
 
     expect(onDoc).not.toHaveBeenCalled();
     expect(opener.url).toHaveBeenCalledWith("https://ejemplo.org");
+  });
+});
+
+const paper = (title: string, id: string) => ({ id, file: id, title }) as unknown as Filed;
+
+describe("a document picked by its name", () => {
+  it("takes the first one the name finds with Enter", async () => {
+    const onPick = vi.fn();
+    render(<Papers all={[paper("Corto", "a1"), paper("Largo", "a2")]} onPick={onPick} />);
+    await userEvent.type(screen.getByLabelText(t("pickADocToLink")), "lar{Enter}");
+    expect(onPick).toHaveBeenCalledWith(expect.objectContaining({ id: "a2" }));
+  });
+
+  it("takes none with Enter when the name finds nothing", async () => {
+    const onPick = vi.fn();
+    render(<Papers all={[paper("Corto", "a1")]} onPick={onPick} />);
+    await userEvent.type(screen.getByLabelText(t("pickADocToLink")), "zzz{Enter}");
+    expect(onPick).not.toHaveBeenCalled();
   });
 });

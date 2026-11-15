@@ -131,6 +131,9 @@ export const besideOn = (
           ? blockPlaced(now, at, Math.min(end, now.length), said, said.length)
           : { edit: { from: at, to: at, insert: said }, caret: at + said.length };
         put(laid.edit, laid.caret);
+        // The picker held the keys; once it closes they belong to the page again.
+        page.defaultView?.focus();
+        page.querySelector<HTMLElement>(".page")?.focus({ preventScroll: true });
         return true;
       },
       first,
