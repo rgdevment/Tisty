@@ -67,6 +67,7 @@ const BAR = { buttons: formatButtons, css: BAR_CSS };
 
 type Props = {
   readonly file?: string;
+  readonly fileNow?: () => string | null | undefined;
   readonly value: string;
   readonly label: string;
   readonly reading?: boolean;
@@ -137,6 +138,9 @@ const sourceIn = (text: string, at: number) => {
 // Pictures, diagrams and the sheets they push down can arrive this long after a page is drawn.
 const HELD_FOR = 4000;
 
+const NAMED_WAIT = 3000;
+const NAMED_STEP = 100;
+
 export default function Sheet(props: Readonly<Props>) {
   const { file, value, label, reading = false, above, below } = props;
   const fixed = Boolean(props.inline && props.shaping);
@@ -146,6 +150,16 @@ export default function Sheet(props: Readonly<Props>) {
   const lively = !props.inline && Boolean(props.wholeable);
   // A whole pixel wide, or the frame inside rounds down and leaves a sliver of the holder at its edge.
   const widthOf = lively && !props.sheet ? "w-[round(down,85%,1px)] max-w-[1100px]" : "w-full";
+  // A task's page takes its file with its first words, a moment after they are saved.
+  const fileNamed = async (): Promise<string | undefined> => {
+    for (let waited = 0; waited <= NAMED_WAIT; waited += NAMED_STEP) {
+      const now = said.current.fileNow?.() || said.current.file;
+      if (now && !now.startsWith("unwritten:")) return now;
+      await new Promise((done) => setTimeout(done, NAMED_STEP));
+    }
+    return undefined;
+  };
+
   const diagram = (at: number, nth: number, source: string) => {
     const named = said.current.file;
     // A page not written yet has no file the diagram could be saved back into.
@@ -1247,14 +1261,19 @@ export default function Sheet(props: Readonly<Props>) {
           onDiagramExport={fixed ? undefined : diagramOut}
           onApart={(source, place, code) =>
             // The window reads the widget from the file, so the page's last words are saved before it opens.
-            void savedAll().then(() => {
-              const named = said.current.file;
-              const from = named?.startsWith("unwritten:") ? undefined : named;
-              const paper = from
-                ? { id: "", file: from, title: said.current.label, place: said.current.place ?? "" }
-                : undefined;
-              viewWidget(source, paper, paper ? place : undefined, code).catch(() => {});
-            })
+            void savedAll()
+              .then(fileNamed)
+              .then((from) => {
+                const paper = from
+                  ? {
+                      id: "",
+                      file: from,
+                      title: said.current.label,
+                      place: said.current.place ?? "",
+                    }
+                  : undefined;
+                viewWidget(source, paper, paper ? place : undefined, code).catch(() => {});
+              })
           }
           onOutline={(heads) => said.current.onOutline?.(heads)}
           onShown={(page, body) => {

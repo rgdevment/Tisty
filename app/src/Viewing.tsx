@@ -326,13 +326,15 @@ function Reading({
               onClose={() => setCode(false)}
             />
           )}
-          <Stage
-            source={preview ?? shown.source}
-            preset={preset}
-            actual={actual}
-            dark={dark}
-            again={again}
-          />
+          <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+            <Stage
+              source={preview ?? shown.source}
+              preset={preset}
+              actual={actual}
+              dark={dark}
+              again={again}
+            />
+          </div>
         </div>
       )}
       {pdf.seeing && (

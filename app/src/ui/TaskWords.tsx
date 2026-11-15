@@ -358,6 +358,7 @@ function Written({
       )}
       <Sheet
         file={doc.file || `unwritten:${task.id}`}
+        fileNow={() => file.current}
         value={text}
         label={label}
         reading={doc.held}
