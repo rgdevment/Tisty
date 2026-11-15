@@ -166,7 +166,8 @@ fn only_a_file_from_outside_gets_the_systems_title_bar() {
     };
     for own in [
         super::Shown::Doc(paper.clone()),
-        super::Shown::Widget {
+        super::Shown::Piece {
+            held: tisty_markdown::diagrams::Held::Widget,
             source: "<p>x</p>".into(),
             from: Some(paper),
             place: None,

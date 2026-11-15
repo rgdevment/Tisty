@@ -147,11 +147,7 @@ fn atomic(one: &Span, spans: &[Span], text: &str, kept: &HashSet<usize>, out: &m
             );
         }
         Mark::Math => {
-            let wall = if said.len() >= 4 && said.starts_with("$$") {
-                2
-            } else {
-                1
-            };
+            let wall = math_wall(said);
             formula(
                 said.get(wall..said.len().saturating_sub(wall))
                     .unwrap_or(said),
@@ -363,6 +359,14 @@ fn pictured(src: &str, alt: &str, filed: bool, out: &mut String) {
                 if filed { " data-as=\"file\"" } else { "" }
             );
         }
+    }
+}
+
+pub(crate) fn math_wall(said: &str) -> usize {
+    if said.len() >= 4 && said.starts_with("$$") {
+        2
+    } else {
+        1
     }
 }
 

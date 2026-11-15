@@ -9,7 +9,7 @@ type Props = {
   readonly onClose: () => void;
 };
 
-export default function WidgetCode({ source, writable, onDraft, onClose }: Props) {
+export default function PieceCode({ source, writable, onDraft, onClose }: Props) {
   const [text, setText] = useState(source);
   const field = useRef<HTMLTextAreaElement>(null);
   useEffect(() => field.current?.focus(), []);

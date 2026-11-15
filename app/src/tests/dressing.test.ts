@@ -234,13 +234,8 @@ describe("dressing a drawn page", () => {
   it("gives a widget a bar with its name, and ways to its code and apart only where they lead", () => {
     const code =
       '<figure class="code" data-at="4-40"><figcaption>Rina</figcaption><pre><code class="language-widget">&lt;b&gt;42&lt;/b&gt;</code></pre></figure>';
-    const apart: string[] = [];
-    const reach = {
-      body: "",
-      onDoc: () => {},
-      onSource: () => {},
-      onApart: (source: string) => apart.push(source),
-    };
+    const opened: unknown[] = [];
+    const reach = { body: "", onDoc: () => {}, onPiece: (...said: unknown[]) => opened.push(said) };
     const own = page(code);
     widgets(own, reach);
     const bar = own.querySelector(".widget-bar");
@@ -251,79 +246,81 @@ describe("dressing a drawn page", () => {
       ),
     ).toEqual(["code", "apart"]);
     answered(own, { kind: "apart", at: [4, 40] }, reach);
-    expect(apart).toEqual(["<b>42</b>"]);
+    expect(opened).toEqual([["widget", { at: 4, nth: 0 }, "<b>42</b>", false]]);
     const read = page(code);
     widgets(read, { body: "", onDoc: () => {} });
     expect(read.querySelectorAll(".widget-bar button")).toHaveLength(0);
   });
 
-  it("opens a widget's code in the Markdown view when the page is written in place", () => {
-    const code =
-      '<figure class="code" data-at="4-40"><figcaption>Rina</figcaption><pre><code class="language-widget">&lt;b&gt;42&lt;/b&gt;</code></pre></figure>';
-    const sources: number[] = [];
-    const written = page(code);
-    const reach = {
-      body: "Uno ```widget",
-      onDoc: () => {},
-      onSource: (at: number) => sources.push(at),
-    };
-    widgets(written, reach);
-    expect(written.querySelector('.widget-bar [data-asked="code"]')).not.toBeNull();
-    answered(written, { kind: "code", at: [4, 40] }, reach);
-    expect(sources).toEqual([4]);
-  });
-
-  it("opens a widget's code in its own window, named by where its block starts, when one can be opened", () => {
+  it("opens a widget's code in its own window, named by where its block starts", () => {
     const code =
       '<figure class="code" data-at="4-40"><figcaption>Rina</figcaption><pre><code class="language-widget">&lt;b&gt;42&lt;/b&gt;</code></pre></figure>';
     const opened: unknown[] = [];
-    const sources: number[] = [];
     const written = page(code);
     const reach = {
       body: "Uno ```widget",
       onDoc: () => {},
-      onSource: (at: number) => sources.push(at),
-      onApart: (...said: unknown[]) => opened.push(said),
+      onPiece: (...said: unknown[]) => opened.push(said),
     };
     widgets(written, reach);
     answered(written, { kind: "code", at: [4, 40] }, reach);
     answered(written, { kind: "apart", at: [4, 40] }, reach);
     expect(opened).toEqual([
-      ["<b>42</b>", { at: 4, nth: 0 }, true],
-      ["<b>42</b>", { at: 4, nth: 0 }, false],
+      ["widget", { at: 4, nth: 0 }, "<b>42</b>", true],
+      ["widget", { at: 4, nth: 0 }, "<b>42</b>", false],
     ]);
-    expect(sources).toEqual([]);
   });
 
-  it("gives a formula a way to its code only where the page is written in place", () => {
-    const formula = '<p data-at="0-3">Uno</p><div class="math" data-at="5-30"><math></math></div>';
-    const sources: number[] = [];
+  it("gives a formula a way to its own window only where pieces can be opened", () => {
+    const formula =
+      '<p data-at="0-3">Uno</p><div class="math" data-at="5-12"><math></math></div><div class="math" data-at="14-30"><math></math></div>';
+    const opened: unknown[] = [];
     const reach = { body: "Uno\n\n```math\na^2\n```\n", onDoc: () => {} };
     const written = page(formula);
-    worn(written, () => true, { ...reach, onSource: (at: number) => sources.push(at) });
-    const button = written.querySelector<HTMLElement>('.math-bar [data-asked="code"]');
+    const opening = { ...reach, onPiece: (...said: unknown[]) => opened.push(said) };
+    worn(written, () => true, opening);
+    const button = written.querySelectorAll<HTMLElement>('.math-bar [data-asked="code"]')[1];
     expect(button?.textContent).toBe("");
     const asked = went(button as Element, false);
-    expect(asked).toEqual({ kind: "code", at: [5, 30] });
-    answered(written, asked, { ...reach, onSource: (at: number) => sources.push(at) });
-    expect(sources).toEqual([5]);
+    expect(asked).toEqual({ kind: "code", at: [14, 30] });
+    answered(written, asked, opening);
+    expect(opened).toEqual([["formula", { at: 14, nth: 1 }]]);
     const read = page(formula);
     worn(read, () => true, reach);
     expect(read.querySelector(".math-bar")).toBeNull();
   });
 
-  it("opens the properties in the Markdown view when they are asked for", () => {
-    const sources: number[] = [];
+  it("opens a formula written inline in its own window with a click", () => {
+    const written = page(
+      '<p data-at="0-20">Sea <math data-src="4-9" contenteditable="false"><mi>x</mi></math> y <code class="math" data-src="12-17" contenteditable="false">\\fr</code></p>',
+    );
+    const formulas = written.querySelectorAll("math, code.math");
+    const second = went(formulas[1].firstChild?.parentElement as Element, false);
+    expect(second).toEqual({ kind: "formula", at: [12, 17], nth: 1 });
+    const first = went(written.querySelector("mi") as Element, false);
+    expect(first).toEqual({ kind: "formula", at: [4, 9], nth: 0 });
+    expect(went(written.querySelector("mi") as Element, true)).toBeNull();
+    const opened: unknown[] = [];
+    answered(written, first, {
+      body: "",
+      onDoc: () => {},
+      onPiece: (...said: unknown[]) => opened.push(said),
+    });
+    expect(opened).toEqual([["inlineFormula", { at: 4, nth: 0 }]]);
+  });
+
+  it("opens the properties in their own window when they are asked for", () => {
+    const opened: unknown[] = [];
     const written = page('<dl class="front" data-at="0-14"></dl><p data-at="15-20">Pan.</p>');
     const reach = {
       body: "---\ntags: [a]\n---\n\nPan.\n",
       onDoc: () => {},
-      onSource: (at: number) => sources.push(at),
+      onPiece: (...said: unknown[]) => opened.push(said),
     };
     answered(written, { kind: "block", at: [15, 20] }, reach);
-    expect(sources).toEqual([]);
+    expect(opened).toEqual([]);
     answered(written, { kind: "block", at: [0, 14] }, reach);
-    expect(sources).toEqual([0]);
+    expect(opened).toEqual([["front", { at: 0, nth: 0 }]]);
   });
 
   it("dresses the whole page in one go", () => {

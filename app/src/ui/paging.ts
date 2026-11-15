@@ -14,6 +14,7 @@ export type Went =
   | { kind: "code"; at: [number, number] }
   | { kind: "codeLang"; at: [number, number]; x: number; y: number; top: number; right: number }
   | { kind: "tag"; name: string }
+  | { kind: "formula"; at: [number, number]; nth: number }
   | { kind: "tick"; at: [number, number] }
   | { kind: "part"; at: [number, number] }
   | { kind: "apart"; at: [number, number]; nth?: number }
@@ -50,6 +51,9 @@ export type Shot = { readonly src: string; readonly kept: string | null; readonl
 const UNTOUCHED = "summary, figure.widget, .media, .col-grip, .picture-away, .table-input";
 
 const SHOTS = ".page img[src], .page figure.diagram.drawn";
+
+// A formula written inline is drawn whole; one the core could not draw shows its words as code.
+const FORMULAS = ".page math[data-src], .page code.math[data-src]";
 
 const lookable = (all: Iterable<Element>): Element[] =>
   Array.from(all).filter((one) => !one.closest(`.doc-card, details:not([open]), ${UNTOUCHED}`));
@@ -193,6 +197,12 @@ export const went = (target: Element, selecting: boolean): Went => {
   const tag = target.closest<HTMLElement>(".tag")?.dataset.tag;
   if (tag) return { kind: "tag", name: tag };
   if (selecting || target.closest(UNTOUCHED)) return null;
+  const formula = target.closest(FORMULAS);
+  const written = spanned(formula?.getAttribute("data-src") ?? null);
+  if (formula && written) {
+    const nth = Array.from(target.ownerDocument.querySelectorAll(FORMULAS)).indexOf(formula);
+    return { kind: "formula", at: written, nth };
+  }
   // A picture or a diagram is looked at; it is written only from the block's own menu.
   const shot = shotAt(target.ownerDocument, target);
   if (shot !== null) return { kind: "picture", nth: shot };

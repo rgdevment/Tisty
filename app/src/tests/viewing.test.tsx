@@ -2,7 +2,8 @@ import { act, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Showing } from "../core";
-import { t } from "../locales";
+import { fill, t } from "../locales";
+import type { Held } from "../pieceWindow";
 import { natural } from "../ui/viewer/Stage";
 import Viewing, { SIDE_FROM } from "../Viewing";
 
@@ -18,7 +19,9 @@ vi.mock("@tauri-apps/api/core", () => ({
     ipc.calls.push({ cmd, args: args ?? {} });
     if (cmd === "view_shown") return Promise.resolve(ipc.shown);
     if (cmd === "view_facts") return Promise.resolve(ipc.facts);
-    if (cmd === "widget_save" && ipc.refused) return Promise.reject(ipc.refused);
+    if (cmd === "piece_save" && ipc.refused) return Promise.reject(ipc.refused);
+    if (cmd === "doc_drawn")
+      return Promise.resolve(new TextEncoder().encode("<p>drawn</p>").buffer);
     return Promise.resolve(null);
   },
   convertFileSrc: (path: string, scheme: string) => `http://${scheme}.localhost/${path}`,
@@ -130,7 +133,8 @@ describe("the viewer", () => {
 
   it("draws a widget on a stage with its widths to try", async () => {
     ipc.shown = {
-      kind: "widget",
+      kind: "piece",
+      held: "widget",
       source: "<p>hola</p>",
       from: null,
       code: false,
@@ -282,7 +286,8 @@ describe("reading in the viewer", () => {
 
   it("shows a widget's code over the stage and closes it on Esc", async () => {
     ipc.shown = {
-      kind: "widget",
+      kind: "piece",
+      held: "widget",
       source: "<p>hola</p>",
       from: null,
       code: false,
@@ -350,7 +355,8 @@ describe("the reader comes only to a window with words to read", () => {
     const loaded = counted();
 
     await viewed({
-      kind: "widget",
+      kind: "piece",
+      held: "widget",
       source: "<p>hola</p>",
       from: null,
       code: false,
@@ -416,7 +422,8 @@ describe("the reader comes only to a window with words to read", () => {
 describe("a widget's code in its own window", () => {
   const opened = (writable: boolean) => {
     ipc.shown = {
-      kind: "widget",
+      kind: "piece",
+      held: "widget",
       source: "<b>1</b>\n",
       from: { id: "", file: "f1", title: "Notas", place: "" },
       code: true,
@@ -433,9 +440,9 @@ describe("a widget's code in its own window", () => {
     expect(field.value).toBe("<b>1</b>\n");
     expect(field.readOnly).toBe(false);
     fireEvent.change(field, { target: { value: "<b>2</b>\n" } });
-    expect(asked("widget_save")).toHaveLength(0);
+    expect(asked("piece_save")).toHaveLength(0);
     await act(() => vi.advanceTimersByTimeAsync(800));
-    expect(asked("widget_save").map((one) => one.args)).toEqual([{ now: "<b>2</b>\n" }]);
+    expect(asked("piece_save").map((one) => one.args)).toEqual([{ now: "<b>2</b>\n" }]);
   });
 
   it("saves nothing while the code is left empty, as an empty widget is no widget", async () => {
@@ -443,7 +450,7 @@ describe("a widget's code in its own window", () => {
     const field = await screen.findByRole("textbox", { name: t("viewCode") });
     fireEvent.change(field, { target: { value: "  " } });
     await act(() => vi.advanceTimersByTimeAsync(800));
-    expect(asked("widget_save")).toHaveLength(0);
+    expect(asked("piece_save")).toHaveLength(0);
   });
 
   it("only shows the code where the document cannot be written", async () => {
@@ -455,7 +462,7 @@ describe("a widget's code in its own window", () => {
   });
 
   it("says so when the widget changed in the document since it was opened", async () => {
-    ipc.refused = { code: "widgetMoved", name: "Notas" };
+    ipc.refused = { code: "pieceMoved", name: "Notas" };
     opened(true);
     const field = await screen.findByRole("textbox", { name: t("viewCode") });
     fireEvent.change(field, { target: { value: "<b>3</b>" } });
@@ -475,7 +482,7 @@ describe("a widget's code in its own window", () => {
     })) as HTMLTextAreaElement;
     expect(again.value).toBe("<b>4</b>\n");
     await act(() => vi.advanceTimersByTimeAsync(800));
-    expect(asked("widget_save").map((one) => one.args)).toEqual([{ now: "<b>4</b>\n" }]);
+    expect(asked("piece_save").map((one) => one.args)).toEqual([{ now: "<b>4</b>\n" }]);
   });
 
   it("saves what is still waiting when the window is closed", async () => {
@@ -483,9 +490,9 @@ describe("a widget's code in its own window", () => {
     const field = await screen.findByRole("textbox", { name: t("viewCode") });
     fireEvent.change(field, { target: { value: "<b>5</b>\n" } });
     await act(() => closing.heard?.() ?? Promise.resolve());
-    expect(asked("widget_save").map((one) => one.args)).toEqual([{ now: "<b>5</b>\n" }]);
+    expect(asked("piece_save").map((one) => one.args)).toEqual([{ now: "<b>5</b>\n" }]);
     await act(() => vi.advanceTimersByTimeAsync(800));
-    expect(asked("widget_save")).toHaveLength(1);
+    expect(asked("piece_save")).toHaveLength(1);
   });
 
   it("indents with Tab instead of leaving the code", async () => {
@@ -496,5 +503,47 @@ describe("a widget's code in its own window", () => {
     field.setSelectionRange(0, 0);
     fireEvent.keyDown(field, { key: "Tab" });
     expect(field.value).toBe("  <b>1</b>\n");
+    await act(() => vi.advanceTimersByTimeAsync(800));
+    expect(asked("piece_save").map((one) => one.args)).toEqual([{ now: "  <b>1</b>\n" }]);
+  });
+});
+
+describe("a formula, a table or the properties in their own window", () => {
+  const opened = (held: Held, source: string) => {
+    ipc.shown = {
+      kind: "piece",
+      held,
+      source,
+      from: { id: "", file: "f1", title: "Notas", place: "" },
+      code: true,
+      writable: true,
+    } satisfies Showing;
+    render(<Viewing />);
+  };
+  const drawn = () => asked("doc_drawn").map((one) => one.args.body);
+
+  it("names a formula, draws it with the core beside its code and offers no widths", async () => {
+    opened("formula", "a^2\n");
+    const field = (await screen.findByRole("textbox", {
+      name: t("viewCode"),
+    })) as HTMLTextAreaElement;
+    expect(field.value).toBe("a^2\n");
+    expect(screen.getByText(fill("viewFormulaOf", "Notas"))).toBeTruthy();
+    expect(screen.queryByRole("button", { name: t("viewPhone") })).toBeNull();
+    await waitFor(() => expect(drawn()).toContain("```math\na^2\n```\n"));
+    fireEvent.change(field, { target: { value: "b^2" } });
+    await act(() => vi.advanceTimersByTimeAsync(800));
+    expect(asked("piece_save").map((one) => one.args)).toEqual([{ now: "b^2" }]);
+    await waitFor(() => expect(drawn()).toContain("```math\nb^2\n```\n"));
+  });
+
+  it.each([
+    ["inlineFormula", "x^2", "$$x^2$$\n", "viewFormulaOf"],
+    ["table", "| a |\n|---|\n", "| a |\n|---|\n", "viewTableOf"],
+    ["front", "title: Plan\n", "---\ntitle: Plan\n---\n", "viewFrontOf"],
+  ] as const)("draws %s as the document would", async (held, source, body, named) => {
+    opened(held, source);
+    expect(await screen.findByText(fill(named, "Notas"))).toBeTruthy();
+    await waitFor(() => expect(drawn()).toContain(body));
   });
 });

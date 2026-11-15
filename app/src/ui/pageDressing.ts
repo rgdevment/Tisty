@@ -29,7 +29,7 @@ export const wornLaid = (
   });
   if (reach.onDiagram || reach.onDiagramExport)
     diagramBars(staging, { open: Boolean(reach.onDiagram), out: Boolean(reach.onDiagramExport) });
-  if (reach.onSource) mathBars(staging);
+  if (reach.onPiece) mathBars(staging);
   // Rows are numbered before their cells are drawn, as on the whole page, or each cell names no row.
   if (reach.onTable) tabled(staging);
   let held: (() => void)[] = [];

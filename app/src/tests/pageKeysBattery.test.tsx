@@ -130,7 +130,9 @@ describe("the properties kept out of the page", () => {
   const asking = (body: string): Reaching => ({
     body,
     onDoc: () => {},
-    onSource: (at) => sources.push(at),
+    onPiece: (held, place) => {
+      if (held === "front" && place) sources.push(place.at);
+    },
   });
   const written = () =>
     pageOf(
@@ -141,7 +143,7 @@ describe("the properties kept out of the page", () => {
     sources.length = 0;
   });
 
-  it("opens the Markdown at the start of the properties when they are asked for", () => {
+  it("opens the properties in their own window when they are asked for", () => {
     answered(written(), { kind: "block", at: [0, 14] }, asking(BODY));
     expect(sources).toEqual([0]);
   });
@@ -164,18 +166,18 @@ describe("the properties kept out of the page", () => {
     expect(sources).toEqual([]);
   });
 
-  it("opens nothing when the window cannot show the Markdown", () => {
+  it("opens nothing when the window cannot open a piece", () => {
     expect(() =>
       answered(written(), { kind: "block", at: [0, 14] }, { body: "x", onDoc: () => {} }),
     ).not.toThrow();
   });
 
-  it("counts the start in characters when the words before it are wider than a byte", () => {
+  it("names the properties in bytes, as the core counts them, when the words before are wider", () => {
     const drawn = pageOf(
       '<div class="page"><p data-at="0-4">ñé</p><dl class="front" data-at="6-20"></dl></div>',
     );
     answered(drawn, { kind: "block", at: [6, 20] }, asking("ñé\n\n---\na: b\n---\n"));
-    expect(sources).toEqual([4]);
+    expect(sources).toEqual([6]);
   });
 
   it("opens nothing for a front that is not a direct child of the page", () => {

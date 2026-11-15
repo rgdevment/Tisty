@@ -5,9 +5,9 @@ import { charsAt, readAs, sourceOf, spanned } from "tisty-editor/read";
 import { openLink } from "../core";
 import { askAgain, serve, showing } from "../inUse";
 import { locale, t } from "../locales";
+import type { Held, PiecePlace } from "../pieceWindow";
 import { pictured } from "../previews";
 import { plainly } from "../refusal";
-import type { WidgetPlace } from "../widgetWindow";
 import { type Attaching, attachedAs, pressed } from "./attached";
 import { type Carding, cardsFor } from "./carding";
 import { type Shot, shotsOf, type TableWent, type Went, went, widgetsIn } from "./paging";
@@ -33,9 +33,8 @@ export type Reaching = Carding & {
   // The page written in place: writing starts here (chars), with what the new line opens with; nothing is written until a key.
   readonly onBegin?: (at: number, seed: string, near: Element) => void;
   readonly onHintWords?: (at: [number, number], hint: HTMLElement) => void;
-  readonly onApart?: (source: string, place?: WidgetPlace, code?: boolean) => void;
-  // A block whose drawing hides its words is written in the Markdown view, opened at this char.
-  readonly onSource?: (at: number) => void;
+  // A piece drawn over its words opens in a window of its own, at its place in bytes; only a widget brings its words.
+  readonly onPiece?: (held: Held, place?: PiecePlace, source?: string, code?: boolean) => void;
   // A code block's language, chosen from a menu that opens at this point of the page.
   readonly onLanguage?: (at: [number, number], near: Anchor) => void;
   // Bytes, as the window's own reader counts them, never converted; `nth` and what it says find it when the page is a save behind.
@@ -171,8 +170,10 @@ export const widgets = (page: Document, reach?: Reaching): Lending[] => {
     name.className = "widget-name";
     name.textContent = figure.querySelector("figcaption")?.textContent ?? "";
     bar.append(name);
-    if (reach?.onSource || reach?.onApart) bar.append(asking(page, "code", t("codeShow")));
-    if (reach?.onApart) bar.append(asking(page, "apart", t("viewApart")));
+    if (reach?.onPiece) {
+      bar.append(asking(page, "code", t("codeShow")));
+      bar.append(asking(page, "apart", t("viewApart")));
+    }
     const held = page.createElement("div");
     drawn.append(bar, held);
     figure.replaceWith(drawn);
@@ -280,7 +281,7 @@ export const worn = (page: Document, live: () => boolean, reach?: Reaching): Wor
   if (writable) tabled(page);
   if (reach?.onDiagram || reach?.onDiagramExport)
     diagramBars(page, { open: Boolean(reach.onDiagram), out: Boolean(reach.onDiagramExport) });
-  if (reach?.onSource) mathBars(page);
+  if (reach?.onPiece) mathBars(page);
   let held: (() => void)[] = [];
   let lent: Lending[] = [];
   const read = readAs(page, {
@@ -409,12 +410,12 @@ export const answered = (page: Document, asked: Went, reach: Reaching) => {
     const last = Array.from(page.querySelectorAll(".page > [data-at]")).pop();
     reach.onBegin(reach.body.length, "", last ?? page.querySelector(".page") ?? page.body);
   }
-  // The properties are kept out of the page, so asking for them, as the column's Edit does, opens the Markdown there.
+  // The properties are kept out of the page, so asking for them, as the column's Edit does, opens their window.
   if (
     asked.kind === "block" &&
     page.querySelector(`.page > .front[data-at="${asked.at[0]}-${asked.at[1]}"]`)
   )
-    reach.onSource?.(charsAt(reach.body, asked.at[0]));
+    reach.onPiece?.("front", { at: asked.at[0], nth: 0 });
   if (asked.kind === "block" && reach.onHintWords) {
     const hint = page.querySelector<HTMLElement>(
       `.page > :is(.hint, .hint-gone)[data-at="${asked.at[0]}-${asked.at[1]}"]`,
@@ -427,9 +428,14 @@ export const answered = (page: Document, asked: Went, reach: Reaching) => {
       at: [charsAt(reach.body, asked.at[0]), charsAt(reach.body, asked.at[1])],
     });
   const widget = asked.kind === "code" ? widgetAt(page, asked.at) : null;
-  if (widget && reach.onApart) reach.onApart(widget.source, widget.place, true);
-  else if (asked.kind === "code" && reach.onSource)
-    reach.onSource(charsAt(reach.body, asked.at[0]));
+  if (widget) reach.onPiece?.("widget", widget.place, widget.source, true);
+  else if (asked.kind === "code")
+    reach.onPiece?.("formula", {
+      at: asked.at[0],
+      nth: nthAt(page, "div.math[data-at]", asked.at),
+    });
+  if (asked.kind === "formula")
+    reach.onPiece?.("inlineFormula", { at: asked.at[0], nth: asked.nth });
   if (asked.kind === "codeLang")
     reach.onLanguage?.([charsAt(reach.body, asked.at[0]), charsAt(reach.body, asked.at[1])], {
       x: asked.x,
@@ -441,16 +447,24 @@ export const answered = (page: Document, asked: Went, reach: Reaching) => {
     const block = page.querySelector(`.page > [data-at="${asked.at[0]}-${asked.at[1]}"]`);
     const drawn = widgetsIn(block)[asked.nth ?? 0];
     const source = drawn ? sources.get(drawn) : undefined;
-    if (drawn && source) reach.onApart?.(source, placeOf(page, drawn), false);
+    if (drawn && source) reach.onPiece?.("widget", placeOf(page, drawn), source, false);
   }
 };
 
 // A widget is named to its window by where its block starts and which it is from the top, as a diagram is.
-const placeOf = (page: Document, drawn: Element): WidgetPlace | undefined => {
+const placeOf = (page: Document, drawn: Element): PiecePlace | undefined => {
   const at = spanned(drawn.getAttribute("data-at"))?.[0];
   const nth = Array.from(page.querySelectorAll("figure.widget")).indexOf(drawn);
   return at === undefined || nth < 0 ? undefined : { at, nth };
 };
+
+export const nthAt = (page: Document, drawn: string, at: [number, number]) =>
+  Math.max(
+    0,
+    Array.from(page.querySelectorAll(drawn)).findIndex(
+      (one) => one.getAttribute("data-at") === `${at[0]}-${at[1]}`,
+    ),
+  );
 
 const widgetAt = (page: Document, at: [number, number]) => {
   const drawn = page.querySelector(`figure.widget[data-at="${at[0]}-${at[1]}"]`);

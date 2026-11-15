@@ -12,6 +12,7 @@ import {
 } from "./core";
 import { paperIn } from "./front";
 import { adopt, t } from "./locales";
+import { pieceSave } from "./pieceWindow";
 import { saidPlainly } from "./refusal";
 import { fell } from "./Standing";
 import Diagramming from "./ui/drawing/Diagramming";
@@ -23,14 +24,14 @@ import { darkNow } from "./ui/theming";
 import { leaveAsHtml, leaveAsWord } from "./ui/useLeaving";
 import { type Acts, choicesFor, exportsFor, keysFor, PLAIN, ZOOMS } from "./ui/viewer/acting";
 import Header, { titled } from "./ui/viewer/Header";
+import PieceCode from "./ui/viewer/PieceCode";
+import PiecePreview from "./ui/viewer/PiecePreview";
 import Preview from "./ui/viewer/Preview";
 import type ReaderWindow from "./ui/viewer/Reader";
 import Stage, { type Preset } from "./ui/viewer/Stage";
 import usePdf from "./ui/viewer/usePdf";
 import { useSheets } from "./ui/viewer/useSheets";
-import WidgetCode from "./ui/viewer/WidgetCode";
 import WindowChrome from "./ui/WindowChrome";
-import { widgetSave } from "./widgetWindow";
 
 const KEPT = "tisty.viewer";
 export const SIDE_FROM = 1000;
@@ -165,12 +166,12 @@ function Reading({
   const drawn = useRef<Window | null>(null);
   const fail = (problem: unknown) => setNote(saidPlainly(problem));
 
-  const opensOnCode = shown?.kind === "widget" && shown.code;
+  const opensOnCode = shown?.kind === "piece" && shown.code;
   useEffect(() => {
     if (opensOnCode) setCode(true);
   }, [opensOnCode]);
 
-  // An empty widget is drawn as code on the page, so blank words wait for some before they are saved.
+  // An empty piece leaves nothing to find again, so blank words wait for some before they are saved.
   const drafted = (now: string) => {
     setDraft(now);
     clearTimeout(drawing.current);
@@ -184,7 +185,7 @@ function Reading({
     const now = unsaved.current;
     unsaved.current = null;
     if (now === null) return Promise.resolve();
-    return widgetSave(now)
+    return pieceSave(now)
       .then(() => setNote(null))
       .catch(fail);
   };
@@ -330,10 +331,10 @@ function Reading({
         />
       )}
       {!trouble && (!shown || (reading && !Reader)) && <Quill said={t("viewOpening")} />}
-      {shown?.kind === "widget" && (
+      {shown?.kind === "piece" && (
         <div className="flex min-h-0 flex-1">
           {code && (
-            <WidgetCode
+            <PieceCode
               source={draft ?? shown.source}
               writable={shown.writable}
               onDraft={drafted}
@@ -341,13 +342,17 @@ function Reading({
             />
           )}
           <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-            <Stage
-              source={preview ?? shown.source}
-              preset={preset}
-              actual={actual}
-              dark={dark}
-              again={again}
-            />
+            {shown.held === "widget" ? (
+              <Stage
+                source={preview ?? shown.source}
+                preset={preset}
+                actual={actual}
+                dark={dark}
+                again={again}
+              />
+            ) : (
+              <PiecePreview held={shown.held} source={preview ?? shown.source} label={title} />
+            )}
           </div>
         </div>
       )}

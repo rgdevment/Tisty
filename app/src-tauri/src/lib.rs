@@ -24,6 +24,7 @@ mod moving;
 mod news;
 mod pathing;
 mod pdf;
+mod pieces;
 mod quick_keys;
 mod reaching;
 mod refusing;
@@ -40,7 +41,6 @@ mod update;
 mod viewing;
 mod vouching;
 mod waking;
-mod widgeting;
 mod wiring;
 
 use tauri::{Emitter, Manager};
@@ -1339,8 +1339,8 @@ fn commands() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool + Send + Sync +
         viewing::view_facts,
         viewing::view_import,
         viewing::view_welcomed,
-        widgeting::view_widget,
-        widgeting::widget_save,
+        pieces::view_piece,
+        pieces::piece_save,
         viewing::view_doc,
         diagramming::view_diagram,
         diagramming::diagram_save,

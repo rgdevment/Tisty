@@ -6,6 +6,7 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use tauri::{AppHandle, Emitter, Manager};
 use tisty_carrier::folio_hosts;
 use tisty_core::witness::{self, Fact, channel};
+use tisty_markdown::diagrams::Held;
 
 use crate::answers::carrying::Left;
 use crate::{Answer, Refusal, Session, held};
@@ -25,7 +26,8 @@ pub struct Paper {
 pub enum Shown {
     File(PathBuf),
     Doc(Paper),
-    Widget {
+    Piece {
+        held: Held,
         source: String,
         from: Option<Paper>,
         place: Option<tisty_markdown::diagrams::Place>,
@@ -41,7 +43,8 @@ pub enum Showing {
         paper: Paper,
         body: String,
     },
-    Widget {
+    Piece {
+        held: Held,
         source: String,
         from: Option<Paper>,
         code: bool,
@@ -516,7 +519,7 @@ pub(crate) fn open(app: &AppHandle, shown: Shown) {
         Shown::File(at) => named(at),
         Shown::Doc(paper) => paper.title.clone(),
         Shown::Diagram(drawn) => drawn.paper.title.clone(),
-        Shown::Widget { .. } => "Tisty".into(),
+        Shown::Piece { .. } => "Tisty".into(),
     };
     let spanish = spanish(app);
     let light = matches!(shown, Shown::File(_));
@@ -648,12 +651,14 @@ pub async fn view_shown(app: AppHandle, window: tauri::WebviewWindow) -> Answer<
             body: doc_body(&app, &paper.file)?,
             paper,
         },
-        Shown::Widget {
+        Shown::Piece {
+            held,
             source,
             from,
             place,
             code,
-        } => Showing::Widget {
+        } => Showing::Piece {
+            held,
             source,
             from,
             code,
@@ -694,7 +699,7 @@ pub fn view_facts(
         Shown::File(at) => crate::answers::papers::outside_facts(&at),
         Shown::Doc(paper) => crate::answers::papers::doc_facts(session, paper.file),
         Shown::Diagram(drawn) => crate::answers::papers::doc_facts(session, drawn.paper.file),
-        Shown::Widget { .. } => Err(Refusal::of("notAllowed")),
+        Shown::Piece { .. } => Err(Refusal::of("notAllowed")),
     }
 }
 

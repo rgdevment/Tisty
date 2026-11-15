@@ -1,6 +1,7 @@
 use std::ops::Range;
 
-use crate::{Block, Kind};
+use crate::inline::math_wall;
+use crate::{Block, Kind, Mark};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Diagram {
@@ -9,55 +10,128 @@ pub struct Diagram {
     inside: Option<Range<usize>>,
 }
 
-/// A block a window of its own opens and writes back: a diagram, or a widget.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Fence {
+/// A piece a window of its own opens and writes back in its place.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum Held {
     Diagram,
     Widget,
+    Formula,
+    InlineFormula,
+    Table,
+    Front,
 }
 
-impl Fence {
-    fn holds(self, tongue: &str) -> bool {
+impl Held {
+    fn fences(self, tongue: &str) -> bool {
         match self {
             Self::Diagram => matches!(tongue, "mermaid" | "mmd"),
             Self::Widget => tongue == "widget",
+            Self::Formula => tongue == "math",
+            Self::InlineFormula | Self::Table | Self::Front => false,
+        }
+    }
+
+    pub fn as_read(self, now: &str) -> String {
+        match self {
+            Self::InlineFormula => now.replace('\r', "").trim_end_matches('\n').to_string(),
+            _ => as_read(now),
         }
     }
 }
 
-pub fn diagrams(text: &str) -> Vec<Diagram> {
-    fenced(text, Fence::Diagram)
+/// Why a window's words were not written: its piece is gone, or they would no longer read as it.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Unwritten {
+    Moved,
+    Unread,
 }
 
-pub fn fenced(text: &str, fence: Fence) -> Vec<Diagram> {
+pub fn diagrams(text: &str) -> Vec<Diagram> {
+    held_in(text, Held::Diagram)
+}
+
+pub fn held_in(text: &str, held: Held) -> Vec<Diagram> {
     let doc = crate::read(text);
     let mut found = Vec::new();
-    gather(doc.blocks(), text, fence, &mut found);
+    gather(doc.blocks(), text, held, &mut found);
     found
 }
 
-fn gather(blocks: &[Block], text: &str, fence: Fence, found: &mut Vec<Diagram>) {
+fn gather(blocks: &[Block], text: &str, held: Held, found: &mut Vec<Diagram>) {
     for block in blocks {
         match &block.kind {
             Kind::Code {
                 tongue: Some(tongue),
                 ..
-            } if fence.holds(tongue) => found.push(Diagram {
-                at: block.at.clone(),
-                source: block
-                    .spans
-                    .iter()
-                    .map(|one| &text[one.at.clone()])
-                    .collect::<String>()
-                    .replace('\r', ""),
-                inside: block
-                    .spans
-                    .first()
-                    .zip(block.spans.last())
-                    .map(|(first, last)| first.at.start..last.at.end),
-            }),
-            _ => gather(&block.inner, text, fence, found),
+            } if held.fences(tongue) => found.push(fence(block, text)),
+            Kind::Table { .. } if held == Held::Table => {
+                let end = block.at.start + text[block.at.clone()].trim_end().len();
+                let inside =
+                    block.at.start..line_end(text, end.saturating_sub(1).max(block.at.start));
+                found.push(lined(text, block.at.clone(), inside));
+            }
+            Kind::Front if held == Held::Front => {
+                let end = block.at.start + text[block.at.clone()].trim_end().len();
+                let opened = line_end(text, block.at.start);
+                let inside = opened..line_start(text, end).max(opened);
+                found.push(lined(text, block.at.clone(), inside));
+            }
+            _ => {
+                if held == Held::InlineFormula {
+                    formulas(block, text, found);
+                }
+                gather(&block.inner, text, held, found);
+            }
         }
+    }
+}
+
+fn fence(block: &Block, text: &str) -> Diagram {
+    Diagram {
+        at: block.at.clone(),
+        source: block
+            .spans
+            .iter()
+            .map(|one| &text[one.at.clone()])
+            .collect::<String>()
+            .replace('\r', ""),
+        inside: block
+            .spans
+            .first()
+            .zip(block.spans.last())
+            .map(|(first, last)| first.at.start..last.at.end),
+    }
+}
+
+// Lines under a quote or a bullet are read without its marks, which are written back in front of each.
+fn lined(text: &str, at: Range<usize>, inside: Range<usize>) -> Diagram {
+    let lead = lead_before(text, inside.start);
+    let source = text[inside.clone()]
+        .replace('\r', "")
+        .split_inclusive('\n')
+        .enumerate()
+        .map(|(index, line)| match index {
+            0 => line,
+            _ => line.strip_prefix(lead.as_str()).unwrap_or(line),
+        })
+        .collect();
+    Diagram {
+        at,
+        source,
+        inside: Some(inside),
+    }
+}
+
+fn formulas(block: &Block, text: &str, found: &mut Vec<Diagram>) {
+    for span in block.spans.iter().filter(|one| one.mark == Mark::Math) {
+        let wall = math_wall(&text[span.at.clone()]);
+        let inside = span.at.start + wall..span.at.end - wall;
+        found.push(Diagram {
+            at: span.at.clone(),
+            source: text[inside.clone()].replace('\r', ""),
+            inside: Some(inside),
+        });
     }
 }
 
@@ -70,12 +144,12 @@ pub struct Place {
 
 // Another diagram that merely says the same is never taken for this one: a copy is not a move.
 pub fn still(text: &str, place: Place, was: &str) -> Option<(Place, Diagram)> {
-    still_in(text, Fence::Diagram, place, was)
+    still_in(text, Held::Diagram, place, was)
 }
 
-pub fn still_in(text: &str, fence: Fence, place: Place, was: &str) -> Option<(Place, Diagram)> {
+pub fn still_in(text: &str, held: Held, place: Place, was: &str) -> Option<(Place, Diagram)> {
     let was = was.replace('\r', "");
-    let found = fenced(text, fence);
+    let found = held_in(text, held);
     let alike = found.iter().filter(|one| one.source == was).count();
     let nth = found
         .iter()
@@ -114,27 +188,30 @@ pub fn order_of(text: &str, place: Place, was: &str) -> usize {
 }
 
 pub fn redrawn(text: &str, place: Place, was: &str, now: &str) -> Option<(String, Place)> {
-    redrawn_in(text, Fence::Diagram, place, was, now)
+    redrawn_in(text, Held::Diagram, place, was, now).ok()
 }
 
 pub fn redrawn_in(
     text: &str,
-    fence: Fence,
+    held: Held,
     place: Place,
     was: &str,
     now: &str,
-) -> Option<(String, Place)> {
-    let (place, chosen) = still_in(text, fence, place, was)?;
-    Some((written_into(text, &chosen, now), place))
+) -> Result<(String, Place), Unwritten> {
+    let (place, chosen) = still_in(text, held, place, was).ok_or(Unwritten::Moved)?;
+    let now = held.as_read(now);
+    let body = written_into(text, held, &chosen, &now);
+    let (place, _) = still_in(&body, held, place, &now).ok_or(Unwritten::Unread)?;
+    Ok((body, place))
 }
 
 /// The diagram a window holds as the document says it now, whatever it says.
 pub fn at_place(text: &str, place: Place) -> Option<(Place, String)> {
-    at_place_in(text, Fence::Diagram, place)
+    at_place_in(text, Held::Diagram, place)
 }
 
-pub fn at_place_in(text: &str, fence: Fence, place: Place) -> Option<(Place, String)> {
-    let found = fenced(text, fence);
+pub fn at_place_in(text: &str, held: Held, place: Place) -> Option<(Place, String)> {
+    let found = held_in(text, held);
     let nth = found
         .iter()
         .position(|one| one.at.start == place.at)
@@ -156,7 +233,10 @@ pub fn as_read(now: &str) -> String {
         .collect()
 }
 
-fn written_into(text: &str, diagram: &Diagram, now: &str) -> String {
+fn written_into(text: &str, held: Held, diagram: &Diagram, now: &str) -> String {
+    if let (Held::InlineFormula, Some(inside)) = (held, &diagram.inside) {
+        return format!("{}{now}{}", &text[..inside.start], &text[inside.end..]);
+    }
     let (room, lead) = match &diagram.inside {
         Some(inside) => (inside.clone(), lead_before(text, inside.start)),
         None => {

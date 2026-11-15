@@ -32,15 +32,15 @@ import { CATCHES, takesFiles } from "../dropped";
 import { t } from "../locales";
 import { DOC, partCard } from "../markdown";
 import type { Moved } from "../paging";
+import { type Held, type PiecePlace, viewPiece } from "../pieceWindow";
 import { docPlaced, docPlacedNear } from "../placing";
 import { named } from "../previews";
 import { settled as savedAll } from "../saving";
-import { viewWidget } from "../widgetWindow";
 import { inEditor, reanchored, spanOf, touches } from "./anchoring";
 import { cardedAt, movedCard, putCard } from "./carded";
 import { LANGUAGES, languageAt, spokenIn } from "./codeLanguages";
 import { exportChoices, fileName } from "./drawing/exporting";
-import type { Anchor } from "./dressing";
+import { type Anchor, nthAt } from "./dressing";
 import { FrameThumb } from "./frameThumb";
 import { useKeptHeight } from "./heights";
 import { edited, HOST } from "./hosting";
@@ -160,6 +160,17 @@ export default function Sheet(props: Readonly<Props>) {
     return undefined;
   };
 
+  // The window reads the piece from the file, so the page's last words are saved before it opens.
+  const piece = (held: Held, place?: PiecePlace, source?: string, code = true) =>
+    void savedAll()
+      .then(fileNamed)
+      .then((from) => {
+        const paper = from
+          ? { id: "", file: from, title: said.current.label, place: said.current.place ?? "" }
+          : undefined;
+        viewPiece(held, paper ? place : undefined, paper, source, code).catch(() => {});
+      });
+
   const diagram = (at: number, nth: number, source: string) => {
     const named = said.current.file;
     // A page not written yet has no file the diagram could be saved back into.
@@ -221,11 +232,6 @@ export default function Sheet(props: Readonly<Props>) {
   const [ownMarkdown, setOwnMarkdown] = useState(false);
   const markdown = props.view?.markdown ?? ownMarkdown;
   const setMarkdown = props.view?.onTurn ?? setOwnMarkdown;
-  const markdownAt = useRef<number | null>(null);
-  const markdownOn = (at: number) => {
-    markdownAt.current = at;
-    setMarkdown(true);
-  };
   // Preview is the core's own page written on in place; only the Markdown view is an editor of plain words.
   // A document and a task's page are both written on as the core draws them.
   const writable = !reading;
@@ -493,8 +499,7 @@ export default function Sheet(props: Readonly<Props>) {
     if (drawn !== latest.current) return;
     // A page drawn anew wipes whatever was laid in it, so the view waits for the drawing to land.
     if (alreadyShown.current !== latest.current && shownBody.current !== latest.current) return;
-    const at = markdownAt.current ?? pageWriter.current?.hands.caretAt() ?? null;
-    markdownAt.current = null;
+    const at = pageWriter.current?.hands.caretAt() ?? null;
     wholly(at ?? 0);
     if (at !== null) requestAnimationFrame(() => cameTo(open.current?.view));
   }, [writable, markdown, ready, turned, drawn]);
@@ -893,7 +898,10 @@ export default function Sheet(props: Readonly<Props>) {
     },
     writing: () => Boolean(open.current),
     leave: left,
-    markdown: (at) => markdownOn(charsAt(latest.current, at[0])),
+    markdown: (at) => {
+      const page = shown.current?.document;
+      piece("table", { at: at[0], nth: page ? nthAt(page, ".page > .table[data-at]", at) : 0 });
+    },
     fail: (problem) => said.current.onFail?.(problem),
     turned,
   });
@@ -1231,7 +1239,6 @@ export default function Sheet(props: Readonly<Props>) {
           onBegin={
             onPage ? (at, seed, near) => pageWriter.current?.hands.begin(at, seed, near) : undefined
           }
-          onSource={onPage ? (at) => markdownOn(sourceIn(latest.current, at)) : undefined}
           onLanguage={onPage ? languageMenu : undefined}
           onHintWords={
             onPage && fixed
@@ -1259,22 +1266,7 @@ export default function Sheet(props: Readonly<Props>) {
           cards={props.cards}
           onDiagram={reading || fixed || !props.wholeable ? undefined : diagram}
           onDiagramExport={fixed ? undefined : diagramOut}
-          onApart={(source, place, code) =>
-            // The window reads the widget from the file, so the page's last words are saved before it opens.
-            void savedAll()
-              .then(fileNamed)
-              .then((from) => {
-                const paper = from
-                  ? {
-                      id: "",
-                      file: from,
-                      title: said.current.label,
-                      place: said.current.place ?? "",
-                    }
-                  : undefined;
-                viewWidget(source, paper, paper ? place : undefined, code).catch(() => {});
-              })
-          }
+          onPiece={piece}
           onOutline={(heads) => said.current.onOutline?.(heads)}
           onShown={(page, body) => {
             shown.current = page;

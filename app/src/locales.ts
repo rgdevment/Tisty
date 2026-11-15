@@ -440,6 +440,12 @@ const en = {
   previewBack: "← Back to the document",
   viewClose: "Close",
   viewWidgetOf: "Widget from «{name}»",
+  viewFormulaTitle: "Formula",
+  viewFormulaOf: "Formula from «{name}»",
+  viewTableTitle: "Table",
+  viewTableOf: "Table from «{name}»",
+  viewFrontTitle: "Properties",
+  viewFrontOf: "Properties of «{name}»",
   viewFit: "Fit",
   viewPhone: "Phone",
   viewTablet: "Tablet",
@@ -1152,8 +1158,10 @@ const en = {
   documentMoved: "Something wrote in this document while you had it open here",
   diagramMoved:
     "This diagram changed in «{name}» since you opened it. Close this window and open it again from the document",
-  widgetMoved:
-    "This widget changed in «{name}» since you opened it. Close this window and open it again from the document",
+  pieceMoved:
+    "This changed in «{name}» since you opened it. Close this window and open it again from the document",
+  pieceUnread:
+    "Written like this it would no longer read as what you opened, so it was not saved to «{name}». Mend it and it saves again",
   diagramOf: "Diagram · {name}",
   diagramOpen: "Open in the diagram window",
   diagramExport: "Export",
@@ -3641,6 +3649,12 @@ const es: Catalog = {
   previewBack: "← Volver al documento",
   viewClose: "Cerrar",
   viewWidgetOf: "Widget de «{name}»",
+  viewFormulaTitle: "Fórmula",
+  viewFormulaOf: "Fórmula de «{name}»",
+  viewTableTitle: "Tabla",
+  viewTableOf: "Tabla de «{name}»",
+  viewFrontTitle: "Propiedades",
+  viewFrontOf: "Propiedades de «{name}»",
   viewFit: "Ajustar",
   viewPhone: "Móvil",
   viewTablet: "Tablet",
@@ -4360,8 +4374,10 @@ const es: Catalog = {
   documentMoved: "Algo escribió en este documento mientras lo tenías abierto aquí",
   diagramMoved:
     "Este diagrama cambió en «{name}» desde que lo abriste. Cierra esta ventana y vuelve a abrirlo desde el documento",
-  widgetMoved:
-    "Este widget cambió en «{name}» desde que lo abriste. Cierra esta ventana y vuelve a abrirlo desde el documento",
+  pieceMoved:
+    "Esto cambió en «{name}» desde que lo abriste. Cierra esta ventana y vuelve a abrirlo desde el documento",
+  pieceUnread:
+    "Escrito así ya no se lee como lo que abriste, así que no se guardó en «{name}». Corrígelo y vuelve a guardarse",
   diagramOf: "Diagrama · {name}",
   diagramOpen: "Abrir en la ventana de diagramas",
   diagramExport: "Exportar",

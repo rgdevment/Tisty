@@ -291,3 +291,19 @@ div.math:hover .math-bar,
     display: none;
   }
 }
+
+/* The properties live in the panel beside a page; their own window shows them. */
+html.held .page > .front {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 6px 16px;
+}
+html.held .page > .front > div {
+  display: contents;
+}
+html.held .page > .front dt {
+  color: var(--tisty-faint);
+}
+html.held .page > .front dd {
+  margin: 0;
+}

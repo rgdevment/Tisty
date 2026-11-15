@@ -130,7 +130,7 @@ export default function Page(props: Readonly<Props>) {
             // A page with a newer drawing on its way names bytes nobody is writing any more.
             onBegin: current("onBegin"),
             onHintWords: current("onHintWords"),
-            onSource: current("onSource"),
+            onPiece: current("onPiece"),
             onLanguage: current("onLanguage"),
             onTick: current("onTick"),
             onStick: current("onStick"),

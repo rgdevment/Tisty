@@ -69,7 +69,7 @@ describe("the blocks the core draws again on the page written in place", () => {
     const sheet = pageOf('<div class="math" data-at="0-20"><math></math></div>');
     wornLaid(document, [sheet.children[0] as Element], () => true, {
       ...REACH,
-      onSource: () => {},
+      onPiece: () => {},
     });
     expect(sheet.querySelector('.math-bar [data-asked="code"]')).not.toBeNull();
   });

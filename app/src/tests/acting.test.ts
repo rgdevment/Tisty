@@ -29,7 +29,8 @@ const doc: Showing = {
   body: "# Notas",
 };
 const widget: Showing = {
-  kind: "widget",
+  kind: "piece",
+  held: "widget",
   source: "<p>x</p>",
   from: { id: "", file: "f1", title: "Notas", place: "" },
   code: false,
@@ -165,6 +166,16 @@ describe("the viewer's keys", () => {
     expect(a.preset).toHaveBeenCalledWith("390");
     expect(a.fit).toHaveBeenCalled();
     expect(keysFor(a, key("f"))).toBeUndefined();
+  });
+
+  it("offers a formula, a table or the properties only their code and their document", () => {
+    const formula: Showing = { ...widget, held: "formula" };
+    const a = acts(formula);
+    const all = choicesFor(a);
+
+    expect(all.map((one) => one.key)).toEqual(["code", "doc"]);
+    keysFor(a, key("2"))?.();
+    expect(a.preset).not.toHaveBeenCalled();
   });
 
   it("starts the text at its plain size", () => {
