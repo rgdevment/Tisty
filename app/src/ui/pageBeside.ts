@@ -174,6 +174,7 @@ export const besideOn = (
     unitActed,
     rest: gripping.rest,
     stop: () => {
+      page.defaultView?.cancelAnimationFrame(measuring);
       plus.remove();
       gripping.stop();
     },
