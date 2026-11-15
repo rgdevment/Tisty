@@ -14,6 +14,12 @@ const shifted = (block: Element, by: number) => {
   }
 };
 
+const folds = (blocks: readonly Element[]) =>
+  blocks.flatMap((one) => [
+    ...(one.matches("details") ? [one as HTMLDetailsElement] : []),
+    ...one.querySelectorAll("details"),
+  ]);
+
 const same = (one: Element, want: readonly [number, number] | undefined, by = 0) => {
   const at = spanned(one.getAttribute("data-at"));
   return Boolean(at && want && at[0] + by === want[0] && at[1] + by === want[1]);
@@ -38,6 +44,11 @@ export const patched = (sheet: Element, near: PlacedNear, by: number): Element[]
     laid.some((one) => one.matches(WHOLE_ONLY) || one.querySelector(WHOLE_ONLY))
   )
     return null;
+  // A fold drawn anew comes closed, so one being written in stays open as it was.
+  const opened = folds(old.slice(from, kept)).map((one) => one.open);
+  folds(laid).forEach((one, at) => {
+    if (opened[at]) one.open = true;
+  });
   for (const one of old.slice(from, kept)) one.remove();
   for (const one of sheet.querySelectorAll(":scope > [data-ghost]")) one.remove();
   const next = old[kept] ?? null;

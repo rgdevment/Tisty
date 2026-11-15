@@ -171,3 +171,21 @@ export const worn = (text: string, one: Span, open: string, close: string): Edit
     ? { from: one.from - open.length, to: one.to + close.length, insert: inner }
     : { ...one, insert: `${open}${bareOf(inner, open)}${close}` };
 };
+
+const LINE_MARKS =
+  /^[ \t]*(?:>[ \t]?)*[ \t]*(?:#{1,6}[ \t]+|[-*+][ \t]+(?:\[[ xX]\][ \t]+)?|\d+[.)][ \t]+)?/;
+
+// A mark never crosses a line, so words chosen over several blocks take a pair in each, past each line's own marks.
+export const wornEach = (text: string, one: Span, open: string, close: string): Edit => {
+  const lines = text.slice(one.from, one.to).split(/(\r?\n)/);
+  const insert = lines
+    .map((line, at) => {
+      if (at % 2 === 1) return line;
+      const lead = at === 0 ? "" : (LINE_MARKS.exec(line)?.[0] ?? "");
+      const body = line.slice(lead.length);
+      const words = body.trimEnd();
+      return words.trim() ? `${lead}${open}${words}${close}${body.slice(words.length)}` : line;
+    })
+    .join("");
+  return { from: one.from, to: one.to, insert };
+};

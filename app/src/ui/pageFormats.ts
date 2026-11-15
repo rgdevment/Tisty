@@ -12,6 +12,7 @@ import {
   rejoined,
   trimmed,
   worn,
+  wornEach,
 } from "./pageMarks";
 import type { Writer } from "./pageWriter";
 import { unformattable } from "./quickly";
@@ -80,7 +81,8 @@ export const formatsOn = (writer: Writer, caret: Caret, laying: Laying) => {
     }
     if (!one) return waitFor(open, close);
     writer.pending = null;
-    const change = worn(text, one, open, close);
+    const spread = text.slice(one.from, one.to).includes("\n");
+    const change = spread ? wornEach(text, one, open, close) : worn(text, one, open, close);
     put(change, change.from + change.insert.length);
   };
 

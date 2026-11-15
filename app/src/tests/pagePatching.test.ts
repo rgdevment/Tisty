@@ -104,4 +104,27 @@ describe("a page written on, changed only where the core drew it again", () => {
     );
     expect(laid).toBeNull();
   });
+
+  it("keeps a fold open while words are written in it, as it was before the key", () => {
+    document.body.innerHTML =
+      '<article class="page"><p data-at="0-4"><span data-src="0-4">One.</span></p>' +
+      '<details data-at="6-30" open><summary>Fold</summary><p data-at="20-24"><span data-src="20-24">inne</span></p></details></article>';
+    const sheet = document.querySelector(".page") as Element;
+    patched(
+      sheet,
+      {
+        spans: [
+          [0, 4],
+          [6, 31],
+        ],
+        from: 1,
+        to: 2,
+        html: '<details data-at="6-31"><summary>Fold</summary><p data-at="20-25"><span data-src="20-25">inner</span></p></details>',
+      },
+      1,
+    );
+    const fold = sheet.querySelector("details") as HTMLDetailsElement;
+    expect(fold.textContent).toContain("inner");
+    expect(fold.open).toBe(true);
+  });
 });

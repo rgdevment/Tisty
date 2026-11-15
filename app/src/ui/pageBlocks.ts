@@ -74,3 +74,24 @@ export const placed = (
   }
   return blockPlaced(text, at, end, how.block, how.at < 0 ? how.block.length : how.at);
 };
+
+const BLOCK_START = /^(?:#{1,6}[ \t]|[-*+][ \t]|\d+[.)][ \t]|>|```|~~~|\|)/;
+const ITEM_START = /^\s*(?:>\s?)*\s*(?:[-*+]|\d+[.)])\s/;
+const QUOTED = /^[ \t]*(?:>[ \t]?)+/;
+
+// Words pasted that open with a heading, a list, a quote, code or a table start a block of their own, never mid-line,
+// and words pasted in a quote or a note stay in it, line after line.
+export const pastedAround = (text: string, from: number, to: number, said: string): string => {
+  const start = lineStart(text, from);
+  const before = text.slice(start, from);
+  const quote = QUOTED.exec(before)?.[0] ?? "";
+  const quoted = (words: string) =>
+    quote ? words.replace(/\r?\n/g, (one) => `${one}${quote}`) : words;
+  if (!BLOCK_START.test(said)) return quoted(said);
+  const ends = text.indexOf("\n", to);
+  const after = text.slice(to, ends < 0 ? text.length : ends).replace(/\r$/, "");
+  const listed = ITEM_START.test(before) && ITEM_START.test(said);
+  const lead = before.slice(quote.length).trim() ? (listed ? "\n" : "\n\n") : "";
+  const tail = after.trim() ? "\n\n" : "";
+  return quoted(`${lead}${tail ? said.replace(/\s+$/, "") : said}${tail}`);
+};
