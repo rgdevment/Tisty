@@ -603,10 +603,13 @@ figure.widget {
 figure.diagram {
   position: relative;
 }
-/* On the figure's top edge, so the bar never hides the labels at the top of the drawing. */
+/* A figure is drawn within its own box, so its bar gets a strip of its own over the drawing instead of hiding its labels. */
+figure.diagram:has(> .diagram-bar) {
+  padding-top: 32px;
+}
 .diagram-bar {
   position: absolute;
-  top: -14px;
+  top: 2px;
   right: 6px;
   opacity: 0;
   pointer-events: none;

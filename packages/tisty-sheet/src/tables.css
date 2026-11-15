@@ -233,6 +233,10 @@ th[aria-sort="descending"]::before {
 .table-bar > .table-input {
   position: static;
   width: 16em;
+  padding: 4px 8px;
+  border: 2px solid var(--tisty-accent);
+  border-radius: 3px;
+  background: var(--tisty-sheet);
 }
 .table-when {
   display: block;

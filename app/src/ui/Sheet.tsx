@@ -662,9 +662,11 @@ export default function Sheet(props: Readonly<Props>) {
     };
     setMenu({
       ...at,
-      unpicked: () => {
-        if (!picked) stoodAgain(stood);
-      },
+      // The menu closes before it hands over what was picked, so the caret waits to see whether anything was.
+      unpicked: () =>
+        setTimeout(() => {
+          if (!picked) stoodAgain(stood);
+        }),
       label: t("blocksOf"),
       choices: [
         { key: "up", label: t("blockUp"), keys: `${ALT} ↑`, onPick: act("up") },
