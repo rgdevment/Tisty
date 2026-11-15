@@ -901,6 +901,8 @@ pub struct Filed {
     tongue: Option<(String, usize)>,
     #[serde(skip_serializing_if = "std::ops::Not::not")]
     tongue_apart: bool,
+    #[serde(skip_serializing_if = "std::ops::Not::not")]
+    diary: bool,
 }
 
 #[derive(serde::Serialize)]
@@ -1069,6 +1071,7 @@ fn gathered(session: &Session) -> Vec<Filed> {
             lang: kept.lang.clone(),
             tongue: tongues.get(&kept.id).cloned(),
             tongue_apart: apart.contains(&kept.id),
+            diary: tisty_core::diary::within(&session.state, kept),
         })
         .collect()
 }

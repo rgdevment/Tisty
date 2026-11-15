@@ -4,6 +4,7 @@ pub mod brainstorming;
 pub mod calendar;
 pub mod carrying;
 pub mod clouding;
+pub mod diary;
 pub mod folio;
 pub mod folio_editing;
 pub mod folio_receiving;

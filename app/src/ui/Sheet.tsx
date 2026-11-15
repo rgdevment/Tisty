@@ -98,6 +98,7 @@ type Props = {
   readonly card?: (file: string) => Carded;
   readonly part?: (id: string) => PartCarded;
   readonly onTask?: (id: string) => void;
+  readonly draw?: (body: string) => Promise<string>;
   readonly onPart?: (title: string) => Promise<string | null>;
   readonly blurb?: (file: string) => Promise<string>;
   readonly again?: string;
@@ -1290,6 +1291,7 @@ export default function Sheet(props: Readonly<Props>) {
           card={props.card}
           part={props.part}
           onTask={(id) => said.current.onTask?.(id)}
+          draw={props.draw}
           blurb={props.blurb}
           again={props.again}
           cards={props.cards}

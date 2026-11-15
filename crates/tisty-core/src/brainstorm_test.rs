@@ -241,3 +241,15 @@ fn an_idea_is_named_by_its_heading_with_or_without_its_marks() {
         assert_eq!(heading_named(&said), heading, "{said}");
     }
 }
+
+#[test]
+fn a_note_stuck_beside_the_words_says_its_minute_and_a_colour_the_one_before_it_lacks() {
+    let at = jiff::civil::date(2026, 11, 15).at(14, 30, 0, 0);
+    let was = "# Noviembre\n\n## Domingo 15\n\n> [!IDEA] 2026-11-15 14:30 · pink · right\n> una\n";
+    let note = stuck_beside(was, "Llamar a Jaime", at, 0);
+    let head = tisty_markdown::idea_head(&note);
+    assert_eq!(head.when, Some("2026-11-15 14:30"));
+    assert_eq!(head.side, Some("right"));
+    assert_ne!(head.hue, Some("pink"));
+    assert!(note.ends_with("\n> Llamar a Jaime"), "{note}");
+}

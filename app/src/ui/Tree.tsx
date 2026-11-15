@@ -23,6 +23,7 @@ import { painted } from "./Hue";
 import { onMac } from "./WindowChrome";
 
 const STIRS = 4;
+const DIARY = "diary";
 
 const guestSaid = (doc: Filed) => {
   if (doc.editing && doc.guest) return fill("guestEditing", doc.guest);
@@ -41,6 +42,7 @@ interface Props {
   /// The row whose menu is open, so a right click says which one it landed on.
   acting?: string | null;
   onOpen: (doc: Filed) => void;
+  onDiary?: () => void;
   onFile: (doc: string, folder?: string, before?: string) => void;
   onPage?: (doc: string, pageOf: string) => void;
   onHere?: (folder?: string) => void;
@@ -61,6 +63,7 @@ export default function Tree({
   here,
   acting,
   onOpen,
+  onDiary,
   onFile,
   onPage,
   onHere,
@@ -388,9 +391,19 @@ export default function Tree({
 
   const pin = papers.docs.find((one) => one.file === pinned && !one.away && !one.pageOf);
 
+  const gathered = (one: Filed) => Boolean(onDiary && one.diary && !one.pageOf && !one.away);
+  const diaries = papers.docs
+    .filter(gathered)
+    .sort((one, two) => two.title.localeCompare(one.title, undefined, { numeric: true }));
+
   const inside = (folder: string | null) =>
     papers.docs.filter(
-      (one) => one !== pin && !one.pageOf && one.folder === folder && one.away === shelved(folder),
+      (one) =>
+        one !== pin &&
+        !gathered(one) &&
+        !one.pageOf &&
+        one.folder === folder &&
+        one.away === shelved(folder),
     );
 
   const pagesOf = (id: string) => papers.docs.filter((one) => one.pageOf === id);
@@ -658,6 +671,63 @@ export default function Tree({
     );
   };
 
+  const diary = (onToday: () => void) => {
+    const holds = (book: Filed) =>
+      book.file === open || pagesOf(book.id).some((one) => one.file === open);
+    const closed = !unfolded && !spread.has(DIARY) && !diaries.some(holds);
+    const mark = <Glyph name="book-heart" className="h-[14px] w-[14px]" />;
+    return (
+      <li key={DIARY} className="relative">
+        <div className="group/row relative flex items-center rounded-md has-[:focus-visible]:bg-hover">
+          {diaries.length > 0 ? (
+            <Grip
+              at={8}
+              open={!closed}
+              label={fill(closed ? "showPages" : "hidePages", t("diary"))}
+              controls="pages-diary"
+              onPress={() => unfold(DIARY)}
+            >
+              {mark}
+            </Grip>
+          ) : (
+            <span
+              aria-hidden="true"
+              className="ml-2 grid h-5 w-[18px] shrink-0 place-items-center text-faint"
+            >
+              {mark}
+            </span>
+          )}
+          <button
+            type="button"
+            data-row={DIARY}
+            tabIndex={stops(DIARY) ? 0 : -1}
+            onFocus={() => setReached(DIARY)}
+            onKeyDown={(e) => {
+              if (e.key !== "ArrowDown" && e.key !== "ArrowUp") return;
+              e.preventDefault();
+              walk(DIARY, e.key === "ArrowDown" ? 1 : -1);
+            }}
+            onClick={onToday}
+            title={t("diaryOpenToday")}
+            className="flex min-w-0 flex-1 items-center gap-1.5 rounded-md py-1 pl-1.5 pr-2 text-left text-[13px] text-soft hover:bg-hover"
+          >
+            <span className="truncate">{t("diary")}</span>
+          </button>
+        </div>
+        {diaries.length > 0 && !closed && (
+          <span
+            aria-hidden="true"
+            className="absolute bottom-1 w-px bg-hair"
+            style={{ left: `${SPINE}px`, top: "26px" }}
+          />
+        )}
+        {diaries.length > 0 && !closed && (
+          <ul id="pages-diary">{diaries.map((book) => paper(book, 1))}</ul>
+        )}
+      </li>
+    );
+  };
+
   const branch = (folder: Folded, depth: number) => {
     const closed = !unfolded && !opened.has(folder.id);
     const kids = under(folder.id);
@@ -754,6 +824,7 @@ export default function Tree({
   const loose = papers.docs.filter(
     (one) =>
       one !== pin &&
+      !gathered(one) &&
       !one.away &&
       !one.pageOf &&
       (one.folder === null || !papers.folders.some((at) => at.id === one.folder)),
@@ -774,6 +845,7 @@ export default function Tree({
         </li>
       )}
       {pin && paper(pin, 0)}
+      {onDiary && (!unfolded || diaries.length > 0) && diary(onDiary)}
       {under(null).flatMap((folder) => [branch(folder, 0)])}
 
       <li className="relative">

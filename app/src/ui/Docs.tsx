@@ -28,8 +28,10 @@ import {
   type Paper,
   roomy,
   type Task,
+  taskOf,
   viewDoc,
 } from "../core";
+import { diaryDrawn, type Today } from "../diary";
 import { viewDiagram } from "../drawing";
 import { brainstormIn, notedIn, withLandscape, withPaper, withSheets } from "../front";
 import { keptAll, PASTED_UP_TO } from "../kept";
@@ -46,6 +48,7 @@ import { changedIn, MARK_FADES } from "./anchoring";
 import Beside, { trailed } from "./Beside";
 import Contents from "./Contents";
 import { blurbing, cardsOf } from "./carding";
+import DiaryBar from "./DiaryBar";
 import { PageMore, type Viewing } from "./liveSheet";
 import Modal from "./Modal";
 import Notes from "./Notes";
@@ -530,10 +533,28 @@ export default function Docs({
   };
 
   const own = filed(known, open?.file);
+  const inDiary = Boolean(own?.diary);
   const called = own?.title ?? open?.title ?? "";
   // What the archive holds is read-only, whether the document says so or the folder above it does.
   const shelved = Boolean(own?.away);
   const bolted = Boolean(own?.locked) || shelved;
+
+  const diaryWritten = (today: Today) => {
+    onKept({ id: own?.id ?? "", title: called });
+    if (!open || today.page !== open.file) return onDoc?.(today.page);
+    docOpened(open.file)
+      .then(({ body: text, print }) => {
+        remembered(lastRead.current, open.file, { text, print });
+        shaped.current = text;
+        setBody(text);
+        setPacked(crowd(text));
+      })
+      .catch((e) => onError(saidPlainly(e)));
+  };
+  const seeTask = (id: string) =>
+    taskOf(id)
+      .then((one) => (onSeeTask ?? onTask)?.(one))
+      .catch((e) => onError(saidPlainly(e)));
 
   const { wholeAsked, allAsked } = useWholeKeys(Boolean(open), !bolted);
   const stood = useRef(new Map<string, number>());
@@ -937,7 +958,7 @@ export default function Docs({
                   onNote={onNote}
                   card={cards}
                   blurb={blurb}
-                  again={again}
+                  again={inDiary ? `${again}|${fresh}` : again}
                   value={body}
                   seek={seek}
                   anchor={anchor}
@@ -948,8 +969,30 @@ export default function Docs({
                   label={called || t("untitledDoc")}
                   onDoc={onDoc}
                   onTag={onTag}
+                  draw={inDiary ? (text) => diaryDrawn(open.file, text) : undefined}
+                  onTask={inDiary ? seeTask : undefined}
                   above={
-                    above ? (
+                    inDiary ? (
+                      <>
+                        {above && (
+                          <Ribbon
+                            of={above}
+                            sisters={sisters}
+                            told={aboveTold}
+                            here={open.file}
+                            onOpen={(doc) => onDoc?.(doc.file)}
+                          />
+                        )}
+                        <DiaryBar
+                          onBefore={() => {
+                            flush();
+                            return busy(open.file) ?? Promise.resolve();
+                          }}
+                          onWritten={diaryWritten}
+                          onError={(e) => onError(saidPlainly(e))}
+                        />
+                      </>
+                    ) : above ? (
                       <Ribbon
                         of={above}
                         sisters={sisters}
