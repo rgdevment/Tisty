@@ -134,6 +134,12 @@ describe("a table written in place", () => {
         name.test(one.getAttribute("aria-label") ?? ""),
       ) as HTMLButtonElement;
     expect(bar.getAttribute("role")).toBe("toolbar");
+    // The cell opens with its words chosen, so the bar shows; once they are not, it leaves the page free.
+    expect(bar.hidden).toBe(false);
+    const field = page.querySelector<HTMLInputElement>(".table-input") as HTMLInputElement;
+    field.setSelectionRange(2, 2);
+    field.dispatchEvent(new Event("keyup"));
+    expect(bar.hidden).toBe(true);
     expect(button(/^Bold/).getAttribute("aria-pressed")).toBe("true");
     expect(button(/^Link/)).toBeUndefined();
 

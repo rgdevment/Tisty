@@ -45,6 +45,13 @@ export const cellBar = (
     event.preventDefault();
     pressed(found[2], found[3]);
   });
+  // Like the page's own bar it waits for words chosen in the cell, leaving the lines around the table free.
+  const chosen = () => {
+    bar.hidden = input.selectionStart === input.selectionEnd;
+  };
+  for (const kind of ["select", "keyup", "mouseup", "input", "focus"])
+    input.addEventListener(kind, chosen);
+  chosen();
   const hint = page.createElement("span");
   hint.hidden = true;
   // Over the cell being written, ending at its right edge, as the page's bar sits over the words chosen.
