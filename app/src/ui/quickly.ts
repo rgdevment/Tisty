@@ -54,7 +54,7 @@ export const picked = (page: Document): Omit<Formatting, "open" | "close"> | nul
   if (!chosen || chosen.isCollapsed || chosen.rangeCount === 0) return null;
   const range = chosen.getRangeAt(0);
   const block = blockOf(range.startContainer);
-  if (!block || block !== blockOf(range.endContainer)) return null;
+  if (!block || !blockOf(range.endContainer)) return null;
   const at = spanned(block.dataset.at ?? null);
   const said = chosen.toString();
   if (!at || !said.trim()) return null;

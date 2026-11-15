@@ -1,8 +1,10 @@
 import { t } from "../locales";
+import { blank } from "./pageBlocks";
 import type { Caret } from "./pageCaret";
 import type { Span } from "./pageEdits";
 import { fieldAsked } from "./pageFields";
 import type { Laying } from "./pageLaying";
+import { closing, opening } from "./pageLists";
 import {
   closedTokens,
   closeOf,
@@ -37,8 +39,22 @@ export const formatsOn = (writer: Writer, caret: Caret, laying: Laying) => {
     void fieldAsked(page, near, t("linkAddress"), { kind: "url" }).then((asked) => {
       if (!asked) return caret.placeAt(one.to);
       const to = addressed(asked);
-      const inner = hands.text().slice(one.from, one.to) || to;
-      put({ ...one, insert: `[${inner}](${to})` });
+      const text = hands.text();
+      const inner = text.slice(one.from, one.to) || to;
+      const insert = `[${inner}](${to})`;
+      const alone = one.from === one.to && blank(text, one.from);
+      put({ ...one, insert });
+      if (!alone) return;
+      // A link alone on its line is drawn as a card, so what is typed next goes on a line under it.
+      const at = one.from + insert.length;
+      const now = hands.text();
+      writer.kept = {
+        node: page.body,
+        offset: -1,
+        at,
+        lead: opening(now, at, ""),
+        tail: closing(now, at),
+      };
     });
   };
 

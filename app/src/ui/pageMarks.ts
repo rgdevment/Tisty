@@ -163,6 +163,13 @@ export const covered = (text: string, cut: Span, open: string) => {
 // A format already around the words is taken off, as a second press of a button undoes the first.
 export const worn = (text: string, one: Span, open: string, close: string): Edit => {
   const inner = text.slice(one.from, one.to);
+  // Words chosen with their marks, as a double click past them takes, are words already worn.
+  const single = open.length === 1 && inner.startsWith(open.repeat(2));
+  if (!single && inner.length > open.length + close.length) {
+    const within = inner.slice(open.length, inner.length - close.length);
+    if (inner.startsWith(open) && inner.endsWith(close) && bareOf(within, open) === within)
+      return { ...one, insert: within };
+  }
   const around = /^(\*|_)\1?$/.test(open)
     ? starred(text, one, open)
     : text.slice(one.from - open.length, one.from) === open &&

@@ -27,14 +27,15 @@ describe("words picked on the drawn page", () => {
     expect(picked(drawn)).toMatchObject({ at: [0, 20], read: "Rina likes ", said: "her" });
   });
 
-  it("offers nothing for a picking that spans two blocks or none at all", () => {
+  it("offers a picking over two blocks, named by its first, and nothing for none at all", () => {
     const drawn = page('<p data-at="0-4">Rina</p><p data-at="6-10">Toto</p>');
     const [one, two] = Array.from(drawn.querySelectorAll("p"));
     const range = drawn.createRange();
     range.setStart(one.firstChild as Node, 1);
     range.setEnd(two.firstChild as Node, 2);
+    drawn.getSelection()?.removeAllRanges();
     drawn.getSelection()?.addRange(range);
-    expect(picked(drawn)).toBeNull();
+    expect(picked(drawn)).toMatchObject({ at: [0, 4], read: "R" });
     drawn.getSelection()?.removeAllRanges();
     expect(picked(drawn)).toBeNull();
   });

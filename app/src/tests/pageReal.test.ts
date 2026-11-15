@@ -115,3 +115,18 @@ describe("blocks asked for on pages the app drew", () => {
     expect(text()).toContain("- segundo\n- Z\n  - anidado");
   });
 });
+
+describe("a link written alone on its line", () => {
+  it("leaves what is typed next on a line under it, as it is drawn as a card", async () => {
+    const text = opened("nested");
+    caretAfter("Uno dos tres");
+    asked("insertParagraph");
+    writing?.format("[", "]()");
+    const field = document.querySelector<HTMLInputElement>(".page-address") as HTMLInputElement;
+    field.value = "tisty.app";
+    field.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
+    await Promise.resolve();
+    asked("insertText", "Z");
+    expect(text()).toContain("[https://tisty.app](https://tisty.app)\n\nZ\n\n- primero");
+  });
+});

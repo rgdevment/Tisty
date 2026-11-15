@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { pastedAround } from "../ui/pageBlocks";
 import { addressed } from "../ui/pageFormats";
 import { joinedAt, nested, openedAbove, outdented, unmarked } from "../ui/pageLists";
-import { wornEach } from "../ui/pageMarks";
+import { worn, wornEach } from "../ui/pageMarks";
 
 const applied = (text: string, moved: ReturnType<typeof nested>) =>
   moved ? text.slice(0, moved.edit.from) + moved.edit.insert + text.slice(moved.edit.to) : text;
@@ -181,5 +181,21 @@ describe("an address typed in a link's field", () => {
     ["./otro.md", "./otro.md"],
   ])("reads «%s» as %s", (typed, expected) => {
     expect(addressed(typed)).toBe(expected);
+  });
+});
+
+describe("a format pressed again on words chosen with their marks", () => {
+  it("takes the marks off, as a double click past them chooses them too", () => {
+    const text = "Uno **dos** tres";
+    expect(worn(text, { from: 4, to: 11 }, "**", "**")).toEqual({ from: 4, to: 11, insert: "dos" });
+    expect(worn("a ~~b~~ c", { from: 2, to: 7 }, "~~", "~~")).toEqual({
+      from: 2,
+      to: 7,
+      insert: "b",
+    });
+  });
+
+  it("leaves bold alone when italic is asked for over it", () => {
+    expect(worn("**dos**", { from: 0, to: 7 }, "*", "*").insert).not.toBe("*dos*");
   });
 });
