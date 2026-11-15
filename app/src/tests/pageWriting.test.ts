@@ -1460,3 +1460,41 @@ describe("blocks asked for where the words cannot take them", () => {
     expect(said[said.length - 1]).toBe(`${body}\n- [ ] `);
   });
 });
+
+describe("every block from the slash menu, wherever the caret stands", () => {
+  const fences = (text: string) => text.split("\n").filter((line) => /^\s*```/.test(line)).length;
+  const WIDGET = "Uno\n\n```widget\n<b>1</b>\n```\n\n> cita\n";
+  const WIDGET_HTML =
+    '<p data-at="0-3"><span data-src="0-3">Uno</span></p>' +
+    '<figure class="widget" data-at="5-27"><div>1</div></figure>' +
+    '<blockquote data-at="29-35"><p data-at="31-35"><span data-src="31-35">cita</span></p></blockquote>';
+  const CODE = "Uno\n\n```js\nlet a\n```\n";
+  const CODE_HTML =
+    '<p data-at="0-3"><span data-src="0-3">Uno</span></p>' +
+    '<figure class="code" data-at="5-20"><pre><code class="language-js"><span data-src="11-16">let a</span></code></pre></figure>';
+  const places: [string, string, string, () => void][] = [
+    ["inside code", CODE, CODE_HTML, () => caretIn("let a", 3)],
+    ["inside a widget's words", WIDGET, WIDGET_HTML, () => writing?.placeAt(WIDGET.indexOf("<b>"))],
+    [
+      "on a line begun under a widget",
+      WIDGET,
+      WIDGET_HTML,
+      () => writing?.begin(27, "", document.querySelector("figure") as Element),
+    ],
+    ["inside a quote", WIDGET, WIDGET_HTML, () => caretIn("cita", 4)],
+  ];
+  for (const [where, body, html, laid] of places)
+    for (const one of SLASHED.filter((each) => !("ask" in each.put) && !("wrap" in each.put)))
+      it(`keeps every fence whole with ${one.key} ${where}`, () => {
+        const said = writer(body);
+        pageOf(html);
+        writing?.drawn();
+        laid();
+        writing?.slashed(one);
+        const now = said[said.length - 1] ?? body;
+        for (const fence of body.match(/```[^\n]*\n[\s\S]*?\n```/g) ?? [])
+          expect(now).toContain(fence);
+        expect(fences(now) % 2).toBe(0);
+        expect(now).not.toMatch(/^(?:[-*>]|\d+\.)[^\n]*```/m);
+      });
+});
