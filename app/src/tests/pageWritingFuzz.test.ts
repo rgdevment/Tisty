@@ -1,5 +1,8 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { type Hands, type PageWriting, writtenOn } from "../ui/pageWriting";
+
+// Coverage slows each walk several times over, and a few hundred of them can outlast the default.
+vi.setConfig({ testTimeout: 180_000 });
 
 const BODY = "# Hola\n\nUno **dos** tres\n\n- primero\n- segundo\n";
 const PLACED =
