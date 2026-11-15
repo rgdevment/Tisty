@@ -30,6 +30,7 @@ export type PageWriting = {
   readonly cut: () => void;
   readonly slashed: (one: Slashed, drawnWhole?: boolean) => Edit | null;
   readonly typed: (said: string) => void;
+  readonly held: () => () => void;
   readonly unitActed: (top: Element, act: Act) => void;
   readonly begin: (at: number, seed: string, near: Element) => void;
   readonly hintWords: (at: [number, number], hint: HTMLElement) => void;
@@ -123,6 +124,18 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
     begin: begun.begin,
     hintWords: begun.hintWords,
     typed: begun.typed,
+    // Where the caret stood when a menu opened, so words it hands back land there whatever was clicked since.
+    held: () => {
+      const kept = writer.kept ? { ...writer.kept } : null;
+      const at = caret.caretSpan()?.from ?? null;
+      return () => {
+        if (kept?.lead !== undefined) {
+          writer.kept = { ...kept, node: page.body, offset: -1 };
+          return caret.caretLaid();
+        }
+        if (at !== null) caret.placeAt(at);
+      };
+    },
     cut: () => {
       const one = caret.chosenNow();
       if (one) laying.put({ ...one, insert: "" }, one.from);

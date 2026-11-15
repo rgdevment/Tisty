@@ -150,3 +150,17 @@ describe("words written inside a collapsible", () => {
     expect(text()).toContain(":::details Plegable\n\nZ\n\n");
   });
 });
+
+describe("words a menu hands back after it closes", () => {
+  it("land where the caret stood when it opened, though a click moved it since", () => {
+    const text = opened("nested");
+    caretAfter("Uno dos tres");
+    asked("insertParagraph");
+    const resume = writing?.held();
+    writing?.placeAt(text().indexOf("fin") + 3);
+    resume?.();
+    writing?.typed("/Tab");
+    expect(text()).toContain("Uno dos tres\n\n/Tab");
+    expect(text()).not.toContain("fin/Tab");
+  });
+});

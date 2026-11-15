@@ -602,14 +602,16 @@ export default function Sheet(props: Readonly<Props>) {
     }));
     let closed = false;
     const stood = writer.caretAt();
+    const resume = writer.held();
     // The menu closes before it hands over what was picked, so the slash waits for that to land.
     const unpicked = (sought = "") =>
       setTimeout(() => {
         if (picked || closed) return;
         closed = true;
         back();
-        if (slash) writer.typed(`/${sought}`);
-        else stoodAgain(stood);
+        if (!slash) return stoodAgain(stood);
+        resume();
+        writer.typed(`/${sought}`);
       });
     setMenu({
       ...at,
