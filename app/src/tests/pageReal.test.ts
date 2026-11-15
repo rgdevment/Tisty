@@ -181,3 +181,18 @@ describe("a heading's marks typed on a task's page", () => {
     }
   });
 });
+
+describe("keys at the edge of a collapsible that holds words", () => {
+  it("join nothing to it, from the block after it or the one before it", () => {
+    const text = opened("foldFilled");
+    const was = text();
+    const after = Array.from(document.querySelectorAll("[data-src]")).find(
+      (one) => one.textContent === "despues",
+    )?.firstChild as Text;
+    document.getSelection()?.collapse(after, 0);
+    asked("deleteContentBackward");
+    caretAfter("Uno dos tres");
+    asked("deleteContentForward");
+    expect(text()).toBe(was);
+  });
+});
