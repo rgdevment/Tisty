@@ -215,3 +215,26 @@ html.own-bar:hover::-webkit-scrollbar-thumb {
 html.own-bar::-webkit-scrollbar-thumb:hover {
   background-color: var(--tisty-faint);
 }
+html.untitled .page > :is(.hint, .add-step):has(+ p[data-ghost]) {
+  display: none;
+}
+html.untitled .page > :is(.step-hint, .add-step) + p[data-ghost] {
+  position: relative;
+  margin: 4px 0 0;
+  padding: 5px 0 5px 25px;
+}
+html.untitled .page > .add-step + p[data-ghost] {
+  margin-top: 0;
+  border-top: 1px solid var(--tisty-hair);
+}
+html.untitled .page > :is(.step-hint, .add-step) + p[data-ghost]::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: calc(5px + (1lh - 15px) / 2);
+  width: 15px;
+  height: 15px;
+  border: 1.5px solid var(--tisty-faint);
+  border-radius: 5px;
+  box-sizing: border-box;
+}
