@@ -154,13 +154,14 @@ pub fn diary_drawn(
 ) -> tauri::ipc::Response {
     let shelf = held(&session).paths.cache().join("pages");
     let html = super::paging::paged(&shelf, &body);
+    let days = tisty_core::diary_page::days(&body);
     let said = tisty_core::diary_page::Said {
         today: &today,
         one: &one,
         many: &many,
     };
     let dressed = seen(&held(&session), &file, |page| {
-        tisty_core::diary_page::dressed(&html, &body, page, &said)
+        tisty_core::diary_page::dressed(&html, &days, page, &said)
     });
     tauri::ipc::Response::new(dressed.unwrap_or(html).into_bytes())
 }
@@ -171,8 +172,9 @@ pub fn diary_closed(
     file: String,
     body: String,
 ) -> String {
+    let days = tisty_core::diary_page::days(&body);
     seen(&held(&session), &file, |page| {
-        tisty_core::diary_page::print(&body, page)
+        tisty_core::diary_page::print(&days, page)
     })
     .unwrap_or_default()
 }

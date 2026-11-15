@@ -31,7 +31,7 @@ import {
   taskOf,
   viewDoc,
 } from "../core";
-import { diaryClosed, diaryDrawn, type Today } from "../diary";
+import { diaryDrawn, type Today } from "../diary";
 import { viewDiagram } from "../drawing";
 import { brainstormIn, notedIn, withLandscape, withPaper, withSheets } from "../front";
 import { keptAll, PASTED_UP_TO } from "../kept";
@@ -62,6 +62,7 @@ import { pageFor } from "./sheets";
 import { CompactBar, MarkBar } from "./Tidied";
 import Tongues, { standingHead } from "./Tongues";
 import { useLeaving } from "./useLeaving";
+import { useRestrips } from "./useRestrips";
 import { clearOfChrome } from "./WindowChrome";
 import { useWholeKeys } from "./wholeKeys";
 
@@ -555,21 +556,7 @@ export default function Docs({
     taskOf(id)
       .then((one) => (onSeeTask ?? onTask)?.(one))
       .catch((e) => onError(saidPlainly(e)));
-  // A round that closed nothing on these days leaves the page as drawn.
-  const [strips, setStrips] = useState("");
-  const bodyNow = useRef(body);
-  bodyNow.current = body;
-  const diaryFile = inDiary ? open?.file : undefined;
-  useEffect(() => {
-    if (!diaryFile) return setStrips("");
-    let live = true;
-    diaryClosed(diaryFile, bodyNow.current)
-      .then((said) => live && setStrips(said))
-      .catch(() => {});
-    return () => {
-      live = false;
-    };
-  }, [diaryFile, fresh]);
+  const restrips = useRestrips(inDiary ? open?.file : undefined, body, fresh);
 
   const { wholeAsked, allAsked } = useWholeKeys(Boolean(open), !bolted);
   const stood = useRef(new Map<string, number>());
@@ -994,7 +981,7 @@ export default function Docs({
                   onNote={onNote}
                   card={cards}
                   blurb={blurb}
-                  again={inDiary ? `${again}|${strips}` : again}
+                  again={inDiary ? `${again}|${restrips}` : again}
                   value={body}
                   seek={seek}
                   anchor={anchor}

@@ -26,17 +26,31 @@ struct Strip {
     closed: Vec<(String, String)>,
 }
 
-fn strips(body: &str, page: &Page) -> Vec<(Range<usize>, Strip)> {
+/// The days a page's sections name, read once from its words, before anything of the log is asked.
+pub struct Days(Vec<(Range<usize>, i8)>);
+
+pub fn days(body: &str) -> Days {
+    let doc = tisty_markdown::read(body);
+    Days(
+        doc.blocks()
+            .iter()
+            .filter(|block| block.kind == tisty_markdown::Kind::Heading(2))
+            .filter_map(|block| {
+                let title = doc.said(block).trim_start_matches('#');
+                Some((block.at.clone(), crate::diary::day_named(title)?))
+            })
+            .collect(),
+    )
+}
+
+fn strips(days: &Days, page: &Page) -> Vec<(Range<usize>, i8, Strip)> {
     let Some((year, month)) = crate::diary::month_of_page(page.root, page.state, page.kept) else {
         return Vec::new();
     };
-    let doc = tisty_markdown::read(body);
-    doc.blocks()
+    days.0
         .iter()
-        .filter(|block| block.kind == tisty_markdown::Kind::Heading(2))
-        .filter_map(|block| {
-            let title = doc.said(block).trim_start_matches('#');
-            let date = Date::new(year, month, crate::diary::day_named(title)?).ok()?;
+        .filter_map(|(at, day)| {
+            let date = Date::new(year, month, *day).ok()?;
             let strip = Strip {
                 today: date == page.today,
                 closed: crate::diary::closed_on(page.state, date, page.zone)
@@ -44,27 +58,27 @@ fn strips(body: &str, page: &Page) -> Vec<(Range<usize>, Strip)> {
                     .map(|task| (task.id.to_string(), task.title.clone()))
                     .collect(),
             };
-            (strip.today || !strip.closed.is_empty()).then(|| (block.at.clone(), strip))
+            (strip.today || !strip.closed.is_empty()).then(|| (at.clone(), *day, strip))
         })
         .collect()
 }
 
 // What the strips would say, so the window draws the page again only when that changes.
-pub fn print(body: &str, page: &Page) -> String {
-    strips(body, page)
+pub fn print(days: &Days, page: &Page) -> String {
+    strips(days, page)
         .iter()
-        .map(|(at, strip)| {
+        .map(|(_, day, strip)| {
             let ids: Vec<&str> = strip.closed.iter().map(|(id, _)| id.as_str()).collect();
-            format!("{}:{}:{}", at.start, strip.today, ids.join(","))
+            format!("{day}:{}:{}", strip.today, ids.join(","))
         })
         .collect::<Vec<_>>()
         .join("|")
 }
 
 // Drawn beside the words and never into them: the strip is the log's, the text stays the person's.
-pub fn dressed(html: &str, body: &str, page: &Page, said: &Said) -> String {
+pub fn dressed(html: &str, days: &Days, page: &Page, said: &Said) -> String {
     let mut out = html.to_string();
-    for (at, strip) in strips(body, page).into_iter().rev() {
+    for (at, _, strip) in strips(days, page).into_iter().rev() {
         let marker = format!("data-at=\"{}-{}\"", at.start, at.end);
         let Some(from) = out.find(&marker) else {
             continue;
