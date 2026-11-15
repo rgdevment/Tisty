@@ -14,7 +14,7 @@ Three ways to read it:
 
 ## Properties
 
-This sheet starts with a block of properties between two `---` lines, before the title. The page does not draw it: it is in the panel beside the page, under **About this document**, where **Edit** opens it in the Markdown view, as it is written.
+This sheet starts with a block of properties between two `---` lines, before the title. The page does not draw it: it is in the panel beside the page, under **About this document**, where **Edit** opens it in a window of its own, as it is written.
 
 ```yaml title="The first lines of this sheet"
 ---
@@ -677,7 +677,7 @@ kanban
 
 ## Formulas
 
-**Formula**, in the `/` menu: a block whose language is `math` typesets the formula, offline.
+**Formula**, in the `/` menu: a block whose language is `math` typesets the formula, offline. **Show code**, over it, opens it in its window, with the code on one side and what it draws on the other; a formula inside a sentence opens the same way with a click.
 
 ```math
 dose = \frac{weight \times 0.5}{2}
