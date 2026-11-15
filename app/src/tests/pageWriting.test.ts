@@ -1445,7 +1445,7 @@ describe("blocks asked for where the words cannot take them", () => {
     writing?.drawn();
     caretIn("let a", 5);
     writing?.slashed(block("todo"));
-    expect(said[said.length - 1]).toBe("Uno\n\n```js\nlet a\n```\n\n- [ ] ");
+    expect(said[said.length - 1]).toBe("Uno\n\n```js\nlet a\n```\n\n- [ ] \n");
   });
 
   it("lays a caret asked inside a widget's words on a line begun under the widget", () => {
@@ -1457,7 +1457,7 @@ describe("blocks asked for where the words cannot take them", () => {
     writing?.drawn();
     writing?.placeAt(body.indexOf("<b>"));
     writing?.slashed(block("todo"));
-    expect(said[said.length - 1]).toBe(`${body}\n- [ ] `);
+    expect(said[said.length - 1]).toBe(`${body}\n- [ ] \n`);
   });
 });
 
@@ -1497,4 +1497,36 @@ describe("every block from the slash menu, wherever the caret stands", () => {
         expect(fences(now) % 2).toBe(0);
         expect(now).not.toMatch(/^(?:[-*>]|\d+\.)[^\n]*```/m);
       });
+});
+
+describe("a block asked for on a line just begun", () => {
+  it("turns only the new line, never the heading under it", () => {
+    const said = writer("Uno\n\n## Dos\n");
+    pageOf(
+      '<p data-at="0-3"><span data-src="0-3">Uno</span></p><h2 data-at="5-11"><span data-src="8-11">Dos</span></h2>',
+    );
+    writing?.drawn();
+    caretIn("Uno", 3);
+    asked("insertParagraph");
+    writing?.slashed(block("todo"));
+    asked("insertText", "Z");
+    expect(said[said.length - 1]).toBe("Uno\n\n- [ ] Z\n\n## Dos\n");
+  });
+
+  it("turns only the new line under a widget, never its closing fence", () => {
+    const body = "Uno\n\n```widget\n<b>1</b>\n```\n\n## Dos\n";
+    const said = writer(body);
+    pageOf(
+      '<p data-at="0-3"><span data-src="0-3">Uno</span></p><figure class="widget" data-at="5-27"><div>1</div></figure><h2 data-at="29-35"><span data-src="32-35">Dos</span></h2>',
+    );
+    writing?.drawn();
+    writing?.begin(27, "", document.querySelector("figure") as Element);
+    asked("insertText", "a");
+    asked("insertParagraph");
+    writing?.slashed(block("todo"));
+    asked("insertText", "Z");
+    expect(said[said.length - 1]).toBe(
+      "Uno\n\n```widget\n<b>1</b>\n```\n\na\n\n- [ ] Z\n\n## Dos\n",
+    );
+  });
 });

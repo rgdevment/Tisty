@@ -7,7 +7,7 @@ export type Placing =
   | { readonly ask: Extract<Slashed["put"], { ask: unknown }>["ask"]; readonly block: boolean };
 
 // What already starts the line goes, so a title made a list is a list and not both.
-const LEAD = /^\s*(?:#{1,6}\s+|[-*+]\s+(?:\[[ xX]\]\s+)?|\d+[.)]\s+|>\s?)*/;
+const LEAD = /^[ \t]*(?:#{1,6}[ \t]+|[-*+][ \t]+(?:\[[ xX]\][ \t]+)?|\d+[.)][ \t]+|>[ \t]?)*/;
 
 const lineStart = (text: string, at: number) => text.lastIndexOf("\n", at - 1) + 1;
 

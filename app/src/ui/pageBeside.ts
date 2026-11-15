@@ -122,17 +122,16 @@ export const besideOn = (
       ? { ...asked, put: { block: sample, at: sample.length, blank: true } }
       : asked;
     outOfCode();
-    if (
-      writer.kept?.lead !== undefined &&
-      writer.kept.at > 0 &&
-      hands.text()[writer.kept.at - 1] !== "\n"
-    )
-      begun.firstKey(writer.kept, "");
-    const span = caret.caretSpan();
+    const kept = writer.kept;
+    const unlaid = kept?.lead !== undefined && kept.at > 0 && hands.text()[kept.at - 1] !== "\n";
+    // Until the page is drawn again, a line just begun is known by its place, not by what the page shows.
+    const begunAt = kept && unlaid ? kept.at + (kept.lead?.length ?? 0) : null;
+    if (kept && unlaid) begun.firstKey(kept, "");
+    const span = begunAt === null ? caret.caretSpan() : { from: begunAt, to: begunAt };
     if (!span) return null;
     const text = hands.text();
-    const end = Math.max(span.to, caret.blockEnd(span.to));
-    const how = placed(text, span.from, end, one, caret.paragraphStart());
+    const end = begunAt ?? Math.max(span.to, caret.blockEnd(span.to));
+    const how = placed(text, span.from, end, one, begunAt ?? caret.paragraphStart());
     if ("wrap" in how) {
       formats.format(how.wrap, how.close);
       return null;
