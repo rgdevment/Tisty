@@ -900,7 +900,9 @@ export default function Sheet(props: Readonly<Props>) {
     leave: left,
     markdown: (at) => {
       const page = shown.current?.document;
-      piece("table", { at: at[0], nth: page ? nthAt(page, ".page > .table[data-at]", at) : 0 });
+      const nth = page ? nthAt(page, ".page > .table[data-at]", at) : 0;
+      // A cell still open holds words the window would miss, so it is saved first.
+      tables.whenIdle(() => piece("table", { at: at[0], nth }));
     },
     fail: (problem) => said.current.onFail?.(problem),
     turned,
