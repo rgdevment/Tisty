@@ -434,12 +434,17 @@ describe("more of writing on the page the core draws", () => {
     expect(said[said.length - 1]).toContain("- segundo[[#");
   });
 
-  it("asks the window for an icon and writes it where the caret stands", () => {
+  it("asks the window for an icon and writes it where the caret stands, a space apart", () => {
     const said = writer();
     answers.push("::dog::");
     caretIn("Hola", 4);
     writing?.slashed(block("icon"));
-    expect(said[said.length - 1]?.startsWith("# Hola::dog::\n")).toBe(true);
+    expect(said[said.length - 1]?.startsWith("# Hola ::dog:: \n")).toBe(true);
+    const again = writer();
+    answers.push("::cat::");
+    caretIn("Uno ", 4);
+    writing?.slashed(block("icon"));
+    expect(again[again.length - 1]).toContain("Uno ::cat:: **dos**");
   });
 });
 

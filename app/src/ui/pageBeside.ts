@@ -148,9 +148,13 @@ export const besideOn = (
       (said) => {
         const now = hands.text();
         const at = Math.min(span.from, now.length);
+        // An icon is drawn only with a space on each side, so it never sticks to the words around it.
+        const icon = !how.block && /^::[\w-]+::$/.test(said);
+        const lead = icon && at > 0 && !/\s/.test(now[at - 1] ?? "") ? " " : "";
+        const inline = `${lead}${said}${icon && !/^[ \t]/.test(now.slice(at)) ? " " : ""}`;
         const laid = how.block
           ? blockPlaced(now, at, Math.min(end, now.length), said, said.length)
-          : { edit: { from: at, to: at, insert: said }, caret: at + said.length };
+          : { edit: { from: at, to: at, insert: inline }, caret: at + inline.length };
         put(laid.edit, laid.caret);
         if (how.block) lineUnder(laid.edit);
         // The picker held the keys; once it closes they belong to the page again.
