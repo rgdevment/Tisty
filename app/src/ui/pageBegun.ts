@@ -69,15 +69,24 @@ export const begunOn = (writer: Writer, caret: Caret, laying: Laying) => {
     if (span) put({ ...span, insert: said });
   };
 
-  const laidGhost = (near: Element, inside: boolean, at: number, lead: string, tail: string) => {
+  const laidGhost = (
+    near: Element,
+    inside: boolean,
+    at: number,
+    lead: string,
+    tail: string,
+    above = false,
+  ) => {
     for (const one of page.querySelectorAll(GHOST)) if (one !== near) one.remove();
     const titled = near.matches(".page > h1[data-title]");
-    const ghost = titled ? (near as HTMLElement) : page.createElement("p");
+    const ghost = titled
+      ? (near as HTMLElement)
+      : page.createElement(above && near.matches("li") ? "li" : "p");
     ghost.dataset.ghost = "";
     if (!titled) {
       ghost.append(page.createElement("br"));
       if (inside) near.append(ghost);
-      else if (near.matches(".add-step")) near.before(ghost);
+      else if (above || near.matches(".add-step")) near.before(ghost);
       else near.after(ghost);
     }
     writer.kept = { node: ghost, offset: 0, at, lead, tail };
@@ -119,5 +128,8 @@ export const begunOn = (writer: Writer, caret: Caret, laying: Laying) => {
     });
   };
 
-  return { waited, dropBegun, firstKey, typed, begin, quoted, hintWords };
+  const beginAbove = (at: number, seed: string, tail: string, near: Element) =>
+    laidGhost(near, false, at, seed, tail, true);
+
+  return { waited, dropBegun, firstKey, typed, begin, beginAbove, quoted, hintWords };
 };

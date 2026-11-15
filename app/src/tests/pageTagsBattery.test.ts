@@ -473,7 +473,7 @@ describe("the tags offered while writing on the page", () => {
   it("writes the tag in place of the word typed", () => {
     const said = typed(" #ro");
     pressed("Tab");
-    expect(last(said)).toBe("# Hola\n\nUno **dos** tres #roger\n\n- primero\n- segundo\n");
+    expect(last(said)).toBe("# Hola\n\nUno **dos** tres #roger \n\n- primero\n- segundo\n");
   });
 
   it("writes the tag lit with the arrows and Enter", () => {
@@ -482,7 +482,7 @@ describe("the tags offered while writing on the page", () => {
     pressed("ArrowDown");
     const enter = pressed("Enter");
     expect(enter.defaultPrevented).toBe(true);
-    expect(last(said)).toContain("tres #roger\n");
+    expect(last(said)).toContain("tres #roger \n");
   });
 
   it("writes the tag chosen with the mouse", () => {
@@ -490,7 +490,7 @@ describe("the tags offered while writing on the page", () => {
     listed()
       ?.querySelectorAll("[role=option]")[0]
       ?.dispatchEvent(new MouseEvent("mousedown", { bubbles: true, cancelable: true }));
-    expect(last(said)).toContain("tres #rina\n");
+    expect(last(said)).toContain("tres #rina \n");
     expect(listed()?.hidden).toBe(true);
   });
 

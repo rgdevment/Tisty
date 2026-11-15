@@ -5,7 +5,7 @@ import type { Caret } from "./pageCaret";
 import type { Formats } from "./pageFormats";
 import type { PageHistory } from "./pageHistory";
 import type { Laying } from "./pageLaying";
-import { closing, nested, opening } from "./pageLists";
+import { nested } from "./pageLists";
 import { swappedItem } from "./pageMoving";
 import { elementOf, inCode, onSheet, WRITABLE } from "./pageNodes";
 import { endIn } from "./pageSpots";
@@ -54,21 +54,7 @@ export const keysOn = (
     const range = caret.chosen();
     const rule = SLASHED.find((one) => one.key === "rule");
     if (!range || !rule || inCode(range.startContainer)) return;
-    const laid = beside.slashed(rule);
-    if (!laid) return;
-    const text = hands.text();
-    let at =
-      writer.kept && writer.kept.offset < 0
-        ? writer.kept.at
-        : Math.min(text.length, laid.from + laid.insert.replace(/\s+$/, "").length);
-    while (at > 0 && /[\r\n]/.test(text[at - 1] ?? "")) at--;
-    writer.kept = {
-      node: page.body,
-      offset: -1,
-      at,
-      lead: opening(text, at, ""),
-      tail: closing(text, at),
-    };
+    beside.slashed(rule);
   };
 
   // Tab nests a list item under the one above and Shift+Tab takes it back out; in code it indents.

@@ -128,3 +128,26 @@ export const leftBehind = (text: string, at: number): { from: number; to: number
   const bare = EMPTY_QUOTE.test(line) && EMPTY_QUOTE.test(above.slice(before).replace(/\r$/, ""));
   return { from: bare ? before : start, to: start + line.length };
 };
+
+// Backspace at the start of an item's words takes its bullet or its box away first, and the words stay.
+export const unmarked = (text: string, at: number): Moved | null => {
+  const { start, line } = lineAt(text, at);
+  const found = LISTED.exec(line);
+  if (!found || at !== start + found[0].length) return null;
+  const box = found[6]?.length ?? 0;
+  const from = start + (box ? found[0].length - box : (found[1]?.length ?? 0));
+  return { edit: { from, to: start + found[0].length, insert: "" }, caret: from };
+};
+
+export const openedAbove = (
+  text: string,
+  at: number,
+): { at: number; seed: string; tail: string } | null => {
+  const { start, line } = lineAt(text, at);
+  if (!line.trim()) return null;
+  const item = LISTED.exec(line);
+  const marks = item?.[0] ?? /^[ \t]*(?:>[ \t]?)*[ \t]*(?:#{1,6}[ \t]+)?/.exec(line)?.[0] ?? "";
+  if (at !== start + marks.length || !line.slice(marks.length).trim()) return null;
+  if (!item) return { at: start, seed: "", tail: "\n\n" };
+  return { at: start, seed: item[0].replace(/\[[xX]\]/, "[ ]"), tail: "\n" };
+};

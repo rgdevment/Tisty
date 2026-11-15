@@ -653,7 +653,7 @@ describe("the keys and words the Markdown view had, on the page", () => {
     key("ArrowDown");
     key("ArrowDown");
     key("Tab");
-    expect(last(said)).toContain("Uno **dos** tres #roger\n");
+    expect(last(said)).toContain("Uno **dos** tres #roger \n");
     expect(document.querySelector<HTMLElement>(".tag-list")?.hidden).toBe(true);
   });
 
@@ -706,6 +706,8 @@ describe("the keys and words the Markdown view had, on the page", () => {
     await Promise.resolve();
     expect(files).toEqual([picture]);
     expect(last(said)).toContain("Uno **dos** tres\n\n![captura](captura.png)");
+    asked("insertText", "Z");
+    expect(last(said)).toContain("![captura](captura.png)\n\nZ\n\n- primero");
   });
 
   it("leaves words on the clipboard to the paste that translates them", () => {
@@ -1331,5 +1333,64 @@ describe("a caret left on a page break", () => {
     asked("insertParagraph");
     asked("deleteContentBackward");
     expect(said).toEqual([]);
+  });
+});
+
+describe("Enter and Backspace at the start of a block's words", () => {
+  it("opens a line above a paragraph with Enter, and the next key is written there", () => {
+    const said = writer("Uno.\n\nDos.\n");
+    pageOf(
+      '<p data-at="0-4"><span data-src="0-4">Uno.</span></p><p data-at="6-10"><span data-src="6-10">Dos.</span></p>',
+    );
+    writing?.drawn();
+    caretIn("Dos.", 0);
+    asked("insertParagraph");
+    expect(said).toEqual([]);
+    asked("insertText", "X");
+    expect(said[said.length - 1]).toBe("Uno.\n\nX\n\nDos.\n");
+  });
+
+  it("takes a step's box away with Backspace at the start of its words", () => {
+    const said = writer("- [ ] paso a\n- [x] paso b\n");
+    pageOf(
+      '<ul data-at="0-25"><li class="task" data-at="0-13"><span data-src="6-12">paso a</span></li><li class="task" data-at="13-25"><span data-src="19-25">paso b</span></li></ul>',
+    );
+    writing?.drawn();
+    caretIn("paso a", 0);
+    asked("deleteContentBackward");
+    expect(said[said.length - 1]).toBe("- paso a\n- [x] paso b\n");
+  });
+});
+
+describe("a page emptied again", () => {
+  it("leaves no title's mark behind when its one letter is taken away", () => {
+    const said = writer("# X\n");
+    pageOf('<h1 data-at="0-3"><span data-src="2-3">X</span></h1>');
+    writing?.drawn();
+    caretIn("X", 1);
+    const letter = document.createRange();
+    letter.setStart(piece("X"), 0);
+    letter.setEnd(piece("X"), 1);
+    const event = new InputEvent("beforeinput", {
+      inputType: "deleteContentBackward",
+      bubbles: true,
+      cancelable: true,
+    });
+    Object.defineProperty(event, "getTargetRanges", { value: () => [letter] });
+    document.querySelector(".page")?.dispatchEvent(event);
+    expect(said[said.length - 1]).toBe("");
+  });
+});
+
+describe("a page break from the slash menu", () => {
+  it("leaves what is typed next on a line under the break", () => {
+    const said = writer("Fin.\n");
+    pageOf('<p data-at="0-4"><span data-src="0-4">Fin.</span></p>');
+    writing?.drawn();
+    caretIn("Fin.", 4);
+    asked("insertParagraph");
+    writing?.slashed(block("rule"));
+    asked("insertText", "Z");
+    expect(said[said.length - 1]).toMatch(/^Fin\.\n\n---\n\nZ\n+$/);
   });
 });

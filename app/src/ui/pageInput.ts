@@ -7,7 +7,15 @@ import { fenceJustOpened, fenceNamed, fenceOpened } from "./pageFences";
 import type { Formats } from "./pageFormats";
 import type { PageHistory } from "./pageHistory";
 import type { Laying } from "./pageLaying";
-import { closing, leftBehind, opening, outdented, parted } from "./pageLists";
+import {
+  closing,
+  leftBehind,
+  openedAbove,
+  opening,
+  outdented,
+  parted,
+  unmarked,
+} from "./pageLists";
 import { closedRun, unpaired } from "./pageMarks";
 import { elementOf, ghostly, inCode, onSheet, unwritable } from "./pageNodes";
 import type { Writer } from "./pageWriter";
@@ -130,6 +138,14 @@ export const inputOn = (
     return false;
   };
 
+  const caretFreed = () => {
+    const range = caret.chosen();
+    const at = caret.caretSpan()?.from;
+    if (!range?.collapsed || at === undefined || !elementOf(range.startContainer)?.closest("li"))
+      return null;
+    return unmarked(hands.text(), at);
+  };
+
   const asked = (event: InputEvent) => {
     if (!onSheet(page, event) || event.isComposing || event.inputType === "insertCompositionText")
       return;
@@ -152,6 +168,8 @@ export const inputOn = (
     const range = target ?? caret.chosen();
     const picked = caret.chosen();
     const spread = Boolean(picked && !picked.collapsed);
+    const bare = kind === "deleteContentBackward" && !spread ? caretFreed() : null;
+    if (bare) return put(bare.edit, bare.caret);
     const shelf = range && !spread ? breakAt(range) : null;
     if (shelf) {
       const span = spanned(shelf.getAttribute("data-at"));
@@ -202,6 +220,9 @@ export const inputOn = (
       (one.from >= text.length || /[\r\n]/.test(text[one.from] ?? ""));
     if (kind === "insertParagraph" && one.from === one.to && blankLine) return;
     if (kind === "insertParagraph" && one.from === one.to && !inCode(range.startContainer)) {
+      const above = openedAbove(text, one.from);
+      const block = elementOf(range.startContainer)?.closest("li[data-at], .page > [data-at]");
+      if (above && block) return begun.beginAbove(above.at, above.seed, above.tail, block);
       const up = outdented(text, one.from);
       if (up) return put(up.edit, up.caret);
       const left = leftBehind(text, one.from);
@@ -231,6 +252,9 @@ export const inputOn = (
     if (kind === "insertFromPaste") return pasted(one, event.dataTransfer);
     if (kind.startsWith("delete")) {
       const gone = unpaired(text, unsplit(text, one));
+      // A title's mark alone is what is left of a page emptied again, so the page is left empty.
+      const left = text.slice(0, gone.from) + text.slice(gone.to);
+      if (/^#[ \t]*\r?\n?$/.test(left)) return put({ from: 0, to: text.length, insert: "" }, 0);
       return put({ ...gone, insert: "" }, gone.from);
     }
     const pair = PAIRS[kind];
@@ -276,6 +300,16 @@ export const inputOn = (
         const at = Math.min(span.from, now.length);
         const laid = blockPlaced(now, at, Math.min(end, now.length), said, said.length);
         put(laid.edit, laid.caret);
+        // The words typed next go under the file just laid, never into its line.
+        const after = hands.text();
+        const under = laid.edit.from + laid.edit.insert.replace(/\s+$/, "").length;
+        writer.kept = {
+          node: page.body,
+          offset: -1,
+          at: under,
+          lead: opening(after, under, ""),
+          tail: closing(after, under),
+        };
       })
       .catch(() => {});
   };

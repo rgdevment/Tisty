@@ -19,6 +19,12 @@ import { unformattable } from "./quickly";
 
 export type Formats = ReturnType<typeof formatsOn>;
 
+// An address typed as a site, «tisty.app», opens the site, never a file of that name beside the document.
+export const addressed = (typed: string) =>
+  !/^[a-z][a-z0-9+.-]*:/i.test(typed) && /^[\w-]+(\.[\w-]+)+(?:[/:?#]|$)/.test(typed)
+    ? `https://${typed}`
+    : typed;
+
 export const formatsOn = (writer: Writer, caret: Caret, laying: Laying) => {
   const { page, hands } = writer;
   const { put } = laying;
@@ -28,8 +34,9 @@ export const formatsOn = (writer: Writer, caret: Caret, laying: Laying) => {
     const box = held?.rangeCount ? held.getRangeAt(0).getBoundingClientRect() : null;
     const near = box ?? page.querySelector(".page")?.getBoundingClientRect();
     if (!near) return;
-    void fieldAsked(page, near, t("linkAddress"), { kind: "url" }).then((to) => {
-      if (!to) return;
+    void fieldAsked(page, near, t("linkAddress"), { kind: "url" }).then((asked) => {
+      if (!asked) return caret.placeAt(one.to);
+      const to = addressed(asked);
       const inner = hands.text().slice(one.from, one.to) || to;
       put({ ...one, insert: `[${inner}](${to})` });
     });

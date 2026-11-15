@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { pastedAround } from "../ui/pageBlocks";
-import { joinedAt, nested, outdented } from "../ui/pageLists";
+import { addressed } from "../ui/pageFormats";
+import { joinedAt, nested, openedAbove, outdented, unmarked } from "../ui/pageLists";
 import { wornEach } from "../ui/pageMarks";
 
 const applied = (text: string, moved: ReturnType<typeof nested>) =>
@@ -133,5 +134,52 @@ describe("a format over words chosen across blocks", () => {
     ],
   ])("puts a pair in each block of %s", (_, text, chosen, open, expected) => {
     expect(wrapped(text, chosen, open)).toBe(expected);
+  });
+});
+
+describe("Backspace and Enter at the start of a line's words", () => {
+  it.each([
+    ["a step loses its box first", "- [ ] paso a\n- [x] paso b", 6, "- paso a\n- [x] paso b", 2],
+    ["then the bullet", "- paso a", 2, "paso a", 0],
+    ["a bullet loses its bullet", "## Uno\n\n- uno\n- dos", 10, "## Uno\n\nuno\n- dos", 8],
+    ["an item in a quote keeps the quote", "> - x", 4, "> x", 2],
+  ])("on Backspace, %s", (_, text, at, expected, caret) => {
+    const moved = unmarked(text, at);
+    const applied = moved
+      ? text.slice(0, moved.edit.from) + moved.edit.insert + text.slice(moved.edit.to)
+      : text;
+    expect(applied).toBe(expected);
+    expect(moved?.caret).toBe(caret);
+  });
+
+  it("leaves Backspace inside an item's words alone", () => {
+    expect(unmarked("- uno", 3)).toBeNull();
+  });
+
+  it.each([
+    ["a paragraph", "Uno\n\nDos", 5, { at: 5, seed: "", tail: "\n\n" }],
+    ["a heading", "## Titulo", 3, { at: 0, seed: "", tail: "\n\n" }],
+    ["a step, unticked", "- [x] hecho", 6, { at: 0, seed: "- [ ] ", tail: "\n" }],
+  ])("on Enter, opens a line above %s", (_, text, at, expected) => {
+    expect(openedAbove(text, at)).toEqual(expected);
+  });
+
+  it("leaves Enter in an empty item or mid-words to its own ways", () => {
+    expect(openedAbove("- ", 2)).toBeNull();
+    expect(openedAbove("Uno dos", 3)).toBeNull();
+  });
+});
+
+describe("an address typed in a link's field", () => {
+  it.each([
+    ["tisty.app", "https://tisty.app"],
+    ["www.tisty.app/es/", "https://www.tisty.app/es/"],
+    ["https://tisty.app", "https://tisty.app"],
+    ["mailto:hola@tisty.app", "mailto:hola@tisty.app"],
+    ["notas.md", "https://notas.md"],
+    ["#titulo", "#titulo"],
+    ["./otro.md", "./otro.md"],
+  ])("reads «%s» as %s", (typed, expected) => {
+    expect(addressed(typed)).toBe(expected);
   });
 });

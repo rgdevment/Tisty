@@ -63,7 +63,9 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
     writer.typing = false;
     const text = hands.text();
     const to = Math.min(match.to, text.length);
-    laying.put({ from: Math.min(match.from, to), to, insert: `#${tag}` });
+    // A space after the tag lets the next letter start a word, not lengthen the tag.
+    const spaced = text[to] === " " ? "" : " ";
+    laying.put({ from: Math.min(match.from, to), to, insert: `#${tag}${spaced}` });
   });
 
   const offerTags = () => {

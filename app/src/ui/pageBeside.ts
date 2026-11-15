@@ -7,6 +7,7 @@ import type { Caret } from "./pageCaret";
 import { changeOf, type Edit } from "./pageEdits";
 import type { Formats } from "./pageFormats";
 import type { Laying } from "./pageLaying";
+import { closing, opening } from "./pageLists";
 import { type Act, acted, gripped, type Moved, movedTo, roomy, topsOf, unitOf } from "./pageMoving";
 import { caretBox, elementOf, FIELDS, lineOfCaret } from "./pageNodes";
 import { GHOST } from "./pageSpots";
@@ -81,6 +82,23 @@ export const besideOn = (
     });
   };
 
+  // A break holds no words, so what is typed after it goes on a line begun under it.
+  const lineUnder = (laid: Edit) => {
+    const text = hands.text();
+    let at =
+      writer.kept && writer.kept.offset < 0
+        ? writer.kept.at
+        : Math.min(text.length, laid.from + laid.insert.replace(/\s+$/, "").length);
+    while (at > 0 && /[\r\n]/.test(text[at - 1] ?? "")) at--;
+    writer.kept = {
+      node: page.body,
+      offset: -1,
+      at,
+      lead: opening(text, at, ""),
+      tail: closing(text, at),
+    };
+  };
+
   const slashed = (one: Slashed, drawnWhole = false): Edit | null => {
     if (
       writer.kept?.lead !== undefined &&
@@ -99,6 +117,7 @@ export const besideOn = (
     }
     if ("edit" in how) {
       put(how.edit, how.caret, drawnWhole);
+      if (one.key === "rule") lineUnder(how.edit);
       return how.edit;
     }
     const first = !text.slice(0, span.from).trim();
