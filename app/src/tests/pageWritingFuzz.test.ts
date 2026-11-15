@@ -266,20 +266,21 @@ const redoesToLast: Check = (trace, actions, again) => {
   return top === last ? null : `redo ended on ${JSON.stringify(top)}, not ${JSON.stringify(last)}`;
 };
 
-const LINE_LEAD = /^[ \t]*(?:#{1,6} |> ?|(?:[-*+]|\d+[.)]) (?:\[[ xX]\] )?)*$/;
+const LINE_LEAD = /^[ \t]*(?:#{1,6} |> ?|(?:[-*+]|\d+[.)]) (?:\[[ xX]\] )?)*/;
 
 const staysAfterCaret: Check = (trace, actions) => {
   let back = 0;
   const line = trace.start.lastIndexOf("\n", trace.caret - 1) + 1;
-  // Enter right after a line's marks opens a line above it, and Backspace there takes the marks away.
-  const from = LINE_LEAD.test(trace.start.slice(line, trace.caret)) ? line : trace.caret;
+  const lead = line + (LINE_LEAD.exec(trace.start.slice(line))?.[0].length ?? 0);
   for (const [index, action] of actions.entries()) {
     if (action === "bs") back++;
     const text = trace.texts[index] ?? "";
     const kept = prefixLength(text, trace.start);
     const marks =
       /[*_+~=`]*$/.exec(trace.start.slice(0, Math.max(0, trace.caret - back)))?.[0].length ?? 0;
-    const floor = Math.max(0, from - back - marks);
+    const reach = Math.max(0, trace.caret - back - marks);
+    // Enter or Backspace that reaches a line's marks opens a line above it or takes the marks away.
+    const floor = reach <= lead ? Math.max(0, line - back) : reach;
     if (kept < Math.min(floor, trace.start.length))
       return `after action ${index}: the text changed at ${kept}, before ${floor}`;
   }
