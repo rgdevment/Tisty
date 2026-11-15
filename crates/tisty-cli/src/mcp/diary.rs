@@ -76,11 +76,11 @@ pub(super) fn left_alone(paths: &Paths, name: &str, args: &Value) -> Result<(), 
 }
 
 pub(super) fn in_the_diary(paths: &Paths, state: &State, file: &str) -> bool {
-    let books = diary::books(&paths.docs(), state);
     state
         .docs
         .values()
-        .any(|one| one.file == file && diary::within(&books, one))
+        .find(|one| one.file == file)
+        .is_some_and(|kept| diary::holds(&paths.docs(), state, kept))
 }
 
 pub(super) fn written_today(

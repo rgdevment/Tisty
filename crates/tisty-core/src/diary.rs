@@ -126,18 +126,33 @@ fn says_so(root: &Path, kept: &Kept) -> bool {
     crate::docs::read(root, &kept.file).is_ok_and(|body| tisty_markdown::front::diary(&body))
 }
 
-// The log's mark is only kept once said, so the book's own words decide whether it still is one.
+// Only a book read whole that no longer says so stops being one: a file not there yet keeps it shut.
+fn still_one(root: &Path, kept: &Kept) -> bool {
+    kept.diary
+        && kept.page_of.is_none()
+        && crate::docs::read(root, &kept.file)
+            .map_or(true, |body| tisty_markdown::front::diary(&body))
+}
+
 pub fn books(root: &Path, state: &State) -> BTreeSet<DocId> {
     state
         .docs
         .values()
-        .filter(|one| one.diary && one.page_of.is_none() && says_so(root, one))
+        .filter(|one| still_one(root, one))
         .map(|one| one.id)
         .collect()
 }
 
 pub fn within(books: &BTreeSet<DocId>, kept: &Kept) -> bool {
     books.contains(&kept.id) || kept.page_of.is_some_and(|up| books.contains(&up))
+}
+
+pub fn holds(root: &Path, state: &State, kept: &Kept) -> bool {
+    let book = match kept.page_of {
+        Some(up) => state.docs.get(&up),
+        None => Some(kept),
+    };
+    book.is_some_and(|one| still_one(root, one))
 }
 
 pub fn out_of_sight(root: &Path, state: &mut State) {
@@ -199,7 +214,6 @@ pub struct Opening {
     pub ops: Vec<Op>,
     pub book: String,
     pub page: String,
-    pub book_made: bool,
     pub page_made: bool,
 }
 
@@ -218,8 +232,8 @@ pub struct Maker<'a> {
 pub fn opened(maker: &Maker, state: &State, date: Date, words: &Words) -> Result<Opened> {
     let mut ops = Vec::new();
     let found = book_of(maker.root, state, date.year());
-    let (book_id, book, book_made) = match found {
-        Some(one) => (one.id, one.file.clone(), false),
+    let (book_id, book) = match found {
+        Some(one) => (one.id, one.file.clone()),
         None => {
             let order = crate::order::last_of(
                 state
@@ -230,7 +244,7 @@ pub fn opened(maker: &Maker, state: &State, date: Date, words: &Words) -> Result
             );
             let (id, file, op) = made(maker, &book(date.year(), words), order, None)?;
             ops.push(op);
-            (id, file, true)
+            (id, file)
         }
     };
     let month = date.month();
@@ -254,7 +268,6 @@ pub fn opened(maker: &Maker, state: &State, date: Date, words: &Words) -> Result
         ops,
         book,
         page,
-        book_made,
         page_made,
     }))
 }
@@ -378,14 +391,6 @@ fn under_the_day(said: &str) -> String {
         })
         .collect::<Vec<_>>()
         .join("\n")
-}
-
-pub fn days_on(body: &str) -> Vec<i8> {
-    crate::docs::headings(body)
-        .into_iter()
-        .filter(|(_, level, _)| *level == 2)
-        .filter_map(|(_, _, title)| day_named(&title))
-        .collect()
 }
 
 pub fn month_of_page(root: &Path, state: &State, kept: &Kept) -> Option<(i16, i8)> {

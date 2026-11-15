@@ -123,7 +123,6 @@ fn a_heading_written_in_the_day_sits_under_it_and_a_windows_page_keeps_its_line_
         now,
         "# Noviembre\r\n\r\n## Domingo 15\r\n\r\n### Ideas\r\nuna\r\n```\r\n# code\r\n```\r\n"
     );
-    assert_eq!(days_on(&now), vec![15]);
 }
 
 #[test]
@@ -131,7 +130,8 @@ fn the_first_words_of_a_year_make_its_book_and_its_month_and_the_book_names_the_
     let room = tempfile::tempdir().unwrap();
     let mut state = State::default();
     let opening = opened_into(room.path(), &mut state, day("2026-11-15"), &SPANISH);
-    assert!(opening.book_made && opening.page_made);
+    assert!(opening.page_made);
+    assert_eq!(opening.ops.len(), 2, "the book and its month");
     let book = state
         .docs
         .values()
@@ -157,7 +157,7 @@ fn the_first_words_of_a_year_make_its_book_and_its_month_and_the_book_names_the_
     );
 
     let again = opened_into(room.path(), &mut state, day("2026-11-30"), &ENGLISH);
-    assert!(!again.book_made && !again.page_made && again.ops.is_empty());
+    assert!(!again.page_made && again.ops.is_empty());
     assert_eq!((again.book, again.page), (opening.book, opening.page));
 }
 
@@ -167,7 +167,8 @@ fn the_last_day_of_a_year_and_the_first_of_the_next_write_in_their_own_books() {
     let mut state = State::default();
     let december = opened_into(room.path(), &mut state, day("2026-12-31"), &SPANISH);
     let january = opened_into(room.path(), &mut state, day("2027-01-01"), &SPANISH);
-    assert!(january.book_made && january.page_made);
+    assert!(january.page_made);
+    assert_eq!(january.ops.len(), 2, "a new book and its month");
     assert_ne!(december.book, january.book);
     let book = state
         .docs
@@ -216,6 +217,27 @@ fn of_two_books_for_one_year_the_oldest_is_the_diary_and_one_that_stopped_saying
     out_of_sight(room.path(), &mut seen);
     assert!(seen.docs.contains_key(&first_id));
     assert!(!seen.docs.values().any(|one| one.file == second.id));
+}
+
+#[test]
+fn a_book_whose_file_is_not_there_keeps_the_diary_shut() {
+    let room = tempfile::tempdir().unwrap();
+    let mut state = State::default();
+    let opening = opened_into(room.path(), &mut state, day("2026-11-15"), &SPANISH);
+    let at = crate::docs::resolve(room.path(), &opening.book).unwrap();
+    std::fs::remove_file(at).unwrap();
+    let page = state
+        .docs
+        .values()
+        .find(|one| one.file == opening.page)
+        .unwrap()
+        .clone();
+
+    let mut seen = state.clone();
+    out_of_sight(room.path(), &mut seen);
+
+    assert!(holds(room.path(), &state, &page));
+    assert!(seen.docs.is_empty(), "the month stays out of sight");
 }
 
 #[test]
