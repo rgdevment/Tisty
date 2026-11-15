@@ -64,6 +64,17 @@ Una idea que llega en medio de otra cosa todavía no tiene dónde ir. Pulsa `Ctr
 - **Ordénalas después**: en cada nota, **Anexar a un documento** la agrega al final del documento que elijas, como la misma nota adhesiva con su fecha y su color, junto al texto, y **Convertir en tarea** la guarda como tarea, leída como cualquier captura rápida, con sus fechas, listas y etiquetas. En los dos casos la idea sale de la hoja. La Biblioteca muestra junto a la Lluvia de ideas cuántas esperan todavía.
 - **Tu agente de IA también las ordena**: si se lo pides, anota ideas, anexa una a un documento o la convierte en tarea, y la idea sale de la hoja como cuando lo haces tú. Las que da por viejas solo las marca: la nota lleva un ◆ con el motivo, **Borrarla** la quita y **Quitar la marca** la conserva, y la franja sobre la hoja hace lo mismo con todas de un clic. La Lluvia de ideas también lleva el ◆ en la Biblioteca.
 
+## Diario
+
+Lo que pasó hoy, en la casa o en el trabajo, tiene un solo lugar: **Diario**, arriba en la Biblioteca. No es una nota por día, que serían 365 documentos al año: es un libro por año, **Diario 2026**, con una página por mes, **Noviembre**, y una sección por día, **Domingo 15**, en el idioma de la app. Hoy va arriba, y un día en el que no escribiste nunca aparece.
+
+- **Diario en la Biblioteca abre hoy.** La primera vez en el año crea el libro de ese año y la página del mes; el día nace cuando escribes en él. Bajo la fila, los años y sus meses se abren como cualquier libro.
+- **Escribir hoy** abre un cuadro para lo que quieras guardar, y **Pegar nota** pega una nota adhesiva con el minuto en que llegó, a la derecha de hoy. Las dos cosas caen al final de la sección de hoy, y cualquier día se edita en su lugar como cualquier documento.
+- **Desde cualquier parte**: en la captura rápida, `Tab` pasa de **Tarea** a **Idea** y después a **Diario**, que escribe en hoy sin abrir la ventana. En una nota de la Lluvia de ideas, **Anexar a un documento** ofrece primero **Diario de hoy**.
+- **Las tareas cerradas ese día** aparecen en una franja plegada bajo el título del día; cada una se abre con un clic. La franja solo se ve, nunca se escribe en el texto.
+- **Oculto para agentes.** Ningún agente ve tu diario hasta que pulsas **Oculto para agentes** sobre él y dice **Abierto a los agentes**. Abierto, un agente lo lee y, solo cuando se lo pides, añade al final de hoy bajo una línea con el minuto y su nombre. Nunca cambia lo que escribiste. Púlsalo otra vez para ocultarlo.
+- **El archivo sigue siendo Markdown**: un libro con `diary: on` en sus [propiedades](https://markdown.tisty.app/es/propiedades), cuyas páginas son los meses. Tisty nunca escribe en él por su cuenta.
+
 ## Carpetas
 
 - **Todas las carpetas nacen plegadas**, así que un almacén con cientos de documentos es un puñado de filas hasta que vas a buscar.

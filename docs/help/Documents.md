@@ -64,6 +64,17 @@ An idea that comes in the middle of something else has nowhere to go yet. Press 
 - **Sort them out later**: on each note, **File in a document** adds it at the end of the document you pick, as the same sticky note with its date and colour, beside the text, and **Turn into a task** files it as a task, read like any quick capture, with its dates, lists and tags. Either way the idea leaves the sheet. The Library shows beside Brainstorm how many ideas are still waiting.
 - **Your AI agent sorts them too**: ask it and it jots ideas, files one in a document or turns it into a task, and the idea leaves the sheet as it does when you do it. One it deems old is only marked: the note wears a ◆ with the reason, **Delete it** takes it off and **Remove the mark** keeps it, and the bar above the sheet does either for all of them in one click. Brainstorm wears the ◆ in the Library too.
 
+## Diary
+
+What happened today, at home or at work, has one place: **Diary**, near the top of the Library. It is not a note a day, which would be 365 documents a year: it is one book a year, **Diary 2026**, with a page a month, **November**, and a section a day, **Sunday 15**, in the app's language. Today is on top, and a day you did not write never appears.
+
+- **Diary in the Library opens today.** The first time in a year it makes that year's book and the month's page; the day itself is born when you write in it. Under the row, the years and their months open like any book.
+- **Write today** opens a box for whatever you want to keep, and **Stick a note** pastes a sticky note with the minute it came on the right side of today. Both land at the end of today's section, and you can edit any day in place like any document.
+- **From anywhere**: in the quick capture, `Tab` goes from **Task** to **Idea** and then to **Diary**, which writes in today without opening the window. On a Brainstorm note, **File in a document** offers **Today's diary** first.
+- **Tasks closed that day** appear in a folded strip under the day's title; each one opens with a click. The strip is only shown, never written into the text.
+- **Hidden from agents.** No agent sees your diary until you press **Hidden from agents** above it and it reads **Open to agents**. Open, an agent reads it and, only when you ask, adds to the end of today under a line with the minute and its name. It never changes what you wrote. Press it again to hide it.
+- **The file is still Markdown**: a book with `diary: on` in its [properties](https://markdown.tisty.app/properties), whose pages are the months. Tisty never writes in it on its own.
+
 ## Folders
 
 - **Every folder starts folded**, so a store with hundreds of documents is a handful of rows until you go looking.

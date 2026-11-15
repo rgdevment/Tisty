@@ -26,6 +26,9 @@ export const diaryWrite = (text: string): Promise<Today> => invoke("diary_write"
 
 export const diaryStick = (note: string): Promise<Today> => invoke("diary_stick", { note });
 
+export const diaryFileIdea = (idea: string, heading: string): Promise<Today> =>
+  invoke("diary_file_idea", { idea, heading });
+
 export const diaryAgents = (open: boolean): Promise<void> => invoke("diary_agents", { open });
 
 export const diaryNewest = (file: string): Promise<string | null> =>

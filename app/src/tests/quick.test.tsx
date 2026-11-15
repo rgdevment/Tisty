@@ -38,6 +38,8 @@ vi.mock("@tauri-apps/api/core", () => ({
         });
       case "jot":
         return Promise.resolve({ file: "mac0-0001", made: true });
+      case "diary_write":
+        return Promise.resolve({ book: "mac0-0002", page: "mac0-0003" });
       case "shortcut":
         return Promise.resolve("Ctrl+Shift+Space");
       case "capture":
@@ -201,15 +203,36 @@ describe("capturing without the window", () => {
     expect(await screen.findByText(/call the vet/)).toBeTruthy();
   });
 
-  it("goes back to a task when Tab is pressed again", async () => {
+  it("writes in today's diary after a second Tab, without holding it to an idea's length", async () => {
     render(<Quick />);
     await screen.findByRole("textbox");
 
     await userEvent.keyboard("{Tab}{Tab}");
+    expect(screen.getByRole("button", { name: t("modeDiary"), pressed: true })).toBeTruthy();
+    const field = screen.getByRole("textbox");
+    expect(field.getAttribute("maxlength")).toBeNull();
+    await userEvent.type(field, "walked Rina by the hill{Enter}");
+
+    await waitFor(() => expect(sent("diary_write").length).toBe(1));
+    expect(sent("diary_write")[0].args).toEqual({ text: "walked Rina by the hill" });
+    expect(sent("capture")).toEqual([]);
+    expect(sent("jot")).toEqual([]);
+    expect(win.emitted).toContain("jotted");
+    expect(await screen.findByText(/walked Rina by the hill/)).toBeTruthy();
+  });
+
+  it("comes round to a task after the diary, and Shift+Tab goes back the other way", async () => {
+    render(<Quick />);
+    await screen.findByRole("textbox");
+
+    await userEvent.keyboard("{Shift>}{Tab}{/Shift}");
+    expect(screen.getByRole("button", { name: t("modeDiary"), pressed: true })).toBeTruthy();
+    await userEvent.keyboard("{Tab}");
     await userEvent.type(screen.getByRole("textbox"), "buy milk{Enter}");
 
     await waitFor(() => expect(sent("capture").length).toBe(1));
     expect(sent("jot")).toEqual([]);
+    expect(sent("diary_write")).toEqual([]);
   });
 
   it("opens ready for an idea from the idea shortcut, and the same shortcut again closes it", async () => {

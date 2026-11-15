@@ -12,6 +12,7 @@ vi.mock("@tauri-apps/api/core", () => ({
     if (cmd === "idea_to_doc" && args?.file === "a3f1-0007") {
       return Promise.reject({ code: "documentLocked" });
     }
+    if (cmd === "diary_file_idea") return Promise.resolve({ book: "a3f1-0010", page: "a3f1-0011" });
     return Promise.resolve(cmd === "capture" ? { id: "01T", title: String(args?.text) } : null);
   },
 }));
@@ -186,6 +187,37 @@ describe("a brainstorm shown as notes", () => {
     expect(screen.getByRole("status").textContent).toContain("Filed at the end of «Recetas»");
     await userEvent.click(screen.getByRole("button", { name: "Open it" }));
     expect(onDoc).toHaveBeenCalledWith("a3f1-0001");
+  });
+
+  it("files an idea at the end of today in the diary, with its minute and colour", async () => {
+    const onWrite = vi.fn();
+    const onDoc = vi.fn();
+    render(
+      <Notes
+        title="Ideas"
+        body={BODY}
+        reading={false}
+        onWrite={onWrite}
+        known={papers}
+        own="a3f1-0009"
+        onDoc={onDoc}
+      />,
+    );
+
+    await userEvent.click(screen.getAllByRole("button", { name: "File in a document" })[1]);
+    const dialog = screen.getByRole("dialog");
+    await userEvent.click(within(dialog).getByRole("button", { name: /Today's diary/ }));
+
+    await waitFor(() => expect(onWrite).toHaveBeenCalledTimes(1));
+    expect(ipc.calls.find((one) => one.cmd === "diary_file_idea")?.args).toEqual({
+      idea: "primera",
+      heading: "2026-11-10 18:40",
+    });
+    expect(ipc.calls.some((one) => one.cmd === "idea_to_doc")).toBe(false);
+    expect(onWrite.mock.calls[0][0]).not.toContain("primera");
+    expect(screen.getByRole("status").textContent).toContain("«Today's diary»");
+    await userEvent.click(screen.getByRole("button", { name: "Open it" }));
+    expect(onDoc).toHaveBeenCalledWith("a3f1-0011");
   });
 
   it("keeps the idea on the sheet when it could not be filed", async () => {
