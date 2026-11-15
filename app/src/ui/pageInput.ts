@@ -18,6 +18,10 @@ const PAIRS: Record<string, string> = {
   formatUnderline: "++",
 };
 
+// Blocks a key never joins to its neighbour: their marks hold what they are, and the browser's own reach skips them whole.
+const SOLID_BLOCK =
+  ".table, figure, details, hr, blockquote[data-callout], .front, [contenteditable='false']";
+
 export const inputOn = (
   writer: Writer,
   caret: Caret,
@@ -66,6 +70,33 @@ export const inputOn = (
     return { from: charsAt(text, at[0]), to: charsAt(text, until) };
   };
 
+  // At a block's edge the key takes nothing when this block or the one beside it is drawn whole, or would leave a fold or a note.
+  const edgeHeld = (kind: string) => {
+    const back = kind === "deleteContentBackward";
+    if (!back && kind !== "deleteContentForward") return false;
+    const range = caret.chosen();
+    if (!range?.collapsed) return false;
+    const inner = elementOf(range.startContainer)?.closest(".page [data-at]");
+    if (!inner) return false;
+    const edge = page.createRange();
+    edge.selectNodeContents(inner);
+    if (back) edge.setEnd(range.startContainer, range.startOffset);
+    else edge.setStart(range.startContainer, range.startOffset);
+    const between = edge.cloneContents();
+    for (const one of between.querySelectorAll("[contenteditable='false'], button")) one.remove();
+    if (between.textContent !== "") return false;
+    if (inner.matches(SOLID_BLOCK)) return true;
+    const step = (one: Element) => (back ? one.previousElementSibling : one.nextElementSibling);
+    for (let at: Element | null = inner; at && !at.matches(".page"); ) {
+      let beside = step(at);
+      while (beside && !beside.matches("[data-at]")) beside = step(beside);
+      if (beside) return beside.matches(SOLID_BLOCK);
+      at = at.parentElement?.closest(".page [data-at], .page") ?? null;
+      if (at?.matches(SOLID_BLOCK)) return true;
+    }
+    return false;
+  };
+
   const asked = (event: InputEvent) => {
     if (!onSheet(page, event) || event.isComposing || event.inputType === "insertCompositionText")
       return;
@@ -83,6 +114,7 @@ export const inputOn = (
         kind === "deleteContentForward" ? (caret.caretSpan()?.from ?? broken.from) : broken.from;
       return put({ ...broken, insert: "" }, Math.min(stays, broken.from));
     }
+    if (edgeHeld(kind)) return;
     const [target] = event.getTargetRanges?.() ?? [];
     const range = target ?? caret.chosen();
     const picked = caret.chosen();

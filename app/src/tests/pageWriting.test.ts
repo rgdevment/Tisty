@@ -1135,3 +1135,157 @@ describe("an empty step left behind", () => {
     expect(said).toEqual([]);
   });
 });
+
+describe("a key at the edge of a block drawn whole", () => {
+  // The browser's own reach for Backspace or Delete skips a block it cannot write in, so it spans the block whole.
+  const across = (
+    inputType: string,
+    from: readonly [string, number],
+    to: readonly [string, number],
+  ) => {
+    const reach = document.createRange();
+    reach.setStart(piece(from[0]), from[1]);
+    reach.setEnd(piece(to[0]), to[1]);
+    const event = new InputEvent("beforeinput", { inputType, bubbles: true, cancelable: true });
+    Object.defineProperty(event, "getTargetRanges", { value: () => [reach] });
+    document.querySelector(".page")?.dispatchEvent(event);
+  };
+  const BACK = "deleteContentBackward";
+  const FORTH = "deleteContentForward";
+  const TABLE =
+    '<div class="table" data-at="8-27" contenteditable="false"><table><tbody><tr><td>1</td></tr></tbody></table></div>';
+
+  // name | body | page | the caret | the browser's reach | key
+  it.each([
+    [
+      "Backspace under a table",
+      "Antes.\n\n| A |\n| --- |\n| 1 |\n\nTras.\n",
+      `<p data-at="0-6"><span data-src="0-6">Antes.</span></p>${TABLE}<p data-at="29-34"><span data-src="29-34">Tras.</span></p>`,
+      ["Tras.", 0],
+      [
+        ["Antes.", 6],
+        ["Tras.", 0],
+      ],
+      BACK,
+    ],
+    [
+      "Delete over a table",
+      "Antes.\n\n| A |\n| --- |\n| 1 |\n\nTras.\n",
+      `<p data-at="0-6"><span data-src="0-6">Antes.</span></p>${TABLE}<p data-at="29-34"><span data-src="29-34">Tras.</span></p>`,
+      ["Antes.", 6],
+      [
+        ["Antes.", 6],
+        ["Tras.", 0],
+      ],
+      FORTH,
+    ],
+    [
+      "Backspace under a table with Windows line ends",
+      "Antes.\r\n\r\n| A |\r\n| --- |\r\n| 1 |\r\n\r\nTras.\r\n",
+      '<p data-at="0-6"><span data-src="0-6">Antes.</span></p><div class="table" data-at="10-31" contenteditable="false"><table></table></div><p data-at="35-40"><span data-src="35-40">Tras.</span></p>',
+      ["Tras.", 0],
+      [
+        ["Antes.", 6],
+        ["Tras.", 0],
+      ],
+      BACK,
+    ],
+    [
+      "Backspace under a code block",
+      "Uno.\n\n```js\nlet a;\n```\n\nTras.\n",
+      '<p data-at="0-4"><span data-src="0-4">Uno.</span></p><figure class="code" data-at="6-22"><pre><code><span data-src="12-18">let a;</span></code></pre><button class="code-lang" contenteditable="false">js</button></figure><p data-at="24-29"><span data-src="24-29">Tras.</span></p>',
+      ["Tras.", 0],
+      [
+        ["let a;", 6],
+        ["Tras.", 0],
+      ],
+      BACK,
+    ],
+    [
+      "Backspace at a code block's first line",
+      "Uno.\n\n```js\nlet a;\n```\n\nTras.\n",
+      '<p data-at="0-4"><span data-src="0-4">Uno.</span></p><figure class="code" data-at="6-22"><pre><code><span data-src="12-18">let a;</span></code></pre><button class="code-lang" contenteditable="false">js</button></figure><p data-at="24-29"><span data-src="24-29">Tras.</span></p>',
+      ["let a;", 0],
+      [
+        ["Uno.", 4],
+        ["let a;", 0],
+      ],
+      BACK,
+    ],
+    [
+      "Delete at a code block's last line, past its language",
+      "Uno.\n\n```js\nlet a;\n```\n\nTras.\n",
+      '<p data-at="0-4"><span data-src="0-4">Uno.</span></p><figure class="code" data-at="6-22"><pre><code><span data-src="12-18">let a;</span></code></pre><button class="code-lang" contenteditable="false">js</button></figure><p data-at="24-29"><span data-src="24-29">Tras.</span></p>',
+      ["let a;", 6],
+      [
+        ["let a;", 6],
+        ["Tras.", 0],
+      ],
+      FORTH,
+    ],
+    [
+      "Backspace under a folded section",
+      "Antes.\n\n:::details Pliegue\n\ndentro\n\n:::\n\nTras.\n",
+      '<p data-at="0-6"><span data-src="0-6">Antes.</span></p><details data-at="8-39"><summary>Pliegue</summary><p data-at="28-34"><span data-src="28-34">dentro</span></p></details><p data-at="41-46"><span data-src="41-46">Tras.</span></p>',
+      ["Tras.", 0],
+      [
+        ["dentro", 6],
+        ["Tras.", 0],
+      ],
+      BACK,
+    ],
+    [
+      "Backspace at the start of a fold's words",
+      "Antes.\n\n:::details Pliegue\n\ndentro\n\n:::\n\nTras.\n",
+      '<p data-at="0-6"><span data-src="0-6">Antes.</span></p><details data-at="8-39" open><summary>Pliegue</summary><p data-at="28-34"><span data-src="28-34">dentro</span></p></details><p data-at="41-46"><span data-src="41-46">Tras.</span></p>',
+      ["dentro", 0],
+      [
+        ["Antes.", 6],
+        ["dentro", 0],
+      ],
+      BACK,
+    ],
+    [
+      "Delete over a note",
+      "Antes.\n\n> [!NOTE]\n> nota\n",
+      '<p data-at="0-6"><span data-src="0-6">Antes.</span></p><blockquote data-callout="note" data-at="8-24"><p><span data-src="20-24">nota</span></p></blockquote>',
+      ["Antes.", 6],
+      [
+        ["Antes.", 6],
+        ["nota", 0],
+      ],
+      FORTH,
+    ],
+  ] as const)("takes nothing on %s", (_, body, html, at, reach, kind) => {
+    const said = writer(body);
+    pageOf(html);
+    writing?.drawn();
+    caretIn(at[0], at[1]);
+    across(kind, reach[0], reach[1]);
+    expect(said).toEqual([]);
+  });
+
+  it("takes nothing on Delete at a step's end over a task's section", () => {
+    document.documentElement.classList.add("untitled");
+    const said = writer("- [ ] paso\n\n## Notas\n");
+    pageOf(
+      '<ul data-at="0-10"><li class="task" data-at="0-10"><span data-src="6-10">paso</span></li></ul><h2 data-at="12-20"><span data-src="15-20">Notas</span></h2>',
+    );
+    writing?.drawn();
+    caretIn("paso", 4);
+    across(FORTH, ["paso", 4], ["Notas", 0]);
+    document.documentElement.classList.remove("untitled");
+    expect(said).toEqual([]);
+  });
+
+  it("still joins two paragraphs, as any editor does", () => {
+    const said = writer("Uno.\n\nDos.\n");
+    pageOf(
+      '<p data-at="0-4"><span data-src="0-4">Uno.</span></p><p data-at="6-10"><span data-src="6-10">Dos.</span></p>',
+    );
+    writing?.drawn();
+    caretIn("Dos.", 0);
+    across(BACK, ["Uno.", 4], ["Dos.", 0]);
+    expect(said[said.length - 1]).toBe("Uno.Dos.\n");
+  });
+});
