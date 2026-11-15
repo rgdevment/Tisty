@@ -273,6 +273,23 @@ describe("dressing a drawn page", () => {
     expect(sources).toEqual([4]);
   });
 
+  it("gives a formula a way to its code only where the page is written in place", () => {
+    const formula = '<p data-at="0-3">Uno</p><div class="math" data-at="5-30"><math></math></div>';
+    const sources: number[] = [];
+    const reach = { body: "Uno\n\n```math\na^2\n```\n", onDoc: () => {} };
+    const written = page(formula);
+    worn(written, () => true, { ...reach, onSource: (at: number) => sources.push(at) });
+    const button = written.querySelector<HTMLElement>('.math-bar [data-asked="code"]');
+    expect(button?.textContent).toBe("");
+    const asked = went(button as Element, false);
+    expect(asked).toEqual({ kind: "code", at: [5, 30] });
+    answered(written, asked, { ...reach, onSource: (at: number) => sources.push(at) });
+    expect(sources).toEqual([5]);
+    const read = page(formula);
+    worn(read, () => true, reach);
+    expect(read.querySelector(".math-bar")).toBeNull();
+  });
+
   it("opens the properties in the Markdown view when they are asked for", () => {
     const sources: number[] = [];
     const written = page('<dl class="front" data-at="0-14"></dl><p data-at="15-20">Pan.</p>');

@@ -607,7 +607,8 @@ figure.diagram {
 figure.diagram:has(> .diagram-bar) {
   padding-top: 32px;
 }
-.diagram-bar {
+.diagram-bar,
+.math-bar {
   position: absolute;
   top: 2px;
   right: 6px;
@@ -617,20 +618,23 @@ figure.diagram:has(> .diagram-bar) {
   transition: opacity 0.12s;
 }
 figure.diagram:hover .diagram-bar,
-.diagram-bar:focus-within {
+.diagram-bar:focus-within,
+div.math:hover .math-bar,
+.math-bar:focus-within {
   opacity: 1;
   pointer-events: auto;
 }
 @media (hover: none) {
-  .diagram-bar {
+  .diagram-bar,
+  .math-bar {
     opacity: 1;
     pointer-events: auto;
   }
 }
-.diagram-bar button::after {
+:is(.diagram-bar, .math-bar) button::after {
   content: attr(aria-label);
 }
-.diagram-bar button {
+:is(.diagram-bar, .math-bar) button {
   border: 1px solid var(--tisty-hair);
   border-radius: 6px;
   padding: 2px 8px;
@@ -640,12 +644,13 @@ figure.diagram:hover .diagram-bar,
   font-size: 11.5px;
   cursor: pointer;
 }
-.diagram-bar button:hover {
+:is(.diagram-bar, .math-bar) button:hover {
   background: var(--tisty-hover);
   color: var(--tisty-ink);
 }
 @media print {
-  .diagram-bar {
+  .diagram-bar,
+  .math-bar {
     display: none;
   }
 }
@@ -710,6 +715,7 @@ figure.widget iframe {
   color: var(--tisty-ink);
 }
 div.math {
+  position: relative;
   margin: 12px 0;
   padding: 4px 0;
   overflow-x: auto;

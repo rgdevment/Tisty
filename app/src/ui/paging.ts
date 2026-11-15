@@ -167,7 +167,7 @@ const pressedIn = (asked: HTMLElement): Went => {
   }
   if (asked.dataset.asked === "code") {
     const widget = spanned(
-      asked.closest<HTMLElement>("figure.widget[data-at]")?.dataset.at ?? null,
+      asked.closest<HTMLElement>("figure.widget[data-at], div.math[data-at]")?.dataset.at ?? null,
     );
     return { kind: "code", at: widget ?? at };
   }

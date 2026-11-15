@@ -279,6 +279,7 @@ export const worn = (page: Document, live: () => boolean, reach?: Reaching): Wor
   if (writable) tabled(page);
   if (reach?.onDiagram || reach?.onDiagramExport)
     diagramBars(page, { open: Boolean(reach.onDiagram), out: Boolean(reach.onDiagramExport) });
+  if (reach?.onSource) mathBars(page);
   let held: (() => void)[] = [];
   let lent: Lending[] = [];
   const read = readAs(page, {
@@ -315,6 +316,20 @@ export const diagramBar = (figure: HTMLElement, ways: BarWays) => {
   if (ways.out) button("diagramExport", t("diagramExport"));
   if (ways.open) button("diagram", t("diagramOpen"));
   figure.append(bar);
+};
+
+// A formula is drawn over its words, so a quiet bar beside it opens them, as a widget's does.
+const mathBars = (page: Document) => {
+  for (const formula of page.querySelectorAll<HTMLElement>("div.math[data-at]")) {
+    if (formula.querySelector(":scope > .math-bar")) continue;
+    const bar = page.createElement("div");
+    bar.className = "math-bar";
+    const one = asking(page, "code", "");
+    one.setAttribute("aria-label", t("codeShow"));
+    one.title = t("codeShow");
+    bar.append(one);
+    formula.append(bar);
+  }
 };
 
 export const diagramBars = (page: Document, ways: BarWays = { open: true, out: false }) => {
