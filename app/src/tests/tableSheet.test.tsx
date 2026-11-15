@@ -36,7 +36,12 @@ const HTML = `<article class="page"><div class="table" data-at="0-80"><table><th
 <tr><td>Netflix</td><td data-key="9990">$9.990</td></tr>
 </tbody></table></div></article>`;
 
-type Seen = { onTable: (asked: TableWent) => void; freshAt: (byte: number) => void };
+type Seen = {
+  onTable: (asked: TableWent) => void;
+  freshAt: (byte: number) => void;
+  busy?: () => boolean;
+  whenIdle?: (then: () => void) => void;
+};
 
 const freshWays = () => ({
   latest: { current: BODY },
@@ -68,6 +73,8 @@ const Room = ({ turned, page, ways, seen }: Held & { turned: number }) => {
   });
   seen.onTable = tables.onTable;
   seen.freshAt = tables.freshAt;
+  seen.busy = tables.busy;
+  seen.whenIdle = tables.whenIdle;
   return <>{tables.menu}</>;
 };
 
@@ -323,6 +330,25 @@ describe("a table written in place", () => {
     await settle();
     expect(core.edit).not.toHaveBeenCalled();
     expect(core.written).not.toHaveBeenCalled();
+  });
+});
+
+describe("a view asked for while a cell is written", () => {
+  it("waits until the cell is closed and its words are saved", async () => {
+    const { page, ways, seen } = made();
+    seen.onTable(asked("cell", 1, 1));
+    await settle();
+    const input = page.querySelector<HTMLInputElement>(".table-input") as HTMLInputElement;
+    input.value = "10990";
+    expect(seen.busy?.()).toBe(true);
+    const turned = vi.fn();
+    seen.whenIdle?.(turned);
+    expect(page.querySelector(".table-input")).toBeNull();
+    expect(turned).not.toHaveBeenCalled();
+    await settle();
+    expect(ways.whole).toHaveBeenCalledWith("next body");
+    expect(turned).toHaveBeenCalledTimes(1);
+    expect(seen.busy?.()).toBe(false);
   });
 });
 

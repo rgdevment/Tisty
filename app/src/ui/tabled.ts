@@ -196,6 +196,8 @@ export const typing = (
   };
   // What is typed here is the cell's, never a shortcut of the page around it.
   input.addEventListener("keydown", (event) => {
+    // The view's own switch closes the cell and goes on to the page, which turns once its words are saved.
+    if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "e") return end("blur");
     event.stopPropagation();
     const ways: Record<string, Leaving | undefined> = {
       Enter: "enter",

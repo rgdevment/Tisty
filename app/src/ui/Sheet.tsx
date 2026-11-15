@@ -461,9 +461,19 @@ export default function Sheet(props: Readonly<Props>) {
     });
   };
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: a cell open or being saved holds the last words, so the view turns once they land.
+  useEffect(() => {
+    if (!markdown || !tables.busy()) return;
+    const here = onFile.current;
+    setMarkdown(false);
+    tables.whenIdle(() => {
+      if (onFile.current === here) setMarkdown(true);
+    });
+  }, [markdown]);
+
   // biome-ignore lint/correctness/useExhaustiveDependencies: `wholly` reads only refs, so each drawing alone decides.
   useEffect(() => {
-    if (!writable || !markdown || !ready || open.current || !framed()) return;
+    if (!writable || !markdown || !ready || open.current || !framed() || tables.busy()) return;
     if (drawn !== latest.current) return;
     // A page drawn anew wipes whatever was laid in it, so the view waits for the drawing to land.
     if (alreadyShown.current !== latest.current && shownBody.current !== latest.current) return;

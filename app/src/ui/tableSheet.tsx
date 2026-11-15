@@ -90,6 +90,8 @@ export const useTables = (
   onTable: (asked: TableWent) => void;
   menu: ReactNode;
   freshAt: (byte: number) => void;
+  busy: () => boolean;
+  whenIdle: (then: () => void) => void;
 } => {
   const views = useRef(new Map<number, Viewing>());
   const counted = useRef(-1);
@@ -98,6 +100,14 @@ export const useTables = (
   const born = useRef<number | null>(null);
   // A cell clicked while the one left behind is still being saved opens once that save is drawn.
   const saving = useRef(0);
+  const idle = useRef<(() => void)[]>([]);
+  const saved = () => {
+    saving.current -= 1;
+    if (saving.current > 0) return;
+    const waiting = idle.current;
+    idle.current = [];
+    for (const one of waiting) one();
+  };
   const wanted = useRef<Place | null>(null);
   // Keys pressed while the next cell is saved and opened are held for it instead of falling on the page.
   const ahead = useRef<{ said: string; stop: () => void } | null>(null);
@@ -148,9 +158,7 @@ export const useTables = (
         wanted.current = null;
         if (next) opened(next);
       })
-      .finally(() => {
-        saving.current -= 1;
-      });
+      .finally(saved);
   };
 
   const remapped = (nth: number, to: (column: number) => number | null) => {
@@ -242,9 +250,7 @@ export const useTables = (
         onward(place, [{ kind: "cell", row, column, said: cell.wrap(said, marks) }], how),
       )
       .catch((why) => said.current.fail(refused(why)))
-      .finally(() => {
-        saving.current -= 1;
-      });
+      .finally(saved);
   };
 
   const awaited = (page: Document) => {
@@ -578,10 +584,19 @@ export const useTables = (
       setMenu({ ...at, label: fill("tableColumn", name), choices: columnMenu(asked, nth) });
   };
 
+  const open = () => Boolean(said.current.page()?.querySelector(".table-input"));
+  const busy = () => open() || saving.current > 0;
   return {
     onTable,
     freshAt: (byte) => {
       born.current = byte;
+    },
+    busy,
+    // A cell left open is closed first, and what follows waits until its words are saved.
+    whenIdle: (then) => {
+      said.current.page()?.querySelector(".table-input")?.dispatchEvent(new FocusEvent("blur"));
+      if (saving.current > 0) idle.current.push(then);
+      else then();
     },
     menu: (
       <>
