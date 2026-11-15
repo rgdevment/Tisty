@@ -41,6 +41,7 @@ import { cardedAt, movedCard, putCard } from "./carded";
 import { LANGUAGES, languageAt, spokenIn } from "./codeLanguages";
 import { exportChoices, fileName } from "./drawing/exporting";
 import { type Anchor, nthAt } from "./dressing";
+import { embedGone } from "./embeds";
 import { FrameThumb } from "./frameThumb";
 import { useKeptHeight } from "./heights";
 import { edited, HOST } from "./hosting";
@@ -51,9 +52,8 @@ import { mended as mendedText } from "./mending";
 import Page from "./Page";
 import type { Act } from "./pageMoving";
 import { type Hands, type PageWriting, type Turns, turnsAnew, writtenOn } from "./pageWriting";
-import { shotIn, type Went } from "./paging";
+import type { Went } from "./paging";
 import { laid } from "./parting";
-import { PICTURE, pictureGone } from "./pictureGone";
 import type { Formatting, Menued } from "./quickly";
 import { type Reshape, reshaped } from "./recarding";
 import Skeleton from "./Skeleton";
@@ -736,16 +736,13 @@ export default function Sheet(props: Readonly<Props>) {
     const words = writer?.chosen() ?? null;
     const back = () => shown.current?.focus();
     const choices: Choice[] = [...pictures.offered(shown.current?.document, asked.picture)];
-    const page = shown.current?.document;
-    const picture = page && asked.picture !== null ? shotIn(page, asked.picture) : null;
+    const embed = asked.embed;
     const gone =
-      picture?.matches(PICTURE) && showing.current === latest.current
-        ? pictureGone(latest.current, picture)
-        : null;
+      embed && showing.current === latest.current ? embedGone(latest.current, embed) : null;
     if (writer && gone)
       choices.push({
         key: "pictureDrop",
-        label: t("pictureDrop"),
+        label: t(embed?.matches("img") ? "pictureDrop" : "cardRemove"),
         danger: true,
         apart: true,
         onPick: () => {

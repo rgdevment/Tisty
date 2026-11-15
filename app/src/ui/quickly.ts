@@ -1,6 +1,7 @@
 import type { formatButtons } from "tisty-editor/edit";
 import { spanned } from "tisty-editor/read";
 import { t } from "../locales";
+import { EMBED } from "./embeds";
 import { shotAt } from "./paging";
 
 export type Formatting = {
@@ -19,6 +20,7 @@ export type Menued = {
   readonly picked: Omit<Formatting, "open" | "close"> | null;
   readonly block: { readonly at: [number, number]; readonly element: HTMLElement } | null;
   readonly picture: number | null;
+  readonly embed: Element | null;
 };
 
 export type Bar = { readonly buttons: typeof formatButtons; readonly css: string };
@@ -142,6 +144,7 @@ export const quickly = (page: Document, reach: () => Quick) => {
       picked: writing || !under ? null : picked(page),
       block: element && at ? { at, element } : null,
       picture: writing ? null : shotAt(page, target),
+      embed: writing ? null : (target?.closest?.(EMBED) ?? null),
     });
   });
 };

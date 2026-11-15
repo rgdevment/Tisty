@@ -1,12 +1,12 @@
 import { spanned } from "tisty-editor/read";
 import type { PlacedNear } from "../placing";
 
-const NAMES = ["data-at", "data-src"];
+const NAMES = ["data-at", "data-src", "data-placed"];
 // What the page lends or links in a block is laid by its own dressing, which only a whole drawing runs.
 const WHOLE_ONLY = "code.language-widget, figure.widget, .doc-card";
 
 const shifted = (block: Element, by: number) => {
-  for (const one of [block, ...block.querySelectorAll("[data-at], [data-src]")]) {
+  for (const one of [block, ...block.querySelectorAll("[data-at], [data-src], [data-placed]")]) {
     for (const name of NAMES) {
       const at = spanned(one.getAttribute(name));
       if (at) one.setAttribute(name, `${at[0] + by}-${at[1] + by}`);

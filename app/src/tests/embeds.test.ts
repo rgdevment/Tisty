@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { aloneOnLine, pictureGone } from "../ui/pictureGone";
+import { aloneOnLine, embedGone } from "../ui/embeds";
 
 const pageOf = (html: string) => {
   document.body.innerHTML = `<article class="page">${html}</article>`;
@@ -8,7 +8,7 @@ const pageOf = (html: string) => {
 
 const gone = (text: string, nth = 0) => {
   const picture = document.querySelectorAll("img[data-src]")[nth];
-  const span = picture ? pictureGone(text, picture) : null;
+  const span = picture ? embedGone(text, picture) : null;
   return span ? text.slice(0, span.from) + text.slice(span.to) : null;
 };
 
@@ -33,6 +33,25 @@ describe("a picture taken away", () => {
   it("counts its place in bytes, as the core does, when the words before it are wider", () => {
     pageOf('<p data-at="0-22">Año <img data-src="5-16"> tres</p>');
     expect(gone("Año ![b](b.png) tres\n")).toBe("Año tres\n");
+  });
+
+  it("takes a file's card alone on its line away with its line, as a picture", () => {
+    pageOf(
+      '<p data-at="0-3">Uno</p><p data-at="5-18"><a class="doc-card is-file" data-placed="5-18"><span class="card-name">plan.pdf</span><button>⋯</button></a></p><p data-at="20-23">Dos</p>',
+    );
+    const card = document.querySelector("[data-placed]") as Element;
+    const span = embedGone("Uno\n\n![](plan.pdf)\n\nDos\n", card);
+    expect(span).toEqual({ from: 5, to: 20 });
+  });
+
+  it("takes a player among words away, leaving one space", () => {
+    pageOf(
+      '<p data-at="0-30">Dos <span class="media is-audio" data-placed="4-21"><button>⋯</button></span> tres</p>',
+    );
+    const player = document.querySelector("[data-placed]") as Element;
+    const text = "Dos ![Bark](bark.mp3) tres\n";
+    const span = embedGone(text, player);
+    expect(span && text.slice(0, span.from) + text.slice(span.to)).toBe("Dos tres\n");
   });
 
   it("is alone on its line only in a paragraph with no words and nothing else drawn", () => {

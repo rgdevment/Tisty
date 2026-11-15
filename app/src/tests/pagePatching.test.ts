@@ -44,6 +44,27 @@ describe("a page written on, changed only where the core drew it again", () => {
     expect(last?.querySelector("[data-src]")?.getAttribute("data-src")).toBe("15-21");
   });
 
+  it("moves the place a card or a player keeps for its file with the block after", () => {
+    const sheet = sheetOf();
+    const last = sheet.lastElementChild as Element;
+    last.innerHTML = '<a class="doc-card is-file" data-placed="12-18"></a>';
+    patched(
+      sheet,
+      {
+        spans: [
+          [0, 4],
+          [6, 13],
+          [15, 21],
+        ],
+        from: 1,
+        to: 2,
+        html: '<p data-at="6-13"><span data-src="6-13">Two too.</span></p>',
+      },
+      3,
+    );
+    expect(last.querySelector("[data-placed]")?.getAttribute("data-placed")).toBe("15-21");
+  });
+
   it("takes the place of every block a change swallows, as a fence left open", () => {
     const sheet = sheetOf();
     const laid = patched(

@@ -1,4 +1,5 @@
 import { charsAt, spanned } from "tisty-editor/read";
+import { aloneOnLine, EMBED, embedGone, embedPlace } from "./embeds";
 import type { Begun } from "./pageBegun";
 import { blank, blockPlaced, pastedAround } from "./pageBlocks";
 import type { Caret } from "./pageCaret";
@@ -19,7 +20,6 @@ import {
 import { closedRun, unpaired } from "./pageMarks";
 import { elementOf, ghostly, inCode, onSheet, unwritable } from "./pageNodes";
 import type { Writer } from "./pageWriter";
-import { aloneOnLine, PICTURE, pictureGone } from "./pictureGone";
 
 const PAIRS: Record<string, string> = {
   formatBold: "**",
@@ -110,8 +110,8 @@ export const inputOn = (
     else edge.setStart(range.startContainer, range.startOffset);
     if (edge.toString() !== "") return null;
     const beside = back ? top.previousElementSibling : top.nextElementSibling;
-    const picture = beside && aloneOnLine(beside) ? beside.querySelector(PICTURE) : null;
-    if (picture) return pictureGone(hands.text(), picture);
+    const shown = beside && aloneOnLine(beside) ? beside.querySelector(EMBED) : null;
+    if (shown) return embedGone(hands.text(), shown);
     const at = beside?.matches("hr[data-at]") ? spanned(beside.getAttribute("data-at")) : null;
     if (!beside || !at) return null;
     const until = spanned(beside.nextElementSibling?.getAttribute("data-at") ?? null)?.[0] ?? at[1];
@@ -119,7 +119,7 @@ export const inputOn = (
     return { from: charsAt(text, at[0]), to: charsAt(text, until) };
   };
 
-  // A picture among words is drawn whole, so the browser's reach misses it; the key beside it takes it away.
+  // A picture or a file among words is drawn whole, so the browser's reach misses it; the key beside it takes it away.
   const pastPicture = (kind: string): Span | null => {
     const back = kind === "deleteContentBackward";
     if (!back && kind !== "deleteContentForward") return null;
@@ -127,9 +127,9 @@ export const inputOn = (
     const at = range?.collapsed ? caret.caretSpan()?.from : undefined;
     if (at === undefined) return null;
     const text = hands.text();
-    for (const one of page.querySelectorAll(`.page ${PICTURE}`)) {
-      const own = spanned(one.getAttribute("data-src"));
-      if (own && charsAt(text, back ? own[1] : own[0]) === at) return pictureGone(text, one);
+    for (const one of page.querySelectorAll(`.page :is(${EMBED})`)) {
+      const own = embedPlace(one);
+      if (own && charsAt(text, back ? own[1] : own[0]) === at) return embedGone(text, one);
     }
     return null;
   };

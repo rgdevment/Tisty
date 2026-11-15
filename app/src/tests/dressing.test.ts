@@ -134,6 +134,23 @@ describe("dressing a drawn page", () => {
     expect(calls.served).toEqual([]);
   });
 
+  it("keeps a file's place on the card or the player drawn in its stead", () => {
+    const drawn = page(
+      '<p><img src="attachments/plan.pdf" alt="" data-src="0-27"></p><p>see <img src="attachments/acta.pdf" alt="Acta" data-src="33-61"> here</p><p><img src="attachments/bark-0006bf10.mp3" alt="Bark" data-src="70-110"></p>',
+    );
+    pictures(drawn, () => true);
+    expect(
+      Array.from(drawn.querySelectorAll<HTMLElement>("[data-placed]"), (one) => [
+        one.className,
+        one.dataset.placed,
+      ]),
+    ).toEqual([
+      ["doc-card is-file", "0-27"],
+      ["card", "33-61"],
+      ["media is-audio", "70-110"],
+    ]);
+  });
+
   it("plays audio and video where they are written", async () => {
     const drawn = page(
       '<p><img src="attachments/walk-0006bf09.mp4" alt="A walk"></p><p><img src="attachments/bark-0006bf10.mp3" alt="Bark"></p>',
