@@ -26,7 +26,7 @@ import {
 } from "tisty-editor/edit";
 import type { Carded, Head, PartCarded, Sheet as SheetSize } from "tisty-editor/read";
 import { bytesAt, charsAt, heads, spanned, stepLine, steppedTitle } from "tisty-editor/read";
-import { copied, copyAttached, type Mend, opened, viewWidget } from "../core";
+import { copied, copyAttached, type Mend, opened } from "../core";
 import { viewDiagram } from "../drawing";
 import { CATCHES, takesFiles } from "../dropped";
 import { t } from "../locales";
@@ -34,6 +34,8 @@ import { DOC, partCard } from "../markdown";
 import type { Moved } from "../paging";
 import { docPlaced, docPlacedNear } from "../placing";
 import { named } from "../previews";
+import { settled as savedAll } from "../saving";
+import { viewWidget } from "../widgetWindow";
 import { inEditor, reanchored, spanOf, touches } from "./anchoring";
 import { cardedAt, movedCard, putCard } from "./carded";
 import { LANGUAGES, languageAt, spokenIn } from "./codeLanguages";
@@ -1243,15 +1245,17 @@ export default function Sheet(props: Readonly<Props>) {
           cards={props.cards}
           onDiagram={reading || fixed || !props.wholeable ? undefined : diagram}
           onDiagramExport={fixed ? undefined : diagramOut}
-          onApart={(source) => {
-            const named = said.current.file;
-            // A task page not written yet has no file the widget could lead back to.
-            const from = named?.startsWith("unwritten:") ? undefined : named;
-            viewWidget(
-              source,
-              from ? { id: "", file: from, title: said.current.label, place: "" } : undefined,
-            ).catch(() => {});
-          }}
+          onApart={(source, place, code) =>
+            // The window reads the widget from the file, so the page's last words are saved before it opens.
+            void savedAll().then(() => {
+              const named = said.current.file;
+              const from = named?.startsWith("unwritten:") ? undefined : named;
+              const paper = from
+                ? { id: "", file: from, title: said.current.label, place: said.current.place ?? "" }
+                : undefined;
+              viewWidget(source, paper, paper ? place : undefined, code).catch(() => {});
+            })
+          }
           onOutline={(heads) => said.current.onOutline?.(heads)}
           onShown={(page, body) => {
             shown.current = page;

@@ -40,6 +40,7 @@ mod update;
 mod viewing;
 mod vouching;
 mod waking;
+mod widgeting;
 mod wiring;
 
 use tauri::{Emitter, Manager};
@@ -1338,7 +1339,8 @@ fn commands() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool + Send + Sync +
         viewing::view_facts,
         viewing::view_import,
         viewing::view_welcomed,
-        viewing::view_widget,
+        widgeting::view_widget,
+        widgeting::widget_save,
         viewing::view_doc,
         diagramming::view_diagram,
         diagramming::diagram_save,

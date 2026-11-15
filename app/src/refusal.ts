@@ -269,6 +269,7 @@ const KNOWN = [
   "lockIsTheDocs",
   "documentMoved",
   "diagramMoved",
+  "widgetMoved",
   "diagramGone",
   "taskPageBehind",
   "nothingKeptBeside",

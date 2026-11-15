@@ -273,6 +273,28 @@ describe("dressing a drawn page", () => {
     expect(sources).toEqual([4]);
   });
 
+  it("opens a widget's code in its own window, named by where its block starts, when one can be opened", () => {
+    const code =
+      '<figure class="code" data-at="4-40"><figcaption>Rina</figcaption><pre><code class="language-widget">&lt;b&gt;42&lt;/b&gt;</code></pre></figure>';
+    const opened: unknown[] = [];
+    const sources: number[] = [];
+    const written = page(code);
+    const reach = {
+      body: "Uno ```widget",
+      onDoc: () => {},
+      onSource: (at: number) => sources.push(at),
+      onApart: (...said: unknown[]) => opened.push(said),
+    };
+    widgets(written, reach);
+    answered(written, { kind: "code", at: [4, 40] }, reach);
+    answered(written, { kind: "apart", at: [4, 40] }, reach);
+    expect(opened).toEqual([
+      ["<b>42</b>", { at: 4, nth: 0 }, true],
+      ["<b>42</b>", { at: 4, nth: 0 }, false],
+    ]);
+    expect(sources).toEqual([]);
+  });
+
   it("gives a formula a way to its code only where the page is written in place", () => {
     const formula = '<p data-at="0-3">Uno</p><div class="math" data-at="5-30"><math></math></div>';
     const sources: number[] = [];

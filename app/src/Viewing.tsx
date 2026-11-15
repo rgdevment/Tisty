@@ -22,14 +22,15 @@ import { pageFor } from "./ui/sheets";
 import { darkNow } from "./ui/theming";
 import { leaveAsHtml, leaveAsWord } from "./ui/useLeaving";
 import { type Acts, choicesFor, exportsFor, keysFor, PLAIN, ZOOMS } from "./ui/viewer/acting";
-import { button } from "./ui/viewer/Glyphs";
 import Header, { titled } from "./ui/viewer/Header";
 import Preview from "./ui/viewer/Preview";
 import type ReaderWindow from "./ui/viewer/Reader";
 import Stage, { type Preset } from "./ui/viewer/Stage";
 import usePdf from "./ui/viewer/usePdf";
 import { useSheets } from "./ui/viewer/useSheets";
+import WidgetCode from "./ui/viewer/WidgetCode";
 import WindowChrome from "./ui/WindowChrome";
+import { widgetSave } from "./widgetWindow";
 
 const KEPT = "tisty.viewer";
 export const SIDE_FROM = 1000;
@@ -62,6 +63,9 @@ const useReader = (wanted: boolean) => {
 };
 
 // A diagram's window is its own thing: none of the reader's state is set up for it.
+const DRAWN_PAUSE = 250;
+const SAVED_PAUSE = 700;
+
 export default function Viewing() {
   useState(() => adopt(new URLSearchParams(window.location.search).get("locale") ?? undefined));
   const [shown, setShown] = useState<Showing | null>(null);
@@ -121,6 +125,9 @@ function Reading({
   const [dark, setDark] = useState<boolean | null>(null);
   const [again, setAgain] = useState(0);
   const [code, setCode] = useState(false);
+  const [preview, setPreview] = useState<string | null>(null);
+  const pause = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const drawing = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const [facts, setFacts] = useState<DocFacts | null>(null);
 
   useEffect(() => {
@@ -155,6 +162,26 @@ function Reading({
   useEffect(() => pageFor(leaf, turned), [leaf, turned]);
   const drawn = useRef<Window | null>(null);
   const fail = (problem: unknown) => setNote(saidPlainly(problem));
+
+  const opensOnCode = shown?.kind === "widget" && shown.code;
+  useEffect(() => {
+    if (opensOnCode) setCode(true);
+  }, [opensOnCode]);
+
+  // An empty widget is drawn as code on the page, so blank words wait for some before they are saved.
+  const drafted = (now: string) => {
+    clearTimeout(drawing.current);
+    drawing.current = setTimeout(() => setPreview(now), DRAWN_PAUSE);
+    clearTimeout(pause.current);
+    if (!now.trim()) return;
+    pause.current = setTimeout(
+      () =>
+        void widgetSave(now)
+          .then(() => setNote(null))
+          .catch(fail),
+      SAVED_PAUSE,
+    );
+  };
   const named = paper?.title ?? "";
   const pdf = usePdf({
     ready: reading,
@@ -290,23 +317,22 @@ function Reading({
       )}
       {!trouble && (!shown || (reading && !Reader)) && <Quill said={t("viewOpening")} />}
       {shown?.kind === "widget" && (
-        <Stage source={shown.source} preset={preset} actual={actual} dark={dark} again={again} />
-      )}
-      {code && shown?.kind === "widget" && (
-        <div className="absolute inset-x-0 top-11 bottom-0 z-20 flex flex-col bg-desk">
-          <div className="flex h-10 shrink-0 items-center border-b border-hair bg-panel pr-2.5 pl-4 text-[12.5px]">
-            <b className="font-semibold">{t("viewCode")}</b>
-            <button
-              type="button"
-              className={`ml-auto ${button} border-transparent text-soft`}
-              onClick={() => setCode(false)}
-            >
-              {t("viewClose")}
-            </button>
-          </div>
-          <pre className="scroller m-0 min-h-0 flex-1 whitespace-pre-wrap break-words px-6 py-5 font-mono text-[12.5px] leading-relaxed">
-            {shown.source}
-          </pre>
+        <div className="flex min-h-0 flex-1">
+          {code && (
+            <WidgetCode
+              source={shown.source}
+              writable={shown.writable}
+              onDraft={drafted}
+              onClose={() => setCode(false)}
+            />
+          )}
+          <Stage
+            source={preview ?? shown.source}
+            preset={preset}
+            actual={actual}
+            dark={dark}
+            again={again}
+          />
         </div>
       )}
       {pdf.seeing && (

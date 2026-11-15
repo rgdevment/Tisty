@@ -1152,6 +1152,8 @@ const en = {
   documentMoved: "Something wrote in this document while you had it open here",
   diagramMoved:
     "This diagram changed in «{name}» since you opened it. Close this window and open it again from the document",
+  widgetMoved:
+    "This widget changed in «{name}» since you opened it. Close this window and open it again from the document",
   diagramOf: "Diagram · {name}",
   diagramOpen: "Open in the diagram window",
   diagramExport: "Export",
@@ -4358,6 +4360,8 @@ const es: Catalog = {
   documentMoved: "Algo escribió en este documento mientras lo tenías abierto aquí",
   diagramMoved:
     "Este diagrama cambió en «{name}» desde que lo abriste. Cierra esta ventana y vuelve a abrirlo desde el documento",
+  widgetMoved:
+    "Este widget cambió en «{name}» desde que lo abriste. Cierra esta ventana y vuelve a abrirlo desde el documento",
   diagramOf: "Diagrama · {name}",
   diagramOpen: "Abrir en la ventana de diagramas",
   diagramExport: "Exportar",

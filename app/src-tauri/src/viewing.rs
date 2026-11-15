@@ -25,16 +25,32 @@ pub struct Paper {
 pub enum Shown {
     File(PathBuf),
     Doc(Paper),
-    Widget { source: String, from: Option<Paper> },
+    Widget {
+        source: String,
+        from: Option<Paper>,
+        place: Option<tisty_markdown::diagrams::Place>,
+        code: bool,
+    },
     Diagram(crate::diagramming::Drawn),
 }
 
 #[derive(Debug, serde::Serialize)]
 #[serde(rename_all = "camelCase", tag = "kind")]
 pub enum Showing {
-    Doc { paper: Paper, body: String },
-    Widget { source: String, from: Option<Paper> },
-    Diagram { paper: Paper, source: String },
+    Doc {
+        paper: Paper,
+        body: String,
+    },
+    Widget {
+        source: String,
+        from: Option<Paper>,
+        code: bool,
+        writable: bool,
+    },
+    Diagram {
+        paper: Paper,
+        source: String,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -632,7 +648,17 @@ pub async fn view_shown(app: AppHandle, window: tauri::WebviewWindow) -> Answer<
             body: doc_body(&app, &paper.file)?,
             paper,
         },
-        Shown::Widget { source, from } => Showing::Widget { source, from },
+        Shown::Widget {
+            source,
+            from,
+            place,
+            code,
+        } => Showing::Widget {
+            source,
+            from,
+            code,
+            writable: place.is_some(),
+        },
         Shown::Diagram(drawn) => Showing::Diagram {
             paper: drawn.paper,
             source: drawn.was,
@@ -763,11 +789,6 @@ fn imported_once(app: &AppHandle, views: &Views, at: &Path) -> Answer<(Paper, Le
 #[tauri::command(async)]
 pub fn view_go(app: AppHandle, file: String) {
     bring(&app, &file);
-}
-
-#[tauri::command(async)]
-pub fn view_widget(app: AppHandle, source: String, from: Option<Paper>) {
-    open(&app, Shown::Widget { source, from });
 }
 
 #[tauri::command(async)]

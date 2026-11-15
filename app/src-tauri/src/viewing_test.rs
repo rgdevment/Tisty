@@ -169,6 +169,8 @@ fn only_a_file_from_outside_gets_the_systems_title_bar() {
         super::Shown::Widget {
             source: "<p>x</p>".into(),
             from: Some(paper),
+            place: None,
+            code: false,
         },
     ] {
         assert_eq!(

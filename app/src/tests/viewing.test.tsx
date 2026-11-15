@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Showing } from "../core";
@@ -10,6 +10,7 @@ const ipc = vi.hoisted(() => ({
   calls: [] as { cmd: string; args: Record<string, unknown> }[],
   shown: null as unknown,
   facts: null as unknown,
+  refused: null as unknown,
 }));
 
 vi.mock("@tauri-apps/api/core", () => ({
@@ -17,6 +18,7 @@ vi.mock("@tauri-apps/api/core", () => ({
     ipc.calls.push({ cmd, args: args ?? {} });
     if (cmd === "view_shown") return Promise.resolve(ipc.shown);
     if (cmd === "view_facts") return Promise.resolve(ipc.facts);
+    if (cmd === "widget_save" && ipc.refused) return Promise.reject(ipc.refused);
     return Promise.resolve(null);
   },
   convertFileSrc: (path: string, scheme: string) => `http://${scheme}.localhost/${path}`,
@@ -91,6 +93,7 @@ beforeEach(() => {
   ipc.calls = [];
   ipc.shown = tisty;
   ipc.facts = null;
+  ipc.refused = null;
   window.innerWidth = SIDE_FROM - 1;
   localStorage.clear();
 });
@@ -120,7 +123,13 @@ describe("the viewer", () => {
   });
 
   it("draws a widget on a stage with its widths to try", async () => {
-    ipc.shown = { kind: "widget", source: "<p>hola</p>", from: null } satisfies Showing;
+    ipc.shown = {
+      kind: "widget",
+      source: "<p>hola</p>",
+      from: null,
+      code: false,
+      writable: false,
+    } satisfies Showing;
     render(<Viewing />);
 
     expect(await screen.findByRole("button", { name: t("viewPhone") })).toBeTruthy();
@@ -266,7 +275,13 @@ describe("reading in the viewer", () => {
   });
 
   it("shows a widget's code over the stage and closes it on Esc", async () => {
-    ipc.shown = { kind: "widget", source: "<p>hola</p>", from: null } satisfies Showing;
+    ipc.shown = {
+      kind: "widget",
+      source: "<p>hola</p>",
+      from: null,
+      code: false,
+      writable: false,
+    } satisfies Showing;
     render(<Viewing />);
     await screen.findByRole("button", { name: t("viewPhone") });
 
@@ -328,7 +343,13 @@ describe("the reader comes only to a window with words to read", () => {
   it("is not loaded for a widget", async () => {
     const loaded = counted();
 
-    await viewed({ kind: "widget", source: "<p>hola</p>", from: null });
+    await viewed({
+      kind: "widget",
+      source: "<p>hola</p>",
+      from: null,
+      code: false,
+      writable: false,
+    });
 
     expect(await screen.findByRole("button", { name: t("viewPhone") })).toBeTruthy();
     expect(loaded).toEqual([]);
@@ -383,5 +404,56 @@ describe("the reader comes only to a window with words to read", () => {
 
     expect(await screen.findByText(t("windowFell"))).toBeTruthy();
     expect(screen.getByRole("button", { name: t("windowFellAgain") })).toBeTruthy();
+  });
+});
+
+describe("a widget's code in its own window", () => {
+  const opened = (writable: boolean) => {
+    ipc.shown = {
+      kind: "widget",
+      source: "<b>1</b>\n",
+      from: { id: "", file: "f1", title: "Notas", place: "" },
+      code: true,
+      writable,
+    } satisfies Showing;
+    render(<Viewing />);
+  };
+
+  it("opens on the code beside the drawing and saves what is written after a pause", async () => {
+    opened(true);
+    const field = (await screen.findByRole("textbox", {
+      name: t("viewCode"),
+    })) as HTMLTextAreaElement;
+    expect(field.value).toBe("<b>1</b>\n");
+    expect(field.readOnly).toBe(false);
+    fireEvent.change(field, { target: { value: "<b>2</b>\n" } });
+    expect(asked("widget_save")).toHaveLength(0);
+    await act(() => vi.advanceTimersByTimeAsync(800));
+    expect(asked("widget_save").map((one) => one.args)).toEqual([{ now: "<b>2</b>\n" }]);
+  });
+
+  it("saves nothing while the code is left empty, as an empty widget is no widget", async () => {
+    opened(true);
+    const field = await screen.findByRole("textbox", { name: t("viewCode") });
+    fireEvent.change(field, { target: { value: "  " } });
+    await act(() => vi.advanceTimersByTimeAsync(800));
+    expect(asked("widget_save")).toHaveLength(0);
+  });
+
+  it("only shows the code where the document cannot be written", async () => {
+    opened(false);
+    const field = (await screen.findByRole("textbox", {
+      name: t("viewCode"),
+    })) as HTMLTextAreaElement;
+    expect(field.readOnly).toBe(true);
+  });
+
+  it("says so when the widget changed in the document since it was opened", async () => {
+    ipc.refused = { code: "widgetMoved", name: "Notas" };
+    opened(true);
+    const field = await screen.findByRole("textbox", { name: t("viewCode") });
+    fireEvent.change(field, { target: { value: "<b>3</b>" } });
+    await act(() => vi.advanceTimersByTimeAsync(800));
+    expect(await screen.findByRole("alert")).toBeTruthy();
   });
 });

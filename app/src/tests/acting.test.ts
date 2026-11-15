@@ -32,6 +32,8 @@ const widget: Showing = {
   kind: "widget",
   source: "<p>x</p>",
   from: { id: "", file: "f1", title: "Notas", place: "" },
+  code: false,
+  writable: false,
 };
 
 const acts = (on: Showing | null): Acts & Record<string, ReturnType<typeof vi.fn>> => {
