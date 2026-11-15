@@ -60,6 +60,8 @@ const lookable = (all: Iterable<Element>): Element[] =>
 
 const shotsIn = (page: Document): Element[] => lookable(page.querySelectorAll(SHOTS));
 
+export const shotIn = (page: Document, nth: number): Element | null => shotsIn(page)[nth] ?? null;
+
 export const shotAt = (page: Document, target: Element | null): number | null => {
   const shot = target?.closest(SHOTS);
   const nth = shot ? shotsIn(page).indexOf(shot) : -1;

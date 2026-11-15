@@ -51,8 +51,9 @@ import { mended as mendedText } from "./mending";
 import Page from "./Page";
 import type { Act } from "./pageMoving";
 import { type Hands, type PageWriting, type Turns, turnsAnew, writtenOn } from "./pageWriting";
-import type { Went } from "./paging";
+import { shotIn, type Went } from "./paging";
 import { laid } from "./parting";
+import { PICTURE, pictureGone } from "./pictureGone";
 import type { Formatting, Menued } from "./quickly";
 import { type Reshape, reshaped } from "./recarding";
 import Skeleton from "./Skeleton";
@@ -735,6 +736,24 @@ export default function Sheet(props: Readonly<Props>) {
     const words = writer?.chosen() ?? null;
     const back = () => shown.current?.focus();
     const choices: Choice[] = [...pictures.offered(shown.current?.document, asked.picture)];
+    const page = shown.current?.document;
+    const picture = page && asked.picture !== null ? shotIn(page, asked.picture) : null;
+    const gone =
+      picture?.matches(PICTURE) && showing.current === latest.current
+        ? pictureGone(latest.current, picture)
+        : null;
+    if (writer && gone)
+      choices.push({
+        key: "pictureDrop",
+        label: t("pictureDrop"),
+        danger: true,
+        apart: true,
+        onPick: () => {
+          const now = latest.current;
+          if (now === showing.current) rewritten(now.slice(0, gone.from) + now.slice(gone.to));
+          back();
+        },
+      });
     if (writer && words) {
       choices.push(
         {

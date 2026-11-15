@@ -19,6 +19,7 @@ import {
 import { closedRun, unpaired } from "./pageMarks";
 import { elementOf, ghostly, inCode, onSheet, unwritable } from "./pageNodes";
 import type { Writer } from "./pageWriter";
+import { aloneOnLine, PICTURE, pictureGone } from "./pictureGone";
 
 const PAIRS: Record<string, string> = {
   formatBold: "**",
@@ -109,11 +110,28 @@ export const inputOn = (
     else edge.setStart(range.startContainer, range.startOffset);
     if (edge.toString() !== "") return null;
     const beside = back ? top.previousElementSibling : top.nextElementSibling;
+    const picture = beside && aloneOnLine(beside) ? beside.querySelector(PICTURE) : null;
+    if (picture) return pictureGone(hands.text(), picture);
     const at = beside?.matches("hr[data-at]") ? spanned(beside.getAttribute("data-at")) : null;
     if (!beside || !at) return null;
     const until = spanned(beside.nextElementSibling?.getAttribute("data-at") ?? null)?.[0] ?? at[1];
     const text = hands.text();
     return { from: charsAt(text, at[0]), to: charsAt(text, until) };
+  };
+
+  // A picture among words is drawn whole, so the browser's reach misses it; the key beside it takes it away.
+  const pastPicture = (kind: string): Span | null => {
+    const back = kind === "deleteContentBackward";
+    if (!back && kind !== "deleteContentForward") return null;
+    const range = caret.chosen();
+    const at = range?.collapsed ? caret.caretSpan()?.from : undefined;
+    if (at === undefined) return null;
+    const text = hands.text();
+    for (const one of page.querySelectorAll(`.page ${PICTURE}`)) {
+      const own = spanned(one.getAttribute("data-src"));
+      if (own && charsAt(text, back ? own[1] : own[0]) === at) return pictureGone(text, one);
+    }
+    return null;
   };
 
   // At a block's edge the key takes nothing when this block or the one beside it is drawn whole, or would leave a fold or a note.
@@ -162,7 +180,7 @@ export const inputOn = (
     if (kind !== "insertText" && !kind.startsWith("format")) writer.pending = null;
     if (kind === "historyUndo") return history.undo();
     if (kind === "historyRedo") return history.redo();
-    const broken = pastBreak(kind);
+    const broken = pastBreak(kind) ?? pastPicture(kind);
     if (broken) {
       const stays =
         kind === "deleteContentForward" ? (caret.caretSpan()?.from ?? broken.from) : broken.from;

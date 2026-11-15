@@ -935,6 +935,63 @@ describe("what a second look found writing on the page", () => {
     asked("insertText", "!");
     expect(last(said)).toBe("Uno!\n\nDos\n");
   });
+
+  describe("a picture beside the caret", () => {
+    const PICTURED = "Uno\n\n![a](a.png)\n\nDos ![b](b.png) tres\n";
+    const drawn = () => {
+      const said = writer(PICTURED);
+      pageOf(
+        '<p data-at="0-3"><span data-src="0-3">Uno</span></p><p data-at="5-16"><img alt="a" data-src="5-16" contenteditable="false"></p><p data-at="18-38"><span data-src="18-22">Dos </span><img alt="b" data-src="22-33" contenteditable="false"><span data-src="33-38"> tres</span></p>',
+      );
+      writing?.drawn();
+      return said;
+    };
+
+    it("takes a picture alone on its line away, with its line, from the words above it", () => {
+      const said = drawn();
+      caretIn("Uno", 3);
+      asked("deleteContentForward");
+      asked("insertText", "!");
+      expect(last(said)).toBe("Uno!\n\nDos ![b](b.png) tres\n");
+    });
+
+    it("takes a picture alone on its line away from the words under it", () => {
+      const said = drawn();
+      caretIn("Dos ", 0);
+      asked("deleteContentBackward");
+      expect(last(said)).toBe("Uno\n\nDos ![b](b.png) tres\n");
+    });
+
+    it("takes a picture among words away on Delete before it, leaving one space", () => {
+      const said = drawn();
+      caretIn("Dos ", 4);
+      asked("deleteContentForward");
+      expect(last(said)).toBe("Uno\n\n![a](a.png)\n\nDos tres\n");
+    });
+
+    it("takes a picture among words away on Backspace after it, leaving one space", () => {
+      const said = drawn();
+      caretIn(" tres", 0);
+      asked("deleteContentBackward");
+      expect(last(said)).toBe("Uno\n\n![a](a.png)\n\nDos tres\n");
+    });
+
+    it("still deletes only a letter of words that stand near a picture", () => {
+      const said = drawn();
+      caretIn(" tres", 5);
+      const reach = document.createRange();
+      reach.setStart(piece(" tres"), 4);
+      reach.setEnd(piece(" tres"), 5);
+      const event = new InputEvent("beforeinput", {
+        inputType: "deleteContentBackward",
+        bubbles: true,
+        cancelable: true,
+      });
+      Object.defineProperty(event, "getTargetRanges", { value: () => [reach] });
+      document.querySelector(".page")?.dispatchEvent(event);
+      expect(last(said)).toBe("Uno\n\n![a](a.png)\n\nDos ![b](b.png) tre\n");
+    });
+  });
 });
 
 describe("Tab on the page written in place", () => {
@@ -1312,7 +1369,7 @@ describe("a key at the edge of a block drawn whole", () => {
     expect(said).toEqual([]);
   });
 
-  it("takes nothing on Backspace under a picture alone in its paragraph", () => {
+  it("takes a picture alone in its paragraph away on Backspace under it, never joining words into it", () => {
     const said = writer("![a](x.png)\n\nTras.\n");
     pageOf(
       '<p data-at="0-11"><img data-src="0-11" contenteditable="false" src="x.png" alt="a"></p><p data-at="13-18"><span data-src="13-18">Tras.</span></p>',
@@ -1329,7 +1386,7 @@ describe("a key at the edge of a block drawn whole", () => {
     });
     Object.defineProperty(event, "getTargetRanges", { value: () => [reach] });
     document.querySelector(".page")?.dispatchEvent(event);
-    expect(said).toEqual([]);
+    expect(said).toEqual(["Tras.\n"]);
   });
 
   it("still joins two paragraphs, as any editor does", () => {
