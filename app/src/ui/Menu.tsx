@@ -31,7 +31,8 @@ interface Props {
   find?: string;
   /** A line under the choices on how the keys walk them. */
   foot?: string;
-  onClose: () => void;
+  /** Put away without a choice, it hands back what was typed in its search, so those words are not lost. */
+  onClose: (sought?: string) => void;
 }
 
 const EDGE = 6;
@@ -51,6 +52,7 @@ export default function Menu({ at, choices, label, up, keeps, find, foot, onClos
   const [where, setWhere] = useState<{ x: number; y: number; tall?: number }>(at);
   const [deeper, setDeeper] = useState<{ label: string; choices: Choice[] } | null>(null);
   const [asked, setAsked] = useState("");
+  const typed = useRef("");
   const showing = deeper ?? { label, choices };
   const sought = deeper ? "" : folded(asked.trim());
   const live = showing.choices.filter(
@@ -101,10 +103,10 @@ export default function Menu({ at, choices, label, up, keeps, find, foot, onClos
 
   useEffect(() => {
     const away = (e: Event) => {
-      if (!card.current?.contains(e.target as Node)) onClose();
+      if (!card.current?.contains(e.target as Node)) onClose(typed.current);
     };
     // A click in a page's frame never reaches this document; it takes the focus from the window instead.
-    const left = () => onClose();
+    const left = () => onClose(typed.current);
     const listen = setTimeout(() => {
       document.addEventListener("mousedown", away);
       document.addEventListener("scroll", away, true);
@@ -135,7 +137,7 @@ export default function Menu({ at, choices, label, up, keeps, find, foot, onClos
         if (e.key === "Escape") {
           e.stopPropagation();
           if (deeper) return setDeeper(null);
-          onClose();
+          onClose(typed.current);
         }
         if (e.key === "ArrowLeft" && deeper) {
           e.preventDefault();
@@ -154,7 +156,12 @@ export default function Menu({ at, choices, label, up, keeps, find, foot, onClos
           value={asked}
           placeholder={find}
           aria-label={find}
-          onChange={(e) => setAsked(e.target.value)}
+          onChange={(e) => {
+            typed.current = e.target.value;
+            // A space right after the slash is a sentence going on, as in «10 / 2», not a block being sought.
+            if (e.target.value.startsWith(" ")) return onClose(e.target.value);
+            setAsked(e.target.value);
+          }}
           onKeyDown={(e) => {
             if (e.key !== "Enter") return;
             e.preventDefault();

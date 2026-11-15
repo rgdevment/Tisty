@@ -235,7 +235,7 @@ export default function Sheet(props: Readonly<Props>) {
     label?: string;
     find?: string;
     foot?: string;
-    unpicked?: () => void;
+    unpicked?: (sought?: string) => void;
   } | null>(null);
   const askedOn = useRef("");
   const landing = useRef<Landing | null>(null);
@@ -592,12 +592,12 @@ export default function Sheet(props: Readonly<Props>) {
     let closed = false;
     const stood = writer.caretAt();
     // The menu closes before it hands over what was picked, so the slash waits for that to land.
-    const unpicked = () =>
+    const unpicked = (sought = "") =>
       setTimeout(() => {
         if (picked || closed) return;
         closed = true;
         back();
-        if (slash) writer.typed("/");
+        if (slash) writer.typed(`/${sought}`);
         else stoodAgain(stood);
       });
     setMenu({
@@ -1253,8 +1253,8 @@ export default function Sheet(props: Readonly<Props>) {
           find={menu.find}
           foot={menu.foot}
           keeps
-          onClose={() => {
-            menu.unpicked?.();
+          onClose={(sought) => {
+            menu.unpicked?.(sought);
             setMenu(null);
           }}
         />

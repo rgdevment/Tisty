@@ -1,8 +1,9 @@
 import { charsAt, spanned } from "tisty-editor/read";
 import type { Begun } from "./pageBegun";
-import { blank, blockPlaced } from "./pageBlocks";
+import { blank, blockPlaced, pastedAround } from "./pageBlocks";
 import type { Caret } from "./pageCaret";
 import { type Span, unsplit } from "./pageEdits";
+import { fenceJustOpened, fenceNamed, fenceOpened } from "./pageFences";
 import type { Formats } from "./pageFormats";
 import type { PageHistory } from "./pageHistory";
 import type { Laying } from "./pageLaying";
@@ -22,6 +23,38 @@ const PAIRS: Record<string, string> = {
 const SOLID_BLOCK =
   ".table, figure, details, hr, blockquote[data-callout], .front, [contenteditable='false']";
 
+const ATOMS = "[contenteditable='false'], img, button";
+
+// A press on a page break leaves the caret on the sheet beside it, or on its label, never in words.
+const breakAt = (range: AbstractRange): Element | null => {
+  const node = range.startContainer;
+  const element = elementOf(node);
+  const sheet = element?.closest(".page");
+  if (!element || !sheet) return null;
+  const said = element.closest(".break-said");
+  if (said) {
+    const nth = Array.from(sheet.querySelectorAll(":scope > .break-said")).indexOf(said);
+    return sheet.querySelectorAll(":scope > hr[data-at]")[nth] ?? null;
+  }
+  const own = element.closest(".page > hr[data-at]");
+  if (own || element !== sheet) return own;
+  const beside = [node.childNodes[range.startOffset], node.childNodes[range.startOffset - 1]];
+  return (
+    (beside.find((one) => one instanceof Element && one.matches("hr[data-at]")) as Element) ?? null
+  );
+};
+const DRESSING = "button, [contenteditable='false']:not([data-src])";
+
+// A paragraph holding nothing but a picture, a card or a formula is drawn whole as well.
+const drawnWhole = (one: Element) => {
+  if (one.matches(SOLID_BLOCK)) return true;
+  const copy = one.cloneNode(true) as Element;
+  const atoms = copy.querySelectorAll(ATOMS);
+  if (!atoms.length) return false;
+  for (const atom of atoms) atom.remove();
+  return copy.textContent?.trim() === "";
+};
+
 export const inputOn = (
   writer: Writer,
   caret: Caret,
@@ -39,7 +72,7 @@ export const inputOn = (
     const plain = data?.getData("text/plain") ?? "";
     hands
       .translated(html, plain)
-      .then((said) => put({ ...one, insert: said }))
+      .then((said) => put({ ...one, insert: pastedAround(hands.text(), one.from, one.to, said) }))
       .catch(() => put({ ...one, insert: plain }));
   };
 
@@ -83,14 +116,14 @@ export const inputOn = (
     if (back) edge.setEnd(range.startContainer, range.startOffset);
     else edge.setStart(range.startContainer, range.startOffset);
     const between = edge.cloneContents();
-    for (const one of between.querySelectorAll("[contenteditable='false'], button")) one.remove();
+    for (const one of between.querySelectorAll(DRESSING)) one.remove();
     if (between.textContent !== "") return false;
-    if (inner.matches(SOLID_BLOCK)) return true;
+    if (drawnWhole(inner)) return true;
     const step = (one: Element) => (back ? one.previousElementSibling : one.nextElementSibling);
     for (let at: Element | null = inner; at && !at.matches(".page"); ) {
       let beside = step(at);
       while (beside && !beside.matches("[data-at]")) beside = step(beside);
-      if (beside) return beside.matches(SOLID_BLOCK);
+      if (beside) return drawnWhole(beside);
       at = at.parentElement?.closest(".page [data-at], .page") ?? null;
       if (at?.matches(SOLID_BLOCK)) return true;
     }
@@ -119,6 +152,16 @@ export const inputOn = (
     const range = target ?? caret.chosen();
     const picked = caret.chosen();
     const spread = Boolean(picked && !picked.collapsed);
+    const shelf = range && !spread ? breakAt(range) : null;
+    if (shelf) {
+      const span = spanned(shelf.getAttribute("data-at"));
+      const first = kind === "insertText" ? (event.data ?? "") : "";
+      if (span && first) {
+        begun.begin(charsAt(hands.text(), span[1]), "", shelf);
+        if (writer.kept) begun.firstKey(writer.kept, first);
+      }
+      return;
+    }
     // A caret dropped on a table, a picture or a widget has no words under it to write among.
     if (range && !spread && unwritable(range.startContainer)) return;
     const held = picked ?? range;
@@ -140,6 +183,8 @@ export const inputOn = (
     if (kind === "insertText" && typed === "/" && slashes(text, one, range))
       return hands.blocks(caret.caretPoint(), true);
     if (kind === "insertText" && one.from === one.to) {
+      const fence = !inCode(range.startContainer) && fenceOpened(text, one.from, typed);
+      if (fence) return put(fence.edit, fence.caret);
       if (writer.pending?.at === one.from) return formats.pendingKey(one.from, typed);
       const opened = text.slice(text.lastIndexOf("\n", one.from - 1) + 1, one.from);
       if (typed === " " && /^\s*(?:>\s?)*\[ ?\]$/.test(opened)) {
@@ -175,6 +220,10 @@ export const inputOn = (
     }
     if (kind === "insertParagraph" || kind === "insertLineBreak") {
       const coded = inCode(range.startContainer);
+      const named =
+        kind === "insertParagraph" && coded && one.from === one.to && fenceNamed(text, one.from);
+      if (named) return put(named.edit, named.caret);
+      if (kind === "insertParagraph" && coded && fenceJustOpened(text, one.from)) return;
       const at = one.from === one.to && !coded ? closedRun(text, one.from) : one.from;
       const insert = kind === "insertLineBreak" ? "\n" : parted(text, at, coded);
       return put({ from: at, to: Math.max(at, one.to), insert });

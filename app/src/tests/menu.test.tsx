@@ -331,4 +331,31 @@ describe("a menu of blocks", () => {
     expect(item.textContent).toContain("#");
     expect(screen.getByText("↑ ↓ para moverte")).toBeTruthy();
   });
+
+  const sought = () => {
+    const onClose = vi.fn();
+    render(
+      <Menu
+        at={{ x: 20, y: 30 }}
+        choices={[{ key: "h1", label: "Título", onPick: vi.fn() }]}
+        label="Bloques"
+        find="Busca un bloque"
+        onClose={onClose}
+      />,
+    );
+    return { onClose, field: screen.getByRole("searchbox") };
+  };
+
+  it("hands back what was typed in its search when put away, so those words are not lost", async () => {
+    const { onClose, field } = sought();
+    await userEvent.type(field, "2 = 5");
+    await userEvent.keyboard("{Escape}");
+    expect(onClose).toHaveBeenLastCalledWith("2 = 5");
+  });
+
+  it("closes on a space right after the slash, a sentence going on", async () => {
+    const { onClose, field } = sought();
+    await userEvent.type(field, " ");
+    expect(onClose).toHaveBeenCalledWith(" ");
+  });
 });

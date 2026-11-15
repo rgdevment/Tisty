@@ -1278,6 +1278,26 @@ describe("a key at the edge of a block drawn whole", () => {
     expect(said).toEqual([]);
   });
 
+  it("takes nothing on Backspace under a picture alone in its paragraph", () => {
+    const said = writer("![a](x.png)\n\nTras.\n");
+    pageOf(
+      '<p data-at="0-11"><img data-src="0-11" contenteditable="false" src="x.png" alt="a"></p><p data-at="13-18"><span data-src="13-18">Tras.</span></p>',
+    );
+    writing?.drawn();
+    caretIn("Tras.", 0);
+    const reach = document.createRange();
+    reach.setStart(document.querySelector("p") as Element, 1);
+    reach.setEnd(piece("Tras."), 0);
+    const event = new InputEvent("beforeinput", {
+      inputType: BACK,
+      bubbles: true,
+      cancelable: true,
+    });
+    Object.defineProperty(event, "getTargetRanges", { value: () => [reach] });
+    document.querySelector(".page")?.dispatchEvent(event);
+    expect(said).toEqual([]);
+  });
+
   it("still joins two paragraphs, as any editor does", () => {
     const said = writer("Uno.\n\nDos.\n");
     pageOf(
@@ -1287,5 +1307,29 @@ describe("a key at the edge of a block drawn whole", () => {
     caretIn("Dos.", 0);
     across(BACK, ["Uno.", 4], ["Dos.", 0]);
     expect(said[said.length - 1]).toBe("Uno.Dos.\n");
+  });
+});
+
+describe("a caret left on a page break", () => {
+  const BREAK =
+    '<p data-at="0-3"><span data-src="0-3">Uno</span></p><hr data-at="5-8"><p data-at="10-13"><span data-src="10-13">Dos</span></p>';
+
+  it("writes a key on a new line after the break, never on the break's own line", () => {
+    const said = writer("Uno\n\n---\n\nDos\n");
+    pageOf(BREAK);
+    writing?.drawn();
+    document.getSelection()?.collapse(document.querySelector(".page") as Element, 1);
+    asked("insertText", "Q");
+    expect(said[said.length - 1]).toBe("Uno\n\n---\n\nQ\n\nDos\n");
+  });
+
+  it("lets Enter and Backspace there take nothing", () => {
+    const said = writer("Uno\n\n---\n\nDos\n");
+    pageOf(BREAK);
+    writing?.drawn();
+    document.getSelection()?.collapse(document.querySelector(".page") as Element, 1);
+    asked("insertParagraph");
+    asked("deleteContentBackward");
+    expect(said).toEqual([]);
   });
 });
