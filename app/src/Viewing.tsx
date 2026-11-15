@@ -126,6 +126,8 @@ function Reading({
   const [again, setAgain] = useState(0);
   const [code, setCode] = useState(false);
   const [preview, setPreview] = useState<string | null>(null);
+  const [draft, setDraft] = useState<string | null>(null);
+  const unsaved = useRef<string | null>(null);
   const pause = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const drawing = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const [facts, setFacts] = useState<DocFacts | null>(null);
@@ -170,18 +172,30 @@ function Reading({
 
   // An empty widget is drawn as code on the page, so blank words wait for some before they are saved.
   const drafted = (now: string) => {
+    setDraft(now);
     clearTimeout(drawing.current);
     drawing.current = setTimeout(() => setPreview(now), DRAWN_PAUSE);
     clearTimeout(pause.current);
-    if (!now.trim()) return;
-    pause.current = setTimeout(
-      () =>
-        void widgetSave(now)
-          .then(() => setNote(null))
-          .catch(fail),
-      SAVED_PAUSE,
-    );
+    unsaved.current = now.trim() ? now : null;
+    if (unsaved.current !== null) pause.current = setTimeout(() => void flush(), SAVED_PAUSE);
   };
+  const flush = (): Promise<void> => {
+    clearTimeout(pause.current);
+    const now = unsaved.current;
+    unsaved.current = null;
+    if (now === null) return Promise.resolve();
+    return widgetSave(now)
+      .then(() => setNote(null))
+      .catch(fail);
+  };
+  const flushing = useRef(flush);
+  flushing.current = flush;
+  useEffect(() => {
+    const closing = getCurrentWindow().onCloseRequested(() => flushing.current());
+    return () => {
+      closing.then((off) => off()).catch(() => {});
+    };
+  }, []);
   const named = paper?.title ?? "";
   const pdf = usePdf({
     ready: reading,
@@ -320,7 +334,7 @@ function Reading({
         <div className="flex min-h-0 flex-1">
           {code && (
             <WidgetCode
-              source={shown.source}
+              source={draft ?? shown.source}
               writable={shown.writable}
               onDraft={drafted}
               onClose={() => setCode(false)}

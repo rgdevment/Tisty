@@ -60,6 +60,8 @@ vi.mock("@tauri-apps/plugin-dialog", () => ({
   message: () => Promise.resolve(),
 }));
 
+const closing: { heard: (() => Promise<void>) | null } = { heard: null };
+
 vi.mock("@tauri-apps/api/window", () => ({
   getCurrentWindow: () => ({
     label: "view-0",
@@ -67,6 +69,10 @@ vi.mock("@tauri-apps/api/window", () => ({
     minimize: () => Promise.resolve(),
     toggleMaximize: () => Promise.resolve(),
     close: () => Promise.resolve(),
+    onCloseRequested: (heard: () => Promise<void>) => {
+      closing.heard = heard;
+      return Promise.resolve(() => {});
+    },
   }),
 }));
 
@@ -455,5 +461,40 @@ describe("a widget's code in its own window", () => {
     fireEvent.change(field, { target: { value: "<b>3</b>" } });
     await act(() => vi.advanceTimersByTimeAsync(800));
     expect(await screen.findByRole("alert")).toBeTruthy();
+  });
+
+  it("brings back what was written when the code is closed and opened again", async () => {
+    opened(true);
+    const field = await screen.findByRole("textbox", { name: t("viewCode") });
+    fireEvent.change(field, { target: { value: "<b>4</b>\n" } });
+    fireEvent.keyDown(window, { key: "Escape" });
+    expect(screen.queryByRole("textbox", { name: t("viewCode") })).toBeNull();
+    await picked(t("viewCode"));
+    const again = (await screen.findByRole("textbox", {
+      name: t("viewCode"),
+    })) as HTMLTextAreaElement;
+    expect(again.value).toBe("<b>4</b>\n");
+    await act(() => vi.advanceTimersByTimeAsync(800));
+    expect(asked("widget_save").map((one) => one.args)).toEqual([{ now: "<b>4</b>\n" }]);
+  });
+
+  it("saves what is still waiting when the window is closed", async () => {
+    opened(true);
+    const field = await screen.findByRole("textbox", { name: t("viewCode") });
+    fireEvent.change(field, { target: { value: "<b>5</b>\n" } });
+    await act(() => closing.heard?.() ?? Promise.resolve());
+    expect(asked("widget_save").map((one) => one.args)).toEqual([{ now: "<b>5</b>\n" }]);
+    await act(() => vi.advanceTimersByTimeAsync(800));
+    expect(asked("widget_save")).toHaveLength(1);
+  });
+
+  it("indents with Tab instead of leaving the code", async () => {
+    opened(true);
+    const field = (await screen.findByRole("textbox", {
+      name: t("viewCode"),
+    })) as HTMLTextAreaElement;
+    field.setSelectionRange(0, 0);
+    fireEvent.keyDown(field, { key: "Tab" });
+    expect(field.value).toBe("  <b>1</b>\n");
   });
 });
