@@ -5,11 +5,11 @@ import { jot } from "./brainstorm";
 import { capture, type Priority, type Snapshot, shortcut, snapshot } from "./core";
 import { diaryWrite } from "./diary";
 import { adopt, fill, t } from "./locales";
+import { IDEA_AT_MOST } from "./notes";
 import { said } from "./quadrants";
 import { saidPlainly } from "./refusal";
 import CaptureField from "./ui/CaptureField";
-import DiaryField from "./ui/DiaryField";
-import IdeaField from "./ui/IdeaField";
+import QuickField from "./ui/QuickField";
 import { winksNow } from "./wink";
 
 const anyOf = (all: string[]): string => all[Math.floor(Math.random() * all.length)] ?? "";
@@ -135,26 +135,18 @@ export default function Quick() {
         <p className="flex items-baseline gap-2.5 text-[21px] leading-snug -tracking-[0.011em]">
           <span className="text-[13px] text-accent">✓</span> {kept}
         </p>
-      ) : mode === "diary" ? (
-        <DiaryField
-          key={round}
-          onWrite={(text) => {
+      ) : mode !== "task" ? (
+        <QuickField
+          key={`${mode}-${round}`}
+          icon={mode === "idea" ? "✎" : "❧"}
+          hint={t(mode === "idea" ? "jotIdea" : "diaryWriting")}
+          most={mode === "idea" ? IDEA_AT_MOST : undefined}
+          onKeep={(text) => {
             setError(null);
-            return diaryWrite(text).then(() => {
+            const kept = mode === "idea" ? jot(text, t("brainstorm")) : diaryWrite(text);
+            return kept.then(() => {
               void emit("jotted");
               done(text.trim());
-            });
-          }}
-          onError={setError}
-        />
-      ) : mode === "idea" ? (
-        <IdeaField
-          key={round}
-          onJot={(idea) => {
-            setError(null);
-            return jot(idea, t("brainstorm")).then(() => {
-              void emit("jotted");
-              done(idea.trim());
             });
           }}
           onError={setError}
