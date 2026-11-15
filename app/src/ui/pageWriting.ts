@@ -103,12 +103,12 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
   const named = (event: KeyboardEvent) => {
     if (event.key !== "Enter" || event.shiftKey || event.ctrlKey || event.metaKey || event.altKey)
       return;
-    const name = elementOf(caret.chosen()?.startContainer)?.closest(
+    const fold = elementOf(caret.chosen()?.startContainer)?.closest(
       ".page details[data-at] > summary",
-    );
-    if (!(name?.parentElement instanceof HTMLDetailsElement)) return;
+    )?.parentElement as HTMLDetailsElement | null | undefined;
+    if (!fold) return;
     event.preventDefault();
-    begun.intoFold(name.parentElement);
+    begun.intoFold(fold);
   };
   page.addEventListener("keydown", named, true);
   page.addEventListener("keydown", keys.keyed);

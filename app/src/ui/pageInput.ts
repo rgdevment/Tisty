@@ -229,9 +229,9 @@ export const inputOn = (
       /\r?\n$/.test(text.slice(0, one.from - 1)) &&
       (one.from >= text.length || /[\r\n]/.test(text[one.from] ?? ""));
     if (kind === "insertParagraph" && one.from === one.to && blankLine) return;
-    const named = elementOf(range.startContainer)?.closest(".page details[data-at] > summary");
-    if (kind === "insertParagraph" && named?.parentElement instanceof HTMLDetailsElement)
-      return begun.intoFold(named.parentElement);
+    const fold = elementOf(range.startContainer)?.closest(".page details[data-at] > summary")
+      ?.parentElement as HTMLDetailsElement | null | undefined;
+    if (kind === "insertParagraph" && fold) return begun.intoFold(fold);
     if (kind === "insertParagraph" && one.from === one.to && !inCode(range.startContainer)) {
       const above = openedAbove(text, one.from);
       const block = elementOf(range.startContainer)?.closest("li[data-at], .page > [data-at]");
