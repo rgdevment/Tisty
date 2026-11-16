@@ -29,6 +29,7 @@ mod printed;
 mod ranges;
 mod reading;
 pub mod refs;
+mod rereading;
 mod short;
 mod standard;
 #[cfg(feature = "tables")]
@@ -50,6 +51,7 @@ pub use printed::printed;
 pub use reading::read;
 #[doc(hidden)]
 pub use reading::read_old;
+pub use rereading::reread;
 pub use standard::{Toward, to_standard};
 pub use transform::to_tisty;
 pub use writing::on_disk;
