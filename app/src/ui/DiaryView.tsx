@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { type Diary, diaryAgents, diaryLaid, diaryNewest, diaryOf, type Today } from "../diary";
-import { dayNamed } from "../format";
 import DiaryComposer from "./DiaryComposer";
 import DiaryHead from "./DiaryHead";
 import Page from "./Page";
@@ -66,7 +65,7 @@ export default function DiaryView(props: Readonly<Props>) {
       <div className="flex flex-col gap-4 px-4 pt-6 pb-5">
         <DiaryHead
           over={paged ? `${title} ${year}`.trim() : ""}
-          big={thisMonth ? dayNamed(new Date()) : title}
+          big={thisMonth && kept ? kept.day : title}
           open={kept ? kept.open : null}
           onTurn={turn}
           onEdit={paged ? props.onEdit : undefined}
