@@ -24,12 +24,15 @@ export const wrongWith = (releases) => {
   return wrong;
 };
 
-const withoutItsTurn = ({ every_pull_request, ...one }) => one;
+const asLine = ({ release, schema, shape, accepts = "", built = false }) =>
+  [release, schema, shape, accepts, built ? "built" : ""].join("|");
 
-export const metOn = (event, releases) =>
-  event === "pull_request"
-    ? releases.filter((one) => one.every_pull_request).map((one) => ({ ...withoutItsTurn(one), os: PULL_REQUEST_SYSTEM }))
-    : releases.flatMap((one) => EVERY_SYSTEM.map((os) => ({ ...withoutItsTurn(one), os })));
+export const metOn = (event, releases) => {
+  const onPullRequest = event === "pull_request";
+  const met = onPullRequest ? releases.filter((one) => one.every_pull_request) : releases;
+  const systems = onPullRequest ? [PULL_REQUEST_SYSTEM] : EVERY_SYSTEM;
+  return systems.map((os) => ({ os, releases: met.map(asLine).join("\n") }));
+};
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const releases = JSON.parse(readFileSync(new URL("../.github/earlier-releases.json", import.meta.url), "utf8"));

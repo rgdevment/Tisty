@@ -17,6 +17,7 @@ on:
       - ".github/workflows/versions.yml"
       - ".github/earlier-releases.json"
       - "scripts/earlier-releases.mjs"
+      - "scripts/meet-earlier.sh"
   push:
     branches: [main]
     paths:
@@ -34,6 +35,7 @@ on:
       - ".github/workflows/versions.yml"
       - ".github/earlier-releases.json"
       - "scripts/earlier-releases.mjs"
+      - "scripts/meet-earlier.sh"
   workflow_dispatch:
 
 permissions:
@@ -67,83 +69,74 @@ jobs:
 
   earlier:
     needs: which
-    name: ${{ matrix.release }} on ${{ matrix.os }}
+    name: earlier releases on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 45
+    timeout-minutes: 60
     permissions:
       contents: read
       attestations: read
     strategy:
       fail-fast: false
-      # Releases up to 1.30 carry a command line for Windows and macOS only; later ones are built from their tag.
+      # Building the test that meets a release is two minutes and meeting it four seconds, so one job a system meets them all.
       matrix:
         include: ${{ fromJSON(needs.which.outputs.met) }}
+    env:
+      RELEASES: ${{ matrix.releases }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        if: matrix.built
-        with:
-          ref: v${{ matrix.release }}
-          path: earlier/source
-          persist-credentials: false
+      # Releases up to 1.30 carry a command line for Windows and macOS only; later ones are built from their tag.
+      - name: The tree of each release built here
+        id: trees
+        shell: bash
+        run: |
+          set -euo pipefail
+          trees=""
+          while IFS='|' read -r release _ _ _ built; do
+            [ "$built" = built ] || continue
+            git fetch --quiet --depth=1 origin "refs/tags/v$release:refs/tags/v$release"
+            git worktree add --quiet --detach "earlier/$release" "v$release"
+            trees+="earlier/$release -> ../target"$'\n'
+          done <<< "$RELEASES"
+          { echo "workspaces<<TREES"; printf '%s' "$trees"; echo TREES; } >> "$GITHUB_OUTPUT"
       - uses: ./.github/actions/toolchain
       - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2
         with:
           shared-key: workspace
           save-if: false
       - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2
-        if: matrix.built
+        if: steps.trees.outputs.workspaces != ''
         with:
-          key: earlier-${{ matrix.release }}
-          workspaces: earlier/source -> ../target
+          key: earlier
+          workspaces: ${{ steps.trees.outputs.workspaces }}
           save-if: ${{ github.ref == 'refs/heads/main' }}
-      - name: The earlier release, checked against what this repository built
-        id: earlier
+      - name: The test that meets them, built once
+        run: cargo test -p tisty-cli --test versions --no-run
+      - name: What each earlier release and this build do to each other
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
-          RELEASE: ${{ matrix.release }}
-          BUILT: ${{ matrix.built }}
         run: |
-          set -euo pipefail
-          if [ "$BUILT" = "true" ]; then
-            mkdir -p earlier/source/crates/tisty-cli/examples
-            cp crates/tisty-cli/examples/earlier.rs earlier/source/crates/tisty-cli/examples/earlier.rs
-            sed -i.bak -e "s/^version = .*/version = \"$RELEASE\"/" earlier/source/Cargo.toml
-            rm -f earlier/source/Cargo.toml.bak
-            grep -q "^version = \"$RELEASE\"\$" earlier/source/Cargo.toml \
-              || { echo "::error::could not stamp $RELEASE into its tree"; exit 1; }
-            # A newer compiler's warnings in a release's own tree are not this build's to fix.
-            env -u GH_TOKEN RUSTFLAGS="" cargo build --manifest-path earlier/source/Cargo.toml -p tisty-cli \
-              --example earlier --target-dir earlier/target
-            bin=$(find earlier/target/debug/examples -maxdepth 1 -type f \( -name earlier -o -name earlier.exe \) | sed -n '1p')
-            [ -n "$bin" ] || { echo "::error::v$RELEASE built no earlier"; exit 1; }
-          else
-            case "$RUNNER_OS" in
-              Windows) file="tisty-cli-$RELEASE-windows-x86_64.zip" ;;
-              macOS) file="tisty-cli-$RELEASE-macos-universal.tar.gz" ;;
-              *) echo "::error::no command line is released for $RUNNER_OS"; exit 1 ;;
-            esac
-            mkdir -p earlier/unpacked
-            gh release download "v$RELEASE" --repo "$GITHUB_REPOSITORY" --pattern "$file" --dir earlier
-            gh attestation verify "earlier/$file" --repo "$GITHUB_REPOSITORY" \
-              --signer-workflow "$GITHUB_REPOSITORY/.github/workflows/release.yml"
-            case "$file" in
-              *.zip) unzip -q "earlier/$file" -d earlier/unpacked ;;
-              *) tar xzf "earlier/$file" -C earlier/unpacked ;;
-            esac
-            bin=$(find earlier/unpacked -type f \( -name tisty -o -name tisty.exe \) | sed -n '1p')
-            [ -n "$bin" ] || { echo "::error::$file holds no tisty"; exit 1; }
+          set -uo pipefail
+          handed=$(grep -c . <<< "$RELEASES")
+          met=0
+          failed=""
+          while IFS='|' read -r release schema shape accepts built <&3; do
+            echo "::group::$release"
+            if bash scripts/meet-earlier.sh "$release" "$schema" "$shape" "$accepts" "$built" < /dev/null; then
+              met=$((met + 1))
+            else
+              failed+=" $release"
+            fi
+            echo "::endgroup::"
+          done 3<<< "$RELEASES"
+          if [ -n "$failed" ]; then
+            echo "::error::this build and these earlier releases do not get along:$failed"
+            exit 1
           fi
-          bin="$PWD/$bin"
-          if command -v cygpath > /dev/null; then bin=$(cygpath -w "$bin"); fi
-          echo "bin=$bin" >> "$GITHUB_OUTPUT"
-      - name: What the earlier release and this build do to each other
-        env:
-          TISTY_PREVIOUS: ${{ steps.earlier.outputs.bin }}
-          TISTY_PREVIOUS_SCHEMA: ${{ matrix.schema }}
-          TISTY_PREVIOUS_SHAPE: ${{ matrix.shape }}
-          TISTY_PREVIOUS_ACCEPTS: ${{ matrix.accepts }}
-        run: cargo test -p tisty-cli --test versions -- --ignored
+          if [ "$met" -ne "$handed" ]; then
+            echo "::error::$met of $handed earlier releases were met"
+            exit 1
+          fi
+          echo "all $handed earlier releases were met"
