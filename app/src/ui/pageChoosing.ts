@@ -1,10 +1,11 @@
-import { charsAt, spanned } from "tisty-editor/read";
+import { charsAt } from "tisty-editor/read";
 import type { Beside } from "./pageBeside";
 import type { Caret } from "./pageCaret";
 import type { Span } from "./pageEdits";
 import type { Laying } from "./pageLaying";
 import { movedTo, topsOf } from "./pageMoving";
 import { WRITABLE } from "./pageNodes";
+import { placeOf } from "./pagePlaces";
 import { endIn } from "./pageSpots";
 import type { Writer } from "./pageWriter";
 
@@ -37,8 +38,8 @@ export const choosingOn = (writer: Writer, caret: Caret, laying: Laying, beside:
   const span = (): Span | null => {
     const both = ends();
     const all = tops();
-    const first = both && spanned(all[both[0]]?.getAttribute("data-at") ?? null);
-    const last = both && spanned(all[both[1]]?.getAttribute("data-at") ?? null);
+    const first = both && placeOf(all[both[0]]);
+    const last = both && placeOf(all[both[1]]);
     if (!first || !last) return null;
     const text = hands.text();
     return { from: charsAt(text, first[0]), to: charsAt(text, last[1]) };
@@ -84,7 +85,7 @@ export const choosingOn = (writer: Writer, caret: Caret, laying: Laying, beside:
     const both = ends();
     const one = span();
     if (!both || !one) return;
-    const after = spanned(tops()[both[1] + 1]?.getAttribute("data-at") ?? null);
+    const after = placeOf(tops()[both[1] + 1]);
     const text = hands.text();
     let from = one.from;
     if (!after) while (text[from - 1] === "\n" && text[from - 2] === "\n") from--;
@@ -103,7 +104,7 @@ export const choosingOn = (writer: Writer, caret: Caret, laying: Laying, beside:
     const past = way < 0 ? all[both[0] - 1] : all[both[1] + 2];
     if (way < 0 && !past) return;
     if (way > 0 && !all[both[1] + 1]) return;
-    const at = spanned(past?.getAttribute("data-at") ?? null);
+    const at = placeOf(past);
     const target = at ? charsAt(text, at[0]) : text.length;
     const next = movedTo(text, { ...one, last: both[1] }, target);
     if (!next) return;

@@ -1,4 +1,4 @@
-import { charsAt, spanned } from "tisty-editor/read";
+import { charsAt } from "tisty-editor/read";
 import { aloneOnLine, EMBED, embedGone, embedPlace } from "./embeds";
 import type { Begun } from "./pageBegun";
 import { blank, blockPlaced, pastedAround } from "./pageBlocks";
@@ -19,6 +19,7 @@ import {
 } from "./pageLists";
 import { closedRun, unpaired } from "./pageMarks";
 import { elementOf, ghostly, inCode, onSheet, unwritable } from "./pageNodes";
+import { placeOf } from "./pagePlaces";
 import type { Writer } from "./pageWriter";
 
 const PAIRS: Record<string, string> = {
@@ -112,9 +113,9 @@ export const inputOn = (
     const beside = back ? top.previousElementSibling : top.nextElementSibling;
     const shown = beside && aloneOnLine(beside) ? beside.querySelector(EMBED) : null;
     if (shown) return embedGone(hands.text(), shown);
-    const at = beside?.matches("hr[data-at]") ? spanned(beside.getAttribute("data-at")) : null;
+    const at = beside?.matches("hr[data-at]") ? placeOf(beside) : null;
     if (!beside || !at) return null;
-    const until = spanned(beside.nextElementSibling?.getAttribute("data-at") ?? null)?.[0] ?? at[1];
+    const until = placeOf(beside.nextElementSibling)?.[0] ?? at[1];
     const text = hands.text();
     return { from: charsAt(text, at[0]), to: charsAt(text, until) };
   };
@@ -195,7 +196,7 @@ export const inputOn = (
     if (bare) return put(bare.edit, bare.caret);
     const shelf = range && !spread ? breakAt(range) : null;
     if (shelf) {
-      const span = spanned(shelf.getAttribute("data-at"));
+      const span = placeOf(shelf);
       const first = kind === "insertText" ? (event.data ?? "") : "";
       if (span && first) {
         begun.begin(charsAt(hands.text(), span[1]), "", shelf);

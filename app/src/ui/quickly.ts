@@ -1,7 +1,7 @@
 import type { formatButtons } from "tisty-editor/edit";
-import { spanned } from "tisty-editor/read";
 import { t } from "../locales";
 import { EMBED } from "./embeds";
+import { placeOf } from "./pagePlaces";
 import { shotAt } from "./paging";
 
 export type Formatting = {
@@ -57,7 +57,7 @@ export const picked = (page: Document): Omit<Formatting, "open" | "close"> | nul
   const range = chosen.getRangeAt(0);
   const block = blockOf(range.startContainer);
   if (!block || !blockOf(range.endContainer)) return null;
-  const at = spanned(block.dataset.at ?? null);
+  const at = placeOf(block);
   const said = chosen.toString();
   if (!at || !said.trim()) return null;
   const before = page.createRange();
@@ -132,7 +132,7 @@ export const quickly = (page: Document, reach: () => Quick) => {
     const target = event.target as Element | null;
     const writing = Boolean(target?.closest?.(".editing"));
     const element = writing ? null : blockOf(target);
-    const at = spanned(element?.dataset.at ?? null);
+    const at = placeOf(element);
     const selection = page.getSelection();
     const range = selection && selection.rangeCount > 0 ? selection.getRangeAt(0) : null;
     const under = Boolean(target && range?.intersectsNode(target));

@@ -1,6 +1,7 @@
 import { charsAt } from "tisty-editor/read";
 import type { Mend } from "../core";
 import { fill, t } from "../locales";
+import { placedAt } from "./pagePlaces";
 
 export type Said = { readonly code?: string; readonly words?: string };
 
@@ -27,7 +28,7 @@ export const told = (mends: readonly Mend[]): { parts: Said[]; all: string } => 
 export const mendable = (page: Document, mends: readonly Mend[], mend: (one: Mend) => void) => {
   for (const said of page.querySelectorAll(".mend-said")) said.remove();
   for (const one of mends) {
-    const block = page.querySelector<HTMLElement>(`.page > [data-at^="${one.from}-"]`);
+    const block = placedAt<HTMLElement>(page, ".page > *", one.from);
     if (!block) continue;
     const said = page.createElement("div");
     said.className = "mend-said";
