@@ -59,11 +59,12 @@ fn rebuilt(was: Doc, text: String, changed: &Changed) -> Doc {
         shift(one, plan.old_end, plan.new_end);
     }
     blocks.append(&mut after);
-    // A plan is refused for a crossing near the edit, so the text it was made for holds none.
+    // A plan is refused for a crossing near the edit, so the text it was made for holds none, nor any label.
     Doc {
         text,
         blocks,
         crossing: false,
+        labels: crate::names_sum([]),
     }
 }
 
