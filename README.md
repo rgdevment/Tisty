@@ -252,11 +252,13 @@ waits in Brainstorm.
 - **One book a year** — *Diary 2026*, with a page a month and a section a day,
   in the app's language; a day you did not write never appears.
 - **Written from anywhere** — the box on top, «What happened today?», or the
-  quick capture's third `Tab`, without opening the window; an idea on Brainstorm
-  files into **Today's diary** first.
+  quick capture's third mode, **Diary**, two `Tab`s from a task, without
+  opening the window; filing an idea from Brainstorm offers **Today's diary**
+  first.
 - **Only yours** — no agent sees it until you press **Only you** and it reads
   **Open to agents**; open, an agent reads it and only adds to the end of today,
-  signed, when you ask. It is never shared through Folio.
+  signed, when you ask. The door holds on Tisty 1.48 or later: update every
+  computer that syncs before you write in it. It is never shared through Folio.
 - **Still Markdown** — a book with `diary: on` in its properties, whose pages
   are the months.
 
@@ -1195,7 +1197,7 @@ there. Your Diary is the exception: no assistant sees it until you open it to
 agents from the Diary itself, and open it only adds to the end of today, signed,
 when you ask. What it may
 not do: close a task or delete one, tick a step of yours or finish a task of
-yours, move a day you set, delete a document, rename or empty a folder, reach a
+yours, move a day you set, delete a document, rename or delete a folder, reach a
 task you folded away, take files from anywhere but Downloads, Documents,
 Pictures, the desktop and the temporary folder, or file the same thing twice. A
 task you closed is history to it: it comes with a notice saying so, reads as it

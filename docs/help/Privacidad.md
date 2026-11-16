@@ -12,12 +12,12 @@ Todo vive en una carpeta de tu disco:
 
 - **Tareas y eventos**: JSONL en texto plano, un registro que solo crece. Se lee con `cat`, se busca con `grep` y se procesa con `jq`.
 - **Documentos**: archivos Markdown normales.
-- **Tu diario**: Markdown como cualquier documento, un libro por año. Ningún agente lo ve hasta que lo abres desde el propio Diario, en Tisty 1.48 o más nuevo; nunca se comparte por link, y viaja con tu sincronización y tus respaldos como lo demás.
+- **Tu diario**: Markdown como cualquier documento, un libro por año. Ningún agente lo ve hasta que lo abres desde el propio Diario, en Tisty 1.48 o más nuevo; nunca se comparte por link, y viaja con tu sincronización y tus respaldos como lo demás, y dentro de un paquete `.tistyx` cuando exportas todo o el propio diario.
 - **Adjuntos**: los archivos tal cual, sin modificar.
 - **Configuración local**: incluye el identificador de este equipo y su clave de firma. La mitad privada de la clave nunca sale del equipo.
 - **Tu frase, si creas una**: las 24 palabras que cifran tu nube, guardadas en el equipo donde la creaste, en el llavero del sistema en macOS o en un archivo sellado para tu usuario en Windows. Nunca se sincroniza, se respalda ni va en un paquete. Nadie de Tisty ni de Folio te la pedirá; si alguien te la pide, es un engaño.
 - **Lo que compartes por link**: la llave de cada link y los tokens que lo administran o editan viven en el registro, para que tus otros equipos puedan manejarlo. Viajan con tu sincronización, así que quien pueda leer una copia sin cifrar puede abrir esos links. Cuando dejas de compartir un documento, los nombres de quienes lo editaron también se quedan en el registro, para que al volver a compartirlo se te recuerde quiénes fueron. Cuánto pidió esperar Folio a este equipo, y qué documentos compartió hoy por primera vez, se quedan en este equipo.
-- **Recordatorios agendados en el sistema**: la hora y el título de cada recordatorio del próximo mes se entregan a Windows o macOS para que suenen con Tisty cerrado. Se quedan en este equipo.
+- **Recordatorios agendados en el sistema**: la hora, el título de la tarea y su identificador, por cada recordatorio del próximo mes, se entregan a Windows o macOS para que suenen con Tisty cerrado. Se quedan en este equipo.
 - **Una carpeta `private/`**: lo que pongas ahí nunca sale del equipo, por ningún camino.
 
 Nada está ofuscado, y nada está en un formato que solo Tisty sepa leer.
@@ -43,11 +43,11 @@ Nada está ofuscado, y nada está en un formato que solo Tisty sepa leer.
 | **Un paquete `.tistyx` que le das a alguien** | Esa persona, y a quien se lo pase |
 | **Un `.tistyx` cerrado con seis dígitos** | Quien tenga el archivo y el número |
 | **Un asistente que dejas entrar** | El servicio con que hable ese asistente |
-| **Una tarea que guardas en tu calendario** | Google, Microsoft o Apple, según el calendario que elegiste y sus términos |
+| **Una tarea que guardas en tu calendario** | Google o Microsoft, según sus términos; con el Calendario de Apple, la app Calendario de tu Mac y aquello con lo que sincronice |
 
 ## Las peticiones de red que hace Tisty
 
-**Por su cuenta:** al abrirse y una vez al día después, descarga un archivo pequeño para ver si hay una versión más nueva. No envía nada: ni identificador, ni tareas, ni nombre. Una copia de la Microsoft Store le pregunta a Windows qué tiene la Store, y lee el catálogo público de la Store para ver qué versión es: al abrirse, cada seis horas y cuando tú lo pides. Descarga ese mismo archivo solo si el catálogo no responde. Mientras sincronizas con Google Drive, OneDrive o un servidor WebDAV, además lee, como mucho una vez por hora, un archivo pequeño y firmado en GitHub que puede pausar la sincronización o bajar sus límites; no lleva nada tuyo.
+**Por su cuenta:** al abrirse y una vez al día después, descarga un archivo pequeño para ver si hay una versión más nueva. No envía nada: ni identificador, ni tareas, ni nombre. Una copia de la Microsoft Store le pregunta a Windows qué tiene la Store, y lee el catálogo público de la Store para ver qué versión es: al abrirse, cada seis horas y cuando tú lo pides. Descarga ese mismo archivo solo si el catálogo no responde. Mientras sincronizas con Google Drive, OneDrive o un servidor WebDAV, además lee, como mucho una vez por hora, un archivo pequeño y firmado en GitHub que puede pausar la sincronización o bajar sus límites; no lleva nada tuyo. Y cuando abres un documento que compartiste y que tiene un idioma que conservaste de otra persona, le pregunta a Folio si ese idioma cambió, como mucho cada cuarto de hora.
 
 **Solo cuando tú lo pides:**
 

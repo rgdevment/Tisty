@@ -147,7 +147,7 @@ What you write under **This time** belongs to the round under way. Completing it
 
 - `Ctrl`/`⌘` + `Enter`, on the task's row in the list, completes it. It goes to the [[archive|Archive]] with everything it holds. While you write on its page, those keys put a page break.
 - **Close with a summary** asks for two lines on how it went before completing it. They go first under **When it closes**; in a routine, they stay with its round.
-- **Dropping** puts it aside without doing it: it lands in the archive too.
+- **Not doing it** drops it: it is put aside without being done, and it lands in the archive too.
 - Once it closes, its page is put away with it: it reads but takes no more writing, from you or an assistant. Reopen it and it comes back.
 
 Tasks an assistant claims are done wait under **To confirm** — see [[What an assistant may do|MCP-Permissions]].

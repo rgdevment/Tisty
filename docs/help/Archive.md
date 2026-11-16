@@ -10,7 +10,7 @@ It stops being a reminder of what to do and becomes the record of how something 
 
 - **Completing** a task marks it done and sends it to the archive, with its steps, notes, attachments and documents intact.
 - **Dropping** puts it aside without doing it: it lands in the archive too.
-- What is in the archive stays there in case you look for it.
+- What is in the archive stays there in case you look for it. It is out of your way.
 
 ## Three layers
 

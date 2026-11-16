@@ -12,7 +12,7 @@ Se escribe sobre la misma página que lees, la que dibuja Tisty. No hay un modo 
 - **Las marcas no se ven.** La negrita se ve en negrita y un título se ve como título. El Markdown sigue debajo, y la vista **Markdown** lo muestra tal cual.
 - **Si conoces Markdown, también puedes escribirlo.** Las marcas que tecleas se vuelven lo que dicen: `#` y un espacio al empezar una línea la hacen título, y `[ ]` y un espacio, una casilla. En la página de una tarea el `#` queda como texto, porque ahí cada título es una sección.
 - **La primera línea es el título.** No hay que ponerle nombre en ninguna parte: lo que escribas arriba es como se llama.
-- **Enter empieza un párrafo nuevo, y `Shift` + `Enter` solo salta de línea.** En una lista, Enter empieza otro elemento del mismo tipo; en una cita, la cita sigue; en el código, salta de línea. Enter en un elemento vacío sale de la lista, o sube un nivel si estaba dentro de otro. Enter al inicio de un bloque abre una línea encima de él.
+- **Enter empieza un párrafo nuevo, y `Shift` + `Enter` solo salta de línea.** En una lista, Enter empieza otro elemento del mismo tipo; en una cita, la cita sigue; en el código, salta de línea. Enter en un elemento vacío sale de la lista, o sube un nivel si estaba dentro de otro; en una línea de cita vacía, sale de la cita. Enter al inicio de un bloque abre una línea encima de él.
 - **`Tab` mete un elemento de la lista bajo el de arriba, y `Shift` + `Tab` lo saca.** En el código, `Tab` sangra con dos espacios.
 - **`Retroceso` al inicio de un elemento** quita primero su casilla y después su viñeta o su número, y la línea queda como texto.
 - **Marca una casilla con un clic**, también la de una nota adhesiva. Una nota adhesiva se escribe por dentro y se arrastra desde su papel, su cinta o su chinche.
@@ -54,7 +54,7 @@ Escribe `/` al empezar una línea, en una línea en blanco o después de un espa
 ## Mover bloques
 
 - **El asa.** Al pasar el puntero junto a un bloque aparece un asa a su izquierda. Arrástrala para llevar el bloque a otro lugar; un título se lleva su sección entera. Cerca del borde de arriba o de abajo, la página se desplaza sola. En una hoja demasiado angosta para dejar margen, el asa y el **+** no aparecen; `Ctrl`/`⌘` + `/` y `Alt` + ↑ ↓ siguen sirviendo.
-- **Su menú.** Un clic en el asa ofrece **Subir bloque**, **Bajar bloque**, **Duplicar bloque** y **Borrar bloque**. En un título, las cuatro actúan sobre su sección entera, como al arrastrarlo: **Borrar bloque** se lleva todo lo que hay bajo él hasta el próximo título de su nivel. Para quitar solo el título, elígelo con `Esc` y pulsa `Supr`.
+- **Su menú.** Un clic en el asa ofrece **Subir bloque**, **Bajar bloque**, **Duplicar bloque** y **Borrar bloque**. En un título, las cuatro actúan sobre su sección entera, como al arrastrarlo: **Borrar bloque** se lleva todo lo que hay bajo él hasta el próximo título de su nivel o de uno más alto. Para quitar solo el título, elígelo con `Esc` y pulsa `Supr`.
 - **El teclado.** `Alt` + ↑ ↓ sube o baja el bloque donde está el cursor, o el elemento de la lista donde está.
 - **Elegir bloques enteros.** `Esc` elige el bloque donde está el cursor, y `Shift` + ↑ ↓ suma los de arriba o de abajo. Elegidos, `Supr` o `Retroceso` los borran, `Alt` + ↑ ↓ los mueve juntos y `Ctrl`/`⌘` + `C` o `X` los copia o los corta. `Esc` otra vez, un clic o cualquier otra tecla los sueltan.
 
@@ -76,7 +76,7 @@ En la vista Markdown:
 ## Mientras escribes
 
 - **Las etiquetas se ofrecen después de `#`.** Las que ya usas aparecen bajo el cursor, para que una etiqueta nunca se escriba de dos maneras. ↑ ↓ elige una y Tab o Enter la escribe; Esc cierra la lista, y Enter sin elegir sigue empezando un párrafo.
-- **Adjunta un archivo** arrastrándolo a la página, pegándolo (también sirve una captura en el portapapeles) o eligiendo **Adjuntar un archivo** en el menú `/`. Queda después del bloque donde lo sueltas, o donde está el cursor, y se guarda dentro de Tisty con el documento, no como un enlace a una ruta de tu disco que se rompe cuando mueves el archivo.
+- **Adjunta un archivo** arrastrándolo a la página, pegándolo (también sirve una captura en el portapapeles) o eligiendo **Adjuntar un archivo** en el menú `/`. Queda después del bloque donde lo sueltas, o del bloque donde está el cursor, en su propia línea, y se guarda dentro de Tisty con el documento, no como un enlace a una ruta de tu disco que se rompe cuando mueves el archivo.
 - **Pega con su formato.** Lo que copias de una página web, un correo o un procesador de texto conserva sus títulos, listas, negritas, enlaces, tablas y palabras de color, escrito en el Markdown de Tisty: un color pasa al rotulador más cercano de la paleta. Un bloque pegado, como una lista o un título, empieza en su propia línea, y dentro de una cita sigue en la cita. El texto plano también conserva su forma: una tabla que una terminal dibujó con líneas (`┌ │ ├`) pasa a ser una tabla, y las líneas que se leen como código, copiadas de un editor de código o de una terminal, entran como bloque de código, salvo que el cursor ya esté dentro de uno.
 
 | Atajo | Qué hace |

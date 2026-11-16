@@ -42,7 +42,7 @@ Not by itself. **Save to my calendar**, on a task with a date, puts it in Google
 Yes, since 1.48: **Diary** in the Library, a book a year with a page a month and a section a day. See [Diary](Documents#diary).
 
 **Can my assistant read my diary?**
-Not until you press **Only you** at the top of the Diary and it reads **Open to agents**; even then it only adds to the end of today, when you ask. A computer of yours on an older Tisty does not know that door: update it.
+Not until you press **Only you** at the top of the Diary and it reads **Open to agents**; even then it only adds to the end of today, when you ask. A computer of yours still on a Tisty older than 1.48 shows the diary to its agents as an ordinary document: update it before you write in the diary.
 
 **Does it work with a screen reader?**
 Not as far as anybody knows. The whole window works from the keyboard and that path is tested, but it has never been tried with a real screen reader. If you use one, an [issue](https://github.com/rgdevment/Tisty/issues) saying where it falls apart would be very welcome.

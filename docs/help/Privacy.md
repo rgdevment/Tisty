@@ -12,12 +12,12 @@ Everything lives in one folder on your disk:
 
 - **Tasks and events** — plain-text JSONL, an append-only log. Readable with `cat`, searchable with `grep`, parseable with `jq`.
 - **Documents** — plain Markdown files.
-- **Your diary** — Markdown like any document, a book a year. No agent sees it until you open it from the Diary itself, on Tisty 1.48 or later; it is never shared by link, and it travels with your sync and your backups like the rest.
+- **Your diary** — Markdown like any document, a book a year. No agent sees it until you open it from the Diary itself, on Tisty 1.48 or later; it is never shared by link, and it travels with your sync and your backups like the rest, and inside a `.tistyx` parcel when you export everything or the diary itself.
 - **Attachments** — the files themselves, unmodified.
 - **Local settings** — including this machine's identifier and signing key. The private half of the key never leaves the machine.
 - **Your phrase, if you make one** — the 24 words that encrypt your cloud, kept on the computer where you made them, in the system keychain on macOS or a file sealed for your user on Windows. Never synced, backed up or put in a parcel. Nobody from Tisty or Folio will ever ask you for it; anyone who does is trying to trick you.
 - **What you share by link**: each link's key and the tokens that manage or edit it live in the log, so your other computers can manage it. They travel with your sync, so whoever can read an unencrypted copy can open those links. Once you stop sharing a document, the names of whoever edited it stay in the log too, so sharing it again can remind you who they were. How long Folio asked this computer to wait, and which documents it shared for the first time today, stay on this computer.
-- **Reminders booked with the system** — the hour and the title of each reminder of the coming month are handed to Windows or macOS so they ring with Tisty closed. They stay on this computer.
+- **Reminders booked with the system** — the hour, the task's title and its identifier, for each reminder of the coming month, are handed to Windows or macOS so they ring with Tisty closed. They stay on this computer.
 - **A `private/` folder** — anything placed there never leaves the machine, by any route.
 
 Nothing is obfuscated, and nothing is in a format only Tisty can read.
@@ -43,11 +43,11 @@ Nothing is obfuscated, and nothing is in a format only Tisty can read.
 | **A `.tistyx` parcel you hand to someone** | Them, and whoever they hand it to |
 | **A `.tistyx` locked with six digits** | Whoever has both the file and the number |
 | **An assistant you let in** | Whatever service that assistant talks to |
-| **A task you save to your calendar** | Google, Microsoft or Apple, depending on the calendar you chose and its terms |
+| **A task you save to your calendar** | Google or Microsoft, under their terms; with Apple Calendar, the Calendar app on your Mac and whatever it syncs with |
 
 ## The network requests Tisty makes
 
-**On its own:** when it opens and once a day after that, it downloads a small file to see whether a newer version exists. It sends nothing — no identifier, no task, no name. A Microsoft Store copy asks Windows what the Store has, and reads the Store's public catalog to see which version that is: when it opens, every six hours, and when you ask. It downloads that same file only if the catalog does not answer. While you sync with Google Drive, OneDrive or a WebDAV server, it also reads, at most once an hour, a small signed file on GitHub that can pause syncing or lower its limits; it carries nothing of yours.
+**On its own:** when it opens and once a day after that, it downloads a small file to see whether a newer version exists. It sends nothing — no identifier, no task, no name. A Microsoft Store copy asks Windows what the Store has, and reads the Store's public catalog to see which version that is: when it opens, every six hours, and when you ask. It downloads that same file only if the catalog does not answer. While you sync with Google Drive, OneDrive or a WebDAV server, it also reads, at most once an hour, a small signed file on GitHub that can pause syncing or lower its limits; it carries nothing of yours. And when you open a document you shared that holds a language you kept from someone else, it asks Folio whether that language changed, at most every quarter of an hour.
 
 **Only when you ask:**
 
@@ -57,7 +57,7 @@ Nothing is obfuscated, and nothing is in a format only Tisty can read.
 - **Show them**, on the line above a Markdown file opened from outside, asks each address the file names for its picture, one request per picture. Nothing is fetched until you press it, it asks again each time you open the file, and it refuses an address on this computer or your own network. This is the viewer's alone: a document in your store draws no picture from the internet.
 - **Clicking a link** opens your browser.
 - **Save to my calendar**, on a task, opens Google Calendar's or Outlook's page in your browser with the title, the day and the hour, and the task's link in the address, and the event lands in your calendar only if you press **Save** there. Tisty does not make that request: your browser does, and the address stays in its history. With Apple Calendar, Tisty leaves a `.ics` file in its cache and the Calendar app opens it. The task's description and notes never go.
-- **Share**, on a document, reads a small signed file on GitHub to learn whether [Folio](https://github.com/rgdevment/Folio-by-Tisty) is open. What you then confirm goes to Folio, encrypted on this computer, and so do Sync, Pause, Stop and opening a shared link. Nothing is asked until you press.
+- **Share**, on a document, reads a small signed file on GitHub to learn whether [Folio](https://github.com/rgdevment/Folio-by-Tisty) is open. What you then confirm goes to Folio, encrypted on this computer, and so do Sync, Pause, Stop sharing and opening a shared link. Nothing is asked until you press.
 - **Google Drive**, **OneDrive** or **your WebDAV server**, once you connect it from the window, is where Tisty sends and fetches your copies. Assistants never touch the network.
 - **Checking a WebDAV server** — only when you connect it: Tisty signs in with what you typed and looks at its own folder there, and nothing else. Only `https://` is accepted, except to this very computer, and the password never travels to any other address.
 - **Checking the way to OneDrive** works the same as the check for Google Drive below, with one request to `graph.microsoft.com` that carries nothing of yours.

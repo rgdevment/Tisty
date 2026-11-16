@@ -1587,5 +1587,96 @@
         "said": "Enter takes what you chose in the / menu, and the first icon among the views, All tasks, opens everything open across your lists."
       }
     ]
+  },
+  {
+    "version": "1.48.0",
+    "headline": {
+      "es": "Escribes sobre la misma página que lees, y un Diario que es solo tuyo",
+      "en": "You write on the very page you read, and a Diary that is only yours"
+    },
+    "es": [
+      {
+        "title": "Escribes donde lees",
+        "said": "haz clic en cualquier parte de un documento y escribe. Ya no hay un modo de edición ni bloques que abrir: la página se ve mientras escribes igual que al leerla, imprimirla o compartirla. El ⋯ de arriba, o Ctrl + E, te muestra su Markdown."
+      },
+      {
+        "title": "El formato y los bloques, a mano",
+        "said": "al elegir unas palabras aparece una barra con negrita, cursiva, subrayado, tachado, código, enlace y cuatro rotuladores. La / o el + del margen insertan lo demás, y el asa junto a cada bloque lo arrastra, lo duplica o lo borra."
+      },
+      {
+        "title": "Deshacer, copiar y mover como esperas",
+        "said": "Ctrl + Z deshace lo que escribiste seguido, no tecla por tecla. Copiar y cortar se llevan el Markdown de lo elegido, las palabras elegidas se arrastran a otro lugar, y Esc elige el bloque entero."
+      },
+      {
+        "title": "La página de una tarea se escribe igual",
+        "said": "un clic en la pista de una sección empieza a escribir ahí, y Agregar un paso suma otro bajo la lista. Secciones te deja agregarlas, renombrarlas o quitarlas."
+      },
+      {
+        "title": "Un Diario para lo que pasó hoy",
+        "said": "Diario, en la Biblioteca, abre siempre en hoy: escribes en el cuadro de arriba y queda al final del día, con las tareas que terminaste ese día debajo. Es un libro por año, con una página por mes."
+      },
+      {
+        "title": "Lo escribes desde cualquier parte",
+        "said": "en la captura rápida, Tab pasa de tarea a idea y a diario, sin abrir la ventana. Y una idea de la Lluvia de ideas se anexa primero al diario de hoy."
+      },
+      {
+        "title": "Solo tuyo",
+        "said": "ningún agente de IA ve tu diario hasta que lo abres tú, y abierto solo añade al final de hoy cuando se lo pides. Nunca se comparte por link. Actualiza tus otros equipos antes de escribir en él: uno con una versión anterior no conoce esa puerta."
+      },
+      {
+        "title": "Recordatorios con Tisty cerrado",
+        "said": "un recordatorio suena a su hora aunque Tisty esté cerrado, mientras el equipo esté encendido, y un clic en el aviso abre su tarea. Si lo permites, uno importante atraviesa «No molestar»."
+      },
+      {
+        "title": "Tu tarea, en tu calendario",
+        "said": "Guardar en mi calendario lleva una tarea con fecha a Google Calendar, a Outlook o al Calendario de Apple, y desde ahí te avisa también el teléfono. Tisty no se conecta a tu calendario: el evento lo guardas tú."
+      },
+      {
+        "title": "Los documentos largos responden",
+        "said": "escribir en una página muy larga ya no se siente lento: cada tecla llega al instante."
+      }
+    ],
+    "en": [
+      {
+        "title": "You write where you read",
+        "said": "click anywhere in a document and write. There is no editing mode and no block to open any more: the page looks the same while you write as when you read, print or share it. The ⋯ on top, or Ctrl + E, shows you its Markdown."
+      },
+      {
+        "title": "Formats and blocks at hand",
+        "said": "choose a few words and a bar comes up with bold, italic, underline, strikethrough, code, link and four pens. The / or the + in the margin inserts everything else, and the handle beside each block drags it, duplicates it or deletes it."
+      },
+      {
+        "title": "Undo, copy and move as you expect",
+        "said": "Ctrl + Z takes back what you typed in a row, not key by key. Copy and cut take the Markdown of what you chose, the words you chose can be dragged somewhere else, and Esc chooses the whole block."
+      },
+      {
+        "title": "A task's page is written the same way",
+        "said": "a click on a section's hint starts writing there, and Add a step adds another under the list. Sections lets you add them, rename them or take them off."
+      },
+      {
+        "title": "A Diary for what happened today",
+        "said": "Diary, in the Library, always opens on today: you write in the box on top and it is kept at the end of the day, with the tasks you finished that day under it. It is a book a year, with a page a month."
+      },
+      {
+        "title": "Written from anywhere",
+        "said": "in the quick capture, Tab goes from a task to an idea to the diary, without opening the window. And an idea on Brainstorm files into today's diary first."
+      },
+      {
+        "title": "Only yours",
+        "said": "no AI agent sees your diary until you open it yourself, and open it only adds to the end of today when you ask. It is never shared by link. Update your other computers before you write in it: one on an older version does not know that door."
+      },
+      {
+        "title": "Reminders with Tisty closed",
+        "said": "a reminder rings at its hour even with Tisty closed, while the computer is on, and a click on the notice opens its task. If you allow it, an important one comes through «Do not disturb»."
+      },
+      {
+        "title": "Your task, in your calendar",
+        "said": "Save to my calendar takes a task with a date to Google Calendar, to Outlook or to Apple Calendar, and from there your phone reminds you too. Tisty does not connect to your calendar: you save the event yourself."
+      },
+      {
+        "title": "Long documents keep up",
+        "said": "writing on a very long page no longer feels slow: every key lands at once."
+      }
+    ]
   }
 ]
