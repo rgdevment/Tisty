@@ -1,5 +1,6 @@
 import { SLASHED, type Slashed } from "tisty-editor/edit";
 import { afterEach, describe, expect, it } from "vitest";
+import { movedWords } from "../ui/pageDragging";
 import { sourceAt, spotOf } from "../ui/pageSpots";
 import { type Hands, type PageWriting, turnsAnew, writtenOn } from "../ui/pageWriting";
 
@@ -180,6 +181,64 @@ describe("writing on the page the core draws", () => {
     expect(writing?.chosen()).toBe("Uno **dos**");
     writing?.cut();
     expect(said[said.length - 1]).toBe("# Hola\n\n tres\n\n- primero\n- segundo\n");
+  });
+
+  describe("words carried by the pointer", () => {
+    const pointing = (spots: Record<number, [string, number]>) => {
+      Object.defineProperty(document, "caretRangeFromPoint", {
+        configurable: true,
+        value: (x: number) => {
+          const [said, at] = spots[x];
+          const range = document.createRange();
+          range.setStart(piece(said), at);
+          return range;
+        },
+      });
+    };
+    const mouse = (kind: string, x: number) =>
+      (kind === "mousedown" ? piece("Uno ").parentElement : document)?.dispatchEvent(
+        new MouseEvent(kind, { bubbles: true, cancelable: true, button: 0, clientX: x, detail: 1 }),
+      );
+
+    afterEach(() => Reflect.deleteProperty(document, "caretRangeFromPoint"));
+
+    it("moves words back before others, and nowhere when let go inside themselves", () => {
+      const text = "uno dos tres";
+      const back = movedWords(text, { from: 8, to: 12 }, 0);
+      expect(back && text.slice(0, back[0].from) + back[0].insert + text.slice(back[0].to)).toBe(
+        "tresuno dos ",
+      );
+      expect(back?.[1]).toBe(4);
+      expect(movedWords(text, { from: 4, to: 7 }, 5)).toBeNull();
+    });
+
+    it("moves the words chosen where they are let go, in one step back", () => {
+      const said = writer();
+      const range = document.createRange();
+      range.setStart(piece("Uno "), 0);
+      range.setEnd(piece("Uno "), 4);
+      document.getSelection()?.removeAllRanges();
+      document.getSelection()?.addRange(range);
+      pointing({ 10: ["Uno ", 2], 60: ["primero", 0] });
+      mouse("mousedown", 10);
+      mouse("mousemove", 60);
+      mouse("mouseup", 60);
+      expect(said[said.length - 1]).toBe("# Hola\n\n**dos** tres\n\n- Uno primero\n- segundo\n");
+    });
+
+    it("puts the caret where the press was when the pointer did not move", () => {
+      const said = writer();
+      const range = document.createRange();
+      range.setStart(piece("Uno "), 0);
+      range.setEnd(piece("Uno "), 4);
+      document.getSelection()?.removeAllRanges();
+      document.getSelection()?.addRange(range);
+      pointing({ 10: ["Uno ", 2] });
+      mouse("mousedown", 10);
+      mouse("mouseup", 10);
+      expect(said).toEqual([]);
+      expect(document.getSelection()?.isCollapsed).toBe(true);
+    });
   });
 
   describe("Ctrl+C and Ctrl+X", () => {

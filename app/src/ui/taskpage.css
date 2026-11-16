@@ -307,3 +307,12 @@ html.held .page > .front dt {
 html.held .page > .front dd {
   margin: 0;
 }
+
+.page-drop-caret {
+  position: absolute;
+  z-index: 15;
+  width: 2px;
+  border-radius: 1px;
+  background: var(--tisty-accent);
+  pointer-events: none;
+}

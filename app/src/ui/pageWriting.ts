@@ -2,6 +2,7 @@ import type { Slashed } from "tisty-editor/edit";
 import { begunOn } from "./pageBegun";
 import { besideOn } from "./pageBeside";
 import { caretOn } from "./pageCaret";
+import { draggingOn } from "./pageDragging";
 import type { Edit } from "./pageEdits";
 import { formatsOn } from "./pageFormats";
 import { historyOn } from "./pageHistory";
@@ -90,6 +91,7 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
 
   const input = inputOn(writer, caret, laying, history, formats, begun);
   const keys = keysOn(writer, caret, laying, history, formats, beside, tags);
+  const dragging = draggingOn(writer, caret, laying);
 
   page.addEventListener("beforeinput", input.asked);
   page.addEventListener("compositionstart", input.started);
@@ -181,6 +183,7 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
       page.removeEventListener("copy", clipped);
       page.removeEventListener("cut", clipped);
       tags.stop();
+      dragging.stop();
       beside.stop();
       page.removeEventListener("mousedown", keys.moved);
       page.removeEventListener("click", begun.quoted);
