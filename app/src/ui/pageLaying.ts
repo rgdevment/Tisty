@@ -1,6 +1,7 @@
 import { byteFrom, bytesIn, checkAfter, checkOf, type Reckoned } from "../placing";
 import type { Caret } from "./pageCaret";
 import { applied, type Edit, inWholeChars, linedAs } from "./pageEdits";
+import { opened } from "./pageNodes";
 import { patched } from "./pagePatching";
 import { recorded, type Writer } from "./pageWriter";
 
@@ -9,7 +10,11 @@ const RESTED_MS = 250;
 
 export type Laying = ReturnType<typeof layingOn>;
 
-export const layingOn = (writer: Writer, caret: Caret, drawn: () => void) => {
+export const layingOn = (
+  writer: Writer,
+  caret: Caret,
+  drawn: (laid?: readonly Element[]) => void,
+) => {
   const { page, hands } = writer;
   let laying: Promise<void> = Promise.resolve();
   let resting: ReturnType<typeof setTimeout> | undefined;
@@ -73,8 +78,9 @@ export const layingOn = (writer: Writer, caret: Caret, drawn: () => void) => {
       const laid = sheet && near && patched(sheet, near, added - removed);
       if (!sheet || !laid) return redrawn();
       hands.dressed(sheet, laid);
+      opened(page, laid);
       rested(now);
-      if (hands.text() === now) drawn();
+      if (hands.text() === now) drawn(laid);
     });
   };
 

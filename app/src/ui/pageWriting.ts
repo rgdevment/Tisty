@@ -44,7 +44,7 @@ const SETTLED_MS = 300;
 export const writtenOn = (page: Document, hands: Hands): PageWriting => {
   const writer = writerOf(page, hands);
   const caret = caretOn(writer);
-  const laying = layingOn(writer, caret, () => drawn());
+  const laying = layingOn(writer, caret, (laid) => drawn(laid));
   const history = historyOn(writer, caret, laying);
   const formats = formatsOn(writer, caret, laying);
   const begun = begunOn(writer, caret, laying);
@@ -81,9 +81,9 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
     tags.offer(open && known ? tagMatch(hands.text(), at, known()) : null);
   };
 
-  const drawn = () => {
+  const drawn = (laid?: readonly Element[]) => {
     writer.whole = false;
-    opened(page);
+    opened(page, laid);
     caret.caretLaid();
     offerTags();
     beside.rest();
