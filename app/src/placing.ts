@@ -32,16 +32,42 @@ export const namesSum = (names: readonly string[]) =>
 
 const surrogate = (unit: number) => unit >= 0xd800 && unit < 0xe000;
 
+const widthOf = (unit: number) => (unit < 0x80 ? 1 : unit < 0x800 || surrogate(unit) ? 2 : 3);
+
 export const bytesIn = (text: string, from = 0, to = text.length) => {
   let bytes = 0;
-  for (let at = from; at < to; at++) {
-    const unit = text.charCodeAt(at);
-    bytes += unit < 0x80 ? 1 : unit < 0x800 || surrogate(unit) ? 2 : 3;
-  }
+  for (let at = from; at < to; at++) bytes += widthOf(text.charCodeAt(at));
   return bytes;
 };
 
-export const checkOf = (text: string): Check => ({ bytes: bytesIn(text), hash: unitsSummed(text) });
+export const checkOf = (text: string, bytes = bytesIn(text)): Check => ({
+  bytes,
+  hash: unitsSummed(text),
+});
+
+export type Reckoned = {
+  readonly text: string;
+  readonly check: Check;
+  readonly unit: number;
+  readonly byte: number;
+};
+
+// A place is counted from where the last key landed while the text is that one, never from its start.
+export const byteFrom = (known: Reckoned | null, text: string, unit: number) => {
+  if (known?.text !== text) return bytesIn(text, 0, unit);
+  return unit >= known.unit
+    ? known.byte + bytesIn(text, known.unit, unit)
+    : known.byte - bytesIn(text, unit, known.unit);
+};
+
+export const unitFrom = (known: Reckoned | null, text: string, byte: number) => {
+  const mine = known?.text === text;
+  let unit = mine ? known.unit : 0;
+  let at = mine ? known.byte : 0;
+  while (at < byte && unit < text.length) at += widthOf(text.charCodeAt(unit++));
+  while (at > byte && unit > 0) at -= widthOf(text.charCodeAt(--unit));
+  return unit;
+};
 
 // A key's check follows from the one it was typed on, so naming the new text never reads it whole.
 export const checkAfter = (was: Check, edit: Typed): Check => ({
