@@ -13,12 +13,48 @@ pub fn doc_drawn(session: tauri::State<'_, Mutex<Session>>, body: String) -> tau
     tauri::ipc::Response::new(paged(&shelf, &body).into_bytes())
 }
 
+/// The page each window last read for writing, so its next key reads again only the blocks around it.
+#[derive(Default)]
+pub struct Placing(Mutex<std::collections::HashMap<String, tisty_markdown::Doc>>);
+
+impl Placing {
+    fn read<T>(
+        &self,
+        window: &str,
+        body: &str,
+        again: bool,
+        drawn: impl FnOnce(&tisty_markdown::Doc) -> T,
+    ) -> T {
+        let mut held = self
+            .0
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        let doc = match held.remove(window) {
+            Some(was) if again => tisty_markdown::reread(was, body),
+            _ => tisty_markdown::read(body),
+        };
+        let said = drawn(&doc);
+        held.insert(window.to_string(), doc);
+        said
+    }
+
+    pub fn forget(&self, window: &str) {
+        self.0
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .remove(window);
+    }
+}
+
 // The page being written changes with each key, so it is drawn fresh and never kept on disk.
 #[tauri::command(async)]
-pub fn doc_placed(body: String) -> tauri::ipc::Response {
-    tauri::ipc::Response::new(
-        tisty_markdown::html_placed(&tisty_markdown::read(&body)).into_bytes(),
-    )
+pub fn doc_placed(
+    window: tauri::WebviewWindow,
+    placing: tauri::State<'_, Placing>,
+    body: String,
+) -> tauri::ipc::Response {
+    let html = placing.read(window.label(), &body, false, tisty_markdown::html_placed);
+    tauri::ipc::Response::new(html.into_bytes())
 }
 
 #[derive(serde::Serialize)]
@@ -30,8 +66,16 @@ pub struct PlacedNear {
 }
 
 #[tauri::command(async)]
-pub fn doc_placed_near(body: String, from: usize, to: usize) -> PlacedNear {
-    let near = tisty_markdown::placed_near(&tisty_markdown::read(&body), from, to);
+pub fn doc_placed_near(
+    window: tauri::WebviewWindow,
+    placing: tauri::State<'_, Placing>,
+    body: String,
+    from: usize,
+    to: usize,
+) -> PlacedNear {
+    let near = placing.read(window.label(), &body, true, |doc| {
+        tisty_markdown::placed_near(doc, from, to)
+    });
     PlacedNear {
         spans: near.spans,
         from: near.drawn.start,

@@ -979,6 +979,11 @@ pub(crate) fn opened(
 }
 
 fn window_event(window: &tauri::Window, event: &tauri::WindowEvent) {
+    if let tauri::WindowEvent::Destroyed = event {
+        window
+            .state::<answers::paging::Placing>()
+            .forget(window.label());
+    }
     if window.label() == "quick" {
         if let tauri::WindowEvent::Focused(false) = event {
             tray::tuck(window.app_handle());
@@ -1361,6 +1366,7 @@ pub fn run() {
         .on_window_event(window_event)
         .manage(OneAtATime::default())
         .manage(answers::attaching::Keeping::default())
+        .manage(answers::paging::Placing::default())
         .manage(answers::clouding::Consenting::default())
         .manage(viewing::Views::default())
         .manage(finishing::Finishers::default())

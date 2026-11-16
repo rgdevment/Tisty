@@ -2,6 +2,8 @@ import type { Slashed } from "tisty-editor/edit";
 import { begunOn } from "./pageBegun";
 import { besideOn } from "./pageBeside";
 import { caretOn } from "./pageCaret";
+import { choosingOn } from "./pageChoosing";
+import { draggingOn } from "./pageDragging";
 import type { Edit } from "./pageEdits";
 import { formatsOn } from "./pageFormats";
 import { historyOn } from "./pageHistory";
@@ -10,13 +12,13 @@ import { keysOn } from "./pageKeys";
 import { layingOn } from "./pageLaying";
 import { balanced } from "./pageMarks";
 import type { Act } from "./pageMoving";
-import { elementOf, inCode, opened } from "./pageNodes";
+import { elementOf, inCode, onSheet, opened } from "./pageNodes";
 import { tagList, tagMatch } from "./pageTags";
 import { type Hands, writerOf } from "./pageWriter";
 import { unformattable } from "./quickly";
 
 export type { Hands, Turns } from "./pageWriter";
-export { turnsAnew } from "./pageWriter";
+export { recorded, turnOf, turnsAnew } from "./pageWriter";
 
 export type PageWriting = {
   readonly drawn: () => void;
@@ -86,10 +88,17 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
     offerTags();
     beside.rest();
     beside.besideLine();
+    choosing.shown();
   };
 
   const input = inputOn(writer, caret, laying, history, formats, begun);
-  const keys = keysOn(writer, caret, laying, history, formats, beside, tags);
+  const choosing = choosingOn(writer, caret, laying, beside);
+  const keys = keysOn(writer, caret, laying, history, formats, beside, tags, choosing);
+  const chooser = (event: KeyboardEvent) => {
+    if (onSheet(page, event) && choosing.keyed(event)) event.stopImmediatePropagation();
+  };
+  const unchosen = () => choosing.letGo(false);
+  const dragging = draggingOn(writer, caret, laying);
 
   page.addEventListener("beforeinput", input.asked);
   page.addEventListener("compositionstart", input.started);
@@ -110,9 +119,35 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
     event.preventDefault();
     begun.intoFold(fold);
   };
+  const chosen = () => {
+    const text = hands.text();
+    const blocks = choosing.span();
+    if (blocks) return text.slice(blocks.from, blocks.to);
+    const one = caret.chosenNow();
+    const whole = one && balanced(text, one);
+    return whole ? text.slice(whole.from, whole.to) : null;
+  };
+  const cut = () => {
+    if (choosing.choosing()) return choosing.dropped();
+    const picked = caret.chosenNow();
+    const one = picked && balanced(hands.text(), picked);
+    if (one) laying.put({ ...one, insert: "" }, one.from);
+  };
+  // Ctrl+C and Ctrl+X carry the Tisty Markdown of the words chosen, as the right-click does, never the drawn page.
+  const clipped = (event: ClipboardEvent) => {
+    const words = onSheet(page, event) ? chosen() : null;
+    if (!words || !event.clipboardData) return;
+    event.preventDefault();
+    event.clipboardData.setData("text/plain", words);
+    if (event.type === "cut") cut();
+  };
   page.addEventListener("keydown", named, true);
+  page.addEventListener("keydown", chooser);
   page.addEventListener("keydown", keys.keyed);
+  page.addEventListener("mousedown", unchosen);
   page.addEventListener("paste", input.pastedFiles);
+  page.addEventListener("copy", clipped);
+  page.addEventListener("cut", clipped);
   const away = () => hands.settle?.();
   page.defaultView?.addEventListener("blur", away);
   opened(page);
@@ -128,12 +163,7 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
     },
     rewrite: history.rewrite,
     outside: history.outside,
-    chosen: () => {
-      const one = caret.chosenNow();
-      const text = hands.text();
-      const whole = one && balanced(text, one);
-      return whole ? text.slice(whole.from, whole.to) : null;
-    },
+    chosen,
     slashed: beside.slashed,
     unitActed: beside.unitActed,
     begin: begun.begin,
@@ -151,22 +181,23 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
         if (at !== null) caret.placeAt(at);
       };
     },
-    cut: () => {
-      const chosen = caret.chosenNow();
-      const one = chosen && balanced(hands.text(), chosen);
-      if (one) laying.put({ ...one, insert: "" }, one.from);
-    },
+    cut,
     stop: () => {
       writer.turns.left = hands.text();
-      laying.told();
+      laying.stop();
       hands.settle?.();
       page.defaultView?.removeEventListener("blur", away);
       watching?.disconnect();
       page.removeEventListener("selectionchange", keys.noted);
       page.removeEventListener("keydown", keys.keyed);
+      page.removeEventListener("keydown", chooser);
+      page.removeEventListener("mousedown", unchosen);
       page.removeEventListener("keydown", named, true);
       page.removeEventListener("paste", input.pastedFiles);
+      page.removeEventListener("copy", clipped);
+      page.removeEventListener("cut", clipped);
       tags.stop();
+      dragging.stop();
       beside.stop();
       page.removeEventListener("mousedown", keys.moved);
       page.removeEventListener("click", begun.quoted);
