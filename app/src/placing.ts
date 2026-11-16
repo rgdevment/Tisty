@@ -32,7 +32,10 @@ export const namesSum = (names: readonly string[]) =>
 
 const surrogate = (unit: number) => unit >= 0xd800 && unit < 0xe000;
 
-const widthOf = (unit: number) => (unit < 0x80 ? 1 : unit < 0x800 || surrogate(unit) ? 2 : 3);
+const widthOf = (unit: number) => {
+  if (unit < 0x80) return 1;
+  return unit < 0x800 || surrogate(unit) ? 2 : 3;
+};
 
 export const bytesIn = (text: string, from = 0, to = text.length) => {
   let bytes = 0;

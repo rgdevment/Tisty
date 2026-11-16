@@ -62,7 +62,7 @@ const namesCarried = (was: readonly Element[], laid: readonly Element[], by: num
     const moved = now[0] - old[0];
     return now[1] - moved === old[1] && (moved === 0 || moved === by);
   };
-  if (before.length !== after.length || !after.every(same)) return false;
+  if (before.length !== after.length || !after.every((one, at) => same(one, at))) return false;
   after.forEach((one, at) => {
     if (before[at].id) one.id = before[at].id;
   });
