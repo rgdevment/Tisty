@@ -1,5 +1,5 @@
-import { spanned } from "tisty-editor/read";
 import { scrolledAround } from "./pageNodes";
+import { placedAt, placeOf } from "./pagePlaces";
 
 const DIAGRAMS_AND_WIDGETS_SETTLE_MS = 2000;
 const A_DRAWING_ARRIVES_MS = 2000;
@@ -25,7 +25,7 @@ export const holdingOn = (page: Document) => {
       ? (scrolledAround(page)[0] ?? null)
       : (page.scrollingElement as HTMLElement | null);
   const frameTop = () => page.defaultView?.frameElement?.getBoundingClientRect().top ?? 0;
-  const blockAt = (start: number) => page.querySelector(`.page > [data-at^="${start}-"]`);
+  const blockAt = (start: number) => placedAt(page, ".page > ", start);
   const topOf = (block: Element) => block.getBoundingClientRect().top + frameTop();
 
   const firstSeen = (around: HTMLElement, moving?: number): Held | null => {
@@ -35,10 +35,9 @@ export const holdingOn = (page: Document) => {
     // A hint hidden on a task's page measures nothing, so the blocks are not in order of height to search by halves.
     const block = blocks.find((one) => {
       const box = one.getBoundingClientRect();
-      const start = spanned(one.getAttribute("data-at"))?.[0];
-      return box.height > 0 && box.bottom > sight && start !== moving;
+      return box.height > 0 && box.bottom > sight && placeOf(one)?.[0] !== moving;
     });
-    const start = spanned(block?.getAttribute("data-at") ?? null)?.[0];
+    const start = placeOf(block)?.[0];
     return block && start !== undefined ? { start, y: topOf(block) } : null;
   };
 
