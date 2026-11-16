@@ -30,7 +30,7 @@ pub fn fenced_spans(text: &str) -> Vec<(usize, usize)> {
 }
 
 // The quote prefix comes off first, or a fence written inside a quote is never seen.
-#[derive(Default)]
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct Fencing {
     pub open: Option<(char, usize, usize, usize)>,
     pub base: usize,
@@ -65,11 +65,15 @@ fn emptied(said: &str) -> Option<usize> {
     (matches!(said, "-" | "*" | "+") || numbered).then_some(said.len() + 1)
 }
 
+pub(crate) fn opener(said: &str) -> Option<usize> {
+    bullet(said).or_else(|| emptied(said))
+}
+
 pub fn listed(base: usize, wide: usize, said: &str) -> usize {
     if said.is_empty() {
         return base;
     }
-    match bullet(said).or_else(|| emptied(said)) {
+    match opener(said) {
         Some(after) if wide <= base => wide + after,
         _ if wide < base => 0,
         _ => base,

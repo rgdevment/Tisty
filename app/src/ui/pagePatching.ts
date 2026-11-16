@@ -1,5 +1,6 @@
 import { spanned } from "tisty-editor/read";
 import { namesSum, type PlacedNear, summed } from "../placing";
+import { placeOf } from "./pageSpots";
 
 const NAMES = ["data-at", "data-src", "data-placed"];
 // What the page lends or links in a block is laid by its own dressing, which only a whole drawing runs.
@@ -24,7 +25,7 @@ const linedUp = (old: readonly Element[], near: PlacedNear, kept: number, by: nu
   const places: number[] = [];
   for (let at = 0; at < old.length; at++) {
     if (at >= near.from && at < kept) continue;
-    const place = spanned(old[at].getAttribute("data-at"));
+    const place = placeOf(old[at]);
     if (!place) return false;
     const moved = at < near.from ? 0 : by;
     places.push(place[0] + moved, place[1] + moved);
@@ -33,19 +34,39 @@ const linedUp = (old: readonly Element[], near: PlacedNear, kept: number, by: nu
   return fnv === near.sum[0] && mixed === near.sum[1];
 };
 
-const HEADS = [1, 2, 3, 4, 5, 6].map((level) => `h${level}[data-at][id]`).join(", ");
+const LEVELS = [1, 2, 3, 4, 5, 6];
+const HEADINGS = LEVELS.map((level) => `h${level}[data-at]`).join(", ");
+const HEADS = LEVELS.map((level) => `h${level}[data-at][id]`).join(", ");
 
-const headsIn = (blocks: readonly Element[]) =>
-  blocks.flatMap((one) => [...(one.matches(HEADS) ? [one] : []), ...one.querySelectorAll(HEADS)]);
+const headsIn = (blocks: readonly Element[], which = HEADS) =>
+  blocks.flatMap((one) => [...(one.matches(which) ? [one] : []), ...one.querySelectorAll(which)]);
 
 const namedAlike = (sheet: Element, old: readonly Element[], near: PlacedNear, kept: number) => {
+  if (!near.heads) return true;
   const redrawn = old.slice(near.from, kept);
-  if (!near.heads) return headsIn(redrawn).length === 0;
   const standing = Array.from(sheet.querySelectorAll(HEADS)).filter(
     (one) => !redrawn.some((block) => block.contains(one)),
   );
   const [fnv, mixed] = namesSum(standing.map((one) => one.id));
   return fnv === near.heads[0] && mixed === near.heads[1];
+};
+
+// Only the same heading in the same place keeps its shown name; one that came or went renames those after it.
+const namesCarried = (was: readonly Element[], laid: readonly Element[], by: number) => {
+  const before = headsIn(was, HEADINGS);
+  const after = headsIn(laid, HEADINGS);
+  const same = (one: Element, at: number) => {
+    const old = placeOf(before[at]);
+    const now = placeOf(one);
+    if (!old || !now || one.tagName !== before[at].tagName) return false;
+    const moved = now[0] - old[0];
+    return now[1] - moved === old[1] && (moved === 0 || moved === by);
+  };
+  if (before.length !== after.length || !after.every((one, at) => same(one, at))) return false;
+  after.forEach((one, at) => {
+    if (before[at].id) one.id = before[at].id;
+  });
+  return true;
 };
 
 // The blocks the core drew again take the place of the old ones, and those after only move by
@@ -64,7 +85,8 @@ export const patched = (sheet: Element, near: PlacedNear, by: number): Element[]
   const laid = Array.from(fresh.content.children);
   if (
     laid.length !== to - from ||
-    laid.some((one) => one.matches(WHOLE_ONLY) || one.querySelector(WHOLE_ONLY))
+    laid.some((one) => one.matches(WHOLE_ONLY) || one.querySelector(WHOLE_ONLY)) ||
+    (!near.heads && !namesCarried(old.slice(from, kept), laid, by))
   )
     return null;
   // A fold drawn anew comes closed, so one being written in stays open as it was.
