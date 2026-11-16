@@ -18,13 +18,15 @@ env:
   RUSTFLAGS: -D warnings
 
 jobs:
-  # Anything not known to stay out of Rust's way counts as Rust, so a new path runs the whole suite.
+  # Anything not known to stay out of the way of Rust, the window or the guide counts as theirs, so a new path runs it all.
   changes:
     name: what the branch touched
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     outputs:
       rust: ${{ steps.look.outputs.rust }}
+      window: ${{ steps.look.outputs.window }}
+      guide: ${{ steps.look.outputs.guide }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -37,17 +39,27 @@ jobs:
           BASE: ${{ github.event.pull_request.base.sha }}
         run: |
           if [ "$EVENT" != "pull_request" ]; then
-            echo "rust=true" >> "$GITHUB_OUTPUT"
+            printf 'rust=true\nwindow=true\nguide=true\n' >> "$GITHUB_OUTPUT"
             exit 0
           fi
-          aside='^(app/src/|packages/|app/(\.gitignore|biome\.json|index\.html|package\.json|public/|stryker\.config\.json|tsconfig(\.node)?\.json|vite\.config\.ts)$|assets/|docs/|fuzz/|hooks/|(CLA|CODE_OF_CONDUCT|CONTRIBUTING|LEEME|PRIVACY|README|SECURITY|TERMS|THIRD-PARTY)\.md$|package(-lock)?\.json$|\.markdownlint-cli2\.jsonc$|\.editorconfig$|\.github/(FUNDING|dependabot)\.yml$|\.github/workflows/(caches|cla|commits|contracts|feed|fuzz|mutants|mutants-sweep|posts|release|rules|versions)\.yml$)'
+          nobody='fuzz/|hooks/|\.github/(FUNDING|dependabot)\.yml$|\.github/workflows/(caches|cla|commits|contracts|feed|fuzz|mutants|mutants-sweep|posts|release|rules|versions)\.yml$'
+          prose='docs/|(CLA|CODE_OF_CONDUCT|CONTRIBUTING|LEEME|PRIVACY|README|SECURITY|TERMS|THIRD-PARTY)\.md$'
+          not_rust="^(app/src/|packages/|app/(\.gitignore|biome\.json|index\.html|package\.json|public/|stryker\.config\.json|tsconfig(\.node)?\.json|vite\.config\.ts)$|assets/|package(-lock)?\.json$|\.markdownlint-cli2\.jsonc$|\.editorconfig$|$prose|$nobody)"
+          neither='carrier|cli|google|help|nl|onedrive|sign-guide|webdav'
+          not_the_window="^(crates/tisty-($neither|envelope|share-proto|sharing)/|$nobody)"
+          not_the_guide="^(crates/tisty-($neither|sync)/|$prose|$nobody)"
           from=$(git merge-base "$BASE" HEAD)
           changed=$(git diff --name-only "$from" HEAD)
-          first=$( { echo "$changed" | grep -x 'app/src/news.json'; echo "$changed" | grep -vE "$aside"; } \
-            | grep -v '^$' | head -1 || true)
-          [ -n "$first" ] && rust=true || rust=false
-          echo "rust=$rust" >> "$GITHUB_OUTPUT"
-          echo "the first path Rust has to answer for: ${first:-none}"
+          first_outside() {
+            echo "$changed" | grep -vE "$1" | grep -v '^$' | head -1 || true
+          }
+          answers() {
+            if [ -n "$2" ]; then echo "$1=true" >> "$GITHUB_OUTPUT"; else echo "$1=false" >> "$GITHUB_OUTPUT"; fi
+            echo "the first path $1 has to answer for: ${2:-none}"
+          }
+          answers rust "$( { echo "$changed" | grep -x 'app/src/news.json'; first_outside "$not_rust"; } | grep -v '^$' | head -1 || true)"
+          answers window "$(first_outside "$not_the_window")"
+          answers guide "$(first_outside "$not_the_guide")"
 
   test:
     name: test / ${{ matrix.os }}${{ matrix.part && format(' {0}', matrix.part) || '' }}
@@ -82,22 +94,27 @@ jobs:
           drive-format: ReFS
           drive-type: Dynamic
           trusted-dev-drive: true
+          # Beside the checkout, because the cache only keeps a target it can reach from there by a relative path.
+          mount-path: ${{ github.workspace }}/../dev-drive
           env-mapping: |
             CARGO_TARGET_DIR,{{ DEV_DRIVE }}/target
             TEMP,{{ DEV_DRIVE }}/tmp
             TMP,{{ DEV_DRIVE }}/tmp
+      # The cache is handed its target by hand, and keeps nothing without a word when that names no folder.
       - if: runner.os == 'Windows'
         shell: bash
-        run: mkdir -p "$TEMP" "$CARGO_TARGET_DIR"
+        run: |
+          mkdir -p "$TEMP" "$CARGO_TARGET_DIR"
+          test -d ../dev-drive/target
       - uses: ./.github/actions/toolchain
         with:
           components: clippy
       - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2
         with:
           shared-key: workspace
-          # One job per system writes the cache, and it is one that builds the tests.
+          # One job per system writes the cache: it builds the tests, and on main runs clippy too, for the clippy job to find its own there.
           save-if: ${{ github.ref == 'refs/heads/main' && (!matrix.part || matrix.part == '1/2') }}
-          workspaces: ${{ runner.os == 'Windows' && format('. -> {0}/target', env.DEV_DRIVE) || '. -> target' }}
+          workspaces: ${{ runner.os == 'Windows' && '. -> ../dev-drive/target' || '. -> target' }}
       # A fresh checkout makes cargo rebuild every crate of ours; sccache knows the ones a branch left alone.
       - uses: mozilla-actions/sccache-action@fc920bf0ec8de6ee65d409111f7ec508035751ba # v0.0.11
       - name: Compile through sccache
@@ -115,7 +132,7 @@ jobs:
       - uses: taiki-e/install-action@86f7a0ffb25f40114606501a311ebcfaf882ea32 # v2.88.0
         with:
           tool: nextest
-      - if: ${{ !matrix.part || matrix.part == 'clippy' }}
+      - if: ${{ !matrix.part || matrix.part == 'clippy' || (github.ref == 'refs/heads/main' && matrix.part == '1/2') }}
         run: cargo clippy --workspace --all-targets
       - name: The contracts hold in Rust too
         if: ${{ !matrix.part || matrix.part == 'clippy' }}
@@ -186,6 +203,8 @@ jobs:
 
   guide:
     name: the Markdown guide draws
+    needs: changes
+    if: needs.changes.outputs.guide == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
@@ -319,13 +338,21 @@ jobs:
             -p tisty-cli -p tisty-share-proto -p tisty-envelope -p tisty-sharing \
             --lcov --output-path lcov-rust.info
 
+      - name: No window lines to measure on this branch
+        if: needs.changes.outputs.window != 'true'
+        run: |
+          mkdir -p app/coverage packages/tisty-light-viewer/coverage
+          touch app/coverage/lcov.info packages/tisty-light-viewer/coverage/lcov.info
+
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        if: needs.changes.outputs.window == 'true'
         with:
           node-version: 22
           cache: npm
           cache-dependency-path: package-lock.json
 
       - name: The window
+        if: needs.changes.outputs.window == 'true'
         run: |
           npm ci
           npm run test:coverage --workspace app
