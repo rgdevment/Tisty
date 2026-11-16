@@ -679,7 +679,7 @@ export default function Tree({
     const holds = (book: Filed) =>
       book.file === open || pagesOf(book.id).some((one) => one.file === open);
     const closed = !unfolded && !spread.has(DIARY) && !diaries.some(holds);
-    const mark = <Glyph name="book-heart" className="h-[14px] w-[14px]" />;
+    const mark = <Glyph name="book-heart" className="h-[14px] w-[14px] text-hue-purple" />;
     return (
       <li key={DIARY} className="relative">
         <div className="group/row relative flex items-center rounded-md has-[:focus-visible]:bg-hover">

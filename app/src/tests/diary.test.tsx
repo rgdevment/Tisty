@@ -141,6 +141,23 @@ describe("the diary in the library", () => {
     expect(screen.getByRole("button", { name: t("diary") }).tabIndex).toBe(0);
   });
 
+  it("wears its own colour on its row, with books or without", () => {
+    const empty: Papers = { folders: [], docs: [] };
+    const { unmount } = render(
+      <Tree papers={empty} onOpen={vi.fn()} onFile={vi.fn()} onDiary={vi.fn()} />,
+    );
+    const mark = () =>
+      screen
+        .getByRole("button", { name: t("diary") })
+        .closest("li")
+        ?.querySelector("svg");
+    expect(mark()?.getAttribute("class")).toContain("text-hue-purple");
+    unmount();
+
+    render(<Tree papers={papers} unfolded onOpen={vi.fn()} onFile={vi.fn()} onDiary={vi.fn()} />);
+    expect(mark()?.getAttribute("class")).toContain("text-hue-purple");
+  });
+
   it("shows the books where they sit when nothing gathers them", () => {
     render(<Tree papers={papers} unfolded onOpen={vi.fn()} onFile={vi.fn()} />);
 
