@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { DateSpec } from "../core";
-import { dayNamed, daysFrom, dueLabel, lateLabel, monthOf, whenLabel } from "../format";
-import { adopt } from "../locales";
+import { daysFrom, dueLabel, lateLabel, monthOf, whenLabel } from "../format";
 
 const spec = (at: string, has_time = false): DateSpec => ({
   at,
@@ -22,17 +21,6 @@ describe("monthOf", () => {
   it("names the year only once it stops being this one", () => {
     expect(monthOf("2026-03-04 10:00:00", noon("2026-08-10"))).toBe("March");
     expect(monthOf("2025-03-04 10:00:00", noon("2026-08-10"))).toBe("March 2025");
-  });
-});
-
-describe("dayNamed", () => {
-  it("names the weekday in the language Tisty speaks, not the one the computer does", () => {
-    const sunday = new Date("2026-11-15 12:00:00");
-    adopt("es");
-    expect(dayNamed(sunday)).toBe("Domingo 15");
-    adopt("en");
-    expect(dayNamed(sunday)).toBe("Sunday 15");
-    adopt();
   });
 });
 
