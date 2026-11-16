@@ -70,7 +70,7 @@ What happened today, at home or at work, has one place: **Diary**, near the top 
 
 - **Diary in the Library opens today.** The first time in a year it makes that year's book and the month's page; the day itself is born when you write in it. Under the row, the years and their months open like any book.
 - **It reads as a line of days, not as a page.** Today's date heads it, and each day shows its number and weekday beside what you wrote, newest on top.
-- **The box on top, «What happened today?», writes in today**: `Ctrl` + `Enter` keeps it. The note button beside it turns it into a sticky note with the minute it came, on the right of today. The pencil opens the month as a document to change any day, and **Back to the diary** returns.
+- **The box on top, «What happened today?», writes in today**: `Ctrl` + `Enter` keeps it. The note button beside it turns it into a sticky note with the minute it came, on the right of today. The pencil opens the month as a document to change any day; going anywhere else, or choosing **Diary** again, brings back the line of days.
 - **From anywhere**: in the quick capture, `Tab` goes from **Task** to **Idea** and then to **Diary**, which writes in today without opening the window. On a Brainstorm note, **File in a document** offers **Today's diary** first.
 - **Tasks closed that day** fold under the day's words; each one opens with a click. They are only shown, never written into the text.
 - **Only you.** No agent sees your diary until you press **Only you** at its top and it reads **Open to agents**. Open, an agent reads it and, only when you ask, adds to the end of today under a line with the minute and its name. It never changes what you wrote. Press it again to keep it to yourself.
