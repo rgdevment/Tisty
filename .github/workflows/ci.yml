@@ -42,7 +42,7 @@ jobs:
             printf 'rust=true\nwindow=true\nguide=true\n' >> "$GITHUB_OUTPUT"
             exit 0
           fi
-          nobody='fuzz/|hooks/|\.github/(FUNDING|dependabot)\.yml$|\.github/workflows/(caches|cla|commits|contracts|feed|fuzz|mutants|mutants-sweep|posts|release|rules|versions)\.yml$'
+          nobody='fuzz/|hooks/|\.github/(FUNDING|dependabot)\.yml$|\.github/workflows/(caches|cla|codeql|commits|contracts|feed|fuzz|mutants|mutants-sweep|posts|release|rules|versions)\.yml$'
           prose='docs/|(CLA|CODE_OF_CONDUCT|CONTRIBUTING|LEEME|PRIVACY|README|SECURITY|TERMS|THIRD-PARTY)\.md$'
           not_rust="^(app/src/|packages/|app/(\.gitignore|biome\.json|index\.html|package\.json|public/|stryker\.config\.json|tsconfig(\.node)?\.json|vite\.config\.ts)$|assets/|package(-lock)?\.json$|\.markdownlint-cli2\.jsonc$|\.editorconfig$|$prose|$nobody)"
           neither='carrier|cli|google|help|nl|onedrive|sign-guide|webdav'
