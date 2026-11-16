@@ -445,6 +445,26 @@ the_contracts_hold() {
   fi
 }
 
+the_check_runs_what_ci_runs() {
+  if ! command -v node > /dev/null; then
+    went_well "node is not here, so the local check was not held against CI"
+    return
+  fi
+  if [ ! -d node_modules/js-yaml ]; then
+    went_well "node_modules is not here, so the local check was not held against CI"
+    return
+  fi
+  local missing
+  if ! node --test scripts/check-runs-ci.test.mjs > /dev/null; then
+    amiss "the check on what CI runs does not do what its tests say"
+  elif missing=$(node scripts/check-runs-ci.mjs 2>&1); then
+    went_well "npm run check runs every step of CI's frontend job"
+  else
+    printf '%s\n' "$missing"
+    amiss "npm run check skips these steps of CI's frontend job; add them to scripts/check-steps.mjs"
+  fi
+}
+
 no_token_kept_in_the_tree() {
   local token='ya29\.[A-Za-z0-9_-]{20,}|1//0[A-Za-z0-9_-]{20,}|GOCSPX-[A-Za-z0-9_-]{20,}|sl\.[A-Za-z0-9_-]{40,}|eyJ[A-Za-z0-9_-]{10,}\.eyJ[A-Za-z0-9_-]{10,}'
   grep -rnIE "$token" crates app/src app/src-tauri/src packages scripts .github docs     --exclude='*.lock' --exclude='telling.rs' --exclude-dir=target --exclude-dir=node_modules
@@ -470,5 +490,6 @@ few_earlier_releases_are_met
 the_posts_can_go_out
 every_package_says_its_licence
 the_contracts_hold
+the_check_runs_what_ci_runs
 no_token_kept_in_the_tree
 exit $status
