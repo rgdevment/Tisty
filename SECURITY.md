@@ -93,7 +93,7 @@ report will never be dismissed for being inconvenient.
   seconds, is taken only if the answer says it is a picture, and is kept nowhere.
   An address that leads to this computer or to your own network is refused, and
   checked again on each redirect.
-- **What reaches Tisty from outside is a stranger's word.** Tisty answers to two
+- **What reaches Tisty from outside is a stranger's word.** Tisty answers to three
   addresses, and any page can fire them. `tisty://open?path=…` shows, read-only,
   only an absolute path on a local disk to an existing `.md`, `.markdown`, `.txt`,
   `.ics` or `.ical` file, with no `..` in it. `tisty://edit?link=…` takes only an
@@ -101,6 +101,10 @@ report will never be dismissed for being inconvenient.
   signs in `domains/hosts.json`. Tisty asks you before anything leaves, and then
   asks that signed address, never the one the link names. That
   link carries the key of a private document, so it is not written to Tisty's log.
+  `tisty://task?id=…` only brings the window forward on the task with that
+  identifier: it takes one `id` that must be a well-formed task identifier,
+  carries nothing else and changes nothing. It is what a reminder's notice and a
+  saved calendar event point at.
 - **Synchronisation is yours.** Tisty copies files into a folder you name, and
   whatever already keeps that folder in step between your machines is what moves
   them — or into a cloud of your own that it reaches itself. Syncing has no
@@ -134,11 +138,13 @@ report will never be dismissed for being inconvenient.
 - **`unsafe` is forbidden** at the workspace level, not merely discouraged. The
   window's crate is the one exception, and a narrow one: it denies `unsafe`
   too, and lets it in only where the operating system offers no other door — the
-  webview on both systems, `sysctl` on macOS, and on Windows the shell, the
-  imaging component, a program's version information, the notice that the
-  path changed, DPAPI, the Store's dialog, asking to be reopened after an update
-  and the warning that comes before Windows closes it — each function marked one
-  by one, in six files, and a test fails if a mark appears in any other.
+  webview on both systems, `sysctl` and the notification centre on macOS, and on
+  Windows the shell, the imaging component, a program's version information, the
+  notice that the path changed, DPAPI, the Store's dialog, booking a reminder
+  with the system, asking to be reopened after an update and the warning that
+  comes before Windows closes it — each function marked one by one, and the
+  macOS notification module as a whole, in seven files, and a test fails if a
+  mark appears in any other.
 - **A release is held to what CI already proved.** A tag on a commit that did
   not pass CI on `main` is not released. The updater's signature is checked
   against the key the build ships before anything is published, and every file
@@ -534,6 +540,12 @@ may only file into a list that already exists — it cannot make one.
 counted; a count of one would say the thing exists. What it reads comes back
 without
 the absolute paths of your disk.
+
+**Your diary is out of its sight until you open it.** While the diary is shut,
+every tool answers about it as about a document that is not there, and nothing
+lists or counts it. Open, an assistant reads it and only adds to the end of
+today, signed; every other change is refused. A computer of yours on a Tisty
+older than 1.48 does not know this door.
 
 **What it says about work being finished only ever adds.** An assistant can mark
 a task as finished, with the account of what it did: one it filed, or one you

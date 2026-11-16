@@ -80,7 +80,7 @@ ever gate them:
 - The door assistants come through (`tisty mcp`).
 - The complete task module.
 - The documents module.
-- Synchronisation against your own repository or folder.
+- Synchronisation with your own cloud or folder.
 
 If the free product were not complete and dignified on its own, there would be
 no project.

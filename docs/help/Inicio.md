@@ -53,7 +53,7 @@ Una tarea también es un documento, uno que termina: por eso tiene una página p
 
 - [[Tareas]]: captura, vistas, la matriz de Eisenhower, listas, etiquetas, pasos y partes.
 - [[Lenguaje natural|Lenguaje-natural]]: lo que entiende la barra de captura.
-- [[Reparto y recordatorios|Reparto-y-recordatorios]]: repartir el trabajo en los días.
+- [[Reparto y recordatorios|Reparto-y-recordatorios]]: repartir el trabajo en los días, recordatorios que suenan con Tisty cerrado y guardar una tarea en tu calendario.
 - [[El archivo|El-archivo]]: historias, rutinas y rastro.
 
 ## Memoria para tu agente de IA, por MCP
@@ -70,6 +70,7 @@ Los documentos son un cuaderno Markdown junto a las tareas: avisos, tablas, diag
 
 - [[Documentos]]: carpetas, etiquetas, varios idiomas, adjuntos, importar y exportar, y leer un archivo Markdown de afuera.
 - [Lluvia de ideas](Documentos#lluvia-de-ideas): las ideas del momento como notas adhesivas, que después pasas a una tarea o a un documento.
+- [Diario](Documentos#diario): lo que pasó hoy, un libro por año, fuera de la vista de tu agente hasta que lo abres.
 - [[El editor|Editor-Markdown]]: escribir donde lees, la barra, el menú `/`, las tablas y los atajos.
 - [[Páginas y PDF|Páginas-y-PDF]]: un documento por capítulos, saltos de página y el PDF propio de Tisty.
 - [[Diagramas]]: la ventana de diagramas: un mapa mental, un esquema, un diagrama libre o un diagrama de clases dibujados a mano, y exportados como imagen.

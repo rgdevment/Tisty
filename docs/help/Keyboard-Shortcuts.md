@@ -8,15 +8,21 @@ The whole window works from the keyboard.
 | `Enter` (in the quick capture) | File the task |
 | `Ctrl` + `Alt` + `I` (once picked in Settings) | Jot an idea for [Brainstorm](Documents#brainstorm) from anywhere |
 | `Tab` (in the quick capture) | Switch between a task, an idea for [Brainstorm](Documents#brainstorm) and today in the [Diary](Documents#diary); `Shift` + `Tab` goes back |
-| `Ctrl`/`⌘` + `Enter` | Complete the task you are on; in a document you are writing, a page break |
+| `Ctrl`/`⌘` + `Enter` | On a task's row in the list, complete it; while writing in a document or on a task's page, a page break |
 | `/` | Insert something inside a document |
 | `Shift` + `Enter` (writing a document) | Break the line without starting a paragraph |
 | `Ctrl`/`⌘` + `/` (writing a document) | Open the blocks menu where the caret is |
 | `Alt` + ↑ ↓ (writing a document) | Move the block or the item the caret is in up or down |
+| `Esc` · `Shift` + ↑ ↓ (writing a document) | Choose the whole block · take in the ones beside it |
+| `Ctrl`/`⌘` + `B` · `I` · `U` (writing a document) | Bold · italic · underline |
+| `Ctrl`/`⌘` + `Shift` + `X` · `Shift` + `C` (writing a document) | Strikethrough · code |
+| `Ctrl`/`⌘` + `K` (writing a document) | Put a link, or change the address of one already written |
+| `Ctrl`/`⌘` + `Z` · `Ctrl`/`⌘` + `Shift` + `Z` or `Ctrl`/`⌘` + `Y` (writing a document) | Undo · redo |
+| `Ctrl`/`⌘` + `C` · `X` (writing a document) | Copy · cut the chosen words or blocks as Markdown |
 | `Tab` · `Shift` + `Tab` (writing a list) | Put an item under the one above or take it out |
 | `Ctrl`/`⌘` + `E` (in a document) | Switch between Rich text and Markdown |
 | `F1` | Open the Tisty Markdown guide, without a connection |
-| `Ctrl`/`⌘` + `K` | Go to the search at the top of the sidebar, unfolding the sidebar first if it is folded |
+| `Ctrl`/`⌘` + `K` (outside what you are writing) | Go to the search at the top of the sidebar, unfolding the sidebar first if it is folded |
 | `Ctrl`/`⌘` + `B` (outside what you are writing) | Fold the sidebar to its icons, or unfold it; drag its edge to change its width. When the column on the right does not fit beside it, the sidebar folds to its icons by itself; opened by hand, it stays open until you change view or the window's size |
 | `Ctrl`/`⌘` + `S` (in the diagram window) | Save the diagram into its document |
 | `Enter` · `Tab` · `Delete` · `F2` (in a mind map) | Add a sibling, add a child, remove the idea, rename it |
@@ -24,10 +30,10 @@ The whole window works from the keyboard.
 | `Ctrl`/`⌘` + `Z` · `Ctrl`/`⌘` + `Shift` + `Z` or `Ctrl`/`⌘` + `Y` (in the diagram window) | Undo and redo what the window changed |
 | `Ctrl`/`⌘` + `D` (in a freeform diagram) | Duplicate the chosen shape |
 | `Ctrl`/`⌘` + click · `Shift` + drag (in the diagram window) | Choose several shapes, classes or tables |
-| `Ctrl`/`⌘` + `X` · `V` | Move a document between folders |
+| `Ctrl`/`⌘` + `X` · `V` (on a document in the Library) | Move a document between folders |
 | `Alt` + arrow (on a page's row) | Move a page up or down in its document |
-| `Alt` + arrow (in a table, in the Markdown view) | Move the row or the column the caret is on; `Ctrl` + `Alt` + ← → on a Mac |
-| `Esc` | Close whatever is open |
+| `Alt` + arrow (in a table: ↑ ↓ with a cell open, and all four in the Markdown view) | Move the row or the column the caret is on; `Ctrl` + `Alt` + ← → on a Mac |
+| `Esc` | Close whatever is open; while writing a document, choose the block |
 
 If another program already holds the capture shortcut, Tisty takes another one and tells you which in Settings.
 

@@ -58,7 +58,7 @@ Una idea que llega en medio de otra cosa todavía no tiene dónde ir. Pulsa `Ctr
 
 ![Un pensamiento rápido, para no olvidarlo: las ideas del momento como notas adhesivas de colores en la Lluvia de ideas, con fecha y escritas a mano, para ordenarlas después en una tarea o un documento](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/web/es-03-ideas.png)
 
-- **Lluvia de ideas es un documento normal**, anclado arriba en la Biblioteca. La primera idea lo crea. Puedes abrirlo, escribir en él a mano, archivarlo o exportarlo como cualquier otro. Cada idea queda escrita en él como una nota adhesiva `[!IDEA]`, con su fecha y su color, la misma que puede llevar cualquier documento.
+- **Lluvia de ideas es un documento normal**, anclado arriba en la Biblioteca. La primera idea lo crea. Puedes abrirlo, cambiar sus notas, duplicarlo, archivarlo o eliminarlo; su menú no ofrece moverlo ni exportarlo. Cada idea queda escrita en él como una nota adhesiva `[!IDEA]`, con su fecha y su color, la misma que puede llevar cualquier documento.
 - **Se ve como notas pegadas en una hoja**, un poco torcidas, de distintos colores y con letra de mano: son ideas del momento. La más nueva va primero. Pulsa una para cambiarla, **Nueva idea** agrega otra y la **×** la quita. Arrastra una nota por su borde sobre otra para dejarla en ese lugar, o pulsa `Alt` y una flecha sobre ella; sigue tan torcida como estaba.
 - **El archivo sigue siendo Markdown.** Cada nota es un `[!IDEA]` cuya primera línea dice el día y el minuto en que llegó, y su color, que se elige al crearla y no cambia aunque la muevas, y **Ver Markdown** muestra el texto, solo para leer: una idea es texto suelto, y las tablas y los diagramas van en un documento propio. Cualquier documento con `view: notes` en sus [propiedades](https://markdown.tisty.app/es/propiedades) se ve igual.
 - **Ordénalas después**: en cada nota, **Anexar a un documento** la agrega al final del documento que elijas, como la misma nota adhesiva con su fecha y su color, junto al texto, y **Convertir en tarea** la guarda como tarea, leída como cualquier captura rápida, con sus fechas, listas y etiquetas. En los dos casos la idea sale de la hoja. La Biblioteca muestra junto a la Lluvia de ideas cuántas esperan todavía.
@@ -70,11 +70,11 @@ Lo que pasó hoy, en la casa o en el trabajo, tiene un solo lugar: **Diario**, a
 
 - **Diario en la Biblioteca abre hoy.** La primera vez en el año crea el libro de ese año y la página del mes; el día nace cuando escribes en él. Bajo la fila, los años y sus meses se abren como cualquier libro.
 - **Se lee como una línea de días, no como una página.** Lo encabeza la fecha de hoy, y cada día muestra su número y su día de la semana junto a lo que escribiste, el más nuevo arriba.
-- **El cuadro de arriba, «¿Qué pasó hoy?», escribe en hoy**: `Ctrl` + `Enter` lo guarda. El botón de nota a su lado lo vuelve una nota adhesiva con el minuto en que llegó, a la derecha de hoy. El lápiz abre el mes como documento para cambiar cualquier día; al ir a otro lado, o al tocar **Diario** otra vez, vuelves a la línea de días.
+- **El cuadro de arriba, «¿Qué pasó hoy?», escribe en hoy**: `Ctrl`/`⌘` + `Enter` o el botón redondo lo guarda. El botón de nota a su lado, **Pegar nota**, lo vuelve una nota adhesiva de hasta 140 caracteres con el minuto en que llegó, a la derecha de hoy, que se guarda con `Enter`. El lápiz abre el mes como documento para cambiar cualquier día; al ir a otro lado, o al tocar **Diario** otra vez, vuelves a la línea de días.
 - **Desde cualquier parte**: en la captura rápida, `Tab` pasa de **Tarea** a **Idea** y después a **Diario**, que escribe en hoy sin abrir la ventana. En una nota de la Lluvia de ideas, **Anexar a un documento** ofrece primero **Diario de hoy**.
-- **Las tareas cerradas ese día** se pliegan bajo lo que escribiste ese día; cada una se abre con un clic. Solo se ven, nunca se escriben en el texto.
-- **Solo tú.** Ningún agente ve tu diario hasta que pulsas **Solo tú** arriba y dice **Abierto a los agentes**. Abierto, un agente lo lee y, solo cuando se lo pides, añade al final de hoy bajo una línea con el minuto y su nombre. Nunca cambia lo que escribiste. Púlsalo otra vez para guardarlo solo para ti.
-- **Nunca se comparte**: el diario no tiene panel lateral ni **Compartir**.
+- **Las tareas que terminaste ese día** se pliegan bajo lo que escribiste, como «3 tareas cerradas»; cada una se abre con un clic. Una que descartaste no sale, y un día en el que no escribiste no muestra ninguna. Solo se ven, nunca se escriben en el texto.
+- **Solo tú.** Ningún agente ve tu diario hasta que pulsas **Solo tú** arriba y dice **Abierto a los agentes**. Abierto, un agente lo lee y, solo cuando se lo pides, añade al final de hoy bajo una línea con el minuto y su nombre. Nunca cambia lo que escribiste. Púlsalo otra vez para guardarlo solo para ti. La puerta es una sola para todos los años y para todos tus equipos, y solo vale en Tisty 1.48 o más nuevo: un equipo que sigue con una versión anterior sigue sincronizando y muestra el diario a sus agentes como un documento más. Actualiza todos tus equipos antes de escribir en él.
+- **Nunca se comparte por link**: el diario no tiene panel lateral ni **Compartir**, y Folio lo rechaza. Sí viaja con tu sincronización y con tus respaldos, como cualquier documento.
 - **El archivo sigue siendo Markdown**: un libro con `diary: on` en sus [propiedades](https://markdown.tisty.app/es/propiedades), cuyas páginas son los meses. Tisty nunca escribe en él por su cuenta.
 
 ## Carpetas
@@ -139,22 +139,22 @@ Un enlace `tisty://open` solo llega a un archivo de texto legible de este equipo
 
 ### Un documento en una ventana aparte
 
-**Abrir en una ventana aparte**, bajo **Ventana** en el panel de un documento, lo muestra en solo lectura junto a tu trabajo.
+**Abrir en una ventana aparte**, el botón junto al título en el panel de un documento, lo muestra en solo lectura junto a tu trabajo.
 
-- **Índice y página** (`Ctrl`/`⌘` + `\`) abre una columna con sus títulos, qué es el documento y el ancho de la página: cuánto mide para leer y el papel de su PDF. **Hojas**, primero en esa fila, desbloquea el papel y lo muestra en hojas, en **Vertical** u **Horizontal**, y su PDF sale así; el archivo no cambia.
+- **Índice y página** (`Ctrl`/`⌘` + `\`) abre una columna con sus títulos, qué es el documento y el ancho de la página: cuánto mide para leer y el papel de su PDF. **Hojas**, primero en esa fila, desbloquea el papel y lo muestra en hojas, verticales o, con **Horizontal**, apaisadas, y su PDF sale así; el archivo no cambia.
 - **Lectura** y **Markdown** cambian entre la página dibujada y su texto.
 - **Más** tiene **Buscar en el texto**, texto más grande y más pequeño, **Copiar como Markdown** (Markdown estándar), **Vista previa** del PDF que saldría (**← Volver al documento** regresa de ella), **Exportar a PDF…**, **Exportar como HTML…**, **Exportar como Word…** y **Duplicar**, que hace una copia.
-- **Editar en Tisty** te lleva de vuelta al documento. Su PDF ahí lleva quién lo escribió y cuándo, salvo que desmarques **Con firma** en la vista previa.
+- **Editar en Tisty** te lleva de vuelta al documento. Su PDF ahí abre con una portada que dice quién lo escribió y cuándo si marcas **Portada con autor, versión y fechas** en la vista previa.
 
 ## Sacar documentos
 
 Un documento sale entero; cada conversión está en [Convertir a y desde Markdown](Convertir-a-y-desde-Markdown):
 
 - **Copiar como Markdown**: Markdown estándar, listo para cualquier otro editor.
-- **Escribirlo en una carpeta**, como archivos de Markdown estándar con sus páginas y adjuntos al lado; un enlace a una de sus páginas apunta al archivo de esa página.
+- **Exportar como Markdown…**, en el menú del documento, lo escribe en la carpeta que elijas, como archivos de Markdown estándar con sus páginas y adjuntos al lado; un enlace a una de sus páginas apunta al archivo de esa página.
 - **De Markdown a HTML**: **Exportar como HTML…**, en el menú del documento, hace una sola página web que viaja sola.
 - **De Markdown a Word**: **Exportar como Word…** hace un `.docx` con sus títulos, listas, tablas e imágenes.
-- **Exportar para Tisty** en un archivo `.tistyx`, que además lleva lo que Markdown no sabe decir: las carpetas con su orden, icono y color, de qué documento cuelga cada página, qué está archivado y el alias con que se firmó. Incluye un `README.txt`, para que quien lo reciba pueda leer los documentos sin Tisty.
+- **Exportar para Tisty…** en un archivo `.tistyx`, que además lleva lo que Markdown no sabe decir: las carpetas con su orden, icono y color, de qué documento cuelga cada página, qué está archivado y el alias con que se firmó. Incluye un `README.txt`, para que quien lo reciba pueda leer los documentos sin Tisty.
 - **De Markdown a PDF**: mira [Páginas y PDF](Páginas-y-PDF#el-pdf-propio-de-tisty).
 
 Exportarlos todos pregunta para quién son: **Para dárselo a alguien**, que sale abierto y lo lee quien tenga el archivo, o **Para otro equipo mío**, que sale cerrado con seis dígitos para que nadie más lo lea. Un documento o una carpeta salen abiertos sin preguntar.

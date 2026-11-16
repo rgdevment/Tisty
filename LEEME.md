@@ -73,17 +73,17 @@
     <a href="https://apps.microsoft.com/detail/9PGVWXD8X93N">
       <img
         src="https://img.shields.io/badge/Windows-Microsoft_Store-0078D4?style=for-the-badge&logo=microsoft"
-        alt="Consigue el gestor de tareas Tisty en la Microsoft Store"/>
+        alt="Consigue Tisty —notas, documentos y tareas— en la Microsoft Store"/>
     </a>
     <a href="#instalación">
       <img
         src="https://img.shields.io/badge/Windows-winget-0078D4?style=for-the-badge&logo=windows"
-        alt="Instala el gestor de tareas Tisty con winget en Windows"/>
+        alt="Instala Tisty —notas, documentos y tareas— con winget en Windows"/>
     </a>
     <a href="#instalación">
       <img
         src="https://img.shields.io/badge/macOS-Homebrew-FBB040?style=for-the-badge&logo=homebrew&logoColor=black"
-        alt="Instala el gestor de tareas Tisty con Homebrew en macOS"/>
+        alt="Instala Tisty —notas, documentos y tareas— con Homebrew en macOS"/>
     </a>
   </p>
 
@@ -128,7 +128,8 @@ No soy una empresa. Soy un desarrollador que resolvió dos veces el mismo
 problema, así que hice el **gestor de notas, documentos y tareas** que quería y
 lo regalé. Quiero que siga siendo pequeño y útil, no que crezca con mil funciones
 que nadie usa. Sin anuncios, sin telemetría, sin cuentas, sin suscripciones: una
-**herramienta local** que vive en tu equipo y en ninguna otra parte.
+**herramienta de productividad local** que vive en tu equipo y en ninguna otra
+parte.
 
 **Por qué alguien elige Tisty:**
 
@@ -234,9 +235,9 @@ espera en la Lluvia de ideas.
 
 ### Ideas: una lluvia de ideas a mano
 
-- **Anotada en cuanto llega** — la captura rápida cambia entre tarea e idea con
-  `Tab`, y las ideas tienen su propio atajo: hasta 140 caracteres cada una, con
-  fecha, sin abrir la ventana.
+- **Anotada en cuanto llega** — la captura rápida pasa de tarea a idea y a hoy
+  en el Diario con `Tab`, y las ideas tienen su propio atajo: hasta 140
+  caracteres cada una, con fecha, sin abrir la ventana.
 - **Notas adhesivas que siguen siendo Markdown** — esperan como notas de
   colores en la Lluvia de ideas, un documento fijo arriba de la biblioteca, y
   las reordenas arrastrándolas.
@@ -250,6 +251,19 @@ espera en la Lluvia de ideas.
   anexa a su documento, y a las viejas solo las marca, para que tú las borres.
 
 ![Un pensamiento rápido, para no olvidarlo: las ideas del momento como notas adhesivas de colores en la Lluvia de ideas, con fecha y escritas a mano, para ordenarlas después en una tarea o un documento](assets/screens/readme/es-03-ideas.webp)
+
+### Diario: lo que pasó hoy
+
+- **Un libro por año** — *Diario 2026*, con una página por mes y una sección por
+  día, en el idioma de la app; un día en el que no escribiste nunca aparece.
+- **Se escribe desde cualquier parte** — el cuadro de arriba, «¿Qué pasó hoy?»,
+  o el tercer `Tab` de la captura rápida, sin abrir la ventana; una idea de la
+  Lluvia de ideas se anexa primero a **Diario de hoy**.
+- **Solo tuyo** — ningún agente lo ve hasta que pulsas **Solo tú** y dice
+  **Abierto a los agentes**; abierto, un agente lo lee y solo añade al final de
+  hoy, con su firma, cuando se lo pides. Nunca se comparte por Folio.
+- **Sigue siendo Markdown** — un libro con `diary: on` en sus propiedades, cuyas
+  páginas son los meses.
 
 ### Tareas: qué hacer, quién lo hace y cómo se resolvió
 
@@ -325,9 +339,10 @@ De dónde sale el ahorro:
 
 - **Ninguna escritura lleva más de 64 000 caracteres**, así que una bitácora
   larga queda en temas y páginas, nunca como un muro de texto.
-- **Ninguna lectura trae más de unos 12 000 caracteres**, salvo que el agente
-  pida un documento entero para llevarlo a otra parte. Pasado eso, un documento
-  pedido entero vuelve como su índice.
+- **Ninguna lectura trae más de unos 12 000 caracteres**: pasado eso, un
+  documento pedido entero vuelve como su índice. La excepción es un documento
+  pedido entero en Markdown estándar para llevarlo a otra parte, hasta 40 000
+  caracteres.
 - **La página de una tarea llega entera solo mientras es corta**, unos 4000
   caracteres. Pasado eso llegan sus secciones, el resumen que abre las notas
   del agente y su última nota; su bitácora llega por tamaño, las últimas notas
@@ -405,8 +420,8 @@ Cosas que puedes pedirle una vez conectado:
 - "Agrega una tarea para renovar el pasaporte antes de marzo, con sus pasos."
 - "¿Qué tengo pendiente esta semana y qué está vencido?"
 - "¿Cómo arreglé los timeouts al guardar el año pasado? Busca en el archivo."
-- "Escribe un documento con mis notas de la llamada de hoy y archívalo en
-  Clientes."
+- "Escribe un documento con mis notas de la llamada de hoy y guárdalo en la
+  carpeta Clientes."
 - "Planifica el lanzamiento en tareas con pasos y márcalos a medida que
   avanzas."
 - "Recuérdame el dentista la noche anterior, a las 8."
@@ -536,7 +551,7 @@ dentro — y una memoria que tu propio agente de IA lee por MCP**, esto es Tisty
 | Tus tareas viven | en archivos de texto, en tu propio disco |
 | Cuenta | ninguna, nunca |
 | Suscripción | ninguna. No hay plan de pago ni mejora |
-| Sin conexión | siempre. Solo compartir un documento por link necesita conexión |
+| Sin conexión | siempre. Solo lo que mandas afuera necesita conexión: un documento compartido por link, tu propia nube, una tarea guardada en un calendario en línea |
 | Con IA dentro | **ninguna**, y no la va a llevar |
 | Tu propio asistente | sí, por **MCP**, por una puerta que se cierra con un clic |
 | Memoria para tu agente | lo que cambió desde la última vez, primero el índice y una sección a la vez |
@@ -544,6 +559,7 @@ dentro — y una memoria que tu propio agente de IA lee por MCP**, esto es Tisty
 | Clasificación | listas, etiquetas, pasos y bitácora en cada tarea |
 | Documentos | archivos Markdown con páginas, diagramas, fórmulas, código, widgets y su propio PDF |
 | Un documento con páginas | un libro, con sus capítulos en el orden en que el texto los nombra y un índice |
+| Un diario | un libro por año, una página por mes, una sección por día: solo tuyo hasta que lo abres a los agentes, y nunca se comparte |
 | Diagramas y fórmulas | dibujados con unas pocas líneas de texto, claros u oscuros según la ventana |
 | Widgets | vistas fijas de HTML y CSS con los colores de Tisty, que no ejecutan ni alcanzan nada |
 | PDF | propio: A4, Carta u Oficio, con sus imágenes dentro |
@@ -554,7 +570,7 @@ dentro — y una memoria que tu propio agente de IA lee por MCP**, esto es Tisty
 | Tu nube, cifrada | si quieres, con una frase de 24 palabras que solo tú conoces |
 | Lenguaje natural | fechas, límites y repeticiones, interpretados en tu equipo |
 | Cuándo hacerlo | un reparto de días donde repartes el trabajo, y un mes para mirar |
-| Recordatorios | una hora que eliges, que suena en este equipo y en ningún otro |
+| Recordatorios | una hora que eliges, que suena en tus equipos, aunque Tisty esté cerrado, y en ningún otro lado |
 | Código | abierto, auditable, tuyo para bifurcar |
 
 **Documentos que crecen hasta ser libros.** Casi todos los gestores de tareas te
@@ -602,6 +618,12 @@ La otra mitad de Tisty, y para mucha gente la más grande. Un documento es un
 archivo Markdown en tu propio disco —el mismo archivo que abre cualquier otro
 editor— y en Tisty lleva bastante más que texto:
 
+- **Se escribe donde se lee.** Sin modo de edición ni vista previa: haces clic y
+  escribes sobre la página misma. Al elegir unas palabras aparece una barra
+  pequeña —negrita, cursiva, subrayado, tachado, código, enlace y cuatro
+  marcadores—, `/` abre el menú de bloques, un asa junto a cada bloque lo
+  arrastra, lo duplica o lo borra, y `Ctrl`/`⌘` + `Z` deshace lo que escribiste
+  seguido, no tecla por tecla.
 - **Un libro en páginas.** Un año de actas, un manual por capítulos, la vida de
   un perro contada año a año: un documento con sus páginas, en el orden en que
   el texto las nombra, con un índice al final y flechas de una a la siguiente.
@@ -644,7 +666,7 @@ tiene fecha y nunca se tacha. Son archivos Markdown que editas como documentos
 tarea puede apuntar a un documento; un documento nunca crea tareas.
 
 **El árbol abre en silencio y se guarda entero.** Cada carpeta nace plegada, así
-que un almacén con cientos de documentos son cuatro filas hasta que vas a
+que un almacén con cientos de documentos es un puñado de filas hasta que vas a
 buscar, y el filtro de la Biblioteca deja solo lo que coincide, con las carpetas
 de arriba abiertas. Cuando un trabajo termina archivas la carpeta, no sus
 documentos uno a uno: baja al estante del final del árbol con su icono, sus
@@ -661,7 +683,7 @@ todas con él; desarchívalo y cada una vuelve como estaba, y la que habías
 apartado sigue apartada.
 
 **Un documento se etiqueta como una tarea**: escribes `#contrato` en mitad de
-una frase y el documento queda archivado bajo ella. La etiqueta vive en la
+una frase y el documento queda bajo esa etiqueta. La etiqueta vive en la
 frase, no en una cabecera oculta, así que llevarte el archivo a otro editor se
 lleva la etiqueta contigo. Etiquetas es donde se encuentran: una pantalla, las
 tareas de una etiqueta y debajo los documentos, y presionar una etiqueta
@@ -701,9 +723,10 @@ lector ignora y pinta igual—. Donde Markdown no tiene palabra para algo, Tisty
 suma unas pocas y cortas, nunca HTML: `==texto==` es un resaltado y
 `==texto=={green}` uno de otro color, `++texto++` va subrayado, `::star::` es un
 ícono, y un adjunto se nombra por su propio nombre, `![plano](plano-0006bf09.png)`.
-El editor escribe el archivo bloque a bloque, con las marcas fuera de la vista
-hasta que las pides, y `Ctrl`/`⌘` + `E` lo abre entero como texto, así que lo que
-hay en el disco siempre es tuyo para leerlo. **Copiar como Markdown** y sacar
+Escribes sobre la página misma, la que dibuja el núcleo, con las marcas fuera de
+la vista, y el menú **⋯** o `Ctrl`/`⌘` + `E` la pasa a Markdown, con todas las
+marcas a la vista, así que lo que hay en el disco siempre es tuyo para leerlo.
+**Copiar como Markdown** y sacar
 un documento dicen esas pocas palabras como las entiende cualquier otro lector,
 y un archivo antiguo, una importación o un asistente que escriba en Markdown
 corriente se traduce a ellas al entrar.
@@ -711,8 +734,8 @@ corriente se traduce a ellas al entrar.
 Se escribe sobre una hoja iluminada, y su primera línea con palabras es a la vez
 el nombre del documento y su título —pasando por encima de una valla o de la
 marca de un aviso para encontrarla—. Cuando la ventana da para ello, al lado se
-abre una columna con de qué va el documento, el formato que el menú `/`
-escondía y su índice. **Tisty genera su propio PDF** —A4, Carta u Oficio,
+abre una columna con de qué va el documento, sus idiomas, su papel
+y su índice. **Tisty genera su propio PDF** —A4, Carta u Oficio,
 con sus propios márgenes y sus imágenes dentro— y te lo enseña antes
 de exportarlo.
 
@@ -726,7 +749,8 @@ color y no una etiqueta. Las imágenes de al lado entran directo, y las de
 internet esperan a que las pidas. **Editar** crea una copia en tu almacén y deja
 el original donde estaba. Un documento tuyo se abre desde su panel, *Abrir en
 una ventana aparte*, en solo lectura con el ancho de la página y el PDF que
-saldría, y ese PDF lleva firma salvo que desmarques **Con firma**. Un widget
+saldría, y ese PDF abre con una portada si marcas **Portada con autor, versión y
+fechas**. Un widget
 también se abre aparte, al ancho de un móvil, una tablet o un escritorio.
 Más en [la ayuda](https://www.tisty.app/es/ayuda/documentos/#abrir-un-archivo-markdown-de-afuera).
 
@@ -831,7 +855,7 @@ o tirarla como cualquier otra cosa que escribas.
 
 **La configuración ocupa la barra lateral con sus secciones.** *General* es
 cómo se porta Tisty contigo: idioma, claro u oscuro, arranque, captura rápida,
-avisos, y lo único que ocurre fuera de la ventana: la bienvenida.
+avisos, tu calendario, y lo único que ocurre fuera de la ventana: la bienvenida.
 *Sincronizar* es dónde van tus copias, qué equipos son tuyos y dónde se quedan
 los adjuntos grandes. *Seguridad* guarda tu frase de 24 palabras y la nube
 cifrada. *Tus datos* es tu carpeta, los respaldos, lo que sacas o traes, y una
@@ -923,13 +947,24 @@ recordatorio, y convierte en tareas las que elijas, con sus zonas horarias,
 también las de Outlook, y sus repeticiones simples. Abrir dos veces el mismo
 archivo no duplica nada.
 
+**Y una tarea sale a tu calendario.** **Guardar en mi calendario**, en una tarea
+con fecha, abre el evento ya lleno —título, día y hora, y el enlace de la tarea—
+en Google Calendar u Outlook en tu navegador, o en el Calendario de Apple en un
+Mac, y ahí pulsas **Guardar**; desde entonces te avisa tu calendario, también en
+el teléfono. Tisty pregunta cada vez qué calendario usar, salvo que elijas uno
+en Configuración › General › *Tu calendario*, no se conecta a ninguno, y el
+evento no sigue a la tarea si después cambias su fecha.
+
 **Las tareas que se repiten** vuelven de una en una, así el archivo te muestra
 que la hiciste doce veces —y cuenta lo que tocaba, no solo lo que cerraste, de
 modo que una rutina se lee 26 de 30 con cuatro fechas sin registro. Si la
 marcas días tarde te ofrece esas fechas en vez de darlas por olvidadas: marcas
 las que sí hiciste y el hueco se cierra. **Los recordatorios** llegan como
-notificación del sistema y un sonido corto que puedes apagar. Toda la ventana
-funciona con el teclado.
+notificación del sistema y un sonido corto que puedes apagar, aunque Tisty esté
+cerrado: los deja agendados en Windows o macOS, así que suenan mientras el
+equipo esté encendido, y un clic en el aviso abre su tarea. **Recordatorios
+importantes**, apagado hasta que lo enciendes, deja que uno atraviese «No
+molestar» donde el sistema lo permite. Toda la ventana funciona con el teclado.
 
 **El archivo se lee en tres capas.** Las que enseñaron algo, las tareas a las que
 volviste a sumarles más de tres veces, vienen con todo su trayecto: qué cambió,
@@ -969,8 +1004,9 @@ Hay unas pocas más, listadas en [PRIVACY.md](PRIVACY.md).
 **Folio by Tisty** es un servicio aparte para compartir un documento con un
 enlace sin cuenta y cifrado de punta a punta, con sus propios términos y
 políticas en
-[su propio repositorio](https://github.com/rgdevment/Folio-by-Tisty). Cada
-documento muestra una fila **Compartido**; al presionar **Compartir** Tisty lee
+[su propio repositorio](https://github.com/rgdevment/Folio-by-Tisty). El panel
+de un documento muestra una fila **Compartido** —la Lluvia de ideas y tu Diario
+nunca se comparten—, y al presionar **Compartir** Tisty lee
 un archivo pequeño y firmado para saber si Folio ya abrió y, mientras no abra,
 te lo dice, con un enlace a [tisty.cl](https://tisty.cl). Nada de
 tu documento sale hasta que Folio esté abierto, aceptes sus términos y lo
@@ -1187,7 +1223,9 @@ documento las líneas que las nombran y nada más, marcar un documento que ya
 cumplió su vida, para que lo borres, lo archives o le quites la marca, guardar
 una copia de un archivo que le señales —en una tarea o dentro de un documento,
 igual—, anotar ideas en tu Lluvia de ideas y ordenarlas contigo, y leer lo que
-ya está. Lo que no
+ya está. Tu Diario es la excepción: ningún asistente lo ve hasta que lo abres a
+los agentes desde el propio Diario, y abierto solo añade al final de hoy, con su
+firma, cuando se lo pides. Lo que no
 puede: cerrar una tarea ni borrarla, marcar un paso tuyo o terminar una tarea
 tuya, mover un día que pusiste tú, borrar un documento, renombrar ni vaciar una
 carpeta, alcanzar una tarea que plegaste, tomar archivos de cualquier sitio que
@@ -1255,8 +1293,9 @@ reservadas para más adelante, sin versión de prueba que caduque.
 
 ### ¿Necesita una cuenta o conexión?
 
-Ninguna de las dos. No hay a qué suscribirse, y solo compartir un documento por
-link necesita conexión.
+Ninguna de las dos. No hay a qué suscribirse, y solo lo que mandas afuera
+necesita conexión: un documento compartido por link, tu propia nube, una tarea
+guardada en un calendario en línea.
 Tisty hace una sola petición de red que no le pediste —al abrirse, y una vez al
 día después— para ver si existe una versión más nueva, y no envía nada para
 preguntarlo. Desconecta el equipo de la red y todo lo demás sigue igual.
@@ -1498,9 +1537,11 @@ que ordena por tiempo y no necesita coordinación.
 [Tailwind CSS](https://tailwindcss.com) la viste;
 [Solid](https://www.solidjs.com) dibuja el visor liviano, que tiene su propia
 compilación;
-[CodeMirror](https://codemirror.net) es donde se escribe un documento, bloque a
-bloque, mientras [pulldown-cmark](https://github.com/pulldown-cmark/pulldown-cmark)
-lee el Markdown en el núcleo y [ammonia](https://github.com/rust-ammonia/ammonia)
+[CodeMirror](https://codemirror.net) es la vista Markdown de un documento, con
+todas las marcas a la vista, mientras
+[pulldown-cmark](https://github.com/pulldown-cmark/pulldown-cmark)
+lee el Markdown en el núcleo, que dibuja la página donde escribes, y
+[ammonia](https://github.com/rust-ammonia/ammonia)
 deja inofensivo el HTML que traiga; [Mermaid](https://mermaid.js.org) dibuja los
 diagramas que describe un bloque de código, [React Flow](https://reactflow.dev)
 es el lienzo donde se dibujan a mano y [KaTeX](https://katex.org) compone
