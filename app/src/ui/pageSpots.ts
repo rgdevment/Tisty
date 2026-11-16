@@ -8,8 +8,8 @@ const spanOf = (one: Element) => spanned(one.getAttribute("data-src"));
 export const placeOf = (one: Element) => spanned(one.getAttribute("data-at"));
 const solid = (one: Element) => one.getAttribute("contenteditable") === "false";
 
-const placedFrom = (tops: HTMLCollection, at: number) => {
-  for (let next = at; next < tops.length; next++) {
+const placedFrom = (tops: HTMLCollection, at: number, until: number) => {
+  for (let next = at; next < until; next++) {
     const place = placeOf(tops[next]);
     if (place) return place;
   }
@@ -23,7 +23,7 @@ const firstReaching = (sheet: Element, byte: number, past: boolean) => {
   let high = tops.length;
   while (low < high) {
     const middle = (low + high) >> 1;
-    const place = placedFrom(tops, middle);
+    const place = placedFrom(tops, middle, high);
     if (!place || (past ? place[1] > byte : place[1] >= byte)) high = middle;
     else low = middle + 1;
   }

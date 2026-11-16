@@ -83,7 +83,7 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
 
   const drawn = (laid?: readonly Element[]) => {
     writer.whole = false;
-    opened(page, laid);
+    if (!laid) opened(page);
     caret.caretLaid();
     offerTags();
     beside.rest();
