@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import type { Filed } from "../core";
@@ -13,6 +13,7 @@ vi.mock("@tauri-apps/api/core", () => ({
     if (cmd === "doc_opened")
       return Promise.resolve({ body: "# Noviembre\n\n## Domingo 15\n\nPaseo.\n", print: "p" });
     if (cmd === "diary_of") return Promise.resolve({ book: BOOK, page: MONTH, open: false });
+    if (cmd === "diary_newest") return Promise.resolve(MONTH);
     return Promise.resolve(null);
   },
 }));
@@ -62,6 +63,26 @@ describe("a diary month written as a document", () => {
     rerender(shown({ named: "docs", doc: MONTH }));
 
     expect(await screen.findByTestId("days")).toBeTruthy();
+    expect(screen.queryByTestId("sheet")).toBeNull();
+  });
+});
+
+describe("a diary year", () => {
+  it("opens on its newest month and never shows the book's own page", async () => {
+    const onDoc = vi.fn();
+    render(
+      <Docs
+        open={BOOK}
+        visit={{ named: "docs", doc: BOOK }}
+        known={known}
+        onDoc={onDoc}
+        onKept={vi.fn()}
+        onError={vi.fn()}
+      />,
+    );
+
+    await waitFor(() => expect(onDoc).toHaveBeenCalledWith(MONTH));
+    expect(screen.queryByTestId("days")).toBeNull();
     expect(screen.queryByTestId("sheet")).toBeNull();
   });
 });

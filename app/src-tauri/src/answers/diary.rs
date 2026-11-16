@@ -171,6 +171,20 @@ pub fn diary_laid(
     tauri::ipc::Response::new(laid.into_bytes())
 }
 
+#[tauri::command(async)]
+pub fn diary_newest(session: tauri::State<'_, Mutex<Session>>, file: String) -> Option<String> {
+    newest(&held(&session), &file)
+}
+
+pub fn newest(session: &Session, file: &str) -> Option<String> {
+    let book = session
+        .state
+        .docs
+        .values()
+        .find(|one| one.file == file && one.diary && one.page_of.is_none())?;
+    diary::newest_page(&session.state, book.id).map(|one| one.file.clone())
+}
+
 #[derive(Debug, serde::Deserialize)]
 pub struct Labels {
     one: String,

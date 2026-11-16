@@ -106,3 +106,14 @@ fn the_door_is_said_once_and_only_when_it_changes() {
     session.commit(Op::DiaryAgents { open: true }).unwrap();
     assert!(kept(&session, day("2026-11-15")).open);
 }
+
+#[test]
+fn a_year_opens_on_its_newest_month_and_a_month_on_none() {
+    let (_tmp, mut session) = session("es");
+    let november = opening(&mut session, day("2026-11-15")).unwrap();
+    let december = opening(&mut session, day("2026-12-01")).unwrap();
+
+    assert_eq!(newest(&session, &november.book), Some(december.page));
+    assert_eq!(newest(&session, &november.page), None);
+    assert_eq!(newest(&session, "a3f1-9999"), None);
+}

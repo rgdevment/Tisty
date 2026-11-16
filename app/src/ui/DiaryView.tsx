@@ -1,6 +1,5 @@
-import { useCallback, useEffect, useState } from "react";
-import { docDrawn } from "../core";
-import { type Diary, diaryAgents, diaryLaid, diaryOf, type Today } from "../diary";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { type Diary, diaryAgents, diaryLaid, diaryNewest, diaryOf, type Today } from "../diary";
 import DiaryComposer from "./DiaryComposer";
 import DiaryHead from "./DiaryHead";
 import Page from "./Page";
@@ -25,7 +24,7 @@ const named = (date: Date): string => {
   return `${weekday.charAt(0).toUpperCase()}${weekday.slice(1)} ${date.getDate()}`;
 };
 
-// A month opens on today when it is this month's page, and on its own name when it is another.
+// A year opens on its newest month, and this month's page opens on today.
 export default function DiaryView(props: Readonly<Props>) {
   const { file, body, title, book, fresh, onError } = props;
   const [kept, setKept] = useState<Diary | null>(null);
@@ -40,11 +39,22 @@ export default function DiaryView(props: Readonly<Props>) {
     };
   }, [fresh]);
   const paged = Boolean(book);
+  const leave = useRef(props.onDoc);
+  leave.current = props.onDoc;
+  useEffect(() => {
+    if (paged) return;
+    let live = true;
+    diaryNewest(file)
+      .then((page) => {
+        if (live && page) leave.current(page);
+      })
+      .catch(() => {});
+    return () => {
+      live = false;
+    };
+  }, [file, paged]);
   const restrips = useRestrips(paged ? file : undefined, body, fresh);
-  const draw = useCallback(
-    (text: string) => (paged ? diaryLaid(file, text) : docDrawn(text)),
-    [file, paged],
-  );
+  const draw = useCallback((text: string) => diaryLaid(file, text), [file]);
   const year = book?.match(/[0-9]{4}/)?.[0] ?? "";
   const thisMonth = paged && kept?.page === file;
   const turn = () => {
@@ -67,14 +77,16 @@ export default function DiaryView(props: Readonly<Props>) {
         />
         <DiaryComposer onBefore={props.onBefore} onWritten={props.onWritten} onError={onError} />
       </div>
-      <Page
-        body={body}
-        draw={draw}
-        again={String(restrips)}
-        label={title}
-        onDoc={props.onDoc}
-        onTask={props.onTask}
-      />
+      {paged && (
+        <Page
+          body={body}
+          draw={draw}
+          again={String(restrips)}
+          label={title}
+          onDoc={props.onDoc}
+          onTask={props.onTask}
+        />
+      )}
     </div>
   );
 }
