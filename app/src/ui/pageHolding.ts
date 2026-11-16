@@ -2,6 +2,7 @@ import { spanned } from "tisty-editor/read";
 import { scrolledAround } from "./pageNodes";
 
 const DIAGRAMS_AND_WIDGETS_SETTLE_MS = 2000;
+const A_DRAWING_ARRIVES_MS = 2000;
 const HANDS = ["wheel", "pointerdown", "keydown"] as const;
 
 export type Change = { readonly from: number; readonly removed: number; readonly by: number };
@@ -16,7 +17,7 @@ const movedBy = (held: Held, change: Change): Held | null => {
 
 export const holdingOn = (page: Document) => {
   let held: Held | null = null;
-  let drawingOnItsWay = false;
+  let drawingAskedAt: number | null = null;
   let letGo = () => {};
 
   const scrollingAround = (): HTMLElement | null =>
@@ -41,10 +42,12 @@ export const holdingOn = (page: Document) => {
   };
 
   const before = (change: Change) => {
+    const asked = performance.now();
+    const onItsWay = drawingAskedAt !== null && asked - drawingAskedAt < A_DRAWING_ARRIVES_MS;
     const around = scrollingAround();
-    const seen = drawingOnItsWay ? held : around && firstSeen(around);
+    const seen = onItsWay ? held : around && firstSeen(around);
     held = seen && movedBy(seen, change);
-    drawingOnItsWay = true;
+    if (!onItsWay) drawingAskedAt = asked;
   };
 
   const pinned = (around: HTMLElement, { start, y }: Held) => {
@@ -80,7 +83,7 @@ export const holdingOn = (page: Document) => {
   const landed = (layCaret: () => void, caretInSight: () => void) => {
     const one = held;
     held = null;
-    drawingOnItsWay = false;
+    drawingAskedAt = null;
     const around = scrollingAround();
     if (!one || !around || !blockAt(one.start)) return layCaret();
     pinned(around, one);

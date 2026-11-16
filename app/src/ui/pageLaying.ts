@@ -1,6 +1,6 @@
-import { byteFrom, bytesIn, checkAfter, checkOf, type Reckoned } from "../placing";
+import { byteFrom, bytesIn, checkAfter, checkOf, type Placed, type Reckoned } from "../placing";
 import type { Caret } from "./pageCaret";
-import { applied, type Edit, inWholeChars, linedAs } from "./pageEdits";
+import { applied, changeOf, type Edit, inWholeChars, linedAs } from "./pageEdits";
 import { type Change, holdingOn } from "./pageHolding";
 import { opened } from "./pageNodes";
 import { patched } from "./pagePatching";
@@ -22,6 +22,7 @@ export const layingOn = (
   let resting: ReturnType<typeof setTimeout> | undefined;
   let unsaid: string | null = null;
   let over = false;
+  let placed: Placed | null = null;
   const holding = holdingOn(page);
 
   const reckonedOf = (text: string, unit: number): Reckoned => {
@@ -67,7 +68,11 @@ export const layingOn = (
       const removed = bytesIn(was, one.from, one.to);
       const added = bytesIn(one.insert);
       const by = added - removed;
-      if (writer.whole) return redrawn({ from: bytesIn(was, 0, one.from), removed, by });
+      if (writer.whole) {
+        const from = byteFrom(placed?.text === was ? placed : writer.reckoned, was, one.from);
+        placed = { text: now, unit: one.from + one.insert.length, byte: from + added };
+        return redrawn({ from, removed, by });
+      }
       const known = reckonedOf(was, one.from);
       const from = byteFrom(known, was, one.from);
       const edit = { from, to: from + removed, insert: one.insert };
@@ -114,5 +119,11 @@ export const layingOn = (
     laidOut(text, next, one);
   };
 
-  return { put, laidOut, stop, landed: holding.landed };
+  const heldAcross = (was: string, now: string) => {
+    const one = changeOf(was, now);
+    const removed = bytesIn(was, one.from, one.to);
+    holding.before({ from: bytesIn(was, 0, one.from), removed, by: bytesIn(one.insert) - removed });
+  };
+
+  return { put, laidOut, stop, landed: holding.landed, heldAcross };
 };

@@ -156,6 +156,27 @@ describe("a page drawn whole again while it is written", () => {
     expect(topOn("Uno tres")).toBe(0);
   });
 
+  it("carries the block in sight through keys written before the drawing arrives", async () => {
+    tall.set(DIAGRAM, 400);
+    pageOf(PAGE, LINE + 400);
+    const longer = PAGE.replace("Arriba", "Arriba del todo");
+    writing?.rewrite(longer);
+    await vi.waitFor(() => expect(redrawn).toBe(longer));
+    await drawnAnew(longer.replace("dos ", ""), [[DIAGRAM + 9, 100]]);
+    expect(topOn("Uno tres")).toBe(0);
+  });
+
+  it("keeps the block in sight when the words change from beside the page", () => {
+    tall.set(DIAGRAM, 400);
+    pageOf(PAGE, LINE + 400);
+    const next = PAGE.replace("Arriba", "Arriba del todo");
+    writing?.heldAcross(PAGE, next);
+    tall.set(DIAGRAM + 9, 100);
+    (document.querySelector(".page") as HTMLElement).innerHTML = drawnOf(next);
+    writing?.drawn();
+    expect(topOn("Uno dos tres")).toBe(0);
+  });
+
   it("never scrolls a task's page inside its own frame, which the window around it scrolls", async () => {
     document.documentElement.classList.add("tall");
     tall.set(DIAGRAM, 400);

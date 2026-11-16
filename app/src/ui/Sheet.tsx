@@ -320,11 +320,14 @@ export default function Sheet(props: Readonly<Props>) {
       // Ctrl+Z walks back by offsets, so words laid from beside the page written on are a step of their own.
       if (pageWriter.current && before !== next)
         recorded(turnsOn.current.turns, turnOf(before, next));
+      const writer = pageWriter.current?.hands;
       const waiting = landing.current;
+      if (writer) writer.heldAcross(before, next);
       // A page not drawn yet cannot be looked at, so the place still waiting is carried into the new words.
-      landing.current =
-        inSight(before, next, moving) ??
-        (waiting && { ...waiting, bytes: carried(before, next, waiting.bytes) });
+      else
+        landing.current =
+          inSight(before, next, moving) ??
+          (waiting && { ...waiting, bytes: carried(before, next, waiting.bytes) });
       written(next);
       setDrawn(next);
       settled(next);

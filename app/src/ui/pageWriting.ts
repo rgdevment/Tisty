@@ -37,6 +37,7 @@ export type PageWriting = {
   readonly unitActed: (top: Element, act: Act) => void;
   readonly begin: (at: number, seed: string, near: Element) => void;
   readonly hintWords: (at: [number, number], hint: HTMLElement) => void;
+  readonly heldAcross: (was: string, next: string) => void;
 };
 
 const SETTLED_MS = 300;
@@ -175,6 +176,7 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
     unitActed: beside.unitActed,
     begin: begun.begin,
     hintWords: begun.hintWords,
+    heldAcross: laying.heldAcross,
     typed: begun.typed,
     // Where the caret stood when a menu opened, so words it hands back land there whatever was clicked since.
     held: () => {
