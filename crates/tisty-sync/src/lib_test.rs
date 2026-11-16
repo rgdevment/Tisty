@@ -6406,14 +6406,21 @@ fn a_new_place_given_a_store_with_a_diary_is_left_asking_for_the_release_that_br
 
 #[test]
 fn a_place_already_named_is_raised_for_a_diary_before_this_machine_gives_its_history() {
+    raised_before_the_history_goes(format!("shape = {SHAPE}\nneeds = \"{NEEDS}\"\n"));
+}
+
+#[test]
+fn a_place_whose_word_only_its_shape_line_reads_is_still_raised_for_a_diary_first() {
+    raised_before_the_history_goes(format!(
+        "shape = {SHAPE}\nneeds = \"{NEEDS}\"\nfolders = [\n"
+    ));
+}
+
+fn raised_before_the_history_goes(word: String) {
     let one = machine("uno");
     a_diary_filed(&one);
     let shared = tempfile::tempdir().unwrap();
-    std::fs::write(
-        shared.path().join("tisty.toml"),
-        format!("shape = {SHAPE}\nneeds = \"{NEEDS}\"\n"),
-    )
-    .unwrap();
+    std::fs::write(shared.path().join("tisty.toml"), word).unwrap();
     std::fs::create_dir_all(shared.path().join("store").join(MARKER)).unwrap();
 
     let round = carry(&one.data, &one.device, shared.path(), Way::Both, &[]);

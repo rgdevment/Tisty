@@ -133,7 +133,7 @@ pub(crate) fn raised_to(dest: &Path, floor: &str) -> Result<(), Trouble> {
     let Told::Shape {
         shape: OURS,
         needs,
-        said: Some(said),
+        said,
     } = told(dest)
     else {
         return Ok(());
@@ -144,9 +144,15 @@ pub(crate) fn raised_to(dest: &Path, floor: &str) -> Result<(), Trouble> {
     {
         return Ok(());
     }
-    let mut said = *said;
-    raise_needs(&mut said, floor);
-    crate::write(&dest.join(NAMED), said.to_string().as_bytes())
+    match said {
+        Some(said) => {
+            let mut said = *said;
+            raise_needs(&mut said, floor);
+            crate::write(&dest.join(NAMED), said.to_string().as_bytes())
+        }
+        None if written(dest, None, floor) => Ok(()),
+        None => Err(Trouble::Unshaped(dest.display().to_string())),
+    }
 }
 
 /// Read before anything else in the folder is. A folder that says nothing may be one from before
