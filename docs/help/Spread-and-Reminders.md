@@ -47,7 +47,7 @@ A task with a date goes to your calendar with one button, and from there your ca
 - **On the task, press Save to my calendar.** With Google and Outlook, your browser opens the event already filled in: the title, the day and the hour, and the task's link in Tisty. You press **Save** there. The notice is the one your calendar gives every event.
 - **Apple Calendar**, on a Mac only, opens the event in the Calendar app with the task's reminders. If the task has none, it reminds you half an hour before, or the evening before for a whole day, as long as that time has not passed.
 - **Which date it takes:** the task's day, or its deadline when it has no day. With an hour, it becomes a half-hour event, ending at the deadline's hour when that is all the task has; without one, a whole-day event. A repeating task saves only its next time.
-- **No accounts, no keys:** Tisty does not connect to your calendar and only remembers which one you chose.
+- **No accounts, no keys:** Tisty does not connect to your calendar and only remembers the one you choose in Settings.
 
 > [!NOTE]
 > **The event does not follow the task.** If you change the date in Tisty later, the event stays where it was: move it yourself in your calendar.

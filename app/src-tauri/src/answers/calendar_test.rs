@@ -2,7 +2,7 @@ use std::time::{Duration, SystemTime};
 
 use tisty_core::config::Calendar;
 
-use super::{READ_WITHIN, chosen, forget_read, opens_here};
+use super::{READ_WITHIN, chosen, forget_read, going_to, opens_here};
 
 fn aged(at: &std::path::Path, by: Duration) {
     std::fs::write(at, "BEGIN:VCALENDAR").unwrap();
@@ -45,4 +45,21 @@ fn a_calendar_asked_for_once_must_be_one_tisty_offers_here() {
     assert_eq!(chosen("outlook-work").ok(), Some(Calendar::OutlookWork));
     assert!(chosen("yahoo").is_err());
     assert_eq!(chosen("apple").is_ok(), cfg!(target_os = "macos"));
+}
+
+#[test]
+fn the_calendar_picked_this_once_wins_over_the_kept_one_and_none_means_ask() {
+    assert_eq!(
+        going_to(Some(Calendar::Outlook), Some(Calendar::Google)),
+        Some(Calendar::Outlook)
+    );
+    assert_eq!(
+        going_to(None, Some(Calendar::Google)),
+        Some(Calendar::Google)
+    );
+    assert_eq!(going_to(None, None), None);
+    assert_eq!(
+        going_to(None, Some(Calendar::Apple)).is_some(),
+        cfg!(target_os = "macos")
+    );
 }

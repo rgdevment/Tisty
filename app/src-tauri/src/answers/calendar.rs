@@ -201,7 +201,7 @@ pub fn save_to_calendar(
     let once = calendar.as_deref().map(chosen).transpose()?;
     let mut session = held(&session);
     session.reload()?;
-    let Some(chosen) = once.or(session.config.calendar.filter(|one| opens_here(*one))) else {
+    let Some(going) = going_to(once, session.config.calendar) else {
         return Ok(false);
     };
     let task = session
@@ -215,13 +215,17 @@ pub fn save_to_calendar(
         .ok_or_else(|| Refusal::of("calendarUndated"))?;
     let kept_in = session.paths.cache().join("calendar");
     drop(session);
-    match chosen {
+    match going {
         Calendar::Google => opened(&tisty_core::calendar::google(&entry)),
         Calendar::Outlook => opened(&tisty_core::calendar::outlook(&entry)),
         Calendar::OutlookWork => opened(&tisty_core::calendar::outlook_work(&entry)),
         Calendar::Apple => handed(&kept_in, &entry, now.timestamp()),
     }?;
     Ok(true)
+}
+
+pub(crate) fn going_to(once: Option<Calendar>, kept: Option<Calendar>) -> Option<Calendar> {
+    once.or(kept.filter(|one| opens_here(*one)))
 }
 
 pub(crate) fn chosen(said: &str) -> Answer<Calendar> {
