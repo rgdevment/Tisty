@@ -13,36 +13,96 @@ pub fn doc_drawn(session: tauri::State<'_, Mutex<Session>>, body: String) -> tau
     tauri::ipc::Response::new(paged(&shelf, &body).into_bytes())
 }
 
+// The page reckons its text, so a key names the text it was typed on without sending it.
+#[derive(serde::Deserialize, Clone, Copy, PartialEq, Eq, Debug)]
+pub struct Check {
+    bytes: usize,
+    hash: [u32; 2],
+}
+
+#[derive(serde::Deserialize)]
+pub struct Edit {
+    was: Check,
+    from: usize,
+    to: usize,
+    insert: String,
+}
+
+#[derive(serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum Sent {
+    Body(String),
+    Edit(Edit),
+}
+
+struct Held {
+    doc: tisty_markdown::Doc,
+    check: Check,
+}
+
 /// The page each window last read for writing, so its next key reads again only the blocks around it.
 #[derive(Default)]
-pub struct Placing(Mutex<std::collections::HashMap<String, tisty_markdown::Doc>>);
+pub struct Placing(Mutex<std::collections::HashMap<String, Held>>);
 
 impl Placing {
+    fn held(&self) -> std::sync::MutexGuard<'_, std::collections::HashMap<String, Held>> {
+        self.0
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+    }
+
     fn read<T>(
         &self,
         window: &str,
         body: &str,
+        check: Check,
         again: bool,
         drawn: impl FnOnce(&tisty_markdown::Doc) -> T,
     ) -> T {
-        let mut held = self
-            .0
-            .lock()
-            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        let mut held = self.held();
         let doc = match held.remove(window) {
-            Some(was) if again => tisty_markdown::reread(was, body),
+            Some(was) if again => tisty_markdown::reread(was.doc, body),
             _ => tisty_markdown::read(body),
         };
         let said = drawn(&doc);
-        held.insert(window.to_string(), doc);
+        held.insert(window.to_string(), Held { doc, check });
         said
     }
 
+    fn edited<T>(
+        &self,
+        window: &str,
+        edit: &Edit,
+        now: Check,
+        drawn: impl FnOnce(&tisty_markdown::Doc) -> T,
+    ) -> Option<T> {
+        let mut held = self.held();
+        let was = edit.was;
+        let agreed = held
+            .get(window)
+            .is_some_and(|one| one.check == was && one.doc.text().len() == was.bytes);
+        let adds_up = edit.from <= edit.to
+            && edit.to <= was.bytes
+            && was.bytes - edit.to + edit.from + edit.insert.len() == now.bytes;
+        if !agreed || !adds_up {
+            return None;
+        }
+        let one = held.remove(window)?;
+        match tisty_markdown::reread_edit(one.doc, edit.from..edit.to, &edit.insert) {
+            Ok(doc) => {
+                let said = drawn(&doc);
+                held.insert(window.to_string(), Held { doc, check: now });
+                Some(said)
+            }
+            Err(doc) => {
+                held.insert(window.to_string(), Held { doc, check: was });
+                None
+            }
+        }
+    }
+
     pub fn forget(&self, window: &str) {
-        self.0
-            .lock()
-            .unwrap_or_else(std::sync::PoisonError::into_inner)
-            .remove(window);
+        self.held().remove(window);
     }
 }
 
@@ -52,12 +112,19 @@ pub fn doc_placed(
     window: tauri::WebviewWindow,
     placing: tauri::State<'_, Placing>,
     body: String,
+    check: Check,
 ) -> tauri::ipc::Response {
-    let html = placing.read(window.label(), &body, false, tisty_markdown::html_placed);
+    let html = placing.read(
+        window.label(),
+        &body,
+        check,
+        false,
+        tisty_markdown::html_placed,
+    );
     tauri::ipc::Response::new(html.into_bytes())
 }
 
-#[derive(serde::Serialize)]
+#[derive(serde::Serialize, Debug, PartialEq, Eq)]
 pub struct PlacedNear {
     spans: Vec<[usize; 2]>,
     from: usize,
@@ -65,22 +132,30 @@ pub struct PlacedNear {
     html: String,
 }
 
-#[tauri::command(async)]
-pub fn doc_placed_near(
-    window: tauri::WebviewWindow,
-    placing: tauri::State<'_, Placing>,
-    body: String,
-    from: usize,
-    to: usize,
-) -> PlacedNear {
-    let near = placing.read(window.label(), &body, true, |doc| {
-        tisty_markdown::placed_near(doc, from, to)
-    });
+fn placed_near(doc: &tisty_markdown::Doc, from: usize, to: usize) -> PlacedNear {
+    let near = tisty_markdown::placed_near(doc, from, to);
     PlacedNear {
         spans: near.spans,
         from: near.drawn.start,
         to: near.drawn.end,
         html: near.html,
+    }
+}
+
+// A key typed on another text than the one held comes back empty, and the page sends its whole body.
+#[tauri::command(async)]
+pub fn doc_placed_near(
+    window: tauri::WebviewWindow,
+    placing: tauri::State<'_, Placing>,
+    sent: Sent,
+    now: Check,
+    from: usize,
+    to: usize,
+) -> Option<PlacedNear> {
+    let drawn = |doc: &tisty_markdown::Doc| placed_near(doc, from, to);
+    match sent {
+        Sent::Body(body) => Some(placing.read(window.label(), &body, now, true, drawn)),
+        Sent::Edit(edit) => placing.edited(window.label(), &edit, now, drawn),
     }
 }
 

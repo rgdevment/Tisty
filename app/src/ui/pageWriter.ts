@@ -1,5 +1,5 @@
 import type { Asking } from "tisty-editor/edit";
-import type { PlacedNear } from "../placing";
+import type { PlacedNear, Sent } from "../placing";
 import type { Anchor } from "./dressing";
 import { changeOf, type Span } from "./pageEdits";
 import type { Marks } from "./pageMarks";
@@ -69,7 +69,7 @@ export type Hands = {
   readonly write: (next: string) => void;
   readonly shown: (now: string) => void;
   readonly redraw: (now: string) => void;
-  readonly near: (body: string, from: number, to: number) => Promise<PlacedNear>;
+  readonly near: (sent: Sent, from: number, to: number) => Promise<PlacedNear>;
   readonly dressed: (sheet: Element, laid: readonly Element[]) => void;
   readonly translated: (html: string | null, plain: string) => Promise<string>;
   readonly ask: Asking["ask"];

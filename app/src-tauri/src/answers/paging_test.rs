@@ -1,6 +1,107 @@
-use super::{DRAWN_BY, KEPT_AT_MOST, canon, paged, table_edit};
+use super::{Check, DRAWN_BY, KEPT_AT_MOST, Placing, canon, paged, placed_near, table_edit};
 
 use tisty_markdown::grid::Edit;
+
+fn check(text: &str, hash: u32) -> Check {
+    Check {
+        bytes: text.len(),
+        hash: [hash, !hash],
+    }
+}
+
+fn key(was: Check, from: usize, to: usize, insert: &str) -> super::Edit {
+    super::Edit {
+        was,
+        from,
+        to,
+        insert: insert.to_string(),
+    }
+}
+
+#[test]
+fn what_the_page_sends_is_read_as_a_key_or_a_whole_body() {
+    let edit = r#"{"edit":{"from":3,"to":3,"insert":"s","was":{"bytes":3,"hash":[1,2]}}}"#;
+    let Ok(super::Sent::Edit(key)) = serde_json::from_str::<super::Sent>(edit) else {
+        panic!("{edit} is not read as a key");
+    };
+    assert_eq!((key.from, key.to, key.insert.as_str()), (3, 3, "s"));
+    assert_eq!(
+        key.was,
+        Check {
+            bytes: 3,
+            hash: [1, 2]
+        }
+    );
+    let body = r#"{"body":"Unos"}"#;
+    assert!(matches!(
+        serde_json::from_str::<super::Sent>(body),
+        Ok(super::Sent::Body(text)) if text == "Unos"
+    ));
+}
+
+#[test]
+fn keys_sent_alone_draw_the_page_as_the_whole_text_would() {
+    let placing = Placing::default();
+    let mut text = "# Uno\n\nAño con ñandú 😀.\n\n- a\n- b\r\n\n```\nfn x() {}\n```\n".to_string();
+    let mut was = check(&text, 1);
+    placing.read("main", &text, was, false, |_| ());
+    let keys = [
+        ("Uno", "Unos"),
+        ("😀", "😁"),
+        ("ñandú ", ""),
+        ("- b", "- b\n- c"),
+        ("\r\n", "\n"),
+        ("fn x", "fn y"),
+        ("# ", ""),
+    ];
+    for (hash, (gone, insert)) in (2..).zip(keys) {
+        let from = text
+            .find(gone)
+            .unwrap_or_else(|| panic!("{gone:?} in {text:?}"));
+        let next = format!("{}{insert}{}", &text[..from], &text[from + gone.len()..]);
+        let now = check(&next, hash);
+        let typed = key(was, from, from + gone.len(), insert);
+        let drawn = |doc: &tisty_markdown::Doc| placed_near(doc, from, from + insert.len());
+        let whole = drawn(&tisty_markdown::read(&next));
+        assert_eq!(placing.edited("main", &typed, now, drawn), Some(whole));
+        text = next;
+        was = now;
+    }
+}
+
+#[test]
+fn a_key_typed_on_another_text_is_not_applied_and_the_held_text_stays() {
+    let placing = Placing::default();
+    let text = "Año.\n";
+    let was = check(text, 7);
+    placing.read("main", text, was, false, |_| ());
+    let now = check("Año!.\n", 8);
+    let at = text.find('.').unwrap_or_default();
+    let typed = |was: Check, from: usize, insert: &str| key(was, from, from, insert);
+    let said = |doc: &tisty_markdown::Doc| doc.text().to_string();
+    assert_eq!(
+        placing.edited("main", &typed(check(text, 9), at, "!"), now, said),
+        None
+    );
+    assert_eq!(
+        placing.edited("quick", &typed(was, at, "!"), now, said),
+        None
+    );
+    assert_eq!(placing.edited("main", &typed(was, 2, "!"), now, said), None);
+    assert_eq!(
+        placing.edited("main", &typed(was, at, "!!"), now, said),
+        None
+    );
+    assert_eq!(
+        placing.edited("main", &typed(was, at, "!"), now, said),
+        Some("Año!.\n".to_string())
+    );
+    placing.forget("main");
+    assert_eq!(
+        placing.edited("main", &typed(now, at, "?"), now, said),
+        None
+    );
+}
 
 #[test]
 fn a_date_typed_as_it_is_said_lands_as_its_day() {

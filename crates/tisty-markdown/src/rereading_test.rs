@@ -1,4 +1,6 @@
-use super::{CROSSING, plan, reread};
+use std::ops::Range;
+
+use super::{CROSSING, Changed, plan, planned, reread, reread_edit};
 use crate::read;
 
 fn plain(said: &str) -> String {
@@ -88,6 +90,63 @@ fn a_text_read_again_around_an_edit_reads_as_the_whole_text_does() {
         short * 2 > all,
         "only {short} of {all} edits were read around"
     );
+}
+
+fn an_edit(text: &str, steps: &mut Steps) -> (Range<usize>, &'static str) {
+    let at = boundary(text, steps.next(text.len() + 1));
+    let to = boundary(text, (at + steps.next(12)).min(text.len()));
+    let insert = if steps.next(4) == 0 {
+        ""
+    } else {
+        PIECES[steps.next(PIECES.len())]
+    };
+    (at..to, insert)
+}
+
+#[test]
+fn an_edit_read_again_where_the_page_says_reads_as_the_whole_new_text_does() {
+    let mut short = 0;
+    let mut all = 0;
+    for (seed, sample) in SAMPLES.iter().enumerate() {
+        let mut steps = Steps(0x5EED_CAFE + seed as u64);
+        let mut text = plain(sample);
+        let mut was = read(&text);
+        for _ in 0..400 {
+            let (at, insert) = an_edit(&text, &mut steps);
+            let next = format!("{}{insert}{}", &text[..at.start], &text[at.end..]);
+            let changed = Changed {
+                start: at.start,
+                old_end: at.end,
+                new_end: at.start + insert.len(),
+            };
+            short += usize::from(planned(&was, &next, &changed).is_some());
+            all += 1;
+            let again = reread_edit(was, at.clone(), insert)
+                .unwrap_or_else(|_| panic!("{at:?} falls between the characters"));
+            assert_eq!(again, read(&next), "{at:?} → {insert:?} in {text:?}");
+            text = next;
+            was = again;
+        }
+    }
+    assert!(
+        short * 2 > all,
+        "only {short} of {all} edits were read around"
+    );
+}
+
+#[test]
+fn a_word_rewritten_whole_reads_as_the_minimal_change_does() {
+    let text = "Uno dos.\n\nTres cuatro.\n\nCinco seis.\n";
+    let at = text.find("cuatro").unwrap_or_default();
+    let again = reread_edit(read(text), at..at + 6, "cuatros");
+    assert_eq!(again, Ok(read(&text.replace("cuatro", "cuatros"))));
+}
+
+#[test]
+fn an_edit_off_the_characters_gives_the_text_back_untouched() {
+    let text = "Año con ñandú.\n";
+    assert_eq!(reread_edit(read(text), 2..3, "x"), Err(read(text)));
+    assert_eq!(reread_edit(read(text), 3..99, ""), Err(read(text)));
 }
 
 #[test]
