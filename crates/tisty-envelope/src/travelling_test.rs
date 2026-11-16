@@ -263,6 +263,22 @@ fn what_is_kept_to_itself_stays_home() {
 }
 
 #[test]
+fn the_title_past_the_properties_goes_as_the_contract_draws_its_block() {
+    for (said, goes) in [
+        ("---\ntitle: a\n---\n\nHola.\n", "<p>Hola.</p>"),
+        (
+            "---\ntitle: a\n---\n\n## Hola\n",
+            "<h2 id=\"hola\">Hola</h2>",
+        ),
+    ] {
+        let drawn = tisty_markdown::html(&tisty_markdown::read(said));
+        assert!(drawn.contains(" class=\"title\""), "{drawn}");
+        let html = ready(&drawn, &places());
+        assert!(html.contains(goes) && !html.contains("title\""), "{html}");
+    }
+}
+
+#[test]
 fn what_stays_home_stays_in_any_capitals() {
     let said = "---\ntitle: a\nTask: 01M6\nTRANSLATIONKEY: k\n---\n# a\n";
     let html = ready(

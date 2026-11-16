@@ -1,14 +1,20 @@
 use std::collections::HashMap;
 
-use super::{Drawing, anchors, draw, placed_near};
+use super::{Drawing, anchors, draw, placed_near, titled};
 use crate::read;
 use crate::rereading::tests::{PIECES, SAMPLES, Steps, boundary, plain};
 
-fn alone(block: &crate::Block, text: &str, anchors: &HashMap<usize, String>) -> String {
+fn alone(
+    block: &crate::Block,
+    text: &str,
+    anchors: &HashMap<usize, String>,
+    title: Option<usize>,
+) -> String {
     let drawing = Drawing {
         anchors: anchors.clone(),
         aligned: false,
         placed: true,
+        title,
     };
     let mut out = String::new();
     draw(block, text, &drawing, &mut out);
@@ -75,6 +81,7 @@ fn a_block_beside_an_edit_whose_place_holds_is_drawn_as_before() {
                 let near = placed_near(&now, from, from + insert.len(), None);
                 let (named, renamed) = (anchors(&was), anchors(&now));
                 let held = sorted(&named) == sorted(&renamed) && near.heads.is_none();
+                let (was_titled, now_titled) = (titled(was.blocks()), titled(now.blocks()));
                 for block in &now.blocks()[near.drawn.clone()] {
                     if !held && headed(block) {
                         continue;
@@ -94,10 +101,14 @@ fn a_block_beside_an_edit_whose_place_holds_is_drawn_as_before() {
                         (None, Some(one)) => (one, by),
                         (None, None) => continue,
                     };
+                    // The page draws anew a block whose title mark changed, as its class tells.
+                    if (now_titled == Some(at.start)) != (was_titled == Some(old.at.start)) {
+                        continue;
+                    }
                     checked += 1;
                     assert_eq!(
-                        alone(block, &next, &renamed),
-                        moved(&alone(old, &text, &named), shift),
+                        alone(block, &next, &renamed, now_titled),
+                        moved(&alone(old, &text, &named, was_titled), shift),
                         "after {from}..{to} became {insert:?} in sample {seed}"
                     );
                 }

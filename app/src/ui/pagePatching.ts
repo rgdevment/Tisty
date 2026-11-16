@@ -102,6 +102,8 @@ const besideKept = (
 ) => {
   const held = (old: Element | undefined, fresh: Element | undefined, moved: number) => {
     const was = samePlace(old, fresh, moved);
+    // The title's mark hangs on the blocks before, so a block that gains or loses it is drawn anew.
+    if (old?.classList.contains("title") !== fresh?.classList.contains("title")) return null;
     return was && renamed && old && fresh && headsIn([old, fresh], HEADINGS).length > 0
       ? null
       : was;

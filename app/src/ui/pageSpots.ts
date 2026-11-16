@@ -202,6 +202,13 @@ export const endIn = (block: Element): [Node, number] => {
 
 export const GHOST = "[data-ghost]";
 
+// The core marks the paragraph right after the properties as the title, so a line begun there wears it too.
+export const titledAfterFront = (ghost: Element) => {
+  const after = ghost.previousElementSibling?.matches(".page > .front:first-child");
+  if (after && ghost.matches("p") && !ghost.nextElementSibling?.matches(".title"))
+    ghost.classList.add("title");
+};
+
 // A paragraph just begun holds no words yet, so the core draws nothing there; one stands in until it does.
 export const ghostAt = (
   page: Document,
@@ -224,5 +231,6 @@ export const ghostAt = (
   ghost.append(page.createElement("br"));
   if (after) after.after(ghost);
   else sheet.prepend(ghost);
+  titledAfterFront(ghost);
   return ghost;
 };

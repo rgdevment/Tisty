@@ -8,6 +8,28 @@ struct Drawing {
     anchors: HashMap<usize, String>,
     aligned: bool,
     placed: bool,
+    title: Option<usize>,
+}
+
+// A sibling rule reaching the block past the properties restyles every block of its kind as blocks come and go.
+pub(crate) fn titled(blocks: &[Block]) -> Option<usize> {
+    match blocks {
+        [front, words, ..]
+            if matches!(front.kind, Kind::Front)
+                && matches!(words.kind, Kind::Paragraph | Kind::Heading(1..=3)) =>
+        {
+            Some(words.at.start)
+        }
+        _ => None,
+    }
+}
+
+fn title_class(block: &Block, drawing: &Drawing) -> &'static str {
+    if drawing.title == Some(block.at.start) {
+        " class=\"title\""
+    } else {
+        ""
+    }
 }
 
 pub fn html(doc: &Doc) -> String {
@@ -24,6 +46,7 @@ fn page_of(doc: &Doc, placed: bool) -> String {
         anchors: anchors(doc),
         aligned: false,
         placed,
+        title: titled(doc.blocks()),
     };
     let mut out = String::new();
     for block in doc.blocks() {
@@ -79,7 +102,9 @@ pub fn placed_near(doc: &Doc, from: usize, to: usize, shown: Option<[u32; 2]>) -
     let first = blocks.partition_point(|one| one.at.end < from);
     let last = blocks.partition_point(|one| one.at.start <= to);
     let start = first.saturating_sub(1);
-    let end = if last > first { last + 1 } else { start + 1 }.min(blocks.len());
+    let end = if last > first { last + 1 } else { start + 1 };
+    // The title past the properties is marked by where it stands, so a key at the top draws it too.
+    let end = if start == 0 { end.max(2) } else { end }.min(blocks.len());
     let drawn = start.min(end)..end;
     let again = blocks.get(drawn.clone()).unwrap_or_default();
     let (anchors, heads) = if touched_heading(again, from, to) {
@@ -96,6 +121,7 @@ pub fn placed_near(doc: &Doc, from: usize, to: usize, shown: Option<[u32; 2]>) -
         anchors,
         aligned: false,
         placed: true,
+        title: titled(blocks),
     };
     let mut html = String::new();
     for block in again {
@@ -118,6 +144,7 @@ pub fn pieces(doc: &Doc, about: usize) -> Vec<String> {
         anchors: anchors(doc),
         aligned: true,
         placed: false,
+        title: titled(doc.blocks()),
     };
     let mut all = Vec::new();
     let mut out = String::new();
@@ -193,12 +220,13 @@ fn draw(block: &Block, text: &str, drawing: &Drawing, out: &mut String) {
                 .anchors
                 .get(&block.at.start)
                 .map(|id| format!(" id=\"{}\"", escaped(id)));
-            let _ = write!(out, "<h{level}{} {at}>", id.unwrap_or_default());
+            let class = title_class(block, drawing);
+            let _ = write!(out, "<h{level}{}{class} {at}>", id.unwrap_or_default());
             sourced(&block.spans, text, drawing.placed, out);
             let _ = write!(out, "</h{level}>");
         }
         Kind::Paragraph => {
-            let _ = write!(out, "<p {at}>");
+            let _ = write!(out, "<p{} {at}>", title_class(block, drawing));
             sourced(&block.spans, text, drawing.placed, out);
             out.push_str("</p>");
         }
