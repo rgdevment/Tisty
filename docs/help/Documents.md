@@ -69,10 +69,12 @@ An idea that comes in the middle of something else has nowhere to go yet. Press 
 What happened today, at home or at work, has one place: **Diary**, near the top of the Library. It is not a note a day, which would be 365 documents a year: it is one book a year, **Diary 2026**, with a page a month, **November**, and a section a day, **Sunday 15**, in the app's language. Today is on top, and a day you did not write never appears.
 
 - **Diary in the Library opens today.** The first time in a year it makes that year's book and the month's page; the day itself is born when you write in it. Under the row, the years and their months open like any book.
-- **Write today** opens a box for whatever you want to keep, and **Stick a note** pastes a sticky note with the minute it came on the right side of today. Both land at the end of today's section, and you can edit any day in place like any document.
+- **It reads as a line of days, not as a page.** Today's date heads it, and each day shows its number and weekday beside what you wrote, newest on top.
+- **The box on top, «What happened today?», writes in today**: `Ctrl` + `Enter` keeps it. The note button beside it turns it into a sticky note with the minute it came, on the right of today. The pencil opens the month as a document to change any day, and **Back to the diary** returns.
 - **From anywhere**: in the quick capture, `Tab` goes from **Task** to **Idea** and then to **Diary**, which writes in today without opening the window. On a Brainstorm note, **File in a document** offers **Today's diary** first.
-- **Tasks closed that day** appear in a folded strip under the day's title; each one opens with a click. The strip is only shown, never written into the text.
-- **Hidden from agents.** No agent sees your diary until you press **Hidden from agents** above it and it reads **Open to agents**. Open, an agent reads it and, only when you ask, adds to the end of today under a line with the minute and its name. It never changes what you wrote. Press it again to hide it.
+- **Tasks closed that day** fold under the day's words; each one opens with a click. They are only shown, never written into the text.
+- **Only you.** No agent sees your diary until you press **Only you** at its top and it reads **Open to agents**. Open, an agent reads it and, only when you ask, adds to the end of today under a line with the minute and its name. It never changes what you wrote. Press it again to keep it to yourself.
+- **It is never shared**: the diary has no side panel and no **Share**.
 - **The file is still Markdown**: a book with `diary: on` in its [properties](https://markdown.tisty.app/properties), whose pages are the months. Tisty never writes in it on its own.
 
 ## Folders
