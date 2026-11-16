@@ -43,6 +43,10 @@ fn a_key_on_a_page_of_500_kb() {
     timed("placed_near in a heading", 10, || {
         tisty_markdown::placed_near(&doc, heading, heading + 1, Some(doc.labels()))
     });
+    let below = heading + text[heading..].find("\n\n").unwrap_or_default() + 2;
+    timed("placed_near beside a heading", 10, || {
+        tisty_markdown::placed_near(&doc, below, below + 1, Some(doc.labels()))
+    });
     timed("outline", 10, || tisty_markdown::outline(&doc));
     timed("read + placed_near", 10, || {
         tisty_markdown::placed_near(

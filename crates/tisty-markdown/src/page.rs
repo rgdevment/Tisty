@@ -37,7 +37,7 @@ pub struct Near {
     pub sum: [u32; 2],
     pub drawn: std::ops::Range<usize>,
     pub html: String,
-    // A heading's name hangs on those before it, so only one drawn again can rename those it did not.
+    // A heading's name hangs on those before it, so only one the edit touches can rename those it did not.
     pub heads: Option<[u32; 2]>,
     // A link or a footnote reads by a label written anywhere, so a key that changes one can change any block.
     pub whole: bool,
@@ -66,10 +66,12 @@ pub fn names_sum<'a>(names: impl IntoIterator<Item = &'a str>) -> [u32; 2] {
     }))
 }
 
-fn holds_heading(blocks: &[Block]) -> bool {
-    blocks
-        .iter()
-        .any(|one| matches!(one.kind, Kind::Heading(_)) || holds_heading(&one.inner))
+fn touched_heading(blocks: &[Block], from: usize, to: usize) -> bool {
+    blocks.iter().any(|one| {
+        let heading = matches!(one.kind, Kind::Heading(_));
+        (heading && one.at.start <= to && from <= one.at.end)
+            || touched_heading(&one.inner, from, to)
+    })
 }
 
 pub fn placed_near(doc: &Doc, from: usize, to: usize, shown: Option<[u32; 2]>) -> Near {
@@ -80,7 +82,7 @@ pub fn placed_near(doc: &Doc, from: usize, to: usize, shown: Option<[u32; 2]>) -
     let end = if last > first { last + 1 } else { start + 1 }.min(blocks.len());
     let drawn = start.min(end)..end;
     let again = blocks.get(drawn.clone()).unwrap_or_default();
-    let (anchors, heads) = if holds_heading(again) {
+    let (anchors, heads) = if touched_heading(again, from, to) {
         let names = names(doc);
         let around = again.first().zip(again.last());
         let around = around.map_or(0..0, |(first, last)| first.at.start..last.at.end);

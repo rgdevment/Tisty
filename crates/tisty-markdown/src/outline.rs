@@ -21,11 +21,8 @@ pub fn outline(doc: &Doc) -> Vec<Head> {
 fn walk(blocks: &[Block], text: &str, found: &mut Vec<Head>, taken: &mut HashMap<String, usize>) {
     for block in blocks {
         if let Kind::Heading(level) = block.kind {
-            let source: Vec<&str> = text[block.at.clone()]
-                .lines()
-                .map(crate::unquoted)
-                .collect();
-            let said = crate::reading::plain(&source.join("\n"));
+            let source = &text[block.at.clone()];
+            let said = bare(source.trim_end()).map_or_else(|| plain(source), str::to_string);
             if !said.is_empty() {
                 let id = unique(slug(&said), taken);
                 found.push(Head {
@@ -38,6 +35,21 @@ fn walk(blocks: &[Block], text: &str, found: &mut Vec<Head>, taken: &mut HashMap
         }
         walk(&block.inner, text, found, taken);
     }
+}
+
+fn plain(source: &str) -> String {
+    let lines: Vec<&str> = source.lines().map(crate::unquoted).collect();
+    crate::reading::plain(&lines.join("\n"))
+}
+
+// Words alone come back from the tokenizer as written, and most headings are words alone.
+fn bare(source: &str) -> Option<&str> {
+    let words = source.trim_start_matches('#');
+    let marks = source.len() - words.len();
+    let alone = (1..=6).contains(&marks)
+        && (words.is_empty() || words.starts_with(' '))
+        && !words.contains(|one: char| one.is_control() || "\\`*_[]<>&~$#|{}".contains(one));
+    alone.then(|| words.trim())
 }
 
 // The same shape GitHub gives an anchor, so a link copied from either place keeps working.
@@ -59,3 +71,7 @@ fn unique(id: String, taken: &mut HashMap<String, usize>) -> String {
     taken.insert(named.clone(), 0);
     named
 }
+
+#[cfg(test)]
+#[path = "outline_test.rs"]
+mod tests;
