@@ -20,21 +20,40 @@ const folds = (blocks: readonly Element[]) =>
     ...one.querySelectorAll("details"),
   ]);
 
-const same = (one: Element, want: readonly [number, number] | undefined, by = 0) => {
+export const spansSum = (spans: Iterable<readonly [number, number]>): [number, number] => {
+  let fnv = 0x811c9dc5;
+  let mixed = 0x9747b28c;
+  for (const span of spans) {
+    for (const at of span) {
+      fnv = Math.imul(fnv ^ at, 0x01000193);
+      mixed = Math.imul(mixed ^ at, 0x5bd1e995);
+      mixed ^= mixed >>> 13;
+    }
+  }
+  return [fnv >>> 0, mixed >>> 0];
+};
+
+const placeOf = (one: Element, by: number): [number, number] | null => {
   const at = spanned(one.getAttribute("data-at"));
-  return Boolean(at && want && at[0] + by === want[0] && at[1] + by === want[1]);
+  return at && [at[0] + by, at[1] + by];
+};
+
+const linedUp = (standing: readonly Element[], near: PlacedNear, by: number) => {
+  const places = standing.map((one, at) => placeOf(one, at < near.from ? 0 : by));
+  if (places.some((one) => !one)) return false;
+  const [fnv, mixed] = spansSum(places as [number, number][]);
+  return fnv === near.sum[0] && mixed === near.sum[1];
 };
 
 // The blocks the core drew again take the place of the old ones, and those after only move by
 // what the edit added; when the page does not line up with the core, it is drawn whole instead.
 export const patched = (sheet: Element, near: PlacedNear, by: number): Element[] | null => {
   const old = Array.from(sheet.querySelectorAll(":scope > [data-at]"));
-  const { spans, from, to } = near;
-  const after = spans.length - to;
+  const { count, from, to } = near;
+  const after = count - to;
   const kept = old.length - after;
   if (after < 0 || kept < from) return null;
-  for (let at = 0; at < from; at++) if (!same(old[at], spans[at])) return null;
-  for (let at = 0; at < after; at++) if (!same(old[kept + at], spans[to + at], by)) return null;
+  if (!linedUp([...old.slice(0, from), ...old.slice(kept)], near, by)) return null;
   const page = sheet.ownerDocument;
   const fresh = page.createElement("template");
   fresh.innerHTML = near.html;

@@ -32,12 +32,32 @@ fn page_of(doc: &Doc, placed: bool) -> String {
     out
 }
 
-/// What an edit changed on the page being written: where every top-level block now stands, and the
-/// blocks from `drawn.start` to `drawn.end` drawn again, one more on each side of the edit.
+/// What an edit changed on the page being written: how many top-level blocks it has, a sum of where
+/// those not drawn again stand, and the blocks from `drawn.start` to `drawn.end` drawn again.
 pub struct Near {
-    pub spans: Vec<[usize; 2]>,
+    pub count: usize,
+    pub sum: [u32; 2],
     pub drawn: std::ops::Range<usize>,
     pub html: String,
+}
+
+/// The page sums the blocks it already shows the same way, so the two meet without every place crossing.
+pub fn spans_sum(spans: impl IntoIterator<Item = [usize; 2]>) -> [u32; 2] {
+    let mut fnv: u32 = 0x811c_9dc5;
+    let mut mixed: u32 = 0x9747_b28c;
+    for at in spans.into_iter().flatten() {
+        let at = at as u32;
+        fnv = (fnv ^ at).wrapping_mul(0x0100_0193);
+        mixed = (mixed ^ at).wrapping_mul(0x5bd1_e995);
+        mixed ^= mixed >> 13;
+    }
+    [fnv, mixed]
+}
+
+fn holds_heading(blocks: &[Block]) -> bool {
+    blocks
+        .iter()
+        .any(|one| matches!(one.kind, Kind::Heading(_)) || holds_heading(&one.inner))
 }
 
 pub fn placed_near(doc: &Doc, from: usize, to: usize) -> Near {
@@ -58,18 +78,26 @@ pub fn placed_near(doc: &Doc, from: usize, to: usize) -> Near {
         .map_or(start + 1, |at| at + 2)
         .max(start + 1)
         .min(spans.len());
+    let drawn = start.min(end)..end;
+    let again = blocks.get(drawn.clone()).unwrap_or_default();
     let drawing = Drawing {
-        anchors: anchors(doc),
+        anchors: if holds_heading(again) {
+            anchors(doc)
+        } else {
+            HashMap::new()
+        },
         aligned: false,
         placed: true,
     };
     let mut html = String::new();
-    for block in blocks.get(start..end).unwrap_or_default() {
+    for block in again {
         draw(block, doc.text(), &drawing, &mut html);
     }
+    let kept = spans[..drawn.start].iter().chain(&spans[drawn.end..]);
     Near {
-        spans,
-        drawn: start.min(end)..end,
+        count: spans.len(),
+        sum: spans_sum(kept.copied()),
+        drawn,
         html,
     }
 }

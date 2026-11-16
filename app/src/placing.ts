@@ -24,7 +24,8 @@ export const docPlaced = (body: string): Promise<string> =>
   );
 
 export type PlacedNear = {
-  readonly spans: readonly (readonly [number, number])[];
+  readonly count: number;
+  readonly sum: readonly [number, number];
   readonly from: number;
   readonly to: number;
   readonly html: string;

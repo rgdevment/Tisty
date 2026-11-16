@@ -16,7 +16,7 @@ vi.mock("@tauri-apps/api/core", () => ({
 import { checkOf, docPlaced, docPlacedNear } from "../placing";
 
 const BYTES = new TextEncoder();
-const NEAR = { spans: [[0, 4]], from: 0, to: 1, html: "<p>Unos</p>" };
+const NEAR = { count: 1, sum: [1, 2], from: 0, to: 1, html: "<p>Unos</p>" };
 const SENT = {
   body: "Unos",
   was: checkOf("Uno"),

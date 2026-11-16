@@ -580,12 +580,41 @@ fn a_page_to_write_on_looks_as_the_page_to_read() {
 fn an_edit_draws_again_only_the_blocks_around_it() {
     let text = "# One\n\nTwo words.\n\nThree.\n\nFour.\n\nFive.";
     let at = text.find("words").unwrap_or(0);
-    let near = placed_near(&read(text), at, at + 5);
-    assert_eq!(near.spans.len(), 5);
+    let doc = read(text);
+    let near = placed_near(&doc, at, at + 5);
+    assert_eq!(near.count, 5);
     assert_eq!(near.drawn, 0..3);
+    let spans = doc.blocks().iter().map(|one| [one.at.start, one.at.end]);
+    assert_eq!(near.sum, spans_sum(spans.skip(3)));
     assert!(near.html.contains("Two words.") && near.html.contains("Three."));
     assert!(!near.html.contains("Four."));
     assert!(near.html.contains("data-src"));
+}
+
+#[test]
+fn the_page_and_the_core_sum_the_places_of_blocks_alike() {
+    assert_eq!(
+        spans_sum([[0, 4], [6, 13], [15, 21]]),
+        [0xc795_6160, 0x9bfc_67d1]
+    );
+    assert_eq!(spans_sum([]), [0x811c_9dc5, 0x9747_b28c]);
+}
+
+#[test]
+fn a_heading_drawn_again_keeps_the_name_the_whole_page_gives_it() {
+    let text = "# Uno\n\nA.\n\n# Uno\n\nB.\n\nC.\n\nD.\n";
+    let doc = read(text);
+    let at = text.rfind("# Uno").unwrap_or_default();
+    let near = placed_near(&doc, at + 2, at + 3);
+    let second = &crate::outline(&doc)[1].id;
+    assert!(
+        near.html.contains(&format!("id=\"{second}\"")),
+        "{}",
+        near.html
+    );
+    assert!(html_placed(&doc).contains(&format!("id=\"{second}\"")));
+    let words = placed_near(&doc, text.len() - 2, text.len() - 1);
+    assert!(!words.html.contains("<h1"));
 }
 
 #[test]
