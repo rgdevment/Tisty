@@ -20,14 +20,43 @@ pub fn read_old(text: &str) -> Doc {
 pub(crate) fn reading(text: &str, passes: &[fn(&mut Vec<Span>, &str)]) -> Doc {
     // The core and the window both read past a byte-order mark; the tokenizer does not.
     let mut skip = text.len() - text.trim_start_matches('\u{feff}').len();
-    let mut open: Vec<Block> = Vec::new();
     let mut blocks: Vec<Block> = Vec::new();
     // The tokenizer would take any fenced run of lines for front matter; only the top one is.
     if let Some(front) = crate::front::span(text) {
         skip = front.end;
         blocks.push(leaf(Kind::Front, front));
     }
-    for (event, at) in tokens(&text[skip..]) {
+    tokened(text, skip..text.len(), &mut blocks);
+    defined(text, skip, &mut blocks);
+    polish_all(&mut blocks, text, passes);
+    #[cfg(feature = "tags")]
+    crate::marks::tagged(&mut blocks, text);
+    Doc {
+        text: text.to_string(),
+        blocks,
+    }
+}
+
+/// The blocks of one stretch of a text, read as the whole text reads them, at their places in it.
+pub(crate) fn part(
+    text: &str,
+    within: Range<usize>,
+    filed: &std::collections::HashSet<String>,
+) -> Vec<Block> {
+    let mut blocks = Vec::new();
+    tokened(text, within, &mut blocks);
+    polish_all(&mut blocks, text, PASSES);
+    #[cfg(feature = "tags")]
+    crate::marks::walk(&mut blocks, text, filed);
+    #[cfg(not(feature = "tags"))]
+    let _ = filed;
+    blocks
+}
+
+fn tokened(text: &str, within: Range<usize>, blocks: &mut Vec<Block>) {
+    let mut open: Vec<Block> = Vec::new();
+    let skip = within.start;
+    for (event, at) in tokens(&text[within]) {
         let at = at.start + skip..at.end + skip;
         match event {
             Event::Start(tag) => {
@@ -49,10 +78,10 @@ pub(crate) fn reading(text: &str, passes: &[fn(&mut Vec<Span>, &str)]) -> Doc {
                     if let (Kind::List { .. }, Some(last)) = (&done.kind, done.inner.last()) {
                         done.at.end = last.at.end;
                     }
-                    shelve(&mut open, &mut blocks, done);
+                    shelve(&mut open, blocks, done);
                 }
             }
-            Event::Rule => shelve(&mut open, &mut blocks, leaf(Kind::Rule, at)),
+            Event::Rule => shelve(&mut open, blocks, leaf(Kind::Rule, at)),
             Event::TaskListMarker(ticked) => tick(&mut open, ticked),
             Event::Text(_) => spot(&mut open, Mark::Text, at),
             Event::Code(_) => spot(&mut open, Mark::Code, at),
@@ -76,14 +105,6 @@ pub(crate) fn reading(text: &str, passes: &[fn(&mut Vec<Span>, &str)]) -> Doc {
             Event::SoftBreak | Event::HardBreak => spot(&mut open, Mark::Break, at),
             _ => {}
         }
-    }
-    defined(text, skip, &mut blocks);
-    polish_all(&mut blocks, text, passes);
-    #[cfg(feature = "tags")]
-    crate::marks::tagged(&mut blocks, text);
-    Doc {
-        text: text.to_string(),
-        blocks,
     }
 }
 
