@@ -1,4 +1,4 @@
-import { readdirSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { type PlacedNear, summed } from "../placing";
@@ -270,9 +270,9 @@ describe("the places a key moves, read only through the page's places", () => {
   it("never reads, writes or looks a place up by its words anywhere else", () => {
     const raw =
       /(get|set)Attribute\(\s*["'`]data-(at|src|placed)["'`]|dataset\s*\.\s*(at|src|placed)\b|\[data-(at|src|placed)\s*[\^$*~|]?=/;
-    const guilty = [...walk("src"), ...walk("../packages")].filter((one) =>
-      raw.test(readFileSync(one, "utf8")),
-    );
+    // A mutation run copies only the app, so the packages are read only where they are.
+    const roots = ["src", "../packages"].filter((one) => existsSync(one));
+    const guilty = roots.flatMap(walk).filter((one) => raw.test(readFileSync(one, "utf8")));
 
     expect(guilty).toEqual([]);
   });
