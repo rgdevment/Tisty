@@ -651,6 +651,50 @@ describe("a task opens beside the list, and whole when asked", () => {
   });
 });
 
+describe("the example an empty day offers", () => {
+  const example = "buy bread tomorrow at 10";
+
+  beforeEach(() => {
+    tasks = [];
+    const answered = ipc.answer;
+    ipc.answer = (cmd, args) =>
+      cmd === "capture"
+        ? Promise.resolve({ ...bank, id: "01N", title: "buy bread" })
+        : answered(cmd, args);
+  });
+
+  it("is written in the capture field at a click, and Enter files it", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    await user.click(await screen.findByRole("button", { name: example }));
+
+    const field = screen.getByPlaceholderText<HTMLInputElement>(t("addForToday"));
+    expect(field.value).toBe(example);
+    expect(document.activeElement).toBe(field);
+
+    await user.keyboard("{Enter}");
+
+    await waitFor(() =>
+      expect(ipc.calls.find((one) => one.cmd === "capture")?.args.text).toBe(example),
+    );
+  });
+
+  it("is not written again when the view comes back", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await user.click(await screen.findByRole("button", { name: example }));
+    await user.clear(screen.getByPlaceholderText(t("addForToday")));
+
+    await user.click(screen.getByRole("button", { name: t("archive") }));
+    await waitFor(() => expect(screen.queryByPlaceholderText(t("addForToday"))).toBeNull());
+    await user.click(screen.getByRole("button", { name: t("tasks") }));
+
+    const back = await screen.findByPlaceholderText<HTMLInputElement>(t("addForToday"));
+    expect(back.value).toBe("");
+  });
+});
+
 describe("the day the calendar turns over", () => {
   beforeEach(() => vi.useFakeTimers({ shouldAdvanceTime: true }));
   afterEach(() => vi.useRealTimers());

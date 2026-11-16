@@ -1,8 +1,10 @@
-import { render, screen } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { createRef } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { List } from "../core";
-import CaptureField from "../ui/CaptureField";
+import { t } from "../locales";
+import CaptureField, { type CaptureHandle } from "../ui/CaptureField";
 
 const read = vi.fn();
 vi.mock("@tauri-apps/api/core", () => ({
@@ -59,6 +61,46 @@ describe("what the capture field teaches", () => {
     await screen.findAllByRole("button", { name: /tomorrow/i }, { timeout: 2000 });
 
     expect(screen.getByText("every tuesday")).toBeTruthy();
+  });
+});
+
+describe("a sentence handed to the capture field", () => {
+  afterEach(() => vi.useRealTimers());
+
+  it("is written there with the caret on it, over what was typed and taken off", async () => {
+    vi.setSystemTime(new Date("2026-08-11T09:00:00"));
+    read.mockResolvedValue(seen("meeting", true));
+    const field = createRef<CaptureHandle>();
+    const captured = vi.fn(() => Promise.resolve(undefined as never));
+    render(
+      <CaptureField
+        ref={field}
+        invite="Add a task"
+        lists={[] as List[]}
+        tags={[]}
+        onCapture={captured}
+        onError={() => {}}
+      />,
+    );
+    const box = screen.getByRole<HTMLInputElement>("textbox");
+    await userEvent.type(box, "meeting tomorrow");
+    await userEvent.click(
+      await screen.findByRole(
+        "button",
+        { name: new RegExp(`^${t("remove")} `) },
+        { timeout: 2000 },
+      ),
+    );
+    box.blur();
+
+    act(() => field.current?.write("buy bread tomorrow at 10"));
+
+    expect(box.value).toBe("buy bread tomorrow at 10");
+    expect(document.activeElement).toBe(box);
+
+    await userEvent.keyboard("{Enter}");
+
+    expect(captured.mock.calls).toStrictEqual([["buy bread tomorrow at 10", {}]]);
   });
 });
 

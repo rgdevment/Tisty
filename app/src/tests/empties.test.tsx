@@ -1,8 +1,9 @@
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import Search from "../ui/Search";
 import TaskList from "../ui/TaskList";
-import { nothing } from "../views";
+import { nothing, offers } from "../views";
 
 const searched = vi.fn((_args: Record<string, unknown>) => Promise.resolve([]));
 vi.mock("@tauri-apps/api/core", () => ({
@@ -51,6 +52,68 @@ describe("what an empty screen says", () => {
     );
 
     expect(screen.getByText(/Nothing for today/)).toBeTruthy();
+  });
+});
+
+describe("the example an empty screen offers", () => {
+  const example = "buy bread tomorrow at 10";
+  const today = (onTry?: (example: string) => void) =>
+    render(
+      <TaskList
+        tasks={[]}
+        lists={[]}
+        title="Today"
+        empty={nothing({ named: "tasks" }, false)}
+        onTry={onTry}
+        onSelect={() => {}}
+      />,
+    );
+
+  it("hands over the sentence it quotes at a click", async () => {
+    const tried = vi.fn();
+    today(tried);
+
+    await userEvent.click(screen.getByRole("button", { name: example }));
+
+    expect(tried).toHaveBeenCalledWith(example);
+  });
+
+  it("keeps the words around the sentence as they read", () => {
+    const { container } = today(vi.fn());
+
+    expect(container.textContent).toContain(nothing({ named: "tasks" }, false));
+  });
+
+  it("stays plain words where nothing can take it", () => {
+    today();
+
+    expect(screen.queryByRole("button", { name: example })).toBeNull();
+    expect(screen.getByText(/Write «buy bread tomorrow at 10»/)).toBeTruthy();
+  });
+
+  it("leaves an empty screen that quotes nothing as it reads", () => {
+    const said = nothing({ list: "01L" }, false);
+    render(
+      <TaskList
+        tasks={[]}
+        lists={[]}
+        title="Home"
+        empty={said}
+        onTry={vi.fn()}
+        onSelect={() => {}}
+      />,
+    );
+
+    expect(screen.getByText(said).querySelector("button")).toBeNull();
+  });
+
+  it("is offered beside a capture field only, and never over a search", () => {
+    expect(offers({ named: "tasks" }, false)).toBe(true);
+    expect(offers({ named: "tasks", slice: "repeating" }, false)).toBe(true);
+    expect(offers({ list: "01L" }, false)).toBe(true);
+    expect(offers({ named: "tasks" }, true)).toBe(false);
+    expect(offers({ named: "archive", layer: "routine" }, false)).toBe(false);
+    expect(offers({ named: "search" }, false)).toBe(false);
   });
 });
 

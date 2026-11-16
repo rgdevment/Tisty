@@ -1759,6 +1759,7 @@ const en = {
   sliceLate: "Late",
   todayEmpty:
     "Nothing for today. Write «buy bread tomorrow at 10» — the date is read from the sentence.",
+  writeItAbove: "Write it in the field above",
   someday: "Someday",
   agentBand: "To confirm",
   stepsSaidOne: "An assistant says this step is done",
@@ -5003,6 +5004,7 @@ const es: Catalog = {
   sliceOverdue: "Vencidas",
   sliceLate: "Atrasadas",
   todayEmpty: "Nada para hoy. Escribe «comprar pan mañana a las 10»: la fecha se lee de la frase.",
+  writeItAbove: "Escribirla en el campo de arriba",
   someday: "Algún día",
   agentBand: "Por confirmar",
   stepsSaidOne: "Un asistente dice que este paso está listo",

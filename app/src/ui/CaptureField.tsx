@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { type Ref, useEffect, useImperativeHandle, useRef, useState } from "react";
 import {
   type Counted,
   type Edits,
@@ -22,6 +22,11 @@ interface Props {
   onCapture: (text: string, edits: Edits) => Promise<Task>;
   onError: (message: string) => void;
   onTyped?: (text: string) => void;
+  ref?: Ref<CaptureHandle>;
+}
+
+export interface CaptureHandle {
+  write: (text: string) => void;
 }
 
 const CALLED = /(^|\s)([/@#])(\S*)$/;
@@ -34,7 +39,16 @@ interface Read {
   seen: Parsed;
 }
 
-export default function CaptureField({ invite, lists, tags, onCapture, onError, onTyped }: Props) {
+export default function CaptureField({
+  invite,
+  lists,
+  tags,
+  onCapture,
+  onError,
+  onTyped,
+  ref,
+}: Props) {
+  const box = useRef<HTMLDivElement>(null);
   const [text, setText] = useState("");
   const typing = useRef(onTyped);
   typing.current = onTyped;
@@ -54,6 +68,14 @@ export default function CaptureField({ invite, lists, tags, onCapture, onError, 
     );
   };
 
+  useImperativeHandle(ref, () => ({
+    write: (offered) => {
+      setText(offered);
+      setEdits({});
+      box.current?.querySelector<HTMLInputElement>("input")?.focus();
+    },
+  }));
+
   useEffect(() => {
     if (!text.trim()) {
       setLast(null);
@@ -68,7 +90,7 @@ export default function CaptureField({ invite, lists, tags, onCapture, onError, 
   }, [text]);
 
   return (
-    <div className="w-full">
+    <div ref={box} className="w-full">
       <Field
         icon="＋"
         value={text}

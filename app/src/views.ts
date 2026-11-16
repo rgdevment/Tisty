@@ -134,6 +134,10 @@ export function accepts(chosen: Chosen): boolean {
   return true;
 }
 
+// An example is offered only where a capture field is there to take it.
+export const offers = (chosen: Chosen, searching: boolean): boolean =>
+  !searching && accepts(chosen);
+
 export function invite(chosen: Chosen, lists: List[]): string {
   if (chosen.list) {
     const name = lists.find((list) => list.id === chosen.list)?.name;

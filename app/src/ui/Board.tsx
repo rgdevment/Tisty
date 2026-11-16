@@ -1,13 +1,13 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { capture, fold } from "../core";
 import { useDesk } from "../desk";
 import { todayLong } from "../format";
 import { fill, t } from "../locales";
 import { saidPlainly } from "../refusal";
-import { accepts, asView, headerCount, invite, nothing, title } from "../views";
+import { accepts, asView, headerCount, invite, nothing, offers, title } from "../views";
 import { ArchiveBar, SliceBar } from "./Bars";
 import { Head, Paws, useBeaver } from "./Beaver";
-import CaptureField from "./CaptureField";
+import CaptureField, { type CaptureHandle } from "./CaptureField";
 import Search from "./Search";
 import Shelf from "./Shelf";
 import Sightings from "./Sightings";
@@ -21,6 +21,7 @@ const AWAKES = 5;
 export default function Board() {
   const peeks = useBeaver();
   const [typed, setTyped] = useState(0);
+  const field = useRef<CaptureHandle>(null);
   const {
     act,
     asking,
@@ -84,6 +85,9 @@ export default function Board() {
             found?.papers.length && !shown.length
               ? t("onlyPapers")
               : nothing(seen, found !== null, data.counts.tracesHidden ?? 0)
+          }
+          onTry={
+            offers(chosen, found !== null) ? (example) => field.current?.write(example) : undefined
           }
           onReach={!found && data.total > data.tasks.length ? further : undefined}
           note={
@@ -194,6 +198,7 @@ export default function Board() {
               )}
               <div className="beaver-over">
                 <CaptureField
+                  ref={field}
                   invite={invite(chosen, data.lists)}
                   lists={data.lists}
                   tags={data.tags}
