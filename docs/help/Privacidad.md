@@ -75,7 +75,7 @@ Un [widget](Widgets-en-documentos) no ejecuta nada ni nombra nada fuera de sí m
 
 **Tu frase de 24 palabras.** Es el respaldo de tu identidad: con ella, tus otros computadores firman como tú. Guárdala fuera de Tisty, en papel o en un PDF aparte. Si pierdes la frase y todos tus computadores, la identidad no se puede recuperar. Nadie de Tisty ni de Folio te la pedirá nunca.
 
-**Si pierdes un computador.** Quítalo en Configuración › Tu identidad. Su llave deja de valer, y Folio avisa a quien lea lo que firmó después de eso.
+**Si pierdes un computador.** Quítalo en Configuración › Seguridad, en **Tu identidad**. Su llave deja de valer, y Folio avisa a quien lea lo que firmó después de eso.
 
 ## Sin IA
 

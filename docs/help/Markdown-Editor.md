@@ -69,7 +69,7 @@ The **⋯** on the ribbon at the top of the document switches between them, and 
 
 In the Markdown view:
 
-- **The `/` menu, a small bar, the shortcuts and the tags** work as they do on the page.
+- **The `/` menu, the shortcuts and the tags** work as they do on the page. The bar also holds the kind of line, **Table** and **Diagram**, and the right-click offers **Choose block**, **Duplicate block**, moving it up or down and deleting it.
 - **An empty item ends a list.** Enter on an empty bullet, number or box leaves the list with a blank line.
 - **Backspace right after a line's mark** (a heading's `#`, a bullet, a quote's `>`) turns the line back into words.
 
@@ -78,8 +78,6 @@ In the Markdown view:
 - **Tags are offered after `#`.** The tags you already use come up under the caret, so one tag is never spelled two ways. ↑ ↓ picks one and Tab or Enter writes it; Esc puts the list away, and Enter with none picked still starts a paragraph.
 - **Attach a file** by dragging it onto the page, pasting it (a screenshot on the clipboard works too) or picking **Attach a file** in the `/` menu. It lands after the block you drop it on, or where the caret is, and it is kept inside Tisty with the document, not linked to a place on your disk that breaks when the file moves.
 - **Paste with its formatting.** Text copied from a web page, an email or a word processor keeps its headings, lists, bold, links, tables and coloured words, written in Tisty Markdown: a colour becomes the nearest pen of the palette. A pasted block, like a list or a heading, starts on its own line, and inside a quote it stays in the quote. Plain text keeps its shape too: a table a terminal drew with box lines (`┌ │ ├`) becomes a table, and lines that read like code — from a code editor or a terminal — come in as a code block, unless the caret is already inside one.
-- **Tab and Shift + Tab walk a table's cells**, and Tab past the last one starts a new row.
-- **Drag the edge of a table's column** on the page to make it wider or narrower. The width is written as the dashes of its rule, ten pixels each.
 
 | Shortcut | What it does |
 | :-- | :-- |
@@ -108,6 +106,8 @@ A table is written on the page itself:
 - **A typed cell is written as its type asks**: a calendar for a date, where you can also type «next Friday»; the column's own options for a choice, each with its colour; stars for a rating; a click for yes or no; a finder for a document.
 - **Sort and filter from a column's head.** That order and those filters are on screen only and leave the file alone; **Save this order** writes the rows in that order.
 - **A value not written as its type asks**, like «soon» in a date column, keeps what you wrote and shows a wavy line under it.
+- **Tab and Shift + Tab walk a table's cells**, and Tab past the last one starts a new row.
+- **Drag the edge of a table's column** on the page to make it wider or narrower. The width is written as the dashes of its rule, ten pixels each.
 - **`Alt` + ↑ ↓ with a cell open** moves its row up or down.
 - **In the Markdown view**, `Alt` + ↑ ↓ moves the row the caret is on and `Alt` + ← → its column (`Ctrl` + `Alt` on a Mac), and the bar's **Table** menu sorts it and gives a column its type.
 - **Rows copied from Excel, Numbers or Google Sheets** — or a CSV — come in as a table when you paste them.
