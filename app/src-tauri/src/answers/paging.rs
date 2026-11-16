@@ -126,19 +126,23 @@ pub fn doc_placed(
 
 #[derive(serde::Serialize, Debug, PartialEq, Eq)]
 pub struct PlacedNear {
-    spans: Vec<[usize; 2]>,
+    count: usize,
+    sum: [u32; 2],
     from: usize,
     to: usize,
     html: String,
+    heads: Option<[u32; 2]>,
 }
 
 fn placed_near(doc: &tisty_markdown::Doc, from: usize, to: usize) -> PlacedNear {
     let near = tisty_markdown::placed_near(doc, from, to);
     PlacedNear {
-        spans: near.spans,
+        count: near.count,
+        sum: near.sum,
         from: near.drawn.start,
         to: near.drawn.end,
         html: near.html,
+        heads: near.heads,
     }
 }
 

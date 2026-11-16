@@ -135,6 +135,47 @@ fn an_edit_read_again_where_the_page_says_reads_as_the_whole_new_text_does() {
 }
 
 #[test]
+fn a_definition_put_together_by_an_edit_is_remembered_and_one_taken_out_is_forgotten() {
+    let text = "Uno [x]x: y.\n\nDos.\n";
+    let at = text.find("]x:").unwrap_or_default() + 1;
+    let joined = reread_edit(read(text), at..at + 1, "");
+    assert_eq!(joined, Ok(read("Uno [x]: y.\n\nDos.\n")));
+    assert!(joined.is_ok_and(|doc| doc.crossing));
+    let typed = reread_edit(read("Uno ]\n"), 5..5, ":");
+    assert!(typed.is_ok_and(|doc| doc.crossing));
+    let definition = "[r]: https://tisty.app\n\n";
+    let defined = format!("Uno [x][r].\n\n{definition}Dos.\n");
+    let line = defined.find(definition).unwrap_or_default();
+    let Ok(taken) = reread_edit(read(&defined), line..line + definition.len(), "") else {
+        panic!("the definition falls between characters");
+    };
+    assert_eq!(taken, read("Uno [x][r].\n\nDos.\n"));
+    assert!(!taken.crossing);
+    assert!(plan(&taken, "Uno [x][r].\n\nDos!\n").is_some());
+}
+
+#[test]
+fn edits_that_make_or_break_crossings_read_as_the_whole_text_does() {
+    const CROSSINGS: [&str; 8] = ["]", ":", "[^", "]:", ":::", "[x]: y", "[^1]", "\n"];
+    for (seed, sample) in SAMPLES.iter().enumerate() {
+        let mut steps = Steps(0xC0FF_EE00 + seed as u64);
+        let mut text = plain(sample);
+        let mut was = read(&text);
+        for _ in 0..300 {
+            let at = boundary(&text, steps.next(text.len() + 1));
+            let to = boundary(&text, (at + steps.next(4)).min(text.len()));
+            let insert = CROSSINGS[steps.next(CROSSINGS.len())];
+            let next = format!("{}{insert}{}", &text[..at], &text[to..]);
+            let again = reread_edit(was, at..to, insert)
+                .unwrap_or_else(|_| panic!("{at}..{to} falls between the characters"));
+            assert_eq!(again, read(&next), "{at}..{to} → {insert:?} in {text:?}");
+            text = next;
+            was = again;
+        }
+    }
+}
+
+#[test]
 fn a_word_rewritten_whole_reads_as_the_minimal_change_does() {
     let text = "Uno dos.\n\nTres cuatro.\n\nCinco seis.\n";
     let at = text.find("cuatro").unwrap_or_default();

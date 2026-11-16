@@ -1,22 +1,53 @@
 import { invoke } from "@tauri-apps/api/core";
 
-export type Check = { readonly bytes: number; readonly hash: readonly [number, number] };
+type Hash = readonly [number, number];
+
+export type Check = { readonly bytes: number; readonly hash: Hash };
+
+const SEED: Hash = [0x811c9dc5, 0x9747b28c];
+
+const summedBy = (
+  count: number,
+  numberAt: (at: number) => number,
+  seed = SEED,
+): [number, number] => {
+  let [fnv, mixed] = seed;
+  for (let at = 0; at < count; at++) {
+    const one = numberAt(at);
+    fnv = Math.imul(fnv ^ one, 0x01000193);
+    mixed = Math.imul(mixed ^ one, 0x5bd1e995);
+    mixed ^= mixed >>> 13;
+  }
+  return [fnv >>> 0, mixed >>> 0];
+};
+
+export const summed = (numbers: readonly number[], seed = SEED) =>
+  summedBy(numbers.length, (at) => numbers[at], seed);
+
+const unitsSummed = (text: string, seed = SEED) =>
+  summedBy(text.length, (at) => text.charCodeAt(at), seed);
+
+export const namesSum = (names: readonly string[]) =>
+  names.reduce<Hash>((sum, name) => unitsSummed(name, summed([name.length], sum)), SEED);
 
 const surrogate = (unit: number) => unit >= 0xd800 && unit < 0xe000;
 
-export const checkOf = (text: string): Check => {
-  let utf8 = 0;
-  let fnv = 0x811c9dc5;
-  let mixed = 0x9747b28c;
-  for (let at = 0; at < text.length; at++) {
+export const bytesIn = (text: string, from = 0, to = text.length) => {
+  let bytes = 0;
+  for (let at = from; at < to; at++) {
     const unit = text.charCodeAt(at);
-    utf8 += unit < 0x80 ? 1 : unit < 0x800 || surrogate(unit) ? 2 : 3;
-    fnv = Math.imul(fnv ^ unit, 0x01000193);
-    mixed = Math.imul(mixed ^ unit, 0x5bd1e995);
-    mixed ^= mixed >>> 13;
+    bytes += unit < 0x80 ? 1 : unit < 0x800 || surrogate(unit) ? 2 : 3;
   }
-  return { bytes: utf8, hash: [fnv >>> 0, mixed >>> 0] };
+  return bytes;
 };
+
+export const checkOf = (text: string): Check => ({ bytes: bytesIn(text), hash: unitsSummed(text) });
+
+// A key's check follows from the one it was typed on, so naming the new text never reads it whole.
+export const checkAfter = (was: Check, edit: Typed): Check => ({
+  bytes: was.bytes - (edit.to - edit.from) + bytesIn(edit.insert),
+  hash: unitsSummed(edit.insert, summed([edit.from, edit.to, edit.insert.length], was.hash)),
+});
 
 export const docPlaced = (body: string): Promise<string> =>
   invoke<ArrayBuffer>("doc_placed", { body, check: checkOf(body) }).then((bytes) =>
@@ -24,10 +55,12 @@ export const docPlaced = (body: string): Promise<string> =>
   );
 
 export type PlacedNear = {
-  readonly spans: readonly (readonly [number, number])[];
+  readonly count: number;
+  readonly sum: readonly [number, number];
   readonly from: number;
   readonly to: number;
   readonly html: string;
+  readonly heads: readonly [number, number] | null;
 };
 
 export type Typed = { readonly from: number; readonly to: number; readonly insert: string };

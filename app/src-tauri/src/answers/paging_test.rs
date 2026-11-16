@@ -40,6 +40,35 @@ fn what_the_page_sends_is_read_as_a_key_or_a_whole_body() {
 }
 
 #[test]
+fn what_the_page_is_answered_names_the_count_the_sum_and_the_blocks_drawn() {
+    let doc = tisty_markdown::read("One.\n\nTwo.\n\nThree.\n\nFour.\n");
+    let near = placed_near(&doc, 7, 8);
+    let said = serde_json::to_value(&near).unwrap_or_default();
+    let mut keys: Vec<&str> = said
+        .as_object()
+        .map(|one| one.keys().map(String::as_str).collect())
+        .unwrap_or_default();
+    keys.sort_unstable();
+    assert_eq!(keys, ["count", "from", "heads", "html", "sum", "to"]);
+    assert!(said["heads"].is_null());
+    assert_eq!(
+        (&said["count"], &said["from"], &said["to"]),
+        (&4.into(), &0.into(), &3.into())
+    );
+    let last = &doc.blocks()[3].at;
+    assert_eq!(
+        said["sum"],
+        serde_json::json!(tisty_markdown::spans_sum([[last.start, last.end]]))
+    );
+    let headed = tisty_markdown::read("# Uno\n\nA.\n\nB.\n\n# Uno\n");
+    let said = serde_json::to_value(placed_near(&headed, 2, 3)).unwrap_or_default();
+    assert_eq!(
+        said["heads"],
+        serde_json::json!(tisty_markdown::names_sum(["uno-1"]))
+    );
+}
+
+#[test]
 fn keys_sent_alone_draw_the_page_as_the_whole_text_would() {
     let placing = Placing::default();
     let mut text = "# Uno\n\nAño con ñandú 😀.\n\n- a\n- b\r\n\n```\nfn x() {}\n```\n".to_string();
