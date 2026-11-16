@@ -16,6 +16,7 @@ pub(crate) struct Plan {
     old_end: usize,
     new_end: usize,
     filing: Filing,
+    closers: usize,
 }
 
 pub fn reread(was: Doc, text: &str) -> Doc {
@@ -59,12 +60,15 @@ fn rebuilt(was: Doc, text: String, changed: &Changed) -> Doc {
         shift(one, plan.old_end, plan.new_end);
     }
     blocks.append(&mut after);
-    // A plan is refused for a crossing near the edit, so the text it was made for labels only its far tags.
+    // A plan is refused for a crossing in the stretch it read, so the text keeps its definitions and notes.
+    let mut defined = was.defined;
+    defined.closers = plan.closers;
     Doc {
         text,
         blocks,
-        crossing: false,
-        labels: crate::names_sum(plan.filing.far().iter().map(String::as_str)),
+        crossing: was.crossing,
+        labels: defined.labels(&plan.filing.far()),
+        defined,
         filing: Box::new(plan.filing),
     }
 }
@@ -87,7 +91,7 @@ fn changed(old: &str, text: &str) -> Changed {
 // Only the blocks around an edit are read again, and the edges must read as before or the whole text is.
 fn planned(was: &Doc, text: &str, changed: &Changed) -> Option<Plan> {
     let old = was.text();
-    if was.crossing || text.starts_with('\u{feff}') {
+    if text.starts_with('\u{feff}') {
         return None;
     }
     let blocks = was.blocks();
@@ -127,16 +131,30 @@ fn planned(was: &Doc, text: &str, changed: &Changed) -> Option<Plan> {
     } else {
         front_end.unwrap_or(0)
     };
-    let to = if edge_after {
-        shifted(blocks[after - 1].at.end, old_end, new_end)
+    let old_to = if edge_after {
+        blocks[after - 1].at.end
     } else {
-        text.len()
+        old.len()
     };
+    let to = shifted(old_to, old_end, new_end);
+    if was.crossing && (crossing(&old[from..old_to]) || crossing(&text[from..to])) {
+        return None;
+    }
+    let closers = was
+        .defined
+        .after(&old[start..old_end], &text[start..new_end]);
+    let skip = front_end.unwrap_or(0);
+    if !was
+        .defined
+        .affords(&old[skip..], &text[skip..], closers, &text[from..to])
+    {
+        return None;
+    }
     let (filing, settled) = was.filing.after(old, text, changed);
     if !filing.alone(&was.filing, settled) {
         return None;
     }
-    let part = crate::reading::part(text, from..to, &filing.filed);
+    let part = crate::reading::part(text, from..to, &filing.filed, &was.defined);
     if edge_before && part.first() != blocks.get(keep) {
         return None;
     }
@@ -154,6 +172,7 @@ fn planned(was: &Doc, text: &str, changed: &Changed) -> Option<Plan> {
         old_end,
         new_end,
         filing,
+        closers,
     })
 }
 
