@@ -285,17 +285,19 @@ pub fn page_seen<R: Runtime>(app: &AppHandle<R>, seen: bool) -> bool {
 }
 
 #[cfg(windows)]
-fn in_sight(visible: bool, minimized: bool) -> bool {
-    visible && !minimized
+fn sight_after_a_resize(visible: bool, minimized: bool) -> Option<bool> {
+    visible.then_some(!minimized)
 }
 
 pub fn page_follows<R: Runtime>(window: &tauri::Window<R>) {
     #[cfg(windows)]
     {
-        let seen = in_sight(
-            window.is_visible().unwrap_or(true),
+        let Some(seen) = sight_after_a_resize(
+            window.is_visible().unwrap_or(false),
             window.is_minimized().unwrap_or(false),
-        );
+        ) else {
+            return;
+        };
         let app = window.app_handle();
         // Focus that reached the window while its page was hidden never got to the page.
         if page_seen(app, seen)
@@ -419,10 +421,15 @@ mod tests {
     #[cfg(windows)]
     #[test]
     fn a_minimized_window_is_out_of_sight_though_windows_still_lists_it_as_visible() {
-        assert!(super::in_sight(true, false));
-        assert!(!super::in_sight(true, true), "minimized");
-        assert!(!super::in_sight(false, false), "hidden");
-        assert!(!super::in_sight(false, true), "hidden and minimized");
+        assert_eq!(super::sight_after_a_resize(true, false), Some(true));
+        assert_eq!(super::sight_after_a_resize(true, true), Some(false));
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn a_hidden_window_that_is_resized_leaves_its_page_to_whoever_hides_and_shows_it() {
+        assert_eq!(super::sight_after_a_resize(false, false), None);
+        assert_eq!(super::sight_after_a_resize(false, true), None);
     }
 
     #[test]
