@@ -200,11 +200,185 @@ fn words_typed_in_a_paragraph_are_read_again_alone() {
 }
 
 #[test]
-fn a_definition_or_a_footnote_anywhere_reads_the_whole_text() {
+fn a_definition_or_a_footnote_beside_an_edit_reads_the_whole_text() {
     let text = "Uno [x][r].\n\n[r]: https://tisty.app\n";
     assert!(plan(&read(text), &text.replace("Uno", "Unos")).is_none());
     let noted = "Uno[^1].\n\n[^1]: nota\n";
     assert!(plan(&read(noted), &noted.replace("Uno", "Unos")).is_none());
+}
+
+#[test]
+fn a_definition_or_a_footnote_far_from_an_edit_is_read_around() {
+    let texts = [
+        "Uno [x][r].\n\nDos.\n\nTres.\n\n[r]: https://tisty.app\n",
+        "Uno.\n\nDos.\n\nTres[^1].\n\n[^1]: nota\n",
+        ":::tip\n\nUno\n\n:::\n\nDos.\n\nTres.\n\nCuatro [x][r].\n\nCinco.\n\nSeis.\n\n[r]: https://tisty.app\n",
+    ];
+    for text in texts {
+        let word = if text.starts_with(':') {
+            "Cuatro"
+        } else {
+            "Uno"
+        };
+        let next = text.replace(word, &format!("{word}s"));
+        let was = read(text);
+        assert!(plan(&was, &next).is_some(), "{text:?}");
+        let again = reread(was, &next);
+        assert_eq!(again, read(&next));
+        assert!(again.crossing);
+    }
+}
+
+#[test]
+fn a_tag_written_in_code_on_a_page_with_a_definition_labels_it_as_the_whole_text_does() {
+    let text = "Uno #rina.\n\n```\nx\n```\n\nDos.\n\nTres.\n\nCuatro.\n\n[r]: https://tisty.app\n";
+    let at = text.find("x\n").unwrap_or_default();
+    let next = format!("{}#rina {}", &text[..at], &text[at..]);
+    let was = read(text);
+    assert!(plan(&was, &next).is_some());
+    let labels = was.labels();
+    let again = reread_edit(was, at..at, "#rina ");
+    assert_eq!(again, Ok(read(&next)));
+    assert!(again.is_ok_and(|doc| doc.labels() != labels));
+}
+
+fn links(blocks: &[crate::Block]) -> Vec<String> {
+    fn gathered(blocks: &[crate::Block], out: &mut Vec<String>) {
+        for one in blocks {
+            for span in &one.spans {
+                if let crate::Mark::Link { to } | crate::Mark::Image { src: to } = &span.mark {
+                    out.push(to.clone());
+                }
+            }
+            gathered(&one.inner, out);
+        }
+    }
+    let mut out = Vec::new();
+    gathered(blocks, &mut out);
+    out
+}
+
+#[test]
+fn labels_written_elsewhere_match_as_reading_the_whole_text_matches_them() {
+    let used =
+        "[X], [ x  ], [x][], [Straße], [STRASSE][], [ÑANDÚ], [n\u{303}andú], [zeta], [y] y ![x].";
+    let text = format!(
+        "{used}\n\nDos.\n\nTres.\n\n[x]: https://x.test \"equis\"\n[strasse]: https://s.test\n[ñandú]: https://n.test\n[Zeta]: https://z.test\n"
+    );
+    let at = text.find("Dos").unwrap_or_default();
+    let next = format!("{}Y {}", &text[..at], &text[at..]);
+    let was = read(&text);
+    assert!(plan(&was, &next).is_some());
+    let again = reread_edit(was, at..at, "Y ");
+    assert_eq!(again, Ok(read(&next)));
+    let found = links(read(&next).blocks());
+    let defined = [
+        "https://x.test",
+        "https://s.test",
+        "https://n.test",
+        "https://z.test",
+    ];
+    for to in defined {
+        assert!(found.iter().any(|one| one == to), "{to} in {found:?}");
+    }
+    assert_eq!(found.len(), 8, "{found:?}");
+}
+
+#[test]
+fn references_that_could_outgrow_what_the_tokenizer_expands_read_the_whole_text() {
+    let far = format!("https://tisty.app/{}", "a".repeat(2_000));
+    let text = format!(
+        "{}Uno.\n\n[x] dos.\n\nTres.\n\n[x]: {far}\n",
+        "[x]\n\n".repeat(80)
+    );
+    let at = text.find("dos").unwrap_or_default();
+    let next = format!("{}y{}", &text[..at], &text[at..]);
+    assert!(plan(&read(&text), &next).is_none());
+    assert_eq!(reread_edit(read(&text), at..at, "y"), Ok(read(&next)));
+    let crowded = format!(
+        "{}{}\n\nfin.\n\n[x]: {far}\n",
+        "Párrafo.\n\n".repeat(60_000),
+        "[x] ".repeat(60)
+    );
+    let at = crowded.find("[x] ").unwrap_or_default();
+    let next = format!("{}y{}", &crowded[..at], &crowded[at..]);
+    assert!(plan(&read(&crowded), &next).is_none());
+    assert_eq!(reread_edit(read(&crowded), at..at, "y"), Ok(read(&next)));
+    let spent = format!(
+        "Uno [x] [x] [x] [x] [x].\n\nDos.\n\nTres.\n\n{}[x]: {far}\n",
+        "[x]\n\n".repeat(47)
+    );
+    assert_eq!(links(read(&spent).blocks()).len(), 50);
+    let gone = 3..23;
+    let next = format!("{}{}", &spent[..gone.start], &spent[gone.end..]);
+    assert!(next.starts_with("Uno.\n"));
+    assert!(plan(&read(&spent), &next).is_none());
+    assert_eq!(reread_edit(read(&spent), gone, ""), Ok(read(&next)));
+}
+
+const DEFINED: &str = "\n[x]: https://x.test \"equis\"\n[ñandú]: https://n.test\n";
+
+const LINKING: [&str; 14] = [
+    "[x]",
+    "[X]",
+    "[x][x]",
+    "[ x ]",
+    "[x][]",
+    "![x]",
+    "[Ñandú]",
+    "[y]",
+    "[x](z)",
+    "]",
+    "[",
+    "[^1]",
+    ":::",
+    "[parque]",
+];
+
+#[test]
+fn an_edit_on_a_page_with_definitions_notes_and_containers_reads_as_the_whole_text_does() {
+    let mut short = 0;
+    let mut resolved = 0;
+    let mut all = 0;
+    // Short runs from the sample, since every mark the edits write leaves fewer stretches free of one.
+    for run in 0..20 {
+        let mut steps = Steps(0xDEF1_0000 + run as u64);
+        let mut text = format!("{}{DEFINED}", SAMPLES[run % 2]);
+        let mut was = read(&text);
+        for _ in 0..40 {
+            let at = boundary(&text, steps.next(text.len() + 1));
+            let to = boundary(&text, (at + steps.next(4)).min(text.len()));
+            let insert = match steps.next(3) {
+                0 => LINKING[steps.next(LINKING.len())],
+                _ => PIECES[steps.next(PIECES.len())],
+            };
+            let next = format!("{}{insert}{}", &text[..at], &text[to..]);
+            let changed = Changed {
+                start: at,
+                old_end: to,
+                new_end: at + insert.len(),
+            };
+            if let Some(plan) = planned(&was, &next, &changed) {
+                short += 1;
+                let defined = |to: &String| to == "https://x.test" || to == "https://n.test";
+                resolved += usize::from(links(&plan.part).iter().any(defined));
+            }
+            all += 1;
+            let again = reread_edit(was, at..to, insert)
+                .unwrap_or_else(|_| panic!("{at}..{to} falls between the characters"));
+            assert_eq!(again, read(&next), "{at}..{to} → {insert:?} in {text:?}");
+            text = next;
+            was = again;
+        }
+    }
+    assert!(
+        short * 2 > all,
+        "only {short} of {all} edits were read around"
+    );
+    assert!(
+        resolved > 20,
+        "only {resolved} stretches resolved a reference"
+    );
 }
 
 #[test]
@@ -304,6 +478,90 @@ fn a_tag_typed_on_a_long_page_is_read_around_at_each_key() {
         text = next;
         was = again;
     }
+}
+
+#[test]
+fn a_details_closed_far_below_its_opener_reads_as_the_whole_text_does() {
+    let text = "<details>\n\nUno.\n\nDos.\n\nTres.\n\nCuatro.\n\n</details\n\nCinco.\n";
+    let at = text.find("</details").unwrap_or_default() + 9;
+    let next = format!("{}>{}", &text[..at], &text[at..]);
+    assert_eq!(reread_edit(read(text), at..at, ">"), Ok(read(&next)));
+}
+
+const DETAILED: &str = "<details>\n<summary>Rina</summary>\n\nUno.\n\nDos.\n\n<details open>\n\nTres.\n\n</details>\n\nCuatro.\n\nCinco.\n\n</details\n\nSeis.\n\nSiete.\n\n<details>\n\nOcho.\n\n<summary>Roger</summary>\n\nNueve.\n\n</details>\n\nDiez.\n\nOnce.\n";
+
+const DETAILING: [&str; 16] = [
+    "\n\n<details>\n\n",
+    "\n\n</details>\n\n",
+    "\n\n<details open>\n<summary>Más</summary>\n\n",
+    "\n\n<summary>Más</summary>\n\n",
+    "\n\n:::tip\n\n",
+    "\n\n:::\n\n",
+    "<details>",
+    "</details>",
+    "<details",
+    "</details",
+    ">",
+    "<",
+    "/",
+    "d",
+    "\n",
+    "\n\n",
+];
+
+#[test]
+fn an_edit_on_a_page_with_details_reads_as_the_whole_text_does() {
+    let texts = [
+        DETAILED.to_string(),
+        format!("{}{DETAILED}", plain(SAMPLES[0])),
+        format!("{DETAILED}{}", "Párrafo.\n\n".repeat(30)),
+    ];
+    for (page, sample) in texts.iter().enumerate() {
+        let mut short = 0;
+        let mut all = 0;
+        // Many short runs, since every tag the edits write leaves fewer stretches free of one.
+        for run in 0..10 {
+            let mut steps = Steps(0xDE7A_1150 + (page * 10 + run) as u64);
+            let mut text = sample.clone();
+            let mut was = read(&text);
+            for _ in 0..40 {
+                let at = boundary(&text, steps.next(text.len() + 1));
+                let to = boundary(&text, (at + steps.next(4)).min(text.len()));
+                let insert = match steps.next(3) {
+                    0 => DETAILING[steps.next(DETAILING.len())],
+                    _ => PIECES[steps.next(PIECES.len())],
+                };
+                let next = format!("{}{insert}{}", &text[..at], &text[to..]);
+                let changed = Changed {
+                    start: at,
+                    old_end: to,
+                    new_end: at + insert.len(),
+                };
+                short += usize::from(planned(&was, &next, &changed).is_some());
+                all += 1;
+                let again = reread_edit(was, at..to, insert)
+                    .unwrap_or_else(|_| panic!("{at}..{to} falls between the characters"));
+                assert_eq!(again, read(&next), "{at}..{to} → {insert:?} in {text:?}");
+                text = next;
+                was = again;
+            }
+        }
+        assert!(
+            short * 6 > all,
+            "only {short} of {all} edits on page {page} were read around"
+        );
+    }
+}
+
+#[test]
+fn a_details_far_from_an_edit_is_read_around() {
+    let text = "<details>\n<summary>Rina</summary>\n\nUno.\n\n</details>\n\nDos.\n\nTres.\n\nCuatro.\n\n<details>\n\nCinco.\n";
+    let at = text.find("Tres").unwrap_or_default() + 4;
+    let next = format!("{}s{}", &text[..at], &text[at..]);
+    let was = read(text);
+    assert!(was.crossing);
+    assert!(plan(&was, &next).is_some());
+    assert_eq!(reread_edit(was, at..at, "s"), Ok(read(&next)));
 }
 
 #[test]
