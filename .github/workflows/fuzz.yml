@@ -1,7 +1,18 @@
 name: Fuzz
 
 on:
-  pull_request:
+  push:
+    branches: [main]
+    paths:
+      - "crates/tisty-share-proto/**"
+      - "crates/tisty-sync/**"
+      - "crates/tisty-core/**"
+      - "crates/tisty-markdown/**"
+      - "fuzz/**"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "rust-toolchain.toml"
+      - ".github/workflows/fuzz.yml"
   schedule:
     - cron: "23 3 * * 6"
   workflow_dispatch:
@@ -10,9 +21,8 @@ permissions:
   contents: read
 
 concurrency:
-  # A pull request's run created after its merge carries main's ref, and would cancel main's own run.
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  group: ${{ github.workflow }}-${{ github.event_name }}
+  cancel-in-progress: false
 
 env:
   CARGO_TERM_COLOR: always
@@ -21,40 +31,9 @@ env:
   NIGHTLY: nightly-2026-10-15
 
 jobs:
-  # `paths` on the trigger leaves a required check unreported for good; a skipped job counts as met.
-  changes:
-    name: what the branch touched
-    runs-on: ubuntu-24.04
-    timeout-minutes: 5
-    outputs:
-      read: ${{ steps.look.outputs.read }}
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          fetch-depth: 0
-          persist-credentials: false
-
-      - id: look
-        env:
-          EVENT: ${{ github.event_name }}
-          BASE: ${{ github.event.pull_request.base.sha }}
-        run: |
-          if [ "$EVENT" != "pull_request" ]; then
-            echo "read=true" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-          watched='^(crates/tisty-share-proto/|crates/tisty-sync/|crates/tisty-core/|crates/tisty-markdown/|fuzz/|Cargo\.(toml|lock)$|rust-toolchain\.toml$|\.github/workflows/fuzz\.yml$)'
-          from=$(git merge-base "$BASE" HEAD)
-          if git diff --name-only "$from" HEAD | grep -qE "$watched"; then
-            echo "read=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "read=false" >> "$GITHUB_OUTPUT"
-          fi
-
+  # A minute a target says little about a branch and took twelve from each one that touched what is read, so it waits for main.
   fuzz:
     name: what a cloud hands back
-    needs: changes
-    if: needs.changes.outputs.read == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 150
     steps:
@@ -81,9 +60,9 @@ jobs:
           key: fuzz-corpus-${{ github.run_id }}
           restore-keys: fuzz-corpus-
 
-      - name: Each target for a minute on a pull request, ten on the weekly run
+      - name: Each target for a minute on a push to main, ten on the weekly run
         env:
-          EACH: ${{ github.event_name == 'pull_request' && 60 || 600 }}
+          EACH: ${{ github.event_name == 'push' && 60 || 600 }}
         run: |
           crashed=""
           for target in $(cargo "+$NIGHTLY" fuzz list); do
@@ -98,7 +77,7 @@ jobs:
           fi
 
       - uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        if: always() && github.event_name != 'pull_request'
+        if: always() && github.event_name != 'push'
         with:
           path: fuzz/corpus
           key: fuzz-corpus-${{ github.run_id }}
