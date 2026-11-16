@@ -47,6 +47,7 @@ const menus: boolean[] = [];
 const answers: string[] = [];
 
 const writer = (body = BODY, more: Partial<Hands> = {}) => {
+  writing?.stop();
   const said: string[] = [];
   let text = body;
   menus.length = 0;
@@ -336,6 +337,29 @@ describe("a line begun on a task's page written in place", () => {
     expect(said[said.length - 1]).toBe(
       "# Hola\n\nUno **dos** tres\n\n- primero\n- segundo\n- [ ] x\n",
     );
+  });
+
+  it("never lays a drawing still queued once the writer stopped, as the page shows the next document", async () => {
+    const asked: number[] = [];
+    writer(BODY, {
+      near: () => {
+        asked.push(1);
+        return Promise.reject(new Error("no core here"));
+      },
+    });
+    caretIn("Hola", 4);
+    document.querySelector(".page")?.dispatchEvent(
+      new InputEvent("beforeinput", {
+        inputType: "insertText",
+        data: "!",
+        bubbles: true,
+        cancelable: true,
+      }),
+    );
+    writing?.stop();
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(asked).toEqual([]);
   });
 
   it("keeps a line begun while words arrive from beside the page, moved along with them", () => {

@@ -170,7 +170,7 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
     cut,
     stop: () => {
       writer.turns.left = hands.text();
-      laying.told();
+      laying.stop();
       hands.settle?.();
       page.defaultView?.removeEventListener("blur", away);
       watching?.disconnect();

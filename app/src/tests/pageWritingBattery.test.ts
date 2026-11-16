@@ -39,6 +39,7 @@ const asked = (inputType: string, data: string | null = null) =>
 const menus: boolean[] = [];
 
 const writer = (body = BODY, more: Partial<Hands> = {}) => {
+  writing?.stop();
   const said: string[] = [];
   let text = body;
   menus.length = 0;
