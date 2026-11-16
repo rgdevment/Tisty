@@ -151,6 +151,7 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
   const away = () => hands.settle?.();
   page.defaultView?.addEventListener("blur", away);
   opened(page);
+  let settling: ReturnType<typeof setTimeout> | undefined;
   return {
     drawn,
     format: formats.format,
@@ -159,7 +160,8 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
     placeAt: (at: number, stays?: number) => {
       caret.placeAt(at, stays);
       // Drawings take their height after the first paint, so the + is laid again once they have.
-      setTimeout(beside.besideLine, SETTLED_MS);
+      clearTimeout(settling);
+      settling = setTimeout(beside.besideLine, SETTLED_MS);
     },
     rewrite: history.rewrite,
     outside: history.outside,
@@ -183,6 +185,7 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
     },
     cut,
     stop: () => {
+      clearTimeout(settling);
       writer.turns.left = hands.text();
       laying.stop();
       hands.settle?.();
