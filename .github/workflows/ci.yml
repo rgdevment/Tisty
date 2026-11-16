@@ -58,22 +58,15 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # Windows runs the same tests four times slower than macOS, so it takes them in more parts; macOS is mostly building.
+        # A Windows job builds for five minutes whatever share of the tests it then runs, so two parts take them and clippy has a job of its own; macOS does it all in one.
         include:
           - os: windows-latest
-            part: 1/5
+            part: clippy
           - os: windows-latest
-            part: 2/5
-          - os: windows-latest
-            part: 3/5
-          - os: windows-latest
-            part: 4/5
-          - os: windows-latest
-            part: 5/5
-          - os: macos-latest
             part: 1/2
-          - os: macos-latest
+          - os: windows-latest
             part: 2/2
+          - os: macos-latest
     env:
       # A failing test needs a file and a line, not the whole debug info, which is most of what a build writes.
       CARGO_PROFILE_DEV_DEBUG: line-tables-only
@@ -102,7 +95,8 @@ jobs:
       - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2
         with:
           shared-key: workspace
-          save-if: ${{ github.ref == 'refs/heads/main' }}
+          # One job per system writes the cache, and it is one that builds the tests.
+          save-if: ${{ github.ref == 'refs/heads/main' && (!matrix.part || matrix.part == '1/2') }}
           workspaces: ${{ runner.os == 'Windows' && format('. -> {0}/target', env.DEV_DRIVE) || '. -> target' }}
       # A fresh checkout makes cargo rebuild every crate of ours; sccache knows the ones a branch left alone.
       - uses: mozilla-actions/sccache-action@fc920bf0ec8de6ee65d409111f7ec508035751ba # v0.0.11
@@ -121,15 +115,15 @@ jobs:
       - uses: taiki-e/install-action@86f7a0ffb25f40114606501a311ebcfaf882ea32 # v2.88.0
         with:
           tool: nextest
-      # Clippy runs where the cache is written, or the next job pays to rebuild what it needs; a branch needs it once per system.
-      - if: github.event_name != 'pull_request' || startsWith(matrix.part, '1/')
+      - if: ${{ !matrix.part || matrix.part == 'clippy' }}
         run: cargo clippy --workspace --all-targets
       - name: The contracts hold in Rust too
-        if: github.event_name != 'pull_request' || startsWith(matrix.part, '1/')
+        if: ${{ !matrix.part || matrix.part == 'clippy' }}
         run: cargo test --manifest-path contracts/dist/rust/Cargo.toml
-      - run: cargo nextest run --workspace --no-tests=pass ${{ matrix.part && format('--partition count:{0}', matrix.part) || '' }}
+      - if: matrix.part != 'clippy'
+        run: cargo nextest run --workspace --no-tests=pass ${{ matrix.part && format('--partition count:{0}', matrix.part) || '' }}
       # Compiling the doc tests is most of what they cost, and macOS is the job with time to spare.
-      - if: runner.os == 'macOS' && matrix.part == '1/2'
+      - if: runner.os == 'macOS'
         run: cargo test --doc --workspace
 
   tests:
