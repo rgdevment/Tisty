@@ -36,11 +36,7 @@ pub(crate) fn reading(text: &str, passes: &[fn(&mut Vec<Span>, &str)]) -> Doc {
     let crossing = crate::rereading::crossing(text);
     Doc {
         text: text.to_string(),
-        labels: if crossing {
-            labels(linked, &blocks)
-        } else {
-            crate::names_sum([])
-        },
+        labels: labels(crossing.then_some(linked), &blocks, &filing.far()),
         blocks,
         crossing,
         filing,
@@ -48,13 +44,23 @@ pub(crate) fn reading(text: &str, passes: &[fn(&mut Vec<Span>, &str)]) -> Doc {
 }
 
 // Every definition counts, also one in a quote that has no block, since a link anywhere reads by it.
-fn labels(mut linked: Vec<[String; 2]>, blocks: &[Block]) -> [u32; 2] {
-    linked.sort_unstable();
+fn labels(crossed: Option<Vec<[String; 2]>>, blocks: &[Block], far: &[String]) -> [u32; 2] {
     let mut noted = Vec::new();
-    notes(blocks, &mut noted);
+    if crossed.is_some() {
+        notes(blocks, &mut noted);
+    }
+    let mut linked = crossed.unwrap_or_default();
+    linked.sort_unstable();
     noted.sort_unstable();
     noted.dedup();
-    crate::names_sum(linked.iter().flatten().chain(&noted).map(String::as_str))
+    crate::names_sum(
+        linked
+            .iter()
+            .flatten()
+            .chain(&noted)
+            .chain(far)
+            .map(String::as_str),
+    )
 }
 
 fn notes(blocks: &[Block], noted: &mut Vec<String>) {

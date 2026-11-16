@@ -80,6 +80,18 @@ fn a_key_on_a_page_of_500_kb() {
         at,
         "x",
     );
+    let code = format!(
+        "Uno.\n\n```\n{}```\n\nDos.\n",
+        "let x = 1; # nota\n".repeat(5000)
+    );
+    let inside = code.len() / 2;
+    let inside = inside + code[inside..].find('\n').unwrap_or_default();
+    edits(
+        "reread an edit in a code block of 5,000 lines",
+        &tisty_markdown::read(&code),
+        inside,
+        "x",
+    );
 }
 
 fn edits(label: &str, doc: &tisty_markdown::Doc, at: usize, insert: &str) {
