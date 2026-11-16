@@ -391,6 +391,40 @@ fn every_other_change_to_an_open_diary_is_refused() {
 }
 
 #[test]
+fn a_list_of_names_or_a_translation_meets_the_same_door() {
+    let served = Served::new();
+    let (book, page) = served.diary();
+    let other = served.person().writes_doc("# Planes\n\nAlgo.\n");
+    served.person().opens_the_diary_to_agents(true);
+
+    for (name, args) in [
+        (
+            "flag_doc",
+            json!({ "doc": [book], "reason": "obsolete", "body": "viejo" }),
+        ),
+        (
+            "file_doc",
+            json!({ "doc": [other, book], "folder": "Personal" }),
+        ),
+        ("page_doc", json!({ "doc": [page] })),
+        (
+            "write_doc",
+            json!({ "translation_of": page, "lang": "en", "body": "# November\n\nSome.\n" }),
+        ),
+    ] {
+        let answer = served.call(name, args);
+        assert!(refused(&answer), "{name}: {answer}");
+        assert!(
+            answer.to_string().contains("its words are theirs"),
+            "{name}: {answer}"
+        );
+    }
+    let state = served.person().state();
+    assert!(state.docs.values().all(|one| one.flagged.is_none()));
+    assert_eq!(state.docs.len(), 3, "nothing joined the diary or left it");
+}
+
+#[test]
 fn an_agent_never_writes_today_into_a_locked_book_by_naming_another_year() {
     let served = Served::new();
     let today = santiago_today();

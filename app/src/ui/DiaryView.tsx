@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { type Diary, diaryAgents, diaryLaid, diaryNewest, diaryOf, type Today } from "../diary";
+import { dayNamed } from "../format";
 import DiaryComposer from "./DiaryComposer";
 import DiaryHead from "./DiaryHead";
 import Page from "./Page";
@@ -18,11 +19,6 @@ interface Props {
   onEdit: () => void;
   onError: (problem: unknown) => void;
 }
-
-const named = (date: Date): string => {
-  const weekday = new Intl.DateTimeFormat(undefined, { weekday: "long" }).format(date);
-  return `${weekday.charAt(0).toUpperCase()}${weekday.slice(1)} ${date.getDate()}`;
-};
 
 // A year opens on its newest month, and this month's page opens on today.
 export default function DiaryView(props: Readonly<Props>) {
@@ -70,7 +66,7 @@ export default function DiaryView(props: Readonly<Props>) {
       <div className="flex flex-col gap-4 px-4 pt-6 pb-5">
         <DiaryHead
           over={paged ? `${title} ${year}`.trim() : ""}
-          big={thisMonth ? named(new Date()) : title}
+          big={thisMonth ? dayNamed(new Date()) : title}
           open={kept ? kept.open : null}
           onTurn={turn}
           onEdit={paged ? props.onEdit : undefined}
