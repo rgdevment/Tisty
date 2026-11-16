@@ -10,6 +10,7 @@ You write on the same page you read, the one Tisty draws. There is no separate e
 
 - **Click wherever you like and type.** The caret lands where you clicked, and the page is drawn again as you write, the same as it reads, prints and is shared. What you write is saved as you go.
 - **The marks stay out of sight.** Bold looks bold and a heading looks like a heading. The Markdown is still underneath, and the **Markdown** view shows it as it is.
+- **If you know Markdown, you can type it too.** The marks you type become what they say: `#` and a space at the start of a line make it a heading, and `[ ]` and a space, a box. On a task's page the `#` stays as text, since every heading there is a section.
 - **The first line is the title.** There is no name to fill in anywhere: whatever you write at the top is what the document is called.
 - **Enter starts a new paragraph, and `Shift` + `Enter` only breaks the line.** In a list, Enter starts another item of the same kind; in a quote, the quote goes on; in code, it breaks the line. Enter on an empty item leaves the list, or goes up a level when it sat inside another. Enter at the start of a block opens a line above it.
 - **`Tab` puts a list item under the one above, and `Shift` + `Tab` takes it back out.** In code, `Tab` indents with two spaces.
@@ -18,8 +19,8 @@ You write on the same page you read, the one Tisty draws. There is no separate e
 - **A click on a picture or a diagram opens it large**, to zoom in, move it around and go to the next one. A picture or a file shown on the page, such as a PDF, an audio or a video, is taken away with `Delete` right before it or `Backspace` right after it, or from its right-click: **Delete picture** or **Remove from the page**. One alone on its line takes the line with it. A diagram brings its own bar when the pointer is over it: **Export** and **Open in the diagram window**; a double click also opens it in the [[diagram window|Diagrams]]. Its text is changed in the Markdown view. A widget brings **Show code**, which opens it in its [[window|Widgets]] with the code beside what it draws, and **Open apart**. A formula opens in that same window: one in a block of its own from its **Show code**, and one inside a line with a click. What you write is drawn beside it and saved in its place. **Edit**, on the properties in the panel, opens them the same way.
 - **Code is written as it is.** Inside a code block there are no formats and no spell checker, and `/` is just a slash. The label in its corner, like «rust» or «yaml», opens the list of languages to choose the colours it is drawn with. Typing `` ``` `` at the start of a line opens a code block that closes itself, and a language's name written on its first line, like `rust`, becomes its language with Enter.
 - **A page break is neither written in nor moved.** `Backspace` at the start of the block after it, or `Delete` at the end of the block before it, takes it away, and the rest stays as it was. What you type right after it starts on a new line under it.
-- **A table, a code block, a picture, a diagram, a collapsible section or a callout is not joined to what sits beside it.** `Backspace` at the start of the block after it, or `Delete` at the end of the block before it, does nothing; to take one away there is **Delete block**, on its handle.
-- **`Ctrl`/`⌘` + `Z` undoes** and `Ctrl`/`⌘` + `Shift` + `Z` redoes, only in the document in front of you. What you type in a row is undone in one go; a pause or an Enter starts another step. What you wrote in the Markdown view is undone in one go when you come back.
+- **A table, a code block, a diagram, a collapsible section or a callout is not joined to what sits beside it.** `Backspace` at the start of the block after it, or `Delete` at the end of the block before it, does nothing; to take one away there is **Delete block**, on its handle. A picture or a file alone on its line is the exception: those same keys take it away.
+- **`Ctrl`/`⌘` + `Z` undoes** and `Ctrl`/`⌘` + `Shift` + `Z`, or `Ctrl`/`⌘` + `Y`, redoes, only in the document in front of you. What you type in a row is undone in one go; a pause or an Enter starts another step. What you wrote in the Markdown view is undone in one go when you come back.
 - **`Ctrl`/`⌘` + `C` and `Ctrl`/`⌘` + `X` copy and cut the Markdown** of the words selected, marks and all, as the right-click does; pasted into another document they come out the same.
 - **Drag the words selected** to another place on the page: a line shows where they land, and letting go moves them. `Ctrl`/`⌘` + `Z` brings them back.
 
@@ -52,8 +53,8 @@ Type `/` at the start of a line, on a blank line or after a space, and the menu 
 
 ## Moving blocks
 
-- **The handle.** With the pointer beside a block, a handle shows to its left. Drag it to take the block somewhere else; a heading takes its whole section with it. Near the top or the bottom edge, the page scrolls by itself.
-- **Its menu.** A click on the handle offers **Move block up**, **Move block down**, **Duplicate block** and **Delete block**.
+- **The handle.** With the pointer beside a block, a handle shows to its left. Drag it to take the block somewhere else; a heading takes its whole section with it. Near the top or the bottom edge, the page scrolls by itself. On a sheet too narrow to leave a margin, the handle and the **+** do not show; `Ctrl`/`⌘` + `/` and `Alt` + ↑ ↓ still work.
+- **Its menu.** A click on the handle offers **Move block up**, **Move block down**, **Duplicate block** and **Delete block**. On a heading, all four act on its whole section, as dragging does: **Delete block** takes everything under it up to the next heading of its level. To remove the heading alone, choose it with `Esc` and press `Delete`.
 - **The keyboard.** `Alt` + ↑ ↓ moves the block the caret is in up or down, or the list item it is in.
 - **Choosing whole blocks.** `Esc` chooses the block the caret is in, and `Shift` + ↑ ↓ takes in the ones above or below. Once chosen, `Delete` or `Backspace` removes them, `Alt` + ↑ ↓ moves them together and `Ctrl`/`⌘` + `C` or `X` copies or cuts them. `Esc` again, a click or any other key lets them go.
 
@@ -62,7 +63,7 @@ Type `/` at the start of a line, on a blank line or after a space, and the menu 
 A document can be seen two ways, and both write the same file:
 
 - **Rich text** is the page as drawn, the one that is read, printed and shared. Almost everything is written there.
-- **Markdown** shows the text as it is kept, with every mark in view: the `**`, the `#`, the `>`, a table's rules. It is there for changes that run across blocks and for writing a diagram as text.
+- **Markdown** shows the text as it is kept, with every mark in view: the `**`, the `#`, the `>`, a table's rules. It is there for changes that run across blocks, for writing a diagram as text, and for changing the letters of inline code or a tag, which on the page are one whole piece the caret does not go into.
 
 The **⋯** on the ribbon at the top of the document switches between them, and so does `Ctrl`/`⌘` + `E`. On a task, **Show Markdown** in its column does the same, and **Show rich text** goes back. As you scroll down a document, the ribbon also keeps its title in sight.
 
@@ -85,7 +86,7 @@ In the Markdown view:
 | `Ctrl`/`⌘` + `B` | Bold |
 | `Ctrl`/`⌘` + `I` | Italic |
 | `Ctrl`/`⌘` + `U` | Underline |
-| `Ctrl`/`⌘` + `Z` · `Ctrl`/`⌘` + `Shift` + `Z` | Undo · redo |
+| `Ctrl`/`⌘` + `Z` · `Ctrl`/`⌘` + `Shift` + `Z` or `Ctrl`/`⌘` + `Y` | Undo · redo |
 | `Enter` · `Shift` + `Enter` | New paragraph · line break |
 | `Ctrl`/`⌘` + `/` | Open the blocks menu where the caret is |
 | `Alt` + ↑ ↓ | Move the block or the item the caret is in up or down |
@@ -101,12 +102,13 @@ The writing sits on a lit page. When the window is wide enough, a column opens b
 
 A table is written on the page itself:
 
-- **Click a cell** to write in it; Enter or a click outside keeps it, Esc leaves it as it was; Enter on the last row leaves the table for a new line under it. Its title is written the same way. The cell shows its words without marks, and a bar over the table puts bold, italic, underline, strikethrough, code or a pen on the whole cell, or takes it off. A table made from the `/` menu opens this way at once, on its first title.
+- **Click a cell** to write in it; Enter or a click outside keeps it, Esc leaves it as it was; Enter on the last row leaves the table for a new line under it. Its title is written the same way. The cell shows its words without marks; choose words in it and a bar comes up above the cell that puts bold, italic, underline, strikethrough, code or a pen on the whole cell, or takes it off. A table made from the `/` menu opens this way at once, on its first title.
 - **A row's and a column's `⋯` menu** move it, duplicate or remove a row, insert a column on either side, rename it, and give it a **type**: number, money, percent, date, duration, yes or no, choice, tags, rating, document, web address, email or phone. Money takes its currency, and a column can sum itself up at the foot: sum, average, minimum or maximum for numbers, minimum and maximum for dates, and count for any. **Edit as Markdown** opens it as text in a window of its own, with the table drawn beside it.
 - **Drag a row or a column** by its handle to put it somewhere else, and **New row** under the table adds one at the end.
 - **A typed cell is written as its type asks**: a calendar for a date, where you can also type «next Friday»; the column's own options for a choice, each with its colour; stars for a rating; a click for yes or no; a finder for a document.
 - **Sort and filter from a column's head.** That order and those filters are on screen only and leave the file alone; **Save this order** writes the rows in that order.
 - **A value not written as its type asks**, like «soon» in a date column, keeps what you wrote and shows a wavy line under it.
+- **`Alt` + ↑ ↓ with a cell open** moves its row up or down.
 - **In the Markdown view**, `Alt` + ↑ ↓ moves the row the caret is on and `Alt` + ← → its column (`Ctrl` + `Alt` on a Mac), and the bar's **Table** menu sorts it and gives a column its type.
 - **Rows copied from Excel, Numbers or Google Sheets** — or a CSV — come in as a table when you paste them.
 
@@ -118,13 +120,15 @@ Everything a document holds, from bold and lists to callouts, pens, icons, table
 
 ## Markup Tisty has no words for
 
-Some Markdown from elsewhere — HTML tags — has no word in Tisty. A document that holds it still opens, edits and saves whole: nothing is cut out. That part simply shows as it is written while you edit it. **Settings › Maintenance** goes through every document and lists the ones that hold some. The full list is in the Tisty Markdown guide, under [what is outside the language](https://markdown.tisty.app/what-is-outside-the-language).
+Some Markdown from elsewhere — HTML tags — has no word in Tisty. A document that holds it still opens, edits and saves whole: nothing is cut out. Under that block the page says which part is not in the Tisty language, with **Fix** to change it in one click. **Settings › Maintenance** goes through every document and lists the ones that hold some. The full list is in the Tisty Markdown guide, under [what is outside the language](https://markdown.tisty.app/what-is-outside-the-language).
 
 ## When a document opens read-only
 
 The bar at the foot of the document says why.
 
 **It is in the archive.** Archiving a document, or the folder it sits in, closes it to writing — from the window and from an assistant alike. Bring it back and it writes again.
+
+**You locked it.** **Lock it**, in the document's menu, closes it to writing, an assistant's too; **Unlock it**, in that menu or on the bar at the foot, opens it again.
 
 **A page of it is archived, or the document that holds it is.** See [Pages and PDF](Pages-and-PDF).
 

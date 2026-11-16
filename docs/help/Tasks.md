@@ -65,7 +65,7 @@ Try:
 
 ## Quick capture from anywhere
 
-Press `Ctrl` + `Shift` + `Space` wherever you are, and a small window opens for one task. `Enter` files it, `Esc` closes it, and you carry on with what you were doing. If another program already holds that shortcut, Tisty takes another one and tells you which in Settings.
+Press `Ctrl` + `Shift` + `Space` wherever you are, and a small window opens for one task. `Enter` files it, `Esc` closes it, and you carry on with what you were doing. `Tab` turns it to an **Idea** for [Brainstorm](Documents#brainstorm) or to **Diary**, which writes in today's [Diary](Documents#diary). If another program already holds that shortcut, Tisty takes another one and tells you which in Settings.
 
 ## The views
 
@@ -90,7 +90,7 @@ Two questions, four boxes: whether it is pressing, and whether it matters.
 | **Do** | urgent and important — today | `!do` |
 | **Schedule** | important, no rush — give it a date before it turns urgent | `!schedule` (or `!decide`, its old name) |
 | **Delegate** | pressing, but not yours to carry | `!delegate` |
-| **Minor** | neither — one button drops the lot when you are sure | `!minor` |
+| **Minor** | neither — its «I won't do any of them» button drops them all when you are sure | `!minor` |
 
 Drag a task into its quadrant, or type it. Each quadrant has a **+** that opens the quick capture with that quadrant already set. Whatever nobody has placed waits in a tray beside them, without nagging.
 
@@ -109,7 +109,7 @@ Tags are shared with [[documents|Documents]]: the Tags screen shows the tasks un
 
 ## What a task keeps
 
-A task opens beside the list, not on top of it: its dates, list, tags and priority at the top, and below them **its page**, a Markdown document like any other. The page starts with sections to fill in, each with a grey hint that goes away as you write: **Description**, **Done when**, **Steps**, **Notes** and **When it closes**. You can add, rename or take off sections; the trail tells each change.
+A task opens beside the list, not on top of it: its dates, list, tags and priority at the top, and below them **its page**, a Markdown document like any other. The page starts with sections to fill in, each with a grey hint that goes away as you write: **Description**, **Done when**, **Steps**, **Notes** and **When it closes**. It is written like any document ([[The Markdown editor|Markdown-Editor]]). To add, rename or take off sections, press **Sections**: the titles can be written, **Add a section** adds one at the end and the button beside each title takes it off without erasing what is written in it; **Done** goes back to the page. Outside that, titles are not written: the `/` menu offers no headings and a typed `#` stays as text. **Show Markdown**, in the task's column, shows the text with its marks, and **Show rich text** goes back. The trail tells each change. The row at the top also sets a reminder — **⏰ reminder**, choose when, then **Remind me then** — and, on a task with a date or a deadline, has **Save to my calendar**: see [The spread and reminders](Spread-and-Reminders#reminders).
 
 Under the page, **History** folds away: what the task had written from before, and what an assistant notes on it. Opened to the whole page, the task gains a column with its own trail — how long it has been open, how much is done, and every change it has been through.
 
@@ -117,7 +117,7 @@ A **deadline** is different from a plan: `before`, `due`, `by` and `until` open 
 
 ## Steps and parts
 
-Every box you write on the page, `- [ ]`, is one of its steps: you tick it right there, and the trail keeps when it was added and when it was ticked. A step is a line; the log keeps its first hundred characters.
+Every box you write on the page, `- [ ]`, is one of its steps: you tick it right there, and the trail keeps when it was added and when it was ticked. A step is a line; the log keeps its first hundred characters. **Add a step**, under the list, adds another, and a step left empty goes away by itself.
 
 When a step needs more, hover over its open box and press **↗**: it becomes a task of its own, a **part** of this one, and its card stays in its place with the steps it has done and its date. A click on the card opens it.
 
@@ -145,7 +145,7 @@ What you write under **This time** belongs to the round under way. Completing it
 
 ## Completing and dropping
 
-- `Ctrl`/`⌘` + `Enter` completes the task you are on. It goes to the [[archive|Archive]] with everything it holds.
+- `Ctrl`/`⌘` + `Enter`, on the task's row in the list, completes it. It goes to the [[archive|Archive]] with everything it holds. While you write on its page, those keys put a page break.
 - **Close with a summary** asks for two lines on how it went before completing it. They go first under **When it closes**; in a routine, they stay with its round.
 - **Dropping** puts it aside without doing it: it lands in the archive too.
 - Once it closes, its page is put away with it: it reads but takes no more writing, from you or an assistant. Reopen it and it comes back.

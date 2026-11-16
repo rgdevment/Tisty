@@ -18,7 +18,7 @@ Tisty habla [MCP](https://modelcontextprotocol.io) a través de `tisty mcp`, por
 - **Nada escucha hasta que lo conectas.** El asistente arranca `tisty mcp` cuando lo necesita.
 - **Tú manejas la puerta.** Viene abierta sola hasta que elijas —en una instalación nueva, y al actualizar si nunca la cerraste— y **Configuración › Asistentes** la cierra con un clic. Mientras está cerrada, todo lo que intente un asistente se rechaza. Dejar entrar a un asistente y echarlo son eventos de tu registro; que elegiste mantener la puerta cerrada queda en la configuración de este equipo.
 
-Desde la 1.32.1, mientras la puerta está abierta, Tisty también responde a `tisty` a secas desde cualquier terminal: la copia del instalador en Windows y la de Homebrew en Mac. Si tienes a la vez la copia de Microsoft Store y la del instalador, responde la más nueva. Cierra la puerta y `tisty` deja de responder. Un asistente que ya estaba abierto necesita reiniciarse para notarlo.
+Desde la 1.32.1, un Tisty estable también responde a `tisty` a secas desde cualquier terminal, así un plugin puede arrancarlo por su nombre. Microsoft Store y Homebrew dejan ese nombre ahí por su cuenta; la copia del instalador en Windows agrega su propia carpeta a tu PATH mientras la puerta está abierta y la saca cuando la cierras. Si tienes a la vez la copia de Microsoft Store y la del instalador, responde la más nueva. Un asistente que ya estaba abierto necesita reiniciarse para notarlo.
 
 ## Conectar un asistente
 
@@ -32,7 +32,7 @@ Desde la 1.32.1, mientras la puerta está abierta, Tisty también responde a `ti
 - **Puede que esté**: solo quedó su carpeta, así que quizás se desinstaló.
 - **A mano**: Goose y Continue guardan su configuración en YAML, que Tisty no escribe. La fila muestra qué pegar.
 
-**Conectar los detectados** conecta de una vez todos los que esperan. Algunos archivos sirven a más de un asistente: el de GitHub Copilot CLI también lo lee VS Code, y el de Codex lo leen ChatGPT y Warp.
+**Conectar los 3 detectados**, con los que haya, conecta de una vez todos los que esperan. Algunos archivos sirven a más de un asistente: el de GitHub Copilot CLI también lo lee VS Code, y el de Codex lo leen ChatGPT y Warp.
 
 Un asistente lee su configuración al abrirse, así que después de conectarlo sal de él del todo y ábrelo otra vez. Si tiene ventana, cerrarla no basta: en Windows sigue abierto junto al reloj hasta que sales desde ahí, y en un Mac hasta **⌘Q**.
 
@@ -50,7 +50,7 @@ En Claude Code:
 /plugin install tisty --marketplace rgdevment/mcp-plugins
 ```
 
-Cualquier otro asistente que arranque un servidor con un comando, como GitHub Copilot en VS Code, Cursor o Cline, toma el mismo lanzador desde npm:
+Cualquier otro asistente que arranque un servidor con un comando, como Cursor, Cline o Claude Desktop, toma el mismo lanzador desde npm:
 
 ```json
 {
@@ -59,6 +59,8 @@ Cualquier otro asistente que arranque un servidor con un comando, como GitHub Co
   }
 }
 ```
+
+VS Code lee la misma entrada bajo `servers` en vez de `mcpServers`.
 
 La primera vez descarga el lanzador y puede tardar un momento; después arranca al instante. Si Tisty está en un lugar poco común, pon en `TISTY_PATH` la ruta completa de su `tisty`.
 
@@ -87,7 +89,7 @@ $ <tu-asistente> mcp add tisty -- <ruta-a-tisty> mcp
 Por ejemplo, con Claude Code:
 
 ```console
-$ claude mcp add tisty -- <ruta-a-tisty> mcp
+$ claude mcp add --scope user tisty -- <ruta-a-tisty> mcp
 ```
 
 Los clientes que se configuran con un archivo JSON usan la forma de siempre:
@@ -130,7 +132,7 @@ La memoria y el contexto que Tisty guarda para tu agente están a un comando o a
 
 Cada uno toma una palabra detrás, como `/mcp__tisty__solved_before timeouts`, o nada, y entonces trabaja con lo que se ha hablado en la conversación.
 
-**Documentos para mencionar.** Tus documentos que no están guardados en el archivo también se ofrecen, así que puedes pasarle uno al asistente por su nombre: en Claude Code, escribe `@` y elígelo por su título y su carpeta. Un documento de hasta unos 12 000 caracteres llega entero; uno más largo llega como su índice, sus títulos y sus líneas, y el asistente pide la parte que necesita.
+**Documentos para mencionar.** Tus documentos que no están guardados en el archivo también se ofrecen (tu Diario, solo mientras está abierto a los agentes), así que puedes pasarle uno al asistente por su nombre: en Claude Code, escribe `@` y elígelo por su título y su carpeta. Un documento de hasta unos 12 000 caracteres llega entero; uno más largo llega como su índice, sus títulos y sus líneas, y el asistente pide la parte que necesita.
 
 ## Un día con tu agente
 
@@ -145,7 +147,7 @@ Lo que hace un agente conectado a Tisty en un trabajo real:
 7. **Termina diciendo qué hizo y cómo sabe que se sostiene.** Tú lo revisas y la cierras.
 8. **Después de leer un documento largo, deja un resumen** para que el próximo agente elija con él. Si el documento cambia, el resumen queda marcado como desactualizado.
 
-Quién es dueño de qué queda claro. Lo que anota tu agente es suyo para mantenerlo al día: lo describe, planifica los pasos, los marca y anota lo que aprende. En lo que escribiste tú trabaja como en un documento (la descripción, la página, los pasos abiertos, el título y la lista), pero un paso que da por listo espera a que lo marques, el día sigue siendo tuyo y cerrar siempre es tuyo.
+Quién es dueño de qué queda claro. Lo que anota tu agente es suyo para mantenerlo al día: lo describe, planifica los pasos, los marca y anota lo que aprende. En lo que escribiste tú trabaja como en un documento (la descripción, la página, los pasos abiertos, el título y la lista), pero un paso que da por listo espera a que lo marques, el día sigue siendo tuyo y cerrar siempre es tuyo. Lo que solo puedes hacer tú (probarlo en la app real, firmar, decidir) no lo escribe como paso de su tarea, que nunca podría marcar: lo anota como una tarea aparte para ti, en la misma lista.
 
 ## Firmado con su nombre
 
@@ -166,7 +168,7 @@ Tisty sabe lo que cuesta cada respuesta, y lo sigue recortando. Medido sobre una
 | Busca algo resuelto hace meses | cerca de un 3 % | 97 % menos |
 | Consulta un tema: el índice y una sección | cerca de un 3 %, 12 % en el peor caso | 88–97 % menos |
 
-Ninguna escritura lleva más de 64 000 caracteres, así que una bitácora larga queda en temas y páginas; ninguna lectura trae más de unos 12 000 caracteres, salvo que el agente pida un documento entero para llevarlo a otra parte, y pasado eso un documento pedido entero vuelve como su índice; la página de una tarea llega entera solo hasta unos 4000 caracteres, y una nota de la bitácora tiene como máximo 4000; retomar trae solo lo que cambió; lo terminado no cuesta nada hasta que alguien lo busca; y una búsqueda trae diez tareas y diez documentos por vez, cada uno con la línea que lo dice recortada a 120 caracteres alrededor de la palabra.
+Ninguna escritura lleva más de 64 000 caracteres, así que una bitácora larga queda en temas y páginas; ninguna lectura trae más de unos 12 000 caracteres, y pasado eso un documento pedido entero vuelve como su índice, salvo que el agente lo pida entero en Markdown estándar para llevarlo a otra parte, hasta 40 000; la página de una tarea llega entera solo hasta unos 4000 caracteres, y una nota de la bitácora tiene como máximo 4000; retomar trae solo lo que cambió; lo terminado no cuesta nada hasta que alguien lo busca; y una búsqueda trae diez tareas y diez documentos por vez, cada uno con la línea que lo dice recortada a 120 caracteres alrededor de la palabra.
 
 Conectarse también cuesta: la descripción de las herramientas de Tisty pesa cerca de una sexta parte de esa bitácora, un tercio menos que antes, y un test impide que vuelva a crecer. Un asistente que carga las herramientas solo a medida que las usa no la paga entera; uno que las carga todas en cada sesión ahorra entre un 72 y un 83 %, y con menos de unos 50 KB de notas un archivo plano sale más barato. Se cuentan caracteres, incluido el JSON que acompaña cada respuesta, y los tokens los siguen de cerca.
 

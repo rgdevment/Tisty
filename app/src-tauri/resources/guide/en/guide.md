@@ -13,7 +13,7 @@ Read this guide at your own pace: each section stands on its own, and whatever y
 
 ## How does it work?
 
-It all starts with one question: will you do it, or read it again? If you will do it, it is a task: it ends, sometimes the same day, and stays in the Archive as knowledge with a date. If you will read it again, it is a document: a manual, a recipe, a year of minutes, which you correct and add to for years. And if you do not know yet, it is an idea: it waits in Brainstorm until you sort it out. This drawing tells the rest:
+It all starts with one question: will you do it, or read it again? If you will do it, it is a task: it ends, sometimes the same day, and stays in the Archive as knowledge with a date. If you will read it again, it is a document: a manual, a recipe, a year of minutes, which you correct and add to for years. And if you do not know yet, it is an idea: it waits in Brainstorm until you sort it out. What just happened, and you want to remember, goes in the Diary. This drawing tells the rest:
 
 ```mermaid
 flowchart TD
@@ -53,7 +53,7 @@ And if a task teaches you something you will need again, like the fix for a faul
 
 There is no form to fill in. Type the sentence the way you would say it to someone, in the bar at the top, and Tisty picks out the day, the list and the priority as you type.
 
-![The capture bar with "Rina's booster on 3 October !do #health": the date in blue and the tag in pink, with the hints below](capture.png)
+![Today's capture bar, "Add for today", with the hints of what it understands below: tag, list, priority, dates as you say them and every Tuesday](capture.png)
 
 Each part it understands is coloured:
 
@@ -81,7 +81,7 @@ If you only wanted a look, clear it before pressing `Enter`. All the words it un
 
 Something comes to mind in the middle of something else: press `Ctrl` + `Shift` + `Space` wherever you are and a small window opens to write it. `Enter` saves it, `Esc` closes it, and you carry on with what you were doing. Try it now, without leaving this guide.
 
-If another program already uses that shortcut, Tisty takes another one and tells you which in Settings. And if what came to mind is not a task yet, `Tab` in that same small window makes it an idea: it is further down, in **Ideas**.
+If another program already uses that shortcut, Tisty takes another one and tells you which in Settings. And if what came to mind is not a task yet, `Tab` in that same small window makes it an idea, and another `Tab`, a line in today's diary: both are further down, in **Ideas** and **The diary**.
 
 ### Today, Upcoming, Repeating and All
 
@@ -104,7 +104,7 @@ What is overdue sits at the top, in red; what is late, in amber. A task is overd
 
 **Spread**, the calendar icon under the day's counts in the sidebar, is your work calendar: it is where you calmly decide what you do each day. What you wrote with no day waits in the **With no day** tray; drag it to the day it belongs to. If that day already carries two, Tisty tells you and offers the next free one. **Month** shows the same as a grid.
 
-A reminder is a time you choose on the task: it rings as a system notification, on this computer only, with a short sound you can turn off. More in [the Spread and reminders](https://www.tisty.app/docs/spread-and-reminders/).
+A reminder is a time you choose on the task: it rings as a system notification on each computer that holds your Tisty, even with it closed, with a short sound you can turn off. To have your phone tell you too, **Save to my calendar**, on a task with a date, takes it to Google Calendar, to Outlook or, on a Mac, to Apple Calendar. More in [the Spread and reminders](https://www.tisty.app/docs/spread-and-reminders/).
 
 ### Priorities are a map, not a ladder
 
@@ -148,7 +148,7 @@ Routines, the tasks that repeat, have one page for all their rounds. What you wr
 
 - **Complete** marks it done and sends it to the Archive. Its page is kept with it: it can be read but no longer written. Reopen it and it is yours to write again.
 - **Close with a summary** asks you for two lines on how it went before completing it.
-- **Drop** puts it aside without doing it, and it also ends up in the Archive.
+- **Not doing it** drops it: it is put aside without being done, and it also ends up in the Archive.
 
 What the Archive keeps, and how to find it again, is further down, in **The Archive**.
 
@@ -168,11 +168,31 @@ In the quick capture, `Tab` switches from **Task** to **Idea**: type it and `Ent
 
 ### Sort them out when their moment comes
 
-The ideas wait there as sticky notes in colours, the newest first. Drag one onto another to put it in that place, and when its moment comes, **Turn into a task** files it as a task and **File in a document** adds it at the end of the one you pick. The Library counts the ones still waiting.
+The ideas wait there as sticky notes in colours, the newest first. Drag one onto another to put it in that place, and when its moment comes, **Turn into a task** files it as a task and **File in a document** adds it at the end of the one you pick, with **Today's diary** as the first choice. The Library counts the ones still waiting.
 
 ![Brainstorm with ideas of the moment as sticky notes in colours, dated and written by hand](brainstorm.png)
 
 Your AI agent can also brainstorm with you and help you sort them out: **Your AI agent**, near the end, tells you how.
+
+---
+
+## The diary
+
+Some things are neither to do nor to look up later: they just happened. The visit to the vet, what a meeting decided, how the day went. That goes in the **Diary**, a row of its own at the top of the **Library**.
+
+### Today first
+
+**Diary** always opens on today. On top is the box **What happened today?**: write there and `Ctrl`/`⌘` + `Enter` keeps it at the end of the day. Below it the month runs as a line of days, the newest on top, and under what you wrote each day the tasks you closed that day are folded. A day you wrote nothing on never shows: nobody keeps count.
+
+**Try it:** open **Diary** and say in one line how your day is going. Or without leaving this guide: open the quick capture, press `Tab` twice and write it there.
+
+- **Stick a note**, the button beside the box, keeps it as a sticky note, with the minute it came.
+- The pencil opens the month as a document, to correct any day.
+- Inside it is not 365 loose notes: it is a book per year, with a page per month and a section per day, in Markdown like everything else.
+
+### Only yours
+
+The diary is never shared: it has no **Share…**. And your AI agent does not see it until you click **Only you**, on top, and it reads **Open to agents**. Open, the agent reads it and, only when you ask, adds to the end of today under its name; it never changes what you wrote. More in [documents](https://www.tisty.app/docs/documents/).
 
 ---
 
@@ -197,7 +217,7 @@ To write:
 - Drag a file in to attach it: Rina's vaccination card, the insurance PDF.
 - Insert **another document**: in a paragraph of its own it shows as a card; inside a sentence, as a link with its title. Either way, a click opens it.
 
-**Export**, in the document's panel, prints it, saves it as a PDF, a web page or a Word file, and copies it as standard Markdown for any other editor. Try it with this guide: it comes out with its diagrams, its tables and its sheets.
+**Export**, in the document's panel, shows you its PDF, saves it as a PDF, a web page or a Word file, and copies it as standard Markdown for any other editor. Try it with this guide: it comes out with its diagrams, its tables and its sheets.
 
 And when a matter is over, archive its folder with a right-click: it drops to the **Archived** shelf at the foot of the tree, with everything inside it. There it can be read and exported, but not written; unarchive it and it comes back as it was. More in [documents](https://www.tisty.app/docs/documents/).
 
@@ -224,9 +244,9 @@ A page is a document like any other, with its own file, that also says which doc
 In the tree, dropping a document onto another also makes it a page of it.
 
 > [!IMPORTANT]
-> The order in which you insert them in the text is the order of the pages: in the tree, when exporting and when printing. To move a chapter, use the arrows on its row in the index at the end of the document, or `Alt` and an arrow key on the row.
+> The order in which you insert them in the text is the order of the pages: in the tree, when exporting and when printing. To move a chapter, open **Pages**, under the sheet, and use the arrows on its row, or `Alt` and an arrow key on the row.
 
-At the end of the document comes the index, with its pages numbered. Inside a page you see at the top which document it belongs to, arrows to the neighbouring pages and, at the bottom, the step to the next one.
+Under the document's sheet, the **Pages** row opens with a click and shows the index, with its pages numbered. Inside a page you see at the top which document it belongs to, arrows to the neighbouring pages and, at the bottom, the step to the next one.
 
 A page can be archived on its own, with a right-click, and stays dimmed in its document; archiving the document archives them all. How a book prints, with its index, is in [pages and PDF](https://www.tisty.app/docs/pages-and-pdf/).
 
@@ -344,11 +364,11 @@ dose = \frac{weight \times 0.5}{2}
 \sum_{i=1}^{n} i = \frac{n(n+1)}{2}
 ```
 
-A formula also fits inside a sentence, between dollar signs: Rina weighs 12 kilos, so her dose is $\frac{12 \times 0.5}{2} = 3$ millilitres. A dollar followed by a digit is a price, so `$5` stays five dollars. All of it is drawn offline.
+A formula also fits inside a sentence, between dollar signs: Rina weighs 12 kilos, so her dose is $\frac{12 \times 0.5}{2} = 3$ millilitres. A dollar followed by a digit is a price, so `$5` stays five dollars. To change a formula, click the one inside a sentence, or use **Show code** on the one in a block of its own. All of it is drawn offline.
 
 #### Widgets
 
-A block whose language is `widget` is drawn as a fixed view, made only of HTML and CSS: it runs nothing, so it looks the same wherever the document is read. It takes Tisty's colours and comes with ready classes such as `grid`, `stat`, `card` or `badge`. The code stays folded; open it with "Show code".
+A block whose language is `widget` is drawn as a fixed view, made only of HTML and CSS: it runs nothing, so it looks the same wherever the document is read. It takes Tisty's colours and comes with ready classes such as `grid`, `stat`, `card` or `badge`. The code does not show on the page: **Show code**, on the widget's bar, opens it in a window of its own, with the code on one side and what it draws on the other.
 
 ```widget title="Rina and Roger this month"
 <div class="grid">
@@ -370,7 +390,7 @@ A link that takes a whole paragraph is drawn as a card; the same link inside a s
 
 #### Code, with a name and a colour
 
-A code block is coloured by its language, and you can give it a name: write the language and then `title="whatever"`. The name shows in the block's header, and the colour reaches the PDF too.
+A code block is coloured by its language, which you choose on the label in its corner. You can give it a name too: in the Markdown view, write `title="whatever"` after the language. The name shows in the block's header, and the colour reaches the PDF too.
 
 ```python title="dose.py"
 weight = 12
@@ -449,7 +469,7 @@ The box icon, beside the views in the sidebar, opens it, and it reads in three l
 - **Routines** — the ones that repeat, with their rounds, their run and the hour you usually do them at.
 - **Trace** — what closed leaving next to nothing, apart and compact, because it happened all the same.
 
-You decide which layer each one reads in: in the detail of a closed task, **Move to trace** or **Move to story**.
+You decide which layer each one reads in: in the detail of a closed task, **Move to the trace** or **Move to the stories**.
 
 **Search is the way in.** Type a word you remember in the search box at the top of the sidebar (`Ctrl`/`⌘` + `K`) and it comes up, even if you closed it two years ago; if the word is on a task's page, the task comes up. **Try it** once you close your first tasks: look for something you wrote in one of them.
 
@@ -466,6 +486,7 @@ From then on Tisty is its memory between sessions. It starts by asking what move
 - **It can** propose tasks, write documents, add to or correct the ones it may write in, jot and sort ideas with you, and mark what has had its day, saying why.
 - **It can say** that a task or a step is done. The task stays in **To confirm** until you finish it or send it back with **Still to do**; the steps wait for you with **Tick them** or **Not yet**.
 - **It cannot** close or delete a task, delete a document or an idea, tick a step of yours or move a day you set. On a task you wrote it may change the description, the page and the open steps, as in a document.
+- **It does not see your diary** until you open it yourself. Open, it reads it and only adds to the end of today.
 
 If you wrote in a document while it was reading it, it does not write over you: it is asked to read it again. And when something writes in the document you have open, the window tells you and offers to go back to what it said before.
 
@@ -484,14 +505,16 @@ None of this is needed to get started. It is here for when you need it.
 | Shortcut | What it does |
 | --- | --- |
 | `Ctrl` + `Shift` + `Space` | Capture a task without opening the window |
-| `Tab` (in the quick capture) | Switch between a task and an idea for Brainstorm |
+| `Tab` (in the quick capture) | Switch between a task, an idea for Brainstorm and today's diary |
 | `Ctrl`/`⌘` + `Enter` | Complete the task you are on; in a document, a page break |
-| `/` | Insert something inside a document |
+| `/` | Insert something inside a document; `Ctrl`/`⌘` + `/` opens that menu anywhere |
 | `Shift` + `Enter` | Break the line without starting a paragraph |
 | `Alt` + ↑ ↓ | Move the block or the item the caret is in |
+| `Esc` · `Shift` + ↑ ↓ (writing a document) | Choose the whole block · add the ones beside it, to move, copy or delete them together |
+| `Ctrl`/`⌘` + `Z` | Undo what you typed in a row, only in the document in front of you |
 | `Ctrl`/`⌘` + `E` | Switch the document between Rich text and Markdown |
 | `F1` | Open the Tisty Markdown guide on what you are writing |
-| `Ctrl`/`⌘` + `K` | Go to the search at the top of the sidebar |
+| `Ctrl`/`⌘` + `K` | Go to the search at the top of the sidebar; while writing a document, put a link |
 | `Tab` · `Shift` + `Tab` | Walk the cells of a table; in a list, put an item in or take it out |
 | `Ctrl`/`⌘` + `X` · `V` | Move a document between folders |
 | `Esc` | Close whatever is open |

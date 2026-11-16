@@ -13,6 +13,6 @@ En el texto de la guía, esta hoja no está pegada al final. Está nombrada just
 Y la foto de arriba viaja con el documento. No es un enlace a una carpeta de tu disco que se romperá cuando muevas el archivo: la imagen está guardada dentro de Tisty, y sale con la página cuando la exportas.
 
 > [!TIP]
-> Prueba borrar la línea que nombra esta página en la guía. La página no desaparece: se queda sin lugar en el texto y baja al índice del final, esperando a que la vuelvas a poner donde quieras.
+> Prueba borrar la línea que nombra esta página en la guía. La página no desaparece: se queda sin lugar en el texto y baja a la fila **Páginas**, bajo la hoja de la guía, donde **Ponerla en el texto** la devuelve.
 
 Un año de actas, un libro por capítulos, la vida de una perra contada año a año: cada capítulo puede ser una página como esta.

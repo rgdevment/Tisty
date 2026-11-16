@@ -216,7 +216,7 @@ Una lista de casillas que se marcan. No son tareas de Tisty: no se cierran, no t
 - [ ] Preguntar por la pastilla de las garrapatas
 ```
 
-`[ ]` está abierta, `[x]` (o `[X]`) está marcada. Un clic en la casilla la marca, en la página y mientras escribes. En la página de una tarea, en cambio, cada casilla es un paso de esa tarea.
+`[ ]` está abierta, `[x]` (o `[X]`) está marcada. Un clic en la casilla la marca. En la página de una tarea, en cambio, cada casilla es un paso de esa tarea.
 
 ## Citas y avisos
 

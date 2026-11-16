@@ -27,6 +27,7 @@ Nada escucha hasta que conectas uno: el asistente arranca Tisty cuando lo necesi
 - Marcar un documento o una idea que ya cumplió su vida, con el porqué: tú lo borras, lo archivas o le quitas la marca.
 - Decir que una tarea o un paso está listo: la tarea queda en **Por confirmar** hasta que tú la terminas o la devuelves con **Sigue pendiente**; los pasos te esperan con **Marcarlos** o **Todavía no**.
 - Buscar y leer lo que hay, incluido el Archivo.
+- Leer tu Diario y añadir al final de hoy, con su firma, solo si lo abres a los agentes desde el propio Diario y se lo pides.
 
 ## Lo que no puede
 
@@ -34,8 +35,9 @@ Nada escucha hasta que conectas uno: el asistente arranca Tisty cuando lo necesi
 - Marcar un paso tuyo o terminar una tarea tuya: solo dice que están listos, y tú tomas su palabra o no.
 - Mover un día que pusiste tú.
 - Escribir encima de lo que cambiaste mientras él pensaba: se le pide que vuelva a leer.
+- Ver tu Diario mientras dice **Solo tú**, ni cambiar lo que escribiste en él cuando lo abres.
 
-Para lo prohibido no hay herramienta: no es que esté escondida, es que no existe. Todo, regla por regla, está en [qué puede hacer un asistente](https://www.tisty.app/es/ayuda/que-puede-hacer-un-asistente/).
+Para cerrar y borrar no hay herramienta: no es que esté escondida, es que no existe. Lo demás se rechaza, y se le dice por qué. Todo, regla por regla, está en [qué puede hacer un asistente](https://www.tisty.app/es/ayuda/que-puede-hacer-un-asistente/).
 
 ## Cómo pedírselo
 

@@ -58,7 +58,7 @@ An idea that comes in the middle of something else has nowhere to go yet. Press 
 
 ![A quick thought, so you don't lose it: ideas of the moment as sticky notes in colours in Brainstorm, dated and written by hand, to sort out later into a task or a document](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/web/en-03-brainstorm.png)
 
-- **Brainstorm is an ordinary document**, pinned at the top of the Library. The first idea makes it. You can open it, write in it by hand, archive it or export it like any other. Each idea is written in it as a `[!IDEA]` sticky note, with its date and colour, the same note any document can hold.
+- **Brainstorm is an ordinary document**, pinned at the top of the Library. The first idea makes it. You can open it, change its notes, duplicate it, archive it or delete it; its menu does not offer moving or exporting it. Each idea is written in it as a `[!IDEA]` sticky note, with its date and colour, the same note any document can hold.
 - **It shows as notes stuck on a sheet**, a little crooked and in different colours, written by hand: they are ideas of the moment. The newest comes first. Click one to change it, **New idea** adds one, and the **×** takes it off. Drag a note by its edge onto another to put it in that place, or press `Alt` and an arrow on it; it stays as crooked as it was.
 - **The file is still Markdown.** Each note is an `[!IDEA]` whose first line says the day and the minute it came, and its colour, chosen when it is made and kept wherever you move it, and **Show Markdown** shows the text, only to read: an idea is plain words, so tables and diagrams belong in a document of their own. Any document with `view: notes` in its [properties](https://markdown.tisty.app/properties) shows the same way.
 - **Sort them out later**: on each note, **File in a document** adds it at the end of the document you pick, as the same sticky note with its date and colour, beside the text, and **Turn into a task** files it as a task, read like any quick capture, with its dates, lists and tags. Either way the idea leaves the sheet. The Library shows beside Brainstorm how many ideas are still waiting.
@@ -70,11 +70,11 @@ What happened today, at home or at work, has one place: **Diary**, near the top 
 
 - **Diary in the Library opens today.** The first time in a year it makes that year's book and the month's page; the day itself is born when you write in it. Under the row, the years and their months open like any book.
 - **It reads as a line of days, not as a page.** Today's date heads it, and each day shows its number and weekday beside what you wrote, newest on top.
-- **The box on top, «What happened today?», writes in today**: `Ctrl` + `Enter` keeps it. The note button beside it turns it into a sticky note with the minute it came, on the right of today. The pencil opens the month as a document to change any day; going anywhere else, or choosing **Diary** again, brings back the line of days.
+- **The box on top, «What happened today?», writes in today**: `Ctrl`/`⌘` + `Enter` or the round button keeps it. The note button beside it, **Stick a note**, turns it into a sticky note of up to 140 characters with the minute it came, on the right of today, kept with `Enter`. The pencil opens the month as a document to change any day; going anywhere else, or choosing **Diary** again, brings back the line of days.
 - **From anywhere**: in the quick capture, `Tab` goes from **Task** to **Idea** and then to **Diary**, which writes in today without opening the window. On a Brainstorm note, **File in a document** offers **Today's diary** first.
-- **Tasks closed that day** fold under the day's words; each one opens with a click. They are only shown, never written into the text.
-- **Only you.** No agent sees your diary until you press **Only you** at its top and it reads **Open to agents**. Open, an agent reads it and, only when you ask, adds to the end of today under a line with the minute and its name. It never changes what you wrote. Press it again to keep it to yourself.
-- **It is never shared**: the diary has no side panel and no **Share**.
+- **Tasks you finished that day** fold under what you wrote, as «3 tasks closed»; each one opens with a click. One you dropped is not listed, and a day you did not write shows none. They are only shown, never written into the text.
+- **Only you.** No agent sees your diary until you press **Only you** at its top and it reads **Open to agents**. Open, an agent reads it and, only when you ask, adds to the end of today under a line with the minute and its name. It never changes what you wrote. Press it again to keep it to yourself. The door is one for every year and for all your computers, and it only holds on Tisty 1.48 or later: a computer still on an older version keeps syncing and shows the diary to its agents as an ordinary document. Update every computer before you write in it.
+- **It is never shared by link**: the diary has no side panel and no **Share**, and Folio refuses it. It still travels with your sync and your backups, like every document.
 - **The file is still Markdown**: a book with `diary: on` in its [properties](https://markdown.tisty.app/properties), whose pages are the months. Tisty never writes in it on its own.
 
 ## Folders
@@ -139,22 +139,22 @@ A `tisty://open` link reaches only a readable text file on this computer.
 
 ### A document in a window of its own
 
-**Open in a window of its own**, under **Window** in a document's panel, shows it read only beside your work.
+**Open in a window of its own**, the button beside the title in a document's panel, shows it read only beside your work.
 
-- **Contents and page** (`Ctrl`/`⌘` + `\`) opens a column with its headings, what the document is, and the width of the page: how wide it reads, and the paper of its PDF. **Sheets**, first in that row, unlocks the paper and shows it on sheets, **Portrait** or **Landscape**, and its PDF comes out that way; the file does not change.
+- **Contents and page** (`Ctrl`/`⌘` + `\`) opens a column with its headings, what the document is, and the width of the page: how wide it reads, and the paper of its PDF. **Sheets**, first in that row, unlocks the paper and shows it on sheets, upright or, with **Landscape**, across, and its PDF comes out that way; the file does not change.
 - **Reading** and **Markdown** switch between the drawn page and its text.
 - **More** has **Find in the text**, larger and smaller text, **Copy as Markdown** (standard Markdown), **Preview** of the PDF it would make — **← Back to the document** returns from it — **Export to PDF…**, **Export as HTML…**, **Export as Word…** and **Duplicate**, which makes a copy.
-- **Edit in Tisty** takes you back to the document. Its PDF there carries who wrote it and when unless you untick **Signed** in the preview.
+- **Edit in Tisty** takes you back to the document. Its PDF there opens with a cover saying who wrote it and when if you tick **A cover with author, version and dates** in the preview.
 
 ## Taking documents out
 
 A document leaves whole — every conversion is in [Convert to and from Markdown](Convert-to-and-from-Markdown):
 
 - **Copy as Markdown** — standard Markdown, ready for any other editor.
-- **Write it out to a folder**, as standard Markdown files with its pages and attachments beside it; a link to one of its pages points at that page's file.
+- **Export as Markdown…**, in the document's menu, writes it out to the folder you pick, as standard Markdown files with its pages and attachments beside it; a link to one of its pages points at that page's file.
 - **Markdown to HTML** — **Export as HTML…**, in the document's menu, makes one web page that travels alone.
 - **Markdown to Word** — **Export as Word…** makes a `.docx` with its headings, lists, tables and pictures.
-- **Export for Tisty** into a `.tistyx` file, which also carries what Markdown cannot say: folders with their order, icon and colour, which document each page hangs from, what is archived, and the alias it was signed with. It includes a `README.txt`, so whoever receives it can read the documents without Tisty.
+- **Export for Tisty…** into a `.tistyx` file, which also carries what Markdown cannot say: folders with their order, icon and colour, which document each page hangs from, what is archived, and the alias it was signed with. It includes a `README.txt`, so whoever receives it can read the documents without Tisty.
 - **Markdown to PDF** — see [Pages and PDF](Pages-and-PDF#tistys-own-pdf).
 
 Exporting all of them asks who they are for: **To hand to somebody**, which goes out open for anyone holding the file to read, or **For another machine of mine**, locked with six digits so nobody else can read it. A single document or a folder goes out open without asking.
