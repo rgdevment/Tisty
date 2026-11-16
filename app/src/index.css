@@ -33,6 +33,7 @@
   --tisty-note-10: var(--tisty-idea-violet);
   --tisty-note-11: var(--tisty-idea-magenta);
   --tisty-brain: #c2336b;
+  --tisty-diary: #1b8fcf;
   --tisty-pin-0: var(--tisty-idea-pin-0);
   --tisty-pin-1: var(--tisty-idea-pin-1);
   --tisty-pin-2: var(--tisty-idea-pin-2);
@@ -70,6 +71,7 @@
   --tisty-note-10: var(--tisty-idea-violet);
   --tisty-note-11: var(--tisty-idea-magenta);
   --tisty-brain: #f27aa8;
+  --tisty-diary: #6cc6f5;
   --tisty-pin-0: var(--tisty-idea-pin-0);
   --tisty-pin-1: var(--tisty-idea-pin-1);
   --tisty-pin-2: var(--tisty-idea-pin-2);
@@ -1644,4 +1646,8 @@ html[data-previewing] [data-chrome] {
 
 .brainstorm-mark {
   color: var(--tisty-brain);
+}
+
+.diary-mark {
+  color: var(--tisty-diary);
 }
