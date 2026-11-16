@@ -375,14 +375,8 @@ pub fn keep_calendar(
 ) -> Answer<Option<tisty_core::config::Calendar>> {
     let wanted = match calendar.as_deref() {
         None | Some("") => None,
-        Some(said) => Some(
-            said.parse::<tisty_core::config::Calendar>()
-                .map_err(|_| Refusal::of("notACalendar"))?,
-        ),
+        Some(said) => Some(crate::answers::calendar::chosen(said)?),
     };
-    if wanted.is_some_and(|one| !crate::answers::calendar::opens_here(one)) {
-        return Err(Refusal::of("notACalendar"));
-    }
     held(&session).keep(|config| config.calendar = wanted)?;
     Ok(wanted)
 }
