@@ -87,6 +87,7 @@ fn as_in_1_24_4(body: &str) -> Said {
     Said {
         key: None,
         brainstorm: false,
+        diary: false,
         lang: None,
         title: crate::docs::titled(body),
         bytes: None,

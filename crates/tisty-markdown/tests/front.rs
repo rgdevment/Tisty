@@ -119,6 +119,14 @@ fn the_notes_view_and_the_brainstorm_are_asked_by_their_own_words_in_any_capital
     assert!(!front::brainstorm("# Ideas\n\nbrainstorm: on\n"));
 }
 
+#[test]
+fn a_diary_is_asked_by_its_own_word_in_any_capitals_and_only_in_the_properties() {
+    assert!(front::diary("---\ndiary: On\n---\n# Diario 2026"));
+    assert!(!front::diary("---\ndiary: off\n---\n# Diario 2026"));
+    assert!(!front::diary("---\nbrainstorm: on\n---\n# Diario 2026"));
+    assert!(!front::diary("# Diario 2026\n\ndiary: on\n"));
+}
+
 fn limit(name: &str) -> usize {
     let contract: serde_json::Value =
         serde_json::from_str(tisty_contracts::CONTRACT).expect("the contract is JSON");

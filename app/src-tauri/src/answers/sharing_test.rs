@@ -13,6 +13,7 @@ fn each_reason_is_said_in_words_the_window_knows() {
         (Unshared::Away, "awayNotShared"),
         (Unshared::NotADocument, "onlyADocumentShared"),
         (Unshared::Brainstorm, "brainstormStaysHere"),
+        (Unshared::Diary, "diaryStaysHere"),
         (Unshared::Newer, "folioNewerVersionHere"),
         (Unshared::Unfinished("a".into()), "cannotFinish"),
         (Unshared::Unread("a".into()), "cannotSeal"),

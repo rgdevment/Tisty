@@ -69,6 +69,7 @@ pub(super) fn written_doc(
     }
 
     let (folder, page_of) = where_it_lands(&state, args)?;
+    super::super::diary::may_start(&body)?;
     if super::super::ideas::is_sheet(&body) {
         let placed = folder.is_some() || page_of.is_some();
         super::super::ideas::sheet_may_start(paths, &state, placed)?;
@@ -436,6 +437,9 @@ pub(in crate::mcp) fn append_doc(paths: &Paths, args: &Value) -> Result<Value, R
     if super::super::ideas::is_sheet(&before) {
         return super::super::ideas::jotted_on(paths, &state, &mut store, kept, &said, args);
     }
+    if super::super::diary::in_the_diary(paths, &state, &which) {
+        return super::super::diary::written_today(paths, &state, &mut store, kept, &body, args);
+    }
     keeps(&body)?;
 
     let body = match warned(paths, &body).and_then(|notice| warned_into(&before, &body, &notice)) {
@@ -600,6 +604,7 @@ pub(super) fn over_again(
     let kept_back: Vec<String> = loose.iter().map(|one| one.file.clone()).collect();
     let was = tisty_core::docs::read(&paths.docs(), which).unwrap_or_default();
     super::super::ideas::keeps_every_idea(state, which, &was, body)?;
+    super::super::diary::body_kept(&was, body)?;
 
     let made = tisty_core::docs::rewrite(&paths.docs(), paths.data(), which, body, &print)
         .map_err(hitch)?;
@@ -927,6 +932,7 @@ pub(super) fn in_its_place(
 
     still_speaks(&body, &whole)?;
     super::super::ideas::keeps_every_idea(state, which, &body, &whole)?;
+    super::super::diary::body_kept(&body, &whole)?;
 
     match tisty_core::docs::rewrite(&paths.docs(), paths.data(), which, &whole, &print)
         .map_err(hitch)?
@@ -1063,7 +1069,7 @@ pub(super) fn still_speaks(before: &str, after: &str) -> Result<(), Refused> {
     Ok(())
 }
 
-pub(super) fn keeps(body: &str) -> Result<(), Refused> {
+pub(in crate::mcp) fn keeps(body: &str) -> Result<(), Refused> {
     tisty_core::docs::speaks(body).map_err(|unsaid| Refused::Tool(not_spoken(unsaid)))?;
     tisty_core::docs::widgets_hold(body).map_err(|wrong| Refused::Tool(not_a_widget(&wrong)))
 }

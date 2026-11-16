@@ -1381,3 +1381,32 @@ fn when_each_cloud_was_said_sealed_comes_back_from_the_cache() {
         "when the cloud was sealed was lost"
     );
 }
+
+#[test]
+fn the_diary_s_door_survives_the_cache_whether_built_whole_or_advanced_by_a_write() {
+    let f = loaded();
+    project(&f.store_root, &f.cache_dir).unwrap();
+    let mut cache = Cache::open(&f.cache_dir).unwrap();
+    let mut store = Store::open(&f.store_root, DeviceId("dev_a".into())).unwrap();
+    let mut state = State::replay(&store.read_all().unwrap());
+    for open in [true, false] {
+        let door = store.append(Op::DiaryAgents { open }).unwrap();
+        let beside = store
+            .append(Op::TaskAdd {
+                id: Ulid::generate(),
+                d: TaskAdd::new("written in the same round", "a1"),
+            })
+            .unwrap();
+        state.apply(&door);
+        state.apply(&beside);
+        advance(
+            cache.as_mut(),
+            &state,
+            &[door, beside],
+            &f.store_root,
+            false,
+        );
+        let opened = project(&f.store_root, &f.cache_dir).unwrap();
+        assert_eq!(opened.diary_open, open, "the cache kept an old door");
+    }
+}

@@ -153,7 +153,8 @@ impl Event {
             | Op::ShareKey { .. }
             | Op::ShareRoot { .. }
             | Op::ShareCertified { .. }
-            | Op::ShareRevoked { .. } => None,
+            | Op::ShareRevoked { .. }
+            | Op::DiaryAgents { .. } => None,
         }
     }
 }
