@@ -1,11 +1,10 @@
-import { spanned } from "tisty-editor/read";
 import { byteFrom, type Reckoned, unitFrom } from "../placing";
+import { placeOf } from "./pagePlaces";
 
 const PLACED = "[data-src]";
 const BLOCK = "[data-at]";
 
-const spanOf = (one: Element) => spanned(one.getAttribute("data-src"));
-export const placeOf = (one: Element) => spanned(one.getAttribute("data-at"));
+const spanOf = (one: Element) => placeOf(one, "data-src");
 const solid = (one: Element) => one.getAttribute("contenteditable") === "false";
 
 const placedFrom = (tops: HTMLCollection, at: number, until: number) => {
@@ -101,7 +100,7 @@ const nearest = (
     const at = spanOf(before);
     return at ? unitFrom(known, body, at[1]) : null;
   }
-  const at = spanned(block.getAttribute("data-at"));
+  const at = placeOf(block);
   if (!at) return null;
   // A block with no words yet, as a step just begun, is written before the line break that ends it.
   const start = unitFrom(known, body, at[0]);

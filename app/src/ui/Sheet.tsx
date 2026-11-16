@@ -26,7 +26,7 @@ import {
   widened,
 } from "tisty-editor/edit";
 import type { Carded, Head, PartCarded, Sheet as SheetSize } from "tisty-editor/read";
-import { bytesAt, charsAt, heads, spanned, stepLine, steppedTitle } from "tisty-editor/read";
+import { bytesAt, charsAt, heads, stepLine, steppedTitle } from "tisty-editor/read";
 import { copied, copyAttached, type Mend, opened } from "../core";
 import { viewDiagram } from "../drawing";
 import { CATCHES, takesFiles } from "../dropped";
@@ -52,6 +52,7 @@ import Menu, { type Choice } from "./Menu";
 import { mended as mendedText } from "./mending";
 import Page from "./Page";
 import type { Act } from "./pageMoving";
+import { placedAt, placeOf } from "./pagePlaces";
 import {
   type Hands,
   type PageWriting,
@@ -302,9 +303,9 @@ export default function Sheet(props: Readonly<Props>) {
     const top = sheet.getBoundingClientRect().top - frame.top;
     const blocks = Array.from(
       page.querySelectorAll<HTMLElement>(".page > [data-at]:not(.front)"),
-    ).filter((one) => moving === undefined || spanned(one.dataset.at ?? null)?.[0] !== moving);
+    ).filter((one) => moving === undefined || placeOf(one)?.[0] !== moving);
     const block = firstInSight(blocks, top);
-    const at = spanned(block?.dataset.at ?? null);
+    const at = placeOf(block);
     if (!block || !at) return null;
     const from = charsAt(before, at[0]);
     const start = reanchored(before, next, from, charsAt(before, at[1]))?.[0] ?? from;
@@ -829,7 +830,7 @@ export default function Sheet(props: Readonly<Props>) {
             .elementFromPoint(at.left - frame.left, at.top - frame.top)
             ?.closest<HTMLElement>(".page > [data-at]")
         : null;
-    const span = spanned(block?.dataset.at ?? null);
+    const span = placeOf(block);
     const next = laid(now, span ? charsAt(now, span[1]) : now.length, text);
     whole(next);
   };
@@ -923,9 +924,8 @@ export default function Sheet(props: Readonly<Props>) {
     whole: rewritten,
     passed: (end, table) => {
       const writer = pageWriter.current?.hands;
-      const near = shown.current?.document.querySelector(
-        `.page > .table[data-at="${table[0]}-${table[1]}"]`,
-      );
+      const page = shown.current?.document;
+      const near = page && placedAt(page, ".page > .table", table);
       if (!writer || !near) return;
       shown.current?.focus();
       writer.begin(Math.min(end, latest.current.length), "", near);
@@ -1168,7 +1168,7 @@ export default function Sheet(props: Readonly<Props>) {
     // A page drawn before the open block followed new words counts bytes the marks do not.
     if (!page || drawn !== latest.current) return;
     for (const one of page.querySelectorAll<HTMLElement>(".page > [data-at]")) {
-      const at = spanned(one.dataset.at ?? null);
+      const at = placeOf(one);
       one.classList.toggle("lately", Boolean(lately && at && touches(at, lately)));
     }
   }, [lately, turned, drawn]);
@@ -1187,9 +1187,8 @@ export default function Sheet(props: Readonly<Props>) {
     holdingNow.current = settles({
       at: () => room.current,
       want: () => {
-        const block = shown.current?.document.querySelector<HTMLElement>(
-          `.page > [data-at^="${wanted.bytes}-"]`,
-        );
+        const page = shown.current?.document;
+        const block = page && placedAt<HTMLElement>(page, ".page > *", wanted.bytes);
         if (!block) return null;
         const top = block.getBoundingClientRect().top + held.getBoundingClientRect().top;
         return sheet.scrollTop + top - wanted.y;

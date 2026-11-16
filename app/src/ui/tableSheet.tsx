@@ -11,6 +11,7 @@ import {
 } from "../tables";
 import { cellBar } from "./cellBar";
 import Menu, { type Choice } from "./Menu";
+import { placeOf as placeIn } from "./pagePlaces";
 import type { TableWent } from "./paging";
 import { type Mark, type Peeled, peeled, toggled } from "./peeled";
 import TableEditor, { type Picked } from "./TableEditor";
@@ -395,10 +396,7 @@ export const useTables = (
       shown(nth);
     }
     const made = born.current;
-    const nth =
-      made === null
-        ? -1
-        : tablesIn(page).findIndex((one) => one.dataset.at?.startsWith(`${made}-`));
+    const nth = made === null ? -1 : tablesIn(page).findIndex((one) => placeIn(one)?.[0] === made);
     if (nth >= 0) {
       born.current = null;
       pending.current = { nth, row: -1, column: 0 };

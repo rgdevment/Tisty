@@ -1,19 +1,8 @@
-import { spanned } from "tisty-editor/read";
 import { namesSum, type PlacedNear, summed } from "../placing";
-import { placeOf } from "./pageSpots";
+import { keyMoved, placeOf } from "./pagePlaces";
 
-const NAMES = ["data-at", "data-src", "data-placed"];
 // What the page lends or links in a block is laid by its own dressing, which only a whole drawing runs.
 const WHOLE_ONLY = "code.language-widget, figure.widget, .doc-card";
-
-const shifted = (block: Element, by: number) => {
-  for (const one of [block, ...block.querySelectorAll("[data-at], [data-src], [data-placed]")]) {
-    for (const name of NAMES) {
-      const at = spanned(one.getAttribute(name));
-      if (at) one.setAttribute(name, `${at[0] + by}-${at[1] + by}`);
-    }
-  }
-};
 
 const folds = (blocks: readonly Element[]) =>
   blocks.flatMap((one) => [
@@ -94,6 +83,7 @@ export const patched = (sheet: Element, near: PlacedNear, by: number): Element[]
   folds(laid).forEach((one, at) => {
     if (opened[at]) one.open = true;
   });
+  keyMoved(sheet, old, from, kept, laid, by);
   for (const one of old.slice(from, kept)) one.remove();
   for (const one of sheet.querySelectorAll(":scope > [data-ghost]")) one.remove();
   const next = old[kept] ?? null;
@@ -101,6 +91,5 @@ export const patched = (sheet: Element, near: PlacedNear, by: number): Element[]
   if (next) next.before(fresh.content);
   else if (before) before.after(fresh.content);
   else sheet.prepend(fresh.content);
-  if (by !== 0) for (const one of old.slice(kept)) shifted(one, by);
   return laid;
 };

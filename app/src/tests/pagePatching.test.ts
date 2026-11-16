@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { namesSum, type PlacedNear, summed } from "../placing";
 import { patched } from "../ui/pagePatching";
+import { placeOf, placesSettled } from "../ui/pagePlaces";
 
 type Span = readonly [number, number];
 
@@ -192,6 +193,9 @@ describe("a page written on, changed only where the core drew it again", () => {
       "Three.",
     ]);
     expect(sheet.lastElementChild).toBe(last);
+    expect(placeOf(last)).toEqual([15, 21]);
+    expect(placeOf(last?.querySelector("[data-src]"), "data-src")).toEqual([15, 21]);
+    placesSettled(document);
     expect(last?.getAttribute("data-at")).toBe("15-21");
     expect(last?.querySelector("[data-src]")?.getAttribute("data-src")).toBe("15-21");
   });
@@ -214,6 +218,8 @@ describe("a page written on, changed only where the core drew it again", () => {
       }),
       3,
     );
+    expect(placeOf(last.querySelector("[data-placed]"), "data-placed")).toEqual([15, 21]);
+    placesSettled(document);
     expect(last.querySelector("[data-placed]")?.getAttribute("data-placed")).toBe("15-21");
   });
 

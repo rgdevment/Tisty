@@ -1,5 +1,5 @@
 import type { Widths } from "tisty-editor/edit";
-import { spanned } from "tisty-editor/read";
+import { placeOf } from "./pagePlaces";
 
 const STEP = 10;
 const FEWEST = 4;
@@ -27,7 +27,7 @@ export const widening = (
     const grip = (event.target as Element | null)?.closest?.(".col-grip");
     const head = grip?.closest("th");
     const table = head?.closest<HTMLElement>(".page > .table[data-at]");
-    const at = spanned(table?.dataset.at ?? null);
+    const at = placeOf(table);
     if (!grip || !head || !table || !at || event.button !== 0) return;
     event.preventDefault();
     event.stopPropagation();

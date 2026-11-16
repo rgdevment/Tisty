@@ -1,7 +1,7 @@
 import { convertFileSrc } from "@tauri-apps/api/core";
 import type { Widths } from "tisty-editor/edit";
 import type { PartCarded } from "tisty-editor/read";
-import { charsAt, readAs, sourceOf, spanned } from "tisty-editor/read";
+import { charsAt, readAs, sourceOf } from "tisty-editor/read";
 import { openLink } from "../core";
 import { askAgain, serve, showing } from "../inUse";
 import { locale, t } from "../locales";
@@ -10,6 +10,7 @@ import { pictured } from "../previews";
 import { plainly } from "../refusal";
 import { type Attaching, attachedAs, pressed } from "./attached";
 import { type Carding, cardsFor } from "./carding";
+import { placeCopied, placedAt, placeOf, placeSaid, placeWritten, samePlace } from "./pagePlaces";
 import { type Shot, shotsOf, type TableWent, type Went, went, widgetsIn } from "./paging";
 import { type Bar, type Formatting, type Menued, quickly } from "./quickly";
 import { SAY } from "./saying";
@@ -162,7 +163,7 @@ export const widgets = (page: Document, reach?: Reaching): Lending[] => {
     }
     const drawn = page.createElement("figure");
     drawn.className = "widget";
-    drawn.dataset.at = figure.dataset.at ?? "";
+    placeCopied(figure, drawn);
     sources.set(drawn, source);
     const bar = page.createElement("div");
     bar.className = "widget-bar";
@@ -189,7 +190,7 @@ const hinted = (page: Document, body: string) => {
   const bytes = new TextEncoder().encode(body);
   const decoder = new TextDecoder();
   for (const one of page.querySelectorAll<HTMLElement>(".page > div[data-at]")) {
-    const at = spanned(one.dataset.at ?? null);
+    const at = placeOf(one);
     if (!at || !one.previousElementSibling?.matches("h1, h2, h3, h4, h5, h6")) continue;
     const source = decoder.decode(bytes.subarray(at[0], at[1])).trim();
     const said = /^<!--([\s\S]*?)-->$/.exec(source);
@@ -217,20 +218,20 @@ const sectioned = (page: Document, size: number) => {
   const add = page.createElement("button");
   add.type = "button";
   add.className = "add-section";
-  add.dataset.after = last?.getAttribute("data-at") ?? `${size}-${size}`;
+  add.dataset.after = placeSaid(last) ?? `${size}-${size}`;
   add.dataset.seed = "## ";
   add.textContent = `+ ${t("addSection")}`;
   sheet.append(add);
   for (const label of sheet.querySelectorAll<HTMLElement>(":scope > :is(h1, h2, h3, h4, h5, h6)")) {
-    const from = spanned(label.dataset.at ?? null);
+    const from = placeOf(label);
     if (!from) continue;
     const hint = label.nextElementSibling?.matches(".hint, .hint-gone")
-      ? spanned(label.nextElementSibling.getAttribute("data-at"))
+      ? placeOf(label.nextElementSibling)
       : null;
     const drop = page.createElement("button");
     drop.type = "button";
     drop.className = "drop-section";
-    drop.dataset.at = `${from[0]}-${(hint ?? from)[1]}`;
+    placeWritten(drop, [from[0], (hint ?? from)[1]]);
     drop.setAttribute("aria-label", t("dropSection"));
     drop.title = t("dropSection");
     label.append(drop);
@@ -247,9 +248,9 @@ const stepped = (page: Document, bytes: Uint8Array) => {
     const add = page.createElement("button");
     add.type = "button";
     add.className = "add-step";
-    add.dataset.after = list.dataset.at;
+    add.dataset.after = placeSaid(list) ?? "";
     // A step added under a list takes its mark, or it would start a list of its own.
-    const at = spanned(list.dataset.at ?? null);
+    const at = placeOf(list);
     const said = at ? decoder.decode(bytes.subarray(at[0], at[1])) : "";
     add.dataset.seed = `${/^[ \t>]*([-*+]|\d+[.)])/.exec(said)?.[1] ?? "-"} [ ] `;
     add.textContent = `+ ${t("addStep")}`;
@@ -340,9 +341,8 @@ export const diagramBars = (page: Document, ways: BarWays = { open: true, out: f
 };
 
 const figureAt = (page: Document, at: [number, number]) => {
-  const named = `${at[0]}-${at[1]}`;
   const figures = Array.from(page.querySelectorAll<HTMLElement>("figure.diagram[data-at]"));
-  const nth = figures.findIndex((one) => one.dataset.at === named);
+  const nth = figures.findIndex((one) => samePlace(one, at));
   return nth >= 0 ? { nth, figure: figures[nth] } : null;
 };
 
@@ -385,19 +385,19 @@ export const answered = (page: Document, asked: Went, reach: Reaching) => {
   if (asked.kind === "tick")
     reach.onTick?.([charsAt(reach.body, asked.at[0]), charsAt(reach.body, asked.at[1])]);
   if (asked.kind === "hint") {
-    const named = `${asked.at[0]}-${asked.at[1]}`;
-    const held = page.querySelector<HTMLElement>(
+    const held =
       asked.from === "hint"
-        ? `.page > .hint[data-at="${named}"]`
-        : `.page > .${asked.from}[data-after="${named}"]`,
-    );
+        ? placedAt<HTMLElement>(page, ".page > .hint", asked.at)
+        : page.querySelector<HTMLElement>(
+            `.page > .${asked.from}[data-after="${asked.at[0]}-${asked.at[1]}"]`,
+          );
     const end = charsAt(reach.body, asked.at[1]);
     if (held && reach.onBegin) reach.onBegin(end, asked.seed, held);
   }
   if (asked.kind === "cut")
     reach.onCut?.([charsAt(reach.body, asked.at[0]), charsAt(reach.body, asked.at[1])]);
   if (asked.kind === "section" && reach.onBegin) {
-    const last = page.querySelector(`.page > [data-at="${asked.at[0]}-${asked.at[1]}"]`);
+    const last = placedAt(page, ".page > *", asked.at);
     const add = last?.nextElementSibling;
     const near = add?.matches(".add-step") ? add : last;
     if (near) reach.onBegin(charsAt(reach.body, asked.at[1]), "", near);
@@ -411,15 +411,10 @@ export const answered = (page: Document, asked: Went, reach: Reaching) => {
     reach.onBegin(reach.body.length, "", last ?? page.querySelector(".page") ?? page.body);
   }
   // The properties are kept out of the page, so asking for them, as the column's Edit does, opens their window.
-  if (
-    asked.kind === "block" &&
-    page.querySelector(`.page > .front[data-at="${asked.at[0]}-${asked.at[1]}"]`)
-  )
+  if (asked.kind === "block" && placedAt(page, ".page > .front", asked.at))
     reach.onPiece?.("front", { at: asked.at[0], nth: 0 });
   if (asked.kind === "block" && reach.onHintWords) {
-    const hint = page.querySelector<HTMLElement>(
-      `.page > :is(.hint, .hint-gone)[data-at="${asked.at[0]}-${asked.at[1]}"]`,
-    );
+    const hint = placedAt<HTMLElement>(page, ".page > :is(.hint, .hint-gone)", asked.at);
     if (hint) reach.onHintWords(asked.at, hint);
   }
   if (asked.kind === "more")
@@ -444,16 +439,16 @@ export const answered = (page: Document, asked: Went, reach: Reaching) => {
       right: asked.right,
     });
   if (asked.kind === "apart") {
-    const block = page.querySelector(`.page > [data-at="${asked.at[0]}-${asked.at[1]}"]`);
+    const block = placedAt(page, ".page > *", asked.at);
     const drawn = widgetsIn(block)[asked.nth ?? 0];
     const source = drawn ? sources.get(drawn) : undefined;
-    if (drawn && source) reach.onPiece?.("widget", placeOf(page, drawn), source, false);
+    if (drawn && source) reach.onPiece?.("widget", widgetPlace(page, drawn), source, false);
   }
 };
 
 // A widget is named to its window by where its block starts and which it is from the top, as a diagram is.
-const placeOf = (page: Document, drawn: Element): PiecePlace | undefined => {
-  const at = spanned(drawn.getAttribute("data-at"))?.[0];
+const widgetPlace = (page: Document, drawn: Element): PiecePlace | undefined => {
+  const at = placeOf(drawn)?.[0];
   const nth = Array.from(page.querySelectorAll("figure.widget")).indexOf(drawn);
   return at === undefined || nth < 0 ? undefined : { at, nth };
 };
@@ -461,15 +456,13 @@ const placeOf = (page: Document, drawn: Element): PiecePlace | undefined => {
 export const nthAt = (page: Document, drawn: string, at: [number, number]) =>
   Math.max(
     0,
-    Array.from(page.querySelectorAll(drawn)).findIndex(
-      (one) => one.getAttribute("data-at") === `${at[0]}-${at[1]}`,
-    ),
+    Array.from(page.querySelectorAll(drawn)).findIndex((one) => samePlace(one, at)),
   );
 
 const widgetAt = (page: Document, at: [number, number]) => {
-  const drawn = page.querySelector(`figure.widget[data-at="${at[0]}-${at[1]}"]`);
+  const drawn = placedAt(page, "figure.widget", at);
   const source = drawn ? sources.get(drawn) : undefined;
-  return drawn && source ? { source, place: placeOf(page, drawn) } : null;
+  return drawn && source ? { source, place: widgetPlace(page, drawn) } : null;
 };
 
 const below = (page: Document, target: Element, event: MouseEvent): boolean => {
@@ -529,7 +522,7 @@ export const wired = (page: Document, reach: () => Reaching) => {
     const second = event.detail >= 2 && target.closest("figure.diagram") && reach().onDiagram;
     if (!asked && !second && !target.closest(".editing")) reach().onAway?.();
     const diagram = asked?.kind === "picture" && target.closest<HTMLElement>("figure.diagram");
-    const opening = diagram ? spanned(diagram.dataset.at ?? null) : null;
+    const opening = diagram ? placeOf(diagram) : null;
     // A diagram that opens in its window on a double press waits a moment before it is looked at.
     if (opening && diagram && reach().onDiagram) {
       if (event.detail < 2)
@@ -544,14 +537,14 @@ export const wired = (page: Document, reach: () => Reaching) => {
   page.addEventListener("dblclick", (event) => {
     const target = event.target as Element | null;
     const figure = target?.closest?.<HTMLElement>("figure.diagram.drawn[data-at]");
-    const at = spanned(figure?.dataset.at ?? null);
+    const at = placeOf(figure);
     if (!at || !reach().onDiagram || target?.closest(".diagram-bar")) return;
     clearTimeout(looking);
     page.getSelection()?.removeAllRanges();
     answered(page, { kind: "diagram", at }, reach());
   });
   dragging(page, (box, from, to) => {
-    const at = spanned(box.dataset.at ?? null);
+    const at = placeOf(box);
     if (at)
       answered(
         page,
