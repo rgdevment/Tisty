@@ -81,10 +81,15 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
     tags.offer(open && known ? tagMatch(hands.text(), at, known()) : null);
   };
 
+  const caretInSight = () => {
+    const at = page.getSelection()?.anchorNode;
+    if (at) caret.inSight(at);
+  };
+
   const drawn = (laid?: readonly Element[]) => {
     writer.whole = false;
     if (!laid) opened(page);
-    caret.caretLaid();
+    laying.landed(caret.caretLaid, caretInSight);
     offerTags();
     beside.rest();
     beside.besideLine();
