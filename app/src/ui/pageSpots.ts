@@ -180,11 +180,17 @@ export const spotOf = (
     }
     before = one;
   }
-  if (!before && item) return [block, 0];
+  if (!before && item) return [block, boxEnd(block)];
   return before ? endOf(before) : [block, block.childNodes.length];
 };
 
 const indexOf = (one: Node) => Array.prototype.indexOf.call(one.parentNode?.childNodes ?? [], one);
+
+// A step with no words yet is written after its box, never before it.
+const boxEnd = (item: Element) => {
+  const box = item.querySelector(":scope > .check");
+  return box ? indexOf(box) + 1 : 0;
+};
 
 export const endOf = (one: Element): [Node, number] =>
   solid(one) && one.parentNode
@@ -209,18 +215,28 @@ export const titledAfterFront = (ghost: Element) => {
     ghost.classList.add("title");
 };
 
+// A block whose words end at the caret stands before it, though its line breaks reach past.
+const endsAt = (body: string, chars: number, byte: number, block: Element | undefined) => {
+  const end = block && placeOf(block)?.[1];
+  return end !== undefined && end > byte && /^[\r\n]*$/.test(body.slice(chars, chars + end - byte));
+};
+
 // A paragraph just begun holds no words yet, so the core draws nothing there; one stands in until it does.
 export const ghostAt = (
   page: Document,
   body: string,
   chars: number,
   known: Reckoned | null = null,
+  lead = "",
 ): HTMLElement | null => {
   const sheet = page.querySelector(".page");
   if (!sheet) return null;
   const byte = byteFrom(known, body, chars);
+  let reach = firstReaching(sheet, byte, true);
+  while (reach < sheet.children.length && !placeOf(sheet.children[reach])) reach++;
+  if (endsAt(body, chars, byte, sheet.children[reach])) reach++;
   let after: Element | null = null;
-  for (let at = firstReaching(sheet, byte, true) - 1; at >= 0 && !after; at--) {
+  for (let at = reach - 1; at >= 0 && !after; at--) {
     if (placeOf(sheet.children[at])) after = sheet.children[at];
   }
   // A page with nothing written yet shows where its title goes, and that is where its first line begins.
@@ -229,7 +245,11 @@ export const ghostAt = (
   const ghost = page.createElement("p");
   ghost.dataset.ghost = "";
   ghost.append(page.createElement("br"));
-  if (after) after.after(ghost);
+  const button = after?.nextElementSibling;
+  const step = /\[ \]\s*$/.test(lead);
+  // A list's «+ Agregar un paso» hangs on the list, so only a new step is drawn above it.
+  if (button?.matches(".add-step") && !step) button.after(ghost);
+  else if (after) after.after(ghost);
   else sheet.prepend(ghost);
   titledAfterFront(ghost);
   return ghost;

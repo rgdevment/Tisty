@@ -105,6 +105,20 @@ describe("writing on the page the core draws", () => {
     expect(said[said.length - 1]).toBe("# Hola\n\nUno **dos!** tres\n\n- primero\n- segundo\n");
   });
 
+  it("gives an empty step holding a nested list a line after its box for the caret", () => {
+    const body = "- [ ] \n  - [ ] dos\n";
+    writer(body);
+    pageOf(
+      '<ul data-at="0-19"><li class="task" data-at="0-19"><span class="check" contenteditable="false"></span>' +
+        '<ul data-at="7-19"><li class="task" data-at="7-19"><span class="check" contenteditable="false"></span><span data-src="15-18">dos</span></li></ul></li></ul>',
+    );
+    writing?.placeAt(6);
+    const step = document.querySelector("li") as Element;
+    expect(step.childNodes[1]?.nodeName).toBe("BR");
+    expect(document.getSelection()?.anchorNode).toBe(step);
+    expect(document.getSelection()?.anchorOffset).toBe(1);
+  });
+
   it("starts a paragraph with Enter, and a new item inside a list", () => {
     const said = writer();
     caretIn("Hola", 4);

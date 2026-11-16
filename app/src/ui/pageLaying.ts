@@ -1,6 +1,7 @@
-import { byteFrom, bytesIn, checkAfter, checkOf, type Reckoned } from "../placing";
+import { byteFrom, bytesIn, checkAfter, checkOf, type Placed, type Reckoned } from "../placing";
 import type { Caret } from "./pageCaret";
-import { applied, type Edit, inWholeChars, linedAs } from "./pageEdits";
+import { applied, changeOf, type Edit, inWholeChars, linedAs } from "./pageEdits";
+import { type Change, holdingOn } from "./pageHolding";
 import { opened } from "./pageNodes";
 import { patched } from "./pagePatching";
 import { placesSettled } from "./pagePlaces";
@@ -21,6 +22,8 @@ export const layingOn = (
   let resting: ReturnType<typeof setTimeout> | undefined;
   let unsaid: string | null = null;
   let over = false;
+  let placed: Placed | null = null;
+  const holding = holdingOn(page);
 
   const reckonedOf = (text: string, unit: number): Reckoned => {
     if (writer.reckoned?.text === text) return writer.reckoned;
@@ -28,9 +31,10 @@ export const layingOn = (
     return { text, check: checkOf(text, byte + bytesIn(text, unit)), unit, byte };
   };
 
-  const redrawn = () => {
+  const redrawn = (change: Change) => {
     writer.reckoned = null;
     writer.whole = true;
+    holding.before(change);
     return hands.redraw(hands.text());
   };
 
@@ -43,6 +47,7 @@ export const layingOn = (
   // The same page shows the next document, so a drawing still queued by this writer must never land on it.
   const stop = () => {
     over = true;
+    holding.stop();
     told();
   };
   const rested = (now: string) => {
@@ -59,12 +64,17 @@ export const layingOn = (
       if (over) return;
       unsaid = null;
       clearTimeout(resting);
-      if (writer.whole) return redrawn();
       const one = inWholeChars(was, asked);
-      const known = reckonedOf(was, one.from);
-      const from = byteFrom(known, was, one.from);
       const removed = bytesIn(was, one.from, one.to);
       const added = bytesIn(one.insert);
+      const by = added - removed;
+      if (writer.whole) {
+        const from = byteFrom(placed?.text === was ? placed : writer.reckoned, was, one.from);
+        placed = { text: now, unit: one.from + one.insert.length, byte: from + added };
+        return redrawn({ from, removed, by });
+      }
+      const known = reckonedOf(was, one.from);
+      const from = byteFrom(known, was, one.from);
       const edit = { from, to: from + removed, insert: one.insert };
       const check = checkAfter(known.check, edit);
       writer.reckoned = {
@@ -77,8 +87,8 @@ export const layingOn = (
       const near = await hands.near(sent, from, from + added).catch(() => null);
       if (over) return;
       const sheet = page.querySelector(".page");
-      const laid = sheet && near && patched(sheet, near, added - removed, [edit.from, edit.to]);
-      if (!sheet || !laid) return redrawn();
+      const laid = sheet && near && patched(sheet, near, by, [edit.from, edit.to]);
+      if (!sheet || !laid) return redrawn({ from, removed, by });
       hands.dressed(sheet, laid);
       opened(page, laid);
       rested(now);
@@ -109,5 +119,12 @@ export const layingOn = (
     laidOut(text, next, one);
   };
 
-  return { put, laidOut, stop };
+  const heldAcross = (was: string, now: string, moving?: number) => {
+    const one = changeOf(was, now);
+    const removed = bytesIn(was, one.from, one.to);
+    const from = bytesIn(was, 0, one.from);
+    holding.before({ from, removed, by: bytesIn(one.insert) - removed }, moving);
+  };
+
+  return { put, laidOut, stop, landed: holding.landed, heldAcross };
 };
