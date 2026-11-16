@@ -27,6 +27,9 @@ pub fn reread_edit(was: Doc, at: Range<usize>, insert: &str) -> Result<Doc, Doc>
     let Some(gone) = was.text().get(at.clone()) else {
         return Err(was);
     };
+    if gone == insert {
+        return Ok(was);
+    }
     let old = was.text();
     let mut text = String::with_capacity(old.len() - gone.len() + insert.len());
     text.push_str(&old[..at.start]);

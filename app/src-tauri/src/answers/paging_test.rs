@@ -19,6 +19,27 @@ fn key(was: Check, from: usize, to: usize, insert: &str) -> super::Edit {
 }
 
 #[test]
+fn what_the_page_sends_is_read_as_a_key_or_a_whole_body() {
+    let edit = r#"{"edit":{"from":3,"to":3,"insert":"s","was":{"bytes":3,"hash":[1,2]}}}"#;
+    let Ok(super::Sent::Edit(key)) = serde_json::from_str::<super::Sent>(edit) else {
+        panic!("{edit} is not read as a key");
+    };
+    assert_eq!((key.from, key.to, key.insert.as_str()), (3, 3, "s"));
+    assert_eq!(
+        key.was,
+        Check {
+            bytes: 3,
+            hash: [1, 2]
+        }
+    );
+    let body = r#"{"body":"Unos"}"#;
+    assert!(matches!(
+        serde_json::from_str::<super::Sent>(body),
+        Ok(super::Sent::Body(text)) if text == "Unos"
+    ));
+}
+
+#[test]
 fn keys_sent_alone_draw_the_page_as_the_whole_text_would() {
     let placing = Placing::default();
     let mut text = "# Uno\n\nAño con ñandú 😀.\n\n- a\n- b\r\n\n```\nfn x() {}\n```\n".to_string();
