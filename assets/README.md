@@ -70,7 +70,9 @@ with the same order in both, `.png` in `store/` and `web/` and `.webp` in
 `readme/`. They present what Tisty is, not what a version
 brings. The order is the one the Store shows, and the READMEs and the help
 follow it for the first ones: memory, diagrams, brainstorm, priorities, agent,
-documents, day, Folio, data, close.
+documents, day, Folio, data, close. `store/` and `web/` also keep the three
+Store promotional images: `store-box-1x1.png`, `store-hero-16x9.png` and
+`store-poster-9x16.png`.
 
 | Folder | Size | Where it goes |
 | --- | --- | --- |

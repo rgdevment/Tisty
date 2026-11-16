@@ -139,12 +139,13 @@ report will never be dismissed for being inconvenient.
   window's crate is the one exception, and a narrow one: it denies `unsafe`
   too, and lets it in only where the operating system offers no other door — the
   webview on both systems, `sysctl` and the notification centre on macOS, and on
-  Windows the shell, the imaging component, a program's version information, the
-  notice that the path changed, DPAPI, the Store's dialog, booking a reminder
-  with the system, asking to be reopened after an update and the warning that
-  comes before Windows closes it — each function marked one by one, and the
-  macOS notification module as a whole, in seven files, and a test fails if a
-  mark appears in any other.
+  Windows the shell, the imaging component, a program's version information, a
+  file's identity on disk, the notice that the path changed, the watch on the
+  taskbar's theme, DPAPI, the Store's dialog, booking a reminder with the
+  system, asking to be reopened after an update and the warning that comes
+  before Windows closes it — each function marked one by one, and the Windows
+  imaging module and the macOS notification module each as a whole, in seven
+  files, and a test fails if a mark appears in any other.
 - **A release is held to what CI already proved.** A tag on a commit that did
   not pass CI on `main` is not released. The updater's signature is checked
   against the key the build ships before anything is published, and every file
@@ -358,7 +359,7 @@ Being explicit here matters more than sounding reassuring.
   done by hand. A secret is never destroyed, only displaced: what a build has to
   move out of the way is kept under the hour it was replaced, and putting one
   back is renaming it. Leaving takes
-  the diary and the settings, never any of this.
+  Tisty's own log, its cache and the settings, never any of this.
 
   The other side of that: a store opened with somebody else's settings — a data
   directory named on its own, without the configuration that goes with it — has
@@ -544,8 +545,10 @@ the absolute paths of your disk.
 **Your diary is out of its sight until you open it.** While the diary is shut,
 every tool answers about it as about a document that is not there, and nothing
 lists or counts it. Open, an assistant reads it and only adds to the end of
-today, signed; every other change is refused. A computer of yours on a Tisty
-older than 1.48 does not know this door.
+today, signed; every other change is refused. A computer of yours still on a
+Tisty older than 1.48 keeps syncing and does not know this door: there the diary
+is an ordinary document, which an assistant on that computer reads and can
+change. Update every computer before you write in it.
 
 **What it says about work being finished only ever adds.** An assistant can mark
 a task as finished, with the account of what it did: one it filed, or one you

@@ -13,7 +13,7 @@ Read this guide at your own pace: each section stands on its own, and whatever y
 
 ## How does it work?
 
-It all starts with one question: will you do it, or read it again? If you will do it, it is a task: it ends, sometimes the same day, and stays in the Archive as knowledge with a date. If you will read it again, it is a document: a manual, a recipe, a year of minutes, which you correct and add to for years. And if you do not know yet, it is an idea: it waits in Brainstorm until you sort it out. What just happened, and you want to remember, goes in the Diary. This drawing tells the rest:
+It all starts with one question: will you do it, or read it again? If you will do it, it is a task: it ends, sometimes the same day, and stays in the Archive as knowledge with a date. If you will read it again, it is a document: a manual, a recipe, a year of minutes, which you correct and add to for years. And if you do not know yet, it is an idea: it waits in Brainstorm until you sort it out. What simply happened, and you want to remember, goes in the Diary. This drawing tells the rest:
 
 ```mermaid
 flowchart TD
@@ -62,7 +62,7 @@ Each part it understands is coloured:
 | ==tomorrow 10am=={blue} | blue | a day and a time, the way you would say them |
 | ==on Friday=={blue} | blue | the next one coming |
 | ==before Friday=={blue} | blue | a deadline: the latest it can be done |
-| ==every tuesday=={pink} | pink | something that comes back on its own |
+| ==every Tuesday=={pink} | pink | something that comes back on its own |
 | ==#home=={pink} | pink | a tag: what it is about |
 | ==@work=={green} | green | a list: where it happens |
 | ==!schedule== | no colour | the priority: do, schedule, delegate or minor |
@@ -160,7 +160,7 @@ And if you want to know what is spare or missing in everything you keep, Setting
 
 ## Ideas
 
-Between what you will do and what you will keep there is something looser. An idea is a thought caught on the fly, before you know whether it is something to do or something to keep: a few words, 140 at most, dated, on the **Brainstorm** sheet. It waits for you to sort it out: it becomes a task, goes into the document on its subject, or is set aside.
+Between what you will do and what you will keep there is something looser. An idea is a thought caught on the fly, before you know whether it is something to do or something to keep: a few words, 140 characters at most, dated, on the **Brainstorm** sheet. It waits for you to sort it out: it becomes a task, goes into the document on its subject, or is set aside.
 
 ### Jot it down the moment it comes
 
@@ -178,15 +178,15 @@ Your AI agent can also brainstorm with you and help you sort them out: **Your AI
 
 ## The diary
 
-Some things are neither to do nor to look up later: they just happened. The visit to the vet, what a meeting decided, how the day went. That goes in the **Diary**, a row of its own at the top of the **Library**.
+Some things are neither to do nor to look up later: they simply happened. The visit to the vet, what a meeting decided, how the day went. That goes in the **Diary**, a row of its own at the top of the **Library**.
 
 ### Today first
 
-**Diary** always opens on today. On top is the box **What happened today?**: write there and `Ctrl`/`⌘` + `Enter` keeps it at the end of the day. Below it the month runs as a line of days, the newest on top, and under what you wrote each day the tasks you closed that day are folded. A day you wrote nothing on never shows: nobody keeps count.
+**Diary** always opens on today. On top is the box **What happened today?**: write there and `Ctrl`/`⌘` + `Enter` keeps it at the end of the day. Below it the month runs as a line of days, the newest on top, and under what you wrote each day the tasks you completed that day are folded. A day you wrote nothing on never shows: nobody keeps count.
 
 **Try it:** open **Diary** and say in one line how your day is going. Or without leaving this guide: open the quick capture, press `Tab` twice and write it there.
 
-- **Stick a note**, the button beside the box, keeps it as a sticky note, with the minute it came.
+- **Stick a note**, the button beside the box, turns it into a short sticky note, 140 characters at most: `Enter` keeps it, with the minute it came.
 - The pencil opens the month as a document, to correct any day.
 - Inside it is not 365 loose notes: it is a book per year, with a page per month and a section per day, in Markdown like everything else.
 
@@ -206,7 +206,7 @@ A document is yours and is kept as Markdown: plain text with a few marks, like `
 
 **To make one**, use the **+** in the header of the **Library**, in the sidebar: **New document**. Inside a folder, that same button makes it there, and **New folder** groups them. Folders start folded; open them on the arrow.
 
-The first line of the document is its title: there is no name to fill in anywhere else. Its properties, such as its tags or the paper it prints on, show in the panel beside it, under **About this document**.
+The first line of the document is its title: there is no name to fill in anywhere else. Its properties show in the panel beside it: the paper it prints on, next to **Sheets**; its tags and the rest, under **Details**.
 
 To write:
 
@@ -346,9 +346,9 @@ A table is written right on the page: click a cell and type. The `⋯` menu of a
 
 | Vaccine | Given | Due again |
 | :--- | :---: | ---: |
-| Annual | march | 12 months |
-| Rabies | march | 12 months |
-| Worming | august | 3 months |
+| Annual | March | 12 months |
+| Rabies | March | 12 months |
+| Worming | August | 3 months |
 
 Drag the edge of a heading to make its column wider: other Markdown readers see a plain table, and Tisty keeps the width you gave it.
 
