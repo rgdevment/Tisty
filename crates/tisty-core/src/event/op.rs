@@ -99,6 +99,7 @@ pub const KNOWN_OPS: &[&str] = &[
     "sharing.forgotten",
     "doc.idea.flag",
     "doc.idea.unflag",
+    "diary.agents",
 ];
 
 pub const RETIRED_OPS: &[&str] = &["share.doc", "share.version", "share.stop"];
@@ -286,6 +287,9 @@ pub enum Op {
     /// Puts a document among the languages of another, or takes it out with `of: null`.
     #[serde(rename = "doc.tongue")]
     DocTongue { id: DocId, d: Tongue },
+    /// The person lets agents into the diary, or shuts them out again.
+    #[serde(rename = "diary.agents")]
+    DiaryAgents { open: bool },
 
     #[serde(rename = "device.join")]
     DeviceJoin {
@@ -445,6 +449,7 @@ impl Op {
                 | Op::IdeaUnflag { .. }
                 | Op::DocCompacted { .. }
                 | Op::DocUncompacted { .. }
+                | Op::DiaryAgents { .. }
                 | Op::Signed { .. }
                 | Op::SharingKept { .. }
                 | Op::SharingForgotten { .. }
@@ -491,6 +496,7 @@ impl Op {
                 | Op::DocCompacted { .. }
                 | Op::DocUncompacted { .. }
                 | Op::DocTongue { .. }
+                | Op::DiaryAgents { .. }
                 | Op::TaskPaged { .. }
                 | Op::StepSaid { .. }
                 | Op::StepUnsaid { .. }
@@ -569,7 +575,8 @@ impl Op {
             | Op::ShareKey { .. }
             | Op::ShareRoot { .. }
             | Op::ShareCertified { .. }
-            | Op::ShareRevoked { .. } => self,
+            | Op::ShareRevoked { .. }
+            | Op::DiaryAgents { .. } => self,
         }
     }
 
@@ -721,7 +728,8 @@ impl Op {
             | Op::ShareKey { .. }
             | Op::ShareRoot { .. }
             | Op::ShareCertified { .. }
-            | Op::ShareRevoked { .. } => None,
+            | Op::ShareRevoked { .. }
+            | Op::DiaryAgents { .. } => None,
         }
     }
 }
@@ -1050,6 +1058,9 @@ pub struct Said {
     // Said only when true, so no other document's note grows; a sheet that stops being one is read to tell.
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub brainstorm: bool,
+    // Kept once said, like a sheet: a build that never read it must not open a diary to agents.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub diary: bool,
 }
 
 impl Said {
@@ -1067,6 +1078,7 @@ impl Said {
             lang: Some(tisty_markdown::front::lang(body)),
             key: Some(crate::tongues::key_of(body)),
             brainstorm: tisty_markdown::front::brainstorm(body),
+            diary: tisty_markdown::front::diary(body),
         }
     }
 
@@ -1083,6 +1095,7 @@ impl Said {
             || self.key.as_ref().is_some_and(|one| *one != kept.key)
             || (self.print.is_some() && self.print != kept.print)
             || (self.brainstorm && !kept.brainstorm)
+            || (self.diary && !kept.diary)
     }
 }
 

@@ -21,6 +21,14 @@ pub fn noted(body: &str, note: &str, spanish: bool) -> String {
     format!("{head}{line}{line}{note}{line}{tail}{rest}")
 }
 
+pub fn signed_by(who: &str, at: &jiff::Zoned, words: &str) -> String {
+    format!(
+        "**{}** · {who}\n{}",
+        at.strftime("%Y-%m-%d %H:%M"),
+        words.trim()
+    )
+}
+
 pub fn rewritten(body: &str, note: &str, spanish: bool) -> String {
     let Some((_, words)) = crate::closing::held(body, &ASSISTANT_NOTES) else {
         return noted(body, note, spanish);
