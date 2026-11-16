@@ -1301,7 +1301,9 @@ necesita conexión: un documento compartido por link, tu propia nube, una tarea
 guardada en un calendario en línea.
 Tisty hace una sola petición de red que no le pediste —al abrirse, y una vez al
 día después— para ver si existe una versión más nueva, y no envía nada para
-preguntarlo. Desconecta el equipo de la red y todo lo demás sigue igual.
+preguntarlo. Cuando sincronizas con una nube o compartes un documento, además
+lee unos pocos archivos pequeños, que lista [PRIVACY.md](PRIVACY.md).
+Desconecta el equipo de la red y todo lo demás sigue igual.
 
 ### ¿Dónde quedan mis datos?
 

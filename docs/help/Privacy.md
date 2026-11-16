@@ -12,7 +12,7 @@ Everything lives in one folder on your disk:
 
 - **Tasks and events** — plain-text JSONL, an append-only log. Readable with `cat`, searchable with `grep`, parseable with `jq`.
 - **Documents** — plain Markdown files.
-- **Your diary** — Markdown like any document, a book a year. No agent sees it until you open it from the Diary itself, on Tisty 1.48 or later; it is never shared by link, and it travels with your sync and your backups like the rest, and inside a `.tistyx` parcel when you export everything or the diary itself.
+- **Your diary** — Markdown like any document, a book a year. No agent sees it until you open it from the Diary itself, on Tisty 1.48 or later; it is never shared by link, and it travels with your sync and your backups like the rest, and inside a `.tistyx` parcel when you export everything.
 - **Attachments** — the files themselves, unmodified.
 - **Local settings** — including this machine's identifier and signing key. The private half of the key never leaves the machine.
 - **Your phrase, if you make one** — the 24 words that encrypt your cloud, kept on the computer where you made them, in the system keychain on macOS or a file sealed for your user on Windows. Never synced, backed up or put in a parcel. Nobody from Tisty or Folio will ever ask you for it; anyone who does is trying to trick you.

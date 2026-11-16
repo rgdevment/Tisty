@@ -1264,8 +1264,9 @@ Neither. There is nothing to sign up for, and only what you send out needs a
 connection: a document shared by link, your own cloud, a task saved to an online
 calendar. Tisty makes one network request you did not ask for — when
 it opens, and once a day after that — to see whether a newer version exists, and
-it sends nothing in order to ask. Take the machine off the network and
-everything else works the same.
+it sends nothing in order to ask. Once you sync with a cloud or share a
+document, it also reads a few small files, which [PRIVACY.md](PRIVACY.md)
+lists. Take the machine off the network and everything else works the same.
 
 ### Where is my data kept?
 

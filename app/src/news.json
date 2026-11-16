@@ -1617,7 +1617,7 @@
       },
       {
         "title": "Lo escribes desde cualquier parte",
-        "said": "en la captura rápida, Tab pasa de tarea a idea y a diario, sin abrir la ventana. Y una idea de la Lluvia de ideas se anexa primero al diario de hoy."
+        "said": "en la captura rápida, Tab pasa de tarea a idea y a diario, sin abrir la ventana. Y al anexar una idea de la Lluvia de ideas, el diario de hoy es la primera opción."
       },
       {
         "title": "Solo tuyo",
@@ -1629,11 +1629,11 @@
       },
       {
         "title": "Tu tarea, en tu calendario",
-        "said": "Guardar en mi calendario lleva una tarea con fecha a Google Calendar, a Outlook o al Calendario de Apple, y desde ahí te avisa también el teléfono. Tisty no se conecta a tu calendario: el evento lo guardas tú."
+        "said": "Guardar en mi calendario lleva una tarea con fecha a Google Calendar, a Outlook o, en un Mac, al Calendario de Apple, y desde ahí te avisa también el teléfono. Tisty no se conecta a tu calendario: el evento lo guardas tú."
       },
       {
         "title": "Los documentos largos responden",
-        "said": "escribir en una página muy larga ya no se siente lento: cada tecla llega al instante."
+        "said": "escribir en una página muy larga responde mucho más rápido que antes."
       }
     ],
     "en": [
@@ -1659,7 +1659,7 @@
       },
       {
         "title": "Written from anywhere",
-        "said": "in the quick capture, Tab goes from a task to an idea to the diary, without opening the window. And an idea on Brainstorm files into today's diary first."
+        "said": "in the quick capture, Tab goes from a task to an idea to the diary, without opening the window. And filing an idea from Brainstorm offers today's diary first."
       },
       {
         "title": "Only yours",
@@ -1671,11 +1671,11 @@
       },
       {
         "title": "Your task, in your calendar",
-        "said": "Save to my calendar takes a task with a date to Google Calendar, to Outlook or to Apple Calendar, and from there your phone reminds you too. Tisty does not connect to your calendar: you save the event yourself."
+        "said": "Save to my calendar takes a task with a date to Google Calendar, to Outlook or, on a Mac, to Apple Calendar, and from there your phone reminds you too. Tisty does not connect to your calendar: you save the event yourself."
       },
       {
         "title": "Long documents keep up",
-        "said": "writing on a very long page no longer feels slow: every key lands at once."
+        "said": "writing on a very long page answers much faster than before."
       }
     ]
   }

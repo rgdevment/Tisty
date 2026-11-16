@@ -6,7 +6,7 @@
 Sí, y lo va a seguir siendo. AGPL-3.0, sin versión de pago, sin funciones guardadas para después, sin prueba que caduque. Los [términos comerciales](https://github.com/rgdevment/Tisty/blob/main/docs/COMMERCIAL.md) existen solo para organizaciones que no pueden cumplir la AGPL.
 
 **¿Necesita cuenta o conexión?**
-Ninguna de las dos. Por su cuenta, Tisty solo pregunta si hay una versión más nueva, y no envía nada para hacerlo. Desconecta el equipo de la red y todo lo demás funciona igual. Mira [[Privacidad]].
+Ninguna de las dos. Por su cuenta, Tisty solo pregunta si hay una versión más nueva, y no envía nada para hacerlo. Cuando sincronizas con una nube o compartes un documento, además lee los pocos archivos pequeños que lista [[Privacidad]]. Desconecta el equipo de la red y todo lo demás funciona igual. Mira [[Privacidad]].
 
 **¿Dónde se guardan mis datos?**
 En una carpeta de tu propio disco. **Configuración › Tus datos** muestra la ruta, y *Mostrar carpeta* la abre. Mira [Instalación](Instalación#dónde-viven-tus-datos).
