@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { begun } from "tisty-editor/read";
 import { useAttended } from "../attended";
-import { keepCalendar, offered, saveToCalendar } from "../calendaring";
+import { offered, saveToCalendar } from "../calendaring";
 import type { Change, List, Task } from "../core";
 import { cadence, clockOf, whenLabel } from "../format";
 import { t } from "../locales";
@@ -243,7 +243,7 @@ function Saving({ task, onError }: { task: string; onError?: (problem: unknown) 
                 key={one.choice}
                 onPick={() => {
                   setAsking(false);
-                  keepCalendar(one.choice).then(save).catch(fail);
+                  saveToCalendar(task, one.choice).catch(fail);
                 }}
               >
                 {t(one.label)}
