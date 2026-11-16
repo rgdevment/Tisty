@@ -1,9 +1,13 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
+import { ahead, every, repeating, turnOf, unlisted } from "../examples";
+import { adopt } from "../locales";
 import Search from "../ui/Search";
 import TaskList from "../ui/TaskList";
-import { nothing, offers } from "../views";
+import { type Chosen, nothing, offers } from "../views";
+
+const quoted = (said: string): string => /«([^»]+)»/.exec(said)?.[1] ?? "";
 
 const searched = vi.fn((_args: Record<string, unknown>) => Promise.resolve([]));
 vi.mock("@tauri-apps/api/core", () => ({
@@ -37,7 +41,7 @@ describe("what an empty screen says", () => {
   });
 
   it("teaches the syntax where a new reader lands", () => {
-    expect(nothing({ named: "tasks" }, false)).toMatch(/tomorrow/i);
+    expect(every()).toContain(quoted(nothing({ named: "tasks" }, false)));
   });
 
   it("reaches the list", () => {
@@ -56,7 +60,7 @@ describe("what an empty screen says", () => {
 });
 
 describe("the example an empty screen offers", () => {
-  const example = "buy bread tomorrow at 10";
+  const example = quoted(nothing({ named: "tasks" }, false));
   const today = (onTry?: (example: string) => void) =>
     render(
       <TaskList
@@ -88,11 +92,11 @@ describe("the example an empty screen offers", () => {
     today();
 
     expect(screen.queryByRole("button", { name: example })).toBeNull();
-    expect(screen.getByText(/Write «buy bread tomorrow at 10»/)).toBeTruthy();
+    expect(screen.getByText(nothing({ named: "tasks" }, false))).toBeTruthy();
   });
 
   it("leaves an empty screen that quotes nothing as it reads", () => {
-    const said = nothing({ list: "01L" }, false);
+    const said = nothing({ named: "tasks", slice: "all" }, false);
     render(
       <TaskList
         tasks={[]}
@@ -114,6 +118,47 @@ describe("the example an empty screen offers", () => {
     expect(offers({ named: "tasks" }, true)).toBe(false);
     expect(offers({ named: "archive", layer: "routine" }, false)).toBe(false);
     expect(offers({ named: "search" }, false)).toBe(false);
+  });
+});
+
+describe("the examples that take turns on an empty screen", () => {
+  const turns = (chosen: Chosen, many: number) =>
+    Array.from({ length: many }, (_, n) => quoted(nothing(chosen, false, 0, n / many)));
+
+  it("gives a view another one as its turn moves, each of them once", () => {
+    const all = unlisted(every());
+
+    expect(turns({ named: "tasks" }, all.length)).toEqual(all);
+  });
+
+  it("offers Upcoming only what is dated ahead, and Repeating only what comes back", () => {
+    expect(turns({ named: "tasks", slice: "upcoming" }, ahead().length)).toEqual(ahead());
+    expect(turns({ named: "tasks", slice: "repeating" }, repeating().length)).toEqual(repeating());
+  });
+
+  it("offers a list one too, and never one that names a list of its own", () => {
+    const offered = turns({ list: "01L" }, unlisted(every()).length);
+
+    expect(new Set(offered).size).toBeGreaterThan(1);
+    expect(offered.filter((one) => one.includes("@"))).toEqual([]);
+    expect(every().some((one) => one.includes("@"))).toBe(true);
+  });
+
+  it("holds the last one at the very end of the turn, never past it", () => {
+    const all = unlisted(every());
+
+    expect(turnOf(all, 0.999999)).toBe(all[all.length - 1]);
+    expect(turnOf([], 0.5)).toBe("");
+  });
+
+  it("carries as many in Spanish as in English, kind by kind", () => {
+    const sizes = () => [ahead().length, repeating().length, every().length];
+    const english = sizes();
+    adopt("es");
+    const spanish = sizes();
+    adopt("en");
+
+    expect(spanish).toEqual(english);
   });
 });
 

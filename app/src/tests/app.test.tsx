@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import App from "../App";
 import type { Snapshot, Task } from "../core";
+import { every, unlisted } from "../examples";
 import { t } from "../locales";
 
 Object.defineProperty(window, "innerWidth", { configurable: true, value: 1440 });
@@ -652,7 +653,11 @@ describe("a task opens beside the list, and whole when asked", () => {
 });
 
 describe("the example an empty day offers", () => {
-  const example = "buy bread tomorrow at 10";
+  const offered = async (): Promise<[HTMLElement, string]> => {
+    const all = unlisted(every());
+    const button = await screen.findByRole("button", { name: (said) => all.includes(said) });
+    return [button, button.textContent ?? ""];
+  };
 
   beforeEach(() => {
     tasks = [];
@@ -666,8 +671,9 @@ describe("the example an empty day offers", () => {
   it("is written in the capture field at a click, and Enter files it", async () => {
     const user = userEvent.setup();
     render(<App />);
+    const [button, example] = await offered();
 
-    await user.click(await screen.findByRole("button", { name: example }));
+    await user.click(button);
 
     const field = screen.getByPlaceholderText<HTMLInputElement>(t("addForToday"));
     expect(field.value).toBe(example);
@@ -683,7 +689,7 @@ describe("the example an empty day offers", () => {
   it("is not written again when the view comes back", async () => {
     const user = userEvent.setup();
     render(<App />);
-    await user.click(await screen.findByRole("button", { name: example }));
+    await user.click((await offered())[0]);
     await user.clear(screen.getByPlaceholderText(t("addForToday")));
 
     await user.click(screen.getByRole("button", { name: t("archive") }));

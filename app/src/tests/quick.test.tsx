@@ -1,6 +1,7 @@
 import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { every } from "../examples";
 import { t } from "../locales";
 import Quick from "../Quick";
 import { WINKS_ONCE_IN } from "../wink";
@@ -173,9 +174,7 @@ describe("capturing without the window", () => {
     act(() => win.focus?.({ payload: true }));
 
     await waitFor(() =>
-      expect(t("taskExamples").split("\n")).toContain(
-        screen.getByRole("textbox").getAttribute("placeholder"),
-      ),
+      expect(every()).toContain(screen.getByRole("textbox").getAttribute("placeholder")),
     );
   });
 

@@ -52,6 +52,6 @@ describe("what an empty slice says", () => {
   });
 
   it("still teaches the syntax where a new reader lands", () => {
-    expect(nothing({ named: "tasks", slice: "today" }, false)).toMatch(/tomorrow/i);
+    expect(nothing({ named: "tasks", slice: "today" }, false)).toMatch(/«[^»]+»/);
   });
 });

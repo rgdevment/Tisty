@@ -55,6 +55,9 @@ export default function Board() {
     standings,
     paces,
   } = useDesk();
+  const view = JSON.stringify(seen);
+  const [turn, setTurn] = useState(() => ({ view, at: Math.random() }));
+  if (turn.view !== view) setTurn({ view, at: Math.random() });
   return (
     <div className="flex min-w-0">
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
@@ -84,7 +87,7 @@ export default function Board() {
           empty={
             found?.papers.length && !shown.length
               ? t("onlyPapers")
-              : nothing(seen, found !== null, data.counts.tracesHidden ?? 0)
+              : nothing(seen, found !== null, data.counts.tracesHidden ?? 0, turn.at)
           }
           onTry={
             offers(chosen, found !== null) ? (example) => field.current?.write(example) : undefined
