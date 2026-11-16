@@ -1,5 +1,6 @@
 import { spanned } from "tisty-editor/read";
 import { namesSum, type PlacedNear, summed } from "../placing";
+import { placeOf } from "./pageSpots";
 
 const NAMES = ["data-at", "data-src", "data-placed"];
 // What the page lends or links in a block is laid by its own dressing, which only a whole drawing runs.
@@ -24,7 +25,7 @@ const linedUp = (old: readonly Element[], near: PlacedNear, kept: number, by: nu
   const places: number[] = [];
   for (let at = 0; at < old.length; at++) {
     if (at >= near.from && at < kept) continue;
-    const place = spanned(old[at].getAttribute("data-at"));
+    const place = placeOf(old[at]);
     if (!place) return false;
     const moved = at < near.from ? 0 : by;
     places.push(place[0] + moved, place[1] + moved);
@@ -50,14 +51,13 @@ const namedAlike = (sheet: Element, old: readonly Element[], near: PlacedNear, k
   return fnv === near.heads[0] && mixed === near.heads[1];
 };
 
-// The core names only a heading the edit touches, so one drawn again beside it, the same heading in
-// the same place, keeps the name it shows; any other came or went and may rename those after it.
+// Only the same heading in the same place keeps its shown name; one that came or went renames those after it.
 const namesCarried = (was: readonly Element[], laid: readonly Element[], by: number) => {
   const before = headsIn(was, HEADINGS);
   const after = headsIn(laid, HEADINGS);
   const same = (one: Element, at: number) => {
-    const old = spanned(before[at].getAttribute("data-at"));
-    const now = spanned(one.getAttribute("data-at"));
+    const old = placeOf(before[at]);
+    const now = placeOf(one);
     if (!old || !now || one.tagName !== before[at].tagName) return false;
     const moved = now[0] - old[0];
     return now[1] - moved === old[1] && (moved === 0 || moved === by);

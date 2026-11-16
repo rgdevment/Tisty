@@ -53,7 +53,7 @@ export const lineOfCaret = (range: Range | null | undefined): Element | null => 
 
 // The sheet is written on whole, but a table, a drawing or a rule is changed by its own hands.
 // A task's labels are filled under, not renamed, until its sections are asked for; then only they are written.
-// Writing an attribute again, even as it was, makes the engine look at the whole page anew.
+// Setting an attribute to the value it holds is still a change to the engine, so only real changes are written.
 const said = (one: Element, name: string, value: string | null) => {
   if (one.getAttribute(name) === value) return;
   if (value === null) one.removeAttribute(name);
