@@ -110,7 +110,7 @@ Anotar una tarea con sus pasos y su fecha, ponerle un recordatorio, añadir a la
 
 Cuando te cuenta lo que hizo, nombra una tarea o un documento como lo harías tú: por su título y dónde está, la lista o la carpeta. Nunca te muestra un identificador.
 
-**Nunca** puede cerrar ni borrar una tarea, borrar un documento ni mover un día que pusiste tú. Un documento que ya cumplió su vida lo marca: tú lo borras, lo archivas o le quitas la marca. Una idea sale de la Lluvia de ideas solo cuando la anexa a un documento o la convierte en tarea, como lo harías tú; a una vieja la marca igual. En una tarea que escribiste tú trabaja como en un documento (la descripción, la página, los pasos abiertos, el título y la lista), y que un paso o la tarea entera están hechos es solo su palabra, que tú tomas o no.
+**Nunca** puede cerrar ni borrar una tarea, borrar un documento ni mover un día que pusiste tú. Un documento que ya cumplió su vida lo marca: tú lo borras, lo archivas o le quitas la marca. Una idea sale de la Lluvia de ideas solo cuando la anexa a un documento o la convierte en tarea, como lo harías tú; a una vieja la marca igual. Tu [Diario](Documentos#diario) queda fuera de su vista hasta que lo abres desde el propio Diario, y aun así solo añade al final de hoy, con su firma, cuando se lo pides. En una tarea que escribiste tú trabaja como en un documento (la descripción, la página, los pasos abiertos, el título y la lista), y que un paso o la tarea entera están hechos es solo su palabra, que tú tomas o no.
 
 Las reglas completas están en [[Qué puede hacer un asistente|Qué-puede-hacer-un-asistente]], y cada herramienta en la [[referencia de herramientas|Herramientas-MCP]].
 
