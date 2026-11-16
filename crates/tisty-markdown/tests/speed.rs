@@ -87,6 +87,13 @@ fn a_key_on_a_page_of_500_kb() {
         at,
         "x",
     );
+    let detailed = format!("{text}<details>\n<summary>Más</summary>\n\nUno.\n\n</details>\n");
+    edits(
+        "reread an edit on a page with a details",
+        &tisty_markdown::read(&detailed),
+        at,
+        "x",
+    );
     let code = format!(
         "Uno.\n\n```\n{}```\n\nDos.\n",
         "let x = 1; # nota\n".repeat(5000)
