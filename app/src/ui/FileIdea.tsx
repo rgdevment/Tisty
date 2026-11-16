@@ -10,6 +10,7 @@ interface Props {
   known: Filed[];
   own: string;
   onPick: (file: string) => void;
+  onToday?: () => void;
   onClose: () => void;
 }
 
@@ -29,7 +30,7 @@ const whereOf = (one: Filed, byId: ReadonlyMap<string, Filed>): string => {
   return [above?.title || (above && t("untitledDoc")), spoken(root)].filter(Boolean).join(" · ");
 };
 
-export default function FileIdea({ idea, known, own, onPick, onClose }: Props) {
+export default function FileIdea({ idea, known, own, onPick, onToday, onClose }: Props) {
   const [query, setQuery] = useState("");
   const asked = folded(query.trim());
   const where = useMemo(() => {
@@ -65,6 +66,18 @@ export default function FileIdea({ idea, known, own, onPick, onClose }: Props) {
         className="w-full rounded-md border border-line bg-bg px-2.5 py-1.5 text-[13px] outline-none focus:border-accent"
       />
       <ul className="mt-2 flex max-h-[18rem] flex-col gap-px overflow-y-auto">
+        {onToday && (!asked || folded(t("ideaFileToday")).includes(asked)) && (
+          <li>
+            <button
+              type="button"
+              onClick={onToday}
+              className="flex w-full items-baseline gap-2 rounded-md px-2 py-1.5 text-left text-[13px] hover:bg-hover"
+            >
+              <span className="min-w-0 truncate">{t("ideaFileToday")}</span>
+              <span className="min-w-0 shrink truncate text-[11.5px] text-faint">{t("diary")}</span>
+            </button>
+          </li>
+        )}
         {open.length === 0 ? (
           <li className="px-2 py-1.5 text-[12.5px] text-faint">{t("ideaFileNone")}</li>
         ) : (

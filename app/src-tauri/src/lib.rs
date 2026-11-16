@@ -1303,6 +1303,7 @@ fn commands() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool + Send + Sync +
         answers::diary::diary_today,
         answers::diary::diary_write,
         answers::diary::diary_stick,
+        answers::diary::diary_file_idea,
         answers::diary::diary_agents,
         answers::diary::diary_newest,
         answers::diary::diary_laid,

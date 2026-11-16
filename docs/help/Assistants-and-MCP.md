@@ -110,7 +110,7 @@ File a task with its steps and its date, set a reminder, add to a task's journal
 
 When it tells you what it did, it names a task or a document the way you would: by its title and where it is — the list, or the folder. It never shows you an id.
 
-It can **never** close or delete a task, delete a document, or move a day you set. A document that had its day it marks: you delete it, put it away or take the mark off. An idea leaves Brainstorm only when it files the idea in a document or turns it into a task, as you would; an old one it marks the same way. On a task you wrote it works as in a document — the description, the page, the open steps, the title and the list — and a step or the whole task done is only its word, which you take or not.
+It can **never** close or delete a task, delete a document, or move a day you set. A document that had its day it marks: you delete it, put it away or take the mark off. An idea leaves Brainstorm only when it files the idea in a document or turns it into a task, as you would; an old one it marks the same way. Your [Diary](Documents#diary) is out of its sight until you open it from the Diary itself, and even then it only adds to the end of today, signed, when you ask. On a task you wrote it works as in a document — the description, the page, the open steps, the title and the list — and a step or the whole task done is only its word, which you take or not.
 
 The full rules are in [[What an assistant may do|MCP-Permissions]], and every tool is in the [[tools reference|MCP-Tools]].
 

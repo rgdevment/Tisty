@@ -119,6 +119,24 @@ pub fn sticking(session: &mut Session, note: &str, at: DateTime, roll: u32) -> A
     })
 }
 
+#[tauri::command(async)]
+pub fn diary_file_idea(
+    session: tauri::State<'_, Mutex<Session>>,
+    idea: String,
+    heading: String,
+) -> Answer<Today> {
+    filing(&mut held(&session), &idea, &heading, now().date())
+}
+
+pub fn filing(session: &mut Session, idea: &str, heading: &str, today: Date) -> Answer<Today> {
+    if idea.trim().is_empty() {
+        return Err(Refusal::of("untitled"));
+    }
+    written_today(session, today, |_| {
+        tisty_core::brainstorm::filed(idea, heading)
+    })
+}
+
 fn written_today(
     session: &mut Session,
     today: Date,
