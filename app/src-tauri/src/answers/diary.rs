@@ -148,22 +148,30 @@ pub fn diary_drawn(
     session: tauri::State<'_, Mutex<Session>>,
     file: String,
     body: String,
-    today: String,
-    one: String,
-    many: String,
+    placed: bool,
+    said: Labels,
 ) -> tauri::ipc::Response {
-    let shelf = held(&session).paths.cache().join("pages");
-    let html = super::paging::paged(&shelf, &body);
+    let html = match placed {
+        true => tisty_markdown::html_placed(&tisty_markdown::read(&body)),
+        false => super::paging::paged(&held(&session).paths.cache().join("pages"), &body),
+    };
     let days = tisty_core::diary_page::days(&body);
     let said = tisty_core::diary_page::Said {
-        today: &today,
-        one: &one,
-        many: &many,
+        today: &said.today,
+        one: &said.one,
+        many: &said.many,
     };
     let dressed = seen(&held(&session), &file, |page| {
         tisty_core::diary_page::dressed(&html, &days, page, &said)
     });
     tauri::ipc::Response::new(dressed.unwrap_or(html).into_bytes())
+}
+
+#[derive(Debug, serde::Deserialize)]
+pub struct Labels {
+    today: String,
+    one: String,
+    many: String,
 }
 
 #[tauri::command(async)]

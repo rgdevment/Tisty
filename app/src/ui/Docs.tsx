@@ -556,7 +556,15 @@ export default function Docs({
     taskOf(id)
       .then((one) => (onSeeTask ?? onTask)?.(one))
       .catch((e) => onError(saidPlainly(e)));
-  const restrips = useRestrips(inDiary ? open?.file : undefined, body, fresh);
+  const diaryFile = inDiary ? open?.file : undefined;
+  const restrips = useRestrips(diaryFile, body, fresh);
+  const diaryDraw = useMemo(
+    () =>
+      diaryFile
+        ? (text: string, placed: boolean) => diaryDrawn(diaryFile, text, placed)
+        : undefined,
+    [diaryFile],
+  );
 
   const { wholeAsked, allAsked } = useWholeKeys(Boolean(open), !bolted);
   const stood = useRef(new Map<string, number>());
@@ -992,7 +1000,7 @@ export default function Docs({
                   label={called || t("untitledDoc")}
                   onDoc={onDoc}
                   onTag={onTag}
-                  draw={inDiary ? (text) => diaryDrawn(open.file, text) : undefined}
+                  draw={diaryDraw}
                   onTask={inDiary ? seeTask : undefined}
                   above={
                     inDiary ? (

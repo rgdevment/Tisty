@@ -30,11 +30,10 @@ export const diaryAgents = (open: boolean): Promise<void> => invoke("diary_agent
 export const diaryClosed = (file: string, body: string): Promise<string> =>
   invoke("diary_closed", { file, body });
 
-export const diaryDrawn = (file: string, body: string): Promise<string> =>
+export const diaryDrawn = (file: string, body: string, placed: boolean): Promise<string> =>
   invoke<ArrayBuffer>("diary_drawn", {
     file,
     body,
-    today: t("diaryToday"),
-    one: t("diaryClosedOne"),
-    many: t("diaryClosedMany"),
+    placed,
+    said: { today: t("diaryToday"), one: t("diaryClosedOne"), many: t("diaryClosedMany") },
   }).then((bytes) => new TextDecoder().decode(bytes));

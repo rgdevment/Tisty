@@ -6,6 +6,7 @@ import {
   type ReactNode,
   useCallback,
   useEffect,
+  useMemo,
   useRef,
   useState,
 } from "react";
@@ -98,7 +99,7 @@ type Props = {
   readonly card?: (file: string) => Carded;
   readonly part?: (id: string) => PartCarded;
   readonly onTask?: (id: string) => void;
-  readonly draw?: (body: string) => Promise<string>;
+  readonly draw?: (body: string, placed: boolean) => Promise<string>;
   readonly onPart?: (title: string) => Promise<string | null>;
   readonly blurb?: (file: string) => Promise<string>;
   readonly again?: string;
@@ -245,6 +246,11 @@ export default function Sheet(props: Readonly<Props>) {
   // Preview is the core's own page written on in place; only the Markdown view is an editor of plain words.
   // A document and a task's page are both written on as the core draws them.
   const writable = !reading;
+  const drawer = props.draw;
+  const draw = useMemo(
+    () => (drawer ? (body: string) => drawer(body, writable) : writable ? docPlaced : undefined),
+    [drawer, writable],
+  );
   const onPage = writable && !markdown;
   const pageWriter = useRef<{ page: Document; file?: string; hands: PageWriting } | null>(null);
   const turnsOn = useRef<{ file?: string; turns: Turns }>({ turns: turnsAnew() });
@@ -1261,7 +1267,7 @@ export default function Sheet(props: Readonly<Props>) {
           onDoc={(file) => said.current.onDoc?.(file)}
           onOpen={(reference) => said.current.onOpen?.(reference)}
           onTag={(tag) => said.current.onTag?.(tag)}
-          draw={writable ? docPlaced : undefined}
+          draw={draw}
           already={alreadyShown.current}
           onDresser={(dress) => {
             dresser.current = dress;
@@ -1291,7 +1297,6 @@ export default function Sheet(props: Readonly<Props>) {
           card={props.card}
           part={props.part}
           onTask={(id) => said.current.onTask?.(id)}
-          draw={props.draw}
           blurb={props.blurb}
           again={props.again}
           cards={props.cards}

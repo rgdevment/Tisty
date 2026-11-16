@@ -92,7 +92,7 @@ pub fn dressed(html: &str, days: &Days, page: &Page, said: &Said) -> String {
 }
 
 fn drawn(strip: &Strip, said: &Said) -> String {
-    let mut out = String::from("<div class=\"diary-day\">");
+    let mut out = String::from("<div class=\"diary-day\" contenteditable=\"false\">");
     if strip.today {
         out.push_str(&format!(
             "<span class=\"diary-today\">{}</span>",

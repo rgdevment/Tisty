@@ -83,7 +83,12 @@ fn a_day_shows_under_its_title_what_was_closed_on_it_and_today_says_so() {
     let light = dressed.find("Pagar la luz</a>").unwrap();
     assert!(sunday < today && today < vet && vet < saturday, "{dressed}");
     assert!(friday < light, "{dressed}");
-    assert_eq!(dressed.matches("<div class=\"diary-day\">").count(), 2);
+    assert_eq!(
+        dressed
+            .matches("<div class=\"diary-day\" contenteditable=\"false\">")
+            .count(),
+        2
+    );
     assert_eq!(dressed.matches("1 tarea cerrada<").count(), 2);
     assert!(dressed.contains("<a href=\"tisty:task/"));
     assert_eq!(undressed(&dressed), html, "the words were left as drawn");
@@ -91,7 +96,7 @@ fn a_day_shows_under_its_title_what_was_closed_on_it_and_today_says_so() {
 
 fn undressed(html: &str) -> String {
     let mut out = html.to_string();
-    while let Some(from) = out.find("<div class=\"diary-day\">") {
+    while let Some(from) = out.find("<div class=\"diary-day\" contenteditable=\"false\">") {
         let to = from + out[from..].find("</div>").unwrap() + "</div>".len();
         out.replace_range(from..to, "");
     }
@@ -152,3 +157,23 @@ fn seen<'a>(root: &'a std::path::Path, state: &'a State, kept: &'a Kept) -> Page
 }
 
 static UTC: jiff::tz::TimeZone = jiff::tz::TimeZone::UTC;
+
+#[test]
+fn the_strip_lands_on_the_page_the_editor_writes_on_and_cannot_be_typed_into() {
+    let room = tempfile::tempdir().unwrap();
+    let mut state = State::default();
+    let page = diary(&mut state, room.path());
+    closed(&mut state, "Pagar la luz", "2026-11-15");
+    let body = "# Noviembre\n\n## Domingo 15\n\nPaseo.\n";
+    let html = tisty_markdown::html_placed(&tisty_markdown::read(body));
+
+    let dressed = dressed(&html, &days(body), &seen(room.path(), &state, &page), &SAID);
+
+    let heading = dressed.find("</h2>").unwrap();
+    let strip = dressed
+        .find("<div class=\"diary-day\" contenteditable=\"false\">")
+        .unwrap();
+    let words = dressed.find("Paseo.").unwrap();
+    assert!(heading < strip && strip < words, "{dressed}");
+    assert_eq!(undressed(&dressed), html);
+}
