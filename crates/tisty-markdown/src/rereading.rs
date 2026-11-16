@@ -3,7 +3,8 @@ use std::ops::Range;
 use crate::filing::Filing;
 use crate::{Block, Doc, Kind};
 
-const CROSSING: [&str; 3] = ["]:", "[^", ":::"];
+// A details tag pairs with its partner however far, as a definition reaches every reference.
+const CROSSING: [&str; 5] = ["]:", "[^", ":::", "<details", "</details>"];
 
 pub(crate) fn crossing(text: &str) -> bool {
     CROSSING.iter().any(|one| text.contains(one))

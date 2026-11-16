@@ -473,6 +473,90 @@ fn a_tag_typed_on_a_long_page_is_read_around_at_each_key() {
 }
 
 #[test]
+fn a_details_closed_far_below_its_opener_reads_as_the_whole_text_does() {
+    let text = "<details>\n\nUno.\n\nDos.\n\nTres.\n\nCuatro.\n\n</details\n\nCinco.\n";
+    let at = text.find("</details").unwrap_or_default() + 9;
+    let next = format!("{}>{}", &text[..at], &text[at..]);
+    assert_eq!(reread_edit(read(text), at..at, ">"), Ok(read(&next)));
+}
+
+const DETAILED: &str = "<details>\n<summary>Rina</summary>\n\nUno.\n\nDos.\n\n<details open>\n\nTres.\n\n</details>\n\nCuatro.\n\nCinco.\n\n</details\n\nSeis.\n\nSiete.\n\n<details>\n\nOcho.\n\n<summary>Roger</summary>\n\nNueve.\n\n</details>\n\nDiez.\n\nOnce.\n";
+
+const DETAILING: [&str; 16] = [
+    "\n\n<details>\n\n",
+    "\n\n</details>\n\n",
+    "\n\n<details open>\n<summary>Más</summary>\n\n",
+    "\n\n<summary>Más</summary>\n\n",
+    "\n\n:::tip\n\n",
+    "\n\n:::\n\n",
+    "<details>",
+    "</details>",
+    "<details",
+    "</details",
+    ">",
+    "<",
+    "/",
+    "d",
+    "\n",
+    "\n\n",
+];
+
+#[test]
+fn an_edit_on_a_page_with_details_reads_as_the_whole_text_does() {
+    let texts = [
+        DETAILED.to_string(),
+        format!("{}{DETAILED}", plain(SAMPLES[0])),
+        format!("{DETAILED}{}", "Párrafo.\n\n".repeat(30)),
+    ];
+    for (page, sample) in texts.iter().enumerate() {
+        let mut short = 0;
+        let mut all = 0;
+        // Many short runs, since every tag the edits write leaves fewer stretches free of one.
+        for run in 0..10 {
+            let mut steps = Steps(0xDE7A_1150 + (page * 10 + run) as u64);
+            let mut text = sample.clone();
+            let mut was = read(&text);
+            for _ in 0..40 {
+                let at = boundary(&text, steps.next(text.len() + 1));
+                let to = boundary(&text, (at + steps.next(4)).min(text.len()));
+                let insert = match steps.next(3) {
+                    0 => DETAILING[steps.next(DETAILING.len())],
+                    _ => PIECES[steps.next(PIECES.len())],
+                };
+                let next = format!("{}{insert}{}", &text[..at], &text[to..]);
+                let changed = Changed {
+                    start: at,
+                    old_end: to,
+                    new_end: at + insert.len(),
+                };
+                short += usize::from(planned(&was, &next, &changed).is_some());
+                all += 1;
+                let again = reread_edit(was, at..to, insert)
+                    .unwrap_or_else(|_| panic!("{at}..{to} falls between the characters"));
+                assert_eq!(again, read(&next), "{at}..{to} → {insert:?} in {text:?}");
+                text = next;
+                was = again;
+            }
+        }
+        assert!(
+            short * 6 > all,
+            "only {short} of {all} edits on page {page} were read around"
+        );
+    }
+}
+
+#[test]
+fn a_details_far_from_an_edit_is_read_around() {
+    let text = "<details>\n<summary>Rina</summary>\n\nUno.\n\n</details>\n\nDos.\n\nTres.\n\nCuatro.\n\n<details>\n\nCinco.\n";
+    let at = text.find("Tres").unwrap_or_default() + 4;
+    let next = format!("{}s{}", &text[..at], &text[at..]);
+    let was = read(text);
+    assert!(was.crossing);
+    assert!(plan(&was, &next).is_some());
+    assert_eq!(reread_edit(was, at..at, "s"), Ok(read(&next)));
+}
+
+#[test]
 fn a_fence_opened_by_an_edit_reads_the_whole_text() {
     let text = "Uno.\n\nDos.\n\nTres.\n";
     let next = text.replace("Dos.", "```\nDos.");
