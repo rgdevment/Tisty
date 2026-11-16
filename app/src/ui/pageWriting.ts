@@ -10,7 +10,7 @@ import { keysOn } from "./pageKeys";
 import { layingOn } from "./pageLaying";
 import { balanced } from "./pageMarks";
 import type { Act } from "./pageMoving";
-import { elementOf, inCode, opened } from "./pageNodes";
+import { elementOf, inCode, onSheet, opened } from "./pageNodes";
 import { tagList, tagMatch } from "./pageTags";
 import { type Hands, writerOf } from "./pageWriter";
 import { unformattable } from "./quickly";
@@ -110,9 +110,30 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
     event.preventDefault();
     begun.intoFold(fold);
   };
+  const chosen = () => {
+    const one = caret.chosenNow();
+    const text = hands.text();
+    const whole = one && balanced(text, one);
+    return whole ? text.slice(whole.from, whole.to) : null;
+  };
+  const cut = () => {
+    const picked = caret.chosenNow();
+    const one = picked && balanced(hands.text(), picked);
+    if (one) laying.put({ ...one, insert: "" }, one.from);
+  };
+  // Ctrl+C and Ctrl+X carry the Tisty Markdown of the words chosen, as the right-click does, never the drawn page.
+  const clipped = (event: ClipboardEvent) => {
+    const words = onSheet(page, event) ? chosen() : null;
+    if (!words || !event.clipboardData) return;
+    event.preventDefault();
+    event.clipboardData.setData("text/plain", words);
+    if (event.type === "cut") cut();
+  };
   page.addEventListener("keydown", named, true);
   page.addEventListener("keydown", keys.keyed);
   page.addEventListener("paste", input.pastedFiles);
+  page.addEventListener("copy", clipped);
+  page.addEventListener("cut", clipped);
   const away = () => hands.settle?.();
   page.defaultView?.addEventListener("blur", away);
   opened(page);
@@ -128,12 +149,7 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
     },
     rewrite: history.rewrite,
     outside: history.outside,
-    chosen: () => {
-      const one = caret.chosenNow();
-      const text = hands.text();
-      const whole = one && balanced(text, one);
-      return whole ? text.slice(whole.from, whole.to) : null;
-    },
+    chosen,
     slashed: beside.slashed,
     unitActed: beside.unitActed,
     begin: begun.begin,
@@ -151,11 +167,7 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
         if (at !== null) caret.placeAt(at);
       };
     },
-    cut: () => {
-      const chosen = caret.chosenNow();
-      const one = chosen && balanced(hands.text(), chosen);
-      if (one) laying.put({ ...one, insert: "" }, one.from);
-    },
+    cut,
     stop: () => {
       writer.turns.left = hands.text();
       laying.told();
@@ -166,6 +178,8 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
       page.removeEventListener("keydown", keys.keyed);
       page.removeEventListener("keydown", named, true);
       page.removeEventListener("paste", input.pastedFiles);
+      page.removeEventListener("copy", clipped);
+      page.removeEventListener("cut", clipped);
       tags.stop();
       beside.stop();
       page.removeEventListener("mousedown", keys.moved);

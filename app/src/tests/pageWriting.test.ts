@@ -181,6 +181,46 @@ describe("writing on the page the core draws", () => {
     expect(said[said.length - 1]).toBe("# Hola\n\n tres\n\n- primero\n- segundo\n");
   });
 
+  describe("Ctrl+C and Ctrl+X", () => {
+    const clip = (kind: "copy" | "cut", on: Element | null = document.querySelector(".page")) => {
+      const put: string[] = [];
+      const event = new Event(kind, { bubbles: true, cancelable: true });
+      Object.defineProperty(event, "clipboardData", {
+        value: { setData: (_: string, said: string) => put.push(said) },
+      });
+      on?.dispatchEvent(event);
+      return { put, taken: event.defaultPrevented };
+    };
+    const choose = () => {
+      const range = document.createRange();
+      range.setStart(piece("Uno "), 0);
+      range.setEnd(piece("dos"), 3);
+      document.getSelection()?.removeAllRanges();
+      document.getSelection()?.addRange(range);
+    };
+
+    it("copies the Tisty Markdown of the words chosen, leaving the page as it is", () => {
+      const said = writer();
+      choose();
+      expect(clip("copy")).toEqual({ put: ["Uno **dos**"], taken: true });
+      expect(said).toEqual([]);
+    });
+
+    it("cuts the Tisty Markdown of the words chosen and takes them away", () => {
+      const said = writer();
+      choose();
+      expect(clip("cut")).toEqual({ put: ["Uno **dos**"], taken: true });
+      expect(said[said.length - 1]).toBe("# Hola\n\n tres\n\n- primero\n- segundo\n");
+    });
+
+    it("leaves the browser's own copy when nothing is chosen", () => {
+      writer();
+      caretIn("dos", 1);
+      document.dispatchEvent(new Event("selectionchange"));
+      expect(clip("copy")).toEqual({ put: [], taken: false });
+    });
+  });
+
   it("keeps the caret it lays through a key, and lets it go with an arrow", () => {
     const said = writer();
     caretIn("Hola", 4);
