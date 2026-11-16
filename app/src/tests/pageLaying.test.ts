@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { checkAfter, checkOf, type PlacedNear, type Sent, summed, type Typed } from "../placing";
 import { changeOf, inWholeChars } from "../ui/pageEdits";
+import { placeOf } from "../ui/pagePlaces";
 import { type PageWriting, writtenOn } from "../ui/pageWriting";
 
 const BYTES = new TextEncoder();
@@ -156,5 +157,55 @@ describe("a key laid while the next is already written", () => {
     await vi.waitFor(() =>
       expect(document.querySelector(".table")?.getAttribute("contenteditable")).toBe("false"),
     );
+  });
+});
+
+describe("the places after a key, written once the keys rest", () => {
+  it("leaves the blocks after a key as they say until the keys rest, and reads them moved", async () => {
+    let text = BODY;
+    const shown: string[] = [];
+    document.body.innerHTML = `<article class="page">${PLACED}</article>`;
+    const list = document.querySelector("ul") as Element;
+    writing = writtenOn(document, {
+      text: () => text,
+      write: (next) => {
+        text = next;
+      },
+      shown: (now) => shown.push(now),
+      redraw: () => {},
+      near: () =>
+        Promise.resolve({
+          count: 3,
+          sum: summed([0, 6, 33, 43]),
+          from: 1,
+          to: 2,
+          html: '<p data-at="8-30"><span data-src="8-30">Uno 😀 dos ñandúñ</span></p>',
+          heads: null,
+          whole: false,
+        }),
+      dressed: () => {},
+      translated: (_, plain) => Promise.resolve(plain),
+      ask: () => {},
+      blocks: () => {},
+      acts: () => {},
+    });
+    caretAfter("ñandú");
+    document.querySelector(".page")?.dispatchEvent(
+      new InputEvent("beforeinput", {
+        inputType: "insertText",
+        data: "ñ",
+        bubbles: true,
+        cancelable: true,
+      }),
+    );
+
+    await vi.waitFor(() => expect(document.querySelector("p")?.textContent).toContain("ñandúñ"));
+    expect(list.getAttribute("data-at")).toBe("31-41");
+    expect(placeOf(list)).toEqual([33, 43]);
+    expect(placeOf(list.querySelector("[data-src]"), "data-src")).toEqual([35, 42]);
+
+    await vi.waitFor(() => expect(shown).toEqual([text]));
+    expect(list.getAttribute("data-at")).toBe("33-43");
+    expect(list.querySelector("li")?.getAttribute("data-at")).toBe("33-42");
   });
 });

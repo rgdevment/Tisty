@@ -11,6 +11,7 @@ import {
 import { attached, docDrawn, type Paper } from "../core";
 import { t } from "../locales";
 import { named, pictured } from "../previews";
+import { placeSaid } from "./pagePlaces";
 import type { Stamp } from "./printing";
 import { coverOn, creditOn } from "./stamped";
 import task from "./taskpage.css?raw";
@@ -68,7 +69,7 @@ const unlinked = (page: Document) => {
     card.replaceWith(worded(page, card.textContent ?? ""));
   for (const link of page.querySelectorAll<HTMLAnchorElement>('a[href^="tisty:"]'))
     link.replaceWith(...link.childNodes);
-  for (const one of page.querySelectorAll<HTMLElement>("[data-at]")) delete one.dataset.at;
+  for (const one of page.querySelectorAll("[data-at]")) one.removeAttribute("data-at");
   page.querySelector("article.page")?.removeAttribute("inert");
 };
 
@@ -107,7 +108,7 @@ const asSeen = (drawn: string, { turns = [], opened = [], wide = [] }: PaperShee
   if (!turns.length && !opened.length && !wide.length) return drawn;
   const held = new DOMParser().parseFromString(`<body>${drawn}</body>`, "text/html").body;
   for (const one of held.children) {
-    const at = (one as HTMLElement).dataset.at ?? "";
+    const at = placeSaid(one) ?? "";
     if (turns.includes(at)) one.classList.add("turned");
     if (one.tagName === "DETAILS" && opened.includes(at)) one.setAttribute("open", "");
     if (wide.includes(at)) one.classList.add("wide");
