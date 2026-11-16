@@ -39,7 +39,7 @@ export const draggingOn = (writer: Writer, caret: Caret, laying: Laying) => {
   mark.className = "page-drop-caret";
   mark.hidden = true;
   page.body.append(mark);
-  let held: { x: number; y: number; words: Span; moved: boolean } | null = null;
+  let held: { x: number; y: number; words: Span; said: string; moved: boolean } | null = null;
 
   const shown = (point: Range | null) => {
     const box = point?.getClientRects()[0] ?? point?.getBoundingClientRect();
@@ -70,7 +70,9 @@ export const draggingOn = (writer: Writer, caret: Caret, laying: Laying) => {
     if (!was || !point) return;
     if (!was.moved) return page.getSelection()?.collapse(point.startContainer, point.startOffset);
     const to = caret.spanOfRange(point)?.from;
-    const moved = to === undefined ? null : movedWords(hands.text(), was.words, to);
+    const text = hands.text();
+    if (text.slice(was.words.from, was.words.to) !== was.said) return;
+    const moved = to === undefined ? null : movedWords(text, was.words, to);
     if (moved) laying.put(...moved);
   };
 
@@ -86,10 +88,13 @@ export const draggingOn = (writer: Writer, caret: Caret, laying: Laying) => {
     const chosen = caret.chosenNow();
     if (!chosen) return;
     event.preventDefault();
+    const text = hands.text();
+    const words = balanced(text, chosen);
     held = {
       x: event.clientX,
       y: event.clientY,
-      words: balanced(hands.text(), chosen),
+      words,
+      said: text.slice(words.from, words.to),
       moved: false,
     };
     page.addEventListener("mousemove", dragged);

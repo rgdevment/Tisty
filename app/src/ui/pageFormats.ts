@@ -16,6 +16,7 @@ import {
   worn,
   wornEach,
 } from "./pageMarks";
+import { elementOf } from "./pageNodes";
 import type { Writer } from "./pageWriter";
 import { unformattable } from "./quickly";
 
@@ -28,7 +29,7 @@ export const addressed = (typed: string) =>
     : typed;
 
 const LINK =
-  /(?<!!)\[((?:\\.|[^\]\\])*)\]\((<[^>]*>|[^\s)]*)((?:\s+(?:"[^"]*"|'[^']*'|\([^)]*\)))?)\)/g;
+  /(?<!!)\[((?:\\.|[^\]\\])*)\]\((<[^>]*>|(?:[^\s()]|\([^\s()]*\))*)((?:\s+(?:"[^"]*"|'[^']*'|\([^)]*\)))?)\)/g;
 
 type Written = {
   readonly from: number;
@@ -145,6 +146,8 @@ export const formatsOn = (writer: Writer, caret: Caret, laying: Laying) => {
       const span = one ?? caret.caretSpan();
       const written = span && writtenLink(text, span);
       if (written) return relinked(written, span.to);
+      // A link written another way, by reference or as a bare address, is left as it is rather than nested.
+      if (elementOf(caret.chosen()?.startContainer)?.closest(".page a")) return;
       if (span) linked(span);
       return;
     }

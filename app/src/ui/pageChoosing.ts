@@ -66,10 +66,12 @@ export const choosingOn = (writer: Writer, caret: Caret, laying: Laying, beside:
     if (!both || !one) return;
     const after = spanned(tops()[both[1] + 1]?.getAttribute("data-at") ?? null);
     const text = hands.text();
-    const to = after ? charsAt(text, after[0]) : one.to;
+    let from = one.from;
+    if (!after) while (text[from - 1] === "\n" && text[from - 2] === "\n") from--;
+    const to = after ? charsAt(text, after[0]) : text.length;
     chosen = null;
     shown();
-    laying.put({ from: one.from, to, insert: "" }, one.from);
+    laying.put({ from, to, insert: "" }, from);
   };
 
   const moved = (way: -1 | 1) => {
@@ -83,7 +85,9 @@ export const choosingOn = (writer: Writer, caret: Caret, laying: Laying, beside:
     if (way > 0 && !all[both[1] + 1]) return;
     const at = spanned(past?.getAttribute("data-at") ?? null);
     const target = at ? charsAt(text, at[0]) : text.length;
-    beside.replaced(movedTo(text, { ...one, last: both[1] }, target));
+    const next = movedTo(text, { ...one, last: both[1] }, target);
+    if (!next) return;
+    beside.replaced(next);
     chosen = { anchor: chosen.anchor + way, head: chosen.head + way };
   };
 

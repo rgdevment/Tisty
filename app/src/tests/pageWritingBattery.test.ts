@@ -909,6 +909,26 @@ describe("Ctrl and K", () => {
       expect(last(said)).toBe("[plan](<otro plan.pdf>)");
     });
 
+    it("takes an address with parentheses whole", async () => {
+      const said = lineAt("ver [perro](https://es.wikipedia.org/wiki/Perro_(animal)) hoy", 6);
+      key("k", { ctrlKey: true });
+      expect(field()?.value).toBe("https://es.wikipedia.org/wiki/Perro_(animal)");
+      await answer("a.com");
+      expect(last(said)).toBe("ver [perro](https://a.com) hoy");
+    });
+
+    it("leaves a link written by reference as it is, never nesting another inside", () => {
+      const said = writer("ver [mapa][r] hoy\n\n[r]: https://tisty.app\n");
+      pageOf(
+        '<p data-at="0-17"><span data-src="0-4">ver </span><a href="https://tisty.app"><span data-src="5-9">mapa</span></a><span data-src="13-17"> hoy</span></p>',
+      );
+      writing?.drawn();
+      caretIn("mapa", 2);
+      key("k", { ctrlKey: true });
+      expect(field()).toBeNull();
+      expect(said).toEqual([]);
+    });
+
     it("leaves the link as it was when the field is left with Escape", async () => {
       const said = lineAt("ver [Rina](a.com) hoy", 6);
       key("k", { ctrlKey: true });

@@ -226,6 +226,21 @@ describe("writing on the page the core draws", () => {
       expect(said[said.length - 1]).toBe("# Hola\n\n**dos** tres\n\n- Uno primero\n- segundo\n");
     });
 
+    it("moves nothing when the words changed under the pointer before it let go", () => {
+      const said = writer();
+      const range = document.createRange();
+      range.setStart(piece("Uno "), 0);
+      range.setEnd(piece("Uno "), 4);
+      document.getSelection()?.removeAllRanges();
+      document.getSelection()?.addRange(range);
+      pointing({ 10: ["Uno ", 2], 60: ["primero", 0] });
+      mouse("mousedown", 10);
+      mouse("mousemove", 60);
+      writing?.rewrite(BODY.replace("# Hola", "# Hola y más"));
+      mouse("mouseup", 60);
+      expect(said[said.length - 1]).toBe(BODY.replace("# Hola", "# Hola y más"));
+    });
+
     it("puts the caret where the press was when the pointer did not move", () => {
       const said = writer();
       const range = document.createRange();
@@ -1174,7 +1189,7 @@ describe("blocks chosen with Escape", () => {
     press("Escape");
     press("ArrowDown", { shiftKey: true });
     press("Backspace");
-    expect(said[said.length - 1]).toBe("# Hola\n\n");
+    expect(said[said.length - 1]).toBe("# Hola\n");
     press("z", { ctrlKey: true });
     expect(said[said.length - 1]).toBe(BODY);
   });
@@ -1190,6 +1205,14 @@ describe("blocks chosen with Escape", () => {
     });
     document.querySelector(".page")?.dispatchEvent(event);
     expect(put).toEqual(["Uno **dos** tres"]);
+  });
+
+  it("takes the last block away with the blank lines before it, leaving none behind", () => {
+    const said = writer();
+    caretIn("primero", 1);
+    press("Escape");
+    press("Delete");
+    expect(said[said.length - 1]).toBe("# Hola\n\nUno **dos** tres\n");
   });
 
   it("moves the chosen blocks with Alt and an arrow", () => {
