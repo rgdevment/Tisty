@@ -338,6 +338,29 @@ describe("a line begun on a task's page written in place", () => {
     );
   });
 
+  it("keeps a line begun while words arrive from beside the page, moved along with them", () => {
+    const said = writer();
+    const list = document.querySelector("ul") as Element;
+    writing?.begin(BODY.length - 1, "- [ ] ", list);
+    writing?.rewrite(BODY.replace("Uno", "Uno y más"));
+    asked("insertText", "x");
+    expect(said[said.length - 1]).toBe(
+      "# Hola\n\nUno y más **dos** tres\n\n- primero\n- segundo\n- [ ] x\n",
+    );
+  });
+
+  it("keeps a line begun in its place when words change after it", () => {
+    const said = writer("Uno\n\nDos\n");
+    pageOf(
+      '<p data-at="0-3"><span data-src="0-3">Uno</span></p><p data-at="5-8"><span data-src="5-8">Dos</span></p>',
+    );
+    writing?.drawn();
+    writing?.begin(3, "", document.querySelector("p") as Element);
+    writing?.rewrite("Uno\n\nDos y tres\n");
+    asked("insertText", "x");
+    expect(said[said.length - 1]).toBe("Uno\n\nx\n\nDos y tres\n");
+  });
+
   it("joins a step asked past the blank line that ends the list, so the list stays tight", () => {
     const said = writer("- [ ] uno\n\n## Notas\n");
     pageOf(

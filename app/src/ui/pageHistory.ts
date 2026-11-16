@@ -29,16 +29,21 @@ export const historyOn = (writer: Writer, caret: Caret, laying: Laying) => {
   // The caret goes with the words it stood in, as far into them as it was.
   // Words changed from beside the page, as a table's cell, are laid block by block and leave the caret where it is.
   const keptAcross = (one: Edit) => {
+    const by = one.insert.length - (one.to - one.from);
+    const moved = (at: number) => (at <= one.from ? at : Math.max(one.from, at + by));
+    writer.pending = null;
+    // A line begun and not yet written keeps what it will open with, only its place moves.
+    const begun = writer.kept?.lead !== undefined ? writer.kept : null;
+    if (begun) {
+      writer.kept = { ...begun, node: page.body, offset: -1, at: moved(begun.at) };
+      return;
+    }
     const held = caret.chosen();
     const sheet = page.querySelector(".page");
     const was =
       held?.collapsed && sheet?.contains(held.startContainer) ? caret.caretSpan()?.from : null;
-    const by = one.insert.length - (one.to - one.from);
     writer.kept =
-      was === null || was === undefined
-        ? null
-        : { node: page.body, offset: -1, at: was <= one.from ? was : Math.max(one.from, was + by) };
-    writer.pending = null;
+      was === null || was === undefined ? null : { node: page.body, offset: -1, at: moved(was) };
   };
 
   const rewrite = (next: string) => {
