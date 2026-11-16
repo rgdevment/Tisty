@@ -82,6 +82,8 @@ jobs:
           drive-format: ReFS
           drive-type: Dynamic
           trusted-dev-drive: true
+          # Beside the checkout, because the cache only keeps a target it can reach from there by a relative path.
+          mount-path: ${{ github.workspace }}/../dev-drive
           env-mapping: |
             CARGO_TARGET_DIR,{{ DEV_DRIVE }}/target
             TEMP,{{ DEV_DRIVE }}/tmp
@@ -97,7 +99,7 @@ jobs:
           shared-key: workspace
           # One job per system writes the cache, and it is one that builds the tests.
           save-if: ${{ github.ref == 'refs/heads/main' && (!matrix.part || matrix.part == '1/2') }}
-          workspaces: ${{ runner.os == 'Windows' && format('. -> {0}/target', env.DEV_DRIVE) || '. -> target' }}
+          workspaces: ${{ runner.os == 'Windows' && '. -> ../dev-drive/target' || '. -> target' }}
       # A fresh checkout makes cargo rebuild every crate of ours; sccache knows the ones a branch left alone.
       - uses: mozilla-actions/sccache-action@fc920bf0ec8de6ee65d409111f7ec508035751ba # v0.0.11
       - name: Compile through sccache
