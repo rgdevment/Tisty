@@ -122,6 +122,7 @@ fn a_guide_that_came_from_another_machine_is_taken_rather_than_planted_again() {
                 said: Some(tisty_core::event::Said {
                     key: None,
                     brainstorm: false,
+                    diary: false,
                     lang: None,
                     title: tisty_core::docs::titled(crate::answers::settings::GUIDE_ES),
                     bytes: None,
@@ -171,6 +172,7 @@ fn a_document_of_your_own_is_never_mistaken_for_the_guide() {
                 said: Some(tisty_core::event::Said {
                     key: None,
                     brainstorm: false,
+                    diary: false,
                     lang: None,
                     title: "Mis notas".into(),
                     bytes: None,

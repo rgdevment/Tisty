@@ -33,6 +33,7 @@ pub(in crate::mcp) fn edit_table(paths: &Paths, args: &Value) -> Result<Value, R
     let next = grid::edits(&body, table.at.clone(), &edits).map_err(refused)?;
     super::writing::still_speaks(&body, &next)?;
     super::super::ideas::keeps_every_idea(&state, &which, &body, &next)?;
+    super::super::diary::body_kept(&body, &next)?;
     let print = tisty_core::attach::printed(body.as_bytes());
     let made = tisty_core::docs::rewrite(&paths.docs(), paths.data(), &which, &next, &print)
         .map_err(hitch)?;

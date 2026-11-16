@@ -48,6 +48,7 @@ pub struct State {
     pub shed: BTreeSet<String>,
     pub forebears: BTreeSet<String>,
     pub persons: crate::person::Persons,
+    pub diary_open: bool,
     pub(crate) fill: Fill,
     pub(crate) tombstones: BTreeSet<Ulid>,
 }
@@ -419,6 +420,7 @@ impl State {
                 let by_person = !self.assistants.contains(&event.device);
                 self.shelve(*id, true, by_person)
             }
+            Op::DiaryAgents { open } => self.diary_let(event, *open),
             Op::DocLock { id } => self.bolt(*id, true),
             Op::DocUnlock { id } => self.bolt(*id, false),
             Op::DocUnarchive { id } => self.shelve(*id, false, true),

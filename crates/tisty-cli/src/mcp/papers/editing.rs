@@ -133,6 +133,7 @@ fn edited(paths: &Paths, args: &Value, as_sent: bool) -> Result<Value, Refused> 
         let after = before.replacen(as_old.as_str(), &as_new, 1);
         super::writing::still_speaks(&before, &after)?;
         super::super::ideas::keeps_every_idea(&state, &which, &before, &after)?;
+        super::super::diary::body_kept(&before, &after)?;
     }
     let made = tisty_core::docs::edit(&paths.docs(), paths.data(), &which, old, new).map_err(
         |e| match e {

@@ -181,6 +181,7 @@ fn a_body_that_arrived_saying_another_order_is_settled_in_one_batch() {
                 flagged: None,
                 ideas_flagged: Vec::new(),
                 brainstorm: false,
+                diary: false,
                 compacted: None,
                 folder_was: None,
                 task_of: None,
