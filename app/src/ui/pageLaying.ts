@@ -68,7 +68,14 @@ export const layingOn = (writer: Writer, caret: Caret, drawn: () => void) => {
       writer.kept && writer.kept.offset < 0
         ? writer.kept.at
         : (caret.caretSpan()?.from ?? one.from);
-    recorded(writer.turns, { text, at: Math.min(stood, text.length), after: landed });
+    recorded(writer.turns, {
+      from: one.from,
+      removed: text.slice(one.from, one.to),
+      added: one.insert,
+      at: Math.min(stood, text.length),
+      after: landed,
+      typed: writer.typing ? Date.now() : undefined,
+    });
     writer.kept = { node: page.body, offset: -1, at: landed };
     hands.write(next);
     if (drawnWhole) writer.whole = true;

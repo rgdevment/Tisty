@@ -1,7 +1,7 @@
 import type { Asking } from "tisty-editor/edit";
 import type { PlacedNear } from "../placing";
 import type { Anchor } from "./dressing";
-import type { Span } from "./pageEdits";
+import { changeOf, type Span } from "./pageEdits";
 import type { Marks } from "./pageMarks";
 
 /** `lead` and `tail` wrap the first key of a line begun from a hint or a button, written only once a key comes. */
@@ -13,16 +13,49 @@ export type Kept = {
   readonly tail?: string;
 };
 
-type Turn = { readonly text: string; readonly at: number; readonly after?: number };
+export type Turn = {
+  readonly from: number;
+  readonly removed: string;
+  readonly added: string;
+  readonly at: number;
+  readonly after?: number;
+  readonly typed?: number;
+};
 
 /** What Ctrl+Z walks back through, kept by whoever shows the page so a turn to the Markdown keeps it. */
 export type Turns = { readonly undone: Turn[]; readonly redone: Turn[]; left?: string };
 
 export const turnsAnew = (): Turns => ({ undone: [], redone: [] });
 
+export const turnOf = (was: string, now: string, at: number, after?: number): Turn => {
+  const one = changeOf(was, now);
+  return { from: one.from, removed: was.slice(one.from, one.to), added: one.insert, at, after };
+};
+
+const TYPED_TOGETHER_MS = 1000;
+
+// Keys typed one after another, with no pause and no new line, are walked back as one step.
+const joined = (last: Turn, next: Turn): Turn | null => {
+  if (last.typed === undefined || next.typed === undefined) return null;
+  if (next.typed - last.typed > TYPED_TOGETHER_MS) return null;
+  const end = last.from + last.added.length;
+  const later = { after: next.after, typed: next.typed };
+  const lined = next.added.includes("\n") || last.added.includes("\n");
+  if (!next.removed && next.from === end && !lined)
+    return { ...last, ...later, added: last.added + next.added };
+  if (last.added || next.added) return null;
+  if (next.from + next.removed.length === last.from)
+    return { ...last, ...later, from: next.from, removed: next.removed + last.removed };
+  if (next.from === last.from) return { ...last, ...later, removed: last.removed + next.removed };
+  return null;
+};
+
 export const recorded = (turns: Turns, turn: Turn) => {
-  turns.undone.push(turn);
   turns.redone.length = 0;
+  const last = turns.undone[turns.undone.length - 1];
+  const both = last && joined(last, turn);
+  if (both) turns.undone[turns.undone.length - 1] = both;
+  else turns.undone.push(turn);
 };
 
 export type Point = { readonly x: number; readonly y: number; readonly top?: number };

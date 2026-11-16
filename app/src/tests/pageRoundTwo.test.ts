@@ -1,5 +1,5 @@
 import { SLASHED, type Slashed } from "tisty-editor/edit";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { type Hands, type PageWriting, writtenOn } from "../ui/pageWriting";
 
 const escaped = (said: string) => said.replace(/&/g, "&amp;").replace(/</g, "&lt;");
@@ -268,14 +268,44 @@ describe("Ctrl+Z, Ctrl+Shift+Z and Ctrl+Y on the page", () => {
     expect(one.said).toEqual([]);
   });
 
-  it("steps back one key at a time down to the start", () => {
+  it("takes back words typed together in one step, down to the start", () => {
     open("Hola\n", 4);
     type("abc");
     ctrl("z");
-    expect(text()).toBe("Holaab\n");
-    ctrl("z");
+    expect(text()).toBe("Hola\n");
     ctrl("z");
     expect(text()).toBe("Hola\n");
+    ctrl("y");
+    expect(text()).toBe("Holaabc\n");
+  });
+
+  it("takes back words typed after a pause as a step of their own", () => {
+    const clock = vi.spyOn(Date, "now").mockReturnValue(1000);
+    open("Hola\n", 4);
+    type("ab");
+    clock.mockReturnValue(5000);
+    type("cd");
+    ctrl("z");
+    expect(text()).toBe("Holaab\n");
+    ctrl("z");
+    expect(text()).toBe("Hola\n");
+    clock.mockRestore();
+  });
+
+  it("takes back the words after a new line apart from those before it", () => {
+    open("Hola\n", 4);
+    type("ab");
+    enter();
+    type("cd");
+    ctrl("z");
+    expect(text()).not.toContain("cd");
+    expect(text()).toContain("Holaab");
+  });
+
+  it("takes back a Backspace run in one step", () => {
+    open("Hola\n", 4);
+    for (let n = 0; n < 3; n++) asked("deleteContentBackward");
+    expect(text()).toBe("H\n");
     ctrl("z");
     expect(text()).toBe("Hola\n");
   });
