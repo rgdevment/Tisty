@@ -20,17 +20,16 @@ const folds = (blocks: readonly Element[]) =>
     ...one.querySelectorAll("details"),
   ]);
 
-export const spansSum = (spans: readonly (readonly [number, number])[]) => summed(spans.flat());
-
-const placeOf = (one: Element, by: number): [number, number] | null => {
-  const at = spanned(one.getAttribute("data-at"));
-  return at && [at[0] + by, at[1] + by];
-};
-
-const linedUp = (standing: readonly Element[], near: PlacedNear, by: number) => {
-  const places = standing.map((one, at) => placeOf(one, at < near.from ? 0 : by));
-  if (places.some((one) => !one)) return false;
-  const [fnv, mixed] = spansSum(places as [number, number][]);
+const linedUp = (old: readonly Element[], near: PlacedNear, kept: number, by: number) => {
+  const places: number[] = [];
+  for (let at = 0; at < old.length; at++) {
+    if (at >= near.from && at < kept) continue;
+    const place = spanned(old[at].getAttribute("data-at"));
+    if (!place) return false;
+    const moved = at < near.from ? 0 : by;
+    places.push(place[0] + moved, place[1] + moved);
+  }
+  const [fnv, mixed] = summed(places);
   return fnv === near.sum[0] && mixed === near.sum[1];
 };
 
@@ -42,7 +41,7 @@ export const patched = (sheet: Element, near: PlacedNear, by: number): Element[]
   const after = count - to;
   const kept = old.length - after;
   if (after < 0 || kept < from) return null;
-  if (!linedUp([...old.slice(0, from), ...old.slice(kept)], near, by)) return null;
+  if (!linedUp(old, near, kept, by)) return null;
   const page = sheet.ownerDocument;
   const fresh = page.createElement("template");
   fresh.innerHTML = near.html;

@@ -101,7 +101,8 @@ fn planned(was: &Doc, text: &str, changed: &Changed) -> Option<Plan> {
         old_end,
         new_end,
     } = *changed;
-    let near = &text.as_bytes()[start.saturating_sub(2)..(new_end + 2).min(text.len())];
+    let reach = CROSSING.iter().map(|one| one.len()).max().unwrap_or(1) - 1;
+    let near = &text.as_bytes()[start.saturating_sub(reach)..(new_end + reach).min(text.len())];
     if CROSSING
         .iter()
         .any(|one| near.windows(one.len()).any(|at| at == one.as_bytes()))

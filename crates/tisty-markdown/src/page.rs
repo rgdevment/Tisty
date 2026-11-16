@@ -32,8 +32,6 @@ fn page_of(doc: &Doc, placed: bool) -> String {
     out
 }
 
-/// What an edit changed on the page being written: how many top-level blocks it has, a sum of where
-/// those not drawn again stand, and the blocks from `drawn.start` to `drawn.end` drawn again.
 pub struct Near {
     pub count: usize,
     pub sum: [u32; 2],
@@ -62,22 +60,10 @@ fn holds_heading(blocks: &[Block]) -> bool {
 
 pub fn placed_near(doc: &Doc, from: usize, to: usize) -> Near {
     let blocks = doc.blocks();
-    let spans: Vec<[usize; 2]> = blocks
-        .iter()
-        .map(|one| [one.at.start, one.at.end])
-        .collect();
-    let touched = |one: &[usize; 2]| one[1] >= from && one[0] <= to;
-    let start = spans
-        .iter()
-        .position(touched)
-        .unwrap_or_else(|| spans.partition_point(|one| one[1] < from))
-        .saturating_sub(1);
-    let end = spans
-        .iter()
-        .rposition(touched)
-        .map_or(start + 1, |at| at + 2)
-        .max(start + 1)
-        .min(spans.len());
+    let first = blocks.partition_point(|one| one.at.end < from);
+    let last = blocks.partition_point(|one| one.at.start <= to);
+    let start = first.saturating_sub(1);
+    let end = if last > first { last + 1 } else { start + 1 }.min(blocks.len());
     let drawn = start.min(end)..end;
     let again = blocks.get(drawn.clone()).unwrap_or_default();
     let drawing = Drawing {
@@ -93,10 +79,10 @@ pub fn placed_near(doc: &Doc, from: usize, to: usize) -> Near {
     for block in again {
         draw(block, doc.text(), &drawing, &mut html);
     }
-    let kept = spans[..drawn.start].iter().chain(&spans[drawn.end..]);
+    let kept = blocks[..drawn.start].iter().chain(&blocks[drawn.end..]);
     Near {
-        count: spans.len(),
-        sum: spans_sum(kept.copied()),
+        count: blocks.len(),
+        sum: spans_sum(kept.map(|one| [one.at.start, one.at.end])),
         drawn,
         html,
     }

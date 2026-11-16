@@ -1,8 +1,10 @@
 import { afterEach, describe, expect, it } from "vitest";
-import type { PlacedNear } from "../placing";
-import { patched, spansSum } from "../ui/pagePatching";
+import { type PlacedNear, summed } from "../placing";
+import { patched } from "../ui/pagePatching";
 
 type Span = readonly [number, number];
+
+const spansSum = (spans: readonly Span[]) => summed(spans.flat());
 
 // The core answers how many blocks there are and a sum of those it did not draw again.
 const near = (drawn: {
