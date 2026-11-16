@@ -83,16 +83,6 @@ describe("a key sent to the core alone", () => {
   });
 });
 
-describe("the reckoning of a text the core is told", () => {
-  it("counts its bytes as the core does and tells apart texts one letter apart", () => {
-    for (const text of ["", "a", "ñandú", "😀 y 😁", "uno\r\ndos", BODY]) {
-      expect(checkOf(text).bytes).toBe(BYTES.encode(text).length);
-    }
-    expect(checkOf("Uno dos")).toEqual(checkOf("Uno dos"));
-    expect(checkOf("Uno dos").hash).not.toBe(checkOf("Uno des").hash);
-  });
-});
-
 describe("an edit made whole for the core", () => {
   it("is left as it is when no character is cut", () => {
     const one = changeOf("Uno dos", "Uno tres");

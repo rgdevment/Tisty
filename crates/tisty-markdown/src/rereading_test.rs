@@ -1,6 +1,6 @@
 use std::ops::Range;
 
-use super::{CROSSING, plan, reread, reread_edit};
+use super::{CROSSING, Changed, plan, planned, reread, reread_edit};
 use crate::read;
 
 fn plain(said: &str) -> String {
@@ -105,6 +105,8 @@ fn an_edit(text: &str, steps: &mut Steps) -> (Range<usize>, &'static str) {
 
 #[test]
 fn an_edit_read_again_where_the_page_says_reads_as_the_whole_new_text_does() {
+    let mut short = 0;
+    let mut all = 0;
     for (seed, sample) in SAMPLES.iter().enumerate() {
         let mut steps = Steps(0x5EED_CAFE + seed as u64);
         let mut text = plain(sample);
@@ -112,6 +114,13 @@ fn an_edit_read_again_where_the_page_says_reads_as_the_whole_new_text_does() {
         for _ in 0..400 {
             let (at, insert) = an_edit(&text, &mut steps);
             let next = format!("{}{insert}{}", &text[..at.start], &text[at.end..]);
+            let changed = Changed {
+                start: at.start,
+                old_end: at.end,
+                new_end: at.start + insert.len(),
+            };
+            short += usize::from(planned(&was, &next, &changed).is_some());
+            all += 1;
             let again = reread_edit(was, at.clone(), insert)
                 .unwrap_or_else(|_| panic!("{at:?} falls between the characters"));
             assert_eq!(again, read(&next), "{at:?} → {insert:?} in {text:?}");
@@ -119,6 +128,10 @@ fn an_edit_read_again_where_the_page_says_reads_as_the_whole_new_text_does() {
             was = again;
         }
     }
+    assert!(
+        short * 2 > all,
+        "only {short} of {all} edits were read around"
+    );
 }
 
 #[test]
