@@ -1,11 +1,11 @@
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { useAttended } from "../attended";
-import { brainstormOf, type Pinned } from "../brainstorm";
 import type { Filed, Folded, Papers } from "../core";
 import { capped, exactly } from "../format";
 import { fill, t } from "../locales";
 import { sifted } from "../sifting";
 import { shown } from "../tongues";
+import { usePinned } from "../usePinned";
 import type { Chosen, Lean } from "../views";
 import Glyph from "./Glyph";
 import LibraryGlance from "./LibraryGlance";
@@ -216,18 +216,4 @@ function Sift({
       </button>
     </form>
   );
-}
-
-function usePinned(papers: Papers): Pinned | null {
-  const [pinned, setPinned] = useState<Pinned | null>(null);
-  useEffect(() => {
-    let current = true;
-    brainstormOf()
-      .then((found) => current && setPinned(found))
-      .catch(() => current && setPinned(null));
-    return () => {
-      current = false;
-    };
-  }, [papers]);
-  return pinned;
 }

@@ -18,7 +18,7 @@ export const holdsOf = (body: string, facts: DocFacts | null): string[] => {
   const files = [...body.matchAll(/\]\(<?([^)\s>]+)>?/g)].filter((one) => kept(one[1])).length;
   return [
     facts?.pages ? held(facts.pages) : "",
-    papers > 0 ? fill("paperDocs", String(papers)) : "",
-    files > 0 ? fill("paperFiles", String(files)) : "",
+    papers === 1 ? t("paperDoc") : papers > 1 ? fill("paperDocs", String(papers)) : "",
+    files === 1 ? t("paperFile") : files > 1 ? fill("paperFiles", String(files)) : "",
   ].filter(Boolean);
 };

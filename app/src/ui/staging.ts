@@ -13,6 +13,7 @@ export const offeredAsParts = (page: Document, said: string, body: string) => {
     ask.textContent = "↗";
     ask.title = said;
     ask.setAttribute("aria-label", said);
+    ask.setAttribute("contenteditable", "false");
     one.append(ask);
   }
 };

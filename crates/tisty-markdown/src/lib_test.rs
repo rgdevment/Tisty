@@ -498,3 +498,101 @@ fn long_blocks_of_every_kind_read_draw_and_print_in_proportion() {
     // In proportion all of them take a few seconds even with coverage; asking every piece of every other one took many minutes.
     assert!(started.elapsed() < std::time::Duration::from_secs(60));
 }
+
+fn placed(html: &str, text: &str) -> Vec<String> {
+    html.split("data-src=\"")
+        .skip(1)
+        .filter_map(|rest| {
+            let (from, to) = rest.split_once('"')?.0.split_once('-')?;
+            text.get(from.parse::<usize>().ok()?..to.parse::<usize>().ok()?)
+                .map(str::to_string)
+        })
+        .collect()
+}
+
+#[test]
+fn a_page_to_write_on_names_the_bytes_of_each_piece_of_words() {
+    let text =
+        "# Hi **you**\n\nA [link](https://x.y) and &copy; café\n\n- one\n\n```js\nlet a;\n```";
+    let drawn = html_placed(&read(text));
+    let pieces = placed(&drawn, text);
+    for one in ["Hi ", "you", "A ", "link", "&copy;", "one", "let a;\n"] {
+        assert!(
+            pieces.iter().any(|piece| piece == one),
+            "{one} in {pieces:?}"
+        );
+    }
+    assert!(pieces.iter().any(|piece| piece.ends_with("café")));
+    assert!(
+        pieces
+            .iter()
+            .all(|piece| !piece.contains("**") && !piece.contains("]("))
+    );
+    assert!(drawn.contains("contenteditable=\"false\">&copy;"));
+}
+
+#[test]
+fn a_piece_drawn_as_one_element_carries_its_own_place() {
+    let text = "![Rina](rina.png)\n\nA `code` and &copy; here";
+    let drawn = html_placed(&read(text));
+    assert!(!drawn.contains("contenteditable=\"false\"><img"), "{drawn}");
+    assert!(
+        !drawn.contains("contenteditable=\"false\"><code>"),
+        "{drawn}"
+    );
+    assert!(
+        drawn.contains("contenteditable=\"false\">code</code>"),
+        "{drawn}"
+    );
+    let pieces = placed(&drawn, text);
+    assert!(pieces.iter().any(|piece| piece == "`code`"), "{pieces:?}");
+    assert!(
+        pieces.iter().any(|piece| piece == "![Rina](rina.png)"),
+        "{pieces:?}"
+    );
+}
+
+#[test]
+fn the_page_to_read_carries_no_bytes() {
+    assert!(!html(&read("# Hi **you**\n\n```js\nlet a;\n```")).contains("data-src"));
+}
+
+#[test]
+fn a_page_to_write_on_looks_as_the_page_to_read() {
+    let text = "# Hi **you**\n\nA [link](https://x.y) #tag\n\n> quoted";
+    let bare = |html: String| {
+        let mut out = String::new();
+        let mut inside = false;
+        for c in html.chars() {
+            match c {
+                '<' => inside = true,
+                '>' => inside = false,
+                _ if !inside => out.push(c),
+                _ => {}
+            }
+        }
+        out
+    };
+    assert_eq!(bare(html_placed(&read(text))), bare(html(&read(text))));
+}
+
+#[test]
+fn an_edit_draws_again_only_the_blocks_around_it() {
+    let text = "# One\n\nTwo words.\n\nThree.\n\nFour.\n\nFive.";
+    let at = text.find("words").unwrap_or(0);
+    let near = placed_near(&read(text), at, at + 5);
+    assert_eq!(near.spans.len(), 5);
+    assert_eq!(near.drawn, 0..3);
+    assert!(near.html.contains("Two words.") && near.html.contains("Three."));
+    assert!(!near.html.contains("Four."));
+    assert!(near.html.contains("data-src"));
+}
+
+#[test]
+fn an_edit_past_the_last_block_draws_the_last_one() {
+    let text = "One.\n\nTwo.\n\n";
+    let near = placed_near(&read(text), text.len(), text.len());
+    assert_eq!(near.drawn, 1..2);
+    assert!(near.html.contains("Two."));
+    assert_eq!(placed_near(&read(""), 0, 0).drawn, 0..0);
+}

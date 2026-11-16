@@ -220,7 +220,7 @@ pub(crate) fn holds_back<R: Runtime>(app: &tauri::AppHandle<R>) -> bool {
     true
 }
 
-fn brought<R: Runtime>(window: &tauri::WebviewWindow<R>) {
+pub(crate) fn brought<R: Runtime>(window: &tauri::WebviewWindow<R>) {
     let _ = window.unminimize();
     let _ = window.show();
     let _ = window.set_focus();

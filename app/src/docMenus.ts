@@ -156,7 +156,7 @@ export const folderChoices = (folder: Folded, h: Hands): Choice[] => [
   },
 ];
 
-export const docChoices = (doc: Filed, h: Hands): Choice[] => [
+const everyChoice = (doc: Filed, h: Hands): Choice[] => [
   {
     key: "newPage",
     icon: "+",
@@ -286,3 +286,14 @@ export const docChoices = (doc: Filed, h: Hands): Choice[] => [
     onPick: () => h.dropDoc(doc),
   },
 ];
+
+// The idea board is Tisty's own page of ideas, so only copying it, shelving it and deleting it are left to the person.
+const ON_BOARD = new Set(["copy", "away", "drop"]);
+
+export const docChoices = (doc: Filed, h: Hands, board = false): Choice[] => {
+  const all = everyChoice(doc, h);
+  if (!board) return all;
+  return all
+    .filter((one) => ON_BOARD.has(one.key))
+    .map((one, at) => (at === 0 ? { ...one, apart: false } : one));
+};

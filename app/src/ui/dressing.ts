@@ -5,12 +5,13 @@ import { charsAt, readAs, sourceOf, spanned } from "tisty-editor/read";
 import { openLink } from "../core";
 import { askAgain, serve, showing } from "../inUse";
 import { locale, t } from "../locales";
+import type { Held, PiecePlace } from "../pieceWindow";
 import { pictured } from "../previews";
 import { plainly } from "../refusal";
 import { type Attaching, attachedAs, pressed } from "./attached";
 import { type Carding, cardsFor } from "./carding";
 import { type Shot, shotsOf, type TableWent, type Went, went, widgetsIn } from "./paging";
-import { type Bar, type Chosen, type Formatting, type Menued, quickly } from "./quickly";
+import { type Bar, type Formatting, type Menued, quickly } from "./quickly";
 import { SAY } from "./saying";
 import { offeredAsParts } from "./staging";
 import { stickable, sticking } from "./sticking";
@@ -19,6 +20,9 @@ import { GLIMPSES } from "./webcarding";
 import { gripped, widening } from "./widening";
 import { type Lending, lend, notWidget } from "./widgeting";
 
+/** Where a control asked from sits on screen: under it, its top and its right edge. */
+export type Anchor = { x: number; y: number; top?: number; right?: number };
+
 export type Reaching = Carding & {
   readonly body: string;
   readonly onDoc: (file: string) => void;
@@ -26,13 +30,13 @@ export type Reaching = Carding & {
   readonly part?: (id: string) => PartCarded;
   readonly onOpen?: (reference: string) => void;
   readonly onTag?: (name: string) => void;
-  readonly onBlock?: (
-    at: [number, number],
-    block: HTMLElement,
-    seed?: string,
-    read?: string,
-  ) => void;
-  readonly onApart?: (source: string) => void;
+  // The page written in place: writing starts here (chars), with what the new line opens with; nothing is written until a key.
+  readonly onBegin?: (at: number, seed: string, near: Element) => void;
+  readonly onHintWords?: (at: [number, number], hint: HTMLElement) => void;
+  // A piece drawn over its words opens in a window of its own, at its place in bytes; only a widget brings its words.
+  readonly onPiece?: (held: Held, place?: PiecePlace, source?: string, code?: boolean) => void;
+  // A code block's language, chosen from a menu that opens at this point of the page.
+  readonly onLanguage?: (at: [number, number], near: Anchor) => void;
   // Bytes, as the window's own reader counts them, never converted; `nth` and what it says find it when the page is a save behind.
   readonly onDiagram?: (at: number, nth: number, source: string) => void;
   // Where on the window's own screen its choices open, under the bar of the figure.
@@ -50,8 +54,20 @@ export type Reaching = Carding & {
   readonly bar?: Bar;
   readonly onFormat?: (asked: Formatting) => void;
   readonly onMenu?: (asked: Menued) => void;
-  readonly onChoose?: (asked: Chosen) => void;
   readonly onTable?: (asked: TableWent) => void;
+};
+
+// Each code block on a page written in place says its language, and a press on it offers the others.
+export const languaged = (page: Document) => {
+  for (const figure of page.querySelectorAll<HTMLElement>(".page figure.code[data-at]")) {
+    if (figure.querySelector(":scope > .code-lang")) continue;
+    const tongue = /language-(\S+)/.exec(figure.querySelector("pre > code")?.className ?? "")?.[1];
+    const button = asking(page, "codeLang", tongue ?? t("codeLangNone"));
+    button.className = "code-lang";
+    button.title = t("codeLanguage");
+    button.setAttribute("contenteditable", "false");
+    figure.append(button);
+  }
 };
 
 const asking = (page: Document, asked: string, said: string): HTMLButtonElement => {
@@ -92,6 +108,16 @@ export const pictures = (
     fetched(img, at, live);
   }
   return held;
+};
+
+export const picturesWithin = (root: ParentNode, live: () => boolean) => {
+  for (const img of root.querySelectorAll<HTMLImageElement>("img[data-kept], img[src]")) {
+    const at = img.getAttribute("src") || img.dataset.kept || "";
+    if (/^(https?|data|asset|blob|file|tauri):/i.test(at) || !pictured(at)) continue;
+    img.dataset.kept = at;
+    img.removeAttribute("src");
+    fetched(img, at, live);
+  }
 };
 
 // A picture that cannot be brought says why where it would be, instead of leaving a hole.
@@ -144,8 +170,10 @@ export const widgets = (page: Document, reach?: Reaching): Lending[] => {
     name.className = "widget-name";
     name.textContent = figure.querySelector("figcaption")?.textContent ?? "";
     bar.append(name);
-    if (reach?.onBlock) bar.append(asking(page, "code", t("codeShow")));
-    if (reach?.onApart) bar.append(asking(page, "apart", t("viewApart")));
+    if (reach?.onPiece) {
+      bar.append(asking(page, "code", t("codeShow")));
+      bar.append(asking(page, "apart", t("viewApart")));
+    }
     const held = page.createElement("div");
     drawn.append(bar, held);
     figure.replaceWith(drawn);
@@ -240,21 +268,20 @@ const titled = (page: Document) => {
 };
 
 export const worn = (page: Document, live: () => boolean, reach?: Reaching): Worn => {
-  if (reach?.onBlock) titled(page);
-  if (reach?.onBlock && page.documentElement.classList.contains("untitled"))
+  const writes = Boolean(reach?.onBegin);
+  if (writes) titled(page);
+  if (reach && writes && page.documentElement.classList.contains("untitled"))
     hinted(page, reach.body);
   datedSteps(page, reach?.stepDates);
   page.documentElement.classList.toggle("ticking", !!reach?.onTick);
   if (reach?.onStick) stickable(page);
   if (reach?.onWiden) gripped(page);
+  if (reach?.onLanguage) languaged(page);
   const writable = Boolean(reach?.onTable);
   if (writable) tabled(page);
-  if (reach?.onDiagram || reach?.onDiagramExport || reach?.onBlock)
-    diagramBars(page, {
-      open: Boolean(reach.onDiagram),
-      out: Boolean(reach.onDiagramExport),
-      words: Boolean(reach.onBlock),
-    });
+  if (reach?.onDiagram || reach?.onDiagramExport)
+    diagramBars(page, { open: Boolean(reach.onDiagram), out: Boolean(reach.onDiagramExport) });
+  if (reach?.onPiece) mathBars(page);
   let held: (() => void)[] = [];
   let lent: Lending[] = [];
   const read = readAs(page, {
@@ -274,23 +301,42 @@ export const worn = (page: Document, live: () => boolean, reach?: Reaching): Wor
   return { lent, kept: [...held, ...read.kept] };
 };
 
-export const diagramBars = (page: Document, ways = { open: true, out: false, words: false }) => {
-  for (const figure of page.querySelectorAll<HTMLElement>("figure.diagram[data-at]")) {
-    if (figure.querySelector(":scope > .diagram-bar")) continue;
+type BarWays = { readonly open: boolean; readonly out: boolean };
+
+export const diagramBar = (figure: HTMLElement, ways: BarWays) => {
+  if (figure.querySelector(":scope > .diagram-bar")) return;
+  const page = figure.ownerDocument;
+  const bar = page.createElement("div");
+  bar.className = "diagram-bar";
+  // The words live in an attribute the stylesheet shows, so finding and copying never meet them.
+  const button = (asked: string, said: string) => {
+    const one = asking(page, asked, "");
+    one.setAttribute("aria-label", said);
+    one.title = said;
+    bar.append(one);
+  };
+  if (ways.out) button("diagramExport", t("diagramExport"));
+  if (ways.open) button("diagram", t("diagramOpen"));
+  figure.append(bar);
+};
+
+// A formula is drawn over its words, so a quiet bar beside it opens them, as a widget's does.
+export const mathBars = (page: Document) => {
+  for (const formula of page.querySelectorAll<HTMLElement>("div.math[data-at]")) {
+    if (formula.querySelector(":scope > .math-bar")) continue;
     const bar = page.createElement("div");
-    bar.className = "diagram-bar";
-    // The words live in an attribute the stylesheet shows, so finding and copying never meet them.
-    const button = (asked: string, said: string) => {
-      const one = asking(page, asked, "");
-      one.setAttribute("aria-label", said);
-      one.title = said;
-      bar.append(one);
-    };
-    if (ways.out) button("diagramExport", t("diagramExport"));
-    if (ways.words) button("diagramMarkdown", t("diagramMarkdown"));
-    if (ways.open) button("diagram", t("diagramOpen"));
-    figure.append(bar);
+    bar.className = "math-bar";
+    const one = asking(page, "code", "");
+    one.setAttribute("aria-label", t("codeShow"));
+    one.title = t("codeShow");
+    bar.append(one);
+    formula.append(bar);
   }
+};
+
+export const diagramBars = (page: Document, ways: BarWays = { open: true, out: false }) => {
+  for (const figure of page.querySelectorAll<HTMLElement>("figure.diagram[data-at]"))
+    diagramBar(figure, ways);
 };
 
 const figureAt = (page: Document, at: [number, number]) => {
@@ -301,13 +347,15 @@ const figureAt = (page: Document, at: [number, number]) => {
 };
 
 // The page sits in a frame; a menu of the window opens where the bar shows on the window's screen.
-const underBar = (page: Document, figure: HTMLElement) => {
-  const box = (figure.querySelector(".diagram-bar") ?? figure).getBoundingClientRect();
-  const frame = page.defaultView?.frameElement?.getBoundingClientRect();
+const under = (one: Element) => {
+  const box = one.getBoundingClientRect();
+  const frame = one.ownerDocument.defaultView?.frameElement?.getBoundingClientRect();
   return { x: box.left + (frame?.left ?? 0), y: box.bottom + 4 + (frame?.top ?? 0) };
 };
 
-export const answered = (page: Document, asked: Went, reach: Reaching, read = "") => {
+const underBar = (figure: HTMLElement) => under(figure.querySelector(".diagram-bar") ?? figure);
+
+export const answered = (page: Document, asked: Went, reach: Reaching) => {
   if (!asked) return;
   if (asked.kind === "table") reach.onTable?.(asked);
   if (asked.kind === "diagram") {
@@ -316,16 +364,7 @@ export const answered = (page: Document, asked: Went, reach: Reaching, read = ""
   }
   if (asked.kind === "diagramExport") {
     const found = figureAt(page, asked.at);
-    if (found)
-      reach.onDiagramExport?.(found.nth, sourceOf(found.figure), underBar(page, found.figure));
-  }
-  if (asked.kind === "diagramMarkdown") {
-    const found = figureAt(page, asked.at);
-    const at: [number, number] = [
-      charsAt(reach.body, asked.at[0]),
-      charsAt(reach.body, asked.at[1]),
-    ];
-    if (found) reach.onBlock?.(at, found.figure);
+    if (found) reach.onDiagramExport?.(found.nth, sourceOf(found.figure), underBar(found.figure));
   }
   if (asked.kind === "doc") reach.onDoc(asked.id);
   if (asked.kind === "task") reach.onTask?.(asked.id);
@@ -345,16 +384,6 @@ export const answered = (page: Document, asked: Went, reach: Reaching, read = ""
   }
   if (asked.kind === "tick")
     reach.onTick?.([charsAt(reach.body, asked.at[0]), charsAt(reach.body, asked.at[1])]);
-  if (asked.kind === "block") {
-    const block = page.querySelector<HTMLElement>(
-      `.page > [data-at="${asked.at[0]}-${asked.at[1]}"]`,
-    );
-    const at: [number, number] = [
-      charsAt(reach.body, asked.at[0]),
-      charsAt(reach.body, asked.at[1]),
-    ];
-    if (block) reach.onBlock?.(at, block, "", read);
-  }
   if (asked.kind === "hint") {
     const named = `${asked.at[0]}-${asked.at[1]}`;
     const held = page.querySelector<HTMLElement>(
@@ -363,42 +392,84 @@ export const answered = (page: Document, asked: Went, reach: Reaching, read = ""
         : `.page > .${asked.from}[data-after="${named}"]`,
     );
     const end = charsAt(reach.body, asked.at[1]);
-    if (held) reach.onBlock?.([end, end], held, asked.seed);
+    if (held && reach.onBegin) reach.onBegin(end, asked.seed, held);
   }
   if (asked.kind === "cut")
     reach.onCut?.([charsAt(reach.body, asked.at[0]), charsAt(reach.body, asked.at[1])]);
-  if (asked.kind === "section" && reach.onBlock) {
+  if (asked.kind === "section" && reach.onBegin) {
     const last = page.querySelector(`.page > [data-at="${asked.at[0]}-${asked.at[1]}"]`);
-    const fresh = page.createElement("p");
     const add = last?.nextElementSibling;
-    (add?.matches(".add-step") ? add : last)?.after(fresh);
-    const end = charsAt(reach.body, asked.at[1]);
-    reach.onBlock([end, end], fresh);
-    if (fresh.isConnected) fresh.remove();
+    const near = add?.matches(".add-step") ? add : last;
+    if (near) reach.onBegin(charsAt(reach.body, asked.at[1]), "", near);
   }
-  if (asked.kind === "title" && reach.onBlock) {
-    const slot = page.querySelector<HTMLElement>(".page > h1[data-title]");
-    if (slot) reach.onBlock([0, 0], slot, "# ");
+  if (asked.kind === "title" && reach.onBegin) {
+    const slot = page.querySelector(".page > h1[data-title]");
+    if (slot) reach.onBegin(0, "# ", slot);
   }
-  if (asked.kind === "end" && reach.onBlock) {
-    const sheet = page.querySelector(".page");
-    if (!sheet) return;
-    const fresh = page.createElement("p");
-    sheet.append(fresh);
-    reach.onBlock([reach.body.length, reach.body.length], fresh);
-    if (fresh.isConnected) fresh.remove();
+  if (asked.kind === "end" && reach.onBegin) {
+    const last = Array.from(page.querySelectorAll(".page > [data-at]")).pop();
+    reach.onBegin(reach.body.length, "", last ?? page.querySelector(".page") ?? page.body);
+  }
+  // The properties are kept out of the page, so asking for them, as the column's Edit does, opens their window.
+  if (
+    asked.kind === "block" &&
+    page.querySelector(`.page > .front[data-at="${asked.at[0]}-${asked.at[1]}"]`)
+  )
+    reach.onPiece?.("front", { at: asked.at[0], nth: 0 });
+  if (asked.kind === "block" && reach.onHintWords) {
+    const hint = page.querySelector<HTMLElement>(
+      `.page > :is(.hint, .hint-gone)[data-at="${asked.at[0]}-${asked.at[1]}"]`,
+    );
+    if (hint) reach.onHintWords(asked.at, hint);
   }
   if (asked.kind === "more")
     reach.onMore?.({
       ...asked,
       at: [charsAt(reach.body, asked.at[0]), charsAt(reach.body, asked.at[1])],
     });
+  const widget = asked.kind === "code" ? widgetAt(page, asked.at) : null;
+  if (widget) reach.onPiece?.("widget", widget.place, widget.source, true);
+  else if (asked.kind === "code")
+    reach.onPiece?.("formula", {
+      at: asked.at[0],
+      nth: nthAt(page, "div.math[data-at]", asked.at),
+    });
+  if (asked.kind === "formula")
+    reach.onPiece?.("inlineFormula", { at: asked.at[0], nth: asked.nth });
+  if (asked.kind === "codeLang")
+    reach.onLanguage?.([charsAt(reach.body, asked.at[0]), charsAt(reach.body, asked.at[1])], {
+      x: asked.x,
+      y: asked.y,
+      top: asked.top,
+      right: asked.right,
+    });
   if (asked.kind === "apart") {
     const block = page.querySelector(`.page > [data-at="${asked.at[0]}-${asked.at[1]}"]`);
     const drawn = widgetsIn(block)[asked.nth ?? 0];
     const source = drawn ? sources.get(drawn) : undefined;
-    if (source) reach.onApart?.(source);
+    if (drawn && source) reach.onPiece?.("widget", placeOf(page, drawn), source, false);
   }
+};
+
+// A widget is named to its window by where its block starts and which it is from the top, as a diagram is.
+const placeOf = (page: Document, drawn: Element): PiecePlace | undefined => {
+  const at = spanned(drawn.getAttribute("data-at"))?.[0];
+  const nth = Array.from(page.querySelectorAll("figure.widget")).indexOf(drawn);
+  return at === undefined || nth < 0 ? undefined : { at, nth };
+};
+
+export const nthAt = (page: Document, drawn: string, at: [number, number]) =>
+  Math.max(
+    0,
+    Array.from(page.querySelectorAll(drawn)).findIndex(
+      (one) => one.getAttribute("data-at") === `${at[0]}-${at[1]}`,
+    ),
+  );
+
+const widgetAt = (page: Document, at: [number, number]) => {
+  const drawn = page.querySelector(`figure.widget[data-at="${at[0]}-${at[1]}"]`);
+  const source = drawn ? sources.get(drawn) : undefined;
+  return drawn && source ? { source, place: placeOf(page, drawn) } : null;
 };
 
 const below = (page: Document, target: Element, event: MouseEvent): boolean => {
@@ -410,18 +481,12 @@ const below = (page: Document, target: Element, event: MouseEvent): boolean => {
   return !last || event.clientY > last.getBoundingClientRect().bottom;
 };
 
-const readTo = (page: Document, event: MouseEvent): string => {
-  const block = (event.target as Element | null)?.closest?.(".page > [data-at]");
-  const caret = page.caretRangeFromPoint?.(event.clientX, event.clientY);
-  if (!block || !caret || !block.contains(caret.startContainer)) return "";
-  const range = page.createRange();
-  range.setStart(block, 0);
-  range.setEnd(caret.startContainer, caret.startOffset);
-  return range.toString();
-};
-
 // Long enough for a second press to arrive, short enough that looking at a diagram still feels at once.
 export const DOUBLE_MS = 300;
+
+// Formats, links, undo and redo belong to the words written on the page, never to the window's own keys.
+const WRITTEN_KEYS = new Set(["b", "i", "u", "k", "z", "y"]);
+const WRITTEN_ON = '.page[contenteditable="true"]';
 
 export const wired = (page: Document, reach: () => Reaching) => {
   const refused = (event: Event) => event.preventDefault();
@@ -443,7 +508,7 @@ export const wired = (page: Document, reach: () => Reaching) => {
       pressedIn = false;
       return;
     }
-    if (target.closest(".quick-bar, .mend-said, .cm-dock")) return;
+    if (target.closest(".quick-bar, .tag-list, .mend-said, .cm-dock")) return;
     // The whole document is the only thing written: a press beside or under it goes to its end.
     const whole = page.querySelector<HTMLElement>(".page.whole .cm-content");
     if (whole && !target.closest(".editing")) {
@@ -473,7 +538,7 @@ export const wired = (page: Document, reach: () => Reaching) => {
         }, DOUBLE_MS);
       return;
     }
-    answered(page, asked, reach(), asked?.kind === "block" ? readTo(page, event) : "");
+    answered(page, asked, reach());
   });
   // Its own event, since a double press on a label selects a word and the click then reads as a selection.
   page.addEventListener("dblclick", (event) => {
@@ -513,11 +578,10 @@ export const wired = (page: Document, reach: () => Reaching) => {
       charsAt(now.body, at[0]),
       charsAt(now.body, at[1]),
     ];
-    const { bar, onFormat, onMenu, onChoose } = now;
+    const { bar, onFormat, onMenu } = now;
     return {
       bar,
       onFormat: onFormat && ((asked) => onFormat({ ...asked, at: chars(asked.at) })),
-      onChoose: onChoose && ((asked) => onChoose({ ...asked, at: chars(asked.at) })),
       onMenu:
         onMenu &&
         ((asked) =>
@@ -533,9 +597,11 @@ export const wired = (page: Document, reach: () => Reaching) => {
   }
   // The window's own shortcuts listen on the app, which never hears a key pressed in the page.
   page.addEventListener("keydown", (event) => {
-    const writing = (event.target as Element | null)?.closest?.(".editing");
+    const target = event.target as Element | null;
+    const writing = target?.closest?.(".editing");
     const asked = event.ctrlKey || event.metaKey || event.key === "F1";
     if (writing && (event.defaultPrevented || !asked)) return;
+    if (asked && WRITTEN_KEYS.has(event.key.toLowerCase()) && target?.closest?.(WRITTEN_ON)) return;
     const passed = new KeyboardEvent("keydown", event);
     window.dispatchEvent(passed);
     if (passed.defaultPrevented) event.preventDefault();

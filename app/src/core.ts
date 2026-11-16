@@ -2,6 +2,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { writeText } from "@tauri-apps/plugin-clipboard-manager";
 import type { Dated } from "./deadlines";
 import { speakOf } from "./locales";
+import type { PieceShowing } from "./pieceWindow";
 import { settled } from "./saving";
 import type { Named } from "./sharing";
 
@@ -470,14 +471,12 @@ export const openLink = (url: string): Promise<void> => invoke("open_link", { ur
 export type Viewed = { id: string; file: string; title: string; place: string };
 export type Showing =
   | { kind: "doc"; paper: Viewed; body: string }
-  | { kind: "widget"; source: string; from: Viewed | null }
+  | PieceShowing
   | { kind: "diagram"; paper: Viewed; source: string };
 export const viewShown = (): Promise<Showing> => invoke("view_shown");
 export const viewFacts = (): Promise<DocFacts> => invoke("view_facts");
 export const viewGo = (file: string): Promise<void> => invoke("view_go", { file });
 export const viewWelcomed = (): Promise<void> => invoke("view_welcomed");
-export const viewWidget = (source: string, from?: Viewed): Promise<void> =>
-  invoke("view_widget", { source, from: from ?? null });
 export const viewDoc = (paper: Viewed): Promise<void> => invoke("view_doc", { paper });
 
 export const served = (reference: string): Promise<string> => invoke("served", { reference });

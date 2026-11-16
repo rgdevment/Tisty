@@ -12,11 +12,12 @@ export const carrying = (
   carry: Carry,
 ) => {
   let going = false;
-  held.setPointerCapture?.(start.pointerId);
   const over = (next: PointerEvent) => {
     if (!going && Math.abs(next.clientY - start.clientY) <= far) return;
     if (!going) {
       going = true;
+      // Held only once it moves: a press that stays put still reaches the box or the words under it.
+      held.setPointerCapture?.(start.pointerId);
       page.getSelection()?.removeAllRanges();
       page.documentElement.classList.add("carrying");
     }

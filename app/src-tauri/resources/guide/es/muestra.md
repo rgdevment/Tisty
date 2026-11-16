@@ -8,13 +8,13 @@ Esta hoja es el muestrario de la guía: uno de todo lo que cabe en un documento,
 
 Tres maneras de leerla:
 
-- Haz clic en cualquier bloque y se abre con sus marcas a la vista; `Esc` lo devuelve a la página.
-- `Ctrl`/`⌘` + `E` muestra la hoja entera como texto: así está escrito cada ejemplo.
+- Escribe sobre la hoja misma: un clic en cualquier parte y escribes ahí, sin marcas a la vista.
+- El **⋯** de arriba, o `Ctrl`/`⌘` + `E`, la muestra en **Markdown**: así está escrito cada ejemplo.
 - La tecla `/` lo inserta todo sin aprender ninguna marca. Cada sección dice cómo se llama en ese menú.
 
 ## Propiedades
 
-Esta hoja empieza con un bloque de propiedades entre dos líneas `---`, antes del título. La página no lo dibuja: está en el panel de al lado, en **Sobre este documento**, donde **Editar** lo abre tal como está escrito.
+Esta hoja empieza con un bloque de propiedades entre dos líneas `---`, antes del título. La página no lo dibuja: está en el panel de al lado, en **Sobre este documento**, donde **Editar** lo abre en su propia ventana, tal como está escrito.
 
 ```yaml title="Las primeras líneas de esta hoja"
 ---
@@ -677,7 +677,7 @@ kanban
 
 ## Fórmulas
 
-**Fórmula**, en el menú `/`: un bloque cuyo lenguaje es `math` compone la fórmula, sin conexión.
+**Fórmula**, en el menú `/`: un bloque cuyo lenguaje es `math` compone la fórmula, sin conexión. **Ver código**, sobre ella, la abre en su ventana, con el código a un lado y lo que dibuja al otro; una fórmula dentro de una frase se abre igual con un clic.
 
 ```math
 dosis = \frac{peso \times 0.5}{2}

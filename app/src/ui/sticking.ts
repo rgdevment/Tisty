@@ -42,16 +42,21 @@ const landed = (at: [number, number], landing: Landing | null, moved: Moved) => 
   if (landing && there) moved(at, landing.above ? there[0] : there[1]);
 };
 
+const WORDS = ".check, [data-src], [data-ghost], a, button, input";
+
 export const stickable = (page: Document) => {
   for (const note of page.querySelectorAll<HTMLElement>(NOTE)) note.tabIndex = 0;
 };
 
 export const sticking = (page: Document, moving: () => Moved | undefined) => {
   page.addEventListener("pointerdown", (event) => {
-    const note = (event.target as Element | null)?.closest?.<HTMLElement>(NOTE);
+    const target = event.target as Element | null;
+    const note = target?.closest?.<HTMLElement>(NOTE);
     const at = spanned(note?.dataset.at ?? null);
     const moved = moving();
     if (!note || !at || !moved || event.button !== 0 || note.closest(".editing")) return;
+    // A note is carried by its paper, tape or pin; its words and boxes are written and ticked.
+    if (target?.closest(WORDS)) return;
     let landing: Landing | null = null;
     carrying(page, note, event, 6, {
       over: (next) => {

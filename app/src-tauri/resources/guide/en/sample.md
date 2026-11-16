@@ -8,13 +8,13 @@ This page is the guide's sample sheet: one of everything a document can hold, wi
 
 Three ways to read it:
 
-- Click any block and it opens with its marks showing; `Esc` puts it back on the page.
-- `Ctrl`/`⌘` + `E` shows the whole sheet as text: that is how each example is written.
+- Write on the sheet itself: click anywhere and type there, with no marks in sight.
+- The **⋯** at the top, or `Ctrl`/`⌘` + `E`, shows it in **Markdown**: that is how each example is written.
 - The `/` key inserts all of it without learning a single mark. Each section says what it is called in that menu.
 
 ## Properties
 
-This sheet starts with a block of properties between two `---` lines, before the title. The page does not draw it: it is in the panel beside the page, under **About this document**, where **Edit** opens it as it is written.
+This sheet starts with a block of properties between two `---` lines, before the title. The page does not draw it: it is in the panel beside the page, under **About this document**, where **Edit** opens it in a window of its own, as it is written.
 
 ```yaml title="The first lines of this sheet"
 ---
@@ -677,7 +677,7 @@ kanban
 
 ## Formulas
 
-**Formula**, in the `/` menu: a block whose language is `math` typesets the formula, offline.
+**Formula**, in the `/` menu: a block whose language is `math` typesets the formula, offline. **Show code**, over it, opens it in its window, with the code on one side and what it draws on the other; a formula inside a sentence opens the same way with a click.
 
 ```math
 dose = \frac{weight \times 0.5}{2}

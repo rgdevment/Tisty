@@ -1,6 +1,7 @@
 import { useRef } from "react";
 import type { Showing } from "../../core";
-import { fill, t } from "../../locales";
+import { fill, t, type Word } from "../../locales";
+import type { Held } from "../../pieceWindow";
 import { button, Glyph, Segments, tool } from "./Glyphs";
 import { PRESETS, type Preset } from "./Stage";
 import TitleBar from "./TitleBar";
@@ -19,6 +20,14 @@ interface Props {
   onMore: (at: { x: number; y: number }) => void;
 }
 
+const NAMED: Record<Held, readonly [Word, Word]> = {
+  widget: ["viewWidgetTitle", "viewWidgetOf"],
+  formula: ["viewFormulaTitle", "viewFormulaOf"],
+  inlineFormula: ["viewFormulaTitle", "viewFormulaOf"],
+  table: ["viewTableTitle", "viewTableOf"],
+  front: ["viewFrontTitle", "viewFrontOf"],
+};
+
 export const titled = (shown: Showing | null): { title: string; under: string } => {
   switch (shown?.kind) {
     case "doc":
@@ -26,10 +35,12 @@ export const titled = (shown: Showing | null): { title: string; under: string } 
         title: shown.paper.title || t("untitledDoc"),
         under: `${shown.paper.place || "Tisty"} · ${t("viewOnlyReading")}`,
       };
-    case "widget":
+    case "piece": {
+      const [alone, of] = NAMED[shown.held];
       return shown.from
-        ? { title: shown.from.title, under: fill("viewWidgetOf", shown.from.title) }
-        : { title: t("viewWidgetTitle"), under: t("viewWidgetTitle") };
+        ? { title: shown.from.title, under: fill(of, shown.from.title) }
+        : { title: t(alone), under: t(alone) };
+    }
     default:
       return { title: "", under: "" };
   }
@@ -40,7 +51,7 @@ export default function Header(props: Props) {
   const more = useRef<HTMLButtonElement>(null);
   const { title, under } = titled(shown);
   const reading = shown?.kind === "doc";
-  const kind = shown?.kind === "doc" ? "doc" : shown?.kind === "widget" ? "widget" : null;
+  const kind = shown?.kind === "doc" ? "doc" : shown?.kind === "piece" ? "widget" : null;
 
   return (
     <TitleBar
@@ -83,7 +94,7 @@ export default function Header(props: Props) {
           </button>
         </>
       )}
-      {shown?.kind === "widget" && (
+      {shown?.kind === "piece" && shown.held === "widget" && (
         <>
           <Segments
             value={preset}

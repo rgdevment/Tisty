@@ -29,7 +29,7 @@ Trae los colores de Tisty y clases listas, así que con HTML sencillo ya se ve b
 
 ## Ver el código
 
-El código del widget queda plegado bajo el dibujo. Ábrelo con **Ver código**.
+**Ver código**, en la barra del widget, lo abre en su ventana: el código a la izquierda y lo que dibuja a la derecha. Lo que escribes se dibuja al momento y se guarda en su bloque del documento o de la página de la tarea. En un documento que no se puede escribir, el código solo se lee.
 
 ## Un `.html` es solo un archivo
 

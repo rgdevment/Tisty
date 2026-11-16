@@ -45,13 +45,18 @@ export const cellBar = (
     event.preventDefault();
     pressed(found[2], found[3]);
   });
+  // Like the page's own bar it waits for words chosen in the cell, leaving the lines around the table free.
+  const chosen = () => {
+    bar.hidden = input.selectionStart === input.selectionEnd;
+  };
+  for (const kind of ["select", "keyup", "mouseup", "input", "focus"])
+    input.addEventListener(kind, chosen);
+  chosen();
   const hint = page.createElement("span");
   hint.hidden = true;
-  // Over the table's right end, never over its rows, and kept in sight while a long table scrolls.
-  const ending = () => {
-    const shown = box.getBoundingClientRect().right;
-    const table = box.querySelector(":scope > table")?.getBoundingClientRect().right ?? shown;
-    return Math.min(table, shown);
-  };
-  return docked(bar, hint, () => box.getBoundingClientRect().top, undefined, false, ending).stop;
+  // Over the cell being written, ending at its right edge, as the page's bar sits over the words chosen.
+  const cell = input.parentElement ?? box;
+  const ending = () =>
+    Math.min(cell.getBoundingClientRect().right, box.getBoundingClientRect().right);
+  return docked(bar, hint, () => cell.getBoundingClientRect().top, undefined, false, ending).stop;
 };

@@ -243,3 +243,107 @@ fn a_window_knows_which_diagram_it_holds_after_blocks_are_written_above_it() {
         assert_eq!(found, now.parse::<usize>().expect("an order"), "{case}");
     }
 }
+
+#[test]
+fn a_widget_is_found_by_its_tongue_and_written_over_in_its_own_place() {
+    use super::{Held, Unwritten, held_in, redrawn_in};
+    let text = "```widget title=\"Rina\"\n<b>1</b>\n```\n\n```widget\n<b>1</b>\n```\n\n```mermaid\na\n```\n";
+    let found = held_in(text, Held::Widget);
+    assert_eq!(found.len(), 2);
+    assert_eq!(found[0].source, "<b>1</b>\n");
+    let second = Place {
+        at: found[1].at.start,
+        nth: 1,
+    };
+    let (body, place) = redrawn_in(text, Held::Widget, second, "<b>1</b>\n", "<i>2</i>")
+        .expect("the second widget");
+    assert_eq!(place, second);
+    assert_eq!(
+        body,
+        "```widget title=\"Rina\"\n<b>1</b>\n```\n\n```widget\n<i>2</i>\n```\n\n```mermaid\na\n```\n"
+    );
+    assert_eq!(
+        redrawn_in(text, Held::Widget, second, "<b>9</b>\n", "x"),
+        Err(Unwritten::Moved)
+    );
+}
+
+#[test]
+fn a_widget_in_a_quote_or_a_crlf_file_keeps_its_marks_and_line_ends() {
+    use super::{Held, held_in, redrawn_in};
+    let quoted = "> ```widget\n> <b>1</b>\n> ```\n";
+    let at = Place {
+        at: held_in(quoted, Held::Widget)[0].at.start,
+        nth: 0,
+    };
+    assert_eq!(
+        redrawn_in(quoted, Held::Widget, at, "<b>1</b>\n", "<b>2</b>\n<i>3</i>").map(|one| one.0),
+        Ok("> ```widget\n> <b>2</b>\n> <i>3</i>\n> ```\n".to_string()),
+    );
+    let crlf = "```widget\r\n<b>1</b>\r\n```\r\n";
+    let at = Place { at: 0, nth: 0 };
+    assert_eq!(
+        redrawn_in(crlf, Held::Widget, at, "<b>1</b>\n", "<b>2</b>").map(|one| one.0),
+        Ok("```widget\r\n<b>2</b>\r\n```\r\n".to_string()),
+    );
+}
+
+// One case per line: what is held ¦ body ¦ which one it is from the top ¦ was ¦ now ¦ body after, or why it was refused.
+const HELD: &str = "
+formula ¦ ```math⏎a^2⏎```⏎ ¦ 0 ¦ a^2⏎ ¦ b^2 ¦ ```math⏎b^2⏎```⏎
+formula ¦ > ```math⏎> a⏎> ```⏎ ¦ 0 ¦ a⏎ ¦ b⏎c ¦ > ```math⏎> b⏎> c⏎> ```⏎
+formula ¦ ```math⏎c⏎```⏎ ¦ 0 ¦ a⏎ ¦ b ¦ moved
+formula ¦ ```math⏎a⏎```⏎ ¦ 0 ¦ a⏎ ¦ a⏎```⏎b ¦ unread
+inlineFormula ¦ Sea $x^2$ y $y$.⏎ ¦ 1 ¦ y ¦ z+1 ¦ Sea $x^2$ y $z+1$.⏎
+inlineFormula ¦ $x$ y $x$⏎ ¦ 1 ¦ x ¦ w ¦ $x$ y $w$⏎
+inlineFormula ¦ Ver $$a$$ aquí⏎ ¦ 0 ¦ a ¦ b⏎ ¦ Ver $$b$$ aquí⏎
+inlineFormula ¦ | a |⏎|---|⏎| $x$ |⏎ ¦ 0 ¦ x ¦ y ¦ | a |⏎|---|⏎| $y$ |⏎
+inlineFormula ¦ > - uno $x$⏎ ¦ 0 ¦ x ¦ y ¦ > - uno $y$⏎
+inlineFormula ¦ a $x$␍⏎b⏎ ¦ 0 ¦ x ¦ y ¦ a $y$␍⏎b⏎
+inlineFormula ¦ Sea $x$.⏎ ¦ 0 ¦ x ¦ a$b ¦ unread
+inlineFormula ¦ Sea $x$.⏎ ¦ 0 ¦ x ¦ a⏎⏎b ¦ unread
+inlineFormula ¦ Sea $x$.⏎ ¦ 0 ¦ z ¦ y ¦ moved
+table ¦ | a | b |⏎|---|---|⏎| 1 | 2 |⏎ ¦ 0 ¦ | a | b |⏎|---|---|⏎| 1 | 2 |⏎ ¦ | a | b |⏎|---|---|⏎| 3 | 4 |⏎| 5 | 6 | ¦ | a | b |⏎|---|---|⏎| 3 | 4 |⏎| 5 | 6 |⏎
+table ¦ intro⏎⏎| a |⏎|---|⏎⏎fin⏎ ¦ 0 ¦ | a |⏎|---|⏎ ¦ | b |⏎|---|⏎ ¦ intro⏎⏎| b |⏎|---|⏎⏎fin⏎
+table ¦ > | a |⏎> |---|⏎> | 1 |⏎ ¦ 0 ¦ | a |⏎|---|⏎| 1 |⏎ ¦ | a |⏎|---|⏎| 2 |⏎ ¦ > | a |⏎> |---|⏎> | 2 |⏎
+table ¦ | a |␍⏎|---|␍⏎| 1 |␍⏎ ¦ 0 ¦ | a |⏎|---|⏎| 1 |⏎ ¦ | a |⏎|---|⏎| 9 |⏎ ¦ | a |␍⏎|---|␍⏎| 9 |␍⏎
+table ¦ | a |⏎|---|⏎ ¦ 0 ¦ | a |⏎|---|⏎ ¦ hola ¦ unread
+front ¦ ---⏎title: Plan⏎tags: [a]⏎---⏎⏎# Uno⏎ ¦ 0 ¦ title: Plan⏎tags: [a]⏎ ¦ title: Plan B⏎ ¦ ---⏎title: Plan B⏎---⏎⏎# Uno⏎
+front ¦ ---␍⏎title: Plan␍⏎---␍⏎ ¦ 0 ¦ title: Plan⏎ ¦ title: Otro⏎fuente: notas ¦ ---␍⏎title: Otro␍⏎fuente: notas␍⏎---␍⏎
+front ¦ ---⏎title: Plan⏎---⏎ ¦ 0 ¦ title: Plan⏎ ¦ ⏎title: Plan ¦ unread
+";
+
+#[test]
+fn each_piece_a_window_holds_is_written_back_only_while_it_reads_as_the_same_piece() {
+    use super::{Held, Unwritten, held_in, redrawn_in};
+    for case in HELD.lines().filter(|line| !line.trim().is_empty()) {
+        let cells: Vec<&str> = case.split(" ¦ ").collect();
+        let [held, body, nth, was, now, after] = cells[..] else {
+            panic!("a case has six cells: {case}");
+        };
+        let held: Held = serde_json::from_str(&format!("\"{held}\"")).expect(case);
+        let body = unfolded(body);
+        let nth: usize = nth.trim().parse().expect(case);
+        let at = held_in(&body, held)
+            .get(nth)
+            .map_or(usize::MAX, |one| one.at.start);
+        let wanted = match after.trim() {
+            "moved" => Err(Unwritten::Moved),
+            "unread" => Err(Unwritten::Unread),
+            _ => Ok(unfolded(after)),
+        };
+
+        assert_eq!(
+            redrawn_in(
+                &body,
+                held,
+                Place { at, nth },
+                &unfolded(was),
+                &unfolded(now)
+            )
+            .map(|(body, _)| body),
+            wanted,
+            "{case}"
+        );
+    }
+}

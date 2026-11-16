@@ -12,6 +12,7 @@ import {
 } from "./core";
 import { paperIn } from "./front";
 import { adopt, t } from "./locales";
+import { pieceSave } from "./pieceWindow";
 import { saidPlainly } from "./refusal";
 import { fell } from "./Standing";
 import Diagramming from "./ui/drawing/Diagramming";
@@ -22,8 +23,9 @@ import { pageFor } from "./ui/sheets";
 import { darkNow } from "./ui/theming";
 import { leaveAsHtml, leaveAsWord } from "./ui/useLeaving";
 import { type Acts, choicesFor, exportsFor, keysFor, PLAIN, ZOOMS } from "./ui/viewer/acting";
-import { button } from "./ui/viewer/Glyphs";
 import Header, { titled } from "./ui/viewer/Header";
+import PieceCode from "./ui/viewer/PieceCode";
+import PiecePreview from "./ui/viewer/PiecePreview";
 import Preview from "./ui/viewer/Preview";
 import type ReaderWindow from "./ui/viewer/Reader";
 import Stage, { type Preset } from "./ui/viewer/Stage";
@@ -62,6 +64,9 @@ const useReader = (wanted: boolean) => {
 };
 
 // A diagram's window is its own thing: none of the reader's state is set up for it.
+const DRAWN_PAUSE = 250;
+const SAVED_PAUSE = 700;
+
 export default function Viewing() {
   useState(() => adopt(new URLSearchParams(window.location.search).get("locale") ?? undefined));
   const [shown, setShown] = useState<Showing | null>(null);
@@ -121,6 +126,11 @@ function Reading({
   const [dark, setDark] = useState<boolean | null>(null);
   const [again, setAgain] = useState(0);
   const [code, setCode] = useState(false);
+  const [preview, setPreview] = useState<string | null>(null);
+  const [draft, setDraft] = useState<string | null>(null);
+  const unsaved = useRef<string | null>(null);
+  const pause = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const drawing = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const [facts, setFacts] = useState<DocFacts | null>(null);
 
   useEffect(() => {
@@ -155,6 +165,38 @@ function Reading({
   useEffect(() => pageFor(leaf, turned), [leaf, turned]);
   const drawn = useRef<Window | null>(null);
   const fail = (problem: unknown) => setNote(saidPlainly(problem));
+
+  const opensOnCode = shown?.kind === "piece" && shown.code;
+  useEffect(() => {
+    if (opensOnCode) setCode(true);
+  }, [opensOnCode]);
+
+  // An empty piece leaves nothing to find again, so blank words wait for some before they are saved.
+  const drafted = (now: string) => {
+    setDraft(now);
+    clearTimeout(drawing.current);
+    drawing.current = setTimeout(() => setPreview(now), DRAWN_PAUSE);
+    clearTimeout(pause.current);
+    unsaved.current = now.trim() ? now : null;
+    if (unsaved.current !== null) pause.current = setTimeout(() => void flush(), SAVED_PAUSE);
+  };
+  const flush = (): Promise<void> => {
+    clearTimeout(pause.current);
+    const now = unsaved.current;
+    unsaved.current = null;
+    if (now === null) return Promise.resolve();
+    return pieceSave(now)
+      .then(() => setNote(null))
+      .catch(fail);
+  };
+  const flushing = useRef(flush);
+  flushing.current = flush;
+  useEffect(() => {
+    const closing = getCurrentWindow().onCloseRequested(() => flushing.current());
+    return () => {
+      closing.then((off) => off()).catch(() => {});
+    };
+  }, []);
   const named = paper?.title ?? "";
   const pdf = usePdf({
     ready: reading,
@@ -289,24 +331,29 @@ function Reading({
         />
       )}
       {!trouble && (!shown || (reading && !Reader)) && <Quill said={t("viewOpening")} />}
-      {shown?.kind === "widget" && (
-        <Stage source={shown.source} preset={preset} actual={actual} dark={dark} again={again} />
-      )}
-      {code && shown?.kind === "widget" && (
-        <div className="absolute inset-x-0 top-11 bottom-0 z-20 flex flex-col bg-desk">
-          <div className="flex h-10 shrink-0 items-center border-b border-hair bg-panel pr-2.5 pl-4 text-[12.5px]">
-            <b className="font-semibold">{t("viewCode")}</b>
-            <button
-              type="button"
-              className={`ml-auto ${button} border-transparent text-soft`}
-              onClick={() => setCode(false)}
-            >
-              {t("viewClose")}
-            </button>
+      {shown?.kind === "piece" && (
+        <div className="flex min-h-0 flex-1">
+          {code && (
+            <PieceCode
+              source={draft ?? shown.source}
+              writable={shown.writable}
+              onDraft={drafted}
+              onClose={() => setCode(false)}
+            />
+          )}
+          <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+            {shown.held === "widget" ? (
+              <Stage
+                source={preview ?? shown.source}
+                preset={preset}
+                actual={actual}
+                dark={dark}
+                again={again}
+              />
+            ) : (
+              <PiecePreview held={shown.held} source={preview ?? shown.source} label={title} />
+            )}
           </div>
-          <pre className="scroller m-0 min-h-0 flex-1 whitespace-pre-wrap break-words px-6 py-5 font-mono text-[12.5px] leading-relaxed">
-            {shown.source}
-          </pre>
         </div>
       )}
       {pdf.seeing && (

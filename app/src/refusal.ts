@@ -269,6 +269,8 @@ const KNOWN = [
   "lockIsTheDocs",
   "documentMoved",
   "diagramMoved",
+  "pieceMoved",
+  "pieceUnread",
   "diagramGone",
   "taskPageBehind",
   "nothingKeptBeside",
@@ -290,6 +292,9 @@ const KNOWN = [
   "settingsUnborn",
   "wslShut",
   "wslUnread",
+  "tableRefused",
+  "tableRefusedMoved",
+  "tableRefusedLastColumn",
 ] as const;
 
 type Known = (typeof KNOWN)[number];

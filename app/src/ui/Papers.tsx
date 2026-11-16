@@ -44,6 +44,11 @@ export default function Papers({
         aria-label={t("pickADocToLink")}
         placeholder={t("pickADocToLink")}
         onChange={(e) => setWord(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key !== "Enter" || !shown[0]) return;
+          e.preventDefault();
+          onPick(shown[0]);
+        }}
         className="mb-1 w-full rounded-md bg-hover px-2.5 py-1.5 outline-none placeholder:text-faint"
       />
       <div className="scroller max-h-[168px]">

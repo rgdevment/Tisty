@@ -68,12 +68,17 @@ const fenced = (lang: string): Put => ({ block: `\`\`\`${lang}\n\n\`\`\``, at: l
 
 const IDEA_ABOVE = /^\s*>\s*\[!idea\](.*)$/gim;
 
-const stuckAt = (state: EditorState, from: number): Placed => {
-  const above = [...state.sliceDoc(0, from).matchAll(IDEA_ABOVE)];
+// A new note takes a colour other than the one just above it, so two in a row are told apart.
+export const ideaOpened = (before: string): string => {
+  const above = [...before.matchAll(IDEA_ABOVE)];
   const last = ideaParts(above[above.length - 1]?.[1] ?? "").hue;
   const hues = IDEA_HUES.filter((one) => one !== last);
   const hue = hues[Math.floor(Math.random() * hues.length)];
-  const head = `> [!IDEA] ${[ideaStamp(new Date()), hue, "right"].join(" · ")}\n> `;
+  return `> [!IDEA] ${[ideaStamp(new Date()), hue, "right"].join(" · ")}\n> `;
+};
+
+const stuckAt = (state: EditorState, from: number): Placed => {
+  const head = ideaOpened(state.sliceDoc(0, from));
   return { block: head, at: head.length };
 };
 const CALLOUTS = [
@@ -369,10 +374,14 @@ export const put = (view: EditorView, one: Slashed, from: number, to: number, as
 };
 
 /** A table put at the caret just as the `/` menu puts one, from the bar's own button. */
+// A block put in from the bar goes after the line the caret stands in, never splitting its words.
+export const lineEndOf = (view: EditorView): number =>
+  view.state.doc.lineAt(view.state.selection.main.head).to;
+
 export const putTable = (view: EditorView, asking?: Asking) => {
   const table = SLASHED.find((one) => one.key === "table");
-  const { head } = view.state.selection.main;
-  if (table) put(view, table, head, head, asking);
+  const at = lineEndOf(view);
+  if (table) put(view, table, at, at, asking);
 };
 
 const mac = typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform);

@@ -29,30 +29,32 @@ const headed = (head: Element): string => head.textContent?.replace("⋯", "").t
 
 // The page arrives inert; the window adds what lets each table be written in place.
 export const tabled = (page: Document) => {
-  for (const box of tablesIn(page)) {
-    if (box.classList.contains("dressed")) continue;
-    box.classList.add("dressed");
-    const bar = page.createElement("div");
-    bar.className = "table-bar";
-    bar.hidden = true;
-    box.prepend(bar);
-    headsOf(box).forEach((head, column) => {
-      head.setAttribute("aria-sort", "none");
-      const name = headed(head) || String(column + 1);
-      head.append(asking(page, "column", fill("tableColumnMenu", name), "⋯", { column }));
-    });
-    rowsOf(box).forEach((row, at) => {
-      row.dataset.row = String(at);
-      const first = row.cells[0];
-      if (!first) return;
-      const grip = asking(page, "row", fill("tableRowMenu", String(at + 1)), "", { row: at });
-      grip.classList.add("row-grip");
-      first.prepend(grip);
-    });
-    const adding = asking(page, "rowAdd", t("tableRowAdd"), `+ ${t("tableRowAdd")}`);
-    adding.classList.add("row-add");
-    box.append(adding);
-  }
+  for (const box of tablesIn(page)) dressedTable(page, box);
+};
+
+export const dressedTable = (page: Document, box: Element) => {
+  if (box.classList.contains("dressed")) return;
+  box.classList.add("dressed");
+  const bar = page.createElement("div");
+  bar.className = "table-bar";
+  bar.hidden = true;
+  box.prepend(bar);
+  headsOf(box).forEach((head, column) => {
+    head.setAttribute("aria-sort", "none");
+    const name = headed(head) || String(column + 1);
+    head.append(asking(page, "column", fill("tableColumnMenu", name), "⋯", { column }));
+  });
+  rowsOf(box).forEach((row, at) => {
+    row.dataset.row = String(at);
+    const first = row.cells[0];
+    if (!first) return;
+    const grip = asking(page, "row", fill("tableRowMenu", String(at + 1)), "", { row: at });
+    grip.classList.add("row-grip");
+    first.prepend(grip);
+  });
+  const adding = asking(page, "rowAdd", t("tableRowAdd"), `+ ${t("tableRowAdd")}`);
+  adding.classList.add("row-add");
+  box.append(adding);
 };
 
 // A click inside a dressed table: a cell to write, a head to sort by, or nothing of the table's.
@@ -62,7 +64,8 @@ export const tableClicked = (
   if (!target.closest(`${BOXES}.dressed`) || target.closest(".table-input, .col-grip")) return null;
   const cell = target.closest<HTMLTableCellElement>("td, th");
   if (!cell) return null;
-  if (cell.tagName === "TH") return { act: "sort", row: -1, column: cell.cellIndex };
+  if (cell.tagName === "TH")
+    return { act: headed(cell) ? "sort" : "cell", row: -1, column: cell.cellIndex };
   const row = cell.closest<HTMLTableRowElement>("tbody > tr")?.dataset.row;
   if (row === undefined) return null;
   return { act: "cell", row: Number(row), column: cell.cellIndex };
@@ -193,6 +196,8 @@ export const typing = (
   };
   // What is typed here is the cell's, never a shortcut of the page around it.
   input.addEventListener("keydown", (event) => {
+    // The view's own switch closes the cell and goes on to the page, which turns once its words are saved.
+    if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "e") return end("blur");
     event.stopPropagation();
     const ways: Record<string, Leaving | undefined> = {
       Enter: "enter",
@@ -230,8 +235,10 @@ export const beside = (
     if (column > 0) return { row, column: column - 1 };
     return at > 0 ? { row: shown[at - 1], column: heads - 1 } : null;
   }
-  if (how === "enter")
+  if (how === "enter") {
+    if (row < 0) return shown.length ? { row: shown[0], column } : null;
     return at >= 0 && at + 1 < shown.length ? { row: shown[at + 1], column } : null;
+  }
   return null;
 };
 

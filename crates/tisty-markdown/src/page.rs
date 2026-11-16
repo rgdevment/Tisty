@@ -1,18 +1,29 @@
 use std::collections::HashMap;
 use std::fmt::Write as _;
 
-use crate::inline::{escaped, inline};
+use crate::inline::{escaped, inline, sourced};
 use crate::{Block, Callout, Column, Doc, Holds, Kind, Lean, values};
 
 struct Drawing {
     anchors: HashMap<usize, String>,
     aligned: bool,
+    placed: bool,
 }
 
 pub fn html(doc: &Doc) -> String {
+    page_of(doc, false)
+}
+
+/// The page an editor writes on: the same html, each piece of words naming the bytes it is written with.
+pub fn html_placed(doc: &Doc) -> String {
+    page_of(doc, true)
+}
+
+fn page_of(doc: &Doc, placed: bool) -> String {
     let drawing = Drawing {
         anchors: anchors(doc),
         aligned: false,
+        placed,
     };
     let mut out = String::new();
     for block in doc.blocks() {
@@ -21,11 +32,54 @@ pub fn html(doc: &Doc) -> String {
     out
 }
 
+/// What an edit changed on the page being written: where every top-level block now stands, and the
+/// blocks from `drawn.start` to `drawn.end` drawn again, one more on each side of the edit.
+pub struct Near {
+    pub spans: Vec<[usize; 2]>,
+    pub drawn: std::ops::Range<usize>,
+    pub html: String,
+}
+
+pub fn placed_near(doc: &Doc, from: usize, to: usize) -> Near {
+    let blocks = doc.blocks();
+    let spans: Vec<[usize; 2]> = blocks
+        .iter()
+        .map(|one| [one.at.start, one.at.end])
+        .collect();
+    let touched = |one: &[usize; 2]| one[1] >= from && one[0] <= to;
+    let start = spans
+        .iter()
+        .position(touched)
+        .unwrap_or_else(|| spans.partition_point(|one| one[1] < from))
+        .saturating_sub(1);
+    let end = spans
+        .iter()
+        .rposition(touched)
+        .map_or(start + 1, |at| at + 2)
+        .max(start + 1)
+        .min(spans.len());
+    let drawing = Drawing {
+        anchors: anchors(doc),
+        aligned: false,
+        placed: true,
+    };
+    let mut html = String::new();
+    for block in blocks.get(start..end).unwrap_or_default() {
+        draw(block, doc.text(), &drawing, &mut html);
+    }
+    Near {
+        spans,
+        drawn: start.min(end)..end,
+        html,
+    }
+}
+
 // Cut only between top-level blocks, so each piece is whole HTML that can be laid after the last.
 pub fn pieces(doc: &Doc, about: usize) -> Vec<String> {
     let drawing = Drawing {
         anchors: anchors(doc),
         aligned: true,
+        placed: false,
     };
     let mut all = Vec::new();
     let mut out = String::new();
@@ -98,12 +152,12 @@ fn draw(block: &Block, text: &str, drawing: &Drawing, out: &mut String) {
                 .get(&block.at.start)
                 .map(|id| format!(" id=\"{}\"", escaped(id)));
             let _ = write!(out, "<h{level}{} {at}>", id.unwrap_or_default());
-            inline(&block.spans, text, out);
+            sourced(&block.spans, text, drawing.placed, out);
             let _ = write!(out, "</h{level}>");
         }
         Kind::Paragraph => {
             let _ = write!(out, "<p {at}>");
-            inline(&block.spans, text, out);
+            sourced(&block.spans, text, drawing.placed, out);
             out.push_str("</p>");
         }
         Kind::Quote => wrapped(
@@ -125,9 +179,13 @@ fn draw(block: &Block, text: &str, drawing: &Drawing, out: &mut String) {
             wrapped(&open, shut, block, text, drawing, out);
         }
         Kind::Item { done } => item(*done, &at, block, text, drawing, out),
-        Kind::Code { tongue, title } => {
-            code(tongue.as_deref(), title.as_deref(), &at, block, text, out)
-        }
+        Kind::Code { tongue, title } => code(
+            tongue.as_deref(),
+            title.as_deref(),
+            &at,
+            (block, text, drawing.placed),
+            out,
+        ),
         Kind::Table { columns } => table(columns, &at, block, text, out),
         Kind::Html => {
             let _ = write!(
@@ -216,7 +274,7 @@ fn item(
             let _ = write!(out, "<li {at}>");
         }
     }
-    inline(&block.spans, text, out);
+    sourced(&block.spans, text, drawing.placed, out);
     for inner in &block.inner {
         draw(inner, text, drawing, out);
     }
@@ -227,8 +285,7 @@ fn code(
     tongue: Option<&str>,
     title: Option<&str>,
     at: &str,
-    block: &Block,
-    text: &str,
+    (block, text, placed): (&Block, &str, bool),
     out: &mut String,
 ) {
     let said: String = block
@@ -248,9 +305,22 @@ fn code(
         .unwrap_or_default();
     let _ = write!(
         out,
-        "<pre><code{class}>{}</code></pre></figure>",
+        "<pre><code{class}{}>{}</code></pre></figure>",
+        written_at(block, text, &said, placed),
         escaped(&said)
     );
+}
+
+// Code inside a quote loses each line's marker, so only code written in one piece can be written on.
+fn written_at(block: &Block, text: &str, said: &str, placed: bool) -> String {
+    let (Some(first), Some(last)) = (block.spans.first(), block.spans.last()) else {
+        return String::new();
+    };
+    let whole = first.at.start..last.at.end;
+    if !placed || text.get(whole.clone()) != Some(said) {
+        return String::new();
+    }
+    format!(" data-src=\"{}-{}\"", whole.start, whole.end)
 }
 
 #[cfg(not(any(feature = "math", feature = "mermaid")))]

@@ -5,8 +5,12 @@ const STEP = 10;
 const FEWEST = 4;
 const LEAST = FEWEST * STEP;
 
-export const gripped = (page: Document) => {
-  for (const head of page.querySelectorAll<HTMLElement>(".page > .table[data-at] thead th")) {
+export const gripped = (page: Document) =>
+  gripsOn(page, page.querySelectorAll<HTMLElement>(".page > .table[data-at] thead th"));
+
+export const gripsOn = (page: Document, heads: Iterable<HTMLElement>) => {
+  for (const head of heads) {
+    if (head.querySelector(":scope > .col-grip")) continue;
     const grip = page.createElement("span");
     grip.className = "col-grip";
     grip.setAttribute("aria-hidden", "true");

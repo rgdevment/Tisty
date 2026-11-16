@@ -380,7 +380,7 @@ describe("the diagram button of the bar", () => {
     return { heard, told };
   };
 
-  it("asks for a diagram where the caret is, leaving a selection in place", () => {
+  it("asks for a diagram after the caret's line, leaving its words whole", () => {
     const editor = view("# Plan\n\nleche y pan", 9, 14);
     const { heard, told } = asking(["diagram", "diagramFrom"]);
     const { bar } = barred(editor, false, undefined, undefined, () => told);
@@ -389,7 +389,7 @@ describe("the diagram button of the bar", () => {
 
     expect(heard).toEqual([["diagram", false]]);
     expect(editor.state.sliceDoc()).toBe(
-      "# Plan\n\nleche\n\n```mermaid\nmindmap\n  raíz\n```\n\ny pan",
+      "# Plan\n\nleche y pan\n\n```mermaid\nmindmap\n  raíz\n```",
     );
     editor.destroy();
   });
