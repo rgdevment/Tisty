@@ -16,6 +16,7 @@ import Help from "./Help";
 import Keeping from "./Keeping";
 import Lists from "./Lists";
 import Matrix from "./Matrix";
+import Review from "./Review";
 import Spread from "./Spread";
 
 export default function Stage() {
@@ -174,6 +175,8 @@ export default function Stage() {
         onOpen={(one) => setSelected(one.id)}
       />
     </div>
+  ) : chosen.named === "weekly" && !sheet ? (
+    <Review />
   ) : chosen.named === "keeping" ? (
     <Keeping
       greeted={greeted}

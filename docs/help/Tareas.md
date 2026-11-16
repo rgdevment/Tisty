@@ -143,6 +143,18 @@ Una rutina tiene una sola página para todas sus vueltas, con **Para qué**, **C
 
 Lo que escribas en **Esta vez** es de la vuelta que corre. Al completarla se guarda en **Vueltas**, plegado bajo la página, con cuántos pasos marcaste y cuándo se cerró, y la sección queda en blanco para la próxima.
 
+## Revisión semanal
+
+Sin un repaso cada tanto, lo capturado se acumula sin decidir. **Revisión semanal**, en la fila de vistas de la barra lateral, junta en una página lo que conviene mirar una vez por semana, en tres paradas. Cada parada se marca ✓ cuando ya no espera nada:
+
+1. **Por decidir**: las tareas sin lista, con **Abrir** para darles lista o fecha, **Completar** y **No la haré**. Y si quedan ideas, **Abrir la Lluvia de ideas**, que es donde se ordenan.
+2. **Marcados como pasados**: los documentos que un agente marcó, con su motivo. **Archivar**, **Borrarlo** o **Quitar la marca**.
+3. **Hace tiempo que no abres**: los mismos de la Biblioteca, sin abrir en este equipo ni escribir en 60 días, para **Abrir** o **Archivar**.
+
+- **Avisarme cada semana** crea una tarea normal, **Revisión semanal**, en la lista que elijas, que se repite cada semana y suena el día y la hora que digas: el viernes a las 17:00 si no cambias nada. Suena aunque Tisty esté cerrado, como cualquier recordatorio. Tisty la reconoce por su etiqueta **#revisión-semanal**, así que puedes cambiarle el nombre.
+- **Terminar la revisión** completa la vuelta de esta semana, y la siguiente nace con su aviso.
+- **Con tu agente**: el día que toca, tu agente se entera al ponerse al día y puede ofrecerte recorrerla contigo. Solo cuenta lo que espera en cada parada y ayuda en lo que le pidas; no archiva, borra ni cierra nada por su cuenta.
+
 ## Terminar y descartar
 
 - `Ctrl`/`⌘` + `Enter`, sobre la fila de la tarea en la lista, la termina. Se va al [[archivo|El-archivo]] con todo lo que tiene. Mientras escribes en su página, esas teclas ponen un salto de página.

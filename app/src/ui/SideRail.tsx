@@ -17,6 +17,7 @@ const NAMED: { key: Named; icon: string }[] = [
   { key: "lists", icon: "rows" },
   { key: "tags", icon: "tag" },
   { key: "archive", icon: "archive" },
+  { key: "weekly", icon: "review" },
 ];
 
 const STEP = 40;
