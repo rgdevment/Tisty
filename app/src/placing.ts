@@ -1,18 +1,21 @@
 import { invoke } from "@tauri-apps/api/core";
 
-export type Check = { readonly bytes: number; readonly hash: number };
+export type Check = { readonly bytes: number; readonly hash: readonly [number, number] };
 
 const surrogate = (unit: number) => unit >= 0xd800 && unit < 0xe000;
 
 export const checkOf = (text: string): Check => {
   let utf8 = 0;
   let fnv = 0x811c9dc5;
+  let mixed = 0x9747b28c;
   for (let at = 0; at < text.length; at++) {
     const unit = text.charCodeAt(at);
     utf8 += unit < 0x80 ? 1 : unit < 0x800 || surrogate(unit) ? 2 : 3;
     fnv = Math.imul(fnv ^ unit, 0x01000193);
+    mixed = Math.imul(mixed ^ unit, 0x5bd1e995);
+    mixed ^= mixed >>> 13;
   }
-  return { bytes: utf8, hash: fnv >>> 0 };
+  return { bytes: utf8, hash: [fnv >>> 0, mixed >>> 0] };
 };
 
 export const docPlaced = (body: string): Promise<string> =>

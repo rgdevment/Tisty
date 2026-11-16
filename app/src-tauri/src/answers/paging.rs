@@ -17,7 +17,7 @@ pub fn doc_drawn(session: tauri::State<'_, Mutex<Session>>, body: String) -> tau
 #[derive(serde::Deserialize, Clone, Copy, PartialEq, Eq, Debug)]
 pub struct Check {
     bytes: usize,
-    hash: u32,
+    hash: [u32; 2],
 }
 
 #[derive(serde::Deserialize)]

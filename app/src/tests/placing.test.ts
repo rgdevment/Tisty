@@ -69,6 +69,9 @@ describe("the reckoning of a text the core is told", () => {
       expect(checkOf(text).bytes).toBe(BYTES.encode(text).length);
     }
     expect(checkOf("Uno dos")).toEqual(checkOf("Uno dos"));
-    expect(checkOf("Uno dos").hash).not.toBe(checkOf("Uno des").hash);
+    const [fnv, mixed] = checkOf("Uno dos").hash;
+    const [otherFnv, otherMixed] = checkOf("Uno des").hash;
+    expect(fnv).not.toBe(otherFnv);
+    expect(mixed).not.toBe(otherMixed);
   });
 });

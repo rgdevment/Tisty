@@ -5,7 +5,7 @@ use tisty_markdown::grid::Edit;
 fn check(text: &str, hash: u32) -> Check {
     Check {
         bytes: text.len(),
-        hash,
+        hash: [hash, !hash],
     }
 }
 
