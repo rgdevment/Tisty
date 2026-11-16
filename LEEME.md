@@ -257,11 +257,14 @@ espera en la Lluvia de ideas.
 - **Un libro por año** — *Diario 2026*, con una página por mes y una sección por
   día, en el idioma de la app; un día en el que no escribiste nunca aparece.
 - **Se escribe desde cualquier parte** — el cuadro de arriba, «¿Qué pasó hoy?»,
-  o el tercer `Tab` de la captura rápida, sin abrir la ventana; una idea de la
-  Lluvia de ideas se anexa primero a **Diario de hoy**.
+  o el tercer modo de la captura rápida, **Diario**, a dos `Tab` de una tarea,
+  sin abrir la ventana; al anexar una idea de la Lluvia de ideas, **Diario de
+  hoy** es la primera opción.
 - **Solo tuyo** — ningún agente lo ve hasta que pulsas **Solo tú** y dice
   **Abierto a los agentes**; abierto, un agente lo lee y solo añade al final de
-  hoy, con su firma, cuando se lo pides. Nunca se comparte por Folio.
+  hoy, con su firma, cuando se lo pides. La puerta vale en Tisty 1.48 o más
+  nuevo: actualiza todos los equipos que sincronizan antes de escribir en él.
+  Nunca se comparte por Folio.
 - **Sigue siendo Markdown** — un libro con `diary: on` en sus propiedades, cuyas
   páginas son los meses.
 
@@ -589,10 +592,10 @@ pasos para las partes, y una bitácora para lo que aprendes por el camino.
 
 **Terminar es donde empieza.** Casi todos los gestores tratan una tarea cumplida
 como basura que esconder. Aquí pasa a un archivo que se lee en tres capas: las
-que enseñaron algo vienen con su rastro entero —qué cambió, cuándo, y lo que
-escribiste—, las rutinas vienen con sus cuentas y sus rachas, y el resto es la
-huella. La búsqueda alcanza todo, documentos incluidos. Al año, ese archivo es la
-parte que echarías de menos.
+que enseñaron algo vienen con su trayecto entero —qué cambió, cuándo, y lo que
+escribiste—, las rutinas vienen con sus cuentas y sus rachas, y el resto es el
+rastro. La búsqueda alcanza todo, documentos incluidos. Al año, ese archivo es
+la parte que echarías de menos.
 
 **Tu asistente, no uno nuestro.** Tisty no lleva IA dentro. El lenguaje natural
 que convierte "llamar al banco a las 3" en una tarea son reglas corriendo en tu
@@ -646,8 +649,8 @@ editor— y en Tisty lleva bastante más que texto:
   al pie, escritas en la página celda por celda.
 - **Widgets**: una vista fija de HTML y CSS con los colores de Tisty, que no
   ejecuta nada ni nombra nada fuera de sí misma.
-- **Avisos, marcadores e íconos** —los avisos que GitHub lee, marcadores de
-  varios colores, un ícono que se busca por lo que dibuja— y casillas que se
+- **Avisos, marcadores e iconos** —los avisos que GitHub lee, marcadores de
+  varios colores, un icono que se busca por lo que dibuja— y casillas que se
   marcan.
 - **Adjuntos que viajan con él**: fotos, PDF, sonido y video, guardados dentro
   de Tisty en vez de enlazados a una carpeta que se mueve. Un clic en una foto
@@ -722,7 +725,7 @@ ancho de una columna viaja en lo largo que se dibuje su raya, que cualquier otro
 lector ignora y pinta igual—. Donde Markdown no tiene palabra para algo, Tisty
 suma unas pocas y cortas, nunca HTML: `==texto==` es un resaltado y
 `==texto=={green}` uno de otro color, `++texto++` va subrayado, `::star::` es un
-ícono, y un adjunto se nombra por su propio nombre, `![plano](plano-0006bf09.png)`.
+icono, y un adjunto se nombra por su propio nombre, `![plano](plano-0006bf09.png)`.
 Escribes sobre la página misma, la que dibuja el núcleo, con las marcas fuera de
 la vista, y el menú **⋯** o `Ctrl`/`⌘` + `E` la pasa a Markdown, con todas las
 marcas a la vista, así que lo que hay en el disco siempre es tuyo para leerlo.
@@ -1227,7 +1230,7 @@ ya está. Tu Diario es la excepción: ningún asistente lo ve hasta que lo abres
 los agentes desde el propio Diario, y abierto solo añade al final de hoy, con su
 firma, cuando se lo pides. Lo que no
 puede: cerrar una tarea ni borrarla, marcar un paso tuyo o terminar una tarea
-tuya, mover un día que pusiste tú, borrar un documento, renombrar ni vaciar una
+tuya, mover un día que pusiste tú, borrar un documento, renombrar ni borrar una
 carpeta, alcanzar una tarea que plegaste, tomar archivos de cualquier sitio que
 no sea Descargas, Documentos, Imágenes, el escritorio o la carpeta temporal, ni
 anotar dos veces lo mismo. Una tarea que cerraste es histórico para él: le llega
@@ -1298,7 +1301,9 @@ necesita conexión: un documento compartido por link, tu propia nube, una tarea
 guardada en un calendario en línea.
 Tisty hace una sola petición de red que no le pediste —al abrirse, y una vez al
 día después— para ver si existe una versión más nueva, y no envía nada para
-preguntarlo. Desconecta el equipo de la red y todo lo demás sigue igual.
+preguntarlo. Cuando sincronizas con una nube o compartes un documento, además
+lee unos pocos archivos pequeños, que lista [PRIVACY.md](PRIVACY.md).
+Desconecta el equipo de la red y todo lo demás sigue igual.
 
 ### ¿Dónde quedan mis datos?
 

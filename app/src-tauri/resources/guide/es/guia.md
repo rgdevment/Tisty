@@ -160,7 +160,7 @@ Y si quieres saber qué sobra o qué falta en todo lo que guardas, Configuració
 
 ## Las ideas
 
-Entre lo que vas a hacer y lo que vas a guardar hay algo más suelto. Una idea es un pensamiento atrapado al vuelo, antes de saber si es algo que hacer o algo que guardar: pocas palabras, 140 como máximo, con fecha, en la hoja **Lluvia de ideas**. Espera a que la ordenes: se vuelve tarea, va al documento de su tema o se aparta.
+Entre lo que vas a hacer y lo que vas a guardar hay algo más suelto. Una idea es un pensamiento atrapado al vuelo, antes de saber si es algo que hacer o algo que guardar: pocas palabras, 140 caracteres como máximo, con fecha, en la hoja **Lluvia de ideas**. Espera a que la ordenes: se vuelve tarea, va al documento de su tema o se aparta.
 
 ### Anótala en cuanto llega
 
@@ -182,11 +182,11 @@ Hay cosas que no son para hacer ni para consultar después: simplemente pasaron.
 
 ### Hoy primero
 
-**Diario** abre siempre en hoy. Arriba está el cuadro **¿Qué pasó hoy?**: escribe ahí y `Ctrl`/`⌘` + `Enter` lo guarda al final del día. Debajo queda el mes como una línea de días, el más nuevo arriba, y bajo lo que escribiste cada día se pliegan las tareas que cerraste ese día. Un día en el que no escribiste no aparece: nadie te lleva la cuenta.
+**Diario** abre siempre en hoy. Arriba está el cuadro **¿Qué pasó hoy?**: escribe ahí y `Ctrl`/`⌘` + `Enter` lo guarda al final del día. Debajo queda el mes como una línea de días, el más nuevo arriba, y bajo lo que escribiste cada día se pliegan las tareas que completaste ese día. Un día en el que no escribiste no aparece: nadie te lleva la cuenta.
 
 **Pruébalo:** abre **Diario** y cuenta en una línea cómo va tu día. O sin salir de esta guía: abre la captura rápida, presiona `Tab` dos veces y escríbela ahí.
 
-- **Pegar nota**, el botón junto al cuadro, la guarda como una nota adhesiva, con el minuto en que llegó.
+- **Pegar nota**, el botón junto al cuadro, lo vuelve una nota adhesiva corta, de 140 caracteres como máximo: `Enter` la guarda, con el minuto en que llegó.
 - El lápiz abre el mes como un documento, para corregir cualquier día.
 - Por dentro no son 365 notas sueltas: es un libro por año, con una página por mes y una sección por día, en Markdown como todo lo demás.
 
@@ -206,7 +206,7 @@ Un documento es tuyo y se guarda en Markdown: texto plano con unas pocas marcas,
 
 **Para hacer uno**, usa el **+** del encabezado de la **Biblioteca**, en la barra lateral: **Documento nuevo**. Dentro de una carpeta, ese mismo botón lo crea ahí, y **Carpeta nueva** los agrupa. Las carpetas aparecen plegadas; ábrelas con la flecha.
 
-La primera línea del documento es su título: no hay que ponerle nombre en ninguna otra parte. Sus propiedades, como las etiquetas o el papel en que se imprime, se ven en el panel de al lado, en **Sobre este documento**.
+La primera línea del documento es su título: no hay que ponerle nombre en ninguna otra parte. Sus propiedades se ven en el panel de al lado: el papel en que se imprime, junto a **Hojas**; las etiquetas y las demás, en **Detalles**.
 
 Para escribir:
 
