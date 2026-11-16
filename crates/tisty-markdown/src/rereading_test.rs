@@ -341,9 +341,9 @@ fn an_edit_on_a_page_with_definitions_notes_and_containers_reads_as_the_whole_te
     let mut resolved = 0;
     let mut all = 0;
     // Short runs from the sample, since every mark the edits write leaves fewer stretches free of one.
-    for (seed, run) in (0..20).map(|run| (run % 2, run)) {
+    for run in 0..20 {
         let mut steps = Steps(0xDEF1_0000 + run as u64);
-        let mut text = format!("{}{DEFINED}", SAMPLES[seed]);
+        let mut text = format!("{}{DEFINED}", SAMPLES[run % 2]);
         let mut was = read(&text);
         for _ in 0..40 {
             let at = boundary(&text, steps.next(text.len() + 1));
