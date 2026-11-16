@@ -55,8 +55,10 @@ export type Reckoned = {
   readonly byte: number;
 };
 
+export type Placed = Pick<Reckoned, "text" | "unit" | "byte">;
+
 // A place is counted from where the last key landed while the text is that one, never from its start.
-export const byteFrom = (known: Reckoned | null, text: string, unit: number) => {
+export const byteFrom = (known: Placed | null, text: string, unit: number) => {
   if (known?.text !== text) return bytesIn(text, 0, unit);
   return unit >= known.unit
     ? known.byte + bytesIn(text, known.unit, unit)

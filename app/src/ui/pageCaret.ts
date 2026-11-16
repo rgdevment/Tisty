@@ -158,7 +158,9 @@ export const caretOn = (writer: Writer) => {
     const known = writer.reckoned;
     const spotAt = (at: number) => spotOf(page, hands.text(), at, known);
     const unwritten = writer.kept.lead !== undefined || !spotAt(writer.kept.at);
-    const ghost = unwritten ? ghostAt(page, hands.text(), writer.kept.at, known) : null;
+    const ghost = unwritten
+      ? ghostAt(page, hands.text(), writer.kept.at, known, writer.kept.lead)
+      : null;
     const found: [Node, number] | null = ghost ? [ghost, 0] : spotAt(writer.kept.at);
     if (!found) return;
     focused();
@@ -168,8 +170,8 @@ export const caretOn = (writer: Writer) => {
     const bare = holder.nodeType === Node.ELEMENT_NODE ? (holder as Element) : null;
     if (bare && !bare.textContent && !bare.querySelector("br"))
       bare.append(page.createElement("br"));
-    else if (bare?.matches("li") && spot[1] === 0 && bare.firstElementChild?.matches("ul, ol"))
-      bare.prepend(page.createElement("br"));
+    else if (bare?.matches("li") && elementOf(bare.childNodes[spot[1]])?.matches("ul, ol"))
+      bare.insertBefore(page.createElement("br"), bare.childNodes[spot[1]] ?? null);
     const held = page.getSelection();
     held?.collapse(spot[0], spot[1]);
     writer.kept = { ...writer.kept, node: spot[0], offset: spot[1] };
