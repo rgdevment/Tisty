@@ -27,6 +27,7 @@ Nothing listens until you connect one: the assistant starts Tisty when it needs 
 - Mark a document or an idea that had its day, saying why: you delete it, put it away or take the mark off.
 - Say that a task or a step is done: the task stays in **To confirm** until you finish it or send it back with **Still to do**; the steps wait for you with **Tick them** or **Not yet**.
 - Search and read what is there, the Archive included.
+- Read your Diary and add to the end of today, signed, only if you open it to agents from the Diary itself and ask it to.
 
 ## What it cannot do
 
@@ -34,8 +35,9 @@ Nothing listens until you connect one: the assistant starts Tisty when it needs 
 - Tick a step of yours or finish a task of yours: it only says they are done, and you take its word or not.
 - Move a day you set.
 - Write over what you changed while it was thinking: it is asked to read again.
+- See your Diary while it reads **Only you**, or change what you wrote in it once you open it.
 
-There is no tool for the forbidden things: not hidden, absent. Every rule is in [what an assistant may do](https://www.tisty.app/docs/mcp-permissions/).
+For closing and deleting there is no tool: not hidden, absent. The rest is refused, and it is told why. Every rule is in [what an assistant may do](https://www.tisty.app/docs/mcp-permissions/).
 
 ## How to ask it
 

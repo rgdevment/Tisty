@@ -13,7 +13,7 @@ Lee esta guía a tu ritmo: cada sección se entiende sola, y lo que hoy no uses 
 
 ## ¿Cómo funciona?
 
-Todo empieza con una pregunta: ¿lo vas a hacer, o lo vas a volver a leer? Si lo vas a hacer, es una tarea: se acaba, a veces el mismo día, y queda en el Archivo como conocimiento con fecha. Si lo vas a volver a leer, es un documento: un manual, una receta, las actas de un año, que corriges y amplías durante años. Y si todavía no lo sabes, es una idea: espera en la Lluvia de ideas hasta que la ordenes. Este dibujo cuenta el resto:
+Todo empieza con una pregunta: ¿lo vas a hacer, o lo vas a volver a leer? Si lo vas a hacer, es una tarea: se acaba, a veces el mismo día, y queda en el Archivo como conocimiento con fecha. Si lo vas a volver a leer, es un documento: un manual, una receta, las actas de un año, que corriges y amplías durante años. Y si todavía no lo sabes, es una idea: espera en la Lluvia de ideas hasta que la ordenes. Lo que solo pasó, y quieres recordar, va al Diario. Este dibujo cuenta el resto:
 
 ```mermaid
 flowchart TD
@@ -53,7 +53,7 @@ Y si una tarea te enseña algo que vas a necesitar de nuevo, como el arreglo de 
 
 No hay formulario que llenar. Escribe la frase como se la dirías a alguien, en la barra de arriba, y Tisty va separando el día, la lista y la prioridad mientras escribes.
 
-![La barra de captura con «Vacuna de Rina el 3 de octubre !hacer #salud»: la fecha en azul y la etiqueta en rosa, con las pistas debajo](captura.png)
+![La barra de captura de Hoy, «Añadir para hoy», con las pistas de lo que entiende debajo: etiqueta, lista, prioridad, fechas tal como se dicen y cada martes](captura.png)
 
 Cada parte que entiende se colorea:
 
@@ -81,7 +81,7 @@ Si solo querías mirar, bórrala antes de presionar `Enter`. Todas las palabras 
 
 Se te ocurre algo en medio de otra cosa: presiona `Ctrl` + `Shift` + `Space` desde donde estés y se abre una ventanita para escribirlo. `Enter` la guarda, `Esc` la cierra, y sigues con lo tuyo. Pruébalo ahora, sin salir de esta guía.
 
-Si ese atajo ya lo usa otro programa, Tisty toma otro y te dice cuál quedó en Configuración. Y si lo que se te ocurrió todavía no es una tarea, `Tab` en esa misma ventanita lo vuelve una idea: está más abajo, en **Las ideas**.
+Si ese atajo ya lo usa otro programa, Tisty toma otro y te dice cuál quedó en Configuración. Y si lo que se te ocurrió todavía no es una tarea, `Tab` en esa misma ventanita lo vuelve una idea, y otro `Tab`, una línea en el diario de hoy: los dos están más abajo, en **Las ideas** y **El diario**.
 
 ### Hoy, Próximo, Se repiten y Todas
 
@@ -104,7 +104,7 @@ Lo vencido sale arriba y en rojo; lo atrasado, en ámbar. Una tarea vence única
 
 **Reparto**, el icono del calendario bajo las cuentas del día en la barra lateral, es tu calendario de trabajo: ahí decides con calma qué haces cada día. Lo que escribiste sin día espera en la bandeja **Sin día**; arrástralo al día que le toca. Si ese día ya lleva dos, Tisty te lo dice y te ofrece el siguiente libre. **Mes** muestra lo mismo en cuadrícula.
 
-Un recordatorio es una hora que eliges en la tarea: suena como una notificación del sistema, solo en este equipo, con un sonido corto que puedes apagar. Más en [el reparto y los recordatorios](https://www.tisty.app/es/ayuda/reparto-y-recordatorios/).
+Un recordatorio es una hora que eliges en la tarea: suena como una notificación del sistema en cada equipo donde tienes tu Tisty, aunque esté cerrado, con un sonido corto que puedes apagar. Para que te avise también el teléfono, **Guardar en mi calendario**, en una tarea con fecha, la lleva a Google Calendar, a Outlook o, en un Mac, al Calendario de Apple. Más en [el reparto y los recordatorios](https://www.tisty.app/es/ayuda/reparto-y-recordatorios/).
 
 ### Las prioridades son un mapa, no una escalera
 
@@ -148,7 +148,7 @@ Las rutinas, las tareas que se repiten, tienen una sola página para todas sus v
 
 - **Completar** la marca como hecha y la manda al Archivo. Su página se guarda con ella: se lee, pero ya no se escribe. Si la reabres, vuelve a ser tuya para escribir.
 - **Cerrar con resumen** te pide dos líneas de cómo salió antes de terminarla.
-- **Descartar** la aparta sin hacerla, y también acaba en el Archivo.
+- **No lo haré** la descarta: la aparta sin hacerla, y también acaba en el Archivo.
 
 Lo que guarda el Archivo y cómo encontrarlo después está más abajo, en **El Archivo**.
 
@@ -168,11 +168,31 @@ En la captura rápida, `Tab` cambia de **Tarea** a **Idea**: escríbela y `Enter
 
 ### Ordénalas cuando llegue su momento
 
-Las ideas esperan ahí como notas adhesivas de colores, la más nueva primero. Arrastra una sobre otra para dejarla en ese lugar, y cuando llegue su momento, **Convertir en tarea** la guarda como tarea y **Anexar a un documento** la agrega al final del que elijas. La Biblioteca cuenta las que siguen esperando.
+Las ideas esperan ahí como notas adhesivas de colores, la más nueva primero. Arrastra una sobre otra para dejarla en ese lugar, y cuando llegue su momento, **Convertir en tarea** la guarda como tarea y **Anexar a un documento** la agrega al final del que elijas, con **Diario de hoy** como primera opción. La Biblioteca cuenta las que siguen esperando.
 
 ![La Lluvia de ideas con las ideas del momento como notas adhesivas de colores, con fecha y escritas a mano](ideas.png)
 
 Tu agente de IA también puede hacer una lluvia de ideas contigo y ayudarte a ordenarlas: lo cuenta **Tu agente de IA**, casi al final.
+
+---
+
+## El diario
+
+Hay cosas que no son para hacer ni para consultar después: simplemente pasaron. La visita al veterinario, lo que se decidió en una reunión, cómo estuvo el día. Eso va al **Diario**, una fila propia arriba en la **Biblioteca**.
+
+### Hoy primero
+
+**Diario** abre siempre en hoy. Arriba está el cuadro **¿Qué pasó hoy?**: escribe ahí y `Ctrl`/`⌘` + `Enter` lo guarda al final del día. Debajo queda el mes como una línea de días, el más nuevo arriba, y bajo lo que escribiste cada día se pliegan las tareas que cerraste ese día. Un día en el que no escribiste no aparece: nadie te lleva la cuenta.
+
+**Pruébalo:** abre **Diario** y cuenta en una línea cómo va tu día. O sin salir de esta guía: abre la captura rápida, presiona `Tab` dos veces y escríbela ahí.
+
+- **Pegar nota**, el botón junto al cuadro, la guarda como una nota adhesiva, con el minuto en que llegó.
+- El lápiz abre el mes como un documento, para corregir cualquier día.
+- Por dentro no son 365 notas sueltas: es un libro por año, con una página por mes y una sección por día, en Markdown como todo lo demás.
+
+### Solo tuyo
+
+El diario nunca se comparte: no tiene **Compartir…**. Y tu agente de IA no lo ve hasta que haces clic en **Solo tú**, arriba, y pasa a decir **Abierto a los agentes**. Abierto, lo lee y, solo cuando se lo pides, añade al final de hoy con su firma; nunca cambia lo que escribiste. Más en [documentos](https://www.tisty.app/es/ayuda/documentos/).
 
 ---
 
@@ -197,7 +217,7 @@ Para escribir:
 - Arrastra un archivo dentro para adjuntarlo: la cartilla de vacunas de Rina, el PDF del seguro.
 - Inserta **otro documento**: en un párrafo propio aparece como tarjeta; dentro de una frase, como enlace con su título. En los dos casos, un clic lo abre.
 
-**Exportar**, en el panel del documento, lo imprime, lo guarda en PDF, como página web o como Word, y lo copia como Markdown estándar para cualquier otro editor. Prueba con esta guía: sale con sus diagramas, sus tablas y sus hojas.
+**Exportar**, en el panel del documento, te muestra su PDF, lo guarda en PDF, como página web o como Word, y lo copia como Markdown estándar para cualquier otro editor. Prueba con esta guía: sale con sus diagramas, sus tablas y sus hojas.
 
 Y cuando un asunto ya pasó, archiva su carpeta con el botón derecho: baja al estante de **Archivados**, al final del árbol, con todo lo que tiene dentro. Ahí se lee y se exporta, pero no se escribe; desarchívala y vuelve como estaba. Más en [documentos](https://www.tisty.app/es/ayuda/documentos/).
 
@@ -224,9 +244,9 @@ Una página es un documento como cualquier otro, con su propio archivo, que adem
 En el árbol, soltar un documento encima de otro también lo vuelve su página.
 
 > [!IMPORTANT]
-> El orden en que las insertas en el texto es el orden de las páginas: en el árbol, al exportar y al imprimir. Para mover un capítulo, usa las flechas de su fila en el índice del final del documento, o `Alt` y una flecha sobre la fila.
+> El orden en que las insertas en el texto es el orden de las páginas: en el árbol, al exportar y al imprimir. Para mover un capítulo, abre **Páginas**, bajo la hoja, y usa las flechas de su fila, o `Alt` y una flecha sobre la fila.
 
-Al final del documento va el índice, con sus páginas numeradas. Dentro de una página ves arriba de qué documento es, flechas a las páginas vecinas y, abajo, el paso a la siguiente.
+Bajo la hoja del documento, la fila **Páginas** se abre con un clic y muestra el índice, con sus páginas numeradas. Dentro de una página ves arriba de qué documento es, flechas a las páginas vecinas y, abajo, el paso a la siguiente.
 
 Una página se puede archivar por separado, con el botón derecho, y queda atenuada en su documento; archivar el documento las archiva todas. Cómo se imprime un libro, con su índice, está en [páginas y PDF](https://www.tisty.app/es/ayuda/paginas-y-pdf/).
 
@@ -344,11 +364,11 @@ dosis = \frac{peso \times 0.5}{2}
 \sum_{i=1}^{n} i = \frac{n(n+1)}{2}
 ```
 
-Una fórmula también cabe dentro de una frase, entre signos de dólar: Rina pesa 12 kilos, así que su dosis es $\frac{12 \times 0.5}{2} = 3$ mililitros. Un dólar seguido de una cifra es un precio, así que `$5` sigue siendo cinco dólares. Todo se dibuja sin conexión.
+Una fórmula también cabe dentro de una frase, entre signos de dólar: Rina pesa 12 kilos, así que su dosis es $\frac{12 \times 0.5}{2} = 3$ mililitros. Un dólar seguido de una cifra es un precio, así que `$5` sigue siendo cinco dólares. Para cambiar una fórmula, haz clic en la que va dentro de una frase, o usa **Ver código** en la que tiene su propio bloque. Todo se dibuja sin conexión.
 
 #### Widgets
 
-Un bloque cuyo lenguaje es `widget` se dibuja como una vista fija, hecha solo de HTML y CSS: no ejecuta nada, así que se ve igual donde se lea el documento. Toma los colores de Tisty y trae clases listas como `grid`, `stat`, `card` o `badge`. El código queda plegado; ábrelo con «Ver código».
+Un bloque cuyo lenguaje es `widget` se dibuja como una vista fija, hecha solo de HTML y CSS: no ejecuta nada, así que se ve igual donde se lea el documento. Toma los colores de Tisty y trae clases listas como `grid`, `stat`, `card` o `badge`. El código no se ve en la página: **Ver código**, en la barra del widget, lo abre en una ventana propia, con el código a un lado y lo que dibuja al otro.
 
 ```widget title="Rina y Roger este mes"
 <div class="grid">
@@ -370,7 +390,7 @@ Un enlace que ocupa un párrafo entero se dibuja como tarjeta; el mismo enlace d
 
 #### Código, con nombre y con color
 
-Un bloque de código se colorea según su lenguaje, y le puedes poner nombre: escribe el lenguaje y después `title="lo que sea"`. El nombre se ve en la cabecera del bloque, y el color llega también al PDF.
+Un bloque de código se colorea según su lenguaje, que eliges en la etiqueta de su esquina. También le puedes poner nombre: en la vista Markdown, escribe `title="lo que sea"` después del lenguaje. El nombre se ve en la cabecera del bloque, y el color llega también al PDF.
 
 ```python title="dosis.py"
 peso = 12
@@ -466,6 +486,7 @@ Desde ahí, Tisty es su memoria entre sesiones. Empieza preguntando qué cambió
 - **Puede** proponer tareas, escribir documentos, agregar o corregir en los que puede escribir, anotar y ordenar ideas contigo, y marcar lo que ya cumplió su vida, con el porqué.
 - **Puede decir** que una tarea o un paso está listo. La tarea queda en **Por confirmar** hasta que tú la terminas o la devuelves con **Sigue pendiente**; los pasos te esperan con **Marcarlos** o **Todavía no**.
 - **No puede** cerrar ni borrar una tarea, borrar un documento o una idea, marcar un paso tuyo ni mover un día que pusiste tú. En una tarea que escribiste tú puede cambiar la descripción, la página y los pasos abiertos, como en un documento.
+- **No ve tu diario** mientras no lo abras tú. Abierto, lo lee y solo añade al final de hoy.
 
 Si escribiste en un documento mientras él lo leía, no escribe encima: se le pide que vuelva a leerlo. Y cuando algo escribe en el documento que tienes abierto, la ventana te avisa y te ofrece volver a lo que decía antes.
 
@@ -484,14 +505,16 @@ Nada de esto hace falta para empezar. Está aquí para cuando lo necesites.
 | Atajo | Qué hace |
 | --- | --- |
 | `Ctrl` + `Shift` + `Space` | Capturar una tarea sin abrir la ventana |
-| `Tab` (en la captura rápida) | Cambiar entre una tarea y una idea para la Lluvia de ideas |
+| `Tab` (en la captura rápida) | Cambiar entre una tarea, una idea para la Lluvia de ideas y el diario de hoy |
 | `Ctrl`/`⌘` + `Enter` | Terminar la tarea señalada; en un documento, un salto de página |
-| `/` | Insertar algo dentro de un documento |
+| `/` | Insertar algo dentro de un documento; `Ctrl`/`⌘` + `/` abre ese menú en cualquier punto |
 | `Shift` + `Enter` | Saltar de línea sin empezar un párrafo |
 | `Alt` + ↑ ↓ | Mover el bloque o el elemento donde está el cursor |
+| `Esc` · `Shift` + ↑ ↓ (escribiendo un documento) | Elegir el bloque entero · sumar los de al lado, para moverlos, copiarlos o borrarlos juntos |
+| `Ctrl`/`⌘` + `Z` | Deshacer lo que escribiste seguido, solo en el documento que tienes delante |
 | `Ctrl`/`⌘` + `E` | Cambiar el documento entre Enriquecido y Markdown |
 | `F1` | Abrir la guía de Markdown de Tisty en lo que estás escribiendo |
-| `Ctrl`/`⌘` + `K` | Ir al buscador de arriba de la barra lateral |
+| `Ctrl`/`⌘` + `K` | Ir al buscador de arriba de la barra lateral; escribiendo un documento, poner un enlace |
 | `Tab` · `Shift` + `Tab` | Recorrer las celdas de una tabla; en una lista, meter o sacar un elemento |
 | `Ctrl`/`⌘` + `X` · `V` | Mover un documento entre carpetas |
 | `Esc` | Cerrar lo que esté abierto |

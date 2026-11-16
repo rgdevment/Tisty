@@ -701,7 +701,7 @@ $$
 
 ## Widgets
 
-**Widget**, en el menú `/`: un bloque cuyo lenguaje es `widget` se dibuja como una vista fija, hecha solo de HTML y CSS. No ejecuta nada, así que se ve igual donde se lea el documento. Toma los colores de Tisty y trae estilos listos. El código queda plegado: ábrelo con **Ver código**.
+**Widget**, en el menú `/`: un bloque cuyo lenguaje es `widget` se dibuja como una vista fija, hecha solo de HTML y CSS. No ejecuta nada, así que se ve igual donde se lea el documento. Toma los colores de Tisty y trae estilos listos. El código no se ve en la página: **Ver código**, en su barra, lo abre en su ventana, con el código a un lado y lo que dibuja al otro.
 
 Cifras en una cuadrícula, y una tarjeta con su lista:
 

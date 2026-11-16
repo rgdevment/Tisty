@@ -701,7 +701,7 @@ $$
 
 ## Widgets
 
-**Widget**, in the `/` menu: a block whose language is `widget` is drawn as a fixed view, made of HTML and CSS alone. It runs nothing, so it looks the same wherever the document is read. It takes Tisty's colours and brings ready-made styles. The code stays folded: open it with **Show code**.
+**Widget**, in the `/` menu: a block whose language is `widget` is drawn as a fixed view, made of HTML and CSS alone. It runs nothing, so it looks the same wherever the document is read. It takes Tisty's colours and brings ready-made styles. The code does not show on the page: **Show code**, on its bar, opens it in its window, with the code on one side and what it draws on the other.
 
 Figures in a grid, and a card with its list:
 

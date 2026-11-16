@@ -13,6 +13,6 @@ In the guide's text, this sheet is not stuck at the end. It is named exactly whe
 And the photograph above travels with the document. It is not a link to a folder on your disk that breaks the day you move the file: the picture is kept inside Tisty, and it comes out with the page when you export it.
 
 > [!TIP]
-> Try deleting the line that names this page in the guide. The page does not disappear: it loses its place in the text and drops to the contents at the end, waiting for you to put it back wherever you want it.
+> Try deleting the line that names this page in the guide. The page does not disappear: it loses its place in the text and drops to the **Pages** row, under the guide's sheet, where **Put it in the text** brings it back.
 
 A year of minutes, a book by chapters, a dog's life told year by year: each chapter can be a page like this one.
