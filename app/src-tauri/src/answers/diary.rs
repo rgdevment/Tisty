@@ -10,6 +10,7 @@ use crate::{Answer, Refusal, Session, blamed, held, signing};
 #[derive(Debug, serde::Serialize)]
 pub struct Kept {
     pub book: Option<String>,
+    pub page: Option<String>,
     pub open: bool,
 }
 
@@ -33,9 +34,12 @@ pub fn diary_of(session: tauri::State<'_, Mutex<Session>>) -> Kept {
 }
 
 pub fn kept(session: &Session, today: Date) -> Kept {
+    let book = diary::book_of(&session.paths.docs(), &session.state, today.year());
     Kept {
-        book: diary::book_of(&session.paths.docs(), &session.state, today.year())
+        page: book
+            .and_then(|one| diary::page_of(&session.state, one.id, today.month()))
             .map(|one| one.file.clone()),
+        book: book.map(|one| one.file.clone()),
         open: session.state.diary_open,
     }
 }
@@ -144,34 +148,34 @@ pub fn diary_agents(session: tauri::State<'_, Mutex<Session>>, open: bool) -> An
 }
 
 #[tauri::command(async)]
-pub fn diary_drawn(
+pub fn diary_laid(
     session: tauri::State<'_, Mutex<Session>>,
     file: String,
     body: String,
-    placed: bool,
     said: Labels,
 ) -> tauri::ipc::Response {
-    let html = match placed {
-        true => tisty_markdown::html_placed(&tisty_markdown::read(&body)),
-        false => super::paging::paged(&held(&session).paths.cache().join("pages"), &body),
-    };
     let days = tisty_core::diary_page::days(&body);
+    let (strips, words) = {
+        let session = held(&session);
+        let strips = seen(&session, &file, |page| {
+            tisty_core::diary_page::strips(&days, page)
+        });
+        (strips.unwrap_or_default(), words(&session))
+    };
     let said = tisty_core::diary_page::Said {
-        today: &said.today,
         one: &said.one,
         many: &said.many,
+        empty: &said.empty,
     };
-    let dressed = seen(&held(&session), &file, |page| {
-        tisty_core::diary_page::dressed(&html, &days, page, &said)
-    });
-    tauri::ipc::Response::new(dressed.unwrap_or(html).into_bytes())
+    let laid = tisty_core::diary_page::laid(&days, &strips, words, &said);
+    tauri::ipc::Response::new(laid.into_bytes())
 }
 
 #[derive(Debug, serde::Deserialize)]
 pub struct Labels {
-    today: String,
     one: String,
     many: String,
+    empty: String,
 }
 
 #[tauri::command(async)]
@@ -182,7 +186,7 @@ pub fn diary_closed(
 ) -> String {
     let days = tisty_core::diary_page::days(&body);
     seen(&held(&session), &file, |page| {
-        tisty_core::diary_page::print(&days, page)
+        tisty_core::diary_page::print(&tisty_core::diary_page::strips(&days, page))
     })
     .unwrap_or_default()
 }

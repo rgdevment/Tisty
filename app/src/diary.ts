@@ -9,6 +9,7 @@ declare module "./core" {
 
 export interface Diary {
   book: string | null;
+  page: string | null;
   open: boolean;
 }
 
@@ -30,10 +31,9 @@ export const diaryAgents = (open: boolean): Promise<void> => invoke("diary_agent
 export const diaryClosed = (file: string, body: string): Promise<string> =>
   invoke("diary_closed", { file, body });
 
-export const diaryDrawn = (file: string, body: string, placed: boolean): Promise<string> =>
-  invoke<ArrayBuffer>("diary_drawn", {
+export const diaryLaid = (file: string, body: string): Promise<string> =>
+  invoke<ArrayBuffer>("diary_laid", {
     file,
     body,
-    placed,
-    said: { today: t("diaryToday"), one: t("diaryClosedOne"), many: t("diaryClosedMany") },
+    said: { one: t("diaryClosedOne"), many: t("diaryClosedMany"), empty: t("diaryEmpty") },
   }).then((bytes) => new TextDecoder().decode(bytes));

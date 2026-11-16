@@ -4,7 +4,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Papers } from "../core";
 import { t } from "../locales";
 import { IDEA_AT_MOST } from "../notes";
-import DiaryBar from "../ui/DiaryBar";
+import DiaryComposer from "../ui/DiaryComposer";
+import DiaryHead from "../ui/DiaryHead";
 import Tree from "../ui/Tree";
 
 const ipc = vi.hoisted(() => ({
@@ -148,14 +149,19 @@ describe("the diary in the library", () => {
   });
 });
 
-describe("the diary's bar", () => {
+describe("today's box", () => {
+  const box = (onWritten = vi.fn(), onBefore = vi.fn(() => Promise.resolve())) =>
+    render(<DiaryComposer onBefore={onBefore} onWritten={onWritten} onError={vi.fn()} />);
+
   it("writes what is said into today and hands back where it landed", async () => {
     const onWritten = vi.fn();
     const onBefore = vi.fn(() => Promise.resolve());
-    render(<DiaryBar onBefore={onBefore} onWritten={onWritten} onError={vi.fn()} />);
+    box(onWritten, onBefore);
 
-    await userEvent.click(screen.getByRole("button", { name: t("diaryWrite") }));
-    await userEvent.type(screen.getByRole("textbox", { name: t("diaryWrite") }), "Paseo con Rina");
+    await userEvent.type(
+      screen.getByRole("textbox", { name: t("diaryWriting") }),
+      "Paseo con Rina",
+    );
     await userEvent.keyboard("{Control>}{Enter}{/Control}");
 
     await waitFor(() => expect(onWritten).toHaveBeenCalledWith(TODAY));
@@ -163,15 +169,14 @@ describe("the diary's bar", () => {
     expect(asked("diary_write")).toEqual([
       { cmd: "diary_write", args: { text: "Paseo con Rina" } },
     ]);
-    expect(screen.queryByRole("textbox")).toBeNull();
+    expect((screen.getByRole("textbox") as HTMLTextAreaElement).value).toBe("");
   });
 
   it("writes once however many times the words are kept while the first is on its way", async () => {
     ipc.holding = true;
-    render(<DiaryBar onBefore={() => Promise.resolve()} onWritten={vi.fn()} onError={vi.fn()} />);
+    box();
 
-    await userEvent.click(screen.getByRole("button", { name: t("diaryWrite") }));
-    await userEvent.type(screen.getByRole("textbox", { name: t("diaryWrite") }), "Paseo");
+    await userEvent.type(screen.getByRole("textbox", { name: t("diaryWriting") }), "Paseo");
     await userEvent.keyboard("{Control>}{Enter}{/Control}");
     await waitFor(() => expect(asked("diary_write")).toHaveLength(1));
     await userEvent.keyboard("{Control>}{Enter}{/Control}");
@@ -180,9 +185,9 @@ describe("the diary's bar", () => {
     expect(asked("diary_write")).toHaveLength(1);
   });
 
-  it("sticks a short note in today on Enter", async () => {
+  it("sticks a short note in today on Enter once the note is chosen", async () => {
     const onWritten = vi.fn();
-    render(<DiaryBar onBefore={() => Promise.resolve()} onWritten={onWritten} onError={vi.fn()} />);
+    box(onWritten);
 
     await userEvent.click(screen.getByRole("button", { name: t("diaryStick") }));
     const field = screen.getByRole("textbox", { name: t("diaryStick") });
@@ -191,17 +196,34 @@ describe("the diary's bar", () => {
 
     await waitFor(() => expect(onWritten).toHaveBeenCalledWith(TODAY));
     expect(asked("diary_stick")).toEqual([{ cmd: "diary_stick", args: { note: "Comprar pan" } }]);
+    expect(asked("diary_write")).toEqual([]);
   });
+});
 
-  it("says the diary is hidden from agents and opens it only when asked", async () => {
-    render(<DiaryBar onBefore={() => Promise.resolve()} onWritten={vi.fn()} onError={vi.fn()} />);
+describe("the diary's head", () => {
+  it("says only you see it, turns the door when asked, and offers the month as a document", async () => {
+    const onTurn = vi.fn();
+    const onEdit = vi.fn();
+    const { rerender } = render(
+      <DiaryHead
+        over="Noviembre 2026"
+        big="Domingo 15"
+        open={false}
+        onTurn={onTurn}
+        onEdit={onEdit}
+      />,
+    );
 
-    const door = await screen.findByRole("button", { name: t("diaryHidden") });
+    expect(screen.getByRole("heading", { name: "Domingo 15" })).toBeTruthy();
+    const door = screen.getByRole("button", { name: t("diaryHidden") });
     expect(door.getAttribute("aria-pressed")).toBe("false");
-    expect(asked("diary_agents")).toEqual([]);
     await userEvent.click(door);
+    await userEvent.click(screen.getByRole("button", { name: t("diaryEditMonth") }));
+    expect(onTurn).toHaveBeenCalledOnce();
+    expect(onEdit).toHaveBeenCalledOnce();
 
-    expect(asked("diary_agents")).toEqual([{ cmd: "diary_agents", args: { open: true } }]);
-    expect(await screen.findByRole("button", { name: t("diaryOpen") })).toBeTruthy();
+    rerender(<DiaryHead over="" big="Diario 2026" open onTurn={onTurn} />);
+    expect(screen.getByRole("button", { name: t("diaryOpen") })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: t("diaryEditMonth") })).toBeNull();
   });
 });

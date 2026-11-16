@@ -33,10 +33,10 @@ fn opening_the_diary_makes_the_year_and_the_month_but_no_empty_day() {
         book.contains(&format!("tisty:doc/{}", today.page)),
         "{book}"
     );
-    assert_eq!(
-        kept(&session, day("2026-11-15")).book,
-        Some(today.book.clone())
-    );
+    let shown = kept(&session, day("2026-11-15"));
+    assert_eq!(shown.book, Some(today.book.clone()));
+    assert_eq!(shown.page, Some(today.page.clone()));
+    assert_eq!(kept(&session, day("2026-12-01")).page, None);
     assert_eq!(opening(&mut session, day("2026-11-20")).unwrap(), today);
     assert_eq!(session.state.docs.len(), 2);
 }

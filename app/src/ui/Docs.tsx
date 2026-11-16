@@ -31,7 +31,7 @@ import {
   taskOf,
   viewDoc,
 } from "../core";
-import { diaryDrawn, type Today } from "../diary";
+import type { Today } from "../diary";
 import { viewDiagram } from "../drawing";
 import { brainstormIn, notedIn, withLandscape, withPaper, withSheets } from "../front";
 import { keptAll, PASTED_UP_TO } from "../kept";
@@ -48,7 +48,7 @@ import { changedIn, MARK_FADES } from "./anchoring";
 import Beside, { trailed } from "./Beside";
 import Contents from "./Contents";
 import { blurbing, cardsOf } from "./carding";
-import DiaryBar from "./DiaryBar";
+import DiaryView from "./DiaryView";
 import { PageMore, type Viewing } from "./liveSheet";
 import Modal from "./Modal";
 import Notes from "./Notes";
@@ -62,7 +62,6 @@ import { pageFor } from "./sheets";
 import { CompactBar, MarkBar } from "./Tidied";
 import Tongues, { standingHead } from "./Tongues";
 import { useLeaving } from "./useLeaving";
-import { useRestrips } from "./useRestrips";
 import { clearOfChrome } from "./WindowChrome";
 import { useWholeKeys } from "./wholeKeys";
 
@@ -556,15 +555,8 @@ export default function Docs({
     taskOf(id)
       .then((one) => (onSeeTask ?? onTask)?.(one))
       .catch((e) => onError(saidPlainly(e)));
-  const diaryFile = inDiary ? open?.file : undefined;
-  const restrips = useRestrips(diaryFile, body, fresh);
-  const diaryDraw = useMemo(
-    () =>
-      diaryFile
-        ? (text: string, placed: boolean) => diaryDrawn(diaryFile, text, placed)
-        : undefined,
-    [diaryFile],
-  );
+  const [asWritten, setAsWritten] = useState<string | null>(null);
+  const onDiary = inDiary && asWritten !== open?.file;
 
   const { wholeAsked, allAsked } = useWholeKeys(Boolean(open), !bolted);
   const stood = useRef(new Map<string, number>());
@@ -696,7 +688,7 @@ export default function Docs({
   const noted = Boolean(open) && notedIn(body);
   const brainstorm = noted && brainstormIn(body);
   const onNotes = noted && (brainstorm || inEditor !== open?.file);
-  const beside = Boolean(open) && !onNotes && (shown ?? fits);
+  const beside = Boolean(open) && !onNotes && !inDiary && (shown ?? fits);
   const [markdownOf, setMarkdownOf] = useState<string | null>(null);
   const viewing: Viewing = {
     markdown: Boolean(open) && markdownOf === open?.file,
@@ -928,7 +920,7 @@ export default function Docs({
       >
         {open ? (
           <div
-            style={onNotes ? NOTES_ROOM : sheetRoom}
+            style={onNotes || onDiary ? NOTES_ROOM : sheetRoom}
             className="relative mx-auto flex min-h-0 w-full flex-1 flex-col"
           >
             <div
@@ -963,6 +955,23 @@ export default function Docs({
                   onMarks={() => onKept({ id: open.id, title: called })}
                 />
               </div>
+            ) : onDiary ? (
+              <DiaryView
+                file={open.file}
+                body={body}
+                title={called || t("untitledDoc")}
+                book={above?.title}
+                fresh={fresh}
+                onDoc={(file) => onDoc?.(file)}
+                onTask={seeTask}
+                onBefore={() => {
+                  flush();
+                  return busy(open.file) ?? Promise.resolve();
+                }}
+                onWritten={diaryWritten}
+                onEdit={() => setAsWritten(open.file)}
+                onError={(e) => onError(saidPlainly(e))}
+              />
             ) : (
               Sheet && (
                 <Sheet
@@ -989,7 +998,7 @@ export default function Docs({
                   onNote={onNote}
                   card={cards}
                   blurb={blurb}
-                  again={inDiary ? `${again}|${restrips}` : again}
+                  again={again}
                   value={body}
                   seek={seek}
                   anchor={anchor}
@@ -1000,20 +1009,17 @@ export default function Docs({
                   label={called || t("untitledDoc")}
                   onDoc={onDoc}
                   onTag={onTag}
-                  draw={diaryDraw}
-                  onTask={inDiary ? seeTask : undefined}
                   above={
                     inDiary ? (
                       <>
                         {placed}
-                        <DiaryBar
-                          onBefore={() => {
-                            flush();
-                            return busy(open.file) ?? Promise.resolve();
-                          }}
-                          onWritten={diaryWritten}
-                          onError={(e) => onError(saidPlainly(e))}
-                        />
+                        <button
+                          type="button"
+                          onClick={() => setAsWritten(null)}
+                          className="mb-2 self-start rounded-md px-2 py-1 text-[12.5px] text-accent hover:bg-hover"
+                        >
+                          {t("diaryBack")}
+                        </button>
                       </>
                     ) : (
                       placed

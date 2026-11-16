@@ -1,5 +1,6 @@
 use super::*;
 use crate::Op;
+use crate::diary::SPANISH;
 use crate::event::{DeviceId, Event};
 
 fn ev(ms: i64, op: Op) -> Event {
@@ -11,9 +12,9 @@ fn ev(ms: i64, op: Op) -> Event {
 }
 
 const SAID: Said = Said {
-    today: "Hoy",
     one: "1 tarea cerrada",
     many: "{name} tareas cerradas",
+    empty: "Lo que escribas hoy aparece aquí",
 };
 
 fn diary(state: &mut State, root: &std::path::Path) -> Kept {
@@ -25,7 +26,7 @@ fn diary(state: &mut State, root: &std::path::Path) -> Kept {
     };
     let date: Date = "2026-11-15".parse().unwrap();
     let crate::diary::Opened::Ready(opening) =
-        crate::diary::opened(&maker, state, date, &crate::diary::SPANISH).unwrap()
+        crate::diary::opened(&maker, state, date, &SPANISH).unwrap()
     else {
         panic!("the diary was locked");
     };
@@ -59,93 +60,6 @@ fn closed(state: &mut State, title: &str, on: &str) {
     state.apply(&ev(ms, Op::TaskDone { id, filled: false }));
 }
 
-#[test]
-fn a_day_shows_under_its_title_what_was_closed_on_it_and_today_says_so() {
-    let room = tempfile::tempdir().unwrap();
-    let mut state = State::default();
-    let page = diary(&mut state, room.path());
-    closed(&mut state, "Vacuna de <Roger> & Rina", "2026-11-15");
-    closed(&mut state, "Pagar la luz", "2026-11-13");
-    let body = "# Noviembre\n\n## Domingo 15\n\nPaseo.\n\n## Sábado 14\n\nNada.\n\n## Viernes 13\n\nTrabajo.\n";
-    let html = tisty_markdown::html(&tisty_markdown::read(body));
-
-    let dressed = dressed(&html, &days(body), &seen(room.path(), &state, &page), &SAID);
-
-    let sunday = dressed.find("Domingo 15</h2>").unwrap();
-    let saturday = dressed.find("Sábado 14</h2>").unwrap();
-    let friday = dressed.find("Viernes 13</h2>").unwrap();
-    let today = dressed
-        .find("<span class=\"diary-today\">Hoy</span>")
-        .unwrap();
-    let vet = dressed
-        .find("Vacuna de &lt;Roger&gt; &amp; Rina</a>")
-        .unwrap();
-    let light = dressed.find("Pagar la luz</a>").unwrap();
-    assert!(sunday < today && today < vet && vet < saturday, "{dressed}");
-    assert!(friday < light, "{dressed}");
-    assert_eq!(
-        dressed
-            .matches("<div class=\"diary-day\" contenteditable=\"false\">")
-            .count(),
-        2
-    );
-    assert_eq!(dressed.matches("1 tarea cerrada<").count(), 2);
-    assert!(dressed.contains("<a href=\"tisty:task/"));
-    assert_eq!(undressed(&dressed), html, "the words were left as drawn");
-}
-
-fn undressed(html: &str) -> String {
-    let mut out = html.to_string();
-    while let Some(from) = out.find("<div class=\"diary-day\" contenteditable=\"false\">") {
-        let to = from + out[from..].find("</div>").unwrap() + "</div>".len();
-        out.replace_range(from..to, "");
-    }
-    out
-}
-
-#[test]
-fn a_page_outside_the_diary_is_drawn_as_it_was() {
-    let room = tempfile::tempdir().unwrap();
-    let mut state = State::default();
-    let mut page = diary(&mut state, room.path());
-    closed(&mut state, "Pagar la luz", "2026-11-15");
-    page.page_of = None;
-    let body = "# Notas\n\n## Domingo 15\n\nPaseo.\n";
-    let html = tisty_markdown::html(&tisty_markdown::read(body));
-
-    let dressed = dressed(&html, &days(body), &seen(room.path(), &state, &page), &SAID);
-
-    assert_eq!(dressed, html);
-    assert_eq!(print(&days(body), &seen(room.path(), &state, &page)), "");
-}
-
-#[test]
-fn the_print_changes_only_when_what_the_strips_say_does() {
-    let room = tempfile::tempdir().unwrap();
-    let mut state = State::default();
-    let page = diary(&mut state, room.path());
-    let body = "# Noviembre\n\n## Domingo 15\n\nPaseo.\n\n## Sábado 14\n\nNada.\n";
-    let before = print(&days(body), &seen(room.path(), &state, &page));
-
-    state.apply(&ev(
-        2,
-        Op::TaskAdd {
-            id: ulid::Ulid::generate(),
-            d: crate::event::TaskAdd::new("Sigue abierta", "a1"),
-        },
-    ));
-    assert_eq!(
-        print(&days(body), &seen(room.path(), &state, &page)),
-        before
-    );
-
-    closed(&mut state, "Pagar la luz", "2026-11-14");
-    assert_ne!(
-        print(&days(body), &seen(room.path(), &state, &page)),
-        before
-    );
-}
-
 fn seen<'a>(root: &'a std::path::Path, state: &'a State, kept: &'a Kept) -> Page<'a> {
     Page {
         root,
@@ -158,22 +72,103 @@ fn seen<'a>(root: &'a std::path::Path, state: &'a State, kept: &'a Kept) -> Page
 
 static UTC: jiff::tz::TimeZone = jiff::tz::TimeZone::UTC;
 
+fn shown(body: &str, root: &std::path::Path, state: &State, kept: &Kept) -> String {
+    let days = days(body);
+    laid(
+        &days,
+        &strips(&days, &seen(root, state, kept)),
+        &SPANISH,
+        &SAID,
+    )
+}
+
+const MONTH: &str = "# Noviembre\n\nUn mes tranquilo.\n\n## Domingo 15\n\nPaseo con Rina.\n\n### Tarde\n\nLlamé a Jaime.\n\n## Sábado 14\n\nCena con Marisol.\n";
+
 #[test]
-fn the_strip_lands_on_the_page_the_editor_writes_on_and_cannot_be_typed_into() {
+fn a_month_is_drawn_as_its_days_newest_on_top_each_with_its_number_and_weekday() {
     let room = tempfile::tempdir().unwrap();
     let mut state = State::default();
     let page = diary(&mut state, room.path());
+
+    let laid = shown(MONTH, room.path(), &state, &page);
+
+    assert!(
+        !laid.contains("Noviembre"),
+        "the month is the view's, not a title: {laid}"
+    );
+    let intro = laid.find("Un mes tranquilo.").unwrap();
+    let sunday = laid.find("diary-entry diary-is-today").unwrap();
+    let walk = laid.find("Paseo con Rina.").unwrap();
+    let call = laid.find("Llamé a Jaime.").unwrap();
+    let saturday = laid.find("<span class=\"diary-number\">14</span>").unwrap();
+    let dinner = laid.find("Cena con Marisol.").unwrap();
+    assert!(intro < sunday && sunday < walk && walk < call && call < saturday && saturday < dinner);
+    assert!(laid.contains("<span class=\"diary-weekday\">dom</span>"));
+    assert!(laid.contains("<span class=\"diary-weekday\">sáb</span>"));
+    assert_eq!(laid.matches("diary-is-today").count(), 1);
+    assert!(!laid.contains("## "), "{laid}");
+}
+
+#[test]
+fn a_day_folds_what_was_closed_on_it_and_a_title_is_escaped() {
+    let room = tempfile::tempdir().unwrap();
+    let mut state = State::default();
+    let page = diary(&mut state, room.path());
+    closed(&mut state, "Vacuna de <Roger> & Rina", "2026-11-15");
+    closed(&mut state, "Pagar la luz", "2026-11-14");
+    closed(&mut state, "Regar", "2026-11-14");
+
+    let laid = shown(MONTH, room.path(), &state, &page);
+
+    let vet = laid.find("Vacuna de &lt;Roger&gt; &amp; Rina</a>").unwrap();
+    let saturday = laid.find("<span class=\"diary-number\">14</span>").unwrap();
+    assert!(vet < saturday, "{laid}");
+    assert!(laid.contains("<summary>1 tarea cerrada</summary>"));
+    assert!(laid.contains("<summary>2 tareas cerradas</summary>"));
+    assert!(laid.contains("<a href=\"tisty:task/"));
+}
+
+#[test]
+fn an_empty_month_says_where_today_goes_and_a_page_outside_the_diary_shows_no_log() {
+    let room = tempfile::tempdir().unwrap();
+    let mut state = State::default();
+    let mut page = diary(&mut state, room.path());
     closed(&mut state, "Pagar la luz", "2026-11-15");
-    let body = "# Noviembre\n\n## Domingo 15\n\nPaseo.\n";
-    let html = tisty_markdown::html_placed(&tisty_markdown::read(body));
 
-    let dressed = dressed(&html, &days(body), &seen(room.path(), &state, &page), &SAID);
+    let empty = shown("# Noviembre\n", room.path(), &state, &page);
+    assert!(empty.contains("<p class=\"diary-empty\">Lo que escribas hoy aparece aquí</p>"));
 
-    let heading = dressed.find("</h2>").unwrap();
-    let strip = dressed
-        .find("<div class=\"diary-day\" contenteditable=\"false\">")
-        .unwrap();
-    let words = dressed.find("Paseo.").unwrap();
-    assert!(heading < strip && strip < words, "{dressed}");
-    assert_eq!(undressed(&dressed), html);
+    page.page_of = None;
+    let loose = shown(MONTH, room.path(), &state, &page);
+    assert!(!loose.contains("Pagar la luz") && !loose.contains("diary-is-today"));
+    assert_eq!(
+        print(&strips(&days(MONTH), &seen(room.path(), &state, &page))),
+        ""
+    );
+}
+
+#[test]
+fn the_print_changes_only_when_what_the_days_show_of_the_log_does() {
+    let room = tempfile::tempdir().unwrap();
+    let mut state = State::default();
+    let page = diary(&mut state, room.path());
+    let before = print(&strips(&days(MONTH), &seen(room.path(), &state, &page)));
+
+    state.apply(&ev(
+        2,
+        Op::TaskAdd {
+            id: ulid::Ulid::generate(),
+            d: crate::event::TaskAdd::new("Sigue abierta", "a1"),
+        },
+    ));
+    assert_eq!(
+        print(&strips(&days(MONTH), &seen(room.path(), &state, &page))),
+        before
+    );
+
+    closed(&mut state, "Pagar la luz", "2026-11-14");
+    assert_ne!(
+        print(&strips(&days(MONTH), &seen(room.path(), &state, &page))),
+        before
+    );
 }

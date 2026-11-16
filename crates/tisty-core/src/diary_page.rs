@@ -1,16 +1,16 @@
-use std::ops::Range;
 use std::path::Path;
 
 use jiff::civil::Date;
 use tisty_markdown::escaped;
 
 use crate::State;
+use crate::diary::Words;
 use crate::model::Kept;
 
 pub struct Said<'a> {
-    pub today: &'a str,
     pub one: &'a str,
     pub many: &'a str,
+    pub empty: &'a str,
 }
 
 pub struct Page<'a> {
@@ -21,84 +21,117 @@ pub struct Page<'a> {
     pub zone: &'a jiff::tz::TimeZone,
 }
 
-struct Strip {
+/// A month's words cut by day, read once, before anything of the log is asked.
+pub struct Days {
+    intro: String,
+    each: Vec<(i8, String)>,
+}
+
+// A heading that names no day stays inside the day above it, so nothing the person wrote is lost.
+pub fn days(body: &str) -> Days {
+    let lines: Vec<&str> = body.lines().collect();
+    let heads = crate::docs::headings(body);
+    let titled = heads
+        .first()
+        .filter(|(line, level, _)| *line == 1 && *level == 1);
+    let starts: Vec<(usize, i8)> = heads
+        .iter()
+        .filter(|(_, level, _)| *level == 2)
+        .filter_map(|(line, _, title)| Some((*line, crate::diary::day_named(title)?)))
+        .collect();
+    let words = |from: usize, to: usize| lines[from.min(to)..to].join("\n").trim().to_string();
+    let first = starts.first().map_or(lines.len(), |(line, _)| line - 1);
+    let intro = words(titled.map_or(0, |_| 1), first);
+    let each = starts
+        .iter()
+        .enumerate()
+        .map(|(at, (line, day))| {
+            let end = starts.get(at + 1).map_or(lines.len(), |(next, _)| next - 1);
+            (*day, words(*line, end))
+        })
+        .collect();
+    Days { intro, each }
+}
+
+pub struct Strip {
+    day: i8,
+    date: Option<Date>,
     today: bool,
     closed: Vec<(String, String)>,
 }
 
-/// The days a page's sections name, read once from its words, before anything of the log is asked.
-pub struct Days(Vec<(Range<usize>, i8)>);
-
-pub fn days(body: &str) -> Days {
-    let doc = tisty_markdown::read(body);
-    Days(
-        doc.blocks()
-            .iter()
-            .filter(|block| block.kind == tisty_markdown::Kind::Heading(2))
-            .filter_map(|block| {
-                let title = doc.said(block).trim_start_matches('#');
-                Some((block.at.clone(), crate::diary::day_named(title)?))
-            })
-            .collect(),
-    )
-}
-
-fn strips(days: &Days, page: &Page) -> Vec<(Range<usize>, i8, Strip)> {
-    let Some((year, month)) = crate::diary::month_of_page(page.root, page.state, page.kept) else {
-        return Vec::new();
-    };
-    days.0
+pub fn strips(days: &Days, page: &Page) -> Vec<Strip> {
+    let month = crate::diary::month_of_page(page.root, page.state, page.kept);
+    days.each
         .iter()
-        .filter_map(|(at, day)| {
-            let date = Date::new(year, month, *day).ok()?;
-            let strip = Strip {
-                today: date == page.today,
-                closed: crate::diary::closed_on(page.state, date, page.zone)
+        .map(|(day, _)| {
+            let date = month.and_then(|(year, month)| Date::new(year, month, *day).ok());
+            Strip {
+                day: *day,
+                date,
+                today: date == Some(page.today),
+                closed: date
+                    .map(|date| crate::diary::closed_on(page.state, date, page.zone))
+                    .unwrap_or_default()
                     .into_iter()
                     .map(|task| (task.id.to_string(), task.title.clone()))
                     .collect(),
-            };
-            (strip.today || !strip.closed.is_empty()).then(|| (at.clone(), *day, strip))
+            }
         })
         .collect()
 }
 
-// What the strips would say, so the window draws the page again only when that changes.
-pub fn print(days: &Days, page: &Page) -> String {
-    strips(days, page)
+// What the days would show of the log, so the window draws the month again only when that changes.
+pub fn print(strips: &[Strip]) -> String {
+    strips
         .iter()
-        .map(|(_, day, strip)| {
+        .filter(|strip| strip.today || !strip.closed.is_empty())
+        .map(|strip| {
             let ids: Vec<&str> = strip.closed.iter().map(|(id, _)| id.as_str()).collect();
-            format!("{day}:{}:{}", strip.today, ids.join(","))
+            format!("{}:{}:{}", strip.day, strip.today, ids.join(","))
         })
         .collect::<Vec<_>>()
         .join("|")
 }
 
-// Drawn beside the words and never into them: the strip is the log's, the text stays the person's.
-pub fn dressed(html: &str, days: &Days, page: &Page, said: &Said) -> String {
-    let mut out = html.to_string();
-    for (at, _, strip) in strips(days, page).into_iter().rev() {
-        let marker = format!("data-at=\"{}-{}\"", at.start, at.end);
-        let Some(from) = out.find(&marker) else {
-            continue;
-        };
-        let Some(close) = out[from..].find("</h2>") else {
-            continue;
-        };
-        out.insert_str(from + close + "</h2>".len(), &drawn(&strip, said));
+// The month as a line of days, newest on top as written: the words are the person's, the rest the log's.
+pub fn laid(days: &Days, strips: &[Strip], words: &Words, said: &Said) -> String {
+    let mut out = String::from("<div class=\"diary-month\">");
+    if !days.intro.is_empty() {
+        out.push_str(&format!(
+            "<div class=\"diary-intro\">{}</div>",
+            drawn(&days.intro)
+        ));
     }
+    for ((_, text), strip) in days.each.iter().zip(strips) {
+        out.push_str(&entry(text, strip, words, said));
+    }
+    if days.each.is_empty() {
+        out.push_str(&format!(
+            "<p class=\"diary-empty\">{}</p>",
+            escaped(said.empty)
+        ));
+    }
+    out.push_str("</div>");
     out
 }
 
-fn drawn(strip: &Strip, said: &Said) -> String {
-    let mut out = String::from("<div class=\"diary-day\" contenteditable=\"false\">");
-    if strip.today {
-        out.push_str(&format!(
-            "<span class=\"diary-today\">{}</span>",
-            escaped(said.today)
-        ));
-    }
+fn drawn(text: &str) -> String {
+    tisty_markdown::html(&tisty_markdown::read(text))
+}
+
+fn entry(text: &str, strip: &Strip, words: &Words, said: &Said) -> String {
+    let weekday = strip.date.map_or("", |date| {
+        words.weekdays[usize::from(date.weekday().to_monday_zero_offset().unsigned_abs())]
+    });
+    let short = weekday.chars().take(3).collect::<String>().to_lowercase();
+    let mut out = format!(
+        "<section class=\"diary-entry{}\"><div class=\"diary-date\"><span class=\"diary-number\">{}</span><span class=\"diary-weekday\">{}</span></div><div class=\"diary-words\">{}",
+        if strip.today { " diary-is-today" } else { "" },
+        strip.day,
+        escaped(&short),
+        drawn(text)
+    );
     if !strip.closed.is_empty() {
         let summary = match strip.closed.len() {
             1 => said.one.to_string(),
@@ -117,7 +150,7 @@ fn drawn(strip: &Strip, said: &Said) -> String {
         }
         out.push_str("</ul></details>");
     }
-    out.push_str("</div>");
+    out.push_str("</div></section>");
     out
 }
 
