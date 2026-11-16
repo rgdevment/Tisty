@@ -6,6 +6,10 @@ use crate::{Block, Doc, Kind};
 const CROSSING: [&str; 3] = ["]:", "[^", ":::"];
 const TAGGING: [char; 3] = ['#', '`', '~'];
 
+pub(crate) fn crossing(text: &str) -> bool {
+    CROSSING.iter().any(|one| text.contains(one))
+}
+
 pub(crate) struct Plan {
     keep: usize,
     after: usize,
@@ -55,7 +59,12 @@ fn rebuilt(was: Doc, text: String, changed: &Changed) -> Doc {
         shift(one, plan.old_end, plan.new_end);
     }
     blocks.append(&mut after);
-    Doc { text, blocks }
+    // A plan is refused for a crossing near the edit, so the text it was made for holds none.
+    Doc {
+        text,
+        blocks,
+        crossing: false,
+    }
 }
 
 #[cfg(test)]
@@ -76,7 +85,7 @@ fn changed(old: &str, text: &str) -> Changed {
 // Only the blocks around an edit are read again, and the edges must read as before or the whole text is.
 fn planned(was: &Doc, text: &str, changed: &Changed) -> Option<Plan> {
     let old = was.text();
-    if CROSSING.iter().any(|one| old.contains(one)) || text.starts_with('\u{feff}') {
+    if was.crossing || text.starts_with('\u{feff}') {
         return None;
     }
     let blocks = was.blocks();

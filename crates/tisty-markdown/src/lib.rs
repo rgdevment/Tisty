@@ -62,6 +62,7 @@ use std::ops::Range;
 pub struct Doc {
     text: String,
     blocks: Vec<Block>,
+    crossing: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
