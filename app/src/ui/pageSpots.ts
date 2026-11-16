@@ -58,7 +58,7 @@ const between = (
   known: Reckoned | null,
 ): number => {
   const page = sheet.ownerDocument;
-  const tops = Array.from(sheet.querySelectorAll(":scope > [data-at]"));
+  const tops = sheet.children;
   const reached = (one: Element) => {
     const start = page.createRange();
     start.setStartBefore(one);
