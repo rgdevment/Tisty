@@ -1,6 +1,7 @@
 import { bytesAt } from "tisty-editor/read";
+import { type Check, checkOf } from "../placing";
 import type { Caret } from "./pageCaret";
-import { applied, type Edit, linedAs } from "./pageEdits";
+import { applied, type Edit, inWholeChars, linedAs } from "./pageEdits";
 import { patched } from "./pagePatching";
 import { recorded, type Writer } from "./pageWriter";
 
@@ -16,6 +17,12 @@ export const layingOn = (writer: Writer, caret: Caret, drawn: () => void) => {
   let resting: ReturnType<typeof setTimeout> | undefined;
   let unsaid: string | null = null;
   let over = false;
+  let reckoned: { readonly text: string; readonly check: Check } | null = null;
+
+  const checked = (text: string) => {
+    if (reckoned?.text !== text) reckoned = { text, check: checkOf(text) };
+    return reckoned.check;
+  };
 
   const told = () => {
     clearTimeout(resting);
@@ -34,18 +41,22 @@ export const layingOn = (writer: Writer, caret: Caret, drawn: () => void) => {
   };
 
   // Each change is laid in turn: the core draws again the blocks around it and only those change on the page.
-  const laidOut = (was: string, now: string, one: Edit) => {
+  const laidOut = (was: string, now: string, asked: Edit) => {
     // A task's page is small and dressed with its hints and buttons, which only a whole drawing lays again.
     if (page.documentElement.classList.contains("untitled")) writer.whole = true;
+    const one = inWholeChars(was, asked);
     const from = bytesAt(now, one.from);
     const added = BYTES.encode(one.insert).length;
-    const by = added - BYTES.encode(was.slice(one.from, one.to)).length;
+    const removed = BYTES.encode(was.slice(one.from, one.to)).length;
+    const by = added - removed;
     laying = laying.then(async () => {
       if (over) return;
       unsaid = null;
       clearTimeout(resting);
       if (writer.whole) return hands.redraw(hands.text());
-      const near = await hands.near(now, from, from + added).catch(() => null);
+      const edit = { from, to: from + removed, insert: one.insert };
+      const sent = { body: now, was: checked(was), now: checked(now), edit };
+      const near = await hands.near(sent, from, from + added).catch(() => null);
       if (over) return;
       const sheet = page.querySelector(".page");
       const laid = sheet && near && patched(sheet, near, by);

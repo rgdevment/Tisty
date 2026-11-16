@@ -18,8 +18,31 @@ pub fn reread(was: Doc, text: &str) -> Doc {
     if was.text() == text {
         return was;
     }
-    let Some(plan) = plan(&was, text) else {
-        return crate::read(text);
+    let changed = changed(was.text(), text);
+    rebuilt(was, text.to_string(), &changed)
+}
+
+// The page says where it changed the text, so nothing is compared to find it.
+pub fn reread_edit(was: Doc, at: Range<usize>, insert: &str) -> Result<Doc, Doc> {
+    let Some(gone) = was.text().get(at.clone()) else {
+        return Err(was);
+    };
+    let old = was.text();
+    let mut text = String::with_capacity(old.len() - gone.len() + insert.len());
+    text.push_str(&old[..at.start]);
+    text.push_str(insert);
+    text.push_str(&old[at.end..]);
+    let changed = Changed {
+        start: at.start,
+        old_end: at.end,
+        new_end: at.start + insert.len(),
+    };
+    Ok(rebuilt(was, text, &changed))
+}
+
+fn rebuilt(was: Doc, text: String, changed: &Changed) -> Doc {
+    let Some(plan) = planned(&was, &text, changed) else {
+        return crate::read(&text);
     };
     let mut blocks = was.blocks;
     let mut after: Vec<Block> = blocks.drain(plan.after..).collect();
@@ -29,14 +52,26 @@ pub fn reread(was: Doc, text: &str) -> Doc {
         shift(one, plan.old_end, plan.new_end);
     }
     blocks.append(&mut after);
-    Doc {
-        text: text.to_string(),
-        blocks,
+    Doc { text, blocks }
+}
+
+#[cfg(test)]
+pub(crate) fn plan(was: &Doc, text: &str) -> Option<Plan> {
+    planned(was, text, &changed(was.text(), text))
+}
+
+fn changed(old: &str, text: &str) -> Changed {
+    let start = shared_head(old, text);
+    let tail = shared_tail(&old[start..], &text[start..]);
+    Changed {
+        start,
+        old_end: old.len() - tail,
+        new_end: text.len() - tail,
     }
 }
 
 // Only the blocks around an edit are read again, and the edges must read as before or the whole text is.
-pub(crate) fn plan(was: &Doc, text: &str) -> Option<Plan> {
+fn planned(was: &Doc, text: &str, changed: &Changed) -> Option<Plan> {
     let old = was.text();
     if CROSSING.iter().any(|one| old.contains(one)) || text.starts_with('\u{feff}') {
         return None;
@@ -49,9 +84,11 @@ pub(crate) fn plan(was: &Doc, text: &str) -> Option<Plan> {
     if crate::front::span(text).map(|one| one.end) != front_end {
         return None;
     }
-    let start = shared_head(old, text);
-    let tail = shared_tail(&old[start..], &text[start..]);
-    let (old_end, new_end) = (old.len() - tail, text.len() - tail);
+    let Changed {
+        start,
+        old_end,
+        new_end,
+    } = *changed;
     let near = &text.as_bytes()[start.saturating_sub(2)..(new_end + 2).min(text.len())];
     if CROSSING
         .iter()
@@ -80,12 +117,7 @@ pub(crate) fn plan(was: &Doc, text: &str) -> Option<Plan> {
     } else {
         text.len()
     };
-    let changed = Changed {
-        start,
-        old_end,
-        new_end,
-    };
-    let filed = filed(old, text, &changed, &text[from..to])?;
+    let filed = filed(old, text, changed, &text[from..to])?;
     let part = crate::reading::part(text, from..to, &filed);
     if edge_before && part.first() != blocks.get(keep) {
         return None;
@@ -106,6 +138,7 @@ pub(crate) fn plan(was: &Doc, text: &str) -> Option<Plan> {
     })
 }
 
+#[derive(Clone, Copy)]
 struct Changed {
     start: usize,
     old_end: usize,

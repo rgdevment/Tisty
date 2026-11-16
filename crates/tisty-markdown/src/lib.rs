@@ -51,7 +51,7 @@ pub use printed::printed;
 pub use reading::read;
 #[doc(hidden)]
 pub use reading::read_old;
-pub use rereading::reread;
+pub use rereading::{reread, reread_edit};
 pub use standard::{Toward, to_standard};
 pub use transform::to_tisty;
 pub use writing::on_disk;

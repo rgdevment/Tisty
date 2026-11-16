@@ -28,3 +28,16 @@ export const linedAs = (text: string, one: Edit, caret: number): [Edit, number] 
 
 export const applied = (text: string, one: Edit) =>
   `${text.slice(0, one.from)}${one.insert}${text.slice(one.to)}`;
+
+const leading = (unit: number) => unit >= 0xd800 && unit < 0xdc00;
+const trailing = (unit: number) => unit >= 0xdc00 && unit < 0xe000;
+
+// The core counts in bytes, so an edit that cuts a character in two takes in the whole character.
+export const inWholeChars = (was: string, one: Edit): Edit => {
+  const before = one.from > 0 && leading(was.charCodeAt(one.from - 1)) ? 1 : 0;
+  const after = one.to < was.length && trailing(was.charCodeAt(one.to)) ? 1 : 0;
+  if (!before && !after) return one;
+  const from = one.from - before;
+  const to = one.to + after;
+  return { from, to, insert: `${was.slice(from, one.from)}${one.insert}${was.slice(one.to, to)}` };
+};
