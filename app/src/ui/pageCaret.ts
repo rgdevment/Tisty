@@ -1,7 +1,7 @@
 import { bytesAt, charsAt, spanned } from "tisty-editor/read";
 import type { Span } from "./pageEdits";
 import { closing, opening } from "./pageLists";
-import { elementOf, ghostly, lineOfCaret } from "./pageNodes";
+import { elementOf, ghostly, lineOfCaret, scrolledAround } from "./pageNodes";
 import { endOf, GHOST, ghostAt, sourceAt, spotOf } from "./pageSpots";
 import type { Point, Writer } from "./pageWriter";
 
@@ -66,14 +66,10 @@ export const caretOn = (writer: Writer) => {
 
   const ROOM = 48;
 
-  // A page laid at its full height, as a task's, scrolls in the window around it, so the caret is shown there.
   const inSightAround = (box: DOMRect) => {
     const frame = page.defaultView?.frameElement as HTMLElement | null;
-    const outside = frame?.ownerDocument.defaultView;
-    if (!frame || !outside) return;
-    for (let at = frame.parentElement; at; at = at.parentElement) {
-      if (at.scrollHeight <= at.clientHeight) continue;
-      if (!/(auto|scroll)/.test(outside.getComputedStyle(at).overflowY)) continue;
+    if (!frame) return;
+    for (const at of scrolledAround(page)) {
       const area = at.getBoundingClientRect();
       const top = frame.getBoundingClientRect().top + box.top;
       const bottom = top + box.height;

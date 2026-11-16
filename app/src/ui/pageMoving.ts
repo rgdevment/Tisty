@@ -1,5 +1,6 @@
 import { charsAt, spanned } from "tisty-editor/read";
 import type { Anchor } from "./dressing";
+import { scrolledAround } from "./pageNodes";
 import { movedBlock } from "./sticking";
 
 export type Unit = { readonly from: number; readonly to: number; readonly last: number };
@@ -150,6 +151,54 @@ export const roomy = (page: Document) => {
   );
 };
 
+const EDGE_PX = 48;
+const ROLL_MOST = 18;
+
+export const edgeRoll = (y: number, top: number, bottom: number): number => {
+  if (y < top + EDGE_PX) return -Math.min(ROLL_MOST, Math.ceil((top + EDGE_PX - y) / 3));
+  if (y > bottom - EDGE_PX) return Math.min(ROLL_MOST, Math.ceil((y - bottom + EDGE_PX) / 3));
+  return 0;
+};
+
+type Room = {
+  readonly top: number;
+  readonly bottom: number;
+  readonly outside: boolean;
+  readonly by: (dy: number) => number;
+};
+
+// What scrolls under a dragged block: the page itself, or the window around a page laid at its full height.
+const roomOf = (page: Document): Room | null => {
+  const view = page.defaultView;
+  if (!view) return null;
+  if (page.documentElement.scrollHeight > view.innerHeight + 1)
+    return {
+      top: 0,
+      outside: false,
+      bottom: view.innerHeight,
+      by: (dy) => {
+        const was = view.scrollY;
+        view.scrollBy({ top: dy });
+        return view.scrollY - was;
+      },
+    };
+  const [around] = scrolledAround(page);
+  const frame = view.frameElement;
+  if (!around || !frame) return null;
+  const area = around.getBoundingClientRect();
+  const box = frame.getBoundingClientRect();
+  return {
+    top: area.top - box.top,
+    outside: true,
+    bottom: area.bottom - box.top,
+    by: (dy) => {
+      const was = around.scrollTop;
+      around.scrollBy({ top: dy });
+      return around.scrollTop - was;
+    },
+  };
+};
+
 // A block is moved by the grip that stands beside it on the sheet's left edge; a press on the grip asks what to do with it.
 export const gripped = (
   page: Document,
@@ -204,11 +253,33 @@ export const gripped = (
     );
   };
 
+  let pointer = 0;
+  let rolling = 0;
+
+  // Near an edge the page scrolls by itself, and the place under a still pointer is found again as it does.
+  const roll = () => {
+    rolling = 0;
+    const room = held?.moved ? roomOf(page) : null;
+    const dy = room ? edgeRoll(pointer, room.top, room.bottom) : 0;
+    const moved = room && dy ? room.by(dy) : 0;
+    if (!moved) return;
+    if (room?.outside) pointer += moved;
+    aim(pointer);
+    rolling = view?.requestAnimationFrame(roll) ?? 0;
+  };
+
   const dragged = (event: MouseEvent) => {
     if (!held) return;
     if (Math.abs(event.clientY - held.y) > STILL_PX) held.moved = true;
     if (!held.moved) return;
-    held.target = targetAt(event.clientY);
+    pointer = event.clientY;
+    aim(pointer);
+    if (!rolling) rolling = view?.requestAnimationFrame(roll) ?? 0;
+  };
+
+  const aim = (y: number) => {
+    if (!held) return;
+    held.target = targetAt(y);
     const sheet = page.querySelector(".page");
     const all = sheet ? topsOf(sheet) : [];
     const last = all[all.length - 1];
@@ -222,6 +293,8 @@ export const gripped = (
   const letGo = () => {
     const was = held;
     held = null;
+    view?.cancelAnimationFrame(rolling);
+    rolling = 0;
     line.hidden = true;
     page.removeEventListener("mousemove", dragged);
     page.removeEventListener("mouseup", letGo);
@@ -254,6 +327,7 @@ export const gripped = (
   return {
     rest,
     stop: () => {
+      view?.cancelAnimationFrame(rolling);
       page.removeEventListener("mousemove", hovered);
       page.removeEventListener("mousemove", dragged);
       page.removeEventListener("mouseup", letGo);

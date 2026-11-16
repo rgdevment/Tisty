@@ -73,3 +73,15 @@ export const opened = (page: Document) => {
   // Code is spelled as the language wants it, so the system's speller has nothing to say there.
   for (const one of sheet.querySelectorAll(LITERAL)) one.setAttribute("spellcheck", "false");
 };
+
+// A page laid at its full height, as a task's, scrolls in the window around its frame, not in itself.
+export const scrolledAround = (page: Document): HTMLElement[] => {
+  const frame = page.defaultView?.frameElement as HTMLElement | null;
+  const outside = frame?.ownerDocument.defaultView;
+  const found: HTMLElement[] = [];
+  for (let at = frame?.parentElement; at && outside; at = at.parentElement) {
+    if (at.scrollHeight <= at.clientHeight) continue;
+    if (/(auto|scroll)/.test(outside.getComputedStyle(at).overflowY)) found.push(at);
+  }
+  return found;
+};
