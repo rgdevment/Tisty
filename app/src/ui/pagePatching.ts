@@ -51,6 +51,7 @@ const namedAlike = (sheet: Element, old: readonly Element[], near: PlacedNear, k
 // The blocks the core drew again take the place of the old ones, and those after only move by
 // what the edit added; when the page does not line up with the core, it is drawn whole instead.
 export const patched = (sheet: Element, near: PlacedNear, by: number): Element[] | null => {
+  if (near.whole) return null;
   const old = Array.from(sheet.querySelectorAll(":scope > [data-at]"));
   const { count, from, to } = near;
   const after = count - to;

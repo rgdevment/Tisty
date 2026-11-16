@@ -27,14 +27,39 @@ pub(crate) fn reading(text: &str, passes: &[fn(&mut Vec<Span>, &str)]) -> Doc {
         blocks.push(leaf(Kind::Front, front));
     }
     tokened(text, skip..text.len(), &mut blocks);
-    defined(text, skip, &mut blocks);
+    let linked = defined(text, skip, &mut blocks);
     polish_all(&mut blocks, text, passes);
     #[cfg(feature = "tags")]
     crate::marks::tagged(&mut blocks, text);
+    let crossing = crate::rereading::crossing(text);
     Doc {
         text: text.to_string(),
+        labels: if crossing {
+            labels(linked, &blocks)
+        } else {
+            crate::names_sum([])
+        },
         blocks,
-        crossing: crate::rereading::crossing(text),
+        crossing,
+    }
+}
+
+// Every definition counts, also one in a quote that has no block, since a link anywhere reads by it.
+fn labels(mut linked: Vec<[String; 2]>, blocks: &[Block]) -> [u32; 2] {
+    linked.sort_unstable();
+    let mut noted = Vec::new();
+    notes(blocks, &mut noted);
+    noted.sort_unstable();
+    noted.dedup();
+    crate::names_sum(linked.iter().flatten().chain(&noted).map(String::as_str))
+}
+
+fn notes(blocks: &[Block], noted: &mut Vec<String>) {
+    for one in blocks {
+        if let Kind::Note { label } = &one.kind {
+            noted.push(format!("^{label}"));
+        }
+        notes(&one.inner, noted);
     }
 }
 
@@ -181,29 +206,30 @@ fn tokens(text: &str) -> impl Iterator<Item = (Event<'_>, Range<usize>)> {
 }
 
 // The tokenizer drops a link's definition from what it hands over, so the page would have nowhere to show or edit it.
-fn defined(text: &str, skip: usize, blocks: &mut Vec<Block>) {
+fn defined(text: &str, skip: usize, blocks: &mut Vec<Block>) -> Vec<[String; 2]> {
     // Built only once a definition turns up, so a document with none pays nothing for it.
     let held = LazyCell::new(|| Nearby::of(blocks.iter().map(|one| one.at.clone()).collect()));
     let parser = Parser::new_ext(&text[skip..], options());
-    let mut found: Vec<Block> = parser
-        .reference_definitions()
-        .iter()
-        .map(|(label, one)| {
-            let at = one.span.start + skip..one.span.end + skip;
+    let mut linked = Vec::new();
+    let mut found = Vec::new();
+    for (label, one) in parser.reference_definitions().iter() {
+        let (label, to) = (label.to_string(), one.dest.to_string());
+        let at = one.span.start + skip..one.span.end + skip;
+        if held.touching(&at).next().is_none() {
             let kind = Kind::Definition {
-                label: label.to_string(),
-                to: one.dest.to_string(),
+                label: label.clone(),
+                to: to.clone(),
             };
-            leaf(kind, at)
-        })
-        .filter(|one| held.touching(&one.at).next().is_none())
-        .collect();
-    found.extend(repeated(text, skip, blocks, &found));
-    if found.is_empty() {
-        return;
+            found.push(leaf(kind, at));
+        }
+        linked.push([label, to]);
     }
-    blocks.append(&mut found);
-    blocks.sort_by_key(|one| one.at.start);
+    found.extend(repeated(text, skip, blocks, &found));
+    if !found.is_empty() {
+        blocks.append(&mut found);
+        blocks.sort_by_key(|one| one.at.start);
+    }
+    linked
 }
 
 // The parser keeps one definition per label, so a label written twice leaves its later lines unclaimed.

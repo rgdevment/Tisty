@@ -581,7 +581,7 @@ fn an_edit_draws_again_only_the_blocks_around_it() {
     let text = "# One\n\nTwo words.\n\nThree.\n\nFour.\n\nFive.";
     let at = text.find("words").unwrap_or(0);
     let doc = read(text);
-    let near = placed_near(&doc, at, at + 5);
+    let near = placed_near(&doc, at, at + 5, Some(doc.labels()));
     assert_eq!(near.count, 5);
     assert_eq!(near.drawn, 0..3);
     let spans = doc.blocks().iter().map(|one| [one.at.start, one.at.end]);
@@ -605,7 +605,7 @@ fn a_heading_drawn_again_keeps_the_name_the_whole_page_gives_it() {
     let text = "# Uno\n\nA.\n\n# Uno\n\nB.\n\nC.\n\nD.\n";
     let doc = read(text);
     let at = text.rfind("# Uno").unwrap_or_default();
-    let near = placed_near(&doc, at + 2, at + 3);
+    let near = placed_near(&doc, at + 2, at + 3, Some(doc.labels()));
     let second = &crate::outline(&doc)[1].id;
     assert!(
         near.html.contains(&format!("id=\"{second}\"")),
@@ -613,7 +613,7 @@ fn a_heading_drawn_again_keeps_the_name_the_whole_page_gives_it() {
         near.html
     );
     assert!(html_placed(&doc).contains(&format!("id=\"{second}\"")));
-    let words = placed_near(&doc, text.len() - 2, text.len() - 1);
+    let words = placed_near(&doc, text.len() - 2, text.len() - 1, Some(doc.labels()));
     assert!(!words.html.contains("<h1"));
 }
 
@@ -646,11 +646,20 @@ fn drawn_names(html: &str) -> Vec<(usize, String)> {
         .collect()
 }
 
+struct Shown {
+    doc: Doc,
+    names: Vec<(usize, String)>,
+    blocks: Vec<Block>,
+}
+
 // What the page shows after a key, as `patched` lays it, or nothing when it draws the whole page.
-fn shown_after(was: &Doc, at: Range<usize>, insert: &str) -> Option<(Doc, Vec<(usize, String)>)> {
+fn shown_after(was: &Doc, at: Range<usize>, insert: &str) -> Option<Shown> {
     let doc = crate::reread_edit(was.clone(), at.clone(), insert).ok()?;
     let by = insert.len() as isize - at.len() as isize;
-    let near = placed_near(&doc, at.start, at.start + insert.len());
+    let near = placed_near(&doc, at.start, at.start + insert.len(), Some(was.labels()));
+    if near.whole {
+        return None;
+    }
     let old = was.blocks();
     let after = near.count.checked_sub(near.drawn.end)?;
     let kept = old.len().checked_sub(after)?;
@@ -684,13 +693,47 @@ fn shown_after(was: &Doc, at: Range<usize>, insert: &str) -> Option<(Doc, Vec<(u
         None if !gone.is_empty() => return None,
         _ => {}
     }
-    let mut shown: Vec<_> = stay
+    let mut names: Vec<_> = stay
         .into_iter()
         .map(|(place, name)| (moved(place), name))
         .chain(drawn_names(&near.html))
         .collect();
-    shown.sort();
-    Some((doc, shown))
+    names.sort();
+    let blocks = old[..near.drawn.start]
+        .iter()
+        .chain(&doc.blocks()[near.drawn.clone()])
+        .chain(&old[kept..])
+        .cloned()
+        .collect();
+    Some(Shown { doc, names, blocks })
+}
+
+// Blocks the page keeps only move, so what each holds is compared with its places set aside.
+fn unplaced(blocks: &[Block]) -> Vec<Block> {
+    blocks
+        .iter()
+        .map(|one| {
+            let mut one = one.clone();
+            one.at = 0..0;
+            if let Kind::Table { columns } = &mut one.kind {
+                for typed in columns
+                    .iter_mut()
+                    .filter_map(|column| column.typed.as_mut())
+                {
+                    *typed = 0..0;
+                }
+            }
+            for span in &mut one.spans {
+                span.at = 0..0;
+            }
+            one.inner = unplaced(&one.inner);
+            one
+        })
+        .collect()
+}
+
+fn reads_as_whole(shown: &Shown) -> bool {
+    unplaced(&shown.blocks) == unplaced(shown.doc.blocks())
 }
 
 #[test]
@@ -718,8 +761,8 @@ fn a_heading_renamed_put_in_or_taken_out_never_leaves_a_stale_name() {
         (twice, 0..7, ""),
     ] {
         let was = read(text);
-        if let Some((doc, shown)) = shown_after(&was, at.clone(), insert) {
-            assert_eq!(shown, names_of(&doc), "{at:?} → {insert:?}");
+        if let Some(shown) = shown_after(&was, at.clone(), insert) {
+            assert_eq!(shown.names, names_of(&shown.doc), "{at:?} → {insert:?}");
         }
     }
     let alone = read("# Uno\n\nA.\n\nB.\n\n# Dos\n\nC.\n");
@@ -730,25 +773,43 @@ fn a_heading_renamed_put_in_or_taken_out_never_leaves_a_stale_name() {
 }
 
 #[test]
-fn every_key_leaves_the_page_with_the_names_the_whole_page_gives() {
-    const TEXTS: [&str; 2] = [
-        "# Uno\n\nA.\n\n# Uno\n\nB.\n\n## Uno 1\n\nC.\n\n# Dos\n\n> # Uno\n\nD.\n",
-        "Uno\n===\n\nA.\n\n- # Uno\n\nB.\n\n# Uno\n\nÁrbol\n---\n",
+fn a_link_or_footnote_defined_changed_or_taken_out_never_leaves_a_block_as_it_read_before() {
+    let words = "Ver [x] y[^1].\n\nA.\n\nB.\n\nC.\n\n";
+    let end = words.len();
+    let linked = format!("{words}[x]: https://a.b\n");
+    let noted = format!("{words}[^1]: nota\n");
+    let to = linked.find("a.b").unwrap_or_default();
+    let keys: [(&str, Range<usize>, &str); 8] = [
+        (words, end..end, "[x]: https://a.b\n"),
+        (&linked, end..linked.len(), ""),
+        (&linked, to..to + 3, "c.d"),
+        (&linked, end + 1..end + 2, "z"),
+        (words, end..end, "> [x]: https://a.b\n"),
+        (words, end..end, "[^1]: nota\n"),
+        (&noted, end..noted.len(), ""),
+        (&noted, end + 2..end + 3, "2"),
     ];
-    const PIECES: [&str; 11] = [
-        "# ",
-        "Uno",
-        "Dos",
-        "\n\n",
-        "#",
-        "===",
-        "1",
-        " ",
-        "a",
-        "> ",
-        "# Uno\n\n",
-    ];
-    let mut state: u64 = 0x01D5_0F7E;
+    for (text, at, insert) in keys {
+        let shown = shown_after(&read(text), at.clone(), insert);
+        assert!(
+            shown.is_none_or(|one| reads_as_whole(&one)),
+            "{at:?} → {insert:?} in {text:?}"
+        );
+    }
+    let far = linked.find("B.").unwrap_or_default();
+    assert!(
+        shown_after(&read(&linked), far..far, "s").is_some(),
+        "a key away from every definition is laid without the whole page"
+    );
+    let said = noted.find("nota").unwrap_or_default() + 4;
+    assert!(
+        shown_after(&read(&noted), said..said, "s").is_some(),
+        "the words of a footnote are laid without the whole page"
+    );
+}
+
+fn keyed(texts: &[&str], pieces: &[&str], seed: u64) -> (usize, usize) {
+    let mut state = seed;
     let mut next = |below: usize| {
         state ^= state << 13;
         state ^= state >> 7;
@@ -757,7 +818,7 @@ fn every_key_leaves_the_page_with_the_names_the_whole_page_gives() {
     };
     let mut laid = 0;
     let mut all = 0;
-    for text in TEXTS {
+    for text in texts {
         let mut was = read(text);
         for _ in 0..300 {
             let len = was.text().len();
@@ -772,22 +833,73 @@ fn every_key_leaves_the_page_with_the_names_the_whole_page_gives() {
             let insert = if next(3) == 0 {
                 ""
             } else {
-                PIECES[next(PIECES.len())]
+                pieces[next(pieces.len())]
             };
             all += 1;
-            if let Some((doc, shown)) = shown_after(&was, from..to, insert) {
+            if let Some(shown) = shown_after(&was, from..to, insert) {
                 laid += 1;
-                assert_eq!(
-                    shown,
-                    names_of(&doc),
-                    "{from}..{to} → {insert:?} in {:?}",
-                    was.text()
-                );
+                let key = format!("{from}..{to} → {insert:?} in {:?}", was.text());
+                assert_eq!(shown.names, names_of(&shown.doc), "{key}");
+                assert!(reads_as_whole(&shown), "{key}");
             }
             let now = format!("{}{insert}{}", &was.text()[..from], &was.text()[to..]);
             was = read(&now);
         }
     }
+    (laid, all)
+}
+
+#[test]
+fn every_key_leaves_the_page_with_the_names_the_whole_page_gives() {
+    let texts = [
+        "# Uno\n\nA.\n\n# Uno\n\nB.\n\n## Uno 1\n\nC.\n\n# Dos\n\n> # Uno\n\nD.\n",
+        "Uno\n===\n\nA.\n\n- # Uno\n\nB.\n\n# Uno\n\nÁrbol\n---\n",
+    ];
+    let pieces = [
+        "# ",
+        "Uno",
+        "Dos",
+        "\n\n",
+        "#",
+        "===",
+        "1",
+        " ",
+        "a",
+        "> ",
+        "# Uno\n\n",
+    ];
+    let (laid, all) = keyed(&texts, &pieces, 0x01D5_0F7E);
+    assert!(
+        laid * 2 > all,
+        "only {laid} of {all} keys were laid without the whole page"
+    );
+}
+
+#[test]
+fn every_key_leaves_each_link_and_footnote_as_the_whole_page_reads_it() {
+    let texts = [
+        "Ver [x] y[^1].\n\nA [x][y].\n\n> B[^2].\n\n[x]: https://a.b\n\n- C [y].\n\n[^1]: nota\n",
+        "Uno.\n\n::: note\nDos [x].\n:::\n\nTres[^1].\n\n> [y]: https://c.d\n\nCuatro [y].\n",
+    ];
+    let pieces = [
+        "[x]",
+        "[y]",
+        "[x]: https://a.b\n",
+        "[y]: u\n",
+        "[^1]",
+        "[^1]: n\n",
+        "[^2]: m\n",
+        ":::",
+        "::: note\n",
+        ":::\n",
+        "\n\n",
+        "> ",
+        "a",
+        ":",
+        "]",
+        "\n",
+    ];
+    let (laid, all) = keyed(&texts, &pieces, 0x00DE_F1AE);
     assert!(
         laid * 2 > all,
         "only {laid} of {all} keys were laid without the whole page"
@@ -797,8 +909,9 @@ fn every_key_leaves_the_page_with_the_names_the_whole_page_gives() {
 #[test]
 fn an_edit_past_the_last_block_draws_the_last_one() {
     let text = "One.\n\nTwo.\n\n";
-    let near = placed_near(&read(text), text.len(), text.len());
+    let doc = read(text);
+    let near = placed_near(&doc, text.len(), text.len(), Some(doc.labels()));
     assert_eq!(near.drawn, 1..2);
     assert!(near.html.contains("Two."));
-    assert_eq!(placed_near(&read(""), 0, 0).drawn, 0..0);
+    assert_eq!(placed_near(&read(""), 0, 0, None).drawn, 0..0);
 }

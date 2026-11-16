@@ -61,6 +61,7 @@ export type PlacedNear = {
   readonly to: number;
   readonly html: string;
   readonly heads: readonly [number, number] | null;
+  readonly whole: boolean;
 };
 
 export type Typed = { readonly from: number; readonly to: number; readonly insert: string };
