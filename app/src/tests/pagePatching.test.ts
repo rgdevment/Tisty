@@ -1,28 +1,8 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { namesSum, type PlacedNear, summed } from "../placing";
+import { namesSum } from "../placing";
 import { patched } from "../ui/pagePatching";
-
-type Span = readonly [number, number];
-
-const spansSum = (spans: readonly Span[]) => summed(spans.flat());
-
-// The core answers how many blocks there are and a sum of those it did not draw again.
-const near = (drawn: {
-  spans: readonly Span[];
-  from: number;
-  to: number;
-  html: string;
-  heads?: readonly string[];
-  whole?: boolean;
-}): PlacedNear => ({
-  count: drawn.spans.length,
-  sum: spansSum([...drawn.spans.slice(0, drawn.from), ...drawn.spans.slice(drawn.to)]),
-  from: drawn.from,
-  to: drawn.to,
-  html: drawn.html,
-  heads: drawn.heads ? namesSum(drawn.heads) : null,
-  whole: drawn.whole ?? false,
-});
+import { placeOf, placesSettled } from "../ui/pagePlaces";
+import { near, type Span, spansSum } from "./nearing";
 
 const HEADED =
   '<h1 id="uno" data-at="0-5"><span data-src="2-5">Uno</span></h1>' +
@@ -192,6 +172,9 @@ describe("a page written on, changed only where the core drew it again", () => {
       "Three.",
     ]);
     expect(sheet.lastElementChild).toBe(last);
+    expect(placeOf(last)).toEqual([15, 21]);
+    expect(placeOf(last?.querySelector("[data-src]"), "data-src")).toEqual([15, 21]);
+    placesSettled(document);
     expect(last?.getAttribute("data-at")).toBe("15-21");
     expect(last?.querySelector("[data-src]")?.getAttribute("data-src")).toBe("15-21");
   });
@@ -214,6 +197,8 @@ describe("a page written on, changed only where the core drew it again", () => {
       }),
       3,
     );
+    expect(placeOf(last.querySelector("[data-placed]"), "data-placed")).toEqual([15, 21]);
+    placesSettled(document);
     expect(last.querySelector("[data-placed]")?.getAttribute("data-placed")).toBe("15-21");
   });
 

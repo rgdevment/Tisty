@@ -1,6 +1,7 @@
-import { charsAt, spanned } from "tisty-editor/read";
+import { charsAt } from "tisty-editor/read";
 import type { Anchor } from "./dressing";
 import { scrolledAround } from "./pageNodes";
+import { placeOf } from "./pagePlaces";
 import { movedBlock } from "./sticking";
 
 export type Unit = { readonly from: number; readonly to: number; readonly last: number };
@@ -13,7 +14,7 @@ export type Moved = {
 };
 export type Act = "up" | "down" | "double" | "drop";
 
-const spanOf = (one: Element) => spanned(one.getAttribute("data-at"));
+const spanOf = (one: Element) => placeOf(one);
 const level = (one: Element) => Number(/^H([1-6])$/.exec(one.tagName)?.[1] ?? 0);
 const LIST_MARK = /^(\s*(?:[-*+]|\d+[.)])\s+)/;
 

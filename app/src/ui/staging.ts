@@ -1,9 +1,10 @@
-import { charsAt, spanned, stepLine, steppedTitle } from "tisty-editor/read";
+import { charsAt, stepLine, steppedTitle } from "tisty-editor/read";
+import { placeOf } from "./pagePlaces";
 
 export const offeredAsParts = (page: Document, said: string, body: string) => {
   for (const one of page.querySelectorAll<HTMLElement>(".page > ul > li.task[data-at]")) {
     if (one.querySelector(':scope > .check[data-done="true"], ul, ol, pre, blockquote')) continue;
-    const at = spanned(one.dataset.at ?? null);
+    const at = placeOf(one);
     const line = at && stepLine(body, [charsAt(body, at[0]), charsAt(body, at[1])]);
     if (!line || !steppedTitle(line)) continue;
     const ask = page.createElement("button");

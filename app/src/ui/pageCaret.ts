@@ -1,8 +1,8 @@
-import { spanned } from "tisty-editor/read";
 import { byteFrom, unitFrom } from "../placing";
 import type { Span } from "./pageEdits";
 import { closing, opening } from "./pageLists";
 import { elementOf, ghostly, lineOfCaret, scrolledAround } from "./pageNodes";
+import { placeOf, placeSaid } from "./pagePlaces";
 import { endOf, GHOST, ghostAt, sourceAt, spotOf, topsAt } from "./pageSpots";
 import type { Point, Writer } from "./pageWriter";
 
@@ -101,7 +101,7 @@ export const caretOn = (writer: Writer) => {
   const summaryAt = (found: [Node, number], at: number): [Node, number] | null => {
     const box = elementOf(found[0])?.closest("details[data-at]");
     const summary = box?.querySelector(":scope > summary");
-    const span = spanned(box?.getAttribute("data-at") ?? null);
+    const span = placeOf(box);
     if (!summary || !span) return null;
     const text = hands.text();
     const start = unitFrom(writer.reckoned, text, span[0]);
@@ -119,7 +119,7 @@ export const caretOn = (writer: Writer) => {
     const sheet = page.querySelector(".page");
     const byte = byteFrom(writer.reckoned, text, at);
     for (const one of sheet ? topsAt(sheet, byte) : []) {
-      const span = spanned(one.getAttribute("data-at"));
+      const span = placeOf(one);
       if (!span || !one.matches(WHOLE)) continue;
       let end = unitFrom(writer.reckoned, text, span[1]);
       while (end > 0 && /[\r\n]/.test(text[end - 1] ?? "")) end--;
@@ -131,9 +131,9 @@ export const caretOn = (writer: Writer) => {
   // The properties are kept off the page, so a caret come back from them stands where the words begin.
   const pastFront = (text: string, at: number) => {
     const front = page.querySelector(".page > .front[data-at]");
-    const span = spanned(front?.getAttribute("data-at") ?? null);
+    const span = placeOf(front);
     if (!span || byteFrom(writer.reckoned, text, at) > span[1]) return null;
-    const next = spanned(front?.nextElementSibling?.getAttribute("data-at") ?? null);
+    const next = placeOf(front?.nextElementSibling);
     if (!next) return null;
     const start = unitFrom(writer.reckoned, text, next[0]);
     return start + (/^[ \t]*(?:#{1,6}[ \t]+)?/.exec(text.slice(start))?.[0].length ?? 0);
@@ -213,14 +213,14 @@ export const caretOn = (writer: Writer) => {
 
   const blockEnd = (at: number) => {
     const anchor = elementOf(page.getSelection()?.anchorNode);
-    const span = spanned(anchor?.closest(".page > [data-at]")?.getAttribute("data-at") ?? null);
+    const span = placeOf(anchor?.closest(".page > [data-at]"));
     return span ? unitFrom(writer.reckoned, hands.text(), span[1]) : at;
   };
 
   // Only a paragraph is turned whole, from its first line, as a line broken inside it still belongs to it.
   const paragraphStart = () => {
     const anchor = elementOf(page.getSelection()?.anchorNode);
-    const span = spanned(anchor?.closest(".page > p[data-at]")?.getAttribute("data-at") ?? null);
+    const span = placeOf(anchor?.closest(".page > p[data-at]"));
     return span ? unitFrom(writer.reckoned, hands.text(), span[0]) : null;
   };
 
@@ -228,7 +228,7 @@ export const caretOn = (writer: Writer) => {
     elementOf(chosen()?.startContainer)?.closest(".page [data-at]") ?? null;
 
   // A block is told apart by where it starts, since each key draws it again as another element.
-  const blockStart = () => blockOfCaret()?.getAttribute("data-at")?.split("-")[0] ?? null;
+  const blockStart = () => placeSaid(blockOfCaret())?.split("-")[0] ?? null;
 
   // A piece drawn whole, as code or a tag, takes no keys, so a caret dropped inside it stands right after it.
   const outOfSolid = (range: AbstractRange) => {

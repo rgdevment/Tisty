@@ -1,4 +1,5 @@
-import { charsAt, spanned } from "tisty-editor/read";
+import { charsAt } from "tisty-editor/read";
+import { placeOf } from "./pagePlaces";
 
 export type Gone = { readonly from: number; readonly to: number };
 
@@ -8,7 +9,7 @@ export const EMBED = "img[data-src], [data-placed]";
 const DRESSING = "button, .picture-away";
 
 export const embedPlace = (shown: Element) =>
-  spanned(shown.getAttribute("data-src") ?? shown.getAttribute("data-placed"));
+  placeOf(shown, "data-src") ?? placeOf(shown, "data-placed");
 
 export const aloneOnLine = (block: Element) => {
   if (!block.matches("p[data-at]")) return false;
@@ -25,9 +26,9 @@ export const embedGone = (text: string, shown: Element): Gone | null => {
   const own = embedPlace(shown);
   if (!own) return null;
   const block = shown.closest(".page > [data-at]");
-  const line = block && aloneOnLine(block) ? spanned(block.getAttribute("data-at")) : null;
+  const line = block && aloneOnLine(block) ? placeOf(block) : null;
   if (block && line) {
-    const next = spanned(block.nextElementSibling?.getAttribute("data-at") ?? null)?.[0];
+    const next = placeOf(block.nextElementSibling)?.[0];
     let from = charsAt(text, line[0]);
     if (next === undefined) while (text[from - 1] === "\n" && text[from - 2] === "\n") from--;
     return { from, to: charsAt(text, next ?? line[1]) };

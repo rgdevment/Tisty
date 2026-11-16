@@ -2,6 +2,7 @@ import { docFacts, pagePdf } from "../core";
 import { wholeStamp } from "../format";
 import { valuesIn } from "../front";
 import { t } from "../locales";
+import { placeSaid } from "./pagePlaces";
 import { type PaperSheet, webPage } from "./webPage";
 
 export interface Told {
@@ -68,7 +69,7 @@ export interface Seen {
 
 const placed = (all: Iterable<Element | null>): string[] =>
   Array.from(all).flatMap((one) => {
-    const at = (one as HTMLElement | null)?.dataset.at;
+    const at = placeSaid(one);
     return at ? [at] : [];
   });
 
