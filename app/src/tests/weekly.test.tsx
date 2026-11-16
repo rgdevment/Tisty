@@ -169,6 +169,21 @@ describe("the weekly review", () => {
     await waitFor(() => expect(asked("complete")[0]?.args).toMatchObject({ id: "01T1" }));
   });
 
+  it.each([
+    ["as a sheet", null],
+    ["beside the page", "columns"],
+  ])("opens an unlisted task's detail %s", async (_, detail) => {
+    if (detail) localStorage.setItem("detail", detail);
+    ipc.review = reviewing({ unlisted: [task("01T1", "Call Jaime")] });
+    await openReview();
+
+    const decide = screen.getByRole("region", { name: "To decide" });
+    await userEvent.click(within(decide).getByRole("button", { name: "Open" }));
+
+    const titled = await screen.findByRole("textbox", { name: "Title" });
+    expect((titled as HTMLInputElement).value ?? titled.textContent).toContain("Call Jaime");
+  });
+
   it("offers a weekly reminder on Friday at five in the first list, and files it as asked", async () => {
     await openReview();
 
