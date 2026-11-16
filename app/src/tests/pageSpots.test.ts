@@ -81,6 +81,18 @@ describe("the places of a page written in place", () => {
     expect(sheet.firstElementChild).toBe(first);
   });
 
+  it("wears the title's mark right after the properties, as the core marks the line it draws there", () => {
+    const body = "---\ntitle: x\n---\n\n- uno\n";
+    sheetOf(
+      '<dl class="front" data-at="0-17"></dl><ul data-at="18-24"><li data-at="18-24"><span data-src="20-23">uno</span></li></ul>',
+    );
+    const titled = ghostAt(document, body, 17);
+    expect(titled?.previousElementSibling?.matches(".front")).toBe(true);
+    expect(titled?.classList.contains("title")).toBe(true);
+    titled?.remove();
+    expect(ghostAt(document, body, 24)?.classList.contains("title")).toBe(false);
+  });
+
   it("begins the first line of an empty page where its title waits", () => {
     document.body.innerHTML = '<article class="page"><h1 data-title="Título"></h1></article>';
     const title = document.querySelector("h1");

@@ -7,7 +7,7 @@ import type { Laying } from "./pageLaying";
 import { closing, joinedAt, opening } from "./pageLists";
 import { closeOf, openOf } from "./pageMarks";
 import { placeOf } from "./pagePlaces";
-import { GHOST } from "./pageSpots";
+import { GHOST, titledAfterFront } from "./pageSpots";
 import type { Kept, Writer } from "./pageWriter";
 
 export type Begun = ReturnType<typeof begunOn>;
@@ -89,6 +89,7 @@ export const begunOn = (writer: Writer, caret: Caret, laying: Laying) => {
       if (inside) near.append(ghost);
       else if (above || near.matches(".add-step")) near.before(ghost);
       else near.after(ghost);
+      titledAfterFront(ghost);
     }
     writer.kept = { node: ghost, offset: 0, at, lead, tail };
     page.querySelector<HTMLElement>(".page")?.focus();

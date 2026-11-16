@@ -672,6 +672,11 @@ struct Shown {
     doc: Doc,
     names: Vec<(usize, String)>,
     blocks: Vec<Block>,
+    titles: Vec<bool>,
+}
+
+fn marked(one: &Block, title: Option<usize>) -> bool {
+    title == Some(one.at.start)
 }
 
 // What the page shows after a key, as `patched` lays it, or nothing when it draws the whole page.
@@ -751,7 +756,35 @@ fn shown_after(was: &Doc, at: Range<usize>, insert: &str) -> Option<Shown> {
         .chain(&old[kept..])
         .cloned()
         .collect();
-    Some(Shown { doc, names, blocks })
+    let (was_titled, now_titled) = (page::titled(old), page::titled(doc.blocks()));
+    let redrawn = &doc.blocks()[near.drawn.clone()];
+    assert_eq!(
+        near.html.matches(" class=\"title\"").count(),
+        redrawn.iter().filter(|one| marked(one, now_titled)).count()
+    );
+    let titles = old[..near.drawn.start]
+        .iter()
+        .map(|one| marked(one, was_titled))
+        .chain(redrawn.iter().map(|one| marked(one, now_titled)))
+        .chain(old[kept..].iter().map(|one| marked(one, was_titled)))
+        .collect();
+    Some(Shown {
+        doc,
+        names,
+        blocks,
+        titles,
+    })
+}
+
+fn titled_as_whole(shown: &Shown) -> bool {
+    let title = page::titled(shown.doc.blocks());
+    let whole: Vec<bool> = shown
+        .doc
+        .blocks()
+        .iter()
+        .map(|one| marked(one, title))
+        .collect();
+    shown.titles == whole
 }
 
 // Blocks the page keeps only move, so what each holds is compared with its places set aside.
@@ -954,6 +987,7 @@ fn keyed(texts: &[&str], pieces: &[&str], seed: u64) -> (usize, usize) {
                 let key = format!("{from}..{to} → {insert:?} in {:?}", was.text());
                 assert_eq!(shown.names, names_of(&shown.doc), "{key}");
                 assert!(reads_as_whole(&shown), "{key}");
+                assert!(titled_as_whole(&shown), "{key}");
             }
             let now = format!("{}{insert}{}", &was.text()[..from], &was.text()[to..]);
             was = read(&now);
@@ -1019,6 +1053,93 @@ fn every_key_leaves_each_link_and_footnote_as_the_whole_page_reads_it() {
         "\n",
     ];
     let (laid, all) = keyed(&texts, &pieces, 0x00DE_F1AE);
+    assert!(
+        laid * 2 > all,
+        "only {laid} of {all} keys were laid without the whole page"
+    );
+}
+
+#[test]
+fn the_block_right_after_the_properties_is_drawn_as_the_title() {
+    for (text, tag) in [
+        ("---\ntitle: x\n---\n\nHola.\n\nMás.\n", "p"),
+        ("---\ntitle: x\n---\n\n### Hola.\n\nMás.\n", "h3"),
+    ] {
+        let doc = read(text);
+        for drawn in [html(&doc), html_placed(&doc), pieces(&doc, 8).concat()] {
+            assert_eq!(drawn.matches("class=\"title\"").count(), 1, "{drawn}");
+            let at = drawn.find(&format!("<{tag}")).unwrap_or_default();
+            let title = drawn[at..]
+                .split(&format!("</{tag}>"))
+                .next()
+                .unwrap_or_default();
+            assert!(
+                title.contains("class=\"title\"") && title.contains("Hola."),
+                "{drawn}"
+            );
+        }
+    }
+    for text in [
+        "Hola.\n\nMás.\n",
+        "---\ntitle: x\n---\n\n#### Hola\n\nMás.\n",
+        "---\ntitle: x\n---\n\n- Hola.\n\nMás.\n",
+        "Hola.\n\n---\ntitle: x\n---\n\nMás.\n",
+        "> ---\n> title: x\n> ---\n>\n> Hola.\n",
+    ] {
+        assert!(!html(&read(text)).contains("class=\"title\""), "{text}");
+    }
+}
+
+#[test]
+fn a_key_near_the_properties_leaves_the_title_where_the_whole_page_draws_it() {
+    let text = "---\ntitle: x\n---\n\nHola.\n\nMás.\n\nY más.\n";
+    let hola = text.find("Hola.").unwrap_or_default();
+    let closed = text.find("---\n\n").unwrap_or_default();
+    let listed = "---\ntitle: x\n---\n\n- uno\n\nHola.\n\nMás.\n";
+    let list = listed.find("- uno").unwrap_or_default();
+    let made = shown_after(&read("title: x\n---\n\nHola.\n\nMás.\n"), 0..0, "---\n");
+    assert!(made.is_none_or(|one| titled_as_whole(&one) && reads_as_whole(&one)));
+    let keys: [(&str, Range<usize>, &str); 10] = [
+        (text, hola..hola + 7, ""),
+        (text, hola..hola, "Nuevo.\n\n"),
+        (text, hola..hola, "- uno\n\n"),
+        (text, hola + 2..hola + 2, "\n\n"),
+        (text, hola + 5..hola + 7, ""),
+        (text, hola..hola + 5, ""),
+        (text, 0..1, ""),
+        (text, closed..closed + 1, ""),
+        (text, 0..hola, ""),
+        (listed, list..list + 7, ""),
+    ];
+    for (text, at, insert) in keys {
+        let shown = shown_after(&read(text), at.clone(), insert);
+        let key = format!("{at:?} → {insert:?} in {text:?}");
+        let shown = shown.unwrap_or_else(|| panic!("drawn whole instead of laid: {key}"));
+        assert!(titled_as_whole(&shown) && reads_as_whole(&shown), "{key}");
+    }
+}
+
+#[test]
+fn every_key_near_the_properties_leaves_the_title_the_whole_page_draws() {
+    let texts = [
+        "---\ntitle: x\n---\n\nHola.\n\nMás.\n\n# Uno\n\nY más.\n",
+        "---\ntags: [a]\n---\n\n# Hola\n\nMás.\n\n- uno\n\nFin.\n",
+        "Hola.\n\n---\n\nMás.\n\n---\na: b\n---\n",
+    ];
+    let pieces = [
+        "---\n",
+        "---",
+        "-",
+        "title: x\n",
+        "\n\n",
+        "\n",
+        "Hola",
+        "# ",
+        "- ",
+        "a",
+        "Nuevo.\n\n",
+    ];
+    let (laid, all) = keyed(&texts, &pieces, 0x7171_E5ED);
     assert!(
         laid * 2 > all,
         "only {laid} of {all} keys were laid without the whole page"

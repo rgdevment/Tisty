@@ -47,7 +47,7 @@ export const PAGE_CSS = `${sheet}${tables}${diary}`;
 // The blocks page.css draws as the document's title, for a host that names its window after it.
 export const TITLED = [
   ".page:where(:not(.as-written)) > :is(h1, h2, h3, p):first-child",
-  ".page:where(:not(.as-written)) > :is(.front, .fronted):first-child + :is(h1, h2, h3, p)",
+  ".page:where(:not(.as-written)) > .title",
 ].join(", ");
 
 export const shell = (html: string, dark: boolean, extra = ""): string =>
