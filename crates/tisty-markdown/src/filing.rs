@@ -19,19 +19,32 @@ impl Filing {
         if !cfg!(feature = "tags") {
             return filing;
         }
-        filing.tally(fronted(text).collect(), false, true);
+        let front: Vec<String> = fronted(text).collect();
+        filing.file_first(&front);
+        filing.tally(front, false, true);
         let mut fence = Fencing::default();
         let mut fenced = Vec::new();
         for (taken, line) in lines_from(text, past(text)) {
             let skipped = fence.inside(line);
-            filing.tally(on_line(line), skipped, true);
+            let names = on_line(line);
             if skipped {
                 fenced.push(taken);
+            } else {
+                filing.file_first(&names);
             }
+            filing.tally(names, skipped, true);
         }
         filing.fenced = joined(fenced);
-        filing.filed = filing.filed_in(text);
         filing
+    }
+
+    fn file_first(&mut self, names: &[String]) {
+        for name in names {
+            if self.filed.len() == AT_MOST {
+                return;
+            }
+            self.filed.insert(name.clone());
+        }
     }
 
     pub(crate) fn after(&self, old: &str, text: &str, changed: &Changed) -> (Filing, bool) {
