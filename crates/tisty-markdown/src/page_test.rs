@@ -1,12 +1,12 @@
 use std::collections::HashMap;
 
-use super::{Drawing, draw, placed_near};
+use super::{Drawing, anchors, draw, placed_near};
 use crate::read;
 use crate::rereading::tests::{PIECES, SAMPLES, Steps, boundary, plain};
 
-fn alone(block: &crate::Block, text: &str) -> String {
+fn alone(block: &crate::Block, text: &str, anchors: &HashMap<usize, String>) -> String {
     let drawing = Drawing {
-        anchors: HashMap::new(),
+        anchors: anchors.clone(),
         aligned: false,
         placed: true,
     };
@@ -41,6 +41,16 @@ fn moved(html: &str, by: isize) -> String {
     out
 }
 
+fn sorted(anchors: &HashMap<usize, String>) -> Vec<&String> {
+    let mut all: Vec<&String> = anchors.values().collect();
+    all.sort();
+    all
+}
+
+fn headed(block: &crate::Block) -> bool {
+    matches!(block.kind, crate::Kind::Heading(_)) || block.inner.iter().any(headed)
+}
+
 // The page keeps a block the core draws beside a key when its place held and the key never reached it.
 #[test]
 fn a_block_beside_an_edit_whose_place_holds_is_drawn_as_before() {
@@ -63,7 +73,12 @@ fn a_block_beside_an_edit_whose_place_holds_is_drawn_as_before() {
             if was.labels() == now.labels() {
                 let by = insert.len() as isize - (to - from) as isize;
                 let near = placed_near(&now, from, from + insert.len(), None);
+                let (named, renamed) = (anchors(&was), anchors(&now));
+                let held = sorted(&named) == sorted(&renamed) && near.heads.is_none();
                 for block in &now.blocks()[near.drawn.clone()] {
+                    if !held && headed(block) {
+                        continue;
+                    }
                     let at = &block.at;
                     let before = was
                         .blocks()
@@ -81,8 +96,8 @@ fn a_block_beside_an_edit_whose_place_holds_is_drawn_as_before() {
                     };
                     checked += 1;
                     assert_eq!(
-                        alone(block, &next),
-                        moved(&alone(old, &text), shift),
+                        alone(block, &next, &renamed),
+                        moved(&alone(old, &text, &named), shift),
                         "after {from}..{to} became {insert:?} in sample {seed}"
                     );
                 }

@@ -10,6 +10,20 @@ const folds = (blocks: readonly Element[]) =>
     ...one.querySelectorAll("details"),
   ]);
 
+// A fold drawn anew comes closed, so one being written in stays open, found again by where it begins.
+const openFolds = (going: readonly Element[], by: number, edited?: readonly [number, number]) => {
+  const [from, to] = edited ?? [Number.POSITIVE_INFINITY, Number.POSITIVE_INFINITY];
+  return new Set(
+    folds(going)
+      .filter((one) => one.open)
+      .flatMap((one) => {
+        const at = placeOf(one)?.[0];
+        if (at === undefined || (at >= from && at < to)) return [];
+        return [at < from ? at : at + by];
+      }),
+  );
+};
+
 const linedUp = (old: readonly Element[], near: PlacedNear, kept: number, by: number) => {
   const places: number[] = [];
   for (let at = 0; at < old.length; at++) {
@@ -120,27 +134,20 @@ export const patched = (
   fresh.innerHTML = near.html;
   const drawn = Array.from(fresh.content.children);
   const redrawn = old.slice(from, kept);
-  if (
-    drawn.length !== to - from ||
-    drawn.some((one) => one.matches(WHOLE_ONLY) || one.querySelector(WHOLE_ONLY)) ||
-    (!near.heads && !namesCarried(redrawn, drawn, by))
-  )
-    return null;
+  if (drawn.length !== to - from || (!near.heads && !namesCarried(redrawn, drawn, by))) return null;
   const [lead, trail] = edited
     ? besideKept(redrawn, drawn, by, edited, Boolean(near.heads))
     : [0, 0];
   const going = redrawn.slice(lead, redrawn.length - trail);
   const coming = drawn.slice(lead, drawn.length - trail);
-  // A fold drawn anew comes closed, so one being written in stays open as it was.
-  const opened = folds(going).map((one) => one.open);
+  if (coming.some((one) => one.matches(WHOLE_ONLY) || one.querySelector(WHOLE_ONLY))) return null;
+  const opened = openFolds(going, by, edited);
   const laid = coming.map((one, at) => (sameKind(going[at], one) ? going[at] : one));
   keyMoved(sheet, old, from + lead, kept - trail, laid, by);
   coming.forEach((one, at) => {
     if (laid[at] !== one) takenOver(laid[at], one);
   });
-  folds(laid).forEach((one, at) => {
-    if (opened[at]) one.open = true;
-  });
+  for (const one of folds(laid)) if (opened.has(placeOf(one)?.[0] ?? -1)) one.open = true;
   for (const one of going) if (!laid.includes(one)) one.remove();
   for (const one of sheet.querySelectorAll(":scope > [data-ghost]")) one.remove();
   const next = old[kept - trail] ?? null;

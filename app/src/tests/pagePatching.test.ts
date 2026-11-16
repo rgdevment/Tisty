@@ -582,3 +582,61 @@ describe("the blocks the core draws beside a key, left as they were when the key
     expect(last?.id).toBe("unox");
   });
 });
+
+describe("what a key leaves and what it opens again", () => {
+  it("leaves a widget beside the key as it was instead of drawing the whole page", () => {
+    document.body.innerHTML =
+      '<article class="page"><p data-at="0-4"><span data-src="0-4">One.</span></p>' +
+      '<p data-at="6-10"><span data-src="6-10">Two.</span></p>' +
+      '<figure class="widget" data-at="12-18"></figure></article>';
+    const sheet = document.querySelector(".page") as Element;
+    const [, two, widget] = Array.from(sheet.children);
+    const laid = patched(
+      sheet,
+      near({
+        spans: [
+          [0, 4],
+          [6, 13],
+          [15, 21],
+        ],
+        from: 0,
+        to: 3,
+        html:
+          '<p data-at="0-4"><span data-src="0-4">One.</span></p>' +
+          '<p data-at="6-13"><span data-src="6-13">Two too.</span></p>' +
+          '<figure class="widget" data-at="15-21"></figure>',
+      }),
+      3,
+      [10, 10],
+    );
+    expect(laid).toEqual([two]);
+    expect(sheet.children[2]).toBe(widget);
+  });
+
+  it("keeps open the fold being written in, not a fold the key put before it", () => {
+    document.body.innerHTML =
+      '<article class="page"><p data-at="0-4"><span data-src="0-4">One.</span></p>' +
+      '<details data-at="6-30" open><summary>Fold</summary><p data-at="20-24"><span data-src="20-24">inne</span></p></details></article>';
+    const sheet = document.querySelector(".page") as Element;
+    patched(
+      sheet,
+      near({
+        spans: [
+          [0, 4],
+          [6, 20],
+          [22, 46],
+        ],
+        from: 1,
+        to: 3,
+        html:
+          '<details data-at="6-20"><summary>New</summary></details>' +
+          '<details data-at="22-46"><summary>Fold</summary><p data-at="36-40"><span data-src="36-40">inne</span></p></details>',
+      }),
+      16,
+      [6, 6],
+    );
+    const [added, written] = Array.from(sheet.querySelectorAll("details"));
+    expect(added?.open).toBe(false);
+    expect(written?.open).toBe(true);
+  });
+});
