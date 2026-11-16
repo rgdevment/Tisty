@@ -14,7 +14,7 @@ Three ways to read it:
 
 ## Properties
 
-This sheet starts with a block of properties between two `---` lines, before the title. The page does not draw it: it is in the panel beside the page, under **About this document**, where **Edit** opens it in a window of its own, as it is written.
+This sheet starts with a block of properties between two `---` lines, before the title. The page does not draw it: it is in the panel beside the page, under **Details**, where **Edit**, beside **Properties**, opens it in a window of its own, as it is written.
 
 ```yaml title="The first lines of this sheet"
 ---
@@ -85,7 +85,7 @@ A word after `#` files the document under it, and **Tags**, in the sidebar, gath
 - Between angle brackets: <https://www.tisty.app>
 - An email: <rina@example.com>
 
-By reference, the address is said once, on a line of its own: the [map of the walk][park] and the [vet][clinic]. The page shows each definition where it is written, and a click on it edits it.
+By reference, the address is said once, on a line of its own: the [map of the walk][park] and the [vet][clinic]. The page shows each definition where it is written; to change it, turn the sheet to **Markdown**.
 
 [park]: https://example.com/park
 [clinic]: https://example.com/vet "Open on Saturdays"
@@ -123,7 +123,7 @@ A blank line starts another paragraph: `Enter`.
 
 ### Comments, entities and backslashes
 
-A note to yourself that the page does not show goes between `<!--` and `-->`. This paragraph holds one: click it and you see it. <!-- ask about the tick tablet -->
+A note to yourself that the page does not show goes between `<!--` and `-->`. This paragraph holds one: turn the sheet to **Markdown** with the **⋯** at the top and you see it. <!-- ask about the tick tablet -->
 
 An entity names a character that is hard to type: &copy; 2026 Rina &amp; Roger's vet, 14&nbsp;kg, 2&nbsp;&times;&nbsp;7&nbsp;=&nbsp;14, &hearts; and &rarr;.
 
@@ -493,7 +493,7 @@ A fence of tildes, `~~~`, and a block indented four spaces are code too. There i
 
 ## Diagrams
 
-A block whose language is `mermaid` is drawn. **New diagram**, in the `/` menu, opens the diagram window; **Existing diagram…** copies one from another document, and **Mermaid block as text** leaves the fence empty for you to write. A click opens it large; a double click, in the window.
+A block whose language is `mermaid` is drawn. **New diagram**, in the `/` menu, opens the diagram window; **Existing diagram…** copies one from another document, and **Mermaid block as text** puts in a sample one, already drawn. A click opens it large; a double click, in the window.
 
 Four kinds are also drawn by hand in that window, and stay as you leave them. The free diagram, with its lanes and a `<br/>` that breaks the line inside a shape:
 
