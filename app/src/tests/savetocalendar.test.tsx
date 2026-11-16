@@ -73,7 +73,7 @@ describe("saving a task to the person's calendar", () => {
     expect(screen.queryByText(/which calendar do you use/i)).toBeNull();
   });
 
-  it("asks once which calendar, keeps the answer and then saves", async () => {
+  it("asks which calendar every time, uses it once and keeps nothing", async () => {
     shown({ date: day as Task["date"] });
 
     await userEvent.click(button());
@@ -82,10 +82,17 @@ describe("saving a task to the person's calendar", () => {
     );
 
     await waitFor(() => expect(saves()).toHaveLength(2));
-    expect(ipc.sent.find((one) => one.cmd === "keep_calendar")?.args).toEqual({
+    expect(saves()[1]?.args).toEqual({
+      id: "01KA7B3VJ9RZ0Q8M5N2X4Y6W1T",
       calendar: "outlook-work",
     });
+    expect(ipc.sent.some((one) => one.cmd === "keep_calendar")).toBe(false);
     expect(screen.queryByText(/which calendar do you use/i)).toBeNull();
+
+    await userEvent.click(button());
+
+    expect(await screen.findByText(/which calendar do you use/i)).toBeTruthy();
+    expect(screen.getByText(/to stop being asked/i)).toBeTruthy();
   });
 
   it("offers Apple's calendar only on a Mac", async () => {

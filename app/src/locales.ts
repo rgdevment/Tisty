@@ -499,7 +499,7 @@ const en = {
   calendarSetting: "Your calendar",
   calendarSettingWhy:
     "Where «Save to my calendar» puts a task with a date. Your calendar then reminds you, on your phone too.",
-  calendarAsk: "Ask the first time",
+  calendarAsk: "Ask every time",
   calendarGoogle: "Google Calendar",
   calendarOutlook: "Outlook.com or Hotmail",
   calendarOutlookWork: "Outlook for work or school",
@@ -509,7 +509,7 @@ const en = {
   calendarSaveWhy:
     "Opens the event, filled in, in your calendar: press Save there. If the date changes later in Tisty, the event stays where it was.",
   calendarWhich: "Which calendar do you use?",
-  calendarWhichLater: "Change it any time under Settings › General › Your calendar.",
+  calendarWhichLater: "To stop being asked, choose one under Settings › General › Your calendar.",
   beaverPeeks: "Let Tisto peek in",
   beaverPeeksWhy: "Tisto looks over the bar while you write a task.",
   cheerKept: "{name} · kept in the archive",
@@ -3709,7 +3709,7 @@ const es: Catalog = {
   calendarSetting: "Tu calendario",
   calendarSettingWhy:
     "Dónde guarda «Guardar en mi calendario» una tarea con fecha. Después te avisa tu calendario, también en el teléfono.",
-  calendarAsk: "Preguntar la primera vez",
+  calendarAsk: "Preguntar cada vez",
   calendarGoogle: "Google Calendar",
   calendarOutlook: "Outlook.com o Hotmail",
   calendarOutlookWork: "Outlook del trabajo o la escuela",
@@ -3719,7 +3719,8 @@ const es: Catalog = {
   calendarSaveWhy:
     "Abre el evento ya lleno en tu calendario: ahí pulsas Guardar. Si después cambias la fecha en Tisty, el evento no se mueve.",
   calendarWhich: "¿Qué calendario usas?",
-  calendarWhichLater: "Lo cambias cuando quieras en Configuración › General › Tu calendario.",
+  calendarWhichLater:
+    "Para que no te pregunte más, elige uno en Configuración › General › Tu calendario.",
   beaverPeeks: "Que Tisto se asome",
   beaverPeeksWhy: "Tisto se asoma sobre la barra mientras escribes una tarea.",
   cheerKept: "{name} · queda en el archivo",

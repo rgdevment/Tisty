@@ -6,7 +6,8 @@ export type CalendarChoice = NonNullable<Settings["calendar"]>;
 
 export const keepCalendar = (calendar?: CalendarChoice): Promise<CalendarChoice | null> =>
   invoke("keep_calendar", { calendar });
-export const saveToCalendar = (id: string): Promise<boolean> => invoke("save_to_calendar", { id });
+export const saveToCalendar = (id: string, calendar?: CalendarChoice): Promise<boolean> =>
+  invoke("save_to_calendar", { id, calendar });
 
 export interface Offered {
   choice: CalendarChoice;
