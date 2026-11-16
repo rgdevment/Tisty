@@ -285,10 +285,20 @@ describe("the places a key moves, read only through the page's places", () => {
     expect(raw('sheet.querySelectorAll(":scope > [data-at]")')).toBe(false);
   });
 
+  // A mutation run copies only the app and wraps every word of the files it mutates; the plain run judges those.
+  const judged = (said: string) => !said.includes("stryMutAct_") && raw(said);
+
+  it("leaves a file a mutation run rewrote to the run that reads it as written", () => {
+    const mutated = 'placeOf(one, stryMutAct_9fa48("7") ? "" : (stryCov_9fa48("7"), "data-src"))';
+
+    expect(raw(mutated)).toBe(true);
+    expect(judged(mutated)).toBe(false);
+    expect(judged('spanned(one.getAttribute("data-at"))')).toBe(true);
+  });
+
   it("never reads, writes or looks a place up by its words anywhere else", () => {
-    // A mutation run copies only the app, so the packages are read only where they are.
     const roots = ["src", "../packages"].filter((one) => existsSync(one));
-    const guilty = roots.flatMap(walk).filter((one) => raw(readFileSync(one, "utf8")));
+    const guilty = roots.flatMap(walk).filter((one) => judged(readFileSync(one, "utf8")));
 
     expect(guilty).toEqual([]);
   });
