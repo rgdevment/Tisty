@@ -408,6 +408,10 @@ fn a_list_of_names_or_a_translation_meets_the_same_door() {
         ),
         ("page_doc", json!({ "doc": [page] })),
         (
+            "flag_doc",
+            json!({ "doc": other, "reason": "duplicate_of", "instead": page, "body": "viejo" }),
+        ),
+        (
             "write_doc",
             json!({ "translation_of": page, "lang": "en", "body": "# November\n\nSome.\n" }),
         ),
@@ -420,7 +424,13 @@ fn a_list_of_names_or_a_translation_meets_the_same_door() {
         );
     }
     let state = served.person().state();
-    assert!(state.docs.values().all(|one| one.flagged.is_none()));
+    assert!(
+        state
+            .docs
+            .values()
+            .all(|one| one.flagged.is_none() && one.folder.is_none()),
+        "a list is refused whole, so the other document stays where it was"
+    );
     assert_eq!(state.docs.len(), 3, "nothing joined the diary or left it");
 }
 
