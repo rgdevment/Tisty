@@ -190,12 +190,18 @@ pub fn ics_take(
     })
 }
 
+// A calendar named here is used this once; only the settings keep one.
 #[tauri::command(async)]
-pub fn save_to_calendar(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<bool> {
+pub fn save_to_calendar(
+    session: tauri::State<'_, Mutex<Session>>,
+    id: String,
+    calendar: Option<String>,
+) -> Answer<bool> {
     let id: tisty_core::TaskId = id.parse().map_err(|_| Refusal::of("notATaskId"))?;
+    let once = calendar.as_deref().map(chosen).transpose()?;
     let mut session = held(&session);
     session.reload()?;
-    let Some(chosen) = session.config.calendar.filter(|one| opens_here(*one)) else {
+    let Some(chosen) = once.or(session.config.calendar.filter(|one| opens_here(*one))) else {
         return Ok(false);
     };
     let task = session
@@ -216,6 +222,13 @@ pub fn save_to_calendar(session: tauri::State<'_, Mutex<Session>>, id: String) -
         Calendar::Apple => handed(&kept_in, &entry, now.timestamp()),
     }?;
     Ok(true)
+}
+
+pub(crate) fn chosen(said: &str) -> Answer<Calendar> {
+    said.parse::<Calendar>()
+        .ok()
+        .filter(|one| opens_here(*one))
+        .ok_or_else(|| Refusal::of("notACalendar"))
 }
 
 // Calendar, the app an Apple calendar file opens in, is only on a Mac.

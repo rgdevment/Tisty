@@ -43,7 +43,7 @@ Un recordatorio es una hora que eliges, y suena **en este equipo y en ningún ot
 
 Una tarea con fecha se guarda en tu calendario con un botón, y desde ahí te avisa tu calendario, también en el teléfono.
 
-- **Elige tu calendario una vez**, en **Configuración › General › Tu calendario**: Google Calendar, Outlook.com o Hotmail, Outlook del trabajo o la escuela, o el Calendario de Apple. Si no eliges ninguno, Tisty te lo pregunta la primera vez.
+- **Elige tu calendario una vez**, en **Configuración › General › Tu calendario**: Google Calendar, Outlook.com o Hotmail, Outlook del trabajo o la escuela, o el Calendario de Apple. Si no eliges ninguno, Tisty te pregunta cada vez cuál usar, y no guarda la respuesta.
 - **En la tarea, pulsa Guardar en mi calendario.** Con Google y Outlook, tu navegador abre el evento ya lleno: el título, el día y la hora, y el enlace de la tarea en Tisty. Tú pulsas **Guardar** ahí. El aviso es el que tu calendario pone a cada evento.
 - **El Calendario de Apple**, solo en un Mac, abre el evento en la app Calendario con los recordatorios de la tarea. Si la tarea no tiene, avisa media hora antes, o la tarde anterior si es de día completo, siempre que esa hora no haya pasado.
 - **Qué fecha usa:** el día de la tarea, o su vencimiento si no tiene día. Con hora, queda como un evento de media hora, que termina a la hora del vencimiento cuando es lo único que tiene; sin hora, como uno de día completo. Una tarea que se repite guarda solo su próxima vez.
