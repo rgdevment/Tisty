@@ -19,7 +19,9 @@ You write on the same page you read, the one Tisty draws. There is no separate e
 - **Code is written as it is.** Inside a code block there are no formats and no spell checker, and `/` is just a slash. The label in its corner, like «rust» or «yaml», opens the list of languages to choose the colours it is drawn with. Typing `` ``` `` at the start of a line opens a code block that closes itself, and a language's name written on its first line, like `rust`, becomes its language with Enter.
 - **A page break is neither written in nor moved.** `Backspace` at the start of the block after it, or `Delete` at the end of the block before it, takes it away, and the rest stays as it was. What you type right after it starts on a new line under it.
 - **A table, a code block, a picture, a diagram, a collapsible section or a callout is not joined to what sits beside it.** `Backspace` at the start of the block after it, or `Delete` at the end of the block before it, does nothing; to take one away there is **Delete block**, on its handle.
-- **`Ctrl`/`⌘` + `Z` undoes** and `Ctrl`/`⌘` + `Shift` + `Z` redoes, only in the document in front of you. What you wrote in the Markdown view is undone in one go when you come back.
+- **`Ctrl`/`⌘` + `Z` undoes** and `Ctrl`/`⌘` + `Shift` + `Z` redoes, only in the document in front of you. What you type in a row is undone in one go; a pause or an Enter starts another step. What you wrote in the Markdown view is undone in one go when you come back.
+- **`Ctrl`/`⌘` + `C` and `Ctrl`/`⌘` + `X` copy and cut the Markdown** of the words selected, marks and all, as the right-click does; pasted into another document they come out the same.
+- **Drag the words selected** to another place on the page: a line shows where they land, and letting go moves them. `Ctrl`/`⌘` + `Z` brings them back.
 
 ## The format bar
 
@@ -28,7 +30,7 @@ Select a few words and a small bar comes up above them:
 - **Bold**, **italic**, **underline**, **strikethrough**, **code** and **link**.
 - **Four pens**: yellow, green, blue and pink.
 
-A format wraps the words selected, and when they cross several lines, each line gets its own; pressed on words that already have it, it takes it away. **Link** asks for the address in a field, and `Esc` cancels it; an address like `tisty.app` gets its `https://`, and with no words selected, the address stands for its words. Inside code the bar does not come up.
+A format wraps the words selected, and when they cross several lines, each line gets its own; pressed on words that already have it, it takes it away. **Link** asks for the address in a field, and `Esc` cancels it; on a link already written, `Ctrl`/`⌘` + `K` shows its address to change it, leaving its words alone; an address like `tisty.app` gets its `https://`, and with no words selected, the address stands for its words. Inside code the bar does not come up.
 
 With nothing selected, a format pressed with its shortcut or from the `/` menu starts at the next key, and what you type already comes out bold or italic. Press it again to step out of it; a space at the end of the words stays outside it too.
 
@@ -50,9 +52,10 @@ Type `/` at the start of a line, on a blank line or after a space, and the menu 
 
 ## Moving blocks
 
-- **The handle.** With the pointer beside a block, a handle shows to its left. Drag it to take the block somewhere else; a heading takes its whole section with it.
+- **The handle.** With the pointer beside a block, a handle shows to its left. Drag it to take the block somewhere else; a heading takes its whole section with it. Near the top or the bottom edge, the page scrolls by itself.
 - **Its menu.** A click on the handle offers **Move block up**, **Move block down**, **Duplicate block** and **Delete block**.
 - **The keyboard.** `Alt` + ↑ ↓ moves the block the caret is in up or down, or the list item it is in.
+- **Choosing whole blocks.** `Esc` chooses the block the caret is in, and `Shift` + ↑ ↓ takes in the ones above or below. Once chosen, `Delete` or `Backspace` removes them, `Alt` + ↑ ↓ moves them together and `Ctrl`/`⌘` + `C` or `X` copies or cuts them. `Esc` again, a click or any other key lets them go.
 
 ## Rich text and Markdown
 
@@ -86,6 +89,7 @@ In the Markdown view:
 | `Enter` · `Shift` + `Enter` | New paragraph · line break |
 | `Ctrl`/`⌘` + `/` | Open the blocks menu where the caret is |
 | `Alt` + ↑ ↓ | Move the block or the item the caret is in up or down |
+| `Esc` · `Shift` + ↑ ↓ | Choose the whole block · take in the ones beside it |
 | `Tab` · `Shift` + `Tab` | Put a list item in or take it out |
 | `Ctrl`/`⌘` + `E` | Switch between Rich text and Markdown |
 | `Ctrl`/`⌘` + `Shift` + `X` · `Shift` + `C` · `K` | Strikethrough · code · link |
