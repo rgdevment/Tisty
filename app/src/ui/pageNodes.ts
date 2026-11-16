@@ -53,25 +53,38 @@ export const lineOfCaret = (range: Range | null | undefined): Element | null => 
 
 // The sheet is written on whole, but a table, a drawing or a rule is changed by its own hands.
 // A task's labels are filled under, not renamed, until its sections are asked for; then only they are written.
-export const opened = (page: Document) => {
+// Writing an attribute again, even as it was, makes the engine look at the whole page anew.
+const said = (one: Element, name: string, value: string | null) => {
+  if (one.getAttribute(name) === value) return;
+  if (value === null) one.removeAttribute(name);
+  else one.setAttribute(name, value);
+};
+
+export const opened = (page: Document, laid?: readonly Element[]) => {
   const sheet = page.querySelector<HTMLElement>(".page");
   if (!sheet) return;
-  sheet.setAttribute("contenteditable", "true");
-  sheet.spellcheck = true;
+  said(sheet, "contenteditable", "true");
+  if (!sheet.spellcheck) sheet.spellcheck = true;
   const look = page.documentElement.classList;
   const task = look.contains("untitled");
   const shaping = task && look.contains("shaping");
-  for (const one of sheet.children) {
+  for (const one of laid ?? sheet.children) {
     const label = /^H[1-6]$/.test(one.tagName);
     const free = shaping ? label : one.matches(WRITABLE) && !(task && label);
-    if (free) one.removeAttribute("contenteditable");
-    else one.setAttribute("contenteditable", "false");
+    said(one, "contenteditable", free ? null : "false");
   }
+  const within = (selector: string) =>
+    laid
+      ? laid.flatMap((one) => [
+          ...(one.matches(selector) ? [one] : []),
+          ...one.querySelectorAll(selector),
+        ])
+      : Array.from(sheet.querySelectorAll(selector));
   // A step's box and its ↗ are no place for the caret, so ↑ and ↓ go from step to step.
-  for (const one of sheet.querySelectorAll(".drop-section, .doc-card, .check, .to-part"))
-    one.setAttribute("contenteditable", "false");
+  for (const one of within(".drop-section, .doc-card, .check, .to-part"))
+    said(one, "contenteditable", "false");
   // Code is spelled as the language wants it, so the system's speller has nothing to say there.
-  for (const one of sheet.querySelectorAll(LITERAL)) one.setAttribute("spellcheck", "false");
+  for (const one of within(LITERAL)) said(one, "spellcheck", "false");
 };
 
 // A page laid at its full height, as a task's, scrolls in the window around its frame, not in itself.

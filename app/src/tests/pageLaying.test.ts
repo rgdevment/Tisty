@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { checkAfter, checkOf, type Sent, type Typed } from "../placing";
+import { checkAfter, checkOf, type PlacedNear, type Sent, summed, type Typed } from "../placing";
 import { changeOf, inWholeChars } from "../ui/pageEdits";
 import { type PageWriting, writtenOn } from "../ui/pageWriting";
 
@@ -102,5 +102,59 @@ describe("an edit made whole for the core", () => {
       expect(`${was.slice(0, one.from)}${one.insert}${was.slice(one.to)}`).toBe(now);
       expect(new TextDecoder().decode(BYTES.encode(one.insert))).toBe(one.insert);
     }
+  });
+});
+
+describe("a key laid while the next is already written", () => {
+  it("still opens the blocks it laid, as a table no caret goes into", async () => {
+    let text = BODY;
+    const pending: { answer?: (near: PlacedNear) => void } = {};
+    let asked = 0;
+    document.body.innerHTML = `<article class="page">${PLACED}</article>`;
+    writing = writtenOn(document, {
+      text: () => text,
+      write: (next) => {
+        text = next;
+      },
+      shown: () => {},
+      redraw: () => {},
+      near: () => {
+        asked += 1;
+        if (asked > 1) return Promise.reject(new Error("only the first key is answered"));
+        return new Promise((resolve) => {
+          pending.answer = resolve;
+        });
+      },
+      dressed: () => {},
+      translated: (_, plain) => Promise.resolve(plain),
+      ask: () => {},
+      blocks: () => {},
+      acts: () => {},
+    });
+    const typed = () =>
+      document.querySelector(".page")?.dispatchEvent(
+        new InputEvent("beforeinput", {
+          inputType: "insertText",
+          data: "ñ",
+          bubbles: true,
+          cancelable: true,
+        }),
+      );
+    caretAfter("ñandú");
+    typed();
+    await vi.waitFor(() => expect(pending.answer).toBeDefined());
+    typed();
+    pending.answer?.({
+      count: 3,
+      sum: summed([0, 6, 33, 43]),
+      from: 1,
+      to: 2,
+      html: '<div class="table" data-at="8-30"><table><tr><td>x</td></tr></table></div>',
+      heads: null,
+      whole: false,
+    });
+    await vi.waitFor(() =>
+      expect(document.querySelector(".table")?.getAttribute("contenteditable")).toBe("false"),
+    );
   });
 });
