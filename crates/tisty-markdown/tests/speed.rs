@@ -49,4 +49,8 @@ fn a_key_on_a_page_of_500_kb() {
     timed("reread a key", 10, || {
         tisty_markdown::reread(docs.pop().unwrap_or_else(|| doc.clone()), &typed)
     });
+    let mut docs: Vec<_> = (0..10).map(|_| doc.clone()).collect();
+    timed("reread an edit", 10, || {
+        tisty_markdown::reread_edit(docs.pop().unwrap_or_else(|| doc.clone()), at..at, "x")
+    });
 }
