@@ -215,6 +215,97 @@ fn a_definition_written_by_the_edit_reads_the_whole_text() {
     assert_eq!(reread(read(text), &next), read(&next));
 }
 
+const TAGGED: &str = "---\ntags: [rina]\n---\n\nTexto con #rina y #roger.\n\n> ```\n> #citado\n> ```\n\n- uno #lista\n\n  ```\n  #dentro\n  ```\n\n- dos\n\n~~~\n#tilde\n~~~\n\nUn #n\u{303}andu y un #ñandú, `#nada` y #algo.\n\nfin #rina\n";
+
+const TAG_PIECES: [&str; 20] = [
+    "#rina",
+    "#roger",
+    "#",
+    "a",
+    "ñ",
+    " ",
+    "\n",
+    "\n\n",
+    "```",
+    "```\n",
+    "~~~\n",
+    "`",
+    "> ",
+    "- ",
+    "  ",
+    "    ",
+    "#Rina",
+    "#n\u{303}",
+    "\\",
+    "#t65",
+];
+
+#[test]
+fn tags_written_anywhere_are_filed_as_reading_the_whole_text_files_them() {
+    let many: String = (0..70).map(|n| format!("#t{n} ")).collect();
+    let texts = [
+        plain(SAMPLES[0]),
+        TAGGED.to_string(),
+        format!("{many}\n\nUno #t3.\n"),
+    ];
+    let mut short = 0;
+    let mut all = 0;
+    for (seed, sample) in texts.iter().enumerate() {
+        let mut steps = Steps(0x7A65_0000 + seed as u64);
+        let mut text = sample.clone();
+        let mut was = read(&text);
+        for _ in 0..400 {
+            let at = boundary(&text, steps.next(text.len() + 1));
+            let to = boundary(&text, (at + steps.next(6)).min(text.len()));
+            let insert = TAG_PIECES[steps.next(TAG_PIECES.len())];
+            let next = format!("{}{insert}{}", &text[..at], &text[to..]);
+            let changed = Changed {
+                start: at,
+                old_end: to,
+                new_end: at + insert.len(),
+            };
+            let filing = was.filing.after(&text, &next, &changed).0;
+            assert_eq!(
+                filing,
+                crate::filing::Filing::of(&next),
+                "{at}..{to} → {insert:?} in {text:?}"
+            );
+            short += usize::from(planned(&was, &next, &changed).is_some());
+            all += 1;
+            let again = reread_edit(was, at..to, insert)
+                .unwrap_or_else(|_| panic!("{at}..{to} falls between the characters"));
+            assert_eq!(again, read(&next), "{at}..{to} → {insert:?} in {text:?}");
+            text = next;
+            was = again;
+        }
+    }
+    assert!(
+        short * 2 > all,
+        "only {short} of {all} edits were read around"
+    );
+}
+
+#[test]
+fn a_tag_typed_on_a_long_page_is_read_around_at_each_key() {
+    let mut text = format!(
+        "{}Uno #\n\n{}",
+        "Párrafo.\n\n".repeat(40),
+        "Otro #rina.\n\n".repeat(40)
+    );
+    let mut was = read(&text);
+    let typed = text.find("Uno #").unwrap_or_default() + 5;
+    for (at, key) in (typed..).zip(["r", "o", "g", "e", "r", "x"]) {
+        let next = format!("{}{key}{}", &text[..at], &text[at..]);
+        assert!(plan(&was, &next).is_some(), "{key} after {:?}", &text[..at]);
+        let Ok(again) = reread_edit(was, at..at, key) else {
+            panic!("{key} falls between the characters");
+        };
+        assert_eq!(again, read(&next));
+        text = next;
+        was = again;
+    }
+}
+
 #[test]
 fn a_fence_opened_by_an_edit_reads_the_whole_text() {
     let text = "Uno.\n\nDos.\n\nTres.\n";
