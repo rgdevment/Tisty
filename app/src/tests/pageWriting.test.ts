@@ -1140,6 +1140,87 @@ describe("what a second look found writing on the page", () => {
   });
 });
 
+describe("blocks chosen with Escape", () => {
+  const press = (name: string, more: KeyboardEventInit = {}) => {
+    const event = new KeyboardEvent("keydown", {
+      key: name,
+      bubbles: true,
+      cancelable: true,
+      ...more,
+    });
+    document.querySelector(".page")?.dispatchEvent(event);
+    return event;
+  };
+  const chosenNow = () =>
+    Array.from(document.querySelectorAll(".chosen-block"), (one) => one.tagName.toLowerCase());
+
+  it("chooses the block the caret stands in, takes in the next with Shift+↓ and lets go with Escape", () => {
+    writer();
+    caretIn("Uno ", 1);
+    expect(press("Escape").defaultPrevented).toBe(true);
+    expect(chosenNow()).toEqual(["p"]);
+    press("ArrowDown", { shiftKey: true });
+    expect(chosenNow()).toEqual(["p", "ul"]);
+    press("ArrowUp", { shiftKey: true });
+    press("ArrowUp", { shiftKey: true });
+    expect(chosenNow()).toEqual(["h1", "p"]);
+    press("Escape");
+    expect(chosenNow()).toEqual([]);
+  });
+
+  it("takes the chosen blocks away in one step, which Ctrl+Z brings back", () => {
+    const said = writer();
+    caretIn("Uno ", 1);
+    press("Escape");
+    press("ArrowDown", { shiftKey: true });
+    press("Backspace");
+    expect(said[said.length - 1]).toBe("# Hola\n\n");
+    press("z", { ctrlKey: true });
+    expect(said[said.length - 1]).toBe(BODY);
+  });
+
+  it("copies the Tisty Markdown of the chosen blocks whole", () => {
+    writer();
+    caretIn("Uno ", 1);
+    press("Escape");
+    const put: string[] = [];
+    const event = new Event("copy", { bubbles: true, cancelable: true });
+    Object.defineProperty(event, "clipboardData", {
+      value: { setData: (_: string, said: string) => put.push(said) },
+    });
+    document.querySelector(".page")?.dispatchEvent(event);
+    expect(put).toEqual(["Uno **dos** tres"]);
+  });
+
+  it("moves the chosen blocks with Alt and an arrow", () => {
+    const said = writer();
+    caretIn("Uno ", 1);
+    press("Escape");
+    press("ArrowUp", { altKey: true });
+    expect(said[said.length - 1]?.startsWith("Uno **dos** tres\n\n# Hola")).toBe(true);
+  });
+
+  it("lets go on any other key, which then writes as it would", () => {
+    writer();
+    caretIn("Uno ", 1);
+    press("Escape");
+    expect(press("x").defaultPrevented).toBe(false);
+    expect(chosenNow()).toEqual([]);
+  });
+
+  it("leaves Escape to take an empty step away rather than choose it", () => {
+    const said = writer("- [ ] uno\n- [ ] \n");
+    pageOf(
+      '<ul data-at="0-16"><li class="task" data-at="0-9"><span data-src="6-9">uno</span></li><li class="task" data-at="10-16"><br></li></ul>',
+    );
+    writing?.drawn();
+    document.getSelection()?.collapse(document.querySelectorAll("li")[1] as Element, 0);
+    press("Escape");
+    expect(chosenNow()).toEqual([]);
+    expect(said[said.length - 1]).toBe("- [ ] uno\n");
+  });
+});
+
 describe("Tab on the page written in place", () => {
   const key = (name: string, more: KeyboardEventInit = {}) =>
     document

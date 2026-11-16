@@ -2,6 +2,7 @@ import type { Slashed } from "tisty-editor/edit";
 import { begunOn } from "./pageBegun";
 import { besideOn } from "./pageBeside";
 import { caretOn } from "./pageCaret";
+import { choosingOn } from "./pageChoosing";
 import { draggingOn } from "./pageDragging";
 import type { Edit } from "./pageEdits";
 import { formatsOn } from "./pageFormats";
@@ -87,10 +88,16 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
     offerTags();
     beside.rest();
     beside.besideLine();
+    choosing.shown();
   };
 
   const input = inputOn(writer, caret, laying, history, formats, begun);
-  const keys = keysOn(writer, caret, laying, history, formats, beside, tags);
+  const choosing = choosingOn(writer, caret, laying, beside);
+  const keys = keysOn(writer, caret, laying, history, formats, beside, tags, choosing);
+  const chooser = (event: KeyboardEvent) => {
+    if (onSheet(page, event) && choosing.keyed(event)) event.stopImmediatePropagation();
+  };
+  const unchosen = () => choosing.letGo(false);
   const dragging = draggingOn(writer, caret, laying);
 
   page.addEventListener("beforeinput", input.asked);
@@ -113,12 +120,15 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
     begun.intoFold(fold);
   };
   const chosen = () => {
-    const one = caret.chosenNow();
     const text = hands.text();
+    const blocks = choosing.span();
+    if (blocks) return text.slice(blocks.from, blocks.to);
+    const one = caret.chosenNow();
     const whole = one && balanced(text, one);
     return whole ? text.slice(whole.from, whole.to) : null;
   };
   const cut = () => {
+    if (choosing.choosing()) return choosing.dropped();
     const picked = caret.chosenNow();
     const one = picked && balanced(hands.text(), picked);
     if (one) laying.put({ ...one, insert: "" }, one.from);
@@ -132,7 +142,9 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
     if (event.type === "cut") cut();
   };
   page.addEventListener("keydown", named, true);
+  page.addEventListener("keydown", chooser);
   page.addEventListener("keydown", keys.keyed);
+  page.addEventListener("mousedown", unchosen);
   page.addEventListener("paste", input.pastedFiles);
   page.addEventListener("copy", clipped);
   page.addEventListener("cut", clipped);
@@ -178,6 +190,8 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
       watching?.disconnect();
       page.removeEventListener("selectionchange", keys.noted);
       page.removeEventListener("keydown", keys.keyed);
+      page.removeEventListener("keydown", chooser);
+      page.removeEventListener("mousedown", unchosen);
       page.removeEventListener("keydown", named, true);
       page.removeEventListener("paste", input.pastedFiles);
       page.removeEventListener("copy", clipped);

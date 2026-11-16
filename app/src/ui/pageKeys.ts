@@ -2,6 +2,7 @@ import { SLASHED } from "tisty-editor/edit";
 import { bytesAt, charsAt } from "tisty-editor/read";
 import type { Beside } from "./pageBeside";
 import type { Caret } from "./pageCaret";
+import type { Choosing } from "./pageChoosing";
 import type { Formats } from "./pageFormats";
 import type { PageHistory } from "./pageHistory";
 import type { Laying } from "./pageLaying";
@@ -31,6 +32,7 @@ export const keysOn = (
   formats: Formats,
   beside: Beside,
   tags: TagList,
+  choosing: Choosing,
 ) => {
   const { page, hands } = writer;
   const { put } = laying;
@@ -91,7 +93,11 @@ export const keysOn = (
 
   const keyed = (event: KeyboardEvent) => {
     if (!onSheet(page, event)) return;
-    if (event.key === "Escape") return leftHere();
+    if (event.key === "Escape") {
+      if (!event.defaultPrevented && !leftHere() && writer.kept?.lead === undefined)
+        choosing.choose(event);
+      return;
+    }
     if (event.key === "End" && !event.shiftKey && !event.altKey) return toEnd(event);
     if (event.key === "Tab" && !event.ctrlKey && !event.metaKey && !event.altKey)
       return tabbed(event);
@@ -117,27 +123,28 @@ export const keysOn = (
   };
 
   // A step left with no words is no step, so its empty box is taken away instead of kept in the file.
-  const leftEmpty = (from: string | null) => {
-    if (from === null) return;
+  const leftEmpty = (from: string | null): boolean => {
+    if (from === null) return false;
     const text = hands.text();
     const start = charsAt(text, Number(from));
     const ends = text.indexOf("\n", start);
     const line = text.slice(start, ends < 0 ? text.length : ends);
-    if (!EMPTY_STEP.test(line)) return;
+    if (!EMPTY_STEP.test(line)) return false;
     const gone = ends < 0 ? line.length : line.length + 1;
     const begun = writer.kept?.lead !== undefined ? writer.kept : null;
     const now = begun?.at ?? caret.caretSpan()?.from ?? start;
     const shifted = (at: number) => (at > start ? Math.max(start, at - gone) : at);
     put({ from: start, to: start + gone, insert: "" }, shifted(now));
     if (begun) writer.kept = { ...begun, at: shifted(begun.at) };
+    return true;
   };
 
   // A step left empty with Escape goes, as it goes when the caret leaves its line.
   const leftHere = () => {
     const at = caret.caretSpan()?.from;
-    if (at === undefined) return;
+    if (at === undefined) return false;
     const text = hands.text();
-    leftEmpty(String(bytesAt(text, text.lastIndexOf("\n", at - 1) + 1)));
+    return leftEmpty(String(bytesAt(text, text.lastIndexOf("\n", at - 1) + 1)));
   };
 
   const noted = () => {

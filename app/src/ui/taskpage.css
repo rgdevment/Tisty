@@ -316,3 +316,9 @@ html.held .page > .front dd {
   background: var(--tisty-accent);
   pointer-events: none;
 }
+
+.page > .chosen-block {
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--tisty-accent) 14%, transparent);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--tisty-accent) 14%, transparent);
+}
