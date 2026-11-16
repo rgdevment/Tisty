@@ -16,6 +16,7 @@ const steps = [
   ["the window is linted", "npm", ["run", "lint"], "app"],
   ["the window builds", "npm", ["run", "build"], "app"],
   ["each window reaches only its own code", "node", ["scripts/windows-apart.mjs"], "app"],
+  ["the light viewer stays light, with no React, and the app has no Solid", "node", ["scripts/light-viewer.mjs"], "app"],
   ["the documents are linted", "npm", ["run", "lint:md"]],
   ["the house rules hold", bash, ["scripts/rules.sh"]],
   ["the notices match the lockfiles", "node", ["scripts/third-party.mjs"]],
@@ -25,6 +26,7 @@ if (!quick) {
   steps.push(
     ["the Rust tests pass", "cargo", ["nextest", "run", "--workspace", "--no-tests=pass"]],
     ["the window tests pass", "npm", ["test"], "app"],
+    ["the light viewer's tests pass", "npm", ["test", "-w", "tisty-light-viewer"]],
   );
 }
 
