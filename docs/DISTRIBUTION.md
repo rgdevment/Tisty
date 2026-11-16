@@ -86,7 +86,8 @@ Little, and all of it reversible.
   calendar files. The default program for those files stays your choice, and
   uninstalling takes all of it away.
 - **Uninstalling removes the program and leaves your data alone.** It takes
-  its own settings and cache with it, and the PATH entry if there was one; your
+  its own settings and cache with it, the PATH entry if there was one and, with
+  the Windows installer, the reminders it had booked with the system; your
   tasks, documents and attachments stay. Wanting the program
   gone is not the same as wanting your history gone. If you do want it gone,
   the folder is yours to delete.
@@ -126,7 +127,9 @@ to a server of ours. Synchronisation, when you turn it on, copies files into a
 place **you choose** — your own Google Drive, OneDrive or WebDAV server, or a
 folder something else keeps in step — and what happens there is between you and
 whoever runs it. The one exception is a document you press **Share** on, which
-goes sealed to Folio, a separate service. See
+goes sealed to Folio, a separate service. A task you press **Save to my
+calendar** on goes out another way: your browser carries its title, day and
+link to Google or Outlook, and Tisty makes no request of its own. See
 [PRIVACY.md](../PRIVACY.md).
 
 Stores report their own aggregate figures — downloads, crashes, versions — to

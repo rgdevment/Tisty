@@ -75,7 +75,7 @@ A [widget](Widgets) runs nothing and names nothing outside itself. An attached `
 
 **Your 24-word phrase.** It is your identity's backup: with it, your other computers sign as you. Keep it outside Tisty, on paper or in a PDF apart. If you lose the phrase and all your computers, the identity cannot be recovered. Nobody from Tisty or Folio will ever ask you for it.
 
-**If you lose a computer.** Remove it in Settings › Your identity. Its key stops counting, and Folio tells whoever reads what it signed after that.
+**If you lose a computer.** Remove it in Settings › Security, under **Your identity**. Its key stops counting, and Folio tells whoever reads what it signed after that.
 
 ## No AI
 
