@@ -53,9 +53,9 @@ pub(super) fn left_alone(paths: &Paths, name: &str, args: &Value) -> Result<(), 
     if !LEFT_ALONE.contains(&name) || only_shown {
         return Ok(());
     }
-    let named: Vec<String> = ["doc", "page_of", "of"]
+    let named: Vec<String> = ["doc", "page_of", "of", "translation_of"]
         .into_iter()
-        .filter_map(|key| text(args, key))
+        .flat_map(|key| every_name(args, key))
         .collect();
     if named.is_empty() {
         return Ok(());
@@ -72,6 +72,20 @@ pub(super) fn left_alone(paths: &Paths, name: &str, args: &Value) -> Result<(), 
             doc_named(&state, file)
         ))),
         None => Ok(()),
+    }
+}
+
+// Some tools take one name or a list of them, and the door reads both.
+fn every_name(args: &Value, key: &str) -> Vec<String> {
+    match args.get(key) {
+        Some(Value::Array(many)) => many
+            .iter()
+            .filter_map(Value::as_str)
+            .map(str::trim)
+            .filter(|said| !said.is_empty())
+            .map(ToString::to_string)
+            .collect(),
+        _ => text(args, key).into_iter().collect(),
     }
 }
 
