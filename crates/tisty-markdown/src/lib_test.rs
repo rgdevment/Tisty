@@ -876,6 +876,16 @@ fn a_key_beside_a_heading_keeps_the_name_the_page_shows_without_the_outline() {
 }
 
 #[test]
+fn a_tag_that_pushes_another_past_the_cap_never_leaves_a_far_block_marked() {
+    let many: String = (0..64).map(|n| format!("#n{n} ")).collect();
+    let text = format!("Uno.\n\n{many}\n\nA.\n\nB.\n\nLejos #n63.\n");
+    let shown = shown_after(&read(&text), 0..0, "#nuevo ");
+    assert!(shown.is_none_or(|one| reads_as_whole(&one)));
+    let far = read(&format!("Uno.\n\n```\n#n1\n```\n\n{many}\n"));
+    assert!(far.labels() != read("Uno.\n").labels());
+}
+
+#[test]
 fn a_link_or_footnote_defined_changed_or_taken_out_never_leaves_a_block_as_it_read_before() {
     let words = "Ver [x] y[^1].\n\nA.\n\nB.\n\nC.\n\n";
     let end = words.len();

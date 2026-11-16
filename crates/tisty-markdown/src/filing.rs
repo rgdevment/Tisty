@@ -48,6 +48,9 @@ impl Filing {
             .max(from);
         let old_last = line_end(old, changed.old_end);
         let new_last = old_last - changed.old_end + changed.new_end;
+        if let Some(next) = self.within_line(old, text, first, old_last, new_last) {
+            return (next, true);
+        }
         let mut was = Fencing::default();
         for (_, line) in lines_from(&old[..first], self.anchor(old, from, first)) {
             was.inside(line);
@@ -88,6 +91,51 @@ impl Filing {
             next.filed = next.filed_in(text);
         }
         (next, settled)
+    }
+
+    // One line that keeps its margin, quote and list mark and holds no fence moves the machine as it did.
+    fn within_line(
+        &self,
+        old: &str,
+        text: &str,
+        first: usize,
+        old_last: usize,
+        new_last: usize,
+    ) -> Option<Filing> {
+        let (was, now) = (
+            only_line(old, first, old_last)?,
+            only_line(text, first, new_last)?,
+        );
+        let head = |one: &str| {
+            let (deep, wide, said) = crate::fences::quoted(one);
+            (deep, wide, said.is_empty(), crate::fences::opener(said))
+        };
+        let fenced = |one: &str| one.contains("```") || one.contains("~~~");
+        if head(was) != head(now) || fenced(was) || fenced(now) {
+            return None;
+        }
+        let skipped = self.skips(first);
+        let mut next = self.clone();
+        let touched =
+            next.tally(on_line(was), skipped, false) | next.tally(on_line(now), skipped, true);
+        let made = skipped.then_some(first..new_last);
+        next.fenced = self.spliced(first, old_last, new_last, made);
+        if touched {
+            next.filed = next.filed_in(text);
+        }
+        Some(next)
+    }
+
+    pub(crate) fn far(&self) -> Vec<String> {
+        let capped = self.counts.len() > AT_MOST;
+        let mut far: Vec<String> = self
+            .filed
+            .iter()
+            .filter(|name| capped || self.skipped.contains_key(*name))
+            .map(|name| format!("#{name}"))
+            .collect();
+        far.sort_unstable();
+        far
     }
 
     // A name an edit files or unfiles is written nowhere else, unless in code the fences skip or past the cap.
@@ -160,7 +208,7 @@ impl Filing {
         first: usize,
         old_until: usize,
         until: usize,
-        made: Vec<Range<usize>>,
+        made: impl IntoIterator<Item = Range<usize>>,
     ) -> Vec<Range<usize>> {
         let moved = |at: usize| at - old_until + until;
         let before = self
@@ -175,6 +223,12 @@ impl Filing {
             .map(|one| moved(one.start.max(old_until))..moved(one.end));
         joined(before.chain(made).chain(after))
     }
+}
+
+fn only_line(said: &str, first: usize, last: usize) -> Option<&str> {
+    let mut lines = lines_from(&said[..last], first);
+    let (_, one) = lines.next()?;
+    lines.next().is_none().then_some(one)
 }
 
 fn line_end(text: &str, at: usize) -> usize {

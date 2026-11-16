@@ -382,7 +382,7 @@ impl Doc {
         &self.blocks
     }
 
-    /// Two texts with the same labels link and footnote every block alike.
+    /// Two texts with the same labels link, footnote and tag every block alike.
     pub fn labels(&self) -> [u32; 2] {
         self.labels
     }
