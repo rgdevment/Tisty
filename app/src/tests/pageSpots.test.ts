@@ -108,6 +108,14 @@ describe("the blocks of a long page, found by halving", () => {
     expect(topsAt(sheet, 409)).toEqual([]);
   });
 
+  it("writes on the margin of a long sheet after the block before the point", () => {
+    const sheet = sheetOf(LONG);
+    const text = "x".repeat(410);
+    expect(sourceAt(text, sheet, 0)).toBe(0);
+    expect(sourceAt(text, sheet, 21)).toBe(208);
+    expect(sourceAt(text, sheet, 41)).toBe(408);
+  });
+
   it("finds both blocks that meet at a byte", () => {
     const sheet = sheetOf('<p data-at="0-4"></p><p data-at="4-9"></p><p data-at="11-12"></p>');
     expect(topsAt(sheet, 4)).toEqual([sheet.children[0], sheet.children[1]]);

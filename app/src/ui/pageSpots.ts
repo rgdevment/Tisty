@@ -5,7 +5,7 @@ const PLACED = "[data-src]";
 const BLOCK = "[data-at]";
 
 const spanOf = (one: Element) => spanned(one.getAttribute("data-src"));
-const placeOf = (one: Element) => spanned(one.getAttribute("data-at"));
+export const placeOf = (one: Element) => spanned(one.getAttribute("data-at"));
 const solid = (one: Element) => one.getAttribute("contenteditable") === "false";
 
 const placedFrom = (tops: HTMLCollection, at: number) => {
@@ -58,13 +58,21 @@ const between = (
   known: Reckoned | null,
 ): number => {
   const page = sheet.ownerDocument;
-  let end = 0;
-  for (const one of sheet.querySelectorAll(":scope > [data-at]")) {
+  const tops = Array.from(sheet.querySelectorAll(":scope > [data-at]"));
+  const reached = (one: Element) => {
     const start = page.createRange();
     start.setStartBefore(one);
-    if (start.comparePoint(node, offset) <= 0) break;
-    end = spanned(one.getAttribute("data-at"))?.[1] ?? end;
+    return start.comparePoint(node, offset) <= 0;
+  };
+  let low = 0;
+  let high = tops.length;
+  while (low < high) {
+    const middle = (low + high) >> 1;
+    if (reached(tops[middle])) high = middle;
+    else low = middle + 1;
   }
+  let end = 0;
+  for (let at = low - 1; at >= 0 && end === 0; at--) end = placeOf(tops[at])?.[1] ?? 0;
   return end > 0 ? unitFrom(known, body, end) : 0;
 };
 
