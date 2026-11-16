@@ -168,6 +168,22 @@ fn a_whole_body_with_no_page_held_to_weigh_it_against_asks_for_the_whole_page() 
 }
 
 #[test]
+fn a_whole_body_that_defines_a_link_asks_for_the_whole_page() {
+    let placing = Placing::default();
+    let text = "Ver [x].\n\nA.\n\nB.\n";
+    placing.read("main", text, check(text, 1), false, |_, _| ());
+    let defined = format!("{text}\n[x]: https://a.b\n");
+    let end = text.len();
+    let drawn =
+        |doc: &tisty_markdown::Doc, shown| placed_near(doc, end, defined.len(), shown).whole;
+    assert!(placing.read("main", &defined, check(&defined, 2), true, drawn));
+    let typed = defined.replacen("A.", "As.", 1);
+    let at = typed.find("As.").unwrap_or_default() + 1;
+    let laid = |doc: &tisty_markdown::Doc, shown| placed_near(doc, at, at + 1, shown).whole;
+    assert!(!placing.read("main", &typed, check(&typed, 3), true, laid));
+}
+
+#[test]
 fn a_date_typed_as_it_is_said_lands_as_its_day() {
     let now: jiff::Zoned = "2026-10-28T10:00:00[America/Santiago]".parse().unwrap();
     assert_eq!(canon("date", "2026-11-14", &now, "es"), "2026-11-14");
