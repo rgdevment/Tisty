@@ -694,6 +694,20 @@ fn shown_after(was: &Doc, at: Range<usize>, insert: &str) -> Option<(Doc, Vec<(u
 }
 
 #[test]
+fn every_heading_named_is_drawn_where_the_page_looks_for_it() {
+    for text in [
+        include_str!("../../../app/src-tauri/resources/guide/es/muestra.md"),
+        include_str!("../../../app/src-tauri/resources/guide/en/sample.md"),
+        "# Uno\n\n> # Uno\n\n- # Uno\n\n::: note\n# Uno\n:::\n\nUno\n===\n\n#\n",
+    ] {
+        let doc = read(text);
+        let mut drawn = drawn_names(&html_placed(&doc));
+        drawn.sort();
+        assert_eq!(drawn, names_of(&doc));
+    }
+}
+
+#[test]
 fn a_heading_renamed_put_in_or_taken_out_never_leaves_a_stale_name() {
     let twice = "# Uno\n\nA.\n\nB.\n\n# Uno\n\nC.\n";
     let after = "A.\n\nB.\n\n# Uno\n\nC.\n";
@@ -721,7 +735,19 @@ fn every_key_leaves_the_page_with_the_names_the_whole_page_gives() {
         "# Uno\n\nA.\n\n# Uno\n\nB.\n\n## Uno 1\n\nC.\n\n# Dos\n\n> # Uno\n\nD.\n",
         "Uno\n===\n\nA.\n\n- # Uno\n\nB.\n\n# Uno\n\nÁrbol\n---\n",
     ];
-    const PIECES: [&str; 10] = ["# ", "Uno", "Dos", "\n\n", "#", "===", "1", " ", "a", "> "];
+    const PIECES: [&str; 11] = [
+        "# ",
+        "Uno",
+        "Dos",
+        "\n\n",
+        "#",
+        "===",
+        "1",
+        " ",
+        "a",
+        "> ",
+        "# Uno\n\n",
+    ];
     let mut state: u64 = 0x01D5_0F7E;
     let mut next = |below: usize| {
         state ^= state << 13;
