@@ -1,14 +1,16 @@
 import { useState } from "react";
 import type { Filed, Folded } from "../core";
-import { countedAs, shortStamp } from "../format";
+import { countedAs, dateOf, longAgo, shortStamp } from "../format";
 import { led } from "../leading";
 import { fill, t } from "../locales";
 import { weighed } from "../previews";
+import { atRandom, type Recalled, useForgotten } from "../useForgotten";
 import Glyph from "./Glyph";
 import { painted } from "./Hue";
 import { asksForMenu, menuAt } from "./menuKeys";
 
 const PEEK = 8;
+const FORGOTTEN_AT_A_GLANCE = 5;
 
 const INDEX = "columns-1 gap-x-8 md:columns-2 xl:columns-3";
 const ROW =
@@ -36,6 +38,8 @@ export default function Folder({
   onDocMenu,
 }: Props) {
   const [shut, setShut] = useState<Set<string>>(new Set());
+  const [allForgotten, setAllForgotten] = useState(false);
+  const forgotten = useForgotten(docs, !folder);
   const fold = (id: string) =>
     setShut((was) => {
       const now = new Set(was);
@@ -91,13 +95,28 @@ export default function Folder({
     .join(" · ");
 
   const pages = (id: string) => docs.filter((one) => one.pageOf === id).length;
+  const folderName = (id: string | null) =>
+    folders.find((at) => at.id === id)?.name ?? t("unfiled");
+  const forgottenShown = allForgotten ? forgotten : forgotten.slice(0, FORGOTTEN_AT_A_GLANCE);
+  const rolled = () => {
+    atRandom(docs)
+      .then((one) => one && onOpen(one))
+      .catch(() => {});
+  };
 
-  const paper = (one: Filed) => {
+  const paper = (one: Filed, recalled?: Recalled) => {
     const worn = led(one.title || t("untitledDoc"));
     return (
       <li key={one.id} className="break-inside-avoid">
         <button
           type="button"
+          title={
+            recalled &&
+            fill(
+              recalled.lastOpenedHere ? "forgottenOpenedOn" : "forgottenWroteOn",
+              dateOf(recalled.last),
+            )
+          }
           onClick={() => onOpen(one)}
           aria-haspopup={onDocMenu ? "menu" : undefined}
           aria-keyshortcuts={onDocMenu ? "Shift+F10" : undefined}
@@ -127,7 +146,12 @@ export default function Folder({
             </span>
           )}
           {one.gone && <span className="shrink-0 text-[11.5px] text-urgent">{t("goneDoc")}</span>}
-          {!one.gone && (one.wrote || one.bytes) && (
+          {recalled && (
+            <span className="ml-auto shrink-0 text-[11.5px] text-faint">
+              {[folderName(one.folder), longAgo(recalled.last)].join(" · ")}
+            </span>
+          )}
+          {!recalled && !one.gone && (one.wrote || one.bytes) && (
             <span className="ml-auto shrink-0 text-[11.5px] text-faint tabular-nums">
               {[one.wrote ? shortStamp(one.wrote) : "", one.bytes ? weighed(one.bytes) : ""]
                 .filter(Boolean)
@@ -169,6 +193,41 @@ export default function Folder({
 
   return (
     <main className="scroller min-w-0 flex-1 px-7 pt-5 pb-8">
+      {!folder && docs.length > 0 && (
+        <section aria-label={t("forgottenHeading")} className="mb-5">
+          <div className="flex items-center gap-2">
+            {forgotten.length > 0 && (
+              <h2 className="text-[10.5px] font-semibold tracking-[0.05em] text-faint uppercase">
+                {t("forgottenHeading")}
+              </h2>
+            )}
+            <span className="h-px min-w-6 flex-1 bg-hair" />
+            <button
+              type="button"
+              onClick={rolled}
+              className="flex shrink-0 cursor-pointer items-center gap-1.5 rounded-md px-1.5 py-[3px] text-[12.5px] text-soft hover:bg-hover hover:text-ink"
+            >
+              <Glyph name="dice" className="h-3.5 w-3.5" />
+              {t("atRandom")}
+            </button>
+          </div>
+          {forgottenShown.length > 0 && (
+            <ul className={`mt-1 ${INDEX}`}>{forgottenShown.map((one) => paper(one.doc, one))}</ul>
+          )}
+          {forgotten.length > FORGOTTEN_AT_A_GLANCE && (
+            <button
+              type="button"
+              aria-expanded={allForgotten}
+              onClick={() => setAllForgotten(!allForgotten)}
+              className="-ml-1.5 mt-1 cursor-pointer rounded-md px-1.5 py-[3px] text-[12.5px] text-faint hover:bg-hover hover:text-soft"
+            >
+              {allForgotten
+                ? t("forgottenSeeFewer")
+                : fill("forgottenSeeAll", String(forgotten.length))}
+            </button>
+          )}
+        </section>
+      )}
       {trail.length > 0 && (
         <nav aria-label={t("whereYouAre")} className="mb-2 flex flex-wrap items-center gap-1.5">
           {trail.map((up, at) => (
@@ -250,7 +309,7 @@ export default function Folder({
                     {named(at)}
                   </li>
                 ))}
-                {shown.map(paper)}
+                {shown.map((one) => paper(one))}
                 {left > 0 && (
                   <li className="break-inside-avoid">
                     <button
@@ -275,7 +334,7 @@ export default function Folder({
               {t("papersHere")}
             </h2>
           )}
-          <ul className={`mt-3 ${INDEX}`}>{inside.map(paper)}</ul>
+          <ul className={`mt-3 ${INDEX}`}>{inside.map((one) => paper(one))}</ul>
         </>
       )}
     </main>

@@ -11,6 +11,7 @@ pub mod folio_receiving;
 pub mod folio_reviewing;
 pub mod folio_standing;
 pub mod folio_sync;
+pub mod forgetting;
 pub mod freeing;
 pub mod guiding;
 pub mod helping;

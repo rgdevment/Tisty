@@ -77,6 +77,16 @@ Lo que pasó hoy, en la casa o en el trabajo, tiene un solo lugar: **Diario**, c
 - **Nunca se comparte por link**: el diario no tiene panel lateral ni **Compartir**, y Folio lo rechaza. Sí viaja con tu sincronización y con tus respaldos, como cualquier documento.
 - **El archivo sigue siendo Markdown**: un libro con `diary: on` en sus [propiedades](https://markdown.tisty.app/es/propiedades), cuyas páginas son los meses. Tisty nunca escribe en él por su cuenta.
 
+## Redescubrir lo olvidado
+
+Lo que guardaste y no volviste a abrir vuelve solo a la vista. Al pulsar **Biblioteca**, sobre **Sin carpeta**:
+
+- **Hace tiempo que no abres** lista los documentos que no abriste en este equipo ni nadie escribió en 60 días, el más olvidado primero, con su carpeta y hace cuánto. Muestra cinco, y **Ver los N** despliega el resto. Al pasar el puntero dice si cuenta desde la última vez que lo abriste aquí o desde la última vez que se escribió.
+- **Un documento al azar** abre uno que no hayas abierto esta semana.
+- **Cuenta lo que abres aquí**: el día en que abres un documento se anota solo en este equipo y no viaja con tu sincronización. Abrir una página cuenta para su documento, y abrir uno de sus idiomas, para todos. Antes de esta función no había registro, así que al principio cuenta el día en que se escribió.
+- **No salen** los archivados, los que un agente marcó como pasados, que ya esperan tu decisión, el Diario, la Lluvia de ideas ni la guía de Tisty.
+- **Con el botón derecho** cada uno tiene su menú de siempre: archívalo si ya cumplió.
+
 ## Carpetas
 
 - **Todas las carpetas nacen plegadas**, así que un almacén con cientos de documentos es un puñado de filas hasta que vas a buscar.
