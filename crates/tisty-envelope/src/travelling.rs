@@ -292,6 +292,10 @@ impl Ready<'_> {
             "code" if tag.said("class").is_some_and(|one| one.contains('&')) => {
                 written_back(tag, &["data-at", "class"], &mut self.out);
             }
+            // The title's mark only spares the window a sibling rule; the contract shares the page without it.
+            "p" | "h1" | "h2" | "h3" if tag.said("class") == Some("title") => {
+                written_back(tag, &["data-at", "class"], &mut self.out);
+            }
             "area"
                 if !tag
                     .said("href")

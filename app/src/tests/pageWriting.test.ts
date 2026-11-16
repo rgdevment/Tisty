@@ -401,6 +401,27 @@ describe("blocks moved with the keys on the page written in place", () => {
   });
 });
 
+describe("a line begun right after the properties", () => {
+  it("wears the title's mark until the core draws it, as it marks the paragraph there", () => {
+    writer("---\ntitle: x\n---\n");
+    const sheet = document.querySelector(".page") as HTMLElement;
+    sheet.innerHTML = '<dl class="front" data-at="0-17"></dl>';
+    writing?.begin(17, "", sheet.firstElementChild as Element);
+    expect(document.querySelector("[data-ghost]")?.classList.contains("title")).toBe(true);
+  });
+
+  it("leaves the mark on the title already there when begun above it, so one line looks like the title", () => {
+    writer("---\ntitle: x\n---\n\nHola.\n");
+    const sheet = document.querySelector(".page") as HTMLElement;
+    sheet.innerHTML =
+      '<dl class="front" data-at="0-17"></dl><p class="title" data-at="18-23"><span data-src="18-23">Hola.</span></p>';
+    caretIn("Hola.", 0);
+    asked("insertParagraph");
+    expect(document.querySelector("[data-ghost]")?.classList.contains("title")).toBe(false);
+    expect(document.querySelectorAll(".page > .title")).toHaveLength(1);
+  });
+});
+
 describe("a line begun on a task's page written in place", () => {
   it("writes nothing until a key, then joins a step to the list above", () => {
     const said = writer();

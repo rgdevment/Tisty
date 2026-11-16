@@ -179,11 +179,9 @@ html.untitled .page[data-empty]:not(:has(> :not(.front)))::after {
   content: attr(data-empty);
   color: var(--tisty-faint);
 }
+/* A sibling rule would restyle every block of its kind as blocks come and go, so the core marks the title. */
 html:not(.untitled) .page:where(:not(.as-written)) > :is(h1, h2, h3, p):first-child,
-html:not(.untitled)
-  .page:where(:not(.as-written))
-  > :is(.front, .fronted):first-child
-  + :is(h1, h2, h3, p) {
+html:not(.untitled) .page:where(:not(.as-written)) > .title {
   font-size: 1.65em;
   font-weight: 640;
   line-height: 1.25;

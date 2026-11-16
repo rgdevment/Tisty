@@ -480,6 +480,36 @@ describe("the blocks the core draws beside a key, left as they were when the key
     expect(placeOf(three?.querySelector("[data-src]"), "data-src")).toEqual([15, 21]);
   });
 
+  it("lays the block that comes to title the page after the properties, though its place held", () => {
+    document.body.innerHTML =
+      '<article class="page"><dl class="front" data-at="0-16"></dl>' +
+      '<p class="title" data-at="18-23"><span data-src="18-23">Hola.</span></p>' +
+      '<p data-at="25-29"><span data-src="25-29">Mas.</span></p>' +
+      '<p data-at="31-35"><span data-src="31-35">Fin.</span></p></article>';
+    const sheet = document.querySelector(".page") as Element;
+    const laid = patched(
+      sheet,
+      near({
+        spans: [
+          [0, 16],
+          [19, 23],
+          [25, 29],
+        ],
+        from: 0,
+        to: 2,
+        html:
+          '<dl class="front" data-at="0-16"></dl>' +
+          '<p class="title" data-at="19-23"><span data-src="19-23">Mas.</span></p>',
+      }),
+      -6,
+      [18, 24],
+    );
+    expect(laid).toHaveLength(1);
+    const titles = Array.from(sheet.querySelectorAll(":scope > .title"));
+    expect(titles.map((one) => one.textContent)).toEqual(["Mas."]);
+    expect(sheet.children[1]).toBe(titles[0]);
+  });
+
   it("lays the first block when a key writes as many letters over it, though its place held", () => {
     const sheet = sheetOf();
     const [one, two] = Array.from(sheet.children);
