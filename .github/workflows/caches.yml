@@ -26,7 +26,7 @@ jobs:
     permissions:
       actions: write
     steps:
-      # Mutants runs on main only weekly, so it finishes: the rest main runs again on its own.
+      # Nothing on main looks for mutants on these lines until the weekly sweep, so Mutants finishes: the rest main runs again.
       - name: Every run still going for its last commit, but Mutants
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

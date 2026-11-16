@@ -45,8 +45,9 @@ jobs:
           nobody='fuzz/|hooks/|\.github/(FUNDING|dependabot)\.yml$|\.github/workflows/(caches|cla|commits|contracts|feed|fuzz|mutants|mutants-sweep|posts|release|rules|versions)\.yml$'
           prose='docs/|(CLA|CODE_OF_CONDUCT|CONTRIBUTING|LEEME|PRIVACY|README|SECURITY|TERMS|THIRD-PARTY)\.md$'
           not_rust="^(app/src/|packages/|app/(\.gitignore|biome\.json|index\.html|package\.json|public/|stryker\.config\.json|tsconfig(\.node)?\.json|vite\.config\.ts)$|assets/|package(-lock)?\.json$|\.markdownlint-cli2\.jsonc$|\.editorconfig$|$prose|$nobody)"
-          not_the_window="^(crates/tisty-(carrier|cli|envelope|google|help|nl|onedrive|share-proto|sharing|sign-guide|webdav)/|$nobody)"
-          not_the_guide="^(crates/tisty-(carrier|cli|google|help|nl|onedrive|sign-guide|sync|webdav)/|$prose|$nobody)"
+          neither='carrier|cli|google|help|nl|onedrive|sign-guide|webdav'
+          not_the_window="^(crates/tisty-($neither|envelope|share-proto|sharing)/|$nobody)"
+          not_the_guide="^(crates/tisty-($neither|sync)/|$prose|$nobody)"
           from=$(git merge-base "$BASE" HEAD)
           changed=$(git diff --name-only "$from" HEAD)
           first_outside() {
