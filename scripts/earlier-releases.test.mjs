@@ -28,7 +28,23 @@ test("a newest release that pull requests skip is refused", () => {
 
 test("a pull request meets its releases on one system, and anything else on every system", () => {
   const releases = listed(3, 1);
-  assert.deepEqual(metOn("pull_request", releases), [{ release: "1.2.0", os: "windows-latest" }]);
-  assert.equal(metOn("push", releases).length, 6);
-  assert.equal(metOn("workflow_dispatch", releases).length, 6);
+  assert.deepEqual(metOn("pull_request", releases), [{ os: "windows-latest", releases: "1.2.0||||" }]);
+  for (const event of ["push", "workflow_dispatch"]) {
+    assert.deepEqual(
+      metOn(event, releases).map((one) => [one.os, one.releases.split("\n").length]),
+      [
+        ["windows-latest", 3],
+        ["macos-latest", 3],
+      ],
+    );
+  }
+});
+
+test("a system is handed one line for each release, with what the meeting needs to know of it", () => {
+  const releases = [
+    { release: "1.30.5", schema: 17, shape: 2, accepts: "1.30.0" },
+    { release: "1.33.0", schema: 18, shape: 3, accepts: "1.31.0", built: true, every_pull_request: true },
+  ];
+  assert.equal(metOn("push", releases)[0].releases, "1.30.5|17|2|1.30.0|\n1.33.0|18|3|1.31.0|built");
+  assert.equal(metOn("pull_request", releases)[0].releases, "1.33.0|18|3|1.31.0|built");
 });
