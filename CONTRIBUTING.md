@@ -81,6 +81,8 @@ and, for the window and the documents:
 ```sh
 npm ci && npm run lint:md
 npm run lint --workspace app && npm run build --workspace app && npm test --workspace app
+node app/scripts/windows-apart.mjs && node app/scripts/light-viewer.mjs   # after the build
+npm test --workspace tisty-light-viewer
 npm run notices   # must leave THIRD-PARTY-*.md unchanged
 ```
 
