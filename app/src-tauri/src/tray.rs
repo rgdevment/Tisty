@@ -247,9 +247,43 @@ pub fn undock_unless_seen<R: Runtime>(app: &AppHandle<R>, leaving: &str) {
     let _ = (app, leaving);
 }
 
+#[cfg(windows)]
+#[derive(Default)]
+pub struct Unseen(std::sync::atomic::AtomicBool);
+
+#[cfg(windows)]
+impl Unseen {
+    fn turns(&self, seen: bool) -> bool {
+        self.0.swap(!seen, std::sync::atomic::Ordering::SeqCst) == seen
+    }
+}
+
+/// WebView2 never learns that its window went out of sight, so the main page is told; WebKit sees it by itself.
+pub fn page_seen<R: Runtime>(app: &AppHandle<R>, seen: bool) {
+    #[cfg(windows)]
+    {
+        let (Some(window), Some(unseen)) =
+            (app.get_webview_window("main"), app.try_state::<Unseen>())
+        else {
+            return;
+        };
+        if !unseen.turns(seen) {
+            return;
+        }
+        let page: &tauri::Webview<R> = window.as_ref();
+        let _ = match seen {
+            true => page.show(),
+            false => page.hide(),
+        };
+    }
+    #[cfg(not(windows))]
+    let _ = (app, seen);
+}
+
 pub fn withdraw<R: Runtime>(window: &tauri::Window<R>) {
     let _ = window.emit("withdrawn", ());
     let _ = window.hide();
+    page_seen(window.app_handle(), false);
     crate::waking::returns(false);
     undock_unless_seen(window.app_handle(), window.label());
 }
@@ -264,6 +298,9 @@ pub fn surface<R: Runtime>(app: &AppHandle<R>) {
         return;
     };
     docked(app, true);
+    if label == "main" {
+        page_seen(app, true);
+    }
     let _ = window.show();
     crate::waking::returns(true);
     let _ = window.unminimize();
@@ -292,6 +329,19 @@ mod tests {
         (sum / seen) as u32
     }
 
+    fn body(here: &'static str, way: &str) -> &'static str {
+        here.split(way)
+            .nth(1)
+            .and_then(|rest| {
+                rest.split(
+                    "
+}",
+                )
+                .next()
+            })
+            .unwrap_or_default()
+    }
+
     #[test]
     fn both_ways_the_window_goes_keep_windows_told() {
         let here = include_str!("tray.rs");
@@ -299,15 +349,50 @@ mod tests {
             ("pub fn withdraw", "returns(false)"),
             ("pub fn surface", "returns(true)"),
         ] {
-            let body = here.split(way).nth(1).and_then(|rest| {
-                rest.split(
-                    "
-}",
-                )
-                .next()
-            });
-            assert!(body.is_some_and(|body| body.contains(told)), "{way}");
+            assert!(body(here, way).contains(told), "{way}");
         }
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn the_page_is_told_only_when_what_it_knows_changes() {
+        let unseen = super::Unseen::default();
+        assert!(!unseen.turns(true), "a page born seen was told it is");
+        assert!(
+            unseen.turns(false),
+            "a page going out of sight was not told"
+        );
+        assert!(!unseen.turns(false), "a page out of sight was told again");
+        assert!(unseen.turns(true), "a page coming back was not told");
+        assert!(!unseen.turns(true), "a page in sight was told again");
+    }
+
+    #[test]
+    fn the_page_leaves_after_its_window_and_comes_back_before_it() {
+        let here = include_str!("tray.rs");
+        let gone = body(here, "pub fn withdraw");
+        let (hidden, told) = (
+            gone.find("window.hide()"),
+            gone.find("page_seen(window.app_handle(), false)"),
+        );
+        assert!(hidden.is_some() && hidden < told, "withdraw");
+
+        let back = body(here, "pub fn surface");
+        let (told, shown) = (
+            back.find("page_seen(app, true)"),
+            back.find("window.show()"),
+        );
+        assert!(told.is_some() && told < shown, "surface");
+    }
+
+    #[test]
+    fn a_window_that_starts_hidden_has_its_page_told_before_any_showing() {
+        let started = body(include_str!("lib.rs"), "desktop::proofread(&window);");
+        let (told, shown) = (
+            started.find("tray::page_seen(app, seen)"),
+            started.find("window.show()"),
+        );
+        assert!(told.is_some() && told < shown);
     }
 
     #[test]
