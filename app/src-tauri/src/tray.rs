@@ -259,25 +259,56 @@ impl Unseen {
 }
 
 /// WebView2 never learns that its window went out of sight, so the main page is told; WebKit sees it by itself.
-pub fn page_seen<R: Runtime>(app: &AppHandle<R>, seen: bool) {
+pub fn page_seen<R: Runtime>(app: &AppHandle<R>, seen: bool) -> bool {
     #[cfg(windows)]
     {
         let (Some(window), Some(unseen)) =
             (app.get_webview_window("main"), app.try_state::<Unseen>())
         else {
-            return;
+            return false;
         };
         if !unseen.turns(seen) {
-            return;
+            return false;
         }
         let page: &tauri::Webview<R> = window.as_ref();
         let _ = match seen {
             true => page.show(),
             false => page.hide(),
         };
+        true
     }
     #[cfg(not(windows))]
-    let _ = (app, seen);
+    {
+        let _ = (app, seen);
+        false
+    }
+}
+
+#[cfg(windows)]
+fn in_sight(visible: bool, minimized: bool) -> bool {
+    visible && !minimized
+}
+
+pub fn page_follows<R: Runtime>(window: &tauri::Window<R>) {
+    #[cfg(windows)]
+    {
+        let seen = in_sight(
+            window.is_visible().unwrap_or(true),
+            window.is_minimized().unwrap_or(false),
+        );
+        let app = window.app_handle();
+        // Focus that reached the window while its page was hidden never got to the page.
+        if page_seen(app, seen)
+            && seen
+            && window.is_focused().unwrap_or(false)
+            && let Some(main) = app.get_webview_window("main")
+        {
+            let page: &tauri::Webview<R> = main.as_ref();
+            let _ = page.set_focus();
+        }
+    }
+    #[cfg(not(windows))]
+    let _ = window;
 }
 
 pub fn withdraw<R: Runtime>(window: &tauri::Window<R>) {
@@ -383,6 +414,25 @@ mod tests {
             back.find("window.show()"),
         );
         assert!(told.is_some() && told < shown, "surface");
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn a_minimized_window_is_out_of_sight_though_windows_still_lists_it_as_visible() {
+        assert!(super::in_sight(true, false));
+        assert!(!super::in_sight(true, true), "minimized");
+        assert!(!super::in_sight(false, false), "hidden");
+        assert!(!super::in_sight(false, true), "hidden and minimized");
+    }
+
+    #[test]
+    fn a_window_the_system_resizes_has_its_page_follow() {
+        let heard = body(include_str!("lib.rs"), "fn window_event");
+        let (sized, followed) = (
+            heard.find("WindowEvent::Resized(_)"),
+            heard.find("tray::page_follows(window)"),
+        );
+        assert!(sized.is_some() && sized < followed);
     }
 
     #[test]

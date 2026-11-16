@@ -1000,6 +1000,10 @@ fn window_event(window: &tauri::Window, event: &tauri::WindowEvent) {
         tray::repaint(window.app_handle());
         return;
     }
+    if let tauri::WindowEvent::Resized(_) = event {
+        tray::page_follows(window);
+        return;
+    }
 
     let tauri::WindowEvent::CloseRequested { api, .. } = event else {
         return;
