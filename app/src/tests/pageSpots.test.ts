@@ -56,6 +56,17 @@ describe("the places of a page written in place", () => {
     expect(spotOf(document, BODY, 21)).toEqual([item, 0]);
   });
 
+  it("lays the caret after a step's box when the step has no words yet", () => {
+    const steps = "- [ ] un paso\n- [ ] \nFin";
+    sheetOf(
+      '<ul data-at="0-21"><li class="task" data-at="0-14"><span class="check" contenteditable="false"></span><span data-src="6-13">un paso</span></li>' +
+        '<li class="task" data-at="14-21"><span class="check" contenteditable="false"></span></li></ul>' +
+        '<p data-at="21-24"><span data-src="21-24">Fin</span></p>',
+    );
+    const empty = document.querySelectorAll("li")[1] as Element;
+    expect(spotOf(document, steps, 20)).toEqual([empty, 1]);
+  });
+
   it("writes in a step just begun before the line break that ends it, not as a paragraph after", () => {
     const steps = "- [ ] un paso\n- [ ] \nFin";
     sheetOf(
@@ -91,6 +102,31 @@ describe("the places of a page written in place", () => {
     expect(titled?.classList.contains("title")).toBe(true);
     titled?.remove();
     expect(ghostAt(document, body, 24)?.classList.contains("title")).toBe(false);
+  });
+
+  it("stands a line begun at a section's hint after the hint, never between it and its title", () => {
+    const body = "## Notas\n<!-- Lo que vayas averiguando. -->\n\n## Fin\n";
+    sheetOf(
+      '<h2 data-at="0-9" contenteditable="false"><span data-src="3-8">Notas</span></h2>' +
+        '<div data-at="9-44" class="hint" contenteditable="false"></div>' +
+        '<h2 data-at="45-52" contenteditable="false"><span data-src="48-51">Fin</span></h2>',
+    );
+    const ghost = ghostAt(document, body, body.indexOf("-->") + 3);
+    expect(ghost?.previousElementSibling?.matches(".hint")).toBe(true);
+  });
+
+  it("stands a paragraph begun under a task's steps after their «+ Agregar un paso», a new step before it", () => {
+    const body = "- [ ] uno\n\n\n## Notas\n";
+    sheetOf(
+      '<ul data-at="0-12"><li class="task" data-at="0-10"><span class="check" contenteditable="false"></span><span data-src="6-9">uno</span></li></ul>' +
+        '<button class="add-step" data-after="0-12" contenteditable="false">+ Agregar un paso</button>' +
+        '<h2 data-at="12-21" contenteditable="false"><span data-src="15-20">Notas</span></h2>',
+    );
+    const paragraph = ghostAt(document, body, 10, null, "\n");
+    expect(paragraph?.previousElementSibling?.matches(".add-step")).toBe(true);
+    paragraph?.remove();
+    const step = ghostAt(document, body, 10, null, "- [ ] ");
+    expect(step?.nextElementSibling?.matches(".add-step")).toBe(true);
   });
 
   it("begins the first line of an empty page where its title waits", () => {
