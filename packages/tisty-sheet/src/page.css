@@ -1879,6 +1879,7 @@ html.lively:not(.sheeted) .page {
   .page-address {
     display: none;
   }
+}
 .page > .diary-day {
   display: flex;
   flex-wrap: wrap;
