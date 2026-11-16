@@ -48,7 +48,7 @@ import { changedIn, MARK_FADES } from "./anchoring";
 import Beside, { trailed } from "./Beside";
 import Contents from "./Contents";
 import { blurbing, cardsOf } from "./carding";
-import DiaryView from "./DiaryView";
+import { diaryLoaded, type LoadedDiary } from "./diaryLoaded";
 import { PageMore, type Viewing } from "./liveSheet";
 import Modal from "./Modal";
 import Notes from "./Notes";
@@ -121,6 +121,7 @@ interface Props {
   onBack?: (doc: Filed) => void;
   onAsideShut?: (shut: boolean) => void;
   fresh?: number;
+  visit?: object;
 }
 
 const tailless = (said: string): string => said.replace(/\r\n/g, "\n").replace(/\n+$/, "");
@@ -157,9 +158,11 @@ export default function Docs({
   onBack,
   onAsideShut,
   fresh = 0,
+  visit,
 }: Props) {
   const [open, setOpen] = useState<Filed | null>(null);
   const [Sheet, setSheet] = useState<LoadedSheet | null>(null);
+  const [Diary, setDiary] = useState<LoadedDiary | null>(null);
   const [unopened, setUnopened] = useState<string | null>(null);
   const [body, setBody] = useState("");
   const [inEditor, setInEditor] = useState<string | null>(null);
@@ -555,8 +558,11 @@ export default function Docs({
     taskOf(id)
       .then((one) => (onSeeTask ?? onTask)?.(one))
       .catch((e) => onError(saidPlainly(e)));
-  const [asWritten, setAsWritten] = useState<string | null>(null);
-  const onDiary = inDiary && asWritten !== open?.file;
+  const [writtenOn, setWrittenOn] = useState<{ visit?: object; file: string } | null>(null);
+  const onDiary = inDiary && !(writtenOn?.visit === visit && writtenOn?.file === open?.file);
+  useEffect(() => {
+    if (inDiary && !Diary) void diaryLoaded().then((ready) => setDiary(() => ready));
+  }, [inDiary, Diary]);
 
   const { wholeAsked, allAsked } = useWholeKeys(Boolean(open), !bolted);
   const stood = useRef(new Map<string, number>());
@@ -903,7 +909,7 @@ export default function Docs({
   return (
     <main className="relative flex min-w-0 flex-1 flex-col overflow-hidden bg-desk">
       <div data-tauri-drag-region className="h-9 shrink-0" />
-      {open && !beside && !onNotes && (
+      {open && !beside && !onNotes && !inDiary && (
         <button
           type="button"
           onClick={() => setShown(true)}
@@ -956,22 +962,24 @@ export default function Docs({
                 />
               </div>
             ) : onDiary ? (
-              <DiaryView
-                file={open.file}
-                body={body}
-                title={called || t("untitledDoc")}
-                book={above?.title}
-                fresh={fresh}
-                onDoc={(file) => onDoc?.(file)}
-                onTask={seeTask}
-                onBefore={() => {
-                  flush();
-                  return busy(open.file) ?? Promise.resolve();
-                }}
-                onWritten={diaryWritten}
-                onEdit={() => setAsWritten(open.file)}
-                onError={(e) => onError(saidPlainly(e))}
-              />
+              Diary && (
+                <Diary
+                  file={open.file}
+                  body={body}
+                  title={called || t("untitledDoc")}
+                  book={above?.title}
+                  fresh={fresh}
+                  onDoc={(file) => onDoc?.(file)}
+                  onTask={seeTask}
+                  onBefore={() => {
+                    flush();
+                    return busy(open.file) ?? Promise.resolve();
+                  }}
+                  onWritten={diaryWritten}
+                  onEdit={() => setWrittenOn({ visit, file: open.file })}
+                  onError={(e) => onError(saidPlainly(e))}
+                />
+              )
             ) : (
               Sheet && (
                 <Sheet
@@ -1009,22 +1017,7 @@ export default function Docs({
                   label={called || t("untitledDoc")}
                   onDoc={onDoc}
                   onTag={onTag}
-                  above={
-                    inDiary ? (
-                      <>
-                        {placed}
-                        <button
-                          type="button"
-                          onClick={() => setAsWritten(null)}
-                          className="mb-2 self-start rounded-md px-2 py-1 text-[12.5px] text-accent hover:bg-hover"
-                        >
-                          {t("diaryBack")}
-                        </button>
-                      </>
-                    ) : (
-                      placed
-                    )
-                  }
+                  above={placed}
                   belowFolds={!above}
                   below={
                     above
