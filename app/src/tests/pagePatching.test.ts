@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { type PlacedNear, summed } from "../placing";
+import { namesSum, type PlacedNear, summed } from "../placing";
 import { patched } from "../ui/pagePatching";
 
 type Span = readonly [number, number];
@@ -12,12 +12,97 @@ const near = (drawn: {
   from: number;
   to: number;
   html: string;
+  heads?: readonly string[];
 }): PlacedNear => ({
   count: drawn.spans.length,
   sum: spansSum([...drawn.spans.slice(0, drawn.from), ...drawn.spans.slice(drawn.to)]),
   from: drawn.from,
   to: drawn.to,
   html: drawn.html,
+  heads: drawn.heads ? namesSum(drawn.heads) : null,
+});
+
+const HEADED =
+  '<h1 id="uno" data-at="0-5"><span data-src="2-5">Uno</span></h1>' +
+  '<p data-at="7-9"><span data-src="7-9">A.</span></p>' +
+  '<p data-at="11-13"><span data-src="11-13">B.</span></p>' +
+  '<h1 id="uno-1" data-at="15-20"><span data-src="17-20">Uno</span></h1>';
+
+const headedSheet = () => {
+  document.body.innerHTML = `<article class="page">${HEADED}</article>`;
+  return document.querySelector(".page") as Element;
+};
+
+describe("headings a page keeps, named by those before them", () => {
+  it("asks for the whole page when a heading it keeps is named otherwise now", () => {
+    const sheet = headedSheet();
+    const laid = patched(
+      sheet,
+      near({
+        spans: [
+          [0, 5],
+          [7, 9],
+          [11, 13],
+          [15, 20],
+        ],
+        from: 0,
+        to: 2,
+        html: '<h1 id="dos" data-at="0-5">Dos</h1><p data-at="7-9">A.</p>',
+        heads: ["uno"],
+      }),
+      0,
+    );
+    expect(laid).toBeNull();
+    expect(sheet.querySelector("h1")?.id).toBe("uno");
+  });
+
+  it("lays a heading drawn again when those it keeps keep their names", () => {
+    const sheet = headedSheet();
+    sheet.lastElementChild?.setAttribute("id", "dos");
+    const laid = patched(
+      sheet,
+      near({
+        spans: [
+          [0, 6],
+          [8, 10],
+          [12, 14],
+          [16, 21],
+        ],
+        from: 0,
+        to: 2,
+        html: '<h1 id="unos" data-at="0-6">Unos</h1><p data-at="8-10">A.</p>',
+        heads: ["dos"],
+      }),
+      1,
+    );
+    expect(laid).toHaveLength(2);
+    expect(sheet.querySelector("h1")?.id).toBe("unos");
+  });
+
+  it("asks for the whole page when a heading it draws again is words now", () => {
+    const sheet = headedSheet();
+    const laid = patched(
+      sheet,
+      near({
+        spans: [
+          [0, 3],
+          [5, 7],
+          [9, 11],
+          [13, 18],
+        ],
+        from: 0,
+        to: 2,
+        html: '<p data-at="0-3">Uno</p><p data-at="5-7">A.</p>',
+      }),
+      -2,
+    );
+    expect(laid).toBeNull();
+  });
+
+  it("sums heading names as the core does", () => {
+    expect(namesSum(["uno", "título"])).toEqual([0x950d02f5, 0x507896ce]);
+    expect(namesSum([])).toEqual([0x811c9dc5, 0x9747b28c]);
+  });
 });
 
 const PAGE =

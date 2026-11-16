@@ -49,7 +49,8 @@ fn what_the_page_is_answered_names_the_count_the_sum_and_the_blocks_drawn() {
         .map(|one| one.keys().map(String::as_str).collect())
         .unwrap_or_default();
     keys.sort_unstable();
-    assert_eq!(keys, ["count", "from", "html", "sum", "to"]);
+    assert_eq!(keys, ["count", "from", "heads", "html", "sum", "to"]);
+    assert!(said["heads"].is_null());
     assert_eq!(
         (&said["count"], &said["from"], &said["to"]),
         (&4.into(), &0.into(), &3.into())
@@ -58,6 +59,12 @@ fn what_the_page_is_answered_names_the_count_the_sum_and_the_blocks_drawn() {
     assert_eq!(
         said["sum"],
         serde_json::json!(tisty_markdown::spans_sum([[last.start, last.end]]))
+    );
+    let headed = tisty_markdown::read("# Uno\n\nA.\n\nB.\n\n# Uno\n");
+    let said = serde_json::to_value(placed_near(&headed, 2, 3)).unwrap_or_default();
+    assert_eq!(
+        said["heads"],
+        serde_json::json!(tisty_markdown::names_sum(["uno-1"]))
     );
 }
 

@@ -131,6 +131,7 @@ pub struct PlacedNear {
     from: usize,
     to: usize,
     html: String,
+    heads: Option<[u32; 2]>,
 }
 
 fn placed_near(doc: &tisty_markdown::Doc, from: usize, to: usize) -> PlacedNear {
@@ -141,6 +142,7 @@ fn placed_near(doc: &tisty_markdown::Doc, from: usize, to: usize) -> PlacedNear 
         from: near.drawn.start,
         to: near.drawn.end,
         html: near.html,
+        heads: near.heads,
     }
 }
 

@@ -37,19 +37,31 @@ pub struct Near {
     pub sum: [u32; 2],
     pub drawn: std::ops::Range<usize>,
     pub html: String,
+    // A heading's name hangs on those before it, so only one drawn again can rename those it did not.
+    pub heads: Option<[u32; 2]>,
 }
 
-/// The page sums the blocks it already shows the same way, so the two meet without every place crossing.
-pub fn spans_sum(spans: impl IntoIterator<Item = [usize; 2]>) -> [u32; 2] {
+fn summed(numbers: impl IntoIterator<Item = u32>) -> [u32; 2] {
     let mut fnv: u32 = 0x811c_9dc5;
     let mut mixed: u32 = 0x9747_b28c;
-    for at in spans.into_iter().flatten() {
-        let at = at as u32;
+    for at in numbers {
         fnv = (fnv ^ at).wrapping_mul(0x0100_0193);
         mixed = (mixed ^ at).wrapping_mul(0x5bd1_e995);
         mixed ^= mixed >> 13;
     }
     [fnv, mixed]
+}
+
+/// The page sums the blocks it already shows the same way, so the two meet without every place crossing.
+pub fn spans_sum(spans: impl IntoIterator<Item = [usize; 2]>) -> [u32; 2] {
+    summed(spans.into_iter().flatten().map(|at| at as u32))
+}
+
+pub fn names_sum<'a>(names: impl IntoIterator<Item = &'a str>) -> [u32; 2] {
+    summed(names.into_iter().flat_map(|name| {
+        let units = name.encode_utf16().map(u32::from);
+        std::iter::once(name.encode_utf16().count() as u32).chain(units)
+    }))
 }
 
 fn holds_heading(blocks: &[Block]) -> bool {
@@ -66,12 +78,18 @@ pub fn placed_near(doc: &Doc, from: usize, to: usize) -> Near {
     let end = if last > first { last + 1 } else { start + 1 }.min(blocks.len());
     let drawn = start.min(end)..end;
     let again = blocks.get(drawn.clone()).unwrap_or_default();
+    let (anchors, heads) = if holds_heading(again) {
+        let names = names(doc);
+        let around = again.first().zip(again.last());
+        let around = around.map_or(0..0, |(first, last)| first.at.start..last.at.end);
+        let kept = names.iter().filter(|(at, _)| !around.contains(at));
+        let heads = names_sum(kept.map(|(_, name)| name.as_str()));
+        (names.into_iter().collect(), Some(heads))
+    } else {
+        (HashMap::new(), None)
+    };
     let drawing = Drawing {
-        anchors: if holds_heading(again) {
-            anchors(doc)
-        } else {
-            HashMap::new()
-        },
+        anchors,
         aligned: false,
         placed: true,
     };
@@ -85,6 +103,7 @@ pub fn placed_near(doc: &Doc, from: usize, to: usize) -> Near {
         sum: spans_sum(kept.map(|one| [one.at.start, one.at.end])),
         drawn,
         html,
+        heads,
     }
 }
 
@@ -109,7 +128,7 @@ pub fn pieces(doc: &Doc, about: usize) -> Vec<String> {
     all
 }
 
-fn anchors(doc: &Doc) -> HashMap<usize, String> {
+fn names(doc: &Doc) -> Vec<(usize, String)> {
     #[cfg(feature = "outline")]
     return crate::outline(doc)
         .into_iter()
@@ -118,8 +137,12 @@ fn anchors(doc: &Doc) -> HashMap<usize, String> {
     #[cfg(not(feature = "outline"))]
     {
         let _ = doc;
-        HashMap::new()
+        Vec::new()
     }
+}
+
+fn anchors(doc: &Doc) -> HashMap<usize, String> {
+    names(doc).into_iter().collect()
 }
 
 fn front(said: &str, at: &str, out: &mut String) {

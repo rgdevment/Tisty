@@ -1,5 +1,5 @@
 import { spanned } from "tisty-editor/read";
-import { type PlacedNear, summed } from "../placing";
+import { namesSum, type PlacedNear, summed } from "../placing";
 
 const NAMES = ["data-at", "data-src", "data-placed"];
 // What the page lends or links in a block is laid by its own dressing, which only a whole drawing runs.
@@ -33,6 +33,21 @@ const linedUp = (old: readonly Element[], near: PlacedNear, kept: number, by: nu
   return fnv === near.sum[0] && mixed === near.sum[1];
 };
 
+const HEADS = [1, 2, 3, 4, 5, 6].map((level) => `h${level}[data-at][id]`).join(", ");
+
+const headsIn = (blocks: readonly Element[]) =>
+  blocks.flatMap((one) => [...(one.matches(HEADS) ? [one] : []), ...one.querySelectorAll(HEADS)]);
+
+const namedAlike = (sheet: Element, old: readonly Element[], near: PlacedNear, kept: number) => {
+  const redrawn = old.slice(near.from, kept);
+  if (!near.heads) return headsIn(redrawn).length === 0;
+  const standing = Array.from(sheet.querySelectorAll(HEADS)).filter(
+    (one) => !redrawn.some((block) => block.contains(one)),
+  );
+  const [fnv, mixed] = namesSum(standing.map((one) => one.id));
+  return fnv === near.heads[0] && mixed === near.heads[1];
+};
+
 // The blocks the core drew again take the place of the old ones, and those after only move by
 // what the edit added; when the page does not line up with the core, it is drawn whole instead.
 export const patched = (sheet: Element, near: PlacedNear, by: number): Element[] | null => {
@@ -41,7 +56,7 @@ export const patched = (sheet: Element, near: PlacedNear, by: number): Element[]
   const after = count - to;
   const kept = old.length - after;
   if (after < 0 || kept < from) return null;
-  if (!linedUp(old, near, kept, by)) return null;
+  if (!linedUp(old, near, kept, by) || !namedAlike(sheet, old, near, kept)) return null;
   const page = sheet.ownerDocument;
   const fresh = page.createElement("template");
   fresh.innerHTML = near.html;

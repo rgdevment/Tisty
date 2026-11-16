@@ -54,7 +54,14 @@ const coreOf = (body: string) => {
     core.check = sent.now;
     expect(new TextDecoder().decode(core.bytes)).toBe(sent.body);
     expect(sent.now.bytes).toBe(core.bytes.length);
-    return Promise.resolve({ count: 0, sum: [0, 0] as const, from: 0, to: 0, html: "" });
+    return Promise.resolve({
+      count: 0,
+      sum: [0, 0] as const,
+      from: 0,
+      to: 0,
+      html: "",
+      heads: null,
+    });
   };
   const seeded = (now: string) => {
     core.bytes = BYTES.encode(now);

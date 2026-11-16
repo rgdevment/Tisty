@@ -27,6 +27,9 @@ export const summed = (numbers: readonly number[], seed = SEED) =>
 const unitsSummed = (text: string, seed = SEED) =>
   summedBy(text.length, (at) => text.charCodeAt(at), seed);
 
+export const namesSum = (names: readonly string[]) =>
+  names.reduce<Hash>((sum, name) => unitsSummed(name, summed([name.length], sum)), SEED);
+
 const surrogate = (unit: number) => unit >= 0xd800 && unit < 0xe000;
 
 export const bytesIn = (text: string, from = 0, to = text.length) => {
@@ -57,6 +60,7 @@ export type PlacedNear = {
   readonly from: number;
   readonly to: number;
   readonly html: string;
+  readonly heads: readonly [number, number] | null;
 };
 
 export type Typed = { readonly from: number; readonly to: number; readonly insert: string };
