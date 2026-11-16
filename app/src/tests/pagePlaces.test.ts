@@ -1,9 +1,9 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { type PlacedNear, summed } from "../placing";
 import { patched } from "../ui/pagePatching";
 import { placeCopied, placedAt, placeOf, placesSettled, placeWritten } from "../ui/pagePlaces";
+import { near, type Span } from "./nearing";
 
 // A toy core: blocks apart by a blank line, a quote holding its paragraph, a picture with a card for it.
 const wordsOf = (said: string, at: number) =>
@@ -34,22 +34,17 @@ const startsOf = (blocks: readonly string[]) => {
 const drawn = (blocks: readonly string[]) =>
   blocks.map((one, at) => drawnOne(one, startsOf(blocks)[at])).join("");
 
-const nearOf = (blocks: readonly string[], from: number, now: number): PlacedNear => {
+const nearOf = (blocks: readonly string[], from: number, now: number) => {
   const starts = startsOf(blocks);
-  const spans = blocks.map((one, at) => [starts[at], starts[at] + one.length]);
-  const [fnv, mixed] = summed([...spans.slice(0, from), ...spans.slice(from + now)].flat());
-  return {
-    count: blocks.length,
-    sum: [fnv, mixed],
+  return near({
+    spans: blocks.map((one, at): Span => [starts[at], starts[at] + one.length]),
     from,
     to: from + now,
     html: blocks
       .slice(from, from + now)
       .map((one, at) => drawnOne(one, starts[from + at]))
       .join(""),
-    heads: null,
-    whole: false,
-  };
+  });
 };
 
 const NAMES = ["data-at", "data-src", "data-placed"] as const;
@@ -267,12 +262,29 @@ describe("the places a key moves, read only through the page's places", () => {
       return /\.tsx?$/.test(one.name) && one.name !== "pagePlaces.ts" ? [here] : [];
     });
 
+  const RAW = [
+    /dataset\s*\.\s*(at|src|placed)\b/,
+    /\[data-(at|src|placed)\s*[\^$*~|]?=/,
+    /(?<!\b(?:placeOf|placeSaid|placeCopied|placeWritten|removeAttribute)\([^()]*)["']data-(at|src|placed)["']/,
+  ];
+  const raw = (said: string) => RAW.some((one) => one.test(said));
+
+  it("tells a raw read from a read through the page's places, a name kept in a constant too", () => {
+    expect(raw('spanned(one.getAttribute("data-at"))')).toBe(true);
+    expect(raw('const AT = "data-at";')).toBe(true);
+    expect(raw("const NAMES = ['data-src', 'data-placed'];")).toBe(true);
+    expect(raw("one.dataset.at")).toBe(true);
+    expect(raw("page.querySelector(\".page > [data-at^='7-']\")")).toBe(true);
+    expect(raw('placeOf(one, "data-src") ?? placeOf(one, "data-placed")')).toBe(false);
+    expect(raw('placeCopied(img, card, "data-src", "data-placed")')).toBe(false);
+    expect(raw('one.removeAttribute("data-at")')).toBe(false);
+    expect(raw('sheet.querySelectorAll(":scope > [data-at]")')).toBe(false);
+  });
+
   it("never reads, writes or looks a place up by its words anywhere else", () => {
-    const raw =
-      /(get|set)Attribute\(\s*["'`]data-(at|src|placed)["'`]|dataset\s*\.\s*(at|src|placed)\b|\[data-(at|src|placed)\s*[\^$*~|]?=/;
     // A mutation run copies only the app, so the packages are read only where they are.
     const roots = ["src", "../packages"].filter((one) => existsSync(one));
-    const guilty = roots.flatMap(walk).filter((one) => raw.test(readFileSync(one, "utf8")));
+    const guilty = roots.flatMap(walk).filter((one) => raw(readFileSync(one, "utf8")));
 
     expect(guilty).toEqual([]);
   });

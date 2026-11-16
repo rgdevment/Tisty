@@ -1,29 +1,8 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { namesSum, type PlacedNear, summed } from "../placing";
+import { namesSum } from "../placing";
 import { patched } from "../ui/pagePatching";
 import { placeOf, placesSettled } from "../ui/pagePlaces";
-
-type Span = readonly [number, number];
-
-const spansSum = (spans: readonly Span[]) => summed(spans.flat());
-
-// The core answers how many blocks there are and a sum of those it did not draw again.
-const near = (drawn: {
-  spans: readonly Span[];
-  from: number;
-  to: number;
-  html: string;
-  heads?: readonly string[];
-  whole?: boolean;
-}): PlacedNear => ({
-  count: drawn.spans.length,
-  sum: spansSum([...drawn.spans.slice(0, drawn.from), ...drawn.spans.slice(drawn.to)]),
-  from: drawn.from,
-  to: drawn.to,
-  html: drawn.html,
-  heads: drawn.heads ? namesSum(drawn.heads) : null,
-  whole: drawn.whole ?? false,
-});
+import { near, type Span, spansSum } from "./nearing";
 
 const HEADED =
   '<h1 id="uno" data-at="0-5"><span data-src="2-5">Uno</span></h1>' +
