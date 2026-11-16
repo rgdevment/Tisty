@@ -1,8 +1,9 @@
-import { bytesAt, charsAt, spanned } from "tisty-editor/read";
+import { spanned } from "tisty-editor/read";
+import { byteFrom, unitFrom } from "../placing";
 import type { Span } from "./pageEdits";
 import { closing, opening } from "./pageLists";
 import { elementOf, ghostly, lineOfCaret, scrolledAround } from "./pageNodes";
-import { endOf, GHOST, ghostAt, sourceAt, spotOf } from "./pageSpots";
+import { endOf, GHOST, ghostAt, sourceAt, spotOf, topsAt } from "./pageSpots";
 import type { Point, Writer } from "./pageWriter";
 
 export type Caret = ReturnType<typeof caretOn>;
@@ -22,8 +23,9 @@ export const caretOn = (writer: Writer) => {
     const same = writer.kept && range.collapsed && range.startContainer === writer.kept.node;
     if (same && writer.kept && range.startOffset === writer.kept.offset)
       return { from: writer.kept.at, to: writer.kept.at };
-    const from = sourceAt(text, range.startContainer, range.startOffset);
-    const to = range.collapsed ? from : sourceAt(text, range.endContainer, range.endOffset);
+    const known = writer.reckoned;
+    const from = sourceAt(text, range.startContainer, range.startOffset, known);
+    const to = range.collapsed ? from : sourceAt(text, range.endContainer, range.endOffset, known);
     if (from === null || to === null) return null;
     return { from: Math.min(from, to), to: Math.max(from, to) };
   };
@@ -102,7 +104,7 @@ export const caretOn = (writer: Writer) => {
     const span = spanned(box?.getAttribute("data-at") ?? null);
     if (!summary || !span) return null;
     const text = hands.text();
-    const start = charsAt(text, span[0]);
+    const start = unitFrom(writer.reckoned, text, span[0]);
     const ends = text.indexOf("\n", start);
     const line = text.slice(start, ends < 0 ? text.length : ends).replace(/\r$/, "");
     const name = start + (/^:::\s*details\s?/.exec(line)?.[0].length ?? line.length);
@@ -114,11 +116,12 @@ export const caretOn = (writer: Writer) => {
 
   // A block drawn whole, as a widget, a formula, a table or a break, takes no caret in its source.
   const pastWhole = (text: string, at: number) => {
-    const byte = bytesAt(text, at);
-    for (const one of page.querySelectorAll(WHOLE)) {
+    const sheet = page.querySelector(".page");
+    const byte = byteFrom(writer.reckoned, text, at);
+    for (const one of sheet ? topsAt(sheet, byte) : []) {
       const span = spanned(one.getAttribute("data-at"));
-      if (!span || span[0] > byte || byte > span[1]) continue;
-      let end = charsAt(text, span[1]);
+      if (!span || !one.matches(WHOLE)) continue;
+      let end = unitFrom(writer.reckoned, text, span[1]);
       while (end > 0 && /[\r\n]/.test(text[end - 1] ?? "")) end--;
       return end;
     }
@@ -129,10 +132,10 @@ export const caretOn = (writer: Writer) => {
   const pastFront = (text: string, at: number) => {
     const front = page.querySelector(".page > .front[data-at]");
     const span = spanned(front?.getAttribute("data-at") ?? null);
-    if (!span || bytesAt(text, at) > span[1]) return null;
+    if (!span || byteFrom(writer.reckoned, text, at) > span[1]) return null;
     const next = spanned(front?.nextElementSibling?.getAttribute("data-at") ?? null);
     if (!next) return null;
-    const start = charsAt(text, next[0]);
+    const start = unitFrom(writer.reckoned, text, next[0]);
     return start + (/^[ \t]*(?:#{1,6}[ \t]+)?/.exec(text.slice(start))?.[0].length ?? 0);
   };
 
@@ -152,11 +155,11 @@ export const caretOn = (writer: Writer) => {
         lead: opening(text, past, ""),
         tail: closing(text, past),
       };
-    const unwritten = writer.kept.lead !== undefined || !spotOf(page, hands.text(), writer.kept.at);
-    const ghost = unwritten ? ghostAt(page, hands.text(), writer.kept.at) : null;
-    const found: [Node, number] | null = ghost
-      ? [ghost, 0]
-      : spotOf(page, hands.text(), writer.kept.at);
+    const known = writer.reckoned;
+    const spotAt = (at: number) => spotOf(page, hands.text(), at, known);
+    const unwritten = writer.kept.lead !== undefined || !spotAt(writer.kept.at);
+    const ghost = unwritten ? ghostAt(page, hands.text(), writer.kept.at, known) : null;
+    const found: [Node, number] | null = ghost ? [ghost, 0] : spotAt(writer.kept.at);
     if (!found) return;
     focused();
     const spot = summaryAt(found, writer.kept.at) ?? found;
@@ -211,14 +214,14 @@ export const caretOn = (writer: Writer) => {
   const blockEnd = (at: number) => {
     const anchor = elementOf(page.getSelection()?.anchorNode);
     const span = spanned(anchor?.closest(".page > [data-at]")?.getAttribute("data-at") ?? null);
-    return span ? charsAt(hands.text(), span[1]) : at;
+    return span ? unitFrom(writer.reckoned, hands.text(), span[1]) : at;
   };
 
   // Only a paragraph is turned whole, from its first line, as a line broken inside it still belongs to it.
   const paragraphStart = () => {
     const anchor = elementOf(page.getSelection()?.anchorNode);
     const span = spanned(anchor?.closest(".page > p[data-at]")?.getAttribute("data-at") ?? null);
-    return span ? charsAt(hands.text(), span[0]) : null;
+    return span ? unitFrom(writer.reckoned, hands.text(), span[0]) : null;
   };
 
   const blockOfCaret = () =>
