@@ -901,6 +901,8 @@ pub struct Filed {
     tongue: Option<(String, usize)>,
     #[serde(skip_serializing_if = "std::ops::Not::not")]
     tongue_apart: bool,
+    #[serde(skip_serializing_if = "std::ops::Not::not")]
+    diary: bool,
 }
 
 #[derive(serde::Serialize)]
@@ -994,6 +996,7 @@ pub fn docs_catch_up(session: tauri::State<'_, Mutex<Session>>) -> Answer<Vec<Fi
                         lang: None,
                         key: None,
                         brainstorm: false,
+                        diary: false,
                     })
                     .by(None);
                 said.news_for(kept).then_some(Op::DocSaid {
@@ -1025,6 +1028,7 @@ fn gathered(session: &Session) -> Vec<Filed> {
     let mut kept_in_order: Vec<&tisty_core::model::Kept> = session.state.papers().collect();
     kept_in_order.sort_by(|a, b| a.order.cmp(&b.order).then(a.id.cmp(&b.id)));
     let tongues = super::tongues::standing(&session.state);
+    let diaries = tisty_core::diary::books(&session.paths.docs(), &session.state);
     let apart = session.state.apart();
     let shelf = tisty_sharing::remembered(&session.state);
 
@@ -1068,6 +1072,7 @@ fn gathered(session: &Session) -> Vec<Filed> {
             lang: kept.lang.clone(),
             tongue: tongues.get(&kept.id).cloned(),
             tongue_apart: apart.contains(&kept.id),
+            diary: tisty_core::diary::within(&diaries, kept),
         })
         .collect()
 }

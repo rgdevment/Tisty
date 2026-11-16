@@ -204,6 +204,7 @@ const KNOWN = [
   "notOneOwnDoc",
   "onlyADocumentShared",
   "brainstormStaysHere",
+  "diaryStaysHere",
   "noIdentityToSign",
   "cannotSeal",
   "cannotFinish",

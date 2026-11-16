@@ -1,6 +1,7 @@
 import { chosenWidth, railed, useBreadth } from "./breadth";
 import { docFile, folderFile } from "./core";
 import { DeskProvider, deskOf } from "./desk";
+import { diaryToday } from "./diary";
 import { hereChoices } from "./docMenus";
 import { cameFrom } from "./guide/help";
 import { t } from "./locales";
@@ -107,6 +108,14 @@ export default function App() {
               .catch((e) => setError(saidPlainly(e)))
           }
           onPage={(doc, pageOf) => hangIt(doc, pageOf)}
+          onDiary={() =>
+            diaryToday()
+              .then((today) => {
+                papersChanged();
+                choose({ named: "docs", doc: today.page });
+              })
+              .catch((e) => setError(saidPlainly(e)))
+          }
           onFolderMenu={folderMenu}
           onDocMenu={docMenu}
           onHereMenu={hereMenu}

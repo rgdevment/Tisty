@@ -135,6 +135,10 @@ pub fn brainstorm(text: &str) -> bool {
     said_in(&fields(text), "brainstorm").as_deref() == Some("on")
 }
 
+pub fn diary(text: &str) -> bool {
+    said_in(&fields(text), "diary").as_deref() == Some("on")
+}
+
 pub fn laid(text: &str) -> Laid {
     let all = fields(text);
     let said = |key: &str| said_in(&all, key);
