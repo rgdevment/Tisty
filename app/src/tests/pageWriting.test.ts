@@ -1,5 +1,5 @@
 import { SLASHED, type Slashed } from "tisty-editor/edit";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { movedWords } from "../ui/pageDragging";
 import { sourceAt, spotOf } from "../ui/pageSpots";
 import { type Hands, type PageWriting, turnsAnew, writtenOn } from "../ui/pageWriting";
@@ -1889,5 +1889,18 @@ describe("a block asked for on a line just begun", () => {
     expect(said[said.length - 1]).toBe(
       "Uno\n\n```widget\n<b>1</b>\n```\n\na\n\n- [ ] Z\n\n## Dos\n",
     );
+  });
+});
+
+describe("a writer stopped", () => {
+  it("lays nothing beside the line once stopped, though a caret was placed just before", () => {
+    writer();
+    writing?.placeAt(3);
+    writing?.stop();
+    writing = null;
+    const looked = vi.spyOn(document, "getSelection");
+    vi.advanceTimersByTime(1000);
+    expect(looked).not.toHaveBeenCalled();
+    looked.mockRestore();
   });
 });

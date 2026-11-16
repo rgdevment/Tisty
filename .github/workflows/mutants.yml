@@ -20,41 +20,39 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     outputs:
-      mutable: ${{ steps.look.outputs.mutable }}
+      crates: ${{ steps.look.outputs.crates }}
+      crates_of: ${{ steps.look.outputs.crates_of }}
+      window: ${{ steps.look.outputs.window }}
+      window_of: ${{ steps.look.outputs.window_of }}
+      packages: ${{ steps.look.outputs.packages }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
           persist-credentials: false
 
-      - id: look
+      - name: How many parts the branch's lines take
+        id: look
         env:
           BASE: ${{ github.event.pull_request.base.sha }}
           ACTOR: ${{ github.actor }}
         run: |
-          # A dependency bump changes no line of ours, even when it touches a crate's manifest.
-          if [ "$ACTOR" = "dependabot[bot]" ]; then
-            echo "mutable=false" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-          watched='^(crates/|app/src/|packages/|\.cargo/mutants\.toml$|app/stryker\.config\.json$|app/vite\.mutants\.config\.ts$|\.github/workflows/mutants\.yml$)'
           from=$(git merge-base "$BASE" HEAD)
-          if git diff --name-only --diff-filter=d "$from" HEAD | grep -qE "$watched"; then
-            echo "mutable=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "mutable=false" >> "$GITHUB_OUTPUT"
-          fi
+          # A dependency bump changes no line of ours, even when it touches a crate's manifest.
+          if [ "$ACTOR" = "dependabot[bot]" ]; then from=HEAD; fi
+          sizes=$(bash scripts/mutants-parts.sh sizes "$from")
+          echo "$sizes" | tee -a "$GITHUB_OUTPUT"
 
   crates-on-the-branch:
-    name: crates / part ${{ matrix.part }} of 8
+    name: crates / part ${{ matrix.part }} of ${{ needs.changes.outputs.crates_of }}
     needs: changes
-    if: needs.changes.outputs.mutable == 'true'
+    if: needs.changes.outputs.crates_of != '0'
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     strategy:
       fail-fast: false
       matrix:
-        part: [1, 2, 3, 4, 5, 6, 7, 8]
+        part: ${{ fromJSON(needs.changes.outputs.crates) }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -91,16 +89,17 @@ jobs:
         if: steps.touched.outputs.any == 'yes'
         env:
           PART: ${{ matrix.part }}
+          OF: ${{ needs.changes.outputs.crates_of }}
         run: |
           set +e
-          cargo mutants --in-diff branch.diff --workspace -j 2 --shard "$((PART - 1))/8"
+          cargo mutants --in-diff branch.diff --workspace -j 2 --shard "$((PART - 1))/$OF"
           echo "code=$?" >> "$GITHUB_OUTPUT"
 
       - name: What survived
         if: always() && steps.touched.outputs.any == 'yes'
         env:
           CODE: ${{ steps.run.outputs.code }}
-          TITLE: The lines this branch changed, part ${{ matrix.part }} of 8
+          TITLE: The lines this branch changed, part ${{ matrix.part }} of ${{ needs.changes.outputs.crates_of }}
         run: bash scripts/mutants-report.sh
 
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -127,15 +126,15 @@ jobs:
             || { echo "::error::the mutants ended as $RESULT"; exit 1; }
 
   window-on-the-branch:
-    name: window / part ${{ matrix.part }} of 12
+    name: window / part ${{ matrix.part }} of ${{ needs.changes.outputs.window_of }}
     needs: changes
-    if: needs.changes.outputs.mutable == 'true'
+    if: needs.changes.outputs.window_of != '0'
     runs-on: ubuntu-24.04
     timeout-minutes: 120
     strategy:
       fail-fast: false
       matrix:
-        part: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+        part: ${{ fromJSON(needs.changes.outputs.window) }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -145,38 +144,13 @@ jobs:
       # A branch that rewrites the editor carries thousands of mutants: one runner alone outlasts its hour.
       - name: What the branch changed in the window, dealt out so the parts weigh the same
         id: touched
-        working-directory: app
         env:
           BASE: ${{ github.event.pull_request.base.sha }}
           PART: ${{ matrix.part }}
+          OF: ${{ needs.changes.outputs.window_of }}
         run: |
           from=$(git merge-base "$BASE" HEAD)
-          list=$(git diff --unified=0 --relative --diff-filter=d "$from" -- src \
-            | awk '
-                /^\+\+\+ b\// { f = substr($2, 3); next }
-                /^@@/ {
-                  if (f !~ /\.tsx?$/) next
-                  if (f ~ /^src\/tests\//) next
-                  if (f ~ /^src\/(marks|glyphs|locales|synonyms)\.ts$/) next
-                  if (f ~ /^src\/main\.tsx$/) next
-                  if (f ~ /\.d\.ts$/) next
-                  split($3, a, ",")
-                  start = substr(a[1], 2) + 0
-                  len = (a[2] == "" ? 1 : a[2] + 0)
-                  if (len > 0) print len, f ":" start "-" start + len - 1
-                }' \
-            | sort -rn \
-            | awk -v part="$PART" -v many=12 '
-                { range[NR] = $2; wide[NR] = $1; count = NR }
-                END {
-                  for (i = 1; i <= count; i++) {
-                    least = 1
-                    for (s = 2; s <= many; s++) if (load[s] < load[least]) least = s
-                    load[least] += wide[i]
-                    if (least == part) print range[i]
-                  }
-                }' \
-            | paste -sd, -)
+          list=$(bash scripts/mutants-parts.sh window "$from" "$PART" "$OF")
           echo "list=$list" >> "$GITHUB_OUTPUT"
 
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
@@ -208,7 +182,7 @@ jobs:
   packages-on-the-branch:
     name: window / the packages this branch changed
     needs: changes
-    if: needs.changes.outputs.mutable == 'true'
+    if: needs.changes.outputs.packages == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     steps:

@@ -13,7 +13,8 @@ vi.mock("@tauri-apps/api/core", () => ({
   },
 }));
 
-import { checkOf, docPlaced, docPlacedNear } from "../placing";
+import { bytesAt } from "tisty-editor/read";
+import { byteFrom, checkOf, docPlaced, docPlacedNear, unitFrom } from "../placing";
 
 const BYTES = new TextEncoder();
 const NEAR = { count: 1, sum: [1, 2], from: 0, to: 1, html: "<p>Unos</p>", heads: null };
@@ -73,5 +74,30 @@ describe("the reckoning of a text the core is told", () => {
     const [otherFnv, otherMixed] = checkOf("Uno des").hash;
     expect(fnv).not.toBe(otherFnv);
     expect(mixed).not.toBe(otherMixed);
+  });
+});
+
+describe("a place counted from where the last key landed", () => {
+  it("gives the bytes and the place the whole text gives, from any key or none", () => {
+    const text = "Uno ñandú 😀 dos 中文\r\nfin 😁.";
+    const every = Array.from({ length: text.length + 1 }, (_, at) => at).filter(
+      (at) => !(at > 0 && text.charCodeAt(at - 1) >= 0xd800 && text.charCodeAt(at - 1) < 0xdc00),
+    );
+    for (const landed of [null, ...every]) {
+      const known =
+        landed === null
+          ? null
+          : { text, check: checkOf(text), unit: landed, byte: bytesAt(text, landed) };
+      for (const at of every) {
+        expect(byteFrom(known, text, at)).toBe(bytesAt(text, at));
+        expect(unitFrom(known, text, bytesAt(text, at))).toBe(at);
+      }
+    }
+  });
+
+  it("reads the text afresh when it is not the one the key landed on", () => {
+    const known = { text: "Uno", check: checkOf("Uno"), unit: 3, byte: 3 };
+    expect(byteFrom(known, "Año", 3)).toBe(4);
+    expect(unitFrom(known, "Año", 4)).toBe(3);
   });
 });

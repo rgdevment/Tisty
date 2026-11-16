@@ -1,10 +1,46 @@
-import { bytesAt, charsAt, spanned } from "tisty-editor/read";
+import { spanned } from "tisty-editor/read";
+import { byteFrom, type Reckoned, unitFrom } from "../placing";
 
 const PLACED = "[data-src]";
 const BLOCK = "[data-at]";
 
 const spanOf = (one: Element) => spanned(one.getAttribute("data-src"));
+export const placeOf = (one: Element) => spanned(one.getAttribute("data-at"));
 const solid = (one: Element) => one.getAttribute("contenteditable") === "false";
+
+const placedFrom = (tops: HTMLCollection, at: number, until: number) => {
+  for (let next = at; next < until; next++) {
+    const place = placeOf(tops[next]);
+    if (place) return place;
+  }
+  return null;
+};
+
+// The blocks at the top of the sheet lie in the order of their places, so the first that reaches a byte is found by halving.
+const firstReaching = (sheet: Element, byte: number, past: boolean) => {
+  const tops = sheet.children;
+  let low = 0;
+  let high = tops.length;
+  while (low < high) {
+    const middle = (low + high) >> 1;
+    const place = placedFrom(tops, middle, high);
+    if (!place || (past ? place[1] > byte : place[1] >= byte)) high = middle;
+    else low = middle + 1;
+  }
+  return low;
+};
+
+export const topsAt = (sheet: Element, byte: number): Element[] => {
+  const found: Element[] = [];
+  const tops = sheet.children;
+  for (let at = firstReaching(sheet, byte, false); at < tops.length; at++) {
+    const place = placeOf(tops[at]);
+    if (!place) continue;
+    if (place[0] > byte) break;
+    found.push(tops[at]);
+  }
+  return found;
+};
 
 const pointIn = (page: Document, node: Node, offset: number) => {
   const point = page.createRange();
@@ -14,23 +50,42 @@ const pointIn = (page: Document, node: Node, offset: number) => {
 
 // A point between pieces of words takes the nearest one in its own block, or the block's end when it has none.
 // A point on the sheet outside every block, as its margin or a page with nothing yet, writes after the block before it.
-const between = (body: string, sheet: Element, node: Node, offset: number): number => {
+const between = (
+  body: string,
+  sheet: Element,
+  node: Node,
+  offset: number,
+  known: Reckoned | null,
+): number => {
   const page = sheet.ownerDocument;
-  let end = 0;
-  for (const one of sheet.querySelectorAll(":scope > [data-at]")) {
+  const tops = sheet.children;
+  const reached = (one: Element) => {
     const start = page.createRange();
     start.setStartBefore(one);
-    if (start.comparePoint(node, offset) <= 0) break;
-    end = spanned(one.getAttribute("data-at"))?.[1] ?? end;
+    return start.comparePoint(node, offset) <= 0;
+  };
+  let low = 0;
+  let high = tops.length;
+  while (low < high) {
+    const middle = (low + high) >> 1;
+    if (reached(tops[middle])) high = middle;
+    else low = middle + 1;
   }
-  return end > 0 ? charsAt(body, end) : 0;
+  let end = 0;
+  for (let at = low - 1; at >= 0 && end === 0; at--) end = placeOf(tops[at])?.[1] ?? 0;
+  return end > 0 ? unitFrom(known, body, end) : 0;
 };
 
-const nearest = (body: string, node: Node, offset: number): number | null => {
+const nearest = (
+  body: string,
+  node: Node,
+  offset: number,
+  known: Reckoned | null,
+): number | null => {
   const element = node.nodeType === Node.ELEMENT_NODE ? (node as Element) : node.parentElement;
   const block = element?.closest(BLOCK);
   const sheet = element?.closest(".page");
-  if (!block) return sheet ? between(body, sheet, node, offset) : null;
+  if (!block) return sheet ? between(body, sheet, node, offset, known) : null;
   const page = block.ownerDocument;
   let before: Element | null = null;
   for (const one of block.querySelectorAll(PLACED)) {
@@ -38,33 +93,38 @@ const nearest = (body: string, node: Node, offset: number): number | null => {
     start.setStartBefore(one);
     if (start.comparePoint(node, offset) <= 0) {
       const at = spanOf(one);
-      return at ? charsAt(body, at[0]) : null;
+      return at ? unitFrom(known, body, at[0]) : null;
     }
     before = one;
   }
   if (before) {
     const at = spanOf(before);
-    return at ? charsAt(body, at[1]) : null;
+    return at ? unitFrom(known, body, at[1]) : null;
   }
   const at = spanned(block.getAttribute("data-at"));
   if (!at) return null;
   // A block with no words yet, as a step just begun, is written before the line break that ends it.
-  const start = charsAt(body, at[0]);
-  let end = charsAt(body, at[1]);
+  const start = unitFrom(known, body, at[0]);
+  let end = unitFrom(known, body, at[1]);
   while (end > start && /[\r\n]/.test(body[end - 1] ?? "")) end--;
   return end;
 };
 
-export const sourceAt = (body: string, node: Node, offset: number): number | null => {
+export const sourceAt = (
+  body: string,
+  node: Node,
+  offset: number,
+  known: Reckoned | null = null,
+): number | null => {
   const element = node.nodeType === Node.ELEMENT_NODE ? (node as Element) : node.parentElement;
   const placed = element?.closest(PLACED);
-  if (!placed) return nearest(body, node, offset);
+  if (!placed) return nearest(body, node, offset, known);
   const at = spanOf(placed);
   if (!at) return null;
-  if (solid(placed)) return charsAt(body, at[1]);
+  if (solid(placed)) return unitFrom(known, body, at[1]);
   const run = pointIn(placed.ownerDocument, placed, 0);
   run.setEnd(node, offset);
-  return charsAt(body, at[0]) + run.toString().length;
+  return unitFrom(known, body, at[0]) + run.toString().length;
 };
 
 const textAt = (holder: Element, chars: number): [Node, number] => {
@@ -80,21 +140,29 @@ const textAt = (holder: Element, chars: number): [Node, number] => {
 };
 
 const innermost = (page: Document, byte: number): Element | null => {
+  const sheet = page.querySelector(".page");
   let found: Element | null = null;
   let size = Number.POSITIVE_INFINITY;
-  for (const one of page.querySelectorAll(`.page ${BLOCK}`)) {
-    const at = spanned(one.getAttribute("data-at"));
-    if (at && at[0] <= byte && byte <= at[1] && at[1] - at[0] <= size) {
-      found = one;
-      size = at[1] - at[0];
+  for (const top of sheet ? topsAt(sheet, byte) : []) {
+    for (const one of [top, ...top.querySelectorAll(BLOCK)]) {
+      const at = placeOf(one);
+      if (at && at[0] <= byte && byte <= at[1] && at[1] - at[0] <= size) {
+        found = one;
+        size = at[1] - at[0];
+      }
     }
   }
   return found;
 };
 
 // Where the caret goes for a place in the words: inside the piece that holds it, or beside the nearest one.
-export const spotOf = (page: Document, body: string, chars: number): [Node, number] | null => {
-  const byte = bytesAt(body, chars);
+export const spotOf = (
+  page: Document,
+  body: string,
+  chars: number,
+  known: Reckoned | null = null,
+): [Node, number] | null => {
+  const byte = byteFrom(known, body, chars);
   const block = innermost(page, byte);
   if (!block) return null;
   let before: Element | null = null;
@@ -105,7 +173,7 @@ export const spotOf = (page: Document, body: string, chars: number): [Node, numb
     const at = spanOf(one);
     if (!at) continue;
     if (at[0] <= byte && byte <= at[1] && !solid(one))
-      return textAt(one, chars - charsAt(body, at[0]));
+      return textAt(one, chars - unitFrom(known, body, at[0]));
     if (at[0] >= byte) {
       const parent = one.parentNode;
       if (!parent) return null;
@@ -136,14 +204,18 @@ export const endIn = (block: Element): [Node, number] => {
 export const GHOST = "[data-ghost]";
 
 // A paragraph just begun holds no words yet, so the core draws nothing there; one stands in until it does.
-export const ghostAt = (page: Document, body: string, chars: number): HTMLElement | null => {
+export const ghostAt = (
+  page: Document,
+  body: string,
+  chars: number,
+  known: Reckoned | null = null,
+): HTMLElement | null => {
   const sheet = page.querySelector(".page");
   if (!sheet) return null;
-  const byte = bytesAt(body, chars);
+  const byte = byteFrom(known, body, chars);
   let after: Element | null = null;
-  for (const one of sheet.querySelectorAll(":scope > [data-at]")) {
-    const at = spanned(one.getAttribute("data-at"));
-    if (at && at[1] <= byte) after = one;
+  for (let at = firstReaching(sheet, byte, true) - 1; at >= 0 && !after; at--) {
+    if (placeOf(sheet.children[at])) after = sheet.children[at];
   }
   // A page with nothing written yet shows where its title goes, and that is where its first line begins.
   const title = after ? null : sheet.querySelector<HTMLElement>(":scope > h1[data-title]");

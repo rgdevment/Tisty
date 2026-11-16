@@ -1,40 +1,34 @@
-import { bytesIn, type Check, checkAfter, checkOf } from "../placing";
+import { byteFrom, bytesIn, checkAfter, checkOf, type Reckoned } from "../placing";
 import type { Caret } from "./pageCaret";
 import { applied, type Edit, inWholeChars, linedAs } from "./pageEdits";
+import { opened } from "./pageNodes";
 import { patched } from "./pagePatching";
 import { recorded, type Writer } from "./pageWriter";
 
 // What the rest of the window reads of the page catches up once the keys rest, not on each one.
 const RESTED_MS = 250;
 
-type Reckoned = {
-  readonly text: string;
-  readonly check: Check;
-  readonly unit: number;
-  readonly byte: number;
-};
-
-const byteOf = (known: Reckoned, unit: number) =>
-  unit >= known.unit
-    ? known.byte + bytesIn(known.text, known.unit, unit)
-    : known.byte - bytesIn(known.text, unit, known.unit);
-
 export type Laying = ReturnType<typeof layingOn>;
 
-export const layingOn = (writer: Writer, caret: Caret, drawn: () => void) => {
+export const layingOn = (
+  writer: Writer,
+  caret: Caret,
+  drawn: (laid?: readonly Element[]) => void,
+) => {
   const { page, hands } = writer;
   let laying: Promise<void> = Promise.resolve();
   let resting: ReturnType<typeof setTimeout> | undefined;
   let unsaid: string | null = null;
   let over = false;
-  // What the core was last told, so the next key is counted from where this one landed.
-  let reckoned: Reckoned | null = null;
 
-  const reckonedOf = (text: string): Reckoned =>
-    reckoned?.text === text ? reckoned : { text, check: checkOf(text), unit: 0, byte: 0 };
+  const reckonedOf = (text: string, unit: number): Reckoned => {
+    if (writer.reckoned?.text === text) return writer.reckoned;
+    const byte = bytesIn(text, 0, unit);
+    return { text, check: checkOf(text, byte + bytesIn(text, unit)), unit, byte };
+  };
 
   const redrawn = () => {
-    reckoned = null;
+    writer.reckoned = null;
     writer.whole = true;
     return hands.redraw(hands.text());
   };
@@ -65,13 +59,18 @@ export const layingOn = (writer: Writer, caret: Caret, drawn: () => void) => {
       clearTimeout(resting);
       if (writer.whole) return redrawn();
       const one = inWholeChars(was, asked);
-      const known = reckonedOf(was);
-      const from = byteOf(known, one.from);
+      const known = reckonedOf(was, one.from);
+      const from = byteFrom(known, was, one.from);
       const removed = bytesIn(was, one.from, one.to);
       const added = bytesIn(one.insert);
       const edit = { from, to: from + removed, insert: one.insert };
       const check = checkAfter(known.check, edit);
-      reckoned = { text: now, check, unit: one.from + one.insert.length, byte: from + added };
+      writer.reckoned = {
+        text: now,
+        check,
+        unit: one.from + one.insert.length,
+        byte: from + added,
+      };
       const sent = { body: now, was: known.check, now: check, edit };
       const near = await hands.near(sent, from, from + added).catch(() => null);
       if (over) return;
@@ -79,8 +78,9 @@ export const layingOn = (writer: Writer, caret: Caret, drawn: () => void) => {
       const laid = sheet && near && patched(sheet, near, added - removed);
       if (!sheet || !laid) return redrawn();
       hands.dressed(sheet, laid);
+      opened(page, laid);
       rested(now);
-      if (hands.text() === now) drawn();
+      if (hands.text() === now) drawn(laid);
     });
   };
 

@@ -1,5 +1,5 @@
 import type { Asking } from "tisty-editor/edit";
-import type { PlacedNear, Sent } from "../placing";
+import type { PlacedNear, Reckoned, Sent } from "../placing";
 import type { Anchor } from "./dressing";
 import { changeOf, type Span } from "./pageEdits";
 import type { Marks } from "./pageMarks";
@@ -93,6 +93,7 @@ export type Writer = {
   whole: boolean;
   lastChosen: Span | null;
   leftFrom: string | null | undefined;
+  reckoned: Reckoned | null;
 };
 
 export const writerOf = (page: Document, hands: Hands): Writer => ({
@@ -106,4 +107,5 @@ export const writerOf = (page: Document, hands: Hands): Writer => ({
   whole: false,
   lastChosen: null,
   leftFrom: undefined,
+  reckoned: null,
 });

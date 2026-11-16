@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { ghostAt, sourceAt, spotOf } from "../ui/pageSpots";
+import { checkOf } from "../placing";
+import { ghostAt, sourceAt, spotOf, topsAt } from "../ui/pageSpots";
 
 const BODY = "Uno :dog: **dos**\n\n- \n\nFin";
 const PAGE =
@@ -85,5 +86,47 @@ describe("the places of a page written in place", () => {
     const title = document.querySelector("h1");
     expect(ghostAt(document, "", 0)).toBe(title);
     expect(document.querySelectorAll(".page > *")).toHaveLength(1);
+  });
+});
+
+describe("the blocks of a long page, found by halving", () => {
+  const LONG = Array.from(
+    { length: 41 },
+    (_, at) =>
+      `<p data-at="${at * 10}-${at * 10 + 8}"><span data-src="${at * 10}-${at * 10 + 8}">uno</span></p>`,
+  ).join("");
+
+  it("finds the block that holds a byte, past the stand-ins with no place", () => {
+    const sheet = sheetOf(`<p data-ghost=""></p>${LONG}<h1 data-title=""></h1>`);
+    for (const byte of [0, 7, 9, 205, 400, 408]) {
+      const held = Array.from(sheet.querySelectorAll(":scope > [data-at]")).filter((one) => {
+        const [from, to] = (one.getAttribute("data-at") ?? "").split("-").map(Number);
+        return from <= byte && byte <= to;
+      });
+      expect(topsAt(sheet, byte)).toEqual(held);
+    }
+    expect(topsAt(sheet, 409)).toEqual([]);
+  });
+
+  it("writes on the margin of a long sheet after the block before the point", () => {
+    const sheet = sheetOf(LONG);
+    const text = "x".repeat(410);
+    expect(sourceAt(text, sheet, 0)).toBe(0);
+    expect(sourceAt(text, sheet, 21)).toBe(208);
+    expect(sourceAt(text, sheet, 41)).toBe(408);
+  });
+
+  it("finds both blocks that meet at a byte", () => {
+    const sheet = sheetOf('<p data-at="0-4"></p><p data-at="4-9"></p><p data-at="11-12"></p>');
+    expect(topsAt(sheet, 4)).toEqual([sheet.children[0], sheet.children[1]]);
+  });
+
+  it("lays the caret and the stand-in alike counted from where the last key landed", () => {
+    const text = "x".repeat(410);
+    const known = { text, check: checkOf(text), unit: 205, byte: 205 };
+    sheetOf(LONG);
+    expect(spotOf(document, text, 203, known)).toEqual(spotOf(document, text, 203));
+    const ghost = ghostAt(document, text, 209, known);
+    expect(ghost?.previousElementSibling?.getAttribute("data-at")).toBe("200-208");
   });
 });

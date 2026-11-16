@@ -8,6 +8,7 @@ pub mod diagrams;
 #[cfg(feature = "emoji")]
 mod emoji;
 pub mod fences;
+mod filing;
 pub mod front;
 #[cfg(feature = "tables")]
 pub mod grid;
@@ -64,6 +65,7 @@ pub struct Doc {
     blocks: Vec<Block>,
     crossing: bool,
     labels: [u32; 2],
+    filing: Box<filing::Filing>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -380,7 +382,7 @@ impl Doc {
         &self.blocks
     }
 
-    /// Two texts with the same labels link and footnote every block alike.
+    /// Two texts with the same labels link, footnote and tag every block alike.
     pub fn labels(&self) -> [u32; 2] {
         self.labels
     }
