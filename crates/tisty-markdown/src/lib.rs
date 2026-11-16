@@ -63,6 +63,7 @@ pub struct Doc {
     text: String,
     blocks: Vec<Block>,
     crossing: bool,
+    labels: [u32; 2],
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -377,6 +378,11 @@ impl Doc {
 
     pub fn blocks(&self) -> &[Block] {
         &self.blocks
+    }
+
+    /// Two texts with the same labels link and footnote every block alike.
+    pub fn labels(&self) -> [u32; 2] {
+        self.labels
     }
 
     pub fn said(&self, block: &Block) -> &str {

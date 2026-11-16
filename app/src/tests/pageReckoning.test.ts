@@ -61,6 +61,7 @@ const coreOf = (body: string) => {
       to: 0,
       html: "",
       heads: null,
+      whole: false,
     });
   };
   const seeded = (now: string) => {

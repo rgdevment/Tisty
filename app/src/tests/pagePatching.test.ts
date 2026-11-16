@@ -13,6 +13,7 @@ const near = (drawn: {
   to: number;
   html: string;
   heads?: readonly string[];
+  whole?: boolean;
 }): PlacedNear => ({
   count: drawn.spans.length,
   sum: spansSum([...drawn.spans.slice(0, drawn.from), ...drawn.spans.slice(drawn.to)]),
@@ -20,6 +21,7 @@ const near = (drawn: {
   to: drawn.to,
   html: drawn.html,
   heads: drawn.heads ? namesSum(drawn.heads) : null,
+  whole: drawn.whole ?? false,
 });
 
 const HEADED =
@@ -239,6 +241,26 @@ describe("a page written on, changed only where the core drew it again", () => {
     ];
     expect(spansSum(three)).toEqual([0xc7956160, 0x9bfc67d1]);
     expect(spansSum([])).toEqual([0x811c9dc5, 0x9747b28c]);
+  });
+
+  it("asks for the whole page when a key defines a link or a footnote otherwise", () => {
+    const sheet = sheetOf();
+    const before = sheet.innerHTML;
+    const defined = (whole: boolean) =>
+      near({
+        spans: [
+          [0, 4],
+          [6, 10],
+          [12, 18],
+        ],
+        from: 2,
+        to: 3,
+        html: '<p class="refdef" data-at="12-18"><span class="refdef-label">[x]</span></p>',
+        whole,
+      });
+    expect(patched(sheet, defined(true), 0)).toBeNull();
+    expect(sheet.innerHTML).toBe(before);
+    expect(patched(sheet, defined(false), 0)).toHaveLength(1);
   });
 
   it("asks for the whole page when a block it draws lends something of its own", () => {

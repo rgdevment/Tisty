@@ -35,16 +35,21 @@ fn a_key_on_a_page_of_500_kb() {
     let doc = tisty_markdown::read(&text);
     timed("tags_in", 10, || tisty_markdown::tags::tags_in(&text));
     timed("placed_near", 10, || {
-        tisty_markdown::placed_near(&doc, middle, middle + 1)
+        tisty_markdown::placed_near(&doc, middle, middle + 1, Some(doc.labels()))
     });
     let heading = text[middle..]
         .find("\n# ")
         .map_or(middle, |at| middle + at + 3);
     timed("placed_near in a heading", 10, || {
-        tisty_markdown::placed_near(&doc, heading, heading + 1)
+        tisty_markdown::placed_near(&doc, heading, heading + 1, Some(doc.labels()))
     });
     timed("read + placed_near", 10, || {
-        tisty_markdown::placed_near(&tisty_markdown::read(&text), middle, middle + 1)
+        tisty_markdown::placed_near(
+            &tisty_markdown::read(&text),
+            middle,
+            middle + 1,
+            Some(doc.labels()),
+        )
     });
     let at = (0..=middle)
         .rev()

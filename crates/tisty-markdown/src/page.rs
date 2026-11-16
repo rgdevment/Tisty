@@ -39,6 +39,8 @@ pub struct Near {
     pub html: String,
     // A heading's name hangs on those before it, so only one drawn again can rename those it did not.
     pub heads: Option<[u32; 2]>,
+    // A link or a footnote reads by a label written anywhere, so a key that changes one can change any block.
+    pub whole: bool,
 }
 
 fn summed(numbers: impl IntoIterator<Item = u32>) -> [u32; 2] {
@@ -70,7 +72,7 @@ fn holds_heading(blocks: &[Block]) -> bool {
         .any(|one| matches!(one.kind, Kind::Heading(_)) || holds_heading(&one.inner))
 }
 
-pub fn placed_near(doc: &Doc, from: usize, to: usize) -> Near {
+pub fn placed_near(doc: &Doc, from: usize, to: usize, shown: Option<[u32; 2]>) -> Near {
     let blocks = doc.blocks();
     let first = blocks.partition_point(|one| one.at.end < from);
     let last = blocks.partition_point(|one| one.at.start <= to);
@@ -104,6 +106,7 @@ pub fn placed_near(doc: &Doc, from: usize, to: usize) -> Near {
         drawn,
         html,
         heads,
+        whole: shown != Some(doc.labels()),
     }
 }
 

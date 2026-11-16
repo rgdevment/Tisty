@@ -57,14 +57,17 @@ impl Placing {
         body: &str,
         check: Check,
         again: bool,
-        drawn: impl FnOnce(&tisty_markdown::Doc) -> T,
+        drawn: impl FnOnce(&tisty_markdown::Doc, Option<[u32; 2]>) -> T,
     ) -> T {
         let mut held = self.held();
-        let doc = match held.remove(window) {
-            Some(was) if again => tisty_markdown::reread(was.doc, body),
-            _ => tisty_markdown::read(body),
+        let (doc, shown) = match held.remove(window) {
+            Some(was) if again => {
+                let shown = was.doc.labels();
+                (tisty_markdown::reread(was.doc, body), Some(shown))
+            }
+            _ => (tisty_markdown::read(body), None),
         };
-        let said = drawn(&doc);
+        let said = drawn(&doc, shown);
         held.insert(window.to_string(), Held { doc, check });
         said
     }
@@ -74,7 +77,7 @@ impl Placing {
         window: &str,
         edit: &Edit,
         now: Check,
-        drawn: impl FnOnce(&tisty_markdown::Doc) -> T,
+        drawn: impl FnOnce(&tisty_markdown::Doc, Option<[u32; 2]>) -> T,
     ) -> Option<T> {
         let mut held = self.held();
         let was = edit.was;
@@ -88,9 +91,10 @@ impl Placing {
             return None;
         }
         let one = held.remove(window)?;
+        let shown = one.doc.labels();
         match tisty_markdown::reread_edit(one.doc, edit.from..edit.to, &edit.insert) {
             Ok(doc) => {
-                let said = drawn(&doc);
+                let said = drawn(&doc, Some(shown));
                 held.insert(window.to_string(), Held { doc, check: now });
                 Some(said)
             }
@@ -114,13 +118,9 @@ pub fn doc_placed(
     body: String,
     check: Check,
 ) -> tauri::ipc::Response {
-    let html = placing.read(
-        window.label(),
-        &body,
-        check,
-        false,
-        tisty_markdown::html_placed,
-    );
+    let html = placing.read(window.label(), &body, check, false, |doc, _| {
+        tisty_markdown::html_placed(doc)
+    });
     tauri::ipc::Response::new(html.into_bytes())
 }
 
@@ -132,10 +132,16 @@ pub struct PlacedNear {
     to: usize,
     html: String,
     heads: Option<[u32; 2]>,
+    whole: bool,
 }
 
-fn placed_near(doc: &tisty_markdown::Doc, from: usize, to: usize) -> PlacedNear {
-    let near = tisty_markdown::placed_near(doc, from, to);
+fn placed_near(
+    doc: &tisty_markdown::Doc,
+    from: usize,
+    to: usize,
+    shown: Option<[u32; 2]>,
+) -> PlacedNear {
+    let near = tisty_markdown::placed_near(doc, from, to, shown);
     PlacedNear {
         count: near.count,
         sum: near.sum,
@@ -143,6 +149,7 @@ fn placed_near(doc: &tisty_markdown::Doc, from: usize, to: usize) -> PlacedNear 
         to: near.drawn.end,
         html: near.html,
         heads: near.heads,
+        whole: near.whole,
     }
 }
 
@@ -156,7 +163,7 @@ pub fn doc_placed_near(
     from: usize,
     to: usize,
 ) -> Option<PlacedNear> {
-    let drawn = |doc: &tisty_markdown::Doc| placed_near(doc, from, to);
+    let drawn = |doc: &tisty_markdown::Doc, shown| placed_near(doc, from, to, shown);
     match sent {
         Sent::Body(body) => Some(placing.read(window.label(), &body, now, true, drawn)),
         Sent::Edit(edit) => placing.edited(window.label(), &edit, now, drawn),
