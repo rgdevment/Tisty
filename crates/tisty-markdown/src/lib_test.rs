@@ -630,7 +630,9 @@ fn names_of(doc: &Doc) -> Vec<(usize, String)> {
         .collect()
 }
 
-fn drawn_names(html: &str) -> Vec<(usize, String)> {
+type Drawn = (Range<usize>, u8, Option<String>);
+
+fn drawn_heads(html: &str) -> Vec<Drawn> {
     let between = |tag: &str, from: &str| {
         let at = tag.find(from)? + from.len();
         Some(tag[at..].split('"').next()?.to_string())
@@ -639,11 +641,31 @@ fn drawn_names(html: &str) -> Vec<(usize, String)> {
         .filter(|tag| tag.starts_with('h') && tag[1..].starts_with(|c: char| c.is_ascii_digit()))
         .filter_map(|tag| {
             let tag = tag.split('>').next()?;
-            let id = between(tag, " id=\"")?;
+            let level = tag[1..2].parse().ok()?;
             let place = between(tag, "data-at=\"")?;
-            Some((place.split('-').next()?.parse().ok()?, id))
+            let (start, end) = place.split_once('-')?;
+            let at = start.parse().ok()?..end.parse().ok()?;
+            Some((at, level, between(tag, " id=\"")))
         })
         .collect()
+}
+
+fn drawn_names(html: &str) -> Vec<(usize, String)> {
+    drawn_heads(html)
+        .into_iter()
+        .filter_map(|(at, _, id)| Some((at.start, id?)))
+        .collect()
+}
+
+fn headings_within(blocks: &[Block], within: &Range<usize>, out: &mut Vec<(Range<usize>, u8)>) {
+    for one in blocks {
+        if let Kind::Heading(level) = one.kind
+            && within.contains(&one.at.start)
+        {
+            out.push((one.at.clone(), level));
+        }
+        headings_within(&one.inner, within, out);
+    }
 }
 
 struct Shown {
@@ -688,15 +710,39 @@ fn shown_after(was: &Doc, at: Range<usize>, insert: &str) -> Option<Shown> {
         .into_iter()
         .partition(|(place, _)| redrawn.contains(place));
     let stays = names_sum(stay.iter().map(|(_, name)| name.as_str()));
-    match near.heads {
+    let carried = match near.heads {
         Some(heads) if heads != stays => return None,
-        None if !gone.is_empty() => return None,
-        _ => {}
-    }
+        Some(_) => Vec::new(),
+        None => {
+            let mut heads = Vec::new();
+            headings_within(old, &redrawn, &mut heads);
+            let laid = drawn_heads(&near.html);
+            let same = |(now, level, _): &Drawn, (at, was): &(Range<usize>, u8)| {
+                level == was
+                    && now.len() == at.len()
+                    && (now.start == at.start || now.start == at.start.wrapping_add_signed(by))
+            };
+            if laid.len() != heads.len()
+                || !laid.iter().zip(&heads).all(|(now, was)| same(now, was))
+            {
+                return None;
+            }
+            let named = |place: usize| {
+                gone.iter()
+                    .find(|one| one.0 == place)
+                    .map(|one| one.1.clone())
+            };
+            laid.iter()
+                .zip(heads)
+                .filter_map(|((now, _, _), (at, _))| Some((now.start, named(at.start)?)))
+                .collect()
+        }
+    };
     let mut names: Vec<_> = stay
         .into_iter()
         .map(|(place, name)| (moved(place), name))
         .chain(drawn_names(&near.html))
+        .chain(carried)
         .collect();
     names.sort();
     let blocks = old[..near.drawn.start]
@@ -770,6 +816,63 @@ fn a_heading_renamed_put_in_or_taken_out_never_leaves_a_stale_name() {
         shown_after(&alone, 5..5, "s").is_some(),
         "a name no other heading shares is laid without the whole page"
     );
+}
+
+#[test]
+fn a_heading_that_comes_as_another_goes_beside_a_key_is_never_shown_with_the_other_name() {
+    for (text, at, insert) in [
+        ("> ~~~\n> # a\n> ~~~\n> # b\n", 2..3, ""),
+        ("> ~~\n> # a\n> ~~~\n> # b\n", 2..2, "~"),
+        ("# a\n\n```\n# b\n```\n\nUno.\n", 5..6, ""),
+    ] {
+        if let Some(shown) = shown_after(&read(text), at.clone(), insert) {
+            assert_eq!(
+                shown.names,
+                names_of(&shown.doc),
+                "{at:?} → {insert:?} in {text:?}"
+            );
+        }
+    }
+}
+
+#[test]
+fn a_fence_mark_typed_or_taken_beside_headings_never_leaves_a_stale_name() {
+    const TEXTS: [&str; 3] = [
+        "> ~~~\n> # a\n> ~~~\n> # b\n\n# a\n",
+        "- ```\n  # a\n  ```\n  # b\n\n# b\n",
+        "> ```\n> # a\n> # b\n> ```\n> # a\n",
+    ];
+    const MARKS: [&str; 5] = ["~", "`", "", "> ", "\n"];
+    let mut state: u64 = 0xFE4C_E5ED;
+    let mut next = |below: usize| {
+        state ^= state << 13;
+        state ^= state >> 7;
+        state ^= state << 17;
+        (state % below.max(1) as u64) as usize
+    };
+    for text in TEXTS {
+        for _ in 0..200 {
+            let from = next(text.len());
+            let to = (from + next(2)).min(text.len());
+            let insert = MARKS[next(MARKS.len())];
+            if let Some(shown) = shown_after(&read(text), from..to, insert) {
+                let key = format!("{from}..{to} → {insert:?} in {text:?}");
+                assert_eq!(shown.names, names_of(&shown.doc), "{key}");
+            }
+        }
+    }
+}
+
+#[test]
+fn a_key_beside_a_heading_keeps_the_name_the_page_shows_without_the_outline() {
+    let was = read("# Uno\n\nA.\n\n# Uno\n\nB.\n");
+    let at = was.text().find("B.").unwrap_or_default();
+    let doc = crate::reread_edit(was.clone(), at..at, "x").unwrap_or_else(|doc| doc);
+    let near = placed_near(&doc, at, at + 1, Some(was.labels()));
+    assert!(near.html.contains("<h1 data-at"));
+    assert_eq!(near.heads, None);
+    let shown = shown_after(&was, at..at, "x");
+    assert!(shown.is_some_and(|one| one.names == names_of(&one.doc)));
 }
 
 #[test]
@@ -854,6 +957,8 @@ fn every_key_leaves_the_page_with_the_names_the_whole_page_gives() {
     let texts = [
         "# Uno\n\nA.\n\n# Uno\n\nB.\n\n## Uno 1\n\nC.\n\n# Dos\n\n> # Uno\n\nD.\n",
         "Uno\n===\n\nA.\n\n- # Uno\n\nB.\n\n# Uno\n\nÁrbol\n---\n",
+        "> ~~~\n> # Uno\n> ~~~\n> # Dos\n> # Uno\n\nA.\n\n# Uno\n",
+        "# Uno\n\n```\n# Dos\n```\n\n<div>\n# Uno\n</div>\n\n# Dos\n\nB.\n",
     ];
     let pieces = [
         "# ",
@@ -867,6 +972,10 @@ fn every_key_leaves_the_page_with_the_names_the_whole_page_gives() {
         "a",
         "> ",
         "# Uno\n\n",
+        "~",
+        "~~~\n",
+        "```",
+        "<div>\n",
     ];
     let (laid, all) = keyed(&texts, &pieces, 0x01D5_0F7E);
     assert!(

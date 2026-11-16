@@ -81,6 +81,52 @@ describe("headings a page keeps, named by those before them", () => {
     expect(sheet.querySelector("h1")?.id).toBe("unos");
   });
 
+  it("keeps the name of a heading drawn again beside the key, which the core leaves unnamed", () => {
+    const sheet = headedSheet();
+    const laid = patched(
+      sheet,
+      near({
+        spans: [
+          [0, 5],
+          [7, 10],
+          [12, 14],
+          [16, 21],
+        ],
+        from: 0,
+        to: 2,
+        html:
+          '<h1 data-at="0-5"><span data-src="2-5">Uno</span></h1>' +
+          '<p data-at="7-10"><span data-src="7-10">Ax.</span></p>',
+      }),
+      1,
+    );
+    expect(laid).toHaveLength(2);
+    expect(Array.from(sheet.querySelectorAll("h1"), (one) => one.id)).toEqual(["uno", "uno-1"]);
+  });
+
+  it("asks for the whole page when a heading comes as another goes beside the key", () => {
+    document.body.innerHTML =
+      '<article class="page"><blockquote data-at="0-23">' +
+      '<figure class="code" data-at="2-17"></figure><h1 id="b" data-at="18-23">b</h1>' +
+      '</blockquote><p data-at="25-27">A.</p></article>';
+    const sheet = document.querySelector(".page") as Element;
+    const laid = patched(
+      sheet,
+      near({
+        spans: [
+          [0, 22],
+          [24, 26],
+        ],
+        from: 0,
+        to: 1,
+        html: '<blockquote data-at="0-22"><p data-at="2-4">~~</p><h1 data-at="7-10">a</h1></blockquote>',
+      }),
+      -1,
+    );
+    expect(laid).toBeNull();
+    expect(sheet.querySelector("h1")?.id).toBe("b");
+  });
+
   it("asks for the whole page when a heading it draws again is words now", () => {
     const sheet = headedSheet();
     const laid = patched(
