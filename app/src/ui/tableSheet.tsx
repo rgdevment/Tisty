@@ -11,7 +11,7 @@ import {
 } from "../tables";
 import { cellBar } from "./cellBar";
 import Menu, { type Choice } from "./Menu";
-import { placeOf as placeIn } from "./pagePlaces";
+import { placeOf } from "./pagePlaces";
 import type { TableWent } from "./paging";
 import { type Mark, type Peeled, peeled, toggled } from "./peeled";
 import TableEditor, { type Picked } from "./TableEditor";
@@ -23,9 +23,9 @@ import {
   headsNamed,
   type Leaving,
   nthOf,
-  placeOf,
   rowsCount,
   rowsShown,
+  tablePlace,
   typing,
   type Viewing,
   viewed,
@@ -175,7 +175,7 @@ export const useTables = (
 
   const shown = (nth: number) => {
     const page = said.current.page();
-    const at = page && placeOf(page, nth);
+    const at = page && tablePlace(page, nth);
     if (!page || !at) return;
     const view = views.current.get(nth);
     const sort = view?.sort;
@@ -212,7 +212,7 @@ export const useTables = (
     if (!page) return;
     canonical(page, place, typed)
       .then((said) => {
-        const at = placeOf(page, place.nth);
+        const at = tablePlace(page, place.nth);
         if (at) edited(at, [{ kind: "cell", row: place.row, column: place.column, said }]);
       })
       .catch((why) => said.current.fail(refused(why)));
@@ -226,7 +226,7 @@ export const useTables = (
     marks: readonly Mark[] = cell.marks,
   ) => {
     const page = said.current.page();
-    const at = page && placeOf(page, place.nth);
+    const at = page && tablePlace(page, place.nth);
     if (how === "cancel" || !page || !at || !fresh()) return;
     if (how !== "blur") awaited(page);
     const { row, column } = place;
@@ -280,7 +280,7 @@ export const useTables = (
 
   const onward = (place: Place, cell: TableEdit[], how: Leaving) => {
     const page = said.current.page();
-    const at = page && placeOf(page, place.nth);
+    const at = page && tablePlace(page, place.nth);
     if (!page || !at) return;
     if (how !== "blur" && how !== "cancel") awaited(page);
     const { nth, row, column } = place;
@@ -317,7 +317,7 @@ export const useTables = (
 
   const opened = (place: Place) => {
     const page = said.current.page();
-    const at = page && placeOf(page, place.nth);
+    const at = page && tablePlace(page, place.nth);
     const holder = page && cellOf(page, place.nth, place.row, place.column);
     if (!page || !at || !holder) return;
     if (!fresh()) {
@@ -396,7 +396,7 @@ export const useTables = (
       shown(nth);
     }
     const made = born.current;
-    const nth = made === null ? -1 : tablesIn(page).findIndex((one) => placeIn(one)?.[0] === made);
+    const nth = made === null ? -1 : tablesIn(page).findIndex((one) => placeOf(one)?.[0] === made);
     if (nth >= 0) {
       born.current = null;
       pending.current = { nth, row: -1, column: 0 };

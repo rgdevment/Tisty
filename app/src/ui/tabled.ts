@@ -1,7 +1,7 @@
 import { asking, BOXES, type TableAct, tablesIn } from "tisty-editor/read";
 import { fill, t } from "../locales";
 import { carrying } from "./carrying";
-import { placeOf as placeIn, samePlace } from "./pagePlaces";
+import { placeOf, samePlace } from "./pagePlaces";
 
 export type Sorting = { readonly column: number; readonly down: boolean; readonly order: number[] };
 
@@ -75,8 +75,8 @@ export const tableClicked = (
 export const nthOf = (page: Document, at: [number, number]): number =>
   tablesIn(page).findIndex((one) => samePlace(one, at));
 
-export const placeOf = (page: Document, nth: number): [number, number] | null =>
-  placeIn(tablesIn(page)[nth]);
+export const tablePlace = (page: Document, nth: number): [number, number] | null =>
+  placeOf(tablesIn(page)[nth]);
 
 export const cellOf = (
   page: Document,

@@ -6,10 +6,10 @@ import {
   dragging,
   type Leaving,
   nthOf,
-  placeOf,
   rowsShown,
   tableClicked,
   tabled,
+  tablePlace,
   typing,
   viewed,
 } from "../ui/tabled";
@@ -84,8 +84,8 @@ describe("a table dressed to be written in place", () => {
     const made = dressed();
     expect(nthOf(made, [0, 90])).toBe(0);
     expect(nthOf(made, [1, 90])).toBe(-1);
-    expect(placeOf(made, 0)).toEqual([0, 90]);
-    expect(placeOf(made, 3)).toBeNull();
+    expect(tablePlace(made, 0)).toEqual([0, 90]);
+    expect(tablePlace(made, 3)).toBeNull();
     expect(cellOf(made, 0, -1, 1)?.textContent).toContain("Categoría");
     expect(cellOf(made, 5, 0, 0)).toBeNull();
   });
