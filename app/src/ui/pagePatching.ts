@@ -1,5 +1,5 @@
 import { spanned } from "tisty-editor/read";
-import type { PlacedNear } from "../placing";
+import { type PlacedNear, summed } from "../placing";
 
 const NAMES = ["data-at", "data-src", "data-placed"];
 // What the page lends or links in a block is laid by its own dressing, which only a whole drawing runs.
@@ -20,18 +20,7 @@ const folds = (blocks: readonly Element[]) =>
     ...one.querySelectorAll("details"),
   ]);
 
-export const spansSum = (spans: Iterable<readonly [number, number]>): [number, number] => {
-  let fnv = 0x811c9dc5;
-  let mixed = 0x9747b28c;
-  for (const span of spans) {
-    for (const at of span) {
-      fnv = Math.imul(fnv ^ at, 0x01000193);
-      mixed = Math.imul(mixed ^ at, 0x5bd1e995);
-      mixed ^= mixed >>> 13;
-    }
-  }
-  return [fnv >>> 0, mixed >>> 0];
-};
+export const spansSum = (spans: readonly (readonly [number, number])[]) => summed(spans.flat());
 
 const placeOf = (one: Element, by: number): [number, number] | null => {
   const at = spanned(one.getAttribute("data-at"));

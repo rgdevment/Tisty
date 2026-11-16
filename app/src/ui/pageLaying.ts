@@ -1,13 +1,23 @@
-import { bytesAt } from "tisty-editor/read";
-import { type Check, checkOf } from "../placing";
+import { bytesIn, type Check, checkAfter, checkOf } from "../placing";
 import type { Caret } from "./pageCaret";
 import { applied, type Edit, inWholeChars, linedAs } from "./pageEdits";
 import { patched } from "./pagePatching";
 import { recorded, type Writer } from "./pageWriter";
 
-const BYTES = new TextEncoder();
 // What the rest of the window reads of the page catches up once the keys rest, not on each one.
 const RESTED_MS = 250;
+
+type Reckoned = {
+  readonly text: string;
+  readonly check: Check;
+  readonly unit: number;
+  readonly byte: number;
+};
+
+const byteOf = (known: Reckoned, unit: number) =>
+  unit >= known.unit
+    ? known.byte + bytesIn(known.text, known.unit, unit)
+    : known.byte - bytesIn(known.text, unit, known.unit);
 
 export type Laying = ReturnType<typeof layingOn>;
 
@@ -17,11 +27,16 @@ export const layingOn = (writer: Writer, caret: Caret, drawn: () => void) => {
   let resting: ReturnType<typeof setTimeout> | undefined;
   let unsaid: string | null = null;
   let over = false;
-  let reckoned: { readonly text: string; readonly check: Check } | null = null;
+  // What the core was last told, so the next key is counted from where this one landed.
+  let reckoned: Reckoned | null = null;
 
-  const checked = (text: string) => {
-    if (reckoned?.text !== text) reckoned = { text, check: checkOf(text) };
-    return reckoned.check;
+  const reckonedOf = (text: string): Reckoned =>
+    reckoned?.text === text ? reckoned : { text, check: checkOf(text), unit: 0, byte: 0 };
+
+  const redrawn = () => {
+    reckoned = null;
+    writer.whole = true;
+    return hands.redraw(hands.text());
   };
 
   const told = () => {
@@ -44,26 +59,25 @@ export const layingOn = (writer: Writer, caret: Caret, drawn: () => void) => {
   const laidOut = (was: string, now: string, asked: Edit) => {
     // A task's page is small and dressed with its hints and buttons, which only a whole drawing lays again.
     if (page.documentElement.classList.contains("untitled")) writer.whole = true;
-    const one = inWholeChars(was, asked);
-    const from = bytesAt(now, one.from);
-    const added = BYTES.encode(one.insert).length;
-    const removed = BYTES.encode(was.slice(one.from, one.to)).length;
-    const by = added - removed;
     laying = laying.then(async () => {
       if (over) return;
       unsaid = null;
       clearTimeout(resting);
-      if (writer.whole) return hands.redraw(hands.text());
+      if (writer.whole) return redrawn();
+      const one = inWholeChars(was, asked);
+      const known = reckonedOf(was);
+      const from = byteOf(known, one.from);
+      const removed = bytesIn(was, one.from, one.to);
+      const added = bytesIn(one.insert);
       const edit = { from, to: from + removed, insert: one.insert };
-      const sent = { body: now, was: checked(was), now: checked(now), edit };
+      const check = checkAfter(known.check, edit);
+      reckoned = { text: now, check, unit: one.from + one.insert.length, byte: from + added };
+      const sent = { body: now, was: known.check, now: check, edit };
       const near = await hands.near(sent, from, from + added).catch(() => null);
       if (over) return;
       const sheet = page.querySelector(".page");
-      const laid = sheet && near && patched(sheet, near, by);
-      if (!sheet || !laid) {
-        writer.whole = true;
-        return hands.redraw(hands.text());
-      }
+      const laid = sheet && near && patched(sheet, near, added - removed);
+      if (!sheet || !laid) return redrawn();
       hands.dressed(sheet, laid);
       rested(now);
       if (hands.text() === now) drawn();
