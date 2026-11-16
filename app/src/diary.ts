@@ -10,6 +10,7 @@ declare module "./core" {
 export interface Diary {
   book: string | null;
   page: string | null;
+  day: string;
   open: boolean;
 }
 

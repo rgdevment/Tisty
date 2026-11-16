@@ -78,11 +78,6 @@ export const todayLong = (now = new Date()): string =>
     month: "long",
   }).format(now);
 
-export const dayNamed = (at: Date): string => {
-  const weekday = new Intl.DateTimeFormat(locale(), { weekday: "long" }).format(at);
-  return `${weekday.charAt(0).toUpperCase()}${weekday.slice(1)} ${at.getDate()}`;
-};
-
 export const daysFrom = (iso: string, now = new Date()): number =>
   Math.round((midnight(new Date(iso)) - midnight(now)) / 86_400_000);
 

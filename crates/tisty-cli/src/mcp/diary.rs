@@ -53,10 +53,7 @@ pub(super) fn left_alone(paths: &Paths, name: &str, args: &Value) -> Result<(), 
     if !LEFT_ALONE.contains(&name) || only_shown {
         return Ok(());
     }
-    let named: Vec<String> = ["doc", "page_of", "of", "translation_of"]
-        .into_iter()
-        .flat_map(|key| every_name(args, key))
-        .collect();
+    let named = every_name(args);
     if named.is_empty() {
         return Ok(());
     }
@@ -75,18 +72,20 @@ pub(super) fn left_alone(paths: &Paths, name: &str, args: &Value) -> Result<(), 
     }
 }
 
-// Some tools take one name or a list of them, and the door reads both.
-fn every_name(args: &Value, key: &str) -> Vec<String> {
-    match args.get(key) {
-        Some(Value::Array(many)) => many
-            .iter()
-            .filter_map(Value::as_str)
-            .map(str::trim)
-            .filter(|said| !said.is_empty())
-            .map(ToString::to_string)
-            .collect(),
-        _ => text(args, key).into_iter().collect(),
-    }
+// A tool names a document under more than one key, alone or in a list, so the door reads them all.
+fn every_name(args: &Value) -> Vec<&str> {
+    let Some(given) = args.as_object() else {
+        return Vec::new();
+    };
+    given
+        .values()
+        .flat_map(|one| match one {
+            Value::Array(many) => many.iter().filter_map(Value::as_str).collect(),
+            other => other.as_str().into_iter().collect::<Vec<_>>(),
+        })
+        .map(str::trim)
+        .filter(|said| !said.is_empty())
+        .collect()
 }
 
 pub(super) fn in_the_diary(paths: &Paths, state: &State, file: &str) -> bool {

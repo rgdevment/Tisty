@@ -11,6 +11,7 @@ use crate::{Answer, Refusal, Session, blamed, held, signing};
 pub struct Kept {
     pub book: Option<String>,
     pub page: Option<String>,
+    pub day: String,
     pub open: bool,
 }
 
@@ -40,6 +41,7 @@ pub fn kept(session: &Session, today: Date) -> Kept {
             .and_then(|one| diary::page_of(&session.state, one.id, today.month()))
             .map(|one| one.file.clone()),
         book: book.map(|one| one.file.clone()),
+        day: diary::day_title(today, words(session)),
         open: session.state.diary_open,
     }
 }

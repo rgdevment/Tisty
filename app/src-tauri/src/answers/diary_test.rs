@@ -36,6 +36,7 @@ fn opening_the_diary_makes_the_year_and_the_month_but_no_empty_day() {
     let shown = kept(&session, day("2026-11-15"));
     assert_eq!(shown.book, Some(today.book.clone()));
     assert_eq!(shown.page, Some(today.page.clone()));
+    assert_eq!(shown.day, "Domingo 15");
     assert_eq!(kept(&session, day("2026-12-01")).page, None);
     assert_eq!(opening(&mut session, day("2026-11-20")).unwrap(), today);
     assert_eq!(session.state.docs.len(), 2);
@@ -97,6 +98,19 @@ fn a_locked_book_is_not_written_by_the_diary() {
     assert_eq!(reopened, today, "a locked diary still opens to read");
     assert_eq!(december.code, "documentLocked");
     assert_eq!(body(&session, &today.page), "# Noviembre\n");
+}
+
+#[test]
+fn today_is_named_in_the_language_tisty_speaks_whatever_the_computer_does() {
+    for (locale, named) in [
+        ("es-CL", "Domingo 15"),
+        ("en-US", "Sunday 15"),
+        ("fr-FR", "Sunday 15"),
+    ] {
+        let (_tmp, session) = session(locale);
+
+        assert_eq!(kept(&session, day("2026-11-15")).day, named, "{locale}");
+    }
 }
 
 #[test]

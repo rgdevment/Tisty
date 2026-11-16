@@ -12,7 +12,8 @@ vi.mock("@tauri-apps/api/core", () => ({
   invoke: (cmd: string) => {
     if (cmd === "doc_opened")
       return Promise.resolve({ body: "# Noviembre\n\n## Domingo 15\n\nPaseo.\n", print: "p" });
-    if (cmd === "diary_of") return Promise.resolve({ book: BOOK, page: MONTH, open: false });
+    if (cmd === "diary_of")
+      return Promise.resolve({ book: BOOK, page: MONTH, day: "Lunes 16", open: false });
     if (cmd === "diary_newest") return Promise.resolve(MONTH);
     return Promise.resolve(null);
   },
@@ -48,6 +49,12 @@ const shown = (visit: object) => (
 );
 
 describe("a diary month written as a document", () => {
+  it("heads this month with today as the core names it", async () => {
+    render(shown({ named: "docs", doc: MONTH }));
+
+    expect(await screen.findByText("Lunes 16")).toBeTruthy();
+  });
+
   it("lasts only while it is the visit that asked for it", async () => {
     const { rerender } = render(shown({ named: "docs", doc: MONTH }));
 
