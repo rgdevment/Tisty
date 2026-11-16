@@ -1,5 +1,6 @@
 import { SLASHED, type Slashed } from "tisty-editor/edit";
 import { afterEach, describe, expect, it } from "vitest";
+import { movedWords } from "../ui/pageDragging";
 import { sourceAt, spotOf } from "../ui/pageSpots";
 import { type Hands, type PageWriting, turnsAnew, writtenOn } from "../ui/pageWriting";
 
@@ -47,6 +48,7 @@ const menus: boolean[] = [];
 const answers: string[] = [];
 
 const writer = (body = BODY, more: Partial<Hands> = {}) => {
+  writing?.stop();
   const said: string[] = [];
   let text = body;
   menus.length = 0;
@@ -181,6 +183,120 @@ describe("writing on the page the core draws", () => {
     expect(said[said.length - 1]).toBe("# Hola\n\n tres\n\n- primero\n- segundo\n");
   });
 
+  describe("words carried by the pointer", () => {
+    const pointing = (spots: Record<number, [string, number]>) => {
+      Object.defineProperty(document, "caretRangeFromPoint", {
+        configurable: true,
+        value: (x: number) => {
+          const [said, at] = spots[x];
+          const range = document.createRange();
+          range.setStart(piece(said), at);
+          return range;
+        },
+      });
+    };
+    const mouse = (kind: string, x: number) =>
+      (kind === "mousedown" ? piece("Uno ").parentElement : document)?.dispatchEvent(
+        new MouseEvent(kind, { bubbles: true, cancelable: true, button: 0, clientX: x, detail: 1 }),
+      );
+
+    afterEach(() => Reflect.deleteProperty(document, "caretRangeFromPoint"));
+
+    it("moves words back before others, and nowhere when let go inside themselves", () => {
+      const text = "uno dos tres";
+      const back = movedWords(text, { from: 8, to: 12 }, 0);
+      expect(back && text.slice(0, back[0].from) + back[0].insert + text.slice(back[0].to)).toBe(
+        "tresuno dos ",
+      );
+      expect(back?.[1]).toBe(4);
+      expect(movedWords(text, { from: 4, to: 7 }, 5)).toBeNull();
+    });
+
+    it("moves the words chosen where they are let go, in one step back", () => {
+      const said = writer();
+      const range = document.createRange();
+      range.setStart(piece("Uno "), 0);
+      range.setEnd(piece("Uno "), 4);
+      document.getSelection()?.removeAllRanges();
+      document.getSelection()?.addRange(range);
+      pointing({ 10: ["Uno ", 2], 60: ["primero", 0] });
+      mouse("mousedown", 10);
+      mouse("mousemove", 60);
+      mouse("mouseup", 60);
+      expect(said[said.length - 1]).toBe("# Hola\n\n**dos** tres\n\n- Uno primero\n- segundo\n");
+    });
+
+    it("moves nothing when the words changed under the pointer before it let go", () => {
+      const said = writer();
+      const range = document.createRange();
+      range.setStart(piece("Uno "), 0);
+      range.setEnd(piece("Uno "), 4);
+      document.getSelection()?.removeAllRanges();
+      document.getSelection()?.addRange(range);
+      pointing({ 10: ["Uno ", 2], 60: ["primero", 0] });
+      mouse("mousedown", 10);
+      mouse("mousemove", 60);
+      writing?.rewrite(BODY.replace("# Hola", "# Hola y más"));
+      mouse("mouseup", 60);
+      expect(said[said.length - 1]).toBe(BODY.replace("# Hola", "# Hola y más"));
+    });
+
+    it("puts the caret where the press was when the pointer did not move", () => {
+      const said = writer();
+      const range = document.createRange();
+      range.setStart(piece("Uno "), 0);
+      range.setEnd(piece("Uno "), 4);
+      document.getSelection()?.removeAllRanges();
+      document.getSelection()?.addRange(range);
+      pointing({ 10: ["Uno ", 2] });
+      mouse("mousedown", 10);
+      mouse("mouseup", 10);
+      expect(said).toEqual([]);
+      expect(document.getSelection()?.isCollapsed).toBe(true);
+      expect(document.activeElement).toBe(document.querySelector(".page"));
+    });
+  });
+
+  describe("Ctrl+C and Ctrl+X", () => {
+    const clip = (kind: "copy" | "cut", on: Element | null = document.querySelector(".page")) => {
+      const put: string[] = [];
+      const event = new Event(kind, { bubbles: true, cancelable: true });
+      Object.defineProperty(event, "clipboardData", {
+        value: { setData: (_: string, said: string) => put.push(said) },
+      });
+      on?.dispatchEvent(event);
+      return { put, taken: event.defaultPrevented };
+    };
+    const choose = () => {
+      const range = document.createRange();
+      range.setStart(piece("Uno "), 0);
+      range.setEnd(piece("dos"), 3);
+      document.getSelection()?.removeAllRanges();
+      document.getSelection()?.addRange(range);
+    };
+
+    it("copies the Tisty Markdown of the words chosen, leaving the page as it is", () => {
+      const said = writer();
+      choose();
+      expect(clip("copy")).toEqual({ put: ["Uno **dos**"], taken: true });
+      expect(said).toEqual([]);
+    });
+
+    it("cuts the Tisty Markdown of the words chosen and takes them away", () => {
+      const said = writer();
+      choose();
+      expect(clip("cut")).toEqual({ put: ["Uno **dos**"], taken: true });
+      expect(said[said.length - 1]).toBe("# Hola\n\n tres\n\n- primero\n- segundo\n");
+    });
+
+    it("leaves the browser's own copy when nothing is chosen", () => {
+      writer();
+      caretIn("dos", 1);
+      document.dispatchEvent(new Event("selectionchange"));
+      expect(clip("copy")).toEqual({ put: [], taken: false });
+    });
+  });
+
   it("keeps the caret it lays through a key, and lets it go with an arrow", () => {
     const said = writer();
     caretIn("Hola", 4);
@@ -296,6 +412,52 @@ describe("a line begun on a task's page written in place", () => {
     expect(said[said.length - 1]).toBe(
       "# Hola\n\nUno **dos** tres\n\n- primero\n- segundo\n- [ ] x\n",
     );
+  });
+
+  it("never lays a drawing still queued once the writer stopped, as the page shows the next document", async () => {
+    const asked: number[] = [];
+    writer(BODY, {
+      near: () => {
+        asked.push(1);
+        return Promise.reject(new Error("no core here"));
+      },
+    });
+    caretIn("Hola", 4);
+    document.querySelector(".page")?.dispatchEvent(
+      new InputEvent("beforeinput", {
+        inputType: "insertText",
+        data: "!",
+        bubbles: true,
+        cancelable: true,
+      }),
+    );
+    writing?.stop();
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(asked).toEqual([]);
+  });
+
+  it("keeps a line begun while words arrive from beside the page, moved along with them", () => {
+    const said = writer();
+    const list = document.querySelector("ul") as Element;
+    writing?.begin(BODY.length - 1, "- [ ] ", list);
+    writing?.rewrite(BODY.replace("Uno", "Uno y más"));
+    asked("insertText", "x");
+    expect(said[said.length - 1]).toBe(
+      "# Hola\n\nUno y más **dos** tres\n\n- primero\n- segundo\n- [ ] x\n",
+    );
+  });
+
+  it("keeps a line begun in its place when words change after it", () => {
+    const said = writer("Uno\n\nDos\n");
+    pageOf(
+      '<p data-at="0-3"><span data-src="0-3">Uno</span></p><p data-at="5-8"><span data-src="5-8">Dos</span></p>',
+    );
+    writing?.drawn();
+    writing?.begin(3, "", document.querySelector("p") as Element);
+    writing?.rewrite("Uno\n\nDos y tres\n");
+    asked("insertText", "x");
+    expect(said[said.length - 1]).toBe("Uno\n\nx\n\nDos y tres\n");
   });
 
   it("joins a step asked past the blank line that ends the list, so the list stays tight", () => {
@@ -991,6 +1153,128 @@ describe("what a second look found writing on the page", () => {
       document.querySelector(".page")?.dispatchEvent(event);
       expect(last(said)).toBe("Uno\n\n![a](a.png)\n\nDos ![b](b.png) tre\n");
     });
+  });
+});
+
+describe("blocks chosen with Escape", () => {
+  const press = (name: string, more: KeyboardEventInit = {}) => {
+    const event = new KeyboardEvent("keydown", {
+      key: name,
+      bubbles: true,
+      cancelable: true,
+      ...more,
+    });
+    document.querySelector(".page")?.dispatchEvent(event);
+    return event;
+  };
+  const chosenNow = () =>
+    Array.from(document.querySelectorAll(".chosen-block"), (one) => one.tagName.toLowerCase());
+
+  it("chooses the block the caret stands in, takes in the next with Shift+↓ and lets go with Escape", () => {
+    writer();
+    caretIn("Uno ", 1);
+    expect(press("Escape").defaultPrevented).toBe(true);
+    expect(chosenNow()).toEqual(["p"]);
+    press("ArrowDown", { shiftKey: true });
+    expect(chosenNow()).toEqual(["p", "ul"]);
+    press("ArrowUp", { shiftKey: true });
+    press("ArrowUp", { shiftKey: true });
+    expect(chosenNow()).toEqual(["h1", "p"]);
+    press("Escape");
+    expect(chosenNow()).toEqual([]);
+  });
+
+  it("takes the chosen blocks away in one step, which Ctrl+Z brings back", () => {
+    const said = writer();
+    caretIn("Uno ", 1);
+    press("Escape");
+    press("ArrowDown", { shiftKey: true });
+    press("Backspace");
+    expect(said[said.length - 1]).toBe("# Hola\n");
+    press("z", { ctrlKey: true });
+    expect(said[said.length - 1]).toBe(BODY);
+  });
+
+  it("copies the Tisty Markdown of the chosen blocks whole", () => {
+    writer();
+    caretIn("Uno ", 1);
+    press("Escape");
+    const put: string[] = [];
+    const event = new Event("copy", { bubbles: true, cancelable: true });
+    Object.defineProperty(event, "clipboardData", {
+      value: { setData: (_: string, said: string) => put.push(said) },
+    });
+    document.querySelector(".page")?.dispatchEvent(event);
+    expect(put).toEqual(["Uno **dos** tres"]);
+  });
+
+  it("takes the last block away with the blank lines before it, leaving none behind", () => {
+    const said = writer();
+    caretIn("primero", 1);
+    press("Escape");
+    press("Delete");
+    expect(said[said.length - 1]).toBe("# Hola\n\nUno **dos** tres\n");
+  });
+
+  it("lets go into the words of the chosen blocks, never into a table among them", () => {
+    writer("Uno\n\n| a |\n|---|\n| 1 |\n");
+    pageOf(
+      '<p data-at="0-3"><span data-src="0-3">Uno</span></p><div class="table" data-at="5-24" contenteditable="false"><table><tr><td>a</td></tr></table></div>',
+    );
+    writing?.drawn();
+    caretIn("Uno", 1);
+    press("Escape");
+    press("ArrowDown", { shiftKey: true });
+    expect(chosenNow()).toEqual(["p", "div"]);
+    press("x");
+    expect(chosenNow()).toEqual([]);
+    const held = document.getSelection();
+    expect(held?.anchorNode?.textContent).toBe("Uno");
+  });
+
+  it("never chooses a section's title on a task's page", () => {
+    writer("## Pasos\n\n- [ ] uno\n");
+    pageOf(
+      '<h2 data-at="0-8"><span data-src="3-8">Pasos</span></h2><ul data-at="10-19"><li class="task" data-at="10-19"><span data-src="16-19">uno</span></li></ul>',
+    );
+    document.documentElement.classList.add("untitled");
+    writing?.drawn();
+    caretIn("Pasos", 2);
+    press("Escape");
+    expect(chosenNow()).toEqual([]);
+    caretIn("uno", 1);
+    press("Escape");
+    press("ArrowUp", { shiftKey: true });
+    expect(chosenNow()).toEqual(["ul"]);
+    document.documentElement.classList.remove("untitled");
+  });
+
+  it("moves the chosen blocks with Alt and an arrow", () => {
+    const said = writer();
+    caretIn("Uno ", 1);
+    press("Escape");
+    press("ArrowUp", { altKey: true });
+    expect(said[said.length - 1]?.startsWith("Uno **dos** tres\n\n# Hola")).toBe(true);
+  });
+
+  it("lets go on any other key, which then writes as it would", () => {
+    writer();
+    caretIn("Uno ", 1);
+    press("Escape");
+    expect(press("x").defaultPrevented).toBe(false);
+    expect(chosenNow()).toEqual([]);
+  });
+
+  it("leaves Escape to take an empty step away rather than choose it", () => {
+    const said = writer("- [ ] uno\n- [ ] \n");
+    pageOf(
+      '<ul data-at="0-16"><li class="task" data-at="0-9"><span data-src="6-9">uno</span></li><li class="task" data-at="10-16"><br></li></ul>',
+    );
+    writing?.drawn();
+    document.getSelection()?.collapse(document.querySelectorAll("li")[1] as Element, 0);
+    press("Escape");
+    expect(chosenNow()).toEqual([]);
+    expect(said[said.length - 1]).toBe("- [ ] uno\n");
   });
 });
 

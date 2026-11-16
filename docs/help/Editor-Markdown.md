@@ -19,7 +19,9 @@ Se escribe sobre la misma página que lees, la que dibuja Tisty. No hay un modo 
 - **El código se escribe tal cual.** Dentro de un bloque de código no hay formatos ni corrector, y la `/` es solo una barra. La etiqueta de su esquina, como «rust» o «yaml», abre la lista de lenguajes para elegir con qué colores se dibuja. Escribir `` ``` `` al empezar una línea abre un bloque de código que se cierra solo, y el nombre de un lenguaje escrito en su primera línea, como `rust`, pasa a ser su lenguaje con Enter.
 - **Un salto de página no se escribe ni se mueve.** `Retroceso` al inicio del bloque que lo sigue, o `Supr` al final del que lo precede, lo quita, y el resto queda como estaba. Lo que escribes justo después de él empieza en una línea nueva debajo.
 - **Una tabla, un código, una imagen, un diagrama, una sección plegable o un aviso no se pegan a lo que tienen al lado.** `Retroceso` al inicio del bloque que los sigue, o `Supr` al final del que los precede, no hace nada; para quitarlos está **Borrar bloque**, en su asa.
-- **`Ctrl`/`⌘` + `Z` deshace** y `Ctrl`/`⌘` + `Shift` + `Z` rehace, solo en el documento que tienes delante. Lo que escribiste en la vista Markdown se deshace de una vez al volver.
+- **`Ctrl`/`⌘` + `Z` deshace** y `Ctrl`/`⌘` + `Shift` + `Z` rehace, solo en el documento que tienes delante. Lo que escribes seguido se deshace de una vez; una pausa o un Enter empiezan otro paso. Lo que escribiste en la vista Markdown se deshace de una vez al volver.
+- **`Ctrl`/`⌘` + `C` y `Ctrl`/`⌘` + `X` copian y cortan el Markdown** de las palabras elegidas, con sus marcas, como el clic derecho; al pegarlas en otro documento quedan igual.
+- **Arrastra las palabras elegidas** a otro lugar de la página: una línea muestra dónde caen, y al soltarlas se mueven. `Ctrl`/`⌘` + `Z` las devuelve.
 
 ## La barra de formato
 
@@ -28,7 +30,7 @@ Elige unas palabras y aparece encima una barra pequeña:
 - **Negrita**, **cursiva**, **subrayado**, **tachado**, **código** y **enlace**.
 - **Cuatro rotuladores**: amarillo, verde, azul y rosa.
 
-Un formato envuelve las palabras elegidas, y si cruzan varias líneas, cada una lleva el suyo; pulsado sobre palabras que ya lo tienen, se lo quita. **Enlace** pide la dirección en un campo, y `Esc` lo cancela; una dirección como `tisty.app` recibe su `https://`, y sin palabras elegidas, la dirección queda como sus palabras. Dentro del código la barra no aparece.
+Un formato envuelve las palabras elegidas, y si cruzan varias líneas, cada una lleva el suyo; pulsado sobre palabras que ya lo tienen, se lo quita. **Enlace** pide la dirección en un campo, y `Esc` lo cancela; sobre un enlace ya escrito, `Ctrl`/`⌘` + `K` muestra su dirección para cambiarla, sin tocar sus palabras; una dirección como `tisty.app` recibe su `https://`, y sin palabras elegidas, la dirección queda como sus palabras. Dentro del código la barra no aparece.
 
 Sin nada elegido, un formato pulsado con su atajo o desde el menú `/` empieza con la próxima tecla, y lo que escribes ya sale en negrita o en cursiva. Vuelve a pulsarlo para salir de él; un espacio al final de las palabras también queda fuera.
 
@@ -50,9 +52,10 @@ Escribe `/` al empezar una línea, en una línea en blanco o después de un espa
 
 ## Mover bloques
 
-- **El asa.** Al pasar el puntero junto a un bloque aparece un asa a su izquierda. Arrástrala para llevar el bloque a otro lugar; un título se lleva su sección entera.
+- **El asa.** Al pasar el puntero junto a un bloque aparece un asa a su izquierda. Arrástrala para llevar el bloque a otro lugar; un título se lleva su sección entera. Cerca del borde de arriba o de abajo, la página se desplaza sola.
 - **Su menú.** Un clic en el asa ofrece **Subir bloque**, **Bajar bloque**, **Duplicar bloque** y **Borrar bloque**.
 - **El teclado.** `Alt` + ↑ ↓ sube o baja el bloque donde está el cursor, o el elemento de la lista donde está.
+- **Elegir bloques enteros.** `Esc` elige el bloque donde está el cursor, y `Shift` + ↑ ↓ suma los de arriba o de abajo. Elegidos, `Supr` o `Retroceso` los borran, `Alt` + ↑ ↓ los mueve juntos y `Ctrl`/`⌘` + `C` o `X` los copia o los corta. `Esc` otra vez, un clic o cualquier otra tecla los sueltan.
 
 ## Enriquecido y Markdown
 
@@ -86,6 +89,7 @@ En la vista Markdown:
 | `Enter` · `Shift` + `Enter` | Párrafo nuevo · salto de línea |
 | `Ctrl`/`⌘` + `/` | Abrir el menú de bloques donde está el cursor |
 | `Alt` + ↑ ↓ | Subir o bajar el bloque o el elemento donde está el cursor |
+| `Esc` · `Shift` + ↑ ↓ | Elegir el bloque entero · sumar los de al lado |
 | `Tab` · `Shift` + `Tab` | Meter o sacar un elemento de la lista |
 | `Ctrl`/`⌘` + `E` | Cambiar entre Enriquecido y Markdown |
 | `Ctrl`/`⌘` + `Shift` + `X` · `Shift` + `C` · `K` | Tachado · código · enlace |

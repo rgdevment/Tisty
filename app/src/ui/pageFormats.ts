@@ -16,6 +16,7 @@ import {
   worn,
   wornEach,
 } from "./pageMarks";
+import { elementOf } from "./pageNodes";
 import type { Writer } from "./pageWriter";
 import { unformattable } from "./quickly";
 
@@ -27,14 +28,58 @@ export const addressed = (typed: string) =>
     ? `https://${typed}`
     : typed;
 
+const LINK =
+  /(?<!!)\[((?:\\.|[^\]\\])*)\]\((<[^>]*>|(?:[^\s()]|\([^\s()]*\))*)((?:\s+(?:"[^"]*"|'[^']*'|\([^)]*\)))?)\)/g;
+
+type Written = {
+  readonly from: number;
+  readonly to: number;
+  readonly label: string;
+  readonly address: string;
+  readonly title: string;
+};
+
+export const writtenLink = (text: string, at: Span): Written | null => {
+  const start = text.lastIndexOf("\n", at.from - 1) + 1;
+  const end = text.indexOf("\n", at.to);
+  const line = text.slice(start, end < 0 ? text.length : end);
+  for (const hit of line.matchAll(LINK)) {
+    const from = start + (hit.index ?? 0);
+    const to = from + hit[0].length;
+    if (from <= at.from && at.to <= to)
+      return { from, to, label: hit[1], address: hit[2], title: hit[3] };
+  }
+  return null;
+};
+
+const sameLink = (link: Written) => `[${link.label}](${link.address}${link.title})`;
+
 export const formatsOn = (writer: Writer, caret: Caret, laying: Laying) => {
   const { page, hands } = writer;
   const { put } = laying;
 
-  const linked = (one: Span) => {
+  const fieldNear = () => {
     const held = page.getSelection();
     const box = held?.rangeCount ? held.getRangeAt(0).getBoundingClientRect() : null;
-    const near = box ?? page.querySelector(".page")?.getBoundingClientRect();
+    return box ?? page.querySelector(".page")?.getBoundingClientRect();
+  };
+
+  // A link already written keeps its words and its title; only its address changes.
+  const relinked = (link: Written, back: number) => {
+    const near = fieldNear();
+    if (!near) return;
+    const value = link.address.replace(/^<([^>]*)>$/, "$1");
+    void fieldAsked(page, near, t("linkAddress"), { kind: "url", value }).then((asked) => {
+      if (!asked || hands.text().slice(link.from, link.to) !== sameLink(link))
+        return caret.placeAt(back);
+      const to = addressed(asked);
+      const aimed = /\s/.test(to) ? `<${to}>` : to;
+      put({ from: link.from, to: link.to, insert: sameLink({ ...link, address: aimed }) }, back);
+    });
+  };
+
+  const linked = (one: Span) => {
+    const near = fieldNear();
     if (!near) return;
     void fieldAsked(page, near, t("linkAddress"), { kind: "url" }).then((asked) => {
       if (!asked) return caret.placeAt(one.to);
@@ -99,6 +144,10 @@ export const formatsOn = (writer: Writer, caret: Caret, laying: Laying) => {
       return;
     if (close === "]()") {
       const span = one ?? caret.caretSpan();
+      const written = span && writtenLink(text, span);
+      if (written) return relinked(written, span.to);
+      // A link written another way, by reference or as a bare address, is left as it is rather than nested.
+      if (elementOf(caret.chosen()?.startContainer)?.closest(".page a")) return;
       if (span) linked(span);
       return;
     }

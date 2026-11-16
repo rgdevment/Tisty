@@ -15,11 +15,17 @@ export const layingOn = (writer: Writer, caret: Caret, drawn: () => void) => {
   let laying: Promise<void> = Promise.resolve();
   let resting: ReturnType<typeof setTimeout> | undefined;
   let unsaid: string | null = null;
+  let over = false;
 
   const told = () => {
     clearTimeout(resting);
     if (unsaid !== null) hands.shown(unsaid);
     unsaid = null;
+  };
+  // The same page shows the next document, so a drawing still queued by this writer must never land on it.
+  const stop = () => {
+    over = true;
+    told();
   };
   const rested = (now: string) => {
     clearTimeout(resting);
@@ -35,10 +41,12 @@ export const layingOn = (writer: Writer, caret: Caret, drawn: () => void) => {
     const added = BYTES.encode(one.insert).length;
     const by = added - BYTES.encode(was.slice(one.from, one.to)).length;
     laying = laying.then(async () => {
+      if (over) return;
       unsaid = null;
       clearTimeout(resting);
       if (writer.whole) return hands.redraw(hands.text());
       const near = await hands.near(now, from, from + added).catch(() => null);
+      if (over) return;
       const sheet = page.querySelector(".page");
       const laid = sheet && near && patched(sheet, near, by);
       if (!sheet || !laid) {
@@ -60,12 +68,19 @@ export const layingOn = (writer: Writer, caret: Caret, drawn: () => void) => {
       writer.kept && writer.kept.offset < 0
         ? writer.kept.at
         : (caret.caretSpan()?.from ?? one.from);
-    recorded(writer.turns, { text, at: Math.min(stood, text.length), after: landed });
+    recorded(writer.turns, {
+      from: one.from,
+      removed: text.slice(one.from, one.to),
+      added: one.insert,
+      at: Math.min(stood, text.length),
+      after: landed,
+      typed: writer.typing ? Date.now() : undefined,
+    });
     writer.kept = { node: page.body, offset: -1, at: landed };
     hands.write(next);
     if (drawnWhole) writer.whole = true;
     laidOut(text, next, one);
   };
 
-  return { put, laidOut, told };
+  return { put, laidOut, stop };
 };

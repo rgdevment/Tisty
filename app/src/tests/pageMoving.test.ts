@@ -1,5 +1,5 @@
-import { afterEach, describe, expect, it } from "vitest";
-import { acted, gripped, movedTo, swappedItem, topsOf, unitOf } from "../ui/pageMoving";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { acted, edgeRoll, gripped, movedTo, swappedItem, topsOf, unitOf } from "../ui/pageMoving";
 
 const BODY = "Intro.\n\n## Uno\n\nTexto uno.\n\n## Dos\n\nTexto dos.\n\n1. primero\n2. segundo\n";
 const PAGE =
@@ -124,5 +124,51 @@ describe("the grip beside a block", () => {
     expect(moved[0]?.[0]).toBe(first);
     stop();
     expect(document.querySelector(".page-grip")).toBeNull();
+  });
+
+  it("scrolls the page while a block is held near its bottom edge, and stops when let go", () => {
+    const sheet = sheetOf();
+    (sheet as HTMLElement).style.paddingLeft = "40px";
+    let scrolled = 0;
+    const frames: FrameRequestCallback[] = [];
+    Object.defineProperty(document.documentElement, "scrollHeight", {
+      value: window.innerHeight * 4,
+      configurable: true,
+    });
+    Object.defineProperty(window, "scrollY", { get: () => scrolled, configurable: true });
+    const scrolling = vi.spyOn(window, "scrollBy").mockImplementation(((to: ScrollToOptions) => {
+      scrolled += to.top ?? 0;
+    }) as typeof window.scrollBy);
+    const asking = vi
+      .spyOn(window, "requestAnimationFrame")
+      .mockImplementation((done) => frames.push(done));
+    const { stop } = gripped(document, { asked: () => {}, moved: () => {} });
+    sheet.firstElementChild?.dispatchEvent(new MouseEvent("mousemove", { bubbles: true }));
+    const grip = document.querySelector(".page-grip") as HTMLElement;
+    grip.dispatchEvent(new MouseEvent("mousedown", { bubbles: true, button: 0, clientY: 10 }));
+    const bottom = window.innerHeight - 4;
+    document.dispatchEvent(new MouseEvent("mousemove", { bubbles: true, clientY: bottom }));
+    frames.shift()?.(0);
+    frames.shift()?.(0);
+    expect(scrolled).toBeGreaterThan(0);
+    document.dispatchEvent(new MouseEvent("mouseup", { bubbles: true }));
+    const held = scrolled;
+    frames.shift()?.(0);
+    expect(scrolled).toBe(held);
+    stop();
+    scrolling.mockRestore();
+    asking.mockRestore();
+    Reflect.deleteProperty(document.documentElement, "scrollHeight");
+    Reflect.deleteProperty(window, "scrollY");
+  });
+});
+
+describe("how fast a held block scrolls the page", () => {
+  it("scrolls only near an edge, faster the closer it is, up to a limit", () => {
+    expect(edgeRoll(300, 0, 600)).toBe(0);
+    expect(edgeRoll(590, 0, 600)).toBeGreaterThan(0);
+    expect(edgeRoll(5, 0, 600)).toBeLessThan(0);
+    expect(edgeRoll(599, 0, 600)).toBeGreaterThan(edgeRoll(570, 0, 600));
+    expect(edgeRoll(5000, 0, 600)).toBe(18);
   });
 });
