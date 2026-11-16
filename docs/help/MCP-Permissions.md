@@ -29,14 +29,14 @@ What an assistant may do is deliberately small. Finishing, dropping and deleting
 - Close a task, or delete one.
 - Tick a step of yours, or finish a task of yours: it can only say they are done.
 - Move a day **you** set.
-- Delete a document, or rename or empty a folder.
+- Delete a document, or rename or delete a folder.
 - Take an idea off Brainstorm any other way, mark the whole sheet, put it away or move it into a folder.
 - Reach a task you folded away.
 - Take files from anywhere but Downloads, Documents, Pictures, the desktop and the temporary folder.
 - File the same thing twice: a task filed from the same source is refused, and the existing one is handed back.
 - See your Diary while it reads **Only you**: no tool finds it, lists it or counts it. Open, it changes nothing you wrote there, and it never starts a diary of its own.
 
-For closing, dropping and deleting there is no tool at all — not hidden, not restricted: absent. Everything else on this list is refused by the tool that would do it, which says why.
+For closing, dropping and deleting there is no tool at all — not hidden, not restricted: absent — and none renames a folder. A step of yours it ticks is kept as its word, waiting for you. Your Diary, while it is shut, is answered as a document that is not there. The rest of this list is refused by the tool that would do it, which says why.
 
 ## «To confirm»: when an assistant says it is done
 
@@ -66,12 +66,12 @@ A task you closed comes to the assistant with a notice saying so. It reads as it
 
 - **To correct a passage** it has to name it exactly as it is written. If that text is not there, or is there twice, nothing is written at all.
 - **To write a whole body again** it has to send back the *print* of the version it read. If you wrote in the document in between, the print no longer matches: nothing is written, and it is told to read again. What you typed while it was thinking cannot be lost.
-- The window tells you when something wrote in the document you have open. Where what it replaced is still kept, the same bar offers to **put the document back** to what it said before — and what it says now is kept too, so the choice is not final.
+- The window tells you when something wrote in the document you have open. Where what it replaced is still kept, the same bar offers **Put back what it said before** — and what it says now is kept too, so the choice is not final.
 - A document you archived it can still read, and it is told you archived it; it cannot write in it until you bring it back, or ask it to.
 
 ## Your Diary stays yours
 
-The [Diary](Documents#diary) is out of every assistant's sight until you press **Only you** at its top and it reads **Open to agents**. While it is shut, every tool answers about it as about a document that is not there, and searches, lists and counts leave it out. Open, an assistant reads it and, only when you ask, adds to the end of today under a line with the minute and its name. Everything else is refused. Press the button again to keep it to yourself.
+The [Diary](Documents#diary) is out of every assistant's sight until you press **Only you** at its top and it reads **Open to agents**. While it is shut, every tool answers about it as about a document that is not there, and searches, lists and counts leave it out. Open, an assistant reads it and, only when you ask, adds to the end of today under a line with the minute and its name. Whatever would change, move, mark or put away what you wrote there is refused. Press the button again to keep it to yourself. The door only holds on Tisty 1.48 or later: a computer of yours still on an older version shows the diary to its agents as an ordinary document, so update every computer before you write in it.
 
 ## Marking a document instead of deleting it
 

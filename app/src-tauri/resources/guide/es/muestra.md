@@ -14,7 +14,7 @@ Tres maneras de leerla:
 
 ## Propiedades
 
-Esta hoja empieza con un bloque de propiedades entre dos líneas `---`, antes del título. La página no lo dibuja: está en el panel de al lado, en **Sobre este documento**, donde **Editar** lo abre en su propia ventana, tal como está escrito.
+Esta hoja empieza con un bloque de propiedades entre dos líneas `---`, antes del título. La página no lo dibuja: está en el panel de al lado, en **Detalles**, donde **Editar**, junto a **Propiedades**, lo abre en su propia ventana, tal como está escrito.
 
 ```yaml title="Las primeras líneas de esta hoja"
 ---
@@ -85,7 +85,7 @@ Una palabra después de `#` archiva el documento bajo ella, y **Etiquetas**, en 
 - Entre ángulos: <https://www.tisty.app>
 - Un correo: <rina@example.com>
 
-Por referencia, la dirección se dice una sola vez, en una línea propia: el [mapa del paseo][parque] y la [veterinaria][vet]. La página muestra cada definición donde está escrita, y un clic en ella la edita.
+Por referencia, la dirección se dice una sola vez, en una línea propia: el [mapa del paseo][parque] y la [veterinaria][vet]. La página muestra cada definición donde está escrita; para cambiarla, pasa la hoja a **Markdown**.
 
 [parque]: https://example.com/parque
 [vet]: https://example.com/vet "Abre los sábados"
@@ -123,7 +123,7 @@ Una línea en blanco empieza otro párrafo: `Enter`.
 
 ### Comentarios, entidades y barras
 
-Una nota para ti que la página no muestra va entre `<!--` y `-->`. En este párrafo hay una: haz clic en él y la ves. <!-- preguntar por la pastilla de las garrapatas -->
+Una nota para ti que la página no muestra va entre `<!--` y `-->`. En este párrafo hay una: pasa la hoja a **Markdown** con el **⋯** de arriba y la ves. <!-- preguntar por la pastilla de las garrapatas -->
 
 Una entidad nombra un carácter difícil de escribir: &copy; 2026 la veterinaria de Rina &amp; Roger, 14&nbsp;kg, 2&nbsp;&times;&nbsp;7&nbsp;=&nbsp;14, &hearts; y &rarr;.
 
@@ -493,7 +493,7 @@ Una valla de virgulillas, `~~~`, y un bloque sangrado cuatro espacios también s
 
 ## Diagramas
 
-Un bloque cuyo lenguaje es `mermaid` se dibuja. **Diagrama nuevo**, en el menú `/`, abre la ventana de diagramas; **Diagrama existente…** copia uno de otro documento, y **Bloque Mermaid como texto** deja la valla vacía para escribirla. Un clic lo abre en grande; un doble clic, en la ventana.
+Un bloque cuyo lenguaje es `mermaid` se dibuja. **Diagrama nuevo**, en el menú `/`, abre la ventana de diagramas; **Diagrama existente…** copia uno de otro documento, y **Bloque Mermaid como texto** deja uno de muestra, ya dibujado. Un clic lo abre en grande; un doble clic, en la ventana.
 
 Cuatro tipos se dibujan también a mano en esa ventana, y quedan tal como los dejas. El diagrama libre, con sus carriles y un `<br/>` que corta la línea dentro de una forma:
 

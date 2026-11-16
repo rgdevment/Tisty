@@ -9,6 +9,7 @@ The whole window works from the keyboard.
 | `Ctrl` + `Alt` + `I` (once picked in Settings) | Jot an idea for [Brainstorm](Documents#brainstorm) from anywhere |
 | `Tab` (in the quick capture) | Switch between a task, an idea for [Brainstorm](Documents#brainstorm) and today in the [Diary](Documents#diary); `Shift` + `Tab` goes back |
 | `Ctrl`/`⌘` + `Enter` | On a task's row in the list, complete it; while writing in a document or on a task's page, a page break |
+| `Ctrl`/`⌘` + `Enter` (in the Diary's box) | Keep what you wrote in today |
 | `/` | Insert something inside a document |
 | `Shift` + `Enter` (writing a document) | Break the line without starting a paragraph |
 | `Ctrl`/`⌘` + `/` (writing a document) | Open the blocks menu where the caret is |

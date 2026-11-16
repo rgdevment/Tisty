@@ -29,14 +29,14 @@ Lo que un asistente puede hacer es pequeño a propósito. Terminar, descartar y 
 - Cerrar una tarea ni borrarla.
 - Marcar un paso tuyo o terminar una tarea tuya: solo puede decir que están listos.
 - Mover un día que pusiste **tú**.
-- Borrar un documento, ni renombrar o vaciar una carpeta.
+- Borrar un documento, ni renombrar o borrar una carpeta.
 - Sacar una idea de la Lluvia de ideas de otra forma, marcar la hoja entera, archivarla ni moverla a una carpeta.
 - Alcanzar una tarea que plegaste.
 - Tomar archivos de cualquier lugar que no sea Descargas, Documentos, Imágenes, el escritorio o la carpeta temporal.
 - Anotar lo mismo dos veces: una tarea anotada desde el mismo origen se rechaza y se le devuelve la que ya existe.
 - Ver tu Diario mientras dice **Solo tú**: ninguna herramienta lo encuentra, lo lista ni lo cuenta. Abierto, no cambia nada de lo que escribiste ahí, y nunca empieza un diario por su cuenta.
 
-Para cerrar, descartar y borrar no hay herramienta: no es que esté escondida ni restringida, es que no existe. Todo lo demás de esta lista lo rechaza la herramienta que lo haría, y dice por qué.
+Para cerrar, descartar y borrar no hay herramienta: no es que esté escondida ni restringida, es que no existe; tampoco hay una que renombre una carpeta. Un paso tuyo que marca queda como su palabra, esperándote. Tu Diario, mientras está cerrado, se responde como un documento que no existe. Lo demás de esta lista lo rechaza la herramienta que lo haría, y dice por qué.
 
 ## «Por confirmar»: cuando un asistente dice que terminó
 
@@ -66,12 +66,12 @@ Una tarea que cerraste le llega al asistente con un aviso que lo dice. Se lee ta
 
 - **Para corregir un pasaje** tiene que nombrarlo exactamente como está escrito. Si ese texto no está, o está dos veces, no se escribe nada.
 - **Para reescribir un documento entero** tiene que devolver la *huella* de la versión que leyó. Si escribiste en el documento entretanto, la huella ya no cuadra: no se escribe nada y se le pide que vuelva a leer. Lo que escribiste mientras pensaba no se puede perder.
-- La ventana te avisa cuando algo escribió en el documento que tienes abierto. Si lo que reemplazó sigue guardado, la misma barra te ofrece **volver** a lo que decía antes, y lo que dice ahora también queda guardado, así que la elección no es definitiva.
+- La ventana te avisa cuando algo escribió en el documento que tienes abierto. Si lo que reemplazó sigue guardado, la misma barra te ofrece **Volver a lo que decía antes**, y lo que dice ahora también queda guardado, así que la elección no es definitiva.
 - Un documento que archivaste lo puede leer igual, y se le avisa que lo archivaste; no puede escribir en él hasta que lo desarchives o se lo pidas.
 
 ## Tu Diario sigue siendo tuyo
 
-El [Diario](Documentos#diario) queda fuera de la vista de todo asistente hasta que pulsas **Solo tú** arriba y dice **Abierto a los agentes**. Mientras está cerrado, cada herramienta responde sobre él como sobre un documento que no existe, y las búsquedas, las listas y los contadores lo dejan fuera. Abierto, un asistente lo lee y, solo cuando se lo pides, añade al final de hoy bajo una línea con el minuto y su nombre. Todo lo demás se rechaza. Pulsa el botón otra vez para guardarlo solo para ti.
+El [Diario](Documentos#diario) queda fuera de la vista de todo asistente hasta que pulsas **Solo tú** arriba y dice **Abierto a los agentes**. Mientras está cerrado, cada herramienta responde sobre él como sobre un documento que no existe, y las búsquedas, las listas y los contadores lo dejan fuera. Abierto, un asistente lo lee y, solo cuando se lo pides, añade al final de hoy bajo una línea con el minuto y su nombre. Lo que cambiaría, movería, marcaría o archivaría lo que escribiste ahí se rechaza. Pulsa el botón otra vez para guardarlo solo para ti. La puerta solo vale en Tisty 1.48 o más nuevo: un equipo tuyo que sigue con una versión anterior muestra el diario a sus agentes como un documento más, así que actualiza todos tus equipos antes de escribir en él.
 
 ## Marcar un documento en vez de borrarlo
 

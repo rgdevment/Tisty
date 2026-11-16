@@ -48,7 +48,7 @@ fuente: la libreta de la veterinaria
 ---
 ```
 
-- Se guarda tal como está escrito. La página no lo muestra: las propiedades aparecen en el panel de al lado, bajo **Sobre este documento**, donde **Editar** lo abre en su propia ventana, tal como está escrito.
+- Se guarda tal como está escrito. La página no lo muestra: las propiedades aparecen en el panel de al lado, bajo **Detalles**, donde **Editar** lo abre en su propia ventana, tal como está escrito.
 - `title:` es el [título](#el-título) del documento.
 - `tags:` (o `tag:`) guarda el documento bajo cada una, igual que escribir `#rina` en una frase: es la misma etiqueta de las dos maneras. Sirve una lista entre corchetes, palabras separadas por comas o un `- elemento` por línea, con `#` o sin él.
 - El bloque solo cuenta al principio: la primera línea es `---`, la de abajo tiene palabras, y lo cierra un `---` o `...`. En cualquier otra parte, `---` es un [salto de página](#saltos-de-página).
@@ -184,7 +184,7 @@ https://github.com/rgdevment/Tisty
   [vet]: https://example.com/vet "Abre los sábados"
   ```
 
-- La página muestra cada definición donde está escrita, como una línea pequeña con su etiqueta y su dirección; un clic en ella la edita.
+- La página muestra cada definición donde está escrita, como una línea pequeña con su etiqueta y su dirección. Para cambiarla, pasa a la vista Markdown.
 - Un enlace todavía sin dirección, `[palabras]()`, se lee como sus palabras.
 - Solo se siguen las direcciones web, `mailto:` y el `tisty:` propio. Cualquier otro esquema se lee como texto.
 - Una dirección con espacios va entre ángulos: `[clip](<C:/Users/yo/un clip.mkv>)`.

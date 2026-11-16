@@ -6,7 +6,7 @@
 Sí, y lo va a seguir siendo. AGPL-3.0, sin versión de pago, sin funciones guardadas para después, sin prueba que caduque. Los [términos comerciales](https://github.com/rgdevment/Tisty/blob/main/docs/COMMERCIAL.md) existen solo para organizaciones que no pueden cumplir la AGPL.
 
 **¿Necesita cuenta o conexión?**
-Ninguna de las dos. Por su cuenta, Tisty solo pregunta si hay una versión más nueva, y no envía nada para hacerlo. Desconecta el equipo de la red y todo lo demás funciona igual. Mira [[Privacidad]].
+Ninguna de las dos. Por su cuenta, Tisty solo pregunta si hay una versión más nueva, y no envía nada para hacerlo. Cuando sincronizas con una nube o compartes un documento, además lee los pocos archivos pequeños que lista [[Privacidad]]. Desconecta el equipo de la red y todo lo demás funciona igual. Mira [[Privacidad]].
 
 **¿Dónde se guardan mis datos?**
 En una carpeta de tu propio disco. **Configuración › Tus datos** muestra la ruta, y *Mostrar carpeta* la abre. Mira [Instalación](Instalación#dónde-viven-tus-datos).
@@ -42,7 +42,7 @@ Por sí solo, no. **Guardar en mi calendario**, en una tarea con fecha, la deja 
 Sí, desde la 1.48: **Diario** en la Biblioteca, un libro por año con una página por mes y una sección por día. Mira [Diario](Documentos#diario).
 
 **¿Mi asistente puede leer mi diario?**
-No, hasta que pulsas **Solo tú** arriba en el Diario y dice **Abierto a los agentes**; aun así solo añade al final de hoy, cuando se lo pides. Un equipo tuyo con un Tisty anterior no conoce esa puerta: actualízalo.
+No, hasta que pulsas **Solo tú** arriba en el Diario y dice **Abierto a los agentes**; aun así solo añade al final de hoy, cuando se lo pides. Un equipo tuyo que sigue con un Tisty anterior a la 1.48 muestra el diario a sus agentes como un documento normal: actualízalo antes de escribir en el diario.
 
 **¿Funciona con un lector de pantalla?**
 Que se sepa, no. Toda la ventana funciona con el teclado y ese camino está probado, pero nunca se ha probado con un lector de pantalla real. Si usas uno, un [reporte](https://github.com/rgdevment/Tisty/issues) que diga dónde falla sería de lo más útil.

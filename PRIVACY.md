@@ -71,7 +71,7 @@ What you can choose, and what each implies:
 | **A `.tistyx` parcel of documents you hand to somebody** | Them, and whoever they hand it to. You decide what goes in it and when. It carries the documents, where they sat, what the archive held and what an assistant marked — never your device identifier. Once you have your identity it is signed with this computer's key, so it carries your root's public key, which reads as your fingerprint, this computer's own public key with the certificate that ties it to your root, and the name you sign with, and no longer your store's name. That computer key is the same in every parcel it signs, so whoever holds two of them can tell they came from the same computer. For each document you shared through Folio it also carries the Folio document's identifier and who edited it there: their names, keys and fingerprints, as Folio handed them to you |
 | **A `.tistyx` parcel locked with a number, for another machine of yours** | Whoever has both the file and the number. Without it nothing here opens it — though six digits are six digits, and the lock only makes each guess expensive. Inside it carries the same as an open one, and it is signed on the same terms: only once you have your identity |
 | **A document you share by link through Folio** | Whoever has the link. Folio holds the document sealed and cannot read what is in it, but sees what [Sharing by link](#sharing-by-link) lists |
-| **A task you save to your calendar** | Google, Microsoft or Apple, under their terms and their jurisdiction, depending on the calendar you chose. Only the task you pressed the button on, and only what [Saving a task to your calendar](#saving-a-task-to-your-calendar) lists |
+| **A task you save to your calendar** | Google or Microsoft, under their terms and their jurisdiction, when the calendar is theirs; with Apple Calendar, the Calendar app on your Mac and whatever account it keeps that calendar in. Only the task you pressed the button on, and only what [Saving a task to your calendar](#saving-a-task-to-your-calendar) lists |
 
 With a folder, Tisty only ever reads and writes local paths. It has no network
 code for it, no credentials, and no idea which provider — if any — is behind the
@@ -107,13 +107,19 @@ visible instead of making it for you.
   in the window, attached by an assistant, imported beside a document, from a
   parcel or the guide) and, when it is retired, whether it went unused or was
   joined with a copy of itself. Never the folder it came from.
+- **Your diary** — Markdown documents like the rest, a book a year with
+  `diary: on` in its properties. It syncs, goes into a backup and into a parcel
+  that carries everything, and is never shared by link. Whether it is open to
+  assistants is an event in your log that only your own computers write, so it
+  reaches all of them and an assistant cannot open it for itself.
 - **Reminders booked with the system** — so a reminder rings with Tisty closed,
   Tisty hands Windows or macOS, ahead of time, the notices of the coming month,
   at most 256 on Windows and 64 on macOS: for each, the hour, the task's title
   and the task's identifier. The system's own notification service keeps them
   on this computer until the hour comes, or until Tisty takes them back: when
   the reminder changes, when you turn the system notification off in Settings,
-  or when the Windows installer removes Tisty. Nothing goes over the network.
+  when you leave from Settings › Your data, or when the Windows installer
+  removes Tisty. Nothing goes over the network.
 - **Local configuration** — including the device identifier. The *file* never
   leaves this machine on its own: it lives outside the roaming `%APPDATA%`, and
   should a roaming profile or a copied home carry it to another computer, Tisty
@@ -280,7 +286,7 @@ Tisty and a share already out do not.
 | **When you confirm** | Tisty asks `https://<private address>/api/v1` for an identifier, then sends what you chose, sealed on this computer: the document with its pages, pictures and files, its other languages, the documents it cites and the name you sign it with. When others edited it through its link, the names each of them signed with travel too, each signed by its own key, so whoever opens it sees who created it and who edited it. A language someone who edits adds stays theirs, under the name they sign with: readers see it only once you keep it, as the version you read, credited to them and to you as who reviewed it. The key travels in the link, after the `#`, and never reaches the server. Neither does the token of an edit link, which signs on this computer. Requests to that address follow no redirect, wait at most two minutes and say `tisty/<version>` |
 | **What Folio sees** | Not the title, the words, the pictures, the files or the names anyone signs with: those are inside the seal, and so are your reviews of the languages others added. In the clear it gets each envelope's manifest (identifier, version, sizes, signature, the version of Folio's terms you accepted, with no date, and the public keys of your identity and of this computer, so it can tell that two documents come from one person), how many days the link lasts, the token that manages it, a print of the sealed files, and any notice that your identity took back a computer's key. Once you review a language someone else added to a document of yours, it also gets, beside that document, your word on all your reviews of it: signed by this computer, it names the document, a number that grows each time you send it and a hash of your reviews, never which languages you kept or left out. Folio serves that word, and the notices of whoever signed, owns or edited a document, to whoever opens it, so their Tisty can weigh the signatures. Like any server, it also gets the address and the time of each request |
 | **When a link reaches Tisty** | A link arrives as `tisty://edit?link=…`, from the button on Folio's page or from any other page that fires it, and whether sharing is open does not change it. Tisty accepts only an `https` link on `tisty.cl`, `folio.tisty.app` or Folio's private address, and takes from it only the identifier and the key. Before anything leaves, it asks whether to look for the document, and says Folio will see this computer's network address. Only on **Look for it** does it ask `https://<private address>/api/v1/docs/<id>`, and for the files if there are any, never the address the link names, and the key stays here. The document is opened on this computer, a second question shows its title and who signed it, with «verified» beside what the maker of Tisty signed under the root Folio's signed limits name, which Tisty already holds. When a signer's alias is a domain, Tisty checks it against the list Folio signs, reading one small file from `https://raw.githubusercontent.com/rgdevment/Folio-by-Tisty/domains/` and keeping it for a day, and nothing is kept unless you press **Bring it**. Bringing it also asks for each of the document's other languages, up to 19, under the same address, and keeps only the owner's own and those the owner kept, as the version the owner read. Each goes under the name its author signs with, the owner's own under the owner's, so one someone else added reads «Translated by» that person «· reviewed by» the owner, unless both sign with one name. A share Tisty already remembers asks again before looking for languages added since, and asks nothing more if you say no; on a Tisty not set up the link waits for the welcome. A read link leaves a copy of your own, and nothing of it goes back |
-| **When you press Sync, See reads and expiry, Pause, Resume, Appeal, Change the edit link or Stop** | Tisty talks to that same address, for that document and for those that travel with it. Changing the edit link sends Folio only the public key of the new link's token, never the token, and then the next version. Sync first asks for the latest version of the document and of each of its languages, brings a newer one in apart and keeps any wait Folio names, then sends only the documents of the share that changed, if any. On a document you own, once you have reviewed a language someone else added, Sync sends your word on your reviews in the same request as the document's version, with the token that manages it, so Folio keeps both or neither. Before sending, and at most once a day for that document, it also asks for the latest version of each language others added to it, the ones you left out included, to let go of any Folio no longer holds. A language you add through someone else's edit link goes up as your own, under the name you sign with, and waits for their word. Each press repeats any notice that your identity took back a computer's key. While a wait Folio named still runs, a press asks nothing and says how long is left |
+| **When you press Sync, See reads and expiry, Pause, Resume, Appeal, Change the edit link or Stop sharing** | Tisty talks to that same address, for that document and for those that travel with it. Changing the edit link sends Folio only the public key of the new link's token, never the token, and then the next version. Sync first asks for the latest version of the document and of each of its languages, brings a newer one in apart and keeps any wait Folio names, then sends only the documents of the share that changed, if any. On a document you own, once you have reviewed a language someone else added, Sync sends your word on your reviews in the same request as the document's version, with the token that manages it, so Folio keeps both or neither. Before sending, and at most once a day for that document, it also asks for the latest version of each language others added to it, the ones you left out included, to let go of any Folio no longer holds. A language you add through someone else's edit link goes up as your own, under the name you sign with, and waits for their word. Each press repeats any notice that your identity took back a computer's key. While a wait Folio named still runs, a press asks nothing and says how long is left |
 | **When you review a language someone else added** | Only on a document you own. **Review** asks that same address for the language as Folio holds it, its words and pictures, and opens it here to show you; **Keep** asks for it once more, so that what you sign is the version you read. Your word, kept or left out, is signed on this computer and goes up with the next Sync, which the row presses for you |
 | **When you delete a shared document** | Tisty asks that same address to stop its share. If the document was deleted on another of your computers, this one asks the next time you delete any document or go through **Share** here. A share you only held through an edit link is forgotten with no request |
 | **On its own** | One thing. When you open a document you shared that holds a language you kept from someone else, its **Shared** row asks that same address for the latest version of each such language, at most once every quarter of an hour for that document. Only a version this computer has not seen is brought, its words and pictures, and opened here, to tell you whether it changed since you kept it. Nothing else is sent, and nothing is asked while you keep no one else's language. Otherwise a shared row does not check on Folio by itself; it finds out when you press something. To say how long a wait has left, it reads only this computer |
@@ -458,9 +464,10 @@ school.
 With Apple Calendar, on a Mac, Tisty writes the same event as a `.ics` file in
 its cache and hands it to the Calendar app. Nothing leaves through Tisty; what
 Calendar does with the event, such as syncing it through iCloud, is up to
-Calendar. The file is named after the task, carries the hours of its reminders,
-and stays in the cache until you save a task again ten minutes or more later,
-which clears it.
+Calendar. The file is named with the task's identifier, carries the hours of its
+reminders, or one Tisty adds when the task has none, and stays in the cache
+until you save a task to Apple Calendar again ten minutes or more later, which
+clears it.
 
 The event does not change when the task does: moving the date in Tisty later
 moves nothing in your calendar.
@@ -588,10 +595,13 @@ happens on its own:
   file you point it at, and read what is already there. It may not
   close or delete anything, tick a step of yours or finish a task of yours,
   move a day you set, reach a task you hid, read your diary until you open it
-  to agents from the Diary itself, change anything in it once you do, or start
-  one, or
+  to agents from the Diary itself, change what you wrote in it once you do —
+  open, it only adds to the end of today, signed, and makes the month's page if
+  today has none — or start a diary where there is none, or
   take files from anywhere but Downloads, Documents, Pictures, the desktop and
-  the temporary folder.
+  the temporary folder. The diary's door holds on Tisty 1.48 or later: a
+  computer of yours still on an older version keeps syncing and hands the diary
+  to its assistants as an ordinary document, to read and to change.
   Bringing a markdown file in copies what that file's text points at, and only
   what sits in that file's own folder or below it, so what leaves your disk is
   bounded by the file you named rather than by what its text asks for. To

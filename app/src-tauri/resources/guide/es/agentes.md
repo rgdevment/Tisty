@@ -37,7 +37,7 @@ Nada escucha hasta que conectas uno: el asistente arranca Tisty cuando lo necesi
 - Escribir encima de lo que cambiaste mientras él pensaba: se le pide que vuelva a leer.
 - Ver tu Diario mientras dice **Solo tú**, ni cambiar lo que escribiste en él cuando lo abres.
 
-Para cerrar y borrar no hay herramienta: no es que esté escondida, es que no existe. Lo demás se rechaza, y se le dice por qué. Todo, regla por regla, está en [qué puede hacer un asistente](https://www.tisty.app/es/ayuda/que-puede-hacer-un-asistente/).
+Para cerrar y borrar no hay herramienta: no es que esté escondida, es que no existe. Lo demás se rechaza o queda como su palabra, y se le dice por qué. Todo, regla por regla, está en [qué puede hacer un asistente](https://www.tisty.app/es/ayuda/que-puede-hacer-un-asistente/).
 
 ## Cómo pedírselo
 

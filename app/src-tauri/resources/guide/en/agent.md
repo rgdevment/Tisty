@@ -37,7 +37,7 @@ Nothing listens until you connect one: the assistant starts Tisty when it needs 
 - Write over what you changed while it was thinking: it is asked to read again.
 - See your Diary while it reads **Only you**, or change what you wrote in it once you open it.
 
-For closing and deleting there is no tool: not hidden, absent. The rest is refused, and it is told why. Every rule is in [what an assistant may do](https://www.tisty.app/docs/mcp-permissions/).
+For closing and deleting there is no tool: not hidden, absent. The rest is refused or taken as its word, and it is told why. Every rule is in [what an assistant may do](https://www.tisty.app/docs/mcp-permissions/).
 
 ## How to ask it
 

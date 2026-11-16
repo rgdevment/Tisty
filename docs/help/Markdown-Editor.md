@@ -12,7 +12,7 @@ You write on the same page you read, the one Tisty draws. There is no separate e
 - **The marks stay out of sight.** Bold looks bold and a heading looks like a heading. The Markdown is still underneath, and the **Markdown** view shows it as it is.
 - **If you know Markdown, you can type it too.** The marks you type become what they say: `#` and a space at the start of a line make it a heading, and `[ ]` and a space, a box. On a task's page the `#` stays as text, since every heading there is a section.
 - **The first line is the title.** There is no name to fill in anywhere: whatever you write at the top is what the document is called.
-- **Enter starts a new paragraph, and `Shift` + `Enter` only breaks the line.** In a list, Enter starts another item of the same kind; in a quote, the quote goes on; in code, it breaks the line. Enter on an empty item leaves the list, or goes up a level when it sat inside another. Enter at the start of a block opens a line above it.
+- **Enter starts a new paragraph, and `Shift` + `Enter` only breaks the line.** In a list, Enter starts another item of the same kind; in a quote, the quote goes on; in code, it breaks the line. Enter on an empty item leaves the list, or goes up a level when it sat inside another; on an empty quote line it leaves the quote. Enter at the start of a block opens a line above it.
 - **`Tab` puts a list item under the one above, and `Shift` + `Tab` takes it back out.** In code, `Tab` indents with two spaces.
 - **`Backspace` at the start of an item** takes its box away first, then its bullet or its number, and the line is left as text.
 - **Tick a box with a click**, a sticky note's too. A sticky note is written inside and dragged by its paper, its tape or its pin.
@@ -54,7 +54,7 @@ Type `/` at the start of a line, on a blank line or after a space, and the menu 
 ## Moving blocks
 
 - **The handle.** With the pointer beside a block, a handle shows to its left. Drag it to take the block somewhere else; a heading takes its whole section with it. Near the top or the bottom edge, the page scrolls by itself. On a sheet too narrow to leave a margin, the handle and the **+** do not show; `Ctrl`/`⌘` + `/` and `Alt` + ↑ ↓ still work.
-- **Its menu.** A click on the handle offers **Move block up**, **Move block down**, **Duplicate block** and **Delete block**. On a heading, all four act on its whole section, as dragging does: **Delete block** takes everything under it up to the next heading of its level. To remove the heading alone, choose it with `Esc` and press `Delete`.
+- **Its menu.** A click on the handle offers **Move block up**, **Move block down**, **Duplicate block** and **Delete block**. On a heading, all four act on its whole section, as dragging does: **Delete block** takes everything under it up to the next heading of its level or higher. To remove the heading alone, choose it with `Esc` and press `Delete`.
 - **The keyboard.** `Alt` + ↑ ↓ moves the block the caret is in up or down, or the list item it is in.
 - **Choosing whole blocks.** `Esc` chooses the block the caret is in, and `Shift` + ↑ ↓ takes in the ones above or below. Once chosen, `Delete` or `Backspace` removes them, `Alt` + ↑ ↓ moves them together and `Ctrl`/`⌘` + `C` or `X` copies or cuts them. `Esc` again, a click or any other key lets them go.
 
@@ -76,7 +76,7 @@ In the Markdown view:
 ## While you type
 
 - **Tags are offered after `#`.** The tags you already use come up under the caret, so one tag is never spelled two ways. ↑ ↓ picks one and Tab or Enter writes it; Esc puts the list away, and Enter with none picked still starts a paragraph.
-- **Attach a file** by dragging it onto the page, pasting it (a screenshot on the clipboard works too) or picking **Attach a file** in the `/` menu. It lands after the block you drop it on, or where the caret is, and it is kept inside Tisty with the document, not linked to a place on your disk that breaks when the file moves.
+- **Attach a file** by dragging it onto the page, pasting it (a screenshot on the clipboard works too) or picking **Attach a file** in the `/` menu. It lands after the block you drop it on, or after the one the caret is in, on a line of its own, and it is kept inside Tisty with the document, not linked to a place on your disk that breaks when the file moves.
 - **Paste with its formatting.** Text copied from a web page, an email or a word processor keeps its headings, lists, bold, links, tables and coloured words, written in Tisty Markdown: a colour becomes the nearest pen of the palette. A pasted block, like a list or a heading, starts on its own line, and inside a quote it stays in the quote. Plain text keeps its shape too: a table a terminal drew with box lines (`┌ │ ├`) becomes a table, and lines that read like code — from a code editor or a terminal — come in as a code block, unless the caret is already inside one.
 
 | Shortcut | What it does |

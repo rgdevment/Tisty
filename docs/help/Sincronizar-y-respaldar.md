@@ -186,7 +186,7 @@ Si tienes el programa de escritorio de Google, elegir su carpeta es más rápido
 
 ## Después de una actualización
 
-Cada evento lleva una versión, y un equipo solo lee lo que entiende. Cuando un equipo se actualiza a una versión que escribe algo nuevo, el otro deja de sincronizar **en ambos sentidos** hasta que también se actualice. No se pierde nada y nada llega a medio entender: actualiza el que quedó atrás y los dos siguen donde estaban.
+Cada evento lleva una versión, y un equipo solo lee lo que entiende. Cuando un equipo se actualiza a una versión que escribe algo nuevo, el otro deja de sincronizar **en ambos sentidos** hasta que también se actualice. No se pierde nada y nada llega a medio entender: actualiza el que quedó atrás y los dos siguen donde estaban. La 1.48 es la excepción que necesita tu mano: un equipo que sigue con un Tisty anterior sigue sincronizando, pero muestra el [Diario](Documentos#diario) a sus agentes como un documento normal. Actualiza todos tus equipos antes de escribir en él.
 
 Desde la 1.34, un equipo que sigue con Tisty 1.30 a 1.33 y llega a tu nube o a tu carpeta se detiene y te pide actualizarlo en vez de escribir encima de lo que dejó uno más nuevo. Mientras no lo hagas, ese equipo no sincroniza, pero no pierdes nada: lo que tiene se queda donde estaba y se pone al día en cuanto lo actualices. Una copia de una tienda puede tardar un poco en recibir la versión nueva.
 
