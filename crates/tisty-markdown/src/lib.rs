@@ -8,6 +8,7 @@ pub mod diagrams;
 #[cfg(feature = "emoji")]
 mod emoji;
 pub mod fences;
+mod filing;
 pub mod front;
 #[cfg(feature = "tables")]
 pub mod grid;
@@ -64,6 +65,7 @@ pub struct Doc {
     blocks: Vec<Block>,
     crossing: bool,
     labels: [u32; 2],
+    filing: Box<filing::Filing>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
