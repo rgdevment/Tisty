@@ -1,6 +1,6 @@
 # Privacy policy
 
-**Last updated:** November 14, 2026
+**Last updated:** November 16, 2026
 
 ## The short version
 
@@ -107,6 +107,13 @@ visible instead of making it for you.
   in the window, attached by an assistant, imported beside a document, from a
   parcel or the guide) and, when it is retired, whether it went unused or was
   joined with a copy of itself. Never the folder it came from.
+- **Reminders booked with the system** — so a reminder rings with Tisty closed,
+  Tisty hands Windows or macOS, ahead of time, the notices of the coming month,
+  at most 256 on Windows and 64 on macOS: for each, the hour, the task's title
+  and the task's identifier. The system's own notification service keeps them
+  on this computer until the hour comes, or until Tisty takes them back: when
+  the reminder changes, when you turn the system notification off in Settings,
+  or when the Windows installer removes Tisty. Nothing goes over the network.
 - **Local configuration** — including the device identifier. The *file* never
   leaves this machine on its own: it lives outside the roaming `%APPDATA%`, and
   should a roaming profile or a copied home carry it to another computer, Tisty
@@ -120,8 +127,11 @@ visible instead of making it for you.
   in a parcel. Which of your other machines' keys you have confirmed is kept on
   this machine alone.
   It also holds the day this copy first opened, whether it has already asked
-  you to star the project, and whether it has already offered your assistant a
-  door, so that each of those is asked once and never again. Which assistants
+  you to star the project, whether it has already offered your assistant a
+  door and whether it has already offered to open at sign-in for your
+  reminders, so that each of those is asked once and never again. It holds too
+  whether important reminders are on and the calendar you chose for **Save to my
+  calendar**. Which assistants
   are on this machine is read when the offer is decided and is not written down.
   The day this copy opened is, with the time zone below, the only field here
   that says anything about you rather than about your work, and none of them
@@ -427,10 +437,11 @@ sits there.
 
 ## Saving a task to your calendar
 
-**Save to my calendar**, on a task with a date, hands that one task to the
-calendar you chose under *Settings › General › Your calendar*. Tisty keeps the
-choice in its local settings and nothing else: no account, no key, no
-connection to your calendar.
+**Save to my calendar**, on a task with a date, hands that one task to a
+calendar: the one you chose under *Settings › General › Your calendar* or, while
+that says **Ask every time**, the one you pick when the button asks, used for
+that event only. Tisty keeps in its local settings only a calendar chosen in
+Settings, and nothing else: no account, no key, no connection to your calendar.
 
 With Google Calendar or Outlook, Tisty opens your browser on that provider's
 page for a new event, with the task's title, its day and hour, and its link in
@@ -439,12 +450,17 @@ task, and since it is a ULID, it also tells when the task was made. Tisty
 makes no request of its own: your browser loads the page, so the provider
 receives that address, as any page you open does, and your browser keeps it in
 its history. The event is stored only if you press
-**Save** on that page. The task's description, steps and notes never go.
+**Save** on that page. The task's description, steps and notes never go. The
+page is `calendar.google.com` for Google Calendar, `outlook.live.com` for
+Outlook.com or Hotmail and `outlook.cloud.microsoft` for Outlook for work or
+school.
 
 With Apple Calendar, on a Mac, Tisty writes the same event as a `.ics` file in
 its cache and hands it to the Calendar app. Nothing leaves through Tisty; what
 Calendar does with the event, such as syncing it through iCloud, is up to
-Calendar. The file stays until the next task you save replaces it.
+Calendar. The file is named after the task, carries the hours of its reminders,
+and stays in the cache until you save a task again ten minutes or more later,
+which clears it.
 
 The event does not change when the task does: moving the date in Tisty later
 moves nothing in your calendar.
@@ -571,7 +587,9 @@ happens on its own:
   ideas on your Brainstorm and mark the old ones the same way, keep a copy of a
   file you point it at, and read what is already there. It may not
   close or delete anything, tick a step of yours or finish a task of yours,
-  move a day you set, reach a task you hid, or
+  move a day you set, reach a task you hid, read your diary until you open it
+  to agents from the Diary itself, change anything in it once you do, or start
+  one, or
   take files from anywhere but Downloads, Documents, Pictures, the desktop and
   the temporary folder.
   Bringing a markdown file in copies what that file's text points at, and only

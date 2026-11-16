@@ -46,6 +46,6 @@ Tisty imprime su propio PDF, con sus páginas, saltos de página y tamaño de pa
 
 ## De Markdown a Markdown estándar
 
-**Copiar como Markdown** da Markdown estándar, como lo leen GitHub y CommonMark, listo para cualquier otro editor. Las formas propias de Tisty pasan a las estándar (`:::tip` pasa a `> [!TIP]`, `:::details` a `<details>`, y un salto de línea simple sigue siendo salto), un enlace a otro documento queda como su texto, y todas las etiquetas del documento (las de `tags:` y los `#hashtags`) quedan en el front matter. **Escribirlo en una carpeta** hace lo mismo como archivos, con sus páginas y adjuntos al lado.
+**Copiar como Markdown** da Markdown estándar, como lo leen GitHub y CommonMark, listo para cualquier otro editor. Las formas propias de Tisty pasan a las estándar (`:::tip` pasa a `> [!TIP]`, `:::details` a `<details>`, y un salto de línea simple sigue siendo salto), un enlace a otro documento queda como su texto, y todas las etiquetas del documento (las de `tags:` y los `#hashtags`) quedan en el front matter. **Exportar como Markdown…** hace lo mismo como archivos en una carpeta, con sus páginas y adjuntos al lado.
 
 Más formas de sacar documentos, como un `.tistyx` para otro Tisty, están en [Documentos](Documentos#sacar-documentos).

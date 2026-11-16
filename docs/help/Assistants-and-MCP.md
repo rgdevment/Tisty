@@ -18,7 +18,7 @@ Tisty speaks [MCP](https://modelcontextprotocol.io) through `tisty mcp`, over it
 - **Nothing listens until you connect it.** The assistant starts `tisty mcp` when it needs it.
 - **You hold the door.** It comes open on its own until you choose — on a new install, and on an update if you never closed it — and **Settings › Assistants** closes it with one click. While it is closed, everything an assistant tries is refused. Letting an assistant in and throwing it out are events in your log; that you chose to keep the door closed is kept in this computer's settings.
 
-Since 1.32.1, while the door is open, Tisty also answers to plain `tisty` from any terminal: the installer's copy on Windows and the Homebrew one on a Mac. If you have the Microsoft Store copy and the installer's at once, the newest answers. Close the door and `tisty` stops answering. An assistant that was already open needs a restart to notice.
+Since 1.32.1 a stable Tisty also answers to plain `tisty` from any terminal, so a plugin can start it by name. The Microsoft Store and Homebrew put that name there themselves; the installer's copy on Windows adds its own folder to your PATH while the door is open and takes it off again when you close it. If you have the Microsoft Store copy and the installer's at once, the newest answers. An assistant that was already open needs a restart to notice.
 
 ## Connecting an assistant
 
@@ -32,7 +32,7 @@ Since 1.32.1, while the door is open, Tisty also answers to plain `tisty` from a
 - **May be here** — only its folder is left, so it may have been uninstalled.
 - **By hand** — Goose and Continue keep their settings in YAML, which Tisty does not write. The row shows what to paste.
 
-**Connect the ones found** connects every one waiting at once. Some files serve more than one assistant: GitHub Copilot CLI's is also read by VS Code, and Codex's by ChatGPT and Warp.
+**Connect the 3 found**, with however many wait, connects every one of them at once. Some files serve more than one assistant: GitHub Copilot CLI's is also read by VS Code, and Codex's by ChatGPT and Warp.
 
 An assistant reads its settings when it starts, so after connecting it, quit it completely and open it again. If it has a window, closing it is not enough: on Windows it keeps running by the clock until you quit it from there, and on a Mac until **⌘Q**.
 
@@ -50,7 +50,7 @@ In Claude Code:
 /plugin install tisty --marketplace rgdevment/mcp-plugins
 ```
 
-Any other assistant that starts a server by command, such as GitHub Copilot in VS Code, Cursor or Cline, takes the same launcher from npm:
+Any other assistant that starts a server by command, such as Cursor, Cline or Claude Desktop, takes the same launcher from npm:
 
 ```json
 {
@@ -59,6 +59,8 @@ Any other assistant that starts a server by command, such as GitHub Copilot in V
   }
 }
 ```
+
+VS Code reads the same entry under `servers` instead of `mcpServers`.
 
 The first start downloads the launcher and can take a moment; later ones are immediate. If Tisty lives somewhere unusual, set `TISTY_PATH` to the full path of its `tisty`.
 
@@ -87,7 +89,7 @@ $ <your-assistant> mcp add tisty -- <path-to-tisty> mcp
 For example, with Claude Code:
 
 ```console
-$ claude mcp add tisty -- <path-to-tisty> mcp
+$ claude mcp add --scope user tisty -- <path-to-tisty> mcp
 ```
 
 Clients configured with a JSON file take the usual shape:
@@ -130,7 +132,7 @@ The memory and context Tisty keeps for your agent is one command or one `@` away
 
 Each one takes a word after it, like `/mcp__tisty__solved_before timeouts`, or nothing, and then it works from what you have been talking about.
 
-**Documents to mention.** Your documents that are not put away are offered too, so you can hand one to the assistant by name: in Claude Code, type `@` and pick it by its title and folder. A document of up to about 12,000 characters arrives whole; a longer one arrives as its outline, its headings and their lines, and the assistant asks for the part it needs.
+**Documents to mention.** Your documents that are not put away are offered too — your Diary only while it is open to agents — so you can hand one to the assistant by name: in Claude Code, type `@` and pick it by its title and folder. A document of up to about 12,000 characters arrives whole; a longer one arrives as its outline, its headings and their lines, and the assistant asks for the part it needs.
 
 ## A day with your agent
 
@@ -145,7 +147,7 @@ What an agent connected to Tisty does on a real piece of work:
 7. **It ends by saying what it did and how it knows it holds.** You review it and close it.
 8. **After reading a long document, it leaves a summary** for the next agent to choose by. When the document changes, the summary is marked stale.
 
-Who owns what stays clear. What your agent files is its own to keep true: it describes it, plans the steps, ticks them and notes what it learns. On what you wrote it works as in a document — the description, the page, the open steps, the title and the list — but a step it calls done waits for you to tick it, the day stays yours and closing is always yours.
+Who owns what stays clear. What your agent files is its own to keep true: it describes it, plans the steps, ticks them and notes what it learns. On what you wrote it works as in a document — the description, the page, the open steps, the title and the list — but a step it calls done waits for you to tick it, the day stays yours and closing is always yours. What only you can do — trying it in the real app, signing, deciding — it does not write as a step of its own task, which it could never tick: it files it as a task of its own for you, in the same list.
 
 ## Signed by name
 
@@ -166,7 +168,7 @@ Tisty knows what each answer costs, and keeps cutting it. Measured on a 256 KB M
 | Looks for something solved months ago | about 3% | 97% less |
 | Looks up one subject: the outline and one section | about 3%, 12% at worst | 88–97% less |
 
-No single write carries more than 64,000 characters, so a long log is kept as subjects in pages; no read brings more than about 12,000 characters unless the agent asks for a document whole to carry elsewhere, and past that a document asked for whole comes back as its outline; a task's page comes whole only up to about 4,000 characters, and a journal note holds at most 4,000; picking up again brings only what moved; what is finished costs nothing until it is searched; and a search brings ten tasks and ten documents at a time, each with the line that says it cut to 120 characters around the word.
+No single write carries more than 64,000 characters, so a long log is kept as subjects in pages; no read brings more than about 12,000 characters, and past that a document asked for whole comes back as its outline, unless the agent asks for it whole in standard Markdown to carry elsewhere, up to 40,000; a task's page comes whole only up to about 4,000 characters, and a journal note holds at most 4,000; picking up again brings only what moved; what is finished costs nothing until it is searched; and a search brings ten tasks and ten documents at a time, each with the line that says it cut to 120 characters around the word.
 
 Connecting costs something too: the description of Tisty's tools weighs about a sixth of that log, a third less than it did, and a test keeps it from growing. An assistant that loads tools only as it uses them does not pay it whole; one that loads every tool each session saves 72–83%, and below some 50 KB of notes a plain file is cheaper. The counts are characters, with the JSON each answer carries included, and tokens follow them closely.
 

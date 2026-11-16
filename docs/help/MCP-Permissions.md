@@ -17,6 +17,11 @@ What an assistant may do is deliberately small. Finishing, dropping and deleting
 - **Put a document away, or bring it back**, when you ask.
 - **Jot ideas on Brainstorm** when you ask, and sort them out with you: an idea it files in a document or turns into a task leaves the sheet, as it does when you do it.
 - **Keep a copy of a file** you point it at, on a task or inside a document.
+- **Make a folder** for documents, with an icon and a colour.
+- **Bring a Markdown file in** as a document, or **write a document out** as files in a folder on this machine.
+- **Write a document in another language**, or join two that say the same.
+- **Leave a short summary** of a long document for the next assistant, kept on this machine.
+- **Add to today in your Diary**, once you open it to agents and only when you ask: its words go at the end of today, under a line with the minute and its name.
 - **Read and search** what is already there, including the archive.
 
 ## Never
@@ -29,8 +34,9 @@ What an assistant may do is deliberately small. Finishing, dropping and deleting
 - Reach a task you folded away.
 - Take files from anywhere but Downloads, Documents, Pictures, the desktop and the temporary folder.
 - File the same thing twice: a task filed from the same source is refused, and the existing one is handed back.
+- See your Diary while it reads **Only you**: no tool finds it, lists it or counts it. Open, it changes nothing you wrote there, and it never starts a diary of its own.
 
-There is no tool for any of the forbidden things — not hidden, not restricted: absent.
+For closing, dropping and deleting there is no tool at all — not hidden, not restricted: absent. Everything else on this list is refused by the tool that would do it, which says why.
 
 ## «To confirm»: when an assistant says it is done
 
@@ -62,6 +68,10 @@ A task you closed comes to the assistant with a notice saying so. It reads as it
 - **To write a whole body again** it has to send back the *print* of the version it read. If you wrote in the document in between, the print no longer matches: nothing is written, and it is told to read again. What you typed while it was thinking cannot be lost.
 - The window tells you when something wrote in the document you have open. Where what it replaced is still kept, the same bar offers to **put the document back** to what it said before — and what it says now is kept too, so the choice is not final.
 - A document you archived it can still read, and it is told you archived it; it cannot write in it until you bring it back, or ask it to.
+
+## Your Diary stays yours
+
+The [Diary](Documents#diary) is out of every assistant's sight until you press **Only you** at its top and it reads **Open to agents**. While it is shut, every tool answers about it as about a document that is not there, and searches, lists and counts leave it out. Open, an assistant reads it and, only when you ask, adds to the end of today under a line with the minute and its name. Everything else is refused. Press the button again to keep it to yourself.
 
 ## Marking a document instead of deleting it
 

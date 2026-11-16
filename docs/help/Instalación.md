@@ -39,10 +39,11 @@ Sí. Las imágenes de macOS están firmadas y notarizadas por Apple, y el instal
 
 ## La primera vez que se abre
 
-Tisty te pregunta dos cosas:
+Tisty te pregunta hasta tres cosas:
 
 1. **En qué idioma**: inglés o español. La ventana, la guía y el lenguaje natural lo siguen, y puedes cambiarlo cuando quieras en Configuración.
 2. **Dónde dejar tus copias**: una carpeta para [[sincronizar|Sincronizar-y-respaldar]], o ninguna si usas un solo equipo.
+3. **¿Cómo quieres que te llamemos?**: un alias opcional para firmar lo que compartes; **Ahora no** lo salta, y no se pregunta cuando el Tisty al que te unes ya tiene uno.
 
 Después **te escribe una guía y la abre**. La guía es un documento normal en tu propio almacén, en una carpeta propia (tuya para leerla, editarla o tirarla), y te muestra desde dentro lo que cabe en un documento. Puedes volver a ella desde Configuración.
 
@@ -52,7 +53,7 @@ Todo lo demás tiene una respuesta obvia que puedes cambiar después: Tisty arra
 
 Configuración ocupa la barra lateral con sus secciones:
 
-- **General**: cómo se comporta Tisty contigo: idioma, aspecto, arranque, la captura rápida, avisos y la bienvenida.
+- **General**: cómo se comporta Tisty contigo: idioma, aspecto, arranque, la captura rápida, quién escribe aquí, avisos, tu calendario y la bienvenida.
 - **Sincronizar**: dónde van tus copias, tus equipos y dónde se quedan los adjuntos grandes.
 - **Seguridad**: tu frase de 24 palabras y [cifrar tu nube](Sincronizar-y-respaldar#cifrar-tu-nube).
 - **Tus datos**: dónde viven, los respaldos, los documentos de otro Tisty y cómo irte.

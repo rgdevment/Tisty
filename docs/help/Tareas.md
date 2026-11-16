@@ -65,7 +65,7 @@ Prueba con:
 
 ## Captura rápida desde cualquier parte
 
-Presiona `Ctrl` + `Shift` + `Space` desde donde estés y se abre una ventanita para una tarea. `Enter` la guarda, `Esc` la cierra y sigues con lo tuyo. Si ese atajo ya lo usa otro programa, Tisty toma otro y te dice cuál en Configuración.
+Presiona `Ctrl` + `Shift` + `Space` desde donde estés y se abre una ventanita para una tarea. `Enter` la guarda, `Esc` la cierra y sigues con lo tuyo. `Tab` la cambia a **Idea**, para la [Lluvia de ideas](Documentos#lluvia-de-ideas), o a **Diario**, que escribe en hoy en el [Diario](Documentos#diario). Si ese atajo ya lo usa otro programa, Tisty toma otro y te dice cuál en Configuración.
 
 ## Las vistas
 
@@ -109,7 +109,7 @@ Las etiquetas se comparten con los [[documentos|Documentos]]: la pantalla de Eti
 
 ## Lo que guarda una tarea
 
-Una tarea se abre al lado de la lista, no encima: arriba sus fechas, lista, etiquetas y prioridad, y debajo **su página**, un documento en Markdown como cualquier otro. La página nace con secciones para llenar, cada una con una pista en gris que se va al escribir: **Descripción**, **Para estar lista**, **Pasos**, **Notas** y **Al cerrarla**. Puedes agregar, renombrar o quitar secciones; el trayecto cuenta cada cambio.
+Una tarea se abre al lado de la lista, no encima: arriba sus fechas, lista, etiquetas y prioridad, y debajo **su página**, un documento en Markdown como cualquier otro. La página nace con secciones para llenar, cada una con una pista en gris que se va al escribir: **Descripción**, **Para estar lista**, **Pasos**, **Notas** y **Al cerrarla**. Se escribe como cualquier documento ([[El editor Markdown|Editor-Markdown]]). Para agregar, renombrar o quitar secciones, pulsa **Secciones**: los títulos se pueden escribir, **Agregar una sección** suma una al final y el botón junto a cada título la quita sin borrar lo escrito en ella; **Listo** vuelve a la página. Fuera de ahí los títulos no se escriben: el menú `/` no ofrece títulos y un `#` escrito queda como texto. **Ver Markdown**, en la columna de la tarea, muestra el texto con sus marcas, y **Ver enriquecido** vuelve. El trayecto cuenta cada cambio. En la fila de arriba también se pone un recordatorio —**⏰ recordatorio**, eliges cuándo y **Recuérdamelo**— y, en una tarea con fecha o fecha límite, está **Guardar en mi calendario**: mira [Reparto y recordatorios](Reparto-y-recordatorios#recordatorios).
 
 Debajo de la página se pliega el **Historial**: lo que la tarea traía escrito de antes y lo que un asistente anota en ella. Abierta a página completa, la tarea gana una columna con su propio trayecto: cuánto lleva abierta, cuánto está hecho y cada cambio por el que pasó.
 
@@ -117,7 +117,7 @@ Una **fecha límite** no es lo mismo que un plan: `antes de` y `hasta` abren una
 
 ## Pasos y partes
 
-Cada casilla que escribes en la página, `- [ ]`, es uno de sus pasos: se marca ahí mismo y el trayecto guarda cuándo nació y cuándo se marcó. Un paso es una línea; el registro guarda sus primeros cien caracteres.
+Cada casilla que escribes en la página, `- [ ]`, es uno de sus pasos: se marca ahí mismo y el trayecto guarda cuándo nació y cuándo se marcó. Un paso es una línea; el registro guarda sus primeros cien caracteres. **Agregar un paso**, bajo la lista, suma otro, y un paso que dejas vacío se quita solo.
 
 Cuando un paso necesita más, pasa el mouse sobre su casilla abierta y aprieta **↗**: se vuelve una tarea propia, una **parte** de esta, y en su lugar queda su tarjeta con los pasos que lleva y su fecha. Un clic en la tarjeta la abre.
 
@@ -145,9 +145,9 @@ Lo que escribas en **Esta vez** es de la vuelta que corre. Al completarla se gua
 
 ## Terminar y descartar
 
-- `Ctrl`/`⌘` + `Enter` termina la tarea en que estás. Se va al [[archivo|El-archivo]] con todo lo que tiene.
+- `Ctrl`/`⌘` + `Enter`, sobre la fila de la tarea en la lista, la termina. Se va al [[archivo|El-archivo]] con todo lo que tiene. Mientras escribes en su página, esas teclas ponen un salto de página.
 - **Cerrar con resumen** te pide dos líneas de cómo salió antes de terminarla. Van primero en **Al cerrarla**; en una rutina, quedan con su vuelta.
-- **Descartar** la aparta sin hacerla: también llega al archivo.
+- **No lo haré** la descarta: la aparta sin hacerla, y también llega al archivo.
 - Al cerrarla, su página se guarda con ella: se lee pero ya no se escribe, ni tú ni un asistente. Si la reabres, vuelve.
 
 Las tareas que un asistente da por hechas esperan en **Por confirmar**: mira [[Qué puede hacer un asistente|Qué-puede-hacer-un-asistente]].

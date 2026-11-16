@@ -44,7 +44,7 @@ See [[What an assistant may do|MCP-Permissions]] for the rules behind them.
 | Tool | What it does |
 | :-- | :-- |
 | `docs` | The documents and the folders, with what each one is about |
-| `outline_doc` | What is in a document: its headings and parts, and the signs it wants tidying — documents titled alike, headings repeated across pages, links that lead nowhere |
+| `outline_doc` | What is in a document: its headings and parts, and the signs it wants tidying — documents titled alike, headings repeated across pages, links that lead nowhere, page lines that show another name than the page's title, and pages no line places |
 | `read_doc` | Read a document, or one part of it — or, with `as`, the whole of it in standard Markdown, to take to Confluence, Jira, Notion, Linear or GitHub through their own tools (see below). **Brainstorm** comes in parts, idea by idea, never as a list of times |
 | `sum_up` | Leave a short summary of what a document is about, for the next reader |
 | `write_doc` | Write a new document, or write one again whole — or, with `compact`, put one that grew by sessions back in order (see below); with `translation_of`, write it as another language of one of your own documents (one someone else wrote is refused) |
@@ -69,6 +69,10 @@ See [[What an assistant may do|MCP-Permissions]] for the rules behind them.
 
 Bringing a Markdown file in copies what its text points at, but only what sits in that file's own folder or below it, so what is taken is bounded by the file you named rather than by what its text asks for. Answers come back without the paths of your disk, and an assistant names what it touched by its title and its list or folder, never by an id.
 
+## The Diary
+
+Your [Diary](Documents#diary) is outside every tool until you open it to agents from the Diary itself: `docs`, `find`, `catch_up` and the documents offered for `@` leave it out, and a tool given one of its pages answers as for a document that does not exist. Open, the reading tools read it and `append_doc` adds to the end of today; every tool that would change, move, mark or put away what you wrote there is refused, and none can start a diary.
+
 ## Taking a document to another tool
 
 If your assistant also reaches Confluence, Jira, Notion, Linear or GitHub, it can read a Tisty document with `as: "markdown"` and hand it over: standard Markdown suits almost all of them, and their own tools turn it into their format.
@@ -79,6 +83,8 @@ Not everything makes the journey, and Tisty says so in each answer, so the assis
 - **Diagrams** stay as Mermaid code: GitHub, GitLab and Notion draw them; Confluence and Jira show them as code unless a Mermaid macro is used.
 - **Links to other documents and tasks** become plain words.
 - **Pages** come apart: each one is read on its own.
+- **Pens, underlines, icons and folds** travel as HTML tags, which not every tool draws.
+- **A very long document**, past 40,000 characters in standard Markdown, is not handed over in the conversation: `export_doc` writes it out as files instead.
 - **A document put away, or marked as having had its day,** says so first, so the assistant asks you before carrying it anywhere.
 
 ## Tidying what grew

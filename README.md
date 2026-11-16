@@ -230,8 +230,8 @@ waits in Brainstorm.
 
 ### Ideas: a brainstorm at hand
 
-- **Caught the moment it comes** — the quick capture switches between a task
-  and an idea with `Tab`, and ideas have a shortcut of their own: up to 140
+- **Caught the moment it comes** — the quick capture goes from a task to an idea
+  to today's diary with `Tab`, and ideas have a shortcut of their own: up to 140
   characters each, dated, without opening the window.
 - **Sticky notes that stay Markdown** — they wait as coloured notes in
   Brainstorm, a document pinned atop the Library, and you reorder them by
@@ -246,6 +246,19 @@ waits in Brainstorm.
   or files it in its document, and only marks the old ones, for you to delete.
 
 ![A quick thought, so you don't lose it: ideas of the moment as sticky notes in colours in Brainstorm, dated and written by hand, to sort out later into a task or a document](assets/screens/readme/en-03-brainstorm.webp)
+
+### Diary: what happened today
+
+- **One book a year** — *Diary 2026*, with a page a month and a section a day,
+  in the app's language; a day you did not write never appears.
+- **Written from anywhere** — the box on top, «What happened today?», or the
+  quick capture's third `Tab`, without opening the window; an idea on Brainstorm
+  files into **Today's diary** first.
+- **Only yours** — no agent sees it until you press **Only you** and it reads
+  **Open to agents**; open, an agent reads it and only adds to the end of today,
+  signed, when you ask. It is never shared through Folio.
+- **Still Markdown** — a book with `diary: on` in its properties, whose pages
+  are the months.
 
 ### Tasks: what to do, who does it, how it was solved
 
@@ -318,9 +331,9 @@ Where the saving comes from:
 
 - **No single write carries more than 64,000 characters**, so a long log is kept
   as subjects in pages, never as one wall of text.
-- **No read brings more than about 12,000 characters** unless the agent asks for
-  a document whole to carry elsewhere. Past that, a document asked for whole
-  comes back as its outline.
+- **No read brings more than about 12,000 characters**: past that, a document
+  asked for whole comes back as its outline. The exception is a document asked
+  for whole in standard Markdown to carry elsewhere, up to 40,000 characters.
 - **A task's page comes whole only while it is short**, about 4,000 characters.
   Past that come its sections, the digest that opens the agent's notes and its
   latest note; its journal comes by size, the latest notes up to about 3,000
@@ -524,7 +537,7 @@ your own AI agent reads over MCP**, this is what Tisty is:
 | Your tasks live | in plain files on your own disk |
 | Account | none, ever |
 | Subscription | none. There is no paid tier and no upgrade |
-| Offline | always. Only sharing a document by link needs a connection |
+| Offline | always. Only what you send out needs a connection: a document shared by link, your own cloud, a task saved to an online calendar |
 | AI inside | **none**, and none is coming |
 | Your own assistant | yes, over **MCP**, through a door one click closes |
 | Memory for your agent | what moved since last time, outlines first and one section at a time |
@@ -532,6 +545,7 @@ your own AI agent reads over MCP**, this is what Tisty is:
 | Sorting | lists, tags, steps and a journal on every task |
 | Documents | Markdown files with pages, diagrams, formulas, code, widgets and their own PDF |
 | A document with pages | a book, with its chapters in the order the text names them and an index |
+| A diary | a book a year, a page a month, a section a day: only yours until you open it to agents, and never shared |
 | Diagrams and formulas | drawn from a few lines of text, light or dark with the window |
 | Widgets | fixed views of HTML and CSS in Tisty's colours, which run nothing and reach nothing |
 | PDF | its own: A4, Letter or Folio, with its pictures inside |
@@ -542,7 +556,7 @@ your own AI agent reads over MCP**, this is what Tisty is:
 | Your cloud, encrypted | if you want it, with a 24-word phrase only you know |
 | Natural language | dates, deadlines and repeats, parsed on your machine |
 | When to do it | a spread of days you deal work onto, and a month for looking |
-| Reminders | an hour you choose, that rings on this machine and nowhere else |
+| Reminders | an hour you choose, that rings on your computers, even with Tisty closed, and nowhere else |
 | Source | open, auditable, yours to fork |
 
 **Documents that grow into books.** Most task managers give you a notes field.
@@ -589,6 +603,11 @@ The other half of Tisty, and for many people the larger one. A document is a
 Markdown file on your own disk — the same file any other editor opens — and in
 Tisty it holds a good deal more than text:
 
+- **Written where it is read.** No editing mode and no preview: you click and
+  type on the page itself. Selected words bring up a small bar — bold, italic,
+  underline, strikethrough, code, link and four pens — `/` opens the menu of
+  blocks, a handle beside each block drags it, duplicates it or deletes it, and
+  `Ctrl`/`⌘` + `Z` takes back what you typed in a row, not key by key.
 - **A book in pages.** A year of minutes, a manual by chapters, a dog's life told
   year by year: one document holding its pages, in the order the text names
   them, with an index at the end and arrows from one to the next.
@@ -693,7 +712,7 @@ the way in.
 The writing sits on a lit page, and the first line with words in it is both the
 name of the document and its title — reading past a fence or an alert's marker to
 find it. When the window is wide enough a column opens beside it
-with what the document is, the formatting the `/` menu used to hide, and its
+with what the document is, its languages, its paper and its
 outline. **Tisty makes its own PDF** — A4, Letter or Folio, with its
 own margins and its pictures carried inside — and shows it to you before you
 export it.
@@ -708,7 +727,8 @@ a colour rather than a tag. Pictures beside it come straight in, and those on
 the internet wait until you ask. **Edit** makes a copy in your store and leaves
 the original where it was. A document of yours opens from its panel, *Open in a
 window of its own*, read-only with the width of the page and the PDF it would
-make, and that PDF is signed unless you untick **Signed**. A widget opens apart
+make, and that PDF opens with a cover if you tick **A cover with author,
+version and dates**. A widget opens apart
 too, at phone, tablet or desktop width. More in [the help](https://www.tisty.app/docs/documents/#opening-a-markdown-file-from-outside).
 
 **And they leave whole.** A document copies as standard Markdown, the way
@@ -810,7 +830,8 @@ read, edit, or throw away like anything else you wrote.
 
 **Settings takes over the sidebar with its sections.** *General* is how Tisty
 behaves towards you — language, light or dark, start-up, the quick capture,
-notices, and the one thing that happens outside the window: the welcome. *Sync*
+notices, your calendar, and the one thing that happens outside the window: the
+welcome. *Sync*
 is where your copies go, which computers are yours and where the big
 attachments live. *Security* holds your 24-word phrase and the encrypted cloud.
 *Your data* is your folder, backups, what you take out or bring in, and a guide
@@ -900,12 +921,24 @@ Tisty: it shows each event and to-do with when, where, how it repeats and its
 reminder, and makes the ones you pick into tasks — time zones, Outlook's
 included, and simple repeats kept, and a file opened twice brings nothing twice.
 
+**And a task goes out to your calendar.** **Save to my calendar**, on a task with
+a date, opens the event already filled in — title, day and hour, and the task's
+link — in Google Calendar or Outlook in your browser, or in Apple Calendar on a
+Mac, and you press **Save** there; from then on your calendar reminds you, on
+your phone too. Tisty asks which calendar every time unless you choose one under
+Settings › General › *Your calendar*, connects to none of them, and the event
+does not follow the task if its date changes later.
+
 **Repeating tasks** come back one occurrence at a time, so the archive shows you
 did it twelve times — and it counts what was owed rather than only what you
 closed, so a routine reads 26 of 30 with four dates that have no record. Marking
 one days late offers those dates back instead of calling them forgotten: tick the
 ones you did and the gap closes. **Reminders** arrive as a system notification and
-a short sound you can turn off. The whole window works from the keyboard.
+a short sound you can turn off, even with Tisty closed: it books them with
+Windows or macOS, so they ring while the computer is on, and a click on one
+opens its task. **Important reminders**, off until you turn it on, lets one
+through «Do not disturb» where the system allows it. The whole window works from
+the keyboard.
 
 **The archive is read in three layers.** The ones that taught something — a task
 you came back to and added to more than three times — come with their whole
@@ -944,8 +977,9 @@ compiled into the copy you already have. There are a few more, listed in
 
 **Folio by Tisty** is a separate service for sharing a document by a link with
 no account, end-to-end encrypted, with its own terms and policies in
-[its own repository](https://github.com/rgdevment/Folio-by-Tisty). Every document
-shows a **Shared** row; pressing **Share** reads a small signed file to learn
+[its own repository](https://github.com/rgdevment/Folio-by-Tisty). A document's
+panel shows a **Shared** row — Brainstorm and your Diary are never shared — and
+pressing **Share** reads a small signed file to learn
 whether Folio has opened and, while it has not, tells you so, with a link to
 [tisty.cl](https://tisty.cl). Nothing of your document leaves until
 Folio is open, you accept its terms and you confirm.
@@ -1157,7 +1191,9 @@ which writes and moves the lines naming them in your document's text and nothing
 else, mark a document that had its day, for you to delete, put away or unmark,
 keep a copy of a file you point it at — on a task or inside a document alike —
 jot ideas on your Brainstorm and sort them with you, and read what is already
-there. What it may
+there. Your Diary is the exception: no assistant sees it until you open it to
+agents from the Diary itself, and open it only adds to the end of today, signed,
+when you ask. What it may
 not do: close a task or delete one, tick a step of yours or finish a task of
 yours, move a day you set, delete a document, rename or empty a folder, reach a
 task you folded away, take files from anywhere but Downloads, Documents,
@@ -1222,8 +1258,9 @@ later version, no trial that runs out.
 
 ### Does it need an account or a connection?
 
-Neither. There is nothing to sign up for, and only sharing a document by link
-needs a connection. Tisty makes one network request you did not ask for — when
+Neither. There is nothing to sign up for, and only what you send out needs a
+connection: a document shared by link, your own cloud, a task saved to an online
+calendar. Tisty makes one network request you did not ask for — when
 it opens, and once a day after that — to see whether a newer version exists, and
 it sends nothing in order to ask. Take the machine off the network and
 everything else works the same.
@@ -1462,10 +1499,10 @@ sorts by time and needs no coordination.
 [Tailwind CSS](https://tailwindcss.com) styles it;
 [Solid](https://www.solidjs.com) draws the light viewer, which has a build of
 its own;
-[CodeMirror](https://codemirror.net) is where a document is written, a block at
-a time, while [pulldown-cmark](https://github.com/pulldown-cmark/pulldown-cmark)
-reads the Markdown in the core and [ammonia](https://github.com/rust-ammonia/ammonia)
-keeps any HTML in it harmless;
+[CodeMirror](https://codemirror.net) is the Markdown view of a document, every
+mark in sight, while [pulldown-cmark](https://github.com/pulldown-cmark/pulldown-cmark)
+reads the Markdown in the core, which draws the page you write on, and
+[ammonia](https://github.com/rust-ammonia/ammonia) keeps any HTML in it harmless;
 [Mermaid](https://mermaid.js.org) draws the diagrams a code block describes,
 [React Flow](https://reactflow.dev) is the canvas they are drawn on by hand, and
 [KaTeX](https://katex.org) sets its formulas;

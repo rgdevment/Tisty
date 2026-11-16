@@ -44,7 +44,7 @@ Las reglas detrás están en [[Qué puede hacer un asistente|Qué-puede-hacer-un
 | Herramienta | Qué hace |
 | :-- | :-- |
 | `docs` | Los documentos y las carpetas, con de qué va cada uno |
-| `outline_doc` | Qué hay en un documento: sus títulos y partes, y las señales de que pide orden: documentos con título parecido, títulos repetidos entre páginas y enlaces que no llevan a nada |
+| `outline_doc` | Qué hay en un documento: sus títulos y partes, y las señales de que pide orden: documentos con título parecido, títulos repetidos entre páginas, enlaces que no llevan a nada, líneas de página que muestran otro nombre que el título de la página y páginas que ninguna línea ubica |
 | `read_doc` | Leer un documento, o una parte; o, con `as`, el documento completo en Markdown estándar, para llevarlo a Confluence, Jira, Notion, Linear o GitHub con sus propias herramientas (mira más abajo). **Lluvia de ideas** llega por partes, idea por idea, nunca como una lista de horas |
 | `sum_up` | Dejar un resumen corto de qué trata un documento, para el siguiente que lo lea |
 | `write_doc` | Escribir un documento nuevo, o reescribir uno entero; con `compact`, poner en orden uno que creció por sesiones (ver abajo); con `translation_of`, escribirlo como otro idioma de un documento tuyo (uno que escribió otra persona se rechaza) |
@@ -69,6 +69,10 @@ Las reglas detrás están en [[Qué puede hacer un asistente|Qué-puede-hacer-un
 
 Al traer un archivo Markdown se copia lo que su texto señala, pero solo lo que está en la carpeta de ese archivo o más abajo, así que lo que se toma lo limita el archivo que nombraste y no lo que su texto pida. Las respuestas vuelven sin las rutas de tu disco, y un asistente nombra lo que tocó por su título y su lista o carpeta, nunca por un identificador.
 
+## El Diario
+
+Tu [Diario](Documentos#diario) queda fuera de todas las herramientas hasta que lo abres a los agentes desde el propio Diario: `docs`, `find`, `catch_up` y los documentos que se ofrecen con `@` lo dejan fuera, y una herramienta que recibe una de sus páginas responde como ante un documento que no existe. Abierto, las herramientas de lectura lo leen y `append_doc` añade al final de hoy; toda herramienta que cambiaría, movería, marcaría o archivaría lo que escribiste ahí se rechaza, y ninguna puede empezar un diario.
+
 ## Llevar un documento a otra herramienta
 
 Si tu asistente también llega a Confluence, Jira, Notion, Linear o GitHub, puede leer un documento de Tisty con `as: "markdown"` y entregárselo: el Markdown estándar le sirve a casi todas, y sus propias herramientas lo convierten a su formato.
@@ -79,6 +83,8 @@ No todo hace el viaje, y Tisty lo dice en cada respuesta, para que el asistente 
 - **Los diagramas** quedan como código Mermaid: GitHub, GitLab y Notion los dibujan; Confluence y Jira los muestran como código, salvo con una macro de Mermaid.
 - **Los enlaces a otros documentos y tareas** quedan como texto.
 - **Las páginas** van por separado: cada una se lee por su cuenta.
+- **Los rotuladores, subrayados, iconos y secciones plegables** viajan como etiquetas HTML, que no todas las herramientas dibujan.
+- **Un documento muy largo**, de más de 40 000 caracteres en Markdown estándar, no se entrega en la conversación: `export_doc` lo escribe como archivos.
 - **Un documento archivado, o marcado como que ya cumplió su vida,** lo dice primero, para que el asistente te pregunte antes de llevarlo a otro lado.
 
 ## Ordenar lo que creció

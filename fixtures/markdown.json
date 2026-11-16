@@ -527,8 +527,8 @@
     "falls_short": "drops the final newline",
     "title": "What is Tisty?",
     "tags": [
-      "health",
       "home",
+      "health",
       "shopping"
     ],
     "refs": [
@@ -635,8 +635,8 @@
     "falls_short": "drops the final newline",
     "title": "¿Qué es Tisty?",
     "tags": [
-      "salud",
       "casa",
+      "salud",
       "compras"
     ],
     "refs": [

@@ -216,7 +216,7 @@ A list of boxes you tick. They are not Tisty tasks: they never close, have no da
 - [ ] Ask about the tick tablet
 ```
 
-`[ ]` is open, `[x]` (or `[X]`) is ticked. A click on the box ticks it, on the page and while you write. On a task's page, though, each box is a step of that task.
+`[ ]` is open, `[x]` (or `[X]`) is ticked. A click on the box ticks it. On a task's page, though, each box is a step of that task.
 
 ## Quotes and callouts
 

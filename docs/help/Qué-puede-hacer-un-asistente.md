@@ -17,6 +17,11 @@ Lo que un asistente puede hacer es pequeño a propósito. Terminar, descartar y 
 - **Archivar un documento, o desarchivarlo**, cuando se lo pides.
 - **Anotar ideas en la Lluvia de ideas** cuando se lo pides, y ordenarlas contigo: una idea que anexa a un documento o convierte en tarea sale de la hoja, como cuando lo haces tú.
 - **Guardar una copia de un archivo** que le indiques, en una tarea o dentro de un documento.
+- **Crear una carpeta** para documentos, con su icono y su color.
+- **Traer un archivo Markdown** como documento, o **sacar un documento** como archivos a una carpeta de este equipo.
+- **Escribir un documento en otro idioma**, o unir dos que dicen lo mismo.
+- **Dejar un resumen corto** de un documento largo para el siguiente asistente, guardado en este equipo.
+- **Añadir a hoy en tu Diario**, una vez que lo abres a los agentes y solo cuando se lo pides: sus palabras van al final de hoy, bajo una línea con el minuto y su nombre.
 - **Leer y buscar** lo que ya hay, incluido el archivo.
 
 ## Nunca
@@ -29,8 +34,9 @@ Lo que un asistente puede hacer es pequeño a propósito. Terminar, descartar y 
 - Alcanzar una tarea que plegaste.
 - Tomar archivos de cualquier lugar que no sea Descargas, Documentos, Imágenes, el escritorio o la carpeta temporal.
 - Anotar lo mismo dos veces: una tarea anotada desde el mismo origen se rechaza y se le devuelve la que ya existe.
+- Ver tu Diario mientras dice **Solo tú**: ninguna herramienta lo encuentra, lo lista ni lo cuenta. Abierto, no cambia nada de lo que escribiste ahí, y nunca empieza un diario por su cuenta.
 
-Para lo prohibido no hay herramienta: no es que esté escondida ni restringida, es que no existe.
+Para cerrar, descartar y borrar no hay herramienta: no es que esté escondida ni restringida, es que no existe. Todo lo demás de esta lista lo rechaza la herramienta que lo haría, y dice por qué.
 
 ## «Por confirmar»: cuando un asistente dice que terminó
 
@@ -62,6 +68,10 @@ Una tarea que cerraste le llega al asistente con un aviso que lo dice. Se lee ta
 - **Para reescribir un documento entero** tiene que devolver la *huella* de la versión que leyó. Si escribiste en el documento entretanto, la huella ya no cuadra: no se escribe nada y se le pide que vuelva a leer. Lo que escribiste mientras pensaba no se puede perder.
 - La ventana te avisa cuando algo escribió en el documento que tienes abierto. Si lo que reemplazó sigue guardado, la misma barra te ofrece **volver** a lo que decía antes, y lo que dice ahora también queda guardado, así que la elección no es definitiva.
 - Un documento que archivaste lo puede leer igual, y se le avisa que lo archivaste; no puede escribir en él hasta que lo desarchives o se lo pidas.
+
+## Tu Diario sigue siendo tuyo
+
+El [Diario](Documentos#diario) queda fuera de la vista de todo asistente hasta que pulsas **Solo tú** arriba y dice **Abierto a los agentes**. Mientras está cerrado, cada herramienta responde sobre él como sobre un documento que no existe, y las búsquedas, las listas y los contadores lo dejan fuera. Abierto, un asistente lo lee y, solo cuando se lo pides, añade al final de hoy bajo una línea con el minuto y su nombre. Todo lo demás se rechaza. Pulsa el botón otra vez para guardarlo solo para ti.
 
 ## Marcar un documento en vez de borrarlo
 

@@ -13,11 +13,11 @@ Escribe `/` donde quieras que empiece ese capítulo y elige **Una página nueva*
 En el árbol, un documento que sueltas encima de otro se vuelve página suya.
 
 > [!IMPORTANT]
-> El orden en que las páginas están nombradas en el texto es el orden en que van: en el árbol, en la exportación y al imprimir. Para mover un capítulo, usa las flechas de su fila en el índice del final del documento, o `Alt` y una flecha sobre la fila, o corta y pega su bloque.
+> El orden en que las páginas están nombradas en el texto es el orden en que van: en el árbol, en la exportación y al imprimir. Para mover un capítulo, abre **Páginas**, bajo la hoja, y usa las flechas de su fila, o `Alt` y una flecha sobre la fila, o corta y pega su bloque.
 
 ### El índice
 
-Al final del documento, en su propia hoja, va el índice: las páginas que el texto nombra, numeradas, y tras una raya las que no, a un clic de tener su lugar en el texto. Dentro de una página ves arriba de qué documento es y en qué lugar va, flechas a sus hermanas, y abajo el paso a la siguiente.
+Bajo la hoja del documento hay una fila **Páginas**: un clic la abre y muestra el índice, las páginas que el texto nombra, numeradas, y tras una raya las que no, cada una con **Ponerla en el texto** para darle su lugar. Dentro de una página ves arriba de qué documento es y en qué lugar va, flechas a sus hermanas, y abajo el paso a la siguiente.
 
 Un enlace a una página en medio de un párrafo la señala sin darle lugar, como una nota al pie señala un capítulo sin serlo. Una página de la que solo hablaste así espera bajo la raya hasta que le pongas su tarjeta.
 
@@ -27,7 +27,7 @@ Una página se archiva sola con el botón derecho, y no deja su documento: se qu
 
 ## Salto de página
 
-Enciende **Hojas** en el panel de un documento para elegir su papel (**A4**, **Carta** u **Oficio**, de 216 × 330 mm) y leerlo en esas hojas, en **Vertical** u **Horizontal**: una hoja que se llena pasa sola a la siguiente, en pantalla igual que en papel. Un documento que ya pedía **Tabloide** lo conserva. Las hojas vienen apagadas hasta que las enciendes; el papel sigue elegido al apagarlas, su PDF sale en él, y lo que eliges viaja con el archivo en sus [propiedades](https://markdown.tisty.app/es/propiedades). En una ventana de solo lectura, **Hojas** cambia solo cómo lo ves y su PDF: el archivo queda como estaba.
+Enciende **Hojas** en el panel de un documento para elegir su papel (**A4**, **Carta** u **Oficio**, de 216 × 330 mm) y leerlo en esas hojas, verticales o, con **Horizontal** encendido, apaisadas: una hoja que se llena pasa sola a la siguiente, en pantalla igual que en papel. Un documento que ya pedía **Tabloide** lo conserva. Las hojas vienen apagadas hasta que las enciendes; el papel sigue elegido al apagarlas, su PDF sale en él, y lo que eliges viaja con el archivo en sus [propiedades](https://markdown.tisty.app/es/propiedades). En una ventana de solo lectura, **Hojas** cambia solo cómo lo ves y su PDF: el archivo queda como estaba.
 
 Una raya sola en su línea (`---`) corta siempre la hoja, con hojas o sin ellas, y `Ctrl`/`⌘` + `Enter` la escribe mientras escribes. Con hojas encendidas, se marca como **Salto de página**. Cómo se escribe, y qué entra como uno desde LaTeX, Word o una página web, está en la [guía de Markdown](https://markdown.tisty.app/es/saltos-de-pagina).
 
@@ -41,4 +41,4 @@ Tisty hace su propio PDF y te lo muestra antes de exportarlo:
 - Si quieres, **quién lo escribió y cuándo**: un PDF sale de Tisty para siempre, así que lo que va dentro lo decides tú.
 - La página tal como se ve en pantalla (el color del código, los avisos, los diagramas, las fórmulas y los iconos), porque el PDF es la misma página puesta en papel.
 
-Imprime, o usa **Exportar a PDF…**, desde el panel del documento.
+Desde **Exportar**, en el panel del documento: **Vista previa del PDF** lo muestra y **Exportar a PDF…** lo guarda.

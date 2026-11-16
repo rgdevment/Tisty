@@ -32,6 +32,18 @@ Not as a shared board. Tisty is one person's by design — no assignees, no perm
 **Is there a mobile app? Linux?**
 No mobile app: Tisty is a desktop program for Windows and macOS. Your documents are Markdown in a folder, so a phone that reaches that folder can read and edit them with any app. There is no Linux version either; an assistant that runs on Linux inside Windows, under WSL, reaches Tisty all the same from Settings › Assistants.
 
+**Do reminders ring with Tisty closed?**
+Yes, since 1.48, while the computer is on: Tisty books them with Windows or macOS, and a click on the notice opens the task. See [Reminders](Spread-and-Reminders#reminders).
+
+**Can Tisty remind me on my phone?**
+Not by itself. **Save to my calendar**, on a task with a date, puts it in Google Calendar, Outlook or Apple Calendar, and your calendar reminds you there. See [In your calendar](Spread-and-Reminders#in-your-calendar).
+
+**Is there a diary, or daily notes?**
+Yes, since 1.48: **Diary** in the Library, a book a year with a page a month and a section a day. See [Diary](Documents#diary).
+
+**Can my assistant read my diary?**
+Not until you press **Only you** at the top of the Diary and it reads **Open to agents**; even then it only adds to the end of today, when you ask. A computer of yours on an older Tisty does not know that door: update it.
+
 **Does it work with a screen reader?**
 Not as far as anybody knows. The whole window works from the keyboard and that path is tested, but it has never been tried with a real screen reader. If you use one, an [issue](https://github.com/rgdevment/Tisty/issues) saying where it falls apart would be very welcome.
 
@@ -96,7 +108,7 @@ Yes, since 1.36, for Google Drive, OneDrive or WebDAV: **Settings › Security �
 A proxy, a filter at work or an antivirus stands between this computer and Google, or inspects secure connections so Tisty cannot trust them. Your work stays safe on this computer meanwhile. On a work network, ask whoever runs it to let Tisty through; on your own computer, allow Tisty in your antivirus. Never go around your company's protection on your own. What each message means is in [Sync and backup](Sync-and-Backup#when-something-stands-in-the-way-of-google).
 
 **One of my machines stopped syncing after an update.**
-Update the one that is behind. A machine only reads what it understands, so the two stop syncing in both directions until they agree. A computer still on Tisty 1.30 to 1.33 stops and asks you to update instead of writing over a newer one. Nothing is lost, and what you write meanwhile stays on that machine.
+Update the one that is behind. A machine only reads what it understands, so the two stop syncing in both directions until they agree. A computer still on Tisty 1.30 to 1.33 stops and asks you to update instead of writing over a newer one. Nothing is lost, and what you write meanwhile stays on that machine. A computer still on a Tisty older than 1.48 keeps syncing but does not know the [Diary](Documents#diary)'s door: update it before you write in the diary.
 
 ## Comparing
 

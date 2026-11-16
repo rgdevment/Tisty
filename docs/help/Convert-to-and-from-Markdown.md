@@ -46,6 +46,6 @@ Tisty prints its own PDF, with its pages, page breaks and paper size. See [Pages
 
 ## Markdown to standard Markdown
 
-**Copy as Markdown** gives standard Markdown, the way GitHub and CommonMark read it, ready for any other editor. Tisty's own forms become the standard ones (`:::tip` becomes `> [!TIP]`, `:::details` becomes `<details>`, a single line break stays a break), a link to another document becomes its words, and every tag of the document — its `tags:` and its `#hashtags` — lands in the front matter. **Write it out to a folder** does the same as files, with its pages and attachments beside it.
+**Copy as Markdown** gives standard Markdown, the way GitHub and CommonMark read it, ready for any other editor. Tisty's own forms become the standard ones (`:::tip` becomes `> [!TIP]`, `:::details` becomes `<details>`, a single line break stays a break), a link to another document becomes its words, and every tag of the document — its `tags:` and its `#hashtags` — lands in the front matter. **Export as Markdown…** does the same as files in a folder, with its pages and attachments beside it.
 
 More ways to take documents out, a `.tistyx` for another Tisty among them, are in [Documents](Documents#taking-documents-out).

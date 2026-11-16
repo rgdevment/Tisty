@@ -53,7 +53,7 @@ A task is also a document, one with an end: that is why it has a page of its own
 
 - [[Tasks]] — capture, views, the Eisenhower matrix, lists, tags, steps and parts.
 - [[Natural language|Natural-Language]] — what the capture bar understands.
-- [[The spread and reminders|Spread-and-Reminders]] — dealing work onto days.
+- [[The spread and reminders|Spread-and-Reminders]] — dealing work onto days, reminders that ring with Tisty closed, and saving a task to your calendar.
 - [[The archive|Archive]] — stories, routines and the trace.
 
 ## Memory for your AI agent, through MCP
@@ -70,6 +70,7 @@ Documents are a Markdown notebook beside the tasks: callouts, tables, diagrams, 
 
 - [[Documents]] — folders, tags, several languages, attachments, import and export, and reading a Markdown file from outside.
 - [Brainstorm](Documents#brainstorm) — ideas of the moment as sticky notes, sorted out later into a task or a document.
+- [Diary](Documents#diary) — what happened today, a book a year, kept from your agent until you open it.
 - [[The editor|Markdown-Editor]] — writing where you read, the bar, the `/` menu, tables and shortcuts.
 - [[Pages and PDF|Pages-and-PDF]] — a document in chapters, page breaks, and Tisty's own PDF.
 - [[Diagrams]] — the diagram window: a mind map, a schema, a freeform diagram or a class diagram drawn by hand, and exported as an image.

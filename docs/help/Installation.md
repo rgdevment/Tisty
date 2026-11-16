@@ -39,10 +39,11 @@ Yes. The macOS disk images are signed and notarised by Apple, and the Windows in
 
 ## The first time it opens
 
-Tisty asks two things:
+Tisty asks up to three things:
 
 1. **Which language** — English or Spanish. The window, the guide and the natural language all follow it, and Settings changes it whenever you like.
 2. **Where your copies should go** — a folder for [[syncing|Sync-and-Backup]], or nowhere if you only use one machine.
+3. **How should we call you?** — an optional alias to sign what you share; **Not now** skips it, and it is not asked when the Tisty you join already has one.
 
 Then it **writes you a guide and opens it**. The guide is an ordinary document in your own store, in a folder of its own — yours to read, edit or throw away — and it shows from the inside what a document can hold. You can come back to it from Settings.
 
@@ -52,7 +53,7 @@ Everything else has an obvious default you can change later: Tisty starts with t
 
 Settings takes over the sidebar with its sections:
 
-- **General** — how Tisty behaves towards you: language, look, start-up, the quick capture, notices and the welcome.
+- **General** — how Tisty behaves towards you: language, look, start-up, the quick capture, who writes here, notices, your calendar and the welcome.
 - **Sync** — where your copies go, your computers, and where large attachments stay.
 - **Security** — your 24-word phrase and [encrypting your cloud](Sync-and-Backup#encrypting-your-cloud).
 - **Your data** — where it lives, backups, documents from another Tisty, and leaving.
