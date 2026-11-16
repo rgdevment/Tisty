@@ -117,3 +117,22 @@ fn a_year_opens_on_its_newest_month_and_a_month_on_none() {
     assert_eq!(newest(&session, &november.page), None);
     assert_eq!(newest(&session, "a3f1-9999"), None);
 }
+
+#[test]
+fn an_idea_filed_in_today_keeps_its_minute_and_colour_beside_the_words() {
+    let (_tmp, mut session) = session("es");
+    writing(&mut session, "Paseo.", day("2026-11-15")).unwrap();
+
+    let today = filing(
+        &mut session,
+        "Probar pan con masa madre",
+        "2026-11-12 09:40 · yellow",
+        day("2026-11-15"),
+    )
+    .unwrap();
+
+    assert_eq!(
+        body(&session, &today.page),
+        "# Noviembre\n\n## Domingo 15\n\nPaseo.\n\n> [!IDEA] 2026-11-12 09:40 · yellow · right\n> Probar pan con masa madre\n"
+    );
+}

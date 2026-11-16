@@ -2,6 +2,7 @@ import { emit } from "@tauri-apps/api/event";
 import { type ReactNode, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { ideaToDoc, ideaUnflag } from "../brainstorm";
 import { capture, type Filed, type IdeaMarked, type Task } from "../core";
+import { diaryFileIdea } from "../diary";
 import { fill, locale, t } from "../locales";
 import "../notes.css";
 import { pinMarkup } from "tisty-editor/read";
@@ -277,6 +278,17 @@ export default function Notes({
           known={known}
           own={own}
           onClose={() => setFiling(null)}
+          onToday={() => {
+            setFiling(null);
+            void diaryFileIdea(filing.text, filing.heading)
+              .then((today) => {
+                settled(filing)();
+                send(fill("ideaFiledIn", t("ideaFileToday")), t("ideaOpenDoc"), () =>
+                  onDoc?.(today.page),
+                );
+              })
+              .catch(failed);
+          }}
           onPick={(file) => {
             setFiling(null);
             const there = known.find((one) => one.file === file)?.title || t("untitledDoc");
