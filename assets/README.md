@@ -65,8 +65,9 @@ the tasks bar, so Tisto looks at what is being written.
 ## Screens
 
 `screens/` holds the screens that present Tisty, one per subject and language,
-named `<language>-<order>-<subject>.png`: `en-` in English and `es-` in Spanish,
-with the same order in both. They present what Tisty is, not what a version
+named `<language>-<order>-<subject>`: `en-` in English and `es-` in Spanish,
+with the same order in both, `.png` in `store/` and `web/` and `.webp` in
+`readme/`. They present what Tisty is, not what a version
 brings. The order is the one the Store shows, and the READMEs and the help
 follow it for the first ones: memory, diagrams, brainstorm, priorities, agent,
 documents, day, Folio, data, close.
@@ -74,11 +75,12 @@ documents, day, Folio, data, close.
 | Folder | Size | Where it goes |
 | --- | --- | --- |
 | `store/` | 1920×1080 | The Microsoft Store listing, and the picture tisty.app shows and shares |
-| `web/` | 1280×720, lighter | The help |
+| `web/` | 1280×720, lighter | The help, and the three screens the READMEs have no capture of yet: agent, data and close |
 | `readme/` | 1336 wide, WebP | The READMEs: real captures of the app, rounded, edged and shadowed |
 
 The help links to `web/` on `main`, so renaming a screen means updating the
 help in the same change, and tisty.app reads its picture from `store/` through
 `scripts/apps.mjs` in its own repository. The READMEs show the app itself, not
-the Store's presentation: `readme/` holds real captures in the same order, a
-few tens of kilobytes each.
+the Store's presentation: `readme/` holds real captures in the same order, with
+subjects of their own where the screen differs (archive, share), a few tens of
+kilobytes each.

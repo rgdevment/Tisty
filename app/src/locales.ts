@@ -603,7 +603,7 @@ const en = {
     "It is your identity's backup: with it, your other computers sign as you. Keep it outside Tisty, on paper or in a PDF apart. If you lose the phrase and all your computers, the identity cannot be recovered. Nobody from Tisty or Folio will ever ask you for it.",
   shareIdentityLostHead: "If you lose a computer",
   shareIdentityLostSaid:
-    "Remove it in Settings › Your identity. Its key stops counting, and Folio tells whoever reads what it signed after that.",
+    "Remove it in Settings › Security › Your identity. Its key stops counting, and Folio tells whoever reads what it signed after that.",
   shareIdentityMake: "Make my identity",
   shareIdentityElsewhere:
     "Your identity already lives on another of your computers. Type your phrase so this one can sign too.",
@@ -824,7 +824,7 @@ const en = {
   folioNewerVersionHere:
     "Its last version came from a newer Tisty. Update this one before sending yours, or what it does not know would be lost.",
   folioRevoked:
-    "Folio did not take this computer's signature: its key was taken back. Type your phrase in Settings › Your identity to give it a new one.",
+    "Folio did not take this computer's signature: its key was taken back. Type your phrase in Settings › Security › Your identity to give it a new one.",
   folioGone: "This link no longer exists: it ran out or it was stopped.",
   folioRefused: "Folio did not accept it. Try again in a moment.",
   folioTermsNotPublished:
@@ -2830,10 +2830,10 @@ const en = {
   agentsTurnOff: "Stop it",
   agentsCanTitle: "What it can do",
   agentsCan:
-    "File a task with description, dates, priority, tags, steps and parts, into a list you already have · Add to the journal of any task, set it a reminder and keep a copy of a file with it · Move the day of what it filed · Work any task as it works a document: describe it, rename it, move it to another list, plan, reword and take off its open steps, correct its notes and rewrite its page · Tick a step of yours or say a task is done or not worth doing, as its word for you to take — closing stays yours · Write documents, add to them, correct them, give them pages and file them in folders · Archive a document when you ask, and mark one as old for you to delete · Search your lists, your archive and your documents",
+    "File a task with description, dates, priority, tags, steps and parts, into a list you already have · Add to the journal of any task, set it a reminder and keep a copy of a file with it · Move the day of what it filed · Work any task as it works a document: describe it, rename it, move it to another list, plan, reword and take off its open steps, correct its notes and rewrite its page · Tick a step of yours or say a task is done or not worth doing, as its word for you to take — closing stays yours · Write documents, add to them, correct them and their tables, give them pages and file them in folders · Archive a document when you ask, and mark one as old for you to delete · Jot ideas on Brainstorm and sort them out with you · Add to the end of today in your Diary, once you open it to agents · Search your lists, your archive and your documents",
   agentsCannotTitle: "What it can never do",
   agentsCannot:
-    "Complete, reopen, drop or delete a task · Delete a document or a folder · Undo or redo · Move the day of a task you wrote, tick its steps or close it · Make a list — without one of yours it lands in the inbox, and everything it files is tagged #agent · Set routines · Touch syncing, settings or machines",
+    "Complete, reopen, drop or delete a task · Delete a document, an idea or a folder · See your Diary until you open it to agents, or change what you wrote in it · Undo or redo · Move the day of a task you wrote, tick its steps or close it · Make a list — without one of yours it lands in the inbox, and everything it files is tagged #agent · Set routines · Touch syncing, settings or machines",
   agentsUndo:
     "It writes under its own name, so your undo never reaches what it filed — and turning it off leaves everything it wrote in place. There is one door: however many assistants you connect, they all file under that same name, and they all leave together when you close it.",
   agentsHowTitle: "How to connect one",
@@ -3833,7 +3833,7 @@ const es: Catalog = {
     "Es el respaldo de tu identidad: con ella, tus otros computadores firman como tú. Guárdala fuera de Tisty, en papel o en un PDF aparte. Si pierdes la frase y todos tus computadores, la identidad no se puede recuperar. Nadie de Tisty ni de Folio te la pedirá nunca.",
   shareIdentityLostHead: "Si pierdes un computador",
   shareIdentityLostSaid:
-    "Quítalo en Configuración › Tu identidad. Su llave deja de valer, y Folio avisa a quien lea lo que firmó después de eso.",
+    "Quítalo en Configuración › Seguridad › Tu identidad. Su llave deja de valer, y Folio avisa a quien lea lo que firmó después de eso.",
   shareIdentityMake: "Crear mi identidad",
   shareIdentityElsewhere:
     "Tu identidad ya vive en otro de tus computadores. Escribe tu frase para que este también pueda firmar.",
@@ -4056,7 +4056,7 @@ const es: Catalog = {
   folioNewerVersionHere:
     "Su última versión llegó desde un Tisty más nuevo. Actualiza este antes de enviar la tuya, o se perdería lo que no conoce.",
   folioRevoked:
-    "Folio no aceptó la firma de este equipo: su llave fue retirada. Escribe tu frase en Configuración › Tu identidad para darle una nueva.",
+    "Folio no aceptó la firma de este equipo: su llave fue retirada. Escribe tu frase en Configuración › Seguridad › Tu identidad para darle una nueva.",
   folioGone: "Este link ya no existe: caducó o se dejó de compartir.",
   folioRefused: "Folio no lo aceptó. Vuelve a intentarlo en un momento.",
   folioTermsNotPublished:
@@ -6074,10 +6074,10 @@ const es: Catalog = {
   agentsTurnOff: "Quitarle la voz",
   agentsCanTitle: "Lo que puede hacer",
   agentsCan:
-    "Anotar una tarea con descripción, fechas, prioridad, etiquetas, pasos y partes, en una lista que ya tengas · Añadir a la bitácora de cualquier tarea, ponerle un recordatorio y guardarle una copia de un archivo · Cambiar el día de lo que anotó él · Trabajar cualquier tarea como trabaja un documento: describirla, renombrarla, llevarla a otra lista, planear, reescribir y quitar sus pasos abiertos, corregir sus notas y reescribir su página · Marcar un paso tuyo o decir que una tarea está hecha o que no vale la pena, como su palabra para que tú la aceptes; cerrarla sigue siendo tuyo · Escribir documentos, añadirles, corregirlos, darles páginas y guardarlos en carpetas · Archivar un documento cuando se lo pidas, y marcar uno como viejo para que tú lo borres · Buscar en tus listas, tu archivo y tus documentos",
+    "Anotar una tarea con descripción, fechas, prioridad, etiquetas, pasos y partes, en una lista que ya tengas · Añadir a la bitácora de cualquier tarea, ponerle un recordatorio y guardarle una copia de un archivo · Cambiar el día de lo que anotó él · Trabajar cualquier tarea como trabaja un documento: describirla, renombrarla, llevarla a otra lista, planear, reescribir y quitar sus pasos abiertos, corregir sus notas y reescribir su página · Marcar un paso tuyo o decir que una tarea está hecha o que no vale la pena, como su palabra para que tú la aceptes; cerrarla sigue siendo tuyo · Escribir documentos, añadirles, corregirlos, también sus tablas, darles páginas y guardarlos en carpetas · Archivar un documento cuando se lo pidas, y marcar uno como viejo para que tú lo borres · Anotar ideas en la Lluvia de ideas y ordenarlas contigo · Añadir al final de hoy en tu Diario, una vez que lo abres a los agentes · Buscar en tus listas, tu archivo y tus documentos",
   agentsCannotTitle: "Lo que no podrá hacer nunca",
   agentsCannot:
-    "Completar, reabrir, descartar ni borrar una tarea · Borrar un documento o una carpeta · Deshacer ni rehacer · Mover el día de una tarea que escribiste tú, marcar sus pasos ni cerrarla · Crear listas: sin una de las tuyas entra en la bandeja, y todo lo que deja lleva la etiqueta #agent · Poner rutinas · Tocar la sincronización, los ajustes ni las máquinas",
+    "Completar, reabrir, descartar ni borrar una tarea · Borrar un documento, una idea o una carpeta · Ver tu Diario hasta que lo abres a los agentes, ni cambiar lo que escribiste en él · Deshacer ni rehacer · Mover el día de una tarea que escribiste tú, marcar sus pasos ni cerrarla · Crear listas: sin una de las tuyas entra en la bandeja, y todo lo que deja lleva la etiqueta #agent · Poner rutinas · Tocar la sincronización, los ajustes ni las máquinas",
   agentsUndo:
     "Escribe con nombre propio, así que tu deshacer nunca alcanza lo que él anotó, y quitarle la voz deja en su sitio todo lo que escribió. La puerta es una sola: conectes los asistentes que conectes, todos anotan bajo ese mismo nombre y se van juntos cuando la cierras.",
   agentsHowTitle: "Cómo conectar uno",
