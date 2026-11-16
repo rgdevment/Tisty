@@ -25,6 +25,7 @@ mermaid = []
 
 [dependencies]
 pulldown-cmark.workspace = true
+unicase.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 unicode-normalization.workspace = true

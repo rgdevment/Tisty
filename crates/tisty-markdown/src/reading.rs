@@ -2,9 +2,11 @@ use std::cell::LazyCell;
 use std::ops::Range;
 
 use pulldown_cmark::{
-    Alignment, BlockQuoteKind, CodeBlockKind, Event, LinkType, Options, Parser, Tag, TagEnd,
+    Alignment, BlockQuoteKind, BrokenLink, CodeBlockKind, Event, LinkType, Options, Parser, Tag,
+    TagEnd,
 };
 
+use crate::defined::Defined;
 use crate::ranges::Nearby;
 use crate::{Block, Callout, Column, Doc, Kind, Lean, Mark, Span};
 
@@ -26,41 +28,33 @@ pub(crate) fn reading(text: &str, passes: &[fn(&mut Vec<Span>, &str)]) -> Doc {
         skip = front.end;
         blocks.push(leaf(Kind::Front, front));
     }
-    tokened(text, skip..text.len(), &mut blocks);
-    let linked = defined(text, skip, &mut blocks);
+    tokened(text, skip..text.len(), &Defined::default(), &mut blocks);
+    let mut defined = defined(text, skip, &mut blocks);
     polish_all(&mut blocks, text, passes);
     let filing = Box::new(crate::filing::Filing::of(text));
     // Only what the core files is marked, so a tag past its sixty-fourth never looks filed.
     #[cfg(feature = "tags")]
     crate::marks::walk(&mut blocks, text, &filing.filed);
     let crossing = crate::rereading::crossing(text);
+    if crossing {
+        defined.notes = noted(&blocks);
+    }
     Doc {
         text: text.to_string(),
-        labels: labels(crossing.then_some(linked), &blocks, &filing.far()),
+        labels: defined.labels(&filing.far()),
         blocks,
         crossing,
+        defined: Box::new(defined),
         filing,
     }
 }
 
-// Every definition counts, also one in a quote that has no block, since a link anywhere reads by it.
-fn labels(crossed: Option<Vec<[String; 2]>>, blocks: &[Block], far: &[String]) -> [u32; 2] {
+fn noted(blocks: &[Block]) -> Vec<String> {
     let mut noted = Vec::new();
-    if crossed.is_some() {
-        notes(blocks, &mut noted);
-    }
-    let mut linked = crossed.unwrap_or_default();
-    linked.sort_unstable();
+    notes(blocks, &mut noted);
     noted.sort_unstable();
     noted.dedup();
-    crate::names_sum(
-        linked
-            .iter()
-            .flatten()
-            .chain(&noted)
-            .chain(far)
-            .map(String::as_str),
-    )
+    noted
 }
 
 fn notes(blocks: &[Block], noted: &mut Vec<String>) {
@@ -77,9 +71,10 @@ pub(crate) fn part(
     text: &str,
     within: Range<usize>,
     filed: &std::collections::HashSet<String>,
+    defined: &Defined,
 ) -> Vec<Block> {
     let mut blocks = Vec::new();
-    tokened(text, within, &mut blocks);
+    tokened(text, within, defined, &mut blocks);
     polish_all(&mut blocks, text, PASSES);
     #[cfg(feature = "tags")]
     crate::marks::walk(&mut blocks, text, filed);
@@ -88,10 +83,10 @@ pub(crate) fn part(
     blocks
 }
 
-fn tokened(text: &str, within: Range<usize>, blocks: &mut Vec<Block>) {
+fn tokened(text: &str, within: Range<usize>, defined: &Defined, blocks: &mut Vec<Block>) {
     let mut open: Vec<Block> = Vec::new();
     let skip = within.start;
-    for (event, at) in tokens(&text[within]) {
+    for (event, at) in tokens(&text[within], defined) {
         let at = at.start + skip..at.end + skip;
         match event {
             Event::Start(tag) => {
@@ -210,18 +205,27 @@ fn polish_all(blocks: &mut Vec<Block>, text: &str, passes: &[fn(&mut Vec<Span>, 
 }
 
 // The only place the tokenizer is named: swapping it for another touches nothing else.
-fn tokens(text: &str) -> impl Iterator<Item = (Event<'_>, Range<usize>)> {
-    Parser::new_ext(text, options()).into_offset_iter()
+fn tokens<'a>(
+    text: &'a str,
+    defined: &'a Defined,
+) -> impl Iterator<Item = (Event<'a>, Range<usize>)> {
+    // A stretch read alone holds no definitions, so its references look for the ones written elsewhere.
+    let elsewhere =
+        |link: BrokenLink<'a>| defined.to(&link.reference).map(|to| (to.into(), "".into()));
+    Parser::new_with_broken_link_callback(text, options(), Some(elsewhere)).into_offset_iter()
 }
 
 // The tokenizer drops a link's definition from what it hands over, so the page would have nowhere to show or edit it.
-fn defined(text: &str, skip: usize, blocks: &mut Vec<Block>) -> Vec<[String; 2]> {
+fn defined(text: &str, skip: usize, blocks: &mut Vec<Block>) -> Defined {
     // Built only once a definition turns up, so a document with none pays nothing for it.
     let held = LazyCell::new(|| Nearby::of(blocks.iter().map(|one| one.at.clone()).collect()));
     let parser = Parser::new_ext(&text[skip..], options());
     let mut linked = Vec::new();
+    let mut widest = 0;
     let mut found = Vec::new();
     for (label, one) in parser.reference_definitions().iter() {
+        let title = one.title.as_ref().map_or(0, |title| title.len());
+        widest = widest.max(one.dest.len() + title);
         let (label, to) = (label.to_string(), one.dest.to_string());
         let at = one.span.start + skip..one.span.end + skip;
         if held.touching(&at).next().is_none() {
@@ -238,7 +242,7 @@ fn defined(text: &str, skip: usize, blocks: &mut Vec<Block>) -> Vec<[String; 2]>
         blocks.append(&mut found);
         blocks.sort_by_key(|one| one.at.start);
     }
-    linked
+    Defined::of(linked, widest, text)
 }
 
 // The parser keeps one definition per label, so a label written twice leaves its later lines unclaimed.
@@ -294,7 +298,7 @@ fn priced(text: &str, at: &Range<usize>) -> bool {
 #[cfg(feature = "outline")]
 pub(crate) fn plain(source: &str) -> String {
     let mut said = String::new();
-    for (event, _) in tokens(source) {
+    for (event, _) in tokens(source, &Defined::default()) {
         match event {
             Event::Text(words)
             | Event::Code(words)

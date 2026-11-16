@@ -90,6 +90,8 @@ machine-uid = "0.6"
 sysinfo = { version = "0.40", default-features = false, features = ["system"] }
 unicode-normalization = "0.1"
 pulldown-cmark = { version = "0.13", default-features = false }
+# The tokenizer's own label folding, so a definition found elsewhere matches as it does there.
+unicase = "2.6"
 # Formulas drawn here, so the window shows them without running any script.
 math-core = "0.9"
 emojis = "0.9"

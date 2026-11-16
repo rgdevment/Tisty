@@ -2,6 +2,7 @@ mod amounts;
 mod bare;
 #[cfg(feature = "tables")]
 pub mod canon;
+mod defined;
 #[cfg(feature = "details")]
 mod details;
 pub mod diagrams;
@@ -65,6 +66,7 @@ pub struct Doc {
     blocks: Vec<Block>,
     crossing: bool,
     labels: [u32; 2],
+    defined: Box<defined::Defined>,
     filing: Box<filing::Filing>,
 }
 
