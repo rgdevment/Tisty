@@ -44,13 +44,6 @@ pub fn named(spans: &mut Vec<Span>, text: &str) {
 }
 
 #[cfg(feature = "tags")]
-// Only what the core files is marked, so a tag past its sixty-fourth never looks filed.
-pub fn tagged(blocks: &mut [Block], text: &str) {
-    let filed: HashSet<String> = crate::tags::tags_in(text).into_iter().collect();
-    walk(blocks, text, &filed);
-}
-
-#[cfg(feature = "tags")]
 pub(crate) fn walk(blocks: &mut [Block], text: &str, filed: &HashSet<String>) {
     for block in blocks {
         if !matches!(block.kind, crate::Kind::Code { .. }) {

@@ -1,10 +1,9 @@
-use std::collections::HashSet;
 use std::ops::Range;
 
+use crate::filing::Filing;
 use crate::{Block, Doc, Kind};
 
 const CROSSING: [&str; 3] = ["]:", "[^", ":::"];
-const TAGGING: [char; 3] = ['#', '`', '~'];
 
 pub(crate) fn crossing(text: &str) -> bool {
     CROSSING.iter().any(|one| text.contains(one))
@@ -16,6 +15,7 @@ pub(crate) struct Plan {
     part: Vec<Block>,
     old_end: usize,
     new_end: usize,
+    filing: Filing,
 }
 
 pub fn reread(was: Doc, text: &str) -> Doc {
@@ -65,6 +65,7 @@ fn rebuilt(was: Doc, text: String, changed: &Changed) -> Doc {
         blocks,
         crossing: false,
         labels: crate::names_sum([]),
+        filing: Box::new(plan.filing),
     }
 }
 
@@ -131,8 +132,11 @@ fn planned(was: &Doc, text: &str, changed: &Changed) -> Option<Plan> {
     } else {
         text.len()
     };
-    let filed = filed(old, text, changed, &text[from..to])?;
-    let part = crate::reading::part(text, from..to, &filed);
+    let (filing, settled) = was.filing.after(old, text, changed);
+    if !filing.alone(&was.filing, settled) {
+        return None;
+    }
+    let part = crate::reading::part(text, from..to, &filing.filed);
     if edge_before && part.first() != blocks.get(keep) {
         return None;
     }
@@ -149,41 +153,15 @@ fn planned(was: &Doc, text: &str, changed: &Changed) -> Option<Plan> {
         part,
         old_end,
         new_end,
+        filing,
     })
 }
 
 #[derive(Clone, Copy)]
-struct Changed {
-    start: usize,
-    old_end: usize,
-    new_end: usize,
-}
-
-fn filed(old: &str, text: &str, changed: &Changed, part: &str) -> Option<HashSet<String>> {
-    let tags_of =
-        |said: &str| -> HashSet<String> { crate::tags::tags_in(said).into_iter().collect() };
-    let tagging = |said: &str, end: usize| {
-        let from = said[..changed.start]
-            .rfind(char::is_whitespace)
-            .map_or(0, |at| at + 1);
-        let to = said[end..]
-            .find(char::is_whitespace)
-            .map_or(said.len(), |at| end + at);
-        said[from..to].contains(TAGGING)
-    };
-    if tagging(old, changed.old_end) || tagging(text, changed.new_end) {
-        let now = tags_of(text);
-        return (tags_of(old) == now).then_some(now);
-    }
-    let tag_like = part
-        .as_bytes()
-        .windows(2)
-        .any(|pair| pair[0] == b'#' && !pair[1].is_ascii_whitespace() && pair[1] != b'#');
-    Some(if tag_like {
-        tags_of(text)
-    } else {
-        HashSet::new()
-    })
+pub(crate) struct Changed {
+    pub(crate) start: usize,
+    pub(crate) old_end: usize,
+    pub(crate) new_end: usize,
 }
 
 fn shared_head(old: &str, text: &str) -> usize {

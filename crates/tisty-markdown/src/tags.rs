@@ -8,7 +8,11 @@ pub const AT_MOST: usize = 64;
 pub fn tags_in(body: &str) -> Vec<String> {
     let mut found: Vec<String> = Vec::new();
     let mut seen: std::collections::HashSet<String> = std::collections::HashSet::new();
-    for tag in crate::front::tags(body).iter().filter_map(|one| named(one)) {
+    let mut fenced = crate::fences::fencing();
+    let lines = lines_from(body, past(body))
+        .filter(|(_, line)| !fenced(line))
+        .flat_map(|(_, line)| on_line(line));
+    for tag in fronted(body).chain(lines) {
         if seen.insert(tag.clone()) {
             found.push(tag);
         }
@@ -16,23 +20,40 @@ pub fn tags_in(body: &str) -> Vec<String> {
             return found;
         }
     }
-    let past = crate::front::span(body).map_or(0, |at| at.end);
-    let mut fenced = crate::fences::fencing();
-    for line in body[past..].lines() {
-        if fenced(line) {
-            continue;
-        }
-        // Composed first, or «ñ» pasted from macOS as two code points files #diseño under «disen».
-        for (_, tag) in spots(&composed(line)) {
-            if seen.insert(tag.clone()) {
-                found.push(tag);
-            }
-            if found.len() == AT_MOST {
-                return found;
-            }
-        }
-    }
     found
+}
+
+pub(crate) fn fronted(body: &str) -> impl Iterator<Item = String> {
+    crate::front::tags(body)
+        .into_iter()
+        .filter_map(|one| named(&one))
+}
+
+pub(crate) fn past(body: &str) -> usize {
+    crate::front::span(body).map_or(0, |at| at.end)
+}
+
+pub(crate) fn lines_from(body: &str, from: usize) -> impl Iterator<Item = (Range<usize>, &str)> {
+    let mut at = from;
+    body[from..].split_inclusive('\n').map(move |piece| {
+        let taken = at..at + piece.len();
+        at = taken.end;
+        let line = piece
+            .strip_suffix('\n')
+            .map_or(piece, |one| one.strip_suffix('\r').unwrap_or(one));
+        (taken, line)
+    })
+}
+
+pub(crate) fn on_line(line: &str) -> Vec<String> {
+    if !line.contains('#') {
+        return Vec::new();
+    }
+    // Composed first, or «ñ» pasted from macOS as two code points files #diseño under «disen».
+    spots(&composed(line))
+        .into_iter()
+        .map(|(_, tag)| tag)
+        .collect()
 }
 
 /// Every tag on one line, with the bytes it takes and the name it is filed under.

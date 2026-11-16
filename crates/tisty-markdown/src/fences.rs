@@ -30,7 +30,7 @@ pub fn fenced_spans(text: &str) -> Vec<(usize, usize)> {
 }
 
 // The quote prefix comes off first, or a fence written inside a quote is never seen.
-#[derive(Default)]
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct Fencing {
     pub open: Option<(char, usize, usize, usize)>,
     pub base: usize,

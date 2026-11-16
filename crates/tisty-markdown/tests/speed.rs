@@ -43,6 +43,7 @@ fn a_key_on_a_page_of_500_kb() {
     timed("placed_near in a heading", 10, || {
         tisty_markdown::placed_near(&doc, heading, heading + 1, Some(doc.labels()))
     });
+    timed("outline", 10, || tisty_markdown::outline(&doc));
     timed("read + placed_near", 10, || {
         tisty_markdown::placed_near(
             &tisty_markdown::read(&text),
@@ -60,8 +61,26 @@ fn a_key_on_a_page_of_500_kb() {
     timed("reread a key", 10, || {
         tisty_markdown::reread(docs.pop().unwrap_or_else(|| doc.clone()), &typed)
     });
+    edits("reread an edit", &doc, at, "x");
+    let first = text.find("Esta hoja").unwrap_or_default() + 4;
+    edits("reread an edit in the first paragraph", &doc, first, "x");
+    edits("reread an edit at the end", &doc, text.len(), "x");
+    let tag = middle + text[middle..].find("de #rina").unwrap_or_default() + 6;
+    edits("reread an edit in a tag", &doc, tag, "x");
+    let beside = middle + text[middle..].find("refuerzo de marzo").unwrap_or_default() + 3;
+    edits("reread an edit beside a tag", &doc, beside, "x");
+    let noted = format!("{text}Uno[^1].\n\n[^1]: nota\n");
+    edits(
+        "reread an edit on a page with a note",
+        &tisty_markdown::read(&noted),
+        at,
+        "x",
+    );
+}
+
+fn edits(label: &str, doc: &tisty_markdown::Doc, at: usize, insert: &str) {
     let mut docs: Vec<_> = (0..10).map(|_| doc.clone()).collect();
-    timed("reread an edit", 10, || {
-        tisty_markdown::reread_edit(docs.pop().unwrap_or_else(|| doc.clone()), at..at, "x")
+    timed(label, 10, || {
+        tisty_markdown::reread_edit(docs.pop().unwrap_or_else(|| doc.clone()), at..at, insert)
     });
 }

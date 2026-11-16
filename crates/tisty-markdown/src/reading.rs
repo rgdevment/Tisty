@@ -29,8 +29,10 @@ pub(crate) fn reading(text: &str, passes: &[fn(&mut Vec<Span>, &str)]) -> Doc {
     tokened(text, skip..text.len(), &mut blocks);
     let linked = defined(text, skip, &mut blocks);
     polish_all(&mut blocks, text, passes);
+    let filing = Box::new(crate::filing::Filing::of(text));
+    // Only what the core files is marked, so a tag past its sixty-fourth never looks filed.
     #[cfg(feature = "tags")]
-    crate::marks::tagged(&mut blocks, text);
+    crate::marks::walk(&mut blocks, text, &filing.filed);
     let crossing = crate::rereading::crossing(text);
     Doc {
         text: text.to_string(),
@@ -41,6 +43,7 @@ pub(crate) fn reading(text: &str, passes: &[fn(&mut Vec<Span>, &str)]) -> Doc {
         },
         blocks,
         crossing,
+        filing,
     }
 }
 
