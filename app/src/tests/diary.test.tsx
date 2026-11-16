@@ -151,11 +151,11 @@ describe("the diary in the library", () => {
         .getByRole("button", { name: t("diary") })
         .closest("li")
         ?.querySelector("svg");
-    expect(mark()?.getAttribute("class")).toContain("text-hue-purple");
+    expect(mark()?.getAttribute("class")).toContain("diary-mark");
     unmount();
 
     render(<Tree papers={papers} unfolded onOpen={vi.fn()} onFile={vi.fn()} onDiary={vi.fn()} />);
-    expect(mark()?.getAttribute("class")).toContain("text-hue-purple");
+    expect(mark()?.getAttribute("class")).toContain("diary-mark");
   });
 
   it("shows the books where they sit when nothing gathers them", () => {
