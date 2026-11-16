@@ -175,6 +175,11 @@ pub fn filed(idea: &str, heading: &str) -> String {
     stuck(&head, idea)
 }
 
+pub fn stuck_beside(was: &str, idea: &str, at: jiff::civil::DateTime, roll: u32) -> String {
+    let (when, colour) = free_slot(&taken_on(was, &[]), last_hue(was), at, roll);
+    filed(idea, &format!("{} · {colour}", minute_of(when)))
+}
+
 pub fn ideas(body: &str) -> usize {
     let mut openers = Openers::default();
     lines(body).filter(|line| openers.opens(line)).count()

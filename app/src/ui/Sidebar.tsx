@@ -36,6 +36,7 @@ interface Props {
   onMove: (folder: string, parent?: string, before?: string) => void;
   onFile: (doc: string, folder?: string, before?: string) => void;
   onPage?: (doc: string, pageOf: string) => void;
+  onDiary?: () => void;
   onFolderMenu: (folder: Folded, at: { x: number; y: number }) => void;
   onDocMenu: (doc: Filed, at: { x: number; y: number }) => void;
   onDocsMenu: (at: { x: number; y: number }) => void;
@@ -63,6 +64,7 @@ export default function Sidebar({
   onMove,
   onFile,
   onPage,
+  onDiary,
   onFolderMenu,
   onDocMenu,
   onDocsMenu,
@@ -149,6 +151,7 @@ export default function Sidebar({
             onMove={onMove}
             onFile={onFile}
             onPage={onPage}
+            onDiary={onDiary}
             onFolderMenu={onFolderMenu}
             onDocMenu={onDocMenu}
             onDocsMenu={onDocsMenu}

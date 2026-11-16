@@ -91,6 +91,7 @@ export default function Stage() {
   ) : chosen.named === "docs" ? (
     <Docs
       open={chosen.doc}
+      visit={chosen}
       onPaging={(put) => {
         paging.current = put;
       }}

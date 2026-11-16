@@ -28,8 +28,10 @@ import {
   type Paper,
   roomy,
   type Task,
+  taskOf,
   viewDoc,
 } from "../core";
+import type { Today } from "../diary";
 import { viewDiagram } from "../drawing";
 import { brainstormIn, notedIn, withLandscape, withPaper, withSheets } from "../front";
 import { keptAll, PASTED_UP_TO } from "../kept";
@@ -46,6 +48,7 @@ import { changedIn, MARK_FADES } from "./anchoring";
 import Beside, { trailed } from "./Beside";
 import Contents from "./Contents";
 import { blurbing, cardsOf } from "./carding";
+import { diaryLoaded, type LoadedDiary } from "./diaryLoaded";
 import { PageMore, type Viewing } from "./liveSheet";
 import Modal from "./Modal";
 import Notes from "./Notes";
@@ -118,6 +121,7 @@ interface Props {
   onBack?: (doc: Filed) => void;
   onAsideShut?: (shut: boolean) => void;
   fresh?: number;
+  visit?: object;
 }
 
 const tailless = (said: string): string => said.replace(/\r\n/g, "\n").replace(/\n+$/, "");
@@ -154,9 +158,11 @@ export default function Docs({
   onBack,
   onAsideShut,
   fresh = 0,
+  visit,
 }: Props) {
   const [open, setOpen] = useState<Filed | null>(null);
   const [Sheet, setSheet] = useState<LoadedSheet | null>(null);
+  const [Diary, setDiary] = useState<LoadedDiary | null>(null);
   const [unopened, setUnopened] = useState<string | null>(null);
   const [body, setBody] = useState("");
   const [inEditor, setInEditor] = useState<string | null>(null);
@@ -530,10 +536,33 @@ export default function Docs({
   };
 
   const own = filed(known, open?.file);
+  const inDiary = Boolean(own?.diary);
   const called = own?.title ?? open?.title ?? "";
   // What the archive holds is read-only, whether the document says so or the folder above it does.
   const shelved = Boolean(own?.away);
   const bolted = Boolean(own?.locked) || shelved;
+
+  const diaryWritten = (today: Today) => {
+    onKept({ id: own?.id ?? "", title: called });
+    if (!open || today.page !== open.file) return onDoc?.(today.page);
+    docOpened(open.file)
+      .then(({ body: text, print }) => {
+        remembered(lastRead.current, open.file, { text, print });
+        shaped.current = text;
+        setBody(text);
+        setPacked(crowd(text));
+      })
+      .catch((e) => onError(saidPlainly(e)));
+  };
+  const seeTask = (id: string) =>
+    taskOf(id)
+      .then((one) => (onSeeTask ?? onTask)?.(one))
+      .catch((e) => onError(saidPlainly(e)));
+  const [writtenOn, setWrittenOn] = useState<{ visit?: object; file: string } | null>(null);
+  const onDiary = inDiary && !(writtenOn?.visit === visit && writtenOn?.file === open?.file);
+  useEffect(() => {
+    if (inDiary && !Diary) void diaryLoaded().then((ready) => setDiary(() => ready));
+  }, [inDiary, Diary]);
 
   const { wholeAsked, allAsked } = useWholeKeys(Boolean(open), !bolted);
   const stood = useRef(new Map<string, number>());
@@ -665,13 +694,34 @@ export default function Docs({
   const noted = Boolean(open) && notedIn(body);
   const brainstorm = noted && brainstormIn(body);
   const onNotes = noted && (brainstorm || inEditor !== open?.file);
-  const beside = Boolean(open) && !onNotes && (shown ?? fits);
+  const beside = Boolean(open) && !onNotes && !inDiary && (shown ?? fits);
   const [markdownOf, setMarkdownOf] = useState<string | null>(null);
   const viewing: Viewing = {
     markdown: Boolean(open) && markdownOf === open?.file,
     onTurn: (markdown) => setMarkdownOf(markdown ? (open?.file ?? null) : null),
   };
   const pageMore = bolted ? null : <PageMore {...viewing} />;
+  const placed = above ? (
+    <Ribbon
+      of={above}
+      sisters={sisters}
+      told={aboveTold}
+      here={open?.file ?? ""}
+      onOpen={(doc) => onDoc?.(doc.file)}
+      view={pageMore}
+    >
+      {!beside && spoken}
+    </Ribbon>
+  ) : (
+    ((spoken && !beside) || own?.tongueApart || pageMore) && (
+      <div className="ribbon">
+        <span className="ribbon-title">{called || t("untitledDoc")}</span>
+        {own?.tongueApart && <p role="note">{t("tongueApart")}</p>}
+        {!beside && spoken}
+        {pageMore}
+      </div>
+    )
+  );
   const laid = useMemo(() => laidIn(body), [body]);
   const leaf =
     (open && (bolted ? (sized[open.file] ?? laid.paper) : (laid.paper ?? sized[open.file]))) ||
@@ -859,7 +909,7 @@ export default function Docs({
   return (
     <main className="relative flex min-w-0 flex-1 flex-col overflow-hidden bg-desk">
       <div data-tauri-drag-region className="h-9 shrink-0" />
-      {open && !beside && !onNotes && (
+      {open && !beside && !onNotes && !inDiary && (
         <button
           type="button"
           onClick={() => setShown(true)}
@@ -876,7 +926,7 @@ export default function Docs({
       >
         {open ? (
           <div
-            style={onNotes ? NOTES_ROOM : sheetRoom}
+            style={onNotes || onDiary ? NOTES_ROOM : sheetRoom}
             className="relative mx-auto flex min-h-0 w-full flex-1 flex-col"
           >
             <div
@@ -911,6 +961,25 @@ export default function Docs({
                   onMarks={() => onKept({ id: open.id, title: called })}
                 />
               </div>
+            ) : onDiary ? (
+              Diary && (
+                <Diary
+                  file={open.file}
+                  body={body}
+                  title={called || t("untitledDoc")}
+                  book={above?.title}
+                  fresh={fresh}
+                  onDoc={(file) => onDoc?.(file)}
+                  onTask={seeTask}
+                  onBefore={() => {
+                    flush();
+                    return busy(open.file) ?? Promise.resolve();
+                  }}
+                  onWritten={diaryWritten}
+                  onEdit={() => setWrittenOn({ visit, file: open.file })}
+                  onError={(e) => onError(saidPlainly(e))}
+                />
+              )
             ) : (
               Sheet && (
                 <Sheet
@@ -948,29 +1017,7 @@ export default function Docs({
                   label={called || t("untitledDoc")}
                   onDoc={onDoc}
                   onTag={onTag}
-                  above={
-                    above ? (
-                      <Ribbon
-                        of={above}
-                        sisters={sisters}
-                        told={aboveTold}
-                        here={open.file}
-                        onOpen={(doc) => onDoc?.(doc.file)}
-                        view={pageMore}
-                      >
-                        {!beside && spoken}
-                      </Ribbon>
-                    ) : (
-                      ((spoken && !beside) || own?.tongueApart || pageMore) && (
-                        <div className="ribbon">
-                          <span className="ribbon-title">{called || t("untitledDoc")}</span>
-                          {own?.tongueApart && <p role="note">{t("tongueApart")}</p>}
-                          {!beside && spoken}
-                          {pageMore}
-                        </div>
-                      )
-                    )
-                  }
+                  above={placed}
                   belowFolds={!above}
                   below={
                     above

@@ -37,6 +37,8 @@ pub enum Unshared {
     NotADocument,
     #[error("Brainstorm stays here, and its ideas travel in the documents they go into")]
     Brainstorm,
+    #[error("the diary is the person's own, and stays here")]
+    Diary,
     #[error("it could not be read: {0}")]
     Unread(String),
     #[error("what is remembered of it could not be written: {0}")]

@@ -209,6 +209,16 @@ pub fn page_of(state: &State, book: DocId, month: i8) -> Option<&Kept> {
     pages.first().copied()
 }
 
+pub fn newest_page(state: &State, book: DocId) -> Option<&Kept> {
+    state
+        .docs
+        .values()
+        .filter(|one| one.page_of == Some(book) && !state.held_away(one))
+        .filter_map(|one| Some((one.title.as_deref().and_then(month_named)?, one)))
+        .max_by_key(|(month, one)| (*month, std::cmp::Reverse(one.id)))
+        .map(|(_, one)| one)
+}
+
 #[derive(Debug)]
 pub struct Opening {
     pub ops: Vec<Op>,
