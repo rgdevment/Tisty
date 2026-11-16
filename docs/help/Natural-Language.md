@@ -131,6 +131,8 @@ Wrap the whole sentence in quotes and nothing is interpreted:
 "standup on monday"
 ```
 
+It works for a piece too: in `call about "the report tomorrow" on friday`, only Friday is read.
+
 ## In Spanish
 
 The same rules, in Spanish: `mañana a las 10`, `el viernes`, `pasado mañana`, `en 3 días`, `antes del viernes`, `hasta el 30 de agosto`, `cada martes`, `todos los lunes a las 9`, `cada 3 días`, `diariamente`.
