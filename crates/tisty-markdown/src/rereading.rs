@@ -63,7 +63,7 @@ fn rebuilt(was: Doc, text: String, changed: &Changed) -> Doc {
     blocks.append(&mut after);
     // A plan is refused for a crossing in the stretch it read, so the text keeps its definitions and notes.
     let mut defined = was.defined;
-    defined.closers = plan.closers;
+    defined.recount(plan.closers);
     Doc {
         text,
         blocks,

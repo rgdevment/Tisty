@@ -5,19 +5,24 @@ const BUDGET: usize = 100_000;
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub(crate) struct Defined {
-    pub(crate) links: Vec<[String; 2]>,
-    pub(crate) notes: Vec<String>,
+    links: Vec<[String; 2]>,
+    notes: Vec<String>,
     widest: usize,
-    pub(crate) closers: usize,
+    closers: usize,
 }
 
 impl Defined {
-    pub(crate) fn of(mut links: Vec<[String; 2]>, widest: usize, text: &str) -> Self {
-        links.sort_unstable();
+    pub(crate) fn of(
+        mut links: Vec<[String; 2]>,
+        widest: usize,
+        notes: Vec<String>,
+        text: &str,
+    ) -> Self {
+        links.sort_unstable_by(|[one, _], [other, _]| UniCase::new(one).cmp(&UniCase::new(other)));
         let closers = if links.is_empty() { 0 } else { closers(text) };
         Self {
             links,
-            notes: Vec::new(),
+            notes,
             widest,
             closers,
         }
@@ -30,10 +35,11 @@ impl Defined {
 
     pub(crate) fn to(&self, label: &str) -> Option<&str> {
         let label = UniCase::new(label);
-        self.links
-            .iter()
-            .find(|[one, _]| UniCase::new(one.as_str()) == label)
-            .map(|[_, to]| to.as_str())
+        let at = self
+            .links
+            .binary_search_by(|[one, _]| UniCase::new(one.as_str()).cmp(&label))
+            .ok()?;
+        Some(self.links[at][1].as_str())
     }
 
     pub(crate) fn after(&self, gone: &str, put: &str) -> usize {
@@ -42,6 +48,10 @@ impl Defined {
         } else {
             self.closers + closers(put) - closers(gone)
         }
+    }
+
+    pub(crate) fn recount(&mut self, closers: usize) {
+        self.closers = closers;
     }
 
     // The blocks kept come from the old text, so it must have been read within the budget too.

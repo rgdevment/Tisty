@@ -29,16 +29,13 @@ pub(crate) fn reading(text: &str, passes: &[fn(&mut Vec<Span>, &str)]) -> Doc {
         blocks.push(leaf(Kind::Front, front));
     }
     tokened(text, skip..text.len(), &Defined::default(), &mut blocks);
-    let mut defined = defined(text, skip, &mut blocks);
+    let crossing = crate::rereading::crossing(text);
+    let defined = defined(text, skip, crossing, &mut blocks);
     polish_all(&mut blocks, text, passes);
     let filing = Box::new(crate::filing::Filing::of(text));
     // Only what the core files is marked, so a tag past its sixty-fourth never looks filed.
     #[cfg(feature = "tags")]
     crate::marks::walk(&mut blocks, text, &filing.filed);
-    let crossing = crate::rereading::crossing(text);
-    if crossing {
-        defined.notes = noted(&blocks);
-    }
     Doc {
         text: text.to_string(),
         labels: defined.labels(&filing.far()),
@@ -216,7 +213,8 @@ fn tokens<'a>(
 }
 
 // The tokenizer drops a link's definition from what it hands over, so the page would have nowhere to show or edit it.
-fn defined(text: &str, skip: usize, blocks: &mut Vec<Block>) -> Defined {
+fn defined(text: &str, skip: usize, crossing: bool, blocks: &mut Vec<Block>) -> Defined {
+    let notes = if crossing { noted(blocks) } else { Vec::new() };
     // Built only once a definition turns up, so a document with none pays nothing for it.
     let held = LazyCell::new(|| Nearby::of(blocks.iter().map(|one| one.at.clone()).collect()));
     let parser = Parser::new_ext(&text[skip..], options());
@@ -242,7 +240,7 @@ fn defined(text: &str, skip: usize, blocks: &mut Vec<Block>) -> Defined {
         blocks.append(&mut found);
         blocks.sort_by_key(|one| one.at.start);
     }
-    Defined::of(linked, widest, text)
+    Defined::of(linked, widest, notes, text)
 }
 
 // The parser keeps one definition per label, so a label written twice leaves its later lines unclaimed.

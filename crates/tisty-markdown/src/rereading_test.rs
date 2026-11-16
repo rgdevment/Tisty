@@ -260,9 +260,10 @@ fn links(blocks: &[crate::Block]) -> Vec<String> {
 
 #[test]
 fn labels_written_elsewhere_match_as_reading_the_whole_text_matches_them() {
-    let used = "[X], [ x  ], [x][], [Straße], [STRASSE][], [ÑANDÚ], [n\u{303}andú], [y] y ![x].";
+    let used =
+        "[X], [ x  ], [x][], [Straße], [STRASSE][], [ÑANDÚ], [n\u{303}andú], [zeta], [y] y ![x].";
     let text = format!(
-        "{used}\n\nDos.\n\nTres.\n\n[x]: https://x.test \"equis\"\n[strasse]: https://s.test\n[ñandú]: https://n.test\n"
+        "{used}\n\nDos.\n\nTres.\n\n[x]: https://x.test \"equis\"\n[strasse]: https://s.test\n[ñandú]: https://n.test\n[Zeta]: https://z.test\n"
     );
     let at = text.find("Dos").unwrap_or_default();
     let next = format!("{}Y {}", &text[..at], &text[at..]);
@@ -271,10 +272,16 @@ fn labels_written_elsewhere_match_as_reading_the_whole_text_matches_them() {
     let again = reread_edit(was, at..at, "Y ");
     assert_eq!(again, Ok(read(&next)));
     let found = links(read(&next).blocks());
-    for to in ["https://x.test", "https://s.test", "https://n.test"] {
+    let defined = [
+        "https://x.test",
+        "https://s.test",
+        "https://n.test",
+        "https://z.test",
+    ];
+    for to in defined {
         assert!(found.iter().any(|one| one == to), "{to} in {found:?}");
     }
-    assert_eq!(found.len(), 7, "{found:?}");
+    assert_eq!(found.len(), 8, "{found:?}");
 }
 
 #[test]
@@ -333,11 +340,12 @@ fn an_edit_on_a_page_with_definitions_notes_and_containers_reads_as_the_whole_te
     let mut short = 0;
     let mut resolved = 0;
     let mut all = 0;
-    for (seed, sample) in SAMPLES[..2].iter().enumerate() {
-        let mut steps = Steps(0xDEF1_0000 + seed as u64);
-        let mut text = format!("{sample}{DEFINED}");
+    // Short runs from the sample, since every mark the edits write leaves fewer stretches free of one.
+    for (seed, run) in (0..20).map(|run| (run % 2, run)) {
+        let mut steps = Steps(0xDEF1_0000 + run as u64);
+        let mut text = format!("{}{DEFINED}", SAMPLES[seed]);
         let mut was = read(&text);
-        for _ in 0..400 {
+        for _ in 0..40 {
             let at = boundary(&text, steps.next(text.len() + 1));
             let to = boundary(&text, (at + steps.next(4)).min(text.len()));
             let insert = match steps.next(3) {
