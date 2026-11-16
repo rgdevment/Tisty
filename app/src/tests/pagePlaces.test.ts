@@ -265,7 +265,8 @@ describe("the places a key moves, read only through the page's places", () => {
   const RAW = [
     /dataset\s*\.\s*(at|src|placed)\b/,
     /\[data-(at|src|placed)\s*[\^$*~|]?=/,
-    /(?<!\b(?:placeOf|placeSaid|placeCopied|placeWritten|removeAttribute)\([^()]*)["']data-(at|src|placed)["']/,
+    /(?<!\b(?:placeOf|placeSaid|placeCopied|placeWritten|removeAttribute)\((?:[^()]|\([^()]*\))*)["']data-(at|src|placed)["']/,
+    /["'`]data-["'`]\s*\+|`data-\$\{/,
   ];
   const raw = (said: string) => RAW.some((one) => one.test(said));
 
@@ -276,7 +277,10 @@ describe("the places a key moves, read only through the page's places", () => {
     expect(raw("one.dataset.at")).toBe(true);
     expect(raw("page.querySelector(\".page > [data-at^='7-']\")")).toBe(true);
     expect(raw('placeOf(one, "data-src") ?? placeOf(one, "data-placed")')).toBe(false);
+    expect(raw('one.getAttribute("data-" + kind)')).toBe(true);
+    expect(raw(["one.getAttribute(`data-$", "{kind}`)"].join(""))).toBe(true);
     expect(raw('placeCopied(img, card, "data-src", "data-placed")')).toBe(false);
+    expect(raw('placeOf(target.closest("li"), "data-src")')).toBe(false);
     expect(raw('one.removeAttribute("data-at")')).toBe(false);
     expect(raw('sheet.querySelectorAll(":scope > [data-at]")')).toBe(false);
   });
