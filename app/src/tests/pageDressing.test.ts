@@ -2,6 +2,13 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import type { Reaching } from "../ui/dressing";
 import { wornLaid } from "../ui/pageDressing";
 
+const path = vi.hoisted(() => ({ inPlace: true }));
+
+vi.mock("../ui/pagePatching", async (original) => {
+  const real = await original<typeof import("../ui/pagePatching")>();
+  return { ...real, keptInPlace: (one: Element) => path.inPlace && real.keptInPlace(one) };
+});
+
 vi.mock("../inUse", async (original) => ({
   ...(await original<typeof import("../inUse")>()),
   serve: (reference: string) => Promise.resolve(`C:/kept/${reference}`),
@@ -25,6 +32,8 @@ const TABLE =
 
 afterEach(() => {
   document.body.innerHTML = "";
+  path.inPlace = true;
+  vi.restoreAllMocks();
 });
 
 const pageOf = (inner: string) => {
@@ -72,5 +81,65 @@ describe("the blocks the core draws again on the page written in place", () => {
       onPiece: () => {},
     });
     expect(sheet.querySelector('.math-bar [data-asked="code"]')).not.toBeNull();
+  });
+});
+
+const WORDS = [
+  '<p data-at="0-9"><a class="card" data-doc="ab12-0001">A</a></p>',
+  '<p data-at="0-9">mira <a class="card" data-doc="ab12-0001">A</a> ahí</p>',
+  '<p data-at="0-9"><a href="https://x.y/z">x</a></p>',
+  '<p data-at="0-9">mira <a href="https://x.y/z">x</a> ahí</p>',
+  '<p data-at="0-9"><a href="tisty:doc/ab12-0002">B</a></p>',
+  '<p data-at="0-9"><a href="attachments/a.pdf">x</a></p>',
+  '<p data-at="0-9"><span class="tag" data-tag="work">#work</span></p>',
+  '<p data-at="0-20">Sea <math data-src="4-9" contenteditable="false"><mi>x</mi></math> y <code class="math" data-src="12-17" contenteditable="false">\fr</code></p>',
+  '<p data-at="0-9"><img src="attachments/a.png" alt="A"><img src="https://x.y/b.png" alt="B"></p>',
+  '<p data-at="0-9"><img src="attachments/walk-0006bf09.mp4" alt="A walk"></p>',
+  '<p data-at="0-9"><img src="attachments/bark-0006bf10.mp3" alt="Bark"></p>',
+  '<p data-at="0-9"><img src="walks-0006bf09.html" alt="Walks"></p>',
+  '<p data-at="0-9">plain <code>x</code> words</p>',
+  '<h2 id="b" data-at="0-9">B <span class="tag" data-tag="x">#x</span></h2>',
+];
+
+const READING = {
+  ...REACH,
+  card: () => ({ kind: "doc", title: "Notas" }),
+  blurb: () => Promise.resolve("Hola."),
+  onMore: () => {},
+  onPiece: () => {},
+  onLanguage: () => {},
+} as unknown as Reaching;
+
+const settled = () => new Promise((resolve) => setTimeout(resolve, 20));
+
+const dressedAs = async (inPlace: boolean, block: string) => {
+  path.inPlace = inPlace;
+  const sheet = pageOf(`<p data-at="100-105">Antes</p>${block}<p data-at="200-206">Después</p>`);
+  const one = sheet.children[1] as Element;
+  const heard = vi.spyOn(EventTarget.prototype, "addEventListener");
+  const watch = new MutationObserver(() => {});
+  watch.observe(sheet, { childList: true });
+  wornLaid(document, [one], () => true, READING);
+  const moved = watch.takeRecords().length;
+  watch.disconnect();
+  const now = one.outerHTML;
+  await settled();
+  const lost = heard.mock.contexts.filter(
+    (target) => target instanceof Element && !target.isConnected && target.matches("p, h2"),
+  ).length;
+  heard.mockRestore();
+  return { now, later: one.outerHTML, kept: sheet.children[1] === one, moved, lost };
+};
+
+describe("a block of words the core draws again, dressed where it stands", () => {
+  it.each(WORDS)("comes out as it would taken away to be dressed: %s", async (block) => {
+    const away = await dressedAs(false, block);
+    const kept = await dressedAs(true, block);
+    expect(kept.now).toBe(away.now);
+    expect(kept.later).toBe(away.later);
+    expect(kept.kept).toBe(true);
+    expect(kept.moved).toBe(0);
+    expect(away.moved).toBeGreaterThan(0);
+    expect(kept.lost).toBe(0);
   });
 });

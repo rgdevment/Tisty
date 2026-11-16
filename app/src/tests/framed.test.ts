@@ -87,3 +87,63 @@ describe("what only reads", () => {
     );
   });
 });
+
+const rulesOf = (css: string) =>
+  [...css.replace(/\/\*[\s\S]*?\*\//g, "").matchAll(/([^{}]+)\{[^{}]*\}/g)].flatMap(([, said]) =>
+    said.split(/,(?![^(]*\))/).map((one) => one.trim()),
+  );
+
+const compoundsOf = (selector: string) => {
+  const found: string[] = [];
+  let depth = 0;
+  let one = "";
+  for (const letter of selector) {
+    if (letter === "(") depth += 1;
+    if (letter === ")") depth -= 1;
+    if (depth === 0 && /[\s>+~]/.test(letter)) {
+      if (one) found.push(one);
+      one = "";
+    } else one += letter;
+  }
+  return one ? [...found, one] : found;
+};
+
+const ABOVE_EVERY_BLOCK = /^(html|:root|body)(?![\w-])|\.page(?![\w-])/;
+
+const here = dirname(fileURLToPath(import.meta.url));
+const LOOKS = [
+  ...["page.css", "tables.css", "diary.css"].map((one) =>
+    join(here, "../../../packages/tisty-sheet/src", one),
+  ),
+  join(here, "../ui/taskpage.css"),
+]
+  .map((one) => readFileSync(one, "utf8"))
+  .join("\n");
+
+describe("the page's looks, kept cheap to restyle while it is written on", () => {
+  it("never asks the root, the body or the sheet what they hold to style something inside them", () => {
+    const asking = rulesOf(LOOKS).filter((selector) =>
+      compoundsOf(selector)
+        .slice(0, -1)
+        .some((one) => one.includes(":has(") && ABOVE_EVERY_BLOCK.test(one)),
+    );
+    expect(asking).toEqual([]);
+  });
+
+  it("still sees the guard on a rule written that way", () => {
+    const one = "html:not(.tall):has(.diary-month) .page";
+    expect(compoundsOf(one)).toEqual(["html:not(.tall):has(.diary-month)", ".page"]);
+    expect(ABOVE_EVERY_BLOCK.test(compoundsOf(one)[0] ?? "")).toBe(true);
+  });
+
+  it("lays a diary's month on the desk, and no other page", () => {
+    const month = rulesOf(LOOKS).filter((one) => one.includes("diary-month)"));
+    expect(month).toHaveLength(2);
+    const diary = page(framed('<div class="diary-month"></div>'));
+    const other = page(framed('<div><div class="diary-month"></div></div>'));
+    for (const one of month) {
+      expect(diary.querySelector(one), one).not.toBeNull();
+      expect(other.querySelector(one), one).toBeNull();
+    }
+  });
+});

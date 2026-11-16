@@ -750,6 +750,20 @@ describe("a step's dates", () => {
     expect(first.title).toBe("Added 18 Oct");
     expect(second.hasAttribute("title")).toBe(false);
   });
+
+  it("write nothing again when they did not change, and leave every box bare when there are none", () => {
+    const one = page(
+      '<ul data-at="0-20"><li class="task" data-at="0-10"><span class="check"></span>Call the vet</li></ul>',
+    );
+    datedSteps(one, { "Call the vet": "Added 18 Oct" });
+    const watch = new MutationObserver(() => {});
+    watch.observe(one.documentElement, { subtree: true, attributes: true });
+    datedSteps(one, { "Call the vet": "Added 18 Oct" });
+    expect(watch.takeRecords()).toEqual([]);
+    watch.disconnect();
+    datedSteps(one, {});
+    expect(one.querySelector("li.task")?.hasAttribute("title")).toBe(false);
+  });
 });
 
 describe("a task's page written in place", () => {

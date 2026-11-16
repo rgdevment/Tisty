@@ -3,10 +3,26 @@ import { staged } from "tisty-sheet";
 import { locale } from "../locales";
 import { cardsFor } from "./carding";
 import { datedSteps, diagramBars, languaged, mathBars, pictures, type Reaching } from "./dressing";
+import { keptInPlace, takenOver } from "./pagePatching";
 import { SAY } from "./saying";
 import { tabled } from "./tabled";
 import { GLIMPSES } from "./webcarding";
 import { gripped } from "./widening";
+
+const dressedAway = (one: Element, sheet: Element) => {
+  const mark = one.ownerDocument.createComment("");
+  one.replaceWith(mark);
+  sheet.append(one);
+  return () => mark.replaceWith(one);
+};
+
+// Taking a block out of the page restyles every paragraph of a long one, so a stand-in of its kind is dressed.
+const dressedThrough = (one: Element, sheet: Element) => {
+  const stand = sheet.ownerDocument.importNode(one, false);
+  stand.append(...one.childNodes);
+  sheet.append(stand);
+  return () => takenOver(one, stand);
+};
 
 // The blocks the core drew again while the page is written on are read on a page of their own, as the whole
 // page is read, and laid back; what counts across the page, as its stages, is counted again on the page.
@@ -21,12 +37,9 @@ export const wornLaid = (
   const sheet = staging.createElement("article");
   sheet.className = "page";
   staging.body.append(sheet);
-  const marks = laid.map((one) => {
-    const mark = page.createComment("");
-    one.replaceWith(mark);
-    sheet.append(one);
-    return mark;
-  });
+  const back = laid.map((one) =>
+    keptInPlace(one) ? dressedThrough(one, sheet) : dressedAway(one, sheet),
+  );
   if (reach.onDiagram || reach.onDiagramExport)
     diagramBars(staging, { open: Boolean(reach.onDiagram), out: Boolean(reach.onDiagramExport) });
   if (reach.onPiece) mathBars(staging);
@@ -45,15 +58,10 @@ export const wornLaid = (
     parts: reach.part,
     sites: { glimpses: GLIMPSES },
   });
-  marks.forEach((mark, at) => {
-    const one = laid[at];
-    if (one) mark.replaceWith(one);
-  });
+  for (const put of back) put();
   if (reach.onTable) tabled(page);
   if (reach.onWiden) gripped(page);
   if (reach.onLanguage) languaged(page);
-  for (const one of page.querySelectorAll('.page li.task[id^="stage--"]'))
-    one.removeAttribute("id");
   staged(page);
   datedSteps(page, reach.stepDates);
   return [...held, ...read.kept];

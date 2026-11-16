@@ -238,4 +238,4 @@ fn shift(block: &mut Block, old_end: usize, new_end: usize) {
 
 #[cfg(test)]
 #[path = "rereading_test.rs"]
-mod tests;
+pub(crate) mod tests;

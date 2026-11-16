@@ -40,17 +40,19 @@ const namedAlike = (sheet: Element, old: readonly Element[], near: PlacedNear, k
   return fnv === near.heads[0] && mixed === near.heads[1];
 };
 
+const samePlace = (old: Element | undefined, fresh: Element | undefined, moved: number) => {
+  const was = placeOf(old);
+  const now = placeOf(fresh);
+  if (!old || !fresh || !was || !now || old.tagName !== fresh.tagName) return null;
+  return now[0] === was[0] + moved && now[1] === was[1] + moved ? was : null;
+};
+
 // Only the same heading in the same place keeps its shown name; one that came or went renames those after it.
 const namesCarried = (was: readonly Element[], laid: readonly Element[], by: number) => {
   const before = headsIn(was, HEADINGS);
   const after = headsIn(laid, HEADINGS);
-  const same = (one: Element, at: number) => {
-    const old = placeOf(before[at]);
-    const now = placeOf(one);
-    if (!old || !now || one.tagName !== before[at].tagName) return false;
-    const moved = now[0] - old[0];
-    return now[1] - moved === old[1] && (moved === 0 || moved === by);
-  };
+  const same = (one: Element, at: number) =>
+    Boolean(samePlace(before[at], one, 0) ?? samePlace(before[at], one, by));
   if (before.length !== after.length || !after.every((one, at) => same(one, at))) return false;
   after.forEach((one, at) => {
     if (before[at].id) one.id = before[at].id;
@@ -58,9 +60,54 @@ const namesCarried = (was: readonly Element[], laid: readonly Element[], by: num
   return true;
 };
 
+// Adding or taking out a child of the page restyles every paragraph of a long page, so words keep their block.
+const WORDS = "p, h1, h2, h3, h4, h5, h6";
+
+export const keptInPlace = (one: Element) => one.matches(WORDS);
+
+const sameKind = (old: Element | undefined, fresh: Element): old is Element =>
+  old !== undefined && old.tagName === fresh.tagName && keptInPlace(old);
+
+export const takenOver = (old: Element, fresh: Element) => {
+  for (const name of old.getAttributeNames())
+    if (!fresh.hasAttribute(name)) old.removeAttribute(name);
+  for (const name of fresh.getAttributeNames()) {
+    const value = fresh.getAttribute(name) ?? "";
+    if (old.getAttribute(name) !== value) old.setAttribute(name, value);
+  }
+  old.replaceChildren(...fresh.childNodes);
+};
+
+// The core draws a block on each side of the key too; one whose place held and the key never reached is as it was.
+const besideKept = (
+  redrawn: readonly Element[],
+  drawn: readonly Element[],
+  by: number,
+  [from, to]: readonly [number, number],
+  renamed: boolean,
+) => {
+  const held = (old: Element | undefined, fresh: Element | undefined, moved: number) => {
+    const was = samePlace(old, fresh, moved);
+    return was && renamed && old && fresh && headsIn([old, fresh], HEADINGS).length > 0
+      ? null
+      : was;
+  };
+  const first = held(redrawn[0], drawn[0], 0);
+  const lead = first && first[1] < from ? 1 : 0;
+  const last = held(redrawn[redrawn.length - 1], drawn[drawn.length - 1], by);
+  const room = Math.min(redrawn.length, drawn.length) - lead;
+  const trail = room > 0 && last && last[0] > to ? 1 : 0;
+  return [lead, trail] as const;
+};
+
 // The blocks the core drew again take the place of the old ones, and those after only move by
 // what the edit added; when the page does not line up with the core, it is drawn whole instead.
-export const patched = (sheet: Element, near: PlacedNear, by: number): Element[] | null => {
+export const patched = (
+  sheet: Element,
+  near: PlacedNear,
+  by: number,
+  edited?: readonly [number, number],
+): Element[] | null => {
   if (near.whole) return null;
   const old = Array.from(sheet.querySelectorAll(":scope > [data-at]"));
   const { count, from, to } = near;
@@ -71,25 +118,41 @@ export const patched = (sheet: Element, near: PlacedNear, by: number): Element[]
   const page = sheet.ownerDocument;
   const fresh = page.createElement("template");
   fresh.innerHTML = near.html;
-  const laid = Array.from(fresh.content.children);
+  const drawn = Array.from(fresh.content.children);
+  const redrawn = old.slice(from, kept);
   if (
-    laid.length !== to - from ||
-    laid.some((one) => one.matches(WHOLE_ONLY) || one.querySelector(WHOLE_ONLY)) ||
-    (!near.heads && !namesCarried(old.slice(from, kept), laid, by))
+    drawn.length !== to - from ||
+    drawn.some((one) => one.matches(WHOLE_ONLY) || one.querySelector(WHOLE_ONLY)) ||
+    (!near.heads && !namesCarried(redrawn, drawn, by))
   )
     return null;
+  const [lead, trail] = edited
+    ? besideKept(redrawn, drawn, by, edited, Boolean(near.heads))
+    : [0, 0];
+  const going = redrawn.slice(lead, redrawn.length - trail);
+  const coming = drawn.slice(lead, drawn.length - trail);
   // A fold drawn anew comes closed, so one being written in stays open as it was.
-  const opened = folds(old.slice(from, kept)).map((one) => one.open);
+  const opened = folds(going).map((one) => one.open);
+  const laid = coming.map((one, at) => (sameKind(going[at], one) ? going[at] : one));
+  keyMoved(sheet, old, from + lead, kept - trail, laid, by);
+  coming.forEach((one, at) => {
+    if (laid[at] !== one) takenOver(laid[at], one);
+  });
   folds(laid).forEach((one, at) => {
     if (opened[at]) one.open = true;
   });
-  keyMoved(sheet, old, from, kept, laid, by);
-  for (const one of old.slice(from, kept)) one.remove();
+  for (const one of going) if (!laid.includes(one)) one.remove();
   for (const one of sheet.querySelectorAll(":scope > [data-ghost]")) one.remove();
-  const next = old[kept] ?? null;
-  const before = from > 0 ? old[from - 1] : null;
-  if (next) next.before(fresh.content);
-  else if (before) before.after(fresh.content);
-  else sheet.prepend(fresh.content);
+  const next = old[kept - trail] ?? null;
+  const before = from + lead > 0 ? old[from + lead - 1] : null;
+  laid.forEach((one, at) => {
+    if (one.parentElement === sheet) return;
+    const prior = laid[at - 1];
+    const later = laid.find((block) => block.parentElement === sheet) ?? next;
+    if (prior) prior.after(one);
+    else if (later) later.before(one);
+    else if (before) before.after(one);
+    else sheet.prepend(one);
+  });
   return laid;
 };
