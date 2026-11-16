@@ -18,7 +18,7 @@ import { type Hands, writerOf } from "./pageWriter";
 import { unformattable } from "./quickly";
 
 export type { Hands, Turns } from "./pageWriter";
-export { turnsAnew } from "./pageWriter";
+export { recorded, turnOf, turnsAnew } from "./pageWriter";
 
 export type PageWriting = {
   readonly drawn: () => void;

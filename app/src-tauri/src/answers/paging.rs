@@ -37,6 +37,13 @@ impl Placing {
         held.insert(window.to_string(), doc);
         said
     }
+
+    pub fn forget(&self, window: &str) {
+        self.0
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .remove(window);
+    }
 }
 
 // The page being written changes with each key, so it is drawn fresh and never kept on disk.

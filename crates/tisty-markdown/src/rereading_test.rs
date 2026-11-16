@@ -108,6 +108,14 @@ fn a_definition_or_a_footnote_anywhere_reads_the_whole_text() {
 }
 
 #[test]
+fn a_definition_written_by_the_edit_reads_the_whole_text() {
+    let text = "Uno [x][r].\n\nDos.\n";
+    let next = text.replace("Dos.", "[r]: https://tisty.app");
+    assert!(plan(&read(text), &next).is_none());
+    assert_eq!(reread(read(text), &next), read(&next));
+}
+
+#[test]
 fn a_fence_opened_by_an_edit_reads_the_whole_text() {
     let text = "Uno.\n\nDos.\n\nTres.\n";
     let next = text.replace("Dos.", "```\nDos.");

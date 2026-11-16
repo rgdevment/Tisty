@@ -253,6 +253,7 @@ describe("writing on the page the core draws", () => {
       mouse("mouseup", 10);
       expect(said).toEqual([]);
       expect(document.getSelection()?.isCollapsed).toBe(true);
+      expect(document.activeElement).toBe(document.querySelector(".page"));
     });
   });
 
@@ -1213,6 +1214,39 @@ describe("blocks chosen with Escape", () => {
     press("Escape");
     press("Delete");
     expect(said[said.length - 1]).toBe("# Hola\n\nUno **dos** tres\n");
+  });
+
+  it("lets go into the words of the chosen blocks, never into a table among them", () => {
+    writer("Uno\n\n| a |\n|---|\n| 1 |\n");
+    pageOf(
+      '<p data-at="0-3"><span data-src="0-3">Uno</span></p><div class="table" data-at="5-24" contenteditable="false"><table><tr><td>a</td></tr></table></div>',
+    );
+    writing?.drawn();
+    caretIn("Uno", 1);
+    press("Escape");
+    press("ArrowDown", { shiftKey: true });
+    expect(chosenNow()).toEqual(["p", "div"]);
+    press("x");
+    expect(chosenNow()).toEqual([]);
+    const held = document.getSelection();
+    expect(held?.anchorNode?.textContent).toBe("Uno");
+  });
+
+  it("never chooses a section's title on a task's page", () => {
+    writer("## Pasos\n\n- [ ] uno\n");
+    pageOf(
+      '<h2 data-at="0-8"><span data-src="3-8">Pasos</span></h2><ul data-at="10-19"><li class="task" data-at="10-19"><span data-src="16-19">uno</span></li></ul>',
+    );
+    document.documentElement.classList.add("untitled");
+    writing?.drawn();
+    caretIn("Pasos", 2);
+    press("Escape");
+    expect(chosenNow()).toEqual([]);
+    caretIn("uno", 1);
+    press("Escape");
+    press("ArrowUp", { shiftKey: true });
+    expect(chosenNow()).toEqual(["ul"]);
+    document.documentElement.classList.remove("untitled");
   });
 
   it("moves the chosen blocks with Alt and an arrow", () => {

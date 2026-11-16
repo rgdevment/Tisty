@@ -51,7 +51,15 @@ import Menu, { type Choice } from "./Menu";
 import { mended as mendedText } from "./mending";
 import Page from "./Page";
 import type { Act } from "./pageMoving";
-import { type Hands, type PageWriting, type Turns, turnsAnew, writtenOn } from "./pageWriting";
+import {
+  type Hands,
+  type PageWriting,
+  recorded,
+  type Turns,
+  turnOf,
+  turnsAnew,
+  writtenOn,
+} from "./pageWriting";
 import type { Went } from "./paging";
 import { laid } from "./parting";
 import type { Formatting, Menued } from "./quickly";
@@ -301,6 +309,9 @@ export default function Sheet(props: Readonly<Props>) {
   const whole = useCallback(
     (next: string, moving?: number) => {
       const before = latest.current;
+      // Ctrl+Z walks back by offsets, so words laid from beside the page written on are a step of their own.
+      if (pageWriter.current && before !== next)
+        recorded(turnsOn.current.turns, turnOf(before, next));
       const waiting = landing.current;
       // A page not drawn yet cannot be looked at, so the place still waiting is carried into the new words.
       landing.current =

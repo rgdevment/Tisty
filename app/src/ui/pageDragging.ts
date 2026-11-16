@@ -68,6 +68,7 @@ export const draggingOn = (writer: Writer, caret: Caret, laying: Laying) => {
     held = null;
     const point = pointAt(page, event.clientX, event.clientY);
     if (!was || !point) return;
+    page.querySelector<HTMLElement>(".page")?.focus({ preventScroll: true });
     if (!was.moved) return page.getSelection()?.collapse(point.startContainer, point.startOffset);
     const to = caret.spanOfRange(point)?.from;
     const text = hands.text();

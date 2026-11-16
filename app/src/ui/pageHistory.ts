@@ -13,7 +13,7 @@ export const historyOn = (writer: Writer, caret: Caret, laying: Laying) => {
   // What was written in the Markdown since the page was left is one step back.
   if (turns.left !== undefined && turns.left !== hands.text()) {
     const now = hands.text();
-    recorded(turns, turnOf(turns.left, now, changeOf(turns.left, now).from));
+    recorded(turns, turnOf(turns.left, now));
   }
   turns.left = undefined;
 
@@ -66,7 +66,7 @@ export const historyOn = (writer: Writer, caret: Caret, laying: Laying) => {
     const text = hands.text();
     if (next === text) return;
     const one = changeOf(text, next);
-    recorded(turns, turnOf(text, next, one.from));
+    recorded(turns, turnOf(text, next));
     keptAcross(one);
     hands.write(next);
     laying.laidOut(text, next, one);

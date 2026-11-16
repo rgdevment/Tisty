@@ -38,10 +38,7 @@ pub fn reread(was: Doc, text: &str) -> Doc {
 // Only the blocks around an edit are read again, and the edges must read as before or the whole text is.
 pub(crate) fn plan(was: &Doc, text: &str) -> Option<Plan> {
     let old = was.text();
-    let crossing = CROSSING
-        .iter()
-        .any(|one| old.contains(one) || text.contains(one));
-    if crossing || text.starts_with('\u{feff}') {
+    if CROSSING.iter().any(|one| old.contains(one)) || text.starts_with('\u{feff}') {
         return None;
     }
     let blocks = was.blocks();
@@ -55,6 +52,13 @@ pub(crate) fn plan(was: &Doc, text: &str) -> Option<Plan> {
     let start = shared_head(old, text);
     let tail = shared_tail(&old[start..], &text[start..]);
     let (old_end, new_end) = (old.len() - tail, text.len() - tail);
+    let near = &text.as_bytes()[start.saturating_sub(2)..(new_end + 2).min(text.len())];
+    if CROSSING
+        .iter()
+        .any(|one| near.windows(one.len()).any(|at| at == one.as_bytes()))
+    {
+        return None;
+    }
     if front_end.is_some_and(|end| start <= end) {
         return None;
     }

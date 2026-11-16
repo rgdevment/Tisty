@@ -4,6 +4,7 @@ import type { Caret } from "./pageCaret";
 import type { Span } from "./pageEdits";
 import type { Laying } from "./pageLaying";
 import { movedTo, topsOf } from "./pageMoving";
+import { WRITABLE } from "./pageNodes";
 import { endIn } from "./pageSpots";
 import type { Writer } from "./pageWriter";
 
@@ -43,17 +44,36 @@ export const choosingOn = (writer: Writer, caret: Caret, laying: Laying, beside:
     return { from: charsAt(text, first[0]), to: charsAt(text, last[1]) };
   };
 
+  // The caret goes after the chosen words it can stand in, never into a table or a drawing.
   const letGo = (laid = true) => {
-    const head = chosen ? tops()[chosen.head] : null;
+    const both = ends();
+    const all = tops();
+    const head = chosen ? all[chosen.head] : null;
+    const toward =
+      both && head
+        ? chosen?.head === both[0]
+          ? all.slice(both[0], both[1] + 1)
+          : all.slice(both[0], both[1] + 1).reverse()
+        : [];
+    const writable = toward.find((one) => one.matches(WRITABLE));
     chosen = null;
     shown();
-    if (laid && head) caret.laidAt(endIn(head));
+    if (laid && writable) caret.laidAt(endIn(writable));
+  };
+  const fixed = (one: Element | undefined) => {
+    const look = page.documentElement.classList;
+    return (
+      Boolean(one?.matches("h1, h2, h3, h4, h5, h6")) &&
+      look.contains("untitled") &&
+      !look.contains("shaping")
+    );
   };
 
   const choose = (event: KeyboardEvent) => {
     const top = caret.blockOfCaret()?.closest(".page > [data-at]");
-    const at = top ? tops().indexOf(top) : -1;
-    if (at < 0) return;
+    const all = tops();
+    const at = top ? all.indexOf(top) : -1;
+    if (at < 0 || fixed(all[at])) return;
     event.preventDefault();
     chosen = { anchor: at, head: at };
     page.getSelection()?.removeAllRanges();
@@ -111,7 +131,9 @@ export const choosingOn = (writer: Writer, caret: Caret, laying: Laying, beside:
     event.preventDefault();
     if (event.key === "Escape") letGo();
     else if (arrow && event.shiftKey) {
-      chosen.head = Math.max(0, Math.min(tops().length - 1, chosen.head + arrow));
+      const all = tops();
+      const next = Math.max(0, Math.min(all.length - 1, chosen.head + arrow));
+      if (!fixed(all[next])) chosen.head = next;
       shown();
     } else if (arrow) moved(arrow);
     else dropped();

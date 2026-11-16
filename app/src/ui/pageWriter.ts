@@ -27,9 +27,10 @@ export type Turns = { readonly undone: Turn[]; readonly redone: Turn[]; left?: s
 
 export const turnsAnew = (): Turns => ({ undone: [], redone: [] });
 
-export const turnOf = (was: string, now: string, at: number, after?: number): Turn => {
+export const turnOf = (was: string, now: string, at?: number, after?: number): Turn => {
   const one = changeOf(was, now);
-  return { from: one.from, removed: was.slice(one.from, one.to), added: one.insert, at, after };
+  const removed = was.slice(one.from, one.to);
+  return { from: one.from, removed, added: one.insert, at: at ?? one.from, after };
 };
 
 const TYPED_TOGETHER_MS = 1000;
