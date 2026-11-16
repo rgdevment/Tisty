@@ -1,4 +1,4 @@
-import { charsAt, spanned } from "tisty-editor/read";
+import { charsAt } from "tisty-editor/read";
 import { t } from "../locales";
 import type { Caret } from "./pageCaret";
 import type { Span } from "./pageEdits";
@@ -6,6 +6,7 @@ import { fieldAsked } from "./pageFields";
 import type { Laying } from "./pageLaying";
 import { closing, joinedAt, opening } from "./pageLists";
 import { closeOf, openOf } from "./pageMarks";
+import { placeOf } from "./pagePlaces";
 import { GHOST } from "./pageSpots";
 import type { Kept, Writer } from "./pageWriter";
 
@@ -109,7 +110,7 @@ export const begunOn = (writer: Writer, caret: Caret, laying: Laying) => {
       return intoFold(fold);
     const quote = target?.closest?.(".page > blockquote[data-at]");
     if (!quote || quote.querySelector(`[data-src], ${GHOST}`)) return;
-    const span = spanned(quote.getAttribute("data-at"));
+    const span = placeOf(quote);
     if (!span) return;
     const text = hands.text();
     let at = charsAt(text, span[1]);
@@ -137,7 +138,7 @@ export const begunOn = (writer: Writer, caret: Caret, laying: Laying) => {
 
   // A collapsible keeps its words under its name, so a line begun in it opens right below the name.
   const intoFold = (fold: HTMLDetailsElement) => {
-    const span = spanned(fold.getAttribute("data-at"));
+    const span = placeOf(fold);
     if (!span) return;
     const text = hands.text();
     const named = text.indexOf("\n", charsAt(text, span[0]));

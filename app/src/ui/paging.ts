@@ -2,6 +2,7 @@ import { diagramShot, spanned, type TableAct } from "tisty-editor/read";
 import { t } from "../locales";
 import { DOC, TASK } from "../markdown";
 import type { Choice } from "./Menu";
+import { placeOf } from "./pagePlaces";
 import { tableClicked } from "./tabled";
 
 export type Went =
@@ -95,10 +96,10 @@ export const shotsOf = (page: Document): Shot[] => shotsIn(page).map(shotOf);
 
 // What a label holds runs to the next label, so writing under it starts past the last of it.
 const sectionEnd = (label: Element): [number, number] | null => {
-  let last = spanned(label.getAttribute("data-at"));
+  let last = placeOf(label);
   for (let one = label.nextElementSibling; one; one = one.nextElementSibling) {
     if (/^H[1-6]$/.test(one.tagName)) break;
-    last = spanned(one.getAttribute("data-at")) ?? last;
+    last = placeOf(one) ?? last;
   }
   return last;
 };
@@ -125,7 +126,7 @@ export const widgetsIn = (block: Element | null): Element[] =>
     : Array.from(block?.querySelectorAll("figure.widget") ?? []);
 
 const tablePressed = (asked: HTMLElement): Went => {
-  const at = spanned(asked.closest<HTMLElement>(".page > [data-at]")?.dataset.at ?? null);
+  const at = placeOf(asked.closest<HTMLElement>(".page > [data-at]"));
   const box = asked.getBoundingClientRect();
   const place = (said?: string) => (said === undefined ? -1 : Number(said));
   return at
@@ -149,30 +150,28 @@ const pressedIn = (asked: HTMLElement): Went => {
   // A diagram inside a quote or a list is named by its own place, not by the block around it.
   const diagram = asked.dataset.asked;
   if (diagram === "diagram" || diagram === "diagramExport") {
-    const at = spanned(asked.closest<HTMLElement>("figure.diagram[data-at]")?.dataset.at ?? null);
+    const at = placeOf(asked.closest<HTMLElement>("figure.diagram[data-at]"));
     return at ? { kind: diagram, at } : null;
   }
   if (asked.dataset.asked === "part") {
-    const step = spanned(asked.closest<HTMLElement>("li.task[data-at]")?.dataset.at ?? null);
+    const step = placeOf(asked.closest<HTMLElement>("li.task[data-at]"));
     return step ? { kind: "part", at: step } : null;
   }
-  const at = spanned(asked.closest<HTMLElement>(".page > [data-at]")?.dataset.at ?? null);
+  const at = placeOf(asked.closest<HTMLElement>(".page > [data-at]"));
   if (!at) return null;
   if (asked.dataset.asked === "more") {
     const box = asked.getBoundingClientRect();
     return { kind: "more", at, target: asked.dataset.target ?? "", x: box.left, y: box.bottom };
   }
   if (asked.dataset.asked === "codeLang") {
-    const fenced = spanned(asked.closest<HTMLElement>("figure.code[data-at]")?.dataset.at ?? null);
+    const fenced = placeOf(asked.closest<HTMLElement>("figure.code[data-at]"));
     const box = asked.getBoundingClientRect();
     return fenced
       ? { kind: "codeLang", at: fenced, x: box.left, y: box.bottom, top: box.top, right: box.right }
       : null;
   }
   if (asked.dataset.asked === "code") {
-    const widget = spanned(
-      asked.closest<HTMLElement>("figure.widget[data-at], div.math[data-at]")?.dataset.at ?? null,
-    );
+    const widget = placeOf(asked.closest("figure.widget[data-at], div.math[data-at]"));
     return { kind: "code", at: widget ?? at };
   }
   if (asked.dataset.asked !== "apart") return { kind: "block", at };
@@ -198,7 +197,7 @@ export const went = (target: Element, selecting: boolean): Went => {
   if (tag) return { kind: "tag", name: tag };
   if (selecting || target.closest(UNTOUCHED)) return null;
   const formula = target.closest(FORMULAS);
-  const written = spanned(formula?.getAttribute("data-src") ?? null);
+  const written = placeOf(formula, "data-src");
   if (formula && written) {
     const nth = Array.from(target.ownerDocument.querySelectorAll(FORMULAS)).indexOf(formula);
     return { kind: "formula", at: written, nth };
@@ -208,7 +207,7 @@ export const went = (target: Element, selecting: boolean): Went => {
   if (shot !== null) return { kind: "picture", nth: shot };
   const tabled = tableClicked(target);
   if (tabled) {
-    const at = spanned(target.closest<HTMLElement>(".page > [data-at]")?.dataset.at ?? null);
+    const at = placeOf(target.closest<HTMLElement>(".page > [data-at]"));
     const box = target.closest("td, th")?.getBoundingClientRect();
     return at ? { kind: "table", at, ...tabled, x: box?.left ?? 0, y: box?.bottom ?? 0 } : null;
   }
@@ -216,17 +215,17 @@ export const went = (target: Element, selecting: boolean): Went => {
   if (target.closest(".page > .table.dressed")) return null;
   // A stage's box ticks where it is read; the words beside it still open the block.
   const box = target.closest(".check")?.closest<HTMLElement>("li.task[data-at]");
-  const ticked = spanned(box?.dataset.at ?? null);
+  const ticked = placeOf(box);
   if (ticked) return { kind: "tick", at: ticked };
   if (target.closest(".page > h1[data-title]")) return { kind: "title" };
   const look = target.ownerDocument.documentElement.classList;
   const shaping = look.contains("untitled") && look.contains("shaping");
-  const drop = spanned(target.closest<HTMLElement>(".drop-section")?.dataset.at ?? null);
+  const drop = placeOf(target.closest<HTMLElement>(".drop-section"));
   if (drop) return shaping ? { kind: "cut", at: drop } : null;
   const hinted = target.closest<HTMLElement>(
     ".page > :is(.hint, .hint-gone, .add-step, .add-section)",
   );
-  const hint = spanned(hinted?.dataset.at ?? hinted?.dataset.after ?? null);
+  const hint = placeOf(hinted) ?? spanned(hinted?.dataset.after ?? null);
   // While the template is edited, a hint is its words to mend, not a place to write.
   if (hint && shaping && hinted?.matches(".hint, .hint-gone")) return { kind: "block", at: hint };
   if (shaping && hinted?.matches(".add-step")) return null;
@@ -245,6 +244,6 @@ export const went = (target: Element, selecting: boolean): Went => {
     return end ? { kind: "section", at: end } : null;
   }
   if (shaping && !label) return null;
-  const at = spanned(target.closest<HTMLElement>(".page > [data-at]")?.dataset.at ?? null);
+  const at = placeOf(target.closest<HTMLElement>(".page > [data-at]"));
   return at ? { kind: "block", at } : null;
 };

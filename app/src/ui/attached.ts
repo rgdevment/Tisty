@@ -6,6 +6,7 @@ import { t, type Word } from "../locales";
 import { named, previewOf, weighed } from "../previews";
 import { plainly } from "../refusal";
 import { more } from "./carding";
+import { placeCopied } from "./pagePlaces";
 
 export const pressed = (page: Document, className: string, said: string, run: () => void) => {
   const one = page.createElement("button");
@@ -73,10 +74,8 @@ const fed = (
   void told();
 };
 
-const placedAs = (img: Element, shown: HTMLElement) => {
-  const at = img.getAttribute("data-src");
-  if (at) shown.dataset.placed = at;
-};
+const placedAs = (img: Element, shown: HTMLElement) =>
+  placeCopied(img, shown, "data-src", "data-placed");
 
 const played = (
   page: Document,

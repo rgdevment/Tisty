@@ -1,5 +1,5 @@
 import type { Slashed } from "tisty-editor/edit";
-import { charsAt, spanned } from "tisty-editor/read";
+import { charsAt } from "tisty-editor/read";
 import { t } from "../locales";
 import type { Begun } from "./pageBegun";
 import { blockPlaced, placed } from "./pageBlocks";
@@ -10,6 +10,7 @@ import type { Laying } from "./pageLaying";
 import { closing, opening } from "./pageLists";
 import { type Act, acted, gripped, type Moved, movedTo, roomy, topsOf, unitOf } from "./pageMoving";
 import { caretBox, elementOf, FIELDS, lineOfCaret } from "./pageNodes";
+import { placeOf } from "./pagePlaces";
 import { GHOST } from "./pageSpots";
 import type { Writer } from "./pageWriter";
 
@@ -112,7 +113,7 @@ export const besideOn = (
     const range = caret.chosen();
     const code = range ? elementOf(range.startContainer)?.closest("figure.code") : null;
     const top = code?.closest(".page > [data-at]");
-    const span = spanned(top?.getAttribute("data-at") ?? null);
+    const span = placeOf(top);
     if (top && span) begun.begin(charsAt(hands.text(), span[1]), "", top);
   };
 
@@ -187,7 +188,7 @@ export const besideOn = (
     const text = hands.text();
     const tops = topsOf(sheet);
     const unit = unitOf(text, tops, tops.indexOf(top));
-    const at = spanned(target?.getAttribute("data-at") ?? null);
+    const at = placeOf(target);
     if (unit) replaced(movedTo(text, unit, at ? charsAt(text, at[0]) : text.length));
   };
 

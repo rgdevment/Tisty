@@ -3,6 +3,7 @@ import type { Caret } from "./pageCaret";
 import { applied, type Edit, inWholeChars, linedAs } from "./pageEdits";
 import { opened } from "./pageNodes";
 import { patched } from "./pagePatching";
+import { placesSettled } from "./pagePlaces";
 import { recorded, type Writer } from "./pageWriter";
 
 // What the rest of the window reads of the page catches up once the keys rest, not on each one.
@@ -35,6 +36,7 @@ export const layingOn = (
 
   const told = () => {
     clearTimeout(resting);
+    placesSettled(page);
     if (unsaid !== null) hands.shown(unsaid);
     unsaid = null;
   };

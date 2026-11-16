@@ -1,5 +1,5 @@
-import { spanned } from "tisty-editor/read";
 import { carrying } from "./carrying";
+import { placeOf } from "./pagePlaces";
 
 const NOTE = '.page > blockquote[data-callout="idea"][data-at]';
 const FLOATED = 'blockquote[data-callout="idea"][data-side]';
@@ -38,7 +38,7 @@ const shown = (page: Document, landing: Landing | null) => {
 };
 
 const landed = (at: [number, number], landing: Landing | null, moved: Moved) => {
-  const there = landing && spanned(landing.block.dataset.at ?? null);
+  const there = landing && placeOf(landing.block);
   if (landing && there) moved(at, landing.above ? there[0] : there[1]);
 };
 
@@ -52,7 +52,7 @@ export const sticking = (page: Document, moving: () => Moved | undefined) => {
   page.addEventListener("pointerdown", (event) => {
     const target = event.target as Element | null;
     const note = target?.closest?.<HTMLElement>(NOTE);
-    const at = spanned(note?.dataset.at ?? null);
+    const at = placeOf(note);
     const moved = moving();
     if (!note || !at || !moved || event.button !== 0 || note.closest(".editing")) return;
     // A note is carried by its paper, tape or pin; its words and boxes are written and ticked.
@@ -74,7 +74,7 @@ export const sticking = (page: Document, moving: () => Moved | undefined) => {
   page.addEventListener("keydown", (event) => {
     if (!event.altKey || (event.key !== "ArrowUp" && event.key !== "ArrowDown")) return;
     const note = (event.target as Element | null)?.closest?.<HTMLElement>(NOTE);
-    const at = spanned(note?.dataset.at ?? null);
+    const at = placeOf(note);
     const moved = moving();
     if (!note || !at || !moved) return;
     event.preventDefault();
