@@ -21,12 +21,17 @@ const bottomOf = (one: HTMLElement, sheet: HTMLElement) => topOf(one, sheet) + o
 
 const floating = (one: HTMLElement) => one.matches('blockquote[data-callout="idea"][data-side]');
 
+export const unsheeted = (sheet: HTMLElement) => {
+  for (const one of sheet.querySelectorAll(`.${TURN}, .${SAID}`)) one.remove();
+  for (const one of sheet.querySelectorAll<HTMLElement>(BREAKS)) one.style.removeProperty("--fill");
+  sheet.style.removeProperty("--last");
+};
+
 // The band between two sheets starts at the foot of the one above, its bottom margin included.
 export const sheeted = (page: Document, { tall, y, said }: Sheet) => {
   const sheet = page.querySelector<HTMLElement>(".page");
   if (!sheet || page.querySelector(".editing")) return false;
-  for (const one of sheet.querySelectorAll(`.${TURN}, .${SAID}`)) one.remove();
-  for (const one of sheet.querySelectorAll<HTMLElement>(BREAKS)) one.style.removeProperty("--fill");
+  unsheeted(sheet);
   // A pixel short of the sheet, since the paper's own room is a fraction less than the rounded one here.
   const room = tall - 2 * y - 1;
   let begins = y;
@@ -97,7 +102,10 @@ export const sheeting = (page: Document, sheet: () => Sheet | undefined) => {
     const now = sheet();
     root.classList.toggle("sheeted", Boolean(now));
     laidAt = -1;
-    if (!now) return;
+    if (!now) {
+      if (body) unsheeted(body);
+      return;
+    }
     root.style.setProperty("--sheet-x", `${now.x}px`);
     root.style.setProperty("--sheet-y", `${now.y}px`);
     laidAt = sheeted(page, now) ? (body?.offsetHeight ?? -1) : -1;

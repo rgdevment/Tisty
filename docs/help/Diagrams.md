@@ -12,7 +12,7 @@ How each kind of diagram is written is in the Tisty Markdown guide: [diagrams, f
 
 ## Opening one that exists
 
-Hover over a diagram and press **Open in the diagram window**, or double-click it. **Edit as Markdown**, on the same bar, opens its Mermaid text right there on the page. A single click still opens it large, to look at. The window only opens in documents you can write, and each diagram has just one.
+Hover over a diagram and press **Open in the diagram window**, or double-click it. Its Mermaid text is changed in the Markdown view (`Ctrl`/`⌘` + `E`). A single click still opens it large, to look at. The window only opens in documents you can write, and each diagram has just one.
 
 ## The window
 

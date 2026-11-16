@@ -36,6 +36,7 @@ export function deskOf(state: State, data: Snapshot) {
     setHere,
     carries,
     papers,
+    board,
     papersChanged,
     newDoc,
     bringIn,
@@ -139,7 +140,12 @@ export function deskOf(state: State, data: Snapshot) {
     });
 
   const docMenu = (doc: Filed, at: { x: number; y: number }) =>
-    setMenu({ at, on: doc.id, label: t("docActions"), choices: docChoices(doc, hands) });
+    setMenu({
+      at,
+      on: doc.id,
+      label: t("docActions"),
+      choices: docChoices(doc, hands, doc.file === board),
+    });
 
   const listHands: ListHands = {
     edit: setEditingList,

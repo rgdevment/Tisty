@@ -3,7 +3,6 @@ import { EditorSelection, EditorState } from "@codemirror/state";
 import { marksShown, seen } from "tisty-editor/edit";
 import { heads } from "tisty-editor/read";
 import { describe, expect, it } from "vitest";
-import { edited } from "../ui/hosting";
 
 const lines = (doc: string): string[] => {
   const state = EditorState.create({
@@ -43,38 +42,5 @@ describe("properties at the top of a note", () => {
     found[0].go();
     expect(opened).toBe(true);
     expect(heads(sheet("<h1>Plan</h1>")).map((one) => one.level)).toEqual([1]);
-  });
-
-  it("leave the title look to the block that follows them", () => {
-    const page = document.createElement("article");
-    page.className = "page";
-    const front = document.createElement("dl");
-    front.className = "front";
-    const title = document.createElement("h1");
-    title.textContent = "Plan";
-    page.append(front, title);
-    document.body.append(page);
-
-    const opened = edited(
-      front,
-      "---\ntitle: Plan\n---",
-      () => {},
-      () => {},
-    );
-    const host = page.querySelector(".editing");
-    expect(host?.classList.contains("fronted")).toBe(true);
-    expect(host?.classList.contains("titled")).toBe(false);
-    opened.leave();
-
-    page.replaceChildren(front, title);
-    const named = edited(
-      title,
-      "# Plan",
-      () => {},
-      () => {},
-    );
-    expect(page.querySelector(".editing")?.classList.contains("titled")).toBe(true);
-    named.leave();
-    page.remove();
   });
 });

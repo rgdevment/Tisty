@@ -26,6 +26,7 @@ import type { Asked, MenuOpen, Shaping, Torn } from "./ui/Layers";
 import { useParcels } from "./ui/Parcels";
 import { SETTLING_MS } from "./ui/Sure";
 import { usePapers } from "./usePapers";
+import { usePinned } from "./usePinned";
 import { type Chosen, type Slice, useReach } from "./views";
 import { useAloud, useTight, useUpdates } from "./watching";
 
@@ -111,6 +112,7 @@ export function useWindow() {
     carries,
     paging,
   });
+  const board = usePinned(papers)?.file ?? null;
   const standing = here ? papers.folders.find((one) => one.id === here) : undefined;
   const [showing, setShowing] = useState<string | null>(null);
   const [carried, setCarried] = useState(0);
@@ -122,7 +124,11 @@ export function useWindow() {
   };
 
   const roomBelow = here != null && deep(papers.folders, here) < DEEPEST;
-  const told = useCallback((problem: unknown) => setError(saidPlainly(problem)), []);
+  // Words already said plainly are shown as they are, or each would carry a second «something failed».
+  const told = useCallback(
+    (problem: unknown) => setError(typeof problem === "string" ? problem : saidPlainly(problem)),
+    [],
+  );
 
   const [held, setHeld] = useState<Task | undefined>();
   const acted = useRef<string | null>(null);
@@ -249,6 +255,7 @@ export function useWindow() {
     carries,
     paging,
     papers,
+    board,
     lookPapers,
     papersChanged,
     newDoc,

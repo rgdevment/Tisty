@@ -60,19 +60,21 @@ type Drawing = Omit<Seeing, "locale"> & { readonly said: Saying };
 
 // Each typed value is drawn as it is used: a date in the reader's words, options in colour, and, where it is written, stars and a switch to press.
 export const celled = (page: Document, seeing: Seeing) => {
+  for (const box of tablesIn(page)) celledBox(page, box, seeing);
+};
+
+export const celledBox = (page: Document, box: Element, seeing: Seeing) => {
+  if (box.classList.contains("celled")) return;
+  box.classList.add("celled");
   const drawing = { ...seeing, said: sayingDays(seeing.locale) };
-  for (const box of tablesIn(page)) {
-    if (box.classList.contains("celled")) continue;
-    box.classList.add("celled");
-    const types = Array.from(box.querySelectorAll<HTMLElement>(":scope > table > thead th")).map(
-      (head) => head.dataset.type ?? "",
-    );
-    for (const row of box.querySelectorAll<HTMLTableRowElement>(":scope > table > tbody > tr")) {
-      const at = Number(row.dataset.row);
-      Array.from(row.cells).forEach((cell, column) => {
-        drawn(page, cell, types[column], { row: at, column }, drawing);
-      });
-    }
+  const types = Array.from(box.querySelectorAll<HTMLElement>(":scope > table > thead th")).map(
+    (head) => head.dataset.type ?? "",
+  );
+  for (const row of box.querySelectorAll<HTMLTableRowElement>(":scope > table > tbody > tr")) {
+    const at = Number(row.dataset.row);
+    Array.from(row.cells).forEach((cell, column) => {
+      drawn(page, cell, types[column], { row: at, column }, drawing);
+    });
   }
 };
 

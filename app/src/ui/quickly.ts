@@ -1,6 +1,7 @@
 import type { formatButtons } from "tisty-editor/edit";
 import { spanned } from "tisty-editor/read";
 import { t } from "../locales";
+import { EMBED } from "./embeds";
 import { shotAt } from "./paging";
 
 export type Formatting = {
@@ -19,10 +20,8 @@ export type Menued = {
   readonly picked: Omit<Formatting, "open" | "close"> | null;
   readonly block: { readonly at: [number, number]; readonly element: HTMLElement } | null;
   readonly picture: number | null;
+  readonly embed: Element | null;
 };
-
-// What a key pressed over chosen words does to them once the block opens: null keeps them chosen.
-export type Chosen = Omit<Formatting, "open" | "close"> & { readonly typed: string | null };
 
 export type Bar = { readonly buttons: typeof formatButtons; readonly css: string };
 
@@ -30,14 +29,6 @@ export type Quick = {
   readonly bar?: Bar;
   readonly onFormat?: (asked: Formatting) => void;
   readonly onMenu?: (asked: Menued) => void;
-  readonly onChoose?: (asked: Chosen) => void;
-};
-
-const typedOver = (event: KeyboardEvent): string | null | undefined => {
-  if (event.ctrlKey || event.metaKey || event.altKey || event.isComposing) return undefined;
-  if (event.key === "Enter") return null;
-  if (event.key === "Backspace" || event.key === "Delete") return "";
-  return [...event.key].length === 1 ? event.key : undefined;
 };
 
 const blockOf = (node: Node | null): HTMLElement | null => {
@@ -45,12 +36,27 @@ const blockOf = (node: Node | null): HTMLElement | null => {
   return element?.closest<HTMLElement>(".page > [data-at]") ?? null;
 };
 
+const inCode = (node: Node | null | undefined) =>
+  Boolean(
+    (node?.nodeType === 1 ? (node as Element) : (node?.parentElement ?? null))?.closest(
+      "pre, code",
+    ),
+  );
+
+// Code is written as it stands and a field writes its own words, so neither takes a format.
+export const unformattable = (page: Document): boolean => {
+  if (page.activeElement?.closest("input, textarea, select")) return true;
+  const chosen = page.getSelection();
+  const range = chosen?.rangeCount ? chosen.getRangeAt(0) : null;
+  return inCode(range?.startContainer) || inCode(range?.endContainer);
+};
+
 export const picked = (page: Document): Omit<Formatting, "open" | "close"> | null => {
   const chosen = page.getSelection();
   if (!chosen || chosen.isCollapsed || chosen.rangeCount === 0) return null;
   const range = chosen.getRangeAt(0);
   const block = blockOf(range.startContainer);
-  if (!block || block !== blockOf(range.endContainer)) return null;
+  if (!block || !blockOf(range.endContainer)) return null;
   const at = spanned(block.dataset.at ?? null);
   const said = chosen.toString();
   if (!at || !said.trim()) return null;
@@ -93,7 +99,7 @@ export const quickly = (page: Document, reach: () => Quick) => {
   };
   const show = () => {
     const writing = page.querySelector(".editing") !== null;
-    chosen = reach().onFormat && !writing ? picked(page) : null;
+    chosen = reach().onFormat && !writing && !unformattable(page) ? picked(page) : null;
     if (!chosen || !bar) return hide();
     const box = page.getSelection()?.getRangeAt(0).getBoundingClientRect();
     const view = page.defaultView;
@@ -101,24 +107,16 @@ export const quickly = (page: Document, reach: () => Quick) => {
     bar.hidden = false;
     // The page is zoomed as a whole, so what the selection measures is scaled once already.
     const zoom = Number.parseFloat(page.documentElement.style.zoom || "1") || 1;
-    const top = (box.top + view.scrollY) / zoom - bar.offsetHeight - 8;
-    bar.style.top = `${Math.max(view.scrollY / zoom + 4, top)}px`;
-    bar.style.left = `${Math.max(4, (box.left + view.scrollX) / zoom)}px`;
+    const above = (box.top + view.scrollY) / zoom - bar.offsetHeight - 8;
+    const below = (box.bottom + view.scrollY) / zoom + 8;
+    // Words at the top of the view leave no room above them, so the bar goes under them instead of over them.
+    bar.style.top = `${above < view.scrollY / zoom + 4 ? below : above}px`;
+    const widest = (view.innerWidth + view.scrollX) / zoom - bar.offsetWidth - 4;
+    bar.style.left = `${Math.max(4, Math.min((box.left + view.scrollX) / zoom, widest))}px`;
   };
   page.addEventListener("mouseup", (event) => {
-    if (bar?.contains(event.target as Node)) return;
+    if (event.button !== 0 || bar?.contains(event.target as Node)) return;
     setTimeout(show);
-  });
-  // Words chosen on the page are written over as they would be in any editor, the block opening around them.
-  page.addEventListener("keydown", (event) => {
-    const choose = reach().onChoose;
-    const typed = typedOver(event);
-    if (!choose || typed === undefined || page.querySelector(".editing")) return;
-    const asked = picked(page);
-    if (!asked) return;
-    event.preventDefault();
-    hide();
-    choose({ ...asked, typed });
   });
   page.addEventListener("keyup", () => {
     if (!page.getSelection()?.isCollapsed) show();
@@ -146,6 +144,7 @@ export const quickly = (page: Document, reach: () => Quick) => {
       picked: writing || !under ? null : picked(page),
       block: element && at ? { at, element } : null,
       picture: writing ? null : shotAt(page, target),
+      embed: writing ? null : (target?.closest?.(EMBED) ?? null),
     });
   });
 };

@@ -246,7 +246,7 @@ export default function Beside(props: Props) {
     <aside
       data-beside=""
       aria-label={t("aboutPaper")}
-      className="absolute top-11 right-3 bottom-3 flex w-[320px] flex-col"
+      className="absolute top-11 right-3 bottom-3 z-10 flex w-[320px] flex-col"
     >
       <SidePanels key={paper} panels={panels} className="min-h-0 flex-1" />
       {shared.asking && props.doc && (

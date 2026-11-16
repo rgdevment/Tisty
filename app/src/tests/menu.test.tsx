@@ -42,6 +42,68 @@ describe("where the menu hangs", () => {
   });
 });
 
+describe("where the menu opens", () => {
+  const TALL = 300;
+  const WIDE = 210;
+  let bar: HTMLElement | null = null;
+
+  beforeEach(() => {
+    Object.defineProperty(window, "innerHeight", { configurable: true, value: 800 });
+    Object.defineProperty(window, "innerWidth", { configurable: true, value: 1200 });
+    Object.defineProperty(HTMLElement.prototype, "scrollHeight", {
+      configurable: true,
+      get() {
+        return (this as HTMLElement).getAttribute("role") === "menu" ? TALL : 0;
+      },
+    });
+    vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(function (
+      this: HTMLElement,
+    ) {
+      if (this === bar) return { top: 45, bottom: 91, left: 0, right: 1200 } as DOMRect;
+      return { top: 0, bottom: 0, left: 0, right: WIDE, width: WIDE, height: TALL } as DOMRect;
+    });
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    Reflect.deleteProperty(HTMLElement.prototype, "scrollHeight");
+    bar?.remove();
+    bar = null;
+  });
+
+  const placed = (at: { x: number; y: number; top?: number; right?: number }) => {
+    const view = render(<Menu at={at} choices={choices()} label="Opciones" onClose={vi.fn()} />);
+    const menu = screen.getByRole("menu");
+    const where = {
+      x: Number.parseFloat(menu.style.left),
+      y: Number.parseFloat(menu.style.top),
+      tall: Number.parseFloat(menu.style.maxHeight),
+    };
+    view.unmount();
+    return where;
+  };
+
+  it("goes up over its anchor near the bottom, leaving the anchor in sight", () => {
+    expect(placed({ x: 100, y: 780, top: 760 })).toMatchObject({ y: 760 - 4 - TALL, tall: TALL });
+  });
+
+  it("stays below and scrolls when there is fair room there, rather than climbing the window", () => {
+    expect(placed({ x: 100, y: 540, top: 520 })).toMatchObject({ y: 540, tall: 800 - 6 - 540 });
+  });
+
+  it("never climbs over the bar above the page", () => {
+    bar = document.createElement("div");
+    bar.className = "ribbon";
+    document.body.append(bar);
+    expect(placed({ x: 100, y: 780, top: 300 })).toMatchObject({ y: 91, tall: 300 - 4 - 91 });
+  });
+
+  it("hangs from its anchor's right edge in the right half of the window", () => {
+    expect(placed({ x: 900, y: 100, top: 80, right: 920 }).x).toBe(920 - WIDE);
+    expect(placed({ x: 100, y: 100, top: 80, right: 120 }).x).toBe(100);
+  });
+});
+
 describe("the press that opened it", () => {
   beforeEach(() => vi.useFakeTimers());
   afterEach(() => vi.useRealTimers());
@@ -249,5 +311,74 @@ describe("the row menu", () => {
     show();
 
     expect(screen.getByRole("menu", { name: "Opciones" })).toBeTruthy();
+  });
+});
+
+describe("a menu of blocks", () => {
+  it("shows each block's icon and its mark, and how the keys walk it", () => {
+    render(
+      <Menu
+        at={{ x: 20, y: 30 }}
+        choices={[{ key: "h1", label: "Título", glyph: "heading1", mark: "#", onPick: vi.fn() }]}
+        label="Bloques"
+        find="Busca un bloque"
+        foot="↑ ↓ para moverte"
+        onClose={vi.fn()}
+      />,
+    );
+    const item = screen.getByRole("menuitem");
+    expect(item.querySelector("svg.glyph")).not.toBeNull();
+    expect(item.textContent).toContain("#");
+    expect(screen.getByText("↑ ↓ para moverte")).toBeTruthy();
+  });
+
+  const sought = () => {
+    const onClose = vi.fn();
+    render(
+      <Menu
+        at={{ x: 20, y: 30 }}
+        choices={[{ key: "h1", label: "Título", onPick: vi.fn() }]}
+        label="Bloques"
+        find="Busca un bloque"
+        onClose={onClose}
+      />,
+    );
+    return { onClose, field: screen.getByRole("searchbox") };
+  };
+
+  it("hands back what was typed in its search when put away, so those words are not lost", async () => {
+    const { onClose, field } = sought();
+    await userEvent.type(field, "2 = 5");
+    await userEvent.keyboard("{Escape}");
+    expect(onClose).toHaveBeenLastCalledWith("2 = 5");
+  });
+
+  it("closes on a space right after the slash, a sentence going on", async () => {
+    const { onClose, field } = sought();
+    await userEvent.type(field, " ");
+    expect(onClose).toHaveBeenCalledWith(" ");
+  });
+
+  it("opens the only list found with Enter, and its first choice is then a key away", async () => {
+    const step = vi.fn();
+    render(
+      <Menu
+        at={{ x: 10, y: 10 }}
+        choices={[
+          { key: "h1", label: "Título", onPick: vi.fn() },
+          {
+            key: "step",
+            label: "Un paso",
+            into: { label: "Un paso", choices: [{ key: "1", label: "1. Pan", onPick: step }] },
+          },
+        ]}
+        label="Bloques"
+        find="Busca un bloque"
+        onClose={vi.fn()}
+      />,
+    );
+    await userEvent.type(screen.getByRole("searchbox"), "paso{Enter}");
+    await userEvent.click(screen.getByRole("menuitem", { name: "1. Pan" }));
+    expect(step).toHaveBeenCalled();
   });
 });

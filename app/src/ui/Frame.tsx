@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useRef } from "react";
 import { diagrams, type Sheet, sheeting } from "tisty-editor/read";
 import { fitted, type Reaching, type Worn, wired, worn } from "./dressing";
 import { dressedAsWindow, framed } from "./framed";
+import { wornLaid } from "./pageDressing";
 import { followTheme } from "./theming";
 
 type Props = {
@@ -18,6 +19,8 @@ type Props = {
   readonly sheet?: Sheet;
   readonly reach: () => Reaching;
   readonly onReady: (frame: HTMLIFrameElement) => void;
+  /** Hands over how blocks drawn again in place are dressed, as the page they join was. */
+  readonly onDresser?: (dress: (blocks: readonly Element[]) => void) => void;
 };
 
 // Windows keeps arrows on even the thin bar, so the viewer draws its own there.
@@ -121,6 +124,12 @@ export default function Frame(props: Readonly<Props>) {
       const sheets = sheeting(page, () => said.current.sheet);
       stopSheeting = sheets.stop;
       laid.current = sheets.lay;
+      said.current.onDresser?.((blocks) => {
+        const mine = drawing;
+        const kept = wornLaid(page, blocks, () => live && drawing === mine, said.current.reach());
+        dressedUp.kept.push(...kept);
+        laid.current();
+      });
       said.current.onReady(held);
     };
     swap.current = (next) => {

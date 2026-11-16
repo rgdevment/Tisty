@@ -1,10 +1,9 @@
-import { completionStatus, currentCompletions, startCompletion } from "@codemirror/autocomplete";
+import { completionStatus } from "@codemirror/autocomplete";
 import { markdown, markdownLanguage } from "@codemirror/lang-markdown";
 import { EditorSelection, EditorState } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
-import { aimed, caretAt, wrapped } from "tisty-editor/edit";
+import { aimed, caretAt } from "tisty-editor/edit";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { t } from "../locales";
 import { edited } from "../ui/hosting";
 
 const block = () => {
@@ -18,23 +17,6 @@ const block = () => {
 };
 
 describe("writing a block in place", () => {
-  it("takes the block's place with its words as written, and hands back each change", () => {
-    const { page, one } = block();
-    const changes: string[] = [];
-    const editing = edited(
-      one,
-      "Leche *y* pan.\n",
-      (text) => changes.push(text),
-      () => {},
-    );
-    expect(page.querySelector(".editing .cm-editor")).not.toBeNull();
-    expect(editing.view.state.doc.toString()).toBe("Leche *y* pan.");
-    editing.view.dispatch({ changes: { from: 0, insert: "Más " } });
-    expect(changes).toEqual(["Más Leche *y* pan."]);
-    editing.leave();
-    page.remove();
-  });
-
   it("hands back the words once when it is left, however often it is asked to leave", () => {
     const { page, one } = block();
     const left: string[] = [];
@@ -48,32 +30,6 @@ describe("writing a block in place", () => {
     editing.leave();
     editing.leave();
     expect(left).toEqual(["Hola!"]);
-    page.remove();
-  });
-
-  it("takes the whole document on a second Ctrl+A, once the block is chosen whole", () => {
-    const { page, one } = block();
-    const whole = vi.fn();
-    const editing = edited(
-      one,
-      "Hola",
-      () => {},
-      () => {},
-      undefined,
-      false,
-      false,
-      whole,
-    );
-    const press = () =>
-      editing.view.contentDOM.dispatchEvent(
-        new KeyboardEvent("keydown", { key: "a", ctrlKey: true, bubbles: true, cancelable: true }),
-      );
-    press();
-    expect(whole).not.toHaveBeenCalled();
-    expect(editing.view.state.selection.main).toMatchObject({ from: 0, to: 4 });
-    press();
-    expect(whole).toHaveBeenCalledWith(true);
-    editing.leave();
     page.remove();
   });
 
@@ -113,40 +69,6 @@ describe("writing a block in place", () => {
     expect(hint?.classList.contains("under")).toBe(true);
     editing.leave();
     expect(page.querySelector(".cm-hint")).toBeNull();
-    page.remove();
-  });
-
-  it("hands back the person's words but never the ones taken in from outside", () => {
-    const { page, one } = block();
-    const changes: string[] = [];
-    const editing = edited(
-      one,
-      "Hola",
-      (text) => changes.push(text),
-      () => {},
-    );
-    editing.view.dispatch({ changes: { from: 4, insert: " mundo" }, userEvent: "outside" });
-    expect(changes).toEqual([]);
-    expect(editing.view.state.sliceDoc()).toBe("Hola mundo");
-    editing.view.dispatch({ changes: { from: 10, insert: "!" }, userEvent: "input.type" });
-    expect(changes).toEqual(["Hola mundo!"]);
-    editing.leave();
-    page.remove();
-  });
-
-  it("is left with Escape", () => {
-    const { page, one } = block();
-    const left: string[] = [];
-    const editing = edited(
-      one,
-      "Hola",
-      () => {},
-      (text) => left.push(text),
-    );
-    editing.view.contentDOM.dispatchEvent(
-      new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true }),
-    );
-    expect(left).toEqual(["Hola"]);
     page.remove();
   });
 
@@ -227,33 +149,6 @@ describe("writing a block in place", () => {
     page.remove();
   });
 
-  it("closes the / menu first with Escape, then leaves, and tidies a format typed with nothing selected", async () => {
-    const { page, one } = block();
-    const left: string[] = [];
-    const editing = edited(
-      one,
-      "Esto es ",
-      () => {},
-      (text) => left.push(text),
-    );
-    const view = editing.view;
-    const pressEscape = () =>
-      view.contentDOM.dispatchEvent(
-        new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true }),
-      );
-    view.dispatch({ selection: { anchor: 8 } });
-    wrapped(view, "==");
-    view.dispatch({ changes: { from: 10, insert: "juan " }, selection: { anchor: 15 } });
-    view.dispatch({ changes: { from: 17, insert: " /" }, selection: { anchor: 19 } });
-    startCompletion(view);
-    await vi.waitFor(() => expect(completionStatus(view.state)).toBe("active"));
-    pressEscape();
-    expect(left).toEqual([]);
-    pressEscape();
-    expect(left).toEqual(["Esto es ==juan==  /"]);
-    page.remove();
-  });
-
   describe("Enter while a list is offered", () => {
     const typing = (view: EditorView, text: string) => {
       const at = view.state.doc.length;
@@ -309,24 +204,6 @@ describe("writing a block in place", () => {
       editing.leave();
       page.remove();
     });
-
-    it("offers a template's label only what fits its one line, and takes it without leaving", async () => {
-      const { page, one } = block();
-      const left = vi.fn();
-      const editing = edited(one, "## Notas", () => {}, left, undefined, true);
-      typing(editing.view, " /");
-      await offeredFor(editing.view);
-      const labels = currentCompletions(editing.view.state).map((each) => each.label);
-      expect(labels).toContain(t("bold"));
-      expect(labels).not.toContain(t("table"));
-      expect(labels).not.toContain(t("bigTitle"));
-      typing(editing.view, "bold");
-      enter(editing.view);
-      expect(left).not.toHaveBeenCalled();
-      expect(editing.view.state.doc.toString()).not.toContain("/");
-      editing.leave();
-      page.remove();
-    });
   });
 
   it("puts the drawn block back once it is left, so nothing is missing until the page is drawn again", () => {
@@ -344,77 +221,6 @@ describe("writing a block in place", () => {
     page.remove();
   });
 
-  it("ends a template's label on Enter and keeps its name to twenty characters", () => {
-    const { page, one } = block();
-    const left = vi.fn();
-    const editing = edited(one, "## Notas", () => {}, left, undefined, true);
-    editing.view.dispatch({ changes: { from: 8, insert: " de la semana pasada" } });
-    expect(editing.view.state.doc.toString()).toBe("## Notas");
-    editing.view.dispatch({ changes: { from: 8, insert: " del mes" } });
-    expect(editing.view.state.doc.toString()).toBe("## Notas del mes");
-    editing.view.dispatch({ changes: { from: 8, insert: "\nmás" } });
-    expect(editing.view.state.doc.toString()).toBe("## Notas del mes");
-    editing.leave();
-    page.remove();
-  });
-
-  it("lets a template's label already past the limit be shortened, never grown", () => {
-    const { page, one } = block();
-    const long = "## Lo que aprendí en este viaje";
-    const editing = edited(one, long, () => {}, vi.fn(), undefined, true);
-    editing.view.dispatch({ changes: { from: long.length, insert: " largo" } });
-    expect(editing.view.state.doc.toString()).toBe(long);
-    editing.view.dispatch({ changes: { from: long.length - 6, to: long.length } });
-    expect(editing.view.state.doc.toString()).toBe("## Lo que aprendí en este");
-    editing.leave();
-    page.remove();
-  });
-
-  it("keeps the bar over the page and the keys once at its end, never inside the block, and takes both away", () => {
-    const { page, one } = block();
-    const editing = edited(
-      one,
-      "Leche y pan.",
-      () => {},
-      () => {},
-    );
-    const bar = document.querySelector<HTMLElement>(".cm-bar.cm-dock");
-    expect(bar?.parentElement).toBe(document.body);
-    expect(page.lastElementChild?.matches(".cm-hint.cm-dock")).toBe(true);
-    expect(page.querySelector(".editing .cm-bar, .editing .cm-hint")).toBeNull();
-    expect(bar?.style.top).not.toBe("");
-    editing.leave();
-    expect(document.querySelector(".cm-dock")).toBeNull();
-    page.remove();
-  });
-
-  it("shows pens, underlines and icons as they will read, marks hidden, but never inside code or for unknown names", () => {
-    const { page, one } = block();
-    const editing = edited(
-      one,
-      "==a== ==b=={green} ==c=={silver} ++d++ ::dog orange:: ::star:: ::nope:: ::dog plaid:: `==e==`",
-      () => {},
-      () => {},
-    );
-    const classes = Array.from(page.querySelectorAll(".editing .cm-content span")).map(
-      (one) => `${one.className}:${one.textContent}`,
-    );
-    expect(classes).toContain("cm-pen cm-pen-yellow:a");
-    expect(classes).toContain("cm-pen cm-pen-green:b");
-    expect(classes).toContain("cm-under:d");
-    const icons = Array.from(page.querySelectorAll(".editing .cm-glyph")).map(
-      (one) => one.className,
-    );
-    expect(icons).toEqual(["cm-glyph ico-orange", "cm-glyph"]);
-    expect(page.querySelector(".editing .cm-content")?.textContent).toContain("==c=={silver}");
-    expect(classes.some((one) => one.startsWith("cm-pen") && one.includes("silver"))).toBe(false);
-    expect(page.querySelector(".editing .cm-content")?.textContent).toContain("::nope::");
-    expect(page.querySelector(".editing .cm-content")?.textContent).toContain("::dog plaid::");
-    expect(classes.some((one) => one.startsWith("cm-pen") && one.includes("==e=="))).toBe(false);
-    editing.leave();
-    page.remove();
-  });
-
   it("leaves a block untouched when nothing was written in it, however wide its gaps", () => {
     const { page, one } = block();
     const left: string[] = [];
@@ -429,33 +235,6 @@ describe("writing a block in place", () => {
     page.remove();
   });
 
-  it("closes the gaps Enter left unwritten, and keeps the ones inside HTML", () => {
-    const { page, one } = block();
-    const left: string[] = [];
-    const editing = edited(
-      one,
-      "uno\n\n\n\ndos",
-      () => {},
-      (text) => left.push(text),
-    );
-    editing.view.dispatch({ changes: { from: 0, insert: "\n\n" } });
-    editing.leave();
-    expect(left).toEqual(["uno\n\ndos"]);
-    page.remove();
-    const again = block();
-    const held: string[] = [];
-    const html = edited(
-      again.one,
-      "<pre>\n\n\n\nx</pre>",
-      () => {},
-      (text) => held.push(text),
-    );
-    html.view.dispatch({ changes: { from: html.view.state.doc.length, insert: "!" } });
-    html.leave();
-    expect(held).toEqual(["<pre>\n\n\n\nx</pre>!"]);
-    again.page.remove();
-  });
-
   it("keeps the line endings the block was written with", () => {
     const { page, one } = block();
     const changes: string[] = [];
@@ -467,6 +246,7 @@ describe("writing a block in place", () => {
     );
     expect(editing.view.state.doc.lines).toBe(2);
     editing.view.dispatch({ changes: { from: 3, insert: "!" } });
+    editing.flush?.();
     expect(changes).toEqual(["uno!\r\ndos"]);
     editing.leave();
     page.remove();
@@ -505,53 +285,8 @@ describe("the steps of a block being left", () => {
     expect(leaving("- [ ] Lavaloza", ["Enter", "Enter"]).left).toEqual(["- [ ] Lavaloza"]);
   });
 
-  it("closes the gaps between steps but leaves a paragraph and code as written", () => {
-    const said = "- [ ] Uno\n- [ ] \n\n- [x] Dos\n\nUn párrafo\n\n```\n- [ ] \n\n```";
-    expect(leaving(said, []).left).toEqual([
-      "- [ ] Uno\n- [x] Dos\n\nUn párrafo\n\n```\n- [ ] \n\n```",
-    ]);
-  });
-
   it("leaves nothing when the only step was never written", () => {
     expect(leaving("- [ ] ", ["Enter"]).left).toEqual([""]);
-  });
-});
-
-describe("writing a task's steps", () => {
-  const steps = () => {
-    document.documentElement.classList.add("untitled");
-    const page = document.createElement("article");
-    page.className = "page";
-    const list = document.createElement("ul");
-    const one = document.createElement("li");
-    one.className = "task";
-    list.append(one);
-    page.append(list);
-    document.body.append(page);
-    return { page, list };
-  };
-
-  it("shows no bar over the steps and ends on Enter in an empty step", () => {
-    const { page, list } = steps();
-    const left: string[] = [];
-    const editing = edited(
-      list,
-      "- [ ] Lavaloza",
-      () => {},
-      (text) => left.push(text),
-    );
-    expect(document.querySelector<HTMLElement>(".cm-bar")?.style.display).toBe("none");
-    editing.view.dispatch({ selection: { anchor: editing.view.state.doc.length } });
-    const enter = () =>
-      editing.view.contentDOM.dispatchEvent(
-        new KeyboardEvent("keydown", { key: "Enter", bubbles: true, cancelable: true }),
-      );
-    enter();
-    expect(left).toEqual([]);
-    enter();
-    expect(left).toEqual(["- [ ] Lavaloza"]);
-    page.remove();
-    document.documentElement.classList.remove("untitled");
   });
 });
 

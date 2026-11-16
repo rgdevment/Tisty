@@ -71,14 +71,12 @@ const reaching = () => {
     docs: [] as string[],
     opened: [] as string[],
     tags: [] as string[],
-    blocks: [] as [number, number][],
   };
   const reach: Reaching = {
     body: "# Título\n\nÁrbol.\n",
     onDoc: (file) => heard.docs.push(file),
     onOpen: (reference) => heard.opened.push(reference),
     onTag: (name) => heard.tags.push(name),
-    onBlock: (at) => heard.blocks.push(at),
   };
   return { heard, reach };
 };
@@ -134,6 +132,23 @@ describe("dressing a drawn page", () => {
     expect(chip?.getAttribute("href")).toBe("attachments/acta.pdf");
     expect(chip?.textContent).toBe("Acta");
     expect(calls.served).toEqual([]);
+  });
+
+  it("keeps a file's place on the card or the player drawn in its stead", () => {
+    const drawn = page(
+      '<p><img src="attachments/plan.pdf" alt="" data-src="0-27"></p><p>see <img src="attachments/acta.pdf" alt="Acta" data-src="33-61"> here</p><p><img src="attachments/bark-0006bf10.mp3" alt="Bark" data-src="70-110"></p>',
+    );
+    pictures(drawn, () => true);
+    expect(
+      Array.from(drawn.querySelectorAll<HTMLElement>("[data-placed]"), (one) => [
+        one.className,
+        one.dataset.placed,
+      ]),
+    ).toEqual([
+      ["doc-card is-file", "0-27"],
+      ["card", "33-61"],
+      ["media is-audio", "70-110"],
+    ]);
   });
 
   it("plays audio and video where they are written", async () => {
@@ -236,13 +251,8 @@ describe("dressing a drawn page", () => {
   it("gives a widget a bar with its name, and ways to its code and apart only where they lead", () => {
     const code =
       '<figure class="code" data-at="4-40"><figcaption>Rina</figcaption><pre><code class="language-widget">&lt;b&gt;42&lt;/b&gt;</code></pre></figure>';
-    const apart: string[] = [];
-    const reach = {
-      body: "",
-      onDoc: () => {},
-      onBlock: () => {},
-      onApart: (source: string) => apart.push(source),
-    };
+    const opened: unknown[] = [];
+    const reach = { body: "", onDoc: () => {}, onPiece: (...said: unknown[]) => opened.push(said) };
     const own = page(code);
     widgets(own, reach);
     const bar = own.querySelector(".widget-bar");
@@ -253,10 +263,81 @@ describe("dressing a drawn page", () => {
       ),
     ).toEqual(["code", "apart"]);
     answered(own, { kind: "apart", at: [4, 40] }, reach);
-    expect(apart).toEqual(["<b>42</b>"]);
+    expect(opened).toEqual([["widget", { at: 4, nth: 0 }, "<b>42</b>", false]]);
     const read = page(code);
     widgets(read, { body: "", onDoc: () => {} });
     expect(read.querySelectorAll(".widget-bar button")).toHaveLength(0);
+  });
+
+  it("opens a widget's code in its own window, named by where its block starts", () => {
+    const code =
+      '<figure class="code" data-at="4-40"><figcaption>Rina</figcaption><pre><code class="language-widget">&lt;b&gt;42&lt;/b&gt;</code></pre></figure>';
+    const opened: unknown[] = [];
+    const written = page(code);
+    const reach = {
+      body: "Uno ```widget",
+      onDoc: () => {},
+      onPiece: (...said: unknown[]) => opened.push(said),
+    };
+    widgets(written, reach);
+    answered(written, { kind: "code", at: [4, 40] }, reach);
+    answered(written, { kind: "apart", at: [4, 40] }, reach);
+    expect(opened).toEqual([
+      ["widget", { at: 4, nth: 0 }, "<b>42</b>", true],
+      ["widget", { at: 4, nth: 0 }, "<b>42</b>", false],
+    ]);
+  });
+
+  it("gives a formula a way to its own window only where pieces can be opened", () => {
+    const formula =
+      '<p data-at="0-3">Uno</p><div class="math" data-at="5-12"><math></math></div><div class="math" data-at="14-30"><math></math></div>';
+    const opened: unknown[] = [];
+    const reach = { body: "Uno\n\n```math\na^2\n```\n", onDoc: () => {} };
+    const written = page(formula);
+    const opening = { ...reach, onPiece: (...said: unknown[]) => opened.push(said) };
+    worn(written, () => true, opening);
+    const button = written.querySelectorAll<HTMLElement>('.math-bar [data-asked="code"]')[1];
+    expect(button?.textContent).toBe("");
+    const asked = went(button as Element, false);
+    expect(asked).toEqual({ kind: "code", at: [14, 30] });
+    answered(written, asked, opening);
+    expect(opened).toEqual([["formula", { at: 14, nth: 1 }]]);
+    const read = page(formula);
+    worn(read, () => true, reach);
+    expect(read.querySelector(".math-bar")).toBeNull();
+  });
+
+  it("opens a formula written inline in its own window with a click", () => {
+    const written = page(
+      '<p data-at="0-20">Sea <math data-src="4-9" contenteditable="false"><mi>x</mi></math> y <code class="math" data-src="12-17" contenteditable="false">\\fr</code></p>',
+    );
+    const formulas = written.querySelectorAll("math, code.math");
+    const second = went(formulas[1].firstChild?.parentElement as Element, false);
+    expect(second).toEqual({ kind: "formula", at: [12, 17], nth: 1 });
+    const first = went(written.querySelector("mi") as Element, false);
+    expect(first).toEqual({ kind: "formula", at: [4, 9], nth: 0 });
+    expect(went(written.querySelector("mi") as Element, true)).toBeNull();
+    const opened: unknown[] = [];
+    answered(written, first, {
+      body: "",
+      onDoc: () => {},
+      onPiece: (...said: unknown[]) => opened.push(said),
+    });
+    expect(opened).toEqual([["inlineFormula", { at: 4, nth: 0 }]]);
+  });
+
+  it("opens the properties in their own window when they are asked for", () => {
+    const opened: unknown[] = [];
+    const written = page('<dl class="front" data-at="0-14"></dl><p data-at="15-20">Pan.</p>');
+    const reach = {
+      body: "---\ntags: [a]\n---\n\nPan.\n",
+      onDoc: () => {},
+      onPiece: (...said: unknown[]) => opened.push(said),
+    };
+    answered(written, { kind: "block", at: [15, 20] }, reach);
+    expect(opened).toEqual([]);
+    answered(written, { kind: "block", at: [0, 14] }, reach);
+    expect(opened).toEqual([["front", { at: 0, nth: 0 }]]);
   });
 
   it("dresses the whole page in one go", () => {
@@ -271,22 +352,19 @@ describe("dressing a drawn page", () => {
 });
 
 describe("what a click on a drawn page does", () => {
-  it("opens documents, the web, attachments, tags and blocks where each belongs", () => {
+  it("opens documents, the web, attachments and tags where each belongs", () => {
     const drawn = page('<h2 id="here">Here</h2><p data-at="11-19">Árbol.</p>');
     const { heard, reach } = reaching();
     answered(drawn, { kind: "doc", id: "ab12-0001" }, reach);
     answered(drawn, { kind: "web", href: "https://x.y" }, reach);
     answered(drawn, { kind: "attachment", reference: "attachments/a.pdf" }, reach);
     answered(drawn, { kind: "tag", name: "work" }, reach);
-    answered(drawn, { kind: "block", at: [11, 19] }, reach);
     answered(drawn, { kind: "here", id: "here" }, reach);
-    answered(drawn, { kind: "block", at: [0, 3] }, reach);
     answered(drawn, null, reach);
     expect(heard.docs).toEqual(["ab12-0001"]);
     expect(calls.links).toEqual(["https://x.y"]);
     expect(heard.opened).toEqual(["attachments/a.pdf"]);
     expect(heard.tags).toEqual(["work"]);
-    expect(heard.blocks).toEqual([[10, 17]]);
   });
 
   it("counts a block by characters, whatever the accents before it", () => {
@@ -379,15 +457,41 @@ describe("a drawn page wired to the window", () => {
     window.removeEventListener("keydown", listen);
     expect(heard).toEqual(["w"]);
   });
+
+  it("keeps bold, italic and underline to the page written in place, and the rest for the window", () => {
+    const drawn = page('<div class="page" contenteditable="true"><p>x</p></div>');
+    const { reach } = reaching();
+    wired(drawn, () => reach);
+    const heard: string[] = [];
+    const listen = (e: KeyboardEvent) => {
+      heard.push(e.key);
+      e.preventDefault();
+    };
+    window.addEventListener("keydown", listen);
+    const inside = drawn.querySelector(".page p") as HTMLElement;
+    const pressed = ["b", "I", "u", "e"].map((key) => {
+      const one = new KeyboardEvent("keydown", {
+        key,
+        ctrlKey: true,
+        bubbles: true,
+        cancelable: true,
+      });
+      inside.dispatchEvent(one);
+      return one.defaultPrevented;
+    });
+    window.removeEventListener("keydown", listen);
+    expect(heard).toEqual(["e"]);
+    expect(pressed).toEqual([false, false, false, true]);
+  });
 });
 
 const writer = (body = "") => {
-  const asked: { at: [number, number]; seed?: string; read?: string }[] = [];
+  const asked: { at: [number, number]; seed: string }[] = [];
   let away = 0;
   const reach: Reaching = {
     body,
     onDoc: () => {},
-    onBlock: (at, _, seed, read) => asked.push({ at, seed, read }),
+    onBegin: (at, seed) => asked.push({ at: [at, at], seed }),
     onAway: () => {
       away += 1;
     },
@@ -434,6 +538,15 @@ describe("a sheet with nothing written yet", () => {
     expect(drawn.querySelectorAll(".page > p")).toHaveLength(1);
   });
 
+  it("begins past the block that is last on the page, whatever its kind", () => {
+    const drawn = page('<h1 data-at="0-6">Hola</h1><p data-at="8-13">Leche</p>');
+    const under: (Element | undefined)[] = [];
+    const { reach } = writer("# Hola\n\nLeche");
+    wired(drawn, () => ({ ...reach, onBegin: (_at, _seed, near) => under.push(near) }));
+    press(drawn.querySelector(".page"));
+    expect(under).toEqual([drawn.querySelector("p")]);
+  });
+
   it("ends the block being written on a press in an empty spot, never on one inside it", () => {
     const drawn = page('<p data-at="0-5">Leche</p><div class="editing"><span>x</span></div>');
     const { reach, away } = writer("Leche");
@@ -473,22 +586,6 @@ describe("a sheet with nothing written yet", () => {
     expect(drawn.querySelector(".cm-content")?.contains(caret?.anchorNode ?? null)).toBe(true);
     expect(caret?.toString()).toBe("");
     document.body.innerHTML = "";
-  });
-
-  it("hands the block the words read before the click, so the caret lands there", () => {
-    const drawn = page('<p data-at="0-11">Leche y pan</p>');
-    const text = drawn.querySelector("p")?.firstChild as Text;
-    Object.assign(drawn, {
-      caretRangeFromPoint: () => {
-        const range = drawn.createRange();
-        range.setStart(text, 7);
-        return range;
-      },
-    });
-    const { asked, reach } = writer("Leche y pan");
-    wired(drawn, () => reach);
-    press(drawn.querySelector("p"), 0);
-    expect(asked[0]).toEqual({ at: [0, 11], seed: "", read: "Leche y" });
   });
 });
 
@@ -652,5 +749,70 @@ describe("a step's dates", () => {
     const [first, second] = one.querySelectorAll<HTMLElement>("li.task");
     expect(first.title).toBe("Added 18 Oct");
     expect(second.hasAttribute("title")).toBe(false);
+  });
+});
+
+describe("a task's page written in place", () => {
+  const body = "## Steps\n<!-- - [ ] The first step -->\n\n## Notes\n\nCall at nine.\n";
+  const at = (said: string) => {
+    const from = body.indexOf(said);
+    return `${from}-${from + said.length}`;
+  };
+  const drawn = () => {
+    const one = page(
+      `<h2 data-at="${at("## Steps")}">Steps</h2>` +
+        `<div data-at="${at("<!-- - [ ] The first step -->")}"></div>` +
+        `<h2 data-at="${at("## Notes")}">Notes</h2>` +
+        `<p data-at="${at("Call at nine.")}">Call at nine.</p>`,
+    );
+    one.documentElement.classList.add("untitled");
+    return one;
+  };
+  const begun = () => {
+    const asked: { at: number; seed: string }[] = [];
+    const reach: Reaching = {
+      body,
+      onDoc: () => {},
+      onBegin: (at, seed) => asked.push({ at, seed }),
+    };
+    return { asked, reach };
+  };
+
+  it("shows its hints and begins a step under one, with no block editor", () => {
+    const one = drawn();
+    const { asked, reach } = begun();
+    worn(one, () => true, reach);
+    wired(one, () => reach);
+    press(one.querySelector(".hint"), 0);
+    const end = body.indexOf("-->") + 3;
+    expect(asked).toEqual([{ at: end, seed: "- [ ] " }]);
+  });
+
+  it("begins at the end of a section when its label is pressed", () => {
+    const one = drawn();
+    const { asked, reach } = begun();
+    worn(one, () => true, reach);
+    wired(one, () => reach);
+    press(one.querySelectorAll("h2")[1] ?? null, 0);
+    expect(asked).toEqual([
+      { at: body.indexOf("Call at nine.") + "Call at nine.".length, seed: "" },
+    ]);
+  });
+
+  it("mends a hint, not a block, while its sections are asked for", () => {
+    const one = drawn();
+    one.documentElement.classList.add("shaping");
+    const hints: [number, number][] = [];
+    const reach: Reaching = {
+      body,
+      onDoc: () => {},
+      onBegin: () => {},
+      onHintWords: (at) => hints.push(at),
+    };
+    worn(one, () => true, reach);
+    wired(one, () => reach);
+    press(one.querySelector(".hint"), 0);
+    const from = body.indexOf("<!--");
+    expect(hints).toEqual([[from, body.indexOf("-->") + 3]]);
   });
 });

@@ -32,10 +32,9 @@ export interface Acts {
 
 export const choicesFor = (a: Acts): Choice[] => {
   const shown = a.shown;
-  if (shown?.kind === "widget") {
+  if (shown?.kind === "piece") {
     const from = shown.from;
-    return [
-      { key: "again", label: t("viewReload"), hint: "Ctrl+R", onPick: a.again },
+    const own: Choice[] = [
       { key: "code", label: t("viewCode"), onPick: a.code },
       {
         key: "doc",
@@ -43,6 +42,11 @@ export const choicesFor = (a: Acts): Choice[] => {
         off: !from,
         onPick: () => from && void viewGo(from.file).catch(a.fail),
       },
+    ];
+    if (shown.held !== "widget") return own;
+    return [
+      { key: "again", label: t("viewReload"), hint: "Ctrl+R", onPick: a.again },
+      ...own,
       {
         key: "dark",
         label: `${(a.dark ?? darkNow()) ? "✓ " : ""}${t("viewDark")}`,
@@ -98,8 +102,8 @@ export const exportsFor = (a: Acts): Choice[] => [
 export const keysFor = (a: Acts, e: KeyboardEvent): (() => void) | undefined => {
   const key = e.key.toLowerCase();
   const doing: Record<string, () => void> = { w: a.close, r: a.again };
-  const kind = a.shown?.kind;
-  if (kind === "doc") {
+  const shown = a.shown;
+  if (shown?.kind === "doc") {
     Object.assign(doing, {
       f: a.find,
       "\\": a.side,
@@ -111,7 +115,7 @@ export const keysFor = (a: Acts, e: KeyboardEvent): (() => void) | undefined => 
     });
     if (e.shiftKey) doing.m = a.raw;
   }
-  if (kind === "widget") {
+  if (shown?.kind === "piece" && shown.held === "widget") {
     PRESETS.forEach((one, at) => {
       doing[String(at + 1)] = () => a.preset(one.key);
     });

@@ -29,7 +29,7 @@ It comes with Tisty's colours and ready-made classes, so plain HTML already look
 
 ## Showing the code
 
-The widget's code stays folded under the drawing. Open it with **Show code**.
+**Show code**, on the widget's bar, opens it in its window: the code on the left and what it draws on the right. What you write is drawn at once and saved into its block in the document or the task's page. In a document that cannot be written, the code is only read.
 
 ## An `.html` file is only a file
 

@@ -1,6 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import type { TableEdit } from "tisty-editor/edit";
-import { t } from "./locales";
+import type { Refusal } from "./refusal";
 
 export type { TableEdit } from "tisty-editor/edit";
 
@@ -18,14 +18,14 @@ export const tableEditNear = (body: string, at: number, ...edits: TableEdit[]): 
   invoke("table_edit_near", { body, at, edits });
 
 /** A refusal from the core, in the words the window shows. */
-export const refused = (why: unknown): Error =>
-  new Error(
+export const refused = (why: unknown): Refusal => ({
+  code:
     why === "moved"
-      ? t("tableRefusedMoved")
+      ? "tableRefusedMoved"
       : why === "lastColumn"
-        ? t("tableRefusedLastColumn")
-        : t("tableRefused"),
-  );
+        ? "tableRefusedLastColumn"
+        : "tableRefused",
+});
 
 export const tableOrder = (
   body: string,

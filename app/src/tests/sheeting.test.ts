@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { landscapeIn, paperIn, sheetsIn, withLandscape, withPaper, withSheets } from "../front";
-import { seenIn } from "../ui/printing";
+import { seenIn, seenNow } from "../ui/printing";
 
 describe("the paper a document asks for", () => {
   it("reads it from the front matter, and A4 when it says nothing", () => {
@@ -36,6 +36,29 @@ describe("the paper a document asks for", () => {
 });
 
 describe("the page as it is seen, handed to the PDF", () => {
+  it("reads a page drawn anew from the words now while the whole document is being written", async () => {
+    document.body.innerHTML =
+      '<article class="page whole"><details open data-at="0-5"><summary>old</summary></details><div class="editing"></div></article>';
+    const draw = vi.fn(() =>
+      Promise.resolve('<details open data-at="7-12"><summary>new</summary></details>'),
+    );
+    expect(await seenNow(document, "# now", draw)).toEqual({
+      turns: [],
+      opened: ["7-12"],
+      wide: [],
+    });
+    expect(draw).toHaveBeenCalledWith("# now");
+    expect(document.querySelectorAll(".page")).toHaveLength(1);
+  });
+
+  it("reads the page on screen when nothing is being written whole", async () => {
+    document.body.innerHTML =
+      '<article class="page"><details open data-at="0-5"></details></article>';
+    const draw = vi.fn(() => Promise.resolve(""));
+    expect((await seenNow(document, "x", draw)).opened).toEqual(["0-5"]);
+    expect(draw).not.toHaveBeenCalled();
+  });
+
   it("says where the sheets turn and which folds are left open", () => {
     document.body.innerHTML =
       '<article class="page"><p data-at="0-5">uno</p><details open data-at="6-20"><summary>a</summary>x</details><details data-at="21-30"><summary>b</summary>y</details><div class="sheet-turn"></div><p data-at="31-40">dos</p></article>';

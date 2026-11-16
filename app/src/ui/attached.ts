@@ -73,6 +73,11 @@ const fed = (
   void told();
 };
 
+const placedAs = (img: Element, shown: HTMLElement) => {
+  const at = img.getAttribute("data-src");
+  if (at) shown.dataset.placed = at;
+};
+
 const played = (
   page: Document,
   img: Element,
@@ -93,6 +98,7 @@ const played = (
   if (as === "video") box.append(player, said);
   else box.append(said, player);
   if (asking) box.append(more(page, at));
+  placedAs(img, box);
   img.replaceWith(box);
   fed(box, player, at, live, held);
 };
@@ -112,6 +118,7 @@ const filed = (page: Document, img: Element, at: string, live: () => boolean, as
     labelled(kind),
   );
   card.setAttribute("href", at);
+  placedAs(img, card);
   if (!meta || !kindIs) return;
   if (asking) meta.append(more(page, at));
   meta.append(piece(page, "card-go", "›"));

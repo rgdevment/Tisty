@@ -13,7 +13,7 @@ export {
   retyped,
 } from "./edit/barring";
 export { aimed, caretAt, type Editing, edited, shaped, worded } from "./edit/blocking";
-export { type Crossing, crossingKeys, enteredAt, WRITTEN } from "./edit/crossing";
+export { chooseOrLet, doubled, droppedBlock, moving } from "./edit/blocks";
 export { docked } from "./edit/docking";
 export {
   anchored,
@@ -26,7 +26,12 @@ export {
   TAG_WORD,
   wrapped,
 } from "./edit/formatting";
-export { type EditWord, type Hosted, hosted, type TableEdit } from "./edit/hosted";
+export {
+  type EditWord,
+  type Hosted,
+  hosted,
+  type TableEdit,
+} from "./edit/hosted";
 export { latelyMarked, MARKED_FOR, markLately } from "./edit/lately";
 export { heldTogether, outOfPairs, pairsKept } from "./edit/pairing";
 export {
@@ -45,6 +50,7 @@ export {
   type Asking,
   BOX,
   holding,
+  ideaOpened,
   offered,
   openMenu,
   pressed,
