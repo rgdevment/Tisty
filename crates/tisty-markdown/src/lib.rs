@@ -42,7 +42,7 @@ mod values;
 pub mod vocab;
 mod writing;
 
-pub use inline::filed;
+pub use inline::{escaped, filed};
 #[cfg(feature = "outline")]
 pub use outline::{Head, outline};
 pub use outside::{file_as_tisty, read_file};

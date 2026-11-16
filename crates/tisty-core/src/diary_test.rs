@@ -181,6 +181,21 @@ fn the_last_day_of_a_year_and_the_first_of_the_next_write_in_their_own_books() {
 }
 
 #[test]
+fn a_book_s_newest_page_is_its_latest_month_whatever_language_each_is_named_in() {
+    let room = tempfile::tempdir().unwrap();
+    let mut state = State::default();
+    let november = opened_into(room.path(), &mut state, day("2026-11-15"), &SPANISH);
+    let december = opened_into(room.path(), &mut state, day("2026-12-01"), &ENGLISH);
+    opened_into(room.path(), &mut state, day("2026-03-02"), &SPANISH);
+    let id_of = |file: &str| state.docs.values().find(|one| one.file == file).unwrap().id;
+
+    let newest = newest_page(&state, id_of(&november.book)).unwrap();
+
+    assert_eq!(newest.file, december.page);
+    assert_eq!(newest_page(&state, id_of(&november.page)), None);
+}
+
+#[test]
 fn of_two_books_for_one_year_the_oldest_is_the_diary_and_one_that_stopped_saying_so_is_not() {
     let room = tempfile::tempdir().unwrap();
     let mut state = State::default();

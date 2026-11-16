@@ -193,6 +193,9 @@ fn sharable<'a>(
     if kept.brainstorm {
         return Err(Unshared::Brainstorm);
     }
+    if kept.diary {
+        return Err(Unshared::Diary);
+    }
     let edits_through_a_link = shelf
         .get(&kept.file)
         .is_some_and(Remembered::edited_through_a_link);

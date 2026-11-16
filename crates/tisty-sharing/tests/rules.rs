@@ -2175,3 +2175,10 @@ fn brainstorm_stays_here_while_a_document_with_an_idea_is_shared() {
     assert!(matches!(refused(&home, board), Some(Unshared::Brainstorm)));
     assert!(refused(&home, garden).is_none());
 }
+
+#[test]
+fn the_diary_stays_here() {
+    let (_tmp, mut home) = home();
+    let book = home.wrote("---\ndiary: on\n---\n\n# Diario 2026\n", None);
+    assert!(matches!(refused(&home, book), Some(Unshared::Diary)));
+}
