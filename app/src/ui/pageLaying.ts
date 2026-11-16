@@ -77,7 +77,7 @@ export const layingOn = (
       const near = await hands.near(sent, from, from + added).catch(() => null);
       if (over) return;
       const sheet = page.querySelector(".page");
-      const laid = sheet && near && patched(sheet, near, added - removed);
+      const laid = sheet && near && patched(sheet, near, added - removed, [edit.from, edit.to]);
       if (!sheet || !laid) return redrawn();
       hands.dressed(sheet, laid);
       opened(page, laid);

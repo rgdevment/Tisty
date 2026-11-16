@@ -209,3 +209,54 @@ describe("the places after a key, written once the keys rest", () => {
     expect(list.querySelector("li")?.getAttribute("data-at")).toBe("33-42");
   });
 });
+
+describe("the blocks the core draws beside a laid key", () => {
+  it("stay on the page as they were, and only the block the key reached is dressed", async () => {
+    let text = BODY;
+    const dressed: Element[][] = [];
+    document.body.innerHTML = `<article class="page">${PLACED}</article>`;
+    const [heading, words, list] = Array.from(document.querySelectorAll(".page > *"));
+    writing = writtenOn(document, {
+      text: () => text,
+      write: (next) => {
+        text = next;
+      },
+      shown: () => {},
+      redraw: () => {},
+      near: () =>
+        Promise.resolve({
+          count: 3,
+          sum: summed([]),
+          from: 0,
+          to: 3,
+          html:
+            '<h1 data-at="0-6"><span data-src="2-6">Hola</span></h1>' +
+            '<p data-at="8-30"><span data-src="8-30">Uno 😀 dos ñandúñ</span></p>' +
+            '<ul data-at="33-43"><li data-at="33-42"><span data-src="35-42">primero</span></li></ul>',
+          heads: null,
+          whole: false,
+        }),
+      dressed: (_, laid) => dressed.push([...laid]),
+      translated: (_, plain) => Promise.resolve(plain),
+      ask: () => {},
+      blocks: () => {},
+      acts: () => {},
+    });
+    caretAfter("ñandú");
+    document.querySelector(".page")?.dispatchEvent(
+      new InputEvent("beforeinput", {
+        inputType: "insertText",
+        data: "ñ",
+        bubbles: true,
+        cancelable: true,
+      }),
+    );
+
+    await vi.waitFor(() => expect(dressed).toHaveLength(1));
+    expect(dressed[0]).toEqual([words]);
+    expect(Array.from(document.querySelectorAll(".page > *"))).toEqual([heading, words, list]);
+    expect(words?.textContent).toContain("ñandúñ");
+    expect(list?.getAttribute("data-at")).toBe("31-41");
+    expect(placeOf(list)).toEqual([33, 43]);
+  });
+});

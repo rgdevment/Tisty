@@ -32,4 +32,22 @@ describe("a stage named in a document", () => {
     expect(chip?.textContent).toHaveLength(60);
     expect(chip?.textContent?.endsWith("…")).toBe(true);
   });
+
+  it("counts the stages again when one comes before them, and writes nothing when none moved", () => {
+    const drawn = page(
+      '<ul data-at="0-40"><li class="task" data-at="0-12">Weigh her</li><li class="task" id="mine" data-at="13-20">Feed her</li></ul><p data-at="41-70"><span class="ref" data-ref="#1">#1</span></p>',
+    );
+    staged(drawn);
+    const list = drawn.querySelector("ul") as Element;
+    list.insertAdjacentHTML("afterbegin", '<li class="task" data-at="0-5">Wake her</li>');
+    staged(drawn);
+    const [first, second, third] = Array.from(drawn.querySelectorAll("li"), (one) => one.id);
+    expect([first, second, third]).toEqual(["stage--1", "stage--2", "mine"]);
+    expect(drawn.querySelector(".ref")?.textContent).toBe("Wake her");
+    const watch = new MutationObserver(() => {});
+    watch.observe(drawn.documentElement, { subtree: true, childList: true, attributes: true });
+    staged(drawn);
+    expect(watch.takeRecords()).toEqual([]);
+    watch.disconnect();
+  });
 });

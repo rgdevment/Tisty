@@ -34,15 +34,18 @@ const startsOf = (blocks: readonly string[]) => {
 const drawn = (blocks: readonly string[]) =>
   blocks.map((one, at) => drawnOne(one, startsOf(blocks)[at])).join("");
 
+// Like the core, it draws one block on each side of those the key reached.
 const nearOf = (blocks: readonly string[], from: number, now: number) => {
   const starts = startsOf(blocks);
+  const first = Math.max(0, from - 1);
+  const last = Math.min(blocks.length, from + now + 1);
   return near({
     spans: blocks.map((one, at): Span => [starts[at], starts[at] + one.length]),
-    from,
-    to: from + now,
+    from: first,
+    to: last,
     html: blocks
-      .slice(from, from + now)
-      .map((one, at) => drawnOne(one, starts[from + at]))
+      .slice(first, last)
+      .map((one, at) => drawnOne(one, starts[first + at]))
       .join(""),
   });
 };
@@ -72,9 +75,12 @@ const wholeOf = (blocks: readonly string[]) => {
   return page;
 };
 
+const endOf = (blocks: readonly string[], at: number) => startsOf(blocks)[at] + blocks[at].length;
+
 const typed = (sheet: Element, blocks: string[], at: number, word: string) => {
+  const end = endOf(blocks, at);
   blocks[at] += word;
-  return patched(sheet, nearOf(blocks, at, 1), word.length);
+  return patched(sheet, nearOf(blocks, at, 1), word.length, [end, end]);
 };
 
 afterEach(() => {
@@ -146,7 +152,7 @@ describe("the places a key moves, written once the keys rest", () => {
     const blocks = ["uno", "dos", "tres"];
     const sheet = sheetOf(blocks);
     blocks[0] = "u";
-    patched(sheet, nearOf(blocks, 0, 1), -2);
+    patched(sheet, nearOf(blocks, 0, 1), -2, [1, 3]);
 
     expect(placeOf(sheet.lastElementChild)).toEqual([8, 12]);
   });
@@ -156,7 +162,7 @@ describe("the places a key moves, written once the keys rest", () => {
     const sheet = sheetOf(blocks);
     typed(sheet, blocks, 0, "x");
     blocks[0] = "uno";
-    patched(sheet, nearOf(blocks, 0, 1), -1);
+    patched(sheet, nearOf(blocks, 0, 1), -1, [3, 4]);
 
     expect(sheet.lastElementChild?.getAttribute("data-at")).toBe("10-14");
     expect(placeOf(sheet.lastElementChild)).toEqual([10, 14]);
@@ -222,24 +228,28 @@ describe("random keys against the whole drawing", () => {
       if (going === 0) at = pick(blocks.length);
       else if (going === 1) at = Math.min(at + 1, blocks.length - 1);
       const was = blocks[at];
+      const block = sheet.querySelectorAll(":scope > [data-at]")[at];
       const kind = pick(10);
       let laid: Element[] | null;
+      const start = startsOf(blocks)[at];
+      const end = start + was.length;
       if (kind < 6) {
         const word = "abcdefgh".slice(0, 1 + pick(kind < 2 ? 8 : 1));
         blocks[at] = was + word;
-        laid = patched(sheet, nearOf(blocks, at, 1), word.length);
+        laid = patched(sheet, nearOf(blocks, at, 1), word.length, [end, end]);
       } else if (kind < 8 && was.length > 3) {
         blocks[at] = was.slice(0, -1);
-        laid = patched(sheet, nearOf(blocks, at, 1), -1);
+        laid = patched(sheet, nearOf(blocks, at, 1), -1, [end - 1, end]);
       } else if (kind === 8 && was.length > 4) {
         const cut = 2 + pick(was.length - 3);
         blocks.splice(at, 1, was.slice(0, cut), `w${was.slice(cut)}`);
-        laid = patched(sheet, nearOf(blocks, at, 2), 3);
+        laid = patched(sheet, nearOf(blocks, at, 2), 3, [start + cut, start + cut]);
       } else if (at + 1 < blocks.length) {
         blocks.splice(at, 2, `${was}${blocks[at + 1]}`);
-        laid = patched(sheet, nearOf(blocks, at, 1), -2);
+        laid = patched(sheet, nearOf(blocks, at, 1), -2, [end, end + 2]);
       } else continue;
       expect(laid, `key ${key}`).not.toBeNull();
+      expect(laid?.[0] === block, `key ${key} keeps its paragraph`).toBe(block?.tagName === "P");
       expect(placesRead(sheet), `key ${key}`).toEqual(placesWritten(wholeOf(blocks)));
       if (pick(12) === 0) {
         placesSettled(document);

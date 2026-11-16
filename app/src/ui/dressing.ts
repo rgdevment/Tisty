@@ -613,6 +613,10 @@ export const datedSteps = (page: Document, dates?: Readonly<Record<string, strin
   const known = Object.entries(dates ?? {}).map(
     ([said, line]) => [bare(said), line, said.endsWith("…")] as const,
   );
+  if (known.length === 0) {
+    for (const one of page.querySelectorAll(".page li.task[title]")) one.removeAttribute("title");
+    return;
+  }
   for (const one of page.querySelectorAll<HTMLElement>(".page li.task")) {
     const own = one.cloneNode(true) as HTMLElement;
     for (const inner of own.querySelectorAll("ul, ol")) inner.remove();
@@ -620,7 +624,7 @@ export const datedSteps = (page: Document, dates?: Readonly<Record<string, strin
     const said = known.find(
       ([key, , cut]) => key && (words === key || (cut && words.startsWith(key))),
     )?.[1];
-    if (said) one.title = said;
-    else one.removeAttribute("title");
+    if (said && one.title !== said) one.title = said;
+    else if (!said) one.removeAttribute("title");
   }
 };
