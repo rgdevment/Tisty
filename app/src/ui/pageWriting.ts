@@ -37,7 +37,7 @@ export type PageWriting = {
   readonly unitActed: (top: Element, act: Act) => void;
   readonly begin: (at: number, seed: string, near: Element) => void;
   readonly hintWords: (at: [number, number], hint: HTMLElement) => void;
-  readonly heldAcross: (was: string, next: string) => void;
+  readonly heldAcross: (was: string, next: string, moving?: number) => void;
 };
 
 const SETTLED_MS = 300;

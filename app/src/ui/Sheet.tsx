@@ -322,7 +322,7 @@ export default function Sheet(props: Readonly<Props>) {
         recorded(turnsOn.current.turns, turnOf(before, next));
       const writer = pageWriter.current?.hands;
       const waiting = landing.current;
-      if (writer) writer.heldAcross(before, next);
+      if (writer) writer.heldAcross(before, next, moving);
       // A page not drawn yet cannot be looked at, so the place still waiting is carried into the new words.
       else
         landing.current =
