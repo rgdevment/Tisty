@@ -580,12 +580,218 @@ fn a_page_to_write_on_looks_as_the_page_to_read() {
 fn an_edit_draws_again_only_the_blocks_around_it() {
     let text = "# One\n\nTwo words.\n\nThree.\n\nFour.\n\nFive.";
     let at = text.find("words").unwrap_or(0);
-    let near = placed_near(&read(text), at, at + 5);
-    assert_eq!(near.spans.len(), 5);
+    let doc = read(text);
+    let near = placed_near(&doc, at, at + 5);
+    assert_eq!(near.count, 5);
     assert_eq!(near.drawn, 0..3);
+    let spans = doc.blocks().iter().map(|one| [one.at.start, one.at.end]);
+    assert_eq!(near.sum, spans_sum(spans.skip(3)));
     assert!(near.html.contains("Two words.") && near.html.contains("Three."));
     assert!(!near.html.contains("Four."));
     assert!(near.html.contains("data-src"));
+}
+
+#[test]
+fn the_page_and_the_core_sum_the_places_of_blocks_alike() {
+    assert_eq!(
+        spans_sum([[0, 4], [6, 13], [15, 21]]),
+        [0xc795_6160, 0x9bfc_67d1]
+    );
+    assert_eq!(spans_sum([]), [0x811c_9dc5, 0x9747_b28c]);
+}
+
+#[test]
+fn a_heading_drawn_again_keeps_the_name_the_whole_page_gives_it() {
+    let text = "# Uno\n\nA.\n\n# Uno\n\nB.\n\nC.\n\nD.\n";
+    let doc = read(text);
+    let at = text.rfind("# Uno").unwrap_or_default();
+    let near = placed_near(&doc, at + 2, at + 3);
+    let second = &crate::outline(&doc)[1].id;
+    assert!(
+        near.html.contains(&format!("id=\"{second}\"")),
+        "{}",
+        near.html
+    );
+    assert!(html_placed(&doc).contains(&format!("id=\"{second}\"")));
+    let words = placed_near(&doc, text.len() - 2, text.len() - 1);
+    assert!(!words.html.contains("<h1"));
+}
+
+#[test]
+fn the_page_and_the_core_sum_heading_names_alike() {
+    assert_eq!(names_sum(["uno", "título"]), [0x950d_02f5, 0x5078_96ce]);
+    assert_eq!(names_sum([]), [0x811c_9dc5, 0x9747_b28c]);
+}
+
+fn names_of(doc: &Doc) -> Vec<(usize, String)> {
+    crate::outline(doc)
+        .into_iter()
+        .map(|head| (head.at.start, head.id))
+        .collect()
+}
+
+fn drawn_names(html: &str) -> Vec<(usize, String)> {
+    let between = |tag: &str, from: &str| {
+        let at = tag.find(from)? + from.len();
+        Some(tag[at..].split('"').next()?.to_string())
+    };
+    html.split('<')
+        .filter(|tag| tag.starts_with('h') && tag[1..].starts_with(|c: char| c.is_ascii_digit()))
+        .filter_map(|tag| {
+            let tag = tag.split('>').next()?;
+            let id = between(tag, " id=\"")?;
+            let place = between(tag, "data-at=\"")?;
+            Some((place.split('-').next()?.parse().ok()?, id))
+        })
+        .collect()
+}
+
+// What the page shows after a key, as `patched` lays it, or nothing when it draws the whole page.
+fn shown_after(was: &Doc, at: Range<usize>, insert: &str) -> Option<(Doc, Vec<(usize, String)>)> {
+    let doc = crate::reread_edit(was.clone(), at.clone(), insert).ok()?;
+    let by = insert.len() as isize - at.len() as isize;
+    let near = placed_near(&doc, at.start, at.start + insert.len());
+    let old = was.blocks();
+    let after = near.count.checked_sub(near.drawn.end)?;
+    let kept = old.len().checked_sub(after)?;
+    if kept < near.drawn.start {
+        return None;
+    }
+    let edge = old
+        .get(near.drawn.start)
+        .map_or(was.text().len(), |one| one.at.start);
+    let moved = |place: usize| {
+        if place < edge {
+            place
+        } else {
+            place.wrapping_add_signed(by)
+        }
+    };
+    let standing = old[..near.drawn.start].iter().chain(&old[kept..]);
+    if spans_sum(standing.map(|one| [moved(one.at.start), moved(one.at.end)])) != near.sum {
+        return None;
+    }
+    let redrawn = old[near.drawn.start..kept]
+        .first()
+        .zip(old[near.drawn.start..kept].last())
+        .map_or(0..0, |(first, last)| first.at.start..last.at.end);
+    let (gone, stay): (Vec<_>, Vec<_>) = names_of(was)
+        .into_iter()
+        .partition(|(place, _)| redrawn.contains(place));
+    let stays = names_sum(stay.iter().map(|(_, name)| name.as_str()));
+    match near.heads {
+        Some(heads) if heads != stays => return None,
+        None if !gone.is_empty() => return None,
+        _ => {}
+    }
+    let mut shown: Vec<_> = stay
+        .into_iter()
+        .map(|(place, name)| (moved(place), name))
+        .chain(drawn_names(&near.html))
+        .collect();
+    shown.sort();
+    Some((doc, shown))
+}
+
+#[test]
+fn every_heading_named_is_drawn_where_the_page_looks_for_it() {
+    for text in [
+        include_str!("../../../app/src-tauri/resources/guide/es/muestra.md"),
+        include_str!("../../../app/src-tauri/resources/guide/en/sample.md"),
+        "# Uno\n\n> # Uno\n\n- # Uno\n\n::: note\n# Uno\n:::\n\nUno\n===\n\n#\n",
+    ] {
+        let doc = read(text);
+        let mut drawn = drawn_names(&html_placed(&doc));
+        drawn.sort();
+        assert_eq!(drawn, names_of(&doc));
+    }
+}
+
+#[test]
+fn a_heading_renamed_put_in_or_taken_out_never_leaves_a_stale_name() {
+    let twice = "# Uno\n\nA.\n\nB.\n\n# Uno\n\nC.\n";
+    let after = "A.\n\nB.\n\n# Uno\n\nC.\n";
+    for (text, at, insert) in [
+        (twice, 2..5, "Dos"),
+        (after, 0..0, "# Uno\n\n"),
+        (twice, 0..2, ""),
+        (twice, 0..7, ""),
+    ] {
+        let was = read(text);
+        if let Some((doc, shown)) = shown_after(&was, at.clone(), insert) {
+            assert_eq!(shown, names_of(&doc), "{at:?} → {insert:?}");
+        }
+    }
+    let alone = read("# Uno\n\nA.\n\nB.\n\n# Dos\n\nC.\n");
+    assert!(
+        shown_after(&alone, 5..5, "s").is_some(),
+        "a name no other heading shares is laid without the whole page"
+    );
+}
+
+#[test]
+fn every_key_leaves_the_page_with_the_names_the_whole_page_gives() {
+    const TEXTS: [&str; 2] = [
+        "# Uno\n\nA.\n\n# Uno\n\nB.\n\n## Uno 1\n\nC.\n\n# Dos\n\n> # Uno\n\nD.\n",
+        "Uno\n===\n\nA.\n\n- # Uno\n\nB.\n\n# Uno\n\nÁrbol\n---\n",
+    ];
+    const PIECES: [&str; 11] = [
+        "# ",
+        "Uno",
+        "Dos",
+        "\n\n",
+        "#",
+        "===",
+        "1",
+        " ",
+        "a",
+        "> ",
+        "# Uno\n\n",
+    ];
+    let mut state: u64 = 0x01D5_0F7E;
+    let mut next = |below: usize| {
+        state ^= state << 13;
+        state ^= state >> 7;
+        state ^= state << 17;
+        (state % below.max(1) as u64) as usize
+    };
+    let mut laid = 0;
+    let mut all = 0;
+    for text in TEXTS {
+        let mut was = read(text);
+        for _ in 0..300 {
+            let len = was.text().len();
+            let mut from = next(len + 1);
+            while !was.text().is_char_boundary(from) {
+                from -= 1;
+            }
+            let mut to = (from + next(8)).min(len);
+            while !was.text().is_char_boundary(to) {
+                to -= 1;
+            }
+            let insert = if next(3) == 0 {
+                ""
+            } else {
+                PIECES[next(PIECES.len())]
+            };
+            all += 1;
+            if let Some((doc, shown)) = shown_after(&was, from..to, insert) {
+                laid += 1;
+                assert_eq!(
+                    shown,
+                    names_of(&doc),
+                    "{from}..{to} → {insert:?} in {:?}",
+                    was.text()
+                );
+            }
+            let now = format!("{}{insert}{}", &was.text()[..from], &was.text()[to..]);
+            was = read(&now);
+        }
+    }
+    assert!(
+        laid * 2 > all,
+        "only {laid} of {all} keys were laid without the whole page"
+    );
 }
 
 #[test]

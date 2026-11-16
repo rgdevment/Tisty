@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { checkOf, type Sent, type Typed } from "../placing";
+import { checkAfter, checkOf, type Sent, type Typed } from "../placing";
 import { changeOf, inWholeChars } from "../ui/pageEdits";
 import { type PageWriting, writtenOn } from "../ui/pageWriting";
 
@@ -70,7 +70,8 @@ describe("a key sent to the core alone", () => {
     expect(now).toBe(BODY.replace("ñandú", "ñandúñ"));
     expect(sent.body).toBe(now);
     expect(sent.was).toEqual(checkOf(BODY));
-    expect(sent.now).toEqual(checkOf(now));
+    expect(sent.now).toEqual(checkAfter(checkOf(BODY), sent.edit));
+    expect(sent.now.bytes).toBe(BYTES.encode(now).length);
     expect(appliedInBytes(BODY, sent.edit)).toEqual([...BYTES.encode(now)]);
   });
 
@@ -79,7 +80,8 @@ describe("a key sent to the core alone", () => {
     const { sent } = await sentOn((writing) => writing.rewrite(next));
     expect(appliedInBytes(BODY, sent.edit)).toEqual([...BYTES.encode(next)]);
     expect(sent.edit.insert).toBe("😁");
-    expect(sent.now).toEqual(checkOf(next));
+    expect(sent.now).toEqual(checkAfter(checkOf(BODY), sent.edit));
+    expect(sent.now.bytes).toBe(BYTES.encode(next).length);
   });
 });
 

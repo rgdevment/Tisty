@@ -7,7 +7,7 @@ const COLUMN_CUT: usize = 60;
 
 pub fn read_file(text: &str) -> Doc {
     let mut doc = crate::reading::reading(text, crate::reading::FILE_PASSES);
-    let Doc { text, blocks } = &mut doc;
+    let Doc { text, blocks, .. } = &mut doc;
     settled(blocks, text);
     doc
 }
