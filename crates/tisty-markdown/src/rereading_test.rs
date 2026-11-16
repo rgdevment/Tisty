@@ -3,29 +3,29 @@ use std::ops::Range;
 use super::{CROSSING, Changed, plan, planned, reread, reread_edit};
 use crate::read;
 
-fn plain(said: &str) -> String {
+pub(crate) fn plain(said: &str) -> String {
     said.lines()
         .filter(|line| !CROSSING.iter().any(|one| line.contains(one)))
         .map(|line| format!("{line}\n"))
         .collect()
 }
 
-const SAMPLES: [&str; 4] = [
+pub(crate) const SAMPLES: [&str; 4] = [
     include_str!("../../../app/src-tauri/resources/guide/es/muestra.md"),
     include_str!("../../../app/src-tauri/resources/guide/en/sample.md"),
     "---\ntags: [rina]\n---\n\n# Uno\n\nTexto con #rina y `code`.\n\n- a\n- b\n\n  sigue\n\n> cita\n> [!NOTE]\n\n```rust\nfn x() {}\n```\n\n| a | b |\n|---|---|\n| 1 | 2 |\n\nTítulo\n===\n\nfin\n",
     "Uno\n\nDos\n\n<div>\nhtml\n</div>\n\n    indentado\n\n1. uno\n2. dos\n\n$$x$$\n\n- [ ] paso\n- [x] hecho\n\núltimo",
 ];
 
-const PIECES: [&str; 26] = [
+pub(crate) const PIECES: [&str; 26] = [
     "a", "ñ", " ", "\n", "\n\n", "#", "# ", "- ", "> ", "```", "```\n", "|", "| x |", "**", "*",
     "`", "---", "===", "<div>", "$", "[x](y)", "#tag", "~~~", "1. ", "    ", "\t",
 ];
 
-struct Steps(u64);
+pub(crate) struct Steps(pub(crate) u64);
 
 impl Steps {
-    fn next(&mut self, below: usize) -> usize {
+    pub(crate) fn next(&mut self, below: usize) -> usize {
         self.0 ^= self.0 << 13;
         self.0 ^= self.0 >> 7;
         self.0 ^= self.0 << 17;
@@ -33,7 +33,7 @@ impl Steps {
     }
 }
 
-fn boundary(text: &str, mut at: usize) -> usize {
+pub(crate) fn boundary(text: &str, mut at: usize) -> usize {
     while !text.is_char_boundary(at) {
         at -= 1;
     }

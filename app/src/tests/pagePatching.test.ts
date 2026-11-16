@@ -336,3 +336,307 @@ describe("a page written on, changed only where the core drew it again", () => {
     expect(fold.open).toBe(true);
   });
 });
+
+const childrenWatched = (sheet: Element) => {
+  const watch = new MutationObserver(() => {});
+  watch.observe(sheet, { childList: true });
+  return () => {
+    const said = watch.takeRecords();
+    watch.disconnect();
+    return said.flatMap((one) => [...one.addedNodes, ...one.removedNodes]);
+  };
+};
+
+describe("a block of words drawn again as the same kind, kept where it stands", () => {
+  it("takes the new words, places and attributes, and no child of the page comes or goes", () => {
+    const sheet = sheetOf();
+    const two = sheet.children[1] as Element;
+    two.classList.add("lately");
+    const moved = childrenWatched(sheet);
+    const laid = patched(
+      sheet,
+      near({
+        spans: [
+          [0, 4],
+          [6, 13],
+          [15, 21],
+        ],
+        from: 1,
+        to: 2,
+        html: '<p data-at="6-13" dir="auto"><span data-src="6-13">Two too.</span></p>',
+      }),
+      3,
+    );
+    expect(laid).toEqual([two]);
+    expect(moved()).toEqual([]);
+    expect(two.outerHTML).toBe(
+      '<p data-at="6-13" dir="auto"><span data-src="6-13">Two too.</span></p>',
+    );
+  });
+
+  it("lays a block drawn as another kind in place of the old one", () => {
+    const sheet = sheetOf();
+    const two = sheet.children[1] as Element;
+    const laid = patched(
+      sheet,
+      near({
+        spans: [
+          [0, 4],
+          [6, 12],
+          [14, 20],
+        ],
+        from: 1,
+        to: 2,
+        html: '<blockquote data-at="6-12"><p data-at="8-12"><span data-src="8-12">Two.</span></p></blockquote>',
+      }),
+      2,
+    );
+    expect(laid?.[0]).not.toBe(two);
+    expect(two.isConnected).toBe(false);
+    expect(Array.from(sheet.children, (one) => one.tagName)).toEqual(["P", "BLOCKQUOTE", "P"]);
+  });
+
+  it("keeps the first of two paragraphs a key splits and lays the second right after it", () => {
+    const sheet = sheetOf();
+    const two = sheet.children[1] as Element;
+    const moved = childrenWatched(sheet);
+    const laid = patched(
+      sheet,
+      near({
+        spans: [
+          [0, 4],
+          [6, 8],
+          [10, 12],
+          [14, 20],
+        ],
+        from: 1,
+        to: 3,
+        html:
+          '<p data-at="6-8"><span data-src="6-8">Tw</span></p>' +
+          '<p data-at="10-12"><span data-src="10-12">o.</span></p>',
+      }),
+      2,
+    );
+    expect(laid?.[0]).toBe(two);
+    expect(moved()).toEqual([laid?.[1]]);
+    expect(Array.from(sheet.children, (one) => one.textContent)).toEqual([
+      "One.",
+      "Tw",
+      "o.",
+      "Three.",
+    ]);
+  });
+
+  it("keeps the first of two paragraphs a key joins and takes the second out", () => {
+    const sheet = sheetOf();
+    const [, two, three] = Array.from(sheet.children);
+    const laid = patched(
+      sheet,
+      near({
+        spans: [
+          [0, 4],
+          [6, 16],
+        ],
+        from: 1,
+        to: 2,
+        html: '<p data-at="6-16"><span data-src="6-16">Two.Three.</span></p>',
+      }),
+      -2,
+    );
+    expect(laid).toEqual([two]);
+    expect(three?.isConnected).toBe(false);
+    expect(Array.from(sheet.children, (one) => one.textContent)).toEqual(["One.", "Two.Three."]);
+  });
+});
+
+describe("the blocks the core draws beside a key, left as they were when the key never reached them", () => {
+  it("lays only the block the key reached, and the one after reads its place moved", () => {
+    const sheet = sheetOf();
+    const [one, two, three] = Array.from(sheet.children);
+    const moved = childrenWatched(sheet);
+    const laid = patched(
+      sheet,
+      near({
+        spans: [
+          [0, 4],
+          [6, 13],
+          [15, 21],
+        ],
+        from: 0,
+        to: 3,
+        html:
+          '<p data-at="0-4"><span data-src="0-4">One.</span></p>' +
+          '<p data-at="6-13"><span data-src="6-13">Two too.</span></p>' +
+          '<p data-at="15-21"><span data-src="15-21">Three.</span></p>',
+      }),
+      3,
+      [10, 10],
+    );
+    expect(laid).toEqual([two]);
+    expect(moved()).toEqual([]);
+    expect(Array.from(sheet.children)).toEqual([one, two, three]);
+    expect(three?.getAttribute("data-at")).toBe("12-18");
+    expect(placeOf(three)).toEqual([15, 21]);
+    expect(placeOf(three?.querySelector("[data-src]"), "data-src")).toEqual([15, 21]);
+  });
+
+  it("lays the first block when a key writes as many letters over it, though its place held", () => {
+    const sheet = sheetOf();
+    const [one, two] = Array.from(sheet.children);
+    const laid = patched(
+      sheet,
+      near({
+        spans: [
+          [0, 4],
+          [6, 10],
+          [12, 18],
+        ],
+        from: 0,
+        to: 2,
+        html:
+          '<p data-at="0-4"><span data-src="0-4">Uno.</span></p>' +
+          '<p data-at="6-10"><span data-src="6-10">Two.</span></p>',
+      }),
+      0,
+      [0, 3],
+    );
+    expect(laid).toEqual([one]);
+    expect(one?.textContent).toBe("Uno.");
+    expect(sheet.children[1]).toBe(two);
+  });
+
+  it("lays nothing for a key between two blocks, and those after still move", () => {
+    const sheet = sheetOf();
+    const [one, two, three] = Array.from(sheet.children);
+    const laid = patched(
+      sheet,
+      near({
+        spans: [
+          [0, 4],
+          [7, 11],
+          [13, 19],
+        ],
+        from: 0,
+        to: 1,
+        html: '<p data-at="0-4"><span data-src="0-4">One.</span></p>',
+      }),
+      1,
+      [5, 5],
+    );
+    expect(laid).toEqual([]);
+    expect(Array.from(sheet.children)).toEqual([one, two, three]);
+    expect(placeOf(two)).toEqual([7, 11]);
+    expect(placeOf(three)).toEqual([13, 19]);
+  });
+
+  it("draws again a heading beside a key in a heading, as its name hangs on those before it", () => {
+    const sheet = headedSheet();
+    const first = sheet.children[0];
+    const laid = patched(
+      sheet,
+      near({
+        spans: [
+          [0, 5],
+          [7, 10],
+          [12, 14],
+          [16, 21],
+        ],
+        from: 0,
+        to: 2,
+        html:
+          '<h1 id="uno" data-at="0-5"><span data-src="2-5">Uno</span></h1>' +
+          '<p data-at="7-10"><span data-src="7-10">Ax.</span></p>',
+        heads: ["uno-1"],
+      }),
+      1,
+      [9, 9],
+    );
+    expect(laid).toHaveLength(2);
+    expect(laid?.[0]).toBe(first);
+  });
+
+  it("leaves a block with no heading beside a key in a heading as it was", () => {
+    const sheet = headedSheet();
+    const [, , b, last] = Array.from(sheet.children);
+    const laid = patched(
+      sheet,
+      near({
+        spans: [
+          [0, 5],
+          [7, 9],
+          [11, 13],
+          [15, 21],
+        ],
+        from: 2,
+        to: 4,
+        html:
+          '<p data-at="11-13"><span data-src="11-13">B.</span></p>' +
+          '<h1 id="unox" data-at="15-21"><span data-src="17-21">Unox</span></h1>',
+        heads: ["uno"],
+      }),
+      1,
+      [20, 20],
+    );
+    expect(laid).toEqual([last]);
+    expect(sheet.children[2]).toBe(b);
+    expect(last?.id).toBe("unox");
+  });
+});
+
+describe("what a key leaves and what it opens again", () => {
+  it("leaves a widget beside the key as it was instead of drawing the whole page", () => {
+    document.body.innerHTML =
+      '<article class="page"><p data-at="0-4"><span data-src="0-4">One.</span></p>' +
+      '<p data-at="6-10"><span data-src="6-10">Two.</span></p>' +
+      '<figure class="widget" data-at="12-18"></figure></article>';
+    const sheet = document.querySelector(".page") as Element;
+    const [, two, widget] = Array.from(sheet.children);
+    const laid = patched(
+      sheet,
+      near({
+        spans: [
+          [0, 4],
+          [6, 13],
+          [15, 21],
+        ],
+        from: 0,
+        to: 3,
+        html:
+          '<p data-at="0-4"><span data-src="0-4">One.</span></p>' +
+          '<p data-at="6-13"><span data-src="6-13">Two too.</span></p>' +
+          '<figure class="widget" data-at="15-21"></figure>',
+      }),
+      3,
+      [10, 10],
+    );
+    expect(laid).toEqual([two]);
+    expect(sheet.children[2]).toBe(widget);
+  });
+
+  it("keeps open the fold being written in, not a fold the key put before it", () => {
+    document.body.innerHTML =
+      '<article class="page"><p data-at="0-4"><span data-src="0-4">One.</span></p>' +
+      '<details data-at="6-30" open><summary>Fold</summary><p data-at="20-24"><span data-src="20-24">inne</span></p></details></article>';
+    const sheet = document.querySelector(".page") as Element;
+    patched(
+      sheet,
+      near({
+        spans: [
+          [0, 4],
+          [6, 20],
+          [22, 46],
+        ],
+        from: 1,
+        to: 3,
+        html:
+          '<details data-at="6-20"><summary>New</summary></details>' +
+          '<details data-at="22-46"><summary>Fold</summary><p data-at="36-40"><span data-src="36-40">inne</span></p></details>',
+      }),
+      16,
+      [6, 6],
+    );
+    const [added, written] = Array.from(sheet.querySelectorAll("details"));
+    expect(added?.open).toBe(false);
+    expect(written?.open).toBe(true);
+  });
+});

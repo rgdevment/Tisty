@@ -542,3 +542,7 @@ fn cleaned(html: &str, aligned: bool) -> String {
     #[cfg(not(feature = "html"))]
     format!("<pre>{}</pre>", escaped(html))
 }
+
+#[cfg(test)]
+#[path = "page_test.rs"]
+mod tests;
