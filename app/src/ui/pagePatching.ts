@@ -1,5 +1,5 @@
 import { namesSum, type PlacedNear, summed } from "../placing";
-import { keyMoved, placeOf } from "./pagePlaces";
+import { keyMoved, placeCopied, placeOf } from "./pagePlaces";
 
 // What the page lends or links in a block is laid by its own dressing, which only a whole drawing runs.
 const WHOLE_ONLY = "code.language-widget, figure.widget, .doc-card";
@@ -82,6 +82,24 @@ export const keptInPlace = (one: Element) => one.matches(WORDS);
 const sameKind = (old: Element | undefined, fresh: Element): old is Element =>
   old !== undefined && old.tagName === fresh.tagName && keptInPlace(old);
 
+// A player drawn again would stop what it plays, so the one already drawn for the same file and name is kept.
+const playersKept = (old: Element) => {
+  const players = Array.from(old.querySelectorAll<HTMLElement>(".media[data-file]"));
+  return () => {
+    for (const img of old.querySelectorAll("img[src]")) {
+      const at = players.findIndex(
+        (one) =>
+          one.dataset.file === img.getAttribute("src") &&
+          one.dataset.name === (img.getAttribute("alt") ?? ""),
+      );
+      if (at < 0) continue;
+      const [player] = players.splice(at, 1);
+      placeCopied(img, player, "data-src", "data-placed");
+      img.replaceWith(player);
+    }
+  };
+};
+
 export const takenOver = (old: Element, fresh: Element) => {
   for (const name of old.getAttributeNames())
     if (!fresh.hasAttribute(name)) old.removeAttribute(name);
@@ -89,7 +107,9 @@ export const takenOver = (old: Element, fresh: Element) => {
     const value = fresh.getAttribute(name) ?? "";
     if (old.getAttribute(name) !== value) old.setAttribute(name, value);
   }
+  const kept = playersKept(old);
   old.replaceChildren(...fresh.childNodes);
+  kept();
 };
 
 // The core draws a block on each side of the key too; one whose place held and the key never reached is as it was.

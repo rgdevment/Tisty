@@ -96,6 +96,8 @@ const played = (
   const name = img.getAttribute("alt") || host.named(at);
   const box = page.createElement("span");
   box.className = `media is-${as}`;
+  box.dataset.file = at;
+  box.dataset.name = img.getAttribute("alt") ?? "";
   const player = page.createElement(as);
   player.controls = true;
   player.preload = as === "video" ? "metadata" : "none";
