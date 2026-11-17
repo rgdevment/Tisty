@@ -633,8 +633,9 @@ export default function Docs({
     if (anchor && tongue.lang) chooseTongue(anchor, tongue.lang);
     landAt(twinOf(known, own, tongue).file, standingHead());
   };
-  const toDoc = (file: string, heading?: string) => {
-    if (!heading) return onDoc?.(file);
+  const toDoc = (named: string, heading?: string) => {
+    if (!heading) return onDoc?.(named);
+    const file = known.find((one) => one.id === named)?.file ?? named;
     if (file === open?.file) return heads.find((one) => one.id === heading)?.go();
     landAt(file, heading);
   };

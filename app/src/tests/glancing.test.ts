@@ -60,6 +60,27 @@ describe("a glance at the document a link leads to", () => {
   });
 });
 
+describe("a glance asked for twice", () => {
+  it("draws only the answer to the latest ask, never one left from before", async () => {
+    const at = page(`<a href="tisty:doc/dev_a-0002">a</a>`);
+    const answers: ((said: Glance) => void)[] = [];
+    glancing(at, () => new Promise<Glance>((done) => answers.push(done)));
+    const link = at.querySelector("a") as HTMLAnchorElement;
+
+    await rest(link);
+    link.dispatchEvent(new MouseEvent("mouseout", { bubbles: true, relatedTarget: at.body }));
+    await vi.advanceTimersByTimeAsync(300);
+    await rest(link);
+    answers[0]({ ...SAID, title: "Viejo" });
+    answers[1](SAID);
+    await vi.advanceTimersByTimeAsync(0);
+
+    expect(Array.from(at.querySelectorAll(".glance-title"), (one) => one.textContent)).toEqual([
+      "Viajes › Hoteles",
+    ]);
+  });
+});
+
 describe("following a link to a heading of another document", () => {
   it("names the document and the heading apart", () => {
     const at = page(

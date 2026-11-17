@@ -9,8 +9,9 @@ import { docLink } from "../markdown";
 import { shown } from "../tongues";
 
 const LISTED = 8;
+const HEADS_LAST = 30_000;
 
-type Held = { wrote?: string | null; heads: Heading[] | null };
+type Held = { wrote?: string | null; at: number; heads: Heading[] | null };
 
 const linkOf = (doc: Filed, docs: Filed[]): Linkable => ({
   key: doc.file,
@@ -50,18 +51,22 @@ export const useLinkable = (known: Filed[], open: string | undefined) => {
         docsAsked(docs, asked, 1)[0];
       if (!doc) return [];
       const had = held.current.get(doc.file);
-      if (had && had.wrote === doc.wrote) {
+      const fresh =
+        had && had.wrote === doc.wrote && (!had.heads || Date.now() - had.at < HEADS_LAST);
+      if (had && fresh) {
         return (had.heads ?? [])
           .filter((one) => matched(one.title, head))
           .map((one) => headOf(doc, one));
       }
-      held.current.set(doc.file, { wrote: doc.wrote, heads: null });
+      const keep = (heads: Heading[] | null) =>
+        held.current.set(doc.file, { wrote: doc.wrote, at: Date.now(), heads });
+      keep(null);
       docHeads(doc.file)
         .then((heads) => {
-          held.current.set(doc.file, { wrote: doc.wrote, heads });
+          keep(heads);
           ready();
         })
-        .catch(() => held.current.set(doc.file, { wrote: doc.wrote, heads: [] }));
+        .catch(() => keep([]));
       return [];
     };
     return { linkable, headsOf };

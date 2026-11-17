@@ -1,6 +1,6 @@
 import { diagramShot, spanned, type TableAct } from "tisty-editor/read";
 import { t } from "../locales";
-import { DOC, TASK } from "../markdown";
+import { docAimed, TASK } from "../markdown";
 import { type DayWent, dayPressed, dayTouched } from "./diaryPaging";
 import type { Choice } from "./Menu";
 import { placeOf } from "./pagePlaces";
@@ -112,10 +112,8 @@ const linked = (link: HTMLAnchorElement): Went => {
   const task = link.dataset.task;
   if (task) return { kind: "task", id: task };
   const href = (link.getAttribute("href") ?? "").trim();
-  if (href.startsWith(DOC) && href.length > DOC.length) {
-    const [id, at] = href.slice(DOC.length).split("#");
-    if (id) return at ? { kind: "doc", id, at } : { kind: "doc", id };
-  }
+  const aimed = docAimed(href);
+  if (aimed?.file) return { kind: "doc", id: aimed.file, at: aimed.heading };
   if (href.startsWith(TASK) && href.length > TASK.length)
     return { kind: "task", id: href.slice(TASK.length) };
   if (/^(https?:\/\/|mailto:)\S+$/i.test(href)) return { kind: "web", href };
