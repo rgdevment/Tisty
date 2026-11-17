@@ -114,7 +114,8 @@ export const sheeting = (page: Document, sheet: () => Sheet | undefined) => {
   let laidAt = -1;
   const lay = () => {
     const now = sheet();
-    const held = body ? heldInSight(page, body) : undefined;
+    const held =
+      body && now && root.classList.contains("sheeted") ? heldInSight(page, body) : undefined;
     root.classList.toggle("sheeted", Boolean(now));
     laidAt = -1;
     if (!now) {

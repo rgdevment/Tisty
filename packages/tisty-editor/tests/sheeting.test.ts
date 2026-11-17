@@ -148,16 +148,36 @@ describe("sheets laid on the page", () => {
       ["p", 120, 40],
     ]);
     const root = document.documentElement;
-    root.classList.remove("sheeted");
+    root.classList.add("sheeted");
     const box = (top: number, height: number) => ({ top, bottom: top + height }) as DOMRect;
     sheet.children[0].getBoundingClientRect = () => box(-100, 40);
     // The browser's anchoring takes the fills put back for a move and scrolls past the break.
-    sheet.children[1].getBoundingClientRect = () =>
-      box(root.classList.contains("sheeted") ? -552 : 200, 2);
+    const rule = sheet.children[1] as HTMLElement;
+    rule.getBoundingClientRect = () => box(rule.style.getPropertyValue("--fill") ? -552 : 200, 2);
     const scrolled = vi.spyOn(window, "scrollBy").mockImplementation(() => {});
     const sheets = sheeting(document, () => ({ wide: 794, tall: 140, x: 10, y: 10 }));
     expect(scrolled).toHaveBeenCalledWith(0, -752);
     sheets.stop();
     scrolled.mockRestore();
+    root.classList.remove("sheeted");
+  });
+
+  it("leaves the view to the page when sheets are first switched on", () => {
+    const sheet = laid([
+      ["p", 10, 40],
+      ["hr", 60, 2],
+      ["p", 120, 40],
+    ]);
+    const root = document.documentElement;
+    root.classList.remove("sheeted");
+    const box = (top: number, height: number) => ({ top, bottom: top + height }) as DOMRect;
+    sheet.children[0].getBoundingClientRect = () =>
+      box(root.classList.contains("sheeted") ? 96 : 0, 40);
+    const scrolled = vi.spyOn(window, "scrollBy").mockImplementation(() => {});
+    const sheets = sheeting(document, () => ({ wide: 794, tall: 140, x: 10, y: 10 }));
+    expect(scrolled).not.toHaveBeenCalled();
+    sheets.stop();
+    scrolled.mockRestore();
+    root.classList.remove("sheeted");
   });
 });
