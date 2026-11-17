@@ -1265,6 +1265,15 @@ describe("blocks chosen with Escape", () => {
     expect(said[said.length - 1]).toBe("# Hola\n\nUno **dos** tres\n\n- segundo\n- primero\n");
   });
 
+  it("keeps the first item chosen when Alt+↑ has nowhere to take it", () => {
+    const said = writer();
+    caretIn("primero", 1);
+    press("Escape");
+    press("ArrowUp", { altKey: true });
+    expect(said).toEqual([]);
+    expect(chosenNow()).toEqual(["li"]);
+  });
+
   it("takes a chosen item in a quote away with its quote marks", () => {
     const said = writer("> - uno\n> - dos\n");
     pageOf(

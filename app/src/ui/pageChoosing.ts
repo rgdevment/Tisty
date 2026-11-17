@@ -173,8 +173,9 @@ export const choosingOn = (writer: Writer, caret: Caret, laying: Laying, beside:
     }
     if (item && arrow && !event.shiftKey) {
       const swapped = swappedItem(hands.text(), item, arrow);
+      if (!swapped) return true;
       letGo(false);
-      if (swapped) beside.replaced(swapped);
+      beside.replaced(swapped);
       return true;
     }
     if (item && arrow) widened();
