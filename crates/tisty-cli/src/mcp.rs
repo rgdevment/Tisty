@@ -12,6 +12,7 @@ mod looking;
 mod mending;
 mod mistaken;
 mod moving;
+mod open_task;
 mod papers;
 mod placing;
 mod pressing;
@@ -82,6 +83,7 @@ fn served(paths: &Paths, tally: &mut Tally) -> anyhow::Result<ExitCode> {
     let mut stdin = std::io::stdin().lock();
     let mut born = handing::Born::now();
     let mut greeting: Option<String> = None;
+    let mut open = open_task::OpenTask::default();
 
     // Bytes, not lines: one stray non-UTF-8 byte would end the session and every request behind.
     let mut raw = Vec::new();
@@ -97,7 +99,7 @@ fn served(paths: &Paths, tally: &mut Tally) -> anyhow::Result<ExitCode> {
         if handing::greets(&line) {
             greeting = Some(line.clone());
         }
-        let Some(said) = answer(paths, &line, tally) else {
+        let Some(said) = answer(paths, &line, tally, &mut open) else {
             continue;
         };
         let mut out = std::io::stdout().lock();
@@ -109,7 +111,12 @@ fn served(paths: &Paths, tally: &mut Tally) -> anyhow::Result<ExitCode> {
 
 /// What the client called itself, kept for the session — one process serves one client — so
 /// every event written from here says which hand spoke. Nothing decides on it.
-fn answer(paths: &Paths, line: &str, tally: &mut Tally) -> Option<String> {
+fn answer(
+    paths: &Paths,
+    line: &str,
+    tally: &mut Tally,
+    open: &mut open_task::OpenTask,
+) -> Option<String> {
     let asked: Value = match serde_json::from_str(line) {
         Ok(asked) => asked,
         Err(why) => {
@@ -161,11 +168,15 @@ fn answer(paths: &Paths, line: &str, tally: &mut Tally) -> Option<String> {
         "tools/call" => {
             tally.calls += 1;
             let name = params.get("name").and_then(Value::as_str).unwrap_or("");
-            let (stage, done) = match vetted(name, &params) {
-                Ok((args, taken)) => ("tool", called(paths, name, args, taken.as_ref())),
-                Err(refused) => ("arguments", Err(refused)),
+            let (stage, done, aimed) = match vetted(name, &params) {
+                Ok((args, taken)) => {
+                    let aimed = open_task::aimed(&args);
+                    ("tool", called(paths, name, args, taken.as_ref()), aimed)
+                }
+                Err(refused) => ("arguments", Err(refused), None),
             };
-            if done.is_ok() && !only_reads(name, &params) {
+            let writes = !only_reads(name, &params);
+            if done.is_ok() && writes {
                 tisty_core::stirring::stir(paths);
             }
             if done.is_err() {
@@ -179,7 +190,11 @@ fn answer(paths: &Paths, line: &str, tally: &mut Tally) -> Option<String> {
                         "the door answered a tool",
                         &[("tool", Fact::Id(named_tool(&params)))],
                     );
-                    reply(id, said)
+                    let touch = open_task::touch(name, aimed, writes, &said);
+                    reply(
+                        id,
+                        open.answered(paths, touch, said, jiff::Timestamp::now()),
+                    )
                 }
                 Err(Refused::Protocol(code, why)) => {
                     witness::warn(

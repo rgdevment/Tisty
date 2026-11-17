@@ -18,6 +18,7 @@ const ipc = vi.hoisted(() => ({
 const serving = vi.hoisted(() => ({
   on: false,
   called: undefined as string | undefined,
+  asks: true,
 }));
 
 const installed = vi.hoisted(() => ({
@@ -140,7 +141,7 @@ beforeEach(() => {
   asked.folder = null;
   asked.file = null;
   asked.sure = false;
-  Object.assign(serving, { on: false, called: undefined });
+  Object.assign(serving, { on: false, called: undefined, asks: true });
   installed.seen = [
     {
       id: "claude-code",
@@ -229,6 +230,9 @@ beforeEach(() => {
         });
         return Promise.resolve({ ...serving });
       }
+      case "agent_asks":
+        serving.asks = Boolean(ipc.calls[ipc.calls.length - 1]?.args.on);
+        return Promise.resolve({ ...serving });
       case "sync_now":
         return Promise.resolve({ carried: "came", undecided: [] });
       case "joining":
@@ -3609,6 +3613,19 @@ describe("letting an assistant file work here", () => {
     expect(sent("agent_turn")[0].args.on).toBe(true);
     expect(await screen.findByText(/An assistant can file work here/i)).toBeTruthy();
     expect(screen.getByText(/signs the log as «espino 3»/i)).toBeTruthy();
+  });
+
+  it("asks the assistant to keep its task up to date unless the person turns it off", async () => {
+    await openTab();
+
+    const asking = await screen.findByRole("switch", { name: /keep its task up to date/i });
+    expect(asking.getAttribute("aria-checked")).toBe("true");
+
+    await userEvent.click(asking);
+
+    await waitFor(() => expect(sent("agent_asks").length).toBe(1));
+    expect(sent("agent_asks")[0].args.on).toBe(false);
+    await waitFor(() => expect(asking.getAttribute("aria-checked")).toBe("false"));
   });
 
   it("lists the assistants on this computer, with the file each one reads", async () => {
