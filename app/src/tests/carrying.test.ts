@@ -263,6 +263,53 @@ describe("carrying on its own", () => {
     seen.mockRestore();
   });
 
+  it("answers it with one round too when the focus comes before it is seen", async () => {
+    let shown = "hidden";
+    const seen = vi
+      .spyOn(document, "visibilityState", "get")
+      .mockImplementation(() => shown as DocumentVisibilityState);
+    carried = carrying(() => {});
+    await settle();
+    const before = sent("sync_now").length;
+    let release: (answer: string) => void = () => {};
+    ipc.answer = (cmd) =>
+      cmd === "sync_state"
+        ? Promise.resolve({ ...state })
+        : new Promise((resolve) => {
+            release = resolve;
+          });
+
+    shown = "visible";
+    window.dispatchEvent(new Event("focus"));
+    document.dispatchEvent(new Event("visibilitychange"));
+    await settle();
+    release("same");
+    await settle();
+
+    expect(sent("sync_now").length).toBe(before + 1);
+    seen.mockRestore();
+  });
+
+  it("takes the first word from its provider after starting out of sight, when no glance set the mark", async () => {
+    const seen = vi.spyOn(document, "visibilityState", "get").mockReturnValue("hidden");
+    let mark = "one";
+    ipc.answer = (cmd) => {
+      if (cmd === "sync_state") return Promise.resolve({ ...state });
+      if (cmd === "folder_astir") return Promise.resolve(mark);
+      return Promise.resolve({ carried: "came", undecided: [] });
+    };
+    carried = carrying(() => {});
+    await settle();
+    const before = sent("sync_now").length;
+
+    mark = "two";
+    bus.heard.get("told")?.();
+    await settle();
+
+    expect(sent("sync_now")).toHaveLength(before + 1);
+    seen.mockRestore();
+  });
+
   it("still pulls for a focus once the round that brought the window back is over", async () => {
     let shown = "hidden";
     const seen = vi

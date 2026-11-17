@@ -141,13 +141,14 @@ export function carrying(
 
   let astir: string | undefined;
   // The provider also says when this machine's own upload landed, so its word is weighed like a glance.
-  const stirred = () => {
+  const stirred = (heard = false) => {
     if (gone) return;
     folderAstir()
       .then((mark) => {
         if (gone) return undefined;
         const was = astir;
-        if (was === undefined) {
+        // A page that starts out of sight never glanced, so the provider's word finds no mark and is taken.
+        if (was === undefined && !heard) {
           astir = mark;
           return undefined;
         }
@@ -176,24 +177,23 @@ export function carrying(
   };
 
   let cameBack = 0;
-  const seen = () => {
-    if (document.visibilityState !== "visible") return;
+  // A window coming back is seen again and focused, in either order, and the round the first began serves both.
+  const back = () => {
+    if (running && cameBack === round) return;
     const before = round;
     void pull();
     if (round !== before) cameBack = round;
   };
 
-  // A window coming back is seen again and then focused, and the round the first began serves both.
-  const focused = () => {
-    if (running && cameBack === round) return;
-    void pull();
+  const seen = () => {
+    if (document.visibilityState === "visible") back();
   };
 
   void settings(() => void pull());
 
-  window.addEventListener("focus", focused);
+  window.addEventListener("focus", back);
   document.addEventListener("visibilitychange", seen);
-  const told = listen("told", stirred);
+  const told = listen("told", () => stirred(true));
   const beat = setInterval(both, EVERY_SO_OFTEN);
   const glancing = setInterval(glance, A_GLANCE);
 
@@ -217,7 +217,7 @@ export function carrying(
       clearInterval(beat);
       clearInterval(glancing);
       void told.then((stop) => stop());
-      window.removeEventListener("focus", focused);
+      window.removeEventListener("focus", back);
       document.removeEventListener("visibilitychange", seen);
     },
   };
