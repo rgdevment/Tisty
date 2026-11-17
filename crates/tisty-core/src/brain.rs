@@ -8,10 +8,14 @@ use crate::{
     witness::{self, Fact, channel},
 };
 
+mod card;
 mod linked;
 mod nodes;
+mod own;
 
-const SCHEMA: i64 = 3;
+pub use card::{Around, Card, DocFacts, Facts, Near, Section, TaskFacts, Tongue};
+
+const SCHEMA: i64 = 4;
 const FILE: &str = "brain.db";
 const WAITS_FOR_OTHERS: std::time::Duration = std::time::Duration::from_secs(5);
 const PAGES_WORTH_COMPACTING: i64 = 256;
@@ -37,12 +41,16 @@ const TABLES: &str = "CREATE TABLE IF NOT EXISTS node(
         said TEXT NOT NULL);
     CREATE TABLE IF NOT EXISTS note(
         id TEXT PRIMARY KEY,
-        said TEXT NOT NULL);";
+        said TEXT NOT NULL);
+    CREATE TABLE IF NOT EXISTS zone(
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL);";
 
 const DROPPED: &str = "DROP TABLE IF EXISTS node;
     DROP TABLE IF EXISTS edge;
     DROP TABLE IF EXISTS card;
     DROP TABLE IF EXISTS note;
+    DROP TABLE IF EXISTS zone;
     DELETE FROM meta;";
 
 // An edge is what its source wrote, so one aimed at a node that left stays for when it comes back.
@@ -195,11 +203,12 @@ impl Brain {
         let wanted = nodes::nodes(state, docs, &ground);
         // Bodies are read before the lock is taken, so nobody waits on the disk.
         let before = stamps(&self.db)?;
-        let mut ties: BTreeMap<&str, linked::Ties> = wanted
+        let mut fresh: BTreeMap<&str, own::Fresh> = wanted
             .iter()
             .filter(|(id, node)| before.get(*id) != Some(&node.stamp))
-            .map(|(id, node)| (id.as_str(), ground.ties(id, &node.holder)))
+            .map(|(id, node)| (id.as_str(), own::fresh(state, &ground, id, node)))
             .collect();
+        let zones = nodes::zones(state);
         let tx = self
             .db
             .transaction_with_behavior(TransactionBehavior::Immediate)?;
@@ -209,6 +218,8 @@ impl Brain {
             let mut put = tx.prepare("INSERT OR REPLACE INTO node VALUES (?, ?, ?, ?, ?, ?, ?)")?;
             let mut untied = tx.prepare("DELETE FROM edge WHERE source = ?")?;
             let mut tie = tx.prepare("INSERT OR IGNORE INTO edge VALUES (?, ?, ?)")?;
+            let mut carded = tx.prepare("INSERT OR REPLACE INTO card VALUES (?, ?, ?)")?;
+            let mut uncarded = tx.prepare("DELETE FROM card WHERE id = ?")?;
             for (id, node) in &wanted {
                 if held.get(id) == Some(&node.stamp) {
                     continue;
@@ -223,13 +234,24 @@ impl Brain {
                     node.stamp
                 ])?;
                 untied.execute([id])?;
-                let own = ties
+                let own = fresh
                     .remove(id.as_str())
-                    .unwrap_or_else(|| ground.ties(id, &node.holder));
-                for (target, kind) in own {
+                    .unwrap_or_else(|| own::fresh(state, &ground, id, node));
+                for (target, kind) in own.ties {
                     tie.execute(rusqlite::params![id, target, kind.as_str()])?;
                 }
+                match own.said {
+                    Some(said) => carded.execute(rusqlite::params![id, node.stamp, said])?,
+                    None => uncarded.execute([id])?,
+                };
                 written += 1;
+            }
+        }
+        if zones_of(&tx)? != zones {
+            tx.execute("DELETE FROM zone", [])?;
+            let mut named = tx.prepare("INSERT INTO zone VALUES (?, ?)")?;
+            for (id, name) in &zones {
+                named.execute([id, name])?;
             }
         }
         let gone: Vec<&String> = held
@@ -324,6 +346,12 @@ fn seen_on_disk(paths: &Paths, docs: &Docs) -> String {
 
 fn stamps(db: &Connection) -> rusqlite::Result<BTreeMap<String, String>> {
     let mut asked = db.prepare("SELECT id, stamp FROM node")?;
+    let rows = asked.query_map([], |row| Ok((row.get(0)?, row.get(1)?)))?;
+    rows.collect()
+}
+
+fn zones_of(db: &Connection) -> rusqlite::Result<BTreeMap<String, String>> {
+    let mut asked = db.prepare("SELECT id, name FROM zone")?;
     let rows = asked.query_map([], |row| Ok((row.get(0)?, row.get(1)?)))?;
     rows.collect()
 }
