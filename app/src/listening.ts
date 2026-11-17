@@ -55,14 +55,21 @@ export function useListening({
 }: Hands) {
   const wasAwry = useRef<string | null>(null);
   useEffect(() => {
+    let asking = false;
+    // A window coming back is seen again and focused at once, and one asking answers both.
     const again = () => {
+      if (asking) return;
+      asking = true;
       latest.current();
       lookPapers();
       doorDue()
         .then((due) => {
           if (due?.why === "knocked") setOffering(due);
         })
-        .catch(() => {});
+        .catch(() => {})
+        .finally(() => {
+          asking = false;
+        });
     };
     const shownAgain = () => {
       if (document.visibilityState === "visible") again();
