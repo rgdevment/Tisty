@@ -98,6 +98,7 @@ const leaves = (): Record<string, Paper> => {
 
 const ASIDE = 344;
 const READABLE = 520;
+const roomFor = (across: number) => Math.max(DOC_ASIDE_FROM, across + 48 + ASIDE);
 
 const NONE: string[] = [];
 
@@ -691,16 +692,17 @@ export default function Docs({
   const sheets = Boolean(open) && laid.sheets;
   const landscape = Boolean(open) && laid.landscape;
   const across = acrossOf(leaf, landscape);
-  const need = sheets ? Math.max(DOC_ASIDE_FROM, across + 48 + ASIDE) : DOC_ASIDE_FROM;
+  const need = sheets ? roomFor(across) : DOC_ASIDE_FROM;
   const fits = spare >= need;
   const reachable = room - RAIL - GUTTER >= need;
-  const crossed = useRef(reachable);
+  const windowed = room - RAIL - GUTTER >= DOC_ASIDE_FROM;
+  const crossed = useRef(windowed);
   // Only the window decides when a closed column may come back: the sidebar moves with the column itself.
   useEffect(() => {
-    if (crossed.current === reachable) return;
-    crossed.current = reachable;
+    if (crossed.current === windowed) return;
+    crossed.current = windowed;
     setShown(null);
-  }, [reachable]);
+  }, [windowed]);
 
   // A sheet keeps its paper's width, so the column never covers it while folding the sidebar makes room.
   const beside =
@@ -875,7 +877,7 @@ export default function Docs({
 
   // Paper asked for from the column keeps the column, folding the sidebar when the paper needs its room.
   const keptBeside = (paper: Paper, turned: boolean) => {
-    const wants = Math.max(DOC_ASIDE_FROM, acrossOf(paper, turned) + 48 + ASIDE);
+    const wants = roomFor(acrossOf(paper, turned));
     if (spare < wants && room - RAIL - GUTTER >= wants) fold(true);
   };
 
@@ -923,7 +925,7 @@ export default function Docs({
         <button
           type="button"
           onClick={() => {
-            if (sheets && !fits && reachable) fold(true);
+            if (sheets) keptBeside(leaf, landscape);
             setShown(true);
           }}
           title={t("beside")}

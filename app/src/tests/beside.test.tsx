@@ -294,6 +294,17 @@ describe("the column beside a document", () => {
     act(() => unwiden());
   });
 
+  it("stays up when sheets are switched on from a column asked for on a narrow window", async () => {
+    widen(1200);
+    show();
+    await userEvent.click(await screen.findByRole("button", { name: /About the document/ }));
+    const column = await screen.findByRole("complementary", { name: "About this document" });
+    await userEvent.click(within(column).getByRole("button", { name: t("sheetsShown") }));
+
+    await waitFor(() => expect(store.sent).toContain("doc_write"));
+    expect(await screen.findByRole("complementary", { name: "About this document" })).toBeTruthy();
+  });
+
   it("keeps the handle out of sight while the column is up", async () => {
     show();
     await screen.findByRole("complementary", { name: "About this document" });
