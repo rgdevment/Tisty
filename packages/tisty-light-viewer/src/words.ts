@@ -25,6 +25,7 @@ const EN = {
   close: "Close",
   sidePanel: "Contents and details",
   empty: "This file is empty.",
+  emptyDoc: "This document is empty.",
   tooBig:
     "This document is too heavy to be only text: it is over 1 MB, about a million characters. Split it in two or try another editor.",
   editTooBig:
@@ -34,6 +35,7 @@ const EN = {
   editAfterWelcome:
     "Finish setting up Tisty in its window first. Your copy is made as soon as you do.",
   unreadable: "This file could not be read. It may have been moved or be in use.",
+  unreadableDoc: "This document could not be read.",
   retry: "Try again",
   back: "Back",
   farPictures: "There are pictures from the internet not shown ({name}). Show them",
@@ -70,6 +72,7 @@ const ES: Record<Own, string> = {
   close: "Cerrar",
   sidePanel: "Índice y detalles",
   empty: "Este archivo está vacío.",
+  emptyDoc: "Este documento está vacío.",
   tooBig:
     "Este documento pesa demasiado para ser solo texto: son más de 1 MB, cerca de un millón de caracteres. Divídelo en dos o intenta con otro editor.",
   editTooBig:
@@ -79,6 +82,7 @@ const ES: Record<Own, string> = {
   editAfterWelcome:
     "Primero termina de configurar Tisty en su ventana. Tu copia se crea en cuanto termines.",
   unreadable: "No se pudo leer este archivo. Puede que se haya movido o esté en uso.",
+  unreadableDoc: "No se pudo leer este documento.",
   retry: "Intentar de nuevo",
   back: "Volver",
   farPictures: "Hay imágenes de internet sin mostrar ({name}). Mostrarlas",
@@ -219,7 +223,7 @@ export type Words = {
   readonly sayToSheet: Say;
 };
 
-const filled = (text: string, name = "", other = ""): string =>
+export const filled = (text: string, name = "", other = ""): string =>
   text.replaceAll("{name}", () => name).replaceAll("{other}", () => other);
 
 export const wordsFor = (asked: string | null): Words => {

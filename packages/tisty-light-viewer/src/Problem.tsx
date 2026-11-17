@@ -3,13 +3,15 @@ import { type Opened, reveal } from "./host";
 import type { Words } from "./words";
 
 const saying = (words: Words, opened: Opened): string => {
-  if (opened.kind === "drawn") return words.say("empty");
-  return words.say(opened.refusal.code === "documentTooBig" ? "tooBig" : "unreadable");
+  if (opened.kind === "drawn") return words.say(opened.own ? "emptyDoc" : "empty");
+  if (opened.refusal.code === "documentTooBig") return words.say("tooBig");
+  return words.say(opened.own ? "unreadableDoc" : "unreadable");
 };
 
 export default function Problem(props: {
   readonly words: Words;
   readonly opened: Opened;
+  readonly revealed: string | null;
   readonly onRetry: () => void;
   readonly onEdit: () => void;
   readonly fail: (problem: unknown) => void;
@@ -27,13 +29,17 @@ export default function Problem(props: {
             </button>
           }
         >
-          <button
-            class="action"
-            type="button"
-            onClick={() => void reveal(props.opened.path).catch(props.fail)}
-          >
-            {say("revealIt")}
-          </button>
+          <Show when={props.revealed}>
+            {(path) => (
+              <button
+                class="action"
+                type="button"
+                onClick={() => void reveal(path()).catch(props.fail)}
+              >
+                {say("revealIt")}
+              </button>
+            )}
+          </Show>
         </Show>
         <button class="action" type="button" onClick={props.onRetry}>
           {say("retry")}

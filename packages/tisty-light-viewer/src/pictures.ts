@@ -24,10 +24,14 @@ const whenNear = (pictures: HTMLImageElement[], bring: (one: HTMLImageElement) =
   for (const one of pictures) watching.observe(one);
 };
 
-export const bringNearPictures = (page: HTMLElement): void => {
+export const bringNearPictures = (
+  page: HTMLElement,
+  wanted: (src: string) => boolean = () => true,
+): void => {
   const near = Array.from(page.querySelectorAll("img")).filter((one) => {
     const src = said(one);
-    return src !== "" && !onTheWeb(src) && !inTisty(src);
+    if (src === "" || onTheWeb(src) || inTisty(src)) return false;
+    return wanted(src);
   });
   whenNear(near, (one) => {
     void pictureNear(said(one)).then(

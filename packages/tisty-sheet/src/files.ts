@@ -1,4 +1,5 @@
-import { drawnGlyph, piece, SHEET_GLYPHS, type SheetGlyph } from "tisty-sheet";
+import { drawnGlyph, piece } from "./cards";
+import { SHEET_GLYPHS, type SheetGlyph } from "./sheetGlyphs";
 
 // What a file is by its name: its kind, the family it is drawn as, and the glyph its card wears.
 export const KINDS: Record<string, string> = {
@@ -136,4 +137,24 @@ export const fileCard = (
   card.append(tile, piece(page, "card-name", name), piece(page, "card-blurb"), meta);
   img.replaceWith(card);
   return { card, meta, kindIs };
+};
+
+const WATCHABLE = ["mp4", "webm", "m4v", "mov", "ogv"];
+const HEARABLE = ["mp3", "m4a", "wav", "ogg", "oga", "aac", "flac"];
+
+// A file played in place rather than drawn as a card, by the kind its name says.
+export const playedAs = (kind: string): "video" | "audio" | null => {
+  if (WATCHABLE.includes(kind)) return "video";
+  return HEARABLE.includes(kind) ? "audio" : null;
+};
+
+export const SEEABLE = ["png", "jpg", "jpeg", "gif", "svg", "webp", "avif"];
+
+export const named = (href: string): string => {
+  const raw = href.split(/[?#]/)[0].split("/").pop() ?? href;
+  try {
+    return decodeURI(raw);
+  } catch {
+    return raw;
+  }
 };

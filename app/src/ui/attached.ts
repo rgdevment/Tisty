@@ -1,132 +1,14 @@
 import { convertFileSrc } from "@tauri-apps/api/core";
-import { ending, fileCard, KINDS, piece } from "tisty-editor/read";
+import { attachedAs as drawnAs } from "tisty-sheet";
 import { keptHere, weighs } from "../core";
 import { askAgain, serve, showing } from "../inUse";
 import { t, type Word } from "../locales";
-import { named, previewOf, weighed } from "../previews";
+import { named } from "../previews";
 import { plainly } from "../refusal";
 import { more } from "./carding";
 import { placeCopied } from "./pagePlaces";
 
-export const pressed = (page: Document, className: string, said: string, run: () => void) => {
-  const one = page.createElement("button");
-  one.type = "button";
-  one.className = className;
-  one.textContent = said;
-  one.addEventListener("click", run);
-  return one;
-};
-
-// A sound or a film still in the cloud comes down only when asked for, and says so while it does.
-const fed = (
-  box: HTMLElement,
-  player: HTMLMediaElement,
-  at: string,
-  live: () => boolean,
-  held: (() => void)[],
-) => {
-  const page = box.ownerDocument;
-  const state = piece(page, "media-state");
-  box.append(state);
-  const failed = (error_: unknown, play: boolean) => {
-    box.dataset.state = "failed";
-    const again = pressed(page, "media-again", t("tryAgain"), () => {
-      askAgain(at);
-      void bring(play);
-    });
-    state.replaceChildren(page.createTextNode(plainly(error_)), again);
-  };
-  const bring = async (play: boolean) => {
-    box.dataset.state = "bringing";
-    state.replaceChildren(t("mediaBringing"));
-    let real: string;
-    try {
-      real = await serve(at);
-    } catch (error_) {
-      if (live()) failed(error_, play);
-      return;
-    }
-    if (!live()) return;
-    delete box.dataset.state;
-    state.replaceChildren();
-    player.src = convertFileSrc(real);
-    if (!play) return;
-    try {
-      await player.play();
-    } catch {
-      return;
-    }
-  };
-  const told = async () => {
-    const here = await keptHere(at).catch(() => true);
-    if (!live()) return;
-    if (here) {
-      held.push(showing(at));
-      await bring(false);
-      return;
-    }
-    box.dataset.state = "away";
-    const ask = pressed(page, "media-bring", `▶ ${t("mediaBring")}`, () => void bring(true));
-    state.replaceChildren(ask);
-    const bytes = await weighs(at).catch(() => null);
-    if (bytes !== null && live()) ask.textContent = `▶ ${t("mediaBring")} · ${weighed(bytes)}`;
-  };
-  void told();
-};
-
-const placedAs = (img: Element, shown: HTMLElement) =>
-  placeCopied(img, shown, "data-src", "data-placed");
-
-const played = (
-  page: Document,
-  img: Element,
-  as: "video" | "audio",
-  at: string,
-  live: () => boolean,
-  held: (() => void)[],
-  asking: boolean,
-) => {
-  const name = img.getAttribute("alt") || named(at);
-  const box = page.createElement("span");
-  box.className = `media is-${as}`;
-  const player = page.createElement(as);
-  player.controls = true;
-  player.preload = as === "video" ? "metadata" : "none";
-  player.setAttribute("aria-label", name);
-  const said = piece(page, "media-name", name);
-  if (as === "video") box.append(player, said);
-  else box.append(said, player);
-  if (asking) box.append(more(page, at));
-  placedAs(img, box);
-  img.replaceWith(box);
-  fed(box, player, at, live, held);
-};
-
-const labelled = (kind: string): string => {
-  const word = KINDS[kind];
-  return word ? t(word as Word) : kind.toUpperCase();
-};
-
-const filed = (page: Document, img: Element, at: string, live: () => boolean, asking: boolean) => {
-  const kind = ending(at);
-  const { card, meta, kindIs } = fileCard(
-    page,
-    img,
-    kind,
-    img.getAttribute("alt") || named(at),
-    labelled(kind),
-  );
-  card.setAttribute("href", at);
-  placedAs(img, card);
-  if (!meta || !kindIs) return;
-  if (asking) meta.append(more(page, at));
-  meta.append(piece(page, "card-go", "›"));
-  weighs(at)
-    .then((bytes) => {
-      if (live()) kindIs.textContent = `${labelled(kind)} · ${weighed(bytes)}`;
-    })
-    .catch(() => undefined);
-};
+export { pressed } from "tisty-sheet";
 
 export type Attaching = {
   readonly more: boolean;
@@ -139,11 +21,17 @@ export const attachedAs = (
   live: () => boolean,
   held: (() => void)[],
   { more: asking }: Attaching,
-): void => {
-  const seen = previewOf(at);
-  if (seen?.as === "video" || seen?.as === "audio") {
-    played(page, img, seen.as, at, live, held, asking);
-    return;
-  }
-  filed(page, img, at, live, asking);
-};
+): void =>
+  drawnAs(page, img, at, live, held, {
+    serve,
+    url: convertFileSrc,
+    keptHere,
+    weighs,
+    again: askAgain,
+    showing,
+    plainly,
+    say: (word) => t(word as Word),
+    named,
+    placed: (from, shown) => placeCopied(from, shown, "data-src", "data-placed"),
+    more: asking ? more : undefined,
+  });

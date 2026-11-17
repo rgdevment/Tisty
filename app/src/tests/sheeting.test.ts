@@ -1,14 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
-import { landscapeIn, paperIn, sheetsIn, withLandscape, withPaper, withSheets } from "../front";
+import { landscapeIn, sheetsIn, withLandscape, withPaper, withSheets } from "../front";
 import { seenIn, seenNow } from "../ui/printing";
 
 describe("the paper a document asks for", () => {
-  it("reads it from the front matter, and A4 when it says nothing", () => {
-    expect(paperIn("---\npaper: Letter\n---\n# Plan\n")).toBe("letter");
-    expect(paperIn("---\npaper: legal\n---\n# Plan\n")).toBeNull();
-    expect(paperIn("# Plan\n")).toBeNull();
-  });
-
   it("writes another paper down and takes A4 away, keeping the rest as it was", () => {
     expect(withPaper("# Plan\n", "letter")).toBe("---\npaper: letter\n---\n# Plan\n");
     expect(withPaper("---\npaper: letter\n---\n# Plan\n", "a4")).toBe("# Plan\n");

@@ -2,6 +2,7 @@ import { convertFileSrc } from "@tauri-apps/api/core";
 import type { Widths } from "tisty-editor/edit";
 import type { PartCarded } from "tisty-editor/read";
 import { charsAt, readAs, sourceOf } from "tisty-editor/read";
+import { widgetsDrawn } from "tisty-sheet";
 import { openLink } from "../core";
 import type { DayAt } from "../diary";
 import { askAgain, serve, showing } from "../inUse";
@@ -151,43 +152,14 @@ const fetched = (img: HTMLImageElement, at: string, live: () => boolean) => {
     });
 };
 
-export const widgets = (page: Document, reach?: Reaching): Lending[] => {
-  const lent: Lending[] = [];
-  for (const code of page.querySelectorAll<HTMLElement>(
-    "figure.code > pre > code.language-widget",
-  )) {
-    const source = code.textContent ?? "";
-    const figure = code.closest("figure");
-    if (!figure || !source.trim()) continue;
-    const why = notWidget(source);
-    if (why) {
-      const said = page.createElement("p");
-      said.className = "lit-locked";
-      said.textContent = why;
-      figure.before(said);
-      continue;
-    }
-    const drawn = page.createElement("figure");
-    drawn.className = "widget";
+export const widgets = (page: Document, reach?: Reaching): Lending[] =>
+  widgetsDrawn(page, { refused: notWidget, lent: lend }, (drawn, figure, source, bar) => {
     placeCopied(figure, drawn);
     sources.set(drawn, source);
-    const bar = page.createElement("div");
-    bar.className = "widget-bar";
-    const name = page.createElement("span");
-    name.className = "widget-name";
-    name.textContent = figure.querySelector("figcaption")?.textContent ?? "";
-    bar.append(name);
     if (reach?.onPiece) {
-      bar.append(asking(page, "code", t("codeShow")));
-      bar.append(asking(page, "apart", t("viewApart")));
+      bar.append(asking(page, "code", t("codeShow")), asking(page, "apart", t("viewApart")));
     }
-    const held = page.createElement("div");
-    drawn.append(bar, held);
-    figure.replaceWith(drawn);
-    lent.push(lend(held, source));
-  }
-  return lent;
-};
+  });
 
 // A comment alone under its heading is the template's word on what goes there, shown until something does.
 const hinted = (page: Document, body: string) => {
