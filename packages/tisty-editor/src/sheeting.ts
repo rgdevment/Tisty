@@ -97,7 +97,9 @@ export const sheeted = (page: Document, { tall, y, said }: Sheet) => {
 const heldInSight = (page: Document, body: HTMLElement) => {
   const view = page.defaultView;
   const holds = (one: Element | null): one is HTMLElement =>
-    one?.parentElement === body && !one.matches(`.${TURN}, .${SAID}`);
+    one?.parentElement === body &&
+    !one.matches(`.${TURN}, .${SAID}`) &&
+    !floating(one as HTMLElement);
   let pointed = page.elementFromPoint?.(
     body.getBoundingClientRect().left + body.clientWidth / 2,
     1,
