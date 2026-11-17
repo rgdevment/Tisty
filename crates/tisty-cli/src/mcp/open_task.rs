@@ -37,8 +37,11 @@ pub(super) fn touch(name: &str, aimed: Option<TaskId>, writes: bool, said: &Valu
             Some(task) if still_open(shown) => Touch::Read(task),
             _ => Touch::Looked,
         },
+        // A task filed with nothing to tick is a note for the person, never the agent's own work.
         "propose" => match (shown["proposed"].as_bool(), shown["id"].as_str()) {
-            (Some(true), Some(id)) => id.parse().map_or(Touch::Looked, Touch::Proposed),
+            (Some(true), Some(id)) if shown["steps"].as_u64().is_some_and(|steps| steps > 0) => {
+                id.parse().map_or(Touch::Looked, Touch::Proposed)
+            }
             _ => Touch::Looked,
         },
         _ if !writes => Touch::Looked,
@@ -104,7 +107,7 @@ impl OpenTask {
             Touch::Read(task) | Touch::Proposed(task) => {
                 let proposed = matches!(touch, Touch::Proposed(_));
                 match &mut self.open {
-                    Some(open) if open.task == task => {}
+                    Some(open) if open.task == task => open.only_proposed &= proposed,
                     Some(open) if !open.asked => open.others_read |= !proposed,
                     _ => {
                         self.open = Some(Stretch::opened(task, now, proposed));

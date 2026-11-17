@@ -136,6 +136,17 @@ fn tasks_filed_one_after_another_leave_the_first_open_and_count_no_writes() {
 }
 
 #[test]
+fn reading_a_task_it_proposed_makes_it_work_of_its_own() {
+    let task = Ulid::generate();
+    let mut open = OpenTask::default();
+    open.heard(Touch::Proposed(task), at(0));
+
+    open.heard(Touch::Read(task), at(1));
+
+    assert!(!open.heard(Touch::Looked, at(10)).unwrap().only_proposed);
+}
+
+#[test]
 fn saying_a_task_done_lets_the_open_task_go() {
     let task = Ulid::generate();
     let mut open = OpenTask::default();
@@ -255,7 +266,7 @@ fn a_call_is_judged_by_what_it_named_and_what_it_answered() {
             "propose",
             None,
             true,
-            &answered(json!({ "id": task.to_string(), "proposed": true }))
+            &answered(json!({ "id": task.to_string(), "proposed": true, "steps": 2 }))
         ),
         Touch::Proposed(task)
     );
@@ -264,7 +275,17 @@ fn a_call_is_judged_by_what_it_named_and_what_it_answered() {
             "propose",
             None,
             true,
-            &answered(json!({ "id": task.to_string(), "proposed": false }))
+            &answered(json!({ "id": task.to_string(), "proposed": true }))
+        ),
+        Touch::Looked,
+        "a task filed with no steps is no work of the agent's"
+    );
+    assert_eq!(
+        touch(
+            "propose",
+            None,
+            true,
+            &answered(json!({ "id": task.to_string(), "proposed": false, "steps": 2 }))
         ),
         Touch::Looked
     );

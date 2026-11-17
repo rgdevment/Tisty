@@ -209,6 +209,24 @@ fn a_task_the_person_wrote_and_the_agent_read_is_the_one_asked_about() {
 }
 
 #[test]
+fn a_note_filed_for_the_person_first_does_not_take_the_place_of_the_work() {
+    let served = Served::new();
+    let mut talk = served.connect();
+    talk.call(
+        "propose",
+        json!({ "title": "Call the bank back", "list": "Work" }),
+    );
+    let task = proposes_work(&mut talk);
+    for name in ["Notes", "Drafts"] {
+        talk.files_a_folder(name);
+    }
+
+    let said = talk.files_a_folder("Receipts");
+
+    assert_eq!(ask(&said).unwrap()["task"], json!(task));
+}
+
+#[test]
 fn every_connection_keeps_its_own_open_task() {
     let served = Served::new();
     let mut first = served.connect();
