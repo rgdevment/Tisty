@@ -170,7 +170,7 @@ struct Reader<'a, F> {
 }
 
 impl Brain {
-    // The base keeps everything, so each reader brings its own gate in `seen`.
+    // The base keeps everything, so each reader brings its gate in `seen`: true for what it does not know, as a source may name a chat.
     pub fn card(
         &self,
         id: &str,
