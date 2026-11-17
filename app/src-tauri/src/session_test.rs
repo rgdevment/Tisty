@@ -262,9 +262,7 @@ fn once_caught_up_a_commit_carries_the_cache_instead_of_throwing_it_away() {
         .unwrap()
         .expect("the window keeps a cache");
     assert!(
-        cache
-            .load(&tisty_core::cache::fingerprint(&paths.store()), false)
-            .is_some(),
+        cache.load(&session.print, false).is_some(),
         "otherwise every reader rebuilds the cache from the whole history after each task"
     );
 }

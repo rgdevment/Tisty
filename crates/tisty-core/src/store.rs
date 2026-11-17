@@ -233,7 +233,7 @@ impl Store {
         &self.device
     }
 
-    /// Whether the last write found lines another writer had added since this store last looked.
+    /// Of the last write only: a state read again since then already holds the other writer's lines.
     pub fn overtaken(&self) -> bool {
         self.overtaken
     }
