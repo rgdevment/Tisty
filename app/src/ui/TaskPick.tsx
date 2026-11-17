@@ -9,9 +9,9 @@ const leftOpen = () => {};
 const SETTLES = 150;
 const SHOWN = 30;
 
-// Typing asks on every key; only the answer to the words still written is shown.
+// Typing asks on every key; the last answer stays in sight until the words written now are answered.
 const useFound = (word: string, onError?: (problem: unknown) => void): Task[] | null => {
-  const [found, setFound] = useState<{ word: string; tasks: Task[] } | null>(null);
+  const [found, setFound] = useState<Task[] | null>(null);
   const failed = useRef(onError);
   failed.current = onError;
   useEffect(() => {
@@ -20,7 +20,7 @@ const useFound = (word: string, onError?: (problem: unknown) => void): Task[] | 
     const asking = window.setTimeout(() => {
       search(word, "either")
         .then((all) => {
-          if (live) setFound({ word, tasks: all.tasks.slice(0, SHOWN) });
+          if (live) setFound(all.tasks.slice(0, SHOWN));
         })
         .catch((problem) => {
           if (live) failed.current?.(problem);
@@ -31,8 +31,7 @@ const useFound = (word: string, onError?: (problem: unknown) => void): Task[] | 
       window.clearTimeout(asking);
     };
   }, [word]);
-  if (!word.trim()) return [];
-  return found?.word === word ? found.tasks : null;
+  return word.trim() ? found : [];
 };
 
 export default function TaskPick({

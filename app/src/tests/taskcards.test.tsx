@@ -152,6 +152,16 @@ describe("finding a task to cite", () => {
     expect(onPick).toHaveBeenCalledWith(expect.objectContaining({ id: "01B" }));
   });
 
+  it("keeps the last answer in sight while the next words are asked", async () => {
+    bus.found = [{ id: "01A", title: "Cambiar los neumáticos", status: "open" }];
+    render(<TaskPick onPick={() => {}} />);
+    await userEvent.type(screen.getByRole("combobox"), "camb");
+    await waitFor(() => expect(screen.getByText("Cambiar los neumáticos")).toBeTruthy());
+    await userEvent.type(screen.getByRole("combobox"), "i");
+    expect(screen.getByText("Cambiar los neumáticos")).toBeTruthy();
+    expect(screen.queryByText(t("opening"))).toBeNull();
+  });
+
   it("does not ask again when the window around it is drawn again", async () => {
     const { rerender } = render(<TaskPick onPick={() => {}} onError={() => {}} />);
     await userEvent.type(screen.getByRole("combobox"), "aceite");
