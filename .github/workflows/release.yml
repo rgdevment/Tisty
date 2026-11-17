@@ -783,6 +783,9 @@ jobs:
         env:
           MACOS_PROVISION_PROFILE: ${{ secrets.MACOS_PROVISION_PROFILE }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_CERTIFICATE: ${{ secrets.MACOS_CERTIFICATE_P12 }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
         run: |
           app_id="$APPLE_TEAM_ID.$(jq -r '.identifier' app/src-tauri/tauri.conf.json)"
           profile="$RUNNER_TEMP/embedded.provisionprofile"
@@ -812,8 +815,39 @@ jobs:
           </plist>
           PLIST
           plutil -lint "$RUNNER_TEMP/Entitlements.plist"
-          jq -n --arg plist "$RUNNER_TEMP/Entitlements.plist" --arg profile "$profile" \
-            '{bundle: {macOS: {entitlements: $plist, files: {"embedded.provisionprofile": $profile}}}}' \
+
+          # The bundler signs every binary it carries with these permissions, and macOS kills a tool
+          # that claims a profile made for the app. The CLI is signed here with none, and rides in
+          # as a file the bundler copies without signing it again.
+          cli="$RUNNER_TEMP/cli/tisty"
+          mkdir -p "$(dirname "$cli")"
+          cp "app/src-tauri/binaries/tisty-$TARGET" "$cli"
+          keychain="$RUNNER_TEMP/cli.keychain-db"
+          pass=$(openssl rand -hex 16)
+          echo "$APPLE_CERTIFICATE" | base64 --decode > "$RUNNER_TEMP/cli.p12"
+          searched=$(security list-keychains -d user | tr -d '"')
+          security create-keychain -p "$pass" "$keychain"
+          security unlock-keychain -p "$pass" "$keychain"
+          security import "$RUNNER_TEMP/cli.p12" -f pkcs12 -t agg -P "$APPLE_CERTIFICATE_PASSWORD" \
+            -T /usr/bin/codesign -k "$keychain"
+          rm -f "$RUNNER_TEMP/cli.p12"
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$pass" "$keychain" > /dev/null
+          # shellcheck disable=SC2086
+          security list-keychains -d user -s "$keychain" $searched
+          codesign --force --options runtime --timestamp --keychain "$keychain" \
+            --sign "$APPLE_SIGNING_IDENTITY" "$cli"
+          # Gone before the bundler imports the same identity, so its signing is never ambiguous.
+          # shellcheck disable=SC2086
+          security list-keychains -d user -s $searched
+          security delete-keychain "$keychain"
+          codesign --verify --strict --verbose=2 "$cli"
+          if [ -n "$(codesign -d --entitlements - --xml "$cli" 2>/dev/null)" ]; then
+            echo "::error::the CLI was signed with permissions; macOS would kill it"
+            exit 1
+          fi
+
+          jq -n --arg plist "$RUNNER_TEMP/Entitlements.plist" --arg profile "$profile" --arg cli "$cli" \
+            '{bundle: {externalBin: [], macOS: {entitlements: $plist, files: {"embedded.provisionprofile": $profile, "MacOS/tisty": $cli}}}}' \
             > "$RUNNER_TEMP/urgent.json"
           echo "URGENT_CONFIG=--config $RUNNER_TEMP/urgent.json" >> "$GITHUB_ENV"
 
@@ -853,7 +887,7 @@ jobs:
             exit 1
           fi
 
-      # The bundler signs the CLI that rides inside with the same permissions, so it is started here.
+      # The app alone holds the permissions: a CLI that carried them would be killed when an agent starts it.
       - name: The profile came along and the CLI inside still starts
         if: env.URGENT_CONFIG != ''
         run: |
@@ -869,7 +903,19 @@ jobs:
           if [ "$cpu" = x86_64 ] && ! arch -x86_64 /usr/bin/true 2>/dev/null; then
             sudo softwareupdate --install-rosetta --agree-to-license
           fi
-          perl -e 'alarm 30; exec @ARGV' arch "-$cpu" "$app/Contents/MacOS/tisty" --version
+          cli="$app/Contents/MacOS/tisty"
+          codesign --verify --strict --verbose=2 "$cli"
+          carried=$(codesign -d --entitlements - --xml "$cli" 2>/dev/null)
+          if [ -n "$carried" ]; then
+            echo "::error::the CLI inside carries permissions: $carried"
+            exit 1
+          fi
+          if ! perl -e 'alarm 30; exec @ARGV' arch "-$cpu" "$cli" --version; then
+            log show --last 2m --style compact \
+              --predicate 'subsystem == "com.apple.MobileFileIntegrity" OR sender == "AppleMobileFileIntegrity" OR eventMessage CONTAINS "tisty"' \
+              | tail -40 || true
+            exit 1
+          fi
 
       - name: Notarize
         if: env.HAS_APPLE_ID == 'true' && env.HAS_MACOS_CERTIFICATE_P12 == 'true'
