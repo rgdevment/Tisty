@@ -1632,6 +1632,18 @@
         "said": "Guardar en mi calendario lleva una tarea con fecha a Google Calendar, a Outlook o, en un Mac, al Calendario de Apple, y desde ahí te avisa también el teléfono. Tisty no se conecta a tu calendario: el evento lo guardas tú."
       },
       {
+        "title": "Llegas a todo con Ctrl + P",
+        "said": "una paleta te lleva a cualquier documento, tarea o carpeta mientras escribes su nombre. Si empiezas con >, muestra las acciones de la ventana, cada una con su atajo."
+      },
+      {
+        "title": "Una revisión semanal",
+        "said": "Revisión semanal, junto a tus otras vistas, reúne lo que espera una decisión, los documentos que tu agente marcó como pasados y los que no abres hace 60 días. Puede recordártela cada semana. La Biblioteca también te muestra esos documentos olvidados y abre uno al azar."
+      },
+      {
+        "title": "Un documento en una ventana aparte",
+        "said": "Abrir en una ventana aparte muestra un documento en solo lectura junto a tu trabajo, en un visor ligero que aparece al frente. Editar te lleva a él en la ventana principal."
+      },
+      {
         "title": "Los documentos largos responden",
         "said": "escribir en una página muy larga responde mucho más rápido que antes."
       }
@@ -1672,6 +1684,18 @@
       {
         "title": "Your task, in your calendar",
         "said": "Save to my calendar takes a task with a date to Google Calendar, to Outlook or, on a Mac, to Apple Calendar, and from there your phone reminds you too. Tisty does not connect to your calendar: you save the event yourself."
+      },
+      {
+        "title": "Everything is a Ctrl + P away",
+        "said": "a palette takes you to any document, task or folder as you type its name. Start with > and it shows the window's actions, each with its shortcut."
+      },
+      {
+        "title": "A weekly review",
+        "said": "Weekly review, beside your other views, gathers what waits to be decided, the documents your agent marked as past and the ones you have not opened in 60 days. It can remind you every week. The Library shows those forgotten documents too, and opens one at random."
+      },
+      {
+        "title": "A document in a window of its own",
+        "said": "Open in a window of its own shows a document read only beside your work, in a light viewer that comes to the front. Edit takes you to it in the main window."
       },
       {
         "title": "Long documents keep up",
