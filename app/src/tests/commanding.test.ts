@@ -59,10 +59,12 @@ describe("the window's own actions", () => {
     named(all, "Priorities").onPick();
     named(all, "Upcoming").onPick();
     named(all, "Brainstorm").onPick();
+    named(all, "Weekly review").onPick();
 
     expect(a.choose).toHaveBeenCalledWith({ named: "quadrants" });
     expect(a.choose).toHaveBeenCalledWith({ named: "tasks", slice: "upcoming" });
     expect(a.choose).toHaveBeenCalledWith({ named: "docs", doc: "board-file" });
+    expect(a.choose).toHaveBeenCalledWith({ named: "weekly" });
   });
 
   it("make things with the same hands as the library's menu", () => {

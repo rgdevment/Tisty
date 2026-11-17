@@ -61,6 +61,7 @@ export function actions(a: Acting): Pickable[] {
       go("lists", t("lists"), () => a.choose({ named: "lists" })),
       go("tags", t("tags"), () => a.choose({ named: "tags" })),
       go("archive", t("archive"), () => a.choose({ named: "archive" })),
+      go("weekly", t("weekly"), () => a.choose({ named: "weekly" })),
       go("library", t("library"), a.library),
       ...(board
         ? [go("brainstorm", t("brainstorm"), () => a.choose({ named: "docs", doc: board }))]
