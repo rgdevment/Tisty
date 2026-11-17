@@ -1959,7 +1959,7 @@ soy el largo",
     here.doc(
         "# Libro
 
-[a](tisty:doc/mine-0001) y [b](tisty:doc/mine-00011)",
+[a](tisty:doc/mine-0001#hoteles) y [b](tisty:doc/mine-00011)",
         None,
         None,
     );
@@ -1972,11 +1972,11 @@ soy el largo",
     let said = there.body(&there.titled("Libro").file);
     let corto = there.titled("Corto").file.clone();
     let largo = there.titled("Largo").file.clone();
-    assert!(said.contains(&format!("tisty:doc/{corto})")), "{said}");
     assert!(
-        !said.contains("mine-0001)"),
-        "the old name survived: {said}"
+        said.contains(&format!("tisty:doc/{corto}#hoteles)")),
+        "a link to a heading keeps its heading under the new name: {said}"
     );
+    assert!(!said.contains("doc/mine-"), "the old name survived: {said}");
     assert!(said.contains(&format!("tisty:doc/{largo})")), "{said}");
 }
 

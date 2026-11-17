@@ -1,6 +1,6 @@
 import { ending, hosting, kept } from "tisty-editor/read";
 import { playedAs, SEEABLE } from "tisty-sheet";
-import { DOC } from "./markdown";
+import { DOC, docOf } from "./markdown";
 
 export type Preview =
   | { as: "video"; at: string }
@@ -29,7 +29,7 @@ export const previewOf = (href: string): Preview | null => {
   const at = href.trim();
   if (!at) return null;
 
-  const paper = at.startsWith(DOC) ? at.slice(DOC.length) : null;
+  const paper = docOf(at);
   if (paper) return { as: "doc", id: paper };
 
   if (outside(at)) {

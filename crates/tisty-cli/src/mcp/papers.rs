@@ -118,8 +118,8 @@ pub(super) fn pointed_at(paths: &Paths, state: &State, which: &str) -> Vec<Strin
                 .map(|body| {
                     tisty_core::refs::extract(&body)
                         .iter()
-                        .filter_map(|one| one.target.strip_prefix(tisty_core::refs::DOC))
-                        .any(|at| at == which)
+                        .filter_map(|one| tisty_core::refs::doc_aimed(&one.target))
+                        .any(|(at, _)| at == which)
                 })
                 .unwrap_or(false)
         })

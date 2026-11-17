@@ -12,8 +12,13 @@ export const docLink = (id: string, title: string): string =>
 
 export const docCard = (id: string, title: string): string => `!${docLink(id, title)}`;
 
-export const docOf = (target: string): string | null =>
-  target.startsWith(DOC) ? target.slice(DOC.length) : null;
+export const docAimed = (target: string): { file: string; heading?: string } | null => {
+  if (!target.startsWith(DOC)) return null;
+  const [file, heading] = target.slice(DOC.length).split("#");
+  return heading ? { file, heading } : { file };
+};
+
+export const docOf = (target: string): string | null => docAimed(target)?.file ?? null;
 
 const ours = (target: string): boolean =>
   !/^[a-z][a-z0-9+.-]*:/i.test(target) &&

@@ -3,6 +3,7 @@ pub mod attaching;
 pub mod brainstorming;
 pub mod calendar;
 pub mod carrying;
+pub mod citing;
 pub mod clouding;
 pub mod diary;
 pub mod folio;

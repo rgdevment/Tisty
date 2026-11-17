@@ -18,6 +18,20 @@ pub fn outline(doc: &Doc) -> Vec<Head> {
     found
 }
 
+// The heading that opens the text, ahead of every other block, is the document's title, not a section.
+pub fn sections(doc: &Doc) -> Vec<Head> {
+    let title = doc
+        .blocks()
+        .iter()
+        .find(|block| block.kind != Kind::Front)
+        .filter(|block| block.kind == Kind::Heading(1))
+        .map(|block| block.at.start);
+    outline(doc)
+        .into_iter()
+        .filter(|head| Some(head.at.start) != title)
+        .collect()
+}
+
 fn walk(blocks: &[Block], text: &str, found: &mut Vec<Head>, taken: &mut HashMap<String, usize>) {
     for block in blocks {
         if let Kind::Heading(level) = block.kind {

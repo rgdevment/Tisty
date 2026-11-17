@@ -177,7 +177,7 @@ const EVERY: std::time::Duration = std::time::Duration::from_secs(30);
 // An agent's bell is a hint, so the round above still runs whether it rings or not.
 const LISTENS: std::time::Duration = std::time::Duration::from_secs(1);
 
-pub fn watch(app: tauri::AppHandle, paths: tisty_core::Paths, nudge: Nudge) {
+pub fn watch(app: tauri::AppHandle, paths: tisty_core::Paths, nudge: Nudge, moved: Nudge) {
     std::thread::spawn(move || {
         let mut watching = Watching::default();
         let mut since = jiff::Timestamp::now();
@@ -186,6 +186,9 @@ pub fn watch(app: tauri::AppHandle, paths: tisty_core::Paths, nudge: Nudge) {
         rebooked(&app, &mut watching, &paths);
         loop {
             std::thread::sleep(LISTENS);
+            if moved.taken() {
+                let _ = app.emit("brain", ());
+            }
             let bell = tisty_core::stirring::rung(&paths);
             let nudged = nudge.taken();
             if bell == heard && round.elapsed() < EVERY {

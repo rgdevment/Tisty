@@ -105,6 +105,15 @@ A document takes tags the way a task does: write `#contract` in the middle of a 
 - The **Tags** screen shows the tasks under a tag and the documents beneath them. Pressing a tag inside a document opens exactly that.
 - How a tag is written, which letters it takes and what does not count as one, is in the [Markdown guide](https://markdown.tisty.app/tags).
 
+## Linking documents
+
+A document on its own gets forgotten; a linked one gets found again. Type `[[` in a document and go on with a few words of its title: Tisty offers the ones that fit, first those that begin that way, then those written lately. `[[` alone shows the ones you wrote last. `Enter` leaves a link like `[Trips](tisty:doc/…)`, which points at the document and not at its name: rename it and the link still gets there. The `[[ ]]` are not kept.
+
+- **To a section**: follow the title with `#` (`[[Trips#hot`) and pick one of its headings. The link opens the document right there; if that section is gone, it opens at the top.
+- **Preview**: rest the pointer on a link to another document and you see its first lines, or the section it points at, without leaving where you are.
+- **Who links to it**: the panel beside the document has a **Linked from** row, with every document and task that cites or mentions it and, for a document, the sections where it does. A click opens it at that section. Tisty builds this list in the background, so a link you just wrote shows up a few seconds later.
+- `[[#2]]` still names the second step, as always.
+
 ## Attachments
 
 Drag a file into a document or onto a task to attach it — the photo from the vet, the insurance PDF, the recording of a meeting. A task takes files up to 650 MB, the same as a document. It is kept as itself, inside Tisty, and travels with the document when you export it.

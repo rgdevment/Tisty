@@ -1,5 +1,6 @@
 export interface Head {
   key: string;
+  id?: string;
   level: number;
   text: string;
   go: () => void;
@@ -19,6 +20,7 @@ const listedHeads = (page: Document): Head[] =>
     page.querySelectorAll<HTMLElement>(".page > :is(h1, h2, h3, h4, h5, h6):not([data-title])"),
   ).map((one, at) => ({
     key: `${at}:${one.id}`,
+    id: one.id,
     level: Number(one.tagName.slice(1)),
     text: one.textContent ?? "",
     go: () => one.scrollIntoView({ block: "start" }),

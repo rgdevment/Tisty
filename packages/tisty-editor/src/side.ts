@@ -73,6 +73,15 @@ export type Act = {
   readonly onPick?: (at: HTMLElement) => void;
 };
 
+export type Citer = {
+  readonly key: string;
+  readonly title: string;
+  readonly glyph: "page" | "alignleft" | "archive" | "todo" | "done";
+  readonly under?: string;
+  readonly away?: boolean;
+  readonly onPick: () => void;
+};
+
 export type Held = {
   readonly key: string;
   readonly label: string;
@@ -106,6 +115,14 @@ export type Panel =
   | { readonly kind: "index"; readonly heads: readonly Head[]; readonly book?: Book }
   | { readonly kind: "details"; readonly facts: Facts; readonly open?: boolean }
   | { readonly kind: "acts"; readonly acts: readonly Act[] }
+  | {
+      readonly kind: "cited";
+      readonly label: string;
+      readonly gist: string;
+      readonly none: string;
+      readonly citers: readonly Citer[];
+      readonly open?: boolean;
+    }
   | {
       readonly kind: "held";
       readonly key: string;

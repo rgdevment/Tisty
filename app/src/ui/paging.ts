@@ -1,13 +1,13 @@
 import { diagramShot, spanned, type TableAct } from "tisty-editor/read";
 import { t } from "../locales";
-import { DOC, TASK } from "../markdown";
+import { docAimed, TASK } from "../markdown";
 import { type DayWent, dayPressed, dayTouched } from "./diaryPaging";
 import type { Choice } from "./Menu";
 import { placeOf } from "./pagePlaces";
 import { tableClicked } from "./tabled";
 
 export type Went =
-  | { kind: "doc"; id: string }
+  | { kind: "doc"; id: string; at?: string }
   | { kind: "task"; id: string }
   | { kind: "web"; href: string }
   | { kind: "here"; id: string }
@@ -112,8 +112,8 @@ const linked = (link: HTMLAnchorElement): Went => {
   const task = link.dataset.task;
   if (task) return { kind: "task", id: task };
   const href = (link.getAttribute("href") ?? "").trim();
-  if (href.startsWith(DOC) && href.length > DOC.length)
-    return { kind: "doc", id: href.slice(DOC.length) };
+  const aimed = docAimed(href);
+  if (aimed?.file) return { kind: "doc", id: aimed.file, at: aimed.heading };
   if (href.startsWith(TASK) && href.length > TASK.length)
     return { kind: "task", id: href.slice(TASK.length) };
   if (/^(https?:\/\/|mailto:)\S+$/i.test(href)) return { kind: "web", href };

@@ -69,6 +69,10 @@ fn another_document_is_a_link_where_it_travels_and_its_words_where_it_does_not()
         to_standard(body, &toward),
         "[Viaje](<02 Viaje.md>) y plan\n\n[Capítulo](<01 Capítulo.md>)"
     );
+    assert_eq!(
+        to_standard("Ver [hoteles](tisty:doc/def.md#hoteles).", &toward),
+        "Ver [hoteles](<01 Capítulo.md#hoteles>)."
+    );
 }
 
 #[test]

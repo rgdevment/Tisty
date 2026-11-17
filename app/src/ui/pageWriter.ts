@@ -76,6 +76,8 @@ export type Hands = {
   readonly blocks: (at: Point, slash: boolean) => void;
   readonly acts: (at: Anchor, top: Element) => void;
   readonly tags?: () => readonly string[];
+  readonly linkable?: Asking["linkable"];
+  readonly headsOf?: Asking["headsOf"];
   readonly pasted?: (files: readonly File[]) => Promise<string>;
 };
 
