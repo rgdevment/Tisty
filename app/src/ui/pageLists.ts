@@ -154,16 +154,27 @@ export const unmarked = (text: string, at: number): Moved | null => {
   };
 };
 
-const FENCE = /^[ \t]*(?:>[ \t]?)*[ \t]*(?:`{3,}|~{3,})/gm;
+const FENCE = /^[ \t]*(?:>[ \t]?)*[ \t]*(`{3,}|~{3,})(.*)$/;
 
-const inFence = (text: string, at: number) =>
-  (text.slice(0, at).match(FENCE)?.length ?? 0) % 2 === 1;
+// A fence closes only on a run of its own mark at least as long, so a shorter or other one inside is code.
+const inFence = (text: string, at: number) => {
+  let open: string | null = null;
+  for (const line of text.slice(0, at).split("\n")) {
+    const found = FENCE.exec(line.replace(/\r$/, ""));
+    if (!found) continue;
+    const [, mark, rest] = found;
+    if (open === null) open = mark;
+    else if (mark[0] === open[0] && mark.length >= open.length && !rest.trim()) open = null;
+  }
+  return open !== null;
+};
 
 // Words joined across a line end would take a numbered item under them, which cannot open a list there, as their own.
 export const joinedApart = (text: string, asked: Edit): Edit => {
   if (!text.slice(asked.from, asked.to).includes("\n")) return asked;
   const landed = asked.from + asked.insert.length;
   const left = text.slice(0, asked.from) + asked.insert + text.slice(asked.to);
+  if (landed === 0 || left[landed - 1] === "\n") return asked;
   const { start, line } = lineAt(left, landed);
   const ends = left.indexOf("\n", landed);
   const item = ends < 0 ? null : LISTED.exec(lineAt(left, ends + 1).line);

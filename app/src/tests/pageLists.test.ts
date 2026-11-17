@@ -222,6 +222,24 @@ describe("Backspace and Enter at the start of a line's words", () => {
       [7, 12],
       "```\nunodos\n2. tres\n```\n",
     ],
+    [
+      "leaves code as it is inside a longer fence that holds a shorter one",
+      "````\n```js\nuno\n\n1. dos\n2. tres\n````\n",
+      [14, 19],
+      "````\n```js\nunodos\n2. tres\n````\n",
+    ],
+    [
+      "leaves code as it is inside a fence that holds the other mark",
+      "```\n~~~\nuno\n\n1. dos\n2. tres\n```\n",
+      [11, 16],
+      "```\n~~~\nunodos\n2. tres\n```\n",
+    ],
+    [
+      "leaves a whole line taken away as it is, which joins nothing",
+      "Antes.\n\nquitar\ntexto\n2. dos",
+      [8, 15],
+      "Antes.\n\ntexto\n2. dos",
+    ],
   ] as const)("on a join across a line end, %s", (_, text, [from, to], expected) => {
     const edit = joinedApart(text, { from, to, insert: "" });
     expect(text.slice(0, edit.from) + edit.insert + text.slice(edit.to)).toBe(expected);
