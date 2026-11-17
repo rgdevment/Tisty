@@ -154,6 +154,21 @@ export const unmarked = (text: string, at: number): Moved | null => {
   };
 };
 
+// Words joined across a line end would take a numbered item under them, which cannot open a list there, as their own.
+export const joinedApart = (text: string, gone: Edit): Edit => {
+  const join = { ...gone, insert: "" };
+  if (!text.slice(gone.from, gone.to).includes("\n")) return join;
+  const left = text.slice(0, gone.from) + text.slice(gone.to);
+  const { start, line } = lineAt(left, gone.from);
+  const ends = left.indexOf("\n", gone.from);
+  const item = ends < 0 ? null : LISTED.exec(lineAt(left, ends + 1).line);
+  const number = item?.[3];
+  if (!item || number === undefined || number === "1" || LISTED.test(line) || wordless(line))
+    return join;
+  const end = gone.to + (start + line.length - gone.from);
+  return { from: gone.from, to: end, insert: `${text.slice(gone.to, end)}\n${item[1].trimEnd()}` };
+};
+
 export const openedAbove = (
   text: string,
   at: number,

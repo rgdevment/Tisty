@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { pastedAround } from "../ui/pageBlocks";
 import { addressed } from "../ui/pageFormats";
-import { joinedAt, nested, openedAbove, outdented, unmarked } from "../ui/pageLists";
+import { joinedApart, joinedAt, nested, openedAbove, outdented, unmarked } from "../ui/pageLists";
 import { balanced, worn, wornEach } from "../ui/pageMarks";
 
 const applied = (text: string, moved: ReturnType<typeof nested>) =>
@@ -176,6 +176,37 @@ describe("Backspace and Enter at the start of a line's words", () => {
 
   it("leaves Backspace inside an item's words alone", () => {
     expect(unmarked("- uno", 3)).toBeNull();
+  });
+
+  it.each([
+    [
+      "keeps the numbered items under a paragraph a list",
+      "Antes.\n\n1. uno\n2. dos\n",
+      [6, 11],
+      "Antes.uno\n\n2. dos\n",
+    ],
+    [
+      "keeps them a list inside a quote",
+      "> Antes.\n>\n> 1. uno\n> 2. dos",
+      [8, 16],
+      "> Antes.uno\n>\n> 2. dos",
+    ],
+    [
+      "joins bullets as they are, which open a list anywhere",
+      "Antes.\n\n- uno\n- dos\n",
+      [6, 10],
+      "Antes.uno\n- dos\n",
+    ],
+    [
+      "joins a list's own items as they are",
+      "1. uno\n2. dos\n3. tres",
+      [6, 10],
+      "1. unodos\n3. tres",
+    ],
+    ["takes words within a line as they are", "Antes\n2. dos", [2, 3], "Anes\n2. dos"],
+  ] as const)("on a join across a line end, %s", (_, text, [from, to], expected) => {
+    const edit = joinedApart(text, { from, to, insert: "" });
+    expect(text.slice(0, edit.from) + edit.insert + text.slice(edit.to)).toBe(expected);
   });
 
   it.each([
