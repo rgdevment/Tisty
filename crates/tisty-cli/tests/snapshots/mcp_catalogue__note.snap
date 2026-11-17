@@ -9,12 +9,16 @@ expression: tool
     "openWorldHint": false,
     "readOnlyHint": false
   },
-  "description": "Add to a task's journal, the person's tasks too, when something new turns up about existing work, instead of filing a duplicate. A closed task takes none: propose the work anew. A note inside a document is a callout (`> [!NOTE]`), with `edit_doc`.",
+  "description": "Add to a task's journal, the person's tasks too, instead of filing a duplicate: a decision, something ruled out or a block; what stands is `tick` with `state`. A closed task takes none. A note in a document is a callout (`> [!NOTE]`), with `edit_doc`.",
   "inputSchema": {
     "additionalProperties": false,
     "properties": {
       "body": {
         "description": "What to record, in the Tisty language",
+        "type": "string"
+      },
+      "replaces": {
+        "description": "Id of an agent's note this undoes; it stays, marked",
         "type": "string"
       },
       "task": {

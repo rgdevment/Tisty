@@ -2,4 +2,4 @@
 source: crates/tisty-cli/src/mcp/open_task_test.rs
 expression: said
 ---
-Is "Ship the export" up to date? You have written nothing on it for 12 minutes, and every step is ticked but it is not said done. If the work is done, `say_done` with the proof. A decision, something ruled out or a block goes in `note`.
+Is "Ship the export" up to date? You have written nothing on it for 12 minutes, and every step is ticked but it is not said done; it has no state yet. Leave it in one `tick`: the steps you finished, if any, and `state` with what is done, what is left and the decisions in force. If the work is done, `say_done` with the proof. A decision, something ruled out or a block goes in `note`.

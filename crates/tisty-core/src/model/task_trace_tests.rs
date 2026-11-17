@@ -12,6 +12,7 @@ fn told(body: &str, log: &[&str]) -> Vec<crate::refs::Ref> {
             body: (*one).to_string(),
             by: None,
             via: None,
+            replaces: None,
         })
         .collect();
     task.references()

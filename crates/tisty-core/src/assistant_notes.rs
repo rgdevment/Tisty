@@ -140,7 +140,7 @@ pub fn outside(body: &str) -> String {
 }
 
 // Its headings sit under the section and a fence left open is closed, so nothing it says leaves it.
-fn kept_inside(note: &str) -> String {
+pub(crate) fn kept_inside(note: &str) -> String {
     let deeper = crate::task_docs::deeper(note);
     let fences: Vec<&str> = deeper
         .lines()

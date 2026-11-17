@@ -329,6 +329,7 @@ fn journalled(title: &str, bodies: &[&str]) -> Task {
             body: body.to_string(),
             by: None,
             via: None,
+            replaces: None,
         })
         .collect();
     t

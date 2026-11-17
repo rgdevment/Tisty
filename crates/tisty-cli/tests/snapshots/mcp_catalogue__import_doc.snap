@@ -9,7 +9,7 @@ expression: tool
     "openWorldHint": false,
     "readOnlyHint": false
   },
-  "description": "Bring one Markdown file from disk in as a document, turned into the Tisty language, saying what changed. Files it points at come in too; links to what cannot are taken out. The file on disk is untouched; a seeming live credential comes in under a warning. A task's exported page goes back to its task. One file per call.",
+  "description": "Bring one Markdown file from disk in as a document, turned into the Tisty language, saying what changed. Files it points at come in too; links to what cannot are taken out. The file on disk is untouched; a seeming live credential comes in under a warning. A task's exported page goes back to its task.",
   "inputSchema": {
     "additionalProperties": false,
     "properties": {

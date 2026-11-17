@@ -24,6 +24,7 @@ mod reviewing;
 mod spoken;
 mod task_notes;
 mod task_reading;
+mod task_state;
 mod tool_list;
 mod unpathing;
 mod wholes;
@@ -42,9 +43,7 @@ use asked::{Takes, only_what_it_takes, short_and_plain, text, what_it_takes, wit
 
 use attaching::attach;
 use catalogue::{instructions, tools};
-use chores::{
-    describe, note, plan, propose, remind, reschedule, say_done, say_not_doing, tick, untick,
-};
+use chores::{describe, note, plan, propose, remind, reschedule, say_done, say_not_doing, untick};
 use guide::language;
 use helping::help;
 use looking::{NEWEST_SHOWN, catch_up, find, gone, how_it_ended, lists, read, sum_up, tags};
@@ -292,7 +291,7 @@ fn answered(
         "note" => spoken(&args, "body", |args| note(paths, args)),
         "describe" => spoken(&args, "body", |args| describe(paths, args)),
         "plan" => plan(paths, &args),
-        "tick" => tick(paths, &args),
+        "tick" => spoken(&args, "state", |args| task_state::tick(paths, args)),
         "untick" => untick(paths, &args),
         "rename" => rename(paths, &args),
         "reword_step" => reword_step(paths, &args),

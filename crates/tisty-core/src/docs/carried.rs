@@ -62,6 +62,15 @@ pub fn read_notes_left(data: &Path, id: &str) -> Option<String> {
     std::fs::read_to_string(at).ok()
 }
 
+pub fn keep_state_left(data: &Path, id: &str, words: &str) -> Result<()> {
+    kept_aside(&data.join("state-left"), id, words.as_bytes())
+}
+
+pub fn read_state_left(data: &Path, id: &str) -> Option<String> {
+    let at = resolve(&data.join("state-left"), id).ok()?;
+    std::fs::read_to_string(at).ok()
+}
+
 fn kept_aside(at: &Path, id: &str, bytes: &[u8]) -> Result<()> {
     std::fs::create_dir_all(at)?;
     let _ = crate::paths::ours_alone(at);

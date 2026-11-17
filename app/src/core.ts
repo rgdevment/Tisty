@@ -32,6 +32,7 @@ export interface LogEntry {
   body: string;
   by?: string;
   via?: string;
+  replaces?: string;
 }
 
 export interface Volume {

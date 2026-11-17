@@ -15,6 +15,7 @@ export default function History({ task, onError, onDoc }: Props) {
   const signing = useSigning("inside");
   const kept = (task.log ?? []).filter((entry) => entry.body.trim());
   if (kept.length === 0) return null;
+  const replaced = new Set(kept.flatMap((entry) => (entry.replaces ? [entry.replaces] : [])));
   return (
     <details open className="mt-6 border-t border-hair pt-3">
       <summary className="cursor-pointer text-[10.5px] font-semibold tracking-[0.06em] text-faint uppercase select-none hover:text-soft">
@@ -22,10 +23,11 @@ export default function History({ task, onError, onDoc }: Props) {
       </summary>
       <ul className="mt-3 flex flex-col gap-3">
         {kept.map((entry) => (
-          <li key={entry.id}>
+          <li key={entry.id} className={replaced.has(entry.id) ? "opacity-60" : undefined}>
             <span className="flex items-baseline gap-1.5 text-[11.5px] tabular-nums text-faint">
               {wroteAt(entry.at, entry.tz)}
               <Signature by={entry.by} via={entry.via} signing={signing} />
+              {replaced.has(entry.id) && <span>· {t("historyReplaced")}</span>}
             </span>
             <Written
               label={t("history")}

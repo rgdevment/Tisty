@@ -890,18 +890,30 @@ pub(super) fn note(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     if let Some(why) = too_long_a_note(&state, task, &body, false) {
         return Err(why);
     }
+    let replaces = super::task_state::replacing(&state, task, args)?;
 
     let zone = jiff::tz::TimeZone::system();
     store
         .append(Op::TaskLog {
             id,
-            d: LogAdd::new(Ulid::generate(), body).in_zone(zone.iana_name().map(str::to_string)),
+            d: LogAdd::new(Ulid::generate(), body)
+                .in_zone(zone.iana_name().map(str::to_string))
+                .replacing(replaces),
         })
         .map_err(hitch)?;
-    Ok(told(
-        format!("Noted on {:?}.", task.title),
-        json!({ "id": id.to_string(), "title": task.title }),
-    ))
+    let mut kept = json!({ "id": id.to_string(), "title": task.title });
+    let said = match replaces.and_then(|old| task.entry(old)) {
+        Some(old) => {
+            kept["replaces"] = json!(old.id.to_string());
+            format!(
+                "Noted on {:?}, replacing the note of {}: it stays in the history, read as replaced.",
+                task.title,
+                when(old.at)
+            )
+        }
+        None => format!("Noted on {:?}.", task.title),
+    };
+    Ok(told(said, kept))
 }
 
 pub(super) const NOTE_AT_MOST: usize = 4_000;

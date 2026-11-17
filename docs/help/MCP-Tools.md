@@ -15,7 +15,7 @@ See [[What an assistant may do|MCP-Permissions]] for the rules behind them.
 | `help` | How Tisty itself works, from these same help pages, so it answers instead of guessing |
 | `catch_up` | Where things stand, with the lists, folders and most used tags; the open tasks that press, by title and list, for it to tell you and `read` — overdue, then due soon, for today and late, five at most, the rest counted — leaving out what an assistant already said is done or not to be done, which waits for you, and what you hid; what others moved since its last `catch_up`, twenty of each kind at a time, the next bringing the rest; and the open task it was on or, if it no longer is, why: it said it is done or should not be done, or you closed, dropped or hid it. It names **Brainstorm**, and says how many ideas wait and how many are marked. On the day your [Weekly review](Tasks#weekly-review) is due, it says how much waits at each stop and how to help you |
 | `find` | Search tasks and documents, the archive included: ten of each at a time, more when it asks for them. One found by what its page, steps or notes say comes with the line that says it, cut around the word, or by its title alone when that is enough; inside one document, the lines that say it with those around each. Documents marked as having had their day come after the live ones, saying so |
-| `read` | Read a task: its page, its steps and its latest notes, with who wrote each. A page past about 4,000 characters comes as its sections, with the digest and the latest of the assistant's notes; the journal brings the latest notes up to about 3,000 characters, more when asked |
+| `read` | Read a task: its state first, then its page, its steps and the notes written after that state, with who wrote each. A task with no state yet comes with one built from it: how many steps are done, the next one and the note that said it done. A page past about 4,000 characters comes as its sections, with the digest and the latest of the assistant's notes; the journal brings up to about 3,000 characters of notes, and the whole log when asked |
 
 `lists` and `tags` still answer an assistant that asks for them by name, but they are no longer offered: `catch_up` already brings both.
 
@@ -28,13 +28,13 @@ See [[What an assistant may do|MCP-Permissions]] for the rules behind them.
 | `reschedule` | Move the day of a task an agent filed |
 | `describe` | Write the description of an open task, yours too, replacing the old one |
 | `rename` | Rename any open task, yours too |
-| `note` | Add to a task's journal: up to 4,000 characters a note; longer goes on the task's page |
+| `note` | Add to a task's journal what changes something — a decision, something ruled out, a block — up to 4,000 characters a note; longer goes on the task's page. A note that undoes an earlier one from an agent says so, and the old one stays in the history marked as replaced |
 | `reword_note` | Rewrite a note in a task's journal |
 | `plan` | Add steps to a task |
 | `reword_step` | Rewrite an open step |
 | `unplan` | Take open steps off a task — or, with `to`, hand them to the task they belong on |
 | `move` | Hang a task under another as a part, let a part go, or move a task to another list |
-| `tick` | Tick the steps it did; on a task of yours they wait for you to confirm |
+| `tick` | Tick the steps it did; on a task of yours they wait for you to confirm. In the same call it leaves the task's state, a «State» section on its page written whole each time: what is done, what is left, the decisions in force and what was ruled out |
 | `untick` | Take back a tick it gave by mistake |
 | `say_done` | Say a task is finished, yours too — for you to confirm |
 | `say_not_doing` | Say a task should not be done, yours too — for you to confirm |
