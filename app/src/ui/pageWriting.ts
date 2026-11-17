@@ -79,17 +79,16 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
     laying.put({ from: Math.min(match.from, to), to, insert: one.link });
   });
 
-  const offerTags = () => {
+  const offerLists = () => {
     const at = writer.kept?.at;
     const range = caret.chosen();
     const known = hands.tags;
     const open = writer.typing && at !== undefined && !(range && inCode(range.startContainer));
-    const linking = open ? linkMatch(hands.text(), at, hands, offerTags) : null;
+    const linking = open ? linkMatch(hands.text(), at, hands, offerLists) : null;
     links.offer(linking);
     tags.offer(open && known && !linking ? tagMatch(hands.text(), at, known()) : null);
   };
   const lists = {
-    offer: tags.offer,
     hide: () => {
       tags.hide();
       links.hide();
@@ -109,7 +108,7 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
     writer.whole = false;
     if (!laid) opened(page);
     laying.landed(caret.caretLaid, caretInSight);
-    offerTags();
+    offerLists();
     beside.rest();
     beside.besideLine();
     choosing.shown();

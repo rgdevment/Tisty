@@ -10,7 +10,6 @@ import { nested } from "./pageLists";
 import { swappedItem } from "./pageMoving";
 import { elementOf, inCode, onSheet, WRITABLE } from "./pageNodes";
 import { endIn } from "./pageSpots";
-import type { TagList } from "./pageTags";
 import type { Writer } from "./pageWriter";
 
 const KEYED: Record<string, readonly [string, string]> = {
@@ -31,7 +30,7 @@ export const keysOn = (
   history: PageHistory,
   formats: Formats,
   beside: Beside,
-  tags: TagList,
+  tags: { readonly hide: () => void },
   choosing: Choosing,
 ) => {
   const { page, hands } = writer;

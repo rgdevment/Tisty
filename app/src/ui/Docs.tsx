@@ -562,10 +562,9 @@ export default function Docs({
   const from = useRef<{ doc: string; page: string } | null>(null);
   const seek = own?.file ? stood.current.get(own.file) : undefined;
   const aimed = useRef<{ file: string; heading: string } | null>(null);
-  const wasOpen = useRef(open?.file);
+  // The sheet takes the heading as the document opens, so the wish ends with that opening.
   useEffect(() => {
-    if (wasOpen.current && aimed.current?.file === wasOpen.current) aimed.current = null;
-    wasOpen.current = open?.file;
+    aimed.current = null;
   }, [open?.file]);
   const anchor = !own?.file
     ? undefined
@@ -650,7 +649,11 @@ export default function Docs({
     if (!heading) return onDoc?.(named);
     const file = known.find((one) => one.id === named)?.file ?? named;
     if (file === open?.file) return heads.find((one) => one.id === heading)?.go();
-    aimed.current = { file, heading };
+    const wish = { file, heading };
+    aimed.current = wish;
+    window.setTimeout(() => {
+      if (aimed.current === wish) aimed.current = null;
+    }, LANDING_MS);
     onDoc?.(file);
   };
   const toCited = (one: Citing) =>
