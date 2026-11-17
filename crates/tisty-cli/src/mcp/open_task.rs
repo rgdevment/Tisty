@@ -163,6 +163,7 @@ impl OpenTask {
             }
             Asked::Off => self.asked(),
             Asked::Gone => self.let_go(),
+            Asked::Later => {}
         }
         said
     }
@@ -172,6 +173,7 @@ enum Asked {
     Ask(Value),
     Off,
     Gone,
+    Later,
 }
 
 fn asked_about(paths: &Paths, due: &Due) -> Asked {
@@ -182,8 +184,14 @@ fn asked_about(paths: &Paths, due: &Due) -> Asked {
     if off {
         return Asked::Off;
     }
-    let Ok(Some((state, _))) = super::admitted(paths) else {
-        return Asked::Gone;
+    let state = match super::admitted(paths) {
+        Ok(Some((state, _))) => state,
+        Ok(None) => return Asked::Gone,
+        Err(_) => {
+            // `hitch` logged it, and its flag belongs to a refused call, never to this answered one.
+            super::TOLD.take();
+            return Asked::Later;
+        }
     };
     state
         .tasks

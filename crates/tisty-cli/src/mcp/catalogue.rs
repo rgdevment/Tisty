@@ -277,7 +277,8 @@ When every step is done and the work holds, `say_done` with the proof; a decisio
 the task goes in its document.
 
 An answer may carry `ask` when the task you opened went ten minutes, or three writes elsewhere, \
-without a write from you: tick what you finished, `say_done` if the work is done. It comes once, \
+without a write from you: tick what you finished, `say_done` with the proof if the work is done. \
+It comes once, \
 until you write on that task again.
 
 ## Documents
