@@ -2,4 +2,4 @@
 source: crates/tisty-cli/src/mcp/open_task_test.rs
 expression: "question(&task, &due).unwrap()[\"said\"].as_str().unwrap()"
 ---
-Is "Ship the export" up to date? You wrote 3 other things without writing on it; it has no state yet. Leave it in one `tick`: the steps you finished, if any, and `state` with what is done, what is left and the decisions in force. If the work is done, `say_done` with the proof. A decision, something ruled out or a block goes in `note`. If you were working on another task, update that one instead.
+Is "Ship the export" up to date? You wrote 3 other things without writing on it. Leave it in one `tick`: the steps you finished, if any, and `state` with what is done, what is left and the decisions in force. If the work is done, `say_done` with the proof. A decision, something ruled out or a block goes in `note`. If you were working on another task, update that one instead.

@@ -490,3 +490,79 @@ fn a_state_answers_the_question_about_the_open_task() {
         );
     }
 }
+
+#[test]
+fn an_empty_list_of_steps_beside_a_state_still_leaves_the_state() {
+    let served = Served::new();
+    let mut talk = served.connect();
+    let task = proposes(&mut talk);
+
+    let said = talk.call("tick", json!({ "task": task, "steps": [], "state": STATE }));
+
+    assert_eq!(shown(&said)["stated"], true);
+    assert!(served.page(&task).contains("v2 signatures only"));
+}
+
+#[test]
+fn a_state_the_agent_mended_by_its_page_is_still_its_own() {
+    let served = Served::new();
+    let mut talk = served.connect();
+    let task = proposes(&mut talk);
+    talk.call("tick", json!({ "task": task, "state": STATE }));
+    let file = served.file(&task);
+    talk.call(
+        "edit_doc",
+        json!({ "doc": file, "old": "upload is next.", "new": "upload is next, then resuming." }),
+    );
+
+    let said = talk.call(
+        "tick",
+        json!({ "task": task, "state": "Everything uploaded." }),
+    );
+
+    assert_eq!(shown(&said)["stated"], true);
+    assert!(!served.page(&task).contains("then resuming"));
+}
+
+#[test]
+fn a_line_of_the_persons_is_carried_whole_not_found_inside_another() {
+    let served = Served::new();
+    let mut talk = served.connect();
+    let task = proposes(&mut talk);
+    talk.call("tick", json!({ "task": task, "state": STATE }));
+    let file = served.file(&task);
+    let theirs = served
+        .page(&task)
+        .replace("retrying old signatures.", "retrying old signatures.\nOK");
+    served
+        .person()
+        .writes_on_its_page(person::task(&task), &file, &theirs);
+
+    let refused = talk.refused(
+        "tick",
+        json!({ "task": task, "state": "OK so far: signed." }),
+    );
+
+    assert!(refused.contains("«OK»"), "{refused}");
+}
+
+#[test]
+fn a_state_written_long_by_other_means_comes_cut() {
+    let served = Served::new();
+    let mut talk = served.connect();
+    let task = proposes(&mut talk);
+    talk.call("tick", json!({ "task": task, "state": "Short." }));
+    let file = served.file(&task);
+    let long = served
+        .page(&task)
+        .replace("Short.", &"The queue kept its own clock. ".repeat(200));
+    served
+        .person()
+        .writes_on_its_page(person::task(&task), &file, &long);
+
+    let said = talk.call("read", json!({ "task": task }));
+
+    let state = &shown(&said)["state"];
+    assert_eq!(state["cut"], true, "{state}");
+    assert!(state["body"].as_str().unwrap().chars().count() <= 3_201);
+}

@@ -109,17 +109,15 @@ pub fn latest(words: &str) -> Option<&str> {
 
 // What the person wrote before this write stays theirs, so a later digest still finds it.
 pub fn left_by_assistants(was: &str, now: &str, left: Option<&str>) -> Option<String> {
-    let theirs = section(was)
-        .map(|words| foreign(words, left))
-        .unwrap_or_default();
-    let words = section(now)?;
-    Some(
-        words
-            .lines()
-            .filter(|line| !theirs.iter().any(|one| one == line.trim()))
-            .collect::<Vec<_>>()
-            .join("\n"),
-    )
+    Some(kept_by_assistants(section(was), section(now)?, left))
+}
+
+pub fn kept_by_assistants(was: Option<&str>, now: &str, left: Option<&str>) -> String {
+    let theirs = was.map(|words| foreign(words, left)).unwrap_or_default();
+    now.lines()
+        .filter(|line| !theirs.iter().any(|one| one == line.trim()))
+        .collect::<Vec<_>>()
+        .join("\n")
 }
 
 fn signature(line: &str) -> Option<&str> {

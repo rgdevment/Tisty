@@ -81,6 +81,10 @@ fn noted_as_assistants(paths: &Paths, page: &PageWrite) {
     if section(&page.before) != section(&page.after) {
         left_as_assistants(paths, page.file, &page.before, &page.after);
     }
+    let state = tisty_core::task_state::section;
+    if state(&page.before) != state(&page.after) {
+        super::super::task_state::left_as_assistant(paths, page.file, &page.before, &page.after);
+    }
 }
 
 fn told_also(said: &mut Value, more: &str) {

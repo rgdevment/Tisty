@@ -183,7 +183,7 @@ fn the_question_names_the_task_and_the_next_unticked_step() {
 }
 
 #[test]
-fn the_question_says_whether_its_state_is_missing_or_older_than_its_steps() {
+fn the_question_says_when_its_state_is_older_than_its_steps() {
     let mut task = task_with(&[("Write the parser", true), ("Wire the menu", false)]);
     let said = |task: &Task| {
         question(task, &due(task.id)).unwrap()["said"]
@@ -191,15 +191,10 @@ fn the_question_says_whether_its_state_is_missing_or_older_than_its_steps() {
             .unwrap()
             .to_string()
     };
-    assert!(
-        said(&task).contains("; it has no state yet."),
-        "{}",
-        said(&task)
-    );
+    assert!(!said(&task).contains("older"), "{}", said(&task));
 
     task.stated_at = Some(at(5));
     task.steps_moved_at = Some(at(4));
-    assert!(!said(&task).contains("state yet"), "{}", said(&task));
     assert!(!said(&task).contains("older"), "{}", said(&task));
 
     task.steps_moved_at = Some(at(6));

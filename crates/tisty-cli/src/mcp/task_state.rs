@@ -3,7 +3,7 @@ use tisty_core::model::{LogEntry, LogId, Task, TaskId};
 use tisty_core::task_state::{STATE, STATE_AT_MOST, Since};
 use tisty_core::{Op, Paths, State};
 
-use super::asked::text;
+use super::asked::{strings, text};
 use super::chores::{already_said_done, reaching};
 use super::jsonrpc::told;
 use super::task_notes::assistant;
@@ -11,6 +11,8 @@ use super::task_reading::{Page, Window, clipped};
 use super::{Refused, hitch, opened, when};
 
 const CLOSING_SHOWN_UP_TO: usize = 1_000;
+// Room for the signature over what `tick` takes, so only a state written by other means is cut.
+const STATE_SHOWN_UP_TO: usize = STATE_AT_MOST + 200;
 
 pub(super) fn tick(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     let Some(words) = text(args, "state") else {
@@ -22,12 +24,13 @@ pub(super) fn tick(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     let (held, _) = opened(paths)?;
     let (id, task) = reaching(&held, &said)?;
     let title = task.title.clone();
-    let spanish = writable(paths, &held, task, &words)?;
-    let ticked = match args.get("step").is_some() || args.get("steps").is_some() {
+    let (spanish, page) = writable(paths, &held, task, &words)?;
+    let named_steps = text(args, "step").is_some() || !strings(args, "steps")?.is_empty();
+    let ticked = match named_steps {
         true => Some(super::chores::tick(paths, args)?),
         false => None,
     };
-    if let Err(why) = written(paths, id, &words, spanish) {
+    if let Err(why) = written(paths, id, &words, spanish, page) {
         return Err(Refused::Tool(match ticked {
             Some(_) => format!(
                 "the steps were ticked on {title:?}, but its state could not be written just now \
@@ -78,7 +81,12 @@ fn stated_too(mut answer: Value, said: &str) -> Value {
 }
 
 // Judged before any step is ticked, so a state refused leaves the steps as they were.
-fn writable(paths: &Paths, state: &State, task: &Task, words: &str) -> Result<bool, Refused> {
+fn writable(
+    paths: &Paths,
+    state: &State,
+    task: &Task,
+    words: &str,
+) -> Result<(bool, Option<String>), Refused> {
     let title = &task.title;
     if let Some(refusal) = already_said_done(task, "leaving its state") {
         return Err(refusal);
@@ -116,7 +124,7 @@ fn writable(paths: &Paths, state: &State, task: &Task, words: &str) -> Result<bo
         let left = tisty_core::docs::read_state_left(paths.data(), file);
         let theirs: Vec<String> = tisty_core::assistant_notes::foreign(was, left.as_deref())
             .into_iter()
-            .filter(|line| !words.contains(line.as_str()))
+            .filter(|line| !words.lines().any(|one| one.trim() == line))
             .collect();
         if !theirs.is_empty() {
             return Err(Refused::Tool(format!(
@@ -133,19 +141,27 @@ fn writable(paths: &Paths, state: &State, task: &Task, words: &str) -> Result<bo
             )));
         }
     }
-    if let Some(named) = body
+    let named = body
         .as_ref()
-        .and_then(|(_, body)| tisty_core::task_state::heading_in(body))
-    {
-        return Ok(named == heading(true));
+        .and_then(|(_, body)| tisty_core::task_state::heading_in(body));
+    let file = body.map(|(file, _)| file);
+    if let Some(named) = named {
+        return Ok((named == heading(true), file));
     }
     let config = tisty_core::Config::load_or_init(paths).map_err(hitch)?;
-    Ok(tisty_core::model::spoken(config.locale.as_deref())
+    let spanish = tisty_core::model::spoken(config.locale.as_deref())
         .to_lowercase()
-        .starts_with("es"))
+        .starts_with("es");
+    Ok((spanish, file))
 }
 
-fn written(paths: &Paths, id: TaskId, words: &str, spanish: bool) -> Result<(), String> {
+fn written(
+    paths: &Paths,
+    id: TaskId,
+    words: &str,
+    spanish: bool,
+    page: Option<String>,
+) -> Result<(), String> {
     let (_, mut store) = opened(paths).map_err(|_| "the store could not be opened".to_string())?;
     let signed = tisty_core::assistant_notes::signed_by(&assistant(), &jiff::Zoned::now(), words);
     let mut sides = None;
@@ -175,20 +191,38 @@ fn written(paths: &Paths, id: TaskId, words: &str, spanish: bool) -> Result<(), 
         });
     }
     store.append_batch(ops).map_err(|e| e.to_string())?;
-    let (held, _) = opened(paths).map_err(|_| "the store could not be read again".to_string())?;
-    let owner = tisty_core::task_docs::owner(&held, id);
-    if let (Some(kept), Some(left)) = (
-        tisty_core::task_docs::of(&held, owner),
-        tisty_core::task_state::section(&after),
-    ) && let Err(e) = tisty_core::docs::keep_state_left(paths.data(), &kept.file, left)
-    {
+    let file = page.or_else(|| {
+        let (held, _) = opened(paths).ok()?;
+        let owner = tisty_core::task_docs::owner(&held, id);
+        tisty_core::task_docs::of(&held, owner).map(|kept| kept.file.clone())
+    });
+    if let Some(file) = file {
+        left_as_assistant(paths, &file, &before, &after);
+    }
+    Ok(())
+}
+
+pub(super) fn left_as_assistant(paths: &Paths, file: &str, was: &str, now: &str) {
+    let Some(words) = tisty_core::task_state::section(now) else {
+        return;
+    };
+    let known = tisty_core::docs::read_state_left(paths.data(), file);
+    let left = tisty_core::assistant_notes::kept_by_assistants(
+        tisty_core::task_state::section(was),
+        words,
+        known.as_deref(),
+    );
+    kept_left(paths, file, &left);
+}
+
+fn kept_left(paths: &Paths, file: &str, words: &str) {
+    if let Err(e) = tisty_core::docs::keep_state_left(paths.data(), file, words) {
         tisty_core::witness::warn(
             tisty_core::witness::channel::DOOR,
             "the state an assistant left could not be kept aside",
             &[("code", tisty_core::witness::Fact::Code(e.coded()))],
         );
     }
-    Ok(())
 }
 
 pub(super) fn replacing(
@@ -242,7 +276,7 @@ pub(super) fn replacing(
 }
 
 struct Written {
-    body: Option<String>,
+    body: Option<(String, bool)>,
     heading: &'static str,
     at: Option<jiff::Timestamp>,
     since: Option<Since>,
@@ -263,13 +297,13 @@ impl<'a> Stated<'a> {
             tisty_core::docs::read(&paths.docs(), &kept.file).ok()
         };
         let body = match page {
-            Some(page) => Some(page.body.clone()),
-            None => read_apart(),
+            Some(page) => Some(std::borrow::Cow::Borrowed(page.body.as_str())),
+            None => read_apart().map(std::borrow::Cow::Owned),
         };
         let written = body.as_deref().and_then(|body| {
             let said = tisty_core::task_state::said(body)?;
             Some(Written {
-                body: (!shown_whole).then(|| said.to_string()),
+                body: (!shown_whole).then(|| clipped(said, STATE_SHOWN_UP_TO)),
                 heading: tisty_core::task_state::heading_in(body)?,
                 at: task.stated_at,
                 since: tisty_core::task_state::since(task),
@@ -324,8 +358,11 @@ impl<'a> Stated<'a> {
                 if let Some(at) = one.at {
                     kept.insert("written".into(), json!(when(at)));
                 }
-                if let Some(body) = &one.body {
+                if let Some((body, cut)) = &one.body {
                     kept.insert("body".into(), json!(body));
+                    if *cut {
+                        kept.insert("cut".into(), json!(true));
+                    }
                 }
                 if let Some(old) = self.old() {
                     kept.insert("old".into(), json!(old));
@@ -369,7 +406,14 @@ impl<'a> Stated<'a> {
                     .map(|old| format!(" It is {old}."))
                     .unwrap_or_default();
                 match &one.body {
-                    Some(body) => format!("\n\nIts state{at}:{old}\n{body}"),
+                    Some((body, cut)) => format!(
+                        "\n\nIts state{at}:{old}\n{body}{}",
+                        if *cut {
+                            "\n(cut; its section on the page brings it whole)"
+                        } else {
+                            ""
+                        }
+                    ),
                     None => format!(
                         "\n\nIts state is on its page, under «{}»{at}.{old}",
                         one.heading

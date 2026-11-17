@@ -243,9 +243,8 @@ pub(super) fn question(task: &Task, due: &Due) -> Option<Value> {
         ),
     };
     let stale = match tisty_core::task_state::since(task) {
-        None => "; it has no state yet",
         Some(since) if since.steps => "; its state is older than its steps",
-        Some(_) => "",
+        _ => "",
     };
     let another = match due.others_read {
         true => " If you were working on another task, update that one instead.",
