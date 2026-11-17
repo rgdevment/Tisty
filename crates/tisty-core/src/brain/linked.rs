@@ -40,7 +40,6 @@ enum Aim {
     File(String),
 }
 
-/// What every node's connections are read against, gathered once per round.
 pub(super) struct Ground<'a> {
     state: &'a State,
     docs: &'a Docs,
@@ -77,8 +76,14 @@ impl<'a> Ground<'a> {
         ground.sheet = state
             .papers()
             .filter(|one| one.brainstorm)
-            .map(|one| one.file.as_str())
-            .min();
+            .min_by_key(|one| {
+                (
+                    state.held_away(one),
+                    one.translation_of.is_some(),
+                    one.file.as_str(),
+                )
+            })
+            .map(|one| one.file.as_str());
         ground
     }
 
@@ -86,7 +91,7 @@ impl<'a> Ground<'a> {
         self.sheet.unwrap_or_default()
     }
 
-    /// What a document's connections read beyond its own record: its book, and its own pages.
+    // A document's ties read its book and its pages too, and its own record names neither.
     pub(super) fn leaned_on(&self, kept: &Kept) -> String {
         let book = self.book_of(kept).unwrap_or_default();
         let pages: Vec<&str> = self
@@ -135,21 +140,19 @@ impl<'a> Ground<'a> {
     }
 
     fn of_task(&self, own: &str, task: &Task, ties: &mut Ties) {
-        let pages = self
-            .pages_of_tasks
-            .get(&task.id)
-            .into_iter()
-            .flatten()
-            .filter_map(|file| self.docs.read(file));
-        let texts = task
+        let said = task
             .description
-            .iter()
-            .cloned()
-            .chain(task.log.iter().map(|entry| entry.body.clone()))
-            .chain(task.steps.iter().map(|step| step.text.clone()))
-            .chain(pages);
-        for text in texts {
-            self.written(own, &text, None, ties);
+            .as_deref()
+            .into_iter()
+            .chain(task.log.iter().map(|entry| entry.body.as_str()))
+            .chain(task.steps.iter().map(|step| step.text.as_str()));
+        for text in said {
+            self.written(own, text, None, ties);
+        }
+        for file in self.pages_of_tasks.get(&task.id).into_iter().flatten() {
+            if let Some(page) = self.docs.read(file) {
+                self.written(own, &page, None, ties);
+            }
         }
         if let Some(whole) = task.part_of {
             ties.insert((whole.to_string(), Tie::Structure));
@@ -200,8 +203,10 @@ impl<'a> Ground<'a> {
         crate::attach::canonical(target).map(Aim::File)
     }
 
+    // Only an idea names its sheet as `<file>#<heading>`; other sources are messages and links.
     fn origin(&self, source: &str) -> Option<String> {
-        let named = before_section(source);
+        let (named, _) = source.split_once('#')?;
+        let named = named.trim();
         crate::docs::resolve(&self.docs.root, named)
             .is_ok()
             .then(|| paper_named(named))
@@ -210,10 +215,12 @@ impl<'a> Ground<'a> {
 
 fn paper_named(named: &str) -> String {
     let named = before_section(named);
-    match crate::task_docs::task_of_file(named) {
-        Some(task) => task.to_string(),
-        None => named.to_string(),
+    if let Some(task) = crate::task_docs::task_of_file(named) {
+        return task.to_string();
     }
+    named
+        .parse::<DocId>()
+        .map_or_else(|_| named.to_string(), |id| id.to_string())
 }
 
 fn before_section(named: &str) -> &str {

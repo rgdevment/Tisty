@@ -22,7 +22,9 @@ const TABLES: &str = "CREATE TABLE IF NOT EXISTS node(
         title TEXT NOT NULL,
         grp TEXT,
         state TEXT,
+        uid TEXT,
         stamp TEXT NOT NULL);
+    CREATE INDEX IF NOT EXISTS node_by_uid ON node(uid);
     CREATE TABLE IF NOT EXISTS edge(
         source TEXT NOT NULL,
         target TEXT NOT NULL,
@@ -204,7 +206,7 @@ impl Brain {
         let held = stamps(&tx)?;
         let mut written = 0;
         {
-            let mut put = tx.prepare("INSERT OR REPLACE INTO node VALUES (?, ?, ?, ?, ?, ?)")?;
+            let mut put = tx.prepare("INSERT OR REPLACE INTO node VALUES (?, ?, ?, ?, ?, ?, ?)")?;
             let mut untied = tx.prepare("DELETE FROM edge WHERE source = ?")?;
             let mut tie = tx.prepare("INSERT OR IGNORE INTO edge VALUES (?, ?, ?)")?;
             for (id, node) in &wanted {
@@ -217,6 +219,7 @@ impl Brain {
                     node.title,
                     node.group,
                     node.standing,
+                    node.uid,
                     node.stamp
                 ])?;
                 untied.execute([id])?;

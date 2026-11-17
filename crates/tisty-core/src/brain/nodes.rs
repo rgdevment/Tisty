@@ -33,6 +33,7 @@ pub(super) struct Node<'a> {
     pub(super) title: String,
     pub(super) group: Option<String>,
     pub(super) standing: Option<&'static str>,
+    pub(super) uid: Option<String>,
     pub(super) stamp: String,
     pub(super) holder: Holder<'a>,
 }
@@ -69,6 +70,7 @@ pub(super) fn nodes<'a>(
                 ]),
                 group,
                 standing: Some(standing),
+                uid: Some(kept.id.to_string()),
                 holder: Holder::Doc(kept),
             },
         );
@@ -92,6 +94,7 @@ pub(super) fn nodes<'a>(
                 stamp: stamped(&parts),
                 group,
                 standing: Some(standing),
+                uid: None,
                 holder: Holder::Task(task),
             },
         );
@@ -104,6 +107,7 @@ pub(super) fn nodes<'a>(
                 title: tag.as_str().to_string(),
                 group: None,
                 standing: None,
+                uid: None,
                 stamp: String::new(),
                 holder: Holder::Nothing,
             },
@@ -117,6 +121,7 @@ pub(super) fn nodes<'a>(
                 title: at.rsplit('/').next().unwrap_or(at).to_string(),
                 group: None,
                 standing: None,
+                uid: None,
                 stamp: sha256.clone(),
                 holder: Holder::Nothing,
             },

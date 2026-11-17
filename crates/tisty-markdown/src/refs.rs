@@ -123,7 +123,6 @@ pub struct Link {
     pub card: bool,
 }
 
-/// What a body links to outside code, once each: a card is a link with a bang in front.
 pub fn links(text: &str) -> Vec<Link> {
     let code = crate::fences::fenced_spans(text);
     let bytes = text.as_bytes();

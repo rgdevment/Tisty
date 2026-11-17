@@ -342,3 +342,108 @@ fn a_book_that_arrives_after_its_page_is_hung_from() {
         vec![tie(&page_file, &book_file, "structure")]
     );
 }
+
+#[test]
+fn an_idea_annexed_to_a_task_s_journal_ties_it_to_the_sheet() {
+    let world = World::new();
+    let mut store = world.store();
+    let (_, sheet) = doc(
+        &world,
+        &mut store,
+        &crate::brainstorm::opening("Ideas"),
+        None,
+        None,
+    );
+    let errand = task(&mut store, "plan the garden", &[]);
+    let idea = crate::brainstorm::jotted(
+        "plant tomatoes",
+        "2026-11-17T10:00".parse().unwrap(),
+        crate::brainstorm::COLOURS[0],
+    );
+    store
+        .append(Op::TaskLog {
+            id: errand,
+            d: crate::event::LogAdd::new(Ulid::generate(), idea),
+        })
+        .unwrap();
+    let mut brain = world.brain();
+
+    world.refreshed(&mut brain, &world.state());
+
+    assert_eq!(
+        edges(&brain),
+        vec![tie(&errand.to_string(), &sheet, "structure")]
+    );
+}
+
+#[test]
+fn without_a_sheet_an_idea_ties_nothing() {
+    let world = World::new();
+    let mut store = world.store();
+    let idea = crate::brainstorm::jotted(
+        "plant tomatoes",
+        "2026-11-17T10:00".parse().unwrap(),
+        crate::brainstorm::COLOURS[0],
+    );
+    doc(
+        &world,
+        &mut store,
+        &format!("# Garden\n\n{idea}\n"),
+        None,
+        None,
+    );
+    let mut brain = world.brain();
+
+    world.refreshed(&mut brain, &world.state());
+
+    assert!(edges(&brain).is_empty());
+}
+
+#[test]
+fn a_source_that_is_not_an_idea_names_no_origin() {
+    let world = World::new();
+    let mut store = world.store();
+    doc(&world, &mut store, "# Inbox\n", None, None);
+    for source in ["a-0001", "sereno#1234", "https://mail.example/a-0001"] {
+        let mut d = TaskAdd::new("from elsewhere", "a0");
+        d.source = Some(source.into());
+        store
+            .append(Op::TaskAdd {
+                id: Ulid::generate(),
+                d,
+            })
+            .unwrap();
+    }
+    let mut brain = world.brain();
+
+    world.refreshed(&mut brain, &world.state());
+
+    assert!(edges(&brain).is_empty());
+}
+
+#[test]
+fn a_link_written_by_ulid_meets_the_document_through_its_uid() {
+    let world = World::new();
+    let mut store = world.store();
+    let (trips, trips_file) = doc(&world, &mut store, "# Trips\n", None, None);
+    let lower = trips.to_string().to_ascii_lowercase();
+    let (_, notes) = doc(
+        &world,
+        &mut store,
+        &format!("# Notes\n\n[t](tisty:doc/{lower})\n"),
+        None,
+        None,
+    );
+    let mut brain = world.brain();
+
+    world.refreshed(&mut brain, &world.state());
+
+    assert_eq!(
+        edges(&brain),
+        vec![tie(&notes, &trips.to_string(), "mention")]
+    );
+    assert_eq!(
+        held(&brain, "COALESCE(uid, '')").get(&trips_file),
+        Some(&trips.to_string())
+    );
+}
