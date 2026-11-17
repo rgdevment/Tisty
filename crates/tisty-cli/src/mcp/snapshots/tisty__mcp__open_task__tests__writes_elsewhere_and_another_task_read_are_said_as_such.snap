@@ -1,0 +1,5 @@
+---
+source: crates/tisty-cli/src/mcp/open_task_test.rs
+expression: "question(&task, &due).unwrap()[\"said\"].as_str().unwrap()"
+---
+Is "Ship the export" up to date? You wrote 3 other things without writing on it. If the work is done, `say_done` with the proof. A decision, something ruled out or a block goes in `note`. If you were working on another task, update that one instead.

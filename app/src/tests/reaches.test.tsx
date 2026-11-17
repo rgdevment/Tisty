@@ -54,7 +54,6 @@ const shot = (most: number): Snapshot =>
     total: HOW_MANY,
     lists: [],
     tags: [],
-    refs: [],
     counts: {},
     soonest: {},
     locale: "en",

@@ -2872,6 +2872,9 @@ const en = {
     "Neither name nor words, in the list or inside a task: a small ◆ says an agent wrote it, and who waits on hover",
   agentsTurnOn: "Let an assistant file here",
   agentsTurnOff: "Stop it",
+  agentsAsk: "Ask it to keep its task up to date",
+  agentsAskWhy:
+    "When it keeps working without writing on the task it opened, the next answer asks it once to tick what it did and, if it is finished, to say so with the proof",
   agentsCanTitle: "What it can do",
   agentsCan:
     "File a task with description, dates, priority, tags, steps and parts, into a list you already have · Add to the journal of any task, set it a reminder and keep a copy of a file with it · Move the day of what it filed · Work any task as it works a document: describe it, rename it, move it to another list, plan, reword and take off its open steps, correct its notes and rewrite its page · Say a step of yours is done, or a task done or not worth doing, as its word for you to take — closing stays yours · Write documents, add to them, correct them and their tables, give them pages and file them in folders · Archive a document when you ask, and mark one as old for you to delete · Jot ideas on Brainstorm and sort them out with you · Add to the end of today in your Diary, once you open it to agents · Make a folder, bring a Markdown file in or write a document out, write a document in another language, and leave a summary for the next assistant · Search your lists, your archive and your documents",
@@ -6162,6 +6165,9 @@ const es: Catalog = {
     "Ni nombre ni texto, en la lista ni dentro de una tarea: un pequeño ◆ dice que lo escribió un agente, y quién aparece al pasar el puntero",
   agentsTurnOn: "Dejar que un asistente anote",
   agentsTurnOff: "Quitarle la voz",
+  agentsAsk: "Pedirle que deje su tarea al día",
+  agentsAskWhy:
+    "Cuando sigue trabajando sin escribir en la tarea que abrió, la siguiente respuesta le pide una vez que marque lo que hizo y, si terminó, que lo diga con la prueba",
   agentsCanTitle: "Lo que puede hacer",
   agentsCan:
     "Anotar una tarea con descripción, fechas, prioridad, etiquetas, pasos y partes, en una lista que ya tengas · Añadir a la bitácora de cualquier tarea, ponerle un recordatorio y guardarle una copia de un archivo · Cambiar el día de lo que anotó él · Trabajar cualquier tarea como trabaja un documento: describirla, renombrarla, llevarla a otra lista, planear, reescribir y quitar sus pasos abiertos, corregir sus notas y reescribir su página · Decir que un paso tuyo está hecho, o que una tarea está hecha o no vale la pena, como su palabra para que tú la aceptes; cerrarla sigue siendo tuyo · Escribir documentos, añadirles, corregirlos, también sus tablas, darles páginas y guardarlos en carpetas · Archivar un documento cuando se lo pidas, y marcar uno como viejo para que tú lo borres · Anotar ideas en la Lluvia de ideas y ordenarlas contigo · Añadir al final de hoy en tu Diario, una vez que lo abres a los agentes · Crear una carpeta, traer un archivo Markdown o sacar un documento, escribir un documento en otro idioma y dejar un resumen para el siguiente asistente · Buscar en tus listas, tu archivo y tus documentos",

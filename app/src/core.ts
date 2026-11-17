@@ -146,7 +146,6 @@ export interface Snapshot extends Dated {
   shelved?: List[];
   every?: List[];
   tags: Counted[];
-  refs: string[];
   counts: Record<string, number>;
   locale?: string;
   agents: Record<string, string>;
@@ -454,10 +453,12 @@ export interface Agent {
   on: boolean;
   called?: string;
   code?: string;
+  asks?: boolean;
 }
 
 export const agentState = (): Promise<Agent> => invoke("agent");
 export const agentTurn = (on: boolean): Promise<Agent> => invoke("agent_turn", { on });
+export const agentAsks = (on: boolean): Promise<Agent> => invoke("agent_asks", { on });
 
 export const attach = (path: string, label?: string, shape?: "full" | "light"): Promise<string> =>
   invoke("attach", { path, label, shape });
