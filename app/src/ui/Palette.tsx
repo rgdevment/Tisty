@@ -1,11 +1,11 @@
-import { useEffect, useId, useRef, useState } from "react";
-import { flipFold, railed, useBreadth } from "../breadth";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
+import { flipFold, useBreadth } from "../breadth";
 import { ACTIONS, actions, sifted } from "../commanding";
 import { type Found, sow, type Task } from "../core";
 import { seeing, useDesk } from "../desk";
 import { jumps } from "../jumping";
 import { t } from "../locales";
-import { findNow } from "./finding";
+import { covered, findNow } from "./finding";
 import { useHeldFocus } from "./heldFocus";
 import { optionOf, PickList, usePicker } from "./Picker";
 import { useSearch } from "./Search";
@@ -14,9 +14,6 @@ import { onMac } from "./WindowChrome";
 export const PALETTE_KEY = onMac ? "⌘P" : "Ctrl+P";
 export const ACTIONS_KEY = onMac ? "⇧⌘P" : "Ctrl+Shift+P";
 
-const covered = (): boolean => document.querySelector('[aria-modal="true"]') !== null;
-
-// Ctrl+P never prints the window: it opens the palette, and with Shift its actions.
 export function usePaletteKey(open: boolean, onOpen: (asked: string) => void) {
   const now = useRef(onOpen);
   now.current = onOpen;
@@ -51,11 +48,15 @@ function Opened({
 }) {
   const desk = useDesk();
   const { chosen, choose, papers, data, hands, here, setHere, opening, openDoc, board } = desk;
-  const folded = railed(useBreadth(), chosen.named === "keeping").folded;
+  // Settings shows the sidebar unfolded whatever was kept, and the finder needs what was kept.
+  const folded = useBreadth().folded;
   const commanding = asked.startsWith(ACTIONS);
   const words = commanding ? asked.slice(ACTIONS.length) : asked;
-  const [found, setFound] = useState<Found | null>(null);
-  useSearch(commanding ? "" : words, "either", setFound, desk.setError);
+  const sought = commanding ? "" : words;
+  const [answer, setAnswer] = useState<{ sought: string; found: Found | null } | null>(null);
+  const heard = useCallback((found: Found | null) => setAnswer({ sought, found }), [sought]);
+  useSearch(sought, "either", heard, desk.setError);
+  const found = answer?.sought === sought ? answer.found : null;
 
   // The palette goes before the act, so whatever the act opens takes the focus after it.
   const after =

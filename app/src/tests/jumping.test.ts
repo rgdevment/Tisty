@@ -52,6 +52,21 @@ describe("the documents written last", () => {
   });
 });
 
+describe("a date that cannot be read", () => {
+  it("counts as the oldest, so the order of the rest holds", () => {
+    const papers = {
+      folders: [],
+      docs: [
+        doc("a", "Old", "2026-11-01T10:00:00Z"),
+        doc("b", "Broken", "not a date"),
+        doc("c", "New", "2026-11-16T10:00:00Z"),
+      ],
+    };
+
+    expect(latest(papers, 3).map((one) => one.title)).toEqual(["New", "Old", "Broken"]);
+  });
+});
+
 describe("where the palette can jump", () => {
   const papers = {
     folders: [folder("F1", "Recipes"), folder("F2", "Soups", "F1"), folder("F3", "Gone")],
@@ -137,6 +152,20 @@ describe("where the palette can jump", () => {
     );
 
     expect(rows.map((one) => [one.label, one.detail])).toEqual([["Notes", "bread on Sunday"]]);
+  });
+
+  it("says when what the text holds was put away", () => {
+    const found: Found = {
+      tasks: [],
+      papers: [{ id: "file-z", title: "Old notes", line: "bread long ago", archived: true }],
+      total: 0,
+    };
+
+    const rows = jumps(papers, [], "bread", found, going()).filter(
+      (one) => one.group === "In the text",
+    );
+
+    expect(rows.map((one) => one.detail)).toEqual(["bread long ago · archived"]);
   });
 
   it("opens each kind with its own hand", () => {

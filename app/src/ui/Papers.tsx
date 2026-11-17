@@ -1,9 +1,12 @@
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { matched } from "tisty-editor/read";
 import { useAttended } from "../attended";
 import { docs, type Filed } from "../core";
+import { named, underOf } from "../jumping";
 import { t } from "../locales";
-import Row from "./Row";
+import { optionOf, PickList, usePicker } from "./Picker";
+
+const leftOpen = () => {};
 
 export default function Papers({
   all: given,
@@ -28,12 +31,18 @@ export default function Papers({
   }, [given, onError]);
 
   const all = given ? given.filter((one) => !one.away) : found;
-
-  const named = (doc: Filed) => doc.title.trim() || t("untitledDoc");
-  const shown = (all ?? []).filter((one) => matched(named(one), word));
-  // Sister pages are called January, February, March: without their document the rows read alike.
-  const under = (doc: Filed) =>
-    doc.pageOf ? (all ?? []).find((one) => one.id === doc.pageOf) : undefined;
+  const rows = (all ?? [])
+    .filter((one) => matched(named(one), word))
+    .map((doc) => ({
+      key: doc.id,
+      glyph: "▤",
+      label: named(doc),
+      detail: underOf(doc, all ?? []),
+      onPick: () => onPick(doc),
+    }));
+  // Esc belongs to the box around the list, which puts it away.
+  const { on, setAt, keyed } = usePicker(rows, word, leftOpen);
+  const list = useId();
   const held = useAttended<HTMLInputElement>();
 
   return (
@@ -41,31 +50,26 @@ export default function Papers({
       <input
         ref={held}
         value={word}
+        role="combobox"
+        aria-expanded="true"
+        aria-controls={list}
+        aria-activedescendant={optionOf(list, on)}
         aria-label={t("pickADocToLink")}
         placeholder={t("pickADocToLink")}
         onChange={(e) => setWord(e.target.value)}
         onKeyDown={(e) => {
-          if (e.key !== "Enter" || !shown[0]) return;
-          e.preventDefault();
-          onPick(shown[0]);
+          if (e.key !== "Escape" && !e.nativeEvent.isComposing) keyed(e);
         }}
         className="mb-1 w-full rounded-md bg-hover px-2.5 py-1.5 outline-none placeholder:text-faint"
       />
       <div className="scroller max-h-[168px]">
         {all === null && <p className="px-2.5 py-1.5 text-faint">{t("opening")}</p>}
-        {all !== null && shown.length === 0 && (
+        {all !== null && rows.length === 0 && (
           <p className="px-2.5 py-1.5 text-faint">{all.length ? t("noneHere") : t("noDocsYet")}</p>
         )}
-        {shown.map((doc) => (
-          <Row key={doc.id} glyph="▤" onPick={() => onPick(doc)}>
-            <span className="min-w-0 truncate">{named(doc)}</span>
-            {under(doc) && (
-              <span className="min-w-0 shrink truncate text-faint">
-                {named(under(doc) as Filed)}
-              </span>
-            )}
-          </Row>
-        ))}
+        {rows.length > 0 && (
+          <PickList id={list} label={t("foundPapers")} rows={rows} on={on} onHover={setAt} />
+        )}
       </div>
     </>
   );

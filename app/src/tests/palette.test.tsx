@@ -195,6 +195,36 @@ describe("the palette, opened from the keyboard", () => {
     expect(await screen.findByRole("heading", { name: "Unfiled" })).toBeTruthy();
   });
 
+  it("never offers what the store found for words no longer asked", async () => {
+    hits = {
+      tasks: [{ ...bank, id: "01C", title: "water the ferns", list: undefined }],
+      papers: [],
+      total: 1,
+    };
+    const user = userEvent.setup();
+    await opened();
+    press();
+    await user.keyboard("ferns");
+    await screen.findByRole("option", { name: /water the ferns/ });
+    hits = { tasks: [], papers: [], total: 0 };
+
+    await user.keyboard("x");
+
+    expect(screen.queryByRole("option", { name: /water the ferns/ })).toBeNull();
+  });
+
+  it("reaches the finder from Settings when the sidebar was kept folded", async () => {
+    const user = userEvent.setup();
+    await opened();
+    fireEvent.keyDown(window, { key: "b", ctrlKey: true });
+    await user.click(screen.getByRole("button", { name: "Settings" }));
+    press(true);
+
+    await user.keyboard("search tasks{Enter}");
+
+    await waitFor(() => expect(document.activeElement?.id).toBe("side-finder"));
+  });
+
   it("says so when nothing goes by the name", async () => {
     const user = userEvent.setup();
     await opened();

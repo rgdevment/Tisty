@@ -11,7 +11,7 @@ export function useFindKey(shown: boolean, onFind: () => void) {
     const pressed = (event: KeyboardEvent) => {
       if (event.defaultPrevented || event.repeat || event.altKey || event.shiftKey) return;
       if (!(event.ctrlKey || event.metaKey) || event.key.toLowerCase() !== "k") return;
-      if (document.querySelector('[aria-modal="true"]')) return;
+      if (covered()) return;
       event.preventDefault();
       onFind();
     };
@@ -19,6 +19,8 @@ export function useFindKey(shown: boolean, onFind: () => void) {
     return () => window.removeEventListener("keydown", pressed);
   }, [shown, onFind]);
 }
+
+export const covered = (): boolean => document.querySelector('[aria-modal="true"]') !== null;
 
 export const focusFinder = () => document.getElementById(FINDER)?.focus();
 

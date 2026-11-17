@@ -1,7 +1,7 @@
 import { begun, matched } from "tisty-editor/read";
 import type { Filed, Found, List, Papers, Task } from "./core";
 import { trail } from "./folders";
-import { latest } from "./lately";
+import { latest, wroteAt } from "./lately";
 import { t } from "./locales";
 import { shown } from "./tongues";
 import type { Pickable } from "./ui/Picker";
@@ -18,12 +18,10 @@ export interface Going {
   task: (task: Task) => void;
 }
 
-const named = (doc: Filed): string => doc.title.trim() || t("untitledDoc");
-
-const stamp = (doc: Filed): number => Date.parse(doc.wrote ?? "") || 0;
+export const named = (doc: Filed): string => doc.title.trim() || t("untitledDoc");
 
 // Sister pages are called January, February, March: without their document the rows read alike.
-const underOf = (doc: Filed, all: Filed[]): string | undefined => {
+export const underOf = (doc: Filed, all: Filed[]): string | undefined => {
   const book = doc.pageOf ? all.find((one) => one.id === doc.pageOf) : undefined;
   return book ? named(book) : undefined;
 };
@@ -50,7 +48,6 @@ const taskRow = (task: Task, lists: List[], go: Going): Pickable => {
   };
 };
 
-// The documents written last when nothing is asked; asked, titles first, then folders, tasks and what the text holds.
 export function jumps(
   papers: Papers,
   lists: List[],
@@ -67,7 +64,7 @@ export function jumps(
     .sort(
       (one, two) =>
         Number(begun(named(two), asked)) - Number(begun(named(one), asked)) ||
-        stamp(two) - stamp(one),
+        wroteAt(two) - wroteAt(one),
     )
     .slice(0, TITLED);
   const folders = papers.folders
@@ -96,7 +93,7 @@ export function jumps(
         key: `inside-${one.id}`,
         glyph: "▤",
         label: one.title.trim() || t("untitledDoc"),
-        detail: one.line || undefined,
+        detail: [one.line, one.archived ? t("paletteArchived") : ""].filter(Boolean).join(" · "),
         group: t("paletteInText"),
         onPick: () => go.doc(one.id),
       }),

@@ -30,9 +30,10 @@ export function lately(papers: Papers, now = new Date()): Lately {
   };
 }
 
-// The documents written last, newest first: what the person is most likely to want back.
+export const wroteAt = (doc: Filed): number => Date.parse(doc.wrote ?? "") || 0;
+
 export const latest = (papers: Papers, most: number): Filed[] =>
   kept(papers)
     .filter((one) => one.wrote)
-    .sort((one, two) => Date.parse(two.wrote ?? "") - Date.parse(one.wrote ?? ""))
+    .sort((one, two) => wroteAt(two) - wroteAt(one))
     .slice(0, most);

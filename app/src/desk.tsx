@@ -200,7 +200,6 @@ export function deskOf(state: State, data: Snapshot) {
     setSelected(one.id);
   };
 
-  // A new place starts clean: no question asked, nothing found, no task open over it.
   const choose = (next: Chosen) => {
     setChosen(next);
     setQuery("");
@@ -251,7 +250,6 @@ export function deskOf(state: State, data: Snapshot) {
   };
 }
 
-// A task is seen in its own list, or among all of them when it has none.
 export const seeing = (one: Task): Chosen =>
   one.list ? { named: "lists", list: one.list } : { named: "tasks", slice: "all" };
 
