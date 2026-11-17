@@ -28,8 +28,17 @@ pub async fn doc_cited_by(
     session: tauri::State<'_, Mutex<Session>>,
     id: String,
 ) -> Answer<Option<Vec<Citing>>> {
-    let paths = held(&session).paths.clone();
-    elsewhere(move || tisty_core::brain::cited_by(&paths, &id)).await
+    let (paths, headed) = {
+        let session = held(&session);
+        (session.paths.clone(), session.headed.clone())
+    };
+    elsewhere(move || {
+        let mut headed = headed
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        tisty_core::brain::cited_by(&paths, &id, &mut headed)
+    })
+    .await
 }
 
 #[tauri::command(async)]

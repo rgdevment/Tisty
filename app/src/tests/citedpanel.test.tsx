@@ -102,4 +102,17 @@ describe("who links to the open document", () => {
     await waitFor(() => expect(screen.getByText("Viajes")).toBeTruthy());
     expect(bus.asked).toBe(2);
   });
+
+  it("leaves the panel as drawn when a round moved nothing it shows", async () => {
+    bus.citing = [TRIPS];
+    shown();
+    await waitFor(() => expect(screen.getByText("Viajes")).toBeTruthy());
+    const drawn = document.querySelector(".is-cited");
+
+    bus.citing = [{ ...TRIPS }];
+    await act(async () => bus.heard.get("brain")?.());
+
+    expect(bus.asked).toBe(2);
+    expect(document.querySelector(".is-cited")).toBe(drawn);
+  });
 });

@@ -28,6 +28,7 @@ pub struct Session {
     pub nudge: crate::herald::Nudge,
     brain_nudge: crate::herald::Nudge,
     pub brain_moved: crate::herald::Nudge,
+    pub headed: std::sync::Arc<std::sync::Mutex<tisty_core::brain::Headed>>,
 }
 
 pub struct Projected {
@@ -131,6 +132,7 @@ impl Session {
             nudge: crate::herald::Nudge::default(),
             brain_nudge: crate::herald::Nudge::default(),
             brain_moved: crate::herald::Nudge::default(),
+            headed: std::sync::Arc::default(),
         };
         session.tidy_up(true);
         session.dress_if_due();

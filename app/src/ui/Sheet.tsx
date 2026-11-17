@@ -68,6 +68,7 @@ import type { Formatting, Menued } from "./quickly";
 import { type Reshape, reshaped } from "./recarding";
 import Skeleton from "./Skeleton";
 import { ASIDE_MARGIN, settles } from "./seeking";
+import { editorAsking } from "./sheetAsking";
 import { carried, firstInSight } from "./sighted";
 import { movedBlock } from "./sticking";
 import { useTables } from "./tableSheet";
@@ -439,20 +440,12 @@ export default function Sheet(props: Readonly<Props>) {
         setDrawn(latest.current);
         if (ours) settled(latest.current, renamed);
       },
-      () => {
-        const asking = said.current.asking;
-        return {
-          kinds: asking?.kinds ?? [],
-          tags: asking?.tags,
-          linkable: asking?.linkable,
-          headsOf: asking?.headsOf,
-          pasted: asking?.pasted,
-          lost: asking?.lost,
-          failed: (problem) => said.current.onFail?.(problem),
-          ask: (kind, at, put, first) => asking?.ask(kind, at, put, first),
-          steps: () => stagesIn(latest.current),
-        };
-      },
+      () =>
+        editorAsking(
+          said.current.asking,
+          (problem) => said.current.onFail?.(problem),
+          () => latest.current,
+        ),
     );
     follows.current = (_, now) => {
       // The words come in place, the caret carried along, instead of the view ending.

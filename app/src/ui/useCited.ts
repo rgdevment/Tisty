@@ -28,10 +28,15 @@ export const useCited = (paper: string): Citing[] | null | undefined => {
   const [held, setHeld] = useState<{ paper: string; citing: Citing[] | null } | null>(null);
   useEffect(() => {
     let gone = false;
+    // A round moves the base on any write anywhere; the panel is drawn again only when its answer moved.
+    let said: string | null = null;
     const ask = () =>
       docCitedBy(paper)
         .then((citing) => {
-          if (!gone) setHeld({ paper, citing });
+          const now = JSON.stringify(citing);
+          if (gone || now === said) return;
+          said = now;
+          setHeld({ paper, citing });
         })
         .catch(() => {});
     void ask();

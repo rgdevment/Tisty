@@ -15,7 +15,7 @@ mod own;
 mod reading;
 
 pub use card::{Around, Card, DocFacts, Facts, Near, Section, TaskFacts, Tongue};
-pub use reading::{Citing, Under, cited_by};
+pub use reading::{Citing, Headed, Under, cited_by};
 
 const SCHEMA: i64 = 4;
 const FILE: &str = "brain.db";

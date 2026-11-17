@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::path::Path;
 
 use rusqlite::{Connection, OpenFlags, OptionalExtension};
@@ -12,7 +13,7 @@ use crate::witness::{self, Fact, channel};
 
 const NAMED: &str = "SELECT id, uid FROM node WHERE id = ?1
     UNION ALL SELECT id, uid FROM node WHERE uid = ?1 LIMIT 1";
-const CITING: &str = "SELECT n.id, n.kind, n.title, n.state, e.kind FROM edge e
+const CITING: &str = "SELECT n.id, n.kind, n.title, n.state, e.kind, n.stamp FROM edge e
     JOIN node n ON n.id = e.source
     WHERE e.kind IN ('cite', 'mention') AND e.target IN (?1, ?2)
     ORDER BY n.kind = 'task', n.title COLLATE NOCASE, n.id";
@@ -35,6 +36,31 @@ pub struct Under {
     pub title: String,
 }
 
+const HEADED_AT_MOST: usize = 4096;
+
+// Kept by the node's stamp, so a body is read again only once a round has seen it move.
+#[derive(Debug, Default)]
+pub struct Headed {
+    bodies: HashMap<String, (String, Vec<(String, Under)>)>,
+}
+
+impl Headed {
+    fn of(&mut self, id: &str, stamp: &str, docs: &Path) -> &[(String, Under)] {
+        let fresh = self.bodies.get(id).is_some_and(|(had, _)| had == stamp);
+        if !fresh {
+            if self.bodies.len() >= HEADED_AT_MOST {
+                self.bodies.clear();
+            }
+            let said = crate::docs::read(docs, id)
+                .map(|body| headed(&body))
+                .unwrap_or_default();
+            self.bodies
+                .insert(id.to_string(), (stamp.to_string(), said));
+        }
+        self.bodies.get(id).map_or(&[], |(_, said)| said.as_slice())
+    }
+}
+
 impl Brain {
     pub fn looked_at(cache_dir: &Path) -> Option<Self> {
         let at = cache_dir.join(FILE);
@@ -52,7 +78,12 @@ impl Brain {
             .flatten()
     }
 
-    pub fn cited_by(&self, id: &str, docs: &Path) -> rusqlite::Result<Option<Vec<Citing>>> {
+    pub fn cited_by(
+        &self,
+        id: &str,
+        docs: &Path,
+        headed: &mut Headed,
+    ) -> rusqlite::Result<Option<Vec<Citing>>> {
         if self.seen().is_none() {
             return Ok(None);
         }
@@ -65,69 +96,72 @@ impl Brain {
             .optional()?
             .unwrap_or_else(|| (id.clone(), None::<String>));
         let aimed = [file.clone(), uid.unwrap_or(file)];
-        let mut all: Vec<Citing> = Vec::new();
+        let mut all: Vec<(Citing, String)> = Vec::new();
         {
             let mut asked = tx.prepare(CITING)?;
             let rows = asked.query_map([aimed[0].as_str(), aimed[1].as_str()], |row| {
-                Ok(Citing {
+                let one = Citing {
                     id: row.get(0)?,
                     kind: row.get(1)?,
                     title: row.get(2)?,
                     state: row.get(3)?,
                     card: row.get::<_, String>(4)? == "cite",
                     under: Vec::new(),
-                })
+                };
+                Ok((one, row.get(5)?))
             })?;
             for row in rows {
-                let one = row?;
-                match all.iter_mut().find(|had| had.id == one.id) {
-                    Some(had) => had.card |= one.card,
-                    None => all.push(one),
+                let (one, stamp) = row?;
+                match all.iter_mut().find(|(had, _)| had.id == one.id) {
+                    Some((had, _)) => had.card |= one.card,
+                    None => all.push((one, stamp)),
                 }
             }
         }
         drop(tx);
-        for one in all.iter_mut().filter(|one| one.kind != "task") {
-            if let Ok(body) = crate::docs::read(docs, &one.id) {
-                one.under = under(&body, &aimed);
-            }
+        for (one, stamp) in all.iter_mut().filter(|(one, _)| one.kind != "task") {
+            one.under = under(headed.of(&one.id, stamp, docs), &aimed);
         }
-        Ok(Some(all))
+        Ok(Some(all.into_iter().map(|(one, _)| one).collect()))
     }
 }
 
-pub fn cited_by(paths: &crate::Paths, id: &str) -> Option<Vec<Citing>> {
+pub fn cited_by(paths: &crate::Paths, id: &str, headed: &mut Headed) -> Option<Vec<Citing>> {
     let brain = Brain::looked_at(paths.cache())?;
     brain
-        .cited_by(id, &paths.docs())
+        .cited_by(id, &paths.docs(), headed)
         .inspect_err(|e| unread("the brain could not say who cites it", &e.to_string()))
         .ok()
         .flatten()
 }
 
 // Places and headings are both read from the translator's text, so front matter and CRLF shift neither.
-fn under(body: &str, aimed: &[String; 2]) -> Vec<Under> {
+fn headed(body: &str) -> Vec<(String, Under)> {
     let doc = tisty_markdown::read(body);
     let heads = sections(&doc);
+    link_spots(doc.text())
+        .into_iter()
+        .filter_map(|(link, at)| {
+            let named = link
+                .target
+                .strip_prefix(DOC)
+                .or_else(|| link.target.strip_prefix(TASK))?;
+            let head = heads.iter().rev().find(|head| head.at.start <= at)?;
+            let under = Under {
+                id: head.id.clone(),
+                title: head.said.clone(),
+            };
+            Some((paper_named(named), under))
+        })
+        .collect()
+}
+
+fn under(headed: &[(String, Under)], aimed: &[String; 2]) -> Vec<Under> {
     let mut found: Vec<Under> = Vec::new();
-    for (link, at) in link_spots(doc.text()) {
-        let named = link
-            .target
-            .strip_prefix(DOC)
-            .or_else(|| link.target.strip_prefix(TASK));
-        if !named.is_some_and(|one| aimed.contains(&paper_named(one))) {
-            continue;
+    for (named, under) in headed {
+        if aimed.contains(named) && !found.iter().any(|one| one.id == under.id) {
+            found.push(under.clone());
         }
-        let Some(head) = heads.iter().rev().find(|head| head.at.start <= at) else {
-            continue;
-        };
-        if found.iter().any(|one| one.id == head.id) {
-            continue;
-        }
-        found.push(Under {
-            id: head.id.clone(),
-            title: head.said.clone(),
-        });
     }
     found
 }

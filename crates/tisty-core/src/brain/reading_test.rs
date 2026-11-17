@@ -59,7 +59,10 @@ fn whoever_cites_or_mentions_a_document_is_told_once_with_the_headings_over_each
     let mut brain = world.brain();
     world.refreshed(&mut brain, &world.state());
 
-    let said = brain.cited_by(&vet, &world.paths.docs()).unwrap().unwrap();
+    let said = brain
+        .cited_by(&vet, &world.paths.docs(), &mut Headed::default())
+        .unwrap()
+        .unwrap();
 
     assert_eq!(
         said,
@@ -77,7 +80,11 @@ fn whoever_cites_or_mentions_a_document_is_told_once_with_the_headings_over_each
     );
     assert_eq!(
         brain
-            .cited_by(&vet_id.to_string(), &world.paths.docs())
+            .cited_by(
+                &vet_id.to_string(),
+                &world.paths.docs(),
+                &mut Headed::default()
+            )
             .unwrap(),
         Some(said),
         "the document's ULID names it as its file does"
@@ -99,11 +106,15 @@ fn a_page_its_tags_and_its_files_are_no_citation() {
     world.refreshed(&mut brain, &world.state());
 
     assert_eq!(
-        brain.cited_by(&book, &world.paths.docs()).unwrap(),
+        brain
+            .cited_by(&book, &world.paths.docs(), &mut Headed::default())
+            .unwrap(),
         Some(vec![])
     );
     assert_eq!(
-        brain.cited_by(&page, &world.paths.docs()).unwrap(),
+        brain
+            .cited_by(&page, &world.paths.docs(), &mut Headed::default())
+            .unwrap(),
         Some(vec![]),
         "the book's page line places the page; it does not cite it"
     );
@@ -114,7 +125,12 @@ fn a_base_no_round_has_filled_says_nothing_rather_than_nobody() {
     let world = World::new();
     let brain = world.brain();
 
-    assert_eq!(brain.cited_by("a-0001", &world.paths.docs()).unwrap(), None);
+    assert_eq!(
+        brain
+            .cited_by("a-0001", &world.paths.docs(), &mut Headed::default())
+            .unwrap(),
+        None
+    );
 }
 
 #[test]
@@ -141,15 +157,56 @@ fn headings_are_found_past_front_matter_and_carriage_returns() {
         "---\r\ntags: [x]\r\n---\r\n# Doc\r\n\r\n## Más tarde\r\n\r\n[a](tisty:doc/a-0001)\r\n";
 
     assert_eq!(
-        under(body, &aimed),
+        under(&headed(body), &aimed),
         vec![Under {
             id: "más-tarde".into(),
             title: "Más tarde".into()
         }]
     );
     assert_eq!(
-        under("# Doc\n\n[a](tisty:doc/a-0001)\n", &aimed),
+        under(&headed("# Doc\n\n[a](tisty:doc/a-0001)\n"), &aimed),
         vec![],
         "the title is the document itself, not a section of it"
     );
+}
+
+#[test]
+fn a_citing_body_is_read_again_only_once_a_round_has_seen_it_move() {
+    let world = World::new();
+    let mut store = world.store();
+    let (_, vet) = doc(&world, &mut store, "# Vet\n", None, None);
+    let (_, trips) = doc(&world, &mut store, "# Trips\n", None, None);
+    written(
+        &world,
+        &trips,
+        &format!("# Trips\n\n## Hotels\n\n[vet](tisty:doc/{vet})\n"),
+    );
+    let mut brain = world.brain();
+    world.refreshed(&mut brain, &world.state());
+    let mut headed = Headed::default();
+    let sections = |brain: &Brain, headed: &mut Headed| -> Vec<String> {
+        brain
+            .cited_by(&vet, &world.paths.docs(), headed)
+            .unwrap()
+            .unwrap()[0]
+            .under
+            .iter()
+            .map(|one| one.id.clone())
+            .collect()
+    };
+    assert_eq!(sections(&brain, &mut headed), ["hotels"]);
+
+    written(
+        &world,
+        &trips,
+        &format!("# Trips\n\n## Food\n\n[vet](tisty:doc/{vet})\n"),
+    );
+    assert_eq!(
+        sections(&brain, &mut headed),
+        ["hotels"],
+        "no round saw the body move, so what it said is kept"
+    );
+
+    world.refreshed(&mut brain, &world.state());
+    assert_eq!(sections(&brain, &mut headed), ["food"]);
 }
