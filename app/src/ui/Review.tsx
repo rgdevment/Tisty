@@ -1,7 +1,7 @@
 import { type ReactNode, useEffect, useState } from "react";
 import { complete, discard, docAway, docUnflag, type Filed, type List, type Task } from "../core";
 import { useDesk } from "../desk";
-import { dayOf, longAgo, whenLabel } from "../format";
+import { dayOf, daysFrom, longAgo, whenLabel } from "../format";
 import { fill, locale, t } from "../locales";
 import { saidPlainly } from "../refusal";
 import { NUDGE_AT, NUDGE_WEEKDAY, type Reviewing, reviewOf, reviewRemind } from "../reviewing";
@@ -135,13 +135,15 @@ export default function Review() {
 
       {seen?.routine ? (
         <footer className="mt-8 flex flex-wrap items-center gap-3">
-          <button
-            type="button"
-            onClick={() => seen.routine && act(complete(seen.routine.id))}
-            className={MILD}
-          >
-            {t("weeklyFinish")}
-          </button>
+          {seen.routine.date && daysFrom(seen.routine.date.at) <= 0 && (
+            <button
+              type="button"
+              onClick={() => seen.routine && act(complete(seen.routine.id))}
+              className={MILD}
+            >
+              {t("weeklyFinish")}
+            </button>
+          )}
           {seen.routine.date && (
             <span className="text-[12.5px] text-faint">
               {fill("weeklyDue", dayOf(seen.routine.date.at))}

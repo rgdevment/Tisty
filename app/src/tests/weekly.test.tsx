@@ -208,10 +208,23 @@ describe("the weekly review", () => {
     );
   });
 
-  it("with a routine set, finishing the review closes this round", async () => {
+  it("offers no finish before the round's day has come", async () => {
     ipc.review = reviewing({
       routine: task("01R1", "Weekly review", {
         date: { at: "2026-06-12T00:00:00", tz: "UTC", floating: true, has_time: false },
+        repeat: { from: "due", each: { every: 1, unit: "week" } },
+      }),
+    });
+    await openReview();
+
+    expect(screen.getByText(/^Due /)).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Finish the review" })).toBeNull();
+  });
+
+  it("with a routine set, finishing the review closes this round", async () => {
+    ipc.review = reviewing({
+      routine: task("01R1", "Weekly review", {
+        date: { at: "2026-06-10T00:00:00", tz: "UTC", floating: true, has_time: false },
         repeat: { from: "due", each: { every: 1, unit: "week" } },
       }),
     });
