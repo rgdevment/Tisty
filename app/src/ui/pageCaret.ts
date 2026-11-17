@@ -24,7 +24,7 @@ export const caretOn = (writer: Writer) => {
     if (same && writer.kept && range.startOffset === writer.kept.offset)
       return { from: writer.kept.at, to: writer.kept.at };
     const known = writer.reckoned;
-    const from = sourceAt(text, range.startContainer, range.startOffset, known);
+    const from = sourceAt(text, range.startContainer, range.startOffset, known, !range.collapsed);
     const to = range.collapsed ? from : sourceAt(text, range.endContainer, range.endOffset, known);
     if (from === null || to === null) return null;
     return { from: Math.min(from, to), to: Math.max(from, to) };

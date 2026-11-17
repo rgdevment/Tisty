@@ -1675,6 +1675,31 @@ describe("a key at the edge of a block drawn whole", () => {
     expect(said).toEqual([]);
   });
 
+  // The browser reaches into a formula's own drawing for Backspace and Delete, not around it as it does for code.
+  it.each([
+    ["Backspace right after it", "deleteContentBackward", [" fin", 0], ["mn", 1], [" fin", 0]],
+    ["Delete right before it", "deleteContentForward", ["Antes ", 6], ["math", 0], ["mi", 0]],
+  ] as const)("takes a formula in words whole on %s", (_, kind, at, from, to) => {
+    const said = writer("Antes $x^2$ fin\n");
+    pageOf(
+      '<p data-at="0-15"><span data-src="0-6">Antes </span><math data-src="6-11" contenteditable="false"><msup><mi>x</mi><mn>2</mn></msup></math><span data-src="11-15"> fin</span></p>',
+    );
+    writing?.drawn();
+    caretIn(at[0], at[1]);
+    const point = (pick: string): Node => piece(pick) ?? (document.querySelector(pick) as Node);
+    const reach = document.createRange();
+    reach.setStart(point(from[0]), from[1]);
+    reach.setEnd(point(to[0]), to[1]);
+    const event = new InputEvent("beforeinput", {
+      inputType: kind,
+      bubbles: true,
+      cancelable: true,
+    });
+    Object.defineProperty(event, "getTargetRanges", { value: () => [reach] });
+    document.querySelector(".page")?.dispatchEvent(event);
+    expect(said).toEqual(["Antes  fin\n"]);
+  });
+
   it("takes nothing on Delete at a step's end over a task's section", () => {
     document.documentElement.classList.add("untitled");
     const said = writer("- [ ] paso\n\n## Notas\n");
