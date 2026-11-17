@@ -99,6 +99,8 @@ const WORDS = [
   '<p data-at="0-9"><img src="walks-0006bf09.html" alt="Walks"></p>',
   '<p data-at="0-9">plain <code>x</code> words</p>',
   '<h2 id="b" data-at="0-9">B <span class="tag" data-tag="x">#x</span></h2>',
+  '<p data-at="0-9"><span class="media is-audio" data-file="attachments/bark-0006bf10.mp3" data-name="Bark" data-placed="0-9"><span class="media-name">Bark</span><audio controls=""></audio></span></p>',
+  '<p data-at="0-9"><span class="media is-audio" data-file="attachments/bark-0006bf10.mp3" data-name="Bark" data-placed="0-5"><span class="media-name">Bark</span><audio controls=""></audio></span> <a href="https://x.y/z">x</a></p>',
 ];
 
 const READING = {

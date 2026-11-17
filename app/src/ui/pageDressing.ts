@@ -19,17 +19,18 @@ const dressedAway = (one: Element, sheet: Element) => {
 // Taking a block out of the page restyles every paragraph of a long one, so a stand-in of its kind is dressed.
 const dressedThrough = (one: Element, sheet: Element) => {
   const stand = sheet.ownerDocument.importNode(one, false);
-  // A player taken to another page starts over, so it waits here behind a mark while its words are dressed.
+  // A player taken to another page starts over, so a copy without its sound goes in its place while its words are dressed.
   const players = Array.from(one.querySelectorAll(".media"), (player) => {
-    const mark = one.ownerDocument.createComment("");
-    player.replaceWith(mark);
-    return [mark, player] as const;
+    const copy = player.cloneNode(true) as Element;
+    for (const sound of copy.querySelectorAll("audio, video")) sound.remove();
+    player.replaceWith(copy);
+    return [copy, player] as const;
   });
   stand.append(...one.childNodes);
   sheet.append(stand);
   return () => {
     takenOver(one, stand);
-    for (const [mark, player] of players) mark.replaceWith(player);
+    for (const [copy, player] of players) copy.replaceWith(player);
   };
 };
 
