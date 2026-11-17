@@ -219,6 +219,24 @@ fn every_language_of_a_document_is_one_and_opening_any_of_them_counts_for_all() 
 }
 
 #[test]
+fn opening_a_language_put_away_still_counts_for_the_one_in_the_open() {
+    let mut shelf = Shelf::new();
+    let anchor = shelf.put("receta", 200, |_| {});
+    let english = shelf.put("recipe", 200, |_| {});
+    shelf.apply(Op::DocTongue {
+        id: english,
+        d: Tongue { of: Some(anchor) },
+    });
+    shelf.apply(Op::DocArchive { id: english });
+
+    assert_eq!(shelf.docs_forgotten(), vec![anchor]);
+
+    shelf.opened_days_ago("recipe", 1);
+
+    assert!(shelf.forgotten().is_empty());
+}
+
+#[test]
 fn the_dice_leaves_out_what_was_opened_this_week_unless_that_is_everything() {
     let mut shelf = Shelf::new();
     let rested = shelf.put("descansado", 3, |_| {});

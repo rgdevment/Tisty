@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
 
 use serde::Serialize;
@@ -79,11 +79,13 @@ fn seen(root: &Path, state: &State, opened: &Used) -> BTreeMap<DocId, Seen> {
     let on_disk = crate::docs::names(root);
     let diaries = crate::diary::books(root, state);
     let mut seen: BTreeMap<DocId, Seen> = BTreeMap::new();
+    let mut in_view = BTreeSet::new();
     for kept in state.papers() {
         let whole = kept
             .page_of
             .and_then(|up| state.docs.get(&up))
             .unwrap_or(kept);
+        let group = state.anchor_of(whole);
         let counts = whole.page_of.is_none()
             && !state.held_away(whole)
             && whole.flagged.is_none()
@@ -91,13 +93,14 @@ fn seen(root: &Path, state: &State, opened: &Used) -> BTreeMap<DocId, Seen> {
             && !whole.sown
             && !crate::diary::within(&diaries, whole)
             && on_disk.contains(&whole.file);
-        if !counts {
-            continue;
+        if counts {
+            in_view.insert(group);
         }
-        let one = seen.entry(state.anchor_of(whole)).or_default();
+        let one = seen.entry(group).or_default();
         one.opened = one.opened.max(opened.get(&kept.file).copied());
         one.wrote = one.wrote.max(written(kept));
     }
+    seen.retain(|group, _| in_view.contains(group));
     seen
 }
 
