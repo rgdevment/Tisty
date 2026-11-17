@@ -164,6 +164,26 @@ describe("the palette, opened from the keyboard", () => {
     expect(await screen.findByDisplayValue("water the ferns")).toBeTruthy();
   });
 
+  it("goes away with Esc and leaves the task open behind it", async () => {
+    hits = {
+      tasks: [{ ...bank, id: "01C", title: "water the ferns", list: undefined }],
+      papers: [],
+      total: 1,
+    };
+    const user = userEvent.setup();
+    await opened();
+    press();
+    await user.keyboard("ferns");
+    await user.click(await screen.findByRole("option", { name: /water the ferns/ }));
+    await screen.findByDisplayValue("water the ferns");
+
+    press();
+    await user.keyboard("{Escape}");
+
+    expect(screen.queryByRole("combobox")).toBeNull();
+    expect(screen.getByDisplayValue("water the ferns")).toBeTruthy();
+  });
+
   it("runs an action and goes away, landing where the sidebar's Library lands", async () => {
     const user = userEvent.setup();
     await opened();
