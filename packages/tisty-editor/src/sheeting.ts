@@ -93,6 +93,20 @@ export const sheeted = (page: Document, { tall, y, said }: Sheet) => {
   return true;
 };
 
+// Laying the sheets again takes every fill away and puts it back, which the browser's own anchoring can read as a jump.
+const heldInSight = (page: Document, body: HTMLElement) => {
+  const view = page.defaultView;
+  const first = (Array.from(body.children) as HTMLElement[]).find(
+    (one) => !one.matches(`.${TURN}, .${SAID}`) && one.getBoundingClientRect().bottom > 0,
+  );
+  if (!view || !first) return () => {};
+  const top = first.getBoundingClientRect().top;
+  return () => {
+    const moved = first.getBoundingClientRect().top - top;
+    if (Math.abs(moved) >= 1) view.scrollBy(0, moved);
+  };
+};
+
 // Pictures that arrive late move every foot, and a sheet that did not fit may fit once the page is wider, so it is watched either way.
 export const sheeting = (page: Document, sheet: () => Sheet | undefined) => {
   const root = page.documentElement;
@@ -100,15 +114,17 @@ export const sheeting = (page: Document, sheet: () => Sheet | undefined) => {
   let laidAt = -1;
   const lay = () => {
     const now = sheet();
+    const held = body ? heldInSight(page, body) : undefined;
     root.classList.toggle("sheeted", Boolean(now));
     laidAt = -1;
     if (!now) {
       if (body) unsheeted(body);
-      return;
+    } else {
+      root.style.setProperty("--sheet-x", `${now.x}px`);
+      root.style.setProperty("--sheet-y", `${now.y}px`);
+      laidAt = sheeted(page, now) ? (body?.offsetHeight ?? -1) : -1;
     }
-    root.style.setProperty("--sheet-x", `${now.x}px`);
-    root.style.setProperty("--sheet-y", `${now.y}px`);
-    laidAt = sheeted(page, now) ? (body?.offsetHeight ?? -1) : -1;
+    held?.();
   };
   let pending = 0;
   const later = () => {

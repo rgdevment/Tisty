@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { sheeted, sheeting } from "../src/sheeting";
 
 const laid = (blocks: [string, number, number][]) => {
@@ -139,5 +139,25 @@ describe("sheets laid on the page", () => {
     expect((sheet.children[1] as HTMLElement).style.getPropertyValue("--fill")).toBe("");
     expect(document.documentElement.classList.contains("sheeted")).toBe(false);
     sheets.stop();
+  });
+
+  it("keeps the first block in sight where it was while the sheets are laid again", () => {
+    const sheet = laid([
+      ["p", 10, 40],
+      ["hr", 60, 2],
+      ["p", 120, 40],
+    ]);
+    const root = document.documentElement;
+    root.classList.remove("sheeted");
+    const box = (top: number, height: number) => ({ top, bottom: top + height }) as DOMRect;
+    sheet.children[0].getBoundingClientRect = () => box(-100, 40);
+    // The browser's anchoring takes the fills put back for a move and scrolls past the break.
+    sheet.children[1].getBoundingClientRect = () =>
+      box(root.classList.contains("sheeted") ? -552 : 200, 2);
+    const scrolled = vi.spyOn(window, "scrollBy").mockImplementation(() => {});
+    const sheets = sheeting(document, () => ({ wide: 794, tall: 140, x: 10, y: 10 }));
+    expect(scrolled).toHaveBeenCalledWith(0, -752);
+    sheets.stop();
+    scrolled.mockRestore();
   });
 });

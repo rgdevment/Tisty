@@ -83,10 +83,6 @@ html.untitled .page > :last-child {
 html.tall .page > * {
   content-visibility: visible;
 }
-/* Each new lay of the sheets takes every fill away and puts it back, which the browser's own anchoring reads as a jump. */
-html.sheeted {
-  overflow-anchor: none;
-}
 html.sheeted .page {
   position: relative;
   max-width: var(--wide, none);
