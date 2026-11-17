@@ -59,16 +59,24 @@ const ES: Record<string, string> = {
   kindText: "Texto",
 };
 
-const pictured = (src: string): boolean => SEEABLE.includes(ending(src));
-
-const attached = (src: string): boolean =>
-  src !== "" && !/^[a-z][a-z0-9+.-]*:/i.test(src) && !pictured(src);
+const themed = (page: Document, run: () => void): (() => void) => {
+  const watching = new MutationObserver(run);
+  watching.observe(page.documentElement, { attributeFilter: ["class"] });
+  return () => watching.disconnect();
+};
 
 export const drawnOwn = (
   page: Document,
   words: Words,
-  theme: Pick<Lender, "dark" | "onTheme">,
+  dark: () => boolean,
+  heic: boolean,
 ): Lending[] => {
+  const pictured = (src: string): boolean => {
+    const kind = ending(src);
+    return SEEABLE.includes(kind) || (heic && kind === "heic");
+  };
+  const attached = (src: string): boolean =>
+    src !== "" && !/^[a-z][a-z0-9+.-]*:/i.test(src) && !pictured(src);
   const table = words.locale === "es" ? ES : EN;
   const say = (word: string, name?: string): string =>
     word === "tryAgain" ? words.say("retry") : filled(table[word] ?? word, name);
@@ -89,7 +97,7 @@ export const drawnOwn = (
     const src = img.getAttribute("src") ?? "";
     if (attached(src)) attachedAs(page, img, src, () => true, [], host);
   }
-  const lender: Lender = { say, ...theme };
+  const lender: Lender = { say, dark, onTheme: (run) => themed(page, run) };
   return widgetsDrawn(page, {
     refused: (source) => notWidget(source, say),
     lent: (held, source) => lend(held, source, lender),

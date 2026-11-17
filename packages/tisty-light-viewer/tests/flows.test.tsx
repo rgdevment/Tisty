@@ -21,6 +21,8 @@ const host = vi.hoisted(() => ({
   showDoc: vi.fn(),
   showTask: vi.fn(),
   openAttached: vi.fn(),
+  plain: vi.fn(),
+  drawsHeic: vi.fn(),
 }));
 const drawing = vi.hoisted(() => ({ diagrams: vi.fn(), readAs: vi.fn() }));
 
@@ -74,6 +76,7 @@ beforeEach(() => {
   host.theRest.mockResolvedValue([]);
   host.reveal.mockResolvedValue(undefined);
   host.follow.mockResolvedValue(undefined);
+  host.drawsHeic.mockResolvedValue(false);
   drawing.diagrams.mockResolvedValue(undefined);
   drawing.readAs.mockReturnValue({ kept: [], drawn: Promise.resolve() });
   window.print = vi.fn();
@@ -108,7 +111,7 @@ describe("the menu", () => {
   it("copies what was written", async () => {
     const writeText = vi.fn().mockResolvedValue(undefined);
     vi.stubGlobal("navigator", { clipboard: { writeText } });
-    host.source.mockResolvedValue("# written");
+    host.plain.mockResolvedValue("# written");
     await open();
     (await button("Más")).click();
     (await menuItem(/Copiar/)).click();
@@ -509,5 +512,10 @@ describe("a document of one's own", () => {
     await screen.findByText("Modificado");
     window.dispatchEvent(new FocusEvent("focus"));
     expect(host.facts).toHaveBeenCalledTimes(1);
+  });
+
+  it("says an empty document is empty, not a file", async () => {
+    await open(own(""));
+    expect(await screen.findByText("Este documento está vacío.")).toBeTruthy();
   });
 });

@@ -3,8 +3,9 @@ import { type Opened, reveal } from "./host";
 import type { Words } from "./words";
 
 const saying = (words: Words, opened: Opened): string => {
-  if (opened.kind === "drawn") return words.say("empty");
-  return words.say(opened.refusal.code === "documentTooBig" ? "tooBig" : "unreadable");
+  if (opened.kind === "drawn") return words.say(opened.own ? "emptyDoc" : "empty");
+  if (opened.refusal.code === "documentTooBig") return words.say("tooBig");
+  return words.say(opened.own ? "unreadableDoc" : "unreadable");
 };
 
 export default function Problem(props: {

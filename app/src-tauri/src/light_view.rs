@@ -43,12 +43,12 @@ pub enum Reading {
     },
 }
 
-enum Kept {
+enum Source {
     Outside(PathBuf),
     Own(Paper),
 }
 
-impl Kept {
+impl Source {
     fn body(&self, app: &AppHandle) -> Answer<String> {
         match self {
             Self::Outside(at) => body_of(at),
@@ -57,18 +57,18 @@ impl Kept {
     }
 }
 
-fn kept_of(app: &AppHandle, label: &str) -> Answer<Kept> {
+fn source_of(app: &AppHandle, label: &str) -> Answer<Source> {
     match shown_in(&app.state::<Views>(), label)? {
-        Shown::File(at) => Ok(Kept::Outside(at)),
-        Shown::Doc(paper) => Ok(Kept::Own(paper)),
+        Shown::File(at) => Ok(Source::Outside(at)),
+        Shown::Doc(paper) => Ok(Source::Own(paper)),
         _ => Err(Refusal::of("notAllowed")),
     }
 }
 
 fn file_of(app: &AppHandle, label: &str) -> Answer<PathBuf> {
-    match kept_of(app, label)? {
-        Kept::Outside(at) => Ok(at),
-        Kept::Own(_) => Err(Refusal::of("notAllowed")),
+    match source_of(app, label)? {
+        Source::Outside(at) => Ok(at),
+        Source::Own(_) => Err(Refusal::of("notAllowed")),
     }
 }
 
@@ -102,17 +102,17 @@ fn drawn_from(body: &str, own: bool) -> (Vec<String>, Vec<Heading>) {
 #[tauri::command(async)]
 pub fn view_read(app: AppHandle, window: tauri::WebviewWindow) -> Answer<Reading> {
     let label = window.label();
-    let kept = kept_of(&app, label)?;
-    let (name, place, path, own) = match &kept {
-        Kept::Outside(at) => (named(at), place_of(at), at.display().to_string(), false),
-        Kept::Own(paper) => (
+    let source = source_of(&app, label)?;
+    let (name, place, path, own) = match &source {
+        Source::Outside(at) => (named(at), place_of(at), at.display().to_string(), false),
+        Source::Own(paper) => (
             paper.title.clone(),
             paper.place.clone(),
             paper.file.clone(),
             true,
         ),
     };
-    let body = match kept.body(&app) {
+    let body = match source.body(&app) {
         Ok(body) => body,
         Err(refusal) => {
             return Ok(Reading::Missed {
@@ -157,7 +157,18 @@ pub fn view_rest(app: AppHandle, window: tauri::WebviewWindow) -> Vec<String> {
 
 #[tauri::command(async)]
 pub fn view_source(app: AppHandle, window: tauri::WebviewWindow) -> Answer<String> {
-    kept_of(&app, window.label())?.body(&app)
+    source_of(&app, window.label())?.body(&app)
+}
+
+// Copied out, a document of one's own leaves as the Markdown any other program reads.
+#[tauri::command(async)]
+pub fn view_plain(app: AppHandle, window: tauri::WebviewWindow) -> Answer<String> {
+    let source = source_of(&app, window.label())?;
+    let body = source.body(&app)?;
+    Ok(match source {
+        Source::Outside(_) => body,
+        Source::Own(_) => tisty_markdown::to_standard(&body, &|_| None),
+    })
 }
 
 #[derive(Debug, PartialEq, Eq, serde::Serialize)]
@@ -228,7 +239,7 @@ pub fn view_cards(
     window: tauri::WebviewWindow,
     files: Vec<String>,
 ) -> Answer<HashMap<String, Card>> {
-    let Kept::Own(paper) = kept_of(&app, window.label())? else {
+    let Source::Own(paper) = source_of(&app, window.label())? else {
         return Err(Refusal::of("notAllowed"));
     };
     let body = doc_body(&app, &paper.file)?;
@@ -318,9 +329,9 @@ async fn attached_picture(app: &AppHandle, reference: String) -> Answer<String> 
 }
 
 fn own_doc(app: &AppHandle, label: &str) -> Answer<()> {
-    match kept_of(app, label)? {
-        Kept::Own(_) => Ok(()),
-        Kept::Outside(_) => Err(Refusal::of("notAllowed")),
+    match source_of(app, label)? {
+        Source::Own(_) => Ok(()),
+        Source::Outside(_) => Err(Refusal::of("notAllowed")),
     }
 }
 
@@ -355,11 +366,13 @@ pub async fn view_picture(
     window: tauri::WebviewWindow,
     src: String,
 ) -> Answer<String> {
-    match kept_of(&app, window.label())? {
-        Kept::Outside(at) => tauri::async_runtime::spawn_blocking(move || near_picture(&at, &src))
-            .await
-            .map_err(|_| Refusal::of("notAllowed"))?,
-        Kept::Own(_) => attached_picture(&app, src).await,
+    match source_of(&app, window.label())? {
+        Source::Outside(at) => {
+            tauri::async_runtime::spawn_blocking(move || near_picture(&at, &src))
+                .await
+                .map_err(|_| Refusal::of("notAllowed"))?
+        }
+        Source::Own(_) => attached_picture(&app, src).await,
     }
 }
 
@@ -374,7 +387,7 @@ pub async fn view_picture_far(
     window: tauri::WebviewWindow,
     src: String,
 ) -> Answer<String> {
-    kept_of(&app, window.label())?;
+    source_of(&app, window.label())?;
     tauri::async_runtime::spawn_blocking(move || far_picture(&src))
         .await
         .map_err(|_| Refusal::of("notAllowed"))?

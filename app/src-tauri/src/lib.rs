@@ -1354,6 +1354,7 @@ fn commands() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool + Send + Sync +
         light_view::view_read,
         light_view::view_rest,
         light_view::view_source,
+        light_view::view_plain,
         light_view::view_picture,
         light_view::view_picture_far,
         light_view::view_follow,

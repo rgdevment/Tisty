@@ -1,3 +1,4 @@
+import { drawsHeic } from "./host";
 import type { Words } from "./words";
 
 const PAINT_WAIT = 100;
@@ -43,17 +44,18 @@ export const isDark = (): boolean => document.documentElement.classList.contains
 export const dress = async (page: HTMLElement, words: Words, own = false): Promise<void> => {
   await painted();
   const { readAs } = await import("./drawing");
-  const owned = own ? await import("./owned") : null;
-  const cards = own
-    ? await import("./cards")
-        .then(({ cardsIn }) => cardsIn(page, words.sayToSheet("untitledDoc")))
-        .catch(() => undefined)
-    : undefined;
+  const [owned, cards, heic] = own
+    ? await Promise.all([
+        import("./owned"),
+        import("./cards")
+          .then(({ cardsIn }) => cardsIn(page, words.sayToSheet("untitledDoc")))
+          .catch(() => undefined),
+        drawsHeic().catch(() => false),
+      ])
+    : [null, undefined, false];
   // In one's own document a web link alone in its paragraph is a card of its site, never a preview brought from it.
   const sites = own ? {} : undefined;
-  const brought = owned
-    ? () => void owned.drawnOwn(document, words, { dark: isDark, onTheme: followTheme })
-    : undefined;
+  const brought = owned ? () => void owned.drawnOwn(document, words, isDark, heic) : undefined;
   const reading = { say: words.sayToSheet, locale: words.locale, live: () => true };
   await readAs(document, { ...reading, cards, sites, brought }).drawn;
 };
@@ -63,18 +65,10 @@ export const redraw = async (): Promise<void> => {
   await diagrams(document, isDark(), () => true);
 };
 
-const themeFollowers = new Set<() => void>();
-
-const followTheme = (run: () => void): (() => void) => {
-  themeFollowers.add(run);
-  return () => themeFollowers.delete(run);
-};
-
 const shaded = (dark: boolean): void => {
   const root = document.documentElement;
   root.dataset.theme = dark ? "dark" : "light";
   root.classList.toggle("dark", dark);
-  for (const run of themeFollowers) run();
 };
 
 // Paper is light, and a dark theme's near-white words would be printed on it.

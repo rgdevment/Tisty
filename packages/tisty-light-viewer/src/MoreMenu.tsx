@@ -1,5 +1,5 @@
 import { For, onCleanup, Show } from "solid-js";
-import { reveal, source } from "./host";
+import { plain, reveal } from "./host";
 import type { Words } from "./words";
 
 export default function MoreMenu(props: {
@@ -20,7 +20,7 @@ export default function MoreMenu(props: {
     {
       label: say("copy"),
       pick: () =>
-        void source()
+        void plain()
           .then((said) => navigator.clipboard.writeText(said))
           .catch(props.fail),
     },
