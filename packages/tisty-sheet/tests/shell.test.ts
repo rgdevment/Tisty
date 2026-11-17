@@ -57,6 +57,10 @@ describe("the page the writing sits on", () => {
     );
   });
 
+  it("leaves the view where it is while its sheets are laid again", () => {
+    expect(source("page.css")).toMatch(/html\.sheeted \{\s*overflow-anchor: none;\s*\}/);
+  });
+
   it("names every token it reads, hues and pens included", () => {
     expect(TOKENS).toContain("--tisty-sheet");
     expect(TOKENS).toContain("--tisty-hue-red");
