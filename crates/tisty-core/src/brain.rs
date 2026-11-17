@@ -39,9 +39,10 @@ const DROPPED: &str = "DROP TABLE IF EXISTS node;
     DROP TABLE IF EXISTS note;
     DELETE FROM meta;";
 
-const GONE_WITH_A_NODE: [&str; 4] = [
+const GONE_WITH_A_NODE: [&str; 5] = [
     "DELETE FROM node WHERE id = ?1",
-    "DELETE FROM edge WHERE source = ?1 OR target = ?1",
+    "DELETE FROM edge WHERE source = ?1",
+    "DELETE FROM edge WHERE target = ?1",
     "DELETE FROM card WHERE id = ?1",
     "DELETE FROM note WHERE id = ?1",
 ];
