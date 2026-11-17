@@ -79,7 +79,9 @@ Si solo querías mirar, bórrala antes de presionar `Enter`. Todas las palabras 
 
 ### Captura sin abrir la ventana
 
-Se te ocurre algo en medio de otra cosa: presiona `Ctrl` + `Shift` + `Space` desde donde estés y se abre una ventanita para escribirlo. `Enter` la guarda, `Esc` la cierra, y sigues con lo tuyo. Pruébalo ahora, sin salir de esta guía.
+Se te ocurre algo en medio de otra cosa: presiona `Ctrl` + `Shift` + `Space` desde donde estés y se abre una ventanita para escribirlo. `Enter` la guarda, `Esc` la cierra, y sigues con lo tuyo.
+
+**Pruébalo:** sin salir de esta guía, presiona `Ctrl` + `Shift` + `Space`, escribe lo primero que tengas pendiente y `Enter`. Esa es tu primera tarea: con un día en la frase te espera en **Hoy** o en **Próximo**; sin día, en **Todas**.
 
 Si ese atajo ya lo usa otro programa, Tisty toma otro y te dice cuál quedó en Configuración. Y si lo que se te ocurrió todavía no es una tarea, `Tab` en esa misma ventanita lo vuelve una idea, y otro `Tab`, una línea en el diario de hoy: los dos están más abajo, en **Las ideas** y **El diario**.
 

@@ -32,6 +32,7 @@ interface Props {
   axis?: Axis;
   dense?: boolean;
   empty?: string;
+  onTry?: (example: string) => void;
   note?: string;
   onReach?: () => void;
   onSelect: (id: string, task: Task) => void;
@@ -63,6 +64,7 @@ export default function TaskList({
   axis,
   dense,
   empty,
+  onTry,
   note,
   onReach,
   onSelect,
@@ -457,7 +459,7 @@ export default function TaskList({
         )}
         {!instead && tasks.length === 0 && !joining && (
           <p className="rounded-[10px] border border-hair bg-sheet px-5 py-4 text-[12.5px] leading-relaxed text-soft shadow-lift">
-            {empty ?? t("nothingOpen")}
+            <Nothing said={empty ?? t("nothingOpen")} onTry={onTry} />
           </p>
         )}
 
@@ -500,6 +502,38 @@ export default function TaskList({
         {below}
       </div>
     </main>
+  );
+}
+
+const QUOTED = /«([^»]+)»/;
+
+function Nothing({ said, onTry }: { said: string; onTry?: (example: string) => void }) {
+  const quoted = QUOTED.exec(said);
+  if (!onTry || !quoted) return said;
+  const [whole, example] = quoted;
+  const after = said.slice(quoted.index + whole.length);
+  const held = /^\S*/.exec(after)?.[0] ?? "";
+  // The marks ride inside the button and the sign after it is held to it, so no line ends or starts on one alone.
+  return (
+    <>
+      {said.slice(0, quoted.index)}
+      <span className="whitespace-nowrap">
+        <button
+          type="button"
+          title={t("writeItAbove")}
+          onClick={() => onTry(example)}
+          className="group rounded-md text-left whitespace-normal outline-none focus-visible:ring-2 focus-visible:ring-accent"
+        >
+          <span aria-hidden="true">«</span>
+          <span className="text-accent underline decoration-dotted underline-offset-[3px] group-hover:decoration-solid">
+            {example}
+          </span>
+          <span aria-hidden="true">»</span>
+        </button>
+        {held}
+      </span>
+      {after.slice(held.length)}
+    </>
   );
 }
 

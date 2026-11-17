@@ -1,6 +1,7 @@
 import { useCallback, useState } from "react";
 import type { Axis } from "./archive";
 import type { List, Reading, View } from "./core";
+import { ahead, every, repeating, turnOf, unlisted } from "./examples";
 import { fill, t } from "./locales";
 
 export type Named =
@@ -134,6 +135,10 @@ export function accepts(chosen: Chosen): boolean {
   return true;
 }
 
+// An example is offered only where a capture field is there to take it.
+export const offers = (chosen: Chosen, searching: boolean): boolean =>
+  !searching && accepts(chosen);
+
 export function invite(chosen: Chosen, lists: List[]): string {
   if (chosen.list) {
     const name = lists.find((list) => list.id === chosen.list)?.name;
@@ -146,7 +151,10 @@ export function invite(chosen: Chosen, lists: List[]): string {
   return t("addTask");
 }
 
-export function nothing(chosen: Chosen, searching: boolean, tracesHidden = 0): string {
+const offered = (all: string[], at: number): string => turnOf(unlisted(all), at);
+
+// `at`, from 0 up to 1, says whose turn it is among the examples a view may offer.
+export function nothing(chosen: Chosen, searching: boolean, tracesHidden = 0, at = 0): string {
   if (searching) return t(chosen.named === "archive" ? "noHitsHere" : "noHits");
   if (chosen.named === "search") return t("searchInvite");
   if (chosen.named === "archive") {
@@ -157,15 +165,15 @@ export function nothing(chosen: Chosen, searching: boolean, tracesHidden = 0): s
       layer === "story" ? "storiesEmpty" : layer === "routine" ? "routinesEmpty" : "traceEmpty",
     );
   }
-  if (chosen.list || chosen.tags?.length) return t("listEmpty");
+  if (chosen.list || chosen.tags?.length) return fill("listEmpty", offered(every(), at));
   if (chosen.named === "tags") return t("noTagsYet");
-  if (chosen.slice === "upcoming") return t("upcomingEmpty");
+  if (chosen.slice === "upcoming") return fill("upcomingEmpty", offered(ahead(), at));
   if (chosen.slice === "overdue") return t("overdueEmpty");
   if (chosen.slice === "late") return t("lateEmpty");
-  if (chosen.slice === "repeating") return t("repeatingEmpty");
-  if (chosen.lists?.length) return t("listEmpty");
+  if (chosen.slice === "repeating") return fill("repeatingEmpty", offered(repeating(), at));
+  if (chosen.lists?.length) return fill("listEmpty", offered(every(), at));
   if (chosen.slice === "all") return t("allEmpty");
-  return t("todayEmpty");
+  return fill("todayEmpty", offered(every(), at));
 }
 
 export function headerCount(
