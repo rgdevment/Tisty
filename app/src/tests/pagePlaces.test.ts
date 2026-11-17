@@ -205,6 +205,22 @@ describe("the places a key moves, written once the keys rest", () => {
     expect(placeOf(last)).toEqual([11, 16]);
   });
 
+  it("writes what waits before a place is copied into a block still waiting, so it is not moved again", () => {
+    const blocks = ["uno", "dos", "tres"];
+    const sheet = sheetOf(blocks);
+    typed(sheet, blocks, 0, "x");
+    const first = sheet.firstElementChild as Element;
+    const last = sheet.lastElementChild as Element;
+    const card = document.createElement("span");
+    last.append(card);
+
+    placeCopied(first, card, "data-at", "data-placed");
+    placesSettled(document);
+
+    expect(card.getAttribute("data-placed")).toBe(first.getAttribute("data-at"));
+    expect(last.getAttribute("data-at")).toBe("11-15");
+  });
+
   it("leaves what waits as it is when a place is copied within the block the key drew", () => {
     const blocks = ["uno", "dos", "tres"];
     const sheet = sheetOf(blocks);
