@@ -1290,8 +1290,9 @@ cosa tuya.
 
 ### ¿Tisty es gratis?
 
-Sí, y lo seguirá siendo. AGPL-3.0, sin versión de pago, sin funciones
-reservadas para más adelante, sin versión de prueba que caduque.
+Sí, y completo: AGPL-3.0, sin versión de pago, sin funciones reservadas para
+más adelante, sin versión de prueba que caduque. Lo publicado bajo la AGPL sigue
+libre para usarlo, y cualquiera puede continuarlo.
 
 ### ¿Necesita una cuenta o conexión?
 
@@ -1503,8 +1504,8 @@ telemetría, todo local.
 
 ## Apoyar el proyecto
 
-**Software por convicción, no por suscripción.** Tisty es gratis y va a seguir
-siéndolo: sin anuncios, sin versión premium, sin muro de pago. Si te ahorra
+**Software por convicción, no por suscripción.** Tisty es gratis: sin anuncios,
+sin versión premium, sin muro de pago. Si te ahorra
 tiempo y quieres que siga manteniéndose:
 
 <p>

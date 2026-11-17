@@ -3,7 +3,7 @@
 ## The basics
 
 **Is Tisty free?**
-Yes, and it stays free. AGPL-3.0, no paid tier, no feature held back, no trial that runs out. [Commercial terms](https://github.com/rgdevment/Tisty/blob/main/docs/COMMERCIAL.md) exist only for organisations that cannot comply with the AGPL.
+Yes, and complete: no paid tier, no feature held back, no trial that runs out. What is published is AGPL-3.0, so it stays free to use and anyone can carry it on. [Commercial terms](https://github.com/rgdevment/Tisty/blob/main/docs/COMMERCIAL.md) exist only for organisations that cannot comply with the AGPL.
 
 **Does it need an account or a connection?**
 Neither. On its own, Tisty only asks whether a newer version exists, and it sends nothing to ask. Once you sync with a cloud or share a document, it also reads the few small files [[Privacy]] lists. Take the machine off the network and everything else works the same. See [[Privacy]].

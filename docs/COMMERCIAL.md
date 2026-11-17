@@ -2,7 +2,8 @@
 
 Tisty is dual licensed.
 
-- **AGPL-3.0** — free for everyone, forever. See [LICENSE](../LICENSE).
+- **AGPL-3.0** — free for everyone. What is published under it stays free, and
+  anyone can carry it on. See [LICENSE](../LICENSE).
 - **Commercial licence** — for organisations that cannot accept the AGPL's
   terms. Contact <rgdevment@tisty.app>.
 
@@ -64,26 +65,12 @@ assuming. A short email is cheaper than a wrong guess in either direction.
 It does **not** buy exclusive features, early access, or a different build.
 There is one Tisty and everyone gets all of it.
 
-## Pricing
+## How to ask for one
 
-Fixed price per tier, billed annually. **Never a percentage of your revenue** —
-that model is unauditable for a project this size and gets a product vetoed by
-legal departments on sight.
-
-Tiers, current terms and quotes: <rgdevment@tisty.app>.
-
-## What is never sold
-
-These stay free under the AGPL-3.0, permanently, and no commercial tier will
-ever gate them:
-
-- The door assistants come through (`tisty mcp`).
-- The complete task module.
-- The documents module.
-- Synchronisation with your own cloud or folder.
-
-If the free product were not complete and dignified on its own, there would be
-no project.
+There is no price list and there are no tiers. Tisty is not a business: it is
+one developer's tool, shared so that as many people as possible can use it. If
+your organisation needs the commercial licence, write to <rgdevment@tisty.app>
+with what you need, and the terms are worked out from there.
 
 ---
 

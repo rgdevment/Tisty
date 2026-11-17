@@ -1255,8 +1255,9 @@ door is yours to close.
 
 ### Is Tisty free?
 
-Yes, and it stays free. AGPL-3.0, no paid tier, no feature held back for a
-later version, no trial that runs out.
+Yes, and complete: AGPL-3.0, no paid tier, no feature held back for a later
+version, no trial that runs out. What is published under the AGPL stays free to
+use, and anyone can carry it on.
 
 ### Does it need an account or a connection?
 
@@ -1464,8 +1465,8 @@ local.
 
 ## Support the Project
 
-**Software out of conviction, not subscription.** Tisty is free and will stay
-free: no ads, no premium tier, no paywall. If it saves you time and you would
+**Software out of conviction, not subscription.** Tisty is free: no ads, no
+premium tier, no paywall. If it saves you time and you would
 like it to keep being maintained:
 
 <p>
