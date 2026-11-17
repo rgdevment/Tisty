@@ -329,6 +329,23 @@ fn a_question_due_on_an_answer_that_is_only_text_waits_for_the_next() {
 }
 
 #[test]
+fn a_connection_keeps_one_stretch_however_long_it_talks() {
+    let mut open = OpenTask::default();
+    let mut last = Ulid::nil();
+    for n in 0..10_000 {
+        last = Ulid::generate();
+        open.heard(Touch::Worked(last), at(n));
+        open.heard(Touch::Read(Ulid::generate()), at(n));
+    }
+
+    assert_eq!(open.heard(Touch::Looked, at(10_010)).unwrap().task, last);
+    assert!(
+        std::mem::size_of::<OpenTask>() <= 64,
+        "a connection holds one stretch, never a list that grows with the tasks it touches"
+    );
+}
+
+#[test]
 fn an_answer_with_nothing_structured_takes_no_question() {
     let mut answer = json!({ "content": [{ "type": "text", "text": "The rules." }] });
 
