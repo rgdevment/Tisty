@@ -497,3 +497,16 @@ fn a_store_has_begun_its_diary_once_a_book_was_made_even_put_away_or_no_longer_s
         "a diary put away or stripped of its mark still asks every machine for this release"
     );
 }
+
+#[test]
+fn new_words_go_at_the_end_of_today_past_a_heading_that_names_no_day() {
+    let body = "# Noviembre\n\n## Domingo 15\n\nMañana.\n\n## Para recordar\n\nLa llave.\n\n## Sábado 14\n\nFeria.\n";
+    let date: Date = "2026-11-15".parse().unwrap();
+
+    let after = written_on(body, date, &SPANISH, "Cena.");
+
+    assert_eq!(
+        after,
+        "# Noviembre\n\n## Domingo 15\n\nMañana.\n\n## Para recordar\n\nLa llave.\n\nCena.\n\n## Sábado 14\n\nFeria.\n"
+    );
+}

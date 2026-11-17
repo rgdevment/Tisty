@@ -71,7 +71,7 @@ fn new_words_keep_the_notes_after_them_in_their_order_and_leave_every_other_day_
         &body,
         MONDAY,
         &was,
-        "  Paseo largo con Rina.\n## Martes 3\nCine.\n## Tarde\n```\n## Lunes 2\n```  ",
+        "  Paseo largo con Rina.\n## Martes 3\nCine.\n# Noche\n## Tarde\n```\n## Lunes 2\n```  ",
     )
     .unwrap();
 
@@ -82,7 +82,7 @@ fn new_words_keep_the_notes_after_them_in_their_order_and_leave_every_other_day_
     assert_eq!(
         after_days[0].1,
         format!(
-            "Paseo largo con Rina.\n### Martes 3\nCine.\n## Tarde\n```\n## Lunes 2\n```\n\n{NOTE}\n\n{OTHER_NOTE}"
+            "Paseo largo con Rina.\n### Martes 3\nCine.\n### Noche\n## Tarde\n```\n## Lunes 2\n```\n\n{NOTE}\n\n{OTHER_NOTE}"
         )
     );
     assert!(after.starts_with("# Noviembre\n\n## Lunes 16\n\nPaseo largo"));

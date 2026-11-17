@@ -130,18 +130,22 @@ pub fn rewritten(body: &str, at: DayAt, was: &str, said: &str) -> Option<String>
     Some(spliced(body, &lines, cut, &kept))
 }
 
-// Only a heading that would start a day of its own goes one level down; the rest stay as the person wrote them.
+// Only a title or a heading that would start a day of its own goes under the day; the rest stay as written.
 fn kept_in_the_day(said: &str) -> String {
     let cutting: HashSet<usize> = crate::docs::headings(said)
         .into_iter()
-        .filter(|(_, level, title)| *level == 2 && day_named(title).is_some())
+        .filter(|(_, level, title)| *level == 1 || (*level == 2 && day_named(title).is_some()))
         .map(|(line, _, _)| line - 1)
         .collect();
     said.lines()
         .enumerate()
-        .map(|(at, line)| match cutting.contains(&at) {
-            true => line.replacen("##", "###", 1),
-            false => line.to_string(),
+        .map(|(at, line)| {
+            let lead = line.len() - line.trim_start().len();
+            let marks = line[lead..].chars().take_while(|one| *one == '#').count();
+            match cutting.contains(&at) {
+                true => format!("{}###{}", &line[..lead], &line[lead + marks..]),
+                false => line.to_string(),
+            }
         })
         .collect::<Vec<_>>()
         .join("\n")
