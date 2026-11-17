@@ -1257,6 +1257,26 @@ describe("blocks chosen with Escape", () => {
     expect(chosenNow()).toEqual(["ul"]);
   });
 
+  it("moves only the chosen item with Alt and an arrow", () => {
+    const said = writer();
+    caretIn("segundo", 1);
+    press("Escape");
+    press("ArrowUp", { altKey: true });
+    expect(said[said.length - 1]).toBe("# Hola\n\nUno **dos** tres\n\n- segundo\n- primero\n");
+  });
+
+  it("takes a chosen item in a quote away with its quote marks", () => {
+    const said = writer("> - uno\n> - dos\n");
+    pageOf(
+      '<blockquote data-at="0-15"><ul data-at="2-15"><li data-at="2-7"><span data-src="4-7">uno</span></li><li data-at="10-15"><span data-src="12-15">dos</span></li></ul></blockquote>',
+    );
+    writing?.drawn();
+    caretIn("dos", 1);
+    press("Escape");
+    press("Delete");
+    expect(said[said.length - 1]).toBe("> - uno\n");
+  });
+
   it("takes the last block away with the blank lines before it, leaving none behind", () => {
     const said = writer();
     caretIn("primero", 1);

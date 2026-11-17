@@ -3,7 +3,7 @@ import type { Beside } from "./pageBeside";
 import type { Caret } from "./pageCaret";
 import type { Span } from "./pageEdits";
 import type { Laying } from "./pageLaying";
-import { movedTo, topsOf } from "./pageMoving";
+import { movedTo, swappedItem, topsOf } from "./pageMoving";
 import { sectioned, WRITABLE } from "./pageNodes";
 import { placeOf } from "./pagePlaces";
 import { endIn } from "./pageSpots";
@@ -37,12 +37,12 @@ export const choosingOn = (writer: Writer, caret: Caret, laying: Laying, beside:
     for (let at = both[0]; at <= both[1]; at++) all[at]?.classList.add(CHOSEN);
   };
 
-  // An item's place runs over the blank lines after it, which belong to the list.
+  // An item's place runs over the blank lines after it, which belong to the list, and starts past its quote marks.
   const itemSpan = (one: Element): Span | null => {
     const at = placeOf(one);
     if (!at) return null;
     const text = hands.text();
-    const from = charsAt(text, at[0]);
+    const from = text.lastIndexOf("\n", charsAt(text, at[0]) - 1) + 1;
     const to = from + text.slice(from, charsAt(text, at[1])).replace(/[\r\n]+$/, "").length;
     return { from, to };
   };
@@ -169,6 +169,12 @@ export const choosingOn = (writer: Writer, caret: Caret, laying: Laying, beside:
     if (event.key === "Escape") {
       if (item) widened();
       else letGo();
+      return true;
+    }
+    if (item && arrow && !event.shiftKey) {
+      const swapped = swappedItem(hands.text(), item, arrow);
+      letGo(false);
+      if (swapped) beside.replaced(swapped);
       return true;
     }
     if (item && arrow) widened();
