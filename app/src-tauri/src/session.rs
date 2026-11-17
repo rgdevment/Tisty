@@ -3,6 +3,8 @@ use tisty_core::{Config, Event, Op, Paths, State, Store};
 
 use crate::{Answer, Refusal, blamed, folder_open, signing, stale, worded};
 
+mod brain;
+
 pub struct Session {
     pub paths: Paths,
     pub config: Config,
@@ -24,6 +26,7 @@ pub struct Session {
     behind: bool,
     pub reach: crate::reaching::Reaching,
     pub nudge: crate::herald::Nudge,
+    brain_nudge: crate::herald::Nudge,
 }
 
 pub struct Projected {
@@ -87,6 +90,7 @@ impl Session {
         );
         let guarding = paths.clone();
         let session = Self::at(paths)?;
+        brain::keep(session.paths.clone(), session.brain_nudge.clone());
         std::thread::spawn(move || {
             tisty_core::store::keys_guarded(&guarding);
             tisty_core::paths::home_set_aside(&guarding);
@@ -120,6 +124,7 @@ impl Session {
             writes: 0,
             behind: false,
             nudge: crate::herald::Nudge::default(),
+            brain_nudge: crate::herald::Nudge::default(),
         };
         session.tidy_up(true);
         session.dress_if_due();
@@ -1033,6 +1038,7 @@ impl Session {
         self.state.apply(&event);
         self.print = self.carry(std::slice::from_ref(&event));
         self.nudge.give();
+        self.brain_nudge.give();
         Ok(())
     }
 
@@ -1044,6 +1050,7 @@ impl Session {
         }
         self.print = self.carry(&events);
         self.nudge.give();
+        self.brain_nudge.give();
         Ok(())
     }
 
