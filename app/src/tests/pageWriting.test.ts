@@ -1243,9 +1243,24 @@ describe("blocks chosen with Escape", () => {
     expect(put).toEqual(["Uno **dos** tres"]);
   });
 
+  it("chooses a list's item first, and the whole list on Escape again", () => {
+    const said = writer();
+    caretIn("segundo", 1);
+    press("Escape");
+    expect(chosenNow()).toEqual(["li"]);
+    press("Delete");
+    expect(said[said.length - 1]).toBe("# Hola\n\nUno **dos** tres\n\n- primero\n");
+    writer();
+    caretIn("primero", 1);
+    press("Escape");
+    press("Escape");
+    expect(chosenNow()).toEqual(["ul"]);
+  });
+
   it("takes the last block away with the blank lines before it, leaving none behind", () => {
     const said = writer();
     caretIn("primero", 1);
+    press("Escape");
     press("Escape");
     press("Delete");
     expect(said[said.length - 1]).toBe("# Hola\n\nUno **dos** tres\n");
