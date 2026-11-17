@@ -1,4 +1,5 @@
 import { listen } from "@tauri-apps/api/event";
+import { cameBack } from "./back";
 import { choiceWaits, toldAside } from "./coming";
 import {
   type Carried,
@@ -141,13 +142,14 @@ export function carrying(
 
   let astir: string | undefined;
   // The provider also says when this machine's own upload landed, so its word is weighed like a glance.
-  const stirred = () => {
+  const stirred = (heard = false) => {
     if (gone) return;
     folderAstir()
       .then((mark) => {
         if (gone) return undefined;
         const was = astir;
-        if (was === undefined) {
+        // Before the first glance there is no mark to weigh the provider's word against, so it is taken.
+        if (was === undefined && !heard) {
           astir = mark;
           return undefined;
         }
@@ -171,19 +173,20 @@ export function carrying(
   };
 
   const glance = () => {
-    if (folder === undefined || document.visibilityState !== "visible") return;
-    stirred();
+    if (folder !== undefined) stirred();
   };
 
+  const back = cameBack(() => void pull());
+
   const seen = () => {
-    if (document.visibilityState === "visible") void pull();
+    if (document.visibilityState === "visible") back();
   };
 
   void settings(() => void pull());
 
-  window.addEventListener("focus", pull);
+  window.addEventListener("focus", back);
   document.addEventListener("visibilitychange", seen);
-  const told = listen("told", stirred);
+  const told = listen("told", () => stirred(true));
   const beat = setInterval(both, EVERY_SO_OFTEN);
   const glancing = setInterval(glance, A_GLANCE);
 
@@ -207,7 +210,7 @@ export function carrying(
       clearInterval(beat);
       clearInterval(glancing);
       void told.then((stop) => stop());
-      window.removeEventListener("focus", pull);
+      window.removeEventListener("focus", back);
       document.removeEventListener("visibilitychange", seen);
     },
   };

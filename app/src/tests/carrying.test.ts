@@ -236,18 +236,137 @@ describe("carrying on its own", () => {
     seen.mockRestore();
   });
 
-  it("does not glance while the window is out of sight", async () => {
-    const seen = vi.spyOn(document, "visibilityState", "get").mockReturnValue("hidden");
+  it("answers a window that comes back with one round, though it is seen again and then focused", async () => {
+    let shown = "hidden";
+    const seen = vi
+      .spyOn(document, "visibilityState", "get")
+      .mockImplementation(() => shown as DocumentVisibilityState);
+    carried = carrying(() => {});
+    await settle();
+    const before = sent("sync_now").length;
+    let release: (answer: string) => void = () => {};
     ipc.answer = (cmd) =>
       cmd === "sync_state"
         ? Promise.resolve({ ...state })
-        : Promise.resolve({ carried: "came", undecided: [] });
-    carried = carrying(() => {});
+        : new Promise((resolve) => {
+            release = resolve;
+          });
+
+    shown = "visible";
+    document.dispatchEvent(new Event("visibilitychange"));
+    window.dispatchEvent(new Event("focus"));
+    await settle();
+    release("same");
     await settle();
 
-    await vi.advanceTimersByTimeAsync(60_000);
+    expect(sent("sync_now").length).toBe(before + 1);
+    seen.mockRestore();
+  });
 
-    expect(sent("folder_astir")).toHaveLength(0);
+  it("answers it with one round too when the focus comes before it is seen", async () => {
+    let shown = "hidden";
+    const seen = vi
+      .spyOn(document, "visibilityState", "get")
+      .mockImplementation(() => shown as DocumentVisibilityState);
+    carried = carrying(() => {});
+    await settle();
+    const before = sent("sync_now").length;
+    let release: (answer: string) => void = () => {};
+    ipc.answer = (cmd) =>
+      cmd === "sync_state"
+        ? Promise.resolve({ ...state })
+        : new Promise((resolve) => {
+            release = resolve;
+          });
+
+    shown = "visible";
+    window.dispatchEvent(new Event("focus"));
+    document.dispatchEvent(new Event("visibilitychange"));
+    await settle();
+    release("same");
+    await settle();
+
+    expect(sent("sync_now").length).toBe(before + 1);
+    seen.mockRestore();
+  });
+
+  it("takes the first word from its provider after starting out of sight, when no glance set the mark", async () => {
+    const seen = vi.spyOn(document, "visibilityState", "get").mockReturnValue("hidden");
+    let mark = "one";
+    ipc.answer = (cmd) => {
+      if (cmd === "sync_state") return Promise.resolve({ ...state });
+      if (cmd === "folder_astir") return Promise.resolve(mark);
+      return Promise.resolve({ carried: "came", undecided: [] });
+    };
+    carried = carrying(() => {});
+    await settle();
+    const before = sent("sync_now").length;
+
+    mark = "two";
+    bus.heard.get("told")?.();
+    await settle();
+
+    expect(sent("sync_now")).toHaveLength(before + 1);
+    seen.mockRestore();
+  });
+
+  it("answers it with one round though the first is already over when the focus comes", async () => {
+    let shown = "hidden";
+    const seen = vi
+      .spyOn(document, "visibilityState", "get")
+      .mockImplementation(() => shown as DocumentVisibilityState);
+    carried = carrying(() => {});
+    await settle();
+    const before = sent("sync_now").length;
+
+    shown = "visible";
+    document.dispatchEvent(new Event("visibilitychange"));
+    await vi.advanceTimersByTimeAsync(200);
+    window.dispatchEvent(new Event("focus"));
+    await settle();
+
+    expect(sent("sync_now").length).toBe(before + 1);
+    seen.mockRestore();
+  });
+
+  it("pulls again for a focus that comes a while after the window came back", async () => {
+    let shown = "hidden";
+    const seen = vi
+      .spyOn(document, "visibilityState", "get")
+      .mockImplementation(() => shown as DocumentVisibilityState);
+    carried = carrying(() => {});
+    await settle();
+    const before = sent("sync_now").length;
+
+    shown = "visible";
+    document.dispatchEvent(new Event("visibilitychange"));
+    await vi.advanceTimersByTimeAsync(1_000);
+    window.dispatchEvent(new Event("focus"));
+    await settle();
+
+    expect(sent("sync_now").length).toBe(before + 2);
+    seen.mockRestore();
+  });
+
+  it("goes on glancing while the window is out of sight, and brings home what stirred", async () => {
+    const seen = vi.spyOn(document, "visibilityState", "get").mockReturnValue("hidden");
+    let mark = "one";
+    ipc.answer = (cmd) => {
+      if (cmd === "sync_state") return Promise.resolve({ ...state });
+      if (cmd === "folder_astir") return Promise.resolve(mark);
+      return Promise.resolve({ carried: "came", undecided: [] });
+    };
+    carried = carrying(() => {});
+    await settle();
+    await vi.advanceTimersByTimeAsync(30_000);
+    const before = sent("sync_now").length;
+
+    mark = "two";
+    await vi.advanceTimersByTimeAsync(30_000);
+    await settle();
+
+    expect(sent("folder_astir").length).toBeGreaterThan(1);
+    expect(sent("sync_now")).toHaveLength(before + 1);
     seen.mockRestore();
   });
 

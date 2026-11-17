@@ -904,6 +904,8 @@ pub(crate) fn opened(
 
     app.manage(answers::freeing::Stopping::default());
     tray::follow_bar(app.clone());
+    #[cfg(windows)]
+    app.manage(tray::Unseen::default());
     let perched = tray::raise(app, &words).is_some();
     app.manage(Perched(perched));
     app.manage(quick_keys::Bound::new(
@@ -966,6 +968,7 @@ pub(crate) fn opened(
         desktop::proofread(&window);
         let seen = came_back || !(waking::hushed() || viewing);
         waking::returns(seen);
+        tray::page_seen(app, seen);
         if seen {
             desktop::fitted(&window);
             tray::docked(app, true);
@@ -995,6 +998,10 @@ fn window_event(window: &tauri::Window, event: &tauri::WindowEvent) {
     }
     if let tauri::WindowEvent::ThemeChanged(_) = event {
         tray::repaint(window.app_handle());
+        return;
+    }
+    if let tauri::WindowEvent::Resized(_) = event {
+        tray::page_follows(window);
         return;
     }
 

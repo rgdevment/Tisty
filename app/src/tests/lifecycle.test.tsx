@@ -732,6 +732,20 @@ describe("coming back to the window", () => {
     await waitFor(() => expect(asked("docs")).toBeGreaterThan(before));
     seen.mockRestore();
   });
+
+  it("asks once when the window comes back seen and focused at the same moment", async () => {
+    seedDoc({ title: "Report" });
+    await boot();
+    const before = { docs: asked("docs"), door: asked("door_due") };
+    const seen = vi.spyOn(document, "visibilityState", "get").mockReturnValue("visible");
+
+    document.dispatchEvent(new Event("visibilitychange"));
+    window.dispatchEvent(new Event("focus"));
+
+    await waitFor(() => expect(asked("docs")).toBeGreaterThan(before.docs));
+    expect(asked("door_due")).toBe(before.door + 1);
+    seen.mockRestore();
+  });
 });
 
 describe("a page of its own", () => {

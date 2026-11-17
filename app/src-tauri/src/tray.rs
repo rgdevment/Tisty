@@ -247,9 +247,78 @@ pub fn undock_unless_seen<R: Runtime>(app: &AppHandle<R>, leaving: &str) {
     let _ = (app, leaving);
 }
 
+#[cfg(windows)]
+#[derive(Default)]
+pub struct Unseen(std::sync::atomic::AtomicBool);
+
+#[cfg(windows)]
+impl Unseen {
+    fn turns(&self, seen: bool) -> bool {
+        self.0.swap(!seen, std::sync::atomic::Ordering::SeqCst) == seen
+    }
+}
+
+/// WebView2 never learns that its window went out of sight, so the main page is told; WebKit sees it by itself.
+pub fn page_seen<R: Runtime>(app: &AppHandle<R>, seen: bool) -> bool {
+    #[cfg(windows)]
+    {
+        let (Some(window), Some(unseen)) =
+            (app.get_webview_window("main"), app.try_state::<Unseen>())
+        else {
+            return false;
+        };
+        if !unseen.turns(seen) {
+            return false;
+        }
+        let page: &tauri::Webview<R> = window.as_ref();
+        let _ = match seen {
+            true => page.show(),
+            false => page.hide(),
+        };
+        true
+    }
+    #[cfg(not(windows))]
+    {
+        let _ = (app, seen);
+        false
+    }
+}
+
+#[cfg(windows)]
+fn sight_after_a_resize(visible: bool, minimized: bool) -> Option<bool> {
+    visible.then_some(!minimized)
+}
+
+pub fn page_follows<R: Runtime>(window: &tauri::Window<R>) {
+    #[cfg(windows)]
+    {
+        let Some(seen) = sight_after_a_resize(
+            window.is_visible().unwrap_or(false),
+            window.is_minimized().unwrap_or(false),
+        ) else {
+            return;
+        };
+        let app = window.app_handle();
+        // Focus that reached the window while its page was hidden never got to the page.
+        if page_seen(app, seen)
+            && seen
+            && window.is_focused().unwrap_or(false)
+            && let Some(main) = app.get_webview_window("main")
+        {
+            let page: &tauri::Webview<R> = main.as_ref();
+            let _ = page.set_focus();
+        }
+    }
+    #[cfg(not(windows))]
+    let _ = window;
+}
+
 pub fn withdraw<R: Runtime>(window: &tauri::Window<R>) {
     let _ = window.emit("withdrawn", ());
     let _ = window.hide();
+    if window.label() == "main" {
+        page_seen(window.app_handle(), false);
+    }
     crate::waking::returns(false);
     undock_unless_seen(window.app_handle(), window.label());
 }
@@ -264,6 +333,9 @@ pub fn surface<R: Runtime>(app: &AppHandle<R>) {
         return;
     };
     docked(app, true);
+    if label == "main" {
+        page_seen(app, true);
+    }
     let _ = window.show();
     crate::waking::returns(true);
     let _ = window.unminimize();
@@ -292,6 +364,19 @@ mod tests {
         (sum / seen) as u32
     }
 
+    fn body(here: &'static str, way: &str) -> &'static str {
+        here.split(way)
+            .nth(1)
+            .and_then(|rest| {
+                rest.split(
+                    "
+}",
+                )
+                .next()
+            })
+            .unwrap_or_default()
+    }
+
     #[test]
     fn both_ways_the_window_goes_keep_windows_told() {
         let here = include_str!("tray.rs");
@@ -299,15 +384,74 @@ mod tests {
             ("pub fn withdraw", "returns(false)"),
             ("pub fn surface", "returns(true)"),
         ] {
-            let body = here.split(way).nth(1).and_then(|rest| {
-                rest.split(
-                    "
-}",
-                )
-                .next()
-            });
-            assert!(body.is_some_and(|body| body.contains(told)), "{way}");
+            assert!(body(here, way).contains(told), "{way}");
         }
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn the_page_is_told_only_when_what_it_knows_changes() {
+        let unseen = super::Unseen::default();
+        assert!(!unseen.turns(true), "a page born seen was told it is");
+        assert!(
+            unseen.turns(false),
+            "a page going out of sight was not told"
+        );
+        assert!(!unseen.turns(false), "a page out of sight was told again");
+        assert!(unseen.turns(true), "a page coming back was not told");
+        assert!(!unseen.turns(true), "a page in sight was told again");
+    }
+
+    #[test]
+    fn the_page_leaves_after_its_window_and_comes_back_before_it() {
+        let here = include_str!("tray.rs");
+        let gone = body(here, "pub fn withdraw");
+        let (hidden, told) = (
+            gone.find("window.hide()"),
+            gone.find("page_seen(window.app_handle(), false)"),
+        );
+        assert!(hidden.is_some() && hidden < told, "withdraw");
+
+        let back = body(here, "pub fn surface");
+        let (told, shown) = (
+            back.find("page_seen(app, true)"),
+            back.find("window.show()"),
+        );
+        assert!(told.is_some() && told < shown, "surface");
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn a_minimized_window_is_out_of_sight_though_windows_still_lists_it_as_visible() {
+        assert_eq!(super::sight_after_a_resize(true, false), Some(true));
+        assert_eq!(super::sight_after_a_resize(true, true), Some(false));
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn a_hidden_window_that_is_resized_leaves_its_page_to_whoever_hides_and_shows_it() {
+        assert_eq!(super::sight_after_a_resize(false, false), None);
+        assert_eq!(super::sight_after_a_resize(false, true), None);
+    }
+
+    #[test]
+    fn a_window_the_system_resizes_has_its_page_follow() {
+        let heard = body(include_str!("lib.rs"), "fn window_event");
+        let (sized, followed) = (
+            heard.find("WindowEvent::Resized(_)"),
+            heard.find("tray::page_follows(window)"),
+        );
+        assert!(sized.is_some() && sized < followed);
+    }
+
+    #[test]
+    fn a_window_that_starts_hidden_has_its_page_told_before_any_showing() {
+        let started = body(include_str!("lib.rs"), "desktop::proofread(&window);");
+        let (told, shown) = (
+            started.find("tray::page_seen(app, seen)"),
+            started.find("window.show()"),
+        );
+        assert!(told.is_some() && told < shown);
     }
 
     #[test]
