@@ -30,15 +30,18 @@ export const useCited = (paper: string): Citing[] | null | undefined => {
     let gone = false;
     // A round moves the base on any write anywhere; the panel is drawn again only when its answer moved.
     let said: string | null = null;
-    const ask = () =>
-      docCitedBy(paper)
+    let asked = 0;
+    const ask = () => {
+      const mine = ++asked;
+      return docCitedBy(paper)
         .then((citing) => {
           const now = JSON.stringify(citing);
-          if (gone || now === said) return;
+          if (gone || mine !== asked || now === said) return;
           said = now;
           setHeld({ paper, citing });
         })
         .catch(() => {});
+    };
     void ask();
     const heard = listen("brain", () => void ask());
     return () => {

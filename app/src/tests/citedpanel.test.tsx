@@ -9,12 +9,17 @@ const bus = vi.hoisted(() => ({
   heard: new Map<string, () => void>(),
   citing: null as Citing[] | null,
   asked: 0,
+  held: null as ((citing: Citing[] | null) => void) | null,
 }));
 
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: (cmd: string) => {
     if (cmd === "doc_cited_by") {
       bus.asked += 1;
+      if (bus.asked === 1 && bus.held === null && bus.citing?.[0]?.id === "slow")
+        return new Promise((done) => {
+          bus.held = done;
+        });
       return Promise.resolve(bus.citing);
     }
     return Promise.resolve(cmd === "doc_facts" ? { bytes: 7, pages: 0 } : null);
@@ -69,6 +74,7 @@ describe("who links to the open document", () => {
     bus.heard.clear();
     bus.citing = null;
     bus.asked = 0;
+    bus.held = null;
   });
 
   it("lists each document and task with the sections that link, and opens the one pressed", async () => {
@@ -101,6 +107,20 @@ describe("who links to the open document", () => {
 
     await waitFor(() => expect(screen.getByText("Viajes")).toBeTruthy());
     expect(bus.asked).toBe(2);
+  });
+
+  it("keeps the latest answer when an older one arrives after it", async () => {
+    bus.citing = [{ ...TRIPS, id: "slow", title: "Viejo" }];
+    shown();
+    await waitFor(() => expect(bus.held).not.toBeNull());
+
+    bus.citing = [TRIPS];
+    await act(async () => bus.heard.get("brain")?.());
+    await waitFor(() => expect(screen.getByText("Viajes")).toBeTruthy());
+    await act(async () => bus.held?.([{ ...TRIPS, id: "slow", title: "Viejo" }]));
+
+    expect(screen.queryByText("Viejo")).toBeNull();
+    expect(screen.getByText("Viajes")).toBeTruthy();
   });
 
   it("leaves the panel as drawn when a round moved nothing it shows", async () => {
