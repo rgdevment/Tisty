@@ -19,9 +19,18 @@ const dressedAway = (one: Element, sheet: Element) => {
 // Taking a block out of the page restyles every paragraph of a long one, so a stand-in of its kind is dressed.
 const dressedThrough = (one: Element, sheet: Element) => {
   const stand = sheet.ownerDocument.importNode(one, false);
+  // A player taken to another page starts over, so it waits here behind a mark while its words are dressed.
+  const players = Array.from(one.querySelectorAll(".media"), (player) => {
+    const mark = one.ownerDocument.createComment("");
+    player.replaceWith(mark);
+    return [mark, player] as const;
+  });
   stand.append(...one.childNodes);
   sheet.append(stand);
-  return () => takenOver(one, stand);
+  return () => {
+    takenOver(one, stand);
+    for (const [mark, player] of players) mark.replaceWith(player);
+  };
 };
 
 // The blocks the core drew again while the page is written on are read on a page of their own, as the whole

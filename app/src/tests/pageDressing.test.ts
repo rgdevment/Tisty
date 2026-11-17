@@ -143,3 +143,25 @@ describe("a block of words the core draws again, dressed where it stands", () =>
     expect(kept.lost).toBe(0);
   });
 });
+
+describe("a player among the words dressed again", () => {
+  it("never goes to the page the words are dressed on, so what it plays goes on", () => {
+    const sheet = pageOf(
+      '<p data-at="0-30"><span data-src="0-6">Antes </span><span class="media is-audio" data-file="a.mp3" data-name="Ladrido" data-placed="6-26"><audio></audio></span></p>',
+    );
+    const player = sheet.querySelector(".media") as Element;
+    const carried: Node[] = [];
+    const append = Element.prototype.append;
+    vi.spyOn(Element.prototype, "append").mockImplementation(function (
+      this: Element,
+      ...nodes: (Node | string)[]
+    ) {
+      if (this.ownerDocument !== document)
+        carried.push(...nodes.filter((one): one is Node => typeof one !== "string"));
+      return append.apply(this, nodes);
+    });
+    wornLaid(document, [sheet.children[0] as Element], () => true, REACH);
+    expect(carried).not.toContain(player);
+    expect(sheet.querySelector(".media")).toBe(player);
+  });
+});

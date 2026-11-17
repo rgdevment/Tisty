@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { namesSum } from "../placing";
-import { patched } from "../ui/pagePatching";
+import { patched, takenOver } from "../ui/pagePatching";
 import { placeOf, placesSettled } from "../ui/pagePlaces";
 import { near, type Span, spansSum } from "./nearing";
 
@@ -668,5 +668,35 @@ describe("what a key leaves and what it opens again", () => {
     const [added, written] = Array.from(sheet.querySelectorAll("details"));
     expect(added?.open).toBe(false);
     expect(written?.open).toBe(true);
+  });
+});
+
+describe("a player among words the core draws again", () => {
+  const drawn = () => {
+    document.body.innerHTML =
+      '<p data-at="0-30"><span data-src="0-6">Antes </span><span class="media is-audio" data-file="a.mp3" data-name="Ladrido" data-placed="6-26"><audio></audio></span></p>';
+    const old = document.querySelector("p") as Element;
+    return { old, player: old.querySelector(".media") };
+  };
+  const fresh = (name: string) => {
+    const one = document.createElement("p");
+    one.setAttribute("data-at", "0-31");
+    one.innerHTML = `<span data-src="0-7">Antess </span><img src="a.mp3" alt="${name}" data-src="7-27">`;
+    return one;
+  };
+
+  it("keeps playing: the one drawn for the same file and name stays, at its new place", () => {
+    const { old, player } = drawn();
+    takenOver(old, fresh("Ladrido"));
+    expect(old.querySelector(".media")).toBe(player);
+    expect(old.querySelector("img")).toBeNull();
+    expect(placeOf(player, "data-placed")).toEqual([7, 27]);
+  });
+
+  it("is drawn again when its name changed", () => {
+    const { old } = drawn();
+    takenOver(old, fresh("Maullido"));
+    expect(old.querySelector(".media")).toBeNull();
+    expect(old.querySelector("img")?.getAttribute("alt")).toBe("Maullido");
   });
 });
