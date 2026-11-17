@@ -88,6 +88,27 @@ describe("the example an empty screen offers", () => {
     expect(container.textContent).toContain(nothing({ named: "tasks" }, false));
   });
 
+  it("keeps its quote marks and the sign after it on the example's own line", () => {
+    const said = nothing({ list: "01L" }, false);
+    const inList = quoted(said);
+    render(
+      <TaskList
+        tasks={[]}
+        lists={[]}
+        title="Home"
+        empty={said}
+        onTry={vi.fn()}
+        onSelect={() => {}}
+      />,
+    );
+
+    const button = screen.getByRole("button", { name: inList });
+
+    expect(button.textContent).toBe(`«${inList}»`);
+    expect(button.parentElement?.className).toContain("whitespace-nowrap");
+    expect(button.parentElement?.textContent).toBe(`«${inList}».`);
+  });
+
   it("stays plain words where nothing can take it", () => {
     today();
 

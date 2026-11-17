@@ -656,7 +656,7 @@ describe("the example an empty day offers", () => {
   const offered = async (): Promise<[HTMLElement, string]> => {
     const all = unlisted(every());
     const button = await screen.findByRole("button", { name: (said) => all.includes(said) });
-    return [button, button.textContent ?? ""];
+    return [button, (button.textContent ?? "").replace(/[«»]/g, "")];
   };
 
   beforeEach(() => {

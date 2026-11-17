@@ -511,18 +511,28 @@ function Nothing({ said, onTry }: { said: string; onTry?: (example: string) => v
   const quoted = QUOTED.exec(said);
   if (!onTry || !quoted) return said;
   const [whole, example] = quoted;
+  const after = said.slice(quoted.index + whole.length);
+  const held = /^\S*/.exec(after)?.[0] ?? "";
+  // The marks ride inside the button and the sign after it is held to it, so no line ends or starts on one alone.
   return (
     <>
-      {said.slice(0, quoted.index)}«
-      <button
-        type="button"
-        title={t("writeItAbove")}
-        onClick={() => onTry(example)}
-        className="rounded-md text-accent underline decoration-dotted underline-offset-[3px] outline-none hover:decoration-solid focus-visible:ring-2 focus-visible:ring-accent"
-      >
-        {example}
-      </button>
-      »{said.slice(quoted.index + whole.length)}
+      {said.slice(0, quoted.index)}
+      <span className="whitespace-nowrap">
+        <button
+          type="button"
+          title={t("writeItAbove")}
+          onClick={() => onTry(example)}
+          className="group rounded-md text-left whitespace-normal outline-none focus-visible:ring-2 focus-visible:ring-accent"
+        >
+          <span aria-hidden="true">«</span>
+          <span className="text-accent underline decoration-dotted underline-offset-[3px] group-hover:decoration-solid">
+            {example}
+          </span>
+          <span aria-hidden="true">»</span>
+        </button>
+        {held}
+      </span>
+      {after.slice(held.length)}
     </>
   );
 }
