@@ -1765,6 +1765,21 @@ describe("a key at the edge of a block drawn whole", () => {
     expect(said).toEqual(["Antes $x^2$\n"]);
   });
 
+  it("keeps a numbered list a list when words cut across lines join a paragraph to it", () => {
+    const said = writer("Antes.\n\n1. uno\n2. dos");
+    pageOf(
+      '<p data-at="0-6"><span data-src="0-6">Antes.</span></p><ol data-at="8-21"><li data-at="8-14"><span data-src="11-14">uno</span></li><li data-at="15-21"><span data-src="18-21">dos</span></li></ol>',
+    );
+    writing?.drawn();
+    const chosen = document.createRange();
+    chosen.setStart(piece("Antes."), 6);
+    chosen.setEnd(piece("uno"), 0);
+    document.getSelection()?.removeAllRanges();
+    document.getSelection()?.addRange(chosen);
+    writing?.cut();
+    expect(said[said.length - 1]).toBe("Antes.uno\n\n2. dos");
+  });
+
   it("joins two lines of code as they are, whatever the line under them reads like", () => {
     const said = writer("Antes.\n\n```\nuno\ndos\n2. tres\n```\n");
     pageOf(
