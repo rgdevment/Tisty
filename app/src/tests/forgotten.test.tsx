@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Filed, Folded } from "../core";
 import Folder from "../ui/Folder";
+import { clearOfChrome } from "../ui/WindowChrome";
 import type { Forgotten } from "../useForgotten";
 
 const DAY = 86_400;
@@ -123,6 +124,13 @@ describe("the documents not opened in a while", () => {
     await vi.waitFor(() =>
       expect(onOpen).toHaveBeenCalledWith(expect.objectContaining({ id: "2" })),
     );
+  });
+
+  it("keeps the dice clear of the window buttons Windows draws at the top right", async () => {
+    show([paper("1", "Una")]);
+
+    const dice = await screen.findByRole("button", { name: "A document at random" });
+    expect(dice.parentElement?.className).toContain(clearOfChrome);
   });
 
   it("stays out of a folder", async () => {
