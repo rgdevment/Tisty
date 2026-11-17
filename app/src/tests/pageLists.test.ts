@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { pastedAround } from "../ui/pageBlocks";
 import { linedAs } from "../ui/pageEdits";
 import { addressed } from "../ui/pageFormats";
@@ -286,6 +286,18 @@ describe("Backspace and Enter at the start of a line's words", () => {
   ] as const)("on a join across a line end, %s", (_, text, [from, to], expected) => {
     const [edit] = joinedApart(text, { from, to, insert: "" });
     expect(text.slice(0, edit.from) + edit.insert + text.slice(edit.to)).toBe(expected);
+  });
+
+  it("reads a quote of many tabbed marks above a join in linear time", () => {
+    const quoted = `>${"\t>".repeat(40)} x`;
+    const text = `${quoted}\n\nAntes.\n\n1. uno\n2. dos`;
+    const from = quoted.length + 8;
+    const began = vi.getRealSystemTime();
+    const [edit] = joinedApart(text, { from, to: from + 5, insert: "X" });
+    expect(vi.getRealSystemTime() - began).toBeLessThan(1_000);
+    expect(text.slice(0, edit.from) + edit.insert + text.slice(edit.to)).toBe(
+      `${quoted}\n\nAntes.Xuno\n\n2. dos`,
+    );
   });
 
   it("keeps the list apart when words written over a choice across lines join them", () => {
