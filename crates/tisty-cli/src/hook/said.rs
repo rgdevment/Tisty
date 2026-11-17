@@ -1,5 +1,5 @@
 use serde::Deserialize;
-use serde_json::json;
+use serde_json::{Value, json};
 
 const EDITING: [&str; 10] = [
     "Edit",
@@ -19,21 +19,21 @@ const SERVER: &str = "tisty";
 #[derive(Debug, Default, Deserialize)]
 pub struct Heard {
     #[serde(default)]
-    session_id: Option<String>,
+    session_id: Option<Value>,
     #[serde(default, rename = "sessionId")]
-    session_id_camel: Option<String>,
+    session_id_camel: Option<Value>,
     #[serde(default)]
-    conversation_id: Option<String>,
+    conversation_id: Option<Value>,
     #[serde(default)]
-    tool_name: Option<String>,
+    tool_name: Option<Value>,
     #[serde(default, rename = "toolName")]
-    tool_name_camel: Option<String>,
+    tool_name_camel: Option<Value>,
     #[serde(default)]
-    mcp_server_name: Option<String>,
+    mcp_server_name: Option<Value>,
     #[serde(default)]
-    source: Option<String>,
+    source: Option<Value>,
     #[serde(default)]
-    stop_hook_active: Option<bool>,
+    stop_hook_active: Option<Value>,
     #[serde(default)]
     cursor_version: Option<serde::de::IgnoredAny>,
 }
@@ -50,23 +50,26 @@ impl Heard {
             &self.conversation_id,
         ]
         .into_iter()
-        .find_map(Option::as_deref)
+        .find_map(|one| one.as_ref()?.as_str())
         .unwrap_or_default()
     }
 
     fn tool(&self) -> Option<&str> {
-        self.tool_name
-            .as_deref()
-            .or(self.tool_name_camel.as_deref())
+        [&self.tool_name, &self.tool_name_camel]
+            .into_iter()
+            .find_map(|one| one.as_ref()?.as_str())
     }
 
     pub fn source(&self) -> &str {
-        self.source.as_deref().unwrap_or("startup")
+        self.source
+            .as_ref()
+            .and_then(Value::as_str)
+            .unwrap_or("startup")
     }
 
     pub fn tisty_tool(&self) -> Option<&str> {
         let named = self.tool()?;
-        if let Some(server) = &self.mcp_server_name {
+        if let Some(server) = self.mcp_server_name.as_ref().and_then(Value::as_str) {
             return ours(server).then_some(named);
         }
         let tool = if let Some(rest) = named.strip_prefix("mcp__") {
@@ -74,7 +77,8 @@ impl Heard {
             ours(server).then_some(tool)?
         } else if let Some(rest) = named.strip_prefix("MCP:") {
             // Cursor names no server here, so only a name no other server would use counts.
-            (rest.contains('_') && crate::mcp::is_tool(rest)).then_some(rest)?
+            let telling = rest.contains('_') || ["tick", "untick", "propose"].contains(&rest);
+            (telling && crate::mcp::is_tool(rest)).then_some(rest)?
         } else {
             named
                 .strip_prefix("mcp_tisty_")
@@ -88,7 +92,7 @@ impl Heard {
     }
 
     pub fn again(&self) -> bool {
-        self.stop_hook_active == Some(true)
+        self.stop_hook_active.as_ref().and_then(Value::as_bool) == Some(true)
     }
 
     fn in_cursor(&self) -> bool {

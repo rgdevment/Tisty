@@ -95,6 +95,25 @@ fn a_tool_of_tisty_is_known_however_the_client_spells_it() {
         tool(json!({ "tool_name": "MCP:say_done" })),
         Some("say_done".into())
     );
+    assert_eq!(
+        tool(json!({ "tool_name": "MCP:tick" })),
+        Some("tick".into())
+    );
+}
+
+#[test]
+fn a_field_of_an_unexpected_kind_loses_only_itself() {
+    let said = heard(json!({
+        "session_id": "s",
+        "source": { "kind": "startup" },
+        "stop_hook_active": "false",
+        "tool_name": 7,
+        "toolName": "edit",
+    }));
+    assert_eq!(said.session(), "s");
+    assert_eq!(said.source(), "startup");
+    assert!(!said.again());
+    assert!(said.edits());
 }
 
 #[test]
