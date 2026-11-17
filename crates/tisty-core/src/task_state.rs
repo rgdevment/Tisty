@@ -31,6 +31,30 @@ pub fn said(body: &str) -> Option<&str> {
         .filter(|words| !words.is_empty())
 }
 
+const SPANISH: [&str; 5] = [
+    "## Descripción",
+    "## Pasos",
+    "## Notas",
+    "## Notas del asistente",
+    "## Cada vuelta",
+];
+const ENGLISH: [&str; 5] = [
+    "## Description",
+    "## Steps",
+    "## Notes",
+    "## Assistant notes",
+    "## Every round",
+];
+
+fn spoken_in(body: &str) -> Option<bool> {
+    let holds = |heads: &[&str]| body.lines().any(|line| heads.contains(&line.trim_end()));
+    match (holds(&SPANISH), holds(&ENGLISH)) {
+        (true, false) => Some(true),
+        (false, true) => Some(false),
+        _ => None,
+    }
+}
+
 pub fn stated(body: &str, state: &str, spanish: bool) -> String {
     let line = if body.contains("\r\n") { "\r\n" } else { "\n" };
     let state =
@@ -41,7 +65,7 @@ pub fn stated(body: &str, state: &str, spanish: bool) -> String {
         let tail = if rest.is_empty() { "" } else { line };
         return format!("{head}{line}{line}{state}{line}{tail}{rest}");
     }
-    let heading = STATE[usize::from(spanish)];
+    let heading = STATE[usize::from(spoken_in(body).unwrap_or(spanish))];
     let before = crate::closing::held(body, &crate::task_docs::NOTES)
         .or_else(|| crate::closing::held(body, &crate::assistant_notes::ASSISTANT_NOTES))
         .map(|(head, _)| head.start);

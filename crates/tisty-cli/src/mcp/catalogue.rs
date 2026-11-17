@@ -601,7 +601,7 @@ pub(super) const EFFECTS: [(&str, Effect); 41] = [
     ("remind", Effect::Sets),
     ("describe", Effect::Replaces),
     ("plan", Effect::Adds),
-    ("tick", Effect::Marks),
+    ("tick", Effect::Rewrites),
     ("untick", Effect::Marks),
     ("rename", Effect::Replaces),
     ("reword_step", Effect::Rewrites),

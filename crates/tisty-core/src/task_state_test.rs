@@ -52,6 +52,14 @@ fn a_box_or_a_heading_in_a_state_never_becomes_a_step_or_a_section() {
 }
 
 #[test]
+fn a_first_state_speaks_the_page_s_language_before_the_settings() {
+    assert!(stated(PAGE, "Uno.", false).contains("## Estado\n"));
+    let english = "## Steps\n\n## Notes\n";
+    assert!(stated(english, "One.", true).contains("## State\n"));
+    assert!(stated("## Mine\n", "Uno.", true).contains("## Estado\n"));
+}
+
+#[test]
 fn a_page_in_windows_lines_keeps_them() {
     let page = stated("## Steps\r\n\r\n## Notes\r\n", "One.\r\nTwo.", false);
     assert_eq!(

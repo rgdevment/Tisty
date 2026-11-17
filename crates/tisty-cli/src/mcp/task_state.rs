@@ -30,18 +30,21 @@ pub(super) fn tick(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         true => Some(super::chores::tick(paths, args)?),
         false => None,
     };
-    if let Err(why) = written(paths, id, &words, spanish, page) {
-        return Err(Refused::Tool(match ticked {
-            Some(_) => format!(
-                "the steps were ticked on {title:?}, but its state could not be written just now \
+    let named = match written(paths, id, &words, spanish, page) {
+        Ok(named) => named,
+        Err(why) => {
+            return Err(Refused::Tool(match ticked {
+                Some(_) => format!(
+                    "the steps were ticked on {title:?}, but its state could not be written just now \
                  ({why}). Send `tick` again with only `state`."
-            ),
-            None => format!(
-                "the state of {title:?} could not be written just now ({why}). Nothing changed."
-            ),
-        }));
-    }
-    let said = format!("Left its state on its page, under «{}».", heading(spanish));
+                ),
+                None => format!(
+                    "the state of {title:?} could not be written just now ({why}). Nothing changed."
+                ),
+            }));
+        }
+    };
+    let said = format!("Left its state on its page, under «{named}».");
     Ok(match ticked {
         Some(answer) => stated_too(answer, &said),
         None => {
@@ -118,14 +121,8 @@ fn writable(
         let body = tisty_core::docs::read(&paths.docs(), &kept.file).ok()?;
         Some((kept.file.clone(), body))
     });
-    if let Some((file, body)) = &body
-        && let Some(was) = tisty_core::task_state::section(body)
-    {
-        let left = tisty_core::docs::read_state_left(paths.data(), file);
-        let theirs: Vec<String> = tisty_core::assistant_notes::foreign(was, left.as_deref())
-            .into_iter()
-            .filter(|line| !words.lines().any(|one| one.trim() == line))
-            .collect();
+    if let Some((file, body)) = &body {
+        let theirs = left_out(paths, file, body, words);
         if !theirs.is_empty() {
             return Err(Refused::Tool(format!(
                 "the state on {title:?}'s page holds words no assistant wrote, likely the \
@@ -161,19 +158,31 @@ fn written(
     words: &str,
     spanish: bool,
     page: Option<String>,
-) -> Result<(), String> {
+) -> Result<&'static str, String> {
     let (_, mut store) = opened(paths).map_err(|_| "the store could not be opened".to_string())?;
     let signed = tisty_core::assistant_notes::signed_by(&assistant(), &jiff::Zoned::now(), words);
     let mut sides = None;
+    let mut written_over = false;
     tisty_core::task_docs::noted_beside(paths, &mut store, id, |was, _| {
+        // The person may have written in the state since it was judged, so it is judged again.
+        written_over = page
+            .as_deref()
+            .is_some_and(|file| !left_out(paths, file, was, words).is_empty());
+        if written_over {
+            return None;
+        }
         let now = tisty_core::task_state::stated(was, &signed, spanish);
         sides = Some((was.to_string(), now.clone()));
         Some(now)
     })
     .map_err(|e| e.to_string())?;
+    if written_over {
+        return Err("the person wrote in it meanwhile; `read` it and carry their lines".into());
+    }
     let Some((before, after)) = sides else {
         return Err("the task has no page to write on".into());
     };
+    let named = tisty_core::task_state::heading_in(&after).unwrap_or(heading(spanish));
     let mut ops: Vec<Op> = tisty_core::paged::paged(id, &before, &after)
         .into_iter()
         .filter(
@@ -185,7 +194,7 @@ fn written(
         ops.push(Op::TaskPaged {
             id,
             d: tisty_core::event::Paged {
-                section: heading(spanish).to_string(),
+                section: named.to_string(),
                 change: tisty_core::event::PageChange::Written,
             },
         });
@@ -199,7 +208,18 @@ fn written(
     if let Some(file) = file {
         left_as_assistant(paths, &file, &before, &after);
     }
-    Ok(())
+    Ok(named)
+}
+
+fn left_out(paths: &Paths, file: &str, page: &str, words: &str) -> Vec<String> {
+    let Some(was) = tisty_core::task_state::section(page) else {
+        return Vec::new();
+    };
+    let left = tisty_core::docs::read_state_left(paths.data(), file);
+    tisty_core::assistant_notes::foreign(was, left.as_deref())
+        .into_iter()
+        .filter(|line| !words.lines().any(|one| one.trim() == line))
+        .collect()
 }
 
 pub(super) fn left_as_assistant(paths: &Paths, file: &str, was: &str, now: &str) {
