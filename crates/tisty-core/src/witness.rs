@@ -58,6 +58,7 @@ impl Fact {
 pub mod channel {
     pub const STORE: &str = "store";
     pub const CACHE: &str = "cache";
+    pub const BRAIN: &str = "brain";
     pub const SYNC: &str = "sync";
     pub const ATTACH: &str = "attach";
     pub const CONFIG: &str = "config";

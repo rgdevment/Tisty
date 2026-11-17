@@ -83,7 +83,7 @@ impl Nudge {
         self.0.store(true, std::sync::atomic::Ordering::Release);
     }
 
-    fn taken(&self) -> bool {
+    pub(crate) fn taken(&self) -> bool {
         self.0.swap(false, std::sync::atomic::Ordering::AcqRel)
     }
 }

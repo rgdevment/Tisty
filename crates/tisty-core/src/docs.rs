@@ -427,26 +427,31 @@ fn alone<T>(root: &Path, work: impl FnOnce() -> Result<T>) -> Result<T> {
 
 /// What a watcher compares to tell that a body moved: a body writes no event to notice it by.
 pub fn print(root: &Path) -> String {
+    told_bodies(root)
+        .iter()
+        .map(|(id, told)| format!("{id}:{told}"))
+        .collect::<Vec<_>>()
+        .join("|")
+}
+
+pub fn told_bodies(root: &Path) -> std::collections::BTreeMap<String, String> {
     let Ok(entries) = std::fs::read_dir(root) else {
-        return String::new();
+        return Default::default();
     };
-    let mut parts: Vec<String> = entries
+    entries
         .filter_map(|one| one.ok())
         .filter(|one| one.file_type().map(|kind| kind.is_file()).unwrap_or(false))
         .filter_map(|one| {
-            let at = one.path();
-            let id = named(&at)?;
+            let id = named(&one.path())?;
             let told = one.metadata().ok()?;
             let when = told
                 .modified()
                 .ok()?
                 .duration_since(std::time::UNIX_EPOCH)
                 .ok()?;
-            Some(format!("{id}:{}:{}", told.len(), when.as_nanos()))
+            Some((id, format!("{}:{}", told.len(), when.as_nanos())))
         })
-        .collect();
-    parts.sort();
-    parts.join("|")
+        .collect()
 }
 
 pub const IMPORTS: [&str; 3] = ["md", "markdown", "txt"];
