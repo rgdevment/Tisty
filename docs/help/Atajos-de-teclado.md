@@ -13,11 +13,12 @@ Toda la ventana funciona con el teclado.
 | `/` | Insertar algo dentro de un documento |
 | `Shift` + `Enter` (escribiendo un documento) | Saltar de línea sin empezar un párrafo |
 | `Ctrl`/`⌘` + `/` (escribiendo un documento) | Abrir el menú de bloques donde está el cursor |
-| `Alt` + ↑ ↓ (escribiendo un documento) | Subir o bajar el bloque o el elemento donde está el cursor |
-| `Esc` · `Shift` + ↑ ↓ (escribiendo un documento) | Elegir el bloque entero · sumar los de al lado |
+| `Alt` + ↑ ↓ (escribiendo un documento) | Subir o bajar el bloque o el elemento donde está el cursor; en una tarea, sin salir de su sección |
+| `Esc` · `Shift` + ↑ ↓ (escribiendo un documento) | Elegir el bloque entero, o en una lista el elemento y con otro `Esc` la lista entera · sumar los de al lado |
 | `Ctrl`/`⌘` + `B` · `I` · `U` (escribiendo un documento) | Negrita · cursiva · subrayado |
 | `Ctrl`/`⌘` + `Shift` + `X` · `Shift` + `C` (escribiendo un documento) | Tachado · código |
 | `Ctrl`/`⌘` + `K` (escribiendo un documento) | Poner un enlace, o cambiar la dirección de uno ya escrito |
+| `Ctrl`/`⌘` + clic en un enlace (escribiendo un documento) | Abrir el enlace; un clic solo pone el cursor en sus palabras |
 | `Ctrl`/`⌘` + `Z` · `Ctrl`/`⌘` + `Shift` + `Z` o `Ctrl`/`⌘` + `Y` (escribiendo un documento) | Deshacer · rehacer |
 | `Ctrl`/`⌘` + `C` · `X` (escribiendo un documento) | Copiar · cortar como Markdown las palabras o los bloques elegidos |
 | `Tab` · `Shift` + `Tab` (escribiendo una lista) | Meter un elemento bajo el de arriba o sacarlo |

@@ -6,6 +6,7 @@ import Sheet from "../ui/Sheet";
 
 const ipc = vi.hoisted(() => ({
   drawn: "",
+  near: null as Promise<unknown> | null,
   opened: [] as {
     said: string;
     change: (text: string) => void;
@@ -39,6 +40,7 @@ vi.mock("@tauri-apps/api/core", () => ({
     if (cmd === "doc_drawn" || cmd === "doc_placed")
       return Promise.resolve(new TextEncoder().encode(ipc.drawn).buffer);
     if (cmd === "mends_in") return Promise.resolve(ipc.mends);
+    if (cmd === "doc_placed_near" && ipc.near) return ipc.near;
     return Promise.resolve(null);
   },
   convertFileSrc: (path: string) => path,
@@ -125,6 +127,7 @@ const shown = async (container: HTMLElement, said?: string) =>
 beforeEach(() => {
   ipc.drawn = DRAWN;
   ipc.opened = [];
+  ipc.near = null;
   ipc.left = 0;
   ipc.kept = [];
   ipc.copied = [];
@@ -242,6 +245,36 @@ describe("the sheet in the main window", () => {
     view.rerender(sheet(2));
     await waitFor(() => expect(ipc.left).toBe(1));
     expect(page.querySelector(".page")?.getAttribute("contenteditable")).toBe("true");
+  });
+
+  it("turns to its Markdown with a key still on its way to the page, the key in it", async () => {
+    ipc.drawn =
+      '<h1 data-at="0-10"><span data-src="2-9">Compras</span></h1>' +
+      '<p data-at="11-17"><span data-src="11-16">leche</span></p>' +
+      '<p data-at="18-22"><span data-src="18-21">pan</span></p>';
+    ipc.near = new Promise(() => {});
+    const sheet = (n: number) => (
+      <Sheet value={BODY} label="Compras" onWrite={() => {}} wholeable wholeAsked={n} />
+    );
+    const view = render(sheet(0));
+    const page = await loaded(await shown(view.container));
+    await waitFor(() =>
+      expect(page.querySelector(".page")?.getAttribute("contenteditable")).toBe("true"),
+    );
+    const leche = page.querySelector('[data-src="11-16"]')?.firstChild as Text;
+    page.getSelection()?.collapse(leche, 5);
+    page.querySelector(".page")?.dispatchEvent(
+      new InputEvent("beforeinput", {
+        inputType: "insertText",
+        data: "s",
+        bubbles: true,
+        cancelable: true,
+      }),
+    );
+    view.rerender(sheet(1));
+    await waitFor(() =>
+      expect(ipc.opened.map((one) => one.said)).toEqual(["# Compras\n\nleches\n\npan\n"]),
+    );
   });
 
   it("chooses every word of the page as read when select-all is handed to it", async () => {

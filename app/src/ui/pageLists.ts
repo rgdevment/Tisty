@@ -129,14 +129,52 @@ export const leftBehind = (text: string, at: number): { from: number; to: number
   return { from: bare ? before : start, to: start + line.length };
 };
 
+const wordless = (line: string) => line.replace(/^[\s>]*/, "") === "";
+
 // Backspace at the start of an item's words takes its bullet or its box away first, and the words stay.
 export const unmarked = (text: string, at: number): Moved | null => {
   const { start, line } = lineAt(text, at);
   const found = LISTED.exec(line);
   if (!found || at !== start + found[0].length) return null;
   const box = found[6]?.length ?? 0;
-  const from = start + (box ? found[0].length - box : (found[1]?.length ?? 0));
-  return { edit: { from, to: start + found[0].length, insert: "" }, caret: from };
+  if (box) {
+    const from = start + found[0].length - box;
+    return { edit: { from, to: start + found[0].length, insert: "" }, caret: from };
+  }
+  const lead = found[1] ?? "";
+  const ends = text.indexOf("\n", start);
+  const next = ends < 0 ? null : lineAt(text, ends + 1).line;
+  // Words freed of their mark would read as part of the item above, or of a numbered one below, without a blank line.
+  const above = start > 0 && !wordless(lineAt(text, start - 1).line) ? `${lead.trimEnd()}\n` : "";
+  const below = next !== null && LISTED.exec(next)?.[3] !== undefined ? `\n${lead.trimEnd()}` : "";
+  const insert = `${above}${lead}${line.slice(found[0].length)}${below}`;
+  return {
+    edit: { from: start, to: start + line.length, insert },
+    caret: start + above.length + lead.length,
+  };
+};
+
+// Words joined across a line end would take a numbered item under them, which cannot open a list there, as their own.
+export const joinedApart = (text: string, gone: Edit): Edit => {
+  const join = { ...gone, insert: "" };
+  if (!text.slice(gone.from, gone.to).includes("\n")) return join;
+  const left = text.slice(0, gone.from) + text.slice(gone.to);
+  const { start, line } = lineAt(left, gone.from);
+  const ends = left.indexOf("\n", gone.from);
+  const item = ends < 0 ? null : LISTED.exec(lineAt(left, ends + 1).line);
+  const number = item?.[3];
+  const deep = (item?.[1].replace(/^.*>/, "").replace(/\t/g, "    ").length ?? 0) >= 4;
+  if (
+    !item ||
+    number === undefined ||
+    number === "1" ||
+    deep ||
+    LISTED.test(line) ||
+    wordless(line)
+  )
+    return join;
+  const end = gone.to + (start + line.length - gone.from);
+  return { from: gone.from, to: end, insert: `${text.slice(gone.to, end)}\n${item[1].trimEnd()}` };
 };
 
 export const openedAbove = (
@@ -148,6 +186,8 @@ export const openedAbove = (
   const item = LISTED.exec(line);
   const marks = item?.[0] ?? /^[ \t]*(?:>[ \t]?)*[ \t]*(?:#{1,6}[ \t]+)?/.exec(line)?.[0] ?? "";
   if (at !== start + marks.length || !line.slice(marks.length).trim()) return null;
-  if (!item) return { at: start, seed: "", tail: "\n\n" };
+  // A line opened inside a quote or a note stays in it, or it would split the note in two.
+  const quote = /^[ \t]*(?:>[ \t]?)+/.exec(line)?.[0] ?? "";
+  if (!item) return { at: start, seed: quote, tail: quote ? `\n${quote.trimEnd()}\n` : "\n\n" };
   return { at: start, seed: item[0].replace(/\[[xX]\]/, "[ ]"), tail: "\n" };
 };

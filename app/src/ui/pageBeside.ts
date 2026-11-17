@@ -9,7 +9,7 @@ import type { Formats } from "./pageFormats";
 import type { Laying } from "./pageLaying";
 import { closing, opening } from "./pageLists";
 import { type Act, acted, gripped, type Moved, movedTo, roomy, topsOf, unitOf } from "./pageMoving";
-import { caretBox, elementOf, FIELDS, lineOfCaret } from "./pageNodes";
+import { caretBox, elementOf, FIELDS, lineOfCaret, sectioned } from "./pageNodes";
 import { placeOf } from "./pagePlaces";
 import { GHOST } from "./pageSpots";
 import type { Writer } from "./pageWriter";
@@ -179,7 +179,7 @@ export const besideOn = (
     const sheet = page.querySelector(".page");
     if (!sheet) return;
     const tops = topsOf(sheet);
-    replaced(acted(hands.text(), tops, tops.indexOf(top), act));
+    replaced(acted(hands.text(), tops, tops.indexOf(top), act, sectioned(page)));
   };
 
   const movedOnto = (top: Element, target: Element | null) => {

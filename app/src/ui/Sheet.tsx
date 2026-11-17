@@ -295,15 +295,13 @@ export default function Sheet(props: Readonly<Props>) {
   }, []);
 
   // The first block in sight, found again in the new words, so a page drawn anew keeps it where it was.
-  const inSight = useCallback((before: string, next: string, moving?: number): Landing | null => {
+  const inSight = useCallback((before: string, next: string): Landing | null => {
     const page = shown.current?.document;
     const frame = shown.current?.frameElement?.getBoundingClientRect();
     const sheet = room.current;
     if (!page || !frame || !sheet || showing.current !== before) return null;
     const top = sheet.getBoundingClientRect().top - frame.top;
-    const blocks = Array.from(
-      page.querySelectorAll<HTMLElement>(".page > [data-at]:not(.front)"),
-    ).filter((one) => moving === undefined || placeOf(one)?.[0] !== moving);
+    const blocks = Array.from(page.querySelectorAll<HTMLElement>(".page > [data-at]:not(.front)"));
     const block = firstInSight(blocks, top);
     const at = placeOf(block);
     if (!block || !at) return null;
@@ -313,20 +311,19 @@ export default function Sheet(props: Readonly<Props>) {
     return { bytes: bytesAt(next, start), y, turn: turnedNow.current };
   }, []);
 
-  // `moving` is the first byte of a block on its way elsewhere, which cannot hold the view in place.
   const whole = useCallback(
-    (next: string, moving?: number) => {
+    (next: string) => {
       const before = latest.current;
       // Ctrl+Z walks back by offsets, so words laid from beside the page written on are a step of their own.
       if (pageWriter.current && before !== next)
         recorded(turnsOn.current.turns, turnOf(before, next));
       const writer = pageWriter.current?.hands;
       const waiting = landing.current;
-      if (writer) writer.heldAcross(before, next, moving);
+      if (writer) writer.heldAcross(before, next);
       // A page not drawn yet cannot be looked at, so the place still waiting is carried into the new words.
       else
         landing.current =
-          inSight(before, next, moving) ??
+          inSight(before, next) ??
           (waiting && { ...waiting, bytes: carried(before, next, waiting.bytes) });
       written(next);
       setDrawn(next);
@@ -545,8 +542,13 @@ export default function Sheet(props: Readonly<Props>) {
       if (back !== null) pageWriter.current?.hands.placeAt(back, stays);
       return;
     }
-    pageWriter.current?.hands.stop();
+    const unlaid = pageWriter.current?.hands.stop();
     pageWriter.current = null;
+    // A key still on its way to the page was never drawn there, so the page is drawn anew with it.
+    if (unlaid) {
+      alreadyShown.current = null;
+      setDrawn(latest.current);
+    }
   }, [markdown, onPage, left]);
 
   const { wholeAsked, allAsked } = props;
@@ -1203,7 +1205,12 @@ export default function Sheet(props: Readonly<Props>) {
   }, [turned, drawn]);
 
   useEffect(() => () => holdingNow.current(), []);
-  useEffect(() => () => pageWriter.current?.hands.stop(), []);
+  useEffect(
+    () => () => {
+      pageWriter.current?.hands.stop();
+    },
+    [],
+  );
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: `markIn` reads only refs, so the count alone decides.
   useEffect(() => {
