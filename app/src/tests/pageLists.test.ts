@@ -247,6 +247,12 @@ describe("Backspace and Enter at the start of a line's words", () => {
       "Us tres\n2. falta",
     ],
     [
+      "keeps a list apart whose item went on over a second line",
+      "Antes.\n\n1. uno\n   más palabras\n2. dos",
+      [6, 22],
+      "Antes.palabras\n\n2. dos",
+    ],
+    [
       "keeps the items under a title joined to a paragraph a list",
       "Antes.\n# Título\n2. dos\n3. tres",
       [6, 7],

@@ -179,6 +179,17 @@ const inFence = (text: string, at: number) => {
 const paragraphLine = (line: string) =>
   !LISTED.test(line) && !wordless(line) && !STANDS_ALONE.test(line);
 
+// The numbered line was already words of a paragraph when the lines over it, up to a blank one, held no item.
+const heldBefore = (text: string, at: number) => {
+  let over = 0;
+  for (const one of linesAbove(text, text.indexOf("\n", at) + 1)) {
+    if (LISTED.test(one)) return false;
+    if (!paragraphLine(one)) return over > 0;
+    over += 1;
+  }
+  return over > 0;
+};
+
 // Words joined across a line end would take a numbered item under them, which cannot open a list there, as their own.
 export const joinedApart = (
   text: string,
@@ -201,7 +212,7 @@ export const joinedApart = (
     number === "1" ||
     deep ||
     !paragraphLine(line) ||
-    paragraphLine(lineAt(text, asked.to).line) ||
+    heldBefore(text, asked.to) ||
     inFence(left, ends)
   )
     return kept;
