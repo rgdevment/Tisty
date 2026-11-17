@@ -65,6 +65,7 @@ pub(super) fn nodes<'a>(
                     group.as_deref().unwrap_or_default(),
                     standing,
                     ground.sheet(),
+                    &ground.leaned_on(kept),
                 ]),
                 group,
                 standing: Some(standing),

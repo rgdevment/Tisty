@@ -44,7 +44,6 @@ enum Aim {
 pub(super) struct Ground<'a> {
     state: &'a State,
     docs: &'a Docs,
-    by_file: BTreeMap<&'a str, &'a Kept>,
     pages_of_books: BTreeMap<DocId, BTreeSet<&'a str>>,
     pages_of_tasks: BTreeMap<TaskId, Vec<&'a str>>,
     sheet: Option<&'a str>,
@@ -55,13 +54,11 @@ impl<'a> Ground<'a> {
         let mut ground = Self {
             state,
             docs,
-            by_file: BTreeMap::new(),
             pages_of_books: BTreeMap::new(),
             pages_of_tasks: BTreeMap::new(),
             sheet: None,
         };
         for kept in state.docs.values() {
-            ground.by_file.insert(&kept.file, kept);
             if let Some(task) = kept.task_of {
                 ground
                     .pages_of_tasks
@@ -89,6 +86,24 @@ impl<'a> Ground<'a> {
         self.sheet.unwrap_or_default()
     }
 
+    /// What a document's connections read beyond its own record: its book, and its own pages.
+    pub(super) fn leaned_on(&self, kept: &Kept) -> String {
+        let book = self.book_of(kept).unwrap_or_default();
+        let pages: Vec<&str> = self
+            .pages_of_books
+            .get(&kept.id)
+            .into_iter()
+            .flatten()
+            .copied()
+            .collect();
+        format!("{book}\u{1}{}", pages.join("\u{1}"))
+    }
+
+    fn book_of(&self, kept: &Kept) -> Option<&str> {
+        let book = kept.page_of.and_then(|up| self.state.docs.get(&up))?;
+        Some(book.file.as_str())
+    }
+
     pub(super) fn pages_told(&self, task: &Task) -> Vec<&str> {
         self.pages_of_tasks
             .get(&task.id)
@@ -113,8 +128,8 @@ impl<'a> Ground<'a> {
         if let Some(body) = self.docs.read(&kept.file) {
             self.written(own, &body, pages, ties);
         }
-        if let Some(book) = kept.page_of.and_then(|up| self.state.docs.get(&up)) {
-            ties.insert((book.file.clone(), Tie::Structure));
+        if let Some(book) = self.book_of(kept) {
+            ties.insert((book.to_string(), Tie::Structure));
         }
         tagged(&kept.tags, ties);
     }
@@ -169,25 +184,13 @@ impl<'a> Ground<'a> {
         }
     }
 
+    // Read from the words alone: a target that has not arrived yet is the same edge once it does.
     fn aimed(&self, target: &str) -> Option<Aim> {
         if let Some(named) = target.strip_prefix(DOC) {
-            let named = named.split('#').next().unwrap_or(named).trim();
-            let kept = self.by_file.get(named).copied().or_else(|| {
-                named
-                    .parse::<DocId>()
-                    .ok()
-                    .and_then(|id| self.state.docs.get(&id))
-            });
-            return Some(Aim::Paper(match kept {
-                Some(kept) => match kept.task_of {
-                    Some(task) => task.to_string(),
-                    None => kept.file.clone(),
-                },
-                None => named.to_string(),
-            }));
+            return Some(Aim::Paper(paper_named(named)));
         }
         if let Some(named) = target.strip_prefix(TASK) {
-            let named = named.split('#').next().unwrap_or(named).trim();
+            let named = before_section(named);
             return Some(Aim::Paper(
                 named
                     .parse::<TaskId>()
@@ -198,12 +201,23 @@ impl<'a> Ground<'a> {
     }
 
     fn origin(&self, source: &str) -> Option<String> {
-        let named = source.split('#').next().unwrap_or(source).trim();
-        self.by_file
-            .get(named)
-            .filter(|kept| kept.task_of.is_none())
-            .map(|kept| kept.file.clone())
+        let named = before_section(source);
+        crate::docs::resolve(&self.docs.root, named)
+            .is_ok()
+            .then(|| paper_named(named))
     }
+}
+
+fn paper_named(named: &str) -> String {
+    let named = before_section(named);
+    match crate::task_docs::task_of_file(named) {
+        Some(task) => task.to_string(),
+        None => named.to_string(),
+    }
+}
+
+fn before_section(named: &str) -> &str {
+    named.split('#').next().unwrap_or(named).trim()
 }
 
 fn tagged(tags: &[crate::Tag], ties: &mut Ties) {

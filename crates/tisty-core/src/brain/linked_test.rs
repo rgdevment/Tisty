@@ -9,6 +9,31 @@ fn tie(source: &str, target: &str, kind: &str) -> (String, String, String) {
     (source.into(), target.into(), kind.into())
 }
 
+fn task_page(world: &World, store: &mut crate::Store, task: Ulid, body: &str) -> String {
+    let file = crate::task_docs::file_at(task, 1);
+    docs::create_named(&world.paths.docs(), &file, body).unwrap();
+    store
+        .append(Op::DocAdd {
+            id: crate::task_docs::id_at(task, 1),
+            d: crate::event::DocAdd {
+                wrote: None,
+                guest: false,
+                sown: false,
+                made: None,
+                by: None,
+                said: Some(crate::event::Said::of(body)),
+                file: file.clone(),
+                order: "a0".into(),
+                folder: None,
+                page_of: None,
+                task_of: Some(task),
+                edited: None,
+            },
+        })
+        .unwrap();
+    file
+}
+
 fn rewrite(world: &World, file: &str, body: &str) {
     std::fs::write(docs::resolve(&world.paths.docs(), file).unwrap(), body).unwrap();
 }
@@ -124,12 +149,11 @@ fn a_link_on_a_task_s_page_is_the_task_s() {
     let mut store = world.store();
     let errand = task(&mut store, "plan the trip", &[]);
     let (_, trips) = doc(&world, &mut store, "# Trips\n", None, None);
-    let (_, words) = doc(
+    let words = task_page(
         &world,
         &mut store,
+        errand,
         "---\ntask: x\n---\n\n## Notes\n",
-        None,
-        Some(errand),
     );
     let state = world.state();
     let mut brain = world.brain();
@@ -154,13 +178,7 @@ fn a_link_to_a_task_s_page_reaches_the_task() {
     let world = World::new();
     let mut store = world.store();
     let errand = task(&mut store, "plan the trip", &[]);
-    let (_, words) = doc(
-        &world,
-        &mut store,
-        "---\ntask: x\n---\n",
-        None,
-        Some(errand),
-    );
+    let words = task_page(&world, &mut store, errand, "---\ntask: x\n---\n");
     let (_, notes) = doc(
         &world,
         &mut store,
@@ -244,4 +262,83 @@ fn each_task_and_document_tells_where_it_stands() {
     assert_eq!(of(&let_go.to_string()), Some("said_dropped"));
     assert_eq!(of(&done.to_string()), Some("done"));
     assert_eq!(of(&shelved_file), Some("archived"));
+}
+
+#[test]
+fn a_task_s_page_named_before_it_arrives_already_reaches_the_task() {
+    let world = World::new();
+    let mut store = world.store();
+    let later = Ulid::generate();
+    let page = crate::task_docs::file_at(later, 1);
+    let (_, notes) = doc(
+        &world,
+        &mut store,
+        &format!("# Notes\n\n[soon](tisty:doc/{page})\n"),
+        None,
+        None,
+    );
+    let mut brain = world.brain();
+    world.refreshed(&mut brain, &world.state());
+
+    store
+        .append(Op::TaskAdd {
+            id: later,
+            d: TaskAdd::new("arrives later", "a0"),
+        })
+        .unwrap();
+    world.refreshed(&mut brain, &world.state());
+
+    assert_eq!(
+        edges(&brain),
+        vec![tie(&notes, &later.to_string(), "mention")]
+    );
+    assert!(held(&brain, "kind").contains_key(&later.to_string()));
+}
+
+#[test]
+fn a_page_taken_out_of_its_book_is_cited_by_the_line_left_behind() {
+    let world = World::new();
+    let mut store = world.store();
+    let (book, book_file) = doc(&world, &mut store, "# Trips\n", None, None);
+    let (page, page_file) = doc(&world, &mut store, "# Lisbon\n", Some(book), None);
+    rewrite(
+        &world,
+        &book_file,
+        &format!("# Trips\n\n![Lisbon](tisty:doc/{page_file})\n"),
+    );
+    let mut state = world.state();
+    let mut brain = world.brain();
+    world.refreshed(&mut brain, &state);
+    assert_eq!(
+        edges(&brain),
+        vec![tie(&page_file, &book_file, "structure")]
+    );
+
+    if let Some(one) = state.docs.get_mut(&page) {
+        one.page_of = None;
+    }
+    world.refreshed(&mut brain, &state);
+
+    assert_eq!(edges(&brain), vec![tie(&book_file, &page_file, "cite")]);
+}
+
+#[test]
+fn a_book_that_arrives_after_its_page_is_hung_from() {
+    let world = World::new();
+    let mut store = world.store();
+    let (book, book_file) = doc(&world, &mut store, "# Trips\n", None, None);
+    let (_, page_file) = doc(&world, &mut store, "# Lisbon\n", Some(book), None);
+    let whole = world.state();
+    let mut early = whole.clone();
+    early.docs.remove(&book);
+    let mut brain = world.brain();
+    world.refreshed(&mut brain, &early);
+    assert!(edges(&brain).is_empty());
+
+    world.refreshed(&mut brain, &whole);
+
+    assert_eq!(
+        edges(&brain),
+        vec![tie(&page_file, &book_file, "structure")]
+    );
 }
