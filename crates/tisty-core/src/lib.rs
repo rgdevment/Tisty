@@ -50,6 +50,7 @@ pub mod paths;
 pub mod person;
 pub mod refs;
 mod repeating;
+pub mod review;
 pub mod round;
 pub mod seal;
 pub mod series;

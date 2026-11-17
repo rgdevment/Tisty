@@ -288,6 +288,15 @@ impl Person {
 
     // The file first, then the log learns of it, as the window writes a new document.
     pub fn writes_doc(&self, body: &str) -> String {
+        self.wrote_doc_on(body, None)
+    }
+
+    pub fn wrote_doc_days_ago(&self, body: &str, days: i64) -> String {
+        let then = jiff::Timestamp::now() - jiff::SignedDuration::from_hours(24 * days);
+        self.wrote_doc_on(body, Some(then))
+    }
+
+    fn wrote_doc_on(&self, body: &str, then: Option<jiff::Timestamp>) -> String {
         let config = Config::load_or_init(&self.paths).unwrap();
         let made = tisty_core::docs::create(&self.paths.docs(), &config.device_id, body).unwrap();
         self.wrote(vec![Op::DocAdd {
@@ -295,6 +304,8 @@ impl Person {
             d: tisty_core::event::DocAdd {
                 file: made.id.clone(),
                 order: "a0".into(),
+                made: then,
+                wrote: then,
                 said: Some(tisty_core::event::Said::of(body)),
                 ..Default::default()
             },

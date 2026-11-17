@@ -143,6 +143,18 @@ A routine has one page for all its rounds, with **What for**, **Every round** an
 
 What you write under **This time** belongs to the round under way. Completing it keeps it in **Rounds**, folded under the page, with how many steps you ticked and when it closed, and the section is blank again for the next one.
 
+## Weekly review
+
+Without a look back now and then, what you capture piles up undecided. **Weekly review**, in the sidebar's row of views, gathers on one page what is worth a look once a week, in three stops. Each stop shows ✓ once nothing waits in it:
+
+1. **To decide**: tasks with no list, with **Open** to give them a list or a day, **Complete** and **Not doing it**. And if ideas are left, **Open Brainstorm**, where they are sorted.
+2. **Marked as past**: documents an agent marked, with its reason. **Archive**, **Delete it** or **Remove the mark**.
+3. **Not opened in a while**: the same as in the Library, not opened on this computer nor written in 60 days, to **Open** or **Archive**.
+
+- **Remind me every week** files an ordinary task, **Weekly review**, in the list you pick, that repeats every week and rings on the day and hour you say: Friday at 17:00 unless you change it. It rings even with Tisty closed, like any reminder. Tisty knows it by its **#weekly-review** tag, so you can rename it.
+- **Finish the review** completes this week's round, and the next one is born with its reminder.
+- **With your agent**: on the day it is due, your agent learns of it when it catches up and can offer to walk it with you. It only counts what waits at each stop and helps with what you ask; it never archives, deletes or closes anything on its own.
+
 ## Completing and dropping
 
 - `Ctrl`/`⌘` + `Enter`, on the task's row in the list, completes it. It goes to the [[archive|Archive]] with everything it holds. While you write on its page, those keys put a page break.

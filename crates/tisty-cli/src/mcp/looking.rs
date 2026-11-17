@@ -781,6 +781,10 @@ pub(super) fn catch_up(paths: &Paths, args: &Value) -> Result<Value, Refused> {
             said.push(glanced);
             kept.insert("brainstorm".into(), sheet);
         }
+        if let Some((due, review)) = super::reviewing::glance(paths, &state, today) {
+            said.push(due);
+            kept.insert("review".into(), review);
+        }
     }
     if since.is_none() {
         said.push("Next time, what moved since this call comes with it as well.".to_string());
