@@ -560,6 +560,11 @@ export default function Docs({
     taskOf(id)
       .then((one) => (onSeeTask ?? onTask)?.(one))
       .catch((e) => onError(saidPlainly(e)));
+  // A task that never reached this machine is only the words it was written with, so it opens nothing.
+  const seeCited = (id: string) =>
+    taskOf(id)
+      .then((one) => (onSeeTask ?? onTask)?.(one))
+      .catch(() => {});
   const [writtenOn, setWrittenOn] = useState<{ visit?: object; file: string } | null>(null);
   const onDiary = inDiary && !(writtenOn?.visit === visit && writtenOn?.file === open?.file);
   useEffect(() => {
@@ -1082,7 +1087,7 @@ export default function Docs({
                   again={again}
                   cited={tasked.task}
                   cards={tasked.said}
-                  onTask={seeTask}
+                  onTask={seeCited}
                   onTaskDone={onTaskDone}
                   onTaskStep={onTaskStep}
                   value={body}
