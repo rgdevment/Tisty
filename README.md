@@ -61,9 +61,9 @@
       src="assets/screens/readme/en-01-archive.webp"
       width="92%"
       alt="Tisty, the working memory you share with your AI agent: the archive
-      keeps every finished task with its steps and its journal, and your
-      agent asks how did we solve this last time? to bring one back as it
-      was"/>
+      keeps every finished task with its steps and its journal, and you or
+      your agent can ask how did we solve this last time? to bring one back
+      as it was"/>
   </p>
 
   <h4>Download Tisty</h4>

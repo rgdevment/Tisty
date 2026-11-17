@@ -62,9 +62,9 @@
       src="assets/screens/readme/es-01-archivo.webp"
       width="92%"
       alt="Tisty, la memoria de trabajo que compartes con tu agente de IA: el archivo
-      guarda cada tarea terminada con sus pasos y su bitácora, y tu agente
-      pregunta ¿cómo lo resolvimos la otra vez? para traer una tal como
-      quedó"/>
+      guarda cada tarea terminada con sus pasos y su bitácora, y tú o tu
+      agente pueden comprobar ¿cómo lo resolvimos la otra vez? para traer
+      una tal como quedó"/>
   </p>
 
   <h4>Descargar Tisty</h4>
