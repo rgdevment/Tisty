@@ -9,7 +9,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Cited, Citing } from "../citing";
 import { fill, t } from "../locales";
 import CitedBy from "../ui/CitedBy";
-import { answered, type Reaching } from "../ui/dressing";
+import { answered, citedCards, type Reaching } from "../ui/dressing";
 import { HOST } from "../ui/hosting";
 import { went } from "../ui/paging";
 import { SAY } from "../ui/saying";
@@ -105,6 +105,16 @@ describe("a press on a cited task's card", () => {
     expect(onTaskDone).toHaveBeenCalledWith("01K", "Cambiar los neumáticos");
     expect(onTaskStep).toHaveBeenCalledWith("01K", "s1", true);
     expect(sheet.querySelector(".is-task")?.classList.contains("unfolded")).toBe(true);
+  });
+
+  it("is drawn by the window itself, with its controls only when it can finish tasks", () => {
+    const sheet = document.implementation.createHTMLDocument("");
+    sheet.body.innerHTML =
+      '<article class="page"><p data-at="0-30"><a class="card" data-task="01K">Neumáticos</a></p></article>';
+    const reach = { body: "", onDoc: () => {}, cited: () => cardOf(TYRES) } as unknown as Reaching;
+    citedCards(sheet, reach);
+    expect(sheet.querySelector(".is-task .card-name")?.textContent).toBe("Cambiar los neumáticos");
+    expect(sheet.querySelector("[data-asked='taskDone']")).toBeNull();
   });
 
   it("opens nothing on a task that is not here", () => {

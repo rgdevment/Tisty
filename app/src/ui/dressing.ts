@@ -1,7 +1,7 @@
 import { convertFileSrc } from "@tauri-apps/api/core";
 import type { Widths } from "tisty-editor/edit";
 import type { TaskCarded } from "tisty-editor/read";
-import { charsAt, readAs, sourceOf, unfolded } from "tisty-editor/read";
+import { charsAt, readAs, sourceOf, taskCarded, unfolded } from "tisty-editor/read";
 import { widgetsDrawn } from "tisty-sheet";
 import { openLink } from "../core";
 import type { DayAt } from "../diary";
@@ -278,11 +278,17 @@ export const worn = (page: Document, live: () => boolean, reach?: Reaching): Wor
       lent = widgets(page, reach);
     },
     cards: reach && cardsFor(page, reach),
-    tasks: reach?.cited && { task: reach.cited, acting: Boolean(reach.onTaskDone) },
     sites: reach && { glimpses: GLIMPSES },
   });
+  if (reach) citedCards(page, reach);
   if (reach?.onPart) offeredAsParts(page, t("stepToPart"), reach.body);
   return { lent, kept: [...held, ...read.kept] };
+};
+
+// Only the window reads tasks, so the sheet every reader loads never carries a cited task's card.
+export const citedCards = (page: Document, reach: Reaching) => {
+  if (reach.cited)
+    taskCarded(page, { task: reach.cited, say: SAY, acting: Boolean(reach.onTaskDone) });
 };
 
 type BarWays = { readonly open: boolean; readonly out: boolean };

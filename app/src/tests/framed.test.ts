@@ -111,7 +111,7 @@ const ABOVE_EVERY_BLOCK = /^(html|:root|body)(?![\w-])|\.page(?![\w-])/;
 
 const here = dirname(fileURLToPath(import.meta.url));
 const LOOKS = [
-  ...["page.css", "tables.css", "diary.css"].map((one) =>
+  ...["page.css", "tables.css", "diary.css", "taskCards.css"].map((one) =>
     join(here, "../../../packages/tisty-sheet/src", one),
   ),
   join(here, "../ui/taskpage.css"),
