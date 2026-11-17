@@ -760,8 +760,14 @@ pub(crate) fn as_asked_for(at: &std::path::Path) -> std::path::PathBuf {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 fn settled(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     let done = settling(app);
-    for call in app.state::<starting::Starting>().finished() {
-        call();
+    // What the pages asked meanwhile is answered once setup has returned, never inside it.
+    let handle = app.handle().clone();
+    if app
+        .handle()
+        .run_on_main_thread(move || handle.state::<starting::Starting>().finish())
+        .is_err()
+    {
+        app.state::<starting::Starting>().finish();
     }
     done
 }
