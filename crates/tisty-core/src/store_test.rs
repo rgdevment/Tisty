@@ -2206,3 +2206,21 @@ fn lines_of_a_retired_operation_are_read_past_without_a_word_in_the_log() {
         "{diary}"
     );
 }
+
+#[test]
+fn being_overtaken_speaks_of_the_write_that_found_another_hand_not_of_every_write_after() {
+    let tmp = tempfile::tempdir().unwrap();
+    let mut mine = Store::open(tmp.path(), DeviceId("dev_a".into())).unwrap();
+    mine.append(add("mine")).unwrap();
+    assert!(!mine.overtaken(), "nobody else wrote here");
+
+    seated(tmp.path(), "dev_a", vec![add("theirs")]);
+    mine.append(add("mine again")).unwrap();
+    assert!(mine.overtaken(), "this write found a line it never wrote");
+
+    mine.append(add("and again")).unwrap();
+    assert!(
+        !mine.overtaken(),
+        "the next write finds only its own, so what it carries can be trusted again"
+    );
+}

@@ -200,10 +200,10 @@ impl Store {
     fn catch_up(&mut self) -> Result<()> {
         let active = self.dir.join(ACTIVE);
         let mark = active_mark(&active);
-        if mark == self.seen {
+        self.overtaken = mark != self.seen;
+        if !self.overtaken {
             return self.knows_where_it_stands();
         }
-        self.overtaken = true;
 
         // Another writer appended to the same segment, so a tip folded onto ours would skip
         // their lines and sign a chain nobody can recompute.
@@ -229,10 +229,16 @@ impl Store {
         out
     }
 
+    /// For lines this process wrote through another store: taken in before the state is read again, they are not another hand's.
+    pub fn look_again(&mut self) -> Result<()> {
+        self.locked(|_| Ok(()))
+    }
+
     pub fn device(&self) -> &DeviceId {
         &self.device
     }
 
+    /// Of the last write only: a state read again since then already holds the other writer's lines.
     pub fn overtaken(&self) -> bool {
         self.overtaken
     }

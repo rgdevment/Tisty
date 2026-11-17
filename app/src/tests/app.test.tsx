@@ -96,7 +96,6 @@ const shot = (view: { archive?: boolean } | undefined): Snapshot => ({
   routines: [],
   lists: [],
   tags: [],
-  refs: [],
   counts,
   locale: "en",
   agents: {},

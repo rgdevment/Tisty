@@ -26,7 +26,6 @@ vi.mock("@tauri-apps/api/core", () => ({
           tasks: [],
           lists: [],
           tags: [],
-          refs: [],
           counts: {},
           locale: "en",
         });
