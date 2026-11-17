@@ -109,7 +109,8 @@ fn cursor_gets_its_own_file_through_powershell_on_windows() {
         now["hooks"]["stop"][0]["command"],
         "& 'C:\\Users\\O''Neil\\tisty.exe' hook cursor stop"
     );
-    assert_eq!(now["hooks"]["stop"][0]["loop_limit"], 1);
+    assert!(now["hooks"]["stop"][0]["loop_limit"].is_null());
+    assert!(now["hooks"]["stop"][0].get("loop_limit").is_some());
     assert_eq!(
         now["hooks"]["afterFileEdit"][0]["command"],
         "& 'C:\\Users\\O''Neil\\tisty.exe' hook cursor edit"

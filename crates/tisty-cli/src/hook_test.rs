@@ -1,4 +1,4 @@
-use serde_json::json;
+use serde_json::{Value, json};
 
 use super::*;
 
@@ -18,7 +18,13 @@ fn home(settings: &str) -> Home {
 const LET_IN: &str = "agent_id = \"dev_agent01\"\n";
 
 fn said(home: &Home, moment: &str, heard: Value, at: i128) -> Option<String> {
-    answered(&home.paths, Client::ClaudeCode, moment, &heard, at)
+    answered(
+        &home.paths,
+        Client::ClaudeCode,
+        moment,
+        &Heard::read(heard.to_string().as_bytes()),
+        at,
+    )
 }
 
 fn edit(home: &Home, at: i128) {
@@ -128,4 +134,15 @@ fn an_unknown_moment_or_shape_says_nothing() {
     assert_eq!(said(&home, "later", json!({}), 1), None);
     assert_eq!(said(&home, "stop", Value::Null, 2), None);
     assert_eq!(said(&home, "tool", json!([1, 2]), 3), None);
+}
+
+#[test]
+fn a_call_without_its_session_leaves_no_mark_to_mix_with_others() {
+    let home = home(LET_IN);
+    assert_eq!(
+        said(&home, "tool", json!({ "tool_name": "Edit" }), 10),
+        None
+    );
+    assert_eq!(said(&home, "stop", json!({}), 20), None);
+    assert!(!home.paths.cache().join("turns").exists());
 }

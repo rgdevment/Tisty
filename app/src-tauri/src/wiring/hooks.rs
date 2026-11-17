@@ -82,7 +82,8 @@ impl Kind {
             ],
             Kind::Cursor => {
                 let mut stop = stop;
-                stop["loop_limit"] = json!(1);
+                // Cursor counts follow-ups over a whole conversation; Tisty's marks keep it to one a turn.
+                stop["loop_limit"] = Value::Null;
                 vec![
                     ("sessionStart", start),
                     ("afterFileEdit", run("edit", TURN_SECONDS)),

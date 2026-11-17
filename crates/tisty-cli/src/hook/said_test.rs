@@ -1,9 +1,13 @@
-use serde_json::json;
+use serde_json::{Value, json};
 
 use super::*;
 
 fn parsed(said: &str) -> Value {
     serde_json::from_str(said).unwrap()
+}
+
+fn heard(value: Value) -> Heard {
+    Heard::read(value.to_string().as_bytes())
 }
 
 #[test]
@@ -40,16 +44,33 @@ fn each_client_is_handed_its_turn_back_in_its_own_shape() {
 
 #[test]
 fn every_client_names_its_session_its_own_way() {
-    assert_eq!(session(&json!({ "session_id": "a" })), "a");
-    assert_eq!(session(&json!({ "sessionId": "b" })), "b");
-    assert_eq!(session(&json!({ "conversation_id": "c" })), "c");
-    assert_eq!(session(&json!({})), "");
-    assert_eq!(session(&Value::Null), "");
+    assert_eq!(heard(json!({ "session_id": "a" })).session(), "a");
+    assert_eq!(heard(json!({ "sessionId": "b" })).session(), "b");
+    assert_eq!(heard(json!({ "conversation_id": "c" })).session(), "c");
+    assert_eq!(
+        heard(json!({ "conversation_id": "d", "session_id": "d" })).session(),
+        "d"
+    );
+    assert_eq!(heard(json!({})).session(), "");
+    assert_eq!(Heard::read(b"not json").session(), "");
+}
+
+#[test]
+fn what_an_edit_wrote_is_skipped_whatever_its_size() {
+    let big = "x".repeat(4 * 1024 * 1024);
+    let said = heard(json!({
+        "session_id": "s",
+        "tool_name": "Write",
+        "tool_input": { "file_path": "a.txt", "content": big },
+        "tool_response": { "content": big },
+    }));
+    assert_eq!(said.session(), "s");
+    assert!(said.edits());
 }
 
 #[test]
 fn a_tool_of_tisty_is_known_however_the_client_spells_it() {
-    let tool = |heard: Value| tisty_tool(&heard).map(str::to_string);
+    let tool = |value: Value| heard(value).tisty_tool().map(str::to_string);
     assert_eq!(
         tool(json!({ "tool_name": "mcp__tisty__tick" })),
         Some("tick".into())
@@ -78,13 +99,18 @@ fn a_tool_of_tisty_is_known_however_the_client_spells_it() {
 
 #[test]
 fn a_tool_of_another_server_is_not_tisty() {
-    let tool = |heard: Value| tisty_tool(&heard).map(str::to_string);
+    let tool = |value: Value| heard(value).tisty_tool().map(str::to_string);
     assert_eq!(tool(json!({ "tool_name": "mcp__sereno__note" })), None);
     assert_eq!(
         tool(json!({ "tool_name": "note", "mcp_server_name": "sereno" })),
         None
     );
     assert_eq!(tool(json!({ "tool_name": "MCP:fetch_page" })), None);
+    assert_eq!(
+        tool(json!({ "tool_name": "MCP:note" })),
+        None,
+        "a name any server could use"
+    );
     assert_eq!(tool(json!({ "tool_name": "Edit" })), None);
     assert_eq!(tool(json!({ "tool_name": "mcp__tisty__" })), None);
     assert_eq!(tool(json!({ "toolName": "tisty-" })), None);
@@ -101,31 +127,33 @@ fn the_edits_of_every_client_count_and_nothing_else_does() {
         "edit",
         "create",
     ] {
-        assert!(edits(&json!({ "tool_name": named })), "{named}");
+        assert!(heard(json!({ "tool_name": named })).edits(), "{named}");
     }
-    assert!(edits(&json!({ "toolName": "apply_patch" })));
+    assert!(heard(json!({ "toolName": "apply_patch" })).edits());
     for named in ["Read", "Bash", "view", "grep", "mcp__tisty__tick"] {
-        assert!(!edits(&json!({ "tool_name": named })), "{named}");
+        assert!(!heard(json!({ "tool_name": named })).edits(), "{named}");
     }
 }
 
 #[test]
-fn a_client_already_continuing_is_heard_in_either_spelling() {
-    assert!(again(&json!({ "stop_hook_active": true })));
-    assert!(again(&json!({ "loop_count": 1 })));
-    assert!(!again(&json!({ "stop_hook_active": false })));
-    assert!(!again(&json!({ "loop_count": 0 })));
-    assert!(!again(&json!({})));
+fn only_a_client_saying_this_turn_already_continued_is_heard_as_again() {
+    assert!(heard(json!({ "stop_hook_active": true })).again());
+    assert!(!heard(json!({ "stop_hook_active": false })).again());
+    assert!(!heard(json!({})).again());
+    assert!(
+        !heard(json!({ "loop_count": 3 })).again(),
+        "Cursor counts follow-ups over the whole conversation"
+    );
 }
 
 #[test]
 fn hooks_run_by_cursor_from_claude_settings_speak_for_cursor() {
     assert_eq!(
-        Client::ClaudeCode.hand(&json!({ "cursor_version": "3.2" })),
+        Client::ClaudeCode.hand(&heard(json!({ "cursor_version": "3.2" }))),
         "cursor"
     );
-    assert_eq!(Client::ClaudeCode.hand(&json!({})), "claude-code");
-    assert_eq!(Client::Copilot.hand(&Value::Null), "copilot");
+    assert_eq!(Client::ClaudeCode.hand(&heard(json!({}))), "claude-code");
+    assert_eq!(Client::Copilot.hand(&Heard::default()), "copilot");
 }
 
 #[test]

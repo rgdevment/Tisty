@@ -4,11 +4,10 @@ mod said;
 use std::io::{Read, Write};
 use std::process::ExitCode;
 
-use serde_json::Value;
 use tisty_core::Paths;
 
 use marks::{Mark, Session, Verdict, verdict};
-use said::Client;
+use said::{Client, Heard};
 
 const HEARD_AT_MOST: u64 = 32 * 1024 * 1024;
 const SWITCH: &str = "turn_hooks";
@@ -33,10 +32,10 @@ pub fn run(args: &[String]) -> ExitCode {
     ExitCode::SUCCESS
 }
 
-fn heard() -> Value {
+fn heard() -> Heard {
     let mut raw = Vec::new();
     let _ = std::io::stdin().take(HEARD_AT_MOST).read_to_end(&mut raw);
-    serde_json::from_slice(&raw).unwrap_or(Value::Null)
+    Heard::read(&raw)
 }
 
 fn now() -> i128 {
@@ -47,19 +46,23 @@ fn answered(
     paths: &Paths,
     client: Client,
     moment: &str,
-    heard: &Value,
+    heard: &Heard,
     at: i128,
 ) -> Option<String> {
     let settings = settings(paths);
     if !on(settings.as_ref()) {
         return None;
     }
-    let session = Session::of(paths.cache(), &said::session(heard));
+    let session = Session::of(paths.cache(), heard.session());
+    // Without its session a mark would mix with other sessions', so only the start speaks.
+    if heard.session().is_empty() && moment != "start" {
+        return None;
+    }
     match moment {
         "start" => {
             marks::sweep(paths.cache(), std::time::SystemTime::now());
-            let key = format!("start-{}-{}", said::source(heard), at / 30_000_000_000);
-            if !session.claim(&key) {
+            let key = format!("start-{}-{}", heard.source(), at / 30_000_000_000);
+            if !heard.session().is_empty() && !session.claim(&key) {
                 return None;
             }
             let opening = crate::mcp::opening(paths, client.hand(heard))?;
@@ -70,12 +73,12 @@ fn answered(
             None
         }
         "tool" => {
-            if let Some(tool) = said::tisty_tool(heard) {
+            if let Some(tool) = heard.tisty_tool() {
                 session.mark(Mark::Called, at);
                 if crate::mcp::writes(tool) {
                     session.mark(Mark::Wrote, at);
                 }
-            } else if said::edits(heard) {
+            } else if heard.edits() {
                 session.mark(Mark::Edited, at);
             }
             None
@@ -87,7 +90,7 @@ fn answered(
                 .and_then(|it| it.get("agent_id"))
                 .and_then(toml::Value::as_str)
                 .is_some_and(|agent| !agent.trim().is_empty());
-            match door_open && verdict(&marks, said::again(heard)) == Verdict::HandBack {
+            match door_open && verdict(&marks, heard.again()) == Verdict::HandBack {
                 true => {
                     let key = format!("stop-{}", marks.edited.unwrap_or_default());
                     if !session.claim(&key) {

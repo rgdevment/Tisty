@@ -1,7 +1,6 @@
-use serde_json::{Value, json};
+use serde::Deserialize;
+use serde_json::json;
 
-const SESSION_KEYS: [&str; 3] = ["session_id", "sessionId", "conversation_id"];
-const TOOL_KEYS: [&str; 2] = ["tool_name", "toolName"];
 const EDITING: [&str; 10] = [
     "Edit",
     "Write",
@@ -15,6 +14,91 @@ const EDITING: [&str; 10] = [
     "str_replace_editor",
 ];
 const SERVER: &str = "tisty";
+
+/// Only the fields a hook reads: what an edit wrote is skipped, never held.
+#[derive(Debug, Default, Deserialize)]
+pub struct Heard {
+    #[serde(default)]
+    session_id: Option<String>,
+    #[serde(default, rename = "sessionId")]
+    session_id_camel: Option<String>,
+    #[serde(default)]
+    conversation_id: Option<String>,
+    #[serde(default)]
+    tool_name: Option<String>,
+    #[serde(default, rename = "toolName")]
+    tool_name_camel: Option<String>,
+    #[serde(default)]
+    mcp_server_name: Option<String>,
+    #[serde(default)]
+    source: Option<String>,
+    #[serde(default)]
+    stop_hook_active: Option<bool>,
+    #[serde(default)]
+    cursor_version: Option<serde::de::IgnoredAny>,
+}
+
+impl Heard {
+    pub fn read(raw: &[u8]) -> Self {
+        serde_json::from_slice(raw).unwrap_or_default()
+    }
+
+    pub fn session(&self) -> &str {
+        [
+            &self.session_id,
+            &self.session_id_camel,
+            &self.conversation_id,
+        ]
+        .into_iter()
+        .find_map(Option::as_deref)
+        .unwrap_or_default()
+    }
+
+    fn tool(&self) -> Option<&str> {
+        self.tool_name
+            .as_deref()
+            .or(self.tool_name_camel.as_deref())
+    }
+
+    pub fn source(&self) -> &str {
+        self.source.as_deref().unwrap_or("startup")
+    }
+
+    pub fn tisty_tool(&self) -> Option<&str> {
+        let named = self.tool()?;
+        if let Some(server) = &self.mcp_server_name {
+            return ours(server).then_some(named);
+        }
+        let tool = if let Some(rest) = named.strip_prefix("mcp__") {
+            let (server, tool) = rest.rsplit_once("__")?;
+            ours(server).then_some(tool)?
+        } else if let Some(rest) = named.strip_prefix("MCP:") {
+            // Cursor names no server here, so only a name no other server would use counts.
+            (rest.contains('_') && crate::mcp::is_tool(rest)).then_some(rest)?
+        } else {
+            named
+                .strip_prefix("mcp_tisty_")
+                .or_else(|| named.strip_prefix("tisty-"))?
+        };
+        (!tool.is_empty()).then_some(tool)
+    }
+
+    pub fn edits(&self) -> bool {
+        self.tool().is_some_and(|named| EDITING.contains(&named))
+    }
+
+    pub fn again(&self) -> bool {
+        self.stop_hook_active == Some(true)
+    }
+
+    fn in_cursor(&self) -> bool {
+        self.cursor_version.is_some()
+    }
+}
+
+fn ours(server: &str) -> bool {
+    server.to_lowercase().contains(SERVER)
+}
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Client {
@@ -45,10 +129,10 @@ impl Client {
     }
 
     // Cursor runs the hooks in `~/.claude/settings.json` too, and its own agent is the one writing.
-    pub fn hand(self, heard: &Value) -> &'static str {
-        match heard.get("cursor_version") {
-            Some(_) => Client::Cursor.id(),
-            None => self.id(),
+    pub fn hand(self, heard: &Heard) -> &'static str {
+        match heard.in_cursor() {
+            true => Client::Cursor.id(),
+            false => self.id(),
         }
     }
 
@@ -75,55 +159,6 @@ impl Client {
         }
         .to_string()
     }
-}
-
-fn first<'a>(heard: &'a Value, keys: &[&str]) -> Option<&'a str> {
-    keys.iter().find_map(|key| heard.get(*key)?.as_str())
-}
-
-pub fn session(heard: &Value) -> String {
-    first(heard, &SESSION_KEYS).unwrap_or_default().to_string()
-}
-
-pub fn source(heard: &Value) -> &str {
-    heard
-        .get("source")
-        .and_then(Value::as_str)
-        .unwrap_or("startup")
-}
-
-pub fn tisty_tool(heard: &Value) -> Option<&str> {
-    let named = first(heard, &TOOL_KEYS)?;
-    if let Some(server) = heard.get("mcp_server_name").and_then(Value::as_str) {
-        return ours(server).then_some(named);
-    }
-    let tool = if let Some(rest) = named.strip_prefix("mcp__") {
-        let (server, tool) = rest.rsplit_once("__")?;
-        ours(server).then_some(tool)?
-    } else if let Some(rest) = named.strip_prefix("MCP:") {
-        crate::mcp::is_tool(rest).then_some(rest)?
-    } else {
-        named
-            .strip_prefix("mcp_tisty_")
-            .or_else(|| named.strip_prefix("tisty-"))?
-    };
-    (!tool.is_empty()).then_some(tool)
-}
-
-fn ours(server: &str) -> bool {
-    server.to_lowercase().contains(SERVER)
-}
-
-pub fn edits(heard: &Value) -> bool {
-    first(heard, &TOOL_KEYS).is_some_and(|named| EDITING.contains(&named))
-}
-
-pub fn again(heard: &Value) -> bool {
-    heard.get("stop_hook_active").and_then(Value::as_bool) == Some(true)
-        || heard
-            .get("loop_count")
-            .and_then(Value::as_u64)
-            .is_some_and(|count| count > 0)
 }
 
 #[cfg(test)]
