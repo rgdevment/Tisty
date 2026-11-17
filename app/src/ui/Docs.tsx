@@ -561,7 +561,19 @@ export default function Docs({
   const stood = useRef(new Map<string, number>());
   const from = useRef<{ doc: string; page: string } | null>(null);
   const seek = own?.file ? stood.current.get(own.file) : undefined;
-  const anchor = own?.file && from.current?.doc === own.file ? from.current.page : undefined;
+  const aimed = useRef<{ file: string; heading: string } | null>(null);
+  const wasOpen = useRef(open?.file);
+  useEffect(() => {
+    if (wasOpen.current && aimed.current?.file === wasOpen.current) aimed.current = null;
+    wasOpen.current = open?.file;
+  }, [open?.file]);
+  const anchor = !own?.file
+    ? undefined
+    : from.current?.doc === own.file
+      ? from.current.page
+      : aimed.current?.file === own.file
+        ? aimed.current.heading
+        : undefined;
   const pages = pagesOf(known, open?.file);
   const [picked, setPicked] = useState<Picked | null>(null);
   const leafy = Boolean(own && !own.pageOf);
@@ -616,11 +628,11 @@ export default function Docs({
   const sisters = pagesOf(known, above?.file);
   const tongues = useMemo(() => tonguesOf(known, above ?? own), [known, above, own]);
   // Another language opens at the heading the reader stood under, counted, since its words differ.
-  const landing = useRef<{ file: string; at: number | string } | null>(null);
-  const landAt = (file: string, at: number | string) => {
+  const landing = useRef<{ file: string; at: number } | null>(null);
+  const landAt = (file: string, at: number) => {
     const landed = { file, at };
     landing.current = landed;
-    // A document with no headings yet never reaches the jump, so the wish lapses rather than waiting.
+    // A language with no headings yet never reaches the jump, so the wish lapses rather than waiting.
     window.setTimeout(() => {
       if (landing.current === landed) landing.current = null;
     }, LANDING_MS);
@@ -633,11 +645,13 @@ export default function Docs({
     if (anchor && tongue.lang) chooseTongue(anchor, tongue.lang);
     landAt(twinOf(known, own, tongue).file, standingHead());
   };
+  // The sheet lands on the heading once the page settles, as it does on a page's card.
   const toDoc = (named: string, heading?: string) => {
     if (!heading) return onDoc?.(named);
     const file = known.find((one) => one.id === named)?.file ?? named;
     if (file === open?.file) return heads.find((one) => one.id === heading)?.go();
-    landAt(file, heading);
+    aimed.current = { file, heading };
+    onDoc?.(file);
   };
   const toCited = (one: Citing) =>
     one.kind === "task" ? seeTask(one.id) : toDoc(one.id, one.under?.[0]?.id);
@@ -646,8 +660,7 @@ export default function Docs({
     const reached = heads.filter((one) => one.level > 0);
     if (!want || want.file !== open?.file || !reached.length) return;
     landing.current = null;
-    if (typeof want.at === "string") reached.find((one) => one.id === want.at)?.go();
-    else if (want.at >= 0) reached[Math.min(want.at, reached.length - 1)]?.go();
+    if (want.at >= 0) reached[Math.min(want.at, reached.length - 1)]?.go();
   }, [heads, open?.file]);
   // The panel names the languages when it is open; the bar above the sheet does when it is not.
   const spoken = tongues.length > 0 && (

@@ -13,7 +13,7 @@ import { layingOn } from "./pageLaying";
 import { balanced } from "./pageMarks";
 import type { Act } from "./pageMoving";
 import { elementOf, inCode, onSheet, opened } from "./pageNodes";
-import { tagList, tagMatch } from "./pageTags";
+import { linkList, linkMatch, tagList, tagMatch } from "./pageTags";
 import { type Hands, writerOf } from "./pageWriter";
 import { unformattable } from "./quickly";
 
@@ -73,13 +73,30 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
     laying.put({ from: Math.min(match.from, to), to, insert: `#${tag}${spaced}` });
   });
 
+  const links = linkList(page, (match, one) => {
+    writer.typing = false;
+    const to = Math.min(match.to, hands.text().length);
+    laying.put({ from: Math.min(match.from, to), to, insert: one.link });
+  });
+
   const offerTags = () => {
     const at = writer.kept?.at;
     const range = caret.chosen();
     const known = hands.tags;
-    const open =
-      writer.typing && at !== undefined && known && !(range && inCode(range.startContainer));
+    const open = writer.typing && at !== undefined && !(range && inCode(range.startContainer));
     tags.offer(open && known ? tagMatch(hands.text(), at, known()) : null);
+    links.offer(open ? linkMatch(hands.text(), at, hands, offerTags) : null);
+  };
+  const lists = {
+    offer: tags.offer,
+    hide: () => {
+      tags.hide();
+      links.hide();
+    },
+    stop: () => {
+      tags.stop();
+      links.stop();
+    },
   };
 
   const caretInSight = () => {
@@ -99,7 +116,7 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
 
   const input = inputOn(writer, caret, laying, history, formats, begun);
   const choosing = choosingOn(writer, caret, laying, beside);
-  const keys = keysOn(writer, caret, laying, history, formats, beside, tags, choosing);
+  const keys = keysOn(writer, caret, laying, history, formats, beside, lists, choosing);
   const chooser = (event: KeyboardEvent) => {
     if (onSheet(page, event) && choosing.keyed(event)) event.stopImmediatePropagation();
   };
@@ -206,7 +223,7 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
       page.removeEventListener("paste", input.pastedFiles);
       page.removeEventListener("copy", clipped);
       page.removeEventListener("cut", clipped);
-      tags.stop();
+      lists.stop();
       dragging.stop();
       beside.stop();
       page.removeEventListener("mousedown", keys.moved);

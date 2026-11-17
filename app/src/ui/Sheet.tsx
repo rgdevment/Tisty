@@ -444,6 +444,8 @@ export default function Sheet(props: Readonly<Props>) {
         return {
           kinds: asking?.kinds ?? [],
           tags: asking?.tags,
+          linkable: asking?.linkable,
+          headsOf: asking?.headsOf,
           pasted: asking?.pasted,
           lost: asking?.lost,
           failed: (problem) => said.current.onFail?.(problem),
@@ -998,6 +1000,8 @@ export default function Sheet(props: Readonly<Props>) {
     blocks: (at, slash) => blockMenu(at, slash),
     acts: blockActs,
     tags: () => said.current.asking?.tags ?? [],
+    linkable: (asked) => said.current.asking?.linkable?.(asked) ?? [],
+    headsOf: (asked, head, ready) => said.current.asking?.headsOf?.(asked, head, ready) ?? [],
     pasted: (files) => said.current.asking?.pasted?.(files) ?? Promise.resolve(""),
     translated: (html, plain) =>
       html ? HOST.fromHtml(html) : HOST.fromText(plain).then((said) => said ?? plain),
@@ -1127,7 +1131,9 @@ export default function Sheet(props: Readonly<Props>) {
       const sheet = scroller();
       if (!sheet) return null;
       const page = shown.current?.document;
-      const found = mark ? page?.querySelector<HTMLElement>(`[data-doc="${mark}"]`) : null;
+      const found = mark
+        ? (page?.querySelector<HTMLElement>(`[data-doc="${mark}"]`) ?? page?.getElementById(mark))
+        : null;
       const box = found?.getBoundingClientRect();
       if (!box || (!box.height && !box.top)) return want ?? null;
       const frame = shown.current?.frameElement as HTMLElement | null | undefined;

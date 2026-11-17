@@ -356,3 +356,8 @@ html.held .page > .front dd {
   content: "…";
   color: var(--tisty-faint);
 }
+.tag-list-detail {
+  margin-left: 8px;
+  font-size: 11.5px;
+  color: var(--tisty-faint);
+}

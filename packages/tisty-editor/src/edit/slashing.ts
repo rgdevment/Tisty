@@ -516,22 +516,36 @@ const NAMED = /\[\[([^[\]\n#]*)$/;
 const NAMED_HEAD = /\[\[([^[\]\n#]+)#([^[\]\n#]*)$/;
 
 // `[[` asks for a document by its words and writes a link by its file, so a rename never breaks it.
+export const linkAsked = (before: string): { from: number; doc: string; head?: string } | null => {
+  const found = NAMED_HEAD.exec(before) ?? NAMED.exec(before);
+  if (!found) return null;
+  const [doc, head] = found[0].slice(2).split("#");
+  return { from: found.index, doc, head };
+};
+
+export const linksAsked = (
+  host: Pick<Asking, "linkable" | "headsOf"> | undefined,
+  asked: { doc: string; head?: string },
+  ready: () => void,
+): readonly Linkable[] =>
+  (asked.head === undefined
+    ? host?.linkable?.(asked.doc)
+    : host?.headsOf?.(asked.doc, asked.head, ready)) ?? [];
+
 export const naming =
   (asking?: () => Asking | undefined) =>
   (context: CompletionContext): CompletionResult | null => {
-    const found = context.matchBefore(NAMED_HEAD) ?? context.matchBefore(NAMED);
-    if (!found || coded(context.state, found.from)) return null;
-    const host = asking?.();
-    const [doc, head] = found.text.slice(2).split("#");
+    const line = context.state.doc.lineAt(context.pos);
+    const asked = linkAsked(context.state.sliceDoc(line.from, context.pos));
+    if (!asked) return null;
+    const from = line.from + asked.from;
+    if (coded(context.state, from)) return null;
     const { view } = context;
-    const rows =
-      head === undefined
-        ? host?.linkable?.(doc)
-        : host?.headsOf?.(doc, head, () => view && startCompletion(view));
-    if (!rows?.length) return null;
+    const rows = linksAsked(asking?.(), asked, () => view && startCompletion(view));
+    if (!rows.length) return null;
     const closed = context.state.sliceDoc(context.pos, context.pos + 2) === "]]";
     return {
-      from: found.from,
+      from,
       to: closed ? context.pos + 2 : context.pos,
       filter: false,
       options: rows.map(

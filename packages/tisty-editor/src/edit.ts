@@ -52,6 +52,8 @@ export {
   holding,
   ideaOpened,
   type Linkable,
+  linkAsked,
+  linksAsked,
   naming,
   offered,
   openMenu,
