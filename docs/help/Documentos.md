@@ -149,12 +149,14 @@ Un enlace `tisty://open` solo llega a un archivo de texto legible de este equipo
 
 ### Un documento en una ventana aparte
 
-**Abrir en una ventana aparte**, el botón junto al título en el panel de un documento, lo muestra en solo lectura junto a tu trabajo.
+**Abrir en una ventana aparte**, el botón junto al título en el panel de un documento, lo muestra en solo lectura junto a tu trabajo, en el mismo visor ligero que abre un archivo de afuera.
 
-- **Índice y página** (`Ctrl`/`⌘` + `\`) abre una columna con sus títulos, qué es el documento y el ancho de la página: cuánto mide para leer y el papel de su PDF. **Hojas**, primero en esa fila, desbloquea el papel y lo muestra en hojas, verticales o, con **Horizontal**, apaisadas, y su PDF sale así; el archivo no cambia.
-- **Lectura** y **Markdown** cambian entre la página dibujada y su texto.
-- **Más** tiene **Buscar en el texto**, texto más grande y más pequeño, **Copiar como Markdown** (Markdown estándar), **Vista previa** del PDF que saldría (**← Volver al documento** regresa de ella), **Exportar a PDF…**, **Exportar como HTML…**, **Exportar como Word…** y **Duplicar**, que hace una copia.
-- **Editar en Tisty** te lleva de vuelta al documento. Su PDF ahí abre con una portada que dice quién lo escribió y cuándo si marcas **Portada con autor, versión y fechas** en la vista previa.
+- **Índice y detalles** (`Ctrl`/`⌘` + `\`) abre una columna con sus títulos, su carpeta, su peso y cuándo cambió.
+- **Ver Markdown** (`Ctrl`/`⌘` + `Shift` + `M`) cambia entre la página dibujada y su texto.
+- **Más** tiene **Buscar en el texto**, texto más grande y más pequeño, **Copiar el Markdown** e **Imprimir**.
+- Un enlace o una tarjeta a otro documento o a una tarea lo abre en la ventana principal, y un adjunto se abre con su programa.
+- **Editar** te lleva al documento en la ventana principal. Si lo cambias ahí, la ventana aparte lo vuelve a leer cuando regresas a ella.
+- Su PDF, sus hojas y sus exportaciones se hacen desde la ventana principal.
 
 ## Sacar documentos
 

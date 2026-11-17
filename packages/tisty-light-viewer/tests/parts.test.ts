@@ -8,6 +8,9 @@ const host = vi.hoisted(() => ({
   follow: vi.fn(),
   pictureNear: vi.fn(),
   pictureFar: vi.fn(),
+  showDoc: vi.fn(),
+  showTask: vi.fn(),
+  openAttached: vi.fn(),
 }));
 vi.mock("../src/host", () => host);
 
@@ -131,18 +134,20 @@ describe("where the reading was left", () => {
 describe("a link in the document", () => {
   beforeEach(() => vi.clearAllMocks());
 
-  const pressed = (href: string) => {
+  const pressedIn = (link: string, own = false) => {
     const page = document.createElement("article");
-    page.innerHTML = `<h2 id="a b">t</h2><a href="${href}"><span>go</span></a>`;
+    page.innerHTML = `<h2 id="a b">t</h2>${link}`;
     document.body.append(page);
     const heading = page.querySelector("h2") as HTMLElement;
     heading.scrollIntoView = vi.fn();
     const event = new MouseEvent("click", { bubbles: true, cancelable: true });
-    page.addEventListener("click", (e) => linkPressed(e, "C:/here.md", () => {}));
+    page.addEventListener("click", (e) => linkPressed(e, { path: "C:/here.md", own }, () => {}));
     page.querySelector("span")?.dispatchEvent(event);
     page.remove();
     return { event, heading };
   };
+  const pressed = (href: string, own = false) =>
+    pressedIn(`<a href="${href}"><span>go</span></a>`, own);
 
   it("opens the web outside the window", () => {
     host.openLink.mockResolvedValue(undefined);
@@ -180,6 +185,42 @@ describe("a link in the document", () => {
     expect(host.openLink).not.toHaveBeenCalled();
     pressed("javascript:alert(1)");
     expect(host.openLink).not.toHaveBeenCalled();
+  });
+
+  it("in a document of one's own, takes another document or a task to the main window", () => {
+    host.showDoc.mockResolvedValue(undefined);
+    host.showTask.mockResolvedValue(undefined);
+    pressedIn('<a class="card" data-doc="ab12-0003"><span>Riego</span></a>', true);
+    expect(host.showDoc).toHaveBeenLastCalledWith("ab12-0003");
+    pressedIn('<span class="doc-card" data-doc="ab12-0004"><span>Riego</span></span>', true);
+    expect(host.showDoc).toHaveBeenLastCalledWith("ab12-0004");
+    pressed("tisty:doc/ab12-0005", true);
+    expect(host.showDoc).toHaveBeenLastCalledWith("ab12-0005");
+    pressed("tisty:task/01J", true);
+    expect(host.showTask).toHaveBeenCalledWith("01J");
+    pressedIn('<a class="card" data-task="01K"><span>Paso</span></a>', true);
+    expect(host.showTask).toHaveBeenLastCalledWith("01K");
+    expect(host.follow).not.toHaveBeenCalled();
+  });
+
+  it("in a document of one's own, opens an attachment rather than a neighbouring file", () => {
+    host.openAttached.mockResolvedValue(undefined);
+    pressed("cartilla.pdf", true);
+    expect(host.openAttached).toHaveBeenCalledWith("cartilla.pdf");
+    expect(host.follow).not.toHaveBeenCalled();
+    host.openLink.mockResolvedValue(undefined);
+    pressed("https://example.com", true);
+    expect(host.openLink).toHaveBeenCalledWith("https://example.com");
+    const { heading } = pressed("#a%20b", true);
+    expect(heading.scrollIntoView).toHaveBeenCalled();
+    expect(host.openAttached).toHaveBeenCalledTimes(1);
+  });
+
+  it("from a stranger's file, leaves what names Tisty alone", () => {
+    pressed("tisty:doc/ab12-0005");
+    pressedIn('<a class="card" data-doc="ab12-0003"><span>Riego</span></a>');
+    expect(host.showDoc).not.toHaveBeenCalled();
+    expect(host.follow).not.toHaveBeenCalled();
   });
 });
 

@@ -503,9 +503,13 @@ struct Look {
     clear: bool,
 }
 
+fn light(shown: &Shown) -> bool {
+    matches!(shown, Shown::File(_) | Shown::Doc(_))
+}
+
 // The light viewer takes the system's own title bar; the rest draw theirs.
 fn look_of(shown: &Shown) -> Look {
-    let light = matches!(shown, Shown::File(_));
+    let light = light(shown);
     Look {
         framed: light,
         clear: !light,
@@ -522,7 +526,7 @@ pub(crate) fn open(app: &AppHandle, shown: Shown) {
         Shown::Piece { .. } => "Tisty".into(),
     };
     let spanish = spanish(app);
-    let light = matches!(shown, Shown::File(_));
+    let light = light(&shown);
     let look = look_of(&shown);
     let page = if light {
         crate::refusing::light_page(spanish)
@@ -552,8 +556,7 @@ pub(crate) fn open(app: &AppHandle, shown: Shown) {
             std::thread::spawn(move || {
                 std::thread::sleep(std::time::Duration::from_secs(2));
                 if !late.is_visible().unwrap_or(false) {
-                    let _ = late.show();
-                    let _ = late.set_focus();
+                    fronted(&late);
                 }
             });
             crate::tray::docked(app, true);
@@ -585,6 +588,20 @@ pub(crate) fn open(app: &AppHandle, shown: Shown) {
             );
         }
     }
+}
+
+// Windows may refuse the focus to a process the person is not using; raised above the rest, the window is seen anyway.
+fn fronted(window: &tauri::WebviewWindow) {
+    let _ = window.show();
+    let _ = window.unminimize();
+    let _ = window.set_always_on_top(true);
+    let _ = window.set_focus();
+    let _ = window.set_always_on_top(false);
+}
+
+#[tauri::command(async)]
+pub fn view_fronted(window: tauri::WebviewWindow) {
+    fronted(&window);
 }
 
 pub(crate) fn shown_in(views: &Views, label: &str) -> Answer<Shown> {
@@ -799,6 +816,11 @@ pub fn view_go(app: AppHandle, file: String) {
 #[tauri::command(async)]
 pub fn view_doc(app: AppHandle, paper: Paper) {
     open(&app, Shown::Doc(paper));
+}
+
+#[tauri::command(async)]
+pub fn view_task(app: AppHandle, task: String) {
+    to_task(&app, task);
 }
 
 #[cfg(test)]

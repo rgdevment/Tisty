@@ -1,4 +1,4 @@
-import type { Say } from "tisty-sheet";
+import type { Cards, Say } from "tisty-sheet";
 
 const PAINT_WAIT = 100;
 const FRAME_BUDGET = 12;
@@ -40,10 +40,14 @@ export const settled = async (page: HTMLElement): Promise<void> => {
 
 export const isDark = (): boolean => document.documentElement.classList.contains("dark");
 
-export const dress = async (say: Say, locale: string): Promise<void> => {
+export const dress = async (
+  say: Say,
+  locale: string,
+  cards?: Omit<Cards, "say">,
+): Promise<void> => {
   await painted();
   const { readAs } = await import("./drawing");
-  await readAs(document, { say, locale, live: () => true }).drawn;
+  await readAs(document, { say, locale, live: () => true, cards }).drawn;
 };
 
 export const redraw = async (): Promise<void> => {

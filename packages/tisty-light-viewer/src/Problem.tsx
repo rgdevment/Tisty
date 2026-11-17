@@ -10,6 +10,7 @@ const saying = (words: Words, opened: Opened): string => {
 export default function Problem(props: {
   readonly words: Words;
   readonly opened: Opened;
+  readonly revealed: string | null;
   readonly onRetry: () => void;
   readonly onEdit: () => void;
   readonly fail: (problem: unknown) => void;
@@ -27,13 +28,17 @@ export default function Problem(props: {
             </button>
           }
         >
-          <button
-            class="action"
-            type="button"
-            onClick={() => void reveal(props.opened.path).catch(props.fail)}
-          >
-            {say("revealIt")}
-          </button>
+          <Show when={props.revealed}>
+            {(path) => (
+              <button
+                class="action"
+                type="button"
+                onClick={() => void reveal(path()).catch(props.fail)}
+              >
+                {say("revealIt")}
+              </button>
+            )}
+          </Show>
         </Show>
         <button class="action" type="button" onClick={props.onRetry}>
           {say("retry")}
