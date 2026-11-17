@@ -1,85 +1,195 @@
 {
-  "since": "1.47.0",
+  "since": "1.47.1",
   "pinned": {
     "id": "why-tisty",
     "en": {
-      "text": "I got tired of explaining my project to my AI agent every morning.\n\nSo I built Tisty: tasks, documents and notes in Markdown on your own disk, and a local MCP server so Claude Code, Copilot or Cursor pick up where they left off.\n\nFree, open source, no account.",
-      "picture": "assets/screens/readme/en-07-day.webp",
-      "shows": "The day's tasks in Tisty: overdue and due soon, with their lists, priorities and tags, and the week ahead beside them"
+      "text": "A task list forgets the moment you tick the box. My AI agent forgot the moment the session ended.\n\nI got tired of solving things twice and explaining my project every morning, so I built Tisty: a memory on my own disk, for me and for my agent.\n\nHow do you keep yours?"
     },
     "reply": {
       "en": {
-        "text": "Try it:\n\nWindows: winget install rgdevment.Tisty\nmacOS: Homebrew or the .dmg\n\nhttps://www.tisty.app"
+        "text": "This is how Tisty does it:\n\nhttps://www.tisty.app"
       }
     }
   },
   "queue": [
     {
-      "id": "save-an-idea",
+      "id": "explain-it-every-morning",
       "en": {
-        "text": "Did you know Tisty lets you save an idea without dropping what you are doing? Ctrl + Shift + Space opens the quick capture, Tab turns it into an idea, you type it and carry on. It waits in Brainstorm as a sticky note, with its date and colour, until its moment comes. https://tisty.app",
-        "picture": "assets/screens/readme/en-03-brainstorm.webp",
-        "shows": "Brainstorm in Tisty: ideas of the moment as coloured sticky notes, each with its date and time, held by tape or a pin"
+        "text": "Every morning I explained my project to my AI agent again. Same stack, same decisions, same dead ends.\n\nI built Tisty so it starts from what moved since yesterday and the task it was on, not from a blank chat.\n\nHow do you start a session without the recap?"
+      }
+    },
+    {
+      "id": "solved-it-before",
+      "en": {
+        "text": "Eight months after I fixed some timeouts on save, they came back somewhere else. I remembered solving it. I couldn't remember how: the note went when I ticked the task.\n\nSo in Tisty a finished task is kept whole, steps and notes.\n\nWhere do your solved problems end up?"
+      }
+    },
+    {
+      "id": "no-delete-for-agents",
+      "en": {
+        "text": "I don't want to find out what my agent deletes by mistake.\n\nSo Tisty gives it no delete at all: it marks what looks old and says why, and I decide. If I wrote while it was thinking, it has to read again before writing.\n\nToo strict? What would you change?"
+      }
+    },
+    {
+      "id": "outline-first",
+      "en": {
+        "text": "An agent that needs one paragraph will read the whole document to find it.\n\nIn Tisty it reads the outline first, with what each section weighs, then only that section: about 3% of a 256 KB file, 12% at worst.\n\nHow do you keep yours from reading everything?"
+      }
+    },
+    {
+      "id": "relations-nobody-sees",
+      "en": {
+        "text": "A document cites another. A task was born from an idea. In my notes all of that is true and none of it shows: each link lives inside its own file.\n\nI'm designing a map of it for Tisty, tasks and documents together.\n\nWhat would you want to see first on yours?"
+      }
+    },
+    {
+      "id": "memory-i-can-read",
+      "en": {
+        "text": "An agent's automatic memory keeps what it guessed mattered, and yesterday's decision next to today's.\n\nIn Tisty what my agent remembers is documents I can read and correct, and a changed decision is struck through with its date.\n\nDo you ever read what your agent remembers?"
+      }
+    },
+    {
+      "id": "answer-lost-in-a-chat",
+      "en": {
+        "text": "The best answer an AI gave me last month is in a chat I can't find any more.\n\nNow, when a chat gets something right, I ask the agent to write it into a document in Tisty, on my disk, where search finds it.\n\nWhere do you keep what a chat got right?"
+      }
+    },
+    {
+      "id": "where-my-notes-live",
+      "en": {
+        "text": "I can't control what my AI tools send home. I can control where my notes live.\n\nSo in Tisty they stay on my disk, as Markdown: there is no server of mine to send them to. What an agent reads from them still travels with that agent.\n\nWhere do you draw that line?"
+      }
+    },
+    {
+      "id": "memory-nobody-opens",
+      "en": {
+        "text": "A memory only helps if the agent opens it. Tisty asks every agent to start from what moved, and some still skip it unless I remind them.\n\nNext for Tisty's plugin: ask it when the session starts, with no reminder.\n\nHow do you make your agent check its notes first?"
+      }
+    },
+    {
+      "id": "notes-file-went-stale",
+      "en": {
+        "text": "My NOTES.md went stale in a week. Then came one notes file per session, and they piled up until neither my agent nor I trusted them.\n\nWhat I do now in Tisty: one page per subject, corrected in place.\n\nHas anyone kept an agent's notes honest for months? How?"
+      }
+    },
+    {
+      "id": "a-map-i-can-walk",
+      "en": {
+        "text": "I can read every note my agent keeps. What I can't see is how they connect: what leads where, what nothing points to.\n\nSo I'm designing a map for Tisty: each document and task a neuron, each link a connection.\n\nWhat would you check first on yours?"
+      }
+    },
+    {
+      "id": "state-outside-the-chat",
+      "en": {
+        "text": "Long session, and my agent no longer remembers what we agreed at the start. The usual advice: open a new chat.\n\nSo the state can't live in the chat. In Tisty the agent ticks each step and notes what's left, and a fresh chat picks up there.\n\nHow do you survive compaction?"
+      }
+    },
+    {
+      "id": "mcp-eats-the-context",
+      "en": {
+        "text": "Every MCP server I connect spends context before the agent does anything. Mine too.\n\nSo I cut Tisty's tool descriptions by a third, and a test fails if they grow back.\n\nIs that enough? What should Tisty trim next?"
+      }
+    },
+    {
+      "id": "why-we-decided",
+      "en": {
+        "text": "My agent can read all my code. It can't read why I rejected option B three months ago, so it proposes B again.\n\nIn Tisty I keep each decision with its date and its why, in the document on that subject.\n\nWhere do you write down the why, so it gets read?"
+      }
+    },
+    {
+      "id": "what-points-here",
+      "en": {
+        "text": "I can see where a note points. I can't see what points at it, so I never know what a change will break.\n\nWorking on it for Tisty: beside each document, who cites it and in which section.\n\nDo you use backlinks, or do you just search?"
+      }
+    },
+    {
+      "id": "once-a-year-paperwork",
+      "en": {
+        "text": "The bank paperwork comes back every year, and every year I work it out again from zero.\n\nNow I do it as a task in Tisty, with its steps and notes, and next year the archive tells me how it went.\n\nHow do you remember the things you only do once a year?"
+      }
+    },
+    {
+      "id": "agent-says-done",
+      "en": {
+        "text": "\"Done\", says the agent. Sometimes it is.\n\nIn Tisty an agent can only say a task is done: it waits there until I confirm it or send it back.\n\nHow do you handle it? How could we make this better in Tisty?"
+      }
+    },
+    {
+      "id": "search-brings-the-line",
+      "en": {
+        "text": "An agent searching my notes opens every file that matches, just to find one sentence.\n\nIn Tisty a search answers with the line that says it, ten results at a time. It opens a file only if the line isn't enough.\n\nHow does yours search without reading it all?"
+      }
+    },
+    {
+      "id": "written-not-guessed",
+      "en": {
+        "text": "A search by similarity finds notes that look alike. It can't tell me they're related, or which one is still true.\n\nThe map I'm designing for Tisty starts from what is written: a citation, a mention, a tag. Every link can explain itself.\n\nWould you want guessed links too?"
+      }
+    },
+    {
+      "id": "rereads-the-whole-log",
+      "en": {
+        "text": "My work log grew to 256 KB and my agent reread all of it every session.\n\nWith Tisty it asks what moved and reads only that: about 1% when nothing changed. Under ~50 KB a plain file is still cheaper.\n\nHow do you keep long notes from eating the context?"
       }
     },
     {
       "id": "leave-off-habit",
       "en": {
-        "text": "A small habit that fixed my mornings with AI agents:\n\nBefore closing a session I tell the agent: \"note what we did, what failed and what's left.\"\n\nNext day it starts from there, not from a blank chat. Works with any notes file."
+        "text": "I used to close the laptop mid-task and start the next day from a blank chat.\n\nNow, before closing, I tell the agent: note what we did, what failed and what's left. In Tisty that is one request, leave off.\n\nWhat's your end-of-session habit?"
       }
     },
     {
-      "id": "how-did-we-fix-it",
+      "id": "one-memory-many-agents",
       "en": {
-        "text": "\"How did we fix this last time?\"\n\nThat question is why a finished task in Tisty is never thrown away. It goes to the Archive whole: steps, journal, dates.\n\nMonths later, the answer is one search away.",
-        "picture": "assets/screens/readme/en-01-archive.webp",
-        "shows": "The Archive in Tisty: routines with their streaks, such as Call grandma and Water the plants, and beside them the Weekly review series with every round kept"
+        "text": "Each of my agents keeps its own memory. What I told Claude Code, Codex never heard.\n\nSo I moved it outside them all: Tisty, over MCP, where every note says which agent wrote it.\n\nHow do you share context between agents?"
       }
     },
     {
-      "id": "write-down-why",
+      "id": "plan-before-it-runs",
       "en": {
-        "text": "Tip for working with AI agents: write down why, not only what.\n\nThe agent can read your code. It can't read why you rejected option B three months ago.\n\nOne line with the reason saves the whole argument next time."
+        "text": "Reviewing what an agent wrote takes me longer than it took to write.\n\nSo I review earlier: in Tisty it first writes the plan as a task with steps, and I read that before it touches anything.\n\nWhere do you put the checkpoint: before, during or after?"
       }
     },
     {
-      "id": "not-only-code",
+      "id": "where-it-stops",
       "en": {
-        "text": "The list I open most in Tisty isn't code.\n\nIt's groceries. Then the vet, then the paperwork I keep putting off.\n\nIt's a notes and tasks app first. The AI agent is a plus, not a requirement.",
-        "picture": "assets/screens/readme/en-07-day.webp",
-        "shows": "The day's tasks in Tisty: overdue and due soon, with their lists, priorities and tags, and the week ahead beside them"
+        "text": "I ask my agent for one thing and it comes back with three, two of them nobody wanted.\n\nWhat helps me: in Tisty a task says \"Done when\" before the work starts, and its document says what is out of scope.\n\nHow do you tell an agent where to stop?"
       }
     },
     {
-      "id": "what-pickup-costs",
+      "id": "index-for-agents",
       "en": {
-        "text": "I measured what it costs an agent to pick up yesterday's work from a 256 KB work log.\n\nRereading the whole file: 100%.\nWith Tisty, when nothing changed: about 1%.\n\nIt asks what moved, then reads only that."
+        "text": "To learn who cites a document, my agent has to open them all. Tisty has no index of links yet.\n\nI'm designing one, made on my machine from what I already wrote: no extra files, nothing written for the machine.\n\nWhat should an agent know about a note before opening it?"
       }
     },
     {
-      "id": "one-page-per-subject",
+      "id": "see-it-write",
       "en": {
-        "text": "I used to keep one notes file per session. They piled up and went stale.\n\nNow it's one page per subject, corrected in place. Fewer files, and both the agent and I can trust what's there.",
-        "picture": "assets/screens/readme/en-06-documents.webp",
-        "shows": "A document in Tisty with its outline beside it, its languages and its sheet size"
+        "text": "An agent changed a note I had open, and I found out days later.\n\nIn Tisty when something writes in the document in front of me, the window says so and offers to go back to what it said before.\n\nHow do you notice what an agent changed in your files?"
       }
     },
     {
-      "id": "context-between-sessions",
+      "id": "summary-for-the-next-agent",
       "en": {
-        "text": "How do you keep context between AI coding sessions?\n\nMine was a NOTES.md that went stale in a week, then a TASKS.md nobody updated. Nobody = me.\n\nWhat's yours?"
+        "text": "Every new session opens the same long document again, just to see whether it needs it.\n\nIn Tisty an agent that read a long document leaves a summary for the next one, and it is marked stale when the document changes.\n\nHow do your agents share what they already read?"
       }
     },
     {
-      "id": "honest-note",
+      "id": "memory-needs-sleep",
       "en": {
-        "text": "Honest note about my own app: if your notes are under ~50 KB, a plain Markdown file can be cheaper for your agent than Tisty.\n\nI measured it. It starts paying off when the log grows."
+        "text": "Agents add to their notes and never prune. Months later the same subject lives in four places.\n\nToday in Tisty the outline points at what repeats, and my agent merges it when I ask. I'm working on one request that does the whole pass.\n\nWho prunes your agent's memory?"
       }
     },
     {
-      "id": "no-server",
+      "id": "compaction-i-can-undo",
       "en": {
-        "text": "I'm one developer, not a company.\n\nSo Tisty has no server, no account and no subscription: nothing for me to run, nothing for you to pay.\n\nYour notes stay on your disk, in Markdown."
+        "text": "A summary is only safe if I can see what it threw away.\n\nIn Tisty when my agent folds its notes on a task into one digest, the lines I wrote stay, and I can ask for the notes back as they were.\n\nHow do you check what compaction dropped?"
+      }
+    },
+    {
+      "id": "not-for-the-agent",
+      "en": {
+        "text": "Not everything I write down is for an AI to read.\n\nSo the Diary in Tisty stays closed to agents until I open it, and even then they only add to the end of today.\n\nWhat do you keep away from your assistant, and how?"
       }
     }
   ]
