@@ -15,6 +15,9 @@ const SAID: Said = Said {
     one: "1 tarea cerrada",
     many: "{name} tareas cerradas",
     empty: "Lo que escribas hoy aparece aquí",
+    writing: "Las palabras de este día",
+    keep: "Guardar",
+    cancel: "Cancelar",
 };
 
 fn diary(state: &mut State, root: &std::path::Path) -> Kept {
@@ -73,12 +76,23 @@ fn seen<'a>(root: &'a std::path::Path, state: &'a State, kept: &'a Kept) -> Page
 static UTC: jiff::tz::TimeZone = jiff::tz::TimeZone::UTC;
 
 fn shown(body: &str, root: &std::path::Path, state: &State, kept: &Kept) -> String {
+    shown_open(body, root, state, kept, None)
+}
+
+fn shown_open(
+    body: &str,
+    root: &std::path::Path,
+    state: &State,
+    kept: &Kept,
+    open: Option<DayAt>,
+) -> String {
     let days = days(body);
     laid(
         &days,
         &strips(&days, &seen(root, state, kept)),
         &SPANISH,
         &SAID,
+        open,
     )
 }
 
@@ -171,4 +185,57 @@ fn the_print_changes_only_when_what_the_days_show_of_the_log_does() {
         print(&strips(&days(MONTH), &seen(room.path(), &state, &page))),
         before
     );
+}
+
+#[test]
+fn each_day_says_which_it_is_so_a_touch_names_it_even_when_two_share_a_number() {
+    let room = tempfile::tempdir().unwrap();
+    let mut state = State::default();
+    let page = diary(&mut state, room.path());
+
+    let laid = shown(
+        "# Noviembre\n\n## Domingo 15\n\nUno.\n\n## Sábado 14\n\nDos.\n\n## Domingo 15\n\nTres.\n",
+        room.path(),
+        &state,
+        &page,
+    );
+
+    let first = laid.find("data-day=\"15\" data-nth=\"0\"").unwrap();
+    let saturday = laid.find("data-day=\"14\" data-nth=\"0\"").unwrap();
+    let again = laid.find("data-day=\"15\" data-nth=\"1\"").unwrap();
+    assert!(first < saturday && saturday < again, "{laid}");
+    assert!(!laid.contains("textarea"), "{laid}");
+}
+
+#[test]
+fn the_day_opened_is_a_box_with_its_words_its_notes_still_drawn_as_notes() {
+    let room = tempfile::tempdir().unwrap();
+    let mut state = State::default();
+    let page = diary(&mut state, room.path());
+    closed(&mut state, "Pagar la luz", "2026-11-15");
+    let body = "# Noviembre\n\n## Domingo 15\n\nPaseo con <Rina> & Roger.\n\n> [!IDEA] 2026-11-15 10:05 · yellow · right\n> Comprar pan\n\nDe vuelta.\n\n## Sábado 14\n\nCena.\n";
+
+    let laid = shown_open(
+        body,
+        room.path(),
+        &state,
+        &page,
+        Some(DayAt { day: 15, nth: 0 }),
+    );
+
+    let box_at = laid
+        .find("<div class=\"diary-box editing\"><textarea class=\"diary-box-words\" rows=\"3\" aria-label=\"Las palabras de este día\">\nPaseo con &lt;Rina&gt; &amp; Roger.\n\nDe vuelta.</textarea></div>")
+        .unwrap_or_else(|| panic!("{laid}"));
+    let bar = laid
+        .find("data-asked=\"dayCancel\">Cancelar</button>")
+        .unwrap();
+    let keep = laid
+        .find("data-asked=\"dayKeep\">Guardar</button>")
+        .unwrap();
+    let note = laid.find("data-callout=\"idea\"").unwrap();
+    let strip = laid.find("<summary>1 tarea cerrada</summary>").unwrap();
+    let saturday = laid.find("data-day=\"14\"").unwrap();
+    assert!(box_at < bar && bar < keep && keep < note && note < strip && strip < saturday);
+    assert_eq!(laid.matches("textarea").count(), 2);
+    assert!(laid.contains("<p data-at=\"0-5\">Cena.</p>"), "{laid}");
 }

@@ -59,6 +59,11 @@ const en = {
     "An agent reads your diary and adds to the end of today, signed, only when you ask. Hide it again whenever you like",
   diaryEmpty: "What you write today shows up here",
   diaryEditMonth: "Edit the month as a document",
+  diaryDayWords: "This day's words",
+  diaryUnstick: "Remove this note",
+  diaryUnstickSure: "Remove this note? The diary keeps no copy of it, so it is gone for good.",
+  diaryDayChanged:
+    "This day changed in the meantime, here or on another computer. Cancel and open it again to see it as it is now.",
   diaryClosedOne: "1 task closed",
   diaryClosedMany: "{name} tasks closed",
   diaryBehind:
@@ -3330,6 +3335,11 @@ const es: Catalog = {
     "Un agente lee tu diario y añade al final de hoy, con su firma, solo cuando se lo pides. Vuelve a ocultarlo cuando quieras",
   diaryEmpty: "Lo que escribas hoy aparece aquí",
   diaryEditMonth: "Editar el mes como documento",
+  diaryDayWords: "Las palabras de este día",
+  diaryUnstick: "Quitar esta nota",
+  diaryUnstickSure: "¿Quitar esta nota? El diario no guarda una copia: se pierde para siempre.",
+  diaryDayChanged:
+    "Este día cambió mientras tanto, aquí o en otro equipo. Cancela y ábrelo de nuevo para verlo como quedó.",
   diaryClosedOne: "1 tarea cerrada",
   diaryClosedMany: "{name} tareas cerradas",
   diaryBehind:

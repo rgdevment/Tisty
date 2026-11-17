@@ -393,7 +393,7 @@ pub fn written_on(body: &str, date: Date, words: &Words, text: &str) -> String {
     format!("{}{ending}", out.join(ending))
 }
 
-fn trailed<'a, 'b>(lines: &'b [&'a str]) -> &'b [&'a str] {
+pub(crate) fn trailed<'a, 'b>(lines: &'b [&'a str]) -> &'b [&'a str] {
     let keep = lines
         .iter()
         .rposition(|one| !one.trim().is_empty())
@@ -401,7 +401,7 @@ fn trailed<'a, 'b>(lines: &'b [&'a str]) -> &'b [&'a str] {
     &lines[..keep]
 }
 
-fn blank_free<'a, 'b>(lines: &'b [&'a str]) -> &'b [&'a str] {
+pub(crate) fn blank_free<'a, 'b>(lines: &'b [&'a str]) -> &'b [&'a str] {
     let from = lines
         .iter()
         .position(|one| !one.trim().is_empty())
@@ -410,7 +410,7 @@ fn blank_free<'a, 'b>(lines: &'b [&'a str]) -> &'b [&'a str] {
 }
 
 // A heading in what is written sits under the day, so it never starts a day of its own.
-fn under_the_day(said: &str) -> String {
+pub(crate) fn under_the_day(said: &str) -> String {
     let mut fenced = tisty_markdown::fences::fencing();
     said.lines()
         .map(|line| {
