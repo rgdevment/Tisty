@@ -5,6 +5,7 @@ import { wordsIn as worded } from "tisty-editor/read";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fold, RAIL, unwiden } from "../breadth";
 import type { Filed } from "../core";
+import { t } from "../locales";
 import { DOC } from "../markdown";
 import Docs from "../ui/Docs";
 import { counted } from "../ui/paperFacts";
@@ -281,6 +282,16 @@ describe("the column beside a document", () => {
     await userEvent.click(await screen.findByRole("button", { name: /About the document/ }));
 
     expect(await screen.findByRole("complementary", { name: "About this document" })).toBeTruthy();
+  });
+
+  it("stays up when sheets are switched on from it, folding the sidebar for their room", async () => {
+    show();
+    const column = await screen.findByRole("complementary", { name: "About this document" });
+    await userEvent.click(within(column).getByRole("button", { name: t("sheetsShown") }));
+
+    await waitFor(() => expect(store.sent).toContain("doc_write"));
+    expect(await screen.findByRole("complementary", { name: "About this document" })).toBeTruthy();
+    act(() => unwiden());
   });
 
   it("keeps the handle out of sight while the column is up", async () => {

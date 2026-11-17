@@ -873,8 +873,15 @@ export default function Docs({
     dressAlike(now);
   };
 
+  // Paper asked for from the column keeps the column, folding the sidebar when the paper needs its room.
+  const keptBeside = (paper: Paper, turned: boolean) => {
+    const wants = Math.max(DOC_ASIDE_FROM, acrossOf(paper, turned) + 48 + ASIDE);
+    if (spare < wants && room - RAIL - GUTTER >= wants) fold(true);
+  };
+
   const resize = (paper: Paper) => {
     if (!open) return;
+    if (sheets) keptBeside(paper, landscape);
     const { [open.file]: _, ...others } = sized;
     const now = bolted ? { ...others, [open.file]: paper } : others;
     setSized(now);
@@ -1323,10 +1330,18 @@ export default function Docs({
           onSheets={
             bolted
               ? undefined
-              : (on) => reshape((now) => withSheets(on ? now : withLandscape(now, false), on))
+              : (on) => {
+                  if (on) keptBeside(leaf, false);
+                  reshape((now) => withSheets(on ? now : withLandscape(now, false), on));
+                }
           }
           onLandscape={
-            bolted ? undefined : (turned) => reshape((now) => withLandscape(now, turned))
+            bolted
+              ? undefined
+              : (turned) => {
+                  if (sheets) keptBeside(leaf, turned);
+                  reshape((now) => withLandscape(now, turned));
+                }
           }
           making={making}
           trail={trailed(folders, known.find((one) => one.file === open.file)?.folder ?? null)}
