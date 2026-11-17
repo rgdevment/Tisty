@@ -412,6 +412,20 @@ describe("a drawn page wired to the window", () => {
     expect(calls.links).toEqual(["https://x.y", "https://x.y", "https://x.y"]);
   });
 
+  it("jumps on a plain click to a place in the page, as a footnote call or a contents link", () => {
+    const drawn = page('<h2 id="cap">Cap</h2><p data-at="0-9"><a href="#cap">ver</a></p>');
+    const { reach } = reaching();
+    wired(drawn, () => reach);
+    (drawn.querySelector(".page") as HTMLElement).setAttribute("contenteditable", "true");
+    const heading = drawn.getElementById("cap") as HTMLElement;
+    const jumped = vi.fn();
+    heading.scrollIntoView = jumped;
+    drawn
+      .querySelector("a")
+      ?.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true, button: 0 }));
+    expect(jumped).toHaveBeenCalled();
+  });
+
   it("ignores a click that is not the main button", () => {
     const drawn = page('<p data-at="0-9"><a class="card" data-doc="ab12-0001">A</a></p>');
     const { heard, reach } = reaching();

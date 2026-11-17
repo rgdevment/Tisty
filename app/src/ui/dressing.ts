@@ -518,7 +518,9 @@ export const wired = (page: Document, reach: () => Reaching) => {
     if (link) event.preventDefault();
     // A link among words being written takes the caret like them, and opens with Ctrl or Cmd held, as in a terminal.
     const amongWords =
-      link?.closest('[contenteditable="true"]') && !link.closest('[contenteditable="false"]');
+      link?.closest('[contenteditable="true"]') &&
+      !link.closest('[contenteditable="false"]') &&
+      !link.getAttribute("href")?.startsWith("#");
     const shaping = page.documentElement.classList.contains("shaping");
     const asked =
       amongWords && !(event.ctrlKey || event.metaKey)
