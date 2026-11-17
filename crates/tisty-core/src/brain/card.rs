@@ -207,8 +207,12 @@ impl Brain {
 
 impl<F: Fn(&str) -> bool> Reader<'_, F> {
     fn row(&self, id: &str) -> rusqlite::Result<Option<Row>> {
+        Ok(self.found(id)?.filter(|one| (self.seen)(&one.id)))
+    }
+
+    fn found(&self, id: &str) -> rusqlite::Result<Option<Row>> {
         let mut asked = self.db.prepare_cached(ROW)?;
-        let row = asked
+        asked
             .query_row([id], |one| {
                 Ok(Row {
                     id: one.get(0)?,
@@ -219,8 +223,7 @@ impl<F: Fn(&str) -> bool> Reader<'_, F> {
                     uid: one.get(5)?,
                 })
             })
-            .optional()?;
-        Ok(row.filter(|one| (self.seen)(&one.id)))
+            .optional()
     }
 
     fn near(&self, id: &str) -> rusqlite::Result<Option<Near>> {
@@ -275,9 +278,17 @@ impl<F: Fn(&str) -> bool> Reader<'_, F> {
         zone: Option<String>,
         today: Date,
     ) -> rusqlite::Result<Option<Card>> {
-        let Some(own) = parsed::<TaskFacts>(said) else {
+        let Some(mut own) = parsed::<TaskFacts>(said) else {
             return Ok(None);
         };
+        let origin = origin_of(&own.facts);
+        // A source that names a document the reader cannot see would give away its name and a heading in it.
+        if let Some(hidden) = origin.as_deref()
+            && self.found(hidden)?.is_some()
+            && self.row(hidden)?.is_none()
+        {
+            own.facts.source = None;
+        }
         let mut around = Around {
             part_of: own
                 .part_of
@@ -287,7 +298,6 @@ impl<F: Fn(&str) -> bool> Reader<'_, F> {
                 .flatten(),
             ..Around::default()
         };
-        let origin = origin_of(&own.facts);
         self.ties(
             &row,
             &own,
@@ -333,11 +343,11 @@ impl<F: Fn(&str) -> bool> Reader<'_, F> {
                 "cite" => added(&mut around.cited_by, near),
                 "mention" => added(&mut around.mentioned_by, near),
                 "structure" if own.pages.contains(&near.id) => {}
-                "structure" if near.kind == "task" && row.kind == "task" => {
-                    added(&mut around.parts, near);
-                }
-                "structure" if born_of(said.as_deref(), row) => added(&mut around.born, near),
-                "structure" => added(&mut around.ideas, near),
+                "structure" => match hung(said.as_deref(), row) {
+                    Some(Hung::Part) => added(&mut around.parts, near),
+                    Some(Hung::Born) => added(&mut around.born, near),
+                    None => added(&mut around.ideas, near),
+                },
                 _ => {}
             }
         }
@@ -383,12 +393,21 @@ impl<F: Fn(&str) -> bool> Reader<'_, F> {
     }
 }
 
-// An idea a task holds ties it to the sheet just as being born of one does; only its source tells.
-fn born_of(said: Option<&str>, row: &Row) -> bool {
-    let named = said
-        .and_then(parsed::<TaskFacts>)
-        .and_then(|own| origin_of(&own.facts));
-    named.is_some_and(|one| one == row.id || row.uid.as_deref() == Some(one.as_str()))
+enum Hung {
+    Part,
+    Born,
+}
+
+// One edge ties a task to its whole, its origin or an idea's sheet; only its record tells which.
+fn hung(said: Option<&str>, row: &Row) -> Option<Hung> {
+    let own = parsed::<TaskFacts>(said?)?;
+    let names = |one: &str| one == row.id || row.uid.as_deref() == Some(one);
+    if own.part_of.as_deref().is_some_and(names) {
+        return Some(Hung::Part);
+    }
+    origin_of(&own.facts)
+        .is_some_and(|one| names(&one))
+        .then_some(Hung::Born)
 }
 
 fn origin_of(facts: &TaskFacts) -> Option<String> {

@@ -433,6 +433,100 @@ fn what_the_reader_cannot_see_is_left_out() {
 }
 
 #[test]
+fn a_source_naming_what_the_reader_cannot_see_is_left_unsaid() {
+    let world = World::new();
+    let mut store = world.store();
+    let (_, diary) = doc(
+        &world,
+        &mut store,
+        "# Diary\n\n## Party plans\n",
+        None,
+        None,
+    );
+    let born = Ulid::generate();
+    let mut d = TaskAdd::new("buy balloons", "a0");
+    d.source = Some(format!("{diary}#Party plans"));
+    store.append(Op::TaskAdd { id: born, d }).unwrap();
+    let mut elsewhere = TaskAdd::new("answer the school", "a0");
+    elsewhere.source = Some("sereno#1234".into());
+    let from_chat = Ulid::generate();
+    store
+        .append(Op::TaskAdd {
+            id: from_chat,
+            d: elsewhere,
+        })
+        .unwrap();
+    let mut brain = world.brain();
+    world.refreshed(&mut brain, &world.state());
+    let seen = |id: &str| id != diary;
+
+    let card = brain
+        .card(&born.to_string(), today(), seen)
+        .unwrap()
+        .unwrap();
+
+    assert_eq!(task_facts(&card).source, None);
+    assert_eq!(card.around.origin, None);
+    let open = card_of(&brain, &born.to_string());
+    assert_eq!(
+        task_facts(&open).source.as_deref(),
+        Some(format!("{diary}#Party plans").as_str())
+    );
+    let chat = brain
+        .card(&from_chat.to_string(), today(), seen)
+        .unwrap()
+        .unwrap();
+    assert_eq!(
+        task_facts(&chat).source.as_deref(),
+        Some("sereno#1234"),
+        "a source that names no document stays"
+    );
+}
+
+#[test]
+fn a_task_born_of_another_task_s_page_is_no_part_of_it() {
+    let world = World::new();
+    let mut store = world.store();
+    let first = task(&mut store, "plan the garden", &[]);
+    let page = crate::task_docs::file_at(first, 1);
+    docs::create_named(&world.paths.docs(), &page, "# Garden\n\n## Tomatoes\n").unwrap();
+    store
+        .append(Op::DocAdd {
+            id: crate::task_docs::id_at(first, 1),
+            d: crate::event::DocAdd {
+                wrote: None,
+                guest: false,
+                sown: false,
+                made: None,
+                by: None,
+                said: None,
+                file: page.clone(),
+                order: "a0".into(),
+                folder: None,
+                page_of: None,
+                task_of: Some(first),
+                edited: None,
+            },
+        })
+        .unwrap();
+    let born = Ulid::generate();
+    let mut d = TaskAdd::new("plant tomatoes", "a0");
+    d.source = Some(format!("{page}#Tomatoes"));
+    store.append(Op::TaskAdd { id: born, d }).unwrap();
+    let part = Ulid::generate();
+    let mut d = TaskAdd::new("buy seeds", "a0");
+    d.part_of = Some(first);
+    store.append(Op::TaskAdd { id: part, d }).unwrap();
+    let mut brain = world.brain();
+
+    world.refreshed(&mut brain, &world.state());
+
+    let card = card_of(&brain, &first.to_string());
+    assert_eq!(ids(&card.around.parts), [part.to_string().as_str()]);
+    assert_eq!(ids(&card.around.born), [born.to_string().as_str()]);
+}
+
+#[test]
 fn a_folder_renamed_is_read_without_writing_its_documents_again() {
     let world = World::new();
     let mut store = world.store();
