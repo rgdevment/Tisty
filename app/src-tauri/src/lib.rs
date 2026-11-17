@@ -1264,6 +1264,8 @@ fn commands() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool + Send + Sync +
         answers::helping::help_pictures_fetch,
         answers::papers::doc_read,
         answers::papers::doc_opened,
+        answers::forgetting::docs_forgotten,
+        answers::forgetting::doc_at_random,
         answers::papers::doc_merge,
         answers::papers::doc_facts,
         answers::papers::keep_file,

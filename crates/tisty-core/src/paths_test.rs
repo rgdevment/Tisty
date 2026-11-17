@@ -119,6 +119,7 @@ fn the_store_never_lands_in_the_documents_folder() {
 fn the_cache_is_disposable_and_never_synced() {
     let p = paths();
     assert!(!p.selection_file().starts_with(p.data()));
+    assert!(!p.opened_file().starts_with(p.data()));
 }
 
 #[test]
