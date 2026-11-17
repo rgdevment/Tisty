@@ -96,9 +96,18 @@ export const sheeted = (page: Document, { tall, y, said }: Sheet) => {
 // Laying the sheets again takes every fill away and puts it back, which the browser's own anchoring can read as a jump.
 const heldInSight = (page: Document, body: HTMLElement) => {
   const view = page.defaultView;
-  const first = (Array.from(body.children) as HTMLElement[]).find(
-    (one) => !one.matches(`.${TURN}, .${SAID}`) && one.getBoundingClientRect().bottom > 0,
+  const holds = (one: Element | null): one is HTMLElement =>
+    one?.parentElement === body && !one.matches(`.${TURN}, .${SAID}`);
+  let pointed = page.elementFromPoint?.(
+    body.getBoundingClientRect().left + body.clientWidth / 2,
+    1,
   );
+  while (pointed && pointed.parentElement !== body) pointed = pointed.parentElement;
+  const first = holds(pointed)
+    ? pointed
+    : (Array.from(body.children) as HTMLElement[]).find(
+        (one) => holds(one) && one.getBoundingClientRect().bottom > 0,
+      );
   if (!view || !first) return () => {};
   const top = first.getBoundingClientRect().top;
   return () => {
