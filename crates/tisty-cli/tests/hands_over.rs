@@ -59,12 +59,12 @@ impl Door {
     /// What an installer does on Windows, where a running binary can be moved but not written.
     fn laid_anew(&self, with: &Path) {
         std::fs::rename(&self.binary, self.binary.with_extension("old")).unwrap();
-        std::fs::copy(with, &self.binary).unwrap();
-        std::fs::File::options()
-            .write(true)
-            .open(&self.binary)
-            .unwrap()
-            .set_modified(SystemTime::now() + Duration::from_secs(60))
+        // One handle writes, marks and dates it: a scanner opens a fresh .exe as soon as it is closed.
+        let mut laid = std::fs::File::create(&self.binary).unwrap();
+        std::io::copy(&mut std::fs::File::open(with).unwrap(), &mut laid).unwrap();
+        laid.set_permissions(std::fs::metadata(with).unwrap().permissions())
+            .unwrap();
+        laid.set_modified(SystemTime::now() + Duration::from_secs(60))
             .unwrap();
     }
 
