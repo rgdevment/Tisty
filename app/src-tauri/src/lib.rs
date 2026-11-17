@@ -34,6 +34,7 @@ mod sealed;
 mod sealing;
 mod session;
 mod shop;
+mod starting;
 mod summing;
 mod tray;
 mod unsealing;
@@ -758,6 +759,20 @@ pub(crate) fn as_asked_for(at: &std::path::Path) -> std::path::PathBuf {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 fn settled(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
+    let done = settling(app);
+    // What the pages asked meanwhile is answered once setup has returned, never inside it.
+    let handle = app.handle().clone();
+    if app
+        .handle()
+        .run_on_main_thread(move || handle.state::<starting::Starting>().finish())
+        .is_err()
+    {
+        app.state::<starting::Starting>().finish();
+    }
+    done
+}
+
+fn settling(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     std::thread::spawn(|| answers::printing::swept(&std::env::temp_dir()));
     let argv = waking::said();
     let here = std::env::current_dir().ok();
@@ -1398,7 +1413,8 @@ pub fn run() {
         .manage(desktop::Ending::default())
         .manage(sealing::Turns::default())
         .manage(handed::Knocking::default())
-        .invoke_handler(commands())
+        .manage(starting::Starting::default())
+        .invoke_handler(starting::waiting(commands()))
         .build(context())
         .expect("error while running tauri application")
         .run(|_app, _event| {
