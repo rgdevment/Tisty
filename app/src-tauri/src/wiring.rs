@@ -204,8 +204,14 @@ fn wire_at(client: &Client, place: &Place, at: &Path) -> Result<(), Stuck> {
     if aside && !at.is_file() {
         return Err(Stuck::Unborn(at.display().to_string()));
     }
+    let hooked = hooks_on(client, place);
     kept(at, &was)?;
-    laid(at, &now, aside)
+    laid(at, &now, aside)?;
+    // A repointed connection carries its hooks along, so they never run an old Tisty.
+    match hooked {
+        true => hook_at(client, place),
+        false => Ok(()),
+    }
 }
 
 pub fn unwire(id: &str) -> Result<Vec<Seen>, Stuck> {
@@ -225,7 +231,16 @@ fn unwire_at(client: &Client, place: &Place, at: &Path) -> Result<(), Stuck> {
         kept(at, &was)?;
         laid(at, &now, place.moved_aside(at))?;
     }
-    Ok(())
+    match hooks_on(client, place) {
+        true => unhook_at(client, place),
+        false => Ok(()),
+    }
+}
+
+fn hooks_on(client: &Client, place: &Place) -> bool {
+    hooks::kind(&client.id)
+        .and_then(|kind| hooks::seen(kind, place))
+        .is_some_and(|it| it.on)
 }
 
 pub fn hook(id: &str) -> Result<Vec<Seen>, Stuck> {

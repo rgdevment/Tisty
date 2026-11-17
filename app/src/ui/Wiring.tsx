@@ -158,7 +158,9 @@ function Row({ one, hand, held, onJoin, onHook }: Readonly<RowProps>) {
           ⋯
         </button>
       </div>
-      {one.wired && !one.astray && <Hooking one={one} held={held} onHook={onHook} />}
+      {(one.hooks?.on || (one.wired && !one.astray)) && (
+        <Hooking one={one} held={held} onHook={onHook} />
+      )}
       {open && <Manual one={one} />}
     </div>
   );

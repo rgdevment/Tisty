@@ -208,4 +208,13 @@ describe("connecting assistants", () => {
     await waitFor(() => expect(sent("unhook")).toHaveLength(1));
     expect(sent("unhook")[0].args.id).toBe("gemini-cli");
   });
+
+  it("still offers to remove hooks left on an assistant that is no longer connected", async () => {
+    ipc.answer = (cmd) => Promise.resolve(cmd === "wsl_distros" ? [] : []);
+    shown([one("claude-code", { hooks: { on: true, at: "/home/someone/.claude/settings.json" } })]);
+
+    await userEvent.click(screen.getByRole("button", { name: /^Remove · Hooks/ }));
+
+    await waitFor(() => expect(sent("unhook")).toHaveLength(1));
+  });
 });
