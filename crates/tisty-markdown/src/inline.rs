@@ -341,8 +341,8 @@ fn pictured(src: &str, alt: &str, filed: bool, out: &mut String) {
         );
         return;
     }
-    match src.strip_prefix(crate::refs::DOC) {
-        Some(doc) => {
+    match crate::refs::doc_aimed(src) {
+        Some((doc, _)) => {
             let _ = write!(
                 out,
                 "<a class=\"card\" data-doc=\"{}\">{}</a>",

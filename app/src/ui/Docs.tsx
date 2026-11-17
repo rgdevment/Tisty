@@ -4,6 +4,7 @@ import { freshFence } from "tisty-diagrams/read";
 import type { Asking } from "tisty-editor/edit";
 import { acrossOf, type Head, laidIn, PAPER, sheetFor, writtenAcrossOf } from "tisty-editor/read";
 import { fold, RAIL, sideWidth, useBreadth, WIDE_WINDOW } from "../breadth";
+import type { Citing } from "../citing";
 import { asPlain } from "../copying";
 import {
   attachPasted,
@@ -62,6 +63,7 @@ import { pageFor } from "./sheets";
 import { CompactBar, MarkBar } from "./Tidied";
 import Tongues, { standingHead } from "./Tongues";
 import { useLeaving } from "./useLeaving";
+import { useLinkable } from "./useLinkable";
 import { clearOfChrome } from "./WindowChrome";
 import { useWholeKeys } from "./wholeKeys";
 
@@ -559,10 +561,22 @@ export default function Docs({
   const stood = useRef(new Map<string, number>());
   const from = useRef<{ doc: string; page: string } | null>(null);
   const seek = own?.file ? stood.current.get(own.file) : undefined;
-  const anchor = own?.file && from.current?.doc === own.file ? from.current.page : undefined;
+  const aimed = useRef<{ file: string; heading: string } | null>(null);
+  // The sheet takes the heading as the document opens, so the wish ends with that opening.
+  useEffect(() => {
+    aimed.current = null;
+  }, [open?.file]);
+  const anchor = !own?.file
+    ? undefined
+    : from.current?.doc === own.file
+      ? from.current.page
+      : aimed.current?.file === own.file
+        ? aimed.current.heading
+        : undefined;
   const pages = pagesOf(known, open?.file);
   const [picked, setPicked] = useState<Picked | null>(null);
   const leafy = Boolean(own && !own.pageOf);
+  const { linkable, headsOf } = useLinkable(known, open?.file);
   const slashAsks = useMemo<Asking | undefined>(
     () =>
       bolted
@@ -572,6 +586,8 @@ export default function Docs({
               ? ["newPage", "page", "doc", "newDoc", "icon", "file", "diagram", "diagramFrom"]
               : ["doc", "newDoc", "icon", "file", "diagram", "diagramFrom"],
             tags,
+            linkable,
+            headsOf,
             pasted: (files) =>
               keptAll(
                 files.map((one) =>
@@ -605,27 +621,43 @@ export default function Docs({
               setPicked({ kind, at, put, file: open?.file });
             },
           },
-    [bolted, leafy, onError, open?.file, tags],
+    [bolted, leafy, onError, open?.file, tags, linkable, headsOf],
   );
   const above = under(known, own);
   const sisters = pagesOf(known, above?.file);
   const tongues = useMemo(() => tonguesOf(known, above ?? own), [known, above, own]);
   // Another language opens at the heading the reader stood under, counted, since its words differ.
   const landing = useRef<{ file: string; at: number } | null>(null);
-  const toTongue = (tongue: Filed) => {
-    if (!own) return;
-    const anchor = tongue.tongue?.[0];
-    if (anchor && tongue.lang) chooseTongue(anchor, tongue.lang);
-    const there = twinOf(known, own, tongue);
-    const landed = { file: there.file, at: standingHead() };
+  const landAt = (file: string, at: number) => {
+    const landed = { file, at };
     landing.current = landed;
     // A language with no headings yet never reaches the jump, so the wish lapses rather than waiting.
     window.setTimeout(() => {
       if (landing.current === landed) landing.current = null;
     }, LANDING_MS);
     setHeads([]);
-    onDoc?.(there.file);
+    onDoc?.(file);
   };
+  const toTongue = (tongue: Filed) => {
+    if (!own) return;
+    const anchor = tongue.tongue?.[0];
+    if (anchor && tongue.lang) chooseTongue(anchor, tongue.lang);
+    landAt(twinOf(known, own, tongue).file, standingHead());
+  };
+  // The sheet lands on the heading once the page settles, as it does on a page's card.
+  const toDoc = (named: string, heading?: string) => {
+    if (!heading) return onDoc?.(named);
+    const file = known.find((one) => one.id === named)?.file ?? named;
+    if (file === open?.file) return heads.find((one) => one.id === heading)?.go();
+    const wish = { file, heading };
+    aimed.current = wish;
+    window.setTimeout(() => {
+      if (aimed.current === wish) aimed.current = null;
+    }, LANDING_MS);
+    onDoc?.(file);
+  };
+  const toCited = (one: Citing) =>
+    one.kind === "task" ? seeTask(one.id) : toDoc(one.id, one.under?.[0]?.id);
   useEffect(() => {
     const want = landing.current;
     const reached = heads.filter((one) => one.level > 0);
@@ -1031,7 +1063,7 @@ export default function Docs({
                   }}
                   reading={bolted}
                   label={called || t("untitledDoc")}
-                  onDoc={onDoc}
+                  onDoc={toDoc}
                   onTag={onTag}
                   above={placed}
                   belowFolds={!above}
@@ -1326,6 +1358,7 @@ export default function Docs({
           pages={above ? sisters : pages}
           up={above}
           onPage={(one) => onDoc?.(one.file)}
+          onCited={toCited}
           leaf={leaf}
           onLeaf={resize}
           sheets={sheets}

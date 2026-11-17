@@ -157,3 +157,12 @@ fn a_task_alone_in_its_paragraph_is_drawn_as_its_card() {
         )
     );
 }
+
+#[test]
+fn a_card_to_a_heading_names_its_document_alone() {
+    let drawn = page("![Hotels](tisty:doc/dev_a-0002#hotels)\n");
+    assert!(
+        drawn.contains("<a class=\"card\" data-doc=\"dev_a-0002\">Hotels</a>"),
+        "{drawn}"
+    );
+}

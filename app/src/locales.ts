@@ -617,6 +617,7 @@ const en = {
   viewAsMarkdown: "Show Markdown",
   viewAsRich: "Show rich text",
   tagsInUse: "Tags in use",
+  linkDocs: "Documents to link",
   blockChoose: "Choose block",
   blockDouble: "Duplicate block",
   blockUp: "Move block up",
@@ -686,6 +687,10 @@ const en = {
   previewPdf: "Preview the PDF",
   saveAsMarkdown: "Save a copy as Markdown…",
   aboutPaper: "About this document",
+  citedBy: "Linked from",
+  citedNobody: "No document or task links here yet.",
+  citedNotReady: "Tisty is still reading how your documents link to each other.",
+  citedUnder: "In: {name}",
   importMissed:
     "The document came in, but {name} file(s) beside it could not: their links now read as plain words.",
   importNotes:
@@ -3894,6 +3899,7 @@ const es: Catalog = {
   viewAsMarkdown: "Ver Markdown",
   viewAsRich: "Ver enriquecido",
   tagsInUse: "Etiquetas en uso",
+  linkDocs: "Documentos para enlazar",
   blockChoose: "Elegir bloque",
   blockDouble: "Duplicar bloque",
   blockUp: "Subir bloque",
@@ -3963,6 +3969,10 @@ const es: Catalog = {
   previewPdf: "Vista previa del PDF",
   saveAsMarkdown: "Guardar una copia en Markdown…",
   aboutPaper: "Sobre este documento",
+  citedBy: "Enlazado desde",
+  citedNobody: "Todavía ningún documento ni tarea enlaza aquí.",
+  citedNotReady: "Tisty todavía está leyendo cómo se enlazan tus documentos.",
+  citedUnder: "En: {name}",
   importMissed:
     "El documento entró, pero {name} archivo(s) de al lado no se pudieron traer: sus enlaces quedaron como texto.",
   importNotes: "{name} nota(s) que enlaza quedaron como texto: impórtalas una por una.",

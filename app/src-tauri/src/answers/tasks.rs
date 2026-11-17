@@ -34,7 +34,8 @@ pub fn task_left(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answe
             // The window writes a document as `[title](tisty:doc/ID)`, which parses as a link.
             _ if one.target.starts_with("tisty:doc/") => {
                 // A reference names the document by its file or by its id, depending on who wrote it.
-                let held = one.target.strip_prefix("tisty:doc/").and_then(|raw| {
+                let named = tisty_core::refs::doc_aimed(&one.target).map(|(file, _)| file);
+                let held = named.and_then(|raw| {
                     raw.parse()
                         .ok()
                         .and_then(|id| session.state.docs.get(&id))

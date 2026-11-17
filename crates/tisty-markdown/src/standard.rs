@@ -125,8 +125,12 @@ fn spanned(
             edits.push((span.at.clone(), words));
         }
         Mark::Link { to } | Mark::Image { src: to } => {
-            if let Some(file) = to.strip_prefix(refs::DOC) {
-                carded(span, said, toward(Toward::Doc(file)), edits);
+            if let Some((file, heading)) = refs::doc_aimed(to) {
+                let at = toward(Toward::Doc(file)).map(|at| match heading {
+                    Some(one) => format!("{at}#{one}"),
+                    None => at,
+                });
+                carded(span, said, at, edits);
             } else if to.starts_with(refs::TASK) {
                 carded(span, said, None, edits);
             }

@@ -56,8 +56,10 @@ pub struct Named {
     pub documents: Vec<String>,
 }
 
+// A link to one of its headings still reaches the document, at its top.
 fn opens_a_doc(href: &str) -> Option<&str> {
-    href.strip_prefix("tisty:doc/")
+    let named = href.strip_prefix("tisty:doc/")?;
+    named.split('#').next()
 }
 
 pub fn leads_outside(href: &str) -> bool {

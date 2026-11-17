@@ -87,6 +87,7 @@ export { type Sheet, sheeting } from "./sheeting";
 export {
   type Act,
   type Book,
+  type Citer,
   type Facts,
   type Leaf,
   type Panel,

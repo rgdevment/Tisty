@@ -27,6 +27,8 @@ pub struct Session {
     pub reach: crate::reaching::Reaching,
     pub nudge: crate::herald::Nudge,
     brain_nudge: crate::herald::Nudge,
+    pub brain_moved: crate::herald::Nudge,
+    pub headed: std::sync::Arc<std::sync::Mutex<tisty_core::brain::Headed>>,
 }
 
 pub struct Projected {
@@ -90,7 +92,11 @@ impl Session {
         );
         let guarding = paths.clone();
         let session = Self::at(paths)?;
-        brain::keep(session.paths.clone(), session.brain_nudge.clone());
+        brain::keep(
+            session.paths.clone(),
+            session.brain_nudge.clone(),
+            session.brain_moved.clone(),
+        );
         std::thread::spawn(move || {
             tisty_core::store::keys_guarded(&guarding);
             tisty_core::paths::home_set_aside(&guarding);
@@ -125,6 +131,8 @@ impl Session {
             behind: false,
             nudge: crate::herald::Nudge::default(),
             brain_nudge: crate::herald::Nudge::default(),
+            brain_moved: crate::herald::Nudge::default(),
+            headed: std::sync::Arc::default(),
         };
         session.tidy_up(true);
         session.dress_if_due();

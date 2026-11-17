@@ -342,6 +342,7 @@ Los [paseos de octubre](tisty:doc/01JC4M9F2W7DQ1E3S8RB6PKMHT) fueron mejor.
 
 - Con `!` delante y sola en su párrafo, es una **tarjeta**: el título actual del documento, sus primeras palabras y, si es una página, su lugar en el libro. Las palabras entre corchetes son solo lo que muestran otros lectores.
 - Lo mismo dentro de una frase es una palabra en la que puedes hacer clic.
+- Un enlace puede llegar a un encabezado del otro documento, con su ancla después de `#`, escrita como la escribe GitHub: `[Viajes › Hoteles](tisty:doc/01JC4M9F2W7DQ1E3S8RB6PKMHT#hoteles)`. Si ese encabezado ya no está, abre el documento al comienzo. Escribir `[[` en un documento escribe estos enlaces por ti.
 - Al copiar como Markdown estándar, un enlace a otro documento queda como su texto.
 - Las páginas de un documento van en el orden en que sus tarjetas las nombran: en el árbol, al exportar y al imprimir.
 - En una página, solo la tarjeta le da su lugar en el libro; un enlace en una frase la señala sin colocarla. Mira [Páginas y PDF](https://www.tisty.app/es/ayuda/paginas-y-pdf/).

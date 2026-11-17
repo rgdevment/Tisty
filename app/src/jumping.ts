@@ -35,6 +35,17 @@ const docRow = (doc: Filed, all: Filed[], group: string, go: Going): Pickable =>
   onPick: () => go.doc(doc.file),
 });
 
+// Titles that begin with the words first, then the latest written, as the palette and [[ rank them.
+export const docsAsked = (docs: Filed[], asked: string, most: number): Filed[] =>
+  docs
+    .filter((one) => matched(named(one), asked))
+    .sort(
+      (one, two) =>
+        Number(begun(named(two), asked)) - Number(begun(named(one), asked)) ||
+        wroteAt(two) - wroteAt(one),
+    )
+    .slice(0, most);
+
 const taskRow = (task: Task, lists: List[], go: Going): Pickable => {
   const list = lists.find((one) => one.id === task.list)?.name;
   const closed = task.status === "open" ? undefined : t("paletteArchived");
@@ -59,14 +70,7 @@ export function jumps(
   if (!asked.trim()) {
     return latest(papers, RECENT).map((doc) => docRow(doc, docs, t("paletteRecent"), go));
   }
-  const titled = docs
-    .filter((one) => matched(named(one), asked))
-    .sort(
-      (one, two) =>
-        Number(begun(named(two), asked)) - Number(begun(named(one), asked)) ||
-        wroteAt(two) - wroteAt(one),
-    )
-    .slice(0, TITLED);
+  const titled = docsAsked(docs, asked, TITLED);
   const folders = papers.folders
     .filter((one) => !one.away && matched(one.name, asked))
     .slice(0, FOLDERS)

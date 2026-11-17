@@ -68,6 +68,7 @@ import type { Formatting, Menued } from "./quickly";
 import { type Reshape, reshaped } from "./recarding";
 import Skeleton from "./Skeleton";
 import { ASIDE_MARGIN, settles } from "./seeking";
+import { editorAsking } from "./sheetAsking";
 import { carried, firstInSight } from "./sighted";
 import { movedBlock } from "./sticking";
 import { useTables } from "./tableSheet";
@@ -93,7 +94,7 @@ type Props = {
   readonly onOwn?: (file: string) => void;
   readonly onFail?: (problem: unknown) => void;
   readonly onNote?: (text: string) => void;
-  readonly onDoc?: (file: string) => void;
+  readonly onDoc?: (file: string, heading?: string) => void;
   readonly onTag?: (tag: string) => void;
   readonly onOpen?: (reference: string) => void;
   readonly onOutline?: (heads: Head[]) => void;
@@ -439,18 +440,12 @@ export default function Sheet(props: Readonly<Props>) {
         setDrawn(latest.current);
         if (ours) settled(latest.current, renamed);
       },
-      () => {
-        const asking = said.current.asking;
-        return {
-          kinds: asking?.kinds ?? [],
-          tags: asking?.tags,
-          pasted: asking?.pasted,
-          lost: asking?.lost,
-          failed: (problem) => said.current.onFail?.(problem),
-          ask: (kind, at, put, first) => asking?.ask(kind, at, put, first),
-          steps: () => stagesIn(latest.current),
-        };
-      },
+      () =>
+        editorAsking(
+          said.current.asking,
+          (problem) => said.current.onFail?.(problem),
+          () => latest.current,
+        ),
     );
     follows.current = (_, now) => {
       // The words come in place, the caret carried along, instead of the view ending.
@@ -998,6 +993,8 @@ export default function Sheet(props: Readonly<Props>) {
     blocks: (at, slash) => blockMenu(at, slash),
     acts: blockActs,
     tags: () => said.current.asking?.tags ?? [],
+    linkable: (asked) => said.current.asking?.linkable?.(asked) ?? [],
+    headsOf: (asked, head, ready) => said.current.asking?.headsOf?.(asked, head, ready) ?? [],
     pasted: (files) => said.current.asking?.pasted?.(files) ?? Promise.resolve(""),
     translated: (html, plain) =>
       html ? HOST.fromHtml(html) : HOST.fromText(plain).then((said) => said ?? plain),
@@ -1127,7 +1124,9 @@ export default function Sheet(props: Readonly<Props>) {
       const sheet = scroller();
       if (!sheet) return null;
       const page = shown.current?.document;
-      const found = mark ? page?.querySelector<HTMLElement>(`[data-doc="${mark}"]`) : null;
+      const found = mark
+        ? (page?.querySelector<HTMLElement>(`[data-doc="${mark}"]`) ?? page?.getElementById(mark))
+        : null;
       const box = found?.getBoundingClientRect();
       if (!box || (!box.height && !box.top)) return want ?? null;
       const frame = shown.current?.frameElement as HTMLElement | null | undefined;
@@ -1273,7 +1272,7 @@ export default function Sheet(props: Readonly<Props>) {
           tall={!lively}
           untitled={props.inline}
           shaping={props.shaping}
-          onDoc={(file) => said.current.onDoc?.(file)}
+          onDoc={(file, heading) => said.current.onDoc?.(file, heading)}
           onOpen={(reference) => said.current.onOpen?.(reference)}
           onTag={(tag) => said.current.onTag?.(tag)}
           draw={draw}

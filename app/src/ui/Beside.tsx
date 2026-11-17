@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { type Facts, fields, type Head, type Leaf, overgrown, type Panel } from "tisty-editor/read";
+import type { Citing } from "../citing";
 import type { Filed, Folded } from "../core";
 import { type DocFacts, docFacts, type Paper } from "../core";
 import { weigh } from "../format";
@@ -14,6 +15,7 @@ import Sharing from "./Sharing";
 import SidePanels from "./SidePanels";
 import { shown, useSharedRow } from "./sharedRow";
 import { often } from "./tagging";
+import { citedPanel, useCited } from "./useCited";
 
 export const trailed = (folders: Folded[], at: string | null): Folded[] => {
   const by = new Map(folders.map((one) => [one.id, one]));
@@ -73,6 +75,7 @@ interface Props {
   /** The languages the document is told in, the one open now marked. */
   tongues?: readonly Filed[];
   onTongue?: (tongue: Filed) => void;
+  onCited?: (one: Citing) => void;
   doc?: string;
   onError?: (problem: unknown) => void;
   onKeep?: () => Promise<unknown> | undefined;
@@ -126,6 +129,7 @@ export default function Beside(props: Props) {
   const outline = heads.filter((one) => one.level > 0);
   const short = outline.length + pages.length <= SHORT_OUTLINE;
   const [facts, setFacts] = useState<DocFacts | null>(null);
+  const citing = useCited(paper);
   const [out, setOut] = useState<{ x: number; y: number } | null>(null);
   // Pressing the button closes the open menu as a press outside it; the click that follows must not open it again.
   const shutAt = useRef(0);
@@ -218,6 +222,7 @@ export default function Beside(props: Props) {
           pages: pages.map((one) => leafOf(one, paper, (doc) => latest.current.onPage?.(doc))),
         },
       },
+      ...citedPanel(citing, (one) => latest.current.onCited?.(one)),
       { kind: "details", facts: details, open: short },
       ...(shared.panel ? [shared.panel] : []),
     ],
@@ -238,6 +243,7 @@ export default function Beside(props: Props) {
       paper,
       details,
       short,
+      citing,
       shared.panel,
     ],
   );

@@ -1,5 +1,7 @@
+import type { Linkable } from "tisty-editor/edit";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { type TagMatch, tagList, tagMatch } from "../ui/pageTags";
+import { t } from "../locales";
+import { linkMatch, type TagMatch, tagList, tagMatch } from "../ui/pageTags";
 import { type Hands, type PageWriting, writtenOn } from "../ui/pageWriting";
 
 const TAGS = ["perro", "pera", "pina", "casa", "rina", "roger"];
@@ -748,5 +750,61 @@ describe("the files pasted on the page", () => {
     const event = pasteOf(pictured(), target);
     expect(event.defaultPrevented).toBe(false);
     expect(pasted).not.toHaveBeenCalled();
+  });
+});
+
+const TRIPS: Linkable = {
+  key: "a",
+  label: "Viajes",
+  detail: "Libro",
+  link: "[Viajes](tisty:doc/a)",
+};
+const linkable = (asked: string) => (asked.toLowerCase().startsWith("vi") ? [TRIPS] : []);
+const linksShown = () =>
+  document.querySelector<HTMLElement>(`.tag-list[aria-label="${t("linkDocs")}"]`);
+
+describe("documents offered after [[ while writing on the page", () => {
+  it("reads [[ and the words after it on the caret's line, and leaves [[# to the steps", () => {
+    const ready = () => {};
+    expect(linkMatch("uno [[Vi", 8, { linkable }, ready)).toEqual({
+      from: 4,
+      to: 8,
+      shown: [TRIPS],
+    });
+    expect(linkMatch("uno [[Vi]] y", 8, { linkable }, ready)?.to).toBe(10);
+    expect(linkMatch("uno [[#2", 8, { linkable }, ready)).toBeNull();
+    expect(linkMatch("uno `[[Vi", 9, { linkable }, ready)).toBeNull();
+    expect(linkMatch("uno [[zz", 8, { linkable }, ready)).toBeNull();
+  });
+
+  it("lights the first document and writes its link with Enter in place of what was typed", () => {
+    const said = writer(BODY, { linkable });
+    caretIn(" tres", 5);
+    asked("insertText", " [[vi");
+    writing?.drawn();
+
+    expect(linksShown()?.hidden).toBe(false);
+    expect(linksShown()?.querySelector("[aria-selected=true]")?.textContent).toBe("ViajesLibro");
+    const enter = pressed("Enter");
+
+    expect(enter.defaultPrevented).toBe(true);
+    expect(last(said)).toContain("tres [Viajes](tisty:doc/a)\n");
+  });
+});
+
+describe("one list at the caret", () => {
+  it("offers the headings after [[Title # and keeps the tags list shut", () => {
+    const heads: Linkable = {
+      key: "a#casa",
+      label: "Casa",
+      link: "[Viajes › Casa](tisty:doc/a#casa)",
+    };
+    writer(BODY, { tags: () => ["casa"], linkable, headsOf: () => [heads] });
+    caretIn(" tres", 5);
+    asked("insertText", " [[Viajes #ca");
+    writing?.drawn();
+
+    expect(linksShown()?.hidden).toBe(false);
+    expect(listed()?.hidden).toBe(true);
   });
 });

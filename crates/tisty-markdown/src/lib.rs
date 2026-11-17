@@ -46,7 +46,7 @@ mod writing;
 
 pub use inline::{escaped, filed};
 #[cfg(feature = "outline")]
-pub use outline::{Head, outline};
+pub use outline::{Head, outline, sections};
 pub use outside::{file_as_tisty, read_file};
 pub use page::{Near, html, html_placed, names_sum, pieces, placed_near, spans_sum};
 pub use printed::printed;

@@ -105,6 +105,15 @@ Un documento lleva etiquetas igual que una tarea: escribe `#contrato` en medio d
 - La pantalla de **Etiquetas** muestra las tareas bajo una etiqueta y, debajo, los documentos. Pulsar una etiqueta dentro de un documento abre justo eso.
 - Cómo se escribe una etiqueta, con qué letras y qué no cuenta como una, está en la [guía de Markdown](https://markdown.tisty.app/es/etiquetas).
 
+## Enlazar documentos
+
+Un documento suelto se olvida; uno enlazado se vuelve a encontrar. Escribe `[[` en un documento y sigue con unas palabras de su título: Tisty te ofrece los que calzan, primero los que empiezan así y después los escritos hace poco. Con `[[` solo, te muestra los últimos que escribiste. `Enter` deja un enlace como `[Viajes](tisty:doc/…)`, que apunta al documento y no a su nombre: si lo renombras, el enlace sigue llegando. Los `[[ ]]` no quedan escritos.
+
+- **A una sección**: sigue el título con `#` (`[[Viajes#hot`) y elige uno de sus encabezados. El enlace abre el documento justo ahí; si esa sección ya no existe, lo abre al comienzo.
+- **Vista previa**: deja el puntero sobre un enlace a otro documento y ves sus primeras líneas, o la sección a la que apunta, sin moverte de donde estás.
+- **Quién lo enlaza**: el panel junto al documento tiene la fila **Enlazado desde**, con cada documento y cada tarea que lo cita o lo menciona y, en un documento, las secciones donde lo hace. Un clic lo abre en esa sección. Tisty arma esta lista en segundo plano, así que un enlace recién escrito aparece a los pocos segundos.
+- `[[#2]]` sigue nombrando el segundo paso, como siempre.
+
 ## Adjuntos
 
 Arrastra un archivo a un documento o a una tarea para adjuntarlo: la foto del veterinario, el PDF del seguro, la grabación de una reunión. Una tarea admite archivos de hasta 650 MB, igual que un documento. Se guarda tal cual, dentro de Tisty, y viaja con el documento cuando lo exportas.
