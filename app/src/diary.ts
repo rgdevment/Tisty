@@ -38,9 +38,35 @@ export const diaryNewest = (file: string): Promise<string | null> =>
 export const diaryClosed = (file: string, body: string): Promise<string> =>
   invoke("diary_closed", { file, body });
 
-export const diaryLaid = (file: string, body: string): Promise<string> =>
+export interface DayAt {
+  day: number;
+  nth: number;
+}
+
+export const diaryLaid = (file: string, body: string, open?: DayAt | null): Promise<string> =>
   invoke<ArrayBuffer>("diary_laid", {
     file,
     body,
-    said: { one: t("diaryClosedOne"), many: t("diaryClosedMany"), empty: t("diaryEmpty") },
+    said: {
+      one: t("diaryClosedOne"),
+      many: t("diaryClosedMany"),
+      empty: t("diaryEmpty"),
+      writing: t("diaryDayWords"),
+      keep: t("diaryKeep"),
+      cancel: t("cancel"),
+    },
+    open: open ?? null,
   }).then((bytes) => new TextDecoder().decode(bytes));
+
+export const diaryDayWords = (body: string, at: DayAt): Promise<string | null> =>
+  invoke("diary_day_words", { body, at });
+
+export const diaryRewrite = (file: string, at: DayAt, was: string, words: string): Promise<Today> =>
+  invoke("diary_rewrite", { file, at, was, words });
+
+export const diaryUnstick = (
+  file: string,
+  at: DayAt,
+  note: number,
+  shown: string,
+): Promise<Today> => invoke("diary_unstick", { file, at, note, shown });

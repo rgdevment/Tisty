@@ -10,6 +10,7 @@ import type { PageHistory } from "./pageHistory";
 import type { Laying } from "./pageLaying";
 import {
   closing,
+  joinedApart,
   leftBehind,
   openedAbove,
   opening,
@@ -18,7 +19,7 @@ import {
   unmarked,
 } from "./pageLists";
 import { closedRun, unpaired } from "./pageMarks";
-import { elementOf, ghostly, inCode, onSheet, unwritable } from "./pageNodes";
+import { elementOf, ghostly, inCode, onSheet, sectioned, unwritable } from "./pageNodes";
 import { placeOf } from "./pagePlaces";
 import type { Writer } from "./pageWriter";
 
@@ -32,11 +33,6 @@ const PAIRS: Record<string, string> = {
 // Blocks a key never joins to its neighbour: their marks hold what they are, and the browser's own reach skips them whole.
 const SOLID_BLOCK =
   ".table, figure, details, hr, blockquote[data-callout], .front, [contenteditable='false']";
-
-const sectioned = (page: Document) => {
-  const look = page.documentElement.classList;
-  return look.contains("untitled") && !look.contains("shaping");
-};
 
 const ATOMS = "[contenteditable='false'], img, button";
 
@@ -213,7 +209,9 @@ export const inputOn = (
     if (begunNow && kind.startsWith("delete")) return begun.dropBegun();
     const one =
       (!spread && begun.waited(kind)) ||
-      (range && ((held && caret.unbegun(kind, held)) ?? caret.spanOfRange(range)));
+      (range &&
+        ((held && caret.unbegun(kind, held)) ??
+          caret.spanOfRange(range, !spread && kind.startsWith("delete"))));
     if (!range || !one) return;
     const text = hands.text();
     const typed = event.data ?? event.dataTransfer?.getData("text/plain") ?? "";
@@ -287,7 +285,8 @@ export const inputOn = (
       // A title's mark alone is what is left of a page emptied again, so the page is left empty.
       const left = text.slice(0, gone.from) + text.slice(gone.to);
       if (/^#[ \t]*\r?\n?$/.test(left)) return put({ from: 0, to: text.length, insert: "" }, 0);
-      return put({ ...gone, insert: "" }, gone.from);
+      const join = { ...gone, insert: "" };
+      return put(inCode(range.startContainer) ? join : joinedApart(text, join), gone.from);
     }
     const pair = PAIRS[kind];
     if (pair) formats.format(pair, pair);

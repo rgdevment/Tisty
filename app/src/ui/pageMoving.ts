@@ -98,17 +98,23 @@ export const acted = (
   tops: readonly Element[],
   at: number,
   act: Act,
+  sections = false,
 ): Moved | null => {
   const unit = unitOf(body, tops, at);
   if (!unit) return null;
   const ended = (moved: Moved | null) =>
     moved && { ...moved, text: moved.text.replace(/(\r?\n)(?:\r?\n)+$/, "$1") };
+  // A task's page keeps each block in its own section, so a block never goes past a section's title.
+  const walled = (beside: Element | undefined) =>
+    sections && levelOf(tops[at]) === null && levelOf(beside) !== null;
   if (act === "up") {
     const target = upTo(tops, at);
-    const above = target === null ? null : spanOf(tops[target]);
+    if (target === null || walled(tops[target])) return null;
+    const above = spanOf(tops[target]);
     return above ? ended(movedTo(body, unit, charsAt(body, above[0]))) : null;
   }
   if (act === "down") {
+    if (walled(tops[unit.last + 1])) return null;
     const below = unitOf(body, tops, unit.last + 1);
     return below ? ended(movedTo(body, unit, below.to)) : null;
   }

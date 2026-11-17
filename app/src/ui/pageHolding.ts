@@ -28,24 +28,24 @@ export const holdingOn = (page: Document) => {
   const blockAt = (start: number) => placedAt(page, ".page > ", start);
   const topOf = (block: Element) => block.getBoundingClientRect().top + frameTop();
 
-  const firstSeen = (around: HTMLElement, moving?: number): Held | null => {
+  const firstSeen = (around: HTMLElement): Held | null => {
     const own = around === page.scrollingElement;
     const sight = own ? 0 : Math.max(0, around.getBoundingClientRect().top - frameTop());
     const blocks = Array.from(page.querySelectorAll(".page > [data-at]:not(.front)"));
     // A hint hidden on a task's page measures nothing, so the blocks are not in order of height to search by halves.
     const block = blocks.find((one) => {
       const box = one.getBoundingClientRect();
-      return box.height > 0 && box.bottom > sight && placeOf(one)?.[0] !== moving;
+      return box.height > 0 && box.bottom > sight;
     });
     const start = placeOf(block)?.[0];
     return block && start !== undefined ? { start, y: topOf(block) } : null;
   };
 
-  const before = (change: Change, moving?: number) => {
+  const before = (change: Change) => {
     const asked = performance.now();
     const onItsWay = drawingAskedAt !== null && asked - drawingAskedAt < A_DRAWING_ARRIVES_MS;
     const around = scrollingAround();
-    const seen = onItsWay ? held : around && firstSeen(around, moving);
+    const seen = onItsWay ? held : around && firstSeen(around);
     held = seen && movedBy(seen, change);
     if (!onItsWay) drawingAskedAt = asked;
   };

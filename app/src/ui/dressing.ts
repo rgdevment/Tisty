@@ -4,6 +4,7 @@ import type { PartCarded } from "tisty-editor/read";
 import { charsAt, readAs, sourceOf } from "tisty-editor/read";
 import { widgetsDrawn } from "tisty-sheet";
 import { openLink } from "../core";
+import type { DayAt } from "../diary";
 import { askAgain, serve, showing } from "../inUse";
 import { locale, t } from "../locales";
 import type { Held, PiecePlace } from "../pieceWindow";
@@ -11,6 +12,7 @@ import { pictured } from "../previews";
 import { plainly } from "../refusal";
 import { type Attaching, attachedAs, pressed } from "./attached";
 import { type Carding, cardsFor } from "./carding";
+import { boxKey, NOTE } from "./diaryPaging";
 import { placeCopied, placedAt, placeOf, placeSaid, placeWritten, samePlace } from "./pagePlaces";
 import { type Shot, shotsOf, type TableWent, type Went, went, widgetsIn } from "./paging";
 import { type Bar, type Formatting, type Menued, quickly } from "./quickly";
@@ -57,6 +59,10 @@ export type Reaching = Carding & {
   readonly onFormat?: (asked: Formatting) => void;
   readonly onMenu?: (asked: Menued) => void;
   readonly onTable?: (asked: TableWent) => void;
+  readonly onDay?: (at: DayAt) => void;
+  readonly onDayKeep?: () => void;
+  readonly onDayCancel?: () => void;
+  readonly onUnstick?: (at: DayAt, note: number) => void;
 };
 
 // Each code block on a page written in place says its language, and a press on it offers the others.
@@ -255,6 +261,7 @@ export const worn = (page: Document, live: () => boolean, reach?: Reaching): Wor
   if (reach?.onDiagram || reach?.onDiagramExport)
     diagramBars(page, { open: Boolean(reach.onDiagram), out: Boolean(reach.onDiagramExport) });
   if (reach?.onPiece) mathBars(page);
+  if (reach?.onUnstick) unstickable(page);
   let held: (() => void)[] = [];
   let lent: Lending[] = [];
   const read = readAs(page, {
@@ -307,6 +314,17 @@ export const mathBars = (page: Document) => {
   }
 };
 
+const unstickable = (page: Document) => {
+  for (const note of page.querySelectorAll(`.diary-words > ${NOTE}`)) {
+    if (note.querySelector(":scope > .note-off")) continue;
+    const off = asking(page, "unstick", "");
+    off.className = "note-off";
+    off.setAttribute("aria-label", t("diaryUnstick"));
+    off.title = t("diaryUnstick");
+    note.append(off);
+  }
+};
+
 export const diagramBars = (page: Document, ways: BarWays = { open: true, out: false }) => {
   for (const figure of page.querySelectorAll<HTMLElement>("figure.diagram[data-at]"))
     diagramBar(figure, ways);
@@ -340,6 +358,10 @@ export const answered = (page: Document, asked: Went, reach: Reaching) => {
   }
   if (asked.kind === "doc") reach.onDoc(asked.id);
   if (asked.kind === "task") reach.onTask?.(asked.id);
+  if (asked.kind === "day") reach.onDay?.(asked.at);
+  if (asked.kind === "dayKeep") reach.onDayKeep?.();
+  if (asked.kind === "dayCancel") reach.onDayCancel?.();
+  if (asked.kind === "unstick") reach.onUnstick?.(asked.at, asked.note);
   if (asked.kind === "part")
     reach.onPart?.([charsAt(reach.body, asked.at[0]), charsAt(reach.body, asked.at[1])]);
   if (asked.kind === "web") openLink(asked.href).catch(() => {});
@@ -451,7 +473,7 @@ export const DOUBLE_MS = 300;
 
 // Formats, links, undo and redo belong to the words written on the page, never to the window's own keys.
 const WRITTEN_KEYS = new Set(["b", "i", "u", "k", "z", "y"]);
-const WRITTEN_ON = '.page[contenteditable="true"]';
+const WRITTEN_ON = '.page[contenteditable="true"], .diary-box';
 
 export const wired = (page: Document, reach: () => Reaching) => {
   const refused = (event: Event) => event.preventDefault();
@@ -486,10 +508,19 @@ export const wired = (page: Document, reach: () => Reaching) => {
       return;
     }
     const selecting = !(page.getSelection()?.isCollapsed ?? true);
-    if (target.closest("a")) event.preventDefault();
+    const link = target.closest("a");
+    if (link) event.preventDefault();
+    // A link among words being written takes the caret like them, and opens with Ctrl or Cmd held, as in a terminal.
+    const amongWords =
+      link?.closest('[contenteditable="true"]') &&
+      !link.closest('[contenteditable="false"]') &&
+      !link.getAttribute("href")?.startsWith("#");
     const shaping = page.documentElement.classList.contains("shaping");
     const asked =
-      went(target, selecting) ?? (!shaping && below(page, target, event) ? { kind: "end" } : null);
+      amongWords && !(event.ctrlKey || event.metaKey)
+        ? null
+        : (went(target, selecting) ??
+          (!shaping && below(page, target, event) ? { kind: "end" } : null));
     // The second press of a double one on a diagram is the window's, not a press away from the block being written.
     const second = event.detail >= 2 && target.closest("figure.diagram") && reach().onDiagram;
     if (!asked && !second && !target.closest(".editing")) reach().onAway?.();
@@ -560,6 +591,14 @@ export const wired = (page: Document, reach: () => Reaching) => {
   for (const kind of ["auxclick", "submit", "dragstart"]) {
     page.addEventListener(kind, refused);
   }
+  page.addEventListener(
+    "keydown",
+    (event) => {
+      const asked = boxKey(event);
+      if (asked) answered(page, asked, reach());
+    },
+    true,
+  );
   // The window's own shortcuts listen on the app, which never hears a key pressed in the page.
   page.addEventListener("keydown", (event) => {
     const target = event.target as Element | null;

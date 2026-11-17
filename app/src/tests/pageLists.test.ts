@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { pastedAround } from "../ui/pageBlocks";
 import { addressed } from "../ui/pageFormats";
-import { joinedAt, nested, openedAbove, outdented, unmarked } from "../ui/pageLists";
+import { joinedApart, joinedAt, nested, openedAbove, outdented, unmarked } from "../ui/pageLists";
 import { balanced, worn, wornEach } from "../ui/pageMarks";
 
 const applied = (text: string, moved: ReturnType<typeof nested>) =>
@@ -143,6 +143,28 @@ describe("Backspace and Enter at the start of a line's words", () => {
     ["then the bullet", "- paso a", 2, "paso a", 0],
     ["a bullet loses its bullet", "## Uno\n\n- uno\n- dos", 10, "## Uno\n\nuno\n- dos", 8],
     ["an item in a quote keeps the quote", "> - x", 4, "> x", 2],
+    [
+      "a step freed of its bullet stands apart from the step above",
+      "- [ ] uno\n- dos\n- [ ] tres",
+      12,
+      "- [ ] uno\n\ndos\n- [ ] tres",
+      11,
+    ],
+    [
+      "a numbered item stands apart from the items around it",
+      "1. uno\n2. dos\n3. tres",
+      10,
+      "1. uno\n\ndos\n\n3. tres",
+      8,
+    ],
+    [
+      "an item in a quote stands apart inside the quote",
+      "> - uno\n> - dos",
+      12,
+      "> - uno\n>\n> dos",
+      12,
+    ],
+    ["a nested item becomes a paragraph of the item above", "- a\n  - b", 8, "- a\n\n  b", 7],
   ])("on Backspace, %s", (_, text, at, expected, caret) => {
     const moved = unmarked(text, at);
     const applied = moved
@@ -157,7 +179,56 @@ describe("Backspace and Enter at the start of a line's words", () => {
   });
 
   it.each([
+    [
+      "keeps the numbered items under a paragraph a list",
+      "Antes.\n\n1. uno\n2. dos\n",
+      [6, 11],
+      "Antes.uno\n\n2. dos\n",
+    ],
+    [
+      "keeps them a list inside a quote",
+      "> Antes.\n>\n> 1. uno\n> 2. dos",
+      [8, 16],
+      "> Antes.uno\n>\n> 2. dos",
+    ],
+    [
+      "joins bullets as they are, which open a list anywhere",
+      "Antes.\n\n- uno\n- dos\n",
+      [6, 10],
+      "Antes.uno\n- dos\n",
+    ],
+    [
+      "joins a list's own items as they are",
+      "1. uno\n2. dos\n3. tres",
+      [6, 10],
+      "1. unodos\n3. tres",
+    ],
+    ["takes words within a line as they are", "Antes\n2. dos", [2, 3], "Anes\n2. dos"],
+    [
+      "leaves an item indented as code would be as it is",
+      "Antes.\n\n1. uno\n    2. dos",
+      [6, 11],
+      "Antes.uno\n    2. dos",
+    ],
+    [
+      "leaves one indented with a tab as it is",
+      "Antes.\n\n1. uno\n\t2. dos",
+      [6, 11],
+      "Antes.uno\n\t2. dos",
+    ],
+  ] as const)("on a join across a line end, %s", (_, text, [from, to], expected) => {
+    const edit = joinedApart(text, { from, to, insert: "" });
+    expect(text.slice(0, edit.from) + edit.insert + text.slice(edit.to)).toBe(expected);
+  });
+
+  it.each([
     ["a paragraph", "Uno\n\nDos", 5, { at: 5, seed: "", tail: "\n\n" }],
+    [
+      "a note's words, inside the note",
+      "> [!TIP]\n> Un consejo",
+      11,
+      { at: 9, seed: "> ", tail: "\n>\n" },
+    ],
     ["a heading", "## Titulo", 3, { at: 0, seed: "", tail: "\n\n" }],
     ["a step, unticked", "- [x] hecho", 6, { at: 0, seed: "- [ ] ", tail: "\n" }],
   ])("on Enter, opens a line above %s", (_, text, at, expected) => {

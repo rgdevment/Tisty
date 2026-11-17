@@ -31,7 +31,7 @@ Select a few words and a small bar comes up above them:
 - **Bold**, **italic**, **underline**, **strikethrough**, **code** and **link**.
 - **Four pens**: yellow, green, blue and pink.
 
-A format wraps the words selected, and when they cross several lines, each line gets its own; pressed on words that already have it, it takes it away. **Link** asks for the address in a field, and `Esc` cancels it; on a link already written, `Ctrl`/`⌘` + `K` shows its address to change it, leaving its words alone; an address like `tisty.app` gets its `https://`, and with no words selected, the address stands for its words. Inside code the bar does not come up.
+A format wraps the words selected, and when they cross several lines, each line gets its own; pressed on words that already have it, it takes it away. **Link** asks for the address in a field, and `Esc` cancels it; on a link already written, `Ctrl`/`⌘` + `K` shows its address to change it, leaving its words alone; an address like `tisty.app` gets its `https://`, and with no words selected, the address stands for its words. A click on a link puts the caret in its words, and `Ctrl`/`⌘` + click opens it. Inside code the bar does not come up.
 
 With nothing selected, a format pressed with its shortcut or from the `/` menu starts at the next key, and what you type already comes out bold or italic. Press it again to step out of it; a space at the end of the words stays outside it too.
 

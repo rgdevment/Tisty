@@ -350,19 +350,13 @@ pub fn written_on(body: &str, date: Date, words: &Words, text: &str) -> String {
     let said = under_the_day(text.trim());
     let said: Vec<&str> = said.lines().collect();
     let lines: Vec<&str> = body.lines().collect();
-    let all = crate::docs::headings(body);
-    let days: Vec<(usize, i8)> = all
-        .iter()
-        .enumerate()
-        .filter(|(_, (_, level, _))| *level == 2)
-        .filter_map(|(at, (_, _, title))| Some((at, day_named(title)?)))
-        .collect();
+    let days = crate::diary_day::cuts(body);
     let today = date.day();
     let heading = format!("## {}", day_title(date, words));
     let mut out: Vec<&str> = Vec::new();
-    match days.iter().find(|(_, day)| *day == today) {
-        Some((at, _)) => {
-            let last = crate::docs::section_lines(body, *at).map_or(lines.len(), |(_, last)| last);
+    match days.iter().find(|one| one.day == today) {
+        Some(cut) => {
+            let last = cut.heading + 1 + trailed(&lines[cut.heading + 1..cut.end]).len();
             out.extend(&lines[..last]);
             out.push("");
             out.extend(&said);
@@ -373,8 +367,8 @@ pub fn written_on(body: &str, date: Date, words: &Words, text: &str) -> String {
             }
         }
         None => {
-            let older = days.iter().find(|(_, day)| *day < today);
-            let line = older.map_or(lines.len() + 1, |(at, _)| all[*at].0);
+            let older = days.iter().find(|one| one.day < today);
+            let line = older.map_or(lines.len() + 1, |one| one.heading + 1);
             let head = trailed(&lines[..line - 1]);
             out.extend(head);
             if !head.is_empty() {
@@ -393,7 +387,7 @@ pub fn written_on(body: &str, date: Date, words: &Words, text: &str) -> String {
     format!("{}{ending}", out.join(ending))
 }
 
-fn trailed<'a, 'b>(lines: &'b [&'a str]) -> &'b [&'a str] {
+pub(crate) fn trailed<'a, 'b>(lines: &'b [&'a str]) -> &'b [&'a str] {
     let keep = lines
         .iter()
         .rposition(|one| !one.trim().is_empty())
@@ -401,7 +395,7 @@ fn trailed<'a, 'b>(lines: &'b [&'a str]) -> &'b [&'a str] {
     &lines[..keep]
 }
 
-fn blank_free<'a, 'b>(lines: &'b [&'a str]) -> &'b [&'a str] {
+pub(crate) fn blank_free<'a, 'b>(lines: &'b [&'a str]) -> &'b [&'a str] {
     let from = lines
         .iter()
         .position(|one| !one.trim().is_empty())

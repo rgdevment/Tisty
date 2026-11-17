@@ -3,6 +3,7 @@ use std::sync::Mutex;
 use jiff::civil::{Date, DateTime};
 use tisty_core::Op;
 use tisty_core::diary::{self, Words};
+use tisty_core::diary_day::{self, DayAt};
 use tisty_core::witness::channel;
 
 use crate::{Answer, Refusal, Session, blamed, held, signing};
@@ -175,12 +176,28 @@ pub fn diary_agents(session: tauri::State<'_, Mutex<Session>>, open: bool) -> An
     Ok(())
 }
 
+#[derive(Debug, Clone, Copy, serde::Deserialize)]
+pub struct Opened {
+    day: i8,
+    nth: usize,
+}
+
+impl From<Opened> for DayAt {
+    fn from(open: Opened) -> Self {
+        DayAt {
+            day: open.day,
+            nth: open.nth,
+        }
+    }
+}
+
 #[tauri::command(async)]
 pub fn diary_laid(
     session: tauri::State<'_, Mutex<Session>>,
     file: String,
     body: String,
     said: Labels,
+    open: Option<Opened>,
 ) -> tauri::ipc::Response {
     let days = tisty_core::diary_page::days(&body);
     let (strips, words) = {
@@ -194,9 +211,88 @@ pub fn diary_laid(
         one: &said.one,
         many: &said.many,
         empty: &said.empty,
+        writing: &said.writing,
+        keep: &said.keep,
+        cancel: &said.cancel,
     };
-    let laid = tisty_core::diary_page::laid(&days, &strips, words, &said);
+    let laid = tisty_core::diary_page::laid(&days, &strips, words, &said, open.map(DayAt::from));
     tauri::ipc::Response::new(laid.into_bytes())
+}
+
+#[tauri::command(async)]
+pub fn diary_day_words(body: String, at: Opened) -> Option<String> {
+    diary_day::words(&body, at.into())
+}
+
+#[tauri::command(async)]
+pub fn diary_rewrite(
+    session: tauri::State<'_, Mutex<Session>>,
+    file: String,
+    at: Opened,
+    was: String,
+    words: String,
+) -> Answer<Today> {
+    rewriting(&mut held(&session), &file, at.into(), &was, &words)
+}
+
+pub fn rewriting(
+    session: &mut Session,
+    file: &str,
+    at: DayAt,
+    was: &str,
+    words: &str,
+) -> Answer<Today> {
+    day_amended(session, file, |body| {
+        diary_day::rewritten(body, at, was, words)
+    })
+}
+
+#[tauri::command(async)]
+pub fn diary_unstick(
+    session: tauri::State<'_, Mutex<Session>>,
+    file: String,
+    at: Opened,
+    note: usize,
+    shown: String,
+) -> Answer<Today> {
+    unsticking(&mut held(&session), &file, at.into(), note, &shown)
+}
+
+pub fn unsticking(
+    session: &mut Session,
+    file: &str,
+    at: DayAt,
+    note: usize,
+    shown: &str,
+) -> Answer<Today> {
+    day_amended(session, file, |body| {
+        diary_day::unstuck(body, at, shown, note)
+    })
+}
+
+fn day_amended(
+    session: &mut Session,
+    file: &str,
+    change: impl FnOnce(&str) -> Option<String>,
+) -> Answer<Today> {
+    let root = session.paths.docs();
+    let page = session.state.docs.values().find(|one| one.file == file);
+    let book = page
+        .filter(|one| diary::holds(&root, &session.state, one))
+        .and_then(|one| session.state.docs.get(&one.page_of?))
+        .map(|one| one.file.clone())
+        .ok_or_else(|| Refusal::of("diaryPageGone"))?;
+    super::papers::writable(&session.state, file)?;
+    let whole = tisty_core::docs::amend_unkept(&root, file, change)
+        .map_err(super::papers::unwritten)?
+        .ok_or_else(|| Refusal::of("diaryDayChanged"))?;
+    session.corpus.forget(file);
+    let hand = signing(&session.state);
+    session.retell(file, &whole, hand);
+    Ok(Today {
+        book,
+        page: file.to_string(),
+    })
 }
 
 #[tauri::command(async)]
@@ -218,6 +314,9 @@ pub struct Labels {
     one: String,
     many: String,
     empty: String,
+    writing: String,
+    keep: String,
+    cancel: String,
 }
 
 #[tauri::command(async)]

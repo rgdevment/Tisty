@@ -17,6 +17,12 @@ export const unwritable = (node: Node) =>
 
 export const inCode = (node: Node) => Boolean(elementOf(node)?.closest("code"));
 
+// A task's page keeps its sections in place, unless its shape itself is being changed.
+export const sectioned = (page: Document) => {
+  const look = page.documentElement.classList;
+  return look.contains("untitled") && !look.contains("shaping");
+};
+
 // A field laid over the page or inside it, as a link's address or a table's cell, writes its own words.
 export const onSheet = (page: Document, event: Event) => {
   const target = event.target as Element | null;
