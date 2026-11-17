@@ -11,6 +11,7 @@ import {
   WIDEST,
 } from "../breadth";
 import { t } from "../locales";
+import { covered } from "./finding";
 import { onMac } from "./WindowChrome";
 
 const STEP = 16;
@@ -21,8 +22,6 @@ export const FOLD_KEY = onMac ? "⌘B" : "Ctrl+B";
 const writable = (target: EventTarget | null): boolean =>
   target instanceof Element &&
   Boolean(target.closest("input, textarea, select, [contenteditable], .cm-editor"));
-
-const covered = (): boolean => document.querySelector('[aria-modal="true"]') !== null;
 
 export function useFoldKey(shown: boolean) {
   useEffect(() => {
