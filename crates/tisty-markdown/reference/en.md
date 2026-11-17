@@ -342,6 +342,7 @@ The [walks of October](tisty:doc/01JC4M9F2W7DQ1E3S8RB6PKMHT) went better.
 
 - With `!` in front and alone in its paragraph, it is a **card**: the document's current title, its first words, and — for a page — its place in the book. The words in brackets are only what other readers show.
 - The same thing inside a sentence is a word you can click.
+- A link can land on a heading of the other document, with its anchor after `#`, written as GitHub writes it: `[Trips › Hotels](tisty:doc/01JC4M9F2W7DQ1E3S8RB6PKMHT#hotels)`. If that heading is gone, it opens the document at the top. Typing `[[` in a document writes these links for you.
 - On copying as standard Markdown, a link to another document stays as its words.
 - A document's pages come in the order their cards name them: in the tree, on export and in print.
 - For a page, only the card gives it its place in the book; a link in a sentence points at it without placing it. See [Pages and PDF](https://www.tisty.app/docs/pages-and-pdf/).
