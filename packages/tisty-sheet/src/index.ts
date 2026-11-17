@@ -11,7 +11,9 @@ export {
   fileGlyph,
   KINDS,
   kept,
+  named,
   playedAs,
+  SEEABLE,
 } from "./files";
 export { type Head, heads } from "./heads";
 export { HUES, type Hue, isHue } from "./hues";
@@ -54,6 +56,8 @@ export {
   type Span,
   TALLEST,
   tall,
+  type WidgetDressing,
   type WidgetWord,
+  widgetsDrawn,
 } from "./widgets";
 export type { ReadWord, Say } from "./words";

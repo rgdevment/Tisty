@@ -101,7 +101,7 @@ export default function App(props: { readonly asked: string | null; readonly clo
     const cards = now.own
       ? await cardsIn(page, words.sayToSheet("untitledDoc")).catch(() => undefined)
       : undefined;
-    await dress(words.sayToSheet, words.locale, now.own, cards);
+    await dress(words, now.own, cards);
   };
 
   void look().catch(async (error_) => {

@@ -479,12 +479,15 @@ describe("a document of one's own", () => {
     expect(cards.card("f3")).toEqual({ kind: "doc", title: "Sin título" });
     expect(cards.card("f9")).toEqual({ kind: "gone" });
     expect(sites).toEqual({});
+    expect(carded()?.brought).toBeTypeOf("function");
   });
 
-  it("from a stranger's file, draws no web link as a card of its site", async () => {
+  it("from a stranger's file, draws no web card, attachment card or widget", async () => {
     await open();
     await waitFor(() => expect(drawing.readAs).toHaveBeenCalled());
-    expect(drawing.readAs.mock.calls.at(-1)?.[1].sites).toBeUndefined();
+    const reading = drawing.readAs.mock.calls.at(-1)?.[1];
+    expect(reading.sites).toBeUndefined();
+    expect(reading.brought).toBeUndefined();
   });
 
   it("is read again on coming back only when it was edited meanwhile", async () => {

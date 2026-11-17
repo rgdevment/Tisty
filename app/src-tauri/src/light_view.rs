@@ -317,6 +317,38 @@ async fn attached_picture(app: &AppHandle, reference: String) -> Answer<String> 
         .map_err(|_| Refusal::of("notAllowed"))?
 }
 
+fn own_doc(app: &AppHandle, label: &str) -> Answer<()> {
+    match kept_of(app, label)? {
+        Kept::Own(_) => Ok(()),
+        Kept::Outside(_) => Err(Refusal::of("notAllowed")),
+    }
+}
+
+#[tauri::command]
+pub async fn view_served(
+    app: AppHandle,
+    window: tauri::WebviewWindow,
+    src: String,
+) -> Answer<String> {
+    own_doc(&app, window.label())?;
+    crate::answers::attaching::served(app.state::<Mutex<Session>>(), src).await
+}
+
+#[tauri::command(async)]
+pub fn view_kept_here(app: AppHandle, window: tauri::WebviewWindow, src: String) -> Answer<bool> {
+    own_doc(&app, window.label())?;
+    Ok(crate::answers::attaching::kept_here(
+        app.state::<Mutex<Session>>(),
+        src,
+    ))
+}
+
+#[tauri::command(async)]
+pub fn view_weighs(app: AppHandle, window: tauri::WebviewWindow, src: String) -> Answer<u64> {
+    own_doc(&app, window.label())?;
+    crate::answers::attaching::weighs(app.state::<Mutex<Session>>(), src)
+}
+
 #[tauri::command]
 pub async fn view_picture(
     app: AppHandle,

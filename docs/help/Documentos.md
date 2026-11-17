@@ -154,7 +154,8 @@ Un enlace `tisty://open` solo llega a un archivo de texto legible de este equipo
 - **Índice y detalles** (`Ctrl`/`⌘` + `\`) abre una columna con sus títulos, su carpeta, su peso y cuándo cambió.
 - **Ver Markdown** (`Ctrl`/`⌘` + `Shift` + `M`) cambia entre la página dibujada y su texto.
 - **Más** tiene **Buscar en el texto**, texto más grande y más pequeño, **Copiar el Markdown** e **Imprimir**.
-- Un enlace o una tarjeta a otro documento o a una tarea lo abre en la ventana principal, y un adjunto se abre con su programa.
+- Sus widgets, imágenes, sonidos, videos y tarjetas de archivo se ven como en la ventana principal; un clic en una tarjeta de archivo la abre con su programa.
+- Un enlace o una tarjeta a otro documento o a una tarea lo abre en la ventana principal.
 - **Editar** te lleva al documento en la ventana principal. Si lo cambias ahí, la ventana aparte lo vuelve a leer cuando regresas a ella.
 - Su PDF, sus hojas y sus exportaciones se hacen desde la ventana principal.
 

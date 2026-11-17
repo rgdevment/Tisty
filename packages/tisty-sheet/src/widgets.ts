@@ -150,3 +150,47 @@ export const lend = (
     },
   };
 };
+
+export type WidgetDressing = (
+  drawn: HTMLElement,
+  from: Element,
+  source: string,
+  bar: HTMLElement,
+) => void;
+
+export const widgetsDrawn = (
+  page: Document,
+  lender: Lender,
+  dressed?: WidgetDressing,
+): Lending[] => {
+  const lent: Lending[] = [];
+  for (const code of page.querySelectorAll<HTMLElement>(
+    "figure.code > pre > code.language-widget",
+  )) {
+    const source = code.textContent ?? "";
+    const figure = code.closest("figure");
+    if (!figure || !source.trim()) continue;
+    const why = notWidget(source, lender.say);
+    if (why) {
+      const said = page.createElement("p");
+      said.className = "lit-locked";
+      said.textContent = why;
+      figure.before(said);
+      continue;
+    }
+    const drawn = page.createElement("figure");
+    drawn.className = "widget";
+    const bar = page.createElement("div");
+    bar.className = "widget-bar";
+    const name = page.createElement("span");
+    name.className = "widget-name";
+    name.textContent = figure.querySelector("figcaption")?.textContent ?? "";
+    bar.append(name);
+    dressed?.(drawn, figure, source, bar);
+    const held = page.createElement("div");
+    drawn.append(bar, held);
+    figure.replaceWith(drawn);
+    lent.push(lend(held, source, lender));
+  }
+  return lent;
+};

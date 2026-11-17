@@ -1,4 +1,5 @@
-import type { Cards, Say } from "tisty-sheet";
+import type { Cards } from "tisty-sheet";
+import type { Words } from "./words";
 
 const PAINT_WAIT = 100;
 const FRAME_BUDGET = 12;
@@ -41,16 +42,20 @@ export const settled = async (page: HTMLElement): Promise<void> => {
 export const isDark = (): boolean => document.documentElement.classList.contains("dark");
 
 export const dress = async (
-  say: Say,
-  locale: string,
+  words: Words,
   own = false,
   cards?: Omit<Cards, "say">,
 ): Promise<void> => {
   await painted();
   const { readAs } = await import("./drawing");
+  const owned = own ? await import("./owned") : null;
   // In one's own document a web link alone in its paragraph is a card of its site, never a preview brought from it.
   const sites = own ? {} : undefined;
-  await readAs(document, { say, locale, live: () => true, cards, sites }).drawn;
+  const brought = owned
+    ? () => void owned.drawnOwn(document, words, { dark: isDark, onTheme: followTheme })
+    : undefined;
+  const reading = { say: words.sayToSheet, locale: words.locale, live: () => true };
+  await readAs(document, { ...reading, cards, sites, brought }).drawn;
 };
 
 export const redraw = async (): Promise<void> => {
@@ -58,10 +63,18 @@ export const redraw = async (): Promise<void> => {
   await diagrams(document, isDark(), () => true);
 };
 
+const themeFollowers = new Set<() => void>();
+
+const followTheme = (run: () => void): (() => void) => {
+  themeFollowers.add(run);
+  return () => themeFollowers.delete(run);
+};
+
 const shaded = (dark: boolean): void => {
   const root = document.documentElement;
   root.dataset.theme = dark ? "dark" : "light";
   root.classList.toggle("dark", dark);
+  for (const run of themeFollowers) run();
 };
 
 // Paper is light, and a dark theme's near-white words would be printed on it.

@@ -1,4 +1,4 @@
-import { invoke } from "@tauri-apps/api/core";
+import { convertFileSrc, invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import type { Carded } from "tisty-sheet";
 
@@ -49,6 +49,10 @@ export const cardsOf = (files: readonly string[]): Promise<Record<string, Carded
 export const showDoc = (file: string): Promise<void> => invoke("view_go", { file });
 export const showTask = (task: string): Promise<void> => invoke("view_task", { task });
 export const openAttached = (reference: string): Promise<void> => invoke("opened", { reference });
+export const served = (src: string): Promise<string> => invoke("view_served", { src });
+export const keptHere = (src: string): Promise<boolean> => invoke("view_kept_here", { src });
+export const weighs = (src: string): Promise<number> => invoke("view_weighs", { src });
+export const fileUrl = (real: string): string => convertFileSrc(real);
 
 export const reveal = (path: string): Promise<void> =>
   import("@tauri-apps/plugin-opener").then(({ revealItemInDir }) => revealItemInDir(path));

@@ -154,7 +154,8 @@ A `tisty://open` link reaches only a readable text file on this computer.
 - **Contents and details** (`Ctrl`/`⌘` + `\`) opens a column with its headings, its folder, its size and when it changed.
 - **See Markdown** (`Ctrl`/`⌘` + `Shift` + `M`) switches between the drawn page and its text.
 - **More** has **Find in the text**, larger and smaller text, **Copy Markdown** and **Print**.
-- A link or a card to another document or to a task opens it in the main window, and an attachment opens in its own program.
+- Its widgets, pictures, sounds, videos and file cards look as they do in the main window; a press on a file card opens it in its own program.
+- A link or a card to another document or to a task opens it in the main window.
 - **Edit** takes you to the document in the main window. If you change it there, the window of its own reads it again when you come back to it.
 - Its PDF, its sheets and its exports are made from the main window.
 

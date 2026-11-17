@@ -41,6 +41,26 @@ const EN = {
     "The document came in, but {name} file(s) beside it could not: their links now read as plain words.",
   importNotes:
     "{name} other note(s) it links to stayed as plain words: import each one on its own.",
+  tryAgain: "Try again",
+  mediaBring: "Bring it from your cloud",
+  mediaBringing: "Bringing it from your cloud…",
+  widgetFrame: "Widget drawn from this block",
+  widgetTooBig: "A widget can hold up to {name}; this one is bigger, so it is shown as code.",
+  widgetNot:
+    "This block is not a widget, so it is shown as code: {name}. A widget is only HTML and CSS, with nothing that runs and nothing from elsewhere.",
+  kindPdf: "PDF",
+  kindWord: "Word",
+  kindExcel: "Spreadsheet",
+  kindSheet: "Data sheet",
+  kindSlides: "Slides",
+  kindArchive: "Compressed archive",
+  kindData: "Data",
+  kindImage: "Image",
+  kindPage: "Web page",
+  kindVideo: "Video",
+  kindAudio: "Audio",
+  kindMarkdown: "Markdown",
+  kindText: "Text",
 };
 
 type Own = keyof typeof EN;
@@ -85,6 +105,27 @@ const ES: Record<Own, string> = {
   importMissed:
     "El documento entró, pero {name} archivo(s) de al lado no se pudieron traer: sus enlaces quedaron como texto.",
   importNotes: "{name} nota(s) que enlaza quedaron como texto: impórtalas una por una.",
+  tryAgain: "Reintentar",
+  mediaBring: "Traer de tu nube",
+  mediaBringing: "Trayendo de tu nube…",
+  widgetFrame: "Widget dibujado a partir de este bloque",
+  widgetTooBig:
+    "Un widget puede tener hasta {name}; este pasa de ahí, así que se muestra como código.",
+  widgetNot:
+    "Este bloque no es un widget y por eso se muestra como código: {name}. Un widget es solo HTML y CSS, sin nada que se ejecute ni venga de afuera.",
+  kindPdf: "PDF",
+  kindWord: "Word",
+  kindExcel: "Hoja de cálculo",
+  kindSheet: "Hoja de datos",
+  kindSlides: "Diapositivas",
+  kindArchive: "Archivo comprimido",
+  kindData: "Datos",
+  kindImage: "Imagen",
+  kindPage: "Página web",
+  kindVideo: "Vídeo",
+  kindAudio: "Audio",
+  kindMarkdown: "Markdown",
+  kindText: "Texto",
 };
 
 const SHEET_EN: Record<ReadWord, string> = {
@@ -216,6 +257,7 @@ const SHEET_ES: Record<ReadWord, string> = {
 export type Words = {
   readonly locale: string;
   readonly say: (word: Own, name?: string) => string;
+  readonly sayAny: (word: string, name?: string) => string;
   readonly sayToSheet: Say;
 };
 
@@ -229,6 +271,7 @@ export const wordsFor = (asked: string | null): Words => {
   return {
     locale: spanish ? "es" : "en",
     say: (word, name) => filled(own[word], name),
+    sayAny: (word, name) => (word in own ? filled(own[word as Own], name) : word),
     sayToSheet: (word, ...named) => filled(sheet[word], named[0], named[1]),
   };
 };

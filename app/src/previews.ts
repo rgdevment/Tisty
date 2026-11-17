@@ -1,5 +1,5 @@
 import { ending, hosting, kept } from "tisty-editor/read";
-import { playedAs } from "tisty-sheet";
+import { playedAs, SEEABLE } from "tisty-sheet";
 import { DOC } from "./markdown";
 
 export type Preview =
@@ -9,7 +9,7 @@ export type Preview =
   | { as: "doc"; id: string }
   | { as: "web"; at: string; host: string };
 
-export const SEEABLE = ["png", "jpg", "jpeg", "gif", "svg", "webp", "avif"];
+export { named, SEEABLE } from "tisty-sheet";
 
 // WebKit draws HEIC itself and a Windows with the HEIF decoder draws it for Tisty; elsewhere it stays a file.
 let heicDrawn = navigator.userAgent.includes("Macintosh");
@@ -22,15 +22,6 @@ export const heicReadable = (): boolean => heicDrawn;
 
 const outside = (href: string): boolean =>
   /^[a-z][a-z0-9+.-]*:/i.test(href) || href.startsWith("/") || href.startsWith("\\\\");
-
-export const named = (href: string): string => {
-  const raw = href.split(/[?#]/)[0].split("/").pop() ?? href;
-  try {
-    return decodeURI(raw);
-  } catch {
-    return raw;
-  }
-};
 
 /// Only the two schemes a person can be shown safely, and never the machine's own paths: what
 /// comes back is a name and a host, never something a card would go and load.

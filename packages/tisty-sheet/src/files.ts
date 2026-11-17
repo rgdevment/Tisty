@@ -147,3 +147,14 @@ export const playedAs = (kind: string): "video" | "audio" | null => {
   if (WATCHABLE.includes(kind)) return "video";
   return HEARABLE.includes(kind) ? "audio" : null;
 };
+
+export const SEEABLE = ["png", "jpg", "jpeg", "gif", "svg", "webp", "avif"];
+
+export const named = (href: string): string => {
+  const raw = href.split(/[?#]/)[0].split("/").pop() ?? href;
+  try {
+    return decodeURI(raw);
+  } catch {
+    return raw;
+  }
+};
