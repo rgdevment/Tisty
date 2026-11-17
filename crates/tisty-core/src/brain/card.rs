@@ -17,10 +17,13 @@ const OUTGOING: &str = "SELECT e.kind, e.target, COALESCE(a.id, b.id), COALESCE(
     LEFT JOIN node b ON a.id IS NULL AND b.uid = e.target
     WHERE e.source = ?1 AND COALESCE(a.id, b.id) IS NOT NULL
     ORDER BY e.kind, e.target";
-const INCOMING: &str = "SELECT e.kind, n.id, n.kind, n.title, n.state
+const INCOMING: &str = "SELECT e.kind, n.id, n.kind, n.title, n.state, c.said
     FROM edge e JOIN node n ON n.id = e.source
+    LEFT JOIN card c ON c.id = e.source AND e.kind = 'structure' AND n.kind = 'task'
     WHERE e.target IN (?1, ?2)
     ORDER BY e.kind, e.source";
+
+type Incoming = (String, Near, Option<String>);
 const OPEN: [&str; 3] = ["open", "said_done", "said_dropped"];
 
 // Fields serialize in this order, so what every agent needs comes first and the longest last.
@@ -325,7 +328,7 @@ impl<F: Fn(&str) -> bool> Reader<'_, F> {
             }
         }
         let uid = row.uid.as_deref().unwrap_or(&row.id);
-        for (kind, near) in self.incoming(&row.id, uid)? {
+        for (kind, near, said) in self.incoming(&row.id, uid)? {
             match kind.as_str() {
                 "cite" => added(&mut around.cited_by, near),
                 "mention" => added(&mut around.mentioned_by, near),
@@ -333,9 +336,7 @@ impl<F: Fn(&str) -> bool> Reader<'_, F> {
                 "structure" if near.kind == "task" && row.kind == "task" => {
                     added(&mut around.parts, near);
                 }
-                "structure" if near.kind == "task" && self.born_of(&near.id, row)? => {
-                    added(&mut around.born, near);
-                }
+                "structure" if born_of(said.as_deref(), row) => added(&mut around.born, near),
                 "structure" => added(&mut around.ideas, near),
                 _ => {}
             }
@@ -362,9 +363,9 @@ impl<F: Fn(&str) -> bool> Reader<'_, F> {
             .collect())
     }
 
-    fn incoming(&self, id: &str, uid: &str) -> rusqlite::Result<Vec<(String, Near)>> {
+    fn incoming(&self, id: &str, uid: &str) -> rusqlite::Result<Vec<Incoming>> {
         let mut asked = self.db.prepare_cached(INCOMING)?;
-        let all: Vec<(String, Near)> = asked
+        let all: Vec<Incoming> = asked
             .query_map([id, uid], |one| {
                 let near = Near {
                     id: one.get(1)?,
@@ -372,23 +373,22 @@ impl<F: Fn(&str) -> bool> Reader<'_, F> {
                     title: one.get(3)?,
                     state: one.get(4)?,
                 };
-                Ok((one.get(0)?, near))
+                Ok((one.get(0)?, near, one.get(5)?))
             })?
             .collect::<rusqlite::Result<_>>()?;
         Ok(all
             .into_iter()
-            .filter(|(_, near)| (self.seen)(&near.id))
+            .filter(|(_, near, _)| (self.seen)(&near.id))
             .collect())
     }
+}
 
-    // An idea a task holds ties it to the sheet just as being born of one does; only its source tells.
-    fn born_of(&self, task: &str, row: &Row) -> rusqlite::Result<bool> {
-        let Some(said) = self.said(task)? else {
-            return Ok(false);
-        };
-        let named = parsed::<TaskFacts>(&said).and_then(|own| origin_of(&own.facts));
-        Ok(named.is_some_and(|one| one == row.id || row.uid.as_deref() == Some(one.as_str())))
-    }
+// An idea a task holds ties it to the sheet just as being born of one does; only its source tells.
+fn born_of(said: Option<&str>, row: &Row) -> bool {
+    let named = said
+        .and_then(parsed::<TaskFacts>)
+        .and_then(|own| origin_of(&own.facts));
+    named.is_some_and(|one| one == row.id || row.uid.as_deref() == Some(one.as_str()))
 }
 
 fn origin_of(facts: &TaskFacts) -> Option<String> {
