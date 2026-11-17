@@ -456,9 +456,27 @@ fn a_source_naming_what_the_reader_cannot_see_is_left_unsaid() {
             d: elsewhere,
         })
         .unwrap();
+    let early = Ulid::generate();
+    let mut ahead = TaskAdd::new("wrap the present", "a0");
+    ahead.source = Some("zz-0009#The present".into());
+    store
+        .append(Op::TaskAdd {
+            id: early,
+            d: ahead,
+        })
+        .unwrap();
     let mut brain = world.brain();
     world.refreshed(&mut brain, &world.state());
-    let seen = |id: &str| id != diary;
+    let seen = |id: &str| id != diary && id != "zz-0009";
+    let before_it_arrives = brain
+        .card(&early.to_string(), today(), seen)
+        .unwrap()
+        .unwrap();
+    assert_eq!(
+        task_facts(&before_it_arrives).source,
+        None,
+        "a hidden document not indexed yet is not named either"
+    );
 
     let card = brain
         .card(&born.to_string(), today(), seen)

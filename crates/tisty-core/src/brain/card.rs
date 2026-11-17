@@ -207,12 +207,8 @@ impl Brain {
 
 impl<F: Fn(&str) -> bool> Reader<'_, F> {
     fn row(&self, id: &str) -> rusqlite::Result<Option<Row>> {
-        Ok(self.found(id)?.filter(|one| (self.seen)(&one.id)))
-    }
-
-    fn found(&self, id: &str) -> rusqlite::Result<Option<Row>> {
         let mut asked = self.db.prepare_cached(ROW)?;
-        asked
+        let row = asked
             .query_row([id], |one| {
                 Ok(Row {
                     id: one.get(0)?,
@@ -223,7 +219,8 @@ impl<F: Fn(&str) -> bool> Reader<'_, F> {
                     uid: one.get(5)?,
                 })
             })
-            .optional()
+            .optional()?;
+        Ok(row.filter(|one| (self.seen)(&one.id)))
     }
 
     fn near(&self, id: &str) -> rusqlite::Result<Option<Near>> {
@@ -282,11 +279,8 @@ impl<F: Fn(&str) -> bool> Reader<'_, F> {
             return Ok(None);
         };
         let origin = origin_of(&own.facts);
-        // A source that names a document the reader cannot see would give away its name and a heading in it.
-        if let Some(hidden) = origin.as_deref()
-            && self.found(hidden)?.is_some()
-            && self.row(hidden)?.is_none()
-        {
+        // Asked of the gate, not the base, so a hidden document not yet indexed is not named either.
+        if origin.as_deref().is_some_and(|one| !(self.seen)(one)) {
             own.facts.source = None;
         }
         let mut around = Around {
