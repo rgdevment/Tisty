@@ -4,17 +4,19 @@
 
 <h1 align="center">La ayuda de Tisty</h1>
 
-<p align="center"><strong>Memoria y contexto locales para ti y tu agente de IA: tareas, documentos y notas en Markdown, en tu propio disco.</strong><br/>Sin cuentas. Sin suscripciones. Sin telemetría. Sin servidor.</p>
+<p align="center"><strong>Memoria de trabajo compartida para ti y tu agente de IA: tareas, documentos y notas en Markdown, en tu propio disco.</strong><br/>Tú ves el conjunto. Tu agente, cada detalle. Una sola memoria.<br/>Sin cuentas. Sin suscripciones. Sin telemetría. Sin servidor.</p>
 
 <p align="center"><a href="Home">English</a> · <strong>Español</strong></p>
 
 ---
 
-**Una lista de tareas común olvida en cuanto marcas la casilla. Tu agente de IA olvida en cuanto termina la sesión.** Por eso cada quien lo parcha: un `NOTES.md` detrás de `.gitignore`, un Markdown por sesión, un `TASKS.md` que nadie mantiene al día. Se desactualizan, se pierden entre ramas, equipos y proyectos, y el agente los relee enteros en cada sesión.
+Comencé a desarrollar Tisty para resolver un problema personal, y fui viendo que ese problema no era solo mío: a todos les pasaba, y cada uno lo resolvía a su manera.
 
-Tisty es la memoria de fondo. Cuando terminas una tarea, pasa al archivo con todo lo que juntó: la descripción, la bitácora, los pasos, los archivos y los documentos en que te apoyaste. Y el buscador lo encuentra años después. *¿Cómo resolví eso la última vez?* Tisty lo tiene. Junto a las tareas, los **documentos** guardan lo que sabes, uno por tema, como Markdown normal que cualquier otro editor lee.
+**Ni tú vuelves a explicar, ni él vuelve a empezar.** Tu agente de IA conoce el detalle mejor que nadie, y lo olvida en cuanto termina la sesión. Por eso cada quien lo parcha: un `NOTES.md` detrás de `.gitignore`, un Markdown por sesión, un `TASKS.md` que nadie mantiene al día, un `AGENTS.md` que solo crece. Se desactualizan, se pierden entre ramas, equipos y proyectos, y el agente los relee enteros en cada sesión.
 
-Y es la memoria del agente de IA que ya usas. Por un **servidor MCP** local, en tu equipo, sin cuenta y sin red, GitHub Copilot, Claude Code, Codex, Cursor o cualquier cliente MCP pregunta qué cambió desde la última vez, lee el índice de un documento y después solo la sección que necesita, y deja escrito lo que aprendió para la próxima sesión. Tú decides qué puede hacer.
+Tisty es una memoria de trabajo que compartes con tu agente: tú ves el conjunto, y tu agente cada detalle. Cuando terminas una tarea, pasa al archivo con todo lo que juntó: la descripción, la bitácora, los pasos, los archivos y los documentos en que te apoyaste. Y el buscador lo encuentra años después. *¿Cómo resolví eso la última vez?* Tisty lo tiene. Junto a las tareas, los **documentos** guardan lo que sabes, uno por tema, como Markdown normal que cualquier otro editor lee.
+
+Y es la memoria del agente de IA que ya usas. Por un **servidor MCP** local, en tu equipo, sin cuenta y sin red, GitHub Copilot, Claude Code, Codex, Cursor o cualquier cliente MCP pregunta qué cambió desde la última vez, lee el índice de un documento y después solo la sección que necesita, y deja escrito lo que aprendió para la próxima sesión. Trabaja y te dice cuando algo está listo; tú lo revisas y lo cierras, porque nada se cierra sin ti. Tú decides qué puede hacer.
 
 ## Problemas reales, soluciones reales
 

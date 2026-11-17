@@ -3,18 +3,18 @@
     src="assets/icons/tisty-256.png"
     width="140"
     height="140"
-    alt="Tisty — local memory and context for you and your AI agent: a free,
-    open source app for notes, documents and tasks on Windows and macOS"/>
+    alt="Tisty — shared working memory and local context for you and your AI
+    agent: a free, open source app for notes, documents and tasks on Windows and
+    macOS"/>
 
-  <h1>Tisty — Local Memory and Context for You and Your AI Agent</h1>
+  <h1>Tisty — Shared Working Memory for You and Your AI Agent</h1>
 
-  <p><strong>The working memory that stays yours: tasks, documents and notes in
-  Markdown on your own disk, for Windows and macOS.<br/>Tasks that keep how each
-  thing was solved, documents that keep what you know — one per subject — and an
-  MCP server that lets GitHub Copilot, Claude Code, Codex, Cursor or any
-  assistant pick up where it left off, reading a section at a time instead of
-  every file.<br/>No accounts. No subscriptions. No telemetry. No
-  server.</strong></p>
+  <p><strong>You see the whole. Your agent, every detail. One shared memory.<br/>
+  Tasks that keep how each thing was solved and documents that keep what you
+  know, in Markdown on your own disk, for Windows and macOS — and a local MCP
+  server that lets GitHub Copilot, Claude Code, Codex, Cursor or any assistant
+  pick up where it left off, reading a section at a time instead of every
+  file.<br/>No accounts. No subscriptions. No telemetry. No server.</strong></p>
 
   <p>Software out of conviction, not subscription.</p>
 
@@ -60,10 +60,10 @@
     <img
       src="assets/screens/readme/en-01-archive.webp"
       width="92%"
-      alt="Tisty, the working memory for you and your AI agent: the archive
-      keeps every finished task with its steps and its journal, and your
-      agent asks how did we solve this last time? to bring one back as it
-      was"/>
+      alt="Tisty, the working memory you share with your AI agent: the archive
+      keeps every finished task with its steps and its journal, and you or
+      your agent can ask how did we solve this last time? to bring one back
+      as it was"/>
   </p>
 
   <h4>Download Tisty</h4>
@@ -102,36 +102,45 @@
 
 ---
 
-**An ordinary task list forgets the moment you tick the box. Your AI agent
-forgets the moment the session ends.**
+I started building Tisty to solve a problem of my own, and little by little I saw
+it was not only mine: everyone ran into it, and each solved it their own way.
 
-Everybody patches that in their own way: a `NOTES.md` hidden behind
-`.gitignore`, a Markdown file per session, a `TASKS.md` nobody keeps up to date.
-They go stale, they pile up, they get lost between branches, machines and
-projects — and the agent rereads all of it, every session, at full price. The
-assistant is brilliant at the file in front of it and forgets the picture: why
-something was decided six months ago, what failed last time, what is still left.
+**You stop explaining. It stops starting over.** Your AI agent knows the details
+better than anyone, and forgets them the moment the session ends. Everybody
+patches that in their own way: a `NOTES.md` hidden behind `.gitignore`, a
+Markdown file per session, a `TASKS.md` nobody keeps up to date, an `AGENTS.md`
+that only grows. They go stale, they pile up, they get lost between branches,
+machines and projects — and the agent rereads all of it, every session. You
+never see the tokens, but you pay for them: in time, in limits that come too
+soon, in work done twice.
 
-**Tisty is the memory underneath.** Tasks that keep how each thing was solved,
-with their steps and a dated journal. Documents that keep what you know, one
-per subject, corrected in place instead of piled up. All of it on your own disk:
-visual and comfortable for you, and for your agent a **local MCP server** that
-says what moved since last time and reads an outline first, then only the
-section it needs.
+**Tisty is a working memory you share with your agent.** You see the whole:
+where each project stands, what is left and what was decided. Your agent sees
+every detail: the task it was on, what it tried and what it ruled out. It asks
+what moved since last time, opens the task it was on and reads only the section
+it needs; it works, notes what it did and tells you when something is done. You
+review it and close it: nothing closes without you. All of it on your own disk,
+visual and easy for you to read, and for your agent a **local MCP server** that
+hands it an outline first, then only the section it needs.
 
 It is open source: read it, build it, run it, or take one of the signed
 releases already out there. Nothing is hidden and all of it can be audited.
 
-I am not a company. I am a developer who kept solving the same problem twice, so
-I built the **notes, documents and task manager** I wanted and gave it away. It
+I am not a company: I am a developer who builds what I need and shares it. Tisty
 is meant to stay small and useful, not to grow a thousand features nobody uses.
 No ads, no telemetry, no accounts, no subscriptions — a **local-first
 productivity tool** that lives on your machine and nowhere else.
 
 **Why people choose Tisty:**
 
+- **You see the whole, your agent every detail** — tasks with their steps and a
+  dated journal, documents one per subject: pleasant for you to read, and for
+  your agent an outline and one section at a time.
 - **Memory that outlasts the session** — your agent starts from what moved, the
   task it was on and what it noted yesterday, not from a blank chat.
+- **Nothing closes without you** — your agent says when a task or a step is
+  done, and it waits in *To confirm* until you finish it or send it back. It
+  cannot close or delete a task, or delete a document or an idea.
 - **Made for agents as much as for people** — an outline costs a few hundred
   tokens, a read brings one section, and picking up again brings only what
   changed: a fraction of rereading your Markdown files.
@@ -150,6 +159,11 @@ productivity tool** that lives on your machine and nowhere else.
   readable with `cat` and searchable with `grep`.
 - **Fast and native** — a Rust core inside a Tauri window: it starts quickly,
   stays small, and looks like it belongs on both systems.
+
+**What comes next.** I am working on Brainsty, Tisty's brain: everything you
+keep, with what joins it, drawn as one network — a map from afar for you, and up
+close, for your agent, an index that tells it where to look without reading
+everything. It has no date yet.
 
 > I use Tisty every day on macOS and Windows. If something feels off,
 > [open an issue](https://github.com/rgdevment/Tisty/issues) — this project
@@ -181,7 +195,7 @@ productivity tool** that lives on your machine and nowhere else.
 - [What It Does](#what-it-does)
 - [Your Data and Privacy](#your-data-and-privacy)
 - [Two Machines, If You Have Two](#two-machines-if-you-have-two)
-- [An Assistant, If You Use One](#an-assistant-if-you-use-one)
+- [Your AI Agent](#your-ai-agent)
 - [What It Does Not Do](#what-it-does-not-do)
 - [FAQ](#faq)
 - [Alternatives to Obsidian, Notion and Todoist](#alternatives-to-obsidian-notion-and-todoist)
@@ -472,10 +486,10 @@ put it here in case it is the thing you wanted too.
 
 ## What It Is / What It Isn't
 
-**It is** a personal task manager where finishing something is the beginning of
-its useful life. Tasks carry a description, a journal, steps and attachments;
-when you complete one it moves to the archive, and search reaches all of it,
-documents included.
+**It is** a working memory you share with your AI agent, and a personal task
+manager where finishing something is the beginning of its useful life. Tasks
+carry a description, a journal, steps and attachments; when you complete one it
+moves to the archive, and search reaches all of it, documents included.
 
 **It is a place to write**, too. Documents are not a notes field bolted onto the
 tasks: they are Markdown files that grow into books, with diagrams, formulas,
@@ -753,12 +767,12 @@ with it, while whatever arrives from somebody else keeps theirs.
 
 ## Who Is This For?
 
-Anyone whose work leaves a trail worth keeping, and who wants their AI agent to
-remember it too. A developer who jumps between sessions, branches and dozens of
-projects. A PM who keeps the decisions and the why behind them. A QA who keeps
-the cases that broke last time. A tech lead who keeps the runbooks. Sysadmins,
-freelancers, researchers, students — anyone who has ever solved the same problem
-twice and known it the second time.
+Anyone who works with an AI agent and wants both of them to remember: you the
+whole, your agent the detail. A developer who jumps between sessions, branches
+and dozens of projects. A PM who keeps the decisions and the why behind them. A
+QA who keeps the cases that broke last time. A tech lead who keeps the
+runbooks. Sysadmins, freelancers, researchers, students — anyone who has ever
+solved the same problem twice and known it the second time.
 
 Each of them keeps their own Tisty: what one learns is not the same as what
 another needs, and their agents work from different memories.
@@ -1135,7 +1149,7 @@ lists the causes worth checking, in order — and what each message about Google
 Drive means, from *Reconnect* to a full Drive or
 [something blocking the way](https://www.tisty.app/docs/sync-and-backup/#when-something-stands-in-the-way-of-google).
 
-## An Assistant, If You Use One
+## Your AI Agent
 
 ![No more blank chats, open the MCP door: Settings › Assistants says Tisty has no AI inside and connects the assistants on this computer, so your agent asks where were we? and opens the task it was on](assets/screens/web/en-05-agent.png)
 
@@ -1143,9 +1157,9 @@ Drive means, from *Reconnect* to a full Drive or
 the bank at 3" into a task is rules running on your machine: no model, no
 request, no cloud. That is not going to change.
 
-But if you already use an assistant, you are probably telling it things worth
-keeping — the school group says card stock on Monday, the invoice is due on the
-30th. So Tisty leaves a door, and you decide whether to use it.
+But the assistant you work with is where the detail happens, and it forgets
+when the session ends. So Tisty leaves it a door, and you decide whether to
+open it.
 
 **Your agents' work, in the open.** Through Tisty, an agent plans in
 documents and works in tasks: it writes the plan, what it found and what it
@@ -1255,8 +1269,8 @@ door is yours to close.
 
 ### Is Tisty free?
 
-Yes, and it stays free. AGPL-3.0, no paid tier, no feature held back for a
-later version, no trial that runs out.
+Yes, Tisty is free and will stay free, under the AGPL-3.0 licence. No accounts,
+no telemetry, and it keeps being developed and improved.
 
 ### Does it need an account or a connection?
 
@@ -1464,8 +1478,8 @@ local.
 
 ## Support the Project
 
-**Software out of conviction, not subscription.** Tisty is free and will stay
-free: no ads, no premium tier, no paywall. If it saves you time and you would
+**Software out of conviction, not subscription.** Tisty is free: no ads, no
+premium tier, no paywall. If it saves you time and you would
 like it to keep being maintained:
 
 <p>
