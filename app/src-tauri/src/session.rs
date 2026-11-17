@@ -315,6 +315,12 @@ impl Session {
         tisty_core::store::read_all(self.paths.store())
     }
 
+    pub fn reproject_after_writing_beside(&mut self) -> tisty_core::Result<()> {
+        // A lock held elsewhere only costs the next commit one more reading.
+        let _ = self.store.look_again();
+        self.reproject()
+    }
+
     pub fn reproject(&mut self) -> tisty_core::Result<()> {
         self.adopt(projected(&self.paths, self.writes)?);
         Ok(())
@@ -1062,17 +1068,16 @@ impl Session {
     /// A state that missed a commit must not stamp the cache as current, or the projection that
     /// would have caught up loads the gap back.
     pub fn carry(&mut self, events: &[Event]) -> String {
+        let overtaken = self.store.overtaken();
         let cache = match self.behind {
             true => None,
             false => self.cache.as_mut(),
         };
-        tisty_core::cache::advance(
-            cache,
-            &self.state,
-            events,
-            &self.paths.store(),
-            self.store.overtaken(),
-        )
+        let print =
+            tisty_core::cache::advance(cache, &self.state, events, &self.paths.store(), overtaken);
+        // The lines another hand wrote are in the store but not in this state until it is read again.
+        self.behind |= overtaken;
+        print
     }
 }
 

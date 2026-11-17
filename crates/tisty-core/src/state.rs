@@ -957,18 +957,6 @@ impl State {
         }
     }
 
-    pub fn references(&self) -> Vec<String> {
-        let mut seen: BTreeSet<String> = BTreeSet::new();
-        for task in self.tasks.values().filter(|t| t.volume.refs > 0) {
-            for one in task.references() {
-                if one.kind == crate::refs::Kind::Doc {
-                    seen.insert(one.target);
-                }
-            }
-        }
-        seen.into_iter().collect()
-    }
-
     pub fn tasks_tagged(&self, tag: &Tag) -> impl Iterator<Item = &Task> {
         self.tasks.values().filter(move |t| t.tags.contains(tag))
     }

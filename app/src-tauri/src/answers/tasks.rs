@@ -213,7 +213,6 @@ pub async fn snapshot(
         lists: session.state.ordered_lists().into_iter().cloned().collect(),
         shelved: session.state.shelved_lists().into_iter().cloned().collect(),
         tags: tags_in_use(&session.state),
-        refs: session.state.references(),
         counts: tally(&session.state),
         locale: session.locale.clone(),
         agents: named_agents(&session.state),

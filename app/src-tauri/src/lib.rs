@@ -69,7 +69,6 @@ struct Snapshot {
     lists: Vec<List>,
     shelved: Vec<List>,
     tags: Vec<Counted>,
-    refs: Vec<String>,
     counts: std::collections::BTreeMap<String, usize>,
     locale: Option<String>,
     agents: std::collections::BTreeMap<String, String>,

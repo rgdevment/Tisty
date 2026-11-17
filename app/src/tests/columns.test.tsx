@@ -51,7 +51,6 @@ const shot = (): Snapshot =>
     tasks: tasks.filter((one) => one.status === "open"),
     lists: [],
     tags: [],
-    refs: [],
     counts: {},
     locale: "en",
   }) as unknown as Snapshot;

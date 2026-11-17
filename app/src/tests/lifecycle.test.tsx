@@ -193,7 +193,6 @@ function backend(cmd: string, args: Record<string, unknown>): Promise<unknown> {
         tasks: [],
         lists: [],
         tags: [],
-        refs: [],
         counts: {},
         locale: "en",
       });

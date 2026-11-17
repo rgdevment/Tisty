@@ -43,7 +43,6 @@ const shot = (): Snapshot => ({
   routines: [],
   lists: [],
   tags: [],
-  refs: [],
   counts: {},
   locale: "en",
   agents: {},
