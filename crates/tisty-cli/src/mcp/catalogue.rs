@@ -640,6 +640,17 @@ pub(super) const EFFECTS: [(&str, Effect); 41] = [
     ("tags", Effect::Reads),
 ];
 
+pub(crate) fn is_tool(name: &str) -> bool {
+    EFFECTS.iter().any(|(named, _)| *named == name)
+}
+
+pub(crate) fn writes(name: &str) -> bool {
+    EFFECTS
+        .iter()
+        .find(|(named, _)| *named == name)
+        .is_none_or(|(_, effect)| !matches!(effect, Effect::Reads | Effect::Looks))
+}
+
 /// Still answered when a client calls them by name, but `catch_up` already brings both.
 pub(super) const UNLISTED: [&str; 2] = ["lists", "tags"];
 

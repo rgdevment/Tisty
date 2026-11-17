@@ -13,6 +13,7 @@ pub(super) const MOVED_SHOWN: usize = 20;
 const LOOKED: &str = "looked";
 /// A retry, a subagent or a second window asking within this long hears the same news again.
 const SAID_AGAIN_WITHIN: i64 = 60;
+const LOOKED_BACK: usize = 5_000;
 
 pub(super) type Seen = BTreeMap<String, (jiff::Timestamp, u64)>;
 
@@ -151,6 +152,38 @@ pub(super) fn left_off<E: std::borrow::Borrow<Event>>(
         task_at,
         ended,
     }
+}
+
+pub(super) fn open_tasks_left<E: std::borrow::Borrow<Event>>(
+    state: &State,
+    mine_newest_first: impl Iterator<Item = E>,
+    at_most: usize,
+) -> Vec<(TaskId, jiff::Timestamp)> {
+    let me = my_hand();
+    let owners = tisty_core::task_docs::behind(state);
+    let mut found: Vec<(TaskId, jiff::Timestamp)> = Vec::new();
+    for one in mine_newest_first.take(LOOKED_BACK) {
+        let one = one.borrow();
+        if found.len() == at_most {
+            break;
+        }
+        if hand(one.via.as_deref()) != me {
+            continue;
+        }
+        let Some(task) =
+            what_it_touched(one).and_then(|(named, id)| touched_task(state, &owners, &named, &id))
+        else {
+            continue;
+        };
+        let open = state
+            .tasks
+            .get(&task)
+            .is_some_and(|kept| kept.is_open() && !kept.folded() && kept.resolved.is_none());
+        if open && found.iter().all(|(was, _)| *was != task) {
+            found.push((task, one.timestamp));
+        }
+    }
+    found
 }
 
 pub(super) fn last_task<'a>(state: &'a State, left: &LeftOff) -> Option<&'a Task> {

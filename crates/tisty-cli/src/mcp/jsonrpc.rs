@@ -34,6 +34,12 @@ pub(super) fn introduced(params: &Value) {
     }
 }
 
+pub(super) fn speaking_as(client: &str) {
+    if let Some(said) = tisty_core::agent::client_said(client) {
+        let _ = SPEAKING_THROUGH.set(said);
+    }
+}
+
 /// The name kept from the greeting, or nothing: an unnamed hand is still let in.
 pub(super) fn speaking_through() -> Option<String> {
     SPEAKING_THROUGH.get().cloned()
