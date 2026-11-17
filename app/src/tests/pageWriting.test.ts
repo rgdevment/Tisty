@@ -1700,6 +1700,27 @@ describe("a key at the edge of a block drawn whole", () => {
     expect(said).toEqual(["Antes  fin\n"]);
   });
 
+  it("leaves a formula in words when the words chosen after it only touch its edge", () => {
+    const said = writer("Antes $x^2$ fin\n");
+    pageOf(
+      '<p data-at="0-15"><span data-src="0-6">Antes </span><math data-src="6-11" contenteditable="false"><msup><mi>x</mi><mn>2</mn></msup></math><span data-src="11-15"> fin</span></p>',
+    );
+    writing?.drawn();
+    const chosen = document.createRange();
+    chosen.setStart(document.querySelector("mn") as Node, 1);
+    chosen.setEnd(piece(" fin"), 4);
+    document.getSelection()?.removeAllRanges();
+    document.getSelection()?.addRange(chosen);
+    const event = new InputEvent("beforeinput", {
+      inputType: "deleteContentBackward",
+      bubbles: true,
+      cancelable: true,
+    });
+    Object.defineProperty(event, "getTargetRanges", { value: () => [chosen] });
+    document.querySelector(".page")?.dispatchEvent(event);
+    expect(said).toEqual(["Antes $x^2$\n"]);
+  });
+
   it("takes nothing on Delete at a step's end over a task's section", () => {
     document.documentElement.classList.add("untitled");
     const said = writer("- [ ] paso\n\n## Notas\n");

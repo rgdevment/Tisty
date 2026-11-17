@@ -215,7 +215,7 @@ export const inputOn = (
       (!spread && begun.waited(kind)) ||
       (range &&
         ((held && caret.unbegun(kind, held)) ??
-          caret.spanOfRange(range, kind.startsWith("delete"))));
+          caret.spanOfRange(range, !spread && kind.startsWith("delete"))));
     if (!range || !one) return;
     const text = hands.text();
     const typed = event.data ?? event.dataTransfer?.getData("text/plain") ?? "";

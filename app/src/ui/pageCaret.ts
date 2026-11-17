@@ -18,13 +18,13 @@ export const caretOn = (writer: Writer) => {
     return held?.rangeCount ? held.getRangeAt(0) : null;
   };
 
-  const spanOfRange = (range: AbstractRange, deleting = false): Span | null => {
+  const spanOfRange = (range: AbstractRange, reached = false): Span | null => {
     const text = hands.text();
     const same = writer.kept && range.collapsed && range.startContainer === writer.kept.node;
     if (same && writer.kept && range.startOffset === writer.kept.offset)
       return { from: writer.kept.at, to: writer.kept.at };
     const known = writer.reckoned;
-    const opening = deleting && !range.collapsed;
+    const opening = reached && !range.collapsed;
     const from = sourceAt(text, range.startContainer, range.startOffset, known, opening);
     const to = range.collapsed ? from : sourceAt(text, range.endContainer, range.endOffset, known);
     if (from === null || to === null) return null;
