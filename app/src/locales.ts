@@ -63,7 +63,8 @@ const en = {
   diaryUnstick: "Remove this note",
   diaryUnstickSure: "Remove this note? The diary keeps no copy of it, so it is gone for good.",
   diaryDayChanged:
-    "This day changed in the meantime, here or on another computer. Cancel and open it again to see it as it is now.",
+    "This day changed in the meantime, here or on another computer. Copy what you wrote, then cancel and open it again to see it as it is now.",
+  diaryPageGone: "This month is no longer part of your diary. Open it again from the Library.",
   diaryClosedOne: "1 task closed",
   diaryClosedMany: "{name} tasks closed",
   diaryBehind:
@@ -3339,7 +3340,8 @@ const es: Catalog = {
   diaryUnstick: "Quitar esta nota",
   diaryUnstickSure: "¿Quitar esta nota? El diario no guarda una copia: se pierde para siempre.",
   diaryDayChanged:
-    "Este día cambió mientras tanto, aquí o en otro equipo. Cancela y ábrelo de nuevo para verlo como quedó.",
+    "Este día cambió mientras tanto, aquí o en otro equipo. Copia lo que escribiste, cancela y ábrelo de nuevo para verlo como quedó.",
+  diaryPageGone: "Este mes ya no es parte de tu diario. Ábrelo de nuevo desde la Biblioteca.",
   diaryClosedOne: "1 tarea cerrada",
   diaryClosedMany: "{name} tareas cerradas",
   diaryBehind:

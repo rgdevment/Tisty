@@ -410,7 +410,7 @@ pub(crate) fn blank_free<'a, 'b>(lines: &'b [&'a str]) -> &'b [&'a str] {
 }
 
 // A heading in what is written sits under the day, so it never starts a day of its own.
-pub(crate) fn under_the_day(said: &str) -> String {
+fn under_the_day(said: &str) -> String {
     let mut fenced = tisty_markdown::fences::fencing();
     said.lines()
         .map(|line| {

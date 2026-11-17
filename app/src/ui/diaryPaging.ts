@@ -1,5 +1,4 @@
 import type { DayAt } from "../diary";
-import { t } from "../locales";
 
 export type DayWent =
   | { kind: "day"; at: DayAt }
@@ -7,7 +6,7 @@ export type DayWent =
   | { kind: "dayCancel" }
   | { kind: "unstick"; at: DayAt; note: number };
 
-const NOTE = 'blockquote.callout[data-callout="idea"]';
+export const NOTE = 'blockquote.callout[data-callout="idea"]';
 
 const dayOf = (one: Element | null | undefined): DayAt | null => {
   const entry = one?.closest<HTMLElement>(".diary-entry[data-day][data-nth]");
@@ -43,17 +42,4 @@ export const boxKey = (event: KeyboardEvent): DayWent | null => {
   if (event.key !== "Escape" && !keeping) return null;
   event.preventDefault();
   return { kind: keeping ? "dayKeep" : "dayCancel" };
-};
-
-export const unstickable = (page: Document) => {
-  for (const note of page.querySelectorAll(`.diary-words > ${NOTE}`)) {
-    if (note.querySelector(":scope > .note-off")) continue;
-    const off = page.createElement("button");
-    off.type = "button";
-    off.className = "note-off";
-    off.dataset.asked = "unstick";
-    off.setAttribute("aria-label", t("diaryUnstick"));
-    off.title = t("diaryUnstick");
-    note.append(off);
-  }
 };

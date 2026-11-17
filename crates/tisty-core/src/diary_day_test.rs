@@ -71,7 +71,7 @@ fn new_words_keep_the_notes_after_them_in_their_order_and_leave_every_other_day_
         &body,
         MONDAY,
         &was,
-        "  Paseo largo con Rina.\n## Tarde\nCine.  ",
+        "  Paseo largo con Rina.\n## Martes 3\nCine.\n## Tarde\n```\n## Lunes 2\n```  ",
     )
     .unwrap();
 
@@ -81,7 +81,9 @@ fn new_words_keep_the_notes_after_them_in_their_order_and_leave_every_other_day_
     assert_eq!(after_days[1..], before_days[1..]);
     assert_eq!(
         after_days[0].1,
-        format!("Paseo largo con Rina.\n### Tarde\nCine.\n\n{NOTE}\n\n{OTHER_NOTE}")
+        format!(
+            "Paseo largo con Rina.\n### Martes 3\nCine.\n## Tarde\n```\n## Lunes 2\n```\n\n{NOTE}\n\n{OTHER_NOTE}"
+        )
     );
     assert!(after.starts_with("# Noviembre\n\n## Lunes 16\n\nPaseo largo"));
 }
@@ -167,11 +169,13 @@ fn a_heading_that_names_no_day_is_part_of_the_day_and_is_rewritten_with_it() {
     assert_eq!(was, "Mañana.\n\n## Para recordar\n\nLa llave.");
 
     let after = rewritten(body, SUNDAY, &was, "Todo en uno.").unwrap();
+    let kept = rewritten(body, SUNDAY, &was, &was.replace("Mañana", "Temprano")).unwrap();
 
     assert_eq!(
         after,
         "# Noviembre\n\n## Domingo 15\n\nTodo en uno.\n\n## Sábado 14\n\nFeria.\n"
     );
+    assert_eq!(kept, body.replace("Mañana", "Temprano"), "{kept}");
 }
 
 #[test]

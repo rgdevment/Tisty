@@ -262,6 +262,7 @@ const KNOWN = [
   "documentLocked",
   "diaryBehind",
   "diaryDayChanged",
+  "diaryPageGone",
   "documentAway",
   "folderAway",
   "folderAwayHolds",

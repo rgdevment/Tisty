@@ -44,7 +44,7 @@ const boxOf = (page: Document | undefined) =>
 const useDayBox = () => {
   const typed = useRef<Typed | null>(null);
   const shown = useRef<{ page?: Document; body: string }>({ body: "" });
-  const heard = useRef(new WeakSet<Document>());
+  const heard = useRef<WeakSet<Document> | null>(null);
   const note = (event: Event) => {
     const box = event.target as HTMLTextAreaElement | null;
     if (!box?.matches?.(".diary-box textarea")) return;
@@ -71,6 +71,7 @@ const useDayBox = () => {
     const page = frame?.document;
     shown.current = { page, body: body ?? "" };
     if (!page) return;
+    heard.current ??= new WeakSet();
     if (!heard.current.has(page)) {
       heard.current.add(page);
       for (const kind of ["input", "keyup", "mouseup", "focusout"])
@@ -115,7 +116,7 @@ export default function DiaryView(props: Readonly<Props>) {
   const opened = held?.file === file ? held : null;
   const { typed, shown, onShown } = useDayBox();
   const keeping = useRef(false);
-  const at = opened?.at;
+  const at = writable ? opened?.at : undefined;
   const draw = useCallback((text: string) => diaryLaid(file, text, at), [file, at]);
   const year = book?.match(/[0-9]{4}/)?.[0] ?? "";
   const thisMonth = paged && kept?.page === file;
@@ -128,7 +129,9 @@ export default function DiaryView(props: Readonly<Props>) {
   };
 
   const words = () => typed.current?.words ?? opened?.was;
-  const changed = () => opened !== null && words() !== opened.was;
+  // A box whose day is gone from the page holds nothing anyone can still keep.
+  const changed = () =>
+    opened !== null && words() !== opened.was && boxOf(shown.current.page) !== null;
   const close = () => {
     typed.current = null;
     setOpened(null);

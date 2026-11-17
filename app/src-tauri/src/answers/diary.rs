@@ -281,7 +281,7 @@ fn day_amended(
         .filter(|one| diary::holds(&root, &session.state, one))
         .and_then(|one| session.state.docs.get(&one.page_of?))
         .map(|one| one.file.clone())
-        .ok_or_else(|| Refusal::of("diaryDayChanged"))?;
+        .ok_or_else(|| Refusal::of("diaryPageGone"))?;
     super::papers::writable(&session.state, file)?;
     let whole = tisty_core::docs::amend_unkept(&root, file, change)
         .map_err(super::papers::unwritten)?

@@ -213,14 +213,14 @@ describe("a day of the diary on the page", () => {
 const view = (writable = true) => {
   const onWritten = vi.fn();
   const onError = vi.fn();
-  const shown = (file: string) => (
+  const shown = (file: string, open = writable) => (
     <DiaryView
       file={file}
       body={"# Noviembre\n\n## Lunes 16\n\nLluvia.\n"}
       title="Noviembre"
       book="Diario 2026"
       fresh={0}
-      writable={writable}
+      writable={open}
       onDoc={vi.fn()}
       onTask={vi.fn()}
       onBefore={() => Promise.resolve()}
@@ -230,7 +230,12 @@ const view = (writable = true) => {
     />
   );
   const { rerender } = render(shown(FILE));
-  return { onWritten, onError, toMonth: (file: string) => rerender(shown(file)) };
+  return {
+    onWritten,
+    onError,
+    toMonth: (file: string) => rerender(shown(file)),
+    lock: () => rerender(shown(FILE, false)),
+  };
 };
 
 type Held = {
@@ -387,6 +392,28 @@ describe("a day of the diary written in place", () => {
     act(() => toMonth("a3f1-0012"));
 
     expect(await drawnOpen()).toBeNull();
+  });
+
+  it("draws no box once the diary can no longer be written", async () => {
+    const { lock } = view();
+    await opened();
+
+    act(() => lock());
+
+    expect(await drawnOpen()).toBeNull();
+  });
+
+  it("lets another day open once the changed box is no longer on the page", async () => {
+    view();
+    const own = await opened();
+    type(own, "Sol.");
+    own.body.innerHTML = "";
+    act(() => now().onShown(own.defaultView, "# Noviembre\n"));
+    ipc.calls = [];
+
+    await act(async () => now().onDay?.({ day: 15, nth: 0 }));
+
+    expect(asked("diary_day_words")).toHaveLength(1);
   });
 
   it("offers neither a box nor a way off a note in a diary that cannot be written", () => {

@@ -11,7 +11,7 @@ import { pictured } from "../previews";
 import { plainly } from "../refusal";
 import { type Attaching, attachedAs, pressed } from "./attached";
 import { type Carding, cardsFor } from "./carding";
-import { boxKey, unstickable } from "./diaryPaging";
+import { boxKey, NOTE } from "./diaryPaging";
 import { placeCopied, placedAt, placeOf, placeSaid, placeWritten, samePlace } from "./pagePlaces";
 import { type Shot, shotsOf, type TableWent, type Went, went, widgetsIn } from "./paging";
 import { type Bar, type Formatting, type Menued, quickly } from "./quickly";
@@ -339,6 +339,17 @@ export const mathBars = (page: Document) => {
     one.title = t("codeShow");
     bar.append(one);
     formula.append(bar);
+  }
+};
+
+const unstickable = (page: Document) => {
+  for (const note of page.querySelectorAll(`.diary-words > ${NOTE}`)) {
+    if (note.querySelector(":scope > .note-off")) continue;
+    const off = asking(page, "unstick", "");
+    off.className = "note-off";
+    off.setAttribute("aria-label", t("diaryUnstick"));
+    off.title = t("diaryUnstick");
+    note.append(off);
   }
 };
 

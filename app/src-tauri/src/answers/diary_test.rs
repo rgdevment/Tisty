@@ -249,7 +249,7 @@ fn a_locked_book_or_a_page_outside_the_diary_keeps_its_days() {
     let book = rewriting(&mut session, &today.book, SUNDAY, "Lluvia.", "Sol.").unwrap_err();
 
     assert_eq!(locked.code, "documentLocked");
-    assert_eq!(book.code, "diaryDayChanged");
+    assert_eq!(book.code, "diaryPageGone");
     assert_eq!(
         body(&session, &today.page),
         "# Noviembre\n\n## Domingo 15\n\nLluvia.\n"

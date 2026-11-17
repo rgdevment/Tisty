@@ -1,9 +1,9 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::ops::Range;
 
 use tisty_markdown::{Callout, Kind};
 
-use crate::diary::{blank_free, day_named, trailed, under_the_day};
+use crate::diary::{blank_free, day_named, trailed};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct DayAt {
@@ -119,7 +119,7 @@ pub fn rewritten(body: &str, at: DayAt, was: &str, said: &str) -> Option<String>
     if words_between(day, &notes) != was {
         return None;
     }
-    let said = under_the_day(said.trim());
+    let said = kept_in_the_day(said.trim());
     let mut kept: Vec<&str> = said.lines().collect();
     for note in notes {
         if !kept.is_empty() {
@@ -128,6 +128,23 @@ pub fn rewritten(body: &str, at: DayAt, was: &str, said: &str) -> Option<String>
         kept.extend(&day[note]);
     }
     Some(spliced(body, &lines, cut, &kept))
+}
+
+// Only a heading that would start a day of its own goes one level down; the rest stay as the person wrote them.
+fn kept_in_the_day(said: &str) -> String {
+    let cutting: HashSet<usize> = crate::docs::headings(said)
+        .into_iter()
+        .filter(|(_, level, title)| *level == 2 && day_named(title).is_some())
+        .map(|(line, _, _)| line - 1)
+        .collect();
+    said.lines()
+        .enumerate()
+        .map(|(at, line)| match cutting.contains(&at) {
+            true => line.replacen("##", "###", 1),
+            false => line.to_string(),
+        })
+        .collect::<Vec<_>>()
+        .join("\n")
 }
 
 pub fn unstuck(body: &str, at: DayAt, shown: &str, note: usize) -> Option<String> {
