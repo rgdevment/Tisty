@@ -287,6 +287,29 @@ describe("the pictures", () => {
     expect(only.getAttribute("src")).toBe("../secret.png");
   });
 
+  it("in a document of one's own, turns an attached file that is no picture into a link to it", () => {
+    vi.stubGlobal("IntersectionObserver", undefined);
+    delete (window as unknown as Record<string, unknown>).IntersectionObserver;
+    host.pictureNear.mockResolvedValue("data:x");
+    const page = sheet('<img src="manual.pdf" alt="Manual"><img src="rina.PNG"><img src="b.heic">');
+    bringNearPictures(page, true);
+    const link = page.querySelector("a") as HTMLAnchorElement;
+    expect(link.getAttribute("href")).toBe("manual.pdf");
+    expect(link.textContent).toBe("Manual");
+    expect(host.pictureNear).toHaveBeenCalledTimes(2);
+    expect(host.pictureNear).not.toHaveBeenCalledWith("manual.pdf");
+  });
+
+  it("from a stranger's file, leaves an image that names no picture as it is", () => {
+    vi.stubGlobal("IntersectionObserver", undefined);
+    delete (window as unknown as Record<string, unknown>).IntersectionObserver;
+    host.pictureNear.mockRejectedValue({ code: "notAllowed" });
+    const page = sheet('<img src="manual.pdf">');
+    bringNearPictures(page);
+    expect(page.querySelector("a")).toBeNull();
+    expect(host.pictureNear).toHaveBeenCalledWith("manual.pdf");
+  });
+
   it("brings all at once without an observer", () => {
     vi.stubGlobal("IntersectionObserver", undefined);
     delete (window as unknown as Record<string, unknown>).IntersectionObserver;

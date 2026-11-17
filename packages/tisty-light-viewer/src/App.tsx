@@ -91,7 +91,7 @@ export default function App(props: { readonly asked: string | null; readonly clo
     await laidIn(page, now.more ? await theRest() : []);
     setWhole(true);
     everyPiece();
-    bringNearPictures(page);
+    bringNearPictures(page, now.own);
     setFar(farPictures(page));
     const anchor = arrivingAt();
     const block = remembered(now.path);

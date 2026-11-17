@@ -24,10 +24,25 @@ const whenNear = (pictures: HTMLImageElement[], bring: (one: HTMLImageElement) =
   for (const one of pictures) watching.observe(one);
 };
 
-export const bringNearPictures = (page: HTMLElement): void => {
+const SEEN = /\.(png|jpe?g|gif|webp|avif|bmp|ico|svg|heic)$/i;
+
+// A document of one's own attaches any file as it attaches a picture; one that is no picture is a link to open it.
+const asLink = (one: HTMLImageElement): void => {
+  const link = one.ownerDocument.createElement("a");
+  link.setAttribute("href", said(one));
+  link.textContent = one.alt || said(one);
+  one.replaceWith(link);
+};
+
+export const bringNearPictures = (page: HTMLElement, own = false): void => {
   const near = Array.from(page.querySelectorAll("img")).filter((one) => {
     const src = said(one);
-    return src !== "" && !onTheWeb(src) && !inTisty(src);
+    if (src === "" || onTheWeb(src) || inTisty(src)) return false;
+    if (own && !SEEN.test(src.split(/[?#]/)[0])) {
+      asLink(one);
+      return false;
+    }
+    return true;
   });
   whenNear(near, (one) => {
     void pictureNear(said(one)).then(
