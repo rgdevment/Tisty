@@ -11,6 +11,7 @@ import {
   worn,
 } from "../ui/dressing";
 import { framed } from "../ui/framed";
+import { takenOver } from "../ui/pagePatching";
 import { went } from "../ui/paging";
 
 const calls = vi.hoisted(() => ({
@@ -163,6 +164,20 @@ describe("dressing a drawn page", () => {
     expect(drawn.querySelector(".media.is-audio .media-name")?.textContent).toBe("Bark");
     await vi.waitFor(() => expect(video?.getAttribute("src")).toContain("walk-0006bf09.mp4"));
     expect(held).toHaveLength(2);
+  });
+
+  it("keeps a player it drew when the core draws its paragraph again with the same file and name", () => {
+    const drawn = page(
+      '<p data-at="0-40">Ladra <img src="attachments/bark-0006bf10.mp3" alt="Bark" data-src="6-40"></p>',
+    );
+    pictures(drawn, () => true);
+    const said = drawn.querySelector("p") as Element;
+    const player = said.querySelector(".media.is-audio");
+    const fresh = drawn.createElement("p");
+    fresh.innerHTML = 'Ladrax <img src="attachments/bark-0006bf10.mp3" alt="Bark" data-src="7-41">';
+    takenOver(said, fresh);
+    expect(said.querySelector(".media.is-audio")).toBe(player);
+    expect(said.querySelector("img")).toBeNull();
   });
 
   it("brings a film still in the cloud only when asked, saying so while it comes", async () => {
