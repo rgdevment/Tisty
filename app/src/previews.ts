@@ -1,4 +1,5 @@
 import { ending, hosting, kept } from "tisty-editor/read";
+import { playedAs } from "tisty-sheet";
 import { DOC } from "./markdown";
 
 export type Preview =
@@ -18,9 +19,6 @@ export const drawsHeic = (yes: boolean): void => {
 };
 
 export const heicReadable = (): boolean => heicDrawn;
-
-const WATCHABLE = ["mp4", "webm", "m4v", "mov", "ogv"];
-const HEARABLE = ["mp3", "m4a", "wav", "ogg", "oga", "aac", "flac"];
 
 const outside = (href: string): boolean =>
   /^[a-z][a-z0-9+.-]*:/i.test(href) || href.startsWith("/") || href.startsWith("\\\\");
@@ -49,8 +47,8 @@ export const previewOf = (href: string): Preview | null => {
   }
 
   const kind = ending(at);
-  if (WATCHABLE.includes(kind)) return { as: "video", at };
-  if (HEARABLE.includes(kind)) return { as: "audio", at };
+  const as = playedAs(kind);
+  if (as) return { as, at };
   if (!kind && !kept(at)) return null;
   return { as: "file", at, kind };
 };
