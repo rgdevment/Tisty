@@ -5,12 +5,16 @@ use tisty_markdown::escaped;
 
 use crate::State;
 use crate::diary::Words;
+use crate::diary_day::DayAt;
 use crate::model::Kept;
 
 pub struct Said<'a> {
     pub one: &'a str,
     pub many: &'a str,
     pub empty: &'a str,
+    pub writing: &'a str,
+    pub keep: &'a str,
+    pub cancel: &'a str,
 }
 
 pub struct Page<'a> {
@@ -27,30 +31,22 @@ pub struct Days {
     each: Vec<(i8, String)>,
 }
 
-// A heading that names no day stays inside the day above it, so nothing the person wrote is lost.
 pub fn days(body: &str) -> Days {
     let lines: Vec<&str> = body.lines().collect();
-    let heads = crate::docs::headings(body);
-    let titled = heads
+    let titled = crate::docs::headings(body)
         .first()
-        .filter(|(line, level, _)| *line == 1 && *level == 1);
-    let starts: Vec<(usize, i8)> = heads
+        .is_some_and(|(line, level, _)| *line == 1 && *level == 1);
+    let cuts = crate::diary_day::cuts(body);
+    let first = cuts.first().map_or(lines.len(), |one| one.heading);
+    let intro_from = usize::from(titled).min(first);
+    let each = cuts
         .iter()
-        .filter(|(_, level, _)| *level == 2)
-        .filter_map(|(line, _, title)| Some((*line, crate::diary::day_named(title)?)))
+        .map(|one| (one.day, lines[one.heading + 1..one.end].join("\n")))
         .collect();
-    let words = |from: usize, to: usize| lines[from.min(to)..to].join("\n").trim().to_string();
-    let first = starts.first().map_or(lines.len(), |(line, _)| line - 1);
-    let intro = words(titled.map_or(0, |_| 1), first);
-    let each = starts
-        .iter()
-        .enumerate()
-        .map(|(at, (line, day))| {
-            let end = starts.get(at + 1).map_or(lines.len(), |(next, _)| next - 1);
-            (*day, words(*line, end))
-        })
-        .collect();
-    Days { intro, each }
+    Days {
+        intro: lines[intro_from..first].join("\n").trim().to_string(),
+        each,
+    }
 }
 
 pub struct Strip {
@@ -95,7 +91,13 @@ pub fn print(strips: &[Strip]) -> String {
 }
 
 // The month as a line of days, newest on top as written: the words are the person's, the rest the log's.
-pub fn laid(days: &Days, strips: &[Strip], words: &Words, said: &Said) -> String {
+pub fn laid(
+    days: &Days,
+    strips: &[Strip],
+    words: &Words,
+    said: &Said,
+    open: Option<DayAt>,
+) -> String {
     let mut out = String::from("<div class=\"diary-month\">");
     if !days.intro.is_empty() {
         out.push_str(&format!(
@@ -103,8 +105,13 @@ pub fn laid(days: &Days, strips: &[Strip], words: &Words, said: &Said) -> String
             drawn(&days.intro)
         ));
     }
-    for ((_, text), strip) in days.each.iter().zip(strips) {
-        out.push_str(&entry(text, strip, words, said));
+    let places = crate::diary_day::places(days.each.iter().map(|(day, _)| *day));
+    for (((_, text), strip), at) in days.each.iter().zip(strips).zip(places) {
+        let written = match open == Some(at) {
+            true => boxed(text, said),
+            false => drawn(text.trim()),
+        };
+        out.push_str(&entry(&written, at, strip, words, said));
     }
     if days.each.is_empty() {
         out.push_str(&format!(
@@ -120,17 +127,32 @@ fn drawn(text: &str) -> String {
     tisty_markdown::html(&tisty_markdown::read(text))
 }
 
-fn entry(text: &str, strip: &Strip, words: &Words, said: &Said) -> String {
+// The textarea's first line break is the parser's to drop, so words that begin with one keep it.
+fn boxed(text: &str, said: &Said) -> String {
+    let (words, notes) = crate::diary_day::parted(text);
+    let rows = words.lines().count().clamp(2, 20);
+    format!(
+        "<div class=\"diary-box editing\"><textarea class=\"diary-box-words\" rows=\"{rows}\" aria-label=\"{}\">\n{}</textarea></div><div class=\"diary-box-bar\"><button type=\"button\" data-asked=\"dayCancel\">{}</button><button type=\"button\" class=\"diary-box-keep\" data-asked=\"dayKeep\">{}</button></div>{}",
+        escaped(said.writing),
+        escaped(&words),
+        escaped(said.cancel),
+        escaped(said.keep),
+        drawn(&notes.join("\n\n"))
+    )
+}
+
+fn entry(written: &str, at: DayAt, strip: &Strip, words: &Words, said: &Said) -> String {
     let weekday = strip.date.map_or("", |date| {
         words.weekdays[usize::from(date.weekday().to_monday_zero_offset().unsigned_abs())]
     });
     let short = weekday.chars().take(3).collect::<String>().to_lowercase();
     let mut out = format!(
-        "<section class=\"diary-entry{}\"><div class=\"diary-date\"><span class=\"diary-number\">{}</span><span class=\"diary-weekday\">{}</span></div><div class=\"diary-words\">{}",
+        "<section class=\"diary-entry{}\" data-day=\"{}\" data-nth=\"{}\"><div class=\"diary-date\"><span class=\"diary-number\">{}</span><span class=\"diary-weekday\">{}</span></div><div class=\"diary-words\">{written}",
         if strip.today { " diary-is-today" } else { "" },
+        at.day,
+        at.nth,
         strip.day,
         escaped(&short),
-        drawn(text)
     );
     if !strip.closed.is_empty() {
         let summary = match strip.closed.len() {

@@ -984,6 +984,7 @@ export default function Docs({
                   title={called || t("untitledDoc")}
                   book={above?.title}
                   fresh={fresh}
+                  writable={!bolted}
                   onDoc={(file) => onDoc?.(file)}
                   onTask={seeTask}
                   onBefore={() => {

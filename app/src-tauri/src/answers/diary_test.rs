@@ -178,3 +178,80 @@ fn an_idea_filed_in_today_keeps_its_minute_and_colour_beside_the_words() {
         "# Noviembre\n\n## Domingo 15\n\nPaseo.\n\n> [!IDEA] 2026-11-12 09:40 · yellow · right\n> Probar pan con masa madre\n"
     );
 }
+
+const SUNDAY: DayAt = DayAt { day: 15, nth: 0 };
+
+#[test]
+fn a_day_s_words_are_written_again_in_place_and_the_page_it_was_on_comes_back() {
+    let (_tmp, mut session) = session("es");
+    writing(&mut session, "Paseo con Rina.", day("2026-11-14")).unwrap();
+    let today = writing(&mut session, "Lluvia.", day("2026-11-15")).unwrap();
+    sticking(
+        &mut session,
+        "Comprar pan",
+        day("2026-11-15").at(10, 5, 0, 0),
+        0,
+    )
+    .unwrap();
+    let was = diary_day::words(&body(&session, &today.page), SUNDAY).unwrap();
+
+    let written = rewriting(&mut session, &today.page, SUNDAY, &was, "Sol por la tarde.").unwrap();
+
+    assert_eq!(written, today);
+    let now = body(&session, &today.page);
+    assert!(
+        now.contains("## Domingo 15\n\nSol por la tarde.\n\n> [!IDEA] 2026-11-15 10:05"),
+        "{now}"
+    );
+    assert!(now.ends_with("## Sábado 14\n\nPaseo con Rina.\n"), "{now}");
+    let stale = rewriting(&mut session, &today.page, SUNDAY, &was, "Otra vez.").unwrap_err();
+    assert_eq!(stale.code, "diaryDayChanged");
+    assert_eq!(body(&session, &today.page), now);
+}
+
+#[test]
+fn a_note_comes_off_its_day_only_while_it_is_the_one_the_page_showed() {
+    let (_tmp, mut session) = session("es");
+    writing(&mut session, "Lluvia.", day("2026-11-15")).unwrap();
+    let today = sticking(
+        &mut session,
+        "Comprar pan",
+        day("2026-11-15").at(10, 5, 0, 0),
+        0,
+    )
+    .unwrap();
+    let shown = body(&session, &today.page);
+
+    let moved = unsticking(&mut session, &today.page, SUNDAY, 1, &shown).unwrap_err();
+    assert_eq!(moved.code, "diaryDayChanged");
+    unsticking(&mut session, &today.page, SUNDAY, 0, &shown).unwrap();
+
+    assert_eq!(
+        body(&session, &today.page),
+        "# Noviembre\n\n## Domingo 15\n\nLluvia.\n"
+    );
+}
+
+#[test]
+fn a_locked_book_or_a_page_outside_the_diary_keeps_its_days() {
+    let (_tmp, mut session) = session("es");
+    let today = writing(&mut session, "Lluvia.", day("2026-11-15")).unwrap();
+    let id = session
+        .state
+        .docs
+        .values()
+        .find(|one| one.file == today.book)
+        .unwrap()
+        .id;
+    session.commit(Op::DocLock { id }).unwrap();
+
+    let locked = rewriting(&mut session, &today.page, SUNDAY, "Lluvia.", "Sol.").unwrap_err();
+    let book = rewriting(&mut session, &today.book, SUNDAY, "Lluvia.", "Sol.").unwrap_err();
+
+    assert_eq!(locked.code, "documentLocked");
+    assert_eq!(book.code, "diaryPageGone");
+    assert_eq!(
+        body(&session, &today.page),
+        "# Noviembre\n\n## Domingo 15\n\nLluvia.\n"
+    );
+}
