@@ -51,6 +51,8 @@ export {
   BOX,
   holding,
   ideaOpened,
+  type Linkable,
+  naming,
   offered,
   openMenu,
   pressed,

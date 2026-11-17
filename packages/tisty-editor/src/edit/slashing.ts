@@ -28,6 +28,13 @@ export type Asked =
   | "diagram"
   | "diagramFrom";
 
+export type Linkable = {
+  readonly key: string;
+  readonly label: string;
+  readonly detail?: string;
+  readonly link: string;
+};
+
 export type Asking = {
   readonly kinds: readonly Asked[];
   readonly tags?: readonly string[];
@@ -37,6 +44,9 @@ export type Asking = {
   /** A table was just put in, starting at this place of the block: it is written from the page from here on. */
   readonly tabled?: (at: number) => void;
   readonly steps?: () => readonly string[];
+  readonly linkable?: (asked: string) => readonly Linkable[];
+  /** A document's headings arrive later, and `ready` is called when they have. */
+  readonly headsOf?: (asked: string, head: string, ready: () => void) => readonly Linkable[];
   readonly ask: (
     kind: Asked,
     at: { x: number; y: number },
@@ -502,6 +512,40 @@ export const stepping =
     return { from: found.from, filter: false, options };
   };
 
+const NAMED = /\[\[([^[\]\n#]*)$/;
+const NAMED_HEAD = /\[\[([^[\]\n#]+)#([^[\]\n#]*)$/;
+
+// `[[` asks for a document by its words and writes a link by its file, so a rename never breaks it.
+export const naming =
+  (asking?: () => Asking | undefined) =>
+  (context: CompletionContext): CompletionResult | null => {
+    const found = context.matchBefore(NAMED_HEAD) ?? context.matchBefore(NAMED);
+    if (!found || coded(context.state, found.from)) return null;
+    const host = asking?.();
+    const [doc, head] = found.text.slice(2).split("#");
+    const { view } = context;
+    const rows =
+      head === undefined
+        ? host?.linkable?.(doc)
+        : host?.headsOf?.(doc, head, () => view && startCompletion(view));
+    if (!rows?.length) return null;
+    const closed = context.state.sliceDoc(context.pos, context.pos + 2) === "]]";
+    return {
+      from: found.from,
+      to: closed ? context.pos + 2 : context.pos,
+      filter: false,
+      options: rows.map(
+        (one, rank): Completion => ({
+          label: one.label,
+          detail: one.detail,
+          apply: one.link,
+          boost: -rank,
+          type: "page",
+        }),
+      ),
+    };
+  };
+
 const TAG = "tag";
 const TAGGED = new RegExp(`${TAG_EDGE}#${TAG_WORD}$`, "u");
 const REST = new RegExp(`^${TAG_TAIL}*`, "u");
@@ -668,7 +712,9 @@ export const slashing = (
   oneLine = false,
 ) => [
   autocompletion({
-    override: [together([offered(asking, oneLine), tagging(asking), stepping(asking)])],
+    override: [
+      together([offered(asking, oneLine), stepping(asking), naming(asking), tagging(asking)]),
+    ],
     icons: false,
     addToOptions: [{ render: drawn, position: 20 }],
     aboveCursor: false,

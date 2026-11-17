@@ -3,7 +3,7 @@ use std::path::Path;
 use rusqlite::{Connection, OpenFlags, OptionalExtension};
 use serde::Serialize;
 use tisty_markdown::refs::{DOC, TASK, link_spots};
-use tisty_markdown::{Kind, outline};
+use tisty_markdown::sections;
 
 use super::linked::paper_named;
 use super::{Brain, FILE, SCHEMA, WAITS_FOR_OTHERS, schema_of};
@@ -108,13 +108,7 @@ pub fn cited_by(paths: &crate::Paths, id: &str) -> Option<Vec<Citing>> {
 // Places and headings are both read from the translator's text, so front matter and CRLF shift neither.
 fn under(body: &str, aimed: &[String; 2]) -> Vec<Under> {
     let doc = tisty_markdown::read(body);
-    let heads = outline(&doc);
-    let title = doc
-        .blocks()
-        .iter()
-        .find(|block| block.kind != Kind::Front)
-        .filter(|block| block.kind == Kind::Heading(1))
-        .map(|block| block.at.start);
+    let heads = sections(&doc);
     let mut found: Vec<Under> = Vec::new();
     for (link, at) in link_spots(doc.text()) {
         let named = link
@@ -127,7 +121,7 @@ fn under(body: &str, aimed: &[String; 2]) -> Vec<Under> {
         let Some(head) = heads.iter().rev().find(|head| head.at.start <= at) else {
             continue;
         };
-        if Some(head.at.start) == title || found.iter().any(|one| one.id == head.id) {
+        if found.iter().any(|one| one.id == head.id) {
             continue;
         }
         found.push(Under {

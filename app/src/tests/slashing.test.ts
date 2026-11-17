@@ -11,6 +11,8 @@ import {
   type Asked,
   holding,
   hosted,
+  type Linkable,
+  naming,
   offered,
   openMenu,
   put,
@@ -367,6 +369,76 @@ describe("a step named by its number", () => {
       ["1", "[[#1]]"],
       ["2", "[[#2]]"],
     ]);
+  });
+});
+
+describe("a link to another document asked for with [[", () => {
+  const TRIPS: Linkable = { key: "a", label: "Trips", link: "[Trips](tisty:doc/a)" };
+  const HOTELS: Linkable = {
+    key: "a#hotels",
+    label: "Hotels",
+    detail: "Trips",
+    link: "[Trips › Hotels](tisty:doc/a#hotels)",
+  };
+  const asking = (heads: () => Linkable[] = () => []) => ({
+    kinds: [],
+    ask: () => {},
+    steps: () => ["uno"],
+    linkable: (asked: string) => (asked === "zz" ? [] : [TRIPS]),
+    headsOf: (_: string, __: string, ready: () => void) => {
+      const now = heads();
+      if (!now.length) setTimeout(ready, 0);
+      return now;
+    },
+  });
+  const asked = (doc: string, host = asking()) => {
+    const state = EditorState.create({ doc, extensions: [hosted.of(HOST), markdown()] });
+    return naming(() => host)(new CompletionContext(state, doc.length, false));
+  };
+
+  it("offers documents by their words and writes a link by file over what was typed", () => {
+    const said = asked("see [[tri");
+
+    expect(said?.from).toBe(4);
+    expect(said?.to).toBe(9);
+    expect(said?.options.map((one) => [one.label, one.apply])).toEqual([
+      ["Trips", "[Trips](tisty:doc/a)"],
+    ]);
+  });
+
+  it("leaves [[# to the steps, code to its words, and says nothing when nothing fits", () => {
+    expect(asked("see [[#")).toBeNull();
+    expect(asked("```\nsee [[tri")).toBeNull();
+    expect(asked("see [[zz")).toBeNull();
+  });
+
+  it("swallows the ]] already written after the caret", () => {
+    const doc = "see [[tri]] now";
+    const state = EditorState.create({ doc, extensions: [hosted.of(HOST), markdown()] });
+    const said = naming(() => asking())(new CompletionContext(state, 9, false));
+
+    expect(said?.to).toBe(11);
+  });
+
+  it("offers a document's headings after #, opening again once they arrive", async () => {
+    let arrived: Linkable[] = [];
+    const editor = new EditorView({
+      parent: document.body,
+      state: EditorState.create({
+        extensions: [hosted.of(HOST), markdown(), slashing(HOST.say, () => asking(() => arrived))],
+      }),
+    });
+    editor.dispatch({
+      changes: { from: 0, insert: "[[trips#" },
+      selection: { anchor: 8 },
+      userEvent: "input.type",
+    });
+    arrived = [HOTELS];
+
+    await vi.waitFor(() =>
+      expect(currentCompletions(editor.state).map((one) => one.label)).toEqual(["Hotels"]),
+    );
+    editor.destroy();
   });
 });
 

@@ -63,6 +63,7 @@ import { pageFor } from "./sheets";
 import { CompactBar, MarkBar } from "./Tidied";
 import Tongues, { standingHead } from "./Tongues";
 import { useLeaving } from "./useLeaving";
+import { useLinkable } from "./useLinkable";
 import { clearOfChrome } from "./WindowChrome";
 import { useWholeKeys } from "./wholeKeys";
 
@@ -564,6 +565,7 @@ export default function Docs({
   const pages = pagesOf(known, open?.file);
   const [picked, setPicked] = useState<Picked | null>(null);
   const leafy = Boolean(own && !own.pageOf);
+  const { linkable, headsOf } = useLinkable(known, open?.file);
   const slashAsks = useMemo<Asking | undefined>(
     () =>
       bolted
@@ -573,6 +575,8 @@ export default function Docs({
               ? ["newPage", "page", "doc", "newDoc", "icon", "file", "diagram", "diagramFrom"]
               : ["doc", "newDoc", "icon", "file", "diagram", "diagramFrom"],
             tags,
+            linkable,
+            headsOf,
             pasted: (files) =>
               keptAll(
                 files.map((one) =>
@@ -606,7 +610,7 @@ export default function Docs({
               setPicked({ kind, at, put, file: open?.file });
             },
           },
-    [bolted, leafy, onError, open?.file, tags],
+    [bolted, leafy, onError, open?.file, tags, linkable, headsOf],
   );
   const above = under(known, own);
   const sisters = pagesOf(known, above?.file);
