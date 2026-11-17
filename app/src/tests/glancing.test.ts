@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it, vi } from "vitest";
 import type { Glance } from "../citing";
 import { glancing } from "../ui/glancing";
@@ -39,6 +40,20 @@ describe("a glance at the document a link leads to", () => {
     await vi.advanceTimersByTimeAsync(300);
 
     expect(at.querySelector(".glance")).toBeNull();
+  });
+
+  it("takes no press, so nothing in it can write into the open document", async () => {
+    const at = page(`<a href="tisty:doc/dev_a-0002#hoteles">hoteles</a>`);
+    glancing(at, () => Promise.resolve({ ...SAID, html: '<ul><li data-at="0-9">x</li></ul>' }));
+    await rest(at.querySelector("a") as Element);
+    const shown = at.querySelector(".glance") as HTMLElement;
+
+    shown.querySelector("li")?.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
+
+    expect(at.querySelector(".glance")).toBeNull();
+    expect(readFileSync("src/ui/taskpage.css", "utf8")).toMatch(
+      /\.glance \{[^}]*pointer-events: none/,
+    );
   });
 
   it("asks nothing of a card, a web link or a glance that never rested", async () => {

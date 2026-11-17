@@ -325,6 +325,7 @@ html.held .page > .front dd {
 }
 .glance {
   position: absolute;
+  pointer-events: none;
   z-index: 30;
   width: min(360px, calc(100vw - 24px));
   max-height: 280px;

@@ -36,7 +36,7 @@ const drawn = (page: Document, link: Element, said: Glance): HTMLElement => {
   return box;
 };
 
-// Resting on a link to another document shows its section, or its first words, drawn by the core.
+// Another document's section, drawn by the core, takes no clicks: its marks name that document's places.
 export const glancing = (page: Document, look = docGlance) => {
   const root = page.documentElement;
   if (root.dataset.glancing) return;
@@ -57,11 +57,9 @@ export const glancing = (page: Document, look = docGlance) => {
     Boolean(
       one && typeof (target as Node | null)?.nodeType === "number" && one.contains(target as Node),
     );
-  const inside = (target: EventTarget | null) => within(shown, target);
 
   page.addEventListener("mouseover", (event) => {
     clearTimeout(shutting);
-    if (inside(event.target)) return;
     const link = (event.target as Element | null)?.closest?.("a[href]") ?? null;
     const aimed = aimedAt(link);
     if (!aimed || link === over) return;
@@ -82,10 +80,10 @@ export const glancing = (page: Document, look = docGlance) => {
   page.addEventListener("mouseout", (event) => {
     if (!over) return;
     const into = event.relatedTarget;
-    if (inside(into) || within(over, into)) return;
+    if (within(over, into)) return;
     clearTimeout(shutting);
     shutting = setTimeout(shut, SHUTS_AFTER);
   });
   for (const ends of ["mousedown", "keydown", "scroll"] as const)
-    page.addEventListener(ends, (event) => !inside(event.target) && shut(), true);
+    page.addEventListener(ends, shut, true);
 };

@@ -791,3 +791,20 @@ describe("documents offered after [[ while writing on the page", () => {
     expect(last(said)).toContain("tres [Viajes](tisty:doc/a)\n");
   });
 });
+
+describe("one list at the caret", () => {
+  it("offers the headings after [[Title # and keeps the tags list shut", () => {
+    const heads: Linkable = {
+      key: "a#casa",
+      label: "Casa",
+      link: "[Viajes › Casa](tisty:doc/a#casa)",
+    };
+    writer(BODY, { tags: () => ["casa"], linkable, headsOf: () => [heads] });
+    caretIn(" tres", 5);
+    asked("insertText", " [[Viajes #ca");
+    writing?.drawn();
+
+    expect(linksShown()?.hidden).toBe(false);
+    expect(listed()?.hidden).toBe(true);
+  });
+});

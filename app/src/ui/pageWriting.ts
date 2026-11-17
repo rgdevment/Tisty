@@ -84,8 +84,9 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
     const range = caret.chosen();
     const known = hands.tags;
     const open = writer.typing && at !== undefined && !(range && inCode(range.startContainer));
-    tags.offer(open && known ? tagMatch(hands.text(), at, known()) : null);
-    links.offer(open ? linkMatch(hands.text(), at, hands, offerTags) : null);
+    const linking = open ? linkMatch(hands.text(), at, hands, offerTags) : null;
+    links.offer(linking);
+    tags.offer(open && known && !linking ? tagMatch(hands.text(), at, known()) : null);
   };
   const lists = {
     offer: tags.offer,
