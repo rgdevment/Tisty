@@ -11,7 +11,7 @@ use crate::{
 mod linked;
 mod nodes;
 
-const SCHEMA: i64 = 2;
+const SCHEMA: i64 = 3;
 const FILE: &str = "brain.db";
 const WAITS_FOR_OTHERS: std::time::Duration = std::time::Duration::from_secs(5);
 const PAGES_WORTH_COMPACTING: i64 = 256;

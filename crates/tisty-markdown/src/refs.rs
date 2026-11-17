@@ -127,16 +127,17 @@ pub fn links(text: &str) -> Vec<Link> {
     let code = crate::fences::fenced_spans(text);
     let bytes = text.as_bytes();
     let mut found: Vec<Link> = Vec::new();
+    let mut seen: std::collections::BTreeSet<(String, bool)> = Default::default();
     for (at, one) in marked_past(text, &code) {
         if one.kind != Kind::Link {
             continue;
         }
-        let link = Link {
-            card: at > 0 && bytes[at - 1] == b'!',
-            target: one.target,
-        };
-        if !found.contains(&link) {
-            found.push(link);
+        let card = at > 0 && bytes[at - 1] == b'!';
+        if seen.insert((one.target.clone(), card)) {
+            found.push(Link {
+                target: one.target,
+                card,
+            });
         }
     }
     found
