@@ -363,8 +363,11 @@ fn two_processes_keep_one_base_between_them() {
 #[test]
 fn a_look_trusts_the_stamp_and_a_nudge_reads_the_store_again() {
     let world = World::new();
-    let mut store = world.store();
-    task(&mut store, "renew the passport", &[]);
+    let filed = |title: &str| {
+        let mut store = world.store();
+        task(&mut store, title, &[]);
+    };
+    filed("renew the passport");
 
     assert!(matches!(
         kept_up(&world.paths, Round::Starting),
@@ -375,7 +378,7 @@ fn a_look_trusts_the_stamp_and_a_nudge_reads_the_store_again() {
         Some(Refreshed::Unchanged)
     );
 
-    task(&mut store, "water the plants", &[]);
+    filed("water the plants");
 
     assert_eq!(
         kept_up(&world.paths, Round::Nudged),

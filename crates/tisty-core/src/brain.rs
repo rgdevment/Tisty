@@ -160,10 +160,12 @@ impl Brain {
             tx.execute_batch(DROPPED)?;
         }
         tx.execute_batch(TABLES)?;
-        tx.execute(
-            "INSERT OR REPLACE INTO meta VALUES ('schema', ?)",
-            [SCHEMA.to_string()],
-        )?;
+        if held != Some(SCHEMA) {
+            tx.execute(
+                "INSERT OR REPLACE INTO meta VALUES ('schema', ?)",
+                [SCHEMA.to_string()],
+            )?;
+        }
         tx.commit()?;
         Ok(Some(Self { db }))
     }
