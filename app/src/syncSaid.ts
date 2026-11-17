@@ -66,7 +66,7 @@ const NAMED = 3;
 export const whatsLeft = (said: Settled): string | null => {
   const waiting = said.deferred;
   if (!waiting || waiting.left === 0) return null;
-  const shown = waiting.names.slice(0, NAMED).map(named);
+  const shown = waiting.names.slice(0, NAMED).map((one) => named(one));
   if (!shown.length) return fill("deferredCount", String(waiting.left));
   const more = waiting.left - shown.length;
   const list = more > 0 ? fill("deferredMore", shown.join(", "), String(more)) : shown.join(", ");
