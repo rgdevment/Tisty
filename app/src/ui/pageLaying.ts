@@ -125,11 +125,11 @@ export const layingOn = (
     laidOut(text, next, one);
   };
 
-  const heldAcross = (was: string, now: string, moving?: number) => {
+  const heldAcross = (was: string, now: string) => {
     const one = changeOf(was, now);
     const removed = bytesIn(was, one.from, one.to);
     const from = bytesIn(was, 0, one.from);
-    holding.before({ from, removed, by: bytesIn(one.insert) - removed }, moving);
+    holding.before({ from, removed, by: bytesIn(one.insert) - removed });
   };
 
   return { put, laidOut, stop, landed: holding.landed, heldAcross };
