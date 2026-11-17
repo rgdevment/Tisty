@@ -545,8 +545,13 @@ export default function Sheet(props: Readonly<Props>) {
       if (back !== null) pageWriter.current?.hands.placeAt(back, stays);
       return;
     }
-    pageWriter.current?.hands.stop();
+    const unlaid = pageWriter.current?.hands.stop();
     pageWriter.current = null;
+    // A key still on its way to the page was never drawn there, so the page is drawn anew with it.
+    if (unlaid) {
+      alreadyShown.current = null;
+      setDrawn(latest.current);
+    }
   }, [markdown, onPage, left]);
 
   const { wholeAsked, allAsked } = props;
@@ -1203,7 +1208,12 @@ export default function Sheet(props: Readonly<Props>) {
   }, [turned, drawn]);
 
   useEffect(() => () => holdingNow.current(), []);
-  useEffect(() => () => pageWriter.current?.hands.stop(), []);
+  useEffect(
+    () => () => {
+      pageWriter.current?.hands.stop();
+    },
+    [],
+  );
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: `markIn` reads only refs, so the count alone decides.
   useEffect(() => {

@@ -22,6 +22,7 @@ export const layingOn = (
   let resting: ReturnType<typeof setTimeout> | undefined;
   let unsaid: string | null = null;
   let over = false;
+  let unlaid = 0;
   let placed: Placed | null = null;
   const holding = holdingOn(page);
 
@@ -49,6 +50,7 @@ export const layingOn = (
     over = true;
     holding.stop();
     told();
+    return unlaid > 0;
   };
   const rested = (now: string) => {
     clearTimeout(resting);
@@ -60,7 +62,8 @@ export const layingOn = (
   const laidOut = (was: string, now: string, asked: Edit) => {
     // A task's page is small and dressed with its hints and buttons, which only a whole drawing lays again.
     if (page.documentElement.classList.contains("untitled")) writer.whole = true;
-    laying = laying.then(async () => {
+    unlaid += 1;
+    const step = laying.then(async () => {
       if (over) return;
       unsaid = null;
       clearTimeout(resting);
@@ -93,6 +96,9 @@ export const layingOn = (
       opened(page, laid);
       rested(now);
       if (hands.text() === now) drawn(laid);
+    });
+    laying = step.finally(() => {
+      unlaid -= 1;
     });
   };
 
