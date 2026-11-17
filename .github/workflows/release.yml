@@ -816,30 +816,41 @@ jobs:
           PLIST
           plutil -lint "$RUNNER_TEMP/Entitlements.plist"
 
-          # The bundler signs every binary it carries with these permissions, and macOS kills a tool
-          # that claims a profile made for the app. The CLI is signed here with none, and rides in
-          # as a file the bundler copies without signing it again.
+          # The bundler would sign the CLI with the app's permissions, which macOS kills it for.
+          for needed in APPLE_CERTIFICATE APPLE_CERTIFICATE_PASSWORD APPLE_SIGNING_IDENTITY; do
+            if [ -z "${!needed}" ]; then
+              echo "::error::$needed is empty, so the CLI cannot be signed apart from the app"
+              exit 1
+            fi
+          done
           cli="$RUNNER_TEMP/cli/tisty"
           mkdir -p "$(dirname "$cli")"
           cp "app/src-tauri/binaries/tisty-$TARGET" "$cli"
           keychain="$RUNNER_TEMP/cli.keychain-db"
-          pass=$(openssl rand -hex 16)
-          echo "$APPLE_CERTIFICATE" | base64 --decode > "$RUNNER_TEMP/cli.p12"
+          p12="$RUNNER_TEMP/cli.p12"
           searched=$(security list-keychains -d user | tr -d '"')
+          # Gone before the bundler imports the same identity, and when any step here fails.
+          cleared() {
+            rm -f "$p12"
+            # shellcheck disable=SC2086
+            security list-keychains -d user -s $searched
+            security delete-keychain "$keychain" 2>/dev/null || true
+          }
+          trap cleared EXIT
+          pass=$(openssl rand -hex 16)
+          echo "$APPLE_CERTIFICATE" | base64 --decode > "$p12"
           security create-keychain -p "$pass" "$keychain"
           security unlock-keychain -p "$pass" "$keychain"
-          security import "$RUNNER_TEMP/cli.p12" -f pkcs12 -t agg -P "$APPLE_CERTIFICATE_PASSWORD" \
+          security import "$p12" -f pkcs12 -t agg -P "$APPLE_CERTIFICATE_PASSWORD" \
             -T /usr/bin/codesign -k "$keychain"
-          rm -f "$RUNNER_TEMP/cli.p12"
+          rm -f "$p12"
           security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$pass" "$keychain" > /dev/null
           # shellcheck disable=SC2086
           security list-keychains -d user -s "$keychain" $searched
           codesign --force --options runtime --timestamp --keychain "$keychain" \
             --sign "$APPLE_SIGNING_IDENTITY" "$cli"
-          # Gone before the bundler imports the same identity, so its signing is never ambiguous.
-          # shellcheck disable=SC2086
-          security list-keychains -d user -s $searched
-          security delete-keychain "$keychain"
+          cleared
+          trap - EXIT
           codesign --verify --strict --verbose=2 "$cli"
           if [ -n "$(codesign -d --entitlements - --xml "$cli" 2>/dev/null)" ]; then
             echo "::error::the CLI was signed with permissions; macOS would kill it"
@@ -911,8 +922,8 @@ jobs:
             exit 1
           fi
           if ! perl -e 'alarm 30; exec @ARGV' arch "-$cpu" "$cli" --version; then
-            log show --last 2m --style compact \
-              --predicate 'subsystem == "com.apple.MobileFileIntegrity" OR sender == "AppleMobileFileIntegrity" OR eventMessage CONTAINS "tisty"' \
+            sudo log show --last 2m --style compact \
+              --predicate 'eventMessage CONTAINS "AMFI" OR subsystem == "com.apple.MobileFileIntegrity" OR sender == "AppleMobileFileIntegrity" OR (process == "kernel" AND eventMessage CONTAINS "tisty")' \
               | tail -40 || true
             exit 1
           fi
