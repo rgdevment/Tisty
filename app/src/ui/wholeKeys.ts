@@ -1,6 +1,8 @@
 import { listen } from "@tauri-apps/api/event";
 import { useEffect, useState } from "react";
 
+export const WHOLE_ASKED = "tisty:whole";
+
 // Counts a sheet reads as asks: Ctrl+E opens or leaves the whole document, Ctrl+A chooses every word.
 export function useWholeKeys(shown: boolean, wholeable: boolean) {
   const [wholeAsked, setWholeAsked] = useState(0);
@@ -25,13 +27,15 @@ export function useWholeKeys(shown: boolean, wholeable: boolean) {
         setAllAsked((many) => many + 1);
       }
     };
+    const asked = () => {
+      if (wholeable) setWholeAsked((many) => many + 1);
+    };
     window.addEventListener("keydown", pressed);
+    window.addEventListener(WHOLE_ASKED, asked);
     // On a Mac the menu holds the keys, so the switch arrives as its item.
     let drop: (() => void) | undefined;
     let gone = false;
-    listen("whole", () => {
-      if (wholeable) setWholeAsked((many) => many + 1);
-    })
+    listen("whole", asked)
       .then((off) => {
         if (gone) off();
         else drop = off;
@@ -41,6 +45,7 @@ export function useWholeKeys(shown: boolean, wholeable: boolean) {
       gone = true;
       drop?.();
       window.removeEventListener("keydown", pressed);
+      window.removeEventListener(WHOLE_ASKED, asked);
     };
   }, [shown, wholeable]);
   return { wholeAsked, allAsked };

@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { fold } from "../breadth";
 import { onMac } from "./WindowChrome";
 
 export const FINDER = "side-finder";
@@ -20,3 +21,9 @@ export function useFindKey(shown: boolean, onFind: () => void) {
 }
 
 export const focusFinder = () => document.getElementById(FINDER)?.focus();
+
+// A folded sidebar has no finder to reach, so it unfolds first.
+export const findNow = (folded: boolean) => {
+  if (folded) fold(false);
+  requestAnimationFrame(focusFinder);
+};
