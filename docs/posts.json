@@ -3,7 +3,7 @@
   "pinned": {
     "id": "why-tisty",
     "en": {
-      "text": "A task list forgets the moment you tick the box. My AI agent forgot the moment the session ended.\n\nI got tired of solving things twice and explaining my project every morning, so I built Tisty: a memory on my own disk, for me and for my agent.\n\nHow do you keep yours?"
+      "text": "I started building Tisty to solve a problem of my own, and saw it wasn't only mine: everyone working with an AI agent explains the project again every session.\n\nTisty is the working memory I share with my agent. I see the whole, it works the detail.\n\nHow do you keep yours?"
     },
     "reply": {
       "en": {
@@ -13,6 +13,12 @@
   },
   "queue": [
     {
+      "id": "whole-and-detail",
+      "en": {
+        "text": "My AI agent knows every detail of my project. I'm the one who sees the whole. Every new session that link broke, and I explained it all again.\n\nSo I built Tisty: one working memory for both of us. I see the whole, it works the detail.\n\nHow do you split the work with yours?"
+      }
+    },
+    {
       "id": "explain-it-every-morning",
       "en": {
         "text": "Every morning I explained my project to my AI agent again. Same stack, same decisions, same dead ends.\n\nI built Tisty so it starts from what moved since yesterday and the task it was on, not from a blank chat.\n\nHow do you start a session without the recap?"
@@ -21,7 +27,7 @@
     {
       "id": "solved-it-before",
       "en": {
-        "text": "Eight months after I fixed some timeouts on save, they came back somewhere else. I remembered solving it. I couldn't remember how: the note went when I ticked the task.\n\nSo in Tisty a finished task is kept whole, steps and notes.\n\nWhere do your solved problems end up?"
+        "text": "I solved a problem once, and months later it came back. I remembered solving it. I couldn't remember how: the note went when I ticked the task.\n\nSo in Tisty a finished task is kept whole, steps and notes, for me and for my agent.\n\nWhere do your solved problems end up?"
       }
     },
     {
