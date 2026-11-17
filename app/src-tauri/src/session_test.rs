@@ -45,6 +45,28 @@ fn a_commit_that_lands_while_the_store_is_read_survives_the_projection_that_miss
 }
 
 #[test]
+fn every_write_tells_the_brain_to_look_again() {
+    let kept = tempfile::tempdir().unwrap();
+    let mut session = Session::at(somewhere(&kept)).unwrap();
+
+    session
+        .commit(Op::TaskAdd {
+            id: ulid::Ulid::generate(),
+            d: TaskAdd::new("comprar pan".to_string(), "a0"),
+        })
+        .unwrap();
+    assert!(session.brain_nudge.taken(), "a commit nudges the brain");
+
+    session
+        .commit_all(vec![Op::TaskAdd {
+            id: ulid::Ulid::generate(),
+            d: TaskAdd::new("y leche".to_string(), "a0"),
+        }])
+        .unwrap();
+    assert!(session.brain_nudge.taken(), "a batch nudges the brain");
+}
+
+#[test]
 fn a_projection_nothing_interrupted_leaves_the_session_settled() {
     let kept = tempfile::tempdir().unwrap();
     let paths = somewhere(&kept);
