@@ -1,5 +1,6 @@
 import { listen } from "@tauri-apps/api/event";
 import { type MutableRefObject, useEffect, useRef } from "react";
+import { cameBack } from "./back";
 import { carrying } from "./carrying";
 import { heard, play } from "./chime";
 import { type Afoot, type DoorDue, doorDue, keptForTheEnd, parted, syncState } from "./core";
@@ -55,22 +56,15 @@ export function useListening({
 }: Hands) {
   const wasAwry = useRef<string | null>(null);
   useEffect(() => {
-    let asking = false;
-    // A window coming back is seen again and focused at once, and one asking answers both.
-    const again = () => {
-      if (asking) return;
-      asking = true;
+    const again = cameBack(() => {
       latest.current();
       lookPapers();
       doorDue()
         .then((due) => {
           if (due?.why === "knocked") setOffering(due);
         })
-        .catch(() => {})
-        .finally(() => {
-          asking = false;
-        });
-    };
+        .catch(() => {});
+    });
     const shownAgain = () => {
       if (document.visibilityState === "visible") again();
     };

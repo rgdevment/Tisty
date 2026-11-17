@@ -1,4 +1,5 @@
 import { listen } from "@tauri-apps/api/event";
+import { cameBack } from "./back";
 import { choiceWaits, toldAside } from "./coming";
 import {
   type Carried,
@@ -175,14 +176,7 @@ export function carrying(
     if (folder !== undefined) stirred();
   };
 
-  let cameBack = 0;
-  // A window coming back is seen again and focused, in either order, and the round the first began serves both.
-  const back = () => {
-    if (running && cameBack === round) return;
-    const before = round;
-    void pull();
-    if (round !== before) cameBack = round;
-  };
+  const back = cameBack(() => void pull());
 
   const seen = () => {
     if (document.visibilityState === "visible") back();

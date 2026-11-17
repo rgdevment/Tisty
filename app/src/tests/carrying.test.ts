@@ -310,7 +310,7 @@ describe("carrying on its own", () => {
     seen.mockRestore();
   });
 
-  it("still pulls for a focus once the round that brought the window back is over", async () => {
+  it("answers it with one round though the first is already over when the focus comes", async () => {
     let shown = "hidden";
     const seen = vi
       .spyOn(document, "visibilityState", "get")
@@ -321,7 +321,26 @@ describe("carrying on its own", () => {
 
     shown = "visible";
     document.dispatchEvent(new Event("visibilitychange"));
+    await vi.advanceTimersByTimeAsync(200);
+    window.dispatchEvent(new Event("focus"));
     await settle();
+
+    expect(sent("sync_now").length).toBe(before + 1);
+    seen.mockRestore();
+  });
+
+  it("pulls again for a focus that comes a while after the window came back", async () => {
+    let shown = "hidden";
+    const seen = vi
+      .spyOn(document, "visibilityState", "get")
+      .mockImplementation(() => shown as DocumentVisibilityState);
+    carried = carrying(() => {});
+    await settle();
+    const before = sent("sync_now").length;
+
+    shown = "visible";
+    document.dispatchEvent(new Event("visibilitychange"));
+    await vi.advanceTimersByTimeAsync(1_000);
     window.dispatchEvent(new Event("focus"));
     await settle();
 
