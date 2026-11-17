@@ -79,13 +79,24 @@ export const placeWritten = (
   one.setAttribute(name, `${at[0]}-${at[1]}`);
 };
 
+const waitsToMove = (one: Element) => {
+  const moved = pending(one.ownerDocument);
+  const top = moved && topIn(moved.sheet, one);
+  if (!moved || !top) return false;
+  return (
+    top === moved.first ||
+    !!(moved.first.compareDocumentPosition(top) & Node.DOCUMENT_POSITION_FOLLOWING)
+  );
+};
+
+// Only a place copied out of or into a block still waiting to move would be moved twice, so only then what waits is written first.
 export const placeCopied = (
   from: Element,
   to: Element,
   name: Placed = "data-at",
   as: Placed = name,
 ) => {
-  placesSettled(from.ownerDocument);
+  if (waitsToMove(from) || waitsToMove(to)) placesSettled(from.ownerDocument);
   const said = from.getAttribute(name);
   if (said) to.setAttribute(as, said);
 };
