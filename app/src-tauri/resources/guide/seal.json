@@ -8,7 +8,7 @@
     "en/capture.png": "230006bf09f9f2dd20d168c50c540866a45eed4d723ed2633bc78db94e340b9d",
     "en/code.md": "730a0f3bb6ef3c728f26dd6819728134abbc63e1334c056d95605d3df66f8f41",
     "en/diagrams.png": "cd987fbda9c2a512ee2db98ff174754f0811074b52fd49f9d40305ee9070ba6b",
-    "en/guide.md": "de483f80942136e43beefb41b6e9bfcdd2acc644edaae6fe64c20aba5006ca62",
+    "en/guide.md": "f66c4678ae11548f76adfbaf1561749c18dae12a45c84c3fb813ed81f867e78f",
     "en/hill.jpg": "c20714d2eec225eb61b9f56f0bf1e3b0cb72c486514ea73d418a8e2d32851417",
     "en/languages.png": "fdee3e20366d705de2ec6f3781cebf9508111808b2269ca16902f0407d7d484c",
     "en/page.md": "4b1586d9c76262dc33f326d7fb7720f2d68976902fd7a5f5479ceb4321588acc",
@@ -27,7 +27,7 @@
     "es/cartilla.pdf": "284c3eef816388b2062d7aa44c587529a978fa6d4a99ad8c268cd2b7e2b82682",
     "es/codigo.md": "1711dcc10d1f5a5346d8b345295b06d8ce111e5b402a8c8e1bcb08c5d14de5b4",
     "es/diagramas.png": "25b8ba7bbcaaf119b5b570a49a7c95e1c59dd8a399f7c943191dc7944cf96826",
-    "es/guia.md": "c22d40c703e9200e8805b4602db85436f4015887bfa422ff3a657db07501d016",
+    "es/guia.md": "2b1df4f85fe1d23dd7c5dc1c7168d8749f1b3992d780c31025a97a769d0ce354",
     "es/hill.jpg": "c20714d2eec225eb61b9f56f0bf1e3b0cb72c486514ea73d418a8e2d32851417",
     "es/ideas.png": "613d2a80bec55aa6db78f3429611b00864635a3bae36aa7aebd4a558f85bc69d",
     "es/idiomas.png": "5ef67e72c4e4d90eae156e250a62afa94dcca6a48344e7754dcc3646129ced63",
@@ -47,6 +47,6 @@
       "since": "2026-11-10T00:52:29Z",
       "sig": "HdUTmQ2TmV6_6AMUyB3IHv_ryzoPlDnBc7AFW1OnuKvbZ4cwp3pOe0WRwnII-W-kDgVSYOWKgiVKxEyrl2R8Bg"
     },
-    "sig": "GFP8TEfjFeHjfCxq_zCqBedJcky-Y0xoTe-2jh9JrMA9XxL5ygCH_vqCbmr50h2q68RB3Lp9qlNtq15JsZw5AQ"
+    "sig": "lDVSVfCn9Bp8U1QooGlAzX9Ho_dRn3k0ekfqNdCPnyMFrwKzVTnGbKwy8kin9qLwi5xA2B-o0MQKtfb38YHcDg"
   }
 }

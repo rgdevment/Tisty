@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { jot } from "./brainstorm";
 import { capture, type Priority, type Snapshot, shortcut, snapshot } from "./core";
 import { diaryWrite } from "./diary";
+import { every, turnOf } from "./examples";
 import { adopt, fill, t } from "./locales";
 import { IDEA_AT_MOST } from "./notes";
 import { said } from "./quadrants";
@@ -12,9 +13,7 @@ import CaptureField from "./ui/CaptureField";
 import QuickField from "./ui/QuickField";
 import { winksNow } from "./wink";
 
-const anyOf = (all: string[]): string => all[Math.floor(Math.random() * all.length)] ?? "";
-
-const invited = (): string => (winksNow() ? t("taskWink") : anyOf(t("taskExamples").split("\n")));
+const invited = (): string => (winksNow() ? t("taskWink") : turnOf(every(), Math.random()));
 
 type Mode = "task" | "idea" | "diary";
 
