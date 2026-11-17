@@ -1621,7 +1621,7 @@
       },
       {
         "title": "Solo tuyo",
-        "said": "ningún agente de IA ve tu diario hasta que lo abres tú, y abierto solo añade al final de hoy cuando se lo pides. Nunca se comparte por link. Actualiza tus otros equipos antes de escribir en él: uno con una versión anterior no conoce esa puerta."
+        "said": "ningún agente de IA ve tu diario hasta que lo abres tú, y abierto solo añade al final de hoy cuando se lo pides. Nunca se comparte por link. Empieza cuando todos tus equipos tienen esta versión, y Tisty te dice cuál falta."
       },
       {
         "title": "Recordatorios con Tisty cerrado",
@@ -1663,7 +1663,7 @@
       },
       {
         "title": "Only yours",
-        "said": "no AI agent sees your diary until you open it yourself, and open it only adds to the end of today when you ask. It is never shared by link. Update your other computers before you write in it: one on an older version does not know that door."
+        "said": "no AI agent sees your diary until you open it yourself, and open it only adds to the end of today when you ask. It is never shared by link. It begins once every computer of yours has this version, and Tisty tells you which one is missing."
       },
       {
         "title": "Reminders with Tisty closed",

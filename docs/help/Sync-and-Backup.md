@@ -186,7 +186,7 @@ If you have Google's desktop program, choosing its folder instead is faster and 
 
 ## After an update
 
-Every event carries a version, and a machine only reads what it understands. When one machine updates to a version that writes something new, the other stops syncing **in both directions** until it updates too. Nothing is lost and nothing lands half understood: update the machine that is behind, and the two carry on. 1.48 is the exception that needs your hand: a computer still on an older Tisty keeps syncing, but shows the [Diary](Documents#diary) to its agents as an ordinary document. Update every computer before you write in it.
+Every event carries a version, and a machine only reads what it understands. When one machine updates to a version that writes something new, the other stops syncing **in both directions** until it updates too. Nothing is lost and nothing lands half understood: update the machine that is behind, and the two carry on. The [Diary](Documents#diary) follows the same rule: **Diary** does not start it while any computer of yours runs a Tisty older than 1.48, and once it exists your cloud or your folder asks every computer that reaches it for that version, so an older one stops before it receives any of it.
 
 Since 1.34, a computer still on Tisty 1.30 to 1.33 that reaches your cloud or your folder stops and asks you to update it instead of writing over what a newer one left. Until you do, that computer does not sync, but nothing is lost: what it holds stays where it was and catches up once it is updated. A copy from a store may take a little while to receive the new version.
 

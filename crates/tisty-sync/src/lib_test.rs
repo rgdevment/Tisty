@@ -6365,6 +6365,125 @@ fn a_round_leaves_the_meeting_place_saying_what_shape_it_is_in() {
     assert!(said.contains("store"), "{said}");
 }
 
+fn a_diary_filed(who: &Machine) {
+    let body = tisty_core::diary::book(2026, &tisty_core::diary::SPANISH);
+    let mut held = signing(who);
+    held.append(Op::DocAdd {
+        id: Ulid::generate(),
+        d: tisty_core::event::DocAdd {
+            wrote: None,
+            guest: false,
+            sown: false,
+            made: None,
+            by: None,
+            said: Some(tisty_core::event::Said::of(&body)),
+            file: "uno-0001".to_string(),
+            order: "a0".into(),
+            folder: None,
+            page_of: None,
+            task_of: None,
+            edited: None,
+        },
+    })
+    .unwrap();
+    tisty_core::docs::write(&who.data.join(PAPERS), "uno-0001", &body).unwrap();
+}
+
+#[test]
+fn a_new_place_given_a_store_with_a_diary_is_left_asking_for_the_release_that_brought_the_diary() {
+    let one = machine("uno");
+    a_diary_filed(&one);
+    let shared = tempfile::tempdir().unwrap();
+
+    carry(&one.data, &one.device, shared.path(), Way::Both, &[]).unwrap();
+
+    let said = std::fs::read_to_string(shared.path().join("tisty.toml")).unwrap();
+    assert!(
+        said.contains(&format!("needs = \"{}\"", tisty_core::diary::SINCE)),
+        "an older build was left free to read a place holding a diary: {said}"
+    );
+}
+
+#[test]
+fn a_place_already_named_is_raised_for_a_diary_before_this_machine_gives_its_history() {
+    raised_before_the_history_goes(format!("shape = {SHAPE}\nneeds = \"{NEEDS}\"\n"));
+}
+
+#[test]
+fn a_place_whose_word_only_its_shape_line_reads_is_still_raised_for_a_diary_first() {
+    raised_before_the_history_goes(format!(
+        "shape = {SHAPE}\nneeds = \"{NEEDS}\"\nfolders = [\n"
+    ));
+}
+
+fn raised_before_the_history_goes(word: String) {
+    let one = machine("uno");
+    a_diary_filed(&one);
+    let shared = tempfile::tempdir().unwrap();
+    std::fs::write(shared.path().join("tisty.toml"), word).unwrap();
+    std::fs::create_dir_all(shared.path().join("store").join(MARKER)).unwrap();
+
+    let round = carry(&one.data, &one.device, shared.path(), Way::Both, &[]);
+
+    assert!(
+        round.is_err(),
+        "the marker could not be written and the round went on"
+    );
+    let said = std::fs::read_to_string(shared.path().join("tisty.toml")).unwrap();
+    assert!(
+        said.contains(&format!("needs = \"{}\"", tisty_core::diary::SINCE)),
+        "the place was not raised before the history went in: {said}"
+    );
+    assert!(
+        !shared.path().join("store").join(&one.device).exists(),
+        "this machine's history reached a place older builds could still read"
+    );
+}
+
+#[test]
+fn a_store_without_a_diary_leaves_a_place_that_asks_for_the_diary_release_as_it_is() {
+    let one = machine("uno");
+    let shared = tempfile::tempdir().unwrap();
+    carry(&one.data, &one.device, shared.path(), Way::Both, &[]).unwrap();
+    let at = shared.path().join("tisty.toml");
+    let raised = format!(
+        "shape = {SHAPE}\nneeds = \"{}\"\n",
+        tisty_core::diary::SINCE
+    );
+    std::fs::write(&at, &raised).unwrap();
+
+    carry(&one.data, &one.device, shared.path(), Way::Both, &[]).unwrap();
+
+    assert_eq!(
+        std::fs::read_to_string(&at).unwrap(),
+        raised,
+        "a place was lowered by a store with no diary"
+    );
+}
+
+#[test]
+fn a_place_asking_for_the_diary_release_is_still_carried_by_this_build() {
+    let one = machine("uno");
+    a_diary_filed(&one);
+    let shared = tempfile::tempdir().unwrap();
+    std::fs::write(
+        shared.path().join("tisty.toml"),
+        format!(
+            "shape = {SHAPE}\nneeds = \"{}\"\n",
+            tisty_core::diary::SINCE
+        ),
+    )
+    .unwrap();
+
+    carry(&one.data, &one.device, shared.path(), Way::Both, &[])
+        .expect("this build turned away a place that asks for the release it belongs to");
+
+    assert!(
+        shared.path().join("store").join(&one.device).is_dir(),
+        "the round said nothing and gave nothing"
+    );
+}
+
 #[test]
 fn a_quiet_round_leaves_the_shape_it_finds_as_it_is() {
     let one = machine("uno");

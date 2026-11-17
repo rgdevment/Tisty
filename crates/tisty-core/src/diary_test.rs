@@ -382,3 +382,118 @@ fn a_locked_book_still_opens_its_month_but_makes_no_new_one() {
         "no page was written on disk"
     );
 }
+
+fn joined(state: &mut State, device: &str, kind: crate::event::DeviceKind) {
+    state.apply(&ev(
+        10,
+        device,
+        Op::DeviceJoin {
+            d: DeviceId(device.into()),
+            k: Some(kind),
+            p: None,
+        },
+    ));
+}
+
+fn runs(state: &mut State, device: &str, release: &str) {
+    state.apply(&ev(20, device, Op::DeviceRelease { r: release.into() }));
+}
+
+fn with_machines_behind() -> State {
+    use crate::event::DeviceKind::{Agent, Machine};
+    let mut state = State::default();
+    for (device, kind) in [
+        ("dev_here", Machine),
+        ("dev_laptop", Machine),
+        ("dev_desk", Machine),
+        ("dev_old", Machine),
+        ("dev_bot", Agent),
+    ] {
+        joined(&mut state, device, kind);
+    }
+    runs(&mut state, "dev_here", "1.47.1");
+    runs(&mut state, "dev_laptop", "1.47.1");
+    runs(&mut state, "dev_desk", SINCE);
+    state
+}
+
+#[test]
+fn a_diary_never_begins_while_another_machine_runs_a_tisty_that_would_hand_it_to_its_agents() {
+    let room = tempfile::tempdir().unwrap();
+    let state = with_machines_behind();
+    let device = here();
+    let maker = Maker {
+        root: room.path(),
+        device: &device,
+        by: None,
+    };
+
+    let waiting = opened(&maker, &state, day("2026-11-16"), &SPANISH).unwrap();
+
+    assert!(
+        matches!(&waiting, Opened::Waiting { behind } if *behind == [DeviceId("dev_laptop".into()), DeviceId("dev_old".into())]),
+        "only the other machines behind, the silent one among them, hold it: {waiting:?}"
+    );
+    assert!(!begun(&state));
+    assert!(
+        crate::docs::all(room.path()).is_empty(),
+        "a book was written while the diary waited"
+    );
+}
+
+#[test]
+fn once_the_diary_has_begun_a_machine_behind_holds_no_new_month_or_year() {
+    let room = tempfile::tempdir().unwrap();
+    let mut state = State::default();
+    let november = opened_into(room.path(), &mut state, day("2026-11-15"), &SPANISH);
+    joined(&mut state, "dev_laptop", crate::event::DeviceKind::Machine);
+    runs(&mut state, "dev_laptop", "1.47.1");
+    let device = here();
+    let maker = Maker {
+        root: room.path(),
+        device: &device,
+        by: None,
+    };
+
+    let december = opened(&maker, &state, day("2026-12-01"), &SPANISH).unwrap();
+    let next_year = opened(&maker, &state, day("2027-01-01"), &SPANISH).unwrap();
+
+    assert!(
+        matches!(&december, Opened::Ready(one) if one.book == november.book && one.page_made),
+        "{december:?}"
+    );
+    assert!(
+        matches!(&next_year, Opened::Ready(one) if one.book != november.book),
+        "{next_year:?}"
+    );
+}
+
+#[test]
+fn a_store_has_begun_its_diary_once_a_book_was_made_even_put_away_or_no_longer_saying_so() {
+    let room = tempfile::tempdir().unwrap();
+    let mut state = State::default();
+    assert!(!begun(&state));
+
+    let opening = opened_into(room.path(), &mut state, day("2026-11-15"), &SPANISH);
+    assert!(begun(&state));
+
+    let book = state
+        .docs
+        .values()
+        .find(|one| one.file == opening.book)
+        .unwrap()
+        .id;
+    state.apply(&ev(
+        5_000,
+        "dev_here",
+        Op::DocSaid {
+            id: book,
+            d: Said::of("# Diario 2026\n"),
+        },
+    ));
+    state.apply(&ev(6_000, "dev_here", Op::DocArchive { id: book }));
+    assert!(
+        begun(&state),
+        "a diary put away or stripped of its mark still asks every machine for this release"
+    );
+}

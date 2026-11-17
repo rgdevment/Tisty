@@ -151,6 +151,13 @@ impl State {
             .collect()
     }
 
+    pub fn called(&self, device: &DeviceId) -> String {
+        self.named
+            .get(device)
+            .map(|one| one.name.clone())
+            .unwrap_or_else(|| crate::config::nicknamed(&device.0))
+    }
+
     pub fn runs_to_say(&self, who: &DeviceId, version: &str) -> Option<crate::Op> {
         let v = crate::called::cleaned(version);
         let unchanged = self.runs.get(who) == Some(&v);

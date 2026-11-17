@@ -57,6 +57,8 @@ const en = {
   diaryEditMonth: "Edit the month as a document",
   diaryClosedOne: "1 task closed",
   diaryClosedMany: "{name} tasks closed",
+  diaryBehind:
+    "Your diary begins once every computer of yours runs Tisty 1.48 or later, since an older one would show it to its agents. Still on an older Tisty: {name}. Update them, or remove the ones you no longer use from your computers.",
   ideaFileTitle: "File this idea in…",
   ideaFileFind: "Look for a document",
   ideaFileNone: "No document by that name",
@@ -3279,6 +3281,8 @@ const es: Catalog = {
   diaryEditMonth: "Editar el mes como documento",
   diaryClosedOne: "1 tarea cerrada",
   diaryClosedMany: "{name} tareas cerradas",
+  diaryBehind:
+    "Tu diario empieza cuando todos tus equipos usen Tisty 1.48 o más nuevo, porque uno anterior se lo mostraría a sus agentes. Todavía con un Tisty anterior: {name}. Actualízalos o quita de tus equipos los que ya no usas.",
   ideaFileTitle: "Anexar esta idea a…",
   ideaFileFind: "Busca un documento",
   ideaFileNone: "Ningún documento con ese nombre",

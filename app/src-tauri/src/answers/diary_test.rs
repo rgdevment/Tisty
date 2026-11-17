@@ -101,6 +101,34 @@ fn a_locked_book_is_not_written_by_the_diary() {
 }
 
 #[test]
+fn the_diary_waits_for_a_computer_on_an_older_tisty_and_names_it() {
+    let (_tmp, mut session) = session("es-CL");
+    let here = session.config.device_id.clone();
+    let laptop = tisty_core::DeviceId("dev_zz".into());
+    for device in [here, laptop.clone()] {
+        session
+            .commit(Op::DeviceJoin {
+                d: device,
+                k: Some(tisty_core::DeviceKind::Machine),
+                p: None,
+            })
+            .unwrap();
+    }
+
+    let opened = opening(&mut session, day("2026-11-16")).unwrap_err();
+    let written = writing(&mut session, "Algo", day("2026-11-16")).unwrap_err();
+
+    let named = format!("«{}»", tisty_core::config::nicknamed(&laptop.0));
+    assert_eq!(opened.code, "diaryBehind");
+    assert_eq!(opened.name.as_deref(), Some(named.as_str()));
+    assert_eq!(written.code, "diaryBehind");
+    assert!(
+        session.state.docs.is_empty(),
+        "a book was made while a computer could still hand it to its agents"
+    );
+}
+
+#[test]
 fn today_is_named_in_the_language_tisty_speaks_whatever_the_computer_does() {
     for (locale, named) in [
         ("es-CL", "Domingo 15"),
