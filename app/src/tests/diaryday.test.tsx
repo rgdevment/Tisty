@@ -213,9 +213,9 @@ describe("a day of the diary on the page", () => {
 const view = (writable = true) => {
   const onWritten = vi.fn();
   const onError = vi.fn();
-  render(
+  const shown = (file: string) => (
     <DiaryView
-      file={FILE}
+      file={file}
       body={"# Noviembre\n\n## Lunes 16\n\nLluvia.\n"}
       title="Noviembre"
       book="Diario 2026"
@@ -227,9 +227,10 @@ const view = (writable = true) => {
       onWritten={onWritten}
       onEdit={vi.fn()}
       onError={onError}
-    />,
+    />
   );
-  return { onWritten, onError };
+  const { rerender } = render(shown(FILE));
+  return { onWritten, onError, toMonth: (file: string) => rerender(shown(file)) };
 };
 
 type Held = {
@@ -376,6 +377,16 @@ describe("a day of the diary written in place", () => {
       note: 1,
       shown: "lo que se vio",
     });
+  });
+
+  it("leaves an open box behind when another month is shown", async () => {
+    const { toMonth } = view();
+    const own = await opened();
+    type(own, "Sol.");
+
+    act(() => toMonth("a3f1-0012"));
+
+    expect(await drawnOpen()).toBeNull();
   });
 
   it("offers neither a box nor a way off a note in a diary that cannot be written", () => {

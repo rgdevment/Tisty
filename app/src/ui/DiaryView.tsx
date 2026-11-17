@@ -33,7 +33,7 @@ interface Props {
   onError: (problem: unknown) => void;
 }
 
-type Opened = { at: DayAt; was: string };
+type Opened = { file: string; at: DayAt; was: string };
 
 type Typed = { words: string; start: number; end: number; focused: boolean };
 
@@ -111,7 +111,8 @@ export default function DiaryView(props: Readonly<Props>) {
     };
   }, [file, paged]);
   const restrips = useRestrips(paged ? file : undefined, body, fresh);
-  const [opened, setOpened] = useState<Opened | null>(null);
+  const [held, setOpened] = useState<Opened | null>(null);
+  const opened = held?.file === file ? held : null;
   const { typed, shown, onShown } = useDayBox();
   const keeping = useRef(false);
   const at = opened?.at;
@@ -138,7 +139,7 @@ export default function DiaryView(props: Readonly<Props>) {
       .then((was) => {
         if (was === null) return;
         typed.current = null;
-        setOpened({ at: day, was });
+        setOpened({ file, at: day, was });
       })
       .catch(onError);
   };
