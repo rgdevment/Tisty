@@ -3,7 +3,9 @@
   "pinned": {
     "id": "why-tisty",
     "en": {
-      "text": "I started building Tisty to solve a problem of my own, and saw it wasn't only mine: everyone working with an AI agent explains the project again every session.\n\nTisty is the working memory I share with my agent. I see the whole, it works the detail.\n\nHow do you keep yours?"
+      "text": "I started building Tisty to solve a problem of my own, and saw it wasn't only mine: everyone working with an AI agent explains the project again every session.\n\nTisty is the working memory I share with my agent. I see the whole, it works the detail.\n\nHow do you keep yours?",
+      "picture": "assets/screens/readme/en-07-day.webp",
+      "shows": "Today in Tisty: the tasks of the day, overdue first, with what comes next and the routines on the right"
     },
     "reply": {
       "en": {
@@ -15,7 +17,9 @@
     {
       "id": "whole-and-detail",
       "en": {
-        "text": "My AI agent knows every detail of my project. I'm the one who sees the whole. Every new session that link broke, and I explained it all again.\n\nSo I built Tisty: one working memory for both of us. I see the whole, it works the detail.\n\nHow do you split the work with yours?"
+        "text": "My AI agent knows every detail of my project. I'm the one who sees the whole. Every new session that link broke, and I explained it all again.\n\nSo I built Tisty: one working memory for both of us. I see the whole, it works the detail.\n\nHow do you split the work with yours?",
+        "picture": "assets/screens/readme/en-01-archive.webp",
+        "shows": "The Archive in Tisty: every finished task kept with its steps and its journal, so you or your agent can ask how it was solved last time"
       }
     },
     {
