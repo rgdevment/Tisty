@@ -62,7 +62,6 @@ interface Props {
   onAddPart?: (title: string) => void;
   onOpenPart?: (id: string) => void;
   onCompletePart?: (id: string, title: string) => void;
-  onTaskDone?: (id: string, title: string) => void;
   onTaskStep?: (id: string, step: string, done: boolean) => void;
   onHang?: (whole: string | null) => void;
   onSettle?: (
@@ -107,7 +106,6 @@ export default function Detail({
   onAddPart,
   onOpenPart,
   onCompletePart,
-  onTaskDone,
   onTaskStep,
   onHang,
   onSettle,
@@ -255,7 +253,7 @@ export default function Detail({
         onHeld={setHeld}
         papers={papers}
         onTask={onOpenPart}
-        onTaskDone={onTaskDone}
+        onTaskDone={onCompletePart}
         onTaskStep={onTaskStep}
       />
       <History task={task} onError={onError} onDoc={onDoc} />

@@ -46,3 +46,27 @@ describe("who gets a thumbs up when it is done", () => {
     expect(await finished({}, ["2026-10-14"])).toEqual([]);
   });
 });
+
+describe("a routine finished from elsewhere", () => {
+  it("keeps its strip of missed days in the view it is taken to, and drops it on the next move", async () => {
+    const hands = {
+      act: () => {},
+      say: () => {},
+      setError: () => {},
+      lookForAStar: () => {},
+    };
+    const there = { named: "lists" as const, list: "01L" };
+    const { result, rerender } = renderHook(({ chosen }) => useMarking({ ...hands, chosen }), {
+      initialProps: { chosen: { named: "docs" } as Parameters<typeof useMarking>[0]["chosen"] },
+    });
+    await act(async () => {
+      result.current.owing("01T", "Pasear a Roger", ["2026-11-10"], there);
+      rerender({ chosen: there });
+    });
+    expect(result.current.asking?.days).toEqual(["2026-11-10"]);
+    expect(result.current.strip).not.toBeNull();
+
+    rerender({ chosen: { named: "tasks" } });
+    expect(result.current.asking).toBeNull();
+  });
+});

@@ -41,6 +41,7 @@ export default function Stage() {
     lookPapers,
     marking,
     noted,
+    owing,
     openDoc,
     opening,
     paging,
@@ -81,9 +82,10 @@ export default function Stage() {
       .then((days) => {
         if (!days.length) return marking(id, title);
         return taskOf(id).then((one) => {
-          setChosen(seeing(one));
+          const at = seeing(one);
+          setChosen(at);
           opening(one);
-          marking(id, title);
+          owing(id, title, days, at);
         });
       })
       .catch((e: unknown) => setError(saidPlainly(e)));

@@ -73,7 +73,6 @@ export const detailOf = (one: Task, h: Hands) => ({
     h.say(fill("saidDone", title));
     h.act(complete(id).then(() => taskOf(one.id)));
   },
-  onTaskDone: (id: string, title: string) => h.marking(id, title),
   onTaskStep: (id: string, step: string, done: boolean) =>
     h.act(taskStepMarked(id, step, done).then(() => taskOf(one.id))),
   onHang: (whole: string | null) => h.act(hang(one.id, whole)),

@@ -20,13 +20,14 @@ export function useMarking({ chosen, act, say, setError, lookForAStar, cheer }: 
     title: string;
     days: string[];
     summary?: string;
+    at?: Chosen;
   } | null>(null);
   const asked = useRef(0);
 
   useEffect(() => {
     /// A slow answer must not open a strip over the view the person moved on to.
     asked.current += 1;
-    setAsking(null);
+    setAsking((was) => (was?.at === chosen ? was : null));
   }, [chosen]);
 
   const marking = (id: string, title: string, summary?: string) => {
@@ -64,5 +65,9 @@ export function useMarking({ chosen, act, say, setError, lookForAStar, cheer }: 
     />
   ) : null;
 
-  return { asking, marking, strip };
+  // The strip asked for the view the person is taken to stays once that view arrives.
+  const owing = (id: string, title: string, days: string[], at: Chosen) =>
+    setAsking({ id, title, days, at });
+
+  return { asking, marking, owing, strip };
 }
