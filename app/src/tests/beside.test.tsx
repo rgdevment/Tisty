@@ -18,6 +18,7 @@ const store = vi.hoisted(() => ({
   edited: undefined as unknown,
   sent: [] as string[],
   stamped: [] as boolean[],
+  body: null as string | null,
 }));
 
 vi.mock("@tauri-apps/api/core", async () => ({
@@ -25,7 +26,7 @@ vi.mock("@tauri-apps/api/core", async () => ({
     store.sent.push(cmd);
     switch (cmd) {
       case "doc_read":
-        return Promise.resolve("# Compras\n\nleche");
+        return Promise.resolve(store.body ?? "# Compras\n\nleche");
       case "doc_facts":
         return Promise.resolve({
           made: 1772668800,
@@ -133,6 +134,7 @@ describe("the column beside a document", () => {
     store.born = null;
     store.edited = undefined;
     store.sent = [];
+    store.body = null;
     widen(1500);
   });
 
@@ -241,6 +243,40 @@ describe("the column beside a document", () => {
 
   it("holds a column asked for on a narrow window", async () => {
     widen(1100);
+    show();
+    await userEvent.click(await screen.findByRole("button", { name: /About the document/ }));
+
+    expect(await screen.findByRole("complementary", { name: "About this document" })).toBeTruthy();
+  });
+
+  it("stays shut beside sheets it would cover, and folds the sidebar to make room when asked for", async () => {
+    store.body = "---\nsheets: on\n---\n# Compras\n\nleche";
+    widen(1366);
+    show();
+    await screen.findByLabelText("editor");
+    expect(column()).toBeNull();
+
+    await userEvent.click(await screen.findByRole("button", { name: /About the document/ }));
+    expect(await screen.findByRole("complementary", { name: "About this document" })).toBeTruthy();
+    const room = screen.getByLabelText("editor").closest("div")?.parentElement;
+    expect(room?.style.paddingRight).toBe("344px");
+    act(() => unwiden());
+  });
+
+  it("stays shut by default beside sheets where the column alone would fit", async () => {
+    store.body = "---\nsheets: on\n---\n# Compras\n\nleche";
+    act(() => fold(true));
+    widen(1200);
+    show();
+    await screen.findByLabelText("editor");
+
+    expect(column()).toBeNull();
+    act(() => unwiden());
+  });
+
+  it("opens over the sheets only on a window where no folding makes room", async () => {
+    store.body = "---\nsheets: on\n---\n# Compras\n\nleche";
+    widen(1200);
     show();
     await userEvent.click(await screen.findByRole("button", { name: /About the document/ }));
 
