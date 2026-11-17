@@ -576,6 +576,50 @@ describe("the panels beside a sheet", () => {
     expect(seen()).toEqual(["ru"]);
   });
 
+  it("lists who cites the sheet, each with where, and presses open the one chosen", () => {
+    const side = host();
+    const picked: string[] = [];
+    sided(side, say, [
+      {
+        kind: "cited",
+        label: "Citado en",
+        gist: "2",
+        none: "Nadie lo cita",
+        open: true,
+        citers: [
+          {
+            key: "a",
+            title: "Viajes",
+            glyph: "page",
+            under: "En «Hoteles»",
+            onPick: () => picked.push("a"),
+          },
+          { key: "t", title: "Llamar al veterinario", glyph: "todo", away: true, onPick: () => {} },
+        ],
+      },
+    ]);
+
+    expect(text(side, ".side-row-label")).toEqual(["Citado en"]);
+    expect(text(side, ".side-cited > span:first-child")).toEqual([
+      "Viajes",
+      "Llamar al veterinario",
+    ]);
+    expect(text(side, ".side-cited-under")).toEqual(["En «Hoteles»"]);
+    expect(side.querySelectorAll(".is-cited.is-away")).toHaveLength(1);
+    side.querySelector<HTMLButtonElement>(".is-cited")?.click();
+    expect(picked).toEqual(["a"]);
+  });
+
+  it("says nobody cites the sheet rather than drawing an empty list", () => {
+    const side = host();
+    sided(side, say, [
+      { kind: "cited", label: "Citado en", gist: "", none: "Nadie lo cita", citers: [] },
+    ]);
+
+    expect(text(side, ".side-none")).toEqual(["Nadie lo cita"]);
+    expect(side.querySelector(".is-cited")).toBeNull();
+  });
+
   it("counts the words of a body, without its code or its marks", () => {
     expect(wordsIn("# Compras\n\n- leche\n- pan")).toBe(3);
     expect(wordsIn("hola\n\n```\nlet x = 1\n```\n\nadios")).toBe(2);

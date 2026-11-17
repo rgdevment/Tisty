@@ -322,6 +322,24 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
+.side-go.is-cited {
+  align-items: flex-start;
+}
+.side-go.is-cited .glyph {
+  margin-top: 3px;
+}
+.side-cited {
+  display: flex;
+  flex-direction: column;
+}
+.side-cited > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.side-cited-under {
+  font-size: 11px;
+  color: var(--tisty-faint);
+}
 .side-go.is-away {
   color: var(--tisty-faint);
 }

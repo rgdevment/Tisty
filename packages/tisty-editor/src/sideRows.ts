@@ -1,5 +1,5 @@
-import type { Say } from "tisty-sheet";
-import type { Act, Facts, Held, More, Prints } from "./side";
+import { glyph, type Say } from "tisty-sheet";
+import type { Act, Citer, Facts, Held, More, Prints } from "./side";
 import { wordsIn } from "./side";
 import { listed, made, pressed, rowed } from "./sideParts";
 
@@ -118,6 +118,25 @@ const heldRow = (page: Document, panel: Of<"held">) => {
   return row;
 };
 
+const citer = (page: Document, one: Citer) => {
+  const go = pressed(page, `side-go is-page is-cited${one.away ? " is-away" : ""}`, "", () =>
+    one.onPick(),
+  );
+  const said = made(page, "span", "side-cited");
+  said.append(made(page, "span", "", one.title));
+  if (one.under) said.append(made(page, "span", "side-cited-under", one.under));
+  go.append(glyph(page, one.glyph), said);
+  return go;
+};
+
+const citedRow = (page: Document, panel: Of<"cited">) => {
+  const line = { key: "cited", label: panel.label, gist: panel.gist, open: panel.open };
+  return rowed(page, line, (into) => {
+    if (!panel.citers.length) into.append(made(page, "p", "side-none", panel.none));
+    for (const one of panel.citers) into.append(citer(page, one));
+  });
+};
+
 export const besideMore = (page: Document, say: Say, panel: More): HTMLElement => {
   switch (panel.kind) {
     case "details":
@@ -129,5 +148,7 @@ export const besideMore = (page: Document, say: Say, panel: More): HTMLElement =
     }
     case "held":
       return heldRow(page, panel);
+    case "cited":
+      return citedRow(page, panel);
   }
 };

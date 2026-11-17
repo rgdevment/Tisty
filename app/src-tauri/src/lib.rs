@@ -42,6 +42,7 @@ mod update;
 mod viewing;
 mod vouching;
 mod waking;
+mod weighing;
 mod wiring;
 
 use tauri::{Emitter, Manager};
@@ -51,6 +52,7 @@ pub(crate) use refusing::{Refusal, blamed, refusal_code};
 pub(crate) use refusing::{behind_here, where_it_comes_from};
 pub(crate) use session::Session;
 pub(crate) use summing::{Coming, Counted, Habit, coming, recurring, tags_in_use, tally};
+pub(crate) use weighing::weighed;
 
 use tisty_core::{
     List, Op, Reading, State, Task,
@@ -429,21 +431,6 @@ fn within(at: &std::path::Path, ours: &[std::path::PathBuf]) -> bool {
 fn show(at: &std::path::Path, said: &str) -> Answer<()> {
     tauri_plugin_opener::reveal_item_in_dir(at)
         .map_err(|_| Refusal::about("cannotOpen", said.to_string()))
-}
-
-fn weighed(bytes: u64) -> String {
-    let units = ["B", "kB", "MB", "GB"];
-    let mut step = 0;
-    let mut left = bytes as f64;
-    while left >= 1000.0 && step < units.len() - 1 {
-        left /= 1000.0;
-        step += 1;
-    }
-    if step == 0 {
-        format!("{left:.0} {}", units[step])
-    } else {
-        format!("{left:.1} {}", units[step])
-    }
 }
 
 // Erasing has no undo, so it is judged against the store as it is now — an agent or the
@@ -892,6 +879,7 @@ pub(crate) fn opened(
     };
     let watched = session.paths.clone();
     let nudge = session.nudge.clone();
+    let moved = session.brain_moved.clone();
     let quiet = session.config.muted().to_vec();
     let urgent = session.config.urgent == Some(true);
     let session_keys = session.config.quick_keys.clone();
@@ -906,7 +894,7 @@ pub(crate) fn opened(
         urgent,
         nudge.clone(),
     ));
-    herald::watch(app.clone(), watched, nudge);
+    herald::watch(app.clone(), watched, nudge, moved);
     hearing::listen(app.clone());
     leaving::keep_telling(app.clone());
     answers::papers::tags_once(app.clone());
@@ -1287,6 +1275,7 @@ fn commands() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool + Send + Sync +
         answers::reviewing::review_remind,
         answers::papers::doc_merge,
         answers::papers::doc_facts,
+        answers::citing::doc_cited_by,
         answers::papers::keep_file,
         answers::papers::doc_word,
         answers::printing::page_pdf,

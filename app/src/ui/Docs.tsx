@@ -4,6 +4,7 @@ import { freshFence } from "tisty-diagrams/read";
 import type { Asking } from "tisty-editor/edit";
 import { acrossOf, type Head, laidIn, PAPER, sheetFor, writtenAcrossOf } from "tisty-editor/read";
 import { fold, RAIL, sideWidth, useBreadth, WIDE_WINDOW } from "../breadth";
+import type { Citing } from "../citing";
 import { asPlain } from "../copying";
 import {
   attachPasted,
@@ -611,27 +612,37 @@ export default function Docs({
   const sisters = pagesOf(known, above?.file);
   const tongues = useMemo(() => tonguesOf(known, above ?? own), [known, above, own]);
   // Another language opens at the heading the reader stood under, counted, since its words differ.
-  const landing = useRef<{ file: string; at: number } | null>(null);
-  const toTongue = (tongue: Filed) => {
-    if (!own) return;
-    const anchor = tongue.tongue?.[0];
-    if (anchor && tongue.lang) chooseTongue(anchor, tongue.lang);
-    const there = twinOf(known, own, tongue);
-    const landed = { file: there.file, at: standingHead() };
+  const landing = useRef<{ file: string; at: number | string } | null>(null);
+  const landAt = (file: string, at: number | string) => {
+    const landed = { file, at };
     landing.current = landed;
-    // A language with no headings yet never reaches the jump, so the wish lapses rather than waiting.
+    // A document with no headings yet never reaches the jump, so the wish lapses rather than waiting.
     window.setTimeout(() => {
       if (landing.current === landed) landing.current = null;
     }, LANDING_MS);
     setHeads([]);
-    onDoc?.(there.file);
+    onDoc?.(file);
   };
+  const toTongue = (tongue: Filed) => {
+    if (!own) return;
+    const anchor = tongue.tongue?.[0];
+    if (anchor && tongue.lang) chooseTongue(anchor, tongue.lang);
+    landAt(twinOf(known, own, tongue).file, standingHead());
+  };
+  const toDoc = (file: string, heading?: string) => {
+    if (!heading) return onDoc?.(file);
+    if (file === open?.file) return heads.find((one) => one.id === heading)?.go();
+    landAt(file, heading);
+  };
+  const toCited = (one: Citing) =>
+    one.kind === "task" ? seeTask(one.id) : toDoc(one.id, one.under?.[0]?.id);
   useEffect(() => {
     const want = landing.current;
     const reached = heads.filter((one) => one.level > 0);
     if (!want || want.file !== open?.file || !reached.length) return;
     landing.current = null;
-    if (want.at >= 0) reached[Math.min(want.at, reached.length - 1)]?.go();
+    if (typeof want.at === "string") reached.find((one) => one.id === want.at)?.go();
+    else if (want.at >= 0) reached[Math.min(want.at, reached.length - 1)]?.go();
   }, [heads, open?.file]);
   // The panel names the languages when it is open; the bar above the sheet does when it is not.
   const spoken = tongues.length > 0 && (
@@ -1326,6 +1337,7 @@ export default function Docs({
           pages={above ? sisters : pages}
           up={above}
           onPage={(one) => onDoc?.(one.file)}
+          onCited={toCited}
           leaf={leaf}
           onLeaf={resize}
           sheets={sheets}

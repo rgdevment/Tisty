@@ -40,20 +40,54 @@ pub fn papers(text: &str) -> Vec<String> {
 
 // Read with the walk that decides the reading order, so the two never disagree about code.
 pub fn paper_lines(text: &str) -> Vec<(String, usize)> {
+    let line_of = lines_of(text);
+    papered(text)
+        .into_iter()
+        .map(|(at, file)| (file, line_of(at)))
+        .collect()
+}
+
+/// Every link outside code, each time it is written, with the byte it starts at.
+pub fn link_spots(text: &str) -> Vec<(Link, usize)> {
+    let code = crate::fences::fenced_spans(text);
+    let bytes = text.as_bytes();
+    marked_past(text, &code)
+        .into_iter()
+        .filter(|(_, one)| one.kind == Kind::Link)
+        .map(|(at, one)| {
+            let card = at > 0 && bytes[at - 1] == b'!';
+            let link = Link {
+                target: one.target,
+                card,
+            };
+            (link, at)
+        })
+        .collect()
+}
+
+/// A link to a document, split into the document's name and the heading it lands on, if any.
+pub fn doc_aimed(target: &str) -> Option<(&str, Option<&str>)> {
+    let named = target.strip_prefix(DOC)?;
+    Some(match named.split_once('#') {
+        Some((file, heading)) => (
+            file.trim(),
+            Some(heading.trim()).filter(|one| !one.is_empty()),
+        ),
+        None => (named.trim(), None),
+    })
+}
+
+fn lines_of(text: &str) -> impl Fn(usize) -> usize {
     let mut lines: Vec<usize> = vec![0];
     for (at, one) in text.char_indices() {
         if one == '\n' {
             lines.push(at + 1);
         }
     }
-    let line_of = |at: usize| match lines.binary_search(&at) {
+    move |at: usize| match lines.binary_search(&at) {
         Ok(one) => one,
         Err(one) => one - 1,
-    };
-    papered(text)
-        .into_iter()
-        .map(|(at, file)| (file, line_of(at)))
-        .collect()
+    }
 }
 
 // Only a card places a page: a plain link is a mention, and a card inside code is an example.
