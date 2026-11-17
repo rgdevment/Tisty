@@ -2,6 +2,7 @@ import { byteFrom, bytesIn, checkAfter, checkOf, type Placed, type Reckoned } fr
 import type { Caret } from "./pageCaret";
 import { applied, changeOf, type Edit, inWholeChars, linedAs } from "./pageEdits";
 import { type Change, holdingOn } from "./pageHolding";
+import { joinedApart } from "./pageLists";
 import { opened } from "./pageNodes";
 import { patched } from "./pagePatching";
 import { placesSettled } from "./pagePlaces";
@@ -104,7 +105,7 @@ export const layingOn = (
 
   const put = (asked: Edit, at = asked.from + asked.insert.length, drawnWhole = false) => {
     const text = hands.text();
-    const [one, landed] = linedAs(text, asked, at);
+    const [one, landed] = linedAs(text, joinedApart(text, asked), at);
     const next = applied(text, one);
     if (next === text) return;
     const stood =
