@@ -130,6 +130,28 @@ pub(super) fn nodes<'a>(
     all
 }
 
+// A folder is named by its path, so two folders called alike in different places stay apart.
+pub(super) fn zones(state: &State) -> BTreeMap<String, String> {
+    let folders = state.folders.values().map(|folder| {
+        let mut named = vec![folder.name.as_str()];
+        let mut walk = folder.parent;
+        while let Some(up) = walk.and_then(|one| state.folders.get(&one)) {
+            if named.len() > crate::model::DEEPEST {
+                break;
+            }
+            named.push(up.name.as_str());
+            walk = up.parent;
+        }
+        named.reverse();
+        (folder.id.to_string(), named.join(" / "))
+    });
+    let lists = state
+        .lists
+        .values()
+        .map(|list| (list.id.to_string(), list.name.clone()));
+    folders.chain(lists).collect()
+}
+
 // A page lives in its book's folder whatever its own record says.
 fn group_of_doc(state: &State, kept: &Kept) -> Option<String> {
     let book = kept.page_of.and_then(|up| state.docs.get(&up));

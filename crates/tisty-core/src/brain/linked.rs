@@ -35,6 +35,12 @@ pub(super) enum Holder<'a> {
     Nothing,
 }
 
+pub(super) struct Read {
+    pub(super) ties: Ties,
+    pub(super) away: Vec<String>,
+    pub(super) body: Option<String>,
+}
+
 enum Aim {
     Paper(String),
     File(String),
@@ -43,8 +49,9 @@ enum Aim {
 pub(super) struct Ground<'a> {
     state: &'a State,
     docs: &'a Docs,
-    pages_of_books: BTreeMap<DocId, BTreeSet<&'a str>>,
+    pages_of_books: BTreeMap<DocId, BTreeMap<&'a str, &'a str>>,
     pages_of_tasks: BTreeMap<TaskId, Vec<&'a str>>,
+    tongues: BTreeMap<DocId, Vec<&'a Kept>>,
     sheet: Option<&'a str>,
 }
 
@@ -55,6 +62,7 @@ impl<'a> Ground<'a> {
             docs,
             pages_of_books: BTreeMap::new(),
             pages_of_tasks: BTreeMap::new(),
+            tongues: state.families(),
             sheet: None,
         };
         for kept in state.docs.values() {
@@ -70,7 +78,7 @@ impl<'a> Ground<'a> {
                     .pages_of_books
                     .entry(book)
                     .or_default()
-                    .insert(&kept.file);
+                    .insert(&kept.file, &kept.order);
             }
         }
         ground.sheet = state
@@ -91,20 +99,41 @@ impl<'a> Ground<'a> {
         self.sheet.unwrap_or_default()
     }
 
-    // A document's ties read its book and its pages too, and its own record names neither.
+    // A document's ties and card read its book, pages and languages, and its own record names none.
     pub(super) fn leaned_on(&self, kept: &Kept) -> String {
         let book = self.book_of(kept).unwrap_or_default();
-        let pages: Vec<&str> = self
+        let pages: Vec<String> = self
             .pages_of_books
             .get(&kept.id)
             .into_iter()
             .flatten()
-            .copied()
+            .map(|(file, order)| format!("{file}:{order}"))
             .collect();
-        format!("{book}\u{1}{}", pages.join("\u{1}"))
+        let tongues: Vec<String> = self
+            .tongues_of(kept)
+            .iter()
+            .map(|one| format!("{}:{}", one.file, one.lang.as_deref().unwrap_or_default()))
+            .collect();
+        format!(
+            "{book}\u{1}{}\u{2}{}",
+            pages.join("\u{1}"),
+            tongues.join("\u{1}")
+        )
     }
 
-    fn book_of(&self, kept: &Kept) -> Option<&str> {
+    pub(super) fn tongues_of(&self, kept: &Kept) -> &[&'a Kept] {
+        if kept.page_of.is_some() || kept.task_of.is_some() {
+            return &[];
+        }
+        let anchor = self.state.anchor_of(kept);
+        self.tongues.get(&anchor).map_or(&[], Vec::as_slice)
+    }
+
+    pub(super) fn has_pages(&self, kept: &Kept) -> bool {
+        self.pages_of_books.contains_key(&kept.id)
+    }
+
+    pub(super) fn book_of(&self, kept: &Kept) -> Option<&str> {
         let book = kept.page_of.and_then(|up| self.state.docs.get(&up))?;
         Some(book.file.as_str())
     }
@@ -118,28 +147,34 @@ impl<'a> Ground<'a> {
             .collect()
     }
 
-    pub(super) fn ties(&self, own: &str, holder: &Holder) -> Ties {
-        let mut ties = Ties::new();
+    pub(super) fn read(&self, own: &str, holder: &Holder) -> Read {
+        let mut read = Read {
+            ties: Ties::new(),
+            away: Vec::new(),
+            body: None,
+        };
         match holder {
-            Holder::Doc(kept) => self.of_doc(own, kept, &mut ties),
-            Holder::Task(task) => self.of_task(own, task, &mut ties),
+            Holder::Doc(kept) => self.of_doc(own, kept, &mut read),
+            Holder::Task(task) => self.of_task(own, task, &mut read),
             Holder::Nothing => {}
         }
-        ties
+        read
     }
 
-    fn of_doc(&self, own: &str, kept: &Kept, ties: &mut Ties) {
+    fn of_doc(&self, own: &str, kept: &Kept, read: &mut Read) {
         let pages = self.pages_of_books.get(&kept.id);
-        if let Some(body) = self.docs.read(&kept.file) {
-            self.written(own, &body, pages, ties);
+        read.body = self.docs.read(&kept.file);
+        if let Some(body) = &read.body {
+            self.written(own, body, pages, &mut read.ties, None);
         }
         if let Some(book) = self.book_of(kept) {
-            ties.insert((book.to_string(), Tie::Structure));
+            read.ties.insert((book.to_string(), Tie::Structure));
         }
-        tagged(&kept.tags, ties);
+        tagged(&kept.tags, &mut read.ties);
     }
 
-    fn of_task(&self, own: &str, task: &Task, ties: &mut Ties) {
+    fn of_task(&self, own: &str, task: &Task, read: &mut Read) {
+        let Read { ties, away, .. } = read;
         let said = task
             .description
             .as_deref()
@@ -147,11 +182,11 @@ impl<'a> Ground<'a> {
             .chain(task.log.iter().map(|entry| entry.body.as_str()))
             .chain(task.steps.iter().map(|step| step.text.as_str()));
         for text in said {
-            self.written(own, text, None, ties);
+            self.written(own, text, None, ties, Some(away));
         }
         for file in self.pages_of_tasks.get(&task.id).into_iter().flatten() {
             if let Some(page) = self.docs.read(file) {
-                self.written(own, &page, None, ties);
+                self.written(own, &page, None, ties, Some(away));
             }
         }
         if let Some(whole) = task.part_of {
@@ -163,7 +198,14 @@ impl<'a> Ground<'a> {
         tagged(&task.tags, ties);
     }
 
-    fn written(&self, own: &str, text: &str, pages: Option<&BTreeSet<&str>>, ties: &mut Ties) {
+    fn written(
+        &self,
+        own: &str,
+        text: &str,
+        pages: Option<&BTreeMap<&str, &str>>,
+        ties: &mut Ties,
+        mut away: Option<&mut Vec<String>>,
+    ) {
         for link in links(text) {
             match self.aimed(&link.target) {
                 Some(Aim::File(at)) => {
@@ -172,10 +214,19 @@ impl<'a> Ground<'a> {
                 // A book's page lines place its pages: the page says so from its side.
                 Some(Aim::Paper(id))
                     if id != own
-                        && !(link.card && pages.is_some_and(|all| all.contains(id.as_str()))) =>
+                        && !(link.card
+                            && pages.is_some_and(|all| all.contains_key(id.as_str()))) =>
                 {
                     let tie = if link.card { Tie::Cite } else { Tie::Mention };
                     ties.insert((id, tie));
+                }
+                None => {
+                    if let Some(away) = away.as_deref_mut()
+                        && outside(&link.target)
+                        && !away.contains(&link.target)
+                    {
+                        away.push(link.target);
+                    }
                 }
                 _ => {}
             }
@@ -213,7 +264,11 @@ impl<'a> Ground<'a> {
     }
 }
 
-fn paper_named(named: &str) -> String {
+fn outside(target: &str) -> bool {
+    target.contains("://") || target.starts_with("mailto:")
+}
+
+pub(super) fn paper_named(named: &str) -> String {
     let named = before_section(named);
     if let Some(task) = crate::task_docs::task_of_file(named) {
         return task.to_string();
