@@ -178,6 +178,8 @@ export const openedAbove = (
   const item = LISTED.exec(line);
   const marks = item?.[0] ?? /^[ \t]*(?:>[ \t]?)*[ \t]*(?:#{1,6}[ \t]+)?/.exec(line)?.[0] ?? "";
   if (at !== start + marks.length || !line.slice(marks.length).trim()) return null;
-  if (!item) return { at: start, seed: "", tail: "\n\n" };
+  // A line opened inside a quote or a note stays in it, or it would split the note in two.
+  const quote = /^[ \t]*(?:>[ \t]?)+/.exec(line)?.[0] ?? "";
+  if (!item) return { at: start, seed: quote, tail: quote ? `\n${quote.trimEnd()}\n` : "\n\n" };
   return { at: start, seed: item[0].replace(/\[[xX]\]/, "[ ]"), tail: "\n" };
 };

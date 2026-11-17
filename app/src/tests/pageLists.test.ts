@@ -211,6 +211,12 @@ describe("Backspace and Enter at the start of a line's words", () => {
 
   it.each([
     ["a paragraph", "Uno\n\nDos", 5, { at: 5, seed: "", tail: "\n\n" }],
+    [
+      "a note's words, inside the note",
+      "> [!TIP]\n> Un consejo",
+      11,
+      { at: 9, seed: "> ", tail: "\n>\n" },
+    ],
     ["a heading", "## Titulo", 3, { at: 0, seed: "", tail: "\n\n" }],
     ["a step, unticked", "- [x] hecho", 6, { at: 0, seed: "- [ ] ", tail: "\n" }],
   ])("on Enter, opens a line above %s", (_, text, at, expected) => {
