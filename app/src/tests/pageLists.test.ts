@@ -164,6 +164,7 @@ describe("Backspace and Enter at the start of a line's words", () => {
       "> - uno\n>\n> dos",
       12,
     ],
+    ["a nested item becomes a paragraph of the item above", "- a\n  - b", 8, "- a\n\n  b", 7],
   ])("on Backspace, %s", (_, text, at, expected, caret) => {
     const moved = unmarked(text, at);
     const applied = moved
