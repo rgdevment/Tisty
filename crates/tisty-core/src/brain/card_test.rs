@@ -220,6 +220,11 @@ fn what_cites_and_mentions_a_card_is_read_from_the_other_side() {
         [plans.as_str()],
         "the documents that cite a task"
     );
+    let by_ulid = card_of(&brain, &trips.to_string().to_ascii_lowercase());
+    assert_eq!(
+        by_ulid.id, trips_file,
+        "a ULID finds its document in any case"
+    );
 }
 
 #[test]
@@ -362,14 +367,30 @@ fn a_page_with_an_idea_hangs_from_its_book_and_holds_the_sheet_s_idea() {
         Some(sheet.clone())
     );
     assert_eq!(born_card.around.ideas_from, None);
-    let mut holding = ids(&card_of(&brain, &sheet).around.ideas)
-        .into_iter()
-        .map(str::to_string)
-        .collect::<Vec<_>>();
-    holding.sort();
-    let mut wanted = vec![page.clone(), born.to_string()];
-    wanted.sort();
-    assert_eq!(holding, wanted);
+    let sheet_card = card_of(&brain, &sheet);
+    assert_eq!(ids(&sheet_card.around.ideas), [page.as_str()]);
+    assert_eq!(ids(&sheet_card.around.born), [born.to_string().as_str()]);
+}
+
+#[test]
+fn a_task_whose_source_names_any_document_is_born_of_it() {
+    let world = World::new();
+    let mut store = world.store();
+    let (_, budget) = doc(&world, &mut store, "# Budget\n\n## Rent\n", None, None);
+    let born = Ulid::generate();
+    let mut d = TaskAdd::new("pay the rent", "a0");
+    d.source = Some(format!("{budget}#Rent"));
+    store.append(Op::TaskAdd { id: born, d }).unwrap();
+    let mut brain = world.brain();
+
+    world.refreshed(&mut brain, &world.state());
+
+    let card = card_of(&brain, &budget);
+    assert_eq!(ids(&card.around.born), [born.to_string().as_str()]);
+    assert!(
+        card.around.ideas.is_empty(),
+        "a plain document holds no ideas"
+    );
 }
 
 #[test]

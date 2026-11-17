@@ -11,7 +11,7 @@ pub(super) struct Fresh {
     pub(super) said: Option<String>,
 }
 
-// What the round keeps of a card: the node's own facts and the bare ids it names, joined on `node` when read.
+// Bare ids, so a neighbour's title or state can change without this card being written again.
 #[derive(Debug, Default, Serialize, Deserialize)]
 pub(super) struct Own<F> {
     #[serde(flatten)]

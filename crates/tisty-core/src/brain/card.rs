@@ -5,11 +5,22 @@ use serde::{Deserialize, Serialize, de::DeserializeOwned};
 use super::Brain;
 use super::linked::paper_named;
 use super::own::Own;
-use crate::model::Priority;
+use crate::model::{DocId, Priority};
 use crate::standing::{Standing, standing_on};
 
 const ROW: &str = "SELECT id, kind, title, grp, state, uid FROM node WHERE id = ?1
     UNION ALL SELECT id, kind, title, grp, state, uid FROM node WHERE uid = ?1 LIMIT 1";
+const OUTGOING: &str = "SELECT e.kind, e.target, COALESCE(a.id, b.id), COALESCE(a.kind, b.kind),
+        COALESCE(a.title, b.title), CASE WHEN a.id IS NULL THEN b.state ELSE a.state END
+    FROM edge e
+    LEFT JOIN node a ON a.id = e.target
+    LEFT JOIN node b ON a.id IS NULL AND b.uid = e.target
+    WHERE e.source = ?1 AND COALESCE(a.id, b.id) IS NOT NULL
+    ORDER BY e.kind, e.target";
+const INCOMING: &str = "SELECT e.kind, n.id, n.kind, n.title, n.state
+    FROM edge e JOIN node n ON n.id = e.source
+    WHERE e.target IN (?1, ?2)
+    ORDER BY e.kind, e.source";
 const OPEN: [&str; 3] = ["open", "said_done", "said_dropped"];
 
 // Fields serialize in this order, so what every agent needs comes first and the longest last.
@@ -110,6 +121,8 @@ pub struct Around {
     pub parts: Vec<Near>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub origin: Option<Near>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub born: Vec<Near>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub ideas_from: Option<Near>,
     #[serde(skip_serializing_if = "Vec::is_empty")]
@@ -161,22 +174,20 @@ impl Brain {
         today: Date,
         seen: impl Fn(&str) -> bool,
     ) -> rusqlite::Result<Option<Card>> {
-        let reader = Reader { db: &self.db, seen };
-        let Some(row) = reader.row(id)? else {
+        // One snapshot, so a round that commits meanwhile never mixes two versions in one card.
+        let tx = self.db.unchecked_transaction()?;
+        let id = id
+            .parse::<DocId>()
+            .map_or_else(|_| id.to_string(), |one| one.to_string());
+        let reader = Reader { db: &tx, seen };
+        let Some(row) = reader.row(&id)? else {
             return Ok(None);
         };
-        let said: Option<String> = self
-            .db
-            .query_row("SELECT said FROM card WHERE id = ?", [&row.id], |one| {
-                one.get(0)
-            })
-            .optional()?;
-        let Some(said) = said else {
+        let Some(said) = reader.said(&row.id)? else {
             return Ok(None);
         };
         let zone = match &row.grp {
-            Some(grp) => self
-                .db
+            Some(grp) => tx
                 .query_row("SELECT name FROM zone WHERE id = ?", [grp], |one| {
                     one.get(0)
                 })
@@ -213,6 +224,13 @@ impl<F: Fn(&str) -> bool> Reader<'_, F> {
         Ok(self.row(id)?.map(Row::near))
     }
 
+    fn said(&self, id: &str) -> rusqlite::Result<Option<String>> {
+        let mut asked = self
+            .db
+            .prepare_cached("SELECT said FROM card WHERE id = ?")?;
+        asked.query_row([id], |one| one.get(0)).optional()
+    }
+
     fn doc(&self, row: Row, said: &str, zone: Option<String>) -> rusqlite::Result<Option<Card>> {
         let Some(own) = parsed::<DocFacts>(said) else {
             return Ok(None);
@@ -236,8 +254,7 @@ impl<F: Fn(&str) -> bool> Reader<'_, F> {
                 around.languages.push(tongue.clone());
             }
         }
-        let placed = [own.book.as_deref()];
-        self.ties(&row, &own, &placed, &mut around)?;
+        self.ties(&row, &own, own.book.as_deref(), None, &mut around)?;
         Ok(Some(Card {
             folder: zone,
             list: None,
@@ -258,12 +275,6 @@ impl<F: Fn(&str) -> bool> Reader<'_, F> {
         let Some(own) = parsed::<TaskFacts>(said) else {
             return Ok(None);
         };
-        let origin = own
-            .facts
-            .source
-            .as_deref()
-            .and_then(|one| one.split_once('#'))
-            .map(|(named, _)| paper_named(named.trim()));
         let mut around = Around {
             part_of: own
                 .part_of
@@ -273,11 +284,14 @@ impl<F: Fn(&str) -> bool> Reader<'_, F> {
                 .flatten(),
             ..Around::default()
         };
-        let placed = [own.part_of.as_deref(), origin.as_deref()];
-        self.ties(&row, &own, &placed, &mut around)?;
-        if let Some(origin) = origin.as_deref() {
-            around.origin = self.tied_out(&row.id, origin)?;
-        }
+        let origin = origin_of(&own.facts);
+        self.ties(
+            &row,
+            &own,
+            own.part_of.as_deref(),
+            origin.as_deref(),
+            &mut around,
+        )?;
         let open = row.state.as_deref().is_some_and(|one| OPEN.contains(&one));
         let standing = standing_on(own.facts.date, own.facts.deadline, today);
         Ok(Some(Card {
@@ -290,52 +304,37 @@ impl<F: Fn(&str) -> bool> Reader<'_, F> {
         }))
     }
 
-    // Book, whole and origin come from the node's own record, so the edges that say them again are passed over.
+    // One `structure` edge means a book, a whole, an origin or an idea, so the record tells them apart.
     fn ties<T>(
         &self,
         row: &Row,
         own: &Own<T>,
-        placed: &[Option<&str>],
+        placed: Option<&str>,
+        origin: Option<&str>,
         around: &mut Around,
     ) -> rusqlite::Result<()> {
-        let mut out = self.db.prepare_cached(
-            "SELECT target, kind FROM edge WHERE source = ?1 ORDER BY kind, target",
-        )?;
-        let outgoing: Vec<(String, String)> = out
-            .query_map([&row.id], |one| Ok((one.get(0)?, one.get(1)?)))?
-            .collect::<rusqlite::Result<_>>()?;
-        for (target, kind) in outgoing {
-            let Some(near) = self.near(&target)? else {
-                continue;
-            };
+        for (kind, target, near) in self.outgoing(&row.id)? {
             match kind.as_str() {
                 "cite" => added(&mut around.cites, near),
                 "mention" => added(&mut around.mentions, near),
                 "tag" => around.tags.push(near.title),
                 "uses" => around.files.push(near.id),
-                "structure" if !placed.contains(&Some(target.as_str())) => {
-                    around.ideas_from = Some(near);
-                }
+                "structure" if origin == Some(target.as_str()) => around.origin = Some(near),
+                "structure" if placed != Some(target.as_str()) => around.ideas_from = Some(near),
                 _ => {}
             }
         }
-        let mut into = self.db.prepare_cached(
-            "SELECT source, kind FROM edge WHERE target IN (?1, ?2) ORDER BY kind, source",
-        )?;
         let uid = row.uid.as_deref().unwrap_or(&row.id);
-        let incoming: Vec<(String, String)> = into
-            .query_map([row.id.as_str(), uid], |one| Ok((one.get(0)?, one.get(1)?)))?
-            .collect::<rusqlite::Result<_>>()?;
-        for (source, kind) in incoming {
-            let Some(near) = self.near(&source)? else {
-                continue;
-            };
+        for (kind, near) in self.incoming(&row.id, uid)? {
             match kind.as_str() {
                 "cite" => added(&mut around.cited_by, near),
                 "mention" => added(&mut around.mentioned_by, near),
-                "structure" if own.pages.contains(&source) => {}
+                "structure" if own.pages.contains(&near.id) => {}
                 "structure" if near.kind == "task" && row.kind == "task" => {
                     added(&mut around.parts, near);
+                }
+                "structure" if near.kind == "task" && self.born_of(&near.id, row)? => {
+                    added(&mut around.born, near);
                 }
                 "structure" => added(&mut around.ideas, near),
                 _ => {}
@@ -344,20 +343,57 @@ impl<F: Fn(&str) -> bool> Reader<'_, F> {
         Ok(())
     }
 
-    fn tied_out(&self, source: &str, target: &str) -> rusqlite::Result<Option<Near>> {
-        let tied = self
-            .db
-            .query_row(
-                "SELECT 1 FROM edge WHERE source = ?1 AND target = ?2 AND kind = 'structure'",
-                [source, target],
-                |_| Ok(()),
-            )
-            .optional()?;
-        match tied {
-            Some(()) => self.near(target),
-            None => Ok(None),
-        }
+    fn outgoing(&self, id: &str) -> rusqlite::Result<Vec<(String, String, Near)>> {
+        let mut asked = self.db.prepare_cached(OUTGOING)?;
+        let all: Vec<(String, String, Near)> = asked
+            .query_map([id], |one| {
+                let near = Near {
+                    id: one.get(2)?,
+                    kind: one.get(3)?,
+                    title: one.get(4)?,
+                    state: one.get(5)?,
+                };
+                Ok((one.get(0)?, one.get(1)?, near))
+            })?
+            .collect::<rusqlite::Result<_>>()?;
+        Ok(all
+            .into_iter()
+            .filter(|(_, _, near)| (self.seen)(&near.id))
+            .collect())
     }
+
+    fn incoming(&self, id: &str, uid: &str) -> rusqlite::Result<Vec<(String, Near)>> {
+        let mut asked = self.db.prepare_cached(INCOMING)?;
+        let all: Vec<(String, Near)> = asked
+            .query_map([id, uid], |one| {
+                let near = Near {
+                    id: one.get(1)?,
+                    kind: one.get(2)?,
+                    title: one.get(3)?,
+                    state: one.get(4)?,
+                };
+                Ok((one.get(0)?, near))
+            })?
+            .collect::<rusqlite::Result<_>>()?;
+        Ok(all
+            .into_iter()
+            .filter(|(_, near)| (self.seen)(&near.id))
+            .collect())
+    }
+
+    // An idea a task holds ties it to the sheet just as being born of one does; only its source tells.
+    fn born_of(&self, task: &str, row: &Row) -> rusqlite::Result<bool> {
+        let Some(said) = self.said(task)? else {
+            return Ok(false);
+        };
+        let named = parsed::<TaskFacts>(&said).and_then(|own| origin_of(&own.facts));
+        Ok(named.is_some_and(|one| one == row.id || row.uid.as_deref() == Some(one.as_str())))
+    }
+}
+
+fn origin_of(facts: &TaskFacts) -> Option<String> {
+    let (named, _) = facts.source.as_deref()?.split_once('#')?;
+    Some(paper_named(named.trim()))
 }
 
 fn carded(row: Row, around: Around) -> Card {

@@ -165,7 +165,7 @@ impl<'a> Ground<'a> {
         let pages = self.pages_of_books.get(&kept.id);
         read.body = self.docs.read(&kept.file);
         if let Some(body) = &read.body {
-            self.written(own, body, pages, &mut read.ties, &mut read.away);
+            self.written(own, body, pages, &mut read.ties, None);
         }
         if let Some(book) = self.book_of(kept) {
             read.ties.insert((book.to_string(), Tie::Structure));
@@ -182,11 +182,11 @@ impl<'a> Ground<'a> {
             .chain(task.log.iter().map(|entry| entry.body.as_str()))
             .chain(task.steps.iter().map(|step| step.text.as_str()));
         for text in said {
-            self.written(own, text, None, ties, away);
+            self.written(own, text, None, ties, Some(away));
         }
         for file in self.pages_of_tasks.get(&task.id).into_iter().flatten() {
             if let Some(page) = self.docs.read(file) {
-                self.written(own, &page, None, ties, away);
+                self.written(own, &page, None, ties, Some(away));
             }
         }
         if let Some(whole) = task.part_of {
@@ -204,7 +204,7 @@ impl<'a> Ground<'a> {
         text: &str,
         pages: Option<&BTreeMap<&str, &str>>,
         ties: &mut Ties,
-        away: &mut Vec<String>,
+        mut away: Option<&mut Vec<String>>,
     ) {
         for link in links(text) {
             match self.aimed(&link.target) {
@@ -220,8 +220,13 @@ impl<'a> Ground<'a> {
                     let tie = if link.card { Tie::Cite } else { Tie::Mention };
                     ties.insert((id, tie));
                 }
-                None if outside(&link.target) && !away.contains(&link.target) => {
-                    away.push(link.target);
+                None => {
+                    if let Some(away) = away.as_deref_mut()
+                        && outside(&link.target)
+                        && !away.contains(&link.target)
+                    {
+                        away.push(link.target);
+                    }
                 }
                 _ => {}
             }
