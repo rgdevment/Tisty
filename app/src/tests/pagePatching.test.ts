@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { namesSum } from "../placing";
 import { patched, takenOver } from "../ui/pagePatching";
-import { placeOf, placesSettled } from "../ui/pagePlaces";
+import { keyMoved, placeOf, placesSettled } from "../ui/pagePlaces";
 import { near, type Span, spansSum } from "./nearing";
 
 const HEADED =
@@ -691,6 +691,18 @@ describe("a player among words the core draws again", () => {
     expect(old.querySelector(".media")).toBe(player);
     expect(old.querySelector("img")).toBeNull();
     expect(placeOf(player, "data-placed")).toEqual([7, 27]);
+  });
+
+  it("leaves the blocks after it to be moved when they are read", () => {
+    document.body.innerHTML =
+      '<article class="page"><p data-at="0-30"><span data-src="0-6">Antes </span><span class="media is-audio" data-file="a.mp3" data-name="Ladrido" data-placed="6-26"><audio></audio></span></p><p data-at="32-40">Después</p></article>';
+    const sheet = document.querySelector(".page") as Element;
+    const [old, after] = Array.from(sheet.children);
+    keyMoved(sheet, [old, after], 0, 1, [old], 1);
+    takenOver(old, fresh("Ladrido"));
+    expect(after.getAttribute("data-at")).toBe("32-40");
+    placesSettled(document);
+    expect(after.getAttribute("data-at")).toBe("33-41");
   });
 
   it("is drawn again when its name changed", () => {

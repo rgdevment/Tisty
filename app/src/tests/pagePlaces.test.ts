@@ -204,6 +204,22 @@ describe("the places a key moves, written once the keys rest", () => {
     expect(card.getAttribute("data-placed")).toBe("11-15");
     expect(placeOf(last)).toEqual([11, 16]);
   });
+
+  it("leaves what waits as it is when a place is copied within the block the key drew", () => {
+    const blocks = ["uno", "dos", "tres"];
+    const sheet = sheetOf(blocks);
+    typed(sheet, blocks, 0, "x");
+    const first = sheet.firstElementChild as Element;
+    const last = sheet.lastElementChild as Element;
+    const card = document.createElement("span");
+    first.append(card);
+
+    placeCopied(first, card, "data-at", "data-placed");
+
+    expect(card.getAttribute("data-placed")).toBe(first.getAttribute("data-at"));
+    expect(last.getAttribute("data-at")).toBe("10-14");
+    expect(placeOf(last)).toEqual([11, 15]);
+  });
 });
 
 describe("random keys against the whole drawing", () => {
