@@ -98,18 +98,61 @@ fn said_in(line: &str, key: &str) -> Option<String> {
 
 /// A release this build cannot read is taken for a later one: guessing it older would write where it must not.
 pub fn needs_later(needs: &str) -> bool {
-    let ours = [NEEDS, SEALS, TURNS, tisty_core::VERSION]
-        .into_iter()
-        .filter_map(tisty_core::released)
-        .max();
+    let ours = [
+        NEEDS,
+        SEALS,
+        TURNS,
+        tisty_core::diary::SINCE,
+        tisty_core::VERSION,
+    ]
+    .into_iter()
+    .filter_map(tisty_core::released)
+    .max();
     match (tisty_core::released(needs), ours) {
         (Some(needs), Some(ours)) => needs > ours,
         _ => true,
     }
 }
 
-fn needs_earlier(needs: &str) -> bool {
-    matches!((tisty_core::released(needs), tisty_core::released(NEEDS)), (Some(needs), Some(ours)) if needs < ours)
+fn needs_earlier(needs: &str, floor: &str) -> bool {
+    matches!((tisty_core::released(needs), tisty_core::released(floor)), (Some(needs), Some(floor)) if needs < floor)
+}
+
+/// The oldest release that may read this store: one before the diary hands it to its agents.
+pub(crate) fn floor(told: &tisty_core::State) -> &'static str {
+    match tisty_core::diary::begun(told) {
+        true => tisty_core::diary::SINCE,
+        false => NEEDS,
+    }
+}
+
+pub(crate) fn raised_to(dest: &Path, floor: &str) -> Result<(), Trouble> {
+    if floor == NEEDS {
+        return Ok(());
+    }
+    let Told::Shape {
+        shape: OURS,
+        needs,
+        said,
+    } = told(dest)
+    else {
+        return Ok(());
+    };
+    if needs
+        .as_deref()
+        .is_some_and(|needs| !needs_earlier(needs, floor))
+    {
+        return Ok(());
+    }
+    match said {
+        Some(said) => {
+            let mut said = *said;
+            raise_needs(&mut said, floor);
+            crate::write(&dest.join(NAMED), said.to_string().as_bytes())
+        }
+        None if written(dest, None, floor) => Ok(()),
+        None => Err(Trouble::Unshaped(dest.display().to_string())),
+    }
 }
 
 /// Read before anything else in the folder is. A folder that says nothing may be one from before
@@ -225,7 +268,7 @@ pub fn seal_word(dest: &Path, cloud: &str) -> std::io::Result<()> {
             if sealing_of(dest) != Sealing::Plain {
                 return Ok(());
             }
-            let mut said = template()
+            let mut said = template(NEEDS)
                 .parse::<toml_edit::DocumentMut>()
                 .map_err(std::io::Error::other)?;
             if let Some(needs) = needs {
@@ -423,12 +466,15 @@ fn flat(dest: &Path) {
 
 /// Written after everything else a round writes, so finding it is finding a round that finished.
 /// Says whether it raised, and wrote, a place older builds had arranged.
-pub(crate) fn stamp(data: &Path, dest: &Path) -> bool {
+pub(crate) fn stamp(data: &Path, dest: &Path, floor: &str) -> bool {
     match told(dest) {
         Told::Shape { shape, needs, said } if shape == OURS => {
-            match needs.as_deref().is_some_and(needs_earlier) {
+            match needs
+                .as_deref()
+                .is_some_and(|needs| needs_earlier(needs, floor))
+            {
                 true => {
-                    tell(data, dest, said.map(|said| *said));
+                    tell(data, dest, said.map(|said| *said), floor);
                 }
                 false => remember(data, dest, OURS),
             }
@@ -436,9 +482,9 @@ pub(crate) fn stamp(data: &Path, dest: &Path) -> bool {
         }
         Told::Shape { shape, .. } if shape > OURS => false,
         Told::Unreadable { .. } | Told::Unreached => false,
-        Told::Shape { said, .. } => tell(data, dest, said.map(|said| *said)),
+        Told::Shape { said, .. } => tell(data, dest, said.map(|said| *said), floor),
         Told::Nothing => {
-            tell(data, dest, None);
+            tell(data, dest, None, floor);
             false
         }
     }
@@ -449,9 +495,13 @@ pub(crate) fn stamp(data: &Path, dest: &Path) -> bool {
 pub(crate) fn raise_first(data: &Path, dest: &Path) -> bool {
     match told(dest) {
         Told::Shape { shape, needs, said }
-            if shape < OURS || (shape == OURS && needs.as_deref().is_some_and(needs_earlier)) =>
+            if shape < OURS
+                || (shape == OURS
+                    && needs
+                        .as_deref()
+                        .is_some_and(|needs| needs_earlier(needs, NEEDS))) =>
         {
-            tell(data, dest, said.map(|said| *said))
+            tell(data, dest, said.map(|said| *said), NEEDS)
         }
         _ => false,
     }
@@ -461,10 +511,10 @@ pub(crate) fn raise_first(data: &Path, dest: &Path) -> bool {
 pub fn raise_place(dest: &Path) {
     match told(dest) {
         Told::Shape { shape, said, .. } if shape < OURS => {
-            written(dest, said.map(|said| *said));
+            written(dest, said.map(|said| *said), NEEDS);
         }
         Told::Nothing if dest.join(STORE).is_dir() => {
-            written(dest, None);
+            written(dest, None, NEEDS);
         }
         _ => {}
     }
@@ -483,34 +533,36 @@ pub(crate) fn mark_raised(data: &Path) {
     let _ = tisty_core::store::write_atomic(&data.join(RAISED), b"");
 }
 
-fn tell(data: &Path, dest: &Path, said: Option<toml_edit::DocumentMut>) -> bool {
-    let done = written(dest, said);
+fn tell(data: &Path, dest: &Path, said: Option<toml_edit::DocumentMut>, floor: &str) -> bool {
+    let done = written(dest, said, floor);
     if done {
         remember(data, dest, OURS);
     }
     done
 }
 
-fn template() -> String {
+fn template(floor: &str) -> String {
     format!(
-        "{HEADING}\nshape = {OURS}\nneeds = \"{NEEDS}\"\nfolders = [\"{STORE}\", \"{HELD}\", \"{PAPERS}\"]\n"
+        "{HEADING}\nshape = {OURS}\nneeds = \"{floor}\"\nfolders = [\"{STORE}\", \"{HELD}\", \"{PAPERS}\"]\n"
     )
 }
 
-fn written(dest: &Path, before: Option<toml_edit::DocumentMut>) -> bool {
+fn written(dest: &Path, before: Option<toml_edit::DocumentMut>, floor: &str) -> bool {
     let said = match before {
         Some(mut said) => {
             said["shape"] = toml_edit::value(i64::from(OURS));
-            let kept = said
-                .get("needs")
-                .is_some_and(|needs| needs.as_str().is_none_or(|needs| !needs_earlier(needs)));
+            let kept = said.get("needs").is_some_and(|needs| {
+                needs
+                    .as_str()
+                    .is_none_or(|needs| !needs_earlier(needs, floor))
+            });
             if !kept {
-                said["needs"] = toml_edit::value(NEEDS);
+                said["needs"] = toml_edit::value(floor);
             }
             said["folders"] = toml_edit::value(toml_edit::Array::from_iter([STORE, HELD, PAPERS]));
             said.to_string()
         }
-        None => template(),
+        None => template(floor),
     };
     if let Err(e) = tisty_core::store::write_atomic(&dest.join(NAMED), said.as_bytes()) {
         witness::warn(

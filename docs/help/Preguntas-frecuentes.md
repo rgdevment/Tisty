@@ -42,7 +42,7 @@ Por sí solo, no. **Guardar en mi calendario**, en una tarea con fecha, la deja 
 Sí, desde la 1.48: **Diario** en la Biblioteca, un libro por año con una página por mes y una sección por día. Mira [Diario](Documentos#diario).
 
 **¿Mi asistente puede leer mi diario?**
-No, hasta que pulsas **Solo tú** arriba en el Diario y dice **Abierto a los agentes**; aun así solo añade al final de hoy, cuando se lo pides. Un equipo tuyo que sigue con un Tisty anterior a la 1.48 muestra el diario a sus agentes como un documento normal: actualízalo antes de escribir en el diario.
+No, hasta que pulsas **Solo tú** arriba en el Diario y dice **Abierto a los agentes**; aun así solo añade al final de hoy, cuando se lo pides. **Diario** no empieza tu diario mientras alguno de tus equipos use un Tisty anterior a la 1.48, y desde que existe, un equipo con una versión anterior deja de sincronizar antes de recibirlo.
 
 **¿Funciona con un lector de pantalla?**
 Que se sepa, no. Toda la ventana funciona con el teclado y ese camino está probado, pero nunca se ha probado con un lector de pantalla real. Si usas uno, un [reporte](https://github.com/rgdevment/Tisty/issues) que diga dónde falla sería de lo más útil.
@@ -108,7 +108,7 @@ Sí, desde la 1.36, con Google Drive, OneDrive o WebDAV: **Configuración › Se
 Un proxy, un filtro de tu trabajo o un antivirus se interpone entre este equipo y Google, o revisa las conexiones seguras de modo que Tisty no puede confiar en ellas. Mientras tanto, tu trabajo queda a salvo en este equipo. En una red de trabajo, pide a quien la administra que deje pasar a Tisty; en tu propio equipo, permite a Tisty en tu antivirus. Nunca rodees por tu cuenta la protección de tu empresa. Qué significa cada aviso está en [Sincronizar y respaldar](Sincronizar-y-respaldar#cuando-algo-se-interpone-con-google).
 
 **Uno de mis equipos dejó de sincronizar después de una actualización.**
-Actualiza el que quedó atrás. Un equipo solo lee lo que entiende, así que los dos dejan de sincronizar en ambos sentidos hasta que coinciden. Un equipo que sigue con Tisty 1.30 a 1.33 se detiene y te pide actualizarlo en vez de escribir encima de uno más nuevo. No se pierde nada, y lo que escribas entretanto se queda en ese equipo. Un equipo que sigue con un Tisty anterior a la 1.48 sigue sincronizando, pero no conoce la puerta del [Diario](Documentos#diario): actualízalo antes de escribir en el diario.
+Actualiza el que quedó atrás. Un equipo solo lee lo que entiende, así que los dos dejan de sincronizar en ambos sentidos hasta que coinciden. Un equipo que sigue con Tisty 1.30 a 1.33 se detiene y te pide actualizarlo en vez de escribir encima de uno más nuevo. No se pierde nada, y lo que escribas entretanto se queda en ese equipo. Un equipo que sigue con un Tisty anterior a la 1.48 también se detiene donde sincronizas un [Diario](Documentos#diario), antes de recibir nada de él.
 
 ## Comparación
 

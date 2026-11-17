@@ -599,9 +599,10 @@ happens on its own:
   open, it only adds to the end of today, signed, and makes the month's page if
   today has none — or start a diary where there is none, or
   take files from anywhere but Downloads, Documents, Pictures, the desktop and
-  the temporary folder. The diary's door holds on Tisty 1.48 or later: a
-  computer of yours still on an older version keeps syncing and hands the diary
-  to its assistants as an ordinary document, to read and to change.
+  the temporary folder. The diary's door holds on Tisty 1.48 or later, so the
+  Diary does not start one while a computer of yours runs an older version, and
+  once one exists a computer on an older version stops syncing before it
+  receives it.
   Bringing a markdown file in copies what that file's text points at, and only
   what sits in that file's own folder or below it, so what leaves your disk is
   bounded by the file you named rather than by what its text asks for. To
