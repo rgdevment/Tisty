@@ -147,7 +147,7 @@ export function carrying(
       .then((mark) => {
         if (gone) return undefined;
         const was = astir;
-        // A page that starts out of sight never glanced, so the provider's word finds no mark and is taken.
+        // Before the first glance there is no mark to weigh the provider's word against, so it is taken.
         if (was === undefined && !heard) {
           astir = mark;
           return undefined;
@@ -172,8 +172,7 @@ export function carrying(
   };
 
   const glance = () => {
-    if (folder === undefined || document.visibilityState !== "visible") return;
-    stirred();
+    if (folder !== undefined) stirred();
   };
 
   let cameBack = 0;

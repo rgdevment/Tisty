@@ -329,18 +329,25 @@ describe("carrying on its own", () => {
     seen.mockRestore();
   });
 
-  it("does not glance while the window is out of sight", async () => {
+  it("goes on glancing while the window is out of sight, and brings home what stirred", async () => {
     const seen = vi.spyOn(document, "visibilityState", "get").mockReturnValue("hidden");
-    ipc.answer = (cmd) =>
-      cmd === "sync_state"
-        ? Promise.resolve({ ...state })
-        : Promise.resolve({ carried: "came", undecided: [] });
+    let mark = "one";
+    ipc.answer = (cmd) => {
+      if (cmd === "sync_state") return Promise.resolve({ ...state });
+      if (cmd === "folder_astir") return Promise.resolve(mark);
+      return Promise.resolve({ carried: "came", undecided: [] });
+    };
     carried = carrying(() => {});
     await settle();
+    await vi.advanceTimersByTimeAsync(30_000);
+    const before = sent("sync_now").length;
 
-    await vi.advanceTimersByTimeAsync(60_000);
+    mark = "two";
+    await vi.advanceTimersByTimeAsync(30_000);
+    await settle();
 
-    expect(sent("folder_astir")).toHaveLength(0);
+    expect(sent("folder_astir").length).toBeGreaterThan(1);
+    expect(sent("sync_now")).toHaveLength(before + 1);
     seen.mockRestore();
   });
 
