@@ -8,6 +8,7 @@ import { atRandom, type Recalled, useForgotten } from "../useForgotten";
 import Glyph from "./Glyph";
 import { painted } from "./Hue";
 import { asksForMenu, menuAt } from "./menuKeys";
+import { clearOfChrome } from "./WindowChrome";
 
 const PEEK = 8;
 const FORGOTTEN_AT_A_GLANCE = 5;
@@ -195,7 +196,7 @@ export default function Folder({
     <main className="scroller min-w-0 flex-1 px-7 pt-5 pb-8">
       {!folder && docs.length > 0 && (
         <section aria-label={t("forgottenHeading")} className="mb-5">
-          <div className="flex items-center gap-2">
+          <div className={`flex items-center gap-2 ${clearOfChrome}`}>
             {forgotten.length > 0 && (
               <h2 className="text-[10.5px] font-semibold tracking-[0.05em] text-faint uppercase">
                 {t("forgottenHeading")}
