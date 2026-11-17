@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import App from "../App";
 import type { Snapshot, Task } from "../core";
+import { every, unlisted } from "../examples";
 import { t } from "../locales";
 
 Object.defineProperty(window, "innerWidth", { configurable: true, value: 1440 });
@@ -648,6 +649,55 @@ describe("a task opens beside the list, and whole when asked", () => {
 
     expect(await screen.findByText("write the report")).toBeTruthy();
     expect(screen.queryByRole("textbox", { name: "Title" })).toBeNull();
+  });
+});
+
+describe("the example an empty day offers", () => {
+  const offered = async (): Promise<[HTMLElement, string]> => {
+    const all = unlisted(every());
+    const button = await screen.findByRole("button", { name: (said) => all.includes(said) });
+    return [button, (button.textContent ?? "").replace(/[«»]/g, "")];
+  };
+
+  beforeEach(() => {
+    tasks = [];
+    const answered = ipc.answer;
+    ipc.answer = (cmd, args) =>
+      cmd === "capture"
+        ? Promise.resolve({ ...bank, id: "01N", title: "buy bread" })
+        : answered(cmd, args);
+  });
+
+  it("is written in the capture field at a click, and Enter files it", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    const [button, example] = await offered();
+
+    await user.click(button);
+
+    const field = screen.getByPlaceholderText<HTMLInputElement>(t("addForToday"));
+    expect(field.value).toBe(example);
+    expect(document.activeElement).toBe(field);
+
+    await user.keyboard("{Enter}");
+
+    await waitFor(() =>
+      expect(ipc.calls.find((one) => one.cmd === "capture")?.args.text).toBe(example),
+    );
+  });
+
+  it("is not written again when the view comes back", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await user.click((await offered())[0]);
+    await user.clear(screen.getByPlaceholderText(t("addForToday")));
+
+    await user.click(screen.getByRole("button", { name: t("archive") }));
+    await waitFor(() => expect(screen.queryByPlaceholderText(t("addForToday"))).toBeNull());
+    await user.click(screen.getByRole("button", { name: t("tasks") }));
+
+    const back = await screen.findByPlaceholderText<HTMLInputElement>(t("addForToday"));
+    expect(back.value).toBe("");
   });
 });
 

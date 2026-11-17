@@ -79,7 +79,9 @@ If you only wanted a look, clear it before pressing `Enter`. All the words it un
 
 ### Capture without opening the window
 
-Something comes to mind in the middle of something else: press `Ctrl` + `Shift` + `Space` wherever you are and a small window opens to write it. `Enter` saves it, `Esc` closes it, and you carry on with what you were doing. Try it now, without leaving this guide.
+Something comes to mind in the middle of something else: press `Ctrl` + `Shift` + `Space` wherever you are and a small window opens to write it. `Enter` saves it, `Esc` closes it, and you carry on with what you were doing.
+
+**Try it:** without leaving this guide, press `Ctrl` + `Shift` + `Space`, write the first thing you have pending and press `Enter`. That is your first task: with a day in the sentence it waits in **Today** or **Upcoming**; with none, in **All**.
 
 If another program already uses that shortcut, Tisty takes another one and tells you which in Settings. And if what came to mind is not a task yet, `Tab` in that same small window makes it an idea, and another `Tab`, a line in today's diary: both are further down, in **Ideas** and **The diary**.
 
