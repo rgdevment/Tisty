@@ -179,8 +179,8 @@ community effort. That means:
 - **I respect your time** — If you report an issue, I'll respond. If you
   contribute code, I'll review it fairly.
 - **I'm human** — I'll make mistakes. When I do, I'll own up to them.
-- **The source stays open** — The community edition stays free under the
-  AGPL-3.0, and nothing is withheld from the source.
+- **The source stays open** — Tisty is free under the AGPL-3.0, and nothing is
+  withheld from the source.
 
 This Code of Conduct isn't about creating a legal shield—it's about creating a
 space where people feel safe to contribute, learn, and build together.
