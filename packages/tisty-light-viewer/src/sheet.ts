@@ -43,11 +43,14 @@ export const isDark = (): boolean => document.documentElement.classList.contains
 export const dress = async (
   say: Say,
   locale: string,
+  own = false,
   cards?: Omit<Cards, "say">,
 ): Promise<void> => {
   await painted();
   const { readAs } = await import("./drawing");
-  await readAs(document, { say, locale, live: () => true, cards }).drawn;
+  // In one's own document a web link alone in its paragraph is a card of its site, never a preview brought from it.
+  const sites = own ? {} : undefined;
+  await readAs(document, { say, locale, live: () => true, cards, sites }).drawn;
 };
 
 export const redraw = async (): Promise<void> => {

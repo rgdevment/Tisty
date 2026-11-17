@@ -475,9 +475,16 @@ describe("a document of one's own", () => {
       expect(carded()?.cards.card("f2")).toEqual({ kind: "doc", title: "Huerta" }),
     );
     expect(host.cardsOf).toHaveBeenCalledWith(["f2", "f3"]);
-    const { cards } = carded();
+    const { cards, sites } = carded();
     expect(cards.card("f3")).toEqual({ kind: "doc", title: "Sin título" });
     expect(cards.card("f9")).toEqual({ kind: "gone" });
+    expect(sites).toEqual({});
+  });
+
+  it("from a stranger's file, draws no web link as a card of its site", async () => {
+    await open();
+    await waitFor(() => expect(drawing.readAs).toHaveBeenCalled());
+    expect(drawing.readAs.mock.calls.at(-1)?.[1].sites).toBeUndefined();
   });
 
   it("is read again on coming back only when it was edited meanwhile", async () => {
