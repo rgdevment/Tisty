@@ -117,6 +117,32 @@ pub fn extract(text: &str) -> Vec<Ref> {
     found
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Link {
+    pub target: String,
+    pub card: bool,
+}
+
+pub fn links(text: &str) -> Vec<Link> {
+    let code = crate::fences::fenced_spans(text);
+    let bytes = text.as_bytes();
+    let mut found: Vec<Link> = Vec::new();
+    let mut seen: std::collections::BTreeSet<(String, bool)> = Default::default();
+    for (at, one) in marked_past(text, &code) {
+        if one.kind != Kind::Link {
+            continue;
+        }
+        let card = at > 0 && bytes[at - 1] == b'!';
+        if seen.insert((one.target.clone(), card)) {
+            found.push(Link {
+                target: one.target,
+                card,
+            });
+        }
+    }
+    found
+}
+
 fn marked_past(text: &str, code: &[(usize, usize)]) -> Vec<(usize, Ref)> {
     let mut found: Vec<(usize, Ref)> = Vec::new();
     let where_at = std::cell::Cell::new(0usize);
@@ -389,3 +415,7 @@ pub fn alerted(said: &str) -> Option<&str> {
     let alone = after.is_empty() || after.starts_with(char::is_whitespace);
     (known && alone).then(|| after.trim_start())
 }
+
+#[cfg(test)]
+#[path = "refs_test.rs"]
+mod tests;

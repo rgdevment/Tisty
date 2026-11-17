@@ -1,15 +1,17 @@
 use std::collections::BTreeMap;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use rusqlite::{Connection, OptionalExtension, TransactionBehavior};
-use sha2::{Digest, Sha256};
 
 use crate::{
     Paths, State,
     witness::{self, Fact, channel},
 };
 
-const SCHEMA: i64 = 1;
+mod linked;
+mod nodes;
+
+const SCHEMA: i64 = 3;
 const FILE: &str = "brain.db";
 const WAITS_FOR_OTHERS: std::time::Duration = std::time::Duration::from_secs(5);
 const PAGES_WORTH_COMPACTING: i64 = 256;
@@ -18,7 +20,11 @@ const TABLES: &str = "CREATE TABLE IF NOT EXISTS node(
         id TEXT PRIMARY KEY,
         kind TEXT NOT NULL,
         title TEXT NOT NULL,
+        grp TEXT,
+        state TEXT,
+        uid TEXT,
         stamp TEXT NOT NULL);
+    CREATE INDEX IF NOT EXISTS node_by_uid ON node(uid);
     CREATE TABLE IF NOT EXISTS edge(
         source TEXT NOT NULL,
         target TEXT NOT NULL,
@@ -39,10 +45,10 @@ const DROPPED: &str = "DROP TABLE IF EXISTS node;
     DROP TABLE IF EXISTS note;
     DELETE FROM meta;";
 
-const GONE_WITH_A_NODE: [&str; 5] = [
+// An edge is what its source wrote, so one aimed at a node that left stays for when it comes back.
+const GONE_WITH_A_NODE: [&str; 4] = [
     "DELETE FROM node WHERE id = ?1",
     "DELETE FROM edge WHERE source = ?1",
-    "DELETE FROM edge WHERE target = ?1",
     "DELETE FROM card WHERE id = ?1",
     "DELETE FROM note WHERE id = ?1",
 ];
@@ -64,31 +70,26 @@ pub enum Round {
     Looking,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum Kind {
-    Doc,
-    Page,
-    Task,
-    Tag,
-    File,
+pub struct Docs {
+    root: PathBuf,
+    told: BTreeMap<String, String>,
 }
 
-impl Kind {
-    fn as_str(self) -> &'static str {
-        match self {
-            Kind::Doc => "doc",
-            Kind::Page => "page",
-            Kind::Task => "task",
-            Kind::Tag => "tag",
-            Kind::File => "file",
+impl Docs {
+    pub fn on_disk(root: &Path) -> Self {
+        Self {
+            root: root.to_path_buf(),
+            told: crate::docs::told_bodies(root),
         }
     }
-}
 
-struct Node {
-    kind: Kind,
-    title: String,
-    stamp: String,
+    fn told(&self, file: &str) -> &str {
+        self.told.get(file).map_or("", String::as_str)
+    }
+
+    fn read(&self, file: &str) -> Option<String> {
+        crate::docs::read(&self.root, file).ok()
+    }
 }
 
 impl Brain {
@@ -187,27 +188,48 @@ impl Brain {
     pub fn refresh(
         &mut self,
         state: &State,
-        bodies: &BTreeMap<String, String>,
+        docs: &Docs,
         seen: &str,
     ) -> rusqlite::Result<Refreshed> {
-        let wanted = nodes(state, bodies);
+        let ground = linked::Ground::new(state, docs);
+        let wanted = nodes::nodes(state, docs, &ground);
+        // Bodies are read before the lock is taken, so nobody waits on the disk.
+        let before = stamps(&self.db)?;
+        let mut ties: BTreeMap<&str, linked::Ties> = wanted
+            .iter()
+            .filter(|(id, node)| before.get(*id) != Some(&node.stamp))
+            .map(|(id, node)| (id.as_str(), ground.ties(id, &node.holder)))
+            .collect();
         let tx = self
             .db
             .transaction_with_behavior(TransactionBehavior::Immediate)?;
         let held = stamps(&tx)?;
         let mut written = 0;
         {
-            let mut put = tx.prepare("INSERT OR REPLACE INTO node VALUES (?, ?, ?, ?)")?;
+            let mut put = tx.prepare("INSERT OR REPLACE INTO node VALUES (?, ?, ?, ?, ?, ?, ?)")?;
+            let mut untied = tx.prepare("DELETE FROM edge WHERE source = ?")?;
+            let mut tie = tx.prepare("INSERT OR IGNORE INTO edge VALUES (?, ?, ?)")?;
             for (id, node) in &wanted {
-                if held.get(id) != Some(&node.stamp) {
-                    put.execute(rusqlite::params![
-                        id,
-                        node.kind.as_str(),
-                        node.title,
-                        node.stamp
-                    ])?;
-                    written += 1;
+                if held.get(id) == Some(&node.stamp) {
+                    continue;
                 }
+                put.execute(rusqlite::params![
+                    id,
+                    node.kind.as_str(),
+                    node.title,
+                    node.group,
+                    node.standing,
+                    node.uid,
+                    node.stamp
+                ])?;
+                untied.execute([id])?;
+                let own = ties
+                    .remove(id.as_str())
+                    .unwrap_or_else(|| ground.ties(id, &node.holder));
+                for (target, kind) in own {
+                    tie.execute(rusqlite::params![id, target, kind.as_str()])?;
+                }
+                written += 1;
             }
         }
         let gone: Vec<&String> = held
@@ -253,13 +275,13 @@ pub fn kept_up(paths: &Paths, round: Round) -> Option<Refreshed> {
         Round::Nudged | Round::Looking => Brain::open(paths.cache()),
     }?;
     // Taken before the state is read, so whatever lands meanwhile leaves a stamp the next round misses.
-    let bodies = crate::docs::told_bodies(&paths.docs());
-    let seen = seen_on_disk(paths, &bodies);
+    let docs = Docs::on_disk(&paths.docs());
+    let seen = seen_on_disk(paths, &docs);
     // On Windows the directory entry lags a write, so a nudge never trusts the stamp.
     if round != Round::Nudged && brain.seen().as_deref() == Some(seen.as_str()) {
         return Some(Refreshed::Unchanged);
     }
-    let state = match crate::cache::summarised(&paths.store(), paths.cache()) {
+    let state = match crate::cache::project(&paths.store(), paths.cache()) {
         Ok(state) => state,
         Err(e) => {
             warned(
@@ -270,7 +292,7 @@ pub fn kept_up(paths: &Paths, round: Round) -> Option<Refreshed> {
             return None;
         }
     };
-    match brain.refresh(&state, &bodies, &seen) {
+    match brain.refresh(&state, &docs, &seen) {
         Ok(done) => {
             if done != Refreshed::Unchanged {
                 brain.compact_if_worth_it();
@@ -292,79 +314,12 @@ pub fn kept_up(paths: &Paths, round: Round) -> Option<Refreshed> {
     }
 }
 
-fn seen_on_disk(paths: &Paths, bodies: &BTreeMap<String, String>) -> String {
+fn seen_on_disk(paths: &Paths, docs: &Docs) -> String {
     let mut seen = crate::cache::fingerprint(&paths.store());
-    for (id, told) in bodies {
+    for (id, told) in &docs.told {
         seen.push_str(&format!("\u{1}{id}:{told}"));
     }
     seen
-}
-
-fn nodes(state: &State, bodies: &BTreeMap<String, String>) -> BTreeMap<String, Node> {
-    let mut all = BTreeMap::new();
-    for kept in state.papers() {
-        let told = serde_json::to_string(kept).unwrap_or_default();
-        all.insert(
-            kept.file.clone(),
-            Node {
-                kind: match kept.page_of {
-                    Some(_) => Kind::Page,
-                    None => Kind::Doc,
-                },
-                title: kept.title.clone().unwrap_or_else(|| kept.file.clone()),
-                stamp: stamped(&[&told, bodies.get(&kept.file).map_or("", String::as_str)]),
-            },
-        );
-    }
-    for task in state.tasks.values() {
-        all.insert(
-            task.id.to_string(),
-            Node {
-                kind: Kind::Task,
-                title: task.title.clone(),
-                stamp: stamped(&[&without_its_bodies(task)]),
-            },
-        );
-    }
-    for tag in state.tags() {
-        all.insert(
-            format!("#{tag}"),
-            Node {
-                kind: Kind::Tag,
-                title: tag.as_str().to_string(),
-                stamp: String::new(),
-            },
-        );
-    }
-    for (at, (sha256, _)) in &state.kept {
-        all.insert(
-            at.clone(),
-            Node {
-                kind: Kind::File,
-                title: at.rsplit('/').next().unwrap_or(at).to_string(),
-                stamp: sha256.clone(),
-            },
-        );
-    }
-    all
-}
-
-// A state read with its bodies must stamp a task as the summary state does.
-fn without_its_bodies(task: &crate::Task) -> String {
-    let mut light = task.clone();
-    light.description = None;
-    light.log.clear();
-    light.steps.clear();
-    serde_json::to_string(&light).unwrap_or_default()
-}
-
-fn stamped(parts: &[&str]) -> String {
-    let mut hasher = Sha256::new();
-    for part in parts {
-        hasher.update(part.as_bytes());
-        hasher.update([0]);
-    }
-    crate::signing::hexed(&hasher.finalize())
 }
 
 fn stamps(db: &Connection) -> rusqlite::Result<BTreeMap<String, String>> {

@@ -7,38 +7,38 @@ use crate::event::{DeviceId, DocAdd, Said, TaskAdd};
 use crate::model::Tag;
 use crate::{Op, Store, docs};
 
-struct World {
+pub(super) struct World {
     _tmp: tempfile::TempDir,
-    paths: Paths,
+    pub(super) paths: Paths,
 }
 
 impl World {
-    fn new() -> Self {
+    pub(super) fn new() -> Self {
         let tmp = tempfile::tempdir().unwrap();
         let paths = Paths::new(tmp.path().join("data"), tmp.path().join("config"));
         Self { _tmp: tmp, paths }
     }
 
-    fn store(&self) -> Store {
+    pub(super) fn store(&self) -> Store {
         Store::open(self.paths.store(), DeviceId("dev_a".into())).unwrap()
     }
 
-    fn state(&self) -> State {
+    pub(super) fn state(&self) -> State {
         State::replay(&crate::store::read_all(self.paths.store()).unwrap())
     }
 
-    fn brain(&self) -> Brain {
+    pub(super) fn brain(&self) -> Brain {
         Brain::open(self.paths.cache()).expect("a brain opens")
     }
 
-    fn refreshed(&self, brain: &mut Brain, state: &State) -> Refreshed {
+    pub(super) fn refreshed(&self, brain: &mut Brain, state: &State) -> Refreshed {
         brain
-            .refresh(state, &docs::told_bodies(&self.paths.docs()), "seen")
+            .refresh(state, &Docs::on_disk(&self.paths.docs()), "seen")
             .unwrap()
     }
 }
 
-fn task(store: &mut Store, title: &str, tags: &[&str]) -> Ulid {
+pub(super) fn task(store: &mut Store, title: &str, tags: &[&str]) -> Ulid {
     let id = Ulid::generate();
     let mut d = TaskAdd::new(title, "a0");
     d.tags = tags.iter().map(|one| Tag::new(one).unwrap()).collect();
@@ -46,7 +46,7 @@ fn task(store: &mut Store, title: &str, tags: &[&str]) -> Ulid {
     id
 }
 
-fn doc(
+pub(super) fn doc(
     world: &World,
     store: &mut Store,
     body: &str,
@@ -77,13 +77,25 @@ fn doc(
     (id, made.id)
 }
 
-fn held(brain: &Brain, column: &str) -> BTreeMap<String, String> {
+pub(super) fn held(brain: &Brain, column: &str) -> BTreeMap<String, String> {
     let mut asked = brain
         .db
         .prepare(&format!("SELECT id, {column} FROM node"))
         .unwrap();
     asked
         .query_map([], |row| Ok((row.get(0)?, row.get(1)?)))
+        .unwrap()
+        .map(Result::unwrap)
+        .collect()
+}
+
+pub(super) fn edges(brain: &Brain) -> Vec<(String, String, String)> {
+    let mut asked = brain
+        .db
+        .prepare("SELECT source, target, kind FROM edge ORDER BY source, target, kind")
+        .unwrap();
+    asked
+        .query_map([], |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)))
         .unwrap()
         .map(Result::unwrap)
         .collect()
@@ -184,24 +196,29 @@ fn only_what_moved_since_the_last_round_is_written_again() {
 }
 
 #[test]
-fn a_task_read_with_its_bodies_is_not_written_again() {
+fn a_word_in_a_task_s_description_moves_it() {
     let world = World::new();
     let mut store = world.store();
     let errand = task(&mut store, "file the taxes", &[]);
-    let light = world.state();
-    let mut whole = light.clone();
-    if let Some(one) = whole.tasks.get_mut(&errand) {
+    let mut state = world.state();
+    let mut brain = world.brain();
+    world.refreshed(&mut brain, &state);
+
+    if let Some(one) = state.tasks.get_mut(&errand) {
         one.description = Some("the receipts are in the blue folder".into());
     }
-    let mut brain = world.brain();
 
-    world.refreshed(&mut brain, &light);
-
-    assert_eq!(world.refreshed(&mut brain, &whole), Refreshed::Unchanged);
+    assert_eq!(
+        world.refreshed(&mut brain, &state),
+        Refreshed::Moved {
+            written: 1,
+            removed: 0
+        }
+    );
 }
 
 #[test]
-fn what_is_gone_leaves_with_everything_hung_on_it() {
+fn what_is_gone_leaves_with_what_it_wrote() {
     let world = World::new();
     let mut store = world.store();
     let gone = task(&mut store, "book the flight", &[]);
@@ -236,9 +253,14 @@ fn what_is_gone_leaves_with_everything_hung_on_it() {
         }
     );
     assert!(!held(&brain, "kind").contains_key(&gone_id));
-    for table in ["edge", "card", "note"] {
+    for table in ["card", "note"] {
         assert_eq!(counted(&brain.db, table), 0, "{table} still holds it");
     }
+    assert_eq!(
+        edges(&brain),
+        vec![(stays_id, gone_id, "mention".to_string())],
+        "only what the gone task wrote leaves with it"
+    );
 }
 
 #[test]
@@ -270,7 +292,7 @@ fn an_older_base_is_built_again_from_nothing() {
         brain
             .db
             .execute_batch(
-                "INSERT INTO node VALUES ('x', 'task', 'old', 's');
+                "INSERT INTO node (id, kind, title, stamp) VALUES ('x', 'task', 'old', 's');
                  UPDATE meta SET value = '0' WHERE key = 'schema';",
             )
             .unwrap();
@@ -289,7 +311,10 @@ fn a_newer_base_is_left_to_the_tisty_that_keeps_it() {
         let brain = Brain::open(dir.path()).unwrap();
         brain
             .db
-            .execute("INSERT INTO node VALUES ('x', 'task', 'newer', 's')", [])
+            .execute(
+                "INSERT INTO node (id, kind, title, stamp) VALUES ('x', 'task', 'newer', 's')",
+                [],
+            )
             .unwrap();
         brain
             .db
@@ -315,7 +340,7 @@ fn a_file_that_is_no_database_is_built_again() {
 
     assert_eq!(
         brain
-            .refresh(&State::default(), &BTreeMap::new(), "seen")
+            .refresh(&State::default(), &Docs::on_disk(dir.path()), "seen")
             .unwrap(),
         Refreshed::Unchanged
     );
@@ -328,7 +353,9 @@ fn damage_deep_in_the_file_is_found_at_the_start_of_a_run() {
         let mut brain = Brain::open(dir.path()).unwrap();
         let mut state = State::default();
         crowded(&mut state, 400);
-        brain.refresh(&state, &BTreeMap::new(), "seen").unwrap();
+        brain
+            .refresh(&state, &Docs::on_disk(dir.path()), "seen")
+            .unwrap();
         brain
             .db
             .execute_batch("PRAGMA wal_checkpoint(TRUNCATE)")
@@ -397,10 +424,12 @@ fn room_left_by_what_was_removed_is_given_back() {
     let mut brain = Brain::open(dir.path()).unwrap();
     let mut state = State::default();
     crowded(&mut state, 3000);
-    brain.refresh(&state, &BTreeMap::new(), "full").unwrap();
+    brain
+        .refresh(&state, &Docs::on_disk(dir.path()), "full")
+        .unwrap();
 
     brain
-        .refresh(&State::default(), &BTreeMap::new(), "empty")
+        .refresh(&State::default(), &Docs::on_disk(dir.path()), "empty")
         .unwrap();
     brain.compact_if_worth_it();
 
