@@ -139,6 +139,13 @@ pub(super) fn written_today(
                 doc_named(state, &book)
             )));
         }
+        diary::Opened::Waiting { .. } => {
+            return Err(Refused::Tool(format!(
+                "The person's diary waits until every one of their computers runs Tisty {} or \
+                 later. Nothing was written.",
+                diary::SINCE
+            )));
+        }
     };
     if !opening.ops.is_empty() {
         store.append_batch(opening.ops.clone()).map_err(hitch)?;

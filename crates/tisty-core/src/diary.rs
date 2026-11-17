@@ -7,6 +7,9 @@ use crate::event::{DeviceId, DocAdd, Said};
 use crate::model::{DocId, Kept, Task};
 use crate::{Op, Result, State};
 
+/// The first release that keeps the diary from agents; an older one hands it to them like any page.
+pub const SINCE: &str = "1.48.0";
+
 pub struct Words {
     pub diary: &'static str,
     pub months: [&'static str; 12],
@@ -231,6 +234,23 @@ pub struct Opening {
 pub enum Opened {
     Ready(Opening),
     Locked { book: String },
+    Waiting { behind: Vec<DeviceId> },
+}
+
+pub fn begun(state: &State) -> bool {
+    state.docs.values().any(|one| one.diary)
+}
+
+// Once it has begun, the place each round raises stops an older machine, so nothing waits on it here.
+pub fn held_by(state: &State, here: &DeviceId) -> Vec<DeviceId> {
+    if begun(state) {
+        return Vec::new();
+    }
+    state
+        .not_yet_on(SINCE)
+        .into_iter()
+        .filter(|device| device != here)
+        .collect()
 }
 
 pub struct Maker<'a> {
@@ -240,6 +260,10 @@ pub struct Maker<'a> {
 }
 
 pub fn opened(maker: &Maker, state: &State, date: Date, words: &Words) -> Result<Opened> {
+    let behind = held_by(state, maker.device);
+    if !behind.is_empty() {
+        return Ok(Opened::Waiting { behind });
+    }
     let mut ops = Vec::new();
     let found = book_of(maker.root, state, date.year());
     let (book_id, book) = match found {

@@ -310,17 +310,35 @@ impl Person {
             device: &config.device_id,
             by: None,
         };
-        let tisty_core::diary::Opened::Ready(opening) =
-            tisty_core::diary::opened(&maker, &self.state(), date, words).unwrap()
-        else {
-            panic!("the diary was locked");
+        let opened = tisty_core::diary::opened(&maker, &self.state(), date, words).unwrap();
+        let tisty_core::diary::Opened::Ready(opening) = opened else {
+            panic!("the diary did not open: {opened:?}");
         };
         self.wrote(opening.ops.clone());
         tisty_core::diary::named(&self.paths.docs(), self.paths.data(), &opening).unwrap();
         let was = tisty_core::docs::read(&self.paths.docs(), &opening.page).unwrap();
         let now = tisty_core::diary::written_on(&was, date, words, text);
         tisty_core::docs::write(&self.paths.docs(), &opening.page, &now).unwrap();
+        self.retells(&[&opening.book, &opening.page]);
         (opening.book, opening.page)
+    }
+
+    // As the window does after writing a body, so the log answers for what the paper round carries.
+    fn retells(&self, files: &[&str]) {
+        let state = self.state();
+        let ops = files
+            .iter()
+            .filter_map(|file| {
+                let kept = state.docs.values().find(|one| one.file == *file)?;
+                let body = tisty_core::docs::read(&self.paths.docs(), file).ok()?;
+                let said = tisty_core::event::Said::of(&body);
+                said.news_for(kept).then_some(Op::DocSaid {
+                    id: kept.id,
+                    d: said,
+                })
+            })
+            .collect();
+        self.wrote(ops);
     }
 
     pub fn opens_the_diary_to_agents(&self, open: bool) {

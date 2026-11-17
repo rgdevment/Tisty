@@ -71,7 +71,7 @@ A task you closed comes to the assistant with a notice saying so. It reads as it
 
 ## Your Diary stays yours
 
-The [Diary](Documents#diary) is out of every assistant's sight until you press **Only you** at its top and it reads **Open to agents**. While it is shut, every tool answers about it as about a document that is not there, and searches, lists and counts leave it out. Open, an assistant reads it and, only when you ask, adds to the end of today under a line with the minute and its name. Whatever would change, move, mark or put away what you wrote there is refused. Press the button again to keep it to yourself. The door only holds on Tisty 1.48 or later: a computer of yours still on an older version shows the diary to its agents as an ordinary document, so update every computer before you write in it.
+The [Diary](Documents#diary) is out of every assistant's sight until you press **Only you** at its top and it reads **Open to agents**. While it is shut, every tool answers about it as about a document that is not there, and searches, lists and counts leave it out. Open, an assistant reads it and, only when you ask, adds to the end of today under a line with the minute and its name. Whatever would change, move, mark or put away what you wrote there is refused. Press the button again to keep it to yourself. Only Tisty 1.48 or later knows this door, so **Diary** does not start the diary while any computer of yours runs an older version, and an older computer stops syncing before it receives it.
 
 ## Marking a document instead of deleting it
 

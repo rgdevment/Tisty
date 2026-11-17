@@ -257,8 +257,9 @@ waits in Brainstorm.
   first.
 - **Only yours** — no agent sees it until you press **Only you** and it reads
   **Open to agents**; open, an agent reads it and only adds to the end of today,
-  signed, when you ask. The door holds on Tisty 1.48 or later: update every
-  computer that syncs before you write in it. It is never shared through Folio.
+  signed, when you ask. **Diary** starts it only once every computer that syncs
+  runs Tisty 1.48 or later, and an older one stops syncing before it receives
+  it. It is never shared through Folio.
 - **Still Markdown** — a book with `diary: on` in its properties, whose pages
   are the months.
 

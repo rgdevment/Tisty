@@ -85,14 +85,7 @@ fn behind(session: &Session) -> Vec<String> {
         .not_yet_on(tisty_carrier::TURNS)
         .into_iter()
         .filter(|device| device != here)
-        .map(|device| {
-            session
-                .state
-                .named
-                .get(&device)
-                .map(|one| one.name.clone())
-                .unwrap_or_else(|| tisty_core::config::nicknamed(&device.0))
-        })
+        .map(|device| session.state.called(&device))
         .collect()
 }
 

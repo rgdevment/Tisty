@@ -21,6 +21,7 @@ pub mod docs;
 pub mod doubled;
 pub mod dressing;
 pub mod event;
+pub mod forgotten;
 mod growing;
 pub mod guide_seal;
 pub mod herald;
