@@ -154,13 +154,29 @@ export const unmarked = (text: string, at: number): Moved | null => {
   };
 };
 
+const FENCE = /^[ \t]*(?:>[ \t]?)*[ \t]*(`{3,}|~{3,})(.*)$/;
+
+// A fence closes only on a run of its own mark at least as long, so a shorter or other one inside is code.
+const inFence = (text: string, at: number) => {
+  let open: string | null = null;
+  for (const line of text.slice(0, at).split("\n")) {
+    const found = FENCE.exec(line.replace(/\r$/, ""));
+    if (!found) continue;
+    const [, mark, rest] = found;
+    if (open === null) open = mark;
+    else if (mark[0] === open[0] && mark.length >= open.length && !rest.trim()) open = null;
+  }
+  return open !== null;
+};
+
 // Words joined across a line end would take a numbered item under them, which cannot open a list there, as their own.
-export const joinedApart = (text: string, gone: Edit): Edit => {
-  const join = { ...gone, insert: "" };
-  if (!text.slice(gone.from, gone.to).includes("\n")) return join;
-  const left = text.slice(0, gone.from) + text.slice(gone.to);
-  const { start, line } = lineAt(left, gone.from);
-  const ends = left.indexOf("\n", gone.from);
+export const joinedApart = (text: string, asked: Edit): Edit => {
+  if (!text.slice(asked.from, asked.to).includes("\n")) return asked;
+  const landed = asked.from + asked.insert.length;
+  const left = text.slice(0, asked.from) + asked.insert + text.slice(asked.to);
+  if (landed === 0 || left[landed - 1] === "\n") return asked;
+  const { start, line } = lineAt(left, landed);
+  const ends = left.indexOf("\n", landed);
   const item = ends < 0 ? null : LISTED.exec(lineAt(left, ends + 1).line);
   const number = item?.[3];
   const deep = (item?.[1].replace(/^.*>/, "").replace(/\t/g, "    ").length ?? 0) >= 4;
@@ -170,11 +186,16 @@ export const joinedApart = (text: string, gone: Edit): Edit => {
     number === "1" ||
     deep ||
     LISTED.test(line) ||
-    wordless(line)
+    wordless(line) ||
+    inFence(left, start)
   )
-    return join;
-  const end = gone.to + (start + line.length - gone.from);
-  return { from: gone.from, to: end, insert: `${text.slice(gone.to, end)}\n${item[1].trimEnd()}` };
+    return asked;
+  const end = asked.to + (start + line.length - landed);
+  return {
+    from: asked.from,
+    to: end,
+    insert: `${asked.insert}${text.slice(asked.to, end)}\n${item[1].trimEnd()}`,
+  };
 };
 
 export const openedAbove = (

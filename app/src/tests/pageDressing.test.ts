@@ -99,6 +99,8 @@ const WORDS = [
   '<p data-at="0-9"><img src="walks-0006bf09.html" alt="Walks"></p>',
   '<p data-at="0-9">plain <code>x</code> words</p>',
   '<h2 id="b" data-at="0-9">B <span class="tag" data-tag="x">#x</span></h2>',
+  '<p data-at="0-9"><span class="media is-audio" data-file="attachments/bark-0006bf10.mp3" data-name="Bark" data-placed="0-9"><span class="media-name">Bark</span><audio controls=""></audio></span></p>',
+  '<p data-at="0-9"><span class="media is-audio" data-file="attachments/bark-0006bf10.mp3" data-name="Bark" data-placed="0-5"><span class="media-name">Bark</span><audio controls=""></audio></span> <a href="https://x.y/z">x</a></p>',
 ];
 
 const READING = {
@@ -141,5 +143,27 @@ describe("a block of words the core draws again, dressed where it stands", () =>
     expect(kept.moved).toBe(0);
     expect(away.moved).toBeGreaterThan(0);
     expect(kept.lost).toBe(0);
+  });
+});
+
+describe("a player among the words dressed again", () => {
+  it("never goes to the page the words are dressed on, so what it plays goes on", () => {
+    const sheet = pageOf(
+      '<p data-at="0-30"><span data-src="0-6">Antes </span><span class="media is-audio" data-file="a.mp3" data-name="Ladrido" data-placed="6-26"><audio></audio></span></p>',
+    );
+    const player = sheet.querySelector(".media") as Element;
+    const carried: Node[] = [];
+    const append = Element.prototype.append;
+    vi.spyOn(Element.prototype, "append").mockImplementation(function (
+      this: Element,
+      ...nodes: (Node | string)[]
+    ) {
+      if (this.ownerDocument !== document)
+        carried.push(...nodes.filter((one): one is Node => typeof one !== "string"));
+      return append.apply(this, nodes);
+    });
+    wornLaid(document, [sheet.children[0] as Element], () => true, REACH);
+    expect(carried).not.toContain(player);
+    expect(sheet.querySelector(".media")).toBe(player);
   });
 });
