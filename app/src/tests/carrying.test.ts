@@ -236,6 +236,52 @@ describe("carrying on its own", () => {
     seen.mockRestore();
   });
 
+  it("answers a window that comes back with one round, though it is seen again and then focused", async () => {
+    let shown = "hidden";
+    const seen = vi
+      .spyOn(document, "visibilityState", "get")
+      .mockImplementation(() => shown as DocumentVisibilityState);
+    carried = carrying(() => {});
+    await settle();
+    const before = sent("sync_now").length;
+    let release: (answer: string) => void = () => {};
+    ipc.answer = (cmd) =>
+      cmd === "sync_state"
+        ? Promise.resolve({ ...state })
+        : new Promise((resolve) => {
+            release = resolve;
+          });
+
+    shown = "visible";
+    document.dispatchEvent(new Event("visibilitychange"));
+    window.dispatchEvent(new Event("focus"));
+    await settle();
+    release("same");
+    await settle();
+
+    expect(sent("sync_now").length).toBe(before + 1);
+    seen.mockRestore();
+  });
+
+  it("still pulls for a focus once the round that brought the window back is over", async () => {
+    let shown = "hidden";
+    const seen = vi
+      .spyOn(document, "visibilityState", "get")
+      .mockImplementation(() => shown as DocumentVisibilityState);
+    carried = carrying(() => {});
+    await settle();
+    const before = sent("sync_now").length;
+
+    shown = "visible";
+    document.dispatchEvent(new Event("visibilitychange"));
+    await settle();
+    window.dispatchEvent(new Event("focus"));
+    await settle();
+
+    expect(sent("sync_now").length).toBe(before + 2);
+    seen.mockRestore();
+  });
+
   it("does not glance while the window is out of sight", async () => {
     const seen = vi.spyOn(document, "visibilityState", "get").mockReturnValue("hidden");
     ipc.answer = (cmd) =>

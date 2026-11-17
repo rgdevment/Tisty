@@ -175,13 +175,23 @@ export function carrying(
     stirred();
   };
 
+  let cameBack = 0;
   const seen = () => {
-    if (document.visibilityState === "visible") void pull();
+    if (document.visibilityState !== "visible") return;
+    const before = round;
+    void pull();
+    if (round !== before) cameBack = round;
+  };
+
+  // A window coming back is seen again and then focused, and the round the first began serves both.
+  const focused = () => {
+    if (running && cameBack === round) return;
+    void pull();
   };
 
   void settings(() => void pull());
 
-  window.addEventListener("focus", pull);
+  window.addEventListener("focus", focused);
   document.addEventListener("visibilitychange", seen);
   const told = listen("told", stirred);
   const beat = setInterval(both, EVERY_SO_OFTEN);
@@ -207,7 +217,7 @@ export function carrying(
       clearInterval(beat);
       clearInterval(glancing);
       void told.then((stop) => stop());
-      window.removeEventListener("focus", pull);
+      window.removeEventListener("focus", focused);
       document.removeEventListener("visibilitychange", seen);
     },
   };
