@@ -17,6 +17,24 @@ Todo queda en este equipo, como texto que cualquier programa abre. No pide cuent
 
 Lee esta guía a tu ritmo: cada sección se entiende sola, y lo que hoy no uses puede esperar. Es un documento como cualquier otro, así que puedes tocarlo todo: hacer clic, escribir, probar. Si en algún momento te pierdes, el `?` al pie de la barra lateral abre la ayuda completa, también sin conexión, y a esta guía vuelves desde Configuración → General.
 
+## Tú y tu agente
+
+Trabajar con un agente es repartirse el trabajo: tú decides hacia dónde va y él se encarga del detalle. Tisty está hecho para que esas dos mitades se entiendan.
+
+### Lo lees tú, lo lee él
+
+Un documento en Tisty se lee con gusto: títulos, colores, avisos que resaltan lo importante, diagramas, tablas y casillas, en vez de un muro de texto. Tu agente lee el mismo documento a su manera: primero el índice y después solo la sección que necesita. Y cuando escribe, escribe para ti: Tisty le pide que lo haga visual, ordenado y fácil de leer, en el mismo lenguaje que usas tú.
+
+### Cada cosa en su lugar
+
+Las tareas van en listas, los documentos en carpetas, y lo que es mucho para una vez se divide en partes. Así, cuando vuelves a un proyecto después de semanas, tú ves dónde quedó y tu agente sabe por dónde seguir.
+
+Hasta dónde llega: cada persona tiene su propio Tisty y sus propios agentes. No reparte trabajo entre personas ni lleva un equipo; cuando alguien necesita lo que sabes, le compartes el documento.
+
+### Lo que viene
+
+Estoy trabajando en Brainsty, el cerebro de Tisty: todo lo que guardas, con lo que lo une, dibujado como una sola red. Tú la verás de lejos, como un mapa de todos tus proyectos. Tu agente la leerá de cerca, como un índice que le dice dónde mirar sin leerlo todo. Todavía no tiene fecha; cuando llegue, esta guía lo va a contar.
+
 ## ¿Cómo funciona?
 
 Todo empieza con una pregunta, y tu agente se hace la misma: ¿lo vas a hacer, o lo vas a volver a leer? Si lo vas a hacer, es una tarea: se acaba, a veces el mismo día, y queda en el Archivo como conocimiento con fecha. Si lo vas a volver a leer, es un documento: un manual, una receta, las actas de un año, que corriges y amplías durante años. Y si todavía no lo sabes, es una idea: espera en la Lluvia de ideas hasta que la ordenes. Lo que solo pasó, y quieres recordar, va al Diario. Este dibujo cuenta el resto:

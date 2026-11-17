@@ -17,6 +17,24 @@ Everything stays on this computer, as text any program opens. It asks for no acc
 
 Read this guide at your own pace: each section stands on its own, and whatever you do not need today can wait. It is a document like any other, so you can touch all of it: click, write, try things. If you ever get lost, the `?` at the foot of the sidebar opens the full help, offline too, and you come back to this guide from Settings → General.
 
+## You and your agent
+
+Working with an agent means splitting the work: you decide where it goes and it takes care of the details. Tisty is made so those two halves understand each other.
+
+### You read it, it reads it
+
+A document in Tisty is a pleasure to read: headings, colours, callouts that bring out what matters, diagrams, tables and checkboxes, instead of a wall of text. Your agent reads the same document its own way: the outline first, then only the section it needs. And when it writes, it writes for you: Tisty asks it to keep things visual, ordered and easy to read, in the same language you use.
+
+### Everything in its place
+
+Tasks go in lists, documents in folders, and what is too much for one go is split into parts. So when you come back to a project after weeks, you see where it stood and your agent knows where to carry on.
+
+How far it reaches: each person has their own Tisty and their own agents. It does not hand out work between people or run a team; when someone needs what you know, you share the document with them.
+
+### What is coming
+
+I am working on Brainsty, Tisty's brain: everything you keep, with what joins it, drawn as one network. You will see it from afar, as a map of all your projects. Your agent will read it up close, as an index that tells it where to look without reading everything. It has no date yet; when it arrives, this guide will tell about it.
+
 ## How does it work?
 
 It all starts with one question, and your agent asks it too: will you do it, or read it again? If you will do it, it is a task: it ends, sometimes the same day, and stays in the Archive as knowledge with a date. If you will read it again, it is a document: a manual, a recipe, a year of minutes, which you correct and add to for years. And if you do not know yet, it is an idea: it waits in Brainstorm until you sort it out. What simply happened, and you want to remember, goes in the Diary. This drawing tells the rest:
