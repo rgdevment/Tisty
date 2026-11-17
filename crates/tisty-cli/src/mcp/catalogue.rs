@@ -276,6 +276,10 @@ and ruled out and why, and what comes next, so the next session starts where thi
 When every step is done and the work holds, `say_done` with the proof; a decision that outlasts \
 the task goes in its document.
 
+An answer may carry `ask` when the task you opened went ten minutes, or three writes elsewhere, \
+without a write from you: tick what you finished, `say_done` if the work is done. It comes once, \
+until you write on that task again.
+
 ## Documents
 
 Start with `catch_up`, which says where things stand and what moved since you were last here; \

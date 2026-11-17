@@ -244,6 +244,10 @@ impl Config {
         self.quiet.as_deref().unwrap_or_default()
     }
 
+    pub fn asks_open_task(&self) -> bool {
+        self.asks_open_task != Some(false)
+    }
+
     // A task's page holds what a document does, so a file is taken up to the same ceiling on either.
     pub fn copies_up_to(&self) -> u64 {
         crate::attach::COPIED_IN_DOC
@@ -457,6 +461,9 @@ pub struct Config {
     /// The cloud whose key another machine handed this one, so the keychain is asked only for a key that is there.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub key_handed: Option<String>,
+    /// Only `Some(false)` is ever written: an answer asks about the open task unless the person said no.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub asks_open_task: Option<bool>,
     #[serde(default, skip_serializing_if = "std::collections::BTreeMap::is_empty")]
     pub homes: std::collections::BTreeMap<String, crate::machine::Home>,
     /// What a later build wrote and this one has no name for. Serde drops what it cannot name
@@ -521,6 +528,7 @@ impl Config {
             took_quietly: None,
             phrase_confirmed: None,
             key_handed: None,
+            asks_open_task: None,
             homes: std::collections::BTreeMap::new(),
             rest: toml::Table::new(),
         };

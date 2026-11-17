@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import {
   type Agent,
   type Assistant,
+  agentAsks,
   agentState,
   agentTurn,
   assistants,
@@ -94,6 +95,19 @@ export default function Agents({ busy, said, trouble, quietly, tell, fail, binar
             {agent?.on ? t("agentsTurnOff") : t("agentsTurnOn")}
           </button>
         </div>
+
+        <Line title={t("agentsAsk")} why={t("agentsAskWhy")} which="settings">
+          <Knob
+            on={agent?.asks !== false}
+            label={t("agentsAsk")}
+            disabled={held || !agent}
+            onPress={() => {
+              agentAsks(agent?.asks === false)
+                .then((fresh) => setAgent(fresh))
+                .catch((e) => fail({ card: "settings", text: saidPlainly(e) }));
+            }}
+          />
+        </Line>
 
         <p className="mt-3 text-[12.5px] leading-relaxed text-soft">{t("agentsUndo")}</p>
         <button

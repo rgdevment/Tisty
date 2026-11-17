@@ -299,11 +299,6 @@ fn offering(seen: usize, wired: usize, open: bool) -> Option<DoorDue> {
     Some(DoorDue { why, by: None })
 }
 
-#[tauri::command]
-fn reachable() -> command::Reach {
-    command::reach()
-}
-
 /// A folder that already holds a store is the meeting place itself; anywhere else we hang ours
 /// inside, so pointing at Documents does not scatter the store through it.
 fn room(at: &std::path::Path) -> std::path::PathBuf {
@@ -1095,13 +1090,14 @@ fn commands() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool + Send + Sync +
         answers::tasks::routines,
         answers::agents::agent,
         answers::agents::agent_turn,
+        answers::agents::agent_asks,
         answers::tasks::archive_shape,
         answers::settings::close_window,
         quick_keys::shortcut,
         quick_keys::keep_shortcut,
         quick_keys::shortcuts_offered,
         answers::storing::settle_in,
-        reachable,
+        command::reachable,
         answers::clouding::cloud_connect,
         answers::clouding::cloud_connect_cancel,
         answers::clouding::cloud_connect_dav,

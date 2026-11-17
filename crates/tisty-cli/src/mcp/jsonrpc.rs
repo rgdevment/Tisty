@@ -161,3 +161,23 @@ pub(super) fn mirrored(text: String, structured: Value) -> Value {
 }
 
 const SAID_WITHIN: usize = 600;
+
+/// Some clients hand the model the text alone and others the structured answer alone, so a question goes in both.
+pub(super) fn with_ask(answer: &mut Value, ask: Value) -> bool {
+    let Some(sentence) = ask["said"].as_str().map(str::to_string) else {
+        return false;
+    };
+    let Some(shown) = answer
+        .get_mut("structuredContent")
+        .and_then(Value::as_object_mut)
+    else {
+        return false;
+    };
+    shown.insert("ask".into(), ask);
+    if let Some(text) = answer.pointer_mut("/content/0/text")
+        && let Some(was) = text.as_str()
+    {
+        *text = Value::String(format!("{was}\n\n{sentence}"));
+    }
+    true
+}

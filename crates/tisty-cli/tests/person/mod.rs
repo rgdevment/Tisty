@@ -61,6 +61,12 @@ impl Person {
         tisty_core::agent::retire(&self.paths).unwrap();
     }
 
+    pub fn lets_agents_be_asked(&self, on: bool) {
+        let mut config = Config::load_or_init(&self.paths).unwrap();
+        config.asks_open_task = (!on).then_some(false);
+        config.save(&self.paths).unwrap();
+    }
+
     pub fn takes_the_places_history(&self) {
         tisty_core::backup::set_aside(&self.paths, false).unwrap();
     }
