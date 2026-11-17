@@ -1,4 +1,4 @@
-import { useEffect, useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { useAttended } from "../attended";
 import { search, type Task } from "../core";
 import { t } from "../locales";
@@ -12,6 +12,8 @@ const SHOWN = 30;
 // Typing asks on every key; only the answer to the words still written is shown.
 const useFound = (word: string, onError?: (problem: unknown) => void): Task[] | null => {
   const [found, setFound] = useState<{ word: string; tasks: Task[] } | null>(null);
+  const failed = useRef(onError);
+  failed.current = onError;
   useEffect(() => {
     if (!word.trim()) return;
     let live = true;
@@ -21,14 +23,14 @@ const useFound = (word: string, onError?: (problem: unknown) => void): Task[] | 
           if (live) setFound({ word, tasks: all.tasks.slice(0, SHOWN) });
         })
         .catch((problem) => {
-          if (live) onError?.(problem);
+          if (live) failed.current?.(problem);
         });
     }, SETTLES);
     return () => {
       live = false;
       window.clearTimeout(asking);
     };
-  }, [word, onError]);
+  }, [word]);
   if (!word.trim()) return [];
   return found?.word === word ? found.tasks : null;
 };

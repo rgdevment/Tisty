@@ -38,12 +38,14 @@ export const cardOf = (one: Cited | undefined, here?: string): TaskCarded => {
 
 type Known = { readonly asked: string; readonly cited: ReadonlyMap<string, Cited> };
 
+const NONE: Known = { asked: "", cited: new Map() };
+
 // Asked again whenever the window reloads its tasks, so a card never shows what the task no longer says.
 export const useTaskCards = (text: string, heard: unknown, here?: string) => {
   const ids = citedIn(text).join(",");
   const [known, setKnown] = useState<Known | null>(null);
   useEffect(() => {
-    if (!ids) return setKnown({ asked: ids, cited: new Map() });
+    if (!ids) return setKnown((was) => (was?.asked === "" ? was : NONE));
     let live = true;
     taskCards(ids.split(","))
       .then((all) => {

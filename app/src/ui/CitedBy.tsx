@@ -1,7 +1,7 @@
 import type { Citing } from "../citing";
 import { fill, t } from "../locales";
 import Section from "./Section";
-import { useCited } from "./useCited";
+import { CLOSED, useCited } from "./useCited";
 
 interface Props {
   task: string;
@@ -10,8 +10,6 @@ interface Props {
   onDoc?: (id: string) => void;
   onTask?: (id: string) => void;
 }
-
-const CLOSED = new Set(["done", "dropped", "archived"]);
 
 const glyphOf = (one: Citing): string => {
   if (one.kind === "task") return CLOSED.has(one.state ?? "") ? "✓" : "○";

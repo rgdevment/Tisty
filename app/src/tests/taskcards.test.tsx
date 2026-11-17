@@ -151,6 +151,15 @@ describe("finding a task to cite", () => {
     await userEvent.click(screen.getByText("Cambiar el aceite"));
     expect(onPick).toHaveBeenCalledWith(expect.objectContaining({ id: "01B" }));
   });
+
+  it("does not ask again when the window around it is drawn again", async () => {
+    const { rerender } = render(<TaskPick onPick={() => {}} onError={() => {}} />);
+    await userEvent.type(screen.getByRole("combobox"), "aceite");
+    await waitFor(() => expect(bus.searched).toEqual(["aceite"]));
+    rerender(<TaskPick onPick={() => {}} onError={() => {}} />);
+    await new Promise((done) => setTimeout(done, 250));
+    expect(bus.searched).toEqual(["aceite"]);
+  });
 });
 
 describe("who cites a task, beside its page", () => {

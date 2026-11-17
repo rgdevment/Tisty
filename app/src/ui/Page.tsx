@@ -53,12 +53,12 @@ export default function Page(props: Readonly<Props>) {
     if (page) datedSteps(page, dates);
   }, [dates]);
   const { cards } = props;
+  const acting = Boolean(props.onTaskDone);
   useEffect(() => {
     const page = held.current?.contentDocument;
     const task = reach.current.cited;
-    const acting = Boolean(reach.current.onTaskDone);
     if (page && task) recarded(page, { task, say: SAY, acting });
-  }, [cards]);
+  }, [cards, acting]);
   const mending = Boolean(props.onMend);
   useEffect(lay, [mending]);
 
