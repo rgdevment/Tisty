@@ -201,6 +201,17 @@ fn what_cites_and_mentions_a_card_is_read_from_the_other_side() {
 
     let from_notes = card_of(&brain, &notes);
     assert_eq!(ids(&from_notes.around.cites), [trips_file.as_str()]);
+    let mut from_plans: Vec<String> = ids(&card_of(&brain, &plans).around.cites)
+        .into_iter()
+        .map(str::to_string)
+        .collect();
+    from_plans.sort();
+    let mut wanted = vec![trips_file.clone(), errand.to_string()];
+    wanted.sort();
+    assert_eq!(
+        from_plans, wanted,
+        "a cite written by ULID names the document by its file"
+    );
     assert_eq!(
         ids(&from_notes.around.mentions),
         [errand.to_string().as_str()]
