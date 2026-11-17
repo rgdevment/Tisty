@@ -25,13 +25,13 @@ import {
   type Widths,
   widened,
 } from "tisty-editor/edit";
-import type { Carded, Head, PartCarded, Sheet as SheetSize } from "tisty-editor/read";
+import type { Carded, Head, Sheet as SheetSize, TaskCarded } from "tisty-editor/read";
 import { bytesAt, charsAt, heads, stepLine, steppedTitle } from "tisty-editor/read";
 import { copied, copyAttached, type Mend, opened } from "../core";
 import { viewDiagram } from "../drawing";
 import { CATCHES, takesFiles } from "../dropped";
 import { t } from "../locales";
-import { DOC, partCard } from "../markdown";
+import { DOC, taskCard } from "../markdown";
 import type { Moved } from "../paging";
 import { type Held, type PiecePlace, viewPiece } from "../pieceWindow";
 import { docPlaced, docPlacedNear } from "../placing";
@@ -99,8 +99,10 @@ type Props = {
   readonly onOpen?: (reference: string) => void;
   readonly onOutline?: (heads: Head[]) => void;
   readonly card?: (file: string) => Carded;
-  readonly part?: (id: string) => PartCarded;
+  readonly cited?: (id: string) => TaskCarded;
   readonly onTask?: (id: string) => void;
+  readonly onTaskDone?: (id: string, title: string) => void;
+  readonly onTaskStep?: (id: string, step: string, done: boolean) => void;
   readonly draw?: (body: string, placed: boolean) => Promise<string>;
   readonly onPart?: (title: string) => Promise<string | null>;
   readonly blurb?: (file: string) => Promise<string>;
@@ -896,7 +898,7 @@ export default function Sheet(props: Readonly<Props>) {
         const after = now.slice(at[0] + line.length);
         const still = now.slice(at[0], at[0] + line.length) === line && /^(\r?\n|$)/.test(after);
         if (!id || !still || open.current || showing.current !== now) return;
-        rewritten(cardedAt(now, at[0], at[0] + line.length, partCard(id, title)));
+        rewritten(cardedAt(now, at[0], at[0] + line.length, taskCard(id, title)));
       })
       .catch((e) => said.current.onFail?.(e))
       .finally(() => {
@@ -1303,8 +1305,10 @@ export default function Sheet(props: Readonly<Props>) {
           onPicture={pictures.view}
           onAway={left}
           card={props.card}
-          part={props.part}
+          cited={props.cited}
           onTask={(id) => said.current.onTask?.(id)}
+          onTaskDone={props.onTaskDone && ((id, title) => said.current.onTaskDone?.(id, title))}
+          onTaskStep={props.onTaskStep && ((...asked) => said.current.onTaskStep?.(...asked))}
           blurb={props.blurb}
           again={props.again}
           cards={props.cards}

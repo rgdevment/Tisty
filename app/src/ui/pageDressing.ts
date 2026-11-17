@@ -65,7 +65,7 @@ export const wornLaid = (
       held = pictures(staging, live, { more: Boolean(reach.onMore) });
     },
     cards: cardsFor(page, reach),
-    parts: reach.part,
+    tasks: reach.cited && { task: reach.cited, acting: Boolean(reach.onTaskDone) },
     sites: { glimpses: GLIMPSES },
   });
   for (const put of back) put();

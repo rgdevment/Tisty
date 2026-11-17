@@ -1,3 +1,4 @@
+import { taskStepMarked } from "./citing";
 import {
   addPart,
   type Change,
@@ -72,6 +73,8 @@ export const detailOf = (one: Task, h: Hands) => ({
     h.say(fill("saidDone", title));
     h.act(complete(id).then(() => taskOf(one.id)));
   },
+  onTaskStep: (id: string, step: string, done: boolean) =>
+    h.act(taskStepMarked(id, step, done).then(() => taskOf(one.id))),
   onHang: (whole: string | null) => h.act(hang(one.id, whole)),
   onSettle: (before: string, now: string, renamed?: readonly [string, string][]) =>
     queued(`settle:${one.id}`, () => taskDocSettled(one.id, before, now, renamed)).then(

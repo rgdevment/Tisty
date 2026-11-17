@@ -5,9 +5,9 @@ import { diagrams } from "./diagrams";
 import { HUES } from "./hues";
 import { iconed } from "./icons";
 import { pinned } from "./ideas";
-import { type PartCarded, partCarded } from "./parts";
 import { sideways } from "./sideways";
 import { staged } from "./stages";
+import { type TaskCards, taskCarded } from "./taskCards";
 import { type Glimpses, webCarded } from "./webCards";
 import type { ReadWord, Say } from "./words";
 
@@ -21,7 +21,7 @@ export type Reading = {
   /** The host's own pictures and attachments, drawn once the cells are and before the wide tables. */
   readonly brought?: () => void;
   readonly cards?: Omit<Cards, "say">;
-  readonly parts?: (id: string) => PartCarded;
+  readonly tasks?: Omit<TaskCards, "say">;
   /** Web links drawn as cards of their sites, with the glimpses the host keeps, if it keeps any. */
   readonly sites?: { readonly glimpses?: Glimpses };
 };
@@ -50,7 +50,7 @@ export const readAs = (page: Document, reading: Reading): Read => {
   reading.brought?.();
   const kept = sideways(page, say);
   if (reading.cards) carded(page, { ...reading.cards, say }, live);
-  if (reading.parts) partCarded(page, { part: reading.parts, say });
+  if (reading.tasks) taskCarded(page, { ...reading.tasks, say });
   if (reading.sites) webCarded(page, say, live, reading.sites.glimpses);
   const drawn = Promise.all([
     icons,

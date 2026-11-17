@@ -388,6 +388,7 @@ const en = {
     "No account, no subscription, no telemetry, no server. What you write stays in the store above.",
   repeating: "Repeating",
   insertDoc: "A document",
+  insertTask: "A task",
   insertIcon: "An icon",
   insertStep: "A step, by its number",
   stepBorn: "Added {name}",
@@ -408,6 +409,8 @@ const en = {
   pageName: "Name of the page",
   docName: "Name of the document",
   pickADocToLink: "Which document",
+  pickATaskToCite: "Which task, open or archived",
+  pickATaskHint: "Write part of its title",
   goBack: "Back",
   guestDoc: "Written by {name}, and imported from another Tisty",
   guestDocPlain: "It came from another Tisty, and nobody had signed it",
@@ -417,11 +420,15 @@ const en = {
   cardHere: "You are here",
   cardAway: "Archived",
   cardGone: "Gone",
-  partCardKind: "Part",
   partCardSteps: "{name} of {other} steps",
   partCardDone: "Done",
   partCardDropped: "Not doing",
-  partCardLoose: "No longer a part",
+  taskCardKind: "Task",
+  taskCardAway: "That task is not on this machine",
+  taskCardFinish: "Mark it done",
+  taskCardParts: "{name} of {other} parts",
+  taskCardDue: "due {name}",
+  taskCardClosedOn: "closed on {name}",
   cardMore: "More on this card",
   cardKeepCopy: "Save a copy…",
   mediaBring: "Bring it from your cloud",
@@ -726,6 +733,8 @@ const en = {
     "«{name}» is named by a link in the middle of your text, not by a card of its own, so there is no block to move. Move the link to move it.",
   leafNeedsTitle:
     "This document says nothing yet, so a line naming the page would become its title. Write something in it first.",
+  taskNeedsTitle:
+    "This document says nothing yet, so a line citing the task would become its title. Write something in it first.",
   leafWouldName:
     "«{name}» cannot move there: this book opens straight into its chapters, so it takes its title from the first of them, and the move would rename it after a chapter. Write something above them first.",
   leafWaitsInIndex:
@@ -1822,6 +1831,7 @@ const en = {
   importedFromTisty:
     "That file is one Tisty already keeps, so it is not brought in again as a new document. Duplicate the document instead.",
   attachmentLost: "The file came in, but the field it was for is gone",
+  taskCardLost: "The task was chosen, but the place it was for is gone",
   fileNeedsTitle:
     "Write the document's title first: a file as its first line would become its name.",
   cannotOpen: "Nothing on this machine opens {name}",
@@ -3669,6 +3679,7 @@ const es: Catalog = {
     "Sin cuenta, sin suscripción, sin telemetría, sin servidor. Lo que escribes se queda en el almacén de arriba.",
   repeating: "Se repiten",
   insertDoc: "Un documento",
+  insertTask: "Una tarea",
   insertIcon: "Un icono",
   insertStep: "Un paso, por su número",
   stepBorn: "Agregado {name}",
@@ -3689,6 +3700,8 @@ const es: Catalog = {
   pageName: "Nombre de la página",
   docName: "Nombre del documento",
   pickADocToLink: "Qué documento",
+  pickATaskToCite: "Qué tarea, abierta o archivada",
+  pickATaskHint: "Escribe parte de su título",
   goBack: "Volver",
   guestDoc: "Lo escribió {name}, y se importó de otro Tisty",
   guestDocPlain: "Llegó de otro Tisty, y nadie lo había firmado",
@@ -3698,11 +3711,15 @@ const es: Catalog = {
   cardHere: "Estás aquí",
   cardAway: "Archivado",
   cardGone: "Ya no está",
-  partCardKind: "Parte",
   partCardSteps: "{name} de {other} pasos",
   partCardDone: "Hecha",
   partCardDropped: "No se hará",
-  partCardLoose: "Ya no es parte",
+  taskCardKind: "Tarea",
+  taskCardAway: "Esa tarea no está en esta máquina",
+  taskCardFinish: "Marcarla hecha",
+  taskCardParts: "{name} de {other} partes",
+  taskCardDue: "vence {name}",
+  taskCardClosedOn: "cerrada el {name}",
   cardMore: "Más sobre esta tarjeta",
   cardKeepCopy: "Guardar una copia…",
   mediaBring: "Traer de tu nube",
@@ -4007,6 +4024,8 @@ const es: Catalog = {
     "«{name}» la nombra un enlace en medio de tu texto, no una tarjeta suya, así que no hay bloque que mover. Mueve el enlace para moverla.",
   leafNeedsTitle:
     "Este documento todavía no dice nada, así que una línea que nombre la página se volvería su título. Escribe algo en él primero.",
+  taskNeedsTitle:
+    "Este documento todavía no dice nada, así que una línea que cite la tarea se volvería su título. Escribe algo en él primero.",
   leafWouldName:
     "«{name}» no puede moverse ahí: este libro empieza directamente por sus capítulos, así que toma su título del primero, y el movimiento lo renombraría como un capítulo. Escribe algo encima de ellos primero.",
   leafWaitsInIndex:
@@ -5120,6 +5139,7 @@ const es: Catalog = {
   importedFromTisty:
     "Ese archivo ya lo guarda Tisty, así que no se trae de nuevo como un documento nuevo. Duplica el documento en su lugar.",
   attachmentLost: "El archivo entró, pero el campo al que iba ya no está",
+  taskCardLost: "Elegiste la tarea, pero el lugar al que iba ya no está",
   fileNeedsTitle:
     "Escribe primero el título del documento: un archivo como primera línea pasaría a ser su nombre.",
   cannotOpen: "Nada en este equipo abre {name}",

@@ -62,6 +62,7 @@ import { type LoadedSheet, sheetLoaded } from "./sheetLoaded";
 import { pageFor } from "./sheets";
 import { CompactBar, MarkBar } from "./Tidied";
 import Tongues, { standingHead } from "./Tongues";
+import { useTaskCards } from "./taskCards";
 import { useLeaving } from "./useLeaving";
 import { useLinkable } from "./useLinkable";
 import { clearOfChrome } from "./WindowChrome";
@@ -121,6 +122,10 @@ interface Props {
   onDropAll?: (docs: Filed[]) => void;
   onTask?: (task: Task) => void;
   onSeeTask?: (task: Task) => void;
+  onTaskDone?: (id: string, title: string) => void;
+  onTaskStep?: (id: string, step: string, done: boolean) => void;
+  /** Changes each time the window reloads its tasks, so a cited task's card is read again. */
+  heard?: unknown;
   onBack?: (doc: Filed) => void;
   onAsideShut?: (shut: boolean) => void;
   fresh?: number;
@@ -158,6 +163,9 @@ export default function Docs({
   onDropAll,
   onTask,
   onSeeTask,
+  onTaskDone,
+  onTaskStep,
+  heard,
   onBack,
   onAsideShut,
   fresh = 0,
@@ -168,6 +176,7 @@ export default function Docs({
   const [Diary, setDiary] = useState<LoadedDiary | null>(null);
   const [unopened, setUnopened] = useState<string | null>(null);
   const [body, setBody] = useState("");
+  const tasked = useTaskCards(body, heard);
   const [inEditor, setInEditor] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [waiting, setWaiting] = useState(false);
@@ -583,8 +592,18 @@ export default function Docs({
         ? undefined
         : {
             kinds: leafy
-              ? ["newPage", "page", "doc", "newDoc", "icon", "file", "diagram", "diagramFrom"]
-              : ["doc", "newDoc", "icon", "file", "diagram", "diagramFrom"],
+              ? [
+                  "newPage",
+                  "page",
+                  "doc",
+                  "newDoc",
+                  "task",
+                  "icon",
+                  "file",
+                  "diagram",
+                  "diagramFrom",
+                ]
+              : ["doc", "newDoc", "task", "icon", "file", "diagram", "diagramFrom"],
             tags,
             linkable,
             headsOf,
@@ -616,7 +635,13 @@ export default function Docs({
               // A card as a document's first words would become its title, which the core refuses.
               if (kind !== "icon" && first)
                 return onError(
-                  t(kind.startsWith("diagram") ? "diagramNeedsTitle" : "leafNeedsTitle"),
+                  t(
+                    kind.startsWith("diagram")
+                      ? "diagramNeedsTitle"
+                      : kind === "task"
+                        ? "taskNeedsTitle"
+                        : "leafNeedsTitle",
+                  ),
                 );
               setPicked({ kind, at, put, file: open?.file });
             },
@@ -1055,6 +1080,10 @@ export default function Docs({
                   card={cards}
                   blurb={blurb}
                   again={again}
+                  cited={tasked.task}
+                  cards={tasked.said}
+                  onTaskDone={onTaskDone}
+                  onTaskStep={onTaskStep}
                   value={body}
                   seek={seek}
                   anchor={anchor}

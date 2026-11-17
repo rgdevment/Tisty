@@ -55,8 +55,9 @@ export default function Page(props: Readonly<Props>) {
   const { cards } = props;
   useEffect(() => {
     const page = held.current?.contentDocument;
-    const part = reach.current.part;
-    if (page && part) recarded(page, { part, say: SAY });
+    const task = reach.current.cited;
+    const acting = Boolean(reach.current.onTaskDone);
+    if (page && task) recarded(page, { task, say: SAY, acting });
   }, [cards]);
   const mending = Boolean(props.onMend);
   useEffect(lay, [mending]);

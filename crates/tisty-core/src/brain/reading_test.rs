@@ -92,6 +92,52 @@ fn whoever_cites_or_mentions_a_document_is_told_once_with_the_headings_over_each
 }
 
 #[test]
+fn a_task_is_told_who_cites_it_by_card_by_its_page_file_and_from_another_task() {
+    let world = World::new();
+    let mut store = world.store();
+    let tyres = task(&mut store, "Cambiar los neumáticos", &[]);
+    let (_, car) = doc(&world, &mut store, "# Auto\n", None, None);
+    written(
+        &world,
+        &car,
+        &format!("# Auto\n\n## Taller\n\n![Neumáticos](tisty:task/{tyres})\n"),
+    );
+    let page = format!("t_{}-0001", tyres.to_string().to_lowercase());
+    let (_, notes) = doc(&world, &mut store, "# Notas\n", None, None);
+    written(
+        &world,
+        &notes,
+        &format!("# Notas\n\n## Marzo\n\nComo dice [su página](tisty:doc/{page}).\n"),
+    );
+    let trip = task(&mut store, "Viaje al sur", &[]);
+    store
+        .append(Op::TaskLog {
+            id: trip,
+            d: crate::event::LogAdd::new(
+                Ulid::generate(),
+                format!("antes: [neumáticos](tisty:task/{tyres})"),
+            ),
+        })
+        .unwrap();
+    let mut brain = world.brain();
+    world.refreshed(&mut brain, &world.state());
+
+    let said = brain
+        .cited_by(&tyres.to_string(), &world.paths.docs())
+        .unwrap()
+        .unwrap();
+
+    assert_eq!(
+        said,
+        vec![
+            citing(&car, "doc", "Auto", true, &[("taller", "Taller")]),
+            citing(&notes, "doc", "Notas", false, &[("marzo", "Marzo")]),
+            citing(&trip.to_string(), "task", "Viaje al sur", false, &[]),
+        ]
+    );
+}
+
+#[test]
 fn a_page_its_tags_and_its_files_are_no_citation() {
     let world = World::new();
     let mut store = world.store();

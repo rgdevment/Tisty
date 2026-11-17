@@ -1,7 +1,7 @@
 import { convertFileSrc } from "@tauri-apps/api/core";
 import type { Widths } from "tisty-editor/edit";
-import type { PartCarded } from "tisty-editor/read";
-import { charsAt, readAs, sourceOf } from "tisty-editor/read";
+import type { TaskCarded } from "tisty-editor/read";
+import { charsAt, readAs, sourceOf, unfolded } from "tisty-editor/read";
 import { widgetsDrawn } from "tisty-sheet";
 import { openLink } from "../core";
 import type { DayAt } from "../diary";
@@ -32,7 +32,9 @@ export type Reaching = Carding & {
   readonly body: string;
   readonly onDoc: (file: string, heading?: string) => void;
   readonly onTask?: (id: string) => void;
-  readonly part?: (id: string) => PartCarded;
+  readonly cited?: (id: string) => TaskCarded;
+  readonly onTaskDone?: (id: string, title: string) => void;
+  readonly onTaskStep?: (id: string, step: string, done: boolean) => void;
   readonly onOpen?: (reference: string) => void;
   readonly onTag?: (name: string) => void;
   // The page written in place: writing starts here (chars), with what the new line opens with; nothing is written until a key.
@@ -276,7 +278,7 @@ export const worn = (page: Document, live: () => boolean, reach?: Reaching): Wor
       lent = widgets(page, reach);
     },
     cards: reach && cardsFor(page, reach),
-    parts: reach?.part,
+    tasks: reach?.cited && { task: reach.cited, acting: Boolean(reach.onTaskDone) },
     sites: reach && { glimpses: GLIMPSES },
   });
   if (reach?.onPart) offeredAsParts(page, t("stepToPart"), reach.body);
@@ -360,6 +362,9 @@ export const answered = (page: Document, asked: Went, reach: Reaching) => {
   }
   if (asked.kind === "doc") reach.onDoc(asked.id, asked.at);
   if (asked.kind === "task") reach.onTask?.(asked.id);
+  if (asked.kind === "taskDone") reach.onTaskDone?.(asked.id, asked.title);
+  if (asked.kind === "taskStep") reach.onTaskStep?.(asked.id, asked.step, asked.done);
+  if (asked.kind === "taskSteps") unfolded(page, asked.nth);
   if (asked.kind === "day") reach.onDay?.(asked.at);
   if (asked.kind === "dayKeep") reach.onDayKeep?.();
   if (asked.kind === "dayCancel") reach.onDayCancel?.();

@@ -17,10 +17,10 @@ import { fill, t } from "../locales";
 import { holds, queued } from "../saving";
 import { useKeptHeight } from "./heights";
 import type { Viewing } from "./liveSheet";
-import { usePartCards } from "./partcards";
 import Skeleton from "./Skeleton";
 import { type LoadedSheet, sheetLoaded } from "./sheetLoaded";
 import { useTaskAsks } from "./taskAsking";
+import { useTaskCards } from "./taskCards";
 import { useWholeKeys } from "./wholeKeys";
 
 const SETTLES = 700;
@@ -39,6 +39,8 @@ interface Props {
   onHeld?: (held: boolean) => void;
   papers?: readonly Filed[];
   onTask?: (id: string) => void;
+  onTaskDone?: (id: string, title: string) => void;
+  onTaskStep?: (id: string, step: string, done: boolean) => void;
 }
 
 // The core refuses the rest the same way: a part holds no parts, and a routine holds none.
@@ -61,6 +63,8 @@ export default function TaskWords({
   onHeld,
   papers,
   onTask,
+  onTaskDone,
+  onTaskStep,
 }: Props) {
   const [doc, setDoc] = useState<TaskDoc | null>(null);
   const [Sheet, setSheet] = useState<LoadedSheet | null>(null);
@@ -141,6 +145,8 @@ export default function TaskWords({
         asking={doc.held ? undefined : asking}
         dates={dates}
         onTask={onTask}
+        onTaskDone={onTaskDone}
+        onTaskStep={onTaskStep}
         onPart={
           doc.held || !holdsParts(task)
             ? undefined
@@ -167,6 +173,8 @@ function Written({
   asking,
   dates,
   onTask,
+  onTaskDone,
+  onTaskStep,
   onPart,
 }: {
   Sheet: LoadedSheet;
@@ -187,12 +195,14 @@ function Written({
   asking?: Asking;
   dates?: Readonly<Record<string, string>>;
   onTask?: (id: string) => void;
+  onTaskDone?: (id: string, title: string) => void;
+  onTaskStep?: (id: string, step: string, done: boolean) => void;
   onPart?: (title: string) => Promise<string | null>;
 }) {
   // A task's page keeps its template's sections, so it is written by block alone.
   const { allAsked } = useWholeKeys(true, false);
   const [text, setText] = useState(doc.body);
-  const cards = usePartCards(task, text);
+  const cards = useTaskCards(text, task, task.id);
   const waiting = useRef<string | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const failed = useRef(onError);
@@ -372,10 +382,12 @@ function Written({
         onDoc={onDoc}
         asking={asking}
         stepDates={dates}
-        part={cards.part}
+        cited={cards.task}
         again={onPart ? "parts" : ""}
         cards={cards.said}
         onTask={onTask}
+        onTaskDone={onTaskDone}
+        onTaskStep={onTaskStep}
         onPart={onPart}
       />
     </>

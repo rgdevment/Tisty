@@ -23,7 +23,7 @@ export function useTaskAsks(
   const asking = useMemo<Asking | undefined>(
     () =>
       papers && {
-        kinds: ["doc", "icon", "file"],
+        kinds: ["doc", "task", "icon", "file"],
         ask: (kind, at, put) => {
           const said = (text: string) => failed.current?.(text);
           if (kind !== "file") return setPicked({ kind, at, put });

@@ -61,6 +61,7 @@ export type EditWord =
   | "insertNewPage"
   | "insertPage"
   | "insertStep"
+  | "insertTask"
   | "italic"
   | "keptNow"
   | "leafBreak"

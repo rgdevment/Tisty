@@ -64,6 +64,19 @@ fn pages_follow_one_another_and_a_link_to_another_document_is_its_words() {
     );
 }
 
+#[test]
+fn a_cited_task_goes_out_as_its_words_and_nothing_of_the_task() {
+    let body = "# Auto\n\n![Cambiar los neumáticos](tisty:task/01J00000000000000000000000)";
+    let (said, pictures) = back(&to_word(&[body.to_string()], &mut |_| None).unwrap());
+
+    assert!(said.contains("Cambiar los neumáticos"), "{said}");
+    assert!(
+        !said.contains("tisty:task") && !said.contains("01J0"),
+        "{said}"
+    );
+    assert_eq!(pictures, 0);
+}
+
 const GIF: &[u8] = b"GIF89a\x20\x00\x10\x00\x00\x00\x00";
 const JPEG: &[u8] =
     b"\xff\xd8\xff\xe0\x00\x04\x00\x00\xff\xc0\x00\x11\x08\x00\x30\x00\x40\x03\x01\x22\x00";
