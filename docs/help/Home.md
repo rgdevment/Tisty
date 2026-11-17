@@ -4,17 +4,19 @@
 
 <h1 align="center">Tisty's help</h1>
 
-<p align="center"><strong>Local memory and context for you and your AI agent: tasks, documents and notes in Markdown, on your own disk.</strong><br/>No accounts. No subscriptions. No telemetry. No server.</p>
+<p align="center"><strong>Shared working memory for you and your AI agent: tasks, documents and notes in Markdown, on your own disk.</strong><br/>You see the whole. Your agent, every detail. One shared memory.<br/>No accounts. No subscriptions. No telemetry. No server.</p>
 
 <p align="center"><strong>English</strong> · <a href="Inicio">Español</a></p>
 
 ---
 
-**An ordinary task list forgets the moment you tick the box. Your AI agent forgets the moment the session ends.** So everybody patches it: a `NOTES.md` behind `.gitignore`, a Markdown file per session, a `TASKS.md` nobody keeps up to date. They go stale, they get lost between branches, machines and projects, and the agent rereads all of it every session.
+I started building Tisty to solve a problem of my own, and little by little I saw it was not only mine: everyone ran into it, and each solved it their own way.
 
-Tisty is the memory underneath. When you finish a task it moves to the archive with everything it gathered — the description, the journal, the steps, the files, the documents you leaned on — and search reaches all of it years later. *How did I solve that last time?* Tisty has it. Beside the tasks, **documents** keep what you know, one per subject, as plain Markdown any other editor reads.
+**You stop explaining. It stops starting over.** Your AI agent knows the details better than anyone, and forgets them the moment the session ends. So everybody patches it: a `NOTES.md` behind `.gitignore`, a Markdown file per session, a `TASKS.md` nobody keeps up to date, an `AGENTS.md` that only grows. They go stale, they get lost between branches, machines and projects, and the agent rereads all of it every session.
 
-And it is the memory of the AI agent you already use. Through a local **MCP server** — on your machine, with no account and no network — GitHub Copilot, Claude Code, Codex, Cursor or any MCP client asks what moved since last time, reads a document's outline and then only the section it needs, and writes down what it learned for the next session. You decide what it may do.
+Tisty is a working memory you share with your agent: you see the whole, and your agent every detail. When you finish a task it moves to the archive with everything it gathered — the description, the journal, the steps, the files, the documents you leaned on — and search reaches all of it years later. *How did I solve that last time?* Tisty has it. Beside the tasks, **documents** keep what you know, one per subject, as plain Markdown any other editor reads.
+
+And it is the memory of the AI agent you already use. Through a local **MCP server** — on your machine, with no account and no network — GitHub Copilot, Claude Code, Codex, Cursor or any MCP client asks what moved since last time, reads a document's outline and then only the section it needs, and writes down what it learned for the next session. It works and tells you when something is done; you review it and close it, because nothing closes without you. You decide what it may do.
 
 ## Real problems, real fixes
 
