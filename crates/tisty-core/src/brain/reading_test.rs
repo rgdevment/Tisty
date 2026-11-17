@@ -123,7 +123,11 @@ fn a_task_is_told_who_cites_it_by_card_by_its_page_file_and_from_another_task() 
     world.refreshed(&mut brain, &world.state());
 
     let said = brain
-        .cited_by(&tyres.to_string(), &world.paths.docs())
+        .cited_by(
+            &tyres.to_string(),
+            &world.paths.docs(),
+            &mut Headed::default(),
+        )
         .unwrap()
         .unwrap();
 
