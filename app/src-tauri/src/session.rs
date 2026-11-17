@@ -315,6 +315,12 @@ impl Session {
         tisty_core::store::read_all(self.paths.store())
     }
 
+    pub fn reproject_after_writing_beside(&mut self) -> tisty_core::Result<()> {
+        // A lock held elsewhere only costs the next commit one more reading.
+        let _ = self.store.look_again();
+        self.reproject()
+    }
+
     pub fn reproject(&mut self) -> tisty_core::Result<()> {
         self.adopt(projected(&self.paths, self.writes)?);
         Ok(())

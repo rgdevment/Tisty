@@ -146,7 +146,7 @@ pub fn agent_turn(session: tauri::State<'_, Mutex<Session>>, on: bool) -> Answer
             .ok()
             .flatten()
             .unwrap_or_else(|| session.config.clone());
-        session.reproject()?;
+        session.reproject_after_writing_beside()?;
         if on {
             let _ = session.keep(|c| c.knock_heard = Some(jiff::Timestamp::now()));
         }
@@ -160,7 +160,7 @@ pub fn opened_by_default(session: &mut Session) {
             if let Ok(Some(now)) = Config::load(&session.paths.config_file()) {
                 session.config = now;
             }
-            let _ = session.reproject();
+            let _ = session.reproject_after_writing_beside();
         }
         Ok(None) => {}
         Err(e) => witness::warn(

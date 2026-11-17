@@ -266,3 +266,26 @@ fn once_caught_up_a_commit_carries_the_cache_instead_of_throwing_it_away() {
         "otherwise every reader rebuilds the cache from the whole history after each task"
     );
 }
+
+#[test]
+fn opening_the_door_on_a_first_launch_leaves_the_next_commit_carrying_the_cache() {
+    let kept = tempfile::tempdir().unwrap();
+    let paths = somewhere(&kept);
+    let mut session = Session::at(paths.clone()).unwrap();
+    crate::answers::agents::opened_by_default(&mut session);
+    assert!(
+        session.config.agent_id.is_some(),
+        "the door opened, or this proves nothing"
+    );
+
+    session.commit(added("comprar pan")).unwrap();
+
+    assert!(
+        !session.behind(),
+        "what the door wrote is this window's own"
+    );
+    let cache = tisty_core::cache::Cache::open(paths.cache())
+        .unwrap()
+        .expect("the window keeps a cache");
+    assert!(cache.load(&session.print, false).is_some());
+}

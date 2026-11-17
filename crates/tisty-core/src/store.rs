@@ -229,6 +229,11 @@ impl Store {
         out
     }
 
+    /// For lines this process wrote through another store: taken in before the state is read again, they are not another hand's.
+    pub fn look_again(&mut self) -> Result<()> {
+        self.locked(|_| Ok(()))
+    }
+
     pub fn device(&self) -> &DeviceId {
         &self.device
     }
