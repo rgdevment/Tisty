@@ -261,6 +261,8 @@ const KNOWN = [
   "documentBeingWritten",
   "documentLocked",
   "diaryBehind",
+  "diaryDayChanged",
+  "diaryPageGone",
   "documentAway",
   "folderAway",
   "folderAwayHolds",

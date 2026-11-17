@@ -1,6 +1,7 @@
 import { diagramShot, spanned, type TableAct } from "tisty-editor/read";
 import { t } from "../locales";
 import { DOC, TASK } from "../markdown";
+import { type DayWent, dayPressed, dayTouched } from "./diaryPaging";
 import type { Choice } from "./Menu";
 import { placeOf } from "./pagePlaces";
 import { tableClicked } from "./tabled";
@@ -29,6 +30,7 @@ export type Went =
   | { kind: "diagram"; at: [number, number] }
   | { kind: "diagramExport"; at: [number, number] }
   | TableWent
+  | DayWent
   | null;
 
 /** A table's own click: `at` in bytes as the page says it, `row` by its place in the file, `to` where a dragged row lands. */
@@ -146,6 +148,8 @@ const tablePressed = (asked: HTMLElement): Went => {
 };
 
 const pressedIn = (asked: HTMLElement): Went => {
+  const day = dayPressed(asked);
+  if (day !== undefined) return day;
   if (asked.dataset.asked === "table") return tablePressed(asked);
   // A diagram inside a quote or a list is named by its own place, not by the block around it.
   const diagram = asked.dataset.asked;
@@ -196,6 +200,8 @@ export const went = (target: Element, selecting: boolean): Went => {
   const tag = target.closest<HTMLElement>(".tag")?.dataset.tag;
   if (tag) return { kind: "tag", name: tag };
   if (selecting || target.closest(UNTOUCHED)) return null;
+  const day = dayTouched(target);
+  if (day !== undefined) return day;
   const formula = target.closest(FORMULAS);
   const written = placeOf(formula, "data-src");
   if (formula && written) {
