@@ -262,9 +262,9 @@ espera en la Lluvia de ideas.
   hoy** es la primera opción.
 - **Solo tuyo** — ningún agente lo ve hasta que pulsas **Solo tú** y dice
   **Abierto a los agentes**; abierto, un agente lo lee y solo añade al final de
-  hoy, con su firma, cuando se lo pides. La puerta vale en Tisty 1.48 o más
-  nuevo: actualiza todos los equipos que sincronizan antes de escribir en él.
-  Nunca se comparte por Folio.
+  hoy, con su firma, cuando se lo pides. **Diario** lo empieza solo cuando todos
+  los equipos que sincronizan usan Tisty 1.48 o más nuevo, y uno anterior deja
+  de sincronizar antes de recibirlo. Nunca se comparte por Folio.
 - **Sigue siendo Markdown** — un libro con `diary: on` en sus propiedades, cuyas
   páginas son los meses.
 

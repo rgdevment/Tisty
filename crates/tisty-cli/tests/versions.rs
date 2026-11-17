@@ -366,3 +366,53 @@ fn an_earlier_release_stops_at_a_place_being_sealed_and_leaves_it_as_it_was() {
         std::fs::write(&named, tisty_carrier::claimed(&said, &phase).unwrap()).unwrap();
     });
 }
+
+fn holding(dir: &Path, words: &str) -> Vec<PathBuf> {
+    snapshot(dir)
+        .into_iter()
+        .filter(|(_, bytes)| String::from_utf8_lossy(bytes).contains(words))
+        .map(|(at, _)| at)
+        .collect()
+}
+
+#[test]
+#[ignore = "needs an earlier release: .github/workflows/versions.yml provides one"]
+fn an_earlier_release_never_takes_in_a_diary_begun_on_this_build() {
+    let shared = tempfile::tempdir().unwrap();
+    let current = Current::new();
+    let person = current.person();
+    person.shares_through(shared.path());
+    person.syncs().unwrap();
+    let day = "2026-11-16".parse().unwrap();
+    person.writes_in_the_diary(day, "Paseo con Rina por el cerro.");
+    person.syncs().unwrap();
+    person.syncs().unwrap();
+    assert!(
+        !holding(&shared.path().join("docs"), "Paseo con Rina").is_empty(),
+        "the diary's words never reached the place, so this proves nothing"
+    );
+
+    let earlier = Cli::earlier();
+    earlier.ok(&[
+        "config",
+        "set",
+        "remote",
+        &shared.path().display().to_string(),
+    ]);
+    let run = earlier.run(&["sync"]);
+    let again = earlier.run(&["sync"]);
+
+    assert_ne!(run.code, 0, "it synced beside a diary: {}", run.out);
+    assert!(told_to_update(&run.err), "{}", run.err);
+    assert_ne!(again.code, 0, "{}", again.out);
+    for words in ["Paseo con Rina", "Diario 2026"] {
+        assert_eq!(
+            holding(earlier.home.path(), words),
+            Vec::<PathBuf>::new(),
+            "an earlier release took in the diary and would hand it to its agents"
+        );
+    }
+    earlier.ok(&["written by the earlier release"]);
+    let kept = earlier.ok(&["ls", "all"]);
+    assert!(kept.contains("written by the earlier release"), "{kept}");
+}

@@ -42,7 +42,7 @@ Not by itself. **Save to my calendar**, on a task with a date, puts it in Google
 Yes, since 1.48: **Diary** in the Library, a book a year with a page a month and a section a day. See [Diary](Documents#diary).
 
 **Can my assistant read my diary?**
-Not until you press **Only you** at the top of the Diary and it reads **Open to agents**; even then it only adds to the end of today, when you ask. A computer of yours still on a Tisty older than 1.48 shows the diary to its agents as an ordinary document: update it before you write in the diary.
+Not until you press **Only you** at the top of the Diary and it reads **Open to agents**; even then it only adds to the end of today, when you ask. **Diary** does not start your diary while any computer of yours runs a Tisty older than 1.48, and once it exists, a computer on an older version stops syncing before it receives it.
 
 **Does it work with a screen reader?**
 Not as far as anybody knows. The whole window works from the keyboard and that path is tested, but it has never been tried with a real screen reader. If you use one, an [issue](https://github.com/rgdevment/Tisty/issues) saying where it falls apart would be very welcome.
@@ -108,7 +108,7 @@ Yes, since 1.36, for Google Drive, OneDrive or WebDAV: **Settings â€º Security â
 A proxy, a filter at work or an antivirus stands between this computer and Google, or inspects secure connections so Tisty cannot trust them. Your work stays safe on this computer meanwhile. On a work network, ask whoever runs it to let Tisty through; on your own computer, allow Tisty in your antivirus. Never go around your company's protection on your own. What each message means is in [Sync and backup](Sync-and-Backup#when-something-stands-in-the-way-of-google).
 
 **One of my machines stopped syncing after an update.**
-Update the one that is behind. A machine only reads what it understands, so the two stop syncing in both directions until they agree. A computer still on Tisty 1.30 to 1.33 stops and asks you to update instead of writing over a newer one. Nothing is lost, and what you write meanwhile stays on that machine. A computer still on a Tisty older than 1.48 keeps syncing but does not know the [Diary](Documents#diary)'s door: update it before you write in the diary.
+Update the one that is behind. A machine only reads what it understands, so the two stop syncing in both directions until they agree. A computer still on Tisty 1.30 to 1.33 stops and asks you to update instead of writing over a newer one. Nothing is lost, and what you write meanwhile stays on that machine. A computer still on a Tisty older than 1.48 also stops at a place that holds a [Diary](Documents#diary), before it receives any of it.
 
 ## Comparing
 

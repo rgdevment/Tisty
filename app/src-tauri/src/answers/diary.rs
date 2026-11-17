@@ -60,8 +60,16 @@ pub fn opening(session: &mut Session, today: Date) -> Answer<Today> {
     };
     let opened = diary::opened(&maker, &session.state, today, words(session))
         .map_err(|e| blamed(channel::WINDOW, "the diary could not be opened", e))?;
-    let diary::Opened::Ready(opening) = opened else {
-        return Err(Refusal::of("documentLocked"));
+    let opening = match opened {
+        diary::Opened::Ready(opening) => opening,
+        diary::Opened::Locked { .. } => return Err(Refusal::of("documentLocked")),
+        diary::Opened::Waiting { behind } => {
+            let named: Vec<String> = behind
+                .iter()
+                .map(|device| format!("«{}»", session.state.called(device)))
+                .collect();
+            return Err(Refusal::about("diaryBehind", named.join(", ")));
+        }
     };
     let made = !opening.ops.is_empty();
     if made {
