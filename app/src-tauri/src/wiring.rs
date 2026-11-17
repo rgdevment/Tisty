@@ -1,4 +1,5 @@
 mod catalog;
+mod hooks;
 mod json;
 mod places;
 mod shape;
@@ -44,6 +45,8 @@ pub struct Seen {
     /// Its shape is not one Tisty writes, so it is connected by hand.
     pub by_hand: bool,
     pub manual: Manual,
+    /// Only the assistants that run hooks have them.
+    pub hooks: Option<hooks::Hooks>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
@@ -158,6 +161,7 @@ fn told(client: &Client, place: &Place, found: Option<Found>) -> Option<Seen> {
                 .as_ref()
                 .map(|said| said.replace("{command}", &shown(&place.command))),
         },
+        hooks: hooks::kind(&client.id).and_then(|kind| hooks::seen(kind, place)),
     })
 }
 
@@ -222,6 +226,50 @@ fn unwire_at(client: &Client, place: &Place, at: &Path) -> Result<(), Stuck> {
         laid(at, &now, place.moved_aside(at))?;
     }
     Ok(())
+}
+
+pub fn hook(id: &str) -> Result<Vec<Seen>, Stuck> {
+    let (client, place, _) = asked(id)?;
+    hook_at(&client, &place)?;
+    Ok(seen_in(&place))
+}
+
+fn hook_at(client: &Client, place: &Place) -> Result<(), Stuck> {
+    if !place.open {
+        return Err(Stuck::Shut);
+    }
+    let kind = hooks::kind(&client.id).ok_or(Stuck::NoSuch)?;
+    let at = kind.file(place).ok_or(Stuck::NoSuch)?;
+    let was = match hooks::alone(kind) {
+        true => String::new(),
+        false => std::fs::read_to_string(&at).unwrap_or_default(),
+    };
+    let now =
+        hooks::with(kind, &was, place).ok_or_else(|| Stuck::Puzzling(at.display().to_string()))?;
+    kept(&at, &was)?;
+    laid(&at, &now, place.moved_aside(&at))
+}
+
+pub fn unhook(id: &str) -> Result<Vec<Seen>, Stuck> {
+    let (client, place, _) = asked(id)?;
+    unhook_at(&client, &place)?;
+    Ok(seen_in(&place))
+}
+
+fn unhook_at(client: &Client, place: &Place) -> Result<(), Stuck> {
+    let kind = hooks::kind(&client.id).ok_or(Stuck::NoSuch)?;
+    let at = kind.file(place).ok_or(Stuck::NoSuch)?;
+    if hooks::alone(kind) {
+        return hooks::emptied(&at).map_err(sour);
+    }
+    let was = std::fs::read_to_string(&at).unwrap_or_default();
+    if !hooks::hooked(kind, &was) {
+        return Ok(());
+    }
+    let now =
+        hooks::without(kind, &was).ok_or_else(|| Stuck::Puzzling(at.display().to_string()))?;
+    kept(&at, &was)?;
+    laid(&at, &now, place.moved_aside(&at))
 }
 
 fn asked(id: &str) -> Result<(Client, Place, PathBuf), Stuck> {

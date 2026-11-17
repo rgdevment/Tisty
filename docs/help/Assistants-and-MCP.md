@@ -38,6 +38,8 @@ An assistant reads its settings when it starts, so after connecting it, quit it 
 
 Tisty only touches its own entry. Anything you added to it, like `env` or the tools you allowed, stays, and so does the rest of the file. The first version of each file is kept beside it as `.before-tisty`, and the one just before each write as `.before-tisty-last`.
 
+**Hooks.** Claude Code, Cursor, Gemini CLI and GitHub Copilot (its command line and the Copilot sessions in VS Code) also run hooks: commands they call when a session starts, after a tool runs and when a turn ends. On a connected one, **Add** under its row first tells you which file it will write and, once you agree, puts Tisty's hooks there: `~/.claude/settings.json`, `~/.cursor/hooks.json`, `~/.gemini/settings.json`, or a file of their own, `~/.copilot/hooks/tisty.json`. **Remove** takes out only Tisty's. Cursor also runs the hooks in Claude Code's settings, and Tisty hands a turn back only once even when both fire. Gemini CLI runs them only in folders you trusted. What they do is under [A day with your agent](#a-day-with-your-agent).
+
 The **⋯** on every row shows how to connect that assistant by hand: its own command when it has one, and the exact lines for its file. The search box below the list does the same for an assistant Tisty knows but did not find.
 
 ### With a plugin
@@ -63,6 +65,8 @@ Any other assistant that starts a server by command, such as Cursor, Cline or Cl
 VS Code reads the same entry under `servers` instead of `mcpServers`.
 
 The first start downloads the launcher and can take a moment; later ones are immediate. If Tisty lives somewhere unusual, set `TISTY_PATH` to the full path of its `tisty`.
+
+From version 1.4.0 the plugin also brings Tisty's hooks to Claude Code, and the Gemini CLI extension brings them to Gemini CLI.
 
 Connect each assistant one way, the plugin or **Settings › Assistants**, not both: otherwise it runs Tisty's server twice and sees every tool twice. The plugin's source and its issues are in [mcp-plugins](https://github.com/rgdevment/mcp-plugins).
 
@@ -148,6 +152,8 @@ What an agent connected to Tisty does on a real piece of work:
 8. **After reading a long document, it leaves a summary** for the next agent to choose by. When the document changes, the summary is marked stale.
 
 **If it forgets, Tisty asks.** When the agent keeps calling Tisty while the task it opened goes ten minutes without a word from it, or while it writes three other things, the next answer asks it once whether that task is up to date. It names the task and what is missing — the steps still unticked, or that every step is ticked and the task is not said done — and asks it to tick what it did and, if the work is done, to say so with the proof. It never asks for a note of progress, and it asks again only after the agent writes on that task. It reaches every assistant, though only when the assistant calls Tisty. You turn it off in **Settings › Assistants**.
+
+**With Tisty's hooks, it also asks when a turn ends.** In the assistants you gave them, a session starts with the tasks that assistant left open, what moved since and what is pressing, in about 2,000 characters, so the agent does not have to remember to ask. After each edit and each call to Tisty, the hook leaves a mark for that session, without reading the conversation. When a turn edited files and wrote nothing in Tisty, it hands the turn back once: if that was work on a task, tick what was finished and, if it is done, say so with the proof. If the agent lets it pass, it stays quiet until the agent calls Tisty again, so work outside any task costs one extra turn at most; in GitHub Copilot that turn can spend a premium request. Work that edits no file, like planning or research, it does not see: there only the question in the answers reaches the agent. Codex and Claude Desktop have no hooks. **Remind it when a turn starts and ends**, in **Settings › Assistants**, turns the hooks off without taking them out.
 
 Who owns what stays clear. What your agent files is its own to keep true: it describes it, plans the steps, ticks them and notes what it learns. On what you wrote it works as in a document — the description, the page, the open steps, the title and the list — but a step it calls done waits for you to tick it, the day stays yours and closing is always yours. What only you can do — trying it in the real app, signing, deciding — it does not write as a step of its own task, which it could never tick: it files it as a task of its own for you, in the same list.
 

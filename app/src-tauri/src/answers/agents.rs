@@ -12,6 +12,7 @@ pub struct Agent {
     called: Option<String>,
     code: Option<String>,
     asks: bool,
+    hooks: bool,
 }
 
 // What another computer is asked to compare before it lets this machine's agent in.
@@ -128,6 +129,7 @@ fn as_agent(session: &Session) -> Agent {
         code: spoken_by(&session.paths, who),
         called: who.map(|one| tisty_core::config::nicknamed(&one.0)),
         asks: session.config.asks_open_task(),
+        hooks: session.config.turn_hooks(),
     }
 }
 
@@ -136,6 +138,14 @@ fn as_agent(session: &Session) -> Agent {
 pub fn agent_asks(session: tauri::State<'_, Mutex<Session>>, on: bool) -> Answer<Agent> {
     let mut session = held(&session);
     session.keep(|c| c.asks_open_task = (!on).then_some(false))?;
+    Ok(as_agent(&session))
+}
+
+// `tisty hook` reads this on every call, so a turn reaches an assistant already running.
+#[tauri::command]
+pub fn agent_hooks(session: tauri::State<'_, Mutex<Session>>, on: bool) -> Answer<Agent> {
+    let mut session = held(&session);
+    session.keep(|c| c.turn_hooks = (!on).then_some(false))?;
     Ok(as_agent(&session))
 }
 

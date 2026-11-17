@@ -83,7 +83,7 @@ Documents are a Markdown notebook beside the tasks: callouts, tables, diagrams, 
 
 - [[Sync and backup|Sync-and-Backup]] — two machines through a folder you already sync, or your Google Drive, OneDrive or WebDAV server directly, with what you keep there encrypted if you want.
 - [[Privacy]] — what is stored, and the few requests Tisty ever makes.
-- [[Command line|Command-Line]] — retired in 1.31; only `tisty mcp`, the assistant's door, remains.
+- [[Command line|Command-Line]] — retired in 1.31; only what assistants use remains: `tisty mcp`, their door, and `tisty hook`.
 - [[FAQ]]
 
 ---

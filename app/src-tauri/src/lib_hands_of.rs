@@ -64,6 +64,7 @@ fn a_client_is_one_row_whatever_it_called_itself_and_a_join_is_not_writing() {
             snippet: String::new(),
             cli: None,
         },
+        hooks: None,
     }];
 
     let rows = hands(&events, &[agent].into_iter().collect(), &seen);

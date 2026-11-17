@@ -161,4 +161,51 @@ describe("connecting assistants", () => {
 
     expect(await screen.findByText("Zed")).toBeTruthy();
   });
+
+  it("adds an assistant's hooks only after the person reads where and agrees", async () => {
+    const hooks = { on: false, at: "/home/someone/.claude/settings.json" };
+    ipc.answer = (cmd) => {
+      if (cmd === "wsl_distros") return Promise.resolve([]);
+      if (cmd === "hook")
+        return Promise.resolve([
+          one("claude-code", { wired: true, hooks: { ...hooks, on: true } }),
+        ]);
+      return Promise.resolve([]);
+    };
+    shown([one("claude-code", { wired: true, hooks }), one("codex", { wired: true })]);
+
+    expect(screen.getAllByText("Hooks: when a turn starts and ends")).toHaveLength(1);
+    await userEvent.click(screen.getByRole("button", { name: /^Add · Hooks/ }));
+    expect(sent("hook")).toHaveLength(0);
+    expect(
+      screen.getByText(/Tisty will add its hooks to \/home\/someone\/.claude\/settings.json/),
+    ).toBeTruthy();
+
+    await userEvent.click(screen.getByRole("button", { name: "Add them" }));
+
+    await waitFor(() => expect(sent("hook")).toHaveLength(1));
+    expect(sent("hook")[0].args.id).toBe("claude-code");
+  });
+
+  it("never offers hooks to an assistant that is not connected, and removes them in one click", async () => {
+    ipc.answer = (cmd) => {
+      if (cmd === "wsl_distros") return Promise.resolve([]);
+      if (cmd === "unhook") return Promise.resolve([]);
+      return Promise.resolve([]);
+    };
+    shown([
+      one("cursor", { hooks: { on: false, at: "/home/someone/.cursor/hooks.json" } }),
+      one("gemini-cli", {
+        wired: true,
+        hooks: { on: true, at: "/home/someone/.gemini/settings.json" },
+      }),
+    ]);
+
+    expect(screen.getAllByText("Hooks: when a turn starts and ends")).toHaveLength(1);
+    expect(screen.getByText("Added")).toBeTruthy();
+    await userEvent.click(screen.getByRole("button", { name: /^Remove · Hooks/ }));
+
+    await waitFor(() => expect(sent("unhook")).toHaveLength(1));
+    expect(sent("unhook")[0].args.id).toBe("gemini-cli");
+  });
 });

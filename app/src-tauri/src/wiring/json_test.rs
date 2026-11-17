@@ -156,3 +156,73 @@ fn a_byte_order_mark_does_not_hide_the_document() {
         "mcp"
     );
 }
+
+fn list_at(text: &str, key: &str) -> usize {
+    let raw = text.as_bytes();
+    member(raw, opens(raw).unwrap(), key).unwrap().value.0
+}
+
+#[test]
+fn an_element_lands_after_the_ones_already_in_a_list() {
+    let was = "{\n  \"Stop\": [\n    { \"a\": 1 }\n  ]\n}\n";
+
+    let now = push(was, list_at(was, "Stop"), "{ \"b\": 2 }").unwrap();
+
+    assert_eq!(value(&now)["Stop"][0]["a"], 1);
+    assert_eq!(value(&now)["Stop"][1]["b"], 2);
+    assert_eq!(
+        now,
+        "{\n  \"Stop\": [\n    { \"a\": 1 },\n    { \"b\": 2 }\n  ]\n}\n"
+    );
+}
+
+#[test]
+fn an_empty_list_takes_its_first_element() {
+    let was = "{\n  \"Stop\": []\n}\n";
+
+    let now = push(was, list_at(was, "Stop"), "{ \"b\": 2 }").unwrap();
+
+    assert_eq!(value(&now)["Stop"][0]["b"], 2);
+}
+
+#[test]
+fn the_elements_of_a_list_are_read_as_written() {
+    let was = "{ \"x\": [ 1, \"two\", { \"three\": [3] } ] }";
+    let raw = was.as_bytes();
+
+    let all = elements(raw, list_at(was, "x")).unwrap();
+
+    let told: Vec<&str> = all.iter().map(|(a, b)| &was[*a..*b]).collect();
+    assert_eq!(told, vec!["1", "\"two\"", "{ \"three\": [3] }"]);
+    assert_eq!(elements(raw, 0), None);
+}
+
+#[test]
+fn cutting_an_element_leaves_the_list_whole() {
+    let was = "{\n  \"Stop\": [\n    { \"a\": 1 },\n    { \"b\": 2 },\n    { \"c\": 3 }\n  ]\n}\n";
+    let at = list_at(was, "Stop");
+    let all = elements(was.as_bytes(), at).unwrap();
+
+    let first = cut(was, all[0]);
+    let middle = cut(was, all[1]);
+    let last = cut(was, all[2]);
+
+    assert_eq!(value(&first)["Stop"].as_array().unwrap().len(), 2);
+    assert_eq!(value(&first)["Stop"][0]["b"], 2);
+    assert_eq!(value(&middle)["Stop"][1]["c"], 3);
+    assert_eq!(value(&last)["Stop"][1]["b"], 2);
+    assert_eq!(
+        last,
+        "{\n  \"Stop\": [\n    { \"a\": 1 },\n    { \"b\": 2 }\n  ]\n}\n"
+    );
+}
+
+#[test]
+fn cutting_the_only_element_leaves_an_empty_list() {
+    let was = "{\n  \"Stop\": [\n    { \"a\": 1 }\n  ]\n}\n";
+    let all = elements(was.as_bytes(), list_at(was, "Stop")).unwrap();
+
+    let now = cut(was, all[0]);
+
+    assert_eq!(value(&now)["Stop"], serde_json::json!([]));
+}

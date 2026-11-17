@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import {
   type Assistant,
   copied,
+  hooked,
   seenAgents,
   unwireAgent,
   type Wired,
@@ -13,6 +14,7 @@ import {
 import { fill, t } from "../locales";
 import { saidPlainly } from "../refusal";
 import type { Run, Word } from "./Card";
+import Hooking from "./Hooking";
 
 const LOOKED = "tisty.wsl.looked";
 
@@ -73,12 +75,15 @@ function Manual({ one }: Readonly<{ one: Wired }>) {
 const small =
   "self-start rounded-md border border-line px-2.5 py-0.5 text-[12.5px] text-soft hover:border-accent hover:text-accent";
 
-function Row({
-  one,
-  hand,
-  held,
-  onJoin,
-}: Readonly<{ one: Wired; hand?: string; held: boolean; onJoin: (one: Wired) => void }>) {
+interface RowProps {
+  one: Wired;
+  hand?: string;
+  held: boolean;
+  onJoin: (one: Wired) => void;
+  onHook: (one: Wired, on: boolean) => void;
+}
+
+function Row({ one, hand, held, onJoin, onHook }: Readonly<RowProps>) {
   const [open, setOpen] = useState(false);
   const state = one.byHand
     ? "wiringStateHand"
@@ -153,6 +158,7 @@ function Row({
           ⋯
         </button>
       </div>
+      {one.wired && !one.astray && <Hooking one={one} held={held} onHook={onHook} />}
       {open && <Manual one={one} />}
     </div>
   );
@@ -163,16 +169,25 @@ function Rows({
   hands,
   held,
   onJoin,
+  onHook,
 }: Readonly<{
   all: Wired[];
   hands?: (one: Wired) => string | undefined;
   held: boolean;
   onJoin: (one: Wired) => void;
+  onHook: (one: Wired, on: boolean) => void;
 }>) {
   return (
     <div className="overflow-hidden rounded-[10px] border border-hair">
       {all.map((one) => (
-        <Row key={one.id} one={one} hand={hands?.(one)} held={held} onJoin={onJoin} />
+        <Row
+          key={one.id}
+          one={one}
+          hand={hands?.(one)}
+          held={held}
+          onJoin={onJoin}
+          onHook={onHook}
+        />
       ))}
     </div>
   );
@@ -243,6 +258,12 @@ export default function Wiring({
       tell({ card: "wiring", text: t(out ? "wiringGone" : "wiringFresh") });
     });
   };
+
+  const hook = (one: Wired, on: boolean) =>
+    quietly("wiring", hooked(one.id, on), (now) => {
+      place(one, now);
+      tell({ card: "wiring", text: t(on ? "hooksFresh" : "hooksGone") });
+    });
 
   const waiting = [
     ...(agents ?? []).filter(ready),
@@ -338,7 +359,7 @@ export default function Wiring({
       )}
       {agents && agents.length > 0 && (
         <div className="mt-3">
-          <Rows all={agents} hands={hand} held={held} onJoin={join} />
+          <Rows all={agents} hands={hand} held={held} onJoin={join} onHook={hook} />
         </div>
       )}
 
@@ -365,7 +386,12 @@ export default function Wiring({
           )}
           {inside[name] && inside[name].seen.length > 0 && (
             <div className="mt-1.5">
-              <Rows all={inside[name].seen} held={held || inside[name].shut} onJoin={join} />
+              <Rows
+                all={inside[name].seen}
+                held={held || inside[name].shut}
+                onJoin={join}
+                onHook={hook}
+              />
             </div>
           )}
         </section>
@@ -394,7 +420,7 @@ export default function Wiring({
         />
         {found.length > 0 && (
           <div className="mt-2">
-            <Rows all={found} held={held} onJoin={join} />
+            <Rows all={found} held={held} onJoin={join} onHook={hook} />
           </div>
         )}
       </section>
