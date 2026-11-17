@@ -1,11 +1,13 @@
 import { createContext, useContext } from "react";
 import type { Filed, Folded, List, Snapshot, Task } from "./core";
 import { detailOf, erasing } from "./detailing";
+import { diaryToday } from "./diary";
 import { docChoices, folderChoices, type Hands, hereChoices } from "./docMenus";
 import { layoutOf } from "./layout";
 import { type ListHands, listChoices } from "./listMenus";
 import { t } from "./locales";
 import { saidPlainly } from "./refusal";
+import type { Chosen } from "./views";
 import type { Mode, useWindow } from "./windowing";
 
 type State = ReturnType<typeof useWindow>;
@@ -23,6 +25,8 @@ export function deskOf(state: State, data: Snapshot) {
     setMode,
     chosen,
     setChosen,
+    setQuery,
+    setCameFrom,
     found,
     setFound,
     setMakingFolder,
@@ -196,6 +200,23 @@ export function deskOf(state: State, data: Snapshot) {
     setSelected(one.id);
   };
 
+  const choose = (next: Chosen) => {
+    setChosen(next);
+    setQuery("");
+    setCameFrom(null);
+    setSelected(undefined);
+    setFound(null);
+    setError(null);
+  };
+
+  const toDiary = () =>
+    diaryToday()
+      .then((today) => {
+        papersChanged();
+        choose({ named: "docs", doc: today.page });
+      })
+      .catch((e) => setError(saidPlainly(e)));
+
   return {
     ...state,
     data,
@@ -224,8 +245,13 @@ export function deskOf(state: State, data: Snapshot) {
     paces,
     detailing,
     opening,
+    choose,
+    toDiary,
   };
 }
+
+export const seeing = (one: Task): Chosen =>
+  one.list ? { named: "lists", list: one.list } : { named: "tasks", slice: "all" };
 
 export type Desk = ReturnType<typeof deskOf>;
 

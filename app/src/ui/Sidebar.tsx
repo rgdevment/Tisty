@@ -1,12 +1,12 @@
 import { useCallback, useRef, useState } from "react";
-import { fold, railed, sideWidth, useBreadth, useRoomFor, WIDE_WINDOW } from "../breadth";
+import { railed, sideWidth, useBreadth, useRoomFor, WIDE_WINDOW } from "../breadth";
 import type { Counted, Filed, Folded, List, Papers } from "../core";
 import { cameFrom } from "../guide/help";
 import { useKnocking } from "../knocking";
 import { t } from "../locales";
 import type { Chosen, Lean } from "../views";
 import Coming from "./Coming";
-import { focusFinder, useFindKey } from "./finding";
+import { findNow, useFindKey } from "./finding";
 import Knocking, { KnockDot } from "./Knocking";
 import Mode from "./Mode";
 import MoveNotice from "./MoveNotice";
@@ -90,10 +90,7 @@ export default function Sidebar({
     if (folder) setRevealing({ folder, at: Date.now() });
   };
   useFoldKey(!keeping);
-  const find = useCallback(() => {
-    if (folded) fold(false);
-    requestAnimationFrame(focusFinder);
-  }, [folded]);
+  const find = useCallback(() => findNow(folded), [folded]);
   useFindKey(!keeping, find);
 
   return (

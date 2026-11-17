@@ -23,6 +23,8 @@ The whole window works from the keyboard.
 | `Tab` · `Shift` + `Tab` (writing a list) | Put an item under the one above or take it out |
 | `Ctrl`/`⌘` + `E` (in a document) | Switch between Rich text and Markdown |
 | `F1` | Open the Tisty Markdown guide, without a connection |
+| `Ctrl`/`⌘` + `P` | Open the [palette](#the-palette) to jump to a document, a task or a folder |
+| `Ctrl`/`⌘` + `Shift` + `P` | Open the [palette](#the-palette) on its actions |
 | `Ctrl`/`⌘` + `K` (outside what you are writing) | Go to the search at the top of the sidebar, unfolding the sidebar first if it is folded |
 | `Ctrl`/`⌘` + `B` (outside what you are writing) | Fold the sidebar to its icons, or unfold it; drag its edge to change its width. When the column on the right does not fit beside it, the sidebar folds to its icons by itself; opened by hand, it stays open until you change view or the window's size |
 | `Ctrl`/`⌘` + `S` (in the diagram window) | Save the diagram into its document |
@@ -37,6 +39,12 @@ The whole window works from the keyboard.
 | `Esc` | Close whatever is open; while writing a document, choose the block |
 
 If another program already holds the capture shortcut, Tisty takes another one and tells you which in Settings.
+
+## The palette
+
+`Ctrl`/`⌘` + `P` opens a box at the top of the window. Type part of a title and jump: documents whose title matches come first, then folders, tasks, archived ones too, and documents that say those words in their text. With nothing typed, it shows the documents you wrote lately. ↑ ↓ choose, `Enter` opens and `Esc` closes.
+
+Start with `>` and the palette shows the window's actions: go to a view, create a document or a folder, fold the sidebar and, with a document open, switch it between Rich text and Markdown or export it. Each action shows its shortcut, if it has one. `Ctrl`/`⌘` + `Shift` + `P` opens the palette with the `>` already typed.
 
 ## In the light viewer
 

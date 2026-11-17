@@ -1,7 +1,6 @@
 import { chosenWidth, railed, useBreadth } from "./breadth";
 import { docFile, folderFile } from "./core";
 import { DeskProvider, deskOf } from "./desk";
-import { diaryToday } from "./diary";
 import { hereChoices } from "./docMenus";
 import { cameFrom } from "./guide/help";
 import { t } from "./locales";
@@ -13,11 +12,11 @@ import Layers from "./ui/Layers";
 import LinkQuestions from "./ui/LinkQuestions";
 import Margins from "./ui/Margins";
 import News from "./ui/News";
+import Palette from "./ui/Palette";
 import Sidebar from "./ui/Sidebar";
 import Spine from "./ui/Spine";
 import Stage from "./ui/Stage";
 import WindowChrome from "./ui/WindowChrome";
-import type { Chosen } from "./views";
 import { useWindow } from "./windowing";
 
 export default function App() {
@@ -42,9 +41,7 @@ export default function App() {
     hands,
     setHere,
     setChosen,
-    setCameFrom,
     setSelected,
-    setFound,
     setError,
     setMenu,
     papersChanged,
@@ -59,16 +56,10 @@ export default function App() {
     beside,
     query,
     setQuery,
+    choose,
+    toDiary,
   } = desk;
   const side = chosenWidth(railed(kept, chosen.named === "keeping"));
-  const choose = (next: Chosen) => {
-    setChosen(next);
-    setQuery("");
-    setCameFrom(null);
-    setSelected(undefined);
-    setFound(null);
-    setError(null);
-  };
 
   return (
     <DeskProvider value={desk}>
@@ -82,6 +73,7 @@ export default function App() {
         <News />
         <Calendars />
         <HelpKey onHelp={(topic) => choose({ named: "help", topic, from: cameFrom(chosen) })} />
+        <Palette />
 
         <Sidebar
           lists={data.lists}
@@ -108,14 +100,7 @@ export default function App() {
               .catch((e) => setError(saidPlainly(e)))
           }
           onPage={(doc, pageOf) => hangIt(doc, pageOf)}
-          onDiary={() =>
-            diaryToday()
-              .then((today) => {
-                papersChanged();
-                choose({ named: "docs", doc: today.page });
-              })
-              .catch((e) => setError(saidPlainly(e)))
-          }
+          onDiary={toDiary}
           onFolderMenu={folderMenu}
           onDocMenu={docMenu}
           onHereMenu={hereMenu}

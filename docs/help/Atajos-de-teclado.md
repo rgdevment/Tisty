@@ -23,6 +23,8 @@ Toda la ventana funciona con el teclado.
 | `Tab` · `Shift` + `Tab` (escribiendo una lista) | Meter un elemento bajo el de arriba o sacarlo |
 | `Ctrl`/`⌘` + `E` (en un documento) | Cambiar entre Enriquecido y Markdown |
 | `F1` | Abrir la guía de Markdown de Tisty, sin conexión |
+| `Ctrl`/`⌘` + `P` | Abrir la [paleta](#la-paleta) para saltar a un documento, una tarea o una carpeta |
+| `Ctrl`/`⌘` + `Shift` + `P` | Abrir la [paleta](#la-paleta) en sus acciones |
 | `Ctrl`/`⌘` + `K` (fuera de lo que escribes) | Ir al buscador de arriba de la barra lateral, desplegándola antes si está plegada |
 | `Ctrl`/`⌘` + `B` (fuera de lo que escribes) | Plegar la barra lateral a sus iconos, o desplegarla; arrastra su borde para cambiar el ancho. Cuando la columna de la derecha no cabe a su lado, la barra lateral se pliega sola a sus iconos; si la abres a mano, queda abierta hasta que cambias de vista o de tamaño de ventana |
 | `Ctrl`/`⌘` + `S` (en la ventana de diagramas) | Guardar el diagrama en su documento |
@@ -37,6 +39,12 @@ Toda la ventana funciona con el teclado.
 | `Esc` | Cerrar lo que esté abierto; escribiendo un documento, elegir el bloque |
 
 Si otro programa ya usa el atajo de captura, Tisty toma otro y te dice cuál en Configuración.
+
+## La paleta
+
+`Ctrl`/`⌘` + `P` abre un cuadro arriba de la ventana. Escribe parte de un título y salta: primero van los documentos cuyo título coincide, después las carpetas, las tareas, también las del archivo, y los documentos que dicen esas palabras en el texto. Sin escribir nada, muestra los documentos que escribiste hace poco. ↑ ↓ eligen, `Enter` abre y `Esc` cierra.
+
+Si empiezas con `>`, la paleta muestra las acciones de la ventana: ir a una vista, crear un documento o una carpeta, plegar la barra lateral y, con un documento abierto, cambiarlo entre Enriquecido y Markdown o exportarlo. Cada acción muestra su atajo, si lo tiene. `Ctrl`/`⌘` + `Shift` + `P` abre la paleta con el `>` ya puesto.
 
 ## En el visor liviano
 
