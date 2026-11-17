@@ -140,7 +140,7 @@ productivity tool** that lives on your machine and nowhere else.
   task it was on and what it noted yesterday, not from a blank chat.
 - **Nothing closes without you** — your agent says when a task or a step is
   done, and it waits in *To confirm* until you finish it or send it back. It
-  cannot close or delete anything.
+  cannot close or delete a task, or delete a document or an idea.
 - **Made for agents as much as for people** — an outline costs a few hundred
   tokens, a read brings one section, and picking up again brings only what
   changed: a fraction of rereading your Markdown files.
@@ -195,7 +195,7 @@ everything. It has no date yet.
 - [What It Does](#what-it-does)
 - [Your Data and Privacy](#your-data-and-privacy)
 - [Two Machines, If You Have Two](#two-machines-if-you-have-two)
-- [An Assistant, If You Use One](#an-assistant-if-you-use-one)
+- [Your AI Agent](#your-ai-agent)
 - [What It Does Not Do](#what-it-does-not-do)
 - [FAQ](#faq)
 - [Alternatives to Obsidian, Notion and Todoist](#alternatives-to-obsidian-notion-and-todoist)
@@ -486,10 +486,10 @@ put it here in case it is the thing you wanted too.
 
 ## What It Is / What It Isn't
 
-**It is** a personal task manager where finishing something is the beginning of
-its useful life. Tasks carry a description, a journal, steps and attachments;
-when you complete one it moves to the archive, and search reaches all of it,
-documents included.
+**It is** a working memory you share with your AI agent, and a personal task
+manager where finishing something is the beginning of its useful life. Tasks
+carry a description, a journal, steps and attachments; when you complete one it
+moves to the archive, and search reaches all of it, documents included.
 
 **It is a place to write**, too. Documents are not a notes field bolted onto the
 tasks: they are Markdown files that grow into books, with diagrams, formulas,
@@ -767,12 +767,12 @@ with it, while whatever arrives from somebody else keeps theirs.
 
 ## Who Is This For?
 
-Anyone whose work leaves a trail worth keeping, and who wants their AI agent to
-remember it too. A developer who jumps between sessions, branches and dozens of
-projects. A PM who keeps the decisions and the why behind them. A QA who keeps
-the cases that broke last time. A tech lead who keeps the runbooks. Sysadmins,
-freelancers, researchers, students — anyone who has ever solved the same problem
-twice and known it the second time.
+Anyone who works with an AI agent and wants both of them to remember: you the
+whole, your agent the detail. A developer who jumps between sessions, branches
+and dozens of projects. A PM who keeps the decisions and the why behind them. A
+QA who keeps the cases that broke last time. A tech lead who keeps the
+runbooks. Sysadmins, freelancers, researchers, students — anyone who has ever
+solved the same problem twice and known it the second time.
 
 Each of them keeps their own Tisty: what one learns is not the same as what
 another needs, and their agents work from different memories.
@@ -1149,7 +1149,7 @@ lists the causes worth checking, in order — and what each message about Google
 Drive means, from *Reconnect* to a full Drive or
 [something blocking the way](https://www.tisty.app/docs/sync-and-backup/#when-something-stands-in-the-way-of-google).
 
-## An Assistant, If You Use One
+## Your AI Agent
 
 ![No more blank chats, open the MCP door: Settings › Assistants says Tisty has no AI inside and connects the assistants on this computer, so your agent asks where were we? and opens the task it was on](assets/screens/web/en-05-agent.png)
 
@@ -1157,9 +1157,9 @@ Drive means, from *Reconnect* to a full Drive or
 the bank at 3" into a task is rules running on your machine: no model, no
 request, no cloud. That is not going to change.
 
-But if you already use an assistant, you are probably telling it things worth
-keeping — the school group says card stock on Monday, the invoice is due on the
-30th. So Tisty leaves a door, and you decide whether to use it.
+But the assistant you work with is where the detail happens, and it forgets
+when the session ends. So Tisty leaves it a door, and you decide whether to
+open it.
 
 **Your agents' work, in the open.** Through Tisty, an agent plans in
 documents and works in tasks: it writes the plan, what it found and what it

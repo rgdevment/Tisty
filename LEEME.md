@@ -144,7 +144,7 @@ parte.
   la tarea en la que estaba y de lo que anotó ayer, no de un chat en blanco.
 - **Nada se cierra sin ti** — tu agente dice cuándo una tarea o un paso está
   listo, y espera en *Por confirmar* hasta que tú la terminas o la devuelves. No
-  puede cerrar ni borrar nada.
+  puede cerrar ni borrar una tarea, ni borrar un documento o una idea.
 - **Hecho para agentes tanto como para personas** — un índice cuesta unos
   cientos de tokens, una lectura trae una sección, y retomar trae solo lo que
   cambió: una fracción de lo que cuesta releer tus archivos Markdown.
@@ -201,7 +201,7 @@ todo. Todavía no tiene fecha.
 - [Qué hace](#qué-hace)
 - [Tus datos y tu privacidad](#tus-datos-y-tu-privacidad)
 - [Dos equipos, si tienes dos](#dos-equipos-si-tienes-dos)
-- [Un asistente, si usas uno](#un-asistente-si-usas-uno)
+- [Tu agente de IA](#tu-agente-de-ia)
 - [Qué no hace](#qué-no-hace)
 - [Preguntas frecuentes](#preguntas-frecuentes)
 - [Alternativas a Obsidian, Notion y Todoist](#alternativas-a-obsidian-notion-y-todoist)
@@ -501,9 +501,10 @@ dejó de molestarme, y lo dejé acá por si resulta ser lo que tú querías.
 
 ## Qué es, y qué no es
 
-**Es** un gestor de tareas personal donde terminar algo es el comienzo de su vida
-útil. Las tareas llevan descripción, bitácora, pasos y adjuntos; al completar una
-pasa al archivo, y la búsqueda llega a todo, documentos incluidos.
+**Es** una memoria de trabajo que compartes con tu agente de IA, y un gestor de
+tareas personal donde terminar algo es el comienzo de su vida útil. Las tareas
+llevan descripción, bitácora, pasos y adjuntos; al completar una pasa al
+archivo, y la búsqueda llega a todo, documentos incluidos.
 
 **Es también un lugar para escribir.** Los documentos no son un campo de notas
 pegado a las tareas: son archivos Markdown que crecen hasta ser libros, con
@@ -792,8 +793,8 @@ de otra persona conserva el suyo.
 
 ## Para quién es
 
-Para cualquiera cuyo trabajo deja un rastro que vale la pena guardar, y que
-quiere que su agente de IA también lo recuerde. Quien desarrolla y salta entre
+Para cualquiera que trabaja con un agente de IA y quiere que los dos recuerden:
+tú el conjunto, tu agente el detalle. Quien desarrolla y salta entre
 sesiones, ramas y decenas de proyectos. La PM que guarda las decisiones y su
 porqué. El QA que guarda los casos que fallaron la vez anterior. El líder
 técnico que guarda los runbooks. Administradores de sistemas, independientes,
@@ -1181,7 +1182,7 @@ enumera las causas en el orden en que conviene revisarlas, y qué significa cada
 aviso de Google Drive, de *Reconectar* a un Drive lleno o
 [algo que bloquea el camino](https://www.tisty.app/es/ayuda/sincronizar-y-respaldar/#cuando-algo-se-interpone-con-google).
 
-## Un asistente, si usas uno
+## Tu agente de IA
 
 ![No más chats en blanco, abre la puerta MCP: Configuración › Asistentes dice que Tisty no lleva IA dentro y conecta los asistentes de este equipo, así tu agente pregunta ¿en qué íbamos? y abre la tarea en la que estaba](assets/screens/web/es-05-agente.png)
 
@@ -1189,9 +1190,9 @@ aviso de Google Drive, de *Reconectar* a un Drive lleno o
 que convierte "llamar al banco a las 3" en una tarea es un puñado de reglas
 corriendo en tu equipo: sin modelo, sin petición, sin nube. Eso no va a cambiar.
 
-Pero si ya usas un asistente, es probable que le cuentes cosas que vale la pena
-guardar — el grupo del colegio pide cartulina para el lunes, la cuenta vence el
-30. Así que Tisty deja una puerta, y tú decides si la usas.
+Pero el asistente con el que trabajas es donde ocurre el detalle, y olvida en
+cuanto termina la sesión. Así que Tisty le deja una puerta, y tú decides si la
+abres.
 
 **El trabajo de tus agentes, a la vista.** Con Tisty, un agente planifica en
 documentos y trabaja en tareas: escribe en Markdown el plan, lo que encontró y lo
