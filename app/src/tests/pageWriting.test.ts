@@ -1736,6 +1736,17 @@ describe("a key at the edge of a block drawn whole", () => {
     expect(said).toEqual(["Antes $x^2$\n"]);
   });
 
+  it("joins two lines of code as they are, whatever the line under them reads like", () => {
+    const said = writer("Antes.\n\n```\nuno\ndos\n2. tres\n```\n");
+    pageOf(
+      '<p data-at="0-6"><span data-src="0-6">Antes.</span></p><figure class="code" data-at="8-31"><pre><code><span data-src="12-15">uno</span>\n<span data-src="16-19">dos</span>\n<span data-src="20-27">2. tres</span></code></pre></figure>',
+    );
+    writing?.drawn();
+    caretIn("dos", 0);
+    across("deleteContentBackward", ["uno", 3], ["dos", 0]);
+    expect(said).toEqual(["Antes.\n\n```\nunodos\n2. tres\n```\n"]);
+  });
+
   it("takes nothing on Delete at a step's end over a task's section", () => {
     document.documentElement.classList.add("untitled");
     const said = writer("- [ ] paso\n\n## Notas\n");

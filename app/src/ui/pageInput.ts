@@ -285,7 +285,8 @@ export const inputOn = (
       // A title's mark alone is what is left of a page emptied again, so the page is left empty.
       const left = text.slice(0, gone.from) + text.slice(gone.to);
       if (/^#[ \t]*\r?\n?$/.test(left)) return put({ from: 0, to: text.length, insert: "" }, 0);
-      return put(joinedApart(text, { ...gone, insert: "" }), gone.from);
+      const join = { ...gone, insert: "" };
+      return put(inCode(range.startContainer) ? join : joinedApart(text, join), gone.from);
     }
     const pair = PAIRS[kind];
     if (pair) formats.format(pair, pair);
