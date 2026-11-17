@@ -191,6 +191,22 @@ describe("who cites a task, beside its page", () => {
     expect(onTask).toHaveBeenCalledWith("01T");
   });
 
+  it("shows the first twelve and the rest behind one press", async () => {
+    bus.citing = Array.from({ length: 20 }, (_, n) => ({
+      id: `dev_a-${String(n + 10).padStart(4, "0")}`,
+      kind: "doc" as const,
+      title: `Documento ${n}`,
+      card: true,
+      state: "open",
+    }));
+    render(<CitedBy task="01K" />);
+    await waitFor(() => expect(screen.getByText("Documento 0")).toBeTruthy());
+    expect(screen.queryByText("Documento 12")).toBeNull();
+
+    await userEvent.click(screen.getByText(fill("citedSeeAll", "20")));
+    expect(screen.getByText("Documento 19")).toBeTruthy();
+  });
+
   it("stays out of the way while nobody cites it or the base is still being read", () => {
     bus.citing = null;
     const { container } = render(<CitedBy task="01K" />);

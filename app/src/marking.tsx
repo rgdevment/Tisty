@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { complete, owed, type Task } from "./core";
+import { complete, owed, type Task, taskOf } from "./core";
 import { fill } from "./locales";
 import { saidPlainly } from "./refusal";
 import Owed from "./ui/Owed";
@@ -30,25 +30,37 @@ export function useMarking({ chosen, act, say, setError, lookForAStar, cheer }: 
     setAsking((was) => (was?.at === chosen ? was : null));
   }, [chosen]);
 
+  const finished = (id: string, title: string, summary?: string) => {
+    say(fill("saidDone", title));
+    const done = complete(id, undefined, summary);
+    act(done);
+    done
+      .then((task) => {
+        if (!task.part_of && !task.repeat) cheer?.(task);
+      })
+      .catch(() => {});
+    lookForAStar();
+  };
+
   const marking = (id: string, title: string, summary?: string) => {
     setError(null);
     const mine = ++asked.current;
     owed(id)
       .then((days) => {
-        if (!days.length) {
-          say(fill("saidDone", title));
-          const done = complete(id, undefined, summary);
-          act(done);
-          done
-            .then((task) => {
-              if (!task.part_of && !task.repeat) cheer?.(task);
-            })
-            .catch(() => {});
-          lookForAStar();
-          return;
-        }
+        if (!days.length) return finished(id, title, summary);
         // A slow answer must not open a strip over the task the person moved on to.
         if (mine === asked.current) setAsking({ id, title, days, summary });
+      })
+      .catch((e) => setError(saidPlainly(e)));
+  };
+
+  // Missed days are chosen on a strip only the task's own view shows, so it is taken there to choose them.
+  const markingAway = (id: string, title: string, there: (task: Task) => Chosen) => {
+    setError(null);
+    owed(id)
+      .then((days) => {
+        if (!days.length) return finished(id, title);
+        return taskOf(id).then((task) => setAsking({ id, title, days, at: there(task) }));
       })
       .catch((e) => setError(saidPlainly(e)));
   };
@@ -65,9 +77,5 @@ export function useMarking({ chosen, act, say, setError, lookForAStar, cheer }: 
     />
   ) : null;
 
-  // The strip asked for the view the person is taken to stays once that view arrives.
-  const owing = (id: string, title: string, days: string[], at: Chosen) =>
-    setAsking({ id, title, days, at });
-
-  return { asking, marking, owing, strip };
+  return { asking, marking, markingAway, strip };
 }

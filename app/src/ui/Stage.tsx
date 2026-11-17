@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef } from "react";
 import { taskStepMarked } from "../citing";
-import { discard, owed, patch, sow, taskOf } from "../core";
+import { discard, patch, sow } from "../core";
 import { seeing, useDesk } from "../desk";
 import { fill } from "../locales";
 import { saidPlainly } from "../refusal";
@@ -39,9 +39,8 @@ export default function Stage() {
     hereMenu,
     load,
     lookPapers,
-    marking,
+    markingAway,
     noted,
-    owing,
     openDoc,
     opening,
     paging,
@@ -76,19 +75,13 @@ export default function Stage() {
     carries.current?.recheck();
     carries.current?.changed();
   };
-  // Days a routine missed are chosen on a strip the documents never show, so it is finished where it lives.
   const finishCited = (id: string, title: string) =>
-    owed(id)
-      .then((days) => {
-        if (!days.length) return marking(id, title);
-        return taskOf(id).then((one) => {
-          const at = seeing(one);
-          setChosen(at);
-          opening(one);
-          owing(id, title, days, at);
-        });
-      })
-      .catch((e: unknown) => setError(saidPlainly(e)));
+    markingAway(id, title, (one) => {
+      const at = seeing(one);
+      setChosen(at);
+      opening(one);
+      return at;
+    });
   const fresh = useRef(refreshed);
   fresh.current = refreshed;
   useEffect(() => afterMove(() => fresh.current()), []);

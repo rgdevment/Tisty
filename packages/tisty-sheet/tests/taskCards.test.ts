@@ -86,6 +86,16 @@ describe("a cited task's card", () => {
     document.body.innerHTML = "";
   });
 
+  it("keeps the key on the step box it was pressed on when the card is drawn again", () => {
+    document.body.innerHTML = paged().body.innerHTML;
+    taskCarded(document, as(OPEN, true));
+    unfolded(document, 0);
+    document.querySelector<HTMLElement>("[data-step='s2']")?.focus();
+    recarded(document, as(OPEN, true));
+    expect((document.activeElement as HTMLElement | null)?.dataset.step).toBe("s2");
+    document.body.innerHTML = "";
+  });
+
   it("leaves a key pressed on its own buttons to them, not to the card", () => {
     document.body.innerHTML = paged().body.innerHTML;
     taskCarded(document, as(OPEN, true));

@@ -1,3 +1,4 @@
+import { useState } from "react";
 import type { Citing } from "../citing";
 import { fill, t } from "../locales";
 import Section from "./Section";
@@ -11,6 +12,9 @@ interface Props {
   onTask?: (id: string) => void;
 }
 
+// A task cited from hundreds of documents would bury its column; the rest wait behind one press.
+const FIRST = 12;
+
 const glyphOf = (one: Citing): string => {
   if (one.kind === "task") return CLOSED.has(one.state ?? "") ? "✓" : "○";
   return one.state === "archived" ? "▢" : "▤";
@@ -18,15 +22,17 @@ const glyphOf = (one: Citing): string => {
 
 export default function CitedBy({ task, whole, onDoc, onTask }: Props) {
   const citing = useCited(task);
+  const [unfolded, setUnfolded] = useState(false);
   const all: Citing[] = Array.isArray(citing) ? citing : [];
   const shown = all.filter((one) => one.id !== whole && one.id !== task);
   if (shown.length === 0) return null;
+  const listed = unfolded ? shown : shown.slice(0, FIRST);
 
   return (
     <>
       <Section label={t("citedBy")} note={`${shown.length}`} />
       <ul className="flex flex-col gap-1.5">
-        {shown.map((one) => (
+        {listed.map((one) => (
           <li key={one.id}>
             <button
               type="button"
@@ -52,6 +58,15 @@ export default function CitedBy({ task, whole, onDoc, onTask }: Props) {
           </li>
         ))}
       </ul>
+      {listed.length < shown.length && (
+        <button
+          type="button"
+          onClick={() => setUnfolded(true)}
+          className="mt-1.5 cursor-pointer text-[12.5px] text-accent hover:underline"
+        >
+          {fill("citedSeeAll", String(shown.length))}
+        </button>
+      )}
     </>
   );
 }

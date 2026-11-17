@@ -138,7 +138,7 @@ export function useWindow() {
 
   const parcels = useParcels({ afoot, setAfoot, setError, said, papersChanged });
 
-  const { asking, marking, owing, strip } = useMarking({
+  const { asking, marking, markingAway, strip } = useMarking({
     chosen,
     act: (work) => act(work),
     say,
@@ -282,7 +282,7 @@ export function useWindow() {
     parcels,
     asking,
     marking,
-    owing,
+    markingAway,
     strip,
     reach,
     further,

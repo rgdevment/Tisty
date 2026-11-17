@@ -145,12 +145,19 @@ export const taskCarded = (page: Document, cards: TaskCards) => {
 export const recarded = (page: Document, cards: TaskCards) => {
   for (const box of page.querySelectorAll<HTMLElement>(".page > p > .is-task[data-task]")) {
     const fresh = carded(page, box.dataset.task ?? "", box.dataset.written ?? "", cards);
-    const focused = page.activeElement === box;
+    const held = page.activeElement;
     shown(fresh, box.classList.contains(UNFOLDED));
     box.replaceWith(fresh);
-    if (focused) fresh.focus();
+    if (held === box) fresh.focus();
+    else if (held && box.contains(held)) sameButton(fresh, held as HTMLElement)?.focus();
   }
 };
+
+// The key a person pressed inside a card stays where it was once the card is drawn again.
+const sameButton = (fresh: HTMLElement, held: HTMLElement) =>
+  Array.from(fresh.querySelectorAll<HTMLElement>("button[data-asked]")).find(
+    (one) => one.dataset.asked === held.dataset.asked && one.dataset.step === held.dataset.step,
+  );
 
 export const unfolded = (page: Document, nth: number) => {
   const box = page.querySelectorAll<HTMLElement>(".page > p > .is-task[data-task]")[nth];

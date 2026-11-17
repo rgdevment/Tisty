@@ -698,6 +698,7 @@ const en = {
   citedNobody: "No document or task links here yet.",
   citedNotReady: "Tisty is still reading how your documents link to each other.",
   citedUnder: "In: {name}",
+  citedSeeAll: "See all {name}",
   importMissed:
     "The document came in, but {name} file(s) beside it could not: their links now read as plain words.",
   importNotes:
@@ -3990,6 +3991,7 @@ const es: Catalog = {
   citedNobody: "Todavía ningún documento ni tarea enlaza aquí.",
   citedNotReady: "Tisty todavía está leyendo cómo se enlazan tus documentos.",
   citedUnder: "En: {name}",
+  citedSeeAll: "Ver las {name}",
   importMissed:
     "El documento entró, pero {name} archivo(s) de al lado no se pudieron traer: sus enlaces quedaron como texto.",
   importNotes: "{name} nota(s) que enlaza quedaron como texto: impórtalas una por una.",
