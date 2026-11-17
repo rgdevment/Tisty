@@ -1,27 +1,14 @@
-import { copied, docCopy, docPlain, type Showing, viewGo } from "../../core";
+import { type Showing, viewGo } from "../../core";
 import { t } from "../../locales";
 import type { Choice } from "../Menu";
 import { darkNow } from "../theming";
 import { PRESETS, type Preset } from "./Stage";
 
-export const ZOOMS = [0.8, 0.9, 1, 1.1, 1.25, 1.4, 1.6];
-export const PLAIN = ZOOMS.indexOf(1);
-
 export interface Acts {
   shown: Showing | null;
-  body: string;
   dark: boolean | null;
   actual: boolean;
   fail: (problem: unknown) => void;
-  find: () => void;
-  zoom: (step: number) => void;
-  side: () => void;
-  raw: () => void;
-  preview: () => void;
-  keep: () => void;
-  html: () => void;
-  word: () => void;
-  edit: () => void;
   again: () => void;
   code: () => void;
   shade: () => void;
@@ -32,89 +19,40 @@ export interface Acts {
 
 export const choicesFor = (a: Acts): Choice[] => {
   const shown = a.shown;
-  if (shown?.kind === "piece") {
-    const from = shown.from;
-    const own: Choice[] = [
-      { key: "code", label: t("viewCode"), onPick: a.code },
-      {
-        key: "doc",
-        label: t("viewInDocGo"),
-        off: !from,
-        onPick: () => from && void viewGo(from.file).catch(a.fail),
-      },
-    ];
-    if (shown.held !== "widget") return own;
-    return [
-      { key: "again", label: t("viewReload"), hint: "Ctrl+R", onPick: a.again },
-      ...own,
-      {
-        key: "dark",
-        label: `${(a.dark ?? darkNow()) ? "✓ " : ""}${t("viewDark")}`,
-        apart: true,
-        onPick: a.shade,
-      },
-      {
-        key: "actual",
-        label: `${a.actual ? "✓ " : ""}${t("viewActual")}`,
-        hint: "Ctrl+0",
-        onPick: a.fit,
-      },
-    ];
-  }
-  const own: Choice[] =
-    shown?.kind === "doc"
-      ? [
-          {
-            key: "copyDoc",
-            label: t("viewDuplicate"),
-            apart: true,
-            onPick: () =>
-              void docCopy(shown.paper.id)
-                .then((made) => viewGo(made.id))
-                .catch(a.fail),
-          },
-        ]
-      : [];
+  if (shown?.kind !== "piece") return [];
+  const from = shown.from;
+  const own: Choice[] = [
+    { key: "code", label: t("viewCode"), onPick: a.code },
+    {
+      key: "doc",
+      label: t("viewInDocGo"),
+      off: !from,
+      onPick: () => from && void viewGo(from.file).catch(a.fail),
+    },
+  ];
+  if (shown.held !== "widget") return own;
   return [
-    { key: "edit", label: t("viewEditIn"), onPick: a.edit },
-    { key: "find", label: t("viewFind"), hint: "Ctrl+F", apart: true, onPick: a.find },
-    { key: "bigger", label: t("viewBigger"), hint: "Ctrl+=", onPick: () => a.zoom(1) },
-    { key: "smaller", label: t("viewSmaller"), hint: "Ctrl+−", onPick: () => a.zoom(-1) },
-    ...exportsFor(a),
+    { key: "again", label: t("viewReload"), hint: "Ctrl+R", onPick: a.again },
     ...own,
+    {
+      key: "dark",
+      label: `${(a.dark ?? darkNow()) ? "✓ " : ""}${t("viewDark")}`,
+      apart: true,
+      onPick: a.shade,
+    },
+    {
+      key: "actual",
+      label: `${a.actual ? "✓ " : ""}${t("viewActual")}`,
+      hint: "Ctrl+0",
+      onPick: a.fit,
+    },
   ];
 };
-
-// The ways out of a document, which the panel's «Export» opens on their own.
-export const exportsFor = (a: Acts): Choice[] => [
-  {
-    key: "copy",
-    label: t("viewCopyMd"),
-    apart: true,
-    onPick: () => void docPlain(a.body).then(copied).catch(a.fail),
-  },
-  { key: "see", label: t("seePdf"), hint: "Ctrl+P", apart: true, onPick: a.preview },
-  { key: "pdf", label: t("toPdf"), onPick: a.keep },
-  { key: "html", label: t("toHtml"), onPick: a.html },
-  { key: "word", label: t("toWord"), onPick: a.word },
-];
 
 export const keysFor = (a: Acts, e: KeyboardEvent): (() => void) | undefined => {
   const key = e.key.toLowerCase();
   const doing: Record<string, () => void> = { w: a.close, r: a.again };
   const shown = a.shown;
-  if (shown?.kind === "doc") {
-    Object.assign(doing, {
-      f: a.find,
-      "\\": a.side,
-      p: a.preview,
-      "=": () => a.zoom(1),
-      "+": () => a.zoom(1),
-      "-": () => a.zoom(-1),
-      "0": () => a.zoom(0),
-    });
-    if (e.shiftKey) doing.m = a.raw;
-  }
   if (shown?.kind === "piece" && shown.held === "widget") {
     PRESETS.forEach((one, at) => {
       doing[String(at + 1)] = () => a.preset(one.key);

@@ -39,10 +39,6 @@ pub enum Shown {
 #[derive(Debug, serde::Serialize)]
 #[serde(rename_all = "camelCase", tag = "kind")]
 pub enum Showing {
-    Doc {
-        paper: Paper,
-        body: String,
-    },
     Piece {
         held: Held,
         source: String,
@@ -663,11 +659,7 @@ pub async fn view_shown(app: AppHandle, window: tauri::WebviewWindow) -> Answer<
     let label = window.label().to_owned();
     let shown = shown_in(&app.state::<Views>(), &label)?;
     Ok(match shown {
-        Shown::File(_) => return Err(Refusal::of("notAllowed")),
-        Shown::Doc(paper) => Showing::Doc {
-            body: doc_body(&app, &paper.file)?,
-            paper,
-        },
+        Shown::File(_) | Shown::Doc(_) => return Err(Refusal::of("notAllowed")),
         Shown::Piece {
             held,
             source,

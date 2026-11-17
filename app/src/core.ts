@@ -469,12 +469,8 @@ export const attachPasted = (name: string, kind: string, bytes: Uint8Array): Pro
 export const openLink = (url: string): Promise<void> => invoke("open_link", { url });
 
 export type Viewed = { id: string; file: string; title: string; place: string };
-export type Showing =
-  | { kind: "doc"; paper: Viewed; body: string }
-  | PieceShowing
-  | { kind: "diagram"; paper: Viewed; source: string };
+export type Showing = PieceShowing | { kind: "diagram"; paper: Viewed; source: string };
 export const viewShown = (): Promise<Showing> => invoke("view_shown");
-export const viewFacts = (): Promise<DocFacts> => invoke("view_facts");
 export const viewGo = (file: string): Promise<void> => invoke("view_go", { file });
 export const viewWelcomed = (): Promise<void> => invoke("view_welcomed");
 export const viewDoc = (paper: Viewed): Promise<void> => invoke("view_doc", { paper });

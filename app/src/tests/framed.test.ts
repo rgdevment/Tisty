@@ -74,7 +74,6 @@ describe("what only reads", () => {
 
   it.each([
     "ui/Page.tsx",
-    "ui/viewer/Reader.tsx",
     "ui/HelpArticle.tsx",
     "ui/MarkdownArticle.tsx",
     "Viewing.tsx",
