@@ -112,6 +112,10 @@ impl Paths {
         self.cache.join("stirred")
     }
 
+    pub fn opened_file(&self) -> PathBuf {
+        self.cache.join("opened.json")
+    }
+
     pub fn store(&self) -> PathBuf {
         self.data.join("store")
     }

@@ -77,6 +77,16 @@ What happened today, at home or at work, has one place: **Diary**, near the top 
 - **It is never shared by link**: the diary has no side panel and no **Share**, and Folio refuses it. It still travels with your sync and your backups, like every document.
 - **The file is still Markdown**: a book with `diary: on` in its [properties](https://markdown.tisty.app/properties), whose pages are the months. Tisty never writes in it on its own.
 
+## Rediscovering what you forgot
+
+What you kept and never opened again comes back into view on its own. Choose **Library**, and above **Unfiled**:
+
+- **Not opened in a while** lists the documents you did not open on this computer and nobody wrote in 60 days, the most forgotten first, with their folder and how long ago. It shows five, and **See all N** unfolds the rest. Hovering says whether it counts from the last time you opened it here or from the last time it was written.
+- **A document at random** opens one you have not opened this week.
+- **It counts what you open here**: the day you open a document is noted on this computer only and does not travel with your sync. Opening a page counts for its document, and opening one of its languages counts for all of them. There was no record before this feature, so at first it counts from the day it was written.
+- **Left out** are what is archived, what an agent marked as having had its day, which already waits for your call, the Diary, Brainstorm and Tisty's guide.
+- **With the right button** each one has its usual menu: archive it if it has served its turn.
+
 ## Folders
 
 - **Every folder starts folded**, so a store with hundreds of documents is a handful of rows until you go looking.
