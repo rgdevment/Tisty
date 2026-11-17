@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { freshFence } from "tisty-diagrams/read";
 import type { Asking } from "tisty-editor/edit";
 import { acrossOf, type Head, laidIn, PAPER, sheetFor, writtenAcrossOf } from "tisty-editor/read";
-import { RAIL, sideWidth, useBreadth, WIDE_WINDOW } from "../breadth";
+import { fold, RAIL, sideWidth, useBreadth, WIDE_WINDOW } from "../breadth";
 import { asPlain } from "../copying";
 import {
   attachPasted,
@@ -98,6 +98,7 @@ const leaves = (): Record<string, Paper> => {
 
 const ASIDE = 344;
 const READABLE = 520;
+const roomFor = (across: number) => Math.max(DOC_ASIDE_FROM, across + 48 + ASIDE);
 
 const NONE: string[] = [];
 
@@ -202,8 +203,6 @@ export default function Docs({
   const wide = room >= WIDE_WINDOW;
   const breadth = useBreadth();
   const spare = room - sideWidth(breadth, wide) - GUTTER;
-  const fits = spare >= DOC_ASIDE_FROM;
-  const reachable = room - RAIL - GUTTER >= DOC_ASIDE_FROM;
   const [heads, setHeads] = useState<Head[]>([]);
   const [saved, setSaved] = useState(0);
   // A round that came while a save was in flight is read once the save lands, not dropped.
@@ -219,7 +218,6 @@ export default function Docs({
   const paged = useRef(onPaging);
   paged.current = onPaging;
   const ordering = useRef<((file: string, before: string | null) => Moved) | null>(null);
-  const crossed = useRef(reachable);
   useEffect(() => onAsideShut?.(shown === false), [shown, onAsideShut]);
 
   useEffect(() => {
@@ -227,13 +225,6 @@ export default function Docs({
     window.addEventListener("resize", look);
     return () => window.removeEventListener("resize", look);
   }, []);
-
-  // Only the window decides when a closed column may come back: the sidebar moves with the column itself.
-  useEffect(() => {
-    if (crossed.current === reachable) return;
-    crossed.current = reachable;
-    setShown(null);
-  }, [reachable]);
 
   const keep = useCallback(
     (id: string, text: string, anyway?: boolean) => {
@@ -694,7 +685,28 @@ export default function Docs({
   const noted = Boolean(open) && notedIn(body);
   const brainstorm = noted && brainstormIn(body);
   const onNotes = noted && (brainstorm || inEditor !== open?.file);
-  const beside = Boolean(open) && !onNotes && !inDiary && (shown ?? fits);
+  const laid = useMemo(() => laidIn(body), [body]);
+  const leaf =
+    (open && (bolted ? (sized[open.file] ?? laid.paper) : (laid.paper ?? sized[open.file]))) ||
+    "a4";
+  const sheets = Boolean(open) && laid.sheets;
+  const landscape = Boolean(open) && laid.landscape;
+  const across = acrossOf(leaf, landscape);
+  const need = sheets ? roomFor(across) : DOC_ASIDE_FROM;
+  const fits = spare >= need;
+  const reachable = room - RAIL - GUTTER >= need;
+  const windowed = room - RAIL - GUTTER >= DOC_ASIDE_FROM;
+  const crossed = useRef(windowed);
+  // Only the window decides when a closed column may come back: the sidebar moves with the column itself.
+  useEffect(() => {
+    if (crossed.current === windowed) return;
+    crossed.current = windowed;
+    setShown(null);
+  }, [windowed]);
+
+  // A sheet keeps its paper's width, so the column never covers it while folding the sidebar makes room.
+  const beside =
+    Boolean(open) && !onNotes && !inDiary && (shown ?? fits) && (fits || !sheets || !reachable);
   const [markdownOf, setMarkdownOf] = useState<string | null>(null);
   const viewing: Viewing = {
     markdown: Boolean(open) && markdownOf === open?.file,
@@ -722,13 +734,6 @@ export default function Docs({
       </div>
     )
   );
-  const laid = useMemo(() => laidIn(body), [body]);
-  const leaf =
-    (open && (bolted ? (sized[open.file] ?? laid.paper) : (laid.paper ?? sized[open.file]))) ||
-    "a4";
-  const sheets = Boolean(open) && laid.sheets;
-  const landscape = Boolean(open) && laid.landscape;
-  const across = acrossOf(leaf, landscape);
   const wall = { maxWidth: `${across}px` };
   const sheetOf = useMemo(
     () => (sheets ? sheetFor(leaf, landscape, t("sheetsBreak")) : undefined),
@@ -870,8 +875,15 @@ export default function Docs({
     dressAlike(now);
   };
 
+  // Paper asked for from the column keeps the column, folding the sidebar when the paper needs its room.
+  const keptBeside = (paper: Paper, turned: boolean) => {
+    const wants = roomFor(acrossOf(paper, turned));
+    if (spare < wants && room - RAIL - GUTTER >= wants) fold(true);
+  };
+
   const resize = (paper: Paper) => {
     if (!open) return;
+    if (sheets) keptBeside(paper, landscape);
     const { [open.file]: _, ...others } = sized;
     const now = bolted ? { ...others, [open.file]: paper } : others;
     setSized(now);
@@ -912,7 +924,10 @@ export default function Docs({
       {open && !beside && !onNotes && !inDiary && (
         <button
           type="button"
-          onClick={() => setShown(true)}
+          onClick={() => {
+            if (sheets) keptBeside(leaf, landscape);
+            setShown(true);
+          }}
           title={t("beside")}
           aria-label={t("beside")}
           className="absolute top-11 right-3 z-10 grid h-6 w-6 place-items-center rounded-md text-[13px] text-faint hover:bg-hover hover:text-ink"
@@ -1317,10 +1332,18 @@ export default function Docs({
           onSheets={
             bolted
               ? undefined
-              : (on) => reshape((now) => withSheets(on ? now : withLandscape(now, false), on))
+              : (on) => {
+                  if (on) keptBeside(leaf, false);
+                  reshape((now) => withSheets(on ? now : withLandscape(now, false), on));
+                }
           }
           onLandscape={
-            bolted ? undefined : (turned) => reshape((now) => withLandscape(now, turned))
+            bolted
+              ? undefined
+              : (turned) => {
+                  if (sheets) keptBeside(leaf, turned);
+                  reshape((now) => withLandscape(now, turned));
+                }
           }
           making={making}
           trail={trailed(folders, known.find((one) => one.file === open.file)?.folder ?? null)}

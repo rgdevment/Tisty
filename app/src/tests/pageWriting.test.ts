@@ -1243,9 +1243,53 @@ describe("blocks chosen with Escape", () => {
     expect(put).toEqual(["Uno **dos** tres"]);
   });
 
+  it("chooses a list's item first, and the whole list on Escape again", () => {
+    const said = writer();
+    caretIn("segundo", 1);
+    press("Escape");
+    expect(chosenNow()).toEqual(["li"]);
+    press("Delete");
+    expect(said[said.length - 1]).toBe("# Hola\n\nUno **dos** tres\n\n- primero\n");
+    writer();
+    caretIn("primero", 1);
+    press("Escape");
+    press("Escape");
+    expect(chosenNow()).toEqual(["ul"]);
+  });
+
+  it("moves only the chosen item with Alt and an arrow", () => {
+    const said = writer();
+    caretIn("segundo", 1);
+    press("Escape");
+    press("ArrowUp", { altKey: true });
+    expect(said[said.length - 1]).toBe("# Hola\n\nUno **dos** tres\n\n- segundo\n- primero\n");
+  });
+
+  it("keeps the first item chosen when Alt+↑ has nowhere to take it", () => {
+    const said = writer();
+    caretIn("primero", 1);
+    press("Escape");
+    press("ArrowUp", { altKey: true });
+    expect(said).toEqual([]);
+    expect(chosenNow()).toEqual(["li"]);
+  });
+
+  it("takes a chosen item in a quote away with its quote marks", () => {
+    const said = writer("> - uno\n> - dos\n");
+    pageOf(
+      '<blockquote data-at="0-15"><ul data-at="2-15"><li data-at="2-7"><span data-src="4-7">uno</span></li><li data-at="10-15"><span data-src="12-15">dos</span></li></ul></blockquote>',
+    );
+    writing?.drawn();
+    caretIn("dos", 1);
+    press("Escape");
+    press("Delete");
+    expect(said[said.length - 1]).toBe("> - uno\n");
+  });
+
   it("takes the last block away with the blank lines before it, leaving none behind", () => {
     const said = writer();
     caretIn("primero", 1);
+    press("Escape");
     press("Escape");
     press("Delete");
     expect(said[said.length - 1]).toBe("# Hola\n\nUno **dos** tres\n");
@@ -1673,6 +1717,63 @@ describe("a key at the edge of a block drawn whole", () => {
     caretIn(at[0], at[1]);
     across(kind, reach[0], reach[1]);
     expect(said).toEqual([]);
+  });
+
+  // The browser reaches into a formula's own drawing for Backspace and Delete, not around it as it does for code.
+  it.each([
+    ["Backspace right after it", "deleteContentBackward", [" fin", 0], ["mn", 1], [" fin", 0]],
+    ["Delete right before it", "deleteContentForward", ["Antes ", 6], ["math", 0], ["mi", 0]],
+  ] as const)("takes a formula in words whole on %s", (_, kind, at, from, to) => {
+    const said = writer("Antes $x^2$ fin\n");
+    pageOf(
+      '<p data-at="0-15"><span data-src="0-6">Antes </span><math data-src="6-11" contenteditable="false"><msup><mi>x</mi><mn>2</mn></msup></math><span data-src="11-15"> fin</span></p>',
+    );
+    writing?.drawn();
+    caretIn(at[0], at[1]);
+    const point = (pick: string): Node => piece(pick) ?? (document.querySelector(pick) as Node);
+    const reach = document.createRange();
+    reach.setStart(point(from[0]), from[1]);
+    reach.setEnd(point(to[0]), to[1]);
+    const event = new InputEvent("beforeinput", {
+      inputType: kind,
+      bubbles: true,
+      cancelable: true,
+    });
+    Object.defineProperty(event, "getTargetRanges", { value: () => [reach] });
+    document.querySelector(".page")?.dispatchEvent(event);
+    expect(said).toEqual(["Antes  fin\n"]);
+  });
+
+  it("leaves a formula in words when the words chosen after it only touch its edge", () => {
+    const said = writer("Antes $x^2$ fin\n");
+    pageOf(
+      '<p data-at="0-15"><span data-src="0-6">Antes </span><math data-src="6-11" contenteditable="false"><msup><mi>x</mi><mn>2</mn></msup></math><span data-src="11-15"> fin</span></p>',
+    );
+    writing?.drawn();
+    const chosen = document.createRange();
+    chosen.setStart(document.querySelector("mn") as Node, 1);
+    chosen.setEnd(piece(" fin"), 4);
+    document.getSelection()?.removeAllRanges();
+    document.getSelection()?.addRange(chosen);
+    const event = new InputEvent("beforeinput", {
+      inputType: "deleteContentBackward",
+      bubbles: true,
+      cancelable: true,
+    });
+    Object.defineProperty(event, "getTargetRanges", { value: () => [chosen] });
+    document.querySelector(".page")?.dispatchEvent(event);
+    expect(said).toEqual(["Antes $x^2$\n"]);
+  });
+
+  it("joins two lines of code as they are, whatever the line under them reads like", () => {
+    const said = writer("Antes.\n\n```\nuno\ndos\n2. tres\n```\n");
+    pageOf(
+      '<p data-at="0-6"><span data-src="0-6">Antes.</span></p><figure class="code" data-at="8-31"><pre><code><span data-src="12-15">uno</span>\n<span data-src="16-19">dos</span>\n<span data-src="20-27">2. tres</span></code></pre></figure>',
+    );
+    writing?.drawn();
+    caretIn("dos", 0);
+    across("deleteContentBackward", ["uno", 3], ["dos", 0]);
+    expect(said).toEqual(["Antes.\n\n```\nunodos\n2. tres\n```\n"]);
   });
 
   it("takes nothing on Delete at a step's end over a task's section", () => {

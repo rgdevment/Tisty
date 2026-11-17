@@ -3,8 +3,8 @@ import type { Beside } from "./pageBeside";
 import type { Caret } from "./pageCaret";
 import type { Span } from "./pageEdits";
 import type { Laying } from "./pageLaying";
-import { movedTo, topsOf } from "./pageMoving";
-import { WRITABLE } from "./pageNodes";
+import { movedTo, swappedItem, topsOf } from "./pageMoving";
+import { sectioned, WRITABLE } from "./pageNodes";
 import { placeOf } from "./pagePlaces";
 import { endIn } from "./pageSpots";
 import type { Writer } from "./pageWriter";
@@ -13,10 +13,11 @@ const CHOSEN = "chosen-block";
 
 export type Choosing = ReturnType<typeof choosingOn>;
 
-// Escape chooses the whole block the caret stands in, and Shift with an arrow takes in the blocks beside it.
+// Escape chooses the list item or else the block the caret stands in, and Escape again or Shift with an arrow takes in more.
 export const choosingOn = (writer: Writer, caret: Caret, laying: Laying, beside: Beside) => {
   const { page, hands } = writer;
   let chosen: { anchor: number; head: number } | null = null;
+  let item: Element | null = null;
 
   const tops = () => {
     const sheet = page.querySelector(".page");
@@ -29,13 +30,25 @@ export const choosingOn = (writer: Writer, caret: Caret, laying: Laying, beside:
 
   const shown = () => {
     for (const one of page.querySelectorAll(`.${CHOSEN}`)) one.classList.remove(CHOSEN);
+    if (item) return item.classList.add(CHOSEN);
     const both = ends();
     if (!both) return;
     const all = tops();
     for (let at = both[0]; at <= both[1]; at++) all[at]?.classList.add(CHOSEN);
   };
 
+  // An item's place runs over the blank lines after it, which belong to the list, and starts past its quote marks.
+  const itemSpan = (one: Element): Span | null => {
+    const at = placeOf(one);
+    if (!at) return null;
+    const text = hands.text();
+    const from = text.lastIndexOf("\n", charsAt(text, at[0]) - 1) + 1;
+    const to = from + text.slice(from, charsAt(text, at[1])).replace(/[\r\n]+$/, "").length;
+    return { from, to };
+  };
+
   const span = (): Span | null => {
+    if (item) return itemSpan(item);
     const both = ends();
     const all = tops();
     const first = both && placeOf(all[both[0]]);
@@ -47,6 +60,13 @@ export const choosingOn = (writer: Writer, caret: Caret, laying: Laying, beside:
 
   // The caret goes after the chosen words it can stand in, never into a table or a drawing.
   const letGo = (laid = true) => {
+    if (item) {
+      const was = item;
+      item = null;
+      shown();
+      if (laid) caret.laidAt(endIn(was));
+      return;
+    }
     const both = ends();
     const all = tops();
     const head = chosen ? all[chosen.head] : null;
@@ -61,27 +81,43 @@ export const choosingOn = (writer: Writer, caret: Caret, laying: Laying, beside:
     shown();
     if (laid && writable) caret.laidAt(endIn(writable));
   };
-  const fixed = (one: Element | undefined) => {
-    const look = page.documentElement.classList;
-    return (
-      Boolean(one?.matches("h1, h2, h3, h4, h5, h6")) &&
-      look.contains("untitled") &&
-      !look.contains("shaping")
-    );
-  };
+  const fixed = (one: Element | undefined) =>
+    Boolean(one?.matches("h1, h2, h3, h4, h5, h6")) && sectioned(page);
 
   const choose = (event: KeyboardEvent) => {
-    const top = caret.blockOfCaret()?.closest(".page > [data-at]");
+    const block = caret.blockOfCaret();
+    const top = block?.closest(".page > [data-at]");
     const all = tops();
     const at = top ? all.indexOf(top) : -1;
-    if (at < 0 || fixed(all[at])) return;
+    if (!top || at < 0 || fixed(all[at])) return;
     event.preventDefault();
-    chosen = { anchor: at, head: at };
+    const one = block?.closest("li[data-at]");
+    if (one && top.querySelectorAll("li[data-at]").length > 1) item = one;
+    else chosen = { anchor: at, head: at };
     page.getSelection()?.removeAllRanges();
     shown();
   };
 
+  const widened = () => {
+    const top = item?.closest(".page > [data-at]");
+    const at = top ? tops().indexOf(top) : -1;
+    item = null;
+    if (at >= 0) chosen = { anchor: at, head: at };
+    shown();
+  };
+
   const dropped = () => {
+    if (item) {
+      const one = itemSpan(item);
+      item = null;
+      shown();
+      if (!one) return;
+      const text = hands.text();
+      let to = one.to;
+      if (text[to] === "\r") to++;
+      if (text[to] === "\n") to++;
+      return laying.put({ from: one.from, to, insert: "" }, one.from);
+    }
     const both = ends();
     const one = span();
     if (!both || !one) return;
@@ -114,7 +150,7 @@ export const choosingOn = (writer: Writer, caret: Caret, laying: Laying, beside:
 
   // While blocks are chosen the keys act on them all; any other key lets them go and writes after them.
   const keyed = (event: KeyboardEvent): boolean => {
-    if (!chosen) return false;
+    if (!chosen && !item) return false;
     const arrow = event.key === "ArrowUp" ? -1 : event.key === "ArrowDown" ? 1 : 0;
     const held = ["Shift", "Control", "Alt", "Meta"].includes(event.key);
     const clipped =
@@ -130,8 +166,21 @@ export const choosingOn = (writer: Writer, caret: Caret, laying: Laying, beside:
       return false;
     }
     event.preventDefault();
-    if (event.key === "Escape") letGo();
-    else if (arrow && event.shiftKey) {
+    if (event.key === "Escape") {
+      if (item) widened();
+      else letGo();
+      return true;
+    }
+    if (item && arrow && !event.shiftKey) {
+      const swapped = swappedItem(hands.text(), item, arrow);
+      if (!swapped) return true;
+      letGo(false);
+      beside.replaced(swapped);
+      return true;
+    }
+    if (item && arrow) widened();
+    if (!chosen && arrow) return true;
+    if (chosen && arrow && event.shiftKey) {
       const all = tops();
       const next = Math.max(0, Math.min(all.length - 1, chosen.head + arrow));
       if (!fixed(all[next])) chosen.head = next;
@@ -141,5 +190,13 @@ export const choosingOn = (writer: Writer, caret: Caret, laying: Laying, beside:
     return true;
   };
 
-  return { choose, keyed, span, shown, letGo, dropped, choosing: () => chosen !== null };
+  return {
+    choose,
+    keyed,
+    span,
+    shown,
+    letGo,
+    dropped,
+    choosing: () => chosen !== null || item !== null,
+  };
 };

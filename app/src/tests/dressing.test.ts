@@ -384,6 +384,48 @@ describe("a drawn page wired to the window", () => {
     expect(heard.docs).toEqual(["ab12-0001"]);
   });
 
+  it("opens a link among words being written only with Ctrl or Cmd held, and any link on a page only read", async () => {
+    const drawn = page('<p data-at="0-9"><a href="https://x.y">enlace</a></p>');
+    const { reach } = reaching();
+    wired(drawn, () => reach);
+    const sheet = drawn.querySelector(".page") as HTMLElement;
+    const link = drawn.querySelector("a") as HTMLAnchorElement;
+    const click = (more: MouseEventInit = {}) => {
+      const event = new MouseEvent("click", {
+        bubbles: true,
+        cancelable: true,
+        button: 0,
+        ...more,
+      });
+      link.dispatchEvent(event);
+      return event;
+    };
+    sheet.setAttribute("contenteditable", "true");
+    expect(click().defaultPrevented).toBe(true);
+    await Promise.resolve();
+    expect(calls.links).toEqual([]);
+    click({ ctrlKey: true });
+    click({ metaKey: true });
+    sheet.removeAttribute("contenteditable");
+    click();
+    await Promise.resolve();
+    expect(calls.links).toEqual(["https://x.y", "https://x.y", "https://x.y"]);
+  });
+
+  it("jumps on a plain click to a place in the page, as a footnote call or a contents link", () => {
+    const drawn = page('<h2 id="cap">Cap</h2><p data-at="0-9"><a href="#cap">ver</a></p>');
+    const { reach } = reaching();
+    wired(drawn, () => reach);
+    (drawn.querySelector(".page") as HTMLElement).setAttribute("contenteditable", "true");
+    const heading = drawn.getElementById("cap") as HTMLElement;
+    const jumped = vi.fn();
+    heading.scrollIntoView = jumped;
+    drawn
+      .querySelector("a")
+      ?.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true, button: 0 }));
+    expect(jumped).toHaveBeenCalled();
+  });
+
   it("ignores a click that is not the main button", () => {
     const drawn = page('<p data-at="0-9"><a class="card" data-doc="ab12-0001">A</a></p>');
     const { heard, reach } = reaching();

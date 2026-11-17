@@ -13,11 +13,12 @@ The whole window works from the keyboard.
 | `/` | Insert something inside a document |
 | `Shift` + `Enter` (writing a document) | Break the line without starting a paragraph |
 | `Ctrl`/`⌘` + `/` (writing a document) | Open the blocks menu where the caret is |
-| `Alt` + ↑ ↓ (writing a document) | Move the block or the item the caret is in up or down |
-| `Esc` · `Shift` + ↑ ↓ (writing a document) | Choose the whole block · take in the ones beside it |
+| `Alt` + ↑ ↓ (writing a document) | Move the block or the item the caret is in up or down; on a task, within its section |
+| `Esc` · `Shift` + ↑ ↓ (writing a document) | Choose the whole block, or in a list the item and with another `Esc` the whole list · take in the ones beside it |
 | `Ctrl`/`⌘` + `B` · `I` · `U` (writing a document) | Bold · italic · underline |
 | `Ctrl`/`⌘` + `Shift` + `X` · `Shift` + `C` (writing a document) | Strikethrough · code |
 | `Ctrl`/`⌘` + `K` (writing a document) | Put a link, or change the address of one already written |
+| `Ctrl`/`⌘` + click on a link (writing a document) | Open the link; a plain click only puts the caret in its words |
 | `Ctrl`/`⌘` + `Z` · `Ctrl`/`⌘` + `Shift` + `Z` or `Ctrl`/`⌘` + `Y` (writing a document) | Undo · redo |
 | `Ctrl`/`⌘` + `C` · `X` (writing a document) | Copy · cut the chosen words or blocks as Markdown |
 | `Tab` · `Shift` + `Tab` (writing a list) | Put an item under the one above or take it out |

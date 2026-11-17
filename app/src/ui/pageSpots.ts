@@ -114,13 +114,15 @@ export const sourceAt = (
   node: Node,
   offset: number,
   known: Reckoned | null = null,
+  opening = false,
 ): number | null => {
   const element = node.nodeType === Node.ELEMENT_NODE ? (node as Element) : node.parentElement;
   const placed = element?.closest(PLACED);
   if (!placed) return nearest(body, node, offset, known);
   const at = spanOf(placed);
   if (!at) return null;
-  if (solid(placed)) return unitFrom(known, body, at[1]);
+  // A reach that opens inside a piece that cannot be written in, as a formula's drawing, takes the piece whole.
+  if (solid(placed)) return unitFrom(known, body, opening ? at[0] : at[1]);
   const run = pointIn(placed.ownerDocument, placed, 0);
   run.setEnd(node, offset);
   return unitFrom(known, body, at[0]) + run.toString().length;

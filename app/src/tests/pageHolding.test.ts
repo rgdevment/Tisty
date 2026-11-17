@@ -177,18 +177,6 @@ describe("a page drawn whole again while it is written", () => {
     expect(topOn("Uno dos tres")).toBe(0);
   });
 
-  it("holds the block after the one being moved, never the moved one", () => {
-    tall.set(DIAGRAM, 400);
-    pageOf(PAGE, LINE + 400);
-    const first = PAGE.indexOf("Uno");
-    const next = `Uno dos tres\n\n${PAGE.slice(0, first)}Fin\n`;
-    writing?.heldAcross(PAGE, next, first);
-    tall.set(next.indexOf("Un diagrama"), 100);
-    (document.querySelector(".page") as HTMLElement).innerHTML = drawnOf(next);
-    writing?.drawn();
-    expect(topOn("Fin")).toBe(LINE);
-  });
-
   it("never scrolls a task's page inside its own frame, which the window around it scrolls", async () => {
     document.documentElement.classList.add("tall");
     tall.set(DIAGRAM, 400);

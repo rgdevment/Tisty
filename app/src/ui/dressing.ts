@@ -514,10 +514,19 @@ export const wired = (page: Document, reach: () => Reaching) => {
       return;
     }
     const selecting = !(page.getSelection()?.isCollapsed ?? true);
-    if (target.closest("a")) event.preventDefault();
+    const link = target.closest("a");
+    if (link) event.preventDefault();
+    // A link among words being written takes the caret like them, and opens with Ctrl or Cmd held, as in a terminal.
+    const amongWords =
+      link?.closest('[contenteditable="true"]') &&
+      !link.closest('[contenteditable="false"]') &&
+      !link.getAttribute("href")?.startsWith("#");
     const shaping = page.documentElement.classList.contains("shaping");
     const asked =
-      went(target, selecting) ?? (!shaping && below(page, target, event) ? { kind: "end" } : null);
+      amongWords && !(event.ctrlKey || event.metaKey)
+        ? null
+        : (went(target, selecting) ??
+          (!shaping && below(page, target, event) ? { kind: "end" } : null));
     // The second press of a double one on a diagram is the window's, not a press away from the block being written.
     const second = event.detail >= 2 && target.closest("figure.diagram") && reach().onDiagram;
     if (!asked && !second && !target.closest(".editing")) reach().onAway?.();

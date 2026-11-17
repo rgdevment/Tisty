@@ -31,7 +31,7 @@ Elige unas palabras y aparece encima una barra pequeña:
 - **Negrita**, **cursiva**, **subrayado**, **tachado**, **código** y **enlace**.
 - **Cuatro rotuladores**: amarillo, verde, azul y rosa.
 
-Un formato envuelve las palabras elegidas, y si cruzan varias líneas, cada una lleva el suyo; pulsado sobre palabras que ya lo tienen, se lo quita. **Enlace** pide la dirección en un campo, y `Esc` lo cancela; sobre un enlace ya escrito, `Ctrl`/`⌘` + `K` muestra su dirección para cambiarla, sin tocar sus palabras; una dirección como `tisty.app` recibe su `https://`, y sin palabras elegidas, la dirección queda como sus palabras. Dentro del código la barra no aparece.
+Un formato envuelve las palabras elegidas, y si cruzan varias líneas, cada una lleva el suyo; pulsado sobre palabras que ya lo tienen, se lo quita. **Enlace** pide la dirección en un campo, y `Esc` lo cancela; sobre un enlace ya escrito, `Ctrl`/`⌘` + `K` muestra su dirección para cambiarla, sin tocar sus palabras; una dirección como `tisty.app` recibe su `https://`, y sin palabras elegidas, la dirección queda como sus palabras. Un clic en un enlace pone el cursor en sus palabras, y `Ctrl`/`⌘` + clic lo abre. Dentro del código la barra no aparece.
 
 Sin nada elegido, un formato pulsado con su atajo o desde el menú `/` empieza con la próxima tecla, y lo que escribes ya sale en negrita o en cursiva. Vuelve a pulsarlo para salir de él; un espacio al final de las palabras también queda fuera.
 

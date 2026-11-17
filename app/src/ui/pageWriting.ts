@@ -22,7 +22,7 @@ export { recorded, turnOf, turnsAnew } from "./pageWriter";
 
 export type PageWriting = {
   readonly drawn: () => void;
-  readonly stop: () => void;
+  readonly stop: () => boolean;
   readonly format: (open: string, close: string) => void;
   readonly formattable: () => boolean;
   readonly caretAt: () => number | null;
@@ -37,7 +37,7 @@ export type PageWriting = {
   readonly unitActed: (top: Element, act: Act) => void;
   readonly begin: (at: number, seed: string, near: Element) => void;
   readonly hintWords: (at: [number, number], hint: HTMLElement) => void;
-  readonly heldAcross: (was: string, next: string, moving?: number) => void;
+  readonly heldAcross: (was: string, next: string) => void;
 };
 
 const SETTLED_MS = 300;
@@ -194,7 +194,7 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
     stop: () => {
       clearTimeout(settling);
       writer.turns.left = hands.text();
-      laying.stop();
+      const unlaid = laying.stop();
       hands.settle?.();
       page.defaultView?.removeEventListener("blur", away);
       watching?.disconnect();
@@ -217,6 +217,7 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
       page.removeEventListener("compositionstart", input.started);
       page.removeEventListener("compositionend", input.ended);
       page.querySelector<HTMLElement>(".page")?.removeAttribute("contenteditable");
+      return unlaid;
     },
   };
 };
