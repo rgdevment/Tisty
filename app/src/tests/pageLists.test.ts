@@ -143,6 +143,27 @@ describe("Backspace and Enter at the start of a line's words", () => {
     ["then the bullet", "- paso a", 2, "paso a", 0],
     ["a bullet loses its bullet", "## Uno\n\n- uno\n- dos", 10, "## Uno\n\nuno\n- dos", 8],
     ["an item in a quote keeps the quote", "> - x", 4, "> x", 2],
+    [
+      "a step freed of its bullet stands apart from the step above",
+      "- [ ] uno\n- dos\n- [ ] tres",
+      12,
+      "- [ ] uno\n\ndos\n- [ ] tres",
+      11,
+    ],
+    [
+      "a numbered item stands apart from the items around it",
+      "1. uno\n2. dos\n3. tres",
+      10,
+      "1. uno\n\ndos\n\n3. tres",
+      8,
+    ],
+    [
+      "an item in a quote stands apart inside the quote",
+      "> - uno\n> - dos",
+      12,
+      "> - uno\n>\n> dos",
+      12,
+    ],
   ])("on Backspace, %s", (_, text, at, expected, caret) => {
     const moved = unmarked(text, at);
     const applied = moved
