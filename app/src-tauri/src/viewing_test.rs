@@ -149,39 +149,39 @@ fn an_edit_owed_to_the_welcome_is_due_once_however_often_it_was_asked_for() {
 }
 
 #[test]
-fn only_a_file_from_outside_gets_the_systems_title_bar() {
-    let file = super::Shown::File(std::path::PathBuf::from("a.md"));
-    assert_eq!(
-        super::look_of(&file),
-        super::Look {
-            framed: true,
-            clear: false
-        }
-    );
+fn only_what_the_light_viewer_shows_gets_the_systems_title_bar() {
     let paper = super::Paper {
         id: "D1".into(),
         file: "f1".into(),
         title: "Notas".into(),
         place: String::new(),
     };
-    for own in [
+    for light in [
+        super::Shown::File(std::path::PathBuf::from("a.md")),
         super::Shown::Doc(paper.clone()),
-        super::Shown::Piece {
-            held: tisty_markdown::diagrams::Held::Widget,
-            source: "<p>x</p>".into(),
-            from: Some(paper),
-            place: None,
-            code: false,
-        },
     ] {
         assert_eq!(
-            super::look_of(&own),
+            super::look_of(&light),
             super::Look {
-                framed: false,
-                clear: true
+                framed: true,
+                clear: false
             }
         );
     }
+    let widget = super::Shown::Piece {
+        held: tisty_markdown::diagrams::Held::Widget,
+        source: "<p>x</p>".into(),
+        from: Some(paper),
+        place: None,
+        code: false,
+    };
+    assert_eq!(
+        super::look_of(&widget),
+        super::Look {
+            framed: false,
+            clear: true
+        }
+    );
 }
 
 fn link_numbered(at: usize) -> url::Url {

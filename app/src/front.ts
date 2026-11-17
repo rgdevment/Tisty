@@ -16,8 +16,6 @@ export const frontTags = (body: string): string[] =>
 export const valuesIn = (body: string, key: string): string[] | undefined =>
   keyed(fields(body), key);
 
-export const paperIn = (body: string): Paper | null => laidIn(body).paper;
-
 export const landscapeIn = (body: string): boolean => laidIn(body).landscape;
 
 export const sheetsIn = (body: string): boolean => laidIn(body).sheets;

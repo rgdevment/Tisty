@@ -751,9 +751,8 @@ escribió: un párrafo cortado a 80 columnas es un solo párrafo, y `#ff0000` es
 color y no una etiqueta. Las imágenes de al lado entran directo, y las de
 internet esperan a que las pidas. **Editar** crea una copia en tu almacén y deja
 el original donde estaba. Un documento tuyo se abre desde su panel, *Abrir en
-una ventana aparte*, en solo lectura con el ancho de la página y el PDF que
-saldría, y ese PDF abre con una portada si marcas **Portada con autor, versión y
-fechas**. Un widget
+una ventana aparte*, en ese mismo visor y en solo lectura, y **Editar** te lleva
+a él en la ventana principal. Un widget
 también se abre aparte, al ancho de un móvil, una tablet o un escritorio.
 Más en [la ayuda](https://www.tisty.app/es/ayuda/documentos/#abrir-un-archivo-markdown-de-afuera).
 

@@ -1,4 +1,5 @@
 export {
+  alone,
   asking,
   BOXES,
   type Carded,
@@ -13,7 +14,11 @@ export {
   drawing,
   drawnGlyph,
   dressed,
+  ending,
   escaped,
+  family,
+  fileCard,
+  fileGlyph,
   type Glimpse,
   type Glimpses,
   glyph,
@@ -30,6 +35,8 @@ export {
   ideaStamp,
   ideaWhen,
   isHue,
+  KINDS,
+  kept,
   PAGE_CSS,
   type PartCarded,
   type PartCards,
@@ -58,9 +65,9 @@ export {
   tablesIn,
   today,
   webCarded,
+  weighed,
 } from "tisty-sheet";
 export { known, markup } from "tisty-sheet/glyphs";
-export { alone, ending, family, fileCard, fileGlyph, KINDS, kept } from "./files";
 export { begun, folded, matched, terms } from "./finding";
 export { type Finished, finished } from "./finishing";
 export { type Field, fields, frontLines, keyed, type Laid, laidIn, overgrown } from "./front";
@@ -88,4 +95,3 @@ export {
   wordsIn,
 } from "./side";
 export { bytesAt, charsAt, spanned } from "./spans";
-export { weighed } from "./weighed";

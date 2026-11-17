@@ -2,19 +2,14 @@ import { useRef } from "react";
 import type { Showing } from "../../core";
 import { fill, t, type Word } from "../../locales";
 import type { Held } from "../../pieceWindow";
-import { button, Glyph, Segments, tool } from "./Glyphs";
+import { Glyph, Segments, tool } from "./Glyphs";
 import { PRESETS, type Preset } from "./Stage";
 import TitleBar from "./TitleBar";
 
 interface Props {
   shown: Showing | null;
-  side: boolean;
-  raw: boolean;
   preset: Preset;
   menu: boolean;
-  onSide: () => void;
-  onRaw: (raw: boolean) => void;
-  onEdit: () => void;
   onPreset: (one: Preset) => void;
   onAgain: () => void;
   onMore: (at: { x: number; y: number }) => void;
@@ -30,11 +25,6 @@ const NAMED: Record<Held, readonly [Word, Word]> = {
 
 export const titled = (shown: Showing | null): { title: string; under: string } => {
   switch (shown?.kind) {
-    case "doc":
-      return {
-        title: shown.paper.title || t("untitledDoc"),
-        under: `${shown.paper.place || "Tisty"} · ${t("viewOnlyReading")}`,
-      };
     case "piece": {
       const [alone, of] = NAMED[shown.held];
       return shown.from
@@ -47,11 +37,10 @@ export const titled = (shown: Showing | null): { title: string; under: string } 
 };
 
 export default function Header(props: Props) {
-  const { shown, side, preset, menu } = props;
+  const { shown, preset, menu } = props;
   const more = useRef<HTMLButtonElement>(null);
   const { title, under } = titled(shown);
-  const reading = shown?.kind === "doc";
-  const kind = shown?.kind === "doc" ? "doc" : shown?.kind === "piece" ? "widget" : null;
+  const kind = shown?.kind === "piece" ? "widget" : null;
 
   return (
     <TitleBar
@@ -66,34 +55,6 @@ export default function Header(props: Props) {
         </div>
       }
     >
-      {reading && (
-        <button
-          type="button"
-          className={`${tool} ${side ? "bg-hover text-ink" : ""}`}
-          title={`${t("viewIndex")} (Ctrl+\\)`}
-          aria-label={t("viewIndex")}
-          aria-pressed={side}
-          onClick={props.onSide}
-        >
-          <Glyph name="list" />
-        </button>
-      )}
-      {/* The panel holds them while it is open; folded, the bar does, so editing is never a menu away. */}
-      {reading && !side && (
-        <>
-          <Segments
-            value={props.raw ? "raw" : "read"}
-            options={[
-              { key: "read", label: t("viewRead") },
-              { key: "raw", label: t("viewSource") },
-            ]}
-            onPick={(one) => props.onRaw(one === "raw")}
-          />
-          <button type="button" className={button} onClick={props.onEdit}>
-            {t("viewEditIn")}
-          </button>
-        </>
-      )}
       {shown?.kind === "piece" && shown.held === "widget" && (
         <>
           <Segments

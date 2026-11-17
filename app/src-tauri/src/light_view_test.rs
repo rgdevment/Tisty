@@ -1,7 +1,76 @@
 use super::{
-    PIECE_ABOUT, body_of, drawn_from, far_kind, far_picture, near_picture, neighbour,
-    reaches_outside,
+    Card, PIECE_ABOUT, body_of, cards_of, drawn_from, far_kind, far_picture, near_picture,
+    neighbour, reaches_outside,
 };
+
+fn kept(
+    state: &mut tisty_core::State,
+    file: &str,
+    title: &str,
+    page_of: Option<ulid::Ulid>,
+    archived: bool,
+) -> ulid::Ulid {
+    let id = ulid::Ulid::generate();
+    let one: tisty_core::model::Kept = serde_json::from_value(serde_json::json!({
+        "id": id.to_string(), "file": file, "order": file, "title": title,
+        "page_of": page_of.map(|of| of.to_string()), "archived": archived,
+    }))
+    .unwrap();
+    state.docs.insert(id, one);
+    id
+}
+
+#[test]
+fn a_documents_cards_say_what_each_names_as_the_main_window_does() {
+    let mut state = tisty_core::State::default();
+    let here = kept(&mut state, "here", "Aquí", None, false);
+    kept(&mut state, "p1", "Primera", Some(here), false);
+    kept(&mut state, "p2", "Segunda", Some(here), false);
+    kept(&mut state, "other", "Otra", None, false);
+    kept(&mut state, "old", "Vieja", None, true);
+    let files = ["p2", "p1", "other", "old", "here", "missing"].map(String::from);
+    let cards = cards_of(
+        &state,
+        "here",
+        "![B](tisty:doc/p2)\n\n![A](tisty:doc/p1)\n",
+        files.to_vec(),
+    );
+    assert_eq!(
+        cards["p2"],
+        Card::Page {
+            title: "Segunda".into(),
+            at: 1,
+            of: 2
+        }
+    );
+    assert_eq!(
+        cards["p1"],
+        Card::Page {
+            title: "Primera".into(),
+            at: 2,
+            of: 2
+        }
+    );
+    assert_eq!(
+        cards["other"],
+        Card::Doc {
+            title: "Otra".into()
+        }
+    );
+    assert_eq!(
+        cards["old"],
+        Card::Away {
+            title: "Vieja".into()
+        }
+    );
+    assert_eq!(
+        cards["here"],
+        Card::Itself {
+            title: "Aquí".into()
+        }
+    );
+    assert_eq!(cards["missing"], Card::Gone);
+}
 
 fn file_of_size(room: &tempfile::TempDir, bytes: usize) -> std::path::PathBuf {
     let at = room.path().join("long.md");
@@ -33,7 +102,7 @@ fn reading_does_not_change_a_byte_of_the_file() {
     std::fs::write(&at, written).unwrap();
     let before = std::fs::metadata(&at).unwrap().modified().unwrap();
     let body = body_of(&at).unwrap();
-    drawn_from(&body);
+    drawn_from(&body, false);
     assert_eq!(std::fs::read_to_string(&at).unwrap(), written);
     assert_eq!(std::fs::metadata(&at).unwrap().modified().unwrap(), before);
 }
@@ -43,7 +112,7 @@ fn the_pieces_add_up_to_what_one_drawing_says() {
     let body: String = (0..6000)
         .map(|at| format!("## Heading {at}\n\nA paragraph that takes its room, number {at}.\n\n"))
         .collect();
-    let (pieces, heads) = drawn_from(&body);
+    let (pieces, heads) = drawn_from(&body, false);
     assert!(pieces.len() > 1);
     assert_eq!(heads.len(), 6000);
     assert_eq!(
@@ -56,15 +125,31 @@ fn the_pieces_add_up_to_what_one_drawing_says() {
 
 #[test]
 fn the_index_names_what_the_page_anchors() {
-    let (pieces, heads) = drawn_from("# One\n\n## Two\n");
+    let (pieces, heads) = drawn_from("# One\n\n## Two\n", false);
     assert_eq!(heads.len(), 2);
     assert_eq!((heads[1].level, heads[1].said.as_str()), (2, "Two"));
     assert!(pieces[0].contains(&format!("id=\"{}\"", heads[1].id)));
 }
 
 #[test]
+fn a_document_of_ones_own_is_read_in_the_tisty_language_and_a_strangers_file_is_not() {
+    let body = "# Notas\n\nUna línea que un editor cortó al llegar a las ochenta columnas de ancho\ny siguió aquí.\n";
+    let (own, _) = drawn_from(body, true);
+    let (outside, _) = drawn_from(body, false);
+    assert_eq!(
+        own.concat(),
+        tisty_markdown::html(&tisty_markdown::read(body))
+    );
+    assert_eq!(
+        outside.concat(),
+        tisty_markdown::html(&tisty_markdown::read_file(body))
+    );
+    assert_ne!(own.concat(), outside.concat());
+}
+
+#[test]
 fn an_empty_file_is_no_pieces_at_all() {
-    let (pieces, heads) = drawn_from("");
+    let (pieces, heads) = drawn_from("", false);
     assert!(pieces.is_empty());
     assert!(heads.is_empty());
 }

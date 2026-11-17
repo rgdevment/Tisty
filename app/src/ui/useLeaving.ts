@@ -10,7 +10,7 @@ type Leaving = {
   readonly onError: (said: string) => void;
 };
 
-export const leaveAsHtml = async (bodies: string[], called: string) => {
+const leaveAsHtml = async (bodies: string[], called: string) => {
   const made = await webPage(bodies, called);
   const where = await intoFile({
     defaultPath: `${called}.html`,
@@ -19,7 +19,7 @@ export const leaveAsHtml = async (bodies: string[], called: string) => {
   if (where) await keepFile(where, Array.from(new TextEncoder().encode(made)));
 };
 
-export const leaveAsWord = async (bodies: string[], called: string) => {
+const leaveAsWord = async (bodies: string[], called: string) => {
   const where = await intoFile({
     defaultPath: `${called}.docx`,
     filters: [{ name: "Word", extensions: ["docx"] }],

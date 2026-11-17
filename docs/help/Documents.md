@@ -152,12 +152,15 @@ A `tisty://open` link reaches only a readable text file on this computer.
 
 ### A document in a window of its own
 
-**Open in a window of its own**, the button beside the title in a document's panel, shows it read only beside your work.
+**Open in a window of its own**, the button beside the title in a document's panel, shows it read only beside your work, in the same light viewer that opens a file from outside.
 
-- **Contents and page** (`Ctrl`/`⌘` + `\`) opens a column with its headings, what the document is, and the width of the page: how wide it reads, and the paper of its PDF. **Sheets**, first in that row, unlocks the paper and shows it on sheets, upright or, with **Landscape**, across, and its PDF comes out that way; the file does not change.
-- **Reading** and **Markdown** switch between the drawn page and its text.
-- **More** has **Find in the text**, larger and smaller text, **Copy as Markdown** (standard Markdown), **Preview** of the PDF it would make — **← Back to the document** returns from it — **Export to PDF…**, **Export as HTML…**, **Export as Word…** and **Duplicate**, which makes a copy.
-- **Edit in Tisty** takes you back to the document. Its PDF there opens with a cover saying who wrote it and when if you tick **A cover with author, version and dates** in the preview.
+- **Contents and details** (`Ctrl`/`⌘` + `\`) opens a column with its headings, its folder, its size and when it changed.
+- **See Markdown** (`Ctrl`/`⌘` + `Shift` + `M`) switches between the drawn page and its text.
+- **More** has **Find in the text**, larger and smaller text, **Copy Markdown** and **Print**.
+- Its widgets, pictures, sounds, videos and file cards look as they do in the main window; a press on a file card opens it in its own program.
+- A link or a card to another document or to a task opens it in the main window.
+- **Edit** takes you to the document in the main window. If you change it there, the window of its own reads it again when you come back to it.
+- Its PDF, its sheets and its exports are made from the main window.
 
 ## Taking documents out
 

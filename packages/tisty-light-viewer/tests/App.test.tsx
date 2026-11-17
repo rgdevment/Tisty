@@ -31,6 +31,7 @@ const drawn = (first: string, more = false): Opened => ({
   name: "notes.md",
   place: "Downloads",
   path: "C:/Downloads/notes.md",
+  own: false,
   first,
   more,
   heads: [{ level: 2, said: "One", id: "one" }],
@@ -197,6 +198,7 @@ describe("the light viewer", () => {
       name: "big.md",
       place: "Downloads",
       path: "C:/Downloads/big.md",
+      own: false,
       refusal: { code: "documentTooBig", name: "5 MB" },
     });
     open();

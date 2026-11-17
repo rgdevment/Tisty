@@ -9,6 +9,7 @@ import {
   type Opened,
   opened,
   type Refused,
+  showDoc,
   shown,
   source,
   themed,
@@ -89,14 +90,14 @@ export default function App(props: { readonly asked: string | null; readonly clo
     await laidIn(page, now.more ? await theRest() : []);
     setWhole(true);
     everyPiece();
-    bringNearPictures(page);
+    if (!now.own) bringNearPictures(page);
     setFar(farPictures(page));
     const anchor = arrivingAt();
     const block = remembered(now.path);
     if (anchor) document.getElementById(anchor)?.scrollIntoView({ block: "start" });
     else if (block !== undefined) page.children[block]?.scrollIntoView({ block: "start" });
     void settled(page).catch(fail);
-    await dress(words.sayToSheet, words.locale);
+    await dress(page, words, now.own);
   };
 
   void look().catch(async (error_) => {
@@ -104,8 +105,21 @@ export default function App(props: { readonly asked: string | null; readonly clo
     await shown();
   });
 
-  const edit = () =>
-    editCopy()
+  // Edited in the main window meanwhile, a document of one's own is read again on coming back.
+  const back = () => {
+    const was = about();
+    if (!one()?.own || !was) return;
+    void facts().then((seen) => {
+      if (seen.wrote !== was.wrote) location.reload();
+    }, fail);
+  };
+  window.addEventListener("focus", back);
+  onCleanup(() => window.removeEventListener("focus", back));
+
+  const edit = () => {
+    const now = one();
+    if (now?.own) return void showDoc(now.path).catch(fail);
+    return editCopy()
       .then((left) => {
         if (!left) return setNote(words.say("editAfterWelcome"));
         const said = leftWords(words, left.missed, left.notes);
@@ -113,6 +127,7 @@ export default function App(props: { readonly asked: string | null; readonly clo
         else props.close();
       })
       .catch(fail);
+  };
 
   const stopListening = editAsked(edit);
   onCleanup(() => void stopListening.then((stop) => stop()));
@@ -196,6 +211,11 @@ export default function App(props: { readonly asked: string | null; readonly clo
     return now?.kind === "drawn" ? now : null;
   };
   const empty = () => drawn()?.first.trim() === "";
+  // Only a file on disk has a folder to show it in.
+  const outside = () => {
+    const now = one();
+    return now && !now.own ? now.path : null;
+  };
 
   return (
     <>
@@ -212,7 +232,7 @@ export default function App(props: { readonly asked: string | null; readonly clo
       <Show when={more()}>
         <MoreMenu
           words={words}
-          path={one()?.path ?? ""}
+          revealed={outside()}
           onClose={() => setMore(false)}
           onFind={() => setFinding(true)}
           onZoom={scale}
@@ -245,10 +265,12 @@ export default function App(props: { readonly asked: string | null; readonly clo
             </button>
           </Show>
           <article
-            class="page as-written"
+            class={one()?.own ? "page" : "page as-written"}
             ref={(sheet) => {
               page = sheet;
-              sheet.addEventListener("click", (e) => linkPressed(e, one()?.path ?? "", fail));
+              sheet.addEventListener("click", (e) =>
+                linkPressed(e, { path: one()?.path ?? "", own: one()?.own ?? false }, fail),
+              );
             }}
             hidden={drawn() === null || empty() || written() !== null}
           />
@@ -259,6 +281,7 @@ export default function App(props: { readonly asked: string | null; readonly clo
             <Problem
               words={words}
               opened={one() as Opened}
+              revealed={outside()}
               onRetry={() => location.reload()}
               onEdit={edit}
               fail={fail}
@@ -274,6 +297,7 @@ export default function App(props: { readonly asked: string | null; readonly clo
             about={about()}
             fields={fields()}
             sourced={written() !== null}
+            copied={!one()?.own}
             onEdit={edit}
             onSource={toSource}
             onGo={go}

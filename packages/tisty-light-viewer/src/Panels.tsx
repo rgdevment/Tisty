@@ -19,6 +19,7 @@ export default function Panels(props: {
   readonly about: Facts | null;
   readonly fields: readonly (readonly [string, string])[];
   readonly sourced: boolean;
+  readonly copied: boolean;
   readonly onEdit: () => void;
   readonly onSource: () => void;
   readonly onGo: (id: string) => void;
@@ -73,7 +74,9 @@ export default function Panels(props: {
         <button class="action" type="button" onClick={props.onSource}>
           {say(props.sourced ? "sourceOff" : "sourceOn")}
         </button>
-        <p class="actions-note">{say("editNote")}</p>
+        <Show when={props.copied}>
+          <p class="actions-note">{say("editNote")}</p>
+        </Show>
       </section>
       <Show when={listed().length > 0}>
         <section class="panel">

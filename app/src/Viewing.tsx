@@ -1,78 +1,29 @@
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { PAPERS } from "tisty-editor/read";
-import {
-  type DocFacts,
-  opened,
-  type Paper,
-  type Showing,
-  viewFacts,
-  viewGo,
-  viewShown,
-} from "./core";
-import { paperIn } from "./front";
+import { type Showing, viewShown } from "./core";
 import { adopt, t } from "./locales";
 import { pieceSave } from "./pieceWindow";
 import { saidPlainly } from "./refusal";
-import { fell } from "./Standing";
 import Diagramming from "./ui/drawing/Diagramming";
 import Menu from "./ui/Menu";
-import { seenIn } from "./ui/printing";
 import Quill from "./ui/Quill";
-import { pageFor } from "./ui/sheets";
 import { darkNow } from "./ui/theming";
-import { leaveAsHtml, leaveAsWord } from "./ui/useLeaving";
-import { type Acts, choicesFor, exportsFor, keysFor, PLAIN, ZOOMS } from "./ui/viewer/acting";
+import { type Acts, choicesFor, keysFor } from "./ui/viewer/acting";
 import Header, { titled } from "./ui/viewer/Header";
 import PieceCode from "./ui/viewer/PieceCode";
 import PiecePreview from "./ui/viewer/PiecePreview";
-import Preview from "./ui/viewer/Preview";
-import type ReaderWindow from "./ui/viewer/Reader";
 import Stage, { type Preset } from "./ui/viewer/Stage";
-import usePdf from "./ui/viewer/usePdf";
-import { useSheets } from "./ui/viewer/useSheets";
 import WindowChrome from "./ui/WindowChrome";
 
-const KEPT = "tisty.viewer";
-export const SIDE_FROM = 1000;
-
-// The index opens only where it leaves the page its full width.
-const remembered = (): { side: boolean; leaf: Paper } => {
-  const side = window.innerWidth >= SIDE_FROM;
-  try {
-    const said = JSON.parse(localStorage.getItem(KEPT) ?? "{}") as Record<string, unknown>;
-    const leaf = PAPERS.includes(said.leaf as Paper) ? said.leaf : "a4";
-    return { side, leaf: leaf as Paper };
-  } catch {
-    return { side, leaf: "a4" };
-  }
-};
-
-const useReader = (wanted: boolean) => {
-  const [loaded, setLoaded] = useState<typeof ReaderWindow | null>(null);
-  useEffect(() => {
-    if (!wanted) return;
-    let live = true;
-    void import("./ui/viewer/Reader").catch(fell).then(({ default: ready }) => {
-      if (live) setLoaded(() => ready);
-    });
-    return () => {
-      live = false;
-    };
-  }, [wanted]);
-  return loaded;
-};
-
-// A diagram's window is its own thing: none of the reader's state is set up for it.
+// A diagram's window is its own thing: none of the piece's state is set up for it.
 const DRAWN_PAUSE = 250;
 const SAVED_PAUSE = 700;
 
 export default function Viewing() {
   useState(() => adopt(new URLSearchParams(window.location.search).get("locale") ?? undefined));
   const [shown, setShown] = useState<Showing | null>(null);
-  const Reader = useReader(shown?.kind === "doc");
   const [trouble, setTrouble] = useState<string | null>(null);
-  // One look at a time: a second press, or a second mount in development, never fetches twice.
+  // One look at a time: a second mount in development never fetches twice.
   const asking = useRef(false);
   const look = useCallback(() => {
     if (asking.current) return;
@@ -98,29 +49,14 @@ export default function Viewing() {
   );
 
   if (shown?.kind === "diagram") return <Diagramming paper={shown.paper} source={shown.source} />;
-  return <Reading shown={shown} Reader={Reader} trouble={trouble} look={look} />;
+  return <Piece shown={shown} trouble={trouble} />;
 }
 
-function Reading({
-  shown,
-  Reader,
-  trouble,
-  look,
-}: {
-  shown: Showing | null;
-  Reader: typeof ReaderWindow | null;
-  trouble: string | null;
-  look: () => void;
-}) {
+function Piece({ shown, trouble }: { shown: Showing | null; trouble: string | null }) {
   const [note, setNote] = useState<string | null>(null);
   // Each answer from the window, good or bad, replaces what the last one said.
   useEffect(() => setNote(trouble), [trouble, shown]);
-  const [kept, setKept] = useState(remembered);
-  const { side } = kept;
-  const [raw, setRaw] = useState(false);
-  const [zoom, setZoom] = useState(PLAIN);
-  const [finding, setFinding] = useState(false);
-  const [menu, setMenu] = useState<{ x: number; y: number; only?: "export" } | null>(null);
+  const [menu, setMenu] = useState<{ x: number; y: number } | null>(null);
   const [preset, setPreset] = useState<Preset>("fit");
   const [actual, setActual] = useState(false);
   const [dark, setDark] = useState<boolean | null>(null);
@@ -131,39 +67,6 @@ function Reading({
   const unsaved = useRef<string | null>(null);
   const pause = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const drawing = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-  const [facts, setFacts] = useState<DocFacts | null>(null);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem(KEPT, JSON.stringify({ leaf: kept.leaf }));
-    } catch {
-      void 0;
-    }
-  }, [kept.leaf]);
-
-  const reading = shown?.kind === "doc";
-
-  useEffect(() => {
-    setFacts(null);
-    if (!reading) return;
-    let gone = false;
-    viewFacts()
-      .then((now) => {
-        if (!gone) setFacts(now);
-      })
-      .catch(() => {});
-    return () => {
-      gone = true;
-    };
-  }, [reading, shown]);
-  const body = reading ? shown.body : "";
-  const paper = reading ? shown.paper : null;
-  const shape = useSheets(paper?.file ?? null, body);
-  const turned = shape.landscape;
-  // The paper a document names is its own; the one kept here only fills in when it names none.
-  const leaf = paperIn(body) ?? kept.leaf;
-  useEffect(() => pageFor(leaf, turned), [leaf, turned]);
-  const drawn = useRef<Window | null>(null);
   const fail = (problem: unknown) => setNote(saidPlainly(problem));
 
   const opensOnCode = shown?.kind === "piece" && shown.code;
@@ -197,59 +100,12 @@ function Reading({
       closing.then((off) => off()).catch(() => {});
     };
   }, []);
-  const named = paper?.title ?? "";
-  const pdf = usePdf({
-    ready: reading,
-    body,
-    leaf,
-    landscape: turned,
-    paper,
-    named,
-    seen: () => seenIn(drawn.current?.document),
-    onFail: fail,
-  });
-
-  useEffect(() => {
-    if (shown?.kind !== "doc") return;
-    // Focus moving into the drawn page and back is not the window coming back.
-    let away = false;
-    const left = () => {
-      setTimeout(() => {
-        away = !document.hasFocus();
-      });
-    };
-    const back = () => {
-      if (away) look();
-      away = false;
-    };
-    window.addEventListener("blur", left);
-    window.addEventListener("focus", back);
-    return () => {
-      window.removeEventListener("blur", left);
-      window.removeEventListener("focus", back);
-    };
-  }, [shown?.kind, look]);
-
-  const edit = () => {
-    if (paper) void viewGo(paper.file).catch(fail);
-  };
 
   const acts: Acts = {
     shown,
-    body,
     dark,
     actual,
     fail,
-    find: () => setFinding(true),
-    zoom: (step) =>
-      setZoom((at) => (step === 0 ? PLAIN : Math.max(0, Math.min(ZOOMS.length - 1, at + step)))),
-    side: () => setKept((was) => ({ ...was, side: !was.side })),
-    raw: () => setRaw((was) => !was),
-    preview: () => void pdf.preview(),
-    keep: () => void pdf.keep(),
-    html: () => void leaveAsHtml([body], named || t("untitledDoc")).catch(fail),
-    word: () => void leaveAsWord([body], named || t("untitledDoc")).catch(fail),
-    edit,
     again: () => setAgain((n) => n + 1),
     code: () => setCode(true),
     shade: () => setDark((was) => !(was ?? darkNow())),
@@ -261,11 +117,7 @@ function Reading({
   const keys = useRef(acts);
   keys.current = acts;
   const escaping = useRef(() => {});
-  escaping.current = () => {
-    if (pdf.seeing) pdf.shut();
-    else if (code) setCode(false);
-    else setFinding(false);
-  };
+  escaping.current = () => setCode(false);
   useEffect(() => {
     const heard = (e: KeyboardEvent) => {
       if (e.key === "Escape") return escaping.current();
@@ -279,20 +131,15 @@ function Reading({
     return () => window.removeEventListener("keydown", heard);
   }, []);
 
-  const { title, under } = titled(shown);
+  const { title } = titled(shown);
 
   return (
     <main className="relative flex h-full flex-col bg-desk font-sans">
       <WindowChrome flush />
       <Header
         shown={shown}
-        side={side}
-        raw={raw}
         preset={preset}
         menu={Boolean(menu)}
-        onSide={acts.side}
-        onRaw={setRaw}
-        onEdit={edit}
         onPreset={setPreset}
         onAgain={acts.again}
         onMore={setMenu}
@@ -302,35 +149,7 @@ function Reading({
           {note}
         </p>
       )}
-      {reading && Reader && (
-        <Reader
-          key={shown.paper.file}
-          body={body}
-          title={title}
-          under={under}
-          side={side}
-          raw={raw}
-          zoom={ZOOMS[zoom]}
-          leaf={leaf}
-          sheets={shape.sheets}
-          landscape={turned}
-          onPage={(page) => {
-            drawn.current = page;
-          }}
-          facts={facts}
-          finding={finding}
-          onLeaf={(one) => setKept((was) => ({ ...was, leaf: one }))}
-          onSheets={shape.onSheets}
-          onLandscape={shape.onLandscape}
-          onRaw={setRaw}
-          onEdit={edit}
-          onExport={(at) => setMenu({ ...at, only: "export" })}
-          onFound={() => setFinding(false)}
-          onDoc={(file) => void viewGo(file).catch(fail)}
-          onOpen={(reference) => void opened(reference).catch(fail)}
-        />
-      )}
-      {!trouble && (!shown || (reading && !Reader)) && <Quill said={t("viewOpening")} />}
+      {!trouble && !shown && <Quill said={t("viewOpening")} />}
       {shown?.kind === "piece" && (
         <div className="flex min-h-0 flex-1">
           {code && (
@@ -356,23 +175,11 @@ function Reading({
           </div>
         </div>
       )}
-      {pdf.seeing && (
-        <Preview
-          shown={pdf.seeing}
-          leaf={leaf}
-          stamping={pdf.stamping}
-          coverable={Boolean(paper)}
-          making={pdf.making}
-          onStamp={pdf.setStamping}
-          onKeep={() => void pdf.keep()}
-          onClose={pdf.shut}
-        />
-      )}
       {menu && (
         <Menu
           at={menu}
-          choices={menu.only ? exportsFor(acts) : choicesFor(acts)}
-          label={t(menu.only ? "exportIt" : "viewMore")}
+          choices={choicesFor(acts)}
+          label={t("viewMore")}
           onClose={() => setMenu(null)}
         />
       )}

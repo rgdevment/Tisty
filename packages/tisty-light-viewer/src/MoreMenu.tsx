@@ -1,10 +1,10 @@
 import { For, onCleanup, Show } from "solid-js";
-import { reveal, source } from "./host";
+import { plain, reveal } from "./host";
 import type { Words } from "./words";
 
 export default function MoreMenu(props: {
   readonly words: Words;
-  readonly path: string;
+  readonly revealed: string | null;
   readonly onClose: () => void;
   readonly onFind: () => void;
   readonly onZoom: (step: number) => void;
@@ -20,13 +20,16 @@ export default function MoreMenu(props: {
     {
       label: say("copy"),
       pick: () =>
-        void source()
+        void plain()
           .then((said) => navigator.clipboard.writeText(said))
           .catch(props.fail),
     },
     { label: say("print"), hint: "Ctrl+P", pick: props.onPrint },
-    { label: say("revealIt"), pick: () => void reveal(props.path).catch(props.fail) },
   ];
+  const path = props.revealed;
+  if (path !== null) {
+    choices.push({ label: say("revealIt"), pick: () => void reveal(path).catch(props.fail) });
+  }
   const away = (e: PointerEvent) => {
     if (!(e.target as HTMLElement).closest(".menu, .tool-more")) props.onClose();
   };

@@ -17,6 +17,12 @@ const host = vi.hoisted(() => ({
   pictureNear: vi.fn(),
   pictureFar: vi.fn(),
   follow: vi.fn(),
+  cardsOf: vi.fn(),
+  showDoc: vi.fn(),
+  showTask: vi.fn(),
+  openAttached: vi.fn(),
+  plain: vi.fn(),
+  drawsHeic: vi.fn(),
 }));
 const drawing = vi.hoisted(() => ({ diagrams: vi.fn(), readAs: vi.fn() }));
 
@@ -31,6 +37,7 @@ const drawn = (first = '<h2 id="one">One</h2><h2 id="two">Two</h2><p>all</p>'): 
   name: "notas.md",
   place: "Descargas",
   path: PATH,
+  own: false,
   first,
   more: false,
   heads: [
@@ -69,6 +76,7 @@ beforeEach(() => {
   host.theRest.mockResolvedValue([]);
   host.reveal.mockResolvedValue(undefined);
   host.follow.mockResolvedValue(undefined);
+  host.drawsHeic.mockResolvedValue(false);
   drawing.diagrams.mockResolvedValue(undefined);
   drawing.readAs.mockReturnValue({ kept: [], drawn: Promise.resolve() });
   window.print = vi.fn();
@@ -103,7 +111,7 @@ describe("the menu", () => {
   it("copies what was written", async () => {
     const writeText = vi.fn().mockResolvedValue(undefined);
     vi.stubGlobal("navigator", { clipboard: { writeText } });
-    host.source.mockResolvedValue("# written");
+    host.plain.mockResolvedValue("# written");
     await open();
     (await button("Más")).click();
     (await menuItem(/Copiar/)).click();
@@ -365,6 +373,7 @@ describe("a file that did not open", () => {
     name: "notas.md",
     place: "Descargas",
     path: PATH,
+    own: false,
     refusal: { code: "cannotRead" },
   };
 
@@ -424,5 +433,89 @@ describe("searching", () => {
     (document.querySelector('.finder [aria-label="Cerrar"]') as HTMLElement).click();
     await waitFor(() => expect(screen.queryByRole("searchbox")).toBeNull());
     expect(painted.size).toBe(0);
+  });
+});
+
+describe("a document of one's own", () => {
+  const FILE = "ab12-0001";
+  const own = (first = "<h1>Riego</h1><p>all</p>"): Opened => ({
+    ...drawn(first),
+    name: "Riego",
+    place: "Casa",
+    path: FILE,
+    own: true,
+  });
+
+  it("is drawn as a document, and edited in the main window rather than copied", async () => {
+    host.showDoc.mockResolvedValue(undefined);
+    await open(own());
+    expect(page().classList.contains("as-written")).toBe(false);
+    expect(screen.queryByText(/Editas una copia/)).toBeNull();
+    (await button("Editar")).click();
+    await waitFor(() => expect(host.showDoc).toHaveBeenCalledWith(FILE));
+    expect(host.editCopy).not.toHaveBeenCalled();
+  });
+
+  it("offers no folder to show it in, as it lives in Tisty", async () => {
+    await open(own());
+    (await button("Más")).click();
+    await menuItem(/Imprimir/);
+    expect(screen.queryByRole("menuitem", { name: /carpeta/ })).toBeNull();
+  });
+
+  it("draws its cards with what each names, an untitled one named so", async () => {
+    host.cardsOf.mockResolvedValue({
+      f2: { kind: "doc", title: "Huerta" },
+      f3: { kind: "doc", title: " " },
+    });
+    await open(
+      own(
+        '<p><a class="card" data-doc="f2">x</a></p><p><a class="card" data-doc="f3">y</a></p><p><a class="card" data-doc="f2">z</a></p>',
+      ),
+    );
+    const carded = () => drawing.readAs.mock.calls.findLast(([, reading]) => reading.cards)?.[1];
+    await waitFor(() =>
+      expect(carded()?.cards.card("f2")).toEqual({ kind: "doc", title: "Huerta" }),
+    );
+    expect(host.cardsOf).toHaveBeenCalledWith(["f2", "f3"]);
+    const { cards, sites } = carded();
+    expect(cards.card("f3")).toEqual({ kind: "doc", title: "Sin título" });
+    expect(cards.card("f9")).toEqual({ kind: "gone" });
+    expect(sites).toEqual({});
+    expect(carded()?.brought).toBeTypeOf("function");
+  });
+
+  it("from a stranger's file, draws no web card, attachment card or widget", async () => {
+    await open();
+    await waitFor(() => expect(drawing.readAs).toHaveBeenCalled());
+    const reading = drawing.readAs.mock.calls.at(-1)?.[1];
+    expect(reading.sites).toBeUndefined();
+    expect(reading.brought).toBeUndefined();
+  });
+
+  it("is read again on coming back only when it was edited meanwhile", async () => {
+    const reload = vi.fn();
+    vi.stubGlobal("location", { reload, search: "" });
+    await open(own());
+    await waitFor(() => expect(host.facts).toHaveBeenCalledTimes(1));
+    await screen.findByText("Modificado");
+    window.dispatchEvent(new FocusEvent("focus"));
+    await waitFor(() => expect(host.facts).toHaveBeenCalledTimes(2));
+    expect(reload).not.toHaveBeenCalled();
+    host.facts.mockResolvedValue({ wrote: 1_700_000_100, bytes: 10 });
+    window.dispatchEvent(new FocusEvent("focus"));
+    await waitFor(() => expect(reload).toHaveBeenCalled());
+  });
+
+  it("is never read again on coming back to a stranger's file", async () => {
+    await open();
+    await screen.findByText("Modificado");
+    window.dispatchEvent(new FocusEvent("focus"));
+    expect(host.facts).toHaveBeenCalledTimes(1);
+  });
+
+  it("says an empty document is empty, not a file", async () => {
+    await open(own(""));
+    expect(await screen.findByText("Este documento está vacío.")).toBeTruthy();
   });
 });

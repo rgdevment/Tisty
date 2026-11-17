@@ -1,4 +1,5 @@
 import { ending, hosting, kept } from "tisty-editor/read";
+import { playedAs, SEEABLE } from "tisty-sheet";
 import { DOC } from "./markdown";
 
 export type Preview =
@@ -8,7 +9,7 @@ export type Preview =
   | { as: "doc"; id: string }
   | { as: "web"; at: string; host: string };
 
-export const SEEABLE = ["png", "jpg", "jpeg", "gif", "svg", "webp", "avif"];
+export { named, SEEABLE } from "tisty-sheet";
 
 // WebKit draws HEIC itself and a Windows with the HEIF decoder draws it for Tisty; elsewhere it stays a file.
 let heicDrawn = navigator.userAgent.includes("Macintosh");
@@ -19,20 +20,8 @@ export const drawsHeic = (yes: boolean): void => {
 
 export const heicReadable = (): boolean => heicDrawn;
 
-const WATCHABLE = ["mp4", "webm", "m4v", "mov", "ogv"];
-const HEARABLE = ["mp3", "m4a", "wav", "ogg", "oga", "aac", "flac"];
-
 const outside = (href: string): boolean =>
   /^[a-z][a-z0-9+.-]*:/i.test(href) || href.startsWith("/") || href.startsWith("\\\\");
-
-export const named = (href: string): string => {
-  const raw = href.split(/[?#]/)[0].split("/").pop() ?? href;
-  try {
-    return decodeURI(raw);
-  } catch {
-    return raw;
-  }
-};
 
 /// Only the two schemes a person can be shown safely, and never the machine's own paths: what
 /// comes back is a name and a host, never something a card would go and load.
@@ -49,8 +38,8 @@ export const previewOf = (href: string): Preview | null => {
   }
 
   const kind = ending(at);
-  if (WATCHABLE.includes(kind)) return { as: "video", at };
-  if (HEARABLE.includes(kind)) return { as: "audio", at };
+  const as = playedAs(kind);
+  if (as) return { as, at };
   if (!kind && !kept(at)) return null;
   return { as: "file", at, kind };
 };
