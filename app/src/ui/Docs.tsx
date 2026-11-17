@@ -1046,7 +1046,7 @@ export default function Docs({
                   }}
                   reading={bolted}
                   label={called || t("untitledDoc")}
-                  onDoc={onDoc}
+                  onDoc={toDoc}
                   onTag={onTag}
                   above={placed}
                   belowFolds={!above}

@@ -86,6 +86,10 @@ describe("what docOf makes of an address", () => {
   it("takes whatever comes after the scheme, slashes included", () => {
     expect(docOf("tisty:doc/a/b")).toBe("a/b");
   });
+
+  it("leaves the heading a link lands on out of the document's name", () => {
+    expect(docOf("tisty:doc/dev_a-0002#hoteles")).toBe("dev_a-0002");
+  });
 });
 
 describe("a link the core would not follow", () => {

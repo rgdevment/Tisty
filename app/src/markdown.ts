@@ -13,7 +13,7 @@ export const docLink = (id: string, title: string): string =>
 export const docCard = (id: string, title: string): string => `!${docLink(id, title)}`;
 
 export const docOf = (target: string): string | null =>
-  target.startsWith(DOC) ? target.slice(DOC.length) : null;
+  target.startsWith(DOC) ? target.slice(DOC.length).split("#")[0] : null;
 
 const ours = (target: string): boolean =>
   !/^[a-z][a-z0-9+.-]*:/i.test(target) &&

@@ -1351,11 +1351,7 @@ fn pointed(body: &str, named: &BTreeMap<String, (String, DocId)>) -> String {
     // written, or what was a link becomes a dead one.
     let mut found: Vec<String> = crate::refs::extract(body)
         .into_iter()
-        .filter_map(|one| {
-            one.target
-                .strip_prefix(crate::refs::DOC)
-                .map(str::to_string)
-        })
+        .filter_map(|one| crate::refs::doc_aimed(&one.target).map(|(file, _)| file.to_string()))
         .collect();
     // The long name first: one id can be a prefix of another, and a plain replace would rewrite
     // the middle of the longer one.

@@ -323,3 +323,36 @@ html.held .page > .front dd {
   background: color-mix(in srgb, var(--tisty-accent) 14%, transparent);
   box-shadow: 0 0 0 4px color-mix(in srgb, var(--tisty-accent) 14%, transparent);
 }
+.glance {
+  position: absolute;
+  z-index: 30;
+  width: min(360px, calc(100vw - 24px));
+  max-height: 280px;
+  overflow: hidden;
+  border: 1px solid var(--tisty-hair);
+  border-radius: 10px;
+  padding: 10px 14px 12px;
+  background: var(--tisty-sheet);
+  box-shadow: 0 8px 24px var(--tisty-cast);
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+.glance-title {
+  margin: 0 0 6px;
+  font-weight: 600;
+  color: var(--tisty-ink);
+}
+.glance-body > :first-child {
+  margin-top: 0;
+}
+.glance-body :is(h1, h2, h3, h4, h5, h6) {
+  font-size: 1em;
+  margin: 0.6em 0 0.2em;
+}
+.glance-body :is(img, video, audio, figure, iframe) {
+  display: none;
+}
+.glance[data-more] .glance-body::after {
+  content: "…";
+  color: var(--tisty-faint);
+}

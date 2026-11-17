@@ -13,6 +13,7 @@ import { plainly } from "../refusal";
 import { type Attaching, attachedAs, pressed } from "./attached";
 import { type Carding, cardsFor } from "./carding";
 import { boxKey, NOTE } from "./diaryPaging";
+import { glancing } from "./glancing";
 import { placeCopied, placedAt, placeOf, placeSaid, placeWritten, samePlace } from "./pagePlaces";
 import { type Shot, shotsOf, type TableWent, type Went, went, widgetsIn } from "./paging";
 import { type Bar, type Formatting, type Menued, quickly } from "./quickly";
@@ -29,7 +30,7 @@ export type Anchor = { x: number; y: number; top?: number; right?: number };
 
 export type Reaching = Carding & {
   readonly body: string;
-  readonly onDoc: (file: string) => void;
+  readonly onDoc: (file: string, heading?: string) => void;
   readonly onTask?: (id: string) => void;
   readonly part?: (id: string) => PartCarded;
   readonly onOpen?: (reference: string) => void;
@@ -262,6 +263,7 @@ export const worn = (page: Document, live: () => boolean, reach?: Reaching): Wor
     diagramBars(page, { open: Boolean(reach.onDiagram), out: Boolean(reach.onDiagramExport) });
   if (reach?.onPiece) mathBars(page);
   if (reach?.onUnstick) unstickable(page);
+  if (reach) glancing(page);
   let held: (() => void)[] = [];
   let lent: Lending[] = [];
   const read = readAs(page, {
@@ -356,7 +358,7 @@ export const answered = (page: Document, asked: Went, reach: Reaching) => {
     const found = figureAt(page, asked.at);
     if (found) reach.onDiagramExport?.(found.nth, sourceOf(found.figure), underBar(found.figure));
   }
-  if (asked.kind === "doc") reach.onDoc(asked.id);
+  if (asked.kind === "doc") reach.onDoc(asked.id, asked.at);
   if (asked.kind === "task") reach.onTask?.(asked.id);
   if (asked.kind === "day") reach.onDay?.(asked.at);
   if (asked.kind === "dayKeep") reach.onDayKeep?.();

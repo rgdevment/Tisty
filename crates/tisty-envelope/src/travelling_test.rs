@@ -191,6 +191,10 @@ fn a_document_is_reached_only_when_it_travels_too() {
         r#"<a class="card" href="tisty:cited/0">Otro</a>"#
     );
     assert_eq!(
+        ready(r#"<a href="tisty:doc/otro#hoteles">Hoteles</a>"#, &places()),
+        r#"<a class="card" href="tisty:cited/0">Hoteles</a>"#
+    );
+    assert_eq!(
         ready(r#"<a class="card" data-doc="nada">Nada</a>"#, &places()),
         "Nada"
     );
@@ -420,9 +424,9 @@ fn the_words_keep_nothing_their_html_left_home() {
 #[test]
 fn it_says_what_a_page_names_before_anything_is_found() {
     let found = named(
-        r##"<img src="rina.png" alt="x"><a href="cartilla.pdf">a</a><a href="#b">b</a><a href="https://a.example">c</a><a class="card" data-doc="enero">d</a><a href="tisty:doc/otro">e</a><span class="ref" data-ref="tercero">f</span>"##,
+        r##"<img src="rina.png" alt="x"><a href="cartilla.pdf">a</a><a href="#b">b</a><a href="https://a.example">c</a><a class="card" data-doc="enero">d</a><a href="tisty:doc/otro">e</a><span class="ref" data-ref="tercero">f</span><a href="tisty:doc/cuarto#fin">g</a>"##,
     );
     assert_eq!(found.pictures, ["rina.png"]);
     assert_eq!(found.links, ["cartilla.pdf"]);
-    assert_eq!(found.documents, ["enero", "otro", "tercero"]);
+    assert_eq!(found.documents, ["enero", "otro", "tercero", "cuarto"]);
 }

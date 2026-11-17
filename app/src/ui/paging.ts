@@ -7,7 +7,7 @@ import { placeOf } from "./pagePlaces";
 import { tableClicked } from "./tabled";
 
 export type Went =
-  | { kind: "doc"; id: string }
+  | { kind: "doc"; id: string; at?: string }
   | { kind: "task"; id: string }
   | { kind: "web"; href: string }
   | { kind: "here"; id: string }
@@ -112,8 +112,10 @@ const linked = (link: HTMLAnchorElement): Went => {
   const task = link.dataset.task;
   if (task) return { kind: "task", id: task };
   const href = (link.getAttribute("href") ?? "").trim();
-  if (href.startsWith(DOC) && href.length > DOC.length)
-    return { kind: "doc", id: href.slice(DOC.length) };
+  if (href.startsWith(DOC) && href.length > DOC.length) {
+    const [id, at] = href.slice(DOC.length).split("#");
+    if (id) return at ? { kind: "doc", id, at } : { kind: "doc", id };
+  }
   if (href.startsWith(TASK) && href.length > TASK.length)
     return { kind: "task", id: href.slice(TASK.length) };
   if (/^(https?:\/\/|mailto:)\S+$/i.test(href)) return { kind: "web", href };

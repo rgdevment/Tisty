@@ -93,7 +93,7 @@ type Props = {
   readonly onOwn?: (file: string) => void;
   readonly onFail?: (problem: unknown) => void;
   readonly onNote?: (text: string) => void;
-  readonly onDoc?: (file: string) => void;
+  readonly onDoc?: (file: string, heading?: string) => void;
   readonly onTag?: (tag: string) => void;
   readonly onOpen?: (reference: string) => void;
   readonly onOutline?: (heads: Head[]) => void;
@@ -1273,7 +1273,7 @@ export default function Sheet(props: Readonly<Props>) {
           tall={!lively}
           untitled={props.inline}
           shaping={props.shaping}
-          onDoc={(file) => said.current.onDoc?.(file)}
+          onDoc={(file, heading) => said.current.onDoc?.(file, heading)}
           onOpen={(reference) => said.current.onOpen?.(reference)}
           onTag={(tag) => said.current.onTag?.(tag)}
           draw={draw}
