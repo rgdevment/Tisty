@@ -154,27 +154,53 @@ export const unmarked = (text: string, at: number): Moved | null => {
   };
 };
 
-const FENCE = /^[ \t]*(?:>[ \t]?)*[ \t]*(`{3,}|~{3,})(.*)$/;
+const FENCE = /^((?:[ \t]*>[ \t]?)*)[ \t]*(`{3,}|~{3,})(.*)$/;
+const IN_QUOTE = /^[ \t]*>/;
+const STANDS_ALONE =
+  /^[ \t]*(?:>[ \t]?)*[ \t]*(?:#{1,6}(?:[ \t]|$)|`{3,}|~{3,}|\||(?:[-*_][ \t]*){3,}$)/;
 
-// A fence closes only on a run of its own mark at least as long, so a shorter or other one inside is code.
+// A fence closes only on a run of its own mark at least as long, or where the quote it opened in ends.
 const inFence = (text: string, at: number) => {
-  let open: string | null = null;
-  for (const line of text.slice(0, at).split("\n")) {
-    const found = FENCE.exec(line.replace(/\r$/, ""));
+  let open: { mark: string; quoted: boolean } | null = null;
+  for (const raw of text.slice(0, at).split("\n")) {
+    const line = raw.replace(/\r$/, "");
+    if (open?.quoted && !IN_QUOTE.test(line)) open = null;
+    const found = FENCE.exec(line);
     if (!found) continue;
-    const [, mark, rest] = found;
-    if (open === null) open = mark;
-    else if (mark[0] === open[0] && mark.length >= open.length && !rest.trim()) open = null;
+    const [, quotes, mark, rest] = found;
+    if (open === null) {
+      if (mark[0] !== "`" || !rest.includes("`")) open = { mark, quoted: quotes !== "" };
+    } else if (mark[0] === open.mark[0] && mark.length >= open.mark.length && !rest.trim())
+      open = null;
   }
   return open !== null;
 };
 
+const paragraphLine = (line: string) =>
+  !LISTED.test(line) && !wordless(line) && !STANDS_ALONE.test(line);
+
+// The numbered line was already words of a paragraph when the lines over it, up to a blank one, held no item.
+const heldBefore = (text: string, at: number) => {
+  let over = 0;
+  for (const one of linesAbove(text, text.indexOf("\n", at) + 1)) {
+    if (LISTED.test(one)) return false;
+    if (!paragraphLine(one)) return over > 0;
+    over += 1;
+  }
+  return over > 0;
+};
+
 // Words joined across a line end would take a numbered item under them, which cannot open a list there, as their own.
-export const joinedApart = (text: string, asked: Edit): Edit => {
-  if (!text.slice(asked.from, asked.to).includes("\n")) return asked;
+export const joinedApart = (
+  text: string,
+  asked: Edit,
+  at = asked.from + asked.insert.length,
+): [Edit, number] => {
+  const kept: [Edit, number] = [asked, at];
+  if (!text.slice(asked.from, asked.to).includes("\n")) return kept;
   const landed = asked.from + asked.insert.length;
   const left = text.slice(0, asked.from) + asked.insert + text.slice(asked.to);
-  if (landed === 0 || left[landed - 1] === "\n") return asked;
+  if (landed === 0 || left[landed - 1] === "\n") return kept;
   const { start, line } = lineAt(left, landed);
   const ends = left.indexOf("\n", landed);
   const item = ends < 0 ? null : LISTED.exec(lineAt(left, ends + 1).line);
@@ -185,17 +211,22 @@ export const joinedApart = (text: string, asked: Edit): Edit => {
     number === undefined ||
     number === "1" ||
     deep ||
-    LISTED.test(line) ||
-    wordless(line) ||
-    inFence(left, start)
+    !paragraphLine(line) ||
+    heldBefore(text, asked.to) ||
+    inFence(left, ends)
   )
-    return asked;
+    return kept;
   const end = asked.to + (start + line.length - landed);
-  return {
-    from: asked.from,
-    to: end,
-    insert: `${asked.insert}${text.slice(asked.to, end)}\n${item[1].trimEnd()}`,
-  };
+  const apart = `\n${item[1].trimEnd()}`;
+  const split = start + line.length;
+  return [
+    {
+      from: asked.from,
+      to: end,
+      insert: `${asked.insert}${text.slice(asked.to, end)}${apart}`,
+    },
+    at > split ? at + apart.length : at,
+  ];
 };
 
 export const openedAbove = (

@@ -105,7 +105,7 @@ export const layingOn = (
 
   const put = (asked: Edit, at = asked.from + asked.insert.length, drawnWhole = false) => {
     const text = hands.text();
-    const [one, landed] = linedAs(text, joinedApart(text, asked), at);
+    const [one, landed] = linedAs(text, ...joinedApart(text, asked, at));
     const next = applied(text, one);
     if (next === text) return;
     const stood =

@@ -240,17 +240,63 @@ describe("Backspace and Enter at the start of a line's words", () => {
       [8, 15],
       "Antes.\n\ntexto\n2. dos",
     ],
+    [
+      "leaves an item the paragraph already held as it is",
+      "Uno\ndos tres\n2. falta",
+      [1, 6],
+      "Us tres\n2. falta",
+    ],
+    [
+      "keeps a list apart whose item went on over a second line",
+      "Antes.\n\n1. uno\n   más palabras\n2. dos",
+      [6, 22],
+      "Antes.palabras\n\n2. dos",
+    ],
+    [
+      "keeps the items under a title joined to a paragraph a list",
+      "Antes.\n# Título\n2. dos\n3. tres",
+      [6, 7],
+      "Antes.# Título\n\n2. dos\n3. tres",
+    ],
+    [
+      "keeps the list apart after a line whose backticks open no fence",
+      "```js``` corre.\n\nAntes.\n\n1. uno\n2. dos",
+      [23, 28],
+      "```js``` corre.\n\nAntes.uno\n\n2. dos",
+    ],
+    [
+      "keeps the list apart after a fence the end of its quote closed",
+      "> ```\n> código\n\nAntes.\n\n1. uno\n2. dos",
+      [22, 27],
+      "> ```\n> código\n\nAntes.uno\n\n2. dos",
+    ],
   ] as const)("on a join across a line end, %s", (_, text, [from, to], expected) => {
-    const edit = joinedApart(text, { from, to, insert: "" });
+    const [edit] = joinedApart(text, { from, to, insert: "" });
     expect(text.slice(0, edit.from) + edit.insert + text.slice(edit.to)).toBe(expected);
   });
 
   it("keeps the list apart when words written over a choice across lines join them", () => {
     const text = "Antes.\n\n1. uno\n2. dos";
-    const edit = joinedApart(text, { from: 6, to: 11, insert: "X" });
+    const [edit, caret] = joinedApart(text, { from: 6, to: 11, insert: "X" });
     expect(text.slice(0, edit.from) + edit.insert + text.slice(edit.to)).toBe(
       "Antes.Xuno\n\n2. dos",
     );
+    expect(caret).toBe(7);
+  });
+
+  it("leaves code as it is where the joined line opens a fence", () => {
+    const text = "uno\n1. dos\n2. tres";
+    const [edit] = joinedApart(text, { from: 0, to: 7, insert: "```" });
+    expect(text.slice(0, edit.from) + edit.insert + text.slice(edit.to)).toBe("```dos\n2. tres");
+  });
+
+  it("moves a caret past the joined line by the line end it adds", () => {
+    const text = "Antes.\n\n1. uno\n2. dos";
+    const [edit, caret] = joinedApart(text, { from: 6, to: 11, insert: "" }, 14);
+    expect(text.slice(0, edit.from) + edit.insert + text.slice(edit.to)).toBe(
+      "Antes.uno\n\n2. dos",
+    );
+    expect(caret).toBe(15);
   });
 
   it.each([
