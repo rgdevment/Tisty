@@ -316,7 +316,9 @@ pub fn page_follows<R: Runtime>(window: &tauri::Window<R>) {
 pub fn withdraw<R: Runtime>(window: &tauri::Window<R>) {
     let _ = window.emit("withdrawn", ());
     let _ = window.hide();
-    page_seen(window.app_handle(), false);
+    if window.label() == "main" {
+        page_seen(window.app_handle(), false);
+    }
     crate::waking::returns(false);
     undock_unless_seen(window.app_handle(), window.label());
 }
