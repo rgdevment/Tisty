@@ -3,17 +3,41 @@ lang: es
 ---
 # ¿Qué es Tisty?
 
-Tisty es un lugar tranquilo para dos cosas: lo que tienes que hacer y lo que quieres guardar. Lo primero son **tareas**; lo segundo, **documentos**.
+Comencé a desarrollar Tisty para resolver un problema personal, y fui viendo que ese problema no era solo mío: a todos les pasaba, y cada uno lo resolvía a su manera.
 
-Todo queda en este equipo, como texto que cualquier programa abre. No pide cuenta, no cobra suscripción y no envía nada sobre cómo lo usas. Es de código abierto: cualquiera puede auditarlo.
+Esta es una guía básica. En ella encontrarás qué puedes hacer con Tisty, cómo puede ayudarte en tu día y cómo trato de complementar tu trabajo con tus agentes.
 
-Y no olvida. Una tarea que terminaste se archiva con lo que escribiste en ella, y meses después una búsqueda te cuenta cómo lo resolviste. Tampoco olvida el agente de IA con el que trabajas: conectado por MCP, guarda aquí su memoria y retoma donde quedó, en vez de partir de un chat en blanco.
+Tisty es una memoria de trabajo que compartes con tu agente de IA, para que ninguno de los dos empiece de cero. Tú ves el conjunto: en qué va cada proyecto, qué falta y qué se decidió. Tu agente ve cada detalle: la tarea en la que estaba, lo que probó y lo que descartó. Una sola memoria, para los dos.
+
+Tu agente pregunta qué cambió desde la última vez, abre la tarea en la que estaba y lee solo la sección que necesita. Trabaja, anota lo que hizo y te dice cuando algo está listo; tú lo revisas y lo cierras. Nada se cierra sin ti.
+
+Lo que guardan los dos es de dos tipos: lo que hay que hacer son **tareas**, y lo que vale la pena volver a leer son **documentos**. Y terminar no borra nada: una tarea terminada se archiva con todo lo que se escribió en ella, y meses después una búsqueda cuenta cómo se resolvió. Todo esto te sirve igual si todavía no trabajas con un agente.
+
+Todo queda en este equipo, como texto que cualquier programa abre. No pide cuenta, no cobra suscripción y no envía nada sobre cómo lo usas. Es de código abierto: cualquiera puede auditarlo. Detrás no hay una empresa: lo hago yo, porque lo necesitaba, y lo comparto.
 
 Lee esta guía a tu ritmo: cada sección se entiende sola, y lo que hoy no uses puede esperar. Es un documento como cualquier otro, así que puedes tocarlo todo: hacer clic, escribir, probar. Si en algún momento te pierdes, el `?` al pie de la barra lateral abre la ayuda completa, también sin conexión, y a esta guía vuelves desde Configuración → General.
 
+## Tú y tu agente
+
+Trabajar con un agente es repartirse el trabajo: tú decides hacia dónde va y él se encarga del detalle. Tisty está hecho para que esas dos mitades se entiendan.
+
+### Lo lees tú, lo lee él
+
+Un documento en Tisty se lee con gusto: títulos, colores, avisos que resaltan lo importante, diagramas, tablas y casillas, en vez de un muro de texto. Tu agente lee el mismo documento a su manera: primero el índice y después solo la sección que necesita. Y cuando escribe, escribe para ti: Tisty le pide que lo haga visual, ordenado y fácil de leer, en el mismo lenguaje que usas tú.
+
+### Cada cosa en su lugar
+
+Las tareas van en listas, los documentos en carpetas, y lo que es mucho para una vez se divide en partes. Así, cuando vuelves a un proyecto después de semanas, tú ves dónde quedó y tu agente sabe por dónde seguir.
+
+Hasta dónde llega: cada persona tiene su propio Tisty y sus propios agentes. No reparte trabajo entre personas ni lleva un equipo; cuando alguien necesita lo que sabes, le compartes el documento.
+
+### Lo que viene
+
+Estoy trabajando en Brainsty, el cerebro de Tisty: todo lo que guardas, con lo que lo une, dibujado como una sola red. Tú la verás de lejos, como un mapa de todos tus proyectos. Tu agente la leerá de cerca, como un índice que le dice dónde mirar sin leerlo todo. Todavía no tiene fecha; cuando llegue, esta guía lo va a contar.
+
 ## ¿Cómo funciona?
 
-Todo empieza con una pregunta: ¿lo vas a hacer, o lo vas a volver a leer? Si lo vas a hacer, es una tarea: se acaba, a veces el mismo día, y queda en el Archivo como conocimiento con fecha. Si lo vas a volver a leer, es un documento: un manual, una receta, las actas de un año, que corriges y amplías durante años. Y si todavía no lo sabes, es una idea: espera en la Lluvia de ideas hasta que la ordenes. Lo que solo pasó, y quieres recordar, va al Diario. Este dibujo cuenta el resto:
+Todo empieza con una pregunta, y tu agente se hace la misma: ¿lo vas a hacer, o lo vas a volver a leer? Si lo vas a hacer, es una tarea: se acaba, a veces el mismo día, y queda en el Archivo como conocimiento con fecha. Si lo vas a volver a leer, es un documento: un manual, una receta, las actas de un año, que corriges y amplías durante años. Y si todavía no lo sabes, es una idea: espera en la Lluvia de ideas hasta que la ordenes. Lo que solo pasó, y quieres recordar, va al Diario. Este dibujo cuenta el resto:
 
 ```mermaid
 flowchart TD
@@ -44,6 +68,25 @@ flowchart TD
 :::
 
 Y si una tarea te enseña algo que vas a necesitar de nuevo, como el arreglo de una falla que vuelve, guárdalo también en un documento.
+
+---
+
+## Tu agente de IA
+
+Tu agente de IA, sea GitHub Copilot, Claude Code, Codex u otro, entra a Tisty por MCP, con un programa que corre en este equipo, sin cuenta y sin pasar nada por la red. Lo que escribe va firmado con su nombre: «por Claude Code», «por Codex».
+
+Desde ahí, Tisty es su memoria entre sesiones. De un documento lee primero el índice y después solo la sección que necesita; de la tarea en la que está, marca los pasos y anota en su bitácora lo que probó y descartó. La próxima sesión parte de ahí, y cuesta una fracción de releer tus archivos Markdown.
+
+- **Puede** proponer tareas, escribir documentos, agregar o corregir en los que puede escribir, anotar y ordenar ideas contigo, y marcar lo que ya cumplió su vida, con el porqué.
+- **Puede decir** que una tarea o un paso está listo. La tarea queda en **Por confirmar** hasta que tú la terminas o la devuelves con **Sigue pendiente**; los pasos te esperan con **Marcarlos** o **Todavía no**.
+- **No puede** cerrar ni borrar una tarea, borrar un documento o una idea, marcar un paso tuyo ni mover un día que pusiste tú. En una tarea que escribiste tú puede cambiar la descripción, la página y los pasos abiertos, como en un documento.
+- **No ve tu diario** mientras no lo abras tú. Abierto, lo lee y solo añade al final de hoy.
+
+Si escribiste en un documento mientras él lo leía, no escribe encima: se le pide que vuelva a leerlo. Y cuando algo escribe en el documento que tienes abierto, la ventana te avisa y te ofrece volver a lo que decía antes.
+
+Cómo conectarlo, cómo darle o quitarle la entrada y cómo pedirle las cosas, paso a paso, está en esta página:
+
+![Paso a paso con tu agente de IA: la página de esta guía que lo cuenta](tisty:agent)
 
 ---
 
@@ -476,25 +519,6 @@ Tú decides en qué capa va cada una: en el detalle de una tarea cerrada, **Move
 **La entrada es el buscador.** Escribe una palabra que recuerdes en el buscador de arriba de la barra lateral (`Ctrl`/`⌘` + `K`) y aparece, aunque la hayas cerrado hace dos años; si la palabra está en la página de una tarea, aparece la tarea. **Pruébalo** cuando cierres tus primeras tareas: busca algo que escribiste en una de ellas.
 
 Tu agente de IA también busca aquí antes de empezar algo que ya resolviste. Cada capa, y cómo borrar de verdad, está en [el archivo](https://www.tisty.app/es/ayuda/el-archivo/).
-
----
-
-## Tu agente de IA
-
-Si usas un agente de IA como GitHub Copilot, Claude Code o Codex, puede entrar a Tisty por MCP, con un programa que corre en este equipo, sin cuenta y sin pasar nada por la red. Lo que escribe va firmado con su nombre: «por Claude Code», «por Codex».
-
-Desde ahí, Tisty es su memoria entre sesiones. Empieza preguntando qué cambió desde la última vez, lee el índice de un documento y después solo la sección que necesita, marca los pasos de la tarea en la que está y anota en su bitácora lo que probó y descartó. La próxima sesión parte de ahí, y cuesta una fracción de releer tus archivos Markdown.
-
-- **Puede** proponer tareas, escribir documentos, agregar o corregir en los que puede escribir, anotar y ordenar ideas contigo, y marcar lo que ya cumplió su vida, con el porqué.
-- **Puede decir** que una tarea o un paso está listo. La tarea queda en **Por confirmar** hasta que tú la terminas o la devuelves con **Sigue pendiente**; los pasos te esperan con **Marcarlos** o **Todavía no**.
-- **No puede** cerrar ni borrar una tarea, borrar un documento o una idea, marcar un paso tuyo ni mover un día que pusiste tú. En una tarea que escribiste tú puede cambiar la descripción, la página y los pasos abiertos, como en un documento.
-- **No ve tu diario** mientras no lo abras tú. Abierto, lo lee y solo añade al final de hoy.
-
-Si escribiste en un documento mientras él lo leía, no escribe encima: se le pide que vuelva a leerlo. Y cuando algo escribe en el documento que tienes abierto, la ventana te avisa y te ofrece volver a lo que decía antes.
-
-Cómo conectarlo, cómo darle o quitarle la entrada y cómo pedirle las cosas, paso a paso, está en esta página:
-
-![Paso a paso con tu agente de IA: la página de esta guía que lo cuenta](tisty:agent)
 
 ---
 
