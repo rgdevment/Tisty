@@ -157,7 +157,7 @@ export const unmarked = (text: string, at: number): Moved | null => {
 const FENCE = /^((?:[ \t]*>[ \t]?)*)[ \t]*(`{3,}|~{3,})(.*)$/;
 const IN_QUOTE = /^[ \t]*>/;
 const STANDS_ALONE =
-  /^[ \t]*(?:>[ \t]?)*[ \t]*(?:#{1,6}(?:[ \t]|$)|`{3,}|~{3,}|\||(?:[-*_][ \t]*){3,}$)/;
+  /^[ \t]*(?:>[ \t]?)*[ \t]*(?:#{1,6}(?:[ \t]|$)|`{3,}|~{3,}|\||(?:-[ \t]*){3,}$|(?:\*[ \t]*){3,}$|(?:_[ \t]*){3,}$|=+[ \t]*$)/;
 
 // A fence closes only on a run of its own mark at least as long, or where the quote it opened in ends.
 const inFence = (text: string, at: number) => {

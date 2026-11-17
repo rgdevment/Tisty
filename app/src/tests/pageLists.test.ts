@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { pastedAround } from "../ui/pageBlocks";
+import { linedAs } from "../ui/pageEdits";
 import { addressed } from "../ui/pageFormats";
 import { joinedApart, joinedAt, nested, openedAbove, outdented, unmarked } from "../ui/pageLists";
 import { balanced, worn, wornEach } from "../ui/pageMarks";
@@ -259,6 +260,18 @@ describe("Backspace and Enter at the start of a line's words", () => {
       "Antes.# Título\n\n2. dos\n3. tres",
     ],
     [
+      "keeps the items under a title underlined a list",
+      "Antes.\n\nTítulo\n===\n2. dos\n3. tres",
+      [6, 15],
+      "Antes.===\n\n2. dos\n3. tres",
+    ],
+    [
+      "leaves an item held under a line of mixed marks, which are words",
+      "Antes.\n\nx\n-*-\n2. dos",
+      [6, 10],
+      "Antes.-*-\n2. dos",
+    ],
+    [
       "keeps the list apart after a line whose backticks open no fence",
       "```js``` corre.\n\nAntes.\n\n1. uno\n2. dos",
       [23, 28],
@@ -288,6 +301,14 @@ describe("Backspace and Enter at the start of a line's words", () => {
     const text = "uno\n1. dos\n2. tres";
     const [edit] = joinedApart(text, { from: 0, to: 7, insert: "```" });
     expect(text.slice(0, edit.from) + edit.insert + text.slice(edit.to)).toBe("```dos\n2. tres");
+  });
+
+  it("keeps a caret past the joined line on its letter in a file with Windows line ends", () => {
+    const text = "Antes.\r\n\r\n1. uno\r\n2. dos";
+    const [edit, caret] = linedAs(text, ...joinedApart(text, { from: 6, to: 13, insert: "" }, 14));
+    const now = text.slice(0, edit.from) + edit.insert + text.slice(edit.to);
+    expect(now).toBe("Antes.uno\r\n\r\n2. dos");
+    expect(now[caret]).toBe("d");
   });
 
   it("moves a caret past the joined line by the line end it adds", () => {
