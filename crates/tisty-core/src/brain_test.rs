@@ -236,7 +236,10 @@ fn what_is_gone_leaves_with_what_it_wrote() {
         .unwrap();
     brain
         .db
-        .execute("INSERT INTO card VALUES (?1, 's', '{}')", [&gone_id])
+        .execute(
+            "INSERT OR REPLACE INTO card VALUES (?1, 's', '{}')",
+            [&gone_id],
+        )
         .unwrap();
     brain
         .db
@@ -254,7 +257,15 @@ fn what_is_gone_leaves_with_what_it_wrote() {
     );
     assert!(!held(&brain, "kind").contains_key(&gone_id));
     for table in ["card", "note"] {
-        assert_eq!(counted(&brain.db, table), 0, "{table} still holds it");
+        let left: i64 = brain
+            .db
+            .query_row(
+                &format!("SELECT COUNT(*) FROM {table} WHERE id = ?"),
+                [&gone_id],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(left, 0, "{table} still holds it");
     }
     assert_eq!(
         edges(&brain),

@@ -24,8 +24,15 @@ pub enum Standing {
 
 /// With a deadline, ☀ is the day the work starts; alone, it is the day it is meant for.
 pub fn standing(task: &Task, today: Date) -> Standing {
-    let on = task.date.as_ref().map(|d| d.date());
-    let Some(due) = task.deadline.as_ref().map(|d| d.date()) else {
+    standing_on(
+        task.date.as_ref().map(|d| d.date()),
+        task.deadline.as_ref().map(|d| d.date()),
+        today,
+    )
+}
+
+pub fn standing_on(on: Option<Date>, deadline: Option<Date>, today: Date) -> Standing {
+    let Some(due) = deadline else {
         return match on {
             None => Standing::Undated,
             Some(day) if day < today => Standing::Late,
