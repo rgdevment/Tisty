@@ -57,6 +57,7 @@ export {
   TALLEST,
   tall,
   type WidgetDressing,
+  type WidgetMaking,
   type WidgetWord,
   widgetsDrawn,
 } from "./widgets";

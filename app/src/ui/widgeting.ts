@@ -18,7 +18,7 @@ export {
   tall,
 } from "tisty-sheet";
 
-export const LENDER: Lender = {
+const LENDER: Lender = {
   say: (word, named) => (named === undefined ? t(word) : fill(word, named)),
   dark: () => darkNow(),
   onTheme: (run) => followTheme(run),

@@ -20,7 +20,7 @@ import { stickable, sticking } from "./sticking";
 import { dragging, tabled } from "./tabled";
 import { GLIMPSES } from "./webcarding";
 import { gripped, widening } from "./widening";
-import { LENDER, type Lending } from "./widgeting";
+import { type Lending, lend, notWidget } from "./widgeting";
 
 /** Where a control asked from sits on screen: under it, its top and its right edge. */
 export type Anchor = { x: number; y: number; top?: number; right?: number };
@@ -147,7 +147,7 @@ const fetched = (img: HTMLImageElement, at: string, live: () => boolean) => {
 };
 
 export const widgets = (page: Document, reach?: Reaching): Lending[] =>
-  widgetsDrawn(page, LENDER, (drawn, figure, source, bar) => {
+  widgetsDrawn(page, { refused: notWidget, lent: lend }, (drawn, figure, source, bar) => {
     placeCopied(figure, drawn);
     sources.set(drawn, source);
     if (reach?.onPiece) {

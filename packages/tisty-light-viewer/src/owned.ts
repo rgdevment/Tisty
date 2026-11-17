@@ -4,7 +4,9 @@ import {
   ending,
   type Lender,
   type Lending,
+  lend,
   named,
+  notWidget,
   SEEABLE,
   widgetsDrawn,
 } from "tisty-sheet";
@@ -87,5 +89,9 @@ export const drawnOwn = (
     const src = img.getAttribute("src") ?? "";
     if (attached(src)) attachedAs(page, img, src, () => true, [], host);
   }
-  return widgetsDrawn(page, { say, ...theme });
+  const lender: Lender = { say, ...theme };
+  return widgetsDrawn(page, {
+    refused: (source) => notWidget(source, say),
+    lent: (held, source) => lend(held, source, lender),
+  });
 };

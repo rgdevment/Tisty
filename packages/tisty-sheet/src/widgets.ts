@@ -158,9 +158,14 @@ export type WidgetDressing = (
   bar: HTMLElement,
 ) => void;
 
+export type WidgetMaking = {
+  readonly refused: (source: string) => string | null;
+  readonly lent: (held: HTMLElement, source: string) => Lending;
+};
+
 export const widgetsDrawn = (
   page: Document,
-  lender: Lender,
+  making: WidgetMaking,
   dressed?: WidgetDressing,
 ): Lending[] => {
   const lent: Lending[] = [];
@@ -170,7 +175,7 @@ export const widgetsDrawn = (
     const source = code.textContent ?? "";
     const figure = code.closest("figure");
     if (!figure || !source.trim()) continue;
-    const why = notWidget(source, lender.say);
+    const why = making.refused(source);
     if (why) {
       const said = page.createElement("p");
       said.className = "lit-locked";
@@ -190,7 +195,7 @@ export const widgetsDrawn = (
     const held = page.createElement("div");
     drawn.append(bar, held);
     figure.replaceWith(drawn);
-    lent.push(lend(held, source, lender));
+    lent.push(making.lent(held, source));
   }
   return lent;
 };
