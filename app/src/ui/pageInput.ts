@@ -18,7 +18,7 @@ import {
   unmarked,
 } from "./pageLists";
 import { closedRun, unpaired } from "./pageMarks";
-import { elementOf, ghostly, inCode, onSheet, unwritable } from "./pageNodes";
+import { elementOf, ghostly, inCode, onSheet, sectioned, unwritable } from "./pageNodes";
 import { placeOf } from "./pagePlaces";
 import type { Writer } from "./pageWriter";
 
@@ -32,11 +32,6 @@ const PAIRS: Record<string, string> = {
 // Blocks a key never joins to its neighbour: their marks hold what they are, and the browser's own reach skips them whole.
 const SOLID_BLOCK =
   ".table, figure, details, hr, blockquote[data-callout], .front, [contenteditable='false']";
-
-const sectioned = (page: Document) => {
-  const look = page.documentElement.classList;
-  return look.contains("untitled") && !look.contains("shaping");
-};
 
 const ATOMS = "[contenteditable='false'], img, button";
 

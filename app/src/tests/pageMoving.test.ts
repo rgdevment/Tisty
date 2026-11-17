@@ -37,6 +37,16 @@ describe("a block moved on the page written in place", () => {
     expect(acted(BODY, tops, 0, "up")).toBeNull();
   });
 
+  it("keeps a block on a task's page inside its section, past its neighbours but never its title", () => {
+    const tops = topsOf(sheetOf());
+    expect(acted(BODY, tops, 2, "up", true)).toBeNull();
+    expect(acted(BODY, tops, 2, "down", true)).toBeNull();
+    expect(acted(BODY, tops, 4, "down", true)?.text).toBe(
+      "Intro.\n\n## Uno\n\nTexto uno.\n\n## Dos\n\n1. primero\n2. segundo\n\nTexto dos.\n",
+    );
+    expect(acted(BODY, tops, 3, "up", true)?.text).toBe(acted(BODY, tops, 3, "up")?.text);
+  });
+
   it("takes a title's section up past the whole section above, as down goes past the one below", () => {
     const tops = topsOf(sheetOf());
     expect(acted(BODY, tops, 3, "up")?.text).toBe(
