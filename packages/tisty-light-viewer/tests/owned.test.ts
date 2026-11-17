@@ -6,6 +6,8 @@ const host = vi.hoisted(() => ({
   keptHere: vi.fn(),
   weighs: vi.fn(),
   fileUrl: (real: string) => `asset://${real}`,
+  pictureNear: vi.fn(),
+  pictureFar: vi.fn(),
 }));
 vi.mock("../src/host", () => host);
 
@@ -53,9 +55,12 @@ describe("a document of one's own, drawn apart", () => {
     const page = sheet(
       '<img src="rina.jpg"><img src="https://x.y/a.pdf"><img src="data:image/png;base64,AA=="><img src="tisty:doc/ab">',
     );
+    host.pictureNear.mockResolvedValue("data:image/jpeg;base64,AA==");
     drawnOwn(page, wordsFor("es"), THEME);
     expect(page.querySelectorAll("img")).toHaveLength(4);
     expect(host.weighs).not.toHaveBeenCalled();
+    expect(host.pictureNear).toHaveBeenCalledTimes(1);
+    expect(host.pictureNear).toHaveBeenCalledWith("rina.jpg");
   });
 
   it("draws a widget of HTML and CSS in a frame that runs nothing", () => {

@@ -1,6 +1,5 @@
 import { createSignal, flush, onCleanup, Show } from "solid-js";
 import Bar from "./Bar";
-import { cardsIn } from "./cards";
 import Finder from "./Finder";
 import {
   editAsked,
@@ -91,17 +90,14 @@ export default function App(props: { readonly asked: string | null; readonly clo
     await laidIn(page, now.more ? await theRest() : []);
     setWhole(true);
     everyPiece();
-    bringNearPictures(page, now.own);
+    if (!now.own) bringNearPictures(page);
     setFar(farPictures(page));
     const anchor = arrivingAt();
     const block = remembered(now.path);
     if (anchor) document.getElementById(anchor)?.scrollIntoView({ block: "start" });
     else if (block !== undefined) page.children[block]?.scrollIntoView({ block: "start" });
     void settled(page).catch(fail);
-    const cards = now.own
-      ? await cardsIn(page, words.sayToSheet("untitledDoc")).catch(() => undefined)
-      : undefined;
-    await dress(words, now.own, cards);
+    await dress(page, words, now.own);
   };
 
   void look().catch(async (error_) => {

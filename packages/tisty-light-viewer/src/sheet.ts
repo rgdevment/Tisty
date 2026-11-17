@@ -1,4 +1,3 @@
-import type { Cards } from "tisty-sheet";
 import type { Words } from "./words";
 
 const PAINT_WAIT = 100;
@@ -41,14 +40,15 @@ export const settled = async (page: HTMLElement): Promise<void> => {
 
 export const isDark = (): boolean => document.documentElement.classList.contains("dark");
 
-export const dress = async (
-  words: Words,
-  own = false,
-  cards?: Omit<Cards, "say">,
-): Promise<void> => {
+export const dress = async (page: HTMLElement, words: Words, own = false): Promise<void> => {
   await painted();
   const { readAs } = await import("./drawing");
   const owned = own ? await import("./owned") : null;
+  const cards = own
+    ? await import("./cards")
+        .then(({ cardsIn }) => cardsIn(page, words.sayToSheet("untitledDoc")))
+        .catch(() => undefined)
+    : undefined;
   // In one's own document a web link alone in its paragraph is a card of its site, never a preview brought from it.
   const sites = own ? {} : undefined;
   const brought = owned

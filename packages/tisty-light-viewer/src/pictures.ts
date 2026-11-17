@@ -1,4 +1,3 @@
-import { ending, SEEABLE } from "tisty-sheet";
 import { pictureFar, pictureNear } from "./host";
 
 const NEAR_THE_VIEW = "800px";
@@ -25,11 +24,14 @@ const whenNear = (pictures: HTMLImageElement[], bring: (one: HTMLImageElement) =
   for (const one of pictures) watching.observe(one);
 };
 
-export const bringNearPictures = (page: HTMLElement, own = false): void => {
+export const bringNearPictures = (
+  page: HTMLElement,
+  wanted: (src: string) => boolean = () => true,
+): void => {
   const near = Array.from(page.querySelectorAll("img")).filter((one) => {
     const src = said(one);
     if (src === "" || onTheWeb(src) || inTisty(src)) return false;
-    return !own || SEEABLE.includes(ending(src));
+    return wanted(src);
   });
   whenNear(near, (one) => {
     void pictureNear(said(one)).then(

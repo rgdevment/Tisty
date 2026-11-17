@@ -287,12 +287,12 @@ describe("the pictures", () => {
     expect(only.getAttribute("src")).toBe("../secret.png");
   });
 
-  it("in a document of one's own, leaves an attached file that is no picture for its card", () => {
+  it("brings only the pictures it is asked to, and leaves the rest where they are", () => {
     vi.stubGlobal("IntersectionObserver", undefined);
     delete (window as unknown as Record<string, unknown>).IntersectionObserver;
     host.pictureNear.mockResolvedValue("data:x");
     const page = sheet('<img src="manual.pdf" alt="Manual"><img src="rina.PNG"><img src="b.heic">');
-    bringNearPictures(page, true);
+    bringNearPictures(page, (src) => !src.endsWith(".pdf") && !src.endsWith(".heic"));
     expect(page.querySelectorAll("img")).toHaveLength(3);
     expect(host.pictureNear).toHaveBeenCalledTimes(1);
     expect(host.pictureNear).toHaveBeenCalledWith("rina.PNG");
