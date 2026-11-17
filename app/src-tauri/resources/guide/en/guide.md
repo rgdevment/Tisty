@@ -3,17 +3,41 @@ lang: en
 ---
 # What is Tisty?
 
-Tisty is a quiet place for two things: what you have to do and what you want to keep. The first are **tasks**; the second, **documents**.
+I started building Tisty to solve a problem of my own, and little by little I saw it was not only mine: everyone ran into it, and each solved it their own way.
 
-Everything stays on this computer, as text any program opens. It asks for no account, charges no subscription and sends nothing about how you use it. It is open source: anyone can audit it.
+This is a basic guide. In it you will find what you can do with Tisty, how it can help you through your day, and how I try to complement the work you do with your agents.
 
-And it does not forget. A task you finished is archived with what you wrote in it, and months later a search tells you how you solved it. Neither does the AI agent you work with: connected through MCP, it keeps its memory here and picks up where it left off instead of starting from a blank chat.
+Tisty is a working memory you share with your AI agent, so neither of you starts from zero. You see the whole: where each project stands, what is left and what was decided. Your agent sees every detail: the task it was on, what it tried and what it ruled out. One memory, for both of you.
+
+Your agent asks what moved since last time, opens the task it was on and reads only the section it needs. It works, notes what it did and tells you when something is done; you review it and close it. Nothing closes without you.
+
+What you both keep comes in two kinds: what has to be done is a **task**, and what is worth reading again is a **document**. And finishing erases nothing: a finished task is archived with everything written in it, and months later a search tells how it was solved. All of this works just as well if you do not work with an agent yet.
+
+Everything stays on this computer, as text any program opens. It asks for no account, charges no subscription and sends nothing about how you use it. It is open source: anyone can audit it. There is no company behind it: I make it because I needed it, and I share it.
 
 Read this guide at your own pace: each section stands on its own, and whatever you do not need today can wait. It is a document like any other, so you can touch all of it: click, write, try things. If you ever get lost, the `?` at the foot of the sidebar opens the full help, offline too, and you come back to this guide from Settings → General.
 
+## You and your agent
+
+Working with an agent means splitting the work: you decide where it goes and it takes care of the details. Tisty is made so those two halves understand each other.
+
+### You read it, it reads it
+
+A document in Tisty is a pleasure to read: headings, colours, callouts that bring out what matters, diagrams, tables and checkboxes, instead of a wall of text. Your agent reads the same document its own way: the outline first, then only the section it needs. And when it writes, it writes for you: Tisty asks it to keep things visual, ordered and easy to read, in the same language you use.
+
+### Everything in its place
+
+Tasks go in lists, documents in folders, and what is too much for one go is split into parts. So when you come back to a project after weeks, you see where it stood and your agent knows where to carry on.
+
+How far it reaches: each person has their own Tisty and their own agents. It does not hand out work between people or run a team; when someone needs what you know, you share the document with them.
+
+### What is coming
+
+I am working on Brainsty, Tisty's brain: everything you keep, with what joins it, drawn as one network. You will see it from afar, as a map of all your projects. Your agent will read it up close, as an index that tells it where to look without reading everything. It has no date yet; when it arrives, this guide will tell about it.
+
 ## How does it work?
 
-It all starts with one question: will you do it, or read it again? If you will do it, it is a task: it ends, sometimes the same day, and stays in the Archive as knowledge with a date. If you will read it again, it is a document: a manual, a recipe, a year of minutes, which you correct and add to for years. And if you do not know yet, it is an idea: it waits in Brainstorm until you sort it out. What simply happened, and you want to remember, goes in the Diary. This drawing tells the rest:
+It all starts with one question, and your agent asks it too: will you do it, or read it again? If you will do it, it is a task: it ends, sometimes the same day, and stays in the Archive as knowledge with a date. If you will read it again, it is a document: a manual, a recipe, a year of minutes, which you correct and add to for years. And if you do not know yet, it is an idea: it waits in Brainstorm until you sort it out. What simply happened, and you want to remember, goes in the Diary. This drawing tells the rest:
 
 ```mermaid
 flowchart TD
@@ -44,6 +68,25 @@ flowchart TD
 :::
 
 And if a task teaches you something you will need again, like the fix for a fault that comes back, keep it in a document as well.
+
+---
+
+## Your AI agent
+
+Your AI agent, whether GitHub Copilot, Claude Code, Codex or another, comes into Tisty through MCP, with a program that runs on this computer, with no account and nothing going over the network. What it writes is signed with its name: "by Claude Code", "by Codex".
+
+From then on Tisty is its memory between sessions. Of a document it reads the outline first and then only the section it needs; on the task it is on, it ticks the steps and notes in its journal what it tried and ruled out. The next session starts there, and costs a fraction of rereading your Markdown files.
+
+- **It can** propose tasks, write documents, add to or correct the ones it may write in, jot and sort ideas with you, and mark what has had its day, saying why.
+- **It can say** that a task or a step is done. The task stays in **To confirm** until you finish it or send it back with **Still to do**; the steps wait for you with **Tick them** or **Not yet**.
+- **It cannot** close or delete a task, delete a document or an idea, tick a step of yours or move a day you set. On a task you wrote it may change the description, the page and the open steps, as in a document.
+- **It does not see your diary** until you open it yourself. Open, it reads it and only adds to the end of today.
+
+If you wrote in a document while it was reading it, it does not write over you: it is asked to read it again. And when something writes in the document you have open, the window tells you and offers to go back to what it said before.
+
+How to connect it, how to let it in or keep it out, and how to ask it for things, step by step, is on this page:
+
+![Step by step with your AI agent: the page of this guide that tells it](tisty:agent)
 
 ---
 
@@ -476,25 +519,6 @@ You decide which layer each one reads in: in the detail of a closed task, **Move
 **Search is the way in.** Type a word you remember in the search box at the top of the sidebar (`Ctrl`/`⌘` + `K`) and it comes up, even if you closed it two years ago; if the word is on a task's page, the task comes up. **Try it** once you close your first tasks: look for something you wrote in one of them.
 
 Your AI agent searches here too before starting on something you already solved. Each layer, and how to erase for good, is in [the archive](https://www.tisty.app/docs/archive/).
-
----
-
-## Your AI agent
-
-If you use an AI agent such as GitHub Copilot, Claude Code or Codex, it can come into Tisty through MCP, with a program that runs on this computer, with no account and nothing going over the network. What it writes is signed with its name: "by Claude Code", "by Codex".
-
-From then on Tisty is its memory between sessions. It starts by asking what moved since last time, reads a document's outline and then only the section it needs, ticks the steps of the task it is on and notes in its journal what it tried and ruled out. The next session starts there, and costs a fraction of rereading your Markdown files.
-
-- **It can** propose tasks, write documents, add to or correct the ones it may write in, jot and sort ideas with you, and mark what has had its day, saying why.
-- **It can say** that a task or a step is done. The task stays in **To confirm** until you finish it or send it back with **Still to do**; the steps wait for you with **Tick them** or **Not yet**.
-- **It cannot** close or delete a task, delete a document or an idea, tick a step of yours or move a day you set. On a task you wrote it may change the description, the page and the open steps, as in a document.
-- **It does not see your diary** until you open it yourself. Open, it reads it and only adds to the end of today.
-
-If you wrote in a document while it was reading it, it does not write over you: it is asked to read it again. And when something writes in the document you have open, the window tells you and offers to go back to what it said before.
-
-How to connect it, how to let it in or keep it out, and how to ask it for things, step by step, is on this page:
-
-![Step by step with your AI agent: the page of this guide that tells it](tisty:agent)
 
 ---
 
