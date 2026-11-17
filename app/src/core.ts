@@ -146,7 +146,6 @@ export interface Snapshot extends Dated {
   shelved?: List[];
   every?: List[];
   tags: Counted[];
-  refs: string[];
   counts: Record<string, number>;
   locale?: string;
   agents: Record<string, string>;

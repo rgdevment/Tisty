@@ -200,10 +200,10 @@ impl Store {
     fn catch_up(&mut self) -> Result<()> {
         let active = self.dir.join(ACTIVE);
         let mark = active_mark(&active);
-        if mark == self.seen {
+        self.overtaken = mark != self.seen;
+        if !self.overtaken {
             return self.knows_where_it_stands();
         }
-        self.overtaken = true;
 
         // Another writer appended to the same segment, so a tip folded onto ours would skip
         // their lines and sign a chain nobody can recompute.
@@ -233,6 +233,7 @@ impl Store {
         &self.device
     }
 
+    /// Whether the last write found lines another writer had added since this store last looked.
     pub fn overtaken(&self) -> bool {
         self.overtaken
     }

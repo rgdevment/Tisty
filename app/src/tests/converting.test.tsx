@@ -94,7 +94,6 @@ const shot = (view: View | undefined): Snapshot => ({
   routines: [],
   lists: [],
   tags: [],
-  refs: [],
   counts,
   locale: "en",
   agents: {},

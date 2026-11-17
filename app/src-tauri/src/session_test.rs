@@ -208,3 +208,63 @@ fn what_tisty_made_takes_its_colours_on_the_first_opening_and_a_colour_taken_off
     let again = Session::at(paths).unwrap();
     assert_eq!(again.state.lists[&work].color, None);
 }
+
+fn added(title: &str) -> Op {
+    Op::TaskAdd {
+        id: ulid::Ulid::generate(),
+        d: TaskAdd::new(title.to_string(), "a0"),
+    }
+}
+
+// Opening the door for assistants on a first launch writes this machine's history through a store of its own.
+fn written_beside(paths: &Paths, session: &Session) -> ulid::Ulid {
+    let theirs = ulid::Ulid::generate();
+    tisty_core::Store::open(paths.store(), session.config.device_id.clone())
+        .unwrap()
+        .append(Op::TaskAdd {
+            id: theirs,
+            d: TaskAdd::new("lo que escribió la puerta".to_string(), "a0"),
+        })
+        .unwrap();
+    theirs
+}
+
+#[test]
+fn a_commit_that_finds_another_hand_on_this_machine_reads_it_in_on_the_next_reload() {
+    let kept = tempfile::tempdir().unwrap();
+    let paths = somewhere(&kept);
+    let mut session = Session::at(paths.clone()).unwrap();
+    session.commit(added("comprar pan")).unwrap();
+    let theirs = written_beside(&paths, &session);
+
+    session.commit(added("y leche")).unwrap();
+
+    assert!(
+        session.reload().unwrap(),
+        "the commit found a line it had not read"
+    );
+    assert!(session.state.tasks.contains_key(&theirs));
+}
+
+#[test]
+fn once_caught_up_a_commit_carries_the_cache_instead_of_throwing_it_away() {
+    let kept = tempfile::tempdir().unwrap();
+    let paths = somewhere(&kept);
+    let mut session = Session::at(paths.clone()).unwrap();
+    session.commit(added("comprar pan")).unwrap();
+    written_beside(&paths, &session);
+    session.commit(added("y leche")).unwrap();
+    session.reload().unwrap();
+
+    session.commit(added("y huevos")).unwrap();
+
+    let cache = tisty_core::cache::Cache::open(paths.cache())
+        .unwrap()
+        .expect("the window keeps a cache");
+    assert!(
+        cache
+            .load(&tisty_core::cache::fingerprint(&paths.store()), false)
+            .is_some(),
+        "otherwise every reader rebuilds the cache from the whole history after each task"
+    );
+}
