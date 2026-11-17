@@ -112,6 +112,13 @@ describe("a document picked by its name", () => {
     expect(onPick).toHaveBeenCalledWith(expect.objectContaining({ id: "a2" }));
   });
 
+  it("walks to another with the arrows, as every picker does", async () => {
+    const onPick = vi.fn();
+    render(<Papers all={[paper("Corto", "a1"), paper("Largo", "a2")]} onPick={onPick} />);
+    await userEvent.type(screen.getByLabelText(t("pickADocToLink")), "{ArrowDown}{Enter}");
+    expect(onPick).toHaveBeenCalledWith(expect.objectContaining({ id: "a2" }));
+  });
+
   it("takes none with Enter when the name finds nothing", async () => {
     const onPick = vi.fn();
     render(<Papers all={[paper("Corto", "a1")]} onPick={onPick} />);

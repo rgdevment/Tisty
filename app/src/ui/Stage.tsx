@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef } from "react";
 import { discard, patch, sow } from "../core";
-import { useDesk } from "../desk";
+import { seeing, useDesk } from "../desk";
 import { fill } from "../locales";
 import { saidPlainly } from "../refusal";
 import { afterMove } from "../relocation";
@@ -16,6 +16,7 @@ import Help from "./Help";
 import Keeping from "./Keeping";
 import Lists from "./Lists";
 import Matrix from "./Matrix";
+import Review from "./Review";
 import Spread from "./Spread";
 
 export default function Stage() {
@@ -119,7 +120,7 @@ export default function Stage() {
         opening(one);
       }}
       onSeeTask={(one) => {
-        setChosen(one.list ? { named: "lists", list: one.list } : { named: "tasks", slice: "all" });
+        setChosen(seeing(one));
         opening(one);
       }}
       onBack={bringBack}
@@ -174,6 +175,8 @@ export default function Stage() {
         onOpen={(one) => setSelected(one.id)}
       />
     </div>
+  ) : chosen.named === "weekly" && !sheet ? (
+    <Review />
   ) : chosen.named === "keeping" ? (
     <Keeping
       greeted={greeted}

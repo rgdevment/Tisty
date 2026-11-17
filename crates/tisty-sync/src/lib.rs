@@ -398,10 +398,11 @@ pub fn carry_through(
         if said.is_none() {
             pushed = as_told(&store, aside);
         }
-        if said.as_ref().or(pushed.as_ref()).is_none() {
+        let Some(given) = said.as_ref().or(pushed.as_ref()) else {
             return Err(Trouble::Unreadable(store.display().to_string()));
-        }
+        };
         guarding::allowed_to_write(&store, device)?;
+        shape::raised_to(dest, shape::floor(given))?;
         let marker = dest.join(STORE).join(MARKER);
         if std::fs::read_to_string(&marker).ok().as_deref() != Some(ours.as_str()) {
             write(&marker, ours.as_bytes())?;
@@ -554,7 +555,10 @@ pub fn carry_through(
         moved.took_in.extend(taken.took_in);
     }
     // Last of all, so finding it is finding a round that got to the end.
-    if giving && shape::stamp(data, dest) && shape::shared_with_others(dest, device) {
+    if giving
+        && shape::stamp(data, dest, shape::floor(&told))
+        && shape::shared_with_others(dest, device)
+    {
         shape::mark_raised(data);
     }
     note_carried(aside, dest, device);

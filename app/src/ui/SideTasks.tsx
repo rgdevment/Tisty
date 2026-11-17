@@ -18,6 +18,7 @@ const VIEWS: { key: Named; icon: string }[] = [
   { key: "lists", icon: "rows" },
   { key: "tags", icon: "tag" },
   { key: "archive", icon: "archive" },
+  { key: "weekly", icon: "review" },
 ];
 
 const viewTab = (on: boolean) =>
@@ -101,7 +102,7 @@ export default function SideTasks({
       </div>
       <nav
         aria-label={t("tasksViews")}
-        className="mt-2 grid grid-cols-7 rounded-[10px] bg-hover p-0.5"
+        className="mt-2 grid grid-cols-8 rounded-[10px] bg-hover p-0.5"
       >
         <button
           type="button"

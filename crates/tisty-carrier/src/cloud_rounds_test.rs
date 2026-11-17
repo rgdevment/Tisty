@@ -50,6 +50,81 @@ fn a_file_the_provider_will_not_take_stops_the_push_and_is_named() {
     }
 }
 
+impl Desk {
+    fn filed_a_diary(&self, file: &str) {
+        let body = tisty_core::diary::book(2026, &tisty_core::diary::SPANISH);
+        self.store()
+            .append(Op::DocAdd {
+                id: Ulid::generate(),
+                d: DocAdd {
+                    wrote: None,
+                    guest: false,
+                    sown: false,
+                    made: None,
+                    by: None,
+                    said: Some(tisty_core::event::Said::of(&body)),
+                    file: file.to_string(),
+                    order: "a0".into(),
+                    folder: None,
+                    page_of: None,
+                    task_of: None,
+                    edited: None,
+                },
+            })
+            .unwrap();
+        self.wrote_doc(file, &body);
+    }
+}
+
+fn the_word_up_there(fake: &Fake) -> String {
+    let mut there = Vec::new();
+    fake.fetch("tisty.toml", 0, &mut there).unwrap();
+    String::from_utf8(there).unwrap()
+}
+
+#[test]
+fn a_cloud_given_a_store_with_a_diary_is_left_asking_for_the_release_that_brought_the_diary() {
+    for (setting, fake) in each_kind(|fake| fake) {
+        let who = &setting.name;
+        let (one, _) = pair(&setting);
+        one.wrote("lo de uno");
+        one.filed_a_diary(DOC);
+
+        one.round(Way::Both);
+
+        let said = the_word_up_there(&fake);
+        assert!(
+            said.contains(&format!("needs = \"{}\"", tisty_core::diary::SINCE)),
+            "{who}: the cloud was left readable by older builds: {said}"
+        );
+    }
+}
+
+#[test]
+fn a_cloud_refusing_the_history_of_a_diary_already_has_the_raised_word_up_there() {
+    for (setting, fake) in each_kind(|fake| fake) {
+        let who = &setting.name;
+        let (one, _) = pair(&setting);
+        one.wrote("lo de uno");
+        one.round(Way::Both);
+        one.filed_a_diary(DOC);
+        fake.refusing("store", Hitch::Broke("not taken".into()));
+
+        let _ = one.carry(Way::Both, Holds::Everywhere);
+
+        let said = the_word_up_there(&fake);
+        assert!(
+            said.contains(&format!("needs = \"{}\"", tisty_core::diary::SINCE)),
+            "{who}: older builds could take the diary before learning the cloud was raised: {said}"
+        );
+        let mut doc = Vec::new();
+        assert!(
+            fake.fetch(&doc_name(), 0, &mut doc).is_err(),
+            "{who}: the diary went up although its history was refused"
+        );
+    }
+}
+
 const PHOTO: &[u8] = b"los bytes de una foto";
 
 impl Desk {

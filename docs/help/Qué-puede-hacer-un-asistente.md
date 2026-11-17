@@ -71,7 +71,7 @@ Una tarea que cerraste le llega al asistente con un aviso que lo dice. Se lee ta
 
 ## Tu Diario sigue siendo tuyo
 
-El [Diario](Documentos#diario) queda fuera de la vista de todo asistente hasta que pulsas **Solo tú** arriba y dice **Abierto a los agentes**. Mientras está cerrado, cada herramienta responde sobre él como sobre un documento que no existe, y las búsquedas, las listas y los contadores lo dejan fuera. Abierto, un asistente lo lee y, solo cuando se lo pides, añade al final de hoy bajo una línea con el minuto y su nombre. Lo que cambiaría, movería, marcaría o archivaría lo que escribiste ahí se rechaza. Pulsa el botón otra vez para guardarlo solo para ti. La puerta solo vale en Tisty 1.48 o más nuevo: un equipo tuyo que sigue con una versión anterior muestra el diario a sus agentes como un documento más, así que actualiza todos tus equipos antes de escribir en él.
+El [Diario](Documentos#diario) queda fuera de la vista de todo asistente hasta que pulsas **Solo tú** arriba y dice **Abierto a los agentes**. Mientras está cerrado, cada herramienta responde sobre él como sobre un documento que no existe, y las búsquedas, las listas y los contadores lo dejan fuera. Abierto, un asistente lo lee y, solo cuando se lo pides, añade al final de hoy bajo una línea con el minuto y su nombre. Lo que cambiaría, movería, marcaría o archivaría lo que escribiste ahí se rechaza. Pulsa el botón otra vez para guardarlo solo para ti. Solo Tisty 1.48 o más nuevo conoce esta puerta, así que **Diario** no empieza el diario mientras alguno de tus equipos use una versión anterior, y un equipo anterior deja de sincronizar antes de recibirlo.
 
 ## Marcar un documento en vez de borrarlo
 

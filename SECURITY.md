@@ -545,10 +545,19 @@ the absolute paths of your disk.
 **Your diary is out of its sight until you open it.** While the diary is shut,
 every tool answers about it as about a document that is not there, and nothing
 lists or counts it. Open, an assistant reads it and only adds to the end of
-today, signed; every other change is refused. A computer of yours still on a
-Tisty older than 1.48 keeps syncing and does not know this door: there the diary
-is an ordinary document, which an assistant on that computer reads and can
-change. Update every computer before you write in it.
+today, signed; every other change is refused. Only Tisty 1.48 or later knows
+this door, so the Diary does not start a diary while a computer of yours says
+it runs an older version, or has never said which. Once a diary exists, the
+place you sync with asks for 1.48, and an older computer stops before it reads
+the place. Two gaps stay open:
+
+- A folder kept in step by another program can hand a computer the history
+  before that word. A computer that was unknown when the diary began could take
+  the diary in that moment.
+- A diary you make by hand, by writing `diary: on` in a document's properties
+  or by bringing one in, is not held back. Only the place's word protects it.
+
+A `.tistyx` parcel made with «Export everything» still carries the diary.
 
 **What it says about work being finished only ever adds.** An assistant can mark
 a task as finished, with the account of what it did: one it filed, or one you

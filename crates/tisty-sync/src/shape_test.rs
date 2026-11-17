@@ -16,7 +16,7 @@ fn a_folder_from_before_this_file_existed_is_adopted_rather_than_refused() {
 
     before_reading(&data, &dest).expect("a folder written by an older build was turned away");
 
-    stamp(&data, &dest);
+    stamp(&data, &dest, NEEDS);
     assert!(
         dest.join(NAMED).is_file(),
         "it was adopted without saying so"
@@ -39,7 +39,7 @@ fn a_shape_this_build_does_not_know_stops_it_before_a_byte_is_written() {
 fn a_folder_that_said_its_shape_and_went_quiet_is_not_read_as_empty() {
     let (_room, data, dest) = a_place();
     std::fs::create_dir_all(dest.join(STORE).join("dev_b")).unwrap();
-    stamp(&data, &dest);
+    stamp(&data, &dest, NEEDS);
     before_reading(&data, &dest).unwrap();
 
     std::fs::remove_file(dest.join(NAMED)).unwrap();
@@ -53,7 +53,7 @@ fn a_folder_that_said_its_shape_and_went_quiet_is_not_read_as_empty() {
 #[test]
 fn another_folder_from_before_this_file_is_still_one_to_take_up() {
     let (room, data, dest) = a_place();
-    stamp(&data, &dest);
+    stamp(&data, &dest, NEEDS);
     before_reading(&data, &dest).unwrap();
 
     let older = room.path().join("older");
@@ -88,7 +88,7 @@ fn a_folder_that_already_says_this_shape_is_not_told_again() {
     )
     .unwrap();
 
-    stamp(&data, &dest);
+    stamp(&data, &dest, NEEDS);
 
     assert_eq!(
         said_in(&dest),
@@ -102,7 +102,7 @@ fn a_folder_that_says_more_than_this_build_knows_is_not_told_over() {
     let more = format!("shape = {}\n", OURS + 1);
     std::fs::write(dest.join(NAMED), &more).unwrap();
 
-    stamp(&data, &dest);
+    stamp(&data, &dest, NEEDS);
 
     assert_eq!(said_in(&dest), more);
 }
@@ -112,7 +112,7 @@ fn a_folder_that_says_something_unreadable_is_not_told_over() {
     let (_room, data, dest) = a_place();
     std::fs::write(dest.join(NAMED), "folders = []\n").unwrap();
 
-    stamp(&data, &dest);
+    stamp(&data, &dest, NEEDS);
 
     assert_eq!(said_in(&dest), "folders = []\n");
 }
@@ -122,7 +122,7 @@ fn a_folder_that_says_less_than_this_build_knows_is_told_what_shape_it_is_in() {
     let (_room, data, dest) = a_place();
     std::fs::write(dest.join(NAMED), "shape = 0\n").unwrap();
 
-    stamp(&data, &dest);
+    stamp(&data, &dest, NEEDS);
 
     assert!(said_in(&dest).contains(&format!("shape = {OURS}")));
 }
@@ -132,7 +132,7 @@ fn a_folder_that_was_not_told_but_already_says_its_shape_is_still_remembered() {
     let (_room, data, dest) = a_place();
     std::fs::write(dest.join(NAMED), format!("shape = {OURS}\n")).unwrap();
 
-    stamp(&data, &dest);
+    stamp(&data, &dest, NEEDS);
     std::fs::remove_file(dest.join(NAMED)).unwrap();
 
     assert!(matches!(
@@ -148,7 +148,7 @@ fn a_release_is_later_only_when_its_numbers_say_so_and_one_unread_is_taken_for_l
     assert!(!needs_later("1.35.0-rc.1"));
     assert!(!needs_later(SEALS));
     assert!(!needs_later(TURNS));
-    assert!(needs_later("1.36.1"));
+    assert!(needs_later("1.48.1"));
     assert!(needs_later("1.100.0"));
     assert!(needs_later("2.0.0"));
     assert!(needs_later("pronto"));
@@ -174,13 +174,21 @@ fn a_place_that_asks_for_this_release_is_read_and_one_that_asks_for_a_later_one_
 }
 
 #[test]
+fn the_release_that_brought_the_diary_is_not_later_than_this_build() {
+    assert!(
+        !needs_later(tisty_core::diary::SINCE),
+        "a place raised for the diary would lock this build out"
+    );
+}
+
+#[test]
 fn a_place_older_builds_arranged_is_raised_and_one_already_raised_is_not() {
     let (_room, data, dest) = a_place();
     std::fs::write(dest.join(NAMED), "shape = 1\n").unwrap();
 
-    assert!(stamp(&data, &dest));
+    assert!(stamp(&data, &dest, NEEDS));
     assert!(said_in(&dest).contains(&format!("needs = \"{NEEDS}\"")));
-    assert!(!stamp(&data, &dest));
+    assert!(!stamp(&data, &dest, NEEDS));
 }
 
 #[test]
@@ -217,7 +225,7 @@ fn only_another_machine_s_history_in_the_place_is_someone_left_behind() {
 fn a_new_place_is_arranged_without_warning_anyone() {
     let (_room, data, dest) = a_place();
 
-    assert!(!stamp(&data, &dest));
+    assert!(!stamp(&data, &dest, NEEDS));
     assert!(said_in(&dest).contains(&format!("shape = {OURS}")));
 }
 
@@ -274,7 +282,7 @@ fn a_place_that_says_nothing_or_our_shape_is_not_refused() {
     let (_room, data, dest) = a_place();
     assert_eq!(refuses(&dest), Ok(()));
 
-    stamp(&data, &dest);
+    stamp(&data, &dest, NEEDS);
 
     assert_eq!(refuses(&dest), Ok(()));
 }
@@ -407,10 +415,10 @@ fn a_needs_a_later_build_wrote_is_never_lowered_when_the_place_is_raised() {
 
 #[test]
 fn only_an_older_needs_is_raised() {
-    assert!(needs_earlier("1.30.0"));
-    assert!(!needs_earlier(NEEDS));
-    assert!(!needs_earlier("999.0.0"));
-    assert!(!needs_earlier("not a release"));
+    assert!(needs_earlier("1.30.0", NEEDS));
+    assert!(!needs_earlier(NEEDS, NEEDS));
+    assert!(!needs_earlier("999.0.0", NEEDS));
+    assert!(!needs_earlier("not a release", NEEDS));
 }
 
 #[test]

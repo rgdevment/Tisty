@@ -105,7 +105,9 @@ pub struct Opened {
 /// The print rides back with the save, so only the words the window actually holds are written over.
 #[tauri::command(async)]
 pub fn doc_opened(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<Opened> {
-    let body = read_minded(&session, id)?;
+    let body = read_minded(&session, id.clone())?;
+    let opened_file = held(&session).paths.opened_file();
+    tisty_core::forgotten::opened(&opened_file, &id);
     let print = tisty_core::docs::print_of_text(&body);
     Ok(Opened { body, print })
 }

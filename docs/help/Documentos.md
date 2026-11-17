@@ -73,9 +73,19 @@ Lo que pasó hoy, en la casa o en el trabajo, tiene un solo lugar: **Diario**, c
 - **El cuadro de arriba, «¿Qué pasó hoy?», escribe en hoy**: `Ctrl`/`⌘` + `Enter` o el botón redondo lo guarda. El botón de nota a su lado, **Pegar nota**, lo vuelve una nota adhesiva de hasta 140 caracteres con el minuto en que llegó, a la derecha de hoy, que se guarda con `Enter`. El lápiz abre el mes como documento para cambiar cualquier día; al ir a otro lado, o al tocar **Diario** otra vez, vuelves a la línea de días.
 - **Desde cualquier parte**: en la captura rápida, `Tab` pasa de **Tarea** a **Idea** y después a **Diario**, que escribe en hoy sin abrir la ventana. En una nota de la Lluvia de ideas, **Anexar a un documento** ofrece primero **Diario de hoy**.
 - **Las tareas que terminaste ese día** se pliegan bajo lo que escribiste, como «3 tareas cerradas»; cada una se abre con un clic. Una que descartaste no sale, y un día en el que no escribiste no muestra ninguna. Solo se ven, nunca se escriben en el texto.
-- **Solo tú.** Ningún agente ve tu diario hasta que pulsas **Solo tú** arriba y dice **Abierto a los agentes**. Abierto, un agente lo lee y, solo cuando se lo pides, añade al final de hoy bajo una línea con el minuto y su nombre. Nunca cambia lo que escribiste. Púlsalo otra vez para guardarlo solo para ti. La puerta es una sola para todos los años y para todos tus equipos, y solo vale en Tisty 1.48 o más nuevo: un equipo que sigue con una versión anterior sigue sincronizando y muestra el diario a sus agentes como un documento más. Actualiza todos tus equipos antes de escribir en él.
+- **Solo tú.** Ningún agente ve tu diario hasta que pulsas **Solo tú** arriba y dice **Abierto a los agentes**. Abierto, un agente lo lee y, solo cuando se lo pides, añade al final de hoy bajo una línea con el minuto y su nombre. Nunca cambia lo que escribiste. Púlsalo otra vez para guardarlo solo para ti. La puerta es una sola para todos los años y para todos tus equipos, y solo la conoce Tisty 1.48 o más nuevo. Por eso **Diario** no empieza tu diario mientras alguno de tus equipos use una versión anterior, y te dice cuál: actualízalo o quítalo de tus equipos. Desde que existe un diario, un equipo con una versión anterior deja de sincronizar antes de recibir nada de él y te pide actualizarlo.
 - **Nunca se comparte por link**: el diario no tiene panel lateral ni **Compartir**, y Folio lo rechaza. Sí viaja con tu sincronización y con tus respaldos, como cualquier documento.
 - **El archivo sigue siendo Markdown**: un libro con `diary: on` en sus [propiedades](https://markdown.tisty.app/es/propiedades), cuyas páginas son los meses. Tisty nunca escribe en él por su cuenta.
+
+## Redescubrir lo olvidado
+
+Lo que guardaste y no volviste a abrir vuelve solo a la vista. Al pulsar **Biblioteca**, sobre **Sin carpeta**:
+
+- **Hace tiempo que no abres** lista los documentos que no abriste en este equipo ni nadie escribió en 60 días, el más olvidado primero, con su carpeta y hace cuánto. Muestra cinco, y **Ver los N** despliega el resto. Al pasar el puntero dice si cuenta desde la última vez que lo abriste aquí o desde la última vez que se escribió.
+- **Un documento al azar** abre uno que no hayas abierto esta semana.
+- **Cuenta lo que abres aquí**: el día en que abres un documento se anota solo en este equipo y no viaja con tu sincronización. Abrir una página cuenta para su documento, y abrir uno de sus idiomas, para todos. Antes de esta función no había registro, así que al principio cuenta el día en que se escribió.
+- **No salen** los archivados, los que un agente marcó como pasados, que ya esperan tu decisión, el Diario, la Lluvia de ideas ni la guía de Tisty.
+- **Con el botón derecho** cada uno tiene su menú de siempre: archívalo si ya cumplió.
 
 ## Carpetas
 

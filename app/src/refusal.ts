@@ -260,6 +260,7 @@ const KNOWN = [
   "folderNameTooLong",
   "documentBeingWritten",
   "documentLocked",
+  "diaryBehind",
   "documentAway",
   "folderAway",
   "folderAwayHolds",

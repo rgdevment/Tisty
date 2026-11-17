@@ -78,6 +78,20 @@ export const todayLong = (now = new Date()): string =>
     month: "long",
   }).format(now);
 
+const DAYS_IN_A_MONTH = 30;
+const DAYS_IN_A_YEAR = 365;
+
+export function longAgo(seconds: number, now = new Date()): string {
+  const days = Math.max(0, Math.floor((now.getTime() - seconds * 1000) / 86_400_000));
+  const { relative } = formats();
+  if (days >= DAYS_IN_A_YEAR) return relative.format(-Math.floor(days / DAYS_IN_A_YEAR), "year");
+  if (days >= DAYS_IN_A_MONTH) return relative.format(-Math.floor(days / DAYS_IN_A_MONTH), "month");
+  return relative.format(-days, "day");
+}
+
+export const dateOf = (seconds: number): string =>
+  new Intl.DateTimeFormat(locale(), { dateStyle: "long" }).format(new Date(seconds * 1000));
+
 export const daysFrom = (iso: string, now = new Date()): number =>
   Math.round((midnight(new Date(iso)) - midnight(now)) / 86_400_000);
 

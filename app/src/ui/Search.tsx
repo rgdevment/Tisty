@@ -20,13 +20,12 @@ const LABEL: Record<Scope, "scopeEither" | "scopeOpen" | "scopeArchived"> = {
   archived: "scopeArchived",
 };
 
-export default function Search({ fixed, query: given, onQuery, onFound, onError }: Props) {
-  const [own, setOwn] = useState("");
-  const query = given ?? own;
-  const setQuery = onQuery ?? setOwn;
-  const [attend] = useState(() => !given);
-  const [scope, setScope] = useState<Scope>(fixed ?? "either");
-
+export function useSearch(
+  query: string,
+  scope: Scope,
+  onFound: (found: Found | null) => void,
+  onError: (message: string) => void,
+) {
   useEffect(() => {
     if (!query.trim()) {
       onFound(null);
@@ -47,6 +46,15 @@ export default function Search({ fixed, query: given, onQuery, onFound, onError 
       clearTimeout(timer);
     };
   }, [query, scope, onFound, onError]);
+}
+
+export default function Search({ fixed, query: given, onQuery, onFound, onError }: Props) {
+  const [own, setOwn] = useState("");
+  const query = given ?? own;
+  const setQuery = onQuery ?? setOwn;
+  const [attend] = useState(() => !given);
+  const [scope, setScope] = useState<Scope>(fixed ?? "either");
+  useSearch(query, scope, onFound, onError);
 
   return (
     <div className="w-full">

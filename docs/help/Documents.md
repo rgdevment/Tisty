@@ -73,9 +73,19 @@ What happened today, at home or at work, has one place: **Diary**, near the top 
 - **The box on top, «What happened today?», writes in today**: `Ctrl`/`⌘` + `Enter` or the round button keeps it. The note button beside it, **Stick a note**, turns it into a sticky note of up to 140 characters with the minute it came, on the right of today, kept with `Enter`. The pencil opens the month as a document to change any day; going anywhere else, or choosing **Diary** again, brings back the line of days.
 - **From anywhere**: in the quick capture, `Tab` goes from **Task** to **Idea** and then to **Diary**, which writes in today without opening the window. On a Brainstorm note, **File in a document** offers **Today's diary** first.
 - **Tasks you finished that day** fold under what you wrote, as «3 tasks closed»; each one opens with a click. One you dropped is not listed, and a day you did not write shows none. They are only shown, never written into the text.
-- **Only you.** No agent sees your diary until you press **Only you** at its top and it reads **Open to agents**. Open, an agent reads it and, only when you ask, adds to the end of today under a line with the minute and its name. It never changes what you wrote. Press it again to keep it to yourself. The door is one for every year and for all your computers, and it only holds on Tisty 1.48 or later: a computer still on an older version keeps syncing and shows the diary to its agents as an ordinary document. Update every computer before you write in it.
+- **Only you.** No agent sees your diary until you press **Only you** at its top and it reads **Open to agents**. Open, an agent reads it and, only when you ask, adds to the end of today under a line with the minute and its name. It never changes what you wrote. Press it again to keep it to yourself. The door is one for every year and for all your computers, and only Tisty 1.48 or later knows it. So **Diary** does not start your diary while any computer of yours runs an older version, and names it: update it, or remove it from your computers. Once a diary exists, a computer on an older version stops syncing before it receives any of it, and asks you to update it.
 - **It is never shared by link**: the diary has no side panel and no **Share**, and Folio refuses it. It still travels with your sync and your backups, like every document.
 - **The file is still Markdown**: a book with `diary: on` in its [properties](https://markdown.tisty.app/properties), whose pages are the months. Tisty never writes in it on its own.
+
+## Rediscovering what you forgot
+
+What you kept and never opened again comes back into view on its own. Choose **Library**, and above **Unfiled**:
+
+- **Not opened in a while** lists the documents you did not open on this computer and nobody wrote in 60 days, the most forgotten first, with their folder and how long ago. It shows five, and **See all N** unfolds the rest. Hovering says whether it counts from the last time you opened it here or from the last time it was written.
+- **A document at random** opens one you have not opened this week.
+- **It counts what you open here**: the day you open a document is noted on this computer only and does not travel with your sync. Opening a page counts for its document, and opening one of its languages counts for all of them. There was no record before this feature, so at first it counts from the day it was written.
+- **Left out** are what is archived, what an agent marked as having had its day, which already waits for your call, the Diary, Brainstorm and Tisty's guide.
+- **With the right button** each one has its usual menu: archive it if it has served its turn.
 
 ## Folders
 
