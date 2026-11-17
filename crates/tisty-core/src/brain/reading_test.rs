@@ -210,3 +210,35 @@ fn a_citing_body_is_read_again_only_once_a_round_has_seen_it_move() {
     world.refreshed(&mut brain, &world.state());
     assert_eq!(sections(&brain, &mut headed), ["food"]);
 }
+
+#[test]
+fn a_body_that_could_not_be_read_is_tried_again_on_the_next_ask() {
+    let world = World::new();
+    let mut store = world.store();
+    let (_, vet) = doc(&world, &mut store, "# Vet\n", None, None);
+    let (_, trips) = doc(&world, &mut store, "# Trips\n", None, None);
+    written(
+        &world,
+        &trips,
+        &format!("# Trips\n\n## Hotels\n\n[vet](tisty:doc/{vet})\n"),
+    );
+    let mut brain = world.brain();
+    world.refreshed(&mut brain, &world.state());
+    let at = crate::docs::resolve(&world.paths.docs(), &trips).unwrap();
+    let body = std::fs::read(&at).unwrap();
+    std::fs::remove_file(&at).unwrap();
+    let mut headed = Headed::default();
+
+    let gone = brain
+        .cited_by(&vet, &world.paths.docs(), &mut headed)
+        .unwrap()
+        .unwrap();
+    std::fs::write(&at, body).unwrap();
+    let back = brain
+        .cited_by(&vet, &world.paths.docs(), &mut headed)
+        .unwrap()
+        .unwrap();
+
+    assert!(gone[0].under.is_empty());
+    assert_eq!(back[0].under[0].id, "hotels");
+}

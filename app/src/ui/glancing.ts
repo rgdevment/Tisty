@@ -21,6 +21,11 @@ const drawn = (page: Document, link: Element, said: Glance): HTMLElement => {
   const body = page.createElement("div");
   body.className = "glance-body";
   body.innerHTML = said.html;
+  // Its ids and places name the other document, and the page finds things by both.
+  for (const one of body.querySelectorAll("[id], [data-at]")) {
+    one.removeAttribute("id");
+    one.removeAttribute("data-at");
+  }
   box.append(title, body);
   if (said.more) box.dataset.more = "";
   page.body.append(box);

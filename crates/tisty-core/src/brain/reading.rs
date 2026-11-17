@@ -51,11 +51,16 @@ impl Headed {
             if self.bodies.len() >= HEADED_AT_MOST {
                 self.bodies.clear();
             }
-            let said = crate::docs::read(docs, id)
-                .map(|body| headed(&body))
-                .unwrap_or_default();
-            self.bodies
-                .insert(id.to_string(), (stamp.to_string(), said));
+            // A read that failed is not kept, so the next ask tries the body again.
+            match crate::docs::read(docs, id) {
+                Ok(body) => {
+                    self.bodies
+                        .insert(id.to_string(), (stamp.to_string(), headed(&body)));
+                }
+                Err(_) => {
+                    self.bodies.remove(id);
+                }
+            }
         }
         self.bodies.get(id).map_or(&[], |(_, said)| said.as_slice())
     }

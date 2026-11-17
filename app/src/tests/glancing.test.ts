@@ -44,13 +44,20 @@ describe("a glance at the document a link leads to", () => {
 
   it("takes no press, so nothing in it can write into the open document", async () => {
     const at = page(`<a href="tisty:doc/dev_a-0002#hoteles">hoteles</a>`);
-    glancing(at, () => Promise.resolve({ ...SAID, html: '<ul><li data-at="0-9">x</li></ul>' }));
+    glancing(at, () =>
+      Promise.resolve({
+        ...SAID,
+        html: '<h2 id="hoteles" data-at="0-9">Hoteles</h2><ul><li data-at="10-19">x</li></ul>',
+      }),
+    );
     await rest(at.querySelector("a") as Element);
     const shown = at.querySelector(".glance") as HTMLElement;
 
     shown.querySelector("li")?.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
 
     expect(at.querySelector(".glance")).toBeNull();
+    await rest(at.querySelector("a") as Element);
+    expect(at.querySelector(".glance [data-at], .glance [id]")).toBeNull();
     expect(readFileSync("src/ui/taskpage.css", "utf8")).toMatch(
       /\.glance \{[^}]*pointer-events: none/,
     );
