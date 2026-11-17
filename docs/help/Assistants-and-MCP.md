@@ -147,6 +147,8 @@ What an agent connected to Tisty does on a real piece of work:
 7. **It ends by saying what it did and how it knows it holds.** You review it and close it.
 8. **After reading a long document, it leaves a summary** for the next agent to choose by. When the document changes, the summary is marked stale.
 
+**If it forgets, Tisty asks.** When the agent keeps calling Tisty while the task it opened goes ten minutes without a word from it, or while it writes three other things, the next answer asks it once whether that task is up to date. It names the task and what is missing — the steps still unticked, or that every step is ticked and the task is not said done — and asks it to tick what it did and, if the work is done, to say so with the proof. It never asks for a note of progress, and it asks again only after the agent writes on that task. It reaches every assistant, though only when the assistant calls Tisty. You turn it off in **Settings › Assistants**.
+
 Who owns what stays clear. What your agent files is its own to keep true: it describes it, plans the steps, ticks them and notes what it learns. On what you wrote it works as in a document — the description, the page, the open steps, the title and the list — but a step it calls done waits for you to tick it, the day stays yours and closing is always yours. What only you can do — trying it in the real app, signing, deciding — it does not write as a step of its own task, which it could never tick: it files it as a task of its own for you, in the same list.
 
 ## Signed by name

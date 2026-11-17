@@ -11,6 +11,7 @@ pub struct Agent {
     on: bool,
     called: Option<String>,
     code: Option<String>,
+    asks: bool,
 }
 
 // What another computer is asked to compare before it lets this machine's agent in.
@@ -117,12 +118,25 @@ pub fn agent(session: tauri::State<'_, Mutex<Session>>) -> Answer<Agent> {
     // Read here so a voice turned in the other copy reaches the PATH too, not only a turn in this one.
     let paths = session.paths.clone();
     std::thread::spawn(move || crate::pathing::keep(paths));
+    Ok(as_agent(&session))
+}
+
+fn as_agent(session: &Session) -> Agent {
     let who = session.seated_agent();
-    Ok(Agent {
+    Agent {
         on: who.is_some(),
         code: spoken_by(&session.paths, who),
         called: who.map(|one| tisty_core::config::nicknamed(&one.0)),
-    })
+        asks: session.config.asks_open_task(),
+    }
+}
+
+// Each assistant's own `tisty mcp` reads this when a question is due, so a turn reaches them without a restart.
+#[tauri::command]
+pub fn agent_asks(session: tauri::State<'_, Mutex<Session>>, on: bool) -> Answer<Agent> {
+    let mut session = held(&session);
+    session.keep(|c| c.asks_open_task = (!on).then_some(false))?;
+    Ok(as_agent(&session))
 }
 
 /// Registering is the person's act. Nothing an assistant can say over the wire reaches here,

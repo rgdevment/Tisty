@@ -78,6 +78,11 @@ pub fn reach() -> Reach {
     }
 }
 
+#[tauri::command]
+pub fn reachable() -> Reach {
+    reach()
+}
+
 #[cfg(windows)]
 const WHERE: &str = "Environment";
 

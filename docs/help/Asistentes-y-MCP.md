@@ -147,6 +147,8 @@ Lo que hace un agente conectado a Tisty en un trabajo real:
 7. **Termina diciendo qué hizo y cómo sabe que se sostiene.** Tú lo revisas y la cierras.
 8. **Después de leer un documento largo, deja un resumen** para que el próximo agente elija con él. Si el documento cambia, el resumen queda marcado como desactualizado.
 
+**Si se le olvida, Tisty le pregunta.** Cuando el agente sigue llamando a Tisty y la tarea que abrió lleva diez minutos sin una palabra suya, o mientras escribe otras tres cosas, la siguiente respuesta le pregunta una vez si esa tarea quedó al día. Le nombra la tarea y lo que falta (los pasos sin marcar, o que todos están marcados y no dijo que terminó) y le pide marcar lo que hizo y, si el trabajo está hecho, decirlo con la prueba. Nunca le pide anotar su avance, y vuelve a preguntar solo después de que el agente escribe en esa tarea. Llega a todos los asistentes, aunque solo cuando llaman a Tisty. Lo apagas en **Configuración › Asistentes**.
+
 Quién es dueño de qué queda claro. Lo que anota tu agente es suyo para mantenerlo al día: lo describe, planifica los pasos, los marca y anota lo que aprende. En lo que escribiste tú trabaja como en un documento (la descripción, la página, los pasos abiertos, el título y la lista), pero un paso que da por listo espera a que lo marques, el día sigue siendo tuyo y cerrar siempre es tuyo. Lo que solo puedes hacer tú (probarlo en la app real, firmar, decidir) no lo escribe como paso de su tarea, que nunca podría marcar: lo anota como una tarea aparte para ti, en la misma lista.
 
 ## Firmado con su nombre
