@@ -14,6 +14,7 @@ export type Named =
   | "tags"
   | "archive"
   | "keeping"
+  | "weekly"
   | "help";
 
 export type Tab = "general" | "sync" | "security" | "data" | "agents" | "upkeep" | "about";
@@ -129,6 +130,7 @@ export function accepts(chosen: Chosen): boolean {
   if (chosen.named === "archive" || chosen.named === "search") return false;
   if (chosen.named === "quadrants") return false;
   if (chosen.named === "keeping") return false;
+  if (chosen.named === "weekly") return false;
   if (chosen.named === "help") return false;
 
   if (chosen.named === "tags") return (chosen.tags?.length ?? 0) > 0;

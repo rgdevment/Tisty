@@ -25,6 +25,7 @@ pub mod parts;
 pub mod printing;
 pub mod relocating;
 pub mod reporting;
+pub mod reviewing;
 pub mod rifts;
 pub mod searching;
 pub mod settings;

@@ -16,8 +16,8 @@ import {
 import { clientNamed } from "../who";
 
 const BAR = "mx-auto mb-2 flex w-full flex-wrap items-center gap-x-3 gap-y-1 px-10 text-[11.5px]";
-const MILD = "rounded-[10px] border border-line px-2 py-0.5 text-[11.5px] hover:bg-hover";
-const RISKY = `${MILD} text-urgent`;
+export const MILD = "rounded-[10px] border border-line px-2 py-0.5 text-[11.5px] hover:bg-hover";
+export const RISKY = `${MILD} text-urgent`;
 
 type Target = { doc: Filed } | { task: Task } | "gone" | null;
 
