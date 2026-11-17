@@ -1082,6 +1082,7 @@ export default function Docs({
                   again={again}
                   cited={tasked.task}
                   cards={tasked.said}
+                  onTask={seeTask}
                   onTaskDone={onTaskDone}
                   onTaskStep={onTaskStep}
                   value={body}
