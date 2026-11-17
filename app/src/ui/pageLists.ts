@@ -163,7 +163,7 @@ export const joinedApart = (text: string, gone: Edit): Edit => {
   const ends = left.indexOf("\n", gone.from);
   const item = ends < 0 ? null : LISTED.exec(lineAt(left, ends + 1).line);
   const number = item?.[3];
-  const deep = (item?.[1].replace(/^.*>/, "").length ?? 0) >= 4;
+  const deep = (item?.[1].replace(/^.*>/, "").replace(/\t/g, "    ").length ?? 0) >= 4;
   if (
     !item ||
     number === undefined ||

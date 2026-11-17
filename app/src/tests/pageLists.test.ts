@@ -210,6 +210,12 @@ describe("Backspace and Enter at the start of a line's words", () => {
       [6, 11],
       "Antes.uno\n    2. dos",
     ],
+    [
+      "leaves one indented with a tab as it is",
+      "Antes.\n\n1. uno\n\t2. dos",
+      [6, 11],
+      "Antes.uno\n\t2. dos",
+    ],
   ] as const)("on a join across a line end, %s", (_, text, [from, to], expected) => {
     const edit = joinedApart(text, { from, to, insert: "" });
     expect(text.slice(0, edit.from) + edit.insert + text.slice(edit.to)).toBe(expected);
