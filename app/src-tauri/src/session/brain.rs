@@ -8,31 +8,35 @@ use crate::herald::Nudge;
 
 const EVERY: Duration = Duration::from_secs(30);
 const LISTENS: Duration = Duration::from_secs(1);
+// Typing writes about once a second, and each round reads the whole state again.
+const SETTLES: Duration = Duration::from_secs(5);
 
 pub(super) fn keep(paths: Paths, nudge: Nudge) {
     std::thread::spawn(move || {
         let mut heard = tisty_core::stirring::rung(&paths);
-        let mut round = Instant::now();
+        let mut written = false;
+        let mut last = Instant::now();
         kept(&paths, Round::Starting);
         loop {
             std::thread::sleep(LISTENS);
             let bell = tisty_core::stirring::rung(&paths);
-            let written = nudge.taken() || bell != heard;
-            if !written && round.elapsed() < EVERY {
-                continue;
-            }
+            written |= nudge.taken() || bell != heard;
             heard = bell;
-            round = Instant::now();
-            kept(
-                &paths,
-                if written {
-                    Round::Nudged
-                } else {
-                    Round::Looking
-                },
-            );
+            if let Some(round) = due(written, last.elapsed()) {
+                kept(&paths, round);
+                written = false;
+                last = Instant::now();
+            }
         }
     });
+}
+
+fn due(written: bool, since: Duration) -> Option<Round> {
+    match (written, since) {
+        (true, since) if since >= SETTLES => Some(Round::Nudged),
+        (_, since) if since >= EVERY => Some(Round::Looking),
+        _ => None,
+    }
 }
 
 fn kept(paths: &Paths, round: Round) {
@@ -43,3 +47,7 @@ fn kept(paths: &Paths, round: Round) {
         witness::error(channel::BRAIN, "the brain could not be kept up", &[]);
     }
 }
+
+#[cfg(test)]
+#[path = "brain_test.rs"]
+mod tests;

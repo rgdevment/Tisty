@@ -146,10 +146,13 @@ impl Brain {
              PRAGMA synchronous=NORMAL;
              CREATE TABLE IF NOT EXISTS meta(key TEXT PRIMARY KEY, value TEXT NOT NULL);",
         )?;
+        if schema_of(&db)? == Some(SCHEMA) {
+            return Ok(Some(Self { db }));
+        }
         let tx = db.transaction_with_behavior(TransactionBehavior::Immediate)?;
-        let held = said(&tx, "schema")?.and_then(|one| one.parse::<i64>().ok());
+        let held = schema_of(&tx)?;
         if held.is_some_and(|one| one > SCHEMA) {
-            witness::warn(
+            witness::trace(
                 channel::BRAIN,
                 "a newer Tisty keeps the brain, so this one leaves it be",
                 &[("at", Fact::Path(at.to_path_buf()))],
@@ -183,10 +186,10 @@ impl Brain {
     pub fn refresh(
         &mut self,
         state: &State,
-        docs_root: &Path,
+        bodies: &BTreeMap<String, String>,
         seen: &str,
     ) -> rusqlite::Result<Refreshed> {
-        let wanted = nodes(state, docs_root);
+        let wanted = nodes(state, bodies);
         let tx = self
             .db
             .transaction_with_behavior(TransactionBehavior::Immediate)?;
@@ -240,12 +243,17 @@ impl Brain {
 }
 
 pub fn kept_up(paths: &Paths, round: Round) -> Option<Refreshed> {
+    // A swept store has nothing to index, and a round would put its folders back.
+    if !paths.store().is_dir() {
+        return None;
+    }
     let mut brain = match round {
         Round::Starting => Brain::checked(paths.cache()),
         Round::Nudged | Round::Looking => Brain::open(paths.cache()),
     }?;
     // Taken before the state is read, so whatever lands meanwhile leaves a stamp the next round misses.
-    let seen = seen_on_disk(paths);
+    let bodies = crate::docs::told_bodies(&paths.docs());
+    let seen = seen_on_disk(paths, &bodies);
     // On Windows the directory entry lags a write, so a nudge never trusts the stamp.
     if round != Round::Nudged && brain.seen().as_deref() == Some(seen.as_str()) {
         return Some(Refreshed::Unchanged);
@@ -261,7 +269,7 @@ pub fn kept_up(paths: &Paths, round: Round) -> Option<Refreshed> {
             return None;
         }
     };
-    match brain.refresh(&state, &paths.docs(), &seen) {
+    match brain.refresh(&state, &bodies, &seen) {
         Ok(done) => {
             if done != Refreshed::Unchanged {
                 brain.compact_if_worth_it();
@@ -283,15 +291,15 @@ pub fn kept_up(paths: &Paths, round: Round) -> Option<Refreshed> {
     }
 }
 
-fn seen_on_disk(paths: &Paths) -> String {
-    format!(
-        "{}\u{1}{}",
-        crate::cache::fingerprint(&paths.store()),
-        crate::docs::print(&paths.docs())
-    )
+fn seen_on_disk(paths: &Paths, bodies: &BTreeMap<String, String>) -> String {
+    let mut seen = crate::cache::fingerprint(&paths.store());
+    for (id, told) in bodies {
+        seen.push_str(&format!("\u{1}{id}:{told}"));
+    }
+    seen
 }
 
-fn nodes(state: &State, docs_root: &Path) -> BTreeMap<String, Node> {
+fn nodes(state: &State, bodies: &BTreeMap<String, String>) -> BTreeMap<String, Node> {
     let mut all = BTreeMap::new();
     for kept in state.papers() {
         let told = serde_json::to_string(kept).unwrap_or_default();
@@ -303,7 +311,7 @@ fn nodes(state: &State, docs_root: &Path) -> BTreeMap<String, Node> {
                     None => Kind::Doc,
                 },
                 title: kept.title.clone().unwrap_or_else(|| kept.file.clone()),
-                stamp: stamped(&[&told, &body_on_disk(docs_root, &kept.file)]),
+                stamp: stamped(&[&told, bodies.get(&kept.file).map_or("", String::as_str)]),
             },
         );
     }
@@ -349,22 +357,6 @@ fn without_its_bodies(task: &crate::Task) -> String {
     serde_json::to_string(&light).unwrap_or_default()
 }
 
-fn body_on_disk(docs_root: &Path, file: &str) -> String {
-    let Some(told) = crate::docs::resolve(docs_root, file)
-        .ok()
-        .and_then(|at| std::fs::metadata(at).ok())
-    else {
-        return String::new();
-    };
-    let when = told
-        .modified()
-        .ok()
-        .and_then(|at| at.duration_since(std::time::UNIX_EPOCH).ok())
-        .map(|since| since.as_nanos())
-        .unwrap_or_default();
-    format!("{}:{when}", told.len())
-}
-
 fn stamped(parts: &[&str]) -> String {
     let mut hasher = Sha256::new();
     for part in parts {
@@ -378,6 +370,10 @@ fn stamps(db: &Connection) -> rusqlite::Result<BTreeMap<String, String>> {
     let mut asked = db.prepare("SELECT id, stamp FROM node")?;
     let rows = asked.query_map([], |row| Ok((row.get(0)?, row.get(1)?)))?;
     rows.collect()
+}
+
+fn schema_of(db: &Connection) -> rusqlite::Result<Option<i64>> {
+    Ok(said(db, "schema")?.and_then(|one| one.parse().ok()))
 }
 
 fn said(db: &Connection, key: &str) -> rusqlite::Result<Option<String>> {
@@ -395,7 +391,8 @@ fn damaged(e: &rusqlite::Error) -> bool {
 }
 
 fn forget(cache_dir: &Path) -> bool {
-    ["", "-wal", "-shm"].iter().all(|tail| {
+    // The journal goes first: one left beside a fresh base would be replayed into it.
+    ["-wal", "-shm", ""].iter().all(|tail| {
         let at = cache_dir.join(format!("{FILE}{tail}"));
         match std::fs::remove_file(&at) {
             Ok(()) => true,

@@ -32,7 +32,9 @@ impl World {
     }
 
     fn refreshed(&self, brain: &mut Brain, state: &State) -> Refreshed {
-        brain.refresh(state, &self.paths.docs(), "seen").unwrap()
+        brain
+            .refresh(state, &docs::told_bodies(&self.paths.docs()), "seen")
+            .unwrap()
     }
 }
 
@@ -313,7 +315,7 @@ fn a_file_that_is_no_database_is_built_again() {
 
     assert_eq!(
         brain
-            .refresh(&State::default(), dir.path(), "seen")
+            .refresh(&State::default(), &BTreeMap::new(), "seen")
             .unwrap(),
         Refreshed::Unchanged
     );
@@ -326,7 +328,7 @@ fn damage_deep_in_the_file_is_found_at_the_start_of_a_run() {
         let mut brain = Brain::open(dir.path()).unwrap();
         let mut state = State::default();
         crowded(&mut state, 400);
-        brain.refresh(&state, dir.path(), "seen").unwrap();
+        brain.refresh(&state, &BTreeMap::new(), "seen").unwrap();
         brain
             .db
             .execute_batch("PRAGMA wal_checkpoint(TRUNCATE)")
@@ -395,10 +397,10 @@ fn room_left_by_what_was_removed_is_given_back() {
     let mut brain = Brain::open(dir.path()).unwrap();
     let mut state = State::default();
     crowded(&mut state, 3000);
-    brain.refresh(&state, dir.path(), "full").unwrap();
+    brain.refresh(&state, &BTreeMap::new(), "full").unwrap();
 
     brain
-        .refresh(&State::default(), dir.path(), "empty")
+        .refresh(&State::default(), &BTreeMap::new(), "empty")
         .unwrap();
     brain.compact_if_worth_it();
 
@@ -431,4 +433,29 @@ fn sample_task() -> crate::Task {
         },
     ));
     state.tasks.remove(&id).unwrap()
+}
+
+#[test]
+fn a_swept_store_is_not_put_back() {
+    let world = World::new();
+
+    assert_eq!(kept_up(&world.paths, Round::Nudged), None);
+    assert!(
+        !world.paths.cache().exists(),
+        "the round made the cache again"
+    );
+}
+
+#[test]
+fn a_damaged_base_leaves_no_journal_behind() {
+    let dir = tempfile::tempdir().unwrap();
+    for tail in ["", "-wal", "-shm"] {
+        std::fs::write(dir.path().join(format!("{FILE}{tail}")), b"left").unwrap();
+    }
+
+    assert!(forget(dir.path()));
+
+    for tail in ["", "-wal", "-shm"] {
+        assert!(!dir.path().join(format!("{FILE}{tail}")).exists());
+    }
 }
