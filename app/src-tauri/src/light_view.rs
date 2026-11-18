@@ -7,6 +7,7 @@ use base64::Engine as _;
 use base64::engine::general_purpose::STANDARD as BASE64;
 use percent_encoding::percent_decode_str;
 use tauri::{AppHandle, Manager};
+use tisty_core::witness::{self, channel};
 
 use crate::answers::cards::{Asked, Glimpses, Named, Seen};
 use crate::viewing::{Paper, Shown, Views, doc_body, named, place_of, shown_in};
@@ -56,7 +57,14 @@ impl Source {
                 Err(Refusal::about("noSuchDoc", paper.file.clone()))
             }
             // Only a link to what is not here says so: a document of the store that will not open could not be read.
-            Self::Own(paper) => crate::viewing::body_or(app, &paper.file, "cannotRead"),
+            Self::Own(paper) => crate::viewing::body_or(app, &paper.file, "cannotRead")
+                .inspect_err(|_| {
+                    witness::warn(
+                        channel::WINDOW,
+                        "a document of the store would not read",
+                        &[],
+                    );
+                }),
         }
     }
 }
