@@ -69,10 +69,11 @@ export default function Preview({ neuron, ties, zone, onOpen, onClose }: Props) 
           .join(" · ")}
       </p>
       {neuron.kind === "task" && (
-        <div className="h-32 shrink-0 overflow-hidden">
+        <div className="scroller max-h-56 shrink-0">
           <Page
             body={`${taskCard(neuron.id, neuron.title)}\n`}
             label={neuron.title}
+            tall
             cardsShown={TASKS}
             onDoc={() => undefined}
             onTask={onOpen}
