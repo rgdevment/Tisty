@@ -23,14 +23,14 @@ Tisty le deja una puerta a tu agente, y la manejas tú. Viene abierta al instala
 Nada escucha hasta que conectas uno: el asistente arranca Tisty cuando lo necesita, en este equipo, sin puerto ni cuenta.
 
 > [!WARNING]
-> Lo que un asistente lee se lo lleva al servicio con el que trabaja. Con los hooks de Tisty agregados, cada sesión empieza con los títulos de algunas tareas aunque el agente no llame a Tisty, y también viajan. Más en [privacidad](https://www.tisty.app/es/ayuda/privacidad/).
+> Lo que un asistente lee se lo lleva al servicio con el que trabaja, y eso vale también para lo que le llega al empezar cada sesión con los hooks, más abajo. Más en [privacidad](https://www.tisty.app/es/ayuda/privacidad/).
 
 ## Que no se le olvide anotar
 
 Un agente concentrado en el código se olvida de Tisty. Hay dos ayudas, y las dos se apagan en **Configuración → Asistentes**:
 
 - **Pedirle que deje su tarea al día**: si sigue trabajando y la tarea que abrió lleva diez minutos sin una palabra suya, o mientras escribe otras tres cosas, la siguiente respuesta de Tisty le pide una vez que marque lo que hizo y, si terminó, que lo diga con la prueba. Llega a todos los asistentes, aunque solo cuando llaman a Tisty.
-- **Los hooks**: en Claude Code, Cursor, Gemini CLI y GitHub Copilot, **Agregar**, bajo la fila del asistente conectado, te dice qué archivo va a escribir y pone ahí los hooks de Tisty. Desde su próxima sesión, cada una empieza con las últimas tareas abiertas en que escribieron tus agentes, lo que se movió y lo que apremia. Y si un turno editó archivos sin escribir nada en Tisty, se lo devuelve una vez para que marque lo terminado. **Quitar** los saca, y **Recordarle al empezar y al terminar cada turno** los apaga sin quitarlos.
+- **Los hooks**: en Claude Code, Cursor, Gemini CLI y GitHub Copilot, **Agregar**, bajo la fila del asistente conectado, te dice qué archivo va a escribir y pone ahí los hooks de Tisty. Desde su próxima sesión, cada una empieza con las últimas tareas abiertas en que escribieron tus agentes, lo que se movió y lo que apremia, aunque el agente no llame a Tisty, mientras la puerta esté abierta. Y si un turno editó archivos sin escribir nada en Tisty, se lo devuelve una vez para que marque lo terminado. **Quitar** los saca, y **Recordarle al empezar y al terminar cada turno** los apaga sin quitarlos.
 
 ## Lo que puede hacer
 
@@ -78,6 +78,6 @@ Y con `@` le pasas un documento por su título.
 - Pedirle que borre: marca lo que ya cumplió su vida, y borrarlo es tuyo, de un clic.
 - Esperar que cierre una tarea: cuando dice que terminó, la tarea te espera en **Por confirmar**.
 - Conectar el mismo asistente de dos formas, con el plugin y desde Configuración: vería cada herramienta dos veces.
-- Olvidar reiniciar el asistente después de conectarlo o de agregarle los hooks: los lee al abrirse.
+- Olvidar reiniciar el asistente después de conectarlo: lee su configuración al abrirse. Los hooks, en cambio, corren desde su próxima sesión.
 
 Lo que hace cada herramienta está en [herramientas MCP](https://www.tisty.app/es/ayuda/herramientas-mcp/).

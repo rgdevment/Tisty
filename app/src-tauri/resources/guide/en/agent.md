@@ -23,14 +23,14 @@ Tisty leaves your agent a door, and you hold it. It comes open when you install,
 Nothing listens until you connect one: the assistant starts Tisty when it needs it, on this computer, with no port and no account.
 
 > [!WARNING]
-> Whatever an assistant reads, it takes to the service it works with. With Tisty's hooks added, every session starts with the titles of a few tasks even if the agent never calls Tisty, and those travel too. More in [privacy](https://www.tisty.app/docs/privacy/).
+> Whatever an assistant reads, it takes to the service it works with, and that includes what reaches it when each session starts with the hooks, below. More in [privacy](https://www.tisty.app/docs/privacy/).
 
 ## So it does not forget to write things down
 
 An agent deep in code forgets about Tisty. Two things help, and you can turn both off in **Settings → Assistants**:
 
 - **Ask it to keep its task up to date**: if it keeps working and the task it opened has gone ten minutes without a word from it, or while it writes three other things, Tisty's next answer asks it once to tick what it did and, if it finished, to say so with the proof. It reaches every assistant, though only when it calls Tisty.
-- **The hooks**: in Claude Code, Cursor, Gemini CLI and GitHub Copilot, **Add**, under the row of the connected assistant, tells you which file it will write and puts Tisty's hooks there. From its next session on, every session starts with the last open tasks your agents wrote in, what moved and what is pressing. And if a turn edited files without writing anything in Tisty, it hands the turn back once so it ticks what it finished. **Remove** takes them out, and **Remind it when a turn starts and ends** turns them off without taking them out.
+- **The hooks**: in Claude Code, Cursor, Gemini CLI and GitHub Copilot, **Add**, under the row of the connected assistant, tells you which file it will write and puts Tisty's hooks there. From its next session on, every session starts with the last open tasks your agents wrote in, what moved and what is pressing, even if the agent never calls Tisty, while the door is open. And if a turn edited files without writing anything in Tisty, it hands the turn back once so it ticks what it finished. **Remove** takes them out, and **Remind it when a turn starts and ends** turns them off without taking them out.
 
 ## What it can do
 
@@ -78,6 +78,6 @@ And with `@` you hand it a document by its title.
 - Asking it to delete: it marks what had its day, and deleting is yours, in one click.
 - Expecting it to close a task: when it says it finished, the task waits for you in **To confirm**.
 - Connecting the same assistant two ways, with the plugin and from Settings: it would see every tool twice.
-- Forgetting to restart the assistant after connecting it or adding its hooks: it reads them when it starts.
+- Forgetting to restart the assistant after connecting it: it reads its settings when it starts. The hooks, instead, run from its next session.
 
 What each tool does is in [MCP tools](https://www.tisty.app/docs/mcp-tools/).
