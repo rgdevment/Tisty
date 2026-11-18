@@ -4,7 +4,7 @@ What an assistant may do is deliberately small. Finishing, dropping and deleting
 
 ## Allowed
 
-- **File a task** with its steps, its date and the list it belongs in.
+- **File a task** with its steps, its parts, its date, its priority, its tags and the list it belongs in. Without one of your lists it lands in the inbox, and everything it files carries the tag `#agent`.
 - **Set an hour** for a task to ring at.
 - **Move the day** of a task an agent filed, when what it learns moves it.
 - **Say a task is done**, or that it should not be done — any task, yours too. It marks it for you to confirm and closes nothing.
@@ -26,7 +26,10 @@ What an assistant may do is deliberately small. Finishing, dropping and deleting
 
 ## Never
 
-- Close a task, or delete one.
+- Close a task, reopen it or delete it.
+- Create a list or set a routine.
+- Undo or redo what you did.
+- Touch sync, settings or your computers.
 - Tick a step of yours, or finish a task of yours: it can only say they are done.
 - Move a day **you** set.
 - Delete a document, or rename or delete a folder.

@@ -4,7 +4,7 @@ Lo que un asistente puede hacer es pequeño a propósito. Terminar, descartar y 
 
 ## Puede
 
-- **Anotar una tarea** con sus pasos, su fecha y la lista a la que pertenece.
+- **Anotar una tarea** con sus pasos, sus partes, su fecha, su prioridad, sus etiquetas y la lista a la que pertenece. Sin una de tus listas entra en la bandeja, y todo lo que anota lleva la etiqueta `#agent`.
 - **Ponerle una hora** para que suene.
 - **Mover el día** de una tarea que anotó un agente, cuando lo que averigua lo cambia.
 - **Decir que una tarea está hecha**, o que no debería hacerse: cualquier tarea, también las tuyas. La marca para que la confirmes y no cierra nada.
@@ -26,7 +26,10 @@ Lo que un asistente puede hacer es pequeño a propósito. Terminar, descartar y 
 
 ## Nunca
 
-- Cerrar una tarea ni borrarla.
+- Cerrar una tarea, reabrirla ni borrarla.
+- Crear una lista o poner una rutina.
+- Deshacer ni rehacer lo que hiciste tú.
+- Tocar la sincronización, los ajustes o tus equipos.
 - Marcar un paso tuyo o terminar una tarea tuya: solo puede decir que están listos.
 - Mover un día que pusiste **tú**.
 - Borrar un documento, ni renombrar o borrar una carpeta.
