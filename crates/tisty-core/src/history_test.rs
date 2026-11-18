@@ -570,3 +570,56 @@ fn a_copy_that_will_not_move_does_not_keep_the_others_from_moving() {
         "the copy that could not move was thrown away"
     );
 }
+
+#[test]
+fn a_save_that_cuts_nothing_writes_the_marker_of_the_step_back_no_more() {
+    let (room, docs) = desk();
+    let data = room.path();
+    let shelf = data.join("history").join(DOC);
+    crate::docs::create_named_by(&docs, &person(data, 0), DOC, UNO).unwrap();
+    crate::docs::write_by(&docs, &person(data, 1), DOC, DOS).unwrap();
+    assert!(
+        !shelf.join("state.json").exists(),
+        "a document with no version and no step back was given a marker"
+    );
+
+    crate::docs::rewrite(&docs, &assistant(data, 2), DOC, TRES, &print(DOS)).unwrap();
+    let marked = std::fs::metadata(shelf.join("state.json"))
+        .unwrap()
+        .modified()
+        .unwrap();
+    std::thread::sleep(std::time::Duration::from_millis(20));
+    crate::docs::write_by(&docs, &assistant(data, 3), DOC, CUATRO).unwrap();
+    crate::docs::write_by(&docs, &assistant(data, 4), DOC, UNO).unwrap();
+
+    assert_eq!(
+        std::fs::metadata(shelf.join("state.json"))
+            .unwrap()
+            .modified()
+            .unwrap(),
+        marked,
+        "a save that cut nothing and moved no step back wrote the marker again"
+    );
+    assert_eq!(cut_kept(data), vec![print(DOS)]);
+}
+
+#[test]
+fn who_wrote_last_torn_by_a_crash_makes_the_next_write_cut_and_leaves_the_step_back() {
+    let (room, docs) = desk();
+    let data = room.path();
+    crate::docs::create_named_by(&docs, &assistant(data, 0), DOC, UNO).unwrap();
+    crate::docs::rewrite(&docs, &assistant(data, 1), DOC, DOS, &print(UNO)).unwrap();
+
+    std::fs::write(
+        data.join("history").join(DOC).join("last.json"),
+        b"{\"at\":\"20",
+    )
+    .unwrap();
+
+    assert_eq!(back(data, DOC).map(|one| one.body).as_deref(), Some(UNO));
+    crate::docs::write_by(&docs, &assistant(data, 2), DOC, TRES).unwrap();
+    assert!(
+        cut_kept(data).contains(&print(DOS)),
+        "a writer nobody can name any more was taken for the same one"
+    );
+}

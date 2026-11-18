@@ -2,7 +2,7 @@ use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
 
-use crate::store::write_atomic;
+use crate::store::{write_atomic, write_in_place};
 use crate::witness::{self, Fact, channel};
 use crate::{Error, Result};
 
@@ -10,6 +10,7 @@ pub const FOLDER: &str = "history";
 const ORIGINALS: &str = "originals";
 const ORIGINALS_AT: &str = "originals-at";
 const MARKER: &str = "state.json";
+const LAST: &str = "last.json";
 const EXTENSION: &str = "md";
 const PRUNED: &str = ".pruned";
 
@@ -86,31 +87,51 @@ impl<'a> Writer<'a> {
         if print == leaves {
             return Ok(());
         }
-        let mut told = Told::read(&shelf);
-        let before = told
-            .last
-            .as_ref()
-            .filter(|one| one.print == print)
-            .map(|one| (one.at, one.via.as_deref()));
-        let cut = !self.answered || cuts(before, self.at, self.via.as_deref());
-        let mut stepped_from = None;
+        let before = Last::read(&shelf).filter(|one| one.print == print);
+        let weighed = before.as_ref().map(|one| (one.at, one.via.as_deref()));
+        let cut = !self.answered || cuts(weighed, self.at, self.via.as_deref());
+        // A save that cuts nothing and moves no step back pays no synced write beyond the body's own.
+        if cut || step != Step::Stays {
+            self.kept_and_told(&shelf, &print, &leaves, was, step, cut)?;
+        }
+        // A body nobody answers for has no writer to weigh the next write against, so that one cuts too.
+        match self.answered {
+            true => self.last(leaves).say(&shelf),
+            false => {
+                let _ = std::fs::remove_file(shelf.join(LAST));
+                Ok(())
+            }
+        }
+    }
 
+    fn kept_and_told(
+        &self,
+        shelf: &Path,
+        print: &str,
+        leaves: &str,
+        was: &[u8],
+        step: Step,
+        cut: bool,
+    ) -> Result<()> {
+        let stood = Told::read(shelf);
+        let mut told = stood.clone();
+        let mut stepped_from = None;
         match step {
             Step::Back => {
-                let spare = !cut && told.spare_as_back(&shelf, &print);
+                let spare = !cut && told.spare_as_back(shelf, print);
                 // A version already kept is replaced again only when the cut says so, or its day would move.
-                if cut || !stands(&shelf, &print) {
-                    kept(&shelf, &print, was, self.at)?;
+                if cut || !stands(shelf, print) {
+                    kept(shelf, print, was, self.at)?;
                 }
                 stepped_from = told.back.replace(Back {
-                    print: print.clone(),
-                    left: Some(leaves.clone()),
+                    print: print.to_string(),
+                    left: Some(leaves.to_string()),
                     spare,
                 });
             }
             Step::Stays | Step::Follows => {
                 if cut {
-                    kept(&shelf, &print, was, self.at)?;
+                    kept(shelf, print, was, self.at)?;
                     if let Some(back) = told.back.as_mut().filter(|one| one.print == print) {
                         back.spare = false;
                     }
@@ -119,22 +140,27 @@ impl<'a> Writer<'a> {
                     && let Some(back) = told
                         .back
                         .as_mut()
-                        .filter(|one| one.left.as_deref() == Some(print.as_str()))
+                        .filter(|one| one.left.as_deref() == Some(print))
                 {
-                    back.left = Some(leaves.clone());
+                    back.left = Some(leaves.to_string());
                 }
             }
         }
         if cut {
-            told.newest = Some(print);
+            told.newest = Some(print.to_string());
         }
-        // A body nobody answers for has no writer to weigh the next write against, so that one cuts too.
-        told.last = self.answered.then(|| Last {
+        match told == stood {
+            true => Ok(()),
+            false => told.save_stepping(shelf, stepped_from),
+        }
+    }
+
+    fn last(&self, print: String) -> Last {
+        Last {
             at: self.at,
             via: self.via.clone(),
-            print: leaves,
-        });
-        told.save_stepping(&shelf, stepped_from)
+            print,
+        }
     }
 
     /// For a write that keeps no step back: one whose version cannot be kept is still written.
@@ -152,17 +178,15 @@ impl<'a> Writer<'a> {
     }
 
     /// A new body replaces nothing: it only says who wrote it and when, for the next write to weigh.
-    pub fn begins(&self, id: &str, body: &str) {
+    pub fn begins(&self, id: &str, body: impl AsRef<[u8]>) {
+        if !self.answered {
+            return;
+        }
         let Ok(shelf) = shelf(self.data, id) else {
             return;
         };
-        let mut told = Told::read(&shelf);
-        told.last = Some(Last {
-            at: self.at,
-            via: self.via.clone(),
-            print: crate::docs::print_of_text(body),
-        });
-        if let Err(e) = told.save(&shelf) {
+        let print = crate::docs::print_of_bytes(body.as_ref());
+        if let Err(e) = self.last(print).say(&shelf) {
             witness::warn(
                 channel::STORE,
                 "who began a document could not be noted, so its first change keeps a version",
@@ -175,12 +199,32 @@ impl<'a> Writer<'a> {
     }
 }
 
+/// Who wrote the body that stands, kept apart from the step back and without a synced write:
+/// every save says it again, and one torn by a crash only makes the next write cut.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 struct Last {
     at: jiff::Timestamp,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     via: Option<String>,
     print: String,
+}
+
+impl Last {
+    fn read(shelf: &Path) -> Option<Self> {
+        serde_json::from_slice(&std::fs::read(shelf.join(LAST)).ok()?).ok()
+    }
+
+    fn say(&self, shelf: &Path) -> Result<()> {
+        let said = serde_json::to_vec(self).map_err(|e| Error::Io(std::io::Error::other(e)))?;
+        let at = shelf.join(LAST);
+        if write_in_place(&at, &said).is_ok() {
+            return Ok(());
+        }
+        raised(shelf)?;
+        write_in_place(&at, &said)?;
+        let _ = crate::paths::ours_alone(&at);
+        Ok(())
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -193,10 +237,8 @@ struct Back {
     spare: bool,
 }
 
-#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 struct Told {
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    last: Option<Last>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     back: Option<Back>,
     #[serde(default, skip_serializing_if = "Option::is_none")]

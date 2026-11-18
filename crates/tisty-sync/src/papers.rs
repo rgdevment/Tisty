@@ -304,7 +304,8 @@ pub(crate) fn carry_papers_leaning_on(
                     let whole = joined(data, id, &mine, text.as_deref(), said.of(id), reaches);
                     match whole {
                         Some(whole) => {
-                            let by = tisty_core::history::Writer::now(data, None);
+                            // Nobody wrote the joined body and no line of the log answers for it yet.
+                            let by = tisty_core::history::Writer::unanswered(data);
                             set_aside(&by, id, &mine, whole.as_bytes(), answer);
                             write(&mine, whole.as_bytes())?;
                             done.brought += 1;
@@ -515,8 +516,11 @@ fn arriving<'a>(
 
 fn set_aside(by: &tisty_core::history::Writer, id: &str, mine: &Path, left: &[u8], answer: Answer) {
     use tisty_core::history::Step;
-    let Ok(Some(was)) = tisty_core::docs::whole_of(mine) else {
-        return;
+    let was = match tisty_core::docs::whole_of(mine) {
+        Ok(Some(was)) => was,
+        // A body landing where none stood replaces nothing, and the next arrival is weighed against its writer.
+        Ok(None) => return by.begins(id, left),
+        Err(_) => return,
     };
     let step = match answer {
         Answer::Doubtful => Step::Back,
