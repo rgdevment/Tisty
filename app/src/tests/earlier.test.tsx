@@ -9,6 +9,7 @@ import Beside from "../ui/Beside";
 import type { Run } from "../ui/Card";
 import Docs from "../ui/Docs";
 import Earlier from "../ui/Earlier";
+import { toFirstChange } from "../ui/EarlierCompared";
 import EarlierLimit from "../ui/EarlierLimit";
 import TaskWords from "../ui/TaskWords";
 import { knowAgents } from "../who";
@@ -23,6 +24,7 @@ const ipc = vi.hoisted(() => ({
   kept: null as number | null,
   moved: false,
   full: false,
+  compared: null as unknown,
 }));
 
 vi.mock("@tauri-apps/api/core", async () => ({
@@ -56,6 +58,16 @@ vi.mock("@tauri-apps/api/core", async () => ({
         return Promise.resolve(2);
       case "keep_history_days":
         return Promise.resolve(args.days);
+      case "doc_compared":
+        if (ipc.compared instanceof Error) return Promise.reject({ code: ipc.compared.message });
+        return Promise.resolve(
+          ipc.compared ?? {
+            kind: "drawn",
+            html: `<p>${String(args.was)[0]}|${String(args.now ?? "now")[0]}</p>`,
+            gone: 1,
+            came: 2,
+          },
+        );
       case "doc_read":
         return Promise.resolve(ipc.body);
       case "doc_backable":
@@ -147,6 +159,7 @@ beforeEach(() => {
   ipc.kept = null;
   ipc.moved = false;
   ipc.full = false;
+  ipc.compared = null;
   asksSure(null);
   knowAgents(
     { "agent-1": "agent" },
@@ -207,7 +220,7 @@ describe("the history of a document", () => {
     view();
     const rows = await within(list()).findAllByRole("listitem");
 
-    await userEvent.click(within(rows[2]).getByRole("button"));
+    await userEvent.click(within(rows[2]).getAllByRole("button")[0]);
 
     await waitFor(() =>
       expect(screen.getByRole("article").textContent).toBe("# Acta\n\nlo primero"),
@@ -332,6 +345,174 @@ describe("the history of a document", () => {
 
     await waitFor(() => expect(onError).toHaveBeenCalledWith({ code: "versionGone" }));
     expect(screen.queryByRole("article")).toBeNull();
+  });
+});
+
+describe("what changed between two versions", () => {
+  const status = () => screen.getByRole("status");
+  const comparing = () => screen.getByRole("button", { name: t("earlierCompare") });
+
+  it("compares the version read with what the document says now", async () => {
+    view();
+    await screen.findByRole("article");
+
+    await userEvent.click(comparing());
+
+    await waitFor(() => expect(screen.getByRole("article").textContent).toBe("<p>b|n</p>"));
+    expect(called("doc_compared")[0].args).toEqual({ id: "d-1", was: B, now: null });
+    expect(status().textContent).toContain(fill("earlierToNow", whenOf(claudes)));
+    expect(status().textContent).toContain(fill("earlierWent", "1"));
+    expect(status().textContent).toContain(fill("earlierCame", "2"));
+    expect(comparing().getAttribute("aria-pressed")).toBe("true");
+  });
+
+  it("compares two versions kept here, the older before the newer", async () => {
+    view();
+    const rows = await within(list()).findAllByRole("listitem");
+    const older = fill("earlierCompareWith", whenOf(yours));
+
+    await userEvent.click(within(rows[2]).getByRole("button", { name: older }));
+
+    await waitFor(() => expect(called("doc_compared")).toHaveLength(1));
+    expect(called("doc_compared")[0].args).toEqual({ id: "d-1", was: A, now: B });
+    expect(status().textContent).toContain(fill("earlierBetween", whenOf(yours), whenOf(claudes)));
+    expect(within(rows[2]).getByRole("button", { name: older }).getAttribute("aria-pressed")).toBe(
+      "true",
+    );
+  });
+
+  it("offers no comparison with the version read itself, nor with one kept on another computer", async () => {
+    view();
+    const rows = await within(list()).findAllByRole("listitem");
+
+    expect(within(rows[0]).getAllByRole("button")).toHaveLength(1);
+    expect(within(rows[1]).queryByRole("button")).toBeNull();
+    expect(within(rows[2]).getAllByRole("button")).toHaveLength(2);
+  });
+
+  it("compares with what it says now once the version compared against is the one picked", async () => {
+    view();
+    const rows = await within(list()).findAllByRole("listitem");
+    await userEvent.click(
+      within(rows[2]).getByRole("button", { name: fill("earlierCompareWith", whenOf(yours)) }),
+    );
+    await waitFor(() => expect(called("doc_compared")).toHaveLength(1));
+
+    await userEvent.click(within(rows[2]).getAllByRole("button")[0]);
+
+    await waitFor(() => expect(called("doc_compared")).toHaveLength(2));
+    expect(called("doc_compared")[1].args).toEqual({ id: "d-1", was: A, now: null });
+  });
+
+  it("lays the first change in sight, however far down the page it is", () => {
+    const page = document.implementation.createHTMLDocument("compared");
+    page.body.innerHTML =
+      '<p>uno</p><p>dos</p><p data-change="gone">tres</p><p data-change="came">cuatro</p>';
+    const first = page.querySelector("[data-change]") as HTMLElement;
+    const last = page.querySelector('[data-change="came"]') as HTMLElement;
+    first.scrollIntoView = vi.fn();
+    last.scrollIntoView = vi.fn();
+
+    toFirstChange({ document: page } as unknown as Window);
+
+    expect(first.scrollIntoView).toHaveBeenCalledWith({ block: "center" });
+    expect(last.scrollIntoView).not.toHaveBeenCalled();
+    expect(() => toFirstChange(null)).not.toThrow();
+  });
+
+  it("drops a version compared with once it becomes the one read", async () => {
+    const D = "d".repeat(64);
+    const third: Version = { ...yours, print: D, wrote: "2026-11-09T10:00:00Z", bytes: 3000 };
+    ipc.rows = [claudes, yours, third];
+    ipc.bodies[D] = "# Acta\n\nlo de antes";
+    const hands = { onBack: vi.fn(), onClose: vi.fn(), onError: vi.fn() };
+    const { rerender } = render(<Earlier doc="d-1" title="Acta" {...hands} />);
+    const rows = await within(list()).findAllByRole("listitem");
+    await userEvent.click(
+      within(rows[1]).getByRole("button", { name: fill("earlierCompareWith", whenOf(yours)) }),
+    );
+    await waitFor(() => expect(called("doc_compared")).toHaveLength(1));
+
+    ipc.rows = [yours, third];
+    rerender(<Earlier doc="d-2" title="Acta" {...hands} />);
+    await waitFor(() =>
+      expect(called("doc_compared").slice(-1)[0]?.args).toEqual({ id: "d-2", was: A, now: null }),
+    );
+    const left = await within(list()).findAllByRole("listitem");
+    await userEvent.click(within(left[1]).getAllByRole("button")[0]);
+
+    await waitFor(() =>
+      expect(called("doc_compared").slice(-1)[0]?.args).toEqual({ id: "d-2", was: D, now: null }),
+    );
+  });
+
+  it("says when the two say the same", async () => {
+    ipc.compared = { kind: "drawn", html: "<p>igual</p>", gone: 0, came: 0 };
+    view();
+    await screen.findByRole("article");
+
+    await userEvent.click(comparing());
+
+    await waitFor(() => expect(status().textContent).toContain(t("earlierSame")));
+    expect(status().textContent).not.toContain(fill("earlierWent", "0"));
+  });
+
+  it("offers the whole version when the document is too long to mark", async () => {
+    ipc.compared = { kind: "tooLong" };
+    view();
+    await screen.findByRole("article");
+
+    await userEvent.click(comparing());
+    expect(await screen.findByText(t("earlierTooLong"))).toBeTruthy();
+    expect(screen.queryByRole("article")).toBeNull();
+
+    await userEvent.click(screen.getByRole("button", { name: t("earlierWhole") }));
+
+    await waitFor(() =>
+      expect(screen.getByRole("article").textContent).toBe("# Acta\n\nlo del asistente"),
+    );
+    expect(comparing().getAttribute("aria-pressed")).toBe("false");
+    expect(document.activeElement).toBe(comparing());
+  });
+
+  it("says what went wrong and goes back to the version when it cannot compare", async () => {
+    ipc.compared = new Error("versionGone");
+    const { onError } = view();
+    await screen.findByRole("article");
+
+    await userEvent.click(comparing());
+
+    await waitFor(() => expect(onError).toHaveBeenCalledWith({ code: "versionGone" }));
+    expect(comparing().getAttribute("aria-pressed")).toBe("false");
+    expect(screen.getByRole("article").textContent).toBe("# Acta\n\nlo del asistente");
+  });
+
+  it("compares with what it says now only once the words typed are saved", async () => {
+    const onError = vi.fn();
+    render(
+      <Docs
+        open="d-1"
+        known={[
+          { id: "D1", file: "d-1", title: "Acta", folder: null, archived: false, away: false },
+        ]}
+        onError={onError}
+        onKept={vi.fn()}
+      />,
+    );
+    const editor = await screen.findByDisplayValue(/lo de ahora/);
+    const shut = screen.queryByRole("button", { name: t("beside") });
+    if (shut) await userEvent.click(shut);
+    await act(async () => {});
+    const row = document.querySelector("details[data-row=earlier]") as HTMLDetailsElement;
+    await userEvent.click(row.querySelector("summary") as HTMLElement);
+    await userEvent.click(within(row).getByRole("button", { name: t("earlierSee") }));
+    ipc.moved = true;
+    fireEvent.change(editor, { target: { value: "# Acta\n\nlo que tecleo" } });
+
+    await userEvent.click(await screen.findByRole("button", { name: t("earlierCompare") }));
+
+    await waitFor(() => expect(onError).toHaveBeenCalledWith(t("unsavedUncompared")));
+    expect(called("doc_compared")).toEqual([]);
   });
 });
 

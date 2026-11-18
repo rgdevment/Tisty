@@ -32,6 +32,14 @@ export const docHistoryEmpty = (id: string): Promise<number> => invoke("doc_hist
 export const keepHistoryDays = (days: number): Promise<number> =>
   invoke("keep_history_days", { days });
 
+export type Compared =
+  | { kind: "drawn"; html: string; gone: number; came: number }
+  | { kind: "tooLong" };
+
+/** Without `now`, `was` is compared with what the document says on disk. */
+export const docCompared = (id: string, was: string, now: string | null): Promise<Compared> =>
+  invoke("doc_compared", { id, was, now });
+
 export const whenOf = (one: Earlier): string => stamped(one.wrote ?? one.replaced);
 
 // A version the log never named has nobody to say wrote it, which is not the same as the person.
