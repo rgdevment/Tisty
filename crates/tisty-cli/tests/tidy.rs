@@ -755,7 +755,7 @@ fn the_outline_names_links_that_lead_nowhere() {
     let served = Served::new();
     let doc = served.paper("# Login\n\nSee [gone](tisty:doc/zzzzzzzz-9999).\n");
 
-    let outline = served.call("outline_doc", json!({ "doc": &doc }));
+    let outline = served.call("brain", json!({ "doc": &doc }));
     went(&outline);
     let told = said(&outline);
     assert_eq!(told["dead"][0]["to"], "tisty:doc/zzzzzzzz-9999", "{told}");
@@ -841,7 +841,7 @@ fn the_outline_names_alike_documents_repeated_headings_and_who_began_each_page()
     ));
     let loose = served.paper("# Code review 1\n\nThe same review, loose.");
 
-    let outline = served.call("outline_doc", json!({ "doc": &book }));
+    let outline = served.call("brain", json!({ "doc": &book }));
     went(&outline);
     let told = said(&outline);
     assert_eq!(told["by"], "agent");

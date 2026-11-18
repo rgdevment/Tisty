@@ -25,7 +25,7 @@ pub(super) const FOLDERS_AT_MOST: usize = 64;
 pub(super) fn put_away(state: &State, kept: &tisty_core::model::Kept, named: &str) -> Refused {
     Refused::Tool(format!(
         "{named} is put away, so nothing was written. If it should change, tell the person: {}. \
-         If its subject moved on, `find` the document that covers it now and write there.",
+         If its subject moved on, ask `brain` for the document that covers it now and write there.",
         brought_back(state, kept)
     ))
 }
@@ -91,9 +91,37 @@ pub(super) fn reachable_or(
     })
 }
 
-/// Nothing indexes which document points at which, so the only way to say is to look. Worth the
-/// reading: a link left hanging says nothing about being broken.
 pub(super) fn pointed_at(paths: &Paths, state: &State, which: &str) -> Vec<String> {
+    let citing = super::brain::base(paths).and_then(|base| base.pointing_at(which).ok().flatten());
+    match citing {
+        Some(citing) => linked_from(state, which, citing),
+        None => walked_to(paths, state, which),
+    }
+}
+
+// A task's links live on its page, which is where the person would see one left hanging.
+fn linked_from(state: &State, which: &str, citing: Vec<tisty_core::brain::Citing>) -> Vec<String> {
+    let mut found: Vec<String> = citing
+        .into_iter()
+        .filter_map(|one| {
+            let kept = match one.id.parse::<tisty_core::TaskId>() {
+                Ok(task) if one.kind == "task" => {
+                    let owner = tisty_core::task_docs::owner(state, task);
+                    tisty_core::task_docs::of(state, owner)?
+                }
+                _ => state.docs.values().find(|kept| kept.file == one.id)?,
+            };
+            (kept.file != which && state.doc_in_sight(kept)).then(|| kept.file.clone())
+        })
+        .collect();
+    found.sort();
+    found.dedup();
+    found
+}
+
+/// Without the base, the only way to say is to look. Worth the reading: a link left hanging
+/// says nothing about being broken.
+fn walked_to(paths: &Paths, state: &State, which: &str) -> Vec<String> {
     let named: Vec<String> = state
         .docs
         .values()
@@ -142,7 +170,7 @@ pub(super) fn many_docs(args: &Value, what: &str) -> Result<(Vec<String>, bool),
                     Some(said) => named.push(said.to_string()),
                     None => {
                         return Err(Refused::Tool(format!(
-                            "{one} is not a document name, and a list is taken whole or not at all, so nothing moved. `docs` lists the names."
+                            "{one} is not a document name, and a list is taken whole or not at all, so nothing moved. `brain` gives the names."
                         )));
                     }
                 }

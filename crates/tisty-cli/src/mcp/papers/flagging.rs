@@ -59,7 +59,7 @@ pub(in crate::mcp) fn flag_doc(paths: &tisty_core::Paths, args: &Value) -> Resul
                     task.title
                 ),
                 None => format!(
-                    "no document here is called {which:?}. `docs` lists them all; nothing was \
+                    "no document here is called {which:?}. `brain` with a `query` finds one; nothing was \
                      marked."
                 ),
             }));
@@ -223,8 +223,8 @@ pub(in crate::mcp) fn instead_of(
     match doc.is_some() || task.is_some() {
         true => Ok(Some(instead)),
         false => Err(Refused::Tool(format!(
-            "`instead` is {instead:?}, and no document or task here has that id. `docs` and \
-             `find` give them."
+            "`instead` is {instead:?}, and no document or task here has that id. `brain` gives \
+             them."
         ))),
     }
 }

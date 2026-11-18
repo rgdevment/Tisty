@@ -131,13 +131,61 @@ pub(in crate::mcp) fn export_doc(paths: &Paths, args: &Value) -> Result<Value, R
     ))
 }
 
-pub(in crate::mcp) fn outline_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
-    let Some(which) = text(args, "doc") else {
-        return Err(Refused::Tool(
-            "looking into a document needs its `doc` name.".into(),
-        ));
+pub(in crate::mcp) fn walked(
+    paths: &Paths,
+    state: &State,
+    which: &str,
+    at: usize,
+) -> Result<Value, Refused> {
+    let Some(kept) = state.docs.values().find(|one| one.file == which) else {
+        return Err(Refused::Missing(no_document_called(state, which)));
     };
-    let (state, _) = opened(paths)?;
+    in_sight(state, kept, which)?;
+    let held = tisty_core::cache::Cache::open(paths.cache()).ok().flatten();
+    let Some(card) = tisty_core::docs::card_of(&paths.docs(), held.as_ref(), which) else {
+        return Err(super::still_arriving(state, which));
+    };
+    let Some(head) = card.outline.iter().find(|one| one.at == at) else {
+        return Err(Refused::Tool(format!(
+            "{} has no heading at {at}: its card numbers them from 0 to {}.",
+            doc_named(state, which),
+            card.outline.len().saturating_sub(1)
+        )));
+    };
+    let under: Vec<Heading> = card
+        .outline
+        .iter()
+        .filter(|one| one.line >= head.line && one.to <= head.to)
+        .cloned()
+        .collect();
+    let mut kept_of = serde_json::Map::new();
+    kept_of.insert("doc".into(), json!(which));
+    kept_of.insert("print".into(), json!(card.print));
+    let (outline, left) = outline_into(&under, &mut kept_of);
+    let shown = outline
+        .iter()
+        .map(|one| {
+            format!(
+                "{}{} (at {})  ·  lines {}-{}, {} chars",
+                "  ".repeat(one.level.saturating_sub(head.level)),
+                one.title,
+                one.at,
+                one.line,
+                one.to,
+                one.chars
+            )
+        })
+        .collect::<Vec<_>>()
+        .join("\n");
+    Ok(mirrored(format!("{shown}{left}"), Value::Object(kept_of)))
+}
+
+pub(in crate::mcp) fn outlined(
+    paths: &Paths,
+    state: &State,
+    which: &str,
+) -> Result<Value, Refused> {
+    let which = which.to_string();
     let Some(kept) = state.docs.values().find(|one| one.file == which) else {
         return Err(Refused::Missing(no_document_called(&state, &which)));
     };
@@ -749,7 +797,7 @@ pub(super) fn beside_ready(
     if mark.page_of != Some(up) {
         return Err(Refused::Tool(format!(
             "{} is not a page of {}, so it says nothing about where this one goes. \
-             `outline_doc` lists the pages in the order they are read, and says which of them \
+             its card from `brain` lists the pages in the order they are read, and says which of them \
              no line names.",
             doc_named(state, anchor),
             doc_named(state, &parent.file)
@@ -951,7 +999,7 @@ fn ordered(
     let Some(whole) = cards_ordered(&body, order) else {
         return Err(Refused::Tool(
             "the lines naming those pages are not all there to move between. Ask \
-             `outline_doc` which pages this document names, and order those."
+             `brain` with `doc` which pages this document names, and order those."
                 .to_string(),
         ));
     };

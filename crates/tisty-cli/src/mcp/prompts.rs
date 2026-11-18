@@ -171,13 +171,13 @@ fn picking_up(paths: &Paths, said: Option<&str>) -> String {
     let which = match said {
         Some(said) => {
             format!(
-                "`find` the open task about {} — ask me if several fit — and `read` it",
+                "ask `brain` for the open task about {} — ask me if several fit — and `read` it",
                 quoted(said)
             )
         }
         None => match last_worked_on(paths) {
             Some(task) => format!("`read` {task}, the open task last worked on here,"),
-            None => "`find` the open task we were on — ask me if you cannot tell — and `read` it"
+            None => "ask `brain` for the open task we were on — ask me if you cannot tell — and `read` it"
                 .to_string(),
         },
     };
@@ -193,7 +193,7 @@ fn picking_up(paths: &Paths, said: Option<&str>) -> String {
 fn leaving_off(paths: &Paths, said: Option<&str>) -> String {
     let which = match said {
         Some(said) => format!(
-            "the open task about {} — `find` it, and ask me if several fit —",
+            "the open task about {} — ask `brain` for it, and ask me if several fit —",
             quoted(said)
         ),
         None => match last_worked_on(paths) {
@@ -232,7 +232,7 @@ fn planning(_: &Paths, said: Option<&str>) -> String {
         None => "the work we have been talking about".to_string(),
     };
     format!(
-        "Plan {work} as one task in Tisty. Ask `rules` «tasks» first. Then `find` whether a task \
+        "Plan {work} as one task in Tisty. Ask `rules` «tasks» first. Then ask `brain` whether a task \
          already covers it, the archive included: an open one takes the new steps with `plan` \
          instead of a second task, and a closed one is read for how it went. Otherwise \
          `propose` one task with its steps in order — parts only for pieces finished on their \
@@ -247,10 +247,10 @@ fn looking_back(_: &Paths, said: Option<&str>) -> String {
         None => "the problem we are on".to_string(),
     };
     format!(
-        "How did we solve {problem} before? Search Tisty before trying anything: `find` reaches \
+        "How did we solve {problem} before? Search Tisty before trying anything: `brain` reaches \
          the archive, where every finished task is kept whole, and the documents on the subject. \
          `read` the closest tasks for how they ended, their steps and their notes, and \
-         `outline_doc` the documents that cover it. Tell me what was done, when, and where it is \
+         ask `brain` for the card of each document that covers it. Tell me what was done, when, and where it is \
          written, by title and list or folder. If nothing turns up, say so plainly rather than \
          guessing."
     )
@@ -263,7 +263,7 @@ fn keeping(_: &Paths, said: Option<&str>) -> String {
     };
     format!(
         "Keep the decision we just made in Tisty, in {about}. Ask `rules` «documents» first. \
-         `find` that document, `outline_doc` it, and write the decision with `edit_doc` in the \
+         Ask `brain` for that document and its card, and write the decision with `edit_doc` in the \
          passage it belongs to, dated and with its reason; a decision it replaces is struck \
          through with the day it fell, never erased nor left unstruck, and the new one says \
          which it replaces. If no document covers the subject, \
@@ -293,7 +293,7 @@ fn brainstorming(paths: &Paths, said: Option<&str>) -> String {
     format!(
         "Brainstorm with me in Tisty {about}. Ask `rules` «ideas» first. Offer ideas a few words \
          long, 140 characters at most, numbered so I can pick, and say which ones are already on \
-         {} or already a task or a document (`find`). Jot nothing until I say which to keep; then \
+         {} or already a task or a document (`brain`). Jot nothing until I say which to keep; then \
          `append_doc` the ones I keep on Brainstorm, one per item of a list, and tell me how many \
          went on.",
         sheet_named(paths)
@@ -309,7 +309,7 @@ fn sorting_ideas(paths: &Paths, said: Option<&str>) -> String {
         "Help me sort out my ideas in Tisty. Ask `rules` «ideas» first, then `read_doc` {}, and \
          look at {which} on it. Tell me in a few lines, by their words and never by id, which \
          belong together and why, which would become a task and in which list, which belong in a \
-         document and which one (`find` it), and which are done, old or repeated. Change nothing \
+         document and which one (`brain` finds it), and which are done, old or repeated. Change nothing \
          until I say which. Then do only what I agreed to, as `rules` «ideas» says: `propose` with \
          the idea as `source`, the idea itself with `append_doc`, or a mark with `flag_doc`. \
          Tell me at the end what went where and what waits for me.",
