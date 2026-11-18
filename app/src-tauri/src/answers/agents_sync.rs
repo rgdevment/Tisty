@@ -608,9 +608,9 @@ fn rewritten(session: &mut Session, file: &str, body: &str) -> Answer<()> {
     let print = tisty_core::docs::print_of(&at)
         .map_err(|e| Refusal::about("cannotWrite", e.to_string()))?
         .unwrap_or_default();
-    match tisty_core::docs::rewrite(&docs, session.paths.data(), file, body, &print)
-        .map_err(cannot)?
-    {
+    let made =
+        tisty_core::docs::rewrite(&docs, &session.writer(), file, body, &print).map_err(cannot)?;
+    match made {
         tisty_core::docs::Rewrite::Made { .. } => {
             session.retell(file, body, None);
             Ok(())
