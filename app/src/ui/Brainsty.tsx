@@ -14,7 +14,7 @@ export default function Brainsty({ network }: { network: Network }) {
   const hues = useRef<HueOf>(() => undefined);
   const tinted = new Map<string, string>();
   for (const one of papers.folders) if (one.color) tinted.set(one.id, one.color);
-  for (const one of data.lists) if (one.color) tinted.set(one.id, one.color);
+  for (const one of data.every ?? data.lists) if (one.color) tinted.set(one.id, one.color);
   hues.current = (group) => (group ? tinted.get(group) : undefined);
 
   useEffect(() => {
