@@ -146,6 +146,7 @@ export default function TaskWords({
       setWentBackTo(when);
       reread();
     },
+    onEmptied: () => setWentBackTo(null),
     onError: (e) => onError?.(e),
   });
   const undo = async () => {
@@ -379,11 +380,12 @@ function Written({
 
   useEffect(() => holds(flush), [flush]);
   useEffect(() => {
-    // Words a weave could not place are only on the screen, so whoever would write over the page is refused.
+    // Words a save or a weave could not place are only on the screen, so whoever would write over the page is refused.
     leaving.current = async () => {
       flush();
       await saved();
-      if (!(await weaving.current)) return Promise.reject({ code: "unsavedStays" });
+      const placed = stale.current ? await weaving.current : typed.current === known.current;
+      if (!placed) return Promise.reject({ code: "unsavedStays" });
     };
   }, [leaving, flush]);
   useEffect(() => {
