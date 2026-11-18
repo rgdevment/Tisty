@@ -1,7 +1,7 @@
 import { StateEffect, StateField } from "@codemirror/state";
 import { Decoration, type DecorationSet, EditorView } from "@codemirror/view";
 
-// How long an agent's words stay marked, on the page and in the editor; page.css fades in step.
+// How long an agent's words stay marked, on the page and in the editor; editor.css fades in step.
 export const MARKED_FOR = 4000;
 
 // The words an agent just wrote into an open editor, marked so they are seen, then let go.
