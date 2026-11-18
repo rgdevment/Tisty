@@ -208,6 +208,94 @@ Cada documento tuyo tiene un enlace, para llegar a él desde un chat, una nota, 
 - **Dentro de un documento compartido por Folio no viaja**: un enlace de Markdown llega como sus palabras, y una dirección escrita sola llega tal cual, con sus carpetas y su título.
 - **Quien lo recibe lee** los nombres de las carpetas y el título.
 
+## Versiones anteriores
+
+Cada documento guarda en este equipo lo que decía antes de cambiar, como un historial de versiones: abres la lista, lees cómo estaba y, si te sirve, vuelves a eso. Vale también para las páginas de tus tareas. Lo hice para el día en que un cambio, tuyo o de un asistente, se llevó algo que todavía necesitabas.
+
+### Cuándo te sirven
+
+- **Un asistente reescribió de más.** Le pediste a tu agente que ordenara «Paseos de Rina» y lo dejó sin los horarios. La versión de antes de su escritura está en la lista: ves qué cambió y vuelves a ella.
+- **Borraste un párrafo y a la semana lo necesitas.** Quitaste de «Cumpleaños de Lucas» la lista de invitados porque ya estaba cerrada, y ahora Marisol pregunta quién venía. Una versión de antes de ese cambio todavía la tiene, aunque el documento haya seguido cambiando.
+- **Quieres ver cómo estaba algo un día concreto.** Cada versión lleva su fecha, así que lees el plan como estaba el martes sin tocar el de hoy.
+- **Escribiste algo que no debía quedar guardado.** Borras el texto y después vacías el historial de ese documento (más abajo).
+
+### Ver una versión y volver a ella
+
+1. Abre el documento. En el panel junto a él, la fila **Historial** dice **en este equipo** y tiene **Ver el historial**. En la página de una tarea, el botón es **Versiones de esta página**.
+2. A la izquierda queda la lista, la más nueva primero. Cada fila dice cuándo se escribió esa versión (solo la hora si fue hoy), quién la escribió (**tú**, **un asistente** o el nombre de su programa, como **Claude Code**) y cuánto pesa.
+3. Haz clic en una para leerla a la derecha, tal como se veía.
+4. **Volver a esta versión**, arriba de lo que lees, te pregunta antes: el documento vuelve a decir lo que decía en ella, y lo que dice ahora queda guardado.
+5. El documento muestra **Volvió a la versión de** y la fecha, con **Volver a lo que decía antes**: ese botón deshace la vuelta si elegiste la equivocada.
+
+En la página de una tarea vuelven las palabras, no el estado de la tarea: ningún paso se quita ni cambia su casilla, y un paso que esa versión nombra y la tarea ya no tiene vuelve como paso nuevo.
+
+Si todavía no hay ninguna, la lista lo dice: Tisty guarda una cuando pasan 30 minutos sin cambios o cuando cambia quien escribe.
+
+### Ver qué cambió
+
+Antes de volver a una versión, puedes ver exactamente qué cambió, en un documento o en la página de una tarea:
+
+1. Elige una versión en la lista. **Qué cambió**, arriba de lo que lees, la compara con lo que el documento dice ahora.
+2. Para comparar dos versiones entre sí, pulsa **Comparar** en otra fila de la lista. Se lee siempre de la más vieja a la más nueva, en el orden que sea que las elijas. **Comparar** otra vez en esa fila vuelve a comparar con lo de ahora, y **Qué cambió** apaga la comparación.
+3. Arriba, una línea dice qué se compara, como «De la versión de 16:10 a lo que dice ahora» o «De la versión de 16:10 a la de 17:45», y cuántos bloques cambiaron: **Lo que se fue** y **Lo que llegó**, cada uno con su número. Si no hay diferencias, dice **Dicen lo mismo: no cambió nada.**
+
+La comparación es una sola página, dibujada como siempre, que abre en el primer cambio. Lo que se fue sale en rojo y lo que llegó en verde, uno encima del otro; dentro de un párrafo, un ítem, una celda o una línea de código que cambió, las palabras de antes van tachadas y las nuevas resaltadas. Lo que solo cambia la forma de escribir y no lo que dice no cuenta como cambio: los fines de línea, el número de un ítem en una lista numerada y los espacios de una tabla.
+
+Por ejemplo: Claude Code reescribió el párrafo de horarios de «Paseos de Rina» y no sabes qué tocó. Abres **Ver el historial**, eliges la versión de antes de su cambio y pulsas **Qué cambió**. El párrafo viejo aparece en rojo y el nuevo en verde, y dentro de él «a las 8:00» va tachado y «temprano» resaltado; arriba dice **Lo que se fue: 1** y **Lo que llegó: 1**. Ya sabes que solo cambió eso: vuelves con **Volver a esta versión**, o copias la hora y te quedas con lo demás.
+
+- **Solo versiones de este equipo.** Una fila de otro equipo no tiene **Comparar**, porque su texto no está aquí.
+- **Lo de ahora es lo guardado.** Si lo que escribiste todavía no se pudo guardar, no se compara, y la ventana te lo dice: resuélvelo primero y vuelve a comparar.
+- **Un documento demasiado largo.** Cuando lo distinto entre las dos versiones es tan grande que marcarlo tomaría demasiado, unos 4.000 bloques distintos por lado, la vista lo dice y ofrece **Ver la versión entera**. Un cambio chico en un documento largo siempre se marca, porque lo que las dos versiones tienen igual al comienzo y al final no cuenta.
+
+### Cuándo se guarda una versión
+
+No en cada tecla ni en cada guardado. Lo que había queda como versión cuando alguien escribe en el documento:
+
+- **después de 30 minutos sin cambios**, o
+- **siendo otro que quien escribió la última vez**: tú después de un asistente, un asistente después de ti, o dos asistentes distintos.
+
+Por ejemplo: a las 9:00 Mario abre el acta de la reunión de ayer y la corrige durante veinte minutos, sin pausas largas. Queda una sola versión, la de ayer: los guardados de esos veinte minutos son una misma escritura. A las 11:00 vuelve a corregirla, y lo que decía a las 9:20 queda como versión. A las 11:05 Claude Code agrega un resumen, y lo que Mario había dejado queda como otra versión, porque cambió quien escribe.
+
+Una versión es el texto entero del documento tal como estaba, en un archivo Markdown dentro de la carpeta `history` de tus datos. Los adjuntos no entran: se quedan donde siempre. Lo que llega de tus otros equipos sigue la misma regla, con la hora y el autor de quien lo escribió allá.
+
+### Cuánto tiempo se guardan
+
+**30 días** por defecto, contados desde que la versión fue reemplazada y no desde que la escribiste, así que siempre puedes volver a como estaba el documento al comienzo del plazo.
+
+Para cambiarlo, en **Configuración › Tus datos › Historial de documentos**, **Guardar las versiones anteriores** ofrece **1 día**, **5 días**, **15 días** o **30 días**. Cada equipo tiene el suyo. Al abrir Tisty, como mucho una vez al día, se van las versiones que pasaron el plazo, así que un plazo más corto se aplica en esa revisión. Si pasas de 30 a 5 días, en la siguiente revisión se borran las versiones reemplazadas hace más de 5 días; las de los últimos 5 se quedan.
+
+Dos se quedan siempre, tengan la edad que tengan:
+
+- **La más reciente.** La última versión anterior de cada documento no vence, aunque el documento lleve meses sin cambiar. Un documento quieto conserva siempre su vuelta atrás.
+- **La que deshace el último cambio:** lo que te devolvería **Volver a lo que decía antes**.
+
+### Vaciar el historial
+
+**Vaciar el historial**, al pie de la lista, borra de este equipo todas las versiones anteriores de ese documento, también la que permite deshacer el último cambio. Lo que el documento dice ahora queda como está. Te pregunta antes, porque no se puede deshacer.
+
+Sirve para un texto que borraste a propósito: pegaste en «Datos del seguro» un número que no debía quedar ahí y lo quitaste. Mientras no vacíes el historial, ese número sigue en la versión de antes. Vacíalo, y si sincronizas, hazlo también en cada equipo donde ese texto alcanzó a estar, porque cada uno guarda sus propias versiones. Los respaldos que hiciste entretanto lo conservan; mira [Privacidad](Privacidad#qué-se-guarda).
+
+### En tus otros equipos
+
+**Las versiones no se sincronizan.** Cada equipo guarda lo que se reemplazó en él, también lo que reemplazó un cambio llegado de otro equipo, y las poda con su propio plazo.
+
+- **Una versión que guarda otro equipo** aparece en la lista mientras dura el plazo, como **No está en este equipo; lo guarda** y el nombre de ese equipo, por ejemplo «No está en este equipo; lo guarda Portátil de Marisol». Su texto está solo allá, así que aquí no se lee ni se recupera: ábrela en ese equipo.
+- **Un equipo nuevo empieza sin versiones anteriores,** aunque reciba todos tus documentos. Lo que ese equipo cambie desde ahí, lo guarda.
+- **Para llevarlas a otra máquina,** usa un [respaldo](Sincronizar-y-respaldar#respaldos): el zip las lleva, y restaurarlo cambia las de ese equipo por las que trae.
+
+### Casos especiales
+
+- **Borrar un documento** borra también sus versiones, en cada equipo. Si quieres conservar una, vuelve a ella o cópiala antes.
+- **Una página de tarea** tiene sus propias versiones, en **Versiones de esta página**. Volver a una trae sus palabras, nunca quita pasos (más arriba).
+- **El [Diario](#diario)** también guarda versiones en este equipo, que cuentan para lo que guarda tu equipo y tus respaldos, pero su vista no tiene la fila **Historial**: no se listan desde la ventana.
+- **Un documento archivado o bloqueado, y la página de una tarea cerrada,** muestran sus versiones pero no ofrecen **Volver a esta versión**. Desarchívalo o desbloquéalo (o su carpeta archivada, o el documento bloqueado del que es página), o reabre la tarea con **Reabrir**, para volver a una.
+- **Restaurar un respaldo** cambia las versiones de este equipo por las del zip, y su plazo vuelve a contar desde ese día.
+- **Al actualizar desde un Tisty sin historial,** la copia que cada documento guardaba de su texto anterior pasó sola a ser su primera versión.
+
+### Con tu asistente
+
+También vuelves atrás sin abrir la lista: cuando algo escribe en el documento que tienes abierto, la barra te ofrece **Volver a lo que decía antes**. Un asistente lista, lee y recupera las mismas versiones con `read_doc` y `restore_doc`, y nunca puede vaciarlas: eso es tuyo. Puedes pedírselo en tus palabras: «vuelve “Paseos de Rina” a como estaba antes de tu cambio de ayer». Cómo lo hace, con ejemplos, está en [Herramientas MCP](Herramientas-MCP#versiones-anteriores-de-un-documento).
+
 ## Sacar documentos
 
 Un documento sale entero; cada conversión está en [Convertir a y desde Markdown](Convertir-a-y-desde-Markdown):
