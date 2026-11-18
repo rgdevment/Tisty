@@ -746,6 +746,38 @@ pub fn names_an_attachment(reference: &str) -> bool {
     leaf_of(reference).is_some()
 }
 
+const PICTURES: [&str; 8] = ["png", "jpg", "jpeg", "gif", "webp", "avif", "bmp", "svg"];
+
+pub fn pictured(name: &str) -> bool {
+    name.rsplit_once('.')
+        .is_some_and(|(_, kind)| PICTURES.iter().any(|one| kind.eq_ignore_ascii_case(one)))
+}
+
+/// The words a picture is written with, when they say what it shows: a file's name says nothing.
+pub fn shows<'a>(label: &'a str, leaf: &str) -> Option<&'a str> {
+    let said = label.trim();
+    let plain = |one: &str| -> String {
+        one.chars()
+            .filter(|c| c.is_alphanumeric())
+            .flat_map(char::to_lowercase)
+            .collect()
+    };
+    let stem = leaf.split('.').next().unwrap_or(leaf);
+    let unstamped = stem.rsplit_once('-').map_or(stem, |(name, _)| name);
+    let filed = said.rsplit_once('.').is_some_and(|(_, kind)| {
+        (2..=5).contains(&kind.len())
+            && kind.chars().all(|c| c.is_ascii_alphanumeric())
+            && !kind.chars().all(|c| c.is_ascii_digit())
+    });
+    let named = plain(said);
+    let nothing = named.is_empty()
+        || filed
+        || named == "file"
+        || named == plain(stem)
+        || named == plain(unstamped);
+    (!nothing).then_some(said)
+}
+
 pub fn set_aside(root: &Path, reference: &str, now: i64) -> Result<()> {
     if !names_an_attachment(reference) {
         return Err(Error::OutsideTheStore(reference.to_string()));

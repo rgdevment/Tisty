@@ -1775,3 +1775,34 @@ fn a_kept_line_whose_digest_does_not_match_its_name_says_nothing_of_where_it_cam
 
     assert!(arrivals(&events).is_empty());
 }
+
+#[test]
+fn only_a_picture_s_kinds_are_pictures() {
+    assert!(pictured("rina-3f9a1c2b.JPG"));
+    assert!(pictured("attachments/plan-3f9a1c2b.svg"));
+    assert!(!pictured("vet-card-9d02e4b7.pdf"));
+    assert!(!pictured("noname"));
+}
+
+#[test]
+fn a_picture_s_file_name_says_nothing_of_what_it_shows() {
+    let leaf = "screenshot-2026-11-17-at-10-22-33-3f9a1c2b.png";
+
+    assert_eq!(shows("Rina on her chair", leaf), Some("Rina on her chair"));
+    assert_eq!(
+        shows("  The vet's card, front  ", leaf),
+        Some("The vet's card, front")
+    );
+    assert_eq!(shows("Fig. 2", leaf), Some("Fig. 2"));
+    for nothing in [
+        "",
+        "   ",
+        "file",
+        "IMG_2034.PNG",
+        "Screenshot 2026-11-17 at 10.22.33",
+        "screenshot-2026-11-17-at-10-22-33-3f9a1c2b",
+        "screenshot-2026-11-17-at-10-22-33-3f9a1c2b.png",
+    ] {
+        assert_eq!(shows(nothing, leaf), None, "{nothing:?}");
+    }
+}

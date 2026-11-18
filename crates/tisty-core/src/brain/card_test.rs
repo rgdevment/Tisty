@@ -300,7 +300,13 @@ fn a_task_s_card_says_how_it_stands_and_what_it_left() {
     assert_eq!(facts.deadline, Some(date(2026, 11, 16)));
     assert_eq!(facts.steps, Some([1, 2]));
     assert_eq!(facts.links, ["https://bank.example/form"]);
-    assert_eq!(card.around.files, ["attachments/form-1a2b3c4d.pdf"]);
+    assert_eq!(
+        card.around.files,
+        [Used {
+            file: "attachments/form-1a2b3c4d.pdf".into(),
+            shows: None
+        }]
+    );
     assert_eq!(card.around.tags, ["errands"]);
     assert_eq!(
         card.around.part_of.map(|one| one.id),
@@ -588,5 +594,180 @@ fn a_card_reads_identity_first_and_sections_last() {
             "\"sections\":[{\"title\":\"Trips\",\"level\":1,\"lines\":[1,3],\"bytes\":[0,17]}]}"
         ),
         "{said}"
+    );
+}
+
+#[test]
+fn a_bare_task_id_and_a_double_bracket_title_are_mentions_read_from_both_ends() {
+    let world = World::new();
+    let mut store = world.store();
+    let errand = task(&mut store, "call the bank", &[]);
+    let (_, trips) = doc(&world, &mut store, "# Trips\n", None, None);
+    let (_, notes) = doc(
+        &world,
+        &mut store,
+        &format!("# Notes\n\nCall {errand} today, as [[Trips]] says.\n"),
+        None,
+        None,
+    );
+    let mut brain = world.brain();
+
+    world.refreshed(&mut brain, &world.state());
+
+    let mut mentioned: Vec<String> = ids(&card_of(&brain, &notes).around.mentions)
+        .into_iter()
+        .map(str::to_string)
+        .collect();
+    mentioned.sort();
+    let mut wanted = vec![errand.to_string(), trips.clone()];
+    wanted.sort();
+    assert_eq!(mentioned, wanted);
+    assert_eq!(
+        ids(&card_of(&brain, &trips).around.mentioned_by),
+        [notes.as_str()]
+    );
+    assert_eq!(
+        ids(&card_of(&brain, &errand.to_string()).around.mentioned_by),
+        [notes.as_str()]
+    );
+}
+
+#[test]
+fn a_double_bracket_title_two_documents_carry_names_neither() {
+    let world = World::new();
+    let mut store = world.store();
+    let (_, first) = doc(&world, &mut store, "# Trips\n", None, None);
+    let (_, second) = doc(&world, &mut store, "# Trips\n\nAgain.\n", None, None);
+    let (_, notes) = doc(
+        &world,
+        &mut store,
+        "# Notes\n\nSee [[Trips]].\n",
+        None,
+        None,
+    );
+    let mut brain = world.brain();
+    world.refreshed(&mut brain, &world.state());
+
+    assert!(card_of(&brain, &notes).around.mentions.is_empty());
+    assert!(card_of(&brain, &first).around.mentioned_by.is_empty());
+
+    let hidden = second.clone();
+    let seen = |id: &str| id != hidden;
+    let card = brain.card(&notes, today(), seen).unwrap().unwrap();
+    assert_eq!(
+        ids(&card.around.mentions),
+        [first.as_str()],
+        "a twin the reader cannot see is not counted, so it neither shows nor gives itself away"
+    );
+    let first_card = brain.card(&first, today(), seen).unwrap().unwrap();
+    assert_eq!(ids(&first_card.around.mentioned_by), [notes.as_str()]);
+}
+
+#[test]
+fn a_document_renamed_to_a_double_bracket_title_is_found_without_its_mention_written_again() {
+    let world = World::new();
+    let mut store = world.store();
+    let (_, plans) = doc(&world, &mut store, "# Plans\n", None, None);
+    let (_, notes) = doc(
+        &world,
+        &mut store,
+        "# Notes\n\nSee [[Trips]].\n",
+        None,
+        None,
+    );
+    let mut brain = world.brain();
+    world.refreshed(&mut brain, &world.state());
+    assert!(card_of(&brain, &notes).around.mentions.is_empty());
+
+    rewrite(&world, &plans, "# Trips\n");
+    let mut state = world.state();
+    if let Some(one) = state.docs.values_mut().find(|one| one.file == plans) {
+        one.title = Some("Trips".into());
+    }
+    world.refreshed(&mut brain, &state);
+
+    assert_eq!(
+        ids(&card_of(&brain, &notes).around.mentions),
+        [plans.as_str()]
+    );
+}
+
+#[test]
+fn a_picture_s_card_line_says_what_it_shows_and_a_file_name_says_nothing() {
+    let world = World::new();
+    let mut store = world.store();
+    let (_, album) = doc(
+        &world,
+        &mut store,
+        "# Album\n\n![Rina on her chair](rina-3f9a1c2b.jpg)\n\n\
+         ![IMG_2034.PNG](img-2034-9d02e4b7.png)\n\n![The form](form-1a2b3c4d.pdf)\n",
+        None,
+        None,
+    );
+    let mut state = world.state();
+    for at in [
+        "attachments/rina-3f9a1c2b.jpg",
+        "attachments/img-2034-9d02e4b7.png",
+        "attachments/form-1a2b3c4d.pdf",
+    ] {
+        state.kept.insert(at.into(), ("ab12".into(), 3));
+    }
+    let mut brain = world.brain();
+
+    world.refreshed(&mut brain, &state);
+
+    let mut files = card_of(&brain, &album).around.files;
+    files.sort_by(|one, other| one.file.cmp(&other.file));
+    assert_eq!(
+        files,
+        [
+            Used {
+                file: "attachments/form-1a2b3c4d.pdf".into(),
+                shows: None
+            },
+            Used {
+                file: "attachments/img-2034-9d02e4b7.png".into(),
+                shows: None
+            },
+            Used {
+                file: "attachments/rina-3f9a1c2b.jpg".into(),
+                shows: Some("Rina on her chair".into())
+            },
+        ]
+    );
+}
+
+#[test]
+fn a_document_s_decisions_come_in_force_first_and_the_struck_ones_after() {
+    let world = World::new();
+    let mut store = world.store();
+    let body = "# Trips\n\n## Decisions\n\n- ~~2026-11-12 · The car goes.~~ Changed.\n\
+                - **2026-11-13 · We walk.** Always.\n";
+    let (_, trips) = doc(&world, &mut store, body, None, None);
+    let mut brain = world.brain();
+
+    world.refreshed(&mut brain, &world.state());
+
+    let card = card_of(&brain, &trips);
+    let said: Vec<(usize, &str, bool)> = card
+        .decisions
+        .iter()
+        .map(|one| (one.line, one.said.as_str(), one.replaced))
+        .collect();
+    assert_eq!(
+        said,
+        [
+            (6, "2026-11-13 · We walk.", false),
+            (5, "2026-11-12 · The car goes.", true)
+        ]
+    );
+    assert_eq!(card.decisions_more, None);
+    let json = serde_json::to_string(&card).unwrap();
+    assert!(
+        json.contains(
+            "\"decisions\":[{\"line\":6,\"said\":\"2026-11-13 · We walk.\"},\
+             {\"line\":5,\"said\":\"2026-11-12 · The car goes.\",\"replaced\":true}],\"sections\""
+        ),
+        "{json}"
     );
 }
