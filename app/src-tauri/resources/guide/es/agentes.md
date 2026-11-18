@@ -30,7 +30,7 @@ Nada escucha hasta que conectas uno: el asistente arranca Tisty cuando lo necesi
 Un agente concentrado en el código se olvida de Tisty. Hay dos ayudas, y las dos se apagan en **Configuración → Asistentes**:
 
 - **Pedirle que deje su tarea al día**: si sigue trabajando y la tarea que abrió lleva diez minutos sin una palabra suya, o mientras escribe otras tres cosas, la siguiente respuesta de Tisty le pide una vez que marque lo que hizo y, si terminó, que lo diga con la prueba. Llega a todos los asistentes, aunque solo cuando llaman a Tisty.
-- **Los hooks**: en Claude Code, Cursor, Gemini CLI y GitHub Copilot, **Agregar**, bajo la fila del asistente conectado, te dice qué archivo va a escribir y pone ahí los hooks de Tisty. Desde su próxima sesión, cada sesión empieza con las últimas tareas abiertas en que escribieron tus agentes, lo que se movió y lo que apremia. Y si un turno editó archivos sin escribir nada en Tisty, se lo devuelve una vez para que marque lo terminado. **Quitar** los saca, y **Recordarle al empezar y al terminar cada turno** los apaga sin quitarlos.
+- **Los hooks**: en Claude Code, Cursor, Gemini CLI y GitHub Copilot, **Agregar**, bajo la fila del asistente conectado, te dice qué archivo va a escribir y pone ahí los hooks de Tisty. Desde su próxima sesión, cada una empieza con las últimas tareas abiertas en que escribieron tus agentes, lo que se movió y lo que apremia. Y si un turno editó archivos sin escribir nada en Tisty, se lo devuelve una vez para que marque lo terminado. **Quitar** los saca, y **Recordarle al empezar y al terminar cada turno** los apaga sin quitarlos.
 
 ## Lo que puede hacer
 
