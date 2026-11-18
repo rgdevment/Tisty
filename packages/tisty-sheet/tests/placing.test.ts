@@ -114,6 +114,25 @@ describe("the cards a sheet lays", () => {
     expect(pressed).toHaveBeenCalledTimes(2);
   });
 
+  it("lays a card in a page drawn inside a frame, with its days and its keys", () => {
+    const frame = document.createElement("iframe");
+    document.body.innerHTML = "";
+    document.body.append(frame);
+    const inside = frame.contentDocument as Document;
+    inside.body.innerHTML =
+      '<article class="page"><p><a class="card" data-task="T1">Vet</a></p></article>';
+    const days = vi.fn();
+
+    cardsPlaced(inside, new Map([[cardKey(task("T1", "Vet")), OPEN]]), undefined, days);
+
+    const card = inside.querySelector<HTMLElement>(".is-task");
+    expect(days).toHaveBeenCalledWith(card);
+    const pressed = vi.fn();
+    card?.addEventListener("click", pressed);
+    card?.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
+    expect(pressed).toHaveBeenCalledTimes(1);
+  });
+
   it("finds which task card a press came from, and unfolds that one alone", () => {
     const drawn = page(
       '<p><a class="card" data-task="T1">Uno</a></p><p><a class="card" data-task="T2">Dos</a></p>',

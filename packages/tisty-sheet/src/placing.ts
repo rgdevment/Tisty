@@ -79,11 +79,12 @@ const refocused = (box: HTMLElement, held: HTMLElement) => {
 const laid = (held: HTMLElement, key: string, html: string, days?: (box: Element) => void) => {
   const open = held.firstElementChild?.classList.contains(UNFOLDED) ?? false;
   const focus = held.ownerDocument.activeElement;
-  const inside = focus instanceof HTMLElement && held.contains(focus) ? focus : null;
+  // A page drawn in a frame has its own HTMLElement, so the frame's elements fail an instanceof check.
+  const inside = focus && held.contains(focus) ? (focus as HTMLElement) : null;
   held.dataset.card = key;
   held.innerHTML = html;
-  const box = held.firstElementChild;
-  if (!(box instanceof HTMLElement)) return;
+  const box = held.firstElementChild as HTMLElement | null;
+  if (!box) return;
   pressable(box);
   if (open) shown(box, true);
   days?.(box);
