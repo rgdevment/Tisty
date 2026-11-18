@@ -1,7 +1,7 @@
 export type Level = "far" | "mid" | "near";
 
 const NEAR_AT = 0.08;
-const STEP = 0.025;
+const STEP = 0.05;
 const MID_FROM = 0.25;
 const NEAR_FROM = 0.7;
 

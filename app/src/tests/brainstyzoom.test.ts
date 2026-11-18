@@ -33,7 +33,7 @@ describe("how far the camera is", () => {
     expect(zoomOf(0)).toBe(0);
     expect(zoomOf(0.08)).toBeCloseTo(1);
     expect(zoomOf(0.01)).toBe(1);
-    expect(quantized(0.4766)).toBeCloseTo(0.475);
+    expect(quantized(0.4766)).toBeCloseTo(0.5);
     expect(quantized(1.4)).toBe(1);
   });
 

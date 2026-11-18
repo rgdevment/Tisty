@@ -161,7 +161,7 @@ describe("the drawing of the network", () => {
 
     expect(shown(big, {}, { zoom: 0 })).toBe("hidden");
     expect(shown(big, { isHovered: true }, { zoom: 0 })).toBe("visible");
-    expect(shown(big, {}, { zoom: 0.4 })).toBe("visible");
+    expect(shown(big, {}, { zoom: 0.4 })).toBe("auto");
     expect(shown(small, {}, { zoom: 0.4 })).toBe("hidden");
     expect(shown(small, {}, { zoom: 1 })).toBe("auto");
     expect(colour(small, {}, { zoom: 1 })).toBe("rgba(0, 0, 0, 1)");
@@ -196,7 +196,7 @@ describe("the drawing of the network", () => {
     zoomed();
 
     expect(drawn.shared).toHaveLength(2);
-    expect((drawn.shared[1] as { zoom: number }).zoom).toBeCloseTo(0.475);
+    expect((drawn.shared[1] as { zoom: number }).zoom).toBeCloseTo(0.5);
   });
 
   it("moves the nodes, follows the theme, maps places to the screen and lets go when killed", () => {

@@ -116,8 +116,7 @@ export function drawNetwork(
           labelFont: font,
           labelVisibility: (at, state, shared: Seen) => {
             if (state.isHovered) return "visible";
-            if (titleShown(Boolean(at.big), shared.zoom) <= 0) return "hidden";
-            return at.big ? "visible" : "auto";
+            return titleShown(Boolean(at.big), shared.zoom) > 0 ? "auto" : "hidden";
           },
           labelColor: (at, _state, shared: Seen) =>
             rgba(seen.palette.ink, titleShown(Boolean(at.big), shared.zoom) || 1),
