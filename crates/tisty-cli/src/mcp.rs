@@ -294,7 +294,7 @@ fn answered(
         "note" => spoken(paths, &args, "body", |args| note(paths, args)),
         "describe" => spoken(paths, &args, "body", |args| describe(paths, args)),
         "plan" => plan(paths, &args),
-        "tick" => spoken(&args, "state", |args| task_state::tick(paths, args)),
+        "tick" => spoken(paths, &args, "state", |args| task_state::tick(paths, args)),
         "untick" => untick(paths, &args),
         "rename" => rename(paths, &args),
         "reword_step" => reword_step(paths, &args),
