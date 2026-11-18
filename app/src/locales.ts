@@ -2779,7 +2779,7 @@ const en = {
   aliasRestDone: "{name} documents signed",
   aliasRestDoneOne: "One document signed",
   aliasWhy:
-    "Did you know you can share your documents with other people who use Tisty? It is something you do by hand: what you write and what you share go only where you send them.\n\nThe alias is how you sign them. It stays with you — and travels to your other machines if you sync. It goes inside whatever you export for Tisty, and into a PDF only if you ask for it while exporting and have no name to sign with; a plain markdown file carries no name at all. Only the person you hand the document to ever sees it.\n\nNone of this is sent anywhere on its own: there is no account and no telemetry.",
+    "Did you know you can share your documents with other people who use Tisty? It is something you do by hand: what you write and what you share go only where you send them.\n\nThe alias is how you sign them. It stays with you — and travels to your other machines if you sync. It goes inside whatever you export for Tisty, and into a PDF only if you ask for it while exporting and have no name to sign with; a plain markdown file carries no name at all. Only the person you hand the document to ever sees it.\n\nNone of it goes anywhere you did not choose: there is no account and no telemetry.",
   aliasTooLong: "An alias holds up to {name} characters",
   signName: "Name to sign with",
   signNameShort: "How you appear on your PDFs.",
@@ -3181,7 +3181,7 @@ const en = {
   welcomeSigningHow:
     "The alias is how you sign them. It stays with you — and travels to your other machines if you sync. It goes inside whatever you export for Tisty, and into a PDF only if you ask for it while exporting and have no name to sign with; a plain markdown file carries no name at all. Only the person you hand the document to ever sees it.",
   welcomeSigningNote:
-    "None of this is sent anywhere on its own: there is no account and no telemetry. It is optional, and you can change it whenever you like from Settings.",
+    "None of it goes anywhere you did not choose: there is no account and no telemetry. It is optional, and you can change it whenever you like from Settings.",
   welcomeSigned: "Done",
   welcomeNotNow: "Not now",
   aliasLike: "your name here",
@@ -6106,7 +6106,7 @@ const es: Catalog = {
   aliasRestDone: "{name} documentos firmados",
   aliasRestDoneOne: "Un documento firmado",
   aliasWhy:
-    "¿Sabías que puedes compartir tus documentos con otras personas que usan Tisty? Es algo que haces tú, a mano: lo que escribes y lo que compartes va solo adonde tú lo mandas.\n\nEl alias es cómo los firmas. Se guarda contigo —y viaja a tus equipos si sincronizas—. Va dentro de lo que exportas para Tisty, y en un PDF solo si lo pides al exportarlo y no tienes un nombre para firmar; en un markdown suelto no viaja. Solo lo ve aquella persona con quien compartas el documento.\n\nNada de esto se envía solo a ningún lado: no hay cuentas ni telemetría.",
+    "¿Sabías que puedes compartir tus documentos con otras personas que usan Tisty? Es algo que haces tú, a mano: lo que escribes y lo que compartes va solo adonde tú lo mandas.\n\nEl alias es cómo los firmas. Se guarda contigo —y viaja a tus equipos si sincronizas—. Va dentro de lo que exportas para Tisty, y en un PDF solo si lo pides al exportarlo y no tienes un nombre para firmar; en un markdown suelto no viaja. Solo lo ve aquella persona con quien compartas el documento.\n\nNada de esto va a ningún lado que no hayas elegido: no hay cuentas ni telemetría.",
   aliasTooLong: "Un alias admite hasta {name} caracteres",
   signName: "Nombre para firmar",
   signNameShort: "Cómo apareces en tus PDF.",
@@ -6513,7 +6513,7 @@ const es: Catalog = {
   welcomeSigningHow:
     "El alias es cómo los firmas. Se guarda contigo —y viaja a tus equipos si sincronizas—. Va dentro de lo que exportas para Tisty, y en un PDF solo si lo pides al exportarlo y no tienes un nombre para firmar; en un markdown suelto no viaja. Solo lo ve aquella persona con quien compartas el documento.",
   welcomeSigningNote:
-    "Nada de esto se envía solo a ningún lado: no hay cuentas ni telemetría. Es opcional y lo cambias cuando quieras desde Configuración.",
+    "Nada de esto va a ningún lado que no hayas elegido: no hay cuentas ni telemetría. Es opcional y lo cambias cuando quieras desde Configuración.",
   welcomeSigned: "Listo",
   welcomeNotNow: "Ahora no",
   aliasLike: "tu nombre aquí",
