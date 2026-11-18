@@ -28,7 +28,7 @@ Nada está ofuscado, y nada está en un formato que solo Tisty sepa leer.
 > [!WARNING]
 > **Un registro que solo crece no olvida.** Si una contraseña termina en una tarea, borrar la tarea la quita de lo que ves, no de la historia que hay debajo; y si ya llegó a la carpeta compartida, está en cada equipo que la bajó, más el historial de versiones de tu proveedor. Deja los secretos fuera, o en `private/`.
 >
-> Un documento tampoco olvida enseguida: un texto que borras a propósito sigue en sus [versiones anteriores](Documentos#versiones-anteriores), en este equipo. Sale de ahí cuando la versión que lo tiene pasa los 30 días y no es la más reciente ni lo que te devolvería **Volver a lo que decía antes**, o cuando borras el documento. Los respaldos que hiciste entretanto lo conservan.
+> Un documento tampoco olvida enseguida: un texto que borras a propósito sigue en sus [versiones anteriores](Documentos#versiones-anteriores), en este equipo. Sale de ahí cuando la versión que lo tiene pasa los 30 días y no es la más reciente ni lo que te devolvería **Volver a lo que decía antes**, o cuando borras el documento. Los respaldos hechos entretanto lo conservan: los tuyos, y los últimos que Tisty escribe por su cuenta dentro de su carpeta privada antes de un cambio, como cambiar cómo sincronizas.
 
 ## Quién puede alcanzar tus datos
 
