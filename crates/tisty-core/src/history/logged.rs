@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
 
 use crate::event::{DeviceId, Event, Op};
@@ -60,6 +60,37 @@ pub fn logged(events: &[Event], id: DocId) -> Vec<Logged> {
     all
 }
 
+/// The devices that write from this machine, and those of a machine the person removed.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct Machines {
+    here: BTreeSet<DeviceId>,
+    gone: BTreeSet<DeviceId>,
+}
+
+impl Machines {
+    pub fn of(state: &crate::State, machine: &DeviceId, agent: Option<&DeviceId>) -> Self {
+        let hosted_on = |on: &dyn Fn(&DeviceId) -> bool| -> BTreeSet<DeviceId> {
+            state
+                .hosts
+                .iter()
+                .filter(|(_, host)| on(host))
+                .map(|(agent, _)| agent.clone())
+                .collect()
+        };
+        let mut here = hosted_on(&|host| host == machine);
+        here.insert(machine.clone());
+        here.extend(agent.cloned());
+        let mut gone = hosted_on(&|host| state.dropped.contains(host));
+        gone.extend(state.dropped.iter().cloned());
+        Self { here, gone }
+    }
+
+    /// Whether what this device wrote over is kept on another machine the person still has.
+    pub fn elsewhere(&self, device: &DeviceId) -> bool {
+        !self.here.contains(device) && !self.gone.contains(device)
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Row {
     pub print: String,
@@ -83,11 +114,19 @@ pub fn rows(
     now: jiff::Timestamp,
     elsewhere: impl Fn(&DeviceId) -> bool,
 ) -> Vec<Row> {
-    let named: BTreeMap<&str, &Logged> = said
-        .iter()
-        .filter(|one| one.replaced.is_some())
-        .map(|one| (one.print.as_str(), one))
-        .collect();
+    let mut named: BTreeMap<&str, Vec<&Logged>> = BTreeMap::new();
+    for one in said.iter().filter(|one| one.replaced.is_some()) {
+        named.entry(one.print.as_str()).or_default().push(one);
+    }
+    // A body written more than once is told by the writing that stood when it was set aside.
+    let told_of = |kept: &super::Version| {
+        let all = named.get(kept.print.as_str())?;
+        all.iter()
+            .rev()
+            .find(|one| one.wrote <= kept.replaced)
+            .or_else(|| all.last())
+            .copied()
+    };
     let says = crate::docs::resolve(&data.join("docs"), file)
         .ok()
         .and_then(|at| crate::docs::print_of(&at).ok().flatten());
@@ -96,7 +135,7 @@ pub fn rows(
         .into_iter()
         .filter(|one| !one.spare && earlier(&one.print))
         .map(|kept| {
-            let told = named.get(kept.print.as_str());
+            let told = told_of(&kept);
             Row {
                 wrote: told.map(|one| one.wrote),
                 replaced: kept.replaced,

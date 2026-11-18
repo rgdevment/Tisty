@@ -93,26 +93,25 @@ fn past(paths: &Paths, state: &State, store: &Store, kept: &Kept) -> Result<Past
     let says = tisty_core::docs::read(&paths.docs(), &kept.file)
         .ok()
         .map(|body| tisty_core::docs::print_of_text(&body));
-    let here = &config.device_id;
+    let machines =
+        tisty_core::history::Machines::of(state, &config.device_id, config.agent_id.as_ref());
     let all = tisty_core::history::rows(
         paths.data(),
         &kept.file,
         &tisty_core::history::logged(&log, kept.id),
         days,
         jiff::Timestamp::now(),
-        |device| machine(state, device).is_some_and(|one| one != *here),
+        |device| machines.elsewhere(device),
     );
     Ok(Past { all, days, says })
 }
 
-// An assistant writes from its host's machine; one nobody hosts, or a machine removed, keeps nothing known.
+// An assistant writes from its host's machine, and one nobody hosts names none.
 fn machine(state: &State, device: &DeviceId) -> Option<DeviceId> {
-    let machine = match state.hosts.get(device) {
-        Some(host) => host.clone(),
-        None if state.assistants.contains(device) => return None,
-        None => device.clone(),
-    };
-    (!state.dropped.contains(&machine)).then_some(machine)
+    match state.hosts.get(device) {
+        Some(host) => Some(host.clone()),
+        None => (!state.assistants.contains(device)).then(|| device.clone()),
+    }
 }
 
 const GONE_BACK: &str = "gone-back";

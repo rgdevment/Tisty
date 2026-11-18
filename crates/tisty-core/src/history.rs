@@ -9,7 +9,7 @@ use crate::{Error, Result};
 mod compared;
 mod logged;
 pub use compared::{Compared, compared};
-pub use logged::{Logged, Row, logged, rows};
+pub use logged::{Logged, Machines, Row, logged, rows};
 
 pub const FOLDER: &str = "history";
 const ORIGINALS: &str = "originals";
