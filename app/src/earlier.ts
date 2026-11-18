@@ -10,6 +10,7 @@ export interface Earlier {
   replaced: string;
   via?: string;
   by?: string;
+  keptBy?: string;
   bytes: number;
   here: boolean;
 }
@@ -41,7 +42,7 @@ export const writerOf = (one: Earlier): string | undefined => {
 };
 
 export const awayOf = (one: Earlier): string => {
-  const machine = machineOf(one.by);
+  const machine = machineOf(one.keptBy);
   return machine ? fill("earlierAwayOn", machine) : t("earlierAway");
 };
 

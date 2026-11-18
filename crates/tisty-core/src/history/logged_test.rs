@@ -166,7 +166,7 @@ fn notes_about_another_document_are_not_this_ones_history() {
 }
 
 #[test]
-fn a_version_another_machine_wrote_is_listed_without_its_text() {
+fn a_version_another_machine_replaced_is_listed_without_its_text() {
     let (room, docs) = desk();
     let data = room.path();
     let id = DocId::generate();
@@ -188,6 +188,7 @@ fn a_version_another_machine_wrote_is_listed_without_its_text() {
     let here: Vec<bool> = listed.iter().map(|one| one.here).collect();
     assert_eq!(here, vec![false, false, true]);
     assert_eq!(listed[0].device, Some(DeviceId(THERE.into())));
+    assert_eq!(listed[0].kept_by, Some(DeviceId(THERE.into())));
     assert_eq!(listed[0].bytes, "# C\n".len() as u64);
 }
 
@@ -208,7 +209,7 @@ fn a_machine_whose_log_is_older_than_its_history_lists_nothing_it_cannot_open() 
 }
 
 #[test]
-fn a_history_emptied_here_still_names_what_another_machine_wrote() {
+fn a_history_emptied_here_still_names_what_another_machine_replaced() {
     let (room, docs) = desk();
     let data = room.path();
     let id = DocId::generate();
@@ -221,13 +222,39 @@ fn a_history_emptied_here_still_names_what_another_machine_wrote() {
         noted(id, THERE, 100, None, "# C\n"),
         noted(id, HERE, 200, None, "# D\n"),
     ];
-    assert_eq!(shown(data, &events, id, 210).len(), 3);
+    assert_eq!(
+        prints(&shown(data, &events, id, 210)),
+        vec![print("# B\n"), print("# A\n")],
+        "C was cut here by D, so only this machine could keep it"
+    );
 
     assert_eq!(empty(data, DOC).unwrap(), 2);
 
     let listed = shown(data, &events, id, 210);
-    assert_eq!(prints(&listed), vec![print("# C\n")]);
+    assert_eq!(
+        prints(&listed),
+        vec![print("# B\n")],
+        "what this machine cut and then emptied was named as kept elsewhere"
+    );
     assert!(!listed[0].here);
+    assert_eq!(listed[0].device, Some(DeviceId(HERE.into())));
+    assert_eq!(listed[0].kept_by, Some(DeviceId(THERE.into())));
+}
+
+#[test]
+fn what_another_machine_wrote_and_this_one_replaced_is_this_ones_to_keep() {
+    let (room, _docs) = desk();
+    let id = DocId::generate();
+    let events = vec![
+        made(id, THERE, 0, None, "# A\n"),
+        noted(id, HERE, 40, None, "# B\n"),
+        noted(id, HERE, 90, CLAUDE, "# C\n"),
+    ];
+
+    assert!(
+        shown(room.path(), &events, id, 100).is_empty(),
+        "a body this machine cut and no longer holds was listed as kept on another"
+    );
 }
 
 #[test]

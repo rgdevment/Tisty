@@ -116,7 +116,7 @@ fn a_document_nobody_wrote_over_has_no_history() {
 }
 
 #[test]
-fn what_another_machine_wrote_is_listed_marked_and_cannot_be_opened_here() {
+fn what_another_machine_replaced_is_listed_marked_and_cannot_be_opened_here() {
     let (_tmp, mut session) = session();
     let doc = filed(&mut session, UNO);
     let there = another_machine();
@@ -134,6 +134,7 @@ fn what_another_machine_wrote_is_listed_marked_and_cannot_be_opened_here() {
     assert!(!all[0].here);
     assert_eq!(all[0].via.as_deref(), Some(CLAUDE));
     assert_eq!(all[0].device.as_ref(), Some(&there));
+    assert_eq!(all[0].kept_by.as_ref(), Some(&there));
     assert_eq!(
         read(&session, &doc, &all[0].print).unwrap_err().code,
         "versionGone"
