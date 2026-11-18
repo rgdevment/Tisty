@@ -1,5 +1,7 @@
 use std::borrow::Cow;
+use std::cell::Cell;
 use std::collections::HashMap;
+use std::hash::Hash;
 use std::ops::Range;
 
 use crate::inline::Told;
@@ -19,9 +21,18 @@ pub struct Compared {
 
 /// One page for two bodies: blocks say `data-change` gone or came, words that differ sit in `del` and `ins`; None when too long.
 pub fn compared(was: &str, now: &str) -> Option<Compared> {
+    spending(was, now, CELLS_AT_MOST)
+}
+
+fn spending(was: &str, now: &str, cells: usize) -> Option<Compared> {
     let (was, now) = (crate::read(&even(was)), crate::read(&even(now)));
-    let texts = (was.text(), now.text());
-    let steps = told(was.blocks(), now.blocks(), texts)?;
+    let cells = Cell::new(cells);
+    let bodies = Bodies {
+        was: was.text(),
+        now: now.text(),
+        cells: &cells,
+    };
+    let steps = told(was.blocks(), now.blocks(), bodies)?;
     let (unnamed, named) = (HashMap::new(), page::anchors(&now));
     let side = |text, anchors, title, named| Side {
         text,
@@ -35,8 +46,8 @@ pub fn compared(was: &str, now: &str) -> Option<Compared> {
         },
     };
     let sides = Sides {
-        was: side(texts.0, &unnamed, page::titled(was.blocks()), false),
-        now: side(texts.1, &named, page::titled(now.blocks()), true),
+        was: side(bodies.was, &unnamed, page::titled(was.blocks()), false),
+        now: side(bodies.now, &named, page::titled(now.blocks()), true),
     };
     let mut out = Compared::default();
     drawn(&steps, &sides, &mut out);
@@ -50,7 +61,22 @@ fn even(body: &str) -> Cow<'_, str> {
     }
 }
 
-type Texts<'a> = (&'a str, &'a str);
+#[derive(Clone, Copy)]
+struct Bodies<'a> {
+    was: &'a str,
+    now: &'a str,
+    cells: &'a Cell<usize>,
+}
+
+impl Bodies<'_> {
+    // Blocks nested or words many, one page spends the same cells: none is made to cost its square again and again.
+    fn shared<T: Hash + Eq>(&self, a: &[T], b: &[T], most: usize) -> Option<Vec<(usize, usize)>> {
+        let found = shared(a, b, most.min(self.cells.get()))?;
+        self.cells.set(self.cells.get() - found.cells);
+        Some(found.pairs)
+    }
+}
+
 type Marks = Vec<Range<usize>>;
 
 enum Step<'a> {
@@ -60,7 +86,7 @@ enum Step<'a> {
     Within(&'a Block, &'a Block, Vec<Step<'a>>),
 }
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Eq, Hash)]
 enum Key<'a> {
     Said(&'a str),
     Cells(Vec<&'a str>),
@@ -91,14 +117,14 @@ fn unmarked(item: &str) -> &str {
     rest.map_or(said, str::trim_start)
 }
 
-fn told<'a>(was: &'a [Block], now: &'a [Block], texts: Texts<'a>) -> Option<Vec<Step<'a>>> {
+fn told<'a>(was: &'a [Block], now: &'a [Block], bodies: Bodies<'a>) -> Option<Vec<Step<'a>>> {
     let keys = |blocks: &[Block], text| blocks.iter().map(|one| key(one, text)).collect();
-    let (old, new): (Vec<Key>, Vec<Key>) = (keys(was, texts.0), keys(now, texts.1));
-    let pairs = shared(&old, &new, CELLS_AT_MOST)?;
+    let (old, new): (Vec<Key>, Vec<Key>) = (keys(was, bodies.was), keys(now, bodies.now));
+    let pairs = bodies.shared(&old, &new, CELLS_AT_MOST)?;
     let mut out = Vec::new();
     let (mut a, mut b) = (0, 0);
     for (at, to) in pairs.into_iter().chain([(was.len(), now.len())]) {
-        between(&was[a..at], &now[b..to], texts, &mut out);
+        between(&was[a..at], &now[b..to], bodies, &mut out);
         out.extend(now.get(to).map(Step::Same));
         (a, b) = (at + 1, to + 1);
     }
@@ -167,24 +193,24 @@ fn common(a: &[&str], b: &[&str]) -> usize {
     both
 }
 
-fn between<'a>(gone: &'a [Block], came: &'a [Block], texts: Texts<'a>, out: &mut Vec<Step<'a>>) {
+fn between<'a>(gone: &'a [Block], came: &'a [Block], bodies: Bodies<'a>, out: &mut Vec<Step<'a>>) {
     let went_alone = |one| Step::Gone(one, Marks::new());
     let came_alone = |one| Step::Came(one, Marks::new());
     let (mut from, mut waiting) = (0, 0);
     if !gone.is_empty() && !came.is_empty() {
-        let went: Vec<Said> = gone.iter().map(|one| Said::of(one, texts.0)).collect();
+        let went: Vec<Said> = gone.iter().map(|one| Said::of(one, bodies.was)).collect();
         for (to, new) in came.iter().enumerate() {
             if from == gone.len() {
                 break;
             }
-            let here = Said::of(new, texts.1);
+            let here = Said::of(new, bodies.now);
             let ahead = went[from..].iter().take(LOOKS_AHEAD).enumerate();
             let Some((by, there)) = ahead.into_iter().find(|(_, there)| there.alike(&here)) else {
                 continue;
             };
             out.extend(gone[from..from + by].iter().map(went_alone));
             out.extend(came[waiting..to].iter().map(came_alone));
-            pair((&gone[from + by], new), (there, &here), texts, out);
+            pair((&gone[from + by], new), (there, &here), bodies, out);
             (from, waiting) = (from + by + 1, to + 1);
         }
     }
@@ -195,18 +221,24 @@ fn between<'a>(gone: &'a [Block], came: &'a [Block], texts: Texts<'a>, out: &mut
 fn pair<'a>(
     (gone, came): (&'a Block, &'a Block),
     (went, come): (&Said, &Said),
-    texts: Texts<'a>,
+    bodies: Bodies<'a>,
     out: &mut Vec<Step<'a>>,
 ) {
-    if let Some(steps) = within(gone, came, texts) {
+    if let Some(steps) = within(gone, came, bodies) {
         out.push(Step::Within(gone, came, steps));
         return;
     }
     let (old, new): (Vec<&str>, Vec<&str>) = (
-        went.words.iter().map(|one| &texts.0[one.clone()]).collect(),
-        come.words.iter().map(|one| &texts.1[one.clone()]).collect(),
+        went.words
+            .iter()
+            .map(|one| &bodies.was[one.clone()])
+            .collect(),
+        come.words
+            .iter()
+            .map(|one| &bodies.now[one.clone()])
+            .collect(),
     );
-    let (lost, won) = match shared(&old, &new, WORD_CELLS_AT_MOST) {
+    let (lost, won) = match bodies.shared(&old, &new, WORD_CELLS_AT_MOST) {
         Some(kept) => (
             marks(&went.words, kept.iter().map(|one| one.0)),
             marks(&come.words, kept.iter().map(|one| one.1)),
@@ -230,17 +262,17 @@ fn marks(words: &[Range<usize>], kept: impl Iterator<Item = usize>) -> Marks {
 }
 
 // A list turned numbered or a table with another head is a change of its own, so only one that opens as it did is told piece by piece.
-fn within<'a>(gone: &'a Block, came: &'a Block, texts: Texts<'a>) -> Option<Vec<Step<'a>>> {
+fn within<'a>(gone: &'a Block, came: &'a Block, bodies: Bodies<'a>) -> Option<Vec<Step<'a>>> {
     let opens_alike = match (&gone.kind, &came.kind) {
         (Kind::Table { columns: old }, Kind::Table { columns: new }) => {
             let heads = (gone.inner.first()?, came.inner.first()?);
-            columns_alike(old, new) && key(heads.0, texts.0) == key(heads.1, texts.1)
+            columns_alike(old, new) && key(heads.0, bodies.was) == key(heads.1, bodies.now)
         }
         (Kind::Item { done: old }, Kind::Item { done: new }) => {
-            old == new && own(gone, texts.0) == own(came, texts.1)
+            old == new && own(gone, bodies.was) == own(came, bodies.now)
         }
         (Kind::Callout(old), Kind::Callout(new)) => {
-            old == new && first_line(gone, texts.0) == first_line(came, texts.1)
+            old == new && first_line(gone, bodies.was) == first_line(came, bodies.now)
         }
         (
             Kind::Quote
@@ -256,7 +288,7 @@ fn within<'a>(gone: &'a Block, came: &'a Block, texts: Texts<'a>) -> Option<Vec<
         return None;
     }
     let rows = usize::from(matches!(came.kind, Kind::Table { .. }));
-    told(gone.inner.get(rows..)?, came.inner.get(rows..)?, texts)
+    told(gone.inner.get(rows..)?, came.inner.get(rows..)?, bodies)
 }
 
 fn columns_alike(old: &[Column], new: &[Column]) -> bool {

@@ -1,4 +1,4 @@
-use super::shared;
+use super::{Shared, shared};
 
 fn longest(a: &[u8], b: &[u8]) -> usize {
     let mut kept = vec![vec![0usize; b.len() + 1]; a.len() + 1];
@@ -31,7 +31,7 @@ fn the_pairs_are_a_longest_run_both_hold_in_order() {
     let mut seed = 7;
     for _ in 0..800 {
         let (a, b) = (some(&mut seed), some(&mut seed));
-        let pairs = shared(&a, &b, usize::MAX).unwrap();
+        let pairs = shared(&a, &b, usize::MAX).unwrap().pairs;
 
         assert_eq!(pairs.len(), longest(&a, &b), "{a:?} against {b:?}");
         assert!(pairs.iter().all(|(i, j)| a[*i] == b[*j]), "{pairs:?}");
@@ -51,8 +51,9 @@ fn what_both_open_and_close_with_costs_no_cell() {
     a[25_000] = 99_999_999;
     b.insert(25_001, 88_888_888);
 
-    let pairs = shared(&a, &b, 16).unwrap();
+    let Shared { pairs, cells } = shared(&a, &b, 16).unwrap();
 
+    assert_eq!(cells, 6);
     assert_eq!(pairs.len(), 49_999);
     assert_eq!(pairs[24_999], (24_999, 24_999));
     assert_eq!(pairs[25_000], (25_001, 25_002));
@@ -62,21 +63,33 @@ fn what_both_open_and_close_with_costs_no_cell() {
 fn two_that_say_the_same_are_never_too_long() {
     let a: Vec<u32> = (0..100_000).collect();
 
-    assert_eq!(shared(&a, &a, 0).map(|pairs| pairs.len()), Some(100_000));
+    let Shared { pairs, cells } = shared(&a, &a, 0).unwrap();
+
+    assert_eq!((pairs.len(), cells), (100_000, 0));
 }
 
 #[test]
 fn past_the_ceiling_between_what_they_share_nothing_is_told() {
     let (a, b): (Vec<u32>, Vec<u32>) = ((0..10).collect(), (100..110).collect());
 
+    let nothing = Shared {
+        pairs: Vec::new(),
+        cells: 121,
+    };
+
     assert_eq!(shared(&a, &b, 120), None);
-    assert_eq!(shared(&a, &b, 121), Some(Vec::new()));
+    assert_eq!(shared(&a, &b, 121), Some(nothing));
 }
 
 #[test]
 fn one_side_empty_shares_nothing_and_costs_nothing() {
     let a: Vec<u32> = (0..1_000_000).collect();
 
-    assert_eq!(shared(&a, &[], 0), Some(Vec::new()));
-    assert_eq!(shared(&[], &a, 0), Some(Vec::new()));
+    let nothing = || Shared {
+        pairs: Vec::new(),
+        cells: 0,
+    };
+
+    assert_eq!(shared(&a, &[], 0), Some(nothing()));
+    assert_eq!(shared(&[], &a, 0), Some(nothing()));
 }

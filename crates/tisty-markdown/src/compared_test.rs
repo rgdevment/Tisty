@@ -1,4 +1,7 @@
-use super::{Compared, Step, compared, key, told, unmarked};
+use std::cell::Cell;
+
+use super::{Bodies, Compared, Step, compared, key, spending, told, unmarked};
+use crate::shared::CELLS_AT_MOST;
 
 const VOID: [&str; 5] = ["br", "hr", "img", "col", "input"];
 
@@ -448,7 +451,13 @@ fn what_stayed_and_went_is_the_first_body_and_what_stayed_and_came_the_second() 
         let (was, now) = (some_body(&mut seed), some_body(&mut seed));
         let (old, new) = (crate::read(&was), crate::read(&now));
         let texts = (old.text(), new.text());
-        let steps = told(old.blocks(), new.blocks(), texts).unwrap();
+        let cells = Cell::new(CELLS_AT_MOST);
+        let bodies = Bodies {
+            was: texts.0,
+            now: texts.1,
+            cells: &cells,
+        };
+        let steps = told(old.blocks(), new.blocks(), bodies).unwrap();
 
         let (mut first, mut second) = (Vec::new(), Vec::new());
         for step in &steps {
@@ -494,4 +503,25 @@ fn a_row_is_weighed_by_its_cells_and_not_by_its_padding() {
     let row = |doc: &crate::Doc| doc.blocks()[0].inner[1].clone();
 
     assert!(key(&row(&tight), tight.text()) == key(&row(&wide), wide.text()));
+}
+
+const THREE_BEFORE: &str = "uno b c d cinco\n\nseis g h i diez\n\nonce l m n quince\n";
+const THREE_AFTER: &str = "UNO b c d CINCO\n\nSEIS g h i DIEZ\n\nONCE l m n QUINCE\n";
+
+#[test]
+fn a_page_out_of_cells_tells_the_rest_of_its_blocks_whole() {
+    let rich = spending(THREE_BEFORE, THREE_AFTER, 16 + 3 * 36).unwrap();
+    let poor = spending(THREE_BEFORE, THREE_AFTER, 16 + 36 + 35).unwrap();
+
+    assert_eq!(rich.html.matches("<ins>").count(), 6, "{}", rich.html);
+    assert_eq!(poor.html.matches("<ins>").count(), 2, "{}", poor.html);
+    assert!(poor.html.contains("<ins>UNO</ins> b c d <ins>CINCO</ins>"));
+    assert_eq!((poor.gone, poor.came), (3, 3));
+    assert!(balanced(&poor.html));
+}
+
+#[test]
+fn only_the_blocks_of_the_whole_page_decide_that_it_is_too_long() {
+    assert!(spending(THREE_BEFORE, THREE_AFTER, 16).is_some());
+    assert_eq!(spending(THREE_BEFORE, THREE_AFTER, 15), None);
 }
