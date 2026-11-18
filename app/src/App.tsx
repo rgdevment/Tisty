@@ -53,6 +53,7 @@ export default function App() {
     folderMenu,
     docMenu,
     hereMenu,
+    diaryMenu,
     listMenu,
     papered,
     lane,
@@ -115,6 +116,7 @@ export default function App() {
           onPage={(doc, pageOf) => hangIt(doc, pageOf)}
           onDiary={toDiary}
           onBrainsty={openNetwork}
+          onDiaryMenu={diaryMenu}
           onFolderMenu={folderMenu}
           onDocMenu={docMenu}
           onHereMenu={hereMenu}

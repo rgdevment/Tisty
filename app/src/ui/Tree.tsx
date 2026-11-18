@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { Filed, Folded, Papers } from "../core";
+import { trail } from "../folders";
+import { BRAINSTORM, DIARY, show, showAll, useHidden } from "../hiding";
 import { led } from "../leading";
 import { fill, t } from "../locales";
 import { compactedBy } from "../tidying";
@@ -23,7 +25,6 @@ import { painted } from "./Hue";
 import { onMac } from "./WindowChrome";
 
 const STIRS = 4;
-const DIARY = "diary";
 
 const yearOf = (book: Filed): number => Number(book.title.match(/[0-9]{4}/)?.[0] ?? 0);
 
@@ -45,6 +46,7 @@ interface Props {
   acting?: string | null;
   onOpen: (doc: Filed) => void;
   onDiary?: () => void;
+  onDiaryMenu?: (at: { x: number; y: number }) => void;
   onFile: (doc: string, folder?: string, before?: string) => void;
   onPage?: (doc: string, pageOf: string) => void;
   onHere?: (folder?: string) => void;
@@ -66,6 +68,7 @@ export default function Tree({
   acting,
   onOpen,
   onDiary,
+  onDiaryMenu,
   onFile,
   onPage,
   onHere,
@@ -83,6 +86,9 @@ export default function Tree({
   );
   const [reached, setReached] = useState<string | null>(null);
   const listed = useRef<HTMLDivElement>(null);
+  const hidden = useHidden();
+  // While the sidebar is sifted everything shows, so a match never sits behind a hidden row.
+  const veiled = (key: string) => !unfolded && hidden.includes(key);
 
   const rows = () => Array.from(listed.current?.querySelectorAll<HTMLElement>("[data-row]") ?? []);
 
@@ -275,6 +281,10 @@ export default function Tree({
     );
   });
 
+  useEffect(() => {
+    if (reached && !listed.current?.querySelector(`[data-row="${reached}"]`)) setReached(null);
+  });
+
   const stops = (id: string) => (reached ?? first) === id;
 
   const walk = (from: string, by: number) => {
@@ -391,14 +401,19 @@ export default function Tree({
     papers.folders.filter((one) => one.parent === parent && one.away === shelved(parent));
 
   const pin = papers.docs.find((one) => one.file === pinned && !one.away && !one.pageOf);
+  const pinShown = pin && !veiled(BRAINSTORM) ? pin : undefined;
+
+  const drawnUnder = (parent: string | null) =>
+    under(parent).filter((one) => one.away || !veiled(one.id));
 
   const gathered = (one: Filed) => Boolean(onDiary && one.diary && !one.pageOf && !one.away);
   const diaries = papers.docs
     .filter(gathered)
     .sort((one, two) => yearOf(two) - yearOf(one) || two.title.localeCompare(one.title));
-  const diaryShown = Boolean(onDiary) && (!unfolded || diaries.length > 0);
+  const diaryShown = Boolean(onDiary) && (!unfolded || diaries.length > 0) && !veiled(DIARY);
   // Only a row the tree draws can hold the tab stop: a page or a book folded away never would.
-  const first = pin?.id ?? (diaryShown ? DIARY : undefined) ?? papers.folders[0]?.id ?? "unfiled";
+  const first =
+    pinShown?.id ?? (diaryShown ? DIARY : undefined) ?? drawnUnder(null)[0]?.id ?? "unfiled";
 
   const inside = (folder: string | null) =>
     papers.docs.filter(
@@ -682,7 +697,14 @@ export default function Tree({
     const mark = <Glyph name="book-heart" className="diary-mark h-[14px] w-[14px]" />;
     return (
       <li key={DIARY} className="relative">
-        <div className="group/row relative flex items-center rounded-md has-[:focus-visible]:bg-hover">
+        <div
+          className="group/row relative flex items-center rounded-md has-[:focus-visible]:bg-hover"
+          onContextMenu={(e) => {
+            if (!onDiaryMenu) return;
+            e.preventDefault();
+            onDiaryMenu({ x: e.clientX, y: e.clientY });
+          }}
+        >
           {diaries.length > 0 ? (
             <Grip
               at={8}
@@ -707,10 +729,16 @@ export default function Tree({
             tabIndex={stops(DIARY) ? 0 : -1}
             onFocus={() => setReached(DIARY)}
             onKeyDown={(e) => {
+              if (onDiaryMenu && (e.key === "ContextMenu" || (e.shiftKey && e.key === "F10"))) {
+                e.preventDefault();
+                const box = e.currentTarget.getBoundingClientRect();
+                return onDiaryMenu({ x: box.left + 24, y: box.bottom });
+              }
               if (e.key !== "ArrowDown" && e.key !== "ArrowUp") return;
               e.preventDefault();
               walk(DIARY, e.key === "ArrowDown" ? 1 : -1);
             }}
+            aria-keyshortcuts={onDiaryMenu ? "Shift+F10" : undefined}
             onClick={onToday}
             title={t("diaryOpenToday")}
             className="flex min-w-0 flex-1 items-center gap-1.5 rounded-md py-1 pl-1.5 pr-2 text-left text-[13px] text-soft hover:bg-hover"
@@ -734,7 +762,7 @@ export default function Tree({
 
   const branch = (folder: Folded, depth: number) => {
     const closed = !unfolded && !opened.has(folder.id);
-    const kids = under(folder.id);
+    const kids = drawnUnder(folder.id);
     const papersIn = inside(folder.id);
     return (
       <li key={folder.id} className={folder.away ? "relative text-faint" : "relative"}>
@@ -811,7 +839,7 @@ export default function Tree({
           <ul id={`holds-${folder.id}`}>
             {kids.flatMap((child) => [branch(child, depth + 1)])}
             {papersIn.flatMap((doc) => [paper(doc, depth + 1)])}
-            {!kids.length && !papersIn.length && (
+            {!under(folder.id).length && !papersIn.length && (
               <li
                 className="py-0.5 text-[11.5px] text-faint italic"
                 style={{ paddingLeft: `${8 + (depth + 1) * STEP + ICON}px` }}
@@ -848,9 +876,9 @@ export default function Tree({
           {fill("liftedHint", lifted.name, onMac ? "⌘" : "Ctrl+")}
         </li>
       )}
-      {pin && paper(pin, 0)}
+      {pinShown && paper(pinShown, 0)}
       {onDiary && diaryShown && diary(onDiary)}
-      {under(null).flatMap((folder) => [branch(folder, 0)])}
+      {drawnUnder(null).flatMap((folder) => [branch(folder, 0)])}
 
       <li className="relative">
         <div
@@ -942,10 +970,52 @@ export default function Tree({
     </div>
   );
 
+  const veils = [
+    ...(pin && veiled(BRAINSTORM) ? [{ key: BRAINSTORM, name: pin.title || t("brainstorm") }] : []),
+    ...(onDiary && veiled(DIARY) ? [{ key: DIARY, name: t("diary") }] : []),
+    ...papers.folders
+      .filter((one) => !one.away && veiled(one.id))
+      .map((one) => ({ key: one.id, name: trail(papers.folders, one.id) })),
+  ];
+
+  const veiledRows = veils.length > 0 && (
+    <div className="mt-2">
+      <h3 className="px-2.5 py-1 text-[11.5px] font-semibold tracking-[0.06em] text-faint uppercase">
+        {t("hiddenRows")}
+      </h3>
+      <ul aria-label={t("hiddenRows")} className="flex flex-col gap-px">
+        {veils.map((one) => (
+          <li key={one.key}>
+            <button
+              type="button"
+              onClick={() => show(one.key)}
+              title={fill("showHiddenOne", one.name)}
+              className="flex w-full min-w-0 items-center gap-1.5 rounded-md py-1 pr-2 pl-2 text-left text-[13px] text-faint hover:bg-hover"
+            >
+              <Glyph name="hide" className="h-[14px] w-[14px] shrink-0" />
+              <span className="truncate">{one.name}</span>
+            </button>
+          </li>
+        ))}
+        <li>
+          <button
+            type="button"
+            onClick={showAll}
+            className="flex w-full items-center gap-1.5 rounded-md py-1 pr-2 pl-2 text-left text-[12.5px] text-accent hover:bg-hover"
+          >
+            <Glyph name="eye-thing" className="h-[14px] w-[14px] shrink-0" />
+            {t("showHidden")}
+          </button>
+        </li>
+      </ul>
+    </div>
+  );
+
   return (
     <div ref={listed} className={carried ? "carrying select-none" : undefined}>
       {tree}
       {kept}
+      {veiledRows}
     </div>
   );
 }

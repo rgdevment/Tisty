@@ -2,6 +2,7 @@ import { useRef } from "react";
 import { fold } from "../breadth";
 import type { List, Papers } from "../core";
 import { capped } from "../format";
+import { useHidden } from "../hiding";
 import { fill, t } from "../locales";
 import type { Chosen, Named } from "../views";
 import Glyph from "./Glyph";
@@ -46,7 +47,10 @@ export default function SideRail({
 }: Props) {
   const shelf = useRef<HTMLDivElement>(null);
   const room = useRoom(shelf, "height");
-  const top = papers.folders.filter((one) => one.parent === null && !one.away);
+  const veiled = useHidden();
+  const top = papers.folders.filter(
+    (one) => one.parent === null && !one.away && !veiled.includes(one.id),
+  );
   const fits = fitting(top.length, room, STEP);
   const hidden = top.length - fits;
   const plain = !chosen.list && !chosen.tags?.length;

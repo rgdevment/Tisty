@@ -15,6 +15,7 @@ import {
   type Papers,
 } from "./core";
 import { deep, destinations } from "./folders";
+import { BRAINSTORM, hideChoice } from "./hiding";
 import { waysOut } from "./leaving";
 import { fill, t } from "./locales";
 import { tongueChoices } from "./tongueMenus";
@@ -136,6 +137,7 @@ export const folderChoices = (folder: Folded, h: Hands): Choice[] => [
     label: t("packAll"),
     onPick: () => h.parcels.packUp([], "tisty"),
   },
+  hideChoice(folder.id, folder.away),
   {
     // Only the folder that was shelved answers for itself; one below it comes back with it.
     key: "away",
@@ -293,7 +295,12 @@ const ON_BOARD = new Set(["copy", "away", "drop"]);
 export const docChoices = (doc: Filed, h: Hands, board = false): Choice[] => {
   const all = everyChoice(doc, h);
   if (!board) return all;
-  return all
+  const kept = all
     .filter((one) => ON_BOARD.has(one.key))
     .map((one, at) => (at === 0 ? { ...one, apart: false } : one));
+  return [
+    ...kept.filter((one) => one.key !== "drop"),
+    hideChoice(BRAINSTORM),
+    ...kept.filter((one) => one.key === "drop"),
+  ];
 };
