@@ -1,3 +1,6 @@
+import callouts from "./callouts.css?raw";
+import code from "./code.css?raw";
+import diagrams from "./diagrams.css?raw";
 import diary from "./diary.css?raw";
 import editor from "./editor.css?raw";
 import { HUES } from "./hues";
@@ -44,7 +47,7 @@ export const escaped = (said: string): string =>
   said.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
 // Everything a drawn page needs to look like itself, wherever it is shown.
-export const PAGE_CSS = `${sheet}${editor}${tables}${diary}${cited}`;
+export const PAGE_CSS = `${sheet}${callouts}${code}${diagrams}${editor}${tables}${diary}${cited}`;
 
 // The blocks page.css draws as the document's title, for a host that names its window after it.
 export const TITLED = [

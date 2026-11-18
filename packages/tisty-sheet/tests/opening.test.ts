@@ -53,7 +53,15 @@ describe("the first line of a document", () => {
   });
 
   it("reaches no block by its kind through a sibling, which would restyle them all as blocks come and go", () => {
-    const sheet = ["page.css", "editor.css", "tables.css", "diary.css"]
+    const sheet = [
+      "page.css",
+      "callouts.css",
+      "code.css",
+      "diagrams.css",
+      "editor.css",
+      "tables.css",
+      "diary.css",
+    ]
       .map((name) => source(name))
       .join("")
       .replace(/\/\*[\s\S]*?\*\//g, "");

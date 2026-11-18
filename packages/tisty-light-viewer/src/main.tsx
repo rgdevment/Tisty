@@ -1,7 +1,6 @@
 import { render } from "@solidjs/web";
 import "tisty-sheet/tokens.css";
 import "tisty-sheet/page.css";
-import "tisty-sheet/tables.css";
 import "./frame.css";
 import App from "./App";
 import { closed } from "./host";

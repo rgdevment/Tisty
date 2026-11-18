@@ -23,6 +23,7 @@ import Problem from "./Problem";
 import { bringFar, bringNearPictures, farPictures } from "./pictures";
 import { blockAt, remember, remembered } from "./place";
 import { dress, isDark, laidIn, printed, redraw, settled, turnTheme } from "./sheet";
+import { styledFor } from "./styles";
 import { type Words, wordsFor } from "./words";
 
 const ZOOMS = [0.8, 0.9, 1, 1.1, 1.25, 1.4, 1.6];
@@ -78,6 +79,7 @@ export default function App(props: { readonly asked: string | null; readonly clo
   const look = async () => {
     const now = await opened();
     if (now.kind === "drawn") {
+      await styledFor([now.first]);
       page.innerHTML = now.first;
       setFields(fieldsIn(page));
     }
@@ -87,7 +89,9 @@ export default function App(props: { readonly asked: string | null; readonly clo
     await shown();
     if (now.kind === "missed" || now.first.trim() === "") return;
     void facts().then(setAbout, () => {});
-    await laidIn(page, now.more ? await theRest() : []);
+    const rest = now.more ? await theRest() : [];
+    await styledFor(rest);
+    await laidIn(page, rest);
     setWhole(true);
     everyPiece();
     if (!now.own) bringNearPictures(page);
