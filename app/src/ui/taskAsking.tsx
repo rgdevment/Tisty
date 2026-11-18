@@ -16,6 +16,7 @@ const listed = (chosen: string | string[] | null): string[] => {
 export function useTaskAsks(
   papers: readonly Filed[] | undefined,
   onError?: (problem: unknown) => void,
+  whole?: string,
 ): { asking?: Asking; picker: ReactNode } {
   const [picked, setPicked] = useState<Picked | null>(null);
   const failed = useRef(onError);
@@ -23,10 +24,10 @@ export function useTaskAsks(
   const asking = useMemo<Asking | undefined>(
     () =>
       papers && {
-        kinds: ["doc", "task", "icon", "file"],
+        kinds: whole ? ["doc", "newTask", "task", "icon", "file"] : ["doc", "task", "icon", "file"],
         ask: (kind, at, put) => {
           const said = (text: string) => failed.current?.(text);
-          if (kind !== "file") return setPicked({ kind, at, put });
+          if (kind !== "file") return setPicked({ kind, at, put, whole });
           pick({ multiple: true })
             .then((chosen) => attachedAll(listed(chosen)))
             .then((all) => keptAll(all, said))
@@ -36,7 +37,7 @@ export function useTaskAsks(
             .catch((e) => failed.current?.(e));
         },
       },
-    [papers],
+    [papers, whole],
   );
   const picker = picked && papers && (
     <Picking

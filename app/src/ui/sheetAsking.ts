@@ -9,6 +9,6 @@ export const editorAsking = (
   ...asking,
   kinds: asking?.kinds ?? [],
   failed,
-  ask: (kind, at, put, first) => asking?.ask(kind, at, put, first),
+  ask: (kind, at, put, first, before) => asking?.ask(kind, at, put, first, before),
   steps: () => stagesIn(text()),
 });

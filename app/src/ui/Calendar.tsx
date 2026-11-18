@@ -18,12 +18,17 @@ export default function Calendar({ value, inline, onPick, onClear, onClose }: Pr
     const away = (e: MouseEvent) => {
       if (!box.current?.contains(e.target as Node)) onClose();
     };
-    const key = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    // Ahead of the dialog around it, so Escape closes only the calendar.
+    const key = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      e.preventDefault();
+      onClose();
+    };
     if (!inline) document.addEventListener("mousedown", away);
-    document.addEventListener("keydown", key);
+    document.addEventListener("keydown", key, true);
     return () => {
       document.removeEventListener("mousedown", away);
-      document.removeEventListener("keydown", key);
+      document.removeEventListener("keydown", key, true);
     };
   }, [inline, onClose]);
 

@@ -119,7 +119,7 @@ A **deadline** is different from a plan: `before`, `due`, `by` and `until` open 
 
 Every box you write on the page, `- [ ]`, is one of its steps: you tick it right there, and the trail keeps when it was added and when it was ticked. A step is a line; the log keeps its first hundred characters. **Add a step**, under the list, adds another, and a step left empty goes away by itself.
 
-When a step needs more, hover over its open box and press **↗**: it becomes a task of its own, a **part** of this one, and its card stays in its place with the steps it has done and its date. A click on the card opens it, and its circle marks it done. The same card cites a task in any document: see [Citing a task](Documents#citing-a-task).
+When a step needs more, hover over its open box and press **↗**: it becomes a task of its own, a **part** of this one, and its card stays in its place with the steps it has done and its date. A click on the card opens it, and its circle marks it done. The same card cites a task in any document: see [Citing a task](Documents#citing-a-task). On the page, `/` and **A new task** make a part written as in the quick capture, and its card stays where you wrote it.
 
 - A task with parts shows **▣ 3/7** where its steps would count, and its parts fold beneath it. It unfolds them in any view; the ones that view leaves out wait folded under «3 more outside this view» until you ask.
 - A task with a date, a deadline and parts shows a thin bar: how much of its time has gone, against how many of its parts are closed. It reads **On track**, **Running slow** or **Won't make it**, and the folded **Underway** band counts the ones falling behind.
@@ -128,6 +128,7 @@ When a step needs more, hover over its open box and press **↗**: it becomes a 
 - The trail of both tells when a part joined and when it was let go.
 - Closing a task with parts still open asks you to let them go in the same breath, and undo brings them back.
 - Beside the page, **Linked from** tells which documents and which other tasks cite or mention this one.
+- A task made from a document, or from an idea on the Brainstorm, shows **Born in** beside its page: a click opens that document.
 
 ## From a calendar
 

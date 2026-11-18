@@ -422,6 +422,34 @@ fn a_source_that_is_not_an_idea_names_no_origin() {
 }
 
 #[test]
+fn a_task_written_in_a_document_hangs_from_it_and_is_cited_where_it_was_born() {
+    let world = World::new();
+    let mut store = world.store();
+    let opening = "# Viaje\n\n## Año nuevo\n\n";
+    let (_, trip) = doc(&world, &mut store, opening, None, None);
+    let heads = tisty_markdown::outline(&tisty_markdown::read(opening));
+    let grapes = Ulid::generate();
+    let mut d = TaskAdd::new("Comprar las uvas", "a0");
+    d.source = Some(format!("{trip}#{}", heads[1].id));
+    store.append(Op::TaskAdd { id: grapes, d }).unwrap();
+    rewrite(
+        &world,
+        &trip,
+        &format!("{opening}![Comprar las uvas](tisty:task/{grapes})\n"),
+    );
+    let mut brain = world.brain();
+
+    world.refreshed(&mut brain, &world.state());
+
+    let mut wanted = vec![
+        tie(&grapes.to_string(), &trip, "structure"),
+        tie(&trip, &grapes.to_string(), "cite"),
+    ];
+    wanted.sort();
+    assert_eq!(edges(&brain), wanted);
+}
+
+#[test]
 fn a_link_written_by_ulid_meets_the_document_through_its_uid() {
     let world = World::new();
     let mut store = world.store();

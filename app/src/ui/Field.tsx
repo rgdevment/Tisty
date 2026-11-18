@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useAttended } from "../attended";
-import type { Span } from "../core";
+import type { Span } from "../capturing";
 
 interface Props {
   attend?: boolean;

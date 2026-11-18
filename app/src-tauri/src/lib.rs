@@ -1128,6 +1128,7 @@ fn commands() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool + Send + Sync +
         answers::papers::read_as,
         answers::settings::guide,
         answers::tasks::capture,
+        answers::tasks::capture_known,
         answers::tasks::read,
         answers::searching::search,
         answers::attaching::complete,

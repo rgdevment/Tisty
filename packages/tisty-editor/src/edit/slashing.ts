@@ -23,6 +23,7 @@ export type Asked =
   | "page"
   | "newDoc"
   | "doc"
+  | "newTask"
   | "task"
   | "icon"
   | "file"
@@ -53,6 +54,7 @@ export type Asking = {
     at: { x: number; y: number },
     put: (text: string) => boolean,
     first: boolean,
+    before: string,
   ) => void;
 };
 
@@ -242,6 +244,13 @@ export const SLASHED: readonly Slashed[] = [
   },
   { key: "doc", label: "insertDoc", hint: "![ ]", icon: "page", put: { ask: "doc", block: true } },
   {
+    key: "newtask",
+    label: "insertNewTask",
+    hint: "+",
+    icon: "todo",
+    put: { ask: "newTask", block: true },
+  },
+  {
     key: "task",
     label: "insertTask",
     hint: "![ ]",
@@ -337,7 +346,7 @@ export const put = (view: EditorView, one: Slashed, from: number, to: number, as
   }
   if ("ask" in how) {
     view.dispatch({ changes: { from, to }, userEvent: "input.complete" });
-    const first = !view.state.sliceDoc(0, from).trim();
+    const before = view.state.sliceDoc(0, from);
     asking?.ask(
       how.ask,
       onScreen(view, from),
@@ -353,7 +362,8 @@ export const put = (view: EditorView, one: Slashed, from: number, to: number, as
         view.focus();
         return true;
       },
-      first,
+      !before.trim(),
+      before,
     );
     return;
   }

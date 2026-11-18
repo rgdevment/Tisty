@@ -76,7 +76,11 @@ export default function TaskWords({
   holding.current = onHeld;
   const open = task.status === "open";
   const kept = useKeptHeight<HTMLDivElement>(`task:${task.id}`);
-  const { asking, picker } = useTaskAsks(open ? papers : undefined, onError);
+  const { asking, picker } = useTaskAsks(
+    open ? papers : undefined,
+    onError,
+    holdsParts(task) ? task.id : undefined,
+  );
   const [dates, setDates] = useState<Record<string, string>>({});
   const steps = (task.steps ?? []).map((one) => `${one.text}:${one.done}`).join("|");
   useEffect(() => {

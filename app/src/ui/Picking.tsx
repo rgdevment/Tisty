@@ -10,6 +10,7 @@ import Asking from "./Asking";
 import DiagramFinder from "./DiagramFinder";
 import Glyphs from "./Glyphs";
 import Papers from "./Papers";
+import TaskMaking from "./TaskMaking";
 import TaskPick from "./TaskPick";
 
 export type Picked = {
@@ -17,12 +18,15 @@ export type Picked = {
   readonly at: { x: number; y: number };
   readonly put: (text: string) => boolean;
   readonly file?: string;
+  readonly before?: string;
+  readonly whole?: string;
 };
 
 // The icons keep the room they have everywhere else, so they read the same here as in a list or a folder.
 const ROOM = {
   narrow: { wide: 272, tall: 340 },
   icons: { wide: 400, tall: 430 },
+  making: { wide: 480, tall: 330 },
   finder: { wide: 600, tall: 370 },
 };
 
@@ -49,7 +53,13 @@ export default function Picking({
 }) {
   const { kind, at, put } = picked;
   const [finding, setFinding] = useState(kind === "diagramFrom");
-  const { wide, tall } = finding ? ROOM.finder : kind === "icon" ? ROOM.icons : ROOM.narrow;
+  const { wide, tall } = finding
+    ? ROOM.finder
+    : kind === "icon"
+      ? ROOM.icons
+      : kind === "newTask"
+        ? ROOM.making
+        : ROOM.narrow;
   const below = at.y + 6 + tall <= window.innerHeight;
   const placed = {
     width: `${wide}px`,
@@ -79,7 +89,7 @@ export default function Picking({
         data-keeps-writing
         style={placed}
         onKeyDown={(e) => {
-          if (e.key !== "Escape") return;
+          if (e.key !== "Escape" || e.defaultPrevented) return;
           e.preventDefault();
           e.stopPropagation();
           dismissed();
@@ -112,6 +122,19 @@ export default function Picking({
             onPick={(one) => {
               const title = one.title || t("untitledDoc");
               if (!done(docCard(one.file, title))) onLost({ file: one.file, title });
+            }}
+          />
+        )}
+        {kind === "newTask" && (
+          <TaskMaking
+            born={
+              picked.whole ? { whole: picked.whole } : { doc: picked.file, before: picked.before }
+            }
+            onMaking={(now) => {
+              making.current = now;
+            }}
+            onMade={(task) => {
+              if (!done(taskCard(task.id, task.title))) onError(t("taskMadeCardLost"));
             }}
           />
         )}

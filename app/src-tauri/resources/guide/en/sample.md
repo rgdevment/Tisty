@@ -803,6 +803,8 @@ A task: **A task**, in the `/` menu, searches the open ones and the archived one
 
 ![Take Rina to the vet](tisty:task/01JC4M7Q3B8YH2A9K6TN5VXZRE)
 
+**A new task**, in the same menu, makes one right there: you write it as in the quick capture, `Call the vet on Monday #Rina !do`, and a card like this one stays in its place. The task remembers the document where it was born, and on a task's page it becomes a part of it.
+
 A card also tells you when its document is archived or gone. And on a task's page, each part is a card just the same, with its steps done and its date.
 
 A link alone in its paragraph, with its site's letter and colour. **Bring the preview** gives it the title and the picture the site offers.

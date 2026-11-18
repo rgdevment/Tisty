@@ -1,7 +1,8 @@
 import { emit } from "@tauri-apps/api/event";
 import { type ReactNode, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { ideaToDoc, ideaUnflag } from "../brainstorm";
-import { capture, type Filed, type IdeaMarked, type Task } from "../core";
+import { capture } from "../capturing";
+import type { Filed, IdeaMarked, Task } from "../core";
 import { diaryFileIdea } from "../diary";
 import { fill, locale, t } from "../locales";
 import "../notes.css";
