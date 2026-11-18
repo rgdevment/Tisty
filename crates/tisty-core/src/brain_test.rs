@@ -403,11 +403,7 @@ fn two_processes_keep_one_base_between_them() {
 #[test]
 fn a_look_trusts_the_stamp_and_a_nudge_reads_the_store_again() {
     let world = World::new();
-    let filed = |title: &str| {
-        let mut store = world.store();
-        task(&mut store, title, &[]);
-    };
-    filed("renew the passport");
+    filed(&world, &["renew the passport"]);
 
     assert!(matches!(
         kept_up(&world.paths, Round::Starting),
@@ -418,7 +414,7 @@ fn a_look_trusts_the_stamp_and_a_nudge_reads_the_store_again() {
         Some(Refreshed::Unchanged)
     );
 
-    filed("water the plants");
+    filed(&world, &["water the plants"]);
 
     assert_eq!(
         kept_up(&world.paths, Round::Nudged),
@@ -497,7 +493,10 @@ fn filed(world: &World, titles: &[&str]) {
 fn a_base_deleted_between_rounds_is_filled_again_by_the_next_look() {
     let world = World::new();
     filed(&world, &["renew the passport", "water the plants"]);
-    kept_up(&world.paths, Round::Starting);
+    assert!(matches!(
+        kept_up(&world.paths, Round::Starting),
+        Some(Refreshed::Moved { written: 2, .. })
+    ));
 
     std::fs::remove_file(world.paths.cache().join(FILE)).unwrap();
 
@@ -516,7 +515,10 @@ fn a_base_deleted_between_rounds_is_filled_again_by_the_next_look() {
 fn an_older_base_left_by_another_version_is_filled_again_by_the_next_look() {
     let world = World::new();
     filed(&world, &["renew the passport"]);
-    kept_up(&world.paths, Round::Starting);
+    assert!(matches!(
+        kept_up(&world.paths, Round::Starting),
+        Some(Refreshed::Moved { written: 1, .. })
+    ));
     world
         .brain()
         .db
