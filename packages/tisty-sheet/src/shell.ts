@@ -1,4 +1,5 @@
 import diary from "./diary.css?raw";
+import editor from "./editor.css?raw";
 import { HUES } from "./hues";
 import { IDEA_HUES } from "./ideas";
 import sheet from "./page.css?raw";
@@ -43,7 +44,7 @@ export const escaped = (said: string): string =>
   said.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
 // Everything a drawn page needs to look like itself, wherever it is shown.
-export const PAGE_CSS = `${sheet}${tables}${diary}${cited}`;
+export const PAGE_CSS = `${sheet}${editor}${tables}${diary}${cited}`;
 
 // The blocks page.css draws as the document's title, for a host that names its window after it.
 export const TITLED = [

@@ -1,0 +1,189 @@
+/* Only CodeMirror draws these, on the app's pages, so the light viewer never loads them. */
+
+/* A few words want a stronger tint than a whole block to be seen at all. */
+@keyframes lately-fades {
+  0%,
+  75% {
+    background: color-mix(in srgb, var(--tisty-accent) 30%, transparent);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--tisty-accent) 30%, transparent);
+  }
+  100% {
+    background: transparent;
+    box-shadow: none;
+  }
+}
+.cm-lately {
+  border-radius: 3px;
+  animation: lately-fades 4s ease forwards;
+}
+.page.whole > :not(.editing, .cm-dock) {
+  display: none !important;
+}
+.cm-under {
+  text-decoration: underline;
+}
+.cm-front {
+  font-family: ui-monospace, "Cascadia Mono", "SF Mono", Menlo, Consolas, monospace;
+  font-size: 0.86em;
+  color: var(--tisty-soft);
+}
+.cm-h1 {
+  font-size: 1.65em;
+  font-weight: 640;
+  line-height: 1.25;
+}
+.cm-h2 {
+  font-size: 1.3em;
+  font-weight: 640;
+}
+.cm-h3 {
+  font-size: 1.13em;
+  font-weight: 640;
+}
+.cm-h4,
+.cm-h5,
+.cm-h6 {
+  font-weight: 640;
+}
+.cm-quote {
+  padding-left: 14px !important;
+  border-left: 2px solid var(--tisty-line);
+  color: var(--tisty-soft);
+}
+.cm-callout {
+  --said: var(--tisty-hue-blue);
+  padding-left: 14px !important;
+  border-left: 3px solid var(--said);
+  background: color-mix(in srgb, var(--said) 7%, transparent);
+}
+.cm-callout-tip {
+  --said: var(--tisty-hue-green);
+}
+.cm-callout-important {
+  --said: var(--tisty-hue-indigo);
+}
+.cm-callout-warning {
+  --said: var(--tisty-hue-amber);
+}
+.cm-callout-caution {
+  --said: var(--tisty-hue-red);
+}
+.cm-callout-idea {
+  --said: var(--tisty-soft);
+}
+.cm-callout-said {
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--said);
+}
+.cm-bullet {
+  display: inline-block;
+  width: 22px;
+  color: var(--tisty-faint);
+}
+.cm-check {
+  display: inline-block;
+  margin: 0 9px 0 0;
+  vertical-align: -2px;
+  cursor: pointer;
+}
+.cm-done {
+  color: var(--tisty-soft);
+  text-decoration: line-through;
+  text-decoration-color: color-mix(in srgb, var(--tisty-soft) 60%, transparent);
+}
+.cm-link {
+  color: var(--tisty-accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.cm-glyph {
+  display: inline-flex;
+  align-items: center;
+  vertical-align: -0.18em;
+  color: var(--tisty-soft);
+}
+.cm-glyph svg,
+.cm-bar-glyph svg {
+  width: 1.05em;
+  height: 1.05em;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.cm-glyph svg .solid,
+.cm-bar-glyph svg .solid {
+  fill: currentColor;
+  stroke: none;
+}
+.cm-pending-strong {
+  font-weight: 640;
+}
+.cm-pending-em {
+  font-style: italic;
+}
+.cm-pending-struck {
+  text-decoration: line-through;
+}
+.cm-pending-code {
+  font-family: ui-monospace, "Cascadia Mono", "SF Mono", Menlo, monospace;
+}
+.cm-fold-head,
+.cm-fold-body,
+.cm-fold-end {
+  border-left: 1px solid var(--tisty-hair);
+  border-right: 1px solid var(--tisty-hair);
+  padding-left: 14px !important;
+  padding-right: 14px !important;
+}
+.cm-fold-head {
+  border-top: 1px solid var(--tisty-hair);
+  border-bottom: 1px solid var(--tisty-hair);
+  border-radius: 10px 10px 0 0;
+  padding-top: 9px !important;
+  padding-bottom: 9px !important;
+  font-weight: 600;
+}
+.cm-fold-end {
+  border-bottom: 1px solid var(--tisty-hair);
+  border-radius: 0 0 10px 10px;
+  padding-bottom: 4px !important;
+}
+.cm-fold-mark {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin: 0 12px 0 1px;
+  vertical-align: 0.18em;
+  border-right: 1.75px solid var(--tisty-soft);
+  border-bottom: 1.75px solid var(--tisty-soft);
+  transform: rotate(45deg);
+}
+.cm-fold-close {
+  display: inline-block;
+  height: 0.6em;
+}
+.cm-tag {
+  background: var(--tisty-mark-tag);
+  border-radius: 4px;
+  padding: 0 2px;
+}
+.cm-bar.quick-bar {
+  bottom: auto;
+}
+.cm-bar.quick-bar[hidden] {
+  display: none;
+}
+.cm-content img.cm-widgetBuffer {
+  display: inline;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  width: 0;
+  height: 1em;
+}
