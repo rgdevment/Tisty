@@ -36,7 +36,7 @@ const hashed = (text: string): number => {
 export function seeded(nodes: readonly Neuron[]): Spots {
   const sizes = new Map<string, number>();
   for (const one of nodes) sizes.set(one.group ?? "", (sizes.get(one.group ?? "") ?? 0) + 1);
-  const groups = [...sizes.keys()].filter(Boolean).sort();
+  const groups = [...sizes.keys()].filter(Boolean).sort((one, other) => one.localeCompare(other));
   const turn = new Map(groups.map((group, n) => [group, (n / groups.length) * 2 * Math.PI]));
   const ring = Math.sqrt(nodes.length) * SPREAD;
   const x = new Float32Array(nodes.length);
