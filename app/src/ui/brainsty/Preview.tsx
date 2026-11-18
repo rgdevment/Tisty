@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
 import type { Neuron } from "../../brainsty";
-import { type Cited, docGlance, type Glance, taskCards } from "../../citing";
+import { docGlance, type Glance } from "../../citing";
 import { numbered } from "../../format";
 import { fill, t } from "../../locales";
+import { taskCard } from "../../markdown";
+import Page from "../Page";
 
 interface Props {
   readonly neuron: Neuron;
@@ -23,23 +25,17 @@ const unmarked = (html: string): string => {
   return held.innerHTML;
 };
 
+const TASKS = { tasks: true };
+
 export default function Preview({ neuron, ties, zone, onOpen, onClose }: Props) {
   const [glance, setGlance] = useState<Glance | null>(null);
-  const [card, setCard] = useState<Cited | null>(null);
 
   useEffect(() => {
     let live = true;
     setGlance(null);
-    setCard(null);
     if (neuron.kind === "doc" || neuron.kind === "page") {
       docGlance(neuron.id).then(
         (said) => live && setGlance({ ...said, html: unmarked(said.html) }),
-        () => undefined,
-      );
-    }
-    if (neuron.kind === "task") {
-      taskCards([neuron.id]).then(
-        ([said]) => live && setCard(said ?? null),
         () => undefined,
       );
     }
@@ -48,7 +44,6 @@ export default function Preview({ neuron, ties, zone, onOpen, onClose }: Props) 
     };
   }, [neuron.id, neuron.kind]);
 
-  const steps = card?.steps ?? [];
   return (
     <aside
       aria-label={neuron.title}
@@ -73,14 +68,16 @@ export default function Preview({ neuron, ties, zone, onOpen, onClose }: Props) 
           .filter(Boolean)
           .join(" · ")}
       </p>
-      {steps.length > 0 && (
-        <p className="text-[12.5px] text-soft">
-          {fill(
-            "brainstySteps",
-            numbered(steps.filter((one) => one.done).length),
-            numbered(steps.length),
-          )}
-        </p>
+      {neuron.kind === "task" && (
+        <div className="h-32 shrink-0 overflow-hidden">
+          <Page
+            body={`${taskCard(neuron.id, neuron.title)}\n`}
+            label={neuron.title}
+            cardsShown={TASKS}
+            onDoc={() => undefined}
+            onTask={onOpen}
+          />
+        </div>
       )}
       {glance && (
         <div

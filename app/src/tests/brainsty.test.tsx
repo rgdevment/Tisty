@@ -147,18 +147,12 @@ function answer(cmd: string): Promise<unknown> {
         html: '<h2 id="bread" data-at="3">Bread</h2><p>About bread</p>',
         more: false,
       });
-    case "task_cards":
-      return Promise.resolve([
-        {
-          id: "01A",
-          title: "buy bread",
-          status: "open",
-          steps: [
-            { id: "s", html: "x", done: true },
-            { id: "t", html: "y", done: false },
-          ],
-        },
-      ]);
+    case "doc_drawn":
+      return Promise.resolve(
+        new TextEncoder().encode('<p><a class="card" data-task="01A">buy bread</a></p>').buffer,
+      );
+    case "cards_drawn":
+      return Promise.resolve(['<span class="doc-card is-task">buy bread</span>']);
     case "task_of":
       return Promise.resolve(bread);
     case "help_pages":
@@ -390,7 +384,12 @@ describe("the Brainsty section", () => {
     await user.type(screen.getByRole("searchbox", { name: t("brainstySearch") }), "bread");
     await user.click(await layer().findByRole("button", { name: /buy bread/ }));
     expect(sigma.focused).toEqual([1]);
-    expect(await screen.findByText("1 of 2 steps")).toBeTruthy();
+    await waitFor(() =>
+      expect(ipc.calls).toContainEqual({
+        cmd: "doc_drawn",
+        args: { body: "![buy bread](tisty:task/01A)\n" },
+      }),
+    );
 
     await user.type(screen.getByRole("searchbox", { name: t("brainstySearch") }), "zzz");
     expect(await screen.findByText(t("brainstyNothingFound"))).toBeTruthy();
