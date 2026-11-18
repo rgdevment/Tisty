@@ -3,6 +3,7 @@ import {
   type Agent,
   type Assistant,
   agentAsks,
+  agentHooks,
   agentState,
   agentTurn,
   assistants,
@@ -103,6 +104,19 @@ export default function Agents({ busy, said, trouble, quietly, tell, fail, binar
             disabled={held || !agent}
             onPress={() => {
               agentAsks(agent?.asks === false)
+                .then((fresh) => setAgent(fresh))
+                .catch((e) => fail({ card: "settings", text: saidPlainly(e) }));
+            }}
+          />
+        </Line>
+
+        <Line title={t("agentsHooks")} why={t("agentsHooksWhy")} which="settings">
+          <Knob
+            on={agent?.hooks !== false}
+            label={t("agentsHooks")}
+            disabled={held || !agent}
+            onPress={() => {
+              agentHooks(agent?.hooks === false)
                 .then((fresh) => setAgent(fresh))
                 .catch((e) => fail({ card: "settings", text: saidPlainly(e) }));
             }}

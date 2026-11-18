@@ -19,6 +19,7 @@ const serving = vi.hoisted(() => ({
   on: false,
   called: undefined as string | undefined,
   asks: true,
+  hooks: true,
 }));
 
 const installed = vi.hoisted(() => ({
@@ -141,7 +142,7 @@ beforeEach(() => {
   asked.folder = null;
   asked.file = null;
   asked.sure = false;
-  Object.assign(serving, { on: false, called: undefined, asks: true });
+  Object.assign(serving, { on: false, called: undefined, asks: true, hooks: true });
   installed.seen = [
     {
       id: "claude-code",
@@ -232,6 +233,9 @@ beforeEach(() => {
       }
       case "agent_asks":
         serving.asks = Boolean(ipc.calls[ipc.calls.length - 1]?.args.on);
+        return Promise.resolve({ ...serving });
+      case "agent_hooks":
+        serving.hooks = Boolean(ipc.calls[ipc.calls.length - 1]?.args.on);
         return Promise.resolve({ ...serving });
       case "sync_now":
         return Promise.resolve({ carried: "came", undecided: [] });
@@ -3626,6 +3630,19 @@ describe("letting an assistant file work here", () => {
     await waitFor(() => expect(sent("agent_asks").length).toBe(1));
     expect(sent("agent_asks")[0].args.on).toBe(false);
     await waitFor(() => expect(asking.getAttribute("aria-checked")).toBe("false"));
+  });
+
+  it("reminds the assistant when a turn starts and ends unless the person turns it off", async () => {
+    await openTab();
+
+    const reminding = await screen.findByRole("switch", { name: /when a turn starts and ends/i });
+    expect(reminding.getAttribute("aria-checked")).toBe("true");
+
+    await userEvent.click(reminding);
+
+    await waitFor(() => expect(sent("agent_hooks").length).toBe(1));
+    expect(sent("agent_hooks")[0].args.on).toBe(false);
+    await waitFor(() => expect(reminding.getAttribute("aria-checked")).toBe("false"));
   });
 
   it("lists the assistants on this computer, with the file each one reads", async () => {

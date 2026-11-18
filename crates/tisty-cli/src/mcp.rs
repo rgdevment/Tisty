@@ -13,6 +13,7 @@ mod mending;
 mod mistaken;
 mod moving;
 mod open_task;
+mod opening;
 mod papers;
 mod placing;
 mod pressing;
@@ -49,6 +50,10 @@ use helping::help;
 use looking::{NEWEST_SHOWN, catch_up, find, gone, how_it_ended, lists, read, sum_up, tags};
 use mending::{rename, reword_note, reword_step, unplan};
 use spoken::spoken;
+
+pub(crate) use catalogue::{is_tool, writes};
+pub(crate) use open_task::TURN_LEFT_UNWRITTEN;
+pub(crate) use opening::opening;
 
 use jsonrpc::{
     Tally, discovered, fault, introduced, legacy_greeting, named_tool, reply, short,
@@ -424,6 +429,13 @@ fn admitted(paths: &Paths) -> Result<Option<(State, tisty_core::DeviceId)>, Refu
     let Some(agent) = config.agent_id else {
         return Ok(None);
     };
+    seen_by(paths, agent)
+}
+
+fn seen_by(
+    paths: &Paths,
+    agent: tisty_core::DeviceId,
+) -> Result<Option<(State, tisty_core::DeviceId)>, Refused> {
     let mut state = tisty_core::cache::project(&paths.store(), paths.cache()).map_err(hitch)?;
     tisty_core::diary::out_of_sight(&paths.docs(), &mut state);
     // The log says who may write, not the settings file an agent could edit itself.

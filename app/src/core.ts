@@ -454,11 +454,13 @@ export interface Agent {
   called?: string;
   code?: string;
   asks?: boolean;
+  hooks?: boolean;
 }
 
 export const agentState = (): Promise<Agent> => invoke("agent");
 export const agentTurn = (on: boolean): Promise<Agent> => invoke("agent_turn", { on });
 export const agentAsks = (on: boolean): Promise<Agent> => invoke("agent_asks", { on });
+export const agentHooks = (on: boolean): Promise<Agent> => invoke("agent_hooks", { on });
 
 export const attach = (path: string, label?: string, shape?: "full" | "light"): Promise<string> =>
   invoke("attach", { path, label, shape });
@@ -1035,6 +1037,7 @@ export interface Wired {
   maybe: boolean;
   byHand: boolean;
   manual: { file: string; snippet: string; cli?: string | null };
+  hooks?: { on: boolean; at: string } | null;
 }
 
 export interface InDistro {
@@ -1059,6 +1062,7 @@ export interface Assistant {
 export const assistants = (): Promise<Assistant[]> => invoke("assistants");
 export const wireAgent = (id: string): Promise<Wired[]> => invoke("wire", { id });
 export const unwireAgent = (id: string): Promise<Wired[]> => invoke("unwire", { id });
+export const hooked = (id: string, on: boolean) => invoke<Wired[]>(on ? "hook" : "unhook", { id });
 
 export interface Waking {
   offered: boolean;

@@ -1,5 +1,6 @@
 #![recursion_limit = "256"]
 
+mod hook;
 mod i18n;
 mod mcp;
 
@@ -13,6 +14,7 @@ fn main() -> ExitCode {
     let first = std::env::args().nth(1);
     match first.as_deref() {
         Some("mcp") => served(),
+        Some("hook") => hook::run(&std::env::args().skip(2).collect::<Vec<_>>()),
         Some("--version" | "-V") => {
             let said = spoken().fill("version", &[("version", env!("CARGO_PKG_VERSION"))]);
             println!("{said}");
@@ -35,11 +37,12 @@ fn main() -> ExitCode {
 fn helped() {
     let lang = spoken();
     println!(
-        "{}\n\n{}\n\n{}\n  mcp    {}",
+        "{}\n\n{}\n\n{}\n  mcp    {}\n  hook   {}",
         lang.get("retired"),
         lang.get("help-usage"),
         lang.get("help-commands"),
-        lang.get("help-mcp")
+        lang.get("help-mcp"),
+        lang.get("help-hook")
     );
 }
 
