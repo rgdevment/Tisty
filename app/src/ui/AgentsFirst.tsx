@@ -93,7 +93,7 @@ function Assistant({
               >
                 <input
                   type="checkbox"
-                  aria-label={file.name}
+                  aria-label={`${file.name} · ${fileSaid(file)}`}
                   checked={chosen.has(file.at)}
                   disabled={!takeable(file)}
                   onChange={() => onToggle(file.at)}
