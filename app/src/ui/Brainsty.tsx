@@ -66,5 +66,6 @@ export default function Brainsty({ network }: { network: Network }) {
 const sinceOpened = (): number => {
   const marks = performance.getEntriesByName(OPENED);
   const mark = marks[marks.length - 1];
+  performance.clearMarks(OPENED);
   return mark ? performance.now() - mark.startTime : 0;
 };

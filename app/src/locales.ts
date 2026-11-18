@@ -37,6 +37,7 @@ const en = {
   brainstyTip: "See how everything you keep is connected",
   brainstyReading: "Reading the network…",
   brainstyNotYet: "Brainsty is still reading what you keep. Open it again in a moment.",
+  brainstyEmpty: "Nothing to draw yet: write a document or a task and it shows up here.",
   brainstyCounted: "{name} nodes · {other} connections",
   brainstyLeftOut: "{name} nodes and {other} connections left out",
   brainstyLeftOutWhy:
@@ -3336,6 +3337,8 @@ const es: Catalog = {
   brainstyTip: "Mira cómo se conecta todo lo que guardas",
   brainstyReading: "Leyendo la red…",
   brainstyNotYet: "Brainsty todavía está leyendo lo que guardas. Vuelve a abrirlo en un momento.",
+  brainstyEmpty:
+    "Todavía no hay nada que dibujar: escribe un documento o una tarea y aparecerá aquí.",
   brainstyCounted: "{name} nodos · {other} conexiones",
   brainstyLeftOut: "{name} nodos y {other} conexiones quedaron fuera",
   brainstyLeftOutWhy:

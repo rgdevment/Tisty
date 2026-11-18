@@ -197,6 +197,15 @@ describe("the Brainsty section", () => {
     expect(await screen.findByText(t("brainstyNotYet"))).toBeTruthy();
   });
 
+  it("says there is nothing to draw yet when nothing is in sight", async () => {
+    ipc.network = () => Promise.resolve({ nodes: [], edges: [] });
+    const user = await opened();
+
+    await user.click(screen.getByRole("button", { name: t("brainsty") }));
+
+    expect(await screen.findByText(t("brainstyEmpty"))).toBeTruthy();
+  });
+
   it("tells what the cap left out", async () => {
     ipc.network = () => Promise.resolve({ ...small, left_out: { nodes: 1200, edges: 34 } });
     const user = await opened();
@@ -242,6 +251,7 @@ describe("the Brainsty section", () => {
     expect(canvas.dataset.laidMs).toBe("12");
     expect(canvas.dataset.iterations).toBe("20");
     expect(canvas.dataset.drawnMs).toMatch(/^\d+$/);
+    expect(performance.getEntriesByName("brainsty-opened")).toHaveLength(0);
   });
 
   it("redraws in the other theme and lets go of the drawing and the layout on closing", async () => {

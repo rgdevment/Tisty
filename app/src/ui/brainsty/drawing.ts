@@ -84,6 +84,7 @@ export function drawNetwork(
   });
   return {
     place: ({ x, y }) => {
+      if (x.length !== graph.order) return;
       graph.updateEachNodeAttributes(
         (key, at) => {
           const n = Number(key);

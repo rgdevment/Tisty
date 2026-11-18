@@ -124,4 +124,25 @@ describe("where the network starts and how it settles", () => {
     expect(heard.map((one) => one.done)).toEqual([false, true]);
     expect(worker.terminate).toHaveBeenCalledTimes(2);
   });
+
+  it("ends the layout where it stands when the worker fails", () => {
+    const worker = {
+      onmessage: null,
+      onerror: null as null | (() => void),
+      postMessage: vi.fn(),
+      terminate: vi.fn(),
+    };
+    const heard: Step[] = [];
+
+    layOut(
+      { ...seeded([neuron("a")]), edges: new Uint32Array() },
+      (step) => heard.push(step),
+      worker as unknown as Worker,
+    );
+    worker.onerror?.();
+
+    expect(worker.terminate).toHaveBeenCalledTimes(1);
+    expect(heard).toEqual([expect.objectContaining({ done: true, iterations: 0 })]);
+    expect(heard[0].x).toHaveLength(0);
+  });
 });

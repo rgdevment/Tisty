@@ -85,6 +85,8 @@ export default function BrainstyScreen({ near, onClose }: Props) {
           <Said text={read.failed} urgent />
         ) : network === null ? (
           <Said text={t("brainstyNotYet")} />
+        ) : network.nodes.length === 0 ? (
+          <Said text={t("brainstyEmpty")} />
         ) : (
           Drawn && <Drawn network={network} />
         )}

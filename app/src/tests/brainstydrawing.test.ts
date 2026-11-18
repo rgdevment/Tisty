@@ -113,6 +113,7 @@ describe("the drawing of the network", () => {
     const labelColor = (drawn.options.styles.nodes[1] as { labelColor: () => string }).labelColor;
 
     drawing.place({ x: Float32Array.of(5, 6), y: Float32Array.of(7, 8) });
+    drawing.place({ x: new Float32Array(), y: new Float32Array() });
     expect(graph.getNodeAttributes("1")).toMatchObject({ x: 6, y: 8 });
     expect(labelColor()).toBe("#000000");
 
