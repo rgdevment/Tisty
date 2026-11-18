@@ -42,7 +42,8 @@ type Sheet = { values: { long_page_width_pixels: number } };
 
 const style = (CONTRACTS.style as Style).values;
 const sheet = (CONTRACTS.sheet as Sheet).values;
-const page = source("page.css");
+// A page wears the sheets of its blocks after its own, as the window and the light viewer lay them.
+const page = ["page.css", "callouts.css", "code.css", "diagrams.css"].map(source).join("\n");
 const tables = source("tables.css");
 const tokens = source("tokens.css");
 
