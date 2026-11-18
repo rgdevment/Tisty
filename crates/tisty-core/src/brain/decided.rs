@@ -71,8 +71,23 @@ fn lead(item: &str) -> (String, bool) {
         Some((rest, close)) => rest.find(close).map_or(rest, |end| &rest[..end]),
         None => item.find(". ").map_or(item, |end| &item[..=end]),
     };
-    let said = said.replace("**", "").replace("~~", "");
+    let said = worded(&said.replace("**", "").replace("~~", ""));
     (cut(said.trim()), replaced)
+}
+
+fn worded(said: &str) -> String {
+    let mut out = String::new();
+    let mut rest = said;
+    while let (Some(open), Some(close)) = (rest.find('['), rest.find("](")) {
+        let Some(end) = rest[close..].find(')').filter(|_| open < close) else {
+            break;
+        };
+        out.push_str(rest[..open].trim_end_matches('!'));
+        out.push_str(&rest[open + 1..close]);
+        rest = &rest[close + end + 1..];
+    }
+    out.push_str(rest);
+    out
 }
 
 fn cut(said: &str) -> String {

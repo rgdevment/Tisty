@@ -67,6 +67,16 @@ fn items_in_code_or_outside_a_decisions_section_are_not_decisions() {
 }
 
 #[test]
+fn a_link_in_a_decision_is_read_as_its_words() {
+    let body = "# Decisions\n\n- Ask [the bank](tisty:task/01M7NC27JDW2R8VEASK8NYP628) first, as ![Trips](tisty:doc/trips-0001) says.\n";
+
+    assert_eq!(
+        said(&decisions(body)),
+        vec![(3, "Ask the bank first, as Trips says.", false)]
+    );
+}
+
+#[test]
 fn a_long_decision_is_cut() {
     let long = "word ".repeat(40);
     let body = format!("# Decisions\n\n- **{long}**\n");

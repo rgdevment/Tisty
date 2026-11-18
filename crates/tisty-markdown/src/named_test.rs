@@ -85,6 +85,14 @@ fn a_comment_names_nothing_and_an_unclosed_double_bracket_hides_nothing_after_it
 }
 
 #[test]
+fn a_step_named_by_its_number_is_no_title() {
+    assert_eq!(
+        named("Do [[#2]] next, then [[Trips]]."),
+        vec![(Named::Wiki("Trips".into()), "[[Trips]]")]
+    );
+}
+
+#[test]
 fn an_id_glued_to_a_path_or_a_file_name_is_no_id() {
     let text = format!("docs/{TASK} and 4nnctnme-0033.md and x{TASK} and v1.4nnctnme-0033");
 

@@ -42,14 +42,14 @@ pub fn spots(text: &str) -> Vec<Spot> {
         at = match bytes[at] {
             b'`' => past_code(text, at),
             b'[' if rest.starts_with("[[") => match wiki(rest) {
-                Some((end, Some(name))) => {
+                Some((end, Some(name))) if !name.starts_with('#') => {
                     found.push(Spot {
                         named: Named::Wiki(name.to_string()),
                         at: at..at + end + 2,
                     });
                     at + end + 2
                 }
-                Some((end, None)) if !rest[..end].contains('\n') => at + end + 2,
+                Some((end, _)) if !rest[..end].contains('\n') => at + end + 2,
                 _ => at + 2,
             },
             b'[' => match linked(text, at, &mut |_| {}) {
