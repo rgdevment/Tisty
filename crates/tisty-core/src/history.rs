@@ -94,13 +94,26 @@ impl<'a> Writer<'a> {
         if cut || step != Step::Stays {
             self.kept_and_told(&shelf, &print, &leaves, was, step, cut)?;
         }
-        // A body nobody answers for has no writer to weigh the next write against, so that one cuts too.
-        match self.answered {
-            true => self.last(leaves).say(&shelf),
-            false => {
-                let _ = std::fs::remove_file(shelf.join(LAST));
-                Ok(())
-            }
+        self.notes(&shelf, id, leaves);
+        Ok(())
+    }
+
+    // A writer that cannot be noted, or a body nobody answers for, only makes the next write cut.
+    fn notes(&self, shelf: &Path, id: &str, print: String) {
+        if !self.answered {
+            let _ = std::fs::remove_file(shelf.join(LAST));
+            return;
+        }
+        if let Err(e) = self.last(print).say(shelf) {
+            let _ = std::fs::remove_file(shelf.join(LAST));
+            witness::warn(
+                channel::STORE,
+                "who wrote a document could not be noted, so its next change keeps a version",
+                &[
+                    ("at", Fact::Id(id.to_string())),
+                    ("why", Fact::Why(e.to_string())),
+                ],
+            );
         }
     }
 
@@ -179,28 +192,13 @@ impl<'a> Writer<'a> {
 
     /// A new body replaces nothing: it only says who wrote it and when, for the next write to weigh.
     pub fn begins(&self, id: &str, body: impl AsRef<[u8]>) {
-        if !self.answered {
-            return;
-        }
-        let Ok(shelf) = shelf(self.data, id) else {
-            return;
-        };
-        let print = crate::docs::print_of_bytes(body.as_ref());
-        if let Err(e) = self.last(print).say(&shelf) {
-            witness::warn(
-                channel::STORE,
-                "who began a document could not be noted, so its first change keeps a version",
-                &[
-                    ("at", Fact::Id(id.to_string())),
-                    ("why", Fact::Why(e.to_string())),
-                ],
-            );
+        if let Ok(shelf) = shelf(self.data, id) {
+            self.notes(&shelf, id, crate::docs::print_of_bytes(body.as_ref()));
         }
     }
 }
 
-/// Who wrote the body that stands, kept apart from the step back and without a synced write:
-/// every save says it again, and one torn by a crash only makes the next write cut.
+/// Written unsynced, apart from the step back: one torn by a crash only makes the next write cut.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 struct Last {
     at: jiff::Timestamp,
@@ -217,11 +215,13 @@ impl Last {
     fn say(&self, shelf: &Path) -> Result<()> {
         let said = serde_json::to_vec(self).map_err(|e| Error::Io(std::io::Error::other(e)))?;
         let at = shelf.join(LAST);
-        if write_in_place(&at, &said).is_ok() {
-            return Ok(());
+        match write_in_place(&at, &said) {
+            Err(_) if !shelf.is_dir() => {
+                raised(shelf)?;
+                write_in_place(&at, &said)?;
+            }
+            done => done?,
         }
-        raised(shelf)?;
-        write_in_place(&at, &said)?;
         let _ = crate::paths::ours_alone(&at);
         Ok(())
     }

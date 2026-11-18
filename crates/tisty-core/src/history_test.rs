@@ -623,3 +623,34 @@ fn who_wrote_last_torn_by_a_crash_makes_the_next_write_cut_and_leaves_the_step_b
         "a writer nobody can name any more was taken for the same one"
     );
 }
+
+#[test]
+fn a_writer_that_cannot_be_noted_never_refuses_the_save_and_the_next_write_cuts() {
+    let (room, docs) = desk();
+    let data = room.path();
+    let noted = data.join("history").join(DOC).join("last.json");
+    crate::docs::create_named_by(&docs, &person(data, 0), DOC, UNO).unwrap();
+    std::fs::remove_file(&noted).unwrap();
+    std::fs::create_dir(&noted).unwrap();
+
+    crate::docs::write_by(&docs, &person(data, 1), DOC, DOS).unwrap();
+    assert_eq!(crate::docs::read(&docs, DOC).unwrap(), DOS);
+
+    crate::docs::write_by(&docs, &person(data, 2), DOC, TRES).unwrap();
+    assert!(
+        cut_kept(data).contains(&print(DOS)),
+        "a hand nobody could note was taken for the one writing now"
+    );
+}
+
+#[test]
+fn a_body_begun_with_nobody_answering_for_it_forgets_who_wrote_there_before() {
+    let (room, docs) = desk();
+    let data = room.path();
+    crate::docs::create_named_by(&docs, &person(data, 0), DOC, UNO).unwrap();
+
+    Writer::unanswered(data).begins(DOC, UNO);
+    crate::docs::write_by(&docs, &person(data, 1), DOC, DOS).unwrap();
+
+    assert_eq!(cut_kept(data), vec![print(UNO)]);
+}
