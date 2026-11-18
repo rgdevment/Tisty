@@ -204,7 +204,7 @@ Every document of yours has a link, to reach it from a chat, a note, your browse
 - **Only the `id` counts.** The folders and the title are words for whoever reads the link, lowercase, without accents and with dashes, so it still gets there after you rename or move the document. A page carries its document's name before its own: `tisty://doc/work/minutes/march?id=…`.
 - **Inside a document** or on a task's page, write it as a Markdown link, `[Summer plan](tisty://doc/…?id=…)`, and it opens like any other link. Pasted on its own, it stays as text. To go from one document to another while you write, `[[` still does it, and opens in the main window ([Linking documents](#linking-documents)).
 - **Your agent** takes it as it is: hand it the link and it reads or changes that very document without searching for it.
-- **It opens only on a computer that holds the document**, such as yours that sync your store. Where the document is not, the window opens and says it is not on this computer. To give it to someone else, share it through [Folio](#sharing).
+- **It opens only on a computer that holds the document**, such as yours that sync your store. Where the document is not, the window opens and says so. To give it to someone else, share it through [Folio](#sharing).
 - **Inside a document shared through Folio it does not travel**: a Markdown link arrives as its words, and an address written on its own arrives as written, folders and title included.
 - **Whoever gets it reads** its folder names and its title.
 

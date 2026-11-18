@@ -783,12 +783,16 @@ fn session_of(app: &AppHandle) -> Answer<tauri::State<'_, Mutex<Session>>> {
 
 // Read without being minded: the main window's guard against overwriting a changed file must stay its own.
 pub(crate) fn doc_body(app: &AppHandle, file: &str) -> Answer<String> {
+    body_or(app, file, "noSuchDoc")
+}
+
+pub(crate) fn body_or(app: &AppHandle, file: &str, unread: &'static str) -> Answer<String> {
     let root = held(&*session_of(app)?).paths.docs();
     tisty_core::docs::read(&root, file).map_err(|e| match e {
         tisty_core::Error::DocumentTooBig { limit, .. } => {
             Refusal::about("documentTooBig", crate::weighed(limit))
         }
-        _ => Refusal::about("noSuchDoc", file.to_string()),
+        _ => Refusal::about(unread, file.to_string()),
     })
 }
 

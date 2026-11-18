@@ -6,6 +6,7 @@ type Choice = { label: string; hint?: string; pick: () => void };
 
 export default function MoreMenu(props: {
   readonly words: Words;
+  readonly drawn: boolean;
   readonly own: boolean;
   readonly revealed: string | null;
   readonly onClose: () => void;
@@ -15,6 +16,13 @@ export default function MoreMenu(props: {
   readonly fail: (problem: unknown) => void;
 }) {
   const { say } = props.words;
+  const copy: Choice = {
+    label: say("copy"),
+    pick: () =>
+      void plain()
+        .then((said) => navigator.clipboard.writeText(said))
+        .catch(props.fail),
+  };
   const link: Choice = {
     label: say("copyLink"),
     pick: () =>
@@ -27,14 +35,8 @@ export default function MoreMenu(props: {
     { label: say("bigger"), hint: "Ctrl+=", pick: () => props.onZoom(1) },
     { label: say("smaller"), hint: "Ctrl+−", pick: () => props.onZoom(-1) },
     { label: say("plain"), hint: "Ctrl+0", pick: () => props.onZoom(0) },
-    {
-      label: say("copy"),
-      pick: () =>
-        void plain()
-          .then((said) => navigator.clipboard.writeText(said))
-          .catch(props.fail),
-    },
-    ...(props.own ? [link] : []),
+    ...(props.drawn ? [copy] : []),
+    ...(props.drawn && props.own ? [link] : []),
     { label: say("print"), hint: "Ctrl+P", pick: props.onPrint },
   ];
   const path = props.revealed;

@@ -210,7 +210,7 @@ describe("the light viewer", () => {
     expect(host.shown).toHaveBeenCalled();
   });
 
-  it("says a document of one's own is not on this computer, in either language", async () => {
+  it("says a document of one's own is not on this machine, in either language", async () => {
     const gone: Opened = {
       kind: "missed",
       name: "Tisty",
@@ -221,16 +221,17 @@ describe("the light viewer", () => {
     };
     host.opened.mockResolvedValue(gone);
     open();
-    expect(await screen.findByText("Ese documento no está en este equipo.")).toBeTruthy();
+    expect(await screen.findByText("Ese documento no está en esta máquina.")).toBeTruthy();
     expect(screen.queryByText(/No se pudo leer/)).toBeNull();
     screen.getByRole("button", { name: "Más" }).click();
     expect(await screen.findByRole("menuitem", { name: /Imprimir/ })).toBeTruthy();
     expect(screen.queryByRole("menuitem", { name: /Copiar enlace/ })).toBeNull();
+    expect(screen.queryByRole("menuitem", { name: /Copiar el Markdown/ })).toBeNull();
     expect(screen.queryByRole("button", { name: "Mostrar en la carpeta" })).toBeNull();
     expect(host.shown).toHaveBeenCalled();
     cleanup();
     open("en");
-    expect(await screen.findByText("That document is not on this computer.")).toBeTruthy();
+    expect(await screen.findByText("That document is not on this machine.")).toBeTruthy();
   });
 
   it("keeps its usual words for any other refusal, and for a stranger's file that is not there", async () => {

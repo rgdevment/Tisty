@@ -55,18 +55,9 @@ impl Source {
             Self::Own(paper) if paper.id.is_empty() => {
                 Err(Refusal::about("noSuchDoc", paper.file.clone()))
             }
-            Self::Own(paper) => {
-                doc_body(app, &paper.file).map_err(|refusal| unread(refusal, paper))
-            }
+            // Only a link to what is not here says so: a document of the store that will not open could not be read.
+            Self::Own(paper) => crate::viewing::body_or(app, &paper.file, "cannotRead"),
         }
-    }
-}
-
-// Only a link to what is not here says so: a document of the store that will not open is one that could not be read.
-fn unread(refusal: Refusal, paper: &Paper) -> Refusal {
-    match refusal.code {
-        "noSuchDoc" => Refusal::about("cannotRead", paper.file.clone()),
-        _ => refusal,
     }
 }
 
@@ -130,6 +121,8 @@ pub fn view_read(app: AppHandle, window: tauri::WebviewWindow) -> Answer<Reading
             true,
         ),
     };
+    // A window may be showing another document than the one it opened on, after a link or a step.
+    let _ = window.set_title(&name);
     let body = match source.body(&app) {
         Ok(body) => body,
         Err(refusal) => {

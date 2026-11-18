@@ -249,7 +249,8 @@ export default function App(props: { readonly asked: string | null; readonly clo
       <Show when={more()}>
         <MoreMenu
           words={words}
-          own={one()?.kind === "drawn" && one()?.own === true}
+          drawn={one()?.kind === "drawn"}
+          own={one()?.own ?? false}
           revealed={outside()}
           onClose={() => setMore(false)}
           onFind={find}
