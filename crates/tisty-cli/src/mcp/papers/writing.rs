@@ -227,6 +227,7 @@ pub(in crate::mcp) fn restore_doc(paths: &Paths, args: &Value) -> Result<Value, 
         && let Some(slot) = tisty_core::docs::read_notes_before(paths.data(), &which)
         && let Ok(now) = tisty_core::docs::read(&paths.docs(), &which)
         && let Some(body) = tisty_core::assistant_notes::swapped(&now, &slot.after, &slot.before)
+        && !another_write_stands_behind(paths, &which, &now, &body)
     {
         return notes_put_back(paths, &which, &slot, &now, &body);
     }
@@ -356,6 +357,16 @@ pub(in crate::mcp) fn restore_doc(paths: &Paths, args: &Value) -> Result<Value, 
         said["structuredContent"]["went_back_to"] = Value::Object(back_to);
     }
     Ok(said)
+}
+
+// The step back was set by the write that left this very body and leads elsewhere than the digest's
+// swap: undoing that write, a going back to a version among them, comes before swapping a digest.
+fn another_write_stands_behind(paths: &Paths, which: &str, now: &str, swapped: &str) -> bool {
+    let print = tisty_core::attach::printed(now.as_bytes());
+    tisty_core::history::back(paths.data(), which).is_some_and(|back| {
+        back.left.as_deref() == Some(print.as_str())
+            && !tisty_core::docs::unchanged(&back.body, swapped)
+    })
 }
 
 // Going back over an undone compaction brings it back to wait for the person, unless they kept it.
