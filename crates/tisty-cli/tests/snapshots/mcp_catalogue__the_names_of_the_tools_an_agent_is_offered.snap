@@ -21,7 +21,6 @@ expression: names
   "restore_doc",
   "edit_doc",
   "edit_table",
-  "docs",
   "import_doc",
   "export_doc",
   "archive_doc",
@@ -36,9 +35,8 @@ expression: names
   "say_done",
   "say_not_doing",
   "sum_up",
-  "outline_doc",
   "read",
-  "find",
+  "brain",
   "rules",
   "language",
   "help"

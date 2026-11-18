@@ -18,7 +18,7 @@ expression: tool
         "type": "boolean"
       },
       "doc": {
-        "description": "The document's id from `docs`, not its title",
+        "description": "The document's id from `brain`, not its title",
         "type": "string"
       },
       "folder": {

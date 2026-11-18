@@ -2,7 +2,7 @@ use serde_json::{Value, json};
 use tisty_core::model::{DocId, Kept};
 use tisty_core::{Paths, State};
 
-use super::{Refused, TOOLS_STAY_FRESH, admitted, doc_titled, outline_doc, read_doc, trail};
+use super::{Refused, TOOLS_STAY_FRESH, admitted, doc_titled, outline_of, read_doc, trail};
 
 const SCHEME: &str = "tisty:doc/";
 const LISTED_AT_ONCE: usize = 50;
@@ -192,7 +192,7 @@ fn with_the_rest(said: &Value, asked: &Address) -> String {
 }
 
 fn outlined(paths: &Paths, asked: &Address, held: &Value) -> Result<String, (i32, String)> {
-    let outline = outline_doc(paths, &json!({ "doc": asked.doc })).map_err(refused)?;
+    let outline = outline_of(paths, &asked.doc).map_err(refused)?;
     let shown = outline["content"][0]["text"].as_str().unwrap_or_default();
     let notice = match held["notice"].as_str() {
         Some(notice) => format!("({notice})\n\n"),

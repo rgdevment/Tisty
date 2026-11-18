@@ -113,7 +113,7 @@ pub(super) fn parts_drafted(
                     "the part {title:?} comes from {source:?}, which {} Nothing was written.",
                     match twice {
                         true => "the task or another part in this call comes from too.",
-                        false => "was proposed already: `find` it with `source`.",
+                        false => "was proposed already: `brain` finds it with `source`.",
                     }
                 )));
             }

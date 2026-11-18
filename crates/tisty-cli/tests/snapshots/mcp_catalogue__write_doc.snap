@@ -9,7 +9,7 @@ expression: tool
     "openWorldHint": false,
     "readOnlyHint": false
   },
-  "description": "Write a document, something kept and read again; work to do is `propose`. Markdown is turned into the Tisty language and `turned` says what changed. Alone it writes a new one: `find` first, as a subject with a document is updated there, and a title in use is refused. With `doc` and `print` it rewrites that one whole, page lines the body drops going back at the end; one passage is `edit_doc`. #words in its text tag it.",
+  "description": "Write a document, something kept and read again; work to do is `propose`. Markdown is turned into the Tisty language and `turned` says what changed. Alone it writes a new one: `brain` first, as a subject with a document is updated there, and a title in use is refused. With `doc` and `print` it rewrites that one whole, page lines the body drops going back at the end; one passage is `edit_doc`. #words in its text tag it.",
   "inputSchema": {
     "additionalProperties": false,
     "properties": {

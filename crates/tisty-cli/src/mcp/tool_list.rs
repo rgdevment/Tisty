@@ -184,7 +184,7 @@ pub(super) fn tools_without_hints() -> Value {
         {
             "name": "write_doc",
             "title": "Write a document",
-            "description": "Write a document, something kept and read again; work to do is `propose`. Markdown is turned into the Tisty language and `turned` says what changed. Alone it writes a new one: `find` first, as a subject with a document is updated there, and a title in use is refused. With `doc` and `print` it rewrites that one whole, page lines the body drops going back at the end; one passage is `edit_doc`. #words in its text tag it.",
+            "description": "Write a document, something kept and read again; work to do is `propose`. Markdown is turned into the Tisty language and `turned` says what changed. Alone it writes a new one: `brain` first, as a subject with a document is updated there, and a title in use is refused. With `doc` and `print` it rewrites that one whole, page lines the body drops going back at the end; one passage is `edit_doc`. #words in its text tag it.",
             "inputSchema": shaped(json!({
                 "properties": {
                     "keep_compaction": kept_compaction_field(),
@@ -240,10 +240,10 @@ pub(super) fn tools_without_hints() -> Value {
                     "doc": named_doc_field(),
                     "old": { "type": "string", "description": "The passage as written now, from `read_doc`, matching one place only; take in a line around it if needed. Not with `section` or lines" },
                     "new": { "type": "string", "description": "What takes its place; empty takes the passage out" },
-                    "section": { "type": "integer", "description": "A heading and all under it, by its `at` in the `outline` of `outline_doc`, from 0. Needs `print`" },
+                    "section": { "type": "integer", "description": "A heading and all under it, by its `at` on the card `brain` gives, from 0. Needs `print`" },
                     "from": { "type": "integer", "description": "First line to replace, from 1. Needs `print`" },
                     "to": { "type": "integer", "description": "Last line; left out, to the end. Only with `from`" },
-                    "print": { "type": "string", "description": "The `print` from `read_doc` or `outline_doc`, for `section` or lines only. If anyone wrote since, nothing changes: ask `outline_doc` again" },
+                    "print": { "type": "string", "description": "The `print` from `read_doc` or `brain`, for `section` or lines only. If anyone wrote since, nothing changes: ask `brain` again" },
                     "echo": echo_field()
                 },
                 "required": ["doc", "new"]
@@ -276,22 +276,6 @@ pub(super) fn tools_without_hints() -> Value {
                     "down": { "type": "boolean", "description": "For sort: largest first" }
                 },
                 "required": ["doc"]
-            }))
-        },
-        {
-            "name": "docs",
-            "title": "The documents and the folders",
-            "description": "The documents, newest first, with each one's folder, whether it is put away or locked, and what it holds (words, sections, key words): enough to pick one unopened. A task's words come with the task. Ask before writing, so nothing is kept twice.",
-            "inputSchema": shaped(json!({
-                "properties": {
-                    "scope": { "type": "string", "enum": ["open", "archive", "either"], "description": "Defaults to either" },
-                    "limit": { "type": "integer", "description": "At most 200, 50 by default" },
-                    "after": { "type": "integer", "description": "Skip this many, to page on while `total` is higher" },
-                    "folders": { "type": "boolean", "description": "Every folder too, with id, path, icon and size; the text already names them" },
-                    "deep": { "type": "boolean", "description": "With `folder`: the folders below it too" },
-                    "folder": { "type": "string", "description": "Only the documents in this folder, by name, path or id, without pages; the folders below are named under `below`" },
-                    "page_of": { "type": "string", "description": "Only the pages of this document, by id, in reading order" }
-                }
             }))
         },
         {
@@ -420,7 +404,7 @@ pub(super) fn tools_without_hints() -> Value {
                 "properties": {
                     "doc": named_doc_field(),
                     "print": { "type": "string", "description": "The `print` the previous part came with; only with `cursor`" },
-                    "section": { "type": "integer", "description": "A heading and all under it, by its `at` in `outline_doc`, from 0" },
+                    "section": { "type": "integer", "description": "A heading and all under it, by its `at` on the card `brain` gives, from 0" },
                     "from": { "type": "integer", "description": "First line, from 1" },
                     "to": { "type": "integer", "description": "Last line; left out, to the end" },
                     "chars": { "type": "integer", "description": "About how many characters to bring; the answer gives `next` when there is more" },
@@ -491,17 +475,6 @@ pub(super) fn tools_without_hints() -> Value {
             }))
         },
         {
-            "name": "outline_doc",
-            "title": "What is in a document",
-            "description": "A document's headings with their `at`, lines and size, its length and `print`, and its pages with title, length and sections: a few hundred tokens. Ask it first for a long document or a change in part. Also `pointed_at` (who links here), `by` (agent or person) and the signs it wants compacting: `alike`, `repeated`, `dead`, `mislabeled`, `loose`.",
-            "inputSchema": shaped(json!({
-                "properties": {
-                    "doc": named_doc_field()
-                },
-                "required": ["doc"]
-            }))
-        },
-        {
             "name": "read",
             "title": "Read a whole task",
             "description": "Everything a task holds: steps, its `state`, its `document` page, the notes after that state (ids for `reword_note`), parts and files. Read it before noting or mending; `fields` narrows it. A closed task comes with `closed`: it is history.",
@@ -519,37 +492,34 @@ pub(super) fn tools_without_hints() -> Value {
             }))
         },
         {
-            "name": "find",
-            "title": "Search tasks and documents, archive included",
-            "description": "Search open and archived tasks and documents: words in `query`, the task fields below to sift, `source` to see if something was filed, `doc` for lines inside one document. A task matched in its page, steps or notes brings the `line`. Open a task hit with `read`, a document hit with `read_doc`.",
+            "name": "brain",
+            "title": "Find anything kept and see how it connects",
+            "description": "Search and walk the person's tasks and documents, archive included, without opening them. `query` ranks them by where the words turn up, then by how recent, each with its newest line saying them; when none has every word, those with the most come, said so. The other fields sift tasks. `doc` or `task` alone gives its card: a document's sections with `at`, lines and the `print` `edit_doc` needs, a task's state, steps and parts, and what cites each; `links` brings its neighbours of one kind; `doc` with `query`, its lines. `part_of` alone groups a project's open parts: blocked, under way, waiting on the person, not started. `folder` or `scope` alone lists documents; nothing at all, the lists, folders and tags with their counts. Answers are capped and `next` says how to go on. The text itself is `read` for a task, `read_doc` for a document.",
             "inputSchema": shaped(json!({
                 "properties": {
-                    "query": { "type": "string", "description": "Words that must all turn up, in any order, accents or not (with `doc`, on one line); quote a phrase. Not needed when sifting" },
+                    "query": { "type": "string", "description": "Words, in any order, accents or not; quote a phrase. Not needed when sifting" },
                     "source": { "type": "string", "description": "Whether this exact source was filed already; not with `query`" },
-                    "doc": { "type": "string", "description": "Search inside this document: lines with every word, their numbers and section" },
-                    "around": { "type": "integer", "description": "With `doc`: lines each side of a hit, 0 to 10, 1 by default" },
+                    "doc": { "type": "string", "description": "A document's id: its card; with `query`, the lines that say it, their numbers and section" },
+                    "task": { "type": "string", "description": "A task's id: its card" },
+                    "links": { "type": "string", "enum": ["cite", "mention", "structure", "tag", "uses", "all"], "description": "With `doc` or `task`: its neighbours of this kind, each with title and state" },
+                    "section": { "type": "integer", "description": "With `doc`: the headings under this `at`, for an outline that came cut" },
+                    "around": { "type": "integer", "description": "With `doc` and `query`: lines each side of a hit, 0 to 10, 1 by default" },
                     "tag": { "type": "string", "description": "Carrying this tag, # or not. Any sifting field leaves documents out" },
                     "list": { "type": "string", "description": "In this list, as `catch_up` names it" },
-                    "folder": { "type": "string", "description": "Only documents in this folder or below, by name, path or id" },
+                    "folder": { "type": "string", "description": "A folder by name, path or id: alone, its documents; with `query`, it and those below" },
                     "by_agent": { "type": "boolean", "description": "True: filed by an agent; false: by the person" },
                     "said_done": { "type": "boolean", "description": "True: an agent said done or not doing and the person has not decided; false: nobody did" },
-                    "part_of": { "type": "string", "description": "Only the parts of this task, by id" },
+                    "part_of": { "type": "string", "description": "The parts of this task, by id" },
                     "from_source": { "type": "string", "description": "Tasks whose `source` starts with this, however written: «sereno» brings all read from there" },
                     "from": { "type": "string", "description": "Date or deadline on or after this day (2026-08-31)" },
                     "to": { "type": "string", "description": "Date or deadline on or before this day" },
                     "scope": { "type": "string", "enum": ["open", "archive", "either"], "description": "Defaults to either" },
-                    "limit": { "type": "integer", "description": "At most 100, 10 by default" },
-                    "lines": { "type": "boolean", "description": "False: titles alone, without their `line`" },
-                    "after": { "type": "integer", "description": "Skip this many tasks, to page on while `total` is higher. Documents are not paged: raise `limit`" }
+                    "limit": { "type": "integer", "description": "10 by default and 100 at most; 50 for a project's parts, and 50 up to 200 for a folder's documents" },
+                    "lines": { "type": "boolean", "description": "False: titles alone, without their line" },
+                    "after": { "type": "integer", "description": "Skip this many, to page on while `total` is higher" }
                 }
             }))
         },
-        json!({
-            "name": "lists",
-            "title": "The lists that exist",
-            "description": "The person's lists, to file a task in. You cannot make one; without one a task lands in the inbox.",
-            "inputSchema": { "type": "object", "additionalProperties": false }
-        }),
         json!({
             "name": "rules",
             "title": "Read the rules for working here, by topic",
@@ -592,19 +562,13 @@ pub(super) fn tools_without_hints() -> Value {
                     "lang": { "type": "string", "enum": ["en", "es"], "description": "en, the default, or es" }
                 }
             }))
-        }),
-        json!({
-            "name": "tags",
-            "title": "The tags already in use",
-            "description": "The tags in use, most used first, with counts; case and accents do not matter. Reuse one for the same subject rather than coining a second.",
-            "inputSchema": { "type": "object", "additionalProperties": false }
         })
     ])
 }
 
 /// Seven tools take this field, and seven wordings of it would drift apart.
 fn named_doc_field() -> Value {
-    json!({ "type": "string", "description": "The document's id from `docs`, not its title" })
+    json!({ "type": "string", "description": "The document's id from `brain`, not its title" })
 }
 
 fn kept_compaction_field() -> Value {

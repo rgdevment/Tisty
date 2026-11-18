@@ -14,10 +14,10 @@ See [[What an assistant may do|MCP-Permissions]] for the rules behind them.
 | `language` | The Tisty language, so what it writes is something Tisty knows |
 | `help` | How Tisty itself works, from these same help pages, so it answers instead of guessing |
 | `catch_up` | Where things stand, with the lists, folders and most used tags; the open tasks that press, by title and list, for it to tell you and `read` — overdue, then due soon, for today and late, five at most, the rest counted — leaving out what an assistant already said is done or not to be done, which waits for you, and what you hid; what others moved since its last `catch_up`, twenty of each kind at a time, the next bringing the rest; and the open task it was on or, if it no longer is, why: it said it is done or should not be done, or you closed, dropped or hid it. It names **Brainstorm**, and says how many ideas wait and how many are marked. On the day your [Weekly review](Tasks#weekly-review) is due, it says how much waits at each stop and how to help you |
-| `find` | Search tasks and documents, the archive included: ten of each at a time, more when it asks for them. One found by what its page, steps or notes say comes with the line that says it, cut around the word, or by its title alone when that is enough; inside one document, the lines that say it with those around each. Documents marked as having had their day come after the live ones, saying so |
+| `brain` | Find things and see how they connect, without opening them. Tasks and documents by their words, the archive beside the rest, ten of each at a time: first what holds the words in its title, then what moved most recently, each with the newest line that says them and never a note a later one replaced; when nothing holds every word, what holds the most, saying so. The card of one document — its headings, pages, what cites it and the signs it wants tidying — or of one task — its state, steps and parts — and its neighbours of one kind when asked. The open parts of a project, grouped as blocked, under way, waiting for you and not started. With nothing asked, your lists, folders and tags with their counts. What you hid stays out, even as a neighbour |
 | `read` | Read a task: its state first, then its page, its steps and the notes written after that state, with who wrote each. A task with no state yet comes with one built from it: how many steps are done and the note that said it done. A page past about 4,000 characters comes as its sections, with the digest and the latest of the assistant's notes; the journal brings up to about 3,000 characters of notes, and the whole log when asked |
 
-`lists` and `tags` still answer an assistant that asks for them by name, but they are no longer offered: `catch_up` already brings both.
+`find`, `docs`, `outline_doc`, `lists` and `tags` moved into `brain`. An assistant that still calls one of them by name is told where it went, and nothing else happens.
 
 ## Tasks
 
@@ -43,8 +43,6 @@ See [[What an assistant may do|MCP-Permissions]] for the rules behind them.
 
 | Tool | What it does |
 | :-- | :-- |
-| `docs` | The documents and the folders, with what each one is about |
-| `outline_doc` | What is in a document: its headings and parts, and the signs it wants tidying — documents titled alike, headings repeated across pages, links that lead nowhere, page lines that show another name than the page's title, and pages no line places |
 | `read_doc` | Read a document, or one part of it — or, with `as`, the whole of it in standard Markdown, to take to Confluence, Jira, Notion, Linear or GitHub through their own tools (see below). **Brainstorm** comes in parts, idea by idea, never as a list of times |
 | `sum_up` | Leave a short summary of what a document is about, for the next reader |
 | `write_doc` | Write a new document, or write one again whole — or, with `compact`, put one that grew by sessions back in order (see below); with `translation_of`, write it as another language of one of your own documents (one someone else wrote is refused) |
@@ -71,7 +69,7 @@ Bringing a Markdown file in copies what its text points at, but only what sits i
 
 ## The Diary
 
-Your [Diary](Documents#diary) is outside every tool until you open it to agents from the Diary itself: `docs`, `find`, `catch_up` and the documents offered for `@` leave it out, and a tool given one of its pages answers as for a document that does not exist. Open, the reading tools read it and `append_doc` adds to the end of today; every tool that would change, move, mark or put away what you wrote there is refused, and none can start a diary.
+Your [Diary](Documents#diary) is outside every tool until you open it to agents from the Diary itself: `brain`, `catch_up` and the documents offered for `@` leave it out, and a tool given one of its pages answers as for a document that does not exist. Open, the reading tools read it and `append_doc` adds to the end of today; every tool that would change, move, mark or put away what you wrote there is refused, and none can start a diary.
 
 ## Taking a document to another tool
 

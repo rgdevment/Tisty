@@ -59,7 +59,7 @@ fn the_instructions_an_agent_reads_when_it_connects() {
     insta::assert_snapshot!(kept);
 }
 
-const DOOR_AT_MOST: usize = 41_200;
+const DOOR_AT_MOST: usize = 40_200;
 const DOOR_SLACK: usize = 1_000;
 
 #[test]
@@ -81,6 +81,25 @@ fn what_an_agent_pays_to_have_tisty_connected_only_shrinks() {
     assert!(
         weight + DOOR_SLACK > DOOR_AT_MOST,
         "connecting Tisty now costs {weight} bytes: lower DOOR_AT_MOST to just above that, so the saving stays"
+    );
+}
+
+const BRAIN_AT_MOST: usize = 3_800;
+
+#[test]
+fn brain_stays_within_the_weight_it_was_given() {
+    let said = ask(&[request("tools/list", &json!({}))]);
+    let brain = said[0]["result"]["tools"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|tool| tool["name"] == "brain")
+        .unwrap();
+    let weight = serde_json::to_string(brain).unwrap().len();
+
+    assert!(
+        weight <= BRAIN_AT_MOST,
+        "`brain` weighs {weight} bytes in the list, past the {BRAIN_AT_MOST} it was given: say it in fewer words, or move the how-to into `rules`"
     );
 }
 

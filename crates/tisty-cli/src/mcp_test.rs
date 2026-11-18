@@ -222,7 +222,7 @@ fn every_tool_says_all_four_hints_and_one_that_only_reads_stirs_nothing() {
     let mut effects: Vec<&str> = super::catalogue::EFFECTS
         .iter()
         .map(|(name, _)| *name)
-        .filter(|name| !super::catalogue::UNLISTED.contains(name))
+        .filter(|name| super::brain::moved(name).is_none())
         .collect();
     listed.sort_unstable();
     effects.sort_unstable();

@@ -37,6 +37,8 @@ pub struct Under {
     pub title: String,
 }
 
+type Cited = (Vec<(Citing, String)>, [String; 3]);
+
 const HEADED_AT_MOST: usize = 4096;
 
 // Kept by the node's stamp, so a body is read again only once a round has seen it move.
@@ -90,6 +92,23 @@ impl Brain {
         docs: &Path,
         headed: &mut Headed,
     ) -> rusqlite::Result<Option<Vec<Citing>>> {
+        let Some((mut all, aimed)) = self.citing(id)? else {
+            return Ok(None);
+        };
+        for (one, stamp) in all.iter_mut().filter(|(one, _)| one.kind != "task") {
+            one.under = under(headed.of(&one.id, stamp, docs), &aimed);
+        }
+        Ok(Some(all.into_iter().map(|(one, _)| one).collect()))
+    }
+
+    // The edges alone, so asking who points here reads no body at all.
+    pub fn pointing_at(&self, id: &str) -> rusqlite::Result<Option<Vec<Citing>>> {
+        Ok(self
+            .citing(id)?
+            .map(|(all, _)| all.into_iter().map(|(one, _)| one).collect()))
+    }
+
+    fn citing(&self, id: &str) -> rusqlite::Result<Option<Cited>> {
         if self.seen().is_none() {
             return Ok(None);
         }
@@ -132,11 +151,7 @@ impl Brain {
                 }
             }
         }
-        drop(tx);
-        for (one, stamp) in all.iter_mut().filter(|(one, _)| one.kind != "task") {
-            one.under = under(headed.of(&one.id, stamp, docs), &aimed);
-        }
-        Ok(Some(all.into_iter().map(|(one, _)| one).collect()))
+        Ok(Some((all, aimed)))
     }
 }
 

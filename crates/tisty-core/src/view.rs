@@ -106,43 +106,70 @@ pub enum Hit {
     Mentioned,
 }
 
-pub fn matches_query(task: &Task, terms: &[String]) -> Option<Hit> {
-    if terms.is_empty() {
-        return None;
-    }
-    let folded = crate::text::folded;
-    let named: Vec<String> = std::iter::once(folded(&task.title))
-        .chain(task.tags.iter().map(|t| folded(t.as_str())))
-        .collect();
-    // A link matches whole or not at all: half a URL is in every other link on the list.
-    let linked: Vec<String> = if task.volume.refs > 0 {
-        task.references()
-            .iter()
-            .flat_map(|one| [Some(folded(&one.target)), one.label.as_deref().map(folded)])
-            .flatten()
-            .collect()
-    } else {
-        Vec::new()
-    };
-    let by_name = |term: &String| {
-        named.iter().any(|one| one.contains(term.as_str())) || linked.iter().any(|one| one == term)
-    };
+struct Names {
+    named: Vec<String>,
+    linked: Vec<String>,
+}
 
-    if terms.iter().all(by_name) {
-        return Some(Hit::Named);
+impl Names {
+    fn of(task: &Task) -> Self {
+        let folded = crate::text::folded;
+        // A link matches whole or not at all: half a URL is in every other link on the list.
+        let linked = if task.volume.refs > 0 {
+            task.references()
+                .iter()
+                .flat_map(|one| [Some(folded(&one.target)), one.label.as_deref().map(folded)])
+                .flatten()
+                .collect()
+        } else {
+            Vec::new()
+        };
+        Self {
+            named: std::iter::once(folded(&task.title))
+                .chain(task.tags.iter().map(|t| folded(t.as_str())))
+                .collect(),
+            linked,
+        }
     }
-    let body: Vec<String> = task
-        .description
+
+    fn hold(&self, term: &str) -> bool {
+        self.named.iter().any(|one| one.contains(term)) || self.linked.iter().any(|one| one == term)
+    }
+}
+
+fn bodies(task: &Task) -> Vec<String> {
+    let folded = crate::text::folded;
+    task.description
         .iter()
         .map(|one| folded(one))
         .chain(task.log.iter().map(|e| folded(&e.body)))
         .chain(task.steps.iter().map(|s| folded(&s.text)))
-        .collect();
+        .collect()
+}
 
+pub fn matches_query(task: &Task, terms: &[String]) -> Option<Hit> {
+    if terms.is_empty() {
+        return None;
+    }
+    let names = Names::of(task);
+    if terms.iter().all(|term| names.hold(term)) {
+        return Some(Hit::Named);
+    }
+    let body = bodies(task);
     terms
         .iter()
-        .all(|term| by_name(term) || body.iter().any(|one| one.contains(term.as_str())))
+        .all(|term| names.hold(term) || body.iter().any(|one| one.contains(term.as_str())))
         .then_some(Hit::Mentioned)
+}
+
+/// Which of the words a task holds anywhere `matches_query` looks, its text folded once.
+pub fn terms_held<'a>(task: &Task, terms: &'a [String]) -> Vec<&'a String> {
+    let names = Names::of(task);
+    let body = bodies(task);
+    terms
+        .iter()
+        .filter(|term| names.hold(term) || body.iter().any(|one| one.contains(term.as_str())))
+        .collect()
 }
 
 pub fn unnamed(task: &Task, terms: &[String]) -> Vec<String> {

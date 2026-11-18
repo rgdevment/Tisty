@@ -31,12 +31,12 @@ pub(super) fn not_a_task_id(state: &State, said: &str) -> String {
     }
     match named_document(state, said) {
         Some(kept) => format!(
-            "{said:?} is {}, not a task: `read_doc` reads it (`outline_doc` first when it is \
+            "{said:?} is {}, not a task: `read_doc` reads it (its card from `brain` first when it is \
              long), and `edit_doc` and `append_doc` write in it.",
             a_document(kept)
         ),
         None => {
-            format!("{said:?} is not a task id. Use the `id` that `find` or `propose` gave you.")
+            format!("{said:?} is not a task id. Use the `id` that `brain` or `propose` gave you.")
         }
     }
 }
@@ -62,15 +62,18 @@ pub(super) fn not_a_document(state: &State, which: &str) -> Option<String> {
 }
 
 pub(super) fn no_document_called(state: &State, which: &str) -> String {
-    not_a_document(state, which)
-        .unwrap_or_else(|| format!("no document here is called {which:?}. `docs` lists them all."))
+    not_a_document(state, which).unwrap_or_else(|| {
+        format!(
+            "no document here is called {which:?}. `brain` with a `query` finds one by its words."
+        )
+    })
 }
 
 pub(super) fn no_document_by_that_id(state: &State, which: &str) -> String {
     not_a_document(state, which).unwrap_or_else(|| {
         format!(
             "no document here is called {which:?}. Ids are opaque, like q7ntmzbm-0001, and a title \
-             is not one — `docs` prints the id beside the title of every document."
+             is not one — `brain` gives the id beside the title of every document it finds."
         )
     })
 }

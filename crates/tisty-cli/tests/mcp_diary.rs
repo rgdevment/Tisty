@@ -112,7 +112,19 @@ fn a_shut_diary_answers_every_tool_as_a_document_that_is_not_there() {
 
     for file in [&book, &page] {
         answered_as_missing(&served, "read_doc", |doc| json!({ "doc": doc }), file);
-        answered_as_missing(&served, "outline_doc", |doc| json!({ "doc": doc }), file);
+        answered_as_missing(&served, "brain", |doc| json!({ "doc": doc }), file);
+        answered_as_missing(
+            &served,
+            "brain",
+            |doc| json!({ "doc": doc, "links": "all" }),
+            file,
+        );
+        answered_as_missing(
+            &served,
+            "brain",
+            |doc| json!({ "doc": doc, "section": 0 }),
+            file,
+        );
         answered_as_missing(&served, "export_doc", |doc| json!({ "doc": doc }), file);
         answered_as_missing(
             &served,
@@ -160,7 +172,7 @@ fn a_shut_diary_answers_every_tool_as_a_document_that_is_not_there() {
         );
         answered_as_missing(
             &served,
-            "find",
+            "brain",
             |doc| json!({ "doc": doc, "query": "Rina" }),
             file,
         );
@@ -208,15 +220,16 @@ fn a_shut_diary_is_left_out_of_every_listing_and_count() {
 
     for (name, args) in [
         ("catch_up", json!({})),
-        ("docs", json!({})),
-        ("docs", json!({ "scope": "either" })),
-        ("find", json!({ "query": "paseo" })),
-        ("find", json!({ "query": "cerro", "scope": "either" })),
+        ("brain", json!({ "scope": "either" })),
+        ("brain", json!({})),
+        ("brain", json!({ "query": "paseo" })),
+        ("brain", json!({ "query": "cerro", "scope": "either" })),
     ] {
+        let searching = args.get("query").is_some();
         let answer = served.call(name, args);
         assert!(!refused(&answer), "{name}: {answer}");
         untold(&answer);
-        if name == "find" {
+        if searching {
             assert_eq!(
                 answer["structuredContent"]["docsTotal"],
                 json!(0),
@@ -269,7 +282,7 @@ fn an_opened_diary_is_seen_but_its_words_are_never_rewritten() {
     let (book, page) = served.diary();
     served.person().opens_the_diary_to_agents(true);
 
-    let listed = served.call("docs", json!({}));
+    let listed = served.call("brain", json!({ "scope": "either" }));
     assert!(listed.to_string().contains(&book), "{listed}");
     let read = served.call("read_doc", json!({ "doc": page }));
     assert!(read.to_string().contains("Paseo con Rina"), "{read}");
@@ -286,7 +299,7 @@ fn an_opened_diary_is_seen_but_its_words_are_never_rewritten() {
     assert!(served.body(&page).contains("Paseo con Rina"));
 
     served.person().opens_the_diary_to_agents(false);
-    untold(&served.call("docs", json!({})));
+    untold(&served.call("brain", json!({ "scope": "either" })));
 }
 
 fn santiago_today() -> jiff::civil::Date {
