@@ -45,7 +45,7 @@ pub(in crate::mcp) fn edit_doc(paths: &Paths, args: &Value) -> Result<Value, Ref
     if body.is_some_and(|body| in_a_fence(&body, args)) {
         return edited(paths, args, true);
     }
-    spoken(args, "new", |args| edited(paths, args, false))
+    spoken(paths, args, "new", |args| edited(paths, args, false))
 }
 
 /// The passage sits wholly in one fence's code, and `new` brings no fence mark that would shut it.

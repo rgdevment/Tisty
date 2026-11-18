@@ -145,17 +145,26 @@ pub(super) fn attach(paths: &Paths, args: &Value) -> Result<Value, Refused> {
             store
                 .append(kept.told(tisty_core::attach::Via::Assistant))
                 .map_err(hitch)?;
+            let note = Ulid::generate();
             store
                 .append(Op::TaskLog {
                     id,
-                    d: LogAdd::new(Ulid::generate(), body)
-                        .in_zone(zone.iana_name().map(str::to_string)),
+                    d: LogAdd::new(note, body).in_zone(zone.iana_name().map(str::to_string)),
                 })
                 .map_err(hitch)?;
             let title = state.tasks[&id].title.clone();
-            Ok(told(
+            let answer = told(
                 format!("Kept {named:?} with {title:?}."),
-                json!({ "id": id.to_string(), "at": kept.at, "label": named }),
+                json!({ "id": id.to_string(), "at": kept.at, "label": named, "note": note.to_string() }),
+            );
+            Ok(asked_what_it_shows(
+                answer,
+                &kept.at,
+                &named,
+                &format!(
+                    "write it between the brackets with `reword_note` on the note {note}, and \
+                     next time say it in `label`"
+                ),
             ))
         }
         Beside::Doc(which) => {
@@ -182,10 +191,27 @@ pub(super) fn attach(paths: &Paths, args: &Value) -> Result<Value, Refused> {
                 );
             }
             let title = tisty_core::docs::titled(&whole);
-            Ok(told(
+            let answer = told(
                 format!("Kept {named:?} at the end of {title:?}."),
                 json!({ "doc": which, "title": title, "at": kept.at, "label": named }),
+            );
+            Ok(asked_what_it_shows(
+                answer,
+                &kept.at,
+                &named,
+                "write it between the brackets with `edit_doc`, and next time say it in `label`",
             ))
         }
     }
+}
+
+fn asked_what_it_shows(mut answer: Value, at: &str, named: &str, fix: &str) -> Value {
+    let leaf = tisty_core::attach::leaf_of(at).unwrap_or(at);
+    if tisty_core::attach::pictured(leaf) && tisty_core::attach::shows(named, leaf).is_none() {
+        super::jsonrpc::with_ask(
+            &mut answer,
+            super::referencing::pictures_asked(&[leaf.to_string()], fix),
+        );
+    }
+    answer
 }
