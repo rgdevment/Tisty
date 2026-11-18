@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import type { Carded, Head } from "tisty-editor/read";
+import type { Head } from "tisty-editor/read";
 import rina from "../../src-tauri/resources/guide/en/rina.jpg";
 import { helpAnchors, helpDrawn } from "../guide/calls";
 import { aimedAt, linkedHere } from "../guide/help";
@@ -8,7 +8,6 @@ import { t } from "../locales";
 import { pictured } from "../previews";
 import Page from "./Page";
 
-const titles = new Map<string, string>();
 const drawings = new Map<string, Promise<string>>();
 
 // The examples name files only a store holds, so a picture shows the guide's own photo.
@@ -28,8 +27,6 @@ const drawn = async (body: string): Promise<string> => {
     const at = img.getAttribute("src") ?? "";
     if (!/^[a-z][a-z0-9+.-]*:/i.test(at) && pictured(at)) img.setAttribute("src", photo);
   }
-  for (const card of page.querySelectorAll<HTMLElement>("a.card[data-doc]"))
-    titles.set(card.dataset.doc ?? "", card.textContent ?? "");
   return page.querySelector("article")?.innerHTML ?? "";
 };
 
@@ -42,7 +39,7 @@ const drawGuide = (body: string): Promise<string> => {
   return made;
 };
 
-const card = (file: string): Carded => ({ kind: "doc", title: titles.get(file) ?? "" });
+const EXAMPLES = { docs: true, examples: true } as const;
 
 interface Props {
   readonly topic: Topic;
@@ -94,7 +91,7 @@ export default function MarkdownArticle({
       body={linkedHere(topic.body, spanish)}
       draw={drawGuide}
       label={topic.heading ?? t("helpMarkdown")}
-      card={card}
+      cardsShown={EXAMPLES}
       onDoc={() => undefined}
       onHere={onHere}
       onOutline={onOutline}

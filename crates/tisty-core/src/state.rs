@@ -683,9 +683,13 @@ impl State {
     /// order the text names them, into the places named pages already held. That is the same run
     /// `pages_told` writes to the log, so a reader never sees an order the next settling undoes.
     pub fn pages_read(&self, doc: DocId, body: &str) -> Vec<&Kept> {
+        self.pages_named(doc, &crate::refs::papers(body))
+    }
+
+    pub fn pages_named(&self, doc: DocId, named: &[String]) -> Vec<&Kept> {
         let held = self.pages_of(doc);
         let mut takes = BTreeSet::new();
-        let wanted: Vec<&Kept> = crate::refs::papers(body)
+        let wanted: Vec<&Kept> = named
             .iter()
             .filter_map(|file| held.iter().find(|one| &one.file == file).copied())
             .filter(|one| takes.insert(one.id))

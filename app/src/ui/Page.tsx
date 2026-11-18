@@ -1,10 +1,21 @@
 import { useEffect, useRef, useState } from "react";
-import { escaped, type Head, heads, recarded, type Sheet } from "tisty-editor/read";
+import {
+  type CardAsked,
+  cardKey,
+  cardsIn,
+  cardsOn,
+  cardsPlaced,
+  type DrawnCards,
+  escaped,
+  type Head,
+  heads,
+  type Sheet,
+} from "tisty-editor/read";
 import { docDrawn, type Mend, mendsIn } from "../core";
 import { datedSteps, type Reaching } from "./dressing";
 import Frame from "./Frame";
+import { type CardsShown, cardDays, drawnFor } from "./liveCards";
 import { mendable } from "./mending";
-import { SAY } from "./saying";
 
 type Props = Reaching & {
   readonly label: string;
@@ -18,7 +29,7 @@ type Props = Reaching & {
   readonly onShown?: (page: Window | null, body?: string) => void;
   readonly sheet?: Sheet;
   readonly again?: string;
-  readonly cards?: string;
+  readonly cardsShown?: CardsShown;
   readonly draw?: (body: string) => Promise<string>;
   readonly already?: string | null;
   readonly onDresser?: (dress: (blocks: readonly Element[]) => void) => void;
@@ -26,6 +37,14 @@ type Props = Reaching & {
 };
 
 type Drawn = { html: string; turn: number; body: string; mends: Promise<readonly Mend[]> };
+
+const drawnBy = (props: Readonly<Props>, asked: readonly CardAsked[]) =>
+  drawnFor(asked, props.cardsShown, {
+    here: props.cardsShown?.here,
+    acting: Boolean(props.onTaskDone),
+    more: Boolean(props.onMore),
+    examples: Boolean(props.cardsShown?.examples),
+  }).catch(() => new Map<string, string>());
 
 // One page is kept and its words change in place, so a redraw never blinks, jumps or builds a new document.
 export default function Page(props: Readonly<Props>) {
@@ -52,13 +71,31 @@ export default function Page(props: Readonly<Props>) {
     const page = held.current?.contentDocument;
     if (page) datedSteps(page, dates);
   }, [dates]);
-  const { cards } = props;
+  const cards = useRef<DrawnCards>(new Map());
+  const seenAs = useRef("");
+  // Cards come back after the page is laid, so only those whose drawing changed are laid again.
+  const relaid = (asked: readonly CardAsked[]) => {
+    const askedAs = seenAs.current;
+    return drawnBy(reach.current, asked).then((fresh) => {
+      if (fresh.size === 0 || seenAs.current !== askedAs) return;
+      const was = cards.current;
+      cards.current = new Map([...was, ...fresh]);
+      const page = held.current?.contentDocument;
+      if (page) cardsPlaced(page, cards.current, was, cardDays);
+    });
+  };
+  const shown = props.cardsShown;
   const acting = Boolean(props.onTaskDone);
+  const more = Boolean(props.onMore);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: what a card shows changes with what the window heard, never with `relaid` itself.
   useEffect(() => {
+    // A card is drawn for its page and its controls, so another of either draws every card anew.
+    const seen = `${shown?.here}|${acting}|${more}`;
+    if (seenAs.current !== seen) cards.current = new Map();
+    seenAs.current = seen;
     const page = held.current?.contentDocument;
-    const task = reach.current.cited;
-    if (page && task) recarded(page, { task, say: SAY, acting });
-  }, [cards, acting]);
+    if (page && shown) void relaid(cardsOn(page));
+  }, [shown?.heard, shown?.here, shown?.docs, shown?.tasks, acting, more]);
   const mending = Boolean(props.onMend);
   useEffect(lay, [mending]);
 
@@ -82,7 +119,15 @@ export default function Page(props: Readonly<Props>) {
       : Promise.resolve([]);
     void (draw ?? docDrawn)(body)
       .catch(() => `<pre>${escaped(body)}</pre>`)
-      .then(drawn);
+      .then((html) => {
+        const askedAs = seenAs.current;
+        const missing = cardsIn(html).filter((one) => !cards.current.has(cardKey(one)));
+        return drawnBy(reach.current, missing).then((fresh) => {
+          if (!live) return;
+          if (seenAs.current === askedAs) cards.current = new Map([...cards.current, ...fresh]);
+          drawn(html);
+        });
+      });
     return () => {
       live = false;
     };
@@ -143,6 +188,9 @@ export default function Page(props: Readonly<Props>) {
             onDiagram: current("onDiagram"),
             onDiagramExport: current("onDiagramExport"),
             onTable: current("onTable"),
+            drawnCards: reach.current.cardsShown ? cards.current : undefined,
+            onCardsMissing: (asked) => void relaid(asked),
+            cardDays,
           })}
           onDresser={(dress) => reach.current.onDresser?.(dress)}
           onReady={(frame) => ready(drawing, frame)}

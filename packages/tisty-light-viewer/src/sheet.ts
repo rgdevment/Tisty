@@ -48,7 +48,7 @@ export const dress = async (page: HTMLElement, words: Words, own = false): Promi
     ? await Promise.all([
         import("./owned"),
         import("./cards")
-          .then(({ cardsIn }) => cardsIn(page, words.sayToSheet("untitledDoc")))
+          .then(({ cardsDrawn }) => cardsDrawn(page.ownerDocument))
           .catch(() => undefined),
         drawsHeic().catch(() => false),
       ])
@@ -57,7 +57,8 @@ export const dress = async (page: HTMLElement, words: Words, own = false): Promi
   const sites = own ? {} : undefined;
   const brought = owned ? () => void owned.drawnOwn(document, words, isDark, heic) : undefined;
   const reading = { say: words.sayToSheet, locale: words.locale, live: () => true };
-  await readAs(document, { ...reading, cards, sites, brought }).drawn;
+  cards?.();
+  await readAs(document, { ...reading, sites, brought }).drawn;
 };
 
 export const redraw = async (): Promise<void> => {

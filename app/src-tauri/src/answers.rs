@@ -3,6 +3,7 @@ pub mod attaching;
 pub mod born;
 pub mod brainstorming;
 pub mod calendar;
+pub mod cards;
 pub mod carrying;
 pub mod cited_tasks;
 pub mod citing;

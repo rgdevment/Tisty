@@ -1,6 +1,6 @@
 import { convertFileSrc, invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import type { Carded } from "tisty-sheet";
+import type { CardAsked } from "tisty-sheet";
 
 export type Head = { readonly level: number; readonly said: string; readonly id: string };
 
@@ -45,8 +45,8 @@ export const pictureNear = (src: string): Promise<string> => invoke("view_pictur
 export const pictureFar = (src: string): Promise<string> => invoke("view_picture_far", { src });
 export const follow = (to: string): Promise<void> => invoke("view_follow", { to });
 
-export const cardsOf = (files: readonly string[]): Promise<Record<string, Carded>> =>
-  invoke("view_cards", { files });
+export const cardsOf = (asked: readonly CardAsked[]): Promise<string[]> =>
+  invoke("view_cards", { asked });
 export const showDoc = (file: string): Promise<void> => invoke("view_go", { file });
 export const showTask = (task: string): Promise<void> => invoke("view_task", { task });
 export const openAttached = (reference: string): Promise<void> => invoke("opened", { reference });

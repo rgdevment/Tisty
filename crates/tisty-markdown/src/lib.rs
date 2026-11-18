@@ -2,6 +2,8 @@ mod amounts;
 mod bare;
 #[cfg(feature = "tables")]
 pub mod canon;
+#[cfg(feature = "outline")]
+pub mod cards;
 mod defined;
 #[cfg(feature = "details")]
 mod details;

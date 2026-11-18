@@ -1280,7 +1280,7 @@ fn commands() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool + Send + Sync +
         answers::papers::doc_merge,
         answers::papers::doc_facts,
         answers::citing::doc_cited_by,
-        answers::cited_tasks::task_cards,
+        answers::cards::cards_drawn,
         answers::cited_tasks::task_step_marked,
         answers::citing::doc_heads,
         answers::citing::doc_glance,
@@ -1404,6 +1404,7 @@ pub fn run() {
         .manage(OneAtATime::default())
         .manage(answers::attaching::Keeping::default())
         .manage(answers::paging::Placing::default())
+        .manage(answers::cards::Glimpses::default())
         .manage(answers::clouding::Consenting::default())
         .manage(viewing::Views::default())
         .manage(finishing::Finishers::default())

@@ -7,10 +7,22 @@ const ipc = vi.hoisted(() => ({
   drawn: "" as string | null,
   dropped: 0,
   released: 0,
+  cards: [] as unknown[],
+  version: 1,
+  held: false,
+  waiting: [] as (() => void)[],
 }));
 
 vi.mock("@tauri-apps/api/core", () => ({
-  invoke: (cmd: string) => {
+  invoke: (cmd: string, args?: { asked?: { id: string; words: string }[] }) => {
+    if (cmd === "cards_drawn") {
+      ipc.cards.push(args);
+      const drawn = (one: { id: string; words: string }) =>
+        `<span class="doc-card is-doc" role="link" tabindex="0" data-doc="${one.id}">${one.words} v${ipc.version}</span>`;
+      const answer = args?.asked?.map(drawn);
+      if (ipc.held) return new Promise((done) => ipc.waiting.push(() => done(answer)));
+      return Promise.resolve(answer);
+    }
     if (cmd !== "doc_drawn") return Promise.resolve(null);
     if (ipc.drawn === null) return Promise.reject(new Error("no"));
     return Promise.resolve(new TextEncoder().encode(ipc.drawn).buffer);
@@ -85,6 +97,10 @@ beforeEach(() => {
   ipc.drawn = DRAWN;
   ipc.dropped = 0;
   ipc.released = 0;
+  ipc.cards = [];
+  ipc.version = 1;
+  ipc.held = false;
+  ipc.waiting = [];
 });
 
 describe("a drawn page in the viewer", () => {
@@ -227,5 +243,120 @@ describe("a drawn page in the viewer", () => {
     view.rerender(<Page body="Nuevo" label="Notas" onDoc={() => {}} />);
     await waitFor(() => expect(page.documentElement.lang).toBe("en"));
     document.documentElement.lang = was;
+  });
+});
+
+describe("the live cards on a page", () => {
+  const CARDED = `${DRAWN}<p data-at="61-80"><a class="card" data-doc="cd34-0002">Huerta</a></p>`;
+  const SHOWN = { docs: true, here: "ab12-0001", heard: 1 };
+
+  it("lays the cards the core drew before the page is shown, and leaves a word in a sentence alone", async () => {
+    ipc.drawn = CARDED;
+    const { frame } = await drawn({ cardsShown: SHOWN });
+    const page = await loaded(frame);
+    expect(page.querySelector(".page > p > .doc-card")?.textContent).toBe("Huerta v1");
+    expect(page.querySelector('p[data-at="11-19"] a.card')?.textContent).toBe("Otro");
+    expect(ipc.cards).toEqual([
+      {
+        asked: [
+          { kind: "doc", id: "ab12-0001", words: "Otro" },
+          { kind: "doc", id: "cd34-0002", words: "Huerta" },
+        ],
+        seen: { here: "ab12-0001", acting: false, more: false, examples: false },
+      },
+    ]);
+  });
+
+  it("draws its words again without asking again for the cards it already holds", async () => {
+    ipc.drawn = CARDED;
+    const { frame, view, heard } = await drawn({ cardsShown: SHOWN });
+    await loaded(frame);
+    const shownBefore = heard.shown.length;
+    view.rerender(
+      <Page
+        body={`${BODY}más
+`}
+        label="Notas"
+        onDoc={() => {}}
+        onShown={(at) => heard.shown.push(at)}
+        cardsShown={SHOWN}
+      />,
+    );
+    const page = await loaded(frame);
+    await waitFor(() => expect(heard.shown.length).toBeGreaterThan(shownBefore));
+    expect(page.querySelector(".page > p > .doc-card")?.textContent).toBe("Huerta v1");
+    expect(ipc.cards).toHaveLength(1);
+  });
+
+  it("draws every card anew for another document, never laying one drawn for the last", async () => {
+    ipc.drawn = CARDED;
+    const { frame, view } = await drawn({ cardsShown: SHOWN });
+    await loaded(frame);
+    ipc.version = 2;
+    view.rerender(
+      <Page
+        body={`${BODY}otro
+`}
+        label="Notas"
+        onDoc={() => {}}
+        cardsShown={{ ...SHOWN, here: "ef56-0003" }}
+      />,
+    );
+    const page = await loaded(frame);
+    await waitFor(() =>
+      expect(page.querySelector(".page > p > .doc-card")?.textContent).toBe("Huerta v2"),
+    );
+    expect(ipc.cards[ipc.cards.length - 1]).toMatchObject({ seen: { here: "ef56-0003" } });
+  });
+
+  it("drops a late answer asked for the last document, whatever order the answers come in", async () => {
+    ipc.drawn = CARDED;
+    const { frame, view } = await drawn({ cardsShown: SHOWN });
+    const page = await loaded(frame);
+    ipc.held = true;
+    ipc.version = 2;
+    view.rerender(
+      <Page body={BODY} label="Notas" onDoc={() => {}} cardsShown={{ ...SHOWN, heard: 2 }} />,
+    );
+    ipc.version = 3;
+    const other = { ...SHOWN, heard: 2, here: "ef56-0003" };
+    view.rerender(<Page body={BODY} label="Notas" onDoc={() => {}} cardsShown={other} />);
+    await waitFor(() => expect(ipc.waiting).toHaveLength(2));
+    const [late, fresh] = ipc.waiting;
+    fresh();
+    await waitFor(() =>
+      expect(page.querySelector(".page > p > .doc-card")?.textContent).toBe("Huerta v3"),
+    );
+    late();
+    await new Promise((done) => setTimeout(done, 20));
+    expect(page.querySelector(".page > p > .doc-card")?.textContent).toBe("Huerta v3");
+  });
+
+  it("asks nothing of the core where the window shows no cards", async () => {
+    ipc.drawn = CARDED;
+    const { frame } = await drawn();
+    const page = await loaded(frame);
+    expect(page.querySelector(".doc-card")).toBeNull();
+    expect(ipc.cards).toEqual([]);
+  });
+
+  it("asks again when the window hears of a change, and lays only the card whose drawing changed", async () => {
+    ipc.drawn = CARDED;
+    const { frame, view } = await drawn({ cardsShown: SHOWN });
+    const page = await loaded(frame);
+    const before = page.querySelector(".page > p > .doc-card");
+    ipc.version = 2;
+    view.rerender(
+      <Page body={BODY} label="Notas" onDoc={() => {}} cardsShown={{ ...SHOWN, heard: 2 }} />,
+    );
+    await waitFor(() =>
+      expect(page.querySelector(".page > p > .doc-card")?.textContent).toBe("Huerta v2"),
+    );
+    expect(page.querySelector(".page > p > .doc-card")).not.toBe(before);
+    expect(ipc.cards).toHaveLength(2);
+    view.rerender(
+      <Page body={BODY} label="Notas" onDoc={() => {}} cardsShown={{ ...SHOWN, heard: 2 }} />,
+    );
+    expect(ipc.cards).toHaveLength(2);
   });
 });
