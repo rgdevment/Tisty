@@ -667,3 +667,26 @@ fn words_nothing_holds_say_so_and_a_scope_lists_a_projects_parts_plainly() {
     assert!(closed.get("stages").is_none(), "{closed}");
     assert_eq!(titles(&closed, "matches"), ["Rank"]);
 }
+
+#[test]
+fn a_task_page_asked_as_a_document_shows_its_tasks_neighbours() {
+    let served = Served::new();
+    let plan = served.person().writes_doc("# Plan\n\nSteps.\n");
+    let task = served.person().captures("Follow the plan");
+    let mut talk = served.connect();
+    talk.call(
+        "append_doc",
+        json!({ "doc": task.to_string(), "body": format!("See [the plan](tisty:doc/{plan}).") }),
+    );
+    let read = talk.call("read", json!({ "task": task.to_string() }));
+    let page = read["structuredContent"]["document"]["file"]
+        .as_str()
+        .unwrap()
+        .to_string();
+
+    let card = talk.brain(json!({ "doc": page }));
+
+    assert!(card.get("base").is_none(), "{card}");
+    assert_eq!(card["mentions"][0]["id"], json!(plan), "{card}");
+    assert!(card.get("status").is_none(), "{card}");
+}

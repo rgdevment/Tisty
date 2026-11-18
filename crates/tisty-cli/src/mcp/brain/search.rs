@@ -89,7 +89,10 @@ pub(in crate::mcp) fn found(paths: &Paths, args: &Value) -> Result<Value, Refuse
         Some(said) => Some(super::super::folder_found(&state, &said)?),
         None => None,
     };
-    let here = papers_here(&state, scope, within);
+    let here = match sifted.none() {
+        true => papers_here(&state, scope, within),
+        false => Here::new(),
+    };
 
     // Counting what it cannot see would still say the thing exists.
     let keeps = |one: &Task| scope.keeps(one) && !one.folded() && sifted.keeps(one, &state);

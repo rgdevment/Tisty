@@ -103,24 +103,32 @@ pub(super) fn of_doc(paths: &Paths, which: &str, args: &Value) -> Result<Value, 
             return Err(Refused::Missing(no_document_called(&state, which)));
         };
         in_sight(&state, kept, which)?;
-        return linked(
-            which,
-            card_of(paths, &state, base(paths).as_ref(), which),
-            &kind,
-            args,
-        );
+        let held = base(paths);
+        let card = card_of(paths, &state, held.as_ref(), &node_of(which));
+        return linked(which, card, &kind, args);
     }
     let held = base(paths);
     let mut answer = outlined(paths, &state, which, held.as_ref())?;
-    match card_of(paths, &state, held.as_ref(), which) {
+    match card_of(paths, &state, held.as_ref(), &node_of(which)) {
         Some(card) => with_neighbours(&mut answer, card),
-        None => answer["structuredContent"]["base"] = json!(NO_BASE),
+        None if held.is_none() => answer["structuredContent"]["base"] = json!(NO_BASE),
+        None => {}
     }
     Ok(answer)
 }
 
+// A task's page is no node of its own: its links are its task's, so its card shows the task's neighbours.
+fn node_of(which: &str) -> String {
+    tisty_core::task_docs::task_of_file(which)
+        .map_or_else(|| which.to_string(), |task| task.to_string())
+}
+
 fn with_neighbours(answer: &mut Value, card: Card) {
     let mut said = to_map(&card);
+    if card.kind == "task" {
+        let near = of_kind("all");
+        said.retain(|key, _| near.contains(&key.as_str()));
+    }
     for key in OUTLINE_SAYS {
         said.remove(key);
     }
@@ -157,7 +165,8 @@ pub(super) fn of_task(paths: &Paths, which: &str, args: &Value) -> Result<Value,
             "no task here has the id {which}. Look it up again with `brain` and a `query`."
         )));
     };
-    let card = card_of(paths, &state, base(paths).as_ref(), which);
+    let held = base(paths);
+    let card = card_of(paths, &state, held.as_ref(), which);
     if let Some(kind) = text(args, "links") {
         return linked(which, card, &kind, args);
     }

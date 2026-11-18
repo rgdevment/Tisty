@@ -422,3 +422,17 @@ fn a_word_a_tag_already_says_is_not_the_line_looked_for() {
         Some(("journal", "we chose sqlite".to_string()))
     );
 }
+
+#[test]
+fn a_task_holds_each_word_its_name_or_its_words_say() {
+    let mut one = task("Restart the watcher");
+    one.description = Some("After the laptop wakes.".into());
+    let terms: Vec<String> = ["watcher", "wakes", "hibernate"]
+        .iter()
+        .map(|one| (*one).to_string())
+        .collect();
+
+    assert_eq!(terms_held(&one, &terms), 2);
+    assert_eq!(terms_held(&one, &[]), 0);
+    assert_eq!(terms_held(&task("Nothing here"), &terms), 0);
+}

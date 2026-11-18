@@ -115,7 +115,7 @@ pub(super) fn view(paths: &Paths, args: &Value) -> Result<Value, Refused> {
             (stage(one, line.as_deref()), last_moved(one), *one, line)
         })
         .collect();
-    open.sort_by(|a, b| (a.0, std::cmp::Reverse(a.1)).cmp(&(b.0, std::cmp::Reverse(b.1))));
+    open.sort_by_key(|(stage, moved, task, _)| (*stage, std::cmp::Reverse(*moved), task.id));
     let mut counts = serde_json::Map::new();
     for stage in [
         Stage::Blocked,

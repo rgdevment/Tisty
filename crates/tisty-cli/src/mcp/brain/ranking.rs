@@ -36,12 +36,15 @@ pub(super) fn ranked<'a>(
         scope,
         keeps,
         paper_kept,
+        false,
     );
     let none = whole.0.is_empty() && whole.2.is_empty();
     let (found, lined, papers) = match none && terms.len() > 1 {
         true => {
             let each: Vec<(&str, usize)> = terms.iter().map(|one| (one.as_str(), 1)).collect();
-            nearest(gathered(paths, state, &each, scope, keeps, paper_kept))
+            nearest(gathered(
+                paths, state, &each, scope, keeps, paper_kept, true,
+            ))
         }
         false => whole,
     };
@@ -107,16 +110,29 @@ fn gathered<'a>(
     scope: Scope,
     keeps: &dyn Fn(&Task) -> bool,
     paper_kept: &dyn Fn(&str) -> bool,
+    by_word: bool,
 ) -> Gathered<'a> {
     let mut tasks: HashMap<TaskId, (&Task, usize)> = HashMap::new();
     let mut lined = HashMap::new();
     let mut papers: HashMap<String, Held> = HashMap::new();
     let behind = tisty_core::task_docs::behind(state);
+    if by_word {
+        let words: Vec<String> = asks.iter().map(|(ask, _)| (*ask).to_string()).collect();
+        for task in state.tasks.values().filter(|task| keeps(task)) {
+            let held = tisty_core::view::terms_held(task, &words);
+            if held > 0 {
+                tasks.insert(task.id, (task, held));
+            }
+        }
+    }
+    let seeded: HashSet<TaskId> = tasks.keys().copied().collect();
     for (ask, worth) in asks {
         let mut counted: HashSet<TaskId> = HashSet::new();
-        for task in state.searching(ask, scope, usize::MAX).0 {
-            if keeps(task) && counted.insert(task.id) {
-                tasks.entry(task.id).or_insert((task, 0)).1 += worth;
+        if !by_word {
+            for task in state.searching(ask, scope, usize::MAX).0 {
+                if keeps(task) && counted.insert(task.id) {
+                    tasks.entry(task.id).or_insert((task, 0)).1 += worth;
+                }
             }
         }
         for one in super::search::sightings(paths, ask) {
@@ -124,7 +140,7 @@ fn gathered<'a>(
                 let Some(task) = state.tasks.get(id).filter(|task| keeps(task)) else {
                     continue;
                 };
-                if counted.insert(*id) {
+                if !seeded.contains(id) && counted.insert(*id) {
                     tasks.entry(*id).or_insert((task, 0)).1 += worth;
                     lined.entry(*id).or_insert_with(|| one.line.clone());
                 }

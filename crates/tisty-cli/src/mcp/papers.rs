@@ -110,6 +110,11 @@ pub(super) fn pointed_from(
 
 // A task's links live on its page, which is where the person would see one left hanging.
 fn linked_from(state: &State, which: &str, citing: Vec<tisty_core::brain::Citing>) -> Vec<String> {
+    let by_file: std::collections::HashMap<&str, &tisty_core::model::Kept> = state
+        .docs
+        .values()
+        .map(|kept| (kept.file.as_str(), kept))
+        .collect();
     let mut found: Vec<String> = citing
         .into_iter()
         .filter_map(|one| {
@@ -118,7 +123,7 @@ fn linked_from(state: &State, which: &str, citing: Vec<tisty_core::brain::Citing
                     let owner = tisty_core::task_docs::owner(state, task);
                     tisty_core::task_docs::of(state, owner)?
                 }
-                _ => state.docs.values().find(|kept| kept.file == one.id)?,
+                _ => by_file.get(one.id.as_str()).copied()?,
             };
             (kept.file != which && state.doc_in_sight(kept)).then(|| kept.file.clone())
         })
