@@ -108,6 +108,15 @@ fn a_whole_document_s_first_line_is_its_title_and_is_kept() {
         .as_deref(),
         Some("Plans for «Brainsty: decisiones»")
     );
+    assert_eq!(
+        title_line(
+            &json!({ "body": format!("---\nlang: es\n---\n{body}") }),
+            "body"
+        )
+        .as_deref(),
+        Some("Plans for «Brainsty: decisiones»"),
+        "front matter comes before the title"
+    );
     for adding in [
         json!({ "doc": "x-0001", "body": body }),
         json!({ "task": ERRAND, "body": body }),

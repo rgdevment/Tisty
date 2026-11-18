@@ -49,13 +49,14 @@ pub fn spots(text: &str) -> Vec<Spot> {
                     });
                     at + end + 2
                 }
-                Some((end, None)) => at + end + 2,
-                None => at + 2,
+                Some((end, None)) if !rest[..end].contains('\n') => at + end + 2,
+                _ => at + 2,
             },
             b'[' => match linked(text, at, &mut |_| {}) {
                 end if end > at + 1 => end,
                 _ => past_a_reference(text, at),
             },
+            b'<' if rest.starts_with("<!--") => rest.find("-->").map_or(text.len(), |n| at + n + 3),
             b'<' => tagged(rest, at, &mut |_| {}),
             b'h' if rest.starts_with("http://") || rest.starts_with("https://") => {
                 bare(rest, at, &mut |_| {})

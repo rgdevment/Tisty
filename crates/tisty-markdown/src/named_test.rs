@@ -72,6 +72,19 @@ fn the_words_of_a_link_by_reference_name_nothing_but_plain_brackets_do() {
 }
 
 #[test]
+fn a_comment_names_nothing_and_an_unclosed_double_bracket_hides_nothing_after_it() {
+    let text = format!("<!-- «Trips» -->\nUse [[ later\n\nCall {TASK}.\n\nSee [[Vet]]");
+
+    assert_eq!(
+        named(&text),
+        vec![
+            (Named::Id(TASK.into()), TASK),
+            (Named::Wiki("Vet".into()), "[[Vet]]"),
+        ]
+    );
+}
+
+#[test]
 fn an_id_glued_to_a_path_or_a_file_name_is_no_id() {
     let text = format!("docs/{TASK} and 4nnctnme-0033.md and x{TASK} and v1.4nnctnme-0033");
 

@@ -435,7 +435,9 @@ fn title_line(args: &Value, field: &str) -> Option<String> {
         && args.get("task").is_none()
         && (args.get("doc").is_none() || args.get("print").is_some());
     let body = args.get(field).and_then(Value::as_str).filter(|_| whole)?;
-    body.lines()
+    let front = tisty_markdown::front::span(body).map_or(0, |one| one.end);
+    body[front..]
+        .lines()
         .find(|line| !line.trim().is_empty())
         .map(str::to_string)
 }
