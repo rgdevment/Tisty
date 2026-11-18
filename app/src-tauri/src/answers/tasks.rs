@@ -388,7 +388,8 @@ pub struct Known {
 
 #[tauri::command(async)]
 pub fn capture_known(session: tauri::State<'_, Mutex<Session>>) -> Answer<Known> {
-    let session = held(&session);
+    let mut session = held(&session);
+    session.reload()?;
     Ok(Known {
         lists: session.state.ordered_lists().into_iter().cloned().collect(),
         tags: tags_in_use(&session.state),

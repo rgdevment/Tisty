@@ -208,6 +208,14 @@ describe("where a task was born, beside its page", () => {
     expect(onDoc).toHaveBeenCalledWith("a-0001");
   });
 
+  it("names the document alone for a task born under no heading", async () => {
+    render(<Origin source="a-0001#" papers={PAPERS} />);
+
+    expect(screen.getByRole("button").textContent).toBe("▤Viaje");
+    await new Promise((done) => setTimeout(done, 0));
+    expect(ipc.calls.some((one) => one.cmd === "doc_heads")).toBe(false);
+  });
+
   it("says nothing of a source that names no document here", () => {
     for (const source of [undefined, "sereno#1234", "zz-0009#top", "a-0001"]) {
       const { container, unmount } = render(<Origin source={source} papers={PAPERS} />);
