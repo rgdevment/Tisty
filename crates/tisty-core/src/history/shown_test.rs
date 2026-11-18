@@ -124,7 +124,22 @@ fn a_line_that_tells_the_same_body_again_is_no_write() {
     );
     assert_eq!(told[1].via.as_deref(), CLAUDE);
     assert_eq!(told[1].by, device(AGENT_HERE));
+    assert_eq!(told[1].signed, None);
     assert_eq!(told[1].bytes, Some(body(2).len() as u64));
+}
+
+#[test]
+fn a_write_carries_the_name_it_was_signed_with() {
+    let id = Ulid::generate();
+    let mut signed = said(id, 5, HERE, None, 2);
+    if let Op::DocSaid { d, .. } = &mut signed.op {
+        d.by = Some("Rina".into());
+    }
+
+    let told = wrote(&[born(id, 0, HERE, 1), signed], id);
+
+    assert_eq!(told[0].signed, None);
+    assert_eq!(told[1].signed.as_deref(), Some("Rina"));
 }
 
 #[test]

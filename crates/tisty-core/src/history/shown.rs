@@ -10,6 +10,8 @@ pub struct Wrote {
     pub at: jiff::Timestamp,
     pub via: Option<String>,
     pub by: DeviceId,
+    /// The name the body was signed with, which for one that came in shared is not the person's.
+    pub signed: Option<String>,
     pub print: String,
     pub bytes: Option<u64>,
 }
@@ -33,6 +35,7 @@ pub fn wrote(log: &[Event], id: DocId) -> Vec<Wrote> {
             at: event.timestamp,
             via: event.via.clone(),
             by: event.device.clone(),
+            signed: said.and_then(|one| one.by.clone()),
             print,
             bytes: said.and_then(|one| one.bytes),
         });

@@ -232,6 +232,24 @@ fn a_document_lists_the_versions_this_machine_keeps_with_who_wrote_each() {
 }
 
 #[test]
+fn a_version_someone_else_signed_is_listed_under_their_name() {
+    let served = Served::new();
+    let doc = served.wrote(UNO);
+    served.person().takes_an_edit_signed_by(&doc, DOS, "Rina");
+    served.edits(
+        &doc,
+        "Dos, como lo dejó la persona.",
+        "Tres, otra vez el asistente.",
+    );
+
+    let listed = served.versions(&doc);
+
+    let rows = listed["versions"].as_array().unwrap();
+    let hers = rows.iter().find(|row| row["bytes"] == DOS.len()).unwrap();
+    assert_eq!(hers["by"], "Rina", "{listed}");
+}
+
+#[test]
 fn a_document_nothing_wrote_over_lists_nothing_and_says_how_a_version_comes_to_be() {
     let served = Served::new();
     let doc = served.wrote(UNO);
