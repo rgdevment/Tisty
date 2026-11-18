@@ -188,12 +188,12 @@ pub(in crate::mcp) fn outlined(
 ) -> Result<Value, Refused> {
     let which = which.to_string();
     let Some(kept) = state.docs.values().find(|one| one.file == which) else {
-        return Err(Refused::Missing(no_document_called(&state, &which)));
+        return Err(Refused::Missing(no_document_called(state, &which)));
     };
-    in_sight(&state, kept, &which)?;
+    in_sight(state, kept, &which)?;
     let held = tisty_core::cache::Cache::open(paths.cache()).ok().flatten();
     let Some(card) = tisty_core::docs::card_of(&paths.docs(), held.as_ref(), &which) else {
-        return Err(super::still_arriving(&state, &which));
+        return Err(super::still_arriving(state, &which));
     };
     let whole = tisty_core::docs::read(&paths.docs(), &which).unwrap_or_default();
     let pages = state.pages_read(kept.id, &whole);
@@ -205,7 +205,7 @@ pub(in crate::mcp) fn outlined(
         .map(|one| {
             let mut row = serde_json::Map::new();
             row.insert("doc".into(), json!(one.file));
-            row.insert("by".into(), json!(super::alike::by(&state, one)));
+            row.insert("by".into(), json!(super::alike::by(state, one)));
             if let Some(card) = cards.get(&one.file) {
                 row.insert("title".into(), json!(card.title));
                 row.insert("words".into(), json!(card.words));
@@ -243,7 +243,7 @@ pub(in crate::mcp) fn outlined(
         .filter(|one| one.flagged.is_none() || state.held_away(one))
         .filter_map(|one| cards.get(&one.file).map(|card| (one.file.as_str(), card)))
         .collect();
-    let alike = super::alike::alike(&state, kept, &pages);
+    let alike = super::alike::alike(state, kept, &pages);
     let repeated = super::alike::repeated((which.as_str(), &card), &page_cards);
     let bodies: Vec<(&str, String)> = std::iter::once((which.as_str(), whole.clone()))
         .chain(pages.iter().map(|one| {
@@ -253,15 +253,15 @@ pub(in crate::mcp) fn outlined(
             )
         }))
         .collect();
-    let dead = super::alike::dead(paths, &state, &bodies);
+    let dead = super::alike::dead(paths, state, &bodies);
     let mislabeled = super::alike::mislabeled(&whole, &page_cards);
     let mut kept_of = serde_json::Map::new();
     kept_of.insert("doc".into(), json!(which));
     kept_of.insert(
         "title".into(),
-        json!(super::super::title_of(&state, &which, card.title.clone())),
+        json!(super::super::title_of(state, &which, card.title.clone())),
     );
-    kept_of.insert("by".into(), json!(super::alike::by(&state, kept)));
+    kept_of.insert("by".into(), json!(super::alike::by(state, kept)));
     if !alike.is_empty() {
         kept_of.insert("alike".into(), json!(alike));
     }
@@ -294,10 +294,10 @@ pub(in crate::mcp) fn outlined(
     if let Some(said) = gist_of(held.as_ref(), &which, &card.print) {
         kept_of.insert("gist".into(), json!(said));
     }
-    if let Some(up) = kept.page_of.and_then(|up| named_doc(&state, up)) {
+    if let Some(up) = kept.page_of.and_then(|up| named_doc(state, up)) {
         kept_of.insert("page_of".into(), json!(up));
     }
-    super::tongues::tongued_into(&state, kept, &mut kept_of);
+    super::tongues::tongued_into(state, kept, &mut kept_of);
     if !rows.is_empty() {
         kept_of.insert("pages".into(), json!(rows));
     }
@@ -325,7 +325,7 @@ pub(in crate::mcp) fn outlined(
     if shown.is_empty() {
         shown = format!(
             "{} holds no headings — {} words in all.",
-            super::super::named_as(&state, &which, &card.title),
+            super::super::named_as(state, &which, &card.title),
             card.words
         );
     }
@@ -375,7 +375,7 @@ pub(in crate::mcp) fn outlined(
         let few: Vec<String> = pointing.iter().take(NEWEST_SHOWN).cloned().collect();
         shown.push_str(&format!(
             "\n\nPointing at it: {}{}. Putting it away leaves those pointing into the archive.",
-            named_all(&state, &few),
+            named_all(state, &few),
             match pointing.len() > few.len() {
                 true => format!(" and {} more", pointing.len() - few.len()),
                 false => String::new(),

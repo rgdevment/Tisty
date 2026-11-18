@@ -37,6 +37,8 @@ pub struct Under {
     pub title: String,
 }
 
+type Cited = (Vec<(Citing, String)>, [String; 3]);
+
 const HEADED_AT_MOST: usize = 4096;
 
 // Kept by the node's stamp, so a body is read again only once a round has seen it move.
@@ -106,7 +108,7 @@ impl Brain {
             .map(|(all, _)| all.into_iter().map(|(one, _)| one).collect()))
     }
 
-    fn citing(&self, id: &str) -> rusqlite::Result<Option<(Vec<(Citing, String)>, [String; 3])>> {
+    fn citing(&self, id: &str) -> rusqlite::Result<Option<Cited>> {
         if self.seen().is_none() {
             return Ok(None);
         }
