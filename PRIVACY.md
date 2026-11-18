@@ -592,8 +592,8 @@ request to do it; it reads and writes files on this computer, and only these:
   to write them, and to see whether they changed outside since it last wrote
   them. A document in Global is written to every assistant Tisty finds on this
   computer, even one whose files you did not tick. A change made outside is
-  never written over; it stays marked until you
-  bring it in or write Tisty's version over it. In Gemini CLI's `GEMINI.md`,
+  never written over; it stays marked until you bring it in or write Tisty's
+  version over it. In Gemini CLI's `GEMINI.md`,
   which Gemini writes itself, Tisty only ever adds one line, `@tisty-rules.md`,
   and takes nothing out.
 - **The memory an assistant writes for itself** is brought in and shown, and
