@@ -23,6 +23,7 @@ import History from "./History";
 import Left from "./Left";
 import { type Viewing, ViewTurn } from "./liveSheet";
 import Menu, { type Choice } from "./Menu";
+import Origin from "./Origin";
 import PaceBar from "./PaceBar";
 import Panel from "./Panel";
 import Rounds from "./Rounds";
@@ -182,6 +183,7 @@ export default function Detail({
         onCompletePart={onCompletePart}
         onError={onError}
       />
+      <Origin source={task.source} papers={papers} onDoc={onDoc} />
       <Trail
         task={task.id}
         moved={[

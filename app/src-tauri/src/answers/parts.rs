@@ -130,7 +130,7 @@ pub fn offered(state: &State, id: TaskId) -> Vec<Offered> {
         .collect()
 }
 
-fn takes_parts(holder: &Task) -> Result<(), &'static str> {
+pub(crate) fn takes_parts(holder: &Task) -> Result<(), &'static str> {
     if holder.status != Status::Open || holder.folded() {
         return Err("wholeClosed");
     }
@@ -143,7 +143,7 @@ fn takes_parts(holder: &Task) -> Result<(), &'static str> {
     Ok(())
 }
 
-fn with_whole(mut ops: Vec<Op>, born: TaskId, whole: TaskId) -> Vec<Op> {
+pub(crate) fn with_whole(mut ops: Vec<Op>, born: TaskId, whole: TaskId) -> Vec<Op> {
     for op in &mut ops {
         if let Op::TaskAdd { id, d } = op
             && *id == born

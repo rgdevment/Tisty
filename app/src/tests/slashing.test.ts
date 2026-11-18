@@ -254,6 +254,34 @@ describe("the / menu in a block", () => {
     editor.destroy();
   });
 
+  it("offers a new task ahead of citing one, and hands the window the words above the place", () => {
+    const state = EditorState.create({ doc: "/task", extensions: [hosted.of(HOST), markdown()] });
+    const said = offered(() => ({ kinds: ["newTask", "task"], ask: () => {} }))(
+      new CompletionContext(state, 5, false),
+    );
+    expect(said?.options.map((each) => each.label).slice(0, 2)).toEqual([
+      HOST.say("insertNewTask"),
+      HOST.say("insertTask"),
+    ]);
+
+    const editor = view("# Viaje\n\n## Año nuevo\n\nUvas /");
+    const told: { kind: Asked; first: boolean; before: string }[] = [];
+    put(editor, one("newtask"), 28, 29, {
+      kinds: ["newTask"],
+      ask: (kind, _, bring, first, before) => {
+        told.push({ kind, first, before });
+        bring("![Comprar las uvas](tisty:task/01T)");
+      },
+    });
+    expect(told).toEqual([
+      { kind: "newTask", first: false, before: "# Viaje\n\n## Año nuevo\n\nUvas " },
+    ]);
+    expect(editor.state.sliceDoc()).toBe(
+      "# Viaje\n\n## Año nuevo\n\nUvas\n\n![Comprar las uvas](tisty:task/01T)",
+    );
+    editor.destroy();
+  });
+
   it("offers only the pickers the window can open", () => {
     const shown = (kinds: Asked[]) => {
       const state = EditorState.create({ doc: "/", extensions: [hosted.of(HOST), markdown()] });

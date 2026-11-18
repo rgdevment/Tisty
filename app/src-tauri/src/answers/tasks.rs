@@ -309,6 +309,7 @@ pub fn capture(
     locale: String,
     view: Option<View>,
     edits: Option<Edits>,
+    born: Option<super::born::Born>,
 ) -> Answer<Task> {
     let mut session = held(&session);
     let spoken = session.locale.clone().unwrap_or(locale);
@@ -343,9 +344,12 @@ pub fn capture(
     if let Some(title) = edits.retitled(&text, &read, &spoken) {
         draft.title = title;
     }
+    let whole = born
+        .unwrap_or_default()
+        .rooted(&session.state, &mut draft)?;
 
     let plan = tisty_core::capture::plan(&session.state, draft)?;
-    session.commit_all(plan.ops)?;
+    session.commit_all(super::born::hung(plan.ops, plan.task, whole))?;
     let task = session
         .state
         .tasks

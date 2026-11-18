@@ -58,6 +58,7 @@ export type EditWord =
   | "insertIcon"
   | "insertLabel"
   | "insertNewDoc"
+  | "insertNewTask"
   | "insertNewPage"
   | "insertPage"
   | "insertStep"

@@ -859,7 +859,7 @@ describe("files brought into a document being written", () => {
     await waitFor(() => expect(store.asking?.kinds).toContain("file"));
     store.picked = ["a.png", "b.pdf"];
     const put = vi.fn(() => true);
-    store.asking?.ask("file", { x: 0, y: 0 }, put, false);
+    store.asking?.ask("file", { x: 0, y: 0 }, put, false, "Notas ");
     await waitFor(() => expect(put).toHaveBeenCalledWith("![a.png](a.png)\n\n![b.pdf](b.pdf)"));
   });
 
@@ -874,7 +874,7 @@ describe("files brought into a document being written", () => {
       />,
     );
     await waitFor(() => expect(store.asking?.kinds).toContain("file"));
-    store.asking?.ask("file", { x: 0, y: 0 }, () => true, true);
+    store.asking?.ask("file", { x: 0, y: 0 }, () => true, true, "");
     expect(errors).toEqual([t("fileNeedsTitle")]);
     const huge = new File(["x"], "video.mp4");
     Object.defineProperty(huge, "size", { value: 2 * 1024 * 1024 * 1024 });
@@ -896,7 +896,7 @@ describe("files brought into a document being written", () => {
     );
     await waitFor(() => expect(store.asking?.kinds).toContain("file"));
     store.picked = ["a.png"];
-    store.asking?.ask("file", { x: 0, y: 0 }, () => false, false);
+    store.asking?.ask("file", { x: 0, y: 0 }, () => false, false, "Notas ");
     await waitFor(() => expect(errors).toEqual([t("attachmentLost")]));
   });
 
@@ -940,7 +940,7 @@ describe("a diagram made from the / menu", () => {
       return true;
     };
 
-    act(() => store.asking?.ask("diagram", { x: 0, y: 0 }, put, false));
+    act(() => store.asking?.ask("diagram", { x: 0, y: 0 }, put, false, "Notas "));
     await userEvent.click(await screen.findByRole("menuitem", { name: say("diagramFlow") }));
 
     const source = say("diagramStartFlow");
@@ -966,7 +966,7 @@ describe("a diagram made from the / menu", () => {
     );
     await waitFor(() => expect(store.asking?.kinds).toContain("diagram"));
 
-    act(() => store.asking?.ask("diagram", { x: 0, y: 0 }, () => true, true));
+    act(() => store.asking?.ask("diagram", { x: 0, y: 0 }, () => true, true, ""));
 
     expect(errors).toEqual([t("diagramNeedsTitle")]);
     expect(screen.queryByRole("menuitem")).toBeNull();
@@ -976,7 +976,7 @@ describe("a diagram made from the / menu", () => {
     render(<Docs open="a3f1-0001" known={known} onKept={() => {}} onError={() => {}} />);
     await waitFor(() => expect(store.asking?.kinds).toContain("diagram"));
 
-    act(() => store.asking?.ask("diagram", { x: 0, y: 0 }, () => false, false));
+    act(() => store.asking?.ask("diagram", { x: 0, y: 0 }, () => false, false, "Notas "));
     await userEvent.click(await screen.findByRole("menuitem", { name: say("diagramMindmap") }));
     await settled();
 

@@ -326,8 +326,9 @@ export interface Edits {
   takeOffer?: boolean;
 }
 
-export const capture = (text: string, view?: View, edits?: Edits): Promise<Task> =>
-  invoke("capture", { text, locale: navigator.language, view, edits });
+export type Born = { doc?: string; before?: string; whole?: string };
+export const capture = (text: string, view?: View, edits?: Edits, born?: Born): Promise<Task> =>
+  invoke("capture", { text, locale: navigator.language, view, edits, born });
 export interface Change {
   title?: string;
   date?: string;
