@@ -1,6 +1,6 @@
 import { createSignal, flush, onCleanup, Show } from "solid-js";
 import Bar from "./Bar";
-import Finder from "./Finder";
+import type Finder from "./Finder";
 import {
   editAsked,
   editCopy,
@@ -75,6 +75,13 @@ export default function App(props: { readonly asked: string | null; readonly clo
   });
 
   const fail = (problem: unknown) => setNote(saidOf(words, problem));
+
+  // Only whoever searches pays for the finder.
+  const [finder, setFinder] = createSignal<typeof Finder | null>(null);
+  const find = () => {
+    setFinding(true);
+    void import("./Finder").then((loaded) => setFinder(() => loaded.default), fail);
+  };
 
   const look = async () => {
     const now = await opened();
@@ -182,7 +189,7 @@ export default function App(props: { readonly asked: string | null; readonly clo
   };
 
   const keyed = keyHeard({
-    find: () => setFinding(true),
+    find,
     side: () => setSide((was) => !was),
     theme: turn,
     zoom: scale,
@@ -227,7 +234,7 @@ export default function App(props: { readonly asked: string | null; readonly clo
         words={words}
         name={one()?.name ?? ""}
         place={one()?.place ?? ""}
-        onFind={() => setFinding(true)}
+        onFind={find}
         onTheme={turn}
         onMore={() => setMore((was) => !was)}
         onSide={() => setSide((was) => !was)}
@@ -239,14 +246,14 @@ export default function App(props: { readonly asked: string | null; readonly clo
           own={one()?.own ?? false}
           revealed={outside()}
           onClose={() => setMore(false)}
-          onFind={() => setFinding(true)}
+          onFind={find}
           onZoom={scale}
           onPrint={toPaper}
           fail={fail}
         />
       </Show>
-      <Show when={finding() && whole()}>
-        <Finder words={words} within={page} onClose={() => setFinding(false)} />
+      <Show when={finding() && whole() ? finder() : null}>
+        {(view) => view()({ words, within: page, onClose: () => setFinding(false) })}
       </Show>
       <Show when={note()}>
         <p class="note" role="alert">
