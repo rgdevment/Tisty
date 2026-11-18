@@ -1,3 +1,4 @@
+import { agentsEn, agentsEs } from "./agentsWords";
 import { cloudOf } from "./clouds";
 
 const en = {
@@ -3330,6 +3331,7 @@ const en = {
   workingFor: "{name} ({other} min)",
   twinsLooking: "Looking…",
   unvouchedWorking: "Verifying…",
+  ...agentsEn,
 };
 
 type Catalog = typeof en;
@@ -6693,6 +6695,7 @@ const es: Catalog = {
   workingFor: "{name} ({other} min)",
   twinsLooking: "Buscando…",
   unvouchedWorking: "Verificando…",
+  ...agentsEs,
 };
 
 const catalogs: Record<string, Catalog> = { en, es };

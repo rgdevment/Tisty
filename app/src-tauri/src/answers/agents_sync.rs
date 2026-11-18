@@ -1,0 +1,610 @@
+use std::collections::{BTreeMap, BTreeSet};
+use std::path::Path;
+use std::sync::Mutex;
+
+use tisty_core::agents::{self, Card, Found, Ledger, Standing, Target};
+use tisty_core::model::{FolderId, Kept};
+use tisty_core::{Op, State};
+
+use crate::wiring::agents::{self as places, ASSISTANTS, GLOBAL_FOLDER, Homes, Placed};
+use crate::{Answer, Refusal, Session, held, signing};
+
+const LINES_AT_MOST: usize = 4_000;
+
+fn here() -> String {
+    tisty_core::machine::here().unwrap_or_default()
+}
+
+fn homes() -> Answer<Homes> {
+    Homes::here().ok_or_else(|| Refusal::about("cannotWrite", "no home folder"))
+}
+
+pub fn root_of(state: &State) -> Option<FolderId> {
+    state
+        .folders
+        .values()
+        .filter(|one| {
+            one.parent.is_none()
+                && one.icon.as_deref() == Some(places::ICON)
+                && one.name == places::FOLDER
+        })
+        .map(|one| one.id)
+        .min()
+}
+
+fn tree(state: &State, root: FolderId) -> BTreeSet<FolderId> {
+    let mut all = BTreeSet::from([root]);
+    loop {
+        let more: Vec<FolderId> = state
+            .folders
+            .values()
+            .filter(|one| one.parent.is_some_and(|up| all.contains(&up)) && !all.contains(&one.id))
+            .map(|one| one.id)
+            .collect();
+        if more.is_empty() {
+            return all;
+        }
+        all.extend(more);
+    }
+}
+
+fn docs_in<'a>(state: &'a State, tree: &BTreeSet<FolderId>) -> Vec<&'a Kept> {
+    state
+        .docs
+        .values()
+        .filter(|one| one.task_of.is_none() && one.folder.is_some_and(|at| tree.contains(&at)))
+        .collect()
+}
+
+/// The documents in AGENTS with their bodies, read from this computer's copies.
+fn bodies(session: &Session) -> Vec<(String, String)> {
+    let Some(root) = root_of(&session.state) else {
+        return Vec::new();
+    };
+    let tree = tree(&session.state, root);
+    let docs = session.paths.docs();
+    docs_in(&session.state, &tree)
+        .into_iter()
+        .filter(|one| !session.state.held_away(one))
+        .filter_map(|one| {
+            tisty_core::docs::read(&docs, &one.file)
+                .ok()
+                .map(|body| (one.file.clone(), body))
+        })
+        .collect()
+}
+
+fn addresses(bodies: &[(String, String)]) -> BTreeSet<String> {
+    bodies
+        .iter()
+        .filter_map(|(_, body)| Card::of(body).map(|card| card.address()))
+        .collect()
+}
+
+#[derive(Debug, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct FileSeen {
+    pub at: String,
+    pub name: String,
+    pub kind: &'static str,
+    pub skip: Option<String>,
+    /// A document in AGENTS already stands for it, so it is compared rather than brought.
+    pub held: bool,
+}
+
+#[derive(Debug, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Shown {
+    pub id: String,
+    pub name: String,
+    pub on: bool,
+    pub files: Vec<FileSeen>,
+}
+
+#[derive(Debug, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Look {
+    pub folder: Option<String>,
+    pub docs: usize,
+    pub consented: bool,
+    pub all_on: bool,
+    /// AGENTS is empty or missing, or this computer has not said yes yet.
+    pub asks: bool,
+    pub assistants: Vec<Shown>,
+}
+
+fn address_of(one: &Found) -> String {
+    format!("{}/{}/{}", one.assistant, one.kind.word(), one.name)
+}
+
+fn found_here(homes: &Homes) -> Vec<Found> {
+    let spots: Vec<agents::Place> = homes
+        .detected()
+        .into_iter()
+        .flat_map(|one| places::spots(homes, one))
+        .collect();
+    agents::found(&spots)
+}
+
+/// Names and sizes only: no agent file is opened before the person says yes.
+pub fn looked(session: &Session, homes: &Homes, here: &str) -> Look {
+    let ledger = Ledger::open(session.paths.data(), here);
+    let root = root_of(&session.state);
+    let docs = root
+        .map(|root| docs_in(&session.state, &tree(&session.state, root)).len())
+        .unwrap_or(0);
+    let held = addresses(&bodies(session));
+    let found = found_here(homes);
+    let assistants = homes
+        .detected()
+        .into_iter()
+        .map(|one| Shown {
+            id: one.id.to_string(),
+            name: one.name.to_string(),
+            on: ledger.syncs(one.id),
+            files: found
+                .iter()
+                .filter(|seen| seen.assistant == one.id)
+                .map(|seen| FileSeen {
+                    at: seen.at.to_string_lossy().into_owned(),
+                    name: seen.name.clone(),
+                    kind: seen.kind.word(),
+                    skip: seen.skip.map(|why| format!("{why:?}").to_lowercase()),
+                    held: held.contains(&address_of(seen)),
+                })
+                .collect(),
+        })
+        .collect();
+    Look {
+        folder: root.map(|at| at.to_string()),
+        docs,
+        asks: docs == 0 || !ledger.consented(),
+        consented: ledger.consented(),
+        all_on: ledger.syncs(""),
+        assistants,
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Line {
+    pub side: &'static str,
+    pub text: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Both {
+    pub at: String,
+    pub assistant: String,
+    /// Made of several documents, so only Tisty's side can be kept from here.
+    pub composed: bool,
+    pub lines: Vec<Line>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Told {
+    pub at: String,
+    pub assistant: String,
+    pub files: Vec<String>,
+    pub standing: &'static str,
+}
+
+#[derive(Debug, Default, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Rounded {
+    pub told: Vec<Told>,
+    pub both: Vec<Both>,
+}
+
+fn word(standing: &Standing) -> &'static str {
+    match standing {
+        Standing::NoConsent => "noConsent",
+        Standing::Off => "off",
+        Standing::Empty => "empty",
+        Standing::Linked => "linked",
+        Standing::Broken { .. } => "broken",
+        Standing::UpToDate | Standing::Agreed => "upToDate",
+        Standing::Write => "write",
+        Standing::Wrote => "wrote",
+        Standing::Outside { .. } => "outside",
+        Standing::Both { .. } => "both",
+        Standing::Unreadable(_) => "unreadable",
+    }
+}
+
+fn lines_of(bytes: &[u8]) -> Vec<String> {
+    String::from_utf8_lossy(bytes)
+        .lines()
+        .take(LINES_AT_MOST)
+        .map(str::to_string)
+        .collect()
+}
+
+/// Line by line, what only Tisty says, what only the file says, and what both say.
+pub fn compared(tisty: &[u8], file: &[u8]) -> Vec<Line> {
+    let (a, b) = (lines_of(tisty), lines_of(file));
+    let pairs = tisty_core::lcs::pairs(&a, &b);
+    let mut out = Vec::new();
+    let (mut i, mut j) = (0, 0);
+    for (pi, pj) in pairs.into_iter().chain([(a.len(), b.len())]) {
+        out.extend(a[i..pi].iter().map(|text| Line {
+            side: "tisty",
+            text: text.clone(),
+        }));
+        out.extend(b[j..pj].iter().map(|text| Line {
+            side: "file",
+            text: text.clone(),
+        }));
+        if pi < a.len() && pj < b.len() {
+            out.push(Line {
+                side: "same",
+                text: a[pi].clone(),
+            });
+        }
+        (i, j) = (pi + 1, pj + 1);
+    }
+    out
+}
+
+fn both_of(target: &Target, now: &[u8]) -> Both {
+    let tisty = agents::wanted(target).unwrap_or_default();
+    Both {
+        at: target.at.to_string_lossy().into_owned(),
+        assistant: target.assistant.clone(),
+        composed: target.pieces.len() > 1,
+        lines: compared(&tisty, now),
+    }
+}
+
+/// One sync round over everything in AGENTS: writes what changed in Tisty, names what changed outside.
+pub fn rounded(data: &Path, ledger: &mut Ledger, placed: &[Placed]) -> Rounded {
+    let targets: Vec<Target> = placed.iter().map(|one| one.target.clone()).collect();
+    let standings = agents::round(data, ledger, &targets);
+    let mut out = Rounded::default();
+    for (one, standing) in placed.iter().zip(&standings) {
+        if let (Standing::Wrote | Standing::UpToDate, Some(lead)) = (standing, &one.lead_in)
+            && let Err(why) = agents::lead_in(data, ledger, lead, &places::lead_in_line())
+        {
+            tisty_core::witness::warn(
+                tisty_core::witness::channel::AGENT,
+                "the line that names Tisty's rules could not be added to the agent's own file",
+                &[("why", tisty_core::witness::Fact::Why(why.to_string()))],
+            );
+        }
+        if let Standing::Both { now } = standing {
+            out.both.push(both_of(&one.target, now));
+        }
+        out.told.push(Told {
+            at: one.target.at.to_string_lossy().into_owned(),
+            assistant: one.target.assistant.clone(),
+            files: one.files.clone(),
+            standing: word(standing),
+        });
+    }
+    out
+}
+
+fn round_now(session: &Session, homes: &Homes, ledger: &mut Ledger) -> Rounded {
+    let placed = places::targets(homes, &bodies(session));
+    rounded(session.paths.data(), ledger, &placed)
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Turned {
+    pub at: String,
+    pub why: String,
+}
+
+#[derive(Debug, Default, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Brought {
+    pub made: usize,
+    pub refused: Vec<Turned>,
+    pub round: Rounded,
+}
+
+/// Read with the yes just given: each chosen file becomes a document, or says why it could not.
+pub fn read_chosen(
+    ledger: &Ledger,
+    found: &[Found],
+    chosen: &BTreeSet<String>,
+    held: &BTreeSet<String>,
+) -> (Vec<(Found, String)>, Vec<Turned>) {
+    let mut bodies = Vec::new();
+    let mut refused = Vec::new();
+    for one in found {
+        let at = one.at.to_string_lossy().into_owned();
+        if !chosen.contains(&at) || held.contains(&address_of(one)) {
+            continue;
+        }
+        match agents::brought_in(ledger, one) {
+            Ok(body) => bodies.push((one.clone(), body)),
+            Err(why) => refused.push(Turned {
+                at,
+                why: why.to_string(),
+            }),
+        }
+    }
+    (bodies, refused)
+}
+
+fn sub_name(level: &str) -> &'static str {
+    places::assistant(level).map_or(GLOBAL_FOLDER, |one| one.name)
+}
+
+/// Files the brought documents under AGENTS, making the folder and its subfolders only when something came in.
+pub fn filed(session: &mut Session, bodies: &[(Found, String)]) -> Answer<usize> {
+    if bodies.is_empty() {
+        return Ok(0);
+    }
+    let mut ops = Vec::new();
+    let mut orders: BTreeMap<Option<FolderId>, Vec<String>> = BTreeMap::new();
+    let mut next = |state: &State, parent: Option<FolderId>, docs: bool| -> String {
+        let taken = orders.entry(parent).or_insert_with(|| match docs {
+            true => state
+                .docs
+                .values()
+                .filter(|one| one.folder == parent && one.page_of.is_none())
+                .map(|one| one.order.clone())
+                .collect(),
+            false => state
+                .under(parent)
+                .iter()
+                .map(|one| one.order.clone())
+                .collect(),
+        });
+        let order = tisty_core::order::last_of(taken.iter().map(String::as_str));
+        taken.push(order.clone());
+        order
+    };
+    let folder = |ops: &mut Vec<Op>, name: &str, parent: Option<FolderId>, mark: bool| {
+        let id = ulid::Ulid::generate();
+        ops.push(Op::FolderAdd {
+            id,
+            d: tisty_core::event::FolderAdd {
+                name: name.to_string(),
+                order: String::new(),
+                parent,
+                icon: mark.then(|| places::ICON.to_string()),
+                color: mark.then(|| places::HUE.to_string()),
+            },
+        });
+        id
+    };
+    let root = match root_of(&session.state) {
+        Some(root) => root,
+        None => {
+            let root = folder(&mut ops, places::FOLDER, None, true);
+            folder(&mut ops, GLOBAL_FOLDER, Some(root), false);
+            root
+        }
+    };
+    let mut subs: BTreeMap<&'static str, FolderId> = session
+        .state
+        .folders
+        .values()
+        .filter(|one| one.parent == Some(root))
+        .filter_map(|one| {
+            ASSISTANTS
+                .iter()
+                .map(|known| known.name)
+                .chain([GLOBAL_FOLDER])
+                .find(|name| *name == one.name)
+                .map(|name| (name, one.id))
+        })
+        .collect();
+    let device = session.store.device().clone();
+    let docs = session.paths.docs();
+    let signed = signing(&session.state);
+    let mut made = 0;
+    for (one, body) in bodies {
+        let name = sub_name(&one.assistant);
+        let sub = match subs.get(name) {
+            Some(sub) => *sub,
+            None => {
+                let sub = folder(&mut ops, name, Some(root), false);
+                subs.insert(name, sub);
+                sub
+            }
+        };
+        let kept = tisty_core::docs::create(&docs, &device, body)
+            .map_err(|e| Refusal::about("cannotWrite", e.to_string()))?;
+        ops.push(Op::DocAdd {
+            id: ulid::Ulid::generate(),
+            d: tisty_core::event::DocAdd {
+                file: kept.id,
+                folder: Some(sub),
+                order: next(&session.state, Some(sub), true),
+                said: Some(tisty_core::event::Said::of(body)),
+                by: signed.clone(),
+                ..Default::default()
+            },
+        });
+        made += 1;
+    }
+    for op in &mut ops {
+        if let Op::FolderAdd { d, .. } = op {
+            d.order = next(&session.state, d.parent, false);
+        }
+    }
+    session
+        .commit_all(ops)
+        .map_err(|e| Refusal::about("cannotWrite", e.to_string()))?;
+    Ok(made)
+}
+
+/// The yes: this computer may read and write its agents' files, and the chosen ones come in.
+pub fn bring_chosen(
+    session: &mut Session,
+    homes: &Homes,
+    here: &str,
+    chosen: &[String],
+) -> Answer<Brought> {
+    let mut ledger = Ledger::open(session.paths.data(), here);
+    ledger.consent(true);
+    ledger
+        .keep(session.paths.data())
+        .map_err(|why| Refusal::about("cannotWrite", why.to_string()))?;
+    let held = addresses(&bodies(session));
+    let chosen: BTreeSet<String> = chosen.iter().cloned().collect();
+    let (read, refused) = read_chosen(&ledger, &found_here(homes), &chosen, &held);
+    let made = filed(session, &read)?;
+    let round = round_now(session, homes, &mut ledger);
+    Ok(Brought {
+        made,
+        refused,
+        round,
+    })
+}
+
+fn placed_at(session: &Session, homes: &Homes, at: &str) -> Answer<Placed> {
+    places::targets(homes, &bodies(session))
+        .into_iter()
+        .find(|one| one.target.at.to_string_lossy() == at)
+        .ok_or_else(|| Refusal::about("cannotWrite", at.to_string()))
+}
+
+/// Which side stays when a file and its documents differ: the other one goes to the backups.
+pub fn kept_side(
+    session: &mut Session,
+    homes: &Homes,
+    here: &str,
+    at: &str,
+    tisty: bool,
+) -> Answer<Rounded> {
+    let mut ledger = Ledger::open(session.paths.data(), here);
+    let placed = placed_at(session, homes, at)?;
+    let refused = |why: agents::Refused| Refusal::about("cannotWrite", why.to_string());
+    match tisty {
+        true => {
+            agents::overwrite(session.paths.data(), &mut ledger, &placed.target).map_err(refused)?
+        }
+        false => {
+            let [file] = placed.files.as_slice() else {
+                return Err(Refusal::about(
+                    "cannotWrite",
+                    agents::Refused::Unattributed.to_string(),
+                ));
+            };
+            let body = agents::bring(&ledger, &placed.target, 0).map_err(refused)?;
+            rewritten(session, file, &body)?;
+        }
+    }
+    Ok(round_now(session, homes, &mut ledger))
+}
+
+// The document's former words stay in its history, which is Tisty's side of the backup.
+fn rewritten(session: &mut Session, file: &str, body: &str) -> Answer<()> {
+    let docs = session.paths.docs();
+    let cannot = |e: tisty_core::Error| Refusal::about("cannotWrite", e.to_string());
+    let at = tisty_core::docs::resolve(&docs, file).map_err(cannot)?;
+    let print = tisty_core::docs::print_of(&at)
+        .map_err(|e| Refusal::about("cannotWrite", e.to_string()))?
+        .unwrap_or_default();
+    match tisty_core::docs::rewrite(&docs, session.paths.data(), file, body, &print)
+        .map_err(cannot)?
+    {
+        tisty_core::docs::Rewrite::Made { .. } => {
+            session.retell(file, body, None);
+            Ok(())
+        }
+        tisty_core::docs::Rewrite::Moved => Err(Refusal::about("documentMoved", file.to_string())),
+    }
+}
+
+/// Off for one assistant, or for the whole folder: files stay as they are, nothing in Tisty goes.
+pub fn turned(
+    session: &Session,
+    homes: &Homes,
+    here: &str,
+    assistant: Option<&str>,
+    on: bool,
+) -> Answer<Rounded> {
+    let mut ledger = Ledger::open(session.paths.data(), here);
+    match assistant {
+        Some(id) => ledger.turn(id, on),
+        None => ledger.turn_all(on),
+    }
+    ledger
+        .keep(session.paths.data())
+        .map_err(|why| Refusal::about("cannotWrite", why.to_string()))?;
+    Ok(match on {
+        true => round_now(session, homes, &mut ledger),
+        false => Rounded::default(),
+    })
+}
+
+/// AGENTS with nothing left in it leaves Tisty; the agents' files are not touched.
+pub fn emptied(session: &mut Session) -> Answer<bool> {
+    let Some(root) = root_of(&session.state) else {
+        return Ok(false);
+    };
+    let tree = tree(&session.state, root);
+    if !docs_in(&session.state, &tree).is_empty() {
+        return Ok(false);
+    }
+    // Deepest first: a folder deleted before its children would lift them to the top.
+    let mut gone: Vec<FolderId> = tree.into_iter().collect();
+    gone.sort_by_key(|at| std::cmp::Reverse(session.state.depth(Some(*at))));
+    let ops = gone.into_iter().map(|id| Op::FolderDelete { id }).collect();
+    session
+        .commit_all(ops)
+        .map_err(|e| Refusal::about("cannotWrite", e.to_string()))?;
+    Ok(true)
+}
+
+#[tauri::command(async)]
+pub fn agents_look(session: tauri::State<'_, Mutex<Session>>) -> Answer<Look> {
+    let homes = homes()?;
+    let session = held(&session);
+    Ok(looked(&session, &homes, &here()))
+}
+
+#[tauri::command(async)]
+pub fn agents_bring(
+    session: tauri::State<'_, Mutex<Session>>,
+    chosen: Vec<String>,
+) -> Answer<Brought> {
+    let homes = homes()?;
+    bring_chosen(&mut held(&session), &homes, &here(), &chosen)
+}
+
+#[tauri::command(async)]
+pub fn agents_keep(
+    session: tauri::State<'_, Mutex<Session>>,
+    at: String,
+    tisty: bool,
+) -> Answer<Rounded> {
+    let homes = homes()?;
+    kept_side(&mut held(&session), &homes, &here(), &at, tisty)
+}
+
+#[tauri::command(async)]
+pub fn agents_turn(
+    session: tauri::State<'_, Mutex<Session>>,
+    assistant: Option<String>,
+    on: bool,
+) -> Answer<Rounded> {
+    let homes = homes()?;
+    turned(&held(&session), &homes, &here(), assistant.as_deref(), on)
+}
+
+#[tauri::command(async)]
+pub fn agents_round(session: tauri::State<'_, Mutex<Session>>) -> Answer<Rounded> {
+    let homes = homes()?;
+    let session = held(&session);
+    let mut ledger = Ledger::open(session.paths.data(), &here());
+    Ok(round_now(&session, &homes, &mut ledger))
+}
+
+#[tauri::command]
+pub fn agents_empty(session: tauri::State<'_, Mutex<Session>>) -> Answer<bool> {
+    emptied(&mut held(&session))
+}
+
+#[cfg(test)]
+#[path = "agents_sync_test.rs"]
+mod tests;

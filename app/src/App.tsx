@@ -6,6 +6,7 @@ import { hereChoices } from "./docMenus";
 import { cameFrom } from "./guide/help";
 import { t } from "./locales";
 import { saidPlainly } from "./refusal";
+import AgentsKeeper from "./ui/AgentsKeeper";
 import { WEEK } from "./ui/Ahead";
 import BrainstyScreen from "./ui/BrainstyScreen";
 import Calendars from "./ui/Calendars";
@@ -85,6 +86,7 @@ export default function App() {
 
         <Layers parcels={desk.parcels.shown} />
         <News />
+        <AgentsKeeper />
         <Calendars />
         <HelpKey onHelp={(topic) => choose({ named: "help", topic, from: cameFrom(chosen) })} />
         <Palette />
