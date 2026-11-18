@@ -731,8 +731,8 @@ pub(super) fn in_this_order(paths: &Paths, args: &Value) -> Result<Value, Refuse
     ordered(paths, &state, &mut store, over, &order)?;
     Ok(told(
         format!(
-            "Read in that order now, in {}: {}. What it said before is kept beside the \
-             documents.",
+            "Read in that order now, in {}: {}. What it said before is kept in its history \
+             on this machine: `restore_doc` puts it back.",
             doc_named(&state, &said),
             named_all(&state, &order)
         ),
