@@ -58,7 +58,7 @@ fn docs_in<'a>(state: &'a State, tree: &BTreeSet<FolderId>) -> Vec<&'a Kept> {
         .collect()
 }
 
-fn bodies(session: &Session) -> Vec<(String, String)> {
+pub fn bodies(session: &Session) -> Vec<(String, String)> {
     let Some(root) = root_of(&session.state) else {
         return Vec::new();
     };
