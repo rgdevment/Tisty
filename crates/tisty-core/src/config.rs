@@ -248,6 +248,10 @@ impl Config {
         self.asks_open_task != Some(false)
     }
 
+    pub fn turn_hooks(&self) -> bool {
+        self.turn_hooks != Some(false)
+    }
+
     // A task's page holds what a document does, so a file is taken up to the same ceiling on either.
     pub fn copies_up_to(&self) -> u64 {
         crate::attach::COPIED_IN_DOC
@@ -464,6 +468,9 @@ pub struct Config {
     /// Only `Some(false)` is ever written: an answer asks about the open task unless the person said no.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub asks_open_task: Option<bool>,
+    /// Read raw by `tisty hook`, which runs on every edit; only `Some(false)` is written.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub turn_hooks: Option<bool>,
     #[serde(default, skip_serializing_if = "std::collections::BTreeMap::is_empty")]
     pub homes: std::collections::BTreeMap<String, crate::machine::Home>,
     /// What a later build wrote and this one has no name for. Serde drops what it cannot name
@@ -529,6 +536,7 @@ impl Config {
             phrase_confirmed: None,
             key_handed: None,
             asks_open_task: None,
+            turn_hooks: None,
             homes: std::collections::BTreeMap::new(),
             rest: toml::Table::new(),
         };

@@ -234,6 +234,66 @@ pub fn unset(text: &str, key: &str, name: &str) -> Option<String> {
     Some(format!("{}{}", &text[..from], &text[to..]))
 }
 
+pub fn elements(text: &[u8], list: usize) -> Option<Vec<(usize, usize)>> {
+    if text.get(list) != Some(&b'[') {
+        return None;
+    }
+    let mut all = Vec::new();
+    let mut i = blank(text, list + 1);
+    while text.get(i) != Some(&b']') {
+        let to = ends(text, i)?;
+        all.push((i, to));
+        let past = blank(text, to);
+        match text.get(past) {
+            Some(b',') => i = blank(text, past + 1),
+            Some(b']') => i = past,
+            _ => return None,
+        }
+    }
+    Some(all)
+}
+
+pub fn push(text: &str, list: usize, piece: &str) -> Option<String> {
+    let all = elements(text.as_bytes(), list)?;
+    let pad = deeper(text, list);
+    let laid: Vec<String> = piece.lines().map(|line| format!("{pad}{line}")).collect();
+    let laid = laid.join("\n");
+    Some(match all.last() {
+        Some(&(_, end)) => format!("{},\n{laid}{}", &text[..end], &text[end..]),
+        None => {
+            let shut = blank(text.as_bytes(), list + 1);
+            format!(
+                "{}\n{laid}\n{}{}",
+                &text[..list + 1],
+                nudge(text, list),
+                &text[shut..]
+            )
+        }
+    })
+}
+
+pub fn cut(text: &str, element: (usize, usize)) -> String {
+    let raw = text.as_bytes();
+    let past = blank(raw, element.1);
+    if raw.get(past) == Some(&b',') {
+        let next = blank(raw, past + 1);
+        return format!("{}{}", &text[..element.0], &text[next..]);
+    }
+    let (mut from, mut to) = (before(raw, element.0), element.1);
+    while from > 0 && matches!(raw[from - 1], b' ' | b'\t') {
+        from -= 1;
+    }
+    if from > 0 && raw[from - 1] == b'\n' {
+        while matches!(raw.get(to), Some(b' ' | b'\t' | b'\r')) {
+            to += 1;
+        }
+        if raw.get(to) == Some(&b'\n') {
+            to += 1;
+        }
+    }
+    format!("{}{}", &text[..from], &text[to..])
+}
+
 fn before(text: &[u8], at: usize) -> usize {
     let mut i = at;
     while i > 0 && text[i - 1].is_ascii_whitespace() {

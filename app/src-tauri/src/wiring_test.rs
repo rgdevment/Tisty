@@ -344,3 +344,49 @@ fn a_folder_is_named_alike_whatever_its_case() {
         Some(data.join("Claude_PZS").join("x.json"))
     );
 }
+
+#[test]
+fn disconnecting_an_assistant_takes_its_hooks_out_too() {
+    let tmp = tempfile::tempdir().unwrap();
+    let client = client("claude-code");
+    let here = place(tmp.path(), "/opt/tisty");
+    let at = client.file(&here).unwrap();
+    wire_at(&client, &here, &at).unwrap();
+    hook_at(&client, &here).unwrap();
+    assert!(told(&client, &here, None).unwrap().hooks.unwrap().on);
+
+    unwire_at(&client, &here, &at).unwrap();
+
+    let seen = told(&client, &here, None).unwrap();
+    assert!(!seen.wired);
+    assert!(!seen.hooks.unwrap().on);
+}
+
+#[test]
+fn repointing_an_assistant_repoints_its_hooks() {
+    let tmp = tempfile::tempdir().unwrap();
+    let client = client("cursor");
+    let old = place(tmp.path(), "/opt/old/tisty");
+    let new = place(tmp.path(), "/opt/new/tisty");
+    let at = client.file(&old).unwrap();
+    wire_at(&client, &old, &at).unwrap();
+    hook_at(&client, &old).unwrap();
+
+    wire_at(&client, &new, &at).unwrap();
+
+    let hooks = std::fs::read_to_string(tmp.path().join(".cursor").join("hooks.json")).unwrap();
+    assert!(hooks.contains("/opt/new/tisty"), "{hooks}");
+    assert!(!hooks.contains("/opt/old/tisty"), "{hooks}");
+}
+
+#[test]
+fn connecting_an_assistant_never_adds_hooks_the_person_did_not_ask_for() {
+    let tmp = tempfile::tempdir().unwrap();
+    let client = client("gemini-cli");
+    let here = place(tmp.path(), "/opt/tisty");
+    let at = client.file(&here).unwrap();
+
+    wire_at(&client, &here, &at).unwrap();
+
+    assert!(!told(&client, &here, None).unwrap().hooks.unwrap().on);
+}

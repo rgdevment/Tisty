@@ -38,6 +38,8 @@ Un asistente lee su configuración al abrirse, así que después de conectarlo s
 
 Tisty solo toca su propia entrada. Lo que le agregaste, como `env` o las herramientas que permitiste, se queda, igual que el resto del archivo. La primera versión de cada archivo queda al lado como `.before-tisty`, y la de justo antes de cada escritura como `.before-tisty-last`.
 
+**Hooks.** Claude Code, Cursor, Gemini CLI y GitHub Copilot (su línea de comandos y las sesiones de Copilot en VS Code) también corren hooks: comandos que llaman al empezar una sesión, después de usar una herramienta y al terminar un turno. En uno conectado, **Agregar**, bajo su fila, primero te dice qué archivo va a escribir y, cuando aceptas, pone ahí los hooks de Tisty: `~/.claude/settings.json`, `~/.cursor/hooks.json`, `~/.gemini/settings.json`, o un archivo propio, `~/.copilot/hooks/tisty.json`. **Quitar** saca solo los de Tisty. Cursor también corre los hooks de la configuración de Claude Code, y aunque se disparen los dos, Tisty devuelve un turno una sola vez. Gemini CLI los corre solo en las carpetas en que confiaste. Lo que hacen está en [Un día con tu agente](#un-día-con-tu-agente).
+
 El **⋯** de cada fila muestra cómo conectar ese asistente a mano: su propio comando cuando lo tiene, y las líneas exactas para su archivo. El buscador bajo la lista hace lo mismo con un asistente que Tisty conoce pero no encontró.
 
 ### Con un plugin
@@ -63,6 +65,8 @@ Cualquier otro asistente que arranque un servidor con un comando, como Cursor, C
 VS Code lee la misma entrada bajo `servers` en vez de `mcpServers`.
 
 La primera vez descarga el lanzador y puede tardar un momento; después arranca al instante. Si Tisty está en un lugar poco común, pon en `TISTY_PATH` la ruta completa de su `tisty`.
+
+Desde la versión 1.4.0, el plugin también trae los hooks de Tisty a Claude Code, y la extensión de Gemini CLI los trae a Gemini CLI.
 
 Conecta cada asistente de una sola forma, con el plugin o desde **Configuración › Asistentes**, no con las dos: si no, arranca dos veces el servidor de Tisty y ve cada herramienta repetida. El código del plugin y sus issues están en [mcp-plugins](https://github.com/rgdevment/mcp-plugins).
 
@@ -148,6 +152,8 @@ Lo que hace un agente conectado a Tisty en un trabajo real:
 8. **Después de leer un documento largo, deja un resumen** para que el próximo agente elija con él. Si el documento cambia, el resumen queda marcado como desactualizado.
 
 **Si se le olvida, Tisty le pregunta.** Cuando el agente sigue llamando a Tisty y la tarea que abrió lleva diez minutos sin una palabra suya, o mientras escribe otras tres cosas, la siguiente respuesta le pregunta una vez si esa tarea quedó al día. Le nombra la tarea y lo que falta (los pasos sin marcar, o que todos están marcados y no dijo que terminó) y le pide marcar lo que hizo y, si el trabajo está hecho, decirlo con la prueba. Nunca le pide anotar su avance, y vuelve a preguntar solo después de que el agente escribe en esa tarea. Llega a todos los asistentes, aunque solo cuando llaman a Tisty. Lo apagas en **Configuración › Asistentes**.
+
+**Con los hooks de Tisty, también pregunta al terminar un turno.** En los asistentes a los que se los agregaste, cada sesión empieza con las tareas que ese asistente dejó abiertas, lo que se movió desde entonces y lo que apremia, en unos 2.000 caracteres, para que el agente no dependa de acordarse de pedirlo. Después de cada edición y de cada llamada a Tisty, el hook deja una marca de esa sesión, sin leer la conversación. Cuando un turno editó archivos y no escribió nada en Tisty, le devuelve el turno una vez: si eso era trabajo de una tarea, que marque lo terminado y, si está hecha, que lo diga con la prueba. Si el agente lo deja pasar, calla hasta que vuelva a llamar a Tisty, así que el trabajo fuera de una tarea cuesta como mucho un turno extra; en GitHub Copilot ese turno puede gastar una solicitud premium. El trabajo que no edita archivos, como planificar o investigar, no lo ve: ahí solo le llega la pregunta en las respuestas. Codex y Claude Desktop no tienen hooks. **Recordarle al empezar y al terminar cada turno**, en **Configuración › Asistentes**, apaga los hooks sin quitarlos.
 
 Quién es dueño de qué queda claro. Lo que anota tu agente es suyo para mantenerlo al día: lo describe, planifica los pasos, los marca y anota lo que aprende. En lo que escribiste tú trabaja como en un documento (la descripción, la página, los pasos abiertos, el título y la lista), pero un paso que da por listo espera a que lo marques, el día sigue siendo tuyo y cerrar siempre es tuyo. Lo que solo puedes hacer tú (probarlo en la app real, firmar, decidir) no lo escribe como paso de su tarea, que nunca podría marcar: lo anota como una tarea aparte para ti, en la misma lista.
 

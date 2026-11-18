@@ -2880,6 +2880,9 @@ const en = {
   agentsAsk: "Ask it to keep its task up to date",
   agentsAskWhy:
     "When it keeps working without writing on the task it opened, the next answer asks it once to tick what it did and, if it is finished, to say so with the proof",
+  agentsHooks: "Remind it when a turn starts and ends",
+  agentsHooksWhy:
+    "In the assistants you give Tisty's hooks, below: a session starts with the tasks it left open and what moved, and a turn that edited files without writing in Tisty is handed back to it once",
   agentsCanTitle: "What it can do",
   agentsCan:
     "File a task with description, dates, priority, tags, steps and parts, into a list you already have · Add to the journal of any task, set it a reminder and keep a copy of a file with it · Move the day of what it filed · Work any task as it works a document: describe it, rename it, move it to another list, plan, reword and take off its open steps, correct its notes and rewrite its page · Say a step of yours is done, or a task done or not worth doing, as its word for you to take — closing stays yours · Write documents, add to them, correct them and their tables, give them pages and file them in folders · Archive a document when you ask, and mark one as old for you to delete · Jot ideas on Brainstorm and sort them out with you · Add to the end of today in your Diary, once you open it to agents · Make a folder, bring a Markdown file in or write a document out, write a document in another language, and leave a summary for the next assistant · Search your lists, your archive and your documents",
@@ -2938,6 +2941,17 @@ const en = {
     "In {name}, Windows programs are turned off ([interop] enabled = false in /etc/wsl.conf), so its assistants cannot start Tisty.",
   wslNone: "No assistant Tisty knows in {name}.",
   noSuchAgent: "That assistant is no longer on this computer",
+  hooksLabel: "Hooks: when a turn starts and ends",
+  hooksOn: "Added",
+  hooksOff: "Not added",
+  hooksAdd: "Add",
+  hooksOut: "Remove",
+  hooksAsk:
+    "Tisty will add its hooks to {name}. When a session starts, the assistant gets the tasks it left open and what moved. After each edit and each call to Tisty, a mark is left, without reading the conversation. When a turn edited files and wrote nothing in Tisty, the turn is handed back to it once. The rest of that file stays as it is, and you can remove them here.",
+  hooksYes: "Add them",
+  hooksNo: "Not now",
+  hooksFresh: "Added. It runs them from its next session.",
+  hooksGone: "Removed. Its next session runs without them.",
   wslShut: "Windows programs are turned off in that distro, so nothing was written.",
   wslUnread: "{name} could not be read. Open it once in a terminal and look again.",
   settingsPuzzling:
@@ -6178,6 +6192,9 @@ const es: Catalog = {
   agentsAsk: "Pedirle que deje su tarea al día",
   agentsAskWhy:
     "Cuando sigue trabajando sin escribir en la tarea que abrió, la siguiente respuesta le pide una vez que marque lo que hizo y, si terminó, que lo diga con la prueba",
+  agentsHooks: "Recordarle al empezar y al terminar cada turno",
+  agentsHooksWhy:
+    "En los asistentes a los que les agregas los hooks de Tisty, abajo: cada sesión empieza con las tareas que dejó abiertas y lo que se movió, y un turno en que editó archivos sin escribir en Tisty se le devuelve una vez",
   agentsCanTitle: "Lo que puede hacer",
   agentsCan:
     "Anotar una tarea con descripción, fechas, prioridad, etiquetas, pasos y partes, en una lista que ya tengas · Añadir a la bitácora de cualquier tarea, ponerle un recordatorio y guardarle una copia de un archivo · Cambiar el día de lo que anotó él · Trabajar cualquier tarea como trabaja un documento: describirla, renombrarla, llevarla a otra lista, planear, reescribir y quitar sus pasos abiertos, corregir sus notas y reescribir su página · Decir que un paso tuyo está hecho, o que una tarea está hecha o no vale la pena, como su palabra para que tú la aceptes; cerrarla sigue siendo tuyo · Escribir documentos, añadirles, corregirlos, también sus tablas, darles páginas y guardarlos en carpetas · Archivar un documento cuando se lo pidas, y marcar uno como viejo para que tú lo borres · Anotar ideas en la Lluvia de ideas y ordenarlas contigo · Añadir al final de hoy en tu Diario, una vez que lo abres a los agentes · Crear una carpeta, traer un archivo Markdown o sacar un documento, escribir un documento en otro idioma y dejar un resumen para el siguiente asistente · Buscar en tus listas, tu archivo y tus documentos",
@@ -6238,6 +6255,17 @@ const es: Catalog = {
     "En {name} los programas de Windows están apagados ([interop] enabled = false en /etc/wsl.conf), así que sus asistentes no pueden abrir Tisty.",
   wslNone: "No hay asistentes que Tisty conozca en {name}.",
   noSuchAgent: "Ese asistente ya no está en este equipo",
+  hooksLabel: "Hooks: al empezar y al terminar cada turno",
+  hooksOn: "Agregados",
+  hooksOff: "Sin agregar",
+  hooksAdd: "Agregar",
+  hooksOut: "Quitar",
+  hooksAsk:
+    "Tisty agregará sus hooks en {name}. Al empezar una sesión, el asistente recibe las tareas que dejó abiertas y lo que se movió. Después de cada edición y de cada llamada a Tisty queda una marca, sin leer la conversación. Cuando un turno editó archivos y no escribió nada en Tisty, se le devuelve una vez. El resto de ese archivo queda como está, y puedes quitarlos aquí.",
+  hooksYes: "Agregarlos",
+  hooksNo: "Ahora no",
+  hooksFresh: "Agregados. Los usa desde su próxima sesión.",
+  hooksGone: "Quitados. Su próxima sesión corre sin ellos.",
   wslShut: "En esa distro los programas de Windows están apagados, así que no se escribió nada.",
   wslUnread: "No se pudo leer {name}. Ábrela una vez en una terminal y vuelve a buscar.",
   settingsPuzzling:

@@ -41,6 +41,16 @@ pub fn unwire(id: String) -> Answer<Vec<wiring::Seen>> {
     wiring::unwire(&id).map_err(stuck)
 }
 
+#[tauri::command(async)]
+pub fn hook(id: String) -> Answer<Vec<wiring::Seen>> {
+    wiring::hook(&id).map_err(stuck)
+}
+
+#[tauri::command(async)]
+pub fn unhook(id: String) -> Answer<Vec<wiring::Seen>> {
+    wiring::unhook(&id).map_err(stuck)
+}
+
 fn stuck(why: wiring::Stuck) -> Refusal {
     match why {
         wiring::Stuck::NoSuch => Refusal::of("noSuchAgent"),

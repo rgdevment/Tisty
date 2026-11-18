@@ -232,6 +232,7 @@ fn a_table_valued_field_does_not_swallow_what_follows_it() {
         phrase_confirmed: Some("4821 0937 5512 8806 3349".into()),
         key_handed: None,
         asks_open_task: Some(false),
+        turn_hooks: Some(false),
         homes: std::collections::BTreeMap::new(),
         rest: toml::Table::new(),
     };
@@ -305,6 +306,7 @@ fn bare() -> Config {
         phrase_confirmed: None,
         key_handed: None,
         asks_open_task: None,
+        turn_hooks: None,
         homes: std::collections::BTreeMap::new(),
         rest: toml::Table::new(),
     }
@@ -850,4 +852,17 @@ fn a_later_cloud_whose_account_has_no_address_still_reads_as_that_cloud() {
             }
         );
     }
+}
+
+#[test]
+fn turn_hooks_stay_on_unless_the_person_turned_them_off_by_the_name_the_hook_reads() {
+    assert!(bare().turn_hooks());
+    let off: Config = toml::from_str(
+        "device_id = \"dev_a\"
+turn_hooks = false",
+    )
+    .unwrap();
+    assert!(!off.turn_hooks());
+    let written = toml::to_string_pretty(&off).unwrap();
+    assert!(written.contains("turn_hooks = false"), "{written}");
 }

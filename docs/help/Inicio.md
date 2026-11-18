@@ -83,7 +83,7 @@ Los documentos son un cuaderno Markdown junto a las tareas: avisos, tablas, diag
 
 - [[Sincronizar y respaldar|Sincronizar-y-respaldar]]: dos equipos a través de una carpeta que ya sincronizas, o directamente con tu Google Drive, tu OneDrive o tu servidor WebDAV, con lo que guardas ahí cifrado si quieres.
 - [[Privacidad]]: qué se guarda y las pocas peticiones que Tisty hace.
-- [[Línea de comandos|Línea-de-comandos]]: se retiró en la 1.31; solo queda `tisty mcp`, la puerta del asistente.
+- [[Línea de comandos|Línea-de-comandos]]: se retiró en la 1.31; solo queda lo que usan los asistentes: `tisty mcp`, su puerta, y `tisty hook`.
 - [[Preguntas frecuentes|Preguntas-frecuentes]]
 
 ---

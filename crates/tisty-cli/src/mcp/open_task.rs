@@ -203,6 +203,11 @@ fn asked_about(paths: &Paths, due: &Due) -> Asked {
         .map_or(Asked::Gone, Asked::Ask)
 }
 
+pub(crate) const TURN_LEFT_UNWRITTEN: &str = "You edited files this turn and wrote nothing in \
+    Tisty. If this was work on a Tisty task, tick the steps you finished; if the work is done, \
+    `say_done` with the proof. A decision, something ruled out or a block goes in `note`. If it \
+    was not work on a task, end your turn without writing anything.";
+
 pub(super) fn question(task: &Task, due: &Due) -> Option<Value> {
     if !task.is_open() || task.folded() || task.resolved.is_some() {
         return None;
