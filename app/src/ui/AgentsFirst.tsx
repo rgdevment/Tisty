@@ -262,7 +262,11 @@ export default function AgentsFirst({ onClose, onChanged }: Readonly<Props>) {
       {look && (
         <>
           <p className="mt-4 mb-1.5 text-[12.5px] font-semibold">
-            {found ? t("agentsFirstPick") : t("agentsFirstNone")}
+            {found
+              ? t("agentsFirstPick")
+              : assistants.some((one) => one.files.some((file) => file.held))
+                ? t("agentsFirstAllHere")
+                : t("agentsFirstNone")}
           </p>
           {assistants.some((one) => one.files.length > 0) && (
             <ul className="rounded-[10px] border border-hair bg-panel">

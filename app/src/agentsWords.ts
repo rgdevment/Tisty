@@ -13,6 +13,8 @@ export const agentsEn = {
   agentsFirstCountOne: "{name} · 1 file",
   agentsFirstHeld: "already in AGENTS",
   agentsFirstAllHeld: "{name} · already in AGENTS",
+  agentsFirstAllHere:
+    "Everything I found is already in AGENTS. Allow this computer to keep it in sync:",
   agentsBroughtMany: "{name} documents came into AGENTS, and Tisty keeps them in sync from now on.",
   agentsBroughtOne: "1 document came into AGENTS, and Tisty keeps it in sync from now on.",
   agentsBroughtNone: "Nothing new came in. This computer now keeps AGENTS in sync.",
@@ -71,6 +73,8 @@ export const agentsEs: typeof agentsEn = {
   agentsFirstCountOne: "{name} · 1 archivo",
   agentsFirstHeld: "ya está en AGENTS",
   agentsFirstAllHeld: "{name} · ya está en AGENTS",
+  agentsFirstAllHere:
+    "Todo lo que encontré ya está en AGENTS. Autoriza este equipo para mantenerlo al día:",
   agentsBroughtMany:
     "Entraron {name} documentos a AGENTS, y desde ahora Tisty los mantiene al día.",
   agentsBroughtOne: "Entró 1 documento a AGENTS, y desde ahora Tisty lo mantiene al día.",
