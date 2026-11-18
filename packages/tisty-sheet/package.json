@@ -13,6 +13,9 @@
     "./glyphs": "./src/glyphs.ts",
     "./tokens.css": "./src/tokens.css",
     "./page.css": "./src/page.css",
+    "./callouts.css": "./src/callouts.css",
+    "./code.css": "./src/code.css",
+    "./diagrams.css": "./src/diagrams.css",
     "./tables.css": "./src/tables.css"
   },
   "dependencies": {

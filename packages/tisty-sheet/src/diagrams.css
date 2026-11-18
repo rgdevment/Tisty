@@ -1,0 +1,76 @@
+/* Drawn only where a page holds a diagram, so a reader loads it then. */
+figure.diagram {
+  position: relative;
+}
+/* A figure is drawn within its own box, so its bar gets a strip of its own over the drawing instead of hiding its labels. */
+figure.diagram:has(> .diagram-bar) {
+  padding-top: 32px;
+}
+.diagram-bar {
+  position: absolute;
+  top: 2px;
+  right: 6px;
+  opacity: 0;
+  pointer-events: none;
+  user-select: none;
+  transition: opacity 0.12s;
+}
+figure.diagram:hover .diagram-bar,
+.diagram-bar:focus-within {
+  opacity: 1;
+  pointer-events: auto;
+}
+@media (hover: none) {
+  .diagram-bar {
+    opacity: 1;
+    pointer-events: auto;
+  }
+}
+.diagram-bar button::after {
+  content: attr(aria-label);
+}
+.diagram-bar button {
+  border: 1px solid var(--tisty-hair);
+  border-radius: 6px;
+  padding: 2px 8px;
+  background: var(--tisty-sheet);
+  color: var(--tisty-soft);
+  font: inherit;
+  font-size: 11.5px;
+  cursor: pointer;
+}
+.diagram-bar button:hover {
+  background: var(--tisty-hover);
+  color: var(--tisty-ink);
+}
+@media print {
+  .diagram-bar {
+    display: none;
+  }
+}
+figure.diagram:not(.drawn, :has(> svg[data-theme])) {
+  border: 1px solid var(--tisty-hair);
+  border-radius: 10px;
+  background: var(--tisty-hover);
+  text-align: left;
+}
+figure.diagram:not(.drawn, .unreadable) pre {
+  opacity: 0.5;
+}
+figure.diagram svg {
+  display: block;
+  margin: 0 auto;
+  width: 100%;
+  height: auto;
+  cursor: zoom-in;
+}
+figure.diagram > svg[data-theme] {
+  display: none;
+  width: auto;
+  max-width: 100%;
+  cursor: default;
+}
+:root[data-theme="dark"] figure.diagram > svg[data-theme="dark"],
+:root:not([data-theme="dark"]) figure.diagram > svg[data-theme="light"] {
+  display: block;
+}

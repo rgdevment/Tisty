@@ -1,0 +1,90 @@
+/* Drawn only where a page holds a code block, so a reader loads it then. */
+figure.code {
+  border: 1px solid var(--tisty-hair);
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--tisty-hover);
+}
+figure.code:has(> .code-lang) {
+  position: relative;
+}
+.code-lang {
+  position: absolute;
+  top: 5px;
+  right: 8px;
+  padding: 1px 7px;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: var(--tisty-faint);
+  font: inherit;
+  font-size: 11px;
+  line-height: 1.6;
+  cursor: pointer;
+  opacity: 0.7;
+}
+figure.code:hover > .code-lang {
+  opacity: 1;
+}
+.code-lang:hover {
+  background: var(--tisty-sheet);
+  color: var(--tisty-ink);
+}
+figure.code figcaption {
+  padding: 6px 14px;
+  font-size: 12px;
+  color: var(--tisty-soft);
+  border-bottom: 1px solid var(--tisty-hair);
+}
+.hljs-comment,
+.hljs-quote {
+  color: var(--tisty-faint);
+  font-style: italic;
+}
+.hljs-keyword,
+.hljs-selector-tag,
+.hljs-literal,
+.hljs-doctag,
+.hljs-name {
+  color: var(--tisty-hue-purple);
+}
+.hljs-string,
+.hljs-regexp,
+.hljs-addition {
+  color: var(--tisty-hue-green);
+}
+.hljs-number,
+.hljs-symbol,
+.hljs-bullet {
+  color: var(--tisty-hue-orange);
+}
+.hljs-title,
+.hljs-section {
+  color: var(--tisty-hue-blue);
+}
+.hljs-attr,
+.hljs-attribute,
+.hljs-variable,
+.hljs-template-variable,
+.hljs-property {
+  color: var(--tisty-hue-teal);
+}
+.hljs-type,
+.hljs-built_in,
+.hljs-class .hljs-title {
+  color: var(--tisty-hue-amber);
+}
+.hljs-deletion {
+  color: var(--tisty-hue-red);
+}
+.hljs-emphasis {
+  font-style: italic;
+}
+.hljs-strong {
+  font-weight: 600;
+}
+@media print {
+  .code-lang {
+    display: none;
+  }
+}

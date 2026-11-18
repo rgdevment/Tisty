@@ -350,7 +350,7 @@ the_packages_keep_to_themselves() {
   fi
   keeps_to_itself tisty-diagrams "the diagram studio" "tisty-diagrams/read tisty-diagrams/studio" <<< "$front"
   keeps_to_itself tisty-editor "the sheet" "tisty-editor/read tisty-editor/edit tisty-editor/tokens.css tisty-editor/side.css" <<< "$front"
-  keeps_to_itself tisty-sheet "the drawing of the sheet" "tisty-sheet tisty-sheet/glyphs tisty-sheet/tokens.css tisty-sheet/page.css tisty-sheet/tables.css" <<< "$front"
+  keeps_to_itself tisty-sheet "the drawing of the sheet" "tisty-sheet tisty-sheet/glyphs tisty-sheet/tokens.css tisty-sheet/page.css tisty-sheet/callouts.css tisty-sheet/code.css tisty-sheet/diagrams.css tisty-sheet/tables.css" <<< "$front"
   keeps_to_itself tisty-light-viewer "the light viewer" "" "packages/tisty-light-viewer/src/host.ts" <<< "$front"
 }
 
