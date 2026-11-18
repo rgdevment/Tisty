@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useId, useRef, useState } from "react";
-import type { Carded } from "tisty-editor/read";
 import {
   awayOf,
   docHistoryEmpty,
@@ -16,6 +15,7 @@ import { fill, t } from "../locales";
 import { sure } from "../sure";
 import EarlierCompared from "./EarlierCompared";
 import { useHeldFocus } from "./heldFocus";
+import type { CardsShown } from "./liveCards";
 import Page from "./Page";
 import { mild, risky, strong } from "./Rows";
 
@@ -24,7 +24,8 @@ interface Props {
   title: string;
   /** A task's page: going back brings its words, and the task keeps its steps and their boxes. */
   page?: boolean;
-  card?: (file: string) => Carded;
+  /** Which live cards a version draws, as the page it belongs to draws them. */
+  cardsShown?: CardsShown;
   /** Absent where nothing can be written, so its versions are only read. */
   onBack?: (one: Version) => Promise<void>;
   ready?: () => Promise<unknown>;
@@ -86,19 +87,17 @@ function Listed({
 const NOW = "now";
 const RIGHT_AWAY = () => Promise.resolve();
 
-const NO_CARD = (): Carded => ({ kind: "doc", title: "" });
-
 function Shown({
   doc,
   one,
   label,
-  card,
+  cardsShown,
   onError,
 }: Readonly<{
   doc: string;
   one: Version;
   label: string;
-  card?: (file: string) => Carded;
+  cardsShown?: CardsShown;
   onError: (problem: unknown) => void;
 }>) {
   const [read, setRead] = useState<{ print: string; body: string } | null>(null);
@@ -119,7 +118,7 @@ function Shown({
       key={one.print}
       body={read.body}
       label={label}
-      card={card ?? NO_CARD}
+      cardsShown={cardsShown}
       onDoc={() => undefined}
     />
   );
@@ -129,7 +128,7 @@ export default function Earlier({
   doc,
   title,
   page,
-  card,
+  cardsShown,
   onBack,
   ready = RIGHT_AWAY,
   onEmptied,
@@ -313,7 +312,7 @@ export default function Earlier({
                 now={newer?.print ?? null}
                 between={between ?? ""}
                 label={title}
-                card={card ?? NO_CARD}
+                cardsShown={cardsShown}
                 ready={ready}
                 onWhole={() => {
                   setAgainst(null);
@@ -322,7 +321,7 @@ export default function Earlier({
                 onError={onError}
               />
             ) : one ? (
-              <Shown doc={doc} one={one} label={title} card={card} onError={onError} />
+              <Shown doc={doc} one={one} label={title} cardsShown={cardsShown} onError={onError} />
             ) : (
               rows !== null &&
               rows.length > 0 &&

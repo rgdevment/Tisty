@@ -1,16 +1,16 @@
 import { useEffect, useState } from "react";
-import type { Carded } from "tisty-editor/read";
 import type { Doc } from "../core";
 import { docBackTo, type Earlier as Version, whenOf } from "../earlier";
 import { settled } from "../saving";
 import Earlier from "./Earlier";
+import type { CardsShown } from "./liveCards";
 
 interface Asked {
   file?: string;
   title: string;
   page?: boolean;
   writable: boolean;
-  card?: (file: string) => Carded;
+  cardsShown?: CardsShown;
   /** What is typed reaches the disk first, so it is what going back keeps to come back to; refused, nothing goes back. */
   before: () => Promise<unknown>;
   onWentBack: (said: Doc, when: string) => void | Promise<void>;
@@ -46,7 +46,7 @@ export const useEarlier = (asked: Asked) => {
         doc={file}
         title={asked.title}
         page={asked.page}
-        card={asked.card}
+        cardsShown={asked.cardsShown}
         onBack={asked.writable ? back : undefined}
         ready={async () => {
           await asked.before().catch((e) => Promise.reject(uncompared(e)));

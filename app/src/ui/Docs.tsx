@@ -697,27 +697,6 @@ export default function Docs({
     <Tongues tongues={tongues} here={(above ?? own)?.id ?? ""} onOpen={toTongue} />
   );
   const told = useMemo(() => (pages.length > 0 ? namesIn(body) : NONE), [body, pages.length]);
-  const past = useEarlier({
-    file: open?.file,
-    title: called || t("untitledDoc"),
-    writable: !bolted && !clashed,
-    // Words a save could not land are only on the screen, and going back would take them unseen.
-    before: async () => {
-      await flush();
-      if (held.current) return Promise.reject({ code: "unsavedStays" });
-    },
-    onWentBack: async (said, when) => {
-      drop();
-      await reread(said.id);
-      mark(null);
-      setWentBackTo(when);
-      setStirred(true);
-      setBackable(true);
-      onKept(said);
-    },
-    onEmptied: () => setBackable(false),
-    onError: (e) => onError(saidPlainly(e)),
-  });
   const named = useMemo(() => namesIn(body), [body]);
   // A card says what its document is now: new words, a rename, an archive, a deletion or a new page draws it again.
   const docsHeard = useMemo(
@@ -738,6 +717,28 @@ export default function Docs({
     () => ({ docs: true, tasks: true, here: open?.file, heard: { heard, docsHeard } }),
     [open?.file, heard, docsHeard],
   );
+  const past = useEarlier({
+    file: open?.file,
+    title: called || t("untitledDoc"),
+    writable: !bolted && !clashed,
+    cardsShown,
+    // Words a save could not land are only on the screen, and going back would take them unseen.
+    before: async () => {
+      await flush();
+      if (held.current) return Promise.reject({ code: "unsavedStays" });
+    },
+    onWentBack: async (said, when) => {
+      drop();
+      await reread(said.id);
+      mark(null);
+      setWentBackTo(when);
+      setStirred(true);
+      setBackable(true);
+      onKept(said);
+    },
+    onEmptied: () => setBackable(false),
+    onError: (e) => onError(saidPlainly(e)),
+  });
 
   const [aboveTold, setAboveTold] = useState<string[]>();
   const upstairs = above?.file;

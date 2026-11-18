@@ -135,10 +135,12 @@ export default function TaskWords({
     setTurn((one) => one + 1);
     onWentBack?.();
   };
+  const pageCards = useMemo(() => ({ tasks: true, here: task.id, heard: task }), [task]);
   const past = useEarlier({
     file: doc?.file || undefined,
     title: task.title,
     page: true,
+    cardsShown: pageCards,
     writable: open && !doc?.held,
     before: () => typed.current(),
     onWentBack: (_, when) => {

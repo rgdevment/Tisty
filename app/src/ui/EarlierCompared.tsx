@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
-import type { Carded } from "tisty-editor/read";
 import { type Compared, docCompared } from "../earlier";
 import { fill, t } from "../locales";
+import type { CardsShown } from "./liveCards";
 import Page from "./Page";
 import { mild } from "./Rows";
 
@@ -11,7 +11,7 @@ interface Props {
   now: string | null;
   between: string;
   label: string;
-  card: (file: string) => Carded;
+  cardsShown?: CardsShown;
   ready: () => Promise<unknown>;
   onWhole: () => void;
   onError: (problem: unknown) => void;
@@ -45,7 +45,7 @@ export default function EarlierCompared({
   now,
   between,
   label,
-  card,
+  cardsShown,
   ready,
   onWhole,
   onError,
@@ -88,7 +88,7 @@ export default function EarlierCompared({
           body={said.html}
           draw={AS_DRAWN}
           label={label}
-          card={card}
+          cardsShown={cardsShown}
           onDoc={() => undefined}
           onShown={toFirstChange}
         />
