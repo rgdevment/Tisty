@@ -453,10 +453,7 @@ fn a_version_is_named_by_how_its_id_begins_when_only_one_begins_so() {
     assert_eq!(by_start["structuredContent"]["body"], UNO);
 
     let empty = served.call("read_doc", json!({ "doc": doc, "version": "" }));
-    assert!(
-        refused(&empty),
-        "an empty start names every version: {empty}"
-    );
+    assert!(empty["structuredContent"].get("print").is_some(), "{empty}");
 
     let unknown = served.call("read_doc", json!({ "doc": doc, "version": "zz99" }));
     assert!(refused(&unknown), "{unknown}");
@@ -908,6 +905,76 @@ fn going_back_by_the_pages_own_name_takes_the_whole_page_back() {
 }
 
 #[test]
+fn a_going_back_by_the_pages_name_its_task_refuses_leaves_the_digest_swap_alone() {
+    let served = Served::new();
+    let (task, page) = served.task_with_a_page();
+    went(&served.call(
+        "append_doc",
+        json!({ "doc": task, "body": "Resumen: uno y dos descartadas.", "replace": true }),
+    ));
+    let digest = served.body_of(&page);
+    went(&served.call_as(
+        CODEX,
+        "edit_doc",
+        json!({ "doc": page, "old": "<!-- - [ ] The first step -->", "new": "- [ ] Llevar la foto" }),
+    ));
+    served.person().ticks(person::task(&task), 1);
+    let with_the_step = served.body_of(&page);
+    let before_the_step = served.version_that_said(&page, "Resumen: uno y dos descartadas.");
+
+    let refused_back = served.call(
+        "restore_doc",
+        json!({ "doc": page, "version": before_the_step }),
+    );
+    assert!(refused(&refused_back), "{refused_back}");
+    assert_eq!(served.body_of(&page), with_the_step);
+
+    let out = served.call("restore_doc", json!({ "doc": task }));
+    went(&out);
+    assert_eq!(
+        out["structuredContent"]["notes_put_back"], true,
+        "a going back that never stood blocked the digest's swap: {out}"
+    );
+    assert!(!served.body_of(&page).contains("Resumen"), "{digest}");
+}
+
+#[test]
+fn undoing_a_whole_page_going_back_leaves_the_digest_to_swap_by_the_tasks_id() {
+    let served = Served::new();
+    let (task, page) = served.task_with_a_page();
+    went(&served.call(
+        "append_doc",
+        json!({ "doc": task, "body": "Resumen: uno y dos descartadas.", "replace": true }),
+    ));
+    let digest = served.body_of(&page);
+    served.person().rewrites_its_page(
+        person::task(&task),
+        &page,
+        &digest.replace("Pedir hora.", "Pedir hora y llevar la foto."),
+    );
+    let before_the_digest = served.version_that_said(&page, "Nota dos.");
+    went(&served.call(
+        "restore_doc",
+        json!({ "doc": page, "version": before_the_digest }),
+    ));
+    went(&served.call("restore_doc", json!({ "doc": page })));
+    assert!(served.body_of(&page).contains("Resumen"));
+
+    let swapped = served.call("restore_doc", json!({ "doc": task }));
+
+    went(&swapped);
+    assert_eq!(
+        swapped["structuredContent"]["notes_put_back"], true,
+        "{swapped}"
+    );
+    let now = served.body_of(&page);
+    assert!(
+        now.contains("Nota dos.") && now.contains("llevar la foto"),
+        "{now}"
+    );
+}
+
+#[test]
 fn a_digest_written_after_a_going_back_is_still_swapped_out_and_back_in() {
     let served = Served::new();
     let (task, page) = served.task_with_a_page();
@@ -1089,10 +1156,9 @@ fn listing_reading_and_carrying_out_are_asked_one_at_a_time() {
 
     let blank = served.call("read_doc", json!({ "doc": doc, "version": " " }));
     assert!(
-        refused(&blank),
-        "an empty version read the document now: {blank}"
+        blank["structuredContent"].get("print").is_some(),
+        "an empty version is a field left out, as everywhere: {blank}"
     );
-    assert!(words(&blank).contains("`version` came empty"), "{blank}");
 
     let plain = served.call("read_doc", json!({ "doc": doc, "versions": false }));
     assert!(plain["structuredContent"].get("print").is_some(), "{plain}");
@@ -1122,20 +1188,21 @@ fn a_cursor_past_the_last_version_says_so_instead_of_an_empty_list() {
 }
 
 #[test]
-fn a_version_sent_empty_is_refused_instead_of_undoing_the_last_write() {
+fn a_version_sent_empty_is_a_field_left_out_like_every_other() {
     let served = Served::new();
     let doc = served.written_by_turns();
     let before = served.body_of(&doc);
 
     let blank = served.call("restore_doc", json!({ "doc": doc, "version": " " }));
 
-    assert!(refused(&blank), "{blank}");
-    assert!(words(&blank).contains("`version` came empty"), "{blank}");
-    assert_eq!(
-        served.body_of(&doc),
-        before,
-        "an empty version undid a write"
+    went(&blank);
+    assert!(
+        blank["structuredContent"].get("went_back_to").is_none(),
+        "{blank}"
     );
+    assert_ne!(served.body_of(&doc), before, "it undid nothing");
+    went(&served.call("restore_doc", json!({ "doc": doc })));
+    assert_eq!(served.body_of(&doc), before, "the undo did not undo itself");
 }
 
 #[test]

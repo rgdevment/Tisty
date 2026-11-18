@@ -222,14 +222,13 @@ pub(in crate::mcp) fn restore_doc(paths: &Paths, args: &Value) -> Result<Value, 
     };
     let (which, a_task_s) = super::compacting::page_to_restore(paths, &which)?;
     let version = text(args, "version");
-    let blank = version.is_none() && args.get("version").is_some_and(|one| !one.is_null());
     if version.is_none()
-        && !blank
         && a_task_s
         && let Some(slot) = tisty_core::docs::read_notes_before(paths.data(), &which)
         && let Ok(now) = tisty_core::docs::read(&paths.docs(), &which)
         && let Some(body) = tisty_core::assistant_notes::swapped(&now, &slot.after, &slot.before)
         && !super::versions::undoes_a_going_back(paths, &which, &now)
+            .is_some_and(|back| super::compacting::only_the_notes(&now, &back.body).is_ok())
     {
         return notes_put_back(paths, &which, &slot, &now, &body);
     }
@@ -243,13 +242,6 @@ pub(in crate::mcp) fn restore_doc(paths: &Paths, args: &Value) -> Result<Value, 
             super::super::mistaken::no_document_called(&state, &which),
         ));
     };
-    if blank {
-        return Err(Refused::Tool(
-            "`version` came empty, so nothing was changed. Send one as `read_doc` with \
-             `versions` gives it, or leave it out to undo only the last write."
-                .into(),
-        ));
-    }
     let named = doc_named(&state, &which);
     let past = match &version {
         Some(asked) => Some(super::versions::kept_here(
@@ -271,7 +263,8 @@ pub(in crate::mcp) fn restore_doc(paths: &Paths, args: &Value) -> Result<Value, 
         },
     };
     let now = tisty_core::docs::read(&paths.docs(), &which).map_err(hitch)?;
-    let toggling = past.is_none() && super::versions::undoes_a_going_back(paths, &which, &now);
+    let toggling =
+        past.is_none() && super::versions::undoes_a_going_back(paths, &which, &now).is_some();
     if a_task_s {
         super::compacting::only_the_notes(&now, &was).map_err(|refused| {
             match (&past, toggling) {
@@ -282,9 +275,10 @@ pub(in crate::mcp) fn restore_doc(paths: &Paths, args: &Value) -> Result<Value, 
                      `{which}`, as `doc`."
                 )),
                 (None, true) => Refused::Tool(format!(
-                    "the page was last taken back to a version whole, steps and all, by its own \
-                     name, and a task's id reaches only the assistant's notes. Nothing was \
-                     changed. Undo it by the same name: `restore_doc` with `{which}` as `doc`."
+                    "the page was last moved between two of its versions whole, steps and all, by \
+                     its own name, and a task's id reaches only the assistant's notes. Nothing \
+                     was changed. Move it back and forth by that name: `restore_doc` with \
+                     `{which}` as `doc`."
                 )),
                 (None, false) => refused,
             }
@@ -340,7 +334,9 @@ pub(in crate::mcp) fn restore_doc(paths: &Paths, args: &Value) -> Result<Value, 
                 one.short()
             )));
         }
-        super::versions::went_back(paths, &which, &now, &whole);
+        if super::task_pages::page_named("restore_doc", args).is_none() {
+            super::versions::went_back(paths, &which, &now, &whole);
+        }
     }
     if kept
         .compacted
