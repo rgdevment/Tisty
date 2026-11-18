@@ -333,8 +333,9 @@ Lo que hace con todo eso un agente conectado a Tisty, en un trabajo real:
    llamada**, y anota lo que decidió o descartó, así la próxima sesión, u otro
    agente, no repite el intento fallido.
 6. **Cuando la página de una tarea crece, compacta las notas de los asistentes**
-   en un resumen fechado de lo que sigue vigente, sin quitar una línea tuya. La bitácora queda entera, y si le pides devolver las notas,
-   vuelven como estaban, aunque después hayas marcado pasos.
+   en un resumen fechado de lo que sigue vigente, sin quitar una línea tuya.
+   La bitácora queda entera, y si le pides devolver las notas, vuelven como
+   estaban, aunque después hayas marcado pasos.
 7. **Termina diciendo qué hizo y cómo sabe que se sostiene.** Tú lo revisas y
    la cierras.
 8. **Después de leer un documento largo, deja un resumen** para que el próximo

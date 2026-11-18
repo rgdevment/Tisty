@@ -324,8 +324,9 @@ What an agent connected to Tisty does with all that, on a real piece of work:
    same call**, and notes what it decided or ruled out, so the next session, or
    another agent, does not repeat the failed attempt.
 6. **When a task's page grows long, it compacts the assistants' notes on it**
-   into one dated digest of what still holds, keeping any line you wrote. The journal stays whole, and asking it to put the notes back
-   brings them as they were, even after later ticks.
+   into one dated digest of what still holds, keeping any line you wrote. The
+   journal stays whole, and asking it to put the notes back brings them as
+   they were, even after later ticks.
 7. **It ends by saying what it did and how it knows it holds.** You review it
    and close it.
 8. **After reading a long document, it leaves a summary** for the next agent
