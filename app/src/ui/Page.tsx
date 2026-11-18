@@ -72,19 +72,21 @@ export default function Page(props: Readonly<Props>) {
     if (page) datedSteps(page, dates);
   }, [dates]);
   const cards = useRef<DrawnCards>(new Map());
+  const seenAs = useRef("");
   // Cards come back after the page is laid, so only those whose drawing changed are laid again.
-  const relaid = (asked: readonly CardAsked[]) =>
-    drawnBy(reach.current, asked).then((fresh) => {
-      if (fresh.size === 0) return;
+  const relaid = (asked: readonly CardAsked[]) => {
+    const askedAs = seenAs.current;
+    return drawnBy(reach.current, asked).then((fresh) => {
+      if (fresh.size === 0 || seenAs.current !== askedAs) return;
       const was = cards.current;
       cards.current = new Map([...was, ...fresh]);
       const page = held.current?.contentDocument;
       if (page) cardsPlaced(page, cards.current, was, cardDays);
     });
+  };
   const shown = props.cardsShown;
   const acting = Boolean(props.onTaskDone);
   const more = Boolean(props.onMore);
-  const seenAs = useRef("");
   // biome-ignore lint/correctness/useExhaustiveDependencies: what a card shows changes with what the window heard, never with `relaid` itself.
   useEffect(() => {
     // A card is drawn for its page and its controls, so another of either draws every card anew.
@@ -117,15 +119,15 @@ export default function Page(props: Readonly<Props>) {
       : Promise.resolve([]);
     void (draw ?? docDrawn)(body)
       .catch(() => `<pre>${escaped(body)}</pre>`)
-      .then((html) =>
-        drawnBy(
-          reach.current,
-          cardsIn(html).filter((one) => !cards.current.has(cardKey(one))),
-        ).then((fresh) => {
-          cards.current = new Map([...cards.current, ...fresh]);
+      .then((html) => {
+        const askedAs = seenAs.current;
+        const missing = cardsIn(html).filter((one) => !cards.current.has(cardKey(one)));
+        return drawnBy(reach.current, missing).then((fresh) => {
+          if (!live) return;
+          if (seenAs.current === askedAs) cards.current = new Map([...cards.current, ...fresh]);
           drawn(html);
-        }),
-      );
+        });
+      });
     return () => {
       live = false;
     };

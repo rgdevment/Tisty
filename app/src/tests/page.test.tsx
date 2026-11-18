@@ -9,6 +9,8 @@ const ipc = vi.hoisted(() => ({
   released: 0,
   cards: [] as unknown[],
   version: 1,
+  held: false,
+  waiting: [] as (() => void)[],
 }));
 
 vi.mock("@tauri-apps/api/core", () => ({
@@ -17,7 +19,9 @@ vi.mock("@tauri-apps/api/core", () => ({
       ipc.cards.push(args);
       const drawn = (one: { id: string; words: string }) =>
         `<span class="doc-card is-doc" role="link" tabindex="0" data-doc="${one.id}">${one.words} v${ipc.version}</span>`;
-      return Promise.resolve(args?.asked?.map(drawn));
+      const answer = args?.asked?.map(drawn);
+      if (ipc.held) return new Promise((done) => ipc.waiting.push(() => done(answer)));
+      return Promise.resolve(answer);
     }
     if (cmd !== "doc_drawn") return Promise.resolve(null);
     if (ipc.drawn === null) return Promise.reject(new Error("no"));
@@ -95,6 +99,8 @@ beforeEach(() => {
   ipc.released = 0;
   ipc.cards = [];
   ipc.version = 1;
+  ipc.held = false;
+  ipc.waiting = [];
 });
 
 describe("a drawn page in the viewer", () => {
@@ -301,6 +307,29 @@ describe("the live cards on a page", () => {
       expect(page.querySelector(".page > p > .doc-card")?.textContent).toBe("Huerta v2"),
     );
     expect(ipc.cards[ipc.cards.length - 1]).toMatchObject({ seen: { here: "ef56-0003" } });
+  });
+
+  it("drops a late answer asked for the last document, whatever order the answers come in", async () => {
+    ipc.drawn = CARDED;
+    const { frame, view } = await drawn({ cardsShown: SHOWN });
+    const page = await loaded(frame);
+    ipc.held = true;
+    ipc.version = 2;
+    view.rerender(
+      <Page body={BODY} label="Notas" onDoc={() => {}} cardsShown={{ ...SHOWN, heard: 2 }} />,
+    );
+    ipc.version = 3;
+    const other = { ...SHOWN, heard: 2, here: "ef56-0003" };
+    view.rerender(<Page body={BODY} label="Notas" onDoc={() => {}} cardsShown={other} />);
+    await waitFor(() => expect(ipc.waiting).toHaveLength(2));
+    const [late, fresh] = ipc.waiting;
+    fresh();
+    await waitFor(() =>
+      expect(page.querySelector(".page > p > .doc-card")?.textContent).toBe("Huerta v3"),
+    );
+    late();
+    await new Promise((done) => setTimeout(done, 20));
+    expect(page.querySelector(".page > p > .doc-card")?.textContent).toBe("Huerta v3");
   });
 
   it("asks nothing of the core where the window shows no cards", async () => {
