@@ -16,7 +16,8 @@ const NEAR_SHOWN: usize = 8;
 const LINKS_BY_DEFAULT: u64 = 50;
 const LINKS_AT_MOST: u64 = 100;
 const DECISIONS_SHOWN: usize = 12;
-const MANY: [&str; 11] = [
+const MANY: [&str; 12] = [
+    "links",
     "pages",
     "languages",
     "parts",

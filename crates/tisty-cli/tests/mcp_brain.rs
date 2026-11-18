@@ -690,3 +690,130 @@ fn a_task_page_asked_as_a_document_shows_its_tasks_neighbours() {
     assert_eq!(card["mentions"][0]["id"], json!(plan), "{card}");
     assert!(card.get("status").is_none(), "{card}");
 }
+
+#[test]
+fn a_task_cards_outside_links_are_capped_like_its_neighbours() {
+    let served = Served::new();
+    let task = served.person().captures("Collect the sources");
+    for n in 0..12 {
+        served.person().notes(
+            task,
+            &format!("Read [source {n}](https://example.com/{n})."),
+        );
+    }
+    let mut talk = served.connect();
+
+    let card = talk.brain(json!({ "task": task.to_string() }));
+
+    assert_eq!(card["links"].as_array().unwrap().len(), 8, "{card}");
+    assert_eq!(card["links_more"], 4, "{card}");
+}
+
+#[test]
+fn a_long_project_pages_on_and_says_how() {
+    let served = Served::new();
+    let mut talk = served.connect();
+    let made = talk.call(
+        "propose",
+        json!({ "title": "Big", "list": "Work", "parts": [
+            { "title": "One", "steps": ["a"] },
+            { "title": "Two", "steps": ["a"] },
+            { "title": "Three", "steps": ["a"] }
+        ]}),
+    );
+    let whole = made["structuredContent"]["id"]
+        .as_str()
+        .unwrap()
+        .to_string();
+
+    let first = talk.brain(json!({ "part_of": whole, "limit": 2 }));
+    let rest = talk.brain(json!({ "part_of": whole, "limit": 2, "after": 2 }));
+
+    assert_eq!(first["parts"].as_array().unwrap().len(), 2);
+    assert!(
+        first["next"].as_str().unwrap().contains("`after` 2"),
+        "{first}"
+    );
+    assert_eq!(rest["parts"].as_array().unwrap().len(), 1);
+    assert!(rest.get("next").is_none(), "{rest}");
+}
+
+#[test]
+fn zones_name_forty_tags_and_count_the_rest() {
+    let served = Served::new();
+    for n in 0..41 {
+        served.person().captures(&format!("Task {n} #tag{n:02}"));
+    }
+    let mut talk = served.connect();
+
+    let zones = talk.brain(json!({}));
+
+    assert_eq!(zones["tags"].as_array().unwrap().len(), 40);
+    assert_eq!(zones["tags_more"], 1);
+}
+
+#[test]
+fn a_closed_task_has_no_stage_and_an_old_state_says_so() {
+    let served = Served::new();
+    let mut talk = served.connect();
+    let made = talk.call(
+        "propose",
+        json!({ "title": "Write it", "steps": ["a"], "list": "Work" }),
+    );
+    let task = made["structuredContent"]["id"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    talk.call("tick", json!({ "task": task, "state": "Half written." }));
+    talk.call("note", json!({ "task": task, "body": "Decided: shorter." }));
+
+    let open = talk.brain(json!({ "task": task }));
+    served.person().closes(task.parse().unwrap());
+    let closed = talk.brain(json!({ "task": task }));
+
+    assert_eq!(open["stage"], "under_way");
+    assert_eq!(open["state_old"], true, "{open}");
+    assert!(closed.get("stage").is_none(), "{closed}");
+}
+
+#[test]
+fn putting_away_a_document_names_the_task_page_that_points_at_it() {
+    let served = Served::new();
+    let plan = served.person().writes_doc("# Plan\n\nSteps.\n");
+    let task = served.person().captures("Follow the plan");
+    let hidden = served.person().captures("Hidden follow-up");
+    let mut talk = served.connect();
+    for one in [task, hidden] {
+        talk.call(
+            "append_doc",
+            json!({ "doc": one.to_string(), "body": format!("See [the plan](tisty:doc/{plan}).") }),
+        );
+    }
+    let page = talk.call("read", json!({ "task": task.to_string() }))["structuredContent"]
+        ["document"]["file"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    served.person().hides(hidden);
+
+    let put = talk.call("archive_doc", json!({ "doc": plan }));
+
+    assert_eq!(put["structuredContent"]["pointed_at"], json!([page]));
+}
+
+#[test]
+fn of_two_documents_saying_it_alike_the_newer_comes_first() {
+    let served = Served::new();
+    let older = served
+        .person()
+        .wrote_doc_days_ago("# Fruit\n\nThe kiwi is ripe.\n", 30);
+    let newer = served
+        .person()
+        .wrote_doc_days_ago("# Market\n\nThe kiwi is cheap.\n", 1);
+    let mut talk = served.connect();
+
+    let found = talk.brain(json!({ "query": "kiwi" }));
+
+    assert_eq!(found["docs"][0]["doc"], json!(newer), "{found}");
+    assert_eq!(found["docs"][1]["doc"], json!(older), "{found}");
+}
