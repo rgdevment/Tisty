@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { brainNetwork, type Network } from "../brainsty";
+import { brainNetwork, type Network, OPENED } from "../brainsty";
 import { numbered } from "../format";
 import { fill, t } from "../locales";
 import { saidPlainly } from "../refusal";
@@ -22,6 +22,7 @@ export default function BrainstyScreen({ near, onClose }: Props) {
   closing.current = onClose;
 
   useEffect(() => {
+    performance.mark(OPENED);
     let live = true;
     brainNetwork(near).then(
       (network) => live && setRead({ network }),

@@ -20,6 +20,39 @@ vi.mock("@tauri-apps/api/core", () => ({
   },
 }));
 
+const sigma = vi.hoisted(() => ({
+  centred: [] as number[],
+  placed: 0,
+  rethemed: 0,
+  killed: 0,
+  stopped: 0,
+  step: null as
+    | null
+    | ((step: {
+        x: Float32Array;
+        y: Float32Array;
+        done: boolean;
+        iterations: number;
+        ms: number;
+      }) => void),
+}));
+
+vi.mock("../ui/brainsty/drawing", () => ({
+  drawNetwork: () => ({
+    place: () => sigma.placed++,
+    retheme: () => sigma.rethemed++,
+    centre: (on: number) => sigma.centred.push(on),
+    kill: () => sigma.killed++,
+  }),
+}));
+
+vi.mock("../ui/brainsty/layingOut", () => ({
+  layOut: (_: unknown, onStep: typeof sigma.step) => {
+    sigma.step = onStep;
+    return () => sigma.stopped++;
+  },
+}));
+
 vi.mock("@tauri-apps/api/event", () => ({
   listen: () => Promise.resolve(() => {}),
   emit: () => Promise.resolve(),
@@ -121,6 +154,7 @@ beforeEach(() => {
   localStorage.clear();
   ipc.calls = [];
   ipc.network = () => Promise.resolve(small);
+  Object.assign(sigma, { centred: [], placed: 0, rethemed: 0, killed: 0, stopped: 0, step: null });
 });
 
 describe("the Brainsty section", () => {
@@ -191,5 +225,36 @@ describe("the Brainsty section", () => {
     await user.keyboard("{F1}");
 
     await waitFor(() => expect(screen.queryByRole("region", { name: t("brainsty") })).toBeNull());
+  });
+
+  it("draws the network centred on where it opens, following the layout until the person moves it", async () => {
+    const user = await opened();
+    await user.click(screen.getByRole("button", { name: t("brainsty") }));
+    const canvas = await screen.findByRole("img", { name: t("brainstyNetwork") });
+    const spots = { x: new Float32Array(3), y: new Float32Array(3) };
+
+    sigma.step?.({ ...spots, done: false, iterations: 10, ms: 5 });
+    canvas.dispatchEvent(new Event("pointerdown"));
+    sigma.step?.({ ...spots, done: true, iterations: 20, ms: 12.4 });
+
+    expect(sigma.centred).toEqual([1, 1]);
+    expect(sigma.placed).toBe(2);
+    expect(canvas.dataset.laidMs).toBe("12");
+    expect(canvas.dataset.iterations).toBe("20");
+    expect(canvas.dataset.drawnMs).toMatch(/^\d+$/);
+  });
+
+  it("redraws in the other theme and lets go of the drawing and the layout on closing", async () => {
+    const user = await opened();
+    await user.click(screen.getByRole("button", { name: t("brainsty") }));
+    await screen.findByRole("img", { name: t("brainstyNetwork") });
+
+    document.documentElement.setAttribute("data-theme", "dark");
+    await waitFor(() => expect(sigma.rethemed).toBe(1));
+    document.documentElement.removeAttribute("data-theme");
+    await user.keyboard("{Escape}");
+
+    expect(sigma.killed).toBe(1);
+    expect(sigma.stopped).toBe(1);
   });
 });

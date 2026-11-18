@@ -27,5 +27,7 @@ export interface Network {
   left_out?: LeftOut;
 }
 
+export const OPENED = "brainsty-opened";
+
 export const brainNetwork = (near?: string): Promise<Network | null> =>
   invoke("brain_network", { near: near ?? null });
