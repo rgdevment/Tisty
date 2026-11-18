@@ -82,7 +82,7 @@ No. Both are drawn by code inside Tisty: nothing is fetched, no font is loaded f
 In how long the rule under the header is drawn. See [tables](https://markdown.tisty.app/tables) in the Tisty Markdown guide.
 
 **Can I go back to what a document said a few days ago?**
-Yes, on the computer where it changed: **See the history**, on the **History** row of the panel beside the document, lists its earlier versions, and **Go back to this version** brings one back. They are kept 30 days by default and are not synced. See [Documents](Documents#earlier-versions).
+Yes, on the computer where it changed: **See the history**, on the **History** row of the panel beside the document, lists its earlier versions, **What changed** shows in red and green what differs from now, and **Go back to this version** brings one back. They are kept 30 days by default and are not synced. See [Documents](Documents#earlier-versions).
 
 ## Sync
 

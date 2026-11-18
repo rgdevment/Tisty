@@ -200,7 +200,7 @@ Cada documento guarda en este equipo lo que decía antes de cambiar, como un his
 
 ### Cuándo te sirven
 
-- **Un asistente reescribió de más.** Le pediste a tu agente que ordenara «Paseos de Rina» y lo dejó sin los horarios. La versión de antes de su escritura está en la lista: la abres y vuelves a ella.
+- **Un asistente reescribió de más.** Le pediste a tu agente que ordenara «Paseos de Rina» y lo dejó sin los horarios. La versión de antes de su escritura está en la lista: ves qué cambió y vuelves a ella.
 - **Borraste un párrafo y a la semana lo necesitas.** Quitaste de «Cumpleaños de Lucas» la lista de invitados porque ya estaba cerrada, y ahora Marisol pregunta quién venía. Una versión de antes de ese cambio todavía la tiene, aunque el documento haya seguido cambiando.
 - **Quieres ver cómo estaba algo un día concreto.** Cada versión lleva su fecha, así que lees el plan como estaba el martes sin tocar el de hoy.
 - **Escribiste algo que no debía quedar guardado.** Borras el texto y después vacías el historial de ese documento (más abajo).
@@ -216,6 +216,22 @@ Cada documento guarda en este equipo lo que decía antes de cambiar, como un his
 En la página de una tarea vuelven las palabras, no el estado de la tarea: ningún paso se quita ni cambia su casilla, y un paso que esa versión nombra y la tarea ya no tiene vuelve como paso nuevo.
 
 Si todavía no hay ninguna, la lista lo dice: Tisty guarda una cuando pasan 30 minutos sin cambios o cuando cambia quien escribe.
+
+### Ver qué cambió
+
+Antes de volver a una versión, puedes ver exactamente qué cambió, en un documento o en la página de una tarea:
+
+1. Elige una versión en la lista. **Qué cambió**, arriba de lo que lees, la compara con lo que el documento dice ahora.
+2. Para comparar dos versiones entre sí, pulsa **Comparar** en otra fila de la lista. Se lee siempre de la más vieja a la más nueva, en el orden que sea que las elijas. **Comparar** otra vez en esa fila vuelve a comparar con lo de ahora, y **Qué cambió** apaga la comparación.
+3. Arriba, una línea dice qué se compara, como «De la versión de 16:10 a lo que dice ahora» o «De la versión de 16:10 a la de 17:45», y cuántos bloques cambiaron: **Lo que se fue** y **Lo que llegó**, cada uno con su número. Si no hay diferencias, dice **Dicen lo mismo: no cambió nada.**
+
+La comparación es una sola página, dibujada como siempre, que abre en el primer cambio. Lo que se fue sale en rojo y lo que llegó en verde, uno encima del otro; dentro de un párrafo, un ítem, una celda o una línea de código que cambió, las palabras de antes van tachadas y las nuevas resaltadas. Lo que solo cambia la forma de escribir y no lo que dice no cuenta como cambio: los fines de línea, el número de un ítem en una lista numerada y los espacios de una tabla.
+
+Por ejemplo: Claude Code reescribió el párrafo de horarios de «Paseos de Rina» y no sabes qué tocó. Abres **Ver el historial**, eliges la versión de antes de su cambio y pulsas **Qué cambió**. El párrafo viejo aparece en rojo y el nuevo en verde, y dentro de él «a las 8:00» va tachado y «temprano» resaltado; arriba dice **Lo que se fue: 1** y **Lo que llegó: 1**. Ya sabes que solo cambió eso: vuelves con **Volver a esta versión**, o copias la hora y te quedas con lo demás.
+
+- **Solo versiones de este equipo.** Una fila de otro equipo no tiene **Comparar**, porque su texto no está aquí.
+- **Lo de ahora es lo guardado.** Si lo que escribiste todavía no se pudo guardar, no se compara, y la ventana te lo dice: resuélvelo primero y vuelve a comparar.
+- **Un documento demasiado largo.** Cuando lo distinto entre las dos versiones es tan grande que marcarlo tomaría demasiado, unos 4.000 bloques distintos por lado, la vista lo dice y ofrece **Ver la versión entera**. Un cambio chico en un documento largo siempre se marca, porque lo que las dos versiones tienen igual al comienzo y al final no cuenta.
 
 ### Cuándo se guarda una versión
 
