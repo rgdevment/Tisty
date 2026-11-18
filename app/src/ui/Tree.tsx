@@ -971,12 +971,12 @@ export default function Tree({
   );
 
   const veils = [
-    ...(pin ? [{ key: BRAINSTORM, name: pin.title || t("brainstorm") }] : []),
-    ...(onDiary ? [{ key: DIARY, name: t("diary") }] : []),
+    ...(pin && veiled(BRAINSTORM) ? [{ key: BRAINSTORM, name: pin.title || t("brainstorm") }] : []),
+    ...(onDiary && veiled(DIARY) ? [{ key: DIARY, name: t("diary") }] : []),
     ...papers.folders
       .filter((one) => !one.away && veiled(one.id))
       .map((one) => ({ key: one.id, name: trail(papers.folders, one.id) })),
-  ].filter((one) => veiled(one.key));
+  ];
 
   const veiledRows = veils.length > 0 && (
     <div className="mt-2">
