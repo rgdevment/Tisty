@@ -11,8 +11,8 @@ interface Asked {
   page?: boolean;
   writable: boolean;
   card?: (file: string) => Carded;
-  /** What is typed reaches the disk first, so it is what going back keeps to come back to. */
-  before: () => void;
+  /** What is typed reaches the disk first, so it is what going back keeps to come back to; refused, nothing goes back. */
+  before: () => Promise<unknown>;
   onWentBack: (said: Doc, when: string) => void | Promise<void>;
   onEmptied?: () => void;
   onError: (problem: unknown) => void;
@@ -26,7 +26,7 @@ export const useEarlier = (asked: Asked) => {
 
   const back = async (one: Version) => {
     if (!file) return;
-    asked.before();
+    await asked.before();
     await settled();
     const said = await docBackTo(file, one.print);
     setShown(null);

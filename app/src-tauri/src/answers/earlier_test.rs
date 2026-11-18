@@ -75,7 +75,8 @@ fn print(body: &str) -> String {
 }
 
 fn rows(session: &Session, id: &str) -> Vec<history::Row> {
-    listed(session, id, jiff::Timestamp::now()).unwrap()
+    let log = session.log().unwrap();
+    listed(&asked(session, id), &log, id, jiff::Timestamp::now()).unwrap()
 }
 
 const UNO: &str = "# Acta\n\nuno\n";
@@ -105,12 +106,13 @@ fn a_document_nobody_wrote_over_has_no_history() {
     let doc = filed(&mut session, UNO);
 
     assert!(rows(&session, &doc).is_empty());
-    assert_eq!(
-        listed(&session, "nope-0001", jiff::Timestamp::now())
-            .unwrap_err()
-            .code,
-        "noSuchDoc"
+    let nowhere = listed(
+        &asked(&session, "nope-0001"),
+        &[],
+        "nope-0001",
+        jiff::Timestamp::now(),
     );
+    assert_eq!(nowhere.unwrap_err().code, "noSuchDoc");
 }
 
 #[test]
@@ -209,6 +211,25 @@ fn going_back_to_a_version_can_be_undone_by_the_one_step_back() {
 }
 
 #[test]
+fn going_back_to_what_the_document_already_says_is_refused_and_keeps_no_step_back() {
+    let (_tmp, mut session) = session();
+    let doc = filed(&mut session, UNO);
+    typed(&mut session, &doc, DOS);
+    typed(&mut session, &doc, UNO);
+    assert!(
+        rows(&session, &doc).is_empty(),
+        "what it says now was listed as earlier"
+    );
+    let before = one_step_back(&session, &doc);
+
+    let why = went_back_to(&mut session, &doc, &print(UNO)).unwrap_err();
+
+    assert_eq!(why.code, "versionSame");
+    assert_eq!(body_of(&session, &doc), UNO);
+    assert_eq!(one_step_back(&session, &doc), before);
+}
+
+#[test]
 fn a_locked_document_goes_back_to_nothing() {
     let (_tmp, mut session) = session();
     let doc = filed(&mut session, UNO);
@@ -235,12 +256,16 @@ fn emptying_a_history_takes_its_versions_and_the_step_back_but_not_the_document(
     typed(&mut session, &doc, DOS);
     went_back_to(&mut session, &doc, &print(UNO)).unwrap();
     assert!(one_step_back(&session, &doc).is_some());
-    assert!(!rows(&session, &doc).is_empty());
+    let kept = history::versions(session.paths.data(), &doc).len();
+    assert!(
+        kept >= 1 && rows(&session, &doc).is_empty(),
+        "the shelf holds what the list does not show"
+    );
 
     let gone = emptied(&session, &doc).unwrap();
 
-    assert!(gone >= 1);
-    assert!(rows(&session, &doc).is_empty());
+    assert_eq!(gone, kept);
+    assert!(history::versions(session.paths.data(), &doc).is_empty());
     assert!(one_step_back(&session, &doc).is_none());
     assert_eq!(body_of(&session, &doc), UNO);
     assert_eq!(emptied(&session, &doc).unwrap(), 0);

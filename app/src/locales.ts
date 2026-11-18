@@ -1292,7 +1292,7 @@ const en = {
   earlierBackSure:
     "It goes back to saying what it said in the version from {name}. What it says now is kept, so you can undo it.",
   earlierPageSure:
-    "On a task's page the words come back; the steps and their boxes stay as the task has them.",
+    "On a task's page the words come back. No step is removed and no box changes; a step that version names and the task no longer has comes back as a new step.",
   earlierWentBack: "It went back to the version from {name}",
   earlierEmpty: "Empty the history",
   earlierEmptySure:
@@ -1304,6 +1304,9 @@ const en = {
   earlierOneDay: "1 day",
   earlierDays: "{name} days",
   versionGone: "That version is no longer on this computer",
+  versionSame: "That version says what it says now",
+  unsavedStays:
+    "What you typed could not be saved yet, so nothing went back. Settle that first, then go back.",
   notAHistoryLimit: "The history is kept for 1, 5, 15 or 30 days",
   backSure:
     "Going back leaves this document as it read before the write that stirred it. What it says now is kept in its place, so you can come back to it.",
@@ -4644,7 +4647,7 @@ const es: Catalog = {
   earlierBackSure:
     "Vuelve a decir lo que decía en la versión de {name}. Lo que dice ahora queda guardado, así que puedes deshacerlo.",
   earlierPageSure:
-    "En la página de una tarea vuelven las palabras; los pasos y sus casillas siguen como la tarea los tiene.",
+    "En la página de una tarea vuelven las palabras. Ningún paso se quita ni cambia su casilla; un paso que esa versión nombra y la tarea ya no tiene vuelve como paso nuevo.",
   earlierWentBack: "Volvió a la versión de {name}",
   earlierEmpty: "Vaciar el historial",
   earlierEmptySure:
@@ -4656,6 +4659,9 @@ const es: Catalog = {
   earlierOneDay: "1 día",
   earlierDays: "{name} días",
   versionGone: "Esa versión ya no está en este equipo",
+  versionSame: "Esa versión dice lo mismo que ahora",
+  unsavedStays:
+    "Lo que escribiste todavía no se pudo guardar, así que no se volvió a nada. Resuelve eso primero y vuelve después.",
   notAHistoryLimit: "El historial se guarda 1, 5, 15 o 30 días",
   backSure:
     "Volver atrás deja este documento como se leía antes de la escritura que lo movió. Lo que dice ahora queda guardado en su lugar, así que puedes regresar a ello.",

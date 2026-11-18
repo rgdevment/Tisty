@@ -108,7 +108,7 @@ pub fn task_story(
 }
 
 // The whole log takes tens of milliseconds to read, and the page being opened waits on the lock meanwhile.
-fn unheld_log<T>(
+pub(crate) fn unheld_log<T>(
     session: &Mutex<Session>,
     take: impl FnOnce(&Session) -> T,
 ) -> Answer<(Vec<tisty_core::Event>, T)> {

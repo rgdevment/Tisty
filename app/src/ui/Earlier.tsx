@@ -5,6 +5,7 @@ import {
   docHistoryEmpty,
   docVersion,
   docVersions,
+  type Shelf,
   saidOf,
   type Earlier as Version,
   whenOf,
@@ -111,7 +112,7 @@ export default function Earlier({
   const box = useRef<HTMLDivElement>(null);
   const heading = useId();
   const { wrapped, held } = useHeldFocus(box);
-  const [rows, setRows] = useState<Version[] | null>(null);
+  const [shelf, setShelf] = useState<Shelf | null>(null);
   const [chosen, setChosen] = useState<string | null>(null);
   const [working, setWorking] = useState(false);
   const failed = useRef(onError);
@@ -122,15 +123,15 @@ export default function Earlier({
     docVersions(doc)
       .then((all) => {
         if (!live) return;
-        setRows(all);
+        setShelf(all);
         setChosen((was) => {
-          const kept = all.filter((one) => one.here);
+          const kept = all.versions.filter((one) => one.here);
           return kept.some((one) => one.print === was) ? was : (kept[0]?.print ?? null);
         });
       })
       .catch((e) => {
         if (!live) return;
-        setRows([]);
+        setShelf({ versions: [], kept: 0 });
         failed.current(e);
       });
     return () => {
@@ -148,6 +149,7 @@ export default function Earlier({
     wrapped(event);
   };
 
+  const rows = shelf?.versions ?? null;
   const one = rows?.find((row) => row.print === chosen && row.here);
   const here = rows?.some((row) => row.here) ?? false;
 
@@ -195,7 +197,7 @@ export default function Earlier({
         <div className="flex w-[290px] shrink-0 flex-col border-r border-hair">
           <header className="px-5 pt-5 pb-3">
             <h2 id={heading} className="text-[21px] font-semibold">
-              {t("earlierTitle")}
+              {t(page ? "earlierOfPage" : "earlierTitle")}
             </h2>
             <p className="mt-0.5 truncate text-[12.5px] text-soft">{title}</p>
             <p role="note" className="mt-2.5 text-[11.5px] leading-relaxed text-faint">
@@ -217,7 +219,12 @@ export default function Earlier({
             ))}
           </ul>
           <footer className="flex items-center justify-between gap-2 border-t border-hair px-3 py-2.5">
-            <button type="button" disabled={!here || working} onClick={empty} className={risky}>
+            <button
+              type="button"
+              disabled={!shelf?.kept || working}
+              onClick={empty}
+              className={risky}
+            >
               {t("earlierEmpty")}
             </button>
             <button type="button" onClick={onClose} className={mild}>

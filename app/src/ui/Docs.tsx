@@ -705,9 +705,13 @@ export default function Docs({
   const past = useEarlier({
     file: open?.file,
     title: called || t("untitledDoc"),
-    writable: !bolted,
+    writable: !bolted && !clashed,
     card: cards,
-    before: () => void flush(),
+    // Words a save could not land are only on the screen, and going back would take them unseen.
+    before: async () => {
+      await flush();
+      if (held.current) return Promise.reject({ code: "unsavedStays" });
+    },
     onWentBack: async (said, when) => {
       drop();
       await reread(said.id);

@@ -15,7 +15,7 @@ import {
 import { WROTE } from "../detailing";
 import { stamped } from "../format";
 import { fill, t } from "../locales";
-import { holds, queued, settled } from "../saving";
+import { holds, queued, settled as saved } from "../saving";
 import { sure } from "../sure";
 import { useKeptHeight } from "./heights";
 import type { Viewing } from "./liveSheet";
@@ -131,7 +131,7 @@ export default function TaskWords({
 
   const [wentBackTo, setWentBackTo] = useState<string | null>(null);
   useEffect(() => setWentBackTo(null), [task.id]);
-  const typed = useRef(() => {});
+  const typed = useRef<() => Promise<unknown>>(() => Promise.resolve());
   const reread = () => {
     setTurn((one) => one + 1);
     onWentBack?.();
@@ -150,14 +150,14 @@ export default function TaskWords({
   });
   const undo = async () => {
     if (!doc?.file || !(await sure(t("backSure")))) return;
-    typed.current();
-    await settled();
-    docBack(doc.file)
-      .then(() => {
-        setWentBackTo(null);
-        reread();
-      })
-      .catch((e) => onError?.(e));
+    try {
+      await typed.current();
+      await docBack(doc.file);
+      setWentBackTo(null);
+      reread();
+    } catch (e) {
+      onError?.(e);
+    }
   };
 
   // While the page is read, its room stays as it last was, so what is under it never jumps.
@@ -255,7 +255,7 @@ function Written({
   onError?: (problem: unknown) => void;
   onDoc?: (id: string) => void;
   onMoved: () => void;
-  typed: RefObject<() => void>;
+  typed: RefObject<() => Promise<unknown>>;
   shaping?: boolean;
   view?: Viewing;
   asking?: Asking;
@@ -287,6 +287,7 @@ function Written({
   const learnt = useRef(doc.body);
   const typed = useRef(doc.body);
   const [clash, setClash] = useState(false);
+  const weaving = useRef<Promise<boolean>>(Promise.resolve(true));
 
   // Typing that came while one weave was out is woven again over it, so none of it is dropped.
   const weave = useCallback(
@@ -310,7 +311,8 @@ function Written({
       if (!file.current && named) file.current = named;
       if (stale.current) return;
       stale.current = true;
-      void weave(known.current).then((woven) => (woven ? moved.current() : setClash(true)));
+      weaving.current = weave(known.current);
+      void weaving.current.then((woven) => (woven ? moved.current() : setClash(true)));
     },
     [weave],
   );
@@ -377,7 +379,12 @@ function Written({
 
   useEffect(() => holds(flush), [flush]);
   useEffect(() => {
-    leaving.current = flush;
+    // Words a weave could not place are only on the screen, so whoever would write over the page is refused.
+    leaving.current = async () => {
+      flush();
+      await saved();
+      if (!(await weaving.current)) return Promise.reject({ code: "unsavedStays" });
+    };
   }, [leaving, flush]);
   useEffect(() => {
     window.addEventListener("blur", flush);

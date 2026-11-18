@@ -279,6 +279,8 @@ const KNOWN = [
   "taskPageBehind",
   "nothingKeptBeside",
   "versionGone",
+  "versionSame",
+  "unsavedStays",
   "notAHistoryLimit",
   "comingDown",
   "cloudLater",
