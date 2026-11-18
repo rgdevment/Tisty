@@ -204,7 +204,7 @@ Cada documento tuyo tiene un enlace, para llegar a él desde un chat, una nota, 
 - **Solo cuenta el `id`.** Las carpetas y el título van en palabras para quien lee el enlace, en minúsculas, sin tildes y con guiones, así que sigue llegando si renombras o mueves el documento. Una página lleva primero el nombre de su documento: `tisty://doc/trabajo/actas/marzo?id=…`.
 - **Dentro de un documento** o en la página de una tarea, escríbelo como enlace de Markdown, `[Plan de verano](tisty://doc/…?id=…)`, y se abre como cualquier otro enlace. Pegado solo, queda como texto. Para ir de un documento a otro mientras escribes sigue sirviendo `[[`, que abre en la ventana principal ([Enlazar documentos](#enlazar-documentos)).
 - **Tu agente** lo toma tal cual: pásale el enlace y lee o cambia ese mismo documento sin buscarlo.
-- **Solo abre en un equipo que tiene el documento**, como los tuyos que sincronizan tu almacén. Donde no está, la ventana se abre y lo dice. Para dárselo a otra persona, compártelo por [Folio](#compartir).
+- **Solo abre en un equipo que tiene el documento**, es decir, uno de tus equipos con tu almacén. Donde no está, la ventana se abre y lo dice. Para dárselo a otra persona, compártelo por [Folio](#compartir).
 - **Dentro de un documento compartido por Folio no viaja**: un enlace de Markdown llega como sus palabras, y una dirección escrita sola llega tal cual, con sus carpetas y su título.
 - **Quien lo recibe lee** los nombres de las carpetas y el título.
 

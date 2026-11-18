@@ -109,8 +109,10 @@ report will never be dismissed for being inconvenient.
   words before it are for whoever reads the link and are not looked at, and an
   address with a `?` or a `#` among them is not taken as one. It shows, read-only
   in the light viewer, only that document of your own store, never a task's page,
-  and when this computer holds no such document the viewer opens and says so. It
-  writes nothing and tells the page that fired it nothing.
+  and when this computer holds no such document the viewer opens and says so;
+  every link to a document that is not here shares that one window, so a page
+  firing identifiers by the hundred opens one window. It writes nothing and tells
+  the page that fired it nothing.
 - **Synchronisation is yours.** Tisty copies files into a folder you name, and
   whatever already keeps that folder in step between your machines is what moves
   them — or into a cloud of your own that it reaches itself. Syncing has no
