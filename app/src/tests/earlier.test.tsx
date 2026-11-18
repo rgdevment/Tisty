@@ -9,6 +9,7 @@ import Beside from "../ui/Beside";
 import type { Run } from "../ui/Card";
 import Docs from "../ui/Docs";
 import Earlier from "../ui/Earlier";
+import { toFirstChange } from "../ui/EarlierCompared";
 import EarlierLimit from "../ui/EarlierLimit";
 import TaskWords from "../ui/TaskWords";
 import { knowAgents } from "../who";
@@ -401,6 +402,22 @@ describe("what changed between two versions", () => {
 
     await waitFor(() => expect(called("doc_compared")).toHaveLength(2));
     expect(called("doc_compared")[1].args).toEqual({ id: "d-1", was: A, now: null });
+  });
+
+  it("lays the first change in sight, however far down the page it is", () => {
+    const page = document.implementation.createHTMLDocument("compared");
+    page.body.innerHTML =
+      '<p>uno</p><p>dos</p><p data-change="gone">tres</p><p data-change="came">cuatro</p>';
+    const first = page.querySelector("[data-change]") as HTMLElement;
+    const last = page.querySelector('[data-change="came"]') as HTMLElement;
+    first.scrollIntoView = vi.fn();
+    last.scrollIntoView = vi.fn();
+
+    toFirstChange({ document: page } as unknown as Window);
+
+    expect(first.scrollIntoView).toHaveBeenCalledWith({ block: "center" });
+    expect(last.scrollIntoView).not.toHaveBeenCalled();
+    expect(() => toFirstChange(null)).not.toThrow();
   });
 
   it("says when the two say the same", async () => {

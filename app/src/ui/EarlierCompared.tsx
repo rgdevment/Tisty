@@ -20,6 +20,10 @@ interface Props {
 // The core already drew the page, so the window lays it as it came.
 const AS_DRAWN = (html: string) => Promise.resolve(html);
 
+// A change far down a long page is where the eye has to go, and nothing else on it says where.
+export const toFirstChange = (page: Window | null) =>
+  page?.document.querySelector("[data-change]")?.scrollIntoView({ block: "center" });
+
 function Counted({ said }: Readonly<{ said: Compared }>) {
   if (said.kind === "tooLong") return null;
   if (said.gone + said.came === 0) return <span>{t("earlierSame")}</span>;
@@ -86,6 +90,7 @@ export default function EarlierCompared({
           label={label}
           card={card}
           onDoc={() => undefined}
+          onShown={toFirstChange}
         />
       ) : (
         <div className="px-8 pt-8">

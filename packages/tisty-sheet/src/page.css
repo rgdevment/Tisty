@@ -1692,13 +1692,13 @@ html.lively:not(.sheeted) .page {
     display: none;
   }
 }
-[data-change] {
+.page [data-change] {
   border-radius: 4px;
 }
-[data-change="gone"] {
+.page [data-change="gone"] {
   background: color-mix(in srgb, var(--tisty-hue-red) 8%, transparent);
 }
-[data-change="came"] {
+.page [data-change="came"] {
   background: color-mix(in srgb, var(--tisty-hue-green) 9%, transparent);
 }
 [data-change="gone"] del {
