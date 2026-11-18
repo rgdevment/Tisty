@@ -386,6 +386,10 @@ jobs:
         shell: bash
         run: cargo build --release --locked -p tisty-cli --bin tisty --target "$TARGET"
 
+      - name: The CLI needs no Visual C++ runtime
+        shell: bash
+        run: bash scripts/no-vc-runtime.sh "target/$TARGET/release/tisty.exe"
+
       - name: Sign executable
         if: env.HAS_PFX_BASE64 == 'true'
         shell: pwsh
@@ -487,6 +491,10 @@ jobs:
           cargo build --release --locked -p tisty-cli --bin tisty
           mkdir -p app/src-tauri/binaries
           cp target/release/tisty.exe "app/src-tauri/binaries/tisty-$TARGET.exe"
+
+      - name: The CLI needs no Visual C++ runtime
+        shell: bash
+        run: bash scripts/no-vc-runtime.sh "app/src-tauri/binaries/tisty-$TARGET.exe"
 
       # `tauri build` compiles and packs in one step, so what ends up inside the installer can
       # only be signed by the bundler. The certificate goes to the store and the command picks it

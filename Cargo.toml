@@ -36,6 +36,7 @@ tauri = { version = "2", features = [
   "macos-private-api",
 ] }
 tauri-build = { version = "2", features = [] }
+static_vcruntime = "3"
 tauri-plugin-opener = "2"
 log = "0.4"
 tauri-plugin-dialog = "2"
