@@ -22,6 +22,7 @@ const ipc = vi.hoisted(() => ({
   page: null as unknown,
   kept: null as number | null,
   moved: false,
+  full: false,
 }));
 
 vi.mock("@tauri-apps/api/core", async () => ({
@@ -33,6 +34,7 @@ vi.mock("@tauri-apps/api/core", async () => ({
         return Promise.resolve({ versions: ipc.rows, kept: ipc.kept ?? here });
       }
       case "doc_write":
+        if (ipc.full) return Promise.reject({ code: "documentTooLong", name: "500 kB" });
         return ipc.moved
           ? Promise.reject({ code: "documentMoved" })
           : Promise.resolve({ id: args.id, title: "Acta", print: "p" });
@@ -143,6 +145,7 @@ beforeEach(() => {
   ipc.page = null;
   ipc.kept = null;
   ipc.moved = false;
+  ipc.full = false;
   asksSure(null);
   knowAgents(
     { "agent-1": "agent" },
@@ -476,6 +479,40 @@ describe("the versions of a task's page", () => {
 
     await waitFor(() => expect(onError).toHaveBeenCalledWith({ code: "unsavedStays" }));
     expect(called("doc_back_to")).toEqual([]);
+  });
+
+  it("goes back to nothing while words typed on the page could not be saved", async () => {
+    asksSure(() => Promise.resolve(true));
+    ipc.page = { file: "t_one-0001", held: false };
+    const onError = vi.fn();
+    render(<TaskWords task={task()} onError={onError} />);
+    const editor = await screen.findByDisplayValue(/lo de ahora/);
+    await userEvent.click(await versions());
+    ipc.full = true;
+    fireEvent.change(editor, { target: { value: "# Acta\n\nlo que tecleo" } });
+
+    await userEvent.click(await screen.findByRole("button", { name: t("earlierBack") }));
+
+    await waitFor(() => expect(onError).toHaveBeenCalledWith({ code: "unsavedStays" }));
+    expect(called("doc_back_to")).toEqual([]);
+  });
+
+  it("stops offering to undo once the page's history is emptied", async () => {
+    asksSure(() => Promise.resolve(true));
+    ipc.page = { file: "t_one-0001", held: false };
+    render(<TaskWords task={task()} />);
+    await screen.findByDisplayValue(/lo de ahora/);
+    await userEvent.click(await versions());
+    await userEvent.click(await screen.findByRole("button", { name: t("earlierBack") }));
+    await screen.findByText(fill("earlierWentBack", whenOf(claudes)));
+
+    await userEvent.click(await versions());
+    await userEvent.click(await screen.findByRole("button", { name: t("earlierEmpty") }));
+
+    await waitFor(() =>
+      expect(screen.queryByText(fill("earlierWentBack", whenOf(claudes)))).toBeNull(),
+    );
+    expect(screen.queryByRole("button", { name: t("docStirredBack") })).toBeNull();
   });
 
   it("has no versions to show before the page is written", async () => {
