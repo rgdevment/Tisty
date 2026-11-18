@@ -282,6 +282,27 @@ describe("the live cards on a page", () => {
     expect(ipc.cards).toHaveLength(1);
   });
 
+  it("draws every card anew for another document, never laying one drawn for the last", async () => {
+    ipc.drawn = CARDED;
+    const { frame, view } = await drawn({ cardsShown: SHOWN });
+    await loaded(frame);
+    ipc.version = 2;
+    view.rerender(
+      <Page
+        body={`${BODY}otro
+`}
+        label="Notas"
+        onDoc={() => {}}
+        cardsShown={{ ...SHOWN, here: "ef56-0003" }}
+      />,
+    );
+    const page = await loaded(frame);
+    await waitFor(() =>
+      expect(page.querySelector(".page > p > .doc-card")?.textContent).toBe("Huerta v2"),
+    );
+    expect(ipc.cards.at(-1)).toMatchObject({ seen: { here: "ef56-0003" } });
+  });
+
   it("asks nothing of the core where the window shows no cards", async () => {
     ipc.drawn = CARDED;
     const { frame } = await drawn();

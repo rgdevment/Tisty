@@ -584,7 +584,7 @@ export default function Docs({
       : aimed.current?.file === own.file
         ? aimed.current.heading
         : undefined;
-  const pages = pagesOf(known, open?.file);
+  const pages = useMemo(() => pagesOf(known, open?.file), [known, open?.file]);
   const [picked, setPicked] = useState<Picked | null>(null);
   const leafy = Boolean(own && !own.pageOf);
   const { linkable, headsOf } = useLinkable(known, open?.file);

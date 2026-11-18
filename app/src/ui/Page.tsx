@@ -84,8 +84,13 @@ export default function Page(props: Readonly<Props>) {
   const shown = props.cardsShown;
   const acting = Boolean(props.onTaskDone);
   const more = Boolean(props.onMore);
+  const seenAs = useRef("");
   // biome-ignore lint/correctness/useExhaustiveDependencies: what a card shows changes with what the window heard, never with `relaid` itself.
   useEffect(() => {
+    // A card is drawn for its page and its controls, so another of either draws every card anew.
+    const seen = `${shown?.here}|${acting}|${more}`;
+    if (seenAs.current !== seen) cards.current = new Map();
+    seenAs.current = seen;
     const page = held.current?.contentDocument;
     if (page && shown) void relaid(cardsOn(page));
   }, [shown?.heard, shown?.here, shown?.docs, shown?.tasks, acting, more]);
