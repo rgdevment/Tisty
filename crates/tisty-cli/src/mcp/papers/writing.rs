@@ -271,15 +271,23 @@ pub(in crate::mcp) fn restore_doc(paths: &Paths, args: &Value) -> Result<Value, 
         },
     };
     let now = tisty_core::docs::read(&paths.docs(), &which).map_err(hitch)?;
+    let toggling = past.is_none() && super::versions::undoes_a_going_back(paths, &which, &now);
     if a_task_s {
-        super::compacting::only_the_notes(&now, &was).map_err(|refused| match &past {
-            Some(_) => Refused::Tool(format!(
-                "going back by a task's id reaches only the assistant's notes, and that version \
-                 differs elsewhere too — its steps, or the person's words. Nothing was changed. \
-                 To take the whole page back, steps and all, send its own name, `{which}`, as \
-                 `doc`."
-            )),
-            None => refused,
+        super::compacting::only_the_notes(&now, &was).map_err(|refused| {
+            match (&past, toggling) {
+                (Some(_), _) => Refused::Tool(format!(
+                    "going back by a task's id reaches only the assistant's notes, and that \
+                     version differs elsewhere too — its steps, or the person's words. Nothing \
+                     was changed. To take the whole page back, steps and all, send its own name, \
+                     `{which}`, as `doc`."
+                )),
+                (None, true) => Refused::Tool(format!(
+                    "the page was last taken back to a version whole, steps and all, by its own \
+                     name, and a task's id reaches only the assistant's notes. Nothing was \
+                     changed. Undo it by the same name: `restore_doc` with `{which}` as `doc`."
+                )),
+                (None, false) => refused,
+            }
         })?;
     }
     if tisty_core::docs::unchanged(&now, &was) {
@@ -325,16 +333,14 @@ pub(in crate::mcp) fn restore_doc(paths: &Paths, args: &Value) -> Result<Value, 
     )?;
     if let Some(one) = &past {
         let whole = tisty_core::docs::read(&paths.docs(), &which).unwrap_or_default();
-        if tisty_core::docs::unchanged(&now, &whole) {
+        if now == whole {
             return Err(Refused::Tool(format!(
                 "{named} already says what version {} says, with the lines naming its pages, so \
                  nothing was changed.",
                 one.short()
             )));
         }
-        if kept.task_of.is_some() {
-            super::versions::went_back(paths, &which, &now, &whole);
-        }
+        super::versions::went_back(paths, &which, &now, &whole);
     }
     if kept
         .compacted
@@ -349,6 +355,7 @@ pub(in crate::mcp) fn restore_doc(paths: &Paths, args: &Value) -> Result<Value, 
         );
     }
     if past.is_none()
+        && !toggling
         && kept.compacted.is_none()
         && let Some(mark) = compaction_put_back(&store, kept.id, &was)
         && let Err(e) = store.append(mark)
