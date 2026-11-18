@@ -3,7 +3,8 @@ use rusqlite::{Connection, OptionalExtension};
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
 
 use super::Brain;
-use super::linked::paper_named;
+use super::decided::Decision;
+use super::linked::{TITLED, paper_named};
 use super::own::Own;
 use crate::model::{DocId, Priority};
 use crate::standing::{Standing, standing_on};
@@ -20,11 +21,17 @@ const OUTGOING: &str = "SELECT e.kind, e.target, COALESCE(a.id, b.id), COALESCE(
 const INCOMING: &str = "SELECT e.kind, n.id, n.kind, n.title, n.state, c.said
     FROM edge e JOIN node n ON n.id = e.source
     LEFT JOIN card c ON c.id = e.source AND e.kind = 'structure' AND n.kind = 'task'
-    WHERE e.target IN (?1, ?2)
+    WHERE e.target IN (?1, ?2, ?3)
     ORDER BY e.kind, e.source";
+const TITLES_AIMED: &str = "SELECT DISTINCT substr(target, 3) FROM edge
+    WHERE source = ?1 AND kind = 'mention' AND substr(target, 1, 2) = '[['
+    ORDER BY 1";
+pub(super) const CARRYING: &str =
+    "SELECT id, kind, title, state FROM node WHERE kind IN ('doc', 'page') AND title = ?1";
 
 type Incoming = (String, Near, Option<String>);
 const OPEN: [&str; 3] = ["open", "said_done", "said_dropped"];
+const DECISIONS_SHOWN: usize = 60;
 
 // Fields serialize in this order, so what every agent needs comes first and the longest last.
 #[derive(Debug, Clone, PartialEq, Serialize)]
@@ -43,6 +50,10 @@ pub struct Card {
     pub facts: Facts,
     #[serde(flatten)]
     pub around: Around,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub decisions: Vec<Decision>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub decisions_more: Option<usize>,
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub sections: Vec<Section>,
 }
@@ -102,6 +113,13 @@ pub struct Tongue {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct Used {
+    pub file: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub shows: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct Near {
     pub id: String,
     pub kind: String,
@@ -133,7 +151,7 @@ pub struct Around {
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub tags: Vec<String>,
     #[serde(skip_serializing_if = "Vec::is_empty")]
-    pub files: Vec<String>,
+    pub files: Vec<Used>,
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub cites: Vec<Near>,
     #[serde(skip_serializing_if = "Vec::is_empty")]
@@ -258,11 +276,17 @@ impl<F: Fn(&str) -> bool> Reader<'_, F> {
             }
         }
         self.ties(&row, &own, own.book.as_deref(), None, &mut around)?;
+        let mut decisions = own.decisions;
+        decisions.sort_by_key(|one| one.replaced);
+        let more = decisions.len().saturating_sub(DECISIONS_SHOWN);
+        decisions.truncate(DECISIONS_SHOWN);
         Ok(Some(Card {
             folder: zone,
             list: None,
             standing: None,
             facts: Facts::Doc(own.facts),
+            decisions,
+            decisions_more: (more > 0).then_some(more),
             sections: own.sections,
             ..carded(row, around)
         }))
@@ -325,14 +349,33 @@ impl<F: Fn(&str) -> bool> Reader<'_, F> {
                 "cite" => added(&mut around.cites, near),
                 "mention" => added(&mut around.mentions, near),
                 "tag" => around.tags.push(near.title),
-                "uses" => around.files.push(near.id),
+                "uses" => around.files.push(Used {
+                    shows: own.shows.get(&near.id).cloned(),
+                    file: near.id,
+                }),
                 "structure" if origin == Some(target.as_str()) => around.origin = Some(near),
                 "structure" if placed != Some(target.as_str()) => around.ideas_from = Some(near),
                 _ => {}
             }
         }
+        for title in self.titles_aimed(&row.id)? {
+            if let Some(near) = self.carrying(&title)?.filter(|one| one.id != row.id) {
+                added(&mut around.mentions, near);
+            }
+        }
         let uid = row.uid.as_deref().unwrap_or(&row.id);
-        for (kind, near, said) in self.incoming(&row.id, uid)? {
+        let titled = match row.kind.as_str() {
+            "doc" | "page"
+                if self
+                    .carrying(&row.title)?
+                    .is_some_and(|one| one.id == row.id) =>
+            {
+                format!("{TITLED}{}", row.title)
+            }
+            _ => uid.to_string(),
+        };
+        let others = self.incoming(&row.id, uid, &titled)?.into_iter();
+        for (kind, near, said) in others.filter(|(_, near, _)| near.id != row.id) {
             match kind.as_str() {
                 "cite" => added(&mut around.cited_by, near),
                 "mention" => added(&mut around.mentioned_by, near),
@@ -367,10 +410,37 @@ impl<F: Fn(&str) -> bool> Reader<'_, F> {
             .collect())
     }
 
-    fn incoming(&self, id: &str, uid: &str) -> rusqlite::Result<Vec<Incoming>> {
+    fn titles_aimed(&self, id: &str) -> rusqlite::Result<Vec<String>> {
+        let mut asked = self.db.prepare_cached(TITLES_AIMED)?;
+        asked.query_map([id], |one| one.get(0))?.collect()
+    }
+
+    // Only what this reader may see is counted, so a hidden twin neither shows nor gives itself away.
+    fn carrying(&self, title: &str) -> rusqlite::Result<Option<Near>> {
+        let mut asked = self.db.prepare_cached(CARRYING)?;
+        let mut all: Vec<Near> = asked
+            .query_map([title], |one| {
+                Ok(Near {
+                    id: one.get(0)?,
+                    kind: one.get(1)?,
+                    title: one.get(2)?,
+                    state: one.get(3)?,
+                })
+            })?
+            .collect::<rusqlite::Result<Vec<Near>>>()?
+            .into_iter()
+            .filter(|near| (self.seen)(&near.id))
+            .collect();
+        Ok(match all.len() {
+            1 => all.pop(),
+            _ => None,
+        })
+    }
+
+    fn incoming(&self, id: &str, uid: &str, titled: &str) -> rusqlite::Result<Vec<Incoming>> {
         let mut asked = self.db.prepare_cached(INCOMING)?;
         let all: Vec<Incoming> = asked
-            .query_map([id, uid], |one| {
+            .query_map([id, uid, titled], |one| {
                 let near = Near {
                     id: one.get(1)?,
                     kind: one.get(2)?,
@@ -420,6 +490,8 @@ fn carded(row: Row, around: Around) -> Card {
         standing: None,
         facts: Facts::Doc(DocFacts::default()),
         around,
+        decisions: Vec::new(),
+        decisions_more: None,
         sections: Vec::new(),
     }
 }

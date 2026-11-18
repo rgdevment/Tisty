@@ -73,3 +73,20 @@ fn a_link_to_a_document_is_told_apart_from_the_heading_it_lands_on() {
     assert_eq!(doc_aimed("tisty:doc/a-0001#"), Some(("a-0001", None)));
     assert_eq!(doc_aimed("tisty:task/01ABC"), None);
 }
+
+#[test]
+fn a_picture_comes_with_the_words_in_its_brackets() {
+    let body = "![Rina on her chair](rina-3f9a1c2b.jpg)\n\n![](vet-9d02e4b7.png) and \
+                [a link](x-0001.png)\n\n```\n![in code](code-1a2b3c4d.png)\n```";
+
+    assert_eq!(
+        pictures(body),
+        vec![
+            (
+                "rina-3f9a1c2b.jpg".to_string(),
+                "Rina on her chair".to_string()
+            ),
+            ("vet-9d02e4b7.png".to_string(), String::new()),
+        ]
+    );
+}

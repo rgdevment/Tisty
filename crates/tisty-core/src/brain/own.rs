@@ -1,7 +1,8 @@
 use serde::{Deserialize, Serialize};
 
 use super::card::{DocFacts, Section, TaskFacts, Tongue};
-use super::linked::{Ground, Holder, Read, Ties};
+use super::decided::{Decision, decisions};
+use super::linked::{Ground, Holder, Read, Shown, Ties};
 use super::nodes::Node;
 use crate::model::Kept;
 use crate::{State, Task};
@@ -26,13 +27,26 @@ pub(super) struct Own<F> {
     pub(super) part_of: Option<String>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub(super) sections: Vec<Section>,
+    #[serde(default, skip_serializing_if = "Shown::is_empty")]
+    pub(super) shows: Shown,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub(super) decisions: Vec<Decision>,
 }
 
 pub(super) fn fresh(state: &State, ground: &Ground, id: &str, node: &Node) -> Fresh {
-    let read = ground.read(id, &node.holder);
+    let mut read = ground.read(id, &node.holder);
+    let shows = std::mem::take(&mut read.shows);
     let said = match node.holder {
-        Holder::Doc(kept) => serde_json::to_string(&of_doc(state, ground, kept, &read)).ok(),
-        Holder::Task(task) => serde_json::to_string(&of_task(task, read.away)).ok(),
+        Holder::Doc(kept) => serde_json::to_string(&Own {
+            shows,
+            ..of_doc(state, ground, kept, &read)
+        })
+        .ok(),
+        Holder::Task(task) => serde_json::to_string(&Own {
+            shows,
+            ..of_task(task, std::mem::take(&mut read.away))
+        })
+        .ok(),
         Holder::Nothing => None,
     };
     Fresh {
@@ -70,6 +84,8 @@ fn of_doc(state: &State, ground: &Ground, kept: &Kept, read: &Read) -> Own<DocFa
             .collect(),
         part_of: None,
         sections: body.map(sections).unwrap_or_default(),
+        shows: Shown::new(),
+        decisions: body.map(decisions).unwrap_or_default(),
     }
 }
 

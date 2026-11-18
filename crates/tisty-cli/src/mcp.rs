@@ -18,6 +18,7 @@ mod papers;
 mod placing;
 mod pressing;
 mod prompts;
+mod referencing;
 mod resources;
 mod resuming;
 mod reviewing;
@@ -286,30 +287,36 @@ fn answered(
     taken: Option<&Takes>,
 ) -> Result<Value, Refused> {
     match name {
-        "propose" => spoken(&args, "description", |args| propose(paths, taken, args)),
+        "propose" => spoken(paths, name, &args, "description", |args| {
+            propose(paths, taken, args)
+        }),
         "remind" => remind(paths, &args),
-        "note" => spoken(&args, "body", |args| note(paths, args)),
-        "describe" => spoken(&args, "body", |args| describe(paths, args)),
+        "note" => spoken(paths, name, &args, "body", |args| note(paths, args)),
+        "describe" => spoken(paths, name, &args, "body", |args| describe(paths, args)),
         "plan" => plan(paths, &args),
-        "tick" => spoken(&args, "state", |args| task_state::tick(paths, args)),
+        "tick" => spoken(paths, name, &args, "state", |args| {
+            task_state::tick(paths, args)
+        }),
         "untick" => untick(paths, &args),
         "rename" => rename(paths, &args),
         "reword_step" => reword_step(paths, &args),
         "unplan" => unplan(paths, &args),
         "move" => moving::move_task(paths, &args),
-        "reword_note" => spoken(&args, "body", |args| reword_note(paths, args)),
+        "reword_note" => spoken(paths, name, &args, "body", |args| reword_note(paths, args)),
         "find" => find(paths, &args),
         "read" => read(paths, &args),
-        "write_doc" => spoken(&args, "body", |args| write_doc(paths, args)),
-        "append_doc" => spoken(&args, "body", |args| append_doc(paths, args)),
+        "write_doc" => spoken(paths, name, &args, "body", |args| write_doc(paths, args)),
+        "append_doc" => spoken(paths, name, &args, "body", |args| append_doc(paths, args)),
         "restore_doc" => restore_doc(paths, &args),
         "edit_doc" => edit_doc(paths, &args),
         "edit_table" => edit_table(paths, &args),
         "catch_up" => catch_up(paths, &args),
         "sum_up" => sum_up(paths, &args),
         "reschedule" => reschedule(paths, &args),
-        "say_done" => spoken(&args, "body", |args| say_done(paths, args)),
-        "say_not_doing" => spoken(&args, "body", |args| say_not_doing(paths, args)),
+        "say_done" => spoken(paths, name, &args, "body", |args| say_done(paths, args)),
+        "say_not_doing" => spoken(paths, name, &args, "body", |args| {
+            say_not_doing(paths, args)
+        }),
         "read_doc" => read_doc(paths, &args),
         "outline_doc" => outline_doc(paths, &args),
         "docs" => papers::listing::docs(paths, &args),

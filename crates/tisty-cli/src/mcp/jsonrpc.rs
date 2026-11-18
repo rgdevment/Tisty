@@ -170,7 +170,11 @@ const SAID_WITHIN: usize = 600;
 
 /// Some clients hand the model the text alone and others the structured answer alone, so a question goes in both.
 pub(super) fn with_ask(answer: &mut Value, ask: Value) -> bool {
-    let Some(sentence) = ask["said"].as_str().map(str::to_string) else {
+    with_said(answer, "ask", ask)
+}
+
+pub(super) fn with_said(answer: &mut Value, key: &str, said: Value) -> bool {
+    let Some(sentence) = said["said"].as_str().map(str::to_string) else {
         return false;
     };
     let Some(shown) = answer
@@ -179,7 +183,7 @@ pub(super) fn with_ask(answer: &mut Value, ask: Value) -> bool {
     else {
         return false;
     };
-    shown.insert("ask".into(), ask);
+    shown.insert(key.into(), said);
     if let Some(text) = answer.pointer_mut("/content/0/text")
         && let Some(was) = text.as_str()
     {

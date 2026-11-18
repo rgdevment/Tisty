@@ -1,6 +1,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 
-use tisty_markdown::refs::{DOC, TASK, links};
+use tisty_markdown::named::{Named, spots};
+use tisty_markdown::refs::{DOC, TASK, links, pictures};
 
 use super::Docs;
 use crate::model::{DocId, Kept};
@@ -28,6 +29,10 @@ impl Tie {
 }
 
 pub(super) type Ties = BTreeSet<(String, Tie)>;
+pub(super) type Shown = BTreeMap<String, String>;
+
+// A `[[title]]` is aimed at a title, so a document renamed later is found by whoever reads.
+pub(super) const TITLED: &str = "[[";
 
 pub(super) enum Holder<'a> {
     Doc(&'a Kept),
@@ -39,6 +44,7 @@ pub(super) struct Read {
     pub(super) ties: Ties,
     pub(super) away: Vec<String>,
     pub(super) body: Option<String>,
+    pub(super) shows: Shown,
 }
 
 enum Aim {
@@ -152,6 +158,7 @@ impl<'a> Ground<'a> {
             ties: Ties::new(),
             away: Vec::new(),
             body: None,
+            shows: Shown::new(),
         };
         match holder {
             Holder::Doc(kept) => self.of_doc(own, kept, &mut read),
@@ -165,7 +172,7 @@ impl<'a> Ground<'a> {
         let pages = self.pages_of_books.get(&kept.id);
         read.body = self.docs.read(&kept.file);
         if let Some(body) = &read.body {
-            self.written(own, body, pages, &mut read.ties, None);
+            self.written(own, body, pages, (&mut read.ties, &mut read.shows), None);
         }
         if let Some(book) = self.book_of(kept) {
             read.ties.insert((book.to_string(), Tie::Structure));
@@ -174,7 +181,9 @@ impl<'a> Ground<'a> {
     }
 
     fn of_task(&self, own: &str, task: &Task, read: &mut Read) {
-        let Read { ties, away, .. } = read;
+        let Read {
+            ties, away, shows, ..
+        } = read;
         let said = task
             .description
             .as_deref()
@@ -182,11 +191,11 @@ impl<'a> Ground<'a> {
             .chain(task.log.iter().map(|entry| entry.body.as_str()))
             .chain(task.steps.iter().map(|step| step.text.as_str()));
         for text in said {
-            self.written(own, text, None, ties, Some(away));
+            self.written(own, text, None, (ties, shows), Some(away));
         }
         for file in self.pages_of_tasks.get(&task.id).into_iter().flatten() {
             if let Some(page) = self.docs.read(file) {
-                self.written(own, &page, None, ties, Some(away));
+                self.written(own, &page, None, (ties, shows), Some(away));
             }
         }
         if let Some(whole) = task.part_of {
@@ -203,7 +212,7 @@ impl<'a> Ground<'a> {
         own: &str,
         text: &str,
         pages: Option<&BTreeMap<&str, &str>>,
-        ties: &mut Ties,
+        (ties, shows): (&mut Ties, &mut Shown),
         mut away: Option<&mut Vec<String>>,
     ) {
         for link in links(text) {
@@ -229,6 +238,29 @@ impl<'a> Ground<'a> {
                     }
                 }
                 _ => {}
+            }
+        }
+        for spot in spots(text) {
+            let named = match spot.named {
+                Named::Id(said) => said.parse::<TaskId>().map(|id| id.to_string()).ok(),
+                Named::Wiki(title) => Some(format!("{TITLED}{title}")),
+                Named::Quoted(_) => None,
+            };
+            if let Some(named) = named.filter(|one| one != own) {
+                ties.insert((named, Tie::Mention));
+            }
+        }
+        for (target, label) in pictures(text) {
+            let Some(file) =
+                crate::attach::canonical(&target).filter(|one| crate::attach::pictured(one))
+            else {
+                continue;
+            };
+            let leaf = file.rsplit('/').next().unwrap_or(&file);
+            if let Some(said) = crate::attach::shows(&label, leaf) {
+                shows
+                    .entry(file.clone())
+                    .or_insert_with(|| said.to_string());
             }
         }
         if let Some(sheet) = self.sheet.filter(|one| *one != own)

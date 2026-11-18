@@ -154,8 +154,9 @@ impl OpenTask {
         let Some(due) = self.heard(touch, now) else {
             return said;
         };
-        // Nothing structured is all text, so a question there waits for the next answer.
-        if !said["structuredContent"].is_object() {
+        // Nothing structured is all text, and an answer asks one thing, so the question waits for the next.
+        if !said["structuredContent"].is_object() || said["structuredContent"].get("ask").is_some()
+        {
             return said;
         }
         match asked_about(paths, &due) {

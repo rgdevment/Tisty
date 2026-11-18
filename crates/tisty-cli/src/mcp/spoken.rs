@@ -1,10 +1,13 @@
 use serde_json::Value;
+use tisty_core::Paths;
 
 use super::Refused;
 
-/// Markdown from anywhere is taken: it is turned into the Tisty language first, and what that
-/// changed rides back on the answer so the person can hear it.
+/// Markdown from anywhere is taken: it is turned into the Tisty language first, what it names
+/// exactly is linked, and what that changed rides back on the answer so the person can hear it.
 pub(super) fn spoken(
+    paths: &Paths,
+    tool: &str,
     args: &Value,
     field: &str,
     write: impl FnOnce(&Value) -> Result<Value, Refused>,
@@ -12,7 +15,8 @@ pub(super) fn spoken(
     let mut sent = args.clone();
     let mut changed = Vec::new();
     turned(&mut sent, field, &mut changed);
-    Ok(heard(write(&sent)?, &changed))
+    let referenced = super::referencing::link_all(paths, tool, &mut sent, field);
+    Ok(referenced.told(heard(write(&sent)?, &changed)))
 }
 
 /// What turning changed rides back on the answer, so the next write comes in the Tisty language.

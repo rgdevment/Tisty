@@ -9,15 +9,17 @@ use crate::{
 };
 
 mod card;
+mod decided;
 mod linked;
 mod nodes;
 mod own;
 mod reading;
 
-pub use card::{Around, Card, DocFacts, Facts, Near, Section, TaskFacts, Tongue};
+pub use card::{Around, Card, DocFacts, Facts, Near, Section, TaskFacts, Tongue, Used};
+pub use decided::Decision;
 pub use reading::{Citing, Headed, Under, cited_by};
 
-const SCHEMA: i64 = 4;
+const SCHEMA: i64 = 5;
 const FILE: &str = "brain.db";
 const WAITS_FOR_OTHERS: std::time::Duration = std::time::Duration::from_secs(5);
 const PAGES_WORTH_COMPACTING: i64 = 256;
@@ -31,6 +33,7 @@ const TABLES: &str = "CREATE TABLE IF NOT EXISTS node(
         uid TEXT,
         stamp TEXT NOT NULL);
     CREATE INDEX IF NOT EXISTS node_by_uid ON node(uid);
+    CREATE INDEX IF NOT EXISTS node_by_title ON node(title);
     CREATE TABLE IF NOT EXISTS edge(
         source TEXT NOT NULL,
         target TEXT NOT NULL,
