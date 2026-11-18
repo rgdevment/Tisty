@@ -9,7 +9,7 @@ expression: tool
     "openWorldHint": false,
     "readOnlyHint": true
   },
-  "description": "A document's text and the `print` it reads at. Past about 12,000 characters it comes back as its outline (`whole` false): then ask for a `section`, lines, or `chars` at a time. Every part brings the print, so `edit_doc` needs no whole read.",
+  "description": "A document's text and the `print` it reads at. Past about 12,000 characters it comes back as its outline (`whole` false): then ask for a `section`, lines, or `chars` at a time. Every part brings the print, so `edit_doc` needs no whole read. `versions` lists what it said before, and `version` reads one.",
   "inputSchema": {
     "additionalProperties": false,
     "properties": {
@@ -47,6 +47,14 @@ expression: tool
       "to": {
         "description": "Last line; left out, to the end",
         "type": "integer"
+      },
+      "version": {
+        "description": "A `version` from that list, read in place of the text",
+        "type": "string"
+      },
+      "versions": {
+        "description": "Its past versions instead of its text: when each was written, by whom, its size. A task's id lists its page's",
+        "type": "boolean"
       }
     },
     "required": [
