@@ -3,6 +3,8 @@ use std::path::{Path, PathBuf};
 
 use tisty_core::agents::{Card, GLOBAL, Kind, Place as Spot, Target};
 
+use super::places::var;
+
 pub const ICON: &str = "robot";
 pub const HUE: &str = "purple";
 pub const FOLDER: &str = "AGENTS";
@@ -11,6 +13,7 @@ pub const GLOBAL_FOLDER: &str = "Global";
 const SHARED_SKILLS_OWNERS: [&str; 3] = ["codex", "copilot", "gemini"];
 const GEMINI_RULES: &str = "tisty-rules.md";
 const GEMINI_MEMORY: &str = "GEMINI.md";
+const CODEX_OVERRIDE: &str = "AGENTS.override.md";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Assistant {
@@ -57,7 +60,6 @@ pub fn assistant(id: &str) -> Option<&'static Assistant> {
     ASSISTANTS.iter().find(|one| one.id == id)
 }
 
-/// Where this person's assistants keep their files: the home folder and the variables that move them.
 #[derive(Debug, Clone, Default)]
 pub struct Homes {
     home: PathBuf,
@@ -134,23 +136,24 @@ impl Homes {
     }
 
     fn skills_of(&self, id: &str) -> Option<(PathBuf, PathBuf)> {
-        match id {
-            "codex" => {
-                let root = self.shared();
-                Some((root.clone(), root.join("skills")))
-            }
-            _ => {
-                let root = self.root(id)?;
-                Some((root.clone(), root.join("skills")))
-            }
+        let root = match id {
+            "codex" => self.shared(),
+            _ => self.root(id)?,
+        };
+        Some((root.clone(), root.join("skills")))
+    }
+
+    // Codex reads the override instead of AGENTS.md whenever it is there, so Global rules must go where it reads.
+    fn main_of(&self, one: &Assistant) -> Option<&'static str> {
+        let overridden = one.id == "codex"
+            && self
+                .root(one.id)
+                .is_some_and(|root| root.join(CODEX_OVERRIDE).is_file());
+        match overridden {
+            true => Some(CODEX_OVERRIDE),
+            false => one.main,
         }
     }
-}
-
-fn var(named: &str) -> Option<PathBuf> {
-    std::env::var_os(named)
-        .filter(|it| !it.is_empty())
-        .map(PathBuf::from)
 }
 
 fn under(at: &Path, name: &str) -> PathBuf {
@@ -158,7 +161,6 @@ fn under(at: &Path, name: &str) -> PathBuf {
         .fold(at.to_path_buf(), |at, step| at.join(step))
 }
 
-/// Where Tisty looks for what an assistant already has, read only with the person's yes.
 pub fn spots(homes: &Homes, one: &Assistant) -> Vec<Spot> {
     let Some(root) = homes.root(one.id) else {
         return Vec::new();
@@ -174,11 +176,7 @@ pub fn spots(homes: &Homes, one: &Assistant) -> Vec<Spot> {
         all.push(spot(Kind::Rule, root.join(main), main));
     }
     if one.id == "codex" {
-        all.push(spot(
-            Kind::Rule,
-            root.join("AGENTS.override.md"),
-            "AGENTS.override.md",
-        ));
+        all.push(spot(Kind::Rule, root.join(CODEX_OVERRIDE), CODEX_OVERRIDE));
     }
     if let Some(dir) = one.rule_dir {
         all.push(spot(Kind::Rule, root.join(dir), dir));
@@ -217,7 +215,6 @@ fn memories(root: &Path) -> Vec<(PathBuf, String)> {
     found
 }
 
-/// The file an agent document is written to, or read from, on this computer.
 pub fn target_of(homes: &Homes, card: &Card) -> Option<(PathBuf, PathBuf)> {
     let one = assistant(&card.level)?;
     let root = homes.root(one.id)?;
@@ -233,7 +230,7 @@ pub fn target_of(homes: &Homes, card: &Card) -> Option<(PathBuf, PathBuf)> {
                     .strip_prefix(dir)
                     .is_some_and(|rest| rest.starts_with('/'))
             });
-            let override_md = one.id == "codex" && card.name == "AGENTS.override.md";
+            let override_md = one.id == "codex" && card.name == CODEX_OVERRIDE;
             (main || in_dir || override_md).then(|| (root.clone(), under(&root, &card.name)))
         }
         Kind::Memory => {
@@ -250,7 +247,6 @@ pub fn target_of(homes: &Homes, card: &Card) -> Option<(PathBuf, PathBuf)> {
     }
 }
 
-/// One file to keep, the documents it is made of, and the agent's own file it must be named in.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Placed {
     pub target: Target,
@@ -264,7 +260,6 @@ struct Piece<'a> {
     card: Card,
 }
 
-/// Every file Tisty keeps on this computer, from the documents in AGENTS: Global first, then the assistant's own.
 pub fn targets(homes: &Homes, docs: &[(String, String)]) -> Vec<Placed> {
     let detected = homes.detected();
     let mut pieces: Vec<Piece> = docs
@@ -300,7 +295,7 @@ pub fn targets(homes: &Homes, docs: &[(String, String)]) -> Vec<Placed> {
         }
         for one in &detected {
             let spot = match piece.card.kind {
-                Kind::Rule => one.main.and_then(|main| {
+                Kind::Rule => homes.main_of(one).and_then(|main| {
                     let card = Card {
                         level: one.id.to_string(),
                         name: main.to_string(),

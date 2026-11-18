@@ -107,7 +107,6 @@ interface Props {
   onChanged: () => void;
 }
 
-/// The first time AGENTS opens on a computer: what will happen, what was found, and the yes.
 export default function AgentsFirst({ onClose, onChanged }: Readonly<Props>) {
   const [look, setLook] = useState<AgentsLook>();
   const [chosen, setChosen] = useState<Set<string>>(new Set());

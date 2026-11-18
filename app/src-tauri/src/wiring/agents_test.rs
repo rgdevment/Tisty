@@ -189,3 +189,26 @@ fn a_document_without_a_card_is_never_placed() {
     let docs = vec![("a".to_string(), "# Just notes\n".to_string())];
     assert!(targets(&homes, &docs).is_empty());
 }
+
+#[test]
+fn global_rules_go_to_the_codex_override_when_codex_reads_it() {
+    let (_tmp, homes) = seeded();
+    put(
+        &homes.root("codex").unwrap().join("AGENTS.override.md"),
+        "Override.\n",
+    );
+    let docs = vec![(
+        "g".to_string(),
+        doc(GLOBAL, Kind::Rule, "style.md", "Spanish.\n"),
+    )];
+    let placed = targets(&homes, &docs);
+    let codex: Vec<&PathBuf> = placed
+        .iter()
+        .filter(|one| one.target.assistant == "codex")
+        .map(|one| &one.target.at)
+        .collect();
+    assert_eq!(
+        codex,
+        [&homes.root("codex").unwrap().join("AGENTS.override.md")]
+    );
+}

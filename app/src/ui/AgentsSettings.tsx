@@ -9,7 +9,6 @@ import { Knob, Line } from "./Rows";
 const small =
   "mt-2 self-start rounded-md border border-line px-2.5 py-0.5 text-[12.5px] text-soft hover:border-accent hover:text-accent";
 
-/// Settings › Assistants: create AGENTS, allow this computer, and turn sync off per assistant or for all.
 export default function AgentsSettings({
   busy,
   said,

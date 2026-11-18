@@ -70,7 +70,13 @@ export const agentsEmpty = (): Promise<boolean> => invoke("agents_empty");
 
 export const agentsRoot = (folders: readonly Folded[]): Folded | undefined =>
   folders
-    .filter((one) => one.parent === null && one.icon === AGENTS_ICON && one.name === AGENTS_NAME)
+    .filter(
+      (one) =>
+        one.parent === null &&
+        !one.archived &&
+        one.icon === AGENTS_ICON &&
+        one.name === AGENTS_NAME,
+    )
     .sort((a, b) => a.id.localeCompare(b.id))[0];
 
 export const agentsTree = (folders: readonly Folded[]): Set<string> => {
@@ -92,7 +98,6 @@ export const agentsTree = (folders: readonly Folded[]): Set<string> => {
 export const inAgents = (folder: string | null | undefined, folders: readonly Folded[]) =>
   !!folder && agentsTree(folders).has(folder);
 
-/// What a sync round has to look at: which documents sit in AGENTS and when each was last written.
 export const agentsPrint = (docs: readonly Filed[], folders: readonly Folded[]): string => {
   const tree = agentsTree(folders);
   return docs

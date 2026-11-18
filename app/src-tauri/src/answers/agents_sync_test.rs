@@ -3,6 +3,18 @@ use tisty_core::Paths;
 
 const HERE: &str = "this-computer";
 
+fn bring_chosen(
+    session: &mut Session,
+    homes: &Homes,
+    here: &str,
+    chosen: &[String],
+) -> Answer<Brought> {
+    let (ledger, held) = consented_here(session, here)?;
+    let chosen: BTreeSet<String> = chosen.iter().cloned().collect();
+    let (read, refused) = read_chosen(&ledger, &found_here(homes), &chosen, &held);
+    brought_home(session, homes, ledger, &read, refused)
+}
+
 struct Room {
     _tmp: tempfile::TempDir,
     home: std::path::PathBuf,
@@ -47,7 +59,7 @@ impl Room {
     }
 
     fn look(&self) -> Look {
-        looked(&self.session, &self.homes, HERE)
+        looked(&self.session, &self.homes, HERE, &found_here(&self.homes))
     }
 
     fn bring(&mut self, chosen: &[&str]) -> Brought {
@@ -301,5 +313,77 @@ fn the_comparison_keeps_the_order_of_both_sides() {
             ("same", "c"),
             ("file", "d"),
         ]
+    );
+}
+
+fn global_doc(room: &mut Room, said: &str) {
+    let body = agents::doc_of(
+        agents::GLOBAL,
+        agents::Kind::Rule,
+        "style.md",
+        said.as_bytes(),
+    )
+    .unwrap();
+    let root = root_of(&room.session.state).unwrap();
+    let device = room.session.store.device().clone();
+    let made = tisty_core::docs::create(&room.session.paths.docs(), &device, &body).unwrap();
+    room.session
+        .commit(Op::DocAdd {
+            id: ulid::Ulid::generate(),
+            d: tisty_core::event::DocAdd {
+                file: made.id,
+                folder: Some(root),
+                order: "a".to_string(),
+                said: Some(tisty_core::event::Said::of(&body)),
+                ..Default::default()
+            },
+        })
+        .unwrap();
+}
+
+#[test]
+fn a_file_made_only_of_a_global_rule_never_rewrites_that_rule_from_one_assistant() {
+    let mut room = room();
+    room.bring(&[".claude/CLAUDE.md"]);
+    global_doc(&mut room, "Codex rules.\nSpanish.\n");
+    std::fs::remove_dir_all(agents::folder(room.session.paths.data())).unwrap();
+    let brought = room.bring(&[]);
+    let both = brought
+        .round
+        .both
+        .iter()
+        .find(|one| one.at.ends_with("AGENTS.md"))
+        .unwrap_or_else(|| panic!("{:?}", brought.round));
+    assert!(both.composed, "a Global rule belongs to every assistant");
+    let at = room.at(".codex/AGENTS.md");
+    assert!(kept_side(&mut room.session, &room.homes, HERE, &at, false).is_err());
+    let global = bodies(&room.session)
+        .into_iter()
+        .find(|(_, body)| body.contains("global/rule"))
+        .unwrap();
+    assert!(global.1.contains("Spanish."), "{}", global.1);
+}
+
+#[test]
+fn tistys_own_line_in_geminis_file_is_not_taken_for_a_change_outside() {
+    let mut room = room();
+    put(Path::new(&room.at(".gemini/GEMINI.md")), "- remembered\n");
+    room.bring(&[".gemini/GEMINI.md"]);
+    global_doc(&mut room, "Spanish.\n");
+    let mut ledger = Ledger::open(room.session.paths.data(), HERE);
+    round_now(&room.session, &room.homes, &mut ledger);
+    assert_eq!(
+        room.read(".gemini/GEMINI.md"),
+        "- remembered\n@tisty-rules.md\n"
+    );
+    let again = round_now(&room.session, &room.homes, &mut ledger);
+    assert!(
+        again
+            .told
+            .iter()
+            .filter(|one| one.assistant == "gemini")
+            .all(|one| one.standing == "upToDate"),
+        "{:?}",
+        again.told
     );
 }
