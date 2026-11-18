@@ -13,6 +13,7 @@ export interface Neuron {
   title: string;
   group?: string;
   state?: string;
+  when?: string;
 }
 
 export interface LeftOut {

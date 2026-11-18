@@ -2,7 +2,7 @@ use jiff::Timestamp;
 
 use super::super::tests::{World, doc, task};
 use super::{
-    CAPS, Caps, Held, LeftOut, Network, Neuron, TIES, kept_out, network, touched_last, woven,
+    CAPS, Caps, Held, LeftOut, Network, Neuron, TIES, dates, kept_out, network, touched_last, woven,
 };
 
 fn neuron(id: &str, kind: &str, state: Option<&str>) -> Held {
@@ -13,6 +13,7 @@ fn neuron(id: &str, kind: &str, state: Option<&str>) -> Held {
             title: id.into(),
             group: None,
             state: state.map(Into::into),
+            when: None,
         },
         None,
     )
@@ -124,6 +125,7 @@ fn a_line_aimed_at_a_document_by_its_id_reaches_the_document() {
                 title: "Plans".into(),
                 group: None,
                 state: Some("open".into()),
+                when: None,
             },
             Some("01ABC".into()),
         ),
@@ -277,6 +279,7 @@ fn a_node_named_like_another_s_id_keeps_its_own_lines() {
                 title: "Plans".into(),
                 group: None,
                 state: Some("open".into()),
+                when: None,
             },
             Some("zz.md".into()),
         ),
@@ -306,4 +309,30 @@ fn past_the_cap_a_tag_whose_holder_comes_later_still_finds_room() {
     let network = woven(held, &ties, &[], caps);
 
     assert_eq!(named(&network), ["#home", "a-closed"]);
+}
+
+#[test]
+fn every_document_and_task_carries_the_day_it_was_last_touched() {
+    let world = World::new();
+    let mut store = world.store();
+    let (notes_id, notes) = doc(&world, &mut store, "# Notes\n", None, None);
+    let errand = task(&mut store, "errand", &[]);
+    let mut state = world.state();
+    state.docs.get_mut(&notes_id).unwrap().wrote =
+        Some(Timestamp::from_second(1_800_000_000).unwrap());
+    state.tasks.get_mut(&errand).unwrap().completed_at =
+        Some(Timestamp::from_second(4_000_000_000).unwrap());
+    let mut network = whole(&world, |_| true, &[]);
+
+    network.dated(&dates(&state));
+
+    let when = |id: &str| {
+        network
+            .nodes
+            .iter()
+            .find(|one| one.id == id)
+            .and_then(|one| one.when.clone())
+    };
+    assert_eq!(when(&notes).as_deref(), Some("2027-01-15"));
+    assert_eq!(when(&errand.to_string()).as_deref(), Some("2096-10-02"));
 }

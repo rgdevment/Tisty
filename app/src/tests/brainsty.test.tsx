@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import App from "../App";
@@ -26,6 +26,14 @@ const sigma = vi.hoisted(() => ({
   rethemed: 0,
   killed: 0,
   stopped: 0,
+  focused: [] as number[],
+  lit: [] as (number[] | null)[],
+  hidden: [] as boolean[][],
+  hands: null as null | {
+    pick: (node: number) => void;
+    open: (node: number) => void;
+    clear: () => void;
+  },
   step: null as
     | null
     | ((step: {
@@ -46,6 +54,16 @@ vi.mock("../ui/brainsty/drawing", () => ({
     toScreen: (point: [number, number]) => point,
     nodeOnScreen: () => undefined,
     onFrame: () => () => {},
+    light: (nodes: ReadonlySet<number> | null) => sigma.lit.push(nodes ? [...nodes] : null),
+    hide: (hidden: boolean[]) => sigma.hidden.push(hidden),
+    beside: (node: number) => (node === 0 ? [1] : []),
+    heed: (hands: typeof sigma.hands) => {
+      sigma.hands = hands;
+      return () => {
+        sigma.hands = null;
+      };
+    },
+    focus: (node: number) => sigma.focused.push(node),
     kill: () => sigma.killed++,
   }),
 }));
@@ -122,6 +140,27 @@ function answer(cmd: string): Promise<unknown> {
       return Promise.resolve([]);
     case "brain_network":
       return ipc.network();
+    case "doc_glance":
+      return Promise.resolve({
+        title: "Notes",
+        heading: null,
+        html: "<p>About bread</p>",
+        more: false,
+      });
+    case "task_cards":
+      return Promise.resolve([
+        {
+          id: "01A",
+          title: "buy bread",
+          status: "open",
+          steps: [
+            { id: "s", html: "x", done: true },
+            { id: "t", html: "y", done: false },
+          ],
+        },
+      ]);
+    case "task_of":
+      return Promise.resolve(bread);
     case "help_pages":
       return Promise.resolve([]);
     case "help_reference_here":
@@ -145,6 +184,10 @@ const small: Network = {
   near: 1,
 };
 
+const last = <T,>(all: T[]): T | undefined => all[all.length - 1];
+
+const layer = () => within(screen.getByRole("dialog", { name: t("brainsty") }));
+
 const asked = () => ipc.calls.filter((one) => one.cmd === "brain_network");
 
 const opened = async () => {
@@ -158,7 +201,18 @@ beforeEach(() => {
   localStorage.clear();
   ipc.calls = [];
   ipc.network = () => Promise.resolve(small);
-  Object.assign(sigma, { centred: [], placed: 0, rethemed: 0, killed: 0, stopped: 0, step: null });
+  Object.assign(sigma, {
+    centred: [],
+    placed: 0,
+    rethemed: 0,
+    killed: 0,
+    stopped: 0,
+    step: null,
+    focused: [],
+    lit: [],
+    hidden: [],
+    hands: null,
+  });
 });
 
 describe("the Brainsty section", () => {
@@ -309,5 +363,80 @@ describe("the Brainsty section", () => {
 
     expect(sigma.killed).toBe(1);
     expect(sigma.stopped).toBe(1);
+  });
+
+  it("previews a picked document with its words, and opens it there", async () => {
+    const user = await opened();
+    await user.click(screen.getByRole("button", { name: t("brainsty") }));
+    await screen.findByRole("figure", { name: t("brainstyNetwork") });
+
+    act(() => sigma.hands?.pick(0));
+
+    const preview = await screen.findByRole("complementary", { name: "Notes" });
+    expect(preview.textContent).toContain("1 connections");
+    expect(await screen.findByText("About bread")).toBeTruthy();
+    expect(last(sigma.lit)).toEqual([0, 1]);
+    await user.click(screen.getByRole("button", { name: t("brainstyOpen") }));
+
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: t("brainsty") })).toBeNull());
+  });
+
+  it("lets go of the search, then the picked node, then the network with each Escape", async () => {
+    const user = await opened();
+    await user.click(screen.getByRole("button", { name: t("brainsty") }));
+    await screen.findByRole("figure", { name: t("brainstyNetwork") });
+
+    await user.type(screen.getByRole("searchbox", { name: t("brainstySearch") }), "bread");
+    await user.click(await layer().findByRole("button", { name: /buy bread/ }));
+    expect(sigma.focused).toEqual([1]);
+    expect(await screen.findByText("1 of 2 steps")).toBeTruthy();
+
+    await user.type(screen.getByRole("searchbox", { name: t("brainstySearch") }), "zzz");
+    expect(await screen.findByText(t("brainstyNothingFound"))).toBeTruthy();
+    await user.keyboard("{Escape}");
+    expect(screen.queryByText(t("brainstyNothingFound"))).toBeNull();
+    expect(screen.getByRole("complementary", { name: "buy bread" })).toBeTruthy();
+    await user.keyboard("{Escape}");
+    expect(screen.queryByRole("complementary", { name: "buy bread" })).toBeNull();
+    expect(screen.getByRole("dialog", { name: t("brainsty") })).toBeTruthy();
+    await user.keyboard("{Escape}");
+    expect(screen.queryByRole("dialog", { name: t("brainsty") })).toBeNull();
+  });
+
+  it("opens a picked task beside the list", async () => {
+    const user = await opened();
+    await user.click(screen.getByRole("button", { name: t("brainsty") }));
+    await screen.findByRole("figure", { name: t("brainstyNetwork") });
+
+    act(() => sigma.hands?.open(1));
+
+    expect(await screen.findByRole("button", { name: t("expand") })).toBeTruthy();
+    expect(screen.queryByRole("dialog", { name: t("brainsty") })).toBeNull();
+  });
+
+  it("filters the network by kind, and shows everything again", async () => {
+    const user = await opened();
+    await user.click(screen.getByRole("button", { name: t("brainsty") }));
+    await screen.findByRole("figure", { name: t("brainstyNetwork") });
+
+    await user.click(layer().getByRole("button", { name: t("brainstyFilters") }));
+    await user.click(layer().getByRole("button", { name: t("brainstyKind_task") }));
+    expect(last(sigma.hidden)).toEqual([false, true, false]);
+    await user.selectOptions(layer().getByRole("combobox"), "#home");
+    expect(last(sigma.hidden)).toEqual([true, true, false]);
+    await user.click(layer().getByRole("button", { name: t("brainstyEverything") }));
+    expect(last(sigma.hidden)).toEqual([false, false, false]);
+  });
+
+  it("jumps to the search with /", async () => {
+    const user = await opened();
+    await user.click(screen.getByRole("button", { name: t("brainsty") }));
+    await screen.findByRole("figure", { name: t("brainstyNetwork") });
+
+    await user.keyboard("/");
+
+    expect(document.activeElement).toBe(
+      screen.getByRole("searchbox", { name: t("brainstySearch") }),
+    );
   });
 });

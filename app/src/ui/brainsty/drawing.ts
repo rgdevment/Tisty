@@ -33,11 +33,28 @@ export interface Drawing {
   toScreen: (point: Point) => Point;
   nodeOnScreen: (node: number) => Point | undefined;
   onFrame: (listener: () => void) => () => void;
+  light: (nodes: ReadonlySet<number> | null) => void;
+  hide: (hidden: readonly boolean[]) => void;
+  beside: (node: number) => number[];
+  heed: (hands: Hands) => () => void;
+  focus: (node: number) => void;
   kill: () => void;
+}
+
+export interface Hands {
+  pick: (node: number) => void;
+  open: (node: number) => void;
+  clear: () => void;
 }
 
 interface Seen {
   zoom: number;
+  hasHighlighted: boolean;
+}
+
+interface Lit {
+  isHovered?: boolean;
+  isHighlighted?: boolean;
 }
 
 interface Line {
@@ -49,7 +66,9 @@ interface Line {
 
 const CLEAR = "rgba(0, 0, 0, 0)";
 const NEAR_RATIO = 0.35;
+const FOCUS_RATIO = 0.12;
 const FAR_SHARE = 0.35;
+const DIM = 0.12;
 
 const lineAttributes = (look: LineLook): Line => ({
   tone: look.tone,
@@ -65,6 +84,13 @@ const dashed = (line: Line, zoom: number): boolean => line.gap > 0 && lineDetail
 
 const titleShown = (big: boolean, zoom: number): number =>
   big ? Math.max(bigTitles(zoom), allTitles(zoom)) : allTitles(zoom);
+
+const split = <T>(all: readonly T[], test: (one: T) => boolean): [T[], T[]] => {
+  const yes: T[] = [];
+  const no: T[] = [];
+  for (const one of all) (test(one) ? yes : no).push(one);
+  return [yes, no];
+};
 
 export function drawNetwork(
   container: HTMLElement,
@@ -114,8 +140,11 @@ export function drawNetwork(
         {
           shape: { attribute: "shape", defaultValue: "circle" },
           labelFont: font,
-          labelVisibility: (at, state, shared: Seen) => {
-            if (state.isHovered) return "visible";
+          color: (at, state: Lit, shared: Seen) =>
+            shared.hasHighlighted && !state.isHighlighted ? rgba(String(at.color), DIM) : at.color,
+          labelVisibility: (at, state: Lit, shared: Seen) => {
+            if (state.isHovered || state.isHighlighted) return "visible";
+            if (shared.hasHighlighted) return "hidden";
             return titleShown(Boolean(at.big), shared.zoom) > 0 ? "auto" : "hidden";
           },
           labelColor: (at, _state, shared: Seen) =>
@@ -125,7 +154,10 @@ export function drawNetwork(
       edges: [
         DEFAULT_STYLES.edges,
         {
-          color: (at, _state, shared: Seen) => lineColour(at as Line, shared.zoom),
+          color: (at, state: Lit, shared: Seen) =>
+            shared.hasHighlighted && !state.isHighlighted
+              ? rgba((at as Line).tone, (at as Line).alpha * DIM)
+              : lineColour(at as Line, shared.zoom),
           size: (at, _state, shared: Seen) =>
             lerp((at as Line).size * 0.6, (at as Line).size, lineDetail(shared.zoom)),
           solid: (at, _state, shared: Seen) =>
@@ -147,6 +179,7 @@ export function drawNetwork(
     sigma.setGraphState({ zoom });
   };
   camera.on("updated", zoomed);
+  const lit: { nodes: string[]; edges: string[] } = { nodes: [], edges: [] };
   return {
     place: ({ x, y }) => {
       if (x.length !== graph.order) return;
@@ -192,6 +225,52 @@ export function drawNetwork(
     onFrame: (listener) => {
       sigma.on("afterRender", listener);
       return () => sigma.off("afterRender", listener);
+    },
+    light: (nodes) => {
+      sigma.setNodesState(lit.nodes, { isHighlighted: false });
+      sigma.setEdgesState(lit.edges, { isHighlighted: false });
+      lit.nodes = nodes ? [...nodes].map(String).filter((key) => graph.hasNode(key)) : [];
+      lit.edges = nodes
+        ? graph.filterEdges((_, __, from, to) => nodes.has(Number(from)) && nodes.has(Number(to)))
+        : [];
+      sigma.setNodesState(lit.nodes, { isHighlighted: true });
+      sigma.setEdgesState(lit.edges, { isHighlighted: true });
+      sigma.setGraphState({ hasHighlighted: lit.nodes.length > 0 });
+    },
+    hide: (hidden) => {
+      const [gone, kept] = split(graph.nodes(), (key) => Boolean(hidden[Number(key)]));
+      sigma.setNodesState(gone, { isHidden: true });
+      sigma.setNodesState(kept, { isHidden: false });
+      const [cut, whole] = split(graph.edges(), (edge) =>
+        graph.extremities(edge).some((key) => hidden[Number(key)]),
+      );
+      sigma.setEdgesState(cut, { isHidden: true });
+      sigma.setEdgesState(whole, { isHidden: false });
+    },
+    beside: (node) =>
+      graph.hasNode(String(node)) ? graph.neighbors(String(node)).map(Number) : [],
+    heed: (hands) => {
+      const picked = ({ node }: { node: string }) => hands.pick(Number(node));
+      const opened = (said: { node: string; preventSigmaDefault: () => void }) => {
+        said.preventSigmaDefault();
+        hands.open(Number(said.node));
+      };
+      sigma.on("clickNode", picked);
+      sigma.on("doubleClickNode", opened);
+      sigma.on("clickStage", hands.clear);
+      return () => {
+        sigma.off("clickNode", picked);
+        sigma.off("doubleClickNode", opened);
+        sigma.off("clickStage", hands.clear);
+      };
+    },
+    focus: (node) => {
+      const shown = sigma.getNodeDisplayData(String(node));
+      if (!shown) return;
+      void camera.animate(
+        { x: shown.x, y: shown.y, ratio: Math.min(camera.ratio, FOCUS_RATIO) },
+        { duration: 300 },
+      );
     },
     kill: () => {
       camera.off("updated", zoomed);

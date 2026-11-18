@@ -24,6 +24,8 @@ pub struct Neuron {
     pub group: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub state: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub when: Option<String>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
@@ -77,6 +79,7 @@ impl Brain {
                     title: row.get(2)?,
                     group: row.get(3)?,
                     state: row.get(4)?,
+                    when: None,
                 };
                 Ok((neuron, row.get(5)?))
             })?;
@@ -122,6 +125,26 @@ pub fn kept_out(state: &State) -> HashSet<String> {
         .filter(|task| task.hidden)
         .map(|task| task.id.to_string())
         .collect()
+}
+
+impl Network {
+    pub fn dated(&mut self, dates: &HashMap<String, String>) {
+        for one in &mut self.nodes {
+            one.when = dates.get(&one.id).cloned();
+        }
+    }
+}
+
+pub fn dates(state: &State) -> HashMap<String, String> {
+    let day = |at: Timestamp| at.to_string().chars().take(10).collect::<String>();
+    let docs = state
+        .papers()
+        .filter_map(|kept| Some((kept.file.clone(), day(kept.wrote.or(kept.made)?))));
+    let tasks = state
+        .tasks
+        .values()
+        .map(|task| (task.id.to_string(), day(touched(task))));
+    docs.chain(tasks).collect()
 }
 
 pub fn touched_last(state: &State) -> Option<String> {

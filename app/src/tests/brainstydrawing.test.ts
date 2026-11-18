@@ -25,6 +25,10 @@ const drawn = vi.hoisted(() => ({
     setState(state: unknown) {
       this.set.push(state);
     },
+    animate(state: unknown) {
+      this.set.push(state);
+      return Promise.resolve();
+    },
     on(_: string, listener: () => void) {
       this.heard.push(listener);
     },
@@ -33,7 +37,8 @@ const drawn = vi.hoisted(() => ({
     },
   },
   shared: [] as unknown[],
-  frames: [] as (() => void)[],
+  states: [] as [string, string[], unknown][],
+  events: {} as Record<string, ((payload: never) => void)[]>,
   refreshed: 0,
   killed: 0,
   shown: true,
@@ -58,11 +63,17 @@ vi.mock("sigma", () => ({
     graphToViewport({ x, y }: { x: number; y: number }) {
       return { x: x * 10, y: y * 10 };
     }
-    on(_: string, listener: () => void) {
-      drawn.frames.push(listener);
+    on(name: string, listener: (payload: never) => void) {
+      drawn.events[name] = [...(drawn.events[name] ?? []), listener];
     }
-    off(_: string, listener: () => void) {
-      drawn.frames = drawn.frames.filter((one) => one !== listener);
+    off(name: string, listener: (payload: never) => void) {
+      drawn.events[name] = (drawn.events[name] ?? []).filter((one) => one !== listener);
+    }
+    setNodesState(keys: string[], state: unknown) {
+      drawn.states.push(["nodes", keys, state]);
+    }
+    setEdgesState(keys: string[], state: unknown) {
+      drawn.states.push(["edges", keys, state]);
     }
     refresh() {
       drawn.refreshed++;
@@ -109,7 +120,8 @@ beforeEach(() => {
   drawn.killed = 0;
   drawn.shown = true;
   drawn.shared = [];
-  drawn.frames = [];
+  drawn.states = [];
+  drawn.events = {};
   drawn.camera.ratio = 1;
   drawn.camera.heard = [];
   drawn.camera.set = [];
@@ -220,10 +232,10 @@ describe("the drawing of the network", () => {
 
     const frame = vi.fn();
     const unhook = drawing.onFrame(frame);
-    for (const one of drawn.frames) one();
+    for (const one of drawn.events.afterRender ?? []) one(undefined as never);
     unhook();
     expect(frame).toHaveBeenCalledTimes(1);
-    expect(drawn.frames).toHaveLength(0);
+    expect(drawn.events.afterRender).toHaveLength(0);
 
     drawing.kill();
     expect(drawn.killed).toBe(1);
@@ -238,5 +250,79 @@ describe("the drawing of the network", () => {
     drawing.centre(5);
 
     expect(drawn.camera.set).toEqual([expect.objectContaining({ x: 0.25, y: 0.75 })]);
+  });
+
+  it("lights a node with its neighbours and dims the rest", () => {
+    const drawing = drawNetwork(document.body, network, spots, () => undefined, light, "Inter");
+    const colour = nodeStyle("color");
+    const shown = nodeStyle("labelVisibility");
+    const line = edgeStyle("color");
+    const graph = drawn.graph as Graph;
+    const cite = graph.getEdgeAttributes(graph.edges()[0]);
+
+    expect(drawing.beside(0).sort()).toEqual([1]);
+    expect(drawing.beside(9)).toEqual([]);
+    drawing.light(new Set([0, 1]));
+    drawing.light(null);
+
+    expect(drawn.states.map(([what, keys, state]) => [what, keys.length, state])).toEqual([
+      ["nodes", 0, { isHighlighted: false }],
+      ["edges", 0, { isHighlighted: false }],
+      ["nodes", 2, { isHighlighted: true }],
+      ["edges", 2, { isHighlighted: true }],
+      ["nodes", 2, { isHighlighted: false }],
+      ["edges", 2, { isHighlighted: false }],
+      ["nodes", 0, { isHighlighted: true }],
+      ["edges", 0, { isHighlighted: true }],
+    ]);
+    expect(drawn.shared.slice(1)).toEqual([{ hasHighlighted: true }, { hasHighlighted: false }]);
+    const lit = { zoom: 0, hasHighlighted: true };
+    expect(colour({ color: "#102030" }, {}, lit)).toBe("rgba(16, 32, 48, 0.12)");
+    expect(colour({ color: "#102030" }, { isHighlighted: true }, lit)).toBe("#102030");
+    expect(shown({ big: true }, {}, { zoom: 1, hasHighlighted: true } as never)).toBe("hidden");
+    expect(shown({ big: false }, { isHighlighted: true }, { zoom: 0 })).toBe("visible");
+    expect(line(cite, {}, lit)).toBe("rgba(16, 32, 48, 0.066)");
+  });
+
+  it("hides what the filters leave out, with the lines that reach it", () => {
+    const drawing = drawNetwork(document.body, network, spots, () => undefined, light, "Inter");
+
+    drawing.hide([false, false, true]);
+
+    expect(drawn.states).toEqual([
+      ["nodes", ["2"], { isHidden: true }],
+      ["nodes", ["0", "1"], { isHidden: false }],
+      ["edges", [expect.any(String)], { isHidden: true }],
+      ["edges", [expect.any(String), expect.any(String)], { isHidden: false }],
+    ]);
+  });
+
+  it("hands clicks, double clicks and clicks on nothing to the view, and lets them go", () => {
+    const drawing = drawNetwork(document.body, network, spots, () => undefined, light, "Inter");
+    const hands = { pick: vi.fn(), open: vi.fn(), clear: vi.fn() };
+    const prevent = vi.fn();
+
+    const unheed = drawing.heed(hands);
+    for (const one of drawn.events.clickNode) one({ node: "1" } as never);
+    for (const one of drawn.events.doubleClickNode)
+      one({ node: "0", preventSigmaDefault: prevent } as never);
+    for (const one of drawn.events.clickStage) one(undefined as never);
+    unheed();
+
+    expect(hands.pick).toHaveBeenCalledWith(1);
+    expect(hands.open).toHaveBeenCalledWith(0);
+    expect(prevent).toHaveBeenCalled();
+    expect(hands.clear).toHaveBeenCalled();
+    expect(drawn.events.clickNode).toHaveLength(0);
+  });
+
+  it("brings a node close when it is chosen, and leaves the camera be when it cannot", () => {
+    const drawing = drawNetwork(document.body, network, spots, () => undefined, light, "Inter");
+
+    drawing.focus(1);
+    drawn.shown = false;
+    drawing.focus(2);
+
+    expect(drawn.camera.set).toEqual([{ x: 0.25, y: 0.75, ratio: 0.12 }]);
   });
 });

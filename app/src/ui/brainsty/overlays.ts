@@ -16,6 +16,7 @@ const LAID = {
 
 export interface Overlays {
   reshape: (spots: Spots) => void;
+  sift: (hidden: readonly boolean[]) => void;
   retheme: (palette: Palette) => void;
   stop: () => void;
 }
@@ -42,6 +43,18 @@ export function overlaysOn(
   );
   const thumbs = thumbsIn(container, files, pictures.urlOf);
   let zones: Zone[] = [];
+  let placed: Spots | null = null;
+  let hidden: readonly boolean[] = [];
+  const zoned = () => {
+    if (!placed) return;
+    const { x, y } = placed;
+    const seen = network.nodes.flatMap((_, n) => (hidden[n] ? [] : [n]));
+    zones = zonesOf(
+      seen.map((n) => network.nodes[n]),
+      { x: Float32Array.from(seen, (n) => x[n]), y: Float32Array.from(seen, (n) => y[n]) },
+      hueOf,
+    );
+  };
   let hues = palette.hues;
   const sized = () => {
     const ratio = page.defaultView?.devicePixelRatio ?? 1;
@@ -54,12 +67,21 @@ export function overlaysOn(
     sized();
     const zoom = drawing.zoom();
     paintZones(canvas, zones, drawing.toScreen, hues, zonesShown(zoom));
-    thumbs.place(drawing.nodeOnScreen, thumbsShown(zoom));
+    thumbs.place(
+      (node) => (hidden[node] ? undefined : drawing.nodeOnScreen(node)),
+      thumbsShown(zoom),
+    );
   };
   const unhook = drawing.onFrame(frame);
   return {
     reshape: (spots) => {
-      if (spots.x.length === network.nodes.length) zones = zonesOf(network.nodes, spots, hueOf);
+      if (spots.x.length !== network.nodes.length) return;
+      placed = spots;
+      zoned();
+    },
+    sift: (next) => {
+      hidden = next;
+      zoned();
     },
     retheme: (next) => {
       hues = next.hues;
