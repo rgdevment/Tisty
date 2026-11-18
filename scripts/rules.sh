@@ -515,25 +515,51 @@ no_token_kept_in_the_tree() {
   looked_through     "a provider's token or secret is in the tree; fakes make their own, and real ones live in the keychain" $?     "the tree could not be looked through for tokens"     && went_well "no provider token or secret is kept in the tree"
 }
 
+# With --touched, only the rules that read a kind of path the commit touches run; a path of no kind runs them all, as CI does.
+touched=" other "
+case ${1:-} in
+  "") ;;
+  --touched)
+    [ -r "${2:-}" ] || { echo "usage: rules.sh [--touched <file listing one path per line>]"; exit 2; }
+    touched=" "
+    while IFS= read -r path; do
+      case $path in
+        crates/*/Cargo.toml) touched+="other " ;;
+        crates/* | app/src-tauri/src/*) touched+="rust " ;;
+        app/src/* | packages/*/src/* | packages/*/tests/*) touched+="front " ;;
+        *) touched+="other " ;;
+      esac
+    done < "$2"
+    ;;
+  *) echo "usage: rules.sh [--touched <file listing one path per line>]"; exit 2 ;;
+esac
+
+when() {
+  local kind
+  for kind in $1 other; do
+    case $touched in *" $kind "*) "$2"; return ;; esac
+  done
+}
+
 cd "$(dirname "$0")/.." || exit 2
-no_prose_blocks
-the_packages_keep_to_themselves
-the_light_viewer_stays_apart
-every_package_is_looked_at
-the_app_holds_the_versions
-nothing_past_what_a_person_holds
-written_in_english
-nothing_the_window_cannot_translate
-nothing_the_core_prints
-nothing_that_takes_the_window_down
-every_spawn_pins_its_language
-the_way_of_syncing_is_named_once
-the_rule_on_the_way_of_syncing_can_fail
-both_languages_carry_the_same_documents
-few_earlier_releases_are_met
-the_posts_can_go_out
-every_package_says_its_licence
-the_contracts_hold
-the_check_runs_what_ci_runs
-no_token_kept_in_the_tree
+when rust no_prose_blocks
+when front the_packages_keep_to_themselves
+when front the_light_viewer_stays_apart
+when other every_package_is_looked_at
+when other the_app_holds_the_versions
+when "rust front" nothing_past_what_a_person_holds
+when "rust front" written_in_english
+when rust nothing_the_window_cannot_translate
+when rust nothing_the_core_prints
+when rust nothing_that_takes_the_window_down
+when rust every_spawn_pins_its_language
+when rust the_way_of_syncing_is_named_once
+when other the_rule_on_the_way_of_syncing_can_fail
+when other both_languages_carry_the_same_documents
+when other few_earlier_releases_are_met
+when other the_posts_can_go_out
+when other every_package_says_its_licence
+when other the_contracts_hold
+when other the_check_runs_what_ci_runs
+when "rust front" no_token_kept_in_the_tree
 exit $status
