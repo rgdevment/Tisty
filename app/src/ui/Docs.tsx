@@ -699,18 +699,20 @@ export default function Docs({
   );
   const told = useMemo(() => (pages.length > 0 ? namesIn(body) : NONE), [body, pages.length]);
   const named = useMemo(() => namesIn(body), [body]);
-  // A card says what its document is now: a rename, an archive or a deletion draws it again.
+  // A card says what its document is now: new words, a rename, an archive, a deletion or a new page draws it again.
   const docsHeard = useMemo(
     () =>
       named
         .map((file) => {
           const one = known.find((doc) => doc.file === file);
+          const wrote = one?.wrote ?? one?.bytes ?? "";
           return one
-            ? `${file}:${one.title}:${one.archived}:${one.away}:${one.gone}:${one.pageOf ?? ""}`
+            ? `${file}:${one.title}:${one.archived}:${one.away}:${one.gone}:${one.pageOf ?? ""}:${wrote}`
             : `${file}:-`;
         })
+        .concat(pages.map((one) => `${one.file}:${one.archived}:${one.away}`))
         .join("|"),
-    [known, named],
+    [known, named, pages],
   );
   const cardsShown = useMemo(
     () => ({ docs: true, tasks: true, here: open?.file, heard: { heard, docsHeard } }),

@@ -94,7 +94,7 @@ pub fn drawn(
         let session = held(session);
         let root = session.paths.docs();
         let spoken = tisty_core::model::spoken(session.locale.as_deref());
-        let known = known(&session.state, &root, asked, seen);
+        let known = known(&session.state, asked, seen);
         (known, root, cards::words(&spoken))
     };
     said(known, &root, glimpses, words)
@@ -105,7 +105,11 @@ pub fn said(known: Vec<Card>, root: &Path, glimpses: &Glimpses, words: &Words) -
         .into_iter()
         .map(|one| match one {
             Card::Read { mut card, stamp } => {
-                card.blurb = glimpses.of(root, &card.file, stamp.as_deref());
+                if written(root, &card.file) {
+                    card.blurb = glimpses.of(root, &card.file, stamp.as_deref());
+                } else {
+                    card.paper = Paper::Gone;
+                }
                 cards::doc_card(&card, words)
             }
             Card::Shown(card) => cards::doc_card(&card, words),
@@ -114,7 +118,7 @@ pub fn said(known: Vec<Card>, root: &Path, glimpses: &Glimpses, words: &Words) -
         .collect()
 }
 
-pub fn known(state: &State, root: &Path, asked: &[Asked], seen: &Seen) -> Vec<Card> {
+pub fn known(state: &State, asked: &[Asked], seen: &Seen) -> Vec<Card> {
     let named: Vec<String> = asked
         .iter()
         .filter(|one| one.kind == Named::Doc)
@@ -124,7 +128,7 @@ pub fn known(state: &State, root: &Path, asked: &[Asked], seen: &Seen) -> Vec<Ca
     asked
         .iter()
         .map(|one| match one.kind {
-            Named::Doc => paper(state, root, one, seen, &pages),
+            Named::Doc => paper(state, one, seen, &pages),
             Named::Task => Card::Task(cited(state, one, seen)),
         })
         .collect()
@@ -146,7 +150,7 @@ fn pages_here(state: &State, here: Option<&str>, named: &[String]) -> Vec<String
         .collect()
 }
 
-fn paper(state: &State, root: &Path, one: &Asked, seen: &Seen, pages: &[String]) -> Card {
+fn paper(state: &State, one: &Asked, seen: &Seen, pages: &[String]) -> Card {
     let card = |paper| DocCard {
         file: one.id.clone(),
         words: one.words.clone(),
@@ -158,11 +162,7 @@ fn paper(state: &State, root: &Path, one: &Asked, seen: &Seen, pages: &[String])
         let title = one.words.clone();
         return Card::Shown(card(Paper::Doc { title }));
     }
-    let found = state
-        .papers()
-        .find(|doc| doc.file == one.id)
-        .filter(|doc| root.join(format!("{}.md", doc.file)).is_file());
-    let Some(doc) = found else {
+    let Some(doc) = state.papers().find(|doc| doc.file == one.id) else {
         return Card::Shown(card(Paper::Gone));
     };
     let title = doc.title.clone().unwrap_or_default();
@@ -186,6 +186,10 @@ fn paper(state: &State, root: &Path, one: &Asked, seen: &Seen, pages: &[String])
         card: card(shown),
         stamp,
     }
+}
+
+fn written(root: &Path, file: &str) -> bool {
+    tisty_core::docs::resolve(root, file).is_ok_and(|at| at.is_file())
 }
 
 fn cited(state: &State, one: &Asked, seen: &Seen) -> TaskCard {

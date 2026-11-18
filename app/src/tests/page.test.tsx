@@ -261,6 +261,27 @@ describe("the live cards on a page", () => {
     ]);
   });
 
+  it("draws its words again without asking again for the cards it already holds", async () => {
+    ipc.drawn = CARDED;
+    const { frame, view, heard } = await drawn({ cardsShown: SHOWN });
+    await loaded(frame);
+    const shownBefore = heard.shown.length;
+    view.rerender(
+      <Page
+        body={`${BODY}más
+`}
+        label="Notas"
+        onDoc={() => {}}
+        onShown={(at) => heard.shown.push(at)}
+        cardsShown={SHOWN}
+      />,
+    );
+    const page = await loaded(frame);
+    await waitFor(() => expect(heard.shown.length).toBeGreaterThan(shownBefore));
+    expect(page.querySelector(".page > p > .doc-card")?.textContent).toBe("Huerta v1");
+    expect(ipc.cards).toHaveLength(1);
+  });
+
   it("asks nothing of the core where the window shows no cards", async () => {
     ipc.drawn = CARDED;
     const { frame } = await drawn();

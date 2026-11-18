@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import {
   type CardAsked,
+  cardKey,
   cardsIn,
   cardsOn,
   cardsPlaced,
@@ -112,7 +113,10 @@ export default function Page(props: Readonly<Props>) {
     void (draw ?? docDrawn)(body)
       .catch(() => `<pre>${escaped(body)}</pre>`)
       .then((html) =>
-        drawnBy(reach.current, cardsIn(html)).then((fresh) => {
+        drawnBy(
+          reach.current,
+          cardsIn(html).filter((one) => !cards.current.has(cardKey(one))),
+        ).then((fresh) => {
           cards.current = new Map([...cards.current, ...fresh]);
           drawn(html);
         }),

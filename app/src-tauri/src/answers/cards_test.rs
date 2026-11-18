@@ -79,9 +79,24 @@ fn a_documents_cards_say_what_each_names_as_the_main_window_does() {
     kept(&mut state, &room, "p3", "Guardada", Some(here), true);
     kept(&mut state, &room, "other", "Otra", None, false);
     kept(&mut state, &room, "old", "Vieja", None, true);
-    let unwritten = kept(&mut state, &room, "unwritten", "Sin archivo", None, false);
-    std::fs::remove_file(room.path().join("unwritten.md")).unwrap();
-    let files = ["p2", "p1", "other", "old", "here", "missing", "unwritten"];
+    kept(
+        &mut state,
+        &room,
+        "unwritten-0001",
+        "Sin archivo",
+        None,
+        false,
+    );
+    std::fs::remove_file(room.path().join("unwritten-0001.md")).unwrap();
+    let files = [
+        "p2",
+        "p1",
+        "other",
+        "old",
+        "here",
+        "missing",
+        "unwritten-0001",
+    ];
     let all: Vec<Asked> = files
         .iter()
         .map(|one| asked(Named::Doc, one, "dicho"))
@@ -91,7 +106,7 @@ fn a_documents_cards_say_what_each_names_as_the_main_window_does() {
         ..Seen::default()
     };
 
-    let known = known(&state, room.path(), &all, &seen);
+    let known = known(&state, &all, &seen);
 
     let title = |said: &str| said.to_string();
     assert_eq!(
@@ -117,10 +132,17 @@ fn a_documents_cards_say_what_each_names_as_the_main_window_does() {
                 title: title("Aquí")
             },
             &Paper::Gone,
-            &Paper::Gone,
+            &Paper::Doc {
+                title: title("Sin archivo")
+            },
         ]
     );
-    assert!(state.docs.contains_key(&unwritten));
+    let drawn = said(known, room.path(), &Glimpses::default(), &cards::SPANISH);
+    assert!(
+        drawn[6].starts_with(r#"<span class="doc-card is-gone">"#),
+        "{}",
+        drawn[6]
+    );
 }
 
 #[test]
@@ -134,7 +156,7 @@ fn an_open_card_brings_its_blurb_read_once_for_each_version() {
         asked(Named::Doc, "lejos", "Lejos"),
     ];
     let drawn = |state: &State| {
-        let known = known(state, room.path(), &all, &Seen::default());
+        let known = known(state, &all, &Seen::default());
         said(known, room.path(), &glimpses, &cards::SPANISH)
     };
 
@@ -194,7 +216,7 @@ fn a_cited_task_brings_its_list_its_steps_and_its_parts() {
         ..Seen::default()
     };
 
-    let known = known(&state, Path::new("."), &all, &seen);
+    let known = known(&state, &all, &seen);
 
     let whole = task_of(&known, 0);
     assert!(whole.acting);
@@ -235,7 +257,7 @@ fn a_task_not_here_keeps_its_words_and_a_dated_one_leaves_its_days_to_the_window
         asked(Named::Task, "not an id", "nada"),
     ];
 
-    let known = known(&state, Path::new("."), &all, &Seen::default());
+    let known = known(&state, &all, &Seen::default());
 
     let dated = task_of(&known, 0).task.as_ref().unwrap();
     assert_eq!(
@@ -264,7 +286,7 @@ fn a_help_page_draws_its_examples_by_their_words_and_reads_no_store() {
         asked(Named::Task, "01JC", "Rina"),
     ];
 
-    let known = known(&state, room.path(), &all, &seen);
+    let known = known(&state, &all, &seen);
 
     assert_eq!(
         papers(&known),
