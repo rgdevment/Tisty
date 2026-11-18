@@ -135,6 +135,32 @@ fn the_first_body_comes_in_the_note_that_made_the_document() {
 }
 
 #[test]
+fn a_body_signed_by_someone_else_carries_their_name_to_its_row() {
+    let (room, docs) = desk();
+    let data = room.path();
+    let id = DocId::generate();
+    written(&docs, data, 0, None, "# A\n");
+    written(&docs, data, 40, CLAUDE, "# B\n");
+    let mut signed = noted(id, HERE, 0, None, "# A\n");
+    if let Op::DocSaid { d, .. } = &mut signed.op {
+        d.by = Some("Rina".into());
+    }
+    let events = vec![
+        made(id, HERE, 0, None, "# Z\n"),
+        signed,
+        noted(id, HERE, 40, CLAUDE, "# B\n"),
+    ];
+
+    let all = logged(&events, id);
+    let listed = shown(data, &events, id, 41);
+
+    assert_eq!(all[0].signed, None);
+    assert_eq!(all[1].signed.as_deref(), Some("Rina"));
+    assert_eq!(prints(&listed), vec![print("# A\n")]);
+    assert_eq!(listed[0].signed.as_deref(), Some("Rina"));
+}
+
+#[test]
 fn a_note_that_reads_the_same_body_again_cuts_nothing() {
     let id = DocId::generate();
     let events = vec![
