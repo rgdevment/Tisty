@@ -29,6 +29,10 @@ ulid.workspace = true
 [target.'cfg(any(windows, target_os = "macos"))'.dependencies]
 sys-locale.workspace = true
 
+# The MCP sidecar starts on a Windows machine without the Visual C++ redistributable, like the app.
+[build-dependencies]
+static_vcruntime.workspace = true
+
 [dev-dependencies]
 tisty-nl.workspace = true
 tisty-share-proto.workspace = true
