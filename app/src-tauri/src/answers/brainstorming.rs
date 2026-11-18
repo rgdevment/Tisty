@@ -96,6 +96,7 @@ pub fn filing(session: &mut Session, file: &str, idea: &str, heading: &str) -> A
     super::papers::writable(&session.state, file)?;
     let whole = tisty_core::docs::append(
         &session.paths.docs(),
+        &session.writer(),
         file,
         &tisty_core::brainstorm::filed(idea, heading),
     )
@@ -146,6 +147,7 @@ pub fn jotting(
     let used = tisty_core::brainstorm::proposed_from(&session.state, &file);
     let whole = tisty_core::docs::append(
         &root,
+        &session.writer(),
         &file,
         &tisty_core::brainstorm::jotted_next(&was, &used, idea, at, roll),
     )
@@ -158,8 +160,13 @@ pub fn jotting(
 
 fn made_anew(session: &mut Session, title: &str) -> Answer<String> {
     let body = tisty_core::brainstorm::opening(title);
-    let made = tisty_core::docs::create(&session.paths.docs(), &session.config.device_id, &body)
-        .map_err(|e| blamed(channel::WINDOW, "a brainstorm could not be made", e))?;
+    let made = tisty_core::docs::create_by(
+        &session.paths.docs(),
+        &session.writer(),
+        &session.config.device_id,
+        &body,
+    )
+    .map_err(|e| blamed(channel::WINDOW, "a brainstorm could not be made", e))?;
     let order = tisty_core::order::last_of(
         session
             .state

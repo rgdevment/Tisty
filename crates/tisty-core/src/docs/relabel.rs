@@ -20,12 +20,19 @@ pub fn book_to_relabel<'a>(state: &'a State, page: &str, title: &str) -> Option<
 }
 
 /// No step back is kept: the line follows the page's heading, and one would cost an earlier undo.
-pub fn relabel_page(root: &Path, parent: &str, page: &str, title: &str) -> Result<Option<String>> {
+pub fn relabel_page(
+    root: &Path,
+    by: &crate::history::Writer,
+    parent: &str,
+    page: &str,
+    title: &str,
+) -> Result<Option<String>> {
     super::alone(root, || {
         let was = super::read(root, parent)?;
         let Some(now) = relabeled(&was, page, title) else {
             return Ok(None);
         };
+        by.passes(parent, was.as_bytes(), &now, crate::history::Step::Stays);
         super::written(root, parent, &now)?;
         Ok(Some(super::settled(&now)))
     })

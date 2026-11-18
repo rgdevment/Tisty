@@ -103,12 +103,16 @@ pub fn weave_paper(
         .ok_or_else(|| Refusal::of("cannotWeave"))?;
 
     let papers = session.paths.docs();
-    tisty_core::docs::kept_before(session.paths.data(), &id, &mine, &whole)
-        .map_err(|e| blamed(channel::SYNC, "what it was could not be kept", e))?;
-    tisty_core::docs::write(&papers, &id, &whole).map_err(|e| match e {
-        tisty_core::Error::AlreadyRunning => Refusal::of("documentBeingWritten"),
-        e => blamed(channel::SYNC, "the woven body could not be written", e),
-    })?;
+    let stood = tisty_core::docs::print_of_text(&mine);
+    let made = tisty_core::docs::rewrite(&papers, &session.writer(), &id, &whole, &stood).map_err(
+        |e| match e {
+            tisty_core::Error::AlreadyRunning => Refusal::of("documentBeingWritten"),
+            e => blamed(channel::SYNC, "the woven body could not be written", e),
+        },
+    )?;
+    if made == tisty_core::docs::Rewrite::Moved {
+        return Err(Refusal::of("movedUnderfoot"));
+    }
     session.mind(&id);
     let hand = crate::signing(&session.state);
     session.retell(&id, &whole, hand);

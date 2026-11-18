@@ -2,6 +2,7 @@ use std::path::{Path, PathBuf};
 
 use std::io::Read;
 
+use crate::history::{Step, Writer};
 use crate::{Error, Result, event::DeviceId, store::write_atomic};
 
 mod cards;
@@ -9,15 +10,14 @@ mod carried;
 mod prints;
 mod relabel;
 mod text;
+mod writing;
 
 pub use cards::{Card, Gist, card_of, cards_of, forget_stray_cards, sighted};
-use carried::kept_still;
 pub use carried::{
-    Carried, NotesBefore, RestorePoint, before_left_at, carried_at, carried_print, forget_carried,
-    forget_what_was_carried, keep_carried, keep_notes_before, keep_notes_left, keep_state_left,
-    kept_before, print_of, print_of_text, read_as_printed, read_before, read_carried,
-    read_notes_before, read_notes_left, read_state_left, restore_point, rewrite_if,
-    set_restore_point,
+    Carried, NotesBefore, carried_at, carried_print, forget_carried, forget_what_was_carried,
+    keep_carried, keep_notes_before, keep_notes_left, keep_state_left, print_of, print_of_bytes,
+    print_of_text, read_as_printed, read_carried, read_notes_before, read_notes_left,
+    read_state_left, rewrite_if,
 };
 pub use prints::{Prints, Seen};
 pub use relabel::{another_name, book_to_relabel, relabel_page, relabeled};
@@ -25,6 +25,10 @@ use text::{Fencing, unspanned, wordless};
 pub use text::{
     Heading, as_written, ends_fenced, fenced_between, fencing, headings, lines_between, marked,
     outlined, section_lines, settled, spelled, titled,
+};
+pub use writing::{
+    Change, Rewrite, amend, amend_unkept, append, edit, rewrite, rewrite_for_good, write, write_by,
+    write_over,
 };
 
 const EXTENSION: &str = "md";
@@ -108,6 +112,21 @@ pub fn create(root: &Path, device: &DeviceId, body: &str) -> Result<Doc> {
     }
 }
 
+/// A document somebody begins, so its first change is weighed against who began it and when.
+pub fn create_by(root: &Path, by: &Writer, device: &DeviceId, body: &str) -> Result<Doc> {
+    let made = create(root, device, body)?;
+    by.begins(&made.id, body);
+    Ok(made)
+}
+
+pub fn create_named_by(root: &Path, by: &Writer, id: &str, body: &str) -> Result<bool> {
+    let made = create_named(root, id, body)?;
+    if made {
+        by.begins(id, body);
+    }
+    Ok(made)
+}
+
 pub fn create_named(root: &Path, id: &str, body: &str) -> Result<bool> {
     std::fs::create_dir_all(root)?;
     let _ = crate::paths::ours_alone(root);
@@ -139,24 +158,6 @@ pub fn unchanged(was: &str, now: &str) -> bool {
     plain(was) == plain(now)
 }
 
-/// One door for every writer: a body read by one is never written under another.
-pub fn write(root: &Path, id: &str, body: &str) -> Result<()> {
-    alone(root, || written(root, id, body))
-}
-
-/// The window's save lands only on the body its words were typed over, judged under the same lock.
-pub fn write_over(root: &Path, id: &str, body: &str, print: &str) -> Result<bool> {
-    alone(root, || {
-        let at = resolve(root, id)?;
-        // A body gone from the disk under the window is written back, as any save would.
-        if print_of(&at)?.is_some_and(|now| now != print) {
-            return Ok(false);
-        }
-        written(root, id, body)?;
-        Ok(true)
-    })
-}
-
 fn written(root: &Path, id: &str, body: &str) -> Result<()> {
     let whole = settled(body);
     let bytes = whole.len() as u64;
@@ -182,7 +183,7 @@ pub enum Naming {
     Nothing,
 }
 
-pub fn name_at_end(root: &Path, data: &Path, parent: &str, which: &[&str]) -> Result<Naming> {
+pub fn name_at_end(root: &Path, by: &Writer, parent: &str, which: &[&str]) -> Result<Naming> {
     alone(root, || {
         let body = read(root, parent)?;
         let told: Vec<String> = crate::refs::paper_lines(&body)
@@ -213,8 +214,8 @@ pub fn name_at_end(root: &Path, data: &Path, parent: &str, which: &[&str]) -> Re
         if titled(&body) != titled(&whole) {
             return Ok(Naming::WouldRename);
         }
+        by.passes(parent, body.as_bytes(), &whole, Step::Follows);
         written(root, parent, &whole)?;
-        kept_still(data, parent, &body, &whole)?;
         Ok(Naming::Wrote {
             named,
             whole: settled(&whole),
@@ -242,135 +243,6 @@ fn named_after(body: &str, cards: &[String]) -> String {
         out.push_str(ending);
     }
     out
-}
-
-pub fn append(root: &Path, id: &str, body: &str) -> Result<String> {
-    alone(root, || {
-        let was = read(root, id)?;
-        let ending = match was.contains("\r\n") {
-            true => "\r\n",
-            false => "\n",
-        };
-        let flat = settled(body.trim_start_matches(['\n', '\r'])).replace("\r\n", "\n");
-        let added = match ending {
-            "\r\n" => flat.replace('\n', "\r\n"),
-            _ => flat,
-        };
-        let whole = match was.trim_end().is_empty() {
-            true => added,
-            false => format!("{}{ending}{ending}{added}", was.trim_end()),
-        };
-        written(root, id, &whole)?;
-        Ok(whole)
-    })
-}
-
-#[derive(Debug, PartialEq, Eq)]
-pub enum Change {
-    Made { was: String, whole: String },
-    Missing,
-    Twice(usize),
-    TheLot,
-}
-
-#[derive(Debug, PartialEq, Eq)]
-pub enum Rewrite {
-    Made { was: String, whole: String },
-    Moved,
-}
-
-/// What it said before is kept first: a rewrite that cannot be undone is not written at all.
-pub fn rewrite(root: &Path, data: &Path, id: &str, body: &str, print: &str) -> Result<Rewrite> {
-    alone(root, || {
-        let at = resolve(root, id)?;
-        if print_of(&at)?.as_deref() != Some(print) {
-            return Ok(Rewrite::Moved);
-        }
-        let was = read(root, id)?;
-        kept_before(data, id, &was, body)?;
-        written(root, id, body)?;
-        Ok(Rewrite::Made {
-            was,
-            whole: settled(body),
-        })
-    })
-}
-
-/// Written over the body it was read from, with no step back kept: going back would name what is gone.
-pub fn rewrite_for_good(root: &Path, id: &str, body: &str, print: &str) -> Result<Rewrite> {
-    alone(root, || {
-        let at = resolve(root, id)?;
-        if print_of(&at)?.as_deref() != Some(print) {
-            return Ok(Rewrite::Moved);
-        }
-        let was = read(root, id)?;
-        written(root, id, body)?;
-        Ok(Rewrite::Made {
-            was,
-            whole: settled(body),
-        })
-    })
-}
-
-pub fn edit(root: &Path, data: &Path, id: &str, old: &str, new: &str) -> Result<Change> {
-    if old.is_empty() {
-        return Ok(Change::Missing);
-    }
-    alone(root, || {
-        let was = read(root, id)?;
-        let (old, new) = as_written(&was, old, new);
-        // A rewrite wearing an edit's clothes: no tool hands a document a new body.
-        if was.trim() == old.trim() {
-            return Ok(Change::TheLot);
-        }
-        match was.matches(old.as_str()).count() {
-            0 => Ok(Change::Missing),
-            1 => {
-                let whole = was.replacen(old.as_str(), new.as_str(), 1);
-                kept_before(data, id, &was, &whole)?;
-                written(root, id, &whole)?;
-                Ok(Change::Made { was, whole })
-            }
-            many => Ok(Change::Twice(many)),
-        }
-    })
-}
-
-/// Work out the new body under the same lock that writes it, so nothing slips in between.
-pub fn amend(
-    root: &Path,
-    data: &Path,
-    id: &str,
-    make: impl FnOnce(&str) -> Option<String>,
-) -> Result<Option<String>> {
-    amended(root, Some(data), id, make)
-}
-
-pub fn amend_unkept(
-    root: &Path,
-    id: &str,
-    make: impl FnOnce(&str) -> Option<String>,
-) -> Result<Option<String>> {
-    amended(root, None, id, make)
-}
-
-fn amended(
-    root: &Path,
-    data: Option<&Path>,
-    id: &str,
-    make: impl FnOnce(&str) -> Option<String>,
-) -> Result<Option<String>> {
-    alone(root, || {
-        let was = read(root, id)?;
-        let Some(whole) = make(&was) else {
-            return Ok(None);
-        };
-        if let Some(data) = data {
-            kept_before(data, id, &was, &whole)?;
-        }
-        written(root, id, &whole)?;
-        Ok(Some(settled(&whole)))
-    })
 }
 
 pub const SUMMARY_AT_MOST: usize = 2_000;

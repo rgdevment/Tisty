@@ -35,8 +35,14 @@ pub(in crate::mcp) fn edit_table(paths: &Paths, args: &Value) -> Result<Value, R
     super::super::ideas::keeps_every_idea(&state, &which, &body, &next)?;
     super::super::diary::body_kept(&body, &next)?;
     let print = tisty_core::attach::printed(body.as_bytes());
-    let made = tisty_core::docs::rewrite(&paths.docs(), paths.data(), &which, &next, &print)
-        .map_err(hitch)?;
+    let made = tisty_core::docs::rewrite(
+        &paths.docs(),
+        &crate::mcp::writing(paths),
+        &which,
+        &next,
+        &print,
+    )
+    .map_err(hitch)?;
     let tisty_core::docs::Rewrite::Made { was, whole } = made else {
         return Err(Refused::Tool(format!(
             "{named} was written by someone else in the same moment, so the table was left as \

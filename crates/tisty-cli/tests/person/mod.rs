@@ -326,13 +326,19 @@ impl Person {
             root: &self.paths.docs(),
             device: &config.device_id,
             by: None,
+            writer: &tisty_core::history::Writer::now(self.paths.data(), None),
         };
         let opened = tisty_core::diary::opened(&maker, &self.state(), date, words).unwrap();
         let tisty_core::diary::Opened::Ready(opening) = opened else {
             panic!("the diary did not open: {opened:?}");
         };
         self.wrote(opening.ops.clone());
-        tisty_core::diary::named(&self.paths.docs(), self.paths.data(), &opening).unwrap();
+        tisty_core::diary::named(
+            &self.paths.docs(),
+            &tisty_core::history::Writer::now(self.paths.data(), None),
+            &opening,
+        )
+        .unwrap();
         let was = tisty_core::docs::read(&self.paths.docs(), &opening.page).unwrap();
         let now = tisty_core::diary::written_on(&was, date, words, text);
         tisty_core::docs::write(&self.paths.docs(), &opening.page, &now).unwrap();

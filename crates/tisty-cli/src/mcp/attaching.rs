@@ -168,14 +168,19 @@ pub(super) fn attach(paths: &Paths, args: &Value) -> Result<Value, Refused> {
             ))
         }
         Beside::Doc(which) => {
-            let whole = tisty_core::docs::append(&paths.docs(), &which, &kept.written(&named))
-                .map_err(|e| match e {
-                    tisty_core::Error::DocumentTooBig { limit, .. } => Refused::Tool(format!(
-                        "that would take the document past the {limit} bytes Tisty can open. \
+            let whole = tisty_core::docs::append(
+                &paths.docs(),
+                &crate::mcp::writing(paths),
+                &which,
+                &kept.written(&named),
+            )
+            .map_err(|e| match e {
+                tisty_core::Error::DocumentTooBig { limit, .. } => Refused::Tool(format!(
+                    "that would take the document past the {limit} bytes Tisty can open. \
                          Keep the file with a task, or in a new document."
-                    )),
-                    other => hitch(other),
-                })?;
+                )),
+                other => hitch(other),
+            })?;
             if let Err(why) = store.append(kept.told(tisty_core::attach::Via::Assistant)) {
                 tisty_core::witness::warn(
                     tisty_core::witness::channel::ATTACH,

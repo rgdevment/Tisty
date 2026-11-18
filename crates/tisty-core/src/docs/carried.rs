@@ -6,31 +6,7 @@ use crate::store::write_atomic;
 use crate::{Error, Result};
 
 use super::{BODY_AT_MOST, alone, base, read, resolve, settled, written};
-
-/// The body a write replaced, kept with the print of the body that write left behind. Not every
-/// way of writing a document keeps one — the window's own save does not, nor does adding to the
-/// end — so the print is what says whether this is still the step back it looks like.
-pub fn kept_before(data: &Path, id: &str, body: &str, left: &str) -> Result<()> {
-    let at = data.join("originals");
-    std::fs::create_dir_all(&at)?;
-    let _ = crate::paths::ours_alone(&at);
-    let into = resolve(&at, id)?;
-    write_atomic(&into, body.as_bytes())?;
-    let _ = crate::paths::ours_alone(&into);
-
-    let marked = data.join("originals-at");
-    std::fs::create_dir_all(&marked)?;
-    let _ = crate::paths::ours_alone(&marked);
-    let into = resolve(&marked, id)?;
-    // What reaches the disk is the settled body, so hashing what was handed in would leave the
-    // print of a text that was never written and go back on nothing.
-    write_atomic(
-        &into,
-        crate::attach::printed(settled(left).as_bytes()).as_bytes(),
-    )?;
-    let _ = crate::paths::ours_alone(&into);
-    Ok(())
-}
+use crate::history::{Step, Writer};
 
 /// What a digest wrote over and what it left, so it can be undone while it still heads the notes.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -80,12 +56,6 @@ fn kept_aside(at: &Path, id: &str, bytes: &[u8]) -> Result<()> {
     Ok(())
 }
 
-/// What the document read at when what is kept beside it was set aside.
-pub fn before_left_at(data: &Path, id: &str) -> Option<String> {
-    let at = resolve(&data.join("originals-at"), id).ok()?;
-    std::fs::read_to_string(at).ok()
-}
-
 pub fn keep_carried(data: &Path, id: &str, body: &str) -> Result<()> {
     let at = base(data);
     std::fs::create_dir_all(&at)?;
@@ -117,11 +87,6 @@ pub fn forget_carried(data: &Path, id: &str) {
     }
 }
 
-pub fn read_before(data: &Path, id: &str) -> Option<String> {
-    let at = resolve(&data.join("originals"), id).ok()?;
-    std::fs::read_to_string(at).ok()
-}
-
 fn as_settled(bytes: &[u8]) -> std::borrow::Cow<'_, [u8]> {
     if bytes.is_empty() || bytes.last() == Some(&b'\n') {
         return std::borrow::Cow::Borrowed(bytes);
@@ -146,7 +111,7 @@ fn read_within(from: impl std::io::Read, ceiling: u64) -> std::io::Result<Vec<u8
     Ok(bytes)
 }
 
-fn whole_of(at: &Path) -> std::io::Result<Option<Vec<u8>>> {
+pub(super) fn whole_of(at: &Path) -> std::io::Result<Option<Vec<u8>>> {
     let file = match std::fs::File::open(at) {
         Ok(file) => file,
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(None),
@@ -159,20 +124,21 @@ fn whole_of(at: &Path) -> std::io::Result<Option<Vec<u8>>> {
     read_within(file, BODY_AT_MOST).map(Some)
 }
 
-fn printed_body(bytes: &[u8]) -> String {
+/// The print a body is told by: what it would hash to once written, last newline and all.
+pub fn print_of_bytes(bytes: &[u8]) -> String {
     crate::attach::printed(&as_settled(bytes))
 }
 
 pub fn print_of_text(body: &str) -> String {
-    printed_body(body.as_bytes())
+    print_of_bytes(body.as_bytes())
 }
 
 pub fn print_of(at: &Path) -> std::io::Result<Option<String>> {
-    Ok(whole_of(at)?.map(|bytes| printed_body(&bytes)))
+    Ok(whole_of(at)?.map(|bytes| print_of_bytes(&bytes)))
 }
 
 pub fn read_as_printed(at: &Path, print: &str) -> std::io::Result<Option<Vec<u8>>> {
-    Ok(whole_of(at)?.filter(|bytes| printed_body(bytes) == print))
+    Ok(whole_of(at)?.filter(|bytes| print_of_bytes(bytes) == print))
 }
 
 type Prints = std::collections::BTreeMap<String, String>;
@@ -228,10 +194,10 @@ fn moved_whole(from: &Path, into: &Path) -> bool {
     std::fs::rename(from, into).is_ok()
 }
 
-/// Over `was` only, carrying the restore point along when it stood against `was`.
+/// Over `was` only. Putting a body back is not writing into it, so the step back follows along.
 pub fn rewrite_if(
     root: &Path,
-    data: &Path,
+    by: &Writer,
     id: &str,
     was: &str,
     body: &str,
@@ -240,51 +206,10 @@ pub fn rewrite_if(
         if read(root, id)? != was {
             return Ok(None);
         }
+        by.passes(id, was.as_bytes(), body, Step::Follows);
         written(root, id, body)?;
-        kept_still(data, id, was, body)?;
         Ok(Some(settled(body)))
     })
-}
-
-pub struct RestorePoint {
-    body: String,
-    print: String,
-}
-
-pub fn restore_point(data: &Path, id: &str) -> Option<RestorePoint> {
-    Some(RestorePoint {
-        body: read_before(data, id)?,
-        print: before_left_at(data, id)?,
-    })
-}
-
-pub fn set_restore_point(data: &Path, id: &str, point: &RestorePoint) -> Result<()> {
-    write_atomic(
-        &resolve(&data.join("originals"), id)?,
-        point.body.as_bytes(),
-    )?;
-    write_atomic(
-        &resolve(&data.join("originals-at"), id)?,
-        point.print.as_bytes(),
-    )
-}
-
-/// A line naming a page is not the person's writing, so it does not take their one step back with
-/// it: the body kept beside the document stays, and only the print of what it stands against moves.
-/// A step back already spent stays spent — carrying that one forward would offer to undo whatever
-/// spent it, which is somebody's writing.
-pub(super) fn kept_still(data: &Path, id: &str, was: &str, left: &str) -> Result<()> {
-    let stood = crate::attach::printed(settled(was).as_bytes());
-    if before_left_at(data, id).as_deref() != Some(stood.as_str()) {
-        return Ok(());
-    }
-    let Ok(into) = resolve(&data.join("originals-at"), id) else {
-        return Ok(());
-    };
-    write_atomic(
-        &into,
-        crate::attach::printed(settled(left).as_bytes()).as_bytes(),
-    )
 }
 
 impl Carried {

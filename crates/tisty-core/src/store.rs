@@ -257,6 +257,10 @@ impl Store {
         self
     }
 
+    pub fn via(&self) -> Option<String> {
+        self.via.clone()
+    }
+
     fn minted(&mut self, op: Op) -> Event {
         let (timestamp, seq) = self.stamp();
         let optional = op.is_optional();

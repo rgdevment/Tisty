@@ -286,11 +286,8 @@ pub(crate) fn carry_papers_leaning_on(
                         continue;
                     };
                     let text = std::str::from_utf8(&bytes).ok();
-                    if answer == Answer::Doubtful
-                        && let Some(left) = text
-                    {
-                        set_aside(data, id, &mine, left);
-                    }
+                    let by = arriving(data, printed.and_then(|told| told.get(id)), checked);
+                    set_aside(&by, id, &mine, &bytes, answer);
                     write(&mine, &bytes)?;
                     done.brought += 1;
                     done.arrived.push(id.clone());
@@ -307,9 +304,8 @@ pub(crate) fn carry_papers_leaning_on(
                     let whole = joined(data, id, &mine, text.as_deref(), said.of(id), reaches);
                     match whole {
                         Some(whole) => {
-                            if answer == Answer::Doubtful {
-                                set_aside(data, id, &mine, &whole);
-                            }
+                            let by = tisty_core::history::Writer::now(data, None);
+                            set_aside(&by, id, &mine, whole.as_bytes(), answer);
                             write(&mine, whole.as_bytes())?;
                             done.brought += 1;
                             done.joined.push(id.clone());
@@ -482,6 +478,8 @@ pub(crate) struct Answers {
     pub others: std::collections::BTreeSet<String>,
     /// Its newest print was written only by a history this round could not hand on.
     pub behind: bool,
+    /// When the newest print was written, and through which client if an assistant wrote it.
+    pub wrote: Option<tisty_core::history::Hand>,
 }
 
 impl Answers {
@@ -499,17 +497,38 @@ enum Answer {
     No,
 }
 
-fn set_aside(data: &Path, id: &str, mine: &Path, left: &str) {
-    let Ok(was) = std::fs::read_to_string(mine) else {
+// A body the log answers for is written by whoever the log says, at the hour it says.
+fn arriving<'a>(
+    data: &'a Path,
+    says: Option<&Answers>,
+    checked: &str,
+) -> tisty_core::history::Writer<'a> {
+    use tisty_core::history::Writer;
+    match says
+        .filter(|one| one.newest.as_deref() == Some(checked))
+        .and_then(|one| one.wrote.clone())
+    {
+        Some((at, via)) => Writer::at(data, via, at),
+        None => Writer::unanswered(data),
+    }
+}
+
+pub(crate) fn standing(mine: &Path) -> Option<Vec<u8>> {
+    use tisty_core::docs::{print_of, read_as_printed};
+    let print = print_of(mine).ok().flatten()?;
+    read_as_printed(mine, &print).ok().flatten()
+}
+
+fn set_aside(by: &tisty_core::history::Writer, id: &str, mine: &Path, left: &[u8], answer: Answer) {
+    use tisty_core::history::Step;
+    let Some(was) = standing(mine) else {
         return;
     };
-    if tisty_core::docs::kept_before(data, id, &was, left).is_err() {
-        witness::warn(
-            channel::SYNC,
-            "what a document held could not be set aside before another machine's version replaced it",
-            &[("at", Fact::Id(id.to_string()))],
-        );
-    }
+    let step = match answer {
+        Answer::Doubtful => Step::Back,
+        _ => Step::Stays,
+    };
+    by.passes(id, &was, left, step);
 }
 
 // Locked or held bodies are timed too, so unlocking or removing the machine asks at once.

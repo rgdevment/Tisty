@@ -183,8 +183,13 @@ pub(super) fn named_anew(
     let Some(up) = tisty_core::docs::book_to_relabel(state, page, &title) else {
         return String::new();
     };
-    let Ok(Some(now)) = tisty_core::docs::relabel_page(&paths.docs(), &up.file, page, &title)
-    else {
+    let Ok(Some(now)) = tisty_core::docs::relabel_page(
+        &paths.docs(),
+        &crate::mcp::writing(paths),
+        &up.file,
+        page,
+        &title,
+    ) else {
         return String::new();
     };
     let unsettled = match super::retold(state, store, &up.file, &now) {

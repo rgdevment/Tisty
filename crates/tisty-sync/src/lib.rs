@@ -479,6 +479,7 @@ pub fn carry_through(
                     newest: paper.print.clone(),
                     own,
                     others,
+                    wrote: paper.wrote.map(|at| (at, paper.wrote_via.clone())),
                 },
             )
         })
@@ -1084,6 +1085,15 @@ fn theirs_over_mine(
             &[("at", Fact::Id(id.to_string()))],
         );
         return Err(Trouble::Moved(id.to_string()));
+    }
+    // The person chose the other side, and the log does not say who wrote it: this side is kept.
+    if let Some(was) = papers::standing(mine) {
+        tisty_core::history::Writer::unanswered(data).passes(
+            id,
+            &was,
+            &body,
+            tisty_core::history::Step::Stays,
+        );
     }
     written(mine, body.as_bytes())?;
     Ok(alone)

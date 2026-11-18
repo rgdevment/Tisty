@@ -418,6 +418,10 @@ fn turned_away(paths: &Paths) -> Refused {
     )
 }
 
+fn writing(paths: &Paths) -> tisty_core::history::Writer<'_> {
+    tisty_core::history::Writer::now(paths.data(), speaking_through())
+}
+
 fn opened(paths: &Paths) -> Result<(State, Store), Refused> {
     let Some((state, agent)) = admitted(paths)? else {
         return Err(turned_away(paths));

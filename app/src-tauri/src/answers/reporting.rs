@@ -68,8 +68,8 @@ pub fn checked(session: tauri::State<'_, Mutex<Session>>) -> Answer<Reviewed> {
             .into_iter()
             .filter_map(|file| {
                 let kept = session.state.docs.values().find(|one| one.file == file)?;
-                let title = tisty_core::docs::read_before(session.paths.data(), &file)
-                    .map(|was| tisty_core::docs::titled(&was))
+                let title = tisty_core::history::back(session.paths.data(), &file)
+                    .map(|was| tisty_core::docs::titled(&was.body))
                     .unwrap_or_default();
                 Some(Gone {
                     file,

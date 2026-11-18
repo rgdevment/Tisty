@@ -1,5 +1,5 @@
 use serde_json::Value;
-use tisty_core::docs::RestorePoint;
+use tisty_core::history::RestorePoint;
 use tisty_core::model::TaskId;
 use tisty_core::{Op, Paths, State, Store};
 
@@ -52,7 +52,7 @@ pub(in crate::mcp) fn on_its_page(
     }
     let root = paths.docs();
     let before = tisty_core::docs::read(&root, file).map_err(hitch)?;
-    let point = tisty_core::docs::restore_point(paths.data(), file);
+    let point = tisty_core::history::restore_point(paths.data(), file);
     let mut said = write()?;
     let after = tisty_core::docs::read(&root, file).map_err(hitch)?;
     if after != before {
@@ -174,7 +174,7 @@ fn undone(
 ) -> Result<(), Refused> {
     let back = put_back(paths, state, store, page.file, &page.after, &page.before)?;
     if back && let Some(point) = &page.point {
-        tisty_core::docs::set_restore_point(paths.data(), page.file, point).map_err(hitch)?;
+        tisty_core::history::set_restore_point(paths.data(), page.file, point).map_err(hitch)?;
     }
     Ok(())
 }
@@ -191,8 +191,9 @@ fn put_back(
     if left == body {
         return Ok(true);
     }
-    let whole = tisty_core::docs::rewrite_if(&paths.docs(), paths.data(), file, left, body)
-        .map_err(hitch)?;
+    let whole =
+        tisty_core::docs::rewrite_if(&paths.docs(), &crate::mcp::writing(paths), file, left, body)
+            .map_err(hitch)?;
     match whole {
         Some(whole) => retold(state, store, file, &whole).map(|()| true),
         None => Ok(false),

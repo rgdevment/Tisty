@@ -1825,11 +1825,9 @@ El riego queda para mayo.
         .unwrap()
         .to_string();
 
-    std::fs::write(
-        served.home.path().join("data/originals"),
-        "no soy una carpeta",
-    )
-    .expect("nowhere to keep what it said before");
+    let history = served.home.path().join("data/history");
+    let _ = std::fs::remove_dir_all(&history);
+    std::fs::write(&history, "no soy una carpeta").expect("nowhere to keep what it said before");
 
     let edited = served.call(
         "edit_doc",
@@ -4723,14 +4721,9 @@ fn a_passage_can_be_taken_out_and_what_it_was_is_kept_on_disk() {
     );
 
     assert_eq!(body_of(&served, &doc), "# Acta\n\nuno\n\ntres\n");
-    let kept = std::fs::read_to_string(
-        served
-            .home
-            .path()
-            .join("data/originals")
-            .join(format!("{doc}.md")),
-    )
-    .expect("what it was is kept beside the documents");
+    let kept = tisty_core::history::back(&served.home.path().join("data"), &doc)
+        .expect("what it was is kept beside the documents")
+        .body;
     assert!(kept.contains("dos"), "{kept}");
 }
 

@@ -224,6 +224,9 @@ pub fn papers(
     let ours = paths.docs();
     let mut gone = crate::docs::sweep(&ours, &owed);
     forget_the_prints(paths, &owed);
+    for file in &owed {
+        crate::history::forget(paths.data(), file);
+    }
     done.papers.extend(
         owed.into_iter()
             .filter(|file| went(&ours, crate::docs::resolve(&ours, file))),
