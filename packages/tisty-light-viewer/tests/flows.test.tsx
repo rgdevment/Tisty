@@ -139,6 +139,9 @@ describe("the menu", () => {
     (await button("Más")).click();
     await menuItem(/Imprimir/);
     expect(screen.queryByRole("menuitem", { name: /Buscar/ })).toBeNull();
+    pressed({ key: "f", ctrlKey: true });
+    await new Promise((settle) => setTimeout(settle, 50));
+    expect(screen.queryByRole("searchbox")).toBeNull();
   });
 
   it("offers no link to a stranger's file, which Tisty has no address for", async () => {

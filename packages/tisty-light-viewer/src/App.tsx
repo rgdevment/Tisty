@@ -79,6 +79,7 @@ export default function App(props: { readonly asked: string | null; readonly clo
   // Only whoever searches pays for the finder.
   const [finder, setFinder] = createSignal<typeof Finder | null>(null);
   const find = () => {
+    if (!searchable()) return;
     setFinding(true);
     void import("./Finder").then(
       (loaded) => setFinder(() => loaded.default),
@@ -228,6 +229,7 @@ export default function App(props: { readonly asked: string | null; readonly clo
     return now?.kind === "drawn" ? now : null;
   };
   const empty = () => drawn()?.first.trim() === "";
+  const searchable = () => drawn() !== null && !empty();
   // Only a file on disk has a folder to show it in.
   const outside = () => {
     const now = one();
@@ -250,7 +252,7 @@ export default function App(props: { readonly asked: string | null; readonly clo
         <MoreMenu
           words={words}
           drawn={one()?.kind === "drawn"}
-          searchable={drawn() !== null && !empty()}
+          searchable={searchable()}
           own={one()?.own ?? false}
           revealed={outside()}
           onClose={() => setMore(false)}
