@@ -486,6 +486,95 @@ fn a_swept_store_is_not_put_back() {
     );
 }
 
+fn filed(world: &World, titles: &[&str]) {
+    let mut store = world.store();
+    for title in titles {
+        task(&mut store, title, &[]);
+    }
+}
+
+#[test]
+fn a_base_deleted_between_rounds_is_filled_again_by_the_next_look() {
+    let world = World::new();
+    filed(&world, &["renew the passport", "water the plants"]);
+    kept_up(&world.paths, Round::Starting);
+
+    std::fs::remove_file(world.paths.cache().join(FILE)).unwrap();
+
+    assert_eq!(
+        kept_up(&world.paths, Round::Looking),
+        Some(Refreshed::Moved {
+            written: 2,
+            removed: 0
+        }),
+        "a look with the disk unchanged still finds the base gone"
+    );
+    assert_eq!(held(&world.brain(), "kind").len(), 2);
+}
+
+#[test]
+fn an_older_base_left_by_another_version_is_filled_again_by_the_next_look() {
+    let world = World::new();
+    filed(&world, &["renew the passport"]);
+    kept_up(&world.paths, Round::Starting);
+    world
+        .brain()
+        .db
+        .execute(
+            "UPDATE meta SET value = ? WHERE key = 'schema'",
+            [(SCHEMA - 1).to_string()],
+        )
+        .unwrap();
+
+    assert_eq!(
+        kept_up(&world.paths, Round::Looking),
+        Some(Refreshed::Moved {
+            written: 1,
+            removed: 0
+        })
+    );
+    assert_eq!(
+        said(&world.brain().db, "schema").unwrap(),
+        Some(SCHEMA.to_string())
+    );
+}
+
+#[test]
+fn damage_a_round_runs_into_is_taken_away_and_the_next_round_fills_a_new_base() {
+    let world = World::new();
+    filed(&world, &["renew the passport", "water the plants"]);
+    kept_up(&world.paths, Round::Starting);
+    let at = world.paths.cache().join(FILE);
+    let (root, size) = {
+        let raw = Connection::open(&at).unwrap();
+        let root: i64 = raw
+            .query_row(
+                "SELECT rootpage FROM sqlite_master WHERE name = 'node'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        let size: i64 = raw
+            .query_row("PRAGMA page_size", [], |row| row.get(0))
+            .unwrap();
+        (root as usize, size as usize)
+    };
+    let mut bytes = std::fs::read(&at).unwrap();
+    bytes[(root - 1) * size..root * size].fill(0xFF);
+    std::fs::write(&at, bytes).unwrap();
+    filed(&world, &["book the flight"]);
+
+    assert_eq!(kept_up(&world.paths, Round::Nudged), None);
+    assert!(!at.exists(), "the damaged base was left for the next round");
+    assert_eq!(
+        kept_up(&world.paths, Round::Looking),
+        Some(Refreshed::Moved {
+            written: 3,
+            removed: 0
+        })
+    );
+}
+
 #[test]
 fn a_damaged_base_leaves_no_journal_behind() {
     let dir = tempfile::tempdir().unwrap();
