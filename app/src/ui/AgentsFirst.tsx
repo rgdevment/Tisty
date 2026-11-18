@@ -116,11 +116,16 @@ export default function AgentsFirst({ onClose, onChanged }: Readonly<Props>) {
   const [trouble, setTrouble] = useState<string>();
   const [brought, setBrought] = useState<Brought>();
   const [both, setBoth] = useState<Both[]>([]);
+  const [reviewing, setReviewing] = useState(false);
 
   useEffect(() => {
     agentsLook()
       .then((seen) => {
         setLook(seen);
+        if (seen.consented && seen.docs > 0 && seen.both.length > 0) {
+          setBoth(seen.both);
+          setReviewing(true);
+        }
         setChosen(
           new Set(
             seen.assistants.flatMap((one) => one.files.filter(takeable).map((file) => file.at)),
@@ -163,6 +168,9 @@ export default function AgentsFirst({ onClose, onChanged }: Readonly<Props>) {
   };
 
   const shown = both[0];
+  useEffect(() => {
+    if (reviewing && !shown) onClose();
+  }, [reviewing, shown, onClose]);
   if (shown) {
     const name =
       look?.assistants.find((one) => one.id === shown.assistant)?.name ?? shown.assistant;

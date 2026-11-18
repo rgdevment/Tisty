@@ -387,3 +387,22 @@ fn tistys_own_line_in_geminis_file_is_not_taken_for_a_change_outside() {
         again.told
     );
 }
+
+#[test]
+fn a_choice_left_for_later_is_asked_again() {
+    let mut room = room();
+    second_computer(&mut room);
+    room.bring(&[]);
+    let look = room.look();
+    assert!(look.asks, "the file and its document still differ");
+    let [both] = look.both.as_slice() else {
+        panic!("{:?}", look.both);
+    };
+    assert!(both.at.ends_with("CLAUDE.md"));
+
+    let at = room.at(".claude/CLAUDE.md");
+    kept_side(&mut room.session, &room.homes, HERE, &at, true).unwrap();
+    let look = room.look();
+    assert!(look.both.is_empty());
+    assert!(!look.asks);
+}

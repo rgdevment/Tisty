@@ -27,6 +27,7 @@ const look: AgentsLook = {
   consented: false,
   allOn: true,
   asks: true,
+  both: [],
   assistants: [
     {
       id: "claude",
@@ -156,6 +157,24 @@ const folder = (id: string, parent: string | null, more: Partial<Folded> = {}): 
   archived: false,
   away: false,
   ...more,
+});
+
+describe("a choice left for later", () => {
+  it("opens straight at the comparison, and closes once nothing is left to choose", async () => {
+    ipc.answer = (cmd) => {
+      if (cmd === "agents_look")
+        return Promise.resolve({ ...look, consented: true, docs: 3, asks: true, both: [both] });
+      return Promise.resolve({ told: [], both: [] });
+    };
+    const closed = vi.fn();
+    render(<AgentsFirst onClose={closed} onChanged={() => {}} />);
+    await screen.findByText("Existe en los dos lados");
+    await userEvent.click(screen.getByRole("button", { name: "Conservar el de Tisty" }));
+    await waitFor(() => expect(sent("agents_keep")).toHaveLength(1));
+    expect(sent("agents_keep")[0].args).toEqual({ at: both.at, tisty: true });
+    await waitFor(() => expect(closed).toHaveBeenCalled());
+    expect(sent("agents_bring")).toHaveLength(0);
+  });
 });
 
 describe("finding AGENTS among the folders", () => {

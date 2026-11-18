@@ -26,6 +26,7 @@ export interface AgentsLook {
   allOn: boolean;
   asks: boolean;
   assistants: AssistantSeen[];
+  both: Both[];
 }
 
 export interface Line {

@@ -50,6 +50,9 @@ export const agentsEn = {
   agentsSettingsAll: "Sync the AGENTS folder",
   agentsSettingsOne: "Sync {name}",
   agentsSettingsNone: "No agents found on this computer.",
+  agentsSettingsBothOne: "1 file says something different in Tisty and in the agent.",
+  agentsSettingsBoth: "{name} files say something different in Tisty and in the agent.",
+  agentsSettingsReview: "Review",
   agentsSettingsOff: "Off: its files stay as they are, and nothing in Tisty is deleted.",
 };
 
@@ -106,5 +109,8 @@ export const agentsEs: typeof agentsEn = {
   agentsSettingsAll: "Sincronizar la carpeta AGENTS",
   agentsSettingsOne: "Sincronizar {name}",
   agentsSettingsNone: "No encontré agentes en este equipo.",
+  agentsSettingsBothOne: "1 archivo dice algo distinto en Tisty y en el agente.",
+  agentsSettingsBoth: "{name} archivos dicen algo distinto en Tisty y en el agente.",
+  agentsSettingsReview: "Revisar",
   agentsSettingsOff: "Apagado: sus archivos quedan como están y no se borra nada en Tisty.",
 };

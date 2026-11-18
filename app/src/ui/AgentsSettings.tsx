@@ -48,6 +48,18 @@ export default function AgentsSettings({ busy }: Readonly<{ busy: Which | null }
           </button>
         </>
       )}
+      {look?.consented && look.both.length > 0 && (
+        <>
+          <p className="mt-2 text-[12.5px] text-soft">
+            {look.both.length === 1
+              ? t("agentsSettingsBothOne")
+              : fill("agentsSettingsBoth", String(look.both.length))}
+          </p>
+          <button type="button" onClick={askAgents} className={small}>
+            {t("agentsSettingsReview")}
+          </button>
+        </>
+      )}
       {look && look.assistants.length === 0 && (
         <p className="mt-2 text-[12.5px] text-faint">{t("agentsSettingsNone")}</p>
       )}

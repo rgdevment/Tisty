@@ -111,6 +111,7 @@ pub struct Look {
     pub all_on: bool,
     pub asks: bool,
     pub assistants: Vec<Shown>,
+    pub both: Vec<Both>,
 }
 
 fn address_of(one: &Found) -> String {
@@ -133,7 +134,12 @@ pub fn looked(session: &Session, homes: &Homes, here: &str, found: &[Found]) -> 
     let docs = root
         .map(|root| docs_in(&session.state, &tree(&session.state, root)).len())
         .unwrap_or(0);
-    let held = addresses(&bodies(session));
+    let bodies = bodies(session);
+    let held = addresses(&bodies);
+    let both = match ledger.consented() {
+        true => pending(&ledger, &places::targets(homes, &bodies)),
+        false => Vec::new(),
+    };
     let assistants = homes
         .detected()
         .into_iter()
@@ -157,11 +163,23 @@ pub fn looked(session: &Session, homes: &Homes, here: &str, found: &[Found]) -> 
     Look {
         folder: root.map(|at| at.to_string()),
         docs,
-        asks: docs == 0 || !ledger.consented(),
+        asks: docs == 0 || !ledger.consented() || !both.is_empty(),
         consented: ledger.consented(),
         all_on: ledger.syncs(""),
         assistants,
+        both,
     }
+}
+
+// A choice left for later stays open here until the person makes it.
+fn pending(ledger: &Ledger, placed: &[Placed]) -> Vec<Both> {
+    placed
+        .iter()
+        .filter_map(|one| match agents::standing(ledger, &one.target) {
+            Standing::Both { now } => Some(both_of(&one.target, &now)),
+            _ => None,
+        })
+        .collect()
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
