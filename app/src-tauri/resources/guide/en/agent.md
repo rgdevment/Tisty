@@ -38,6 +38,7 @@ An agent deep in code forgets about Tisty. Two things help, and you can turn bot
 - Tick the steps it finished and, in the same call, leave the task's **State** on its page: what is done, what is left, what was decided and what was ruled out. You read it too, and the next session starts from there.
 - Work any task as it works a document, yours too: its description, its page, its title, its list and its open steps.
 - Write documents, add to one, correct a passage or a table, and file them into folders and pages.
+- Name a task or a document by its exact title in quotes: Tisty turns it into a link, as when you do it, and hands back what is doubtful for it to decide.
 - Jot ideas on Brainstorm when you ask, and sort them out with you: an idea it turns into a task or files in a document leaves the sheet, as it does when you do it.
 - Mark a document or an idea that had its day, saying why: you delete it, put it away or take the mark off.
 - Say that a task or a step is done: the task stays in **To confirm** until you finish it or send it back with **Still to do**; the steps wait for you with **Tick them** or **Not yet**.

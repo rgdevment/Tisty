@@ -38,6 +38,7 @@ Un agente concentrado en el código se olvida de Tisty. Hay dos ayudas, y las do
 - Marcar los pasos que terminó y, en la misma llamada, dejar el **Estado** de la tarea en su página: lo hecho, lo que falta, lo decidido y lo descartado. Tú también lo lees, y la sesión siguiente parte de ahí.
 - Trabajar cualquier tarea como un documento, también las tuyas: su descripción, su página, su título, su lista y sus pasos abiertos.
 - Escribir documentos, agregar a uno, corregir un pasaje o una tabla, y ordenarlos en carpetas y páginas.
+- Nombrar una tarea o un documento por su título exacto entre comillas: Tisty lo convierte en un enlace, como cuando lo haces tú, y lo dudoso se lo devuelve para que decida.
 - Anotar ideas en la Lluvia de ideas cuando se lo pides, y ordenarlas contigo: una idea que convierte en tarea o anexa a un documento sale de la hoja, como cuando lo haces tú.
 - Marcar un documento o una idea que ya cumplió su vida, con el porqué: tú lo borras, lo archivas o le quitas la marca.
 - Decir que una tarea o un paso está listo: la tarea queda en **Por confirmar** hasta que tú la terminas o la devuelves con **Sigue pendiente**; los pasos te esperan con **Marcarlos** o **Todavía no**.
