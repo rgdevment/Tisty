@@ -1,7 +1,7 @@
 use ulid::Ulid;
 
 use super::super::tests::{World, doc, edges, held, task};
-use crate::event::TaskAdd;
+use crate::event::{LogAdd, StepAdd, TaskAdd};
 use crate::model::{Resolved, Status};
 use crate::{Op, docs};
 
@@ -98,6 +98,71 @@ fn every_kind_of_connection_comes_from_what_was_written() {
     assert_eq!(
         all, wanted,
         "the book's page line and the link in code tie nothing"
+    );
+}
+
+#[test]
+fn every_kind_of_connection_also_comes_from_what_a_task_wrote() {
+    let world = World::new();
+    let mut store = world.store();
+    let (_, plan) = doc(&world, &mut store, "# Plan\n\n## Food\n", None, None);
+    let (_, budget) = doc(&world, &mut store, "# Budget\n", None, None);
+    let whole = task(&mut store, "move house", &[]);
+    let errand = task(&mut store, "call the bank", &[]);
+    let bread = Ulid::generate();
+    let mut d = TaskAdd::new("buy bread", "a0");
+    d.part_of = Some(whole);
+    d.source = Some(format!("{plan}#food"));
+    d.tags = vec![crate::model::Tag::new("errands").unwrap()];
+    store.append(Op::TaskAdd { id: bread, d }).unwrap();
+    let receipt = world.paths.data().join("receipt.png");
+    std::fs::write(&receipt, b"a receipt").unwrap();
+    let kept =
+        crate::attach::keep(&receipt, world.paths.data(), crate::attach::HELD_UP_TO).unwrap();
+    for body in [
+        crate::attach::journalled(&kept, "receipt", &receipt, "from {path}"),
+        format!("Asked [the bank](tisty:task/{errand}) first."),
+    ] {
+        store
+            .append(Op::TaskLog {
+                id: bread,
+                d: LogAdd::new(Ulid::generate(), body),
+            })
+            .unwrap();
+    }
+    store
+        .append(Op::StepAdd {
+            id: bread,
+            d: StepAdd {
+                step: Ulid::generate(),
+                text: format!("Check [the budget](tisty:doc/{budget}#rent)"),
+                order: "a0".into(),
+            },
+        })
+        .unwrap();
+    let mut state = world.state();
+    if let Some(one) = state.tasks.get_mut(&bread) {
+        one.description = Some(format!("![Plan](tisty:doc/{plan})\n"));
+    }
+    let mut brain = world.brain();
+
+    world.refreshed(&mut brain, &state);
+
+    let bread = bread.to_string();
+    let mut wanted = vec![
+        tie(&bread, &plan, "cite"),
+        tie(&bread, &plan, "structure"),
+        tie(&bread, &errand.to_string(), "mention"),
+        tie(&bread, &budget, "mention"),
+        tie(&bread, &crate::attach::canonical(&kept.at).unwrap(), "uses"),
+        tie(&bread, &whole.to_string(), "structure"),
+        tie(&bread, "#errands", "tag"),
+    ];
+    wanted.sort();
+    assert_eq!(
+        edges(&brain),
+        wanted,
+        "description, journal and steps each tie the task"
     );
 }
 
