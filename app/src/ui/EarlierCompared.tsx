@@ -29,10 +29,10 @@ function Counted({ said }: Readonly<{ said: Compared }>) {
   if (said.gone + said.came === 0) return <span>{t("earlierSame")}</span>;
   return (
     <>
-      <span className="rounded-[4px] bg-hue-red/15 px-1.5">
+      <span className="rounded-md bg-hue-red/10 px-1.5">
         {fill("earlierWent", String(said.gone))}
       </span>
-      <span className="rounded-[4px] bg-hue-green/15 px-1.5">
+      <span className="rounded-md bg-hue-green/10 px-1.5">
         {fill("earlierCame", String(said.came))}
       </span>
     </>

@@ -74,7 +74,7 @@ function Listed({
           aria-pressed={against}
           aria-label={fill("earlierCompareWith", whenOf(one))}
           onClick={onAgainst}
-          className={`shrink-0 rounded-[8px] px-2 py-1 text-[11.5px] ${against ? "bg-active text-ink" : "text-faint hover:bg-hover"}`}
+          className={`shrink-0 rounded-md px-2 py-1 text-[11.5px] ${against ? "bg-active text-ink" : "text-faint hover:bg-hover"}`}
         >
           {t("earlierCompareRow")}
         </button>
