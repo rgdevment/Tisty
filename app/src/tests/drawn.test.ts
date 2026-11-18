@@ -51,6 +51,20 @@ describe("a click on a drawn page", () => {
     });
   });
 
+  it("sends the address of a document of the store to the app, whole", () => {
+    const href = "tisty://doc/a/b?id=dev_a-0002";
+
+    expect(clicked(`<p data-at="0-9"><a href="${href}">x</a></p>`, "a")).toEqual({
+      kind: "web",
+      href,
+    });
+    expect(clicked('<p data-at="0-9"><a href="tisty:doc/dev_a-0002">x</a></p>', "a")).toEqual({
+      kind: "doc",
+      id: "dev_a-0002",
+    });
+    expect(clicked('<p data-at="0-9"><a href="tisty://open?path=x">x</a></p>', "a")).toBeNull();
+  });
+
   it("follows nothing it does not know, and nothing a link was cleaned out of", () => {
     expect(clicked('<p data-at="0-9"><a href="#">x</a></p>', "a")).toBeNull();
     expect(clicked('<p data-at="0-9"><a href="ftp://x.y">x</a></p>', "a")).toBeNull();

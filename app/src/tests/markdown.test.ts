@@ -1,5 +1,29 @@
 import { describe, expect, it } from "vitest";
-import { docLink, docOf, dressed } from "../markdown";
+import { addressed, docLink, docOf, dressed } from "../markdown";
+
+describe("an address that names a document of the store", () => {
+  it("is known by its scheme and its document path, in any case, with or without folders", () => {
+    for (const target of [
+      "tisty://doc?id=x",
+      "tisty://doc/a/b?id=x",
+      "TISTY://DOC/a?id=x",
+      "tisty://doc/personal/proyectos/validacion-de-datos?id=4nnctnme-0039",
+    ])
+      expect(addressed(target), target).toBe(true);
+  });
+
+  it("is not taken from an internal link, another kind of address or a look-alike", () => {
+    for (const target of [
+      "tisty:doc/x",
+      "tisty://docs?id=x",
+      "tisty://open?path=x",
+      "tisty://task?id=x",
+      "https://doc/a",
+      "",
+    ])
+      expect(addressed(target), target).toBe(false);
+  });
+});
 
 describe("a note the core drew, readied for the window", () => {
   it("drops the places in the source, which only the page needs", () => {
