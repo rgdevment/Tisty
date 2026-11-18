@@ -432,7 +432,7 @@ fn a_task_holds_each_word_its_name_or_its_words_say() {
         .map(|one| (*one).to_string())
         .collect();
 
-    assert_eq!(terms_held(&one, &terms), 2);
-    assert_eq!(terms_held(&one, &[]), 0);
-    assert_eq!(terms_held(&task("Nothing here"), &terms), 0);
+    assert_eq!(terms_held(&one, &terms), [&terms[0], &terms[1]]);
+    assert!(terms_held(&one, &[]).is_empty());
+    assert!(terms_held(&task("Nothing here"), &terms).is_empty());
 }

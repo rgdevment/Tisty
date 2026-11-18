@@ -194,7 +194,9 @@ pub(super) fn of_task(paths: &Paths, which: &str, args: &Value) -> Result<Value,
                 .as_object()
                 .cloned()
                 .unwrap_or_default();
-            said.insert("base".into(), json!(NO_BASE));
+            if held.is_none() {
+                said.insert("base".into(), json!(NO_BASE));
+            }
             (said, String::new())
         }
     };

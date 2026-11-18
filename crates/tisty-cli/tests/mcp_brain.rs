@@ -817,3 +817,37 @@ fn of_two_documents_saying_it_alike_the_newer_comes_first() {
     assert_eq!(found["docs"][0]["doc"], json!(newer), "{found}");
     assert_eq!(found["docs"][1]["doc"], json!(older), "{found}");
 }
+
+#[test]
+fn a_word_only_a_tasks_page_holds_still_counts_for_that_task() {
+    let served = Served::new();
+    let paged = served.person().captures("Invoice export");
+    served.person().captures("Answer the stripe webhook");
+    let mut talk = served.connect();
+    talk.call(
+        "append_doc",
+        json!({ "doc": paged.to_string(), "body": "The stripe webhook sends it." }),
+    );
+
+    let found = talk.brain(json!({ "query": "invoice stripe webhook refund" }));
+
+    assert_eq!(found["every_word"], false, "{found}");
+    assert_eq!(
+        found["matches"][0]["id"],
+        json!(paged.to_string()),
+        "{found}"
+    );
+}
+
+#[test]
+fn a_quoted_phrase_stays_whole_when_no_hit_holds_every_word() {
+    let served = Served::new();
+    served.person().captures("Fix the sync stall on wake");
+    served.person().captures("The stall happens before sync");
+    let mut talk = served.connect();
+
+    let found = talk.brain(json!({ "query": "\"sync stall\" hibernate" }));
+
+    assert_eq!(found["every_word"], false, "{found}");
+    assert_eq!(titles(&found, "matches"), ["Fix the sync stall on wake"]);
+}

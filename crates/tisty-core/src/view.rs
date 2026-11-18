@@ -162,14 +162,14 @@ pub fn matches_query(task: &Task, terms: &[String]) -> Option<Hit> {
         .then_some(Hit::Mentioned)
 }
 
-/// How many of the words a task holds anywhere `matches_query` looks, its text folded once.
-pub fn terms_held(task: &Task, terms: &[String]) -> usize {
+/// Which of the words a task holds anywhere `matches_query` looks, its text folded once.
+pub fn terms_held<'a>(task: &Task, terms: &'a [String]) -> Vec<&'a String> {
     let names = Names::of(task);
     let body = bodies(task);
     terms
         .iter()
         .filter(|term| names.hold(term) || body.iter().any(|one| one.contains(term.as_str())))
-        .count()
+        .collect()
 }
 
 pub fn unnamed(task: &Task, terms: &[String]) -> Vec<String> {

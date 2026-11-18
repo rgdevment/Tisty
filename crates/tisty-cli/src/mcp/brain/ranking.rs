@@ -32,18 +32,24 @@ pub(super) fn ranked<'a>(
     let whole = gathered(
         paths,
         state,
-        &[(query, terms.len())],
+        &[(query.to_string(), terms.len())],
         scope,
         keeps,
         paper_kept,
-        false,
+        None,
     );
     let none = whole.0.is_empty() && whole.2.is_empty();
     let (found, lined, papers) = match none && terms.len() > 1 {
         true => {
-            let each: Vec<(&str, usize)> = terms.iter().map(|one| (one.as_str(), 1)).collect();
+            let each: Vec<(String, usize)> = terms.iter().map(|one| (asked(one), 1)).collect();
             nearest(gathered(
-                paths, state, &each, scope, keeps, paper_kept, true,
+                paths,
+                state,
+                &each,
+                scope,
+                keeps,
+                paper_kept,
+                Some(&terms),
             ))
         }
         false => whole,
@@ -82,6 +88,14 @@ pub(super) fn ranked<'a>(
     }
 }
 
+// A phrase stays a phrase when it is asked alone, as it was within the whole query.
+fn asked(term: &str) -> String {
+    match term.contains(char::is_whitespace) {
+        true => format!("\"{term}\""),
+        false => term.to_string(),
+    }
+}
+
 // One common word alone would bring half the store, so only what comes within a word of the best stays.
 fn nearest(gathered: Gathered<'_>) -> Gathered<'_> {
     let (mut tasks, lined, mut papers) = gathered;
@@ -106,29 +120,30 @@ type Gathered<'a> = (
 fn gathered<'a>(
     paths: &Paths,
     state: &'a State,
-    asks: &[(&str, usize)],
+    asks: &[(String, usize)],
     scope: Scope,
     keeps: &dyn Fn(&Task) -> bool,
     paper_kept: &dyn Fn(&str) -> bool,
-    by_word: bool,
+    by_word: Option<&[String]>,
 ) -> Gathered<'a> {
     let mut tasks: HashMap<TaskId, (&Task, usize)> = HashMap::new();
     let mut lined = HashMap::new();
     let mut papers: HashMap<String, Held> = HashMap::new();
     let behind = tisty_core::task_docs::behind(state);
-    if by_word {
-        let words: Vec<String> = asks.iter().map(|(ask, _)| (*ask).to_string()).collect();
+    let mut holds: HashMap<TaskId, HashSet<&String>> = HashMap::new();
+    if let Some(words) = by_word {
         for task in state.tasks.values().filter(|task| keeps(task)) {
-            let held = tisty_core::view::terms_held(task, &words);
-            if held > 0 {
-                tasks.insert(task.id, (task, held));
+            let held = tisty_core::view::terms_held(task, words);
+            if !held.is_empty() {
+                tasks.insert(task.id, (task, held.len()));
+                holds.insert(task.id, held.into_iter().collect());
             }
         }
     }
-    let seeded: HashSet<TaskId> = tasks.keys().copied().collect();
-    for (ask, worth) in asks {
+    for (at, (ask, worth)) in asks.iter().enumerate() {
         let mut counted: HashSet<TaskId> = HashSet::new();
-        if !by_word {
+        let word = by_word.and_then(|words| words.get(at));
+        if by_word.is_none() {
             for task in state.searching(ask, scope, usize::MAX).0 {
                 if keeps(task) && counted.insert(task.id) {
                     tasks.entry(task.id).or_insert((task, 0)).1 += worth;
@@ -140,7 +155,9 @@ fn gathered<'a>(
                 let Some(task) = state.tasks.get(id).filter(|task| keeps(task)) else {
                     continue;
                 };
-                if !seeded.contains(id) && counted.insert(*id) {
+                let held =
+                    word.is_some_and(|word| holds.get(id).is_some_and(|all| all.contains(word)));
+                if !held && counted.insert(*id) {
                     tasks.entry(*id).or_insert((task, 0)).1 += worth;
                     lined.entry(*id).or_insert_with(|| one.line.clone());
                 }
