@@ -8,7 +8,9 @@ import { TASK } from "../markdown";
 const named = new RegExp(`${TASK.replace("/", "\\/")}([0-9A-Za-z]+)`, "g");
 
 export const citedIn = (text: string): string[] =>
-  [...new Set(Array.from(text.matchAll(named), (found) => found[1].toUpperCase()))].sort();
+  [...new Set(Array.from(text.matchAll(named), (found) => found[1].toUpperCase()))].sort(
+    (one, other) => one.localeCompare(other),
+  );
 
 const closedOn = (iso?: string): string | undefined => {
   const at = iso ? Date.parse(iso) : Number.NaN;
