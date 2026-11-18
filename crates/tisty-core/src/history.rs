@@ -8,8 +8,10 @@ use crate::{Error, Result};
 
 mod compared;
 mod logged;
+mod shown;
 pub use compared::{Compared, compared};
 pub use logged::{Logged, Row, logged, rows};
+pub use shown::{Here, Shown, Wrote, machine, shown, wrote};
 
 pub const FOLDER: &str = "history";
 const ORIGINALS: &str = "originals";
