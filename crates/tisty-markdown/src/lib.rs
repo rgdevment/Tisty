@@ -20,6 +20,7 @@ pub mod kept;
 mod marks;
 #[cfg(feature = "math")]
 pub mod math;
+pub mod named;
 mod old;
 #[cfg(feature = "outline")]
 mod outline;

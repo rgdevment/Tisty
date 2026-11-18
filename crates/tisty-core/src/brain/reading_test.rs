@@ -202,7 +202,11 @@ fn a_reader_neither_makes_a_base_nor_reads_a_newer_one() {
 
 #[test]
 fn headings_are_found_past_front_matter_and_carriage_returns() {
-    let aimed = ["a-0001".to_string(), "a-0001".to_string()];
+    let aimed = [
+        "a-0001".to_string(),
+        "a-0001".to_string(),
+        "a-0001".to_string(),
+    ];
     let body =
         "---\r\ntags: [x]\r\n---\r\n# Doc\r\n\r\n## Más tarde\r\n\r\n[a](tisty:doc/a-0001)\r\n";
 
@@ -291,4 +295,48 @@ fn a_body_that_could_not_be_read_is_tried_again_on_the_next_ask() {
 
     assert!(gone[0].under.is_empty());
     assert_eq!(back[0].under[0].id, "hotels");
+}
+
+#[test]
+fn a_bare_task_id_and_a_double_bracket_title_reach_the_panel_with_their_heading() {
+    let world = World::new();
+    let mut store = world.store();
+    let errand = task(&mut store, "book the vet", &[]);
+    let (_, vet) = doc(&world, &mut store, "# Vet\n", None, None);
+    let (_, trips) = doc(&world, &mut store, "# Trips\n", None, None);
+    written(
+        &world,
+        &trips,
+        &format!("# Trips\n\n## Hotels\n\nAsk {errand} first.\n\n## Food\n\nAs [[Vet]] says.\n"),
+    );
+    let mut brain = world.brain();
+    world.refreshed(&mut brain, &world.state());
+    let mut headed = Headed::default();
+
+    let docs = world.paths.docs();
+    let by_id = brain
+        .cited_by(&errand.to_string(), &docs, &mut headed)
+        .unwrap();
+    let by_title = brain.cited_by(&vet, &docs, &mut headed).unwrap();
+
+    assert_eq!(
+        by_id,
+        Some(vec![citing(
+            &trips,
+            "doc",
+            "Trips",
+            false,
+            &[("hotels", "Hotels")]
+        )])
+    );
+    assert_eq!(
+        by_title,
+        Some(vec![citing(
+            &trips,
+            "doc",
+            "Trips",
+            false,
+            &[("food", "Food")]
+        )])
+    );
 }

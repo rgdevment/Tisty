@@ -18,14 +18,18 @@ pub const DOC: &str = "tisty:doc/";
 pub const TASK: &str = "tisty:task/";
 
 pub fn card(file: &str, title: &str) -> String {
-    let said: String = title
+    format!("![{}]({DOC}{file})", labelled(title))
+}
+
+/// Words fit to stand between a link's brackets.
+pub fn labelled(title: &str) -> String {
+    title
         .chars()
         .flat_map(|c| {
             let slash = matches!(c, '[' | ']' | '\\').then_some('\\');
             slash.into_iter().chain(std::iter::once(c))
         })
-        .collect();
-    format!("![{said}]({DOC}{file})")
+        .collect()
 }
 
 pub fn papers(text: &str) -> Vec<String> {
@@ -61,6 +65,22 @@ pub fn link_spots(text: &str) -> Vec<(Link, usize)> {
                 card,
             };
             (link, at)
+        })
+        .collect()
+}
+
+/// Every picture outside code with the words in its brackets, empty when it has none.
+pub fn pictures(text: &str) -> Vec<(String, String)> {
+    let code = crate::fences::fenced_spans(text);
+    let bytes = text.as_bytes();
+    marked_past(text, &code)
+        .into_iter()
+        .filter(|(at, one)| one.kind == Kind::Link && *at > 0 && bytes[at - 1] == b'!')
+        .map(|(_, one)| {
+            (
+                one.target,
+                one.label.as_deref().map(unescaped).unwrap_or_default(),
+            )
         })
         .collect()
 }
@@ -211,7 +231,7 @@ fn marked_past(text: &str, code: &[(usize, usize)]) -> Vec<(usize, Ref)> {
     found
 }
 
-fn next_char(bytes: &[u8], at: usize) -> usize {
+pub(crate) fn next_char(bytes: &[u8], at: usize) -> usize {
     let mut step = 1;
     while at + step < bytes.len() && bytes[at + step] & 0xC0 == 0x80 {
         step += 1;
@@ -219,7 +239,7 @@ fn next_char(bytes: &[u8], at: usize) -> usize {
     step
 }
 
-fn past_code(text: &str, at: usize) -> usize {
+pub(crate) fn past_code(text: &str, at: usize) -> usize {
     let fence = text[at..].bytes().take_while(|b| *b == b'`').count();
     let mut from = at + fence;
     while let Some(next) = text[from..].find('`') {
@@ -278,7 +298,7 @@ pub fn shuts(rest: &str) -> Option<usize> {
     any
 }
 
-fn linked(text: &str, at: usize, keep: &mut impl FnMut(Ref)) -> usize {
+pub(crate) fn linked(text: &str, at: usize, keep: &mut impl FnMut(Ref)) -> usize {
     let rest = &text[at + 1..];
     let Some(shut) = shuts(rest) else {
         return at + 1;
@@ -347,7 +367,7 @@ fn defined(text: &str, from: usize, keep: &mut impl FnMut(Ref)) -> usize {
 }
 
 // An aligned paragraph is html, and a file named only there would read as loose and be swept.
-fn tagged(rest: &str, at: usize, keep: &mut impl FnMut(Ref)) -> usize {
+pub(crate) fn tagged(rest: &str, at: usize, keep: &mut impl FnMut(Ref)) -> usize {
     let opens = rest[1..]
         .chars()
         .next()
@@ -408,7 +428,7 @@ fn valued<'a>(tag: &'a str, name: &str) -> Option<&'a str> {
     None
 }
 
-fn bare(rest: &str, at: usize, keep: &mut impl FnMut(Ref)) -> usize {
+pub(crate) fn bare(rest: &str, at: usize, keep: &mut impl FnMut(Ref)) -> usize {
     let end = rest
         .find(|c: char| c.is_whitespace() || c == '<' || c == '>')
         .unwrap_or(rest.len());

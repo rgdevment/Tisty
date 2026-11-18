@@ -3,19 +3,20 @@ use std::path::Path;
 
 use rusqlite::{Connection, OpenFlags, OptionalExtension};
 use serde::Serialize;
+use tisty_markdown::named::{Named, spots};
 use tisty_markdown::refs::{DOC, TASK, link_spots};
 use tisty_markdown::sections;
 
-use super::linked::paper_named;
+use super::linked::{TITLED, paper_named};
 use super::{Brain, FILE, SCHEMA, WAITS_FOR_OTHERS, schema_of};
 use crate::model::DocId;
 use crate::witness::{self, Fact, channel};
 
-const NAMED: &str = "SELECT id, uid FROM node WHERE id = ?1
-    UNION ALL SELECT id, uid FROM node WHERE uid = ?1 LIMIT 1";
+const NAMED: &str = "SELECT id, uid, kind, title FROM node WHERE id = ?1
+    UNION ALL SELECT id, uid, kind, title FROM node WHERE uid = ?1 LIMIT 1";
 const CITING: &str = "SELECT n.id, n.kind, n.title, n.state, e.kind, n.stamp FROM edge e
     JOIN node n ON n.id = e.source
-    WHERE e.kind IN ('cite', 'mention') AND e.target IN (?1, ?2)
+    WHERE e.kind IN ('cite', 'mention') AND e.target IN (?1, ?2, ?3) AND n.id <> ?1
     ORDER BY n.kind = 'task', n.title COLLATE NOCASE, n.id";
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -96,15 +97,23 @@ impl Brain {
             .parse::<DocId>()
             .map_or_else(|_| id.to_string(), |one| one.to_string());
         let tx = self.db.unchecked_transaction()?;
-        let (file, uid) = tx
-            .query_row(NAMED, [&id], |row| Ok((row.get(0)?, row.get(1)?)))
-            .optional()?
-            .unwrap_or_else(|| (id.clone(), None::<String>));
-        let aimed = [file.clone(), uid.unwrap_or(file)];
+        let named = tx
+            .query_row(NAMED, [&id], |row| {
+                Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?))
+            })
+            .optional()?;
+        let (file, uid, kind, title): (String, Option<String>, String, String) =
+            named.unwrap_or_else(|| (id.clone(), None, String::new(), String::new()));
+        let uid = uid.unwrap_or_else(|| file.clone());
+        let titled = match kind.as_str() {
+            "doc" | "page" if carried_once(&tx, &title)? => format!("{TITLED}{title}"),
+            _ => uid.clone(),
+        };
+        let aimed = [file, uid, titled];
         let mut all: Vec<(Citing, String)> = Vec::new();
         {
             let mut asked = tx.prepare(CITING)?;
-            let rows = asked.query_map([aimed[0].as_str(), aimed[1].as_str()], |row| {
+            let rows = asked.query_map([&aimed[0], &aimed[1], &aimed[2]], |row| {
                 let one = Citing {
                     id: row.get(0)?,
                     kind: row.get(1)?,
@@ -140,28 +149,50 @@ pub fn cited_by(paths: &crate::Paths, id: &str, headed: &mut Headed) -> Option<V
         .flatten()
 }
 
+fn carried_once(db: &Connection, title: &str) -> rusqlite::Result<bool> {
+    let carriers: i64 = db.query_row(
+        "SELECT COUNT(*) FROM node WHERE kind IN ('doc', 'page') AND title = ?1",
+        [title],
+        |row| row.get(0),
+    )?;
+    Ok(carriers == 1)
+}
+
 // Places and headings are both read from the translator's text, so front matter and CRLF shift neither.
 fn headed(body: &str) -> Vec<(String, Under)> {
     let doc = tisty_markdown::read(body);
     let heads = sections(&doc);
-    link_spots(doc.text())
+    let linked = link_spots(doc.text()).into_iter().filter_map(|(link, at)| {
+        let named = link
+            .target
+            .strip_prefix(DOC)
+            .or_else(|| link.target.strip_prefix(TASK))?;
+        Some((paper_named(named), at))
+    });
+    let named = spots(doc.text())
         .into_iter()
-        .filter_map(|(link, at)| {
-            let named = link
-                .target
-                .strip_prefix(DOC)
-                .or_else(|| link.target.strip_prefix(TASK))?;
+        .filter_map(|spot| match spot.named {
+            Named::Id(said) => said
+                .parse::<crate::TaskId>()
+                .ok()
+                .map(|id| (id.to_string(), spot.at.start)),
+            Named::Wiki(title) => Some((format!("{TITLED}{title}"), spot.at.start)),
+            Named::Quoted(_) => None,
+        });
+    linked
+        .chain(named)
+        .filter_map(|(named, at)| {
             let head = heads.iter().rev().find(|head| head.at.start <= at)?;
             let under = Under {
                 id: head.id.clone(),
                 title: head.said.clone(),
             };
-            Some((paper_named(named), under))
+            Some((named, under))
         })
         .collect()
 }
 
-fn under(headed: &[(String, Under)], aimed: &[String; 2]) -> Vec<Under> {
+fn under(headed: &[(String, Under)], aimed: &[String; 3]) -> Vec<Under> {
     let mut found: Vec<Under> = Vec::new();
     for (named, under) in headed {
         if aimed.contains(named) && !found.iter().any(|one| one.id == under.id) {
