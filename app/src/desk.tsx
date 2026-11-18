@@ -3,6 +3,7 @@ import type { Filed, Folded, List, Snapshot, Task } from "./core";
 import { detailOf, erasing } from "./detailing";
 import { diaryToday } from "./diary";
 import { docChoices, folderChoices, type Hands, hereChoices } from "./docMenus";
+import { DIARY, hideChoice } from "./hiding";
 import { layoutOf } from "./layout";
 import { type ListHands, listChoices } from "./listMenus";
 import { t } from "./locales";
@@ -143,6 +144,14 @@ export function deskOf(state: State, data: Snapshot) {
       choices: folderChoices(folder, hands),
     });
 
+  const diaryMenu = (at: { x: number; y: number }) =>
+    setMenu({
+      at,
+      on: DIARY,
+      label: t("diary"),
+      choices: [{ ...hideChoice(DIARY), apart: false }],
+    });
+
   const docMenu = (doc: Filed, at: { x: number; y: number }) =>
     setMenu({
       at,
@@ -237,6 +246,7 @@ export function deskOf(state: State, data: Snapshot) {
     listMenu,
     hereMenu,
     folderMenu,
+    diaryMenu,
     docMenu,
     shown,
     shut,
