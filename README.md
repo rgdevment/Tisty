@@ -749,8 +749,8 @@ writer meant, so a paragraph cut at 80 columns is one paragraph and `#ff0000` is
 a colour rather than a tag. Pictures beside it come straight in, and those on
 the internet wait until you ask. **Edit** makes a copy in your store and leaves
 the original where it was. A document of yours opens from its panel, *Open in a
-window of its own*, in that same viewer and read-only, and **Edit** takes you to
-it in the main window. A widget opens apart
+window of its own*, or from its link, `tisty://doc/…?id=…`, in that same viewer
+and read-only, and **Edit** takes you to it in the main window. A widget opens apart
 too, at phone, tablet or desktop width. More in [the help](https://www.tisty.app/docs/documents/#opening-a-markdown-file-from-outside).
 
 **And they leave whole.** A document copies as standard Markdown, the way

@@ -72,6 +72,9 @@ Los documentos sí: *Importar un documento* toma `.md`, `.markdown`, `.txt`, `.h
 **¿Puedo leer un archivo Markdown sin traerlo a Tisty?**
 Sí: elige Tisty en **Abrir con**, o sigue un enlace `tisty://open?path=…`. Se abre en solo lectura en un visor liviano propio, hasta 1 MB, y **Editar** trae una copia cuando quieras. Mira [Documentos](Documentos#abrir-un-archivo-markdown-de-afuera).
 
+**¿Puedo enlazar un documento desde afuera, o pasárselo a mi agente?**
+Sí: **Copiar enlace**, en **Exportar** o en el menú del documento, te da una dirección `tisty://doc/…?id=…`. Al seguirla, el documento se abre en solo lectura en el visor ligero de un equipo que lo tenga, y tu agente lee o cambia ese mismo documento sin buscarlo. Mira [Documentos](Documentos#el-enlace-de-un-documento).
+
 **Un documento se abrió solo para leer y yo no lo pedí.**
 Está archivado, o lo está una página suya (o su documento). La barra del pie dice cuál es. Un documento con etiquetas HTML no queda solo para leer: se abre, se edita y se guarda entero. Mira [El editor Markdown](Editor-Markdown#cuando-un-documento-se-abre-solo-para-leer).
 

@@ -72,6 +72,9 @@ Documents, yes: *Import a document* takes `.md`, `.markdown`, `.txt`, `.html` or
 **Can I read a Markdown file without bringing it into Tisty?**
 Yes: choose Tisty under **Open with**, or follow a `tisty://open?path=…` link. It opens read only in a light viewer of its own, up to 1 MB, and **Edit** brings a copy in when you want it. See [Documents](Documents#opening-a-markdown-file-from-outside).
 
+**Can I link to a document from outside, or hand one to my agent?**
+Yes: **Copy link**, under **Export** or in the document's menu, gives you a `tisty://doc/…?id=…` address. Followed, it opens the document read only in the light viewer on a computer that holds it, and your agent reads or changes that very document without searching for it. See [Documents](Documents#a-documents-link).
+
 **A document opened read-only and I did not ask for that.**
 It is archived, or a page of it (or its document) is archived. The bar at the foot says which. A document holding HTML tags is not read-only: it opens, edits and saves whole. See [The Markdown editor](Markdown-Editor#when-a-document-opens-read-only).
 
