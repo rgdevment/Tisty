@@ -848,6 +848,7 @@ pub fn view_facts(
 ) -> Answer<crate::answers::papers::Facts> {
     match shown_in(&views, window.label())? {
         Shown::File(at) => crate::answers::papers::outside_facts(&at),
+        Shown::Doc(paper) if paper.id.is_empty() => Err(Refusal::of("noSuchDoc")),
         Shown::Doc(paper) => crate::answers::papers::doc_facts(session, paper.file),
         Shown::Diagram(drawn) => crate::answers::papers::doc_facts(session, drawn.paper.file),
         Shown::Piece { .. } => Err(Refusal::of("notAllowed")),
