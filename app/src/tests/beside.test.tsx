@@ -442,6 +442,7 @@ describe("what the column offers for the document", () => {
     "Export as HTML…",
     "Export as Word…",
     "Copy as Markdown",
+    "Copy link",
     "Save a copy as Markdown…",
   ];
 
@@ -460,7 +461,7 @@ describe("what the column offers for the document", () => {
 
     const said = screen.getAllByRole("menuitem").map((one) => one.textContent ?? "");
     expect(ways.map((way) => said.findIndex((one) => one.includes(way)))).toEqual([
-      0, 1, 2, 3, 4, 5,
+      0, 1, 2, 3, 4, 5, 6,
     ]);
   });
 

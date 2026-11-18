@@ -52,8 +52,21 @@ impl Source {
     fn body(&self, app: &AppHandle) -> Answer<String> {
         match self {
             Self::Outside(at) => body_of(at),
-            Self::Own(paper) => doc_body(app, &paper.file),
+            Self::Own(paper) if paper.id.is_empty() => {
+                Err(Refusal::about("noSuchDoc", paper.file.clone()))
+            }
+            Self::Own(paper) => {
+                doc_body(app, &paper.file).map_err(|refusal| unread(refusal, paper))
+            }
         }
+    }
+}
+
+// Only a link to what is not here says so: a document of the store that will not open is one that could not be read.
+fn unread(refusal: Refusal, paper: &Paper) -> Refusal {
+    match refusal.code {
+        "noSuchDoc" => Refusal::about("cannotRead", paper.file.clone()),
+        _ => refusal,
     }
 }
 
@@ -102,7 +115,12 @@ fn drawn_from(body: &str, own: bool) -> (Vec<String>, Vec<Heading>) {
 #[tauri::command(async)]
 pub fn view_read(app: AppHandle, window: tauri::WebviewWindow) -> Answer<Reading> {
     let label = window.label();
-    let source = source_of(&app, label)?;
+    let source = match source_of(&app, label)? {
+        Source::Own(paper) if paper.id.is_empty() => {
+            Source::Own(crate::viewing::found_since(&app, label, paper))
+        }
+        other => other,
+    };
     let (name, place, path, own) = match &source {
         Source::Outside(at) => (named(at), place_of(at), at.display().to_string(), false),
         Source::Own(paper) => (

@@ -1,6 +1,6 @@
 use super::{
-    LinkQuestion, Paper, Views, asked, asked_for_task, asked_to_edit, docs_named, paper_asked,
-    task_link, wanted,
+    LinkQuestion, Paper, Shown, Views, asked, asked_for_task, asked_to_edit, docs_named,
+    paper_asked, shows, task_link, wanted,
 };
 
 fn written(room: &tempfile::TempDir, name: &str) -> std::path::PathBuf {
@@ -367,6 +367,39 @@ fn a_document_address_among_the_arguments_names_its_document_once() {
 
     assert_eq!(docs_named(&argv), ["4nnctnme-0039", "4nnctnme-0040"]);
     assert!(docs_named(&said(&[DOC_ADDRESS])).is_empty());
+}
+
+#[test]
+fn a_document_asked_for_before_the_store_opens_waits_once_and_is_handed_over_once() {
+    let views = Views::default();
+
+    views.owe_doc(DOC);
+    views.owe_doc("4nnctnme-0040");
+    views.owe_doc(DOC);
+
+    assert_eq!(views.docs_due(), [DOC, "4nnctnme-0040"]);
+    assert!(views.docs_due().is_empty());
+}
+
+#[test]
+fn what_is_not_here_shares_one_window_and_a_document_has_its_own() {
+    let here = |id: &str, file: &str| Paper {
+        id: id.into(),
+        file: file.into(),
+        title: "Tisty".into(),
+        place: String::new(),
+    };
+    let gone = Shown::Doc(here("", "zzzzzzzz-0001"));
+    let open = Shown::Doc(here("01KA7B3VJ9RZ0Q8M5N2X4Y6W1T", DOC));
+
+    assert!(shows(&gone, &here("", "zzzzzzzz-0002")));
+    assert!(shows(&open, &here("01KA7B3VJ9RZ0Q8M5N2X4Y6W1T", DOC)));
+    assert!(!shows(&open, &here("", "zzzzzzzz-0002")));
+    assert!(!shows(
+        &open,
+        &here("01KA7B3VJ9RZ0Q8M5N2X4Y6W1U", "4nnctnme-0040")
+    ));
+    assert!(!shows(&Shown::File("C:/notes.md".into()), &here("", DOC)));
 }
 
 #[test]

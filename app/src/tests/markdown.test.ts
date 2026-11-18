@@ -4,12 +4,27 @@ import { addressed, docLink, docOf, dressed } from "../markdown";
 describe("an address that names a document of the store", () => {
   it("is known by its scheme and its document path, in any case, with or without folders", () => {
     for (const target of [
-      "tisty://doc?id=x",
-      "tisty://doc/a/b?id=x",
-      "TISTY://DOC/a?id=x",
+      "tisty://doc?id=dev_a-0002",
+      "tisty://doc/a/b?id=dev_a-0002",
+      "TISTY://DOC/a?id=dev_a-0002",
       "tisty://doc/personal/proyectos/validacion-de-datos?id=4nnctnme-0039",
     ])
       expect(addressed(target), target).toBe(true);
+  });
+
+  it("carries one well-formed id and nothing after it, as the core reads it", () => {
+    for (const target of [
+      "tisty://doc/personal/proyectos",
+      "tisty://doc?id=x",
+      "tisty://doc?id=",
+      "tisty://doc?id=dev_a-0002%20",
+      "tisty://doc?id=dev_a-0002&folder=x",
+      "tisty://doc?folder=x&id=dev_a-0002",
+      "tisty://doc/a?b?id=dev_a-0002",
+      "tisty://doc/a#b?id=dev_a-0002",
+      "tisty://doc/a?id=dev_a-0002#more",
+    ])
+      expect(addressed(target), target).toBe(false);
   });
 
   it("is not taken from an internal link, another kind of address or a look-alike", () => {

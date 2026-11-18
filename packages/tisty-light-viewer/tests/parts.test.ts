@@ -233,7 +233,14 @@ describe("a link in the document", () => {
 
   it("leaves alone an address that is not a document's, whoever the page belongs to", () => {
     for (const own of [true, false]) {
-      for (const href of ["tisty://open?path=x", "tisty://task?id=x", "tisty://docs?id=x"]) {
+      for (const href of [
+        "tisty://open?path=x",
+        "tisty://task?id=x",
+        "tisty://docs?id=ab12-0009",
+        "tisty://doc/sin-id",
+        "tisty://doc?id=ab12-0009&folder=x",
+        "tisty://doc?id=ab12-0009%20",
+      ]) {
         const { event } = pressed(href, own);
         expect(event.defaultPrevented).toBe(true);
       }

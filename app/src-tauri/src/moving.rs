@@ -65,5 +65,4 @@ fn settled_in(app: &tauri::AppHandle, docs: Vec<String>) {
         let _ = moving.close();
     }
     crate::viewing::to_docs(app, docs);
-    crate::viewing::to_docs(app, crate::viewing::docs_asked(app, &[]));
 }

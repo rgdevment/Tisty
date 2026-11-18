@@ -374,21 +374,43 @@ fn paper_at_hand(session: &Mutex<Session>, file: &str) -> Option<Paper> {
     paper_asked(&session.state, file)
 }
 
-fn nowhere() -> Paper {
+// It keeps the id it was asked for and no id of its own, so it is read again once the document arrives.
+fn nowhere(file: &str) -> Paper {
     Paper {
         id: String::new(),
-        file: String::new(),
+        file: file.to_string(),
         title: "Tisty".into(),
         place: String::new(),
     }
 }
 
-pub fn to_docs(app: &AppHandle, files: Vec<String>) -> bool {
+pub(crate) fn found_since(app: &AppHandle, label: &str, paper: Paper) -> Paper {
+    let found = app
+        .try_state::<Mutex<Session>>()
+        .and_then(|session| paper_at_hand(&session, &paper.file));
+    match found {
+        Some(found) => {
+            reshow(&app.state::<Views>(), label, Shown::Doc(found.clone()));
+            found
+        }
+        None => paper,
+    }
+}
+
+pub fn to_docs(app: &AppHandle, mut files: Vec<String>) -> bool {
+    if app.try_state::<Mutex<Session>>().is_some() {
+        files.extend(app.state::<Views>().docs_due());
+    }
     let any = !files.is_empty();
     for file in files {
         to_doc(app, &file);
     }
     any
+}
+
+// Whatever is not here shares one window, so a page firing ids by the hundred opens no more than that.
+fn shows(shown: &Shown, paper: &Paper) -> bool {
+    matches!(shown, Shown::Doc(was) if was.file == paper.file || (was.id.is_empty() && paper.id.is_empty()))
 }
 
 pub fn to_doc(app: &AppHandle, file: &str) {
@@ -398,22 +420,23 @@ pub fn to_doc(app: &AppHandle, file: &str) {
     }
     let (app, file) = (app.clone(), file.to_string());
     std::thread::spawn(move || {
-        let paper = paper_at_hand(&app.state::<Mutex<Session>>(), &file).unwrap_or_else(nowhere);
+        let paper =
+            paper_at_hand(&app.state::<Mutex<Session>>(), &file).unwrap_or_else(|| nowhere(&file));
         let views = app.state::<Views>();
         // The same link pressed twice finds the first window still being built.
         let _one_at_a_time = views.docs_opening.lock().unwrap_or_else(|e| e.into_inner());
-        let label = showing(
-            &views,
-            |one| matches!(one, Shown::Doc(was) if was.file == paper.file),
-        );
-        match label {
-            Some(label) => {
-                if let Some(window) = app.get_webview_window(&label) {
-                    fronted(&window);
-                }
-            }
-            None => open(&app, Shown::Doc(paper)),
+        let Some(label) = showing(&views, |one| shows(one, &paper)) else {
+            open(&app, Shown::Doc(paper));
+            return;
+        };
+        let Some(window) = app.get_webview_window(&label) else {
+            return;
+        };
+        if matches!(shown_in(&views, &label), Ok(Shown::Doc(was)) if was.id.is_empty()) {
+            reshow(&views, &label, Shown::Doc(paper));
+            let _ = window.reload();
         }
+        fronted(&window);
     });
 }
 
