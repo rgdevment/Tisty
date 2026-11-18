@@ -1287,7 +1287,7 @@ const en = {
     "None of these versions is on this computer, so here they can be neither read nor gone back to.",
   earlierByYou: "you",
   earlierAway: "Not on this computer",
-  earlierAwayOn: "Not on this computer; it was written on {name}",
+  earlierAwayOn: "Not on this computer; {name} keeps it",
   earlierBack: "Go back to this version",
   earlierBackSure:
     "It goes back to saying what it said in the version from {name}. What it says now is kept, so you can undo it.",
@@ -4642,7 +4642,7 @@ const es: Catalog = {
     "Ninguna de estas versiones está en este equipo, así que aquí no se pueden leer ni recuperar.",
   earlierByYou: "tú",
   earlierAway: "No está en este equipo",
-  earlierAwayOn: "No está en este equipo; se escribió en {name}",
+  earlierAwayOn: "No está en este equipo; lo guarda {name}",
   earlierBack: "Volver a esta versión",
   earlierBackSure:
     "Vuelve a decir lo que decía en la versión de {name}. Lo que dice ahora queda guardado, así que puedes deshacerlo.",

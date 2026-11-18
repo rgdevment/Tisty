@@ -14,6 +14,8 @@ pub struct Logged {
     pub device: DeviceId,
     pub bytes: Option<u64>,
     pub replaced: Option<jiff::Timestamp>,
+    /// The write that replaced it is where the cut ran, so that machine is the one that keeps it.
+    pub replaced_by: Option<DeviceId>,
     pub cut: bool,
 }
 
@@ -34,6 +36,7 @@ pub fn logged(events: &[Event], id: DocId) -> Vec<Logged> {
                 continue;
             }
             last.replaced = Some(event.timestamp);
+            last.replaced_by = Some(event.device.clone());
             last.cut = cuts(
                 Some((last.wrote, last.via.as_deref())),
                 event.timestamp,
@@ -47,6 +50,7 @@ pub fn logged(events: &[Event], id: DocId) -> Vec<Logged> {
             device: event.device.clone(),
             bytes: said.bytes,
             replaced: None,
+            replaced_by: None,
             cut: false,
         });
     }
@@ -62,9 +66,11 @@ pub struct Row {
     pub device: Option<DeviceId>,
     pub bytes: u64,
     pub here: bool,
+    /// For a version not here: the device whose write replaced it, on whose machine it is kept.
+    pub kept_by: Option<DeviceId>,
 }
 
-/// Newest first: what this machine kept and what the same cut and limit give one that wrote elsewhere, never what it says now.
+/// Newest first: what this machine kept and what the same cut and limit give another, never what it says now.
 pub fn rows(
     data: &Path,
     file: &str,
@@ -94,6 +100,7 @@ pub fn rows(
                 device: told.map(|one| one.device.clone()),
                 bytes: kept.bytes,
                 here: true,
+                kept_by: None,
                 print: kept.print,
             }
         })
@@ -101,7 +108,8 @@ pub fn rows(
     let limit = jiff::SignedDuration::from_hours(24 * i64::from(days));
     let away: Vec<Row> = named
         .into_values()
-        .filter(|one| one.cut && elsewhere(&one.device) && earlier(&one.print))
+        .filter(|one| one.cut && one.replaced_by.as_ref().is_some_and(&elsewhere))
+        .filter(|one| earlier(&one.print))
         .filter(|one| all.iter().all(|kept| kept.print != one.print))
         .filter_map(|one| {
             let replaced = one.replaced.filter(|at| now.duration_since(*at) <= limit)?;
@@ -113,6 +121,7 @@ pub fn rows(
                 device: Some(one.device.clone()),
                 bytes: one.bytes.unwrap_or_default(),
                 here: false,
+                kept_by: one.replaced_by.clone(),
             })
         })
         .collect();

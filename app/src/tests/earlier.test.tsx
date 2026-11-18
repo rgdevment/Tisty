@@ -115,7 +115,8 @@ const elsewhere: Version = {
   print: C,
   wrote: "2026-11-11T20:00:00Z",
   replaced: "2026-11-12T08:15:00Z",
-  by: "mac-2",
+  by: "mac-1",
+  keptBy: "mac-2",
   bytes: 3900,
   here: false,
 };
@@ -188,7 +189,7 @@ describe("the history of a document", () => {
     expect(rows[1].textContent).toContain(fill("earlierAwayOn", "Portátil"));
     expect(within(rows[1]).queryByRole("button")).toBeNull();
     expect(within(rows[0]).getByRole("button")).toBeTruthy();
-    expect(awayOf({ ...elsewhere, by: "mac-9" })).toBe(t("earlierAway"));
+    expect(awayOf({ ...elsewhere, keptBy: "mac-9" })).toBe(t("earlierAway"));
     expect(called("doc_version").some((one) => one.args.print === C)).toBe(false);
   });
 

@@ -21,6 +21,8 @@ pub struct Earlier {
     via: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     by: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    kept_by: Option<String>,
     bytes: u64,
     here: bool,
 }
@@ -94,6 +96,7 @@ pub fn doc_versions(session: tauri::State<'_, Mutex<Session>>, id: String) -> An
                 replaced: one.replaced.to_string(),
                 via: one.via,
                 by: one.device.map(|device| device.0),
+                kept_by: one.kept_by.map(|device| device.0),
                 bytes: one.bytes,
                 here: one.here,
             })
