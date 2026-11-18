@@ -18,6 +18,7 @@ import { fill, t } from "../locales";
 import { holds, queued, settled as saved } from "../saving";
 import { sure } from "../sure";
 import { useKeptHeight } from "./heights";
+import type { CardsShown } from "./liveCards";
 import type { Viewing } from "./liveSheet";
 import Skeleton from "./Skeleton";
 import { type LoadedSheet, sheetLoaded } from "./sheetLoaded";
@@ -135,12 +136,12 @@ export default function TaskWords({
     setTurn((one) => one + 1);
     onWentBack?.();
   };
-  const pageCards = useMemo(() => ({ tasks: true, here: task.id, heard: task }), [task]);
+  const cardsShown = useMemo(() => ({ tasks: true, here: task.id, heard: task }), [task]);
   const past = useEarlier({
     file: doc?.file || undefined,
     title: task.title,
     page: true,
-    cardsShown: pageCards,
+    cardsShown,
     writable: open && !doc?.held,
     before: () => typed.current(),
     onWentBack: (_, when) => {
@@ -185,6 +186,7 @@ export default function TaskWords({
         onDoc={onDoc}
         onMoved={() => setTurn((one) => one + 1)}
         typed={typed}
+        cardsShown={cardsShown}
         shaping={shaping}
         view={view}
         asking={doc.held ? undefined : asking}
@@ -235,6 +237,7 @@ function Written({
   onDoc,
   onMoved,
   typed: leaving,
+  cardsShown,
   shaping,
   view,
   asking,
@@ -258,6 +261,7 @@ function Written({
   onDoc?: (id: string) => void;
   onMoved: () => void;
   typed: RefObject<() => Promise<unknown>>;
+  cardsShown: CardsShown;
   shaping?: boolean;
   view?: Viewing;
   asking?: Asking;
@@ -270,7 +274,6 @@ function Written({
   // A task's page keeps its template's sections, so it is written by block alone.
   const { allAsked } = useWholeKeys(true, false);
   const [text, setText] = useState(doc.body);
-  const cardsShown = useMemo(() => ({ tasks: true, here: task.id, heard: task }), [task]);
   const waiting = useRef<string | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const failed = useRef(onError);
