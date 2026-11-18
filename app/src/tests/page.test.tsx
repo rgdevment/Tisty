@@ -300,7 +300,7 @@ describe("the live cards on a page", () => {
     await waitFor(() =>
       expect(page.querySelector(".page > p > .doc-card")?.textContent).toBe("Huerta v2"),
     );
-    expect(ipc.cards.at(-1)).toMatchObject({ seen: { here: "ef56-0003" } });
+    expect(ipc.cards[ipc.cards.length - 1]).toMatchObject({ seen: { here: "ef56-0003" } });
   });
 
   it("asks nothing of the core where the window shows no cards", async () => {
