@@ -142,7 +142,7 @@ export const besideOn = (
       if (one.key === "rule" || sample) lineUnder(how.edit);
       return how.edit;
     }
-    const first = !text.slice(0, span.from).trim();
+    const before = text.slice(0, span.from);
     hands.ask(
       how.ask,
       caret.caretPoint(),
@@ -163,7 +163,8 @@ export const besideOn = (
         page.querySelector<HTMLElement>(".page")?.focus({ preventScroll: true });
         return true;
       },
-      first,
+      !before.trim(),
+      before,
     );
     return null;
   };

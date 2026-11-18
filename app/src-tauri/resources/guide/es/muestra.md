@@ -803,6 +803,8 @@ Una tarea: **Una tarea**, en el menú `/`, busca entre las abiertas y las archiv
 
 ![Llevar a Rina al veterinario](tisty:task/01JC4M7Q3B8YH2A9K6TN5VXZRE)
 
+**Una tarea nueva**, en el mismo menú, la crea ahí mismo: la escribes como en la captura rápida, `Llamar al vet el lunes #Rina !hacer`, y en su lugar queda una tarjeta como esta. La tarea recuerda el documento donde nació, y en la página de una tarea se vuelve una parte de ella.
+
 Una tarjeta también avisa cuando su documento está archivado o ya no está. Y en la página de una tarea, cada parte es una tarjeta igual, con sus pasos hechos y su fecha.
 
 Un enlace solo en su párrafo, con la letra y el color de su sitio. **Traer la vista previa** le pone el título y la imagen que el sitio ofrece.

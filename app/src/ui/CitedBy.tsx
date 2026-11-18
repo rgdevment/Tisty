@@ -20,6 +20,42 @@ const glyphOf = (one: Citing): string => {
   return one.state === "archived" ? "▢" : "▤";
 };
 
+export function PaperRow({
+  glyph,
+  title,
+  under,
+  away,
+  onOpen,
+}: {
+  glyph: string;
+  title: string;
+  under?: string | null;
+  away: boolean;
+  onOpen: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onOpen}
+      className="grid w-full cursor-pointer grid-cols-[17px_minmax(0,1fr)] items-baseline gap-2.5 rounded-[10px] border border-hair px-2.5 py-2 text-left hover:border-line"
+    >
+      <span aria-hidden="true" className="text-center text-[11.5px] text-faint">
+        {glyph}
+      </span>
+      <span className="min-w-0">
+        <span className={`block truncate text-[12.5px] ${away ? "text-faint" : "text-ink"}`}>
+          {title.trim() || t("untitledDoc")}
+        </span>
+        {under ? (
+          <span className="block truncate text-[11.5px] text-faint">
+            {fill("citedUnder", under)}
+          </span>
+        ) : null}
+      </span>
+    </button>
+  );
+}
+
 export default function CitedBy({ task, whole, onDoc, onTask }: Props) {
   const citing = useCited(task);
   const [unfolded, setUnfolded] = useState(false);
@@ -34,27 +70,13 @@ export default function CitedBy({ task, whole, onDoc, onTask }: Props) {
       <ul className="flex flex-col gap-1.5">
         {listed.map((one) => (
           <li key={one.id}>
-            <button
-              type="button"
-              onClick={() => (one.kind === "task" ? onTask?.(one.id) : onDoc?.(one.id))}
-              className="grid w-full cursor-pointer grid-cols-[17px_minmax(0,1fr)] items-baseline gap-2.5 rounded-[10px] border border-hair px-2.5 py-2 text-left hover:border-line"
-            >
-              <span aria-hidden="true" className="text-center text-[11.5px] text-faint">
-                {glyphOf(one)}
-              </span>
-              <span className="min-w-0">
-                <span
-                  className={`block truncate text-[12.5px] ${CLOSED.has(one.state ?? "") ? "text-faint" : "text-ink"}`}
-                >
-                  {one.title.trim() || t("untitledDoc")}
-                </span>
-                {one.under?.length ? (
-                  <span className="block truncate text-[11.5px] text-faint">
-                    {fill("citedUnder", one.under.map((head) => head.title).join(" · "))}
-                  </span>
-                ) : null}
-              </span>
-            </button>
+            <PaperRow
+              glyph={glyphOf(one)}
+              title={one.title}
+              under={one.under?.map((head) => head.title).join(" · ")}
+              away={CLOSED.has(one.state ?? "")}
+              onOpen={() => (one.kind === "task" ? onTask?.(one.id) : onDoc?.(one.id))}
+            />
           </li>
         ))}
       </ul>

@@ -602,13 +602,14 @@ export default function Docs({
                   "page",
                   "doc",
                   "newDoc",
+                  "newTask",
                   "task",
                   "icon",
                   "file",
                   "diagram",
                   "diagramFrom",
                 ]
-              : ["doc", "newDoc", "task", "icon", "file", "diagram", "diagramFrom"],
+              : ["doc", "newDoc", "newTask", "task", "icon", "file", "diagram", "diagramFrom"],
             tags,
             linkable,
             headsOf,
@@ -624,7 +625,7 @@ export default function Docs({
                 onError,
               ),
             lost: () => onError(t("attachmentLost")),
-            ask: (kind, at, put, first) => {
+            ask: (kind, at, put, first, before) => {
               if (kind === "file") {
                 // An attachment as a document's first words would become its title.
                 if (first) return onError(t("fileNeedsTitle"));
@@ -643,12 +644,12 @@ export default function Docs({
                   t(
                     kind.startsWith("diagram")
                       ? "diagramNeedsTitle"
-                      : kind === "task"
+                      : kind === "task" || kind === "newTask"
                         ? "taskNeedsTitle"
                         : "leafNeedsTitle",
                   ),
                 );
-              setPicked({ kind, at, put, file: open?.file });
+              setPicked({ kind, at, put, file: open?.file, before });
             },
           },
     [bolted, leafy, onError, open?.file, tags, linkable, headsOf],

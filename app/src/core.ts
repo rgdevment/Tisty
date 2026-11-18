@@ -170,35 +170,6 @@ export interface Offered {
   title: string;
 }
 
-export type Mark = "date" | "deadline" | "list" | "tag" | "priority" | "repeat";
-
-export type Certainty = "sure" | "assumed";
-
-export interface Span {
-  from: number;
-  to: number;
-  mark: Mark;
-  certainty: Certainty;
-}
-
-export interface Offer {
-  spans: Span[];
-  date: DateSpec;
-  title: string;
-}
-
-export interface Parsed {
-  title: string;
-  date?: DateSpec | null;
-  deadline?: DateSpec | null;
-  priority?: Priority | null;
-  tags: string[];
-  list?: string | null;
-  repeat?: Repeat | null;
-  spans: Span[];
-  offers: Offer[];
-}
-
 export type Reading = "story" | "routine" | "trace";
 
 export type Chapter =
@@ -312,23 +283,6 @@ export interface Found extends Dated {
 
 export const search = (query: string, scope?: Scope): Promise<Found> =>
   invoke("search", { query, scope });
-export const read = (text: string): Promise<Parsed> =>
-  invoke("read", { text, locale: navigator.language });
-export interface Edits {
-  noDate?: boolean;
-  noDeadline?: boolean;
-  noList?: boolean;
-  noPriority?: boolean;
-  noRepeat?: boolean;
-  noTags?: string[];
-  date?: string;
-  deadline?: string;
-  priority?: Priority;
-  takeOffer?: boolean;
-}
-
-export const capture = (text: string, view?: View, edits?: Edits): Promise<Task> =>
-  invoke("capture", { text, locale: navigator.language, view, edits });
 export interface Change {
   title?: string;
   date?: string;

@@ -127,6 +127,16 @@ Type `/`, choose **A task** and go on with a few words of its title: Tisty searc
 - **Outside Tisty** (Folio, PDF, Word, standard Markdown) only those words remain: nothing of the task leaves with the document.
 - **Who cites it**: beside the task's page, **Linked from** gathers the documents and tasks that cite or mention it, with the section where they do.
 
+## Making a task from a document
+
+Tasks are born while you read and write: a «we need to…» turns up in minutes or in a plan, and leaving the document to note it down makes you lose the thread. Type `/`, choose **A new task** and write it as you would in the quick capture: `Call the vet on Monday #Rina !do`. `Enter` makes it with its date, its list, its tags and its priority, and leaves its card in that place of the document.
+
+- **The same rules as the quick capture**: `@list`, `#tag`, `!priority`, dates and repeats in words. The marks are painted as you type, and `/` inside the field offers what it offers there.
+- **`Esc` lets it go** without making anything. An empty line makes no task, and if something fails the document stays as it was.
+- **The task remembers where it was born**: beside its page, **Born in** names the document and the section, and a click takes you back.
+- **Undo** in the document takes the card away, not the task: deleting it is still your call.
+- **On a task's page**, **A new task** makes a part of that task, in its same list unless you name another.
+
 ## Attachments
 
 Drag a file into a document or onto a task to attach it — the photo from the vet, the insurance PDF, the recording of a meeting. A task takes files up to 650 MB, the same as a document. It is kept as itself, inside Tisty, and travels with the document when you export it.

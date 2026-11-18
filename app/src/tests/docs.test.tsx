@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { sayIn } from "tisty-diagrams/read";
 import type { Asking } from "tisty-editor/edit";
@@ -30,6 +30,7 @@ const store = vi.hoisted(() => ({
   picked: null as string[] | null,
   asking: null as Asking | null,
   viewed: [] as Record<string, unknown>[],
+  captured: [] as Record<string, unknown>[],
 }));
 
 vi.mock("@tauri-apps/plugin-dialog", () => ({
@@ -92,6 +93,13 @@ vi.mock("@tauri-apps/api/core", async () => ({
         case "view_diagram":
           store.viewed.push(args ?? {});
           return Promise.resolve(null);
+        case "capture_known":
+          return Promise.resolve({ lists: [], tags: [] });
+        case "read":
+          return Promise.resolve({ title: "", tags: [], spans: [], offers: [] });
+        case "capture":
+          store.captured.push(args ?? {});
+          return Promise.resolve({ id: "01T", title: "Comprar pan", status: "open" });
         case "doc_merge":
           return Promise.resolve(store.woven && { body: store.woven, print: "woven" });
         default:
@@ -859,7 +867,7 @@ describe("files brought into a document being written", () => {
     await waitFor(() => expect(store.asking?.kinds).toContain("file"));
     store.picked = ["a.png", "b.pdf"];
     const put = vi.fn(() => true);
-    store.asking?.ask("file", { x: 0, y: 0 }, put, false);
+    store.asking?.ask("file", { x: 0, y: 0 }, put, false, "Notas ");
     await waitFor(() => expect(put).toHaveBeenCalledWith("![a.png](a.png)\n\n![b.pdf](b.pdf)"));
   });
 
@@ -874,7 +882,7 @@ describe("files brought into a document being written", () => {
       />,
     );
     await waitFor(() => expect(store.asking?.kinds).toContain("file"));
-    store.asking?.ask("file", { x: 0, y: 0 }, () => true, true);
+    store.asking?.ask("file", { x: 0, y: 0 }, () => true, true, "");
     expect(errors).toEqual([t("fileNeedsTitle")]);
     const huge = new File(["x"], "video.mp4");
     Object.defineProperty(huge, "size", { value: 2 * 1024 * 1024 * 1024 });
@@ -896,7 +904,7 @@ describe("files brought into a document being written", () => {
     );
     await waitFor(() => expect(store.asking?.kinds).toContain("file"));
     store.picked = ["a.png"];
-    store.asking?.ask("file", { x: 0, y: 0 }, () => false, false);
+    store.asking?.ask("file", { x: 0, y: 0 }, () => false, false, "Notas ");
     await waitFor(() => expect(errors).toEqual([t("attachmentLost")]));
   });
 
@@ -940,7 +948,7 @@ describe("a diagram made from the / menu", () => {
       return true;
     };
 
-    act(() => store.asking?.ask("diagram", { x: 0, y: 0 }, put, false));
+    act(() => store.asking?.ask("diagram", { x: 0, y: 0 }, put, false, "Notas "));
     await userEvent.click(await screen.findByRole("menuitem", { name: say("diagramFlow") }));
 
     const source = say("diagramStartFlow");
@@ -966,17 +974,44 @@ describe("a diagram made from the / menu", () => {
     );
     await waitFor(() => expect(store.asking?.kinds).toContain("diagram"));
 
-    act(() => store.asking?.ask("diagram", { x: 0, y: 0 }, () => true, true));
+    act(() => store.asking?.ask("diagram", { x: 0, y: 0 }, () => true, true, ""));
 
     expect(errors).toEqual([t("diagramNeedsTitle")]);
     expect(screen.queryByRole("menuitem")).toBeNull();
+  });
+
+  it("opens a new task's field where it was asked, naming the document and the words above", async () => {
+    const errors: string[] = [];
+    store.captured = [];
+    render(
+      <Docs
+        open="a3f1-0001"
+        known={known}
+        onKept={() => {}}
+        onError={(said) => errors.push(String(said))}
+      />,
+    );
+    await waitFor(() => expect(store.asking?.kinds).toContain("newTask"));
+
+    act(() => store.asking?.ask("newTask", { x: 0, y: 0 }, () => true, true, ""));
+    expect(errors).toEqual([t("taskNeedsTitle")]);
+
+    const put = vi.fn(() => true);
+    act(() => store.asking?.ask("newTask", { x: 0, y: 0 }, put, false, "# Compras\n\nleche "));
+    await userEvent.type(
+      within(await screen.findByRole("region", { name: t("newTaskHere") })).getByRole("textbox"),
+      "Comprar pan{Enter}",
+    );
+
+    await waitFor(() => expect(put).toHaveBeenCalledWith("![Comprar pan](tisty:task/01T)"));
+    expect(store.captured[0]?.born).toEqual({ doc: "a3f1-0001", before: "# Compras\n\nleche " });
   });
 
   it("opens nothing when the block it was meant for is gone", async () => {
     render(<Docs open="a3f1-0001" known={known} onKept={() => {}} onError={() => {}} />);
     await waitFor(() => expect(store.asking?.kinds).toContain("diagram"));
 
-    act(() => store.asking?.ask("diagram", { x: 0, y: 0 }, () => false, false));
+    act(() => store.asking?.ask("diagram", { x: 0, y: 0 }, () => false, false, "Notas "));
     await userEvent.click(await screen.findByRole("menuitem", { name: say("diagramMindmap") }));
     await settled();
 

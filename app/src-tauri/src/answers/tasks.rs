@@ -309,6 +309,7 @@ pub fn capture(
     locale: String,
     view: Option<View>,
     edits: Option<Edits>,
+    born: Option<super::born::Born>,
 ) -> Answer<Task> {
     let mut session = held(&session);
     let spoken = session.locale.clone().unwrap_or(locale);
@@ -343,9 +344,16 @@ pub fn capture(
     if let Some(title) = edits.retitled(&text, &read, &spoken) {
         draft.title = title;
     }
+    let whole = born
+        .unwrap_or_default()
+        .rooted(&session.state, &mut draft)?;
 
     let plan = tisty_core::capture::plan(&session.state, draft)?;
-    session.commit_all(plan.ops)?;
+    let ops = match whole {
+        Some(whole) => super::parts::with_whole(plan.ops, plan.task, whole),
+        None => plan.ops,
+    };
+    session.commit_all(ops)?;
     let task = session
         .state
         .tasks
@@ -370,6 +378,22 @@ pub fn read(
 ) -> Answer<tisty_nl::Parsed> {
     let spoken = held(&session).locale.clone().unwrap_or(locale);
     Ok(tisty_nl::parse(&text, &jiff::Zoned::now(), &spoken))
+}
+
+#[derive(serde::Serialize)]
+pub struct Known {
+    lists: Vec<tisty_core::List>,
+    tags: Vec<crate::Counted>,
+}
+
+#[tauri::command(async)]
+pub fn capture_known(session: tauri::State<'_, Mutex<Session>>) -> Answer<Known> {
+    let mut session = held(&session);
+    session.reload()?;
+    Ok(Known {
+        lists: session.state.ordered_lists().into_iter().cloned().collect(),
+        tags: tags_in_use(&session.state),
+    })
 }
 
 #[tauri::command]

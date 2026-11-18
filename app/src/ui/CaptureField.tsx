@@ -1,13 +1,6 @@
 import { type Ref, useEffect, useImperativeHandle, useRef, useState } from "react";
-import {
-  type Counted,
-  type Edits,
-  type List,
-  type Parsed,
-  read,
-  type Span,
-  type Task,
-} from "../core";
+import { type Edits, type Parsed, read, type Span } from "../capturing";
+import type { Counted, List, Task } from "../core";
 import { t } from "../locales";
 import { saidPlainly } from "../refusal";
 import Calendar from "./Calendar";

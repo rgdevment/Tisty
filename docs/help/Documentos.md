@@ -127,6 +127,16 @@ Escribe `/`, elige **Una tarea** y sigue con unas palabras de su título: Tisty 
 - **Fuera de Tisty** (Folio, PDF, Word, Markdown estándar) queda solo esa frase: nada de la tarea sale con el documento.
 - **Quién la cita**: junto a la página de la tarea, **Enlazado desde** reúne los documentos y las tareas que la citan o la mencionan, con la sección donde lo hacen.
 
+## Crear una tarea desde un documento
+
+Las tareas nacen leyendo y escribiendo: en un acta o en un plan aparece «hay que…», y salir del documento para anotarlo te hace perder el hilo. Escribe `/`, elige **Una tarea nueva** y escríbela como en la captura rápida: `Llamar al vet el lunes #Rina !hacer`. `Enter` la crea con su fecha, su lista, sus etiquetas y su prioridad, y deja su tarjeta en ese lugar del documento.
+
+- **Las mismas reglas que la captura rápida**: `@lista`, `#etiqueta`, `!prioridad`, fechas y repeticiones en palabras. Las marcas se pintan mientras escribes, y `/` dentro del campo ofrece lo mismo que allá.
+- **`Esc` la deja ir** sin crear nada. Una línea vacía no crea una tarea, y si algo falla el documento queda como estaba.
+- **La tarea recuerda dónde nació**: junto a su página, **Nació en** nombra el documento y la sección, y un clic te lleva de vuelta.
+- **Deshacer** en el documento quita la tarjeta, pero no la tarea: borrarla sigue siendo decisión tuya.
+- **En la página de una tarea**, **Una tarea nueva** crea una parte de esa tarea, en su misma lista salvo que nombres otra.
+
 ## Adjuntos
 
 Arrastra un archivo a un documento o a una tarea para adjuntarlo: la foto del veterinario, el PDF del seguro, la grabación de una reunión. Una tarea admite archivos de hasta 650 MB, igual que un documento. Se guarda tal cual, dentro de Tisty, y viaja con el documento cuando lo exportas.

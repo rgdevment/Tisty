@@ -991,7 +991,7 @@ export default function Sheet(props: Readonly<Props>) {
     },
     near: docPlacedNear,
     dressed: (_sheet, laid) => dresser.current?.(laid),
-    ask: (kind, at, put, first) => said.current.asking?.ask(kind, at, put, first),
+    ask: (kind, at, put, first, before) => said.current.asking?.ask(kind, at, put, first, before),
     blocks: (at, slash) => blockMenu(at, slash),
     acts: blockActs,
     tags: () => said.current.asking?.tags ?? [],

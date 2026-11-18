@@ -119,7 +119,7 @@ Una **fecha límite** no es lo mismo que un plan: `antes de` y `hasta` abren una
 
 Cada casilla que escribes en la página, `- [ ]`, es uno de sus pasos: se marca ahí mismo y el trayecto guarda cuándo nació y cuándo se marcó. Un paso es una línea; el registro guarda sus primeros cien caracteres. **Agregar un paso**, bajo la lista, suma otro, y un paso que dejas vacío se quita solo.
 
-Cuando un paso necesita más, pasa el puntero sobre su casilla abierta y pulsa **↗**: se vuelve una tarea propia, una **parte** de esta, y en su lugar queda su tarjeta con los pasos que lleva y su fecha. Un clic en la tarjeta la abre, y su círculo la marca hecha. Esa misma tarjeta cita una tarea en cualquier documento: mira [Citar una tarea](Documentos#citar-una-tarea).
+Cuando un paso necesita más, pasa el puntero sobre su casilla abierta y pulsa **↗**: se vuelve una tarea propia, una **parte** de esta, y en su lugar queda su tarjeta con los pasos que lleva y su fecha. Un clic en la tarjeta la abre, y su círculo la marca hecha. Esa misma tarjeta cita una tarea en cualquier documento: mira [Citar una tarea](Documentos#citar-una-tarea). En la página, `/` y **Una tarea nueva** crean una parte escrita como en la captura rápida, y su tarjeta queda donde la escribiste.
 
 - Una tarea con partes muestra **▣ 3/7** donde contaría sus pasos, y sus partes se pliegan debajo. Las despliega en cualquier vista; las que esa vista deja fuera esperan plegadas bajo «3 más fuera de esta vista» hasta que las pidas.
 - Una tarea con fecha, fecha límite y partes muestra una barra fina: cuánto de su plazo pasó, contra cuántas de sus partes están cerradas. Dice **Va al día**, **Va lenta** o **No llega**, y el tramo plegado **En curso** cuenta las que se están quedando atrás.
@@ -128,6 +128,7 @@ Cuando un paso necesita más, pasa el puntero sobre su casilla abierta y pulsa *
 - El trayecto de las dos cuenta cuándo se sumó una parte y cuándo se soltó.
 - Cerrar una tarea con partes abiertas te pide soltarlas en el mismo gesto, y deshacer las devuelve.
 - Junto a la página, **Enlazado desde** dice qué documentos y qué otras tareas citan o mencionan esta.
+- Una tarea creada desde un documento, o desde una idea de la Lluvia de ideas, muestra junto a su página **Nació en**: un clic abre ese documento.
 
 ## Desde un calendario
 

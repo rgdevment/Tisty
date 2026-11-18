@@ -1,5 +1,6 @@
 import { useState } from "react";
-import type { DateSpec, Edits, Parsed } from "../core";
+import type { Edits, Parsed } from "../capturing";
+import type { DateSpec } from "../core";
 import { cadence, whenLabel } from "../format";
 import { t } from "../locales";
 import { placed, said } from "../quadrants";
