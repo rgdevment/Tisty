@@ -39,6 +39,8 @@ export default function BrainstyScreen({ near, onClose }: Props) {
     frame.current?.focus();
     // Heard first, so the view this layer covers never acts on a key meant for it.
     const kept = (e: KeyboardEvent) => {
+      const topmost = [...document.querySelectorAll('[aria-modal="true"]')].pop();
+      if (topmost !== frame.current) return;
       if (e.key === "Escape") {
         e.preventDefault();
         e.stopImmediatePropagation();

@@ -195,6 +195,23 @@ describe("the Brainsty section", () => {
     expect(screen.getByRole("button", { name: t("expand") })).toBeTruthy();
   });
 
+  it("leaves Escape to a dialog that opens above it", async () => {
+    const user = await opened();
+    await user.click(screen.getByRole("button", { name: t("brainsty") }));
+    await screen.findByText("3 nodes · 2 connections");
+    const above = document.createElement("div");
+    above.setAttribute("role", "dialog");
+    above.setAttribute("aria-modal", "true");
+    document.body.append(above);
+
+    await user.keyboard("{Escape}");
+    expect(screen.getByRole("dialog", { name: t("brainsty") })).toBeTruthy();
+
+    above.remove();
+    await user.keyboard("{Escape}");
+    expect(screen.queryByRole("dialog", { name: t("brainsty") })).toBeNull();
+  });
+
   it("keeps the window's own shortcuts from acting on the view it covers", async () => {
     const user = await opened();
     await user.click(screen.getByRole("button", { name: t("brainsty") }));
