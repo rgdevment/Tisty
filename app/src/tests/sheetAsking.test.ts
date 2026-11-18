@@ -22,8 +22,15 @@ describe("what the editor is asked with", () => {
 
     for (const key of Object.keys(window) as (keyof Asking)[])
       if (key !== "ask") expect(said[key], key).toBe(window[key]);
-    said.ask("doc", { x: 1, y: 2 }, () => true, false);
-    expect(window.ask).toHaveBeenCalledWith("doc", { x: 1, y: 2 }, expect.any(Function), false);
+    const before = "# Viaje\n\nUvas ";
+    said.ask("newTask", { x: 1, y: 2 }, () => true, false, before);
+    expect(window.ask).toHaveBeenCalledWith(
+      "newTask",
+      { x: 1, y: 2 },
+      expect.any(Function),
+      false,
+      before,
+    );
   });
 
   it("reads the steps from the words as they are now, and says a failure to the sheet", () => {
