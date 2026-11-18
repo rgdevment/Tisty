@@ -1,5 +1,6 @@
 import { useRef, useState } from "react";
-import { capture, fold } from "../core";
+import { capture } from "../capturing";
+import { fold } from "../core";
 import { useDesk } from "../desk";
 import { todayLong } from "../format";
 import { fill, t } from "../locales";

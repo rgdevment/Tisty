@@ -1,6 +1,6 @@
 import { render } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import type { Certainty, Mark as Kind } from "../core";
+import type { Certainty, Mark as Kind } from "../capturing";
 import Field, { type Mark } from "../ui/Field";
 
 const at = (

@@ -1,14 +1,7 @@
 import { emit } from "@tauri-apps/api/event";
 import { useEffect, useRef, useState } from "react";
-import {
-  type Born,
-  type Counted,
-  capture,
-  captureKnown,
-  type Edits,
-  type List,
-  type Task,
-} from "../core";
+import { type Born, capture, captureKnown, type Edits } from "../capturing";
+import type { Counted, List, Task } from "../core";
 import { every, turnOf } from "../examples";
 import { t } from "../locales";
 import CaptureField from "./CaptureField";
