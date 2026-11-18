@@ -72,7 +72,7 @@ fn a_version_pruned_since_the_list_was_read_is_refused_by_name() {
 
     let refused = told(room.path(), DOC, &print("# Otra\n"), None).unwrap_err();
 
-    assert_eq!(refused.code, "versionNotKept");
+    assert_eq!(refused.code, "versionGone");
 }
 
 #[test]
@@ -112,4 +112,20 @@ fn a_name_that_is_no_document_s_is_refused_as_no_such_document() {
     let refused = told(room.path(), "../docs/mac0-0001", &print(UNO), None).unwrap_err();
 
     assert_eq!(refused.code, "noSuchDoc");
+}
+
+#[test]
+fn two_versions_that_say_the_same_are_the_page_the_window_draws_for_one() {
+    let room = tempfile::tempdir().unwrap();
+    written(room.path(), &[UNO, DOS]);
+
+    let Told::Drawn { html, gone, came } =
+        told(room.path(), DOC, &print(UNO), Some(&print(UNO))).unwrap()
+    else {
+        panic!("a short document is drawn");
+    };
+
+    let shelf = room.path().join("pages");
+    assert_eq!((gone, came), (0, 0));
+    assert_eq!(html, crate::answers::paging::paged(&shelf, UNO));
 }

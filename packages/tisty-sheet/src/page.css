@@ -1692,3 +1692,23 @@ html.lively:not(.sheeted) .page {
     display: none;
   }
 }
+[data-change] {
+  border-radius: 4px;
+}
+[data-change="gone"] {
+  background: color-mix(in srgb, var(--tisty-hue-red) 8%, transparent);
+}
+[data-change="came"] {
+  background: color-mix(in srgb, var(--tisty-hue-green) 9%, transparent);
+}
+[data-change="gone"] del {
+  background: color-mix(in srgb, var(--tisty-hue-red) 24%, transparent);
+  text-decoration: line-through;
+  text-decoration-color: color-mix(in srgb, var(--tisty-hue-red) 70%, transparent);
+  border-radius: 3px;
+}
+[data-change="came"] ins {
+  background: color-mix(in srgb, var(--tisty-hue-green) 26%, transparent);
+  text-decoration: none;
+  border-radius: 3px;
+}

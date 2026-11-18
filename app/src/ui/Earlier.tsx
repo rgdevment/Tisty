@@ -14,6 +14,7 @@ import {
 import { weigh } from "../format";
 import { fill, t } from "../locales";
 import { sure } from "../sure";
+import EarlierCompared from "./EarlierCompared";
 import { useHeldFocus } from "./heldFocus";
 import Page from "./Page";
 import { mild, risky, strong } from "./Rows";
@@ -26,6 +27,7 @@ interface Props {
   card?: (file: string) => Carded;
   /** Absent where nothing can be written, so its versions are only read. */
   onBack?: (one: Version) => Promise<void>;
+  ready?: () => Promise<unknown>;
   onEmptied?: () => void;
   onClose: () => void;
   onError: (problem: unknown) => void;
@@ -36,8 +38,16 @@ const ROW = "block w-full rounded-[10px] px-3 py-2 text-left";
 function Listed({
   one,
   chosen,
+  against,
   onPick,
-}: Readonly<{ one: Version; chosen: boolean; onPick: () => void }>) {
+  onAgainst,
+}: Readonly<{
+  one: Version;
+  chosen: boolean;
+  against: boolean;
+  onPick: () => void;
+  onAgainst?: () => void;
+}>) {
   const facts = [writerOf(one), weigh(one.bytes)].filter(Boolean).join(" · ");
   if (!one.here)
     return (
@@ -48,17 +58,33 @@ function Listed({
       </div>
     );
   return (
-    <button
-      type="button"
-      aria-current={chosen}
-      onClick={onPick}
-      className={`${ROW} hover:bg-hover ${chosen ? "bg-active" : ""}`}
-    >
-      <span className="block text-[13px] tabular-nums">{whenOf(one)}</span>
-      <span className="block text-[11.5px] text-faint">{facts}</span>
-    </button>
+    <div className="flex items-center gap-1">
+      <button
+        type="button"
+        aria-current={chosen}
+        onClick={onPick}
+        className={`${ROW} hover:bg-hover ${chosen ? "bg-active" : ""}`}
+      >
+        <span className="block text-[13px] tabular-nums">{whenOf(one)}</span>
+        <span className="block text-[11.5px] text-faint">{facts}</span>
+      </button>
+      {onAgainst && (
+        <button
+          type="button"
+          aria-pressed={against}
+          aria-label={fill("earlierCompareWith", whenOf(one))}
+          onClick={onAgainst}
+          className={`shrink-0 rounded-[8px] px-2 py-1 text-[11.5px] ${against ? "bg-active text-ink" : "text-faint hover:bg-hover"}`}
+        >
+          {t("earlierCompareRow")}
+        </button>
+      )}
+    </div>
   );
 }
+
+const NOW = "now";
+const RIGHT_AWAY = () => Promise.resolve();
 
 const NO_CARD = (): Carded => ({ kind: "doc", title: "" });
 
@@ -105,6 +131,7 @@ export default function Earlier({
   page,
   card,
   onBack,
+  ready = RIGHT_AWAY,
   onEmptied,
   onClose,
   onError,
@@ -115,6 +142,7 @@ export default function Earlier({
   const { wrapped, held } = useHeldFocus(box);
   const [shelf, setShelf] = useState<Shelf | null>(null);
   const [chosen, setChosen] = useState<string | null>(null);
+  const [against, setAgainst] = useState<string | null>(null);
   const [working, setWorking] = useState(false);
   const failed = useRef(onError);
   failed.current = onError;
@@ -124,11 +152,11 @@ export default function Earlier({
     docVersions(doc)
       .then((all) => {
         if (!live) return;
+        const kept = all.versions.filter((one) => one.here);
+        const stays = (print: string | null) => kept.some((one) => one.print === print);
         setShelf(all);
-        setChosen((was) => {
-          const kept = all.versions.filter((one) => one.here);
-          return kept.some((one) => one.print === was) ? was : (kept[0]?.print ?? null);
-        });
+        setChosen((was) => (stays(was) ? was : (kept[0]?.print ?? null)));
+        setAgainst((was) => (was === null || was === NOW || stays(was) ? was : NOW));
       })
       .catch((e) => {
         if (!live) return;
@@ -153,6 +181,19 @@ export default function Earlier({
   const rows = shelf?.versions ?? null;
   const one = rows?.find((row) => row.print === chosen && row.here);
   const here = rows?.some((row) => row.here) ?? false;
+  const other = rows?.find((row) => row.here && row.print === against && row.print !== chosen);
+  const [older, newer] =
+    one && other && rows && rows.indexOf(other) > rows.indexOf(one) ? [other, one] : [one, other];
+  const between =
+    older && newer
+      ? fill("earlierBetween", whenOf(older), whenOf(newer))
+      : one && fill("earlierToNow", whenOf(one));
+
+  const pick = (print: string) => {
+    setChosen(print);
+    setAgainst((was) => (was === print ? NOW : was));
+  };
+  const turnAgainst = (print: string) => setAgainst((was) => (was === print ? NOW : print));
 
   const back = async () => {
     if (!one || !onBack || working) return;
@@ -216,7 +257,9 @@ export default function Earlier({
                 <Listed
                   one={row}
                   chosen={row.print === chosen}
-                  onPick={() => setChosen(row.print)}
+                  against={row.print === against}
+                  onPick={() => pick(row.print)}
+                  onAgainst={row.print === chosen ? undefined : () => turnAgainst(row.print)}
                 />
               </li>
             ))}
@@ -240,6 +283,16 @@ export default function Earlier({
             <span className="min-w-0 flex-1 truncate text-[12.5px] text-soft">
               {one ? saidOf(one) : ""}
             </span>
+            {one && (
+              <button
+                type="button"
+                aria-pressed={against !== null}
+                onClick={() => setAgainst((was) => (was === null ? NOW : null))}
+                className={`${mild} ${against === null ? "" : "bg-active"}`}
+              >
+                {t("earlierCompare")}
+              </button>
+            )}
             {one && onBack && (
               <button type="button" disabled={working} onClick={back} className={strong}>
                 {t("earlierBack")}
@@ -247,7 +300,19 @@ export default function Earlier({
             )}
           </div>
           <div className="relative flex min-h-0 flex-1 flex-col">
-            {one ? (
+            {one && older && against !== null ? (
+              <EarlierCompared
+                doc={doc}
+                was={older.print}
+                now={newer?.print ?? null}
+                between={between ?? ""}
+                label={title}
+                card={card ?? NO_CARD}
+                ready={ready}
+                onWhole={() => setAgainst(null)}
+                onError={onError}
+              />
+            ) : one ? (
               <Shown doc={doc} one={one} label={title} card={card} onError={onError} />
             ) : (
               rows !== null &&

@@ -37,7 +37,7 @@ pub(crate) fn told(data: &Path, id: &str, was: &str, now: Option<&str>) -> Answe
             came: page.came,
         }),
         Ok(Compared::TooLong) => Ok(Told::TooLong),
-        Ok(Compared::NotKept) => Err(Refusal::of("versionNotKept")),
+        Ok(Compared::NotKept) => Err(Refusal::of("versionGone")),
         Err(tisty_core::Error::Io(_) | tisty_core::Error::OutsideTheStore(_)) => {
             Err(Refusal::about("noSuchDoc", id))
         }

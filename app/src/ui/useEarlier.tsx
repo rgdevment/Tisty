@@ -42,6 +42,10 @@ export const useEarlier = (asked: Asked) => {
         page={asked.page}
         card={asked.card}
         onBack={asked.writable ? back : undefined}
+        ready={async () => {
+          await asked.before();
+          await settled();
+        }}
         onEmptied={asked.onEmptied}
         onClose={() => setShown(null)}
         onError={asked.onError}
