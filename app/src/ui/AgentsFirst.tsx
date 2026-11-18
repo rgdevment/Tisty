@@ -39,9 +39,11 @@ function Assistant({
         className="flex w-full items-center gap-2 px-3 py-2 text-left text-[13px] font-medium hover:bg-hover"
       >
         <span className="flex-1">
-          {count === 1
-            ? fill("agentsFirstCountOne", one.name)
-            : fill("agentsFirstCount", one.name, String(count))}
+          {count === 0 && one.files.some((file) => file.held)
+            ? fill("agentsFirstAllHeld", one.name)
+            : count === 1
+              ? fill("agentsFirstCountOne", one.name)
+              : fill("agentsFirstCount", one.name, String(count))}
         </span>
         <span className="text-faint">{open ? "▾" : "▸"}</span>
       </button>
@@ -208,9 +210,16 @@ export default function AgentsFirst({ onClose, onChanged }: Readonly<Props>) {
   if (brought) {
     return (
       <Modal title={t("agentsFirstTitle")} wide onClose={onClose}>
+        <p className="text-[13px] leading-relaxed text-soft">
+          {brought.made === 0
+            ? t("agentsBroughtNone")
+            : brought.made === 1
+              ? t("agentsBroughtOne")
+              : fill("agentsBroughtMany", String(brought.made))}
+        </p>
         {brought.refused.length > 0 && (
           <>
-            <p className="text-[12.5px] text-soft">{t("agentsRefused")}</p>
+            <p className="mt-3 text-[12.5px] text-soft">{t("agentsRefused")}</p>
             <ul className="mt-1.5 text-[11.5px]">
               {brought.refused.map((one) => (
                 <li key={one.at} className="py-0.5">

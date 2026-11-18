@@ -121,6 +121,7 @@ describe("the first time AGENTS opens", () => {
     );
     await userEvent.click(screen.getByRole("button", { name: "Traer y sincronizar" }));
     await waitFor(() => expect(sent("agents_bring")).toHaveLength(1));
+    await screen.findByText(/Entraron 2 documentos a AGENTS/);
     expect(sent("agents_bring")[0].args.chosen).toEqual([
       "/h/.claude/CLAUDE.md",
       "/h/.codex/AGENTS.md",
