@@ -196,7 +196,7 @@ A `tisty://open` link reaches only a readable text file on this computer.
 
 ## Earlier versions
 
-Each document keeps, on this computer, what it said before it changed, as a history of versions: you open the list, read how it stood and, if it helps, go back to it. Task pages and your [Diary](#diary) too. I made it for the day a change, yours or an assistant's, took away something you still needed.
+Each document keeps, on this computer, what it said before it changed, as a history of versions: you open the list, read how it stood and, if it helps, go back to it. Task pages too. I made it for the day a change, yours or an assistant's, took away something you still needed.
 
 ### When they help
 
@@ -257,7 +257,8 @@ It is there for a text you deleted on purpose: you pasted a number into «Insura
 
 - **Deleting a document** deletes its versions too, on every computer. To keep one, go back to it or copy it first.
 - **A task's page** has versions of its own, under **Versions of this page**. Going back to one brings its words and never removes steps (above).
-- **The Diary** keeps versions like any document, on this computer.
+- **The [Diary](#diary)** keeps versions on this computer too, which count toward what your computer and your backups hold, but its view has no **History** row: they are not listed from the window.
+- **An archived or locked document, and a closed task's page,** show their versions but do not offer **Go back to this version**. Unarchive the document or reopen the task to go back to one.
 - **Restoring a backup** swaps this computer's versions for the zip's, and their limit counts again from that day.
 - **On updating from a Tisty without the history,** the copy each document used to keep of what it said before became its first version on its own.
 
