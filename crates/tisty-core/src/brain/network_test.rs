@@ -242,3 +242,48 @@ fn what_was_touched_last_is_the_newest_writing_in_sight() {
     state.docs.clear();
     assert_eq!(touched_last(&state), Some(quiet.to_string()));
 }
+
+#[test]
+fn past_the_cap_a_tag_takes_no_room_unless_something_kept_holds_it() {
+    let held = vec![
+        neuron("#lost", "tag", None),
+        neuron("a-closed", "task", Some("done")),
+        neuron("b-doc", "doc", Some("open")),
+        neuron("c-closed", "task", Some("done")),
+    ];
+    let ties = [
+        tie("a-closed", "#lost", "tag"),
+        tie("c-closed", "b-doc", "mention"),
+    ];
+    let caps = Caps {
+        nodes: 2,
+        edges: 10,
+    };
+
+    let network = woven(held, &ties, &[], caps);
+
+    assert_eq!(named(&network), ["a-closed", "b-doc"]);
+}
+
+#[test]
+fn a_node_named_like_another_s_id_keeps_its_own_lines() {
+    let held = vec![
+        (
+            Neuron {
+                id: "plans.md".into(),
+                kind: "doc".into(),
+                title: "Plans".into(),
+                group: None,
+                state: Some("open".into()),
+            },
+            Some("zz.md".into()),
+        ),
+        neuron("zz.md", "doc", Some("open")),
+        neuron("notes.md", "doc", Some("open")),
+    ];
+    let ties = [tie("notes.md", "zz.md", "cite")];
+
+    let network = woven(held, &ties, &[], CAPS);
+
+    assert_eq!(lines(&network), [("notes.md", "zz.md", "cite")]);
+}

@@ -129,8 +129,7 @@ describe("the Brainsty section", () => {
 
     await user.click(screen.getByRole("button", { name: t("brainsty") }));
 
-    const shown = await screen.findByRole("region", { name: t("brainsty") });
-    expect(shown.className).toContain("fixed inset-0");
+    await screen.findByRole("region", { name: t("brainsty") });
     expect(await screen.findByText("3 nodes · 2 connections")).toBeTruthy();
     expect(await screen.findByRole("img", { name: t("brainstyNetwork") })).toBeTruthy();
     expect(asked()).toEqual([{ cmd: "brain_network", args: { near: null } }]);

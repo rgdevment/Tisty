@@ -29,5 +29,3 @@ export interface Network {
 
 export const brainNetwork = (near?: string): Promise<Network | null> =>
   invoke("brain_network", { near: near ?? null });
-
-export const tieOf = (code: number): Tie | undefined => TIES[code];

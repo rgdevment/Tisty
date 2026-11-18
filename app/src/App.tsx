@@ -65,6 +65,7 @@ export default function App() {
   } = desk;
   const side = chosenWidth(railed(kept, chosen.named === "keeping"));
   // Opened over where you are and gone once anything else is chosen, so closing it puts you back there.
+  if (network && network.on !== chosen) setNetwork(null);
   const networkOpen = network?.on === chosen ? network : null;
   const openNetwork = () =>
     setNetwork({

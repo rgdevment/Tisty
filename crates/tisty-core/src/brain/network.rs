@@ -160,8 +160,10 @@ fn woven(
     caps: Caps,
 ) -> Network {
     let mut at: HashMap<&str, usize> = HashMap::new();
-    for (n, (neuron, uid)) in held.iter().enumerate() {
+    for (n, (neuron, _)) in held.iter().enumerate() {
         at.insert(neuron.id.as_str(), n);
+    }
+    for (n, (_, uid)) in held.iter().enumerate() {
         if let Some(uid) = uid {
             at.entry(uid.as_str()).or_insert(n);
         }
@@ -191,9 +193,23 @@ fn woven(
     let whole = (keep.iter().filter(|one| **one).count(), edges.len());
     if whole.0 > caps.nodes {
         let ranked = ranked(&held, &edges, &keep, near);
+        let mut beside: Vec<Vec<usize>> = vec![Vec::new(); held.len()];
+        for (from, to, _) in &edges {
+            beside[*from].push(*to);
+            beside[*to].push(*from);
+        }
         keep = vec![false; held.len()];
-        for n in ranked.into_iter().take(caps.nodes) {
-            keep[n] = true;
+        let mut taken = 0;
+        for n in ranked {
+            if taken == caps.nodes {
+                break;
+            }
+            let unheld =
+                HELD_BY_OTHERS.contains(&kinds[n]) && !beside[n].iter().any(|one| keep[*one]);
+            if !unheld {
+                keep[n] = true;
+                taken += 1;
+            }
         }
     }
     edges.retain(|(from, to, _)| keep[*from] && keep[*to]);
