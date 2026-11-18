@@ -156,6 +156,23 @@ fn headings_tables_and_lines_already_there_are_left_alone() {
 }
 
 #[test]
+fn an_idea_s_head_and_a_table_without_outer_pipes_are_left_alone() {
+    let text = "> [!IDEA] Reuse «Brainsty: decisiones»\n> more words\n\n\
+                Doc | Owner\n--- | ---\n«Vet visits» | Mario\n\nPlain «Brainsty: decisiones».\n";
+
+    let (said, heard) = link(text);
+
+    assert_eq!(
+        said,
+        text.replace(
+            "Plain «Brainsty: decisiones»",
+            "Plain «[Brainsty: decisiones](tisty:doc/4nnctnme-0033)»"
+        )
+    );
+    assert!(heard.maybe.is_empty(), "nothing in the table was weighed");
+}
+
+#[test]
 fn what_is_being_written_never_links_to_itself() {
     let mut heard = Heard::default();
 

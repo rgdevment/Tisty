@@ -229,7 +229,33 @@ fn settled(text: &str, at: usize, kept: &BTreeSet<&str>) -> bool {
     let hashes = line.trim_start_matches('#');
     let heading =
         hashes.len() < line.len() && (hashes.is_empty() || hashes.starts_with([' ', '\t']));
-    kept.contains(line) || line.starts_with('|') || underlined || heading
+    kept.contains(line)
+        || underlined
+        || heading
+        || tisty_markdown::idea_words(line).is_some()
+        || in_a_table(text, &around)
+}
+
+fn in_a_table(text: &str, line: &Range<usize>) -> bool {
+    let delimits = |one: &str| {
+        let one = one.trim();
+        one.contains('-')
+            && one.contains('|')
+            && one
+                .chars()
+                .all(|c| matches!(c, '|' | '-' | ':' | ' ' | '\t'))
+    };
+    let above = text[..line.start]
+        .lines()
+        .rev()
+        .take_while(|one| !one.trim().is_empty());
+    let below = text[line.end..]
+        .lines()
+        .skip(1)
+        .take_while(|one| !one.trim().is_empty());
+    let said = &text[line.clone()];
+    said.trim_start().starts_with('|')
+        || said.contains('|') && (above.chain(below).any(delimits) || delimits(said))
 }
 
 fn alone(text: &str, at: &Range<usize>) -> bool {
@@ -365,9 +391,15 @@ pub(super) fn link_all(paths: &Paths, args: &mut Value, field: &str) -> Heard {
     if !names_anything(args, field) {
         return heard;
     }
-    let Some(state) = seen(paths, args) else {
+    let Some(mut state) = seen(paths, false) else {
         return heard;
     };
+    if bodies_needed(&state, args) {
+        let Some(whole) = seen(paths, true) else {
+            return heard;
+        };
+        state = whole;
+    }
     let known = Known::of(&state);
     let own = own_of(&state, args);
     let mut before = current(paths, &state, args);
@@ -419,9 +451,19 @@ fn put_back(value: &mut Value, field: &str, link: &mut impl FnMut(&str) -> Strin
     }
 }
 
-// Only rewording a note needs the journal itself; a task's page already holds its description.
-fn seen(paths: &Paths, args: &Value) -> Option<State> {
-    let projected = match args.get("note").is_some() {
+// A task's page holds its description, so only a note reworded or a task with no page needs its body.
+fn bodies_needed(state: &State, args: &Value) -> bool {
+    let task = args
+        .get("task")
+        .and_then(Value::as_str)
+        .and_then(named_task);
+    task.is_some_and(|id| {
+        args.get("note").is_some() || tisty_core::task_docs::of(state, id).is_none()
+    })
+}
+
+fn seen(paths: &Paths, bodies: bool) -> Option<State> {
+    let projected = match bodies {
         true => tisty_core::cache::project(&paths.store(), paths.cache()),
         false => tisty_core::cache::summarised(&paths.store(), paths.cache()),
     };

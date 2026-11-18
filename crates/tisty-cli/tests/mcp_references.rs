@@ -228,6 +228,67 @@ fn a_line_the_person_wrote_is_kept_as_they_wrote_it_when_the_document_is_written
 }
 
 #[test]
+fn an_edit_a_reworded_note_and_a_proposed_part_link_too_but_never_the_person_s_words() {
+    let served = Served::new();
+    served
+        .person()
+        .writes_doc("# Brainsty: decisiones\n\nWhat holds.\n");
+    let plans = served.person().writes_doc("# Plans\n\nTo do.\n");
+    let mut talk = served.connect();
+    let task = proposes_work(&mut talk);
+    served
+        .person()
+        .notes(person::task(&task), "Mine: «Brainsty: decisiones» stays.");
+
+    talk.call(
+        "edit_doc",
+        json!({ "doc": plans, "old": "To do.", "new": "Read «Brainsty: decisiones»." }),
+    );
+    let read = talk.call("read", json!({ "task": task, "notes": 0 }));
+    let theirs = read["structuredContent"]["journal"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|one| {
+            one["body"]
+                .as_str()
+                .is_some_and(|body| body.starts_with("Mine"))
+        })
+        .unwrap()["id"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    let reworded = talk.call(
+        "reword_note",
+        json!({ "task": task, "note": theirs, "body": "Mine: «Brainsty: decisiones» stays." }),
+    );
+    let proposed = talk.call(
+        "propose",
+        json!({
+            "title": "Ship the import",
+            "list": "Work",
+            "parts": [{ "title": "Read first", "description": "As «Brainsty: decisiones» says." }],
+        }),
+    );
+
+    assert!(
+        talk.body_of(&plans)
+            .contains("Read «[Brainsty: decisiones](tisty:doc/"),
+        "edit_doc links its new passage"
+    );
+    assert_eq!(
+        shown(&reworded).get("references"),
+        None,
+        "a line the person wrote is kept as they wrote it"
+    );
+    assert_eq!(
+        shown(&proposed)["references"]["linked"][0]["title"],
+        json!("Brainsty: decisiones"),
+        "a part's description is linked too"
+    );
+}
+
+#[test]
 fn attaching_a_picture_named_by_its_file_asks_what_it_shows() {
     let served = Served::new();
     let doc = served.person().writes_doc("# Album\n\nPhotos.\n");
