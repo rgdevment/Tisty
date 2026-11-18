@@ -43,9 +43,9 @@ const NONE: Known = { asked: "", cited: new Map() };
 // Asked again whenever the window reloads its tasks, so a card never shows what the task no longer says.
 export const useTaskCards = (text: string, heard: unknown, here?: string) => {
   const ids = citedIn(text).join(",");
-  const [known, setKnown] = useState<Known | null>(null);
+  const [known, setKnown] = useState<Known>(NONE);
   useEffect(() => {
-    if (!ids) return setKnown((was) => (was?.asked === "" ? was : NONE));
+    if (!ids) return setKnown((was) => (was.asked === "" ? was : NONE));
     let live = true;
     taskCards(ids.split(","))
       .then((all) => {
@@ -57,12 +57,12 @@ export const useTaskCards = (text: string, heard: unknown, here?: string) => {
       live = false;
     };
   }, [ids, heard]);
-  const asked = known?.asked.split(",") ?? [];
+  const asked = known.asked.split(",");
   const task = (id: string): TaskCarded => {
     const key = id.toUpperCase();
     if (!asked.includes(key)) return { kind: "waiting" };
-    return cardOf(known?.cited.get(key), here);
+    return cardOf(known.cited.get(key), here);
   };
-  const said = known ? JSON.stringify([known.asked, ...known.cited.values()]) : "";
+  const said = JSON.stringify([known.asked, ...known.cited.values()]);
   return { task, said };
 };
