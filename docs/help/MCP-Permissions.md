@@ -23,6 +23,7 @@ What an assistant may do is deliberately small. Finishing, dropping and deleting
 - **Leave a short summary** of a long document for the next assistant, kept on this machine.
 - **Add to today in your Diary**, once you open it to agents and only when you ask: its words go at the end of today, under a line with the minute and its name.
 - **Read and search** what is already there, including the archive.
+- **See and go back to a document's [earlier versions](Documents#earlier-versions)** this computer keeps: list them, read one and go back to it, and undo that go-back.
 
 ## Never
 
@@ -30,6 +31,7 @@ What an assistant may do is deliberately small. Finishing, dropping and deleting
 - Tick a step of yours, or finish a task of yours: it can only say they are done.
 - Move a day **you** set.
 - Delete a document, or rename or delete a folder.
+- Empty a document's history, or read or go back to a version another of your computers keeps.
 - Take an idea off Brainstorm any other way, mark the whole sheet, put it away or move it into a folder.
 - Reach a task you folded away.
 - Take files from anywhere but Downloads, Documents, Pictures, the desktop and the temporary folder.

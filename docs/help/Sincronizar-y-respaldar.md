@@ -60,7 +60,7 @@ Una copia local solo se suelta después de comprobar que la de la carpeta compar
 
 **Respalda a mano, sincronices o no**: una carpeta compartida no es un respaldo. En **Configuración › Tus datos**, **Crear respaldo…** escribe un zip con toda tu historia, que guardas donde quieras, y desde ahí mismo se restaura.
 
-El zip lleva también las [versiones anteriores](Documentos#versiones-anteriores) de tus documentos que guarda este equipo, y es la única forma de llevarlas a otra máquina. Restaurarlo cambia las de este equipo por las que trae, y sus 30 días vuelven a contar desde ese día.
+El zip lleva también las [versiones anteriores](Documentos#versiones-anteriores) de tus documentos que guarda este equipo, y es la única forma de llevarlas a otra máquina. Restaurarlo cambia las de este equipo por las que trae, y su plazo de días vuelve a contar desde ese día.
 
 ## Sincronizar con Google Drive directamente
 

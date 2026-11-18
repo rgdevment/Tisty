@@ -1,6 +1,6 @@
 # Privacy policy
 
-**Last updated:** November 16, 2026
+**Last updated:** November 18, 2026
 
 ## The short version
 
@@ -101,6 +101,16 @@ visible instead of making it for you.
   wrote. A tag is a word you typed with a hash against it, so nothing is
   recorded that you did not write in the document itself, and taking the file
   elsewhere takes its tags with it.
+- **Earlier versions of your documents** — plain Markdown files, one per
+  version, in a `history` folder beside the documents, with a small marker per
+  document saying who wrote last and which version undoes the last change.
+  Each is kept 30 days from when it was replaced, or the 1, 5 or 15 you choose
+  in Settings › Your data; the latest of each document, and the one that undoes
+  the last change, never run out. They stay on this computer: they are never
+  synced, shared by link or put in a parcel, but a backup zip carries them,
+  including the ones Tisty writes on its own before a change. Deleting a
+  document deletes its versions; **Empty the history** deletes them without
+  deleting the document.
 - **Attachments** — the files themselves, unmodified. The log keeps a note of
   each one: the name it is kept under (a lowercased form of the file's name
   with a short fingerprint), its size and fingerprint, how it came in (dropped
@@ -236,6 +246,12 @@ deleting the task removes it from the current state but not from the history
 underneath — and if it already travelled to the shared folder, it is on every
 machine that pulled it, plus whatever the provider keeps in its own version
 history.
+
+The same holds, more briefly, for a document: a text you delete on purpose
+stays in its earlier versions on each computer that held it when it was
+replaced, until the version is past the limit and neither the latest nor the
+one that undoes the last change, or until you empty its history or delete the
+document.
 
 The `private/` folder exists for exactly this. Prevention is the only real
 defence, because the remedy barely exists.

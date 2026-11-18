@@ -60,7 +60,7 @@ A local copy is only let go of after the one in the shared folder is found to ha
 
 **Back up by hand, shared folder or not** — a shared folder is not a backup. In **Settings › Your data**, **Create backup…** writes one zip with your whole history, kept wherever you like, and restores from the same place.
 
-The zip also carries the [earlier versions](Documents#earlier-versions) of your documents this machine keeps, and it is the only way to take them to another machine. Restoring it swaps this machine's for the ones it brings, and their 30 days count again from that day.
+The zip also carries the [earlier versions](Documents#earlier-versions) of your documents this machine keeps, and it is the only way to take them to another machine. Restoring it swaps this machine's for the ones it brings, and their limit in days counts again from that day.
 
 ## Syncing through Google Drive directly
 

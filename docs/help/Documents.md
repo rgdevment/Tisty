@@ -196,16 +196,74 @@ A `tisty://open` link reaches only a readable text file on this computer.
 
 ## Earlier versions
 
-Each document keeps, on this computer, what it said before it changed, as a history of versions. Task pages and your [Diary](#diary) too.
+Each document keeps, on this computer, what it said before it changed, as a history of versions: you open the list, read how it stood and, if it helps, go back to it. Task pages and your [Diary](#diary) too. I made it for the day a change, yours or an assistant's, took away something you still needed.
 
-- **What a version keeps** — the document's whole text as it stood, in a Markdown file inside the `history` folder of your data. Attachments stay out, where they always are.
-- **When one is kept** — not at every save. When someone writes in the document after **30 minutes without changes**, or when **the writer changes** (you after an assistant, an assistant after you, or two different assistants), what was there becomes a version. What arrives from your other computers follows the same rule.
-- **How long it lasts** — **30 days**, counted from when the version was replaced and not from when you wrote it, so how the document stood 30 days ago is always kept. On opening Tisty, once a day at most, the ones past the limit go.
-- **The latest always stays.** The last earlier version of each document never runs out, even when the document has not changed in months. Nor does what **Put back what it said before** would bring back.
-- **It belongs to this computer.** Versions are not synced: each computer keeps what was replaced on it and prunes its own. A new computer starts with no earlier versions, even once it holds all your documents. A [backup](Sync-and-Backup#backups) is what carries them.
-- **They go with the document.** Delete a document and its versions are deleted with it, on every computer.
+### When they help
 
-You go back in two ways: when something writes in the document you have open, the bar offers **Put back what it said before**, and an assistant can undo, with `restore_doc`, the last change that replaced the document's text. Both read from here. The copy each document used to keep of what it said before became its first version on its own.
+- **An assistant rewrote too much.** You asked your agent to tidy «Rina's walks» and it left out the times. The version from before its write is in the list: open it and go back to it.
+- **You deleted a paragraph and need it a week later.** You took the guest list out of «Lucas's birthday» because it was settled, and now Marisol asks who was coming. A version from before that change still has it, even after the document kept changing.
+- **You want to see how something stood on a given day.** Each version carries its date, so you read the plan as it was on Tuesday without touching today's.
+- **You wrote something that should not stay kept.** Delete the text, then empty that document's history (below).
+
+### Seeing a version and going back to it
+
+1. Open the document. In the panel beside it, the **History** row says **on this computer** and has **See the history**. On a task's page the button is **Versions of this page**.
+2. The list sits on the left, newest first. Each row says when that version was written (only the time if it was today), who wrote it (**you**, **an assistant** or its program's name, such as **Claude Code**) and its size.
+3. Click one to read it on the right, as it looked.
+4. **Go back to this version**, above what you read, asks first: the document goes back to saying what it said in it, and what it says now is kept.
+5. The document shows **It went back to the version from** and the date, with **Put back what it said before**: that button undoes the go-back if you picked the wrong one.
+
+On a task's page the words come back, not the task's state: no step is removed and no box changes, and a step that version names and the task no longer has comes back as a new step.
+
+If there are none yet, the list says so: Tisty keeps one when 30 minutes go by without changes or when the one writing changes.
+
+### When a version is kept
+
+Not at every key or every save. What was there becomes a version when someone writes in the document:
+
+- **after 30 minutes without changes**, or
+- **being someone other than whoever wrote last**: you after an assistant, an assistant after you, or two different assistants.
+
+For example: at 9:00 Mario opens yesterday's meeting minutes and corrects them for twenty minutes, with no long pauses. A single version is kept, yesterday's: the saves of those twenty minutes are one write. At 11:00 he corrects them again, and what they said at 9:20 becomes a version. At 11:05 Claude Code adds a summary, and what Mario had left becomes another version, because the one writing changed.
+
+A version is the document's whole text as it stood, in a Markdown file inside the `history` folder of your data. Attachments stay out, where they always are. What arrives from your other computers follows the same rule, with the time and the writer of whoever wrote it there.
+
+### How long they are kept
+
+**30 days** by default, counted from when the version was replaced and not from when you wrote it, so you can always go back to how the document stood when the limit began.
+
+To change it, in **Settings › Your data › Document history**, **Keep earlier versions for** offers **1 day**, **5 days**, **15 days** or **30 days**. Each computer has its own. On opening Tisty, once a day at most, the versions past the limit go, so a shorter limit takes effect at that tidy. Go from 30 to 5 days and the next tidy deletes the versions replaced more than 5 days ago; those of the last 5 stay.
+
+Two always stay, whatever their age:
+
+- **The latest.** The last earlier version of each document never runs out, even when the document has not changed in months. A quiet document always keeps its way back.
+- **The one that undoes the last change:** what **Put back what it said before** would bring back.
+
+### Emptying the history
+
+**Empty the history**, at the foot of the list, deletes every earlier version of that document from this computer, including the one that lets you undo the last change. What the document says now stays as it is. It asks first, because this cannot be undone.
+
+It is there for a text you deleted on purpose: you pasted a number into «Insurance details» that should not stay there, and took it out. Until you empty the history, that number is still in the version from before. Empty it and, if you sync, do it too on each computer the text reached, because each keeps its own versions. Backups you made in the meantime keep it; see [Privacy](Privacy#what-is-stored).
+
+### On your other computers
+
+**Versions are not synced.** Each computer keeps what was replaced on it, what a change from another computer replaced included, and prunes them with its own limit.
+
+- **A version another computer keeps** shows in the list while the limit lasts, as **Not on this computer; … keeps it**, with that computer's name, for instance «Not on this computer; Marisol's laptop keeps it». Its text is only there, so here it can be neither read nor gone back to: open it on that computer.
+- **A new computer starts with no earlier versions,** even once it holds all your documents. What that computer changes from then on, it keeps.
+- **To take them to another machine,** use a [backup](Sync-and-Backup#backups): the zip carries them, and restoring it swaps that computer's for the ones it brings.
+
+### Edge cases
+
+- **Deleting a document** deletes its versions too, on every computer. To keep one, go back to it or copy it first.
+- **A task's page** has versions of its own, under **Versions of this page**. Going back to one brings its words and never removes steps (above).
+- **The Diary** keeps versions like any document, on this computer.
+- **Restoring a backup** swaps this computer's versions for the zip's, and their limit counts again from that day.
+- **On updating from a Tisty without the history,** the copy each document used to keep of what it said before became its first version on its own.
+
+### With your assistant
+
+You also go back without opening the list: when something writes in the document you have open, the bar offers **Put back what it said before**. An assistant lists, reads and goes back to the same versions with `read_doc` and `restore_doc`, and can never empty them: that is yours. You can ask in your own words: «put "Rina's walks" back the way it was before your change yesterday». How it does it, with examples, is in [MCP tools](MCP-Tools#a-documents-earlier-versions).
 
 ## Taking documents out
 
