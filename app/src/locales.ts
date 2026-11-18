@@ -33,6 +33,16 @@ const en = {
   taskExamplesElse:
     "Buy school supplies for Lucas by Tuesday\nTidy the garage @Home on Sunday\nTake the car to the garage by Friday @Errands\nBuy bread and milk today\nPay the credit card by Friday !do @Money\nBuy Yisset's present by November 30 #family\nHelp Jaime move on Saturday at 10 @Family\nBook the dentist for Lucas this week #health\nChange the water filter every 3 months @Home\nSend the report tomorrow at 9 !decide #work @Office\nBook the holidays with Marisol by December 15 !decide #family",
   brainstorm: "Brainstorm",
+  brainsty: "Brainsty",
+  brainstyTip: "See how everything you keep is connected",
+  brainstyReading: "Reading the network…",
+  brainstyNotYet: "Brainsty is still reading what you keep. Open it again in a moment.",
+  brainstyEmpty: "Nothing to draw yet: write a document or a task and it shows up here.",
+  brainstyCounted: "{name} nodes · {other} connections",
+  brainstyLeftOut: "{name} nodes and {other} connections left out",
+  brainstyLeftOutWhy:
+    "Past this size the network keeps what you touched last, its neighbours, your documents and the tasks under way.",
+  brainstyNetwork: "Network of your documents, pages, tasks, tags and files",
   jotIdea: "Jot down a loose idea",
   modeTask: "Task",
   modeIdea: "Idea",
@@ -3323,6 +3333,17 @@ const es: Catalog = {
   taskExamplesElse:
     "Comprar materiales del colegio para Lucas antes del martes\nOrdenar el garaje @Casa el domingo\nLlevar el auto al taller antes del viernes @Pendientes\nComprar pan y leche hoy\nPagar la tarjeta antes del viernes !hacer @Finanzas\nComprar el regalo de Yisset antes del 30 de noviembre #familia\nAyudar a Jaime con la mudanza el sábado a las 10 @Familia\nPedir hora al dentista para Lucas esta semana #salud\nCambiar el filtro del agua cada 3 meses @Casa\nEnviar el informe mañana a las 9 !importante #trabajo @Oficina\nReservar las vacaciones con Marisol antes del 15 de diciembre !importante #familia",
   brainstorm: "Lluvia de ideas",
+  brainsty: "Brainsty",
+  brainstyTip: "Mira cómo se conecta todo lo que guardas",
+  brainstyReading: "Leyendo la red…",
+  brainstyNotYet: "Brainsty todavía está leyendo lo que guardas. Vuelve a abrirlo en un momento.",
+  brainstyEmpty:
+    "Todavía no hay nada que dibujar: escribe un documento o una tarea y aparecerá aquí.",
+  brainstyCounted: "{name} nodos · {other} conexiones",
+  brainstyLeftOut: "{name} nodos y {other} conexiones quedaron fuera",
+  brainstyLeftOutWhy:
+    "Pasado este tamaño, la red guarda lo último que tocaste, sus vecinos, tus documentos y las tareas en curso.",
+  brainstyNetwork: "Red de tus documentos, páginas, tareas, etiquetas y archivos",
   jotIdea: "Anota una idea suelta",
   modeTask: "Tarea",
   modeIdea: "Idea",

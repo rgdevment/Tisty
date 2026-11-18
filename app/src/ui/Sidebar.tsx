@@ -12,6 +12,7 @@ import Mode from "./Mode";
 import MoveNotice from "./MoveNotice";
 import RailNotices from "./RailNotices";
 import SettingsNav from "./SettingsNav";
+import SideBrainsty from "./SideBrainsty";
 import SideEdge, { FoldButton, useFoldKey } from "./SideEdge";
 import SideLibrary, { type Revealed } from "./SideLibrary";
 import SideRail from "./SideRail";
@@ -37,6 +38,7 @@ interface Props {
   onFile: (doc: string, folder?: string, before?: string) => void;
   onPage?: (doc: string, pageOf: string) => void;
   onDiary?: () => void;
+  onBrainsty?: () => void;
   onFolderMenu: (folder: Folded, at: { x: number; y: number }) => void;
   onDocMenu: (doc: Filed, at: { x: number; y: number }) => void;
   onDocsMenu: (at: { x: number; y: number }) => void;
@@ -65,6 +67,7 @@ export default function Sidebar({
   onFile,
   onPage,
   onDiary,
+  onBrainsty,
   onFolderMenu,
   onDocMenu,
   onDocsMenu,
@@ -119,6 +122,7 @@ export default function Sidebar({
           here={here}
           onChoose={onChoose}
           onReveal={reveal}
+          onBrainsty={onBrainsty}
         />
       ) : (
         <>
@@ -135,6 +139,7 @@ export default function Sidebar({
             query={query}
             onSearch={onSearch ?? (() => onChoose({ named: "search" }))}
           />
+          {onBrainsty && <SideBrainsty onOpen={onBrainsty} />}
           <SideLibrary
             papers={papers}
             chosen={chosen}

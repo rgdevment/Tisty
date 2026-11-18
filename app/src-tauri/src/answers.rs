@@ -2,6 +2,7 @@ pub mod agents;
 pub mod attaching;
 pub mod born;
 pub mod brainstorming;
+pub mod brainsty;
 pub mod calendar;
 pub mod cards;
 pub mod carrying;

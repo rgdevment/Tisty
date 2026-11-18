@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { chosenWidth, railed, useBreadth } from "./breadth";
 import { docFile, folderFile } from "./core";
 import { DeskProvider, deskOf } from "./desk";
@@ -6,6 +7,7 @@ import { cameFrom } from "./guide/help";
 import { t } from "./locales";
 import { saidPlainly } from "./refusal";
 import { WEEK } from "./ui/Ahead";
+import BrainstyScreen from "./ui/BrainstyScreen";
 import Calendars from "./ui/Calendars";
 import HelpKey from "./ui/HelpKey";
 import Layers from "./ui/Layers";
@@ -17,11 +19,13 @@ import Sidebar from "./ui/Sidebar";
 import Spine from "./ui/Spine";
 import Stage from "./ui/Stage";
 import WindowChrome from "./ui/WindowChrome";
+import type { Chosen } from "./views";
 import { useWindow } from "./windowing";
 
 export default function App() {
   const held = useWindow();
   const kept = useBreadth();
+  const [network, setNetwork] = useState<{ on: Chosen; near?: string } | null>(null);
   const { data, error } = held;
   if (!data) {
     return (
@@ -60,6 +64,14 @@ export default function App() {
     toDiary,
   } = desk;
   const side = chosenWidth(railed(kept, chosen.named === "keeping"));
+  // Opened over where you are and gone once anything else is chosen, so closing it puts you back there.
+  if (network && network.on !== chosen) setNetwork(null);
+  const networkOpen = network?.on === chosen ? network : null;
+  const openNetwork = () =>
+    setNetwork({
+      on: chosen,
+      near: desk.selected ?? (chosen.named === "docs" ? chosen.doc : undefined),
+    });
 
   return (
     <DeskProvider value={desk}>
@@ -68,6 +80,7 @@ export default function App() {
         style={side === null ? undefined : ({ "--tisty-side": `${side}px` } as React.CSSProperties)}
       >
         <WindowChrome />
+        {networkOpen && <BrainstyScreen near={networkOpen.near} onClose={() => setNetwork(null)} />}
 
         <Layers parcels={desk.parcels.shown} />
         <News />
@@ -101,6 +114,7 @@ export default function App() {
           }
           onPage={(doc, pageOf) => hangIt(doc, pageOf)}
           onDiary={toDiary}
+          onBrainsty={openNetwork}
           onFolderMenu={folderMenu}
           onDocMenu={docMenu}
           onHereMenu={hereMenu}
