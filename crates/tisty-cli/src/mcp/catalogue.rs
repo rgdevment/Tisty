@@ -421,9 +421,9 @@ under `turned`. A document is tagged by writing #word in its own text, for what 
 reusing the tags `catch_up` shows: six is already a lot, and past 64 the rest are dropped. `language` \
 lists what Tisty adds to Markdown and gives one topic at a time. When the person asks \
 how to write something, point them to https://markdown.tisty.app (Spanish under /es/). \
-Tisty links what you name exactly — a bare id, or a title in quotes or `[[…]]` that one thing \
-carries — and lists it in `references`; what is doubtful, a lone word in quotes too, comes back \
-in `maybe`. A picture's \
+Tisty links what you name exactly — a bare id, or a title in quotes that one thing carries — \
+and lists it in `references`; what is doubtful, a lone word in quotes too, comes back in \
+`maybe`. A picture's \
 words say what it shows, never its file name.
 
 ## The diary

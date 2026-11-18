@@ -289,6 +289,56 @@ fn an_edit_a_reworded_note_and_a_proposed_part_link_too_but_never_the_person_s_w
 }
 
 #[test]
+fn a_state_links_its_new_lines_and_keeps_the_person_s_line_as_they_wrote_it() {
+    let served = Served::new();
+    let bank = served.person().captures("Call the bank");
+    served
+        .person()
+        .writes_doc("# Brainsty: decisiones\n\nWhat holds.\n");
+    let mut talk = served.connect();
+    let task = proposes_work(&mut talk);
+    talk.call(
+        "tick",
+        json!({ "task": task, "state": "Parser half done." }),
+    );
+    let paths = tisty_core::Paths::new(
+        served.home.path().join("data"),
+        served.home.path().join("config"),
+    );
+    let page_of = || {
+        let state = served.person().state();
+        tisty_core::task_docs::of(&state, person::task(&task))
+            .unwrap()
+            .file
+            .clone()
+    };
+    let file = page_of();
+    let page = tisty_core::docs::read(&paths.docs(), &file).unwrap();
+    let theirs = "Read «Brainsty: decisiones» first.";
+    served.person().writes_on_its_page(
+        person::task(&task),
+        &file,
+        &page.replace("Parser half done.", &format!("Parser half done.\n{theirs}")),
+    );
+
+    let said = talk.call(
+        "tick",
+        json!({ "task": task, "state": format!("Parser done; ask {bank}.\n{theirs}") }),
+    );
+
+    let page = tisty_core::docs::read(&paths.docs(), &page_of()).unwrap();
+    assert!(page.contains(theirs), "{page}");
+    assert!(
+        page.contains(&format!("ask [Call the bank](tisty:task/{bank})")),
+        "{page}"
+    );
+    assert_eq!(
+        shown(&said)["references"]["linked"][0]["task"],
+        json!(bank.to_string())
+    );
+}
+
+#[test]
 fn attaching_a_picture_named_by_its_file_asks_what_it_shows() {
     let served = Served::new();
     let doc = served.person().writes_doc("# Album\n\nPhotos.\n");

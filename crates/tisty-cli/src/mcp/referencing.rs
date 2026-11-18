@@ -87,21 +87,17 @@ impl Known {
         self.ids.insert(target.id.clone(), target);
     }
 
-    fn by_title(&self, words: &str, only_docs: bool) -> (Vec<&Target>, bool) {
-        let exact = kept(self.titles.get(words), only_docs);
+    fn by_title(&self, words: &str) -> (Vec<&Target>, bool) {
+        let exact = sorted(self.titles.get(words));
         match exact.is_empty() {
             false => (exact, true),
-            true => (kept(self.loosely.get(&loose(words)), only_docs), false),
+            true => (sorted(self.loosely.get(&loose(words))), false),
         }
     }
 }
 
-fn kept(all: Option<&Vec<Target>>, only_docs: bool) -> Vec<&Target> {
-    let mut found: Vec<&Target> = all
-        .into_iter()
-        .flatten()
-        .filter(|one| !(only_docs && one.task))
-        .collect();
+fn sorted(all: Option<&Vec<Target>>) -> Vec<&Target> {
+    let mut found: Vec<&Target> = all.into_iter().flatten().collect();
     found.sort();
     found
 }
@@ -140,10 +136,11 @@ pub(super) fn linked(
             continue;
         }
         let words = &text[spot.at.clone()];
+        // `[[a name]]` names without linking, as `language` teaches: the chip stays as written.
         let found = match &spot.named {
             Named::Id(id) => known.ids.get(id).map_or(Found::Nothing, Found::Sure),
-            Named::Quoted(said) => titled(known, said, false, true),
-            Named::Wiki(said) => titled(known, said, true, false),
+            Named::Quoted(said) => titled(known, said),
+            Named::Wiki(_) => Found::Nothing,
         };
         match found {
             Found::Sure(target) if own != Some(target.id.as_str()) => {
@@ -152,10 +149,8 @@ pub(super) fn linked(
                     continue;
                 }
                 let link = match &spot.named {
-                    Named::Id(_) => {
-                        target.link(&target.title, target.task && alone(text, &spot.at))
-                    }
-                    Named::Quoted(said) | Named::Wiki(said) => target.link(said, false),
+                    Named::Quoted(said) => target.link(said, false),
+                    _ => target.link(&target.title, target.task && alone(text, &spot.at)),
                 };
                 if first {
                     heard.linked.push((words.to_string(), target.clone()));
@@ -199,17 +194,13 @@ fn unshown_pictures(text: &str, kept: &BTreeSet<&str>, unshown: &mut Vec<String>
     }
 }
 
-fn titled<'a>(known: &'a Known, said: &str, only_docs: bool, quoted: bool) -> Found<'a> {
+fn titled<'a>(known: &'a Known, said: &str) -> Found<'a> {
     let said = said.trim();
-    let (found, exact) = known.by_title(said, only_docs);
+    let (found, exact) = known.by_title(said);
     let one_word = !said.contains(char::is_whitespace);
     match found.as_slice() {
-        [] if only_docs => match known.by_title(said, false).0 {
-            tasks if tasks.is_empty() => Found::Nothing,
-            tasks => Found::Doubt(tasks),
-        },
         [] => Found::Nothing,
-        [one] if exact && !(quoted && one_word) => Found::Sure(one),
+        [one] if exact && !one_word => Found::Sure(one),
         _ => Found::Doubt(found),
     }
 }

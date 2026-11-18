@@ -61,35 +61,30 @@ fn a_task_id_alone_in_its_paragraph_becomes_its_card() {
 }
 
 #[test]
-fn an_exact_title_between_quotes_or_double_brackets_is_linked_where_it_is_written() {
+fn an_exact_title_between_quotes_is_linked_where_first_written_and_an_id_every_time() {
     let (said, heard) = link(&format!(
-        "As «Brainsty: decisiones» says, «Brainsty: decisiones» again, [[Brainsty: decisiones]] \
-         too, and «Call the bank», {ERRAND}."
+        "As «Brainsty: decisiones» says, «Brainsty: decisiones» again, and «Call the bank», \
+         {ERRAND}."
     ));
 
     assert_eq!(
         said,
         format!(
             "As «[Brainsty: decisiones](tisty:doc/4nnctnme-0033)» says, «Brainsty: decisiones» \
-             again, [Brainsty: decisiones](tisty:doc/4nnctnme-0033) too, and \
-             «[Call the bank](tisty:task/{ERRAND})», [Call the bank](tisty:task/{ERRAND})."
-        ),
-        "words between quotes are linked where first named; an id or [[…]] every time"
+             again, and «[Call the bank](tisty:task/{ERRAND})», [Call the bank](tisty:task/{ERRAND})."
+        )
     );
     assert_eq!(linked_ids(&heard), ["4nnctnme-0033", ERRAND]);
 }
 
 #[test]
-fn a_double_bracket_title_names_only_documents() {
-    let (said, heard) = link("See [[Call the bank]] and [[Trips]].");
+fn a_double_bracket_is_a_chip_and_stays_as_written() {
+    let text = "See [[Call the bank]], [[Trips]] and [[Vet visits]].";
 
-    assert_eq!(
-        said,
-        "See [[Call the bank]] and [Trips](tisty:doc/trips-0001)."
-    );
-    assert_eq!(linked_ids(&heard), ["trips-0001"]);
-    assert_eq!(heard.maybe.len(), 1, "a task named that way is proposed");
-    assert_eq!(heard.maybe[0].1[0].id, ERRAND);
+    let (said, heard) = link(text);
+
+    assert_eq!(said, text);
+    assert!(heard.linked.is_empty() && heard.maybe.is_empty());
 }
 
 #[test]
