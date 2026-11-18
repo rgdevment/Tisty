@@ -243,6 +243,18 @@ fn this_machines_own_retired_assistant_wrote_from_here() {
 }
 
 #[test]
+fn a_retired_assistant_lived_where_the_log_placed_it_last() {
+    let mut state = hosted(&[("agent", HERE)]);
+    retired(&mut state, "agent");
+    let log = [hosted_by("agent", "old_name"), hosted_by("agent", HERE)];
+
+    let machines = Machines::of(&state, &device(HERE), None).told_by(&log);
+
+    assert_eq!(machines.machine_of(&device("agent")), Some(device(HERE)));
+    assert!(!machines.elsewhere(&device("agent")));
+}
+
+#[test]
 fn a_host_said_by_a_third_device_is_not_believed() {
     let mut state = hosted(&[("agent_there", THERE)]);
     retired(&mut state, "agent_there");

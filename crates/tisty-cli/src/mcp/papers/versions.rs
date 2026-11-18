@@ -85,7 +85,7 @@ struct Past {
     all: Vec<tisty_core::history::Row>,
     days: u32,
     says: Option<String>,
-    machines: tisty_core::history::Machines,
+    machines: Machines,
 }
 
 fn past(paths: &Paths, state: &State, store: &Store, kept: &Kept) -> Result<Past, Refused> {
@@ -95,9 +95,7 @@ fn past(paths: &Paths, state: &State, store: &Store, kept: &Kept) -> Result<Past
     let says = tisty_core::docs::read(&paths.docs(), &kept.file)
         .ok()
         .map(|body| tisty_core::docs::print_of_text(&body));
-    let machines =
-        tisty_core::history::Machines::of(state, &config.device_id, config.agent_id.as_ref())
-            .told_by(&log);
+    let machines = Machines::of(state, &config.device_id, config.agent_id.as_ref()).told_by(&log);
     let all = tisty_core::history::rows(
         paths.data(),
         &kept.file,
