@@ -2,7 +2,7 @@ use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
 
-use crate::store::{write_atomic, write_in_place};
+use crate::store::write_atomic;
 use crate::witness::{self, Fact, channel};
 use crate::{Error, Result};
 
@@ -215,10 +215,11 @@ impl Last {
     fn say(&self, shelf: &Path) -> Result<()> {
         let said = serde_json::to_vec(self).map_err(|e| Error::Io(std::io::Error::other(e)))?;
         let at = shelf.join(LAST);
-        match write_in_place(&at, &said) {
+        // Tried once: a marker that is only advice is not worth a save waiting out a lock.
+        match std::fs::write(&at, &said) {
             Err(_) if !shelf.is_dir() => {
                 raised(shelf)?;
-                write_in_place(&at, &said)?;
+                std::fs::write(&at, &said)?;
             }
             done => done?,
         }
