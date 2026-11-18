@@ -79,7 +79,7 @@ fn a_hidden_task_is_neither_a_node_nor_the_end_of_a_line() {
     let (_, notes) = doc(&world, &mut store, &body, None, None);
     let hidden = secret.to_string();
 
-    let network = whole(&world, |id| id != hidden, &[hidden.clone()]);
+    let network = whole(&world, |id| id != hidden, std::slice::from_ref(&hidden));
 
     assert_eq!(named(&network), [notes.as_str()]);
     assert!(network.edges.is_empty());
@@ -286,4 +286,22 @@ fn a_node_named_like_another_s_id_keeps_its_own_lines() {
     let network = woven(held, &ties, &[], CAPS);
 
     assert_eq!(lines(&network), [("notes.md", "zz.md", "cite")]);
+}
+
+#[test]
+fn past_the_cap_a_tag_whose_holder_comes_later_still_finds_room() {
+    let held = vec![
+        neuron("#home", "tag", None),
+        neuron("a-closed", "task", Some("done")),
+        neuron("b-closed", "task", Some("done")),
+    ];
+    let ties = [tie("a-closed", "#home", "tag")];
+    let caps = Caps {
+        nodes: 2,
+        edges: 10,
+    };
+
+    let network = woven(held, &ties, &[], caps);
+
+    assert_eq!(named(&network), ["#home", "a-closed"]);
 }

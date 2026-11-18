@@ -200,15 +200,23 @@ fn woven(
         }
         keep = vec![false; held.len()];
         let mut taken = 0;
+        let mut waiting = vec![false; held.len()];
         for n in ranked {
             if taken == caps.nodes {
                 break;
             }
-            let unheld =
-                HELD_BY_OTHERS.contains(&kinds[n]) && !beside[n].iter().any(|one| keep[*one]);
-            if !unheld {
-                keep[n] = true;
-                taken += 1;
+            if HELD_BY_OTHERS.contains(&kinds[n]) && !beside[n].iter().any(|one| keep[*one]) {
+                waiting[n] = true;
+                continue;
+            }
+            keep[n] = true;
+            taken += 1;
+            for &held_here in &beside[n] {
+                if waiting[held_here] && taken < caps.nodes {
+                    waiting[held_here] = false;
+                    keep[held_here] = true;
+                    taken += 1;
+                }
             }
         }
     }
