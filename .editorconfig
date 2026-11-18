@@ -19,3 +19,9 @@ trim_trailing_whitespace = false
 [fixtures/stores/**]
 insert_final_newline = unset
 trim_trailing_whitespace = unset
+
+[crates/tisty-core/src/agents/fixtures/**]
+charset = unset
+end_of_line = unset
+insert_final_newline = unset
+trim_trailing_whitespace = unset
