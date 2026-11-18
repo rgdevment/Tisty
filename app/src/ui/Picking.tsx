@@ -5,11 +5,12 @@ import { known } from "tisty-editor/read";
 import type { Filed } from "../core";
 import { locale, t } from "../locales";
 import { spawned } from "../making";
-import { docCard } from "../markdown";
+import { docCard, taskCard } from "../markdown";
 import Asking from "./Asking";
 import DiagramFinder from "./DiagramFinder";
 import Glyphs from "./Glyphs";
 import Papers from "./Papers";
+import TaskPick from "./TaskPick";
 
 export type Picked = {
   readonly kind: Asked;
@@ -112,6 +113,14 @@ export default function Picking({
               const title = one.title || t("untitledDoc");
               if (!done(docCard(one.file, title))) onLost({ file: one.file, title });
             }}
+          />
+        )}
+        {kind === "task" && (
+          <TaskPick
+            onPick={(one) => {
+              if (!done(taskCard(one.id, one.title))) onError(t("taskCardLost"));
+            }}
+            onError={onError}
           />
         )}
         {finding && <DiagramFinder onPick={(source) => done(fenced(source))} onError={onError} />}

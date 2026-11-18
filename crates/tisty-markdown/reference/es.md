@@ -347,7 +347,7 @@ Los [paseos de octubre](tisty:doc/01JC4M9F2W7DQ1E3S8RB6PKMHT) fueron mejor.
 - Las páginas de un documento van en el orden en que sus tarjetas las nombran: en el árbol, al exportar y al imprimir.
 - En una página, solo la tarjeta le da su lugar en el libro; un enlace en una frase la señala sin colocarla. Mira [Páginas y PDF](https://www.tisty.app/es/ayuda/paginas-y-pdf/).
 - Un `[`, `]` o `\` en un título se escribe con una barra invertida delante.
-- Una tarea se nombra igual, por su identificador después de `tisty:task/`. En la página de una tarea, una parte escrita como tarjeta muestra sus pasos hechos y su fecha, y abre la parte. Otros lectores reciben solo sus palabras.
+- Una tarea se nombra igual, por su identificador después de `tisty:task/`, y el menú `/` la escribe por ti (**Una tarea**), abierta o archivada. Como tarjeta, en cualquier documento, muestra su título de ahora, su lista, sus fechas y cuántos pasos y partes lleva hechos, y la abre; mientras sigue abierta, la marca hecha y tacha sus pasos. Si la tarea no está en esta máquina, quedan sus palabras y un aviso. Otros lectores reciben solo sus palabras.
 
 ## Adjuntos
 

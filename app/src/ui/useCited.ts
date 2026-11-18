@@ -4,7 +4,7 @@ import type { Citer, Panel } from "tisty-editor/read";
 import { type Citing, docCitedBy } from "../citing";
 import { fill, t } from "../locales";
 
-const CLOSED = new Set(["done", "dropped", "archived"]);
+export const CLOSED = new Set(["done", "dropped", "archived"]);
 
 const glyphOf = (one: Citing): Citer["glyph"] => {
   if (one.kind === "task") return CLOSED.has(one.state ?? "") ? "done" : "todo";

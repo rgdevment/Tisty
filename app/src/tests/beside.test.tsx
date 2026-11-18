@@ -287,7 +287,8 @@ describe("the column beside a document", () => {
   it("stays up when sheets are switched on from it, folding the sidebar for their room", async () => {
     show();
     const column = await screen.findByRole("complementary", { name: "About this document" });
-    await userEvent.click(within(column).getByRole("button", { name: t("sheetsShown") }));
+    // The panels are drawn into the column just after it mounts, so the switch is waited for.
+    await userEvent.click(await within(column).findByRole("button", { name: t("sheetsShown") }));
 
     await waitFor(() => expect(store.sent).toContain("doc_write"));
     expect(await screen.findByRole("complementary", { name: "About this document" })).toBeTruthy();
@@ -299,7 +300,8 @@ describe("the column beside a document", () => {
     show();
     await userEvent.click(await screen.findByRole("button", { name: /About the document/ }));
     const column = await screen.findByRole("complementary", { name: "About this document" });
-    await userEvent.click(within(column).getByRole("button", { name: t("sheetsShown") }));
+    // The panels are drawn into the column just after it mounts, so the switch is waited for.
+    await userEvent.click(await within(column).findByRole("button", { name: t("sheetsShown") }));
 
     await waitFor(() => expect(store.sent).toContain("doc_write"));
     expect(await screen.findByRole("complementary", { name: "About this document" })).toBeTruthy();

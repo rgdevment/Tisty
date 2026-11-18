@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef } from "react";
+import { taskStepMarked } from "../citing";
 import { discard, patch, sow } from "../core";
 import { seeing, useDesk } from "../desk";
 import { fill } from "../locales";
@@ -38,6 +39,7 @@ export default function Stage() {
     hereMenu,
     load,
     lookPapers,
+    markingAway,
     noted,
     openDoc,
     opening,
@@ -73,6 +75,13 @@ export default function Stage() {
     carries.current?.recheck();
     carries.current?.changed();
   };
+  const finishCited = (id: string, title: string) =>
+    markingAway(id, title, (one) => {
+      const at = seeing(one);
+      setChosen(at);
+      opening(one);
+      return at;
+    });
   const fresh = useRef(refreshed);
   fresh.current = refreshed;
   useEffect(() => afterMove(() => fresh.current()), []);
@@ -123,6 +132,9 @@ export default function Stage() {
         setChosen(seeing(one));
         opening(one);
       }}
+      onTaskDone={finishCited}
+      onTaskStep={(id, step, done) => act(taskStepMarked(id, step, done))}
+      heard={data.tasks}
       onBack={bringBack}
       onAsideShut={setAsideShut}
       fresh={carried}

@@ -23,6 +23,7 @@ export type Asked =
   | "page"
   | "newDoc"
   | "doc"
+  | "task"
   | "icon"
   | "file"
   | "diagram"
@@ -240,6 +241,13 @@ export const SLASHED: readonly Slashed[] = [
     put: { ask: "page", block: true },
   },
   { key: "doc", label: "insertDoc", hint: "![ ]", icon: "page", put: { ask: "doc", block: true } },
+  {
+    key: "task",
+    label: "insertTask",
+    hint: "![ ]",
+    icon: "todo",
+    put: { ask: "task", block: true },
+  },
   {
     key: "newdoc",
     label: "insertNewDoc",

@@ -4,7 +4,7 @@ export const DOC = "tisty:doc/";
 
 export const TASK = "tisty:task/";
 
-export const partCard = (id: string, title: string): string =>
+export const taskCard = (id: string, title: string): string =>
   `![${title.replace(/([[\]\\])/g, "\\$1")}](${TASK}${id})`;
 
 export const docLink = (id: string, title: string): string =>

@@ -6,7 +6,7 @@ vi.mock("../core", async (original) => ({
   ...(await original<typeof import("../core")>()),
   docDrawn: (body: string) =>
     Promise.resolve(
-      `<h1 data-at="0-6">${body}</h1><p data-at="7-40">ver <a class="card" data-doc="x.md">Otro</a> y <a href="tisty:doc/y.md">aquel</a></p><p><img src="foto-0006bf09.png" alt="foto"><img src="acta-0006bf10.pdf" alt="acta"></p>`,
+      `<h1 data-at="0-6">${body}</h1><p data-at="7-40">ver <a class="card" data-doc="x.md">Otro</a> y <a href="tisty:doc/y.md">aquel</a></p><p><img src="foto-0006bf09.png" alt="foto"><img src="acta-0006bf10.pdf" alt="acta"></p><p data-at="41-90"><a class="card" data-task="01JC4M7Q3B8YH2A9K6TN5VXZRD">Cambiar los neumáticos</a></p>`,
     ),
   attached: (reference: string) => {
     drawn.asked.push(reference);
@@ -27,6 +27,8 @@ describe("a document as one web page that travels alone", () => {
     expect(made).not.toContain("data-at");
     expect(made).not.toContain("tisty:doc");
     expect(made).not.toContain('class="card"');
+    expect(made).not.toContain("data-task");
+    expect(made).toContain("Cambiar los neumáticos");
     expect(made).not.toContain("inert");
     expect(made).toContain("acta");
     expect(drawn.asked).toEqual(["foto-0006bf09.png", "foto-0006bf09.png"]);
