@@ -110,6 +110,7 @@ export default function Earlier({
   onError,
 }: Readonly<Props>) {
   const box = useRef<HTMLDivElement>(null);
+  const closing = useRef<HTMLButtonElement>(null);
   const heading = useId();
   const { wrapped, held } = useHeldFocus(box);
   const [shelf, setShelf] = useState<Shelf | null>(null);
@@ -174,6 +175,8 @@ export default function Earlier({
       await docHistoryEmpty(doc);
       onEmptied?.();
       look();
+      // The button pressed goes disabled, and a page whose focus is on nothing hears no Escape.
+      closing.current?.focus();
     } catch (e) {
       onError(e);
     } finally {
@@ -227,7 +230,7 @@ export default function Earlier({
             >
               {t("earlierEmpty")}
             </button>
-            <button type="button" onClick={onClose} className={mild}>
+            <button ref={closing} type="button" onClick={onClose} className={mild}>
               {t("close")}
             </button>
           </footer>

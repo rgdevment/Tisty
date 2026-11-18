@@ -271,6 +271,22 @@ describe("the history of a document", () => {
     expect((empty as HTMLButtonElement).disabled).toBe(true);
   });
 
+  it("still closes on Escape once emptied, though the button pressed went disabled", async () => {
+    asksSure(() => Promise.resolve(true));
+    ipc.kept = 3;
+    const { onClose } = view();
+    await screen.findByRole("article");
+
+    await userEvent.click(screen.getByRole("button", { name: t("earlierEmpty") }));
+    await waitFor(() => expect(called("doc_history_empty")).toHaveLength(1));
+
+    await waitFor(() =>
+      expect(document.activeElement).toBe(screen.getByRole("button", { name: t("close") })),
+    );
+    await userEvent.keyboard("{Escape}");
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
   it("still empties a shelf that holds only what the list leaves out", async () => {
     ipc.rows = [];
     ipc.kept = 1;
