@@ -7,6 +7,7 @@ use super::Refused;
 /// exactly is linked, and what that changed rides back on the answer so the person can hear it.
 pub(super) fn spoken(
     paths: &Paths,
+    tool: &str,
     args: &Value,
     field: &str,
     write: impl FnOnce(&Value) -> Result<Value, Refused>,
@@ -14,7 +15,7 @@ pub(super) fn spoken(
     let mut sent = args.clone();
     let mut changed = Vec::new();
     turned(&mut sent, field, &mut changed);
-    let referenced = super::referencing::link_all(paths, &mut sent, field);
+    let referenced = super::referencing::link_all(paths, tool, &mut sent, field);
     Ok(referenced.told(heard(write(&sent)?, &changed)))
 }
 

@@ -7,6 +7,7 @@ use tisty_core::{Paths, State};
 use tisty_markdown::named::{Named, spots};
 use tisty_markdown::refs::{DOC, TASK, labelled, pictures};
 
+use super::catalogue::Effect;
 use super::jsonrpc::{with_ask, with_said};
 
 const LINKED_SHOWN: usize = 10;
@@ -386,7 +387,7 @@ fn more(all: usize, shown: usize) -> String {
     }
 }
 
-pub(super) fn link_all(paths: &Paths, args: &mut Value, field: &str) -> Heard {
+pub(super) fn link_all(paths: &Paths, tool: &str, args: &mut Value, field: &str) -> Heard {
     let mut heard = Heard::default();
     if !names_anything(args, field) {
         return heard;
@@ -394,7 +395,8 @@ pub(super) fn link_all(paths: &Paths, args: &mut Value, field: &str) -> Heard {
     let Some(mut state) = seen(paths, false) else {
         return heard;
     };
-    if bodies_needed(&state, args) {
+    let rewrites = !only_adds(tool);
+    if rewrites && bodies_needed(&state, args) {
         let Some(whole) = seen(paths, true) else {
             return heard;
         };
@@ -402,7 +404,10 @@ pub(super) fn link_all(paths: &Paths, args: &mut Value, field: &str) -> Heard {
     }
     let known = Known::of(&state);
     let own = own_of(&state, args);
-    let mut before = current(paths, &state, args);
+    let mut before = match rewrites {
+        true => current(paths, &state, args),
+        false => Vec::new(),
+    };
     before.extend(title_line(args, field));
     let kept: BTreeSet<&str> = before
         .iter()
@@ -414,6 +419,13 @@ pub(super) fn link_all(paths: &Paths, args: &mut Value, field: &str) -> Heard {
         linked(text, &known, own.as_deref(), &kept, &mut heard)
     });
     heard
+}
+
+// A tool that only adds writes no line that was there before, so it has nothing of the person's to keep.
+fn only_adds(tool: &str) -> bool {
+    super::catalogue::EFFECTS
+        .iter()
+        .any(|(name, effect)| *name == tool && matches!(effect, Effect::Adds | Effect::Sets))
 }
 
 fn names_anything(value: &Value, field: &str) -> bool {

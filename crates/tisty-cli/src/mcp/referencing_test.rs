@@ -182,6 +182,23 @@ fn an_idea_s_head_and_a_table_without_outer_pipes_are_left_alone() {
 }
 
 #[test]
+fn only_a_tool_that_adds_skips_reading_what_was_there() {
+    for adding in ["note", "propose", "say_done", "say_not_doing"] {
+        assert!(only_adds(adding), "{adding}");
+    }
+    for rewriting in [
+        "describe",
+        "reword_note",
+        "tick",
+        "write_doc",
+        "append_doc",
+        "edit_doc",
+    ] {
+        assert!(!only_adds(rewriting), "{rewriting}");
+    }
+}
+
+#[test]
 fn what_is_being_written_never_links_to_itself() {
     let mut heard = Heard::default();
 
