@@ -74,8 +74,18 @@ pub(super) fn tools_without_hints() -> Value {
         {
             "name": "tick",
             "title": "Tick the steps you did",
-            "description": "Tick steps you did yourself, as you finish each. All or nothing: one unknown text ticks none; a text two steps share ticks the next open one. On the person's own tasks it reports the step done, for them to confirm. Refused once the task is said done: `note` instead. The whole task is `say_done`; a wrong tick, `untick`.",
-            "inputSchema": on_a_task(steps_by_text("you did"), &[])
+            "description": "Tick steps you did yourself, as you finish each; `state` leaves what stands. All or nothing: one unknown text ticks none. On the person's tasks it gives your word, for them to confirm. Refused once said done: `note` instead. The whole task is `say_done`; a wrong tick, `untick`.",
+            "inputSchema": on_a_task(
+                {
+                    let mut fields = steps_by_text("you did");
+                    fields["state"] = json!({
+                        "type": "string",
+                        "description": "What stands now, over the last: done, left, decisions in force, ruled out; steps may be left out"
+                    });
+                    fields
+                },
+                &[],
+            )
         },
         {
             "name": "untick",
@@ -147,11 +157,12 @@ pub(super) fn tools_without_hints() -> Value {
         {
             "name": "note",
             "title": "Add to a task's journal",
-            "description": "Add to a task's journal, the person's tasks too, when something new turns up about existing work, instead of filing a duplicate. A closed task takes none: propose the work anew. A note inside a document is a callout (`> [!NOTE]`), with `edit_doc`.",
+            "description": "Add to a task's journal, the person's tasks too, instead of filing a duplicate: a decision, something ruled out or a block; what stands is `tick` with `state`. A closed task takes none. A note in a document is a callout (`> [!NOTE]`), with `edit_doc`.",
             "inputSchema": shaped(json!({
                 "properties": {
                     "task": { "type": "string", "description": "The task id" },
-                    "body": { "type": "string", "description": "What to record, in the Tisty language" }
+                    "body": { "type": "string", "description": "What to record, in the Tisty language" },
+                    "replaces": { "type": "string", "description": "Id of an agent's note this undoes; it stays, marked" }
                 },
                 "required": ["task", "body"]
             }))
@@ -194,7 +205,7 @@ pub(super) fn tools_without_hints() -> Value {
         {
             "name": "append_doc",
             "title": "Add to a document, or to a task's page",
-            "description": "Add at a document's end, or under the heading in `under`, without reading it or a `print`; nothing written changes, unless `replace` rewrites a task page's assistant notes. For logs, minutes and dated notes; a changed fact is `edit_doc`. The answer says how much it `grew`. A task's id in `doc` adds under the assistant's notes on its page, dated and signed.",
+            "description": "Add at a document's end, or under the heading in `under`, without reading it or a `print`; nothing written changes, unless `replace` rewrites a task page's assistant notes. For logs, minutes and dated notes; a changed fact is `edit_doc`. A task's id adds under the assistant's notes on its page, signed.",
             "inputSchema": shaped(json!({
                 "properties": {
                     "keep_compaction": kept_compaction_field(),
@@ -202,7 +213,7 @@ pub(super) fn tools_without_hints() -> Value {
                     "body": { "type": "string", "description": "Markdown to add, after a blank line" },
                     "under": { "type": "string", "description": "A heading, as it reads: adds at the end of what it holds" },
                     "echo": echo_field(),
-                    "replace": { "type": "boolean", "description": "Only with a task's id: rewrite the assistant's notes on its page whole, as one dated digest; a box in it is no step" }
+                    "replace": { "type": "boolean", "description": "Only with a task's id: rewrite the assistant's notes on its page as one dated digest; a box in it is no step" }
                 },
                 "required": ["doc", "body"]
             }))
@@ -286,7 +297,7 @@ pub(super) fn tools_without_hints() -> Value {
         {
             "name": "import_doc",
             "title": "Bring a Markdown file in as a document",
-            "description": "Bring one Markdown file from disk in as a document, turned into the Tisty language, saying what changed. Files it points at come in too; links to what cannot are taken out. The file on disk is untouched; a seeming live credential comes in under a warning. A task's exported page goes back to its task. One file per call.",
+            "description": "Bring one Markdown file from disk in as a document, turned into the Tisty language, saying what changed. Files it points at come in too; links to what cannot are taken out. The file on disk is untouched; a seeming live credential comes in under a warning. A task's exported page goes back to its task.",
             "inputSchema": shaped(json!({
                 "properties": {
                     "path": { "type": "string", "description": "A Markdown file under Downloads, Documents, Pictures, Desktop or the temporary folder" },
@@ -493,16 +504,16 @@ pub(super) fn tools_without_hints() -> Value {
         {
             "name": "read",
             "title": "Read a whole task",
-            "description": "Everything a task holds: steps, its `document` page with the description and your notes, the latest journal notes (ids for `reword_note`) and who wrote them, parts and files. Read it before noting or mending; `fields` narrows it. A closed task comes with `closed` and a `notice`: it is history, and nothing on it changes.",
+            "description": "Everything a task holds: steps, its `state`, its `document` page, the notes after that state (ids for `reword_note`), parts and files. Read it before noting or mending; `fields` narrows it. A closed task comes with `closed`: it is history.",
             "inputSchema": shaped(json!({
                 "properties": {
                     "task": { "type": "string", "description": "The task id" },
                     "fields": {
                         "type": "array",
                         "items": { "type": "string" },
-                        "description": "Only these keys of the answer; the id always comes"
+                        "description": "Only these keys; the id always comes"
                     },
-                    "notes": { "type": "integer", "description": "How many latest journal notes, each cut at 4000 chars; 0: all, whole" }
+                    "notes": { "type": "integer", "description": "How many latest notes, cut at 4000 chars; 0: all, whole" }
                 },
                 "required": ["task"]
             }))

@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { IcsBrought } from "../core";
+import type { IcsBrought } from "../calendaring";
 import { fill, t } from "../locales";
 import { Importing } from "../ui/Calendars";
 

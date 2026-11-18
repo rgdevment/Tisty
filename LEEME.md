@@ -299,8 +299,13 @@ espera en la Lluvia de ideas.
   lista —, pero un paso que da por listo espera a que lo marques, el día sigue
   siendo tuyo y cerrar siempre es tuyo, y cada entrada dice qué agente la
   escribió.
-- **Una bitácora** — notas con fecha que nunca se reescriben: lo que se probó,
-  lo que se descartó y por qué.
+- **Una bitácora** — notas con fecha que nunca se reescriben: lo que se
+  decidió, lo que se descartó y por qué. Una nota que deja sin efecto otra lo
+  dice, y la vieja queda marcada como reemplazada.
+- **Un estado por tarea** — lo hecho, lo que falta y las decisiones vigentes,
+  escrito entero en la página de la tarea en la misma llamada que marca sus
+  pasos, y lo primero que se lee la vez siguiente. Tisty avisa si después
+  cambiaron los pasos o llegaron notas.
 - **Una página por tarea** — *Descripción*, *Para estar lista*, *Pasos*,
   *Notas* y *Al cerrarla*: el agente sabe cuándo termina antes de empezar.
 - **Un ticket, una tarea** — anotada con su origen, un ticket o un hilo, el
@@ -316,20 +321,21 @@ Lo que hace con todo eso un agente conectado a Tisty, en un trabajo real:
 
 1. **Pregunta qué cambió** desde su última sesión, y quién lo cambió, en vez
    de releerlo todo.
-2. **Abre la tarea en la que estaba**, que Tisty le nombra. *Para estar lista*
-   le dice cuándo termina,
-   y los pasos sin marcar, qué falta.
+2. **Abre la tarea en la que estaba**, que Tisty le nombra. Primero le llega
+   su estado, con las notas escritas después de él; *Para estar lista* le dice
+   cuándo termina, y los pasos sin marcar, qué falta.
 3. **Busca en el archivo antes de proponer nada.** Si ya se resolvió, parte de
    ahí.
 4. **Lee el documento del módulo por su índice**, después solo la sección que
    necesita, y respeta las decisiones y lo que está fuera de alcance: no reabre
    debates cerrados ni se desvía.
-5. **Marca cada paso al terminarlo y anota lo que descartó**, así la próxima
-   sesión, u otro agente, no repite el intento fallido.
+5. **Marca cada paso al terminarlo y deja el estado de la tarea en la misma
+   llamada**, y anota lo que decidió o descartó, así la próxima sesión, u otro
+   agente, no repite el intento fallido.
 6. **Cuando la página de una tarea crece, compacta las notas de los asistentes**
-   en un resumen fechado: estado, decisiones, lo descartado, sin quitar una
-   línea tuya. La bitácora queda entera, y si le pides devolver las notas,
-   vuelven como estaban, aunque después hayas marcado pasos.
+   en un resumen fechado de lo que sigue vigente, sin quitar una línea tuya.
+   La bitácora queda entera, y si le pides devolver las notas, vuelven como
+   estaban, aunque después hayas marcado pasos.
 7. **Termina diciendo qué hizo y cómo sabe que se sostiene.** Tú lo revisas y
    la cierras.
 8. **Después de leer un documento largo, deja un resumen** para que el próximo
@@ -363,8 +369,9 @@ De dónde sale el ahorro:
   caracteres.
 - **La página de una tarea llega entera solo mientras es corta**, unos 4000
   caracteres. Pasado eso llegan sus secciones, el resumen que abre las notas
-  del agente y su última nota; su bitácora llega por tamaño, las últimas notas
-  hasta unos 3000 caracteres, y una nota tiene como máximo 4000.
+  del agente y su última nota. Primero llega su estado, y la bitácora solo
+  desde ahí: las notas posteriores al estado, hasta unos 3000 caracteres, y
+  entera si se pide; una nota tiene como máximo 4000.
 - **El índice dice cuánto pesa cada sección** antes de abrir nada.
 - **Retomar trae solo lo que cambió** desde la última vez.
 - **Lo terminado se archiva**, y no cuesta nada hasta que alguien lo busca.

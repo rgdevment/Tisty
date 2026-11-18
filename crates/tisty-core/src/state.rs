@@ -210,6 +210,17 @@ impl State {
         (!names.is_empty()).then_some(names)
     }
 
+    // A state is told old by what came after it, so the trail stamps when it and the steps last moved.
+    fn traced(&mut self, event: &Event) {
+        self.grown(event);
+        if let Some(id) = crate::task_state::steps_moved(&event.op) {
+            self.with_task(id, |t| t.steps_moved_at = Some(event.timestamp));
+        }
+        if let Op::TaskPaged { id, d } = &event.op {
+            self.with_task(*id, |t| crate::task_state::paged(t, d, event.timestamp));
+        }
+    }
+
     fn shelve(&mut self, id: DocId, away: bool, by_person: bool) {
         if let Some(doc) = self.docs.get_mut(&id) {
             doc.archived = away;
@@ -308,7 +319,7 @@ impl State {
             return;
         }
 
-        self.grown(event);
+        self.traced(event);
         match &event.op {
             Op::TaskAdd { id, d } => self.task_added(event, *id, d),
             Op::TaskUpdate { id, d } => {
@@ -1317,6 +1328,7 @@ fn add_log_entry(
         body: d.body.clone(),
         by: Some(by.clone()),
         via,
+        replaces: d.replaces.filter(|old| *old != d.entry),
     });
 }
 

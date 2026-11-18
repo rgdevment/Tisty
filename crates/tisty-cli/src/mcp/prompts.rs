@@ -29,8 +29,8 @@ const PROMPTS: [Prompt; 7] = [
     Prompt {
         name: "leave_off",
         title: "Leave this where I can pick it up",
-        description: "Tick what is finished and note what was done, ruled out and comes next, so \
-                      the next session starts from there.",
+        description: "Tick what is finished and leave its state — done, left, decisions in \
+                      force — so the next session starts from there.",
         takes: "task",
         takes_what: "A word from the task to leave; left out, the one we are on",
         asks: leaving_off,
@@ -202,15 +202,17 @@ fn leaving_off(paths: &Paths, said: Option<&str>) -> String {
         },
     };
     format!(
-        "In Tisty, leave {which} where the next session can pick it up. `read` it first. `tick` \
-         every step that is finished. `note` what was done, what was tried and ruled out and why, \
-         and what comes next, in that order. If every step is done and the work holds, \
-         `say_done` with the proof. A decision that outlasts the task goes in the document on \
-         its subject as `rules` «documents» says: dated, with its why, in the passage it belongs \
-         to; one it replaces is struck through with the day it fell, never erased. If no \
-         document covers the subject, keep the decision in the note and tell me, rather than \
-         starting one. The note says where. Change nothing else, and \
-         tell me in a few lines what you left."
+        "In Tisty, leave {which} where the next session can pick it up. `read` it first. In one \
+         `tick`, tick every step that is finished and leave its `state`: what is done, what is \
+         left and comes next, the decisions in force and what was ruled out, written whole over \
+         the last. `note` only what changes something — a decision, something ruled out and why, \
+         a block — and when it undoes an agent's earlier note, name that note in `replaces`. If \
+         every step is done and the work holds, `say_done` with the proof. A decision that \
+         outlasts the task goes in the document on its subject as `rules` «documents» says: \
+         dated, with its why, in the passage it belongs to; one it replaces is struck through \
+         with the day it fell, never erased. If no document covers the subject, keep the \
+         decision in the state and tell me, rather than starting one. The state says where. \
+         Change nothing else, and tell me in a few lines what you left."
     )
 }
 

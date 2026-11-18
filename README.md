@@ -291,8 +291,12 @@ waits in Brainstorm.
   description, the page, the open steps, the title and the list — but a step it
   calls done waits for you to tick it, the day stays yours and closing is always
   yours, and every entry says which agent wrote it.
-- **A journal** — dated notes that are never rewritten: what was tried, what
-  was ruled out, and why.
+- **A journal** — dated notes that are never rewritten: what was decided,
+  what was ruled out, and why. A note that undoes an earlier one says so, and
+  the old one stays, marked as replaced.
+- **A state per task** — what is done, what is left and the decisions in force,
+  written whole on the task's page in the same call that ticks its steps, and
+  read first next time. Tisty says when steps or notes came after it.
 - **A page per task** — *Description*, *Done when*, *Steps*, *Notes* and *When
   it closes*: the agent knows when it is finished before it starts.
 - **One ticket, one task** — filed with its source, a ticket or a thread, the
@@ -308,20 +312,21 @@ What an agent connected to Tisty does with all that, on a real piece of work:
 
 1. **It asks what moved** since its last session, and who moved it, instead
    of rereading everything.
-2. **It opens the task it was on**, which Tisty names for it. *Done when* says
-   when it is finished, and
-   the unticked steps say what is left.
+2. **It opens the task it was on**, which Tisty names for it. Its state comes
+   first, with the notes written after it; *Done when* says when it is
+   finished, and the unticked steps say what is left.
 3. **It searches the archive before proposing anything.** If it was solved
    before, it starts from there.
 4. **It reads the module's document by its outline**, then only the section it
    needs, and keeps to the decisions and to what is out of scope — so it does
    not reopen settled debates or wander off.
-5. **It ticks each step when it is done and notes what it ruled out**, so the
-   next session, or another agent, does not repeat the failed attempt.
+5. **It ticks each step when it is done and leaves the task's state in the
+   same call**, and notes what it decided or ruled out, so the next session, or
+   another agent, does not repeat the failed attempt.
 6. **When a task's page grows long, it compacts the assistants' notes on it**
-   into one dated digest — state, decisions, what was ruled out — keeping any
-   line you wrote. The journal stays whole, and asking it to put the notes back
-   brings them as they were, even after later ticks.
+   into one dated digest of what still holds, keeping any line you wrote. The
+   journal stays whole, and asking it to put the notes back brings them as
+   they were, even after later ticks.
 7. **It ends by saying what it did and how it knows it holds.** You review it
    and close it.
 8. **After reading a long document, it leaves a summary** for the next agent
@@ -353,8 +358,9 @@ Where the saving comes from:
   for whole in standard Markdown to carry elsewhere, up to 40,000 characters.
 - **A task's page comes whole only while it is short**, about 4,000 characters.
   Past that come its sections, the digest that opens the agent's notes and its
-  latest note; its journal comes by size, the latest notes up to about 3,000
-  characters, and a note holds at most 4,000.
+  latest note. Its state comes first, and its journal only from there: the
+  notes after the state, up to about 3,000 characters, the whole log when
+  asked; a note holds at most 4,000.
 - **The outline says what each section weighs** before anything is opened.
 - **Picking up again brings only what moved** since the last time.
 - **What is finished is archived**, and costs nothing until it is searched.

@@ -1,5 +1,5 @@
 use serde_json::{Value, json};
-use tisty_core::model::{LogEntry, StepId};
+use tisty_core::model::{LogEntry, LogId, StepId};
 
 use super::{Refused, when};
 
@@ -137,6 +137,7 @@ pub(super) struct Shown<'a> {
     kept: String,
     cut: bool,
     by: Option<String>,
+    replaced: bool,
 }
 
 pub(super) struct Window<'a> {
@@ -144,6 +145,7 @@ pub(super) struct Window<'a> {
     earlier: usize,
     hid: bool,
     asked: bool,
+    stated: bool,
 }
 
 pub(super) fn widened(args: &Value) -> Result<Option<u64>, Refused> {
@@ -161,17 +163,30 @@ pub(super) fn widened(args: &Value) -> Result<Option<u64>, Refused> {
 pub(super) fn window<'a>(
     journal: &[&'a LogEntry],
     widened: Option<u64>,
+    stated_at: Option<jiff::Timestamp>,
     kept_here: impl Fn(&str) -> String,
     by: impl Fn(&LogEntry) -> Option<String>,
 ) -> Window<'a> {
-    let earlier = match widened {
-        Some(0) => 0,
-        Some(latest) => journal.len().saturating_sub(latest as usize),
-        None => journal.len() - within_the_window(journal),
+    let replaced: std::collections::BTreeSet<LogId> =
+        journal.iter().filter_map(|one| one.replaces).collect();
+    // Asked for, the log comes whole and in order; unasked, what still holds after the state.
+    let held: Vec<&'a LogEntry> = match widened {
+        Some(0) => journal.to_vec(),
+        Some(latest) => journal[journal.len().saturating_sub(latest as usize)..].to_vec(),
+        None => {
+            let standing: Vec<&'a LogEntry> = journal
+                .iter()
+                .filter(|one| !replaced.contains(&one.id))
+                .filter(|one| stated_at.is_none_or(|at| one.at > at))
+                .copied()
+                .collect();
+            standing[standing.len() - within_the_window(&standing)..].to_vec()
+        }
     };
+    let earlier = journal.len() - held.len();
     let mut hid = false;
-    let notes = journal[earlier..]
-        .iter()
+    let notes = held
+        .into_iter()
         .map(|one| {
             let kept = kept_here(&one.body);
             hid |= kept != one.body;
@@ -185,6 +200,7 @@ pub(super) fn window<'a>(
                 kept,
                 cut,
                 by: by(one),
+                replaced: replaced.contains(&one.id),
             }
         })
         .collect();
@@ -193,11 +209,16 @@ pub(super) fn window<'a>(
         earlier,
         hid,
         asked: widened.is_some(),
+        stated: stated_at.is_some(),
     }
 }
 
 impl Window<'_> {
-    pub(super) fn structured(&self, whole: &mut Value, unpathed: &str) {
+    pub(super) fn holds(&self, note: LogId) -> bool {
+        self.notes.iter().any(|shown| shown.one.id == note)
+    }
+
+    pub(super) fn structured(&self, whole: &mut Value) {
         if self.notes.is_empty() {
             return;
         }
@@ -216,10 +237,19 @@ impl Window<'_> {
                     if shown.cut {
                         note["cut"] = json!(true);
                     }
+                    if let Some(old) = shown.one.replaces {
+                        note["replaces"] = json!(old.to_string());
+                    }
+                    if shown.replaced {
+                        note["replaced"] = json!(true);
+                    }
                     note
                 })
                 .collect::<Vec<_>>()
         );
+    }
+
+    pub(super) fn counted(&self, whole: &mut Value, unpathed: &str) {
         if self.earlier > 0 {
             whole["earlier"] = json!(self.earlier);
         }
@@ -230,11 +260,18 @@ impl Window<'_> {
 
     pub(super) fn told(&self, unpathed: &str) -> String {
         let mut told = String::new();
-        if self.earlier > 0 && !self.notes.is_empty() {
-            told.push_str(&format!(
-                "\n\n{} earlier note(s) left out; `notes` 0 brings them all.",
-                self.earlier
-            ));
+        if self.earlier > 0 && (self.stated || !self.notes.is_empty()) {
+            told.push_str(&match self.stated && !self.asked {
+                true => format!(
+                    "\n\n{} note(s) from before its state, or replaced since, left out; `notes` \
+                     with a count brings the latest, 0 all of them.",
+                    self.earlier
+                ),
+                false => format!(
+                    "\n\n{} earlier note(s) left out; `notes` 0 brings them all.",
+                    self.earlier
+                ),
+            });
         }
         for shown in &self.notes {
             let by = shown
@@ -242,8 +279,9 @@ impl Window<'_> {
                 .as_ref()
                 .map(|by| format!(", by {by}"))
                 .unwrap_or_default();
+            let replaced = if shown.replaced { ", replaced" } else { "" };
             told.push_str(&format!(
-                "\n\n({}, note {}{by}) {}",
+                "\n\n({}, note {}{by}{replaced}) {}",
                 when(shown.one.at),
                 shown.one.id,
                 shown.kept
@@ -292,7 +330,7 @@ fn within_the_window(journal: &[&LogEntry]) -> usize {
     taken
 }
 
-fn clipped(said: &str, most: usize) -> (String, bool) {
+pub(super) fn clipped(said: &str, most: usize) -> (String, bool) {
     match said.chars().count() > most {
         true => (
             format!("{}…", said.chars().take(most).collect::<String>()),

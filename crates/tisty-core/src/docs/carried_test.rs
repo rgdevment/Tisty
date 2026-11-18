@@ -467,3 +467,31 @@ fn carrying_anew_to_a_place_whose_bases_were_stuck_keeps_only_the_new_ones() {
         Some("# Nuevo\n")
     );
 }
+
+#[test]
+fn what_an_assistant_left_in_a_state_is_kept_per_page_and_apart_from_its_notes() {
+    let data = tempfile::tempdir().unwrap();
+    assert_eq!(read_state_left(data.path(), "t_one-0001"), None);
+
+    keep_state_left(data.path(), "t_one-0001", "**hoy** · Claude\nFalta subir.").unwrap();
+    keep_notes_left(data.path(), "t_one-0001", "an older note").unwrap();
+    keep_state_left(data.path(), "t_two-0001", "Otra.").unwrap();
+
+    assert_eq!(
+        read_state_left(data.path(), "t_one-0001").as_deref(),
+        Some("**hoy** · Claude\nFalta subir.")
+    );
+    assert_eq!(
+        read_notes_left(data.path(), "t_one-0001").as_deref(),
+        Some("an older note")
+    );
+    keep_state_left(data.path(), "t_one-0001", "Subido.").unwrap();
+    assert_eq!(
+        read_state_left(data.path(), "t_one-0001").as_deref(),
+        Some("Subido.")
+    );
+    assert_eq!(
+        read_state_left(data.path(), "t_two-0001").as_deref(),
+        Some("Otra.")
+    );
+}

@@ -144,6 +144,8 @@ pub struct LogEntry {
     /// The client the assistant spoke through, from the event's `via`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub via: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub replaces: Option<LogId>,
 }
 
 impl LogEntry {
@@ -228,6 +230,11 @@ pub struct Task {
     /// The client the assistant that filed this task spoke through, from the event's `via`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub created_via: Option<String>,
+    /// When its page's state section was last written, as the trail tells it on every machine.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub stated_at: Option<Timestamp>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub steps_moved_at: Option<Timestamp>,
 
     #[serde(default, skip_serializing_if = "Volume::is_empty")]
     pub volume: Volume,
@@ -300,6 +307,8 @@ impl Task {
             read_as: None,
             open_to_agents: false,
             created_via: None,
+            stated_at: None,
+            steps_moved_at: None,
             volume: Volume::default(),
         }
     }
@@ -398,6 +407,11 @@ impl Task {
 
     pub fn journal(&self) -> impl Iterator<Item = &LogEntry> {
         self.log.iter().filter(|e| !e.body.trim().is_empty())
+    }
+
+    /// Read from the notes that replace them, so the order notes arrive in never matters.
+    pub fn replaced(&self) -> std::collections::BTreeSet<LogId> {
+        self.log.iter().filter_map(|e| e.replaces).collect()
     }
 
     pub fn weight(&self) -> usize {

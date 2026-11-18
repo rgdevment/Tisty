@@ -12,6 +12,7 @@ fn entry(body: &str) -> LogEntry {
         body: body.into(),
         by: None,
         via: None,
+        replaces: None,
     }
 }
 

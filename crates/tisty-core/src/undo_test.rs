@@ -26,6 +26,13 @@ fn round_trip(setup: Vec<Event>, action: Event) -> (State, State) {
         taken_back.undo = true;
         undone.apply(&taken_back);
     }
+    // Taking a step back moves the steps again, so a state written before it reads old.
+    for task in undone.tasks.values_mut() {
+        task.steps_moved_at = before
+            .tasks
+            .get(&task.id)
+            .and_then(|was| was.steps_moved_at);
+    }
 
     (before, undone)
 }

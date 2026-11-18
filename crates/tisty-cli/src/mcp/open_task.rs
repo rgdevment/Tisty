@@ -229,32 +229,32 @@ pub(super) fn question(task: &Task, due: &Due) -> Option<Value> {
             due.elsewhere
         ),
     };
-    let (missing, finish) = match (all, left.first()) {
-        (0, _) => (String::new(), "If"),
-        (_, None) => (
-            ", and every step is ticked but it is not said done".into(),
-            "If",
+    let missing = match (all, left.first()) {
+        (0, _) => String::new(),
+        (_, None) => ", and every step is ticked but it is not said done".into(),
+        (_, Some(next)) => format!(
+            ", and {} of {all} steps {} still unticked, the next {:?}",
+            left.len(),
+            match left.len() {
+                1 => "is",
+                _ => "are",
+            },
+            cut(next)
         ),
-        (_, Some(next)) => (
-            format!(
-                ", and {} of {all} steps {} still unticked, the next {:?}",
-                left.len(),
-                match left.len() {
-                    1 => "is",
-                    _ => "are",
-                },
-                cut(next)
-            ),
-            "Tick the steps you finished; if",
-        ),
+    };
+    let stale = match tisty_core::task_state::since(task) {
+        Some(since) if since.steps => "; its state is older than its steps",
+        _ => "",
     };
     let another = match due.others_read {
         true => " If you were working on another task, update that one instead.",
         false => "",
     };
     let said = format!(
-        "Is {:?} up to date? {quiet}{missing}. {finish} the work is done, `say_done` with the \
-         proof. A decision, something ruled out or a block goes in `note`.{another}",
+        "Is {:?} up to date? {quiet}{missing}{stale}. Leave it in one `tick`: the steps you \
+         finished, if any, and `state` with what is done, what is left and the decisions in \
+         force. If the work is done, `say_done` with the proof. A decision, something ruled out \
+         or a block goes in `note`.{another}",
         task.title
     );
     Some(json!({

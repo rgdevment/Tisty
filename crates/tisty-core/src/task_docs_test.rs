@@ -549,7 +549,7 @@ fn a_routine_s_page_goes_with_its_last_turn_once_the_first_is_erased() {
 }
 
 #[test]
-fn an_open_task_s_journal_comes_to_its_page_as_notes_and_a_closed_one_s_stays_behind() {
+fn a_task_s_journal_stays_in_its_history_and_off_a_page_made_for_it() {
     let mut state = State::default();
     let task = Ulid::generate();
     applied(
@@ -566,25 +566,17 @@ fn an_open_task_s_journal_comes_to_its_page_as_notes_and_a_closed_one_s_stays_be
             d: crate::event::LogAdd::new(Ulid::generate(), "Called the vet.\n- [ ] not a step"),
         },
     );
-    let template = "## Notes\n<!-- What you find out -->\n";
+    let template =
+        "## Description\n<!-- What has to happen -->\n\n## Notes\n<!-- What you find out -->\n";
 
     let page = super::opened(&state, task, template);
-    let notes = page
-        .split_once("<!-- What you find out -->\n\n**")
-        .map(|(_, rest)| rest)
-        .unwrap_or_default();
-    assert!(notes.contains("**\nCalled the vet."), "{page}");
-    assert!(page.contains(r"- \[ ] not a step"), "{page}");
-    assert!(crate::stages::stages(&page).is_empty(), "{page}");
 
-    applied(
-        &mut state,
-        Op::TaskDone {
-            id: task,
-            filled: false,
-        },
+    assert!(!page.contains("Called the vet."), "{page}");
+    assert!(
+        page.ends_with("## Notes\n<!-- What you find out -->\n"),
+        "{page}"
     );
-    assert!(!super::opened(&state, task, template).contains("Called the vet."));
+    assert!(crate::stages::stages(&page).is_empty(), "{page}");
 }
 
 #[test]
