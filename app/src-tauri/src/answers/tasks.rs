@@ -349,7 +349,11 @@ pub fn capture(
         .rooted(&session.state, &mut draft)?;
 
     let plan = tisty_core::capture::plan(&session.state, draft)?;
-    session.commit_all(super::born::hung(plan.ops, plan.task, whole))?;
+    let ops = match whole {
+        Some(whole) => super::parts::with_whole(plan.ops, plan.task, whole),
+        None => plan.ops,
+    };
+    session.commit_all(ops)?;
     let task = session
         .state
         .tasks
@@ -374,6 +378,21 @@ pub fn read(
 ) -> Answer<tisty_nl::Parsed> {
     let spoken = held(&session).locale.clone().unwrap_or(locale);
     Ok(tisty_nl::parse(&text, &jiff::Zoned::now(), &spoken))
+}
+
+#[derive(serde::Serialize)]
+pub struct Known {
+    lists: Vec<tisty_core::List>,
+    tags: Vec<crate::Counted>,
+}
+
+#[tauri::command(async)]
+pub fn capture_known(session: tauri::State<'_, Mutex<Session>>) -> Answer<Known> {
+    let session = held(&session);
+    Ok(Known {
+        lists: session.state.ordered_lists().into_iter().cloned().collect(),
+        tags: tags_in_use(&session.state),
+    })
 }
 
 #[tauri::command]

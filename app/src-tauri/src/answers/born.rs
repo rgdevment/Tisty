@@ -1,6 +1,6 @@
+use tisty_core::State;
 use tisty_core::capture::{Draft, Filing};
 use tisty_core::model::TaskId;
-use tisty_core::{Op, State};
 
 use crate::Refusal;
 
@@ -44,16 +44,9 @@ impl Born {
     }
 }
 
-pub(crate) fn hung(ops: Vec<Op>, born: TaskId, whole: Option<TaskId>) -> Vec<Op> {
-    match whole {
-        Some(whole) => super::parts::with_whole(ops, born, whole),
-        None => ops,
-    }
-}
-
 fn born_under(doc: &str, before: &str) -> String {
     let heads = tisty_markdown::outline(&tisty_markdown::read(before));
-    let anchor = heads.last().map_or("top", |head| head.id.as_str());
+    let anchor = heads.last().map_or("", |head| head.id.as_str());
     format!("{doc}#{anchor}")
 }
 

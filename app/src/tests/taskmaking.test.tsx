@@ -18,8 +18,8 @@ vi.mock("@tauri-apps/api/core", () => ({
   invoke: (cmd: string, args?: Record<string, unknown>) => {
     ipc.calls.push({ cmd, args: args ?? {} });
     switch (cmd) {
-      case "snapshot":
-        return Promise.resolve({ tasks: [], lists: [], tags: [], counts: {}, locale: "en" });
+      case "capture_known":
+        return Promise.resolve({ lists: [], tags: [] });
       case "read":
         return Promise.resolve({
           title: String(args?.text ?? ""),
@@ -163,6 +163,15 @@ describe("a new task written from the / menu", () => {
     expect(await screen.findByRole("listbox", { name: t("insertLabel") })).toBeTruthy();
     await userEvent.keyboard("{Escape}");
     expect(screen.queryByRole("listbox")).toBeNull();
+    expect(onDone).not.toHaveBeenCalled();
+
+    await userEvent.clear(field);
+    await userEvent.type(field, "/");
+    await screen.findByRole("listbox", { name: t("insertLabel") });
+    await userEvent.keyboard("{Enter}");
+    expect(await screen.findByText(t("today"))).toBeTruthy();
+    await userEvent.keyboard("{Escape}");
+    expect(screen.queryByText(t("today"))).toBeNull();
     expect(onDone).not.toHaveBeenCalled();
 
     await userEvent.keyboard("{Escape}");

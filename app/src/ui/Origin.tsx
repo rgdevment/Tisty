@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { docHeads } from "../citing";
 import type { Filed } from "../core";
-import { fill, t } from "../locales";
+import { t } from "../locales";
+import { PaperRow } from "./CitedBy";
 import Section from "./Section";
 
 interface Props {
@@ -49,25 +50,13 @@ export default function Origin({ source, papers, onDoc }: Props) {
   return (
     <>
       <Section label={t("bornIn")} />
-      <button
-        type="button"
-        onClick={() => onDoc?.(doc.file)}
-        className="grid w-full cursor-pointer grid-cols-[17px_minmax(0,1fr)] items-baseline gap-2.5 rounded-[10px] border border-hair px-2.5 py-2 text-left hover:border-line"
-      >
-        <span aria-hidden="true" className="text-center text-[11.5px] text-faint">
-          {doc.away ? "▢" : "▤"}
-        </span>
-        <span className="min-w-0">
-          <span className={`block truncate text-[12.5px] ${doc.away ? "text-faint" : "text-ink"}`}>
-            {doc.title.trim() || t("untitledDoc")}
-          </span>
-          {heading && (
-            <span className="block truncate text-[11.5px] text-faint">
-              {fill("citedUnder", heading)}
-            </span>
-          )}
-        </span>
-      </button>
+      <PaperRow
+        glyph={doc.away ? "▢" : "▤"}
+        title={doc.title}
+        under={heading}
+        away={doc.away}
+        onOpen={() => onDoc?.(doc.file)}
+      />
     </>
   );
 }

@@ -327,6 +327,8 @@ export interface Edits {
 }
 
 export type Born = { doc?: string; before?: string; whole?: string };
+export const captureKnown = (): Promise<{ lists: List[]; tags: Counted[] }> =>
+  invoke("capture_known");
 export const capture = (text: string, view?: View, edits?: Edits, born?: Born): Promise<Task> =>
   invoke("capture", { text, locale: navigator.language, view, edits, born });
 export interface Change {

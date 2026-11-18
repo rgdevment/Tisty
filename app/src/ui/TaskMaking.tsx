@@ -4,9 +4,9 @@ import {
   type Born,
   type Counted,
   capture,
+  captureKnown,
   type Edits,
   type List,
-  snapshot,
   type Task,
 } from "../core";
 import { every, turnOf } from "../examples";
@@ -31,9 +31,9 @@ export default function TaskMaking({
 
   useEffect(() => {
     let live = true;
-    snapshot({ most: 0 })
+    captureKnown()
       .then((fresh) => {
-        if (live) setKnown({ lists: fresh.lists, tags: fresh.tags });
+        if (live && fresh) setKnown(fresh);
       })
       .catch(() => {});
     return () => {

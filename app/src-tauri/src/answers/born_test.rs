@@ -1,4 +1,5 @@
 use super::*;
+use tisty_core::Op;
 use tisty_core::event::{DeviceId, DocAdd, Event, ListAdd, TaskAdd};
 use tisty_core::model::{Priority, Status};
 
@@ -74,7 +75,11 @@ fn on_page_of(whole: TaskId) -> Born {
 
 fn filed(state: &mut State, draft: Draft, whole: Option<TaskId>) -> tisty_core::Task {
     let plan = tisty_core::capture::plan(state, draft).unwrap();
-    for op in hung(plan.ops, plan.task, whole) {
+    let ops = match whole {
+        Some(whole) => super::super::parts::with_whole(plan.ops, plan.task, whole),
+        None => plan.ops,
+    };
+    for op in ops {
         state.apply(&ev(3, op));
     }
     state.tasks[&plan.task].clone()
@@ -109,7 +114,7 @@ fn a_task_written_under_no_heading_still_names_its_document() {
         .rooted(&state, &mut draft)
         .unwrap();
 
-    assert_eq!(draft.source.as_deref(), Some("a-0001#top"));
+    assert_eq!(draft.source.as_deref(), Some("a-0001#"));
 }
 
 #[test]
