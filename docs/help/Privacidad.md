@@ -87,7 +87,7 @@ En la carpeta **AGENTS** guardas como documentos las reglas, las skills y la mem
 
 - **Antes de que digas que sí**, Tisty solo mira qué archivos hay en las carpetas de tus asistentes, con su nombre y su tamaño, para mostrarte la lista. No abre ninguno.
 - **Con tu sí**, abre solo los archivos que marcaste en esa lista y los trae como documentos. El sí vale para este equipo: cada equipo tuyo pide el suyo.
-- **Después**, abre solo los archivos que corresponden a un documento de AGENTS, para escribirlos y para ver si cambiaron por fuera. Un cambio por fuera nunca se pisa: queda marcado hasta que tú decides. En `GEMINI.md` solo agrega una línea, `@tisty-rules.md`; el resto del archivo es de Gemini.
+- **Después**, abre solo los archivos que corresponden a un documento de AGENTS, para escribirlos y para ver si cambiaron por fuera. Un documento de **Global** se escribe en cada asistente que Tisty encuentra en este equipo, aunque no hayas marcado sus archivos. Un cambio por fuera nunca se pisa: queda marcado hasta que tú decides. En `GEMINI.md` solo agrega una línea, `@tisty-rules.md`; el resto del archivo es de Gemini.
 - **La memoria que escribe el propio asistente** se trae y se muestra, pero Tisty nunca la sobrescribe.
 
 **Lo que nunca lee**

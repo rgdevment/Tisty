@@ -87,7 +87,7 @@ In the **AGENTS** folder you keep your assistants' rules, skills and memory as d
 
 - **Before you say yes**, Tisty only looks at which files are in your assistants' folders, with their names and sizes, to show you the list. It opens none of them.
 - **With your yes**, it opens only the files you ticked in that list and brings them in as documents. The yes is this computer's: each of your computers asks for its own.
-- **After that**, it opens only the files that belong to a document in AGENTS, to write them and to see whether they changed outside. A change made outside is never written over: it stays marked until you decide. In `GEMINI.md` it only adds one line, `@tisty-rules.md`; the rest of that file is Gemini's.
+- **After that**, it opens only the files that belong to a document in AGENTS, to write them and to see whether they changed outside. A **Global** document is written to every assistant Tisty finds on this computer, even one whose files you did not tick. A change made outside is never written over: it stays marked until you decide. In `GEMINI.md` it only adds one line, `@tisty-rules.md`; the rest of that file is Gemini's.
 - **The memory an assistant writes itself** is brought in and shown, but Tisty never writes over it.
 
 **What it never reads**
