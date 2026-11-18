@@ -77,7 +77,8 @@ pub(super) fn written_doc(
     if imported.is_none() {
         super::compacting::subject_free(&state, args, &body)?;
     }
-    let made = tisty_core::docs::create(&paths.docs(), store.device(), &body).map_err(|e| match e {
+    let by = super::super::writing(paths);
+    let made = tisty_core::docs::create_by(&paths.docs(), &by, store.device(), &body).map_err(|e| match e {
         tisty_core::Error::DocumentTooBig { limit, .. } => Refused::Tool(format!(
             "that body is past the {limit} bytes Tisty can open. Send a shorter document, or split it into pages."
         )),
@@ -119,6 +120,7 @@ pub(super) fn written_doc(
         && !wrote(&mut store, id)
     {
         let _ = tisty_core::docs::remove(&paths.docs(), &made.id);
+        tisty_core::history::forget(paths.data(), &made.id);
         return Err(hitch(e));
     }
 
@@ -127,8 +129,12 @@ pub(super) fn written_doc(
         .and_then(|up| state.docs.get(&up))
         .map(|up| up.file.clone())
     {
-        let said =
-            tisty_core::docs::name_at_end(&paths.docs(), paths.data(), &up, &[made.id.as_str()]);
+        let said = tisty_core::docs::name_at_end(
+            &paths.docs(),
+            &crate::mcp::writing(paths),
+            &up,
+            &[made.id.as_str()],
+        );
         if let Ok(tisty_core::docs::Naming::Wrote { whole, .. }) = &said {
             // The page and its card are already written; refusing now would have a retry write
             // both a second time, and where they sit settles by itself on the next write or open.
@@ -229,7 +235,9 @@ pub(in crate::mcp) fn restore_doc(paths: &Paths, args: &Value) -> Result<Value, 
         ));
     }
     let named = doc_named(&state, &which);
-    let Some(was) = tisty_core::docs::read_before(paths.data(), &which) else {
+    let Some(tisty_core::history::Before { body: was, left }) =
+        tisty_core::history::back(paths.data(), &which)
+    else {
         return Err(Refused::Tool(format!(
             "nothing is kept beside {named} to go back to. Only a write that replaced a body \
              is held, and adding to the end — `append_doc`, or a file kept with `attach` — \
@@ -248,7 +256,6 @@ pub(in crate::mcp) fn restore_doc(paths: &Paths, args: &Value) -> Result<Value, 
     // Adding to the end keeps nothing, and neither does the window's own save. Either one leaves
     // the kept body further back than one step, and putting it back would take their writing too.
     let print = tisty_core::attach::printed(now.as_bytes());
-    let left = tisty_core::docs::before_left_at(paths.data(), &which);
     let more = left.as_deref() != Some(print.as_str());
     let asked = args
         .get("even_if_more")
@@ -449,10 +456,10 @@ pub(in crate::mcp) fn append_doc(paths: &Paths, args: &Value) -> Result<Value, R
 
     let under = text(args, "under");
     let mut why = None;
-    let whole =
-        match &under {
-            None => tisty_core::docs::append(&paths.docs(), &which, &body),
-            Some(under) => tisty_core::docs::amend(&paths.docs(), paths.data(), &which, |was| {
+    let whole = match &under {
+        None => tisty_core::docs::append(&paths.docs(), &crate::mcp::writing(paths), &which, &body),
+        Some(under) => {
+            tisty_core::docs::amend(&paths.docs(), &crate::mcp::writing(paths), &which, |was| {
                 match under_a_heading(was, under, &body) {
                     Ok(whole) if tisty_core::docs::speaks(was).is_ok() => {
                         match tisty_core::docs::speaks(&whole) {
@@ -470,15 +477,16 @@ pub(in crate::mcp) fn append_doc(paths: &Paths, args: &Value) -> Result<Value, R
                     }
                 }
             })
-            .map(|made| made.unwrap_or_default()),
+            .map(|made| made.unwrap_or_default())
         }
-        .map_err(|e| match e {
-            tisty_core::Error::DocumentTooBig { limit, .. } => Refused::Tool(format!(
-                "that would take the document past the {limit} bytes Tisty can open. Write a new \
+    }
+    .map_err(|e| match e {
+        tisty_core::Error::DocumentTooBig { limit, .. } => Refused::Tool(format!(
+            "that would take the document past the {limit} bytes Tisty can open. Write a new \
              document instead of growing this one."
-            )),
-            other => hitch(other),
-        })?;
+        )),
+        other => hitch(other),
+    })?;
     if let Some(said) = why {
         return Err(Refused::Tool(said));
     }
@@ -606,8 +614,14 @@ pub(super) fn over_again(
     super::super::ideas::keeps_every_idea(state, which, &was, body)?;
     super::super::diary::body_kept(&was, body)?;
 
-    let made = tisty_core::docs::rewrite(&paths.docs(), paths.data(), which, body, &print)
-        .map_err(hitch)?;
+    let made = tisty_core::docs::rewrite(
+        &paths.docs(),
+        &crate::mcp::writing(paths),
+        which,
+        body,
+        &print,
+    )
+    .map_err(hitch)?;
     match made {
         tisty_core::docs::Rewrite::Moved => Err(Refused::Tool({
             let now = tisty_core::docs::read(&paths.docs(), which).unwrap_or_default();
@@ -934,8 +948,14 @@ pub(super) fn in_its_place(
     super::super::ideas::keeps_every_idea(state, which, &body, &whole)?;
     super::super::diary::body_kept(&body, &whole)?;
 
-    match tisty_core::docs::rewrite(&paths.docs(), paths.data(), which, &whole, &print)
-        .map_err(hitch)?
+    match tisty_core::docs::rewrite(
+        &paths.docs(),
+        &crate::mcp::writing(paths),
+        which,
+        &whole,
+        &print,
+    )
+    .map_err(hitch)?
     {
         tisty_core::docs::Rewrite::Moved => Err(Refused::Tool(format!(
             "{named} does not read as it did when you took that print, so line {from} is no \

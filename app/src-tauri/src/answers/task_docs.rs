@@ -97,6 +97,7 @@ pub fn task_doc_make(
     });
     let (made, created) = tisty_core::task_docs::made_with(
         &session.paths.docs(),
+        &session.writer(),
         &session.state,
         tisty_core::task_docs::owner(&session.state, id),
         &first,
@@ -182,7 +183,7 @@ pub fn task_doc_merge(
     let whole = tisty_core::stages::ticked(&task, &merged);
     let theirs = tisty_core::stages::ticked(&task, &raw);
     if !tisty_core::docs::unchanged(&raw, &whole) {
-        tisty_core::docs::write(&root, &file, &whole)
+        tisty_core::docs::write_by(&root, &session.writer(), &file, &whole)
             .map_err(|e| blamed(channel::WINDOW, "a task's page could not be written", e))?;
         session.corpus.forget(&file);
         let hand = signing(&session.state);
@@ -282,6 +283,7 @@ pub fn task_page_import(
     } else {
         let (made, created) = tisty_core::task_docs::made_with(
             &session.paths.docs(),
+            &session.writer(),
             &session.state,
             tisty_core::task_docs::owner(&session.state, id),
             &taken.body,
@@ -298,7 +300,7 @@ pub fn task_page_import(
     }
     if let Some(file) = over {
         let root = session.paths.docs();
-        tisty_core::docs::write(&root, &file, &taken.body)
+        tisty_core::docs::write_by(&root, &session.writer(), &file, &taken.body)
             .map_err(|e| blamed(channel::WINDOW, "a task's page could not be written", e))?;
         session.mind_body(&file, &tisty_core::docs::settled(&taken.body));
         session.corpus.forget(&file);

@@ -401,6 +401,11 @@ impl Session {
         })
     }
 
+    /// The person at the window: no assistant's client answers for what it writes.
+    pub fn writer(&self) -> tisty_core::history::Writer<'_> {
+        tisty_core::history::Writer::now(self.paths.data(), None)
+    }
+
     pub fn alive(&self) -> Vec<String> {
         self.state
             .docs
@@ -640,6 +645,7 @@ impl Session {
         tisty_core::docs::remove(&self.paths.docs(), file)
             .map_err(|e| blamed(channel::WINDOW, "a stray document file would not go", e))?;
         tisty_core::docs::forget_carried(self.paths.data(), file);
+        tisty_core::history::forget(self.paths.data(), file);
         self.corpus.forget(file);
         Ok(())
     }
@@ -888,6 +894,7 @@ impl Session {
             }
             said.forget(file);
             tisty_core::docs::forget_carried(self.paths.data(), file);
+            tisty_core::history::forget(self.paths.data(), file);
         }
         let _ = said.save(self.paths.data());
     }
@@ -943,6 +950,11 @@ impl Session {
     pub fn tidy_up(&mut self, bin: bool) {
         tisty_core::parcel::swept(self.paths.data());
         tisty_core::attach::swept(self.paths.data());
+        tisty_core::history::pruned_when_due(
+            self.paths.data(),
+            self.config.history_days(),
+            jiff::Timestamp::now(),
+        );
         let dest = self.swept_place();
         tisty_core::tidy::all_of_it(
             &self.paths,

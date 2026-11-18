@@ -103,7 +103,7 @@ pub fn piece_save(
         writable(&session.state, &file)?;
         let mut written = Err(Unwritten::Moved);
         let body =
-            tisty_core::docs::amend(&session.paths.docs(), session.paths.data(), &file, |was| {
+            tisty_core::docs::amend(&session.paths.docs(), &session.writer(), &file, |was| {
                 written = diagrams::redrawn_in(was, kind, place, &source, &now);
                 written.as_ref().ok().map(|(body, _)| body.clone())
             })

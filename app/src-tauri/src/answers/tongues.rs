@@ -141,7 +141,7 @@ pub fn dressed(
             continue;
         }
         let written =
-            tisty_core::docs::amend(&session.paths.docs(), session.paths.data(), &file, |was| {
+            tisty_core::docs::amend(&session.paths.docs(), &session.writer(), &file, |was| {
                 let now = laid
                     .iter()
                     .fold(was.to_string(), |body, (key, value)| match value {
@@ -261,7 +261,7 @@ fn said_of(state: &State, kept: &Kept, named: Option<String>) -> Answer<(String,
 fn write_lang(session: &mut Session, kept: &Kept, lang: &str) -> Answer<()> {
     let written = tisty_core::docs::amend(
         &session.paths.docs(),
-        session.paths.data(),
+        &session.writer(),
         &kept.file,
         |was| Some(tisty_markdown::front::with_field(was, "lang", lang)),
     )

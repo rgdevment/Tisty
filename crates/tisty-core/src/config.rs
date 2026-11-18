@@ -252,6 +252,10 @@ impl Config {
         self.turn_hooks != Some(false)
     }
 
+    pub fn history_days(&self) -> u32 {
+        crate::history::days_kept(self.history_days)
+    }
+
     // A task's page holds what a document does, so a file is taken up to the same ceiling on either.
     pub fn copies_up_to(&self) -> u64 {
         crate::attach::COPIED_IN_DOC
@@ -471,6 +475,8 @@ pub struct Config {
     /// Read raw by `tisty hook`, which runs on every edit; only `Some(false)` is written.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub turn_hooks: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub history_days: Option<u32>,
     #[serde(default, skip_serializing_if = "std::collections::BTreeMap::is_empty")]
     pub homes: std::collections::BTreeMap<String, crate::machine::Home>,
     /// What a later build wrote and this one has no name for. Serde drops what it cannot name
@@ -537,6 +543,7 @@ impl Config {
             key_handed: None,
             asks_open_task: None,
             turn_hooks: None,
+            history_days: None,
             homes: std::collections::BTreeMap::new(),
             rest: toml::Table::new(),
         };

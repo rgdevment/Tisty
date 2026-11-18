@@ -6,8 +6,10 @@ use crate::{
     witness::{self, Fact, channel},
 };
 
-pub const CARRIED: [&str; 4] = ["store", "docs", "originals", "attachments"];
-const TASKS_AND_DOCS: [&str; 3] = ["store", "docs", "originals"];
+pub const CARRIED: [&str; 4] = ["store", "docs", crate::history::FOLDER, "attachments"];
+const TASKS_AND_DOCS: [&str; 3] = ["store", "docs", crate::history::FOLDER];
+// A copy made before documents had a history brings the one step back each of them kept.
+const ONCE_CARRIED: [&str; 1] = ["originals"];
 const BEFORE_A_CHANGE: &str = "before-a-change";
 const BEFORE_JOINING: &str = "before-joining";
 const BEFORE_KEPT: usize = 5;
@@ -30,6 +32,7 @@ pub struct Restored {
 }
 
 pub fn write(data: &Path, into: &Path, aside: &Path, also: Option<&Path>) -> Result<Made> {
+    crate::history::adopt_originals(data);
     written(data, into, aside, also, &CARRIED)
 }
 
@@ -43,6 +46,7 @@ pub fn before_a_change(paths: &Paths, at: jiff::Timestamp) -> Result<PathBuf> {
         at.strftime("%Y%m%d-%H%M%S"),
         at.subsec_millisecond()
     ));
+    crate::history::adopt_originals(paths.data());
     written(paths.data(), &into, paths.cache(), None, &TASKS_AND_DOCS)?;
     pruned(&kept, BEFORE_KEPT)?;
     Ok(into)
@@ -373,6 +377,7 @@ pub(crate) fn within(paths: &Paths, from: &Path, at_most: u64) -> Result<Restore
         );
     }
     crate::docs::forget_what_was_carried(data);
+    crate::history::adopt_originals(data);
     said_goodbye(paths, &was.device_id, &config.device_id);
 
     Ok(Restored {
@@ -406,7 +411,7 @@ fn said_goodbye(paths: &Paths, was: &crate::DeviceId, now: &crate::DeviceId) {
 
 fn swap(data: &Path, staged: &Path, old: &Path) -> Result<()> {
     let mut moved: Vec<&str> = Vec::new();
-    for folder in CARRIED {
+    for folder in brought_back() {
         let at = data.join(folder);
         if !at.exists() {
             continue;
@@ -418,13 +423,13 @@ fn swap(data: &Path, staged: &Path, old: &Path) -> Result<()> {
         moved.push(folder);
     }
 
-    for folder in CARRIED {
+    for folder in brought_back() {
         let fresh = staged.join(folder);
         if !fresh.exists() {
             continue;
         }
         if let Err(e) = std::fs::rename(&fresh, data.join(folder)) {
-            for done in CARRIED {
+            for done in brought_back() {
                 let at = data.join(done);
                 if at.exists() && staged.join(done).exists() {
                     continue;
@@ -740,13 +745,17 @@ fn kept_out(parts: &[std::borrow::Cow<'_, str>]) -> bool {
         || (under != "attachments" && (leaf.ends_with(".part") || leaf.ends_with(".tmp")))
 }
 
+fn brought_back() -> impl Iterator<Item = &'static str> {
+    CARRIED.into_iter().chain(ONCE_CARRIED)
+}
+
 fn carried(at: &Path) -> bool {
     let Some(parts) = named(at) else {
         return false;
     };
     parts
         .first()
-        .is_some_and(|under| CARRIED.contains(&under.as_ref()) && parts.len() > 1)
+        .is_some_and(|under| brought_back().any(|one| one == under) && parts.len() > 1)
         && !kept_out(&parts)
 }
 

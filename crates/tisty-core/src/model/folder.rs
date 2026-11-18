@@ -119,6 +119,8 @@ pub struct Kept {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub wrote_by: Option<crate::event::DeviceId>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub wrote_via: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub by: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub born_by: Option<String>,

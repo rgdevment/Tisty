@@ -298,13 +298,15 @@ fn written_on(
         return Ok(());
     };
     let by = state.signed.alias.clone();
+    let writer = crate::history::Writer::now(paths.data(), store.via());
     let owner = owner(&state, task);
     let (file, made) = match of(&state, owner) {
         Some(kept) => (kept.file.clone(), false),
         None => {
             let config = crate::Config::load_or_init(paths)?;
             let body = opened(&state, task, template(&first, config.locale.as_deref()));
-            let (op, created) = made_with(&paths.docs(), &state, owner, &body, by.clone())?;
+            let (op, created) =
+                made_with(&paths.docs(), &writer, &state, owner, &body, by.clone())?;
             let file = match &op {
                 Op::DocAdd { d, .. } => d.file.clone(),
                 _ => return Ok(()),
@@ -320,8 +322,8 @@ fn written_on(
     let edited = |was: &str| edit(was, now).filter(|said| said != was);
     // A page made just now has only its template to go back to, which would take the write off.
     let whole = match keep && !made {
-        true => crate::docs::amend(&paths.docs(), paths.data(), &file, edited)?,
-        false => crate::docs::amend_unkept(&paths.docs(), &file, edited)?,
+        true => crate::docs::amend(&paths.docs(), &writer, &file, edited)?,
+        false => crate::docs::amend_unkept(&paths.docs(), &writer, &file, edited)?,
     };
     let Some(whole) = whole else {
         return Ok(());
@@ -426,6 +428,7 @@ fn hinted(line: &str) -> Option<&str> {
 /// `from` is the turn asking: a routine's document is its first turn's, seeded with today's steps.
 pub fn made(
     root: &Path,
+    writer: &crate::history::Writer,
     state: &State,
     task: TaskId,
     from: TaskId,
@@ -433,19 +436,20 @@ pub fn made(
     by: Option<String>,
 ) -> crate::Result<Op> {
     let first = opened(state, from, template);
-    made_with(root, state, task, &first, by).map(|(op, _)| op)
+    made_with(root, writer, state, task, &first, by).map(|(op, _)| op)
 }
 
 /// Made with the words a person already wrote; false when the file was there before them.
 pub fn made_with(
     root: &Path,
+    writer: &crate::history::Writer,
     state: &State,
     task: TaskId,
     first: &str,
     by: Option<String>,
 ) -> crate::Result<(Op, bool)> {
     let (id, file) = planned(state, task);
-    let created = crate::docs::create_named(root, &file, first)?;
+    let created = crate::docs::create_named_by(root, writer, &file, first)?;
     let body = match created {
         true => first.to_string(),
         false => crate::docs::read(root, &file)?,

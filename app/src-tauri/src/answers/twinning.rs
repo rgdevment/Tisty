@@ -378,8 +378,8 @@ fn joined(
     let hand = crate::signing(&session.state);
     for (id, title, body, print) in &plan.docs {
         // Written only over the body it was read from; no step back is kept, since it would name a copy in the bin.
-        let made =
-            tisty_core::docs::rewrite_for_good(&root, id, body, print).map_err(|e| match e {
+        let made = tisty_core::docs::rewrite_for_good(&root, &session.writer(), id, body, print)
+            .map_err(|e| match e {
                 tisty_core::Error::AlreadyRunning => Refusal::of("documentBeingWritten"),
                 e => blamed(
                     channel::ATTACH,

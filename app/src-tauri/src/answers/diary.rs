@@ -54,10 +54,12 @@ pub fn diary_today(session: tauri::State<'_, Mutex<Session>>) -> Answer<Today> {
 
 pub fn opening(session: &mut Session, today: Date) -> Answer<Today> {
     let root = session.paths.docs();
+    let writer = session.writer();
     let maker = diary::Maker {
         root: &root,
         device: &session.config.device_id,
         by: signing(&session.state),
+        writer: &writer,
     };
     let opened = diary::opened(&maker, &session.state, today, words(session))
         .map_err(|e| blamed(channel::WINDOW, "the diary could not be opened", e))?;
@@ -76,7 +78,7 @@ pub fn opening(session: &mut Session, today: Date) -> Answer<Today> {
     if made {
         session.commit_all(opening.ops.clone())?;
     }
-    let named = diary::named(&root, session.paths.data(), &opening).map_err(|e| {
+    let named = diary::named(&root, &session.writer(), &opening).map_err(|e| {
         blamed(
             channel::WINDOW,
             "the diary's book could not name its month",
@@ -156,9 +158,12 @@ fn written_today(
     let opened = opening(session, today)?;
     super::papers::writable(&session.state, &opened.page)?;
     let words = words(session);
-    let whole = tisty_core::docs::amend_unkept(&session.paths.docs(), &opened.page, |was| {
-        Some(diary::written_on(was, today, words, &said(was)))
-    })
+    let whole = tisty_core::docs::amend_unkept(
+        &session.paths.docs(),
+        &session.writer(),
+        &opened.page,
+        |was| Some(diary::written_on(was, today, words, &said(was))),
+    )
     .map_err(super::papers::unwritten)?
     .unwrap_or_default();
     session.corpus.forget(&opened.page);
@@ -283,7 +288,7 @@ fn day_amended(
         .map(|one| one.file.clone())
         .ok_or_else(|| Refusal::of("diaryPageGone"))?;
     super::papers::writable(&session.state, file)?;
-    let whole = tisty_core::docs::amend_unkept(&root, file, change)
+    let whole = tisty_core::docs::amend_unkept(&root, &session.writer(), file, change)
         .map_err(super::papers::unwritten)?
         .ok_or_else(|| Refusal::of("diaryDayChanged"))?;
     session.corpus.forget(file);

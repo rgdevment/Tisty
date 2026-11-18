@@ -165,6 +165,7 @@ fn a_body_that_arrived_saying_another_order_is_settled_in_one_batch() {
                 made: None,
                 made_by: None,
                 wrote_by: None,
+                wrote_via: None,
                 by: None,
                 title: None,
                 bytes: None,
@@ -553,4 +554,25 @@ fn what_is_owed_is_asked_of_each_side_that_can_be_reached() {
     done.attachments_up
         .insert("attachments/una-a3f90001.png".into());
     assert!(!done.owes_any(&all, true, true));
+}
+
+#[test]
+fn a_paper_the_log_shed_takes_its_history_with_it() {
+    let (_room, paths) = desk();
+    a_paper(&paths, "dev_a-0001");
+    crate::history::Writer::now(paths.data(), None)
+        .replaces(
+            "dev_a-0001",
+            b"# Antes",
+            "# Algo",
+            crate::history::Step::Back,
+        )
+        .unwrap();
+    let mut state = State::default();
+    state.shed.insert("dev_a-0001".into());
+
+    papers(&paths, &state.shed, None, &mut Already::default());
+
+    assert!(crate::history::back(paths.data(), "dev_a-0001").is_none());
+    assert!(!paths.data().join("history/dev_a-0001").exists());
 }

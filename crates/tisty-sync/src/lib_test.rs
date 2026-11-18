@@ -82,6 +82,7 @@ macro_rules! folder_only {
 }
 
 include!("round_cases_test.rs");
+include!("history_test.rs");
 
 #[test]
 fn a_meeting_place_that_went_empty_is_not_seeded_again_behind_our_back() {
@@ -8406,6 +8407,7 @@ fn a_body_that_changed_after_its_print_was_taken_is_not_installed() {
             own: None,
             others: Default::default(),
             behind: false,
+            wrote: None,
         },
     )]);
     let round = || {
@@ -8498,12 +8500,15 @@ fn a_body_only_another_machine_last_wrote_is_set_aside_before_it_replaces_ours()
         own: None,
         others: std::collections::BTreeSet::from([print]),
         behind: false,
+        wrote: None,
     });
 
     assert_eq!(done.brought, 1);
     assert_eq!(body(&one.data, "dev_a-0001"), "# lo de otra maquina\n");
     assert_eq!(
-        tisty_core::docs::read_before(&one.data, "dev_a-0001").as_deref(),
+        tisty_core::history::back(&one.data, "dev_a-0001")
+            .map(|one| one.body)
+            .as_deref(),
         Some("# antes\n"),
         "a body that was only another machine's last word replaced ours with nothing kept"
     );
@@ -8516,12 +8521,13 @@ fn a_body_the_log_answers_for_replaces_ours_without_setting_ours_aside() {
         own: None,
         others: Default::default(),
         behind: false,
+        wrote: None,
     });
 
     assert_eq!(done.brought, 1);
     assert_eq!(body(&one.data, "dev_a-0001"), "# lo de otra maquina\n");
     assert_eq!(
-        tisty_core::docs::read_before(&one.data, "dev_a-0001"),
+        tisty_core::history::back(&one.data, "dev_a-0001").map(|one| one.body),
         None,
         "a body the log answers for was set aside as if it were in doubt"
     );
@@ -8534,6 +8540,7 @@ fn a_body_the_log_has_no_print_for_comes_in_with_ours_set_aside() {
         own: None,
         others: Default::default(),
         behind: false,
+        wrote: None,
     });
 
     assert_eq!(done.brought, 1);
@@ -8543,7 +8550,9 @@ fn a_body_the_log_has_no_print_for_comes_in_with_ours_set_aside() {
 "
     );
     assert_eq!(
-        tisty_core::docs::read_before(&one.data, "dev_a-0001").as_deref(),
+        tisty_core::history::back(&one.data, "dev_a-0001")
+            .map(|one| one.body)
+            .as_deref(),
         Some(
             "# antes
 "

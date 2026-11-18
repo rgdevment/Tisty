@@ -137,14 +137,13 @@ fn edited(paths: &Paths, args: &Value, as_sent: bool) -> Result<Value, Refused> 
         super::super::ideas::keeps_every_idea(&state, &which, &before, &after)?;
         super::super::diary::body_kept(&before, &after)?;
     }
-    let made = tisty_core::docs::edit(&paths.docs(), paths.data(), &which, old, new).map_err(
-        |e| match e {
+    let made = tisty_core::docs::edit(&paths.docs(), &crate::mcp::writing(paths), &which, old, new)
+        .map_err(|e| match e {
             tisty_core::Error::DocumentTooBig { limit, .. } => Refused::Tool(format!(
                 "that would take the document past the {limit} bytes Tisty can open."
             )),
             other => hitch(other),
-        },
-    )?;
+        })?;
 
     match made {
         tisty_core::docs::Change::Missing => Err(Refused::Tool({
