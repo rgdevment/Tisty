@@ -398,7 +398,7 @@ fn pointed(name: &str) -> Option<&'static str> {
     Some(match name {
         "doc_history" | "history_doc" | "versions" | "versions_doc" | "doc_versions"
         | "list_versions" | "version_history" | "read_version" | "diff_doc" | "revert_doc"
-        | "revert" | "rollback_doc" | "rollback" | "undo_doc" | "undo" => GOING_BACK,
+        | "rollback_doc" | "undo_doc" => GOING_BACK,
         "delete_doc" | "remove_doc" | "drop_doc" | "erase_doc" | "trash_doc"
         | "delete_document" | "doc_delete" | "rm_doc" => ERASING_A_DOCUMENT,
         "unarchive_doc" | "unarchive" | "archive" | "shelve_doc" | "restore_archive"

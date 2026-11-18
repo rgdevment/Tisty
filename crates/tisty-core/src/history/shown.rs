@@ -63,9 +63,7 @@ pub struct Shown {
     pub elsewhere: Option<DeviceId>,
 }
 
-/// What decides whether a version the log names is on another machine.
 pub struct Here<'a> {
-    /// This machine, as the log names it.
     pub machine: &'a DeviceId,
     /// The print of the body this disk holds now, which is here whatever the log says came after.
     pub says: Option<&'a str>,
@@ -73,8 +71,7 @@ pub struct Here<'a> {
     pub since: jiff::Timestamp,
 }
 
-/// Newest first: what this machine keeps, then what the same cut kept only on another machine.
-/// A version the log names that this machine wrote over and no longer keeps is gone, and is left out.
+/// Newest first; a version this machine wrote over and no longer keeps is gone, not on another one.
 pub fn shown(
     kept: &[Version],
     wrote: &[Wrote],

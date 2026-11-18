@@ -897,6 +897,73 @@ fn listing_reading_and_carrying_out_are_asked_one_at_a_time() {
 
     let plain = served.call("read_doc", json!({ "doc": doc, "versions": false }));
     assert!(plain["structuredContent"].get("print").is_some(), "{plain}");
+
+    let by_parts = served.call(
+        "read_doc",
+        json!({ "doc": doc, "versions": true, "from": 2 }),
+    );
+    assert!(refused(&by_parts), "{by_parts}");
+    assert!(words(&by_parts).contains("takes no `from`"), "{by_parts}");
+}
+
+#[test]
+fn a_cursor_past_the_last_version_says_so_instead_of_an_empty_list() {
+    let served = Served::new();
+    let doc = served.written_by_turns();
+
+    let past = served.call(
+        "read_doc",
+        json!({ "doc": doc, "versions": true, "cursor": 9 }),
+    );
+
+    went(&past);
+    assert_eq!(past["structuredContent"]["versions"], json!([]));
+    let said = past["structuredContent"]["said"].as_str().unwrap();
+    assert!(said.contains("the list holds 2 in all"), "{said}");
+}
+
+#[test]
+fn a_version_sent_empty_is_refused_instead_of_undoing_the_last_write() {
+    let served = Served::new();
+    let doc = served.written_by_turns();
+    let before = served.body_of(&doc);
+
+    let blank = served.call("restore_doc", json!({ "doc": doc, "version": " " }));
+
+    assert!(refused(&blank), "{blank}");
+    assert!(words(&blank).contains("`version` came empty"), "{blank}");
+    assert_eq!(
+        served.body_of(&doc),
+        before,
+        "an empty version undid a write"
+    );
+}
+
+#[test]
+fn a_digest_is_still_swapped_back_after_another_write_on_the_page() {
+    let served = Served::new();
+    let (task, page) = served.task_with_a_page();
+    went(&served.call(
+        "append_doc",
+        json!({ "doc": task, "body": "Resumen: uno y dos descartadas.", "replace": true }),
+    ));
+    went(&served.call(
+        "edit_doc",
+        json!({ "doc": page, "old": "Pedir hora.", "new": "Pedir hora y llevar la foto." }),
+    ));
+
+    let swapped = served.call("restore_doc", json!({ "doc": task }));
+
+    went(&swapped);
+    assert_eq!(
+        swapped["structuredContent"]["notes_put_back"], true,
+        "{swapped}"
+    );
+    let now = served.body_of(&page);
+    assert!(
+        now.contains("Nota uno.") && now.contains("llevar la foto"),
+        "{now}"
+    );
 }
 
 #[test]

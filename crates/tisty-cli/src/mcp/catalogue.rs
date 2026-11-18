@@ -358,7 +358,7 @@ Versions are each machine's own and never sync. A version marked `elsewhere` was
 another of the person's machines, which keeps its text: from this one it is neither read nor \
 gone back to, so tell the person which machine has it instead of trying again. Versions stay 30 \
 days unless the person set fewer, the last one always stays, and one past its days or emptied by \
-the person is gone.
+the person is gone. The diary shows none.
 
 ## One living document per subject
 

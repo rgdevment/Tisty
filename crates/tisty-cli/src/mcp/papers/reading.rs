@@ -476,6 +476,9 @@ pub(in crate::mcp) fn read_doc(paths: &Paths, args: &Value) -> Result<Value, Ref
         return Err(Refused::Missing(no_document_called(&state, &which)));
     };
     in_sight(&state, kept, &which)?;
+    if past.is_some() {
+        super::versions::not_the_diary(paths, &state, kept)?;
+    }
     match past {
         Some(super::versions::Asked::List) => {
             return super::versions::listed(paths, &state, &store, kept, args);
