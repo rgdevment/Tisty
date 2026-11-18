@@ -23,7 +23,7 @@ fn balanced(html: &str) -> bool {
             if open.pop() != Some(name) {
                 return false;
             }
-        } else if !VOID.contains(&name) {
+        } else if !VOID.contains(&name) && !tag.ends_with('/') && !tag.starts_with('!') {
             open.push(name);
         }
     }
@@ -819,4 +819,47 @@ fn an_entity_that_changed_is_marked_whole() {
         "<p data-change=\"gone\">Vale 5 <del>&euro;</del> hoy y nada más.</p>\
          <p data-change=\"came\">Vale 5 <ins>&pound;</ins> hoy y nada más.</p>"
     );
+}
+
+fn sample(lang: &str, name: &str) -> String {
+    let at = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../../app/src-tauri/resources/guide")
+        .join(lang)
+        .join(name);
+    std::fs::read_to_string(at).expect("the guide's page of one of each")
+}
+
+fn reworded(body: &str) -> String {
+    body.lines()
+        .map(|line| match line.rsplit_once(' ') {
+            Some((head, last)) if last.chars().any(char::is_alphabetic) => format!("{head} CAMBIO"),
+            _ => line.to_string(),
+        })
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
+#[test]
+fn the_page_that_shows_one_of_each_compares_with_itself_as_the_page_it_is() {
+    for body in [sample("es", "muestra.md"), sample("en", "sample.md")] {
+        let said = compared(&body, &body).unwrap();
+
+        assert_eq!(said.html, drawn(&body));
+        assert_eq!((said.gone, said.came), (0, 0));
+    }
+}
+
+#[test]
+fn every_form_drawn_on_the_page_of_one_of_each_survives_a_comparison() {
+    let (es, en) = (sample("es", "muestra.md"), sample("en", "sample.md"));
+    for (was, now) in [
+        (es.clone(), en.clone()),
+        (es.clone(), reworded(&es)),
+        (reworded(&en), en.clone()),
+    ] {
+        let said = compared(&was, &now).expect("a page this size is told");
+
+        assert!(balanced(&said.html), "{}", said.html);
+        assert!(said.gone + said.came > 0);
+    }
 }
