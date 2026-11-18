@@ -356,3 +356,20 @@ fn a_version_that_says_what_the_document_says_now_is_not_listed() {
 
     assert_eq!(prints(&listed), vec![print("# B\n")]);
 }
+
+#[test]
+fn a_body_another_machine_cut_once_is_listed_though_it_came_back_later_here() {
+    let (room, _docs) = desk();
+    let id = DocId::generate();
+    let events = vec![
+        made(id, HERE, 0, None, "# A\n"),
+        noted(id, THERE, 40, None, "# B\n"),
+        noted(id, HERE, 50, None, "# A\n"),
+        noted(id, HERE, 51, None, "# C\n"),
+    ];
+
+    let listed = shown(room.path(), &events, id, 60);
+
+    assert_eq!(prints(&listed), vec![print("# A\n")]);
+    assert_eq!(listed[0].kept_by, Some(DeviceId(THERE.into())));
+}
