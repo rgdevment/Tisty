@@ -127,6 +127,7 @@ pub(super) fn linked(
     known: &Known,
     own: Option<&str>,
     kept: &BTreeSet<&str>,
+    cards: bool,
     heard: &mut Heard,
 ) -> String {
     let mut done: BTreeSet<String> = heard.linked.iter().map(|(_, one)| one.id.clone()).collect();
@@ -150,7 +151,7 @@ pub(super) fn linked(
                 }
                 let link = match &spot.named {
                     Named::Quoted(said) => target.link(said, false),
-                    _ => target.link(&target.title, target.task && alone(text, &spot.at)),
+                    _ => target.link(&target.title, cards && target.task && alone(text, &spot.at)),
                 };
                 if first {
                     heard.linked.push((words.to_string(), target.clone()));
@@ -401,9 +402,11 @@ pub(super) fn link_all(paths: &Paths, tool: &str, args: &mut Value, field: &str)
         .filter(|line| !line.is_empty())
         .collect();
     let room = room_for(tool);
+    // The journal draws a task's card as its bare title, so there a lone id stays a link.
+    let cards = !JOURNAL.contains(&tool);
     put_back(args, field, &mut |text| {
         let had = heard.linked.len();
-        let said = linked(text, &known, own.as_deref(), &kept, &mut heard);
+        let said = linked(text, &known, own.as_deref(), &kept, cards, &mut heard);
         match room.is_some_and(|most| lengthened_past(text, &said, most)) {
             true => {
                 heard.linked.truncate(had);
@@ -415,10 +418,12 @@ pub(super) fn link_all(paths: &Paths, tool: &str, args: &mut Value, field: &str)
     heard
 }
 
+const JOURNAL: [&str; 4] = ["note", "reword_note", "say_done", "say_not_doing"];
+
 // Links lengthen the words, and a note or a state the agent sized to fit must not be refused for them.
 fn room_for(tool: &str) -> Option<usize> {
     match tool {
-        "note" | "reword_note" | "say_done" | "say_not_doing" => Some(super::chores::NOTE_AT_MOST),
+        _ if JOURNAL.contains(&tool) => Some(super::chores::NOTE_AT_MOST),
         "tick" => Some(tisty_core::task_state::STATE_AT_MOST),
         _ => None,
     }

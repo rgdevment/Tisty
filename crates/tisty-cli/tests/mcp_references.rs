@@ -193,6 +193,39 @@ fn a_hidden_task_carrying_the_same_title_changes_nothing_in_the_answer() {
 }
 
 #[test]
+fn what_is_hidden_from_the_agent_is_never_linked_nor_named() {
+    let served = Served::new();
+    let secret = served.person().captures("Surprise party for Rina");
+    served.person().hides(secret);
+    let (book, _) = served
+        .person()
+        .writes_in_the_diary(jiff::civil::date(2026, 11, 17), "Mine alone.");
+    let diary = served
+        .person()
+        .state()
+        .docs
+        .values()
+        .find(|one| one.file == book)
+        .and_then(|one| one.title.clone())
+        .unwrap();
+    let mut talk = served.connect();
+    let task = proposes_work(&mut talk);
+    let body = format!("About {secret}, «Surprise party for Rina» and «{diary}», nothing more.");
+
+    let said = talk.call("note", json!({ "task": task, "body": body }));
+
+    assert_eq!(shown(&said).get("references"), None, "{said}");
+    assert!(!said.to_string().contains(&book), "{said}");
+    let read = talk.call("read", json!({ "task": task, "notes": 0 }));
+    assert!(
+        read["structuredContent"]["journal"]
+            .to_string()
+            .contains(&body.replace('"', "\\\"")),
+        "the words go in as written: {read}"
+    );
+}
+
+#[test]
 fn a_line_the_person_wrote_is_kept_as_they_wrote_it_when_the_document_is_written_again() {
     let served = Served::new();
     served

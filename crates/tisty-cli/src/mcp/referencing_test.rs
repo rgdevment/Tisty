@@ -24,7 +24,7 @@ fn known() -> Known {
 
 fn link(text: &str) -> (String, Heard) {
     let mut heard = Heard::default();
-    let said = linked(text, &known(), None, &BTreeSet::new(), &mut heard);
+    let said = linked(text, &known(), None, &BTreeSet::new(), true, &mut heard);
     (said, heard)
 }
 
@@ -57,6 +57,25 @@ fn a_task_id_alone_in_its_paragraph_becomes_its_card() {
     assert_eq!(
         said,
         format!("Next:\n\n![Call the bank](tisty:task/{ERRAND})\n\nThen rest.")
+    );
+}
+
+#[test]
+fn in_the_journal_a_lone_task_id_stays_a_link_since_a_card_there_reads_as_bare_words() {
+    let mut heard = Heard::default();
+
+    let said = linked(
+        &format!("Next:\n\n{ERRAND}\n"),
+        &known(),
+        None,
+        &BTreeSet::new(),
+        false,
+        &mut heard,
+    );
+
+    assert_eq!(
+        said,
+        format!("Next:\n\n[Call the bank](tisty:task/{ERRAND})\n")
     );
 }
 
@@ -153,7 +172,7 @@ fn headings_tables_and_lines_already_there_are_left_alone() {
     let kept_line = format!("Kept {ERRAND} line.");
     let kept: BTreeSet<&str> = [kept_line.as_str()].into();
 
-    let said = linked(&text, &known(), None, &kept, &mut heard);
+    let said = linked(&text, &known(), None, &kept, true, &mut heard);
 
     assert_eq!(said, text);
     assert!(heard.linked.is_empty());
@@ -224,6 +243,7 @@ fn what_is_being_written_never_links_to_itself() {
         &known(),
         Some(ERRAND),
         &BTreeSet::new(),
+        true,
         &mut heard,
     );
 
@@ -258,6 +278,7 @@ fn a_title_with_brackets_is_written_escaped() {
         &known,
         None,
         &BTreeSet::new(),
+        true,
         &mut heard,
     );
 
@@ -271,7 +292,7 @@ fn a_new_picture_whose_words_are_its_file_name_is_asked_about() {
     let kept: BTreeSet<&str> = ["![](old-9d02e4b7.png)"].into();
     let mut heard = Heard::default();
 
-    linked(text, &known(), None, &kept, &mut heard);
+    linked(text, &known(), None, &kept, true, &mut heard);
 
     assert_eq!(heard.unshown, ["img-2034-3f9a1c2b.png"]);
 }
