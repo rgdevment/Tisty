@@ -22,13 +22,6 @@ impl Asked {
     pub(super) fn of(args: &Value) -> Result<Option<Self>, Refused> {
         let sent = |key: &str| args.get(key).is_some_and(|one| !one.is_null());
         let list = args.get("versions").and_then(Value::as_bool) == Some(true);
-        if sent("version") && text(args, "version").is_none() {
-            return Err(Refused::Tool(
-                "`version` came empty. Send one as `read_doc` with `versions` gives it, or leave \
-                 it out to read what the document says now."
-                    .into(),
-            ));
-        }
         let asked = match (list, text(args, "version")) {
             (true, Some(_)) => {
                 return Err(Refused::Tool(
@@ -146,23 +139,34 @@ pub(super) fn went_back(paths: &Paths, doc: &str, from: &str, to: &str) {
     }
 }
 
+// A page write is settled after the call, so it is noted once its final body is known.
+pub(super) fn noted_if_gone_back(paths: &Paths, doc: &str, before: &str, said: &Value) {
+    if said.pointer("/structuredContent/went_back_to").is_some()
+        && let Ok(now) = tisty_core::docs::read(&paths.docs(), doc)
+    {
+        went_back(paths, doc, before, &now);
+    }
+}
+
 // Only the two bodies a going back moved between, the one standing and the one a step back, are its undo.
-pub(super) fn undoes_a_going_back(paths: &Paths, doc: &str, now: &str) -> bool {
-    let Some(back) = tisty_core::history::back(paths.data(), doc) else {
-        return false;
-    };
+pub(super) fn undoes_a_going_back(
+    paths: &Paths,
+    doc: &str,
+    now: &str,
+) -> Option<tisty_core::history::Before> {
+    let marked: Vec<String> = gone_back_at(paths, doc)
+        .and_then(|at| std::fs::read_to_string(at).ok())?
+        .lines()
+        .map(str::to_string)
+        .collect();
+    let back = tisty_core::history::back(paths.data(), doc)?;
     let (standing, behind) = (
         tisty_core::docs::print_of_text(now),
         tisty_core::docs::print_of_text(&back.body),
     );
-    let marked: Vec<String> = gone_back_at(paths, doc)
-        .and_then(|at| std::fs::read_to_string(at).ok())
-        .map(|said| said.lines().map(str::to_string).collect())
-        .unwrap_or_default();
-    let pair = |one: &str, other: &str| marked == [one, other] || marked == [other, one];
-    standing != behind
-        && pair(&standing, &behind)
-        && back.left.as_deref() == Some(standing.as_str())
+    let pair = marked == [standing.as_str(), behind.as_str()]
+        || marked == [behind.as_str(), standing.as_str()];
+    (standing != behind && pair && back.left.as_deref() == Some(standing.as_str())).then_some(back)
 }
 
 fn short(print: &str) -> &str {
