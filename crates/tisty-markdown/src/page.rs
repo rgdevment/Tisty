@@ -525,10 +525,10 @@ pub(crate) fn row(
             let seen = row_at.checked_sub(1).and_then(|one| read.at(one, index));
             // A typed value shows no word to mark, so the cell itself says its words changed.
             let touched = match drawing.told.touches(&cell.at) {
-                true => changed.as_str(),
-                false => "",
+                true => format!(" data-change=\"{}\"", drawing.told.change),
+                false => String::new(),
             };
-            celled(column, seen, cell, text, (drawing.told, touched), out);
+            celled(column, seen, cell, text, (drawing.told, &touched), out);
         }
     }
     out.push_str(if head { "</tr></thead>" } else { "</tr>" });

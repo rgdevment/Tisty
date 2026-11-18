@@ -1,7 +1,7 @@
 use std::borrow::Cow;
-use std::cell::{Cell, OnceCell};
+use std::cell::{Cell, LazyCell, OnceCell};
 use std::collections::HashMap;
-use std::hash::Hash;
+use std::hash::{DefaultHasher, Hash, Hasher};
 use std::ops::Range;
 
 use crate::inline::Told;
@@ -88,22 +88,35 @@ enum Step<'a> {
 
 #[derive(PartialEq, Eq, Hash)]
 enum Key<'a> {
-    Said(&'a str),
+    Said(u64, &'a str),
     Cells(Vec<&'a str>),
 }
 
+// The same line indented is code and no longer a paragraph: what a block is made of weighs with what it says.
+fn shape(block: &Block, into: &mut DefaultHasher) {
+    let inner = &block.inner[usize::from(loose(block))..];
+    std::mem::discriminant(&block.kind).hash(into);
+    inner.len().hash(into);
+    inner.iter().for_each(|one| shape(one, into));
+}
+
+// One blank line in a list moves every item's words into a paragraph of its own, and none of them changed.
+fn loose(block: &Block) -> bool {
+    let wrapped = matches!(block.inner.first(), Some(first) if first.kind == Kind::Paragraph);
+    matches!(block.kind, Kind::Item { .. }) && block.spans.is_empty() && wrapped
+}
+
 fn key<'a>(block: &Block, text: &'a str) -> Key<'a> {
+    if let Kind::Row { .. } = block.kind {
+        let cells = block.inner.iter();
+        return Key::Cells(cells.map(|cell| text[cell.at.clone()].trim()).collect());
+    }
     let said = text[block.at.clone()].trim_end();
+    let mut made = DefaultHasher::new();
+    shape(block, &mut made);
     match block.kind {
-        Kind::Item { .. } => Key::Said(unmarked(said)),
-        Kind::Row { .. } => Key::Cells(
-            block
-                .inner
-                .iter()
-                .map(|cell| text[cell.at.clone()].trim())
-                .collect(),
-        ),
-        _ => Key::Said(said),
+        Kind::Item { .. } => Key::Said(made.finish(), unmarked(said)),
+        _ => Key::Said(made.finish(), said),
     }
 }
 
@@ -140,7 +153,8 @@ struct Said<'a> {
 impl<'a> Said<'a> {
     // A bar, a bullet or a comma is in every block of its kind, so words weigh by their letters and digits alone.
     fn of(block: &'a Block, text: &'a str) -> Self {
-        let words = words(text, block.at.clone());
+        let bars = matches!(block.kind, Kind::Row { .. });
+        let words = words(text, block.at.clone(), bars);
         let said = match block.kind {
             Kind::Item { .. } => block.at.start + marker(&text[block.at.clone()]),
             _ => block.at.start,
@@ -165,17 +179,21 @@ impl<'a> Said<'a> {
     }
 }
 
-fn words(text: &str, at: Range<usize>) -> Vec<Range<usize>> {
+fn words(text: &str, at: Range<usize>, bars: bool) -> Vec<Range<usize>> {
     let mut out = Vec::new();
     let mut from = None;
     for (index, one) in text[at.clone()].char_indices() {
-        match (one.is_whitespace(), from) {
+        let bar = bars && one == '|';
+        match (one.is_whitespace() || bar, from) {
             (true, Some(start)) => {
                 out.push(at.start + start..at.start + index);
                 from = None;
             }
             (false, None) => from = Some(index),
             _ => {}
+        }
+        if bar {
+            out.push(at.start + index..at.start + index + 1);
         }
     }
     out.extend(from.map(|start| at.start + start..at.end));
@@ -273,7 +291,9 @@ fn within<'a>(gone: &'a Block, came: &'a Block, bodies: Bodies<'a>) -> Option<Ve
             columns_alike(old, new) && key(heads.0, bodies.was) == key(heads.1, bodies.now)
         }
         (Kind::Item { done: old }, Kind::Item { done: new }) => {
-            old == new && own(gone, bodies.was) == own(came, bodies.now)
+            let alike =
+                loose(gone) == loose(came) && own(gone, bodies.was).eq(own(came, bodies.now));
+            old == new && alike
         }
         (Kind::Callout(old), Kind::Callout(new)) => {
             old == new && first_line(gone, bodies.was) == first_line(came, bodies.now)
@@ -296,21 +316,13 @@ fn within<'a>(gone: &'a Block, came: &'a Block, bodies: Bodies<'a>) -> Option<Ve
 }
 
 fn columns_alike(old: &[Column], new: &[Column]) -> bool {
-    let said = |one: &Column| {
-        (
-            one.lean,
-            one.wide,
-            one.holds.clone(),
-            one.total,
-            one.typed.is_some(),
-        )
-    };
-    old.len() == new.len() && old.iter().zip(new).all(|(a, b)| said(a) == said(b))
+    let said = |one: &'_ Column| (one.lean, one.wide, one.total, one.typed.is_some());
+    let alike = |a: &Column, b: &Column| said(a) == said(b) && a.holds == b.holds;
+    old.len() == new.len() && old.iter().zip(new).all(|(a, b)| alike(a, b))
 }
 
-fn own<'a>(item: &Block, text: &'a str) -> &'a str {
-    let ends = item.inner.first().map_or(item.at.end, |one| one.at.start);
-    unmarked(text[item.at.start..ends.max(item.at.start)].trim_end())
+fn own<'a>(item: &'a Block, text: &'a str) -> impl Iterator<Item = &'a str> {
+    item.spans.iter().map(move |one| &text[one.at.clone()])
 }
 
 fn first_line<'a>(block: &Block, text: &'a str) -> Option<&'a str> {
@@ -324,9 +336,9 @@ struct Side<'a> {
 }
 
 impl<'a> Side<'a> {
-    fn telling(&self, tag: &'static str, at: &'a [Range<usize>]) -> Drawing<'a> {
+    fn telling(&self, change: &'static str, at: &'a [Range<usize>]) -> Drawing<'a> {
         Drawing {
-            told: Told { tag, at },
+            told: Told { change, at },
             ..self.drawing
         }
     }
@@ -338,7 +350,7 @@ struct Sides<'a> {
 }
 
 // An item that went and the one in its place would both count, so in a numbered list each says its own number.
-fn placed(block: &Block, change: Option<&str>, number: Option<u64>) -> String {
+fn standing(block: &Block, change: Option<&str>, number: Option<u64>) -> String {
     let at = page::placed_at(block, change);
     match number {
         Some(number) => format!("{at} value=\"{number}\""),
@@ -358,24 +370,24 @@ fn drawn(steps: &[Step], sides: &Sides, first: Option<u64>, out: &mut Compared) 
     for step in steps {
         match step {
             Step::Same(block) => {
-                let at = placed(block, None, next(&mut today));
+                let at = standing(block, None, next(&mut today));
                 next(&mut then);
                 page::draw_as(block, now.text, &now.drawing, &at, &mut out.html);
             }
             Step::Gone(block, marks) => {
                 out.gone += 1;
-                let at = placed(block, Some("gone"), next(&mut then));
-                let drawing = was.telling("del", marks);
+                let at = standing(block, Some("gone"), next(&mut then));
+                let drawing = was.telling("gone", marks);
                 page::draw_as(block, was.text, &drawing, &at, &mut out.html);
             }
             Step::Came(block, marks) => {
                 out.came += 1;
-                let at = placed(block, Some("came"), next(&mut today));
-                let drawing = now.telling("ins", marks);
+                let at = standing(block, Some("came"), next(&mut today));
+                let drawing = now.telling("came", marks);
                 page::draw_as(block, now.text, &drawing, &at, &mut out.html);
             }
             Step::Within(gone, came, inner) => {
-                let at = placed(came, None, next(&mut today));
+                let at = standing(came, None, next(&mut today));
                 next(&mut then);
                 within_drawn((gone, came), inner, sides, &at, out);
             }
@@ -392,7 +404,7 @@ fn within_drawn(
 ) {
     let now = &sides.now;
     match &came.kind {
-        Kind::Table { .. } => rows_drawn((gone, came), inner, sides, out),
+        Kind::Table { .. } => rows_drawn((gone, came), inner, sides, at, out),
         Kind::Item { done } => {
             page::item_open(*done, at, came, now.text, &now.drawing, &mut out.html);
             drawn(inner, sides, None, out);
@@ -414,13 +426,19 @@ fn within_drawn(
 }
 
 // Each row is read by the table it was written in, so a value that went shows as it showed then.
-fn rows_drawn((gone, came): (&Block, &Block), rows: &[Step], sides: &Sides, out: &mut Compared) {
+fn rows_drawn(
+    (gone, came): (&Block, &Block),
+    rows: &[Step],
+    sides: &Sides,
+    at: &str,
+    out: &mut Compared,
+) {
     let (Kind::Table { columns: old }, Kind::Table { columns: new }) = (&gone.kind, &came.kind)
     else {
         return;
     };
     let (was, now) = (&sides.was, &sides.now);
-    let then = (old.as_slice(), &values::read(old, gone, was.text));
+    let read_then = LazyCell::new(|| values::read(old, gone, was.text));
     let today = (new.as_slice(), &values::read(new, came, now.text));
     let place = |table: &Block, row: &Block| {
         table
@@ -428,7 +446,7 @@ fn rows_drawn((gone, came): (&Block, &Block), rows: &[Step], sides: &Sides, out:
             .partition_point(|one| one.at.start < row.at.start)
     };
     let mut body = false;
-    page::table_open(new, &page::placed_at(came, None), &mut out.html);
+    page::table_open(new, at, &mut out.html);
     page::row(
         today,
         (came, 0),
@@ -454,9 +472,9 @@ fn rows_drawn((gone, came): (&Block, &Block), rows: &[Step], sides: &Sides, out:
             }
             Step::Gone(row, marks) => {
                 out.gone += 1;
-                let (at, drawing) = ((gone, place(gone, row)), was.telling("del", marks));
+                let (at, drawing) = ((gone, place(gone, row)), was.telling("gone", marks));
                 page::row(
-                    then,
+                    (old.as_slice(), &*read_then),
                     at,
                     was.text,
                     &drawing,
@@ -467,7 +485,7 @@ fn rows_drawn((gone, came): (&Block, &Block), rows: &[Step], sides: &Sides, out:
             }
             Step::Came(row, marks) => {
                 out.came += 1;
-                let (at, drawing) = ((came, place(came, row)), now.telling("ins", marks));
+                let (at, drawing) = ((came, place(came, row)), now.telling("came", marks));
                 page::row(
                     today,
                     at,

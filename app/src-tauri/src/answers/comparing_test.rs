@@ -103,3 +103,13 @@ fn a_document_that_is_gone_is_refused_as_no_such_document() {
 
     assert_eq!(refused.code, "noSuchDoc");
 }
+
+#[test]
+fn a_name_that_is_no_document_s_is_refused_as_no_such_document() {
+    let room = tempfile::tempdir().unwrap();
+    written(room.path(), &[UNO, DOS]);
+
+    let refused = told(room.path(), "../docs/mac0-0001", &print(UNO), None).unwrap_err();
+
+    assert_eq!(refused.code, "noSuchDoc");
+}

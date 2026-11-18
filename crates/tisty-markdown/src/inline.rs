@@ -5,14 +5,21 @@ use std::ops::Range;
 use crate::ranges::{Nearby, outside};
 use crate::{Mark, Span};
 
-/// The words a comparison tells apart: where they are written, and the tag that says gone or come.
+/// The words a comparison tells apart: where they are written, and whether they are gone or came.
 #[derive(Debug, Clone, Copy, Default)]
 pub(crate) struct Told<'a> {
-    pub tag: &'static str,
+    pub change: &'static str,
     pub at: &'a [Range<usize>],
 }
 
 impl Told<'_> {
+    fn tag(&self) -> &'static str {
+        match self.change {
+            "gone" => "del",
+            _ => "ins",
+        }
+    }
+
     pub(crate) fn touches(&self, piece: &Range<usize>) -> bool {
         let from = self.at.partition_point(|one| one.end <= piece.start);
         self.at.get(from).is_some_and(|one| one.start < piece.end)
@@ -40,11 +47,11 @@ impl Told<'_> {
 
     pub(crate) fn marked(&self, tells: bool, out: &mut String, drawn: impl FnOnce(&mut String)) {
         if tells {
-            let _ = write!(out, "<{}>", self.tag);
+            let _ = write!(out, "<{}>", self.tag());
         }
         drawn(out);
         if tells {
-            let _ = write!(out, "</{}>", self.tag);
+            let _ = write!(out, "</{}>", self.tag());
         }
     }
 }
@@ -88,8 +95,11 @@ pub(crate) fn sourced(spans: &[Span], text: &str, placed: bool, told: Told, out:
         }
         match item {
             Item::Words(piece) if placed => placed_words(piece, text, out),
+            Item::Words(piece) if entity(&text[piece.clone()]) => {
+                told.marked(told.touches(&piece), out, |out| out.push_str(&text[piece]));
+            }
             Item::Words(piece) => told.parted(piece, |part, tells| {
-                told.marked(tells, out, |out| words(&text[part], out));
+                told.marked(tells, out, |out| out.push_str(&escaped(&text[part])));
             }),
             Item::Atom(one) if placed => {
                 let mut drawn = String::new();

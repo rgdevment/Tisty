@@ -133,3 +133,10 @@ fn a_document_that_is_gone_is_an_error_and_not_a_comparison() {
 
     assert!(compared(room.path(), DOC, &print(UNO), None).is_err());
 }
+
+#[test]
+fn a_name_that_is_no_document_s_is_an_error_before_any_version_is_read() {
+    let (room, _) = desk(&[UNO, DOS, TRES]);
+
+    assert!(compared(room.path(), "../docs/mac0-0001", &print(UNO), None).is_err());
+}

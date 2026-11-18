@@ -11,12 +11,14 @@ pub enum Compared {
 }
 
 pub fn compared(data: &Path, id: &str, was: &str, now_or_today: Option<&str>) -> Result<Compared> {
+    let docs = data.join("docs");
+    crate::docs::resolve(&docs, id)?;
     let Some(before) = super::read(data, id, was) else {
         return Ok(Compared::NotKept);
     };
     let after = match now_or_today {
         Some(print) => super::read(data, id, print),
-        None => Some(crate::docs::read(&data.join("docs"), id)?),
+        None => Some(crate::docs::read(&docs, id)?),
     };
     Ok(match after {
         Some(after) => {

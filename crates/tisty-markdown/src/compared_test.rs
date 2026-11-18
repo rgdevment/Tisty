@@ -240,6 +240,22 @@ fn a_numbered_item_that_changed_keeps_its_number_before_and_after() {
 }
 
 #[test]
+fn a_numbered_list_inside_another_counts_from_its_own_first() {
+    let said = page(
+        "> 1. uno\n>    1. dentro primero\n>    2. dentro segundo\n> 2. dos\n",
+        "> 1. uno\n>    1. dentro primero\n>    2. dentro cambiado\n> 2. dos\n",
+    );
+
+    assert_eq!(
+        said.html,
+        "<blockquote><ol><li value=\"1\">uno<ol><li value=\"1\">dentro primero</li>\
+         <li data-change=\"gone\" value=\"2\">dentro <del>segundo</del></li>\
+         <li data-change=\"came\" value=\"2\">dentro <ins>cambiado</ins></li></ol></li>\
+         <li value=\"2\">dos</li></ol></blockquote>"
+    );
+}
+
+#[test]
 fn two_numbered_items_are_not_alike_for_sharing_a_number() {
     let said = page("1. uno\n2. dos\n3. tres\n", "1. uno\n2. two\n3. tres\n");
 
@@ -641,4 +657,166 @@ fn a_page_out_of_cells_tells_the_rest_of_its_blocks_whole() {
 fn only_the_blocks_of_the_whole_page_decide_that_it_is_too_long() {
     assert!(spending(THREE_BEFORE, THREE_AFTER, 16).is_some());
     assert_eq!(spending(THREE_BEFORE, THREE_AFTER, 15), None);
+}
+
+#[test]
+fn the_same_line_turned_into_code_is_told_as_a_change() {
+    let said = page("Antes.\n\n    let x = 1;\n", "Antes.\n\nlet x = 1;\n");
+
+    assert_eq!((said.gone, said.came), (1, 1));
+    assert!(
+        said.html
+            .contains("<figure class=\"code\" data-change=\"gone\">"),
+        "{}",
+        said.html
+    );
+    assert!(
+        said.html
+            .ends_with("<p data-change=\"came\">let x = 1;</p>"),
+        "{}",
+        said.html
+    );
+}
+
+#[test]
+fn an_item_whose_words_after_what_it_holds_changed_is_told() {
+    let said = page(
+        "- paso\n  ```\n  x\n  ```\n  luego b\n- otro\n",
+        "- paso\n  ```\n  x\n  ```\n  luego c\n- otro\n",
+    );
+
+    assert_eq!((said.gone, said.came), (1, 1));
+    assert!(said.html.contains("<del>b</del>"), "{}", said.html);
+    assert!(said.html.contains("<ins>c</ins>"), "{}", said.html);
+}
+
+#[test]
+fn a_blank_line_in_a_list_marks_no_item_whose_words_stayed() {
+    let now = "- uno\n\n- dos\n- tres\n";
+
+    let said = compared("- uno\n- dos\n- tres\n", now).unwrap();
+
+    assert_eq!(said.html, drawn(now));
+    assert_eq!((said.gone, said.came), (0, 0));
+}
+
+#[test]
+fn a_blank_line_and_a_word_in_a_list_tell_only_the_item_with_the_word() {
+    let said = page(
+        "- uno queda\n- dos de antes\n- tres queda\n",
+        "- uno queda\n\n- dos de ahora\n- tres queda\n",
+    );
+
+    assert_eq!(
+        said.html,
+        "<ul><li><p>uno queda</p></li><li data-change=\"gone\">dos de <del>antes</del></li>\
+         <li data-change=\"came\"><p>dos de <ins>ahora</ins></p></li><li><p>tres queda</p></li></ul>"
+    );
+}
+
+#[test]
+fn each_cell_of_a_row_is_marked_only_for_its_own_words() {
+    let said = page(
+        "| A | B | C | D |\n|---|---|---|---|\n| fila uno | 1 | 0 | 1 |\n",
+        "| A | B | C | D |\n|---|---|---|---|\n| fila uno | 0 | 0 | 0 |\n",
+    );
+
+    assert!(
+        said.html.contains(
+            "<tr data-change=\"came\"><td>fila uno</td><td data-change=\"came\"><ins>0</ins></td>\
+             <td>0</td><td data-change=\"came\"><ins>0</ins></td></tr>"
+        ),
+        "{}",
+        said.html
+    );
+    assert!(
+        said.html.contains(
+            "<tr data-change=\"gone\"><td>fila uno</td><td data-change=\"gone\"><del>1</del></td>\
+             <td>0</td><td data-change=\"gone\"><del>1</del></td></tr>"
+        ),
+        "{}",
+        said.html
+    );
+}
+
+#[test]
+fn an_empty_cell_between_two_that_changed_is_not_marked() {
+    let said = page(
+        "| A | B | C | D |\n|---|---|---|---|\n| clave larga aquí | uno |  | tres |\n",
+        "| A | B | C | D |\n|---|---|---|---|\n| clave larga aquí | one |  | three |\n",
+    );
+
+    assert!(
+        said.html.contains(
+            "<td data-change=\"came\"><ins>one</ins></td><td></td><td data-change=\"came\"><ins>three</ins></td>"
+        ),
+        "{}",
+        said.html
+    );
+}
+
+#[test]
+fn a_typed_cell_says_it_changed_also_when_its_table_is_told_whole() {
+    let said = page(
+        "| A | B {money USD} |\n|---|---|\n| x | 10 |\n",
+        "| A | C {money USD} |\n|---|---|\n| x | 12 |\n",
+    );
+
+    assert!(
+        said.html
+            .contains("<td data-key=\"10\" data-change=\"gone\""),
+        "{}",
+        said.html
+    );
+    assert!(
+        said.html
+            .contains("<td data-key=\"12\" data-change=\"came\""),
+        "{}",
+        said.html
+    );
+}
+
+#[test]
+fn a_row_written_without_spaces_marks_only_the_cell_that_changed() {
+    let said = page(
+        "|A|B|\n|---|---|\n|uno|dos|\n",
+        "|A|B|\n|---|---|\n|uno|tres|\n",
+    );
+
+    assert_eq!(
+        said.html,
+        "<div class=\"table\"><table><colgroup><col><col></colgroup>\
+         <thead><tr><th scope=\"col\">A</th><th scope=\"col\">B</th></tr></thead><tbody>\
+         <tr data-change=\"gone\"><td>uno</td><td data-change=\"gone\"><del>dos</del></td></tr>\
+         <tr data-change=\"came\"><td>uno</td><td data-change=\"came\"><ins>tres</ins></td></tr>\
+         </tbody></table></div>"
+    );
+}
+
+#[test]
+fn words_that_only_look_like_an_entity_stay_the_letters_they_are() {
+    let said = page(
+        "Usa \\&amp; aquí siempre bien.\n",
+        "Usa \\&lt; aquí siempre bien.\n",
+    );
+
+    assert_eq!(
+        said.html,
+        "<p data-change=\"gone\">Usa <del>&amp;amp;</del> aquí siempre bien.</p>\
+         <p data-change=\"came\">Usa <ins>&amp;lt;</ins> aquí siempre bien.</p>"
+    );
+}
+
+#[test]
+fn an_entity_that_changed_is_marked_whole() {
+    let said = page(
+        "Vale 5 &euro; hoy y nada más.\n",
+        "Vale 5 &pound; hoy y nada más.\n",
+    );
+
+    assert_eq!(
+        said.html,
+        "<p data-change=\"gone\">Vale 5 <del>&euro;</del> hoy y nada más.</p>\
+         <p data-change=\"came\">Vale 5 <ins>&pound;</ins> hoy y nada más.</p>"
+    );
 }
