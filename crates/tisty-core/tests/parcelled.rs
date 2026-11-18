@@ -1981,6 +1981,96 @@ soy el largo",
 }
 
 #[test]
+fn everything_exported_lands_elsewhere_with_each_document_tied_to_those_it_names() {
+    let room = tmp();
+    let mut here = Room::new(room.path(), "mine");
+    let (_, trip) = here.doc("# Viaje\n\n## Hoteles\n\nCerca del mar.\n", None, None);
+    let (book, _) = here.doc("# Libro\n", None, None);
+    let (_, chapter) = here.doc("# Capítulo\n", None, Some(book));
+    let vet = Ulid::generate();
+    here.doc(
+        &format!(
+            "# Plan\n\n![Viaje](tisty:doc/{trip})\n\nVer [los hoteles](tisty:doc/{trip}#hoteles), \
+             [el capítulo](tisty:doc/{chapter}) y ![Vet](tisty:task/{vet}).\n"
+        ),
+        None,
+        None,
+    );
+    let box_at = room.path().join("todo.tistyx");
+    parcel::write(&here.paths, &here.state, &[], &box_at, &Along::default()).unwrap();
+
+    let mut there = Room::new(room.path(), "theirs");
+    there.take_in(&box_at);
+    let mut brain = tisty_core::brain::Brain::open(there.paths.cache()).unwrap();
+    brain
+        .refresh(
+            &there.state,
+            &tisty_core::brain::Docs::on_disk(&there.paths.docs()),
+            "seen",
+        )
+        .unwrap();
+    drop(brain);
+
+    let (plan, trip, book, chapter) = (
+        there.titled("Plan").file.clone(),
+        there.titled("Viaje").file.clone(),
+        there.titled("Libro").file.clone(),
+        there.titled("Capítulo").file.clone(),
+    );
+    let db = rusqlite::Connection::open(there.paths.cache().join("brain.db")).unwrap();
+    let mut asked = db
+        .prepare("SELECT source, target, kind FROM edge ORDER BY source, target, kind")
+        .unwrap();
+    let edges: Vec<(String, String, String)> = asked
+        .query_map([], |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)))
+        .unwrap()
+        .map(Result::unwrap)
+        .collect();
+    let tie = |source: &str, target: &str, kind: &str| {
+        (source.to_string(), target.to_string(), kind.to_string())
+    };
+    let mut wanted = vec![
+        tie(&plan, &trip, "cite"),
+        tie(&plan, &trip, "mention"),
+        tie(&plan, &chapter, "mention"),
+        tie(&plan, &vet.to_string(), "cite"),
+        tie(&chapter, &book, "structure"),
+    ];
+    wanted.sort();
+    assert_eq!(edges, wanted, "every link reaches the new names");
+    let dangling: Vec<String> = db
+        .prepare(
+            "SELECT target FROM edge WHERE NOT EXISTS \
+             (SELECT 1 FROM node WHERE node.id = edge.target OR node.uid = edge.target)",
+        )
+        .unwrap()
+        .query_map([], |row| row.get(0))
+        .unwrap()
+        .map(Result::unwrap)
+        .collect();
+    assert_eq!(
+        dangling,
+        [vet.to_string()],
+        "only the task waits, since tasks never travel in a parcel"
+    );
+
+    let citing = tisty_core::brain::cited_by(
+        &there.paths,
+        &trip,
+        &mut tisty_core::brain::Headed::default(),
+    )
+    .expect("the base answers");
+    assert_eq!(
+        citing
+            .iter()
+            .map(|one| one.title.as_str())
+            .collect::<Vec<_>>(),
+        ["Plan"],
+        "«Linked from» names the document that cites it under its new name"
+    );
+}
+
+#[test]
 fn a_landing_in_flight_survives_a_sweep_from_the_same_process() {
     let room = tmp();
     let data = room.path().join("data");
