@@ -6,6 +6,8 @@ import { agentsPrint, agentsRoot, inAgents } from "../agentsSync";
 import type { Filed, Folded } from "../core";
 import { adopt } from "../locales";
 import AgentsFirst from "../ui/AgentsFirst";
+import { AGENTS_CHANGED } from "../ui/AgentsKeeper";
+import AgentsSettings from "../ui/AgentsSettings";
 
 const ipc = vi.hoisted(() => ({
   calls: [] as { cmd: string; args: Record<string, unknown> }[],
@@ -280,5 +282,23 @@ describe("finding AGENTS among the folders", () => {
     const before = agentsPrint([doc("x", "claude", "1"), doc("y", "work", "1")], folders);
     expect(agentsPrint([doc("x", "claude", "1"), doc("y", "work", "2")], folders)).toBe(before);
     expect(agentsPrint([doc("x", "claude", "2"), doc("y", "work", "1")], folders)).not.toBe(before);
+  });
+});
+
+describe("the switches in Settings", () => {
+  it("tells the sidebar and an open card when sync is paused", async () => {
+    ipc.answer = (cmd) => {
+      if (cmd === "agents_look")
+        return Promise.resolve({ ...look, folder: "f", docs: 2, consented: true, asks: false });
+      return Promise.resolve({ told: [], both: [] });
+    };
+    const heard = vi.fn();
+    window.addEventListener(AGENTS_CHANGED, heard);
+    render(<AgentsSettings busy={null} />);
+    await userEvent.click(await screen.findByRole("switch", { name: "Sincronizar Claude" }));
+    await waitFor(() => expect(sent("agents_turn")).toHaveLength(1));
+    expect(sent("agents_turn")[0].args).toEqual({ assistant: "claude", on: false });
+    await waitFor(() => expect(heard).toHaveBeenCalled());
+    window.removeEventListener(AGENTS_CHANGED, heard);
   });
 });

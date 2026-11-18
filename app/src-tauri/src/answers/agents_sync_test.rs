@@ -362,7 +362,11 @@ fn a_file_made_only_of_a_global_rule_never_rewrites_that_rule_from_one_assistant
         .unwrap_or_else(|| panic!("{:?}", brought.round));
     assert!(both.composed, "a Global rule belongs to every assistant");
     let at = room.at(".codex/AGENTS.md");
-    assert!(kept_side(&mut room.session, &room.homes, HERE, &at, false).is_err());
+    let refusal = kept_side(&mut room.session, &room.homes, HERE, &at, false).unwrap_err();
+    assert_eq!(
+        refusal.code, "agentUnattributed",
+        "said in the person's language, not as raw text"
+    );
     let global = bodies(&room.session)
         .into_iter()
         .find(|(_, body)| body.contains("global/rule"))

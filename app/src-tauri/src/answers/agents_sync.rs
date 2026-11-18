@@ -360,6 +360,25 @@ pub struct Turned {
     pub reason: String,
 }
 
+pub(crate) fn refused(why: agents::Refused) -> Refusal {
+    use agents::Refused as R;
+    match why {
+        R::NoConsent => Refusal::of("agentNoConsent"),
+        R::Off => Refusal::of("agentOff"),
+        R::AgentsOwn => Refusal::of("agentOwn"),
+        R::Empty => Refusal::of("agentEmpty"),
+        R::Linked => Refusal::of("agentLinked"),
+        R::Changed => Refusal::of("agentChanged"),
+        R::Unattributed => Refusal::of("agentUnattributed"),
+        R::NoSuchBackup => Refusal::of("agentNoBackup"),
+        R::TooBig => Refusal::of("agentTooBig"),
+        R::NotText => Refusal::of("agentNotText"),
+        R::BrokenFence => Refusal::of("agentBrokenFence"),
+        R::Secret(told) => Refusal::about("agentSecret", told),
+        other => Refusal::about("internalNamed", other.to_string()),
+    }
+}
+
 // The window's `agentsSkip_*` words are keyed by this.
 fn skip_word(skip: agents::Skip) -> String {
     format!("{skip:?}").to_lowercase()
@@ -530,9 +549,7 @@ fn undone(docs: &Path, made: &[String], why: tisty_core::Error) -> Refusal {
 pub fn consented_here(session: &Session, here: &str) -> Answer<(Ledger, BTreeSet<String>)> {
     let mut ledger = Ledger::open(session.paths.data(), here);
     ledger.consent(true);
-    ledger
-        .keep(session.paths.data())
-        .map_err(|why| Refusal::about("cannotWrite", why.to_string()))?;
+    ledger.keep(session.paths.data()).map_err(refused)?;
     Ok((ledger, addresses(&bodies(session))))
 }
 
@@ -568,17 +585,13 @@ pub fn kept_side(
 ) -> Answer<Rounded> {
     let mut ledger = Ledger::open(session.paths.data(), here);
     let placed = placed_at(session, homes, at)?;
-    let refused = |why: agents::Refused| Refusal::about("cannotWrite", why.to_string());
     match tisty {
         true => {
             agents::overwrite(session.paths.data(), &mut ledger, &placed.target).map_err(refused)?
         }
         false => {
             let (true, [file]) = (own_alone(&placed.target), placed.files.as_slice()) else {
-                return Err(Refusal::about(
-                    "cannotWrite",
-                    agents::Refused::Unattributed.to_string(),
-                ));
+                return Err(refused(agents::Refused::Unattributed));
             };
             let body = agents::bring(&ledger, &placed.target, 0).map_err(refused)?;
             rewritten(session, file, &body)?;
@@ -618,9 +631,7 @@ pub fn turned(
         Some(id) => ledger.turn(id, on),
         None => ledger.turn_all(on),
     }
-    ledger
-        .keep(session.paths.data())
-        .map_err(|why| Refusal::about("cannotWrite", why.to_string()))?;
+    ledger.keep(session.paths.data()).map_err(refused)?;
     Ok(match on {
         true => round_now(session, homes, &mut ledger),
         false => Rounded::default(),

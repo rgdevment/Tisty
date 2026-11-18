@@ -28,7 +28,10 @@ export default function AgentsSettings({ busy }: Readonly<{ busy: Which | null }
   const turn = (assistant: string | null, on: boolean) => {
     setTrouble(undefined);
     agentsTurn(assistant, on)
-      .then(looked)
+      .then(() => {
+        looked();
+        window.dispatchEvent(new Event(AGENTS_CHANGED));
+      })
       .catch((e) => setTrouble({ card: "wiring", text: saidPlainly(e) }));
   };
 

@@ -1,4 +1,18 @@
 export const agentsEn = {
+  agentNoConsent: "This computer has not allowed Tisty to read or write agent files",
+  agentOff: "Sync is paused for this assistant",
+  agentOwn: "The agent writes this file itself, so Tisty only reads it",
+  agentEmpty: "There is nothing to write, and Tisty never empties an agent's file",
+  agentLinked: "The file is a link, and writing would replace the link",
+  agentChanged: "The file changed while Tisty was writing, so it was left alone",
+  agentUnattributed:
+    "The change touches more than one document, so it cannot be brought into this one",
+  agentNoBackup: "That backup is gone",
+  agentTooBig: "The file is larger than a document may hold",
+  agentSecret: "The file reads like it holds a credential ({name}), so Tisty did not bring it in",
+  agentNotText: "The file is not plain text, so it cannot be brought into a document",
+  agentBrokenFence:
+    "The code block that holds the file is no longer whole. Mend it in the document first",
   agentsFirstTitle: "Your agents, in one place",
   agentsFirstLead:
     "Tisty looks for the rules, skills and memory of the agents you have and brings them here as documents. From then on, what you change in AGENTS reaches your agents by itself.",
@@ -67,6 +81,19 @@ export const agentsEn = {
 };
 
 export const agentsEs: typeof agentsEn = {
+  agentNoConsent: "Este equipo no le dio permiso a Tisty para leer o escribir archivos de agentes",
+  agentOff: "La sincronización de este asistente está en pausa",
+  agentOwn: "Este archivo lo escribe el agente, así que Tisty solo lo lee",
+  agentEmpty: "No hay nada que escribir, y Tisty nunca vacía el archivo de un agente",
+  agentLinked: "El archivo es un enlace, y escribirlo reemplazaría el enlace",
+  agentChanged: "El archivo cambió mientras Tisty lo escribía, así que no lo tocó",
+  agentUnattributed: "El cambio toca más de un documento, así que no se puede traer a este",
+  agentNoBackup: "Ese respaldo ya no existe",
+  agentTooBig: "El archivo es más grande de lo que cabe en un documento",
+  agentSecret: "El archivo parece guardar una credencial ({name}), así que Tisty no lo trajo",
+  agentNotText: "El archivo no es texto, así que no se puede traer a un documento",
+  agentBrokenFence:
+    "El bloque de código que guarda el archivo ya no está entero. Arréglalo primero en el documento",
   agentsFirstTitle: "Tus agentes, en un solo lugar",
   agentsFirstLead:
     "Tisty busca las reglas, skills y memoria de los agentes que tienes y las trae aquí como documentos. Desde ese momento, lo que cambies en AGENTS llega solo a tus agentes.",
