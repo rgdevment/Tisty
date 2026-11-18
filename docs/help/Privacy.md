@@ -12,6 +12,7 @@ Everything lives in one folder on your disk:
 
 - **Tasks and events** — plain-text JSONL, an append-only log. Readable with `cat`, searchable with `grep`, parseable with `jq`.
 - **Documents** — plain Markdown files.
+- **Earlier versions of your documents** — Markdown like the documents, in the `history` folder. Each is kept 30 days from when it was replaced, and the latest of each document never runs out. They stay on this computer: never synced or put in a parcel, but carried by your backups. [How they work](Documents#earlier-versions).
 - **Your diary** — Markdown like any document, a book a year. No agent sees it until you open it from the Diary itself, on Tisty 1.48 or later; it is never shared by link, and it travels with your sync and your backups like the rest, and inside a `.tistyx` parcel when you export everything.
 - **Attachments** — the files themselves, unmodified.
 - **Local settings** — including this machine's identifier and signing key. The private half of the key never leaves the machine.
@@ -26,6 +27,8 @@ Nothing is obfuscated, and nothing is in a format only Tisty can read.
 
 > [!WARNING]
 > **An append-only log does not forget.** If a password ends up in a task, deleting the task removes it from what you see, not from the history underneath — and if it already reached the shared folder, it is on every machine that pulled it, plus your provider's version history. Keep secrets out, or in `private/`.
+>
+> A document does not forget at once either: a text you delete on purpose stays in its [earlier versions](Documents#earlier-versions), on this computer. It leaves them once the version that holds it is past its 30 days and no longer the latest, or when you delete the document. Backups you made in the meantime keep it.
 
 ## Who can reach your data
 

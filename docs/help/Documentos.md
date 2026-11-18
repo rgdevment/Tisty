@@ -194,6 +194,19 @@ Un enlace `tisty://open` solo llega a un archivo de texto legible de este equipo
 - **Editar** te lleva al documento en la ventana principal. Si lo cambias ahí, la ventana aparte lo vuelve a leer cuando regresas a ella.
 - Su PDF, sus hojas y sus exportaciones se hacen desde la ventana principal.
 
+## Versiones anteriores
+
+Cada documento guarda en este equipo lo que decía antes de cambiar, como un historial de versiones. Vale también para las páginas de tus tareas y para tu [Diario](#diario).
+
+- **Qué guarda una versión:** el texto entero del documento tal como estaba, en un archivo Markdown dentro de la carpeta `history` de tus datos. Los adjuntos no entran: se quedan donde siempre.
+- **Cuándo se guarda una:** no en cada guardado. Cuando alguien escribe en el documento después de **30 minutos sin cambios**, o cuando **cambia quien escribe** (tú después de un asistente, un asistente después de ti o dos asistentes distintos), lo que había queda como versión. Lo que llega de tus otros equipos sigue la misma regla.
+- **Cuánto dura:** **30 días**, contados desde que la versión fue reemplazada y no desde que la escribiste, así que siempre queda cómo estaba el documento hace 30 días. Al abrir Tisty, como mucho una vez al día, se van las que pasaron el plazo.
+- **La más reciente se queda siempre.** La última versión anterior de cada documento no vence, aunque el documento lleve meses sin cambiar.
+- **Es de este equipo.** Las versiones no se sincronizan: cada equipo guarda lo que se reemplazó en él y poda lo suyo. Un equipo nuevo empieza sin versiones anteriores, aunque reciba todos tus documentos. Lo que sí las lleva es un [respaldo](Sincronizar-y-respaldar#respaldos).
+- **Se van con el documento.** Al borrar un documento, sus versiones se borran con él, en cada equipo.
+
+Hoy vuelves atrás de dos formas: cuando algo escribe en el documento que tienes abierto, la barra te ofrece **Volver a lo que decía antes**, y un asistente puede deshacer la última escritura en un documento con `restore_doc`. Las dos leen de aquí. La copia que cada documento guardaba de su texto anterior pasó sola a ser su primera versión.
+
 ## Sacar documentos
 
 Un documento sale entero; cada conversión está en [Convertir a y desde Markdown](Convertir-a-y-desde-Markdown):

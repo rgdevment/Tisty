@@ -66,7 +66,7 @@ Una tarea que cerraste le llega al asistente con un aviso que lo dice. Se lee ta
 
 - **Para corregir un pasaje** tiene que nombrarlo exactamente como está escrito. Si ese texto no está, o está dos veces, no se escribe nada.
 - **Para reescribir un documento entero** tiene que devolver la *huella* de la versión que leyó. Si escribiste en el documento entretanto, la huella ya no cuadra: no se escribe nada y se le pide que vuelva a leer. Lo que escribiste mientras pensaba no se puede perder.
-- La ventana te avisa cuando algo escribió en el documento que tienes abierto. Si lo que reemplazó sigue guardado, la misma barra te ofrece **Volver a lo que decía antes**, y lo que dice ahora también queda guardado, así que la elección no es definitiva.
+- La ventana te avisa cuando algo escribió en el documento que tienes abierto. Si lo que reemplazó sigue entre sus [versiones anteriores](Documentos#versiones-anteriores), la misma barra te ofrece **Volver a lo que decía antes**, y lo que dice ahora también queda guardado, así que la elección no es definitiva.
 - Un documento que archivaste lo puede leer igual, y se le avisa que lo archivaste; no puede escribir en él hasta que lo desarchives o se lo pidas.
 
 ## Tu Diario sigue siendo tuyo

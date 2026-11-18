@@ -51,7 +51,7 @@ See [[What an assistant may do|MCP-Permissions]] for the rules behind them.
 | `append_doc` | Add to a document, at the end or under a heading; on a task's page, add under the assistant's notes, or with `replace` fold every assistant's notes into one dated digest of at most 6,000 characters that keeps any line you wrote and `restore_doc` can undo. On **Brainstorm**, each paragraph or list item becomes an idea of its own, dated and coloured, of at most 140 characters; the idea itself, its `> [!IDEA]` line and its words as the sheet has them, added to another document takes it off the sheet, as filing it from the window does, and an `[!IDEA]` note that names no idea there stays a sticky note of its own. In the **Diary**, once you open it to agents, it only adds to the end of today, under a line with the minute and the agent's name |
 | `edit_doc` | Change one passage of a document, or of a task's page |
 | `edit_table` | Read or change one table of a document by its rows and columns: set a cell, add, remove or sort rows, rename a column or give it a type. A value its column cannot read is kept and named in the answer |
-| `restore_doc` | Put a document back the way it was, from the copy kept beside the documents; with a task, put back the notes a digest replaced |
+| `restore_doc` | Undo the last write to a document, from its [earlier versions](Documents#earlier-versions) on this computer; undoing twice returns it. With a task, put back the notes a digest replaced |
 | `folder` | Make a folder |
 | `file_doc` | Put one or several documents in a folder |
 | `page_doc` | Make documents into pages of another or take them out (`doc`), or put the pages of one in order (`order` with `page_of`) |
