@@ -28,7 +28,7 @@ Lo que un asistente puede hacer es pequeño a propósito. Terminar, descartar y 
 
 - Cerrar una tarea, reabrirla ni borrarla.
 - Crear una lista o poner una rutina.
-- Deshacer ni rehacer lo que hiciste tú.
+- Usar tu deshacer y rehacer: lo que hiciste tú en la ventana queda fuera de su alcance.
 - Tocar la sincronización, los ajustes o tus equipos.
 - Marcar un paso tuyo o terminar una tarea tuya: solo puede decir que están listos.
 - Mover un día que pusiste **tú**.
@@ -39,7 +39,7 @@ Lo que un asistente puede hacer es pequeño a propósito. Terminar, descartar y 
 - Anotar lo mismo dos veces: una tarea anotada desde el mismo origen se rechaza y se le devuelve la que ya existe.
 - Ver tu Diario mientras dice **Solo tú**: ninguna herramienta lo encuentra, lo lista ni lo cuenta. Abierto, no cambia nada de lo que escribiste ahí, y nunca empieza un diario por su cuenta.
 
-Para cerrar, reabrir, descartar y borrar no hay herramienta: no es que esté escondida ni restringida, es que no existe; tampoco hay una que renombre una carpeta, cree una lista o una rutina, deshaga lo tuyo o toque la sincronización y los ajustes. Un paso tuyo que marca queda como su palabra, esperándote. Tu Diario, mientras está cerrado, se responde como un documento que no existe. Lo demás de esta lista lo rechaza la herramienta que lo haría, y dice por qué.
+Para cerrar, reabrir, descartar y borrar no hay herramienta: no es que esté escondida ni restringida, es que no existe; tampoco hay una que renombre una carpeta, cree una lista o una rutina, use tu deshacer o toque la sincronización y los ajustes. Un paso tuyo que marca queda como su palabra, esperándote. Tu Diario, mientras está cerrado, se responde como un documento que no existe. Lo demás de esta lista lo rechaza la herramienta que lo haría, y dice por qué.
 
 ## «Por confirmar»: cuando un asistente dice que terminó
 
