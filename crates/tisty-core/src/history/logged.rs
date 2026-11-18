@@ -106,13 +106,19 @@ pub fn rows(
         })
         .collect();
     let limit = jiff::SignedDuration::from_hours(24 * i64::from(days));
-    let away: Vec<Row> = named
-        .into_values()
+    let mut listed: std::collections::BTreeSet<&str> =
+        all.iter().map(|kept| kept.print.as_str()).collect();
+    // Every time a body was replaced counts: another machine may keep it from an earlier one.
+    let away: Vec<Row> = said
+        .iter()
+        .rev()
         .filter(|one| one.cut && one.replaced_by.as_ref().is_some_and(&elsewhere))
         .filter(|one| earlier(&one.print))
-        .filter(|one| all.iter().all(|kept| kept.print != one.print))
         .filter_map(|one| {
             let replaced = one.replaced.filter(|at| now.duration_since(*at) <= limit)?;
+            if !listed.insert(one.print.as_str()) {
+                return None;
+            }
             Some(Row {
                 print: one.print.clone(),
                 wrote: Some(one.wrote),
