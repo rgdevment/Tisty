@@ -725,7 +725,8 @@ print: {}",
                 format!(
                     "Wrote {} again, whole. {}{}{}{}{}",
                     written_name(state, which, &whole),
-                    "What it said before is kept beside the documents.",
+                    "What it said before is kept in its history on this machine: \
+                     `restore_doc` puts it back.",
                     twice_words(state, &twice) + &anew,
                     match kept_back.is_empty() {
                         true => String::new(),
@@ -1041,8 +1042,8 @@ pub(super) fn in_its_place(
             let anew = super::named_anew(paths, state, store, which, &whole);
             Ok(told(
                 format!(
-                    "Changed lines {from} to {to} of {}. What it was is kept beside the \
-                     documents.{}{}{}",
+                    "Changed lines {from} to {to} of {}. What it was is kept in its history \
+                     on this machine: `restore_doc` puts it back.{}{}{}",
                     written_name(state, which, &whole),
                     loose_words(state, &loose),
                     twice_words(state, &twice) + &anew,
