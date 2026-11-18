@@ -436,6 +436,20 @@ today's section, made if it is missing, under a line with the minute and your na
 changes it: no `under`, no edit, no rewrite, no move, no mark, no archive. Never start a diary \
 of your own: `diary: on` is the person's to write.
 
+## Assistants' files in AGENTS
+
+A document whose properties hold an `agent:` line is an assistant's own file kept in the folder \
+AGENTS — a rule file such as `CLAUDE.md`, a skill, a script — and Tisty writes its text, byte for \
+byte, to the file that assistant reads, on each computer where the person turned that on. When \
+the person asks to add or change a rule or a skill, yours included, change its document with \
+`edit_doc`, never the file on disk: an edit made there is marked as changed outside and waits for \
+the person. Keep it plain Markdown, since the assistant reads it as it is, and a script's \
+document one code block, kept whole. Never write, change or take out an `agent:` line: where a \
+file goes is the person's to decide, and a whole `write_doc` sends it back as it was. Move, \
+merge, compact or mark these documents only when the person asks: each is one file. A memory document is \
+the other way round: the assistant keeps writing its own memory file, and Tisty only shows it, \
+so leave that document alone.
+
 ## Brainstorm
 
 An idea is a thought caught on the fly, before anyone knows whether it is something to do or \
@@ -513,10 +527,11 @@ const TOPICS: &[(&str, &[&str])] = &[
             "Removing and putting away",
             "Writing",
             "The diary",
+            "Assistants' files in AGENTS",
             "Write it to be read",
         ],
     ),
-    ("tidying", &["Compacting"]),
+    ("tidying", &["Compacting", "Assistants' files in AGENTS"]),
     ("ideas", &["Brainstorm"]),
 ];
 
@@ -527,7 +542,8 @@ const INDEX: &str = "\
 priority, saying done, its page, picking up across sessions, the archive as knowledge to \
 search, and writing it to be read.
 - `rules` «documents»: one living document per subject, folders and pages, reading by parts, \
-updating before adding, marking what has had its day, writing, and the person's diary.
+updating before adding, marking what has had its day, writing, the person's diary, and the \
+assistants' own rules, skills and memory kept in AGENTS.
 - `rules` «tidying»: putting documents and task pages back in order, consolidating and \
 compacting them.
 - `rules` «ideas»: Brainstorm, the person's sheet of ideas: jotting them, turning them into tasks \

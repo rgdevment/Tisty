@@ -1,6 +1,6 @@
 # Privacy policy
 
-**Last updated:** November 16, 2026
+**Last updated:** November 18, 2026
 
 ## The short version
 
@@ -71,6 +71,7 @@ What you can choose, and what each implies:
 | **A `.tistyx` parcel of documents you hand to somebody** | Them, and whoever they hand it to. You decide what goes in it and when. It carries the documents, where they sat, what the archive held and what an assistant marked — never your device identifier. Once you have your identity it is signed with this computer's key, so it carries your root's public key, which reads as your fingerprint, this computer's own public key with the certificate that ties it to your root, and the name you sign with, and no longer your store's name. That computer key is the same in every parcel it signs, so whoever holds two of them can tell they came from the same computer. For each document you shared through Folio it also carries the Folio document's identifier and who edited it there: their names, keys and fingerprints, as Folio handed them to you |
 | **A `.tistyx` parcel locked with a number, for another machine of yours** | Whoever has both the file and the number. Without it nothing here opens it — though six digits are six digits, and the lock only makes each guess expensive. Inside it carries the same as an open one, and it is signed on the same terms: only once you have your identity |
 | **A document you share by link through Folio** | Whoever has the link. Folio holds the document sealed and cannot read what is in it, but sees what [Sharing by link](#sharing-by-link) lists |
+| **What you keep in AGENTS** | The same as your other documents, plus each assistant whose files Tisty writes, and whatever service that assistant talks to — even one you never let in. See [Your assistants' files, in AGENTS](#your-assistants-files-in-agents) |
 | **A task you save to your calendar** | Google or Microsoft, under their terms and their jurisdiction, when the calendar is theirs; with Apple Calendar, the Calendar app on your Mac and whatever account it keeps that calendar in. Only the task you pressed the button on, and only what [Saving a task to your calendar](#saving-a-task-to-your-calendar) lists |
 
 With a folder, Tisty only ever reads and writes local paths. It has no network
@@ -101,6 +102,11 @@ visible instead of making it for you.
   wrote. A tag is a word you typed with a hash against it, so nothing is
   recorded that you did not write in the document itself, and taking the file
   elsewhere takes its tags with it.
+- **AGENTS, if you use it** — your assistants' rules, skills and memory, kept
+  as documents like the rest. Outside Tisty's folder, Tisty also writes the
+  files each assistant reads; [Your assistants' files, in
+  AGENTS](#your-assistants-files-in-agents) says what it reads, when, and what
+  stays on this computer.
 - **Attachments** — the files themselves, unmodified. The log keeps a note of
   each one: the name it is kept under (a lowercased form of the file's name
   with a short fingerprint), its size and fingerprint, how it came in (dropped
@@ -568,6 +574,78 @@ above.
 | **Who can open it** | Only someone with your phrase or one of your computers. Not the provider, and not us: there is no copy of the key anywhere else, so if you lose the phrase and all your computers, the encrypted data is lost |
 | **Going back** | *Decrypt my cloud* copies everything back unencrypted and deletes the encrypted copy. It leaves a signed note, `knock/unsealed.json`, so your other computers follow without you doing anything on each one. Your phrase stays yours |
 
+## Your assistants' files, in AGENTS
+
+The AGENTS folder keeps your assistants' rules, skills and memory as documents
+— for Claude Code, Codex, GitHub Copilot, Gemini CLI and Cursor — and Tisty
+writes, underneath, the files each assistant reads. It makes no network
+request to do it; it reads and writes files on this computer, and only these:
+
+- **Before you say yes**, it looks at which files sit in your assistants'
+  folders — their names, their sizes, and whether they are links — to show you
+  the list. It opens none of them.
+- **With your yes**, it opens only the files you ticked in that list and brings
+  them in as documents. The yes belongs to this computer: it is kept on it,
+  stamped with its identifier, and a copy that reaches another computer counts
+  for nothing there, so each of your computers asks for its own.
+- **After that**, it opens only the files that belong to a document in AGENTS:
+  to write them, and to see whether they changed outside since it last wrote
+  them. A document in Global is written to every assistant Tisty finds on this
+  computer, even one whose files you did not tick. A change made outside is
+  never written over; it stays marked until you bring it in or write Tisty's
+  version over it. In Gemini CLI's `GEMINI.md`,
+  which Gemini writes itself, Tisty only ever adds one line, `@tisty-rules.md`,
+  and takes nothing out.
+- **The memory an assistant writes for itself** is brought in and shown, and
+  never written back.
+
+What AGENTS never brings in:
+
+- **Settings and credentials, by their names**: `settings.json`,
+  `settings.local.json`, `config.toml`, `config.json`, `hooks.json`,
+  `mcp.json`, `mcp-config.json`, `.claude.json` and `keybindings.json` — except
+  a file of those names inside a skill's own folder, which is part of the skill
+  — and, anywhere, `.credentials.json`, `credentials.json`, `auth.json`,
+  `.netrc`, `.env` and `.env.*`, `id_rsa*`, `id_ed25519*`, and files ending in
+  `.pem`, `.key`, `.p12`, `.pfx` or `.env`. These are skipped without being
+  opened. Nor is an AGENTS document ever written to an assistant's own settings
+  or credentials: a document goes only where each assistant keeps its rules,
+  its skills and its memory.
+- **A file that reads like it holds a credential.** A file you ticked is
+  checked on this computer, before it becomes a document, for the shapes of
+  tokens, passwords and private keys; if it matches, it is left out and you
+  are told why. The same check runs on a change you bring in from outside. It
+  recognises known shapes, not every secret there is, so keep secrets out of
+  your assistants' rules.
+- **Links and large files.** A symbolic link is never followed, read or written
+  through, and a file over 512,000 bytes is not brought in.
+
+What travels, and what stays:
+
+- **The documents travel like any document.** They sync, go into Tisty's
+  backups, into a `.tistyx` parcel that carries everything, and into your
+  cloud — encrypted, if you encrypted it. An assistant you let in through the
+  door below reads them like any other document.
+- **What you write in AGENTS reaches your assistants.** Each one reads its
+  file and sends it to whatever service it works with, whether or not it is
+  connected to Tisty. That is the point of the folder, and it is also a way
+  your words leave this computer.
+- **This computer's own record stays on it**, in `data/agents/` inside Tisty's
+  folder, out of everything sync, backups and parcels carry: your yes, which
+  assistants you paused, a fingerprint of each file Tisty last wrote, and the
+  backups. It is readable by your user alone, where the system allows it.
+- **Backups before every overwrite.** Before Tisty writes over one of your
+  assistants' files, it keeps the version that was there. It holds the last
+  20 versions of each file and leaves no copies in your assistants' folders.
+
+Turning it off loses nothing. Once you say yes, sync is on, and you can pause
+it for one assistant or for the whole folder. Paused, Tisty neither opens nor
+writes those files on its own: they stay as its last write left them, and your
+documents stay in Tisty. A pause belongs to this computer, like the yes. If you
+take every document out of AGENTS, the folder leaves Tisty and your
+assistants' files stay as they were. Tisty never empties or deletes an
+assistant's file.
+
 ## The door you can open for an assistant
 
 Tisty has no AI inside it and makes no request to any model. It does speak
@@ -592,7 +670,10 @@ happens on its own:
   document, write one again whole, mark a document that had its day for you to
   delete, archive or keep, put one away or bring it back when you ask, jot
   ideas on your Brainstorm and mark the old ones the same way, keep a copy of a
-  file you point it at, and read what is already there. It may not
+  file you point it at, and read what is already there. Writing a document
+  includes one in AGENTS, which Tisty then writes into the files your
+  assistants read, scripts included, on every computer of yours where AGENTS
+  is on. It may not
   close or delete anything, tick a step of yours or finish a task of yours,
   move a day you set, reach a task you hid, read your diary until you open it
   to agents from the Diary itself, change what you wrote in it once you do —
@@ -617,9 +698,10 @@ happens on its own:
 The part worth knowing before you connect one: **whatever that assistant reads,
 it takes with it.** If it runs against a service, then the moment you ask it to
 look, what it looks at is on its way to that service. Tisty still sends
-nothing — but this door is real, and besides syncing and sharing a document by
-link it is the only thing here that can carry your data off this machine. It
-comes open on a new install, which is why closing it is one click.
+nothing — but this door is real, and besides syncing, sharing a document by
+link and the files AGENTS writes for your assistants, it is the only thing here
+that can carry your data off this machine. It comes open on a new install,
+which is why closing it is one click.
 
 ## Children's privacy
 
