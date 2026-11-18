@@ -20,3 +20,6 @@ crates/tisty-carrier/src/folio_signed/** -text
 *.mp3 binary
 *.webm binary
 *.mp4 binary
+
+# Agent files as assistants leave them: their own endings are what a round trip must give back.
+crates/tisty-core/src/agents/fixtures/** -text

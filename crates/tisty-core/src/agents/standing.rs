@@ -1,0 +1,401 @@
+use std::path::{Component, Path, PathBuf};
+
+use super::{Card, Kind, Ledger, Refused, kept, rendered};
+use crate::docs::{Move, READ_AT_MOST, moved};
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Target {
+    pub root: PathBuf,
+    pub at: PathBuf,
+    pub assistant: String,
+    pub pieces: Vec<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Standing {
+    NoConsent,
+    Off,
+    Empty,
+    Linked,
+    Broken {
+        piece: usize,
+        why: Refused,
+    },
+    UpToDate,
+    Agreed,
+    Write,
+    Wrote,
+    Outside {
+        now: Option<Vec<u8>>,
+        piece: Option<usize>,
+    },
+    Both {
+        now: Vec<u8>,
+    },
+    Unreadable(String),
+}
+
+impl Target {
+    fn agents_own(&self) -> bool {
+        self.pieces
+            .iter()
+            .any(|one| Card::of(one).is_some_and(|card| card.kind == Kind::Memory))
+    }
+}
+
+fn rendered_pieces(target: &Target) -> Result<Vec<Vec<u8>>, (usize, Refused)> {
+    target
+        .pieces
+        .iter()
+        .enumerate()
+        .map(|(n, one)| rendered(one).map_err(|why| (n, why)))
+        .collect()
+}
+
+fn separator(first: &[u8]) -> &'static [u8] {
+    match first.windows(2).any(|pair| pair == b"\r\n") {
+        true => b"\r\n",
+        false => b"\n",
+    }
+}
+
+fn ended(piece: &[u8], newline: &[u8]) -> Vec<u8> {
+    let mut piece = piece.to_vec();
+    if !piece.is_empty() && !piece.ends_with(b"\n") {
+        piece.extend_from_slice(newline);
+    }
+    piece
+}
+
+fn composed(pieces: &[Vec<u8>]) -> Vec<u8> {
+    let [one] = pieces else {
+        let newline = separator(pieces.first().map_or(&[][..], Vec::as_slice));
+        let ended: Vec<Vec<u8>> = pieces.iter().map(|one| ended(one, newline)).collect();
+        return ended.join(newline);
+    };
+    one.clone()
+}
+
+pub fn wanted(target: &Target) -> Result<Vec<u8>, (usize, Refused)> {
+    Ok(composed(&rendered_pieces(target)?))
+}
+
+fn blank(bytes: &[u8]) -> bool {
+    String::from_utf8_lossy(bytes)
+        .chars()
+        .all(|one| one.is_whitespace() || one == '\u{feff}')
+}
+
+// A link anywhere from the assistant's folder down would send the write into whatever it points at.
+fn linked(target: &Target) -> bool {
+    let stepped_out = target.at.components().any(|step| {
+        !matches!(
+            step,
+            Component::Normal(_) | Component::RootDir | Component::Prefix(_)
+        )
+    });
+    if stepped_out || !target.at.starts_with(&target.root) {
+        return true;
+    }
+    target
+        .at
+        .ancestors()
+        .take_while(|step| step.starts_with(&target.root))
+        .any(super::link)
+}
+
+fn on_disk(at: &Path) -> Result<Option<Vec<u8>>, Refused> {
+    let meta = match std::fs::metadata(at) {
+        Ok(meta) => meta,
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(None),
+        Err(e) => return Err(e.into()),
+    };
+    if meta.len() > READ_AT_MOST {
+        return Err(Refused::TooBig);
+    }
+    Ok(Some(std::fs::read(at)?))
+}
+
+fn printed(bytes: &[u8]) -> String {
+    crate::attach::printed(bytes)
+}
+
+pub fn standing(ledger: &Ledger, target: &Target) -> Standing {
+    judged(ledger, target).0
+}
+
+type Seen = Option<String>;
+
+fn judged(ledger: &Ledger, target: &Target) -> (Standing, Seen) {
+    if !ledger.consented() {
+        return (Standing::NoConsent, None);
+    }
+    if !ledger.syncs(&target.assistant) {
+        return (Standing::Off, None);
+    }
+    let wanted = match wanted(target) {
+        Ok(wanted) => wanted,
+        Err((piece, why)) => return (Standing::Broken { piece, why }, None),
+    };
+    if linked(target) {
+        return (Standing::Linked, None);
+    }
+    let now = match on_disk(&target.at) {
+        Ok(now) => now,
+        Err(why) => return (Standing::Unreadable(why.to_string()), None),
+    };
+    let there = now.as_deref().map(printed);
+    (weighed(ledger, target, &wanted, now), there)
+}
+
+fn weighed(ledger: &Ledger, target: &Target, wanted: &[u8], now: Option<Vec<u8>>) -> Standing {
+    let base = ledger.written(&target.at);
+    if target.agents_own() {
+        return match now {
+            Some(now) if now != wanted && base != Some(printed(&now).as_str()) => {
+                Standing::Outside {
+                    now: Some(now),
+                    piece: Some(0),
+                }
+            }
+            _ => Standing::UpToDate,
+        };
+    }
+    if blank(wanted) {
+        return Standing::Empty;
+    }
+    let here = printed(wanted);
+    let there = now.as_deref().map(printed);
+    if base.is_some() && now.is_none() {
+        return Standing::Outside {
+            now: None,
+            piece: None,
+        };
+    }
+    match moved(base, Some(&here), there.as_deref()) {
+        Move::Nothing if base == Some(here.as_str()) => Standing::UpToDate,
+        Move::Nothing => Standing::Agreed,
+        Move::Send => Standing::Write,
+        Move::Bring => {
+            let now = now.unwrap_or_default();
+            let piece = rendered_pieces(target)
+                .ok()
+                .and_then(|pieces| attributed(&pieces, &now))
+                .map(|(piece, _)| piece);
+            Standing::Outside {
+                now: Some(now),
+                piece,
+            }
+        }
+        Move::TheyDecide => Standing::Both {
+            now: now.unwrap_or_default(),
+        },
+    }
+}
+
+fn attributed(pieces: &[Vec<u8>], now: &[u8]) -> Option<(usize, Vec<u8>)> {
+    if let [_] = pieces {
+        return Some((0, now.to_vec()));
+    }
+    let newline = separator(pieces.first()?);
+    let ended: Vec<Vec<u8>> = pieces.iter().map(|one| ended(one, newline)).collect();
+    let mut found = None;
+    for n in 0..ended.len() {
+        let mut before = ended[..n].join(newline);
+        if n > 0 {
+            before.extend_from_slice(newline);
+        }
+        let mut after = Vec::new();
+        if n + 1 < ended.len() {
+            after.extend_from_slice(newline);
+            after.extend(ended[n + 1..].join(newline));
+        }
+        if now.len() < before.len() + after.len()
+            || !now.starts_with(&before)
+            || !now.ends_with(&after)
+        {
+            continue;
+        }
+        let middle = now[before.len()..now.len() - after.len()].to_vec();
+        if middle == ended[n] {
+            continue;
+        }
+        if found.is_some() {
+            return None;
+        }
+        found = Some((n, middle));
+    }
+    found
+}
+
+fn writable(ledger: &Ledger, target: &Target) -> Result<Vec<u8>, Refused> {
+    if !ledger.consented() {
+        return Err(Refused::NoConsent);
+    }
+    if !ledger.syncs(&target.assistant) {
+        return Err(Refused::Off);
+    }
+    if target.agents_own() {
+        return Err(Refused::AgentsOwn);
+    }
+    if linked(target) {
+        return Err(Refused::Linked);
+    }
+    let wanted = wanted(target).map_err(|(_, why)| why)?;
+    if blank(&wanted) {
+        return Err(Refused::Empty);
+    }
+    Ok(wanted)
+}
+
+fn written_over(data: &Path, at: &Path, bytes: &[u8], seen: Option<&Seen>) -> Result<(), Refused> {
+    let was = on_disk(at)?;
+    if seen.is_some_and(|seen| *seen != was.as_deref().map(printed)) {
+        return Err(Refused::Changed);
+    }
+    if let Some(was) = was
+        && was != bytes
+    {
+        kept::keep(data, at, &was)?;
+    }
+    if let Some(parent) = at.parent() {
+        std::fs::create_dir_all(parent)?;
+    }
+    crate::store::write_atomic(at, bytes)?;
+    Ok(())
+}
+
+pub fn overwrite(data: &Path, ledger: &mut Ledger, target: &Target) -> Result<(), Refused> {
+    written(data, ledger, target, None)?;
+    kept_ledger(data, ledger);
+    Ok(())
+}
+
+fn written(
+    data: &Path,
+    ledger: &mut Ledger,
+    target: &Target,
+    seen: Option<&Seen>,
+) -> Result<(), Refused> {
+    let wanted = writable(ledger, target)?;
+    written_over(data, &target.at, &wanted, seen)?;
+    ledger.settle(&target.at, &wanted);
+    Ok(())
+}
+
+// A file written but not yet in a kept ledger reads as agreed on the next start, so losing it costs nothing.
+fn kept_ledger(data: &Path, ledger: &Ledger) {
+    if ledger.keep(data).is_err() {
+        crate::witness::warn(
+            crate::witness::channel::AGENT,
+            "agent files were written but the ledger could not be kept",
+            &[],
+        );
+    }
+}
+
+pub fn round(data: &Path, ledger: &mut Ledger, targets: &[Target]) -> Vec<Standing> {
+    let mut settled = false;
+    let told = targets
+        .iter()
+        .map(|target| match judged(ledger, target) {
+            (Standing::Write, seen) => match written(data, ledger, target, Some(&seen)) {
+                Ok(()) => {
+                    settled = true;
+                    Standing::Wrote
+                }
+                Err(Refused::Changed) => standing(ledger, target),
+                Err(why) => Standing::Unreadable(why.to_string()),
+            },
+            (Standing::Agreed, _) => {
+                if let Ok(wanted) = wanted(target) {
+                    ledger.settle(&target.at, &wanted);
+                    settled = true;
+                }
+                Standing::UpToDate
+            }
+            (other, _) => other,
+        })
+        .collect();
+    if settled {
+        kept_ledger(data, ledger);
+    }
+    told
+}
+
+pub fn bring(ledger: &Ledger, target: &Target, piece: usize) -> Result<String, Refused> {
+    if !ledger.consented() {
+        return Err(Refused::NoConsent);
+    }
+    if linked(target) {
+        return Err(Refused::Linked);
+    }
+    let now = on_disk(&target.at)?.ok_or(Refused::Unattributed)?;
+    let body = target.pieces.get(piece).ok_or(Refused::Unattributed)?;
+    let pieces = rendered_pieces(target).map_err(|(_, why)| why)?;
+    let middle = match attributed(&pieces, &now) {
+        Some((n, middle)) if n == piece => middle,
+        _ => return Err(Refused::Unattributed),
+    };
+    if middle.len() as u64 > crate::docs::BODY_AT_MOST {
+        return Err(Refused::TooBig);
+    }
+    if let Some(told) = crate::agent::secret_in(&middle) {
+        return Err(Refused::Secret(told.said()));
+    }
+    super::brought(body, &middle)
+}
+
+pub fn restore(data: &Path, ledger: &Ledger, target: &Target, n: u64) -> Result<(), Refused> {
+    if !ledger.consented() {
+        return Err(Refused::NoConsent);
+    }
+    if !ledger.syncs(&target.assistant) {
+        return Err(Refused::Off);
+    }
+    if target.agents_own() {
+        return Err(Refused::AgentsOwn);
+    }
+    if linked(target) {
+        return Err(Refused::Linked);
+    }
+    let bytes = kept::read_kept(data, &target.at, n)?;
+    if blank(&bytes) {
+        return Err(Refused::Empty);
+    }
+    written_over(data, &target.at, &bytes, None)
+}
+
+// The agent owns the rest of this file, so Tisty only ever adds its one line and never takes anything out.
+pub fn lead_in(data: &Path, ledger: &Ledger, target: &Target, line: &str) -> Result<bool, Refused> {
+    if !ledger.consented() {
+        return Err(Refused::NoConsent);
+    }
+    if !ledger.syncs(&target.assistant) {
+        return Err(Refused::Off);
+    }
+    if !line.starts_with('@') || line.contains(['\n', '\r']) || line.trim() != line {
+        return Err(Refused::Name);
+    }
+    if linked(target) {
+        return Err(Refused::Linked);
+    }
+    let was = on_disk(&target.at)?.unwrap_or_default();
+    let text = std::str::from_utf8(&was).map_err(|_| Refused::NotText)?;
+    if text.lines().any(|one| one.trim() == line) {
+        return Ok(false);
+    }
+    let newline = separator(&was);
+    let mut now = was.clone();
+    if !now.is_empty() && !now.ends_with(b"\n") {
+        now.extend_from_slice(newline);
+    }
+    now.extend_from_slice(line.as_bytes());
+    now.extend_from_slice(newline);
+    written_over(data, &target.at, &now, None)?;
+    Ok(true)
+}
+
+#[cfg(test)]
+#[path = "standing_test.rs"]
+mod tests;
