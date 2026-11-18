@@ -5,6 +5,7 @@ import type { Words } from "./words";
 const saying = (words: Words, opened: Opened): string => {
   if (opened.kind === "drawn") return words.say(opened.own ? "emptyDoc" : "empty");
   if (opened.refusal.code === "documentTooBig") return words.say("tooBig");
+  if (opened.own && opened.refusal.code === "noSuchDoc") return words.say("noSuchDoc");
   return words.say(opened.own ? "unreadableDoc" : "unreadable");
 };
 
