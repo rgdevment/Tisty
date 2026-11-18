@@ -53,9 +53,15 @@ export interface Rounded {
   both: Both[];
 }
 
+export interface Refused {
+  at: string;
+  why: string;
+  reason: string;
+}
+
 export interface Brought {
   made: number;
-  refused: { at: string; why: string }[];
+  refused: Refused[];
   round: Rounded;
 }
 

@@ -356,6 +356,23 @@ fn round_now(session: &Session, homes: &Homes, ledger: &mut Ledger) -> Rounded {
 pub struct Turned {
     pub at: String,
     pub why: String,
+    /// What the window says in the person's language; `why` is only shown when it has no words for it.
+    pub reason: String,
+}
+
+fn reason_of(why: &agents::Refused) -> String {
+    use agents::Refused as R;
+    let said = match why {
+        R::Skipped(skip) => return format!("skip_{}", format!("{skip:?}").to_lowercase()),
+        R::NoConsent => "noConsent",
+        R::Secret(_) => "secret",
+        R::TooBig => "tooBig",
+        R::NotText => "notText",
+        R::Linked => "linked",
+        R::Name => "name",
+        _ => "other",
+    };
+    said.to_string()
 }
 
 #[derive(Debug, Default, serde::Serialize)]
@@ -383,6 +400,7 @@ pub fn read_chosen(
             Ok(body) => bodies.push((one.clone(), body)),
             Err(why) => refused.push(Turned {
                 at,
+                reason: reason_of(&why),
                 why: why.to_string(),
             }),
         }

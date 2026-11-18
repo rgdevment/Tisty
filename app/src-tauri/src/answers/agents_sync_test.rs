@@ -178,6 +178,7 @@ fn a_file_that_reads_like_a_credential_is_refused_and_the_rest_still_comes() {
     assert_eq!(brought.made, 1);
     assert_eq!(brought.refused.len(), 1, "{:?}", brought.refused);
     assert!(brought.refused[0].at.ends_with("keys.md"));
+    assert_eq!(brought.refused[0].reason, "secret");
 }
 
 fn second_computer(room: &mut Room) {

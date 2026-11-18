@@ -32,6 +32,14 @@ export const agentsEn = {
   agentsAllow: "Allow and sync",
   agentsBringing: "Bringing…",
   agentsRefused: "These did not come in:",
+  agentsRefused_noConsent: "This computer has not allowed it yet.",
+  agentsRefused_secret:
+    "It looks like it holds a credential, such as a key or a token, so it stays out.",
+  agentsRefused_tooBig: "It is larger than a document can hold.",
+  agentsRefused_notText: "It is not text.",
+  agentsRefused_linked: "It is a link, so it stays out.",
+  agentsRefused_name: "Its name cannot be kept as an agent document.",
+  agentsRefused_other: "It could not be read: {name}",
   agentsBothTitle: "It exists on both sides",
   agentsBothLead:
     "{name} already has a file that differs from Tisty's. Choose which one to keep. The other one goes to the backups.",
@@ -93,6 +101,14 @@ export const agentsEs: typeof agentsEn = {
   agentsAllow: "Autorizar y sincronizar",
   agentsBringing: "Trayendo…",
   agentsRefused: "Esto no entró:",
+  agentsRefused_noConsent: "Este equipo todavía no lo autorizó.",
+  agentsRefused_secret:
+    "Parece llevar una credencial, como una clave o un token, así que no entra.",
+  agentsRefused_tooBig: "Es más grande de lo que cabe en un documento.",
+  agentsRefused_notText: "No es texto.",
+  agentsRefused_linked: "Es un enlace, así que no entra.",
+  agentsRefused_name: "Su nombre no se puede guardar como documento de agente.",
+  agentsRefused_other: "No se pudo leer: {name}",
   agentsBothTitle: "Existe en los dos lados",
   agentsBothLead:
     "{name} ya tiene un archivo distinto del de Tisty. Elige cuál conservar. Lo otro queda en respaldos.",

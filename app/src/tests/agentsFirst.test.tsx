@@ -159,6 +159,74 @@ const folder = (id: string, parent: string | null, more: Partial<Folded> = {}): 
   ...more,
 });
 
+describe("what the person chooses and why something stays out", () => {
+  const withMemory: AgentsLook = {
+    ...look,
+    assistants: [
+      {
+        id: "claude",
+        name: "Claude",
+        on: true,
+        files: [
+          { at: "/h/.claude/CLAUDE.md", name: "CLAUDE.md", kind: "rule", skip: null, held: false },
+          {
+            at: "/h/.claude/projects/p/memory/MEMORY.md",
+            name: "projects/p/memory/MEMORY.md",
+            kind: "memory",
+            skip: null,
+            held: false,
+          },
+        ],
+      },
+    ],
+  };
+
+  it("leaves an agent's memory unticked, since it would travel with sync", async () => {
+    ipc.answer = (cmd) => {
+      if (cmd === "agents_look") return Promise.resolve(withMemory);
+      if (cmd === "agents_bring") return Promise.resolve(brought({ made: 1 }));
+      return Promise.resolve({ told: [], both: [] });
+    };
+    render(<AgentsFirst onClose={() => {}} onChanged={() => {}} />);
+    await userEvent.click(await screen.findByText("Claude · 2 archivos"));
+    const memory = screen.getByRole("checkbox", { name: /MEMORY\.md/ }) as HTMLInputElement;
+    expect(memory.checked).toBe(false);
+    expect(memory.disabled).toBe(false);
+    await userEvent.click(screen.getByRole("button", { name: "Traer y sincronizar" }));
+    await waitFor(() => expect(sent("agents_bring")).toHaveLength(1));
+    expect(sent("agents_bring")[0].args.chosen).toEqual(["/h/.claude/CLAUDE.md"]);
+  });
+
+  it("says in the person's language why a file stayed out", async () => {
+    ipc.answer = (cmd) => {
+      if (cmd === "agents_look") return Promise.resolve(look);
+      if (cmd === "agents_bring")
+        return Promise.resolve(
+          brought({
+            made: 1,
+            refused: [
+              {
+                at: "/h/.claude/rules/keys.md",
+                why: "the file reads like it holds a credential (GitHub token)",
+                reason: "secret",
+              },
+              { at: "/h/.claude/rules/big.md", why: "too big", reason: "tooBig" },
+              { at: "/h/.claude/rules/odd.md", why: "Access is denied.", reason: "other" },
+            ],
+          }),
+        );
+      return Promise.resolve({ told: [], both: [] });
+    };
+    render(<AgentsFirst onClose={() => {}} onChanged={() => {}} />);
+    await screen.findByText("Claude · 2 archivos");
+    await userEvent.click(screen.getByRole("button", { name: "Traer y sincronizar" }));
+    await screen.findByText(/Parece llevar una credencial/);
+    expect(screen.getByText("Es más grande de lo que cabe en un documento.")).toBeTruthy();
+    expect(screen.getByText("No se pudo leer: Access is denied.")).toBeTruthy();
+    expect(screen.queryByText(/reads like it holds a credential/)).toBeNull();
+  });
+});
+
 describe("a choice left for later", () => {
   it("opens straight at the comparison, and closes once nothing is left to choose", async () => {
     ipc.answer = (cmd) => {

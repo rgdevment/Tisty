@@ -8,6 +8,7 @@ import {
   type Both,
   type Brought,
   type FileSeen,
+  type Refused,
 } from "../agentsSync";
 import { fill, t, type Word } from "../locales";
 import { saidPlainly } from "../refusal";
@@ -20,6 +21,17 @@ const takeable = (one: FileSeen) => !one.skip && !one.held;
 
 const skipWord = (skip: string) => `agentsSkip_${skip}` as Word;
 const kindWord = (kind: FileSeen["kind"]) => `agentsKind_${kind}` as Word;
+
+// An agent's memory travels with sync once it is in Tisty, so the person ticks it by hand.
+const chosenFirst = (one: FileSeen) => takeable(one) && one.kind !== "memory";
+
+const SAID = ["noConsent", "secret", "tooBig", "notText", "linked", "name"];
+
+const reasonSaid = (one: Refused): string => {
+  if (one.reason.startsWith("skip_")) return t(skipWord(one.reason.slice("skip_".length)));
+  if (SAID.includes(one.reason)) return t(`agentsRefused_${one.reason}` as Word);
+  return fill("agentsRefused_other", one.why);
+};
 
 const listed = (names: string[]) => names.join(", ");
 
@@ -128,7 +140,7 @@ export default function AgentsFirst({ onClose, onChanged }: Readonly<Props>) {
         }
         setChosen(
           new Set(
-            seen.assistants.flatMap((one) => one.files.filter(takeable).map((file) => file.at)),
+            seen.assistants.flatMap((one) => one.files.filter(chosenFirst).map((file) => file.at)),
           ),
         );
       })
@@ -233,7 +245,7 @@ export default function AgentsFirst({ onClose, onChanged }: Readonly<Props>) {
               {brought.refused.map((one) => (
                 <li key={one.at} className="py-0.5">
                   <span className="font-mono break-all text-ink">{one.at}</span>
-                  <span className="block text-faint">{one.why}</span>
+                  <span className="block text-faint">{reasonSaid(one)}</span>
                 </li>
               ))}
             </ul>
