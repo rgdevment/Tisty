@@ -37,11 +37,11 @@ touched_any() {
   return 1
 }
 
-# The staged paths under a folder that the copy still holds, quoted for eval and relative to that folder.
+# The staged paths under $1 that the copy still holds, quoted for eval and relative to $2.
 staged_under() {
   local path quoted said=""
   while IFS= read -r path; do
-    case $path in "$1"/*) [ -f "$staged/$path" ] && printf -v quoted ' %q' "${path#"$1"/}" && said+=$quoted ;; esac
+    case $path in "$1"/*) [ -f "$staged/$path" ] && printf -v quoted ' %q' "${path#"$2"/}" && said+=$quoted ;; esac
   done < "$touched"
   printf '%s' "$said"
 }
@@ -68,7 +68,7 @@ fi
 
 if [ -x node_modules/.bin/biome ]; then
   window=" src"
-  touched_any '^app/biome\.json$|(^|/)package(-lock)?\.json$' || window=$(staged_under app)
+  touched_any '^app/biome\.json$|(^|/)package(-lock)?\.json$' || window=$(staged_under app/src app)
   # Windows refuses a command line past 32 KB.
   [ "${#window}" -le 20000 ] || window=" src"
   [ -z "$window" ] || quietly \

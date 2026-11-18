@@ -522,7 +522,7 @@ case ${1:-} in
   --touched)
     [ -r "${2:-}" ] || { echo "usage: rules.sh [--touched <file listing one path per line>]"; exit 2; }
     touched=" "
-    while IFS= read -r path; do
+    while IFS= read -r path || [ -n "$path" ]; do
       case $path in
         crates/*/Cargo.toml) touched+="other " ;;
         crates/* | app/src-tauri/src/*) touched+="rust " ;;
