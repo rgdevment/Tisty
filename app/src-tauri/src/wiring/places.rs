@@ -162,7 +162,7 @@ pub fn usual_bins(os: Os, home: &Path) -> Vec<PathBuf> {
     found
 }
 
-fn var(named: &str) -> Option<PathBuf> {
+pub(super) fn var(named: &str) -> Option<PathBuf> {
     std::env::var_os(named)
         .filter(|it| !it.is_empty())
         .map(PathBuf::from)

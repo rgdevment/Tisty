@@ -1,3 +1,4 @@
+pub mod agents;
 mod catalog;
 mod hooks;
 mod json;

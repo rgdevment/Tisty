@@ -1,4 +1,5 @@
 pub mod agents;
+pub mod agents_sync;
 pub mod attaching;
 pub mod born;
 pub mod brainstorming;
