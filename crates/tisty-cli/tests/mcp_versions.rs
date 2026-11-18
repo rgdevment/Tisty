@@ -679,6 +679,48 @@ fn a_tasks_id_lists_and_reads_the_versions_of_its_page() {
 }
 
 #[test]
+fn going_back_on_a_page_with_a_digest_is_undone_before_the_digest_is_swapped() {
+    let served = Served::new();
+    let (task, page) = served.task_with_a_page();
+    went(&served.call(
+        "append_doc",
+        json!({ "doc": task, "body": "Resumen: uno y dos descartadas.", "replace": true }),
+    ));
+    went(&served.call_as(
+        CODEX,
+        "append_doc",
+        json!({ "doc": task, "body": "Nota tres." }),
+    ));
+    let with_three = served.body_of(&page);
+    assert!(with_three.contains("Resumen") && with_three.contains("Nota tres."));
+    let digest_alone = served.version_that_said(&task, "Resumen: uno y dos descartadas.");
+
+    went(&served.call(
+        "restore_doc",
+        json!({ "doc": task, "version": digest_alone }),
+    ));
+    let went_back = served.body_of(&page);
+    assert!(
+        went_back.contains("Resumen") && !went_back.contains("Nota tres."),
+        "{went_back}"
+    );
+
+    went(&served.call("restore_doc", json!({ "doc": task })));
+    assert_eq!(
+        served.body_of(&page),
+        with_three,
+        "restore alone swapped the digest instead of undoing the going back"
+    );
+
+    went(&served.call("restore_doc", json!({ "doc": task })));
+    assert_eq!(
+        served.body_of(&page),
+        went_back,
+        "restoring twice did not return"
+    );
+}
+
+#[test]
 fn going_back_on_a_tasks_id_reaches_the_assistants_notes_and_nothing_else() {
     let served = Served::new();
     let (task, page) = served.task_with_a_page();
