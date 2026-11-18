@@ -2,6 +2,7 @@ import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Folded, Papers } from "../core";
 import { BRAINSTORM, DIARY, hide, hideChoice, isHidden, showAll } from "../hiding";
+import SideRail from "../ui/SideRail";
 import Tree from "../ui/Tree";
 
 vi.mock("@tauri-apps/api/core", () => ({ invoke: () => Promise.resolve([]) }));
@@ -143,6 +144,23 @@ describe("hiding rows from the sidebar", () => {
     fireEvent.keyDown(diary, { key: "F10", shiftKey: true });
 
     expect(onDiaryMenu).toHaveBeenCalledTimes(2);
+  });
+
+  it("leaves a hidden folder out of the folded sidebar too", () => {
+    hide("F1");
+    render(
+      <SideRail
+        lists={[]}
+        papers={papers}
+        counts={{}}
+        chosen={{ named: "tasks" }}
+        onChoose={vi.fn()}
+        onReveal={vi.fn()}
+      />,
+    );
+
+    expect(screen.queryByRole("button", { name: /agents/ })).toBeNull();
+    expect(screen.getByRole("button", { name: /trabajo/ })).toBeTruthy();
   });
 
   it("turns the menu choice into its opposite once the row is hidden", () => {
