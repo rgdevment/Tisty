@@ -1,4 +1,4 @@
-use tisty_core::event::{DocAdd, Said, StepAdd, StepRef, TaskAdd};
+use tisty_core::event::{DeviceId, DocAdd, Said, StepAdd, StepRef, TaskAdd};
 use tisty_core::{Paths, Store};
 
 use super::*;

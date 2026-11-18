@@ -160,6 +160,94 @@ fn a_body_signed_by_someone_else_carries_their_name_to_its_row() {
     assert_eq!(listed[0].signed.as_deref(), Some("Rina"));
 }
 
+fn device(named: &str) -> DeviceId {
+    DeviceId(named.into())
+}
+
+fn hosted(pairs: &[(&str, &str)]) -> crate::State {
+    let mut state = crate::State::default();
+    for (agent, host) in pairs {
+        state.assistants.insert(device(agent));
+        state.hosts.insert(device(agent), device(host));
+    }
+    state
+}
+
+#[test]
+fn this_machine_writes_through_itself_its_own_assistant_and_those_it_hosts() {
+    let state = hosted(&[("agent_here", HERE), ("agent_there", THERE)]);
+
+    let machines = Machines::of(&state, &device(HERE), Some(&device("own_agent")));
+
+    for here in [HERE, "agent_here", "own_agent"] {
+        assert!(!machines.elsewhere(&device(here)), "{here}");
+    }
+    for there in [THERE, "agent_there", "unhosted_agent"] {
+        assert!(machines.elsewhere(&device(there)), "{there}");
+    }
+}
+
+#[test]
+fn a_machine_the_person_removed_keeps_nothing_nor_does_its_assistant() {
+    let mut state = hosted(&[("agent_there", THERE)]);
+    state.dropped.insert(device(THERE));
+
+    let machines = Machines::of(&state, &device(HERE), None);
+
+    assert!(!machines.elsewhere(&device(THERE)));
+    assert!(!machines.elsewhere(&device("agent_there")));
+}
+
+#[test]
+fn what_a_removed_machine_wrote_over_is_not_listed_as_kept_there() {
+    let (room, _docs) = desk();
+    let data = room.path();
+    let id = DocId::generate();
+    let events = vec![
+        made(id, HERE, 0, None, "# A\n"),
+        noted(id, THERE, 40, None, "# B\n"),
+        noted(id, THERE, 80, None, "# C\n"),
+    ];
+    let mut state = crate::State::default();
+    state.dropped.insert(device(THERE));
+    let machines = Machines::of(&state, &device(HERE), None);
+
+    let listed = rows(data, DOC, &logged(&events, id), 30, at(90), |one| {
+        machines.elsewhere(one)
+    });
+
+    assert!(listed.is_empty(), "{listed:?}");
+}
+
+#[test]
+fn a_body_written_again_without_a_cut_is_told_by_the_writing_before_it_was_set_aside() {
+    let (room, docs) = desk();
+    let data = room.path();
+    let id = DocId::generate();
+    let told: [(i64, &str); 4] = [(0, "# A\n"), (40, "# B\n"), (80, "# A\n"), (90, "# C\n")];
+    let mut events = Vec::new();
+    for (n, (minutes, body)) in told.iter().enumerate() {
+        written(&docs, data, *minutes, None, body);
+        events.push(match n {
+            0 => made(id, HERE, *minutes, None, body),
+            _ => noted(id, HERE, *minutes, None, body),
+        });
+    }
+
+    let listed = shown(data, &events, id, 100);
+    let a = listed
+        .iter()
+        .find(|one| one.print == print("# A\n"))
+        .unwrap();
+
+    assert_eq!(a.replaced, at(40), "{listed:?}");
+    assert_eq!(
+        a.wrote,
+        Some(at(0)),
+        "written after the moment it was set aside"
+    );
+}
+
 #[test]
 fn a_note_that_reads_the_same_body_again_cuts_nothing() {
     let id = DocId::generate();

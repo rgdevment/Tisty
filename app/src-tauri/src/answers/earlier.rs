@@ -1,8 +1,6 @@
-use std::collections::BTreeSet;
 use std::path::PathBuf;
 use std::sync::Mutex;
 
-use tisty_core::event::DeviceId;
 use tisty_core::model::DocId;
 use tisty_core::witness::channel;
 use tisty_core::{Event, Op, Task, history};
@@ -37,19 +35,16 @@ pub struct Shelf {
 pub struct Asked {
     doc: Option<DocId>,
     data: PathBuf,
-    here: BTreeSet<DeviceId>,
+    machines: history::Machines,
     days: u32,
 }
 
 pub fn asked(session: &Session, id: &str) -> Asked {
-    let machine = &session.config.device_id;
-    let hosted = session.state.hosts.iter();
-    let mut here: BTreeSet<DeviceId> = hosted
-        .filter(|(_, of)| *of == machine)
-        .map(|(agent, _)| agent.clone())
-        .collect();
-    here.insert(machine.clone());
-    here.extend(session.config.agent_id.clone());
+    let machines = history::Machines::of(
+        &session.state,
+        &session.config.device_id,
+        session.config.agent_id.as_ref(),
+    );
     Asked {
         doc: session
             .state
@@ -58,7 +53,7 @@ pub fn asked(session: &Session, id: &str) -> Asked {
             .find(|one| one.file == id)
             .map(|one| one.id),
         data: session.paths.data().to_path_buf(),
-        here,
+        machines,
         days: session.config.history_days(),
     }
 }
@@ -78,7 +73,7 @@ pub fn listed(
         &history::logged(log, doc),
         asked.days,
         now,
-        |device| !asked.here.contains(device),
+        |device| asked.machines.elsewhere(device),
     ))
 }
 

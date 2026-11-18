@@ -28,12 +28,3 @@ fn an_assistant_nobody_hosts_is_on_no_machine_known() {
 
     assert_eq!(machine(&state, &device("agent")), None);
 }
-
-#[test]
-fn a_machine_the_person_removed_keeps_nothing_known_nor_does_its_assistant() {
-    let mut state = with_an_assistant_on(Some("laptop"));
-    state.dropped.insert(device("laptop"));
-
-    assert_eq!(machine(&state, &device("laptop")), None);
-    assert_eq!(machine(&state, &device("agent")), None);
-}
