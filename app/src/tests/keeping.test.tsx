@@ -2926,7 +2926,7 @@ describe("the first-run assistant", () => {
 
     await userEvent.click(await screen.findByRole("button", { name: /another folder/i }));
 
-    expect(await screen.findByText(/do not recognise/i)).toBeTruthy();
+    expect(await screen.findByText(/does not recognise/i)).toBeTruthy();
   });
 
   it("hangs a folder of ours inside the one you pointed at", async () => {
