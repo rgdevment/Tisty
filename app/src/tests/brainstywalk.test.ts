@@ -128,6 +128,7 @@ describe("walking the network with the keys", () => {
     keyed(press("ArrowRight"));
     keyed(press("Enter"));
     keyed(press("ArrowLeft", document.createElement("input")));
+    keyed(press("Enter", document.createElement("button")));
     keyed(press("x"));
 
     expect(walk.find).toHaveBeenCalledTimes(1);

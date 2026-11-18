@@ -12,6 +12,17 @@ interface Props {
   readonly onClose: () => void;
 }
 
+// Its ids and places name another document, and the page beneath finds things by both.
+const unmarked = (html: string): string => {
+  const held = document.createElement("template");
+  held.innerHTML = html;
+  for (const one of held.content.querySelectorAll("[id], [data-at]")) {
+    one.removeAttribute("id");
+    one.removeAttribute("data-at");
+  }
+  return held.innerHTML;
+};
+
 export default function Preview({ neuron, ties, zone, onOpen, onClose }: Props) {
   const [glance, setGlance] = useState<Glance | null>(null);
   const [card, setCard] = useState<Cited | null>(null);
@@ -22,7 +33,7 @@ export default function Preview({ neuron, ties, zone, onOpen, onClose }: Props) 
     setCard(null);
     if (neuron.kind === "doc" || neuron.kind === "page") {
       docGlance(neuron.id).then(
-        (said) => live && setGlance(said),
+        (said) => live && setGlance({ ...said, html: unmarked(said.html) }),
         () => undefined,
       );
     }

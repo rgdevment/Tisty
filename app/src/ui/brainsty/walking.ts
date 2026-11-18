@@ -11,7 +11,7 @@ export interface Walk {
 
 const typedIn = (target: EventTarget | null): boolean =>
   target instanceof Element &&
-  target.closest("input, select, textarea, [contenteditable]") !== null;
+  target.closest("input, select, textarea, button, a, [contenteditable]") !== null;
 
 export const walker =
   (drawing: Drawing, count: number, near: number | undefined, walk: Walk) =>

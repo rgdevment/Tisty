@@ -144,7 +144,7 @@ function answer(cmd: string): Promise<unknown> {
       return Promise.resolve({
         title: "Notes",
         heading: null,
-        html: "<p>About bread</p>",
+        html: '<h2 id="bread" data-at="3">Bread</h2><p>About bread</p>',
         more: false,
       });
     case "task_cards":
@@ -375,6 +375,7 @@ describe("the Brainsty section", () => {
     const preview = await screen.findByRole("complementary", { name: "Notes" });
     expect(preview.textContent).toContain("1 connections");
     expect(await screen.findByText("About bread")).toBeTruthy();
+    expect(preview.querySelector("[id], [data-at]")).toBeNull();
     expect(last(sigma.lit)).toEqual([0, 1]);
     await user.click(screen.getByRole("button", { name: t("brainstyOpen") }));
 
@@ -419,9 +420,12 @@ describe("the Brainsty section", () => {
     await user.click(screen.getByRole("button", { name: t("brainsty") }));
     await screen.findByRole("figure", { name: t("brainstyNetwork") });
 
+    act(() => sigma.hands?.pick(1));
+    expect(await layer().findByRole("complementary", { name: "buy bread" })).toBeTruthy();
     await user.click(layer().getByRole("button", { name: t("brainstyFilters") }));
     await user.click(layer().getByRole("button", { name: t("brainstyKind_task") }));
     expect(last(sigma.hidden)).toEqual([false, true, false]);
+    expect(layer().queryByRole("complementary", { name: "buy bread" })).toBeNull();
     await user.selectOptions(layer().getByRole("combobox"), "#home");
     expect(last(sigma.hidden)).toEqual([true, true, false]);
     await user.click(layer().getByRole("button", { name: t("brainstyEverything") }));

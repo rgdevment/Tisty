@@ -155,6 +155,7 @@ export default function Brainsty({ network, onOpen, escaping }: Props) {
     if (!ready || !drawing.current) return;
     drawing.current.drawn.hide(hidden);
     drawing.current.overlays.sift(hidden);
+    setPicked((was) => (was !== null && hidden[was] ? null : was));
   }, [ready, hidden]);
 
   useEffect(() => {
