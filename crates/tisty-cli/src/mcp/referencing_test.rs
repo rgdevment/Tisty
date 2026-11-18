@@ -182,6 +182,28 @@ fn an_idea_s_head_and_a_table_without_outer_pipes_are_left_alone() {
 }
 
 #[test]
+fn a_note_or_a_state_never_grows_past_its_room_by_being_linked() {
+    let most = room_for("note").unwrap();
+    let near = "x".repeat(most - 10);
+
+    assert!(lengthened_past(
+        &near,
+        &format!("{near}{}", "y".repeat(20)),
+        most
+    ));
+    assert!(!lengthened_past(&near, &format!("{near}y"), most));
+    assert!(
+        !lengthened_past(&"x".repeat(most + 1), &"x".repeat(most + 50), most),
+        "a text already too long is refused for its own length"
+    );
+    assert_eq!(
+        room_for("tick"),
+        Some(tisty_core::task_state::STATE_AT_MOST)
+    );
+    assert_eq!(room_for("write_doc"), None);
+}
+
+#[test]
 fn only_a_tool_that_adds_skips_reading_what_was_there() {
     for adding in ["note", "propose", "say_done", "say_not_doing"] {
         assert!(only_adds(adding), "{adding}");

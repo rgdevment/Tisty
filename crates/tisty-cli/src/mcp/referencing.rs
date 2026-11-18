@@ -415,10 +415,33 @@ pub(super) fn link_all(paths: &Paths, tool: &str, args: &mut Value, field: &str)
         .map(str::trim)
         .filter(|line| !line.is_empty())
         .collect();
+    let room = room_for(tool);
     put_back(args, field, &mut |text| {
-        linked(text, &known, own.as_deref(), &kept, &mut heard)
+        let had = heard.linked.len();
+        let said = linked(text, &known, own.as_deref(), &kept, &mut heard);
+        match room.is_some_and(|most| lengthened_past(text, &said, most)) {
+            true => {
+                heard.linked.truncate(had);
+                text.to_string()
+            }
+            false => said,
+        }
     });
     heard
+}
+
+// Links lengthen the words, and a note or a state the agent sized to fit must not be refused for them.
+fn room_for(tool: &str) -> Option<usize> {
+    match tool {
+        "note" | "reword_note" | "say_done" | "say_not_doing" => Some(super::chores::NOTE_AT_MOST),
+        "tick" => Some(tisty_core::task_state::STATE_AT_MOST),
+        _ => None,
+    }
+}
+
+fn lengthened_past(was: &str, now: &str, most: usize) -> bool {
+    let length = |said: &str| said.trim().chars().count();
+    length(was) <= most && length(now) > most
 }
 
 // A tool that only adds writes no line that was there before, so it has nothing of the person's to keep.

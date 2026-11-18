@@ -78,9 +78,11 @@ fn lead(item: &str) -> (String, bool) {
 fn worded(said: &str) -> String {
     let mut out = String::new();
     let mut rest = said;
-    while let (Some(open), Some(close)) = (rest.find('['), rest.find("](")) {
-        let Some(end) = rest[close..].find(')').filter(|_| open < close) else {
-            break;
+    while let Some(close) = rest.find("](") {
+        let (Some(open), Some(end)) = (rest[..close].rfind('['), rest[close..].find(')')) else {
+            out.push_str(&rest[..close + 2]);
+            rest = &rest[close + 2..];
+            continue;
         };
         out.push_str(rest[..open].trim_end_matches('!'));
         out.push_str(&rest[open + 1..close]);

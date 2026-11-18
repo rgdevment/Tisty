@@ -74,6 +74,12 @@ fn a_link_in_a_decision_is_read_as_its_words() {
         said(&decisions(body)),
         vec![(3, "Ask the bank first, as Trips says.", false)]
     );
+    assert_eq!(
+        said(&decisions(
+            "# Decisions\n\n- Keep it (see a](x) and [Trips](tisty:doc/t-0001).\n"
+        )),
+        vec![(3, "Keep it (see a](x) and Trips.", false)]
+    );
 }
 
 #[test]
