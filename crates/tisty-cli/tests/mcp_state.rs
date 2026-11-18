@@ -566,3 +566,44 @@ fn a_state_written_long_by_other_means_comes_cut() {
     assert_eq!(state["cut"], true, "{state}");
     assert!(state["body"].as_str().unwrap().chars().count() <= 3_201);
 }
+
+#[test]
+fn on_the_persons_task_the_step_waits_for_them_and_the_state_is_kept_with_its_clock() {
+    let served = Served::new();
+    let id = served.person().captures("Renew the passport");
+    served.person().adds_step(id, "Book the appointment");
+    served.person().adds_step(id, "Pay the fee");
+    let task = id.to_string();
+    let mut talk = served.connect();
+    talk.call(
+        "note",
+        json!({ "task": task, "body": "The office opens at nine." }),
+    );
+
+    let said = talk.call(
+        "tick",
+        json!({ "task": task, "step": "Book the appointment", "state": "Booked for Monday; the fee is left." }),
+    );
+
+    assert_eq!(shown(&said)["said"], 1, "{said}");
+    assert_eq!(shown(&said)["stated"], true, "{said}");
+    let held = served.person().state();
+    let after = &held.tasks[&id];
+    assert!(
+        after.steps[0].said && !after.steps[0].done,
+        "the step waits for the person"
+    );
+    assert!(
+        after.stated_at.is_some(),
+        "the door let the trail of its state in"
+    );
+    let read = talk.call("read", json!({ "task": task }));
+    let kept = shown(&read);
+    assert!(kept["state"]["written"].is_string(), "{kept}");
+    assert!(kept["state"].get("old").is_none(), "{kept}");
+    assert!(
+        kept.get("journal").is_none(),
+        "only notes after the state come: {kept}"
+    );
+    assert_eq!(kept["earlier"], 1, "{kept}");
+}
