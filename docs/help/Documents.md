@@ -201,11 +201,11 @@ Each document keeps, on this computer, what it said before it changed, as a hist
 - **What a version keeps** — the document's whole text as it stood, in a Markdown file inside the `history` folder of your data. Attachments stay out, where they always are.
 - **When one is kept** — not at every save. When someone writes in the document after **30 minutes without changes**, or when **the writer changes** (you after an assistant, an assistant after you, or two different assistants), what was there becomes a version. What arrives from your other computers follows the same rule.
 - **How long it lasts** — **30 days**, counted from when the version was replaced and not from when you wrote it, so how the document stood 30 days ago is always kept. On opening Tisty, once a day at most, the ones past the limit go.
-- **The latest always stays.** The last earlier version of each document never runs out, even when the document has not changed in months.
+- **The latest always stays.** The last earlier version of each document never runs out, even when the document has not changed in months. Nor does what **Put back what it said before** would bring back.
 - **It belongs to this computer.** Versions are not synced: each computer keeps what was replaced on it and prunes its own. A new computer starts with no earlier versions, even once it holds all your documents. A [backup](Sync-and-Backup#backups) is what carries them.
 - **They go with the document.** Delete a document and its versions are deleted with it, on every computer.
 
-Today you go back in two ways: when something writes in the document you have open, the bar offers **Put back what it said before**, and an assistant can undo the last write to a document with `restore_doc`. Both read from here. The copy each document used to keep of what it said before became its first version on its own.
+You go back in two ways: when something writes in the document you have open, the bar offers **Put back what it said before**, and an assistant can undo, with `restore_doc`, the last change that replaced the document's text. Both read from here. The copy each document used to keep of what it said before became its first version on its own.
 
 ## Taking documents out
 
