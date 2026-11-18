@@ -6,10 +6,12 @@ use tisty_core::{Paths, State, Store};
 use super::super::asked::text;
 use super::super::jsonrpc::told;
 use super::super::mistaken::named_task;
+use super::super::resuming::signed_by_another;
 use super::super::{Refused, doc_named, hitch, title_of, when, written_title};
 
 const LISTED_AT_ONCE: usize = 40;
 const SHORT: usize = 12;
+const READ_BY_PARTS: [&str; 4] = ["section", "from", "to", "chars"];
 
 pub(super) enum Asked {
     List,
@@ -18,6 +20,7 @@ pub(super) enum Asked {
 
 impl Asked {
     pub(super) fn of(args: &Value) -> Result<Option<Self>, Refused> {
+        let sent = |key: &str| args.get(key).is_some_and(|one| !one.is_null());
         let list = args.get("versions").and_then(Value::as_bool) == Some(true);
         let asked = match (list, text(args, "version")) {
             (true, Some(_)) => {
@@ -31,13 +34,20 @@ impl Asked {
             (false, Some(one)) => Self::One(one),
             (false, None) => return Ok(None),
         };
-        if args.get("as").is_some_and(|one| !one.is_null()) {
+        if sent("as") {
             return Err(Refused::Tool(
                 "`as` carries the document as it reads now, so it takes no `versions` or \
                  `version`. Read the version without `as`, or go back to it with `restore_doc` \
                  and carry the document then."
                     .into(),
             ));
+        }
+        if let (Self::List, Some(part)) = (&asked, READ_BY_PARTS.into_iter().find(|key| sent(key)))
+        {
+            return Err(Refused::Tool(format!(
+                "`versions` lists what the document said before, so it takes no `{part}`: only \
+                 `cursor`, for the older ones. Read one of them by parts with `version`."
+            )));
         }
         Ok(Some(asked))
     }
@@ -55,6 +65,19 @@ pub(super) fn page_or_doc(state: &State, which: &str) -> Result<String, Refused>
             "{:?} has no page yet, so nothing it said was ever written over.",
             task.title
         ))),
+    }
+}
+
+// What the person took out of their diary stays out of an assistant's reach, open or not.
+pub(super) fn not_the_diary(paths: &Paths, state: &State, kept: &Kept) -> Result<(), Refused> {
+    match super::super::diary::in_the_diary(paths, state, &kept.file) {
+        false => Ok(()),
+        true => Err(Refused::Tool(
+            "the diary is the person's own, and so is what it said before: an assistant reads \
+             what it says now and no version of it. `read_doc` without `versions` or `version` \
+             reads it."
+                .into(),
+        )),
     }
 }
 
@@ -91,43 +114,70 @@ fn short(print: &str) -> &str {
 }
 
 fn hand(state: &State, wrote: &Wrote) -> String {
-    let assistant = state.assistants.contains(&wrote.by);
-    let another = wrote
-        .signed
-        .as_deref()
-        .filter(|hand| !assistant && !state.mine_to_write(hand));
-    match (another, &wrote.via, assistant) {
-        (Some(hand), _, _) => hand.to_string(),
-        (None, Some(via), _) => tisty_core::agent::client_named(via),
-        (None, None, true) => "an assistant".to_string(),
-        (None, None, false) => "the person".to_string(),
-    }
-}
-
-fn there(state: &State, one: &Shown) -> Option<String> {
-    let machine = one.elsewhere.as_ref()?;
-    Some(
-        state
-            .named
-            .get(machine)
-            .map(|named| named.name.trim())
-            .filter(|name| !name.is_empty())
-            .map_or_else(|| "another machine".to_string(), str::to_string),
+    let signed = signed_by_another(state, &wrote.by, wrote.signed.as_deref());
+    signed.unwrap_or_else(
+        || match (&wrote.via, state.assistants.contains(&wrote.by)) {
+            (Some(via), _) => tisty_core::agent::client_named(via),
+            (None, true) => "an assistant".to_string(),
+            (None, false) => "the person".to_string(),
+        },
     )
 }
 
-fn into_row(state: &State, one: &Shown, row: &mut Map<String, Value>) {
-    row.insert("version".into(), json!(short(&one.print)));
-    if let Some(wrote) = &one.wrote {
-        row.insert("written".into(), json!(when(wrote.at)));
-        row.insert("by".into(), json!(hand(state, wrote)));
+struct Written {
+    at: String,
+    by: String,
+}
+
+/// One version as an answer tells it: its hours already said as the person reads them.
+pub(super) struct Row {
+    version: String,
+    written: Option<Written>,
+    until: String,
+    bytes: Option<u64>,
+    elsewhere: Option<String>,
+}
+
+impl Row {
+    fn of(state: &State, one: &Shown) -> Self {
+        Self {
+            version: short(&one.print).to_string(),
+            written: one.wrote.as_ref().map(|wrote| Written {
+                at: when(wrote.at),
+                by: hand(state, wrote),
+            }),
+            until: when(one.replaced),
+            bytes: one.bytes,
+            elsewhere: one.elsewhere.as_ref().map(|machine| {
+                state
+                    .named
+                    .get(machine)
+                    .map(|named| named.name.trim())
+                    .filter(|name| !name.is_empty())
+                    .map_or_else(|| "another machine".to_string(), str::to_string)
+            }),
+        }
     }
-    row.insert("until".into(), json!(when(one.replaced)));
-    if let Some(bytes) = one.bytes {
-        row.insert("bytes".into(), json!(bytes));
+
+    pub(super) fn told_into(&self, into: &mut Map<String, Value>) {
+        into.insert("version".into(), json!(self.version));
+        if let Some(written) = &self.written {
+            into.insert("written".into(), json!(written.at));
+            into.insert("by".into(), json!(written.by));
+        }
+        into.insert("until".into(), json!(self.until));
+        if let Some(bytes) = self.bytes {
+            into.insert("bytes".into(), json!(bytes));
+        }
+        if let Some(machine) = &self.elsewhere {
+            into.insert("elsewhere".into(), json!(machine));
+        }
     }
-    if let Some(machine) = there(state, one) {
-        row.insert("elsewhere".into(), json!(machine));
+
+    fn told(&self) -> Value {
+        let mut row = Map::new();
+        self.told_into(&mut row);
+        Value::Object(row)
     }
 }
 
@@ -148,11 +198,7 @@ pub(super) fn listed(
         .iter()
         .skip(from)
         .take(LISTED_AT_ONCE)
-        .map(|one| {
-            let mut row = Map::new();
-            into_row(state, one, &mut row);
-            Value::Object(row)
-        })
+        .map(|one| Row::of(state, one).told())
         .collect();
     let away = all.iter().filter(|one| one.elsewhere.is_some()).count();
     let here = all.len() - away;
@@ -178,13 +224,17 @@ pub(super) fn listed(
         kept_of.insert("next".into(), json!(next));
     }
 
-    let said = match (here, away) {
-        (0, 0) => format!(
+    let said = match (all.len(), rows.is_empty()) {
+        (0, _) => format!(
             "Nothing of what {named} said before is kept on this machine. A text becomes a \
              version when it is written over after half an hour untouched, or by someone else, \
              and stays {days} days; versions never leave the machine that kept them."
         ),
-        _ => format!(
+        (every, true) => format!(
+            "No version of {named} is left past `cursor` {from}: the list holds {every} in all. \
+             Ask `versions` again without `cursor` for the newest."
+        ),
+        (_, false) => format!(
             "{named} keeps {here} past version(s) on this machine, newest first{}. `read_doc` \
              with `version` reads one, and `restore_doc` with `version` goes back to it. \
              Versions never leave the machine that kept them, and stay {days} days.{}",
@@ -214,13 +264,11 @@ pub(super) fn read(
 ) -> Result<Value, Refused> {
     let version = kept_here(paths, state, store, kept, asked)?;
     let notice = version.notice(&doc_named(state, &kept.file));
+    let title = written_title(state, &kept.file, &version.body);
     let mut kept_of = Map::new();
     kept_of.insert("doc".into(), json!(kept.file));
-    kept_of.insert(
-        "title".into(),
-        json!(written_title(state, &kept.file, &version.body)),
-    );
-    version.told_into(&mut kept_of);
+    kept_of.insert("title".into(), json!(title));
+    version.row.told_into(&mut kept_of);
     kept_of.insert("notice".into(), json!(notice));
     kept_of.insert("chars".into(), json!(version.body.chars().count()));
     kept_of.insert("lines".into(), json!(version.body.lines().count()));
@@ -230,7 +278,7 @@ pub(super) fn read(
     super::reading::by_parts(
         super::reading::Reading {
             body: &version.body,
-            title: written_title(state, &kept.file, &version.body),
+            title,
             warned: format!("({notice})\n\n"),
             past: true,
         },
@@ -242,32 +290,24 @@ pub(super) fn read(
 pub(super) struct Version {
     pub print: String,
     pub body: String,
-    row: Map<String, Value>,
+    pub row: Row,
 }
 
 impl Version {
     pub(super) fn short(&self) -> &str {
-        short(&self.print)
+        &self.row.version
     }
 
-    /// What a reader has to know before taking this text for the document.
-    pub(super) fn notice(&self, named: &str) -> String {
-        let said = |key: &str| self.row.get(key).and_then(Value::as_str);
+    fn notice(&self, named: &str) -> String {
         format!(
             "This is a past version of {named}, not what it says now: what it said until {}{}. \
              `restore_doc` with this `version` goes back to it.",
-            said("until").unwrap_or("it was written over"),
-            match (said("by"), said("written")) {
-                (Some(by), Some(written)) => format!(", written by {by} on {written}"),
-                _ => String::new(),
+            self.row.until,
+            match &self.row.written {
+                Some(written) => format!(", written by {} on {}", written.by, written.at),
+                None => String::new(),
             }
         )
-    }
-
-    pub(super) fn told_into(&self, kept_of: &mut Map<String, Value>) {
-        for (key, one) in &self.row {
-            kept_of.insert(key.clone(), one.clone());
-        }
     }
 }
 
@@ -298,7 +338,8 @@ pub(super) fn kept_here(
             )));
         }
     };
-    if let Some(machine) = there(state, one) {
+    let row = Row::of(state, one);
+    if let Some(machine) = &row.elsewhere {
         return Err(Refused::Tool(format!(
             "that version of {named} is kept on {machine}, not on this machine, and versions \
              never leave the machine that kept them: its text is not here, so from here it is \
@@ -311,11 +352,9 @@ pub(super) fn kept_here(
         return Err(Refused::Tool(format!(
             "version {} of {named} could not be read back from this machine's history: it was \
              taken out a moment ago, or it is not text.",
-            short(&one.print)
+            row.version
         )));
     };
-    let mut row = Map::new();
-    into_row(state, one, &mut row);
     Ok(Version {
         print: one.print.clone(),
         body,

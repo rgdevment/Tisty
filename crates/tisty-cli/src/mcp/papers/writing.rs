@@ -222,6 +222,13 @@ pub(in crate::mcp) fn restore_doc(paths: &Paths, args: &Value) -> Result<Value, 
     };
     let (which, a_task_s) = super::compacting::page_to_restore(paths, &which)?;
     let version = text(args, "version");
+    if version.is_none() && args.get("version").is_some_and(|one| !one.is_null()) {
+        return Err(Refused::Tool(
+            "`version` came empty, so nothing was changed. Send one as `read_doc` with \
+             `versions` gives it, or leave it out to undo only the last write."
+                .into(),
+        ));
+    }
     if version.is_none()
         && a_task_s
         && let Some(slot) = tisty_core::docs::read_notes_before(paths.data(), &which)
@@ -281,7 +288,6 @@ pub(in crate::mcp) fn restore_doc(paths: &Paths, args: &Value) -> Result<Value, 
     }
     // Adding to the end keeps nothing, and neither does the window's own save. Either one leaves
     // the kept body further back than one step, and putting it back would take their writing too.
-    // A version is asked for by name, so going back to it is going over all of that on purpose.
     let print = tisty_core::attach::printed(now.as_bytes());
     let more = past.is_none() && left.as_deref() != Some(print.as_str());
     let asked = args
@@ -353,20 +359,23 @@ pub(in crate::mcp) fn restore_doc(paths: &Paths, args: &Value) -> Result<Value, 
             }
         }
         let mut back_to = serde_json::Map::new();
-        one.told_into(&mut back_to);
+        one.row.told_into(&mut back_to);
         said["structuredContent"]["went_back_to"] = Value::Object(back_to);
     }
     Ok(said)
 }
 
-// The step back was set by the write that left this very body and leads elsewhere than the digest's
-// swap: undoing that write, a going back to a version among them, comes before swapping a digest.
+// A page that reads as a version it keeps was just gone back to: undoing that comes before a digest's swap.
 fn another_write_stands_behind(paths: &Paths, which: &str, now: &str, swapped: &str) -> bool {
     let print = tisty_core::attach::printed(now.as_bytes());
-    tisty_core::history::back(paths.data(), which).is_some_and(|back| {
-        back.left.as_deref() == Some(print.as_str())
-            && !tisty_core::docs::unchanged(&back.body, swapped)
-    })
+    let gone_back_to = tisty_core::history::versions(paths.data(), which)
+        .iter()
+        .any(|one| one.print == print);
+    gone_back_to
+        && tisty_core::history::back(paths.data(), which).is_some_and(|back| {
+            back.left.as_deref() == Some(print.as_str())
+                && !tisty_core::docs::unchanged(&back.body, swapped)
+        })
 }
 
 // Going back over an undone compaction brings it back to wait for the person, unless they kept it.
