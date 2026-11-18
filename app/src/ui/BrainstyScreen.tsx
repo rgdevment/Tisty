@@ -1,8 +1,11 @@
 import { useEffect, useRef, useState } from "react";
-import { brainNetwork, type Network, OPENED } from "../brainsty";
+import { brainNetwork, type Network, type Neuron, OPENED } from "../brainsty";
+import { taskOf } from "../core";
+import { seeing, useDesk } from "../desk";
 import { numbered } from "../format";
 import { fill, t } from "../locales";
 import { saidPlainly } from "../refusal";
+import type { Escaping } from "./Brainsty";
 import { brainstyLoaded, type LoadedBrainsty } from "./brainstyLoaded";
 import Glyph from "./Glyph";
 import { onMac } from "./WindowChrome";
@@ -20,6 +23,20 @@ export default function BrainstyScreen({ near, onClose }: Props) {
   const frame = useRef<HTMLDialogElement>(null);
   const closing = useRef(onClose);
   closing.current = onClose;
+  const escaping: Escaping = useRef(null);
+  const { setChosen, choose, opening, setError } = useDesk();
+  const open = (one: Neuron) => {
+    if (one.kind === "doc" || one.kind === "page") setChosen({ named: "docs", doc: one.id });
+    else if (one.kind === "tag") choose({ named: "tags", tags: [one.title] });
+    else if (one.kind === "task")
+      taskOf(one.id).then(
+        (task) => {
+          setChosen(seeing(task));
+          opening(task);
+        },
+        (e: unknown) => setError(saidPlainly(e)),
+      );
+  };
 
   useEffect(() => {
     performance.mark(OPENED);
@@ -44,7 +61,7 @@ export default function BrainstyScreen({ near, onClose }: Props) {
       if (e.key === "Escape") {
         e.preventDefault();
         e.stopImmediatePropagation();
-        closing.current();
+        if (!escaping.current?.()) closing.current();
       } else if (e.ctrlKey || e.metaKey) {
         e.stopImmediatePropagation();
       }
@@ -88,7 +105,7 @@ export default function BrainstyScreen({ near, onClose }: Props) {
         {network && <Counted network={network} />}
       </header>
       <div className="relative min-h-0 flex-1">
-        <Inside read={read} Drawn={Drawn} />
+        <Inside read={read} Drawn={Drawn} onOpen={open} escaping={escaping} />
       </div>
     </dialog>
   );
@@ -97,9 +114,13 @@ export default function BrainstyScreen({ near, onClose }: Props) {
 function Inside({
   read,
   Drawn,
+  onOpen,
+  escaping,
 }: {
   readonly read: Read | null;
   readonly Drawn: LoadedBrainsty | null;
+  readonly onOpen: (neuron: Neuron) => void;
+  readonly escaping: Escaping;
 }) {
   if (read === null) return <Said text={t("brainstyReading")} />;
   if ("failed" in read) return <Said text={read.failed} urgent />;
@@ -107,7 +128,7 @@ function Inside({
   if (network === null) return <Said text={t("brainstyNotYet")} />;
   if (network.nodes.length === 0) return <Said text={t("brainstyEmpty")} />;
   if (!Drawn) return <Said text={t("brainstyReading")} />;
-  return <Drawn network={network} />;
+  return <Drawn network={network} onOpen={onOpen} escaping={escaping} />;
 }
 
 function Counted({ network }: { readonly network: Network }) {
