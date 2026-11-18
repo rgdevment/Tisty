@@ -91,8 +91,20 @@ The answer brings the newest first, how many this computer keeps and its limit i
   "kept_here": 2,
   "kept_days": 30,
   "versions": [
-    { "version": "a3f9c2e17b04", "written": "2026-11-18 10:42", "by": "Claude Code", "until": "2026-11-18 11:05", "bytes": 3120 },
-    { "version": "7d21e8b0c9aa", "written": "2026-11-17 19:10", "by": "the person", "until": "2026-11-18 10:42", "bytes": 2988 }
+    {
+      "version": "a3f9c2e17b04",
+      "written": "2026-11-18 10:42",
+      "by": "Claude Code",
+      "until": "2026-11-18 11:05",
+      "bytes": 3120
+    },
+    {
+      "version": "7d21e8b0c9aa",
+      "written": "2026-11-17 19:10",
+      "by": "the person",
+      "until": "2026-11-18 10:42",
+      "bytes": 2988
+    }
   ]
 }
 ```
@@ -118,7 +130,14 @@ The document goes back to saying what that version said, over everything written
 **A version another computer keeps** comes in the list with `elsewhere` and that computer's name:
 
 ```json
-{ "version": "c0ffee12ab34", "written": "2026-11-16 08:30", "by": "the person", "until": "2026-11-16 21:15", "bytes": 2950, "elsewhere": "Marisol's laptop" }
+{
+  "version": "c0ffee12ab34",
+  "written": "2026-11-16 08:30",
+  "by": "the person",
+  "until": "2026-11-16 21:15",
+  "bytes": 2950,
+  "elsewhere": "Marisol's laptop"
+}
 ```
 
 Reading it or going back to it is refused and changes nothing: «that version … was written over on Marisol's laptop, not on this machine». The assistant tells you which computer has it, so you open it there.

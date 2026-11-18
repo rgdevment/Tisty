@@ -91,8 +91,20 @@ La respuesta trae la más nueva primero, cuántas guarda este equipo y su plazo 
   "kept_here": 2,
   "kept_days": 30,
   "versions": [
-    { "version": "a3f9c2e17b04", "written": "2026-11-18 10:42", "by": "Claude Code", "until": "2026-11-18 11:05", "bytes": 3120 },
-    { "version": "7d21e8b0c9aa", "written": "2026-11-17 19:10", "by": "the person", "until": "2026-11-18 10:42", "bytes": 2988 }
+    {
+      "version": "a3f9c2e17b04",
+      "written": "2026-11-18 10:42",
+      "by": "Claude Code",
+      "until": "2026-11-18 11:05",
+      "bytes": 3120
+    },
+    {
+      "version": "7d21e8b0c9aa",
+      "written": "2026-11-17 19:10",
+      "by": "the person",
+      "until": "2026-11-18 10:42",
+      "bytes": 2988
+    }
   ]
 }
 ```
@@ -118,7 +130,14 @@ El documento vuelve a decir lo de esa versión, por encima de todo lo escrito de
 **Una versión que guarda otro equipo** sale en la lista con `elsewhere` y el nombre de ese equipo:
 
 ```json
-{ "version": "c0ffee12ab34", "written": "2026-11-16 08:30", "by": "the person", "until": "2026-11-16 21:15", "bytes": 2950, "elsewhere": "Portátil de Marisol" }
+{
+  "version": "c0ffee12ab34",
+  "written": "2026-11-16 08:30",
+  "by": "the person",
+  "until": "2026-11-16 21:15",
+  "bytes": 2950,
+  "elsewhere": "Portátil de Marisol"
+}
 ```
 
 Leerla o volver a ella se rechaza sin cambiar nada: «that version … was written over on Portátil de Marisol, not on this machine». El asistente te dice en qué equipo está, para que la abras allá.
