@@ -44,7 +44,7 @@ impl Served {
         let from = BufReader::new(child.stdout.take().unwrap());
         Connection {
             child,
-            into,
+            into: Some(into),
             from,
             next: 0,
         }
@@ -73,7 +73,7 @@ impl Served {
 
 struct Connection {
     child: Child,
-    into: ChildStdin,
+    into: Option<ChildStdin>,
     from: BufReader<ChildStdout>,
     next: u64,
 }
@@ -85,8 +85,9 @@ impl Connection {
             "jsonrpc": "2.0", "id": self.next, "method": "tools/call",
             "params": { "name": name, "arguments": args },
         });
-        writeln!(self.into, "{asked}").unwrap();
-        self.into.flush().unwrap();
+        let into = self.into.as_mut().unwrap();
+        writeln!(into, "{asked}").unwrap();
+        into.flush().unwrap();
         let mut line = String::new();
         self.from.read_line(&mut line).unwrap();
         serde_json::from_str::<Value>(&line).unwrap()["result"].clone()
@@ -105,9 +106,10 @@ impl Connection {
     }
 }
 
+// Ending at the close of its input, it writes what coverage counted; a killed process never does.
 impl Drop for Connection {
     fn drop(&mut self) {
-        let _ = self.child.kill();
+        drop(self.into.take());
         let _ = self.child.wait();
     }
 }

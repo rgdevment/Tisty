@@ -461,3 +461,7 @@ impl<'a> Stated<'a> {
         told
     }
 }
+
+#[cfg(test)]
+#[path = "task_state_test.rs"]
+mod tests;
