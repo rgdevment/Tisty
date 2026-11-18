@@ -13,17 +13,27 @@ fn every_backup_is_kept_newest_first_and_read_back_whole() {
 }
 
 #[test]
-fn only_the_last_twenty_backups_of_a_file_stay() {
+fn the_first_backup_stays_and_only_the_last_twenty_others_do() {
     let data = tempfile::tempdir().unwrap();
     let at = Path::new("/home/rina/.codex/AGENTS.md");
     for n in 0..25 {
         keep(data.path(), at, format!("version {n}\n").as_bytes()).unwrap();
     }
     let all = kept(data.path(), at);
-    assert_eq!(all.len(), KEPT_AT_MOST);
+    assert_eq!(all.len(), KEPT_AT_MOST + 1);
     assert_eq!(all.first().unwrap().n, 25);
-    assert_eq!(all.last().unwrap().n, 6);
+    assert_eq!(all[KEPT_AT_MOST - 1].n, 6);
+    assert_eq!(
+        all.last().unwrap(),
+        &Kept {
+            n: 1,
+            bytes: 10,
+            pinned: true
+        }
+    );
+    assert_eq!(read_kept(data.path(), at, 1).unwrap(), b"version 0\n");
     assert_eq!(read_kept(data.path(), at, 5), Err(Refused::NoSuchBackup));
+    assert!(all[..KEPT_AT_MOST].iter().all(|one| !one.pinned));
 }
 
 #[test]

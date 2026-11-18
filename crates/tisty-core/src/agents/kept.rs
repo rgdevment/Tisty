@@ -3,6 +3,8 @@ use std::path::{Path, PathBuf};
 use super::Refused;
 
 pub const KEPT_AT_MOST: usize = 20;
+// The first backup is the file as it was before Tisty first wrote over it, so the cap never takes it.
+const PINNED: u64 = 1;
 const SHELVES: &str = "kept";
 const WHERE: &str = "where.txt";
 const DIGITS: usize = 10;
@@ -11,6 +13,7 @@ const DIGITS: usize = 10;
 pub struct Kept {
     pub n: u64,
     pub bytes: u64,
+    pub pinned: bool,
 }
 
 fn shelf(data: &Path, at: &Path) -> PathBuf {
@@ -35,12 +38,15 @@ pub(super) fn keep(data: &Path, at: &Path, bytes: &[u8]) -> Result<u64, Refused>
     let _ = crate::paths::ours_alone(&shelf);
     crate::store::write_atomic(&shelf.join(WHERE), at.to_string_lossy().as_bytes())?;
     let was = numbered(&shelf);
-    let n = was.last().map_or(1, |last| last + 1);
+    let n = was.last().map_or(PINNED, |last| last + 1);
     let into = shelf.join(format!("{n:0DIGITS$}"));
     crate::store::write_atomic(&into, bytes)?;
     let _ = crate::paths::ours_alone(&into);
-    let all = numbered(&shelf);
-    for old in &all[..all.len().saturating_sub(KEPT_AT_MOST)] {
+    let capped: Vec<u64> = numbered(&shelf)
+        .into_iter()
+        .filter(|one| *one != PINNED)
+        .collect();
+    for old in &capped[..capped.len().saturating_sub(KEPT_AT_MOST)] {
         let _ = std::fs::remove_file(shelf.join(format!("{old:0DIGITS$}")));
     }
     Ok(n)
@@ -55,7 +61,11 @@ pub fn kept(data: &Path, at: &Path) -> Vec<Kept> {
             let bytes = std::fs::metadata(shelf.join(format!("{n:0DIGITS$}")))
                 .ok()?
                 .len();
-            Some(Kept { n, bytes })
+            Some(Kept {
+                n,
+                bytes,
+                pinned: n == PINNED,
+            })
         })
         .collect()
 }

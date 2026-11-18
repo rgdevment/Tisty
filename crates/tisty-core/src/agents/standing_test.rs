@@ -619,3 +619,65 @@ fn files_written_before_the_ledger_was_kept_read_as_agreed_next_time() {
     );
     assert!(backups(room.data.path(), &target.at).is_empty());
 }
+
+#[test]
+fn the_persons_original_outlives_every_later_write() {
+    let mut room = room();
+    let at = room.home.path().join(".codex/AGENTS.md");
+    std::fs::create_dir_all(at.parent().unwrap()).unwrap();
+    std::fs::write(&at, "The person's own rules.\n").unwrap();
+    let first = room.target(
+        ".codex/AGENTS.md",
+        vec![rule("codex", "AGENTS.md", "Version 0.\n")],
+    );
+    overwrite(room.data.path(), &mut room.ledger, &first).unwrap();
+    for n in 1..=25 {
+        let next = room.target(
+            ".codex/AGENTS.md",
+            vec![rule("codex", "AGENTS.md", &format!("Version {n}.\n"))],
+        );
+        assert_eq!(room.round(std::slice::from_ref(&next)), [Standing::Wrote]);
+    }
+    let all = backups(room.data.path(), &at);
+    assert_eq!(all.len(), crate::agents::KEPT_AT_MOST + 1);
+    let pinned = all.last().unwrap();
+    assert!(pinned.pinned);
+    assert_eq!(
+        read_kept(room.data.path(), &at, pinned.n).unwrap(),
+        b"The person's own rules.\n"
+    );
+}
+
+#[test]
+fn writing_bytes_the_file_already_holds_leaves_no_backup() {
+    let mut room = room();
+    let target = room.target(
+        ".codex/AGENTS.md",
+        vec![rule("codex", "AGENTS.md", "Same.\n")],
+    );
+    std::fs::create_dir_all(target.at.parent().unwrap()).unwrap();
+    std::fs::write(&target.at, "Same.\n").unwrap();
+    overwrite(room.data.path(), &mut room.ledger, &target).unwrap();
+    overwrite(room.data.path(), &mut room.ledger, &target).unwrap();
+    assert_eq!(
+        room.round(std::slice::from_ref(&target)),
+        [Standing::UpToDate]
+    );
+    assert!(backups(room.data.path(), &target.at).is_empty());
+}
+
+#[test]
+fn putting_back_a_backup_the_file_already_holds_leaves_no_new_one() {
+    let mut room = room();
+    let target = room.target(
+        ".codex/AGENTS.md",
+        vec![rule("codex", "AGENTS.md", "New.\n")],
+    );
+    std::fs::create_dir_all(target.at.parent().unwrap()).unwrap();
+    std::fs::write(&target.at, "Old.\n").unwrap();
+    overwrite(room.data.path(), &mut room.ledger, &target).unwrap();
+    restore(room.data.path(), &room.ledger, &target, 1).unwrap();
+    assert_eq!(backups(room.data.path(), &target.at).len(), 2);
+    restore(room.data.path(), &room.ledger, &target, 1).unwrap();
+    assert_eq!(backups(room.data.path(), &target.at).len(), 2);
+}
