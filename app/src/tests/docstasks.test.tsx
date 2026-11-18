@@ -6,8 +6,7 @@ import Docs from "../ui/Docs";
 const held = vi.hoisted(() => ({
   sheet: null as null | {
     onTask?: (id: string) => void;
-    cited?: (id: string) => { kind: string };
-    cards?: string;
+    cardsShown?: { docs?: boolean; tasks?: boolean; here?: string };
   },
 }));
 
@@ -18,10 +17,6 @@ vi.mock("@tauri-apps/api/core", async () => ({
       return args?.id === "01K"
         ? Promise.resolve({ id: "01K", title: "Cambiar los neumáticos", status: "done" })
         : Promise.reject({ code: "notATaskId" });
-    if (cmd === "task_cards")
-      return Promise.resolve([
-        { id: "01K", title: "Cambiar los neumáticos", status: "done", steps: [] },
-      ]);
     return Promise.resolve(null);
   }),
 }));
@@ -45,7 +40,7 @@ const known: Filed[] = [
 ];
 
 describe("a task cited in a document", () => {
-  it("is read for its card, opens from it, and a missing one opens nothing and says nothing", async () => {
+  it("asks the core for its card, opens from it, and a missing one opens nothing and says nothing", async () => {
     const onSeeTask = vi.fn<(task: Task) => void>();
     const onError = vi.fn();
     render(
@@ -57,7 +52,9 @@ describe("a task cited in a document", () => {
         onSeeTask={onSeeTask}
       />,
     );
-    await waitFor(() => expect(held.sheet?.cited?.("01K").kind).toBe("closed"));
+    await waitFor(() =>
+      expect(held.sheet?.cardsShown).toMatchObject({ docs: true, tasks: true, here: "auto-0001" }),
+    );
 
     held.sheet?.onTask?.("01K");
     await waitFor(() =>

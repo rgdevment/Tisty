@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 use std::io::Read as _;
 use std::net::{IpAddr, ToSocketAddrs};
 use std::path::{Component, Path, PathBuf};
@@ -9,8 +8,9 @@ use base64::engine::general_purpose::STANDARD as BASE64;
 use percent_encoding::percent_decode_str;
 use tauri::{AppHandle, Manager};
 
+use crate::answers::cards::{Asked, Glimpses, Named, Seen};
 use crate::viewing::{Paper, Shown, Views, doc_body, named, place_of, shown_in};
-use crate::{Answer, Refusal, Session, held};
+use crate::{Answer, Refusal, Session};
 
 const PIECE_ABOUT: usize = 64 * 1024;
 
@@ -171,80 +171,29 @@ pub fn view_plain(app: AppHandle, window: tauri::WebviewWindow) -> Answer<String
     })
 }
 
-#[derive(Debug, PartialEq, Eq, serde::Serialize)]
-#[serde(rename_all = "camelCase", tag = "kind")]
-pub enum Card {
-    Doc {
-        title: String,
-    },
-    Page {
-        title: String,
-        at: usize,
-        of: usize,
-    },
-    Away {
-        title: String,
-    },
-    #[serde(rename = "self")]
-    Itself {
-        title: String,
-    },
-    Gone,
-}
-
-fn cards_of(
-    state: &tisty_core::State,
-    here: &str,
-    body: &str,
-    files: Vec<String>,
-) -> HashMap<String, Card> {
-    let pages: Vec<&str> = state
-        .docs
-        .values()
-        .find(|one| one.file == here && one.page_of.is_none())
-        .map(|mine| state.pages_read(mine.id, body))
-        .unwrap_or_default()
-        .into_iter()
-        .filter(|one| !state.held_away(one))
-        .map(|one| one.file.as_str())
-        .collect();
-    files
-        .into_iter()
-        .map(|file| {
-            let card = match state.docs.values().find(|one| one.file == file) {
-                None => Card::Gone,
-                Some(one) => {
-                    let title = one.title.as_deref().unwrap_or_default().trim().to_string();
-                    let page = pages.iter().position(|page| *page == file);
-                    match page {
-                        _ if file == here => Card::Itself { title },
-                        _ if state.held_away(one) => Card::Away { title },
-                        Some(at) => Card::Page {
-                            title,
-                            at: at + 1,
-                            of: pages.len(),
-                        },
-                        None => Card::Doc { title },
-                    }
-                }
-            };
-            (file, card)
-        })
-        .collect()
-}
-
+// A stranger's file names no documents of Tisty, so only one's own draws their cards, and never a task's.
 #[tauri::command(async)]
 pub fn view_cards(
     app: AppHandle,
     window: tauri::WebviewWindow,
-    files: Vec<String>,
-) -> Answer<HashMap<String, Card>> {
+    asked: Vec<Asked>,
+) -> Answer<Vec<String>> {
     let Source::Own(paper) = source_of(&app, window.label())? else {
         return Err(Refusal::of("notAllowed"));
     };
-    let body = doc_body(&app, &paper.file)?;
+    let asked: Vec<Asked> = asked
+        .into_iter()
+        .filter(|one| one.kind == Named::Doc)
+        .collect();
+    let seen = Seen {
+        here: Some(paper.file),
+        ..Seen::default()
+    };
     let session = app.state::<Mutex<Session>>();
-    Ok(cards_of(&held(&session).state, &paper.file, &body, files))
+    let glimpses = app.state::<Glimpses>();
+    Ok(crate::answers::cards::drawn(
+        &session, &glimpses, &asked, &seen,
+    ))
 }
 
 const PICTURES: [(&str, &str); 9] = [

@@ -37,21 +37,22 @@ const vite = await createServer({
   logLevel: "error",
   server: { middlewareMode: true, hmr: false },
 });
-const { carded, coloredAll, hosting, HUES, iconed, PAGE_CSS: sheet, piece, saidKinds } =
+const { cardKey, cardsOn, cardsPlaced, coloredAll, hosting, HUES, iconed, PAGE_CSS: sheet, piece, saidKinds } =
   await vite.ssrLoadModule("tisty-editor/read");
 const { adopt, t } = await vite.ssrLoadModule("/src/locales.ts");
 const { named, pictured } = await vite.ssrLoadModule("/src/previews.ts");
-const { SAY } = await vite.ssrLoadModule("/src/ui/saying.ts");
 const { examplesIn, shownBeside, topicsOf } = await vite.ssrLoadModule("/src/guide/reference.ts");
 
-const drawn = (texts) =>
+const example = (name, asked) =>
   JSON.parse(
-    execFileSync("cargo", ["run", "-q", "-p", "tisty-markdown", "--example", "drawn"], {
+    execFileSync("cargo", ["run", "-q", "-p", "tisty-markdown", "--example", name], {
       cwd: root,
-      input: JSON.stringify(texts),
+      input: JSON.stringify(asked),
       maxBuffer: 256 * 1024 * 1024,
     }).toString(),
   );
+
+const drawn = (texts) => example("drawn", texts);
 
 const kit = readFileSync(join(app, "..", "contracts", "documents", "contains", "widget.css"), "utf8");
 
@@ -99,14 +100,17 @@ const lent = (page) => {
   }
 };
 
-// Cards are drawn by the window's own code where it can be borrowed; a link card shows its site's letter, as one the app has not looked up yet.
-const cards = (page) => {
-  for (const drawn of page.querySelectorAll("figure.example > .drawn")) {
-    drawn.classList.add("page");
-    const titles = new Map(
-      Array.from(drawn.querySelectorAll("a.card[data-doc]")).map((one) => [one.dataset.doc, one.textContent]),
-    );
-    carded(page, { card: (file) => ({ kind: "doc", title: titles.get(file) ?? "" }), say: SAY }, () => true);
+// A document card is drawn by the core, as in the window; a link card shows its site's letter, as one the app has not looked up yet.
+const cards = (page, language) => {
+  const examples = Array.from(page.querySelectorAll("figure.example > .drawn"));
+  for (const drawn of examples) drawn.classList.add("page");
+  const asked = cardsOn(page).filter((one) => one.kind === "doc");
+  if (asked.length > 0) {
+    const laid = example("cards", { spoken: language.code, cards: asked });
+    cardsPlaced(page, new Map(asked.map((one, at) => [cardKey(one), laid[at]])));
+    for (const held of page.querySelectorAll("[data-card]")) held.removeAttribute("data-card");
+  }
+  for (const drawn of examples) {
     for (const link of drawn.querySelectorAll(":scope > p > a[href]")) {
       const held = link.parentElement;
       const at = link.getAttribute("href");
@@ -129,13 +133,13 @@ const cards = (page) => {
   }
 };
 
-const dressed = async (page) => {
+const dressed = async (page, language) => {
   saidKinds(page, (kind) => t(`said${kind}`));
   await iconed(page);
   await coloredAll(page);
   kept(page);
   lent(page);
-  cards(page);
+  cards(page, language);
   muted(page);
   for (const one of page.querySelectorAll("[data-at]")) one.removeAttribute("data-at");
   return page;
@@ -187,7 +191,7 @@ const build = async (language) => {
   const looks = drawn(examples.map((code) => code.textContent));
   examples.forEach((code, at) => shownBeside(code, looks[at], language));
   const pages = await Promise.all(
-    parts.map(async (part, at) => ({ part, page: await dressed(sheets[at]) })),
+    parts.map(async (part, at) => ({ part, page: await dressed(sheets[at], language) })),
   );
 
   const slugs = new Map();

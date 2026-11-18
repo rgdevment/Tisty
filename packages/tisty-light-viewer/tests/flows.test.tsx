@@ -463,26 +463,30 @@ describe("a document of one's own", () => {
     expect(screen.queryByRole("menuitem", { name: /carpeta/ })).toBeNull();
   });
 
-  it("draws its cards with what each names, an untitled one named so", async () => {
-    host.cardsOf.mockResolvedValue({
-      f2: { kind: "doc", title: "Huerta" },
-      f3: { kind: "doc", title: " " },
-    });
-    await open(
-      own(
-        '<p><a class="card" data-doc="f2">x</a></p><p><a class="card" data-doc="f3">y</a></p><p><a class="card" data-doc="f2">z</a></p>',
+  it("lays its document cards as the core draws them, and leaves a cited task as its words", async () => {
+    host.cardsOf.mockImplementation(async (asked: { id: string }[]) =>
+      asked.map(
+        (one) => `<span class="doc-card is-doc" data-doc="${one.id}">${one.id} dibujada</span>`,
       ),
     );
-    const carded = () => drawing.readAs.mock.calls.findLast(([, reading]) => reading.cards)?.[1];
-    await waitFor(() =>
-      expect(carded()?.cards.card("f2")).toEqual({ kind: "doc", title: "Huerta" }),
+    await open(
+      own(
+        '<p><a class="card" data-doc="f2">x</a></p><p><a class="card" data-task="T1">y</a></p>' +
+          '<p>Ver <a class="card" data-doc="f3">z</a> hoy</p>',
+      ),
     );
-    expect(host.cardsOf).toHaveBeenCalledWith(["f2", "f3"]);
-    const { cards, sites } = carded();
-    expect(cards.card("f3")).toEqual({ kind: "doc", title: "Sin título" });
-    expect(cards.card("f9")).toEqual({ kind: "gone" });
-    expect(sites).toEqual({});
-    expect(carded()?.brought).toBeTypeOf("function");
+    await waitFor(() =>
+      expect(document.querySelector(".page > p > .doc-card")?.textContent).toBe("f2 dibujada"),
+    );
+    expect(host.cardsOf).toHaveBeenCalledWith([
+      { kind: "doc", id: "f2", words: "x" },
+      { kind: "doc", id: "f3", words: "z" },
+    ]);
+    expect(document.querySelectorAll(".doc-card")).toHaveLength(1);
+    expect(document.querySelector('a.card[data-task="T1"]')?.textContent).toBe("y");
+    const reading = drawing.readAs.mock.calls.at(-1)?.[1];
+    expect(reading.sites).toEqual({});
+    expect(reading.brought).toBeTypeOf("function");
   });
 
   it("from a stranger's file, draws no web card, attachment card or widget", async () => {

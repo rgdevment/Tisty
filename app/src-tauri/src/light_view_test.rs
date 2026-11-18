@@ -1,76 +1,7 @@
 use super::{
-    Card, PIECE_ABOUT, body_of, cards_of, drawn_from, far_kind, far_picture, near_picture,
-    neighbour, reaches_outside,
+    PIECE_ABOUT, body_of, drawn_from, far_kind, far_picture, near_picture, neighbour,
+    reaches_outside,
 };
-
-fn kept(
-    state: &mut tisty_core::State,
-    file: &str,
-    title: &str,
-    page_of: Option<ulid::Ulid>,
-    archived: bool,
-) -> ulid::Ulid {
-    let id = ulid::Ulid::generate();
-    let one: tisty_core::model::Kept = serde_json::from_value(serde_json::json!({
-        "id": id.to_string(), "file": file, "order": file, "title": title,
-        "page_of": page_of.map(|of| of.to_string()), "archived": archived,
-    }))
-    .unwrap();
-    state.docs.insert(id, one);
-    id
-}
-
-#[test]
-fn a_documents_cards_say_what_each_names_as_the_main_window_does() {
-    let mut state = tisty_core::State::default();
-    let here = kept(&mut state, "here", "Aquí", None, false);
-    kept(&mut state, "p1", "Primera", Some(here), false);
-    kept(&mut state, "p2", "Segunda", Some(here), false);
-    kept(&mut state, "other", "Otra", None, false);
-    kept(&mut state, "old", "Vieja", None, true);
-    let files = ["p2", "p1", "other", "old", "here", "missing"].map(String::from);
-    let cards = cards_of(
-        &state,
-        "here",
-        "![B](tisty:doc/p2)\n\n![A](tisty:doc/p1)\n",
-        files.to_vec(),
-    );
-    assert_eq!(
-        cards["p2"],
-        Card::Page {
-            title: "Segunda".into(),
-            at: 1,
-            of: 2
-        }
-    );
-    assert_eq!(
-        cards["p1"],
-        Card::Page {
-            title: "Primera".into(),
-            at: 2,
-            of: 2
-        }
-    );
-    assert_eq!(
-        cards["other"],
-        Card::Doc {
-            title: "Otra".into()
-        }
-    );
-    assert_eq!(
-        cards["old"],
-        Card::Away {
-            title: "Vieja".into()
-        }
-    );
-    assert_eq!(
-        cards["here"],
-        Card::Itself {
-            title: "Aquí".into()
-        }
-    );
-    assert_eq!(cards["missing"], Card::Gone);
-}
 
 fn file_of_size(room: &tempfile::TempDir, bytes: usize) -> std::path::PathBuf {
     let at = room.path().join("long.md");

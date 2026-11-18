@@ -1,14 +1,13 @@
 import { readAs } from "tisty-editor/read";
 import { staged } from "tisty-sheet";
 import { locale } from "../locales";
-import { cardsFor } from "./carding";
 import {
-  citedCards,
   datedSteps,
   diagramBars,
   languaged,
   mathBars,
   pictures,
+  placedCards,
   type Reaching,
 } from "./dressing";
 import { keptInPlace, takenOver } from "./pagePatching";
@@ -72,10 +71,9 @@ export const wornLaid = (
     brought: () => {
       held = pictures(staging, live, { more: Boolean(reach.onMore) });
     },
-    cards: cardsFor(page, reach),
     sites: { glimpses: GLIMPSES },
   });
-  citedCards(staging, reach);
+  placedCards(staging, reach);
   for (const put of back) put();
   if (reach.onTable) tabled(page);
   if (reach.onWiden) gripped(page);

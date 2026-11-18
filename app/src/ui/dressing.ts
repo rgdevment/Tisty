@@ -1,7 +1,14 @@
 import { convertFileSrc } from "@tauri-apps/api/core";
 import type { Widths } from "tisty-editor/edit";
-import type { TaskCarded } from "tisty-editor/read";
-import { charsAt, readAs, sourceOf, taskCarded, unfolded } from "tisty-editor/read";
+import {
+  type CardAsked,
+  cardsPlaced,
+  charsAt,
+  type DrawnCards,
+  readAs,
+  sourceOf,
+  unfolded,
+} from "tisty-editor/read";
 import { widgetsDrawn } from "tisty-sheet";
 import { openLink } from "../core";
 import type { DayAt } from "../diary";
@@ -11,7 +18,6 @@ import type { Held, PiecePlace } from "../pieceWindow";
 import { pictured } from "../previews";
 import { plainly } from "../refusal";
 import { type Attaching, attachedAs, pressed } from "./attached";
-import { type Carding, cardsFor } from "./carding";
 import { boxKey, NOTE } from "./diaryPaging";
 import { glancing } from "./glancing";
 import { placeCopied, placedAt, placeOf, placeSaid, placeWritten, samePlace } from "./pagePlaces";
@@ -28,11 +34,13 @@ import { type Lending, lend, notWidget } from "./widgeting";
 /** Where a control asked from sits on screen: under it, its top and its right edge. */
 export type Anchor = { x: number; y: number; top?: number; right?: number };
 
-export type Reaching = Carding & {
+export type Reaching = {
   readonly body: string;
   readonly onDoc: (file: string, heading?: string) => void;
   readonly onTask?: (id: string) => void;
-  readonly cited?: (id: string) => TaskCarded;
+  readonly drawnCards?: DrawnCards;
+  readonly onCardsMissing?: (asked: CardAsked[]) => void;
+  readonly cardDays?: (box: Element) => void;
   readonly onTaskDone?: (id: string, title: string) => void;
   readonly onTaskStep?: (id: string, step: string, done: boolean) => void;
   readonly onOpen?: (reference: string) => void;
@@ -277,18 +285,17 @@ export const worn = (page: Document, live: () => boolean, reach?: Reaching): Wor
       held = pictures(page, live, { more: Boolean(reach?.onMore) });
       lent = widgets(page, reach);
     },
-    cards: reach && cardsFor(page, reach),
     sites: reach && { glimpses: GLIMPSES },
   });
-  if (reach) citedCards(page, reach);
+  if (reach) placedCards(page, reach);
   if (reach?.onPart) offeredAsParts(page, t("stepToPart"), reach.body);
   return { lent, kept: [...held, ...read.kept] };
 };
 
-// Only the window reads tasks, so the sheet every reader loads never carries a cited task's card.
-export const citedCards = (page: Document, reach: Reaching) => {
-  if (reach.cited)
-    taskCarded(page, { task: reach.cited, say: SAY, acting: Boolean(reach.onTaskDone) });
+export const placedCards = (page: Document, reach: Reaching) => {
+  if (!reach.drawnCards) return;
+  const missing = cardsPlaced(page, reach.drawnCards, undefined, reach.cardDays);
+  if (missing.length > 0) reach.onCardsMissing?.(missing);
 };
 
 type BarWays = { readonly open: boolean; readonly out: boolean };

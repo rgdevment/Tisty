@@ -5,10 +5,21 @@ import { askAgain, serve, showing } from "../inUse";
 import { t, type Word } from "../locales";
 import { named } from "../previews";
 import { plainly } from "../refusal";
-import { more } from "./carding";
 import { placeCopied } from "./pagePlaces";
 
 export { pressed } from "tisty-sheet";
+
+const more = (page: Document, target: string) => {
+  const one = page.createElement("button");
+  one.type = "button";
+  one.className = "card-more";
+  one.dataset.asked = "more";
+  one.dataset.target = target;
+  one.setAttribute("aria-label", t("cardMore"));
+  one.title = t("cardMore");
+  one.textContent = "⋯";
+  return one;
+};
 
 export type Attaching = {
   readonly more: boolean;

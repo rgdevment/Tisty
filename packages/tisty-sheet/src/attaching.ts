@@ -1,5 +1,5 @@
-import { piece } from "./cards";
 import { ending, fileCard, KINDS, playedAs } from "./files";
+import { piece } from "./pieces";
 import { weighed } from "./weighed";
 
 export type Attaching = {

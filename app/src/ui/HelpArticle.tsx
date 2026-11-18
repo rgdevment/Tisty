@@ -1,6 +1,6 @@
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { useCallback } from "react";
-import type { Carded, Head } from "tisty-editor/read";
+import type { Head } from "tisty-editor/read";
 import { type HelpEntry, type HelpPictures, helpDrawn } from "../guide/calls";
 import { aimedAt, dressed, linkedHere } from "../guide/help";
 import { fill } from "../locales";
@@ -17,7 +17,7 @@ interface Props {
   readonly spanish: boolean;
 }
 
-const card = (): Carded => ({ kind: "doc", title: "" });
+const EXAMPLES = { docs: true, examples: true } as const;
 
 const headed = (page: Document, words: string): Element | undefined =>
   [...page.querySelectorAll("h1, h2, h3, h4")].find((one) => one.textContent?.trim() === words);
@@ -47,7 +47,7 @@ export default function HelpArticle({
       body={`# ${entry.title}\n\n${body}`}
       draw={draw}
       label={entry.title}
-      card={card}
+      cardsShown={EXAMPLES}
       onDoc={() => undefined}
       onOutline={onOutline}
       onHere={(id) => {

@@ -4,27 +4,32 @@ import { EditorState } from "@codemirror/state";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { hosted, offered } from "tisty-editor/edit";
-import { taskCarded } from "tisty-editor/read";
+import { type CardAsked, cardKey } from "tisty-editor/read";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { Cited, Citing } from "../citing";
+import type { Citing } from "../citing";
+import { dateOf, whenLabel } from "../format";
 import { fill, t } from "../locales";
 import CitedBy from "../ui/CitedBy";
-import { answered, citedCards, type Reaching } from "../ui/dressing";
+import { answered, placedCards, type Reaching } from "../ui/dressing";
 import { HOST } from "../ui/hosting";
+import { cardDays, drawnFor } from "../ui/liveCards";
 import { went } from "../ui/paging";
-import { SAY } from "../ui/saying";
 import TaskPick from "../ui/TaskPick";
-import { cardOf, citedIn } from "../ui/taskCards";
 
 const bus = vi.hoisted(() => ({
   citing: null as Citing[] | null,
   searched: [] as string[],
   found: [] as { id: string; title: string; status: string }[],
+  drawn: [] as unknown[],
 }));
 
 vi.mock("@tauri-apps/api/core", () => ({
-  invoke: (cmd: string, args?: { query?: string }) => {
+  invoke: (cmd: string, args?: { query?: string; asked?: CardAsked[] }) => {
     if (cmd === "doc_cited_by") return Promise.resolve(bus.citing);
+    if (cmd === "cards_drawn") {
+      bus.drawn.push(args);
+      return Promise.resolve(args?.asked?.map((one) => `<span>${one.id}</span>`));
+    }
     if (cmd === "search") {
       bus.searched.push(args?.query ?? "");
       return Promise.resolve({ tasks: bus.found, papers: [], total: bus.found.length });
@@ -37,50 +42,59 @@ vi.mock("@tauri-apps/api/event", () => ({
   listen: () => Promise.resolve(() => {}),
 }));
 
-const TYRES: Cited = {
-  id: "01K",
-  title: "Cambiar los neumáticos",
-  status: "open",
-  list: "Auto",
-  steps: [{ id: "s1", html: "Pedir hora", done: false }],
-  part_of: "01W",
-};
+// As the core draws an open task's card for a window that can mark it.
+const OPEN =
+  '<span class="doc-card is-task is-open" tabindex="0" role="link" data-task="01K"><span class="card-tile">' +
+  '<button type="button" data-asked="taskDone" data-task="01K" aria-label="Marcarla hecha" class="card-check" title="Marcarla hecha"><svg class="glyph" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10" /></svg></button></span>' +
+  '<span class="card-name">Cambiar los neumáticos</span><span class="card-blurb">Auto · vence <time datetime="2099-01-05T00:00:00" data-say="when"></time></span>' +
+  '<span class="card-meta"><button type="button" data-asked="taskSteps" data-task="01K" aria-label="0 de 1 pasos" class="chip card-unfold" aria-expanded="false">0 de 1 pasos</button><span class="card-go">›</span></span>' +
+  '<span class="card-steps"><span class="card-step"><button type="button" data-asked="taskStep" data-task="01K" aria-label="Pedir hora" class="card-step-box" data-step="s1" role="checkbox" aria-checked="false"></button><span class="card-step-words">Pedir hora</span></span></span></span>';
+const GONE =
+  '<span class="doc-card is-task is-gone" data-task="01K"><span class="card-tile"></span><span class="card-name">Neumáticos</span>' +
+  '<span class="card-blurb">Esa tarea no está en esta máquina</span><span class="card-meta"></span></span>';
+const TYRES: CardAsked = { kind: "task", id: "01K", words: "Neumáticos" };
+const LINKED =
+  '<article class="page"><p data-at="0-30"><a class="card" data-task="01K">Neumáticos</a></p></article>';
 
-describe("what a cited task's card is told", () => {
-  it("names the ids a text cites once each, as the core writes them", () => {
-    expect(citedIn("![a](tisty:task/01kx) y [b](tisty:task/01KX) ![c](tisty:task/01AB)")).toEqual([
-      "01AB",
-      "01KX",
-    ]);
+describe("the cards the window asks the core for", () => {
+  it("asks once for each card it shows, and keeps each drawing by what was asked", async () => {
+    bus.drawn = [];
+    const auto: CardAsked = { kind: "doc", id: "auto-0001", words: "Auto" };
+    const seen = { here: "01W", acting: true, more: false, examples: false };
+    const drawn = await drawnFor([TYRES, auto, TYRES], { tasks: true }, seen);
+    expect(bus.drawn).toEqual([{ asked: [TYRES], seen }]);
+    expect([...drawn]).toEqual([[cardKey(TYRES), "<span>01K</span>"]]);
+    expect(await drawnFor([auto], undefined, seen)).toEqual(new Map());
+    expect(await drawnFor([auto], { tasks: true }, seen)).toEqual(new Map());
+    expect(bus.drawn).toHaveLength(1);
   });
 
-  it("says its list and its days while open, and its closing once archived", () => {
-    const open = cardOf({
-      ...TYRES,
-      deadline: { at: "2099-01-05T00:00:00", tz: "UTC", floating: true, has_time: false },
-    });
-    expect(open.kind).toBe("open");
-    expect(open.kind === "open" && open.about?.startsWith("Auto · ")).toBe(true);
-    expect(cardOf(TYRES, "01W")).toMatchObject({ kind: "open", about: undefined });
-
-    const closed = cardOf({ ...TYRES, status: "dropped", completed_at: "2026-03-15T12:00:00Z" });
-    expect(closed).toMatchObject({ kind: "closed", dropped: true });
-    expect(closed.kind === "closed" && closed.about).toContain("Auto · ");
-    expect(cardOf(undefined)).toEqual({ kind: "gone" });
+  it("words a card's days in the window's own calendar", () => {
+    const box = document.createElement("span");
+    box.innerHTML =
+      '<time datetime="2099-01-05T00:00:00" data-say="when" data-timed></time>' +
+      '<time datetime="2026-03-15T12:00:00Z" data-say="day"></time><time datetime="nunca" data-say="day"></time>';
+    cardDays(box);
+    const [due, closed, never] = box.querySelectorAll("time");
+    const at = "2099-01-05T00:00:00";
+    expect(due.textContent).toBe(whenLabel({ at, tz: "", floating: true, has_time: true }));
+    expect(closed.textContent).toBe(dateOf(Date.parse("2026-03-15T12:00:00Z") / 1000));
+    expect(never.textContent).toBe("");
   });
 });
 
-const page = (acting: boolean, seen = cardOf(TYRES)) => {
+const page = (drawn: string) => {
   const one = document.implementation.createHTMLDocument("");
-  one.body.innerHTML =
-    '<article class="page"><p data-at="0-30"><a class="card" data-task="01K">Neumáticos</a></p></article>';
-  taskCarded(one, { task: () => seen, say: SAY, acting });
+  one.body.innerHTML = LINKED;
+  const cards = new Map([[cardKey(TYRES), drawn]]);
+  const reach = { body: "", onDoc: () => {}, drawnCards: cards, cardDays };
+  placedCards(one, reach as unknown as Reaching);
   return one;
 };
 
 describe("a press on a cited task's card", () => {
   it("finishes the task, ticks a step or unfolds the steps, and never opens the block for writing", () => {
-    const sheet = page(true);
+    const sheet = page(OPEN);
     const done = sheet.querySelector("[data-asked='taskDone']") as Element;
     const step = sheet.querySelector("[data-asked='taskStep']") as Element;
     const unfold = sheet.querySelector("[data-asked='taskSteps']") as Element;
@@ -105,22 +119,41 @@ describe("a press on a cited task's card", () => {
     expect(onTaskDone).toHaveBeenCalledWith("01K", "Cambiar los neumáticos");
     expect(onTaskStep).toHaveBeenCalledWith("01K", "s1", true);
     expect(sheet.querySelector(".is-task")?.classList.contains("unfolded")).toBe(true);
+    expect(sheet.querySelector(".is-task time")?.textContent).not.toBe("");
   });
 
-  it("is drawn by the window itself, with its controls only when it can finish tasks", () => {
+  it("is laid from what the core drew, and asked for while the core has not drawn it", () => {
     const sheet = document.implementation.createHTMLDocument("");
-    sheet.body.innerHTML =
-      '<article class="page"><p data-at="0-30"><a class="card" data-task="01K">Neumáticos</a></p></article>';
-    const reach = { body: "", onDoc: () => {}, cited: () => cardOf(TYRES) } as unknown as Reaching;
-    citedCards(sheet, reach);
-    expect(sheet.querySelector(".is-task .card-name")?.textContent).toBe("Cambiar los neumáticos");
-    expect(sheet.querySelector("[data-asked='taskDone']")).toBeNull();
+    sheet.body.innerHTML = LINKED;
+    const onCardsMissing = vi.fn();
+    const reach = { body: "", onDoc: () => {}, drawnCards: new Map(), onCardsMissing };
+    placedCards(sheet, reach as unknown as Reaching);
+    expect(onCardsMissing).toHaveBeenCalledWith([TYRES]);
+    expect(sheet.querySelector("a.card[data-task]")).not.toBeNull();
+    placedCards(sheet, { body: "", onDoc: () => {}, onCardsMissing } as unknown as Reaching);
+    expect(onCardsMissing).toHaveBeenCalledTimes(1);
   });
 
   it("opens nothing on a task that is not here", () => {
-    const sheet = page(true, { kind: "gone" });
+    const sheet = page(GONE);
     const name = sheet.querySelector(".card-name") as Element;
     expect(went(name, false)).not.toMatchObject({ kind: "task" });
+  });
+
+  it("offers to take a page out only from a page's own card", () => {
+    const sheet = document.implementation.createHTMLDocument("");
+    const more = (file: string) =>
+      `<button type="button" class="card-more" data-asked="more" data-target="tisty:doc/${file}">⋯</button>`;
+    sheet.body.innerHTML =
+      `<article class="page"><p data-at="0-20"><span class="doc-card is-page">${more("cap1")}</span></p>` +
+      `<p data-at="21-40"><span class="doc-card is-doc">${more("otro")}</span></p></article>`;
+    const [leaf, other] = sheet.querySelectorAll("[data-asked='more']");
+    expect(went(leaf, false)).toMatchObject({
+      kind: "more",
+      target: "tisty:doc/cap1",
+      paged: true,
+    });
+    expect(went(other, false)).toMatchObject({ kind: "more", paged: false });
   });
 });
 

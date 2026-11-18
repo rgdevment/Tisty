@@ -1,5 +1,5 @@
-import { piece } from "./cards";
 import { HUES } from "./hues";
+import { piece } from "./pieces";
 import type { Say } from "./words";
 
 export type Glimpse = { readonly title?: string; readonly said?: string; readonly shot?: string };

@@ -1,4 +1,4 @@
-import { drawnGlyph, piece } from "./cards";
+import { drawnGlyph, piece } from "./pieces";
 import { SHEET_GLYPHS, type SheetGlyph } from "./sheetGlyphs";
 
 // What a file is by its name: its kind, the family it is drawn as, and the glyph its card wears.
