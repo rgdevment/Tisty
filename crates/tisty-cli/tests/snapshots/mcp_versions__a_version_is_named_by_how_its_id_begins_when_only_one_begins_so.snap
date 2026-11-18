@@ -1,0 +1,14 @@
+---
+source: crates/tisty-cli/tests/mcp_versions.rs
+expression: "settled(&unknown, &[(doc.as_str(), \"[doc]\")])"
+---
+{
+  "content": [
+    {
+      "text": "\"Acta\" [[doc]] keeps no version \"zz99\". `read_doc` with `versions` lists the ones it keeps; one past its days, or emptied by the person, is gone.",
+      "type": "text"
+    }
+  ],
+  "isError": true,
+  "resultType": "complete"
+}

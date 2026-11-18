@@ -11,6 +11,7 @@ pub(super) mod reading;
 pub(super) mod tabling;
 pub(super) mod task_pages;
 pub(super) mod tongues;
+pub(super) mod versions;
 pub(super) mod writing;
 
 use serde_json::{Value, json};

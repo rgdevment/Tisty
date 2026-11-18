@@ -332,6 +332,34 @@ with a switch between them, and `languages` names them when you read one. Write 
 `write_doc` and `translation_of`, join two that exist with `tongue_doc`, and change each language \
 in its own document: they are never merged into one body.
 
+## What a document said before
+
+Tisty keeps past versions of every document and every task's page. A text becomes a version when \
+it is written over after half an hour untouched, or by someone else, so a run of edits by one \
+hand is one version, not one per save. Look there when the person asks what a document said, what \
+changed, who changed it, or wants an earlier state back:
+- `read_doc` with `versions` lists them, newest first: `written` and `by` say when that text was \
+written and by whom, `until` when it was written over, `bytes` its size. A task's id lists its \
+page's.
+- `read_doc` with `version` reads one like the document, by parts when it is long, under a \
+`notice` that it is not what the document says now. To say what changed, read it and the \
+document, and compare.
+- `restore_doc` with `version` goes back to one. It writes that text over everything written \
+since, the person's words too, so do it when they ask for that version or to undo your own \
+writing, and tell them what it replaced. What it wrote over is kept in turn: `restore_doc` \
+without `version` puts it back. On a task's id it reaches only the assistant's notes, as ever; \
+by the page's own name, the whole page with its steps.
+
+`restore_doc` without `version` is still the one step back: it undoes the last write that \
+replaced something, and is refused when more was written since unless `even_if_more`. A document \
+compacted and waiting for the person takes no `version` until they keep or undo it.
+
+Versions are each machine's own and never sync. A version marked `elsewhere` was written over on \
+another of the person's machines, which keeps its text: from this one it is neither read nor \
+gone back to, so tell the person which machine has it instead of trying again. Versions stay 30 \
+days unless the person set fewer, the last one always stays, and one past its days or emptied by \
+the person is gone.
+
 ## One living document per subject
 
 A document is named by its subject, never by a ticket, a date or a round («v2», «second \
@@ -525,6 +553,7 @@ const TOPICS: &[(&str, &[&str])] = &[
         "documents",
         &[
             "Documents",
+            "What a document said before",
             "One living document per subject",
             "Removing and putting away",
             "Writing",
@@ -544,8 +573,8 @@ const INDEX: &str = "\
 priority, saying done, its page, picking up across sessions, the archive as knowledge to \
 search, and writing it to be read.
 - `rules` «documents»: one living document per subject, folders and pages, reading by parts, \
-updating before adding, marking what has had its day, writing, the person's diary, and the \
-assistants' own rules, skills and memory kept in AGENTS.
+updating before adding, its past versions and going back to one, marking what has had its day, \
+writing, the person's diary, and the assistants' own rules, skills and memory kept in AGENTS.
 - `rules` «tidying»: putting documents and task pages back in order, consolidating and \
 compacting them.
 - `rules` «ideas»: Brainstorm, the person's sheet of ideas: jotting them, turning them into tasks \

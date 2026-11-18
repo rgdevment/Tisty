@@ -221,42 +221,68 @@ pub(in crate::mcp) fn restore_doc(paths: &Paths, args: &Value) -> Result<Value, 
         ));
     };
     let (which, a_task_s) = super::compacting::page_to_restore(paths, &which)?;
-    if a_task_s
+    let version = text(args, "version");
+    if version.is_none()
+        && a_task_s
         && let Some(slot) = tisty_core::docs::read_notes_before(paths.data(), &which)
         && let Ok(now) = tisty_core::docs::read(&paths.docs(), &which)
         && let Some(body) = tisty_core::assistant_notes::swapped(&now, &slot.after, &slot.before)
     {
         return notes_put_back(paths, &which, &slot, &now, &body);
     }
-    let (state, _) = opened(paths)?;
-    if !a_task_s && super::super::mistaken::named_document(&state, &which).is_none() {
+    let (state, mut store) = opened(paths)?;
+    let kept = match a_task_s {
+        true => state.docs.values().find(|one| one.file == which),
+        false => super::super::mistaken::named_document(&state, &which),
+    };
+    let Some(kept) = kept else {
         return Err(Refused::Missing(
             super::super::mistaken::no_document_called(&state, &which),
         ));
-    }
+    };
     let named = doc_named(&state, &which);
-    let Some(tisty_core::history::Before { body: was, left }) =
-        tisty_core::history::back(paths.data(), &which)
-    else {
-        return Err(Refused::Tool(format!(
-            "nothing is kept beside {named} to go back to. Only a write that replaced a body \
-             is held, and adding to the end — `append_doc`, or a file kept with `attach` — \
-             replaces nothing."
-        )));
+    let past = match &version {
+        Some(asked) => Some(super::versions::kept_here(
+            paths, &state, &store, kept, asked,
+        )?),
+        None => None,
+    };
+    let (was, left) = match &past {
+        Some(one) => (one.body.clone(), None),
+        None => match tisty_core::history::back(paths.data(), &which) {
+            Some(tisty_core::history::Before { body, left }) => (body, left),
+            None => {
+                return Err(Refused::Tool(format!(
+                    "nothing is kept beside {named} to go back to. Only a write that replaced a \
+                     body is held, and adding to the end — `append_doc`, or a file kept with \
+                     `attach` — replaces nothing."
+                )));
+            }
+        },
     };
     let now = tisty_core::docs::read(&paths.docs(), &which).map_err(hitch)?;
     if a_task_s {
         super::compacting::only_the_notes(&now, &was)?;
     }
     if tisty_core::docs::unchanged(&now, &was) {
-        return Err(Refused::Tool(format!(
-            "{named} already says what is kept beside it, so there is nothing to go back to."
-        )));
+        return Err(Refused::Tool(match &past {
+            Some(one) => format!(
+                "{named} already says what version {} says, so there is nothing to go back to.",
+                one.short()
+            ),
+            None => format!(
+                "{named} already says what is kept beside it, so there is nothing to go back to."
+            ),
+        }));
+    }
+    if past.is_some() {
+        super::compacting::not_while_awaiting(&state, kept)?;
     }
     // Adding to the end keeps nothing, and neither does the window's own save. Either one leaves
     // the kept body further back than one step, and putting it back would take their writing too.
+    // A version is asked for by name, so going back to it is going over all of that on purpose.
     let print = tisty_core::attach::printed(now.as_bytes());
-    let more = left.as_deref() != Some(print.as_str());
+    let more = past.is_none() && left.as_deref() != Some(print.as_str());
     let asked = args
         .get("even_if_more")
         .and_then(Value::as_bool)
@@ -271,7 +297,6 @@ pub(in crate::mcp) fn restore_doc(paths: &Paths, args: &Value) -> Result<Value, 
         )));
     }
 
-    let (state, mut store) = opened(paths)?;
     super::super::ideas::brings_back_no_idea(&state, &which, &now, &was)?;
     let mut said = over_again(
         paths,
@@ -314,6 +339,21 @@ pub(in crate::mcp) fn restore_doc(paths: &Paths, args: &Value) -> Result<Value, 
             ));
         }
         said["structuredContent"]["over_more_than_one_write"] = json!(true);
+    }
+    if let Some(one) = &past {
+        let went = format!(
+            " That went back to version {}, over everything written since: what it wrote over \
+             is kept in turn, so `restore_doc` without `version` puts it back.",
+            one.short()
+        );
+        for at in ["/content/0/text", "/structuredContent/said"] {
+            if let Some(Value::String(text)) = said.pointer_mut(at) {
+                text.push_str(&went);
+            }
+        }
+        let mut back_to = serde_json::Map::new();
+        one.told_into(&mut back_to);
+        said["structuredContent"]["went_back_to"] = Value::Object(back_to);
     }
     Ok(said)
 }
