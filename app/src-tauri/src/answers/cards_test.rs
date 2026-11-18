@@ -139,7 +139,7 @@ fn a_documents_cards_say_what_each_names_as_the_main_window_does() {
     );
     let drawn = said(known, room.path(), &Glimpses::default(), &cards::SPANISH);
     assert!(
-        drawn[6].starts_with(r#"<span class="doc-card is-gone">"#),
+        drawn[6].starts_with(r#"<span class="doc-card is-gone" contenteditable="false">"#),
         "{}",
         drawn[6]
     );

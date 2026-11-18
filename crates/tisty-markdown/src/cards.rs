@@ -201,7 +201,7 @@ pub fn doc_card(card: &DocCard, words: &Words) -> String {
         Paper::Gone => words.gone_doc.to_string(),
         _ => escaped(&card.blurb),
     };
-    let mut out = format!(r#"<span class="doc-card is-{kind}""#);
+    let mut out = format!(r#"<span class="doc-card is-{kind}" contenteditable="false""#);
     if open {
         let _ = write!(out, r#" tabindex="0" role="link" data-doc="{file}""#);
     }
@@ -383,7 +383,7 @@ pub fn task_card(card: &TaskCard, words: &Words) -> String {
     let id = escaped(&card.id);
     let Some(task) = &card.task else {
         return format!(
-            r#"<span class="doc-card is-task is-gone" data-task="{id}"><span class="card-tile">{}</span>{}{}<span class="card-meta"></span></span>"#,
+            r#"<span class="doc-card is-task is-gone" contenteditable="false" data-task="{id}"><span class="card-tile">{}</span>{}{}<span class="card-meta"></span></span>"#,
             glyph(TODO),
             piece("card-name", &escaped(&card.words)),
             piece("card-blurb", words.task_away),
@@ -402,7 +402,7 @@ pub fn task_card(card: &TaskCard, words: &Words) -> String {
         glyph(if open { TODO } else { DONE })
     };
     let mut out = format!(
-        r#"<span class="doc-card is-task is-{}" tabindex="0" role="link" data-task="{id}"><span class="card-tile">{tile}</span>{}{}<span class="card-meta">{}{}</span>"#,
+        r#"<span class="doc-card is-task is-{}" contenteditable="false" tabindex="0" role="link" data-task="{id}"><span class="card-tile">{tile}</span>{}{}<span class="card-meta">{}{}</span>"#,
         if open { "open" } else { "closed" },
         piece("card-name", &escaped(&task.title)),
         piece("card-blurb", &about(task, words)),

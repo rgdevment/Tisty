@@ -42,7 +42,7 @@ fn a_document_card_opens_its_document_and_says_what_it_holds() {
         &ENGLISH,
     );
     assert!(drawn.starts_with(
-        r#"<span class="doc-card is-doc" tabindex="0" role="link" data-doc="f2"><span class="card-tile"><svg class="glyph""#
+        r#"<span class="doc-card is-doc" contenteditable="false" tabindex="0" role="link" data-doc="f2"><span class="card-tile"><svg class="glyph""#
     ));
     assert!(drawn.contains(
         r#"<span class="card-name">Huerta</span><span class="card-blurb">Tomates · riego</span>"#
@@ -83,11 +83,11 @@ fn an_archived_card_still_opens_and_says_so() {
 #[test]
 fn a_card_to_its_own_document_and_a_gone_one_open_nothing() {
     let itself = doc_card(&doc(Paper::Itself { title: " ".into() }), &ENGLISH);
-    assert!(itself.starts_with(r#"<span class="doc-card is-self"><span"#));
+    assert!(itself.starts_with(r#"<span class="doc-card is-self" contenteditable="false"><span"#));
     assert!(itself.contains(r#"<span class="card-name">Untitled</span><span class="card-blurb">This very document</span>"#));
     assert!(!itself.contains("card-go"));
     let gone = doc_card(&doc(Paper::Gone), &SPANISH);
-    assert!(gone.starts_with(r#"<span class="doc-card is-gone"><span"#));
+    assert!(gone.starts_with(r#"<span class="doc-card is-gone" contenteditable="false"><span"#));
     assert!(gone.contains(r#"<span class="card-name">Huerta</span><span class="card-blurb">Ese documento no está en esta máquina</span>"#));
     assert!(gone.contains(r#"<span class="chip gone">Ya no está</span>"#));
 }
@@ -122,7 +122,7 @@ fn an_open_task_card_names_its_list_and_leaves_its_days_to_the_window() {
     };
     let drawn = cited(Some(task), false);
     assert!(drawn.starts_with(
-        r#"<span class="doc-card is-task is-open" tabindex="0" role="link" data-task="01JC">"#
+        r#"<span class="doc-card is-task is-open" contenteditable="false" tabindex="0" role="link" data-task="01JC">"#
     ));
     assert!(drawn.contains(
         r#"<span class="card-blurb">Casa · <time datetime="2026-11-20T00:00:00" data-say="when"></time> · vence <time datetime="2026-11-21T18:30:00" data-say="when" data-timed></time></span>"#
@@ -179,7 +179,9 @@ fn a_closed_task_says_how_it_ended_and_when() {
         ..open_task(Vec::new())
     };
     let drawn = cited(Some(task), true);
-    assert!(drawn.starts_with(r#"<span class="doc-card is-task is-closed" tabindex="0""#));
+    assert!(drawn.starts_with(
+        r#"<span class="doc-card is-task is-closed" contenteditable="false" tabindex="0""#
+    ));
     assert!(drawn.contains(DONE));
     assert!(!drawn.contains("taskDone"));
     assert!(drawn.contains(
@@ -196,7 +198,7 @@ fn a_task_that_is_not_here_keeps_its_words_and_opens_nothing() {
     assert_eq!(
         drawn,
         format!(
-            r#"<span class="doc-card is-task is-gone" data-task="01JC"><span class="card-tile">{}</span><span class="card-name">Rina &amp; co</span><span class="card-blurb">Esa tarea no está en esta máquina</span><span class="card-meta"></span></span>"#,
+            r#"<span class="doc-card is-task is-gone" contenteditable="false" data-task="01JC"><span class="card-tile">{}</span><span class="card-name">Rina &amp; co</span><span class="card-blurb">Esa tarea no está en esta máquina</span><span class="card-meta"></span></span>"#,
             glyph(TODO)
         )
     );
