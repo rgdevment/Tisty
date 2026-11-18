@@ -85,6 +85,11 @@ impl Connection {
 impl Drop for Connection {
     fn drop(&mut self) {
         drop(self.into.take());
+        let until = std::time::Instant::now() + std::time::Duration::from_secs(10);
+        while matches!(self.child.try_wait(), Ok(None)) && std::time::Instant::now() < until {
+            std::thread::sleep(std::time::Duration::from_millis(20));
+        }
+        let _ = self.child.kill();
         let _ = self.child.wait();
     }
 }
