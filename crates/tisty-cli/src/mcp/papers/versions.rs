@@ -22,6 +22,13 @@ impl Asked {
     pub(super) fn of(args: &Value) -> Result<Option<Self>, Refused> {
         let sent = |key: &str| args.get(key).is_some_and(|one| !one.is_null());
         let list = args.get("versions").and_then(Value::as_bool) == Some(true);
+        if sent("version") && text(args, "version").is_none() {
+            return Err(Refused::Tool(
+                "`version` came empty. Send one as `read_doc` with `versions` gives it, or leave \
+                 it out to read what the document says now."
+                    .into(),
+            ));
+        }
         let asked = match (list, text(args, "version")) {
             (true, Some(_)) => {
                 return Err(Refused::Tool(
@@ -112,12 +119,12 @@ fn past(paths: &Paths, state: &State, store: &Store, kept: &Kept) -> Result<Past
 
 const GONE_BACK: &str = "gone-back";
 
-fn gone_back_at(paths: &Paths, page: &str) -> Option<std::path::PathBuf> {
-    tisty_core::docs::resolve(&paths.cache().join(GONE_BACK), page).ok()
+fn gone_back_at(paths: &Paths, doc: &str) -> Option<std::path::PathBuf> {
+    tisty_core::docs::resolve(&paths.data().join(GONE_BACK), doc).ok()
 }
 
-pub(super) fn went_back(paths: &Paths, page: &str, from: &str, to: &str) {
-    let Some(at) = gone_back_at(paths, page) else {
+pub(super) fn went_back(paths: &Paths, doc: &str, from: &str, to: &str) {
+    let Some(at) = gone_back_at(paths, doc) else {
         return;
     };
     let prints = format!(
@@ -125,19 +132,37 @@ pub(super) fn went_back(paths: &Paths, page: &str, from: &str, to: &str) {
         tisty_core::docs::print_of_text(from),
         tisty_core::docs::print_of_text(to)
     );
-    let _ = at.parent().map(std::fs::create_dir_all);
-    let _ = tisty_core::store::write_atomic(&at, prints.as_bytes());
+    let kept = at
+        .parent()
+        .map_or(Ok(()), std::fs::create_dir_all)
+        .map_err(tisty_core::Error::Io)
+        .and_then(|()| tisty_core::store::write_atomic(&at, prints.as_bytes()));
+    if let Err(e) = kept {
+        tisty_core::witness::warn(
+            tisty_core::witness::channel::DOOR,
+            "a going back to a version could not be noted, so its undo may be taken for another",
+            &[("why", tisty_core::witness::Fact::Why(e.to_string()))],
+        );
+    }
 }
 
-// A digest's swap waits while the page still stands where a going back left it or its undo did.
-pub(super) fn undoes_a_going_back(paths: &Paths, page: &str, now: &str) -> bool {
-    let print = tisty_core::docs::print_of_text(now);
-    let marked = gone_back_at(paths, page)
+// Only the two bodies a going back moved between, the one standing and the one a step back, are its undo.
+pub(super) fn undoes_a_going_back(paths: &Paths, doc: &str, now: &str) -> bool {
+    let Some(back) = tisty_core::history::back(paths.data(), doc) else {
+        return false;
+    };
+    let (standing, behind) = (
+        tisty_core::docs::print_of_text(now),
+        tisty_core::docs::print_of_text(&back.body),
+    );
+    let marked: Vec<String> = gone_back_at(paths, doc)
         .and_then(|at| std::fs::read_to_string(at).ok())
-        .is_some_and(|said| said.lines().any(|one| one == print));
-    marked
-        && tisty_core::history::back(paths.data(), page)
-            .is_some_and(|back| back.left.as_deref() == Some(print.as_str()))
+        .map(|said| said.lines().map(str::to_string).collect())
+        .unwrap_or_default();
+    let pair = |one: &str, other: &str| marked == [one, other] || marked == [other, one];
+    standing != behind
+        && pair(&standing, &behind)
+        && back.left.as_deref() == Some(standing.as_str())
 }
 
 fn short(print: &str) -> &str {
@@ -260,6 +285,10 @@ pub(super) fn listed(
          alone may keep them: their text is not here, so from this one they are neither read nor \
          gone back to"
     );
+    let older = match next {
+        Some(next) => format!(" Older ones: `versions` again with `cursor` {next}."),
+        None => String::new(),
+    };
     let said = match (all.len(), rows.is_empty(), here) {
         (0, _, _) => format!(
             "Nothing of what {named} said before is kept on this machine. A text becomes a \
@@ -272,19 +301,15 @@ pub(super) fn listed(
         ),
         (_, false, 0) => format!(
             "Nothing of what {named} said before is kept on this machine; {elsewhere}. Versions \
-             never leave the machine that kept them."
+             never leave the machine that kept them.{older}"
         ),
         (_, false, _) => format!(
             "{named} keeps {here} past version(s) on this machine, newest first{}. `read_doc` \
              with `version` reads one, and `restore_doc` with `version` goes back to it. \
-             Versions never leave the machine that kept them, and stay {days} days.{}",
+             Versions never leave the machine that kept them, and stay {days} days.{older}",
             match away {
                 0 => String::new(),
                 _ => format!("; {elsewhere}"),
-            },
-            match next {
-                Some(next) => format!(" Older ones: `versions` again with `cursor` {next}."),
-                None => String::new(),
             }
         ),
     };

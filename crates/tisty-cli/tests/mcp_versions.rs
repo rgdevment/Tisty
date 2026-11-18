@@ -429,6 +429,13 @@ fn going_back_to_a_compaction_that_was_undone_does_not_make_it_wait_again() {
         served.read(&doc).get("compacted").is_none(),
         "it waits again"
     );
+    went(&served.call("restore_doc", json!({ "doc": doc })));
+    went(&served.call("restore_doc", json!({ "doc": doc })));
+    assert!(served.body_of(&doc).contains("Compacta."));
+    assert!(
+        served.read(&doc).get("compacted").is_none(),
+        "undoing and redoing the going back made it wait again"
+    );
     went(&served.call(
         "edit_doc",
         json!({ "doc": doc, "old": "Compacta.", "new": "Compacta, y luego corregida." }),
@@ -445,8 +452,11 @@ fn a_version_is_named_by_how_its_id_begins_when_only_one_begins_so() {
     went(&by_start);
     assert_eq!(by_start["structuredContent"]["body"], UNO);
 
-    let every = served.call("read_doc", json!({ "doc": doc, "version": "" }));
-    assert!(every["structuredContent"].get("print").is_some(), "{every}");
+    let empty = served.call("read_doc", json!({ "doc": doc, "version": "" }));
+    assert!(
+        refused(&empty),
+        "an empty start names every version: {empty}"
+    );
 
     let unknown = served.call("read_doc", json!({ "doc": doc, "version": "zz99" }));
     assert!(refused(&unknown), "{unknown}");
@@ -886,6 +896,42 @@ fn going_back_by_the_pages_own_name_takes_the_whole_page_back() {
 
     went(&served.call("restore_doc", json!({ "doc": page, "version": version })));
     assert_eq!(served.body_of(&page), before);
+
+    let undo_by_task = served.call("restore_doc", json!({ "doc": task }));
+    assert!(refused(&undo_by_task), "{undo_by_task}");
+    assert!(
+        words(&undo_by_task).contains(&format!("`restore_doc` with `{page}` as `doc`")),
+        "{undo_by_task}"
+    );
+    went(&served.call("restore_doc", json!({ "doc": page })));
+    assert!(served.body_of(&page).contains("llevar la foto"));
+}
+
+#[test]
+fn a_digest_written_after_a_going_back_is_still_swapped_out_and_back_in() {
+    let served = Served::new();
+    let (task, page) = served.task_with_a_page();
+    let first_note = served.version_that_said(&task, "Nota uno.");
+    went(&served.call("restore_doc", json!({ "doc": task, "version": first_note })));
+    let gone_back = served.body_of(&page);
+    went(&served.call(
+        "append_doc",
+        json!({ "doc": task, "body": "Resumen: la nota uno.", "replace": true }),
+    ));
+    let digest = served.body_of(&page);
+
+    let out = served.call("restore_doc", json!({ "doc": task }));
+    went(&out);
+    assert_eq!(out["structuredContent"]["notes_put_back"], true, "{out}");
+    assert_eq!(served.body_of(&page), gone_back);
+
+    let back_in = served.call("restore_doc", json!({ "doc": task }));
+    went(&back_in);
+    assert_eq!(
+        back_in["structuredContent"]["notes_put_back"], true,
+        "the digest came back as a plain undo: {back_in}"
+    );
+    assert_eq!(served.body_of(&page), digest);
 }
 
 #[test]
@@ -1040,6 +1086,13 @@ fn listing_reading_and_carrying_out_are_asked_one_at_a_time() {
         assert!(refused(&carried), "{carried}");
         assert!(words(&carried).contains("as it reads now"), "{carried}");
     }
+
+    let blank = served.call("read_doc", json!({ "doc": doc, "version": " " }));
+    assert!(
+        refused(&blank),
+        "an empty version read the document now: {blank}"
+    );
+    assert!(words(&blank).contains("`version` came empty"), "{blank}");
 
     let plain = served.call("read_doc", json!({ "doc": doc, "versions": false }));
     assert!(plain["structuredContent"].get("print").is_some(), "{plain}");
