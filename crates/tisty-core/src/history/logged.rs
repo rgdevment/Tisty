@@ -60,34 +60,63 @@ pub fn logged(events: &[Event], id: DocId) -> Vec<Logged> {
     all
 }
 
-/// The devices that write from this machine, and those of a machine the person removed.
-#[derive(Debug, Clone, Default, PartialEq, Eq)]
+/// Which machine each device writes from: this one, another the person has, or one they removed.
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Machines {
-    here: BTreeSet<DeviceId>,
-    gone: BTreeSet<DeviceId>,
+    machine: DeviceId,
+    agent: Option<DeviceId>,
+    hosts: BTreeMap<DeviceId, DeviceId>,
+    assistants: BTreeSet<DeviceId>,
+    removed: BTreeSet<DeviceId>,
 }
 
 impl Machines {
     pub fn of(state: &crate::State, machine: &DeviceId, agent: Option<&DeviceId>) -> Self {
-        let hosted_on = |on: &dyn Fn(&DeviceId) -> bool| -> BTreeSet<DeviceId> {
-            state
-                .hosts
+        Self {
+            machine: machine.clone(),
+            agent: agent.cloned(),
+            hosts: state.hosts.clone(),
+            assistants: state.assistants.clone(),
+            removed: state
+                .dropped
                 .iter()
-                .filter(|(_, host)| on(host))
-                .map(|(agent, _)| agent.clone())
-                .collect()
-        };
-        let mut here = hosted_on(&|host| host == machine);
-        here.insert(machine.clone());
-        here.extend(agent.cloned());
-        let mut gone = hosted_on(&|host| state.dropped.contains(host));
-        gone.extend(state.dropped.iter().cloned());
-        Self { here, gone }
+                .filter(|one| !state.assistants.contains(*one))
+                .cloned()
+                .collect(),
+        }
+    }
+
+    /// A retired assistant loses its host from the state, but the log still says where it lived.
+    pub fn told_by(mut self, log: &[Event]) -> Self {
+        for event in log {
+            if let Op::DeviceHost { d, of, .. } = &event.op
+                && (event.device == *d || event.device == *of)
+                && self.assistants.contains(d)
+                && !self.assistants.contains(of)
+            {
+                self.hosts.entry(d.clone()).or_insert_with(|| of.clone());
+            }
+        }
+        self
+    }
+
+    /// The machine a device writes from; an assistant whose host nobody declared names none.
+    pub fn machine_of(&self, device: &DeviceId) -> Option<DeviceId> {
+        match self.hosts.get(device) {
+            Some(host) => Some(host.clone()),
+            None => (!self.assistants.contains(device)).then(|| device.clone()),
+        }
     }
 
     /// Whether what this device wrote over is kept on another machine the person still has.
     pub fn elsewhere(&self, device: &DeviceId) -> bool {
-        !self.here.contains(device) && !self.gone.contains(device)
+        if *device == self.machine || self.agent.as_ref() == Some(device) {
+            return false;
+        }
+        match self.machine_of(device) {
+            Some(on) => on != self.machine && !self.removed.contains(&on),
+            None => true,
+        }
     }
 }
 

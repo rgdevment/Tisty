@@ -198,6 +198,70 @@ fn a_machine_the_person_removed_keeps_nothing_nor_does_its_assistant() {
     assert!(!machines.elsewhere(&device("agent_there")));
 }
 
+fn hosted_by(agent: &str, host: &str) -> Event {
+    Event::new(
+        device(host),
+        at(0),
+        Op::DeviceHost {
+            d: device(agent),
+            of: device(host),
+            p: None,
+        },
+    )
+}
+
+fn retired(state: &mut crate::State, agent: &str) {
+    state.hosts.remove(&device(agent));
+    state.dropped.insert(device(agent));
+}
+
+#[test]
+fn an_assistant_retired_on_another_machine_still_wrote_from_there() {
+    let mut state = hosted(&[("agent_there", THERE)]);
+    retired(&mut state, "agent_there");
+    let log = [hosted_by("agent_there", THERE)];
+
+    let machines = Machines::of(&state, &device(HERE), None).told_by(&log);
+
+    assert!(machines.elsewhere(&device("agent_there")));
+    assert_eq!(
+        machines.machine_of(&device("agent_there")),
+        Some(device(THERE))
+    );
+}
+
+#[test]
+fn this_machines_own_retired_assistant_wrote_from_here() {
+    let mut state = hosted(&[("old_agent", HERE)]);
+    retired(&mut state, "old_agent");
+    let log = [hosted_by("old_agent", HERE)];
+
+    let machines = Machines::of(&state, &device(HERE), Some(&device("new_agent"))).told_by(&log);
+
+    assert!(!machines.elsewhere(&device("old_agent")));
+    assert!(!machines.elsewhere(&device("new_agent")));
+}
+
+#[test]
+fn a_host_said_by_a_third_device_is_not_believed() {
+    let mut state = hosted(&[("agent_there", THERE)]);
+    retired(&mut state, "agent_there");
+    let forged = Event::new(
+        device("stranger"),
+        at(0),
+        Op::DeviceHost {
+            d: device("agent_there"),
+            of: device(HERE),
+            p: None,
+        },
+    );
+
+    let machines = Machines::of(&state, &device(HERE), None).told_by(&[forged]);
+
+    assert!(machines.elsewhere(&device("agent_there")));
+    assert_eq!(machines.machine_of(&device("agent_there")), None);
+}
+
 #[test]
 fn what_a_removed_machine_wrote_over_is_not_listed_as_kept_there() {
     let (room, _docs) = desk();
