@@ -4,7 +4,7 @@ What an assistant may do is deliberately small. Finishing, dropping and deleting
 
 ## Allowed
 
-- **File a task** with its steps, its date and the list it belongs in.
+- **File a task** with its steps, its parts, its date, its priority, its tags and the list it belongs in. Without one of your lists it lands in the inbox, and everything it files carries the tag `#agent`.
 - **Set an hour** for a task to ring at.
 - **Move the day** of a task an agent filed, when what it learns moves it.
 - **Say a task is done**, or that it should not be done — any task, yours too. It marks it for you to confirm and closes nothing.
@@ -26,7 +26,10 @@ What an assistant may do is deliberately small. Finishing, dropping and deleting
 
 ## Never
 
-- Close a task, or delete one.
+- Close a task, reopen it or delete it.
+- Create a list or set a routine.
+- Use your undo and redo: what you did in the window stays out of its reach.
+- Touch sync, settings or your computers.
 - Tick a step of yours, or finish a task of yours: it can only say they are done.
 - Move a day **you** set.
 - Delete a document, or rename or delete a folder.
@@ -36,7 +39,7 @@ What an assistant may do is deliberately small. Finishing, dropping and deleting
 - File the same thing twice: a task filed from the same source is refused, and the existing one is handed back.
 - See your Diary while it reads **Only you**: no tool finds it, lists it or counts it. Open, it changes nothing you wrote there, and it never starts a diary of its own.
 
-For closing, dropping and deleting there is no tool at all — not hidden, not restricted: absent — and none renames a folder. A step of yours it ticks is kept as its word, waiting for you. Your Diary, while it is shut, is answered as a document that is not there. The rest of this list is refused by the tool that would do it, which says why.
+For closing, reopening, dropping and deleting there is no tool at all — not hidden, not restricted: absent — and none renames a folder, creates a list or a routine, uses your undo or touches sync and settings. A step of yours it ticks is kept as its word, waiting for you. Your Diary, while it is shut, is answered as a document that is not there. The rest of this list is refused by the tool that would do it, which says why.
 
 ## «To confirm»: when an assistant says it is done
 
