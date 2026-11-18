@@ -424,7 +424,7 @@ pub fn filed(session: &mut Session, bodies: &[(Found, String)]) -> Answer<usize>
     let device = session.store.device().clone();
     let docs = session.paths.docs();
     let signed = signing(&session.state);
-    let mut made = 0;
+    let mut made = Vec::new();
     for (one, body) in bodies {
         let name = sub_name(&one.assistant);
         let sub = match subs.get(name) {
@@ -435,8 +435,11 @@ pub fn filed(session: &mut Session, bodies: &[(Found, String)]) -> Answer<usize>
                 sub
             }
         };
-        let kept = tisty_core::docs::create(&docs, &device, body)
-            .map_err(|e| Refusal::about("cannotWrite", e.to_string()))?;
+        let kept = match tisty_core::docs::create(&docs, &device, body) {
+            Ok(kept) => kept,
+            Err(e) => return Err(undone(&docs, &made, e)),
+        };
+        made.push(kept.id.clone());
         ops.push(Op::DocAdd {
             id: ulid::Ulid::generate(),
             d: tisty_core::event::DocAdd {
@@ -448,17 +451,24 @@ pub fn filed(session: &mut Session, bodies: &[(Found, String)]) -> Answer<usize>
                 ..Default::default()
             },
         });
-        made += 1;
     }
     for op in &mut ops {
         if let Op::FolderAdd { d, .. } = op {
             d.order = next(&session.state, d.parent, false);
         }
     }
-    session
-        .commit_all(ops)
-        .map_err(|e| Refusal::about("cannotWrite", e.to_string()))?;
-    Ok(made)
+    match session.commit_all(ops) {
+        Ok(()) => Ok(made.len()),
+        Err(e) => Err(undone(&docs, &made, e)),
+    }
+}
+
+// A file written for an import that did not land would sit in the store with nothing naming it.
+fn undone(docs: &Path, made: &[String], why: tisty_core::Error) -> Refusal {
+    for id in made {
+        let _ = tisty_core::docs::remove(docs, id);
+    }
+    Refusal::about("cannotWrite", why.to_string())
 }
 
 pub fn consented_here(session: &Session, here: &str) -> Answer<(Ledger, BTreeSet<String>)> {

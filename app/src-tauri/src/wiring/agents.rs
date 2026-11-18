@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
 
 use tisty_core::agents::{Card, GLOBAL, Kind, Place as Spot, Target};
@@ -267,8 +267,15 @@ pub fn targets(homes: &Homes, docs: &[(String, String)]) -> Vec<Placed> {
         .filter_map(|(file, body)| Card::of(body).map(|card| Piece { file, body, card }))
         .collect();
     pieces.sort_by(|a, b| {
-        (a.card.level != GLOBAL, &a.card.name).cmp(&(b.card.level != GLOBAL, &b.card.name))
+        (a.card.level != GLOBAL, &a.card.name, a.file).cmp(&(
+            b.card.level != GLOBAL,
+            &b.card.name,
+            b.file,
+        ))
     });
+    // The same file brought on two computers before they synced is one file, never written twice.
+    let mut seen = BTreeSet::new();
+    pieces.retain(|one| seen.insert(one.card.address()));
     let mut out: BTreeMap<PathBuf, Placed> = BTreeMap::new();
     let mut put = |assistant: &str, (root, at): (PathBuf, PathBuf), piece: &Piece| {
         let placed = out.entry(at.clone()).or_insert_with(|| Placed {

@@ -9,6 +9,7 @@ import {
   inAgents,
 } from "../agentsSync";
 import { useDesk } from "../desk";
+import { saidPlainly } from "../refusal";
 import AgentsFirst from "./AgentsFirst";
 
 export const AGENTS_FIRST = "tisty:agents-first";
@@ -19,7 +20,7 @@ export const askAgents = () => window.dispatchEvent(new Event(AGENTS_FIRST));
 const SETTLE_MS = 800;
 
 export default function AgentsKeeper() {
-  const { papers, here, setHere, papersChanged } = useDesk();
+  const { papers, here, setHere, papersChanged, setError } = useDesk();
   const [asking, setAsking] = useState(false);
   const entered = useRef<string | null>(null);
 
@@ -67,10 +68,10 @@ export default function AgentsKeeper() {
   useEffect(() => {
     if (!print) return;
     const later = window.setTimeout(() => {
-      agentsRound().catch(() => undefined);
+      agentsRound().catch((e) => setError(saidPlainly(e)));
     }, SETTLE_MS);
     return () => window.clearTimeout(later);
-  }, [print]);
+  }, [print, setError]);
 
   if (!asking) return null;
   const changed = () => {

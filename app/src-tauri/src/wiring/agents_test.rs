@@ -212,3 +212,17 @@ fn global_rules_go_to_the_codex_override_when_codex_reads_it() {
         [&homes.root("codex").unwrap().join("AGENTS.override.md")]
     );
 }
+
+#[test]
+fn the_same_file_brought_on_two_computers_is_written_once() {
+    let (_tmp, homes) = seeded();
+    let twice = doc("claude", Kind::Rule, "CLAUDE.md", "# Claude\n");
+    let docs = vec![("b".to_string(), twice.clone()), ("a".to_string(), twice)];
+    let placed = targets(&homes, &docs);
+    let claude = placed
+        .iter()
+        .find(|one| one.target.assistant == "claude")
+        .unwrap();
+    assert_eq!(claude.files, ["a"]);
+    assert_eq!(claude.target.pieces.len(), 1);
+}
