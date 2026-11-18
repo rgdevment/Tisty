@@ -81,7 +81,9 @@ pub fn task_left(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answe
                 }
             }
             tisty_core::refs::Kind::Link => Left {
-                kind: if one.target.starts_with("http") {
+                kind: if one.target.starts_with("http")
+                    || tisty_core::address::doc_asked(&one.target).is_some()
+                {
                     "link"
                 } else {
                     "named"

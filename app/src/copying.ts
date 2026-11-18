@@ -1,12 +1,17 @@
-import { copied, docPlain, docRead } from "./core";
+import { copied, docAddress, docPlain, docRead } from "./core";
 import { settled } from "./saving";
 
-export const asPlain = async (file: string): Promise<void> => {
-  await settled();
-  const body = await docPlain(await docRead(file));
+const taken = async (text: string): Promise<void> => {
   try {
-    await copied(body);
+    await copied(text);
   } catch {
     throw { code: "noClipboard" };
   }
 };
+
+export const asPlain = async (file: string): Promise<void> => {
+  await settled();
+  await taken(await docPlain(await docRead(file)));
+};
+
+export const asLink = async (file: string): Promise<void> => taken(await docAddress(file));

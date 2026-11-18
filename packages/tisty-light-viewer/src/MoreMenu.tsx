@@ -1,9 +1,10 @@
 import { For, onCleanup, Show } from "solid-js";
-import { plain, reveal } from "./host";
+import { address, plain, reveal } from "./host";
 import type { Words } from "./words";
 
 export default function MoreMenu(props: {
   readonly words: Words;
+  readonly own: boolean;
   readonly revealed: string | null;
   readonly onClose: () => void;
   readonly onFind: () => void;
@@ -26,6 +27,15 @@ export default function MoreMenu(props: {
     },
     { label: say("print"), hint: "Ctrl+P", pick: props.onPrint },
   ];
+  if (props.own) {
+    choices.splice(5, 0, {
+      label: say("copyLink"),
+      pick: () =>
+        void address()
+          .then((said) => navigator.clipboard.writeText(said))
+          .catch(props.fail),
+    });
+  }
   const path = props.revealed;
   if (path !== null) {
     choices.push({ label: say("revealIt"), pick: () => void reveal(path).catch(props.fail) });

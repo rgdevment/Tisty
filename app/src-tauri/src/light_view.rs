@@ -171,6 +171,14 @@ pub fn view_plain(app: AppHandle, window: tauri::WebviewWindow) -> Answer<String
     })
 }
 
+#[tauri::command(async)]
+pub fn view_address(app: AppHandle, window: tauri::WebviewWindow) -> Answer<String> {
+    let Source::Own(paper) = source_of(&app, window.label())? else {
+        return Err(Refusal::of("notAllowed"));
+    };
+    crate::viewing::doc_address(app.state::<Mutex<Session>>(), paper.file)
+}
+
 // A stranger's file names no documents of Tisty, so only one's own draws their cards, and never a task's.
 #[tauri::command(async)]
 pub fn view_cards(

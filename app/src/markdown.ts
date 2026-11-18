@@ -20,6 +20,8 @@ export const docAimed = (target: string): { file: string; heading?: string } | n
 
 export const docOf = (target: string): string | null => docAimed(target)?.file ?? null;
 
+export const addressed = (target: string): boolean => /^tisty:\/\/doc[/?]/i.test(target);
+
 const ours = (target: string): boolean =>
   !/^[a-z][a-z0-9+.-]*:/i.test(target) &&
   !/^[a-z]:/i.test(target) &&
