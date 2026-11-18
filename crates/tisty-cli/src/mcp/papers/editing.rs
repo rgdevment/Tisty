@@ -90,23 +90,24 @@ fn edited(paths: &Paths, args: &Value, as_sent: bool) -> Result<Value, Refused> 
             "an edit needs `new`, what goes there. Send \"\" to take the text out.".into(),
         ));
     };
-    let old =
-        match (raw(args, "old"), by_place) {
-            (Some(old), false) => old,
-            (Some(_), true) => return Err(Refused::Tool(
+    let old = match (raw(args, "old"), by_place) {
+        (Some(old), false) => old,
+        (Some(_), true) => {
+            return Err(Refused::Tool(
                 "name the passage with `old`, or name where it is with `section` or with `from` \
                  and `to` — not both, since the two could point at different places."
                     .into(),
-            )),
-            (None, true) => "",
-            (None, false) => {
-                return Err(Refused::Tool(
+            ));
+        }
+        (None, true) => "",
+        (None, false) => {
+            return Err(Refused::Tool(
                     "an edit needs `old`, the text to replace — or `section`, or `from` and `to`, \
-                 which name a passage by where it sits. `outline_doc` gives both numbers."
+                 which name a passage by where it sits. The document's card from `brain` gives both numbers."
                         .into(),
                 ));
-            }
-        };
+        }
+    };
     let (state, mut store, named) = writable(paths, args, &which)?;
     let new = match as_sent {
         true => new.to_string(),
@@ -157,7 +158,7 @@ fn edited(paths: &Paths, args: &Value, as_sent: bool) -> Result<Value, Refused> 
                 ),
                 None => format!(
                     "nothing in {named} reads like that `old`, so nothing was changed. Ask \
-                     `find` with this `doc` where the words are, or `read_doc` for the part you \
+                     `brain` with this `doc` and a `query` where the words are, or `read_doc` for the part you \
                      mean."
                 ),
             }

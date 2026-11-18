@@ -124,7 +124,7 @@ pub(in crate::mcp) fn archive_doc(paths: &Paths, args: &Value) -> Result<Value, 
                     doc_named(&state, &which)
                 ),
                 (false, true) => format!(
-                    "Put {} away. It is not gone: `docs` and `find` still reach it with `scope`, and this same call with `archived` false brings it back.",
+                    "Put {} away. It is not gone: `brain` still reaches it with `scope`, and this same call with `archived` false brings it back.",
                     doc_named(&state, &which)
                 ),
                 (false, false) => format!(

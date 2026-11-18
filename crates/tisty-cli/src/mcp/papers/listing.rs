@@ -3,7 +3,6 @@ use tisty_core::Paths;
 
 use super::super::asked::{how_many, text};
 use super::super::jsonrpc::told;
-use super::super::mistaken::not_a_document;
 use super::super::{
     A_GIST_IN_A_LINE, LISTED_AT_MOST, Refused, folder_found, gist_of, gist_told, named_doc, opened,
     placing, said, scoped, shortened, trail,
@@ -23,44 +22,16 @@ pub(in crate::mcp) fn docs(paths: &Paths, args: &Value) -> Result<Value, Refused
             false => None,
         },
     };
-    if args.get("page_of").is_some() && text(args, "page_of").is_none() {
-        return Err(Refused::Tool(
-            "`page_of` names one document whose pages to list. Leave it out to list them all."
-                .into(),
-        ));
-    }
-    let under = match text(args, "page_of") {
-        Some(said) => Some(
-            super::super::mistaken::named_document(&state, &said)
-                .map(|one| one.id)
-                .ok_or_else(|| {
-                    Refused::Tool(not_a_document(&state, &said).unwrap_or_else(|| {
-                        format!(
-                            "no document here is called {said:?}, so nothing hangs from it. \
-                             `docs` lists them all."
-                        )
-                    }))
-                })?,
-        ),
-        None => None,
-    };
     let most = how_many(args, 50, LISTED_AT_MOST as u64);
     let past = args.get("after").and_then(Value::as_u64).unwrap_or(0) as usize;
 
-    let reading = under.is_some();
-    let deep = args.get("deep").and_then(Value::as_bool).unwrap_or(false);
     let mut kept: Vec<&tisty_core::model::Kept> = state
         .papers()
         .filter(|one| state.doc_kept_by(scope, one))
-        .filter(|one| within.is_none_or(|at| placing::listed_in(&state, one, at, deep)))
-        .filter(|one| under.is_none_or(|up| one.page_of == Some(up)))
+        .filter(|one| within.is_none_or(|at| placing::listed_in(&state, one, at, false)))
         .collect();
-    match reading {
-        // Pages answer in the order they are read, which is the order they are named in.
-        true => kept.sort_by(|a, b| a.order.cmp(&b.order).then(a.id.cmp(&b.id))),
-        // What moved last, not what was made last: an agent coming back asks what has changed.
-        false => kept.sort_by_key(|one| std::cmp::Reverse((one.wrote, one.id))),
-    }
+    // What moved last, not what was made last: an agent coming back asks what has changed.
+    kept.sort_by_key(|one| std::cmp::Reverse((one.wrote, one.id)));
 
     let all = kept.len();
     let shown_of: Vec<&tisty_core::model::Kept> =
@@ -147,25 +118,7 @@ pub(in crate::mcp) fn docs(paths: &Paths, args: &Value) -> Result<Value, Refused
         })
         .collect();
 
-    let mut folders: Vec<Value> = state
-        .folders
-        .values()
-        .map(|one| {
-            json!({
-                "folder": one.name,
-                "id": one.id.to_string(),
-                "path": trail(&state, one.id),
-                "icon": one.icon,
-                "docs": state
-                    .docs
-                    .values()
-                    .filter(|kept| kept.folder == Some(one.id) && kept.page_of.is_none())
-                    .count(),
-            })
-        })
-        .collect();
-    folders.sort_by(|a, b| a["path"].as_str().cmp(&b["path"].as_str()));
-    let below = placing::below(&state, scope, within.filter(|_| !deep && under.is_none()));
+    let below = placing::below(&state, scope, within);
 
     let mut lines: Vec<String> = shown
         .iter()
@@ -209,34 +162,14 @@ pub(in crate::mcp) fn docs(paths: &Paths, args: &Value) -> Result<Value, Refused
         })
         .collect();
     lines.extend(placing::told_below(&below));
-    lines.push(match folders.is_empty() {
-        true => "No folders here yet.".into(),
-        false => format!(
-            "Folders: {}.",
-            folders
-                .iter()
-                .filter_map(|one| one["path"].as_str())
-                .collect::<Vec<_>>()
-                .join(", ")
-        ),
-    });
-
     let mut kept = json!({ "docs": shown, "total": all });
     if !below.is_empty() {
         kept["below"] = json!(below);
     }
-    if args
-        .get("folders")
-        .and_then(Value::as_bool)
-        .unwrap_or(false)
-    {
-        kept["folders"] = json!(folders);
-    }
-
     Ok(told(
         format!(
             "{all} document(s){}; showing {}.\n{}",
-            placing::counted(args, within.is_none() && under.is_none()),
+            placing::counted(args, within.is_none()),
             shown.len(),
             lines.join("\n")
         ),

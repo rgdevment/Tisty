@@ -29,7 +29,7 @@ expression: tool
         "type": "integer"
       },
       "doc": {
-        "description": "The document's id from `docs`, not its title",
+        "description": "The document's id from `brain`, not its title",
         "type": "string"
       },
       "from": {
@@ -41,7 +41,7 @@ expression: tool
         "type": "string"
       },
       "section": {
-        "description": "A heading and all under it, by its `at` in `outline_doc`, from 0",
+        "description": "A heading and all under it, by its `at` on the card `brain` gives, from 0",
         "type": "integer"
       },
       "to": {

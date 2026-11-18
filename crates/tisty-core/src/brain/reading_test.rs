@@ -340,3 +340,24 @@ fn a_bare_task_id_and_a_double_bracket_title_reach_the_panel_with_their_heading(
         )])
     );
 }
+
+#[test]
+fn who_points_at_a_document_is_told_from_the_edges_alone() {
+    let world = World::new();
+    let mut store = world.store();
+    let (_, vet) = doc(&world, &mut store, "# Vet\n", None, None);
+    let (_, trips) = doc(&world, &mut store, "# Trips\n", None, None);
+    written(
+        &world,
+        &trips,
+        &format!("# Trips\n\n## Hotels\n\nAsk the [vet](tisty:doc/{vet}).\n"),
+    );
+    let mut brain = world.brain();
+    assert!(brain.pointing_at(&vet).unwrap().is_none());
+    world.refreshed(&mut brain, &world.state());
+    std::fs::remove_file(crate::docs::resolve(&world.paths.docs(), &trips).unwrap()).unwrap();
+
+    let said = brain.pointing_at(&vet).unwrap().unwrap();
+
+    assert_eq!(said, vec![citing(&trips, "doc", "Trips", false, &[])]);
+}

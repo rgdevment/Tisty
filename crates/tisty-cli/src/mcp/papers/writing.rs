@@ -843,7 +843,7 @@ fn under_a_heading(was: &str, under: &str, body: &str) -> Result<String, String>
     if !holds_together(was, &held, &rest) {
         return Err(
             "that heading could not be cut out cleanly, so nothing was added. Read the document \
-             again and add under a heading `outline_doc` names."
+             again and add under a heading its card from `brain` names."
                 .to_string(),
         );
     }
@@ -883,7 +883,7 @@ pub(super) fn in_its_place(
     let Some(print) = text(args, "print") else {
         return Err(Refused::Tool(
             "an edit that names a place rather than a passage needs the `print` the document read \
-             at, since there is no text to recognise it by. `outline_doc` hands it back."
+             at, since there is no text to recognise it by. Its card from `brain` hands it back."
                 .into(),
         ));
     };
@@ -893,7 +893,7 @@ pub(super) fn in_its_place(
     let (from, to) = match args.get("section").and_then(Value::as_u64) {
         Some(at) => tisty_core::docs::section_lines(&body, at as usize).ok_or_else(|| {
             Refused::Tool(format!(
-                "this document has no section {at}. `outline_doc` numbers them from 0."
+                "this document has no section {at}. Its card from `brain` numbers them from 0."
             ))
         })?,
         None => {
@@ -959,7 +959,7 @@ pub(super) fn in_its_place(
     {
         tisty_core::docs::Rewrite::Moved => Err(Refused::Tool(format!(
             "{named} does not read as it did when you took that print, so line {from} is no \
-             longer where you left it and nothing was changed. Ask `outline_doc` where the \
+             longer where you left it and nothing was changed. Ask `brain` for its card, where the \
              passage sits now."
         ))),
         tisty_core::docs::Rewrite::Made { whole, .. } => {

@@ -102,7 +102,7 @@ fn a_task_is_found_by_the_words_of_its_document_and_the_document_is_not_listed_o
         .to_string();
     served.written_for(&task, "Ask about the tick tablet at the visit.");
 
-    let found = served.call("find", serde_json::json!({ "query": "tick tablet" }));
+    let found = served.call("brain", serde_json::json!({ "query": "tick tablet" }));
     let said = &found["result"]["structuredContent"];
     assert_eq!(said["matches"][0]["id"], task.as_str(), "{found}");
     assert_eq!(said["matches"][0]["in"], "document", "{found}");
@@ -111,7 +111,7 @@ fn a_task_is_found_by_the_words_of_its_document_and_the_document_is_not_listed_o
         "the task's document showed as a document: {found}"
     );
 
-    let listed = served.call("docs", serde_json::json!({}));
+    let listed = served.call("brain", serde_json::json!({ "scope": "either" }));
     let docs = listed["result"]["structuredContent"]["docs"]
         .as_array()
         .cloned()
@@ -191,7 +191,7 @@ fn a_page_that_loses_the_lines_naming_its_task_is_put_back() {
 #[test]
 fn a_box_written_on_the_persons_page_is_a_step_and_its_tick_waits_for_them() {
     let served = Served::new();
-    let found = served.call("find", serde_json::json!({ "query": "algo mio" }));
+    let found = served.call("brain", serde_json::json!({ "query": "algo mio" }));
     let task = found["result"]["structuredContent"]["matches"][0]["id"]
         .as_str()
         .unwrap()
@@ -341,7 +341,7 @@ fn an_assistant_adds_to_the_page_of_a_task_it_filed_under_its_own_notes_by_the_t
 #[test]
 fn the_persons_task_takes_assistant_notes_on_its_page() {
     let served = Served::new();
-    let found = served.call("find", serde_json::json!({ "query": "algo mio" }));
+    let found = served.call("brain", serde_json::json!({ "query": "algo mio" }));
     let task = found["result"]["structuredContent"]["matches"][0]["id"]
         .as_str()
         .unwrap()
@@ -417,7 +417,7 @@ fn an_old_copy_of_a_task_s_page_is_turned_away_rather_than_erase_what_came_since
 #[test]
 fn putting_the_persons_page_back_undoes_the_assistants_edit() {
     let served = Served::new();
-    let found = served.call("find", serde_json::json!({ "query": "algo mio" }));
+    let found = served.call("brain", serde_json::json!({ "query": "algo mio" }));
     let task = found["result"]["structuredContent"]["matches"][0]["id"]
         .as_str()
         .unwrap()
@@ -449,7 +449,7 @@ fn putting_the_persons_page_back_undoes_the_assistants_edit() {
 }
 
 fn persons_task(served: &Served) -> String {
-    let found = served.call("find", serde_json::json!({ "query": "algo mio" }));
+    let found = served.call("brain", serde_json::json!({ "query": "algo mio" }));
     found["result"]["structuredContent"]["matches"][0]["id"]
         .as_str()
         .unwrap()
@@ -766,7 +766,7 @@ fn no_tool_names_or_writes_a_task_the_person_hid() {
             "{name}: {answer}"
         );
     }
-    let found = served.call("find", serde_json::json!({ "source": "mail:42" }));
+    let found = served.call("brain", serde_json::json!({ "source": "mail:42" }));
     assert_eq!(
         found["result"]["structuredContent"]["found"]["hidden"], true,
         "{found}"
@@ -865,7 +865,7 @@ fn every_read_of_a_page_names_it_by_its_task() {
     let file = format!("t_{}-0001", task.to_ascii_lowercase());
 
     let read = served.call("read_doc", serde_json::json!({ "doc": file }));
-    let outlined = served.call("outline_doc", serde_json::json!({ "doc": file }));
+    let outlined = served.call("brain", serde_json::json!({ "doc": file }));
     let summed = served.call(
         "sum_up",
         serde_json::json!({ "doc": file, "summary": "Palabras de la persona." }),
@@ -899,13 +899,13 @@ fn no_read_of_a_long_document_runs_past_its_caps() {
     );
     let doc = served.person().writes_doc(&long);
 
-    let outlined = served.call("outline_doc", serde_json::json!({ "doc": doc }));
+    let outlined = served.call("brain", serde_json::json!({ "doc": doc }));
     let whole = served.call("read_doc", serde_json::json!({ "doc": doc }));
     let chars = served.call(
         "read_doc",
         serde_json::json!({ "doc": doc, "chars": 200_000 }),
     );
-    let found = served.call("find", serde_json::json!({ "doc": doc, "query": "aguja" }));
+    let found = served.call("brain", serde_json::json!({ "doc": doc, "query": "aguja" }));
 
     for answer in [&outlined, &whole] {
         let said = &answer["result"]["structuredContent"];
@@ -1013,7 +1013,7 @@ fn a_hidden_task_s_page_and_tags_never_reach_another_answer() {
     let page = format!("t_{}-0001", task.to_ascii_lowercase());
     served.person().hides(person::task(&task));
 
-    let outlined = served.call("outline_doc", serde_json::json!({ "doc": doc }));
+    let outlined = served.call("brain", serde_json::json!({ "doc": doc }));
     let flagged = served.call(
         "flag_doc",
         serde_json::json!({ "doc": doc, "reason": "moved", "instead": page, "body": "x" }),
@@ -1080,7 +1080,7 @@ fn a_long_log_s_outline_keeps_its_days_and_a_long_line_its_cap() {
         .person()
         .writes_doc(&format!("# Ancho\n\n{}\n", "palabra ".repeat(20_000)));
 
-    let outlined = served.call("outline_doc", serde_json::json!({ "doc": log }));
+    let outlined = served.call("brain", serde_json::json!({ "doc": log }));
     let line = served.call(
         "read_doc",
         serde_json::json!({ "doc": wide, "from": 3, "to": 3 }),
@@ -1115,7 +1115,7 @@ fn an_outline_keeps_every_chapter_and_a_cut_line_says_so() {
         .person()
         .writes_doc(&format!("# Ancho\n\n{}\n", "palabra ".repeat(20_000)));
 
-    let outlined = served.call("outline_doc", serde_json::json!({ "doc": book }));
+    let outlined = served.call("brain", serde_json::json!({ "doc": book }));
     let line = served.call(
         "read_doc",
         serde_json::json!({ "doc": wide, "from": 3, "to": 3 }),

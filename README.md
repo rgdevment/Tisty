@@ -451,12 +451,12 @@ document for you to delete, put away or keep. Each tool is described in
 - **A task's journal and files** — `note`, `reword_note`, `attach`
 - **Documents** — write one, add to it, change a passage or a table, read only
   the part it needs: `write_doc`, `append_doc`, `edit_doc`, `edit_table`,
-  `read_doc`, `outline_doc`, `sum_up`, `restore_doc`, `import_doc`,
-  `export_doc`, `archive_doc`, `flag_doc`
-- **Folders, pages and languages** — `docs`, `folder`, `file_doc`, `page_doc`,
+  `read_doc`, `sum_up`, `restore_doc`, `import_doc`, `export_doc`,
+  `archive_doc`, `flag_doc`
+- **Folders, pages and languages** — `folder`, `file_doc`, `page_doc`,
   `tongue_doc`
-- **Finding things** — open and archived work, lists and tags: `find`,
-  `catch_up`
+- **Finding things** — open and archived work, a document's card, a project's
+  parts, lists, folders and tags: `brain`, `catch_up`
 - **How to work here** — `rules`, `language`, `help`
 
 Beside the tools, it offers seven ready-made requests your assistant shows as

@@ -26,7 +26,7 @@ pub(super) fn move_task(paths: &Paths, args: &Value) -> Result<Value, Refused> {
             _ => {
                 return Err(Refused::Tool(
                     "`part_of` is the id of the task to hang this one under, or null to let it \
-                     go. Use the `id` that `find` or `propose` gave you."
+                     go. Use the `id` that `brain` or `propose` gave you."
                         .into(),
                 ));
             }

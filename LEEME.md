@@ -466,12 +466,13 @@ conserves. Cada herramienta se describe en
 - **La bitácora y los archivos de una tarea** — `note`, `reword_note`, `attach`
 - **Documentos** — escribir uno, agregarle, cambiar un pasaje o una tabla, leer
   solo la parte que necesita: `write_doc`, `append_doc`, `edit_doc`,
-  `edit_table`, `read_doc`, `outline_doc`, `sum_up`, `restore_doc`,
-  `import_doc`, `export_doc`, `archive_doc`, `flag_doc`
-- **Carpetas, páginas e idiomas** — `docs`, `folder`, `file_doc`, `page_doc`,
+  `edit_table`, `read_doc`, `sum_up`, `restore_doc`, `import_doc`,
+  `export_doc`, `archive_doc`, `flag_doc`
+- **Carpetas, páginas e idiomas** — `folder`, `file_doc`, `page_doc`,
   `tongue_doc`
-- **Encontrar cosas** — lo abierto y lo archivado, las listas y las etiquetas:
-  `find`, `catch_up`
+- **Encontrar cosas** — lo abierto y lo archivado, la ficha de un documento,
+  las partes de un proyecto, las listas, carpetas y etiquetas: `brain`,
+  `catch_up`
 - **Cómo trabajar aquí** — `rules`, `language`, `help`
 
 Además de las herramientas, ofrece siete pedidos listos que tu asistente

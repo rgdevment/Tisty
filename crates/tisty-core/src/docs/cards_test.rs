@@ -109,7 +109,7 @@ fn asking_for_one_page_of_them_does_not_forget_the_rest() {
     let all: Vec<String> = (1..=3).map(|n| format!("mac0-000{n}")).collect();
     cards_of(&docs, Some(&cache), &all);
 
-    // A window onto the list, as `docs` hands one back.
+    // A window onto the list, as a folder listing hands one back.
     cards_of(&docs, Some(&cache), &all[..1]);
 
     let stamp = |id: &str| {

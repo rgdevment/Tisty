@@ -14,10 +14,10 @@ Las reglas detrás están en [[Qué puede hacer un asistente|Qué-puede-hacer-un
 | `language` | El lenguaje de Tisty, para que lo que escribe sea algo que Tisty conoce |
 | `help` | Cómo funciona Tisty, desde estas mismas páginas de ayuda, para que responda en vez de suponer |
 | `catch_up` | Cómo están las cosas, con las listas, las carpetas y las etiquetas más usadas; las tareas abiertas que apremian, por título y lista, para que te las cuente y las lea con `read`: las vencidas, después las por vencer, las de hoy y las atrasadas, cinco como máximo y el resto contado, sin las que un asistente ya dijo que están hechas o que no deben hacerse, que te esperan a ti, ni las que ocultaste; lo que otros cambiaron desde su último `catch_up`, veinte de cada tipo a la vez, y el siguiente trae el resto; y la tarea abierta en la que estaba o, si ya no lo está, por qué: dijo que estaba hecha o que no debía hacerse, o la cerraste, la descartaste o la ocultaste. Nombra la **Lluvia de ideas** y dice cuántas ideas esperan y cuántas están marcadas. El día que toca tu [Revisión semanal](Tareas#revisión-semanal), dice cuánto espera en cada parada y cómo ayudarte |
-| `find` | Buscar en tareas y documentos, el archivo incluido: diez de cada uno por vez, más cuando los pide. Lo que encuentra por lo que dice su página, sus pasos o sus notas llega con la línea que lo dice, recortada alrededor de la palabra, o solo con su título cuando eso basta; dentro de un documento, las líneas que lo dicen con las que tienen alrededor. Los documentos marcados como que ya cumplieron su vida van después de los vigentes, y lo dicen |
+| `brain` | Encontrar cosas y ver cómo se conectan, sin abrirlas. Tareas y documentos por sus palabras, el archivo junto a lo demás, diez de cada uno por vez: primero lo que tiene las palabras en su título, después lo que se movió hace menos, cada uno con la línea más nueva que las dice y nunca una nota que otra posterior reemplazó; cuando nada tiene todas las palabras, lo que tiene más, y lo dice. La ficha de un documento —sus títulos, páginas, lo que lo cita y las señales de que pide orden— o de una tarea —su estado, pasos y partes—, y sus vecinos de un tipo cuando los pide. Las partes abiertas de un proyecto, agrupadas en bloqueadas, en curso, esperándote y sin empezar. Sin pedir nada, tus listas, carpetas y etiquetas con sus cuentas. Lo que ocultaste queda fuera, ni siquiera como vecino |
 | `read` | Leer una tarea: primero su estado, después su página, sus pasos y las notas escritas después de ese estado, con quién escribió cada una. Una tarea sin estado todavía llega con uno armado a partir de ella: cuántos pasos están hechos y la nota que la dio por hecha. Una página de más de unos 4000 caracteres llega como sus secciones, con el resumen y la última de las notas del asistente; la bitácora trae hasta unos 3000 caracteres de notas, y entera si la pide |
 
-`lists` y `tags` todavía le responden a un asistente que las pide por su nombre, pero ya no se ofrecen: `catch_up` ya trae las dos.
+`find`, `docs`, `outline_doc`, `lists` y `tags` pasaron a `brain`. Un asistente que todavía llama a una de ellas por su nombre recibe dónde quedó, y no pasa nada más.
 
 ## Tareas
 
@@ -43,8 +43,6 @@ Las reglas detrás están en [[Qué puede hacer un asistente|Qué-puede-hacer-un
 
 | Herramienta | Qué hace |
 | :-- | :-- |
-| `docs` | Los documentos y las carpetas, con de qué va cada uno |
-| `outline_doc` | Qué hay en un documento: sus títulos y partes, y las señales de que pide orden: documentos con título parecido, títulos repetidos entre páginas, enlaces que no llevan a nada, líneas de página que muestran otro nombre que el título de la página y páginas que ninguna línea ubica |
 | `read_doc` | Leer un documento, o una parte; o, con `as`, el documento completo en Markdown estándar, para llevarlo a Confluence, Jira, Notion, Linear o GitHub con sus propias herramientas (mira más abajo). **Lluvia de ideas** llega por partes, idea por idea, nunca como una lista de horas |
 | `sum_up` | Dejar un resumen corto de qué trata un documento, para el siguiente que lo lea |
 | `write_doc` | Escribir un documento nuevo, o reescribir uno entero; con `compact`, poner en orden uno que creció por sesiones (ver abajo); con `translation_of`, escribirlo como otro idioma de un documento tuyo (uno que escribió otra persona se rechaza) |
@@ -71,7 +69,7 @@ Al traer un archivo Markdown se copia lo que su texto señala, pero solo lo que 
 
 ## El Diario
 
-Tu [Diario](Documentos#diario) queda fuera de todas las herramientas hasta que lo abres a los agentes desde el propio Diario: `docs`, `find`, `catch_up` y los documentos que se ofrecen con `@` lo dejan fuera, y una herramienta que recibe una de sus páginas responde como ante un documento que no existe. Abierto, las herramientas de lectura lo leen y `append_doc` añade al final de hoy; toda herramienta que cambiaría, movería, marcaría o archivaría lo que escribiste ahí se rechaza, y ninguna puede empezar un diario.
+Tu [Diario](Documentos#diario) queda fuera de todas las herramientas hasta que lo abres a los agentes desde el propio Diario: `brain`, `catch_up` y los documentos que se ofrecen con `@` lo dejan fuera, y una herramienta que recibe una de sus páginas responde como ante un documento que no existe. Abierto, las herramientas de lectura lo leen y `append_doc` añade al final de hoy; toda herramienta que cambiaría, movería, marcaría o archivaría lo que escribiste ahí se rechaza, y ninguna puede empezar un diario.
 
 ## Llevar un documento a otra herramienta
 
