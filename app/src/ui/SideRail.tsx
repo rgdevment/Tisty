@@ -7,6 +7,7 @@ import type { Chosen, Named } from "../views";
 import Glyph from "./Glyph";
 import { painted } from "./Hue";
 import { fitting, useRoom } from "./room";
+import SideBrainsty from "./SideBrainsty";
 import { FoldButton } from "./SideEdge";
 
 const NAMED: { key: Named; icon: string }[] = [
@@ -30,6 +31,7 @@ interface Props {
   here?: string | null;
   onChoose: (chosen: Chosen) => void;
   onReveal: (folder?: string) => void;
+  onBrainsty?: () => void;
 }
 
 export default function SideRail({
@@ -40,6 +42,7 @@ export default function SideRail({
   here,
   onChoose,
   onReveal,
+  onBrainsty,
 }: Props) {
   const shelf = useRef<HTMLDivElement>(null);
   const room = useRoom(shelf, "height");
@@ -84,6 +87,7 @@ export default function SideRail({
           </button>
         );
       })}
+      {onBrainsty && <SideBrainsty rail onOpen={onBrainsty} />}
       <span aria-hidden="true" className="my-1.5 h-px w-6 shrink-0 bg-hair" />
       <button
         type="button"

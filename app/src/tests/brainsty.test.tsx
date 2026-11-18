@@ -1,0 +1,196 @@
+import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import App from "../App";
+import type { Network } from "../brainsty";
+import type { Snapshot, Task } from "../core";
+import { t } from "../locales";
+
+Object.defineProperty(window, "innerWidth", { configurable: true, value: 1440 });
+
+const ipc = vi.hoisted(() => ({
+  calls: [] as { cmd: string; args: Record<string, unknown> }[],
+  network: (): Promise<unknown> => Promise.resolve(null),
+}));
+
+vi.mock("@tauri-apps/api/core", () => ({
+  invoke: (cmd: string, args?: Record<string, unknown>) => {
+    ipc.calls.push({ cmd, args: args ?? {} });
+    return answer(cmd);
+  },
+}));
+
+vi.mock("@tauri-apps/api/event", () => ({
+  listen: () => Promise.resolve(() => {}),
+  emit: () => Promise.resolve(),
+}));
+
+vi.mock("@tauri-apps/plugin-dialog", () => ({
+  open: () => Promise.resolve(null),
+  save: () => Promise.resolve(null),
+  ask: () => Promise.resolve(true),
+}));
+
+vi.mock("@tauri-apps/plugin-opener", () => ({ openUrl: () => Promise.resolve() }));
+
+vi.mock("@tauri-apps/api/webview", () => ({
+  getCurrentWebview: () => ({ onDragDropEvent: () => Promise.resolve(() => {}) }),
+}));
+
+vi.mock("@tauri-apps/api/window", () => ({
+  getCurrentWindow: () => ({
+    minimize: () => Promise.resolve(),
+    toggleMaximize: () => Promise.resolve(),
+    close: () => Promise.resolve(),
+  }),
+}));
+
+const bread: Task = {
+  id: "01A",
+  title: "buy bread",
+  status: "open",
+  priority: "unset",
+  order: "a0",
+  steps: [],
+  log: [],
+  volume: {},
+};
+
+const shot: Snapshot = {
+  tasks: [bread],
+  total: 1,
+  soonest: {},
+  ahead: [],
+  routines: [],
+  lists: [],
+  tags: [],
+  counts: {},
+  locale: "en",
+  agents: {},
+};
+
+function answer(cmd: string): Promise<unknown> {
+  switch (cmd) {
+    case "settle_in":
+      return Promise.resolve({ ran: false, brought: false, agrees: true });
+    case "docs":
+      return Promise.resolve({ folders: [], docs: [] });
+    case "sync_state":
+      return Promise.resolve({ asked: true });
+    case "snapshot":
+      return Promise.resolve(shot);
+    case "settings":
+      return Promise.resolve({ quiet: [], holds: {}, shares: false, onlySharedAbove: 0 });
+    case "owed":
+      return Promise.resolve([]);
+    case "brain_network":
+      return ipc.network();
+    case "help_pages":
+      return Promise.resolve([]);
+    case "help_reference_here":
+    case "help_reference":
+      return Promise.resolve("");
+    default:
+      return Promise.resolve(null);
+  }
+}
+
+const small: Network = {
+  nodes: [
+    { id: "notes.md", kind: "doc", title: "Notes", state: "open" },
+    { id: "01A", kind: "task", title: "buy bread", state: "open" },
+    { id: "#home", kind: "tag", title: "home" },
+  ],
+  edges: [
+    [0, 1, 0],
+    [1, 2, 3],
+  ],
+  near: 1,
+};
+
+const asked = () => ipc.calls.filter((one) => one.cmd === "brain_network");
+
+const opened = async () => {
+  const user = userEvent.setup();
+  render(<App />);
+  await screen.findByText("buy bread");
+  return user;
+};
+
+beforeEach(() => {
+  localStorage.clear();
+  ipc.calls = [];
+  ipc.network = () => Promise.resolve(small);
+});
+
+describe("the Brainsty section", () => {
+  it("opens over the whole window from the sidebar, counts the network and closes with Escape", async () => {
+    const user = await opened();
+
+    await user.click(screen.getByRole("button", { name: t("brainsty") }));
+
+    const shown = await screen.findByRole("region", { name: t("brainsty") });
+    expect(shown.className).toContain("fixed inset-0");
+    expect(await screen.findByText("3 nodes · 2 connections")).toBeTruthy();
+    expect(await screen.findByRole("img", { name: t("brainstyNetwork") })).toBeTruthy();
+    expect(asked()).toEqual([{ cmd: "brain_network", args: { near: null } }]);
+
+    await user.keyboard("{Escape}");
+
+    expect(screen.queryByRole("region", { name: t("brainsty") })).toBeNull();
+    expect(screen.getByText("buy bread")).toBeTruthy();
+  });
+
+  it("starts on the task open beside the list and leaves it open on the way back", async () => {
+    const user = await opened();
+    await user.click(screen.getByText("buy bread"));
+    await screen.findByRole("button", { name: t("expand") });
+
+    await user.click(screen.getByRole("button", { name: t("brainsty") }));
+    await screen.findByText("3 nodes · 2 connections");
+    await user.click(screen.getByRole("button", { name: new RegExp(`^${t("goBack")}`) }));
+
+    expect(asked()[0].args).toEqual({ near: "01A" });
+    expect(screen.queryByRole("region", { name: t("brainsty") })).toBeNull();
+    expect(screen.getByRole("button", { name: t("expand") })).toBeTruthy();
+  });
+
+  it("says so while the base is still being built", async () => {
+    ipc.network = () => Promise.resolve(null);
+    const user = await opened();
+
+    await user.click(screen.getByRole("button", { name: t("brainsty") }));
+
+    expect(await screen.findByText(t("brainstyNotYet"))).toBeTruthy();
+  });
+
+  it("tells what the cap left out", async () => {
+    ipc.network = () => Promise.resolve({ ...small, left_out: { nodes: 1200, edges: 34 } });
+    const user = await opened();
+
+    await user.click(screen.getByRole("button", { name: t("brainsty") }));
+
+    const out = await screen.findByText("1,200 nodes and 34 connections left out");
+    expect(out.getAttribute("title")).toBe(t("brainstyLeftOutWhy"));
+  });
+
+  it("shows why when the network could not be read", async () => {
+    ipc.network = () => Promise.reject({ code: "internal" });
+    const user = await opened();
+
+    await user.click(screen.getByRole("button", { name: t("brainsty") }));
+
+    const alert = await screen.findByRole("alert");
+    expect(alert.textContent).not.toBe("");
+  });
+
+  it("is gone once something else is chosen beneath it", async () => {
+    const user = await opened();
+    await user.click(screen.getByRole("button", { name: t("brainsty") }));
+    await screen.findByText("3 nodes · 2 connections");
+
+    await user.keyboard("{F1}");
+
+    await waitFor(() => expect(screen.queryByRole("region", { name: t("brainsty") })).toBeNull());
+  });
+});
