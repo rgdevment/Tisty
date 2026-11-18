@@ -1,4 +1,7 @@
-use super::{LinkQuestion, Views, asked, asked_for_task, asked_to_edit, task_link, wanted};
+use super::{
+    LinkQuestion, Paper, Shown, Views, asked, asked_for_task, asked_to_edit, docs_named,
+    paper_asked, shows, task_link, wanted,
+};
 
 fn written(room: &tempfile::TempDir, name: &str) -> std::path::PathBuf {
     let at = room.path().join(name);
@@ -323,4 +326,180 @@ fn a_task_address_carries_nothing_but_a_task_id() {
 #[test]
 fn a_task_address_is_no_file_to_open() {
     assert!(wanted(&["tisty".to_string(), task_link(TASK)], None).is_empty());
+}
+
+const DOC: &str = "4nnctnme-0039";
+const DOC_ADDRESS: &str = "tisty://doc/personal/proyectos/validacion-de-datos?id=4nnctnme-0039";
+
+fn said(argv: &[&str]) -> Vec<String> {
+    argv.iter().map(|one| one.to_string()).collect()
+}
+
+fn folder(state: &mut tisty_core::State, name: &str, archived: bool) -> ulid::Ulid {
+    let id = ulid::Ulid::generate();
+    let mut one = tisty_core::model::Folder::new(id, name, name);
+    one.archived = archived;
+    state.folders.insert(id, one);
+    id
+}
+
+fn kept(state: &mut tisty_core::State, file: &str, more: serde_json::Value) -> ulid::Ulid {
+    let id = ulid::Ulid::generate();
+    let mut said = serde_json::json!({ "id": id.to_string(), "file": file, "order": file });
+    for (key, value) in more.as_object().unwrap() {
+        said[key] = value.clone();
+    }
+    state.docs.insert(id, serde_json::from_value(said).unwrap());
+    id
+}
+
+#[test]
+fn a_document_address_among_the_arguments_names_its_document_once() {
+    let argv = said(&[
+        "tisty-gui",
+        "--",
+        DOC_ADDRESS,
+        "tisty://doc?id=4nnctnme-0039",
+        "tisty://doc/otro?id=4nnctnme-0040",
+        "tisty://doc/sin-id",
+        "C:/notes.md",
+    ]);
+
+    assert_eq!(docs_named(&argv), ["4nnctnme-0039", "4nnctnme-0040"]);
+    assert!(docs_named(&said(&[DOC_ADDRESS])).is_empty());
+}
+
+#[test]
+fn a_document_asked_for_before_the_store_opens_waits_once_and_is_handed_over_once() {
+    let views = Views::default();
+
+    views.owe_doc(DOC);
+    views.owe_doc("4nnctnme-0040");
+    views.owe_doc(DOC);
+
+    assert_eq!(views.docs_due(), [DOC, "4nnctnme-0040"]);
+    assert!(views.docs_due().is_empty());
+}
+
+#[test]
+fn what_is_not_here_shares_one_window_and_a_document_has_its_own() {
+    let here = |id: &str, file: &str| Paper {
+        id: id.into(),
+        file: file.into(),
+        title: "Tisty".into(),
+        place: String::new(),
+    };
+    let gone = Shown::Doc(here("", "zzzzzzzz-0001"));
+    let open = Shown::Doc(here("01KA7B3VJ9RZ0Q8M5N2X4Y6W1T", DOC));
+
+    assert!(shows(&gone, &here("", "zzzzzzzz-0002")));
+    assert!(shows(&open, &here("01KA7B3VJ9RZ0Q8M5N2X4Y6W1T", DOC)));
+    assert!(!shows(&open, &here("", "zzzzzzzz-0002")));
+    assert!(!shows(
+        &open,
+        &here("01KA7B3VJ9RZ0Q8M5N2X4Y6W1U", "4nnctnme-0040")
+    ));
+    assert!(!shows(&Shown::File("C:/notes.md".into()), &here("", DOC)));
+}
+
+#[test]
+fn a_document_address_is_no_file_to_open_no_task_and_nothing_to_edit() {
+    assert!(wanted(&said(&["tisty", DOC_ADDRESS]), None).is_empty());
+    assert_eq!(asked_for_task(DOC_ADDRESS), None);
+    assert_eq!(asked_to_edit(DOC_ADDRESS, "tisty.cl"), None);
+}
+
+#[test]
+fn a_document_at_hand_is_shown_with_its_title_and_where_it_sits() {
+    let mut state = tisty_core::State::default();
+    let personal = folder(&mut state, "Personal", false);
+    let projects = folder(&mut state, "Proyectos", false);
+    state.folders.get_mut(&projects).unwrap().parent = Some(personal);
+    let id = kept(
+        &mut state,
+        DOC,
+        serde_json::json!({ "title": " Validación de datos ", "folder": projects.to_string() }),
+    );
+
+    assert_eq!(
+        paper_asked(&state, DOC),
+        Some(Paper {
+            id: id.to_string(),
+            file: DOC.into(),
+            title: "Validación de datos".into(),
+            place: "Personal / Proyectos".into(),
+        })
+    );
+}
+
+#[test]
+fn a_page_is_shown_as_sitting_where_its_book_does() {
+    let mut state = tisty_core::State::default();
+    let work = folder(&mut state, "Trabajo", false);
+    let book = kept(
+        &mut state,
+        "4nnctnme-0001",
+        serde_json::json!({ "title": "Actas", "folder": work.to_string() }),
+    );
+    kept(
+        &mut state,
+        DOC,
+        serde_json::json!({ "title": "Marzo", "page_of": book.to_string() }),
+    );
+
+    let paper = paper_asked(&state, DOC).unwrap();
+
+    assert_eq!(
+        (paper.title.as_str(), paper.place.as_str()),
+        ("Marzo", "Trabajo")
+    );
+}
+
+#[test]
+fn a_document_with_no_title_still_names_its_window() {
+    let mut state = tisty_core::State::default();
+    kept(&mut state, DOC, serde_json::json!({}));
+
+    let paper = paper_asked(&state, DOC).unwrap();
+
+    assert_eq!((paper.title.as_str(), paper.place.as_str()), ("Tisty", ""));
+}
+
+#[test]
+fn a_document_put_away_is_still_shown_apart_to_be_read() {
+    let mut state = tisty_core::State::default();
+    let old = folder(&mut state, "Viejo", true);
+    kept(
+        &mut state,
+        "4nnctnme-0001",
+        serde_json::json!({ "title": "Archivado", "archived": true }),
+    );
+    kept(
+        &mut state,
+        "4nnctnme-0002",
+        serde_json::json!({ "title": "En carpeta archivada", "folder": old.to_string() }),
+    );
+
+    let own = paper_asked(&state, "4nnctnme-0001").unwrap();
+    let held = paper_asked(&state, "4nnctnme-0002").unwrap();
+
+    assert_eq!((own.title.as_str(), own.place.as_str()), ("Archivado", ""));
+    assert_eq!(
+        (held.title.as_str(), held.place.as_str()),
+        ("En carpeta archivada", "Viejo")
+    );
+}
+
+#[test]
+fn a_task_s_page_and_a_document_of_another_machine_are_no_document_here() {
+    let mut state = tisty_core::State::default();
+    kept(
+        &mut state,
+        "4nnctnme-0003",
+        serde_json::json!({ "task_of": ulid::Ulid::generate().to_string() }),
+    );
+
+    for file in ["4nnctnme-0003", "4nnctnme-0004"] {
+        assert_eq!(paper_asked(&state, file), None, "{file}");
+    }
 }

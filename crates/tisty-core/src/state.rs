@@ -129,6 +129,20 @@ impl State {
         false
     }
 
+    pub fn trail(&self, at: FolderId) -> Vec<&str> {
+        let mut named = Vec::new();
+        let mut walk = Some(at);
+        while let Some(folder) = walk.and_then(|one| self.folders.get(&one)) {
+            named.push(folder.name.as_str());
+            walk = folder.parent;
+            if named.len() > crate::model::DEEPEST {
+                break;
+            }
+        }
+        named.reverse();
+        named
+    }
+
     /// The documents a person keeps on their own: a task's words belong to the task.
     pub fn papers(&self) -> impl Iterator<Item = &Kept> {
         self.docs.values().filter(|one| one.task_of.is_none())

@@ -760,14 +760,16 @@ fn settling(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     let mut wanted = viewing::wanted(&argv, here.as_deref());
     app.state::<viewing::Views>().started(&mut wanted);
     app.manage(booking::Booking::here(app.handle()));
+    let docs = viewing::docs_asked(app.handle(), &argv);
     if tisty_core::paths::home_moves() {
-        moving::begin(app.handle().clone());
+        moving::begin(app.handle().clone(), docs);
         viewing::show(app.handle(), wanted);
         return Ok(());
     }
-    opened(app.handle(), !wanted.is_empty())?;
+    opened(app.handle(), !(wanted.is_empty() && docs.is_empty()))?;
     viewing::told_of_edits(app.handle(), &argv);
     viewing::told_of_tasks(app.handle(), &argv);
+    viewing::to_docs(app.handle(), docs);
     viewing::show(app.handle(), wanted);
     Ok(())
 }
@@ -1376,6 +1378,7 @@ fn commands() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool + Send + Sync +
         light_view::view_picture_far,
         light_view::view_follow,
         light_view::view_cards,
+        light_view::view_address,
         light_view::view_served,
         light_view::view_kept_here,
         light_view::view_weighs,
@@ -1390,6 +1393,7 @@ fn commands() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool + Send + Sync +
         pieces::view_piece,
         pieces::piece_save,
         viewing::view_doc,
+        viewing::doc_address,
         viewing::view_task,
         diagramming::view_diagram,
         diagramming::diagram_save,

@@ -5488,3 +5488,71 @@ fn the_page_of_a_task_the_person_hid_takes_no_summary() {
 
     assert!(why.contains("no document here"), "{why}");
 }
+
+#[test]
+fn a_document_is_read_by_the_address_the_window_copies() {
+    let served = Served::new();
+    let doc = served.wrote("# Validación de datos\n\nlo que se valida.", None);
+    let address = format!("tisty://doc/personal/proyectos/validacion-de-datos?id={doc}");
+
+    let read = served.call("read_doc", serde_json::json!({ "doc": address }));
+
+    let told = &read["result"]["structuredContent"];
+    assert_eq!(told["doc"], doc.as_str(), "{read}");
+    assert!(
+        told["body"].as_str().unwrap().contains("lo que se valida."),
+        "{read}"
+    );
+}
+
+#[test]
+fn an_address_goes_on_naming_its_document_after_a_rename_and_a_move() {
+    let served = Served::new();
+    let doc = served.wrote("# Actas\n\nlas de este año.", None);
+    let address = format!("tisty://doc/actas?id={doc}");
+
+    served.said(
+        "edit_doc",
+        serde_json::json!({ "doc": address, "old": "# Actas", "new": "# Minutas" }),
+    );
+    served.said("folder", serde_json::json!({ "name": "Trabajo" }));
+    served.said(
+        "file_doc",
+        serde_json::json!({ "doc": [address], "folder": "Trabajo" }),
+    );
+
+    let read = served.call("read_doc", serde_json::json!({ "doc": address }));
+    let told = &read["result"]["structuredContent"];
+    assert_eq!(told["doc"], doc.as_str(), "{read}");
+    assert_eq!(told["title"], "Minutas", "{read}");
+    assert_eq!(told["folder"], "Trabajo", "{read}");
+}
+
+#[test]
+fn a_document_s_address_handed_to_the_task_reader_is_sent_to_read_doc() {
+    let served = Served::new();
+    let doc = served.wrote("# Actas\n\nlas de este año.", None);
+
+    let why = served.refused(
+        "read",
+        serde_json::json!({ "task": format!("tisty://doc/actas?id={doc}") }),
+    );
+
+    assert!(why.contains("the document \"Actas\""), "{why}");
+    assert!(why.contains("`read_doc`"), "{why}");
+}
+
+#[test]
+fn an_address_of_no_document_here_is_refused_as_any_unknown_id() {
+    let served = Served::new();
+
+    let why = served.refused(
+        "read_doc",
+        serde_json::json!({ "doc": "tisty://doc/de-otro-equipo?id=zzzzzzzz-0001" }),
+    );
+
+    assert!(
+        why.contains("no document here is called \"zzzzzzzz-0001\""),
+        "{why}"
+    );
+}

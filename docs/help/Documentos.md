@@ -188,11 +188,25 @@ Un enlace `tisty://open` solo llega a un archivo de texto legible de este equipo
 
 - **Índice y detalles** (`Ctrl`/`⌘` + `\`) abre una columna con sus títulos, su carpeta, su peso y cuándo cambió.
 - **Ver Markdown** (`Ctrl`/`⌘` + `Shift` + `M`) cambia entre la página dibujada y su texto.
-- **Más** tiene **Buscar en el texto**, texto más grande y más pequeño, **Copiar el Markdown** e **Imprimir**.
+- **Más** tiene **Buscar en el texto**, texto más grande y más pequeño, **Copiar el Markdown**, **Copiar enlace** e **Imprimir**.
 - Sus widgets, imágenes, sonidos, videos y tarjetas de archivo se ven como en la ventana principal; un clic en una tarjeta de archivo la abre con su programa.
-- Un enlace o una tarjeta a otro documento o a una tarea lo abre en la ventana principal.
+- Un enlace o una tarjeta a otro documento o a una tarea lo abre en la ventana principal; el [enlace de un documento](#el-enlace-de-un-documento), en otra ventana aparte.
 - **Editar** te lleva al documento en la ventana principal. Si lo cambias ahí, la ventana aparte lo vuelve a leer cuando regresas a ella.
 - Su PDF, sus hojas y sus exportaciones se hacen desde la ventana principal.
+
+### El enlace de un documento
+
+Cada documento tuyo tiene un enlace, para llegar a él desde un chat, una nota, el navegador o tu agente. **Copiar enlace** está en **Exportar**, en el panel del documento; en el menú del documento, en el árbol, y en **Más**, en la ventana aparte. Se ve así:
+
+`tisty://doc/personal/viajes/plan-de-verano?id=k7tq2mzw-0012`
+
+- **Abre el documento en solo lectura** en el visor ligero, no en el editor, también si está archivado. Si una ventana aparte ya lo muestra, la trae al frente. Con Tisty cerrado, se abre solo esa ventana.
+- **Solo cuenta el `id`.** Las carpetas y el título van en palabras para quien lee el enlace, en minúsculas, sin tildes y con guiones, así que sigue llegando si renombras o mueves el documento. Una página lleva primero el nombre de su documento: `tisty://doc/trabajo/actas/marzo?id=…`.
+- **Dentro de un documento** o en la página de una tarea, escríbelo como enlace de Markdown, `[Plan de verano](tisty://doc/…?id=…)`, y se abre como cualquier otro enlace. Pegado solo, queda como texto. Para ir de un documento a otro mientras escribes sigue sirviendo `[[`, que abre en la ventana principal ([Enlazar documentos](#enlazar-documentos)).
+- **Tu agente** lo toma tal cual: pásale el enlace y lee o cambia ese mismo documento sin buscarlo.
+- **Solo abre en un equipo que tiene el documento**, es decir, uno de tus equipos con tu almacén. Donde no está, la ventana se abre y lo dice. Para dárselo a otra persona, compártelo por [Folio](#compartir).
+- **Dentro de un documento compartido por Folio no viaja**: un enlace de Markdown llega como sus palabras, y una dirección escrita sola llega tal cual, con sus carpetas y su título.
+- **Quien lo recibe lee** los nombres de las carpetas y el título.
 
 ## Sacar documentos
 

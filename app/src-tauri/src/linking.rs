@@ -62,8 +62,12 @@ pub fn a_handler_is_there() -> bool {
 }
 
 #[tauri::command]
-pub fn open_link(url: String) -> Answer<()> {
+pub fn open_link(app: tauri::AppHandle, url: String) -> Answer<()> {
     let said = url.trim();
+    if let Some(doc) = tisty_core::address::doc_asked(said) {
+        crate::viewing::to_doc(&app, doc);
+        return Ok(());
+    }
     if !openable(said) {
         return Err(Refusal::about("cannotOpen", said.to_string()));
     }

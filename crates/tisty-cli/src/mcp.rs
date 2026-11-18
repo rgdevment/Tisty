@@ -261,10 +261,10 @@ thread_local! {
 
 fn vetted(name: &str, params: &Value) -> Result<(Value, Option<Takes>), Refused> {
     let taken = what_it_takes(name);
-    let args = without_nulls(
+    let args = mistaken::by_their_ids(without_nulls(
         taken.as_ref(),
         params.get("arguments").cloned().unwrap_or(json!({})),
-    );
+    ));
     only_what_it_takes(name, taken.as_ref(), &args)?;
     short_and_plain(&args)?;
     papers::not_a_task_s_words(name, &args)?;
@@ -855,20 +855,7 @@ fn loose_words(state: &State, loose: &[String]) -> String {
 }
 
 fn trail(state: &State, at: tisty_core::model::FolderId) -> String {
-    let mut named = Vec::new();
-    let mut walk = Some(at);
-    while let Some(one) = walk {
-        let Some(folder) = state.folders.get(&one) else {
-            break;
-        };
-        named.push(folder.name.as_str());
-        walk = folder.parent;
-        if named.len() > tisty_core::model::DEEPEST {
-            break;
-        }
-    }
-    named.reverse();
-    named.join(" / ")
+    state.trail(at).join(" / ")
 }
 
 fn as_path(said: &str) -> String {

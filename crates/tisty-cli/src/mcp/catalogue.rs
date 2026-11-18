@@ -289,6 +289,8 @@ Start with `catch_up`, which says where things stand and what moved since you we
 marked `stale` was written against an older version. After reading a long document, leave yours \
 with `sum_up`.
 
+A tool that takes a document's id takes its address too: `tisty://doc/…?id=…`.
+
 Read a long document by parts: `brain` with `doc` gives its card — headings with their `at`, \
 lines, sizes, pages, who cites it and the `print` — for a few hundred tokens, and `read_doc` then takes a `section`, a run of lines, or a \
 budget of `chars`, about 12,000 characters at a time: a document longer than that asked for \

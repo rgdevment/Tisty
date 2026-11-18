@@ -50,6 +50,12 @@ const toNeighbour = async (said: string, from: string): Promise<void> => {
 
 const DOC = "tisty:doc/";
 const TASK = "tisty:task/";
+const ADDRESS = "tisty://doc";
+
+// Only the scheme is read in any case: the core reads the key and the id exactly as written.
+const addressed = (said: string): boolean =>
+  said.slice(0, ADDRESS.length).toLowerCase() === ADDRESS &&
+  /^(\/[^?#]*)?\?id=[a-z0-9_]{1,48}-\d{1,12}$/.test(said.slice(ADDRESS.length));
 
 // A document of the person's own names other documents, tasks and attachments, all kept in Tisty.
 const inTisty = (pressed: Element, said: string): Promise<void> | null => {
@@ -81,7 +87,7 @@ export const linkPressed = (
     void kept.catch(fail);
   } else if (said.startsWith("#")) {
     document.getElementById(decodeURIComponent(said.slice(1)))?.scrollIntoView({ block: "start" });
-  } else if (/^(https?|mailto|tel):/i.test(said)) {
+  } else if (/^(https?|mailto|tel):/i.test(said) || addressed(said)) {
     void openLink(said).catch(fail);
   } else if (!from.own && said && !/^[a-z][a-z0-9+.-]+:/i.test(said)) {
     void toNeighbour(said, from.path).catch(fail);

@@ -22,6 +22,8 @@ const host = vi.hoisted(() => ({
   showTask: vi.fn(),
   openAttached: vi.fn(),
   plain: vi.fn(),
+  address: vi.fn(),
+  copied: vi.fn(),
   drawsHeic: vi.fn(),
 }));
 const drawing = vi.hoisted(() => ({ diagrams: vi.fn(), readAs: vi.fn() }));
@@ -108,14 +110,46 @@ describe("the menu", () => {
     await waitFor(() => expect(page().style.getPropertyValue("zoom")).toBe("0.8"));
   });
 
-  it("copies what was written", async () => {
-    const writeText = vi.fn().mockResolvedValue(undefined);
-    vi.stubGlobal("navigator", { clipboard: { writeText } });
+  it("copies what was written through the app, as a packaged window has no browser clipboard", async () => {
+    vi.stubGlobal("navigator", {});
+    host.copied.mockResolvedValue(undefined);
     host.plain.mockResolvedValue("# written");
     await open();
     (await button("Más")).click();
     (await menuItem(/Copiar/)).click();
-    await waitFor(() => expect(writeText).toHaveBeenCalledWith("# written"));
+    await waitFor(() => expect(host.copied).toHaveBeenCalledWith("# written"));
+    expect(screen.queryByRole("alert")).toBeNull();
+  });
+
+  it("offers no search where nothing was drawn to search", async () => {
+    await open({
+      kind: "missed",
+      name: "notas.md",
+      place: "Descargas",
+      path: PATH,
+      own: false,
+      refusal: { code: "cannotRead" },
+    });
+    (await button("Más")).click();
+    await menuItem(/Imprimir/);
+    expect(screen.queryByRole("menuitem", { name: /Buscar/ })).toBeNull();
+    cleanup();
+    await open(drawn(""));
+    await screen.findByText("Este archivo está vacío.");
+    (await button("Más")).click();
+    await menuItem(/Imprimir/);
+    expect(screen.queryByRole("menuitem", { name: /Buscar/ })).toBeNull();
+    pressed({ key: "f", ctrlKey: true });
+    await new Promise((settle) => setTimeout(settle, 50));
+    expect(screen.queryByRole("searchbox")).toBeNull();
+  });
+
+  it("offers no link to a stranger's file, which Tisty has no address for", async () => {
+    await open();
+    (await button("Más")).click();
+    await menuItem(/Imprimir/);
+    expect(screen.queryByRole("menuitem", { name: /Copiar enlace/ })).toBeNull();
+    expect(host.address).not.toHaveBeenCalled();
   });
 
   it("shows the folder, and says so when it cannot", async () => {
@@ -463,6 +497,39 @@ describe("a document of one's own", () => {
     expect(screen.queryByRole("menuitem", { name: /carpeta/ })).toBeNull();
   });
 
+  it("copies its own link from the menu, exactly as the app gives it", async () => {
+    vi.stubGlobal("navigator", {});
+    host.copied.mockResolvedValue(undefined);
+    host.address.mockResolvedValue("tisty://doc/casa/riego?id=ab12-0001");
+    await open(own());
+    (await button("Más")).click();
+    (await menuItem(/Copiar enlace/)).click();
+    await waitFor(() =>
+      expect(host.copied).toHaveBeenCalledWith("tisty://doc/casa/riego?id=ab12-0001"),
+    );
+    expect(screen.queryByRole("alert")).toBeNull();
+  });
+
+  it("says so when its link could not be had", async () => {
+    host.address.mockRejectedValue({ code: "internal" });
+    await open(own());
+    (await button("Más")).click();
+    (await menuItem(/Copiar enlace/)).click();
+    expect((await screen.findByRole("alert")).textContent).toContain("No se pudo hacer");
+  });
+
+  it("hands the address of another document to the app when it is pressed in the page", async () => {
+    host.openLink.mockResolvedValue(undefined);
+    const href = "tisty://doc/casa/huerta?id=ab12-0009";
+    await open(own(`<p><a href="${href}">Huerta</a> <a href="tisty://open?path=x">Otra</a></p>`));
+    (await screen.findByText("Huerta")).click();
+    await waitFor(() => expect(host.openLink).toHaveBeenCalledWith(href));
+    (await screen.findByText("Otra")).click();
+    expect(host.openLink).toHaveBeenCalledTimes(1);
+    expect(host.showDoc).not.toHaveBeenCalled();
+    expect(host.openAttached).not.toHaveBeenCalled();
+  });
+
   it("lays its document cards as the core draws them, and leaves a cited task as its words", async () => {
     host.cardsOf.mockImplementation(async (asked: { id: string }[]) =>
       asked.map(
@@ -487,6 +554,18 @@ describe("a document of one's own", () => {
     const reading = drawing.readAs.mock.calls.at(-1)?.[1];
     expect(reading.sites).toEqual({});
     expect(reading.brought).toBeTypeOf("function");
+  });
+
+  it("from a stranger's file, hands the address of a document to the app and leaves the rest", async () => {
+    host.openLink.mockResolvedValue(undefined);
+    const href = "tisty://doc/casa/huerta?id=ab12-0009";
+    await open(drawn(`<p><a href="${href}">Huerta</a> <a href="tisty://open?path=x">Otra</a></p>`));
+    (await screen.findByText("Huerta")).click();
+    await waitFor(() => expect(host.openLink).toHaveBeenCalledWith(href));
+    (await screen.findByText("Otra")).click();
+    expect(host.openLink).toHaveBeenCalledTimes(1);
+    expect(host.showDoc).not.toHaveBeenCalled();
+    expect(host.follow).not.toHaveBeenCalled();
   });
 
   it("from a stranger's file, draws no web card, attachment card or widget", async () => {

@@ -4,7 +4,7 @@ import { diagrams, ending, iconed, markup, saidKinds } from "tisty-editor/read";
 import { opened, openLink, revealed } from "../core";
 import { serve, showing } from "../inUse";
 import { t } from "../locales";
-import { docOf, INSIDE } from "../markdown";
+import { addressed, docOf, INSIDE } from "../markdown";
 import { named, pictured } from "../previews";
 import { darkNow, followTheme } from "./theming";
 
@@ -109,7 +109,9 @@ export default function Composed({
           const target = link?.getAttribute("href") ?? "";
           const paper = docOf(target);
           const away = () =>
-            /^(https?|mailto|tel):/i.test(target) ? openLink(target) : revealed(decodeURI(target));
+            /^(https?|mailto|tel):/i.test(target) || addressed(target)
+              ? openLink(target)
+              : revealed(decodeURI(target));
 
           if (paper) return onDoc?.(paper);
           (inside ? opened(inside) : away()).catch((problem) => onError?.(problem));

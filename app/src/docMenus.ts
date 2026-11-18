@@ -1,5 +1,5 @@
 import { open as pick } from "@tauri-apps/plugin-dialog";
-import { asPlain } from "./copying";
+import { asLink, asPlain } from "./copying";
 import {
   DEEPEST,
   docAway,
@@ -213,6 +213,17 @@ const everyChoice = (doc: Filed, h: Hands): Choice[] => [
       asPlain(doc.file)
         .then(() => {
           h.noted(t("copied"));
+        })
+        .catch(h.fail),
+  },
+  {
+    key: "asLink",
+    icon: "↗",
+    label: t("copyLink"),
+    onPick: () =>
+      asLink(doc.file)
+        .then(() => {
+          h.noted(t("linkCopied"));
         })
         .catch(h.fail),
   },

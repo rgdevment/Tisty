@@ -382,6 +382,12 @@ A Markdown file you open from outside — with *Open with*, or a
 out of your store until you choose **Edit**, which makes a copy and leaves the
 file where it was. Such a link opens only a readable text file on this computer.
 
+A document's link, `tisty://doc/…?id=…`, opens one of your own documents
+read-only in that same viewer, and only on a computer that holds it. It carries
+the document's folder names and its title in plain words, and an identifier
+that begins with a shortened form of the device identifier of the computer
+that created it, so whoever you send it to reads them.
+
 Its pictures come from one of two places. One beside the file is read from the
 file's folder or below it, and from nowhere else. One on the internet is not
 fetched when the file opens: the viewer offers a button above the page, and

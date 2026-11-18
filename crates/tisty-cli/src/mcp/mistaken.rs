@@ -1,5 +1,39 @@
+use serde_json::Value;
 use tisty_core::model::{Kept, Task};
 use tisty_core::{State, TaskId};
+
+const NAMES_A_DOCUMENT: [&str; 8] = [
+    "doc",
+    "page_of",
+    "translation_of",
+    "of",
+    "after",
+    "before",
+    "order",
+    "instead",
+];
+
+// The person hands over the address the window copies, and every tool goes on asking for an id.
+pub(super) fn by_their_ids(mut args: Value) -> Value {
+    for key in NAMES_A_DOCUMENT {
+        match args.get_mut(key) {
+            Some(Value::Array(many)) => many.iter_mut().for_each(by_its_id),
+            Some(one) => by_its_id(one),
+            None => {}
+        }
+    }
+    args
+}
+
+fn by_its_id(said: &mut Value) {
+    let id = said
+        .as_str()
+        .and_then(tisty_core::address::doc_asked)
+        .map(str::to_owned);
+    if let Some(id) = id {
+        *said = Value::String(id);
+    }
+}
 
 pub(super) fn named_document<'a>(state: &'a State, said: &str) -> Option<&'a Kept> {
     state
@@ -23,6 +57,7 @@ fn paged_task<'a>(state: &'a State, said: &str) -> Option<&'a Task> {
 }
 
 pub(super) fn not_a_task_id(state: &State, said: &str) -> String {
+    let said = tisty_core::address::doc_asked(said).unwrap_or(said);
     if let Some(task) = paged_task(state, said) {
         return format!(
             "{said:?} is the page of the task {:?}, and a task is named by its own id: [{}].",
@@ -84,3 +119,7 @@ pub(super) fn a_document(kept: &Kept) -> String {
         _ => "an untitled document".into(),
     }
 }
+
+#[cfg(test)]
+#[path = "mistaken_test.rs"]
+mod tests;

@@ -140,7 +140,10 @@ fn addressed(uri: &str) -> Result<Address, (i32, String)> {
             format!("nothing here is at {uri:?}: a document is at {SCHEME} and its id."),
         )
     };
-    let rest = uri.strip_prefix(SCHEME).ok_or_else(nowhere)?;
+    let rest = match tisty_core::address::doc_asked(uri) {
+        Some(id) => id,
+        None => uri.strip_prefix(SCHEME).ok_or_else(nowhere)?,
+    };
     let (doc, query) = rest.split_once('?').unwrap_or((rest, ""));
     if doc.is_empty() || doc.contains(['/', '#']) {
         return Err(nowhere());

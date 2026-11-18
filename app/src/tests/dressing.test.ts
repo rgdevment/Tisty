@@ -382,6 +382,17 @@ describe("what a click on a drawn page does", () => {
     expect(heard.tags).toEqual(["work"]);
   });
 
+  it("hands the address of a document of the store to the app, not to a reader of the page", () => {
+    const drawn = page("<p>x</p>");
+    const { heard, reach } = reaching();
+    const href = "tisty://doc/a/b?id=dev_a-0002";
+
+    answered(drawn, { kind: "web", href }, reach);
+
+    expect(calls.links).toEqual([href]);
+    expect(heard.docs).toEqual([]);
+  });
+
   it("counts a block by characters, whatever the accents before it", () => {
     expect(charsAt("# Título\n\nÁrbol.\n", 11)).toBe(10);
     expect(charsAt("abc", 2)).toBe(2);

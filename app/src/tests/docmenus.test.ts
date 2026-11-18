@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Filed, Folded, Papers } from "../core";
 import { docChoices, folderChoices, type Hands, hereChoices } from "../docMenus";
+import { t } from "../locales";
 import type { Choice } from "../ui/Menu";
 
 const calls: { cmd: string; args: Record<string, unknown> }[] = [];
@@ -19,7 +20,15 @@ vi.mock("@tauri-apps/plugin-dialog", () => ({
   open: () => Promise.resolve("C:/fuera"),
 }));
 
-vi.mock("../copying", () => ({ asPlain: () => Promise.resolve() }));
+const linking = vi.hoisted(() => ({ files: [] as string[], refuses: false }));
+
+vi.mock("../copying", () => ({
+  asPlain: () => Promise.resolve(),
+  asLink: (file: string) => {
+    linking.files.push(file);
+    return linking.refuses ? Promise.reject({ code: "noClipboard" }) : Promise.resolve();
+  },
+}));
 
 const folder = { id: "f1", name: "Casa", away: false, archived: false } as unknown as Folded;
 const doc = {
@@ -68,6 +77,8 @@ const sent = () => calls.map((one) => one.cmd);
 
 beforeEach(() => {
   calls.length = 0;
+  linking.files.length = 0;
+  linking.refuses = false;
 });
 
 describe("the menu of the documents themselves", () => {
@@ -145,6 +156,28 @@ describe("the menu of a document", () => {
     expect(sent()).toEqual(
       expect.arrayContaining(["doc_export", "doc_copy", "doc_lock", "doc_away"]),
     );
+  });
+
+  it("copies the link of that document and says so", async () => {
+    const h = hands();
+
+    pick(docChoices(other, h), "asLink").onPick?.();
+    await flush();
+
+    expect(linking.files).toEqual(["dev_a-0002"]);
+    expect(h.noted).toHaveBeenCalledWith(t("linkCopied"));
+    expect(h.fail).not.toHaveBeenCalled();
+  });
+
+  it("reports a link that could not be copied instead of saying it was", async () => {
+    const h = hands();
+    linking.refuses = true;
+
+    pick(docChoices(doc, h), "asLink").onPick?.();
+    await flush();
+
+    expect(h.fail).toHaveBeenCalledWith({ code: "noClipboard" });
+    expect(h.noted).not.toHaveBeenCalled();
   });
 
   it("brings an archived document back instead of putting it away", () => {

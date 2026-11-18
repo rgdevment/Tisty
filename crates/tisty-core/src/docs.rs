@@ -715,7 +715,7 @@ pub fn resolve(root: &Path, id: &str) -> Result<PathBuf> {
     Ok(root.join(format!("{id}.{EXTENSION}")))
 }
 
-fn well_formed(id: &str) -> bool {
+pub(crate) fn well_formed(id: &str) -> bool {
     let Some((device, number)) = id.rsplit_once('-') else {
         return false;
     };

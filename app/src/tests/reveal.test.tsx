@@ -44,4 +44,15 @@ describe("following a link inside a document", () => {
 
     expect(calls).toEqual(["openUrl:https://example.org"]);
   });
+
+  it("hands the address of a document of the store to the app, never to the file manager", async () => {
+    const href = "tisty://doc/personal/minuta?id=dev_a-0002";
+    const onDoc = vi.fn();
+    render(<Composed className="" onDoc={onDoc} html={`<p><a href="${href}">la minuta</a></p>`} />);
+
+    await userEvent.click(screen.getByText("la minuta"));
+
+    expect(calls).toEqual([`openUrl:${href}`]);
+    expect(onDoc).not.toHaveBeenCalled();
+  });
 });

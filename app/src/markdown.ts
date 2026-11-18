@@ -20,6 +20,13 @@ export const docAimed = (target: string): { file: string; heading?: string } | n
 
 export const docOf = (target: string): string | null => docAimed(target)?.file ?? null;
 
+const ADDRESS = "tisty://doc";
+
+// Only the scheme is read in any case: the core reads the key and the id exactly as written.
+export const addressed = (target: string): boolean =>
+  target.slice(0, ADDRESS.length).toLowerCase() === ADDRESS &&
+  /^(\/[^?#]*)?\?id=[a-z0-9_]{1,48}-\d{1,12}$/.test(target.slice(ADDRESS.length));
+
 const ours = (target: string): boolean =>
   !/^[a-z][a-z0-9+.-]*:/i.test(target) &&
   !/^[a-z]:/i.test(target) &&

@@ -93,7 +93,7 @@ report will never be dismissed for being inconvenient.
   seconds, is taken only if the answer says it is a picture, and is kept nowhere.
   An address that leads to this computer or to your own network is refused, and
   checked again on each redirect.
-- **What reaches Tisty from outside is a stranger's word.** Tisty answers to three
+- **What reaches Tisty from outside is a stranger's word.** Tisty answers to four
   addresses, and any page can fire them. `tisty://open?path=…` shows, read-only,
   only an absolute path on a local disk to an existing `.md`, `.markdown`, `.txt`,
   `.ics` or `.ical` file, with no `..` in it. `tisty://edit?link=…` takes only an
@@ -104,7 +104,15 @@ report will never be dismissed for being inconvenient.
   `tisty://task?id=…` only brings the window forward on the task with that
   identifier: it takes one `id` that must be a well-formed task identifier,
   carries nothing else and changes nothing. It is what a reminder's notice and a
-  saved calendar event point at.
+  saved calendar event point at. `tisty://doc/…?id=…` reads only what follows
+  `?id=`, which must be a well-formed document identifier; the folder and title
+  words before it are for whoever reads the link and are not looked at, and an
+  address with a `?` or a `#` among them is not taken as one. It shows, read-only
+  in the light viewer, only that document of your own store, never a task's page,
+  and when this computer holds no such document the viewer opens and says so;
+  every link to a document that is not here shares that one window, so a page
+  firing identifiers by the hundred opens one window. It writes nothing and tells
+  the page that fired it nothing.
 - **Synchronisation is yours.** Tisty copies files into a folder you name, and
   whatever already keeps that folder in step between your machines is what moves
   them — or into a cloud of your own that it reaches itself. Syncing has no
