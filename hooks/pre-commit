@@ -37,8 +37,7 @@ touched_any() {
   return 1
 }
 
-# The staged paths under $1 that the copy still holds, quoted for eval and relative to $2.
-staged_under() {
+quoted_staged_files() {
   local path quoted said=""
   while IFS= read -r path; do
     case $path in "$1"/*) [ -f "$staged/$path" ] && printf -v quoted ' %q' "${path#"$2"/}" && said+=$quoted ;; esac
@@ -46,19 +45,32 @@ staged_under() {
   printf '%s' "$said"
 }
 
+# cargo fmt -p takes a package name, and only a member the workspace does not exclude.
+member_named_as_folder() {
+  local line
+  [ -f "$staged/crates/$1/Cargo.toml" ] || return 1
+  while IFS= read -r line; do
+    [[ $line == *"\"crates/$1\""* ]] && return 1
+  done < "$staged/Cargo.toml"
+  while IFS= read -r line; do
+    [[ $line =~ ^name[[:space:]]*=[[:space:]]*\"([^\"]*)\" ]] && [ "${BASH_REMATCH[1]}" = "$1" ] && return 0
+  done < "$staged/crates/$1/Cargo.toml"
+  return 1
+}
+
 if command -v cargo > /dev/null; then
-  if touched_any '(^|/)(Cargo\.toml|\.?rustfmt\.toml|rust-toolchain(\.toml)?)$|^app/src-tauri/.*\.rs$'; then
-    quietly "cd \"$staged\" && cargo fmt --all --check" "cargo fmt --all would change files"
-  else
+  crates=" --all"
+  if ! touched_any '(^|/)(Cargo\.toml|\.?rustfmt\.toml|rust-toolchain(\.toml)?)$|^app/src-tauri/.*\.rs$'; then
     crates=""
     while IFS= read -r path; do
       [[ $path =~ ^crates/([^/]+)/.*\.rs$ ]] || continue
+      member_named_as_folder "${BASH_REMATCH[1]}" || { crates=" --all"; break; }
       case "$crates " in *" -p ${BASH_REMATCH[1]} "*) ;; *) crates+=" -p ${BASH_REMATCH[1]}" ;; esac
     done < "$touched"
-    [ -z "$crates" ] || quietly "cd \"$staged\" && cargo fmt --check$crates" "cargo fmt would change files"
   fi
+  [ -z "$crates" ] || quietly "cd \"$staged\" && cargo fmt --check$crates" "cargo fmt would change files"
   # The fuzz targets are a workspace of their own, which cargo fmt --all never reaches.
-  if touched_any '^fuzz/.*\.rs$|(^|/)\.?rustfmt\.toml$'; then
+  if touched_any '^fuzz/.*\.rs$|(^|/)(\.?rustfmt\.toml|rust-toolchain(\.toml)?)$'; then
     quietly "cd \"$staged\" && rustfmt --check --edition 2021 fuzz/fuzz_targets/*.rs" \
       "rustfmt would change the fuzz targets"
   fi
@@ -68,7 +80,7 @@ fi
 
 if [ -x node_modules/.bin/biome ]; then
   window=" src"
-  touched_any '^app/biome\.json$|(^|/)package(-lock)?\.json$' || window=$(staged_under app/src app)
+  touched_any '^app/biome\.json$|(^|/)package(-lock)?\.json$' || window=$(quoted_staged_files app/src app)
   # Windows refuses a command line past 32 KB.
   [ "${#window}" -le 20000 ] || window=" src"
   [ -z "$window" ] || quietly \

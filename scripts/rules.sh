@@ -69,8 +69,8 @@ nothing_past_what_a_person_holds() {
   # One awk for every file: a process per file costs minutes on Windows. The list may be empty, so FILENAME tells the two apart.
   while IFS= read -r said; do
     amiss "$said"
-  done < <(awk -v kept="$kept" '
-    FILENAME == kept { if (NF >= 2) was[$2] = $1; next }
+  done < <(KEPT="$kept" awk '
+    FILENAME == ENVIRON["KEPT"] { if (NF >= 2) was[$2] = $1; next }
     {
       now = $1 + 0
       at = $2
@@ -289,9 +289,9 @@ named_modules() {
 }
 
 # A package is meant for other apps too, so it reaches nothing of Tisty's and is entered only by its doors.
-# It reads `front`, what the app and every package name, which the_packages_keep_to_themselves reads once for all four.
 keeps_to_itself() {
-  local name=$1 said=$2 doors=$3 host=${4:-} root=packages/$1/src named out declared one
+  local name=$1 said=$2 doors=$3 host=${4:-} root=packages/$1/src named out declared one front
+  IFS= read -r -d '' front
   declared=$(awk -v self="$name" '{
       while (match($0, /"tisty-[a-z-]+"/)) {
         one = substr($0, RSTART + 1, RLENGTH - 2)
@@ -348,10 +348,10 @@ the_packages_keep_to_themselves() {
     amiss "the app and its packages could not be looked through for what they reach"
     return
   fi
-  keeps_to_itself tisty-diagrams "the diagram studio" "tisty-diagrams/read tisty-diagrams/studio"
-  keeps_to_itself tisty-editor "the sheet" "tisty-editor/read tisty-editor/edit tisty-editor/tokens.css tisty-editor/side.css"
-  keeps_to_itself tisty-sheet "the drawing of the sheet" "tisty-sheet tisty-sheet/glyphs tisty-sheet/tokens.css tisty-sheet/page.css tisty-sheet/tables.css"
-  keeps_to_itself tisty-light-viewer "the light viewer" "" "packages/tisty-light-viewer/src/host.ts"
+  keeps_to_itself tisty-diagrams "the diagram studio" "tisty-diagrams/read tisty-diagrams/studio" <<< "$front"
+  keeps_to_itself tisty-editor "the sheet" "tisty-editor/read tisty-editor/edit tisty-editor/tokens.css tisty-editor/side.css" <<< "$front"
+  keeps_to_itself tisty-sheet "the drawing of the sheet" "tisty-sheet tisty-sheet/glyphs tisty-sheet/tokens.css tisty-sheet/page.css tisty-sheet/tables.css" <<< "$front"
+  keeps_to_itself tisty-light-viewer "the light viewer" "" "packages/tisty-light-viewer/src/host.ts" <<< "$front"
 }
 
 # Two frameworks in one bundle would cost the viewer the speed it exists for, and the app a second runtime.
@@ -397,7 +397,6 @@ $typed|$typed_tests
 scripts/rules.sh|^  keeps_to_itself $name
 LISTS
   done
-  # Each list read once for every package, as grep -E reads a line; a list that is not there names nobody.
   out=$(awk -F'|' '
     NF { n++; file[n] = $1; wanted[n] = $2; name[n] = $3 }
     END {

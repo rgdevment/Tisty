@@ -215,9 +215,9 @@ the kinds of file it touches — Rust, the window, or, for anything else, all of
 them. That is seconds, and between them they are most of what turns CI red.
 `commit-msg` weighs the subject while the fix is still an `--amend` rather than
 a rebase. `pre-push` weighs the name each branch takes on the remote and the
-subjects of everything you are about to send; the conventions already ran at
-each commit, and the Rules workflow runs them again on the pull request. When
-what you send is a tag it asks
+subjects of everything you are about to send; the conventions ran in
+`pre-commit`, though not on what a rebase rewrote, and the Rules workflow runs
+them all again on the pull request. When what you send is a tag it asks
 `scripts/news.sh` whether `app/src/news.json` says what changed in that version:
 the window an update opens with is the only place the app says it. A candidate
 is exempt, and so is a patch whose minor release already has its entry, since
