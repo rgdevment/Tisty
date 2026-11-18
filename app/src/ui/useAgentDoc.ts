@@ -70,8 +70,8 @@ export function useAgentDoc(file: string | null, body: string) {
     doc: shown,
     editing: shown !== null && writing && shown.kind !== "memory",
     // Held while the card is asked for; a document the core does not take for an agent's is let go.
-    held:
-      isAgent && (shown?.kind === "memory" || (!writing && (answered !== file || shown !== null))),
-    onEdit: (on: boolean) => setEditing(on ? file : null),
+    held: isAgent && !writing && (answered !== file || shown !== null),
+    // The agent writes its memory itself, so it is never opened for editing here.
+    onEdit: (on: boolean) => setEditing(on && shown?.kind !== "memory" ? file : null),
   };
 }

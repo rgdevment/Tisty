@@ -170,12 +170,29 @@ fn one_place(session: &Session, file: &str, at: &str) -> Answer<(PathBuf, Target
     Ok((opened.data, target, piece))
 }
 
+#[derive(serde::Serialize, Debug)]
+#[serde(untagged)]
+pub enum Told {
+    Card(Option<AgentDoc>),
+    Text(Option<String>),
+}
+
+/// The card of a document, or, given a file and something to do there, what doing it gives back.
 #[tauri::command(async)]
 pub fn agent_doc(
     session: tauri::State<'_, Mutex<Session>>,
     file: String,
-) -> Answer<Option<AgentDoc>> {
-    let Some(opened) = opened(&held(&session), &file)? else {
+    at: Option<String>,
+    asked: Option<Asked>,
+) -> Answer<Told> {
+    match at.zip(asked) {
+        Some((at, asked)) => done_at(&session, &file, &at, asked).map(Told::Text),
+        None => card(&session, &file).map(Told::Card),
+    }
+}
+
+fn card(session: &Mutex<Session>, file: &str) -> Answer<Option<AgentDoc>> {
+    let Some(opened) = opened(&held(session), file)? else {
         return Ok(None);
     };
     let ledger = ledger(&opened.data);
@@ -244,16 +261,10 @@ fn text(bytes: &[u8]) -> String {
     String::from_utf8_lossy(bytes).into_owned()
 }
 
-#[tauri::command(async)]
-pub fn agent_doc_do(
-    session: tauri::State<'_, Mutex<Session>>,
-    file: String,
-    at: String,
-    asked: Asked,
-) -> Answer<Option<String>> {
-    let (data, target, piece) = one_place(&held(&session), &file, &at)?;
+fn done_at(session: &Mutex<Session>, file: &str, at: &str, asked: Asked) -> Answer<Option<String>> {
+    let (data, target, piece) = one_place(&held(session), file, at)?;
     // A backup written back waits for any sync round, which writes the same files under the lock.
-    let _writing = matches!(asked, Asked::Restore { .. }).then(|| held(&session));
+    let _writing = matches!(asked, Asked::Restore { .. }).then(|| held(session));
     done(&data, &ledger(&data), &target, piece, asked)
 }
 

@@ -76,6 +76,8 @@ export default function AgentCard({
   const turnable = (place: Place) => !doc.folderOff && place.said.state !== "noConsent";
   // Taking the file's words in replaces the page's, so it waits until the page is no longer being written.
   const takes = !locked && !editing;
+  // A file speaks for the document only when it is that assistant's own: a Global rule is never rewritten from one of them.
+  const owned = (place: Place) => takes && doc.level === place.assistant;
   const showing = useRef<string | null>(file);
   const writing = useRef(editing);
   const brought = useRef(onBrought);
@@ -170,10 +172,10 @@ export default function AgentCard({
             </p>
             <p className="mt-0.5">{fill("agentOutsideWhere", outside.at)}</p>
             <div className="mt-2 flex flex-wrap gap-2">
-              {outside.said.state === "outside" && outside.said.mine && takes && (
+              {outside.said.state === "outside" && outside.said.mine && owned(outside) && (
                 <Action glyph="download" label={t("agentBring")} onClick={() => bring(outside)} />
               )}
-              {outside.said.state === "both" && takes && outside.shared === 1 && (
+              {outside.said.state === "both" && owned(outside) && outside.shared === 1 && (
                 <Action
                   glyph="download"
                   label={t("agentKeepFile")}

@@ -516,7 +516,7 @@ export default function Docs({
   }, []);
   const brimming = ceiling > 0 && body.length > ceiling;
 
-  const wrote = (text: string) => {
+  const wrote = (text: string, taken = false) => {
     if (!open || bolted) return;
     typed.current = Date.now();
     // Words typed since move what the mark spoke of, so it cannot be shown again either.
@@ -525,7 +525,8 @@ export default function Docs({
     setCompacted(false);
     setBody(text);
     const last = lastRead.current.get(open.file);
-    const back = last !== undefined && !last.unwoven && tailless(last.text) === tailless(text);
+    const back =
+      !taken && last !== undefined && !last.unwoven && tailless(last.text) === tailless(text);
     if (back) {
       // A chapter moved and moved back inside the beat would otherwise be written in the order it passed through.
       setWaiting(false);
@@ -542,11 +543,10 @@ export default function Docs({
     settling.current = setTimeout(flush, SETTLES);
   };
 
-  // Words that differ only at their end are no change to a document, so nothing would be brought.
+  // A file's words are written even when they differ only at their end; a save still waiting goes first, and the card asks again.
   const brought = (text: string) => {
-    const last = open && lastRead.current.get(open.file);
-    if (last && tailless(last.text) === tailless(text)) onError(t("agentBringNothing"));
-    else wrote(text);
+    if (open && held.current?.id === open.file) flush();
+    else wrote(text, true);
   };
 
   const own = filed(known, open?.file);
@@ -960,7 +960,7 @@ export default function Docs({
   };
 
   const reshape = (made: (now: string) => string) => {
-    if (!open || bolted) return;
+    if (!open || bolted || agent.held) return;
     const now = made(held.current?.id === open.file ? held.current.body : body);
     wrote(now);
     dressAlike(now);
@@ -976,10 +976,11 @@ export default function Docs({
     if (!open) return;
     if (sheets) keptBeside(paper, landscape);
     const { [open.file]: _, ...others } = sized;
-    const now = bolted ? { ...others, [open.file]: paper } : others;
+    const kept = bolted || agent.held;
+    const now = kept ? { ...others, [open.file]: paper } : others;
     setSized(now);
     window.localStorage.setItem("tisty.paper", JSON.stringify(now));
-    if (bolted) return;
+    if (kept) return;
     const latest = held.current?.id === open.file ? held.current.body : body;
     const laid = withPaper(latest, paper);
     wrote(laid);
@@ -1431,7 +1432,7 @@ export default function Docs({
           sheets={sheets}
           landscape={landscape}
           onSheets={
-            bolted
+            bolted || agent.held
               ? undefined
               : (on) => {
                   if (on) keptBeside(leaf, false);
@@ -1439,7 +1440,7 @@ export default function Docs({
                 }
           }
           onLandscape={
-            bolted
+            bolted || agent.held
               ? undefined
               : (turned) => {
                   if (sheets) keptBeside(leaf, turned);

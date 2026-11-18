@@ -49,6 +49,7 @@ const agents = [folder("a", null, { name: "AGENTS", icon: "robot" }), folder("cl
 const look = (more: Partial<AgentsLook> = {}): AgentsLook => ({
   folder: "a",
   docs: 1,
+  changes: 0,
   consented: true,
   allOn: true,
   asks: false,

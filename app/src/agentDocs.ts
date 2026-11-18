@@ -83,7 +83,7 @@ type Asked =
   | { do: "restore"; backup: number };
 
 const agentDo = (file: string, at: string, asked: Asked): Promise<string | null> =>
-  invoke("agent_doc_do", { file, at, asked });
+  invoke("agent_doc", { file, at, asked });
 
 export const agentBring = (file: string, at: string): Promise<string> =>
   agentDo(file, at, { do: "bring" }).then((body) => body ?? "");
