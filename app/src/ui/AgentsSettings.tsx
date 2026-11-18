@@ -63,7 +63,7 @@ export default function AgentsSettings({ busy }: Readonly<{ busy: Which | null }
           </button>
         </>
       )}
-      {look && look.assistants.length === 0 && (
+      {look?.assistants.length === 0 && (
         <p className="mt-2 text-[12.5px] text-faint">{t("agentsSettingsNone")}</p>
       )}
       {look?.consented && (

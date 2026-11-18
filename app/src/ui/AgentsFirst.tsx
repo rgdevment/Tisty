@@ -25,15 +25,45 @@ const kindWord = (kind: FileSeen["kind"]) => `agentsKind_${kind}` as Word;
 // An agent's memory travels with sync once it is in Tisty, so the person ticks it by hand.
 const chosenFirst = (one: FileSeen) => takeable(one) && one.kind !== "memory";
 
-const SAID = ["noConsent", "secret", "tooBig", "notText", "linked", "name"];
+const SAID = new Set(["noConsent", "secret", "tooBig", "notText", "linked", "name"]);
 
 const reasonSaid = (one: Refused): string => {
   if (one.reason.startsWith("skip_")) return t(skipWord(one.reason.slice("skip_".length)));
-  if (SAID.includes(one.reason)) return t(`agentsRefused_${one.reason}` as Word);
+  if (SAID.has(one.reason)) return t(`agentsRefused_${one.reason}` as Word);
   return fill("agentsRefused_other", one.why);
 };
 
 const listed = (names: string[]) => names.join(", ");
+
+const counted = (one: AssistantSeen, count: number): string => {
+  if (count === 0 && one.files.some((file) => file.held))
+    return fill("agentsFirstAllHeld", one.name);
+  if (count === 1) return fill("agentsFirstCountOne", one.name);
+  return fill("agentsFirstCount", one.name, String(count));
+};
+
+const fileSaid = (file: FileSeen): string => {
+  if (file.held) return t("agentsFirstHeld");
+  if (file.skip) return t(skipWord(file.skip));
+  return t(kindWord(file.kind));
+};
+
+const broughtSaid = (made: number): string => {
+  if (made === 0) return t("agentsBroughtNone");
+  if (made === 1) return t("agentsBroughtOne");
+  return fill("agentsBroughtMany", String(made));
+};
+
+const pickSaid = (assistants: AssistantSeen[], found: boolean): string => {
+  if (found) return t("agentsFirstPick");
+  if (assistants.some((one) => one.files.some((file) => file.held))) return t("agentsFirstAllHere");
+  return t("agentsFirstNone");
+};
+
+const bringSaid = (busy: boolean, chosen: number): string => {
+  if (busy) return t("agentsBringing");
+  return chosen > 0 ? t("agentsBringSync") : t("agentsAllow");
+};
 
 function Assistant({
   one,
@@ -50,13 +80,7 @@ function Assistant({
         onClick={() => setOpen(!open)}
         className="flex w-full items-center gap-2 px-3 py-2 text-left text-[13px] font-medium hover:bg-hover"
       >
-        <span className="flex-1">
-          {count === 0 && one.files.some((file) => file.held)
-            ? fill("agentsFirstAllHeld", one.name)
-            : count === 1
-              ? fill("agentsFirstCountOne", one.name)
-              : fill("agentsFirstCount", one.name, String(count))}
-        </span>
+        <span className="flex-1">{counted(one, count)}</span>
         <span className="text-faint">{open ? "▾" : "▸"}</span>
       </button>
       {open && (
@@ -69,6 +93,7 @@ function Assistant({
               >
                 <input
                   type="checkbox"
+                  aria-label={file.name}
                   checked={chosen.has(file.at)}
                   disabled={!takeable(file)}
                   onChange={() => onToggle(file.at)}
@@ -78,13 +103,7 @@ function Assistant({
                   <span className="block truncate font-mono text-[11.5px] text-ink">
                     {file.name}
                   </span>
-                  <span className="block text-[11.5px] text-soft">
-                    {file.held
-                      ? t("agentsFirstHeld")
-                      : file.skip
-                        ? t(skipWord(file.skip))
-                        : t(kindWord(file.kind))}
-                  </span>
+                  <span className="block text-[11.5px] text-soft">{fileSaid(file)}</span>
                 </span>
               </label>
             </li>
@@ -231,13 +250,7 @@ export default function AgentsFirst({ onClose, onChanged }: Readonly<Props>) {
   if (brought) {
     return (
       <Modal title={t("agentsFirstTitle")} wide onClose={onClose}>
-        <p className="text-[13px] leading-relaxed text-soft">
-          {brought.made === 0
-            ? t("agentsBroughtNone")
-            : brought.made === 1
-              ? t("agentsBroughtOne")
-              : fill("agentsBroughtMany", String(brought.made))}
-        </p>
+        <p className="text-[13px] leading-relaxed text-soft">{broughtSaid(brought.made)}</p>
         {brought.refused.length > 0 && (
           <>
             <p className="mt-3 text-[12.5px] text-soft">{t("agentsRefused")}</p>
@@ -274,13 +287,7 @@ export default function AgentsFirst({ onClose, onChanged }: Readonly<Props>) {
       </ul>
       {look && (
         <>
-          <p className="mt-4 mb-1.5 text-[12.5px] font-semibold">
-            {found
-              ? t("agentsFirstPick")
-              : assistants.some((one) => one.files.some((file) => file.held))
-                ? t("agentsFirstAllHere")
-                : t("agentsFirstNone")}
-          </p>
+          <p className="mt-4 mb-1.5 text-[12.5px] font-semibold">{pickSaid(assistants, found)}</p>
           {assistants.some((one) => one.files.length > 0) && (
             <ul className="rounded-[10px] border border-hair bg-panel">
               {assistants
@@ -298,7 +305,7 @@ export default function AgentsFirst({ onClose, onChanged }: Readonly<Props>) {
           {t("agentsNotNow")}
         </button>
         <button type="button" disabled={!look || busy} onClick={bring} className={primary}>
-          {busy ? t("agentsBringing") : chosen.size > 0 ? t("agentsBringSync") : t("agentsAllow")}
+          {bringSaid(busy, chosen.size)}
         </button>
       </div>
     </Modal>

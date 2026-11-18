@@ -110,6 +110,6 @@ export const agentsPrint = (docs: readonly Filed[], folders: readonly Folded[]):
   return docs
     .filter((one) => one.folder && tree.has(one.folder))
     .map((one) => `${one.file}:${one.wrote ?? ""}:${one.bytes ?? ""}:${one.away}`)
-    .sort()
+    .sort((a, b) => a.localeCompare(b))
     .join("|");
 };
