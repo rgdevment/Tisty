@@ -11,8 +11,10 @@ and [ammonia](https://github.com/rust-ammonia/ammonia) for reading the Markdown,
 [htmd](https://github.com/letmutex/htmd) for bringing in HTML,
 [Mermaid](https://mermaid.js.org) for the diagrams, [KaTeX](https://katex.org)
 for the formulas, [lowlight](https://github.com/wooorm/lowlight) and
-[highlight.js](https://highlightjs.org) for the code, and
-[react-pdf](https://react-pdf.org) for the PDF — with
+[highlight.js](https://highlightjs.org) for the code,
+[react-pdf](https://react-pdf.org) for the PDF, and
+[sigma.js](https://www.sigmajs.org) with
+[graphology](https://graphology.github.io) for the Brainsty network — with
 [serde](https://serde.rs), [jiff](https://github.com/BurntSushi/jiff),
 [SQLite](https://sqlite.org) and [clap](https://github.com/clap-rs/clap)
 underneath. Each one is permissively licensed, and `Cargo.lock` and

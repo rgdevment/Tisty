@@ -11,12 +11,16 @@ use crate::{
 mod card;
 mod decided;
 mod linked;
+mod network;
 mod nodes;
 mod own;
 mod reading;
 
 pub use card::{Around, Card, DocFacts, Facts, Near, Section, TaskFacts, Tongue, Used};
 pub use decided::Decision;
+pub use network::{
+    EDGES_AT_MOST, LeftOut, NODES_AT_MOST, Network, Neuron, TIES, kept_out, network, touched_last,
+};
 pub use reading::{Citing, Headed, Under, cited_by};
 
 const SCHEMA: i64 = 5;
