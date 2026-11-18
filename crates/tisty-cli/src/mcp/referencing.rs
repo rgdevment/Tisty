@@ -392,16 +392,10 @@ pub(super) fn link_all(paths: &Paths, tool: &str, args: &mut Value, field: &str)
     if !names_anything(args, field) {
         return heard;
     }
-    let Some(mut state) = seen(paths, false) else {
+    let Some(state) = seen(paths) else {
         return heard;
     };
     let rewrites = !only_adds(tool);
-    if rewrites && bodies_needed(&state, args) {
-        let Some(whole) = seen(paths, true) else {
-            return heard;
-        };
-        state = whole;
-    }
     let known = Known::of(&state);
     let own = own_of(&state, args);
     let mut before = match rewrites {
@@ -488,23 +482,9 @@ fn put_back(value: &mut Value, field: &str, link: &mut impl FnMut(&str) -> Strin
     }
 }
 
-// A task's page holds its description, so only a note reworded or a task with no page needs its body.
-fn bodies_needed(state: &State, args: &Value) -> bool {
-    let task = args
-        .get("task")
-        .and_then(Value::as_str)
-        .and_then(named_task);
-    task.is_some_and(|id| {
-        args.get("note").is_some() || tisty_core::task_docs::of(state, id).is_none()
-    })
-}
-
-fn seen(paths: &Paths, bodies: bool) -> Option<State> {
-    let projected = match bodies {
-        true => tisty_core::cache::project(&paths.store(), paths.cache()),
-        false => tisty_core::cache::summarised(&paths.store(), paths.cache()),
-    };
-    let mut state = projected.ok()?;
+// The whole projection catches a stale cache up from the log's tail, and leaves it fresh for the write.
+fn seen(paths: &Paths) -> Option<State> {
+    let mut state = tisty_core::cache::project(&paths.store(), paths.cache()).ok()?;
     tisty_core::diary::out_of_sight(&paths.docs(), &mut state);
     Some(state)
 }
