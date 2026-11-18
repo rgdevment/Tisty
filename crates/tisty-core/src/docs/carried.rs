@@ -111,7 +111,7 @@ fn read_within(from: impl std::io::Read, ceiling: u64) -> std::io::Result<Vec<u8
     Ok(bytes)
 }
 
-pub(super) fn whole_of(at: &Path) -> std::io::Result<Option<Vec<u8>>> {
+pub fn whole_of(at: &Path) -> std::io::Result<Option<Vec<u8>>> {
     let file = match std::fs::File::open(at) {
         Ok(file) => file,
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(None),

@@ -98,7 +98,10 @@ impl<'a> Writer<'a> {
         match step {
             Step::Back => {
                 let spare = !cut && told.spare_as_back(&shelf, &print);
-                kept(&shelf, &print, was, self.at)?;
+                // A version already kept is replaced again only when the cut says so, or its day would move.
+                if cut || !stands(&shelf, &print) {
+                    kept(&shelf, &print, was, self.at)?;
+                }
                 stepped_from = told.back.replace(Back {
                     print: print.clone(),
                     left: Some(leaves.clone()),
@@ -540,11 +543,15 @@ fn adopting(data: &Path) {
         };
         let alive = crate::docs::resolve(&data.join("docs"), id).is_ok_and(|body| body.is_file());
         if !alive {
+            let _ = std::fs::remove_file(&at);
             continue;
         }
         match adopt_one(data, &at, id) {
-            Ok(true) => adopted += 1,
-            Ok(false) => {}
+            Ok(moved) => {
+                adopted += usize::from(moved);
+                // One at a time, so a copy that will not move never has the rest walked again.
+                let _ = std::fs::remove_file(&at);
+            }
             Err(e) => {
                 unread += 1;
                 witness::warn(

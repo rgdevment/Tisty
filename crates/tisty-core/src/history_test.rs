@@ -212,6 +212,15 @@ fn a_version_the_cut_kept_is_not_dropped_when_it_comes_back_as_the_step_back() {
         vec![print(UNO)],
         "going back and forth took a version the cut had kept"
     );
+    let uno = versions(data, DOC)
+        .into_iter()
+        .find(|one| one.print == print(UNO))
+        .unwrap();
+    assert_eq!(
+        uno.replaced,
+        at(40),
+        "a step back that cut nothing moved the day the version was replaced"
+    );
     assert_eq!(back(data, DOC).map(|one| one.body).as_deref(), Some(DOS));
 }
 
@@ -534,4 +543,30 @@ fn the_walk_that_prunes_is_taken_once_a_day() {
         "walked again before a day had passed"
     );
     assert_eq!(pruned_when_due(data, 1, at(100 + a_day)), 1);
+}
+
+#[test]
+fn a_copy_that_will_not_move_does_not_keep_the_others_from_moving() {
+    let (room, docs) = desk();
+    let data = room.path();
+    let originals = data.join("originals");
+    std::fs::create_dir_all(&originals).unwrap();
+    crate::docs::write(&docs, DOC, DOS).unwrap();
+    std::fs::write(originals.join("mac0-0001.md"), UNO).unwrap();
+    crate::docs::write(&docs, "mac0-0002", TRES).unwrap();
+    std::fs::write(originals.join("mac0-0002.md"), "# Otra").unwrap();
+    std::fs::create_dir_all(data.join("history")).unwrap();
+    std::fs::write(data.join("history/mac0-0002"), "not a folder").unwrap();
+
+    adopt_originals(data);
+
+    assert_eq!(back(data, DOC).map(|one| one.body).as_deref(), Some(UNO));
+    assert!(
+        !originals.join("mac0-0001.md").exists(),
+        "the copy that moved is walked again at every write"
+    );
+    assert!(
+        originals.join("mac0-0002.md").exists(),
+        "the copy that could not move was thrown away"
+    );
 }

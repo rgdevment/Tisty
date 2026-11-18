@@ -1087,7 +1087,7 @@ fn theirs_over_mine(
         return Err(Trouble::Moved(id.to_string()));
     }
     // The person chose the other side, and the log does not say who wrote it: this side is kept.
-    if let Some(was) = papers::standing(mine) {
+    if let Ok(Some(was)) = tisty_core::docs::whole_of(mine) {
         tisty_core::history::Writer::unanswered(data).passes(
             id,
             &was,

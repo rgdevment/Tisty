@@ -3,8 +3,9 @@ use std::path::Path;
 use crate::Result;
 use crate::history::{Step, Writer};
 
-use super::carried::whole_of;
-use super::{alone, as_written, print_of, print_of_bytes, read, resolve, settled, written};
+use super::{
+    alone, as_written, print_of, print_of_bytes, read, resolve, settled, whole_of, written,
+};
 
 /// One door for every writer: a body read by one is never written under another.
 pub fn write(root: &Path, id: &str, body: &str) -> Result<()> {

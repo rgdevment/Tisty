@@ -513,15 +513,9 @@ fn arriving<'a>(
     }
 }
 
-pub(crate) fn standing(mine: &Path) -> Option<Vec<u8>> {
-    use tisty_core::docs::{print_of, read_as_printed};
-    let print = print_of(mine).ok().flatten()?;
-    read_as_printed(mine, &print).ok().flatten()
-}
-
 fn set_aside(by: &tisty_core::history::Writer, id: &str, mine: &Path, left: &[u8], answer: Answer) {
     use tisty_core::history::Step;
-    let Some(was) = standing(mine) else {
+    let Ok(Some(was)) = tisty_core::docs::whole_of(mine) else {
         return;
     };
     let step = match answer {
