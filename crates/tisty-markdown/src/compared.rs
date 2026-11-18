@@ -1,5 +1,5 @@
 use std::borrow::Cow;
-use std::cell::Cell;
+use std::cell::{Cell, OnceCell};
 use std::collections::HashMap;
 use std::hash::Hash;
 use std::ops::Range;
@@ -50,7 +50,7 @@ fn spending(was: &str, now: &str, cells: usize) -> Option<Compared> {
         now: side(bodies.now, &named, page::titled(now.blocks()), true),
     };
     let mut out = Compared::default();
-    drawn(&steps, &sides, &mut out);
+    drawn(&steps, &sides, None, &mut out);
     Some(out)
 }
 
@@ -107,14 +107,14 @@ fn key<'a>(block: &Block, text: &'a str) -> Key<'a> {
     }
 }
 
+fn marker(item: &str) -> usize {
+    let lead = item.len() - item.trim_start().len();
+    let mark = crate::fences::opener(&item[lead..]).unwrap_or(0);
+    (lead + mark).min(item.len())
+}
+
 fn unmarked(item: &str) -> &str {
-    let said = item.trim_start();
-    let digits = said.bytes().take_while(u8::is_ascii_digit).count();
-    let rest = match digits {
-        0 => said.strip_prefix(['-', '*', '+']),
-        _ => said[digits..].strip_prefix(['.', ')']),
-    };
-    rest.map_or(said, str::trim_start)
+    &item[marker(item)..]
 }
 
 fn told<'a>(was: &'a [Block], now: &'a [Block], bodies: Bodies<'a>) -> Option<Vec<Step<'a>>> {
@@ -141,8 +141,13 @@ impl<'a> Said<'a> {
     // A bar, a bullet or a comma is in every block of its kind, so words weigh by their letters and digits alone.
     fn of(block: &'a Block, text: &'a str) -> Self {
         let words = words(text, block.at.clone());
+        let said = match block.kind {
+            Kind::Item { .. } => block.at.start + marker(&text[block.at.clone()]),
+            _ => block.at.start,
+        };
         let mut bag: Vec<&str> = words
             .iter()
+            .filter(|one| one.start >= said)
             .map(|one| text[one.clone()].trim_matches(|c: char| !c.is_alphanumeric()))
             .filter(|word| !word.is_empty())
             .collect();
@@ -197,22 +202,21 @@ fn between<'a>(gone: &'a [Block], came: &'a [Block], bodies: Bodies<'a>, out: &m
     let went_alone = |one| Step::Gone(one, Marks::new());
     let came_alone = |one| Step::Came(one, Marks::new());
     let (mut from, mut waiting) = (0, 0);
-    if !gone.is_empty() && !came.is_empty() {
-        let went: Vec<Said> = gone.iter().map(|one| Said::of(one, bodies.was)).collect();
-        for (to, new) in came.iter().enumerate() {
-            if from == gone.len() {
-                break;
-            }
-            let here = Said::of(new, bodies.now);
-            let ahead = went[from..].iter().take(LOOKS_AHEAD).enumerate();
-            let Some((by, there)) = ahead.into_iter().find(|(_, there)| there.alike(&here)) else {
-                continue;
-            };
-            out.extend(gone[from..from + by].iter().map(went_alone));
-            out.extend(came[waiting..to].iter().map(came_alone));
-            pair((&gone[from + by], new), (there, &here), bodies, out);
-            (from, waiting) = (from + by + 1, to + 1);
+    let went: Vec<OnceCell<Said>> = gone.iter().map(|_| OnceCell::new()).collect();
+    let said = |at: usize| went[at].get_or_init(|| Said::of(&gone[at], bodies.was));
+    for (to, new) in came.iter().enumerate() {
+        if from == gone.len() {
+            break;
         }
+        let here = Said::of(new, bodies.now);
+        let mut ahead = (from..gone.len()).take(LOOKS_AHEAD);
+        let Some(at) = ahead.find(|at| said(*at).alike(&here)) else {
+            continue;
+        };
+        out.extend(gone[from..at].iter().map(went_alone));
+        out.extend(came[waiting..to].iter().map(came_alone));
+        pair((&gone[at], new), (said(at), &here), bodies, out);
+        (from, waiting) = (at + 1, to + 1);
     }
     out.extend(gone[from..].iter().map(went_alone));
     out.extend(came[waiting..].iter().map(came_alone));
@@ -333,42 +337,77 @@ struct Sides<'a> {
     now: Side<'a>,
 }
 
-fn drawn(steps: &[Step], sides: &Sides, out: &mut Compared) {
+// An item that went and the one in its place would both count, so in a numbered list each says its own number.
+fn placed(block: &Block, change: Option<&str>, number: Option<u64>) -> String {
+    let at = page::placed_at(block, change);
+    match number {
+        Some(number) => format!("{at} value=\"{number}\""),
+        None => at,
+    }
+}
+
+fn next(number: &mut Option<u64>) -> Option<u64> {
+    let said = *number;
+    *number = said.map(|at| at + 1);
+    said
+}
+
+fn drawn(steps: &[Step], sides: &Sides, first: Option<u64>, out: &mut Compared) {
     let (was, now) = (&sides.was, &sides.now);
+    let (mut then, mut today) = (first, first);
     for step in steps {
         match step {
-            Step::Same(block) => page::draw(block, now.text, &now.drawing, &mut out.html),
+            Step::Same(block) => {
+                let at = placed(block, None, next(&mut today));
+                next(&mut then);
+                page::draw_as(block, now.text, &now.drawing, &at, &mut out.html);
+            }
             Step::Gone(block, marks) => {
                 out.gone += 1;
+                let at = placed(block, Some("gone"), next(&mut then));
                 let drawing = was.telling("del", marks);
-                page::draw_as(block, was.text, &drawing, Some("gone"), &mut out.html);
+                page::draw_as(block, was.text, &drawing, &at, &mut out.html);
             }
             Step::Came(block, marks) => {
                 out.came += 1;
+                let at = placed(block, Some("came"), next(&mut today));
                 let drawing = now.telling("ins", marks);
-                page::draw_as(block, now.text, &drawing, Some("came"), &mut out.html);
+                page::draw_as(block, now.text, &drawing, &at, &mut out.html);
             }
-            Step::Within(gone, came, inner) => within_drawn((gone, came), inner, sides, out),
+            Step::Within(gone, came, inner) => {
+                let at = placed(came, None, next(&mut today));
+                next(&mut then);
+                within_drawn((gone, came), inner, sides, &at, out);
+            }
         }
     }
 }
 
-fn within_drawn((gone, came): (&Block, &Block), inner: &[Step], sides: &Sides, out: &mut Compared) {
+fn within_drawn(
+    (gone, came): (&Block, &Block),
+    inner: &[Step],
+    sides: &Sides,
+    at: &str,
+    out: &mut Compared,
+) {
     let now = &sides.now;
-    let at = page::placed_at(came, None);
     match &came.kind {
         Kind::Table { .. } => rows_drawn((gone, came), inner, sides, out),
         Kind::Item { done } => {
-            page::item_open(*done, &at, came, now.text, &now.drawing, &mut out.html);
-            drawn(inner, sides, out);
+            page::item_open(*done, at, came, now.text, &now.drawing, &mut out.html);
+            drawn(inner, sides, None, out);
             out.html.push_str("</li>");
         }
-        _ => {
-            let Some((open, shut)) = page::shell(came, now.text, &now.drawing, &at) else {
+        kind => {
+            let Some((open, shut)) = page::shell(came, now.text, &now.drawing, at) else {
                 return;
             };
+            let first = match kind {
+                Kind::List { start } => *start,
+                _ => None,
+            };
             out.html.push_str(&open);
-            drawn(inner, sides, out);
+            drawn(inner, sides, first, out);
             out.html.push_str(shut);
         }
     }

@@ -217,9 +217,129 @@ fn an_item_that_came_first_in_a_numbered_list_marks_no_other() {
 
     assert_eq!(
         said.html,
-        "<ol><li data-change=\"came\">cero</li><li>uno</li><li>dos</li><li>tres</li></ol>"
+        "<ol><li data-change=\"came\" value=\"1\">cero</li><li value=\"2\">uno</li>\
+         <li value=\"3\">dos</li><li value=\"4\">tres</li></ol>"
     );
     assert_eq!((said.gone, said.came), (0, 1));
+}
+
+#[test]
+fn a_numbered_item_that_changed_keeps_its_number_before_and_after() {
+    let said = page(
+        "3. uno\n4. dos de antes\n5. tres\n",
+        "3. uno\n4. dos de ahora\n5. tres\n",
+    );
+
+    assert_eq!(
+        said.html,
+        "<ol start=\"3\"><li value=\"3\">uno</li>\
+         <li data-change=\"gone\" value=\"4\">dos de <del>antes</del></li>\
+         <li data-change=\"came\" value=\"4\">dos de <ins>ahora</ins></li>\
+         <li value=\"5\">tres</li></ol>"
+    );
+}
+
+#[test]
+fn two_numbered_items_are_not_alike_for_sharing_a_number() {
+    let said = page("1. uno\n2. dos\n3. tres\n", "1. uno\n2. two\n3. tres\n");
+
+    assert_eq!(
+        said.html,
+        "<ol><li value=\"1\">uno</li><li data-change=\"gone\" value=\"2\">dos</li>\
+         <li data-change=\"came\" value=\"2\">two</li><li value=\"3\">tres</li></ol>"
+    );
+}
+
+#[test]
+fn an_item_that_holds_paragraphs_is_drawn_once_around_the_one_that_changed() {
+    let said = page(
+        "- uno\n\n  sigue aqui\n- dos\n",
+        "- uno\n\n  sigue alla\n- dos\n",
+    );
+
+    assert_eq!(
+        said.html,
+        "<ul><li><p>uno</p><p data-change=\"gone\">sigue <del>aqui</del></p>\
+         <p data-change=\"came\">sigue <ins>alla</ins></p></li><li><p>dos</p></li></ul>"
+    );
+}
+
+#[test]
+fn a_quote_and_a_fold_are_drawn_once_around_what_changed_inside() {
+    let quote = page(
+        "> cita uno\n>\n> cita dos\n",
+        "> cita uno\n>\n> cita tres\n",
+    );
+    let fold = page(
+        "<details>\n<summary>Ver</summary>\n\nDentro uno.\n\n</details>\n",
+        "<details>\n<summary>Ver</summary>\n\nDentro dos.\n\n</details>\n",
+    );
+
+    assert_eq!(
+        quote.html,
+        "<blockquote><p>cita uno</p><p data-change=\"gone\">cita <del>dos</del></p>\
+         <p data-change=\"came\">cita <ins>tres</ins></p></blockquote>"
+    );
+    assert_eq!(
+        fold.html,
+        "<details><summary>Ver</summary><p data-change=\"gone\">Dentro <del>uno.</del></p>\
+         <p data-change=\"came\">Dentro <ins>dos.</ins></p></details>"
+    );
+}
+
+#[test]
+fn a_fold_with_another_summary_is_told_whole() {
+    let said = page(
+        "<details>\n<summary>Ver esto</summary>\n\nDentro va lo mismo.\n\n</details>\n",
+        "<details>\n<summary>Ver aquello</summary>\n\nDentro va lo mismo.\n\n</details>\n",
+    );
+
+    assert_eq!(
+        said.html,
+        "<details data-change=\"gone\"><summary>Ver esto</summary><p>Dentro va lo mismo.</p></details>\
+         <details data-change=\"came\"><summary>Ver aquello</summary><p>Dentro va lo mismo.</p></details>"
+    );
+}
+
+#[test]
+fn a_footnote_keeps_its_place_around_the_words_that_changed() {
+    let said = page(
+        "Texto[^a].\n\n[^a]: La nota vieja de antes.\n",
+        "Texto[^a].\n\n[^a]: La nota nueva de antes.\n",
+    );
+
+    assert!(
+        said.html.contains(
+            "<div class=\"footnote\" id=\"fn-a\"><span class=\"fn-label\">a</span>\
+             <p data-change=\"gone\">La nota <del>vieja</del> de antes.</p>\
+             <p data-change=\"came\">La nota <ins>nueva</ins> de antes.</p></div>"
+        ),
+        "{}",
+        said.html
+    );
+}
+
+#[test]
+fn a_mark_of_the_byte_order_at_the_top_changes_nothing() {
+    let now = "# Uno\n\nTexto.\n";
+
+    let said = compared(&format!("\u{feff}{now}"), now).unwrap();
+
+    assert_eq!(said.html, drawn(now));
+}
+
+#[test]
+fn one_block_written_where_many_went_is_told_with_all_of_them() {
+    let was = paragraphs(40, "línea vieja");
+    let now = "Una sola línea nueva.\n";
+
+    let said = page(&was, now);
+
+    assert_eq!((said.gone, said.came), (40, 1));
+    assert!(
+        said.html
+            .ends_with("<p data-change=\"came\">Una sola línea nueva.</p>")
+    );
 }
 
 #[test]
@@ -432,10 +552,7 @@ fn a_body_of_the_longest_document_known_written_all_over_is_still_told() {
 }
 
 fn rolled(seed: &mut u64) -> usize {
-    *seed = seed
-        .wrapping_mul(6_364_136_223_846_793_005)
-        .wrapping_add(1_442_695_040_888_963_407);
-    (*seed >> 33) as usize
+    crate::shared::tests::rolled(seed) as usize
 }
 
 fn some_body(seed: &mut u64) -> String {

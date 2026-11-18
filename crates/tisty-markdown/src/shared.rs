@@ -9,8 +9,7 @@ pub(crate) struct Shared {
     pub cells: usize,
 }
 
-/// Where two runs say the same, in order; what both open and close with is never weighed.
-/// None when what is left between is past `most` cells: too long to tell apart.
+/// Where two runs say the same, in order; None when what they do not open or close alike is past `most` cells.
 pub(crate) fn shared<T: Hash + Eq>(a: &[T], b: &[T], most: usize) -> Option<Shared> {
     let lead = a.iter().zip(b).take_while(|(one, two)| one == two).count();
     let (rest_a, rest_b) = (&a[lead..], &b[lead..]);
@@ -88,4 +87,4 @@ fn numbered<T: Hash + Eq>(a: &[T], b: &[T]) -> (Vec<u32>, Vec<u32>) {
 
 #[cfg(test)]
 #[path = "shared_test.rs"]
-mod tests;
+pub(crate) mod tests;

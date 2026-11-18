@@ -225,7 +225,7 @@ fn front(said: &str, at: &str, out: &mut String) {
 }
 
 pub(crate) fn draw(block: &Block, text: &str, drawing: &Drawing, out: &mut String) {
-    draw_as(block, text, drawing, None, out);
+    draw_as(block, text, drawing, &placed_at(block, None), out);
 }
 
 pub(crate) fn placed_at(block: &Block, change: Option<&str>) -> String {
@@ -273,15 +273,8 @@ pub(crate) fn shell(
     })
 }
 
-pub(crate) fn draw_as(
-    block: &Block,
-    text: &str,
-    drawing: &Drawing,
-    change: Option<&str>,
-    out: &mut String,
-) {
-    let at = placed_at(block, change);
-    if let Some((open, shut)) = shell(block, text, drawing, &at) {
+pub(crate) fn draw_as(block: &Block, text: &str, drawing: &Drawing, at: &str, out: &mut String) {
+    if let Some((open, shut)) = shell(block, text, drawing, at) {
         out.push_str(&open);
         for inner in &block.inner {
             draw(inner, text, drawing, out);
@@ -306,7 +299,7 @@ pub(crate) fn draw_as(
             out.push_str("</p>");
         }
         Kind::Item { done } => {
-            item_open(*done, &at, block, text, drawing, out);
+            item_open(*done, at, block, text, drawing, out);
             for inner in &block.inner {
                 draw(inner, text, drawing, out);
             }
@@ -315,13 +308,13 @@ pub(crate) fn draw_as(
         Kind::Code { tongue, title } => code(
             tongue.as_deref(),
             title.as_deref(),
-            &at,
+            at,
             (block, text, drawing),
             out,
         ),
         Kind::Table { columns } => {
             let read = values::read(columns, block, text);
-            table_open(columns, &at, out);
+            table_open(columns, at, out);
             let mut body = false;
             for row_at in 0..block.inner.len() {
                 row(
@@ -346,7 +339,7 @@ pub(crate) fn draw_as(
         Kind::Rule => {
             let _ = write!(out, "<hr {at}>");
         }
-        Kind::Front => front(&text[block.at.clone()], &at, out),
+        Kind::Front => front(&text[block.at.clone()], at, out),
         Kind::Definition { label, to } => {
             let _ = write!(
                 out,
@@ -433,10 +426,13 @@ fn code(
         written_at(block, text, &said, drawing.placed)
     );
     let told = drawing.told;
-    for one in &block.spans {
-        told.parted(one.at.clone(), |part, tells| {
-            told.marked(tells, out, |out| out.push_str(&escaped(&text[part])));
-        });
+    match told.at.is_empty() {
+        true => out.push_str(&escaped(&said)),
+        false => block.spans.iter().for_each(|one| {
+            told.parted(one.at.clone(), |part, tells| {
+                told.marked(tells, out, |out| out.push_str(&escaped(&text[part])));
+            });
+        }),
     }
     out.push_str("</code></pre></figure>");
 }
