@@ -86,16 +86,20 @@ impl Machines {
         }
     }
 
-    /// A retired assistant loses its host from the state, but the log still says where it lived.
+    /// A retired assistant loses its host from the state, but the log still says where it lived last.
     pub fn told_by(mut self, log: &[Event]) -> Self {
+        let mut said = BTreeMap::new();
         for event in log {
             if let Op::DeviceHost { d, of, .. } = &event.op
                 && (event.device == *d || event.device == *of)
                 && self.assistants.contains(d)
                 && !self.assistants.contains(of)
             {
-                self.hosts.entry(d.clone()).or_insert_with(|| of.clone());
+                said.insert(d.clone(), of.clone());
             }
+        }
+        for (agent, host) in said {
+            self.hosts.entry(agent).or_insert(host);
         }
         self
     }
@@ -108,7 +112,7 @@ impl Machines {
         }
     }
 
-    /// Whether what this device wrote over is kept on another machine the person still has.
+    /// Whether what this device wrote over may be kept on another machine: not this one, nor one removed.
     pub fn elsewhere(&self, device: &DeviceId) -> bool {
         if *device == self.machine || self.agent.as_ref() == Some(device) {
             return false;
