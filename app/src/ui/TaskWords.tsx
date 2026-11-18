@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { type RefObject, useCallback, useEffect, useRef, useState } from "react";
 import type { Asking } from "tisty-editor/edit";
 import {
   addPart,
+  docBack,
   docWrite,
   type Filed,
   stepDates,
@@ -14,13 +15,16 @@ import {
 import { WROTE } from "../detailing";
 import { stamped } from "../format";
 import { fill, t } from "../locales";
-import { holds, queued } from "../saving";
+import { holds, queued, settled } from "../saving";
+import { sure } from "../sure";
 import { useKeptHeight } from "./heights";
 import type { Viewing } from "./liveSheet";
 import Skeleton from "./Skeleton";
 import { type LoadedSheet, sheetLoaded } from "./sheetLoaded";
+import { StirredBar } from "./Tidied";
 import { useTaskAsks } from "./taskAsking";
 import { useTaskCards } from "./taskCards";
+import { useEarlier } from "./useEarlier";
 import { useWholeKeys } from "./wholeKeys";
 
 const SETTLES = 700;
@@ -41,6 +45,8 @@ interface Props {
   onTask?: (id: string) => void;
   onTaskDone?: (id: string, title: string) => void;
   onTaskStep?: (id: string, step: string, done: boolean) => void;
+  /** The page went back to an earlier version, so the task's steps may have moved with it. */
+  onWentBack?: () => void;
 }
 
 // The core refuses the rest the same way: a part holds no parts, and a routine holds none.
@@ -65,6 +71,7 @@ export default function TaskWords({
   onTask,
   onTaskDone,
   onTaskStep,
+  onWentBack,
 }: Props) {
   const [doc, setDoc] = useState<TaskDoc | null>(null);
   const [Sheet, setSheet] = useState<LoadedSheet | null>(null);
@@ -122,6 +129,37 @@ export default function TaskWords({
     };
   }, [task.id, open, turn]);
 
+  const [wentBackTo, setWentBackTo] = useState<string | null>(null);
+  useEffect(() => setWentBackTo(null), [task.id]);
+  const typed = useRef(() => {});
+  const reread = () => {
+    setTurn((one) => one + 1);
+    onWentBack?.();
+  };
+  const past = useEarlier({
+    file: doc?.file || undefined,
+    title: task.title,
+    page: true,
+    writable: open && !doc?.held,
+    before: () => typed.current(),
+    onWentBack: (_, when) => {
+      setWentBackTo(when);
+      reread();
+    },
+    onError: (e) => onError?.(e),
+  });
+  const undo = async () => {
+    if (!doc?.file || !(await sure(t("backSure")))) return;
+    typed.current();
+    await settled();
+    docBack(doc.file)
+      .then(() => {
+        setWentBackTo(null);
+        reread();
+      })
+      .catch((e) => onError?.(e));
+  };
+
   // While the page is read, its room stays as it last was, so what is under it never jumps.
   if (!doc || !Sheet)
     return (
@@ -144,6 +182,7 @@ export default function TaskWords({
         onError={onError}
         onDoc={onDoc}
         onMoved={() => setTurn((one) => one + 1)}
+        typed={typed}
         shaping={shaping}
         view={view}
         asking={doc.held ? undefined : asking}
@@ -157,6 +196,27 @@ export default function TaskWords({
             : (title) => addPart(task.id, title).then((one) => one.id)
         }
       />
+      {wentBackTo && (
+        <div className="px-8">
+          <StirredBar
+            said={fill("earlierWentBack", wentBackTo)}
+            onBack={open && !doc.held ? () => void undo() : undefined}
+            onGone={() => setWentBackTo(null)}
+          />
+        </div>
+      )}
+      {doc.file && (
+        <div className="flex justify-end px-8">
+          <button
+            type="button"
+            onClick={past.show}
+            className="rounded-md px-2 py-1 text-[11.5px] text-faint hover:bg-hover hover:text-ink"
+          >
+            {t("earlierOfPage")}
+          </button>
+        </div>
+      )}
+      {past.view}
       {picker}
     </div>
   );
@@ -172,6 +232,7 @@ function Written({
   onError,
   onDoc,
   onMoved,
+  typed: leaving,
   shaping,
   view,
   asking,
@@ -194,6 +255,7 @@ function Written({
   onError?: (problem: unknown) => void;
   onDoc?: (id: string) => void;
   onMoved: () => void;
+  typed: RefObject<() => void>;
   shaping?: boolean;
   view?: Viewing;
   asking?: Asking;
@@ -314,6 +376,9 @@ function Written({
   }, [task.id, ensure, clashed]);
 
   useEffect(() => holds(flush), [flush]);
+  useEffect(() => {
+    leaving.current = flush;
+  }, [leaving, flush]);
   useEffect(() => {
     window.addEventListener("blur", flush);
     return () => {

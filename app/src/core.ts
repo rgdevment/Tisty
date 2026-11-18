@@ -666,6 +666,7 @@ export interface Settings {
   calendar?: "google" | "outlook" | "outlook-work" | "apple";
   quickKeys?: string;
   ideaKeys?: string;
+  historyDays: number;
 }
 
 export interface Logs {

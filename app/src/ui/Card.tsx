@@ -38,7 +38,8 @@ export type Which =
   | "loose"
   | "index"
   | "identity"
-  | "sealing";
+  | "sealing"
+  | "earlier";
 /** `busy` marks a round turned away by another, whatever its words say. */
 export type Word = { card: Which; text: string; busy?: boolean };
 
@@ -46,6 +47,7 @@ export type Run = <T>(card: Which, work: Promise<T>, then: (answer: T) => void) 
 
 export const NAMED: Record<Which, Parameters<typeof t>[0]> = {
   sync: "syncing",
+  earlier: "earlierBand",
   signing: "alias",
   naming: "signName",
   parcel: "parcelsTitle",

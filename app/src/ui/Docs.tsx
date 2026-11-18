@@ -60,9 +60,10 @@ import { pdfOf, STAMPING, type Stamp, type Stamping, seenNow, stampOf } from "./
 import Ribbon, { Onward } from "./Ribbon";
 import { type LoadedSheet, sheetLoaded } from "./sheetLoaded";
 import { pageFor } from "./sheets";
-import { CompactBar, MarkBar } from "./Tidied";
+import { CompactBar, MarkBar, StirredBar } from "./Tidied";
 import Tongues, { standingHead } from "./Tongues";
 import { useTaskCards } from "./taskCards";
+import { useEarlier } from "./useEarlier";
 import { useLeaving } from "./useLeaving";
 import { useLinkable } from "./useLinkable";
 import { clearOfChrome } from "./WindowChrome";
@@ -196,12 +197,17 @@ export default function Docs({
   }, [lately]);
   // Once faded, the same change can be marked again from the notice, as long as the notice stays.
   const [markedLast, setMarkedLast] = useState<[number, number] | null>(null);
+  // Going back to a version stirs the document too, and the notice then names the version.
+  const [wentBackTo, setWentBackTo] = useState<string | null>(null);
   const mark = useCallback((at: [number, number] | null) => {
     setLately(at);
     setMarkedLast(at);
+    if (at) setWentBackTo(null);
   }, []);
   useEffect(() => {
-    if (!stirred) setMarkedLast(null);
+    if (stirred) return;
+    setMarkedLast(null);
+    setWentBackTo(null);
   }, [stirred]);
   const [looking, setLooking] = useState(0);
   const lastRead = useRef(new Map<string, Read>());
@@ -358,40 +364,40 @@ export default function Docs({
     };
   }, [open, stirred, compacted]);
 
+  const reread = useCallback(async (file: string) => {
+    const { body: text, print } = await docOpened(file);
+    remembered(lastRead.current, file, { text, print });
+    shaped.current = text;
+    setBody(text);
+    setPacked(crowd(text));
+  }, []);
+
   const wentBack = useCallback(async () => {
     if (!open) return;
     if (!(await sure(t("backSure")))) return;
     drop();
     try {
       const said = await docBack(open.file);
-      const { body: text, print } = await docOpened(open.file);
-      remembered(lastRead.current, open.file, { text, print });
-      shaped.current = text;
-      setBody(text);
-      setPacked(crowd(text));
+      await reread(open.file);
       setStirred(false);
       setBackable(false);
       onKept(said);
     } catch (e) {
       onError(saidPlainly(e));
     }
-  }, [drop, onError, onKept, open]);
+  }, [drop, onError, onKept, open, reread]);
 
   const theirsStands = useCallback(async () => {
     if (!open) return;
     if (!(await sure(t("clashSure")))) return;
     drop();
-    docOpened(open.file)
-      .then(({ body: text, print }) => {
-        remembered(lastRead.current, open.file, { text, print });
-        shaped.current = text;
-        setBody(text);
-        setPacked(crowd(text));
+    reread(open.file)
+      .then(() => {
         setClashed(false);
         setStirred(false);
       })
       .catch((e) => onError(saidPlainly(e)));
-  }, [drop, onError, open]);
+  }, [drop, onError, open, reread]);
 
   const leaving = useRef(flush);
   leaving.current = flush;
@@ -547,14 +553,7 @@ export default function Docs({
   const diaryWritten = (today: Today) => {
     onKept({ id: own?.id ?? "", title: called });
     if (!open || today.page !== open.file) return onDoc?.(today.page);
-    docOpened(open.file)
-      .then(({ body: text, print }) => {
-        remembered(lastRead.current, open.file, { text, print });
-        shaped.current = text;
-        setBody(text);
-        setPacked(crowd(text));
-      })
-      .catch((e) => onError(saidPlainly(e)));
+    reread(open.file).catch((e) => onError(saidPlainly(e)));
   };
   const seeTask = (id: string) =>
     taskOf(id)
@@ -703,6 +702,24 @@ export default function Docs({
   const told = useMemo(() => (pages.length > 0 ? namesIn(body) : NONE), [body, pages.length]);
   const cards = useMemo(() => cardsOf(known, open?.file, told), [known, open?.file, told]);
   const [blurbs] = useState(blurbing);
+  const past = useEarlier({
+    file: open?.file,
+    title: called || t("untitledDoc"),
+    writable: !bolted,
+    card: cards,
+    before: () => void flush(),
+    onWentBack: async (said, when) => {
+      drop();
+      await reread(said.id);
+      mark(null);
+      setWentBackTo(when);
+      setStirred(true);
+      setBackable(true);
+      onKept(said);
+    },
+    onEmptied: () => setBackable(false),
+    onError: (e) => onError(saidPlainly(e)),
+  });
   const named = useMemo(() => namesIn(body), [body]);
   // A card says what its document is now: a rename, an archive or a deletion draws the page again.
   const again = useMemo(
@@ -1182,41 +1199,28 @@ export default function Docs({
                 : ""}
         </div>
         {stirred && !clashed && !compacted && open && (
-          <div
+          <StirredBar
             style={wall}
-            className="mx-auto mb-2 flex w-full flex-wrap items-center gap-x-3 gap-y-1 px-10 text-[11.5px]"
-          >
-            {/* The words speak of the mark only while it is there to be seen. */}
-            <span className="text-soft">{t(lately ? "docStirred" : "docStirredFaded")}</span>
-            {(lately || markedLast) && (
-              <button
-                type="button"
-                onClick={() => {
-                  if (!lately) setLately(markedLast);
-                  setLooking((many) => many + 1);
-                }}
-                className="rounded-[10px] border border-line px-2 py-0.5 text-[11.5px] hover:bg-hover"
-              >
-                {t(lately ? "docStirredSee" : "docStirredAgain")}
-              </button>
-            )}
-            {backable && (
-              <button
-                type="button"
-                onClick={() => wentBack()}
-                className="rounded-[10px] border border-line px-2 py-0.5 text-[11.5px] hover:bg-hover"
-              >
-                {t("docStirredBack")}
-              </button>
-            )}
-            <button
-              type="button"
-              onClick={() => setStirred(false)}
-              className="rounded-[10px] border border-line px-2 py-0.5 text-[11.5px] hover:bg-hover"
-            >
-              {t("docStirredGone")}
-            </button>
-          </div>
+            // The words speak of the mark only while it is there to be seen.
+            said={
+              wentBackTo
+                ? fill("earlierWentBack", wentBackTo)
+                : t(lately ? "docStirred" : "docStirredFaded")
+            }
+            see={
+              lately || markedLast
+                ? {
+                    label: t(lately ? "docStirredSee" : "docStirredAgain"),
+                    onPick: () => {
+                      if (!lately) setLately(markedLast);
+                      setLooking((many) => many + 1);
+                    },
+                  }
+                : undefined
+            }
+            onBack={backable ? () => void wentBack() : undefined}
+            onGone={() => setStirred(false)}
+          />
         )}
         {clashed && open && (
           <div
@@ -1380,6 +1384,7 @@ export default function Docs({
         />
       )}
 
+      {past.view}
       {beside && open && (
         <Beside
           title={called}
@@ -1387,6 +1392,7 @@ export default function Docs({
           doc={known.find((one) => one.file === open.file)?.id}
           onError={onError}
           onKeep={flush}
+          onEarlier={past.show}
           body={body}
           tags={known.find((one) => one.file === open.file)?.tags ?? NO_TAGS}
           kept={saved}

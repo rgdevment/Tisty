@@ -299,6 +299,8 @@ export default function Keeping({
               state={state}
               holds={holds}
               build={build}
+              kept={kept}
+              setKept={setKept}
               busy={busy}
               said={said}
               trouble={trouble}

@@ -1274,6 +1274,37 @@ const en = {
   docStirredSee: "See what changed",
   docStirredAgain: "See again what changed",
   nothingKeptBeside: "Nothing is kept beside this one to go back to",
+  earlierTitle: "History",
+  earlierHere: "on this computer",
+  earlierLocal:
+    "The earlier versions, kept on this computer only. They are not synced: each computer keeps its own.",
+  earlierSee: "See the history",
+  earlierOfPage: "Versions of this page",
+  earlierList: "Earlier versions",
+  earlierNone:
+    "No earlier versions yet. Tisty keeps one when 30 minutes go by without changes, or when the one writing changes: you or an assistant.",
+  earlierNoneHere:
+    "None of these versions is on this computer, so here they can be neither read nor gone back to.",
+  earlierByYou: "you",
+  earlierAway: "Not on this computer",
+  earlierAwayOn: "Not on this computer; it was written on {name}",
+  earlierBack: "Go back to this version",
+  earlierBackSure:
+    "It goes back to saying what it said in the version from {name}. What it says now is kept, so you can undo it.",
+  earlierPageSure:
+    "On a task's page the words come back; the steps and their boxes stay as the task has them.",
+  earlierWentBack: "It went back to the version from {name}",
+  earlierEmpty: "Empty the history",
+  earlierEmptySure:
+    "Every earlier version is deleted from this computer, including the one that lets you undo the last change. What it says now stays as it is. This cannot be undone.",
+  earlierBand: "Document history",
+  earlierLimit: "Keep earlier versions for",
+  earlierLimitWhy:
+    "How long this computer keeps what each document said before. The last version always stays, whatever its age. The history is not synced: each computer keeps its own, with its own limit. A shorter limit takes effect the next time Tisty tidies the history, once a day when it opens.",
+  earlierOneDay: "1 day",
+  earlierDays: "{name} days",
+  versionGone: "That version is no longer on this computer",
+  notAHistoryLimit: "The history is kept for 1, 5, 15 or 30 days",
   backSure:
     "Going back leaves this document as it read before the write that stirred it. What it says now is kept in its place, so you can come back to it.",
   comingDown: "{name} is in iCloud and is being brought back. Try again in a moment",
@@ -4595,6 +4626,37 @@ const es: Catalog = {
   docStirredSee: "Ver qué cambió",
   docStirredAgain: "Ver de nuevo qué cambió",
   nothingKeptBeside: "No hay nada guardado al lado de este para volver atrás",
+  earlierTitle: "Historial",
+  earlierHere: "en este equipo",
+  earlierLocal:
+    "Las versiones anteriores, guardadas solo en este equipo. No se sincronizan: cada equipo guarda las suyas.",
+  earlierSee: "Ver el historial",
+  earlierOfPage: "Versiones de esta página",
+  earlierList: "Versiones anteriores",
+  earlierNone:
+    "Todavía no hay versiones anteriores. Tisty guarda una cuando pasan 30 minutos sin cambios, o cuando cambia quien escribe: tú o un asistente.",
+  earlierNoneHere:
+    "Ninguna de estas versiones está en este equipo, así que aquí no se pueden leer ni recuperar.",
+  earlierByYou: "tú",
+  earlierAway: "No está en este equipo",
+  earlierAwayOn: "No está en este equipo; se escribió en {name}",
+  earlierBack: "Volver a esta versión",
+  earlierBackSure:
+    "Vuelve a decir lo que decía en la versión de {name}. Lo que dice ahora queda guardado, así que puedes deshacerlo.",
+  earlierPageSure:
+    "En la página de una tarea vuelven las palabras; los pasos y sus casillas siguen como la tarea los tiene.",
+  earlierWentBack: "Volvió a la versión de {name}",
+  earlierEmpty: "Vaciar el historial",
+  earlierEmptySure:
+    "Se borran de este equipo todas las versiones anteriores, también la que permite deshacer el último cambio. Lo que dice ahora queda como está. Esto no se puede deshacer.",
+  earlierBand: "Historial de documentos",
+  earlierLimit: "Guardar las versiones anteriores",
+  earlierLimitWhy:
+    "Cuánto tiempo guarda este equipo lo que cada documento decía antes. La última versión queda siempre, tenga la edad que tenga. El historial no se sincroniza: cada equipo guarda el suyo, con su propio límite. Un límite más corto se aplica la próxima vez que Tisty ordene el historial, una vez al día al abrirse.",
+  earlierOneDay: "1 día",
+  earlierDays: "{name} días",
+  versionGone: "Esa versión ya no está en este equipo",
+  notAHistoryLimit: "El historial se guarda 1, 5, 15 o 30 días",
   backSure:
     "Volver atrás deja este documento como se leía antes de la escritura que lo movió. Lo que dice ahora queda guardado en su lugar, así que puedes regresar a ello.",
   comingDown: "{name} está en iCloud y se está trayendo. Inténtalo de nuevo en un momento",
