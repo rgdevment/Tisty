@@ -8,8 +8,21 @@ describe("an address that names a document of the store", () => {
       "tisty://doc/a/b?id=dev_a-0002",
       "TISTY://DOC/a?id=dev_a-0002",
       "tisty://doc/personal/proyectos/validacion-de-datos?id=4nnctnme-0039",
+      `tisty://doc?id=${"a".repeat(48)}-123456789012`,
     ])
       expect(addressed(target), target).toBe(true);
+  });
+
+  it("takes only the id the core takes: a lower-case key, a device of its letters and a short number", () => {
+    for (const target of [
+      "tisty://doc/x?ID=dev_a-0002",
+      "tisty://doc/x?Id=dev_a-0002",
+      "tisty://doc/x?id=DEV_A-0002",
+      "tisty://doc/x?id=dev_a-1234567890123",
+      `tisty://doc/x?id=${"a".repeat(49)}-1`,
+      "tisty://doc/x?id=dev-a-0002",
+    ])
+      expect(addressed(target), target).toBe(false);
   });
 
   it("carries one well-formed id and nothing after it, as the core reads it", () => {

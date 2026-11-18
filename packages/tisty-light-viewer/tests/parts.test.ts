@@ -227,6 +227,9 @@ describe("a link in the document", () => {
     }
     pressed("TISTY://DOC?id=ab12-0009", true);
     expect(host.openLink).toHaveBeenLastCalledWith("TISTY://DOC?id=ab12-0009");
+    const longest = `tisty://doc?id=${"a".repeat(48)}-123456789012`;
+    pressed(longest);
+    expect(host.openLink).toHaveBeenLastCalledWith(longest);
     expect(host.showDoc).not.toHaveBeenCalled();
     expect(host.follow).not.toHaveBeenCalled();
   });
@@ -240,6 +243,10 @@ describe("a link in the document", () => {
         "tisty://doc/sin-id",
         "tisty://doc?id=ab12-0009&folder=x",
         "tisty://doc?id=ab12-0009%20",
+        "tisty://doc/x?ID=ab12-0009",
+        "tisty://doc/x?id=AB12-0009",
+        "tisty://doc/x?id=ab12-1234567890123",
+        `tisty://doc/x?id=${"a".repeat(49)}-1`,
       ]) {
         const { event } = pressed(href, own);
         expect(event.defaultPrevented).toBe(true);
