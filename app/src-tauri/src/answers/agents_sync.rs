@@ -107,6 +107,8 @@ pub struct Shown {
 pub struct Look {
     pub folder: Option<String>,
     pub docs: usize,
+    /// Files changed outside Tisty, or on both sides, that wait for the person.
+    pub changes: usize,
     pub consented: bool,
     pub all_on: bool,
     pub asks: bool,
@@ -151,10 +153,7 @@ pub fn looked(seen: &Gathered, homes: &Homes, here: &str, found: &[Found]) -> Lo
     let ledger = Ledger::open(&seen.data, here);
     let (root, docs) = (seen.root, seen.docs);
     let held = addresses(&seen.bodies);
-    let both = match ledger.consented() {
-        true => pending(&ledger, &places::targets(homes, &seen.bodies)),
-        false => Vec::new(),
-    };
+    let (changes, both) = weighed(&ledger, &places::targets(homes, &seen.bodies));
     let assistants = homes
         .detected()
         .into_iter()
@@ -178,6 +177,7 @@ pub fn looked(seen: &Gathered, homes: &Homes, here: &str, found: &[Found]) -> Lo
     Look {
         folder: root.map(|at| at.to_string()),
         docs,
+        changes,
         asks: docs == 0 || !ledger.consented() || !both.is_empty(),
         consented: ledger.consented(),
         all_on: ledger.syncs(""),
@@ -186,15 +186,21 @@ pub fn looked(seen: &Gathered, homes: &Homes, here: &str, found: &[Found]) -> Lo
     }
 }
 
-// A choice left for later stays open here until the person makes it.
-fn pending(ledger: &Ledger, placed: &[Placed]) -> Vec<Both> {
-    placed
-        .iter()
-        .filter_map(|one| match agents::standing(ledger, &one.target) {
-            Standing::Both { now } => Some(both_of(&one.target, &now)),
-            _ => None,
-        })
-        .collect()
+// A choice left for later stays open here until the person makes it; every file changed outside is counted beside it.
+pub(crate) fn weighed(ledger: &Ledger, placed: &[Placed]) -> (usize, Vec<Both>) {
+    let mut changes = 0;
+    let mut both = Vec::new();
+    for one in placed {
+        match agents::standing(ledger, &one.target) {
+            Standing::Both { now } => {
+                changes += 1;
+                both.push(both_of(&one.target, &now));
+            }
+            Standing::Outside { .. } => changes += 1,
+            _ => {}
+        }
+    }
+    (changes, both)
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]

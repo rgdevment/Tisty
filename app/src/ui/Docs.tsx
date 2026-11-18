@@ -45,6 +45,7 @@ import { attachedAll } from "../reshaping";
 import { busy, holds, queued } from "../saving";
 import { sure } from "../sure";
 import { chooseTongue, docDress, tonguesOf, twinOf } from "../tongues";
+import AgentCard from "./AgentCard";
 import { changedIn, MARK_FADES } from "./anchoring";
 import Beside, { trailed } from "./Beside";
 import Contents from "./Contents";
@@ -61,6 +62,7 @@ import { type LoadedSheet, sheetLoaded } from "./sheetLoaded";
 import { pageFor } from "./sheets";
 import { CompactBar, MarkBar, StirredBar } from "./Tidied";
 import Tongues, { standingHead } from "./Tongues";
+import { useAgentDoc } from "./useAgentDoc";
 import { useEarlier } from "./useEarlier";
 import { useLeaving } from "./useLeaving";
 import { useLinkable } from "./useLinkable";
@@ -540,12 +542,20 @@ export default function Docs({
     settling.current = setTimeout(flush, SETTLES);
   };
 
+  // Words that differ only at their end are no change to a document, so nothing would be brought.
+  const brought = (text: string) => {
+    const last = open && lastRead.current.get(open.file);
+    if (last && tailless(last.text) === tailless(text)) onError(t("agentBringNothing"));
+    else wrote(text);
+  };
+
   const own = filed(known, open?.file);
   const inDiary = Boolean(own?.diary);
   const called = own?.title ?? open?.title ?? "";
   // What the archive holds is read-only, whether the document says so or the folder above it does.
   const shelved = Boolean(own?.away);
   const bolted = Boolean(own?.locked) || shelved;
+  const agent = useAgentDoc(open?.file ?? null, body);
 
   const diaryWritten = (today: Today) => {
     onKept({ id: own?.id ?? "", title: called });
@@ -1111,11 +1121,28 @@ export default function Docs({
                   onSeen={(at) => {
                     if (own?.file) stood.current.set(own.file, at);
                   }}
-                  reading={bolted}
+                  reading={bolted || agent.held}
                   label={called || t("untitledDoc")}
                   onDoc={toDoc}
                   onTag={onTag}
-                  above={placed}
+                  above={
+                    agent.doc ? (
+                      <>
+                        <AgentCard
+                          doc={agent.doc}
+                          file={open.file}
+                          editing={agent.editing}
+                          locked={bolted}
+                          onEdit={agent.onEdit}
+                          onBrought={brought}
+                          onError={onError}
+                        />
+                        {placed}
+                      </>
+                    ) : (
+                      placed
+                    )
+                  }
                   belowFolds={!above}
                   below={
                     above
@@ -1391,6 +1418,7 @@ export default function Docs({
           onKeep={flush}
           onEarlier={past.show}
           body={body}
+          carded={Boolean(agent.doc)}
           tags={known.find((one) => one.file === open.file)?.tags ?? NO_TAGS}
           kept={saved}
           heads={heads}

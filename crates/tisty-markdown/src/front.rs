@@ -127,6 +127,56 @@ fn said_in(all: &[Field], key: &str) -> Option<String> {
         .map(|one| one.to_lowercase())
 }
 
+/// The key an agent document's card stands under, read by the engine that writes the agent's file.
+pub const AGENT: &str = "agent";
+
+pub const AGENT_KINDS: [&str; 3] = ["rule", "skill", "memory"];
+pub const AGENT_FLAGS: [&str; 4] = ["crlf", "as-is", "bom", "open-end"];
+const AGENT_LEVEL_AT_MOST: usize = 40;
+const AGENT_NAME_AT_MOST: usize = 400;
+
+pub fn agent_level(level: &str) -> bool {
+    !level.is_empty()
+        && level.len() <= AGENT_LEVEL_AT_MOST
+        && level
+            .bytes()
+            .all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'-')
+}
+
+pub fn agent_name(name: &str) -> bool {
+    !name.is_empty()
+        && name.len() <= AGENT_NAME_AT_MOST
+        && !name.chars().any(|one| {
+            one.is_control() || matches!(one, '\\' | ':' | ',' | '[' | ']' | '"' | '\'' | '#')
+        })
+        && name
+            .split('/')
+            .all(|step| !step.is_empty() && step != "." && step != "..")
+        && name.trim() == name
+}
+
+/// The level, kind and name an agent card's address holds, when the engine could write each.
+pub fn agent_address(address: &str) -> Option<(&str, &str, &str)> {
+    let mut parts = address.splitn(3, '/');
+    let (level, kind, name) = (parts.next()?, parts.next()?, parts.next()?);
+    (agent_level(level) && AGENT_KINDS.contains(&kind) && agent_name(name))
+        .then_some((level, kind, name))
+}
+
+/// A card names a level, a kind and a file, so a stray `agent:` is any other property.
+pub fn carded(text: &str) -> bool {
+    fields(text)
+        .iter()
+        .find(|one| one.key.eq_ignore_ascii_case(AGENT))
+        .and_then(|one| one.values.split_first())
+        .is_some_and(|(address, flags)| {
+            agent_address(address).is_some()
+                && flags
+                    .iter()
+                    .all(|flag| AGENT_FLAGS.contains(&flag.as_str()))
+        })
+}
+
 pub fn noted(text: &str) -> bool {
     said_in(&fields(text), "view").as_deref() == Some("notes")
 }

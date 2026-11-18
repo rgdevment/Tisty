@@ -187,6 +187,7 @@ struct Ready<'a> {
     // What the next closing tag of each kind turns into, when the opening one changed.
     closing_a: Option<&'static str>,
     closing_span: Option<&'static str>,
+    closing_dl: Option<&'static str>,
     // A link that went, whose own address would otherwise stay as its words.
     hiding: Option<String>,
     inside_a_link: bool,
@@ -298,6 +299,11 @@ impl Ready<'_> {
             "p" | "h1" | "h2" | "h3" if tag.said("class") == Some("title") => {
                 written_back(tag, &["data-at", "class"], &mut self.out);
             }
+            // The agent view's card lives in the window, and a file's own properties travel as any document's.
+            "dl" if tag.said("class") == Some("front agent-card") => self.closing_dl = Some(""),
+            "dl" if tag.said("class") == Some("front agent-own") => {
+                self.out.push_str("<dl class=\"front\">");
+            }
             "area"
                 if !tag
                     .said("href")
@@ -327,6 +333,7 @@ impl Ready<'_> {
         let turned = match tag.name {
             "a" => self.closing_a.take(),
             "span" => self.closing_span.take(),
+            "dl" => self.closing_dl.take(),
             _ => None,
         };
         match turned {
@@ -346,6 +353,7 @@ pub fn ready(html: &str, places: &Places) -> String {
         out: String::with_capacity(html.len()),
         closing_a: None,
         closing_span: None,
+        closing_dl: None,
         hiding: None,
         inside_a_link: false,
     };

@@ -100,7 +100,9 @@ fn planned(was: &Doc, text: &str, changed: &Changed) -> Option<Plan> {
         .first()
         .filter(|one| one.kind == Kind::Front)
         .map(|one| one.at.end);
-    if crate::front::span(text).map(|one| one.end) != front_end {
+    if crate::front::span(text).map(|one| one.end) != front_end
+        || front_end.is_some_and(|end| crate::front::carded(&old[..end]))
+    {
         return None;
     }
     let Changed {

@@ -25,6 +25,8 @@ const KNOWN = [
   "ambiguousList",
   "badTag",
   "notATaskId",
+  "agentNoCard",
+  "agentNoPlace",
   "agentNoConsent",
   "agentOff",
   "agentOwn",
