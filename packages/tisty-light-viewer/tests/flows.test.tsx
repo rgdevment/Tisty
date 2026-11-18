@@ -23,6 +23,7 @@ const host = vi.hoisted(() => ({
   openAttached: vi.fn(),
   plain: vi.fn(),
   address: vi.fn(),
+  copied: vi.fn(),
   drawsHeic: vi.fn(),
 }));
 const drawing = vi.hoisted(() => ({ diagrams: vi.fn(), readAs: vi.fn() }));
@@ -109,14 +110,35 @@ describe("the menu", () => {
     await waitFor(() => expect(page().style.getPropertyValue("zoom")).toBe("0.8"));
   });
 
-  it("copies what was written", async () => {
-    const writeText = vi.fn().mockResolvedValue(undefined);
-    vi.stubGlobal("navigator", { clipboard: { writeText } });
+  it("copies what was written through the app, as a packaged window has no browser clipboard", async () => {
+    vi.stubGlobal("navigator", {});
+    host.copied.mockResolvedValue(undefined);
     host.plain.mockResolvedValue("# written");
     await open();
     (await button("Más")).click();
     (await menuItem(/Copiar/)).click();
-    await waitFor(() => expect(writeText).toHaveBeenCalledWith("# written"));
+    await waitFor(() => expect(host.copied).toHaveBeenCalledWith("# written"));
+    expect(screen.queryByRole("alert")).toBeNull();
+  });
+
+  it("offers no search where nothing was drawn to search", async () => {
+    await open({
+      kind: "missed",
+      name: "notas.md",
+      place: "Descargas",
+      path: PATH,
+      own: false,
+      refusal: { code: "cannotRead" },
+    });
+    (await button("Más")).click();
+    await menuItem(/Imprimir/);
+    expect(screen.queryByRole("menuitem", { name: /Buscar/ })).toBeNull();
+    cleanup();
+    await open(drawn(""));
+    await screen.findByText("Este archivo está vacío.");
+    (await button("Más")).click();
+    await menuItem(/Imprimir/);
+    expect(screen.queryByRole("menuitem", { name: /Buscar/ })).toBeNull();
   });
 
   it("offers no link to a stranger's file, which Tisty has no address for", async () => {
@@ -473,15 +495,16 @@ describe("a document of one's own", () => {
   });
 
   it("copies its own link from the menu, exactly as the app gives it", async () => {
-    const writeText = vi.fn().mockResolvedValue(undefined);
-    vi.stubGlobal("navigator", { clipboard: { writeText } });
+    vi.stubGlobal("navigator", {});
+    host.copied.mockResolvedValue(undefined);
     host.address.mockResolvedValue("tisty://doc/casa/riego?id=ab12-0001");
     await open(own());
     (await button("Más")).click();
     (await menuItem(/Copiar enlace/)).click();
     await waitFor(() =>
-      expect(writeText).toHaveBeenCalledWith("tisty://doc/casa/riego?id=ab12-0001"),
+      expect(host.copied).toHaveBeenCalledWith("tisty://doc/casa/riego?id=ab12-0001"),
     );
+    expect(screen.queryByRole("alert")).toBeNull();
   });
 
   it("says so when its link could not be had", async () => {

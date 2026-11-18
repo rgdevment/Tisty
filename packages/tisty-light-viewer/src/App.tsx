@@ -250,6 +250,7 @@ export default function App(props: { readonly asked: string | null; readonly clo
         <MoreMenu
           words={words}
           drawn={one()?.kind === "drawn"}
+          searchable={drawn() !== null && !empty()}
           own={one()?.own ?? false}
           revealed={outside()}
           onClose={() => setMore(false)}
