@@ -1,7 +1,9 @@
 use jiff::Timestamp;
 
 use super::super::tests::{World, doc, task};
-use super::*;
+use super::{
+    CAPS, Caps, Held, LeftOut, Network, Neuron, TIES, kept_out, network, touched_last, woven,
+};
 
 fn neuron(id: &str, kind: &str, state: Option<&str>) -> Held {
     (

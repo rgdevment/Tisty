@@ -2,8 +2,8 @@ import { t } from "../locales";
 import Glyph from "./Glyph";
 
 interface Props {
-  onOpen: () => void;
-  rail?: boolean;
+  readonly onOpen: () => void;
+  readonly rail?: boolean;
 }
 
 export default function SideBrainsty({ onOpen, rail = false }: Props) {

@@ -71,23 +71,22 @@ export const standingOf = (neuron: Neuron): Standing => {
 export const shapeOf = (kind: NeuronKind): Shape =>
   kind === "doc" || kind === "page" ? "square" : "circle";
 
+const alphaOf = (said?: string): number => {
+  if (said === undefined) return 1;
+  return said.endsWith("%") ? Number.parseFloat(said) / 100 : Number(said);
+};
+
 export function rgba(colour: string, alpha: number): string {
-  const hex = colour.trim().match(/^#([0-9a-f]{6})$/i);
+  const hex = /^#([0-9a-f]{6})$/i.exec(colour.trim());
   if (hex) {
     const n = Number.parseInt(hex[1], 16);
     return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${alpha})`;
   }
-  const rgb = colour.match(
-    /rgba?\(\s*([\d.]+)[\s,]+([\d.]+)[\s,]+([\d.]+)(?:\s*[/,]\s*([\d.]+%?))?\s*\)/i,
-  );
-  if (!rgb) return colour;
-  const own =
-    rgb[4] === undefined
-      ? 1
-      : rgb[4].endsWith("%")
-        ? Number.parseFloat(rgb[4]) / 100
-        : Number(rgb[4]);
-  return `rgba(${rgb[1]}, ${rgb[2]}, ${rgb[3]}, ${Math.round(own * alpha * 1000) / 1000})`;
+  const inside = /^rgba?\(([^)]*)\)$/i.exec(colour.trim());
+  const parts = inside?.[1].split(/[\s,/]+/).filter(Boolean) ?? [];
+  if (parts.length < 3) return colour;
+  const [red, green, blue, own] = parts;
+  return `rgba(${red}, ${green}, ${blue}, ${Math.round(alphaOf(own) * alpha * 1000) / 1000})`;
 }
 
 export function paletteFrom(read: (name: string) => string): Palette {
@@ -109,14 +108,15 @@ export const paletteNow = (): Palette => {
   return paletteFrom((name) => style.getPropertyValue(name).trim());
 };
 
-const baseOf = (kind: NeuronKind, palette: Palette): string =>
-  kind === "tag"
-    ? palette.tag
-    : kind === "file"
-      ? palette.file
-      : kind === "task"
-        ? palette.accent
-        : palette.soft;
+const TONE: Record<NeuronKind, keyof Omit<Palette, "hues">> = {
+  doc: "soft",
+  page: "soft",
+  task: "accent",
+  tag: "tag",
+  file: "file",
+};
+
+const baseOf = (kind: NeuronKind, palette: Palette): string => palette[TONE[kind]];
 
 export function nodeLook(neuron: Neuron, hue: string | undefined, palette: Palette): NodeLook {
   const standing = STANDING[standingOf(neuron)];
@@ -130,7 +130,5 @@ export function nodeLook(neuron: Neuron, hue: string | undefined, palette: Palet
 
 export function lineLook(tie: Tie, palette: Palette): LineLook {
   const line = LINE[tie];
-  const tone =
-    line.tone === "tag" ? palette.tag : line.tone === "file" ? palette.file : palette.soft;
-  return { size: line.size, color: rgba(tone, line.alpha), gap: line.gap };
+  return { size: line.size, color: rgba(palette[line.tone], line.alpha), gap: line.gap };
 }

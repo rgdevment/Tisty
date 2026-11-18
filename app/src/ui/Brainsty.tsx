@@ -8,9 +8,9 @@ import { paletteNow } from "./brainsty/looks";
 import { edgesOf, seeded } from "./brainsty/settling";
 import { followTheme } from "./theming";
 
-export default function Brainsty({ network }: { network: Network }) {
+export default function Brainsty({ network }: { readonly network: Network }) {
   const { papers, data } = useDesk();
-  const host = useRef<HTMLDivElement>(null);
+  const host = useRef<HTMLElement>(null);
   const hues = useRef<HueOf>(() => undefined);
   const tinted = new Map<string, string>();
   for (const one of papers.folders) if (one.color) tinted.set(one.id, one.color);
@@ -65,9 +65,7 @@ export default function Brainsty({ network }: { network: Network }) {
     };
   }, [network]);
 
-  return (
-    <div ref={host} role="img" aria-label={t("brainstyNetwork")} className="absolute inset-0" />
-  );
+  return <figure ref={host} aria-label={t("brainstyNetwork")} className="absolute inset-0 m-0" />;
 }
 
 const sinceOpened = (): number => {

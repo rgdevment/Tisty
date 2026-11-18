@@ -153,12 +153,39 @@ fn touched(task: &Task) -> Timestamp {
         .fold(born, Timestamp::max)
 }
 
+type Line = (usize, usize, u8);
+
 fn woven(
     held: Vec<Held>,
     ties: &[(String, String, String)],
     near: &[String],
     caps: Caps,
 ) -> Network {
+    let at = places(&held);
+    let mut edges = lines(&at, ties);
+    let kinds: Vec<&str> = held.iter().map(|(one, _)| one.kind.as_str()).collect();
+    let mut keep = vec![true; held.len()];
+    drop_unheld(&kinds, &edges, &mut keep);
+    let near = near
+        .iter()
+        .find_map(|one| at.get(one.as_str()).copied())
+        .filter(|&n| keep[n]);
+    let whole = (keep.iter().filter(|one| **one).count(), edges.len());
+    if whole.0 > caps.nodes {
+        keep = kept_within(&held, &kinds, &edges, &keep, near, caps.nodes);
+    }
+    edges.retain(|(from, to, _)| keep[*from] && keep[*to]);
+    if edges.len() > caps.edges {
+        edges.sort_by_key(|(_, _, tie)| tie_rank(*tie));
+        edges.truncate(caps.edges);
+    }
+    drop_unheld(&kinds, &edges, &mut keep);
+    let near = near.filter(|n| keep[*n]);
+    renumbered(held, &edges, &keep, near, whole)
+}
+
+// A node is named by its own id first, so another's document ULID never takes its place.
+fn places(held: &[Held]) -> HashMap<&str, usize> {
     let mut at: HashMap<&str, usize> = HashMap::new();
     for (n, (neuron, _)) in held.iter().enumerate() {
         at.insert(neuron.id.as_str(), n);
@@ -168,8 +195,12 @@ fn woven(
             at.entry(uid.as_str()).or_insert(n);
         }
     }
+    at
+}
+
+fn lines(at: &HashMap<&str, usize>, ties: &[(String, String, String)]) -> Vec<Line> {
     let mut seen = HashSet::new();
-    let mut edges: Vec<(usize, usize, u8)> = Vec::new();
+    let mut edges = Vec::new();
     for (source, target, kind) in ties {
         let (Some(&from), Some(&to), Some(tie)) = (
             at.get(source.as_str()),
@@ -183,49 +214,53 @@ fn woven(
             edges.push((from, to, tie));
         }
     }
-    let kinds: Vec<&str> = held.iter().map(|(one, _)| one.kind.as_str()).collect();
-    let mut keep = vec![true; held.len()];
-    drop_unheld(&kinds, &edges, &mut keep);
-    let near = near
-        .iter()
-        .find_map(|one| at.get(one.as_str()).copied())
-        .filter(|&n| keep[n]);
-    let whole = (keep.iter().filter(|one| **one).count(), edges.len());
-    if whole.0 > caps.nodes {
-        let ranked = ranked(&held, &edges, &keep, near);
-        let mut beside: Vec<Vec<usize>> = vec![Vec::new(); held.len()];
-        for (from, to, _) in &edges {
-            beside[*from].push(*to);
-            beside[*to].push(*from);
+    edges
+}
+
+fn kept_within(
+    held: &[Held],
+    kinds: &[&str],
+    edges: &[Line],
+    keep: &[bool],
+    near: Option<usize>,
+    most: usize,
+) -> Vec<bool> {
+    let mut beside: Vec<Vec<usize>> = vec![Vec::new(); held.len()];
+    for (from, to, _) in edges {
+        beside[*from].push(*to);
+        beside[*to].push(*from);
+    }
+    let mut kept = vec![false; held.len()];
+    let mut waiting = vec![false; held.len()];
+    let mut taken = 0;
+    for n in ranked(held, edges, keep, near) {
+        if taken == most {
+            break;
         }
-        keep = vec![false; held.len()];
-        let mut taken = 0;
-        let mut waiting = vec![false; held.len()];
-        for n in ranked {
-            if taken == caps.nodes {
-                break;
-            }
-            if HELD_BY_OTHERS.contains(&kinds[n]) && !beside[n].iter().any(|one| keep[*one]) {
-                waiting[n] = true;
-                continue;
-            }
-            keep[n] = true;
-            taken += 1;
-            for &held_here in &beside[n] {
-                if waiting[held_here] && taken < caps.nodes {
-                    waiting[held_here] = false;
-                    keep[held_here] = true;
-                    taken += 1;
-                }
+        if HELD_BY_OTHERS.contains(&kinds[n]) && !beside[n].iter().any(|one| kept[*one]) {
+            waiting[n] = true;
+            continue;
+        }
+        kept[n] = true;
+        taken += 1;
+        for &held_here in &beside[n] {
+            if waiting[held_here] && taken < most {
+                waiting[held_here] = false;
+                kept[held_here] = true;
+                taken += 1;
             }
         }
     }
-    edges.retain(|(from, to, _)| keep[*from] && keep[*to]);
-    if edges.len() > caps.edges {
-        edges.sort_by_key(|(_, _, tie)| tie_rank(*tie));
-        edges.truncate(caps.edges);
-    }
-    drop_unheld(&kinds, &edges, &mut keep);
+    kept
+}
+
+fn renumbered(
+    held: Vec<Held>,
+    edges: &[Line],
+    keep: &[bool],
+    near: Option<usize>,
+    whole: (usize, usize),
+) -> Network {
     let mut placed = vec![u32::MAX; held.len()];
     let mut nodes = Vec::new();
     for (n, (neuron, _)) in held.into_iter().enumerate() {
@@ -235,15 +270,15 @@ fn woven(
         }
     }
     let edges: Vec<(u32, u32, u8)> = edges
-        .into_iter()
-        .map(|(from, to, tie)| (placed[from], placed[to], tie))
+        .iter()
+        .map(|(from, to, tie)| (placed[*from], placed[*to], *tie))
         .collect();
     let left_out = (whole.0 > nodes.len() || whole.1 > edges.len()).then_some(LeftOut {
         nodes: whole.0 - nodes.len(),
         edges: whole.1 - edges.len(),
     });
     Network {
-        near: near.filter(|n| keep[*n]).map(|n| placed[n]),
+        near: near.map(|n| placed[n]),
         nodes,
         edges,
         left_out,
@@ -251,7 +286,7 @@ fn woven(
 }
 
 // A tag or a file stands for what holds it, so one whose holders are all out of sight goes too.
-fn drop_unheld(kinds: &[&str], edges: &[(usize, usize, u8)], keep: &mut [bool]) {
+fn drop_unheld(kinds: &[&str], edges: &[Line], keep: &mut [bool]) {
     let mut tied = vec![false; kinds.len()];
     for (from, to, _) in edges {
         if keep[*from] && keep[*to] {
@@ -266,12 +301,7 @@ fn drop_unheld(kinds: &[&str], edges: &[(usize, usize, u8)], keep: &mut [bool]) 
     }
 }
 
-fn ranked(
-    held: &[Held],
-    edges: &[(usize, usize, u8)],
-    keep: &[bool],
-    near: Option<usize>,
-) -> Vec<usize> {
+fn ranked(held: &[Held], edges: &[Line], keep: &[bool], near: Option<usize>) -> Vec<usize> {
     let around: HashSet<usize> = near.map_or_else(HashSet::new, |near| {
         edges
             .iter()

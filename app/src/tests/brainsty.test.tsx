@@ -165,7 +165,7 @@ describe("the Brainsty section", () => {
 
     await screen.findByRole("dialog", { name: t("brainsty") });
     expect(await screen.findByText("3 nodes · 2 connections")).toBeTruthy();
-    expect(await screen.findByRole("img", { name: t("brainstyNetwork") })).toBeTruthy();
+    expect(await screen.findByRole("figure", { name: t("brainstyNetwork") })).toBeTruthy();
     expect(asked()).toEqual([{ cmd: "brain_network", args: { near: null } }]);
 
     await user.keyboard("{Escape}");
@@ -276,7 +276,7 @@ describe("the Brainsty section", () => {
   it("draws the network centred on where it opens, following the layout until the person moves it", async () => {
     const user = await opened();
     await user.click(screen.getByRole("button", { name: t("brainsty") }));
-    const canvas = await screen.findByRole("img", { name: t("brainstyNetwork") });
+    const canvas = await screen.findByRole("figure", { name: t("brainstyNetwork") });
     const spots = { x: new Float32Array(3), y: new Float32Array(3) };
 
     sigma.step?.({ ...spots, done: false, iterations: 10, ms: 5 });
@@ -296,7 +296,7 @@ describe("the Brainsty section", () => {
   it("redraws in the other theme and lets go of the drawing and the layout on closing", async () => {
     const user = await opened();
     await user.click(screen.getByRole("button", { name: t("brainsty") }));
-    await screen.findByRole("img", { name: t("brainstyNetwork") });
+    await screen.findByRole("figure", { name: t("brainstyNetwork") });
 
     document.documentElement.setAttribute("data-theme", "dark");
     await waitFor(() => expect(sigma.rethemed).toBe(1));

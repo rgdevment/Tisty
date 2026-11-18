@@ -10,14 +10,14 @@ import { onMac } from "./WindowChrome";
 type Read = { network: Network | null } | { failed: string };
 
 interface Props {
-  near?: string;
-  onClose: () => void;
+  readonly near?: string;
+  readonly onClose: () => void;
 }
 
 export default function BrainstyScreen({ near, onClose }: Props) {
   const [read, setRead] = useState<Read | null>(null);
   const [Drawn, setDrawn] = useState<LoadedBrainsty | null>(null);
-  const frame = useRef<HTMLDivElement>(null);
+  const frame = useRef<HTMLDialogElement>(null);
   const closing = useRef(onClose);
   closing.current = onClose;
 
@@ -58,13 +58,13 @@ export default function BrainstyScreen({ near, onClose }: Props) {
 
   const network = read && "network" in read ? read.network : null;
   return (
-    <div
+    <dialog
+      open
       ref={frame}
       tabIndex={-1}
-      role="dialog"
       aria-modal="true"
       aria-label={t("brainsty")}
-      className="fixed inset-0 z-50 flex flex-col bg-bg font-sans text-ink outline-none"
+      className="fixed inset-0 z-50 m-0 flex h-full max-h-none w-full max-w-none flex-col border-0 bg-bg p-0 font-sans text-ink outline-none"
     >
       <header
         data-tauri-drag-region
@@ -88,23 +88,29 @@ export default function BrainstyScreen({ near, onClose }: Props) {
         {network && <Counted network={network} />}
       </header>
       <div className="relative min-h-0 flex-1">
-        {read === null || (network && !Drawn) ? (
-          <Said text={t("brainstyReading")} />
-        ) : "failed" in read ? (
-          <Said text={read.failed} urgent />
-        ) : network === null ? (
-          <Said text={t("brainstyNotYet")} />
-        ) : network.nodes.length === 0 ? (
-          <Said text={t("brainstyEmpty")} />
-        ) : (
-          Drawn && <Drawn network={network} />
-        )}
+        <Inside read={read} Drawn={Drawn} />
       </div>
-    </div>
+    </dialog>
   );
 }
 
-function Counted({ network }: { network: Network }) {
+function Inside({
+  read,
+  Drawn,
+}: {
+  readonly read: Read | null;
+  readonly Drawn: LoadedBrainsty | null;
+}) {
+  if (read === null) return <Said text={t("brainstyReading")} />;
+  if ("failed" in read) return <Said text={read.failed} urgent />;
+  const { network } = read;
+  if (network === null) return <Said text={t("brainstyNotYet")} />;
+  if (network.nodes.length === 0) return <Said text={t("brainstyEmpty")} />;
+  if (!Drawn) return <Said text={t("brainstyReading")} />;
+  return <Drawn network={network} />;
+}
+
+function Counted({ network }: { readonly network: Network }) {
   const out = network.left_out;
   return (
     <p className="flex min-w-0 items-center gap-3 truncate text-[11.5px] text-faint tabular-nums">
@@ -120,7 +126,7 @@ function Counted({ network }: { network: Network }) {
   );
 }
 
-function Said({ text, urgent = false }: { text: string; urgent?: boolean }) {
+function Said({ text, urgent = false }: { readonly text: string; readonly urgent?: boolean }) {
   return (
     <p
       role={urgent ? "alert" : "status"}

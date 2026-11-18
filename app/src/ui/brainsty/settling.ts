@@ -26,7 +26,7 @@ const CALM = 0.002;
 const hashed = (text: string): number => {
   let h = 2166136261;
   for (let i = 0; i < text.length; i++) {
-    h ^= text.charCodeAt(i);
+    h ^= text.codePointAt(i) ?? 0;
     h = Math.imul(h, 16777619);
   }
   return (h >>> 0) / 4294967296;
