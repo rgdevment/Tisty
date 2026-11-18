@@ -48,7 +48,6 @@ import { chooseTongue, docDress, tonguesOf, twinOf } from "../tongues";
 import { changedIn, MARK_FADES } from "./anchoring";
 import Beside, { trailed } from "./Beside";
 import Contents from "./Contents";
-import { blurbing, cardsOf } from "./carding";
 import { diaryLoaded, type LoadedDiary } from "./diaryLoaded";
 import { PageMore, type Viewing } from "./liveSheet";
 import Modal from "./Modal";
@@ -62,7 +61,6 @@ import { type LoadedSheet, sheetLoaded } from "./sheetLoaded";
 import { pageFor } from "./sheets";
 import { CompactBar, MarkBar } from "./Tidied";
 import Tongues, { standingHead } from "./Tongues";
-import { useTaskCards } from "./taskCards";
 import { useLeaving } from "./useLeaving";
 import { useLinkable } from "./useLinkable";
 import { clearOfChrome } from "./WindowChrome";
@@ -176,7 +174,6 @@ export default function Docs({
   const [Diary, setDiary] = useState<LoadedDiary | null>(null);
   const [unopened, setUnopened] = useState<string | null>(null);
   const [body, setBody] = useState("");
-  const tasked = useTaskCards(body, heard);
   const [inEditor, setInEditor] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [waiting, setWaiting] = useState(false);
@@ -701,11 +698,9 @@ export default function Docs({
     <Tongues tongues={tongues} here={(above ?? own)?.id ?? ""} onOpen={toTongue} />
   );
   const told = useMemo(() => (pages.length > 0 ? namesIn(body) : NONE), [body, pages.length]);
-  const cards = useMemo(() => cardsOf(known, open?.file, told), [known, open?.file, told]);
-  const [blurbs] = useState(blurbing);
   const named = useMemo(() => namesIn(body), [body]);
-  // A card says what its document is now: a rename, an archive or a deletion draws the page again.
-  const again = useMemo(
+  // A card says what its document is now: a rename, an archive or a deletion draws it again.
+  const docsHeard = useMemo(
     () =>
       named
         .map((file) => {
@@ -717,9 +712,9 @@ export default function Docs({
         .join("|"),
     [known, named],
   );
-  const blurb = useCallback(
-    (file: string) => blurbs(known.find((one) => one.file === file)),
-    [known, blurbs],
+  const cardsShown = useMemo(
+    () => ({ docs: true, tasks: true, here: open?.file, heard: { heard, docsHeard } }),
+    [open?.file, heard, docsHeard],
   );
 
   const [aboveTold, setAboveTold] = useState<string[]>();
@@ -1083,11 +1078,7 @@ export default function Docs({
                   }}
                   onFail={(e) => onError(saidPlainly(e))}
                   onNote={onNote}
-                  card={cards}
-                  blurb={blurb}
-                  again={again}
-                  cited={tasked.task}
-                  cards={tasked.said}
+                  cardsShown={cardsShown}
                   onTask={seeCited}
                   onTaskDone={onTaskDone}
                   onTaskStep={onTaskStep}

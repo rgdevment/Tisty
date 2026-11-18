@@ -25,7 +25,7 @@ import {
   type Widths,
   widened,
 } from "tisty-editor/edit";
-import type { Carded, Head, Sheet as SheetSize, TaskCarded } from "tisty-editor/read";
+import type { Head, Sheet as SheetSize } from "tisty-editor/read";
 import { bytesAt, charsAt, heads, stepLine, steppedTitle } from "tisty-editor/read";
 import { copied, copyAttached, type Mend, opened } from "../core";
 import { viewDiagram } from "../drawing";
@@ -46,6 +46,7 @@ import { embedGone } from "./embeds";
 import { FrameThumb } from "./frameThumb";
 import { useKeptHeight } from "./heights";
 import { edited, HOST } from "./hosting";
+import type { CardsShown } from "./liveCards";
 import { ALT, livelyChoices } from "./livelyMenu";
 import { LivelyBelow, useFrameScroll, type Viewing } from "./liveSheet";
 import Menu, { type Choice } from "./Menu";
@@ -98,16 +99,13 @@ type Props = {
   readonly onTag?: (tag: string) => void;
   readonly onOpen?: (reference: string) => void;
   readonly onOutline?: (heads: Head[]) => void;
-  readonly card?: (file: string) => Carded;
-  readonly cited?: (id: string) => TaskCarded;
+  readonly cardsShown?: CardsShown;
   readonly onTask?: (id: string) => void;
   readonly onTaskDone?: (id: string, title: string) => void;
   readonly onTaskStep?: (id: string, step: string, done: boolean) => void;
   readonly draw?: (body: string, placed: boolean) => Promise<string>;
   readonly onPart?: (title: string) => Promise<string | null>;
-  readonly blurb?: (file: string) => Promise<string>;
   readonly again?: string;
-  readonly cards?: string;
   readonly onInsert?: (put: ((file: string, title: string) => boolean) | null) => void;
   readonly onOrder?: (move: ((file: string, before: string | null) => Moved) | null) => void;
   readonly asking?: Asking;
@@ -1050,13 +1048,12 @@ export default function Sheet(props: Readonly<Props>) {
       },
     ];
     if (file) {
-      const kind = said.current.card?.(file).kind;
       return [
         {
           key: "own",
           label: t("cardOwn"),
           icon: "⇤",
-          off: kind !== "page" || !said.current.onOwn,
+          off: !one.paged || !said.current.onOwn,
           onPick: () => said.current.onOwn?.(file),
         },
         ...plain,
@@ -1304,14 +1301,11 @@ export default function Sheet(props: Readonly<Props>) {
           onMore={reading || fixed ? undefined : asked}
           onPicture={pictures.view}
           onAway={left}
-          card={props.card}
-          cited={props.cited}
+          cardsShown={props.cardsShown}
           onTask={(id) => said.current.onTask?.(id)}
           onTaskDone={props.onTaskDone && ((id, title) => said.current.onTaskDone?.(id, title))}
           onTaskStep={props.onTaskStep && ((...asked) => said.current.onTaskStep?.(...asked))}
-          blurb={props.blurb}
           again={props.again}
-          cards={props.cards}
           onDiagram={reading || fixed || !props.wholeable ? undefined : diagram}
           onDiagramExport={fixed ? undefined : diagramOut}
           onPiece={piece}

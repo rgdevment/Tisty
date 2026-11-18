@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Asking } from "tisty-editor/edit";
 import {
   addPart,
@@ -20,7 +20,6 @@ import type { Viewing } from "./liveSheet";
 import Skeleton from "./Skeleton";
 import { type LoadedSheet, sheetLoaded } from "./sheetLoaded";
 import { useTaskAsks } from "./taskAsking";
-import { useTaskCards } from "./taskCards";
 import { useWholeKeys } from "./wholeKeys";
 
 const SETTLES = 700;
@@ -206,7 +205,7 @@ function Written({
   // A task's page keeps its template's sections, so it is written by block alone.
   const { allAsked } = useWholeKeys(true, false);
   const [text, setText] = useState(doc.body);
-  const cards = useTaskCards(text, task, task.id);
+  const cardsShown = useMemo(() => ({ tasks: true, here: task.id, heard: task }), [task]);
   const waiting = useRef<string | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const failed = useRef(onError);
@@ -386,9 +385,8 @@ function Written({
         onDoc={onDoc}
         asking={asking}
         stepDates={dates}
-        cited={cards.task}
+        cardsShown={cardsShown}
         again={onPart ? "parts" : ""}
-        cards={cards.said}
         onTask={onTask}
         onTaskDone={onTaskDone}
         onTaskStep={onTaskStep}

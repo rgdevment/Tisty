@@ -23,7 +23,14 @@ export type Went =
   | { kind: "tick"; at: [number, number] }
   | { kind: "part"; at: [number, number] }
   | { kind: "apart"; at: [number, number]; nth?: number }
-  | { kind: "more"; at: [number, number]; target: string; x: number; y: number }
+  | {
+      kind: "more";
+      at: [number, number];
+      target: string;
+      x: number;
+      y: number;
+      paged: boolean;
+    }
   | { kind: "end" }
   | { kind: "title" }
   | { kind: "hint"; at: [number, number]; seed: string; from: "hint" | "add-step" | "add-section" }
@@ -182,7 +189,9 @@ const pressedIn = (asked: HTMLElement): Went => {
   if (!at) return null;
   if (asked.dataset.asked === "more") {
     const box = asked.getBoundingClientRect();
-    return { kind: "more", at, target: asked.dataset.target ?? "", x: box.left, y: box.bottom };
+    const target = asked.dataset.target ?? "";
+    const paged = asked.closest(".doc-card")?.classList.contains("is-page") ?? false;
+    return { kind: "more", at, target, x: box.left, y: box.bottom, paged };
   }
   if (asked.dataset.asked === "codeLang") {
     const fenced = placeOf(asked.closest<HTMLElement>("figure.code[data-at]"));

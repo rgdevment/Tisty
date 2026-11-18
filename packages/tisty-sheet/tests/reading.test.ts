@@ -11,7 +11,7 @@ const page = (html: string): Document => {
 };
 
 describe("a sheet read as Tisty draws it", () => {
-  it("names its callouts, stages and cards in the host's words, and draws a web link as its site", async () => {
+  it("names its callouts and stages in the host's words, leaves a card to the core, and draws a web link as its site", async () => {
     const drawn = page(
       '<blockquote data-callout="tip"><p>Ojo</p></blockquote>' +
         '<ul><li class="task">Primero</li></ul>' +
@@ -22,13 +22,12 @@ describe("a sheet read as Tisty draws it", () => {
       say,
       locale: "es",
       live: () => true,
-      cards: { card: () => ({ kind: "doc", title: "Otro" }) },
       sites: {},
     });
     await read.drawn;
     expect(drawn.querySelector<HTMLElement>("blockquote")?.dataset.said).toBe("saidtip");
     expect(drawn.querySelector("li.task")?.id).toBe("stage--1");
-    expect(drawn.querySelector(".doc-card .kind")?.textContent).toBe("kindDoc");
+    expect(drawn.querySelector("a.card[data-doc]")?.textContent).toBe("Otro");
     expect(drawn.querySelector("a.doc-card.is-web .kind")?.textContent).toBe("tisty.app");
   });
 
