@@ -1985,8 +1985,14 @@ fn everything_exported_lands_elsewhere_with_each_document_tied_to_those_it_names
     let room = tmp();
     let mut here = Room::new(room.path(), "mine");
     let (_, trip) = here.doc("# Viaje\n\n## Hoteles\n\nCerca del mar.\n", None, None);
-    let (book, _) = here.doc("# Libro\n", None, None);
+    let (book, book_file) = here.doc("# Libro\n", None, None);
     let (_, chapter) = here.doc("# Capítulo\n", None, Some(book));
+    docs::write(
+        &here.data().join("docs"),
+        &book_file,
+        &format!("# Libro\n\n![Capítulo](tisty:doc/{chapter})\n"),
+    )
+    .unwrap();
     let vet = Ulid::generate();
     here.doc(
         &format!(
