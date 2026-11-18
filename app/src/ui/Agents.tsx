@@ -186,7 +186,7 @@ export default function Agents({ busy, said, trouble, quietly, tell, fail, binar
         )}
       </Card>
 
-      <AgentsSettings busy={busy} said={said} />
+      <AgentsSettings busy={busy} />
 
       <Card title={t("agentsCanTitle")} which="settings" busy={busy} said={said} trouble={trouble}>
         <p className="text-[12.5px] leading-relaxed text-soft">{t("agentsCan")}</p>

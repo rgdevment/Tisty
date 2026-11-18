@@ -9,10 +9,7 @@ import { Knob, Line } from "./Rows";
 const small =
   "mt-2 self-start rounded-md border border-line px-2.5 py-0.5 text-[12.5px] text-soft hover:border-accent hover:text-accent";
 
-export default function AgentsSettings({
-  busy,
-  said,
-}: Readonly<{ busy: Which | null; said?: Word }>) {
+export default function AgentsSettings({ busy }: Readonly<{ busy: Which | null }>) {
   const [look, setLook] = useState<AgentsLook>();
   const [trouble, setTrouble] = useState<Word>();
 
@@ -36,7 +33,7 @@ export default function AgentsSettings({
   };
 
   return (
-    <Card title={t("agentsSettingsTitle")} which="wiring" busy={busy} said={said} trouble={trouble}>
+    <Card title={t("agentsSettingsTitle")} which="wiring" busy={busy} trouble={trouble}>
       <p className="text-[12.5px] leading-relaxed text-soft">{t("agentsSettingsLine")}</p>
       {look && !look.folder && (
         <button type="button" onClick={askAgents} className={small}>

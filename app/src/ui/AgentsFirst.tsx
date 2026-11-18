@@ -66,7 +66,7 @@ function Assistant({
                   <span className="block truncate font-mono text-[11.5px] text-ink">
                     {file.name}
                   </span>
-                  <span className="block text-[11px] text-soft">
+                  <span className="block text-[11.5px] text-soft">
                     {file.held
                       ? t("agentsFirstHeld")
                       : file.skip
@@ -172,7 +172,7 @@ export default function AgentsFirst({ onClose, onChanged }: Readonly<Props>) {
         <p className="mt-1.5 font-mono text-[11.5px] break-all text-faint">{shown.at}</p>
         <Compared both={shown} />
         {shown.composed && (
-          <p className="mt-2.5 text-[12px] text-soft">{t("agentsBothComposed")}</p>
+          <p className="mt-2.5 text-[12.5px] text-soft">{t("agentsBothComposed")}</p>
         )}
         {trouble && <p className="mt-2.5 text-[11.5px] text-urgent">{trouble}</p>}
         <div className="mt-5 flex flex-wrap justify-end gap-2 text-[12.5px]">
