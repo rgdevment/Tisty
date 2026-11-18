@@ -128,16 +128,31 @@ fn found_here(homes: &Homes) -> Vec<Found> {
 }
 
 /// Names and sizes only: no agent file is opened before the person says yes.
-pub fn looked(session: &Session, homes: &Homes, here: &str, found: &[Found]) -> Look {
-    let ledger = Ledger::open(session.paths.data(), here);
+pub struct Gathered {
+    data: std::path::PathBuf,
+    root: Option<FolderId>,
+    docs: usize,
+    bodies: Vec<(String, String)>,
+}
+
+pub fn gathered(session: &Session) -> Gathered {
     let root = root_of(&session.state);
-    let docs = root
-        .map(|root| docs_in(&session.state, &tree(&session.state, root)).len())
-        .unwrap_or(0);
-    let bodies = bodies(session);
-    let held = addresses(&bodies);
+    Gathered {
+        data: session.paths.data().to_path_buf(),
+        root,
+        docs: root
+            .map(|root| docs_in(&session.state, &tree(&session.state, root)).len())
+            .unwrap_or(0),
+        bodies: bodies(session),
+    }
+}
+
+pub fn looked(seen: &Gathered, homes: &Homes, here: &str, found: &[Found]) -> Look {
+    let ledger = Ledger::open(&seen.data, here);
+    let (root, docs) = (seen.root, seen.docs);
+    let held = addresses(&seen.bodies);
     let both = match ledger.consented() {
-        true => pending(&ledger, &places::targets(homes, &bodies)),
+        true => pending(&ledger, &places::targets(homes, &seen.bodies)),
         false => Vec::new(),
     };
     let assistants = homes
@@ -611,8 +626,8 @@ pub fn emptied(session: &mut Session) -> Answer<bool> {
 pub fn agents_look(session: tauri::State<'_, Mutex<Session>>) -> Answer<Look> {
     let homes = homes()?;
     let found = found_here(&homes);
-    let session = held(&session);
-    Ok(looked(&session, &homes, &here(), &found))
+    let seen = gathered(&held(&session));
+    Ok(looked(&seen, &homes, &here(), &found))
 }
 
 #[tauri::command(async)]

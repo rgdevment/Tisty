@@ -59,7 +59,12 @@ impl Room {
     }
 
     fn look(&self) -> Look {
-        looked(&self.session, &self.homes, HERE, &found_here(&self.homes))
+        looked(
+            &gathered(&self.session),
+            &self.homes,
+            HERE,
+            &found_here(&self.homes),
+        )
     }
 
     fn bring(&mut self, chosen: &[&str]) -> Brought {

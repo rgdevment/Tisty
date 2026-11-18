@@ -171,6 +171,7 @@ export default function AgentsFirst({ onClose, onChanged }: Readonly<Props>) {
   useEffect(() => {
     if (reviewing && !shown) onClose();
   }, [reviewing, shown, onClose]);
+  if (reviewing && !shown) return null;
   if (shown) {
     const name =
       look?.assistants.find((one) => one.id === shown.assistant)?.name ?? shown.assistant;
