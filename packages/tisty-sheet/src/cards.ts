@@ -52,7 +52,7 @@ export const cardBox = (page: Document, kind: string, open: boolean) => {
   box.tabIndex = 0;
   box.setAttribute("role", "link");
   box.addEventListener("keydown", (event) => {
-    if (event.key !== "Enter" && event.key !== " ") return;
+    if (event.target !== box || (event.key !== "Enter" && event.key !== " ")) return;
     event.preventDefault();
     box.click();
   });

@@ -114,6 +114,19 @@ A document on its own gets forgotten; a linked one gets found again. Type `[[` i
 - **Who links to it**: the panel beside the document has a **Linked from** row, with every document and task that cites or mentions it and, for a document, the sections where it does. A click opens it at that section. Tisty builds this list in the background, so a link you just wrote shows up a few seconds later.
 - `[[#2]]` still names the second step, as always.
 
+## Citing a task
+
+What you know about a subject lives in its document; the work you did on it, in its tasks. Cite the task in the document and you find it where you will look for it: «Car» shows «Change the tyres», closed in March, and a click takes you to how it was solved.
+
+Type `/`, choose **A task** and go on with a few words of its title: Tisty searches the open ones and the archived ones. `Enter` leaves a card like `![Change the tyres](tisty:task/…)`, alone in its paragraph.
+
+- **Always current**: the card reads the task each time it is drawn, with its title, its list, its dates, how many of its steps and parts are done and, if it is closed, the day it closed.
+- **A click opens it**, archived or not.
+- **While it is still open**, the card's circle marks it done, and the step count unfolds its steps so you can tick them right there. A closed task is read, but no longer changes from the document.
+- **If it is gone**, because you deleted it or it has not reached this machine yet, the card shows the words you cited it with and says it is not here.
+- **Outside Tisty** (Folio, PDF, Word, standard Markdown) only those words remain: nothing of the task leaves with the document.
+- **Who cites it**: beside the task's page, **Linked from** gathers the documents and tasks that cite or mention it, with the section where they do.
+
 ## Attachments
 
 Drag a file into a document or onto a task to attach it — the photo from the vet, the insurance PDF, the recording of a meeting. A task takes files up to 650 MB, the same as a document. It is kept as itself, inside Tisty, and travels with the document when you export it.

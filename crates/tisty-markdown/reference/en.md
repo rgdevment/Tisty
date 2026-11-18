@@ -347,7 +347,7 @@ The [walks of October](tisty:doc/01JC4M9F2W7DQ1E3S8RB6PKMHT) went better.
 - A document's pages come in the order their cards name them: in the tree, on export and in print.
 - For a page, only the card gives it its place in the book; a link in a sentence points at it without placing it. See [Pages and PDF](https://www.tisty.app/docs/pages-and-pdf/).
 - A `[`, `]` or `\` in a title is written with a backslash before it.
-- A task is named the same way, by its id after `tisty:task/`. On a task's page, a part written as a card shows its steps done and its date, and opens the part. Other readers get only its words.
+- A task is named the same way, by its id after `tisty:task/`, and the `/` menu writes it for you (**A task**), open or archived. As a card, in any document, it shows its current title, its list, its dates and how many of its steps and parts are done, and opens it; while it is still open, it marks it done and ticks its steps. If the task is not on this machine, its words stay with a notice. Other readers get only its words.
 
 ## Attachments
 

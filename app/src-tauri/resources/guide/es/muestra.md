@@ -799,6 +799,10 @@ Una página: **Una página nueva** o **Una página que ya existe**. Su tarjeta d
 
 ![Rina: la página de ejemplo de esta guía](tisty:page)
 
+Una tarea: **Una tarea**, en el menú `/`, busca entre las abiertas y las archivadas. Su tarjeta lee la tarea cada vez que se dibuja: su lista, sus fechas, cuántos pasos lleva hechos y si ya se cerró. Un clic la abre, su círculo la marca hecha y su contador despliega los pasos para tacharlos ahí. Esta cita una tarea que no está en tu máquina, así que muestra sus palabras y un aviso; cita una tuya para verla viva.
+
+![Llevar a Rina al veterinario](tisty:task/01JC4M7Q3B8YH2A9K6TN5VXZRE)
+
 Una tarjeta también avisa cuando su documento está archivado o ya no está. Y en la página de una tarea, cada parte es una tarjeta igual, con sus pasos hechos y su fecha.
 
 Un enlace solo en su párrafo, con la letra y el color de su sitio. **Traer la vista previa** le pone el título y la imagen que el sitio ofrece.

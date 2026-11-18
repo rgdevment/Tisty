@@ -1,4 +1,4 @@
-import { diagramShot, spanned, type TableAct } from "tisty-editor/read";
+import { diagramShot, spanned, type TableAct, taskCardAt } from "tisty-editor/read";
 import { t } from "../locales";
 import { docAimed, TASK } from "../markdown";
 import { type DayWent, dayPressed, dayTouched } from "./diaryPaging";
@@ -9,6 +9,9 @@ import { tableClicked } from "./tabled";
 export type Went =
   | { kind: "doc"; id: string; at?: string }
   | { kind: "task"; id: string }
+  | { kind: "taskDone"; id: string; title: string }
+  | { kind: "taskStep"; id: string; step: string; done: boolean }
+  | { kind: "taskSteps"; nth: number }
   | { kind: "web"; href: string }
   | { kind: "here"; id: string }
   | { kind: "attachment"; reference: string }
@@ -147,9 +150,23 @@ const tablePressed = (asked: HTMLElement): Went => {
     : null;
 };
 
+const taskPressed = (asked: HTMLElement): Went | undefined => {
+  const id = asked.dataset.task ?? "";
+  if (asked.dataset.asked === "taskSteps") return { kind: "taskSteps", nth: taskCardAt(asked) };
+  if (asked.dataset.asked === "taskDone") {
+    const title = asked.closest(".is-task")?.querySelector(".card-name")?.textContent ?? "";
+    return { kind: "taskDone", id, title };
+  }
+  if (asked.dataset.asked !== "taskStep") return undefined;
+  const done = asked.getAttribute("aria-checked") !== "true";
+  return { kind: "taskStep", id, step: asked.dataset.step ?? "", done };
+};
+
 const pressedIn = (asked: HTMLElement): Went => {
   const day = dayPressed(asked);
   if (day !== undefined) return day;
+  const task = taskPressed(asked);
+  if (task !== undefined) return task;
   if (asked.dataset.asked === "table") return tablePressed(asked);
   // A diagram inside a quote or a list is named by its own place, not by the block around it.
   const diagram = asked.dataset.asked;
@@ -192,8 +209,9 @@ export const went = (target: Element, selecting: boolean): Went => {
   if (link) return linked(link);
   const card = target.closest<HTMLElement>(".doc-card[data-doc]")?.dataset.doc;
   if (card) return { kind: "doc", id: card };
-  const part = target.closest<HTMLElement>(".doc-card[data-task]")?.dataset.task;
-  if (part) return { kind: "task", id: part };
+  // A task that is not here has nothing to open, so its card is only the words it was written with.
+  const task = target.closest<HTMLElement>(".doc-card[data-task]:not(.is-gone)")?.dataset.task;
+  if (task) return { kind: "task", id: task };
   const ref = target.closest<HTMLElement>(".ref");
   if (ref?.dataset.stage) return { kind: "here", id: ref.dataset.stage };
   if (ref?.dataset.ref) return null;

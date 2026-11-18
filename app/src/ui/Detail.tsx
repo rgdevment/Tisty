@@ -16,6 +16,7 @@ import { fill, t } from "../locales";
 import { placed, said } from "../quadrants";
 import { agentNamed, clientNamed } from "../who";
 import Belongs from "./Belongs";
+import CitedBy from "./CitedBy";
 import { useEdge } from "./edging";
 import Fields from "./Fields";
 import History from "./History";
@@ -61,6 +62,7 @@ interface Props {
   onAddPart?: (title: string) => void;
   onOpenPart?: (id: string) => void;
   onCompletePart?: (id: string, title: string) => void;
+  onTaskStep?: (id: string, step: string, done: boolean) => void;
   onHang?: (whole: string | null) => void;
   onSettle?: (
     before: string,
@@ -104,6 +106,7 @@ export default function Detail({
   onAddPart,
   onOpenPart,
   onCompletePart,
+  onTaskStep,
   onHang,
   onSettle,
 }: Props) {
@@ -205,6 +208,7 @@ export default function Detail({
         onError={onError}
         heading={<Section label={t("left")} />}
       />
+      <CitedBy task={task.id} whole={task.part_of} onDoc={onDoc} onTask={onOpenPart} />
       {task.status !== "open" && (
         <p className="mt-4 border-t border-hair pt-3 text-[11.5px] leading-relaxed text-faint">
           {t("trailSealed")}
@@ -249,6 +253,8 @@ export default function Detail({
         onHeld={setHeld}
         papers={papers}
         onTask={onOpenPart}
+        onTaskDone={onCompletePart}
+        onTaskStep={onTaskStep}
       />
       <History task={task} onError={onError} onDoc={onDoc} />
       <Rounds task={task} onError={onError} onDoc={onDoc} />

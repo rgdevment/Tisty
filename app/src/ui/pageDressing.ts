@@ -2,7 +2,15 @@ import { readAs } from "tisty-editor/read";
 import { staged } from "tisty-sheet";
 import { locale } from "../locales";
 import { cardsFor } from "./carding";
-import { datedSteps, diagramBars, languaged, mathBars, pictures, type Reaching } from "./dressing";
+import {
+  citedCards,
+  datedSteps,
+  diagramBars,
+  languaged,
+  mathBars,
+  pictures,
+  type Reaching,
+} from "./dressing";
 import { keptInPlace, takenOver } from "./pagePatching";
 import { SAY } from "./saying";
 import { tabled } from "./tabled";
@@ -65,9 +73,9 @@ export const wornLaid = (
       held = pictures(staging, live, { more: Boolean(reach.onMore) });
     },
     cards: cardsFor(page, reach),
-    parts: reach.part,
     sites: { glimpses: GLIMPSES },
   });
+  citedCards(staging, reach);
   for (const put of back) put();
   if (reach.onTable) tabled(page);
   if (reach.onWiden) gripped(page);

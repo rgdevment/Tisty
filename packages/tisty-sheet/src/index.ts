@@ -30,7 +30,6 @@ export {
   saysAny,
   shapeOf,
 } from "./ideas";
-export { type PartCarded, type PartCards, partCarded, recarded } from "./parts";
 export { type Read, type Reading, readAs, saidKinds } from "./reading";
 export { SHEET_GLYPHS, type SheetGlyph } from "./sheetGlyphs";
 export {
@@ -43,6 +42,15 @@ export {
 export { sideways } from "./sideways";
 export { staged, stepLine, steppedTitle } from "./stages";
 export { asking, BOXES, type TableAct, tablesIn } from "./tables";
+export {
+  type CardStep,
+  recarded,
+  type TaskCarded,
+  type TaskCards,
+  taskCardAt,
+  taskCarded,
+  unfolded,
+} from "./taskCards";
 export { type Glimpse, type Glimpses, hosting, webCarded } from "./webCards";
 export { weighed } from "./weighed";
 export {

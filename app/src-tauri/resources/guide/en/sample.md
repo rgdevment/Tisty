@@ -799,6 +799,10 @@ A page: **A new page** or **A page that already exists**. Its card also says whe
 
 ![Rina: this guide's example page](tisty:page)
 
+A task: **A task**, in the `/` menu, searches the open ones and the archived ones. Its card reads the task each time it is drawn: its list, its dates, how many of its steps are done and whether it has closed. A click opens it, its circle marks it done and its count unfolds the steps to tick them right there. This one cites a task that is not on your machine, so it shows its words and a notice; cite one of yours to see it live.
+
+![Take Rina to the vet](tisty:task/01JC4M7Q3B8YH2A9K6TN5VXZRE)
+
 A card also tells you when its document is archived or gone. And on a task's page, each part is a card just the same, with its steps done and its date.
 
 A link alone in its paragraph, with its site's letter and colour. **Bring the preview** gives it the title and the picture the site offers.

@@ -65,7 +65,7 @@ const carried = (page: Document): Promise<unknown> =>
   );
 
 const unlinked = (page: Document) => {
-  for (const card of page.querySelectorAll<HTMLElement>("a.card[data-doc]"))
+  for (const card of page.querySelectorAll<HTMLElement>("a.card[data-doc], a.card[data-task]"))
     card.replaceWith(worded(page, card.textContent ?? ""));
   for (const link of page.querySelectorAll<HTMLAnchorElement>('a[href^="tisty:"]'))
     link.replaceWith(...link.childNodes);

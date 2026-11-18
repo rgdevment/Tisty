@@ -114,6 +114,19 @@ Un documento suelto se olvida; uno enlazado se vuelve a encontrar. Escribe `[[` 
 - **Quién lo enlaza**: el panel junto al documento tiene la fila **Enlazado desde**, con cada documento y cada tarea que lo cita o lo menciona y, en un documento, las secciones donde lo hace. Un clic lo abre en esa sección. Tisty arma esta lista en segundo plano, así que un enlace recién escrito aparece a los pocos segundos.
 - `[[#2]]` sigue nombrando el segundo paso, como siempre.
 
+## Citar una tarea
+
+Lo que sabes de un tema vive en su documento; el trabajo que hiciste sobre él, en sus tareas. Cita la tarea en el documento y la encuentras donde la vas a buscar: «Auto» muestra «Cambiar los neumáticos», cerrada en marzo, y un clic te lleva a cómo se resolvió.
+
+Escribe `/`, elige **Una tarea** y sigue con unas palabras de su título: Tisty busca entre las abiertas y las archivadas. `Enter` deja una tarjeta como `![Cambiar los neumáticos](tisty:task/…)`, sola en su párrafo.
+
+- **Siempre al día**: la tarjeta lee la tarea cada vez que se dibuja, con su título, su lista, sus fechas, cuántos pasos y partes lleva hechos y, si está cerrada, el día en que se cerró.
+- **Un clic la abre**, también si está archivada.
+- **Mientras sigue abierta**, el círculo de la tarjeta la marca hecha, y el contador de pasos los despliega para tacharlos ahí mismo. Una tarea cerrada se lee, pero ya no cambia desde el documento.
+- **Si ya no está**, porque la borraste o todavía no llega a esta máquina, la tarjeta muestra las palabras con que la citaste y avisa que no está.
+- **Fuera de Tisty** (Folio, PDF, Word, Markdown estándar) queda solo esa frase: nada de la tarea sale con el documento.
+- **Quién la cita**: junto a la página de la tarea, **Enlazado desde** reúne los documentos y las tareas que la citan o la mencionan, con la sección donde lo hacen.
+
 ## Adjuntos
 
 Arrastra un archivo a un documento o a una tarea para adjuntarlo: la foto del veterinario, el PDF del seguro, la grabación de una reunión. Una tarea admite archivos de hasta 650 MB, igual que un documento. Se guarda tal cual, dentro de Tisty, y viaja con el documento cuando lo exportas.
