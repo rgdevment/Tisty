@@ -24,6 +24,8 @@ export interface LineLook {
   size: number;
   color: string;
   gap: number;
+  tone: string;
+  alpha: number;
 }
 
 export const HUE_KEYS = [
@@ -118,17 +120,41 @@ const TONE: Record<NeuronKind, keyof Omit<Palette, "hues">> = {
 
 const baseOf = (kind: NeuronKind, palette: Palette): string => palette[TONE[kind]];
 
-export function nodeLook(neuron: Neuron, hue: string | undefined, palette: Palette): NodeLook {
+export const weightOf = (degree: number): number => 1 + Math.min(2, 0.35 * Math.log2(1 + degree));
+
+export function nodeLook(
+  neuron: Neuron,
+  hue: string | undefined,
+  palette: Palette,
+  degree = 0,
+): NodeLook {
   const standing = STANDING[standingOf(neuron)];
   const tinted = hue ? palette.hues[hue] : undefined;
   return {
     shape: shapeOf(neuron.kind),
-    size: SIZE[neuron.kind] * standing.scale,
+    size: SIZE[neuron.kind] * standing.scale * weightOf(degree),
     color: rgba(tinted ?? baseOf(neuron.kind, palette), standing.alpha),
   };
 }
 
+export function degreesOf(count: number, edges: readonly (readonly number[])[]): number[] {
+  const degrees = new Array<number>(count).fill(0);
+  for (const [from, to] of edges) {
+    if (from < count) degrees[from]++;
+    if (to < count) degrees[to]++;
+  }
+  return degrees;
+}
+
+// The few most tied nodes carry their titles at middle distance, so the map reads before every title shows.
+export function bigOnes(degrees: readonly number[], share = 0.03, least = 3): boolean[] {
+  const sorted = [...degrees].sort((one, other) => other - one);
+  const bar = Math.max(least, sorted[Math.floor(sorted.length * share)] ?? least);
+  return degrees.map((one) => one >= bar);
+}
+
 export function lineLook(tie: Tie, palette: Palette): LineLook {
   const line = LINE[tie];
-  return { size: line.size, color: rgba(palette[line.tone], line.alpha), gap: line.gap };
+  const tone = palette[line.tone];
+  return { size: line.size, color: rgba(tone, line.alpha), gap: line.gap, tone, alpha: line.alpha };
 }
