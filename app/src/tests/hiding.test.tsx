@@ -146,6 +146,23 @@ describe("hiding rows from the sidebar", () => {
     expect(onDiaryMenu).toHaveBeenCalledTimes(2);
   });
 
+  it("keeps a hidden folder inside the archived one that holds it, where it can still be reached", () => {
+    hide("F2");
+    const shelved: Papers = {
+      folders: [
+        { ...folder("F1", "agents"), archived: true, away: true },
+        { ...folder("F2", "claude", "F1"), away: true },
+      ],
+      docs: [],
+    };
+    render(<Tree papers={shelved} onOpen={vi.fn()} onFile={vi.fn()} onHere={vi.fn()} />);
+    fireEvent.click(screen.getByRole("button", { name: "Archived" }));
+    fireEvent.click(screen.getByRole("button", { name: "Open agents" }));
+
+    expect(screen.getByRole("button", { name: "claude" })).toBeTruthy();
+    expect(hiddenList()).toBeNull();
+  });
+
   it("leaves a hidden folder out of the folded sidebar too", () => {
     hide("F1");
     render(

@@ -403,7 +403,8 @@ export default function Tree({
   const pin = papers.docs.find((one) => one.file === pinned && !one.away && !one.pageOf);
   const pinShown = pin && !veiled(BRAINSTORM) ? pin : undefined;
 
-  const drawnUnder = (parent: string | null) => under(parent).filter((one) => !veiled(one.id));
+  const drawnUnder = (parent: string | null) =>
+    under(parent).filter((one) => one.away || !veiled(one.id));
 
   const gathered = (one: Filed) => Boolean(onDiary && one.diary && !one.pageOf && !one.away);
   const diaries = papers.docs
@@ -973,7 +974,7 @@ export default function Tree({
     ...(pin ? [{ key: BRAINSTORM, name: pin.title || t("brainstorm") }] : []),
     ...(onDiary ? [{ key: DIARY, name: t("diary") }] : []),
     ...papers.folders
-      .filter((one) => !one.away)
+      .filter((one) => !one.away && veiled(one.id))
       .map((one) => ({ key: one.id, name: trail(papers.folders, one.id) })),
   ].filter((one) => veiled(one.key));
 
