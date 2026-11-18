@@ -80,7 +80,7 @@ An assistant sees and goes back to the same [earlier versions](Documents#earlier
 **1. It lists the versions,** with `read_doc` and `versions`:
 
 ```json
-{ "doc": "4nnctnme-0042", "versions": true }
+{ "doc": "k7w2pq9d-0003", "versions": true }
 ```
 
 The answer brings the newest first, how many this computer keeps and its limit in days (cut down here):
@@ -114,7 +114,7 @@ The answer brings the newest first, how many this computer keeps and its limit i
 **2. It reads the one it wants,** with `read_doc` and `version`:
 
 ```json
-{ "doc": "4nnctnme-0042", "version": "7d21e8b0c9aa" }
+{ "doc": "k7w2pq9d-0003", "version": "7d21e8b0c9aa" }
 ```
 
 Its text comes back under a notice, so it is not taken for what the document says now: «This is a past version of "Rina's walks" …, not what it says now». It carries no `print`, so it cannot be used to write over with `edit_doc` or `write_doc`. A long version reads in parts, like any document.
@@ -122,7 +122,7 @@ Its text comes back under a notice, so it is not taken for what the document say
 **3. It goes back to it,** with `restore_doc` and `version`:
 
 ```json
-{ "doc": "4nnctnme-0042", "version": "7d21e8b0c9aa" }
+{ "doc": "k7w2pq9d-0003", "version": "7d21e8b0c9aa" }
 ```
 
 The document goes back to saying what that version said, over everything written since, without asking for `even_if_more`, because the version was named on purpose. What it replaces is kept, the answer tells it in `went_back_to`, and `restore_doc` without `version` undoes the go-back.

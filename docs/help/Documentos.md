@@ -258,7 +258,7 @@ Sirve para un texto que borraste a propósito: pegaste en «Datos del seguro» u
 - **Borrar un documento** borra también sus versiones, en cada equipo. Si quieres conservar una, vuelve a ella o cópiala antes.
 - **Una página de tarea** tiene sus propias versiones, en **Versiones de esta página**. Volver a una trae sus palabras, nunca quita pasos (más arriba).
 - **El [Diario](#diario)** también guarda versiones en este equipo, que cuentan para lo que guarda tu equipo y tus respaldos, pero su vista no tiene la fila **Historial**: no se listan desde la ventana.
-- **Un documento archivado o bloqueado, y la página de una tarea cerrada,** muestran sus versiones pero no ofrecen **Volver a esta versión**. Desarchiva el documento o reabre la tarea para volver a una.
+- **Un documento archivado o bloqueado, y la página de una tarea cerrada,** muestran sus versiones pero no ofrecen **Volver a esta versión**. Desarchívalo o desbloquéalo, o reabre la tarea con **Reabrir**, para volver a una.
 - **Restaurar un respaldo** cambia las versiones de este equipo por las del zip, y su plazo vuelve a contar desde ese día.
 - **Al actualizar desde un Tisty sin historial,** la copia que cada documento guardaba de su texto anterior pasó sola a ser su primera versión.
 

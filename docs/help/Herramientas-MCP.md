@@ -80,7 +80,7 @@ Un asistente ve y recupera las mismas [versiones anteriores](Documentos#versione
 **1. Lista las versiones,** con `read_doc` y `versions`:
 
 ```json
-{ "doc": "4nnctnme-0042", "versions": true }
+{ "doc": "k7w2pq9d-0003", "versions": true }
 ```
 
 La respuesta trae la más nueva primero, cuántas guarda este equipo y su plazo en días (recortada aquí):
@@ -114,7 +114,7 @@ La respuesta trae la más nueva primero, cuántas guarda este equipo y su plazo 
 **2. Lee la que busca,** con `read_doc` y `version`:
 
 ```json
-{ "doc": "4nnctnme-0042", "version": "7d21e8b0c9aa" }
+{ "doc": "k7w2pq9d-0003", "version": "7d21e8b0c9aa" }
 ```
 
 Vuelve su texto bajo un aviso, para que no la confunda con lo que el documento dice ahora: «This is a past version of "Paseos de Rina" …, not what it says now». No trae `print`, así que no sirve para escribir encima con `edit_doc` ni `write_doc`. Una versión larga se lee por partes, como cualquier documento.
@@ -122,7 +122,7 @@ Vuelve su texto bajo un aviso, para que no la confunda con lo que el documento d
 **3. Vuelve a ella,** con `restore_doc` y `version`:
 
 ```json
-{ "doc": "4nnctnme-0042", "version": "7d21e8b0c9aa" }
+{ "doc": "k7w2pq9d-0003", "version": "7d21e8b0c9aa" }
 ```
 
 El documento vuelve a decir lo de esa versión, por encima de todo lo escrito después, sin pedir `even_if_more`, porque la versión se nombró a propósito. Lo que reemplaza queda guardado, la respuesta lo cuenta en `went_back_to`, y `restore_doc` sin `version` deshace la vuelta.
