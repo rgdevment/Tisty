@@ -190,16 +190,27 @@ pub fn task_doc_merge(
         session.retell(&file, &whole, hand);
     }
     session.mind_body(&file, &tisty_core::docs::settled(&whole));
-    let mut ops = tisty_core::stages::reconciled(&task, Some(&theirs), &whole);
+    reconciled_into(&mut session, &task, &theirs, &whole)?;
+    Ok(true)
+}
+
+/// A page rewritten whole hands the task its boxes and sections, weighed against what the page said ticked as the task had it.
+pub(crate) fn reconciled_into(
+    session: &mut Session,
+    task: &Task,
+    theirs: &str,
+    whole: &str,
+) -> Answer<()> {
+    let mut ops = tisty_core::stages::reconciled(task, Some(theirs), whole);
     let at = jiff::Timestamp::now().as_second();
-    let paged = tisty_core::paged::paged(task.id, &theirs, &whole);
+    let paged = tisty_core::paged::paged(task.id, theirs, whole);
     ops.extend(tisty_core::paged::quieted(paged, &session.written, at));
     if !ops.is_empty() {
         let sent = ops.clone();
         session.commit_all(ops)?;
         tisty_core::paged::told(&mut session.written, &sent, at);
     }
-    Ok(true)
+    Ok(())
 }
 
 // A task's page coming back hands the task its properties and words; anything else is a document.

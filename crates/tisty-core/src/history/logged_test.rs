@@ -308,3 +308,24 @@ fn a_body_written_twice_is_one_row_dated_by_its_last_replacing() {
     assert_eq!(listed[0].wrote, Some(at(80)));
     assert_eq!(listed[0].replaced, at(120));
 }
+
+#[test]
+fn a_version_that_says_what_the_document_says_now_is_not_listed() {
+    let (room, docs) = desk();
+    let data = room.path();
+    let id = DocId::generate();
+    let told: [(i64, &str); 3] = [(0, "# A\n"), (40, "# B\n"), (80, "# A\n")];
+    let mut events = Vec::new();
+    for (n, (minutes, body)) in told.iter().enumerate() {
+        written(&docs, data, *minutes, None, body);
+        events.push(match n {
+            0 => made(id, HERE, *minutes, None, body),
+            _ => noted(id, HERE, *minutes, None, body),
+        });
+    }
+    assert_eq!(super::super::versions(data, DOC).len(), 2);
+
+    let listed = shown(data, &events, id, 90);
+
+    assert_eq!(prints(&listed), vec![print("# B\n")]);
+}

@@ -1,8 +1,11 @@
+use std::collections::BTreeSet;
+use std::path::PathBuf;
 use std::sync::Mutex;
 
 use tisty_core::event::DeviceId;
+use tisty_core::model::DocId;
 use tisty_core::witness::channel;
-use tisty_core::{Op, Task, history};
+use tisty_core::{Event, Op, Task, history};
 
 use super::papers::{book_of, named_anew, one_step_back, writable};
 use crate::{Answer, Refusal, Session, blamed, held, signing};
@@ -22,48 +25,80 @@ pub struct Earlier {
     here: bool,
 }
 
-pub fn listed(session: &Session, id: &str, now: jiff::Timestamp) -> Answer<Vec<history::Row>> {
-    let Some(kept) = session.state.docs.values().find(|one| one.file == id) else {
+/// `kept` counts every body on the shelf, the step back and one that says what the document says now included.
+#[derive(serde::Serialize)]
+pub struct Shelf {
+    versions: Vec<Earlier>,
+    kept: usize,
+}
+
+pub struct Asked {
+    doc: Option<DocId>,
+    data: PathBuf,
+    here: BTreeSet<DeviceId>,
+    days: u32,
+}
+
+pub fn asked(session: &Session, id: &str) -> Asked {
+    let machine = &session.config.device_id;
+    let hosted = session.state.hosts.iter();
+    let mut here: BTreeSet<DeviceId> = hosted
+        .filter(|(_, of)| *of == machine)
+        .map(|(agent, _)| agent.clone())
+        .collect();
+    here.insert(machine.clone());
+    here.extend(session.config.agent_id.clone());
+    Asked {
+        doc: session
+            .state
+            .docs
+            .values()
+            .find(|one| one.file == id)
+            .map(|one| one.id),
+        data: session.paths.data().to_path_buf(),
+        here,
+        days: session.config.history_days(),
+    }
+}
+
+pub fn listed(
+    asked: &Asked,
+    log: &[Event],
+    id: &str,
+    now: jiff::Timestamp,
+) -> Answer<Vec<history::Row>> {
+    let Some(doc) = asked.doc else {
         return Err(Refusal::about("noSuchDoc", id.to_string()));
     };
-    let log = session.log().map_err(|e| {
-        blamed(
-            channel::WINDOW,
-            "the log could not be read for a history",
-            e,
-        )
-    })?;
-    let here = &session.config.device_id;
-    let elsewhere = |device: &DeviceId| {
-        device != here
-            && session.config.agent_id.as_ref() != Some(device)
-            && session.state.hosts.get(device) != Some(here)
-    };
     Ok(history::rows(
-        session.paths.data(),
+        &asked.data,
         id,
-        &history::logged(&log, kept.id),
-        session.config.history_days(),
+        &history::logged(log, doc),
+        asked.days,
         now,
-        elsewhere,
+        |device| !asked.here.contains(device),
     ))
 }
 
 #[tauri::command(async)]
-pub fn doc_versions(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<Vec<Earlier>> {
-    let rows = listed(&held(&session), &id, jiff::Timestamp::now())?;
-    Ok(rows
-        .into_iter()
-        .map(|one| Earlier {
-            print: one.print,
-            wrote: one.wrote.map(|at| at.to_string()),
-            replaced: one.replaced.to_string(),
-            via: one.via,
-            by: one.device.map(|device| device.0),
-            bytes: one.bytes,
-            here: one.here,
-        })
-        .collect())
+pub fn doc_versions(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<Shelf> {
+    let (log, asked) = super::tasks::unheld_log(&session, |session| asked(session, &id))?;
+    let rows = listed(&asked, &log, &id, jiff::Timestamp::now())?;
+    Ok(Shelf {
+        kept: history::versions(&asked.data, &id).len(),
+        versions: rows
+            .into_iter()
+            .map(|one| Earlier {
+                print: one.print,
+                wrote: one.wrote.map(|at| at.to_string()),
+                replaced: one.replaced.to_string(),
+                via: one.via,
+                by: one.device.map(|device| device.0),
+                bytes: one.bytes,
+                here: one.here,
+            })
+            .collect(),
+    })
 }
 
 pub fn read(session: &Session, id: &str, print: &str) -> Answer<String> {
@@ -94,10 +129,13 @@ fn page_of_task(session: &Session, id: &str) -> Answer<Option<Task>> {
 
 /// A task's page comes back with its words alone: its boxes stay as the task has them, since the file's may be stale.
 pub fn put_back(session: &mut Session, id: &str, was: &str) -> Answer<tisty_core::docs::Doc> {
-    if tisty_core::task_docs::task_of_file(id).is_some() {
-        session.reload()?;
-    }
-    let task = page_of_task(session, id)?;
+    let task = match tisty_core::task_docs::task_of_file(id) {
+        Some(_) => {
+            session.reload()?;
+            page_of_task(session, id)?
+        }
+        None => None,
+    };
     writable(&session.state, id)?;
     let root = session.paths.docs();
     let now = tisty_core::docs::read(&root, id)
@@ -106,6 +144,9 @@ pub fn put_back(session: &mut Session, id: &str, was: &str) -> Answer<tisty_core
         Some(task) => tisty_core::stages::ticked(task, was),
         None => was.to_string(),
     };
+    if tisty_core::docs::unchanged(&now, &was) {
+        return Err(Refusal::of("versionSame"));
+    }
     let print = tisty_core::attach::printed(now.as_bytes());
     let undone = session
         .state
@@ -136,7 +177,8 @@ pub fn put_back(session: &mut Session, id: &str, was: &str) -> Answer<tisty_core
     session.retell(id, &whole, hand);
     named_anew(session, book, id, &title);
     if let Some(task) = &task {
-        settled(session, task, &now, &whole)?;
+        let theirs = tisty_core::stages::ticked(task, &now);
+        super::task_docs::reconciled_into(session, task, &theirs, &whole)?;
     }
     // The body is back already; a mark left standing is a lesser wrong than reporting the undo as failed.
     if let Some(doc) = undone
@@ -152,21 +194,6 @@ pub fn put_back(session: &mut Session, id: &str, was: &str) -> Answer<tisty_core
         title,
         id: id.to_string(),
     })
-}
-
-fn settled(session: &mut Session, task: &Task, before: &str, whole: &str) -> Answer<()> {
-    let theirs = tisty_core::stages::ticked(task, before);
-    let mut ops = tisty_core::stages::reconciled(task, Some(&theirs), whole);
-    let at = jiff::Timestamp::now().as_second();
-    let paged = tisty_core::paged::paged(task.id, &theirs, whole);
-    ops.extend(tisty_core::paged::quieted(paged, &session.written, at));
-    if ops.is_empty() {
-        return Ok(());
-    }
-    let sent = ops.clone();
-    session.commit_all(ops)?;
-    tisty_core::paged::told(&mut session.written, &sent, at);
-    Ok(())
 }
 
 pub fn went_back(session: &mut Session, id: &str) -> Answer<tisty_core::docs::Doc> {

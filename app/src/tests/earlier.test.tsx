@@ -1,8 +1,8 @@
-import { act, render, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Filed, Settings, Task } from "../core";
-import { awayOf, saidOf, type Earlier as Version, whenOf } from "../earlier";
+import { awayOf, saidOf, type Earlier as Version, whenOf, writerOf } from "../earlier";
 import { fill, t } from "../locales";
 import { asksSure } from "../sure";
 import Beside from "../ui/Beside";
@@ -20,14 +20,24 @@ const ipc = vi.hoisted(() => ({
   body: "# Acta\n\nlo de ahora",
   before: null as string | null,
   page: null as unknown,
+  kept: null as number | null,
+  moved: false,
 }));
 
 vi.mock("@tauri-apps/api/core", async () => ({
   invoke: (await import("./opened")).opening((cmd: string, args: Record<string, unknown> = {}) => {
     ipc.calls.push({ cmd, args });
     switch (cmd) {
-      case "doc_versions":
-        return Promise.resolve(ipc.rows);
+      case "doc_versions": {
+        const here = (ipc.rows as Version[]).filter((one) => one.here).length;
+        return Promise.resolve({ versions: ipc.rows, kept: ipc.kept ?? here });
+      }
+      case "doc_write":
+        return ipc.moved
+          ? Promise.reject({ code: "documentMoved" })
+          : Promise.resolve({ id: args.id, title: "Acta", print: "p" });
+      case "task_doc_merge":
+        return Promise.resolve(false);
       case "doc_version": {
         const body = ipc.bodies[String(args.print)];
         return body === undefined ? Promise.reject({ code: "versionGone" }) : Promise.resolve(body);
@@ -69,8 +79,8 @@ vi.mock("@tauri-apps/plugin-dialog", () => ({
 }));
 
 vi.mock("../ui/Sheet", () => ({
-  default: ({ value }: { value: string }) => (
-    <textarea aria-label="editor" value={value} readOnly />
+  default: ({ value, onWrite }: { value: string; onWrite?: (text: string) => void }) => (
+    <textarea aria-label="editor" value={value} onChange={(e) => onWrite?.(e.target.value)} />
   ),
 }));
 
@@ -131,6 +141,8 @@ beforeEach(() => {
   ipc.body = "# Acta\n\nlo de ahora";
   ipc.before = null;
   ipc.page = null;
+  ipc.kept = null;
+  ipc.moved = false;
   asksSure(null);
   knowAgents(
     { "agent-1": "agent" },
@@ -255,6 +267,25 @@ describe("the history of a document", () => {
     expect((empty as HTMLButtonElement).disabled).toBe(true);
   });
 
+  it("still empties a shelf that holds only what the list leaves out", async () => {
+    ipc.rows = [];
+    ipc.kept = 1;
+    asksSure(() => Promise.resolve(true));
+    view();
+
+    const empty = await screen.findByRole("button", { name: t("earlierEmpty") });
+    await waitFor(() => expect((empty as HTMLButtonElement).disabled).toBe(false));
+    await userEvent.click(empty);
+
+    await waitFor(() => expect(called("doc_history_empty")).toHaveLength(1));
+  });
+
+  it("says an assistant wrote what its device wrote under no name", () => {
+    expect(writerOf({ ...claudes, via: undefined })).toBe(t("anAssistant"));
+    expect(writerOf(yours)).toBe(t("earlierByYou"));
+    expect(writerOf({ ...yours, by: undefined })).toBeUndefined();
+  });
+
   it("says when there is nothing kept yet", async () => {
     ipc.rows = [];
     view();
@@ -373,6 +404,27 @@ describe("going back from the document's window", () => {
     expect(screen.queryByText(fill("earlierWentBack", whenOf(claudes)))).toBeNull();
   });
 
+  it("goes back to nothing while words typed could not be saved", async () => {
+    asksSure(() => Promise.resolve(true));
+    const onError = vi.fn();
+    render(<Docs open="d-1" known={[doc]} onError={onError} onKept={vi.fn()} />);
+    const editor = await screen.findByDisplayValue(/lo de ahora/);
+    const shut = screen.queryByRole("button", { name: t("beside") });
+    if (shut) await userEvent.click(shut);
+    await act(async () => {});
+    const row = document.querySelector("details[data-row=earlier]") as HTMLDetailsElement;
+    await userEvent.click(row.querySelector("summary") as HTMLElement);
+    await userEvent.click(within(row).getByRole("button", { name: t("earlierSee") }));
+    ipc.moved = true;
+    fireEvent.change(editor, { target: { value: "# Acta\n\nlo que tecleo" } });
+
+    await userEvent.click(await screen.findByRole("button", { name: t("earlierBack") }));
+
+    await waitFor(() => expect(onError).toHaveBeenCalledWith(t("unsavedStays")));
+    expect(called("doc_back_to")).toEqual([]);
+    expect(screen.getByRole("dialog")).toBeTruthy();
+  });
+
   it("reads the versions of a locked document without offering to go back", async () => {
     await opened({ locked: true });
 
@@ -408,6 +460,22 @@ describe("the versions of a task's page", () => {
     expect(called("doc_back")[0].args).toEqual({ id: "t_one-0001" });
     expect(onWentBack).toHaveBeenCalledTimes(2);
     expect(screen.queryByText(fill("earlierWentBack", whenOf(claudes)))).toBeNull();
+  });
+
+  it("goes back to nothing while words typed on the page could not be woven in", async () => {
+    asksSure(() => Promise.resolve(true));
+    ipc.page = { file: "t_one-0001", held: false };
+    const onError = vi.fn();
+    render(<TaskWords task={task()} onError={onError} />);
+    const editor = await screen.findByDisplayValue(/lo de ahora/);
+    await userEvent.click(await versions());
+    ipc.moved = true;
+    fireEvent.change(editor, { target: { value: "# Acta\n\nlo que tecleo" } });
+
+    await userEvent.click(await screen.findByRole("button", { name: t("earlierBack") }));
+
+    await waitFor(() => expect(onError).toHaveBeenCalledWith({ code: "unsavedStays" }));
+    expect(called("doc_back_to")).toEqual([]);
   });
 
   it("has no versions to show before the page is written", async () => {

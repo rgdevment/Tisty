@@ -64,7 +64,7 @@ pub struct Row {
     pub here: bool,
 }
 
-/// Newest first: what this machine kept, and what the same cut and limit give a machine that wrote elsewhere.
+/// Newest first: what this machine kept and what the same cut and limit give one that wrote elsewhere, never what it says now.
 pub fn rows(
     data: &Path,
     file: &str,
@@ -73,16 +73,20 @@ pub fn rows(
     now: jiff::Timestamp,
     elsewhere: impl Fn(&DeviceId) -> bool,
 ) -> Vec<Row> {
-    let replaced: BTreeMap<&str, &Logged> = said
+    let named: BTreeMap<&str, &Logged> = said
         .iter()
         .filter(|one| one.replaced.is_some())
         .map(|one| (one.print.as_str(), one))
         .collect();
+    let says = crate::docs::resolve(&data.join("docs"), file)
+        .ok()
+        .and_then(|at| crate::docs::print_of(&at).ok().flatten());
+    let earlier = |print: &str| says.as_deref() != Some(print);
     let mut all: Vec<Row> = versions(data, file)
         .into_iter()
-        .filter(|one| !one.spare)
+        .filter(|one| !one.spare && earlier(&one.print))
         .map(|kept| {
-            let told = replaced.get(kept.print.as_str());
+            let told = named.get(kept.print.as_str());
             Row {
                 wrote: told.map(|one| one.wrote),
                 replaced: kept.replaced,
@@ -95,9 +99,9 @@ pub fn rows(
         })
         .collect();
     let limit = jiff::SignedDuration::from_hours(24 * i64::from(days));
-    let away: Vec<Row> = replaced
+    let away: Vec<Row> = named
         .into_values()
-        .filter(|one| one.cut && elsewhere(&one.device))
+        .filter(|one| one.cut && elsewhere(&one.device) && earlier(&one.print))
         .filter(|one| all.iter().all(|kept| kept.print != one.print))
         .filter_map(|one| {
             let replaced = one.replaced.filter(|at| now.duration_since(*at) <= limit)?;
