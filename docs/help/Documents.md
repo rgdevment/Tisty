@@ -223,7 +223,7 @@ Before going back to a version, you can see exactly what changed, in a document 
 
 1. Pick a version in the list. **What changed**, above what you read, compares it with what the document says now.
 2. To compare two versions with each other, press **Compare** on another row of the list. It always reads from the older to the newer, whatever order you pick them in. **Compare** again on that row goes back to comparing with what it says now, and **What changed** turns the comparison off.
-3. At the top, a line says what is compared, such as «From the version of 16:10 to what it says now» or «From the version of 16:10 to the one of 17:45», and how many blocks changed: **What went** and **What came**, each with its number. When there is no difference, it says **They say the same: nothing changed.**
+3. At the top, a line says what is compared, such as «From the version of 04:10 PM to what it says now» or «From the version of 04:10 PM to the one of 05:45 PM», and how many blocks changed: **What went** and **What came**, each with its number. When there is no difference, it says **They say the same: nothing changed.**
 
 The comparison is a single page, drawn as always, that opens at the first change. What went shows in red and what came in green, one above the other; inside a paragraph, an item, a cell or a line of code that changed, the old words are struck through and the new ones highlighted. What only changes how something is written and not what it says does not count as a change: line endings, an item's number in a numbered list and the spaces of a table.
 
