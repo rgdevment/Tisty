@@ -127,7 +127,6 @@ fn found_here(homes: &Homes) -> Vec<Found> {
     agents::found(&spots)
 }
 
-/// Names and sizes only: no agent file is opened before the person says yes.
 pub struct Gathered {
     data: std::path::PathBuf,
     root: Option<FolderId>,
@@ -147,6 +146,7 @@ pub fn gathered(session: &Session) -> Gathered {
     }
 }
 
+/// Names and sizes only: no agent file is opened before the person says yes.
 pub fn looked(seen: &Gathered, homes: &Homes, here: &str, found: &[Found]) -> Look {
     let ledger = Ledger::open(&seen.data, here);
     let (root, docs) = (seen.root, seen.docs);
