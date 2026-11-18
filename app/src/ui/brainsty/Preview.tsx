@@ -55,7 +55,7 @@ export default function Preview({ neuron, ties, zone, onOpen, onClose }: Props) 
       className="absolute top-3 right-3 z-10 flex max-h-[calc(100%-24px)] w-80 flex-col gap-2 overflow-hidden rounded-[10px] border border-hair bg-bg p-4 shadow-lift"
     >
       <div className="flex items-start gap-2">
-        <h2 className="min-w-0 flex-1 text-[14px] leading-snug font-semibold break-words text-ink">
+        <h2 className="min-w-0 flex-1 text-[13px] leading-snug font-semibold break-words text-ink">
           {neuron.kind === "tag" ? `#${neuron.title}` : neuron.title}
         </h2>
         <button
@@ -74,7 +74,7 @@ export default function Preview({ neuron, ties, zone, onOpen, onClose }: Props) 
           .join(" · ")}
       </p>
       {steps.length > 0 && (
-        <p className="text-[12px] text-soft">
+        <p className="text-[12.5px] text-soft">
           {fill(
             "brainstySteps",
             numbered(steps.filter((one) => one.done).length),

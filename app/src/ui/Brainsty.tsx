@@ -193,7 +193,7 @@ export default function Brainsty({ network, onOpen, escaping }: Props) {
           onClose={() => setPicked(null)}
         />
       )}
-      <p className="pointer-events-none absolute bottom-3 left-3 text-[11px] text-faint">
+      <p className="pointer-events-none absolute bottom-3 left-3 text-[11.5px] text-faint">
         {t("brainstyKeys")}
       </p>
     </div>

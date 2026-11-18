@@ -76,7 +76,7 @@ export default function Toolbar({
       {asked && (
         <ul className="pointer-events-auto max-h-72 overflow-auto rounded-[10px] border border-hair bg-bg py-1 shadow-lift">
           {hits.length === 0 && (
-            <li className="px-3 py-1.5 text-[12px] text-faint">{t("brainstyNothingFound")}</li>
+            <li className="px-3 py-1.5 text-[12.5px] text-faint">{t("brainstyNothingFound")}</li>
           )}
           {hits.map((node) => {
             const one = network.nodes[node];
@@ -88,7 +88,7 @@ export default function Toolbar({
                   className="flex w-full items-baseline gap-2 px-3 py-1.5 text-left text-[12.5px] hover:bg-hover"
                 >
                   <span className="min-w-0 flex-1 truncate text-ink">{one.title}</span>
-                  <span className="shrink-0 text-[11px] text-faint">
+                  <span className="shrink-0 text-[11.5px] text-faint">
                     {t(`brainstyOne_${one.kind}`)}
                   </span>
                 </button>
@@ -157,7 +157,7 @@ function Filters({
           onChange={(e) =>
             onSift({ ...sift, tag: e.target.value === "" ? null : Number(e.target.value) })
           }
-          className="min-w-0 flex-1 rounded-md border border-hair bg-bg px-2 py-1 text-[12px] text-ink"
+          className="min-w-0 flex-1 rounded-md border border-hair bg-bg px-2 py-1 text-[12.5px] text-ink"
         >
           <option value="">{t("brainstyAnyTag")}</option>
           {tags.map((node) => (
