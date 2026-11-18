@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 set -uo pipefail
+# Bytes, whatever locale a GUI client spawns git with: the shape is ASCII, and a length is counted below from bytes.
+export LC_ALL=C
 
 shape='^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(\([a-z0-9._-]+\))?: .+'
 most=120
@@ -15,9 +17,11 @@ amiss() {
 }
 
 # Strict is for a title, which reaches main and is measured with nothing let through.
+# Builtins only, with no process per subject: a fork costs a fifth of a second on Windows.
 weighed() {
-  local who=$1 said=$2 strict=${3:-}
-  said=$(printf '%s' "$said" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+  local who=$1 said=$2 strict=${3:-} room=$most rest
+  said=${said#"${said%%[![:space:]]*}"}
+  said=${said%"${said##*[![:space:]]}"}
   if [ -z "$strict" ]; then
     case $said in
       "Merge branch '"* | "Merge pull request #"* | "Merge remote-tracking branch '"* | \
@@ -26,19 +30,17 @@ weighed() {
         ;;
     esac
   fi
-  if ! printf '%s' "$said" | grep -qE "$shape"; then
+  if ! [[ $said =~ $shape ]]; then
     amiss "$who does not read type(optional scope): change"
     printf '  %s\n' "$said"
     return
   fi
   # A subject becomes the squash title, and GitHub ends that with " (#1234)", so it leaves the room.
-  local room=$most
   [ -n "$strict" ] || room=$((most - 8))
-  # Bytes minus UTF-8 continuation bytes: ${#said} counts bytes when a GUI client spawns git without a locale.
-  local long
-  long=$(printf '%s' "$said" | LC_ALL=C tr -d '\200-\277' | wc -c | tr -d ' ')
-  if [ "$long" -gt "$room" ]; then
-    amiss "$who is $long characters, keep it under $room"
+  # Characters are the bytes left once the UTF-8 continuation bytes are gone.
+  rest=${said//[$'\200'-$'\277']/}
+  if [ "${#rest}" -gt "$room" ]; then
+    amiss "$who is ${#rest} characters, keep it under $room"
     printf '  %s\n' "$said"
   fi
 }
@@ -75,7 +77,7 @@ while IFS=$'\x1f' read -r -d '' sha author subject body; do
   seen=$((seen + 1))
   weighed "${sha:0:8}" "$subject"
   case $subject in "fixup! "* | "squash! "* | "amend! "*) continue ;; esac
-  if [ -n "$(printf '%s' "$body" | tr -d '[:space:]')" ] && [ "$author" != "dependabot[bot]" ]; then
+  if [[ $body == *[![:space:]]* ]] && [ "$author" != "dependabot[bot]" ]; then
     amiss "${sha:0:8} carries lines under its subject; a commit is one line"
   fi
 done < <(git log -z --no-merges --format='%H%x1f%an%x1f%s%x1f%b' "$range")

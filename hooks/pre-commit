@@ -6,8 +6,10 @@ status=0
 
 # What is about to be committed, not what the working tree happens to hold beside it.
 staged=$(mktemp -d)
-trap 'rm -rf "$staged"' EXIT
-git checkout-index --all --prefix="$staged/" || {
+touched=$(mktemp)
+trap 'rm -rf "$staged" "$touched"' EXIT
+git checkout-index --all --prefix="$staged/" \
+  && git -c core.quotePath=false diff --cached --name-only --no-renames > "$touched" || {
   echo "x  the staged tree could not be written out, so nothing was looked at"
   exit 1
 }
@@ -15,7 +17,7 @@ git checkout-index --all --prefix="$staged/" || {
 # The copy has no .git of its own, and a rule that asks git what is tracked must hear the index.
 index=$(realpath "${GIT_INDEX_FILE:-$(git rev-parse --git-path index)}")
 GIT_DIR="$(git rev-parse --absolute-git-dir)" GIT_INDEX_FILE="$index" \
-  bash "$staged/scripts/rules.sh" < /dev/null || status=1
+  bash "$staged/scripts/rules.sh" --touched "$touched" < /dev/null || status=1
 bash "$staged/scripts/branches.sh" "$(git rev-parse --abbrev-ref HEAD)" || status=1
 
 quietly() {
@@ -27,24 +29,69 @@ quietly() {
   }
 }
 
+touched_any() {
+  local path
+  while IFS= read -r path; do
+    [[ $path =~ $1 ]] && return 0
+  done < "$touched"
+  return 1
+}
+
+quoted_staged_files() {
+  local path quoted said=""
+  while IFS= read -r path; do
+    case $path in "$1"/*) [ -f "$staged/$path" ] && printf -v quoted ' %q' "${path#"$2"/}" && said+=$quoted ;; esac
+  done < "$touched"
+  printf '%s' "$said"
+}
+
+# cargo fmt -p takes a package name, and only a member the workspace does not exclude.
+member_named_as_folder() {
+  local line
+  [ -f "$staged/crates/$1/Cargo.toml" ] || return 1
+  while IFS= read -r line; do
+    [[ $line == *"\"crates/$1\""* ]] && return 1
+  done < "$staged/Cargo.toml"
+  while IFS= read -r line; do
+    [[ $line =~ ^name[[:space:]]*=[[:space:]]*\"([^\"]*)\" ]] && [ "${BASH_REMATCH[1]}" = "$1" ] && return 0
+  done < "$staged/crates/$1/Cargo.toml"
+  return 1
+}
+
 if command -v cargo > /dev/null; then
-  quietly "cd \"$staged\" && cargo fmt --all --check" "cargo fmt --all would change files"
+  crates=" --all"
+  if ! touched_any '(^|/)(Cargo\.toml|\.?rustfmt\.toml|rust-toolchain(\.toml)?)$|^app/src-tauri/.*\.rs$'; then
+    crates=""
+    while IFS= read -r path; do
+      [[ $path =~ ^crates/([^/]+)/.*\.rs$ ]] || continue
+      member_named_as_folder "${BASH_REMATCH[1]}" || { crates=" --all"; break; }
+      case "$crates " in *" -p ${BASH_REMATCH[1]} "*) ;; *) crates+=" -p ${BASH_REMATCH[1]}" ;; esac
+    done < "$touched"
+  fi
+  [ -z "$crates" ] || quietly "cd \"$staged\" && cargo fmt --check$crates" "cargo fmt would change files"
   # The fuzz targets are a workspace of their own, which cargo fmt --all never reaches.
-  quietly "cd \"$staged\" && rustfmt --check --edition 2021 fuzz/fuzz_targets/*.rs" \
-    "rustfmt would change the fuzz targets"
+  if touched_any '^fuzz/.*\.rs$|(^|/)(\.?rustfmt\.toml|rust-toolchain(\.toml)?)$'; then
+    quietly "cd \"$staged\" && rustfmt --check --edition 2021 fuzz/fuzz_targets/*.rs" \
+      "rustfmt would change the fuzz targets"
+  fi
 else
   echo "!  cargo is not here, so the formatting was not looked at"
 fi
 
 if [ -x node_modules/.bin/biome ]; then
-  quietly "cd \"$staged/app\" && \"$PWD/node_modules/.bin/biome\" check src" \
+  window=" src"
+  touched_any '^app/biome\.json$|(^|/)package(-lock)?\.json$' || window=$(quoted_staged_files app/src app)
+  # Windows refuses a command line past 32 KB.
+  [ "${#window}" -le 20000 ] || window=" src"
+  [ -z "$window" ] || quietly \
+    "cd \"$staged/app\" && \"$PWD/node_modules/.bin/biome\" check --no-errors-on-unmatched --files-ignore-unknown=true$window" \
     "biome would change files, or is not installed; it is the first thing CI runs"
 else
   echo "!  biome is not installed (npm ci at the root), so it did not look at the window"
 fi
 
 # The rules job refuses a lockfile the notices do not follow; written here, the fix is one `git add` away.
-if git diff --cached --name-only | grep -qE '(^|/)(Cargo\.lock|package-lock\.json)$'; then
+if touched_any '(^|/)(Cargo\.lock|package-lock\.json)$'; then
   if [ -x node_modules/.bin/biome ]; then
     quietly "node scripts/third-party.mjs > /dev/null && git diff --quiet -- THIRD-PARTY-BUNDLED.md THIRD-PARTY-LICENSES.md" \
       "the notices were behind the lockfiles; npm run notices just wrote them, so stage them"

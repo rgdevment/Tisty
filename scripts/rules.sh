@@ -66,24 +66,29 @@ nothing_past_what_a_person_holds() {
   tr -d '\015' < .github/oversized.txt > "$kept"
 
   before=$missed
-  while read -r now at; do
-    was=$(awk -v at="$at" '$2 == at { last = $1 } END { print last }' "$kept")
-    if [ -z "$was" ]; then
-      if [ "$now" -gt 1500 ]; then
-        amiss "$at is $now lines of code; 1500 is the ceiling. Split it along a seam, or say why it belongs in .github/oversized.txt"
-      fi
-    elif [ "$now" -gt "$was" ]; then
-      amiss "$at was already over the ceiling at $was lines and grew to $now. What is above it only shrinks"
-    elif [ "$now" -lt "$was" ]; then
-      amiss "$at is down to $now lines from $was. Write that into .github/oversized.txt so it cannot grow back"
-    fi
-  done < "$measured"
+  # One awk for every file: a process per file costs minutes on Windows. The list may be empty, so FILENAME tells the two apart.
+  while IFS= read -r said; do
+    amiss "$said"
+  done < <(KEPT="$kept" awk '
+    FILENAME == ENVIRON["KEPT"] { if (NF >= 2) was[$2] = $1; next }
+    {
+      now = $1 + 0
+      at = $2
+      if (!(at in was)) {
+        if (now > 1500)
+          print at " is " now " lines of code; 1500 is the ceiling. Split it along a seam, or say why it belongs in .github/oversized.txt"
+      } else if (now > was[at] + 0) {
+        print at " was already over the ceiling at " was[at] " lines and grew to " now ". What is above it only shrinks"
+      } else if (now < was[at] + 0) {
+        print at " is down to " now " lines from " was[at] ". Write that into .github/oversized.txt so it cannot grow back"
+      }
+    }' "$kept" "$measured")
 
   while read -r _ at; do
     if [ ! -f "$at" ]; then
       amiss "$at is in .github/oversized.txt and no longer exists; take the line out"
     fi
-  done < <(tr -d '\015' < .github/oversized.txt)
+  done < "$kept"
 
   rm -f "$measured" "$kept"
   [ "$missed" != "$before" ] || went_well "no file grows past what a person can hold"
@@ -163,18 +168,31 @@ nothing_the_core_prints() {
 }
 
 every_spawn_pins_its_language() {
-  local at spawns pinned bad=0
+  local one said bad=0
+  local -a files
   if [ ! -d crates/tisty-cli/tests ]; then
     amiss "crates/tisty-cli/tests is not here, so no spawned binary was looked at"
     return
   fi
-  while IFS= read -r at; do
-    spawns=$(grep -ac 'Command::new(env!("CARGO_BIN_EXE_tisty"))' "$at")
-    pinned=$(grep -aA9 'Command::new(env!("CARGO_BIN_EXE_tisty"))' "$at" \
-      | grep -cE 'env_clear\(\)|env_remove\("LC_ALL"\)')
-    [ "$spawns" = "$pinned" ] \
-      || { amiss "$at spawns the binary $spawns time(s) and pins the language $pinned"; bad=1; }
+  files=()
+  while IFS= read -r one; do
+    files+=("$one")
   done < <(grep -ral 'CARGO_BIN_EXE_tisty' crates/tisty-cli/tests)
+  # A pin counts within the nine lines after any spawn, as grep -A9 would show them.
+  if [ "${#files[@]}" -gt 0 ]; then
+    while IFS= read -r said; do
+      amiss "$said"
+      bad=1
+    done < <(awk '
+      function settle() {
+        if (file != "" && spawns != pinned)
+          print file " spawns the binary " spawns " time(s) and pins the language " pinned
+      }
+      FNR == 1 { settle(); file = FILENAME; spawns = 0; pinned = 0; reach = 0 }
+      index($0, "Command::new(env!(\"CARGO_BIN_EXE_tisty\"))") { spawns++; reach = FNR + 9 }
+      FNR <= reach && /env_clear\(\)|env_remove\("LC_ALL"\)/ { pinned++ }
+      END { settle() }' "${files[@]}")
+  fi
   [ "$bad" = 1 ] || went_well "every spawned binary has its language pinned"
 }
 
@@ -206,12 +224,11 @@ modes_named_outside() {
   naming="$naming|impl[[:space:]]*(<[^>]*>[[:space:]]*)?([A-Za-z_]+::)*Sync[[:space:]]*[{<]|for[[:space:]]+([A-Za-z_]+::)*Sync[[:space:]]*[{<]"
   naming="$naming|=[[:space:]]*([A-Za-z_]+::)*Sync[[:space:]]*;"
   test_modules=$(grep -rA1 '^#\[cfg(test)\]$' "$@" --include='*.rs' \
-    | sed -nE 's/^(.*\.rs)-#\[path = "([^"]+)"\]$/\1 \2/p' \
-    | while read -r declared module; do printf '%s/%s\n' "$(dirname "$declared")" "$module"; done | sort -u)
+    | sed -nE 's/^(.*)\/[^/]*\.rs-#\[path = "([^"]+)"\]$/\1\/\2/p' | sort -u)
   found=$(grep -rnE "$naming" "$@" --include='*.rs')
   case $? in 0 | 1) ;; *) return 2 ;; esac
   [ -n "$found" ] || return 0
-  printf '%s\n' "$found" | NAMES="$test_modules" awk '
+  NAMES="$test_modules" awk '
     BEGIN { count = split(ENVIRON["NAMES"], list, "\n"); for (i = 1; i <= count; i++) skip[list[i]] = 1 }
     {
       file = $0
@@ -221,7 +238,7 @@ modes_named_outside() {
       if (file ~ /(^|\/)tests\// || base ~ /_tests?\.rs$/ || (file in skip)) next
       if (file == "crates/tisty-core/src/config.rs" || file == "crates/tisty-carrier/src/lib.rs") next
       print
-    }'
+    }' <<< "$found"
 }
 
 the_way_of_syncing_is_named_once() {
@@ -255,8 +272,8 @@ the_rule_on_the_way_of_syncing_can_fail() {
   printf '%s\n' 'fn f(s: Sync) { match s { Sync::Folder(_) => {}, _ => {} } }' > "$room/crates/tisty-carrier/src/lib.rs"
   out=$(cd "$room" && modes_named_outside crates)
   rm -rf "$room"
-  broke=$(printf '%s\n' "$out" | grep -cE 'crates/other/src/(lib|forms)\.rs')
-  allowed=$(printf '%s\n' "$out" | grep -cE 'crates/(other/src/(checks|standard)|tisty-carrier/src/lib)\.rs')
+  broke=$(grep -cE 'crates/other/src/(lib|forms)\.rs' <<< "$out")
+  allowed=$(grep -cE 'crates/(other/src/(checks|standard)|tisty-carrier/src/lib)\.rs' <<< "$out")
   if [ "$broke" != 8 ] || [ "$allowed" != 0 ]; then
     amiss "the rule on the way of syncing no longer tells what breaks it from a test, the standard Sync or the factory"
   else
@@ -273,13 +290,19 @@ named_modules() {
 
 # A package is meant for other apps too, so it reaches nothing of Tisty's and is entered only by its doors.
 keeps_to_itself() {
-  local name=$1 said=$2 doors=$3 host=${4:-} root=packages/$1/src named out declared one
-  declared=$(grep -oE '"tisty-[a-z-]+"' "packages/$name/package.json" | tr -d '"' | grep -vx "$name" | tr '\n' ' ')
-  named=$(named_modules "$root")
-  [ $? -lt 2 ] && [ -n "$named" ] \
-    || { amiss "$said could not be looked through for what it reaches"; return; }
+  local name=$1 said=$2 doors=$3 host=${4:-} root=packages/$1/src named out declared one front
+  IFS= read -r -d '' front
+  declared=$(awk -v self="$name" '{
+      while (match($0, /"tisty-[a-z-]+"/)) {
+        one = substr($0, RSTART + 1, RLENGTH - 2)
+        if (one != self) printf "%s ", one
+        $0 = substr($0, RSTART + RLENGTH)
+      }
+    }' "packages/$name/package.json")
+  named=$(awk -v root="$root/" 'index($1, root) == 1' <<< "$front")
+  [ -n "$named" ] || { amiss "$said could not be looked through for what it reaches"; return; }
   # A relative path may climb only as far as the folders the file sits in below src/.
-  out=$(printf '%s\n' "$named" | awk -v root="$root/" -v host="$host" '
+  out=$(awk -v root="$root/" -v host="$host" '
     $3 ~ /^@tauri-apps\// { if ($1 != host) print; next }
     $3 ~ /^\.\.\// {
       folders = substr($1, length(root) + 1)
@@ -288,15 +311,15 @@ keeps_to_itself() {
       ups = 0
       while (substr(spec, 1, 3) == "../") { ups++; spec = substr(spec, 4) }
       if (ups > depth) print
-    }')
+    }' <<< "$named")
   if [ -n "$out" ]; then
     printf '%s\n' "$out"
     amiss "$said reaches into the app; it takes what it needs from whoever holds it"
     return
   fi
   # What a package does not declare may be what is built on it, and a viewer would end up installing the editor.
-  out=$(printf '%s\n' "$named" | awk -v mine=" $name $declared" '
-    $3 ~ /^tisty-/ { split($3, at, "/"); if (index(mine, " " at[1] " ") == 0) print }')
+  out=$(awk -v mine=" $name $declared" '
+    $3 ~ /^tisty-/ { split($3, at, "/"); if (index(mine, " " at[1] " ") == 0) print }' <<< "$named")
   if [ -n "$out" ]; then
     printf '%s\n' "$out"
     amiss "$said takes a package it does not declare"
@@ -308,10 +331,8 @@ keeps_to_itself() {
       return
     fi
   done
-  named=$(named_modules app/src packages/*/src)
-  [ $? -lt 2 ] || { amiss "the app could not be looked through for how it enters $said"; return; }
-  out=$(printf '%s\n' "$named" | awk -v name="$name" -v doors=" $doors " -v root="$root/" '
-    index($1, root) != 1 && ($3 == name || index($3, name "/") == 1) && index(doors, " " $3 " ") == 0')
+  out=$(awk -v name="$name" -v doors=" $doors " -v root="$root/" '
+    index($1, root) != 1 && ($3 == name || index($3, name "/") == 1) && index(doors, " " $3 " ") == 0' <<< "$front")
   if [ -n "$out" ]; then
     printf '%s\n' "$out"
     amiss "$said is entered other than by $doors"
@@ -321,24 +342,30 @@ keeps_to_itself() {
 }
 
 the_packages_keep_to_themselves() {
-  keeps_to_itself tisty-diagrams "the diagram studio" "tisty-diagrams/read tisty-diagrams/studio"
-  keeps_to_itself tisty-editor "the sheet" "tisty-editor/read tisty-editor/edit tisty-editor/tokens.css tisty-editor/side.css"
-  keeps_to_itself tisty-sheet "the drawing of the sheet" "tisty-sheet tisty-sheet/glyphs tisty-sheet/tokens.css tisty-sheet/page.css tisty-sheet/tables.css"
-  keeps_to_itself tisty-light-viewer "the light viewer" "" "packages/tisty-light-viewer/src/host.ts"
+  local front
+  front=$(named_modules app/src packages/*/src)
+  if [ $? -ge 2 ]; then
+    amiss "the app and its packages could not be looked through for what they reach"
+    return
+  fi
+  keeps_to_itself tisty-diagrams "the diagram studio" "tisty-diagrams/read tisty-diagrams/studio" <<< "$front"
+  keeps_to_itself tisty-editor "the sheet" "tisty-editor/read tisty-editor/edit tisty-editor/tokens.css tisty-editor/side.css" <<< "$front"
+  keeps_to_itself tisty-sheet "the drawing of the sheet" "tisty-sheet tisty-sheet/glyphs tisty-sheet/tokens.css tisty-sheet/page.css tisty-sheet/tables.css" <<< "$front"
+  keeps_to_itself tisty-light-viewer "the light viewer" "" "packages/tisty-light-viewer/src/host.ts" <<< "$front"
 }
 
 # Two frameworks in one bundle would cost the viewer the speed it exists for, and the app a second runtime.
 the_light_viewer_stays_apart() {
   local named out
   named=$(named_modules packages/tisty-light-viewer/src)
-  out=$(printf '%s\n' "$named" | awk '$3 ~ /^(react|react-dom)(\/|$)/')
+  out=$(awk '$3 ~ /^(react|react-dom)(\/|$)/' <<< "$named")
   if [ -n "$out" ]; then
     printf '%s\n' "$out"
     amiss "the light viewer takes React"
     return
   fi
   named=$(named_modules app/src packages/tisty-diagrams/src packages/tisty-editor/src packages/tisty-sheet/src)
-  out=$(printf '%s\n' "$named" | awk '$3 ~ /^(solid-js|@solidjs\/)/')
+  out=$(awk '$3 ~ /^(solid-js|@solidjs\/)/' <<< "$named")
   if [ -n "$out" ]; then
     printf '%s\n' "$out"
     amiss "Solid reached past the light viewer"
@@ -349,15 +376,16 @@ the_light_viewer_stays_apart() {
 
 # Each of these lists passes over a package it does not name, with nothing to say so.
 every_package_is_looked_at() {
-  local at name file wanted typed typed_src typed_tests out=""
+  local at name file wanted typed typed_src typed_tests sought="" out
   for at in packages/*/package.json; do
-    name=$(basename "${at%/package.json}")
+    name=${at%/package.json}
+    name=${name##*/}
     typed=app/tsconfig.json typed_src="\.\./packages/$name/src" typed_tests="\.\./packages/$name/tests"
     if [ -f "packages/$name/tsconfig.json" ]; then
       typed=packages/$name/tsconfig.json typed_src='"src"' typed_tests='"tests"'
     fi
     while IFS='|' read -r file wanted; do
-      grep -qE "$wanted" "$file" || out+="$file does not name $name"$'\n'
+      sought+="$file|$wanted|$name"$'\n'
     done <<LISTS
 app/package.json|"lint":.*\.\./(packages/)?$name
 app/package.json|"format":.*\.\./(packages/)?$name
@@ -369,8 +397,23 @@ $typed|$typed_tests
 scripts/rules.sh|^  keeps_to_itself $name
 LISTS
   done
+  out=$(awk -F'|' '
+    NF { n++; file[n] = $1; wanted[n] = $2; name[n] = $3 }
+    END {
+      for (i = 1; i <= n; i++) {
+        f = file[i]
+        if (!(f in lines)) {
+          lines[f] = 0
+          while ((getline line < f) > 0) text[f, ++lines[f]] = line
+          close(f)
+        }
+        found = 0
+        for (j = 1; j <= lines[f] && !found; j++) found = text[f, j] ~ wanted[i]
+        if (!found) print f " does not name " name[i]
+      }
+    }' <<< "$sought")
   if [ -n "$out" ]; then
-    printf '%s' "$out"
+    printf '%s\n' "$out"
     amiss "a package is missing from a list that would pass over it"
   else
     went_well "every package is linted, typed, measured and kept to itself"
@@ -471,25 +514,51 @@ no_token_kept_in_the_tree() {
   looked_through     "a provider's token or secret is in the tree; fakes make their own, and real ones live in the keychain" $?     "the tree could not be looked through for tokens"     && went_well "no provider token or secret is kept in the tree"
 }
 
+# With --touched, only the rules that read a kind of path the commit touches run; a path of no kind runs them all, as CI does.
+touched=" other "
+case ${1:-} in
+  "") ;;
+  --touched)
+    [ -r "${2:-}" ] || { echo "usage: rules.sh [--touched <file listing one path per line>]"; exit 2; }
+    touched=" "
+    while IFS= read -r path || [ -n "$path" ]; do
+      case $path in
+        crates/*/Cargo.toml) touched+="other " ;;
+        crates/* | app/src-tauri/src/*) touched+="rust " ;;
+        app/src/* | packages/*/src/* | packages/*/tests/*) touched+="front " ;;
+        *) touched+="other " ;;
+      esac
+    done < "$2"
+    ;;
+  *) echo "usage: rules.sh [--touched <file listing one path per line>]"; exit 2 ;;
+esac
+
+when() {
+  local kind
+  for kind in $1 other; do
+    case $touched in *" $kind "*) "$2"; return ;; esac
+  done
+}
+
 cd "$(dirname "$0")/.." || exit 2
-no_prose_blocks
-the_packages_keep_to_themselves
-the_light_viewer_stays_apart
-every_package_is_looked_at
-the_app_holds_the_versions
-nothing_past_what_a_person_holds
-written_in_english
-nothing_the_window_cannot_translate
-nothing_the_core_prints
-nothing_that_takes_the_window_down
-every_spawn_pins_its_language
-the_way_of_syncing_is_named_once
-the_rule_on_the_way_of_syncing_can_fail
-both_languages_carry_the_same_documents
-few_earlier_releases_are_met
-the_posts_can_go_out
-every_package_says_its_licence
-the_contracts_hold
-the_check_runs_what_ci_runs
-no_token_kept_in_the_tree
+when rust no_prose_blocks
+when front the_packages_keep_to_themselves
+when front the_light_viewer_stays_apart
+when other every_package_is_looked_at
+when other the_app_holds_the_versions
+when "rust front" nothing_past_what_a_person_holds
+when "rust front" written_in_english
+when rust nothing_the_window_cannot_translate
+when rust nothing_the_core_prints
+when rust nothing_that_takes_the_window_down
+when rust every_spawn_pins_its_language
+when rust the_way_of_syncing_is_named_once
+when other the_rule_on_the_way_of_syncing_can_fail
+when other both_languages_carry_the_same_documents
+when other few_earlier_releases_are_met
+when other the_posts_can_go_out
+when other every_package_says_its_licence
+when other the_contracts_hold
+when other the_check_runs_what_ci_runs
+when "rust front" no_token_kept_in_the_tree
 exit $status
