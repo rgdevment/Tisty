@@ -45,7 +45,7 @@ pub(super) fn ranked<'a>(
         }
         false => whole,
     };
-    let every_word = !(none && terms.len() > 1);
+    let every_word = found.is_empty() && papers.is_empty() || !(none && terms.len() > 1);
     let mut tasks: Vec<(&Task, usize)> = found.into_values().collect();
     tasks.sort_by_cached_key(|(task, found)| {
         let named = terms.len() - tisty_core::view::unnamed(task, &terms).len();
@@ -56,13 +56,14 @@ pub(super) fn ranked<'a>(
             task.id,
         )
     });
+    let written: HashMap<&str, Option<jiff::Timestamp>> = state
+        .docs
+        .values()
+        .map(|kept| (kept.file.as_str(), kept.wrote))
+        .collect();
     let mut papers: Vec<Held> = papers.into_values().collect();
     papers.sort_by_cached_key(|one| {
-        let wrote = state
-            .docs
-            .values()
-            .find(|kept| kept.file == one.sighting.id)
-            .and_then(|kept| kept.wrote);
+        let wrote = written.get(one.sighting.id.as_str()).copied().flatten();
         (
             std::cmp::Reverse(one.found),
             std::cmp::Reverse(one.named),
@@ -185,7 +186,7 @@ pub(super) fn newest_line(task: &Task, terms: &[String]) -> Option<(&'static str
 pub(super) fn newest_paper_line(paths: &Paths, file: &str, terms: &[String]) -> Option<String> {
     let body = tisty_core::docs::read(&paths.docs(), file).ok()?;
     let mut best: Option<(usize, bool, &str)> = None;
-    for line in body.lines().skip(1) {
+    for line in prose(&body) {
         let saying = counted(line, terms);
         if saying == 0 {
             continue;
@@ -197,6 +198,29 @@ pub(super) fn newest_paper_line(paths: &Paths, file: &str, terms: &[String]) -> 
         }
     }
     best.map(|(_, _, line)| tisty_core::docs::bare(line))
+}
+
+fn prose(body: &str) -> Vec<&str> {
+    let mut lines = body.lines().peekable();
+    if lines.peek().is_some_and(|one| one.trim_end() == "---") {
+        lines.next();
+        for one in lines.by_ref() {
+            if one.trim_end() == "---" {
+                break;
+            }
+        }
+    }
+    let mut fenced = false;
+    lines
+        .filter(|one| {
+            let said = one.trim_start();
+            if said.starts_with("```") {
+                fenced = !fenced;
+                return false;
+            }
+            !fenced && !said.starts_with('#')
+        })
+        .collect()
 }
 
 fn counted(line: &str, terms: &[String]) -> usize {

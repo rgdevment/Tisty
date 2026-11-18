@@ -166,9 +166,10 @@ fn left_behind(
         .filter(|one| one.flagged.is_none() && !marked.contains(&one.file))
         .map(|one| one.file.clone())
         .collect();
+    let base = super::super::brain::base(paths);
     let mut pointing: Vec<String> = marked
         .iter()
-        .flat_map(|one| super::pointed_at(paths, state, one))
+        .flat_map(|one| super::pointed_from(paths, state, one, base.as_ref()))
         .filter(|one| !marked.contains(one))
         .collect();
     pointing.sort();

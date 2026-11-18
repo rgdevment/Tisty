@@ -43,6 +43,9 @@ impl Stage {
 pub(super) fn asked(args: &Value) -> bool {
     text(args, "part_of").is_some()
         && text(args, "query").is_none()
+        && ["scope", "lines"]
+            .iter()
+            .all(|key| args.get(*key).is_none())
         && SIFTS
             .iter()
             .all(|key| *key == "part_of" || args.get(*key).is_none())

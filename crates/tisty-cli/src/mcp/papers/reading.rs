@@ -1,6 +1,6 @@
 use serde_json::{Value, json};
 
-use super::{pointed_at, reachable_or};
+use super::{pointed_from, reachable_or};
 use tisty_core::docs::Heading;
 use tisty_core::{Paths, State, Store};
 
@@ -184,6 +184,7 @@ pub(in crate::mcp) fn outlined(
     paths: &Paths,
     state: &State,
     which: &str,
+    base: Option<&tisty_core::brain::Brain>,
 ) -> Result<Value, Refused> {
     let which = which.to_string();
     let Some(kept) = state.docs.values().find(|one| one.file == which) else {
@@ -235,7 +236,7 @@ pub(in crate::mcp) fn outlined(
         })
         .collect();
 
-    let pointing = pointed_at(paths, &state, &which);
+    let pointing = pointed_from(paths, state, &which, base);
     // A page marked old waits to be deleted, so it is no sign the document wants compacting.
     let page_cards: Vec<(&str, &tisty_core::docs::Card)> = pages
         .iter()

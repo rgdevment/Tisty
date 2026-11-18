@@ -506,7 +506,7 @@ pub(super) fn tools_without_hints() -> Value {
                     "around": { "type": "integer", "description": "With `doc` and `query`: lines each side of a hit, 0 to 10, 1 by default" },
                     "tag": { "type": "string", "description": "Carrying this tag, # or not. Any sifting field leaves documents out" },
                     "list": { "type": "string", "description": "In this list, as `catch_up` names it" },
-                    "folder": { "type": "string", "description": "Documents in this folder or below, by name, path or id" },
+                    "folder": { "type": "string", "description": "A folder by name, path or id: alone, its documents; with `query`, it and those below" },
                     "by_agent": { "type": "boolean", "description": "True: filed by an agent; false: by the person" },
                     "said_done": { "type": "boolean", "description": "True: an agent said done or not doing and the person has not decided; false: nobody did" },
                     "part_of": { "type": "string", "description": "The parts of this task, by id" },
@@ -514,7 +514,7 @@ pub(super) fn tools_without_hints() -> Value {
                     "from": { "type": "string", "description": "Date or deadline on or after this day (2026-08-31)" },
                     "to": { "type": "string", "description": "Date or deadline on or before this day" },
                     "scope": { "type": "string", "enum": ["open", "archive", "either"], "description": "Defaults to either" },
-                    "limit": { "type": "integer", "description": "10 by default and 100 at most; 50 by default for a folder's documents or a project's parts" },
+                    "limit": { "type": "integer", "description": "10 by default and 100 at most; 50 for a project's parts, and 50 up to 200 for a folder's documents" },
                     "lines": { "type": "boolean", "description": "False: titles alone, without their line" },
                     "after": { "type": "integer", "description": "Skip this many, to page on while `total` is higher" }
                 }

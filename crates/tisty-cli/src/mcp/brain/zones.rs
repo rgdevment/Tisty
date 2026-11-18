@@ -1,6 +1,7 @@
 use serde_json::{Value, json};
 use tisty_core::{Paths, State};
 
+use super::super::chores::still_in_sight as in_sight;
 use super::super::jsonrpc::mirrored;
 use super::super::looking::counted_tags;
 use super::super::{Refused, opened, papers, trail};
@@ -64,10 +65,6 @@ pub(super) fn all(paths: &Paths) -> Result<Value, Refused> {
         }
     );
     Ok(mirrored(text, kept))
-}
-
-fn in_sight(task: &tisty_core::model::Task) -> bool {
-    task.is_open() && !task.folded()
 }
 
 fn lists(state: &State) -> Vec<Value> {

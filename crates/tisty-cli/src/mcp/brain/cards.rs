@@ -1,5 +1,5 @@
 use serde_json::{Map, Value, json};
-use tisty_core::brain::Card;
+use tisty_core::brain::{Brain, Card};
 use tisty_core::model::TaskId;
 use tisty_core::{Paths, State};
 
@@ -29,7 +29,8 @@ const MANY: [&str; 11] = [
     "cited_by",
     "mentioned_by",
 ];
-const OUTLINE_SAYS: [&str; 10] = [
+const OUTLINE_SAYS: [&str; 11] = [
+    "words",
     "id",
     "kind",
     "title",
@@ -80,13 +81,10 @@ fn of_kind(kind: &str) -> &'static [&'static str] {
     }
 }
 
-fn card_of(paths: &Paths, state: &State, id: &str) -> Option<Card> {
+fn card_of(paths: &Paths, state: &State, base: Option<&Brain>, id: &str) -> Option<Card> {
     let gate = Gate::new(paths, state);
     let today = jiff::Zoned::now().date();
-    base(paths)?
-        .card(id, today, |one| gate.sees(one))
-        .ok()
-        .flatten()
+    base?.card(id, today, |one| gate.sees(one)).ok().flatten()
 }
 
 pub(super) fn of_doc(paths: &Paths, which: &str, args: &Value) -> Result<Value, Refused> {
@@ -105,10 +103,16 @@ pub(super) fn of_doc(paths: &Paths, which: &str, args: &Value) -> Result<Value, 
             return Err(Refused::Missing(no_document_called(&state, which)));
         };
         in_sight(&state, kept, which)?;
-        return linked(which, card_of(paths, &state, which), &kind, args);
+        return linked(
+            which,
+            card_of(paths, &state, base(paths).as_ref(), which),
+            &kind,
+            args,
+        );
     }
-    let mut answer = outlined(paths, &state, which)?;
-    match card_of(paths, &state, which) {
+    let held = base(paths);
+    let mut answer = outlined(paths, &state, which, held.as_ref())?;
+    match card_of(paths, &state, held.as_ref(), which) {
         Some(card) => with_neighbours(&mut answer, card),
         None => answer["structuredContent"]["base"] = json!(NO_BASE),
     }
@@ -153,7 +157,7 @@ pub(super) fn of_task(paths: &Paths, which: &str, args: &Value) -> Result<Value,
             "no task here has the id {which}. Look it up again with `brain` and a `query`."
         )));
     };
-    let card = card_of(paths, &state, which);
+    let card = card_of(paths, &state, base(paths).as_ref(), which);
     if let Some(kind) = text(args, "links") {
         return linked(which, card, &kind, args);
     }

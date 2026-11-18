@@ -412,7 +412,7 @@ fn pointed(name: &str) -> Option<&'static str> {
 
 fn outline_of(paths: &Paths, which: &str) -> Result<Value, Refused> {
     let (state, _) = opened(paths)?;
-    papers::reading::outlined(paths, &state, which)
+    papers::reading::outlined(paths, &state, which, brain::base(paths).as_ref())
 }
 
 fn turned_away(paths: &Paths) -> Refused {

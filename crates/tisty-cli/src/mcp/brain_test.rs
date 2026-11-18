@@ -207,3 +207,16 @@ fn a_documents_newest_line_is_its_last_standing_one_saying_the_most() {
     );
     assert_eq!(newest_paper_line(&paths, "dev_person-0404", &terms), None);
 }
+
+#[test]
+fn a_documents_line_is_prose_never_its_front_matter_headings_or_code() {
+    let (_room, paths) = home();
+    let body = "---\ntags: sync cache\n---\n# Sync cache\n\n## Sync cache notes\n\n```\nsync cache example\n```\n\nThe sync keeps a cache.\n";
+    tisty_core::docs::write(&paths.docs(), "dev_person-0003", body).unwrap();
+    let terms: Vec<String> = vec!["sync".into(), "cache".into()];
+
+    assert_eq!(
+        newest_paper_line(&paths, "dev_person-0003", &terms).as_deref(),
+        Some("The sync keeps a cache.")
+    );
+}

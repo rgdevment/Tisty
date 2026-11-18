@@ -30,7 +30,7 @@ expression: tool
         "type": "string"
       },
       "folder": {
-        "description": "Documents in this folder or below, by name, path or id",
+        "description": "A folder by name, path or id: alone, its documents; with `query`, it and those below",
         "type": "string"
       },
       "from": {
@@ -42,7 +42,7 @@ expression: tool
         "type": "string"
       },
       "limit": {
-        "description": "10 by default and 100 at most; 50 by default for a folder's documents or a project's parts",
+        "description": "10 by default and 100 at most; 50 for a project's parts, and 50 up to 200 for a folder's documents",
         "type": "integer"
       },
       "lines": {

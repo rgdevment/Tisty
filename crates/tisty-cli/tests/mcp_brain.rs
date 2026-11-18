@@ -641,3 +641,29 @@ fn a_common_word_alone_brings_nothing_when_a_hit_holds_more() {
     );
     assert_eq!(found["total"], 1);
 }
+
+#[test]
+fn words_nothing_holds_say_so_and_a_scope_lists_a_projects_parts_plainly() {
+    let served = Served::new();
+    let mut talk = served.connect();
+    let made = talk.call(
+        "propose",
+        json!({ "title": "Ship it", "list": "Work", "parts": [
+            { "title": "Rank", "steps": ["one"] },
+            { "title": "Cards", "steps": ["one"] }
+        ]}),
+    );
+    let whole = made["structuredContent"]["id"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    served.person().closes(served.person().id_of("Rank"));
+
+    let none = talk.brain(json!({ "query": "zebra quokka" }));
+    let closed = talk.brain(json!({ "part_of": whole, "scope": "archive" }));
+
+    assert!(none.get("every_word").is_none(), "{none}");
+    assert_eq!(none["total"], 0);
+    assert!(closed.get("stages").is_none(), "{closed}");
+    assert_eq!(titles(&closed, "matches"), ["Rank"]);
+}

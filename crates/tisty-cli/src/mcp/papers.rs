@@ -92,7 +92,16 @@ pub(super) fn reachable_or(
 }
 
 pub(super) fn pointed_at(paths: &Paths, state: &State, which: &str) -> Vec<String> {
-    let citing = super::brain::base(paths).and_then(|base| base.pointing_at(which).ok().flatten());
+    pointed_from(paths, state, which, super::brain::base(paths).as_ref())
+}
+
+pub(super) fn pointed_from(
+    paths: &Paths,
+    state: &State,
+    which: &str,
+    base: Option<&tisty_core::brain::Brain>,
+) -> Vec<String> {
+    let citing = base.and_then(|base| base.pointing_at(which).ok().flatten());
     match citing {
         Some(citing) => linked_from(state, which, citing),
         None => walked_to(paths, state, which),
@@ -119,8 +128,7 @@ fn linked_from(state: &State, which: &str, citing: Vec<tisty_core::brain::Citing
     found
 }
 
-/// Without the base, the only way to say is to look. Worth the reading: a link left hanging
-/// says nothing about being broken.
+// Without the base the only way is to look: a link left hanging says nothing about being broken.
 fn walked_to(paths: &Paths, state: &State, which: &str) -> Vec<String> {
     let named: Vec<String> = state
         .docs
