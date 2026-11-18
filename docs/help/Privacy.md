@@ -90,15 +90,15 @@ In the **AGENTS** folder you keep your assistants' rules, skills and memory as d
 - **After that**, it opens only the files that belong to a document in AGENTS, to write them and to see whether they changed outside. A **Global** document is written to every assistant Tisty finds on this computer, even one whose files you did not tick. A change made outside is never written over: it stays marked until you decide. In `GEMINI.md` it only adds one line, `@tisty-rules.md`; the rest of that file is Gemini's.
 - **The memory an assistant writes itself** is brought in and shown, but Tisty never writes over it.
 
-**What it never reads**
+**What AGENTS never brings in**
 
-- `settings.json` and your assistants' other settings files (`config.toml`, `hooks.json`, `mcp.json`…), except one a skill carries in its own folder, and no credentials file (`.credentials.json`, `auth.json`, `.env`, `.pem`, `.key` or `id_rsa` keys…). It skips them by name, without opening them.
+- `settings.json` and your assistants' other settings files (`config.toml`, `hooks.json`, `mcp.json`…), except one a skill carries in its own folder, and no credentials file (`.credentials.json`, `auth.json`, `.env`, `.pem`, `.key` or `id_rsa` keys…). It skips them by name, without opening them. And an AGENTS document is only written where each assistant keeps its rules, skills and memory, never to its settings or credentials files.
 - A file that looks like it holds a token, a password or a private key is checked on this computer and left out, with a notice. The check looks for known shapes and may not recognise them all: keep secrets out of your assistants' rules.
 - Nor does it follow symbolic links or bring in files over 512 kB.
 
 **What travels and what stays**
 
-- **Your AGENTS documents travel like the rest**: with your sync, your cloud (encrypted, if you encrypted it), your backups and a `.tistyx` parcel that carries everything. An assistant you let in through MCP reads them like any document.
+- **Your AGENTS documents travel like the rest**: with your sync, your cloud (encrypted, if you encrypted it), your backups and a `.tistyx` parcel that carries everything. An assistant you let in through MCP reads and changes them like any document, and Tisty carries that change into the files your assistants read, scripts included.
 - **What you write in AGENTS reaches your assistants**: each one reads its file and sends it to the service it works with, even if you never connect it to Tisty.
 - **Stays on this computer**, in `data/agents/` inside Tisty's folder: your yes, which assistants you paused, a fingerprint of each file it wrote, and the backups. None of that travels with sync, backups or parcels.
 - **Before writing over** one of your assistants' files, Tisty keeps the version that was there. It holds the last 20 of each file and leaves no copies in your assistants' folders.

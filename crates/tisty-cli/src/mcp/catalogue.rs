@@ -444,9 +444,9 @@ byte, to the file that assistant reads, on each computer where the person turned
 the person asks to add or change a rule or a skill, yours included, change its document with \
 `edit_doc`, never the file on disk: an edit made there is marked as changed outside and waits for \
 the person. Keep it plain Markdown, since the assistant reads it as it is, and a script's \
-document one code block, kept whole. Never write, change or take out an `agent:` line, nor move, \
-merge, compact or mark these documents unless the person asks: each is one file, and where it \
-goes is theirs to decide; a whole `write_doc` sends the line back as it was. A memory document is \
+document one code block, kept whole. Never write, change or take out an `agent:` line: where a \
+file goes is the person's to decide, and a whole `write_doc` sends it back as it was. Move, \
+merge, compact or mark these documents only when the person asks: each is one file. A memory document is \
 the other way round: the assistant keeps writing its own memory file, and Tisty only shows it, \
 so leave that document alone.
 

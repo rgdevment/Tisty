@@ -599,7 +599,7 @@ request to do it; it reads and writes files on this computer, and only these:
 - **The memory an assistant writes for itself** is brought in and shown, and
   never written back.
 
-What it never reads:
+What AGENTS never brings in:
 
 - **Settings and credentials, by their names**: `settings.json`,
   `settings.local.json`, `config.toml`, `config.json`, `hooks.json`,
@@ -608,7 +608,9 @@ What it never reads:
   — and, anywhere, `.credentials.json`, `credentials.json`, `auth.json`,
   `.netrc`, `.env` and `.env.*`, `id_rsa*`, `id_ed25519*`, and files ending in
   `.pem`, `.key`, `.p12`, `.pfx` or `.env`. These are skipped without being
-  opened.
+  opened. Nor is an AGENTS document ever written to an assistant's own settings
+  or credentials: a document goes only where each assistant keeps its rules,
+  its skills and its memory.
 - **A file that reads like it holds a credential.** A file you ticked is
   checked on this computer, before it becomes a document, for the shapes of
   tokens, passwords and private keys; if it matches, it is left out and you
@@ -668,7 +670,10 @@ happens on its own:
   document, write one again whole, mark a document that had its day for you to
   delete, archive or keep, put one away or bring it back when you ask, jot
   ideas on your Brainstorm and mark the old ones the same way, keep a copy of a
-  file you point it at, and read what is already there. It may not
+  file you point it at, and read what is already there. Writing a document
+  includes one in AGENTS, which Tisty then writes into the files your
+  assistants read, scripts included, on every computer of yours where AGENTS
+  is on. It may not
   close or delete anything, tick a step of yours or finish a task of yours,
   move a day you set, reach a task you hid, read your diary until you open it
   to agents from the Diary itself, change what you wrote in it once you do —
