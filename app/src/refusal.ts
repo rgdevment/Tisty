@@ -290,6 +290,8 @@ const KNOWN = [
   "diagramGone",
   "taskPageBehind",
   "nothingKeptBeside",
+  "versionGone",
+  "notAHistoryLimit",
   "comingDown",
   "cloudLater",
   "cloudGone",

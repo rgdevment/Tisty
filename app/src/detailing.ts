@@ -76,6 +76,7 @@ export const detailOf = (one: Task, h: Hands) => ({
   onTaskStep: (id: string, step: string, done: boolean) =>
     h.act(taskStepMarked(id, step, done).then(() => taskOf(one.id))),
   onHang: (whole: string | null) => h.act(hang(one.id, whole)),
+  onWentBack: () => h.act(taskOf(one.id)),
   onSettle: (before: string, now: string, renamed?: readonly [string, string][]) =>
     queued(`settle:${one.id}`, () => taskDocSettled(one.id, before, now, renamed)).then(
       (changed): string | null => {

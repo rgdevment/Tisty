@@ -70,6 +70,7 @@ interface Props {
     now: string,
     renamed?: readonly [string, string][],
   ) => Promise<string | null>;
+  onWentBack?: () => void;
 }
 
 // Keys from the page reach the window from the window itself, so what holds them is found through its frames.
@@ -110,6 +111,7 @@ export default function Detail({
   onTaskStep,
   onHang,
   onSettle,
+  onWentBack,
 }: Props) {
   const opened = useRef<HTMLElement>(null);
   const [shaping, setShaping] = useState(false);
@@ -257,6 +259,7 @@ export default function Detail({
         onTask={onOpenPart}
         onTaskDone={onCompletePart}
         onTaskStep={onTaskStep}
+        onWentBack={onWentBack}
       />
       <History task={task} onError={onError} onDoc={onDoc} />
       <Rounds task={task} onError={onError} onDoc={onDoc} />

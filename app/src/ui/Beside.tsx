@@ -32,6 +32,15 @@ export const trailed = (folders: Folded[], at: string | null): Folded[] => {
   return walk;
 };
 
+const earlierPanel = (onSee: () => void): Panel => ({
+  kind: "held",
+  key: "earlier",
+  label: t("earlierTitle"),
+  gist: t("earlierHere"),
+  said: [t("earlierLocal")],
+  acts: [{ key: "see", label: t("earlierSee"), onPick: onSee }],
+});
+
 // An outline this short leaves room, so the details open with the document.
 const SHORT_OUTLINE = 6;
 // How long the words rest before the column counts them again.
@@ -80,6 +89,7 @@ interface Props {
   doc?: string;
   onError?: (problem: unknown) => void;
   onKeep?: () => Promise<unknown> | undefined;
+  onEarlier?: () => void;
 }
 
 const leafOf = (one: Filed, paper: string, onPage?: (doc: Filed) => void): Leaf => ({
@@ -170,6 +180,7 @@ export default function Beside(props: Props) {
   latest.current = props;
   const canSheets = props.onSheets !== undefined;
   const canTurn = props.onLandscape !== undefined;
+  const hasEarlier = props.onEarlier !== undefined;
   // Arrays a render makes anew are compared by what they say, or every key pressed would draw the column again.
   const trailSaid = trail.map((one) => `${one.id}:${one.name}`).join("|");
   const pagesSaid = pages.map((one) => `${one.id}:${one.file}:${one.title}`).join("|");
@@ -231,6 +242,7 @@ export default function Beside(props: Props) {
       },
       ...citedPanel(citing, (one) => latest.current.onCited?.(one)),
       { kind: "details", facts: details, open: short },
+      ...(hasEarlier ? [earlierPanel(() => latest.current.onEarlier?.())] : []),
       ...(shared.panel ? [shared.panel] : []),
     ],
     [
@@ -251,6 +263,7 @@ export default function Beside(props: Props) {
       details,
       short,
       citing,
+      hasEarlier,
       shared.panel,
     ],
   );
