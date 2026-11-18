@@ -4,7 +4,7 @@ Lo que un asistente puede hacer es pequeño a propósito. Terminar, descartar y 
 
 ## Puede
 
-- **Anotar una tarea** con sus pasos, su fecha y la lista a la que pertenece.
+- **Anotar una tarea** con sus pasos, sus partes, su fecha, su prioridad, sus etiquetas y la lista a la que pertenece. Sin una de tus listas entra en la bandeja, y todo lo que anota lleva la etiqueta `#agent`.
 - **Ponerle una hora** para que suene.
 - **Mover el día** de una tarea que anotó un agente, cuando lo que averigua lo cambia.
 - **Decir que una tarea está hecha**, o que no debería hacerse: cualquier tarea, también las tuyas. La marca para que la confirmes y no cierra nada.
@@ -26,7 +26,10 @@ Lo que un asistente puede hacer es pequeño a propósito. Terminar, descartar y 
 
 ## Nunca
 
-- Cerrar una tarea ni borrarla.
+- Cerrar una tarea, reabrirla ni borrarla.
+- Crear una lista o poner una rutina.
+- Usar tu deshacer y rehacer: lo que hiciste tú en la ventana queda fuera de su alcance.
+- Tocar la sincronización, los ajustes o tus equipos.
 - Marcar un paso tuyo o terminar una tarea tuya: solo puede decir que están listos.
 - Mover un día que pusiste **tú**.
 - Borrar un documento, ni renombrar o borrar una carpeta.
@@ -36,7 +39,7 @@ Lo que un asistente puede hacer es pequeño a propósito. Terminar, descartar y 
 - Anotar lo mismo dos veces: una tarea anotada desde el mismo origen se rechaza y se le devuelve la que ya existe.
 - Ver tu Diario mientras dice **Solo tú**: ninguna herramienta lo encuentra, lo lista ni lo cuenta. Abierto, no cambia nada de lo que escribiste ahí, y nunca empieza un diario por su cuenta.
 
-Para cerrar, descartar y borrar no hay herramienta: no es que esté escondida ni restringida, es que no existe; tampoco hay una que renombre una carpeta. Un paso tuyo que marca queda como su palabra, esperándote. Tu Diario, mientras está cerrado, se responde como un documento que no existe. Lo demás de esta lista lo rechaza la herramienta que lo haría, y dice por qué.
+Para cerrar, reabrir, descartar y borrar no hay herramienta: no es que esté escondida ni restringida, es que no existe; tampoco hay una que renombre una carpeta, cree una lista o una rutina, use tu deshacer o toque la sincronización y los ajustes. Un paso tuyo que marca queda como su palabra, esperándote. Tu Diario, mientras está cerrado, se responde como un documento que no existe. Lo demás de esta lista lo rechaza la herramienta que lo haría, y dice por qué.
 
 ## «Por confirmar»: cuando un asistente dice que terminó
 
