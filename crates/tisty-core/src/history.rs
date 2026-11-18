@@ -6,6 +6,9 @@ use crate::store::write_atomic;
 use crate::witness::{self, Fact, channel};
 use crate::{Error, Result};
 
+mod logged;
+pub use logged::{Logged, Row, logged, rows};
+
 pub const FOLDER: &str = "history";
 const ORIGINALS: &str = "originals";
 const ORIGINALS_AT: &str = "originals-at";

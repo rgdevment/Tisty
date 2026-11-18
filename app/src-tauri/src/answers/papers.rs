@@ -1128,68 +1128,6 @@ pub(crate) fn writable(state: &State, id: &str) -> Result<(), Refusal> {
     }
 }
 
-pub fn went_back(session: &mut Session, id: &str) -> Answer<tisty_core::docs::Doc> {
-    writable(&session.state, id)?;
-    let Some(was) = one_step_back(session, id) else {
-        return Err(Refusal::of("nothingKeptBeside"));
-    };
-    let root = session.paths.docs();
-    let now = tisty_core::docs::read(&root, id)
-        .map_err(|e| blamed(channel::WINDOW, "a document could not be read", e))?;
-    let print = tisty_core::attach::printed(now.as_bytes());
-    let undone = session
-        .state
-        .docs
-        .values()
-        .find(|one| one.file == id)
-        .filter(|one| {
-            one.compacted
-                .as_ref()
-                .is_some_and(|done| done.undone_by(&now, &was))
-        })
-        .map(|one| one.id);
-    let made = tisty_core::docs::rewrite(&root, &session.writer(), id, &was, &print).map_err(
-        |e| match e {
-            tisty_core::Error::AlreadyRunning => Refusal::of("documentBeingWritten"),
-            _ => blamed(channel::WINDOW, "a document could not be written", e),
-        },
-    )?;
-    let whole = match made {
-        tisty_core::docs::Rewrite::Moved => return Err(Refusal::about("documentMoved", id)),
-        tisty_core::docs::Rewrite::Made { whole, .. } => whole,
-    };
-    session.mind_body(id, &tisty_core::docs::settled(&whole));
-    session.corpus.forget(id);
-    let title = tisty_core::docs::titled(&whole);
-    let book = book_of(session, id, &title);
-    let hand = signing(&session.state);
-    session.retell(id, &whole, hand);
-    named_anew(session, book, id, &title);
-    // The body is back already; a mark left standing is a lesser wrong than reporting the undo as failed.
-    if let Some(doc) = undone
-        && let Err(e) = session.commit(Op::DocUncompacted { id: doc })
-    {
-        tisty_core::witness::warn(
-            tisty_core::witness::channel::STORE,
-            "a document went back past its compaction but the mark stayed",
-            &[("why", tisty_core::witness::Fact::Why(e.to_string()))],
-        );
-    }
-    Ok(tisty_core::docs::Doc {
-        title: tisty_core::docs::titled(&whole),
-        id: id.to_string(),
-    })
-}
-
-#[tauri::command(async)]
-pub fn doc_back(
-    session: tauri::State<'_, Mutex<Session>>,
-    id: String,
-) -> Answer<tisty_core::docs::Doc> {
-    let mut session = held(&session);
-    went_back(&mut session, &id)
-}
-
 #[tauri::command(async)]
 pub fn doc_backable(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<bool> {
     let session = held(&session);
@@ -1244,12 +1182,12 @@ pub fn doc_write(
 }
 
 // Asked before the page's new heading is told, while the state still knows its old one.
-fn book_of(session: &Session, page: &str, title: &str) -> Option<String> {
+pub(crate) fn book_of(session: &Session, page: &str, title: &str) -> Option<String> {
     tisty_core::docs::book_to_relabel(&session.state, page, title).map(|up| up.file.clone())
 }
 
 // Left unminded on purpose: an editor holding the book's old body is then told it moved.
-fn named_anew(session: &mut Session, book: Option<String>, page: &str, title: &str) {
+pub(crate) fn named_anew(session: &mut Session, book: Option<String>, page: &str, title: &str) {
     let Some(up) = book else {
         return;
     };
