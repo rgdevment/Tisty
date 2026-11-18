@@ -25,6 +25,7 @@ fn a_document_with_no_folder_is_unfiled_rather_than_absent() {
         made: None,
         made_by: None,
         wrote_by: None,
+        wrote_via: None,
         by: None,
         tags: Vec::new(),
         id: Ulid::generate(),

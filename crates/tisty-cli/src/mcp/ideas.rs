@@ -330,7 +330,13 @@ pub(super) fn jotted_on(
     let at = jiff::Zoned::now().datetime();
     let used = brainstorm::proposed_from(state, &kept.file);
     let added = brainstorm::jotted_all(&before, &used, &each, at, brainstorm::roll);
-    let whole = tisty_core::docs::append(&paths.docs(), &kept.file, &added).map_err(hitch)?;
+    let whole = tisty_core::docs::append(
+        &paths.docs(),
+        &crate::mcp::writing(paths),
+        &kept.file,
+        &added,
+    )
+    .map_err(hitch)?;
     // The ideas are already on the sheet: refusing here would have a dutiful retry add them twice.
     let settled = retold(state, store, &kept.file, &whole).is_ok();
     Ok(told(
@@ -357,9 +363,12 @@ fn taken_off(
     kept: &Kept,
     idea: &Idea,
 ) -> Option<()> {
-    let whole = tisty_core::docs::amend(&paths.docs(), paths.data(), &kept.file, |was| {
-        brainstorm::without(was, idea)
-    })
+    let whole = tisty_core::docs::amend(
+        &paths.docs(),
+        &crate::mcp::writing(paths),
+        &kept.file,
+        |was| brainstorm::without(was, idea),
+    )
     .ok()??;
     let _ = retold(state, store, &kept.file, &whole);
     Some(())

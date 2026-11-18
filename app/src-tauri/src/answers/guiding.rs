@@ -198,7 +198,7 @@ pub fn spoken_again(session: &mut Session) {
             continue;
         }
         let file = kept.file.clone();
-        let written = tisty_core::docs::amend(&root, session.paths.data(), &file, |was| {
+        let written = tisty_core::docs::amend(&root, &session.writer(), &file, |was| {
             Some(tisty_markdown::front::with_field(was, "lang", tongue))
         });
         if let Ok(Some(body)) = written {

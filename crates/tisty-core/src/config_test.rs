@@ -233,6 +233,7 @@ fn a_table_valued_field_does_not_swallow_what_follows_it() {
         key_handed: None,
         asks_open_task: Some(false),
         turn_hooks: Some(false),
+        history_days: Some(5),
         homes: std::collections::BTreeMap::new(),
         rest: toml::Table::new(),
     };
@@ -307,6 +308,7 @@ fn bare() -> Config {
         key_handed: None,
         asks_open_task: None,
         turn_hooks: None,
+        history_days: None,
         homes: std::collections::BTreeMap::new(),
         rest: toml::Table::new(),
     }

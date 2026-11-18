@@ -370,6 +370,10 @@ impl State {
             kept.title = Some(d.title.clone());
             kept.bytes = d.bytes;
             if let Some(print) = &d.print {
+                // A note that reads the same body again is not a hand writing it.
+                if kept.print.as_ref() != Some(print) {
+                    kept.wrote_via = event.via.clone();
+                }
                 kept.print = Some(print.clone());
                 kept.told.insert(event.device.0.clone(), print.clone());
             }
@@ -469,6 +473,7 @@ impl State {
                 made: Some(d.made.unwrap_or(event.timestamp)),
                 made_by: Some(event.device.clone()),
                 wrote_by: Some(event.device.clone()),
+                wrote_via: event.via.clone(),
                 by: d.by.clone().or_else(|| here(d, &self.signed)),
                 born_by: d.by.clone().or_else(|| here(d, &self.signed)),
                 edited_by: d.said.as_ref().and_then(|one| one.by.clone()),

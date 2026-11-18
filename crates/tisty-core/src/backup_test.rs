@@ -33,11 +33,18 @@ fn filled(named: &str) -> (tempfile::TempDir, PathBuf) {
     std::fs::create_dir_all(&papers).unwrap();
     std::fs::write(papers.join("a3f1-0001.md"), b"# Minuta\n\nlo que dije").unwrap();
 
-    let before = data.join("originals");
-    std::fs::create_dir_all(&before).unwrap();
-    std::fs::write(before.join("a3f1-0001.md"), b"---\nx: 1\n---\n\n# Minuta").unwrap();
+    crate::history::Writer::now(&data, None)
+        .replaces(
+            "a3f1-0001",
+            BEFORE.as_bytes(),
+            "# Minuta\n\nlo que dije",
+            crate::history::Step::Back,
+        )
+        .unwrap();
     (dir, data)
 }
+
+const BEFORE: &str = "---\nx: 1\n---\n\n# Minuta";
 
 #[test]
 fn taking_a_folder_over_leaves_it_empty_and_the_backup_holding_what_it_had() {
@@ -375,10 +382,73 @@ fn a_backup_carries_what_a_document_looked_like_before_it_was_converted() {
     read(&quarters(&fresh), &file).unwrap();
 
     assert_eq!(
-        std::fs::read_to_string(quarters(&fresh).data().join("originals/a3f1-0001.md")).unwrap(),
-        "---\nx: 1\n---\n\n# Minuta",
+        crate::history::back(quarters(&fresh).data(), "a3f1-0001").map(|one| one.body),
+        Some(BEFORE.to_string()),
         "the only copy of what was lost did not travel"
     );
+}
+
+#[test]
+fn a_copy_made_before_the_history_was_ever_read_still_carries_each_step_back() {
+    let (_src, data) = filled("comprar pan");
+    std::fs::remove_dir_all(data.join(crate::history::FOLDER)).unwrap();
+    std::fs::create_dir_all(data.join("originals")).unwrap();
+    std::fs::write(data.join("originals/a3f1-0001.md"), BEFORE).unwrap();
+    let out = tempfile::tempdir().unwrap();
+    let file = out.path().join("tisty.zip");
+
+    write(&data, &file, tmp().path(), None).unwrap();
+
+    let zip = zip::ZipArchive::new(std::fs::File::open(&file).unwrap()).unwrap();
+    let names: Vec<String> = zip
+        .file_names()
+        .map(|one| one.unwrap().into_owned())
+        .collect();
+    assert!(
+        names
+            .iter()
+            .any(|one| one.starts_with("history/a3f1-0001/") && one.ends_with(".md")),
+        "{names:?}"
+    );
+    assert!(!names.iter().any(|one| one.starts_with("originals/")));
+}
+
+#[test]
+fn a_copy_made_before_documents_had_a_history_brings_the_step_back_each_of_them_kept() {
+    let (_src, data) = filled("comprar pan");
+    std::fs::remove_dir_all(data.join(crate::history::FOLDER)).unwrap();
+    std::fs::create_dir_all(data.join("originals")).unwrap();
+    std::fs::write(data.join("originals/a3f1-0001.md"), BEFORE).unwrap();
+    std::fs::write(
+        data.join("originals/a3f1-0404.md"),
+        "# De uno que ya no esta",
+    )
+    .unwrap();
+    let out = tempfile::tempdir().unwrap();
+    let file = out.path().join("viejo.zip");
+    written(
+        &data,
+        &file,
+        tmp().path(),
+        None,
+        &["store", "docs", "originals", "attachments"],
+    )
+    .unwrap();
+
+    let fresh = tempfile::tempdir().unwrap();
+    let paths = quarters(&fresh);
+    read(&paths, &file).unwrap();
+
+    assert_eq!(
+        crate::history::back(paths.data(), "a3f1-0001").map(|one| one.body),
+        Some(BEFORE.to_string())
+    );
+    assert_eq!(crate::history::versions(paths.data(), "a3f1-0001").len(), 1);
+    assert!(
+        !paths.data().join("originals").exists(),
+        "the folder the history replaces was left beside it"
+    );
+    assert!(crate::history::versions(paths.data(), "a3f1-0404").is_empty());
 }
 
 #[test]
@@ -928,6 +998,8 @@ fn a_zip_cannot_name_its_way_out_of_the_data_directory() {
         "store/dev_a/.lock",
         "attachments/.4812.7.part",
         "originals/../../etc/passwd",
+        "history/../../etc/passwd",
+        "history/a3f1-0001/.lock",
     ] {
         assert_eq!(safe(climbing), None, "«{climbing}» got out");
     }
@@ -1370,7 +1442,9 @@ fn before_a_change_tasks_and_documents_are_kept_and_only_the_last_five_stay() {
         "{names:?}"
     );
     assert!(
-        names.iter().any(|one| one == "originals/a3f1-0001.md"),
+        names
+            .iter()
+            .any(|one| one.starts_with("history/a3f1-0001/") && one.ends_with(".md")),
         "{names:?}"
     );
     assert!(

@@ -80,7 +80,7 @@ pub(super) fn correcting(paths: &Paths, kept: &Kept, args: &Value) -> Option<Ori
     if !first.still_last(&now) {
         return None;
     }
-    let body = tisty_core::docs::read_before(paths.data(), &kept.file)?;
+    let body = tisty_core::history::back(paths.data(), &kept.file)?.body;
     let print = Some(tisty_core::attach::printed(body.as_bytes()));
     match &first.before {
         Some(before) if Some(before) != print.as_ref() => None,
@@ -117,7 +117,7 @@ pub(super) fn compacted(
     let mut said = over_again(paths, args, state, store, which, body)?;
     let whole = tisty_core::docs::read(&paths.docs(), which).unwrap_or_else(|_| body.to_string());
     if let Some(one) = &first
-        && let Err(e) = tisty_core::docs::kept_before(paths.data(), which, &one.body, &whole)
+        && let Err(e) = tisty_core::history::keep_back(paths.data(), which, &one.body, &whole)
     {
         tisty_core::witness::warn(
             tisty_core::witness::channel::DOOR,

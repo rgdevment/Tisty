@@ -125,10 +125,12 @@ pub(super) fn written_today(
 
     let root = paths.docs();
     let device = store.device().clone();
+    let writer = super::writing(paths);
     let maker = diary::Maker {
         root: &root,
         device: &device,
         by: None,
+        writer: &writer,
     };
     let opening = match diary::opened(&maker, state, today, words).map_err(hitch)? {
         diary::Opened::Ready(opening) if !state.bolted(&opening.page) => opening,
@@ -152,10 +154,12 @@ pub(super) fn written_today(
     }
     let state = State::replay(&store.read_all().map_err(hitch)?);
     let mut settled = true;
-    if let Some(whole) = diary::named(&root, paths.data(), &opening).map_err(hitch)? {
+    if let Some(whole) =
+        diary::named(&root, &crate::mcp::writing(paths), &opening).map_err(hitch)?
+    {
         settled &= retold(&state, store, &opening.book, &whole).is_ok();
     }
-    let whole = tisty_core::docs::amend(&root, paths.data(), &opening.page, |was| {
+    let whole = tisty_core::docs::amend(&root, &crate::mcp::writing(paths), &opening.page, |was| {
         Some(diary::written_on(was, today, words, &signed))
     })
     .map_err(hitch)?

@@ -402,6 +402,7 @@ fn what_a_note_says_a_body_weighs_is_what_the_file_holds() {
             made: None,
             made_by: None,
             wrote_by: None,
+            wrote_via: None,
             by: None,
             born_by: None,
             edited_by: None,

@@ -687,8 +687,13 @@ pub(super) fn named_at_end(
         return Ok((Vec::new(), false));
     };
     let held: Vec<&str> = which.iter().map(String::as_str).collect();
-    match tisty_core::docs::name_at_end(&paths.docs(), paths.data(), &parent.file, &held)
-        .map_err(hitch)?
+    match tisty_core::docs::name_at_end(
+        &paths.docs(),
+        &crate::mcp::writing(paths),
+        &parent.file,
+        &held,
+    )
+    .map_err(hitch)?
     {
         // Hanging gives the page a key of its own, and where it is read comes from the text. A
         // book that already names it has nothing written in it, so nothing would bring the two
@@ -894,8 +899,14 @@ pub(super) fn placed(
             doc_named(state, spot.anchor().unwrap_or_default())
         )));
     };
-    match tisty_core::docs::rewrite(&paths.docs(), paths.data(), &parent.file, &whole, &print)
-        .map_err(hitch)?
+    match tisty_core::docs::rewrite(
+        &paths.docs(),
+        &crate::mcp::writing(paths),
+        &parent.file,
+        &whole,
+        &print,
+    )
+    .map_err(hitch)?
     {
         tisty_core::docs::Rewrite::Moved => Err(Refused::Tool(format!(
             "{} was written by somebody else in the same moment, so its line was left where it \
@@ -963,8 +974,14 @@ fn ordered(
             doc_named(state, &parent.file)
         )));
     }
-    match tisty_core::docs::rewrite(&paths.docs(), paths.data(), &parent.file, &whole, &print)
-        .map_err(hitch)?
+    match tisty_core::docs::rewrite(
+        &paths.docs(),
+        &crate::mcp::writing(paths),
+        &parent.file,
+        &whole,
+        &print,
+    )
+    .map_err(hitch)?
     {
         tisty_core::docs::Rewrite::Moved => Err(Refused::Tool(format!(
             "{} was written by somebody else in the same moment, so nothing was reordered. Read \

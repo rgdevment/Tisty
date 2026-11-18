@@ -219,10 +219,11 @@ pub(in crate::mcp) fn tongue_doc(paths: &Paths, args: &Value) -> Result<Value, R
                 doc_named(&state, &which)
             )));
         }
-        let whole = tisty_core::docs::amend(&paths.docs(), paths.data(), &which, |was| {
-            Some(tisty_markdown::front::with_field(was, "lang", &said))
-        })
-        .map_err(hitch)?;
+        let whole =
+            tisty_core::docs::amend(&paths.docs(), &crate::mcp::writing(paths), &which, |was| {
+                Some(tisty_markdown::front::with_field(was, "lang", &said))
+            })
+            .map_err(hitch)?;
         if let Some(whole) = whole {
             retold(&state, &mut store, &which, &whole)?;
         }

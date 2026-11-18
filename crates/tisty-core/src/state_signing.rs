@@ -220,3 +220,51 @@ fn nothing_read_at_replay_turns_on_the_client_named() {
     assert_eq!(task.created_via.as_deref(), Some("claude-code"));
     assert!(!state.filed_by_agents(task), "and makes nobody an agent");
 }
+
+fn a_paper(state: &mut State, via: Option<&str>, body: &str) -> Ulid {
+    let id = Ulid::generate();
+    state.apply(&through(
+        2,
+        "dev_agent",
+        via,
+        Op::DocAdd {
+            id,
+            d: crate::event::DocAdd {
+                file: "dev_agent-0001".into(),
+                order: "a0".into(),
+                said: Some(crate::event::Said::of(body)),
+                ..Default::default()
+            },
+        },
+    ));
+    id
+}
+
+#[test]
+fn a_document_tells_the_client_its_body_was_last_written_through() {
+    let mut state = with_an_agent();
+    let id = a_paper(&mut state, Some("claude-code"), "# Acta\n");
+    assert_eq!(state.docs[&id].wrote_via.as_deref(), Some("claude-code"));
+
+    let rewritten = Op::DocSaid {
+        id,
+        d: crate::event::Said::of("# Acta\n\nmas\n"),
+    };
+    state.apply(&through(3, "dev_here", None, rewritten));
+
+    assert_eq!(state.docs[&id].wrote_via, None, "the person wrote over it");
+}
+
+#[test]
+fn a_note_that_reads_the_same_body_again_does_not_take_it_from_whoever_wrote_it() {
+    let mut state = with_an_agent();
+    let id = a_paper(&mut state, Some("claude-code"), "# Acta\n");
+
+    let read_again = Op::DocSaid {
+        id,
+        d: crate::event::Said::of("# Acta\n"),
+    };
+    state.apply(&through(3, "dev_here", None, read_again));
+
+    assert_eq!(state.docs[&id].wrote_via.as_deref(), Some("claude-code"));
+}

@@ -23,6 +23,7 @@ fn opened_into(root: &Path, state: &mut State, date: Date, words: &Words) -> Ope
         root,
         device: &device,
         by: None,
+        writer: &crate::history::Writer::now(root, None),
     };
     let Opened::Ready(opening) = opened(&maker, state, date, words).unwrap() else {
         panic!("the diary was locked");
@@ -150,7 +151,13 @@ fn the_first_words_of_a_year_make_its_book_and_its_month_and_the_book_names_the_
     assert!(within(&held, page) && within(&held, book));
     assert_eq!(month_of_page(room.path(), &state, page), Some((2026, 11)));
 
-    let whole = named(room.path(), room.path(), &opening).unwrap().unwrap();
+    let whole = named(
+        room.path(),
+        &crate::history::Writer::now(room.path(), None),
+        &opening,
+    )
+    .unwrap()
+    .unwrap();
     assert!(
         whole.contains(&format!("tisty:doc/{}", opening.page)),
         "{whole}"
@@ -362,6 +369,7 @@ fn a_locked_book_still_opens_its_month_but_makes_no_new_one() {
         root: room.path(),
         device: &device,
         by: None,
+        writer: &crate::history::Writer::now(room.path(), None),
     };
 
     let later = opened(&maker, &state, day("2026-11-20"), &SPANISH).unwrap();
@@ -426,6 +434,7 @@ fn a_diary_never_begins_while_another_machine_runs_a_tisty_that_would_hand_it_to
         root: room.path(),
         device: &device,
         by: None,
+        writer: &crate::history::Writer::now(room.path(), None),
     };
 
     let waiting = opened(&maker, &state, day("2026-11-16"), &SPANISH).unwrap();
@@ -453,6 +462,7 @@ fn once_the_diary_has_begun_a_machine_behind_holds_no_new_month_or_year() {
         root: room.path(),
         device: &device,
         by: None,
+        writer: &crate::history::Writer::now(room.path(), None),
     };
 
     let december = opened(&maker, &state, day("2026-12-01"), &SPANISH).unwrap();

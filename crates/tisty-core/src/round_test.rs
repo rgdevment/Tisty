@@ -207,9 +207,9 @@ fn a_page_that_could_not_be_cleared_keeps_the_next_round_s_steps_too() {
     let id = closed_round(&mut room);
     let state = room.state();
     let page = room.page(id).unwrap();
-    let originals = room.paths.data().join("originals");
-    let _ = std::fs::remove_dir_all(&originals);
-    std::fs::write(&originals, b"not a folder").unwrap();
+    let history = room.paths.data().join(crate::history::FOLDER);
+    let _ = std::fs::remove_dir_all(&history);
+    std::fs::write(&history, b"not a folder").unwrap();
 
     round_cleared(&room.paths, &mut room.store, &state, id, "- [ ] buy a cake");
 

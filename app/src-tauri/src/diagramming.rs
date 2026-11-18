@@ -70,7 +70,7 @@ pub fn diagram_save(
         writable(&session.state, &file)?;
         let mut place = None;
         let body =
-            tisty_core::docs::amend(&session.paths.docs(), session.paths.data(), &file, |was| {
+            tisty_core::docs::amend(&session.paths.docs(), &session.writer(), &file, |was| {
                 diagrams::redrawn(was, drawn.place, &drawn.was, &now).map(|(body, now_at)| {
                     place = Some(now_at);
                     body

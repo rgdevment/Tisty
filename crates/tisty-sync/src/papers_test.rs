@@ -6,6 +6,7 @@ fn said(newest: &str, others: &[&str]) -> Answers {
         own: None,
         others: others.iter().map(|one| one.to_string()).collect(),
         behind: false,
+        wrote: None,
     }
 }
 
@@ -60,6 +61,7 @@ fn a_body_the_log_has_no_print_for_comes_in_with_what_was_here_set_aside() {
         own: None,
         others: Default::default(),
         behind: false,
+        wrote: None,
     };
     let untouched = |_: &str| -> bool { panic!("the waiting history was read") };
     assert_eq!(

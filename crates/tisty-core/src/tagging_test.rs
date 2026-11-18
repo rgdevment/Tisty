@@ -157,6 +157,7 @@ fn a_tag_that_changed_is_news_even_where_the_title_did_not() {
         made: None,
         made_by: None,
         wrote_by: None,
+        wrote_via: None,
         by: None,
         id: ulid::Ulid::generate(),
         file: "a3f1-0001".into(),

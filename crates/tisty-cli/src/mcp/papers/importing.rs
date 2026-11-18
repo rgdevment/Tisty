@@ -431,6 +431,7 @@ fn came_home(paths: &Paths, id: TaskId, body: &str) -> Result<Value, Refused> {
     if file.is_none() {
         let (made, created) = tisty_core::task_docs::made_with(
             &paths.docs(),
+            &crate::mcp::writing(paths),
             &state,
             owner,
             &taken.body,
@@ -462,12 +463,13 @@ fn came_home(paths: &Paths, id: TaskId, body: &str) -> Result<Value, Refused> {
     let mut kept_as_it_was = false;
     if let Some(file) = &file {
         let (state, _) = opened(paths)?;
-        let whole = tisty_core::docs::amend(&paths.docs(), paths.data(), file, |now| {
-            // Words written on the page since it was read are not written over.
-            kept_as_it_was = was.as_deref().is_some_and(|was| now != was);
-            (!kept_as_it_was && now != taken.body).then(|| taken.body.clone())
-        })
-        .map_err(hitch)?;
+        let whole =
+            tisty_core::docs::amend(&paths.docs(), &crate::mcp::writing(paths), file, |now| {
+                // Words written on the page since it was read are not written over.
+                kept_as_it_was = was.as_deref().is_some_and(|was| now != was);
+                (!kept_as_it_was && now != taken.body).then(|| taken.body.clone())
+            })
+            .map_err(hitch)?;
         if let Some(whole) = whole {
             retold(&state, &mut store, file, &whole)?;
         }

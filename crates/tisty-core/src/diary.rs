@@ -257,6 +257,7 @@ pub struct Maker<'a> {
     pub root: &'a Path,
     pub device: &'a DeviceId,
     pub by: Option<String>,
+    pub writer: &'a crate::history::Writer<'a>,
 }
 
 pub fn opened(maker: &Maker, state: &State, date: Date, words: &Words) -> Result<Opened> {
@@ -312,7 +313,7 @@ fn made(
     order: String,
     page_of: Option<DocId>,
 ) -> Result<(DocId, String, Op)> {
-    let file = crate::docs::create(maker.root, maker.device, body)?.id;
+    let file = crate::docs::create_by(maker.root, maker.writer, maker.device, body)?.id;
     let id = ulid::Ulid::generate();
     let op = Op::DocAdd {
         id,
@@ -334,11 +335,15 @@ fn made(
     Ok((id, file, op))
 }
 
-pub fn named(root: &Path, data: &Path, opening: &Opening) -> Result<Option<String>> {
+pub fn named(
+    root: &Path,
+    writer: &crate::history::Writer,
+    opening: &Opening,
+) -> Result<Option<String>> {
     if !opening.page_made {
         return Ok(None);
     }
-    let naming = crate::docs::name_at_end(root, data, &opening.book, &[opening.page.as_str()])?;
+    let naming = crate::docs::name_at_end(root, writer, &opening.book, &[opening.page.as_str()])?;
     Ok(match naming {
         crate::docs::Naming::Wrote { whole, .. } => Some(whole),
         _ => None,

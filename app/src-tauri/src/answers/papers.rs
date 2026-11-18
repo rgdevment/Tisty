@@ -480,8 +480,13 @@ pub fn doc_new(
         None => None,
     };
     let folder = under.unwrap_or(folder);
-    let made = tisty_core::docs::create(&session.paths.docs(), &session.config.device_id, "")
-        .map_err(|e| blamed(channel::WINDOW, "a document could not be made", e))?;
+    let made = tisty_core::docs::create_by(
+        &session.paths.docs(),
+        &session.writer(),
+        &session.config.device_id,
+        "",
+    )
+    .map_err(|e| blamed(channel::WINDOW, "a document could not be made", e))?;
 
     let order = tisty_core::order::last_of(
         session
@@ -715,8 +720,13 @@ pub(super) fn other_version_kept(
     if let Some(twin) = twin {
         return Ok(twin);
     }
-    let made = tisty_core::docs::create(&session.paths.docs(), &session.config.device_id, &body)
-        .map_err(|e| blamed(channel::SYNC, "the other version could not be kept", e))?;
+    let made = tisty_core::docs::create_by(
+        &session.paths.docs(),
+        &session.writer(),
+        &session.config.device_id,
+        &body,
+    )
+    .map_err(|e| blamed(channel::SYNC, "the other version could not be kept", e))?;
     let file = made.id.clone();
     let (folder, page_of, order) = placed(beside, &made.id);
     // The other version of someone else's document is still theirs, as a duplicate of it is.
@@ -784,7 +794,7 @@ fn kept_on_the_page(
     if both == mine {
         return Ok(());
     }
-    tisty_core::docs::write(&root, id, &both)
+    tisty_core::docs::write_by(&root, &session.writer(), id, &both)
         .map_err(|e| blamed(channel::SYNC, "the other version could not be kept", e))?;
     witness::note(
         channel::SYNC,
@@ -1101,16 +1111,13 @@ fn hanging(state: &State, parent: Option<tisty_core::model::FolderId>) -> Vec<Fo
 }
 
 pub fn one_step_back(session: &Session, id: &str) -> Option<String> {
-    let was = tisty_core::docs::read_before(session.paths.data(), id)?;
+    let back = tisty_core::history::back(session.paths.data(), id)?;
     let now = tisty_core::docs::read(&session.paths.docs(), id).ok()?;
-    if tisty_core::docs::unchanged(&now, &was) {
+    if tisty_core::docs::unchanged(&now, &back.body) {
         return None;
     }
     let print = tisty_core::attach::printed(now.as_bytes());
-    match tisty_core::docs::before_left_at(session.paths.data(), id).as_deref() == Some(&print) {
-        true => Some(was),
-        false => None,
-    }
+    (back.left.as_deref() == Some(print.as_str())).then_some(back.body)
 }
 
 pub(crate) fn writable(state: &State, id: &str) -> Result<(), Refusal> {
@@ -1141,15 +1148,12 @@ pub fn went_back(session: &mut Session, id: &str) -> Answer<tisty_core::docs::Do
                 .is_some_and(|done| done.undone_by(&now, &was))
         })
         .map(|one| one.id);
-    tisty_core::docs::kept_before(session.paths.data(), id, &now, &was)
-        .map_err(|e| blamed(channel::WINDOW, "what a document said could not be kept", e))?;
-    let made =
-        tisty_core::docs::rewrite(&root, session.paths.data(), id, &was, &print).map_err(|e| {
-            match e {
-                tisty_core::Error::AlreadyRunning => Refusal::of("documentBeingWritten"),
-                _ => blamed(channel::WINDOW, "a document could not be written", e),
-            }
-        })?;
+    let made = tisty_core::docs::rewrite(&root, &session.writer(), id, &was, &print).map_err(
+        |e| match e {
+            tisty_core::Error::AlreadyRunning => Refusal::of("documentBeingWritten"),
+            _ => blamed(channel::WINDOW, "a document could not be written", e),
+        },
+    )?;
     let whole = match made {
         tisty_core::docs::Rewrite::Moved => return Err(Refusal::about("documentMoved", id)),
         tisty_core::docs::Rewrite::Made { whole, .. } => whole,
@@ -1224,8 +1228,8 @@ pub fn doc_write(
     }
     let print = tisty_core::docs::print_of_text(&body);
     let wrote = match &since {
-        Some(seen) => tisty_core::docs::write_over(&root, &id, &body, seen),
-        None => tisty_core::docs::write(&root, &id, &body).map(|()| true),
+        Some(seen) => tisty_core::docs::write_over(&root, &session.writer(), &id, &body, seen),
+        None => tisty_core::docs::write_by(&root, &session.writer(), &id, &body).map(|()| true),
     };
     if !wrote.map_err(unwritten)? {
         return Err(Refusal::about("documentMoved", id));
@@ -1249,7 +1253,9 @@ fn named_anew(session: &mut Session, book: Option<String>, page: &str, title: &s
     let Some(up) = book else {
         return;
     };
-    if let Ok(Some(now)) = tisty_core::docs::relabel_page(&session.paths.docs(), &up, page, title) {
+    if let Ok(Some(now)) =
+        tisty_core::docs::relabel_page(&session.paths.docs(), &session.writer(), &up, page, title)
+    {
         session.corpus.forget(&up);
         let hand = signing(&session.state);
         session.retell(&up, &now, hand);
@@ -1296,7 +1302,9 @@ pub fn doc_merge(
         false => whole,
     };
     let seen = tisty_core::docs::print_of_text(&theirs);
-    if !tisty_core::docs::write_over(&root, &id, &whole, &seen).map_err(unwritten)? {
+    if !tisty_core::docs::write_over(&root, &session.writer(), &id, &whole, &seen)
+        .map_err(unwritten)?
+    {
         return Ok(None);
     }
     let body = tisty_core::docs::settled(&whole);

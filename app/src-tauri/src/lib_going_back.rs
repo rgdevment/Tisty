@@ -44,7 +44,7 @@ fn agent_wrote(session: &Session, id: &str, body: &str) {
     let print = tisty_core::attach::printed(was.as_bytes());
     tisty_core::docs::rewrite(
         &session.paths.docs(),
-        session.paths.data(),
+        &tisty_core::history::Writer::now(session.paths.data(), None),
         id,
         body,
         &print,
@@ -75,7 +75,9 @@ fn going_back_puts_the_body_back_and_keeps_the_one_it_wrote_over() {
     assert_eq!(said.title, "Acta");
     let now = tisty_core::docs::read(&session.paths.docs(), &doc).unwrap();
     assert!(now.contains("lo que hay"), "{now}");
-    let kept = tisty_core::docs::read_before(session.paths.data(), &doc).unwrap();
+    let kept = tisty_core::history::back(session.paths.data(), &doc)
+        .map(|one| one.body)
+        .unwrap();
     assert!(kept.contains("lo que dejo el agente"), "{kept}");
 }
 

@@ -26,6 +26,7 @@ fn diary(state: &mut State, root: &std::path::Path) -> Kept {
         root,
         device: &device,
         by: None,
+        writer: &crate::history::Writer::now(root, None),
     };
     let date: Date = "2026-11-15".parse().unwrap();
     let crate::diary::Opened::Ready(opening) =

@@ -28,6 +28,7 @@ pub mod forgotten;
 mod growing;
 pub mod guide_seal;
 pub mod herald;
+pub mod history;
 pub mod holes;
 pub mod ics;
 pub mod joining;

@@ -221,3 +221,30 @@ fn a_file_the_log_already_shed_is_not_taken_in() {
     );
     assert!(session.state.docs.is_empty());
 }
+
+#[test]
+fn a_document_the_person_deletes_takes_its_history_with_it() {
+    let desk = desk();
+    let mut session = Session::at(desk.paths.clone()).unwrap();
+    let file = a_page_under(&mut session, None);
+    let id = named(&session, &file);
+    tisty_core::docs::write_by(&session.paths.docs(), &session.writer(), &file, "# Another")
+        .unwrap();
+    assert_eq!(
+        tisty_core::history::versions(desk.paths.data(), &file).len(),
+        1
+    );
+
+    session.drop_doc(&id.to_string()).unwrap();
+
+    assert!(!there(&desk, &file));
+    assert!(tisty_core::history::versions(desk.paths.data(), &file).is_empty());
+    assert!(
+        !desk
+            .paths
+            .data()
+            .join(tisty_core::history::FOLDER)
+            .join(&file)
+            .exists()
+    );
+}

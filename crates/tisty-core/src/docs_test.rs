@@ -472,7 +472,13 @@ fn a_search_reaches_the_body_of_a_document_and_says_the_line_it_found() {
 fn what_is_added_leaves_every_byte_that_was_there() {
     let room = papers();
 
-    let whole = append(room.path(), "mac0-0002", "Y la llave de paso.").unwrap();
+    let whole = append(
+        room.path(),
+        &crate::history::Writer::now(room.path(), None),
+        "mac0-0002",
+        "Y la llave de paso.",
+    )
+    .unwrap();
 
     assert_eq!(
         whole,
@@ -502,6 +508,7 @@ fn adding_keeps_one_blank_line_between_what_was_there_and_what_arrives() {
 
     let whole = append(
         room.path(),
+        &crate::history::Writer::now(room.path(), None),
         "mac0-0001",
         "
 
@@ -524,7 +531,13 @@ fn adding_to_an_empty_document_writes_only_what_arrives() {
     write(room.path(), "mac0-0001", "").unwrap();
 
     assert_eq!(
-        append(room.path(), "mac0-0001", "# Nuevo").unwrap(),
+        append(
+            room.path(),
+            &crate::history::Writer::now(room.path(), None),
+            "mac0-0001",
+            "# Nuevo"
+        )
+        .unwrap(),
         "# Nuevo
 "
     );
@@ -534,8 +547,24 @@ fn adding_to_an_empty_document_writes_only_what_arrives() {
 fn nothing_is_added_to_a_document_that_is_not_there() {
     let room = papers();
 
-    assert!(append(room.path(), "mac0-0404", "algo").is_err());
-    assert!(append(room.path(), "../escaped", "algo").is_err());
+    assert!(
+        append(
+            room.path(),
+            &crate::history::Writer::now(room.path(), None),
+            "mac0-0404",
+            "algo"
+        )
+        .is_err()
+    );
+    assert!(
+        append(
+            room.path(),
+            &crate::history::Writer::now(room.path(), None),
+            "../escaped",
+            "algo"
+        )
+        .is_err()
+    );
 }
 
 #[test]
@@ -543,7 +572,12 @@ fn adding_past_the_ceiling_is_refused_and_leaves_the_document_alone() {
     let room = root();
     write(room.path(), "mac0-0001", "# Acta").unwrap();
 
-    let refused = append(room.path(), "mac0-0001", &"a".repeat(BODY_AT_MOST as usize));
+    let refused = append(
+        room.path(),
+        &crate::history::Writer::now(room.path(), None),
+        "mac0-0001",
+        &"a".repeat(BODY_AT_MOST as usize),
+    );
 
     assert!(matches!(refused, Err(Error::DocumentTooBig { .. })));
     assert_eq!(
@@ -562,7 +596,14 @@ fn two_hands_adding_at_once_both_land() {
     let hands: Vec<_> = (0..8)
         .map(|n| {
             let at = at.clone();
-            std::thread::spawn(move || append(&at, "mac0-0001", &format!("linea {n}")))
+            std::thread::spawn(move || {
+                append(
+                    &at,
+                    &crate::history::Writer::now(&at, None),
+                    "mac0-0001",
+                    &format!("linea {n}"),
+                )
+            })
         })
         .collect();
     for one in hands {
@@ -591,6 +632,7 @@ Riego.
 
     let mine = append(
         room.path(),
+        &crate::history::Writer::now(room.path(), None),
         "mac0-0001",
         "## 10 de marzo
 
@@ -618,6 +660,7 @@ Riego.
     write(room.path(), "mac0-0002", base).unwrap();
     let mine = append(
         room.path(),
+        &crate::history::Writer::now(room.path(), None),
         "mac0-0001",
         "## 10 de marzo
 
@@ -626,6 +669,7 @@ Presupuestos.",
     .unwrap();
     let theirs = append(
         room.path(),
+        &crate::history::Writer::now(room.path(), None),
         "mac0-0002",
         "## 12 de marzo
 
@@ -667,7 +711,7 @@ fn an_edit_replaces_the_one_place_it_names() {
 
     let made = edit(
         room.path(),
-        room.path(),
+        &crate::history::Writer::now(room.path(), None),
         "mac0-0002",
         "Cambiar la manguera del patio.",
         "Cambiar la manguera y la llave de paso.",
@@ -700,7 +744,7 @@ fn an_edit_that_names_what_is_not_there_writes_nothing() {
 
     let missed = edit(
         room.path(),
-        room.path(),
+        &crate::history::Writer::now(room.path(), None),
         "mac0-0002",
         "la reja del patio",
         "otra cosa",
@@ -734,7 +778,7 @@ regar
 
     let twice = edit(
         room.path(),
-        room.path(),
+        &crate::history::Writer::now(room.path(), None),
         "mac0-0001",
         "regar",
         "regar el patio",
@@ -758,7 +802,14 @@ fn naming_nothing_at_all_is_not_a_way_to_write_everywhere() {
     let room = papers();
 
     assert_eq!(
-        edit(room.path(), room.path(), "mac0-0002", "", "algo").unwrap(),
+        edit(
+            room.path(),
+            &crate::history::Writer::now(room.path(), None),
+            "mac0-0002",
+            "",
+            "algo"
+        )
+        .unwrap(),
         Change::Missing
     );
     assert_eq!(
@@ -789,7 +840,7 @@ tres
 
     edit(
         room.path(),
-        room.path(),
+        &crate::history::Writer::now(room.path(), None),
         "mac0-0001",
         "
 
@@ -799,7 +850,7 @@ dos",
     .unwrap();
     edit(
         room.path(),
-        room.path(),
+        &crate::history::Writer::now(room.path(), None),
         "mac0-0001",
         "uno",
         "uno
@@ -838,7 +889,7 @@ dos
 
     let made = edit(
         room.path(),
-        room.path(),
+        &crate::history::Writer::now(room.path(), None),
         "mac0-0001",
         "uno
 
@@ -877,7 +928,7 @@ uno
 
     let refused = edit(
         room.path(),
-        room.path(),
+        &crate::history::Writer::now(room.path(), None),
         "mac0-0001",
         "uno",
         &"a".repeat(BODY_AT_MOST as usize),
@@ -905,7 +956,7 @@ fn a_body_is_replaced_whole_by_whoever_read_what_is_there_now() {
     assert_eq!(
         rewrite(
             room.path(),
-            room.path(),
+            &crate::history::Writer::now(room.path(), None),
             "mac0-0001",
             "# Otra acta\n\notra cosa\n",
             &print
@@ -933,7 +984,7 @@ fn a_body_another_editor_left_without_its_last_line_is_still_replaced() {
     assert_eq!(
         rewrite(
             room.path(),
-            room.path(),
+            &crate::history::Writer::now(room.path(), None),
             "mac0-0001",
             "# Otra\n\notra cosa\n",
             &print
@@ -960,7 +1011,7 @@ fn a_body_that_moved_since_it_was_read_is_left_exactly_as_the_person_left_it() {
     assert_eq!(
         rewrite(
             room.path(),
-            room.path(),
+            &crate::history::Writer::now(room.path(), None),
             "mac0-0001",
             "# Otra\n\notra cosa\n",
             &print
@@ -977,7 +1028,7 @@ fn a_print_of_a_document_that_is_not_there_replaces_nothing() {
     assert_eq!(
         rewrite(
             room.path(),
-            room.path(),
+            &crate::history::Writer::now(room.path(), None),
             "mac0-0009",
             "# Algo\n",
             "sea lo que sea"
@@ -1006,7 +1057,7 @@ lo que escribio la persona",
         assert_eq!(
             edit(
                 room.path(),
-                room.path(),
+                &crate::history::Writer::now(room.path(), None),
                 "mac0-0001",
                 named,
                 "# Otro
@@ -1037,7 +1088,7 @@ dos
 
     let made = edit(
         room.path(),
-        room.path(),
+        &crate::history::Writer::now(room.path(), None),
         "mac0-0001",
         "uno
 
@@ -1109,7 +1160,13 @@ despues
 fn the_lock_is_not_read_as_a_document_of_its_own() {
     let room = papers();
 
-    append(room.path(), "mac0-0002", "algo").unwrap();
+    append(
+        room.path(),
+        &crate::history::Writer::now(room.path(), None),
+        "mac0-0002",
+        "algo",
+    )
+    .unwrap();
 
     assert!(room.path().join(".lock").exists());
     assert_eq!(all(room.path()).len(), 3);
@@ -1121,7 +1178,13 @@ fn the_print_of_the_documents_moves_when_a_body_does_and_no_event_is_written() {
     let room = papers();
     let before = print(room.path());
 
-    append(room.path(), "mac0-0002", "una linea mas").unwrap();
+    append(
+        room.path(),
+        &crate::history::Writer::now(room.path(), None),
+        "mac0-0002",
+        "una linea mas",
+    )
+    .unwrap();
 
     assert_ne!(print(room.path()), before);
     assert_eq!(print(room.path()), print(room.path()));
@@ -1639,14 +1702,23 @@ fn what_a_document_was_before_is_kept_beside_the_documents_and_not_among_them() 
     let papers = data.join("docs");
     std::fs::create_dir_all(&papers).unwrap();
 
-    kept_before(data, "mac0-0001", "---\nx: 1\n---\n\n# Minuta", "# Minuta").unwrap();
+    crate::history::Writer::now(data, None)
+        .replaces(
+            "mac0-0001",
+            "---\nx: 1\n---\n\n# Minuta".as_bytes(),
+            "# Minuta",
+            crate::history::Step::Back,
+        )
+        .unwrap();
 
     assert!(
         all(&papers).is_empty(),
         "what it used to be was read as a document of its own"
     );
     assert_eq!(
-        read_before(data, "mac0-0001").as_deref(),
+        crate::history::back(data, "mac0-0001")
+            .map(|one| one.body)
+            .as_deref(),
         Some("---\nx: 1\n---\n\n# Minuta")
     );
 }
@@ -1655,11 +1727,27 @@ fn what_a_document_was_before_is_kept_beside_the_documents_and_not_among_them() 
 fn converting_twice_keeps_what_it_was_the_second_time_not_the_first() {
     let room = tempfile::tempdir().unwrap();
 
-    kept_before(room.path(), "mac0-0001", "# La primera", "# Otra").unwrap();
-    kept_before(room.path(), "mac0-0001", "# La segunda", "# Otra").unwrap();
+    crate::history::Writer::now(room.path(), None)
+        .replaces(
+            "mac0-0001",
+            "# La primera".as_bytes(),
+            "# Otra",
+            crate::history::Step::Back,
+        )
+        .unwrap();
+    crate::history::Writer::now(room.path(), None)
+        .replaces(
+            "mac0-0001",
+            "# La segunda".as_bytes(),
+            "# Otra",
+            crate::history::Step::Back,
+        )
+        .unwrap();
 
     assert_eq!(
-        read_before(room.path(), "mac0-0001").as_deref(),
+        crate::history::back(room.path(), "mac0-0001")
+            .map(|one| one.body)
+            .as_deref(),
         Some("# La segunda"),
         "it kept a version older than the one just converted"
     );
@@ -1669,15 +1757,30 @@ fn converting_twice_keeps_what_it_was_the_second_time_not_the_first() {
 fn a_document_that_was_never_converted_has_nothing_before_it() {
     let room = tempfile::tempdir().unwrap();
 
-    assert_eq!(read_before(room.path(), "mac0-0001"), None);
+    assert_eq!(
+        crate::history::back(room.path(), "mac0-0001").map(|one| one.body),
+        None
+    );
 }
 
 #[test]
 fn what_was_before_can_never_be_named_outside_the_store() {
     let room = tempfile::tempdir().unwrap();
 
-    assert!(kept_before(room.path(), "../escaped", "x", "y").is_err());
-    assert_eq!(read_before(room.path(), "../escaped"), None);
+    assert!(
+        crate::history::Writer::now(room.path(), None)
+            .replaces(
+                "../escaped",
+                "x".as_bytes(),
+                "y",
+                crate::history::Step::Back
+            )
+            .is_err()
+    );
+    assert_eq!(
+        crate::history::back(room.path(), "../escaped").map(|one| one.body),
+        None
+    );
 }
 
 #[test]
@@ -1694,9 +1797,18 @@ fn what_a_document_looked_like_before_is_kept_byte_for_byte_however_uncomfortabl
     ];
 
     for (label, body) in cases {
-        kept_before(room.path(), "mac0-0001", body, "# Otra").unwrap();
+        crate::history::Writer::now(room.path(), None)
+            .replaces(
+                "mac0-0001",
+                body.as_bytes(),
+                "# Otra",
+                crate::history::Step::Back,
+            )
+            .unwrap();
         assert_eq!(
-            read_before(room.path(), "mac0-0001").as_deref(),
+            crate::history::back(room.path(), "mac0-0001")
+                .map(|one| one.body)
+                .as_deref(),
             Some(body),
             "lost what it was before on: {label}"
         );
@@ -2603,10 +2715,16 @@ fn what_was_before_stays_unreadable_under_every_shape_of_hostile_name() {
         long.as_str(),
     ] {
         assert!(
-            kept_before(data, id, "x", "y").is_err(),
+            crate::history::Writer::now(data, None)
+                .replaces(id, "x".as_bytes(), "y", crate::history::Step::Back)
+                .is_err(),
             "{id:?} was written before"
         );
-        assert_eq!(read_before(data, id), None, "{id:?} answered for something");
+        assert_eq!(
+            crate::history::back(data, id).map(|one| one.body),
+            None,
+            "{id:?} answered for something"
+        );
     }
 }
 
@@ -2617,15 +2735,28 @@ fn what_a_document_looked_like_before_keeps_embedded_null_bytes_without_flinchin
     std::fs::create_dir_all(data.join("docs")).unwrap();
     let body = "antes\0del cero\0despues";
 
-    kept_before(data, "mac0-0001", body, "# Otra").unwrap();
+    crate::history::Writer::now(data, None)
+        .replaces(
+            "mac0-0001",
+            body.as_bytes(),
+            "# Otra",
+            crate::history::Step::Back,
+        )
+        .unwrap();
 
-    assert_eq!(read_before(data, "mac0-0001").as_deref(), Some(body));
+    assert_eq!(
+        crate::history::back(data, "mac0-0001")
+            .map(|one| one.body)
+            .as_deref(),
+        Some(body)
+    );
 }
 
 #[test]
 fn a_shared_original_that_is_not_valid_utf8_reads_as_absent_not_as_garbage() {
     let room = tempfile::tempdir().unwrap();
     let data = room.path();
+    write(&data.join("docs"), "mac0-0001", "# Acta").unwrap();
     let originals = data.join("originals");
     std::fs::create_dir_all(&originals).unwrap();
     std::fs::write(
@@ -2634,7 +2765,10 @@ fn a_shared_original_that_is_not_valid_utf8_reads_as_absent_not_as_garbage() {
     )
     .unwrap();
 
-    assert_eq!(read_before(data, "mac0-0001"), None);
+    assert_eq!(
+        crate::history::back(data, "mac0-0001").map(|one| one.body),
+        None
+    );
 }
 
 #[test]
@@ -2642,10 +2776,19 @@ fn what_was_before_reads_back_whole_even_across_forty_thousand_lines() {
     let room = tempfile::tempdir().unwrap();
     let many = "una linea\n".repeat(40_000);
 
-    kept_before(room.path(), "mac0-0001", &many, "# Otra").unwrap();
+    crate::history::Writer::now(room.path(), None)
+        .replaces(
+            "mac0-0001",
+            many.as_bytes(),
+            "# Otra",
+            crate::history::Step::Back,
+        )
+        .unwrap();
 
     assert_eq!(
-        read_before(room.path(), "mac0-0001").as_deref(),
+        crate::history::back(room.path(), "mac0-0001")
+            .map(|one| one.body)
+            .as_deref(),
         Some(many.as_str())
     );
 }
@@ -3226,6 +3369,7 @@ fn the_window_writes_over_only_the_body_it_typed_on() {
     assert!(
         !write_over(
             room.path(),
+            &crate::history::Writer::now(room.path(), None),
             "mac0-0001",
             "# Acta\n\nlo de la ventana\n",
             &seen
@@ -3241,6 +3385,7 @@ fn the_window_writes_over_only_the_body_it_typed_on() {
     assert!(
         write_over(
             room.path(),
+            &crate::history::Writer::now(room.path(), None),
             "mac0-0001",
             "# Acta\n\nlo de la ventana\n",
             &now
@@ -3261,6 +3406,7 @@ fn the_window_writes_back_a_body_gone_from_the_disk() {
     assert!(
         write_over(
             room.path(),
+            &crate::history::Writer::now(room.path(), None),
             "mac0-0001",
             "# Acta\n\nlo de la ventana\n",
             &seen
@@ -3289,6 +3435,7 @@ fn a_body_rewritten_for_good_leaves_no_step_back() {
 
     let made = rewrite_for_good(
         room.path(),
+        &crate::history::Writer::now(data.path(), None),
         "mac0-0001",
         "# Acta\n\n![](playa-a42d4603.png)\n",
         &print,
@@ -3296,10 +3443,21 @@ fn a_body_rewritten_for_good_leaves_no_step_back() {
     .unwrap();
 
     assert!(matches!(made, Rewrite::Made { .. }));
-    assert!(read_before(data.path(), "mac0-0001").is_none());
+    assert!(
+        crate::history::back(data.path(), "mac0-0001")
+            .map(|one| one.body)
+            .is_none()
+    );
     assert!(
         matches!(
-            rewrite_for_good(room.path(), "mac0-0001", "# Otra\n", &print).unwrap(),
+            rewrite_for_good(
+                room.path(),
+                &crate::history::Writer::now(data.path(), None),
+                "mac0-0001",
+                "# Otra\n",
+                &print
+            )
+            .unwrap(),
             Rewrite::Moved
         ),
         "a print read before the write no longer matches"

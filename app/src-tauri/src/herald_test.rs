@@ -55,7 +55,13 @@ fn the_watch_speaks_up_when_a_document_grew_without_writing_an_event() {
     tisty_core::docs::write(&papers, "dev0-0001", "# Minuta\n").unwrap();
 
     let (_, _, first) = watching.owed(&paths, now, now);
-    tisty_core::docs::append(&papers, "dev0-0001", "Un punto mas.").unwrap();
+    tisty_core::docs::append(
+        &papers,
+        &tisty_core::history::Writer::now(&papers, None),
+        "dev0-0001",
+        "Un punto mas.",
+    )
+    .unwrap();
     let (_, _, after) = watching.owed(&paths, now, now);
     let (_, _, again) = watching.owed(&paths, now, now);
 

@@ -75,7 +75,8 @@ fn turned_one(data: &Path, docs: &Path, id: &str) -> crate::Result<Option<Said>>
     }
     let print = crate::docs::print_of(&crate::docs::resolve(docs, id)?)?
         .ok_or_else(|| crate::Error::OutsideTheStore(id.to_string()))?;
-    match crate::docs::rewrite(docs, data, id, &said, &print)? {
+    let by = crate::history::Writer::now(data, None);
+    match crate::docs::rewrite(docs, &by, id, &said, &print)? {
         crate::docs::Rewrite::Made { .. } => Ok(Some(Said::of(&said))),
         crate::docs::Rewrite::Moved => Err(crate::Error::OutsideTheStore(id.to_string())),
     }
