@@ -1,9 +1,14 @@
 import { For, onCleanup, Show } from "solid-js";
-import { plain, reveal } from "./host";
+import { address, copied, plain, reveal } from "./host";
 import type { Words } from "./words";
+
+type Choice = { label: string; hint?: string; pick: () => void };
 
 export default function MoreMenu(props: {
   readonly words: Words;
+  readonly drawn: boolean;
+  readonly searchable: boolean;
+  readonly own: boolean;
   readonly revealed: string | null;
   readonly onClose: () => void;
   readonly onFind: () => void;
@@ -12,18 +17,18 @@ export default function MoreMenu(props: {
   readonly fail: (problem: unknown) => void;
 }) {
   const { say } = props.words;
-  const choices = [
-    { label: say("find"), hint: "Ctrl+F", pick: props.onFind },
+  const copying = (label: string, said: () => Promise<string>): Choice => ({
+    label,
+    pick: () => void said().then(copied).catch(props.fail),
+  });
+  const find: Choice = { label: say("find"), hint: "Ctrl+F", pick: props.onFind };
+  const choices: Choice[] = [
+    ...(props.searchable ? [find] : []),
     { label: say("bigger"), hint: "Ctrl+=", pick: () => props.onZoom(1) },
     { label: say("smaller"), hint: "Ctrl+−", pick: () => props.onZoom(-1) },
     { label: say("plain"), hint: "Ctrl+0", pick: () => props.onZoom(0) },
-    {
-      label: say("copy"),
-      pick: () =>
-        void plain()
-          .then((said) => navigator.clipboard.writeText(said))
-          .catch(props.fail),
-    },
+    ...(props.drawn ? [copying(say("copy"), plain)] : []),
+    ...(props.drawn && props.own ? [copying(say("copyLink"), address)] : []),
     { label: say("print"), hint: "Ctrl+P", pick: props.onPrint },
   ];
   const path = props.revealed;

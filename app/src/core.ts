@@ -400,6 +400,7 @@ export const viewShown = (): Promise<Showing> => invoke("view_shown");
 export const viewGo = (file: string): Promise<void> => invoke("view_go", { file });
 export const viewWelcomed = (): Promise<void> => invoke("view_welcomed");
 export const viewDoc = (paper: Viewed): Promise<void> => invoke("view_doc", { paper });
+export const docAddress = (file: string): Promise<string> => invoke("doc_address", { file });
 
 export const served = (reference: string): Promise<string> => invoke("served", { reference });
 export const drawsHeicHere = (): Promise<boolean> => invoke("draws_heic");

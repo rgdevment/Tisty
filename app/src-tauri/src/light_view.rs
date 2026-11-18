@@ -7,9 +7,10 @@ use base64::Engine as _;
 use base64::engine::general_purpose::STANDARD as BASE64;
 use percent_encoding::percent_decode_str;
 use tauri::{AppHandle, Manager};
+use tisty_core::witness::{self, channel};
 
 use crate::answers::cards::{Asked, Glimpses, Named, Seen};
-use crate::viewing::{Paper, Shown, Views, doc_body, named, place_of, shown_in};
+use crate::viewing::{Paper, Shown, Views, named, place_of, shown_in};
 use crate::{Answer, Refusal, Session};
 
 const PIECE_ABOUT: usize = 64 * 1024;
@@ -52,7 +53,18 @@ impl Source {
     fn body(&self, app: &AppHandle) -> Answer<String> {
         match self {
             Self::Outside(at) => body_of(at),
-            Self::Own(paper) => doc_body(app, &paper.file),
+            Self::Own(paper) if paper.id.is_empty() => {
+                Err(Refusal::about("noSuchDoc", paper.file.clone()))
+            }
+            // Only a link to what is not here says so: a document of the store that will not open could not be read.
+            Self::Own(paper) => crate::viewing::body_or(app, &paper.file, "cannotRead")
+                .inspect_err(|_| {
+                    witness::warn(
+                        channel::WINDOW,
+                        "a document of the store would not read",
+                        &[],
+                    );
+                }),
         }
     }
 }
@@ -102,7 +114,12 @@ fn drawn_from(body: &str, own: bool) -> (Vec<String>, Vec<Heading>) {
 #[tauri::command(async)]
 pub fn view_read(app: AppHandle, window: tauri::WebviewWindow) -> Answer<Reading> {
     let label = window.label();
-    let source = source_of(&app, label)?;
+    let source = match source_of(&app, label)? {
+        Source::Own(paper) if paper.id.is_empty() => {
+            Source::Own(crate::viewing::found_since(&app, label, paper))
+        }
+        other => other,
+    };
     let (name, place, path, own) = match &source {
         Source::Outside(at) => (named(at), place_of(at), at.display().to_string(), false),
         Source::Own(paper) => (
@@ -112,6 +129,8 @@ pub fn view_read(app: AppHandle, window: tauri::WebviewWindow) -> Answer<Reading
             true,
         ),
     };
+    // A window may be showing another document than the one it opened on, after a link or a step.
+    let _ = window.set_title(&name);
     let body = match source.body(&app) {
         Ok(body) => body,
         Err(refusal) => {
@@ -169,6 +188,14 @@ pub fn view_plain(app: AppHandle, window: tauri::WebviewWindow) -> Answer<String
         Source::Outside(_) => body,
         Source::Own(_) => tisty_markdown::to_standard(&body, &|_| None),
     })
+}
+
+#[tauri::command(async)]
+pub fn view_address(app: AppHandle, window: tauri::WebviewWindow) -> Answer<String> {
+    let Source::Own(paper) = source_of(&app, window.label())? else {
+        return Err(Refusal::of("notAllowed"));
+    };
+    crate::viewing::doc_address(app.state::<Mutex<Session>>(), paper.file)
 }
 
 // A stranger's file names no documents of Tisty, so only one's own draws their cards, and never a task's.

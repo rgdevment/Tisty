@@ -216,6 +216,49 @@ describe("a link in the document", () => {
     expect(host.openAttached).toHaveBeenCalledTimes(1);
   });
 
+  it("hands the address of a document of the store to the app, own page or stranger's file", () => {
+    host.openLink.mockResolvedValue(undefined);
+    const href = "tisty://doc/casa/huerta?id=ab12-0009";
+    for (const own of [true, false]) {
+      host.openLink.mockClear();
+      const { event } = pressed(href, own);
+      expect(host.openLink).toHaveBeenCalledWith(href);
+      expect(event.defaultPrevented).toBe(true);
+    }
+    pressed("TISTY://DOC?id=ab12-0009", true);
+    expect(host.openLink).toHaveBeenLastCalledWith("TISTY://DOC?id=ab12-0009");
+    const longest = `tisty://doc?id=${"a".repeat(48)}-123456789012`;
+    pressed(longest);
+    expect(host.openLink).toHaveBeenLastCalledWith(longest);
+    expect(host.showDoc).not.toHaveBeenCalled();
+    expect(host.follow).not.toHaveBeenCalled();
+  });
+
+  it("leaves alone an address that is not a document's, whoever the page belongs to", () => {
+    for (const own of [true, false]) {
+      for (const href of [
+        "tisty://open?path=x",
+        "tisty://task?id=x",
+        "tisty://docs?id=ab12-0009",
+        "tisty://doc/sin-id",
+        "tisty://doc?id=ab12-0009&folder=x",
+        "tisty://doc?id=ab12-0009%20",
+        "tisty://doc/x?ID=ab12-0009",
+        "tisty://doc/x?id=AB12-0009",
+        "tisty://doc/x?id=ab12-1234567890123",
+        `tisty://doc/x?id=${"a".repeat(49)}-1`,
+      ]) {
+        const { event } = pressed(href, own);
+        expect(event.defaultPrevented).toBe(true);
+      }
+    }
+    expect(host.openLink).not.toHaveBeenCalled();
+    expect(host.showDoc).not.toHaveBeenCalled();
+    expect(host.showTask).not.toHaveBeenCalled();
+    expect(host.openAttached).not.toHaveBeenCalled();
+    expect(host.follow).not.toHaveBeenCalled();
+  });
+
   it("from a stranger's file, leaves what names Tisty alone", () => {
     pressed("tisty:doc/ab12-0005");
     pressedIn('<a class="card" data-doc="ab12-0003"><span>Riego</span></a>');

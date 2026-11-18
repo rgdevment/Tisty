@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { type Facts, fields, type Head, type Leaf, overgrown, type Panel } from "tisty-editor/read";
 import type { Citing } from "../citing";
+import { asLink } from "../copying";
 import type { Filed, Folded } from "../core";
 import { type DocFacts, docFacts, type Paper } from "../core";
 import { weigh } from "../format";
@@ -155,6 +156,12 @@ export default function Beside(props: Props) {
   const ways: Choice[] = [
     ...waysOut(false, props.making),
     { key: "copy", icon: "⧉", label: t("copyPlain"), apart: true, onPick: props.onCopy },
+    {
+      key: "link",
+      icon: "↗",
+      label: t("copyLink"),
+      onPick: () => void asLink(paper).catch((problem) => props.onError?.(problem)),
+    },
     { key: "save", icon: "⇩", label: t("saveAsMarkdown"), onPick: props.onTakeOut },
   ];
   const sheets = props.sheets ?? false;

@@ -8,6 +8,7 @@ const board = vi.hoisted(() => ({ text: null as string | null, refuses: false })
 vi.mock("../core", () => ({
   docRead: () => Promise.resolve(disk.body),
   docPlain: (body: string) => Promise.resolve(`plain: ${body}`),
+  docAddress: (file: string) => Promise.resolve(`tisty://doc/personal/minuta?id=${file}`),
   copied: (text: string) => {
     if (board.refuses) return Promise.reject(new Error("no clipboard here"));
     board.text = text;
@@ -23,7 +24,7 @@ vi.mock("../saving", () => ({
   },
 }));
 
-import { asPlain } from "../copying";
+import { asLink, asPlain } from "../copying";
 import { saidPlainly } from "../refusal";
 
 beforeEach(() => {
@@ -31,6 +32,21 @@ beforeEach(() => {
   disk.pending = "";
   board.text = null;
   board.refuses = false;
+});
+
+describe("copying the link of a document", () => {
+  it("puts on the clipboard exactly the address the core gives that document", async () => {
+    await asLink("dev_a-0002");
+
+    expect(board.text).toBe("tisty://doc/personal/minuta?id=dev_a-0002");
+  });
+
+  it("says the clipboard failed, rather than blaming something internal", async () => {
+    board.refuses = true;
+
+    await expect(asLink("dev_a-0002")).rejects.toEqual({ code: "noClipboard" });
+    expect(board.text).toBeNull();
+  });
 });
 
 describe("copying a document as markdown", () => {

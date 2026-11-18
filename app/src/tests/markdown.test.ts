@@ -1,5 +1,57 @@
 import { describe, expect, it } from "vitest";
-import { docLink, docOf, dressed } from "../markdown";
+import { addressed, docLink, docOf, dressed } from "../markdown";
+
+describe("an address that names a document of the store", () => {
+  it("is known by its scheme and its document path, in any case, with or without folders", () => {
+    for (const target of [
+      "tisty://doc?id=dev_a-0002",
+      "tisty://doc/a/b?id=dev_a-0002",
+      "TISTY://DOC/a?id=dev_a-0002",
+      "tisty://doc/personal/proyectos/validacion-de-datos?id=4nnctnme-0039",
+      `tisty://doc?id=${"a".repeat(48)}-123456789012`,
+    ])
+      expect(addressed(target), target).toBe(true);
+  });
+
+  it("takes only the id the core takes: a lower-case key, a device of its letters and a short number", () => {
+    for (const target of [
+      "tisty://doc/x?ID=dev_a-0002",
+      "tisty://doc/x?Id=dev_a-0002",
+      "tisty://doc/x?id=DEV_A-0002",
+      "tisty://doc/x?id=dev_a-1234567890123",
+      `tisty://doc/x?id=${"a".repeat(49)}-1`,
+      "tisty://doc/x?id=dev-a-0002",
+    ])
+      expect(addressed(target), target).toBe(false);
+  });
+
+  it("carries one well-formed id and nothing after it, as the core reads it", () => {
+    for (const target of [
+      "tisty://doc/personal/proyectos",
+      "tisty://doc?id=x",
+      "tisty://doc?id=",
+      "tisty://doc?id=dev_a-0002%20",
+      "tisty://doc?id=dev_a-0002&folder=x",
+      "tisty://doc?folder=x&id=dev_a-0002",
+      "tisty://doc/a?b?id=dev_a-0002",
+      "tisty://doc/a#b?id=dev_a-0002",
+      "tisty://doc/a?id=dev_a-0002#more",
+    ])
+      expect(addressed(target), target).toBe(false);
+  });
+
+  it("is not taken from an internal link, another kind of address or a look-alike", () => {
+    for (const target of [
+      "tisty:doc/x",
+      "tisty://docs?id=x",
+      "tisty://open?path=x",
+      "tisty://task?id=x",
+      "https://doc/a",
+      "",
+    ])
+      expect(addressed(target), target).toBe(false);
+  });
+});
 
 describe("a note the core drew, readied for the window", () => {
   it("drops the places in the source, which only the page needs", () => {

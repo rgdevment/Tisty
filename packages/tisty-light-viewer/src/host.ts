@@ -36,6 +36,9 @@ export const opened = (): Promise<Opened> => invoke("view_read");
 export const theRest = (): Promise<string[]> => invoke("view_rest");
 export const source = (): Promise<string> => invoke("view_source");
 export const plain = (): Promise<string> => invoke("view_plain");
+export const address = (): Promise<string> => invoke("view_address");
+export const copied = (text: string): Promise<void> =>
+  invoke("plugin:clipboard-manager|write_text", { text });
 export const facts = (): Promise<Facts> => invoke("view_facts");
 export const editCopy = (): Promise<Left | null> => invoke("view_import");
 export const editAsked = (act: () => void): Promise<() => void> => here.listen("view-edit", act);

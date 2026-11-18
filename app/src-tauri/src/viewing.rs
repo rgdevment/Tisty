@@ -71,6 +71,8 @@ pub struct Views {
     unsaved: Mutex<std::collections::HashSet<String>>,
     pub(crate) waiting_pieces: Mutex<HashMap<String, Vec<String>>>,
     edits_owed: Mutex<Vec<String>>,
+    docs_owed: Mutex<Vec<String>>,
+    docs_opening: Mutex<()>,
     links_owed: Mutex<Vec<url::Url>>,
     links_arriving: Mutex<LinksArriving>,
     link_asking: Mutex<Option<LinkAsking>>,
@@ -207,6 +209,17 @@ impl Views {
         std::mem::take(&mut *self.edits_owed.lock().unwrap_or_else(|e| e.into_inner()))
     }
 
+    fn owe_doc(&self, file: &str) {
+        let mut owed = self.docs_owed.lock().unwrap_or_else(|e| e.into_inner());
+        if !owed.iter().any(|one| one == file) {
+            owed.push(file.to_string());
+        }
+    }
+
+    fn docs_due(&self) -> Vec<String> {
+        std::mem::take(&mut *self.docs_owed.lock().unwrap_or_else(|e| e.into_inner()))
+    }
+
     // Finder hands over the file a launch was for before the app has finished starting, so it waits for the start.
     pub fn started(&self, wanted: &mut Vec<PathBuf>) {
         let mut held = self.early.lock().unwrap_or_else(|e| e.into_inner());
@@ -313,6 +326,129 @@ pub fn to_task(app: &AppHandle, task: String) {
 #[tauri::command]
 pub fn task_waiting(views: tauri::State<'_, Views>) -> Option<String> {
     views.task_owed.lock().ok().and_then(|mut owed| owed.take())
+}
+
+pub(crate) fn docs_named(argv: &[String]) -> Vec<String> {
+    let mut named: Vec<String> = Vec::new();
+    for one in argv.iter().skip(1) {
+        if let Some(file) = tisty_core::address::doc_asked(one)
+            && !named.iter().any(|known| known == file)
+        {
+            named.push(file.to_string());
+        }
+    }
+    named
+}
+
+// A link that reaches macOS before the store is open waits in line with those the launch was for.
+pub fn docs_asked(app: &AppHandle, argv: &[String]) -> Vec<String> {
+    let mut asked = app.state::<Views>().docs_due();
+    for file in docs_named(argv) {
+        if !asked.contains(&file) {
+            asked.push(file);
+        }
+    }
+    asked
+}
+
+pub(crate) fn paper_asked(state: &tisty_core::State, file: &str) -> Option<Paper> {
+    let kept = state.papers().find(|one| one.file == file)?;
+    let book = kept.page_of.and_then(|up| state.docs.get(&up));
+    let shelf = book.unwrap_or(kept).folder;
+    let title = kept.title.as_deref().unwrap_or_default().trim();
+    Some(Paper {
+        id: kept.id.to_string(),
+        file: kept.file.clone(),
+        title: if title.is_empty() { "Tisty" } else { title }.to_string(),
+        place: shelf.map_or_else(String::new, |at| state.trail(at).join(" / ")),
+    })
+}
+
+// An assistant may have written the document a moment ago, in a process of its own.
+fn paper_at_hand(session: &Mutex<Session>, file: &str) -> Option<Paper> {
+    let mut session = held(session);
+    if let Some(paper) = paper_asked(&session.state, file) {
+        return Some(paper);
+    }
+    session.reload().ok()?;
+    paper_asked(&session.state, file)
+}
+
+// It keeps the id it was asked for and no id of its own, so it is read again once the document arrives.
+fn nowhere(file: &str) -> Paper {
+    Paper {
+        id: String::new(),
+        file: file.to_string(),
+        title: "Tisty".into(),
+        place: String::new(),
+    }
+}
+
+pub(crate) fn found_since(app: &AppHandle, label: &str, paper: Paper) -> Paper {
+    let found = app
+        .try_state::<Mutex<Session>>()
+        .and_then(|session| paper_at_hand(&session, &paper.file));
+    match found {
+        Some(found) => {
+            reshow(&app.state::<Views>(), label, Shown::Doc(found.clone()));
+            found
+        }
+        None => paper,
+    }
+}
+
+pub fn to_docs(app: &AppHandle, mut files: Vec<String>) -> bool {
+    if app.try_state::<Mutex<Session>>().is_some() {
+        files.extend(app.state::<Views>().docs_due());
+    }
+    let any = !files.is_empty();
+    for file in files {
+        to_doc(app, &file);
+    }
+    any
+}
+
+// Whatever is not here shares one window, so a page firing ids by the hundred opens no more than that.
+fn shows(shown: &Shown, paper: &Paper) -> bool {
+    matches!(shown, Shown::Doc(was) if was.file == paper.file || (was.id.is_empty() && paper.id.is_empty()))
+}
+
+pub fn to_doc(app: &AppHandle, file: &str) {
+    if app.try_state::<Mutex<Session>>().is_none() {
+        app.state::<Views>().owe_doc(file);
+        return;
+    }
+    let (app, file) = (app.clone(), file.to_string());
+    std::thread::spawn(move || {
+        let paper =
+            paper_at_hand(&app.state::<Mutex<Session>>(), &file).unwrap_or_else(|| nowhere(&file));
+        let views = app.state::<Views>();
+        // The same link pressed twice finds the first window still being built.
+        let _one_at_a_time = views.docs_opening.lock().unwrap_or_else(|e| e.into_inner());
+        let Some(label) = showing(&views, |one| shows(one, &paper)) else {
+            open(&app, Shown::Doc(paper));
+            return;
+        };
+        let Some(window) = app.get_webview_window(&label) else {
+            return;
+        };
+        if matches!(shown_in(&views, &label), Ok(Shown::Doc(was)) if was.id.is_empty()) {
+            reshow(&views, &label, Shown::Doc(paper));
+            let _ = window.reload();
+        }
+        fronted(&window);
+    });
+}
+
+#[tauri::command]
+pub fn doc_address(session: tauri::State<'_, Mutex<Session>>, file: String) -> Answer<String> {
+    let session = held(&session);
+    let address = session
+        .state
+        .papers()
+        .find(|one| one.file == file)
+        .map(|kept| tisty_core::address::of_doc(&session.state, kept));
+    address.ok_or_else(|| Refusal::about("noSuchDoc", file))
 }
 
 // A first copy would make the store look used before the welcome has said where the copies go, so a link waits for it.
@@ -430,10 +566,11 @@ pub fn ics_waiting(views: tauri::State<'_, Views>) -> Vec<String> {
 pub fn heard(app: &AppHandle, argv: &[String], cwd: Option<&Path>) -> bool {
     told_of_edits(app, argv);
     let tasked = told_of_tasks(app, argv);
+    let papers = to_docs(app, docs_named(argv));
     let found = wanted(argv, cwd);
     let any = !found.is_empty();
     show(app, found);
-    any || tasked
+    any || tasked || papers
 }
 
 #[cfg(target_os = "macos")]
@@ -441,7 +578,8 @@ pub fn heard_links(app: &AppHandle, links: &[url::Url]) {
     let said: Vec<String> = std::iter::once(String::new())
         .chain(links.iter().map(|one| one.to_string()))
         .collect();
-    let edits = told_of_edits(app, &said) | told_of_tasks(app, &said);
+    let edits =
+        told_of_edits(app, &said) | told_of_tasks(app, &said) | to_docs(app, docs_named(&said));
     let views = app.state::<Views>();
     let found = wanted(&said, None);
     if let Ok(mut held) = views.early.lock()
@@ -645,12 +783,16 @@ fn session_of(app: &AppHandle) -> Answer<tauri::State<'_, Mutex<Session>>> {
 
 // Read without being minded: the main window's guard against overwriting a changed file must stay its own.
 pub(crate) fn doc_body(app: &AppHandle, file: &str) -> Answer<String> {
+    body_or(app, file, "noSuchDoc")
+}
+
+pub(crate) fn body_or(app: &AppHandle, file: &str, unread: &'static str) -> Answer<String> {
     let root = held(&*session_of(app)?).paths.docs();
     tisty_core::docs::read(&root, file).map_err(|e| match e {
         tisty_core::Error::DocumentTooBig { limit, .. } => {
             Refusal::about("documentTooBig", crate::weighed(limit))
         }
-        _ => Refusal::about("noSuchDoc", file.to_string()),
+        _ => Refusal::about(unread, file.to_string()),
     })
 }
 
@@ -706,6 +848,7 @@ pub fn view_facts(
 ) -> Answer<crate::answers::papers::Facts> {
     match shown_in(&views, window.label())? {
         Shown::File(at) => crate::answers::papers::outside_facts(&at),
+        Shown::Doc(paper) if paper.id.is_empty() => Err(Refusal::of("noSuchDoc")),
         Shown::Doc(paper) => crate::answers::papers::doc_facts(session, paper.file),
         Shown::Diagram(drawn) => crate::answers::papers::doc_facts(session, drawn.paper.file),
         Shown::Piece { .. } => Err(Refusal::of("notAllowed")),

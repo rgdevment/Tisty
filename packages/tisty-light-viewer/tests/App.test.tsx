@@ -210,6 +210,52 @@ describe("the light viewer", () => {
     expect(host.shown).toHaveBeenCalled();
   });
 
+  it("says a document of one's own is not on this machine, in either language", async () => {
+    const gone: Opened = {
+      kind: "missed",
+      name: "Tisty",
+      place: "",
+      path: "",
+      own: true,
+      refusal: { code: "noSuchDoc" },
+    };
+    host.opened.mockResolvedValue(gone);
+    open();
+    expect(await screen.findByText("Ese documento no está en esta máquina.")).toBeTruthy();
+    expect(screen.queryByText(/No se pudo leer/)).toBeNull();
+    screen.getByRole("button", { name: "Más" }).click();
+    expect(await screen.findByRole("menuitem", { name: /Imprimir/ })).toBeTruthy();
+    expect(screen.queryByRole("menuitem", { name: /Copiar enlace/ })).toBeNull();
+    expect(screen.queryByRole("menuitem", { name: /Copiar el Markdown/ })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Mostrar en la carpeta" })).toBeNull();
+    expect(host.shown).toHaveBeenCalled();
+    cleanup();
+    open("en");
+    expect(await screen.findByText("That document is not on this machine.")).toBeTruthy();
+  });
+
+  it("keeps its usual words for any other refusal, and for a stranger's file that is not there", async () => {
+    const missed = (own: boolean, code: string): Opened => ({
+      kind: "missed",
+      name: "notes.md",
+      place: "Downloads",
+      path: "C:/Downloads/notes.md",
+      own,
+      refusal: { code },
+    });
+    host.opened.mockResolvedValue(missed(true, "cannotRead"));
+    open();
+    expect(await screen.findByText("No se pudo leer este documento.")).toBeTruthy();
+    cleanup();
+    host.opened.mockResolvedValue(missed(false, "noSuchDoc"));
+    open();
+    expect(
+      await screen.findByText(
+        "No se pudo leer este archivo. Puede que se haya movido o esté en uso.",
+      ),
+    ).toBeTruthy();
+  });
+
   it("still shows the window when the file could not be asked for", async () => {
     host.opened.mockRejectedValue(new Error("broken"));
     open();

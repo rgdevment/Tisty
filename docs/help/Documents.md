@@ -188,11 +188,25 @@ A `tisty://open` link reaches only a readable text file on this computer.
 
 - **Contents and details** (`Ctrl`/`⌘` + `\`) opens a column with its headings, its folder, its size and when it changed.
 - **See Markdown** (`Ctrl`/`⌘` + `Shift` + `M`) switches between the drawn page and its text.
-- **More** has **Find in the text**, larger and smaller text, **Copy Markdown** and **Print**.
+- **More** has **Find in the text**, larger and smaller text, **Copy Markdown**, **Copy link** and **Print**.
 - Its widgets, pictures, sounds, videos and file cards look as they do in the main window; a press on a file card opens it in its own program.
-- A link or a card to another document or to a task opens it in the main window.
+- A link or a card to another document or to a task opens it in the main window; a [document's link](#a-documents-link), in another window of its own.
 - **Edit** takes you to the document in the main window. If you change it there, the window of its own reads it again when you come back to it.
 - Its PDF, its sheets and its exports are made from the main window.
+
+### A document's link
+
+Every document of yours has a link, to reach it from a chat, a note, your browser or your agent. **Copy link** is under **Export**, in the document's panel; in the document's menu, in the tree; and under **More**, in the window of its own. It looks like this:
+
+`tisty://doc/personal/trips/summer-plan?id=k7tq2mzw-0012`
+
+- **It opens the document read only** in the light viewer, not in the editor, archived or not. If a window of its own already shows it, that window comes forward. With Tisty closed, only that window opens.
+- **Only the `id` counts.** The folders and the title are words for whoever reads the link, lowercase, without accents and with dashes, so it still gets there after you rename or move the document. A page carries its document's name before its own: `tisty://doc/work/minutes/march?id=…`.
+- **Inside a document** or on a task's page, write it as a Markdown link, `[Summer plan](tisty://doc/…?id=…)`, and it opens like any other link. Pasted on its own, it stays as text. To go from one document to another while you write, `[[` still does it, and opens in the main window ([Linking documents](#linking-documents)).
+- **Your agent** takes it as it is: hand it the link and it reads or changes that very document without searching for it.
+- **It opens only on a computer that holds the document**, that is, one of your computers with your store. Where the document is not, the window opens and says so. To give it to someone else, share it through [Folio](#sharing).
+- **Inside a document shared through Folio it does not travel**: a Markdown link arrives as its words, and an address written on its own arrives as written, folders and title included.
+- **Whoever gets it reads** its folder names and its title.
 
 ## Taking documents out
 

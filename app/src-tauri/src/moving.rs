@@ -10,7 +10,7 @@ pub struct Along {
 }
 
 /// The first start after the store's home changed copies it all, so the window says how far it is.
-pub fn begin(app: tauri::AppHandle) {
+pub fn begin(app: tauri::AppHandle, docs: Vec<String>) {
     let shown = crate::engine::window(
         &app,
         "moving",
@@ -41,12 +41,12 @@ pub fn begin(app: tauri::AppHandle) {
             let _ = app.emit_to("moving", "moving", Along { done, whole });
         });
         let back = app.clone();
-        let _ = app.run_on_main_thread(move || settled_in(&back));
+        let _ = app.run_on_main_thread(move || settled_in(&back, docs));
     });
 }
 
-fn settled_in(app: &tauri::AppHandle) {
-    if let Err(why) = crate::opened(app, false) {
+fn settled_in(app: &tauri::AppHandle, docs: Vec<String>) {
+    if let Err(why) = crate::opened(app, !docs.is_empty()) {
         witness::error(
             channel::WINDOW,
             "the window could not open after the store moved",
@@ -64,4 +64,5 @@ fn settled_in(app: &tauri::AppHandle) {
     if let Some(moving) = app.get_webview_window("moving") {
         let _ = moving.close();
     }
+    crate::viewing::to_docs(app, docs);
 }

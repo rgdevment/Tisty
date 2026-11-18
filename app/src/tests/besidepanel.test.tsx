@@ -1,12 +1,22 @@
 import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { Head } from "tisty-editor/read";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { t } from "../locales";
 import Beside from "../ui/Beside";
 
+const linking = vi.hoisted(() => ({ files: [] as string[], refuses: null as unknown }));
+
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: (cmd: string) => Promise.resolve(cmd === "doc_facts" ? { bytes: 7, pages: 0 } : null),
+}));
+
+vi.mock("../copying", () => ({
+  asPlain: () => Promise.resolve(),
+  asLink: (file: string) => {
+    linking.files.push(file);
+    return linking.refuses ? Promise.reject(linking.refuses) : Promise.resolve();
+  },
 }));
 
 const headed = (many: number): Head[] =>
@@ -17,7 +27,9 @@ const headed = (many: number): Head[] =>
     go: () => {},
   }));
 
-const beside = (heads: Head[], more: { onCopy?: () => void } = {}, paper = "dev_a-0001") => (
+type Hands = { onCopy?: () => void; onError?: (problem: unknown) => void };
+
+const beside = (heads: Head[], more: Hands = {}, paper = "dev_a-0001") => (
   <Beside
     title="Notas"
     paper={paper}
@@ -30,13 +42,14 @@ const beside = (heads: Head[], more: { onCopy?: () => void } = {}, paper = "dev_
     onLeaf={() => {}}
     making={false}
     onCopy={more.onCopy ?? (() => {})}
+    onError={more.onError}
     onTakeOut={() => {}}
     onShut={() => {}}
     onApart={() => {}}
   />
 );
 
-const panel = (heads: Head[], more: { onCopy?: () => void } = {}) => render(beside(heads, more));
+const panel = (heads: Head[], more: Hands = {}) => render(beside(heads, more));
 
 // A row of the column: its details element, and a press on its summary as the person makes it.
 const row = (key: string) =>
@@ -81,6 +94,38 @@ describe("the document's column", () => {
       expect(screen.getByRole("menuitem", { name: new RegExp(way) })).toBeTruthy();
     await userEvent.click(screen.getByRole("menuitem", { name: new RegExp(t("copyPlain")) }));
     expect(onCopy).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("copying the link from the export menu", () => {
+  beforeEach(() => {
+    linking.files.length = 0;
+    linking.refuses = null;
+  });
+
+  const copyLink = async () => {
+    await userEvent.click(screen.getByRole("button", { name: t("exportIt") }));
+    await userEvent.click(screen.getByRole("menuitem", { name: new RegExp(t("copyLink")) }));
+  };
+
+  it("copies the link of the document the column is beside", async () => {
+    const onError = vi.fn();
+    render(beside(headed(2), { onError }, "dev_a-0007"));
+
+    await copyLink();
+
+    expect(linking.files).toEqual(["dev_a-0007"]);
+    expect(onError).not.toHaveBeenCalled();
+  });
+
+  it("hands the problem to the window when the link could not be copied", async () => {
+    linking.refuses = { code: "noClipboard" };
+    const onError = vi.fn();
+    panel(headed(2), { onError });
+
+    await copyLink();
+
+    await waitFor(() => expect(onError).toHaveBeenCalledWith({ code: "noClipboard" }));
   });
 });
 
