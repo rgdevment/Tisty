@@ -91,10 +91,16 @@ fn short(print: &str) -> &str {
 }
 
 fn hand(state: &State, wrote: &Wrote) -> String {
-    match (&wrote.via, state.assistants.contains(&wrote.by)) {
-        (Some(via), _) => tisty_core::agent::client_named(via),
-        (None, true) => "an assistant".to_string(),
-        (None, false) => "the person".to_string(),
+    let assistant = state.assistants.contains(&wrote.by);
+    let another = wrote
+        .signed
+        .as_deref()
+        .filter(|hand| !assistant && !state.mine_to_write(hand));
+    match (another, &wrote.via, assistant) {
+        (Some(hand), _, _) => hand.to_string(),
+        (None, Some(via), _) => tisty_core::agent::client_named(via),
+        (None, None, true) => "an assistant".to_string(),
+        (None, None, false) => "the person".to_string(),
     }
 }
 
