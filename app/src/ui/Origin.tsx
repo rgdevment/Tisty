@@ -50,13 +50,15 @@ export default function Origin({ source, papers, onDoc }: Props) {
   return (
     <>
       <Section label={t("bornIn")} />
-      <PaperRow
-        glyph={doc.away ? "▢" : "▤"}
-        title={doc.title}
-        under={heading}
-        away={doc.away}
-        onOpen={() => onDoc?.(doc.file)}
-      />
+      <div>
+        <PaperRow
+          glyph={doc.away ? "▢" : "▤"}
+          title={doc.title}
+          under={heading}
+          away={doc.away}
+          onOpen={() => onDoc?.(doc.file)}
+        />
+      </div>
     </>
   );
 }
