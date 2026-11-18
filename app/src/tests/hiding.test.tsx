@@ -72,6 +72,14 @@ describe("hiding rows from the sidebar", () => {
     expect(within(hiddenList() as HTMLElement).getByText("agents")).toBeTruthy();
   });
 
+  it("does not call a folder empty when all it holds is a hidden folder", () => {
+    hide("F2");
+    drawn();
+    fireEvent.click(screen.getByRole("button", { name: "Open agents" }));
+
+    expect(within(tree()).queryByText("empty")).toBeNull();
+  });
+
   it("names a hidden folder by its whole path, so two of one name stay apart", () => {
     hide("F2");
     drawn();

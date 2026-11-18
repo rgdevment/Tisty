@@ -839,7 +839,7 @@ export default function Tree({
           <ul id={`holds-${folder.id}`}>
             {kids.flatMap((child) => [branch(child, depth + 1)])}
             {papersIn.flatMap((doc) => [paper(doc, depth + 1)])}
-            {!kids.length && !papersIn.length && (
+            {!under(folder.id).length && !papersIn.length && (
               <li
                 className="py-0.5 text-[11.5px] text-faint italic"
                 style={{ paddingLeft: `${8 + (depth + 1) * STEP + ICON}px` }}
