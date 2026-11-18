@@ -50,7 +50,7 @@ const toNeighbour = async (said: string, from: string): Promise<void> => {
 
 const DOC = "tisty:doc/";
 const TASK = "tisty:task/";
-const ADDRESS = /^tisty:\/\/doc[/?]/i;
+const ADDRESS = /^tisty:\/\/doc(\/[^?#]*)?\?id=[^&#\s]+$/i;
 
 // A document of the person's own names other documents, tasks and attachments, all kept in Tisty.
 const inTisty = (pressed: Element, said: string): Promise<void> | null => {

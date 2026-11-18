@@ -451,6 +451,23 @@ fn an_address_that_leads_nowhere_is_refused_with_why() {
 }
 
 #[test]
+fn a_document_is_read_at_the_address_the_window_copies_too() {
+    let served = Served::new();
+    served.person().lets_the_agent_in();
+    let doc = served.written("# Recipes\n\nRice.");
+
+    let said = served.ask(
+        "resources/read",
+        json!({ "uri": format!("tisty://doc/kitchen/recipes?id={doc}") }),
+    );
+
+    let text = said["result"]["contents"][0]["text"]
+        .as_str()
+        .unwrap_or_default();
+    assert!(text.contains("Rice."), "{said}");
+}
+
+#[test]
 fn reading_a_document_before_an_agent_is_let_in_says_who_turns_one_on() {
     let served = Served::new();
     let doc = served.person().writes_doc("# Recipes\n\nRice.");

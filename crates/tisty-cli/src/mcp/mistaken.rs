@@ -57,6 +57,7 @@ fn paged_task<'a>(state: &'a State, said: &str) -> Option<&'a Task> {
 }
 
 pub(super) fn not_a_task_id(state: &State, said: &str) -> String {
+    let said = tisty_core::address::doc_asked(said).unwrap_or(said);
     if let Some(task) = paged_task(state, said) {
         return format!(
             "{said:?} is the page of the task {:?}, and a task is named by its own id: [{}].",

@@ -5529,6 +5529,20 @@ fn an_address_goes_on_naming_its_document_after_a_rename_and_a_move() {
 }
 
 #[test]
+fn a_document_s_address_handed_to_the_task_reader_is_sent_to_read_doc() {
+    let served = Served::new();
+    let doc = served.wrote("# Actas\n\nlas de este año.", None);
+
+    let why = served.refused(
+        "read",
+        serde_json::json!({ "task": format!("tisty://doc/actas?id={doc}") }),
+    );
+
+    assert!(why.contains("the document \"Actas\""), "{why}");
+    assert!(why.contains("`read_doc`"), "{why}");
+}
+
+#[test]
 fn an_address_of_no_document_here_is_refused_as_any_unknown_id() {
     let served = Served::new();
 

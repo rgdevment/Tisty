@@ -80,7 +80,13 @@ export default function App(props: { readonly asked: string | null; readonly clo
   const [finder, setFinder] = createSignal<typeof Finder | null>(null);
   const find = () => {
     setFinding(true);
-    void import("./Finder").then((loaded) => setFinder(() => loaded.default), fail);
+    void import("./Finder").then(
+      (loaded) => setFinder(() => loaded.default),
+      (problem) => {
+        setFinding(false);
+        fail(problem);
+      },
+    );
   };
 
   const look = async () => {
@@ -243,7 +249,7 @@ export default function App(props: { readonly asked: string | null; readonly clo
       <Show when={more()}>
         <MoreMenu
           words={words}
-          own={one()?.own ?? false}
+          own={one()?.kind === "drawn" && one()?.own === true}
           revealed={outside()}
           onClose={() => setMore(false)}
           onFind={find}
@@ -253,7 +259,10 @@ export default function App(props: { readonly asked: string | null; readonly clo
         />
       </Show>
       <Show when={finding() && whole() ? finder() : null}>
-        {(view) => view()({ words, within: page, onClose: () => setFinding(false) })}
+        {(view) => {
+          const Found = view();
+          return <Found words={words} within={page} onClose={() => setFinding(false)} />;
+        }}
       </Show>
       <Show when={note()}>
         <p class="note" role="alert">

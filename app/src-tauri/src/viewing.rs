@@ -72,6 +72,7 @@ pub struct Views {
     pub(crate) waiting_pieces: Mutex<HashMap<String, Vec<String>>>,
     edits_owed: Mutex<Vec<String>>,
     docs_owed: Mutex<Vec<String>>,
+    docs_opening: Mutex<()>,
     links_owed: Mutex<Vec<url::Url>>,
     links_arriving: Mutex<LinksArriving>,
     link_asking: Mutex<Option<LinkAsking>>,
@@ -391,20 +392,26 @@ pub fn to_docs(app: &AppHandle, files: Vec<String>) -> bool {
 }
 
 pub fn to_doc(app: &AppHandle, file: &str) {
-    let Some(session) = app.try_state::<Mutex<Session>>() else {
+    if app.try_state::<Mutex<Session>>().is_none() {
         app.state::<Views>().owe_doc(file);
         return;
-    };
-    let paper = paper_at_hand(&session, file).unwrap_or_else(nowhere);
-    let app = app.clone();
+    }
+    let (app, file) = (app.clone(), file.to_string());
     std::thread::spawn(move || {
+        let paper = paper_at_hand(&app.state::<Mutex<Session>>(), &file).unwrap_or_else(nowhere);
         let views = app.state::<Views>();
+        // The same link pressed twice finds the first window still being built.
+        let _one_at_a_time = views.docs_opening.lock().unwrap_or_else(|e| e.into_inner());
         let label = showing(
             &views,
             |one| matches!(one, Shown::Doc(was) if was.file == paper.file),
         );
-        match label.and_then(|label| app.get_webview_window(&label)) {
-            Some(window) => fronted(&window),
+        match label {
+            Some(label) => {
+                if let Some(window) = app.get_webview_window(&label) {
+                    fronted(&window);
+                }
+            }
             None => open(&app, Shown::Doc(paper)),
         }
     });

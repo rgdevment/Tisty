@@ -223,6 +223,9 @@ describe("the light viewer", () => {
     open();
     expect(await screen.findByText("Ese documento no está en este equipo.")).toBeTruthy();
     expect(screen.queryByText(/No se pudo leer/)).toBeNull();
+    screen.getByRole("button", { name: "Más" }).click();
+    expect(await screen.findByRole("menuitem", { name: /Imprimir/ })).toBeTruthy();
+    expect(screen.queryByRole("menuitem", { name: /Copiar enlace/ })).toBeNull();
     expect(screen.queryByRole("button", { name: "Mostrar en la carpeta" })).toBeNull();
     expect(host.shown).toHaveBeenCalled();
     cleanup();
