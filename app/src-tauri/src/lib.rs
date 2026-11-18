@@ -760,12 +760,12 @@ fn settling(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     let mut wanted = viewing::wanted(&argv, here.as_deref());
     app.state::<viewing::Views>().started(&mut wanted);
     app.manage(booking::Booking::here(app.handle()));
+    let docs = viewing::docs_asked(app.handle(), &argv);
     if tisty_core::paths::home_moves() {
-        moving::begin(app.handle().clone());
+        moving::begin(app.handle().clone(), docs);
         viewing::show(app.handle(), wanted);
         return Ok(());
     }
-    let docs = viewing::docs_asked(app.handle(), &argv);
     opened(app.handle(), !(wanted.is_empty() && docs.is_empty()))?;
     viewing::told_of_edits(app.handle(), &argv);
     viewing::told_of_tasks(app.handle(), &argv);

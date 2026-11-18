@@ -40,6 +40,19 @@ fn each_address_in_a_list_of_documents_stands_for_its_own_id() {
 }
 
 #[test]
+fn the_pages_put_in_order_may_each_be_named_by_its_address() {
+    let asked = json!({
+        "page_of": "4nnctnme-0001",
+        "order": ["tisty://doc/actas/mayo?id=4nnctnme-0005", "4nnctnme-0004"],
+    });
+
+    assert_eq!(
+        by_their_ids(asked),
+        json!({ "page_of": "4nnctnme-0001", "order": ["4nnctnme-0005", "4nnctnme-0004"] })
+    );
+}
+
+#[test]
 fn an_address_written_anywhere_else_stays_as_the_words_it_is() {
     let asked = json!({
         "doc": "4nnctnme-0040",
