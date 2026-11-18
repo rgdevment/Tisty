@@ -5,12 +5,57 @@ use std::ops::Range;
 use crate::ranges::{Nearby, outside};
 use crate::{Mark, Span};
 
-pub fn inline(spans: &[Span], text: &str, out: &mut String) {
-    sourced(spans, text, false, out);
+/// The words a comparison tells apart: where they are written, and the tag that says gone or come.
+#[derive(Debug, Clone, Copy, Default)]
+pub(crate) struct Told<'a> {
+    pub tag: &'static str,
+    pub at: &'a [Range<usize>],
+}
+
+impl Told<'_> {
+    pub(crate) fn touches(&self, piece: &Range<usize>) -> bool {
+        let from = self.at.partition_point(|one| one.end <= piece.start);
+        self.at.get(from).is_some_and(|one| one.start < piece.end)
+    }
+
+    // A cut falls where a word or a piece ends, never inside a letter or an entity.
+    pub(crate) fn parted(&self, piece: Range<usize>, mut each: impl FnMut(Range<usize>, bool)) {
+        let mut at = piece.start;
+        let from = self.at.partition_point(|one| one.end <= piece.start);
+        for one in self.at[from..]
+            .iter()
+            .take_while(|one| one.start < piece.end)
+        {
+            let (start, end) = (one.start.max(at), one.end.min(piece.end));
+            if start > at {
+                each(at..start, false);
+            }
+            each(start..end, true);
+            at = end;
+        }
+        if at < piece.end {
+            each(at..piece.end, false);
+        }
+    }
+
+    pub(crate) fn marked(&self, tells: bool, out: &mut String, drawn: impl FnOnce(&mut String)) {
+        if tells {
+            let _ = write!(out, "<{}>", self.tag);
+        }
+        drawn(out);
+        if tells {
+            let _ = write!(out, "</{}>", self.tag);
+        }
+    }
+}
+
+// Raw html opens and shuts in pieces of its own, and a break holds no word: neither is wrapped.
+fn tellable(mark: &Mark) -> bool {
+    !matches!(mark, Mark::Html | Mark::Break)
 }
 
 // Each piece of words says where it is written, so an editor on the page changes the Markdown and never the html.
-pub(crate) fn sourced(spans: &[Span], text: &str, placed: bool, out: &mut String) {
+pub(crate) fn sourced(spans: &[Span], text: &str, placed: bool, told: Told, out: &mut String) {
     debug_assert!(spans.is_sorted_by_key(|one| one.at.start));
     let atoms: Vec<&Span> = spans.iter().filter(|one| atom(&one.mark)).collect();
     let mut items: Vec<(usize, Item)> = atoms
@@ -43,13 +88,18 @@ pub(crate) fn sourced(spans: &[Span], text: &str, placed: bool, out: &mut String
         }
         match item {
             Item::Words(piece) if placed => placed_words(piece, text, out),
-            Item::Words(piece) => words(&text[piece], out),
+            Item::Words(piece) => told.parted(piece, |part, tells| {
+                told.marked(tells, out, |out| words(&text[part], out));
+            }),
             Item::Atom(one) if placed => {
                 let mut drawn = String::new();
                 atomic(one, spans, text, &kept, &mut drawn);
                 placed_atom(&drawn, &one.at, out);
             }
-            Item::Atom(one) => atomic(one, spans, text, &kept, out),
+            Item::Atom(one) => {
+                let tells = tellable(&one.mark) && told.touches(&one.at);
+                told.marked(tells, out, |out| atomic(one, spans, text, &kept, out));
+            }
         }
     }
     while let Some(one) = open.pop() {

@@ -11,10 +11,12 @@ fn alone(
     title: Option<usize>,
 ) -> String {
     let drawing = Drawing {
-        anchors: anchors.clone(),
+        anchors,
         aligned: false,
         placed: true,
         title,
+        named: true,
+        told: crate::inline::Told::default(),
     };
     let mut out = String::new();
     draw(block, text, &drawing, &mut out);

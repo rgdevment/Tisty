@@ -1253,6 +1253,7 @@ fn commands() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool + Send + Sync +
         answers::shelves::folder_drop,
         answers::papers::doc_file,
         answers::paging::doc_drawn,
+        answers::comparing::doc_compared,
         answers::paging::doc_placed,
         answers::paging::doc_placed_near,
         answers::paging::note_drawn,

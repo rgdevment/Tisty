@@ -7,6 +7,7 @@ pub mod carrying;
 pub mod cited_tasks;
 pub mod citing;
 pub mod clouding;
+pub mod comparing;
 pub mod diary;
 pub mod earlier;
 pub mod folio;
