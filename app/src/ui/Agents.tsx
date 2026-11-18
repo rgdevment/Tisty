@@ -16,6 +16,7 @@ import { credit, useCredit } from "../crediting";
 import { stamped } from "../format";
 import { fill, t } from "../locales";
 import { saidPlainly } from "../refusal";
+import AgentsSettings from "./AgentsSettings";
 import Card, { type Run, type Which, type Word } from "./Card";
 import { Group, Knob, Line } from "./Rows";
 import Wiring from "./Wiring";
@@ -184,6 +185,8 @@ export default function Agents({ busy, said, trouble, quietly, tell, fail, binar
           </>
         )}
       </Card>
+
+      <AgentsSettings busy={busy} />
 
       <Card title={t("agentsCanTitle")} which="settings" busy={busy} said={said} trouble={trouble}>
         <p className="text-[12.5px] leading-relaxed text-soft">{t("agentsCan")}</p>

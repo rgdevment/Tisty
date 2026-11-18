@@ -1,0 +1,176 @@
+// Each word once, English then Spanish, so the two languages cannot drift apart.
+const words = {
+  agentNoConsent: [
+    "This computer has not allowed Tisty to read or write agent files",
+    "Este equipo no le dio permiso a Tisty para leer o escribir archivos de agentes",
+  ],
+  agentOff: [
+    "Sync is paused for this assistant",
+    "La sincronización de este asistente está en pausa",
+  ],
+  agentOwn: [
+    "The agent writes this file itself, so Tisty only reads it",
+    "Este archivo lo escribe el agente, así que Tisty solo lo lee",
+  ],
+  agentEmpty: [
+    "There is nothing to write, and Tisty never empties an agent's file",
+    "No hay nada que escribir, y Tisty nunca vacía el archivo de un agente",
+  ],
+  agentLinked: [
+    "The file is a link, and writing would replace the link",
+    "El archivo es un enlace, y escribirlo reemplazaría el enlace",
+  ],
+  agentChanged: [
+    "The file changed while Tisty was writing, so it was left alone",
+    "El archivo cambió mientras Tisty lo escribía, así que no lo tocó",
+  ],
+  agentUnattributed: [
+    "The change touches more than one document, so it cannot be brought into this one",
+    "El cambio toca más de un documento, así que no se puede traer a este",
+  ],
+  agentNoBackup: ["That backup is gone", "Ese respaldo ya no existe"],
+  agentTooBig: [
+    "The file is larger than a document may hold",
+    "El archivo es más grande de lo que cabe en un documento",
+  ],
+  agentSecret: [
+    "The file reads like it holds a credential ({name}), so Tisty did not bring it in",
+    "El archivo parece guardar una credencial ({name}), así que Tisty no lo trajo",
+  ],
+  agentNotText: [
+    "The file is not plain text, so it cannot be brought into a document",
+    "El archivo no es texto, así que no se puede traer a un documento",
+  ],
+  agentBrokenFence: [
+    "The code block that holds the file is no longer whole. Mend it in the document first",
+    "El bloque de código que guarda el archivo ya no está entero. Arréglalo primero en el documento",
+  ],
+  agentsFirstTitle: ["Your agents, in one place", "Tus agentes, en un solo lugar"],
+  agentsFirstLead: [
+    "Tisty looks for the rules, skills and memory of the agents you have and brings them here as documents. From then on, what you change in AGENTS reaches your agents by itself.",
+    "Tisty busca las reglas, skills y memoria de los agentes que tienes y las trae aquí como documentos. Desde ese momento, lo que cambies en AGENTS llega solo a tus agentes.",
+  ],
+  agentsFirstPrivate: [
+    "It stays in your Tisty: on your computers and wherever you sync. Nobody else sees it.",
+    "Queda en tu Tisty: en tus equipos y donde tú sincronices. Nadie más lo ve.",
+  ],
+  agentsFirstSyncs: ["It syncs by itself with {name}.", "Se sincroniza solo con {name}."],
+  agentsFirstBackup: [
+    "Before changing an agent's file, Tisty keeps a backup on this computer.",
+    "Antes de cambiar un archivo de un agente, Tisty guarda un respaldo en este equipo.",
+  ],
+  agentsFirstPick: [
+    "This is what I found. Choose what to bring:",
+    "Encontré esto. Elige qué traer:",
+  ],
+  agentsFirstNone: [
+    "I found no agent files on this computer. You can still allow it: AGENTS fills up as you write your rules.",
+    "No encontré archivos de agentes en este equipo. Igual puedes autorizarlo: AGENTS se llena a medida que escribes tus reglas.",
+  ],
+  agentsFirstCount: ["{name} · {other} files", "{name} · {other} archivos"],
+  agentsFirstCountOne: ["{name} · 1 file", "{name} · 1 archivo"],
+  agentsFirstHeld: ["already in AGENTS", "ya está en AGENTS"],
+  agentsFirstAllHeld: ["{name} · already in AGENTS", "{name} · ya está en AGENTS"],
+  agentsFirstAllHere: [
+    "Everything I found is already in AGENTS. Allow this computer to keep it in sync:",
+    "Todo lo que encontré ya está en AGENTS. Autoriza este equipo para mantenerlo al día:",
+  ],
+  agentsBroughtMany: [
+    "{name} documents came into AGENTS, and Tisty keeps them in sync from now on.",
+    "Entraron {name} documentos a AGENTS, y desde ahora Tisty los mantiene al día.",
+  ],
+  agentsBroughtOne: [
+    "1 document came into AGENTS, and Tisty keeps it in sync from now on.",
+    "Entró 1 documento a AGENTS, y desde ahora Tisty lo mantiene al día.",
+  ],
+  agentsBroughtNone: [
+    "Nothing new came in. This computer now keeps AGENTS in sync.",
+    "No entró nada nuevo. Desde ahora este equipo mantiene AGENTS al día.",
+  ],
+  agentsSkip_settings: ["settings, left out", "ajustes, no entra"],
+  agentsSkip_credentials: ["credentials, left out", "credenciales, no entra"],
+  agentsSkip_tisty: ["Tisty's own", "propio de Tisty"],
+  agentsSkip_linked: ["a link, left out", "es un enlace, no entra"],
+  agentsSkip_toobig: ["too big", "demasiado grande"],
+  agentsSkip_crowded: ["too many files", "demasiados archivos"],
+  agentsKind_rule: ["Rule", "Regla"],
+  agentsKind_skill: ["Skill", "Skill"],
+  agentsKind_memory: ["Agent memory", "Memoria del agente"],
+  agentsNotNow: ["Not now", "Ahora no"],
+  agentsBringSync: ["Bring and sync", "Traer y sincronizar"],
+  agentsAllow: ["Allow and sync", "Autorizar y sincronizar"],
+  agentsBringing: ["Bringing…", "Trayendo…"],
+  agentsRefused: ["These did not come in:", "Esto no entró:"],
+  agentsRefused_noConsent: [
+    "This computer has not allowed it yet.",
+    "Este equipo todavía no lo autorizó.",
+  ],
+  agentsRefused_secret: [
+    "It looks like it holds a credential, such as a key or a token, so it stays out.",
+    "Parece llevar una credencial, como una clave o un token, así que no entra.",
+  ],
+  agentsRefused_tooBig: [
+    "It is larger than a document can hold.",
+    "Es más grande de lo que cabe en un documento.",
+  ],
+  agentsRefused_notText: ["It is not text.", "No es texto."],
+  agentsRefused_linked: ["It is a link, so it stays out.", "Es un enlace, así que no entra."],
+  agentsRefused_name: [
+    "Its name cannot be kept as an agent document.",
+    "Su nombre no se puede guardar como documento de agente.",
+  ],
+  agentsRefused_other: ["It could not be read: {name}", "No se pudo leer: {name}"],
+  agentsBothTitle: ["It exists on both sides", "Existe en los dos lados"],
+  agentsBothLead: [
+    "{name} already has a file that differs from Tisty's. Choose which one to keep. The other one goes to the backups.",
+    "{name} ya tiene un archivo distinto del de Tisty. Elige cuál conservar. Lo otro queda en respaldos.",
+  ],
+  agentsBothComposed: [
+    "This file is made of several documents, so from here you can only keep Tisty's or leave it as it is.",
+    "Este archivo se arma con varios documentos: desde aquí solo puedes conservar el de Tisty o dejarlo como está.",
+  ],
+  agentsInTisty: ["In Tisty", "En Tisty"],
+  agentsInFile: ["In the file", "En el archivo"],
+  agentsKeepTisty: ["Keep Tisty's", "Conservar el de Tisty"],
+  agentsKeepFile: ["Keep the file", "Conservar el archivo"],
+  agentsLater: ["Decide later", "Decidir después"],
+  agentsDone: ["Done", "Listo"],
+  agentsSettingsTitle: ["AGENTS", "AGENTS"],
+  agentsSettingsLine: [
+    "Your agents' rules, skills and memory as Tisty documents. Tisty writes the file each agent reads.",
+    "Las reglas, skills y memoria de tus agentes como documentos de Tisty. Tisty escribe el archivo que lee cada agente.",
+  ],
+  agentsSettingsCreate: ["Create the AGENTS folder", "Crear la carpeta AGENTS"],
+  agentsSettingsAsk: [
+    "This computer has not allowed it yet.",
+    "Este equipo todavía no lo autorizó.",
+  ],
+  agentsSettingsAllow: ["Allow on this computer", "Autorizar en este equipo"],
+  agentsSettingsAll: ["Sync the AGENTS folder", "Sincronizar la carpeta AGENTS"],
+  agentsSettingsOne: ["Sync {name}", "Sincronizar {name}"],
+  agentsSettingsNone: ["No agents found on this computer.", "No encontré agentes en este equipo."],
+  agentsSettingsBothOne: [
+    "1 file says something different in Tisty and in the agent.",
+    "1 archivo dice algo distinto en Tisty y en el agente.",
+  ],
+  agentsSettingsBoth: [
+    "{name} files say something different in Tisty and in the agent.",
+    "{name} archivos dicen algo distinto en Tisty y en el agente.",
+  ],
+  agentsSettingsReview: ["Review", "Revisar"],
+  agentsSettingsOff: [
+    "Off: its files stay as they are, and nothing in Tisty is deleted.",
+    "Apagado: sus archivos quedan como están y no se borra nada en Tisty.",
+  ],
+} as const satisfies Record<string, readonly [string, string]>;
+
+type Key = keyof typeof words;
+
+const side = (n: 0 | 1) =>
+  Object.fromEntries(Object.entries(words).map(([key, said]) => [key, said[n]])) as Record<
+    Key,
+    string
+  >;
+
+export const agentsEn = side(0);
+export const agentsEs = side(1);
