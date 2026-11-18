@@ -197,6 +197,20 @@ describe("what the person chooses and why something stays out", () => {
     expect(sent("agents_bring")[0].args.chosen).toEqual(["/h/.claude/CLAUDE.md"]);
   });
 
+  it("offers to allow, not to bring, when only memory was found", async () => {
+    const onlyMemory: AgentsLook = {
+      ...withMemory,
+      assistants: [{ ...withMemory.assistants[0], files: [withMemory.assistants[0].files[1]] }],
+    };
+    ipc.answer = (cmd) => {
+      if (cmd === "agents_look") return Promise.resolve(onlyMemory);
+      return Promise.resolve(brought({ made: 0 }));
+    };
+    render(<AgentsFirst onClose={() => {}} onChanged={() => {}} />);
+    await screen.findByText("Claude · 1 archivo");
+    expect(screen.getByRole("button", { name: "Autorizar y sincronizar" })).toBeTruthy();
+  });
+
   it("says in the person's language why a file stayed out", async () => {
     ipc.answer = (cmd) => {
       if (cmd === "agents_look") return Promise.resolve(look);

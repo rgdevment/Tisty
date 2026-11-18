@@ -169,7 +169,7 @@ pub fn looked(seen: &Gathered, homes: &Homes, here: &str, found: &[Found]) -> Lo
                     at: seen.at.to_string_lossy().into_owned(),
                     name: seen.name.clone(),
                     kind: seen.kind.word(),
-                    skip: seen.skip.map(|why| format!("{why:?}").to_lowercase()),
+                    skip: seen.skip.map(skip_word),
                     held: held.contains(&address_of(seen)),
                 })
                 .collect(),
@@ -360,10 +360,15 @@ pub struct Turned {
     pub reason: String,
 }
 
+// The window's `agentsSkip_*` words are keyed by this.
+fn skip_word(skip: agents::Skip) -> String {
+    format!("{skip:?}").to_lowercase()
+}
+
 fn reason_of(why: &agents::Refused) -> String {
     use agents::Refused as R;
     let said = match why {
-        R::Skipped(skip) => return format!("skip_{}", format!("{skip:?}").to_lowercase()),
+        R::Skipped(skip) => return format!("skip_{}", skip_word(*skip)),
         R::NoConsent => "noConsent",
         R::Secret(_) => "secret",
         R::TooBig => "tooBig",

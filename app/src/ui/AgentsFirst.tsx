@@ -298,7 +298,7 @@ export default function AgentsFirst({ onClose, onChanged }: Readonly<Props>) {
           {t("agentsNotNow")}
         </button>
         <button type="button" disabled={!look || busy} onClick={bring} className={primary}>
-          {busy ? t("agentsBringing") : found ? t("agentsBringSync") : t("agentsAllow")}
+          {busy ? t("agentsBringing") : chosen.size > 0 ? t("agentsBringSync") : t("agentsAllow")}
         </button>
       </div>
     </Modal>
