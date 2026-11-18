@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { type AgentDoc, agentDoc, carded } from "../agentDocs";
+import { type AgentDoc, agentDoc, carded, touched } from "../agentDocs";
 import { AGENTS_CHANGED } from "./AgentsKeeper";
 
 const SETTLES = 1200;
@@ -33,8 +33,10 @@ export function useAgentDoc(file: string | null, body: string) {
       .then((found) => {
         if (turn !== asked.current) return;
         const said = found ? found.places.map((one) => one.said.state).join() : "";
-        if (seen.current === file && stood.current !== said)
-          window.dispatchEvent(new Event(AGENT_DOC_STOOD));
+        // The sidebar learns of a change the card finds first, on opening or later.
+        const news =
+          seen.current === file ? stood.current !== said : Boolean(found?.places.some(touched));
+        if (news) window.dispatchEvent(new Event(AGENT_DOC_STOOD));
         seen.current = found ? file : null;
         stood.current = said;
         setDoc(found ? { file, doc: found } : null);
