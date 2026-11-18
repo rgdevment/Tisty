@@ -1,7 +1,6 @@
 use serde_json::{Map, Value, json};
-use tisty_core::history::{Shown, Wrote};
 use tisty_core::model::Kept;
-use tisty_core::{Paths, State, Store};
+use tisty_core::{DeviceId, Paths, State, Store};
 
 use super::super::asked::text;
 use super::super::jsonrpc::told;
@@ -82,7 +81,7 @@ pub(super) fn not_the_diary(paths: &Paths, state: &State, kept: &Kept) -> Result
 }
 
 struct Past {
-    all: Vec<Shown>,
+    all: Vec<tisty_core::history::Row>,
     days: u32,
     says: Option<String>,
 }
@@ -90,24 +89,30 @@ struct Past {
 fn past(paths: &Paths, state: &State, store: &Store, kept: &Kept) -> Result<Past, Refused> {
     let config = tisty_core::Config::load_or_init(paths).map_err(hitch)?;
     let days = config.history_days();
-    let since = jiff::Timestamp::now()
-        .checked_sub(jiff::SignedDuration::from_hours(24 * i64::from(days)))
-        .unwrap_or(jiff::Timestamp::MIN);
     let log = store.read_all().map_err(hitch)?;
     let says = tisty_core::docs::read(&paths.docs(), &kept.file)
         .ok()
         .map(|body| tisty_core::docs::print_of_text(&body));
-    let all = tisty_core::history::shown(
-        &tisty_core::history::versions(paths.data(), &kept.file),
-        &tisty_core::history::wrote(&log, kept.id),
-        |one| tisty_core::history::machine(state, one),
-        &tisty_core::history::Here {
-            machine: &config.device_id,
-            says: says.as_deref(),
-            since,
-        },
+    let here = &config.device_id;
+    let all = tisty_core::history::rows(
+        paths.data(),
+        &kept.file,
+        &tisty_core::history::logged(&log, kept.id),
+        days,
+        jiff::Timestamp::now(),
+        |device| machine(state, device).is_some_and(|one| one != *here),
     );
     Ok(Past { all, days, says })
+}
+
+// An assistant writes from its host's machine; one nobody hosts, or a machine removed, keeps nothing known.
+fn machine(state: &State, device: &DeviceId) -> Option<DeviceId> {
+    let machine = match state.hosts.get(device) {
+        Some(host) => host.clone(),
+        None if state.assistants.contains(device) => return None,
+        None => device.clone(),
+    };
+    (!state.dropped.contains(&machine)).then_some(machine)
 }
 
 const GONE_BACK: &str = "gone-back";
@@ -173,15 +178,22 @@ fn short(print: &str) -> &str {
     print.get(..SHORT).unwrap_or(print)
 }
 
-fn hand(state: &State, wrote: &Wrote) -> String {
-    let signed = signed_by_another(state, &wrote.by, wrote.signed.as_deref());
-    signed.unwrap_or_else(
-        || match (&wrote.via, state.assistants.contains(&wrote.by)) {
+fn hand(state: &State, by: &DeviceId, via: Option<&str>, signed: Option<&str>) -> String {
+    signed_by_another(state, by, signed).unwrap_or_else(|| {
+        match (via, state.assistants.contains(by)) {
             (Some(via), _) => tisty_core::agent::client_named(via),
             (None, true) => "an assistant".to_string(),
             (None, false) => "the person".to_string(),
-        },
-    )
+        }
+    })
+}
+
+fn machine_named(state: &State, device: &DeviceId) -> String {
+    machine(state, device)
+        .and_then(|one| state.named.get(&one))
+        .map(|named| named.name.trim())
+        .filter(|name| !name.is_empty())
+        .map_or_else(|| "another machine".to_string(), str::to_string)
 }
 
 struct Written {
@@ -194,27 +206,25 @@ pub(super) struct Row {
     version: String,
     written: Option<Written>,
     until: String,
-    bytes: Option<u64>,
+    bytes: u64,
     elsewhere: Option<String>,
 }
 
 impl Row {
-    fn of(state: &State, one: &Shown) -> Self {
+    fn of(state: &State, one: &tisty_core::history::Row) -> Self {
         Self {
             version: short(&one.print).to_string(),
-            written: one.wrote.as_ref().map(|wrote| Written {
-                at: when(wrote.at),
-                by: hand(state, wrote),
+            written: one.wrote.zip(one.device.as_ref()).map(|(at, by)| Written {
+                at: when(at),
+                by: hand(state, by, one.via.as_deref(), one.signed.as_deref()),
             }),
             until: when(one.replaced),
             bytes: one.bytes,
-            elsewhere: one.elsewhere.as_ref().map(|machine| {
-                state
-                    .named
-                    .get(machine)
-                    .map(|named| named.name.trim())
-                    .filter(|name| !name.is_empty())
-                    .map_or_else(|| "another machine".to_string(), str::to_string)
+            elsewhere: (!one.here).then(|| {
+                one.kept_by.as_ref().map_or_else(
+                    || "another machine".to_string(),
+                    |by| machine_named(state, by),
+                )
             }),
         }
     }
@@ -226,9 +236,7 @@ impl Row {
             into.insert("by".into(), json!(written.by));
         }
         into.insert("until".into(), json!(self.until));
-        if let Some(bytes) = self.bytes {
-            into.insert("bytes".into(), json!(bytes));
-        }
+        into.insert("bytes".into(), json!(self.bytes));
         if let Some(machine) = &self.elsewhere {
             into.insert("elsewhere".into(), json!(machine));
         }
@@ -260,7 +268,7 @@ pub(super) fn listed(
         .take(LISTED_AT_ONCE)
         .map(|one| Row::of(state, one).told())
         .collect();
-    let away = all.iter().filter(|one| one.elsewhere.is_some()).count();
+    let away = all.iter().filter(|one| !one.here).count();
     let here = all.len() - away;
     let next = (from + rows.len() < all.len()).then_some(from + rows.len());
 
@@ -428,3 +436,7 @@ pub(super) fn kept_here(
     };
     Ok(Version { body, row })
 }
+
+#[cfg(test)]
+#[path = "versions_test.rs"]
+mod tests;

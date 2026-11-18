@@ -11,16 +11,16 @@ expression: "settled(&listed, &[])"
   "title": "Acta",
   "versions": [
     {
-      "by": "Claude Code",
-      "bytes": 41,
+      "by": "the person",
+      "bytes": 40,
+      "elsewhere": "Portátil de Rina",
       "until": "[when]",
       "version": "[version 1]",
       "written": "[when]"
     },
     {
-      "by": "the person",
-      "bytes": 40,
-      "elsewhere": "Portátil de Rina",
+      "by": "Claude Code",
+      "bytes": 41,
       "until": "[when]",
       "version": "[version 2]",
       "written": "[when]"

@@ -12,6 +12,8 @@ pub struct Logged {
     pub wrote: jiff::Timestamp,
     pub via: Option<String>,
     pub device: DeviceId,
+    /// The name a body that came in shared was signed with, which is not the person's here.
+    pub signed: Option<String>,
     pub bytes: Option<u64>,
     pub replaced: Option<jiff::Timestamp>,
     /// The write that replaced it is where the cut ran, so that machine is the one that keeps it.
@@ -48,6 +50,7 @@ pub fn logged(events: &[Event], id: DocId) -> Vec<Logged> {
             wrote: event.timestamp,
             via: event.via.clone(),
             device: event.device.clone(),
+            signed: said.by.clone(),
             bytes: said.bytes,
             replaced: None,
             replaced_by: None,
@@ -64,6 +67,7 @@ pub struct Row {
     pub replaced: jiff::Timestamp,
     pub via: Option<String>,
     pub device: Option<DeviceId>,
+    pub signed: Option<String>,
     pub bytes: u64,
     pub here: bool,
     /// For a version not here: the device whose write replaced it, on whose machine it is kept.
@@ -98,6 +102,7 @@ pub fn rows(
                 replaced: kept.replaced,
                 via: told.and_then(|one| one.via.clone()),
                 device: told.map(|one| one.device.clone()),
+                signed: told.and_then(|one| one.signed.clone()),
                 bytes: kept.bytes,
                 here: true,
                 kept_by: None,
@@ -125,6 +130,7 @@ pub fn rows(
                 replaced,
                 via: one.via.clone(),
                 device: Some(one.device.clone()),
+                signed: one.signed.clone(),
                 bytes: one.bytes.unwrap_or_default(),
                 here: false,
                 kept_by: one.replaced_by.clone(),
