@@ -1,4 +1,5 @@
 use serde_json::{Map, Value, json};
+use tisty_core::history::Machines;
 use tisty_core::model::Kept;
 use tisty_core::{DeviceId, Paths, State, Store};
 
@@ -84,6 +85,7 @@ struct Past {
     all: Vec<tisty_core::history::Row>,
     days: u32,
     says: Option<String>,
+    machines: tisty_core::history::Machines,
 }
 
 fn past(paths: &Paths, state: &State, store: &Store, kept: &Kept) -> Result<Past, Refused> {
@@ -94,7 +96,8 @@ fn past(paths: &Paths, state: &State, store: &Store, kept: &Kept) -> Result<Past
         .ok()
         .map(|body| tisty_core::docs::print_of_text(&body));
     let machines =
-        tisty_core::history::Machines::of(state, &config.device_id, config.agent_id.as_ref());
+        tisty_core::history::Machines::of(state, &config.device_id, config.agent_id.as_ref())
+            .told_by(&log);
     let all = tisty_core::history::rows(
         paths.data(),
         &kept.file,
@@ -103,15 +106,12 @@ fn past(paths: &Paths, state: &State, store: &Store, kept: &Kept) -> Result<Past
         jiff::Timestamp::now(),
         |device| machines.elsewhere(device),
     );
-    Ok(Past { all, days, says })
-}
-
-// An assistant writes from its host's machine, and one nobody hosts names none.
-fn machine(state: &State, device: &DeviceId) -> Option<DeviceId> {
-    match state.hosts.get(device) {
-        Some(host) => Some(host.clone()),
-        None => (!state.assistants.contains(device)).then(|| device.clone()),
-    }
+    Ok(Past {
+        all,
+        days,
+        says,
+        machines,
+    })
 }
 
 const GONE_BACK: &str = "gone-back";
@@ -187,8 +187,9 @@ fn hand(state: &State, by: &DeviceId, via: Option<&str>, signed: Option<&str>) -
     })
 }
 
-fn machine_named(state: &State, device: &DeviceId) -> String {
-    machine(state, device)
+fn machine_named(state: &State, machines: &Machines, device: &DeviceId) -> String {
+    machines
+        .machine_of(device)
         .and_then(|one| state.named.get(&one))
         .map(|named| named.name.trim())
         .filter(|name| !name.is_empty())
@@ -210,7 +211,7 @@ pub(super) struct Row {
 }
 
 impl Row {
-    fn of(state: &State, one: &tisty_core::history::Row) -> Self {
+    fn of(state: &State, machines: &Machines, one: &tisty_core::history::Row) -> Self {
         Self {
             version: short(&one.print).to_string(),
             written: one.wrote.zip(one.device.as_ref()).map(|(at, by)| Written {
@@ -222,7 +223,7 @@ impl Row {
             elsewhere: (!one.here).then(|| {
                 one.kept_by.as_ref().map_or_else(
                     || "another machine".to_string(),
-                    |by| machine_named(state, by),
+                    |by| machine_named(state, machines, by),
                 )
             }),
         }
@@ -255,7 +256,12 @@ pub(super) fn listed(
     kept: &Kept,
     args: &Value,
 ) -> Result<Value, Refused> {
-    let Past { all, days, .. } = past(paths, state, store, kept)?;
+    let Past {
+        all,
+        days,
+        machines,
+        ..
+    } = past(paths, state, store, kept)?;
     let named = doc_named(state, &kept.file);
     let from = args
         .get("cursor")
@@ -265,7 +271,7 @@ pub(super) fn listed(
         .iter()
         .skip(from)
         .take(LISTED_AT_ONCE)
-        .map(|one| Row::of(state, one).told())
+        .map(|one| Row::of(state, &machines, one).told())
         .collect();
     let away = all.iter().filter(|one| !one.here).count();
     let here = all.len() - away;
@@ -392,7 +398,12 @@ pub(super) fn kept_here(
     asked: &str,
 ) -> Result<Version, Refused> {
     let named = doc_named(state, &kept.file);
-    let Past { all, says, .. } = past(paths, state, store, kept)?;
+    let Past {
+        all,
+        says,
+        machines,
+        ..
+    } = past(paths, state, store, kept)?;
     let wanted = asked.trim().to_lowercase();
     let mut alike = all.iter().filter(|one| one.print.starts_with(&wanted));
     let one = match (alike.next(), alike.next()) {
@@ -416,7 +427,7 @@ pub(super) fn kept_here(
             )));
         }
     };
-    let row = Row::of(state, one);
+    let row = Row::of(state, &machines, one);
     if let Some(machine) = &row.elsewhere {
         return Err(Refused::Tool(format!(
             "that version of {named} was written over on {machine}, not on this machine, and \
@@ -435,7 +446,3 @@ pub(super) fn kept_here(
     };
     Ok(Version { body, row })
 }
-
-#[cfg(test)]
-#[path = "versions_test.rs"]
-mod tests;

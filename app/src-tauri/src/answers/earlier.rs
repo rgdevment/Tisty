@@ -67,13 +67,14 @@ pub fn listed(
     let Some(doc) = asked.doc else {
         return Err(Refusal::about("noSuchDoc", id.to_string()));
     };
+    let machines = asked.machines.clone().told_by(log);
     Ok(history::rows(
         &asked.data,
         id,
         &history::logged(log, doc),
         asked.days,
         now,
-        |device| asked.machines.elsewhere(device),
+        |device| machines.elsewhere(device),
     ))
 }
 
