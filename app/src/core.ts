@@ -32,6 +32,7 @@ export interface LogEntry {
   body: string;
   by?: string;
   via?: string;
+  replaces?: string;
 }
 
 export interface Volume {
@@ -384,38 +385,6 @@ export const complete = async (id: string, also?: string[], summary?: string): P
   return invoke("complete", { id, also, summary });
 };
 export const owed = (id: string): Promise<string[]> => invoke("owed", { id });
-
-export type IcsOdd = "untitled" | "undated" | "moved" | "cancelled" | "repeat" | "zone" | "past";
-
-export interface IcsFound {
-  at: number;
-  kind: "event" | "todo";
-  title: string;
-  date?: DateSpec | null;
-  deadline?: DateSpec | null;
-  repeat?: Repeat | null;
-  reminder?: DateSpec | null;
-  place: string;
-  odd: IcsOdd[];
-  done: boolean;
-  already: boolean;
-  takeable: boolean;
-}
-
-export interface IcsBrought {
-  found: IcsFound[];
-  invitation: boolean;
-  stamp: string;
-}
-
-export const icsWaiting = (): Promise<string[]> => invoke("ics_waiting");
-export const icsRead = (path: string): Promise<IcsBrought> => invoke("ics_read", { path });
-export const icsTake = (
-  path: string,
-  stamp: string,
-  picked: number[],
-  list: string | null,
-): Promise<{ made: number; missed: number }> => invoke("ics_take", { path, stamp, picked, list });
 
 export interface Trace {
   kind: "doc" | "file" | "link" | "named";

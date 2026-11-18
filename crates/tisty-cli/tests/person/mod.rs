@@ -366,6 +366,13 @@ impl Person {
         tisty_core::docs::write(&self.paths.docs(), file, body).unwrap();
     }
 
+    // The window tells the trail which sections of a task's page it wrote in, as it saves.
+    pub fn writes_on_its_page(&self, id: TaskId, file: &str, body: &str) {
+        let was = tisty_core::docs::read(&self.paths.docs(), file).unwrap();
+        self.saves_doc(file, body);
+        self.wrote(tisty_core::paged::paged(id, &was, body));
+    }
+
     pub fn locks_doc(&self, file: &str) {
         let id = self
             .state()

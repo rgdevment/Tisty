@@ -70,6 +70,7 @@ pub mod story;
 pub mod tagging;
 pub mod task_docs;
 pub mod task_front;
+pub mod task_state;
 pub mod text;
 pub mod tidy;
 pub mod tongues;

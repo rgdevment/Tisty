@@ -7,8 +7,8 @@ import {
   icsRead,
   icsTake,
   icsWaiting,
-  type List,
-} from "../core";
+} from "../calendaring";
+import type { List } from "../core";
 import { useDesk } from "../desk";
 import { whenCalendarsHover } from "../dropped";
 import { cadence, whenLabel } from "../format";

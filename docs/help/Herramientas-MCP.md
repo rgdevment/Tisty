@@ -15,7 +15,7 @@ Las reglas detrás están en [[Qué puede hacer un asistente|Qué-puede-hacer-un
 | `help` | Cómo funciona Tisty, desde estas mismas páginas de ayuda, para que responda en vez de suponer |
 | `catch_up` | Cómo están las cosas, con las listas, las carpetas y las etiquetas más usadas; las tareas abiertas que apremian, por título y lista, para que te las cuente y las lea con `read`: las vencidas, después las por vencer, las de hoy y las atrasadas, cinco como máximo y el resto contado, sin las que un asistente ya dijo que están hechas o que no deben hacerse, que te esperan a ti, ni las que ocultaste; lo que otros cambiaron desde su último `catch_up`, veinte de cada tipo a la vez, y el siguiente trae el resto; y la tarea abierta en la que estaba o, si ya no lo está, por qué: dijo que estaba hecha o que no debía hacerse, o la cerraste, la descartaste o la ocultaste. Nombra la **Lluvia de ideas** y dice cuántas ideas esperan y cuántas están marcadas. El día que toca tu [Revisión semanal](Tareas#revisión-semanal), dice cuánto espera en cada parada y cómo ayudarte |
 | `find` | Buscar en tareas y documentos, el archivo incluido: diez de cada uno por vez, más cuando los pide. Lo que encuentra por lo que dice su página, sus pasos o sus notas llega con la línea que lo dice, recortada alrededor de la palabra, o solo con su título cuando eso basta; dentro de un documento, las líneas que lo dicen con las que tienen alrededor. Los documentos marcados como que ya cumplieron su vida van después de los vigentes, y lo dicen |
-| `read` | Leer una tarea: su página, sus pasos y sus últimas notas, con quién escribió cada una. Una página de más de unos 4000 caracteres llega como sus secciones, con el resumen y la última de las notas del asistente; la bitácora trae las últimas notas hasta unos 3000 caracteres, y más si las pide |
+| `read` | Leer una tarea: primero su estado, después su página, sus pasos y las notas escritas después de ese estado, con quién escribió cada una. Una tarea sin estado todavía llega con uno armado a partir de ella: cuántos pasos están hechos y la nota que la dio por hecha. Una página de más de unos 4000 caracteres llega como sus secciones, con el resumen y la última de las notas del asistente; la bitácora trae hasta unos 3000 caracteres de notas, y entera si la pide |
 
 `lists` y `tags` todavía le responden a un asistente que las pide por su nombre, pero ya no se ofrecen: `catch_up` ya trae las dos.
 
@@ -28,13 +28,13 @@ Las reglas detrás están en [[Qué puede hacer un asistente|Qué-puede-hacer-un
 | `reschedule` | Mover el día de una tarea que anotó un agente |
 | `describe` | Escribir la descripción de una tarea abierta, también las tuyas, reemplazando la anterior |
 | `rename` | Renombrar cualquier tarea abierta, también las tuyas |
-| `note` | Añadir a la bitácora de una tarea: hasta 4000 caracteres por nota; lo más largo va a la página de la tarea |
+| `note` | Añadir a la bitácora de una tarea lo que cambia algo (una decisión, algo descartado, un bloqueo): hasta 4000 caracteres por nota; lo más largo va a la página de la tarea. Una nota que deja sin efecto otra de un agente lo dice, y la vieja queda en la historia marcada como reemplazada |
 | `reword_note` | Reescribir una nota de la bitácora de una tarea |
 | `plan` | Añadir pasos a una tarea |
 | `reword_step` | Reescribir un paso abierto |
 | `unplan` | Quitar pasos abiertos de una tarea o, con `to`, pasarlos a la tarea a la que pertenecen |
 | `move` | Colgar una tarea de otra como parte, soltar una parte o mover una tarea a otra lista |
-| `tick` | Marcar los pasos que hizo; en una tarea tuya esperan a que los confirmes |
+| `tick` | Marcar los pasos que hizo; en una tarea tuya esperan a que los confirmes. En la misma llamada deja el estado de la tarea, una sección «Estado» en su página que se escribe entera cada vez: lo hecho, lo que falta, las decisiones vigentes y lo descartado |
 | `untick` | Quitar una marca que puso por error |
 | `say_done` | Decir que una tarea está terminada, también las tuyas, para que lo confirmes |
 | `say_not_doing` | Decir que una tarea no debería hacerse, también las tuyas, para que lo confirmes |

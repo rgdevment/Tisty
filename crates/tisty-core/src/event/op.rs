@@ -843,6 +843,9 @@ pub struct LogAdd {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub tz: Option<String>,
     pub body: String,
+    /// A reader that does not know it reads a plain note, and the one it replaces stays as written.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub replaces: Option<LogId>,
 }
 
 impl LogAdd {
@@ -851,11 +854,17 @@ impl LogAdd {
             entry,
             tz: None,
             body: body.into(),
+            replaces: None,
         }
     }
 
     pub fn in_zone(mut self, tz: Option<String>) -> Self {
         self.tz = tz;
+        self
+    }
+
+    pub fn replacing(mut self, note: Option<LogId>) -> Self {
+        self.replaces = note;
         self
     }
 }

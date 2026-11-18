@@ -23,7 +23,7 @@ expression: "said[\"result\"]"
           "name": "task"
         }
       ],
-      "description": "Tick what is finished and note what was done, ruled out and comes next, so the next session starts from there.",
+      "description": "Tick what is finished and leave its state — done, left, decisions in force — so the next session starts from there.",
       "name": "leave_off",
       "title": "Leave this where I can pick it up"
     },

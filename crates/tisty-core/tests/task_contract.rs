@@ -79,6 +79,7 @@ fn a_full_task() -> Task {
         body: "Llamé".to_owned(),
         by: None,
         via: None,
+        replaces: None,
     }];
     task
 }

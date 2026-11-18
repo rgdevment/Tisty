@@ -9,19 +9,19 @@ expression: tool
     "openWorldHint": false,
     "readOnlyHint": true
   },
-  "description": "Everything a task holds: steps, its `document` page with the description and your notes, the latest journal notes (ids for `reword_note`) and who wrote them, parts and files. Read it before noting or mending; `fields` narrows it. A closed task comes with `closed` and a `notice`: it is history, and nothing on it changes.",
+  "description": "Everything a task holds: steps, its `state`, its `document` page, the notes after that state (ids for `reword_note`), parts and files. Read it before noting or mending; `fields` narrows it. A closed task comes with `closed`: it is history.",
   "inputSchema": {
     "additionalProperties": false,
     "properties": {
       "fields": {
-        "description": "Only these keys of the answer; the id always comes",
+        "description": "Only these keys; the id always comes",
         "items": {
           "type": "string"
         },
         "type": "array"
       },
       "notes": {
-        "description": "How many latest journal notes, each cut at 4000 chars; 0: all, whole",
+        "description": "How many latest notes, cut at 4000 chars; 0: all, whole",
         "type": "integer"
       },
       "task": {

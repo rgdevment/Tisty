@@ -14,6 +14,7 @@ use super::resuming::{
     whose,
 };
 use super::task_reading::{Page, widened, window};
+use super::task_state::Stated;
 use super::unpathing::{PATH_MARK, fenced_in, unpathed_body};
 use super::{
     Refused, alike, already, doc_named, hitch, named, named_doc, opened, said, scoped, trail, when,
@@ -510,14 +511,21 @@ pub(super) fn read(paths: &Paths, args: &Value) -> Result<Value, Refused> {
                 .collect::<Vec<_>>()
         );
     }
+    let stated = (wants("state") || wants("journal"))
+        .then(|| Stated::of(paths, &state, task, page.as_ref()));
     let journal: Vec<&tisty_core::model::LogEntry> = task.journal().collect();
-    let notes = window(&journal, widened(args)?, kept_here, |one| {
+    let after = stated.as_ref().and_then(Stated::after);
+    let notes = window(&journal, widened(args)?, after, kept_here, |one| {
         one.by
             .as_ref()
             .and_then(|by| whose(&state, by, one.via.as_deref(), store.device()))
     });
     if wants("journal") {
-        notes.structured(&mut whole, UNPATHED);
+        notes.structured(&mut whole);
+        notes.counted(&mut whole, UNPATHED);
+    }
+    if let Some(stated) = stated.as_ref().filter(|_| wants("state")) {
+        stated.structured(&mut whole, &notes);
     }
     if wants("kept") && !task.references().is_empty() {
         whole["kept"] = json!(
@@ -537,6 +545,9 @@ pub(super) fn read(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         );
         plainly.push_str(&format!(" ({notice})"));
         whole["notice"] = json!(notice);
+    }
+    if let Some(stated) = stated.as_ref().filter(|_| wants("state")) {
+        plainly.push_str(&stated.told(&notes));
     }
     if let Some(body) = description {
         plainly.push_str("\n\n");
@@ -1008,7 +1019,7 @@ pub(super) const NEWEST_SHOWN: usize = 8;
 const TAGS_SHOWN: usize = 300;
 const TAGS_AT_A_GLANCE: usize = 40;
 const AT_A_GLANCE: usize = 30;
-const READ_FIELDS: [&str; 24] = [
+const READ_FIELDS: [&str; 25] = [
     "id",
     "title",
     "status",
@@ -1030,6 +1041,7 @@ const READ_FIELDS: [&str; 24] = [
     "parts",
     "description",
     "steps",
+    "state",
     "document",
     "journal",
     "kept",

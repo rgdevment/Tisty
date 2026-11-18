@@ -14,9 +14,10 @@ pub use cards::{Card, Gist, card_of, cards_of, forget_stray_cards, sighted};
 use carried::kept_still;
 pub use carried::{
     Carried, NotesBefore, RestorePoint, before_left_at, carried_at, carried_print, forget_carried,
-    forget_what_was_carried, keep_carried, keep_notes_before, keep_notes_left, kept_before,
-    print_of, print_of_text, read_as_printed, read_before, read_carried, read_notes_before,
-    read_notes_left, restore_point, rewrite_if, set_restore_point,
+    forget_what_was_carried, keep_carried, keep_notes_before, keep_notes_left, keep_state_left,
+    kept_before, print_of, print_of_text, read_as_printed, read_before, read_carried,
+    read_notes_before, read_notes_left, read_state_left, restore_point, rewrite_if,
+    set_restore_point,
 };
 pub use prints::{Prints, Seen};
 pub use relabel::{another_name, book_to_relabel, relabel_page, relabeled};
