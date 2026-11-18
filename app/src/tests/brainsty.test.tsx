@@ -42,6 +42,10 @@ vi.mock("../ui/brainsty/drawing", () => ({
     place: () => sigma.placed++,
     retheme: () => sigma.rethemed++,
     centre: (on: number) => sigma.centred.push(on),
+    zoom: () => 0.5,
+    toScreen: (point: [number, number]) => point,
+    nodeOnScreen: () => undefined,
+    onFrame: () => () => {},
     kill: () => sigma.killed++,
   }),
 }));
