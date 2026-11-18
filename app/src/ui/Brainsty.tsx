@@ -31,8 +31,14 @@ export default function Brainsty({ network }: { network: Network }) {
     );
     const near = network.near;
     let following = near !== undefined;
+    let frame = 0;
     const follow = () => {
       if (following && near !== undefined) drawn.centre(near);
+    };
+    // sigma takes the new places on its next frame, so the camera follows after it.
+    const followSoon = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(follow);
     };
     const letGo = () => {
       following = false;
@@ -43,13 +49,14 @@ export default function Brainsty({ network }: { network: Network }) {
     container.addEventListener("wheel", letGo, { passive: true });
     const stop = layOut({ ...spots, edges: edgesOf(network.edges) }, (step) => {
       drawn.place(step);
-      follow();
+      followSoon();
       if (!step.done) return;
       container.dataset.laidMs = String(Math.round(step.ms));
       container.dataset.iterations = String(step.iterations);
     });
     const unfollow = followTheme(() => drawn.retheme(paletteNow()));
     return () => {
+      cancelAnimationFrame(frame);
       stop();
       unfollow();
       container.removeEventListener("pointerdown", letGo);

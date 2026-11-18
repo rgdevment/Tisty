@@ -17,7 +17,7 @@ interface Props {
 export default function BrainstyScreen({ near, onClose }: Props) {
   const [read, setRead] = useState<Read | null>(null);
   const [Drawn, setDrawn] = useState<LoadedBrainsty | null>(null);
-  const frame = useRef<HTMLElement>(null);
+  const frame = useRef<HTMLDivElement>(null);
   const closing = useRef(onClose);
   closing.current = onClose;
 
@@ -37,23 +37,30 @@ export default function BrainstyScreen({ near, onClose }: Props) {
   useEffect(() => {
     const before = document.activeElement;
     frame.current?.focus();
-    const shut = (e: KeyboardEvent) => {
-      if (e.key !== "Escape" || e.defaultPrevented) return;
-      e.preventDefault();
-      closing.current();
+    // Heard first, so the view this layer covers never acts on a key meant for it.
+    const kept = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        closing.current();
+      } else if (e.ctrlKey || e.metaKey) {
+        e.stopImmediatePropagation();
+      }
     };
-    window.addEventListener("keydown", shut);
+    window.addEventListener("keydown", kept, true);
     return () => {
-      window.removeEventListener("keydown", shut);
+      window.removeEventListener("keydown", kept, true);
       if (before instanceof HTMLElement && before.isConnected) before.focus();
     };
   }, []);
 
   const network = read && "network" in read ? read.network : null;
   return (
-    <section
+    <div
       ref={frame}
       tabIndex={-1}
+      role="dialog"
+      aria-modal="true"
       aria-label={t("brainsty")}
       className="fixed inset-0 z-50 flex flex-col bg-bg font-sans text-ink outline-none"
     >
@@ -91,7 +98,7 @@ export default function BrainstyScreen({ near, onClose }: Props) {
           Drawn && <Drawn network={network} />
         )}
       </div>
-    </section>
+    </div>
   );
 }
 

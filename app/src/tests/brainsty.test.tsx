@@ -163,14 +163,14 @@ describe("the Brainsty section", () => {
 
     await user.click(screen.getByRole("button", { name: t("brainsty") }));
 
-    await screen.findByRole("region", { name: t("brainsty") });
+    await screen.findByRole("dialog", { name: t("brainsty") });
     expect(await screen.findByText("3 nodes · 2 connections")).toBeTruthy();
     expect(await screen.findByRole("img", { name: t("brainstyNetwork") })).toBeTruthy();
     expect(asked()).toEqual([{ cmd: "brain_network", args: { near: null } }]);
 
     await user.keyboard("{Escape}");
 
-    expect(screen.queryByRole("region", { name: t("brainsty") })).toBeNull();
+    expect(screen.queryByRole("dialog", { name: t("brainsty") })).toBeNull();
     expect(screen.getByText("buy bread")).toBeTruthy();
   });
 
@@ -184,8 +184,28 @@ describe("the Brainsty section", () => {
     await user.click(screen.getByRole("button", { name: new RegExp(`^${t("goBack")}`) }));
 
     expect(asked()[0].args).toEqual({ near: "01A" });
-    expect(screen.queryByRole("region", { name: t("brainsty") })).toBeNull();
+    expect(screen.queryByRole("dialog", { name: t("brainsty") })).toBeNull();
     expect(screen.getByRole("button", { name: t("expand") })).toBeTruthy();
+
+    await user.click(screen.getByRole("button", { name: t("brainsty") }));
+    await screen.findByText("3 nodes · 2 connections");
+    await user.keyboard("{Escape}");
+
+    expect(screen.queryByRole("dialog", { name: t("brainsty") })).toBeNull();
+    expect(screen.getByRole("button", { name: t("expand") })).toBeTruthy();
+  });
+
+  it("keeps the window's own shortcuts from acting on the view it covers", async () => {
+    const user = await opened();
+    await user.click(screen.getByRole("button", { name: t("brainsty") }));
+    await screen.findByText("3 nodes · 2 connections");
+
+    await user.keyboard("{Control>}b{/Control}");
+    await user.keyboard("{Control>}k{/Control}");
+    await user.keyboard("{Escape}");
+
+    expect(document.getElementById("side-finder")).not.toBeNull();
+    expect(document.activeElement?.id).not.toBe("side-finder");
   });
 
   it("says so while the base is still being built", async () => {
@@ -233,7 +253,7 @@ describe("the Brainsty section", () => {
 
     await user.keyboard("{F1}");
 
-    await waitFor(() => expect(screen.queryByRole("region", { name: t("brainsty") })).toBeNull());
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: t("brainsty") })).toBeNull());
   });
 
   it("draws the network centred on where it opens, following the layout until the person moves it", async () => {
@@ -243,8 +263,10 @@ describe("the Brainsty section", () => {
     const spots = { x: new Float32Array(3), y: new Float32Array(3) };
 
     sigma.step?.({ ...spots, done: false, iterations: 10, ms: 5 });
+    await waitFor(() => expect(sigma.centred).toEqual([1, 1]));
     canvas.dispatchEvent(new Event("pointerdown"));
     sigma.step?.({ ...spots, done: true, iterations: 20, ms: 12.4 });
+    await new Promise((frame) => requestAnimationFrame(frame));
 
     expect(sigma.centred).toEqual([1, 1]);
     expect(sigma.placed).toBe(2);
