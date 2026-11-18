@@ -1001,7 +1001,7 @@ export default function Tree({
           <button
             type="button"
             onClick={showAll}
-            className="flex w-full items-center gap-1.5 rounded-md py-1 pr-2 pl-2 text-left text-[12px] text-accent hover:bg-hover"
+            className="flex w-full items-center gap-1.5 rounded-md py-1 pr-2 pl-2 text-left text-[12.5px] text-accent hover:bg-hover"
           >
             <Glyph name="eye-thing" className="h-[14px] w-[14px] shrink-0" />
             {t("showHidden")}
