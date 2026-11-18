@@ -420,6 +420,32 @@ describe("what changed between two versions", () => {
     expect(() => toFirstChange(null)).not.toThrow();
   });
 
+  it("drops a version compared with once it becomes the one read", async () => {
+    const D = "d".repeat(64);
+    const third: Version = { ...yours, print: D, wrote: "2026-11-09T10:00:00Z", bytes: 3000 };
+    ipc.rows = [claudes, yours, third];
+    ipc.bodies[D] = "# Acta\n\nlo de antes";
+    const hands = { onBack: vi.fn(), onClose: vi.fn(), onError: vi.fn() };
+    const { rerender } = render(<Earlier doc="d-1" title="Acta" {...hands} />);
+    const rows = await within(list()).findAllByRole("listitem");
+    await userEvent.click(
+      within(rows[1]).getByRole("button", { name: fill("earlierCompareWith", whenOf(yours)) }),
+    );
+    await waitFor(() => expect(called("doc_compared")).toHaveLength(1));
+
+    ipc.rows = [yours, third];
+    rerender(<Earlier doc="d-2" title="Acta" {...hands} />);
+    await waitFor(() =>
+      expect(called("doc_compared").slice(-1)[0]?.args).toEqual({ id: "d-2", was: A, now: null }),
+    );
+    const left = await within(list()).findAllByRole("listitem");
+    await userEvent.click(within(left[1]).getAllByRole("button")[0]);
+
+    await waitFor(() =>
+      expect(called("doc_compared").slice(-1)[0]?.args).toEqual({ id: "d-2", was: D, now: null }),
+    );
+  });
+
   it("says when the two say the same", async () => {
     ipc.compared = { kind: "drawn", html: "<p>igual</p>", gone: 0, came: 0 };
     view();

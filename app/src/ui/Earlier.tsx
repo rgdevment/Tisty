@@ -168,6 +168,10 @@ export default function Earlier({
     };
   }, [doc]);
   useEffect(look, [look]);
+  // A version compared with the one read is no comparison: what it says now takes its place.
+  useEffect(() => {
+    if (against !== null && against === chosen) setAgainst(NOW);
+  }, [against, chosen]);
 
   const kept = (event: React.KeyboardEvent) => {
     if (event.key === "Escape") {
