@@ -43,6 +43,14 @@ fn words_between_quotes_are_named_without_the_quotes() {
 }
 
 #[test]
+fn spaces_inside_the_quotes_stay_out_of_what_is_named() {
+    assert_eq!(
+        named("Lee «  Viajes » hoy."),
+        vec![(Named::Quoted("Viajes".into()), "Viajes")]
+    );
+}
+
+#[test]
 fn a_double_bracket_is_named_whole() {
     assert_eq!(
         named("As [[Brainsty: decisiones]] says."),
