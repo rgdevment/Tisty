@@ -354,6 +354,85 @@ fn the_text_a_document_already_says_is_no_version_to_go_back_to() {
         words(&again).contains("already says what version"),
         "{again}"
     );
+    let listed = served.versions(&doc);
+    assert!(
+        listed["versions"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .all(|row| row["version"] != first.as_str()),
+        "what it says now is listed as a past version: {listed}"
+    );
+    let read = served.call("read_doc", json!({ "doc": doc, "version": first }));
+    assert!(refused(&read), "{read}");
+    assert!(words(&read).contains("it is no past version"), "{read}");
+}
+
+#[test]
+fn going_back_twice_to_one_version_of_a_document_with_pages_changes_nothing_the_second_time() {
+    let served = Served::new();
+    let doc = served.wrote(UNO);
+    served.person().rewrites_doc(&doc, DOS);
+    went(&served.call(
+        "write_doc",
+        json!({ "body": "# Anexo\n\nLo que cuelga del acta.\n", "page_of": doc, "anyway": true }),
+    ));
+    let first = served.version_that_said(&doc, "Uno, como lo dejó el asistente.");
+
+    went(&served.call("restore_doc", json!({ "doc": doc, "version": first })));
+    let once = served.body_of(&doc);
+    assert!(once.contains("Uno,") && once.contains("Anexo"), "{once}");
+
+    let twice = served.call("restore_doc", json!({ "doc": doc, "version": first }));
+
+    assert!(refused(&twice), "{twice}");
+    assert!(words(&twice).contains("nothing was changed"), "{twice}");
+    assert_eq!(served.body_of(&doc), once);
+}
+
+#[test]
+fn an_archived_document_shows_its_versions_and_goes_back_to_none() {
+    let served = Served::new();
+    let doc = served.written_by_turns();
+    let first = served.version_that_said(&doc, "Uno, como lo dejó el asistente.");
+    went(&served.call("archive_doc", json!({ "doc": doc, "archived": true })));
+
+    assert_eq!(served.versions(&doc)["kept_here"], 2);
+    let back = served.call("restore_doc", json!({ "doc": doc, "version": first }));
+
+    assert!(refused(&back), "{back}");
+    assert!(words(&back).contains("put away"), "{back}");
+    assert!(served.body_of(&doc).contains("Tres"));
+}
+
+#[test]
+fn going_back_to_a_compaction_that_was_undone_does_not_make_it_wait_again() {
+    let served = Served::new();
+    let doc = served.written_by_turns();
+    let print = served.read(&doc)["print"].as_str().unwrap().to_string();
+    went(&served.call(
+        "write_doc",
+        json!({ "doc": doc, "print": print, "compact": true, "body": "# Acta\n\nCompacta.\n" }),
+    ));
+    went(&served.call_as(CODEX, "restore_doc", json!({ "doc": doc })));
+    served
+        .person()
+        .rewrites_doc(&doc, "# Acta\n\nCuatro, la persona.\n");
+    served
+        .person()
+        .rewrites_doc(&doc, "# Acta\n\nCinco, la persona.\n");
+    let compacted = served.version_that_said(&doc, "Compacta.");
+
+    went(&served.call("restore_doc", json!({ "doc": doc, "version": compacted })));
+
+    assert!(
+        served.read(&doc).get("compacted").is_none(),
+        "it waits again"
+    );
+    went(&served.call(
+        "edit_doc",
+        json!({ "doc": doc, "old": "Compacta.", "new": "Compacta, y luego corregida." }),
+    ));
 }
 
 #[test]
@@ -607,6 +686,11 @@ fn a_machine_nobody_named_is_called_another_machine_and_the_text_still_here_is_n
     let rows = listed["versions"].as_array().unwrap();
     assert_eq!(rows.len(), 1, "{listed}");
     assert_eq!(rows[0]["elsewhere"], "another machine");
+    let said = listed["said"].as_str().unwrap();
+    assert!(
+        said.starts_with("Nothing of what") && said.contains("1 marked `elsewhere`"),
+        "{said}"
+    );
     assert_eq!(rows[0]["by"], "the person");
     assert_eq!(rows[0]["bytes"], DOS.len());
 }
@@ -675,6 +759,35 @@ fn a_tasks_id_lists_and_reads_the_versions_of_its_page() {
             }),
             &[(page.as_str(), "[page]"), (version, "[version]")]
         )
+    );
+}
+
+#[test]
+fn going_back_uncut_on_a_page_with_a_digest_still_undoes_and_redoes_itself() {
+    let served = Served::new();
+    let (task, page) = served.task_with_a_page();
+    went(&served.call(
+        "append_doc",
+        json!({ "doc": task, "body": "Resumen: uno y dos descartadas.", "replace": true }),
+    ));
+    went(&served.call("append_doc", json!({ "doc": task, "body": "Nota tres." })));
+    let with_three = served.body_of(&page);
+    let before_the_digest = served.version_that_said(&task, "Nota dos.");
+
+    went(&served.call(
+        "restore_doc",
+        json!({ "doc": task, "version": before_the_digest }),
+    ));
+    let went_back = served.body_of(&page);
+    assert!(went_back.contains("Nota dos.") && !went_back.contains("Resumen"));
+
+    went(&served.call("restore_doc", json!({ "doc": task })));
+    assert_eq!(served.body_of(&page), with_three, "the undo missed");
+    went(&served.call("restore_doc", json!({ "doc": task })));
+    assert_eq!(
+        served.body_of(&page),
+        went_back,
+        "the second undo swapped the digest instead of going back again"
     );
 }
 
@@ -749,7 +862,8 @@ fn going_back_on_a_tasks_id_reaches_the_assistants_notes_and_nothing_else() {
     let refused_whole = served.call("restore_doc", json!({ "doc": task, "version": notes_only }));
     assert!(refused(&refused_whole), "{refused_whole}");
     assert!(
-        words(&refused_whole).contains("reaches only the assistant's notes"),
+        words(&refused_whole).contains("reaches only the assistant's notes")
+            && words(&refused_whole).contains(&format!("`{page}`")),
         "{refused_whole}"
     );
     assert!(served.body_of(&page).contains("llevar la foto"));
@@ -826,6 +940,38 @@ fn a_task_out_of_sight_answers_for_its_versions_like_an_id_nobody_has() {
             hidden.to_string().replace(&task, NOBODY),
             nobody.to_string(),
             "{name} told a hidden task from nothing"
+        );
+    }
+}
+
+#[test]
+fn a_hidden_tasks_page_by_its_own_name_answers_like_a_page_nobody_has() {
+    const NOBODY: &str = "t_01j00000000000000000000000-0001";
+    let served = Served::new();
+    let (task, page) = served.task_with_a_page();
+    let version = served.versions(&page)["versions"][0]["version"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    served.person().hides(person::task(&task));
+
+    for (name, args) in [
+        ("read_doc", json!({ "versions": true })),
+        ("read_doc", json!({ "version": version })),
+        ("restore_doc", json!({ "version": version })),
+        ("restore_doc", json!({ "version": " " })),
+    ] {
+        let with = |doc: &str| {
+            let mut args = args.clone();
+            args["doc"] = json!(doc);
+            served.call(name, args)
+        };
+        let (hidden, nobody) = (with(&page), with(NOBODY));
+        assert!(refused(&hidden), "{name} {args}: {hidden}");
+        assert_eq!(
+            hidden.to_string().replace(&page, NOBODY),
+            nobody.to_string(),
+            "{name} {args} told a hidden page from nothing"
         );
     }
 }

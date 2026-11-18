@@ -205,6 +205,55 @@ fn the_step_back_alone_is_no_version_of_the_list() {
 }
 
 #[test]
+fn a_kept_text_the_document_says_again_now_is_no_past_version() {
+    let id = Ulid::generate();
+    let log = [
+        born(id, 0, HERE, 1),
+        said(id, 40, AGENT_HERE, CLAUDE, 2),
+        said(id, 80, HERE, None, 1),
+    ];
+
+    let all = listed_holding(
+        &[on_disk(1, 40), on_disk(2, 80)],
+        &log,
+        id,
+        0,
+        Some(&print(1)),
+    );
+
+    assert_eq!(
+        all.iter().map(|one| one.print.clone()).collect::<Vec<_>>(),
+        vec![print(2)]
+    );
+}
+
+#[test]
+fn a_machine_the_person_removed_is_not_named_as_keeping_anything() {
+    let id = Ulid::generate();
+    let log = [
+        born(id, 0, HERE, 1),
+        said(id, 40, THERE, None, 2),
+        said(id, 41, AGENT_THERE, CLAUDE, 3),
+    ];
+    let mut state = hosted();
+    state.dropped.insert(device(THERE));
+
+    let all = shown(
+        &[],
+        &wrote(&log, id),
+        |one| machine(&state, one),
+        &Here {
+            machine: &device(HERE),
+            says: Some(&print(3)),
+            since: at(0),
+        },
+    );
+
+    assert!(all.is_empty(), "{all:?}");
+    assert_eq!(machine(&state, &device(AGENT_THERE)), None);
+}
+
+#[test]
 fn a_version_another_machine_wrote_over_is_named_as_kept_there() {
     let id = Ulid::generate();
     let log = [

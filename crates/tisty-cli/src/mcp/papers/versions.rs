@@ -84,6 +84,7 @@ pub(super) fn not_the_diary(paths: &Paths, state: &State, kept: &Kept) -> Result
 struct Past {
     all: Vec<Shown>,
     days: u32,
+    says: Option<String>,
 }
 
 fn past(paths: &Paths, state: &State, store: &Store, kept: &Kept) -> Result<Past, Refused> {
@@ -95,7 +96,7 @@ fn past(paths: &Paths, state: &State, store: &Store, kept: &Kept) -> Result<Past
     let log = store.read_all().map_err(hitch)?;
     let says = tisty_core::docs::read(&paths.docs(), &kept.file)
         .ok()
-        .map(|body| tisty_core::attach::printed(body.as_bytes()));
+        .map(|body| tisty_core::docs::print_of_text(&body));
     let all = tisty_core::history::shown(
         &tisty_core::history::versions(paths.data(), &kept.file),
         &tisty_core::history::wrote(&log, kept.id),
@@ -106,7 +107,37 @@ fn past(paths: &Paths, state: &State, store: &Store, kept: &Kept) -> Result<Past
             since,
         },
     );
-    Ok(Past { all, days })
+    Ok(Past { all, days, says })
+}
+
+const GONE_BACK: &str = "gone-back";
+
+fn gone_back_at(paths: &Paths, page: &str) -> Option<std::path::PathBuf> {
+    tisty_core::docs::resolve(&paths.cache().join(GONE_BACK), page).ok()
+}
+
+pub(super) fn went_back(paths: &Paths, page: &str, from: &str, to: &str) {
+    let Some(at) = gone_back_at(paths, page) else {
+        return;
+    };
+    let prints = format!(
+        "{}\n{}\n",
+        tisty_core::docs::print_of_text(from),
+        tisty_core::docs::print_of_text(to)
+    );
+    let _ = at.parent().map(std::fs::create_dir_all);
+    let _ = tisty_core::store::write_atomic(&at, prints.as_bytes());
+}
+
+// A digest's swap waits while the page still stands where a going back left it or its undo did.
+pub(super) fn undoes_a_going_back(paths: &Paths, page: &str, now: &str) -> bool {
+    let print = tisty_core::docs::print_of_text(now);
+    let marked = gone_back_at(paths, page)
+        .and_then(|at| std::fs::read_to_string(at).ok())
+        .is_some_and(|said| said.lines().any(|one| one == print));
+    marked
+        && tisty_core::history::back(paths.data(), page)
+            .is_some_and(|back| back.left.as_deref() == Some(print.as_str()))
 }
 
 fn short(print: &str) -> &str {
@@ -188,7 +219,7 @@ pub(super) fn listed(
     kept: &Kept,
     args: &Value,
 ) -> Result<Value, Refused> {
-    let Past { all, days } = past(paths, state, store, kept)?;
+    let Past { all, days, .. } = past(paths, state, store, kept)?;
     let named = doc_named(state, &kept.file);
     let from = args
         .get("cursor")
@@ -224,26 +255,32 @@ pub(super) fn listed(
         kept_of.insert("next".into(), json!(next));
     }
 
-    let said = match (all.len(), rows.is_empty()) {
-        (0, _) => format!(
+    let elsewhere = format!(
+        "{away} marked `elsewhere` were written over on another of the person's machines, which \
+         alone may keep them: their text is not here, so from this one they are neither read nor \
+         gone back to"
+    );
+    let said = match (all.len(), rows.is_empty(), here) {
+        (0, _, _) => format!(
             "Nothing of what {named} said before is kept on this machine. A text becomes a \
              version when it is written over after half an hour untouched, or by someone else, \
              and stays {days} days; versions never leave the machine that kept them."
         ),
-        (every, true) => format!(
+        (every, true, _) => format!(
             "No version of {named} is left past `cursor` {from}: the list holds {every} in all. \
              Ask `versions` again without `cursor` for the newest."
         ),
-        (_, false) => format!(
+        (_, false, 0) => format!(
+            "Nothing of what {named} said before is kept on this machine; {elsewhere}. Versions \
+             never leave the machine that kept them."
+        ),
+        (_, false, _) => format!(
             "{named} keeps {here} past version(s) on this machine, newest first{}. `read_doc` \
              with `version` reads one, and `restore_doc` with `version` goes back to it. \
              Versions never leave the machine that kept them, and stay {days} days.{}",
             match away {
                 0 => String::new(),
-                _ => format!(
-                    "; another {away}, marked `elsewhere`, live on another machine alone: that \
-                     text is not here, so it is neither read nor gone back to from this one"
-                ),
+                _ => format!("; {elsewhere}"),
             },
             match next {
                 Some(next) => format!(" Older ones: `versions` again with `cursor` {next}."),
@@ -274,7 +311,7 @@ pub(super) fn read(
     kept_of.insert("lines".into(), json!(version.body.lines().count()));
     // A version never changes under a cursor, so its parts need no print sent back to join them.
     let mut args = args.clone();
-    args["print"] = json!(version.print);
+    args["print"] = json!(tisty_core::attach::printed(version.body.as_bytes()));
     super::reading::by_parts(
         super::reading::Reading {
             body: &version.body,
@@ -288,7 +325,6 @@ pub(super) fn read(
 }
 
 pub(super) struct Version {
-    pub print: String,
     pub body: String,
     pub row: Row,
 }
@@ -320,7 +356,7 @@ pub(super) fn kept_here(
     asked: &str,
 ) -> Result<Version, Refused> {
     let named = doc_named(state, &kept.file);
-    let Past { all, .. } = past(paths, state, store, kept)?;
+    let Past { all, says, .. } = past(paths, state, store, kept)?;
     let wanted = asked.trim().to_lowercase();
     let mut alike = all.iter().filter(|one| one.print.starts_with(&wanted));
     let one = match (alike.next(), alike.next()) {
@@ -329,6 +365,12 @@ pub(super) fn kept_here(
             return Err(Refused::Tool(format!(
                 "{asked:?} begins more than one version of {named}. Send the `version` whole, \
                  as `read_doc` with `versions` gives it."
+            )));
+        }
+        (None, _) if says.is_some_and(|now| now.starts_with(&wanted)) => {
+            return Err(Refused::Tool(format!(
+                "{named} already says what version {asked:?} says, so it is no past version: \
+                 `read_doc` without `version` reads it, and there is nothing to go back to."
             )));
         }
         (None, _) => {
@@ -341,11 +383,11 @@ pub(super) fn kept_here(
     let row = Row::of(state, one);
     if let Some(machine) = &row.elsewhere {
         return Err(Refused::Tool(format!(
-            "that version of {named} is kept on {machine}, not on this machine, and versions \
-             never leave the machine that kept them: its text is not here, so from here it is \
-             neither read nor gone back to. Nothing was changed. Tell the person which machine \
-             has it; `read_doc` with `versions` shows the ones this machine keeps, without \
-             `elsewhere`."
+            "that version of {named} was written over on {machine}, not on this machine, and \
+             versions never leave the machine that kept them: its text is not here, so from \
+             here it is neither read nor gone back to. Nothing was changed. Tell the person \
+             which machine may keep it; `read_doc` with `versions` shows the ones this machine \
+             keeps, without `elsewhere`."
         )));
     }
     let Some(body) = tisty_core::history::read(paths.data(), &kept.file, &one.print) else {
@@ -355,9 +397,5 @@ pub(super) fn kept_here(
             row.version
         )));
     };
-    Ok(Version {
-        print: one.print.clone(),
-        body,
-        row,
-    })
+    Ok(Version { body, row })
 }

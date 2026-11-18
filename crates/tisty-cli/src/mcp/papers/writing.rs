@@ -222,19 +222,14 @@ pub(in crate::mcp) fn restore_doc(paths: &Paths, args: &Value) -> Result<Value, 
     };
     let (which, a_task_s) = super::compacting::page_to_restore(paths, &which)?;
     let version = text(args, "version");
-    if version.is_none() && args.get("version").is_some_and(|one| !one.is_null()) {
-        return Err(Refused::Tool(
-            "`version` came empty, so nothing was changed. Send one as `read_doc` with \
-             `versions` gives it, or leave it out to undo only the last write."
-                .into(),
-        ));
-    }
+    let blank = version.is_none() && args.get("version").is_some_and(|one| !one.is_null());
     if version.is_none()
+        && !blank
         && a_task_s
         && let Some(slot) = tisty_core::docs::read_notes_before(paths.data(), &which)
         && let Ok(now) = tisty_core::docs::read(&paths.docs(), &which)
         && let Some(body) = tisty_core::assistant_notes::swapped(&now, &slot.after, &slot.before)
-        && !another_write_stands_behind(paths, &which, &now, &body)
+        && !super::versions::undoes_a_going_back(paths, &which, &now)
     {
         return notes_put_back(paths, &which, &slot, &now, &body);
     }
@@ -248,6 +243,13 @@ pub(in crate::mcp) fn restore_doc(paths: &Paths, args: &Value) -> Result<Value, 
             super::super::mistaken::no_document_called(&state, &which),
         ));
     };
+    if blank {
+        return Err(Refused::Tool(
+            "`version` came empty, so nothing was changed. Send one as `read_doc` with \
+             `versions` gives it, or leave it out to undo only the last write."
+                .into(),
+        ));
+    }
     let named = doc_named(&state, &which);
     let past = match &version {
         Some(asked) => Some(super::versions::kept_here(
@@ -270,7 +272,15 @@ pub(in crate::mcp) fn restore_doc(paths: &Paths, args: &Value) -> Result<Value, 
     };
     let now = tisty_core::docs::read(&paths.docs(), &which).map_err(hitch)?;
     if a_task_s {
-        super::compacting::only_the_notes(&now, &was)?;
+        super::compacting::only_the_notes(&now, &was).map_err(|refused| match &past {
+            Some(_) => Refused::Tool(format!(
+                "going back by a task's id reaches only the assistant's notes, and that version \
+                 differs elsewhere too — its steps, or the person's words. Nothing was changed. \
+                 To take the whole page back, steps and all, send its own name, `{which}`, as \
+                 `doc`."
+            )),
+            None => refused,
+        })?;
     }
     if tisty_core::docs::unchanged(&now, &was) {
         return Err(Refused::Tool(match &past {
@@ -313,11 +323,23 @@ pub(in crate::mcp) fn restore_doc(paths: &Paths, args: &Value) -> Result<Value, 
         &which,
         &was,
     )?;
-    if let Some(kept) = state.docs.values().find(|one| one.file == which)
-        && kept
-            .compacted
-            .as_ref()
-            .is_some_and(|one| one.undone_by(&now, &was))
+    if let Some(one) = &past {
+        let whole = tisty_core::docs::read(&paths.docs(), &which).unwrap_or_default();
+        if tisty_core::docs::unchanged(&now, &whole) {
+            return Err(Refused::Tool(format!(
+                "{named} already says what version {} says, with the lines naming its pages, so \
+                 nothing was changed.",
+                one.short()
+            )));
+        }
+        if kept.task_of.is_some() {
+            super::versions::went_back(paths, &which, &now, &whole);
+        }
+    }
+    if kept
+        .compacted
+        .as_ref()
+        .is_some_and(|one| one.undone_by(&now, &was))
         && let Err(e) = store.append(Op::DocUncompacted { id: kept.id })
     {
         tisty_core::witness::warn(
@@ -326,7 +348,7 @@ pub(in crate::mcp) fn restore_doc(paths: &Paths, args: &Value) -> Result<Value, 
             &[("code", tisty_core::witness::Fact::Code(e.coded()))],
         );
     }
-    if let Some(kept) = state.docs.values().find(|one| one.file == which)
+    if past.is_none()
         && kept.compacted.is_none()
         && let Some(mark) = compaction_put_back(&store, kept.id, &was)
         && let Err(e) = store.append(mark)
@@ -363,19 +385,6 @@ pub(in crate::mcp) fn restore_doc(paths: &Paths, args: &Value) -> Result<Value, 
         said["structuredContent"]["went_back_to"] = Value::Object(back_to);
     }
     Ok(said)
-}
-
-// A page that reads as a version it keeps was just gone back to: undoing that comes before a digest's swap.
-fn another_write_stands_behind(paths: &Paths, which: &str, now: &str, swapped: &str) -> bool {
-    let print = tisty_core::attach::printed(now.as_bytes());
-    let gone_back_to = tisty_core::history::versions(paths.data(), which)
-        .iter()
-        .any(|one| one.print == print);
-    gone_back_to
-        && tisty_core::history::back(paths.data(), which).is_some_and(|back| {
-            back.left.as_deref() == Some(print.as_str())
-                && !tisty_core::docs::unchanged(&back.body, swapped)
-        })
 }
 
 // Going back over an undone compaction brings it back to wait for the person, unless they kept it.
