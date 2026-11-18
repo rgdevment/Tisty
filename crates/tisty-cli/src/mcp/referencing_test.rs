@@ -88,6 +88,32 @@ fn a_double_bracket_title_names_only_documents() {
         "See [[Call the bank]] and [Trips](tisty:doc/trips-0001)."
     );
     assert_eq!(linked_ids(&heard), ["trips-0001"]);
+    assert_eq!(heard.maybe.len(), 1, "a task named that way is proposed");
+    assert_eq!(heard.maybe[0].1[0].id, ERRAND);
+}
+
+#[test]
+fn a_whole_document_s_first_line_is_its_title_and_is_kept() {
+    let body = "Plans for «Brainsty: decisiones»\n\nMore.\n";
+
+    assert_eq!(
+        title_line(&json!({ "body": body }), "body").as_deref(),
+        Some("Plans for «Brainsty: decisiones»")
+    );
+    assert_eq!(
+        title_line(
+            &json!({ "doc": "x-0001", "print": "p", "body": body }),
+            "body"
+        )
+        .as_deref(),
+        Some("Plans for «Brainsty: decisiones»")
+    );
+    for adding in [
+        json!({ "doc": "x-0001", "body": body }),
+        json!({ "task": ERRAND, "body": body }),
+    ] {
+        assert_eq!(title_line(&adding, "body"), None, "{adding}");
+    }
 }
 
 #[test]

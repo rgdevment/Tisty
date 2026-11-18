@@ -16,7 +16,7 @@ const NAMED: &str = "SELECT id, uid, kind, title FROM node WHERE id = ?1
     UNION ALL SELECT id, uid, kind, title FROM node WHERE uid = ?1 LIMIT 1";
 const CITING: &str = "SELECT n.id, n.kind, n.title, n.state, e.kind, n.stamp FROM edge e
     JOIN node n ON n.id = e.source
-    WHERE e.kind IN ('cite', 'mention') AND e.target IN (?1, ?2, ?3)
+    WHERE e.kind IN ('cite', 'mention') AND e.target IN (?1, ?2, ?3) AND n.id <> ?1
     ORDER BY n.kind = 'task', n.title COLLATE NOCASE, n.id";
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]

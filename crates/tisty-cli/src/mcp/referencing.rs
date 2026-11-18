@@ -5,7 +5,7 @@ use serde_json::{Value, json};
 use tisty_core::model::TaskId;
 use tisty_core::{Paths, State};
 use tisty_markdown::named::{Named, spots};
-use tisty_markdown::refs::{DOC, TASK, pictures};
+use tisty_markdown::refs::{DOC, TASK, labelled, pictures};
 
 use super::jsonrpc::{with_ask, with_said};
 
@@ -26,7 +26,7 @@ impl Target {
     fn link(&self, words: &str, card: bool) -> String {
         let scheme = if self.task { TASK } else { DOC };
         let bang = if card { "!" } else { "" };
-        format!("{bang}[{}]({scheme}{})", escaped(words), self.id)
+        format!("{bang}[{}]({scheme}{})", labelled(words), self.id)
     }
 
     fn json(&self) -> Value {
@@ -203,6 +203,10 @@ fn titled<'a>(known: &'a Known, said: &str, only_docs: bool, quoted: bool) -> Fo
     let (found, exact) = known.by_title(said, only_docs);
     let one_word = !said.contains(char::is_whitespace);
     match found.as_slice() {
+        [] if only_docs => match known.by_title(said, false).0 {
+            tasks if tasks.is_empty() => Found::Nothing,
+            tasks => Found::Doubt(tasks),
+        },
         [] => Found::Nothing,
         [one] if exact && !(quoted && one_word) => Found::Sure(one),
         _ => Found::Doubt(found),
@@ -234,16 +238,6 @@ fn alone(text: &str, at: &Range<usize>) -> bool {
     text[around.clone()].trim() == &text[at.clone()]
         && blank(text[..around.start].lines().next_back())
         && blank(text[around.end..].lines().nth(1))
-}
-
-fn escaped(words: &str) -> String {
-    words
-        .chars()
-        .flat_map(|c| {
-            let slash = matches!(c, '[' | ']' | '\\').then_some('\\');
-            slash.into_iter().chain(std::iter::once(c))
-        })
-        .collect()
 }
 
 impl Heard {
@@ -368,12 +362,7 @@ fn more(all: usize, shown: usize) -> String {
 
 pub(super) fn link_all(paths: &Paths, args: &mut Value, field: &str) -> Heard {
     let mut heard = Heard::default();
-    let mut texts = Vec::new();
-    gathered(args, field, &mut texts);
-    let worth_it = texts
-        .iter()
-        .any(|text| !spots(text).is_empty() || !pictures(text).is_empty());
-    if !worth_it {
+    if !names_anything(args, field) {
         return heard;
     }
     let Some(state) = seen(paths, args) else {
@@ -381,7 +370,8 @@ pub(super) fn link_all(paths: &Paths, args: &mut Value, field: &str) -> Heard {
     };
     let known = Known::of(&state);
     let own = own_of(&state, args);
-    let before = current(paths, &state, args);
+    let mut before = current(paths, &state, args);
+    before.extend(title_line(args, field));
     let kept: BTreeSet<&str> = before
         .iter()
         .flat_map(|one| one.lines())
@@ -394,15 +384,28 @@ pub(super) fn link_all(paths: &Paths, args: &mut Value, field: &str) -> Heard {
     heard
 }
 
-fn gathered(value: &Value, field: &str, texts: &mut Vec<String>) {
-    if let Some(said) = value.get(field).and_then(Value::as_str) {
-        texts.push(said.to_string());
-    }
-    for nested in NESTED {
-        if let Some(Value::Array(all)) = value.get(nested) {
-            all.iter().for_each(|one| gathered(one, field, texts));
-        }
-    }
+fn names_anything(value: &Value, field: &str) -> bool {
+    let here = value
+        .get(field)
+        .and_then(Value::as_str)
+        .is_some_and(|text| !spots(text).is_empty() || !pictures(text).is_empty());
+    here || NESTED.iter().any(|nested| {
+        value
+            .get(nested)
+            .and_then(Value::as_array)
+            .is_some_and(|all| all.iter().any(|one| names_anything(one, field)))
+    })
+}
+
+// A whole document's first line is its title even without `#`, and a link there would be in its name.
+fn title_line(args: &Value, field: &str) -> Option<String> {
+    let whole = field == "body"
+        && args.get("task").is_none()
+        && (args.get("doc").is_none() || args.get("print").is_some());
+    let body = args.get(field).and_then(Value::as_str).filter(|_| whole)?;
+    body.lines()
+        .find(|line| !line.trim().is_empty())
+        .map(str::to_string)
 }
 
 fn put_back(value: &mut Value, field: &str, link: &mut impl FnMut(&str) -> String) {
@@ -416,8 +419,9 @@ fn put_back(value: &mut Value, field: &str, link: &mut impl FnMut(&str) -> Strin
     }
 }
 
+// Only rewording a note needs the journal itself; a task's page already holds its description.
 fn seen(paths: &Paths, args: &Value) -> Option<State> {
-    let projected = match args.get("task").is_some() {
+    let projected = match args.get("note").is_some() {
         true => tisty_core::cache::project(&paths.store(), paths.cache()),
         false => tisty_core::cache::summarised(&paths.store(), paths.cache()),
     };

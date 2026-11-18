@@ -65,6 +65,13 @@ fn code_links_front_matter_and_addresses_name_nothing() {
 }
 
 #[test]
+fn the_words_of_a_link_by_reference_name_nothing_but_plain_brackets_do() {
+    let text = "See [«Trips» notes][1] and [«Vet»].\n\n[1]: https://example.com\n";
+
+    assert_eq!(named(text), vec![(Named::Quoted("Vet".into()), "Vet")]);
+}
+
+#[test]
 fn an_id_glued_to_a_path_or_a_file_name_is_no_id() {
     let text = format!("docs/{TASK} and 4nnctnme-0033.md and x{TASK} and v1.4nnctnme-0033");
 

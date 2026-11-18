@@ -1,6 +1,6 @@
 use std::ops::Range;
 
-use crate::refs::{bare, linked, next_char, past_code, tagged, wiki};
+use crate::refs::{bare, linked, next_char, past_code, shuts, tagged, wiki};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Named {
@@ -52,7 +52,10 @@ pub fn spots(text: &str) -> Vec<Spot> {
                 Some((end, None)) => at + end + 2,
                 None => at + 2,
             },
-            b'[' => linked(text, at, &mut |_| {}),
+            b'[' => match linked(text, at, &mut |_| {}) {
+                end if end > at + 1 => end,
+                _ => past_a_reference(text, at),
+            },
             b'<' => tagged(rest, at, &mut |_| {}),
             b'h' if rest.starts_with("http://") || rest.starts_with("https://") => {
                 bare(rest, at, &mut |_| {})
@@ -67,6 +70,14 @@ pub fn spots(text: &str) -> Vec<Spot> {
         };
     }
     found
+}
+
+// The words of `[words][ref]` are already a link's, so nothing in them is named again.
+fn past_a_reference(text: &str, at: usize) -> usize {
+    match shuts(&text[at + 1..]) {
+        Some(shut) if text[at + 1 + shut + 1..].starts_with('[') => at + 1 + shut + 1,
+        _ => at + 1,
+    }
 }
 
 fn quoted(text: &str, at: usize) -> Option<(Spot, usize)> {

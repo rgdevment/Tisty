@@ -18,14 +18,18 @@ pub const DOC: &str = "tisty:doc/";
 pub const TASK: &str = "tisty:task/";
 
 pub fn card(file: &str, title: &str) -> String {
-    let said: String = title
+    format!("![{}]({DOC}{file})", labelled(title))
+}
+
+/// Words fit to stand between a link's brackets.
+pub fn labelled(title: &str) -> String {
+    title
         .chars()
         .flat_map(|c| {
             let slash = matches!(c, '[' | ']' | '\\').then_some('\\');
             slash.into_iter().chain(std::iter::once(c))
         })
-        .collect();
-    format!("![{said}]({DOC}{file})")
+        .collect()
 }
 
 pub fn papers(text: &str) -> Vec<String> {

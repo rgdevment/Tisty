@@ -33,6 +33,7 @@ const TABLES: &str = "CREATE TABLE IF NOT EXISTS node(
         uid TEXT,
         stamp TEXT NOT NULL);
     CREATE INDEX IF NOT EXISTS node_by_uid ON node(uid);
+    CREATE INDEX IF NOT EXISTS node_by_title ON node(title);
     CREATE TABLE IF NOT EXISTS edge(
         source TEXT NOT NULL,
         target TEXT NOT NULL,

@@ -771,3 +771,28 @@ fn a_document_s_decisions_come_in_force_first_and_the_struck_ones_after() {
         "{json}"
     );
 }
+
+#[test]
+fn a_document_naming_its_own_title_does_not_mention_itself() {
+    let world = World::new();
+    let mut store = world.store();
+    let (_, trips) = doc(
+        &world,
+        &mut store,
+        "# Trips\n\nAs [[Trips]] says.\n",
+        None,
+        None,
+    );
+    let mut brain = world.brain();
+    world.refreshed(&mut brain, &world.state());
+
+    let card = card_of(&brain, &trips);
+
+    assert!(card.around.mentions.is_empty());
+    assert!(card.around.mentioned_by.is_empty());
+    let mut headed = super::super::Headed::default();
+    let panel = brain
+        .cited_by(&trips, &world.paths.docs(), &mut headed)
+        .unwrap();
+    assert_eq!(panel, Some(vec![]));
+}

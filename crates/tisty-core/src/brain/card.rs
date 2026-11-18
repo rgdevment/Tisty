@@ -374,7 +374,8 @@ impl<F: Fn(&str) -> bool> Reader<'_, F> {
             }
             _ => uid.to_string(),
         };
-        for (kind, near, said) in self.incoming(&row.id, uid, &titled)? {
+        let others = self.incoming(&row.id, uid, &titled)?.into_iter();
+        for (kind, near, said) in others.filter(|(_, near, _)| near.id != row.id) {
             match kind.as_str() {
                 "cite" => added(&mut around.cited_by, near),
                 "mention" => added(&mut around.mentioned_by, near),
