@@ -19,6 +19,30 @@ fn an_agent_only_the_settings_remember_is_not_seated() {
     assert_eq!(session.seated_agent(), None);
 }
 
+#[test]
+fn a_restored_machine_speaks_for_its_agent_again_under_its_new_name() {
+    let tmp = tempfile::tempdir().unwrap();
+    let paths = Paths::new(tmp.path().join("data"), tmp.path().join("config"));
+    std::fs::create_dir_all(paths.docs()).unwrap();
+    let agent = tisty_core::agent::register(&paths).unwrap();
+    let was = Session::at(paths.clone()).unwrap();
+    assert_eq!(was.state.hosts.get(&agent), Some(&was.config.device_id));
+
+    let zip = tmp.path().join("tisty.zip");
+    let aside = tempfile::tempdir().unwrap();
+    tisty_core::backup::write(paths.data(), &zip, aside.path(), None).unwrap();
+    tisty_core::backup::read(&paths, &zip).unwrap();
+
+    let now = Session::at(paths.clone()).unwrap();
+    assert_ne!(now.config.device_id, was.config.device_id);
+    assert_eq!(
+        now.state.hosts.get(&agent),
+        Some(&now.config.device_id),
+        "the agent stayed placed on the machine name the restore retired"
+    );
+    assert_eq!(now.config.agent_vouched, Some(agent));
+}
+
 /// An agent that joined before `device.host` existed gets its host written by the window,
 /// once, as the machine — and a machine with no agent writes nothing.
 #[test]
