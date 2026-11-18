@@ -43,12 +43,14 @@ pub fn wrote(log: &[Event], id: DocId) -> Vec<Wrote> {
     all
 }
 
-/// The machine a device writes from: an assistant's is its host's, and one nobody hosts is unknown.
+/// The machine a device writes from: an assistant's is its host's; one nobody hosts, or removed, is unknown.
 pub fn machine(state: &State, device: &DeviceId) -> Option<DeviceId> {
-    match state.hosts.get(device) {
-        Some(host) => Some(host.clone()),
-        None => (!state.assistants.contains(device)).then(|| device.clone()),
-    }
+    let machine = match state.hosts.get(device) {
+        Some(host) => host.clone(),
+        None if state.assistants.contains(device) => return None,
+        None => device.clone(),
+    };
+    (!state.dropped.contains(&machine)).then_some(machine)
 }
 
 /// One past version, as a list shows it.
@@ -87,7 +89,7 @@ pub fn shown(
     };
     let mut all: Vec<Shown> = kept
         .iter()
-        .filter(|one| !one.spare)
+        .filter(|one| !one.spare && Some(one.print.as_str()) != here.says)
         .map(|one| Shown {
             print: one.print.clone(),
             wrote: written(one),
