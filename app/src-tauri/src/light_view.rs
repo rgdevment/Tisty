@@ -10,7 +10,7 @@ use tauri::{AppHandle, Manager};
 use tisty_core::witness::{self, channel};
 
 use crate::answers::cards::{Asked, Glimpses, Named, Seen};
-use crate::viewing::{Paper, Shown, Views, doc_body, named, place_of, shown_in};
+use crate::viewing::{Paper, Shown, Views, named, place_of, shown_in};
 use crate::{Answer, Refusal, Session};
 
 const PIECE_ABOUT: usize = 64 * 1024;
