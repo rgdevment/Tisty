@@ -138,6 +138,7 @@ export default function Earlier({
 }: Readonly<Props>) {
   const box = useRef<HTMLDivElement>(null);
   const closing = useRef<HTMLButtonElement>(null);
+  const comparing = useRef<HTMLButtonElement>(null);
   const heading = useId();
   const { wrapped, held } = useHeldFocus(box);
   const [shelf, setShelf] = useState<Shelf | null>(null);
@@ -289,6 +290,7 @@ export default function Earlier({
             </span>
             {one && (
               <button
+                ref={comparing}
                 type="button"
                 aria-pressed={against !== null}
                 onClick={() => setAgainst((was) => (was === null ? NOW : null))}
@@ -313,7 +315,10 @@ export default function Earlier({
                 label={title}
                 card={card ?? NO_CARD}
                 ready={ready}
-                onWhole={() => setAgainst(null)}
+                onWhole={() => {
+                  setAgainst(null);
+                  comparing.current?.focus();
+                }}
                 onError={onError}
               />
             ) : one ? (

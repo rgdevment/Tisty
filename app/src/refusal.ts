@@ -281,6 +281,7 @@ const KNOWN = [
   "versionGone",
   "versionSame",
   "unsavedStays",
+  "unsavedUncompared",
   "notAHistoryLimit",
   "comingDown",
   "cloudLater",

@@ -1318,6 +1318,8 @@ const en = {
   versionSame: "That version says what it says now",
   unsavedStays:
     "What you typed could not be saved yet, so nothing went back. Settle that first, then go back.",
+  unsavedUncompared:
+    "What you typed could not be saved yet, so nothing was compared with it. Settle that first, then compare again.",
   notAHistoryLimit: "The history is kept for 1, 5, 15 or 30 days",
   backSure:
     "Going back leaves this document as it read before the write that stirred it. What it says now is kept in its place, so you can come back to it.",
@@ -4684,6 +4686,8 @@ const es: Catalog = {
   versionSame: "Esa versión dice lo mismo que ahora",
   unsavedStays:
     "Lo que escribiste todavía no se pudo guardar, así que no se volvió a nada. Resuelve eso primero y vuelve después.",
+  unsavedUncompared:
+    "Lo que escribiste todavía no se pudo guardar, así que no se comparó con eso. Resuelve eso primero y vuelve a comparar.",
   notAHistoryLimit: "El historial se guarda 1, 5, 15 o 30 días",
   backSure:
     "Volver atrás deja este documento como se leía antes de la escritura que lo movió. Lo que dice ahora queda guardado en su lugar, así que puedes regresar a ello.",

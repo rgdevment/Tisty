@@ -472,6 +472,7 @@ describe("what changed between two versions", () => {
       expect(screen.getByRole("article").textContent).toBe("# Acta\n\nlo del asistente"),
     );
     expect(comparing().getAttribute("aria-pressed")).toBe("false");
+    expect(document.activeElement).toBe(comparing());
   });
 
   it("says what went wrong and goes back to the version when it cannot compare", async () => {
@@ -510,7 +511,7 @@ describe("what changed between two versions", () => {
 
     await userEvent.click(await screen.findByRole("button", { name: t("earlierCompare") }));
 
-    await waitFor(() => expect(onError).toHaveBeenCalledWith(t("unsavedStays")));
+    await waitFor(() => expect(onError).toHaveBeenCalledWith(t("unsavedUncompared")));
     expect(called("doc_compared")).toEqual([]);
   });
 });

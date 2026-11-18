@@ -18,6 +18,12 @@ interface Asked {
   onError: (problem: unknown) => void;
 }
 
+// The words typed are the same, and what they kept from happening is a comparison, not a step back.
+const uncompared = (problem: unknown) =>
+  (problem as { code?: string } | null)?.code === "unsavedStays"
+    ? { code: "unsavedUncompared" }
+    : problem;
+
 export const useEarlier = (asked: Asked) => {
   const { file } = asked;
   const [shown, setShown] = useState<string | null>(null);
@@ -43,7 +49,7 @@ export const useEarlier = (asked: Asked) => {
         card={asked.card}
         onBack={asked.writable ? back : undefined}
         ready={async () => {
-          await asked.before();
+          await asked.before().catch((e) => Promise.reject(uncompared(e)));
           await settled();
         }}
         onEmptied={asked.onEmptied}
