@@ -2468,7 +2468,7 @@ const en = {
     "Tisty writes and reads in a folder both computers can reach. Whoever uploads it is your provider's program, not Tisty.",
   keepersHere: "on this computer",
   keepersGone: "not installed",
-  keepersMissing: "we did not find it here",
+  keepersMissing: "not found here",
   keepersOther: "Another folder…",
   keepersOtherWhy: "a NAS, an external disk, whatever it is",
   keepersSave: "Save here",
@@ -2478,7 +2478,7 @@ const en = {
   keepersAway: "It has to be there when you open Tisty",
   keepersAwayWhy:
     "That folder lives on a server or on a disk you plug in. If it does not answer it looks empty, and you will not see what arrived.",
-  keepersPlain: "We do not recognise what keeps this folder in step",
+  keepersPlain: "Tisty does not recognise what keeps this folder in step",
   keepersPlainWhy:
     "If your own program keeps it up to date, all good. If there is none, the other computer will not see any of this.",
   welcomeAlone: "Only on this machine",
@@ -2705,7 +2705,7 @@ const en = {
   phraseTypeOnlyHere:
     "Type it only here, in your own Tisty. Nobody from Tisty or Folio will ever ask you for it.",
   phraseOutsideWhy:
-    "On paper or in a PDF you keep apart, never in a Tisty document. It never passes through our hands, so nobody can give it back to you: if you lose the phrase and all your computers, you lose your encrypted data and your identity.",
+    "On paper or in a PDF you keep apart, never in a Tisty document. Tisty never sends it anywhere, so nobody can give it back to you: if you lose the phrase and all your computers, you lose your encrypted data and your identity.",
   phrasePdf: "Save as PDF",
   phraseKept: "I've saved it",
   sheetTitle: "Your Tisty phrase",
@@ -2718,7 +2718,7 @@ const en = {
   confirmThree: "Type these three words from your phrase.",
   confirmWord: "Word {name}",
   confirmAmiss: "check it",
-  confirmLoose: "Capitals and accents don't matter. If one doesn't match, we tell you which.",
+  confirmLoose: "Capitals and accents don't matter. If one doesn't match, Tisty tells you which.",
   confirmAgain: "See the phrase again",
   confirmDo: "Confirm",
   phraseConfirmed: "Your phrase is confirmed.",
@@ -2779,7 +2779,7 @@ const en = {
   aliasRestDone: "{name} documents signed",
   aliasRestDoneOne: "One document signed",
   aliasWhy:
-    "Did you know you can share your documents with other people who use Tisty? It is something you do by hand: we do not know what you write or what you share.\n\nThe alias is how you sign them. It stays with you — and travels to your other machines if you sync. It goes inside whatever you export for Tisty, and into a PDF only if you ask for it while exporting and have no name to sign with; a plain markdown file carries no name at all. Only the person you hand the document to ever sees it.\n\nWe never upload anything to any service. There is no telemetry behind this either.",
+    "Did you know you can share your documents with other people who use Tisty? It is something you do by hand: what you write and what you share go only where you send them.\n\nThe alias is how you sign them. It stays with you — and travels to your other machines if you sync. It goes inside whatever you export for Tisty, and into a PDF only if you ask for it while exporting and have no name to sign with; a plain markdown file carries no name at all. Only the person you hand the document to ever sees it.\n\nNone of this is sent anywhere on its own: there is no account and no telemetry.",
   aliasTooLong: "An alias holds up to {name} characters",
   signName: "Name to sign with",
   signNameShort: "How you appear on your PDFs.",
@@ -3026,7 +3026,7 @@ const en = {
   machineKeyRead:
     "Open Settings → Sync on {name} and read its code there. If it is the one below, confirm it.",
   machineKeyThen:
-    "From the moment you confirm it, only what {name} signs with this key is read here. If one day it signs with another, its log stops coming in and we tell you.",
+    "From the moment you confirm it, only what {name} signs with this key is read here. If one day it signs with another, its log stops coming in and Tisty tells you.",
   machineKeyForGood:
     "This is not changed later. A computer that needs a new key has to join the folder afresh, which gives it a new name here and empties what it holds first.",
   machineKeyDone: "Confirmed: it syncs with this computer now",
@@ -3175,13 +3175,13 @@ const en = {
   backupAvailable: "available",
   nothingBound: "nothing bound",
   wordNone: "none",
-  welcomeSigning: "How should we call you?",
+  welcomeSigning: "What should Tisty call you?",
   welcomeSigningWhy:
-    "Did you know you can share your documents with other people who use Tisty? It is something you do by hand: we do not know what you write or what you share.",
+    "Did you know you can share your documents with other people who use Tisty? It is something you do by hand: what you write and what you share go only where you send them.",
   welcomeSigningHow:
     "The alias is how you sign them. It stays with you — and travels to your other machines if you sync. It goes inside whatever you export for Tisty, and into a PDF only if you ask for it while exporting and have no name to sign with; a plain markdown file carries no name at all. Only the person you hand the document to ever sees it.",
   welcomeSigningNote:
-    "We never upload anything to any service. There is no telemetry behind this either. It is optional, and you can change it whenever you like from Settings.",
+    "None of this is sent anywhere on its own: there is no account and no telemetry. It is optional, and you can change it whenever you like from Settings.",
   welcomeSigned: "Done",
   welcomeNotNow: "Not now",
   aliasLike: "your name here",
@@ -5297,7 +5297,7 @@ const es: Catalog = {
   ownLogUnreadable:
     "No se pudo leer el registro de esta máquina, así que no viajó nada ni en un sentido ni en el otro. Suele ser que lo escribió un Tisty más nuevo, o que un archivo del registro quedó a medio escribir. No se perdió nada: todo sigue donde estaba.",
   someoneUnconfirmedHolds:
-    "Un equipo que aún no confirmas como tuyo cambió documentos, y esperan con él, sin tocarse. Confírmalo aquí mismo o desde la barra lateral solo si lo reconoces, y se asientan en la próxima sincronización. Si no, quítalo en Configuración → Sincronizar y te preguntaremos por ellos.",
+    "Un equipo que aún no confirmas como tuyo cambió documentos, y esperan con él, sin tocarse. Confírmalo aquí mismo o desde la barra lateral solo si lo reconoces, y se asientan en la próxima sincronización. Si no, quítalo en Configuración → Sincronizar y Tisty te preguntará por ellos.",
   someoneUnconfirmed:
     "Un equipo espera que confirmes que es tuyo, así que todavía no entra nada de lo que escribe. Confírmalo aquí mismo o desde el aviso de la barra lateral — lo que escribió sigue donde está mientras tanto y llega entero.",
   someoneUnreadable:
@@ -5308,7 +5308,7 @@ const es: Catalog = {
   cannotWeave: "Ese documento cambió mientras decidías — míralo otra vez",
   movedUnderfoot: "Ese documento cambió mientras decidías — míralo otra vez",
   changedWhileDeciding:
-    "«{name}» cambió otra vez en otra máquina mientras decidías, así que no quedó resuelto. Te lo volveremos a preguntar cuando se quede quieto.",
+    "«{name}» cambió otra vez en otra máquina mientras decidías, así que no quedó resuelto. Tisty te lo volverá a preguntar cuando se quede quieto.",
   riftTitle: "Dos versiones de «{name}»",
   riftWhy:
     "Todo lo que las dos máquinas no tocaron a la vez ya está junto. Lo de abajo es la parte que cada una escribió distinta, y solo tú sabes cuál vale.",
@@ -5438,7 +5438,7 @@ const es: Catalog = {
   chooseFolderWhy:
     "Un NAS, un disco o la carpeta del programa de tu nube. Tú decides dónde y cómo.",
   chooseOneAtATime:
-    "Es una sola a la vez. Puedes cambiarla después desde Configuración: es una mudanza, y antes de tocar nada te contamos qué va a pasar.",
+    "Es una sola a la vez. Puedes cambiarla después desde Configuración: es una mudanza, y antes de tocar nada Tisty te cuenta qué va a pasar.",
   cloudConnectWhy:
     "Se abre tu navegador, entras en tu cuenta y {maker} te pregunta si Tisty puede guardar ahí sus copias.",
   cloudChosen: "{cloud}",
@@ -5797,7 +5797,7 @@ const es: Catalog = {
     "Tisty escribe y lee en una carpeta que los dos equipos alcancen. Quien la sube es el programa de tu proveedor, no Tisty.",
   keepersHere: "en este equipo",
   keepersGone: "sin instalar",
-  keepersMissing: "no lo encontramos aquí",
+  keepersMissing: "no está aquí",
   keepersOther: "Otra carpeta…",
   keepersOtherWhy: "un NAS, un disco externo, lo que sea",
   keepersSave: "Guardar aquí",
@@ -5807,7 +5807,7 @@ const es: Catalog = {
   keepersAway: "Tiene que estar disponible cuando abras Tisty",
   keepersAwayWhy:
     "Esa carpeta vive en un servidor o en un disco que se conecta. Si no responde se ve vacía, y no verás lo que haya llegado.",
-  keepersPlain: "No reconocemos quién sincroniza esta carpeta",
+  keepersPlain: "Tisty no reconoce quién sincroniza esta carpeta",
   keepersPlainWhy:
     "Si tu propio programa la mantiene al día, perfecto. Si no hay ninguno, el otro equipo no verá nada de esto.",
   welcomeAlone: "Solo en este equipo",
@@ -6032,7 +6032,7 @@ const es: Catalog = {
   phraseTypeOnlyHere:
     "Escríbela solo aquí, en tu Tisty. Nadie de Tisty ni de Folio te la pedirá nunca.",
   phraseOutsideWhy:
-    "En papel o en un PDF que guardes aparte, nunca en un documento de Tisty. Nunca pasa por nuestras manos, así que nadie te la puede devolver: si pierdes la frase y todos tus equipos, pierdes tus datos cifrados y tu identidad.",
+    "En papel o en un PDF que guardes aparte, nunca en un documento de Tisty. Tisty nunca la envía a ningún lado, así que nadie te la puede devolver: si pierdes la frase y todos tus equipos, pierdes tus datos cifrados y tu identidad.",
   phrasePdf: "Guardar como PDF",
   phraseKept: "Ya la guardé",
   sheetTitle: "Tu frase de Tisty",
@@ -6045,7 +6045,7 @@ const es: Catalog = {
   confirmThree: "Escribe estas tres palabras de tu frase.",
   confirmWord: "Palabra {name}",
   confirmAmiss: "revisa",
-  confirmLoose: "Da igual si usas mayúsculas o tildes. Si una no calza, te decimos cuál.",
+  confirmLoose: "Da igual si usas mayúsculas o tildes. Si una no calza, Tisty te dice cuál.",
   confirmAgain: "Ver la frase otra vez",
   confirmDo: "Confirmar",
   phraseConfirmed: "Tu frase quedó confirmada.",
@@ -6106,7 +6106,7 @@ const es: Catalog = {
   aliasRestDone: "{name} documentos firmados",
   aliasRestDoneOne: "Un documento firmado",
   aliasWhy:
-    "¿Sabías que puedes compartir tus documentos con otras personas que usan Tisty? Es algo que haces tú, a mano: nosotros no sabemos lo que escribes ni lo que compartes.\n\nEl alias es cómo los firmas. Se guarda contigo —y viaja a tus equipos si sincronizas—. Va dentro de lo que exportas para Tisty, y en un PDF solo si lo pides al exportarlo y no tienes un nombre para firmar; en un markdown suelto no viaja. Solo lo ve aquella persona con quien compartas el documento.\n\nNunca subimos nada a ningún servicio. Tampoco hay telemetría detrás.",
+    "¿Sabías que puedes compartir tus documentos con otras personas que usan Tisty? Es algo que haces tú, a mano: lo que escribes y lo que compartes va solo adonde tú lo mandas.\n\nEl alias es cómo los firmas. Se guarda contigo —y viaja a tus equipos si sincronizas—. Va dentro de lo que exportas para Tisty, y en un PDF solo si lo pides al exportarlo y no tienes un nombre para firmar; en un markdown suelto no viaja. Solo lo ve aquella persona con quien compartas el documento.\n\nNada de esto se envía solo a ningún lado: no hay cuentas ni telemetría.",
   aliasTooLong: "Un alias admite hasta {name} caracteres",
   signName: "Nombre para firmar",
   signNameShort: "Cómo apareces en tus PDF.",
@@ -6356,7 +6356,7 @@ const es: Catalog = {
   machineKeyRead:
     "Abre Configuración → Sincronizar en {name} y lee ahí su código. Si es el de abajo, confírmalo.",
   machineKeyThen:
-    "Desde que la confirmes, solo lo que {name} firme con esta clave se lee aquí. Si algún día firma con otra, su registro deja de entrar y te lo decimos.",
+    "Desde que la confirmes, solo lo que {name} firme con esta clave se lee aquí. Si algún día firma con otra, su registro deja de entrar y Tisty te avisa.",
   machineKeyForGood:
     "Esto no se cambia después. Un equipo que necesite clave nueva tiene que entrar de nuevo a la carpeta, lo que le da otro nombre aquí y vacía antes lo que tenga.",
   machineKeyDone: "Confirmado: ya sincroniza con este equipo",
@@ -6507,13 +6507,13 @@ const es: Catalog = {
   backupAvailable: "disponible",
   nothingBound: "sin asignar",
   wordNone: "ninguno",
-  welcomeSigning: "¿Cómo quieres que te llamemos?",
+  welcomeSigning: "¿Cómo quieres que Tisty te llame?",
   welcomeSigningWhy:
-    "¿Sabías que puedes compartir tus documentos con otras personas que usan Tisty? Es algo que haces tú, a mano: nosotros no sabemos lo que escribes ni lo que compartes.",
+    "¿Sabías que puedes compartir tus documentos con otras personas que usan Tisty? Es algo que haces tú, a mano: lo que escribes y lo que compartes va solo adonde tú lo mandas.",
   welcomeSigningHow:
     "El alias es cómo los firmas. Se guarda contigo —y viaja a tus equipos si sincronizas—. Va dentro de lo que exportas para Tisty, y en un PDF solo si lo pides al exportarlo y no tienes un nombre para firmar; en un markdown suelto no viaja. Solo lo ve aquella persona con quien compartas el documento.",
   welcomeSigningNote:
-    "Nunca subimos nada a ningún servicio. Tampoco hay telemetría detrás. Es opcional y lo cambias cuando quieras desde Configuración.",
+    "Nada de esto se envía solo a ningún lado: no hay cuentas ni telemetría. Es opcional y lo cambias cuando quieras desde Configuración.",
   welcomeSigned: "Listo",
   welcomeNotNow: "Ahora no",
   aliasLike: "tu nombre aquí",
@@ -6539,7 +6539,7 @@ const es: Catalog = {
   confirmTitle: "¿«{name}» es tuyo?",
   confirmTitleUnnamed: "¿Este equipo nuevo es tuyo?",
   confirmUnnamed:
-    "Todavía no dijo su nombre; lo dirá cuando abra la última versión de Tisty. Aquí lo llamamos «{name}». Antes de dejar entrar lo que escribe, comprueba que es tuyo: el mismo código tiene que verse en los dos.",
+    "Todavía no dijo su nombre; lo dirá cuando abra la última versión de Tisty. Aquí figura como «{name}». Antes de dejar entrar lo que escribe, comprueba que es tuyo: el mismo código tiene que verse en los dos.",
   confirmAgent:
     "Es el asistente (Claude, Codex…) de «{name}». Antes de dejar entrar lo que escribe, comprueba que es tuyo: el mismo código tiene que verse en los dos.",
   confirmAgentStep:

@@ -43,7 +43,7 @@ Tisty te pregunta hasta tres cosas:
 
 1. **En qué idioma**: inglés o español. La ventana, la guía y el lenguaje natural lo siguen, y puedes cambiarlo cuando quieras en Configuración.
 2. **Dónde dejar tus copias**: una carpeta para [[sincronizar|Sincronizar-y-respaldar]], o ninguna si usas un solo equipo.
-3. **¿Cómo quieres que te llamemos?**: un alias opcional para firmar lo que compartes; **Ahora no** lo salta, y no se pregunta cuando el Tisty al que te unes ya tiene uno.
+3. **¿Cómo quieres que Tisty te llame?**: un alias opcional para firmar lo que compartes; **Ahora no** lo salta, y no se pregunta cuando el Tisty al que te unes ya tiene uno.
 
 Después **te escribe una guía y la abre**. La guía es un documento normal en tu propio almacén, en una carpeta propia (tuya para leerla, editarla o tirarla), y te muestra desde dentro lo que cabe en un documento. Puedes volver a ella desde Configuración.
 
