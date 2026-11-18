@@ -109,6 +109,21 @@ pub struct DocCard {
     pub more: bool,
 }
 
+impl DocCard {
+    // An example names a document no store holds, so it is drawn by the words it was written with.
+    pub fn example(file: &str, words: &str) -> Self {
+        Self {
+            file: file.to_string(),
+            words: words.to_string(),
+            paper: Paper::Doc {
+                title: words.to_string(),
+            },
+            blurb: String::new(),
+            more: false,
+        }
+    }
+}
+
 const BLURB_UNITS: usize = 160;
 
 fn spanless(line: &str) -> String {

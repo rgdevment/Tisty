@@ -159,8 +159,10 @@ fn paper(state: &State, one: &Asked, seen: &Seen, pages: &[String]) -> Card {
         more: seen.more,
     };
     if seen.examples {
-        let title = one.words.clone();
-        return Card::Shown(card(Paper::Doc { title }));
+        return Card::Shown(DocCard {
+            more: seen.more,
+            ..DocCard::example(&one.id, &one.words)
+        });
     }
     let Some(doc) = state.papers().find(|doc| doc.file == one.id) else {
         return Card::Shown(card(Paper::Gone));

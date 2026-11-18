@@ -242,3 +242,14 @@ fn a_blurb_stops_where_the_window_cut_it() {
     let faces = format!("t\n{}", "😀".repeat(100));
     assert_eq!(blurb(&faces).chars().count(), 80);
 }
+
+#[test]
+fn an_example_card_is_drawn_by_the_words_it_was_written_with() {
+    let drawn = doc_card(&DocCard::example("ab12-0001", "Viajes & más"), &SPANISH);
+    assert!(drawn.contains(r#"data-doc="ab12-0001""#));
+    assert!(drawn.contains(
+        r#"<span class="card-name">Viajes &amp; más</span><span class="card-blurb"></span>"#
+    ));
+    assert!(drawn.contains(r#"<span class="kind">Documento</span>"#));
+    assert!(!drawn.contains("card-more"));
+}
