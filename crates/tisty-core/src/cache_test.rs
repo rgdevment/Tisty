@@ -1457,3 +1457,46 @@ fn an_agent_s_note_survives_the_cache_whether_built_whole_or_advanced_by_a_write
     let advanced = project(&f.store_root, &f.cache_dir).unwrap();
     assert_eq!(advanced.agent_notes[&doc].summary, "advanced by a write");
 }
+
+#[test]
+fn a_proposal_survives_the_cache_and_a_settled_one_leaves_no_row() {
+    let f = loaded();
+    let mut store = Store::open(&f.store_root, DeviceId("dev_a".into())).unwrap();
+    let doc = Ulid::generate();
+    store
+        .append(Op::DocAdd {
+            id: doc,
+            d: crate::event::DocAdd {
+                file: "a3f1-0001".into(),
+                order: "a0".into(),
+                ..Default::default()
+            },
+        })
+        .unwrap();
+    let proposed = |body: Option<&str>, settles: Option<String>| Op::DocProposal {
+        id: doc,
+        d: crate::event::Proposal {
+            body: body.map(str::to_string),
+            base: None,
+            settles,
+        },
+    };
+    store.append(proposed(Some("built whole"), None)).unwrap();
+    project(&f.store_root, &f.cache_dir).unwrap();
+    let whole = project(&f.store_root, &f.cache_dir).unwrap();
+    assert_eq!(whole.proposals[&doc].body, "built whole");
+
+    let mut cache = Cache::open(&f.cache_dir).unwrap();
+    let mut state = whole;
+    let settled = store
+        .append(proposed(
+            None,
+            Some(crate::docs::print_of_text("built whole")),
+        ))
+        .unwrap();
+    state.apply(&settled);
+    advance(cache.as_mut(), &state, &[settled], &f.store_root, false);
+
+    let advanced = project(&f.store_root, &f.cache_dir).unwrap();
+    assert!(advanced.proposals.is_empty());
+}

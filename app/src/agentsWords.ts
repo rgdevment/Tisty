@@ -12,6 +12,14 @@ const words = {
     "This document changed since its card was drawn. Read it again before approving it.",
     "Este documento cambió desde que se mostró su ficha. Léelo de nuevo antes de aprobarlo.",
   ],
+  agentProposalChanged: [
+    "The proposal changed since the card showed it. Look at it again before choosing.",
+    "La propuesta cambió desde que la ficha la mostró. Revísala de nuevo antes de elegir.",
+  ],
+  agentProposalOverUnagreed: [
+    "This document's text does not have your approval yet. Approve it first, then the proposal.",
+    "El texto de este documento aún no tiene tu aprobación. Apruébalo primero y después la propuesta.",
+  ],
   agentHeld: [
     "A document in this file changed without your approval, so the file is left as it is",
     "Un documento de este archivo cambió sin tu aprobación, así que el archivo queda como está",
@@ -215,6 +223,30 @@ const words = {
     "Another computer's agent memory: on this one it is only read.",
     "Memoria del agente de otro equipo: en este solo se lee.",
   ],
+  agentProposalLabel: ["An agent's proposal", "Propuesta de un agente"],
+  agentProposalBy: ["An agent ({name}) proposes a change", "Un agente ({name}) propone un cambio"],
+  agentProposalSomeone: ["An agent proposes a change", "Un agente propone un cambio"],
+  agentProposalPill: ["Proposal", "Propuesta"],
+  agentProposalLead: [
+    "Nothing of it reaches your agents' files until you approve it. What it changes in the approved text:",
+    "Nada de esto llega a los archivos de tus agentes hasta que lo apruebes. Lo que cambia en el texto aprobado:",
+  ],
+  agentProposalStale: [
+    "It was proposed over an earlier version, so approving it may undo a change made since.",
+    "Se propuso sobre una versión anterior, así que aprobarla puede deshacer un cambio hecho después.",
+  ],
+  agentProposalApproved: ["Approved", "Aprobado"],
+  agentProposalProposed: ["Proposed", "Propuesto"],
+  agentApproveChange: ["Approve the change", "Aprobar el cambio"],
+  agentDiscardChange: ["Discard", "Descartar"],
+  agentApproveSure: [
+    "Approve this change? It is written to the document and to your agents' files.",
+    "¿Apruebas este cambio? Se escribe en el documento y en los archivos de tus agentes.",
+  ],
+  agentDiscardSure: [
+    "Discard this proposal? The document stays as you approved it.",
+    "¿Descartas esta propuesta? El documento queda como lo aprobaste.",
+  ],
   agentApplyHere: ["Apply here", "Aplicar aquí"],
   agentNotHere: ["Not on this computer", "No en este equipo"],
   agentAgree: ["Approve this text", "Aprobar este texto"],
@@ -292,6 +324,7 @@ const words = {
   agentsFolderChanges: ["{name} changed", "{name} con cambios"],
   agentsFolderWaiting: ["{name} waiting", "{name} en espera"],
   agentsFolderUnagreed: ["{name} to approve", "{name} por aprobar"],
+  agentsFolderProposed: ["{name} with a proposal", "{name} con propuesta"],
   agentsPaused: ["off", "apagada"],
   agentsSkillFiles: ["{name} files", "{name} archivos"],
   agentsSkillShow: ["Show the files of {name}", "Mostrar los archivos de {name}"],
@@ -325,6 +358,18 @@ const words = {
   agentFileSyncsNotAllowed: ["Not allowed", "Sin permiso"],
   agentFileSyncsFolderOff: ["No, AGENTS is off", "No, AGENTS está apagada"],
   agentFileSyncsNowhere: ["No", "No"],
+  agentFileSyncsWaiting: ["No: it waits for «Apply here»", "No: espera «Aplicar aquí»"],
+  agentFileSyncsDeclined: ["No: not on this computer", "No: no en este equipo"],
+  agentFileSyncsNotAgreed: [
+    "No: its text waits for your approval",
+    "No: su texto espera tu aprobación",
+  ],
+  agentFileSyncsPlacedByAgent: ["No: an agent put it here", "No: lo puso aquí un agente"],
+  agentFileSyncsOtherMemory: ["No: another computer's memory", "No: memoria de otro equipo"],
+  agentFileSyncsProposal: [
+    "{name} · an agent's change waits for your approval",
+    "{name} · un cambio propuesto por un agente espera tu aprobación",
+  ],
   agentFileHistory: ["History", "Historial"],
   agentNoCard: [
     "This document is not an agent document",

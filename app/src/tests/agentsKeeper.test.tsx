@@ -28,6 +28,14 @@ const desk = vi.hoisted(() => ({
 
 vi.mock("../desk", () => ({ useDesk: () => desk }));
 
+const heard = vi.hoisted(() => ({ stirred: null as (() => void) | null }));
+vi.mock("@tauri-apps/api/event", () => ({
+  listen: (name: string, then: () => void) => {
+    if (name === "stirred") heard.stirred = then;
+    return Promise.resolve(() => undefined);
+  },
+}));
+
 const sent = (cmd: string) => ipc.calls.filter((one) => one.cmd === cmd);
 
 const folder = (id: string, parent: string | null, more: Partial<Folded> = {}): Folded => ({
@@ -52,6 +60,7 @@ const look = (more: Partial<AgentsLook> = {}): AgentsLook => ({
   changes: 0,
   waiting: 0,
   unagreed: 0,
+  proposed: 0,
   consented: true,
   allOn: true,
   asks: false,
@@ -137,5 +146,16 @@ describe("the keeper of AGENTS", () => {
     expect(heard).toHaveBeenCalled();
     expect(screen.queryByText("Tus agentes, en un solo lugar")).toBeNull();
     window.removeEventListener(AGENTS_CHANGED, heard);
+  });
+});
+
+describe("the log stirring from outside", () => {
+  it("tells the cards and the sidebar to look again", () => {
+    render(<AgentsKeeper />);
+    const told = vi.fn();
+    window.addEventListener(AGENTS_CHANGED, told);
+    heard.stirred?.();
+    window.removeEventListener(AGENTS_CHANGED, told);
+    expect(told).toHaveBeenCalledTimes(1);
   });
 });

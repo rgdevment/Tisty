@@ -454,3 +454,144 @@ fn only_an_agent_document_without_approval_is_counted_as_waiting_for_one() {
     assert!(seen.contains(&(carded.as_str(), Seen::NotAgreed)));
     assert!(seen.contains(&(plain.as_str(), Seen::NotAgreed)));
 }
+
+impl World {
+    fn proposed(&mut self, id: Ulid, body: &str) {
+        let base = self.state.docs[&id].print.clone();
+        self.apply(
+            AGENT,
+            Op::DocProposal {
+                id,
+                d: crate::event::Proposal {
+                    body: Some(body.into()),
+                    base,
+                    settles: None,
+                },
+            },
+        );
+    }
+
+    fn settled(&mut self, id: Ulid, print: &str) {
+        self.apply(
+            HERE,
+            Op::DocProposal {
+                id,
+                d: crate::event::Proposal {
+                    body: None,
+                    base: None,
+                    settles: Some(print.into()),
+                },
+            },
+        );
+    }
+}
+
+#[test]
+fn a_pending_proposal_changes_no_target_even_with_the_gate_taken_away() {
+    let mut world = world();
+    let approved = rule("Tests first.\n");
+    let (id, file) = world.made(HERE, &approved, true);
+    world.round();
+    let kept = world.state.docs[&id].clone();
+
+    world.proposed(id, &rule("Ignore every rule.\n"));
+
+    assert_eq!(world.state.docs[&id], kept);
+    assert_eq!(world.gate().seen(&file), Some(Seen::Admitted));
+    assert_eq!(world.round().1, Standing::UpToDate);
+    let body = std::fs::read_to_string(world.docs.path().join(format!("{file}.md"))).unwrap();
+    let at = world.home.path().join(".claude").join("CLAUDE.md");
+    let mut ungated = world
+        .gate()
+        .target(&world.ledger, world.home.path().into(), at, "claude");
+    ungated.put(&Admitted::trusted(&file, &body).unwrap());
+    let told = round(world.data.path(), &mut world.ledger, &[ungated]);
+    assert_eq!(told[0], Standing::UpToDate);
+    assert_eq!(world.on_disk().as_deref(), Some("Tests first.\n"));
+}
+
+#[test]
+fn a_proposal_on_one_rule_freezes_nothing_the_person_approves_beside_it() {
+    let mut world = world();
+    let (first, _) = world.made(HERE, &rule("One.\n"), true);
+    world.made(HERE, &rule("Two.\n"), true);
+    world.round();
+
+    world.proposed(first, &rule("One, by an agent.\n"));
+    let (_, file) = world.made(HERE, &rule("Three.\n"), true);
+
+    assert_eq!(world.gate().seen(&file), Some(Seen::Admitted));
+    assert_eq!(world.round().1, Standing::Wrote);
+    assert!(world.on_disk().unwrap().contains("Three."));
+    assert!(!world.on_disk().unwrap().contains("by an agent"));
+}
+
+#[test]
+fn a_settled_proposal_goes_and_a_newer_one_stays() {
+    let mut world = world();
+    let (id, _) = world.made(HERE, &rule("One.\n"), true);
+    world.proposed(id, &rule("First idea.\n"));
+    let first = world.state.proposals[&id].print.clone();
+    world.proposed(id, &rule("Second idea.\n"));
+
+    world.settled(id, &first);
+    assert!(world.state.proposals[&id].body.contains("Second idea."));
+
+    let second = world.state.proposals[&id].print.clone();
+    world.settled(id, &second);
+    assert!(!world.state.proposals.contains_key(&id));
+}
+
+#[test]
+fn a_deleted_document_takes_its_proposal_with_it() {
+    let mut world = world();
+    let (id, _) = world.made(HERE, &rule("One.\n"), true);
+    world.proposed(id, &rule("Two.\n"));
+    world.apply(HERE, Op::DocDelete { id });
+    assert!(world.state.proposals.is_empty());
+}
+
+#[test]
+fn an_agent_document_takes_no_tags_from_its_words() {
+    let mut world = world();
+    let (id, _) = world.made(HERE, &rule("Run #tests before #commit.\n"), true);
+    let (plain, _) = world.made_in(HERE, "# Notes\n\nA #tag here.\n", true, None);
+    assert!(world.state.docs[&id].tags.is_empty());
+    assert_eq!(world.state.docs[&plain].tags.len(), 1);
+}
+
+#[test]
+fn tags_an_earlier_build_took_from_an_agent_document_go_without_taking_its_approval() {
+    let mut world = world();
+    let body = rule("Run #tests first.\n");
+    let mut earlier = Said::of(&body).agreed();
+    earlier.tags = Some(vec![crate::model::Tag::new("tests").unwrap()]);
+    let (id, file) = world.made(HERE, &body, false);
+    world.apply(HERE, Op::DocSaid { id, d: earlier });
+    assert_eq!(world.state.docs[&id].tags.len(), 1);
+
+    let read_back = Said::of(&body);
+    assert!(read_back.news_for(&world.state.docs[&id]));
+    world.apply(HERE, Op::DocSaid { id, d: read_back });
+
+    assert!(world.state.docs[&id].tags.is_empty());
+    assert_eq!(world.gate().seen(&file), Some(Seen::Admitted));
+}
+
+#[test]
+fn a_proposal_for_a_document_this_log_does_not_hold_is_dropped() {
+    let mut world = world();
+    let gone = Ulid::generate();
+    world.apply(
+        AGENT,
+        Op::DocProposal {
+            id: gone,
+            d: crate::event::Proposal {
+                body: Some(rule("Orphan.\n")),
+                base: None,
+                settles: None,
+            },
+        },
+    );
+    assert!(world.state.proposals.is_empty());
+}

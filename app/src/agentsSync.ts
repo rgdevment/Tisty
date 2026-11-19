@@ -25,6 +25,7 @@ export interface AgentsLook {
   changes: number;
   waiting: number;
   unagreed: number;
+  proposed: number;
   consented: boolean;
   allOn: boolean;
   asks: boolean;

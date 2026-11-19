@@ -53,6 +53,26 @@ pub fn bodies(session: &Session) -> Vec<(String, String)> {
         .collect()
 }
 
+// Tags an earlier build took from an assistant's words go; the approval stays, since it goes by print.
+pub(crate) fn untagged(session: &mut Session) {
+    let Some(root) = root_of(&session.state) else {
+        return;
+    };
+    let tagged: Vec<String> = docs_in(&session.state, &tree(&session.state, root))
+        .into_iter()
+        .filter(|one| !one.tags.is_empty())
+        .map(|one| one.file.clone())
+        .collect();
+    let docs = session.paths.docs();
+    for file in tagged {
+        if let Ok(body) = tisty_core::docs::read(&docs, &file)
+            && Card::of(&body).is_some()
+        {
+            session.retell(&file, &body, None);
+        }
+    }
+}
+
 /// The only way to what may be written into an agent's file on this computer.
 pub fn gated(session: &Session, ledger: &Ledger) -> Gate {
     let docs = session.paths.docs();
@@ -105,6 +125,8 @@ pub struct Look {
     pub waiting: usize,
     /// Documents whose words the person has not approved, held back from every agent's file.
     pub unagreed: usize,
+    /// Documents with an assistant's change waiting beside the approved text.
+    pub proposed: usize,
     pub consented: bool,
     pub all_on: bool,
     pub asks: bool,
@@ -128,6 +150,7 @@ fn found_here(homes: &Homes) -> Vec<Found> {
 pub struct Gathered {
     root: Option<FolderId>,
     docs: usize,
+    proposed: usize,
     bodies: Vec<(String, String)>,
     ledger: Ledger,
     gate: Gate,
@@ -141,10 +164,20 @@ pub fn gathered(session: &Session, here: &str) -> Gathered {
         docs: root
             .map(|root| docs_in(&session.state, &tree(&session.state, root)).len())
             .unwrap_or(0),
+        proposed: proposed_in(&session.state),
         bodies: bodies(session),
         gate: gated(session, &ledger),
         ledger,
     }
+}
+
+fn proposed_in(state: &tisty_core::State) -> usize {
+    state
+        .proposals
+        .keys()
+        .filter_map(|id| state.docs.get(id))
+        .filter(|kept| agents::holds(state, kept))
+        .count()
 }
 
 // A document no assistant here would read has nothing to wait for on this computer.
@@ -189,6 +222,7 @@ pub fn looked(seen: &Gathered, homes: &Homes, found: &[Found]) -> Look {
         changes,
         waiting: waiting_here(seen, homes),
         unagreed: seen.gate.unagreed(),
+        proposed: seen.proposed,
         asks: docs == 0 || !ledger.consented() || !both.is_empty(),
         consented: ledger.consented(),
         all_on: ledger.syncs(""),
@@ -695,7 +729,10 @@ pub fn emptied(session: &mut Session) -> Answer<bool> {
 pub fn agents_look(session: tauri::State<'_, Mutex<Session>>) -> Answer<Look> {
     let homes = homes()?;
     let found = found_here(&homes);
-    let seen = gathered(&held(&session), &here());
+    let mut session = held(&session);
+    // An assistant's proposal arrives in the log alone, so the look reads the log again first.
+    session.reload()?;
+    let seen = gathered(&session, &here());
     Ok(looked(&seen, &homes, &found))
 }
 
@@ -734,7 +771,9 @@ pub fn agents_turn(
 #[tauri::command(async)]
 pub fn agents_round(session: tauri::State<'_, Mutex<Session>>) -> Answer<Rounded> {
     let homes = homes()?;
-    let session = held(&session);
+    let mut session = held(&session);
+    session.reload()?;
+    untagged(&mut session);
     let mut ledger = Ledger::open(session.paths.data(), &here());
     Ok(round_now(&session, &homes, &mut ledger))
 }

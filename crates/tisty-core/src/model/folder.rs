@@ -89,6 +89,19 @@ pub struct AgentNote {
     pub by: crate::event::DeviceId,
 }
 
+/// Kept apart from `Kept` too, so no reader of the document mistakes it for the approved text.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Proposed {
+    pub body: String,
+    pub print: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub base: Option<String>,
+    pub at: jiff::Timestamp,
+    pub by: crate::event::DeviceId,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub via: Option<String>,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Compacted {
     pub at: jiff::Timestamp,

@@ -12,6 +12,7 @@ import {
 } from "../agentsSync";
 import { fill, t, type Word } from "../locales";
 import { saidPlainly } from "../refusal";
+import ComparedLines from "./ComparedLines";
 import Modal from "./Modal";
 
 const button = "rounded-[10px] px-3 py-1.5 text-faint hover:text-ink";
@@ -115,24 +116,7 @@ function Assistant({
 }
 
 function Compared({ both }: Readonly<{ both: Both }>) {
-  const mark = { same: " ", tisty: "−", file: "+" } as const;
-  const tone = { same: "text-soft", tisty: "text-hue-red", file: "text-hue-green" } as const;
-  return (
-    <div className="mt-3 rounded-[10px] border border-hair">
-      <div className="flex gap-4 border-b border-hair px-3 py-1.5 text-[11.5px] text-faint">
-        <span className="text-hue-red">− {t("agentsInTisty")}</span>
-        <span className="text-hue-green">+ {t("agentsInFile")}</span>
-      </div>
-      <pre className="max-h-64 overflow-auto px-3 py-2 font-mono text-[11.5px] leading-relaxed whitespace-pre-wrap [overflow-wrap:anywhere]">
-        {both.lines.map((line, n) => (
-          // biome-ignore lint/suspicious/noArrayIndexKey: a compared line is told once and never moves
-          <span key={`${n}-${line.side}`} className={`block ${tone[line.side]}`}>
-            {mark[line.side]} {line.text}
-          </span>
-        ))}
-      </pre>
-    </div>
-  );
+  return <ComparedLines lines={both.lines} gone={t("agentsInTisty")} came={t("agentsInFile")} />;
 }
 
 interface Props {

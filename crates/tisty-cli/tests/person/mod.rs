@@ -47,6 +47,15 @@ impl Person {
         State::replay(&self.store().read_all().unwrap())
     }
 
+    pub fn ops(&self) -> Vec<Op> {
+        self.store()
+            .read_all()
+            .unwrap()
+            .into_iter()
+            .map(|one| one.op)
+            .collect()
+    }
+
     fn wrote(&self, ops: Vec<Op>) {
         if !ops.is_empty() {
             self.store().append_batch_tagged(ops, false, false).unwrap();

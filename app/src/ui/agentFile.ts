@@ -22,8 +22,22 @@ export const formatOf = (doc: AgentDoc, body: string): string => {
   return [kind, ends, ...more].filter(Boolean).join(" · ");
 };
 
+const NOT_HERE = {
+  waiting: "agentFileSyncsWaiting",
+  declined: "agentFileSyncsDeclined",
+  notAgreed: "agentFileSyncsNotAgreed",
+  placedByAgent: "agentFileSyncsPlacedByAgent",
+  otherMemory: "agentFileSyncsOtherMemory",
+} as const;
+
 const syncsOf = (doc: AgentDoc): string => {
+  const said = standsOf(doc);
+  return doc.proposal ? fill("agentFileSyncsProposal", said) : said;
+};
+
+const standsOf = (doc: AgentDoc): string => {
   if (doc.folderOff) return t("agentFileSyncsFolderOff");
+  if (doc.here !== "applied" && doc.here !== "away") return t(NOT_HERE[doc.here]);
   const states = doc.places.map((one) => one.said.state);
   if (states.length === 0) return t("agentFileSyncsNowhere");
   if (states.every((one) => one === "noConsent")) return t("agentFileSyncsNotAllowed");

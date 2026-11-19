@@ -2,7 +2,7 @@ mod op;
 
 pub use op::{
     ALIAS_AT_MOST, Body, DeviceKind, DocAdd, Edited, Filed, Flag, FolderAdd, Gist, Held, Idea,
-    KNOWN_OPS, ListAdd, LogAdd, LogEdit, Look, NAME_AT_MOST, Name, Op, PageChange, Paged,
+    KNOWN_OPS, ListAdd, LogAdd, LogEdit, Look, NAME_AT_MOST, Name, Op, PageChange, Paged, Proposal,
     RETIRED_OPS, Remembered, Resolve, Said, Signature, StepAdd, StepRef, StepReorder, StepText,
     Stitch, TaskAdd, TaskMove, TaskPatch, Tongue,
 };
@@ -134,6 +134,7 @@ impl Event {
             | Op::DocCompacted { id, .. }
             | Op::DocUncompacted { id }
             | Op::DocGist { id, .. }
+            | Op::DocProposal { id, .. }
             | Op::DocLock { id }
             | Op::DocUnlock { id } => Some(*id),
             Op::DeviceJoin { .. }

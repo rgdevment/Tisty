@@ -29,6 +29,7 @@ const look: AgentsLook = {
   changes: 0,
   waiting: 0,
   unagreed: 0,
+  proposed: 0,
   consented: false,
   allOn: true,
   asks: true,

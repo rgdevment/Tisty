@@ -604,6 +604,13 @@ pub(in crate::mcp) fn read_doc(paths: &Paths, args: &Value) -> Result<Value, Ref
         ),
         false => warned,
     };
+    let warned = match state.proposals.get(&kept.id) {
+        Some(waiting) => {
+            kept_of.insert("proposal".into(), super::super::proposing::shown(waiting));
+            format!("{warned}({})\n\n", super::super::proposing::WAITS)
+        }
+        None => warned,
+    };
     let warned = match super::super::ideas::is_sheet(&body) {
         true => format!(
             "{warned}{}\n\n",

@@ -1,4 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
+import type { Line } from "./agentsSync";
 import { valuesIn } from "./front";
 
 export type AgentKind = "rule" | "skill" | "memory";
@@ -43,6 +44,14 @@ export type Here =
   | "otherMemory"
   | "away";
 
+export interface Proposal {
+  readonly print: string;
+  readonly via: string | null;
+  readonly at: string;
+  readonly stale: boolean;
+  readonly lines: readonly Line[];
+}
+
 export interface AgentDoc {
   readonly kind: AgentKind;
   readonly level: string;
@@ -55,6 +64,7 @@ export interface AgentDoc {
   readonly here: Here;
   readonly print: string;
   readonly places: readonly Place[];
+  readonly proposal: Proposal | null;
 }
 
 export interface Glance {
@@ -63,6 +73,7 @@ export interface Glance {
   readonly changes: number;
   readonly waiting: number;
   readonly unagreed: number;
+  readonly proposed: number;
   readonly consented: boolean;
   readonly allOn: boolean;
 }
@@ -113,6 +124,10 @@ export const agentTake = (file: string, here: boolean): Promise<AgentDoc | null>
   invoke("agent_doc", { file, asked: { do: "take", here } });
 export const agentAgree = (file: string, print: string): Promise<AgentDoc | null> =>
   invoke("agent_doc", { file, asked: { do: "agree", print } });
+export const agentApprove = (file: string, print: string, over: string): Promise<AgentDoc | null> =>
+  invoke("agent_doc", { file, asked: { do: "approve", print, over } });
+export const agentDiscard = (file: string, print: string): Promise<AgentDoc | null> =>
+  invoke("agent_doc", { file, asked: { do: "discard", print } });
 
 const MARKDOWN = new Set(["md", "markdown", "mdc"]);
 
@@ -132,7 +147,7 @@ export const glanceWord = (glance: Glance): GlanceWord => {
   if (glance.docs === 0) return "empty";
   if (!glance.consented || !glance.allOn) return "off";
   if (glance.changes > 0) return "changes";
-  return glance.waiting + glance.unagreed > 0 ? "waiting" : "synced";
+  return glance.waiting + glance.unagreed + glance.proposed > 0 ? "waiting" : "synced";
 };
 
 export const touched = (place: Place): boolean =>
