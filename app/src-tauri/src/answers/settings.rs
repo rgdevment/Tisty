@@ -46,6 +46,10 @@ pub const ATTACHED: &[&str] = &[
     "agents-other-computer.png",
     "agents-propuesta.png",
     "agents-proposal.png",
+    "agents-traer-otro.png",
+    "agents-bring-another.png",
+    "agents-quitar.png",
+    "agents-take-away.png",
 ];
 
 pub const GUIDE_COVER: &str = "tisty:guide";
