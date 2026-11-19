@@ -401,6 +401,7 @@ describe("the Brainsty section", () => {
     card.close();
     frame.dispatchEvent(new Event("load"));
     await waitFor(() => expect(card.documentElement.classList).toContain("glanced"));
+    expect(card.documentElement.classList).toContain("untitled");
 
     await user.type(screen.getByRole("searchbox", { name: t("brainstySearch") }), "zzz");
     expect(await screen.findByText(t("brainstyNothingFound"))).toBeTruthy();

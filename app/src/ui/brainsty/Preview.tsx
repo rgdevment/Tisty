@@ -74,6 +74,7 @@ export default function Preview({ neuron, ties, zone, onOpen, onClose }: Props) 
             body={`${taskCard(neuron.id, neuron.title)}\n`}
             label={neuron.title}
             tall
+            untitled
             cardsShown={TASKS}
             onDoc={() => undefined}
             onTask={onOpen}
