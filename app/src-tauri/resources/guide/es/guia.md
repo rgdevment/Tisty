@@ -90,6 +90,12 @@ Cómo conectarlo, cómo darle o quitarle la entrada y cómo pedirle las cosas, p
 
 ![Paso a paso con tu agente de IA: la página de esta guía que lo cuenta](tisty:agent)
 
+### Las reglas de tus agentes, en un solo lugar
+
+Cada agente lee sus reglas de su propio archivo: Claude Code de `CLAUDE.md`, Codex de `AGENTS.md`, Gemini de `GEMINI.md`. La carpeta **AGENTS**, arriba de todo en la Biblioteca, los junta en Tisty como documentos: escribes una regla una vez y Tisty la escribe en el archivo de cada uno, con un respaldo antes de tocarlo. Un cambio que haces por fuera nunca se pisa, cada equipo elige qué aplica, y tu agente no escribe tus reglas: te propone el cambio, y solo tú lo apruebas. Se empieza en **Configuración → Asistentes**, con **Crear la carpeta AGENTS**.
+
+![AGENTS: las reglas de tus agentes, la página de esta guía que lo cuenta con ejemplos](tisty:agents)
+
 ---
 
 ## Las tareas

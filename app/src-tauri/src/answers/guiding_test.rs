@@ -37,7 +37,7 @@ fn the_guide_comes_in_both_languages_as_one_document_opened_in_the_persons() {
     for one in session.state.tongues_of(kept.id) {
         assert_eq!(
             session.state.pages_of(one.id).len(),
-            5,
+            6,
             "each language keeps its pages"
         );
         assert!(one.sown);
@@ -211,7 +211,7 @@ fn an_old_guide_in_another_language_gets_this_one_beside_it_and_joined() {
     assert_eq!(es.lang.as_deref(), Some("es"));
     assert_eq!(es.folder, Some(folder));
     assert_eq!(session.state.tongues_of(en).len(), 2);
-    assert_eq!(session.state.pages_of(es.id).len(), 5);
+    assert_eq!(session.state.pages_of(es.id).len(), 6);
 }
 
 #[test]
@@ -299,7 +299,7 @@ fn asked_again_the_signed_guide_puts_the_unsigned_one_away_and_comes_once_as_its
         .values()
         .filter(|one| one.by.as_deref() == Some("rgdevment"))
         .collect();
-    assert_eq!(signed.len(), 12, "both languages and their pages");
+    assert_eq!(signed.len(), 14, "both languages and their pages");
     assert!(
         signed
             .iter()
@@ -383,5 +383,5 @@ fn a_signed_guide_the_person_put_away_is_opened_again_rather_than_sown_twice() {
         .values()
         .filter(|one| one.by.as_deref() == Some("rgdevment"))
         .count();
-    assert_eq!(signed, 12, "nothing sown twice");
+    assert_eq!(signed, 14, "nothing sown twice");
 }

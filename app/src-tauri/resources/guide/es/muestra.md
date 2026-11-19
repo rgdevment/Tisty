@@ -27,9 +27,25 @@ fuente: la guía de Tisty
 
 ### Un documento de agente
 
-`agent:` convierte la hoja en un documento de agente: Tisty escribe su cuerpo, tal cual, en el archivo que lee un asistente de IA. El valor dice para quién es, qué es y dónde va: `nivel/tipo/nombre`. Arriba de la página aparece una ficha con el tipo, el destino, el estado y los respaldos, y las propiedades del archivo mismo se ven como campos.
+`agent:` convierte la hoja en un documento de agente: Tisty escribe su cuerpo, tal cual, en el archivo que lee un asistente de IA. El valor dice para quién es, qué es y dónde va: `nivel/tipo/nombre`. Solo vale dentro de la carpeta **AGENTS**; en esta hoja, como en cualquier otra, es una propiedad más y nada se escribe. Dentro de AGENTS:
 
-```yaml title="Una skill de Claude, como la trae Tisty"
+- **En la barra lateral**, el documento se llama por su primer título, o por el `name` de su skill, con un icono: un libro para una regla, una pieza para una skill y un cerebro para la memoria. Los archivos de una skill van juntos en una sola fila.
+- **Arriba de la página**, una ficha con el tipo, el nivel y el estado, el nombre en grande y la ruta debajo, una fila por archivo en que se escribe y los botones **Editar**, **Respaldos** y **Pausar la sincronización**. Las propiedades del archivo mismo, como `name` y `description`, se ven como campos.
+- **Al lado**, el panel **Archivo del agente** ocupa el lugar del tamaño de hoja y del índice: quién lo lee, dónde se escribe, su formato y sus respaldos.
+
+Todo, con ejemplos, en [AGENTS: las reglas de tus agentes](tisty:agents).
+
+```yaml title="Una regla de Claude: en la barra se llama Cómo trabajo"
+---
+agent: claude/rule/CLAUDE.md
+title: claude · CLAUDE.md
+---
+# Cómo trabajo
+
+- Responde en español.
+```
+
+```yaml title="Una skill de Claude, como la trae Tisty: en la barra se llama vacunas"
 ---
 agent: claude/skill/vacunas/SKILL.md
 title: claude · vacunas/SKILL.md

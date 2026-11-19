@@ -60,6 +60,7 @@ Everything it writes is signed with the name of the program it spoke through: "b
 - Close, reopen or delete a task, or delete a document or an idea.
 - Tick a step of yours or finish a task of yours: it only says they are done, and you take its word or not.
 - Move a day you set.
+- Write on its own in the AGENTS folder: a change to your rules or skills stays as a proposal, and reaches your agents only if you approve it on the card.
 - Create lists or set routines: without one of your lists, what it files lands in the inbox.
 - Write over what you changed while it was thinking: it is asked to read again.
 - See your Diary while it reads **Only you**, or change what you wrote in it once you open it.
