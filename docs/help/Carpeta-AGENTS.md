@@ -150,8 +150,8 @@ title: global · para-todos.md
 
 Esa regla no se escribe en un archivo propio: va **al principio del archivo principal de cada asistente**, antes de las reglas de ese asistente. Si en este equipo tienes Claude Code, Codex y Gemini, Tisty escribe:
 
-- `~/.claude/CLAUDE.md`: la regla de Global, y después lo que dice tu documento `claude · CLAUDE.md`.
-- `~/.codex/AGENTS.md`: la regla de Global, y después tu documento `codex · AGENTS.md`, si lo tienes.
+- `~/.claude/CLAUDE.md`: la regla de Global, y después lo que dice tu documento de ese archivo, **Cómo trabajo** en el ejemplo.
+- `~/.codex/AGENTS.md`: la regla de Global, y después tu documento de `AGENTS.md`, si lo tienes.
 - `~/.gemini/tisty-rules.md`: la regla de Global, y después tu documento `gemini/rule/tisty-rules.md`, si lo tienes.
 
 Así queda el `CLAUDE.md` de Claude Code:
@@ -373,7 +373,7 @@ La memoria de un agente habla de lo que pasó en ese equipo, así que nunca se e
 
 Entonces la barra dice **1 por aprobar** junto a AGENTS, y la ficha avisa «Su texto aún no tiene tu aprobación, así que no llega a ningún agente hasta que lo apruebes.», con **Aprobar este texto**. Léelo antes: el botón pregunta «¿Apruebas lo que dice ahora este documento? Léelo antes: se escribe en los archivos de tus agentes.», y si el documento cambió entre que lo leíste y tu sí, Tisty no aprueba nada y te pide leerlo de nuevo.
 
-Si ese documento ya se escribía en un archivo, el archivo no cambia mientras tanto: su ficha dice **En espera** y nombra el documento que lo detiene, por ejemplo «Este archivo queda como estaba: claude · estilo.md cambió o salió de AGENTS sin tu aprobación. Apruébalo, o vuelve a ponerlo y sácalo tú.».
+Si ese documento ya se escribía en un archivo, el archivo no cambia mientras tanto: su ficha dice **En espera** y nombra el documento que lo detiene, por ejemplo «Este archivo queda como estaba: claude · rules/estilo.md cambió o salió de AGENTS sin tu aprobación. Apruébalo, o vuelve a ponerlo y sácalo tú.».
 
 Un documento que puso en AGENTS un agente, y no tú, tampoco se escribe: su ficha dice «Lo puso aquí un agente, así que ningún agente lo lee hasta que lo muevas tú.». Muévelo tú a otra subcarpeta de AGENTS que hayas creado tú (cambiarlo de orden no basta), y se aplica. Si un agente creó o renombró la carpeta en que está, pasa lo mismo con todo lo que hay dentro: muévelo a una carpeta tuya.
 
@@ -534,7 +534,7 @@ Así que el agente te dice qué cambiaría y en qué documento, y tú lo cambias
 
 **Toda la carpeta dejó de escribir.** Revisa que AGENTS siga arriba de todo en la Biblioteca, con ese nombre y su icono de robot, y sin archivar.
 
-**Codex no lee mis reglas.** Si tienes `~/.codex/AGENTS.override.md`, Codex lee solo ese archivo. Tus reglas de Global van ahí, pero un documento `codex · AGENTS.md` se escribe en `AGENTS.md`, que Codex no lee mientras exista el otro.
+**Codex no lee mis reglas.** Si tienes `~/.codex/AGENTS.override.md`, Codex lee solo ese archivo. Tus reglas de Global van ahí, pero un documento con `agent: codex/rule/AGENTS.md` se escribe en `AGENTS.md`, que Codex no lee mientras exista el otro.
 
 **Gemini no lee mis reglas.** Revisa que `~/.gemini/GEMINI.md` tenga la línea `@tisty-rules.md`. Si la borraste, Tisty la vuelve a agregar la próxima vez que revisa tus archivos: al iniciar, o cuando cambias un documento de AGENTS.
 

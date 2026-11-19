@@ -150,8 +150,8 @@ title: global · for-all.md
 
 That rule is not written to a file of its own: it goes **at the start of each assistant's main file**, before that assistant's own rules. If this computer has Claude Code, Codex and Gemini, Tisty writes:
 
-- `~/.claude/CLAUDE.md`: the Global rule, then what your document `claude · CLAUDE.md` says.
-- `~/.codex/AGENTS.md`: the Global rule, then your document `codex · AGENTS.md`, if you have one.
+- `~/.claude/CLAUDE.md`: the Global rule, then what your document of that file says, **How I work** in the example.
+- `~/.codex/AGENTS.md`: the Global rule, then your document of `AGENTS.md`, if you have one.
 - `~/.gemini/tisty-rules.md`: the Global rule, then your document `gemini/rule/tisty-rules.md`, if you have one.
 
 This is how Claude Code's `CLAUDE.md` ends up:
@@ -373,7 +373,7 @@ An agent's memory speaks of what happened on that computer, so it is never writt
 
 Then the sidebar says **1 to approve** beside AGENTS, and the card warns «Its text does not have your approval yet, so it reaches no agent until you approve it.», with **Approve this text**. Read it first: the button asks «Approve what this document says now? Read it first: it is written to your agents' files.», and if the document changed between your reading and your yes, Tisty approves nothing and asks you to read it again.
 
-If that document was already written to a file, the file does not change meanwhile: its card says **On hold** and names the document holding it, for example «This file stays as it was: claude · style.md changed or left AGENTS without your approval. Approve it, or put it back and take it out yourself.».
+If that document was already written to a file, the file does not change meanwhile: its card says **On hold** and names the document holding it, for example «This file stays as it was: claude · rules/style.md changed or left AGENTS without your approval. Approve it, or put it back and take it out yourself.».
 
 A document an agent put in AGENTS, and not you, is not written either: its card says «An agent put it here, so no agent reads it until you move it yourself.». Move it yourself to another AGENTS subfolder you made (reordering it is not enough), and it applies. If an agent made or renamed the folder it sits in, the same goes for everything inside it: move it to a folder of yours.
 
@@ -534,7 +534,7 @@ So the agent tells you what it would change and in which document, and you chang
 
 **The whole folder stopped writing.** Check that AGENTS still sits at the top of the Library, with that name and its robot icon, and not archived.
 
-**Codex does not read my rules.** If you have `~/.codex/AGENTS.override.md`, Codex reads only that file. Your Global rules go there, but a `codex · AGENTS.md` document is written to `AGENTS.md`, which Codex does not read while the other one exists.
+**Codex does not read my rules.** If you have `~/.codex/AGENTS.override.md`, Codex reads only that file. Your Global rules go there, but a document with `agent: codex/rule/AGENTS.md` is written to `AGENTS.md`, which Codex does not read while the other one exists.
 
 **Gemini does not read my rules.** Check that `~/.gemini/GEMINI.md` has the line `@tisty-rules.md`. If you deleted it, Tisty adds it back the next time it goes over your files: on start, or when you change an AGENTS document.
 
