@@ -58,7 +58,7 @@ describe("the window's own actions", () => {
 
     named(all, "Priorities").onPick();
     named(all, "Upcoming").onPick();
-    named(all, "Brainstorm").onPick();
+    named(all, "Ideas").onPick();
     named(all, "Weekly review").onPick();
 
     expect(a.choose).toHaveBeenCalledWith({ named: "quadrants" });

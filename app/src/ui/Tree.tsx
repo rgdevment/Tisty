@@ -540,7 +540,13 @@ export default function Tree({
 
   const paper = (doc: Filed, depth: number, page = false, inGroup = false) => {
     const row = page ? undefined : agentRows.get(doc.file);
-    const name = row ? (inGroup ? inSkill(row) : row.label) : doc.title || t("untitledDoc");
+    const name = row
+      ? inGroup
+        ? inSkill(row)
+        : row.label
+      : doc === pin
+        ? t("brainstorm")
+        : doc.title || t("untitledDoc");
     const worn = page ? { mark: null, rest: name } : led(name);
     const pages = pagesOf(doc.id);
     const closed = !unfolded && !spread.has(doc.id) && !pages.some((one) => one.file === open);
@@ -556,7 +562,7 @@ export default function Tree({
                 ? "archive"
                 : "alignleft"
               : doc === pin
-                ? "brain"
+                ? "idea"
                 : "page"
         }
         className={
@@ -1056,7 +1062,7 @@ export default function Tree({
   );
 
   const veils = [
-    ...(pin && veiled(BRAINSTORM) ? [{ key: BRAINSTORM, name: pin.title || t("brainstorm") }] : []),
+    ...(pin && veiled(BRAINSTORM) ? [{ key: BRAINSTORM, name: t("brainstorm") }] : []),
     ...(onDiary && veiled(DIARY) ? [{ key: DIARY, name: t("diary") }] : []),
     ...papers.folders
       .filter((one) => !one.away && veiled(one.id))

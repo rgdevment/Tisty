@@ -135,7 +135,7 @@ describe("the weekly review", () => {
 
     const decide = screen.getByRole("region", { name: "To decide" });
     expect(within(decide).getByRole("button", { name: "Call Jaime" })).toBeTruthy();
-    expect(within(decide).getByRole("button", { name: "Open Brainstorm, 2 waiting" })).toBeTruthy();
+    expect(within(decide).getByRole("button", { name: "Open Ideas, 2 waiting" })).toBeTruthy();
     const marked = screen.getByRole("region", { name: "Marked as past" });
     expect(within(marked).getByText("A copy of Receipts")).toBeTruthy();
     const forgotten = await screen.findByRole("region", { name: "Not opened in a while" });

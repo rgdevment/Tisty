@@ -119,12 +119,14 @@ pub(super) fn propose(
                             .and_then(Value::as_str)
                             .map_or_else(String::new, |id| format!(" [{id}]"));
                         let idea = match one.get("from_idea").is_some() {
-                            true => ", and the idea it came from left Brainstorm",
+                            true => ", and the idea it came from left the Ideas sheet",
                             false => "",
                         };
                         let parts = match one.get("parts_from_ideas").and_then(Value::as_u64) {
                             Some(n) => {
-                                format!(", and {n} idea(s) its parts came from left Brainstorm")
+                                format!(
+                                    ", and {n} idea(s) its parts came from left the Ideas sheet"
+                                )
                             }
                             None => String::new(),
                         };

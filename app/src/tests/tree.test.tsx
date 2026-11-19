@@ -1202,8 +1202,9 @@ describe("the brainstorm", () => {
 
     const tree = screen.getByRole("list", { name: "Documents" });
     const rows = within(tree).getAllByRole("listitem");
-    expect(within(rows[0]).getByText("Suelto")).toBeTruthy();
-    expect(within(tree).getAllByText("Suelto")).toHaveLength(1);
+    expect(within(rows[0]).getByText("Ideas")).toBeTruthy();
+    expect(within(tree).getAllByText("Ideas")).toHaveLength(1);
+    expect(within(tree).queryByText("Suelto")).toBeNull();
   });
 
   it("counts the ideas still waiting beside its name, and says nothing when there are none", () => {

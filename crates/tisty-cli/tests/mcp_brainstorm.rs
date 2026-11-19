@@ -489,7 +489,7 @@ fn nothing_but_ideas_is_added_to_the_sheet_and_it_never_holds_a_page() {
 
     for one in [&attached, &hung, &hanging, &written] {
         assert!(refused(one), "{one}");
-        assert!(said(one).contains("Brainstorm"), "{}", said(one));
+        assert!(said(one).contains("Ideas"), "{}", said(one));
     }
     assert_eq!(served.body(&sheet), SHEET);
 }
@@ -733,7 +733,7 @@ fn brainstorm_goes_in_no_folder_no_languages_and_is_put_away_only_by_the_person(
 
     for one in [&away, &filed, &joined] {
         assert!(refused(one), "{one}");
-        assert!(said(one).contains("is Brainstorm"), "{one}");
+        assert!(said(one).contains("is Ideas"), "{one}");
     }
     let state = served.person().state();
     let kept = state.docs.values().find(|one| one.file == sheet).unwrap();
