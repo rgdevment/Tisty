@@ -9,8 +9,8 @@ const words = {
     "La sincronización de este asistente está en pausa",
   ],
   agentDocChanged: [
-    "This document changed since its card was drawn. Read it again before approving it.",
-    "Este documento cambió desde que se mostró su ficha. Léelo de nuevo antes de aprobarlo.",
+    "This document changed since its card was drawn. Read it again and try once more.",
+    "Este documento cambió desde que se mostró su ficha. Léelo de nuevo y vuelve a intentarlo.",
   ],
   agentProposalChanged: [
     "The proposal changed since the card showed it. Look at it again before choosing.",
