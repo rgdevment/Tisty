@@ -7,7 +7,9 @@ import { pictured } from "../previews";
 import { tiesAt } from "./brainsty/cardFacts";
 import { type Curves, curvesOn } from "./brainsty/curves";
 import { type Drawing, drawNetwork, type HueOf } from "./brainsty/drawing";
+import { amidMembers, laidEdges } from "./brainsty/grouping";
 import { alikeOf } from "./brainsty/guessing";
+import { type Icons, iconsOn } from "./brainsty/icons";
 import { layOut } from "./brainsty/layingOut";
 import { degreesOf, paletteNow } from "./brainsty/looks";
 import { type Overlays, overlaysOn } from "./brainsty/overlays";
@@ -31,7 +33,12 @@ interface Props {
 export default function Brainsty({ network, groups, onOpen, escaping }: Props) {
   const host = useRef<HTMLElement>(null);
   const finder = useRef<HTMLInputElement>(null);
-  const drawing = useRef<{ drawn: Drawing; overlays: Overlays; curves: Curves } | null>(null);
+  const drawing = useRef<{
+    drawn: Drawing;
+    overlays: Overlays;
+    curves: Curves;
+    icons: Icons;
+  } | null>(null);
   const [ready, setReady] = useState(false);
   const [picked, setPicked] = useState<number | null>(null);
   const [query, setQuery] = useState("");
@@ -83,7 +90,7 @@ export default function Brainsty({ network, groups, onOpen, escaping }: Props) {
     const container = host.current;
     if (!container) return;
     const spots = seeded(network.nodes);
-    const shaped = brainShaped(spots);
+    const shaped = brainShaped(amidMembers(spots, network));
     const hueOf: HueOf = (group) => hues.current(group);
     const palette = paletteNow();
     const drawn = drawNetwork(
@@ -99,6 +106,7 @@ export default function Brainsty({ network, groups, onOpen, escaping }: Props) {
     curves.reshape(shaped);
     const overlays = overlaysOn(container, drawn, network, hueOf, palette, PICTURES);
     overlays.reshape(shaped);
+    const icons = iconsOn(container, drawn, network, palette, PICTURES.shows);
     const near = network.near;
     let following = near !== undefined;
     let frame = 0;
@@ -138,8 +146,8 @@ export default function Brainsty({ network, groups, onOpen, escaping }: Props) {
       find: () => finder.current?.focus(),
     });
     window.addEventListener("keydown", keyed);
-    const stop = layOut({ ...spots, edges: edgesOf(network.edges) }, (step) => {
-      const placed = brainShaped(step);
+    const stop = layOut({ ...spots, edges: edgesOf(laidEdges(network)) }, (step) => {
+      const placed = brainShaped(amidMembers(step, network));
       drawn.place(placed);
       overlays.reshape(placed);
       curves.reshape(placed);
@@ -153,8 +161,9 @@ export default function Brainsty({ network, groups, onOpen, escaping }: Props) {
       drawn.retheme(next);
       overlays.retheme(next);
       curves.retheme(next);
+      icons.retheme(next);
     });
-    drawing.current = { drawn, overlays, curves };
+    drawing.current = { drawn, overlays, curves, icons };
     setReady(true);
     return () => {
       cancelAnimationFrame(frame);
@@ -166,6 +175,7 @@ export default function Brainsty({ network, groups, onOpen, escaping }: Props) {
       container.removeEventListener("wheel", letGo);
       overlays.stop();
       curves.stop();
+      icons.stop();
       drawing.current = null;
       drawn.kill();
     };
@@ -176,18 +186,19 @@ export default function Brainsty({ network, groups, onOpen, escaping }: Props) {
     drawing.current.drawn.hide(hidden);
     drawing.current.overlays.sift(hidden);
     drawing.current.curves.sift(hidden);
+    drawing.current.icons.sift(hidden);
     setPicked((was) => (was !== null && hidden[was] ? null : was));
   }, [ready, hidden]);
 
   useEffect(() => {
     const drawn = drawing.current?.drawn;
     if (!ready || !drawn) return;
-    drawn.light(
+    const lit =
       picked === null
         ? null
-        : new Set([picked, ...drawn.beside(picked), ...alike.map((one) => one.node)]),
-      picked,
-    );
+        : new Set([picked, ...drawn.beside(picked), ...alike.map((one) => one.node)]);
+    drawn.light(lit, picked);
+    drawing.current?.icons.light(lit);
     drawing.current?.curves.pick(picked);
   }, [ready, picked, alike]);
 

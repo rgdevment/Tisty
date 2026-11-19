@@ -1,6 +1,6 @@
 import type { Neuron, NeuronKind, Tie } from "../../brainsty";
 
-export type Shape = "square" | "circle";
+export type Shape = "square" | "circle" | "diamond";
 
 export type Standing = "live" | "done" | "archived";
 
@@ -43,7 +43,15 @@ export const HUE_KEYS = [
   "gray",
 ] as const;
 
-const SIZE: Record<NeuronKind, number> = { doc: 7, page: 4.5, task: 5, tag: 2.5, file: 3 };
+const SIZE: Record<NeuronKind, number> = {
+  doc: 7,
+  page: 4.5,
+  task: 5,
+  tag: 2.5,
+  file: 3,
+  folder: 8,
+  list: 8,
+};
 
 const STANDING: Record<Standing, { alpha: number; scale: number }> = {
   live: { alpha: 1, scale: 1 },
@@ -71,8 +79,10 @@ export const standingOf = (neuron: Neuron): Standing => {
   return neuron.state === "done" ? "done" : "archived";
 };
 
-export const shapeOf = (kind: NeuronKind): Shape =>
-  kind === "doc" || kind === "page" ? "square" : "circle";
+export const shapeOf = (kind: NeuronKind): Shape => {
+  if (kind === "list") return "diamond";
+  return kind === "doc" || kind === "page" || kind === "folder" ? "square" : "circle";
+};
 
 const alphaOf = (said?: string): number => {
   if (said === undefined) return 1;
@@ -118,6 +128,8 @@ const TONE: Record<NeuronKind, keyof Omit<Palette, "hues">> = {
   task: "accent",
   tag: "tag",
   file: "file",
+  folder: "soft",
+  list: "accent",
 };
 
 const baseOf = (kind: NeuronKind, palette: Palette): string => palette[TONE[kind]];

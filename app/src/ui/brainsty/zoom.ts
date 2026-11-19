@@ -37,4 +37,12 @@ export const zonesShown = (zoom: number): number =>
 
 export const thumbsShown = (zoom: number): boolean => zoom >= NEAR_FROM + 0.05;
 
+export const iconsShown = (zoom: number): number => ramp(zoom, NEAR_FROM - 0.05, NEAR_FROM + 0.05);
+
 export const lerp = (from: number, to: number, at: number): number => from + (to - from) * at;
+
+// Up close a node grows enough to hold the icon of what it is, and sigma's clicks find it at that size.
+export const ICON_ROOM = 9;
+
+export const roomFor = (size: number, zoom: number): number =>
+  lerp(size, Math.max(size, ICON_ROOM), iconsShown(zoom));

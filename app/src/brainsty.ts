@@ -5,7 +5,9 @@ export const TIES = ["cite", "mention", "structure", "tag", "uses"] as const;
 
 export type Tie = (typeof TIES)[number];
 
-export type NeuronKind = "doc" | "page" | "task" | "tag" | "file";
+export type NeuronKind = "doc" | "page" | "task" | "tag" | "file" | GroupKind;
+
+export type GroupKind = "folder" | "list";
 
 export interface Neuron {
   id: string;
@@ -36,6 +38,7 @@ export interface Group {
   id: string;
   name: string;
   color?: string | null;
+  kind?: GroupKind;
 }
 
 export interface Near {

@@ -6,6 +6,7 @@ import {
   layerPlain,
   pathLine,
   sdfCircle,
+  sdfDiamond,
   sdfSquare,
 } from "sigma/rendering";
 import { type Network, TIES } from "../../brainsty";
@@ -22,7 +23,7 @@ import {
 } from "./looks";
 import type { Spots } from "./settling";
 import type { Point } from "./zones";
-import { allTitles, bigTitles, lerp, lineDetail, quantized, zoomOf } from "./zoom";
+import { allTitles, bigTitles, lerp, lineDetail, quantized, roomFor, zoomOf } from "./zoom";
 
 export type HueOf = (group?: string) => string | undefined;
 
@@ -131,7 +132,7 @@ export function drawNetwork(
     customGraphState: { zoom: 0 },
     customNodeState: { isPicked: false },
     primitives: {
-      nodes: { shapes: [sdfCircle(), sdfSquare()], layers: [layerFill()] },
+      nodes: { shapes: [sdfCircle(), sdfSquare(), sdfDiamond()], layers: [layerFill()] },
       edges: {
         paths: [pathLine()],
         variables: {
@@ -149,6 +150,7 @@ export function drawNetwork(
         DEFAULT_STYLES.nodes,
         {
           shape: { attribute: "shape", defaultValue: "circle" },
+          size: (at, _state, shared: Seen) => roomFor(Number(at.size), shared.zoom),
           labelFont: font,
           // sigma backs a hovered or picked node and its title in white, where a light title vanishes.
           backdropColor: () => seen.palette.bg,

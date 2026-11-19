@@ -96,6 +96,7 @@ vi.mock("sigma", () => ({
 vi.mock("sigma/rendering", () => ({
   sdfCircle: () => ({ name: "circle" }),
   sdfSquare: () => ({ name: "square" }),
+  sdfDiamond: () => ({ name: "diamond" }),
   layerFill: () => ({ name: "fill" }),
   layerPlain: (options: unknown) => ({ name: "plain", options }),
   layerDashed: (options: unknown) => ({ name: "dashed", options }),
@@ -170,6 +171,7 @@ describe("the drawing of the network", () => {
     expect(drawn.options.primitives.nodes.shapes.map((one) => one.name)).toEqual([
       "circle",
       "square",
+      "diamond",
     ]);
     expect(drawn.options.primitives.edges.layers.map((one) => one.name)).toEqual([
       "plain",
@@ -194,6 +196,15 @@ describe("the drawing of the network", () => {
     expect(shown(small, {}, { zoom: 1 })).toBe("auto");
     expect(colour(small, {}, { zoom: 1 })).toBe("rgba(0, 0, 0, 1)");
     expect(colour(big, {}, { zoom: 0.25 })).toBe("rgba(0, 0, 0, 0.5)");
+  });
+
+  it("grows a node up close to hold its icon, and leaves a big one as it is", () => {
+    drawNetwork(document.body, network, spots, () => undefined, light, "Inter");
+    const size = nodeStyle("size");
+
+    expect(size({ size: 3 }, {}, { zoom: 0 })).toBe(3);
+    expect(size({ size: 3 }, {}, { zoom: 1 })).toBe(9);
+    expect(size({ size: 14 }, {}, { zoom: 1 })).toBe(14);
   });
 
   it("draws lines plain and faint from afar and in their own kind up close", () => {
