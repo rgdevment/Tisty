@@ -46,6 +46,7 @@ fn folder(id: Ulid, name: &str, parent: Option<Ulid>) -> Folder {
         icon: None,
         color: None,
         archived: false,
+        placed_by: None,
     }
 }
 

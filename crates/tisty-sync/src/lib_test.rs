@@ -3814,6 +3814,7 @@ fn a_document_arrives_with_its_name_before_its_body_is_read() {
                 tags: Some(vec![tisty_core::Tag::new("casa").unwrap()]),
                 by: None,
                 print: None,
+                agreed: false,
             },
         },
     );
@@ -4124,6 +4125,7 @@ fn a_history_handed_on_reaches_the_folder_byte_for_byte() {
                 tags: Some(vec![tisty_core::Tag::new("casa").unwrap()]),
                 by: Some("otra persona".into()),
                 print: None,
+                agreed: false,
             },
         },
     );

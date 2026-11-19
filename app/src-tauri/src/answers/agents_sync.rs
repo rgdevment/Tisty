@@ -2,7 +2,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
 use std::sync::Mutex;
 
-use tisty_core::agents::{self, Card, Found, Ledger, Standing, Target};
+use tisty_core::agents::{self, Card, Found, Gate, Ledger, Seen, Standing, Target};
 use tisty_core::model::{FolderId, Kept};
 use tisty_core::{Op, State};
 
@@ -21,33 +21,11 @@ fn homes() -> Answer<Homes> {
 }
 
 pub fn root_of(state: &State) -> Option<FolderId> {
-    state
-        .folders
-        .values()
-        .filter(|one| {
-            one.parent.is_none()
-                && !one.archived
-                && one.icon.as_deref() == Some(places::ICON)
-                && one.name == places::FOLDER
-        })
-        .map(|one| one.id)
-        .min()
+    agents::root_of(state)
 }
 
 fn tree(state: &State, root: FolderId) -> BTreeSet<FolderId> {
-    let mut all = BTreeSet::from([root]);
-    loop {
-        let more: Vec<FolderId> = state
-            .folders
-            .values()
-            .filter(|one| one.parent.is_some_and(|up| all.contains(&up)) && !all.contains(&one.id))
-            .map(|one| one.id)
-            .collect();
-        if more.is_empty() {
-            return all;
-        }
-        all.extend(more);
-    }
+    agents::tree(state, root)
 }
 
 fn docs_in<'a>(state: &'a State, tree: &BTreeSet<FolderId>) -> Vec<&'a Kept> {
@@ -75,9 +53,23 @@ pub fn bodies(session: &Session) -> Vec<(String, String)> {
         .collect()
 }
 
-fn addresses(bodies: &[(String, String)]) -> BTreeSet<String> {
+/// The only way to what may be written into an agent's file on this computer.
+pub fn gated(session: &Session, ledger: &Ledger) -> Gate {
+    let docs = session.paths.docs();
+    agents::gate(&agents::Asked {
+        state: &session.state,
+        docs: &docs,
+        root: root_of(&session.state),
+        ledger,
+        me: session.store.device(),
+    })
+}
+
+// Another computer's memory never stands for this one's, so its file here can still be brought.
+fn addresses(bodies: &[(String, String)], gate: &Gate) -> BTreeSet<String> {
     bodies
         .iter()
+        .filter(|(file, _)| gate.seen(file) != Some(Seen::OtherComputersMemory))
         .filter_map(|(_, body)| Card::of(body).map(|card| card.address()))
         .collect()
 }
@@ -109,6 +101,10 @@ pub struct Look {
     pub docs: usize,
     /// Files changed outside Tisty, or on both sides, that wait for the person.
     pub changes: usize,
+    /// Documents from another computer that wait for «apply here» or «not on this computer».
+    pub waiting: usize,
+    /// Documents whose words the person has not approved, held back from every agent's file.
+    pub unagreed: usize,
     pub consented: bool,
     pub all_on: bool,
     pub asks: bool,
@@ -130,30 +126,43 @@ fn found_here(homes: &Homes) -> Vec<Found> {
 }
 
 pub struct Gathered {
-    data: std::path::PathBuf,
     root: Option<FolderId>,
     docs: usize,
     bodies: Vec<(String, String)>,
+    ledger: Ledger,
+    gate: Gate,
 }
 
-pub fn gathered(session: &Session) -> Gathered {
+pub fn gathered(session: &Session, here: &str) -> Gathered {
     let root = root_of(&session.state);
+    let ledger = Ledger::open(session.paths.data(), here);
     Gathered {
-        data: session.paths.data().to_path_buf(),
         root,
         docs: root
             .map(|root| docs_in(&session.state, &tree(&session.state, root)).len())
             .unwrap_or(0),
         bodies: bodies(session),
+        gate: gated(session, &ledger),
+        ledger,
     }
 }
 
+// A document no assistant here would read has nothing to wait for on this computer.
+fn waiting_here(seen: &Gathered, homes: &Homes) -> usize {
+    seen.bodies
+        .iter()
+        .filter(|(file, _)| seen.gate.seen(file) == Some(Seen::WaitingHere))
+        .filter_map(|(_, body)| Card::of(body))
+        .filter(|card| places::lands_here(homes, card))
+        .count()
+}
+
 /// Names and sizes only: no agent file is opened before the person says yes.
-pub fn looked(seen: &Gathered, homes: &Homes, here: &str, found: &[Found]) -> Look {
-    let ledger = Ledger::open(&seen.data, here);
+pub fn looked(seen: &Gathered, homes: &Homes, found: &[Found]) -> Look {
+    let ledger = &seen.ledger;
     let (root, docs) = (seen.root, seen.docs);
-    let held = addresses(&seen.bodies);
-    let (changes, both) = weighed(&ledger, &places::targets(homes, &seen.bodies));
+    let held = addresses(&seen.bodies, &seen.gate);
+    let (changes, both) = weighed(ledger, &places::targets(homes, &seen.gate, ledger));
     let assistants = homes
         .detected()
         .into_iter()
@@ -178,6 +187,8 @@ pub fn looked(seen: &Gathered, homes: &Homes, here: &str, found: &[Found]) -> Lo
         folder: root.map(|at| at.to_string()),
         docs,
         changes,
+        waiting: waiting_here(seen, homes),
+        unagreed: seen.gate.unagreed(),
         asks: docs == 0 || !ledger.consented() || !both.is_empty(),
         consented: ledger.consented(),
         all_on: ledger.syncs(""),
@@ -196,7 +207,7 @@ pub(crate) fn weighed(ledger: &Ledger, placed: &[Placed]) -> (usize, Vec<Both>) 
                 changes += 1;
                 both.push(both_of(&one.target, &now));
             }
-            Standing::Outside { .. } => changes += 1,
+            Standing::Outside { .. } | Standing::Unproven => changes += 1,
             _ => {}
         }
     }
@@ -240,6 +251,8 @@ fn word(standing: &Standing) -> &'static str {
     match standing {
         Standing::NoConsent => "noConsent",
         Standing::Off => "off",
+        Standing::Held => "held",
+        Standing::Unproven => "unproven",
         Standing::Empty => "empty",
         Standing::Linked => "linked",
         Standing::Broken { .. } => "broken",
@@ -287,7 +300,7 @@ pub fn compared(tisty: &[u8], file: &[u8]) -> Vec<Line> {
 
 fn own_alone(target: &Target) -> bool {
     match target.pieces.as_slice() {
-        [one] => Card::of(one).is_some_and(|card| card.level == target.assistant),
+        [one] => one.card().level == target.assistant,
         _ => false,
     }
 }
@@ -353,7 +366,11 @@ fn led_in(
 }
 
 pub(crate) fn round_now(session: &Session, homes: &Homes, ledger: &mut Ledger) -> Rounded {
-    let placed = places::targets(homes, &bodies(session));
+    let gate = gated(session, ledger);
+    if ledger.taken_all(gate.admitted().iter().map(agents::Admitted::file)) {
+        let _ = ledger.keep(session.paths.data());
+    }
+    let placed = places::targets(homes, &gate, ledger);
     rounded(session.paths.data(), ledger, &placed)
 }
 
@@ -371,6 +388,7 @@ pub(crate) fn refused(why: agents::Refused) -> Refusal {
     match why {
         R::NoConsent => Refusal::of("agentNoConsent"),
         R::Off => Refusal::of("agentOff"),
+        R::Held => Refusal::of("agentHeld"),
         R::AgentsOwn => Refusal::of("agentOwn"),
         R::Empty => Refusal::of("agentEmpty"),
         R::Linked => Refusal::of("agentLinked"),
@@ -527,7 +545,7 @@ pub fn filed(session: &mut Session, bodies: &[(Found, String)]) -> Answer<usize>
                 file: kept.id,
                 folder: Some(sub),
                 order: next(&session.state, Some(sub), true),
-                said: Some(tisty_core::event::Said::of(body)),
+                said: Some(tisty_core::event::Said::of(body).agreed()),
                 by: signed.clone(),
                 ..Default::default()
             },
@@ -556,7 +574,8 @@ pub fn consented_here(session: &Session, here: &str) -> Answer<(Ledger, BTreeSet
     let mut ledger = Ledger::open(session.paths.data(), here);
     ledger.consent(true);
     ledger.keep(session.paths.data()).map_err(refused)?;
-    Ok((ledger, addresses(&bodies(session))))
+    let gate = gated(session, &ledger);
+    Ok((ledger, addresses(&bodies(session), &gate)))
 }
 
 pub fn brought_home(
@@ -575,8 +594,8 @@ pub fn brought_home(
     })
 }
 
-fn placed_at(session: &Session, homes: &Homes, at: &str) -> Answer<Placed> {
-    places::targets(homes, &bodies(session))
+fn placed_at(session: &Session, homes: &Homes, ledger: &Ledger, at: &str) -> Answer<Placed> {
+    places::targets(homes, &gated(session, ledger), ledger)
         .into_iter()
         .find(|one| one.target.at.to_string_lossy() == at)
         .ok_or_else(|| Refusal::about("cannotWrite", at.to_string()))
@@ -590,7 +609,7 @@ pub fn kept_side(
     tisty: bool,
 ) -> Answer<Rounded> {
     let mut ledger = Ledger::open(session.paths.data(), here);
-    let placed = placed_at(session, homes, at)?;
+    let placed = placed_at(session, homes, &ledger, at)?;
     match tisty {
         true => {
             agents::overwrite(session.paths.data(), &mut ledger, &placed.target).map_err(refused)?
@@ -628,7 +647,7 @@ pub(crate) fn rewritten_by(
     let made = tisty_core::docs::rewrite(&docs, &writer, file, body, &print).map_err(cannot)?;
     match made {
         tisty_core::docs::Rewrite::Made { .. } => {
-            session.retell(file, body, via);
+            session.retell_written(file, body, via);
             Ok(())
         }
         tisty_core::docs::Rewrite::Moved => Err(Refusal::about("documentMoved", file.to_string())),
@@ -676,8 +695,8 @@ pub fn emptied(session: &mut Session) -> Answer<bool> {
 pub fn agents_look(session: tauri::State<'_, Mutex<Session>>) -> Answer<Look> {
     let homes = homes()?;
     let found = found_here(&homes);
-    let seen = gathered(&held(&session));
-    Ok(looked(&seen, &homes, &here(), &found))
+    let seen = gathered(&held(&session), &here());
+    Ok(looked(&seen, &homes, &found))
 }
 
 #[tauri::command(async)]

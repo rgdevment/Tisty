@@ -1087,6 +1087,9 @@ pub struct Said {
     // Kept once said, like a sheet: a build that never read it must not open a diary to agents.
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub diary: bool,
+    // Only the person's hand says it, never a body read back from disk; an assistant saying it is not believed.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub agreed: bool,
 }
 
 impl Said {
@@ -1105,11 +1108,17 @@ impl Said {
             key: Some(crate::tongues::key_of(body)),
             brainstorm: tisty_markdown::front::brainstorm(body),
             diary: tisty_markdown::front::diary(body),
+            agreed: false,
         }
     }
 
     pub fn by(mut self, who: Option<String>) -> Self {
         self.by = who;
+        self
+    }
+
+    pub fn agreed(mut self) -> Self {
+        self.agreed = true;
         self
     }
 
@@ -1122,6 +1131,7 @@ impl Said {
             || (self.print.is_some() && self.print != kept.print)
             || (self.brainstorm && !kept.brainstorm)
             || (self.diary && !kept.diary)
+            || (self.agreed && self.print.is_some() && self.print != kept.agreed)
     }
 }
 

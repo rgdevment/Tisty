@@ -1,19 +1,24 @@
 mod card;
 mod found;
+mod gate;
 mod kept;
 mod ledger;
+mod rooted;
 mod standing;
 
 pub use card::{Card, Endings, GLOBAL, KEY, Kind, brought, doc_of, rendered};
 pub use found::{Found, Place, Skip, brought_in, found};
+pub use gate::{Admitted, Asked, Gate, Seen, gate};
 pub use kept::{KEPT_AT_MOST, Kept, kept, read_kept};
 pub use ledger::Ledger;
+pub use rooted::{FOLDER, ICON, holds, holds_folder, root_of, tree};
 pub use standing::{Standing, Target, bring, lead_in, overwrite, restore, round, standing, wanted};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Refused {
     NoConsent,
     Off,
+    Held,
     AgentsOwn,
     Empty,
     NoCard,
@@ -35,6 +40,9 @@ impl std::fmt::Display for Refused {
         let said = match self {
             Self::NoConsent => "this computer has not been allowed to read or write agent files",
             Self::Off => "sync is turned off for this assistant",
+            Self::Held => {
+                "a document in this file changed without the person's approval, so the file is left as it is"
+            }
             Self::AgentsOwn => "the agent writes this file itself, so Tisty only reads it",
             Self::Empty => "there is nothing to write, and an agent file is never emptied",
             Self::NoCard => "the document carries no agent card",

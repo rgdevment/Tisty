@@ -1,6 +1,6 @@
 use std::path::{Component, Path, PathBuf};
 
-use super::{Card, Kind, Ledger, Refused, kept, rendered};
+use super::{Admitted, Kind, Ledger, Refused, kept, rendered};
 use crate::docs::{Move, READ_AT_MOST, moved};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -8,13 +8,17 @@ pub struct Target {
     pub root: PathBuf,
     pub at: PathBuf,
     pub assistant: String,
-    pub pieces: Vec<String>,
+    pub pieces: Vec<Admitted>,
+    pub(super) held: bool,
+    pub(super) unproven: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Standing {
     NoConsent,
     Off,
+    Held,
+    Unproven,
     Empty,
     Linked,
     Broken {
@@ -36,10 +40,33 @@ pub enum Standing {
 }
 
 impl Target {
+    pub fn put(&mut self, piece: &Admitted) {
+        self.pieces.push(piece.clone());
+    }
+
+    pub fn files(&self) -> impl Iterator<Item = &str> {
+        self.pieces.iter().map(Admitted::file)
+    }
+
+    pub fn held(&self) -> bool {
+        self.held
+    }
+
     fn agents_own(&self) -> bool {
         self.pieces
             .iter()
-            .any(|one| Card::of(one).is_some_and(|card| card.kind == Kind::Memory))
+            .any(|one| one.card().kind == Kind::Memory)
+    }
+
+    // The documents a file is made of can change while its bytes do not.
+    fn stale_in(&self, ledger: &Ledger) -> bool {
+        let applied: std::collections::BTreeSet<&str> = ledger.applied_at(&self.at).collect();
+        applied != self.files().collect()
+    }
+
+    fn settled_in(&self, ledger: &mut Ledger, bytes: &[u8]) {
+        ledger.settle(&self.at, bytes);
+        ledger.applied_to(&self.at, self.files().map(str::to_string));
     }
 }
 
@@ -48,7 +75,7 @@ fn rendered_pieces(target: &Target) -> Result<Vec<Vec<u8>>, (usize, Refused)> {
         .pieces
         .iter()
         .enumerate()
-        .map(|(n, one)| rendered(one).map_err(|why| (n, why)))
+        .map(|(n, one)| rendered(one.body()).map_err(|why| (n, why)))
         .collect()
 }
 
@@ -133,6 +160,9 @@ fn judged(ledger: &Ledger, target: &Target) -> (Standing, Seen) {
     if !ledger.syncs(&target.assistant) {
         return (Standing::Off, None);
     }
+    if target.held {
+        return (Standing::Held, None);
+    }
     let wanted = match wanted(target) {
         Ok(wanted) => wanted,
         Err((piece, why)) => return (Standing::Broken { piece, why }, None),
@@ -165,6 +195,9 @@ fn weighed(ledger: &Ledger, target: &Target, wanted: &[u8], now: Option<Vec<u8>>
         return Standing::Empty;
     }
     let here = printed(wanted);
+    if target.unproven && base != Some(here.as_str()) {
+        return Standing::Unproven;
+    }
     let there = now.as_deref().map(printed);
     if base.is_some() && now.is_none() {
         return Standing::Outside {
@@ -235,6 +268,9 @@ fn writable(ledger: &Ledger, target: &Target) -> Result<Vec<u8>, Refused> {
     if !ledger.syncs(&target.assistant) {
         return Err(Refused::Off);
     }
+    if target.held {
+        return Err(Refused::Held);
+    }
     if target.agents_own() {
         return Err(Refused::AgentsOwn);
     }
@@ -279,7 +315,7 @@ fn written(
 ) -> Result<(), Refused> {
     let wanted = writable(ledger, target)?;
     written_over(data, &target.at, &wanted, seen)?;
-    ledger.settle(&target.at, &wanted);
+    target.settled_in(ledger, &wanted);
     Ok(())
 }
 
@@ -307,9 +343,14 @@ pub fn round(data: &Path, ledger: &mut Ledger, targets: &[Target]) -> Vec<Standi
                 Err(Refused::Changed) => standing(ledger, target),
                 Err(why) => Standing::Unreadable(why.to_string()),
             },
+            (Standing::UpToDate, _) if target.unproven || target.stale_in(ledger) => {
+                ledger.applied_to(&target.at, target.files().map(str::to_string));
+                settled = true;
+                Standing::UpToDate
+            }
             (Standing::Agreed, _) => {
                 if let Ok(wanted) = wanted(target) {
-                    ledger.settle(&target.at, &wanted);
+                    target.settled_in(ledger, &wanted);
                     settled = true;
                 }
                 Standing::UpToDate
@@ -343,7 +384,7 @@ pub fn bring(ledger: &Ledger, target: &Target, piece: usize) -> Result<String, R
     if let Some(told) = crate::agent::secret_in(&middle) {
         return Err(Refused::Secret(told.said()));
     }
-    super::brought(body, &middle)
+    super::brought(body.body(), &middle)
 }
 
 pub fn restore(data: &Path, ledger: &Ledger, target: &Target, n: u64) -> Result<(), Refused> {

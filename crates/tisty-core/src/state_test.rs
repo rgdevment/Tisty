@@ -2266,6 +2266,7 @@ fn a_number_filed_as_a_tag_under_an_older_rule_is_not_read_back_as_one() {
                         tags: Some(vec![Tag::new("2").unwrap(), Tag::new("casa").unwrap()]),
                         by: None,
                         print: None,
+                        agreed: false,
                     }),
                     ..Default::default()
                 },
@@ -3167,6 +3168,7 @@ fn a_tag_counts_no_document_the_archive_holds_away_from_sight() {
                     tags: Some(vec![tag.clone()]),
                     by: None,
                     print: None,
+                    agreed: false,
                 },
             },
         ));
@@ -4974,6 +4976,7 @@ fn a_task_s_document_lends_no_tag_and_counts_in_none() {
                 tags: Some(vec![tag.clone()]),
                 by: None,
                 print: None,
+                agreed: false,
             },
         },
     ));

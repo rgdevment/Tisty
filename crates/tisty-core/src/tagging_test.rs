@@ -181,6 +181,9 @@ fn a_tag_that_changed_is_news_even_where_the_title_did_not() {
         told: Default::default(),
         print: None,
         edited: None,
+        agreed: None,
+        agreed_by: None,
+        placed_by: None,
     };
 
     let same = crate::event::Said {
@@ -193,6 +196,7 @@ fn a_tag_that_changed_is_news_even_where_the_title_did_not() {
         tags: Some(vec![Tag::new("legal").unwrap()]),
         by: None,
         print: None,
+        agreed: false,
     };
     assert!(!same.news_for(&kept));
 

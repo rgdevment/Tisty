@@ -39,6 +39,13 @@ pub(super) fn written_doc(
     let (state, mut store) = opened(paths)?;
 
     keeps(&body)?;
+    if tisty_core::agents::Card::of(&body).is_some() {
+        return Err(Refused::Tool(
+            "a body with an `agent:` line is an assistant's own file, which only the person makes, \
+             in AGENTS. Write it without that line, or tell the person what the file should say."
+                .into(),
+        ));
+    }
 
     let body = match warned(paths, &body).and_then(|notice| warned_into("", &body, &notice)) {
         Some(made) => made,

@@ -2,7 +2,7 @@ use serde_json::Value;
 use tisty_core::model::{Kept, Task};
 use tisty_core::{State, TaskId};
 
-const NAMES_A_DOCUMENT: [&str; 8] = [
+pub(super) const NAMES_A_DOCUMENT: [&str; 8] = [
     "doc",
     "page_of",
     "translation_of",

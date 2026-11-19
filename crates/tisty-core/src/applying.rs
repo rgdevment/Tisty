@@ -1,9 +1,15 @@
 use crate::{
     State,
-    event::{DeviceId, Event, Filed, Said, Signature},
+    event::{DeviceId, Event, Filed, Op, Said, Signature},
     model::{DocId, Folder, FolderId, Kept, Reading, TaskId},
     state::{here, same_name},
 };
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) enum Placement {
+    Doc(Option<FolderId>, Option<DocId>, bool),
+    Folder(String, Option<FolderId>, Option<String>, bool),
+}
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct Named {
@@ -43,8 +49,65 @@ impl State {
                     .clone()
                     .filter(|key| crate::model::hue::kept(key).is_some()),
                 archived: away,
+                placed_by: None,
             },
         );
+    }
+
+    // Only a placement that changed counts: a move that only reorders, or one refused, says nothing of who placed it.
+    pub(crate) fn placement(&self, event: &Event) -> Option<Placement> {
+        match &event.op {
+            Op::DocAdd { id, .. }
+            | Op::DocMove { id, .. }
+            | Op::DocArchive { id }
+            | Op::DocUnarchive { id } => self
+                .docs
+                .get(id)
+                .map(|doc| Placement::Doc(doc.folder, doc.page_of, doc.archived)),
+            Op::FolderAdd { id, .. }
+            | Op::FolderRename { id, .. }
+            | Op::FolderLook { id, .. }
+            | Op::FolderMove { id, .. }
+            | Op::FolderArchive { id }
+            | Op::FolderUnarchive { id } => self.folders.get(id).map(|folder| {
+                Placement::Folder(
+                    folder.name.clone(),
+                    folder.parent,
+                    folder.icon.clone(),
+                    folder.archived,
+                )
+            }),
+            _ => None,
+        }
+    }
+
+    pub(crate) fn placed(&mut self, event: &Event, before: Option<Placement>) {
+        let after = self.placement(event);
+        if after.is_none() || after == before {
+            return;
+        }
+        let who = Some(event.device.clone());
+        match &event.op {
+            Op::FolderAdd { id, .. }
+            | Op::FolderRename { id, .. }
+            | Op::FolderLook { id, .. }
+            | Op::FolderMove { id, .. }
+            | Op::FolderArchive { id }
+            | Op::FolderUnarchive { id } => {
+                if let Some(folder) = self.folders.get_mut(id) {
+                    folder.placed_by = who;
+                }
+            }
+            Op::DocAdd { id, .. }
+            | Op::DocMove { id, .. }
+            | Op::DocArchive { id }
+            | Op::DocUnarchive { id } => {
+                if let Some(doc) = self.docs.get_mut(id) {
+                    doc.placed_by = who;
+                }
+            }
+            _ => {}
+        }
     }
 
     pub(crate) fn task_resolved(&mut self, event: &Event, id: &TaskId, d: &crate::event::Resolve) {
@@ -395,7 +458,12 @@ impl State {
     }
 
     pub(crate) fn doc_said(&mut self, event: &Event, id: &DocId, d: &Said) {
+        let agreed = self.agreed(event, d);
         if let Some(kept) = self.docs.get_mut(id) {
+            if let Some(print) = agreed {
+                kept.agreed = Some(print);
+                kept.agreed_by = Some(event.device.clone());
+            }
             kept.title = Some(d.title.clone());
             kept.bytes = d.bytes;
             if let Some(print) = &d.print {
@@ -427,6 +495,12 @@ impl State {
                 kept.edited_by = Some(by.clone());
             }
         }
+    }
+
+    fn agreed(&self, event: &Event, d: &Said) -> Option<String> {
+        (d.agreed && !self.assistants.contains(&event.device))
+            .then(|| d.print.clone())
+            .flatten()
     }
 
     pub(crate) fn diary_let(&mut self, event: &Event, open: bool) {
@@ -483,6 +557,7 @@ impl State {
             .filter(|up| self.docs.get(up).is_some_and(|one| one.page_of.is_none()));
         let under = page_of.and_then(|up| self.docs.get(&up));
         let sown = d.sown && crate::untouched::written_as_sown(d) && under.is_none_or(|up| up.sown);
+        let agreed = d.said.as_ref().and_then(|said| self.agreed(event, said));
         self.docs.insert(
             *id,
             Kept {
@@ -536,6 +611,9 @@ impl State {
                 joined: None,
                 key: d.said.as_ref().and_then(|one| one.key.clone()).flatten(),
                 edited: d.edited.clone(),
+                agreed_by: agreed.is_some().then(|| event.device.clone()),
+                agreed,
+                placed_by: None,
             },
         );
     }

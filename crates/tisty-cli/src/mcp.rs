@@ -1,3 +1,4 @@
+mod agents_kept;
 mod asked;
 mod attaching;
 mod brain;
@@ -275,6 +276,7 @@ fn vetted(name: &str, params: &Value) -> Result<(Value, Option<Takes>), Refused>
 }
 
 fn called(paths: &Paths, name: &str, args: Value, taken: Option<&Takes>) -> Result<Value, Refused> {
+    agents_kept::left_to_the_person(paths, name, &args)?;
     diary::left_alone(paths, name, &args)?;
     match papers::task_pages::page_written(name, &args) {
         Some(file) => {

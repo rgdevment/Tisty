@@ -57,6 +57,46 @@ impl Person {
         tisty_core::agent::register(&self.paths).unwrap();
     }
 
+    pub fn keeps_agents(&self) -> (Ulid, Ulid) {
+        let (root, claude) = (Ulid::generate(), Ulid::generate());
+        let folder = |id, name: &str, parent, icon: Option<&str>| Op::FolderAdd {
+            id,
+            d: tisty_core::event::FolderAdd {
+                name: name.into(),
+                order: "a0".into(),
+                parent,
+                icon: icon.map(str::to_string),
+                color: None,
+            },
+        };
+        self.wrote(vec![
+            folder(
+                root,
+                tisty_core::agents::FOLDER,
+                None,
+                Some(tisty_core::agents::ICON),
+            ),
+            folder(claude, "Claude", Some(root), None),
+        ]);
+        (root, claude)
+    }
+
+    pub fn writes_doc_in(&self, body: &str, folder: Ulid) -> String {
+        let config = Config::load_or_init(&self.paths).unwrap();
+        let made = tisty_core::docs::create(&self.paths.docs(), &config.device_id, body).unwrap();
+        self.wrote(vec![Op::DocAdd {
+            id: Ulid::generate(),
+            d: tisty_core::event::DocAdd {
+                file: made.id.clone(),
+                order: "a0".into(),
+                said: Some(tisty_core::event::Said::of(body).agreed()),
+                folder: Some(folder),
+                ..Default::default()
+            },
+        }]);
+        made.id
+    }
+
     pub fn shuts_the_agent_out(&self) {
         tisty_core::agent::retire(&self.paths).unwrap();
     }

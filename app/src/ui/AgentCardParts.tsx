@@ -1,4 +1,4 @@
-import { fencedFile, type Place } from "../agentDocs";
+import { fencedFile, type Here, type Place } from "../agentDocs";
 import { stamped, weigh } from "../format";
 import { fill, t } from "../locales";
 import Glyph from "./Glyph";
@@ -44,6 +44,49 @@ export function Action({
       <Glyph name={glyph} className="h-[13px] w-[13px]" />
       {label}
     </button>
+  );
+}
+
+const HERE_SAID = {
+  waiting: "agentHereWaiting",
+  declined: "agentHereDeclined",
+  notAgreed: "agentHereNotAgreed",
+  placedByAgent: "agentHerePlacedByAgent",
+  otherMemory: "agentHereOtherMemory",
+} as const;
+
+// What keeps this computer from writing the document, and what the person can do about it here.
+export function HereNote({
+  here,
+  onTake,
+  onAgree,
+}: {
+  here: Here;
+  onTake: (here: boolean) => void;
+  onAgree: () => void;
+}) {
+  if (here === "applied" || here === "away") return null;
+  return (
+    <div
+      role="status"
+      className="mt-3 flex gap-2 rounded-[10px] bg-hue-amber/10 px-3.5 py-2.5 text-[12.5px] text-hue-amber"
+    >
+      <Glyph name="alert" className="mt-0.5 h-[15px] w-[15px] shrink-0" />
+      <div className="min-w-0">
+        <p className="font-medium">{t(HERE_SAID[here])}</p>
+        <div className="mt-2 flex flex-wrap gap-2">
+          {(here === "waiting" || here === "declined") && (
+            <Action glyph="done" label={t("agentApplyHere")} onClick={() => onTake(true)} />
+          )}
+          {here === "waiting" && (
+            <Action glyph="close" label={t("agentNotHere")} onClick={() => onTake(false)} />
+          )}
+          {here === "notAgreed" && (
+            <Action glyph="done" label={t("agentAgree")} onClick={onAgree} />
+          )}
+        </div>
+      </div>
+    </div>
   );
 }
 

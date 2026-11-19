@@ -1,5 +1,5 @@
 use super::*;
-use crate::agents::{GLOBAL, doc_of, kept as backups, read_kept};
+use crate::agents::{Admitted, GLOBAL, doc_of, kept as backups, read_kept};
 
 struct Room {
     data: tempfile::TempDir,
@@ -17,6 +17,14 @@ fn room() -> Room {
     }
 }
 
+fn piece(body: &str) -> Admitted {
+    Admitted::trusted(
+        &format!("doc-{}", crate::attach::printed(body.as_bytes())),
+        body,
+    )
+    .unwrap()
+}
+
 fn rule(level: &str, name: &str, said: &str) -> String {
     doc_of(level, Kind::Rule, name, said.as_bytes()).unwrap()
 }
@@ -27,7 +35,9 @@ impl Room {
             root: self.home.path().to_path_buf(),
             at: self.home.path().join(file),
             assistant: "codex".into(),
-            pieces,
+            pieces: pieces.iter().map(|body| piece(body)).collect(),
+            held: false,
+            unproven: false,
         }
     }
 
@@ -110,7 +120,7 @@ fn a_rule_left_blank_never_empties_the_agents_file() {
     );
     room.round(std::slice::from_ref(&target));
     let blank = Target {
-        pieces: vec![rule("claude-code", "CLAUDE.md", "\n\n")],
+        pieces: vec![piece(&rule("claude-code", "CLAUDE.md", "\n\n"))],
         ..target.clone()
     };
     assert_eq!(room.round(std::slice::from_ref(&blank)), [Standing::Empty]);
@@ -148,7 +158,7 @@ fn a_change_on_both_sides_is_put_to_the_person() {
     room.round(std::slice::from_ref(&target));
     std::fs::write(&target.at, "Outside.\n").unwrap();
     let edited = Target {
-        pieces: vec![rule("codex", "AGENTS.md", "Inside.\n")],
+        pieces: vec![piece(&rule("codex", "AGENTS.md", "Inside.\n"))],
         ..target.clone()
     };
     assert_eq!(
@@ -261,7 +271,7 @@ fn bringing_a_change_in_gives_the_document_and_leaves_the_file_alone() {
     let body = bring(&room.ledger, &target, 0).unwrap();
     assert!(body.ends_with("Tests first, always.\n"));
     let after = Target {
-        pieces: vec![body],
+        pieces: vec![piece(&body)],
         ..target.clone()
     };
     assert_eq!(

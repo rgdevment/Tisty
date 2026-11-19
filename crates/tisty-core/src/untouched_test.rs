@@ -94,6 +94,7 @@ fn as_in_1_24_4(body: &str) -> Said {
         tags: Some(Vec::new()),
         by: None,
         print: None,
+        agreed: false,
     }
 }
 

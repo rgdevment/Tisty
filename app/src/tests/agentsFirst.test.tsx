@@ -27,6 +27,8 @@ const look: AgentsLook = {
   folder: null,
   docs: 0,
   changes: 0,
+  waiting: 0,
+  unagreed: 0,
   consented: false,
   allOn: true,
   asks: true,
