@@ -636,27 +636,18 @@ impl Cache {
         Some(found)
     }
 
-    // What an older build kept only here, waiting for the MCP to carry it into the log.
-    pub fn gists(&self) -> Vec<(String, crate::docs::Gist)> {
-        let Ok(mut asked) = self.db.prepare("SELECT id, said FROM gist") else {
-            return Vec::new();
-        };
-        let Ok(rows) = asked.query_map([], |row| {
-            Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
-        }) else {
-            return Vec::new();
-        };
-        rows.filter_map(std::result::Result::ok)
-            .filter_map(|(id, said): (String, String)| {
-                Some((id, serde_json::from_str(&said).ok()?))
-            })
-            .collect()
-    }
-
-    pub fn forget_gist(&self, id: &str) {
-        let _ = self
+    /// Unlike a card, this was written rather than worked out, so it is not thrown away when the
+    /// body moves: it is handed back with the print it was written against, and read as old.
+    pub fn gist(&self, id: &str) -> Option<crate::docs::Gist> {
+        let said: String = self
             .db
-            .execute("DELETE FROM gist WHERE id = ?", rusqlite::params![id]);
+            .query_row(
+                "SELECT said FROM gist WHERE id = ?",
+                rusqlite::params![id],
+                |row| row.get(0),
+            )
+            .ok()?;
+        serde_json::from_str(&said).ok()
     }
 
     pub fn note_gist(&self, id: &str, gist: &crate::docs::Gist) -> bool {

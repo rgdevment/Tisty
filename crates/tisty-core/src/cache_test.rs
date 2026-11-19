@@ -924,11 +924,7 @@ fn a_gist_outlives_a_schema_that_moved() {
         "the rebuild did not run, so nothing was put to the test"
     );
     assert_eq!(
-        cache
-            .gists()
-            .into_iter()
-            .find(|(id, _)| id == "mac0-0001")
-            .map(|(_, one)| one.summary),
+        cache.gist("mac0-0001").map(|one| one.summary),
         Some(said.summary),
         "the rebuild threw the agents' margin away"
     );
@@ -948,7 +944,7 @@ fn a_gist_whose_document_is_gone_is_forgotten_even_without_a_card() {
     assert!(cache.note_gist("mac0-0009", &said));
 
     cache.forget_cards(&std::collections::BTreeSet::new());
-    assert!(cache.gists().is_empty());
+    assert!(cache.gist("mac0-0009").is_none());
 }
 
 #[test]

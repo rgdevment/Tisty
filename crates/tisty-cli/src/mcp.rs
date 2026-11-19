@@ -93,7 +93,6 @@ fn served(paths: &Paths, tally: &mut Tally) -> anyhow::Result<ExitCode> {
     let mut born = handing::Born::now();
     let mut greeting: Option<String> = None;
     let mut open = open_task::OpenTask::default();
-    gists::carried_over(paths);
 
     // Bytes, not lines: one stray non-UTF-8 byte would end the session and every request behind.
     let mut raw = Vec::new();

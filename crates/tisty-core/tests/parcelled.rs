@@ -2750,3 +2750,37 @@ fn a_parcel_never_carries_what_an_agent_noted_about_a_document() {
         );
     }
 }
+
+#[test]
+fn a_parcel_never_carries_a_note_an_older_build_kept_on_this_machine() {
+    let room = tmp();
+    let mut here = Room::new(room.path(), "mine");
+    let box_at = filled(&mut here);
+    let obra = here.titled("Obra").file.clone();
+    let cache = tisty_core::cache::Cache::open(here.paths.cache())
+        .unwrap()
+        .unwrap();
+    let kept = tisty_core::docs::Gist {
+        print: "print".into(),
+        summary: "solo de este equipo".into(),
+        notes: "tampoco esto".into(),
+        at: jiff::Timestamp::UNIX_EPOCH,
+        by: None,
+    };
+    assert!(cache.note_gist(&obra, &kept));
+    parcel::write(&here.paths, &here.state, &[], &box_at, &Along::default()).unwrap();
+
+    let file = std::fs::File::open(&box_at).unwrap();
+    let mut zip = zip::ZipArchive::new(file).unwrap();
+    for i in 0..zip.len() {
+        let mut one = zip.by_index(i).unwrap();
+        let mut held = Vec::new();
+        std::io::Read::read_to_end(&mut one, &mut held).unwrap();
+        let said = String::from_utf8_lossy(&held);
+        assert!(
+            !said.contains("solo de este equipo") && !said.contains("tampoco esto"),
+            "{}: {said}",
+            one.name().unwrap()
+        );
+    }
+}
