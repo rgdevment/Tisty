@@ -2,6 +2,7 @@ import { type Group, type Network, type NeuronKind, TIES, type Tie } from "../..
 import { WIDTH } from "./curves";
 import { alphaOf } from "./guessing";
 import { lineLook, nodeLook, type Palette, rgba, type Shape, type Standing } from "./looks";
+import { KINDS } from "./sifting";
 
 export interface KindKey {
   kind: NeuronKind;
@@ -37,8 +38,6 @@ export interface Legend {
   lines: LineKey[];
   alike: { color: string; size: number } | null;
 }
-
-const KINDS: readonly NeuronKind[] = ["doc", "page", "task", "tag", "file"];
 
 const STATES: Record<Standing, string | undefined> = {
   live: undefined,

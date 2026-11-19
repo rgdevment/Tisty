@@ -1,7 +1,15 @@
 import type { Network, NeuronKind } from "../../brainsty";
 import { type Standing, standingOf } from "./looks";
 
-export const KINDS: readonly NeuronKind[] = ["doc", "page", "task", "tag", "file"];
+export const KINDS: readonly NeuronKind[] = [
+  "doc",
+  "page",
+  "task",
+  "tag",
+  "file",
+  "folder",
+  "list",
+];
 export const STANDINGS: readonly Standing[] = ["live", "done", "archived"];
 export const PERIODS = [0, 7, 30, 365] as const;
 
@@ -27,7 +35,8 @@ const TAG_TIE = 3;
 const DAY = 86_400_000;
 const MOST_FOUND = 8;
 
-const kept = (kind: NeuronKind): boolean => kind !== "tag" && kind !== "file";
+const kept = (kind: NeuronKind): boolean =>
+  kind !== "tag" && kind !== "file" && kind !== "folder" && kind !== "list";
 
 export const sifting = (sift: Sift): boolean =>
   sift.kinds.size < KINDS.length ||
