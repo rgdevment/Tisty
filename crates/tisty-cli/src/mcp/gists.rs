@@ -63,7 +63,6 @@ pub(super) fn sum_up(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         print: card.print.clone(),
         summary,
         notes,
-        at: None,
     };
     let again = state
         .agent_notes

@@ -1441,7 +1441,6 @@ fn an_agent_s_note_survives_the_cache_whether_built_whole_or_advanced_by_a_write
             print: "print".into(),
             summary: summary.into(),
             notes: String::new(),
-            at: None,
         },
     };
     store.append(said("built whole")).unwrap();

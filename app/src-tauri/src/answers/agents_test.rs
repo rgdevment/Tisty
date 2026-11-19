@@ -30,7 +30,6 @@ fn a_note_an_agent_leaves_on_a_document_is_not_counted_as_something_it_wrote() {
                     print: "print".into(),
                     summary: "de qué trata".into(),
                     notes: String::new(),
-                    at: None,
                 },
             },
         ),

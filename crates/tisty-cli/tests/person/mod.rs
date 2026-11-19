@@ -489,7 +489,6 @@ impl Person {
                 print: "print".into(),
                 summary: "what the document says".into(),
                 notes: String::new(),
-                at: None,
             },
         }]);
     }

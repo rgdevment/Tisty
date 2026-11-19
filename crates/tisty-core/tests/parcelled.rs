@@ -2731,7 +2731,6 @@ fn a_parcel_never_carries_what_an_agent_noted_about_a_document() {
             print: "print".into(),
             summary: "solo para agentes".into(),
             notes: "tampoco esto".into(),
-            at: None,
         },
     });
     parcel::write(&here.paths, &here.state, &[], &box_at, &Along::default()).unwrap();

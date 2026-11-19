@@ -394,9 +394,6 @@ pub struct Gist {
     pub summary: String,
     #[serde(default, skip_serializing_if = "String::is_empty")]
     pub notes: String,
-    /// Only on a note kept on one machine before notes travelled, so a later carrying never outranks a newer note.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub at: Option<jiff::Timestamp>,
 }
 
 /// The document whose languages this one joins: the anchor of the group, never one of its members.

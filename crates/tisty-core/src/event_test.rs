@@ -466,7 +466,6 @@ fn an_agent_s_note_is_skipped_by_older_builds_and_never_stops_an_undo() {
             print: "print".into(),
             summary: "what it says".into(),
             notes: String::new(),
-            at: None,
         },
     };
     assert!(op.is_optional());
@@ -477,5 +476,4 @@ fn an_agent_s_note_is_skipped_by_older_builds_and_never_stops_an_undo() {
     let said = serde_json::to_value(&ev).unwrap();
     assert_eq!(said["op"], "doc.gist");
     assert!(said["d"].get("notes").is_none(), "{said}");
-    assert!(said["d"].get("at").is_none(), "{said}");
 }

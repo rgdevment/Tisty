@@ -608,7 +608,6 @@ fn summed_up(store: &mut Store, id: Ulid, summary: &str) {
                 print: "print".into(),
                 summary: summary.into(),
                 notes: String::new(),
-                at: None,
             },
         })
         .unwrap();

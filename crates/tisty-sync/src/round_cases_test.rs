@@ -452,7 +452,6 @@ fn an_agent_s_note_on_a_document_reaches_the_other_machine(shared: &Shared) {
                 print: "print".into(),
                 summary: "de que trata el acta".into(),
                 notes: String::new(),
-                at: None,
             },
         },
     );

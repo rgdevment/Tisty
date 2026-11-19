@@ -383,17 +383,12 @@ impl State {
         self.doc_marked(id, |doc| doc.compacted = Some(said));
     }
 
-    // The newest note wins by when it was written, so one carried late from another machine never buries it.
     pub(crate) fn gist_said(&mut self, event: &Event, id: &DocId, d: &crate::event::Gist) {
-        let at = d.at.unwrap_or(event.timestamp);
-        if self.agent_notes.get(id).is_some_and(|had| had.at > at) {
-            return;
-        }
         let note = crate::model::AgentNote {
             print: d.print.clone(),
             summary: d.summary.clone(),
             notes: d.notes.clone(),
-            at,
+            at: event.timestamp,
             by: event.device.clone(),
         };
         self.agent_notes.insert(*id, note);
