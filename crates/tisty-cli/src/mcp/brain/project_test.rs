@@ -85,3 +85,19 @@ fn a_step_given_an_agents_word_counts_as_ticked_and_is_not_next() {
         "under way, 1 of 2 steps ticked, next \"second\""
     );
 }
+
+#[test]
+fn a_projects_row_counts_steps_as_progress_does() {
+    let mut task = Task::new(ulid::Ulid::generate(), "A part", "a0");
+    task.steps = vec![tisty_core::model::Step {
+        id: ulid::Ulid::generate(),
+        text: "only".into(),
+        done: false,
+        order: "a0".into(),
+        by_agent: false,
+        said: true,
+    }];
+    assert_eq!(stage(&task, None), Stage::UnderWay);
+    let one = row(Stage::UnderWay, jiff::Timestamp::UNIX_EPOCH, &task, None);
+    assert_eq!(one["steps"], json!([1, 1]));
+}

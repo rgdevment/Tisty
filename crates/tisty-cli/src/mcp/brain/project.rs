@@ -59,8 +59,8 @@ pub(super) fn stage(task: &Task, state_line: Option<&str>) -> Stage {
     if task.resolved.is_some() {
         return Stage::Waiting;
     }
-    let moved = task.steps.iter().any(|step| step.done || step.said);
-    match moved || state_line.is_some() {
+    let (done, _) = ticked(task);
+    match done > 0 || state_line.is_some() {
         true => Stage::UnderWay,
         false => Stage::NotStarted,
     }
@@ -95,12 +95,7 @@ pub(in crate::mcp) struct Progress {
 
 pub(in crate::mcp) fn progress(paths: &Paths, state: &State, task: &Task) -> Progress {
     let line = state_line(paths, state, task);
-    let all = task.steps.len();
-    let done = task
-        .steps
-        .iter()
-        .filter(|step| step.done || step.said)
-        .count();
+    let (done, all) = ticked(task);
     Progress {
         stage: stage(task, line.as_deref()),
         done,
@@ -147,6 +142,15 @@ impl Progress {
             into["state_old"] = json!(true);
         }
     }
+}
+
+fn ticked(task: &Task) -> (usize, usize) {
+    let done = task
+        .steps
+        .iter()
+        .filter(|step| step.done || step.said)
+        .count();
+    (done, task.steps.len())
 }
 
 fn cut(step: &str) -> String {
@@ -224,7 +228,7 @@ pub(super) fn view(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     let lines: Vec<String> = shown
         .iter()
         .map(|(stage, moved, task, line)| {
-            let steps = match task.steps_done() {
+            let steps = match ticked(task) {
                 (_, 0) => String::new(),
                 (done, all) => format!(", {done}/{all} steps"),
             };
@@ -271,7 +275,7 @@ fn row(stage: Stage, moved: jiff::Timestamp, task: &Task, line: Option<&str>) ->
         "stage": stage.said(),
         "moved": day(moved),
     });
-    if let (done, all @ 1..) = task.steps_done() {
+    if let (done, all @ 1..) = ticked(task) {
         one["steps"] = json!([done, all]);
     }
     if let Some(line) = line {
