@@ -144,7 +144,7 @@ Las reglas:
 
 **Lo que nunca pasa por aquí.** Las tareas ocultas y las descartadas, y todo tu [Diario](Documentos#diario), no guardan palabras ni sentido, aunque abras el Diario a los agentes. Ocultar una tarea saca sus parecidos en la misma ronda.
 
-**Dónde se ven.** La red dibuja solo lo escrito, así que un parecido no es una línea de la red, y la ficha que lee tu agente con `brain` tampoco lo trae: los parecidos viven en la base de Brainsty de este equipo.
+**Dónde se ven.** Hoy, en ninguna parte: la red dibuja solo lo escrito, así que un parecido no es una línea de la red, y la ficha que lee tu agente con `brain` tampoco lo trae. Los parecidos viven en la base de Brainsty de este equipo.
 
 ## Lo que conviene saber
 

@@ -144,7 +144,7 @@ The rules:
 
 **What never goes through it.** Hidden and dropped tasks, and your whole [Diary](Documents#diary), keep no words and no meaning, even when you open the Diary to agents. Hiding a task takes its guesses away in the same round.
 
-**Where they show.** The network draws only what is written, so a guess is not a line in the network, and the card your agent reads with `brain` does not bring it either: guesses live in Brainsty's base on this computer.
+**Where they show.** Today, nowhere: the network draws only what is written, so a guess is not a line in the network, and the card your agent reads with `brain` does not bring it either. Guesses live in Brainsty's base on this computer.
 
 ## Good to know
 
