@@ -247,6 +247,17 @@ pub fn target_of(homes: &Homes, card: &Card) -> Option<(PathBuf, PathBuf)> {
     }
 }
 
+/// Whether some assistant on this computer would read the document at all.
+pub fn lands_here(homes: &Homes, card: &Card) -> bool {
+    match card.level == GLOBAL {
+        true => card.kind != Kind::Memory && !homes.detected().is_empty(),
+        false => {
+            homes.detected().iter().any(|one| one.id == card.level)
+                && target_of(homes, card).is_some()
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Placed {
     pub target: Target,

@@ -444,6 +444,16 @@ fn from_another_computer(room: &mut Room, kind: agents::Kind, name: &str, said: 
         agents::Kind::Memory => "claude",
         _ => agents::GLOBAL,
     };
+    from_another_computer_for(room, level, kind, name, said)
+}
+
+fn from_another_computer_for(
+    room: &mut Room,
+    level: &str,
+    kind: agents::Kind,
+    name: &str,
+    said: &str,
+) -> String {
     let body = agents::doc_of(level, kind, name, said.as_bytes()).unwrap();
     let root = root_of(&room.session.state).unwrap();
     let laptop = tisty_core::DeviceId(tisty_core::config::new_device_id());
@@ -473,9 +483,20 @@ fn a_rule_from_another_computer_waits_until_this_one_takes_it() {
     let data = room.session.paths.data().to_path_buf();
     let mut ledger = Ledger::open(&data, HERE);
 
+    from_another_computer_for(
+        &mut room,
+        "gemini",
+        agents::Kind::Rule,
+        "tisty-rules.md",
+        "Gemini only.\n",
+    );
     round_now(&room.session, &room.homes, &mut ledger);
     assert_eq!(room.read(".claude/CLAUDE.md"), "# Claude\nTests first.\n");
-    assert_eq!(room.look().waiting, 1);
+    assert_eq!(
+        room.look().waiting,
+        1,
+        "a rule for an assistant this computer lacks waits for nothing here"
+    );
 
     ledger.take(&file, true);
     ledger.keep(&data).unwrap();

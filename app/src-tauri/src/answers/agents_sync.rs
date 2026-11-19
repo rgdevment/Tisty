@@ -169,8 +169,14 @@ pub fn gathered(session: &Session, here: &str) -> Gathered {
     }
 }
 
-fn counted(gate: &Gate, seen: Seen) -> usize {
-    gate.all_seen().filter(|(_, one)| *one == seen).count()
+// A document no assistant here would read has nothing to wait for on this computer.
+fn waiting_here(seen: &Gathered, homes: &Homes) -> usize {
+    seen.bodies
+        .iter()
+        .filter(|(file, _)| seen.gate.seen(file) == Some(Seen::WaitingHere))
+        .filter_map(|(_, body)| Card::of(body))
+        .filter(|card| places::lands_here(homes, card))
+        .count()
 }
 
 /// Names and sizes only: no agent file is opened before the person says yes.
@@ -203,7 +209,7 @@ pub fn looked(seen: &Gathered, homes: &Homes, found: &[Found]) -> Look {
         folder: root.map(|at| at.to_string()),
         docs,
         changes,
-        waiting: counted(&seen.gate, Seen::WaitingHere),
+        waiting: waiting_here(seen, homes),
         unagreed: seen.gate.unagreed(),
         asks: docs == 0 || !ledger.consented() || !both.is_empty(),
         consented: ledger.consented(),
