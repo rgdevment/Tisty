@@ -175,7 +175,12 @@ function Dot({
     <span
       data-shape={shape}
       className={shape === "circle" ? "rounded-full" : "rounded-[2px]"}
-      style={{ width: across, height: across, background: color }}
+      style={{
+        width: across,
+        height: across,
+        background: color,
+        transform: shape === "diamond" ? "rotate(45deg) scale(0.8)" : undefined,
+      }}
     />
   );
 }
