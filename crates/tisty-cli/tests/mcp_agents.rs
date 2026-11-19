@@ -364,3 +364,33 @@ fn proposing_what_the_document_already_says_leaves_nothing_waiting() {
     assert_eq!(said["proposed"], false, "{said}");
     assert!(served.proposal().is_none());
 }
+
+#[test]
+fn writing_the_approved_text_back_withdraws_the_proposal() {
+    let served = Served::new();
+    let body = served.body(&served.rule);
+    let said = served.proposes(
+        "edit_doc",
+        json!({ "doc": served.rule, "old": "Tests first.", "new": "Tests always.", "keep_compaction": false }),
+    );
+    assert!(served.proposal().is_some());
+    let back = served.proposes(
+        "write_doc",
+        json!({ "doc": served.rule, "print": said["print"], "body": body }),
+    );
+    assert_eq!(back["proposed"], false, "{back}");
+    assert!(served.proposal().is_none());
+}
+
+#[test]
+fn a_whole_write_without_a_print_is_told_it_needs_one() {
+    let served = Served::new();
+    let said = served.call(
+        "write_doc",
+        json!({ "doc": served.rule, "body": RULE.replace("Tests first.", "Tests always.") }),
+    );
+    assert_eq!(said["result"]["isError"], true, "{said}");
+    let text = said["result"]["content"][0]["text"].as_str().unwrap();
+    assert!(text.contains("needs the `print`"), "{text}");
+    assert!(served.proposal().is_none());
+}

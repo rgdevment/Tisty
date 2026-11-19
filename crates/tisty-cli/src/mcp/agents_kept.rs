@@ -17,7 +17,7 @@ pub(super) fn proposed_or_left(
     let state = tisty_core::cache::project(&paths.store(), paths.cache()).map_err(super::hitch)?;
     if let Some(kept) = documents_named(args).find_map(|file| kept_in_agents(&state, file)) {
         if super::proposing::takes(name, args) {
-            return super::proposing::proposed(paths, name, args, &kept.file).map(Some);
+            return super::proposing::proposed(paths, &state, name, args, &kept.file).map(Some);
         }
         let title = kept.title.clone().unwrap_or_else(|| kept.file.clone());
         return Err(refused(&format!("the document {title:?}"), PROPOSE));

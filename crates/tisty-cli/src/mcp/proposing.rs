@@ -6,17 +6,25 @@ use tisty_core::{Paths, State};
 
 use super::asked::text;
 use super::jsonrpc::told;
-use super::{Refused, hitch, opened};
+use super::{Refused, hitch};
 
 const TAKES: [(&str, &[&str]); 3] = [
-    ("write_doc", &["doc", "body", "print"]),
+    ("write_doc", &["doc", "body", "print", "keep_compaction"]),
     (
         "edit_doc",
         &[
-            "doc", "old", "new", "section", "from", "to", "print", "echo",
+            "doc",
+            "old",
+            "new",
+            "section",
+            "from",
+            "to",
+            "print",
+            "echo",
+            "keep_compaction",
         ],
     ),
-    ("append_doc", &["doc", "body", "echo"]),
+    ("append_doc", &["doc", "body", "echo", "keep_compaction"]),
 ];
 
 pub(super) fn takes(name: &str, args: &Value) -> bool {
@@ -46,19 +54,32 @@ impl Asked<'_> {
     }
 }
 
+fn store_of(paths: &Paths, state: &State) -> Result<tisty_core::Store, Refused> {
+    let config = tisty_core::Config::load_or_init(paths).map_err(hitch)?;
+    let Some(agent) = config.agent_id.filter(|one| state.agents.contains(one)) else {
+        return Err(super::turned_away(paths));
+    };
+    let key = tisty_core::signing::mine(paths, &agent);
+    Ok(tisty_core::Store::open(paths.store(), agent)
+        .map_err(hitch)?
+        .signing_with(key)
+        .speaking_through(super::jsonrpc::speaking_through()))
+}
+
 pub(super) fn proposed(
     paths: &Paths,
+    state: &State,
     name: &str,
     args: &Value,
     file: &str,
 ) -> Result<Value, Refused> {
-    let (state, mut store) = opened(paths)?;
+    let mut store = store_of(paths, state)?;
     let Some(kept) = state.docs.values().find(|one| one.file == file) else {
         return Err(Refused::Tool(super::mistaken::no_document_called(
-            &state, file,
+            state, file,
         )));
     };
-    let named = super::doc_named(&state, file);
+    let named = super::doc_named(state, file);
     if state.held_away(kept) || state.shut(kept.id) {
         return Err(Refused::Tool(format!(
             "{named} is put away or locked, so it takes no proposal. Tell the person what you \
@@ -76,20 +97,26 @@ pub(super) fn proposed(
     let proposal = made(&asked)?;
     agents::proposable(&asked.approved, &proposal).map_err(|why| unfit(&asked.named, why))?;
     let print = tisty_core::docs::print_of_text(&proposal);
-    let fresh = proposal != asked.approved && asked.pending.is_none_or(|one| one.print != print);
-    if fresh {
+    let said = match (proposal == asked.approved, asked.pending) {
+        (true, Some(waiting)) => Some(Proposal {
+            body: None,
+            base: None,
+            settles: Some(waiting.print.clone()),
+        }),
+        (true, None) => None,
+        (false, Some(waiting)) if waiting.print == print => None,
+        (false, _) => Some(Proposal {
+            body: Some(proposal.clone()),
+            base: Some(tisty_core::docs::print_of_text(&asked.approved)),
+            settles: None,
+        }),
+    };
+    if let Some(d) = said {
         store
-            .append(Op::DocProposal {
-                id: kept.id,
-                d: Proposal {
-                    body: Some(proposal.clone()),
-                    base: Some(tisty_core::docs::print_of_text(&asked.approved)),
-                    settles: None,
-                },
-            })
+            .append(Op::DocProposal { id: kept.id, d })
             .map_err(hitch)?;
     }
-    Ok(answered(&state, kept, &asked, &proposal, print))
+    Ok(answered(state, kept, &asked, &proposal, print))
 }
 
 fn made(asked: &Asked) -> Result<String, Refused> {
@@ -171,7 +198,13 @@ fn lines_replaced(asked: &Asked, base: &str) -> Result<String, Refused> {
 }
 
 fn printed_as(asked: &Asked) -> Result<(), Refused> {
-    let said = text(asked.args, "print").unwrap_or_default();
+    let Some(said) = text(asked.args, "print") else {
+        return Err(Refused::Tool(format!(
+            "a change by place or a whole body for {} needs the `print` of the text you worked \
+             from: `read` with this `doc` gives it.",
+            asked.named
+        )));
+    };
     if said == asked.printed() {
         return Ok(());
     }
@@ -238,12 +271,17 @@ fn raw<'a>(args: &'a Value, key: &str) -> Option<&'a str> {
 
 fn answered(state: &State, kept: &Kept, asked: &Asked, proposal: &str, print: String) -> Value {
     let unchanged = proposal == asked.approved;
-    let said = match unchanged {
-        true => format!(
+    let said = match (unchanged, asked.pending.is_some()) {
+        (true, true) => format!(
+            "{} already reads like that, so the proposal that waited is withdrawn and nothing \
+             waits for the person.",
+            asked.named
+        ),
+        (true, false) => format!(
             "{} already reads like that, so nothing waits for the person.",
             asked.named
         ),
-        false => format!(
+        (false, _) => format!(
             "Proposed that change to {}. It waits beside the approved text for the person, who \
              approves or discards it on the document's card in Tisty; no assistant's file \
              changes until they approve it. Your next write to this document goes on top of \

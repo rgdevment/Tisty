@@ -577,3 +577,21 @@ fn tags_an_earlier_build_took_from_an_agent_document_go_without_taking_its_appro
     assert!(world.state.docs[&id].tags.is_empty());
     assert_eq!(world.gate().seen(&file), Some(Seen::Admitted));
 }
+
+#[test]
+fn a_proposal_for_a_document_this_log_does_not_hold_is_dropped() {
+    let mut world = world();
+    let gone = Ulid::generate();
+    world.apply(
+        AGENT,
+        Op::DocProposal {
+            id: gone,
+            d: crate::event::Proposal {
+                body: Some(rule("Orphan.\n")),
+                base: None,
+                settles: None,
+            },
+        },
+    );
+    assert!(world.state.proposals.is_empty());
+}

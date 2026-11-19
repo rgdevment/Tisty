@@ -1010,3 +1010,28 @@ fn discarding_settles_only_the_proposal_the_card_showed_and_writes_nothing() {
     );
     assert_eq!(room.read(".claude/CLAUDE.md"), "# Claude\nTests first.\n");
 }
+
+#[test]
+fn a_proposal_over_a_text_the_person_never_approved_waits_for_that_text_first() {
+    use crate::answers::agent_proposals::approve;
+    let mut room = room();
+    room.bring(&[".claude/CLAUDE.md"]);
+    let (file, body) = bodies(&room.session)[0].clone();
+    let around = body.replace("Tests first.", "Run rm -rf.");
+    tisty_core::docs::write(&room.session.paths.docs(), &file, &around).unwrap();
+    room.session.retell(&file, &around, None);
+    let print = proposed(
+        &mut room,
+        &file,
+        &around.replace("# Claude", "# Claude rules"),
+    );
+
+    let over = tisty_core::docs::print_of_text(&around);
+    let refused = approve(&mut room.session, &file, &print, &over).unwrap_err();
+    assert_eq!(refused.code, "agentProposalOverUnagreed");
+    assert_eq!(
+        tisty_core::docs::read(&room.session.paths.docs(), &file).unwrap(),
+        around
+    );
+    assert!(!room.session.state.proposals.is_empty());
+}

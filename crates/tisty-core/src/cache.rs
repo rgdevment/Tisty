@@ -205,9 +205,10 @@ impl Cache {
                 "INSERT OR REPLACE INTO agent_proposal VALUES (?,?)",
                 rusqlite::params![id, serde_json::to_string(one).unwrap_or_default()],
             ),
-            None => self
+            None if state.tombstones.contains(&entity) || state.docs.contains_key(&entity) => self
                 .db
                 .execute("DELETE FROM agent_proposal WHERE id = ?", [id]),
+            None => Ok(0),
         }
         .map(|_| ())
     }

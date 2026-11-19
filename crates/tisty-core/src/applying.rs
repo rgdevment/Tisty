@@ -460,7 +460,7 @@ impl State {
 
     pub(crate) fn proposal_said(&mut self, event: &Event, id: &DocId, d: &crate::event::Proposal) {
         match (&d.body, &d.settles) {
-            (Some(body), _) => {
+            (Some(body), _) if self.docs.contains_key(id) => {
                 let said = crate::model::Proposed {
                     print: crate::docs::print_of_text(body),
                     body: body.to_string(),
@@ -480,7 +480,7 @@ impl State {
                     self.proposals.remove(id);
                 }
             }
-            (None, None) => {}
+            _ => {}
         }
     }
 

@@ -16,6 +16,10 @@ const words = {
     "The proposal changed since the card showed it. Look at it again before choosing.",
     "La propuesta cambió desde que la ficha la mostró. Revísala de nuevo antes de elegir.",
   ],
+  agentProposalOverUnagreed: [
+    "This document's text does not have your approval yet. Approve it first, then the proposal.",
+    "El texto de este documento aún no tiene tu aprobación. Apruébalo primero y después la propuesta.",
+  ],
   agentHeld: [
     "A document in this file changed without your approval, so the file is left as it is",
     "Un documento de este archivo cambió sin tu aprobación, así que el archivo queda como está",

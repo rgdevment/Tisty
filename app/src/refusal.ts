@@ -33,6 +33,7 @@ const KNOWN = [
   "agentHeld",
   "agentDocChanged",
   "agentProposalChanged",
+  "agentProposalOverUnagreed",
   "agentOwn",
   "agentEmpty",
   "agentLinked",

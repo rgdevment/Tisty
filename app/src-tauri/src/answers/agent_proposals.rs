@@ -38,6 +38,16 @@ pub(crate) fn proposal_of(session: &Session, file: &str, approved: &str) -> Opti
 pub(crate) fn approve(session: &mut Session, file: &str, print: &str, over: &str) -> Answer<()> {
     let id = id_of(session, file).ok_or_else(|| Refusal::of("agentNoCard"))?;
     let body = waiting(session, id, print)?.body.clone();
+    // Lines the comparison shows as approved must be so, or approving would take them in unread.
+    if session
+        .state
+        .docs
+        .get(&id)
+        .and_then(|one| one.agreed.as_deref())
+        != Some(over)
+    {
+        return Err(Refusal::of("agentProposalOverUnagreed"));
+    }
     super::papers::written_by_hand(
         session,
         file.to_string(),
