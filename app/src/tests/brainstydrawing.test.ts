@@ -161,6 +161,7 @@ describe("the drawing of the network", () => {
       "dashed",
     ]);
     expect(drawn.options.settings.allowInvalidContainer).toBe(true);
+    expect(drawn.options.settings.itemSizesReference).toBe("screen");
     expect(drawn.options.customGraphState).toEqual({ zoom: 0 });
   });
 
