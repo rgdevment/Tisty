@@ -5481,7 +5481,7 @@ fn a_document_is_read_by_the_address_the_window_copies() {
     let doc = served.wrote("# Validación de datos\n\nlo que se valida.", None);
     let address = format!("tisty://doc/personal/proyectos/validacion-de-datos?id={doc}");
 
-    let read = served.call("read_doc", serde_json::json!({ "doc": address }));
+    let read = served.call("read", serde_json::json!({ "doc": address }));
 
     let told = &read["result"]["structuredContent"];
     assert_eq!(told["doc"], doc.as_str(), "{read}");
@@ -5507,7 +5507,7 @@ fn an_address_goes_on_naming_its_document_after_a_rename_and_a_move() {
         serde_json::json!({ "doc": [address], "folder": "Trabajo" }),
     );
 
-    let read = served.call("read_doc", serde_json::json!({ "doc": address }));
+    let read = served.call("read", serde_json::json!({ "doc": address }));
     let told = &read["result"]["structuredContent"];
     assert_eq!(told["doc"], doc.as_str(), "{read}");
     assert_eq!(told["title"], "Minutas", "{read}");
@@ -5515,7 +5515,7 @@ fn an_address_goes_on_naming_its_document_after_a_rename_and_a_move() {
 }
 
 #[test]
-fn a_document_s_address_handed_to_the_task_reader_is_sent_to_read_doc() {
+fn a_document_s_address_handed_to_the_task_reader_is_sent_to_read_with_doc() {
     let served = Served::new();
     let doc = served.wrote("# Actas\n\nlas de este año.", None);
 
@@ -5525,7 +5525,7 @@ fn a_document_s_address_handed_to_the_task_reader_is_sent_to_read_doc() {
     );
 
     assert!(why.contains("the document \"Actas\""), "{why}");
-    assert!(why.contains("`read_doc`"), "{why}");
+    assert!(why.contains("`read` with `doc`"), "{why}");
 }
 
 #[test]
@@ -5533,7 +5533,7 @@ fn an_address_of_no_document_here_is_refused_as_any_unknown_id() {
     let served = Served::new();
 
     let why = served.refused(
-        "read_doc",
+        "read",
         serde_json::json!({ "doc": "tisty://doc/de-otro-equipo?id=zzzzzzzz-0001" }),
     );
 
