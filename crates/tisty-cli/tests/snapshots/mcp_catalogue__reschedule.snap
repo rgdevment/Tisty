@@ -9,7 +9,7 @@ expression: tool
     "openWorldHint": false,
     "readOnlyHint": false
   },
-  "description": "Change the `date` or `deadline` of a task an agent filed, when what you learnt moves it. A day the person set is theirs. Null takes a day off; nothing else changes.",
+  "description": "Change the `date` or `deadline` of a task an agent filed, when what you learnt moves it; null takes one off and the other stays. A task the person filed keeps their days: the call is refused, so say what you learnt with `note`. The answer gives both days as they stand now.",
   "inputSchema": {
     "additionalProperties": false,
     "properties": {
