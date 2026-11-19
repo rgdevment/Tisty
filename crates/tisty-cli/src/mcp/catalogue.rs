@@ -133,7 +133,8 @@ wrong, the state section written again to say what holds today, the old version 
 its history. Adding at the end and writing a new document are the exceptions, and each needs a \
 reason: `append_doc` is for what is chronological by nature — a log, minutes, your dated notes on \
 a task's page — and a new document is for a subject no document covers. Before any write, ask \
-`brain` for what already covers the subject and work there. When your writing \
+`brain` for what already covers the subject and work there; its card's `guessed` are guesses no \
+one linked, so read both before merging. When your writing \
 leaves something stale, superseded or doubled — a decision replaced, a page saying what another \
 says — put it in order in the same turn: the old decision struck through and dated, the \
 duplicate folded in and then marked with `flag_doc`. Nothing is left for later.

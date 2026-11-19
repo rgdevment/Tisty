@@ -924,3 +924,85 @@ fn a_quoted_phrase_stays_whole_when_no_hit_holds_every_word() {
     assert_eq!(found["every_word"], false, "{found}");
     assert_eq!(titles(&found, "matches"), ["Fix the sync stall on wake"]);
 }
+
+fn guessed_between(served: &Served, rows: &[(String, String, f64, &str, &str)]) {
+    let db = rusqlite::Connection::open(served.home.path().join("cache").join("brain.db")).unwrap();
+    for (a, b, score, method, shared) in rows {
+        db.execute(
+            "INSERT INTO alike(a, b, score, shared, method) VALUES (?1, ?2, ?3, ?4, ?5)",
+            rusqlite::params![a, b, score, shared, method],
+        )
+        .unwrap();
+    }
+}
+
+#[test]
+fn a_card_lists_what_tisty_guesses_apart_and_never_names_a_hidden_task() {
+    let served = Served::new();
+    let budget = served.person().captures("Plan the family budget");
+    let spending = served.person().captures("Count December spending");
+    let twin = served.person().captures("Presupuesto familiar");
+    let hidden = served.person().captures("Plan the secret gift");
+    served.person().hides(hidden);
+    let mut talk = served.connect();
+    talk.brain(json!({ "task": budget.to_string() }));
+    guessed_between(
+        &served,
+        &[
+            (
+                budget.to_string(),
+                spending.to_string(),
+                0.42,
+                "words",
+                "budget family",
+            ),
+            (
+                budget.to_string(),
+                twin.to_string(),
+                0.91,
+                "words",
+                "familiar",
+            ),
+            (spending.to_string(), twin.to_string(), 0.97, "meaning", ""),
+            (
+                budget.to_string(),
+                hidden.to_string(),
+                0.99,
+                "words",
+                "plan",
+            ),
+        ],
+    );
+
+    let said = talk.call("brain", json!({ "task": budget.to_string() }));
+    let card = &said["structuredContent"];
+    let text = said["content"][0]["text"].as_str().unwrap();
+
+    let guessed = card["guessed"].as_array().unwrap();
+    assert_eq!(guessed.len(), 2, "{card}");
+    assert_eq!(guessed[0]["id"], json!(twin.to_string()));
+    assert_eq!(guessed[0]["shared"], json!(["familiar"]));
+    assert!(guessed[0].get("by").is_none(), "{card}");
+    assert_eq!(guessed[1]["title"], "Count December spending");
+    assert_eq!(guessed[1]["shared"], json!(["budget", "family"]));
+    assert_eq!(guessed[1]["score"], 0.42);
+    assert!(
+        text.contains("Guessed alike by Tisty, linked by no one"),
+        "{text}"
+    );
+    assert!(text.contains("(shares familiar)"), "{text}");
+    let spent = talk.brain(json!({ "task": spending.to_string() }));
+    assert_eq!(spent["guessed"].as_array().unwrap().len(), 1, "{spent}");
+    for told in [
+        said.to_string(),
+        talk.brain(json!({ "task": twin.to_string() })).to_string(),
+    ] {
+        assert!(!told.contains("secret gift"), "{told}");
+        assert!(!told.contains(&hidden.to_string()), "{told}");
+    }
+    let links = talk.brain(json!({ "task": budget.to_string(), "links": "all" }));
+    assert!(
+        links.get("guessed").is_none(),
+        "a guess is no link: {links}"
+    );
+}

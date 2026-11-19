@@ -32,6 +32,7 @@ export interface Drawing {
   centre: (on: number) => void;
   zoom: () => number;
   toScreen: (point: Point) => Point;
+  toGraph: (point: Point) => Point;
   nodeOnScreen: (node: number) => Point | undefined;
   onFrame: (listener: () => void) => () => void;
   light: (nodes: ReadonlySet<number> | null) => void;
@@ -237,6 +238,10 @@ export function drawNetwork(
     zoom: () => zoom,
     toScreen: ([x, y]) => {
       const at = sigma.graphToViewport({ x, y });
+      return [at.x, at.y];
+    },
+    toGraph: ([x, y]) => {
+      const at = sigma.viewportToGraph({ x, y });
       return [at.x, at.y];
     },
     nodeOnScreen: (node) => {

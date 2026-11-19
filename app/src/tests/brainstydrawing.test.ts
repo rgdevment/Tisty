@@ -69,6 +69,9 @@ vi.mock("sigma", () => ({
     graphToViewport({ x, y }: { x: number; y: number }) {
       return { x: x * 10, y: y * 10 };
     }
+    viewportToGraph({ x, y }: { x: number; y: number }) {
+      return { x: x / 10, y: y / 10 };
+    }
     on(name: string, listener: (payload: never) => void) {
       drawn.events[name] = [...(drawn.events[name] ?? []), listener];
     }
@@ -268,6 +271,7 @@ describe("the drawing of the network", () => {
     expect(drawing.nodeOnScreen(1)).toEqual([60, 80]);
     expect(drawing.nodeOnScreen(9)).toBeUndefined();
     expect(drawing.toScreen([1, 2])).toEqual([10, 20]);
+    expect(drawing.toGraph([10, 20])).toEqual([1, 2]);
     expect(drawing.zoom()).toBe(0);
 
     const before = graph.getNodeAttribute("0", "color");

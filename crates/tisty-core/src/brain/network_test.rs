@@ -336,3 +336,78 @@ fn every_document_and_task_carries_the_day_it_was_last_touched() {
     assert_eq!(when(&notes).as_deref(), Some("2027-01-15"));
     assert_eq!(when(&errand.to_string()).as_deref(), Some("2096-10-02"));
 }
+
+fn guessed_between(brain: &super::Brain, rows: &[(&str, &str, f64, &str, &str)]) {
+    for (a, b, score, method, shared) in rows {
+        brain
+            .db
+            .execute(
+                "INSERT INTO alike(a, b, score, shared, method) VALUES (?1, ?2, ?3, ?4, ?5)",
+                rusqlite::params![a, b, score, shared, method],
+            )
+            .unwrap();
+    }
+}
+
+#[test]
+fn a_guess_comes_apart_from_the_lines_and_only_between_two_nodes_in_sight() {
+    let world = World::new();
+    let mut store = world.store();
+    let budget = task(&mut store, "Presupuesto familiar", &[]).to_string();
+    let spending = task(&mut store, "Gastos de diciembre", &[]).to_string();
+    let secret = task(&mut store, "Regalo sorpresa", &[]).to_string();
+    let (_, notes) = doc(&world, &mut store, "# Notes\n\nNothing yet.\n", None, None);
+    let mut brain = world.brain();
+    world.refreshed(&mut brain, &world.state());
+    guessed_between(
+        &brain,
+        &[
+            (&budget, &spending, 0.4234, "words", "presupuesto familiar"),
+            (&notes, &spending, 0.91, "words", "diciembre notas"),
+            (&notes, &budget, 0.95, "meaning", ""),
+            (&budget, &secret, 0.8, "words", "regalo"),
+            (&budget, "gone", 0.8, "words", "nada"),
+            (&budget, &notes, 0.5, "a method not known yet", ""),
+        ],
+    );
+
+    let network = brain
+        .network(|id| id != secret, &[])
+        .unwrap()
+        .expect("a built base");
+
+    let place = |id: &str| network.nodes.iter().position(|one| one.id == id).unwrap() as u32;
+    let mut guesses = network.alike.clone();
+    guesses.sort_unstable();
+    let mut wanted = vec![
+        (
+            place(&budget),
+            place(&spending),
+            423,
+            "presupuesto familiar".to_string(),
+        ),
+        (
+            place(&notes),
+            place(&spending),
+            910,
+            "diciembre notas".to_string(),
+        ),
+    ];
+    wanted.sort_unstable();
+    assert_eq!(guesses, wanted, "only shared words make a guess");
+    assert!(network.edges.is_empty(), "a guess is never a written line");
+    assert!(!network.nodes.iter().any(|one| one.id == secret));
+}
+
+#[test]
+fn a_network_with_no_guess_says_nothing_of_them() {
+    let world = World::new();
+    let mut store = world.store();
+    task(&mut store, "the party", &[]);
+
+    let network = whole(&world, |_| true, &[]);
+
+    assert!(network.alike.is_empty());
+    let said = serde_json::to_value(&network).unwrap();
+    assert!(said.get("alike").is_none(), "{said}");
+}

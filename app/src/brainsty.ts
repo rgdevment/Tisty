@@ -21,11 +21,15 @@ export interface LeftOut {
   edges: number;
 }
 
+// Both ends, the score in thousandths and the words both share: Tisty's guess, apart from the lines.
+export type Guess = [number, number, number, string];
+
 export interface Network {
   nodes: Neuron[];
   edges: [number, number, number][];
   near?: number;
   left_out?: LeftOut;
+  alike?: Guess[];
 }
 
 export interface Group {

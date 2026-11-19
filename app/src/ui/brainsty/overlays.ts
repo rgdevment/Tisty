@@ -6,7 +6,7 @@ import { thumbsIn } from "./thumbs";
 import { paintZones, type Zone, zonesOf } from "./zones";
 import { thumbsShown, zonesShown } from "./zoom";
 
-const LAID = {
+export const LAID = {
   position: "absolute",
   inset: "0",
   width: "100%",
@@ -24,6 +24,15 @@ export interface Overlays {
 export interface Pictures {
   shows: (id: string) => boolean;
   urlOf: (id: string) => Promise<string>;
+}
+
+export function fitted(canvas: HTMLCanvasElement, container: HTMLElement): number {
+  const ratio = container.ownerDocument.defaultView?.devicePixelRatio ?? 1;
+  const width = Math.round(container.clientWidth * ratio);
+  const height = Math.round(container.clientHeight * ratio);
+  if (canvas.width !== width) canvas.width = width;
+  if (canvas.height !== height) canvas.height = height;
+  return ratio;
 }
 
 export function overlaysOn(
@@ -56,15 +65,8 @@ export function overlaysOn(
     );
   };
   let hues = palette.hues;
-  const sized = () => {
-    const ratio = page.defaultView?.devicePixelRatio ?? 1;
-    const width = Math.round(container.clientWidth * ratio);
-    const height = Math.round(container.clientHeight * ratio);
-    if (canvas.width !== width) canvas.width = width;
-    if (canvas.height !== height) canvas.height = height;
-  };
   const frame = () => {
-    sized();
+    fitted(canvas, container);
     const zoom = drawing.zoom();
     paintZones(canvas, zones, drawing.toScreen, hues, zonesShown(zoom));
     thumbs.place(
