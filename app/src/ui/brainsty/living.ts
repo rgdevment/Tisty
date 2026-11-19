@@ -55,7 +55,7 @@ export function livingOn(
   Object.assign(canvas.style, LAID);
   container.append(canvas);
   const near = neighboursOf(network);
-  const big = bigOnes(degreesOf(network.nodes.length, network.edges));
+  const big = bigOnes(degreesOf(network.nodes.length, laidEdges(network)));
   let hidden: readonly boolean[] = [];
   const onScreen = (node: number): boolean => {
     const at = drawing.nodeOnScreen(node);
