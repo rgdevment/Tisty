@@ -8,6 +8,7 @@ import { fill, t } from "../locales";
 import { compactedBy } from "../tidying";
 import { clientNamed } from "../who";
 import { AgentsWord, useAgentsGlance } from "./AgentsMark";
+import { grouped, inSkill, KIND_GLYPH, type SkillGroup, useAgentRows } from "./agentRows";
 import {
   type Carried,
   DEEPEST,
@@ -80,6 +81,7 @@ export default function Tree({
   onDocMenu,
 }: Props) {
   const agents = useAgentsGlance(agentsRoot(papers.folders)?.id ?? null);
+  const agentRows = useAgentRows(papers);
   // Nothing arrives open: with two hundred documents a tree that unfolds itself is a wall.
   const [opened, setOpened] = useState<Set<string>>(new Set());
   const [spread, setSpread] = useState<Set<string>>(new Set());
@@ -535,8 +537,9 @@ export default function Tree({
     return at < 0 ? undefined : all[at + 1]?.id;
   };
 
-  const paper = (doc: Filed, depth: number, page = false) => {
-    const name = doc.title || t("untitledDoc");
+  const paper = (doc: Filed, depth: number, page = false, inGroup = false) => {
+    const row = page ? undefined : agentRows.get(doc.file);
+    const name = row ? (inGroup ? inSkill(row) : row.label) : doc.title || t("untitledDoc");
     const worn = page ? { mark: null, rest: name } : led(name);
     const pages = pagesOf(doc.id);
     const closed = !unfolded && !spread.has(doc.id) && !pages.some((one) => one.file === open);
@@ -544,7 +547,17 @@ export default function Tree({
       <span className="text-[12.5px] leading-none">{worn.mark}</span>
     ) : (
       <Glyph
-        name={page ? (doc.archived ? "archive" : "alignleft") : doc === pin ? "brain" : "page"}
+        name={
+          row
+            ? KIND_GLYPH[row.kind]
+            : page
+              ? doc.archived
+                ? "archive"
+                : "alignleft"
+              : doc === pin
+                ? "brain"
+                : "page"
+        }
         className={
           page
             ? "h-[11px] w-[11px] opacity-70"
@@ -557,7 +570,7 @@ export default function Tree({
     return (
       <li key={doc.id} className="relative">
         <div
-          data-drop={page || doc.away ? undefined : doc.id}
+          data-drop={page || inGroup || doc.away ? undefined : doc.id}
           data-drop-kind="doc"
           data-drop-parent={doc.folder ?? ""}
           data-drop-next={nextOf(inside(doc.folder ?? null), doc.id) ?? ""}
@@ -608,6 +621,7 @@ export default function Tree({
             onKeyDown={(e) => typed(e, { id: doc.id, kind: "doc", name })}
             aria-keyshortcuts={shortcuts(page ? "page" : "doc")}
             onClick={tapped(() => onOpen(doc))}
+            title={row ? `${row.level} · ${row.name}` : undefined}
             aria-label={
               lifted?.id === doc.id
                 ? fill("liftedIs", name)
@@ -688,6 +702,67 @@ export default function Tree({
         )}
         {pages.length > 0 && !closed && (
           <ul id={`pages-${doc.id}`}>{pages.map((one) => paper(one, depth + 1, true))}</ul>
+        )}
+      </li>
+    );
+  };
+
+  const skill = (group: SkillGroup, depth: number) => {
+    const closed =
+      !unfolded && !spread.has(group.key) && !group.docs.some((one) => one.file === open);
+    const mark = <Glyph name={KIND_GLYPH.skill} className="h-[13px] w-[13px]" />;
+    const toggle = fill(closed ? "agentsSkillShow" : "agentsSkillHide", group.label);
+    return (
+      <li key={group.key} className="relative">
+        <div className="group/row relative flex items-center rounded-md has-[:focus-visible]:bg-hover">
+          <Grip
+            at={8 + depth * STEP}
+            open={!closed}
+            label={toggle}
+            controls={`files-${group.key}`}
+            onPress={() => unfold(group.key)}
+          >
+            {mark}
+          </Grip>
+          <button
+            type="button"
+            data-row={group.key}
+            data-skill=""
+            tabIndex={stops(group.key) ? 0 : -1}
+            onFocus={() => setReached(group.key)}
+            onKeyDown={(e) => {
+              const shut = e.key === "ArrowLeft" && !closed;
+              if (shut || (e.key === "ArrowRight" && closed)) {
+                e.preventDefault();
+                return unfold(group.key);
+              }
+              if (e.key !== "ArrowDown" && e.key !== "ArrowUp") return;
+              e.preventDefault();
+              walk(group.key, e.key === "ArrowDown" ? 1 : -1);
+            }}
+            onClick={() => unfold(group.key)}
+            aria-expanded={!closed}
+            aria-controls={`files-${group.key}`}
+            aria-label={`${group.label}, ${fill("agentsSkillFiles", String(group.docs.length))}`}
+            className="flex min-w-0 flex-1 items-center gap-1.5 rounded-md py-1 pl-1.5 pr-2 text-left text-[13px] text-soft hover:bg-hover"
+          >
+            <span className="truncate">{group.label}</span>
+            <span className="ml-auto shrink-0 pl-2 text-[11.5px] text-faint">
+              {fill("agentsSkillFiles", String(group.docs.length))}
+            </span>
+          </button>
+        </div>
+        {!closed && (
+          <span
+            aria-hidden="true"
+            className="absolute bottom-1 w-px bg-hair"
+            style={{ left: `${SPINE + depth * STEP}px`, top: "26px" }}
+          />
+        )}
+        {!closed && (
+          <ul id={`files-${group.key}`}>
+            {group.docs.map((one) => paper(one, depth + 1, false, true))}
+          </ul>
         )}
       </li>
     );
@@ -845,7 +920,9 @@ export default function Tree({
         {!closed && (
           <ul id={`holds-${folder.id}`}>
             {kids.flatMap((child) => [branch(child, depth + 1)])}
-            {papersIn.flatMap((doc) => [paper(doc, depth + 1)])}
+            {grouped(papersIn, agentRows).map((one) =>
+              "doc" in one ? paper(one.doc, depth + 1) : skill(one.skill, depth + 1),
+            )}
             {!under(folder.id).length && !papersIn.length && (
               <li
                 className="py-0.5 text-[11.5px] text-faint italic"

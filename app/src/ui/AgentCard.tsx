@@ -167,7 +167,10 @@ export default function AgentCard({
           </Pill>
         )}
       </div>
-      <p className="mt-2.5 mb-3 text-[21px] font-medium text-ink">{doc.name}</p>
+      <p className="mt-2.5 text-[21px] font-medium text-ink">{doc.label}</p>
+      <p className="mb-3 truncate text-[11.5px] text-faint" title={doc.name}>
+        {doc.name}
+      </p>
       {own && <p className="mb-3 text-[12.5px] text-soft">{t("agentMemoryOwn")}</p>}
       <div className="rounded-[10px] bg-panel px-3.5 py-1">
         {doc.places.length === 0 && (doc.here === "applied" || doc.here === "away") && (

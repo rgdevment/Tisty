@@ -20,6 +20,7 @@ export type Said =
 export interface Backup {
   readonly n: number;
   readonly bytes: number;
+  readonly pinned: boolean;
 }
 
 export interface Place {
@@ -47,6 +48,7 @@ export interface AgentDoc {
   readonly level: string;
   readonly named: string | null;
   readonly name: string;
+  readonly label: string;
   readonly code: boolean;
   readonly folderOff: boolean;
   readonly twin: boolean;
@@ -114,10 +116,13 @@ export const agentAgree = (file: string, print: string): Promise<AgentDoc | null
 
 const MARKDOWN = new Set(["md", "markdown", "mdc"]);
 
+export const extensionOf = (at: string): string | undefined =>
+  at.match(/\.([a-z0-9]+)$/i)?.[1]?.toLowerCase();
+
 export const fencedFile = (text: string, at: string): string => {
   const runs = Array.from(text.matchAll(/^\s*(`+)/gm), (one) => one[1].length);
   const fence = "`".repeat(Math.max(2, ...runs) + 1);
-  const ending = at.match(/\.([a-z0-9]+)$/i)?.[1]?.toLowerCase() ?? "text";
+  const ending = extensionOf(at) ?? "text";
   const tongue = MARKDOWN.has(ending) ? "markdown" : ending;
   const closed = text === "" || text.endsWith("\n") ? text : `${text}\n`;
   return `${fence}${tongue}\n${closed}${fence}\n`;

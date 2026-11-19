@@ -125,7 +125,8 @@ fn overwriting_leaves_a_backup_the_card_counts() {
         shown.kept,
         vec![Backup {
             n: 1,
-            bytes: "Written by hand.\n".len() as u64
+            bytes: "Written by hand.\n".len() as u64,
+            pinned: true,
         }]
     );
     let read = agents::read_kept(room.data.path(), &codex.target.at, 1).unwrap();

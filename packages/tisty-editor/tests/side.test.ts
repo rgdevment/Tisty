@@ -625,3 +625,41 @@ describe("the panels beside a sheet", () => {
     expect(wordsIn("hola\n\n```\nlet x = 1\n```\n\nadios")).toBe(2);
   });
 });
+
+describe("a panel of facts", () => {
+  it("lists its rows in the top card, leaves empty ones out and presses its acts", () => {
+    const side = host();
+    const asked: string[] = [];
+    sided(side, say, [
+      { kind: "title", title: "Horario laboral", under: "claude · rules/horario.md" },
+      {
+        kind: "facts",
+        label: "Archivo del agente",
+        rows: [
+          ["Lo lee", "Claude"],
+          ["Respaldos", ""],
+        ],
+        acts: [
+          { key: "history", label: "Historial", onPick: () => asked.push("history") },
+          { key: "off", label: "Nada", off: true, onPick: () => asked.push("off") },
+        ],
+      },
+    ]);
+    const panel = side.querySelector(".side-top .side-facts-panel");
+    expect(panel?.getAttribute("aria-label")).toBe("Archivo del agente");
+    expect(text(side, ".side-facts-panel .side-label")).toEqual(["Archivo del agente"]);
+    expect(text(side, ".side-fact dt")).toEqual(["Lo lee"]);
+    expect(text(side, ".side-under")).toEqual(["claude · rules/horario.md"]);
+    const acts = side.querySelectorAll<HTMLButtonElement>(".side-facts-panel .side-act");
+    expect(acts[1].disabled).toBe(true);
+    for (const act of acts) act.click();
+    expect(asked).toEqual(["history"]);
+    expect(side.querySelector(".side-more")).toBeNull();
+  });
+
+  it("draws no acts row when it has none", () => {
+    const side = host();
+    sided(side, say, [{ kind: "facts", label: "Archivo", rows: [["Formato", "Markdown"]] }]);
+    expect(side.querySelector(".side-facts-panel .side-acts")).toBeNull();
+  });
+});

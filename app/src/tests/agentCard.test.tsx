@@ -58,6 +58,7 @@ const card = (places: Place[], more: Partial<AgentDoc> = {}): AgentDoc => ({
   level: "claude",
   named: "Claude",
   name: "CLAUDE.md",
+  label: "CLAUDE.md",
   code: false,
   folderOff: false,
   here: "applied",
@@ -98,6 +99,16 @@ beforeEach(() => {
   asking.answer = () => Promise.resolve(true);
   desk.papersChanged.mockClear();
   page.body = "";
+});
+
+describe("an agent document's name on its card", () => {
+  it("says its name and keeps its path small under it", () => {
+    shown(card([], { name: "rules/horario.md", label: "Horario laboral" }));
+    expect(screen.getByText("Horario laboral").className).toContain("text-[21px]");
+    const path = screen.getByText("rules/horario.md");
+    expect(path.className).toContain("text-[11.5px]");
+    expect(path.title).toBe("rules/horario.md");
+  });
 });
 
 describe("an agent document's card", () => {
@@ -182,8 +193,8 @@ describe("an agent document's card", () => {
 
   it("lists the backups, shows one and puts it back", async () => {
     const kept = [
-      { n: 2, bytes: 40 },
-      { n: 1, bytes: 30 },
+      { n: 2, bytes: 40, pinned: false },
+      { n: 1, bytes: 30, pinned: true },
     ];
     ipc.answer = (_cmd, args) =>
       Promise.resolve((args.asked as { do: string }).do === "held" ? "Old words.\n" : null);
@@ -204,7 +215,7 @@ describe("an agent document's card", () => {
   });
 
   it("puts a backup back from the list and closes the list", async () => {
-    shown(card([place({ state: "synced" }, { kept: [{ n: 1, bytes: 30 }] })]));
+    shown(card([place({ state: "synced" }, { kept: [{ n: 1, bytes: 30, pinned: true }] })]));
     await userEvent.click(screen.getAllByRole("button", { name: "Backups" })[0]);
     await userEvent.click(screen.getByRole("button", { name: "Restore" }));
     await waitFor(() =>

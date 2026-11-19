@@ -251,6 +251,21 @@
   border-color: var(--tisty-accent);
   color: var(--tisty-accent);
 }
+.side-top > .side-title-row:has(+ .side-facts-panel) {
+  border-bottom: 1px solid var(--tisty-hair);
+}
+.side-facts-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 12px 16px 14px;
+  font-size: 12.5px;
+}
+.side-facts-panel > .side-label {
+  padding: 0;
+}
 .side-index {
   display: flex;
   flex-direction: column;
