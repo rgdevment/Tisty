@@ -11,6 +11,7 @@ export const HOP_SECONDS = 4;
 const TURN_SECONDS = 120;
 const FLASH_SECONDS = 0.6;
 const LONGEST_STEP = 0.1;
+const MEASURED_EVERY = 30;
 
 export interface Living {
   ready: () => void;
@@ -90,6 +91,7 @@ export function livingOn(
   let frame = 0;
   let last = 0;
   let spent = 0;
+  let frames = 0;
 
   const painted = () => {
     const brush = canvas.getContext("2d");
@@ -157,7 +159,7 @@ export function livingOn(
     ];
     drawing.turn(turn);
     spent = spent * 0.9 + (clock.now() - started) * 0.1;
-    container.dataset.livingMs = spent.toFixed(2);
+    if (frames++ % MEASURED_EVERY === 0) container.dataset.livingMs = spent.toFixed(2);
     frame = clock.frame(tick);
   };
   const running = () => laid && playing && container.ownerDocument.visibilityState !== "hidden";
