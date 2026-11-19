@@ -236,7 +236,7 @@ describe("the living network", () => {
     const { clock, frames, tick } = fakeClock();
     const { drawing, turns, render } = drawingOf();
     const box = boxed();
-    const living = livingOn(box, drawing, chain, () => "#2266ff", clock);
+    const living = livingOn(box, drawing, chain, () => "#2266ff", { clock });
 
     living.play();
     expect(frames).toHaveLength(0);
@@ -256,7 +256,7 @@ describe("the living network", () => {
     const { clock, tick } = fakeClock();
     const { drawing, turns } = drawingOf();
     const box = boxed();
-    const living = livingOn(box, drawing, chain, () => "#2266ff", clock);
+    const living = livingOn(box, drawing, chain, () => "#2266ff", { clock });
     living.ready();
     living.play();
 
@@ -281,15 +281,23 @@ describe("the living network", () => {
 
   it("clears its travellers and stops when its effects are turned off, and says what a frame costs", () => {
     const { clock, frames, tick } = fakeClock();
-    const { drawing, render } = drawingOf();
-    const living = livingOn(boxed(), drawing, chain, () => "#2266ff", clock);
+    const { drawing, render, turns } = drawingOf();
+    const followed = vi.fn();
+    const living = livingOn(boxed(), drawing, chain, () => "#2266ff", {
+      clock,
+      afterTurn: followed,
+    });
     living.ready();
     living.play();
     tick(16);
     render();
     expect(living.measured().ms).toBeGreaterThanOrEqual(0);
+    expect(followed).toHaveBeenCalledTimes(1);
 
     living.effects(false);
+    expect(turns[turns.length - 1]).toBeNull();
+    living.turnBy(1, 0);
+    expect(turns[turns.length - 1]).toBeNull();
     frames.length = 0;
     tick(16);
     expect(frames).toHaveLength(0);
@@ -301,7 +309,7 @@ describe("the living network", () => {
   it("stops asking for frames when paused or hidden, and comes back when seen again", () => {
     const { clock, frames, tick } = fakeClock();
     const { drawing } = drawingOf();
-    const living = livingOn(boxed(), drawing, chain, () => "#2266ff", clock);
+    const living = livingOn(boxed(), drawing, chain, () => "#2266ff", { clock });
     living.ready();
     living.play();
     living.pause();
@@ -338,7 +346,7 @@ describe("the living network", () => {
     vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(
       brush as unknown as CanvasRenderingContext2D,
     );
-    const living = livingOn(box, drawing, chain, () => "#2266ff", clock);
+    const living = livingOn(box, drawing, chain, () => "#2266ff", { clock });
 
     living.turnBy(1, 0);
     expect(turns).toHaveLength(0);

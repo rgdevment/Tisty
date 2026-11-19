@@ -115,10 +115,16 @@ export default function Brainsty({ network, groups, onOpen, escaping }: Props) {
     overlays.reshape(shaped);
     const icons = iconsOn(container, drawn, network, palette, PICTURES.shows);
     let colours = palette;
-    const living = livingOn(container, drawn, network, (node) => {
-      const one = network.nodes[node];
-      return nodeLook(one, hueOf(one.group), colours).color;
-    });
+    const living = livingOn(
+      container,
+      drawn,
+      network,
+      (node) => {
+        const one = network.nodes[node];
+        return nodeLook(one, hueOf(one.group), colours).color;
+      },
+      { afterTurn: () => keepNear() },
+    );
     const unturned = turnedByHand(container, living.turnBy);
     const near = network.near;
     let following = near !== undefined;
@@ -134,6 +140,10 @@ export default function Brainsty({ network, groups, onOpen, escaping }: Props) {
     const letGo = () => {
       following = false;
     };
+    // Opened on what was last touched, the camera stays on it while the globe turns, until the person takes over.
+    function keepNear() {
+      if (following) follow();
+    }
     const pick = (node: number) => {
       letGo();
       setPicked(node);

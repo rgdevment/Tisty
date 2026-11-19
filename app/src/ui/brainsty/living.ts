@@ -59,7 +59,7 @@ export function livingOn(
   drawing: Drawing,
   network: Network,
   colourOf: (node: number) => string,
-  clock: Clock = CLOCK,
+  { clock = CLOCK, afterTurn = () => undefined }: { clock?: Clock; afterTurn?: () => void } = {},
 ): Living {
   const canvas = container.ownerDocument.createElement("canvas");
   Object.assign(canvas.style, LAID);
@@ -204,6 +204,7 @@ export function livingOn(
       ...fresh,
     ];
     drawing.turn(turn);
+    afterTurn();
     ticked = clock.now() - started;
     frame = clock.frame(tick);
   };
@@ -245,13 +246,15 @@ export function livingOn(
         travellers = [];
         flashes = [];
         fps = 0;
+        turn = { yaw: 0, pitch: 0 };
+        drawing.turn(null);
         painted();
       }
       seen();
     },
     measured: () => ({ ms: frame === 0 ? 0 : spent, fps: frame === 0 ? 0 : fps }),
     turnBy: (yaw, pitch) => {
-      if (!laid) return;
+      if (!laid || !lively) return;
       turn = {
         yaw: turn.yaw + yaw,
         pitch: Math.max(-PITCH_AT_MOST, Math.min(PITCH_AT_MOST, turn.pitch + pitch)),
