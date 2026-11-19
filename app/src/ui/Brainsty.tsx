@@ -181,7 +181,7 @@ export default function Brainsty({ network, onOpen, escaping }: Props) {
         ref={host}
         tabIndex={-1}
         aria-label={t("brainstyNetwork")}
-        className="absolute inset-0 m-0 outline-none focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent"
+        className="absolute inset-0 m-0 outline-none focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-solid focus-visible:outline-accent"
       />
       <Toolbar
         network={network}
