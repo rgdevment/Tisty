@@ -14,6 +14,7 @@ import {
 } from "../agentsSync";
 import { fill, t, type Word } from "../locales";
 import { saidPlainly } from "../refusal";
+import { skillDirs, skillOf } from "../skillFolders";
 import {
   BothReview,
   button,
@@ -54,12 +55,13 @@ export interface Offered {
 export const offeredOf = (files: readonly FileSeen[]): Offered[] => {
   const rows: Offered[] = [];
   const skills = new Map<string, Offered>();
+  const dirs = skillDirs(files.filter((file) => file.kind === "skill").map((file) => file.name));
   for (const file of files) {
     if (file.kind !== "skill") {
       rows.push({ key: file.at, kind: file.kind, name: file.name, files: [file] });
       continue;
     }
-    const name = file.name.split("/")[0];
+    const name = skillOf(file.name, dirs);
     const known = skills.get(name);
     if (known) {
       known.files.push(file);

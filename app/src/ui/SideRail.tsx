@@ -62,7 +62,7 @@ export default function SideRail({
   const veiled = useHidden();
   const root = agentsRoot(papers.folders)?.id ?? null;
   const stance = useAgentsState(root);
-  const asleep = stance === null || !agentsLit(stance);
+  const asleep = stance !== null && !agentsLit(stance);
   const agentsAway = agentsHidden(veiled, root);
   const top: Shelved[] = papers.folders
     .filter((one) => one.parent === null && !one.away && !veiled.includes(one.id))

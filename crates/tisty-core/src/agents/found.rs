@@ -31,6 +31,8 @@ const MARKDOWN: &str = ".md";
 const READ_AS: [(&str, &str, &str); 1] = [("copilot", "instructions", ".instructions.md")];
 // Skill folders an assistant rewrites itself: Claude Code's claude.ai copy (`.trash` and Codex's `.system` fall to the dot rule).
 const KEPT_BY_ASSISTANT: [&str; 1] = ["synced"];
+// How deep each assistant looks for a skill folder: Codex scans 6 levels (its loader's MAX_SCAN_DEPTH), Cursor walks the whole tree, the rest one.
+const SKILL_LEVELS: [(&str, usize); 2] = [("codex", 6), ("cursor", DEEPEST)];
 
 fn kept_by_assistant(leaf: &str) -> bool {
     KEPT_BY_ASSISTANT
@@ -105,14 +107,20 @@ fn looked_at(place: &Place, at: PathBuf, name: String) -> Found {
 /// How a folder is walked: the skills folder only names skills, a skill keeps every file, a rules folder only what its assistant reads.
 #[derive(Clone, Copy)]
 enum Walk {
-    Skills,
+    /// How many folder levels may still hold a skill.
+    Skills(usize),
     Skill,
     Read(&'static str),
 }
 
 fn walk_of(place: &Place) -> Walk {
     match place.kind {
-        Kind::Skill => Walk::Skills,
+        Kind::Skill => Walk::Skills(
+            SKILL_LEVELS
+                .iter()
+                .find(|(who, _)| *who == place.assistant)
+                .map_or(1, |(_, levels)| *levels),
+        ),
         _ => Walk::Read(
             READ_AS
                 .iter()
@@ -122,22 +130,20 @@ fn walk_of(place: &Place) -> Walk {
     }
 }
 
-// A skill is a folder right under the skills folder with its own SKILL.md, as the skills format defines it.
-fn is_skill(at: &Path, leaf: &str) -> bool {
-    !kept_by_assistant(leaf) && at.join(SKILL_FILE).is_file()
-}
-
-fn kept_away(at: &Path, leaf: &str, walk: Walk) -> bool {
+/// What a folder is to the walk, or `None` when it is skipped: a skill is the folder holding its own SKILL.md.
+fn inside(at: &Path, leaf: &str, walk: Walk) -> Option<Walk> {
     match walk {
-        Walk::Skills => !is_skill(at, leaf),
-        Walk::Skill => leaf == "node_modules",
-        Walk::Read(_) => leaf == "node_modules" || at.join(MANIFEST).is_file(),
+        Walk::Skills(_) if kept_by_assistant(leaf) => None,
+        Walk::Skills(_) if at.join(SKILL_FILE).is_file() => Some(Walk::Skill),
+        Walk::Skills(levels) => (levels > 1).then_some(Walk::Skills(levels - 1)),
+        Walk::Skill => (leaf != "node_modules").then_some(Walk::Skill),
+        Walk::Read(_) => (leaf != "node_modules" && !at.join(MANIFEST).is_file()).then_some(walk),
     }
 }
 
 fn read_here(leaf: &str, walk: Walk) -> bool {
     match walk {
-        Walk::Skills => false,
+        Walk::Skills(_) => false,
         Walk::Skill => true,
         Walk::Read(ending) => leaf.to_ascii_lowercase().ends_with(ending),
     }
@@ -180,13 +186,10 @@ fn walked(place: &Place, dir: &Path, prefix: &str, depth: usize, walk: Walk, out
         };
         let at = entry.path();
         match kind.is_dir() {
-            true if kept_away(&at, &leaf, walk) => {}
             true => {
-                let inner = match walk {
-                    Walk::Skills => Walk::Skill,
-                    other => other,
-                };
-                walked(place, &at, &name, depth + 1, inner, out);
+                if let Some(inner) = inside(&at, &leaf, walk) {
+                    walked(place, &at, &name, depth + 1, inner, out);
+                }
             }
             false if read_here(&leaf, walk) => out.push(looked_at(place, at, name)),
             false => {}

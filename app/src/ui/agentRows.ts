@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { AgentKind } from "../agentDocs";
 import { type AgentRow, agentsPrint, agentsRows, agentsTree } from "../agentsSync";
 import type { Filed, Papers } from "../core";
+import { skillDirs, skillOf } from "../skillFolders";
 
 export const KIND_GLYPH: Record<AgentKind, string> = {
   rule: "book-text",
@@ -58,6 +59,27 @@ export const grouped = (docs: readonly Filed[], rows: ReadonlyMap<string, AgentR
 
 const NONE: ReadonlyMap<string, AgentRow> = new Map();
 
+/// A skill inside a category folder belongs to the folder of its SKILL.md, not to the category.
+export const nested = (rows: ReadonlyMap<string, AgentRow>): ReadonlyMap<string, AgentRow> => {
+  const skills = [...rows.values()].filter((row) => row.skill !== null);
+  const dirsOf = new Map<string, string[]>();
+  for (const level of new Set(skills.map((row) => row.level)))
+    dirsOf.set(
+      level,
+      skillDirs(skills.filter((row) => row.level === level).map((row) => row.name)),
+    );
+  const placed = new Map(rows);
+  for (const [file, row] of rows) {
+    if (row.skill === null) continue;
+    const skill = skillOf(row.name, dirsOf.get(row.level) ?? []);
+    if (skill === row.skill) continue;
+    const own = row.name.toLowerCase() === `${skill}/${SKILL_FILE}`.toLowerCase();
+    const label = own && row.label === row.skill ? (skill.split("/").pop() ?? skill) : row.label;
+    placed.set(file, { ...row, skill, label });
+  }
+  return placed;
+};
+
 const versionOf = (one: Filed) => `${one.wrote ?? ""}:${one.bytes ?? ""}`;
 
 const underAgents = (papers: Papers): ReadonlyMap<string, string> => {
@@ -100,7 +122,7 @@ export function useAgentRows(papers: Papers): ReadonlyMap<string, AgentRow> {
     };
   }, [print]);
   return useMemo(
-    () => (here.size === 0 ? NONE : new Map([...held].filter(([file]) => here.has(file)))),
+    () => (here.size === 0 ? NONE : nested(new Map([...held].filter(([file]) => here.has(file))))),
     [held, here],
   );
 }

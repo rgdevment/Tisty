@@ -360,3 +360,86 @@ fn a_rules_folder_brings_only_what_its_assistant_reads() {
         ]
     );
 }
+
+fn skill_places(home: &Path, who: &[(&str, &str)]) -> Vec<Place> {
+    who.iter()
+        .map(|(assistant, at)| Place {
+            assistant: (*assistant).into(),
+            kind: Kind::Skill,
+            at: home.join(at),
+            name: String::new(),
+        })
+        .collect()
+}
+
+#[test]
+fn a_skill_in_a_category_folder_shows_only_where_its_assistant_looks_that_deep() {
+    let home = tempfile::tempdir().unwrap();
+    let places = skill_places(
+        home.path(),
+        &[
+            ("claude", ".claude/skills"),
+            ("codex", ".agents/skills"),
+            ("copilot", ".copilot/skills"),
+            ("gemini", ".gemini/skills"),
+            ("cursor", ".cursor/skills"),
+        ],
+    );
+    for place in &places {
+        put(&place.at.join("trabajo/pr/SKILL.md"), "x\n");
+    }
+    let each: Vec<(String, String)> = found(&places)
+        .into_iter()
+        .map(|one| (one.assistant, one.name))
+        .collect();
+    assert_eq!(
+        each,
+        [
+            ("codex".to_string(), "trabajo/pr/SKILL.md".to_string()),
+            ("cursor".to_string(), "trabajo/pr/SKILL.md".to_string())
+        ]
+    );
+}
+
+#[test]
+fn codex_looks_six_levels_down_and_cursor_as_deep_as_tisty_walks() {
+    let home = tempfile::tempdir().unwrap();
+    let places = skill_places(
+        home.path(),
+        &[("codex", ".agents/skills"), ("cursor", ".cursor/skills")],
+    );
+    for place in &places {
+        put(&place.at.join("a/b/c/d/e/six/SKILL.md"), "x\n");
+        put(&place.at.join("a/b/c/d/e/f/seven/SKILL.md"), "x\n");
+    }
+    let each: Vec<(String, String)> = found(&places)
+        .into_iter()
+        .map(|one| (one.assistant, one.name))
+        .collect();
+    assert_eq!(
+        each,
+        [
+            ("codex".to_string(), "a/b/c/d/e/six/SKILL.md".to_string()),
+            (
+                "cursor".to_string(),
+                "a/b/c/d/e/f/seven/SKILL.md".to_string()
+            ),
+            ("cursor".to_string(), "a/b/c/d/e/six/SKILL.md".to_string())
+        ]
+    );
+}
+
+#[test]
+fn a_folder_the_assistant_keeps_stays_out_at_every_level_and_a_skill_holds_its_inner_ones() {
+    let home = tempfile::tempdir().unwrap();
+    let places = skill_places(home.path(), &[("codex", ".agents/skills")]);
+    let skills = &places[0].at;
+    put(&skills.join("trabajo/synced/pr/SKILL.md"), "x\n");
+    put(&skills.join("trabajo/.hidden/pr/SKILL.md"), "x\n");
+    put(&skills.join("pr/SKILL.md"), "x\n");
+    put(&skills.join("pr/examples/mini/SKILL.md"), "x\n");
+    assert_eq!(
+        names_of(&found(&places)),
+        ["pr/SKILL.md", "pr/examples/mini/SKILL.md"]
+    );
+}

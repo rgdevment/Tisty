@@ -86,7 +86,8 @@ export default function Tree({
   const veiled = (key: string) => !unfolded && hidden.includes(key);
   const agentsVeiled = !unfolded && agentsHidden(hidden, root);
   const switchedOn = stance !== null && agentsLit(stance);
-  const asleep = !switchedOn;
+  // Dim only once known to be off: an AGENTS still learning its state is drawn plain, never off.
+  const asleep = !root || (stance !== null && !switchedOn);
   // Nothing of an agent's is looked at until this computer is known to have said yes.
   const agents = useAgentsGlance(switchedOn && !agentsVeiled ? root : null);
   const unborn = !root && !agentsVeiled && !unfolded;

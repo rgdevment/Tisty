@@ -96,6 +96,18 @@ const withAgents: Papers = {
 const tree = (papers: Papers, more: Partial<React.ComponentProps<typeof Tree>> = {}) =>
   render(<Tree papers={papers} onOpen={vi.fn()} onFile={vi.fn()} onHere={vi.fn()} {...more} />);
 
+const rail = (papers: Papers) =>
+  render(
+    <SideRail
+      lists={[]}
+      papers={papers}
+      counts={{}}
+      chosen={{ named: "tasks" }}
+      onChoose={vi.fn()}
+      onReveal={vi.fn()}
+    />,
+  );
+
 const listened = () => {
   const heard = vi.fn();
   window.addEventListener(AGENTS_ASLEEP, heard);
@@ -189,6 +201,17 @@ describe("AGENTS in the sidebar with its folder", () => {
     window.removeEventListener(AGENTS_ASLEEP, heard);
   });
 
+  it("is drawn plain, never off, while its state is still on its way", async () => {
+    ipc.state = new Promise(() => {});
+    tree(withAgents);
+    rail(withAgents);
+    await settle();
+    expect(screen.getAllByRole("button", { name: "AGENTS" })).toHaveLength(2);
+    expect(screen.queryByRole("button", { name: "AGENTS — off" })).toBeNull();
+    expect(screen.queryByText("off")).toBeNull();
+    expect(sent("agents_look")).toHaveLength(0);
+  });
+
   it("is dim on a computer that never said yes to it", async () => {
     ipc.state = state({ folder: "A", consented: false });
     tree(withAgents);
@@ -222,18 +245,6 @@ describe("AGENTS in the sidebar with its folder", () => {
 });
 
 describe("AGENTS in the folded sidebar", () => {
-  const rail = (papers: Papers) =>
-    render(
-      <SideRail
-        lists={[]}
-        papers={papers}
-        counts={{}}
-        chosen={{ named: "tasks" }}
-        onChoose={vi.fn()}
-        onReveal={vi.fn()}
-      />,
-    );
-
   it("stands there off without a folder, and answers with the notice", async () => {
     const heard = listened();
     rail(bare);
