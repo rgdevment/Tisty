@@ -8,6 +8,7 @@ import { saidPlainly } from "../refusal";
 import type { Escaping } from "./Brainsty";
 import { brainstyLoaded, type LoadedBrainsty } from "./brainstyLoaded";
 import Glyph from "./Glyph";
+import { tabbedInside } from "./heldFocus";
 import { onMac } from "./WindowChrome";
 
 type Read = { network: Network | null } | { failed: string };
@@ -62,6 +63,8 @@ export default function BrainstyScreen({ near, onClose }: Props) {
         e.preventDefault();
         e.stopImmediatePropagation();
         if (!escaping.current?.()) closing.current();
+      } else if (e.key === "Tab" && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        tabbed(frame.current, e);
       } else if (e.ctrlKey || e.metaKey) {
         e.stopImmediatePropagation();
       }
@@ -110,6 +113,16 @@ export default function BrainstyScreen({ near, onClose }: Props) {
     </dialog>
   );
 }
+
+// The network is one stop of the round, so Tab always comes back to where the arrows walk.
+const tabbed = (frame: HTMLDialogElement | null, event: KeyboardEvent) => {
+  if (!frame) return;
+  const network = frame.querySelector<HTMLElement>("figure[tabindex]") ?? frame;
+  const next = tabbedInside(frame, event.shiftKey, network);
+  if (!next) return;
+  event.preventDefault();
+  next.focus();
+};
 
 function Inside({
   read,

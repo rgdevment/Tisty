@@ -70,6 +70,21 @@ describe("what the filters leave in sight", () => {
     expect(found(network, "viaj", [false, false, false, true, false, false])).toEqual([0]);
     expect(found(network, "  ", none)).toEqual([]);
   });
+
+  it("finds eight at most, the shorter title first among equals", () => {
+    const many: Network = {
+      nodes: Array.from({ length: 12 }, (_, n) => one(`nota ${"x".repeat(12 - n)}`, "doc")),
+      edges: [],
+    };
+
+    expect(
+      found(
+        many,
+        "nota",
+        many.nodes.map(() => false),
+      ),
+    ).toEqual([11, 10, 9, 8, 7, 6, 5, 4]);
+  });
 });
 
 describe("walking the network with the keys", () => {
