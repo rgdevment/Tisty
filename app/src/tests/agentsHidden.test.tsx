@@ -100,6 +100,18 @@ describe("the hidden folders in Settings", () => {
     expect(listed().queryByText("trabajo")).toBeNull();
   });
 
+  it("names the ideas sheet by its own title when it has one", () => {
+    const withIdeas: Papers = {
+      ...papers,
+      docs: [
+        { id: "I", file: "ideas-1", title: "Ideas", folder: null, archived: false, away: false },
+      ],
+    };
+    expect(hiddenRows([BRAINSTORM], withIdeas, "ideas-1")).toEqual([
+      { keys: [BRAINSTORM], name: "Ideas" },
+    ]);
+  });
+
   it("skips a folder that is gone or put away", () => {
     hide("gone");
     hide("O");
@@ -134,6 +146,6 @@ describe("the hidden folders in Settings", () => {
     await settle();
     expect(listed().getByText("AGENTS")).toBeTruthy();
     expect(listed().queryByText("1 changed")).toBeNull();
-    expect(seen.asked).toEqual([]);
+    expect(seen.asked.filter((cmd) => cmd.startsWith("agents_"))).toEqual([]);
   });
 });

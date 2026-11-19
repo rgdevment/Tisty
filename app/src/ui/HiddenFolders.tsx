@@ -3,6 +3,7 @@ import type { Papers } from "../core";
 import { trail } from "../folders";
 import { agentsHidden, agentsKeys, BRAINSTORM, DIARY, show, useHidden } from "../hiding";
 import { fill, t } from "../locales";
+import { usePinned } from "../usePinned";
 import { Band, Line, mild } from "./Rows";
 
 interface Row {
@@ -11,10 +12,15 @@ interface Row {
   agents?: boolean;
 }
 
-export const hiddenRows = (hidden: readonly string[], papers: Papers): Row[] => {
+export const hiddenRows = (
+  hidden: readonly string[],
+  papers: Papers,
+  board?: string | null,
+): Row[] => {
   const root = agentsRoot(papers.folders)?.id ?? null;
+  const ideas = papers.docs.find((one) => board && one.file === board)?.title;
   const shelf = (key: string): Row | null => {
-    if (key === BRAINSTORM) return { keys: [key], name: t("brainstorm") };
+    if (key === BRAINSTORM) return { keys: [key], name: ideas || t("brainstorm") };
     if (key === DIARY) return { keys: [key], name: t("diary") };
     const folder = papers.folders.find((one) => one.id === key && !one.away);
     if (!folder || folder.id === root) return null;
@@ -31,7 +37,8 @@ interface Props {
 }
 
 export default function HiddenFolders({ papers }: Readonly<Props>) {
-  const rows = hiddenRows(useHidden(), papers);
+  // The sheet goes by its own title in the sidebar, so it does here too.
+  const rows = hiddenRows(useHidden(), papers, usePinned(papers)?.file);
   return (
     <>
       <Band label={t("hiddenTitle")} />

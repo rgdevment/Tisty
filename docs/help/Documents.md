@@ -106,7 +106,7 @@ It helps when:
 
 - **You use one computer for each thing.** On the work computer you do not need **Home**, with Rina's vaccines and Lucas's birthday, and on the home one you do not need **Work / Clients**.
 - **The sidebar grew too much.** A folder you look at twice a year, such as **Paperwork**, can leave the view without being archived.
-- **You do not use the Diary or Brainstorm** and would rather not see them at the top of the Library.
+- **You do not use the Diary or Ideas** and would rather not see them at the top of the Library.
 
 **Hiding it:**
 
@@ -130,7 +130,7 @@ Worth knowing:
 - **Nothing is deleted or moved.** The folder keeps its documents and subfolders, and search, the palette and **Move to** still find it: you can move a document into a hidden folder, and it goes in all the same.
 - **The sidebar filter shows it.** While you type in the Library's filter, hidden folders show too, so a match never stays hidden. When you close the filter with `Esc`, they hide again.
 - **A subfolder on its own.** You can hide **Work / Clients** and leave **Work** in view. Its row in Hidden folders names the whole path, so you know which one it is.
-- **The Diary and Brainstorm too.** Right-click **Diary** or **Brainstorm** and choose **Hide from the sidebar**. In Hidden folders they show by name, and **Show again** puts them back at the top of the Library.
+- **The Diary and Ideas too.** Right-click **Diary** or **Ideas** and choose **Hide from the sidebar**. In Hidden folders they show by name, and **Show again** puts them back at the top of the Library.
 - **An archived folder does not hide.** On the **Archived** shelf the choice shows greyed out: it is already out of your way.
 - **AGENTS hides only while off.** On, its right-click offers **Turn AGENTS off** instead of hiding; off, its notice offers **Hide**. Hidden, AGENTS stays off: it writes none of your agents' files, and a proposal from your agent is only kept until you show it again and turn it on. [Hiding it from the sidebar](AGENTS-Folder#hiding-it-from-the-sidebar) tells it.
 

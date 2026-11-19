@@ -106,7 +106,7 @@ Te sirve cuando:
 
 - **Usas un equipo para cada cosa.** En el computador del trabajo no necesitas **Casa**, con las vacunas de Rina y el cumpleaños de Lucas, y en el de la casa no necesitas **Trabajo / Clientes**.
 - **La barra creció de más.** Una carpeta que consultas dos veces al año, como **Trámites**, puede salir de la vista sin archivarse.
-- **No usas el Diario o la Lluvia de ideas** y prefieres no verlos arriba de la Biblioteca.
+- **No usas el Diario o Ideas** y prefieres no verlos arriba de la Biblioteca.
 
 **Ocultarla:**
 
@@ -130,7 +130,7 @@ Lo que conviene saber:
 - **No se borra ni se mueve nada.** La carpeta conserva sus documentos y sus subcarpetas, y la búsqueda, la paleta y **Mover a** la siguen encontrando: puedes mover un documento a una carpeta oculta, y entra igual.
 - **El filtro de la barra la muestra.** Mientras escribes en el filtro de la Biblioteca, las carpetas ocultas aparecen también, para que un resultado nunca quede escondido. Al cerrar el filtro con `Esc`, vuelven a ocultarse.
 - **Una subcarpeta sola.** Puedes ocultar **Trabajo / Clientes** y dejar **Trabajo** a la vista. Su fila en Carpetas ocultas nombra el camino entero, para que sepas cuál es.
-- **El Diario y la Lluvia de ideas también.** Botón derecho sobre **Diario** o sobre **Lluvia de ideas** y **Ocultar de la barra**. En Carpetas ocultas aparecen con su nombre, y **Volver a mostrar** los devuelve arriba de la Biblioteca.
+- **El Diario e Ideas también.** Botón derecho sobre **Diario** o sobre **Ideas** y **Ocultar de la barra**. En Carpetas ocultas aparecen con su nombre, y **Volver a mostrar** los devuelve arriba de la Biblioteca.
 - **Una carpeta archivada no se oculta.** En el estante de **Archivados** la opción aparece apagada: ya está fuera de tu camino.
 - **AGENTS se oculta solo apagada.** Encendida, su botón derecho ofrece **Apagar AGENTS** en vez de ocultarla; apagada, su aviso ofrece **Ocultar**. Oculta, AGENTS sigue apagada: no escribe ningún archivo de tus agentes, y una propuesta de tu agente solo se guarda hasta que vuelves a mostrarla y la enciendes. Lo cuenta [Ocultarla de la barra](Carpeta-AGENTS#ocultarla-de-la-barra).
 
