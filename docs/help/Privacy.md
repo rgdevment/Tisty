@@ -89,7 +89,8 @@ In the **AGENTS** folder you keep your assistants' rules, skills and memory as d
 
 **What it reads, and when**
 
-- **Before you say yes**, Tisty only looks at which files are in your assistants' folders, with their names and sizes, to show you the list. It opens none of them.
+- **AGENTS' dim row and its notice**, in the sidebar, only check whether each assistant's folder exists, such as `~/.claude` or `~/.codex`, to tell you which ones it found. They look at nothing inside.
+- **When you press Turn on, before you say yes**, Tisty only looks at which files are in your assistants' folders, with their names and sizes, to show you the list. It opens none of them, and those starting with a dot it does not even list.
 - **With your yes**, it opens only the files you ticked in that list and brings them in as documents. The yes is this computer's: each of your computers asks for its own.
 - **After that**, it opens only the files that belong to a document in AGENTS, to write them and to see whether they changed outside. A **Global** document is written to every assistant Tisty finds on this computer, even one whose files you did not tick. A document that comes from another of your computers is not written until you press **Apply here** on this one, and only words you wrote or approved reach a file. A change made outside is never written over: it stays marked until you decide. In `GEMINI.md` it only adds one line, `@tisty-rules.md`; the rest of that file is Gemini's.
 - **The memory an assistant writes itself** is brought in and shown, but Tisty never writes over it.
@@ -109,7 +110,7 @@ In the **AGENTS** folder you keep your assistants' rules, skills and memory as d
 
 **Turning it off without losing anything**
 
-After your yes, sync stays on, and you can pause it for one assistant or for the whole folder. Paused, Tisty neither opens nor writes those files on its own: they stay as the last write left them, and your documents stay in Tisty. A pause belongs to this computer. If you take a rule out of AGENTS, Tisty asks whether to take its file away too: it deletes it only if you say yes, and keeps a backup on this computer first. If you take every document out, it first asks the same about each file, and then the folder leaves Tisty; what you chose to leave stays as it was. Tisty never empties an assistant's file, and never deletes one without asking you.
+After your yes, sync stays on, and you can pause it for one assistant or turn the whole folder off, with **Turn AGENTS off** on its right-click. Off or hidden from the sidebar, AGENTS writes none of your assistants' files. Paused, Tisty neither opens nor writes those files on its own: they stay as the last write left them, and your documents stay in Tisty. A pause belongs to this computer. If you take a rule out of AGENTS, Tisty asks whether to take its file away too: it deletes it only if you say yes, and keeps a backup on this computer first. If you take every document out, it first asks the same about each file, and then the folder leaves Tisty and AGENTS goes back to the sidebar, off; what you chose to leave stays as it was. Tisty never empties an assistant's file, and never deletes one without asking you.
 
 ## No AI
 

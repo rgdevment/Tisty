@@ -15,6 +15,7 @@ import Detail from "./Detail";
 import Docs from "./Docs";
 import Folder from "./Folder";
 import Help from "./Help";
+import HiddenFolders from "./HiddenFolders";
 import Keeping from "./Keeping";
 import Lists from "./Lists";
 import Matrix from "./Matrix";
@@ -73,7 +74,10 @@ export default function Stage() {
   } = desk;
   const tagNames = useMemo(() => data.tags.map((one) => one.tag), [data.tags]);
   const groups = useMemo(
-    () => [...papers.folders, ...(data.every ?? data.lists)],
+    () => [
+      ...papers.folders.map((one) => ({ ...one, kind: "folder" as const })),
+      ...(data.every ?? data.lists).map((one) => ({ ...one, kind: "list" as const })),
+    ],
     [papers.folders, data.every, data.lists],
   );
   const refreshed = () => {
@@ -226,6 +230,7 @@ export default function Stage() {
       onGreet={() => setGreet(true)}
       onDoc={openDoc}
       onChanged={refreshed}
+      hidden={<HiddenFolders papers={papers} />}
     />
   ) : sheet && task ? (
     <Detail

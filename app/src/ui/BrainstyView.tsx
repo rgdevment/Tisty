@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { brainNetwork, type Group, type Network, type Neuron, OPENED } from "../brainsty";
 import { taskOf } from "../core";
 import { type Desk, seeing } from "../desk";
@@ -6,16 +6,24 @@ import { numbered } from "../format";
 import { fill, t } from "../locales";
 import { saidPlainly } from "../refusal";
 import type { Escaping } from "./Brainsty";
+import { withGroupsAfter } from "./brainsty/grouping";
 import Legend from "./brainsty/Legend";
 import { brainstyLoaded, type LoadedBrainsty } from "./brainstyLoaded";
 import Glyph from "./Glyph";
 
 type Read = { network: Network | null } | { failed: string };
 
-type Hands = Pick<Desk, "setChosen" | "choose" | "opening" | "setError">;
+type Hands = Pick<Desk, "setChosen" | "choose" | "opening" | "setError" | "setHere">;
 
-export const openedHere = (one: Neuron, { setChosen, choose, opening, setError }: Hands) => {
+export const openedHere = (
+  one: Neuron,
+  { setChosen, choose, opening, setError, setHere }: Hands,
+) => {
   if (one.kind === "doc" || one.kind === "page") setChosen({ named: "docs", doc: one.id });
+  else if (one.kind === "folder" && one.group) {
+    setHere(one.group);
+    setChosen({ named: "docs" });
+  } else if (one.kind === "list" && one.group) setChosen({ named: "lists", list: one.group });
   else if (one.kind === "tag") choose({ named: "tags", tags: [one.title] });
   else if (one.kind === "task")
     taskOf(one.id).then(
@@ -67,6 +75,10 @@ export default function BrainstyView({ near, groups, onOpen, onLeave }: Props) {
   }, []);
 
   const network = read && "network" in read ? read.network : null;
+  const grown = useMemo(
+    () => (network ? withGroupsAfter(network, groups) : null),
+    [network, groups],
+  );
   const drawn = network !== null && network.nodes.length > 0 && Drawn !== null;
   useEffect(() => {
     if (!drawn) return;
@@ -104,7 +116,14 @@ export default function BrainstyView({ near, groups, onOpen, onLeave }: Props) {
         {network && <Counted network={network} />}
       </header>
       <div className="relative min-h-0 flex-1">
-        <Inside read={read} Drawn={Drawn} groups={groups} onOpen={onOpen} escaping={escaping} />
+        <Inside
+          read={read}
+          grown={grown}
+          Drawn={Drawn}
+          groups={groups}
+          onOpen={onOpen}
+          escaping={escaping}
+        />
       </div>
     </section>
   );
@@ -118,12 +137,14 @@ const meantFor = (view: HTMLElement | null, target: EventTarget | null): boolean
 
 function Inside({
   read,
+  grown,
   Drawn,
   groups,
   onOpen,
   escaping,
 }: {
   readonly read: Read | null;
+  readonly grown: Network | null;
   readonly Drawn: LoadedBrainsty | null;
   readonly groups: readonly Group[];
   readonly onOpen: (neuron: Neuron) => void;
@@ -131,14 +152,13 @@ function Inside({
 }) {
   if (read === null) return <Said text={t("brainstyReading")} />;
   if ("failed" in read) return <Said text={read.failed} urgent />;
-  const { network } = read;
-  if (network === null) return <Said text={t("brainstyNotYet")} />;
-  if (network.nodes.length === 0) return <Said text={t("brainstyEmpty")} />;
+  if (grown === null) return <Said text={t("brainstyNotYet")} />;
+  if (grown.nodes.length === 0) return <Said text={t("brainstyEmpty")} />;
   if (!Drawn) return <Said text={t("brainstyReading")} />;
   return (
     <>
-      <Drawn network={network} groups={groups} onOpen={onOpen} escaping={escaping} />
-      <Legend network={network} groups={groups} />
+      <Drawn network={grown} groups={groups} onOpen={onOpen} escaping={escaping} />
+      <Legend network={grown} groups={groups} />
     </>
   );
 }

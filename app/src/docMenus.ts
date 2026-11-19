@@ -1,5 +1,13 @@
 import { open as pick } from "@tauri-apps/plugin-dialog";
-import { bringMoreAgents, inAgents } from "./agentsSync";
+import {
+  AGENTS_CHANGED,
+  agentsLit,
+  agentsRoot,
+  agentsState,
+  agentsTurn,
+  bringMoreAgents,
+  inAgents,
+} from "./agentsSync";
 import { asLink, asPlain } from "./copying";
 import {
   DEEPEST,
@@ -16,7 +24,7 @@ import {
   type Papers,
 } from "./core";
 import { deep, destinations } from "./folders";
-import { BRAINSTORM, hideChoice } from "./hiding";
+import { agentsKeys, BRAINSTORM, hideChoice } from "./hiding";
 import { waysOut } from "./leaving";
 import { fill, t } from "./locales";
 import { tongueChoices } from "./tongueMenus";
@@ -80,92 +88,125 @@ const agentsChoices = (h: Hands, folder: string | undefined, off = false): Choic
     ? [{ key: "agentsMore", icon: "↧", label: t("agentsMoreTitle"), off, onPick: bringMoreAgents }]
     : [];
 
-export const folderChoices = (folder: Folded, h: Hands): Choice[] => [
-  {
-    key: "newDoc",
-    icon: "+",
-    label: t("newDoc"),
-    off: folder.away,
-    onPick: () => h.newDoc(folder.id),
-  },
-  {
-    key: "newDiagram",
-    icon: "+",
-    label: t("newDiagram"),
-    off: folder.away,
-    onPick: () => h.newDiagram(folder.id),
-  },
-  {
-    key: "newFolder",
-    icon: "+",
-    label: t("newFolder"),
-    off: folder.away || deep(h.papers.folders, folder.id) >= DEEPEST,
-    onPick: () => h.makeFolderIn(folder.id),
-  },
-  {
-    key: "rename",
-    icon: "✎",
-    label: t("rename"),
-    off: folder.away,
-    apart: true,
-    onPick: () => h.rename(folder),
-  },
-  {
-    key: "move",
-    icon: "⇢",
-    label: t("moveTo"),
-    off: folder.away,
-    into: {
-      label: t("moveHere"),
-      choices: destinations(
-        h.papers.folders,
-        folder.id,
-        (parent) => folderFile(folder.id, parent).then(h.changed).catch(h.fail),
-        folder,
-      ),
+/// The same switch as «Sync the AGENTS folder»: the documents stay, and no agent file is touched.
+export const turnAgentsOff = (h: Hands) =>
+  agentsTurn(null, false)
+    .then(() => {
+      h.changed();
+      window.dispatchEvent(new Event(AGENTS_CHANGED));
+    })
+    .catch(h.fail);
+
+const switchChoices = (h: Hands, lit: boolean): Choice[] =>
+  lit
+    ? [{ key: "agentsOff", icon: "⏻", label: t("agentsSwitchOff"), onPick: () => turnAgentsOff(h) }]
+    : [];
+
+/// Whether AGENTS is on lives with this computer, so its own menu asks before it opens.
+export const litFor = (
+  folder: Folded,
+  folders: readonly Folded[],
+  then: (lit: boolean) => void,
+) => {
+  if (agentsRoot(folders)?.id !== folder.id) return then(false);
+  // Unknown counts as on: turning off twice is harmless, hiding an AGENTS that writes is not.
+  agentsState()
+    .then((state) => then(agentsLit(state)))
+    .catch(() => then(true));
+};
+
+/// `lit` only matters on the AGENTS folder itself, the one row that can be switched off.
+export const folderChoices = (folder: Folded, h: Hands, lit = false): Choice[] => {
+  const isRoot = agentsRoot(h.papers.folders)?.id === folder.id;
+  return [
+    {
+      key: "newDoc",
+      icon: "+",
+      label: t("newDoc"),
+      off: folder.away,
+      onPick: () => h.newDoc(folder.id),
     },
-  },
-  {
-    key: "import",
-    icon: "↧",
-    label: t("importDoc"),
-    off: folder.away,
-    onPick: () => h.bringIn(folder.id),
-  },
-  ...agentsChoices(h, folder.id, folder.away),
-  {
-    key: "unpack",
-    icon: "↧",
-    label: t("unpackIt"),
-    off: folder.away,
-    onPick: () => h.parcels.takeParcel(),
-  },
-  {
-    key: "packAll",
-    icon: "⇪",
-    label: t("packAll"),
-    onPick: () => h.parcels.packUp([], "tisty"),
-  },
-  hideChoice(folder.id, folder.away),
-  {
-    // Only the folder that was shelved answers for itself; one below it comes back with it.
-    key: "away",
-    icon: folder.archived ? "▢" : "▣",
-    label: folder.archived ? t("bringBack") : t("putAway"),
-    off: folder.away && !folder.archived,
-    apart: true,
-    onPick: () => folderAway(folder.id, !folder.archived).then(h.changed).catch(h.fail),
-  },
-  {
-    key: "drop",
-    icon: "✕",
-    label: t("deleteIt"),
-    off: folder.away,
-    danger: true,
-    apart: true,
-    onPick: () => h.dropFolder(folder),
-  },
-];
+    {
+      key: "newDiagram",
+      icon: "+",
+      label: t("newDiagram"),
+      off: folder.away,
+      onPick: () => h.newDiagram(folder.id),
+    },
+    {
+      key: "newFolder",
+      icon: "+",
+      label: t("newFolder"),
+      off: folder.away || deep(h.papers.folders, folder.id) >= DEEPEST,
+      onPick: () => h.makeFolderIn(folder.id),
+    },
+    {
+      key: "rename",
+      icon: "✎",
+      label: t("rename"),
+      off: folder.away,
+      apart: true,
+      onPick: () => h.rename(folder),
+    },
+    {
+      key: "move",
+      icon: "⇢",
+      label: t("moveTo"),
+      off: folder.away,
+      into: {
+        label: t("moveHere"),
+        choices: destinations(
+          h.papers.folders,
+          folder.id,
+          (parent) => folderFile(folder.id, parent).then(h.changed).catch(h.fail),
+          folder,
+        ),
+      },
+    },
+    {
+      key: "import",
+      icon: "↧",
+      label: t("importDoc"),
+      off: folder.away,
+      onPick: () => h.bringIn(folder.id),
+    },
+    ...agentsChoices(h, folder.id, folder.away),
+    {
+      key: "unpack",
+      icon: "↧",
+      label: t("unpackIt"),
+      off: folder.away,
+      onPick: () => h.parcels.takeParcel(),
+    },
+    {
+      key: "packAll",
+      icon: "⇪",
+      label: t("packAll"),
+      onPick: () => h.parcels.packUp([], "tisty"),
+    },
+    ...(isRoot ? switchChoices(h, lit) : []),
+    // AGENTS hides only once off, so a hidden AGENTS never writes a file nobody sees.
+    ...(isRoot && lit ? [] : [hideChoice(isRoot ? agentsKeys(folder.id) : folder.id, folder.away)]),
+    {
+      // Only the folder that was shelved answers for itself; one below it comes back with it.
+      key: "away",
+      icon: folder.archived ? "▢" : "▣",
+      label: folder.archived ? t("bringBack") : t("putAway"),
+      off: folder.away && !folder.archived,
+      apart: true,
+      onPick: () => folderAway(folder.id, !folder.archived).then(h.changed).catch(h.fail),
+    },
+    {
+      key: "drop",
+      icon: "✕",
+      label: t("deleteIt"),
+      off: folder.away,
+      danger: true,
+      apart: true,
+      onPick: () => h.dropFolder(folder),
+    },
+  ];
+};
 
 const everyChoice = (doc: Filed, h: Hands): Choice[] => [
   {

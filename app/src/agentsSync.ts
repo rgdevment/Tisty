@@ -91,6 +91,31 @@ export interface AgentRow {
   skill: string | null;
 }
 
+export interface AgentsState {
+  folder: string | null;
+  consented: boolean;
+  allOn: boolean;
+  assistants: { id: string; name: string }[];
+}
+
+export const agentsState = (): Promise<AgentsState> => invoke("agents_state");
+
+/// Off while there is no folder, this computer never said yes, or its sync is switched off.
+export const agentsLit = (state: AgentsState): boolean =>
+  !!state.folder && state.consented && state.allOn;
+
+/// Only a folder this computer already allowed switches back on; the rest goes through the first time.
+export const onlySwitchedOff = (state: AgentsState): boolean =>
+  !!state.folder && state.consented && !state.allOn;
+
+export const AGENTS_CHANGED = "tisty:agents-changed";
+export const AGENTS_ASLEEP = "tisty:agents-asleep";
+export const AGENTS_LIGHT = "tisty:agents-light";
+/// The short notice an AGENTS that is off answers with: what was found, and turn on, not now or hide.
+export const askToLight = () => window.dispatchEvent(new Event(AGENTS_ASLEEP));
+/// Turning on straight away, as the notice's «Turn on» and the settings card do.
+export const lightAgents = () => window.dispatchEvent(new Event(AGENTS_LIGHT));
+
 export const agentsLook = (): Promise<AgentsLook> => invoke("agents_look");
 export const agentsRows = (only?: string[]): Promise<AgentRow[]> =>
   invoke("agents_rows", { only: only ?? null });

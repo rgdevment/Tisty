@@ -1,7 +1,16 @@
 import type { Network, NeuronKind } from "../../brainsty";
+import { isGroup } from "./grouping";
 import { type Standing, standingOf } from "./looks";
 
-export const KINDS: readonly NeuronKind[] = ["doc", "page", "task", "tag", "file"];
+export const KINDS: readonly NeuronKind[] = [
+  "doc",
+  "page",
+  "task",
+  "tag",
+  "file",
+  "folder",
+  "list",
+];
 export const STANDINGS: readonly Standing[] = ["live", "done", "archived"];
 export const PERIODS = [0, 7, 30, 365] as const;
 
@@ -27,7 +36,8 @@ const TAG_TIE = 3;
 const DAY = 86_400_000;
 const MOST_FOUND = 8;
 
-const kept = (kind: NeuronKind): boolean => kind !== "tag" && kind !== "file";
+const kept = (kind: NeuronKind): boolean =>
+  kind !== "tag" && kind !== "file" && kind !== "folder" && kind !== "list";
 
 export const sifting = (sift: Sift): boolean =>
   sift.kinds.size < KINDS.length ||
@@ -51,13 +61,22 @@ export function hiddenBy(network: Network, sift: Sift, today: Date): boolean[] {
   const since = sift.days
     ? new Date(today.getTime() - sift.days * DAY).toISOString().slice(0, 10)
     : null;
-  return network.nodes.map((one, n) => {
+  const hidden = network.nodes.map((one, n) => {
     if (!sift.kinds.has(one.kind)) return true;
     if (tagged && !tagged.has(n)) return true;
     if (!kept(one.kind)) return false;
     if (!sift.standings.has(standingOf(one))) return true;
     return since !== null && (one.when === undefined || one.when < since);
   });
+  const seen = new Set(
+    network.nodes.flatMap((one, n) =>
+      one.group && !isGroup(one.kind) && !hidden[n] ? [one.group] : [],
+    ),
+  );
+  return hidden.map(
+    (gone, n) =>
+      gone || (isGroup(network.nodes[n].kind) && !seen.has(network.nodes[n].group ?? "")),
+  );
 }
 
 export const folded = (text: string): string =>
