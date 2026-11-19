@@ -49,6 +49,7 @@ export interface AgentDoc {
   readonly folderOff: boolean;
   readonly twin: boolean;
   readonly here: Here;
+  readonly print: string;
   readonly places: readonly Place[];
 }
 
@@ -106,8 +107,8 @@ export const agentRestore = (file: string, at: string, backup: number): Promise<
   agentDo(file, at, { do: "restore", backup }).then(() => undefined);
 export const agentTake = (file: string, here: boolean): Promise<AgentDoc | null> =>
   invoke("agent_doc", { file, asked: { do: "take", here } });
-export const agentAgree = (file: string): Promise<AgentDoc | null> =>
-  invoke("agent_doc", { file, asked: { do: "agree" } });
+export const agentAgree = (file: string, print: string): Promise<AgentDoc | null> =>
+  invoke("agent_doc", { file, asked: { do: "agree", print } });
 
 const MARKDOWN = new Set(["md", "markdown", "mdc"]);
 

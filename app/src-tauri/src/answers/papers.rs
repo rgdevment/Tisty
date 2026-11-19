@@ -804,7 +804,7 @@ fn kept_on_the_page(
     session.mind_body(id, &tisty_core::docs::settled(&both));
     session.corpus.forget(id);
     let hand = signing(&session.state);
-    session.retell_written(id, &both, hand);
+    session.retell(id, &both, hand);
     Ok(())
 }
 
@@ -1177,7 +1177,7 @@ pub fn doc_write(
     session.corpus.forget(&id);
     let book = book_of(&session, &id, &title);
     let hand = signing(&session.state);
-    session.retell_written(&id, &body, hand);
+    session.retell_over(&id, &body, hand, since.as_deref());
     named_anew(&mut session, book, &id, &title);
     Ok(Kept { id, title, print })
 }
@@ -1197,7 +1197,7 @@ pub(crate) fn named_anew(session: &mut Session, book: Option<String>, page: &str
     {
         session.corpus.forget(&up);
         let hand = signing(&session.state);
-        session.retell_written(&up, &now, hand);
+        session.retell(&up, &now, hand);
     }
 }
 
@@ -1252,7 +1252,7 @@ pub fn doc_merge(
     let title = tisty_core::docs::titled(&body);
     let book = book_of(&session, &id, &title);
     let hand = signing(&session.state);
-    session.retell_written(&id, &body, hand);
+    session.retell_over(&id, &body, hand, Some(&seen));
     named_anew(&mut session, book, &id, &title);
     let print = tisty_core::docs::print_of_text(&body);
     Ok(Some(Woven { body, print, title }))

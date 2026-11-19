@@ -8,6 +8,10 @@ const words = {
     "Sync is paused for this assistant",
     "La sincronización de este asistente está en pausa",
   ],
+  agentDocChanged: [
+    "This document changed since its card was drawn. Read it again before approving it.",
+    "Este documento cambió desde que se mostró su ficha. Léelo de nuevo antes de aprobarlo.",
+  ],
   agentHeld: [
     "A document in this file changed without your approval, so the file is left as it is",
     "Un documento de este archivo cambió sin tu aprobación, así que el archivo queda como está",

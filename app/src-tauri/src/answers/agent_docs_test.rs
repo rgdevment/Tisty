@@ -189,7 +189,7 @@ fn a_backup_is_seen_then_put_back_and_the_file_reads_as_changed_outside() {
         &room.ledger,
         &codex.target,
         0,
-        Asked::Held { backup: Some(1) },
+        &Asked::Held { backup: Some(1) },
     )
     .unwrap();
     assert_eq!(seen.as_deref(), Some("Written by hand.\n"));
@@ -198,7 +198,7 @@ fn a_backup_is_seen_then_put_back_and_the_file_reads_as_changed_outside() {
         &room.ledger,
         &codex.target,
         0,
-        Asked::Held { backup: None },
+        &Asked::Held { backup: None },
     )
     .unwrap();
     assert!(now.unwrap().contains("Use Rust."));
@@ -208,7 +208,7 @@ fn a_backup_is_seen_then_put_back_and_the_file_reads_as_changed_outside() {
             &room.ledger,
             &codex.target,
             0,
-            Asked::Restore { backup: 1 }
+            &Asked::Restore { backup: 1 }
         )
         .unwrap(),
         None
@@ -224,7 +224,7 @@ fn a_backup_is_seen_then_put_back_and_the_file_reads_as_changed_outside() {
             &room.ledger,
             &codex.target,
             0,
-            Asked::Restore { backup: 9 }
+            &Asked::Restore { backup: 9 }
         )
         .is_err()
     );
@@ -238,7 +238,7 @@ fn a_file_too_big_to_draw_is_refused_not_read() {
     let big = vec![b'a'; tisty_core::docs::READ_AT_MOST as usize + 1];
     std::fs::write(&codex.target.at, big).unwrap();
     let asked = Asked::Held { backup: None };
-    assert!(done(room.data.path(), &room.ledger, &codex.target, 0, asked).is_err());
+    assert!(done(room.data.path(), &room.ledger, &codex.target, 0, &asked).is_err());
 }
 
 #[test]
@@ -248,8 +248,8 @@ fn a_computer_that_has_not_said_yes_never_shows_the_file() {
     std::fs::create_dir_all(codex.target.at.parent().unwrap()).unwrap();
     std::fs::write(&codex.target.at, "Be brief.\n").unwrap();
     let asked = Asked::Held { backup: None };
-    let shown = done(room.data.path(), &room.ledger, &codex.target, 0, asked);
+    let shown = done(room.data.path(), &room.ledger, &codex.target, 0, &asked);
     assert_eq!(shown.unwrap().as_deref(), Some("Be brief.\n"));
     let stranger = Ledger::fresh("machine-a");
-    assert!(done(room.data.path(), &stranger, &codex.target, 0, asked).is_err());
+    assert!(done(room.data.path(), &stranger, &codex.target, 0, &asked).is_err());
 }

@@ -10,6 +10,7 @@ pub struct Target {
     pub assistant: String,
     pub pieces: Vec<Admitted>,
     pub(super) held: bool,
+    pub(super) unproven: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -187,6 +188,9 @@ fn weighed(ledger: &Ledger, target: &Target, wanted: &[u8], now: Option<Vec<u8>>
         return Standing::Empty;
     }
     let here = printed(wanted);
+    if target.unproven && base != Some(here.as_str()) {
+        return Standing::Held;
+    }
     let there = now.as_deref().map(printed);
     if base.is_some() && now.is_none() {
         return Standing::Outside {
@@ -332,6 +336,13 @@ pub fn round(data: &Path, ledger: &mut Ledger, targets: &[Target]) -> Vec<Standi
                 Err(Refused::Changed) => standing(ledger, target),
                 Err(why) => Standing::Unreadable(why.to_string()),
             },
+            (Standing::UpToDate, _) if target.unproven => {
+                if let Ok(wanted) = wanted(target) {
+                    target.settled_in(ledger, &wanted);
+                    settled = true;
+                }
+                Standing::UpToDate
+            }
             (Standing::Agreed, _) => {
                 if let Ok(wanted) = wanted(target) {
                     target.settled_in(ledger, &wanted);

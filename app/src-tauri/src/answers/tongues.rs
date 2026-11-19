@@ -268,7 +268,7 @@ fn write_lang(session: &mut Session, kept: &Kept, lang: &str) -> Answer<()> {
     .map_err(|e| blamed(channel::WINDOW, "a language could not be written", e))?;
     let body = written.ok_or_else(|| Refusal::of("noSuchDoc"))?;
     let hand = crate::signing(&session.state);
-    session.retell_written(&kept.file, &body, hand);
+    session.retell(&kept.file, &body, hand);
     Ok(())
 }
 

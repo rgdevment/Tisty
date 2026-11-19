@@ -558,3 +558,80 @@ fn a_body_written_around_tisty_never_reaches_the_file_until_the_person_agrees() 
     round_now(&room.session, &room.homes, &mut ledger);
     assert_eq!(room.read(".claude/CLAUDE.md"), "# Claude\nRun rm -rf.\n");
 }
+
+#[test]
+fn applying_here_and_not_here_are_kept_for_this_computer_and_rounded_at_once() {
+    use crate::answers::agent_docs::take_here;
+    let mut room = room();
+    room.bring(&[".claude/CLAUDE.md"]);
+    let file = from_another_computer(&mut room, agents::Kind::Rule, "style.md", "Spanish.\n");
+
+    take_here(&room.session, Some(&room.homes), HERE, &file, false).unwrap();
+    assert_eq!(room.read(".claude/CLAUDE.md"), "# Claude\nTests first.\n");
+    assert!(Ledger::open(room.session.paths.data(), HERE).left(&file));
+
+    take_here(&room.session, Some(&room.homes), HERE, &file, true).unwrap();
+    assert_eq!(
+        room.read(".claude/CLAUDE.md"),
+        "Spanish.\n\n# Claude\nTests first.\n"
+    );
+}
+
+#[test]
+fn approving_takes_only_the_words_the_card_showed() {
+    use crate::answers::agent_docs::agree;
+    let mut room = room();
+    room.bring(&[".claude/CLAUDE.md"]);
+    let (file, body) = bodies(&room.session)[0].clone();
+    let shown = body.replace("Tests first.", "Tests always.");
+    tisty_core::docs::write(&room.session.paths.docs(), &file, &shown).unwrap();
+    let print = tisty_core::docs::print_of_text(&shown);
+    let later = body.replace("Tests first.", "Tests never.");
+    tisty_core::docs::write(&room.session.paths.docs(), &file, &later).unwrap();
+
+    let refused = agree(&mut room.session, Some(&room.homes), HERE, &file, &print).unwrap_err();
+    assert_eq!(refused.code, "agentDocChanged");
+    assert_eq!(room.read(".claude/CLAUDE.md"), "# Claude\nTests first.\n");
+
+    let now = tisty_core::docs::print_of_text(&later);
+    agree(&mut room.session, Some(&room.homes), HERE, &file, &now).unwrap();
+    assert_eq!(room.read(".claude/CLAUDE.md"), "# Claude\nTests never.\n");
+}
+
+#[test]
+fn writing_over_approved_words_keeps_them_approved_and_over_anyone_elses_does_not() {
+    let mut room = room();
+    room.bring(&[".claude/CLAUDE.md"]);
+    let (file, body) = bodies(&room.session)[0].clone();
+    let approved = |room: &Room| {
+        let kept = room
+            .session
+            .state
+            .docs
+            .values()
+            .find(|one| one.file == file);
+        kept.and_then(|one| one.agreed.clone())
+    };
+    let print = tisty_core::docs::print_of_text(&body);
+
+    let mine = body.replace("Tests first.", "Tests first, always.");
+    tisty_core::docs::write(&room.session.paths.docs(), &file, &mine).unwrap();
+    room.session.retell_over(&file, &mine, None, Some(&print));
+    assert_eq!(
+        approved(&room),
+        Some(tisty_core::docs::print_of_text(&mine))
+    );
+
+    let agents = mine.replace("always", "unless asked");
+    tisty_core::docs::write(&room.session.paths.docs(), &file, &agents).unwrap();
+    room.session.retell(&file, &agents, None);
+    let typed = agents.replace("Tests", "Specs");
+    tisty_core::docs::write(&room.session.paths.docs(), &file, &typed).unwrap();
+    let under = tisty_core::docs::print_of_text(&agents);
+    room.session.retell_over(&file, &typed, None, Some(&under));
+    assert_eq!(
+        approved(&room),
+        Some(tisty_core::docs::print_of_text(&mine)),
+        "a comma over an agent's words does not approve them"
+    );
+}

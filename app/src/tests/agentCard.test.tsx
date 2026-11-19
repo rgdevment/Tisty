@@ -60,6 +60,7 @@ const card = (places: Place[], more: Partial<AgentDoc> = {}): AgentDoc => ({
   code: false,
   folderOff: false,
   here: "applied",
+  print: "p1",
   twin: false,
   places,
   ...more,
@@ -330,7 +331,10 @@ describe("an agent document's card", () => {
     await userEvent.click(screen.getByRole("button", { name: "Approve this text" }));
     await waitFor(() => expect(sent("agent_doc")).toHaveLength(1));
     expect(on.onSettle).toHaveBeenCalled();
-    expect(sent("agent_doc")[0].args).toEqual({ file: "claude-rule.md", asked: { do: "agree" } });
+    expect(sent("agent_doc")[0].args).toEqual({
+      file: "claude-rule.md",
+      asked: { do: "agree", print: "p1" },
+    });
   });
 
   it("says why a document is not written here when nothing can be done from the card", () => {

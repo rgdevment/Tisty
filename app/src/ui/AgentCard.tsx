@@ -140,8 +140,8 @@ export default function AgentCard({
   const agree = () =>
     asked(t("agentAgreeSure"), () =>
       Promise.resolve(onSettle())
-        .then(() => agentAgree(file))
-        .then(done),
+        .then(() => agentAgree(file, doc.print))
+        .finally(done),
     );
   const turn = (place: Place) =>
     agentsTurn(place.assistant, place.said.state === "off")

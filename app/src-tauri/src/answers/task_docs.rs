@@ -187,7 +187,7 @@ pub fn task_doc_merge(
             .map_err(|e| blamed(channel::WINDOW, "a task's page could not be written", e))?;
         session.corpus.forget(&file);
         let hand = signing(&session.state);
-        session.retell_written(&file, &whole, hand);
+        session.retell(&file, &whole, hand);
     }
     session.mind_body(&file, &tisty_core::docs::settled(&whole));
     reconciled_into(&mut session, &task, &theirs, &whole)?;
@@ -316,7 +316,7 @@ pub fn task_page_import(
         session.mind_body(&file, &tisty_core::docs::settled(&taken.body));
         session.corpus.forget(&file);
         let hand = signing(&session.state);
-        session.retell_written(&file, &taken.body, hand);
+        session.retell(&file, &taken.body, hand);
     }
     Ok(Some(id.to_string()))
 }

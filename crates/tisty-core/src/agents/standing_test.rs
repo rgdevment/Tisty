@@ -37,6 +37,7 @@ impl Room {
             assistant: "codex".into(),
             pieces: pieces.iter().map(|body| piece(body)).collect(),
             held: false,
+            unproven: false,
         }
     }
 

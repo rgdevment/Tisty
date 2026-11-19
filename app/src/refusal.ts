@@ -31,6 +31,7 @@ const KNOWN = [
   "agentNoConsent",
   "agentOff",
   "agentHeld",
+  "agentDocChanged",
   "agentOwn",
   "agentEmpty",
   "agentLinked",

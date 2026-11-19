@@ -271,7 +271,7 @@ fn a_folder_an_agent_renamed_holds_back_everything_under_it() {
         Op::FolderRename {
             id: claude,
             d: crate::event::Name {
-                name: "Claude".into(),
+                name: "Claude rules".into(),
             },
         },
     );
@@ -343,4 +343,64 @@ fn a_document_an_agent_archived_holds_the_file_and_one_the_person_archived_leave
     assert!(!world.gate().held(&dropped));
     assert_eq!(world.round().1, Standing::Wrote);
     assert_eq!(world.on_disk().as_deref(), Some("Keep.\n"));
+}
+
+#[test]
+fn a_move_that_only_reorders_never_takes_the_placement_from_whoever_made_it() {
+    let mut world = world();
+    let (id, file) = world.made_in(AGENT, &rule("Agent placed.\n"), false, None);
+    let claude = world.claude;
+    world.apply(
+        AGENT,
+        Op::DocMove {
+            id,
+            d: Filed {
+                folder: Some(Some(claude)),
+                ..Default::default()
+            },
+        },
+    );
+    world.written(HERE, id, &file, &rule("Agent placed.\n"), true);
+    world.apply(
+        HERE,
+        Op::DocMove {
+            id,
+            d: Filed {
+                order: Some("b0".into()),
+                ..Default::default()
+            },
+        },
+    );
+
+    assert_eq!(world.gate().seen(&file), Some(Seen::PlacedByAgent));
+}
+
+#[test]
+fn a_file_written_before_the_ledger_knew_its_documents_waits_until_they_say_the_same() {
+    let mut world = world();
+    world.made(HERE, &rule("Global and mine.\n"), true);
+    let at = world.home.path().join(".claude").join("CLAUDE.md");
+    std::fs::create_dir_all(at.parent().unwrap()).unwrap();
+    std::fs::write(&at, "Mine.\n").unwrap();
+    world.ledger.settle(&at, b"Mine.\n");
+
+    assert_eq!(world.round().1, Standing::Held);
+    assert_eq!(world.on_disk().as_deref(), Some("Mine.\n"));
+}
+
+#[test]
+fn a_file_written_before_the_ledger_knew_its_documents_is_taken_once_they_say_the_same() {
+    let mut world = world();
+    let (_, file) = world.made(HERE, &rule("Mine.\n"), true);
+    let at = world.home.path().join(".claude").join("CLAUDE.md");
+    std::fs::create_dir_all(at.parent().unwrap()).unwrap();
+    std::fs::write(&at, "Mine.\n").unwrap();
+    world.ledger.settle(&at, b"Mine.\n");
+
+    assert_eq!(world.round().1, Standing::UpToDate);
+    assert!(!world.ledger.unproven(&at));
+    assert_eq!(
+        world.ledger.applied_at(&at).collect::<Vec<_>>(),
+        [file.as_str()]
+    );
 }

@@ -57,6 +57,8 @@ pub struct AgentDoc {
     twin: bool,
     /// Whether this computer writes it, and if not, why: the person's choice or approval waits.
     here: &'static str,
+    /// The words the card was drawn from, so an approval names the text the person saw.
+    print: String,
     places: Vec<Place>,
 }
 
@@ -126,6 +128,7 @@ fn ledger(data: &Path) -> Ledger {
 
 struct Opened {
     card: Card,
+    print: String,
     data: PathBuf,
     ledger: Ledger,
     twin: bool,
@@ -174,8 +177,14 @@ fn opened(session: &Session, file: &str) -> Answer<Option<Opened>> {
     let written = |one: &Placed| one.files.iter().any(|named| twins.contains(&named));
     let twin = all.iter().any(written);
     let places = placed_for(file, all);
+    let print = bodies
+        .iter()
+        .find(|(one, _)| one == file)
+        .map(|(_, body)| tisty_core::docs::print_of_text(body))
+        .unwrap_or_default();
     Ok(Some(Opened {
         card,
+        print,
         data,
         ledger,
         twin: twin && places.is_empty() && here == Seen::Admitted,
@@ -211,42 +220,67 @@ pub fn agent_doc(
 ) -> Answer<Told> {
     match (at, asked) {
         (_, Some(Asked::Take { here })) => taken_here(&session, &file, here).map(Told::Card),
-        (_, Some(Asked::Agree)) => agreed(&session, &file).map(Told::Card),
+        (_, Some(Asked::Agree { print })) => agreed(&session, &file, &print).map(Told::Card),
         (Some(at), Some(asked)) => done_at(&session, &file, &at, asked).map(Told::Text),
         _ => card(&session, &file).map(Told::Card),
     }
 }
 
-fn rounded_here(session: &Session, ledger: &mut Ledger) {
-    if let Some(homes) = Homes::here() {
-        super::agents_sync::round_now(session, &homes, ledger);
-    }
-}
-
 fn taken_here(session: &Mutex<Session>, file: &str, here: bool) -> Answer<Option<AgentDoc>> {
-    {
-        let session = held(session);
-        let data = session.paths.data();
-        let mut ledger = ledger(data);
-        ledger.take(file, here);
-        ledger.keep(data).map_err(refused)?;
-        rounded_here(&session, &mut ledger);
-    }
+    let machine = tisty_core::machine::here().unwrap_or_default();
+    take_here(&held(session), Homes::here().as_ref(), &machine, file, here)?;
     card(session, file)
 }
 
-// The words the document holds now become the person's own, so they may reach the agents' files.
-fn agreed(session: &Mutex<Session>, file: &str) -> Answer<Option<AgentDoc>> {
-    {
-        let mut session = held(session);
-        let body = tisty_core::docs::read(&session.paths.docs(), file)
-            .map_err(|e| Refusal::about("cannotWrite", e.to_string()))?;
-        let hand = crate::signing(&session.state);
-        session.retell_written(file, &body, hand);
-        let mut ledger = ledger(session.paths.data());
-        rounded_here(&session, &mut ledger);
-    }
+fn agreed(session: &Mutex<Session>, file: &str, print: &str) -> Answer<Option<AgentDoc>> {
+    let machine = tisty_core::machine::here().unwrap_or_default();
+    agree(
+        &mut held(session),
+        Homes::here().as_ref(),
+        &machine,
+        file,
+        print,
+    )?;
     card(session, file)
+}
+
+pub(crate) fn take_here(
+    session: &Session,
+    homes: Option<&Homes>,
+    machine: &str,
+    file: &str,
+    here: bool,
+) -> Answer<()> {
+    let data = session.paths.data();
+    let mut ledger = Ledger::open(data, machine);
+    ledger.take(file, here);
+    ledger.keep(data).map_err(refused)?;
+    if let Some(homes) = homes {
+        super::agents_sync::round_now(session, homes, &mut ledger);
+    }
+    Ok(())
+}
+
+// Only the words the person was shown become theirs, so they may reach the agents' files.
+pub(crate) fn agree(
+    session: &mut Session,
+    homes: Option<&Homes>,
+    machine: &str,
+    file: &str,
+    print: &str,
+) -> Answer<()> {
+    let body = tisty_core::docs::read(&session.paths.docs(), file)
+        .map_err(|e| Refusal::about("cannotWrite", e.to_string()))?;
+    if tisty_core::docs::print_of_text(&body) != print {
+        return Err(Refusal::of("agentDocChanged"));
+    }
+    let hand = crate::signing(&session.state);
+    session.retell_written(file, &body, hand);
+    if let Some(homes) = homes {
+        let mut ledger = Ledger::open(session.paths.data(), machine);
+        super::agents_sync::round_now(session, homes, &mut ledger);
+    }
+    Ok(())
 }
 
 fn card(session: &Mutex<Session>, file: &str) -> Answer<Option<AgentDoc>> {
@@ -262,6 +296,7 @@ fn card(session: &Mutex<Session>, file: &str) -> Answer<Option<AgentDoc>> {
         folder_off: ledger.consented() && !ledger.syncs(""),
         twin: opened.twin,
         here: here_word(opened.here),
+        print: opened.print,
         places: opened
             .places
             .iter()
@@ -272,7 +307,7 @@ fn card(session: &Mutex<Session>, file: &str) -> Answer<Option<AgentDoc>> {
     }))
 }
 
-#[derive(serde::Deserialize, Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(serde::Deserialize, Debug, Clone, PartialEq, Eq)]
 #[serde(rename_all = "camelCase", tag = "do")]
 pub enum Asked {
     /// The document as the file now says it, written in through the core so its history keeps what it said.
@@ -288,7 +323,9 @@ pub enum Asked {
     Take {
         here: bool,
     },
-    Agree,
+    Agree {
+        print: String,
+    },
 }
 
 pub(crate) fn done(
@@ -296,9 +333,9 @@ pub(crate) fn done(
     ledger: &Ledger,
     target: &Target,
     piece: usize,
-    asked: Asked,
+    asked: &Asked,
 ) -> Answer<Option<String>> {
-    match asked {
+    match *asked {
         Asked::Held { backup: None } if !ledger.consented() => Err(Refused::NoConsent),
         Asked::Bring => agents::bring(ledger, target, piece).map(Some),
         Asked::Held { backup: Some(n) } => {
@@ -306,7 +343,7 @@ pub(crate) fn done(
         }
         Asked::Held { backup: None } => now(&target.at).map(|bytes| Some(text(&bytes))),
         Asked::Restore { backup } => agents::restore(data, ledger, target, backup).map(|()| None),
-        Asked::Take { .. } | Asked::Agree => Ok(None),
+        Asked::Take { .. } | Asked::Agree { .. } => Ok(None),
     }
     .map_err(refused)
 }
@@ -331,7 +368,7 @@ fn done_at(session: &Mutex<Session>, file: &str, at: &str, asked: Asked) -> Answ
     // What writes waits for any sync round, which writes the same files under the lock.
     let mut writing = matches!(asked, Asked::Restore { .. } | Asked::Bring).then(|| held(session));
     match (
-        done(&data, &ledger(&data), &target, piece, asked)?,
+        done(&data, &ledger(&data), &target, piece, &asked)?,
         writing.as_deref_mut(),
     ) {
         (Some(body), Some(session)) if asked == Asked::Bring => kept_in(

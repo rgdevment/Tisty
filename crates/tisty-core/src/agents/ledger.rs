@@ -134,6 +134,12 @@ impl Ledger {
             .map(String::as_str)
     }
 
+    // A file written by a build that kept no record of its documents.
+    pub fn unproven(&self, at: &Path) -> bool {
+        let key = keyed(at);
+        self.wrote.contains_key(&key) && !self.applied.contains_key(&key)
+    }
+
     pub fn applied(&self) -> BTreeSet<&str> {
         self.applied
             .values()

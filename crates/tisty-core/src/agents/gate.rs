@@ -55,6 +55,7 @@ pub struct Gate {
     admitted: Vec<Admitted>,
     seen: BTreeMap<String, Seen>,
     held: BTreeSet<String>,
+    carded: BTreeSet<String>,
 }
 
 impl Gate {
@@ -74,9 +75,17 @@ impl Gate {
         self.held.contains(file)
     }
 
+    /// Agent documents whose words wait for the person's approval.
+    pub fn unagreed(&self) -> usize {
+        self.all_seen()
+            .filter(|(file, seen)| *seen == Seen::NotAgreed && self.carded.contains(*file))
+            .count()
+    }
+
     pub fn target(&self, ledger: &Ledger, root: PathBuf, at: PathBuf, assistant: &str) -> Target {
         let held = ledger.applied_at(&at).any(|file| self.held.contains(file));
         Target {
+            unproven: ledger.unproven(&at),
             root,
             at,
             assistant: assistant.to_string(),
@@ -104,7 +113,10 @@ pub fn gate(asked: &Asked) -> Gate {
         if kept.task_of.is_some() || !kept.folder.is_some_and(|at| tree.contains(&at)) {
             continue;
         }
-        let (seen, admitted) = weighed(asked, kept);
+        let (seen, admitted, carded) = weighed(asked, kept);
+        if carded {
+            gate.carded.insert(kept.file.clone());
+        }
         gate.seen.insert(kept.file.clone(), seen);
         gate.admitted.extend(admitted);
     }
@@ -134,20 +146,32 @@ fn tree(state: &State, root: FolderId) -> BTreeSet<FolderId> {
     }
 }
 
-fn weighed(asked: &Asked, kept: &Kept) -> (Seen, Option<Admitted>) {
+fn weighed(asked: &Asked, kept: &Kept) -> (Seen, Option<Admitted>, bool) {
+    if asked.state.held_away(kept) {
+        return (Seen::Away, None, false);
+    }
+    let Ok(body) = crate::docs::read(asked.docs, &kept.file) else {
+        return (Seen::Unread, None, false);
+    };
+    let card = Card::of(&body);
+    let carded = card.is_some();
+    let (seen, admitted) = admitted(asked, kept, body, card);
+    (seen, admitted, carded)
+}
+
+fn admitted(
+    asked: &Asked,
+    kept: &Kept,
+    body: String,
+    card: Option<Card>,
+) -> (Seen, Option<Admitted>) {
     let Asked {
         state, ledger, me, ..
     } = asked;
-    if state.held_away(kept) {
-        return (Seen::Away, None);
-    }
-    let Ok(body) = crate::docs::read(asked.docs, &kept.file) else {
-        return (Seen::Unread, None);
-    };
     if kept.agreed.as_deref() != Some(crate::docs::print_of_text(&body).as_str()) {
         return (Seen::NotAgreed, None);
     }
-    let Some(card) = Card::of(&body) else {
+    let Some(card) = card else {
         return (Seen::Plain, None);
     };
     if !placed_by_person(state, kept) {

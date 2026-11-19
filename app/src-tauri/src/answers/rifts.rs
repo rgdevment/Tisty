@@ -115,6 +115,6 @@ pub fn weave_paper(
     }
     session.mind(&id);
     let hand = crate::signing(&session.state);
-    session.retell_written(&id, &whole, hand);
+    session.retell(&id, &whole, hand);
     Ok(())
 }

@@ -445,6 +445,26 @@ impl Session {
         )
     }
 
+    /// Writing over words the person approved keeps them approved; writing over anyone else's approves nothing.
+    pub fn retell_over(
+        &mut self,
+        file: &str,
+        body: &str,
+        hand: Option<String>,
+        over: Option<&str>,
+    ) -> bool {
+        let approved = self
+            .state
+            .docs
+            .values()
+            .find(|one| one.file == file)
+            .and_then(|one| one.agreed.as_deref());
+        match over.is_some() && approved == over {
+            true => self.retell_written(file, body, hand),
+            false => self.retell(file, body, hand),
+        }
+    }
+
     fn told(&mut self, file: &str, body: &str, said: tisty_core::event::Said) -> bool {
         let mut told = self.state.settling(file, body);
         if let Some(kept) = self.state.docs.values().find(|one| one.file == file)

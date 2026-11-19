@@ -115,7 +115,7 @@ pub fn piece_save(
         };
         session.corpus.forget(&file);
         let hand = signing(&session.state);
-        session.retell_written(&file, &body, hand);
+        session.retell(&file, &body, hand);
         viewing::reshow(
             &views,
             window.label(),

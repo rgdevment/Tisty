@@ -204,7 +204,7 @@ pub fn looked(seen: &Gathered, homes: &Homes, found: &[Found]) -> Look {
         docs,
         changes,
         waiting: counted(&seen.gate, Seen::WaitingHere),
-        unagreed: counted(&seen.gate, Seen::NotAgreed),
+        unagreed: seen.gate.unagreed(),
         asks: docs == 0 || !ledger.consented() || !both.is_empty(),
         consented: ledger.consented(),
         all_on: ledger.syncs(""),

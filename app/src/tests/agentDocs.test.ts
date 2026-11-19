@@ -21,6 +21,7 @@ const doc = (states: AgentDoc["places"][number]["said"][]): AgentDoc => ({
   folderOff: false,
   twin: false,
   here: "applied",
+  print: "p1",
   places: states.map((said, n) => ({
     assistant: `a${n}`,
     named: `A${n}`,

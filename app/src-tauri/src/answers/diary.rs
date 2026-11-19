@@ -87,7 +87,7 @@ pub fn opening(session: &mut Session, today: Date) -> Answer<Today> {
     })?;
     if let Some(whole) = named {
         let hand = signing(&session.state);
-        session.retell_written(&opening.book, &whole, hand);
+        session.retell(&opening.book, &whole, hand);
     }
     Ok(Today {
         book: opening.book,
@@ -168,7 +168,7 @@ fn written_today(
     .unwrap_or_default();
     session.corpus.forget(&opened.page);
     let hand = signing(&session.state);
-    session.retell_written(&opened.page, &whole, hand);
+    session.retell(&opened.page, &whole, hand);
     Ok(opened)
 }
 
@@ -293,7 +293,7 @@ fn day_amended(
         .ok_or_else(|| Refusal::of("diaryDayChanged"))?;
     session.corpus.forget(file);
     let hand = signing(&session.state);
-    session.retell_written(file, &whole, hand);
+    session.retell(file, &whole, hand);
     Ok(Today {
         book,
         page: file.to_string(),

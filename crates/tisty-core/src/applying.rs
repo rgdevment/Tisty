@@ -5,6 +5,12 @@ use crate::{
     state::{here, same_name},
 };
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) enum Placement {
+    Doc(Option<FolderId>, Option<DocId>, bool),
+    Folder(String, Option<FolderId>, Option<String>, bool),
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct Named {
     pub name: String,
@@ -48,17 +54,40 @@ impl State {
         );
     }
 
-    pub(crate) fn placed(&mut self, event: &Event) {
-        let who = Some(event.device.clone());
+    // Only a placement that changed counts: a move that only reorders, or one refused, says nothing of who placed it.
+    pub(crate) fn placement(&self, event: &Event) -> Option<Placement> {
         match &event.op {
             Op::DocAdd { id, .. }
             | Op::DocMove { id, .. }
             | Op::DocArchive { id }
-            | Op::DocUnarchive { id } => {
-                if let Some(doc) = self.docs.get_mut(id) {
-                    doc.placed_by = who;
-                }
-            }
+            | Op::DocUnarchive { id } => self
+                .docs
+                .get(id)
+                .map(|doc| Placement::Doc(doc.folder, doc.page_of, doc.archived)),
+            Op::FolderAdd { id, .. }
+            | Op::FolderRename { id, .. }
+            | Op::FolderLook { id, .. }
+            | Op::FolderMove { id, .. }
+            | Op::FolderArchive { id }
+            | Op::FolderUnarchive { id } => self.folders.get(id).map(|folder| {
+                Placement::Folder(
+                    folder.name.clone(),
+                    folder.parent,
+                    folder.icon.clone(),
+                    folder.archived,
+                )
+            }),
+            _ => None,
+        }
+    }
+
+    pub(crate) fn placed(&mut self, event: &Event, before: Option<Placement>) {
+        let after = self.placement(event);
+        if after.is_none() || after == before {
+            return;
+        }
+        let who = Some(event.device.clone());
+        match &event.op {
             Op::FolderAdd { id, .. }
             | Op::FolderRename { id, .. }
             | Op::FolderLook { id, .. }
@@ -67,6 +96,14 @@ impl State {
             | Op::FolderUnarchive { id } => {
                 if let Some(folder) = self.folders.get_mut(id) {
                     folder.placed_by = who;
+                }
+            }
+            Op::DocAdd { id, .. }
+            | Op::DocMove { id, .. }
+            | Op::DocArchive { id }
+            | Op::DocUnarchive { id } => {
+                if let Some(doc) = self.docs.get_mut(id) {
+                    doc.placed_by = who;
                 }
             }
             _ => {}
