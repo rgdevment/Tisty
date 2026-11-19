@@ -17,7 +17,7 @@ mod nodes;
 mod own;
 mod reading;
 
-pub use alike::{Alike, Passed, alike_kept};
+pub use alike::{Alike, Passed, Weighing};
 pub use card::{Around, Card, DocFacts, Facts, Near, Section, TaskFacts, Tongue, Used};
 pub use decided::Decision;
 pub use network::{

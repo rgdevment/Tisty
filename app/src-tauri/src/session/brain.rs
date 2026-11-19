@@ -55,10 +55,10 @@ fn kept(paths: &Paths, round: Round, moved: &Nudge) {
 
 fn weigh(paths: &Paths) {
     lowered();
+    let mut weighing = brain::Weighing::default();
     loop {
         std::thread::sleep(WEIGHS_EVERY);
-        let done =
-            std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| brain::alike_kept(paths)));
+        let done = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| weighing.kept(paths)));
         if done.is_err() {
             witness::error(
                 channel::BRAIN,

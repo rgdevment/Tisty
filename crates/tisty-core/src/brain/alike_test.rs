@@ -514,21 +514,37 @@ fn a_node_missing_its_words_gets_them_at_the_next_round() {
 }
 
 #[test]
-fn the_pass_runs_on_the_store_on_disk_and_only_when_words_moved() {
+fn the_pass_waits_for_the_words_to_hold_still_and_runs_only_when_they_moved() {
     let world = World::new();
+    let mut weighing = Weighing::default();
     assert_eq!(
-        alike_kept(&world.paths),
+        weighing.kept(&world.paths),
         None,
         "a swept store is left alone"
     );
     let mut store = world.store();
-    doc(&world, &mut store, BUDGET, None, None);
+    let (_, budget) = doc(&world, &mut store, BUDGET, None, None);
     doc(&world, &mut store, SPENDING, None, None);
     fillers(&mut store);
     drop(store);
     super::super::kept_up(&world.paths, super::super::Round::Starting);
-    assert!(matches!(alike_kept(&world.paths), Some(Passed::Ran { .. })));
-    assert_eq!(alike_kept(&world.paths), Some(Passed::Idle));
+    assert_eq!(weighing.kept(&world.paths), Some(Passed::Settling));
+    assert!(matches!(
+        weighing.kept(&world.paths),
+        Some(Passed::Ran { .. })
+    ));
+    assert_eq!(weighing.kept(&world.paths), Some(Passed::Idle));
+
+    let file = world.paths.docs().join(format!("{budget}.md"));
+    let mut body = std::fs::read_to_string(&file).unwrap();
+    body.push_str("\nY la luz.\n");
+    std::fs::write(&file, body).unwrap();
+    super::super::kept_up(&world.paths, super::super::Round::Nudged);
+    assert_eq!(weighing.kept(&world.paths), Some(Passed::Settling));
+    assert!(matches!(
+        weighing.kept(&world.paths),
+        Some(Passed::Ran { .. })
+    ));
 }
 
 #[test]
@@ -589,4 +605,55 @@ fn only_documents_pages_and_tasks_in_sight_are_owed_words() {
         },
     }];
     assert_eq!(unworded(&tx, &wanted, &out, &fresh).unwrap(), [&errand_id]);
+}
+
+#[test]
+fn a_link_by_a_document_s_id_ties_it_and_a_title_two_documents_carry_ties_neither() {
+    let world = World::new();
+    let mut store = world.store();
+    let (_, one) = doc(
+        &world,
+        &mut store,
+        "# Huerto urbano\n\nTomates y albahaca al sol.\n",
+        None,
+        None,
+    );
+    let (_, other) = doc(
+        &world,
+        &mut store,
+        "# Huerto urbano\n\nTomates y albahaca con compost.\n",
+        None,
+        None,
+    );
+    let (_, naming) = doc(
+        &world,
+        &mut store,
+        "# Riego\n\nRegar tomates y albahaca del [[Huerto urbano]].\n",
+        None,
+        None,
+    );
+    let (router_id, router) = doc(
+        &world,
+        &mut store,
+        "# Router\n\nReiniciar el router wifi.\n",
+        None,
+        None,
+    );
+    let (_, slow) = doc(
+        &world,
+        &mut store,
+        &format!("# Wifi lento\n\nEl router wifi falla, ver [esto](tisty:doc/{router_id}).\n"),
+        None,
+        None,
+    );
+    fillers(&mut store);
+    let state = world.state();
+    let mut brain = world.brain();
+    world.refreshed(&mut brain, &state);
+    brain.weigh_alike(&caps()).unwrap();
+
+    let found = ends(&brain);
+    assert!(found.contains(&pair(&naming, &one)), "{found:?}");
+    assert!(found.contains(&pair(&naming, &other)), "{found:?}");
+    assert!(!found.contains(&pair(&router, &slow)), "{found:?}");
 }

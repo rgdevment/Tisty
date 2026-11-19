@@ -33,6 +33,7 @@ pub struct Alike {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Passed {
     Idle,
+    Settling,
     Overtaken,
     Ran {
         nodes: usize,
@@ -59,10 +60,8 @@ pub(super) fn counted(
         Holder::Doc(kept) => {
             let title = kept.title.as_deref().unwrap_or_default();
             let mut kin = Vec::new();
-            match ground.book_of(kept) {
-                Some(book) => kin.push(format!("{KIN_BOOK}{book}")),
-                None if ground.has_pages(kept) => kin.push(format!("{KIN_BOOK}{}", kept.file)),
-                None => {}
+            if let Some(book) = ground.book_of(kept) {
+                kin.push(format!("{KIN_BOOK}{book}"));
             }
             if !ground.tongues_of(kept).is_empty() {
                 kin.push(format!("{KIN_TONGUE}{}", state.anchor_of(kept)));
@@ -172,11 +171,29 @@ pub(super) fn kept_in_round(
     Ok(())
 }
 
-pub fn alike_kept(paths: &Paths) -> Option<Passed> {
-    if !paths.store().is_dir() {
-        return None;
+#[derive(Debug, Default)]
+pub struct Weighing {
+    heard: Option<u64>,
+}
+
+impl Weighing {
+    // A turn that moved since the last look means somebody is still writing, so the pass waits for it to hold still.
+    pub fn kept(&mut self, paths: &Paths) -> Option<Passed> {
+        if !paths.store().is_dir() {
+            return None;
+        }
+        let mut brain = Brain::open(paths.cache())?;
+        let turn = turn_of(&brain.db, TURN).ok().flatten();
+        let settled = turn == self.heard;
+        self.heard = turn;
+        if !settled {
+            return Some(Passed::Settling);
+        }
+        weighed_now(&mut brain, paths)
     }
-    let mut brain = Brain::open(paths.cache())?;
+}
+
+fn weighed_now(brain: &mut Brain, paths: &Paths) -> Option<Passed> {
     let started = Instant::now();
     match brain.weigh_alike(&CAPS) {
         Ok(passed) => {
@@ -375,10 +392,7 @@ fn worded(db: &Connection) -> rusqlite::Result<Worded> {
                     .filter(|one| !one.is_empty())
                     .map(str::to_string)
                     .collect(),
-                words: words::read(&said)
-                    .into_iter()
-                    .map(|(written, count)| (words::key(&written), written, count))
-                    .collect(),
+                words: words::read(&said),
             },
         ))
     })?;

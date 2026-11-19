@@ -21,7 +21,9 @@ const STOP: &[&str] = &[
     "algo", "aqui", "alli", "asi", "les", "nos", "mis", "tus",
 ];
 
-pub(crate) fn counted(texts: &[&str]) -> Vec<(String, u32)> {
+pub(crate) type Word = (String, String, u32);
+
+pub(crate) fn counted(texts: &[&str]) -> Vec<Word> {
     let mut seen: HashMap<String, (String, u32)> = HashMap::new();
     for text in texts {
         for word in text.split(|one: char| !one.is_alphanumeric()) {
@@ -33,14 +35,13 @@ pub(crate) fn counted(texts: &[&str]) -> Vec<(String, u32)> {
                 .1 += 1;
         }
     }
-    let mut all: Vec<(String, u32)> = seen.into_values().collect();
-    all.sort_by(|a, b| b.1.cmp(&a.1).then_with(|| a.0.cmp(&b.0)));
+    let mut all: Vec<Word> = seen
+        .into_iter()
+        .map(|(key, (written, count))| (key, written, count))
+        .collect();
+    all.sort_by(|a, b| b.2.cmp(&a.2).then_with(|| a.0.cmp(&b.0)));
     all.truncate(KEPT_AT_MOST);
     all
-}
-
-pub(crate) fn key(word: &str) -> String {
-    crate::text::folded(word)
 }
 
 fn weighed(word: &str) -> Option<String> {
@@ -52,23 +53,30 @@ fn weighed(word: &str) -> Option<String> {
     if digits == length || (digits > 0 && length >= ID_LIKE_FROM) {
         return None;
     }
-    let key = key(word);
+    let key = crate::text::folded(word);
     (!STOP.contains(&key.as_str())).then_some(key)
 }
 
-pub(crate) fn said(words: &[(String, u32)]) -> String {
+// The folded key is kept, so a pass never folds a word again; the written form only when it differs.
+pub(crate) fn said(words: &[Word]) -> String {
     words
         .iter()
-        .map(|(word, count)| format!("{word}:{count}"))
+        .map(|(key, written, count)| match key == written {
+            true => format!("{key}:{count}"),
+            false => format!("{key}:{count}:{written}"),
+        })
         .collect::<Vec<_>>()
         .join(" ")
 }
 
-pub(crate) fn read(said: &str) -> Vec<(String, u32)> {
+pub(crate) fn read(said: &str) -> Vec<Word> {
     said.split(' ')
-        .filter_map(|pair| {
-            let (word, count) = pair.rsplit_once(':')?;
-            Some((word.to_string(), count.parse().ok()?))
+        .filter_map(|one| {
+            let mut parts = one.split(':');
+            let key = parts.next()?;
+            let count = parts.next()?.parse().ok()?;
+            let written = parts.next().unwrap_or(key);
+            Some((key.to_string(), written.to_string(), count))
         })
         .collect()
 }

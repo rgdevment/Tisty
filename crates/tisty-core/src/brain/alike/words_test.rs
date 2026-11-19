@@ -1,7 +1,14 @@
 use super::*;
 
 fn words(text: &str) -> Vec<String> {
-    counted(&[text]).into_iter().map(|(word, _)| word).collect()
+    counted(&[text])
+        .into_iter()
+        .map(|(key, _, _)| key)
+        .collect()
+}
+
+fn word(key: &str, written: &str, count: u32) -> Word {
+    (key.to_string(), written.to_string(), count)
 }
 
 #[test]
@@ -13,10 +20,10 @@ fn function_words_and_short_ones_are_not_counted() {
 }
 
 #[test]
-fn a_word_counts_by_its_letters_whatever_its_accents_and_case() {
+fn a_word_counts_by_its_letters_whatever_its_accents_and_case_and_keeps_its_first_spelling() {
     assert_eq!(
         counted(&["Método nuevo", "el metodo"]),
-        [("método".to_string(), 2), ("nuevo".to_string(), 1)]
+        [word("metodo", "método", 2), word("nuevo", "nuevo", 1)]
     );
 }
 
@@ -52,13 +59,15 @@ fn the_most_frequent_words_are_kept_when_there_are_too_many() {
     let mut text = many.join(" ");
     text.push_str(" often often often");
     let all = counted(&[&text]);
-    assert!(all.len() <= KEPT_AT_MOST);
-    assert_eq!(all[0], ("often".to_string(), 3));
+    assert_eq!(all.len(), KEPT_AT_MOST);
+    assert_eq!(all[0], word("often", "often", 3));
 }
 
 #[test]
-fn what_is_counted_reads_back_the_same() {
-    let all = counted(&["presupuesto familiar presupuesto"]);
-    assert_eq!(read(&said(&all)), all);
-    assert_eq!(read("broken anything:x fine:2"), [("fine".to_string(), 2)]);
+fn what_is_counted_reads_back_the_same_and_its_spelling_is_kept_only_when_it_differs() {
+    let all = counted(&["Presupuesto familiar presupuesto Método"]);
+    let stored = said(&all);
+    assert_eq!(stored, "presupuesto:2 familiar:1 metodo:1:método");
+    assert_eq!(read(&stored), all);
+    assert_eq!(read("broken anything:x fine:2"), [word("fine", "fine", 2)]);
 }
