@@ -80,10 +80,23 @@ fn a_spanish_task_and_its_english_twin_are_kept_alike_by_the_dictionary() {
 fn english_text_is_never_read_as_spanish() {
     let items = base(vec![said(&["pagar", "agua"]), said(&["pagar", "water"])]);
     assert!(tracked(&items, &[Some("es"), Some("en")], Some(&dictionary())).is_empty());
+    assert!(
+        tracked(&items, &[Some("es"), None], Some(&dictionary())).is_empty(),
+        "a text of no known language crosses to none"
+    );
+}
+
+#[test]
+fn the_dictionary_joins_only_two_languages_never_one() {
+    let items = base(vec![said(&["pagar", "cuenta"]), said(&["pay", "bill"])]);
+    let crossing = [(0, 1, DICTIONARY, "pagar≈pay cuenta≈bill".to_string())];
     assert_eq!(
-        tracked(&items, &[Some("es"), None], Some(&dictionary())),
-        [(0, 1, DICTIONARY, "pagar agua≈water".to_string())],
-        "a text of no known language is looked up"
+        tracked(&items, &[Some("es"), Some("en")], Some(&dictionary())),
+        crossing
+    );
+    assert!(
+        tracked(&items, &[Some("es"), Some("es")], Some(&dictionary())).is_empty(),
+        "two Spanish texts are never joined through English"
     );
 }
 

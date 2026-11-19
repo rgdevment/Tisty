@@ -8,6 +8,7 @@ use super::typos;
 pub(crate) const WORDS: &str = "words";
 pub(crate) const TYPO: &str = "typo";
 pub(crate) const DICTIONARY: &str = "dictionary";
+const SPOKEN: &str = "spoken:";
 pub(crate) const SHOWN: &str = "method IN ('words', 'typo', 'dictionary')";
 
 #[derive(Debug, Clone, PartialEq)]
@@ -125,13 +126,25 @@ fn retyped(items: &[Item]) -> Vec<Item> {
         .collect()
 }
 
+// Within one language the pivot only joins synonyms, so two of the same language are kin here.
 fn translated(items: &[Item], guesses: &[Option<String>], dictionary: &Dictionary) -> Vec<Item> {
     items
         .iter()
         .zip(guesses)
-        .map(|(item, guess)| match guess.as_deref() {
-            Some(ENGLISH) => keyed_again(item, |_| None),
-            _ => keyed_again(item, |key| dictionary.english_of(key)),
+        .map(|(item, guess)| {
+            let Some(guess) = guess else {
+                return Item {
+                    lang: item.lang.clone(),
+                    kin: item.kin.clone(),
+                    words: Vec::new(),
+                };
+            };
+            let mut again = match guess.as_str() {
+                ENGLISH => keyed_again(item, |_| None),
+                _ => keyed_again(item, |key| dictionary.english_of(key)),
+            };
+            again.kin.push(format!("{SPOKEN}{guess}"));
+            again
         })
         .collect()
 }
