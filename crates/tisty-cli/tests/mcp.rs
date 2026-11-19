@@ -3541,10 +3541,11 @@ fn an_export_never_carries_what_an_agent_noted_about_the_document() {
     let served = Served::new();
     served.person().lets_the_agent_in();
     let doc = wrote_paper(&served, "# Acta\n\nlo que se hablo.");
-    served.call(
+    let kept = served.call(
         "sum_up",
         serde_json::json!({ "doc": &doc, "summary": "un secreto de trabajo", "notes": "la seccion de abril" }),
     );
+    assert_eq!(kept["result"]["structuredContent"]["kept"], true, "{kept}");
     let out = tempfile::Builder::new()
         .tempdir_in(std::env::temp_dir())
         .unwrap();

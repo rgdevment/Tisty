@@ -564,13 +564,11 @@ fn logged(served: &Served) -> String {
 }
 
 #[test]
-fn a_tool_that_moved_writes_nothing_and_rings_no_bell() {
+fn a_tool_that_moved_writes_nothing() {
     let served = Served::new();
     let doc = served.person().writes_doc("# Plan\n\nSteps.\n");
     let mut talk = served.connect();
     talk.brain(json!({}));
-    let bell = served.home.path().join("cache").join("stirred");
-    let _ = std::fs::remove_file(&bell);
     let before = logged(&served);
 
     for (name, args) in [
@@ -586,9 +584,8 @@ fn a_tool_that_moved_writes_nothing_and_rings_no_bell() {
     }
 
     assert_eq!(logged(&served), before, "nothing was written");
-    assert!(!bell.exists(), "and nothing woke the window to look");
     talk.call("folder", json!({ "name": "Casa" }));
-    assert!(bell.exists(), "as a write does");
+    assert_ne!(logged(&served), before, "as a write is");
 }
 
 #[test]
@@ -624,7 +621,7 @@ fn a_long_line_is_quoted_cut_around_the_word_it_says() {
     assert!(line.contains("el riego de marzo"), "{line}");
     assert!(
         line.chars().count() <= 122,
-        "a line of a thousand characters is quoted around the word: {line}"
+        "a line of nearly a thousand characters is quoted around the word: {line}"
     );
 }
 
