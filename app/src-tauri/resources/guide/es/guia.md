@@ -462,6 +462,17 @@ Tisty guarda una versión cuando pasan 30 minutos sin cambios o cuando cambia qu
 
 El historial es de este equipo: no se sincroniza, y un equipo nuevo empieza sin él. Se guarda 30 días, o 1, 5 o 15 si lo eliges en Configuración → Tus datos, y la última versión queda siempre. Para que un texto que borraste a propósito no quede guardado, **Vaciar el historial**, al pie de la lista, lo borra de este equipo. Más en [documentos](https://www.tisty.app/es/ayuda/documentos/).
 
+### Su enlace
+
+Cada documento tiene un enlace para llegar a él desde afuera: un chat, el navegador, una tarea o tu agente. **Copiar enlace** está en **Exportar**, en el panel junto al documento; en su menú del árbol, y en **Más**, en la ventana aparte. El de «Paseos de Rina» se ve así: `tisty://doc/personal/paseos-de-rina?id=k7tq2mzw-0012`.
+
+- Al seguirlo, el documento se abre en solo lectura en una ventana aparte, aunque Tisty esté cerrado o el documento archivado.
+- Sigue llegando aunque lo renombres o lo cambies de carpeta: lo que cuenta es el `id` del final.
+- Dentro de una tarea o de otro documento, escríbelo como enlace, `[Paseos](el enlace)`, y ábrelo con Ctrl+clic.
+- Pégaselo a tu agente y lee o cambia ese mismo documento sin buscarlo.
+
+Abre solo en tus equipos, donde está tu almacén; para dárselo a otra persona, compártelo. Más en [documentos](https://www.tisty.app/es/ayuda/documentos/).
+
 ### Lo que viene de afuera
 
 ¿Ya tienes notas en otro lado? No hace falta copiarlas a mano. Lo que llega de afuera entra convertido en Markdown de Tisty, y el archivo de donde vino no se toca:

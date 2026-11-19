@@ -208,6 +208,14 @@ Cada documento tuyo tiene un enlace, para llegar a él desde un chat, una nota, 
 - **Dentro de un documento compartido por Folio no viaja**: un enlace de Markdown llega como sus palabras, y una dirección escrita sola llega tal cual, con sus carpetas y su título.
 - **Quien lo recibe lee** los nombres de las carpetas y el título.
 
+Por ejemplo, preparas con tu agente el viaje de verano. En **Exportar** de «Plan de verano», en la carpeta Personal / Viajes, eliges **Copiar enlace** y se lo pegas en el chat: «Revisa las fechas de los vuelos en tisty://doc/personal/viajes/plan-de-verano?id=k7tq2mzw-0012». Tu agente no lo busca: lo pide por su enlace,
+
+```json
+{ "name": "read_doc", "arguments": { "doc": "tisty://doc/personal/viajes/plan-de-verano?id=k7tq2mzw-0012" } }
+```
+
+y Tisty le contesta con ese mismo documento, `"doc": "k7tq2mzw-0012"`, `"title": "Plan de verano"`, `"folder": "Personal / Viajes"`, con su texto. Si después lo llamas «Vacaciones de verano» y lo mueves a Familia, el mismo enlace sigue llegando a él. Si se lo pegas a tu agente en otro equipo que no tiene tu almacén, Tisty le dice que ahí no hay ningún documento con ese id.
+
 ## Versiones anteriores
 
 Cada documento guarda en este equipo lo que decía antes de cambiar, como un historial de versiones: abres la lista, lees cómo estaba y, si te sirve, vuelves a eso. Vale también para las páginas de tus tareas. Lo hice para el día en que un cambio, tuyo o de un asistente, se llevó algo que todavía necesitabas.
