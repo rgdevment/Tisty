@@ -50,8 +50,9 @@ Las listas y las carpetas no son nodos: son el color y la zona donde se juntan s
 | Fina | la estructura | una página y su libro, una parte y su tarea, una tarea y el documento donde nació, una idea y su documento |
 | Fina y tenue | una etiqueta | lo que lleva `#etiqueta` y su punto |
 | Fina, hacia un archivo | un uso | lo que muestra una imagen o adjunta un archivo |
+| Curva ámbar | un parecido | dos cosas que comparten palabras poco comunes y que nadie unió; más opaca cuanto más se parecen |
 
-Cada línea de la red está escrita en alguna parte, y se puede explicar. Lo que Tisty anota por parecido no se dibuja como línea: lo cuenta [Parecidos](#parecidos).
+Cada línea recta está escrita en alguna parte, y se puede explicar. La curva ámbar no: es lo que Tisty adivina, nunca es recta, sólida ni punteada, para no confundirse con nada escrito, y su vista previa dice por qué. Lo cuenta [Parecidos](#parecidos).
 
 ## De lejos y de cerca
 
@@ -59,7 +60,7 @@ La red cambia lo que muestra según la distancia, y cada detalle aparece de a po
 
 - **De lejos**, con la rueda hacia atrás: los nodos y sus uniones forman la silueta de un cerebro visto de lado, sin títulos y con líneas tenues. Sirve para ver dónde hay mucho y dónde hay poco.
 - **A media distancia**, como se abre: cada carpeta y cada lista tiñen su zona, y llevan título solo los nodos más conectados.
-- **De cerca**: todos los títulos, cada tipo de línea, las etiquetas como `#etiqueta` y, junto a cada imagen, su miniatura.
+- **De cerca**: todos los títulos, cada tipo de línea, las etiquetas como `#etiqueta` y, junto a cada imagen, su miniatura. Las curvas ámbar aparecen aquí, de a poco, entre dos nodos que están a la vista; junto al nodo que eliges se ven desde cualquier distancia.
 
 ![La ventana de Brainsty con la misma red de lejos: los nodos forman la silueta de un cerebro visto de lado, sin títulos y con líneas tenues](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/help/es-red-lejos.png)
 
@@ -70,12 +71,13 @@ Con la rueda acercas y alejas; arrastrando te mueves. Al primer toque la red dej
 - **Un clic en un nodo** lo resalta junto con sus vecinos, atenúa el resto y abre su vista previa, a la derecha. Arriba dice qué es, dónde vive y cuántas conexiones tiene: «Documento · Mascotas · 6 conexiones». Debajo:
   - de un documento o una página, sus primeras líneas, con sus fotos;
   - de una tarea, su tarjeta, la misma que dibuja un documento que la cita: su lista, su fecha o su estado y cuántos pasos lleva. Aquí se lee, no se cambia: un clic en la tarjeta la abre en la ventana principal, y ahí marcas sus pasos;
-  - de una etiqueta, su nombre y cuántas conexiones tiene.
+  - de una etiqueta, su nombre y cuántas conexiones tiene;
+  - al final, si Tisty le adivina parecidos, la sección **Parecidos**: cada uno con su título y por qué, «Tisty lo adivina: comparten *presupuesto* y *techo*». Un clic en el título lo elige en la red.
 - **Abrir**, en la vista previa, o **un doble clic** en el nodo, trae al frente la ventana principal y lo abre ahí: un documento en la Biblioteca, una tarea junto a su lista, una etiqueta en su vista. La red queda abierta detrás, con el mismo nodo elegido; otro clic en **Brainsty** te devuelve a ella.
 - **Una imagen o un archivo** tienen vista previa, pero no **Abrir**: se abren desde el documento o la tarea que los usa, su vecino en la red.
 - **Cerrar la vista previa**, o `Esc`, suelta el nodo y la red vuelve a verse entera.
 
-![«Rina» elegida de cerca en la ventana de Brainsty: sus vecinos con título, el resto atenuado y, a la derecha, la vista previa del documento con lo que es, su carpeta y cuántas conexiones tiene, sus primeras líneas, la foto de Rina y el botón Abrir](https://raw.githubusercontent.com/rgdevment/Tisty/main/app/src-tauri/resources/guide/es/red-cerca.png)
+![«Rina» elegida de cerca en la ventana de Brainsty: sus vecinos con título, el resto atenuado y, a la derecha, la vista previa del documento con lo que es, su carpeta y cuántas conexiones tiene, sus primeras líneas, la foto de Rina, la sección Parecidos con «Paseos del sábado» y «Tisty lo adivina: comparten rina y parque», y el botón Abrir; en la red, una curva ámbar une a Rina con «Paseos del sábado»](https://raw.githubusercontent.com/rgdevment/Tisty/main/app/src-tauri/resources/guide/es/red-cerca.png)
 
 ## Buscar
 
@@ -85,21 +87,21 @@ El buscador está arriba a la izquierda, **Buscar en la red**; `/` lo enfoca des
 
 El embudo junto al buscador, **Filtros**, abre lo que se puede dejar fuera. Cada opción es un botón que se enciende y se apaga, y la red se redibuja con lo que queda:
 
-- **Mostrar**: **Documentos**, **Páginas**, **Tareas**, **Etiquetas** y **Archivos**.
+- **Mostrar**: **Documentos**, **Páginas**, **Tareas**, **Etiquetas**, **Archivos** y **Parecidos**. **Parecidos** viene encendido; apagado, la red no dibuja ninguna curva ámbar y la vista previa no los lista.
 - El estado de las tareas: **En curso**, **Terminadas** y **Archivadas**.
 - **Tocado**: **Cuando sea**, **Últimos 7 días**, **Últimos 30 días** o **Último año**, según el último día en que cambió cada cosa.
 - **Etiqueta**: elige una de la lista y deja solo lo que la lleva; **Cualquier etiqueta** la quita.
 
 Con algún filtro puesto, el embudo se tiñe y aparece **Mostrar todo**, que devuelve la red entera.
 
-![La ventana de Brainsty con Filtros abierto: Documentos y Tareas encendidos, En curso, Últimos 30 días y la etiqueta rina, el embudo teñido, Mostrar todo a la vista y la red con lo que queda](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/help/es-filtros.png)
+![La ventana de Brainsty con Filtros abierto: Documentos, Tareas y Parecidos encendidos, En curso, Últimos 30 días y la etiqueta rina, el embudo teñido, Mostrar todo a la vista y la red con lo que queda](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/help/es-filtros.png)
 
 ## Con el teclado
 
 | Tecla | Qué hace |
 | :-- | :-- |
 | `Tab` | recorrer el buscador, **Filtros**, la vista previa y la red, sin salir de la ventana |
-| Flechas | elegir un nodo y caminar: primero a un vecino en esa dirección, si no, al más cercano |
+| Flechas | elegir un nodo y caminar: primero a un vecino en esa dirección, si no, al más cercano; una curva ámbar no es un camino |
 | `Enter` | abrir el nodo elegido en la ventana principal |
 | `/` | buscar |
 | `Esc` | soltar por capas: primero la búsqueda, aunque esté vacía; después el nodo; y el último cierra la ventana |
@@ -112,7 +114,7 @@ Hace un mes que no tocas nada de Rina y quieres saber cómo va.
 
 1. **Brainsty** en la barra lateral. La red se abre en su ventana, en lo último que escribiste: el acta del condominio.
 2. `/`, `rina`, `Enter`. La red se centra en «Rina», la ficha de la carpeta **Mascotas**, y su vista previa muestra sus primeras líneas.
-3. Te acercas con la rueda: aparecen sus vecinos con título, «Veterinaria» unida por una línea punteada (la mencionas en una frase), la tarjeta sólida de «Vacuna anual de Rina» y la foto del paseo con su miniatura.
+3. Te acercas con la rueda: aparecen sus vecinos con título, «Veterinaria» unida por una línea punteada (la mencionas en una frase), la tarjeta sólida de «Vacuna anual de Rina», la foto del paseo con su miniatura y una curva ámbar hacia «Paseos del sábado», que nadie enlazó. La vista previa de Rina dice por qué: «Tisty lo adivina: comparten *rina* y *parque*».
 4. Un clic en «Vacuna anual de Rina»: la vista previa muestra su tarjeta, «1 de 3 pasos», vence el viernes. **Abrir** trae al frente la ventana principal, con la tarea junto a su lista, y ahí marcas «Pedir hora».
 5. Otro clic en **Brainsty** te devuelve a la red, que seguía detrás. **Filtros**, **Etiqueta** `rina` y **Tocado** **Últimos 30 días**: quedan sus dos documentos y las tareas en curso que se movieron este mes.
 6. **Mostrar todo**, y `Esc` hasta que la ventana se cierra. La ventana principal sigue en la tarea que abriste.
@@ -137,7 +139,20 @@ Las reglas:
 
 **Lo que nunca pasa por aquí.** Las tareas ocultas y las descartadas, y todo tu [Diario](Documentos#diario), no guardan palabras, aunque abras el Diario a los agentes. Ocultar una tarea saca sus parecidos en la misma ronda.
 
-**Dónde se ven.** Hoy, en ninguna parte: la red dibuja solo lo escrito, así que un parecido no es una línea de la red, y la ficha que lee tu agente con `brain` tampoco lo trae. Los parecidos viven en la base de Brainsty de este equipo.
+**Dónde se ven:**
+
+- **En la red**, como una curva ámbar: de cerca entre dos nodos a la vista, y junto al nodo que eliges desde cualquier distancia. Qué tan opaca es se mide entre los parecidos de tu base: la más opaca es la que más se parece.
+- **En la vista previa**, en su sección **Parecidos**, aparte de las conexiones, con las palabras en común. Se muestran como las guarda la base: sin tildes y en minúscula, *presupuesto* y *techo*.
+- **En la ficha que lee tu agente**, en `guessed`, aparte de todo lo que alguien escribió. Cada parecido trae su título, su puntaje y las palabras en común, y las reglas le piden leer los dos antes de unir nada:
+
+```json
+> brain {"task": "…Pedir presupuesto del techo…"}
+{ "guessed": [
+    { "id": "…", "kind": "doc", "title": "Arreglos de la casa", "score": 0.42, "shared": ["presupuesto", "techo"] } ] }
+"Guessed alike by Tisty, linked by no one: \"Arreglos de la casa\" […] (shares presupuesto, techo)."
+```
+
+Un parecido aparece solo cuando sus dos puntas están a la vista: en la red, las dos tienen que estar dibujadas; para un agente, las dos tienen que pasar su puerta, así que una tarea oculta nunca se nombra a través de un parecido. Un parecido no suma conexiones a la cuenta de arriba ni cuenta para el tope de 12.000 nodos.
 
 ## Lo que conviene saber
 

@@ -100,6 +100,14 @@ La ficha de un documento dice qué tiene y dónde, sin leerlo: sus secciones con
   "outline": [ { "title": "Decisiones", "line": 3, "to": 8 }, { "title": "Fuera de alcance", "line": 10, "to": 14 } ] }
 ```
 
+La ficha de un documento o de una tarea trae también lo que Tisty adivina que se parece, aparte, en `guessed`: nadie lo enlazó, así que el agente lee los dos antes de unir o fusionar nada.
+
+```json
+> brain {"task": "…Pedir presupuesto del techo…"}
+{ "guessed": [ { "kind": "doc", "title": "Arreglos de la casa", "score": 0.42, "shared": ["presupuesto", "techo"] } ] }
+"Guessed alike by Tisty, linked by no one: \"Arreglos de la casa\" […] (shares presupuesto, techo)."
+```
+
 Con la línea de cada sección, el agente lee solo la que necesita, con la misma herramienta que lee una tarea: `read` con `doc` trae el documento entero, una sección (`section`), unas líneas (`from`, `to`) o un trozo a la vez (`chars`). Con `marks`, trae solo lo que el documento resalta o pone en negrita, agrupado por sección: en un documento de 24 KB, unos 2.300 bytes. Con `versions`, en vez del texto, lista sus versiones anteriores en este equipo, y `version` lee una, bajo un aviso de que no es lo que dice ahora.
 
 **Releer cuesta casi nada.** Cada lectura trae un `print`. Si el agente vuelve a leer con ese `print` y nada cambió, Tisty le responde solo eso, con la hora de su lectura anterior. La respuesta tiene esta forma (este extracto no viene de la sesión de arriba, sino del código de Tisty):

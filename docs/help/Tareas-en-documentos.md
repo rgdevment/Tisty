@@ -51,7 +51,7 @@ La tarjeta lee la tarea cada vez que se dibuja, así que nunca se queda vieja:
 
 ## De dónde nació: Nació en
 
-Una tarea creada desde un documento recuerda el documento y la sección donde la escribiste. Junto a su página, la fila **Nació en** los nombra, y un clic abre ese documento. Una tarea que salió de una idea de la Lluvia de ideas muestra lo mismo.
+Una tarea creada desde un documento recuerda el documento y la sección donde la escribiste. Junto a su página, la fila **Nació en** los nombra, y un clic abre ese documento. Una tarea que salió de una idea de Ideas muestra lo mismo.
 
 ![Junto a la página de «Revisar las bisagras de la reja», Nació en nombra el acta de noviembre y su sección, y Enlazado desde, la misma acta](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/help/es-nacio-en.png)
 

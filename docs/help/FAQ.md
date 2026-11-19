@@ -88,7 +88,7 @@ In how long the rule under the header is drawn. See [tables](https://markdown.ti
 Yes, on the computer where it changed: **See the history**, on the **History** row of the panel beside the document, lists its earlier versions, **What changed** shows in red and green what differs from now, and **Go back to this version** brings one back. They are kept 30 days by default and are not synced. See [Documents](Documents#earlier-versions).
 
 **How is the Brainsty network different from Obsidian's graph?**
-Obsidian's graph shows links between notes. Brainsty joins documents and tasks, with each task's state and its history, and the same network serves your agent as an index to search without reading everything. It draws only what is written: links, cards, pages, parts, where a task was born and tags. It opens in a window of its own, which costs nothing once you close it. See [[The Brainsty network|Brainsty-Network]].
+Obsidian's graph shows links between notes. Brainsty joins documents and tasks, with each task's state and its history, and the same network serves your agent as an index to search without reading everything. It draws with lines what is written (links, cards, pages, parts, where a task was born and tags) and, with an amber curve apart, what Tisty guesses is alike because it shares words. It opens in a window of its own, which costs nothing once you close it. See [[The Brainsty network|Brainsty-Network]].
 
 **Does Brainsty upload anything?**
 No. The network is worked out on each computer and rebuilds itself: it is not synced, and it does not go to Folio, a `.tistyx` or an export. What travels is your documents and tasks, as always. The same holds for what Brainsty notes as alike: see [The Brainsty network](Brainsty-Network#alike).

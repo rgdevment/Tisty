@@ -6,8 +6,8 @@ The whole window works from the keyboard.
 | :-- | :-- |
 | `Ctrl` + `Shift` + `Space` | Capture a task from anywhere, without opening the window |
 | `Enter` (in the quick capture) | File the task |
-| `Ctrl` + `Alt` + `I` (once picked in Settings) | Jot an idea for [Brainstorm](Documents#brainstorm) from anywhere |
-| `Tab` (in the quick capture) | Switch between a task, an idea for [Brainstorm](Documents#brainstorm) and today in the [Diary](Documents#diary); `Shift` + `Tab` goes back |
+| `Ctrl` + `Alt` + `I` (once picked in Settings) | Jot an idea for [Ideas](Documents#ideas) from anywhere |
+| `Tab` (in the quick capture) | Switch between a task, an idea for [Ideas](Documents#ideas) and today in the [Diary](Documents#diary); `Shift` + `Tab` goes back |
 | `Ctrl`/`⌘` + `Enter` | On a task's row in the list, complete it; while writing in a document or on a task's page, a page break |
 | `Ctrl`/`⌘` + `Enter` (in the Diary's box) | Keep what you wrote in today |
 | `/` | Insert something inside a document |

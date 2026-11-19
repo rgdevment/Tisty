@@ -307,7 +307,7 @@ Almost anything fits inside a callout, as long as every line carries its `>`:
 
 ## Sticky notes
 
-A sixth kind, **Idea** in the `/` menu, is a note stuck on the sheet, in handwriting, a little crooked and held with tape or a pin. Its first line says when it was written, its colour and its side, in any order and separated by a middle dot; none is required. That is how **Brainstorm** writes each idea.
+A sixth kind, **Idea** in the `/` menu, is a note stuck on the sheet, in handwriting, a little crooked and held with tape or a pin. Its first line says when it was written, its colour and its side, in any order and separated by a middle dot; none is required. That is how **Ideas** writes each idea.
 
 > [!IDEA] 2026-11-12 09:12 · yellow
 > Try the new park, the one with the pond.
@@ -317,7 +317,7 @@ With `right` or `left` it goes to the side, and the paragraphs that follow flow 
 > [!IDEA] 2026-11-12 · blue · right
 > Can Roger eat carrot?
 
-This paragraph runs beside the blue note, which is on the right. That is how an idea you appended to a document from Brainstorm ends up: next to what was already written, without cutting it. When the text is longer than the note, it carries on below it, across the whole sheet.
+This paragraph runs beside the blue note, which is on the right. That is how an idea you appended to a document from Ideas ends up: next to what was already written, without cutting it. When the text is longer than the note, it carries on below it, across the whole sheet.
 
 > [!IDEA] pink · left
 > No date, and on the left.

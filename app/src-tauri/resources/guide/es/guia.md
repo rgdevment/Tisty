@@ -39,14 +39,14 @@ Brainsty es el cerebro de Tisty: todo lo que guardas, con lo que lo une, dibujad
 
 ## ¿Cómo funciona?
 
-Todo empieza con una pregunta, y tu agente se hace la misma: ¿lo vas a hacer, o lo vas a volver a leer? Si lo vas a hacer, es una tarea: se acaba, a veces el mismo día, y queda en el Archivo como conocimiento con fecha. Si lo vas a volver a leer, es un documento: un manual, una receta, las actas de un año, que corriges y amplías durante años. Y si todavía no lo sabes, es una idea: espera en la Lluvia de ideas hasta que la ordenes. Lo que solo pasó, y quieres recordar, va al Diario. Este dibujo cuenta el resto:
+Todo empieza con una pregunta, y tu agente se hace la misma: ¿lo vas a hacer, o lo vas a volver a leer? Si lo vas a hacer, es una tarea: se acaba, a veces el mismo día, y queda en el Archivo como conocimiento con fecha. Si lo vas a volver a leer, es un documento: un manual, una receta, las actas de un año, que corriges y amplías durante años. Y si todavía no lo sabes, es una idea: espera en Ideas hasta que la ordenes. Lo que solo pasó, y quieres recordar, va al Diario. Este dibujo cuenta el resto:
 
 ```mermaid
 flowchart TD
   A[Aparece algo] --> B{¿Lo vas a hacer,<br/>o a volver a leer?}
   B -->|Hacerlo| T[Una tarea]
   B -->|Volver a leerlo| D[Un documento]
-  B -->|Todavía no lo sé| I[Una idea en la<br/>Lluvia de ideas]
+  B -->|Todavía no lo sé| I[Una idea en<br/>Ideas]
   I -->|Convertir en tarea| T
   I -->|Anexar a un documento| D
   T --> P[Su página: notas, pasos,<br/>archivos, grabaciones]
@@ -213,17 +213,17 @@ Y si quieres saber qué sobra o qué falta en todo lo que guardas, Configuració
 
 ## Las ideas
 
-Entre lo que vas a hacer y lo que vas a guardar hay algo más suelto. Una idea es un pensamiento atrapado al vuelo, antes de saber si es algo que hacer o algo que guardar: pocas palabras, 140 caracteres como máximo, con fecha, en la hoja **Lluvia de ideas**. Espera a que la ordenes: se vuelve tarea, va al documento de su tema o se aparta.
+Entre lo que vas a hacer y lo que vas a guardar hay algo más suelto. Una idea es un pensamiento atrapado al vuelo, antes de saber si es algo que hacer o algo que guardar: pocas palabras, 140 caracteres como máximo, con fecha, en la hoja **Ideas**. Espera a que la ordenes: se vuelve tarea, va al documento de su tema o se aparta.
 
 ### Anótala en cuanto llega
 
-En la captura rápida, `Tab` cambia de **Tarea** a **Idea**: escríbela y `Enter` la deja en la **Lluvia de ideas**, el documento anclado arriba en la **Biblioteca**, con su fecha y sin elegir carpeta. **Pruébalo:** abre la captura rápida, presiona `Tab` y escribe lo primero que se te ocurra.
+En la captura rápida, `Tab` cambia de **Tarea** a **Idea**: escríbela y `Enter` la deja en **Ideas**, el documento anclado arriba en la **Biblioteca**, con su fecha y sin elegir carpeta. **Pruébalo:** abre la captura rápida, presiona `Tab` y escribe lo primero que se te ocurra.
 
 ### Ordénalas cuando llegue su momento
 
 Las ideas esperan ahí como notas adhesivas de colores, la más nueva primero. Arrastra una sobre otra para dejarla en ese lugar, y cuando llegue su momento, **Convertir en tarea** la guarda como tarea y **Anexar a un documento** la agrega al final del que elijas, con **Diario de hoy** como primera opción. La Biblioteca cuenta las que siguen esperando.
 
-![La Lluvia de ideas con las ideas del momento como notas adhesivas de colores, con fecha y escritas a mano](ideas.png)
+![La hoja Ideas con las ideas del momento como notas adhesivas de colores, con fecha y escritas a mano](ideas.png)
 
 Tu agente de IA también puede hacer una lluvia de ideas contigo y ayudarte a ordenarlas: lo cuenta **Tu agente de IA**, casi al final.
 
@@ -563,7 +563,7 @@ Nada de esto hace falta para empezar. Está aquí para cuando lo necesites.
 | Atajo | Qué hace |
 | --- | --- |
 | `Ctrl` + `Shift` + `Space` | Capturar una tarea sin abrir la ventana |
-| `Tab` (en la captura rápida) | Cambiar entre una tarea, una idea para la Lluvia de ideas y el diario de hoy |
+| `Tab` (en la captura rápida) | Cambiar entre una tarea, una idea para Ideas y el diario de hoy |
 | `Ctrl`/`⌘` + `Enter` | Terminar la tarea señalada; en un documento, un salto de página |
 | `/` | Insertar algo dentro de un documento; `Ctrl`/`⌘` + `/` abre ese menú en cualquier punto |
 | `Shift` + `Enter` | Saltar de línea sin empezar un párrafo |

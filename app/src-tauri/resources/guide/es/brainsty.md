@@ -60,24 +60,25 @@ En la página de una tarea, **Una tarea nueva** crea una parte de esa tarea, en 
 | Línea sólida | una cita, una tarjeta |
 | Línea punteada | una mención, un enlace en una frase |
 | Línea fina | una página y su libro, una parte y su tarea, el documento donde nació una tarea |
+| Curva ámbar | un parecido: lo que Tisty adivina, porque comparten palabras poco comunes y nadie los unió |
 
 Las listas y las carpetas no son puntos: son el color y la zona donde se junta lo suyo.
 
 La red cambia con la distancia. De lejos, con la rueda hacia atrás, sus puntos forman un cerebro visto de lado, sin títulos. A media distancia aparecen las zonas de color. De cerca, todos los títulos, cada tipo de línea, las etiquetas y la miniatura de cada imagen.
 
-![«Rina» elegida de cerca en la ventana de Brainsty: sus vecinos con título, el resto atenuado y, a la derecha, la vista previa del documento con lo que es, su carpeta y cuántas conexiones tiene, sus primeras líneas, la foto de Rina y el botón Abrir](red-cerca.png)
+![«Rina» elegida de cerca en la ventana de Brainsty: sus vecinos con título, el resto atenuado y, a la derecha, la vista previa del documento con lo que es, su carpeta y cuántas conexiones tiene, sus primeras líneas, la foto de Rina, la sección Parecidos con «Paseos del sábado» y «Tisty lo adivina: comparten rina y parque», y el botón Abrir; en la red, una curva ámbar une a Rina con «Paseos del sábado»](red-cerca.png)
 
 - **Un clic** en un punto lo resalta con sus vecinos y abre su vista previa: las primeras líneas de un documento, con sus fotos, o la tarjeta de una tarea, con su lista, su fecha y cuántos pasos lleva. Los pasos se marcan al abrirla.
 - **Abrir**, o un doble clic, trae al frente la ventana principal y abre ahí el documento, la tarea o la etiqueta. La red queda abierta detrás, para volver a ella. Una imagen o un archivo no se abre desde la red: ábrelo desde lo que lo usa.
 - **Buscar en la red**, arriba, o `/`: escribe parte de un título y `Enter` centra la red en él.
-- **Filtros**, el embudo junto al buscador: qué tipos mostrar, el estado de las tareas, una etiqueta y **Tocado**, para ver solo lo que cambió en los últimos días.
+- **Filtros**, el embudo junto al buscador: qué tipos mostrar, **Parecidos** para las curvas ámbar, el estado de las tareas, una etiqueta y **Tocado**, para ver solo lo que cambió en los últimos días.
 - **Con el teclado**: `Tab` recorre el buscador, los filtros y la red; las flechas caminan de un punto a su vecino, `Enter` abre y `Esc` suelta, primero la búsqueda, después el punto, y el último cierra la ventana.
 
 **Pruébalo:** abre **Brainsty** ahora. La red arranca en esta hoja, con sus vecinos alrededor: la portada de la guía, de la que es página, y lo que la nombra o ella nombra. Busca `uno de cada`, `Enter`, y después **Abrir**: **Uno de cada cosa** se abre en esta ventana, con la red esperando detrás. Vuelve a ella con otro clic en **Brainsty**.
 
 ## Lo que lee tu agente
 
-Tu agente lee la misma red, pero como un índice. Con una sola herramienta, `brain`, busca tareas y documentos por sus palabras, el Archivo junto a lo demás; trae la ficha de un documento, con sus secciones, quién lo cita y sus decisiones vigentes primero, sin leerlo entero; y ve un proyecto agrupado en bloqueado, en curso, esperándote y sin empezar. Cuando nombra una tarea o un documento por su título exacto entre comillas, Tisty lo enlaza al guardar, como cuando lo haces tú. Lo cuenta, paso a paso, [la página de tu agente](tisty:agent).
+Tu agente lee la misma red, pero como un índice. Con una sola herramienta, `brain`, busca tareas y documentos por sus palabras, el Archivo junto a lo demás; trae la ficha de un documento, con sus secciones, quién lo cita y sus decisiones vigentes primero, sin leerlo entero; y ve un proyecto agrupado en bloqueado, en curso, esperándote y sin empezar. En la ficha, lo que Tisty adivina como parecido le llega aparte, en `guessed`, con las palabras en común, para que no lo confunda con lo que alguien escribió. Cuando nombra una tarea o un documento por su título exacto entre comillas, Tisty lo enlaza al guardar, como cuando lo haces tú. Lo cuenta, paso a paso, [la página de tu agente](tisty:agent).
 
 ## Lo que conviene saber
 
@@ -85,6 +86,6 @@ Tu agente lee la misma red, pero como un índice. Con una sola herramienta, `bra
 - **Lo que ocultas no aparece** en la red ni le llega a tu agente.
 - **Fuera de Tisty**, un enlace a otro documento y la tarjeta de una tarea quedan solo como sus palabras: en Markdown estándar, en Word, en el PDF y en Folio.
 - **Hasta 12.000 puntos.** Más allá, la red guarda lo último que tocaste, sus vecinos, tus documentos y las tareas en curso, y te dice arriba cuánto quedó fuera.
-- **Cada línea de la red la escribiste tú.** Aparte, en segundo plano, Tisty anota qué documentos y tareas se parecen porque comparten al menos dos palabras poco comunes, como *presupuesto* y *techo*. Hoy esos parecidos no se dibujan ni llegan a tu agente, y las tareas ocultas y tu Diario nunca pasan por ahí. Lo cuenta [la red de Brainsty](https://www.tisty.app/es/ayuda/red-de-brainsty/), en la ayuda.
+- **Cada línea recta la escribiste tú; la curva ámbar, no.** Tisty une como parecidos los documentos y tareas que comparten al menos dos palabras poco comunes, como *presupuesto* y *techo*. La curva aparece de cerca o junto al punto que eliges, y su vista previa dice por qué: «Tisty lo adivina: comparten *presupuesto* y *techo*». Las tareas ocultas y tu Diario nunca pasan por ahí. Lo cuenta [la red de Brainsty](https://www.tisty.app/es/ayuda/red-de-brainsty/), en la ayuda.
 
 Cada detalle, con un ejemplo de principio a fin, está en la ayuda: [enlazar documentos](https://www.tisty.app/es/ayuda/enlazar-documentos/), [tareas en documentos](https://www.tisty.app/es/ayuda/tareas-en-documentos/) y [la red de Brainsty](https://www.tisty.app/es/ayuda/red-de-brainsty/).

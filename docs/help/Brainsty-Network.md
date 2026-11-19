@@ -50,8 +50,9 @@ Lists and folders are not nodes: they are the colour and the zone where their th
 | Thin | the structure | a page and its book, a part and its task, a task and the document it was born in, an idea and its document |
 | Thin and faint | a tag | what carries `#tag` and its dot |
 | Thin, toward a file | a use | what shows a picture or attaches a file |
+| Amber curve | a guess | two things that share uncommon words and that nobody tied; more opaque the more alike they are |
 
-Every line in the network is written somewhere, and can be explained. What Tisty notes as alike is not drawn as a line: [Alike](#alike) tells it.
+Every straight line is written somewhere, and can be explained. The amber curve is not: it is what Tisty guesses, never straight, solid or dashed, so it is never mistaken for anything written, and its preview says why. [Alike](#alike) tells it.
 
 ## From afar and up close
 
@@ -59,7 +60,7 @@ The network changes what it shows with the distance, and each detail fades in as
 
 - **From afar**, with the wheel backwards: the nodes and their ties make the outline of a brain seen from the side, with no titles and faint lines. It shows where there is a lot and where there is little.
 - **At middle distance**, as it opens: each folder and each list tints its zone, and only the most connected nodes carry a title.
-- **Up close**: every title, each kind of line, tags as `#tag` and, beside each picture, its thumbnail.
+- **Up close**: every title, each kind of line, tags as `#tag` and, beside each picture, its thumbnail. The amber curves show here, little by little, between two nodes in view; around the node you pick they show from any distance.
 
 ![Brainsty's window with the same network from afar: the nodes make the outline of a brain seen from the side, with no titles and faint lines](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/help/en-network-far.png)
 
@@ -70,12 +71,13 @@ The wheel zooms in and out; dragging moves you around. At the first touch the ne
 - **A click on a node** lights it up with its neighbours, dims the rest and opens its preview, on the right. At the top it says what it is, where it lives and how many connections it has: «Document · Pets · 6 connections». Below:
   - for a document or a page, its first lines, with its pictures;
   - for a task, its card, the same one a document that cites it draws: its list, its date or its state and how many steps are done. Here it is read, not changed: a click on the card opens it in the main window, where you tick its steps;
-  - for a tag, its name and how many connections it has.
+  - for a tag, its name and how many connections it has;
+  - at the end, when Tisty guesses things alike, the **Alike** section: each with its title and why, «Tisty guesses: they share *quote* and *roof*». A click on the title picks it in the network.
 - **Open**, in the preview, or **a double click** on the node, brings the main window to the front and opens it there: a document in the Library, a task beside its list, a tag in its view. The network stays open behind it, with the same node picked; another click on **Brainsty** takes you back to it.
 - **A picture or a file** has a preview but no **Open**: it opens from the document or the task that uses it, its neighbour in the network.
 - **Close the preview**, or `Esc`, lets go of the node and the whole network shows again.
 
-![«Rina» picked up close in Brainsty's window: her neighbours with titles, the rest dimmed and, on the right, the document's preview with what it is, its folder and how many connections it has, its first lines, Rina's photo and the Open button](https://raw.githubusercontent.com/rgdevment/Tisty/main/app/src-tauri/resources/guide/en/network-near.png)
+![«Rina» picked up close in Brainsty's window: her neighbours with titles, the rest dimmed and, on the right, the document's preview with what it is, its folder and how many connections it has, its first lines, Rina's photo, the Alike section with «Saturday walks» and «Tisty guesses: they share rina and park», and the Open button; in the network, an amber curve joins Rina to «Saturday walks»](https://raw.githubusercontent.com/rgdevment/Tisty/main/app/src-tauri/resources/guide/en/network-near.png)
 
 ## Searching
 
@@ -85,21 +87,21 @@ The search box sits at the top left, **Search the network**; `/` focuses it from
 
 The funnel beside the search box, **Filters**, opens what can be left out. Each option is a button that turns on and off, and the network is drawn again with what remains:
 
-- **Show**: **Documents**, **Pages**, **Tasks**, **Tags** and **Files**.
+- **Show**: **Documents**, **Pages**, **Tasks**, **Tags**, **Files** and **Alike**. **Alike** starts on; off, the network draws no amber curve and the preview lists none.
 - The state of tasks: **Under way**, **Done** and **Archived**.
 - **Touched**: **Any time**, **Last 7 days**, **Last 30 days** or **Last year**, by the last day each thing changed.
 - **Tag**: pick one from the list and only what carries it remains; **Any tag** takes it off.
 
 With a filter on, the funnel is tinted and **Show everything** appears, which brings the whole network back.
 
-![Brainsty's window with Filters open: Documents and Tasks on, Under way, Last 30 days and the rina tag, the funnel tinted, Show everything in sight and the network with what remains](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/help/en-filters.png)
+![Brainsty's window with Filters open: Documents, Tasks and Alike on, Under way, Last 30 days and the rina tag, the funnel tinted, Show everything in sight and the network with what remains](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/help/en-filters.png)
 
 ## With the keyboard
 
 | Key | What it does |
 | :-- | :-- |
 | `Tab` | go round the search box, **Filters**, the preview and the network, without leaving the window |
-| Arrows | pick a node and walk: first to a neighbour in that direction, otherwise to the nearest one |
+| Arrows | pick a node and walk: first to a neighbour in that direction, otherwise to the nearest one; an amber curve is not a path |
 | `Enter` | open the picked node in the main window |
 | `/` | search |
 | `Esc` | let go in layers: first the search, even when it is empty; then the node; and the last one closes the window |
@@ -112,7 +114,7 @@ You have not touched anything about Rina for a month and want to know how it is 
 
 1. **Brainsty** in the sidebar. The network opens in its window, on what you wrote last: the building minutes.
 2. `/`, `rina`, `Enter`. The network centres on «Rina», the note in the **Pets** folder, and its preview shows its first lines.
-3. You come closer with the wheel: her neighbours show with titles, «Vet» joined by a dashed line (you mention it in a sentence), the solid card of «Rina's yearly vaccine» and the photo of the walk with its thumbnail.
+3. You come closer with the wheel: her neighbours show with titles, «Vet» joined by a dashed line (you mention it in a sentence), the solid card of «Rina's yearly vaccine», the photo of the walk with its thumbnail and an amber curve to «Saturday walks», which nobody linked. Rina's preview says why: «Tisty guesses: they share *rina* and *park*».
 4. A click on «Rina's yearly vaccine»: the preview shows its card, «1 of 3 steps», due on Friday. **Open** brings the main window to the front, with the task beside its list, and there you tick «Book a slot».
 5. Another click on **Brainsty** takes you back to the network, still behind. **Filters**, **Tag** `rina` and **Touched** **Last 30 days**: her two documents and the tasks under way that moved this month remain.
 6. **Show everything**, and `Esc` until the window closes. The main window stays on the task you opened.
@@ -137,7 +139,20 @@ The rules:
 
 **What never goes through it.** Hidden and dropped tasks, and your whole [Diary](Documents#diary), keep no words, even when you open the Diary to agents. Hiding a task takes its guesses away in the same round.
 
-**Where they show.** Today, nowhere: the network draws only what is written, so a guess is not a line in the network, and the card your agent reads with `brain` does not bring it either. Guesses live in Brainsty's base on this computer.
+**Where they show:**
+
+- **In the network**, as an amber curve: up close between two nodes in view, and around the node you pick from any distance. How opaque it is is measured among the guesses in your base: the most opaque is the most alike.
+- **In the preview**, in its **Alike** section, apart from the connections, with the shared words. They show as the base keeps them: with no accents and in lowercase, *quote* and *roof*.
+- **On the card your agent reads**, under `guessed`, apart from everything someone wrote. Each guess brings its title, its score and the shared words, and the rules ask it to read both before joining anything:
+
+```json
+> brain {"task": "…Ask for a quote on the roof…"}
+{ "guessed": [
+    { "id": "…", "kind": "doc", "title": "House repairs", "score": 0.42, "shared": ["quote", "roof"] } ] }
+"Guessed alike by Tisty, linked by no one: \"House repairs\" […] (shares quote, roof)."
+```
+
+A guess shows only when both its ends are in sight: in the network, both must be drawn; for an agent, both must pass its gate, so a hidden task is never named through a guess. A guess adds no connection to the count at the top and does not count towards the 12,000-node cap.
 
 ## Good to know
 

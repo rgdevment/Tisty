@@ -39,14 +39,14 @@ Brainsty is Tisty's brain: everything you keep, with what joins it, drawn as one
 
 ## How does it work?
 
-It all starts with one question, and your agent asks it too: will you do it, or read it again? If you will do it, it is a task: it ends, sometimes the same day, and stays in the Archive as knowledge with a date. If you will read it again, it is a document: a manual, a recipe, a year of minutes, which you correct and add to for years. And if you do not know yet, it is an idea: it waits in Brainstorm until you sort it out. What simply happened, and you want to remember, goes in the Diary. This drawing tells the rest:
+It all starts with one question, and your agent asks it too: will you do it, or read it again? If you will do it, it is a task: it ends, sometimes the same day, and stays in the Archive as knowledge with a date. If you will read it again, it is a document: a manual, a recipe, a year of minutes, which you correct and add to for years. And if you do not know yet, it is an idea: it waits in Ideas until you sort it out. What simply happened, and you want to remember, goes in the Diary. This drawing tells the rest:
 
 ```mermaid
 flowchart TD
   A[Something comes up] --> B{Will you do it,<br/>or read it again?}
   B -->|Do it| T[A task]
   B -->|Read it again| D[A document]
-  B -->|Not sure yet| I[An idea in<br/>Brainstorm]
+  B -->|Not sure yet| I[An idea in<br/>Ideas]
   I -->|Turn into a task| T
   I -->|File in a document| D
   T --> P[Its page: notes, steps,<br/>files, recordings]
@@ -213,17 +213,17 @@ And if you want to know what is spare or missing in everything you keep, Setting
 
 ## Ideas
 
-Between what you will do and what you will keep there is something looser. An idea is a thought caught on the fly, before you know whether it is something to do or something to keep: a few words, 140 characters at most, dated, on the **Brainstorm** sheet. It waits for you to sort it out: it becomes a task, goes into the document on its subject, or is set aside.
+Between what you will do and what you will keep there is something looser. An idea is a thought caught on the fly, before you know whether it is something to do or something to keep: a few words, 140 characters at most, dated, on the **Ideas** sheet. It waits for you to sort it out: it becomes a task, goes into the document on its subject, or is set aside.
 
 ### Jot it down the moment it comes
 
-In the quick capture, `Tab` switches from **Task** to **Idea**: type it and `Enter` drops it in **Brainstorm**, the document pinned at the top of the **Library**, dated and without choosing a folder. **Try it:** open the quick capture, press `Tab` and write the first thing that comes to mind.
+In the quick capture, `Tab` switches from **Task** to **Idea**: type it and `Enter` drops it in **Ideas**, the document pinned at the top of the **Library**, dated and without choosing a folder. **Try it:** open the quick capture, press `Tab` and write the first thing that comes to mind.
 
 ### Sort them out when their moment comes
 
 The ideas wait there as sticky notes in colours, the newest first. Drag one onto another to put it in that place, and when its moment comes, **Turn into a task** files it as a task and **File in a document** adds it at the end of the one you pick, with **Today's diary** as the first choice. The Library counts the ones still waiting.
 
-![Brainstorm with ideas of the moment as sticky notes in colours, dated and written by hand](brainstorm.png)
+![The Ideas sheet with ideas of the moment as sticky notes in colours, dated and written by hand](brainstorm.png)
 
 Your AI agent can also brainstorm with you and help you sort them out: **Your AI agent**, near the end, tells you how.
 
@@ -563,7 +563,7 @@ None of this is needed to get started. It is here for when you need it.
 | Shortcut | What it does |
 | --- | --- |
 | `Ctrl` + `Shift` + `Space` | Capture a task without opening the window |
-| `Tab` (in the quick capture) | Switch between a task, an idea for Brainstorm and today's diary |
+| `Tab` (in the quick capture) | Switch between a task, an idea for Ideas and today's diary |
 | `Ctrl`/`⌘` + `Enter` | Complete the task you are on; in a document, a page break |
 | `/` | Insert something inside a document; `Ctrl`/`⌘` + `/` opens that menu anywhere |
 | `Shift` + `Enter` | Break the line without starting a paragraph |

@@ -6,8 +6,8 @@ Toda la ventana funciona con el teclado.
 | :-- | :-- |
 | `Ctrl` + `Shift` + `Space` | Capturar una tarea desde cualquier parte, sin abrir la ventana |
 | `Enter` (en la captura rápida) | Guardar la tarea |
-| `Ctrl` + `Alt` + `I` (si lo eliges en Configuración) | Anotar una idea para la [Lluvia de ideas](Documentos#lluvia-de-ideas) desde cualquier parte |
-| `Tab` (en la captura rápida) | Cambiar entre una tarea, una idea para la [Lluvia de ideas](Documentos#lluvia-de-ideas) y hoy en el [Diario](Documentos#diario); `Shift` + `Tab` vuelve atrás |
+| `Ctrl` + `Alt` + `I` (si lo eliges en Configuración) | Anotar una idea para [Ideas](Documentos#ideas) desde cualquier parte |
+| `Tab` (en la captura rápida) | Cambiar entre una tarea, una idea para [Ideas](Documentos#ideas) y hoy en el [Diario](Documentos#diario); `Shift` + `Tab` vuelve atrás |
 | `Ctrl`/`⌘` + `Enter` | Sobre la fila de una tarea en la lista, terminarla; escribiendo en un documento o en la página de una tarea, un salto de página |
 | `Ctrl`/`⌘` + `Enter` (en el cuadro del Diario) | Guardar lo que escribiste en hoy |
 | `/` | Insertar algo dentro de un documento |

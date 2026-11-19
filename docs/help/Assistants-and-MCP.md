@@ -112,11 +112,11 @@ You do not have to remember this step. When an assistant tries to work with Tist
 
 ## What it can do, in short
 
-File a task with its steps and its date, set a reminder, add to a task's journal, write and edit documents, file them into folders and pages, keep a copy of a file you point it at, jot ideas on Brainstorm and sort them out with you, search and read what is there — and say a task is done, yours too, **for you to confirm**.
+File a task with its steps and its date, set a reminder, add to a task's journal, write and edit documents, file them into folders and pages, keep a copy of a file you point it at, jot ideas in Ideas and sort them out with you, search and read what is there — and say a task is done, yours too, **for you to confirm**.
 
 When it tells you what it did, it names a task or a document the way you would: by its title and where it is — the list, or the folder. It never shows you an id.
 
-It can **never** close or delete a task, delete a document, or move a day you set. A document that had its day it marks: you delete it, put it away or take the mark off. An idea leaves Brainstorm only when it files the idea in a document or turns it into a task, as you would; an old one it marks the same way. Your [Diary](Documents#diary) is out of its sight until you open it from the Diary itself, and even then it only adds to the end of today, signed, when you ask. On a task you wrote it works as in a document — the description, the page, the open steps, the title and the list — and a step or the whole task done is only its word, which you take or not.
+It can **never** close or delete a task, delete a document, or move a day you set. A document that had its day it marks: you delete it, put it away or take the mark off. An idea leaves Ideas only when it files the idea in a document or turns it into a task, as you would; an old one it marks the same way. Your [Diary](Documents#diary) is out of its sight until you open it from the Diary itself, and even then it only adds to the end of today, signed, when you ask. On a task you wrote it works as in a document — the description, the page, the open steps, the title and the list — and a step or the whole task done is only its word, which you take or not.
 
 The full rules are in [[What an assistant may do|MCP-Permissions]], and every tool is in the [[tools reference|MCP-Tools]]. The rules, skills and memory each assistant reads, even one you never connect, you keep in the [[AGENTS|AGENTS-Folder]] folder.
 
@@ -131,7 +131,7 @@ The memory and context Tisty keeps for your agent is one command or one `@` away
 - **Plan this work as a task with steps** (`plan_task`) — one task with its steps, in the list it belongs in, once nothing open or in the archive already covers it.
 - **How did we solve this before?** (`solved_before`) — it searches the archive of finished tasks and your documents before trying anything new.
 - **Keep this decision in its document** (`keep_decision`) — the decision you just made goes into the one document on its subject, in place, and the one it replaces is crossed out; if no document covers it, it asks you where it belongs.
-- **Brainstorm ideas with me** (`brainstorm`) — it offers short ideas on a subject, numbered, says which are already on Brainstorm or already a task or a document, and jots on Brainstorm only the ones you keep.
+- **Brainstorm ideas with me** (`brainstorm`) — it offers short ideas on a subject, numbered, says which are already in Ideas or already a task or a document, and jots in Ideas only the ones you keep.
 - **Sort out my Brainstorm** (`sort_ideas`) — it reads the ideas waiting and tells you which belong together, which would be a task and in which list, which go into which document and which are old. It changes nothing until you say, and then does only that.
 - **Go over what Tisty keeps and propose fixes** (`consolidate`) — Tisty's «dreaming», a pass that runs only when you ask for it. It looks for agent summaries left stale because their document changed, links that lead nowhere, documents doubled or out of order, and tasks whose state fell behind. It shows you what it found, numbered, with the fix it would make, and changes only what you approve. It never deletes: what is old is marked, for you to delete in one click, keep or unmark. With a word after it, like `/mcp__tisty__consolidate Kitchen`, it goes over only that folder, list or subject.
 

@@ -25,7 +25,7 @@ flowchart TD
   A[Something comes up] --> B{Will you do it,<br/>or come back to read it?}
   B -->|Do it| T[A task]
   B -->|Read it again| D[A document]
-  B -->|Not sure yet| I[An idea in<br/>Brainstorm]
+  B -->|Not sure yet| I[An idea in<br/>Ideas]
   I -->|Turn into a task| T
   I -->|File in a document| D
   T --> P[Its page: notes, steps,<br/>files, recordings]
@@ -40,7 +40,7 @@ flowchart TD
 
 Something you will do is a task. Something you will come back to is a document — a recipe is not a task with steps, and a to-do is not a document. When doing a task teaches you something you will need again beyond it — the fix for a fault that returns, how a supplier wants an order — put it in a document as well.
 
-**Before either, there is often an idea.** An idea is a thought caught on the fly, before you know whether it is something to do or something to keep: a few words, 140 at most, dated, on the Brainstorm sheet. It waits for you to sort it out: it becomes a task, goes into the document on its subject, or is set aside. A note is something else: the dated line in a task's journal.
+**Before either, there is often an idea.** An idea is a thought caught on the fly, before you know whether it is something to do or something to keep: a few words, 140 at most, dated, on the Ideas sheet. It waits for you to sort it out: it becomes a task, goes into the document on its subject, or is set aside. A note is something else: the dated line in a task's journal.
 
 How a task's page, steps and parts work is in [[Tasks]]; what a closed one keeps, in [[The archive|Archive]].
 
@@ -52,17 +52,17 @@ The first line of the document is its title — there is no name to fill in.
 
 `Ctrl`/`⌘` + `X` and `V` move a document between folders.
 
-## Brainstorm
+## Ideas
 
-An idea that comes in the middle of something else has nowhere to go yet. Press `Ctrl` + `Shift` + `Space` and then `Tab` to switch from **Task** to **Idea** (or the idea's own shortcut, once you pick one in **Settings**), type it, up to 140 characters, and press `Enter`: it lands in **Brainstorm**, dated, without opening the window or choosing a folder. **Settings** lets you pick both shortcuts; the idea's stays off until you choose it, since `Ctrl` + `Alt` is AltGr on many keyboards. Without the keyboard, the **+** at the end of the row of views opens the same capture.
+An idea that comes in the middle of something else has nowhere to go yet. Press `Ctrl` + `Shift` + `Space` and then `Tab` to switch from **Task** to **Idea** (or the idea's own shortcut, once you pick one in **Settings**), type it, up to 140 characters, and press `Enter`: it lands in **Ideas**, dated, without opening the window or choosing a folder. **Settings** lets you pick both shortcuts; the idea's stays off until you choose it, since `Ctrl` + `Alt` is AltGr on many keyboards. Without the keyboard, the **+** at the end of the row of views opens the same capture.
 
-![A quick thought, so you don't lose it: ideas of the moment as sticky notes in colours in Brainstorm, dated and written by hand, to sort out later into a task or a document](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/web/en-03-brainstorm.png)
+![A quick thought, so you don't lose it: ideas of the moment as sticky notes in colours in Ideas, dated and written by hand, to sort out later into a task or a document](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/web/en-03-brainstorm.png)
 
-- **Brainstorm is an ordinary document**, pinned at the top of the Library. The first idea makes it. You can open it, change its notes, duplicate it, archive it or delete it; its menu does not offer moving or exporting it. Each idea is written in it as a `[!IDEA]` sticky note, with its date and colour, the same note any document can hold.
+- **Ideas is an ordinary document**, pinned at the top of the Library. The first idea makes it. You can open it, change its notes, duplicate it, archive it or delete it; its menu does not offer moving or exporting it. Each idea is written in it as a `[!IDEA]` sticky note, with its date and colour, the same note any document can hold.
 - **It shows as notes stuck on a sheet**, a little crooked and in different colours, written by hand: they are ideas of the moment. The newest comes first. Click one to change it, **New idea** adds one, and the **×** takes it off. Drag a note by its edge onto another to put it in that place, or press `Alt` and an arrow on it; it stays as crooked as it was.
 - **The file is still Markdown.** Each note is an `[!IDEA]` whose first line says the day and the minute it came, and its colour, chosen when it is made and kept wherever you move it, and **Show Markdown** shows the text, only to read: an idea is plain words, so tables and diagrams belong in a document of their own. Any document with `view: notes` in its [properties](https://markdown.tisty.app/properties) shows the same way.
-- **Sort them out later**: on each note, **File in a document** adds it at the end of the document you pick, as the same sticky note with its date and colour, beside the text, and **Turn into a task** files it as a task, read like any quick capture, with its dates, lists and tags. Either way the idea leaves the sheet. The Library shows beside Brainstorm how many ideas are still waiting.
-- **Your AI agent sorts them too**: ask it and it jots ideas, files one in a document or turns it into a task, and the idea leaves the sheet as it does when you do it. One it deems old is only marked: the note wears a ◆ with the reason, **Delete it** takes it off and **Remove the mark** keeps it, and the bar above the sheet does either for all of them in one click. Brainstorm wears the ◆ in the Library too.
+- **Sort them out later**: on each note, **File in a document** adds it at the end of the document you pick, as the same sticky note with its date and colour, beside the text, and **Turn into a task** files it as a task, read like any quick capture, with its dates, lists and tags. Either way the idea leaves the sheet. The Library shows beside Ideas how many ideas are still waiting.
+- **Your AI agent sorts them too**: ask it and it jots ideas, files one in a document or turns it into a task, and the idea leaves the sheet as it does when you do it. One it deems old is only marked: the note wears a ◆ with the reason, **Delete it** takes it off and **Remove the mark** keeps it, and the bar above the sheet does either for all of them in one click. Ideas wears the ◆ in the Library too.
 
 ## Diary
 
@@ -74,7 +74,7 @@ What happened today, at home or at work, has one place: **Diary**, near the top 
 - **A day is corrected where it stands**: a click on what you wrote that day turns it into a box holding its words in Markdown. `Ctrl`/`⌘` + `Enter` or **Keep** keeps it and you stay on the line of days; `Esc` or **Cancel** leaves it as it was. The day's sticky notes stay out of the box and, once kept, follow the words in their order. Empty the box and the day keeps only its notes, or goes if it has none.
 - **A note's ×**, shown when the pointer is over it, removes it after asking you, since the diary keeps no copy.
 - **The pencil** opens the month as a document for what the line of days does not change: the month's introduction, a note's words or moving a note to another day. Going anywhere else, or choosing **Diary** again, brings back the line of days.
-- **From anywhere**: in the quick capture, `Tab` goes from **Task** to **Idea** and then to **Diary**, which writes in today without opening the window. On a Brainstorm note, **File in a document** offers **Today's diary** first.
+- **From anywhere**: in the quick capture, `Tab` goes from **Task** to **Idea** and then to **Diary**, which writes in today without opening the window. On a note in Ideas, **File in a document** offers **Today's diary** first.
 - **Tasks you finished that day** fold under what you wrote, as «3 tasks closed»; each one opens with a click. One you dropped is not listed, and a day you did not write shows none. They are only shown, never written into the text.
 - **Only you.** No agent sees your diary until you press **Only you** at its top and it reads **Open to agents**. Open, an agent reads it and, only when you ask, adds to the end of today under a line with the minute and its name. It never changes what you wrote. Press it again to keep it to yourself. The door is one for every year and for all your computers, and only Tisty 1.48 or later knows it. So **Diary** does not start your diary while any computer of yours runs an older version, and names it: update it, or remove it from your computers. Once a diary exists, a computer on an older version stops syncing before it receives any of it, and asks you to update it.
 - **It is never shared by link**: the diary has no side panel and no **Share**, and Folio refuses it. It still travels with your sync and your backups, like every document.
@@ -87,7 +87,7 @@ What you kept and never opened again comes back into view on its own. Choose **L
 - **Not opened in a while** lists the documents you did not open on this computer and nobody wrote in 60 days, the most forgotten first, with their folder and how long ago. It shows five, and **See all N** unfolds the rest. Hovering says whether it counts from the last time you opened it here or from the last time it was written.
 - **A document at random** opens one you have not opened this week.
 - **It counts what you open here**: the day you open a document is noted on this computer only and does not travel with your sync. Opening a page counts for its document, and opening one of its languages counts for all of them. There was no record before this feature, so at first it counts from the day it was written.
-- **Left out** are what is archived, what an agent marked as having had its day, which already waits for your call, the Diary, Brainstorm and Tisty's guide.
+- **Left out** are what is archived, what an agent marked as having had its day, which already waits for your call, the Diary, Ideas and Tisty's guide.
 - **With the right button** each one has its usual menu: archive it if it has served its turn.
 
 ## Folders
