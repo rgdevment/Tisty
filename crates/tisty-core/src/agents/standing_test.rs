@@ -831,6 +831,23 @@ fn a_file_is_never_taken_away_while_a_document_places_it_or_without_leave() {
 }
 
 #[test]
+fn a_loose_skill_takes_its_emptied_folder_and_nothing_else() {
+    let mut room = room();
+    let placed = room.target(
+        ".claude/skills/tidy/SKILL.md",
+        vec![doc_of("claude", Kind::Skill, "tidy/SKILL.md", b"Tidy.\n").unwrap()],
+    );
+    room.round(std::slice::from_ref(&placed));
+    std::fs::create_dir_all(room.home.path().join(".claude/skills/keep")).unwrap();
+    let mut loose = room.target(".claude/skills/tidy/SKILL.md", vec![]);
+    loose.root = room.home.path().join(".claude");
+    removed(room.data.path(), &mut room.ledger, &loose).unwrap();
+    assert!(!room.home.path().join(".claude/skills/tidy").exists());
+    assert!(room.home.path().join(".claude/skills/keep").exists());
+    assert!(room.home.path().join(".claude/skills").exists());
+}
+
+#[test]
 fn a_loose_file_behind_a_link_is_never_taken_away() {
     let mut room = room();
     let mut loose = room.target(".codex/AGENTS.md", vec![]);
@@ -846,21 +863,21 @@ fn only_tistys_import_line_leaves_the_agents_own_file() {
     let room = room();
     let target = room.target(".gemini/GEMINI.md", vec![]);
     let line = "@tisty-rules.md";
-    assert!(!leads(&target, line));
+    assert!(lacks(&target, line));
     assert_eq!(
         lead_out(room.data.path(), &room.ledger, &target, line),
         Ok(false)
     );
     std::fs::create_dir_all(target.at.parent().unwrap()).unwrap();
     std::fs::write(&target.at, "- likes tea\r\n@tisty-rules.md\r\n- and rain").unwrap();
-    assert!(leads(&target, line));
+    assert!(!lacks(&target, line));
 
     assert_eq!(
         lead_out(room.data.path(), &room.ledger, &target, line),
         Ok(true)
     );
     assert_eq!(read(&target), "- likes tea\r\n- and rain");
-    assert!(!leads(&target, line));
+    assert!(lacks(&target, line));
     assert_eq!(
         lead_out(room.data.path(), &room.ledger, &target, line),
         Ok(false)
@@ -868,6 +885,10 @@ fn only_tistys_import_line_leaves_the_agents_own_file() {
     assert_eq!(backups(room.data.path(), &target.at).len(), 1);
 
     std::fs::write(&target.at, [0xff, 0xfe]).unwrap();
+    assert!(
+        !lacks(&target, line),
+        "a file Tisty cannot read is not taken for one without it"
+    );
     assert_eq!(
         lead_out(room.data.path(), &room.ledger, &target, line),
         Err(Refused::NotText)

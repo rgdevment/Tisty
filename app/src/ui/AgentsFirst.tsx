@@ -176,9 +176,16 @@ export default function AgentsFirst({ more = false, onClose, onChanged }: Readon
         setWaiting(waiting.slice(1));
         onChanged();
       })
-      .catch((e) => setTrouble(saidPlainly(e)))
+      .catch((e) => setTrouble(typeof e === "string" ? e : saidPlainly(e)))
       .finally(() => setBusy(false));
   };
+
+  // A file the bring turned away stays asked about, with the reason in the person's words.
+  const bringOne = (at: string) =>
+    agentsBring([at]).then((done) => {
+      if (done.refused.length > 0) throw reasonSaid(done.refused[0]);
+      return done;
+    });
 
   const bring = () => {
     setBusy(true);
@@ -214,7 +221,7 @@ export default function AgentsFirst({ more = false, onClose, onChanged }: Readon
         bringable={bringable}
         onLater={() => setWaiting(waiting.slice(1))}
         onKeep={(tisty) => answered(() => agentsKeep(at, tisty))}
-        onBring={() => answered(() => agentsBring([at]))}
+        onBring={() => answered(() => bringOne(at))}
       />
     );
   }

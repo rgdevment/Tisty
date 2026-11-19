@@ -9,9 +9,9 @@ fn bring_chosen(
     here: &str,
     chosen: &[String],
 ) -> Answer<Brought> {
-    let (ledger, held) = consented_here(session, here)?;
+    let (ledger, held, writes) = consented_here(session, homes, here)?;
     let chosen: BTreeSet<String> = chosen.iter().cloned().collect();
-    let (read, refused) = read_chosen(&ledger, &found_here(homes), &chosen, &held);
+    let (read, refused) = read_chosen(&ledger, &found_here(homes), &chosen, &held, &writes);
     brought_home(session, homes, ledger, &read, refused)
 }
 
@@ -1537,4 +1537,41 @@ fn taking_away_geminis_file_of_rules_takes_its_line_too() {
     assert!(!Path::new(&room.at(".gemini/tisty-rules.md")).exists());
     assert_eq!(room.read(".gemini/GEMINI.md"), "- remembered\n");
     assert!(room.look().unled.is_empty());
+}
+
+#[test]
+fn a_loose_file_still_undecided_is_offered_to_bring_not_shown_as_in_agents() {
+    let mut room = room();
+    room.bring(&[".claude/rules/tone.md"]);
+    let file = file_brought_from(&room, "rules/tone.md");
+    moved_out(&mut room, &file);
+    let look = room.look();
+    assert_eq!(look.loose.len(), 1);
+    let claude = look
+        .assistants
+        .into_iter()
+        .find(|one| one.id == "claude")
+        .unwrap();
+    let tone = claude
+        .files
+        .iter()
+        .find(|one| one.name == "rules/tone.md")
+        .unwrap();
+    assert!(!tone.held, "no document in AGENTS holds it any more");
+}
+
+#[test]
+fn a_line_an_earlier_build_put_in_and_the_person_took_out_stays_out() {
+    let (room, _) = gemini_room();
+    let data = room.session.paths.data();
+    let gemini = Path::new(&room.at(".gemini/GEMINI.md")).to_path_buf();
+    let mut ledger = Ledger::open(data, HERE);
+    let mut earlier = serde_json::to_value(&ledger).unwrap();
+    earlier.as_object_mut().unwrap().remove("led");
+    ledger = serde_json::from_value(earlier).unwrap();
+    assert!(!ledger.led(&gemini) && ledger.written(&gemini).is_some());
+    put(&gemini, "- remembered\n");
+    let told = round_now(&room.session, &room.homes, &mut ledger);
+    assert_eq!(room.read(".gemini/GEMINI.md"), "- remembered\n");
+    assert_eq!(told.unled, ["gemini"]);
 }

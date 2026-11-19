@@ -17,7 +17,7 @@ pub use proposal::{PROPOSAL_AT_MOST, PROPOSAL_LINES_AT_MOST, Unfit, proposable};
 pub use rooted::{FOLDER, ICON, holds, holds_folder, root_of, tree};
 pub use shown::{Shown, shown};
 pub use standing::{
-    Standing, Target, adopted, bring, lead_in, lead_out, leads, overwrite, removed, restore, round,
+    Standing, Target, adopted, bring, lacks, lead_in, lead_out, overwrite, removed, restore, round,
     standing, wanted,
 };
 

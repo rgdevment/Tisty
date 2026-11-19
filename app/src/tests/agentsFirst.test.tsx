@@ -342,6 +342,36 @@ describe("bringing another file after the first time", () => {
   });
 });
 
+describe("a main file the bring turns away", () => {
+  it("keeps asking and says why it did not come in", async () => {
+    const composed: Both = {
+      ...both,
+      at: "/h/.codex/AGENTS.md",
+      assistant: "codex",
+      composed: true,
+    };
+    ipc.answer = (cmd) => {
+      if (cmd === "agents_look")
+        return Promise.resolve({
+          ...look,
+          folder: "f",
+          docs: 2,
+          consented: true,
+          both: [composed],
+        });
+      if (cmd === "agents_bring")
+        return Promise.resolve(
+          brought({ made: 0, refused: [{ at: composed.at, why: "token", reason: "secret" }] }),
+        );
+      return Promise.resolve({ told: [], both: [], loose: [], unled: [] });
+    };
+    render(<AgentsFirst onClose={() => {}} onChanged={() => {}} />);
+    await userEvent.click(await screen.findByRole("button", { name: "Traer a AGENTS" }));
+    await screen.findByText(/Parece llevar una credencial/);
+    expect(screen.getByText("Existe en los dos lados")).toBeTruthy();
+  });
+});
+
 describe("what waits for the person after a rule leaves", () => {
   const loose = { at: "/h/.claude/rules/tone.md", assistant: "claude", changed: true };
   const waiting = (more: Partial<AgentsLook>): AgentsLook => ({

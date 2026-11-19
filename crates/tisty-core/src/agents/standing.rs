@@ -400,10 +400,20 @@ pub fn removed(data: &Path, ledger: &mut Ledger, target: &Target) -> Result<(), 
     if let Some(was) = on_disk(&target.at)? {
         kept::keep(data, &target.at, &was)?;
         std::fs::remove_file(&target.at)?;
+        emptied_up(target);
     }
     ledger.forget(&target.at);
     kept_ledger(data, ledger);
     Ok(())
+}
+
+// A skill's folder left with nothing in it would still be listed by the assistant.
+fn emptied_up(target: &Target) {
+    for up in target.at.ancestors().skip(1) {
+        if up == target.root || !up.starts_with(&target.root) || std::fs::remove_dir(up).is_err() {
+            return;
+        }
+    }
 }
 
 pub fn bring(ledger: &Ledger, target: &Target, piece: usize) -> Result<String, Refused> {
@@ -479,13 +489,18 @@ pub fn lead_in(data: &Path, ledger: &Ledger, target: &Target, line: &str) -> Res
     Ok(true)
 }
 
-pub fn leads(target: &Target, line: &str) -> bool {
-    !linked(target)
-        && on_disk(&target.at)
-            .ok()
-            .flatten()
-            .and_then(|was| String::from_utf8(was).ok())
-            .is_some_and(|text| text.lines().any(|one| one.trim() == line))
+// A file Tisty cannot read is never taken for one the person emptied of the line.
+pub fn lacks(target: &Target, line: &str) -> bool {
+    if linked(target) {
+        return false;
+    }
+    match on_disk(&target.at) {
+        Ok(None) => true,
+        Ok(Some(was)) => {
+            std::str::from_utf8(&was).is_ok_and(|text| !text.lines().any(|one| one.trim() == line))
+        }
+        Err(_) => false,
+    }
 }
 
 // Only the line Tisty put there leaves; whatever the agent wrote around it stays.

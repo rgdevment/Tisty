@@ -345,7 +345,6 @@ pub fn targets(homes: &Homes, gate: &Gate, ledger: &Ledger) -> Vec<Placed> {
     all
 }
 
-/// The assistant that answers for a file Tisty wrote, and the folder it may write in.
 pub fn owner_of(homes: &Homes, at: &Path) -> Option<(&'static str, PathBuf)> {
     let detected = homes.detected();
     if at.starts_with(homes.shared()) {
@@ -370,7 +369,7 @@ pub fn agents_own(homes: &Homes, at: &Path) -> bool {
     gemini || claude
 }
 
-/// The file that names a file of Tisty's rules, for the assistant that reads them only through it.
+// Gemini reads Tisty's rules only through the line in its own file.
 pub fn lead_of(rules: &Target) -> Option<Target> {
     (rules.assistant == "gemini" && rules.at == rules.root.join(GEMINI_RULES)).then(|| {
         let mut lead = rules.clone();

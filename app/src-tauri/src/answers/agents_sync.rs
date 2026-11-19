@@ -133,7 +133,6 @@ pub struct Look {
     pub assistants: Vec<Shown>,
     pub both: Vec<Both>,
     pub loose: Vec<Loose>,
-    /// Assistants paused because the person took Tisty's line out of the file that names its rules.
     pub unled: Vec<String>,
 }
 
@@ -193,9 +192,17 @@ fn waiting_here(seen: &Gathered, homes: &Homes) -> usize {
         .count()
 }
 
-// A file Tisty already writes would come back in with Tisty's own words inside it.
-fn tisty_writes(ledger: &Ledger, one: &Found) -> bool {
-    one.kind != Kind::Memory && ledger.written(&one.at).is_some()
+// A file Tisty writes now would come back in with Tisty's own words inside it.
+fn written_now(ledger: &Ledger, placed: &[Placed]) -> BTreeSet<PathBuf> {
+    placed
+        .iter()
+        .filter(|one| ledger.written(&one.target.at).is_some())
+        .map(|one| one.target.at.clone())
+        .collect()
+}
+
+fn known(held: &BTreeSet<String>, writes: &BTreeSet<PathBuf>, one: &Found) -> bool {
+    held.contains(&address_of(one)) || (one.kind != Kind::Memory && writes.contains(&one.at))
 }
 
 /// Names and sizes only: no agent file is opened before the person says yes.
@@ -210,6 +217,7 @@ pub fn looked(seen: &Gathered, homes: &Homes, found: &[Found]) -> Look {
         .map(|(one, _)| one)
         .collect();
     let unled = unled_in(ledger, &placed);
+    let writes = written_now(ledger, &placed);
     let assistants = homes
         .detected()
         .into_iter()
@@ -225,7 +233,7 @@ pub fn looked(seen: &Gathered, homes: &Homes, found: &[Found]) -> Look {
                     name: seen.name.clone(),
                     kind: seen.kind.word(),
                     skip: seen.skip.map(skip_word),
-                    held: held.contains(&address_of(seen)) || tisty_writes(ledger, seen),
+                    held: known(&held, &writes, seen),
                 })
                 .collect(),
         })
@@ -252,7 +260,6 @@ pub fn looked(seen: &Gathered, homes: &Homes, found: &[Found]) -> Look {
 pub struct Loose {
     pub at: String,
     pub assistant: String,
-    /// The file no longer holds what Tisty last wrote there.
     pub changed: bool,
 }
 
@@ -274,7 +281,6 @@ fn frees(homes: &Homes, gate: &Gate, at: &Path, file: &str) -> Option<bool> {
     }
 }
 
-/// Files this computer wrote that no approved document places any more, and nothing held keeps.
 pub(crate) fn loose_in(
     homes: &Homes,
     gate: &Gate,
@@ -328,7 +334,7 @@ pub(crate) fn unled(ledger: &Ledger, lead: &Target) -> bool {
     ledger.consented()
         && ledger.syncs(&lead.assistant)
         && ledger.led(&lead.at)
-        && !agents::leads(lead, &places::lead_in_line())
+        && agents::lacks(lead, &places::lead_in_line())
 }
 
 fn unled_in(ledger: &Ledger, placed: &[Placed]) -> Vec<String> {
@@ -516,16 +522,55 @@ fn led_in(
 }
 
 pub(crate) fn round_now(session: &Session, homes: &Homes, ledger: &mut Ledger) -> Rounded {
+    round_after(session, homes, ledger, &[])
+}
+
+// An earlier build marked no line; it settled the agent's own file only once it had put its line in, unless that file is a memory document here.
+fn marked_led(data: &Path, ledger: &mut Ledger, placed: &[Placed]) {
+    let mut marked = false;
+    for lead in placed.iter().filter_map(|one| one.lead_in.as_ref()) {
+        let remembered = placed.iter().any(|one| one.target.at == lead.at);
+        if !ledger.led(&lead.at) && !remembered && ledger.written(&lead.at).is_some() {
+            ledger.lead(&lead.at);
+            marked = true;
+        }
+    }
+    if marked {
+        let _ = ledger.keep(data);
+    }
+}
+
+// Files just brought are taken as they stand before the round, so what joins them is written over them with a backup.
+fn round_after(
+    session: &Session,
+    homes: &Homes,
+    ledger: &mut Ledger,
+    brought: &[(String, PathBuf)],
+) -> Rounded {
+    let data = session.paths.data();
     let gate = gated(session, ledger);
     if ledger.taken_all(gate.admitted().iter().map(agents::Admitted::file)) {
         let _ = ledger.keep(session.paths.data());
     }
     let placed = places::targets(homes, &gate, ledger);
+    let mut adopted = false;
+    for (file, at) in brought {
+        if let Some(one) = placed.iter().find(|one| one.target.at == *at) {
+            adopted |= agents::adopted(ledger, &one.target, file);
+        }
+    }
+    if adopted {
+        let _ = ledger.keep(data);
+    }
+    marked_led(data, ledger, &placed);
+    let loose = loose_in(homes, &gate, ledger, &placed)
+        .into_iter()
+        .map(|(one, _)| one)
+        .collect();
     let (paused, going): (Vec<Placed>, Vec<Placed>) = placed
-        .iter()
-        .cloned()
+        .into_iter()
         .partition(|one| one.lead_in.as_ref().is_some_and(|lead| unled(ledger, lead)));
-    let mut out = rounded(session.paths.data(), ledger, &going);
+    let mut out = rounded(data, ledger, &going);
     out.told.extend(paused.iter().map(|one| Told {
         at: one.target.at.to_string_lossy().into_owned(),
         assistant: one.target.assistant.clone(),
@@ -536,10 +581,7 @@ pub(crate) fn round_now(session: &Session, homes: &Homes, ledger: &mut Ledger) -
         .iter()
         .map(|one| one.target.assistant.clone())
         .collect();
-    out.loose = loose_in(homes, &gate, ledger, &placed)
-        .into_iter()
-        .map(|(one, _)| one)
-        .collect();
+    out.loose = loose;
     out
 }
 
@@ -605,12 +647,13 @@ pub fn read_chosen(
     found: &[Found],
     chosen: &BTreeSet<String>,
     held: &BTreeSet<String>,
+    writes: &BTreeSet<PathBuf>,
 ) -> (Vec<(Found, String)>, Vec<Turned>) {
     let mut bodies = Vec::new();
     let mut refused = Vec::new();
     for one in found {
         let at = one.at.to_string_lossy().into_owned();
-        if !chosen.contains(&at) || held.contains(&address_of(one)) || tisty_writes(ledger, one) {
+        if !chosen.contains(&at) || known(held, writes, one) {
             continue;
         }
         match agents::brought_in(ledger, one) {
@@ -629,7 +672,6 @@ fn sub_name(level: &str) -> &'static str {
     places::assistant(level).map_or(GLOBAL_FOLDER, |one| one.name)
 }
 
-/// Each document made, with the file it was brought from.
 pub fn filed(session: &mut Session, bodies: &[(Found, String)]) -> Answer<Vec<(String, PathBuf)>> {
     if bodies.is_empty() && root_of(&session.state).is_some() {
         return Ok(Vec::new());
@@ -740,12 +782,15 @@ fn undone(docs: &Path, made: &[(String, PathBuf)], why: tisty_core::Error) -> Re
     Refusal::about("cannotWrite", why.to_string())
 }
 
-pub fn consented_here(session: &Session, here: &str) -> Answer<(Ledger, BTreeSet<String>)> {
+type Known = (Ledger, BTreeSet<String>, BTreeSet<PathBuf>);
+
+pub fn consented_here(session: &Session, homes: &Homes, here: &str) -> Answer<Known> {
     let mut ledger = Ledger::open(session.paths.data(), here);
     ledger.consent(true);
     ledger.keep(session.paths.data()).map_err(refused)?;
     let gate = gated(session, &ledger);
-    Ok((ledger, addresses(&bodies(session), &gate)))
+    let writes = written_now(&ledger, &places::targets(homes, &gate, &ledger));
+    Ok((ledger, addresses(&bodies(session), &gate), writes))
 }
 
 pub fn brought_home(
@@ -756,17 +801,7 @@ pub fn brought_home(
     refused: Vec<Turned>,
 ) -> Answer<Brought> {
     let made = filed(session, read)?;
-    let placed = places::targets(homes, &gated(session, &ledger), &ledger);
-    let mut adopted = false;
-    for (file, at) in &made {
-        if let Some(one) = placed.iter().find(|one| one.target.at == *at) {
-            adopted |= agents::adopted(&mut ledger, &one.target, file);
-        }
-    }
-    if adopted {
-        ledger.keep(session.paths.data()).map_err(self::refused)?;
-    }
-    let round = round_now(session, homes, &mut ledger);
+    let round = round_after(session, homes, &mut ledger, &made);
     Ok(Brought {
         made: made.len(),
         refused,
@@ -853,7 +888,6 @@ pub fn turned(
     })
 }
 
-/// The person's answer for a file no document places: take it away, with a backup, or leave it be.
 pub fn loosened(
     session: &Session,
     homes: &Homes,
@@ -924,9 +958,9 @@ pub fn agents_bring(
     chosen: Vec<String>,
 ) -> Answer<Brought> {
     let homes = homes()?;
-    let (ledger, known) = consented_here(&held(&session), &here())?;
+    let (ledger, known, writes) = consented_here(&held(&session), &homes, &here())?;
     let chosen: BTreeSet<String> = chosen.into_iter().collect();
-    let (read, refused) = read_chosen(&ledger, &found_here(&homes), &chosen, &known);
+    let (read, refused) = read_chosen(&ledger, &found_here(&homes), &chosen, &known, &writes);
     brought_home(&mut held(&session), &homes, ledger, &read, refused)
 }
 
