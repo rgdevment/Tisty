@@ -588,9 +588,9 @@
       "Link:network.png",
       "Link:network-near.png",
       "Link:tisty:agent",
+      "Link:https://www.tisty.app/docs/brainsty-network/",
       "Link:https://www.tisty.app/docs/linking-documents/",
-      "Link:https://www.tisty.app/docs/tasks-in-documents/",
-      "Link:https://www.tisty.app/docs/brainsty-network/"
+      "Link:https://www.tisty.app/docs/tasks-in-documents/"
     ]
   },
   {
@@ -740,9 +740,9 @@
       "Link:red.png",
       "Link:red-cerca.png",
       "Link:tisty:agent",
+      "Link:https://www.tisty.app/es/ayuda/red-de-brainsty/",
       "Link:https://www.tisty.app/es/ayuda/enlazar-documentos/",
-      "Link:https://www.tisty.app/es/ayuda/tareas-en-documentos/",
-      "Link:https://www.tisty.app/es/ayuda/red-de-brainsty/"
+      "Link:https://www.tisty.app/es/ayuda/tareas-en-documentos/"
     ]
   },
   {

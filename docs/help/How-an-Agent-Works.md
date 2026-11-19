@@ -186,7 +186,7 @@ At the end of the session, `brain` with `part_of` already shows «Confirmation w
 - **On the task's page**, the **State** section with the date and the agent, and in the notes the links to «Payments: decisions» and «Daily reconciliation».
 - **In the document**, «Gateway: integration notes» shows the card of the part the agent cited.
 - **In Linked from**, «Payments: decisions» now names the task.
-- **In the Brainsty network**, the new lines show up a few seconds later.
+- **In the Brainsty network**, the new lines reach the base a few seconds later, and you see them the next time you open the network.
 - **Nothing closes without you.** When the agent says a task is done, it waits in **To confirm**.
 
 ## The tools that moved into `brain` and `read`

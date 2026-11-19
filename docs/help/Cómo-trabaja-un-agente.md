@@ -189,7 +189,7 @@ Al final de la sesión, `brain` con `part_of` ya muestra «Webhook de confirmaci
 - **En la página de la tarea**, la sección **Estado** con la fecha y el agente, y en las notas los enlaces a «Pagos: decisiones» y a «Conciliación diaria».
 - **En el documento**, «Pasarela: notas de integración» muestra la tarjeta de la parte que el agente citó.
 - **En Enlazado desde**, «Pagos: decisiones» ahora nombra la tarea.
-- **En la red de Brainsty**, las nuevas líneas aparecen a los pocos segundos.
+- **En la red de Brainsty**, las nuevas líneas entran a la base a los pocos segundos, y las ves la próxima vez que abres la red.
 - **Nada se cierra sin ti.** Cuando el agente dice que una tarea está hecha, espera en **Por confirmar**.
 
 ## Las herramientas que pasaron a `brain` y a `read`
