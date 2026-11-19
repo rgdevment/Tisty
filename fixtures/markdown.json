@@ -532,6 +532,7 @@
       "shopping"
     ],
     "refs": [
+      "Link:tisty:brainsty",
       "Link:tisty:agent",
       "Link:capture.png",
       "Link:https://www.tisty.app/docs/natural-language/",
@@ -574,6 +575,24 @@
     ]
   },
   {
+    "name": "guide-brainsty-en",
+    "file": "app/src-tauri/resources/guide/en/brainsty.md",
+    "falls_short": "drops the final newline",
+    "title": "Brainsty: everything joined",
+    "tags": [],
+    "refs": [
+      "Link:linking.png",
+      "Link:tisty:page",
+      "Link:card.png",
+      "Link:network.png",
+      "Link:network-near.png",
+      "Link:tisty:agent",
+      "Link:https://www.tisty.app/docs/linking-documents/",
+      "Link:https://www.tisty.app/docs/tasks-in-documents/",
+      "Link:https://www.tisty.app/docs/brainsty-network/"
+    ]
+  },
+  {
     "name": "guide-agent-en",
     "file": "app/src-tauri/resources/guide/en/agent.md",
     "falls_short": "drops the final newline",
@@ -582,6 +601,8 @@
     "refs": [
       "Link:https://www.tisty.app/docs/assistants-and-mcp/",
       "Link:https://www.tisty.app/docs/privacy/",
+      "Link:state.png",
+      "Link:https://www.tisty.app/docs/how-an-agent-works/",
       "Link:https://www.tisty.app/docs/mcp-permissions/",
       "Link:https://www.tisty.app/docs/mcp-tools/"
     ]
@@ -612,6 +633,8 @@
       "Link:https://example.com/park",
       "Link:https://example.com/vet",
       "Link:tisty:page",
+      "Link:tisty:guide",
+      "Link:tisty:brainsty",
       "Doc:#3",
       "Link:hill.jpg",
       "Doc:October walks",
@@ -625,7 +648,6 @@
       "Link:walk.mp4",
       "Link:walks.csv",
       "Link:walks.html",
-      "Link:tisty:guide",
       "Link:tisty:task/01JC4M7Q3B8YH2A9K6TN5VXZRE",
       "Link:https://github.com/rgdevment/Tisty"
     ]
@@ -641,6 +663,7 @@
       "compras"
     ],
     "refs": [
+      "Link:tisty:brainsty",
       "Link:tisty:agent",
       "Link:captura.png",
       "Link:https://www.tisty.app/es/ayuda/lenguaje-natural/",
@@ -683,6 +706,24 @@
     ]
   },
   {
+    "name": "guide-brainsty-es",
+    "file": "app/src-tauri/resources/guide/es/brainsty.md",
+    "falls_short": "drops the final newline",
+    "title": "Brainsty: todo unido",
+    "tags": [],
+    "refs": [
+      "Link:enlazar.png",
+      "Link:tisty:page",
+      "Link:tarjeta.png",
+      "Link:red.png",
+      "Link:red-cerca.png",
+      "Link:tisty:agent",
+      "Link:https://www.tisty.app/es/ayuda/enlazar-documentos/",
+      "Link:https://www.tisty.app/es/ayuda/tareas-en-documentos/",
+      "Link:https://www.tisty.app/es/ayuda/red-de-brainsty/"
+    ]
+  },
+  {
     "name": "guide-agent-es",
     "file": "app/src-tauri/resources/guide/es/agentes.md",
     "falls_short": "drops the final newline",
@@ -691,6 +732,8 @@
     "refs": [
       "Link:https://www.tisty.app/es/ayuda/asistentes-y-mcp/",
       "Link:https://www.tisty.app/es/ayuda/privacidad/",
+      "Link:estado.png",
+      "Link:https://www.tisty.app/es/ayuda/como-trabaja-un-agente/",
       "Link:https://www.tisty.app/es/ayuda/que-puede-hacer-un-asistente/",
       "Link:https://www.tisty.app/es/ayuda/herramientas-mcp/"
     ]
@@ -721,6 +764,8 @@
       "Link:https://example.com/parque",
       "Link:https://example.com/vet",
       "Link:tisty:page",
+      "Link:tisty:guide",
+      "Link:tisty:brainsty",
       "Doc:#3",
       "Link:hill.jpg",
       "Link:https://example.com/veterinaria",
@@ -735,7 +780,6 @@
       "Link:walk.mp4",
       "Link:paseos.csv",
       "Link:paseos.html",
-      "Link:tisty:guide",
       "Link:tisty:task/01JC4M7Q3B8YH2A9K6TN5VXZRE",
       "Link:https://github.com/rgdevment/Tisty"
     ]

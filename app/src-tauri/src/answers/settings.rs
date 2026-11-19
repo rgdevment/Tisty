@@ -26,6 +26,16 @@ pub const ATTACHED: &[&str] = &[
     "brainstorm.png",
     "archivo.png",
     "archive.png",
+    "enlazar.png",
+    "linking.png",
+    "tarjeta.png",
+    "card.png",
+    "red.png",
+    "network.png",
+    "red-cerca.png",
+    "network-near.png",
+    "estado.png",
+    "state.png",
 ];
 
 pub const GUIDE_COVER: &str = "tisty:guide";
@@ -38,6 +48,10 @@ pub const GUIDE_PAGES_ES: &[(&str, &str)] = &[
     (
         "tisty:code",
         include_str!("../../resources/guide/es/codigo.md"),
+    ),
+    (
+        "tisty:brainsty",
+        include_str!("../../resources/guide/es/brainsty.md"),
     ),
     (
         "tisty:page",
@@ -57,6 +71,10 @@ pub const GUIDE_PAGES_EN: &[(&str, &str)] = &[
     (
         "tisty:code",
         include_str!("../../resources/guide/en/code.md"),
+    ),
+    (
+        "tisty:brainsty",
+        include_str!("../../resources/guide/en/brainsty.md"),
     ),
     (
         "tisty:page",

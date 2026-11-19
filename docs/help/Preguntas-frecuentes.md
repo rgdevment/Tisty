@@ -87,6 +87,12 @@ En lo larga que se dibuja la raya bajo el encabezado. Mira [tablas](https://mark
 **¿Puedo volver a lo que decía un documento hace unos días?**
 Sí, en el equipo donde se cambió: **Ver el historial**, en la fila **Historial** del panel junto al documento, lista sus versiones anteriores, **Qué cambió** te muestra en rojo y verde qué es distinto de lo de ahora, y **Volver a esta versión** la recupera. Se guardan 30 días por defecto y no se sincronizan. Mira [Documentos](Documentos#versiones-anteriores).
 
+**¿En qué se diferencia la red de Brainsty del grafo de Obsidian?**
+El grafo de Obsidian muestra enlaces entre notas. Brainsty une documentos y tareas, con el estado de cada tarea y su historia, y la misma red le sirve a tu agente como índice para buscar sin leerlo todo. Solo une lo que está escrito: enlaces, tarjetas, páginas, partes, de dónde nació una tarea y etiquetas. Mira [[La red de Brainsty|Red-de-Brainsty]].
+
+**¿Brainsty sube algo a la nube?**
+No. La red se calcula en cada equipo y se rehace sola: no se sincroniza, ni va a Folio, a un `.tistyx` o a una exportación. Lo que viaja son tus documentos y tareas, como siempre.
+
 ## Sincronización
 
 **¿Puedo usarlo en dos equipos?**

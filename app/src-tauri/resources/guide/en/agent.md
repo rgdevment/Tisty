@@ -32,6 +32,14 @@ An agent deep in code forgets about Tisty. Two things help, and you can turn bot
 - **Ask it to keep its task up to date**: if it keeps working and the task it opened has gone ten minutes without a word from it, or while it writes three other things, Tisty's next answer asks it once to tick what it did and, if it finished, to say so with the proof. It reaches every assistant, though only when it calls Tisty.
 - **The hooks**: in Claude Code, Cursor, Gemini CLI and GitHub Copilot, **Add**, under the row of the connected assistant, tells you which file it will write and puts Tisty's hooks there. From its next session on, and while the door is open, every session starts with the last open tasks your agents wrote in, what moved and what is pressing, even if the agent never calls Tisty; and if a turn edited files without writing anything in Tisty, it hands the turn back once so it ticks what it finished. **Remove**, beside the hooks, takes them out, and **Remind it when a turn starts and ends** turns them off without taking them out.
 
+## What it reads: Brainsty
+
+Your agent does not read everything you keep: it walks it. With a single tool, `brain`, it finds tasks and documents by their words, the Archive beside the rest and first what holds those words in its title. It asks for a document's card (its sections with their lines, who cites it and its decisions in force first) and then, with `read`, reads only the section it needs, or only what you highlighted or set in bold. If it reads again something that did not change, Tisty tells it only that, without sending the text again. And it sees a whole project grouped as blocked, under way, waiting for you and not started: a part whose state starts with «Blocked:» counts as blocked.
+
+![The page of «Confirmation webhook» with its State section, signed by Claude Code: what is done, what is left, the decisions in force and what was ruled out](state.png)
+
+When it picks a task up, the first thing it gets is its **State**, the one you see above, and only the notes written after it. If the steps changed or notes arrived after the state, Tisty tells it the state is old. Every call, with an excerpt of what Tisty answers, is in [how an agent works](https://www.tisty.app/docs/how-an-agent-works/).
+
 ## What it can do
 
 - Propose tasks with their steps, their parts and their date, set a reminder on them and note in their journal.

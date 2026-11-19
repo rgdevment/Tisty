@@ -127,7 +127,7 @@ Cuando un paso necesita más, pasa el puntero sobre su casilla abierta y pulsa *
 - Junto a la página, **Partes** recibe una nueva en su propia línea, y **Es parte de otra…** busca por nombre la tarea a la que pertenece. **Soltarla** la separa.
 - El trayecto de las dos cuenta cuándo se sumó una parte y cuándo se soltó.
 - Cerrar una tarea con partes abiertas te pide soltarlas en el mismo gesto, y deshacer las devuelve.
-- Junto a la página, **Enlazado desde** dice qué documentos y qué otras tareas citan o mencionan esta.
+- Junto a la página, **Enlazado desde** dice qué documentos y qué otras tareas citan o mencionan esta. Mira [[Tareas en documentos|Tareas-en-documentos]].
 - Una tarea creada desde un documento, o desde una idea de la Lluvia de ideas, muestra junto a su página **Nació en**: un clic abre ese documento.
 
 ## Desde un calendario

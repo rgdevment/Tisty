@@ -79,6 +79,15 @@ Los documentos son un cuaderno Markdown junto a las tareas: avisos, tablas, diag
 - [[Widgets|Widgets-en-documentos]]: una vista fija de HTML y CSS dentro de un documento, y cómo abrirla aparte.
 - [Guía de Markdown de Tisty ↗](https://markdown.tisty.app/es/): cada marca que puede llevar un documento, con sus ejemplos dibujados.
 
+## Brainsty: todo unido
+
+Lo que guardas ya estaba unido: un documento cita otro, una tarea nació de un acta, un libro tiene páginas. Brainsty hace que esas uniones se escriban en un gesto, se vean como una sola red y le sirvan a tu agente como un índice que recorre sin leerlo todo.
+
+- [[Enlazar documentos|Enlazar-documentos]]: `[[` para enlazar un documento o una de sus secciones, la vista previa y **Enlazado desde**.
+- [[Tareas en documentos|Tareas-en-documentos]]: citar una tarea como tarjeta viva, crear una con `/` sin salir del documento y **Nació en**.
+- [[La red de Brainsty|Red-de-Brainsty]]: todo lo que guardas dibujado como una red, de lejos y de cerca, con su buscador, sus filtros y el teclado.
+- [[Cómo trabaja un agente|Cómo-trabaja-un-agente]]: una sesión real, llamada por llamada: `brain`, el estado de una tarea, las preguntas de Tisty y los hooks.
+
 ## Tus datos
 
 - [[Sincronizar y respaldar|Sincronizar-y-respaldar]]: dos equipos a través de una carpeta que ya sincronizas, o directamente con tu Google Drive, tu OneDrive o tu servidor WebDAV, con lo que guardas ahí cifrado si quieres.
