@@ -5895,6 +5895,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "tisty-meaning"
+version = "0.1.0"
+dependencies = [
+ "regex-syntax",
+ "serde_json",
+ "unicode-normalization",
+]
+
+[[package]]
 name = "tisty-nl"
 version = "0.1.0"
 dependencies = [
