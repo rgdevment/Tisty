@@ -107,7 +107,8 @@
       "binaries/tisty"
     ],
     "resources": [
-      "resources/guide/**/*"
+      "resources/guide/**/*",
+      "resources/brain/*"
     ]
   }
 }

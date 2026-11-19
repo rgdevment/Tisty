@@ -1,5 +1,6 @@
 use std::collections::HashSet;
 
+use super::super::meant::Meant;
 use super::*;
 
 fn caps() -> Caps {
@@ -27,6 +28,7 @@ fn spoken(lang: Option<&str>, words: &[&str]) -> Item {
         lang: lang.map(str::to_string),
         kin: Vec::new(),
         words: counted(&words.iter().map(|one| (*one, 1)).collect::<Vec<_>>()),
+        meant: None,
     }
 }
 
@@ -237,11 +239,13 @@ fn the_why_names_the_heaviest_words_as_first_written() {
             .iter()
             .map(|(key, written, count)| (key.to_string(), written.to_string(), *count))
             .collect(),
+        meant: None,
     };
     let other = Item {
         lang: None,
         kin: Vec::new(),
         words: one.words.clone(),
+        meant: None,
     };
     let items = with_fillers(vec![one, other], 4);
     let told = Caps { told: 2, ..caps() };
@@ -261,4 +265,66 @@ fn a_node_with_no_words_breaks_nothing() {
     );
     assert_eq!(drawn(&items, &caps()), [(1, 2)]);
     assert!(alike(&[], &HashSet::new(), &caps()).pairs.is_empty());
+}
+
+fn meant(words: &[&str], vector: &[f32]) -> Item {
+    Item {
+        meant: Some(Meant::of(vector)),
+        ..item(words)
+    }
+}
+
+#[test]
+fn words_are_kept_first_and_meaning_fills_what_room_is_left() {
+    let mut items = with_fillers(
+        vec![
+            meant(&["budget", "family"], &[1.0, 0.0]),
+            meant(&["budget", "family"], &[1.0, 0.01]),
+            meant(&["router", "night"], &[0.0, 1.0]),
+            meant(&["modem", "reboot"], &[0.02, 1.0]),
+        ],
+        6,
+    );
+    for (n, one) in items.iter_mut().enumerate().skip(4) {
+        let angle = n as f32;
+        one.meant = Some(Meant::of(&[angle.cos() * 0.1, -angle.sin()]));
+    }
+    let loose = Caps {
+        standout: 0.5,
+        ..caps()
+    };
+    let found = alike(&items, &HashSet::new(), &loose);
+    let by = |method: Method| -> Vec<(usize, usize)> {
+        found
+            .pairs
+            .iter()
+            .filter(|one| one.method == method)
+            .map(|one| (one.a, one.b))
+            .collect()
+    };
+    assert_eq!(
+        by(Method::Words),
+        [(0, 1)],
+        "a pair both find is kept once, by words"
+    );
+    assert!(by(Method::Meaning).contains(&(2, 3)));
+    assert!(!by(Method::Meaning).contains(&(0, 1)));
+    assert!(found.compared > 0);
+    assert_eq!(Method::Meaning.as_str(), "meaning");
+}
+
+#[test]
+fn a_node_holds_three_at_most_whichever_way_they_were_found() {
+    let words: Vec<Item> = (0..5).map(|_| item(&["budget", "family"])).collect();
+    let mut items = with_fillers(words, 6);
+    for one in items.iter_mut().take(5) {
+        one.meant = Some(Meant::of(&[1.0, 0.0]));
+    }
+    let found = alike(&items, &HashSet::new(), &caps());
+    let mut held = vec![0; items.len()];
+    for one in &found.pairs {
+        held[one.a] += 1;
+        held[one.b] += 1;
+    }
+    assert!(held.iter().all(|one| *one <= 3));
 }
