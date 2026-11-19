@@ -856,6 +856,20 @@ fn a_loose_skill_takes_its_emptied_folder_and_nothing_else() {
     loose.root = room.home.path().join(".claude");
     removed(room.data.path(), &mut room.ledger, &loose).unwrap();
     assert!(room.home.path().join(".claude/rules").is_dir());
+
+    let alone = room.target(
+        ".codex/AGENTS.md",
+        vec![rule("codex", "AGENTS.md", "Only.\n")],
+    );
+    room.round(std::slice::from_ref(&alone));
+    let mut loose = room.target(".codex/AGENTS.md", vec![]);
+    loose.root = room.home.path().join(".codex");
+    removed(room.data.path(), &mut room.ledger, &loose).unwrap();
+    assert!(!loose.at.exists());
+    assert!(
+        room.home.path().join(".codex").is_dir(),
+        "the assistant's folder stays even when emptied"
+    );
 }
 
 #[test]

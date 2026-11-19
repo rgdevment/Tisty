@@ -410,7 +410,7 @@ pub fn removed(data: &Path, ledger: &mut Ledger, target: &Target) -> Result<(), 
 // A skill's folder left with nothing in it would still be listed; the assistant's own folders, such as `rules`, stay.
 fn emptied_up(target: &Target) {
     for up in target.at.ancestors().skip(1) {
-        let own = up.parent().is_none_or(|parent| parent == target.root);
+        let own = up == target.root || up.parent().is_none_or(|parent| parent == target.root);
         if own || !up.starts_with(&target.root) || std::fs::remove_dir(up).is_err() {
             return;
         }
