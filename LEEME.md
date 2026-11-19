@@ -475,10 +475,10 @@ conserves. Cada herramienta se describe en
   `catch_up`
 - **Cómo trabajar aquí** — `rules`, `language`, `help`
 
-Además de las herramientas, ofrece siete pedidos listos que tu asistente
+Además de las herramientas, ofrece ocho pedidos listos que tu asistente
 muestra como comandos (`pick_up`, `leave_off`, `plan_task`, `solved_before`,
-`keep_decision`, `brainstorm`, `sort_ideas`), y tus documentos para
-mencionar con `@`, uno largo como su índice.
+`keep_decision`, `brainstorm`, `sort_ideas`, `consolidate`), y tus
+documentos para mencionar con `@`, uno largo como su índice.
 
 ## Por qué lo hice
 

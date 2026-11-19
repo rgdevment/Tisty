@@ -459,10 +459,10 @@ document for you to delete, put away or keep. Each tool is described in
   parts, lists, folders and tags: `brain`, `catch_up`
 - **How to work here** — `rules`, `language`, `help`
 
-Beside the tools, it offers seven ready-made requests your assistant shows as
+Beside the tools, it offers eight ready-made requests your assistant shows as
 commands (`pick_up`, `leave_off`, `plan_task`, `solved_before`,
-`keep_decision`, `brainstorm`, `sort_ideas`), and your documents to mention
-with `@`, a long one as its outline.
+`keep_decision`, `brainstorm`, `sort_ideas`, `consolidate`), and your
+documents to mention with `@`, a long one as its outline.
 
 ## Why I Built This
 

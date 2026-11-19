@@ -124,7 +124,7 @@ The full rules are in [[What an assistant may do|MCP-Permissions]], and every to
 
 The memory and context Tisty keeps for your agent is one command or one `@` away, with no tool names to learn.
 
-**Seven ready-made requests.** Tisty hands your assistant seven requests it shows as commands. In Claude Code they are in the `/` menu, and `/mcp__tisty__pick_up` and the like run them; other assistants that take requests from a server show them in their own menu.
+**Eight ready-made requests.** Tisty hands your assistant eight requests it shows as commands. In Claude Code they are in the `/` menu, and `/mcp__tisty__pick_up` and the like run them; other assistants that take requests from a server show them in their own menu.
 
 - **Pick up where I left off** (`pick_up`) — what moved since the agent was last here and who moved it, then the open task it last worked on, with its steps, its page and its latest notes. It changes nothing.
 - **Leave this where I can pick it up** (`leave_off`) — in one call it ticks the finished steps and leaves the task's state: what is done, what is left and comes next, the decisions in force and what was ruled out. It notes only what changes something, with its why; if everything is done, it says so with the proof, and a decision that outlasts the task goes in its document, dated, with the one it replaces struck through; with no document on it, it stays in the state and it tells you.
@@ -133,8 +133,25 @@ The memory and context Tisty keeps for your agent is one command or one `@` away
 - **Keep this decision in its document** (`keep_decision`) — the decision you just made goes into the one document on its subject, in place, and the one it replaces is crossed out; if no document covers it, it asks you where it belongs.
 - **Brainstorm ideas with me** (`brainstorm`) — it offers short ideas on a subject, numbered, says which are already on Brainstorm or already a task or a document, and jots on Brainstorm only the ones you keep.
 - **Sort out my Brainstorm** (`sort_ideas`) — it reads the ideas waiting and tells you which belong together, which would be a task and in which list, which go into which document and which are old. It changes nothing until you say, and then does only that.
+- **Go over what Tisty keeps and propose fixes** (`consolidate`) — Tisty's «dreaming», a pass that runs only when you ask for it. It looks for agent summaries left stale because their document changed, links that lead nowhere, documents doubled or out of order, and tasks whose state fell behind. It shows you what it found, numbered, with the fix it would make, and changes only what you approve. It never deletes: what is old is marked, for you to delete in one click, keep or unmark. With a word after it, like `/mcp__tisty__consolidate Kitchen`, it goes over only that folder, list or subject.
 
 Each one takes a word after it, like `/mcp__tisty__solved_before timeouts`, or nothing, and then it works from what you have been talking about.
+
+**A `consolidate` pass, start to finish.** Mario types `/mcp__tisty__consolidate Kitchen`. The assistant first reads the tidying rules (`rules` with `topic: "tidying"`) and what moved (`catch_up`), then looks at the folder without changing anything:
+
+- `brain` with `{ "folder": "Kitchen" }` brings each document with the summary an agent left; one written before the document last changed comes with `"stale": true`.
+- `brain` with `{ "doc": … }` brings each document's card: `dead` names the links that lead nowhere, and `alike`, `repeated` and `mislabeled` what is doubled or misnamed.
+- On a task's card, `brain` with `{ "task": … }`, `state_old` says the state was written before its steps changed or a decision came.
+
+And it answers, for example:
+
+> 1. **"Weekly recipes"** (Kitchen): the agent's summary is older than the last change. I would read it again and leave one saying "Monday to Friday menu, with the shopping list at the end".
+> 2. **"Weekly recipes"**: the link to "Rice and beans" leads nowhere; that recipe now lives in **"Rice dishes"** (Kitchen). I would point it there.
+> 3. **"Shopping list (copy)"** (Kitchen): says the same as **"Shopping list"**. I would mark it as a copy of that one.
+>
+> Which ones shall I do?
+
+Mario answers "1 and 2". The assistant does only that (`sum_up` and `edit_doc`) and ends by saying what changed, what is waiting and how to undo it. The copy in point 3 stays as it was. Had Mario said yes, the copy would have been marked (`flag_doc`), not deleted: you delete it in one click, keep it or unmark it. A document you wrote is asked about on its own, and in the AGENTS folder the assistant only tells you what it would change.
 
 **Documents to mention.** Your documents that are not put away are offered too — your Diary only while it is open to agents — so you can hand one to the assistant by name: in Claude Code, type `@` and pick it by its title and folder. A document of up to about 12,000 characters arrives whole; a longer one arrives as its outline, its headings and their lines, and the assistant asks for the part it needs.
 

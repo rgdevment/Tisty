@@ -81,6 +81,17 @@ expression: "said[\"result\"]"
       "description": "Group the ideas waiting on Brainstorm and propose which become tasks, which go into documents and which are marked as old.",
       "name": "sort_ideas",
       "title": "Sort out my Brainstorm"
+    },
+    {
+      "arguments": [
+        {
+          "description": "A folder, a list or a subject to go over; left out, all of it, a folder or list at a time",
+          "name": "subject"
+        }
+      ],
+      "description": "Find stale agent notes, links that lead nowhere and cards out of date, propose the fixes, and make only those I agree to; nothing is deleted.",
+      "name": "consolidate",
+      "title": "Go over what Tisty keeps and propose fixes"
     }
   ],
   "resultType": "complete",
