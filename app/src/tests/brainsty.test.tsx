@@ -2,7 +2,7 @@ import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Group, Network, Neuron } from "../brainsty";
-import { t } from "../locales";
+import { adopt, t } from "../locales";
 import BrainstyView from "../ui/BrainstyView";
 
 const ipc = vi.hoisted(() => ({
@@ -514,12 +514,17 @@ describe("Brainsty in the content panel", () => {
 
   it("says why in Spanish too", async () => {
     ipc.network = () => Promise.resolve(guessing);
-    await drawnNetwork("?locale=es&near=01A");
+    adopt("es");
+    try {
+      await drawnNetwork();
 
-    act(() => sigma.hands?.pick(4));
+      act(() => sigma.hands?.pick(4));
 
-    const alike = await screen.findByRole("region", { name: "Parecidos" });
-    expect(alike.textContent).toContain("Tisty lo adivina: comparten buy y groceries");
+      const alike = await screen.findByRole("region", { name: "Parecidos" });
+      expect(alike.textContent).toContain("Tisty lo adivina: comparten buy y groceries");
+    } finally {
+      adopt("en");
+    }
   });
 
   it("leaves out a guess whose other end the filters hide", async () => {
