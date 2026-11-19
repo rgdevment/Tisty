@@ -96,7 +96,7 @@ export default function Preview({ neuron, ties, zone, onOpen, onClose }: Props) 
       {glance && (
         <div
           ref={words}
-          className="scroller min-h-0 flex-1 text-[12.5px] leading-relaxed text-soft [&_img]:h-auto [&_img]:max-w-full [&_img]:rounded-md"
+          className="scroller min-h-0 flex-1 text-[12.5px] leading-relaxed text-soft [&_img]:h-auto [&_img]:max-w-full [&_img]:rounded-md [&_.media-again]:ml-2 [&_.media-again]:text-accent [&_.media-again]:hover:underline [&_.picture-away]:block [&_.picture-away]:text-faint"
           // biome-ignore lint/security/noDangerouslySetInnerHtml: the core's translator drew it, as every page
           dangerouslySetInnerHTML={{ __html: glance.html }}
         />

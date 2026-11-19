@@ -3,7 +3,6 @@ import { type RefObject, useEffect } from "react";
 export const REACHABLE =
   'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
-// Where Tab goes inside the box: past either end it comes round through the stop, and from outside it comes back in.
 export const tabbedInside = (
   box: HTMLElement,
   backwards: boolean,
