@@ -408,7 +408,9 @@ describe("the Brainsty section", () => {
     await user.keyboard("{Escape}");
     expect(screen.queryByText(t("brainstyNothingFound"))).toBeNull();
     expect(screen.getByRole("complementary", { name: "buy bread" })).toBeTruthy();
-    await user.keyboard("{Escape}");
+    act(() => {
+      card.body.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+    });
     expect(screen.queryByRole("complementary", { name: "buy bread" })).toBeNull();
     expect(screen.getByRole("dialog", { name: t("brainsty") })).toBeTruthy();
     await user.keyboard("{Escape}");
