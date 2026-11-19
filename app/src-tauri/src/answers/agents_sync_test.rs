@@ -328,7 +328,7 @@ fn emptying_agents_takes_it_out_of_tisty_and_touches_no_agent_file() {
     let mut room = room();
     room.bring(&[".claude/CLAUDE.md", ".codex/AGENTS.md"]);
     assert!(
-        !emptied(&mut room.session).unwrap(),
+        !emptied(&mut room.session, &room.homes, HERE).unwrap(),
         "it still holds documents"
     );
     let ids: Vec<String> = room
@@ -341,7 +341,14 @@ fn emptying_agents_takes_it_out_of_tisty_and_touches_no_agent_file() {
     for id in ids {
         room.session.drop_doc(&id).unwrap();
     }
-    assert!(emptied(&mut room.session).unwrap());
+    assert!(
+        !emptied(&mut room.session, &room.homes, HERE).unwrap(),
+        "the files its rules left are asked about first"
+    );
+    assert_eq!(loose(&room).len(), 2);
+    answered(&mut room, ".claude/CLAUDE.md", false);
+    answered(&mut room, ".codex/AGENTS.md", false);
+    assert!(emptied(&mut room.session, &room.homes, HERE).unwrap());
     assert!(room.folders().is_empty(), "{:?}", room.folders());
     assert_eq!(room.read(".claude/CLAUDE.md"), "# Claude\nTests first.\n");
     assert_eq!(room.read(".codex/AGENTS.md"), "Codex rules.\n");
@@ -1585,4 +1592,21 @@ fn a_line_an_earlier_build_put_in_and_the_person_took_out_stays_out() {
     let told = round_now(&room.session, &room.homes, &mut ledger);
     assert_eq!(room.read(".gemini/GEMINI.md"), "- remembered\n");
     assert_eq!(told.unled, ["gemini"]);
+}
+
+#[test]
+fn the_last_rule_leaving_asks_about_its_file_before_agents_goes() {
+    let mut room = room();
+    room.bring(&[".claude/rules/tone.md"]);
+    let file = file_brought_from(&room, "rules/tone.md");
+    room.session
+        .drop_doc(&doc_of_file(&room, &file).to_string())
+        .unwrap();
+    assert!(!emptied(&mut room.session, &room.homes, HERE).unwrap());
+    assert!(!room.folders().is_empty());
+    answered(&mut room, ".claude/rules/tone.md", true);
+    assert!(!Path::new(&room.at(".claude/rules/tone.md")).exists());
+    assert_eq!(room.kept(".claude/rules/tone.md"), 1);
+    assert!(emptied(&mut room.session, &room.homes, HERE).unwrap());
+    assert!(room.folders().is_empty(), "{:?}", room.folders());
 }

@@ -137,6 +137,33 @@ describe("the keeper of AGENTS", () => {
     expect(desk.papersChanged).toHaveBeenCalled();
   });
 
+  it("asks about the last rule's file first, and lets AGENTS go once that is answered", async () => {
+    const loose = { at: "/h/.claude/rules/tone.md", assistant: "claude", changed: false };
+    let answered = false;
+    ipc.answer = (cmd) => {
+      if (cmd === "agents_round")
+        return Promise.resolve({ told: [], both: [], loose: answered ? [] : [loose], unled: [] });
+      if (cmd === "agents_look")
+        return Promise.resolve(look({ docs: 0, asks: true, loose: answered ? [] : [loose] }));
+      if (cmd === "agents_loose") {
+        answered = true;
+        return Promise.resolve({ told: [], both: [], loose: [], unled: [] });
+      }
+      return Promise.resolve(cmd === "agents_empty");
+    };
+    desk.papers = { folders: agents, docs: [doc("x", "claude")] };
+    desk.here = "claude";
+    const { rerender } = render(<AgentsKeeper />);
+    desk.papers = { folders: agents, docs: [] };
+    rerender(<AgentsKeeper />);
+    await screen.findByText("¿Quitar también el archivo?");
+    expect(sent("agents_empty")).toHaveLength(0);
+    await userEvent.click(screen.getByRole("button", { name: "Quitar el archivo" }));
+    await waitFor(() => expect(sent("agents_empty")).toHaveLength(1));
+    expect(sent("agents_loose")[0].args).toEqual({ at: loose.at, away: true });
+    await waitFor(() => expect(desk.setHere).toHaveBeenCalledWith(null));
+  });
+
   it("keeps an AGENTS made empty the first time, however the folders around it change", async () => {
     ipc.answer = (cmd) => Promise.resolve(cmd === "agents_empty");
     desk.papers = { folders: [], docs: [] };

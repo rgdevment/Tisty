@@ -1,5 +1,5 @@
 import { listen } from "@tauri-apps/api/event";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   AGENTS_MORE,
   agentsEmpty,
@@ -13,6 +13,7 @@ import {
 import { useDesk } from "../desk";
 import { saidPlainly } from "../refusal";
 import AgentsFirst from "./AgentsFirst";
+import { waitingOf } from "./AgentsReview";
 
 export const AGENTS_FIRST = "tisty:agents-first";
 export const AGENTS_CHANGED = "tisty:agents-changed";
@@ -66,25 +67,46 @@ export default function AgentsKeeper() {
   const holds = papers.docs.some((one) => one.folder && tree.has(one.folder));
   // Only an AGENTS emptied while the window watched goes; one made or found empty stays.
   const held = useRef<string | null>(null);
-  useEffect(() => {
-    if (!root) {
-      held.current = null;
-      return;
-    }
-    if (holds) {
-      held.current = root;
-      return;
-    }
-    if (held.current !== root) return;
-    held.current = null;
+  const leaving = useRef<string | null>(null);
+  const letGo = useCallback(() => {
     agentsEmpty()
       .then((gone) => {
         if (!gone) return;
+        leaving.current = null;
         if (inside) setHere(null);
         papersChanged();
       })
       .catch(() => undefined);
-  }, [root, holds, inside, setHere, papersChanged]);
+  }, [inside, setHere, papersChanged]);
+  useEffect(() => {
+    if (!root) {
+      held.current = null;
+      leaving.current = null;
+      return;
+    }
+    if (holds) {
+      held.current = root;
+      leaving.current = null;
+      return;
+    }
+    if (held.current !== root) return;
+    held.current = null;
+    // The files its last rules wrote are asked about first; AGENTS goes once nothing waits.
+    agentsRound()
+      .then((round) => {
+        const waits = round
+          ? waitingOf({
+              both: round.both ?? [],
+              loose: round.loose ?? [],
+              unled: round.unled ?? [],
+            })
+          : [];
+        if (waits.length === 0) return letGo();
+        leaving.current = root;
+        setAsking((now) => now ?? "first");
+      })
+      .catch(letGo);
+  }, [root, holds, letGo]);
 
   // The last document leaving still needs a round, so an AGENTS left empty keeps one going.
   const print = root ? `${root}:${agentsPrint(papers.docs, papers.folders)}` : "";
@@ -113,6 +135,7 @@ export default function AgentsKeeper() {
       onClose={() => {
         setAsking(null);
         window.dispatchEvent(new Event(AGENTS_CHANGED));
+        if (leaving.current === root && !holds) letGo();
       }}
       onChanged={changed}
     />

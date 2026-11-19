@@ -937,12 +937,19 @@ fn unlead(data: &Path, ledger: &mut Ledger, gone: &Target) {
     }
 }
 
-pub fn emptied(session: &mut Session) -> Answer<bool> {
+// A file its last rule left waits for the person's answer first, or AGENTS would go and leave it unasked.
+pub fn emptied(session: &mut Session, homes: &Homes, here: &str) -> Answer<bool> {
     let Some(root) = root_of(&session.state) else {
         return Ok(false);
     };
     let tree = tree(&session.state, root);
     if !docs_in(&session.state, &tree).is_empty() {
+        return Ok(false);
+    }
+    let ledger = Ledger::open(session.paths.data(), here);
+    let gate = gated(session, &ledger);
+    let placed = places::targets(homes, &gate, &ledger);
+    if !loose_in(homes, &gate, &ledger, &placed, true).is_empty() {
         return Ok(false);
     }
     // Deepest first: a folder deleted before its children would lift them to the top.
@@ -1032,7 +1039,8 @@ pub fn agents_loose(
 
 #[tauri::command]
 pub fn agents_empty(session: tauri::State<'_, Mutex<Session>>) -> Answer<bool> {
-    emptied(&mut held(&session))
+    let homes = homes()?;
+    emptied(&mut held(&session), &homes, &here())
 }
 
 #[tauri::command(async)]
