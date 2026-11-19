@@ -50,6 +50,7 @@ pub struct State {
     pub persons: crate::person::Persons,
     pub diary_open: bool,
     pub agent_notes: BTreeMap<DocId, crate::model::AgentNote>,
+    pub proposals: BTreeMap<DocId, crate::model::Proposed>,
     pub(crate) fill: Fill,
     pub(crate) tombstones: BTreeSet<Ulid>,
 }
@@ -461,6 +462,7 @@ impl State {
             Op::DocCompacted { id, print, before } => self.doc_compacted(event, id, print, before),
             Op::DocUncompacted { id } => self.doc_marked(id, |doc| doc.compacted = None),
             Op::DocGist { id, d } => self.gist_said(event, id, d),
+            Op::DocProposal { id, d } => self.proposal_said(event, id, d),
             Op::DeviceJoin { d, k, p } => self.device_joined(event, d, k, p),
             Op::DeviceKey { d, p } => self.key_published(event, d, p),
             Op::DeviceRotate { d, p } => {
