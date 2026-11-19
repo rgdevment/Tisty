@@ -17,7 +17,7 @@ mod nodes;
 mod own;
 mod reading;
 
-pub use alike::{Alike, Passed, Weighing};
+pub use alike::{Alike, Dictionary, Passed, Weighing};
 pub use card::{Around, Card, DocFacts, Facts, Guessed, Near, Section, TaskFacts, Tongue, Used};
 pub use decided::Decision;
 pub use network::{
@@ -26,7 +26,7 @@ pub use network::{
 };
 pub use reading::{Citing, Headed, Under, cited_by};
 
-const SCHEMA: i64 = 8;
+const SCHEMA: i64 = 9;
 const FILE: &str = "brain.db";
 const WAITS_FOR_OTHERS: std::time::Duration = std::time::Duration::from_secs(5);
 const PAGES_WORTH_COMPACTING: i64 = 256;
@@ -61,6 +61,7 @@ const TABLES: &str = "CREATE TABLE IF NOT EXISTS node(
         id TEXT PRIMARY KEY,
         stamp TEXT NOT NULL,
         lang TEXT,
+        guess TEXT,
         kin TEXT NOT NULL,
         said TEXT NOT NULL);
     CREATE TABLE IF NOT EXISTS alike(

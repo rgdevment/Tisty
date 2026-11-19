@@ -105,6 +105,13 @@ describe("Tisty's guesses in the network", () => {
     expect(alikeOf({ ...network, alike: undefined }, 0, [])).toEqual([]);
   });
 
+  it("reads a translation or a typo as each side's own word", () => {
+    const crossing: Network = { ...network, alike: [[0, 1, 500, "pagar≈pay agua≈water cuenta"]] };
+    expect(alikeOf(crossing, 0, [])).toEqual([
+      { node: 1, words: ["pagar ≈ pay", "agua ≈ water", "cuenta"] },
+    ]);
+  });
+
   it("says the shared words as one phrase, each word marked", () => {
     expect(wordsSaid(["presupuesto"], "y")).toEqual([{ text: "presupuesto", word: true }]);
     expect(wordsSaid(["presupuesto", "familiar"], "y")).toEqual([

@@ -26,8 +26,10 @@ const INCOMING: &str = "SELECT e.kind, n.id, n.kind, n.title, n.state, c.said
 const TITLES_AIMED: &str = "SELECT DISTINCT substr(target, 3) FROM edge
     WHERE source = ?1 AND kind = 'mention' AND substr(target, 1, 2) = '[['
     ORDER BY 1";
-const GUESSED: &str = "SELECT b, score, shared FROM alike WHERE a = ?1 AND method = 'words'
-    UNION ALL SELECT a, score, shared FROM alike WHERE b = ?1 AND method = 'words'
+const GUESSED: &str = "SELECT b, score, shared FROM alike
+    WHERE a = ?1 AND method IN ('words', 'typo', 'dictionary')
+    UNION ALL SELECT a, score, shared FROM alike
+    WHERE b = ?1 AND method IN ('words', 'typo', 'dictionary')
     ORDER BY 2 DESC, 1";
 pub(super) const CARRYING: &str =
     "SELECT id, kind, title, state FROM node WHERE kind IN ('doc', 'page') AND title = ?1";

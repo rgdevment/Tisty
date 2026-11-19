@@ -9,6 +9,54 @@ const out = join(root, "THIRD-PARTY-BUNDLED.md");
 const texts = join(root, "THIRD-PARTY-LICENSES.md");
 const REPO = "https://github.com/rgdevment/Tisty/blob/main";
 
+const TABLE =
+  "Tisty carries a modified table derived from it in `resources/brain/dictionary.tsv`, made by " +
+  "`cargo run -p tisty-core --example dictionary` from `omw-es.xml` (sha256 " +
+  "`9822d50707d3e3322e040a1f551996b0957d1d9c98e0a686dc04219c17656652`) and `omw-en.xml` (sha256 " +
+  "`3ab4c3e4324a6d1676cf23ea3eafdd8f858f92969bf85108d049db6b7e4539bd`): each one-word Spanish lemma, " +
+  "folded, beside the one-word English lemma it shares the most-used synsets with; a word written the " +
+  "same in both languages is left out.";
+
+const PRINCETON = `WordNet Release 3.0
+
+This software and database is being provided to you, the LICENSEE, by Princeton University under the following license. By obtaining, using and/or copying this software and database, you agree that you have read, understood, and will comply with these terms and conditions.:
+
+Permission to use, copy, modify and distribute this software and database and its documentation for any purpose and without fee or royalty is hereby granted, provided that you agree to comply with the following copyright notice and statements, including the disclaimer, and that the same appear on ALL copies of the software, database and documentation, including modifications that you make for internal use or for distribution.
+
+WordNet 3.0 Copyright 2006 by Princeton University. All rights reserved.
+
+THIS SOFTWARE AND DATABASE IS PROVIDED "AS IS" AND PRINCETON UNIVERSITY MAKES NO REPRESENTATIONS OR WARRANTIES, EXPRESS OR IMPLIED. BY WAY OF EXAMPLE, BUT NOT LIMITATION, PRINCETON UNIVERSITY MAKES NO REPRESENTATIONS OR WARRANTIES OF MERCHANT- ABILITY OR FITNESS FOR ANY PARTICULAR PURPOSE OR THAT THE USE OF THE LICENSED SOFTWARE, DATABASE OR DOCUMENTATION WILL NOT INFRINGE ANY THIRD PARTY PATENTS, COPYRIGHTS, TRADEMARKS OR OTHER RIGHTS.
+
+The name of Princeton University or Princeton may not be used in advertising or publicity pertaining to distribution of the software and/or database. Title to copyright in this software, database and any associated documentation shall at all times remain with Princeton University and LICENSEE agrees to preserve same.`;
+
+const DATA = [
+  {
+    name: "Multilingual Central Repository 3.0, Spanish (omw-es)",
+    source: "https://github.com/omwn/omw-data/releases/tag/v2.0",
+    version: "Open Multilingual Wordnet 2.0",
+    licence: "CC-BY-3.0",
+    said:
+      "By Aitor Gonzalez-Agirre, Egoitz Laparra and German Rigau (GWC 2012), " +
+      "https://adimen.si.ehu.es/web/MCR/, under the Creative Commons Attribution 3.0 Unported licence, " +
+      `https://creativecommons.org/licenses/by/3.0/. ${TABLE} The authors do not endorse Tisty.`,
+  },
+  {
+    name: "Princeton WordNet 3.0 (omw-en)",
+    source: "https://wordnet.princeton.edu/",
+    version: "Open Multilingual Wordnet 2.0",
+    licence: "WordNet 3.0 License",
+    said: `The English side of the same table, and how often each synset is used, come from it. ${TABLE} Its licence:\n\n${PRINCETON
+      .split("\n")
+      .map((line) => (line ? `> ${line}` : ">"))
+      .join("\n")}`,
+  },
+];
+
+const data = () =>
+  DATA.map(
+    (one) => `### [${one.name}](${one.source}) — ${one.licence}\n\n${one.version}. ${one.said}`,
+  ).join("\n\n");
+
 const shipped = () => {
   const lock = JSON.parse(readFileSync(join(root, "package-lock.json"), "utf8"));
   const seen = new Map();
@@ -337,6 +385,10 @@ ${listed(js)}
 | Crate | Version | Licence |
 | --- | --- | --- |
 ${listed(rs)}
+
+## Data (${DATA.length})
+
+${data()}
 
 ## The notices themselves
 

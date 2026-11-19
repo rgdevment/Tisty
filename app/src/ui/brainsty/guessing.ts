@@ -67,15 +67,20 @@ export function alikeOf(network: Network, node: number, hidden: readonly boolean
       if (from !== node && to !== node) return [];
       const other = from === node ? to : from;
       if (hidden[other]) return [];
-      return [
-        { node: other, strength: curves[n].strength, words: shared.split(" ").filter(Boolean) },
-      ];
+      return [{ node: other, strength: curves[n].strength, words: wordsOf(shared) }];
     })
     .sort((one, other) => other.strength - one.strength)
     .map(({ node: other, words }) => ({ node: other, words }));
 }
 
 const SOUNDS_I = /^h?i(?![aeiouáéíóú])/i;
+
+// A translation or a typo comes as «pagar≈pay»: each side's own word, spaced to be read.
+const wordsOf = (shared: string): string[] =>
+  shared
+    .split(" ")
+    .filter(Boolean)
+    .map((word) => word.split("≈").join(" ≈ "));
 
 export function wordsSaid(words: readonly string[], and: string, andBeforeI = and): Part[] {
   return words.flatMap((word, n) => {

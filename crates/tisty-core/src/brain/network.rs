@@ -107,8 +107,10 @@ impl Brain {
         }
         let mut guessed: Vec<Guessed> = Vec::new();
         {
-            let mut asked =
-                tx.prepare("SELECT a, b, score, shared FROM alike WHERE method = 'words'")?;
+            let mut asked = tx.prepare(
+                "SELECT a, b, score, shared FROM alike
+                 WHERE method IN ('words', 'typo', 'dictionary')",
+            )?;
             let rows = asked.query_map([], |row| {
                 Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?))
             })?;
