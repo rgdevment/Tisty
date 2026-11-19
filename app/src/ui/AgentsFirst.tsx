@@ -4,19 +4,26 @@ import {
   type AssistantSeen,
   agentsBring,
   agentsKeep,
+  agentsLead,
   agentsLook,
-  type Both,
+  agentsLoose,
   type Brought,
   type FileSeen,
   type Refused,
+  type Rounded,
 } from "../agentsSync";
 import { fill, t, type Word } from "../locales";
 import { saidPlainly } from "../refusal";
-import ComparedLines from "./ComparedLines";
+import {
+  BothReview,
+  button,
+  LooseReview,
+  primary,
+  UnledReview,
+  type Waiting,
+  waitingOf,
+} from "./AgentsReview";
 import Modal from "./Modal";
-
-const button = "rounded-[10px] px-3 py-1.5 text-faint hover:text-ink";
-const primary = "rounded-[10px] bg-accent px-3.5 py-1.5 font-semibold text-bg disabled:opacity-60";
 
 const takeable = (one: FileSeen) => !one.skip && !one.held;
 
@@ -55,14 +62,16 @@ const broughtSaid = (made: number): string => {
   return fill("agentsBroughtMany", String(made));
 };
 
-const pickSaid = (assistants: AssistantSeen[], found: boolean): string => {
+const pickSaid = (assistants: AssistantSeen[], found: boolean, more: boolean): string => {
+  if (more) return t(found ? "agentsMoreLead" : "agentsMoreNone");
   if (found) return t("agentsFirstPick");
   if (assistants.some((one) => one.files.some((file) => file.held))) return t("agentsFirstAllHere");
   return t("agentsFirstNone");
 };
 
-const bringSaid = (busy: boolean, chosen: number): string => {
+const bringSaid = (busy: boolean, chosen: number, more: boolean): string => {
   if (busy) return t("agentsBringing");
+  if (more) return t("agentsBring");
   return chosen > 0 ? t("agentsBringSync") : t("agentsAllow");
 };
 
@@ -115,40 +124,41 @@ function Assistant({
   );
 }
 
-function Compared({ both }: Readonly<{ both: Both }>) {
-  return <ComparedLines lines={both.lines} gone={t("agentsInTisty")} came={t("agentsInFile")} />;
-}
-
 interface Props {
+  /** Bringing one more file once this computer already said yes, so nothing is ticked for the person. */
+  more?: boolean;
   onClose: () => void;
   onChanged: () => void;
 }
 
-export default function AgentsFirst({ onClose, onChanged }: Readonly<Props>) {
+export default function AgentsFirst({ more = false, onClose, onChanged }: Readonly<Props>) {
   const [look, setLook] = useState<AgentsLook>();
   const [chosen, setChosen] = useState<Set<string>>(new Set());
   const [busy, setBusy] = useState(false);
   const [trouble, setTrouble] = useState<string>();
   const [brought, setBrought] = useState<Brought>();
-  const [both, setBoth] = useState<Both[]>([]);
+  const [waiting, setWaiting] = useState<Waiting[]>([]);
   const [reviewing, setReviewing] = useState(false);
 
   useEffect(() => {
     agentsLook()
       .then((seen) => {
         setLook(seen);
-        if (seen.consented && seen.docs > 0 && seen.both.length > 0) {
-          setBoth(seen.both);
+        const picking = more || !seen.consented;
+        const queue = waitingOf(seen);
+        if (!picking && queue.length > 0) {
+          setWaiting(queue);
           setReviewing(true);
         }
+        const ticked = more && seen.consented ? () => false : chosenFirst;
         setChosen(
           new Set(
-            seen.assistants.flatMap((one) => one.files.filter(chosenFirst).map((file) => file.at)),
+            seen.assistants.flatMap((one) => one.files.filter(ticked).map((file) => file.at)),
           ),
         );
       })
       .catch((e) => setTrouble(saidPlainly(e)));
-  }, []);
+  }, [more]);
 
   const toggle = (at: string) => {
     const next = new Set(chosen);
@@ -157,83 +167,95 @@ export default function AgentsFirst({ onClose, onChanged }: Readonly<Props>) {
     setChosen(next);
   };
 
+  // Each answer settles the one shown; what the round then finds still waiting is asked after it.
+  const answered = (step: () => Promise<Rounded | Brought | unknown>) => {
+    setBusy(true);
+    setTrouble(undefined);
+    step()
+      .then(() => {
+        setWaiting(waiting.slice(1));
+        onChanged();
+      })
+      .catch((e) => setTrouble(typeof e === "string" ? e : saidPlainly(e)))
+      .finally(() => setBusy(false));
+  };
+
+  // A file the bring turned away stays asked about, with the reason in the person's words.
+  const bringOne = (at: string) =>
+    agentsBring([at]).then((done) => {
+      if (done.refused.length > 0) throw reasonSaid(done.refused[0]);
+      return done;
+    });
+
   const bring = () => {
     setBusy(true);
     setTrouble(undefined);
     agentsBring([...chosen])
       .then((done) => {
         setBrought(done);
-        setBoth(done.round.both);
+        setWaiting(waitingOf(done.round));
         onChanged();
       })
       .catch((e) => setTrouble(saidPlainly(e)))
       .finally(() => setBusy(false));
   };
 
-  const keep = (one: Both, tisty: boolean) => {
-    setBusy(true);
+  const skip = () => {
     setTrouble(undefined);
-    agentsKeep(one.at, tisty)
-      .then(() => {
-        setBoth(both.filter((other) => other.at !== one.at));
-        onChanged();
-      })
-      .catch((e) => setTrouble(saidPlainly(e)))
-      .finally(() => setBusy(false));
+    setWaiting(waiting.slice(1));
   };
 
-  const shown = both[0];
+  const shown = waiting[0];
   useEffect(() => {
     if (reviewing && !shown) onClose();
   }, [reviewing, shown, onClose]);
   if (reviewing && !shown) return null;
-  if (shown) {
-    const name =
-      look?.assistants.find((one) => one.id === shown.assistant)?.name ?? shown.assistant;
+
+  const nameOf = (id: string) => look?.assistants.find((one) => one.id === id)?.name ?? id;
+  if (shown?.kind === "both") {
+    const at = shown.both.at;
+    const bringable = !!look?.assistants.some((one) =>
+      one.files.some((file) => file.at === at && takeable(file)),
+    );
     return (
-      <Modal title={t("agentsBothTitle")} wide>
-        <p className="text-[13px] leading-relaxed text-soft">{fill("agentsBothLead", name)}</p>
-        <p className="mt-1.5 font-mono text-[11.5px] break-all text-faint">{shown.at}</p>
-        <Compared both={shown} />
-        {shown.composed && (
-          <p className="mt-2.5 text-[12.5px] text-soft">{t("agentsBothComposed")}</p>
-        )}
-        {trouble && <p className="mt-2.5 text-[11.5px] text-urgent">{trouble}</p>}
-        <div className="mt-5 flex flex-wrap justify-end gap-2 text-[12.5px]">
-          <button
-            type="button"
-            disabled={busy}
-            onClick={() => setBoth(both.slice(1))}
-            className={button}
-          >
-            {t("agentsLater")}
-          </button>
-          {!shown.composed && (
-            <button
-              type="button"
-              disabled={busy}
-              onClick={() => keep(shown, false)}
-              className={button}
-            >
-              {t("agentsKeepFile")}
-            </button>
-          )}
-          <button
-            type="button"
-            disabled={busy}
-            onClick={() => keep(shown, true)}
-            className={primary}
-          >
-            {t("agentsKeepTisty")}
-          </button>
-        </div>
-      </Modal>
+      <BothReview
+        both={shown.both}
+        name={nameOf(shown.both.assistant)}
+        busy={busy}
+        trouble={trouble}
+        bringable={bringable}
+        onLater={skip}
+        onKeep={(tisty) => answered(() => agentsKeep(at, tisty))}
+        onBring={() => answered(() => bringOne(at))}
+      />
+    );
+  }
+  if (shown?.kind === "loose") {
+    return (
+      <LooseReview
+        loose={shown.loose}
+        name={nameOf(shown.loose.assistant)}
+        busy={busy}
+        trouble={trouble}
+        onAnswer={(away) => answered(() => agentsLoose(shown.loose.at, away))}
+      />
+    );
+  }
+  if (shown?.kind === "unled") {
+    return (
+      <UnledReview
+        name={nameOf(shown.assistant)}
+        busy={busy}
+        trouble={trouble}
+        onLater={skip}
+        onLead={() => answered(agentsLead)}
+      />
     );
   }
 
   if (brought) {
     return (
-      <Modal title={t("agentsFirstTitle")} wide onClose={onClose}>
+      <Modal title={t(more ? "agentsMoreTitle" : "agentsFirstTitle")} wide onClose={onClose}>
         <p className="text-[13px] leading-relaxed text-soft">{broughtSaid(brought.made)}</p>
         {brought.refused.length > 0 && (
           <>
@@ -259,19 +281,26 @@ export default function AgentsFirst({ onClose, onChanged }: Readonly<Props>) {
 
   const assistants = look?.assistants ?? [];
   const found = assistants.some((one) => one.files.some(takeable));
+  const adding = more && !!look?.consented;
   return (
-    <Modal title={t("agentsFirstTitle")} wide onClose={onClose}>
-      <p className="text-[13px] leading-relaxed text-soft">{t("agentsFirstLead")}</p>
-      <ul className="mt-3 flex flex-col gap-1.5 text-[12.5px] text-ink">
-        <li>🔒 {t("agentsFirstPrivate")}</li>
-        {assistants.length > 0 && (
-          <li>↻ {fill("agentsFirstSyncs", listed(assistants.map((one) => one.name)))}</li>
-        )}
-        <li>⧉ {t("agentsFirstBackup")}</li>
-      </ul>
+    <Modal title={t(adding ? "agentsMoreTitle" : "agentsFirstTitle")} wide onClose={onClose}>
+      {!adding && (
+        <>
+          <p className="text-[13px] leading-relaxed text-soft">{t("agentsFirstLead")}</p>
+          <ul className="mt-3 flex flex-col gap-1.5 text-[12.5px] text-ink">
+            <li>🔒 {t("agentsFirstPrivate")}</li>
+            {assistants.length > 0 && (
+              <li>↻ {fill("agentsFirstSyncs", listed(assistants.map((one) => one.name)))}</li>
+            )}
+            <li>⧉ {t("agentsFirstBackup")}</li>
+          </ul>
+        </>
+      )}
       {look && (
         <>
-          <p className="mt-4 mb-1.5 text-[12.5px] font-semibold">{pickSaid(assistants, found)}</p>
+          <p className={`${adding ? "" : "mt-4 "}mb-1.5 text-[12.5px] font-semibold`}>
+            {pickSaid(assistants, found, adding)}
+          </p>
           {assistants.some((one) => one.files.length > 0) && (
             <ul className="rounded-[10px] border border-hair bg-panel">
               {assistants
@@ -288,8 +317,13 @@ export default function AgentsFirst({ onClose, onChanged }: Readonly<Props>) {
         <button type="button" onClick={onClose} className={button}>
           {t("agentsNotNow")}
         </button>
-        <button type="button" disabled={!look || busy} onClick={bring} className={primary}>
-          {bringSaid(busy, chosen.size)}
+        <button
+          type="button"
+          disabled={!look || busy || (adding && chosen.size === 0)}
+          onClick={bring}
+          className={primary}
+        >
+          {bringSaid(busy, chosen.size, adding)}
         </button>
       </div>
     </Modal>

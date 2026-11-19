@@ -76,22 +76,35 @@ const MOVED_BY: [&str; 4] = [
 impl Homes {
     pub fn here() -> Option<Self> {
         let home = var(if cfg!(windows) { "USERPROFILE" } else { "HOME" })?;
-        let told = MOVED_BY
-            .into_iter()
-            .filter_map(|named| var(named).map(|at| (named, at)))
-            .collect();
-        Some(Self { home, told })
+        Self::told(
+            home,
+            MOVED_BY
+                .into_iter()
+                .filter_map(|named| var(named).map(|at| (named, at))),
+        )
+    }
+
+    // A relative folder would land wherever Tisty happens to run, so it counts as never said.
+    fn told(
+        home: PathBuf,
+        told: impl IntoIterator<Item = (&'static str, PathBuf)>,
+    ) -> Option<Self> {
+        home.is_absolute().then(|| Self {
+            home,
+            told: told
+                .into_iter()
+                .filter(|(_, at)| at.is_absolute())
+                .collect(),
+        })
     }
 
     #[cfg(test)]
     pub fn with(home: &Path, told: &[(&'static str, &Path)]) -> Self {
-        Self {
-            home: home.to_path_buf(),
-            told: told
-                .iter()
-                .map(|(named, at)| (*named, at.to_path_buf()))
-                .collect(),
-        }
+        Self::told(
+            home.to_path_buf(),
+            told.iter().map(|(named, at)| (*named, at.to_path_buf())),
+        )
+        .unwrap_or_default()
     }
 
     fn moved(&self, named: &str, usual: &str) -> PathBuf {
@@ -343,6 +356,39 @@ pub fn targets(homes: &Homes, gate: &Gate, ledger: &Ledger) -> Vec<Placed> {
         }
     }
     all
+}
+
+pub fn owner_of(homes: &Homes, at: &Path) -> Option<(&'static str, PathBuf)> {
+    let detected = homes.detected();
+    if at.starts_with(homes.shared()) {
+        return homes.shared_owner(&detected).map(|id| (id, homes.shared()));
+    }
+    detected.into_iter().find_map(|one| {
+        homes
+            .root(one.id)
+            .filter(|root| at.starts_with(root))
+            .map(|root| (one.id, root))
+    })
+}
+
+// The agent writes its memory itself, so Tisty never offers to take it away.
+pub fn agents_own(homes: &Homes, at: &Path) -> bool {
+    let gemini = homes
+        .root("gemini")
+        .is_some_and(|root| at == root.join(GEMINI_MEMORY));
+    let claude = homes
+        .root("claude")
+        .is_some_and(|root| at.starts_with(root.join("projects")));
+    gemini || claude
+}
+
+// Gemini reads Tisty's rules only through the line in its own file.
+pub fn lead_of(rules: &Target) -> Option<Target> {
+    (rules.assistant == "gemini" && rules.at == rules.root.join(GEMINI_RULES)).then(|| {
+        let mut lead = rules.clone();
+        lead.at = rules.root.join(GEMINI_MEMORY);
+        lead
+    })
 }
 
 pub fn lead_in_line() -> String {

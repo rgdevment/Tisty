@@ -2,6 +2,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { AgentDoc, Place, Said } from "../agentDocs";
+import { adopt } from "../locales";
 import AgentCard from "../ui/AgentCard";
 import { AGENTS_CHANGED } from "../ui/AgentsKeeper";
 
@@ -254,6 +255,36 @@ describe("an agent document's card", () => {
     shown(card([place({ state: "off" })], { folderOff: true }));
     expect(screen.getByText(/Sync is off for the whole AGENTS folder/)).toBeTruthy();
     expect(screen.queryByRole("button", { name: /Resume sync/ })).toBeNull();
+  });
+
+  it("says Gemini is paused without its line and puts the line back on the person's word", async () => {
+    const changed = vi.fn();
+    window.addEventListener(AGENTS_CHANGED, changed);
+    shown(
+      card(
+        [
+          place({ state: "synced" }),
+          place(
+            { state: "unled" },
+            { assistant: "gemini", named: "Gemini", at: "/home/me/.gemini/tisty-rules.md" },
+          ),
+        ],
+        { level: "global" },
+      ),
+    );
+    expect(screen.getAllByText("Paused").length).toBeGreaterThan(0);
+    expect(screen.getByText(/Gemini does not read this rule/)).toBeTruthy();
+    await userEvent.click(screen.getByRole("button", { name: "Put the line back" }));
+    await waitFor(() => expect(sent("agents_lead")).toHaveLength(1));
+    await waitFor(() => expect(changed).toHaveBeenCalled());
+    window.removeEventListener(AGENTS_CHANGED, changed);
+  });
+
+  it("sends the person to Configuración when the whole folder is off", () => {
+    adopt("es");
+    shown(card([place({ state: "off" })], { folderOff: true }));
+    expect(screen.getByText(/Vuelve a encenderla en Configuración › Asistentes\./)).toBeTruthy();
+    adopt("en");
   });
 
   it("offers no pause on a computer that has not said yes", () => {

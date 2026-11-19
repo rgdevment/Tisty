@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { type AgentDoc, carded, fencedFile, type Glance, glanceWord, touched } from "../agentDocs";
+import {
+  type AgentDoc,
+  asksPerson,
+  carded,
+  fencedFile,
+  type Glance,
+  glanceWord,
+  touched,
+} from "../agentDocs";
 
 const glance = (over: Partial<Glance>): Glance => ({
   folder: "f1",
@@ -71,8 +79,16 @@ describe("agent documents", () => {
     expect(places.filter(touched).map((one) => one.assistant)).toEqual(["a1", "a2"]);
   });
 
+  it("ask for the person only when something waits on them", () => {
+    expect(asksPerson(glance({ changes: 1 }))).toBe(true);
+    expect(asksPerson(glance({ waiting: 1 }))).toBe(true);
+    expect(asksPerson(glance({}))).toBe(false);
+    expect(asksPerson(glance({ allOn: false, changes: 1 }))).toBe(false);
+  });
+
   it("say one word for the folder in the sidebar", () => {
     expect(glanceWord(glance({ docs: 0 }))).toBe("empty");
+    expect(glanceWord(glance({ docs: 0, changes: 1 }))).toBe("changes");
     expect(glanceWord(glance({ consented: false }))).toBe("off");
     expect(glanceWord(glance({ allOn: false }))).toBe("off");
     expect(glanceWord(glance({ changes: 2 }))).toBe("changes");

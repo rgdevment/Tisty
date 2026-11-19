@@ -1,8 +1,8 @@
 use std::collections::{BTreeMap, BTreeSet};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 
-use tisty_core::agents::{self, Card, Found, Gate, Ledger, Seen, Standing, Target};
+use tisty_core::agents::{self, Card, Found, GLOBAL, Gate, Kind, Ledger, Seen, Standing, Target};
 use tisty_core::model::{FolderId, Kept};
 use tisty_core::{Op, State};
 
@@ -132,6 +132,8 @@ pub struct Look {
     pub asks: bool,
     pub assistants: Vec<Shown>,
     pub both: Vec<Both>,
+    pub loose: Vec<Loose>,
+    pub unled: Vec<String>,
 }
 
 fn address_of(one: &Found) -> String {
@@ -190,12 +192,32 @@ fn waiting_here(seen: &Gathered, homes: &Homes) -> usize {
         .count()
 }
 
+// A file Tisty writes now would come back in with Tisty's own words inside it.
+fn written_now(ledger: &Ledger, placed: &[Placed]) -> BTreeSet<PathBuf> {
+    placed
+        .iter()
+        .filter(|one| ledger.written(&one.target.at).is_some())
+        .map(|one| one.target.at.clone())
+        .collect()
+}
+
+fn known(held: &BTreeSet<String>, writes: &BTreeSet<PathBuf>, one: &Found) -> bool {
+    held.contains(&address_of(one)) || (one.kind != Kind::Memory && writes.contains(&one.at))
+}
+
 /// Names and sizes only: no agent file is opened before the person says yes.
 pub fn looked(seen: &Gathered, homes: &Homes, found: &[Found]) -> Look {
     let ledger = &seen.ledger;
     let (root, docs) = (seen.root, seen.docs);
     let held = addresses(&seen.bodies, &seen.gate);
-    let (changes, both) = weighed(ledger, &places::targets(homes, &seen.gate, ledger));
+    let placed = places::targets(homes, &seen.gate, ledger);
+    let (changes, both) = weighed(ledger, &placed);
+    let loose: Vec<Loose> = loose_in(homes, &seen.gate, ledger, &placed, root.is_some())
+        .into_iter()
+        .map(|(one, _)| one)
+        .collect();
+    let unled = unled_in(ledger, &placed);
+    let writes = written_now(ledger, &placed);
     let assistants = homes
         .detected()
         .into_iter()
@@ -211,7 +233,7 @@ pub fn looked(seen: &Gathered, homes: &Homes, found: &[Found]) -> Look {
                     name: seen.name.clone(),
                     kind: seen.kind.word(),
                     skip: seen.skip.map(skip_word),
-                    held: held.contains(&address_of(seen)),
+                    held: known(&held, &writes, seen),
                 })
                 .collect(),
         })
@@ -219,16 +241,114 @@ pub fn looked(seen: &Gathered, homes: &Homes, found: &[Found]) -> Look {
     Look {
         folder: root.map(|at| at.to_string()),
         docs,
-        changes,
+        changes: changes + loose.len() + unled.len(),
         waiting: waiting_here(seen, homes),
         unagreed: seen.gate.unagreed(),
         proposed: seen.proposed,
-        asks: docs == 0 || !ledger.consented() || !both.is_empty(),
+        asks: root.is_none()
+            || !ledger.consented()
+            || !both.is_empty()
+            || !loose.is_empty()
+            || !unled.is_empty(),
         consented: ledger.consented(),
         all_on: ledger.syncs(""),
         assistants,
         both,
+        loose,
+        unled,
     }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Loose {
+    pub at: String,
+    pub assistant: String,
+    pub changed: bool,
+}
+
+// A document gone, uncarded, declined here or sent elsewhere frees its file; a Global rule only follows where the assistant reads.
+fn frees(homes: &Homes, gate: &Gate, at: &Path, file: &str) -> Option<bool> {
+    match gate.seen(file) {
+        None | Some(Seen::Plain | Seen::DeclinedHere) => Some(true),
+        Some(Seen::Admitted) => {
+            let card = gate
+                .admitted()
+                .iter()
+                .find(|one| one.file() == file)?
+                .card();
+            let elsewhere = card.level != GLOBAL
+                && places::target_of(homes, card).map(|(_, there)| there) != Some(at.to_path_buf());
+            Some(elsewhere)
+        }
+        Some(_) => None,
+    }
+}
+
+// With AGENTS gone, its files wait to be brought back the next first time, never to be taken away.
+pub(crate) fn loose_in(
+    homes: &Homes,
+    gate: &Gate,
+    ledger: &Ledger,
+    placed: &[Placed],
+    rooted: bool,
+) -> Vec<(Loose, Target)> {
+    if !rooted || !ledger.consented() {
+        return Vec::new();
+    }
+    let placing = |at: &Path| {
+        placed.iter().any(|one| {
+            one.target.at == at || one.lead_in.as_ref().is_some_and(|lead| lead.at == at)
+        })
+    };
+    let mut out = Vec::new();
+    for (at, files) in ledger.written_files() {
+        if placing(at) || places::agents_own(homes, at) || files.is_empty() {
+            continue;
+        }
+        let Some((assistant, root)) = places::owner_of(homes, at) else {
+            continue;
+        };
+        let Ok(now) = std::fs::read(at) else {
+            continue;
+        };
+        if !ledger.syncs(assistant) || files.iter().any(|file| gate.held(file)) {
+            continue;
+        }
+        let freed: Option<Vec<bool>> = files
+            .iter()
+            .map(|file| frees(homes, gate, at, file))
+            .collect();
+        if !freed.is_some_and(|all| all.contains(&true)) {
+            continue;
+        }
+        let changed = ledger.written(at) != Some(tisty_core::attach::printed(&now).as_str());
+        out.push((
+            Loose {
+                at: at.to_string_lossy().into_owned(),
+                assistant: assistant.to_string(),
+                changed,
+            },
+            gate.target(ledger, root, at.to_path_buf(), assistant),
+        ));
+    }
+    out
+}
+
+// Once Tisty put its line in, a line gone is the person's word: the assistant waits until they put it back.
+pub(crate) fn unled(ledger: &Ledger, lead: &Target) -> bool {
+    ledger.consented()
+        && ledger.syncs(&lead.assistant)
+        && ledger.led(&lead.at)
+        && agents::lacks(lead, &places::lead_in_line())
+}
+
+fn unled_in(ledger: &Ledger, placed: &[Placed]) -> Vec<String> {
+    placed
+        .iter()
+        .filter(|one| one.lead_in.as_ref().is_some_and(|lead| unled(ledger, lead)))
+        .map(|one| one.target.assistant.clone())
+        .collect()
 }
 
 // A choice left for later stays open here until the person makes it; every file changed outside is counted beside it.
@@ -279,6 +399,8 @@ pub struct Told {
 pub struct Rounded {
     pub told: Vec<Told>,
     pub both: Vec<Both>,
+    pub loose: Vec<Loose>,
+    pub unled: Vec<String>,
 }
 
 fn word(standing: &Standing) -> &'static str {
@@ -383,14 +505,20 @@ fn led_in(
         .zip(standings)
         .find(|(one, _)| one.target.at == lead.at)
         .is_none_or(|(_, standing)| matches!(standing, Standing::UpToDate | Standing::Wrote));
+    let fresh = !ledger.led(&lead.at);
     match agents::lead_in(data, ledger, lead, &places::lead_in_line()) {
-        Ok(true) if quiet => {
-            if let Ok(now) = std::fs::read(&lead.at) {
+        Ok(added) => {
+            ledger.lead(&lead.at);
+            if added
+                && quiet
+                && let Ok(now) = std::fs::read(&lead.at)
+            {
                 ledger.settle(&lead.at, &now);
+            }
+            if fresh || added {
                 let _ = ledger.keep(data);
             }
         }
-        Ok(_) => {}
         Err(why) => tisty_core::witness::warn(
             tisty_core::witness::channel::AGENT,
             "the line that names Tisty's rules could not be added to the agent's own file",
@@ -400,12 +528,68 @@ fn led_in(
 }
 
 pub(crate) fn round_now(session: &Session, homes: &Homes, ledger: &mut Ledger) -> Rounded {
+    round_after(session, homes, ledger, &[])
+}
+
+// An earlier build marked no line; it settled the agent's own file only once it had put its line in, unless that file is a memory document here.
+fn marked_led(data: &Path, ledger: &mut Ledger, placed: &[Placed]) {
+    let mut marked = false;
+    for lead in placed.iter().filter_map(|one| one.lead_in.as_ref()) {
+        let remembered = placed.iter().any(|one| one.target.at == lead.at);
+        if !ledger.led(&lead.at) && !remembered && ledger.written(&lead.at).is_some() {
+            ledger.lead(&lead.at);
+            marked = true;
+        }
+    }
+    if marked {
+        let _ = ledger.keep(data);
+    }
+}
+
+// Files just brought are taken as they stand before the round, so what joins them is written over them with a backup.
+fn round_after(
+    session: &Session,
+    homes: &Homes,
+    ledger: &mut Ledger,
+    brought: &[(String, PathBuf)],
+) -> Rounded {
+    let data = session.paths.data();
     let gate = gated(session, ledger);
     if ledger.taken_all(gate.admitted().iter().map(agents::Admitted::file)) {
         let _ = ledger.keep(session.paths.data());
     }
     let placed = places::targets(homes, &gate, ledger);
-    rounded(session.paths.data(), ledger, &placed)
+    let mut adopted = false;
+    for (file, at) in brought {
+        if let Some(one) = placed.iter().find(|one| one.target.at == *at) {
+            adopted |= agents::adopted(ledger, &one.target, file);
+        }
+    }
+    if adopted {
+        let _ = ledger.keep(data);
+    }
+    marked_led(data, ledger, &placed);
+    let rooted = root_of(&session.state).is_some();
+    let loose = loose_in(homes, &gate, ledger, &placed, rooted)
+        .into_iter()
+        .map(|(one, _)| one)
+        .collect();
+    let (paused, going): (Vec<Placed>, Vec<Placed>) = placed
+        .into_iter()
+        .partition(|one| one.lead_in.as_ref().is_some_and(|lead| unled(ledger, lead)));
+    let mut out = rounded(data, ledger, &going);
+    out.told.extend(paused.iter().map(|one| Told {
+        at: one.target.at.to_string_lossy().into_owned(),
+        assistant: one.target.assistant.clone(),
+        files: one.files.clone(),
+        standing: "unled",
+    }));
+    out.unled = paused
+        .iter()
+        .map(|one| one.target.assistant.clone())
+        .collect();
+    out.loose = loose;
+    out
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
@@ -470,12 +654,13 @@ pub fn read_chosen(
     found: &[Found],
     chosen: &BTreeSet<String>,
     held: &BTreeSet<String>,
+    writes: &BTreeSet<PathBuf>,
 ) -> (Vec<(Found, String)>, Vec<Turned>) {
     let mut bodies = Vec::new();
     let mut refused = Vec::new();
     for one in found {
         let at = one.at.to_string_lossy().into_owned();
-        if !chosen.contains(&at) || held.contains(&address_of(one)) {
+        if !chosen.contains(&at) || known(held, writes, one) {
             continue;
         }
         match agents::brought_in(ledger, one) {
@@ -494,9 +679,9 @@ fn sub_name(level: &str) -> &'static str {
     places::assistant(level).map_or(GLOBAL_FOLDER, |one| one.name)
 }
 
-pub fn filed(session: &mut Session, bodies: &[(Found, String)]) -> Answer<usize> {
-    if bodies.is_empty() {
-        return Ok(0);
+pub fn filed(session: &mut Session, bodies: &[(Found, String)]) -> Answer<Vec<(String, PathBuf)>> {
+    if bodies.is_empty() && root_of(&session.state).is_some() {
+        return Ok(Vec::new());
     }
     let mut ops = Vec::new();
     let mut orders: BTreeMap<Option<FolderId>, Vec<String>> = BTreeMap::new();
@@ -572,7 +757,7 @@ pub fn filed(session: &mut Session, bodies: &[(Found, String)]) -> Answer<usize>
             Ok(kept) => kept,
             Err(e) => return Err(undone(&docs, &made, e)),
         };
-        made.push(kept.id.clone());
+        made.push((kept.id.clone(), one.at.clone()));
         ops.push(Op::DocAdd {
             id: ulid::Ulid::generate(),
             d: tisty_core::event::DocAdd {
@@ -591,25 +776,28 @@ pub fn filed(session: &mut Session, bodies: &[(Found, String)]) -> Answer<usize>
         }
     }
     match session.commit_all(ops) {
-        Ok(()) => Ok(made.len()),
+        Ok(()) => Ok(made),
         Err(e) => Err(undone(&docs, &made, e)),
     }
 }
 
 // A file written for an import that did not land would sit in the store with nothing naming it.
-fn undone(docs: &Path, made: &[String], why: tisty_core::Error) -> Refusal {
-    for id in made {
+fn undone(docs: &Path, made: &[(String, PathBuf)], why: tisty_core::Error) -> Refusal {
+    for (id, _) in made {
         let _ = tisty_core::docs::remove(docs, id);
     }
     Refusal::about("cannotWrite", why.to_string())
 }
 
-pub fn consented_here(session: &Session, here: &str) -> Answer<(Ledger, BTreeSet<String>)> {
+type Known = (Ledger, BTreeSet<String>, BTreeSet<PathBuf>);
+
+pub fn consented_here(session: &Session, homes: &Homes, here: &str) -> Answer<Known> {
     let mut ledger = Ledger::open(session.paths.data(), here);
     ledger.consent(true);
     ledger.keep(session.paths.data()).map_err(refused)?;
     let gate = gated(session, &ledger);
-    Ok((ledger, addresses(&bodies(session), &gate)))
+    let writes = written_now(&ledger, &places::targets(homes, &gate, &ledger));
+    Ok((ledger, addresses(&bodies(session), &gate), writes))
 }
 
 pub fn brought_home(
@@ -620,9 +808,9 @@ pub fn brought_home(
     refused: Vec<Turned>,
 ) -> Answer<Brought> {
     let made = filed(session, read)?;
-    let round = round_now(session, homes, &mut ledger);
+    let round = round_after(session, homes, &mut ledger, &made);
     Ok(Brought {
-        made,
+        made: made.len(),
         refused,
         round,
     })
@@ -707,12 +895,61 @@ pub fn turned(
     })
 }
 
-pub fn emptied(session: &mut Session) -> Answer<bool> {
+pub fn loosened(
+    session: &Session,
+    homes: &Homes,
+    here: &str,
+    at: &str,
+    away: bool,
+) -> Answer<Rounded> {
+    let data = session.paths.data();
+    let mut ledger = Ledger::open(data, here);
+    let gate = gated(session, &ledger);
+    let placed = places::targets(homes, &gate, &ledger);
+    let rooted = root_of(&session.state).is_some();
+    let Some((_, target)) = loose_in(homes, &gate, &ledger, &placed, rooted)
+        .into_iter()
+        .find(|(one, _)| one.at == at)
+    else {
+        return Err(refused(agents::Refused::Held));
+    };
+    match away {
+        true => {
+            agents::removed(data, &mut ledger, &target).map_err(refused)?;
+            unlead(data, &mut ledger, &target);
+        }
+        false => {
+            ledger.forget(&target.at);
+            ledger.keep(data).map_err(refused)?;
+        }
+    }
+    Ok(round_now(session, homes, &mut ledger))
+}
+
+// With the file of rules gone, the line naming it would point at nothing.
+fn unlead(data: &Path, ledger: &mut Ledger, gone: &Target) {
+    let Some(lead) = places::lead_of(gone) else {
+        return;
+    };
+    if agents::lead_out(data, ledger, &lead, &places::lead_in_line()).is_ok() {
+        ledger.forget(&lead.at);
+        let _ = ledger.keep(data);
+    }
+}
+
+// A file its last rule left waits for the person's answer first, or AGENTS would go and leave it unasked.
+pub fn emptied(session: &mut Session, homes: &Homes, here: &str) -> Answer<bool> {
     let Some(root) = root_of(&session.state) else {
         return Ok(false);
     };
     let tree = tree(&session.state, root);
     if !docs_in(&session.state, &tree).is_empty() {
+        return Ok(false);
+    }
+    let ledger = Ledger::open(session.paths.data(), here);
+    let gate = gated(session, &ledger);
+    let placed = places::targets(homes, &gate, &ledger);
+    if !loose_in(homes, &gate, &ledger, &placed, true).is_empty() {
         return Ok(false);
     }
     // Deepest first: a folder deleted before its children would lift them to the top.
@@ -723,6 +960,18 @@ pub fn emptied(session: &mut Session) -> Answer<bool> {
         .commit_all(ops)
         .map_err(|e| Refusal::about("cannotWrite", e.to_string()))?;
     Ok(true)
+}
+
+pub fn led_again(session: &Session, homes: &Homes, here: &str) -> Answer<Rounded> {
+    let data = session.paths.data();
+    let mut ledger = Ledger::open(data, here);
+    let placed = places::targets(homes, &gated(session, &ledger), &ledger);
+    for lead in placed.iter().filter_map(|one| one.lead_in.as_ref()) {
+        if unled(&ledger, lead) {
+            agents::lead_in(data, &ledger, lead, &places::lead_in_line()).map_err(refused)?;
+        }
+    }
+    Ok(round_now(session, homes, &mut ledger))
 }
 
 #[tauri::command(async)]
@@ -742,9 +991,9 @@ pub fn agents_bring(
     chosen: Vec<String>,
 ) -> Answer<Brought> {
     let homes = homes()?;
-    let (ledger, known) = consented_here(&held(&session), &here())?;
+    let (ledger, known, writes) = consented_here(&held(&session), &homes, &here())?;
     let chosen: BTreeSet<String> = chosen.into_iter().collect();
-    let (read, refused) = read_chosen(&ledger, &found_here(&homes), &chosen, &known);
+    let (read, refused) = read_chosen(&ledger, &found_here(&homes), &chosen, &known, &writes);
     brought_home(&mut held(&session), &homes, ledger, &read, refused)
 }
 
@@ -778,9 +1027,26 @@ pub fn agents_round(session: tauri::State<'_, Mutex<Session>>) -> Answer<Rounded
     Ok(round_now(&session, &homes, &mut ledger))
 }
 
+#[tauri::command(async)]
+pub fn agents_loose(
+    session: tauri::State<'_, Mutex<Session>>,
+    at: String,
+    away: bool,
+) -> Answer<Rounded> {
+    let homes = homes()?;
+    loosened(&held(&session), &homes, &here(), &at, away)
+}
+
 #[tauri::command]
 pub fn agents_empty(session: tauri::State<'_, Mutex<Session>>) -> Answer<bool> {
-    emptied(&mut held(&session))
+    let homes = homes()?;
+    emptied(&mut held(&session), &homes, &here())
+}
+
+#[tauri::command(async)]
+pub fn agents_lead(session: tauri::State<'_, Mutex<Session>>) -> Answer<Rounded> {
+    let homes = homes()?;
+    led_again(&held(&session), &homes, &here())
 }
 
 #[cfg(test)]

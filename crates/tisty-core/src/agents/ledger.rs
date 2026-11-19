@@ -26,6 +26,8 @@ pub struct Ledger {
     left: BTreeSet<String>,
     #[serde(default)]
     applied: BTreeMap<String, BTreeSet<String>>,
+    #[serde(default)]
+    led: BTreeSet<String>,
 }
 
 impl Ledger {
@@ -145,6 +147,28 @@ impl Ledger {
     pub fn unproven(&self, at: &Path) -> bool {
         let key = keyed(at);
         self.wrote.contains_key(&key) && !self.applied.contains_key(&key)
+    }
+
+    pub fn written_files(&self) -> impl Iterator<Item = (&Path, &BTreeSet<String>)> {
+        self.applied
+            .iter()
+            .map(|(at, files)| (Path::new(at.as_str()), files))
+    }
+
+    // Once Tisty put its line in a file, a line missing later is the person's doing, never put back alone.
+    pub fn lead(&mut self, at: &Path) {
+        self.led.insert(keyed(at));
+    }
+
+    pub fn led(&self, at: &Path) -> bool {
+        self.led.contains(&keyed(at))
+    }
+
+    pub fn forget(&mut self, at: &Path) {
+        let key = keyed(at);
+        self.wrote.remove(&key);
+        self.applied.remove(&key);
+        self.led.remove(&key);
     }
 
     pub fn applied(&self) -> BTreeSet<&str> {

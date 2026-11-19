@@ -3,8 +3,8 @@ use std::sync::Mutex;
 
 use tisty_core::agents::{self, Card, Ledger, Refused, Seen, Standing, Target};
 
-use super::agents_sync::refused;
-use crate::wiring::agents::{Homes, Placed, assistant, targets};
+use super::agents_sync::{refused, unled};
+use crate::wiring::agents::{Homes, Placed, assistant, lead_of, targets};
 use crate::{Answer, Refusal, Session, held};
 
 #[derive(serde::Serialize, Debug, PartialEq, Eq)]
@@ -12,6 +12,7 @@ use crate::{Answer, Refusal, Session, held};
 pub enum Said {
     Synced,
     Pending,
+    Unled,
     Held,
     Unproven,
     Outside { mine: bool, gone: bool },
@@ -107,7 +108,10 @@ pub(crate) fn place(data: &Path, ledger: &Ledger, target: &Target, piece: usize)
         assistant: target.assistant.clone(),
         named: named(&target.assistant),
         at: target.at.to_string_lossy().into_owned(),
-        said: said(agents::standing(ledger, target), piece),
+        said: match lead_of(target).is_some_and(|lead| unled(ledger, &lead)) {
+            true => Said::Unled,
+            false => said(agents::standing(ledger, target), piece),
+        },
         shared: target.pieces.len(),
         changed: changed_at(&target.at),
         held_by: Vec::new(),
