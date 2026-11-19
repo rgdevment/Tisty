@@ -108,7 +108,7 @@ In the **AGENTS** folder you keep your assistants' rules, skills and memory as d
 
 **Turning it off without losing anything**
 
-After your yes, sync stays on, and you can pause it for one assistant or for the whole folder. Paused, Tisty neither opens nor writes those files on its own: they stay as the last write left them, and your documents stay in Tisty. A pause belongs to this computer. If you take every document out of AGENTS, the folder leaves Tisty and your assistants' files stay as they were. Tisty never empties or deletes an assistant's file.
+After your yes, sync stays on, and you can pause it for one assistant or for the whole folder. Paused, Tisty neither opens nor writes those files on its own: they stay as the last write left them, and your documents stay in Tisty. A pause belongs to this computer. If you take a rule out of AGENTS, Tisty asks whether to take its file away too: it deletes it only if you say yes, and keeps a backup on this computer first. If you take every document out, it first asks the same about each file, and then the folder leaves Tisty; what you chose to leave stays as it was. Tisty never empties an assistant's file, and never deletes one without asking you.
 
 ## No AI
 

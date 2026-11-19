@@ -32,7 +32,7 @@ No te sirve para los archivos de cada repositorio: AGENTS maneja los archivos de
    - ⧉ **Antes de cambiar un archivo de un agente, Tisty guarda un respaldo en este equipo.**
 4. Debajo, **Encontré esto. Elige qué traer:**, una fila por asistente, como **Claude · 7 archivos**. Ábrela con un clic para ver cada archivo con su casilla y qué es: **Regla**, **Skill** o **Memoria del agente**. Pasa el puntero sobre un archivo para ver su ruta completa.
 5. Marca lo que quieres traer. Las reglas y las skills vienen marcadas; **la memoria del agente viene sin marcar**, porque una vez en Tisty viaja con tu sincronización, y la marcas tú si la quieres.
-6. Pulsa **Traer y sincronizar**. Si no marcaste nada, el botón dice **Autorizar y sincronizar**: autoriza este equipo sin traer archivos.
+6. Pulsa **Traer y sincronizar**. Si no marcaste nada, el botón dice **Autorizar y sincronizar**: autoriza este equipo sin traer archivos, y si AGENTS todavía no existe, la crea vacía, con su **Global**.
 7. Tisty abre solo los archivos que marcaste, los guarda como documentos y te dice cuántos entraron: «Entraron 7 documentos a AGENTS, y desde ahora Tisty los mantiene al día.». Lo que no pudo entrar aparece bajo **Esto no entró:**, con el motivo. **Listo** cierra el aviso.
 
 **Ahora no** cierra el aviso sin leer nada. Puedes volver cuando quieras desde la misma tarjeta de Configuración.
@@ -62,7 +62,63 @@ Después de traer, un archivo marcado puede quedar fuera:
 
 ### Si todavía no tienes archivos de agentes
 
-El aviso dice «No encontré archivos de agentes en este equipo.» y el botón queda en **Autorizar y sincronizar**. Pulsarlo autoriza este equipo, pero la carpeta AGENTS nace con el primer archivo que traes: cuando tengas uno, por ejemplo después de usar tu agente por primera vez, vuelve a **Configuración › Asistentes** y pulsa **Crear la carpeta AGENTS** otra vez.
+El aviso dice «No encontré archivos de agentes en este equipo. Igual puedes autorizarlo: AGENTS se llena a medida que escribes tus reglas.», y el botón queda en **Autorizar y sincronizar**. Pulsarlo autoriza este equipo y crea igual la carpeta **AGENTS**, con su subcarpeta **Global**. La barra dice **vacía** junto a AGENTS, y entrar en ella no vuelve a abrir el aviso.
+
+Desde ahí tienes dos caminos:
+
+- **Escribir tu primera regla.** Crea un documento dentro de AGENTS con su línea `agent:`, como en [Global o un asistente](#global-o-un-asistente), y Tisty crea el archivo apenas lo guardas.
+- **Traer lo que aparezca después.** Cuando tu agente cree sus archivos, por ejemplo después de usarlo por primera vez, tráelos con [Traer otro archivo](#traer-otro-archivo).
+
+## Traer otro archivo
+
+La primera vez no tiene que ser la única. Si instalas un asistente nuevo, si creas un archivo de reglas que antes no existía o si dejaste algo sin marcar, lo traes después:
+
+- **Desde la barra lateral:** botón derecho sobre AGENTS, o sobre cualquier carpeta dentro de ella, y **Traer otro archivo**.
+- **Desde Configuración › Asistentes:** en la tarjeta **AGENTS**, el botón **Traer otro archivo**.
+
+Se abre **Traer otro archivo**, con «Estos son los archivos de agentes de este equipo que todavía no están en AGENTS. Elige qué traer:» y la misma lista de la primera vez, con una diferencia: **no viene nada marcado**, ni siquiera las reglas. Marca lo que quieres y pulsa **Traer**: el botón no se activa hasta que marcas algo. Lo que Tisty ya escribe desde un documento dice **ya está en AGENTS**, y si no queda nada por traer, el aviso dice «Todos los archivos de agentes de este equipo ya están en AGENTS.».
+
+**Un ejemplo.** Un día escribes a mano en tu editor una regla nueva para Claude Code, `~/.claude/rules/pruebas.md`:
+
+```markdown title="~/.claude/rules/pruebas.md"
+# Pruebas
+
+- Corre los tests antes de cada commit.
+```
+
+1. Botón derecho sobre **AGENTS › Claude** y **Traer otro archivo**.
+2. Abre la fila de Claude: `CLAUDE.md` aparece atenuado, con **ya está en AGENTS**, y `rules/pruebas.md`, sin marcar, como **Regla**.
+3. Márcalo y pulsa **Traer**. El aviso dice «Entró 1 documento a AGENTS, y desde ahora Tisty lo mantiene al día.», y **Listo** lo cierra.
+4. En **AGENTS › Claude** aparece **Pruebas**, con el icono de un libro. Desde ahora lo cambias en Tisty, como cualquier regla.
+
+![El aviso Traer otro archivo en español, sin las tres líneas de la primera vez: arriba Estos son los archivos de agentes de este equipo que todavía no están en AGENTS. Elige qué traer:, y debajo la fila de Claude abierta, con CLAUDE.md atenuado y ya está en AGENTS, y rules/pruebas.md marcado como Regla; abajo, los botones Ahora no y Traer](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/agents/es-10-traer-otro.png)
+
+Si este equipo todavía no autorizó AGENTS, **Traer otro archivo** abre el aviso de la primera vez, con sus tres líneas y lo que encontró ya marcado.
+
+### Un archivo que nunca trajiste
+
+**Un ejemplo.** Tienes `~/.codex/AGENTS.md` con tus reglas de Codex, y la primera vez lo dejaste sin marcar. Después escribes una regla en **Global**, que también va a ese archivo. Tisty no sabe qué parte es tuya, así que no lo pisa: te pregunta **Existe en los dos lados**, al entrar en AGENTS o con **Revisar** en Configuración › Asistentes. Como nunca trajo ese archivo, el aviso suma «Tisty nunca trajo este archivo. Si lo traes a AGENTS, queda con lo que dice y con lo de Tisty agregado arriba.» y el botón **Traer a AGENTS**.
+
+Con **Traer a AGENTS**, el archivo entra como un documento en **AGENTS › Codex**, con sus palabras, y Tisty lo vuelve a escribir con tu regla de Global arriba. Lo que tenía antes queda en sus [respaldos](#respaldos):
+
+```markdown title="~/.codex/AGENTS.md, después de Traer a AGENTS"
+# Para todos mis agentes
+
+- Antes de borrar algo, pregunta.
+
+# Reglas de Codex
+
+- Usa pnpm, nunca npm.
+```
+
+**Traer otro archivo** hace lo mismo: ese `AGENTS.md` aparece en su lista, sin marcar, y al traerlo queda igual, con Global arriba y su respaldo.
+
+### El `AGENTS.override.md` de Codex
+
+Codex lee `~/.codex/AGENTS.override.md` en vez de `AGENTS.md` cuando existe, así que tus reglas de Global van a ese archivo mientras exista. Si lo creas después de la primera vez y tienes reglas en Global, Tisty te pregunta **Existe en los dos lados** con **Traer a AGENTS**, como con cualquier archivo que nunca trajo. Sin reglas en Global no pregunta nada: tráelo con **Traer otro archivo**. Al traerlo:
+
+- `AGENTS.override.md` queda con tu regla de Global arriba y lo que escribiste debajo, y desde ahí Codex recibe Global ahí;
+- `AGENTS.md` queda solo con tus reglas de Codex, sin Global. Codex no lo lee mientras exista el override.
 
 ## Cómo queda la carpeta
 
@@ -94,14 +150,14 @@ Junto al nombre de la carpeta AGENTS, la barra lateral te dice cómo está todo:
 | Junto a AGENTS | Qué significa |
 | :-- | :-- |
 | **al día** | Cada archivo dice lo mismo que su documento |
-| **2 con cambios** | Dos archivos cambiaron por fuera, en los dos lados, o los escribió un Tisty anterior, y esperan que decidas |
+| **2 con cambios** | Dos archivos esperan que decidas: cambiaron por fuera o en los dos lados, los escribió un Tisty anterior, ya [no son de ninguna regla](#sacar-una-regla-y-su-archivo), o falta [la línea de Gemini](#gemini-en-pausa) |
 | **3 en espera** | Tres documentos llegaron de [otro de tus equipos](#en-varios-equipos) y esperan que elijas si los aplicas en este |
 | **1 por aprobar** | Un documento cambió sin pasar por tus manos, y no llega a ningún agente hasta que [lo apruebes](#por-aprobar) |
 | **1 con propuesta** | Un agente [propone un cambio](#una-propuesta-de-tu-agente) a un documento, y espera que lo apruebes o lo descartes |
 | **apagada** | Este equipo no está autorizado, o pausaste toda la carpeta |
-| **vacía** | La carpeta no tiene documentos |
+| **vacía** | La carpeta no tiene documentos, y nada espera que decidas |
 
-Si hay más de una cosa, se ve la más urgente: **vacía** cuando no hay documentos, y si los hay, primero **apagada**, después **con cambios**, después **en espera**, después **por aprobar** y al final **con propuesta**.
+Si hay más de una cosa, se ve la más urgente: **vacía** cuando no hay documentos ni nada que decidir, y si no, primero **apagada**, después **con cambios**, después **en espera**, después **por aprobar** y al final **con propuesta**.
 
 ![La barra lateral en español con la carpeta AGENTS abierta, su icono de robot morado y la palabra al día a la derecha; dentro, las subcarpetas Global, Claude, Codex y Gemini. En Claude, la regla Cómo trabajo con el icono de un libro, la regla Estilo de código, la skill pr con el icono de una pieza y 3 archivos a la derecha, abierta, mostrando SKILL.md, scripts/abrir-pr.sh y plantilla.md, y la memoria MEMORY.md con el icono de un cerebro; el puntero sobre Cómo trabajo muestra claude · CLAUDE.md](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/agents/es-02-barra.png)
 
@@ -172,7 +228,7 @@ Así queda el `CLAUDE.md` de Claude Code:
 La ficha de cada uno de esos documentos lo dice: «Claude lo lee en `~/.claude/CLAUDE.md`», y debajo, «junto con otro documento». Cursor no recibe reglas: las suyas viven en sus ajustes, no en un archivo.
 
 > [!IMPORTANT]
-> **Deja marcado el archivo principal de cada asistente la primera vez.** Si `~/.codex/AGENTS.md` ya existe y no lo trajiste, Tisty no sabe qué parte es tuya: al escribir una regla de Global, ese archivo queda en **Cambiado en los dos lados**, y desde ahí solo puedes sobrescribirlo, lo que lo reemplaza entero por tus reglas de Global (el original queda como respaldo n.º 1), o decidir después. Traído, Global se escribe delante de lo que ya decía.
+> **Trae el archivo principal de cada asistente.** Si `~/.codex/AGENTS.md` ya existe y nunca lo trajiste, Tisty no sabe qué parte es tuya: al escribir una regla de Global, la ficha marca ese archivo **Cambiado en los dos lados**, y **Sobrescribir con Tisty** lo reemplazaría entero por tus reglas de Global. En vez de eso, usa **Traer a AGENTS**: lo trae con sus palabras y escribe Global delante, con el original como respaldo n.º 1. Lo cuenta [Un archivo que nunca trajiste](#un-archivo-que-nunca-trajiste).
 
 ### Una regla solo para Claude
 
@@ -212,9 +268,9 @@ El `SKILL.md` muestra sus propias propiedades, su nombre y su descripción, como
 Lo que hace Tisty con cada uno:
 
 - **Claude Code.** Trae `CLAUDE.md`, cada archivo de `rules/`, cada skill y, si la marcas, la memoria de cada proyecto, solo la carpeta `memory` y nunca las conversaciones guardadas. Escribe `CLAUDE.md` y `rules/`, y las skills.
-- **Codex.** Codex lee `AGENTS.override.md` en vez de `AGENTS.md` cuando el primero existe, así que tus reglas de Global van a ese archivo mientras exista. Sus skills van a `~/.agents/skills`, que `CODEX_HOME` no mueve.
+- **Codex.** Codex lee `AGENTS.override.md` en vez de `AGENTS.md` cuando el primero existe, así que tus reglas de Global van a ese archivo mientras exista. Si lo creas después de la primera vez, [tráelo](#el-agentsoverridemd-de-codex) para que Global vaya ahí sin pisar lo tuyo. Sus skills van a `~/.agents/skills`, que `CODEX_HOME` no mueve.
 - **GitHub Copilot CLI.** Trae y escribe `copilot-instructions.md` y cada archivo de `instructions/`, como `rust.instructions.md`.
-- **Gemini CLI.** Gemini escribe su propio `GEMINI.md` cuando le pides que recuerde algo, así que ese archivo es suyo: Tisty lo puede traer como memoria y nunca lo sobrescribe. Tus reglas van a un archivo aparte, `~/.gemini/tisty-rules.md`, y Tisty agrega **una sola línea** al final de `GEMINI.md`, `@tisty-rules.md`, para que Gemini lo lea. No toca nada más de ese archivo, y si la línea ya está, no la repite.
+- **Gemini CLI.** Gemini escribe su propio `GEMINI.md` cuando le pides que recuerde algo, así que ese archivo es suyo: Tisty lo puede traer como memoria y nunca lo sobrescribe. Tus reglas van a un archivo aparte, `~/.gemini/tisty-rules.md`, y Tisty agrega **una sola línea** al final de `GEMINI.md`, `@tisty-rules.md`, para que Gemini lo lea. No toca nada más de ese archivo, y si la línea ya está, no la repite. Si después la borras, Tisty no la vuelve a poner: Gemini queda [en pausa](#gemini-en-pausa) hasta que tú lo decides.
 - **Cursor.** Solo skills, propias o de Global.
 
 **Las variables que mueven una carpeta** se leen del entorno con que arrancó Tisty. Si usas `CLAUDE_CONFIG_DIR` para guardar Claude Code en otra parte, defínela como variable de tu usuario y vuelve a abrir Tisty, para que la vea.
@@ -258,7 +314,7 @@ Debajo, **Historial**, cuando el documento ya tiene versiones anteriores, abre s
 | **Cambiado en los dos lados** | Cambiaron el archivo y el documento desde la última escritura | Elegir cuál conservar |
 | **Escrito por un Tisty anterior** | Una versión anterior de Tisty escribió el archivo sin anotar de qué documentos venía, y hoy no dice lo mismo que ellos | **Ver el archivo**, y después **Sobrescribir con Tisty** si te quedas con el documento |
 | **En espera** | Uno de los documentos que arman este archivo [cambió sin tu aprobación](#por-aprobar), o salió de AGENTS por mano de un agente, así que el archivo queda como estaba. La ficha nombra ese documento | Aprobar ese documento, o volver a ponerlo y sacarlo tú |
-| **En pausa** | Pausaste la sincronización de ese asistente, o de toda la carpeta | **Reanudar** cuando quieras |
+| **En pausa** | Pausaste la sincronización de ese asistente, o de toda la carpeta. En Gemini, también cuando falta la línea `@tisty-rules.md` en `GEMINI.md` | **Reanudar** cuando quieras; en Gemini, [**Volver a ponerla**](#gemini-en-pausa) |
 | **Sin permiso en este equipo** | Este equipo no autorizó AGENTS | **Autorizar en este equipo**, en Configuración › Asistentes |
 | **Nada que escribir** | El documento quedó vacío, y Tisty nunca vacía un archivo de un agente | Escribir algo, o sacar el documento de AGENTS |
 | **El archivo es un enlace** | El archivo, o una carpeta en su camino, es un enlace simbólico; escribirlo reemplazaría el enlace | Cambiar el enlace por el archivo real |
@@ -294,7 +350,7 @@ Mientras no eliges, Tisty no escribe ese archivo, aunque cambies el documento.
 
 Si cambiaron el archivo y también el documento, la ficha dice **Cambiado en los dos lados**. Cuando el documento es el único que arma ese archivo, aparece **Quedarse con el archivo**, que pregunta «¿Dejar este documento como está ahora …? Lo que dice ahora queda en su historial.»; si no, solo **Sobrescribir con Tisty**.
 
-Lo mismo puede pasar la primera vez, cuando ya tenías en AGENTS un documento de un archivo que entretanto cambió. Entonces aparece **Existe en los dos lados**, con las líneas que difieren: en rojo, con `−`, lo que hay **En Tisty**; en verde, con `+`, lo que hay **En el archivo**. Eliges **Conservar el de Tisty**, **Conservar el archivo** o **Decidir después**, y lo que no conservas queda guardado: el archivo en sus [respaldos](#respaldos), el documento en sus versiones anteriores. Si el archivo se arma con varios documentos, solo puedes conservar el de Tisty o decidir después. Desde **Configuración › Asistentes**, «1 archivo dice algo distinto en Tisty y en el agente.» y **Revisar** te traen de vuelta a ese aviso.
+Lo mismo puede pasar la primera vez, cuando ya tenías en AGENTS un documento de un archivo que entretanto cambió. Entonces aparece **Existe en los dos lados**, con las líneas que difieren: en rojo, con `−`, lo que hay **En Tisty**; en verde, con `+`, lo que hay **En el archivo**. Eliges **Conservar el de Tisty**, **Conservar el archivo** o **Decidir después**, y lo que no conservas queda guardado: el archivo en sus [respaldos](#respaldos), el documento en sus versiones anteriores. Si el archivo se arma con varios documentos, solo puedes conservar el de Tisty o decidir después. Si Tisty nunca trajo ese archivo, el aviso suma **Traer a AGENTS**, como cuenta [Un archivo que nunca trajiste](#un-archivo-que-nunca-trajiste). Desde **Configuración › Asistentes**, «1 archivo dice algo distinto en Tisty y en el agente.» y **Revisar** te traen de vuelta a ese aviso.
 
 ![El aviso en español Existe en los dos lados para ~/.codex/AGENTS.md: arriba la ruta, debajo las líneas comparadas, en rojo con un signo menos la que solo está En Tisty y en verde con un signo más la que solo está En el archivo, y los botones Decidir después, Conservar el archivo y Conservar el de Tisty](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/agents/es-07-dos-lados.png)
 
@@ -304,6 +360,7 @@ Lo mismo puede pasar la primera vez, cuando ya tenías en AGENTS un documento de
 
 - **El respaldo n.º 1 es el original**: el archivo como estaba antes de que Tisty lo sobrescribiera por primera vez. Ese no se borra nunca.
 - **Además, los últimos 20.** Cuando llega el 21, se va el más antiguo después del original.
+- **Quitar un archivo también deja uno.** Si [quitas el archivo](#sacar-una-regla-y-su-archivo) de una regla que sacaste, sus respaldos siguen en este equipo, y si una regla vuelve a escribir esa misma ruta, aparecen en su **Respaldos**.
 
 Para verlos, pulsa **Respaldos** en la ficha, o el enlace **3 respaldos** en la fila del archivo:
 
@@ -322,22 +379,66 @@ Las versiones anteriores del **documento**, en cambio, son las de cualquier docu
 
 **Apagar toda la carpeta.** En la misma tarjeta, **Sincronizar la carpeta AGENTS**. Apagada, la barra dice **apagada** junto a AGENTS, y la ficha de cada documento dice «La sincronización está apagada para toda la carpeta AGENTS.».
 
-![La tarjeta AGENTS de Configuración › Asistentes en español: la línea Las reglas, skills y memoria de tus agentes como documentos de Tisty, el interruptor Sincronizar la carpeta AGENTS encendido y debajo Sincronizar Claude, Sincronizar Codex y Sincronizar Gemini, con Codex apagado y la nota Apagado: sus archivos quedan como están y no se borra nada en Tisty](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/agents/es-06-configuracion.png)
+![La tarjeta AGENTS de Configuración › Asistentes en español: la línea Las reglas, skills y memoria de tus agentes como documentos de Tisty, el botón Traer otro archivo, y debajo el interruptor Sincronizar la carpeta AGENTS encendido y Sincronizar Claude, Sincronizar Codex y Sincronizar Gemini, con Codex apagado y la nota Apagado: sus archivos quedan como están y no se borra nada en Tisty](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/agents/es-06-configuracion.png)
 
 La pausa y el permiso son de este equipo.
 
-**Sacar un documento.** Si mueves un documento fuera de AGENTS, lo archivas o lo borras, Tisty deja de escribirlo:
+### Gemini en pausa
 
-- si era el único que armaba su archivo, el archivo queda como estaba;
-- si el archivo se armaba con varios, como `CLAUDE.md` con una regla de Global, Tisty lo vuelve a escribir sin esa parte, y guarda antes un respaldo.
+Tisty pone la línea `@tisty-rules.md` en tu `GEMINI.md` una vez. Si después la borras, o borras `GEMINI.md` entero, Tisty lo toma como tu decisión y no la vuelve a poner: Gemini queda **En pausa**, deja de recibir tus reglas, y Tisty deja de escribir `tisty-rules.md`. Lo ves en tres lugares:
 
-Tisty nunca vacía ni borra un archivo de un agente.
+- **En la ficha** de cada regla que Gemini lee: la etiqueta **En pausa** y «Gemini no lee esta regla: falta la línea @tisty-rules.md en GEMINI.md, y Tisty no la vuelve a poner sola.», con el botón **Volver a ponerla**.
+- **En Configuración › Asistentes**, bajo **Sincronizar Gemini**: «En pausa: falta la línea @tisty-rules.md en GEMINI.md.», con **Volver a ponerla**.
+- **Al entrar en AGENTS**, el aviso **Falta la línea de Tisty**: «La línea @tisty-rules.md ya no está en GEMINI.md, así que Gemini no lee tus reglas. Tisty no la vuelve a poner sola: Gemini queda en pausa hasta que tú lo hagas.», con **Dejarlo en pausa** y **Volver a ponerla**.
 
-**Vaciar AGENTS.** Si sacas todos los documentos de AGENTS, la carpeta y sus subcarpetas desaparecen de Tisty, y los archivos de tus agentes quedan como estaban.
+**Volver a ponerla** agrega otra vez la línea al final de `GEMINI.md`, sin tocar lo demás, y Tisty vuelve a escribir tus reglas en `tisty-rules.md`. Mientras no lo haces, la barra cuenta a Gemini en **con cambios** junto a AGENTS.
 
-**Ocultarla de la barra.** Si no quieres verla todo el tiempo, botón derecho sobre AGENTS y **Ocultar de la barra**. Solo desaparece de la barra lateral en este equipo: se sigue sincronizando, y la encuentras en **Ocultas**, al pie de la barra, o con **Mostrar ocultas**.
+### Sacar una regla y su archivo
 
-**Lo que la deja de convertir en AGENTS.** Tisty reconoce la carpeta porque está arriba de todo, se llama **AGENTS** y lleva su icono de robot. Si la renombras, le cambias el icono, la mueves dentro de otra carpeta o la archivas, Tisty deja de escribir los archivos, como si la hubieras vaciado.
+Tisty deja de escribir un documento cuando lo sacas de AGENTS: cuando lo borras, lo archivas o lo mueves fuera, cuando cambias su línea `agent:` por la de otro archivo, y cuando vuelves a una [versión anterior](Documentos#versiones-anteriores) que no tenía ficha, o tenía otra.
+
+- **Si el archivo se armaba con varios documentos**, como `CLAUDE.md` con una regla de Global, Tisty lo vuelve a escribir sin esa parte, y guarda antes un respaldo.
+- **Si era el único**, ninguna regla escribe ya ese archivo, pero sigue en el disco y tu agente lo sigue leyendo. Por eso, alrededor de un segundo después, Tisty te pregunta qué hacer con él.
+
+**Un ejemplo.** Tenías la regla **Pruebas**, de `~/.claude/rules/pruebas.md`, y ya no la quieres. La borras, y se abre **¿Quitar también el archivo?**: «Ninguna regla de AGENTS escribe ya este archivo de Claude, pero sigue en el disco y Claude lo sigue leyendo.», con la ruta debajo y «Si lo quitas, queda un respaldo en este equipo.».
+
+![El aviso en español ¿Quitar también el archivo?, con la línea Ninguna regla de AGENTS escribe ya este archivo de Claude, pero sigue en el disco y Claude lo sigue leyendo., la ruta ~/.claude/rules/pruebas.md en gris, la línea Si lo quitas, queda un respaldo en este equipo., y los botones Dejarlo y Quitar el archivo](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/agents/es-11-quitar-archivo.png)
+
+- **Quitar el archivo** guarda un respaldo y lo borra: Claude deja de leer esa regla. Si era el último archivo de la carpeta de una skill, esa carpeta se va con él; las carpetas propias del asistente, como `rules`, quedan.
+- **Dejarlo** lo deja donde está, y Tisty deja de responder por él: no lo escribe ni te vuelve a preguntar. Si un día lo quieres de vuelta en AGENTS, aparece en [Traer otro archivo](#traer-otro-archivo).
+
+Si el archivo cambió después de que Tisty lo escribió, por ejemplo porque lo editaste a mano, el aviso suma «Cambió después de la última vez que Tisty lo escribió.». El respaldo guarda el archivo como está ahora, con ese cambio.
+
+Si quitas `tisty-rules.md`, el archivo de reglas de Gemini, Tisty también saca la línea `@tisty-rules.md` de `GEMINI.md`, y nada más.
+
+Mientras no respondes, la barra suma ese archivo en **con cambios**, y la tarjeta **AGENTS** de **Configuración › Asistentes** dice «1 archivo ya no es de ninguna regla de AGENTS.», con **Revisar** para volver a la pregunta.
+
+Tisty no pregunta, y deja el archivo como está:
+
+- por la memoria del agente, que escribe el propio agente: la de cada proyecto de Claude Code ni el `GEMINI.md` de Gemini;
+- por un archivo de un asistente que pausaste o apagaste;
+- por un archivo cuyo documento [espera tu aprobación](#por-aprobar);
+- por un archivo que ya no existe.
+
+En tus otros equipos pasa lo mismo: cuando la regla borrada les llega con la sincronización, cada uno te pregunta por su propio archivo la próxima vez que Tisty lo mira, y el respaldo queda en ese equipo.
+
+### Vaciar AGENTS
+
+Si sacas todos los documentos de AGENTS mientras Tisty está abierto, primero te pregunta por los archivos que escribían sus últimas reglas, uno por uno, como en [Sacar una regla y su archivo](#sacar-una-regla-y-su-archivo). Cuando respondiste el último, la carpeta AGENTS y sus subcarpetas desaparecen de Tisty, y los archivos que elegiste dejar quedan como estaban.
+
+Solo se va una AGENTS que tenía documentos y vaciaste con la ventana abierta. Una AGENTS vacía de otra forma se queda: la que se creó sin encontrar archivos, o la que ya estaba vacía al abrir Tisty.
+
+Si después quieres AGENTS otra vez, **Crear la carpeta AGENTS**, en Configuración › Asistentes, abre de nuevo el aviso de la primera vez, con las reglas y las skills que encuentre ya marcadas, también las que dejaste, y la memoria sin marcar, como siempre.
+
+### Ocultarla de la barra
+
+Si no quieres verla todo el tiempo, botón derecho sobre AGENTS y **Ocultar de la barra**. Solo desaparece de la barra lateral en este equipo: se sigue sincronizando, y la encuentras en **Ocultas**, al pie de la barra, o con **Mostrar ocultas**.
+
+Oculta y todo, si algo espera tu decisión, su fila en **Ocultas** lo dice, como **1 con cambios** o **2 en espera**. Si todo está al día, no dice nada.
+
+### Lo que la deja de convertir en AGENTS
+
+Tisty reconoce la carpeta porque está arriba de todo, se llama **AGENTS** y lleva su icono de robot. Si la renombras, le cambias el icono, la mueves dentro de otra carpeta o la archivas, Tisty deja de escribir los archivos, y los deja como estaban, sin preguntar por ellos.
 
 ## En varios equipos
 
@@ -411,10 +512,10 @@ Un agente que dejas entrar por [[MCP|Asistentes-y-MCP]] **lee** tus documentos d
 
 A document whose properties hold an `agent:` line is an assistant's own file kept in the folder
 AGENTS — a rule file such as `CLAUDE.md`, a skill, a script — and Tisty writes its text, byte for
-byte, to the file that assistant reads, on each computer where the person turned that on. `read`
-gives the text the person approved. You change one only by proposing: `write_doc` with `doc` and
-`print`, `edit_doc` or `append_doc` keep your text byte for byte, apart, and nothing reaches any
-file until the person approves it on the document's card: say so, never call it done. …
+byte, to the file that assistant reads, on each computer where the person applied the document.
+`read` gives the text the person approved. You change one only by proposing: `write_doc` with
+`doc` and `print`, `edit_doc` or `append_doc` keep your text byte for byte, apart, and nothing
+reaches any file until the person approves it on the document's card: say so, never call it done. …
 ```
 
 **2. Busca el documento.** `brain` con las palabras del archivo:
@@ -477,7 +578,7 @@ Su guía le pide decírtelo así, «te lo propuse», y nunca darlo por hecho.
 
 ![La ficha en español de Cómo trabajo con las etiquetas Regla, Claude, Al día y Propuesta, y debajo el recuadro morado Un agente (Claude Code) propone un cambio · hace 2 minutos, la línea Nada de esto llega a los archivos de tus agentes hasta que lo apruebes, las líneas comparadas con la cabecera − Aprobado y + Propuesto, la línea nueva + - Corre los tests antes de cada commit. en verde, y los botones Aprobar el cambio y Descartar; en la barra, junto a AGENTS, 1 con propuesta](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/agents/es-09-propuesta.png)
 
-Si Tisty está abierto mientras el agente propone, la propuesta no aparece al instante: la ves cuando Tisty vuelve a mirar, por ejemplo al volver a su ventana.
+Si Tisty está abierto mientras el agente propone, la propuesta aparece sola en uno o dos segundos, aunque la ventana no esté al frente.
 
 **3. Apruebas o descartas.**
 
@@ -542,7 +643,7 @@ Y editar el archivo en disco tampoco sirve: ese cambio queda como **Cambiado por
 
 **¿Por qué la memoria del agente viene sin marcar?** Porque la escribe el agente, puede hablar de tus proyectos, y una vez en Tisty viaja con tu sincronización y tus respaldos como cualquier documento. La traes solo si quieres leerla en Tisty.
 
-**¿Qué es la línea `@tisty-rules.md` en mi `GEMINI.md`?** Es la única línea que Tisty agrega a ese archivo, para que Gemini lea tus reglas, que van en `tisty-rules.md`. El resto de `GEMINI.md` lo escribe Gemini.
+**¿Qué es la línea `@tisty-rules.md` en mi `GEMINI.md`?** Es la única línea que Tisty agrega a ese archivo, para que Gemini lea tus reglas, que van en `tisty-rules.md`. El resto de `GEMINI.md` lo escribe Gemini. Si la borras, Tisty no la vuelve a poner: Gemini queda [en pausa](#gemini-en-pausa) hasta que pulsas **Volver a ponerla**.
 
 **¿AGENTS ve los asistentes que uso dentro de WSL?** No. En Windows, Tisty mira tu carpeta de usuario de Windows, y un asistente que corre dentro de WSL guarda sus archivos en tu carpeta de Linux.
 
@@ -557,6 +658,12 @@ Y editar el archivo en disco tampoco sirve: ese cambio queda como **Cambiado por
 **Uso Tisty en dos equipos. ¿Mis reglas llegan solas al otro?** Llegan como documentos, con tu sincronización, pero en el otro equipo esperan tu **Aplicar aquí** la primera vez. Después se ponen al día solas. Mira [En varios equipos](#en-varios-equipos).
 
 **¿Puedo tener una regla solo en un equipo?** Sí: en el equipo donde no la quieres, pulsa **No en este equipo** en su ficha. Lo que elige cada equipo es solo suyo.
+
+**Borré una regla. ¿Qué pasa con su archivo?** Tisty te pregunta «¿Quitar también el archivo?»: **Quitar el archivo** lo borra y guarda un respaldo, y **Dejarlo** lo deja donde está, sin que Tisty vuelva a escribirlo. Mira [Sacar una regla y su archivo](#sacar-una-regla-y-su-archivo).
+
+**La primera vez dejé un archivo sin marcar. ¿Lo puedo traer ahora?** Sí, con **Traer otro archivo**, desde el botón derecho sobre AGENTS o desde Configuración › Asistentes. Mira [Traer otro archivo](#traer-otro-archivo).
+
+**¿Por qué AGENTS dice vacía?** No tiene documentos: la creaste sin que Tisty encontrara archivos, o sus documentos salieron mientras Tisty estaba cerrado, por ejemplo al sincronizar con otro equipo. Escribe una regla con su línea `agent:`, o trae un archivo con **Traer otro archivo**.
 
 ## Si algo no cuadra
 
@@ -580,13 +687,17 @@ Y editar el archivo en disco tampoco sirve: ese cambio queda como **Cambiado por
 
 **La barra dice por aprobar y yo no cambié nada.** El texto de un documento cambió sin pasar por la ventana de Tisty, por ejemplo con un paquete importado o una edición directa en la carpeta de datos. Ábrelo, léelo, y si está bien, **Aprobar este texto**.
 
-**Escribí una regla de Global y un archivo quedó en Cambiado en los dos lados.** Ese archivo ya existía y no lo trajiste, así que Tisty no sabe qué parte es tuya. Para conservar lo que decía, pulsa **Ver el archivo** en la ficha, copia lo tuyo a un documento nuevo dentro de AGENTS con la línea `agent: codex/rule/AGENTS.md` (o la del asistente que sea), y después **Sobrescribir con Tisty**: el archivo queda con Global delante de lo tuyo, y el original, como respaldo n.º 1. Mira [Una regla en Global](#una-regla-en-global).
+**Escribí una regla de Global y un archivo quedó en Cambiado en los dos lados.** Ese archivo ya existía y no lo trajiste, así que Tisty no sabe qué parte es tuya. No lo sobrescribas: en **Configuración › Asistentes**, pulsa **Revisar** y, en **Existe en los dos lados**, **Traer a AGENTS**. El archivo queda con Global delante de lo tuyo, y el original, como respaldo n.º 1. Mira [Un archivo que nunca trajiste](#un-archivo-que-nunca-trajiste).
+
+**Me pregunta «¿Quitar también el archivo?» y no borré nada.** También cuenta como sacar una regla cambiar su línea `agent:` por la de otro archivo, o volver a una versión anterior que no tenía ficha. Si no quieres tocar nada, **Dejarlo** lo deja donde está.
+
+**AGENTS desapareció.** Sacaste todos sus documentos con Tisty abierto, y cuando eso pasa la carpeta se va. Si la quieres de vuelta, **Crear la carpeta AGENTS** en Configuración › Asistentes trae otra vez lo que encuentre. Si no la vaciaste, búscala en **Ocultas**, al pie de la barra.
 
 **Toda la carpeta dejó de escribir.** Revisa que AGENTS siga arriba de todo en la Biblioteca, con ese nombre y su icono de robot, y sin archivar.
 
-**Codex no lee mis reglas.** Si tienes `~/.codex/AGENTS.override.md`, Codex lee solo ese archivo. Tus reglas de Global van ahí, pero un documento con `agent: codex/rule/AGENTS.md` se escribe en `AGENTS.md`, que Codex no lee mientras exista el otro.
+**Codex no lee mis reglas.** Si tienes `~/.codex/AGENTS.override.md`, Codex lee solo ese archivo. Tus reglas de Global van ahí, pero un documento con `agent: codex/rule/AGENTS.md` se escribe en `AGENTS.md`, que Codex no lee mientras exista el otro. Si creaste el override después de la primera vez, [tráelo a AGENTS](#el-agentsoverridemd-de-codex).
 
-**Gemini no lee mis reglas.** Revisa que `~/.gemini/GEMINI.md` tenga la línea `@tisty-rules.md`. Si la borraste, Tisty la vuelve a agregar la próxima vez que revisa tus archivos: al iniciar, o cuando cambias un documento de AGENTS.
+**Gemini no lee mis reglas.** Si su ficha dice **En pausa**, falta la línea `@tisty-rules.md` en `~/.gemini/GEMINI.md`: pulsa **Volver a ponerla**, en la ficha o en Configuración › Asistentes. Tisty no la vuelve a poner por su cuenta, porque borrarla es tu decisión. Mira [Gemini en pausa](#gemini-en-pausa).
 
 **No aparece Traer el cambio.** El documento es de Global, el cambio cae en la parte de otro documento del mismo archivo, o lo estás editando: pulsa **Listo** y vuelve a mirar.
 

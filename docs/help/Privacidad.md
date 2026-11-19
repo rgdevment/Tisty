@@ -108,7 +108,7 @@ En la carpeta **AGENTS** guardas como documentos las reglas, las skills y la mem
 
 **Apagarlo sin perder nada**
 
-Después de tu sí, la sincronización queda encendida, y puedes pausarla para un asistente o para toda la carpeta. En pausa, Tisty no abre ni escribe esos archivos por su cuenta: quedan como los dejó la última escritura, y tus documentos siguen en Tisty. La pausa es de este equipo. Si sacas todos los documentos de AGENTS, la carpeta desaparece de Tisty y los archivos de tus asistentes quedan como estaban. Tisty nunca vacía ni borra un archivo de un asistente.
+Después de tu sí, la sincronización queda encendida, y puedes pausarla para un asistente o para toda la carpeta. En pausa, Tisty no abre ni escribe esos archivos por su cuenta: quedan como los dejó la última escritura, y tus documentos siguen en Tisty. La pausa es de este equipo. Si sacas una regla de AGENTS, Tisty te pregunta si quitas también su archivo: solo lo borra si dices que sí, y antes guarda un respaldo en este equipo. Si sacas todos los documentos, primero te pregunta lo mismo por cada archivo, y después la carpeta desaparece de Tisty; lo que elegiste dejar queda como estaba. Tisty nunca vacía un archivo de un asistente, y nunca borra uno sin preguntarte.
 
 ## Sin IA
 
