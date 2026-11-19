@@ -24,14 +24,19 @@ export default function AgentProposal({ proposal, onApprove, onDiscard }: Props)
         <span className="font-normal text-faint">· {stamped(proposal.at)}</span>
       </p>
       <p className="mt-1 text-soft">{t("agentProposalLead")}</p>
-      {proposal.stale && <p className="mt-1 text-hue-amber">{t("agentProposalStale")}</p>}
+      {proposal.stale && !proposal.unfit && (
+        <p className="mt-1 text-hue-amber">{t("agentProposalStale")}</p>
+      )}
+      {proposal.unfit && <p className="mt-1 text-hue-amber">{t(proposal.unfit)}</p>}
       <ComparedLines
         lines={proposal.lines}
         gone={t("agentProposalApproved")}
         came={t("agentProposalProposed")}
       />
       <div className="mt-2.5 flex flex-wrap gap-2">
-        {onApprove && <Action glyph="done" label={t("agentApproveChange")} onClick={onApprove} />}
+        {onApprove && !proposal.unfit && (
+          <Action glyph="done" label={t("agentApproveChange")} onClick={onApprove} />
+        )}
         <Action glyph="close" label={t("agentDiscardChange")} onClick={onDiscard} />
       </div>
     </section>

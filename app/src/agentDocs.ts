@@ -50,6 +50,7 @@ export interface Proposal {
   readonly via: string | null;
   readonly at: string;
   readonly stale: boolean;
+  readonly unfit: "agentProposalRetargeted" | "agentProposalUnfit" | null;
   readonly lines: readonly Line[];
 }
 
