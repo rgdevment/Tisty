@@ -1,4 +1,4 @@
-import { act, render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import kept from "../../src-tauri/src/brainsty_window.rs?raw";
@@ -81,6 +81,7 @@ vi.mock("../ui/brainsty/drawing", () => ({
     centre: (on: number) => sigma.centred.push(on),
     zoom: () => 0.5,
     toScreen: (point: [number, number]) => point,
+    toGraph: (point: [number, number]) => point,
     nodeOnScreen: () => undefined,
     onFrame: () => () => {},
     light: (nodes: ReadonlySet<number> | null) => sigma.lit.push(nodes ? [...nodes] : null),
@@ -138,6 +139,20 @@ const small: Network = {
     [1, 2, 3],
   ],
   near: 1,
+};
+
+const guessing: Network = {
+  ...small,
+  nodes: [
+    ...small.nodes,
+    { id: "plans.md", kind: "doc", title: "Plans", state: "open" },
+    { id: "01B", kind: "task", title: "buy milk", state: "open" },
+  ],
+  alike: [
+    [1, 4, 600, "buy groceries"],
+    [3, 1, 900, "plans bread"],
+    [3, 4, 500, "bread"],
+  ],
 };
 
 const PROJECTS: Group = { id: "f1", name: "Proyectos", color: "teal" };
@@ -537,5 +552,67 @@ describe("Brainsty's own window", () => {
     expect(allowed).toContain("brain_network");
     const used = [...new Set(ipc.calls.map((one) => one.cmd))];
     expect(used.filter((one) => !allowed.includes(one))).toEqual([]);
+  });
+
+  it("lists what Tisty guesses beside a picked node, strongest first, with why, and the filter takes them away", async () => {
+    ipc.network = () => Promise.resolve(guessing);
+    const { user } = await drawnNetwork();
+
+    act(() => sigma.hands?.pick(1));
+
+    const preview = await screen.findByRole("complementary", { name: "buy bread" });
+    const alike = within(preview).getByRole("region", { name: t("brainstyAlike") });
+    const named = within(alike)
+      .getAllByRole("button")
+      .map((one) => one.textContent);
+    expect(named).toEqual(["Plans", "buy milk"]);
+    expect(alike.textContent).toContain("Tisty guesses: they share plans and bread");
+    expect(alike.textContent).toContain("Tisty guesses: they share buy and groceries");
+    expect([...alike.querySelectorAll("em")].map((one) => one.textContent)).toEqual([
+      "plans",
+      "bread",
+      "buy",
+      "groceries",
+    ]);
+    expect(last(sigma.lit)).toEqual([1, 3, 4]);
+
+    await user.click(within(alike).getByRole("button", { name: "Plans" }));
+    expect(await screen.findByRole("complementary", { name: "Plans" })).toBeTruthy();
+    expect(last(sigma.focused)).toBe(3);
+
+    act(() => sigma.hands?.pick(1));
+    await user.click(screen.getByRole("button", { name: t("brainstyFilters") }));
+    await user.click(screen.getByRole("button", { name: t("brainstyAlike") }));
+    const plain = await screen.findByRole("complementary", { name: "buy bread" });
+    expect(within(plain).queryByRole("region", { name: t("brainstyAlike") })).toBeNull();
+    expect(last(sigma.lit)).toEqual([1]);
+    expect(screen.getByRole("button", { name: t("brainstyEverything") })).toBeTruthy();
+  });
+
+  it("says why in Spanish too", async () => {
+    ipc.network = () => Promise.resolve(guessing);
+    await drawnNetwork("?locale=es&near=01A");
+
+    act(() => sigma.hands?.pick(4));
+
+    const alike = await screen.findByRole("region", { name: "Parecidos" });
+    expect(alike.textContent).toContain("Tisty lo adivina: comparten buy y groceries");
+  });
+
+  it("leaves out a guess whose other end the filters hide", async () => {
+    ipc.network = () => Promise.resolve(guessing);
+    const { user } = await drawnNetwork();
+    act(() => sigma.hands?.pick(1));
+    await screen.findByRole("region", { name: t("brainstyAlike") });
+
+    await user.click(screen.getByRole("button", { name: t("brainstyFilters") }));
+    await user.click(screen.getByRole("button", { name: t("brainstyKind_doc") }));
+
+    const alike = await screen.findByRole("region", { name: t("brainstyAlike") });
+    expect(
+      within(alike)
+        .getAllByRole("button")
+        .map((one) => one.textContent),
+    ).toEqual(["buy milk"]);
   });
 });
