@@ -39,7 +39,12 @@ pub(crate) fn counted(texts: &[&str]) -> Vec<Word> {
         .into_iter()
         .map(|(key, (written, count))| (key, written, count))
         .collect();
-    all.sort_by(|a, b| b.2.cmp(&a.2).then_with(|| a.0.cmp(&b.0)));
+    // Among words said as often, a longer one is likelier to be rare, so it outlasts the cut.
+    all.sort_by(|a, b| {
+        b.2.cmp(&a.2)
+            .then_with(|| b.0.chars().count().cmp(&a.0.chars().count()))
+            .then_with(|| a.0.cmp(&b.0))
+    });
     all.truncate(KEPT_AT_MOST);
     all
 }

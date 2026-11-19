@@ -15,7 +15,7 @@ fn word(key: &str, written: &str, count: u32) -> Word {
 fn function_words_and_short_ones_are_not_counted() {
     assert_eq!(
         words("el presupuesto de la casa y the budget"),
-        ["budget", "casa", "presupuesto"]
+        ["presupuesto", "budget", "casa"]
     );
 }
 
@@ -41,7 +41,7 @@ fn a_word_is_three_letters_to_thirty_two() {
 fn numbers_and_ids_are_not_words_but_short_names_with_digits_are() {
     assert_eq!(
         words("2026 4nnctnme 01m7n1bnd01pqamywacmfj5p0g mp3 sha256 utf8"),
-        ["mp3", "sha256", "utf8"]
+        ["sha256", "utf8", "mp3"]
     );
 }
 
@@ -70,4 +70,20 @@ fn what_is_counted_reads_back_the_same_and_its_spelling_is_kept_only_when_it_dif
     assert_eq!(stored, "presupuesto:2 familiar:1 metodo:1:método");
     assert_eq!(read(&stored), all);
     assert_eq!(read("broken anything:x fine:2"), [word("fine", "fine", 2)]);
+}
+
+#[test]
+fn among_words_said_as_often_the_longer_ones_outlast_the_cut() {
+    let short: Vec<String> = (0..KEPT_AT_MOST)
+        .map(|mut n| {
+            let mut word = String::from("a");
+            for _ in 0..3 {
+                word.push(char::from(b'a' + (n % 26) as u8));
+                n /= 26;
+            }
+            word
+        })
+        .collect();
+    let text = format!("{} veterinaria", short.join(" "));
+    assert!(words(&text).contains(&"veterinaria".to_string()));
 }

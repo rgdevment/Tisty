@@ -689,7 +689,7 @@ fn a_pass_that_keeps_being_put_off_runs_once_its_patience_is_spent() {
 }
 
 #[test]
-fn a_title_a_hidden_diary_page_also_carries_ties_no_one() {
+fn a_title_a_hidden_diary_page_also_carries_still_ties_the_one_every_reader_sees() {
     let world = World::new();
     let mut store = world.store();
     let (book, _) = doc(
@@ -727,7 +727,7 @@ fn a_title_a_hidden_diary_page_also_carries_ties_no_one() {
     world.refreshed(&mut brain, &state);
     brain.weigh_alike(&caps()).unwrap();
     assert!(
-        ends(&brain).contains(&pair(&naming, &garden)),
+        !ends(&brain).contains(&pair(&naming, &garden)),
         "{:?}",
         ends(&brain)
     );

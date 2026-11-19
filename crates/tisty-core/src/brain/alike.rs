@@ -421,7 +421,7 @@ fn tied(db: &Connection, ids: &[String]) -> rusqlite::Result<HashSet<(usize, usi
         .map(|(n, id)| (id.as_str(), n))
         .collect();
     let mut by_uid: HashMap<String, usize> = HashMap::new();
-    let mut by_title: HashMap<String, (usize, Option<usize>)> = HashMap::new();
+    let mut by_title: HashMap<String, Option<usize>> = HashMap::new();
     let mut nodes = db.prepare("SELECT id, uid, title, kind FROM node")?;
     let rows = nodes.query_map([], |row| {
         Ok((
@@ -433,14 +433,18 @@ fn tied(db: &Connection, ids: &[String]) -> rusqlite::Result<HashSet<(usize, usi
     })?;
     for row in rows {
         let (id, uid, title, kind) = row?;
-        let n = at.get(id.as_str()).copied();
-        if let (Some(uid), Some(n)) = (uid, n) {
+        // Titles are read among what every reader may see, so a pair any card shows tied is never guessed.
+        let Some(&n) = at.get(id.as_str()) else {
+            continue;
+        };
+        if let Some(uid) = uid {
             by_uid.insert(uid, n);
         }
-        // A title two documents carry names neither, whether or not each has words, as the card reads it.
         if kind == Kind::Doc.as_str() || kind == Kind::Page.as_str() {
-            let carried = by_title.entry(title).or_insert((0, n));
-            carried.0 += 1;
+            by_title
+                .entry(title)
+                .and_modify(|one| *one = None)
+                .or_insert(Some(n));
         }
     }
     let node_of = |target: &str| {
@@ -449,10 +453,7 @@ fn tied(db: &Connection, ids: &[String]) -> rusqlite::Result<HashSet<(usize, usi
             .or_else(|| by_uid.get(target).copied())
             .or_else(|| {
                 let title = target.strip_prefix(TITLED)?;
-                by_title
-                    .get(title)
-                    .filter(|(carried, _)| *carried == 1)
-                    .and_then(|(_, n)| *n)
+                by_title.get(title).copied().flatten()
             })
     };
     let mut edges = db.prepare(
