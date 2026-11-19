@@ -9,7 +9,7 @@ expression: tool
     "openWorldHint": false,
     "readOnlyHint": false
   },
-  "description": "Write the description of an open task. It replaces the old one whole: `read` first and keep what holds; what you learnt goes in `note`.",
+  "description": "Rewrite the description of an open task, replacing the old one whole: `read` the task first and keep what still holds. What you learnt goes in the journal with `note`, the rest of its page with `edit_doc`. Refused once it is said done or not doing; the answer names the task.",
   "inputSchema": {
     "additionalProperties": false,
     "properties": {

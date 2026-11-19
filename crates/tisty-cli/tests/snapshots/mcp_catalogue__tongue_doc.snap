@@ -9,7 +9,7 @@ expression: tool
     "openWorldHint": false,
     "readOnlyHint": false
   },
-  "description": "With `of`, join `doc` to that document's languages, moving it to its folder; without, take `doc` out of its languages. Both say their language in a `lang:` property, or `lang` for `doc`. A new translation is `write_doc` with `translation_of`.",
+  "description": "Join a document to another's languages, or take it out of them. With `of`, `doc` joins them and moves to that document's folder; without, `doc` stands on its own again. To join, each says its language in a `lang:` property, or `lang` for `doc`; a language already there or a page is refused, saying why. A new translation is `write_doc` with `translation_of`.",
   "inputSchema": {
     "additionalProperties": false,
     "properties": {
