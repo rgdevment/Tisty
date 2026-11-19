@@ -1,11 +1,11 @@
 # AGENTS: your agents' rules
 
-This sheet is a page of the guide. It tells the AGENTS folder: how to keep your AI agents' rules, skills and memory in Tisty, how they reach the files each one reads, and what to do when a file changes outside, on another computer or by an agent's hand.
+This sheet is a page of the guide. It tells the AGENTS folder: how to keep your AI agents' rules, skills and memory in Tisty, how they reach the files each one reads, and what to do when a file changes outside, on another computer or by an agent's hand, and how to approve what your agent proposes.
 
 I use more than one AI agent, and each one reads its rules from a different file, in a different folder: `CLAUDE.md`, `AGENTS.md`, `copilot-instructions.md`, `GEMINI.md`. Changing one rule everywhere meant opening four files, and sooner or later one fell behind. AGENTS gathers those files in Tisty, as documents, and Tisty writes underneath the file each agent reads.
 
 > [!TIP]
-> **In short:** you write your rules once, in Tisty, and Tisty writes them to each agent's file. Before touching a file it keeps what it held, it never writes over a change made outside, and only you change what is in AGENTS: your agent reads it, but does not write it.
+> **In short:** you write your rules once, in Tisty, and Tisty writes them to each agent's file. Before touching a file it keeps what it held, it never writes over a change made outside, and your agent does not write your rules: it proposes the change, and only you approve it.
 
 ## What it is and when it helps
 
@@ -205,22 +205,22 @@ Two more notices you may see on a card:
 
 ## What your agent can and cannot do
 
-Your agent **reads** your AGENTS documents like any other: you ask «which of my rules do you read?» and it answers with their titles. But it **cannot change them**: not write them, not move them, not make a new one with an `agent:` line, in any folder. An AGENTS rule reaches all your agents, on all your computers, and nobody but you should be able to write it.
+Your agent **reads** your AGENTS documents like any other: you ask «which of my rules do you read?» and it answers with their titles. But it **does not write them on its own**: when it changes one, its change stays apart, as a proposal, and reaches your agents only if you approve it. An AGENTS rule reaches all your agents, on all your computers, and nobody but you should decide what it says.
 
-If you ask it «add to my rules that it always runs the tests», it tries and Tisty refuses it, touching nothing:
-
-```text
-the document "claude · CLAUDE.md" holds an assistant's own files in AGENTS, which only the person
-changes, in Tisty: nothing an assistant writes, moves or marks there reaches them. Tell the person
-what you would change and why, and they make the change from the document's card.
-```
-
-So it tells you what it would change and in which document, and you change it with **Edit**.
+Nor can it move, archive or mark those documents, change their `agent:` line, propose on a memory or make a new document with an `agent:` line, in any folder. If it tries, Tisty refuses it, touching nothing, and tells it how to propose.
 
 ## A proposal from your agent
 
-> [!NOTE]
-> **Pending.** Here you will find how your agent proposes a change to a rule instead of writing it, how you see it on the card and how you approve or dismiss it.
+**An example.** You ask your agent «add to my rules that it runs the tests before every commit».
+
+1. The agent edits **How I work** with `edit_doc`, like any document. Tisty keeps its change apart, byte for byte, and answers that it was proposed: the document and `~/.claude/CLAUDE.md` stay as they were. Its guide asks it to tell you just that, «I proposed it», and not to call it done.
+2. The sidebar says **1 with a proposal** beside AGENTS. If Tisty was open, you see it when it looks again, for example when you come back to its window.
+3. Open **How I work**. The card gains the label **Proposal** and a purple box: «An agent (Claude Code) proposes a change», and the compared lines, in red with `−` what is **Approved** and in green with `+` what is **Proposed**.
+4. **Approve the change** asks whether you approve it. With your yes, the document says what was proposed and Tisty writes it to `CLAUDE.md`, with its backup first. **Discard** removes it and the document stays as you approved it.
+
+![The card of How I work with the labels Rule, Claude, In sync and Proposal, and the purple box An agent (Claude Code) proposes a change, with the compared lines − Approved and + Proposed, the new line + - Run the tests before every commit. in green, and the buttons Approve the change and Discard](agents-proposal.png)
+
+Each button acts only on what the card showed you: if the agent wrote again while you were looking, Tisty asks you to look at it again. If it writes again, its change goes on top of its own proposal, so there is one per document. And while a proposal waits, what you already approved keeps reaching your agents.
 
 ## More in the help
 

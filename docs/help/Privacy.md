@@ -101,7 +101,7 @@ In the **AGENTS** folder you keep your assistants' rules, skills and memory as d
 
 **What travels and what stays**
 
-- **Your AGENTS documents travel like the rest**: with your sync, your cloud (encrypted, if you encrypted it), your backups and a `.tistyx` parcel that carries everything. An assistant you let in through MCP reads them like any document, but cannot change them, move them or make one: only you do that, in Tisty ([why](AGENTS-Folder#if-your-agent-tries-to-change-a-rule)).
+- **Your AGENTS documents travel like the rest**: with your sync, your cloud (encrypted, if you encrypted it), your backups and a `.tistyx` parcel that carries everything. An assistant you let in through MCP reads them like any document, but does not change them, move them or make one: it can only propose a change, which waits apart until you approve it on the card ([how](AGENTS-Folder#a-proposal-from-your-agent)). The proposal travels with your documents, and nothing of it reaches your assistants before your approval.
 - **What you write in AGENTS reaches your assistants**: each one reads its file and sends it to the service it works with, even if you never connect it to Tisty.
 - **Stays on this computer**, in `data/agents/` inside Tisty's folder: your yes, which assistants you paused, which documents you applied or left out on this computer, a fingerprint of each file it wrote, and the backups. None of that travels with sync, backups or parcels.
 - **Before writing over** one of your assistants' files, Tisty keeps the version that was there. It holds the last 20 of each file and leaves no copies in your assistants' folders.

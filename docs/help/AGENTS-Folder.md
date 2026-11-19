@@ -3,7 +3,7 @@
 I use more than one AI agent, and each one reads its rules from a different file, in a different folder: `CLAUDE.md`, `AGENTS.md`, `copilot-instructions.md`, `GEMINI.md`. Changing one rule everywhere meant opening four files, and sooner or later one fell behind. AGENTS gathers those files in Tisty, as documents, and Tisty writes underneath the file each agent reads.
 
 > [!TIP]
-> **In short:** the **AGENTS** folder keeps the rules, skills and memory of Claude Code, Codex, GitHub Copilot CLI, Gemini CLI and Cursor as documents. What you write in **Global** reaches all of them; what you write in one assistant's folder reaches only that one. Before writing over a file, Tisty keeps what it held, and a change made outside is never written over: it stays marked until you decide.
+> **In short:** the **AGENTS** folder keeps the rules, skills and memory of Claude Code, Codex, GitHub Copilot CLI, Gemini CLI and Cursor as documents. What you write in **Global** reaches all of them; what you write in one assistant's folder reaches only that one. Before writing over a file, Tisty keeps what it held, a change made outside is never written over: it stays marked until you decide. And an agent does not write your rules: it proposes the change, and only you approve it.
 
 ![AGENTS the first time, in English: the box Your agents, in one place, with its three lines on privacy, sync and backups, and below it the list This is what I found. Choose what to bring, with Claude · 7 files open: CLAUDE.md and two files in rules ticked as Rule, the skill pr/SKILL.md ticked as Skill, a project memory unticked as Agent memory, and a .env inside a skill greyed out with credentials, left out; further down Codex · 2 files and Gemini · 1 file folded, and the buttons Not now and Bring and sync](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/agents/en-01-first-run.png)
 
@@ -97,10 +97,11 @@ Beside the AGENTS folder's name, the sidebar tells you how everything stands:
 | **2 changed** | Two files changed outside, on both sides, or were written by an earlier Tisty, and wait for you to decide |
 | **3 waiting** | Three documents came from [another of your computers](#on-several-computers) and wait for you to choose whether to apply them on this one |
 | **1 to approve** | A document changed without going through your hands, and reaches no agent until you [approve it](#to-approve) |
+| **1 with a proposal** | An agent [proposes a change](#a-proposal-from-your-agent) to a document, and waits for you to approve or discard it |
 | **off** | This computer is not allowed, or you paused the whole folder |
 | **empty** | The folder holds no documents |
 
-If more than one applies, the most pressing shows: **empty** when there are no documents, and if there are, first **off**, then **changed**, then **waiting** and last **to approve**.
+If more than one applies, the most pressing shows: **empty** when there are no documents, and if there are, first **off**, then **changed**, then **waiting**, then **to approve** and last **with a proposal**.
 
 ![The sidebar in English with the AGENTS folder open, its purple robot icon and the words in sync on the right; inside, the subfolders Global, Claude, Codex and Gemini. In Claude, the rule How I work with a book icon, the rule Code style, the skill pr with a puzzle-piece icon and 3 files on the right, open, showing SKILL.md, scripts/open-pr.sh and template.md, and the memory MEMORY.md with a brain icon; the pointer over How I work shows claude · CLAUDE.md](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/agents/en-02-sidebar.png)
 
@@ -243,7 +244,7 @@ In an AGENTS document, the column beside the page does not show the paper size, 
 | **Last written** | When the file last changed | 5 minutes ago |
 | **Backups** | How many this computer keeps | 3 backups, or None yet |
 | **Original kept** | Whether backup #1 is there, the file as it was before Tisty touched it | Yes, before Tisty's first write |
-| **Syncs on this computer** | Whether Tisty keeps it up to date here | Yes; Yes, except Codex (paused); Tisty only reads it; No, AGENTS is off |
+| **Syncs on this computer** | Whether Tisty keeps it up to date here | Yes; Yes, except Codex (paused); Tisty only reads it; No, AGENTS is off; No: it waits for «Apply here»; No: its text waits for your approval. With a proposal waiting, «an agent's change waits for your approval» is added |
 
 Below, **History**, once the document has earlier versions, opens its [history](Documents#earlier-versions), and **Copy link**, its [link](Documents#a-documents-link). If you already shared that document before, the sharing panel is still there.
 
@@ -397,7 +398,7 @@ What Tisty keeps of all this, and what travels, is in [Privacy](Privacy#your-ass
 
 ## With your agent, through MCP
 
-An agent you let in through [[MCP|Assistants-and-MCP]] **reads** your AGENTS documents like any other, and its guide tells it what they are. **It cannot change them**: the rules your agent reads are yours, and only you change them, in Tisty. For example, you ask Claude Code «Which of my rules do you read?».
+An agent you let in through [[MCP|Assistants-and-MCP]] **reads** your AGENTS documents like any other, and its guide tells it what they are. **It does not write them: it proposes the change, and only you approve it.** For example, you ask Claude Code «Which of my rules do you read?».
 
 **1. It reads its guide.** `rules` with the topic «documents» brings, among others, the section on AGENTS:
 
@@ -410,10 +411,10 @@ An agent you let in through [[MCP|Assistants-and-MCP]] **reads** your AGENTS doc
 
 A document whose properties hold an `agent:` line is an assistant's own file kept in the folder
 AGENTS — a rule file such as `CLAUDE.md`, a skill, a script — and Tisty writes its text, byte for
-byte, to the file that assistant reads, on each computer where the person turned that on. Read
-them freely, but only the person changes them, in Tisty: every tool that writes, moves, files,
-marks or sums up refuses these documents and the folder AGENTS, and a new body with an `agent:`
-line is refused anywhere. …
+byte, to the file that assistant reads, on each computer where the person turned that on. `read`
+gives the text the person approved. You change one only by proposing: `write_doc` with `doc` and
+`print`, `edit_doc` or `append_doc` keep your text byte for byte, apart, and nothing reaches any
+file until the person approves it on the document's card: say so, never call it done. …
 ```
 
 **2. It looks for the document.** `brain` with the file's words:
@@ -429,7 +430,7 @@ line is refused anywhere. …
 
 `brain` with `folder` and a subfolder's name or path lists that assistant's documents. The AGENTS folder alone answers with how many sit in each subfolder.
 
-**3. It looks at its card and reads it.** `brain` with `doc` gives its outline and place; `read` with `doc`, the whole text, `agent:` line included:
+**3. It looks at its card and reads it.** `brain` with `doc` gives its outline and place; `read` with `doc`, the text you approved, whole, `agent:` line included:
 
 ```json
 { "name": "read", "arguments": { "doc": "k4r5j4qr-0001" } }
@@ -448,37 +449,84 @@ title: claude · CLAUDE.md
 
 The agent answers you with the title and the folder, «your document claude · CLAUDE.md, in AGENTS / Claude», never with the id. Every tool is in the [[Tools reference|MCP-Tools]].
 
-### If your agent tries to change a rule
+### A proposal from your agent
 
-You ask it «add to my rules that it always runs the tests». The agent tries to edit the document, and Tisty refuses it, touching nothing:
+You ask it «add to my rules that it runs the tests before every commit». The agent edits the document like any other, but in AGENTS its change is not written: **it stays apart, as a proposal**, byte for byte. Nothing changes in the document or in your agents' files until you approve it.
+
+**1. The agent proposes.** It uses `edit_doc`, `append_doc` or `write_doc` with `doc`, `print` and the whole text:
 
 ```json
-{ "name": "edit_doc", "arguments": { "doc": "k4r5j4qr-0001", "old": "- Answer in English.", "new": "- Answer in English.\n- Run the tests before every commit." } }
+{ "name": "edit_doc", "arguments": { "doc": "k4r5j4qr-0001", "old": "- Branches shaped type/name.", "new": "- Branches shaped type/name.\n- Run the tests before every commit." } }
 ```
 
 ```text
-the document "claude · CLAUDE.md" holds an assistant's own files in AGENTS, which only the person
-changes, in Tisty: nothing an assistant writes, moves or marks there reaches them. Tell the person
-what you would change and why, and they make the change from the document's card.
+Proposed that change to "claude · CLAUDE.md" [k4r5j4qr-0001]. It waits beside the approved text for
+the person, who approves or discards it on the document's card in Tisty; no assistant's file
+changes until they approve it. Your next write to this document goes on top of this proposal, at
+this `print`.
 ```
 
-The same happens if it tries to write the whole document, add to it, archive it, move it, attach a file to it, go back to an earlier version, put another document or make a folder inside AGENTS. And a new document with an `agent:` line is refused in any folder, so nobody can bring a rule in from outside:
+Its guide asks it to tell you just that, «I proposed it», and never to call it done.
+
+**2. You see it in Tisty.** The sidebar says **1 with a proposal** beside AGENTS. Open the document: the card gains the label **Proposal** and, below, a purple box:
+
+- «An agent (Claude Code) proposes a change», with when it proposed it;
+- «Nothing of it reaches your agents' files until you approve it. What it changes in the approved text:»;
+- the compared lines: in red, with `−`, what is **Approved** and goes; in green, with `+`, what is **Proposed** and comes;
+- the buttons **Approve the change** and **Discard**.
+
+![The card in English of How I work with the labels Rule, Claude, In sync and Proposal, and below it the purple box An agent (Claude Code) proposes a change · 2 minutes ago, the line Nothing of it reaches your agents' files until you approve it, the compared lines with the header − Approved and + Proposed, the new line + - Run the tests before every commit. in green, and the buttons Approve the change and Discard; in the sidebar, beside AGENTS, 1 with a proposal](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/agents/en-09-proposal.png)
+
+If Tisty is open while the agent proposes, the proposal does not show at once: you see it when Tisty looks again, for example when you come back to its window.
+
+**3. You approve or discard.**
+
+- **Approve the change** asks «Approve this change? It is written to the document and to your agents' files.». With your yes, the document says what was proposed, with your approval, and Tisty writes it to `~/.claude/CLAUDE.md` like any change of yours, with its backup first. What it said before stays in its history.
+- **Discard** asks «Discard this proposal? The document stays as you approved it.». The proposal goes and nothing else changes.
+
+Each button acts only on what the card showed you. If the agent wrote again while you were looking, Tisty does not choose for you: «The proposal changed since the card showed it. Look at it again before choosing.». While you edit the document, **Approve the change** does not show: press **Done** first.
+
+**Good to know:**
+
+- **One proposal per document.** If the agent writes again, its change goes on top of its own proposal, and `read` hands it back apart from the approved text, in `proposal`. If it writes the approved text back, it withdraws it.
+- **Approved text keeps reaching your agents** while a proposal waits: a proposal on one rule holds back nothing else. The **Agent file** panel says so: «Yes · an agent's change waits for your approval».
+- **If the approved text changed since**, the card warns «It was proposed over an earlier version, so approving it may undo a change made since.». Look closely at the lines before approving.
+- **If the document is to approve**, you first approve its text with **Approve this text** and then the proposal: «This document's text does not have your approval yet. Approve it first, then the proposal.».
+- **`#words` in an agent document are not Tisty tags.** A rule that says «use #rust» does not show under that tag.
+
+### What it cannot propose
+
+**The `agent:` line does not change**, because it decides which file the document is written to:
 
 ```json
-{ "name": "write_doc", "arguments": { "body": "---\nagent: global/rule/for-all.md\n---\n# For all\n\n- Ask before deleting.\n" } }
+{ "name": "edit_doc", "arguments": { "doc": "k4r5j4qr-0001", "old": "claude/rule/CLAUDE.md", "new": "codex/rule/AGENTS.md" } }
 ```
+
+```text
+"claude · CLAUDE.md" [k4r5j4qr-0001] would get another `agent:` line, which only the person
+changes, so nothing was proposed. Tell the person what you would change and why.
+```
+
+**Moving, archiving, marking or summing up** an AGENTS document, attaching a file to it, going back to an earlier version, putting another document or making a folder inside AGENTS is refused, and Tisty tells it how to propose:
+
+```text
+the document "claude · CLAUDE.md" holds an assistant's own files in AGENTS, which only the person
+changes, in Tisty: nothing an assistant moves, files, marks or sums up there reaches them. To
+change its text, propose it: `write_doc` with `doc`, `print` and the whole `body`, `edit_doc`, or
+`append_doc` at its end, and nothing else with them. The person approves or discards it on the
+document's card.
+```
+
+**A new document with an `agent:` line** is refused in any folder, so nobody can bring a rule in from outside:
 
 ```text
 a body with an `agent:` line is an assistant's own file, which only the person makes, in AGENTS.
 Write it without that line, or tell the person what the file should say.
 ```
 
-So the agent tells you what it would change and in which document, and you change it from its card with **Edit**. Editing the file on disk does not help either: that change stands as **Changed outside** and waits for your decision. **Why it works this way:** an AGENTS rule reaches all your agents, on all your computers; if an agent could write it, an instruction hidden in a page it read could end up in the rules of the others.
+**Agent memory** takes no proposals: the agent itself writes it, in its own file. Nor does a proposal get in that would leave a script's code block broken, or that goes past 64,000 characters or 2,000 lines, what the card can compare.
 
-### A proposal from your agent
-
-> [!NOTE]
-> **Pending.** This section will show how an agent proposes a change to a rule instead of writing it, how that proposal looks on the card and how you approve or dismiss it. It is filled in when that feature reaches Tisty.
+And editing the file on disk does not help either: that change stands as **Changed outside** and waits for your decision. **Why it works this way:** an AGENTS rule reaches all your agents, on all your computers; if an agent could write it alone, an instruction hidden in a page it read could end up in the rules of the others. With a proposal, you see every line before it arrives.
 
 ## Questions
 
@@ -502,7 +550,7 @@ So the agent tells you what it would change and in which document, and you chang
 
 **How many backups does it keep?** The original and the last 20 of each file, on this computer.
 
-**Can I ask my agent to change my rules?** You can ask, but it cannot write them: Tisty refuses any change in AGENTS, and the agent tells you what it would change and in which document. You change it from the card. See [If your agent tries to change a rule](#if-your-agent-tries-to-change-a-rule).
+**Can I ask my agent to change my rules?** Yes, and it proposes it: its change stays apart, on the document's card, until you press **Approve the change** or **Discard**. Nothing reaches your agents before. See [A proposal from your agent](#a-proposal-from-your-agent).
 
 **I use Tisty on two computers. Do my rules reach the other one by themselves?** They arrive as documents, with your sync, but on the other computer they wait for your **Apply here** the first time. After that they update by themselves. See [On several computers](#on-several-computers).
 

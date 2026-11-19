@@ -3,7 +3,7 @@
 Uso más de un agente de IA, y cada uno lee sus reglas de un archivo distinto, en una carpeta distinta: `CLAUDE.md`, `AGENTS.md`, `copilot-instructions.md`, `GEMINI.md`. Cambiar una regla en todos era abrir cuatro archivos, y tarde o temprano uno quedaba atrás. AGENTS junta esos archivos en Tisty, como documentos, y Tisty escribe por debajo el archivo que lee cada agente.
 
 > [!TIP]
-> **En corto:** la carpeta **AGENTS** guarda como documentos las reglas, las skills y la memoria de Claude Code, Codex, GitHub Copilot CLI, Gemini CLI y Cursor. Lo que escribes en **Global** llega a todos; lo que escribes en la carpeta de un asistente, solo a él. Antes de sobrescribir un archivo, Tisty guarda lo que tenía, y un cambio hecho por fuera nunca se pisa: queda marcado hasta que tú decides.
+> **En corto:** la carpeta **AGENTS** guarda como documentos las reglas, las skills y la memoria de Claude Code, Codex, GitHub Copilot CLI, Gemini CLI y Cursor. Lo que escribes en **Global** llega a todos; lo que escribes en la carpeta de un asistente, solo a él. Antes de sobrescribir un archivo, Tisty guarda lo que tenía, un cambio hecho por fuera nunca se pisa: queda marcado hasta que tú decides. Y un agente no escribe tus reglas: te propone el cambio, y solo tú lo apruebas.
 
 ![La primera vez de AGENTS en español: el aviso Tus agentes, en un solo lugar, con sus tres líneas sobre privacidad, sincronización y respaldo, y debajo la lista Encontré esto. Elige qué traer, con Claude · 7 archivos abierto: CLAUDE.md y dos archivos de rules marcados como Regla, la skill pr/SKILL.md marcada como Skill, una memoria de proyecto sin marcar como Memoria del agente y un .env dentro de una skill atenuado con credenciales, no entra; más abajo Codex · 2 archivos y Gemini · 1 archivo plegados, y los botones Ahora no y Traer y sincronizar](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/agents/es-01-primera-vez.png)
 
@@ -97,10 +97,11 @@ Junto al nombre de la carpeta AGENTS, la barra lateral te dice cómo está todo:
 | **2 con cambios** | Dos archivos cambiaron por fuera, en los dos lados, o los escribió un Tisty anterior, y esperan que decidas |
 | **3 en espera** | Tres documentos llegaron de [otro de tus equipos](#en-varios-equipos) y esperan que elijas si los aplicas en este |
 | **1 por aprobar** | Un documento cambió sin pasar por tus manos, y no llega a ningún agente hasta que [lo apruebes](#por-aprobar) |
+| **1 con propuesta** | Un agente [propone un cambio](#una-propuesta-de-tu-agente) a un documento, y espera que lo apruebes o lo descartes |
 | **apagada** | Este equipo no está autorizado, o pausaste toda la carpeta |
 | **vacía** | La carpeta no tiene documentos |
 
-Si hay más de una cosa, se ve la más urgente: **vacía** cuando no hay documentos, y si los hay, primero **apagada**, después **con cambios**, después **en espera** y al final **por aprobar**.
+Si hay más de una cosa, se ve la más urgente: **vacía** cuando no hay documentos, y si los hay, primero **apagada**, después **con cambios**, después **en espera**, después **por aprobar** y al final **con propuesta**.
 
 ![La barra lateral en español con la carpeta AGENTS abierta, su icono de robot morado y la palabra al día a la derecha; dentro, las subcarpetas Global, Claude, Codex y Gemini. En Claude, la regla Cómo trabajo con el icono de un libro, la regla Estilo de código, la skill pr con el icono de una pieza y 3 archivos a la derecha, abierta, mostrando SKILL.md, scripts/abrir-pr.sh y plantilla.md, y la memoria MEMORY.md con el icono de un cerebro; el puntero sobre Cómo trabajo muestra claude · CLAUDE.md](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/agents/es-02-barra.png)
 
@@ -243,7 +244,7 @@ En un documento de AGENTS, la columna de al lado no muestra el tamaño de hoja, 
 | **Última escritura** | Cuándo cambió el archivo por última vez | hace 5 minutos |
 | **Respaldos** | Cuántos guarda este equipo | 3 respaldos, o Ninguno todavía |
 | **Original guardado** | Si ya está el respaldo n.º 1, el archivo de antes de que Tisty lo tocara | Sí, el de antes de la primera escritura de Tisty |
-| **Sincroniza en este equipo** | Si Tisty lo mantiene al día aquí | Sí; Sí, salvo Codex (en pausa); Tisty solo lo lee; No, AGENTS está apagada |
+| **Sincroniza en este equipo** | Si Tisty lo mantiene al día aquí | Sí; Sí, salvo Codex (en pausa); Tisty solo lo lee; No, AGENTS está apagada; No: espera «Aplicar aquí»; No: su texto espera tu aprobación. Con una propuesta esperando, se suma «un cambio propuesto por un agente espera tu aprobación» |
 
 Debajo, **Historial**, cuando el documento ya tiene versiones anteriores, abre su [historial](Documentos#versiones-anteriores), y **Copiar enlace**, su [enlace](Documentos#el-enlace-de-un-documento). Si ya compartías ese documento antes, el panel de compartir sigue ahí.
 
@@ -397,7 +398,7 @@ Qué guarda Tisty de todo esto, y qué viaja, está en [Privacidad](Privacidad#t
 
 ## Con tu agente, por MCP
 
-Un agente que dejas entrar por [[MCP|Asistentes-y-MCP]] **lee** tus documentos de AGENTS como cualquier otro, y su guía le explica qué son. **No puede cambiarlos**: las reglas que lee tu agente son tuyas, y solo tú las cambias, en Tisty. Por ejemplo, le pides a Claude Code «¿Qué reglas mías lees?».
+Un agente que dejas entrar por [[MCP|Asistentes-y-MCP]] **lee** tus documentos de AGENTS como cualquier otro, y su guía le explica qué son. **No los escribe: te propone el cambio, y solo tú lo apruebas.** Por ejemplo, le pides a Claude Code «¿Qué reglas mías lees?».
 
 **1. Lee su guía.** `rules` con el tema «documents» trae, entre otras, la sección sobre AGENTS:
 
@@ -410,10 +411,10 @@ Un agente que dejas entrar por [[MCP|Asistentes-y-MCP]] **lee** tus documentos d
 
 A document whose properties hold an `agent:` line is an assistant's own file kept in the folder
 AGENTS — a rule file such as `CLAUDE.md`, a skill, a script — and Tisty writes its text, byte for
-byte, to the file that assistant reads, on each computer where the person turned that on. Read
-them freely, but only the person changes them, in Tisty: every tool that writes, moves, files,
-marks or sums up refuses these documents and the folder AGENTS, and a new body with an `agent:`
-line is refused anywhere. …
+byte, to the file that assistant reads, on each computer where the person turned that on. `read`
+gives the text the person approved. You change one only by proposing: `write_doc` with `doc` and
+`print`, `edit_doc` or `append_doc` keep your text byte for byte, apart, and nothing reaches any
+file until the person approves it on the document's card: say so, never call it done. …
 ```
 
 **2. Busca el documento.** `brain` con las palabras del archivo:
@@ -429,7 +430,7 @@ line is refused anywhere. …
 
 `brain` con `folder` y el nombre o la ruta de una subcarpeta lista los documentos de ese asistente. La carpeta AGENTS sola responde con cuántos hay en cada subcarpeta.
 
-**3. Mira su ficha y lo lee.** `brain` con `doc` da su índice y su ubicación; `read` con `doc`, el texto entero, con la línea `agent:`:
+**3. Mira su ficha y lo lee.** `brain` con `doc` da su índice y su ubicación; `read` con `doc`, el texto que aprobaste, entero, con la línea `agent:`:
 
 ```json
 { "name": "read", "arguments": { "doc": "k4r5j4qr-0001" } }
@@ -448,37 +449,84 @@ title: claude · CLAUDE.md
 
 El agente te contesta con el título y la carpeta, «tu documento claude · CLAUDE.md, en AGENTS / Claude», nunca con el identificador. Cada herramienta está en [[Herramientas MCP|Herramientas-MCP]].
 
-### Si tu agente intenta cambiar una regla
+### Una propuesta de tu agente
 
-Le pides «agrega a mis reglas que siempre corra los tests». El agente intenta corregir el documento, y Tisty se lo rechaza, sin tocar nada:
+Le pides «agrega a mis reglas que corra los tests antes de cada commit». El agente corrige el documento como cualquier otro, pero en AGENTS su cambio no se escribe: **queda aparte, como una propuesta**, byte a byte. Nada cambia en el documento ni en los archivos de tus agentes hasta que la apruebas.
+
+**1. El agente propone.** Usa `edit_doc`, `append_doc` o `write_doc` con `doc`, `print` y el texto entero:
 
 ```json
-{ "name": "edit_doc", "arguments": { "doc": "k4r5j4qr-0001", "old": "- Responde en español.", "new": "- Responde en español.\n- Corre los tests antes de cada commit." } }
+{ "name": "edit_doc", "arguments": { "doc": "k4r5j4qr-0001", "old": "- Ramas con la forma tipo/nombre.", "new": "- Ramas con la forma tipo/nombre.\n- Corre los tests antes de cada commit." } }
 ```
 
 ```text
-the document "claude · CLAUDE.md" holds an assistant's own files in AGENTS, which only the person
-changes, in Tisty: nothing an assistant writes, moves or marks there reaches them. Tell the person
-what you would change and why, and they make the change from the document's card.
+Proposed that change to "claude · CLAUDE.md" [k4r5j4qr-0001]. It waits beside the approved text for
+the person, who approves or discards it on the document's card in Tisty; no assistant's file
+changes until they approve it. Your next write to this document goes on top of this proposal, at
+this `print`.
 ```
 
-Lo mismo pasa si intenta escribir el documento entero, agregarle algo, archivarlo, moverlo, adjuntarle un archivo, volver a una versión anterior, meter otro documento o crear una carpeta dentro de AGENTS. Y un documento nuevo con una línea `agent:` se rechaza en cualquier carpeta, para que nadie pueda traer una regla desde fuera:
+Su guía le pide decírtelo así, «te lo propuse», y nunca darlo por hecho.
+
+**2. La ves en Tisty.** La barra dice **1 con propuesta** junto a AGENTS. Abre el documento: la ficha suma la etiqueta **Propuesta** y, debajo, un recuadro morado:
+
+- «Un agente (Claude Code) propone un cambio», con cuándo lo propuso;
+- «Nada de esto llega a los archivos de tus agentes hasta que lo apruebes. Lo que cambia en el texto aprobado:»;
+- las líneas comparadas: en rojo, con `−`, lo **Aprobado** que se va; en verde, con `+`, lo **Propuesto** que llega;
+- los botones **Aprobar el cambio** y **Descartar**.
+
+![La ficha en español de Cómo trabajo con las etiquetas Regla, Claude, Al día y Propuesta, y debajo el recuadro morado Un agente (Claude Code) propone un cambio · hace 2 minutos, la línea Nada de esto llega a los archivos de tus agentes hasta que lo apruebes, las líneas comparadas con la cabecera − Aprobado y + Propuesto, la línea nueva + - Corre los tests antes de cada commit. en verde, y los botones Aprobar el cambio y Descartar; en la barra, junto a AGENTS, 1 con propuesta](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/agents/es-09-propuesta.png)
+
+Si Tisty está abierto mientras el agente propone, la propuesta no aparece al instante: la ves cuando Tisty vuelve a mirar, por ejemplo al volver a su ventana.
+
+**3. Apruebas o descartas.**
+
+- **Aprobar el cambio** pregunta «¿Apruebas este cambio? Se escribe en el documento y en los archivos de tus agentes.». Con tu sí, el documento pasa a decir lo propuesto, con tu aprobación, y Tisty lo escribe en `~/.claude/CLAUDE.md` como cualquier cambio tuyo, con su respaldo antes. Lo que decía antes queda en su historial.
+- **Descartar** pregunta «¿Descartas esta propuesta? El documento queda como lo aprobaste.». La propuesta se va y nada más cambia.
+
+Cada botón actúa solo sobre lo que la ficha te mostró. Si el agente volvió a escribir mientras mirabas, Tisty no elige por ti: «La propuesta cambió desde que la ficha la mostró. Revísala de nuevo antes de elegir.». Mientras editas el documento, **Aprobar el cambio** no aparece: pulsa **Listo** primero.
+
+**Lo que conviene saber:**
+
+- **Una propuesta por documento.** Si el agente vuelve a escribir, su cambio va encima de su propia propuesta, y `read` se la entrega aparte del texto aprobado, en `proposal`. Si escribe de vuelta el texto aprobado, la retira.
+- **Lo aprobado sigue llegando a tus agentes** mientras una propuesta espera: una propuesta en una regla no detiene nada más. El panel **Archivo del agente** lo dice: «Sí · un cambio propuesto por un agente espera tu aprobación».
+- **Si el texto aprobado cambió después**, la ficha avisa «Se propuso sobre una versión anterior, así que aprobarla puede deshacer un cambio hecho después.». Mira bien las líneas antes de aprobar.
+- **Si el documento está por aprobar**, primero apruebas su texto con **Aprobar este texto** y después la propuesta: «El texto de este documento aún no tiene tu aprobación. Apruébalo primero y después la propuesta.».
+- **Los `#palabras` de un documento de agente no son etiquetas de Tisty.** Una regla que dice «usa #rust» no aparece bajo esa etiqueta.
+
+### Lo que no puede proponer
+
+**La línea `agent:` no cambia**, porque decide en qué archivo se escribe el documento:
 
 ```json
-{ "name": "write_doc", "arguments": { "body": "---\nagent: global/rule/para-todos.md\n---\n# Para todos\n\n- Pregunta antes de borrar.\n" } }
+{ "name": "edit_doc", "arguments": { "doc": "k4r5j4qr-0001", "old": "claude/rule/CLAUDE.md", "new": "codex/rule/AGENTS.md" } }
 ```
+
+```text
+"claude · CLAUDE.md" [k4r5j4qr-0001] would get another `agent:` line, which only the person
+changes, so nothing was proposed. Tell the person what you would change and why.
+```
+
+**Mover, archivar, marcar o resumir** un documento de AGENTS, adjuntarle un archivo, volver a una versión anterior, meter otro documento o crear una carpeta dentro de AGENTS se rechaza, y Tisty le dice cómo proponer:
+
+```text
+the document "claude · CLAUDE.md" holds an assistant's own files in AGENTS, which only the person
+changes, in Tisty: nothing an assistant moves, files, marks or sums up there reaches them. To
+change its text, propose it: `write_doc` with `doc`, `print` and the whole `body`, `edit_doc`, or
+`append_doc` at its end, and nothing else with them. The person approves or discards it on the
+document's card.
+```
+
+**Un documento nuevo con una línea `agent:`** se rechaza en cualquier carpeta, para que nadie pueda traer una regla desde fuera:
 
 ```text
 a body with an `agent:` line is an assistant's own file, which only the person makes, in AGENTS.
 Write it without that line, or tell the person what the file should say.
 ```
 
-Así que el agente te dice qué cambiaría y en qué documento, y tú lo cambias desde su ficha con **Editar**. Tampoco sirve que edite el archivo en disco: ese cambio queda como **Cambiado por fuera** y espera tu decisión. **Por qué así:** una regla de AGENTS llega a todos tus agentes, en todos tus equipos; si un agente pudiera escribirla, una instrucción escondida en una página que leyó podría terminar en las reglas de los demás.
+**La memoria del agente** no acepta propuestas: la escribe el propio agente, en su archivo. Tampoco entra una propuesta que deje roto el bloque de código de un script, que pase de 64.000 caracteres o de 2.000 líneas, las que la ficha alcanza a comparar.
 
-### Una propuesta de tu agente
-
-> [!NOTE]
-> **Pendiente.** Esta sección mostrará cómo un agente propone un cambio a una regla en vez de escribirla, cómo se ve esa propuesta en la ficha y cómo la apruebas o la descartas. Se completa cuando esa función llegue a Tisty.
+Y editar el archivo en disco tampoco sirve: ese cambio queda como **Cambiado por fuera** y espera tu decisión. **Por qué así:** una regla de AGENTS llega a todos tus agentes, en todos tus equipos; si un agente pudiera escribirla sola, una instrucción escondida en una página que leyó podría terminar en las reglas de los demás. Con la propuesta, ves cada línea antes de que llegue.
 
 ## Preguntas frecuentes
 
@@ -502,7 +550,7 @@ Así que el agente te dice qué cambiaría y en qué documento, y tú lo cambias
 
 **¿Cuántos respaldos guarda?** El original y los últimos 20 de cada archivo, en este equipo.
 
-**¿Puedo pedirle a mi agente que cambie mis reglas?** Puedes pedírselo, pero no puede escribirlas: Tisty le rechaza cualquier cambio en AGENTS, y él te dice qué cambiaría y en qué documento. Lo cambias tú desde la ficha. Mira [Si tu agente intenta cambiar una regla](#si-tu-agente-intenta-cambiar-una-regla).
+**¿Puedo pedirle a mi agente que cambie mis reglas?** Sí, y te lo propone: su cambio queda aparte, en la ficha del documento, hasta que pulsas **Aprobar el cambio** o **Descartar**. Nada llega a tus agentes antes. Mira [Una propuesta de tu agente](#una-propuesta-de-tu-agente).
 
 **Uso Tisty en dos equipos. ¿Mis reglas llegan solas al otro?** Llegan como documentos, con tu sincronización, pero en el otro equipo esperan tu **Aplicar aquí** la primera vez. Después se ponen al día solas. Mira [En varios equipos](#en-varios-equipos).
 
