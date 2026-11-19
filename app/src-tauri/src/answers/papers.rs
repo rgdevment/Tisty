@@ -1162,6 +1162,8 @@ pub(crate) fn written_by_hand(
     since: Option<String>,
 ) -> Answer<Kept> {
     writable(&session.state, &id)?;
+    // Written anyway, the words came from what the page was opened on, not from what the disk holds now.
+    let built_on = since.clone();
     let since = since.filter(|_| !anyway.unwrap_or(false));
     if since.is_none() && !anyway.unwrap_or(false) && session.moved(&id) {
         return Err(Refusal::about("documentMoved", id));
@@ -1175,7 +1177,10 @@ pub(crate) fn written_by_hand(
         let print = tisty_core::docs::print_of_text(was);
         return Ok(Kept { id, title, print });
     }
-    let replaced = was.as_deref().map(tisty_core::docs::print_of_text);
+    let replaced = match anyway.unwrap_or(false) {
+        true => built_on,
+        false => was.as_deref().map(tisty_core::docs::print_of_text),
+    };
     let print = tisty_core::docs::print_of_text(&body);
     let wrote = match &since {
         Some(seen) => tisty_core::docs::write_over(&root, &session.writer(), &id, &body, seen),

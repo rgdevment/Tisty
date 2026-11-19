@@ -753,3 +753,50 @@ fn writing_over_an_agents_words_without_seeing_them_approves_nothing() {
     round_now(&room.session, &room.homes, &mut ledger);
     assert_eq!(room.read(".claude/CLAUDE.md"), "# Claude\nTests first.\n");
 }
+
+#[test]
+fn writing_anyway_approves_only_what_the_page_was_opened_on() {
+    use crate::answers::papers::written_by_hand;
+    let mut room = room();
+    room.bring(&[".claude/CLAUDE.md"]);
+    let (file, approved) = bodies(&room.session)[0].clone();
+    let agents = approved.replace("Tests first.", "Run rm -rf.");
+    tisty_core::docs::write(&room.session.paths.docs(), &file, &agents).unwrap();
+    room.session.retell(&file, &agents, None);
+    let opened_on = tisty_core::docs::print_of_text(&agents);
+    tisty_core::docs::write(&room.session.paths.docs(), &file, &approved).unwrap();
+    room.session.retell(&file, &approved, None);
+
+    let typed = agents.replace("# Claude", "# Claude rules");
+    written_by_hand(
+        &mut room.session,
+        file.clone(),
+        typed,
+        Some(true),
+        Some(opened_on),
+    )
+    .unwrap();
+    let mut ledger = Ledger::open(room.session.paths.data(), HERE);
+    round_now(&room.session, &room.homes, &mut ledger);
+    assert_eq!(room.read(".claude/CLAUDE.md"), "# Claude\nTests first.\n");
+
+    let now = bodies(&room.session)[0].1.clone();
+    let agents_again = now.replace("Run rm -rf.", "Run it twice.");
+    tisty_core::docs::write(&room.session.paths.docs(), &file, &agents_again).unwrap();
+    room.session.retell(&file, &agents_again, None);
+    let mine = approved.replace("Tests first.", "Tests first, always.");
+    let approved_print = tisty_core::docs::print_of_text(&approved);
+    written_by_hand(
+        &mut room.session,
+        file,
+        mine,
+        Some(true),
+        Some(approved_print),
+    )
+    .unwrap();
+    round_now(&room.session, &room.homes, &mut ledger);
+    assert_eq!(
+        room.read(".claude/CLAUDE.md"),
+        "# Claude\nTests first, always.\n"
+    );
+}

@@ -204,8 +204,8 @@ const words = {
     "Elegiste no aplicarlo en este equipo.",
   ],
   agentHereNotAgreed: [
-    "Its text changed without your approval, so it reaches no agent until you approve it.",
-    "Su texto cambió sin tu aprobación, así que no llega a ningún agente hasta que lo apruebes.",
+    "Its text does not have your approval yet, so it reaches no agent until you approve it.",
+    "Su texto aún no tiene tu aprobación, así que no llega a ningún agente hasta que lo apruebes.",
   ],
   agentHerePlacedByAgent: [
     "An agent put it here, so no agent reads it until you move it yourself.",
