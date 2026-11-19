@@ -56,7 +56,7 @@ pub(super) fn tools_without_hints() -> Value {
         {
             "name": "describe",
             "title": "Describe a task",
-            "description": "Rewrite the description of an open task, replacing the old one whole: `read` the task first and keep what still holds. What you learnt goes in the journal with `note`, the rest of its page with `edit_doc`. Refused once the task is said done; the answer names the task.",
+            "description": "Rewrite the description of an open task, replacing the old one whole: `read` the task first and keep what still holds. What you learnt goes in the journal with `note`, the rest of its page with `edit_doc`. Refused once it is said done or not doing; the answer names the task.",
             "inputSchema": on_a_task(
                 json!({ "body": { "type": "string", "description": "What the task is, in the Tisty language" } }),
                 &["body"],
@@ -373,7 +373,7 @@ pub(super) fn tools_without_hints() -> Value {
         {
             "name": "tongue_doc",
             "title": "Join or leave a document's languages",
-            "description": "Join a document to another's languages, or take it out of them. With `of`, `doc` joins that document's languages and moves to its folder; without, `doc` stands on its own again. Each says its language in a `lang:` property, or `lang` for `doc`; a language already there or a page is refused, saying why. A new translation is `write_doc` with `translation_of`.",
+            "description": "Join a document to another's languages, or take it out of them. With `of`, `doc` joins them and moves to that document's folder; without, `doc` stands on its own again. To join, each says its language in a `lang:` property, or `lang` for `doc`; a language already there or a page is refused, saying why. A new translation is `write_doc` with `translation_of`.",
             "inputSchema": shaped(json!({
                 "properties": {
                     "doc": { "type": "string", "description": "Id of the document to join or take out, not its title" },
@@ -410,7 +410,7 @@ pub(super) fn tools_without_hints() -> Value {
         {
             "name": "reschedule",
             "title": "Move the day of a task an agent filed",
-            "description": "Change the `date` or `deadline` of a task an agent filed, when what you learnt moves it; null takes one off and the other stays. A task the person filed keeps their days: the call is refused, so say what you learnt with `note`. The answer gives both days as they stand now.",
+            "description": "Change the `date` or `deadline` of a task an agent filed, when what you learnt moves it; null takes one off and the other stays. A task the person filed keeps their days: it is refused, so say what you learnt with `note`. A change answers with both days as they stand.",
             "inputSchema": shaped(json!({
                 "properties": {
                     "task": { "type": "string", "description": "The task id" },
