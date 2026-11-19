@@ -66,7 +66,7 @@ fn neighbours_are_counted_in_a_line_for_the_text() {
 }
 
 #[test]
-fn a_guess_is_told_apart_with_its_words_or_as_alike_in_sense() {
+fn a_guess_is_told_apart_with_the_words_both_share() {
     let mut said = Map::new();
     said.insert(
         "guessed".into(),
