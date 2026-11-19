@@ -393,10 +393,6 @@ const words = {
     "Put this backup back in {name}? What the file holds now is kept as a backup.",
     "¿Devolver este respaldo a {name}? Lo que tiene ahora el archivo queda en un respaldo.",
   ],
-  agentsFolderChanges: ["{name} changed", "{name} con cambios"],
-  agentsFolderWaiting: ["{name} waiting", "{name} en espera"],
-  agentsFolderUnagreed: ["{name} to approve", "{name} por aprobar"],
-  agentsFolderProposed: ["{name} with a proposal", "{name} con propuesta"],
   agentsFoundHere: ["I found {name} on this computer.", "Encontré {name} en este equipo."],
   agentsFoundNone: [
     "I found no assistant on this computer.",

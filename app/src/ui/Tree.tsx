@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from "react";
-import { asksPerson } from "../agentDocs";
 import { agentsPaint, askAgents, folderShown } from "../agentsSync";
 import type { Filed, Folded, Papers } from "../core";
 import { AGENTS, agentsHidden, BRAINSTORM, DIARY, useHidden } from "../hiding";
@@ -7,7 +6,7 @@ import { led } from "../leading";
 import { fill, t } from "../locales";
 import { compactedBy } from "../tidying";
 import { clientNamed } from "../who";
-import { AgentsWord, useAgentsGlance, useAgentsStage } from "./AgentsMark";
+import { useAgentsStage } from "./AgentsMark";
 import { grouped, inSkill, KIND_GLYPH, type SkillGroup, useAgentRows } from "./agentRows";
 import {
   type Carried,
@@ -50,6 +49,7 @@ interface Props {
   onOpen: (doc: Filed) => void;
   onDiary?: () => void;
   onDiaryMenu?: (at: { x: number; y: number }) => void;
+  onAgentsMenu?: (at: { x: number; y: number }) => void;
   onFile: (doc: string, folder?: string, before?: string) => void;
   onPage?: (doc: string, pageOf: string) => void;
   onHere?: (folder?: string) => void;
@@ -72,6 +72,7 @@ export default function Tree({
   onOpen,
   onDiary,
   onDiaryMenu,
+  onAgentsMenu,
   onFile,
   onPage,
   onHere,
@@ -85,8 +86,6 @@ export default function Tree({
   // While the sidebar is sifted everything shows, so a match never sits behind a hidden row.
   const veiled = (key: string) => !unfolded && hidden.includes(key);
   const agentsVeiled = !unfolded && agentsHidden(hidden, root);
-  // Nothing of an agent's is looked at until the folder is known to sync.
-  const agents = useAgentsGlance(stage === "syncs" && !agentsVeiled ? root : null);
   const unborn = !root && !agentsVeiled && !unfolded;
   const agentRows = useAgentRows(papers);
   // Nothing arrives open: with two hundred documents a tree that unfolds itself is a wall.
@@ -920,9 +919,7 @@ export default function Tree({
               }`}
             >
               <span className="truncate">{shown}</span>
-              {dim ? null : isRoot && agents?.folder === folder.id && asksPerson(agents) ? (
-                <AgentsWord glance={agents} />
-              ) : (
+              {!dim && (
                 <span className="ml-auto pr-1 text-[11.5px] text-faint opacity-0 transition-opacity group-hover/row:opacity-100 motion-reduce:transition-none">
                   {folder.holds || ""}
                 </span>
@@ -969,7 +966,14 @@ export default function Tree({
   // With no folder yet, Agents still stands in the sidebar, grey, so the person learns it exists.
   const unbornRow = () => (
     <li key={AGENTS} className="relative">
-      <div className="group/row flex items-center rounded-md has-[:focus-visible]:bg-hover">
+      <div
+        className="group/row flex items-center rounded-md has-[:focus-visible]:bg-hover"
+        onContextMenu={(e) => {
+          if (!onAgentsMenu) return;
+          e.preventDefault();
+          onAgentsMenu({ x: e.clientX, y: e.clientY });
+        }}
+      >
         <span
           aria-hidden="true"
           className={`ml-2 grid h-5 w-[18px] shrink-0 place-items-center ${agentsPaint("unbrought")}`}
@@ -982,10 +986,16 @@ export default function Tree({
           tabIndex={stops(AGENTS) ? 0 : -1}
           onFocus={() => setReached(AGENTS)}
           onKeyDown={(e) => {
+            if (onAgentsMenu && (e.key === "ContextMenu" || (e.shiftKey && e.key === "F10"))) {
+              e.preventDefault();
+              const box = e.currentTarget.getBoundingClientRect();
+              return onAgentsMenu({ x: box.left + 24, y: box.bottom });
+            }
             if (e.key !== "ArrowDown" && e.key !== "ArrowUp") return;
             e.preventDefault();
             walk(AGENTS, e.key === "ArrowDown" ? 1 : -1);
           }}
+          aria-keyshortcuts={onAgentsMenu ? "Shift+F10" : undefined}
           onClick={askAgents}
           aria-label={`${t("agentsName")} — ${t("agentsUnbroughtSaid")}`}
           className="flex min-w-0 flex-1 items-center gap-1.5 py-1 pl-1.5 text-left text-[13px] text-faint"

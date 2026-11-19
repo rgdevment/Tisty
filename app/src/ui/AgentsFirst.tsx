@@ -182,12 +182,10 @@ interface Props {
   /** Bringing one more file once this computer already said yes, so nothing is ticked for the person. */
   more?: boolean;
   onClose: () => void;
-  /** The first time's «Hide»: Agents goes to Settings › General › Hidden folders, and nothing is brought. */
-  onHide?: () => void;
   onChanged: () => void;
 }
 
-export default function AgentsFirst({ more = false, onClose, onHide, onChanged }: Readonly<Props>) {
+export default function AgentsFirst({ more = false, onClose, onChanged }: Readonly<Props>) {
   const [look, setLook] = useState<AgentsLook>();
   const [chosen, setChosen] = useState<Set<string>>(new Set());
   const [busy, setBusy] = useState(false);
@@ -398,13 +396,8 @@ export default function AgentsFirst({ more = false, onClose, onHide, onChanged }
           </button>
         </div>
       ) : (
-        // No «Not now»: the X or Esc leaves without doing anything, and the folder asks again later.
+        // No «Not now»: the X or Esc leaves without doing anything, and the folder asks again later; hiding is on its menu.
         <div className="mt-5 flex items-center justify-end gap-2 text-[12.5px]">
-          {onHide && (
-            <button type="button" onClick={onHide} className={`${button} mr-auto`}>
-              {t("agentsHide")}
-            </button>
-          )}
           <button
             type="button"
             disabled={!look || busy || chosen.size === 0}

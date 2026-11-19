@@ -18,7 +18,7 @@ import {
   onlySwitchedOff,
 } from "../agentsSync";
 import { useDesk } from "../desk";
-import { AGENTS, agentsHidden, agentsKeys, hide, show, useHidden } from "../hiding";
+import { agentsHidden, agentsKeys, show, useHidden } from "../hiding";
 import { saidPlainly } from "../refusal";
 import AgentsFirst from "./AgentsFirst";
 import { useAgentsState } from "./AgentsMark";
@@ -170,10 +170,6 @@ export default function AgentsKeeper() {
         setAsking(null);
         window.dispatchEvent(new Event(AGENTS_CHANGED));
         if (leaving.current === root && !holds) letGo();
-      }}
-      onHide={() => {
-        hide(AGENTS);
-        setAsking(null);
       }}
       onChanged={changed}
     />
