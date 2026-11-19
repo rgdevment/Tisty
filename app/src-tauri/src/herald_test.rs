@@ -73,6 +73,117 @@ fn the_watch_speaks_up_when_a_document_grew_without_writing_an_event() {
     assert!(!again, "nothing changed the second time");
 }
 
+#[test]
+fn the_first_write_after_the_window_opens_is_news() {
+    let tmp = tempfile::tempdir().unwrap();
+    let paths = tisty_core::Paths::new(tmp.path().join("data"), tmp.path().join("config"));
+    let now = jiff::Timestamp::now();
+    let mut watching = Watching::default();
+    wrote(&paths, "what was already here");
+
+    assert!(watching.reread(&paths), "a readable store is read");
+    wrote(&paths, "what the agent filed first");
+    let (_, _, after) = watching.owed(&paths, now, now);
+    let (_, _, again) = watching.owed(&paths, now, now);
+
+    assert!(
+        after,
+        "the agent's first write is news, not the starting point"
+    );
+    assert!(!again, "nothing moved since it was told");
+}
+
+#[test]
+fn a_window_that_opened_with_nothing_new_wakes_nobody() {
+    let tmp = tempfile::tempdir().unwrap();
+    let paths = tisty_core::Paths::new(tmp.path().join("data"), tmp.path().join("config"));
+    let now = jiff::Timestamp::now();
+    let mut watching = Watching::default();
+    wrote(&paths, "what was already here");
+
+    watching.reread(&paths);
+    let (_, _, first) = watching.owed(&paths, now, now);
+
+    assert!(!first, "nothing moved since the window opened");
+}
+
+#[test]
+fn the_first_write_into_an_empty_store_is_news() {
+    let tmp = tempfile::tempdir().unwrap();
+    let paths = tisty_core::Paths::new(tmp.path().join("data"), tmp.path().join("config"));
+    let now = jiff::Timestamp::now();
+    let mut watching = Watching::default();
+
+    watching.reread(&paths);
+    wrote(&paths, "the very first task");
+    let (_, _, after) = watching.owed(&paths, now, now);
+
+    assert!(after, "a store that was empty when the window opened grew");
+}
+
+#[test]
+fn a_write_beside_the_windows_own_is_still_news_after_its_nudge() {
+    let tmp = tempfile::tempdir().unwrap();
+    let paths = tisty_core::Paths::new(tmp.path().join("data"), tmp.path().join("config"));
+    let now = jiff::Timestamp::now();
+    let mut watching = Watching::default();
+    wrote(&paths, "what was already here");
+
+    watching.reread(&paths);
+    wrote(&paths, "what the agent filed beside the window");
+    assert!(
+        watching.reread(&paths),
+        "the nudge reads the reminders again"
+    );
+    let (_, _, after) = watching.owed(&paths, now, now);
+
+    assert!(
+        after,
+        "a nudge for the window's own write must not swallow the agent's"
+    );
+}
+
+#[test]
+fn the_first_document_that_grows_after_the_window_opens_is_news() {
+    let tmp = tempfile::tempdir().unwrap();
+    let paths = tisty_core::Paths::new(tmp.path().join("data"), tmp.path().join("config"));
+    let now = jiff::Timestamp::now();
+    let mut watching = Watching::default();
+    let papers = paths.docs();
+    wrote(&paths, "what was already here");
+    tisty_core::docs::write(&papers, "dev0-0001", "# Minuta\n").unwrap();
+
+    watching.reread(&paths);
+    tisty_core::docs::append(
+        &papers,
+        &tisty_core::history::Writer::now(&papers, None),
+        "dev0-0001",
+        "Un punto mas.",
+    )
+    .unwrap();
+    let (_, _, after) = watching.owed(&paths, now, now);
+
+    assert!(after, "the document grew after the window opened");
+}
+
+#[test]
+fn a_store_that_cannot_be_read_at_first_still_speaks_once_it_can() {
+    let tmp = tempfile::tempdir().unwrap();
+    let paths = tisty_core::Paths::new(tmp.path().join("data"), tmp.path().join("config"));
+    let now = jiff::Timestamp::now();
+    let mut watching = Watching::default();
+    std::fs::create_dir_all(paths.data()).unwrap();
+    std::fs::write(paths.store(), "a file where the store goes").unwrap();
+
+    let read = watching.reread(&paths);
+    std::fs::remove_file(paths.store()).unwrap();
+    wrote(&paths, "what the agent filed");
+    let (_, _, after) = watching.owed(&paths, now, now);
+
+    assert!(!read, "the first look could not read the store");
+    assert!(after, "the window is told rather than left behind");
+}
+
 fn due() -> Happening {
     Happening::Due {
         title: "tomar la pastilla".into(),
