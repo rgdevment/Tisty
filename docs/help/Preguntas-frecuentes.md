@@ -91,10 +91,7 @@ Sí, en el equipo donde se cambió: **Ver el historial**, en la fila **Historial
 El grafo de Obsidian muestra enlaces entre notas. Brainsty une documentos y tareas, con el estado de cada tarea y su historia, y la misma red le sirve a tu agente como índice para buscar sin leerlo todo. Dibuja solo lo que está escrito: enlaces, tarjetas, páginas, partes, de dónde nació una tarea y etiquetas. Se abre en su propia ventana, que no gasta nada cuando la cierras. Mira [[La red de Brainsty|Red-de-Brainsty]].
 
 **¿Brainsty sube algo a la nube?**
-No. La red se calcula en cada equipo y se rehace sola: no se sincroniza, ni va a Folio, a un `.tistyx` o a una exportación. Lo que viaja son tus documentos y tareas, como siempre. El modelo que dice qué cosas significan lo mismo viene dentro del instalador y lee solo en este equipo: nada se descarga y nada sale. Mira [La red de Brainsty](Red-de-Brainsty#parecidos).
-
-**¿Por qué el instalador pesa unos 26 MB más?**
-Lleva el modelo con que Brainsty sabe qué documentos y tareas significan lo mismo, también entre idiomas, como «Vacuna anual de Rina» y «Rina's yearly vaccine». Viene dentro para que nada se descargue después y nada salga de tu equipo. Las tareas ocultas y tu Diario nunca pasan por él. Mira [La red de Brainsty](Red-de-Brainsty#parecidos).
+No. La red se calcula en cada equipo y se rehace sola: no se sincroniza, ni va a Folio, a un `.tistyx` o a una exportación. Lo que viaja son tus documentos y tareas, como siempre. Lo mismo vale para lo que Brainsty anota como parecido: mira [La red de Brainsty](Red-de-Brainsty#parecidos).
 
 ## Sincronización
 

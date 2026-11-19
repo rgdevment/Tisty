@@ -91,10 +91,7 @@ Yes, on the computer where it changed: **See the history**, on the **History** r
 Obsidian's graph shows links between notes. Brainsty joins documents and tasks, with each task's state and its history, and the same network serves your agent as an index to search without reading everything. It draws only what is written: links, cards, pages, parts, where a task was born and tags. It opens in a window of its own, which costs nothing once you close it. See [[The Brainsty network|Brainsty-Network]].
 
 **Does Brainsty upload anything?**
-No. The network is worked out on each computer and rebuilds itself: it is not synced, and it does not go to Folio, a `.tistyx` or an export. What travels is your documents and tasks, as always. The model that tells which things mean the same comes inside the installer and reads only on this computer; nothing is downloaded and nothing goes out. See [The Brainsty network](Brainsty-Network#alike).
-
-**Why does the installer weigh about 26 MB more?**
-It carries the model Brainsty uses to tell which documents and tasks mean the same, also across languages, like «Rina's yearly vaccine» and «Vacuna anual de Rina». It comes inside so nothing is downloaded later and nothing leaves your computer. Hidden tasks and your Diary never go through it. See [The Brainsty network](Brainsty-Network#alike).
+No. The network is worked out on each computer and rebuilds itself: it is not synced, and it does not go to Folio, a `.tistyx` or an export. What travels is your documents and tasks, as always. The same holds for what Brainsty notes as alike: see [The Brainsty network](Brainsty-Network#alike).
 
 ## Sync
 

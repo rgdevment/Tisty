@@ -119,30 +119,23 @@ Hace un mes que no tocas nada de Rina y quieres saber cómo va.
 
 ## Parecidos
 
-Dos cosas pueden hablar de lo mismo sin que nadie las haya unido: la tarea «Pedir presupuesto del techo» y el documento «Arreglos de la casa», que habla del techo y de su presupuesto; o «Vacuna anual de Rina» y la tarea que Lucas anotó en inglés, «Rina's yearly vaccine». Brainsty las anota como **parecidas**, aparte de las líneas que escribiste.
+Dos cosas pueden hablar de lo mismo sin que nadie las haya unido: la tarea «Pedir presupuesto del techo» y el documento «Arreglos de la casa», que habla del techo y de su presupuesto. Brainsty las anota como **parecidas**, aparte de las líneas que escribiste.
 
-Se parecen de dos formas:
+Dos cosas se parecen cuando comparten al menos dos **palabras de peso**: de esas que aparecen en pocas de las cosas que guardas, en el 5 % o menos. *Presupuesto* y *techo* pesan; *semana* o *hacer*, que están en todas partes, no. Cada parecido guarda las palabras que dicen por qué. Las palabras se comparan sin tildes ni mayúsculas, así que *Techo* y *techo* son la misma.
 
-- **Por palabras en común.** Comparten al menos dos palabras de peso, de esas que aparecen en pocas de las cosas que guardas: *presupuesto* y *techo* pesan; *semana* o *hacer*, que están en todas partes, no. Cada parecido guarda las palabras que dicen por qué. Sirve también entre idiomas cuando lo que comparten son nombres: una tarea en inglés y un documento en español que hablan de *Folio* y de *Glama*.
-- **Por sentido.** Dicen lo mismo aunque no compartan ninguna palabra, en el mismo idioma o en otro: «Vacuna anual de Rina» y «Rina's yearly vaccine». Para esto Tisty usa un modelo que viene dentro del instalador.
+Sirve también entre idiomas cuando lo que comparten son nombres: una tarea en inglés y un documento en español que hablan de *Folio* y de *Glama* se parecen; «Vacuna anual de Rina» y «Rina's yearly vaccine», que solo comparten *Rina*, no.
 
 Las reglas:
 
-- **Como mucho tres parecidos por cosa**, y cada punta tiene que estar entre las más cercanas de la otra. Los de palabras van primero, porque se explican; los de sentido llenan lo que queda.
+- **Como mucho tres parecidos por cosa**, y cada punta tiene que estar entre las tres más cercanas de la otra.
+- **El umbral sale de lo que guardas**, no de una cifra fija: el parecido tiene que superar lo que alcanza un par de cada mil en tu base.
 - **Lo que ya está unido no se adivina**: si una línea de la red ya los une (una cita, una mención, una parte y su tarea, el documento donde nació una tarea), o si son una página y su libro, un documento y su versión en otro idioma, o una tarea y su página.
-- **Un documento en otro idioma** tiene su propio lugar entre los tres, para que una traducción no quede tapada por parientes del mismo idioma.
-- **El umbral sale de lo que guardas**, no de una cifra fija. Dentro de un mismo idioma, un parecido por sentido tiene que destacar muy por encima de todo lo demás a lo que se parecen sus dos puntas. Entre muchas tareas casi iguales, como «Pagar la luz de marzo», «Pagar la luz de abril» y las de cada mes, el sentido no elige ninguna, porque se parecen todas por igual; si *pagar* y *luz* son poco comunes en lo que guardas, las une lo que comparten en palabras.
+- **Un documento en otro idioma** tiene su propio lugar entre los tres, para que lo que comparte con otro idioma no quede tapado por parientes del mismo.
+- **De cada cosa se guardan hasta 256 palabras**, las más dichas. Los números solos y las cadenas largas de letras y números, como un identificador o un hash, no cuentan.
 
-**Cuándo.** Una pasada de baja prioridad, en segundo plano, mira cada 30 segundos y espera a que dejes de escribir, cinco minutos como mucho, antes de leer. Solo lee lo que cambió. Cuando una versión nueva de Tisty cambia la base de Brainsty, esta se rehace una vez, en el primer arranque: mientras tanto la red dice «Brainsty todavía está leyendo lo que guardas. Vuelve a abrirlo en un momento.».
+**Cuándo.** Una pasada de baja prioridad, en segundo plano, mira cada 30 segundos y espera a que dejes de escribir, cinco minutos como mucho, antes de comparar. Las palabras de lo que cambió se guardan en el momento. Cuando una versión nueva de Tisty cambia la base de Brainsty, esta se rehace una vez, en el primer arranque: mientras tanto la red dice «Brainsty todavía está leyendo lo que guardas. Vuelve a abrirlo en un momento.».
 
-**El modelo.** Es `static-similarity-mrl-multilingual-v1`, de licencia Apache-2.0, recortado para que pese menos: una tabla fija que le da a cada palabra un sentido, el mismo en cualquier idioma. Por eso los instaladores pesan unos 26 MB más.
-
-- Lo lee solo la app, en este equipo, y solo mientras tiene texto por leer; después lo suelta. Nada se descarga y nada sale del equipo.
-- No escribe, no responde y no aprende de lo que guardas: lee un texto y lo resume en una lista de números.
-- De un documento muy largo, lee los primeros 512 KB.
-- Si el modelo no se puede leer, por ejemplo porque falta un archivo de la instalación, Tisty sigue solo con las palabras en común y vuelve a probar a los diez minutos.
-
-**Lo que nunca pasa por aquí.** Las tareas ocultas y las descartadas, y todo tu [Diario](Documentos#diario), no guardan palabras ni sentido, aunque abras el Diario a los agentes. Ocultar una tarea saca sus parecidos en la misma ronda.
+**Lo que nunca pasa por aquí.** Las tareas ocultas y las descartadas, y todo tu [Diario](Documentos#diario), no guardan palabras, aunque abras el Diario a los agentes. Ocultar una tarea saca sus parecidos en la misma ronda.
 
 **Dónde se ven.** Hoy, en ninguna parte: la red dibuja solo lo escrito, así que un parecido no es una línea de la red, y la ficha que lee tu agente con `brain` tampoco lo trae. Los parecidos viven en la base de Brainsty de este equipo.
 

@@ -119,30 +119,23 @@ You have not touched anything about Rina for a month and want to know how it is 
 
 ## Alike
 
-Two things can be about the same without anyone having tied them: the task «Ask for a quote on the roof» and the document «House repairs», which talks about the roof and its quote; or «Rina's yearly vaccine» and the task Lucas wrote in Spanish, «Vacuna anual de Rina». Brainsty notes them as **alike**, apart from the lines you wrote.
+Two things can be about the same without anyone having tied them: the task «Ask for a quote on the roof» and the document «House repairs», which talks about the roof and its quote. Brainsty notes them as **alike**, apart from the lines you wrote.
 
-They are alike in two ways:
+Two things are alike when they share at least two **weighty words**: the kind that shows up in few of the things you keep, in 5 % of them or fewer. *Quote* and *roof* weigh; *week* or *make*, which are everywhere, do not. Each guess keeps the words that say why. Words are compared without accents or capitals, so *Roof* and *roof* are the same.
 
-- **By shared words.** They share at least two weighty words, the kind that shows up in few of the things you keep: *quote* and *roof* weigh; *week* or *make*, which are everywhere, do not. Each guess keeps the words that say why. It works across languages too when what they share are names: a task in English and a document in Spanish that both talk about *Folio* and *Glama*.
-- **By meaning.** They say the same though they share no word, in the same language or another: «Rina's yearly vaccine» and «Vacuna anual de Rina». For this Tisty uses a model that comes inside the installer.
+It works across languages too when what they share are names: a task in English and a document in Spanish that both talk about *Folio* and *Glama* are alike; «Rina's yearly vaccine» and «Vacuna anual de Rina», which share only *Rina*, are not.
 
 The rules:
 
-- **Three alike at most for each thing**, and each end must be among the other's closest. Those by words come first, because they explain themselves; those by meaning fill what room is left.
+- **Three alike at most for each thing**, and each end must be among the other's three closest.
+- **The bar comes from what you keep**, not from a fixed figure: a guess must beat what one pair in a thousand reaches in your base.
 - **What is already tied is not guessed**: when a line in the network already ties them (a citation, a mention, a part and its task, the document a task was born in), or when they are a page and its book, a document and its version in another language, or a task and its page.
-- **A document in another language** has a place of its own among the three, so a translation is not crowded out by kin in the same language.
-- **The bar comes from what you keep**, not from a fixed figure. Within one language, a guess by meaning must stand well above everything else its two ends resemble. Among many near-twin tasks, like «Pay the March power bill», «Pay the April power bill» and one for every month, meaning picks none of them, since they all look alike the same; if *pay* and *power* are uncommon in what you keep, what they share in words ties them.
+- **A document in another language** has a place of its own among the three, so what it shares with another language is not crowded out by kin in its own.
+- **Each thing keeps up to 256 words**, the ones said most. Bare numbers and long runs of letters and digits, like an id or a hash, do not count.
 
-**When.** A low-priority pass, in the background, looks every 30 seconds and waits for you to stop writing, five minutes at most, before reading. It reads only what changed. When a new version of Tisty changes Brainsty's base, the base is built again once, on the first start: meanwhile the network says «Brainsty is still reading what you keep. Open it again in a moment.».
+**When.** A low-priority pass, in the background, looks every 30 seconds and waits for you to stop writing, five minutes at most, before comparing. The words of what changed are kept at once. When a new version of Tisty changes Brainsty's base, the base is built again once, on the first start: meanwhile the network says «Brainsty is still reading what you keep. Open it again in a moment.».
 
-**The model.** It is `static-similarity-mrl-multilingual-v1`, under the Apache-2.0 licence, cut down to weigh less: a fixed table that gives each word a meaning, the same in any language. That is why the installers weigh about 26 MB more.
-
-- Only the app reads it, on this computer, and only while it has text to read; then it lets it go. Nothing is downloaded and nothing leaves the computer.
-- It does not write, answer or learn from what you keep: it reads a text and sums it up as a list of numbers.
-- Of a very long document, it reads the first 512 KB.
-- If the model cannot be read, for instance because a file of the installation is missing, Tisty goes on with shared words alone and tries again ten minutes later.
-
-**What never goes through it.** Hidden and dropped tasks, and your whole [Diary](Documents#diary), keep no words and no meaning, even when you open the Diary to agents. Hiding a task takes its guesses away in the same round.
+**What never goes through it.** Hidden and dropped tasks, and your whole [Diary](Documents#diary), keep no words, even when you open the Diary to agents. Hiding a task takes its guesses away in the same round.
 
 **Where they show.** Today, nowhere: the network draws only what is written, so a guess is not a line in the network, and the card your agent reads with `brain` does not bring it either. Guesses live in Brainsty's base on this computer.
 
