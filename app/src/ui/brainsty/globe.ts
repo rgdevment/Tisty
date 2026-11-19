@@ -122,32 +122,48 @@ export interface Spinning {
   moved: () => void;
 }
 
+interface Laid {
+  slot: Map<string, number>;
+  x: Float32Array;
+  y: Float32Array;
+  z: Float32Array;
+}
+
+// sigma copies a node's whole look each time its place is asked, so each place is read once and kept.
+function laidFrom(sigma: Spinnable, keys: readonly string[]): { laid: Laid; radius: number } {
+  const shown = keys.flatMap((key) => {
+    const at = sigma.getNodeDisplayData(key);
+    return at ? [{ key, x: at.x, y: at.y }] : [];
+  });
+  const radius = radiusOf(shown);
+  const texture = sigma.getNodeDataTexture();
+  const laid: Laid = {
+    slot: new Map(shown.map((one, n) => [one.key, n])),
+    x: Float32Array.from(shown, (one) => one.x),
+    y: Float32Array.from(shown, (one) => one.y),
+    z: Float32Array.from(shown, (one) =>
+      depthOf(one.x, one.y, texture.getIndex(one.key) ?? 0, radius),
+    ),
+  };
+  return { laid, radius };
+}
+
 export function spinning(sigma: Spinnable, keys: () => readonly string[]): Spinning {
   const gl = (sigma as unknown as { webGLContext?: WebGL2RenderingContext | null }).webGLContext;
   const sewn = sewnInto(gl ?? null);
   let turn: Turn | null = null;
   let trig = trigOf(FRONT);
   let radius = 0;
-  let depths: Map<string, number> | null = null;
-  const deepened = (): Map<string, number> => {
-    const shown = keys().flatMap((key) => {
-      const at = sigma.getNodeDisplayData(key);
-      return at ? [{ key, at }] : [];
-    });
-    radius = radiusOf(shown.map((one) => one.at));
-    const texture = sigma.getNodeDataTexture();
-    return new Map(
-      shown.map(({ key, at }) => [key, depthOf(at.x, at.y, texture.getIndex(key) ?? 0, radius)]),
-    );
-  };
-  const turned = () => turn !== null && sewn.sewn();
+  let laid: Laid | null = null;
+  const turned = () => turn !== null && laid !== null && sewn.sewn();
   return {
     turn: (next) => {
       turn = next;
       if (next) {
-        if (!depths) {
-          const fresh = deepened();
-          depths = fresh.size > 0 ? fresh : null;
+        if (!laid) {
+          const fresh = laidFrom(sigma, keys());
+          laid = fresh.laid.slot.size > 0 ? fresh.laid : null;
+          radius = fresh.radius;
         }
         trig = trigOf(next);
       }
@@ -156,13 +172,13 @@ export function spinning(sigma: Spinnable, keys: () => readonly string[]): Spinn
     },
     turned,
     framed: (key) => {
-      const at = sigma.getNodeDisplayData(key);
-      if (!at || !turned()) return at;
-      const spun = rotated(at.x, at.y, depths?.get(key) ?? 0, radius, trig);
+      const slot = turned() ? laid?.slot.get(key) : undefined;
+      if (!laid || slot === undefined) return sigma.getNodeDisplayData(key);
+      const spun = rotated(laid.x[slot], laid.y[slot], laid.z[slot], radius, trig);
       return { x: spun.x, y: spun.y };
     },
     moved: () => {
-      depths = null;
+      laid = null;
     },
   };
 }
