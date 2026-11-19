@@ -5901,6 +5901,7 @@ version = "0.1.0"
 dependencies = [
  "regex-syntax",
  "serde_json",
+ "sha2 0.11.1",
  "unicode-normalization",
 ]
 

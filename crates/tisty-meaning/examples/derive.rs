@@ -1,14 +1,21 @@
 use std::io::Write;
 use std::path::{Path, PathBuf};
 
+use sha2::{Digest, Sha256};
+
 type Failed = Box<dyn std::error::Error>;
 
 const DIMS: usize = 256;
+const PUBLISHED: &str = "huggingface.co/sentence-transformers/static-similarity-mrl-multilingual-v1 at revision b68f4122911bcffcd6e1f695f2d99cd6788972d8";
+const PUBLISHED_SHA256: &str = "8245ab78ee71dded845a82d2270fcb9e785b29dad0e1619f69d5390c47d9ba00";
 
 fn main() -> Result<(), Failed> {
     let mut args = std::env::args().skip(1).map(PathBuf::from);
     let (Some(model), Some(out)) = (args.next(), args.next()) else {
-        return Err("usage: derive <0_StaticEmbedding folder> <out folder>".into());
+        return Err(format!(
+            "usage: derive <0_StaticEmbedding folder of {PUBLISHED}> <out folder>"
+        )
+        .into());
     };
     std::fs::create_dir_all(&out)?;
     table(&model.join("model.safetensors"), &out.join("table.bin"))?;
@@ -19,6 +26,13 @@ fn main() -> Result<(), Failed> {
 // The model is trained so its first dimensions stand alone; each row keeps one scale for its bytes.
 fn table(from: &Path, to: &Path) -> Result<(), Failed> {
     let bytes = std::fs::read(from)?;
+    let sha: String = Sha256::digest(&bytes)
+        .iter()
+        .map(|one| format!("{one:02x}"))
+        .collect();
+    if sha != PUBLISHED_SHA256 {
+        return Err(format!("model.safetensors is not the one of {PUBLISHED}").into());
+    }
     let head = u64::from_le_bytes(bytes[0..8].try_into()?) as usize;
     let header: serde_json::Value = serde_json::from_slice(&bytes[8..8 + head])?;
     let (_, matrix) = header
