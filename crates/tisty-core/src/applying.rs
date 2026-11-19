@@ -471,14 +471,13 @@ impl State {
                 };
                 self.proposals.insert(*id, said);
             }
-            (None, Some(settles)) => {
+            (None, Some(settles))
                 if self
                     .proposals
                     .get(id)
-                    .is_some_and(|one| &one.print == settles)
-                {
-                    self.proposals.remove(id);
-                }
+                    .is_some_and(|one| &one.print == settles) =>
+            {
+                self.proposals.remove(id);
             }
             _ => {}
         }

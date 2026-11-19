@@ -53,6 +53,26 @@ pub fn bodies(session: &Session) -> Vec<(String, String)> {
         .collect()
 }
 
+// Tags an earlier build took from an assistant's words go; the approval stays, since it goes by print.
+pub(crate) fn untagged(session: &mut Session) {
+    let Some(root) = root_of(&session.state) else {
+        return;
+    };
+    let tagged: Vec<String> = docs_in(&session.state, &tree(&session.state, root))
+        .into_iter()
+        .filter(|one| !one.tags.is_empty())
+        .map(|one| one.file.clone())
+        .collect();
+    let docs = session.paths.docs();
+    for file in tagged {
+        if let Ok(body) = tisty_core::docs::read(&docs, &file)
+            && Card::of(&body).is_some()
+        {
+            session.retell(&file, &body, None);
+        }
+    }
+}
+
 /// The only way to what may be written into an agent's file on this computer.
 pub fn gated(session: &Session, ledger: &Ledger) -> Gate {
     let docs = session.paths.docs();
@@ -748,7 +768,8 @@ pub fn agents_turn(
 #[tauri::command(async)]
 pub fn agents_round(session: tauri::State<'_, Mutex<Session>>) -> Answer<Rounded> {
     let homes = homes()?;
-    let session = held(&session);
+    let mut session = held(&session);
+    untagged(&mut session);
     let mut ledger = Ledger::open(session.paths.data(), &here());
     Ok(round_now(&session, &homes, &mut ledger))
 }

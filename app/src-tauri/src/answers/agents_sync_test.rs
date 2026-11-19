@@ -1035,3 +1035,29 @@ fn a_proposal_over_a_text_the_person_never_approved_waits_for_that_text_first() 
     );
     assert!(!room.session.state.proposals.is_empty());
 }
+
+#[test]
+fn tags_an_earlier_build_took_from_an_agent_s_words_go_and_its_approval_stays() {
+    let mut room = room();
+    room.bring(&[".claude/CLAUDE.md"]);
+    let (file, body) = bodies(&room.session)[0].clone();
+    let id = room
+        .session
+        .state
+        .docs
+        .values()
+        .find(|one| one.file == file)
+        .unwrap()
+        .id;
+    let mut earlier = tisty_core::event::Said::of(&body);
+    earlier.tags = Some(vec![tisty_core::Tag::new("always").unwrap()]);
+    room.session.commit(Op::DocSaid { id, d: earlier }).unwrap();
+    assert_eq!(room.session.state.docs[&id].tags.len(), 1);
+
+    untagged(&mut room.session);
+    assert!(room.session.state.docs[&id].tags.is_empty());
+    let card = crate::answers::agent_docs::card_of(&room.session, Some(&room.homes), HERE, &file)
+        .unwrap()
+        .unwrap();
+    assert_eq!(serde_json::to_value(card).unwrap()["here"], "applied");
+}
