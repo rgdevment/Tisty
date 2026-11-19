@@ -349,10 +349,9 @@ fn answered(
 }
 
 // A tool missing here only rings for nothing; the window's own round still catches what it wrote.
-const ONLY_READS: [&str; 14] = [
+const ONLY_READS: [&str; 13] = [
     "brain",
     "find",
-    "sum_up",
     "read",
     "read_doc",
     "outline_doc",

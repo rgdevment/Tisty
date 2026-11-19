@@ -105,3 +105,18 @@ fn a_document_taken_away_takes_its_note_and_its_pages_notes_with_it() {
 
     assert!(state.agent_notes.is_empty(), "{:?}", state.agent_notes);
 }
+
+#[test]
+fn of_two_notes_written_at_the_same_moment_the_one_replayed_last_stays() {
+    let (id, add) = added("dev_agent-0001", None);
+    let state = State::replay(&[
+        ev(1, add),
+        ev(5, gist(id, "written here", None)),
+        ev(6, gist(id, "kept there at the same moment", Some(5))),
+    ]);
+
+    assert_eq!(
+        summary_of(&state, id),
+        Some("kept there at the same moment")
+    );
+}

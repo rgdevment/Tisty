@@ -284,6 +284,7 @@ fn an_earlier_release_opens_a_history_this_build_wrote_who_signs_and_what_is_sea
     let person = person::Person::at(earlier.home.path());
     person.captures("written by this build");
     person.names_who_signs_and_seals();
+    person.leaves_an_agent_s_note();
     let store = earlier.home.path().join("data").join("store");
     let before = snapshot(&store);
 

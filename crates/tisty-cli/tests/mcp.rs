@@ -8162,3 +8162,50 @@ fn a_note_on_a_document_is_not_news_of_the_document_moving() {
         "{moved}"
     );
 }
+
+#[test]
+fn a_different_note_on_the_same_text_corrects_the_last_and_rings_the_window() {
+    let served = Served::new();
+    served.person().lets_the_agent_in();
+    let doc = wrote_paper(&served, "# Acta\n\nlo que se hablo.");
+    let bell = served.home.path().join("cache").join("stirred");
+    served.call(
+        "sum_up",
+        serde_json::json!({ "doc": &doc, "summary": "el acta de abril" }),
+    );
+    std::fs::remove_file(&bell).unwrap();
+
+    served.call(
+        "sum_up",
+        serde_json::json!({ "doc": &doc, "summary": "el acta de mayo" }),
+    );
+
+    assert!(bell.exists(), "a note is a write the window and sync catch");
+    assert_eq!(gists_in_the_log(&served).len(), 2);
+    let seen = served.call("brain", serde_json::json!({ "doc": &doc }));
+    assert_eq!(
+        seen["result"]["structuredContent"]["gist"]["summary"], "el acta de mayo",
+        "{seen}"
+    );
+}
+
+#[test]
+fn a_note_kept_here_at_the_same_hour_as_the_one_in_the_log_is_not_carried_again() {
+    let served = Served::new();
+    served.person().lets_the_agent_in();
+    let doc = wrote_paper(&served, "# Acta\n\nlo que se hablo.");
+    served.call(
+        "sum_up",
+        serde_json::json!({ "doc": &doc, "summary": "lo de ahora" }),
+    );
+    let at = gists_in_the_log(&served)[0]["ts"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    kept_here_before_notes_travelled(&served, &doc, "lo de antes", &at);
+
+    served.call("catch_up", serde_json::json!({}));
+
+    assert_eq!(gists_in_the_log(&served).len(), 1);
+    assert_eq!(left_in_the_cache(&served), 0);
+}
