@@ -34,6 +34,7 @@ Lo que un asistente puede hacer es pequeño a propósito. Terminar, descartar y 
 - Marcar un paso tuyo o terminar una tarea tuya: solo puede decir que están listos.
 - Mover un día que pusiste **tú**.
 - Borrar un documento, ni renombrar o borrar una carpeta.
+- Cambiar nada en [AGENTS](Carpeta-AGENTS#si-tu-agente-intenta-cambiar-una-regla): escribir, mover, archivar o marcar las reglas, skills y memoria de tus agentes, meter un documento o crear una carpeta ahí, ni escribir en cualquier carpeta un documento con una línea `agent:`. Las lee, y te dice qué cambiaría.
 - Vaciar el historial de un documento, ni leer o recuperar una versión que guarda otro de tus equipos.
 - Sacar una idea de la Lluvia de ideas de otra forma, marcar la hoja entera, archivarla ni moverla a una carpeta.
 - Alcanzar una tarea que plegaste.

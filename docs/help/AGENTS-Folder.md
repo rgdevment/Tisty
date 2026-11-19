@@ -9,12 +9,13 @@ I use more than one AI agent, and each one reads its rules from a different file
 
 ## What it is and when it helps
 
-AGENTS is a folder in your Library, at the top, with a robot icon. Each document inside it is one of an agent's files: a rule, a skill or its memory. You edit it in Tisty like any document, with its outline, its search and its earlier versions, and Tisty writes the file that agent reads, byte for byte.
+AGENTS is a folder in your Library, at the top, with a robot icon. Each document inside it is one of an agent's files: a rule, a skill or its memory. You edit it in Tisty like any document, with its search and its earlier versions, and Tisty writes the file that agent reads, byte for byte. Beside it, the **Agent file** panel tells you who reads it, where it is written and how many backups it has.
 
 It helps when:
 
 - **You use several agents and want the same rules in all of them.** You write «Answer in English» once in **Global**, and it reaches Claude Code's `CLAUDE.md`, Codex's `AGENTS.md`, Copilot's `copilot-instructions.md` and Gemini's rules.
-- **Your rules grew and you can no longer find them.** In Tisty they read as documents, with headings, an outline and search, instead of a flat file in a hidden folder.
+- **Your rules grew and you can no longer find them.** In Tisty they read as documents: each with its name and its icon in the sidebar, with headings and search, instead of a flat file in a hidden folder.
+- **You work on more than one computer.** You write the rule once, and each computer chooses whether to apply it to its agents.
 - **You have skills with scripts.** Each file of the skill is a document, and a script is kept in a code block that is written as is.
 - **You want to be able to go back.** Tisty keeps the original file before it first writes over it, and the last 20 before each overwrite.
 - **You want to see what your agent noted about you.** The memory Claude Code writes in each project, or Gemini's `GEMINI.md`, can be brought in to read in Tisty, and Tisty never changes it.
@@ -65,21 +66,26 @@ The box says «I found no agent files on this computer.» and the button stays a
 
 ## How the folder looks
 
-After bringing, your Library has an **AGENTS** folder with one subfolder per assistant and a **Global** one. Each document is named after its file, with the assistant in front:
+After bringing, your Library has an **AGENTS** folder with one subfolder per assistant and a **Global** one. In the sidebar, each document shows with its name and an icon that says what it is:
 
 ```text
-AGENTS                         in sync
+AGENTS                           in sync
 ├── Global
 ├── Claude
-│   ├── claude · CLAUDE.md
-│   ├── claude · rules/style.md
-│   ├── claude · pr/SKILL.md
-│   └── claude · projects/tisty/memory/MEMORY.md
+│   ├── [book]     How I work
+│   ├── [book]     Code style
+│   ├── [piece]    pr                3 files
+│   └── [brain]    MEMORY.md
 ├── Codex
-│   └── codex · AGENTS.md
+│   └── [book]     Codex rules
 └── Gemini
-    └── gemini · GEMINI.md
+    └── [brain]    GEMINI.md
 ```
+
+- **The icon**: a book for a **rule**, a puzzle piece for a **skill** and a brain for **agent memory**.
+- **The name**: the document's first heading, such as «How I work» in a `CLAUDE.md` that starts with `# How I work`. A skill takes the `name` in its `SKILL.md`. A script, or a file with no headings, is named after the file: `MEMORY.md`, `extract.py`.
+- **The path**: hover over a row and it shows, with the assistant in front: `claude · CLAUDE.md`, `claude · rules/style.md`.
+- **A skill is one single row**, with how many files it holds on the right, such as **pr** and **3 files**. A click opens it and shows its files by their path inside the skill: `SKILL.md`, `scripts/open-pr.sh`. So a 200-file skill takes one line until you open it. A skill of a single file shows like any other document.
 
 The subfolders are there so you find things: **what decides where a document goes is its `agent:` line**, not the folder it sits in. You can move a document between subfolders or make your own inside AGENTS, and it keeps being written to the same file.
 
@@ -88,11 +94,15 @@ Beside the AGENTS folder's name, the sidebar tells you how everything stands:
 | Beside AGENTS | What it means |
 | :-- | :-- |
 | **in sync** | Every file says what its document says |
-| **2 changed** | Two files changed outside, or on both sides, and wait for you to decide |
+| **2 changed** | Two files changed outside, on both sides, or were written by an earlier Tisty, and wait for you to decide |
+| **3 waiting** | Three documents came from [another of your computers](#on-several-computers) and wait for you to choose whether to apply them on this one |
+| **1 to approve** | A document changed without going through your hands, and reaches no agent until you [approve it](#to-approve) |
 | **off** | This computer is not allowed, or you paused the whole folder |
 | **empty** | The folder holds no documents |
 
-![The sidebar in English with the AGENTS folder open, its purple robot icon and the words in sync on the right; inside, the subfolders Global, Claude, Codex and Gemini, and in Claude the documents claude · CLAUDE.md, claude · rules/style.md and claude · pr/SKILL.md](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/agents/en-02-sidebar.png)
+If more than one applies, the most pressing shows: first **off**, then **changed**, then **waiting** and last **to approve**.
+
+![The sidebar in English with the AGENTS folder open, its purple robot icon and the words in sync on the right; inside, the subfolders Global, Claude, Codex and Gemini. In Claude, the rule How I work with a book icon, the rule Code style, the skill pr with a puzzle-piece icon and 3 files on the right, open, showing SKILL.md, scripts/open-pr.sh and template.md, and the memory MEMORY.md with a brain icon; the pointer over How I work shows claude · CLAUDE.md](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/agents/en-02-sidebar.png)
 
 ### The `agent:` line
 
@@ -210,16 +220,32 @@ What Tisty does with each one:
 
 ## The card of an agent document
 
-A document in AGENTS opens **for reading**, with a card at the top in place of its properties:
+A document in AGENTS opens **for reading**, with a card at the top in place of its properties, and the **Agent file** panel beside it:
 
-![The card in English of claude · CLAUDE.md: at the top the labels Rule, Claude and In sync in green; below, the name CLAUDE.md, the row Claude reads it at ~/.claude/CLAUDE.md with Written as Markdown · together with one other document · file changed 5 minutes ago, the link 3 backups on the right, and the buttons Edit, Backups and Pause sync with Claude](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/agents/en-03-card.png)
+![An agent document open in English. At the top, the card of How I work: the labels Rule, Claude and In sync in green; below, the name How I work in large type and the path CLAUDE.md small and grey; the row Claude reads it at ~/.claude/CLAUDE.md with Written as Markdown · together with one other document · file changed 5 minutes ago and the link 3 backups on the right, and the buttons Edit, Backups and Pause sync with Claude. On the right, the Agent file panel with Read by Claude, Written to ~/.claude/CLAUDE.md, Format Markdown · LF, Last written, Backups 3 backups, Original kept Yes, Syncs on this computer Yes, and the buttons History and Copy link](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/agents/en-03-card.png)
 
 - **The labels**: the kind (**Rule**, **Skill** or **Agent memory**), the level (**Global** or the assistant) and the standing.
-- **The name** of the file.
-- **One row per file it is written to**: «Claude reads it at» and the path. Below, **Written as Markdown** or **Written as is**, whether it is put together «together with one other document» or «together with 2 other documents», when the file changed, and the link to its backups. A Global document has one row per assistant, each with its own **Pause Claude**, **Pause Codex**… link.
+- **The name**, the same as in the sidebar, and under it, in small type, **the path** of the file inside the assistant's folder, such as `CLAUDE.md` or `pr/SKILL.md`.
+- **One row per file it is written to**: «Claude reads it at» and the full path. Below, **Written as Markdown** or **Written as is**, whether it is put together «together with one other document» or «together with 2 other documents», when the file changed, and the link to its backups. A Global document has one row per assistant, each with its own **Pause Claude**, **Pause Codex**… link.
 - **The buttons**: **Edit** opens the document for writing and **Done** closes it again; **Backups**, when the file has any; and **Pause sync with Claude**, when the document is written to a single file.
 
 A memory document has no **Edit**: the agent writes it, and the card says «The agent writes this file itself: Tisty shows it and brings it in, and never writes over it.».
+
+### The Agent file panel
+
+In an AGENTS document, the column beside the page does not show the paper size, the outline or **Share**: an agent's file is neither printed nor shared. In their place sits **Agent file**:
+
+| Row | What it says | Example |
+| :-- | :-- | :-- |
+| **Read by** | Which assistants on this computer read the file | Claude, Codex |
+| **Written to** | The file's path. A Global document has one row per assistant: **Claude file**, **Codex file** | `~/.claude/CLAUDE.md` |
+| **Format** | Markdown, or the script's type; how its lines end, and the marks it keeps | Markdown · LF, or PY · CRLF · BOM |
+| **Last written** | When the file last changed | 5 minutes ago |
+| **Backups** | How many this computer keeps | 3 backups, or None yet |
+| **Original kept** | Whether backup #1 is there, the file as it was before Tisty touched it | Yes, before Tisty's first write |
+| **Syncs on this computer** | Whether Tisty keeps it up to date here | Yes; Yes, except Codex (paused); Tisty only reads it; No, AGENTS is off |
+
+Below, **History** opens the document's [earlier versions](Documents#earlier-versions), and **Copy link**, its [link](Documents#a-documents-link). If you already shared that document before, the sharing panel is still there.
 
 ### Each standing
 
@@ -229,6 +255,8 @@ A memory document has no **Edit**: the agent writes it, and the card says «The 
 | **About to be written** | You changed the document and Tisty writes it in a moment | Nothing |
 | **Changed outside** | Someone changed the file outside Tisty, or deleted it | Choose: [bring or overwrite](#a-change-made-outside-bring-it-in-or-overwrite) |
 | **Changed on both sides** | Both the file and the document changed since the last write | Choose which to keep |
+| **Written by an earlier Tisty** | An earlier version of Tisty wrote the file without noting which documents it came from, and today it does not say what they say | **See the file**, then **Overwrite with Tisty** if you keep the document |
+| **On hold** | One of the documents that make up this file [changed without your approval](#to-approve), or left AGENTS by an agent's hand, so the file stays as it was. The card names that document | Approve that document, or put it back and take it out yourself |
 | **Paused** | You paused sync for that assistant, or for the whole folder | **Resume** whenever you like |
 | **Not allowed on this computer** | This computer has not allowed AGENTS | **Allow on this computer**, in Settings › Assistants |
 | **Nothing to write** | The document is empty, and Tisty never empties an agent's file | Write something, or take the document out of AGENTS |
@@ -241,16 +269,18 @@ Two more notices can take the place of the rows:
 - **«No assistant on this computer reads this document yet.»** The assistant is not on this computer, or the name is not a file that assistant reads.
 - **«Another document in AGENTS already writes this file, so this one is left out.»** Two documents carry the same `agent:` line: only one is written.
 
+And if the document is not applied on this computer yet, an amber notice says why, with the button that settles it: [On several computers](#on-several-computers) tells it.
+
 ## A change made outside: bring it in or overwrite
 
 You can keep editing your agents' files in your editor, or let the agent change them. Tisty never writes over those changes.
 
-**An example.** You open `~/.claude/CLAUDE.md` in your editor and add «- Run the tests before every commit.». The next time Tisty looks (on start, when you come back to the window, or when you open the document), the sidebar says **1 changed** beside AGENTS, and the card of `claude · CLAUDE.md` says **Changed outside**, with a notice:
+**An example.** You open `~/.claude/CLAUDE.md` in your editor and add «- Run the tests before every commit.». The next time Tisty looks (on start, when you come back to the window, or when you open the document), the sidebar says **1 changed** beside AGENTS, and the card of **How I work**, the document of that `CLAUDE.md`, says **Changed outside**, with a notice:
 
-![The card in English of claude · CLAUDE.md with the label Changed outside in amber and the notice The file changed outside Tisty, ~/.claude/CLAUDE.md no longer says what this document says, and the buttons Bring the change in, Overwrite with Tisty and See the file](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/agents/en-04-outside.png)
+![The card in English of How I work, with the path CLAUDE.md under the name, the label Changed outside in amber and the notice The file changed outside Tisty, ~/.claude/CLAUDE.md no longer says what this document says, and the buttons Bring the change in, Overwrite with Tisty and See the file](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/agents/en-04-outside.png)
 
 - **See the file** shows what the file holds now.
-- **Bring the change in** writes into the document what the file says. What the document said before stays in its [earlier versions](Documents#earlier-versions).
+- **Bring the change in** writes into the document what the file says. What the document said before stays in its [earlier versions](Documents#earlier-versions). If someone changed the document after the card was drawn, Tisty does not write over it: it asks you to read it again and choose again.
 - **Overwrite with Tisty** asks «Write this document over `~/.claude/CLAUDE.md`? What the file holds now is kept as a backup.» and, if you say yes, writes the file again from the document.
 
 Until you choose, Tisty does not write that file, even if you change the document.
@@ -308,6 +338,49 @@ Tisty never empties or deletes an agent's file.
 
 **What stops it being AGENTS.** Tisty knows the folder because it sits at the top, is named **AGENTS** and carries its robot icon. If you rename it, change its icon, move it inside another folder or archive it, Tisty stops writing the files, as if you had emptied it.
 
+## On several computers
+
+If you use Tisty on more than one computer, say the one at home and the one at work, your AGENTS documents travel with your sync like any other. But **each computer chooses what it applies to its agents**: a document that comes from another computer is written to no file until you say so, on that computer and from Tisty's window.
+
+### A second computer, step by step
+
+**An example.** On the home computer you brought in your `CLAUDE.md` and wrote the rule «For all my agents» in **AGENTS › Global**. There they applied by themselves: you brought them and wrote them, on that computer. Now you install Tisty on the work computer and sync:
+
+1. In **Settings › Assistants**, the **AGENTS** card says «This computer has not allowed it yet.». Press **Allow on this computer**.
+2. The same first-run box opens, with this computer's files. Those that already have a document say **already in AGENTS**, and if everything it found is already there, the box says «Everything I found is already in AGENTS. Allow this computer to keep it in sync:». Tick what you want to bring from this computer, such as its projects' memory, and press **Bring and sync** or **Allow and sync**.
+3. The sidebar says **2 waiting** beside AGENTS: the two documents that come from home.
+4. Open **For all my agents**. The card has no file rows yet, and an amber notice says «This document comes from another computer. Apply it to the agents on this one?», with two buttons:
+   - **Apply here** writes it to the files of this computer's assistants, with its backup first, as always. If a file on this computer already said something else, Tisty does not write over it: the card stays at **Changed on both sides** and you choose.
+   - **Not on this computer** leaves it out here. The card says «You chose not to apply it on this computer.», and **Apply here** stays at hand in case you change your mind.
+5. Do the same with **How I work**, your `CLAUDE.md`. The sidebar is back to **in sync**.
+
+![The card in English of For all my agents on the work computer: the labels Rule and Global, the name For all my agents with the path for-all.md under it, no file rows, and the amber notice This document comes from another computer. Apply it to the agents on this one? with the buttons Apply here and Not on this computer; in the sidebar, beside AGENTS, 2 waiting](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/agents/en-08-another-computer.png)
+
+What you choose holds for that document on that computer, and it stays:
+
+- **A document you already apply updates by itself.** If tomorrow you change «For all my agents» at home, work writes it as soon as it arrives, without asking again.
+- **What you write or bring in on one computer is applied on that computer with no click.** Only what comes from another one waits.
+- **Waiting counts only what this computer would read.** A Codex document does not wait on a computer without Codex.
+- **Once applied, the card offers no way back.** For one assistant on this computer to stop receiving it, pause that assistant here; for no computer to receive it, take it out of AGENTS.
+
+### Memory belongs to the computer that brought it
+
+An agent's memory speaks of what happened on that computer, so it is never written on another. On your other computers, its card says «Another computer's agent memory: on this one it is only read.», with no buttons. Each computer can bring its own memory of the same project: it shows unticked in the first-run box, even if another computer already brought its own.
+
+### To approve
+
+**Only words you wrote or approved reach an agent's file.** What you write in Tisty's window, what you bring in the first time and what you bring with **Bring the change in** already counts as approved. A text that changed without going through your hands does not: for example, if someone edited the document's file inside Tisty's data folder, or an imported parcel brought it.
+
+Then the sidebar says **1 to approve** beside AGENTS, and the card warns «Its text does not have your approval yet, so it reaches no agent until you approve it.», with **Approve this text**. Read it first: the button asks «Approve what this document says now? Read it first: it is written to your agents' files.», and if the document changed between your reading and your yes, Tisty approves nothing and asks you to read it again.
+
+If that document was already written to a file, the file does not change meanwhile: its card says **On hold** and names the document holding it, for example «This file stays as it was: claude · style.md changed or left AGENTS without your approval. Approve it, or put it back and take it out yourself.».
+
+A document an agent put in AGENTS, and not you, is not written either: its card says «An agent put it here, so no agent reads it until you move it yourself.». Move it yourself to another AGENTS subfolder (reordering it is not enough), and it applies.
+
+### Written by an earlier Tisty
+
+An earlier version of Tisty wrote the files without noting which documents each one came from. The first time the new version looks at them, it compares: if the file says what its documents say, it takes it over without a word. If it says something else, the card stays at **Written by an earlier Tisty**, with the notice «An earlier Tisty wrote this file without noting which documents it came from, so it is left as it is until you choose». **See the file** shows you what it holds, and **Overwrite with Tisty** writes it from your documents, with its backup first.
+
 ## What is never read
 
 - **Your assistants' settings**: `settings.json`, `settings.local.json`, `config.toml`, `config.json`, `hooks.json`, `mcp.json`, `mcp-config.json`, `.claude.json` and `keybindings.json`. Tisty only looks where rules, skills and memory go, never in an assistant's main folder, and inside a skill a file with one of those names does come in, because it belongs to the skill.
@@ -318,13 +391,13 @@ Tisty never empties or deletes an agent's file.
 
 And an AGENTS document is only written where each assistant keeps its rules, skills and memory, never to its settings or credentials.
 
-**Agent memory** comes unticked the first time, and once in Tisty it is read only: the agent keeps writing it, and when it changes, the card says **Changed outside** and **Bring the change in** brings Tisty up to date. It has no **Edit**, **Overwrite with Tisty** or **Restore**.
+**Agent memory** comes unticked the first time, and once in Tisty it is read only: the agent keeps writing it, and when it changes, the card says **Changed outside** and **Bring the change in** brings Tisty up to date. It has no **Edit**, **Overwrite with Tisty** or **Restore**, and on your other computers it is [only read](#memory-belongs-to-the-computer-that-brought-it).
 
 What Tisty keeps of all this, and what travels, is in [Privacy](Privacy#your-assistants-in-agents).
 
 ## With your agent, through MCP
 
-An agent you let in through [[MCP|Assistants-and-MCP]] sees your AGENTS documents like any other, and its guide tells it what they are. For example, you ask Claude Code «Which of my rules do you read?».
+An agent you let in through [[MCP|Assistants-and-MCP]] **reads** your AGENTS documents like any other, and its guide tells it what they are. **It cannot change them**: the rules your agent reads are yours, and only you change them, in Tisty. For example, you ask Claude Code «Which of my rules do you read?».
 
 **1. It reads its guide.** `rules` with the topic «documents» brings, among others, the section on AGENTS:
 
@@ -337,7 +410,10 @@ An agent you let in through [[MCP|Assistants-and-MCP]] sees your AGENTS document
 
 A document whose properties hold an `agent:` line is an assistant's own file kept in the folder
 AGENTS — a rule file such as `CLAUDE.md`, a skill, a script — and Tisty writes its text, byte for
-byte, to the file that assistant reads, on each computer where the person turned that on. …
+byte, to the file that assistant reads, on each computer where the person turned that on. Read
+them freely, but only the person changes them, in Tisty: every tool that writes, moves, files,
+marks or sums up refuses these documents and the folder AGENTS, and a new body with an `agent:`
+line is refused anywhere. …
 ```
 
 **2. It looks for the document.** `brain` with the file's words:
@@ -372,6 +448,38 @@ title: claude · CLAUDE.md
 
 The agent answers you with the title and the folder, «your document claude · CLAUDE.md, in AGENTS / Claude», never with the id. Every tool is in the [[Tools reference|MCP-Tools]].
 
+### If your agent tries to change a rule
+
+You ask it «add to my rules that it always runs the tests». The agent tries to edit the document, and Tisty refuses it, touching nothing:
+
+```json
+{ "name": "edit_doc", "arguments": { "doc": "k4r5j4qr-0001", "old": "- Answer in English.", "new": "- Answer in English.\n- Run the tests before every commit." } }
+```
+
+```text
+the document "claude · CLAUDE.md" holds an assistant's own files in AGENTS, which only the person
+changes, in Tisty: nothing an assistant writes, moves or marks there reaches them. Tell the person
+what you would change and why, and they make the change from the document's card.
+```
+
+The same happens if it tries to write the whole document, add to it, archive it, move it, attach a file to it, go back to an earlier version, put another document or make a folder inside AGENTS. And a new document with an `agent:` line is refused in any folder, so nobody can bring a rule in from outside:
+
+```json
+{ "name": "write_doc", "arguments": { "body": "---\nagent: global/rule/for-all.md\n---\n# For all\n\n- Ask before deleting.\n" } }
+```
+
+```text
+a body with an `agent:` line is an assistant's own file, which only the person makes, in AGENTS.
+Write it without that line, or tell the person what the file should say.
+```
+
+So the agent tells you what it would change and in which document, and you change it from its card with **Edit**. Editing the file on disk does not help either: that change stands as **Changed outside** and waits for your decision. **Why it works this way:** an AGENTS rule reaches all your agents, on all your computers; if an agent could write it, an instruction hidden in a page it read could end up in the rules of the others.
+
+### A proposal from your agent
+
+> [!NOTE]
+> **Pending.** This section will show how an agent proposes a change to a rule instead of writing it, how that proposal looks on the card and how you approve or dismiss it. It is filled in when that feature reaches Tisty.
+
 ## Questions
 
 **Does Tisty replace my files?** It neither moves nor converts them: it keeps writing them where your agent looks for them. Before the first write it keeps the original, backup #1, which is never removed.
@@ -394,6 +502,12 @@ The agent answers you with the title and the folder, «your document claude · C
 
 **How many backups does it keep?** The original and the last 20 of each file, on this computer.
 
+**Can I ask my agent to change my rules?** You can ask, but it cannot write them: Tisty refuses any change in AGENTS, and the agent tells you what it would change and in which document. You change it from the card. See [If your agent tries to change a rule](#if-your-agent-tries-to-change-a-rule).
+
+**I use Tisty on two computers. Do my rules reach the other one by themselves?** They arrive as documents, with your sync, but on the other computer they wait for your **Apply here** the first time. After that they update by themselves. See [On several computers](#on-several-computers).
+
+**Can I keep a rule on one computer only?** Yes: on the computer where you do not want it, press **Not on this computer** on its card. What each computer chooses is its own.
+
 ## When something does not add up
 
 **An assistant is missing from the list.** Tisty only sees an assistant whose folder exists: `~/.claude`, `~/.codex`, `~/.copilot`, `~/.gemini` or `~/.cursor`. If you moved it with a variable such as `CODEX_HOME`, set it as a user variable and open Tisty again. If you never used that assistant on this computer, open it once so it makes its folder.
@@ -408,6 +522,13 @@ The agent answers you with the title and the folder, «your document claude · C
 - **Nothing to write**, **The file is a link** or **The code block is broken**: the table of [each standing](#each-standing) says what to do.
 - **«No assistant on this computer reads this document yet.»**: check the `agent:` line. The level must be an assistant on this computer, and the name a file that assistant reads.
 - **«Another document in AGENTS already writes this file»**: two documents carry the same `agent:` line. Keep one.
+- **On hold**: another document of the same file waits for your approval. The card names it; [approve it](#to-approve).
+- **Written by an earlier Tisty**: look at the file and, if you keep the document, **Overwrite with Tisty**.
+- **An amber notice about another computer or your approval**: the document is not applied on this computer yet. See [On several computers](#on-several-computers).
+
+**My rule does not reach my other computer.** On that computer, check that AGENTS is allowed (**Allow on this computer**, in Settings › Assistants) and open the document: if it says «This document comes from another computer», press **Apply here**; if it says «You chose not to apply it on this computer.», that too. If the card says «No assistant on this computer reads this document yet.», that computer does not have the rule's assistant.
+
+**The sidebar says to approve and I changed nothing.** A document's text changed without going through Tisty's window, for example through an imported parcel or a direct edit in the data folder. Open it, read it, and if it is right, **Approve this text**.
 
 **I wrote a Global rule and a file stands Changed on both sides.** That file already existed and you did not bring it in, so Tisty cannot tell which part is yours. To keep what it said, press **See the file** on the card, copy your part into a new document inside AGENTS with the line `agent: codex/rule/AGENTS.md` (or that assistant's), then **Overwrite with Tisty**: the file ends up with Global in front of your part, and the original as backup #1. See [A rule in Global](#a-rule-in-global).
 

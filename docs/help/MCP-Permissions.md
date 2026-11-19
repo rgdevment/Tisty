@@ -34,6 +34,7 @@ What an assistant may do is deliberately small. Finishing, dropping and deleting
 - Tick a step of yours, or finish a task of yours: it can only say they are done.
 - Move a day **you** set.
 - Delete a document, or rename or delete a folder.
+- Change anything in [AGENTS](AGENTS-Folder#if-your-agent-tries-to-change-a-rule): write, move, archive or mark your agents' rules, skills and memory, put a document or make a folder there, or write in any folder a document with an `agent:` line. It reads them, and tells you what it would change.
 - Empty a document's history, or read or go back to a version another of your computers keeps.
 - Take an idea off Brainstorm any other way, mark the whole sheet, put it away or move it into a folder.
 - Reach a task you folded away.
