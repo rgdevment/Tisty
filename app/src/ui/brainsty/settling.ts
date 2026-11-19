@@ -102,7 +102,7 @@ export function movedBy(before: Spots, after: Spots): number {
   return sum / after.x.length / widthOf(after);
 }
 
-// Gephi's coarser Barnes–Hut and a lighter brake let a big network take about three times the iterations in the same time.
+// Gephi's coarser Barnes–Hut makes a big network's iterations about three times cheaper, and a lighter brake lets each one go further.
 export function forcesFor(order: number) {
   const inferred = forceAtlas2.inferSettings(order);
   const big = inferred.barnesHutOptimize ? { barnesHutTheta: 1.2, slowDown: 3 } : {};
