@@ -12,6 +12,7 @@ export interface Sift {
   standings: ReadonlySet<Standing>;
   tag: number | null;
   days: Period;
+  alike: boolean;
 }
 
 export const EVERYTHING: Sift = {
@@ -19,6 +20,7 @@ export const EVERYTHING: Sift = {
   standings: new Set(STANDINGS),
   tag: null,
   days: 0,
+  alike: true,
 };
 
 const TAG_TIE = 3;
@@ -31,7 +33,8 @@ export const sifting = (sift: Sift): boolean =>
   sift.kinds.size < KINDS.length ||
   sift.standings.size < STANDINGS.length ||
   sift.tag !== null ||
-  sift.days !== 0;
+  sift.days !== 0 ||
+  !sift.alike;
 
 export function holdersOf(network: Network, tag: number): Set<number> {
   const held = new Set([tag]);

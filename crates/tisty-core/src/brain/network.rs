@@ -42,7 +42,14 @@ pub struct Network {
     pub near: Option<u32>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub left_out: Option<LeftOut>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub alike: Vec<Guess>,
 }
+
+// Both ends, the score in thousandths and the shared words: Tisty's guess, apart from what anyone wrote.
+pub type Guess = (u32, u32, u16, String);
+
+type Guessed = (String, String, f64, String);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 struct Caps {
@@ -98,8 +105,21 @@ impl Brain {
                 ties.push(row?);
             }
         }
+        let mut guessed: Vec<Guessed> = Vec::new();
+        {
+            let mut asked =
+                tx.prepare("SELECT a, b, score, shared FROM alike WHERE method = 'words'")?;
+            let rows = asked.query_map([], |row| {
+                Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?))
+            })?;
+            for row in rows {
+                guessed.push(row?);
+            }
+        }
         drop(tx);
-        Ok(Some(woven(held, &ties, near, CAPS)))
+        let mut network = woven(held, &ties, near, CAPS);
+        network.alike = guesses(&network.nodes, &guessed);
+        Ok(Some(network))
     }
 }
 
@@ -305,7 +325,25 @@ fn renumbered(
         nodes,
         edges,
         left_out,
+        alike: Vec::new(),
     }
+}
+
+// A guess shows only between two nodes in sight, so the gate and the caps that kept them decide it too.
+fn guesses(nodes: &[Neuron], guessed: &[Guessed]) -> Vec<Guess> {
+    let at: HashMap<&str, u32> = nodes
+        .iter()
+        .enumerate()
+        .filter_map(|(n, one)| Some((one.id.as_str(), u32::try_from(n).ok()?)))
+        .collect();
+    guessed
+        .iter()
+        .filter_map(|(a, b, score, shared)| {
+            let (&from, &to) = (at.get(a.as_str())?, at.get(b.as_str())?);
+            let thousandths = (score.clamp(0.0, 1.0) * 1000.0).round() as u16;
+            (from != to).then(|| (from, to, thousandths, shared.clone()))
+        })
+        .collect()
 }
 
 // A tag or a file stands for what holds it, so one whose holders are all out of sight goes too.

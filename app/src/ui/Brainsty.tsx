@@ -4,7 +4,9 @@ import { type Group, type Network, type Neuron, OPENED } from "../brainsty";
 import { serve } from "../inUse";
 import { t } from "../locales";
 import { pictured } from "../previews";
+import { type Curves, curvesOn } from "./brainsty/curves";
 import { type Drawing, drawNetwork, type HueOf } from "./brainsty/drawing";
+import { alikeOf } from "./brainsty/guessing";
 import { layOut } from "./brainsty/layingOut";
 import { degreesOf, paletteNow } from "./brainsty/looks";
 import { type Overlays, overlaysOn } from "./brainsty/overlays";
@@ -28,7 +30,7 @@ interface Props {
 export default function Brainsty({ network, groups, onOpen, escaping }: Props) {
   const host = useRef<HTMLElement>(null);
   const finder = useRef<HTMLInputElement>(null);
-  const drawing = useRef<{ drawn: Drawing; overlays: Overlays } | null>(null);
+  const drawing = useRef<{ drawn: Drawing; overlays: Overlays; curves: Curves } | null>(null);
   const [ready, setReady] = useState(false);
   const [picked, setPicked] = useState<number | null>(null);
   const [query, setQuery] = useState("");
@@ -43,6 +45,10 @@ export default function Brainsty({ network, groups, onOpen, escaping }: Props) {
   hues.current = (group) => (group ? tinted.get(group) : undefined);
   const hidden = useMemo(() => hiddenBy(network, sift, new Date()), [network, sift]);
   const hits = useMemo(() => found(network, query, hidden), [network, query, hidden]);
+  const alike = useMemo(
+    () => (picked === null || !sift.alike ? [] : alikeOf(network, picked, hidden)),
+    [network, picked, hidden, sift.alike],
+  );
   const degrees = useMemo(() => degreesOf(network.nodes.length, network.edges), [network]);
   const tags = useMemo(
     () =>
@@ -51,8 +57,8 @@ export default function Brainsty({ network, groups, onOpen, escaping }: Props) {
         .sort((one, other) => degrees[other] - degrees[one]),
     [network, degrees],
   );
-  const live = useRef({ picked, hidden, onOpen });
-  live.current = { picked, hidden, onOpen };
+  const live = useRef({ picked, hidden, onOpen, guessing: sift.alike });
+  live.current = { picked, hidden, onOpen, guessing: sift.alike };
   // The keys walk the network from the network itself, so the search hands the focus back once it is done.
   const backToNetwork = () => host.current?.focus();
   escaping.current = () => {
@@ -79,6 +85,9 @@ export default function Brainsty({ network, groups, onOpen, escaping }: Props) {
       palette,
       getComputedStyle(container).fontFamily,
     );
+    const curves = curvesOn(container, drawn, network, palette);
+    curves.show(live.current.guessing);
+    curves.reshape(shaped);
     const overlays = overlaysOn(container, drawn, network, hueOf, palette, PICTURES);
     overlays.reshape(shaped);
     const near = network.near;
@@ -124,6 +133,7 @@ export default function Brainsty({ network, groups, onOpen, escaping }: Props) {
       const placed = brainShaped(step);
       drawn.place(placed);
       overlays.reshape(placed);
+      curves.reshape(placed);
       followSoon();
       if (!step.done) return;
       container.dataset.laidMs = String(Math.round(step.ms));
@@ -133,8 +143,9 @@ export default function Brainsty({ network, groups, onOpen, escaping }: Props) {
       const next = paletteNow();
       drawn.retheme(next);
       overlays.retheme(next);
+      curves.retheme(next);
     });
-    drawing.current = { drawn, overlays };
+    drawing.current = { drawn, overlays, curves };
     setReady(true);
     return () => {
       cancelAnimationFrame(frame);
@@ -145,6 +156,7 @@ export default function Brainsty({ network, groups, onOpen, escaping }: Props) {
       container.removeEventListener("pointerdown", letGo);
       container.removeEventListener("wheel", letGo);
       overlays.stop();
+      curves.stop();
       drawing.current = null;
       drawn.kill();
     };
@@ -154,14 +166,24 @@ export default function Brainsty({ network, groups, onOpen, escaping }: Props) {
     if (!ready || !drawing.current) return;
     drawing.current.drawn.hide(hidden);
     drawing.current.overlays.sift(hidden);
+    drawing.current.curves.sift(hidden);
     setPicked((was) => (was !== null && hidden[was] ? null : was));
   }, [ready, hidden]);
 
   useEffect(() => {
     const drawn = drawing.current?.drawn;
     if (!ready || !drawn) return;
-    drawn.light(picked === null ? null : new Set([picked, ...drawn.beside(picked)]));
-  }, [ready, picked]);
+    drawn.light(
+      picked === null
+        ? null
+        : new Set([picked, ...drawn.beside(picked), ...alike.map((one) => one.node)]),
+    );
+    drawing.current?.curves.pick(picked);
+  }, [ready, picked, alike]);
+
+  useEffect(() => {
+    if (ready) drawing.current?.curves.show(sift.alike);
+  }, [ready, sift.alike]);
 
   const choose = (node: number) => {
     setQuery("");
@@ -195,6 +217,8 @@ export default function Brainsty({ network, groups, onOpen, escaping }: Props) {
           neuron={shown}
           ties={degrees[picked]}
           zone={shown.group ? named.get(shown.group) : undefined}
+          alike={alike.map((one) => ({ ...one, neuron: network.nodes[one.node] }))}
+          onPick={choose}
           onOpen={() => onOpen(shown)}
           onClose={() => setPicked(null)}
         />

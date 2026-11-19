@@ -797,3 +797,82 @@ fn a_document_naming_its_own_title_does_not_mention_itself() {
         .unwrap();
     assert_eq!(panel, Some(vec![]));
 }
+
+#[test]
+fn a_card_lists_its_guesses_apart_and_never_names_what_the_reader_may_not_see() {
+    let world = World::new();
+    let mut store = world.store();
+    let budget = task(&mut store, "Presupuesto familiar", &[]).to_string();
+    let spending = task(&mut store, "Gastos de diciembre", &[]).to_string();
+    let secret = task(&mut store, "Regalo sorpresa", &[]).to_string();
+    let (plans_id, plans) = doc(&world, &mut store, "# Plans\n\nNothing yet.\n", None, None);
+    let mut brain = world.brain();
+    world.refreshed(&mut brain, &world.state());
+    for (a, b, score, method, shared) in [
+        (&budget, &spending, 0.4234, "words", "presupuesto familiar"),
+        (&plans, &budget, 0.912, "words", "plan"),
+        (&spending, &plans, 0.97, "meaning", ""),
+        (&budget, &secret, 0.99, "words", "regalo"),
+    ] {
+        brain
+            .db
+            .execute(
+                "INSERT INTO alike(a, b, score, shared, method) VALUES (?1, ?2, ?3, ?4, ?5)",
+                rusqlite::params![a, b, score, shared, method],
+            )
+            .unwrap();
+    }
+    let seen = |id: &str| id != secret;
+
+    let card = brain.card(&budget, today(), seen).unwrap().unwrap();
+
+    assert_eq!(
+        card.guessed,
+        [
+            Guessed {
+                id: plans.clone(),
+                kind: "doc".into(),
+                title: "Plans".into(),
+                state: Some("open".into()),
+                score: 0.91,
+                shared: vec!["plan".into()],
+            },
+            Guessed {
+                id: spending.clone(),
+                kind: "task".into(),
+                title: "Gastos de diciembre".into(),
+                state: Some("open".into()),
+                score: 0.42,
+                shared: vec!["presupuesto".into(), "familiar".into()],
+            },
+        ]
+    );
+    assert!(card.around.cites.is_empty() && card.around.mentions.is_empty());
+    let said = serde_json::to_string(&card).unwrap();
+    assert!(!said.contains("Regalo"), "{said}");
+    assert!(!said.contains(&secret), "{said}");
+    assert_eq!(
+        card_of(&brain, &plans_id.to_string()).guessed[0].id,
+        budget,
+        "a document is found by its id as well as its file"
+    );
+    assert_eq!(brain.card(&secret, today(), seen).unwrap(), None);
+    assert_eq!(
+        card_of(&brain, &spending).guessed.len(),
+        1,
+        "only shared words make a guess"
+    );
+}
+
+#[test]
+fn a_card_with_no_guess_says_nothing_of_them() {
+    let world = World::new();
+    let mut store = world.store();
+    let party = task(&mut store, "the party", &[]).to_string();
+    let mut brain = world.brain();
+    world.refreshed(&mut brain, &world.state());
+
+    let said = serde_json::to_value(card_of(&brain, &party)).unwrap();
+
+    assert!(said.get("guessed").is_none(), "{said}");
+}

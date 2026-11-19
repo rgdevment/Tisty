@@ -43,6 +43,7 @@ const OUTLINE_SAYS: [&str; 11] = [
     "bytes",
     "lines",
 ];
+const GUESSED: &str = "guessed";
 const NO_BASE: &str = "The base that links things is not ready on this machine, so this card holds what the thing says alone.";
 
 fn of_kind(kind: &str) -> &'static [&'static str] {
@@ -128,12 +129,12 @@ fn with_neighbours(answer: &mut Value, card: Card) {
     let mut said = to_map(&card);
     if card.kind == "task" {
         let near = of_kind("all");
-        said.retain(|key, _| near.contains(&key.as_str()));
+        said.retain(|key, _| key == GUESSED || near.contains(&key.as_str()));
     }
     for key in OUTLINE_SAYS {
         said.remove(key);
     }
-    let told = neighbours_told(&said);
+    let told = format!("{}{}", neighbours_told(&said), guessed_told(&said));
     let capped = capped(&mut said);
     let Some(shown) = answer["structuredContent"].as_object_mut() else {
         return;
@@ -180,7 +181,7 @@ pub(super) fn of_task(paths: &Paths, which: &str, args: &Value) -> Result<Value,
             if let Some(status) = said.remove("state") {
                 said.insert("status".into(), status);
             }
-            let told = neighbours_told(&said);
+            let told = format!("{}{}", neighbours_told(&said), guessed_told(&said));
             if capped(&mut said) {
                 said.insert(
                     "next".into(),
@@ -319,6 +320,34 @@ fn neighbours_told(said: &Map<String, Value>) -> String {
     match counted.is_empty() {
         true => String::new(),
         false => format!("\n\nNeighbours: {}.", counted.join(", ")),
+    }
+}
+
+// Said apart from the neighbours, since no one wrote these links: Tisty guesses them.
+fn guessed_told(said: &Map<String, Value>) -> String {
+    let Some(Value::Array(many)) = said.get(GUESSED) else {
+        return String::new();
+    };
+    let told: Vec<String> = many
+        .iter()
+        .map(|one| {
+            let words: Vec<&str> = one["shared"]
+                .as_array()
+                .map(|all| all.iter().filter_map(Value::as_str).collect())
+                .unwrap_or_default();
+            match words.is_empty() {
+                true => near_told(one),
+                false => format!("{} (shares {})", near_told(one), words.join(", ")),
+            }
+        })
+        .collect();
+    match told.is_empty() {
+        true => String::new(),
+        false => format!(
+            "
+Guessed alike by Tisty, linked by no one: {}.",
+            told.join("; ")
+        ),
     }
 }
 

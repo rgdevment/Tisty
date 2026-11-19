@@ -123,6 +123,15 @@ function Filters({
             {t(`brainstyKind_${kind}`)}
           </button>
         ))}
+        <button
+          type="button"
+          aria-pressed={sift.alike}
+          title={t("brainstyAlikeWhat")}
+          onClick={() => onSift({ ...sift, alike: !sift.alike })}
+          className={chip(sift.alike)}
+        >
+          {t("brainstyAlike")}
+        </button>
       </Row>
       <Row>
         {STANDINGS.map((standing: Standing) => (
