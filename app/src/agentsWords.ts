@@ -319,6 +319,7 @@ const words = {
   ],
   agentFileSyncs: ["Syncs on this computer", "Sincroniza en este equipo"],
   agentFileSyncsYes: ["Yes", "Sí"],
+  agentFileSyncsBut: ["Yes, except {name} (paused)", "Sí, salvo {name} (en pausa)"],
   agentFileSyncsReads: ["Tisty only reads it", "Tisty solo lo lee"],
   agentFileSyncsPaused: ["Paused", "En pausa"],
   agentFileSyncsNotAllowed: ["Not allowed", "Sin permiso"],

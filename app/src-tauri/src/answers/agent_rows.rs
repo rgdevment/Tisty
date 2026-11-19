@@ -40,10 +40,20 @@ pub(crate) fn rows(docs: &Path, files: &[String]) -> Vec<Row> {
         .collect()
 }
 
+pub(crate) fn asked_for(files: Vec<String>, only: Option<Vec<String>>) -> Vec<String> {
+    match only {
+        Some(only) => files.into_iter().filter(|one| only.contains(one)).collect(),
+        None => files,
+    }
+}
+
 #[tauri::command(async)]
-pub fn agents_rows(session: tauri::State<'_, Mutex<Session>>) -> Answer<Vec<Row>> {
+pub fn agents_rows(
+    session: tauri::State<'_, Mutex<Session>>,
+    only: Option<Vec<String>>,
+) -> Answer<Vec<Row>> {
     let (docs, files) = listed(&held(&session));
-    Ok(rows(&docs, &files))
+    Ok(rows(&docs, &asked_for(files, only)))
 }
 
 #[cfg(test)]

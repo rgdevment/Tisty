@@ -1,14 +1,18 @@
-import { act, render, screen } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { AgentDoc, Place, Said } from "../agentDocs";
 import { agentFacts, formatOf } from "../ui/agentFile";
 import Beside from "../ui/Beside";
 
-const linking = vi.hoisted(() => ({ files: [] as string[] }));
+const linking = vi.hoisted(() => ({ files: [] as string[], card: null as unknown }));
 
 vi.mock("@tauri-apps/api/core", () => ({
-  invoke: (cmd: string) => Promise.resolve(cmd === "doc_facts" ? { bytes: 7, pages: 0 } : null),
+  invoke: (cmd: string) => {
+    if (cmd === "doc_facts") return Promise.resolve({ bytes: 7, pages: 0 });
+    if (cmd === "doc_share_card") return Promise.resolve(linking.card);
+    return Promise.resolve(null);
+  },
 }));
 
 vi.mock("../copying", () => ({
@@ -49,6 +53,7 @@ const rows = (doc: AgentDoc, body = BODY) => new Map(agentFacts(doc, body, []).r
 
 beforeEach(() => {
   linking.files = [];
+  linking.card = null;
 });
 
 describe("what the agent file panel says", () => {
@@ -106,7 +111,7 @@ describe("what the agent file panel says", () => {
     expect(said.get("Read by")).toBe("Claude, Codex");
     expect(said.get("Codex file")).toBe("/c/AGENTS.md");
     expect(said.get("Backups")).toBe("1 backup");
-    expect(said.get("Syncs on this computer")).toBe("Yes");
+    expect(said.get("Syncs on this computer")).toBe("Yes, except Codex (paused)");
   });
 
   it("says when nothing is written, nothing is kept yet and why it does not sync", () => {
@@ -127,6 +132,33 @@ describe("what the agent file panel says", () => {
     expect(
       rows(agent([place({ state: "synced" })], { kind: "memory" })).get("Syncs on this computer"),
     ).toBe("Tisty only reads it");
+  });
+});
+
+describe("when an agent file was written and who follows it", () => {
+  it("takes the latest write even inside one second", () => {
+    const said = rows(
+      agent([
+        place({ state: "synced" }, { changed: "2026-11-19T10:42:00.5Z" }),
+        place({ state: "synced" }, { named: "Codex", changed: "2026-11-19T10:42:00Z" }),
+      ]),
+    );
+    expect(said.get("Last written")).toBe(
+      rows(agent([place({ state: "synced" }, { changed: "2026-11-19T10:42:00.5Z" })])).get(
+        "Last written",
+      ),
+    );
+  });
+
+  it("names the assistants that stopped following a file the others still get", () => {
+    const said = rows(
+      agent([
+        place({ state: "synced" }),
+        place({ state: "off" }, { assistant: "codex", named: "Codex", at: "/c/AGENTS.md" }),
+        place({ state: "noConsent" }, { assistant: "gemini", named: "Gemini", at: "/g/x.md" }),
+      ]),
+    );
+    expect(said.get("Syncs on this computer")).toBe("Yes, except Codex, Gemini (paused)");
   });
 });
 
@@ -170,6 +202,27 @@ describe("an agent document's column", () => {
     await userEvent.click(screen.getByRole("button", { name: "Copy link" }));
     expect(seen).toEqual(["earlier"]);
     expect(linking.files).toEqual(["dev_a-0001"]);
+  });
+
+  it("still shows a share it already has, and never offers a new one", async () => {
+    column(agent([place({ state: "synced" })]));
+    await act(async () => {});
+    expect(document.querySelector("details[data-row=shared]")).toBeNull();
+    linking.card = {
+      read: "https://tisty.cl/a#k",
+      edit: null,
+      version: 1,
+      taken: false,
+      held: false,
+      told: [],
+      owner: null,
+      signer: null,
+      editors: [],
+      signsAs: null,
+      languages: [],
+    };
+    column(agent([place({ state: "synced" })]));
+    await waitFor(() => expect(document.querySelector("details[data-row=shared]")).toBeTruthy());
   });
 
   it("keeps the paper and the outline for any other document", async () => {

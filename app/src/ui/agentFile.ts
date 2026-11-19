@@ -1,5 +1,5 @@
 import type { Act, Panel } from "tisty-editor/read";
-import type { AgentDoc, Place } from "../agentDocs";
+import { type AgentDoc, extensionOf, type Place } from "../agentDocs";
 import { stamped } from "../format";
 import { valuesIn } from "../front";
 import { fill, t } from "../locales";
@@ -8,7 +8,7 @@ type Facts = Extract<Panel, { kind: "facts" }>;
 
 export const formatOf = (doc: AgentDoc, body: string): string => {
   const [address = "", ...flags] = valuesIn(body, "agent") ?? [];
-  const ending = address.match(/\.([a-z0-9]+)$/i)?.[1]?.toUpperCase();
+  const ending = extensionOf(address)?.toUpperCase();
   const kind = doc.code ? (ending ?? t("agentFilePlain")) : "Markdown";
   const ends = flags.includes("crlf")
     ? "CRLF"
@@ -27,7 +27,10 @@ const syncsOf = (doc: AgentDoc): string => {
   const states = doc.places.map((one) => one.said.state);
   if (states.length === 0) return t("agentFileSyncsNowhere");
   if (states.every((one) => one === "noConsent")) return t("agentFileSyncsNotAllowed");
-  if (states.every((one) => one === "off" || one === "noConsent")) return t("agentFileSyncsPaused");
+  const stopped = (one: Place) => one.said.state === "off" || one.said.state === "noConsent";
+  if (doc.places.every(stopped)) return t("agentFileSyncsPaused");
+  const paused = doc.places.filter(stopped).map((one) => one.named);
+  if (paused.length > 0) return fill("agentFileSyncsBut", paused.join(", "));
   return t(doc.kind === "memory" ? "agentFileSyncsReads" : "agentFileSyncsYes");
 };
 
@@ -35,7 +38,7 @@ const latest = (places: readonly Place[]): string | undefined =>
   places
     .map((one) => one.changed)
     .filter((one): one is string => one !== null)
-    .sort((one, two) => two.localeCompare(one))[0];
+    .sort((one, two) => Date.parse(two) - Date.parse(one))[0];
 
 const backupsOf = (places: readonly Place[]): string => {
   const count = places.reduce((sum, one) => sum + one.kept.length, 0);

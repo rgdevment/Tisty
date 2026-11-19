@@ -109,3 +109,13 @@ fn a_document_that_lost_its_card_or_its_file_is_left_out() {
     asked.push("missing.md".to_string());
     assert_eq!(rows(&docs, &asked).len(), 1);
 }
+
+#[test]
+fn only_the_files_asked_for_are_read_and_only_under_agents() {
+    let all = vec!["a".to_string(), "b".to_string(), "c".to_string()];
+    assert_eq!(asked_for(all.clone(), None), all);
+    assert_eq!(
+        asked_for(all, Some(vec!["c".to_string(), "outside".to_string()])),
+        ["c"]
+    );
+}

@@ -7,13 +7,15 @@ import Tree from "../ui/Tree";
 
 const ipc = vi.hoisted(() => ({
   rows: 0,
+  only: [] as (string[] | null)[],
   answer: (): Promise<unknown> => Promise.resolve([]),
 }));
 
 vi.mock("@tauri-apps/api/core", () => ({
-  invoke: (cmd: string) => {
+  invoke: (cmd: string, args?: { only?: string[] | null }) => {
     if (cmd !== "agents_rows") return Promise.resolve(null);
     ipc.rows += 1;
+    ipc.only.push(args?.only ?? null);
     return ipc.answer();
   },
 }));
@@ -60,6 +62,7 @@ const byFile = new Map(ROWS.map((one) => [one.file, one]));
 
 beforeEach(() => {
   ipc.rows = 0;
+  ipc.only = [];
   ipc.answer = () => Promise.resolve(ROWS);
 });
 
@@ -113,11 +116,31 @@ describe("asking for the rows", () => {
     await waitFor(() => expect(result.current.get("d-1")?.label).toBe("Horario laboral"));
     rerender({ papers: { ...PAPERS } });
     expect(ipc.rows).toBe(1);
+    expect(ipc.only[0]).toEqual(["d-1", "d-2", "d-3", "d-4", "d-5"]);
     ipc.answer = () => Promise.reject(new Error("gone"));
     rerender({ papers: { ...PAPERS, docs: [...DOCS, doc("d-7", "x")] } });
     await act(async () => {});
     expect(ipc.rows).toBe(2);
+    expect(ipc.only[1]).toEqual(["d-7"]);
     expect(result.current.get("d-1")?.label).toBe("Horario laboral");
+  });
+
+  it("forgets a document that left AGENTS at once, and one whose card is gone once asked", async () => {
+    const { result, rerender } = renderHook(({ papers }) => useAgentRows(papers), {
+      initialProps: { papers: PAPERS },
+    });
+    await waitFor(() => expect(result.current.size).toBe(5));
+    const moved = DOCS.map((one) => (one.file === "d-1" ? { ...one, folder: null } : one));
+    rerender({ papers: { ...PAPERS, docs: moved } });
+    expect(result.current.has("d-1")).toBe(false);
+    ipc.answer = () => Promise.resolve([]);
+    const rewritten = moved.map((one) =>
+      one.file === "d-4" ? { ...one, wrote: "2026-11-19T11:00:00Z" } : one,
+    );
+    rerender({ papers: { ...PAPERS, docs: rewritten } });
+    await waitFor(() => expect(result.current.has("d-4")).toBe(false));
+    expect(ipc.only[ipc.only.length - 1]).toEqual(["d-4"]);
+    expect(result.current.get("d-2")?.label).toBe("How the body reads");
   });
 
   it("keeps only the answer for the documents now shown", async () => {
@@ -130,6 +153,7 @@ describe("asking for the rows", () => {
     ipc.answer = () => Promise.resolve([row("d-1", "rules/horario.md", "Nuevo")]);
     rerender({ papers: { ...PAPERS, docs: [...DOCS, doc("d-7", "x")] } });
     await waitFor(() => expect(result.current.get("d-1")?.label).toBe("Nuevo"));
+    expect(ipc.only[1]).toContain("d-1");
     await act(async () => first?.(ROWS));
     expect(result.current.get("d-1")?.label).toBe("Nuevo");
   });
@@ -157,7 +181,7 @@ describe("AGENTS in the sidebar", () => {
     render(<Tree papers={PAPERS} onOpen={() => {}} onFile={() => {}} />);
     for (const one of screen.queryAllByRole("button", { name: /^Open / })) fireEvent.click(one);
     fireEvent.click(await screen.findByRole("button", { name: "Open Claude" }));
-    await screen.findAllByRole("button", { name: "Show the files of pr" });
+    await screen.findByRole("button", { name: "pr, 2 files" });
     const skill = skillRow();
     expect(skill.textContent).toContain("2 files");
     expect(skill.getAttribute("aria-expanded")).toBe("false");
@@ -165,7 +189,10 @@ describe("AGENTS in the sidebar", () => {
     fireEvent.click(skill);
     expect(screen.getByRole("button", { name: "references/body.md" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "SKILL.md" })).toBeTruthy();
-    expect(skill.getAttribute("aria-label")).toBe("Hide the files of pr");
+    expect(screen.getByRole("button", { name: "SKILL.md" }).closest("[data-drop]")).toBeNull();
+    expect(screen.getByRole("button", { name: "MEMORY.md" }).closest("[data-drop]")).toBeTruthy();
+    expect(skill.getAttribute("aria-expanded")).toBe("true");
+    expect(screen.getByRole("button", { name: "Hide the files of pr" })).toBeTruthy();
     fireEvent.keyDown(skill, { key: "ArrowLeft" });
     expect(screen.queryByRole("button", { name: "SKILL.md" })).toBeNull();
     fireEvent.keyDown(skill, { key: "ArrowRight" });

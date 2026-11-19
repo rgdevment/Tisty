@@ -570,7 +570,7 @@ export default function Tree({
     return (
       <li key={doc.id} className="relative">
         <div
-          data-drop={page || doc.away ? undefined : doc.id}
+          data-drop={page || inGroup || doc.away ? undefined : doc.id}
           data-drop-kind="doc"
           data-drop-parent={doc.folder ?? ""}
           data-drop-next={nextOf(inside(doc.folder ?? null), doc.id) ?? ""}
@@ -742,7 +742,8 @@ export default function Tree({
             }}
             onClick={() => unfold(group.key)}
             aria-expanded={!closed}
-            aria-label={toggle}
+            aria-controls={`files-${group.key}`}
+            aria-label={`${group.label}, ${fill("agentsSkillFiles", String(group.docs.length))}`}
             className="flex min-w-0 flex-1 items-center gap-1.5 rounded-md py-1 pl-1.5 pr-2 text-left text-[13px] text-soft hover:bg-hover"
           >
             <span className="truncate">{group.label}</span>

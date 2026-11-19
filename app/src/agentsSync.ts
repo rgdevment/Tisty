@@ -78,7 +78,8 @@ export interface AgentRow {
 }
 
 export const agentsLook = (): Promise<AgentsLook> => invoke("agents_look");
-export const agentsRows = (): Promise<AgentRow[]> => invoke("agents_rows");
+export const agentsRows = (only?: string[]): Promise<AgentRow[]> =>
+  invoke("agents_rows", { only: only ?? null });
 export const agentsBring = (chosen: string[]): Promise<Brought> =>
   invoke("agents_bring", { chosen });
 export const agentsKeep = (at: string, tisty: boolean): Promise<Rounded> =>

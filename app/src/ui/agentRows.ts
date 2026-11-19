@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { AgentKind } from "../agentDocs";
-import { type AgentRow, agentsPrint, agentsRows } from "../agentsSync";
+import { type AgentRow, agentsPrint, agentsRows, agentsTree } from "../agentsSync";
 import type { Filed, Papers } from "../core";
 
 export const KIND_GLYPH: Record<AgentKind, string> = {
@@ -58,21 +58,49 @@ export const grouped = (docs: readonly Filed[], rows: ReadonlyMap<string, AgentR
 
 const NONE: ReadonlyMap<string, AgentRow> = new Map();
 
-// Asked again only when a document under AGENTS changes, so a person without AGENTS pays nothing.
+const versionOf = (one: Filed) => `${one.wrote ?? ""}:${one.bytes ?? ""}`;
+
+const underAgents = (papers: Papers): ReadonlyMap<string, string> => {
+  const tree = agentsTree(papers.folders);
+  return new Map(
+    papers.docs
+      .filter((one) => one.folder && tree.has(one.folder))
+      .map((one) => [one.file, versionOf(one)]),
+  );
+};
+
+// Only the documents under AGENTS that changed are read again, so a person without AGENTS pays nothing.
 export function useAgentRows(papers: Papers): ReadonlyMap<string, AgentRow> {
   const print = useMemo(() => agentsPrint(papers.docs, papers.folders), [papers]);
+  const here = useMemo(() => underAgents(papers), [papers]);
+  const hereNow = useRef(here);
+  hereNow.current = here;
+  const asked = useRef(new Map<string, string>());
   const [held, setHeld] = useState<ReadonlyMap<string, AgentRow>>(NONE);
   useEffect(() => {
     if (!print) return;
+    const now = hereNow.current;
+    const changed = [...now].filter(([file, version]) => asked.current.get(file) !== version);
+    if (changed.length === 0) return;
     let gone = false;
-    agentsRows()
-      .then((all) => {
-        if (!gone) setHeld(new Map(all.map((one) => [one.file, one])));
+    agentsRows(changed.map(([file]) => file))
+      .then((answer) => {
+        if (gone) return;
+        for (const [file, version] of changed) asked.current.set(file, version);
+        setHeld((was) => {
+          const next = new Map(was);
+          for (const [file] of changed) next.delete(file);
+          for (const one of answer) next.set(one.file, one);
+          return next;
+        });
       })
       .catch(() => {});
     return () => {
       gone = true;
     };
   }, [print]);
-  return print ? held : NONE;
+  return useMemo(
+    () => (here.size === 0 ? NONE : new Map([...held].filter(([file]) => here.has(file)))),
+    [held, here],
+  );
 }

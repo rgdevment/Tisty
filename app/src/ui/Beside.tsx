@@ -166,7 +166,7 @@ export default function Beside(props: Props) {
   const details = useFacts({ ...props, body, heads }, facts);
   const agent = props.agent ?? null;
   const shared = useSharedRow(
-    brainstormIn(body) || agent ? undefined : props.doc,
+    brainstormIn(body) ? undefined : props.doc,
     props.onError,
     props.onKeep,
   );
@@ -240,6 +240,7 @@ export default function Beside(props: Props) {
         ]),
         ...cited,
         facts,
+        ...(shared.shared && shared.panel ? [shared.panel] : []),
       ];
     return [
       titled,
@@ -283,6 +284,7 @@ export default function Beside(props: Props) {
     props.under,
     agent,
     body,
+    shared.shared,
     trailSaid,
     props.leaf,
     canSheets,
