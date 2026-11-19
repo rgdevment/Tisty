@@ -4,6 +4,7 @@ mod admitting;
 mod answers;
 mod asked;
 mod booking;
+mod clock;
 mod command;
 mod desktop;
 mod diagramming;
@@ -44,6 +45,8 @@ mod vouching;
 mod waking;
 mod weighing;
 mod wiring;
+
+use clock::{today, zone};
 
 use tauri::{Emitter, Manager};
 
@@ -124,18 +127,6 @@ async fn elsewhere<T: Send + 'static>(work: impl FnOnce() -> T + Send + 'static)
             );
             Refusal::of("internal")
         })
-}
-
-fn today() -> jiff::civil::Date {
-    jiff::Zoned::now().date()
-}
-
-fn zone() -> String {
-    jiff::Zoned::now()
-        .time_zone()
-        .iana_name()
-        .unwrap_or("UTC")
-        .to_string()
 }
 
 #[derive(serde::Serialize)]

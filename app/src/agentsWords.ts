@@ -254,6 +254,10 @@ const words = {
     "No assistant reads this document at that path any more",
     "Ningún asistente lee ya este documento en esa ruta",
   ],
+  agentBringSame: [
+    "This document already says what the file says; only the way the file ends differs. Overwrite it with Tisty to make them agree.",
+    "Este documento ya dice lo mismo que el archivo; solo cambia cómo termina el archivo. Sobrescríbelo con Tisty para que coincidan.",
+  ],
 } as const satisfies Record<string, readonly [string, string]>;
 
 type Key = keyof typeof words;

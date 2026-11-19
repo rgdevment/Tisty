@@ -546,6 +546,7 @@ export default function Docs({
   // A file's words are written even when they differ only at their end; a save still waiting goes first, and the card asks again.
   const brought = (text: string) => {
     if (open && held.current?.id === open.file) flush();
+    else if (text === body) onError(t("agentBringSame"));
     else wrote(text, true);
   };
 
@@ -778,7 +779,10 @@ export default function Docs({
   const onNotes = noted && (brainstorm || inEditor !== open?.file);
   const laid = useMemo(() => laidIn(body), [body]);
   const leaf =
-    (open && (bolted ? (sized[open.file] ?? laid.paper) : (laid.paper ?? sized[open.file]))) ||
+    (open &&
+      (bolted || agent.held
+        ? (sized[open.file] ?? laid.paper)
+        : (laid.paper ?? sized[open.file]))) ||
     "a4";
   const sheets = Boolean(open) && laid.sheets;
   const landscape = Boolean(open) && laid.landscape;
