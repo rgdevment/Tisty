@@ -7,7 +7,7 @@ use super::mistaken::NAMES_A_DOCUMENT;
 const NAMES_A_FOLDER: [&str; 2] = ["folder", "inside"];
 
 pub(super) fn left_to_the_person(paths: &Paths, name: &str, args: &Value) -> Result<(), Refused> {
-    if only_reads(name, args) {
+    if super::only_reads(name, &serde_json::json!({ "arguments": args })) {
         return Ok(());
     }
     let state = tisty_core::cache::project(&paths.store(), paths.cache()).map_err(super::hitch)?;
@@ -21,11 +21,6 @@ pub(super) fn left_to_the_person(paths: &Paths, name: &str, args: &Value) -> Res
         return Err(refused(&format!("the folder {}", agents::FOLDER)));
     }
     Ok(())
-}
-
-fn only_reads(name: &str, args: &Value) -> bool {
-    super::ONLY_READS.contains(&name)
-        || name == "edit_table" && args["do"].as_str().is_none_or(|asked| asked == "show")
 }
 
 fn refused(what: &str) -> Refused {
