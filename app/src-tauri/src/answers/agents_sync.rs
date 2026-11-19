@@ -729,7 +729,10 @@ pub fn emptied(session: &mut Session) -> Answer<bool> {
 pub fn agents_look(session: tauri::State<'_, Mutex<Session>>) -> Answer<Look> {
     let homes = homes()?;
     let found = found_here(&homes);
-    let seen = gathered(&held(&session), &here());
+    let mut session = held(&session);
+    // An assistant's proposal arrives in the log alone, so the look reads the log again first.
+    session.reload()?;
+    let seen = gathered(&session, &here());
     Ok(looked(&seen, &homes, &found))
 }
 
@@ -769,6 +772,7 @@ pub fn agents_turn(
 pub fn agents_round(session: tauri::State<'_, Mutex<Session>>) -> Answer<Rounded> {
     let homes = homes()?;
     let mut session = held(&session);
+    session.reload()?;
     untagged(&mut session);
     let mut ledger = Ledger::open(session.paths.data(), &here());
     Ok(round_now(&session, &homes, &mut ledger))

@@ -346,7 +346,9 @@ fn held_by(
 
 fn card(session: &Mutex<Session>, file: &str) -> Answer<Option<AgentDoc>> {
     let machine = tisty_core::machine::here().unwrap_or_default();
-    card_of(&held(session), Homes::here().as_ref(), &machine, file)
+    let mut session = held(session);
+    session.reload()?;
+    card_of(&session, Homes::here().as_ref(), &machine, file)
 }
 
 pub(crate) fn card_of(
