@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import {
   type AgentDoc,
   agentBring,
@@ -22,7 +22,7 @@ interface Props {
   readonly editing: boolean;
   readonly locked: boolean;
   readonly onEdit: (editing: boolean) => void;
-  readonly onBrought: (body: string) => void;
+  readonly onSettle: () => Promise<unknown> | undefined;
   readonly onError: (said: string) => void;
 }
 
@@ -64,7 +64,7 @@ export default function AgentCard({
   editing,
   locked,
   onEdit,
-  onBrought,
+  onSettle,
   onError,
 }: Props) {
   const [shown, setShown] = useState<Shown | null>(null);
@@ -78,17 +78,6 @@ export default function AgentCard({
   const takes = !locked && !editing;
   // A file speaks for the document only when it is that assistant's own: a Global rule is never rewritten from one of them.
   const owned = (place: Place) => takes && doc.level === place.assistant;
-  const showing = useRef<string | null>(file);
-  const writing = useRef(editing);
-  const brought = useRef(onBrought);
-  writing.current = editing;
-  brought.current = onBrought;
-  useEffect(() => {
-    showing.current = file;
-    return () => {
-      showing.current = null;
-    };
-  }, [file]);
 
   const failed = (e: unknown) => onError(saidPlainly(e));
   const done = () => window.dispatchEvent(new Event(AGENTS_CHANGED));
@@ -96,13 +85,11 @@ export default function AgentCard({
     agentHeld(file, place.at, backup)
       .then((text) => setShown({ place, backup, text }))
       .catch(failed);
+  // Words still waiting to be saved land first, so the document the file comes over is the one on the page.
   const bring = (place: Place) =>
-    agentBring(file, place.at)
-      .then((body) => {
-        if (showing.current !== file || writing.current) return;
-        brought.current(body);
-        done();
-      })
+    Promise.resolve(onSettle())
+      .then(() => agentBring(file, place.at))
+      .then(done)
       .catch(failed);
   const overwrite = async (place: Place) => {
     if (!(await sure(fill("agentOverwriteSure", place.at)))) return;

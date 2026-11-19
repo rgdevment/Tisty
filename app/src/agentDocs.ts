@@ -85,8 +85,8 @@ type Asked =
 const agentDo = (file: string, at: string, asked: Asked): Promise<string | null> =>
   invoke("agent_doc", { file, at, asked });
 
-export const agentBring = (file: string, at: string): Promise<string> =>
-  agentDo(file, at, { do: "bring" }).then((body) => body ?? "");
+export const agentBring = (file: string, at: string): Promise<void> =>
+  agentDo(file, at, { do: "bring" }).then(() => undefined);
 export const agentHeld = (file: string, at: string, backup: number | null): Promise<string> =>
   agentDo(file, at, { do: "held", backup }).then((text) => text ?? "");
 export const agentRestore = (file: string, at: string, backup: number): Promise<void> =>

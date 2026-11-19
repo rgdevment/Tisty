@@ -607,7 +607,7 @@ pub fn kept_side(
 }
 
 // The document's former words stay in its history, which is Tisty's side of the backup.
-fn rewritten(session: &mut Session, file: &str, body: &str) -> Answer<()> {
+pub(crate) fn rewritten(session: &mut Session, file: &str, body: &str) -> Answer<()> {
     let docs = session.paths.docs();
     let cannot = |e: tisty_core::Error| Refusal::about("cannotWrite", e.to_string());
     let at = tisty_core::docs::resolve(&docs, file).map_err(cannot)?;

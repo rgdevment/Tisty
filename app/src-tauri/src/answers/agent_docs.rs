@@ -216,7 +216,7 @@ fn card(session: &Mutex<Session>, file: &str) -> Answer<Option<AgentDoc>> {
 #[derive(serde::Deserialize, Debug, Clone, Copy, PartialEq, Eq)]
 #[serde(rename_all = "camelCase", tag = "do")]
 pub enum Asked {
-    /// The document as the file now says it; the window saves it, so the history keeps what it said before.
+    /// The document as the file now says it, written in through the core so its history keeps what it said.
     Bring,
     /// What the file holds now, or one of its backups, as text to look at.
     Held {
@@ -263,9 +263,25 @@ fn text(bytes: &[u8]) -> String {
 
 fn done_at(session: &Mutex<Session>, file: &str, at: &str, asked: Asked) -> Answer<Option<String>> {
     let (data, target, piece) = one_place(&held(session), file, at)?;
-    // A backup written back waits for any sync round, which writes the same files under the lock.
-    let _writing = matches!(asked, Asked::Restore { .. }).then(|| held(session));
-    done(&data, &ledger(&data), &target, piece, asked)
+    // What writes waits for any sync round, which writes the same files under the lock.
+    let mut writing = matches!(asked, Asked::Restore { .. } | Asked::Bring).then(|| held(session));
+    match (
+        done(&data, &ledger(&data), &target, piece, asked)?,
+        writing.as_deref_mut(),
+    ) {
+        (Some(body), Some(session)) if asked == Asked::Bring => kept_in(session, file, &body),
+        (told, _) => Ok(told),
+    }
+}
+
+// Brought words go in through the core's rewrite, so the document's history keeps what it said before.
+fn kept_in(session: &mut Session, file: &str, body: &str) -> Answer<Option<String>> {
+    let was = tisty_core::docs::read(&session.paths.docs(), file)
+        .map_err(|e| Refusal::about("cannotWrite", e.to_string()))?;
+    if tisty_core::docs::unchanged(&was, body) {
+        return Err(Refusal::of("agentBringSame"));
+    }
+    super::agents_sync::rewritten(session, file, body).map(|()| None)
 }
 
 #[cfg(test)]

@@ -516,7 +516,7 @@ export default function Docs({
   }, []);
   const brimming = ceiling > 0 && body.length > ceiling;
 
-  const wrote = (text: string, taken = false) => {
+  const wrote = (text: string) => {
     if (!open || bolted) return;
     typed.current = Date.now();
     // Words typed since move what the mark spoke of, so it cannot be shown again either.
@@ -525,8 +525,7 @@ export default function Docs({
     setCompacted(false);
     setBody(text);
     const last = lastRead.current.get(open.file);
-    const back =
-      !taken && last !== undefined && !last.unwoven && tailless(last.text) === tailless(text);
+    const back = last !== undefined && !last.unwoven && tailless(last.text) === tailless(text);
     if (back) {
       // A chapter moved and moved back inside the beat would otherwise be written in the order it passed through.
       setWaiting(false);
@@ -543,13 +542,6 @@ export default function Docs({
     settling.current = setTimeout(flush, SETTLES);
   };
 
-  // A file's words are written even when they differ only at their end; a save still waiting goes first, and the card asks again.
-  const brought = (text: string) => {
-    if (open && held.current?.id === open.file) flush();
-    else if (text === body) onError(t("agentBringSame"));
-    else wrote(text, true);
-  };
-
   const own = filed(known, open?.file);
   const inDiary = Boolean(own?.diary);
   const called = own?.title ?? open?.title ?? "";
@@ -557,6 +549,8 @@ export default function Docs({
   const shelved = Boolean(own?.away);
   const bolted = Boolean(own?.locked) || shelved;
   const agent = useAgentDoc(open?.file ?? null, body);
+  // An agent's file is kept byte for byte, so the paper it is shown on stays on this computer.
+  const laidHere = bolted || agent.held || agent.doc !== null;
 
   const diaryWritten = (today: Today) => {
     onKept({ id: own?.id ?? "", title: called });
@@ -779,10 +773,7 @@ export default function Docs({
   const onNotes = noted && (brainstorm || inEditor !== open?.file);
   const laid = useMemo(() => laidIn(body), [body]);
   const leaf =
-    (open &&
-      (bolted || agent.held
-        ? (sized[open.file] ?? laid.paper)
-        : (laid.paper ?? sized[open.file]))) ||
+    (open && (laidHere ? (sized[open.file] ?? laid.paper) : (laid.paper ?? sized[open.file]))) ||
     "a4";
   const sheets = Boolean(open) && laid.sheets;
   const landscape = Boolean(open) && laid.landscape;
@@ -964,7 +955,7 @@ export default function Docs({
   };
 
   const reshape = (made: (now: string) => string) => {
-    if (!open || bolted || agent.held) return;
+    if (!open || laidHere) return;
     const now = made(held.current?.id === open.file ? held.current.body : body);
     wrote(now);
     dressAlike(now);
@@ -980,11 +971,10 @@ export default function Docs({
     if (!open) return;
     if (sheets) keptBeside(paper, landscape);
     const { [open.file]: _, ...others } = sized;
-    const kept = bolted || agent.held;
-    const now = kept ? { ...others, [open.file]: paper } : others;
+    const now = laidHere ? { ...others, [open.file]: paper } : others;
     setSized(now);
     window.localStorage.setItem("tisty.paper", JSON.stringify(now));
-    if (kept) return;
+    if (laidHere) return;
     const latest = held.current?.id === open.file ? held.current.body : body;
     const laid = withPaper(latest, paper);
     wrote(laid);
@@ -1139,7 +1129,7 @@ export default function Docs({
                           editing={agent.editing}
                           locked={bolted}
                           onEdit={agent.onEdit}
-                          onBrought={brought}
+                          onSettle={flush}
                           onError={onError}
                         />
                         {placed}
@@ -1436,7 +1426,7 @@ export default function Docs({
           sheets={sheets}
           landscape={landscape}
           onSheets={
-            bolted || agent.held
+            laidHere
               ? undefined
               : (on) => {
                   if (on) keptBeside(leaf, false);
@@ -1444,7 +1434,7 @@ export default function Docs({
                 }
           }
           onLandscape={
-            bolted || agent.held
+            laidHere
               ? undefined
               : (turned) => {
                   if (sheets) keptBeside(leaf, turned);
