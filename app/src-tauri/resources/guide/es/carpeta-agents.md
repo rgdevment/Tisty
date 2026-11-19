@@ -1,6 +1,6 @@
 # AGENTS: las reglas de tus agentes
 
-Esta hoja es una página de la guía. Cuenta la carpeta AGENTS: cómo guardar en Tisty las reglas, las skills y la memoria de tus agentes de IA, cómo llegan a los archivos que lee cada uno, qué hacer cuando un archivo cambia por fuera o en otro equipo, cómo traer un archivo después o quitar el de una regla que sacas, y cómo aprobar lo que tu agente te propone.
+Esta hoja es una página de la guía. Cuenta la carpeta AGENTS: cómo encenderla, apagarla u ocultarla, cómo guardar en Tisty las reglas, las skills y la memoria de tus agentes de IA, cómo llegan a los archivos que lee cada uno, qué hacer cuando un archivo cambia por fuera o en otro equipo, cómo traer un archivo después o quitar el de una regla que sacas, y cómo aprobar lo que tu agente te propone.
 
 Uso más de un agente de IA, y cada uno lee sus reglas de un archivo distinto, en una carpeta distinta: `CLAUDE.md`, `AGENTS.md`, `copilot-instructions.md`, `GEMINI.md`. Cambiar una regla en todos era abrir cuatro archivos, y tarde o temprano uno quedaba atrás. AGENTS junta esos archivos en Tisty, como documentos, y Tisty escribe por debajo el archivo que lee cada agente.
 
@@ -9,7 +9,7 @@ Uso más de un agente de IA, y cada uno lee sus reglas de un archivo distinto, e
 
 ## Qué es y cuándo te sirve
 
-AGENTS es una carpeta de tu Biblioteca, arriba de todo, con el icono de un robot. Cada documento que tiene adentro es un archivo de un agente: una **regla**, una **skill** o su **memoria**. Trabaja con Claude Code, Codex, GitHub Copilot CLI, Gemini CLI y Cursor.
+AGENTS es una carpeta de tu Biblioteca, arriba de todo, con el icono de un robot. Está en tu barra lateral desde el primer día, atenuada y con la palabra **apagada**, hasta que la enciendes en este equipo. Cada documento que tiene adentro es un archivo de un agente: una **regla**, una **skill** o su **memoria**. Trabaja con Claude Code, Codex, GitHub Copilot CLI, Gemini CLI y Cursor.
 
 Te sirve cuando:
 
@@ -22,14 +22,20 @@ No maneja las reglas de cada repositorio: solo los archivos de tu carpeta de usu
 
 ## Empezar
 
-1. Abre **Configuración → Asistentes**. En la tarjeta **AGENTS**, pulsa **Crear la carpeta AGENTS**.
-2. Se abre **Tus agentes, en un solo lugar**, con lo que encontró en las carpetas de tus asistentes: **solo sus nombres y tamaños**. Todavía no abrió ningún archivo.
-3. Abre la fila de un asistente, como **Claude · 7 archivos**, y marca lo que quieres traer. Las reglas y las skills vienen marcadas; la **Memoria del agente**, sin marcar. Los ajustes y las credenciales aparecen atenuados y no entran.
+Mientras está apagada, en la barra ves el robot morado atenuado y, al lado, **apagada**. Apagada quiere decir una de tres cosas: todavía no hay carpeta AGENTS, este equipo nunca la autorizó, o apagaste **Sincronizar la carpeta AGENTS**. Nada de tus agentes se lee mientras tanto.
+
+1. En la barra lateral, haz clic en **AGENTS**. Se abre un aviso corto: una línea que cuenta qué es AGENTS, y lo que Tisty vio en este equipo, como «Encontré Claude y Codex en este equipo.», o «No encontré ningún asistente en este equipo.». Debajo, «Solo miré si existen sus carpetas; no leí nada de adentro.».
+2. Pulsa **Encender**. Se abre **Tus agentes, en un solo lugar**, con lo que encontró en las carpetas de tus asistentes: **solo sus nombres y tamaños**. Todavía no abrió ningún archivo.
+3. Abre la fila de un asistente, como **Claude · 2 reglas · 1 skill · 1 memoria**, y marca lo que quieres traer. Cada regla es una fila, y cada skill también, entera: la fila **pr · Skill · 3 archivos** trae la skill `pr` con todos sus archivos, con una sola casilla. Las reglas y las skills vienen marcadas; la **Memoria del agente**, sin marcar. Los ajustes y las credenciales aparecen atenuados y no entran, y los archivos ocultos, los que empiezan con un punto, ni siquiera aparecen.
 4. Pulsa **Traer y sincronizar**. Tisty abre solo lo que marcaste y te dice cuántos documentos entraron.
+
+El aviso del paso 1 tiene dos botones más. **Ahora no** deja AGENTS apagada en la barra, sin leer nada. **Ocultar** la saca de la barra en este equipo, como cuenta **Apagar u ocultar AGENTS**, más abajo.
+
+La lista trae solo lo que tu asistente lee de verdad. Una skill es una carpeta con su `SKILL.md` en la raíz, como `~/.claude/skills/pr/`, buscada tan abajo como la busca su asistente: justo adentro para Claude, Copilot y Gemini, hasta seis carpetas más abajo para Codex, y en cualquier carpeta de categoría para Cursor. De `~/.claude/rules` entran los `.md`, y de `~/.copilot/instructions`, los `.instructions.md`. Nada que empiece con un punto aparece, como `skills/.system/` de Codex, ni `skills/synced/` de Claude Code, la copia de las skills de tu cuenta de claude.ai, que Claude Code puede sobrescribir o borrar. La fila de cada asistente cuenta reglas, skills y memorias, no archivos: con nada que traer, dice **Claude · nada para traer**.
 
 Si todavía no tienes archivos de agentes, el botón dice **Autorizar y sincronizar**, y pulsarlo crea igual AGENTS con su subcarpeta **Global**, vacía, lista para tu primera regla. Lo que tu agente cree después lo traes con **Traer otro archivo**, como cuenta más abajo.
 
-**Pruébalo:** abre **Configuración → Asistentes** y pulsa **Crear la carpeta AGENTS** para ver qué encuentra en este equipo. Si solo querías mirar, **Ahora no** cierra el aviso sin leer nada. Si ya la creaste, la tarjeta no ofrece el botón: la carpeta está arriba de todo en tu Biblioteca.
+**Pruébalo:** haz clic en **AGENTS**, atenuada en tu barra, para ver qué asistentes encuentra en este equipo. Si solo querías mirar, **Ahora no** la deja como estaba. Si ya la encendiste, se ve con su color, sin **apagada**, y un clic te lleva a tus documentos. Lo mismo está en **Configuración → Asistentes**, en la tarjeta **AGENTS**: mientras está apagada, dice qué asistentes encontró y ofrece **Encender** y **Ocultar**.
 
 Después, en la barra lateral, cada documento se ve con su nombre y un icono: un libro para una regla, una pieza para una skill y un cerebro para la memoria. Pasa el puntero sobre uno y ves de qué archivo es.
 
@@ -187,9 +193,23 @@ Si un día quieres que Tisty no toque los archivos de Claude, por ejemplo mientr
 
 En pausa, Tisty no abre ni escribe esos archivos, y tú sigues editando tus documentos. **Reanudar la sincronización con Claude** escribe lo que cambiaste, salvo un archivo que cambió por fuera mientras tanto, que queda marcado para que decidas. La pausa es solo de este equipo.
 
+## Apagar u ocultar AGENTS
+
+**Apagarla entera.** Botón derecho sobre **AGENTS** y **Apagar AGENTS**. Es el mismo interruptor que **Sincronizar la carpeta AGENTS**, en **Configuración → Asistentes**: tus documentos quedan donde están, Tisty no toca ningún archivo de tus agentes, y AGENTS vuelve a verse atenuada, con **apagada**. Atenuada y todo, si tiene documentos, su flecha la despliega, así que siguen a mano para leerlos. La barra plegada también la muestra atenuada.
+
+Para encenderla otra vez, haz clic en ella y pulsa **Encender**. Como este equipo ya la había autorizado, no vuelve el aviso de la primera vez: solo se enciende la sincronización.
+
+**Sacarla de la barra.** AGENTS se oculta solo apagada: encendida, su botón derecho ofrece **Apagar AGENTS** y no ocultarla. Apágala, haz clic en ella y pulsa **Ocultar**, o usa **Ocultar** en su tarjeta de **Configuración → Asistentes**. Se va de la barra en este equipo sin dejar rastro, y la encuentras en **Configuración → General**, en **Carpetas ocultas**, con **Volver a mostrar**, que la devuelve a la barra atenuada. **Encender**, en la tarjeta, la enciende y también la vuelve a mostrar: encendida, siempre se ve.
+
+Oculta, AGENTS sigue apagada: no escribe ningún archivo de tus agentes, y nada de esos archivos espera tu decisión. Si un agente te propone un cambio mientras está oculta, la propuesta solo se guarda, y la ves cuando vuelves a mostrar AGENTS y la enciendes.
+
+Si en una versión anterior de Tisty la habías ocultado encendida, ahora la encuentras otra vez en la barra, encendida. Desde ahí puedes apagarla y ocultarla.
+
+Nada de lo que llega por MCP enciende o apaga AGENTS, ni la oculta o la muestra: eso lo haces tú, en la ventana de Tisty.
+
 ## Traer otro archivo
 
-La primera vez no tiene que ser la única. Si instalas un asistente nuevo o escribes a mano un archivo de reglas que antes no existía, lo traes después.
+La primera vez no tiene que ser la única. Si instalas un asistente nuevo o escribes a mano un archivo de reglas que antes no existía, lo traes después. La lista es la misma de la primera vez: una skill es una sola fila que entra entera, y lo oculto o lo que mantiene el propio asistente no aparece.
 
 **Un ejemplo.** Escribes en tu editor una regla nueva para Claude Code:
 
@@ -230,7 +250,7 @@ Cuando borras una regla, la mueves fuera de AGENTS o vuelves a una versión sin 
 
 Si lo editaste a mano después de que Tisty lo escribió, el aviso te lo dice antes de que elijas. Nunca pregunta por la memoria de tu agente, ni por un asistente en pausa.
 
-**Vaciar AGENTS.** Si sacas todos sus documentos con Tisty abierto, primero te pregunta por cada archivo, y después la carpeta desaparece. **Crear la carpeta AGENTS**, en **Configuración → Asistentes**, la vuelve a crear, con el aviso de la primera vez y tus reglas y skills ya marcadas.
+**Vaciar AGENTS.** Si sacas todos sus documentos con Tisty abierto, primero te pregunta por cada archivo, y después la carpeta desaparece. En la barra queda AGENTS atenuada, **apagada**, como al principio: un clic en ella y **Encender** la vuelven a crear, con el aviso de la primera vez y tus reglas y skills ya marcadas.
 
 ## Un segundo equipo
 
@@ -238,7 +258,7 @@ Tus documentos de AGENTS viajan con tu sincronización a tus otros equipos, pero
 
 **Un ejemplo.** En el equipo de la casa trajiste tu `CLAUDE.md` y escribiste la regla «Para todos mis agentes». Ahí se aplicaron solas. En el equipo del trabajo:
 
-1. En **Configuración → Asistentes**, pulsa **Autorizar en este equipo** y trae, si quieres, los archivos de este equipo.
+1. En la barra, AGENTS llega atenuada, **apagada**: tus documentos viajaron, pero este equipo todavía no la autorizó. Con su flecha ya puedes leerlos. Haz clic en **AGENTS**, pulsa **Encender** y trae, si quieres, los archivos de este equipo.
 2. La barra dice **2 en espera** junto a AGENTS.
 3. Abre **Para todos mis agentes**. La ficha dice «Este documento viene de otro equipo. ¿Lo aplicas a los agentes de este?».
 4. **Aplicar aquí** lo escribe en los archivos de este equipo, con su respaldo antes. **No en este equipo** lo deja fuera aquí, y **Aplicar aquí** sigue a mano si cambias de idea.

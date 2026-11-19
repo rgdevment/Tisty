@@ -1,10 +1,12 @@
 import { useRef } from "react";
+import { agentsLit, agentsRoot, askToLight } from "../agentsSync";
 import { fold } from "../breadth";
 import type { List, Papers } from "../core";
 import { capped } from "../format";
-import { useHidden } from "../hiding";
+import { AGENTS, agentsHidden, useHidden } from "../hiding";
 import { fill, t } from "../locales";
 import type { Chosen, Named } from "../views";
+import { useAgentsState } from "./AgentsMark";
 import Glyph from "./Glyph";
 import { painted } from "./Hue";
 import { fitting, useRoom } from "./room";
@@ -23,6 +25,16 @@ const NAMED: { key: Named; icon: string }[] = [
 ];
 
 const STEP = 40;
+
+interface Shelved {
+  id: string;
+  name: string;
+  icon?: string | null;
+  color?: string | null;
+  dim: boolean;
+}
+
+const UNBORN: Shelved = { id: AGENTS, name: "AGENTS", icon: "robot", color: "purple", dim: true };
 
 interface Props {
   lists: List[];
@@ -48,9 +60,15 @@ export default function SideRail({
   const shelf = useRef<HTMLDivElement>(null);
   const room = useRoom(shelf, "height");
   const veiled = useHidden();
-  const top = papers.folders.filter(
-    (one) => one.parent === null && !one.away && !veiled.includes(one.id),
-  );
+  const root = agentsRoot(papers.folders)?.id ?? null;
+  const stance = useAgentsState(root);
+  const asleep = stance !== null && !agentsLit(stance);
+  const agentsAway = agentsHidden(veiled, root);
+  const top: Shelved[] = papers.folders
+    .filter((one) => one.parent === null && !one.away && !veiled.includes(one.id))
+    .filter((one) => one.id !== root || !agentsAway)
+    .map((one) => ({ ...one, dim: one.id === root && asleep }));
+  if (!root && !agentsAway) top.push(UNBORN);
   const fits = fitting(top.length, room, STEP);
   const hidden = top.length - fits;
   const plain = !chosen.list && !chosen.tags?.length;
@@ -109,15 +127,15 @@ export default function SideRail({
           <button
             key={folder.id}
             type="button"
-            onClick={() => unfoldTo(folder.id)}
-            aria-label={folder.name}
+            onClick={() => (folder.dim ? askToLight() : unfoldTo(folder.id))}
+            aria-label={folder.dim ? `${folder.name} — ${t("agentsPaused")}` : folder.name}
             title={folder.name}
             className={`grid size-9 shrink-0 place-items-center rounded-[10px] hover:bg-hover ${
               here === folder.id && chosen.named === "docs" ? "bg-active" : ""
             }`}
           >
             <span
-              className={`grid size-6 place-items-center rounded-md bg-current/10 ${painted(folder.color)}`}
+              className={`grid size-6 place-items-center rounded-md bg-current/10 ${painted(folder.color)}${folder.dim ? " opacity-50" : ""}`}
             >
               <Glyph name={folder.icon ?? "folder"} className="h-[13px] w-[13px]" />
             </span>

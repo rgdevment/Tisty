@@ -4,6 +4,7 @@ import type { Choice } from "./ui/Menu";
 
 export const DIARY = "diary";
 export const BRAINSTORM = "brainstorm";
+export const AGENTS = "agents";
 
 // Kept on this machine only: hiding is a way of looking, and another computer may want it shown.
 const kept = stored<{ keys: string[] }>("tisty.hidden", (said) => ({
@@ -18,20 +19,27 @@ export const hide = (key: string) => {
   if (!isHidden(key)) kept.put({ keys: [...kept.current().keys, key] });
 };
 
-export const show = (key: string) =>
-  kept.put({ keys: kept.current().keys.filter((one) => one !== key) });
+export const show = (...keys: string[]) =>
+  kept.put({ keys: kept.current().keys.filter((one) => !keys.includes(one)) });
 
 export const showAll = () => kept.put({ keys: [] });
 
-export const hideChoice = (key: string, off = false): Choice =>
-  isHidden(key)
+// AGENTS stands in the sidebar even without its folder, and a folder made again gets a new id.
+export const agentsKeys = (root?: string | null): string[] => (root ? [AGENTS, root] : [AGENTS]);
+
+export const agentsHidden = (hidden: readonly string[], root?: string | null): boolean =>
+  agentsKeys(root).some((key) => hidden.includes(key));
+
+export const hideChoice = (keys: string | string[], off = false): Choice => {
+  const all = typeof keys === "string" ? [keys] : keys;
+  return all.some(isHidden)
     ? {
         key: "hide",
         icon: "◉",
         label: t("showInSidebar"),
         off,
         apart: true,
-        onPick: () => show(key),
+        onPick: () => show(...all),
       }
     : {
         key: "hide",
@@ -39,5 +47,6 @@ export const hideChoice = (key: string, off = false): Choice =>
         label: t("hideFromSidebar"),
         off,
         apart: true,
-        onPick: () => hide(key),
+        onPick: () => hide(all[0]),
       };
+};

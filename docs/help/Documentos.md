@@ -98,6 +98,42 @@ Lo que guardaste y no volviste a abrir vuelve solo a la vista. Al pulsar **Bibli
 - **Archiva una carpeta entera** con el botón derecho cuando el asunto terminó: baja al estante de **Archivados**, al pie del árbol, con su icono, sus subcarpetas y sus páginas tal como las dejaste. Ahí se lee y se exporta, pero no se escribe ni entra nada nuevo.
 - **Desarchívala** y vuelve igual, incluidos los documentos que habías archivado a mano ahí, que siguen archivados.
 
+### Ocultar una carpeta de la barra
+
+Hay carpetas que no quieres archivar, porque lo que tienen sigue vigente, pero que tampoco necesitas ver cada vez que abres Tisty. Ocultarla la saca de la barra lateral en este equipo, sin tocar nada de lo que tiene.
+
+Te sirve cuando:
+
+- **Usas un equipo para cada cosa.** En el computador del trabajo no necesitas **Casa**, con las vacunas de Rina y el cumpleaños de Lucas, y en el de la casa no necesitas **Trabajo / Clientes**.
+- **La barra creció de más.** Una carpeta que consultas dos veces al año, como **Trámites**, puede salir de la vista sin archivarse.
+- **No usas el Diario o Ideas** y prefieres no verlos arriba de la Biblioteca.
+
+**Ocultarla:**
+
+1. En la barra lateral, botón derecho sobre la carpeta y **Ocultar de la barra**.
+2. La carpeta sale de la barra sin dejar rastro: no queda ninguna fila ni una sección de ocultas.
+
+**Volver a verla:**
+
+1. Abre **Configuración › General** y baja hasta **Carpetas ocultas**: «Las carpetas que ocultaste de la barra en este equipo. Conservan todo lo que tienen, y la búsqueda, la paleta y «Mover a» las siguen encontrando.».
+2. Cada carpeta oculta es una fila con su camino entero, como **Trabajo / Clientes**, y el botón **Volver a mostrar**. Púlsalo y vuelve a la barra, en su lugar.
+
+Si no ocultaste ninguna, la sección dice «No hay carpetas ocultas.».
+
+![La sección Carpetas ocultas de Configuración › General en español: el título Carpetas ocultas, la línea Las carpetas que ocultaste de la barra en este equipo. Conservan todo lo que tienen, y la búsqueda, la paleta y «Mover a» las siguen encontrando., y tres filas, AGENTS, Casa y Trabajo / Clientes, cada una con el botón Volver a mostrar a la derecha](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/agents/es-15-carpetas-ocultas.png)
+
+**Un ejemplo.** En el computador del trabajo, botón derecho sobre **Casa** y **Ocultar de la barra**: **Casa** y todo lo que tiene adentro, como **Casa / Rina**, salen de la barra. Una tarde Marisol te pide el carnet de vacunas de Rina. Lo escribes en el buscador de arriba de la barra y aparece, aunque **Casa** esté oculta, y lo abres desde ahí. En el computador de la casa, **Casa** sigue en la barra como siempre.
+
+Lo que conviene saber:
+
+- **Es de este equipo.** Lo que ocultas no viaja con tu sincronización: en tus otros equipos la carpeta sigue a la vista, y cada equipo oculta lo suyo.
+- **No se borra ni se mueve nada.** La carpeta conserva sus documentos y sus subcarpetas, y la búsqueda, la paleta y **Mover a** la siguen encontrando: puedes mover un documento a una carpeta oculta, y entra igual.
+- **El filtro de la barra la muestra.** Mientras escribes en el filtro de la Biblioteca, las carpetas ocultas aparecen también, para que un resultado nunca quede escondido. Al cerrar el filtro con `Esc`, vuelven a ocultarse.
+- **Una subcarpeta sola.** Puedes ocultar **Trabajo / Clientes** y dejar **Trabajo** a la vista. Su fila en Carpetas ocultas nombra el camino entero, para que sepas cuál es.
+- **El Diario e Ideas también.** Botón derecho sobre **Diario** o sobre **Ideas** y **Ocultar de la barra**. En Carpetas ocultas aparecen con su nombre, y **Volver a mostrar** los devuelve arriba de la Biblioteca.
+- **Una carpeta archivada no se oculta.** En el estante de **Archivados** la opción aparece apagada: ya está fuera de tu camino.
+- **AGENTS se oculta solo apagada.** Encendida, su botón derecho ofrece **Apagar AGENTS** en vez de ocultarla; apagada, su aviso ofrece **Ocultar**. Oculta, AGENTS sigue apagada: no escribe ningún archivo de tus agentes, y una propuesta de tu agente solo se guarda hasta que vuelves a mostrarla y la enciendes. Lo cuenta [Ocultarla de la barra](Carpeta-AGENTS#ocultarla-de-la-barra).
+
 ## Etiquetas
 
 Un documento lleva etiquetas igual que una tarea: escribe `#contrato` en medio de una frase y el documento queda bajo esa etiqueta. La etiqueta vive en la frase, no en una cabecera escondida, así que si llevas el archivo a otro editor, la etiqueta va con él. Una nota traída de otra parte con `tags:` en sus [propiedades](https://markdown.tisty.app/es/propiedades) también queda bajo esas.

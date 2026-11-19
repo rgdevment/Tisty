@@ -52,6 +52,7 @@ interface Props {
   move?: Heading;
   movedAt?: number;
   about?: ReactNode;
+  hidden?: ReactNode;
 }
 
 export default function Keeping({
@@ -66,6 +67,7 @@ export default function Keeping({
   move,
   movedAt,
   about,
+  hidden,
 }: Props) {
   const shared = useSyncSeen();
   const [read, setRead] = useState(false);
@@ -242,6 +244,7 @@ export default function Keeping({
               onChanged={onChanged}
               onGreet={onGreet}
               onDoc={onDoc}
+              hidden={hidden}
             />
           )}
 
