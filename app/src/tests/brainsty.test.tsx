@@ -148,8 +148,9 @@ const guessing: Network = {
     { id: "01B", kind: "task", title: "buy milk", state: "open" },
   ],
   alike: [
-    [1, 4, 420, 0, "buy groceries"],
-    [3, 1, 910, 1, ""],
+    [1, 4, 600, 0, "buy groceries"],
+    [3, 1, 500, 1, ""],
+    [3, 4, 900, 0, "bread"],
   ],
 };
 
@@ -552,7 +553,7 @@ describe("Brainsty's own window", () => {
     expect(used.filter((one) => !allowed.includes(one))).toEqual([]);
   });
 
-  it("lists what Tisty guesses beside a picked node, with why, and the filter takes them away", async () => {
+  it("lists what Tisty guesses beside a picked node, strongest within its method first, with why, and the filter takes them away", async () => {
     ipc.network = () => Promise.resolve(guessing);
     const { user } = await drawnNetwork();
 

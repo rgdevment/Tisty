@@ -80,7 +80,7 @@ describe("Tisty's guesses in the network", () => {
     ]);
   });
 
-  it("lists a node's guesses from the most alike, with the words they share", () => {
+  it("lists a node's guesses from the most alike within each method, with the words they share", () => {
     expect(alikeOf(network, 0, [])).toEqual([
       { node: 2, words: [] },
       { node: 3, words: ["budget"] },
@@ -106,5 +106,13 @@ describe("Tisty's guesses in the network", () => {
         .join(""),
     ).toBe("a, b and c");
     expect(wordsSaid([], "y")).toEqual([]);
+    const joined = (words: string[]) =>
+      wordsSaid(words, "y", "e")
+        .map((one) => one.text)
+        .join("");
+    expect(joined(["presupuesto", "impuestos"])).toBe("presupuesto e impuestos");
+    expect(joined(["casa", "hijos"])).toBe("casa e hijos");
+    expect(joined(["frio", "hielo"])).toBe("frio y hielo");
+    expect(joined(["a", "b"])).toBe("a y b");
   });
 });

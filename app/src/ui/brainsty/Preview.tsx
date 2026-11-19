@@ -142,9 +142,7 @@ function Guesses({
       aria-label={t("brainstyAlike")}
       className="flex shrink-0 flex-col gap-2 border-t border-hair pt-2"
     >
-      <h3 className="text-[11.5px] font-semibold text-[var(--tisty-hue-amber)]">
-        {t("brainstyAlike")}
-      </h3>
+      <h3 className="text-[11.5px] font-semibold text-hue-amber">{t("brainstyAlike")}</h3>
       <ul className="flex flex-col gap-1.5">
         {alike.map((one) => (
           <li key={one.node} className="flex flex-col">
@@ -170,7 +168,7 @@ function Why({ words }: { readonly words: readonly string[] }) {
   return (
     <p className="text-[11.5px] text-faint">
       {before}
-      {wordsSaid(words, t("brainstyAnd")).map((part, n) =>
+      {wordsSaid(words, t("brainstyAnd"), t("brainstyAndBeforeI")).map((part, n) =>
         part.word ? (
           // biome-ignore lint/suspicious/noArrayIndexKey: the parts never move
           <em key={n} className="text-soft">

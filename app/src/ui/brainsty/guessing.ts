@@ -61,22 +61,28 @@ export function curvesShown(curves: readonly Curve[], showing: Showing): Shown[]
 }
 
 export function alikeOf(network: Network, node: number, hidden: readonly boolean[]): Alike[] {
-  return (network.alike ?? [])
-    .filter(([from, to]) => from === node || to === node)
-    .map(([from, to, score, , shared]) => ({
-      node: from === node ? to : from,
-      score,
-      words: shared.split(" ").filter(Boolean),
-    }))
-    .filter((one) => !hidden[one.node])
-    .sort((one, other) => other.score - one.score)
+  const guesses = network.alike ?? [];
+  const curves = curvesOf(guesses);
+  return guesses
+    .flatMap(([from, to, , , shared], n) => {
+      if (from !== node && to !== node) return [];
+      const other = from === node ? to : from;
+      if (hidden[other]) return [];
+      return [
+        { node: other, strength: curves[n].strength, words: shared.split(" ").filter(Boolean) },
+      ];
+    })
+    .sort((one, other) => other.strength - one.strength)
     .map(({ node: other, words }) => ({ node: other, words }));
 }
 
-export function wordsSaid(words: readonly string[], and: string): Part[] {
+const SOUNDS_I = /^h?i(?![aeiouáéíóú])/i;
+
+export function wordsSaid(words: readonly string[], and: string, andBeforeI = and): Part[] {
   return words.flatMap((word, n) => {
     const said = { text: word, word: true };
     if (n === 0) return [said];
-    return [{ text: n === words.length - 1 ? ` ${and} ` : ", ", word: false }, said];
+    if (n < words.length - 1) return [{ text: ", ", word: false }, said];
+    return [{ text: ` ${SOUNDS_I.test(word) ? andBeforeI : and} `, word: false }, said];
   });
 }
