@@ -229,7 +229,7 @@ pub(crate) fn weighed(ledger: &Ledger, placed: &[Placed]) -> (usize, Vec<Both>) 
                 changes += 1;
                 both.push(both_of(&one.target, &now));
             }
-            Standing::Outside { .. } => changes += 1,
+            Standing::Outside { .. } | Standing::Unproven => changes += 1,
             _ => {}
         }
     }
@@ -274,6 +274,7 @@ fn word(standing: &Standing) -> &'static str {
         Standing::NoConsent => "noConsent",
         Standing::Off => "off",
         Standing::Held => "held",
+        Standing::Unproven => "unproven",
         Standing::Empty => "empty",
         Standing::Linked => "linked",
         Standing::Broken { .. } => "broken",

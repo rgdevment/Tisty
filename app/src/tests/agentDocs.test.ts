@@ -28,6 +28,7 @@ const doc = (states: AgentDoc["places"][number]["said"][]): AgentDoc => ({
     at: `/home/a${n}/AGENTS.md`,
     said,
     shared: 1,
+    heldBy: [],
     changed: null,
     kept: [],
   })),

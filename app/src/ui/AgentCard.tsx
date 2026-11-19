@@ -45,6 +45,7 @@ const STATE: Record<Said["state"], { word: Parameters<typeof t>[0]; tone: string
     synced: { word: "agentSynced", tone: "text-hue-green bg-hue-green/10", glyph: "done" },
     pending: { word: "agentPending", tone: "text-soft bg-hover", glyph: "refresh" },
     held: { word: "agentHeldPill", tone: "text-hue-amber bg-hue-amber/10", glyph: "pause" },
+    unproven: { word: "agentUnproven", tone: "text-hue-amber bg-hue-amber/10", glyph: "alert" },
     outside: { word: "agentOutside", tone: "text-hue-amber bg-hue-amber/10", glyph: "alert" },
     both: { word: "agentBoth", tone: "text-hue-red bg-hue-red/10", glyph: "alert" },
     off: { word: "agentPaused", tone: "text-soft bg-hover", glyph: "pause" },
@@ -55,9 +56,15 @@ const STATE: Record<Said["state"], { word: Parameters<typeof t>[0]; tone: string
     unreadable: { word: "agentUnreadable", tone: "text-hue-red bg-hue-red/10", glyph: "alert" },
   };
 
+const SAID_OF: Partial<Record<Said["state"], "agentBothSaid" | "agentUnprovenSaid">> = {
+  both: "agentBothSaid",
+  unproven: "agentUnprovenSaid",
+};
+
 const ORDER: readonly Said["state"][] = [
   "both",
   "outside",
+  "unproven",
   "held",
   "broken",
   "linked",
@@ -182,9 +189,13 @@ export default function AgentCard({
       </div>
       {doc.folderOff && <p className="mt-3 text-[12.5px] text-soft">{t("agentFolderOff")}</p>}
       <HereNote here={doc.here} onTake={take} onAgree={agree} />
-      {doc.places.some((one) => one.said.state === "held") && (
-        <p className="mt-3 text-[12.5px] text-hue-amber">{t("agentHeldSaid")}</p>
-      )}
+      {doc.places
+        .filter((one) => one.said.state === "held")
+        .map((one) => (
+          <p key={one.at} className="mt-3 text-[12.5px] text-hue-amber">
+            {fill("agentHeldSaid", one.heldBy.join(", "))}
+          </p>
+        ))}
       {changed.map((outside) => (
         <div
           key={outside.at}
@@ -193,9 +204,7 @@ export default function AgentCard({
         >
           <Glyph name="alert" className="mt-0.5 h-[15px] w-[15px] shrink-0" />
           <div className="min-w-0">
-            <p className="font-medium">
-              {t(outside.said.state === "both" ? "agentBothSaid" : "agentOutsideSaid")}
-            </p>
+            <p className="font-medium">{t(SAID_OF[outside.said.state] ?? "agentOutsideSaid")}</p>
             <p className="mt-0.5">{fill("agentOutsideWhere", outside.at)}</p>
             <div className="mt-2 flex flex-wrap gap-2">
               {outside.said.state === "outside" && outside.said.mine && owned(outside) && (

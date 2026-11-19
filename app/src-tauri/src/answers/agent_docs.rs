@@ -13,6 +13,7 @@ pub enum Said {
     Synced,
     Pending,
     Held,
+    Unproven,
     Outside { mine: bool, gone: bool },
     Both,
     Off,
@@ -41,6 +42,8 @@ pub struct Place {
     shared: usize,
     changed: Option<String>,
     kept: Vec<Backup>,
+    /// The documents that hold this file back, by title.
+    held_by: Vec<String>,
 }
 
 #[derive(serde::Serialize, Debug)]
@@ -71,6 +74,7 @@ pub(crate) fn said(standing: Standing, piece: usize) -> Said {
         Standing::UpToDate | Standing::Agreed => Said::Synced,
         Standing::Write | Standing::Wrote => Said::Pending,
         Standing::Held => Said::Held,
+        Standing::Unproven => Said::Unproven,
         Standing::Outside { now, piece: traced } => Said::Outside {
             mine: traced == Some(piece),
             gone: now.is_none(),
@@ -102,6 +106,7 @@ pub(crate) fn place(data: &Path, ledger: &Ledger, target: &Target, piece: usize)
         said: said(agents::standing(ledger, target), piece),
         shared: target.pieces.len(),
         changed: changed_at(&target.at),
+        held_by: Vec::new(),
         kept: agents::kept(data, &target.at)
             .into_iter()
             .map(|one| Backup {
@@ -129,6 +134,7 @@ fn ledger(data: &Path) -> Ledger {
 struct Opened {
     card: Card,
     print: String,
+    gate: agents::Gate,
     data: PathBuf,
     ledger: Ledger,
     twin: bool,
@@ -149,7 +155,12 @@ fn here_word(seen: Seen) -> &'static str {
 }
 
 // Only a document in AGENTS is written anywhere; elsewhere its card is a property like any other.
-fn opened(session: &Session, file: &str) -> Answer<Option<Opened>> {
+fn opened(
+    session: &Session,
+    homes: Option<&Homes>,
+    machine: &str,
+    file: &str,
+) -> Answer<Option<Opened>> {
     let bodies = super::agents_sync::bodies(session);
     let Some(card) = bodies
         .iter()
@@ -167,11 +178,11 @@ fn opened(session: &Session, file: &str) -> Answer<Option<Opened>> {
         .map(|(one, _)| one)
         .collect();
     let data = session.paths.data().to_path_buf();
-    let ledger = ledger(&data);
+    let ledger = Ledger::open(&data, machine);
     let gate = super::agents_sync::gated(session, &ledger);
     let here = gate.seen(file).unwrap_or(Seen::Away);
-    let all = match Homes::here() {
-        Some(homes) => targets(&homes, &gate, &ledger),
+    let all = match homes {
+        Some(homes) => targets(homes, &gate, &ledger),
         None => Vec::new(),
     };
     let written = |one: &Placed| one.files.iter().any(|named| twins.contains(&named));
@@ -187,6 +198,7 @@ fn opened(session: &Session, file: &str) -> Answer<Option<Opened>> {
         print,
         data,
         ledger,
+        gate,
         twin: twin && places.is_empty() && here == Seen::Admitted,
         here,
         places,
@@ -194,7 +206,9 @@ fn opened(session: &Session, file: &str) -> Answer<Option<Opened>> {
 }
 
 fn one_place(session: &Session, file: &str, at: &str) -> Answer<(PathBuf, Target, usize)> {
-    let opened = opened(session, file)?.ok_or_else(|| Refusal::of("agentNoCard"))?;
+    let machine = tisty_core::machine::here().unwrap_or_default();
+    let opened = opened(session, Homes::here().as_ref(), &machine, file)?
+        .ok_or_else(|| Refusal::of("agentNoCard"))?;
     let (target, piece) = opened
         .places
         .into_iter()
@@ -283,8 +297,38 @@ pub(crate) fn agree(
     Ok(())
 }
 
+fn held_by(
+    state: &tisty_core::State,
+    gate: &agents::Gate,
+    ledger: &Ledger,
+    target: &Target,
+) -> Vec<String> {
+    ledger
+        .applied_at(&target.at)
+        .filter(|file| gate.held(file))
+        .map(|file| {
+            state
+                .docs
+                .values()
+                .find(|one| one.file == file)
+                .and_then(|one| one.title.clone())
+                .unwrap_or_else(|| file.to_string())
+        })
+        .collect()
+}
+
 fn card(session: &Mutex<Session>, file: &str) -> Answer<Option<AgentDoc>> {
-    let Some(opened) = opened(&held(session), file)? else {
+    let machine = tisty_core::machine::here().unwrap_or_default();
+    card_of(&held(session), Homes::here().as_ref(), &machine, file)
+}
+
+pub(crate) fn card_of(
+    session: &Session,
+    homes: Option<&Homes>,
+    machine: &str,
+    file: &str,
+) -> Answer<Option<AgentDoc>> {
+    let Some(opened) = opened(session, homes, machine, file)? else {
         return Ok(None);
     };
     let ledger = &opened.ledger;
@@ -300,7 +344,10 @@ fn card(session: &Mutex<Session>, file: &str) -> Answer<Option<AgentDoc>> {
         places: opened
             .places
             .iter()
-            .map(|(target, piece)| place(&opened.data, ledger, target, *piece))
+            .map(|(target, piece)| Place {
+                held_by: held_by(&session.state, &opened.gate, ledger, target),
+                ..place(&opened.data, ledger, target, *piece)
+            })
             .collect(),
         level: card.level,
         name: card.name,

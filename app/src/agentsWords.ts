@@ -187,8 +187,13 @@ const words = {
   agentUnreadable: ["Cannot be read", "No se puede leer"],
   agentHeldPill: ["On hold", "En espera"],
   agentHeldSaid: [
-    "Another document in this file changed without your approval, so the file stays as it was until you approve it.",
-    "Otro documento de este archivo cambió sin tu aprobación, así que el archivo queda como estaba hasta que lo apruebes.",
+    "This file stays as it was: {name} changed or left AGENTS without your approval. Approve it, or put it back and take it out yourself.",
+    "Este archivo queda como estaba: {name} cambió o salió de AGENTS sin tu aprobación. Apruébalo, o vuelve a ponerlo y sácalo tú.",
+  ],
+  agentUnproven: ["Written by an earlier Tisty", "Escrito por un Tisty anterior"],
+  agentUnprovenSaid: [
+    "An earlier Tisty wrote this file without noting which documents it came from, so it is left as it is until you choose",
+    "Un Tisty anterior escribió este archivo sin anotar de qué documentos venía, así que queda como está hasta que elijas",
   ],
   agentHereWaiting: [
     "This document comes from another computer. Apply it to the agents on this one?",
@@ -286,6 +291,7 @@ const words = {
   agentsFolderSynced: ["in sync", "al día"],
   agentsFolderChanges: ["{name} changed", "{name} con cambios"],
   agentsFolderWaiting: ["{name} waiting", "{name} en espera"],
+  agentsFolderUnagreed: ["{name} to approve", "{name} por aprobar"],
   agentsPaused: ["off", "apagada"],
   agentNoCard: [
     "This document is not an agent document",

@@ -384,8 +384,29 @@ fn a_file_written_before_the_ledger_knew_its_documents_waits_until_they_say_the_
     std::fs::write(&at, "Mine.\n").unwrap();
     world.ledger.settle(&at, b"Mine.\n");
 
-    assert_eq!(world.round().1, Standing::Held);
+    let (target, told) = world.round();
+    assert_eq!(told, Standing::Unproven);
     assert_eq!(world.on_disk().as_deref(), Some("Mine.\n"));
+
+    overwrite(world.data.path(), &mut world.ledger, &target).unwrap();
+    assert_eq!(world.on_disk().as_deref(), Some("Global and mine.\n"));
+    assert!(!world.ledger.unproven(&at));
+}
+
+#[test]
+fn a_file_whose_documents_change_while_its_bytes_do_not_learns_its_new_documents() {
+    let mut world = world();
+    let (old, _) = world.made(HERE, &rule("Same words.\n"), true);
+    world.round();
+    let (_, new) = world.made(HERE, &rule("Same words.\n"), true);
+    world.apply(HERE, Op::DocArchive { id: old });
+
+    assert_eq!(world.round().1, Standing::UpToDate);
+    let at = world.home.path().join(".claude").join("CLAUDE.md");
+    assert_eq!(
+        world.ledger.applied_at(&at).collect::<Vec<_>>(),
+        [new.as_str()]
+    );
 }
 
 #[test]

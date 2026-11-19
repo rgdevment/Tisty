@@ -656,3 +656,41 @@ fn writing_over_approved_words_keeps_them_approved_and_over_anyone_elses_does_no
         "a comma over an agent's words does not approve them"
     );
 }
+
+#[test]
+fn a_held_file_names_on_the_card_the_document_that_holds_it() {
+    use crate::answers::agent_docs::card_of;
+    let mut room = room();
+    room.bring(&[".claude/CLAUDE.md"]);
+    global_doc(&mut room, "Spanish.");
+    let mut ledger = Ledger::open(room.session.paths.data(), HERE);
+    round_now(&room.session, &room.homes, &mut ledger);
+    let all = bodies(&room.session);
+    let (global, body) = all
+        .iter()
+        .find(|(_, one)| one.contains("global/rule"))
+        .unwrap();
+    let claude = all
+        .iter()
+        .find(|(_, one)| one.contains("claude/rule"))
+        .unwrap();
+    let around = body.replace("Spanish.", "English.");
+    tisty_core::docs::write(&room.session.paths.docs(), global, &around).unwrap();
+
+    let card = card_of(&room.session, Some(&room.homes), HERE, &claude.0).unwrap();
+    let card = serde_json::to_value(card.unwrap()).unwrap();
+    let place = card["places"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|one| one["at"].as_str().unwrap().ends_with("CLAUDE.md"))
+        .unwrap();
+    assert_eq!(place["said"]["state"], "held");
+    assert_eq!(place["heldBy"][0], "global · style.md");
+    assert_eq!(card["here"], "applied");
+    let global_card = card_of(&room.session, Some(&room.homes), HERE, global).unwrap();
+    assert_eq!(
+        serde_json::to_value(global_card.unwrap()).unwrap()["here"],
+        "notAgreed"
+    );
+}

@@ -18,6 +18,7 @@ pub enum Standing {
     NoConsent,
     Off,
     Held,
+    Unproven,
     Empty,
     Linked,
     Broken {
@@ -55,6 +56,12 @@ impl Target {
         self.pieces
             .iter()
             .any(|one| one.card().kind == Kind::Memory)
+    }
+
+    // The documents a file is made of can change while its bytes do not.
+    fn stale_in(&self, ledger: &Ledger) -> bool {
+        let applied: std::collections::BTreeSet<&str> = ledger.applied_at(&self.at).collect();
+        applied != self.files().collect()
     }
 
     fn settled_in(&self, ledger: &mut Ledger, bytes: &[u8]) {
@@ -189,7 +196,7 @@ fn weighed(ledger: &Ledger, target: &Target, wanted: &[u8], now: Option<Vec<u8>>
     }
     let here = printed(wanted);
     if target.unproven && base != Some(here.as_str()) {
-        return Standing::Held;
+        return Standing::Unproven;
     }
     let there = now.as_deref().map(printed);
     if base.is_some() && now.is_none() {
@@ -336,7 +343,7 @@ pub fn round(data: &Path, ledger: &mut Ledger, targets: &[Target]) -> Vec<Standi
                 Err(Refused::Changed) => standing(ledger, target),
                 Err(why) => Standing::Unreadable(why.to_string()),
             },
-            (Standing::UpToDate, _) if target.unproven => {
+            (Standing::UpToDate, _) if target.unproven || target.stale_in(ledger) => {
                 if let Ok(wanted) = wanted(target) {
                     target.settled_in(ledger, &wanted);
                     settled = true;

@@ -7,6 +7,7 @@ export type Said =
   | { state: "synced" }
   | { state: "pending" }
   | { state: "held" }
+  | { state: "unproven" }
   | { state: "outside"; mine: boolean; gone: boolean }
   | { state: "both" }
   | { state: "off" }
@@ -29,6 +30,7 @@ export interface Place {
   readonly shared: number;
   readonly changed: string | null;
   readonly kept: readonly Backup[];
+  readonly heldBy: readonly string[];
 }
 
 export type Here =
@@ -129,4 +131,4 @@ export const glanceWord = (glance: Glance): GlanceWord => {
 };
 
 export const touched = (place: Place): boolean =>
-  place.said.state === "outside" || place.said.state === "both";
+  place.said.state === "outside" || place.said.state === "both" || place.said.state === "unproven";

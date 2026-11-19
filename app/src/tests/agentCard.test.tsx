@@ -49,6 +49,7 @@ const place = (said: Said, more: Partial<Place> = {}): Place => ({
   shared: 1,
   changed: null,
   kept: [],
+  heldBy: [],
   ...more,
 });
 
@@ -343,9 +344,18 @@ describe("an agent document's card", () => {
     expect(screen.queryByRole("button", { name: "Apply here" })).toBeNull();
   });
 
-  it("says a file is on hold when another of its documents changed without approval", () => {
-    shown(card([place({ state: "held" })]));
+  it("says a file is on hold and names the document that holds it", () => {
+    shown(card([place({ state: "held" }, { heldBy: ["claude · tone.md"] })]));
     expect(screen.getByText("On hold")).toBeTruthy();
-    expect(screen.getByText(/stays as it was until you approve it/)).toBeTruthy();
+    expect(screen.getByText(/claude · tone.md changed or left AGENTS/)).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Overwrite with Tisty" })).toBeNull();
+  });
+
+  it("lets the person overwrite a file an earlier Tisty wrote, once they say yes", async () => {
+    shown(card([place({ state: "unproven" })]));
+    expect(screen.getByText("Written by an earlier Tisty")).toBeTruthy();
+    expect(screen.getByRole("alert").textContent).toMatch(/An earlier Tisty wrote this file/);
+    await userEvent.click(screen.getByRole("button", { name: "Overwrite with Tisty" }));
+    await waitFor(() => expect(sent("agents_keep")).toHaveLength(1));
   });
 });

@@ -73,6 +73,10 @@ describe("the AGENTS word in the sidebar", () => {
     expect(screen.getByText("in sync")).toBeTruthy();
     rerender(<AgentsWord glance={glance({ changes: 2 })} />);
     expect(screen.getByText("2 changed")).toBeTruthy();
+    rerender(<AgentsWord glance={glance({ waiting: 3, unagreed: 1 })} />);
+    expect(screen.getByText("3 waiting")).toBeTruthy();
+    rerender(<AgentsWord glance={glance({ unagreed: 1 })} />);
+    expect(screen.getByText("1 to approve")).toBeTruthy();
     rerender(<AgentsWord glance={glance({ allOn: false })} />);
     expect(screen.getByText("off")).toBeTruthy();
   });
