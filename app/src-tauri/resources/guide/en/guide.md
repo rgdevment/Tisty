@@ -462,6 +462,17 @@ Tisty keeps a version when 30 minutes go by without changes or when the one writ
 
 The history belongs to this computer: it is not synced, and a new computer starts without it. It is kept 30 days, or 1, 5 or 15 if you choose so in Settings → Your data, and the last version always stays. So that a text you deleted on purpose is not kept, **Empty the history**, at the foot of the list, deletes it from this computer. More in [documents](https://www.tisty.app/docs/documents/).
 
+### Its link
+
+Every document has a link to reach it from outside: a chat, your browser, a task or your agent. **Copy link** is under **Export**, in the panel beside the document; in its menu in the tree; and under **More**, in the window of its own. The one for «Rina's walks» looks like this: `tisty://doc/personal/rinas-walks?id=k7tq2mzw-0012`.
+
+- Followed, it opens the document read only in a window of its own, even with Tisty closed or the document archived.
+- It still gets there after you rename it or move it to another folder: what counts is the `id` at the end.
+- Inside a task or another document, write it as a link, `[Walks](the link)`, and open it with Ctrl+click.
+- Paste it to your agent and it reads or changes that very document without searching for it.
+
+It opens only on your computers, where your store is; to give it to someone else, share it. More in [documents](https://www.tisty.app/docs/documents/).
+
 ### What comes from elsewhere
 
 Already have notes somewhere else? No need to copy them by hand. What arrives from elsewhere comes in converted into Tisty Markdown, and the file it came from is not touched:
