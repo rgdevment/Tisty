@@ -9,8 +9,6 @@ use crate::{Paths, State, Task};
 
 // A tie travels as its place in this list, so the window reads the numbers in this order.
 pub const TIES: [&str; 5] = ["cite", "mention", "structure", "tag", "uses"];
-// A guess travels with its method as its place in this list.
-pub const GUESSED_BY: [&str; 2] = ["words", "meaning"];
 pub const NODES_AT_MOST: usize = 12_000;
 pub const EDGES_AT_MOST: usize = 40_000;
 
@@ -48,10 +46,10 @@ pub struct Network {
     pub alike: Vec<Guess>,
 }
 
-// Both ends, the score in thousandths, the method and the shared words: Tisty's guess, apart from what anyone wrote.
-pub type Guess = (u32, u32, u16, u8, String);
+// Both ends, the score in thousandths and the shared words: Tisty's guess, apart from what anyone wrote.
+pub type Guess = (u32, u32, u16, String);
 
-type Guessed = (String, String, f64, String, String);
+type Guessed = (String, String, f64, String);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 struct Caps {
@@ -109,15 +107,10 @@ impl Brain {
         }
         let mut guessed: Vec<Guessed> = Vec::new();
         {
-            let mut asked = tx.prepare("SELECT a, b, score, method, shared FROM alike")?;
+            let mut asked =
+                tx.prepare("SELECT a, b, score, shared FROM alike WHERE method = 'words'")?;
             let rows = asked.query_map([], |row| {
-                Ok((
-                    row.get(0)?,
-                    row.get(1)?,
-                    row.get(2)?,
-                    row.get(3)?,
-                    row.get(4)?,
-                ))
+                Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?))
             })?;
             for row in rows {
                 guessed.push(row?);
@@ -345,11 +338,10 @@ fn guesses(nodes: &[Neuron], guessed: &[Guessed]) -> Vec<Guess> {
         .collect();
     guessed
         .iter()
-        .filter_map(|(a, b, score, method, shared)| {
+        .filter_map(|(a, b, score, shared)| {
             let (&from, &to) = (at.get(a.as_str())?, at.get(b.as_str())?);
-            let by = GUESSED_BY.iter().position(|one| one == method)?;
             let thousandths = (score.clamp(0.0, 1.0) * 1000.0).round() as u16;
-            (from != to).then(|| (from, to, thousandths, by as u8, shared.clone()))
+            (from != to).then(|| (from, to, thousandths, shared.clone()))
         })
         .collect()
 }

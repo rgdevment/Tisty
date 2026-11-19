@@ -810,7 +810,8 @@ fn a_card_lists_its_guesses_apart_and_never_names_what_the_reader_may_not_see() 
     world.refreshed(&mut brain, &world.state());
     for (a, b, score, method, shared) in [
         (&budget, &spending, 0.4234, "words", "presupuesto familiar"),
-        (&plans, &budget, 0.912, "meaning", ""),
+        (&plans, &budget, 0.912, "words", "plan"),
+        (&spending, &plans, 0.97, "meaning", ""),
         (&budget, &secret, 0.99, "words", "regalo"),
     ] {
         brain
@@ -834,8 +835,7 @@ fn a_card_lists_its_guesses_apart_and_never_names_what_the_reader_may_not_see() 
                 title: "Plans".into(),
                 state: Some("open".into()),
                 score: 0.91,
-                by: "meaning".into(),
-                shared: Vec::new(),
+                shared: vec!["plan".into()],
             },
             Guessed {
                 id: spending.clone(),
@@ -843,7 +843,6 @@ fn a_card_lists_its_guesses_apart_and_never_names_what_the_reader_may_not_see() 
                 title: "Gastos de diciembre".into(),
                 state: Some("open".into()),
                 score: 0.42,
-                by: "words".into(),
                 shared: vec!["presupuesto".into(), "familiar".into()],
             },
         ]
@@ -858,6 +857,11 @@ fn a_card_lists_its_guesses_apart_and_never_names_what_the_reader_may_not_see() 
         "a document is found by its id as well as its file"
     );
     assert_eq!(brain.card(&secret, today(), seen).unwrap(), None);
+    assert_eq!(
+        card_of(&brain, &spending).guessed.len(),
+        1,
+        "only shared words make a guess"
+    );
 }
 
 #[test]

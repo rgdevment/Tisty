@@ -363,7 +363,8 @@ fn a_guess_comes_apart_from_the_lines_and_only_between_two_nodes_in_sight() {
         &brain,
         &[
             (&budget, &spending, 0.4234, "words", "presupuesto familiar"),
-            (&notes, &spending, 0.91, "meaning", ""),
+            (&notes, &spending, 0.91, "words", "diciembre notas"),
+            (&notes, &budget, 0.95, "meaning", ""),
             (&budget, &secret, 0.8, "words", "regalo"),
             (&budget, "gone", 0.8, "words", "nada"),
             (&budget, &notes, 0.5, "a method not known yet", ""),
@@ -383,13 +384,17 @@ fn a_guess_comes_apart_from_the_lines_and_only_between_two_nodes_in_sight() {
             place(&budget),
             place(&spending),
             423,
-            0,
             "presupuesto familiar".to_string(),
         ),
-        (place(&notes), place(&spending), 910, 1, String::new()),
+        (
+            place(&notes),
+            place(&spending),
+            910,
+            "diciembre notas".to_string(),
+        ),
     ];
     wanted.sort_unstable();
-    assert_eq!(guesses, wanted);
+    assert_eq!(guesses, wanted, "only shared words make a guess");
     assert!(network.edges.is_empty(), "a guess is never a written line");
     assert!(!network.nodes.iter().any(|one| one.id == secret));
 }

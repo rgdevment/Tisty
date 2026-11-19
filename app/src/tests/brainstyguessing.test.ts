@@ -18,21 +18,21 @@ const network: Network = {
   ],
   edges: [],
   alike: [
-    [0, 1, 200, 0, "budget family"],
-    [2, 0, 900, 1, ""],
-    [3, 0, 600, 0, "budget"],
-    [2, 3, 800, 1, ""],
+    [0, 1, 200, "budget family"],
+    [2, 0, 900, ""],
+    [3, 0, 600, "budget"],
+    [2, 3, 800, "plans"],
   ],
 };
 
 const showing = { on: true, picked: null, zoom: 1, hidden: [], inView: () => true };
 
 describe("Tisty's guesses in the network", () => {
-  it("weighs each guess within its own method, so neither method always looks faint", () => {
+  it("weighs each guess between the least and the most alike of the network", () => {
     const curves = curvesOf(network.alike ?? []);
 
-    expect(curves.map((one) => one.strength)).toEqual([0, 1, 1, 0]);
-    expect(curvesOf([[0, 1, 500, 0, "one"]])[0].strength).toBe(1);
+    expect(curves.map((one) => Math.round(one.strength * 7))).toEqual([0, 7, 4, 6]);
+    expect(curvesOf([[0, 1, 500, "one"]])[0].strength).toBe(1);
     expect(curvesOf([])).toEqual([]);
   });
 
@@ -92,7 +92,7 @@ describe("Tisty's guesses in the network", () => {
     ]);
   });
 
-  it("lists a node's guesses from the most alike within each method, with the words they share", () => {
+  it("lists a node's guesses from the most alike, with the words they share", () => {
     expect(alikeOf(network, 0, [])).toEqual([
       { node: 2, words: [] },
       { node: 3, words: ["budget"] },

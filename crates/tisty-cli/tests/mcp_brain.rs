@@ -956,7 +956,14 @@ fn a_card_lists_what_tisty_guesses_apart_and_never_names_a_hidden_task() {
                 "words",
                 "budget family",
             ),
-            (budget.to_string(), twin.to_string(), 0.91, "meaning", ""),
+            (
+                budget.to_string(),
+                twin.to_string(),
+                0.91,
+                "words",
+                "familiar",
+            ),
+            (spending.to_string(), twin.to_string(), 0.97, "meaning", ""),
             (
                 budget.to_string(),
                 hidden.to_string(),
@@ -974,8 +981,8 @@ fn a_card_lists_what_tisty_guesses_apart_and_never_names_a_hidden_task() {
     let guessed = card["guessed"].as_array().unwrap();
     assert_eq!(guessed.len(), 2, "{card}");
     assert_eq!(guessed[0]["id"], json!(twin.to_string()));
-    assert_eq!(guessed[0]["by"], "meaning");
-    assert!(guessed[0].get("shared").is_none(), "{card}");
+    assert_eq!(guessed[0]["shared"], json!(["familiar"]));
+    assert!(guessed[0].get("by").is_none(), "{card}");
     assert_eq!(guessed[1]["title"], "Count December spending");
     assert_eq!(guessed[1]["shared"], json!(["budget", "family"]));
     assert_eq!(guessed[1]["score"], 0.42);
@@ -983,7 +990,9 @@ fn a_card_lists_what_tisty_guesses_apart_and_never_names_a_hidden_task() {
         text.contains("Guessed alike by Tisty, linked by no one"),
         "{text}"
     );
-    assert!(text.contains("(alike in sense)"), "{text}");
+    assert!(text.contains("(shares familiar)"), "{text}");
+    let spent = talk.brain(json!({ "task": spending.to_string() }));
+    assert_eq!(spent["guessed"].as_array().unwrap().len(), 1, "{spent}");
     for told in [
         said.to_string(),
         talk.brain(json!({ "task": twin.to_string() })).to_string(),

@@ -21,11 +21,8 @@ export interface LeftOut {
   edges: number;
 }
 
-// The core sends each guess's method as its place in this list.
-export const GUESSED_BY = ["words", "meaning"] as const;
-
-// Both ends, the score in thousandths, the method and the words both share: Tisty's guess, apart from the lines.
-export type Guess = [number, number, number, number, string];
+// Both ends, the score in thousandths and the words both share: Tisty's guess, apart from the lines.
+export type Guess = [number, number, number, string];
 
 export interface Network {
   nodes: Neuron[];

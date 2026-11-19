@@ -71,15 +71,15 @@ fn a_guess_is_told_apart_with_its_words_or_as_alike_in_sense() {
     said.insert(
         "guessed".into(),
         json!([
-            { "id": "01A", "title": "Gastos de diciembre", "state": "open", "score": 0.42, "by": "words", "shared": ["presupuesto", "familiar"] },
-            { "id": "dev_person-0001", "title": "Budget", "score": 0.91, "by": "meaning" },
+            { "id": "01A", "title": "Gastos de diciembre", "state": "open", "score": 0.42, "shared": ["presupuesto", "familiar"] },
+            { "id": "dev_person-0001", "title": "Budget", "score": 0.91 },
         ]),
     );
 
     assert_eq!(
         guessed_told(&said),
         "
-Guessed alike by Tisty, linked by no one: \"Gastos de diciembre\" [01A] (open) (shares presupuesto, familiar); \"Budget\" [dev_person-0001] (alike in sense)."
+Guessed alike by Tisty, linked by no one: \"Gastos de diciembre\" [01A] (open) (shares presupuesto, familiar); \"Budget\" [dev_person-0001]."
     );
     assert_eq!(neighbours_told(&said), "", "a guess is no neighbour");
     assert_eq!(guessed_told(&Map::new()), "");

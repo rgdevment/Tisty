@@ -33,17 +33,15 @@ export interface Part {
 const FAINTEST = 0.3;
 const BOLDEST = 0.95;
 
-// Shared words and likeness of sense score on scales of their own, so each guess is weighed within its method.
 export function curvesOf(guesses: readonly Guess[]): Curve[] {
-  const span = new Map<number, [number, number]>();
-  for (const [, , score, by] of guesses) {
-    const [low, high] = span.get(by) ?? [score, score];
-    span.set(by, [Math.min(low, score), Math.max(high, score)]);
-  }
-  return guesses.map(([from, to, score, by]) => {
-    const [low, high] = span.get(by) ?? [score, score];
-    return { from, to, strength: high > low ? (score - low) / (high - low) : 1 };
-  });
+  const scores = guesses.map(([, , score]) => score);
+  const low = Math.min(...scores);
+  const high = Math.max(...scores);
+  return guesses.map(([from, to, score]) => ({
+    from,
+    to,
+    strength: high > low ? (score - low) / (high - low) : 1,
+  }));
 }
 
 export const alphaOf = (strength: number): number =>
@@ -65,7 +63,7 @@ export function alikeOf(network: Network, node: number, hidden: readonly boolean
   const guesses = network.alike ?? [];
   const curves = curvesOf(guesses);
   return guesses
-    .flatMap(([from, to, , , shared], n) => {
+    .flatMap(([from, to, , shared], n) => {
       if (from !== node && to !== node) return [];
       const other = from === node ? to : from;
       if (hidden[other]) return [];

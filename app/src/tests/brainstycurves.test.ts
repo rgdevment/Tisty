@@ -45,8 +45,8 @@ const network: Network = {
   ],
   edges: [[0, 2, 0]],
   alike: [
-    [0, 1, 300, 0, "budget"],
-    [1, 2, 900, 0, "family"],
+    [0, 1, 300, "budget"],
+    [1, 2, 900, "family"],
   ],
 };
 

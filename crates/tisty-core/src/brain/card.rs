@@ -26,8 +26,8 @@ const INCOMING: &str = "SELECT e.kind, n.id, n.kind, n.title, n.state, c.said
 const TITLES_AIMED: &str = "SELECT DISTINCT substr(target, 3) FROM edge
     WHERE source = ?1 AND kind = 'mention' AND substr(target, 1, 2) = '[['
     ORDER BY 1";
-const GUESSED: &str = "SELECT b, score, method, shared FROM alike WHERE a = ?1
-    UNION ALL SELECT a, score, method, shared FROM alike WHERE b = ?1
+const GUESSED: &str = "SELECT b, score, shared FROM alike WHERE a = ?1 AND method = 'words'
+    UNION ALL SELECT a, score, shared FROM alike WHERE b = ?1 AND method = 'words'
     ORDER BY 2 DESC, 1";
 pub(super) const CARRYING: &str =
     "SELECT id, kind, title, state FROM node WHERE kind IN ('doc', 'page') AND title = ?1";
@@ -133,7 +133,7 @@ pub struct Near {
     pub state: Option<String>,
 }
 
-// Tisty's guess, apart from what anyone wrote: the words both share, or none when they are alike in sense alone.
+// Tisty's guess from the words both share, apart from what anyone wrote.
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct Guessed {
     pub id: String,
@@ -142,7 +142,6 @@ pub struct Guessed {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub state: Option<String>,
     pub score: f64,
-    pub by: String,
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub shared: Vec<String>,
 }
@@ -437,13 +436,11 @@ impl<F: Fn(&str) -> bool> Reader<'_, F> {
     // Both ends pass the gate, or the guess is not there: a hidden task is never named through it.
     fn guessed(&self, id: &str) -> rusqlite::Result<Vec<Guessed>> {
         let mut asked = self.db.prepare_cached(GUESSED)?;
-        let rows: Vec<(String, f64, String, String)> = asked
-            .query_map([id], |one| {
-                Ok((one.get(0)?, one.get(1)?, one.get(2)?, one.get(3)?))
-            })?
+        let rows: Vec<(String, f64, String)> = asked
+            .query_map([id], |one| Ok((one.get(0)?, one.get(1)?, one.get(2)?)))?
             .collect::<rusqlite::Result<_>>()?;
         let mut all = Vec::new();
-        for (other, score, by, shared) in rows {
+        for (other, score, shared) in rows {
             let Some(near) = self.near(&other)? else {
                 continue;
             };
@@ -453,7 +450,6 @@ impl<F: Fn(&str) -> bool> Reader<'_, F> {
                 title: near.title,
                 state: near.state,
                 score: (score * 100.0).round() / 100.0,
-                by,
                 shared: shared
                     .split(' ')
                     .filter(|one| !one.is_empty())

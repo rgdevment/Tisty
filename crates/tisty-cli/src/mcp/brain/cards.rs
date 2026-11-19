@@ -336,7 +336,7 @@ fn guessed_told(said: &Map<String, Value>) -> String {
                 .map(|all| all.iter().filter_map(Value::as_str).collect())
                 .unwrap_or_default();
             match words.is_empty() {
-                true => format!("{} (alike in sense)", near_told(one)),
+                true => near_told(one),
                 false => format!("{} (shares {})", near_told(one), words.join(", ")),
             }
         })

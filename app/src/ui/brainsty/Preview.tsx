@@ -162,8 +162,7 @@ function Guesses({
 }
 
 function Why({ words }: { readonly words: readonly string[] }) {
-  if (words.length === 0)
-    return <p className="text-[11.5px] text-faint">{t("brainstyAlikeSense")}</p>;
+  if (words.length === 0) return null;
   const [before, after = ""] = t("brainstyAlikeWords").split("{name}");
   return (
     <p className="text-[11.5px] text-faint">
