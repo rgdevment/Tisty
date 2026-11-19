@@ -5,7 +5,7 @@ Uso más de un agente de IA, y cada uno lee sus reglas de un archivo distinto, e
 > [!TIP]
 > **En corto:** la carpeta **AGENTS** guarda como documentos las reglas, las skills y la memoria de Claude Code, Codex, GitHub Copilot CLI, Gemini CLI y Cursor. Lo que escribes en **Global** llega a todos; lo que escribes en la carpeta de un asistente, solo a él. Antes de sobrescribir un archivo, Tisty guarda lo que tenía, y un cambio hecho por fuera nunca se pisa: queda marcado hasta que tú decides.
 
-![La primera vez de AGENTS en español: el aviso Tus agentes, en un solo lugar, con sus tres líneas sobre privacidad, sincronización y respaldo, y debajo la lista Encontré esto. Elige qué traer, con Claude · 7 archivos abierto: CLAUDE.md y dos archivos de rules marcados como Regla, la skill pr/SKILL.md marcada como Skill, una memoria de proyecto sin marcar como Memoria del agente y settings.json atenuado con ajustes, no entra; más abajo Codex · 2 archivos y Gemini · 1 archivo plegados, y los botones Ahora no y Traer y sincronizar](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/agents/es-01-primera-vez.png)
+![La primera vez de AGENTS en español: el aviso Tus agentes, en un solo lugar, con sus tres líneas sobre privacidad, sincronización y respaldo, y debajo la lista Encontré esto. Elige qué traer, con Claude · 7 archivos abierto: CLAUDE.md y dos archivos de rules marcados como Regla, la skill pr/SKILL.md marcada como Skill, una memoria de proyecto sin marcar como Memoria del agente y un .env dentro de una skill atenuado con credenciales, no entra; más abajo Codex · 2 archivos y Gemini · 1 archivo plegados, y los botones Ahora no y Traer y sincronizar](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/agents/es-01-primera-vez.png)
 
 ## Qué es y cuándo te sirve
 
@@ -42,7 +42,7 @@ No te sirve para los archivos de cada repositorio: AGENTS maneja los archivos de
 | :-- | :-- |
 | **Regla**, **Skill**, **Memoria del agente** | Se puede traer. La memoria viene sin marcar |
 | **ya está en AGENTS** | Un documento de AGENTS ya lo representa, así que se compara en vez de traerlo de nuevo |
-| **ajustes, no entra** | Es un archivo de ajustes del asistente, como `settings.json`, `config.toml`, `hooks.json` o `mcp.json` |
+| **ajustes, no entra** | Tiene el nombre de un archivo de ajustes, como `settings.json`, `config.toml`, `hooks.json` o `mcp.json`. Dentro de una skill sí entra |
 | **credenciales, no entra** | Su nombre es el de un archivo de credenciales, como `.credentials.json`, `auth.json`, `.env`, o una llave `.pem`, `.key` o `id_rsa` |
 | **propio de Tisty** | Un archivo que dejó Tisty o uno temporal, como `tisty.json` o uno que termina en `.tmp` |
 | **es un enlace, no entra** | Es un enlace simbólico: Tisty no lo sigue |
@@ -158,7 +158,10 @@ Así queda el `CLAUDE.md` de Claude Code:
 - Ramas con la forma tipo/nombre.
 ```
 
-La ficha de cada uno de esos documentos lo dice: «Claude lo lee en `~/.claude/CLAUDE.md` · junto con otro documento». Cursor no recibe reglas: las suyas viven en sus ajustes, no en un archivo.
+La ficha de cada uno de esos documentos lo dice: «Claude lo lee en `~/.claude/CLAUDE.md`», y debajo, «junto con otro documento». Cursor no recibe reglas: las suyas viven en sus ajustes, no en un archivo.
+
+> [!IMPORTANT]
+> **Deja marcado el archivo principal de cada asistente la primera vez.** Si `~/.codex/AGENTS.md` ya existe y no lo trajiste, Tisty no sabe qué parte es tuya: al escribir una regla de Global, ese archivo queda en **Cambiado en los dos lados**, y desde ahí solo puedes sobrescribirlo, lo que lo reemplaza entero por tus reglas de Global (el original queda como respaldo n.º 1), o decidir después. Traído, Global se escribe delante de lo que ya decía.
 
 ### Una regla solo para Claude
 
@@ -247,7 +250,7 @@ Puedes seguir editando los archivos de tus agentes con tu editor, o dejar que el
 ![La ficha en español de claude · CLAUDE.md con la etiqueta Cambiado por fuera en ámbar y el aviso El archivo cambió por fuera de Tisty, ~/.claude/CLAUDE.md ya no dice lo mismo que este documento, y los botones Traer el cambio, Sobrescribir con Tisty y Ver el archivo](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/agents/es-04-por-fuera.png)
 
 - **Ver el archivo** muestra lo que el archivo tiene ahora.
-- **Traer el cambio** escribe en el documento lo que dice el archivo. Lo que decía antes el documento queda en sus [versiones anteriores](Documentos#versiones-anteriores), firmado por el asistente de ese archivo.
+- **Traer el cambio** escribe en el documento lo que dice el archivo. Lo que decía antes el documento queda en sus [versiones anteriores](Documentos#versiones-anteriores).
 - **Sobrescribir con Tisty** pregunta «¿Escribir este documento sobre `~/.claude/CLAUDE.md`? Lo que tiene ahora el archivo queda en un respaldo.» y, si dices que sí, vuelve a escribir el archivo desde el documento.
 
 Mientras no eliges, Tisty no escribe ese archivo, aunque cambies el documento.
@@ -307,7 +310,7 @@ Tisty nunca vacía ni borra un archivo de un agente.
 
 ## Lo que nunca se lee
 
-- **Los ajustes de tus asistentes**: `settings.json`, `settings.local.json`, `config.toml`, `config.json`, `hooks.json`, `mcp.json`, `mcp-config.json`, `.claude.json` y `keybindings.json`. Solo una skill puede traer su propio `config.json` dentro de su carpeta.
+- **Los ajustes de tus asistentes**: `settings.json`, `settings.local.json`, `config.toml`, `config.json`, `hooks.json`, `mcp.json`, `mcp-config.json`, `.claude.json` y `keybindings.json`. Tisty solo mira donde van las reglas, las skills y la memoria, nunca la carpeta principal de un asistente, y dentro de una skill un archivo con esos nombres sí entra, porque es de la skill.
 - **Las credenciales**, por su nombre y sin abrirlas: `.credentials.json`, `credentials.json`, `auth.json`, `.env` y sus variantes, `.netrc`, y las llaves `.pem`, `.key`, `.p12`, `.pfx`, `id_rsa` o `id_ed25519`.
 - **Un archivo que parece llevar un secreto**, como un token o una llave privada, aunque su nombre sea inocente. La revisión se hace en este equipo y busca formas conocidas, así que puede no reconocerlas todas: deja los secretos fuera de las reglas de tus agentes.
 - **Las conversaciones de Claude Code**: de su carpeta `projects` solo se mira la carpeta `memory` de cada proyecto.
@@ -348,7 +351,7 @@ byte, to the file that assistant reads, on each computer where the person turned
 "claude · CLAUDE.md" (document) [k4r5j4qr-0001]
 ```
 
-`brain` con `folder` y una subcarpeta, como `"AGENTS/Claude"`, lista los documentos de ese asistente. La carpeta AGENTS sola responde con cuántos hay en cada subcarpeta.
+`brain` con `folder` y el nombre o la ruta de una subcarpeta lista los documentos de ese asistente. La carpeta AGENTS sola responde con cuántos hay en cada subcarpeta.
 
 **3. Mira su ficha y lo lee.** `brain` con `doc` da su índice y su ubicación; `read` con `doc`, el texto entero, con la línea `agent:`:
 
@@ -405,6 +408,8 @@ El agente te contesta con el título y la carpeta, «tu documento claude · CLAU
 - **Nada que escribir**, **El archivo es un enlace** o **El bloque de código está roto**: la tabla de [cada estado](#cada-estado) dice qué hacer.
 - **«Ningún asistente de este equipo lee este documento todavía.»**: revisa la línea `agent:`. El nivel debe ser un asistente que esté en este equipo, y el nombre, un archivo que ese asistente lea.
 - **«Otro documento de AGENTS ya escribe este archivo»**: dos documentos tienen la misma línea `agent:`. Deja uno.
+
+**Escribí una regla de Global y un archivo quedó en Cambiado en los dos lados.** Ese archivo ya existía y no lo trajiste, así que Tisty no sabe qué parte es tuya. Para conservar lo que decía, pulsa **Ver el archivo** en la ficha, copia lo tuyo a un documento nuevo dentro de AGENTS con la línea `agent: codex/rule/AGENTS.md` (o la del asistente que sea), y después **Sobrescribir con Tisty**: el archivo queda con Global delante de lo tuyo, y el original, como respaldo n.º 1. Mira [Una regla en Global](#una-regla-en-global).
 
 **Toda la carpeta dejó de escribir.** Revisa que AGENTS siga arriba de todo en la Biblioteca, con ese nombre y su icono de robot, y sin archivar.
 

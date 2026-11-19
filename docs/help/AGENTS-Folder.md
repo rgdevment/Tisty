@@ -5,7 +5,7 @@ I use more than one AI agent, and each one reads its rules from a different file
 > [!TIP]
 > **In short:** the **AGENTS** folder keeps the rules, skills and memory of Claude Code, Codex, GitHub Copilot CLI, Gemini CLI and Cursor as documents. What you write in **Global** reaches all of them; what you write in one assistant's folder reaches only that one. Before writing over a file, Tisty keeps what it held, and a change made outside is never written over: it stays marked until you decide.
 
-![AGENTS the first time, in English: the box Your agents, in one place, with its three lines on privacy, sync and backups, and below it the list This is what I found. Choose what to bring, with Claude · 7 files open: CLAUDE.md and two files in rules ticked as Rule, the skill pr/SKILL.md ticked as Skill, a project memory unticked as Agent memory, and settings.json greyed out with settings, left out; further down Codex · 2 files and Gemini · 1 file folded, and the buttons Not now and Bring and sync](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/agents/en-01-first-run.png)
+![AGENTS the first time, in English: the box Your agents, in one place, with its three lines on privacy, sync and backups, and below it the list This is what I found. Choose what to bring, with Claude · 7 files open: CLAUDE.md and two files in rules ticked as Rule, the skill pr/SKILL.md ticked as Skill, a project memory unticked as Agent memory, and a .env inside a skill greyed out with credentials, left out; further down Codex · 2 files and Gemini · 1 file folded, and the buttons Not now and Bring and sync](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/agents/en-01-first-run.png)
 
 ## What it is and when it helps
 
@@ -42,7 +42,7 @@ It is not for each repository's files: AGENTS handles your user's files, the one
 | :-- | :-- |
 | **Rule**, **Skill**, **Agent memory** | It can come in. Memory comes unticked |
 | **already in AGENTS** | A document in AGENTS already stands for it, so it is compared instead of brought again |
-| **settings, left out** | It is one of the assistant's settings files, such as `settings.json`, `config.toml`, `hooks.json` or `mcp.json` |
+| **settings, left out** | It carries a settings file's name, such as `settings.json`, `config.toml`, `hooks.json` or `mcp.json`. Inside a skill it does come in |
 | **credentials, left out** | Its name is a credentials file's, such as `.credentials.json`, `auth.json`, `.env`, or a `.pem`, `.key` or `id_rsa` key |
 | **Tisty's own** | A file Tisty left or a temporary one, such as `tisty.json` or one ending in `.tmp` |
 | **a link, left out** | It is a symbolic link: Tisty does not follow it |
@@ -158,7 +158,10 @@ This is how Claude Code's `CLAUDE.md` ends up:
 - Branches shaped type/name.
 ```
 
-The card of each of those documents says so: «Claude reads it at `~/.claude/CLAUDE.md` · together with one other document». Cursor gets no rules: its own live in its settings, not in a file.
+The card of each of those documents says so: «Claude reads it at `~/.claude/CLAUDE.md`», and below it, «together with one other document». Cursor gets no rules: its own live in its settings, not in a file.
+
+> [!IMPORTANT]
+> **Leave each assistant's main file ticked the first time.** If `~/.codex/AGENTS.md` already exists and you did not bring it in, Tisty cannot tell which part is yours: once you write a Global rule, that file stands **Changed on both sides**, and from there you can only overwrite it, which replaces the whole file with your Global rules (the original stays as backup #1), or decide later. Brought in, Global is written in front of what it already said.
 
 ### A rule for Claude alone
 
@@ -247,7 +250,7 @@ You can keep editing your agents' files in your editor, or let the agent change 
 ![The card in English of claude · CLAUDE.md with the label Changed outside in amber and the notice The file changed outside Tisty, ~/.claude/CLAUDE.md no longer says what this document says, and the buttons Bring the change in, Overwrite with Tisty and See the file](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/agents/en-04-outside.png)
 
 - **See the file** shows what the file holds now.
-- **Bring the change in** writes into the document what the file says. What the document said before stays in its [earlier versions](Documents#earlier-versions), signed by the assistant of that file.
+- **Bring the change in** writes into the document what the file says. What the document said before stays in its [earlier versions](Documents#earlier-versions).
 - **Overwrite with Tisty** asks «Write this document over `~/.claude/CLAUDE.md`? What the file holds now is kept as a backup.» and, if you say yes, writes the file again from the document.
 
 Until you choose, Tisty does not write that file, even if you change the document.
@@ -307,7 +310,7 @@ Tisty never empties or deletes an agent's file.
 
 ## What is never read
 
-- **Your assistants' settings**: `settings.json`, `settings.local.json`, `config.toml`, `config.json`, `hooks.json`, `mcp.json`, `mcp-config.json`, `.claude.json` and `keybindings.json`. Only a skill may bring its own `config.json` inside its folder.
+- **Your assistants' settings**: `settings.json`, `settings.local.json`, `config.toml`, `config.json`, `hooks.json`, `mcp.json`, `mcp-config.json`, `.claude.json` and `keybindings.json`. Tisty only looks where rules, skills and memory go, never in an assistant's main folder, and inside a skill a file with one of those names does come in, because it belongs to the skill.
 - **Credentials**, by name and without opening them: `.credentials.json`, `credentials.json`, `auth.json`, `.env` and its variants, `.netrc`, and `.pem`, `.key`, `.p12`, `.pfx`, `id_rsa` or `id_ed25519` keys.
 - **A file that looks like it holds a secret**, such as a token or a private key, even under an innocent name. The check runs on this computer and looks for known shapes, so it may not recognise them all: keep secrets out of your agents' rules.
 - **Claude Code's conversations**: of its `projects` folder, only each project's `memory` folder is looked at.
@@ -348,7 +351,7 @@ byte, to the file that assistant reads, on each computer where the person turned
 "claude · CLAUDE.md" (document) [k4r5j4qr-0001]
 ```
 
-`brain` with `folder` and a subfolder, such as `"AGENTS/Claude"`, lists that assistant's documents. The AGENTS folder alone answers with how many sit in each subfolder.
+`brain` with `folder` and a subfolder's name or path lists that assistant's documents. The AGENTS folder alone answers with how many sit in each subfolder.
 
 **3. It looks at its card and reads it.** `brain` with `doc` gives its outline and place; `read` with `doc`, the whole text, `agent:` line included:
 
@@ -405,6 +408,8 @@ The agent answers you with the title and the folder, «your document claude · C
 - **Nothing to write**, **The file is a link** or **The code block is broken**: the table of [each standing](#each-standing) says what to do.
 - **«No assistant on this computer reads this document yet.»**: check the `agent:` line. The level must be an assistant on this computer, and the name a file that assistant reads.
 - **«Another document in AGENTS already writes this file»**: two documents carry the same `agent:` line. Keep one.
+
+**I wrote a Global rule and a file stands Changed on both sides.** That file already existed and you did not bring it in, so Tisty cannot tell which part is yours. To keep what it said, press **See the file** on the card, copy your part into a new document inside AGENTS with the line `agent: codex/rule/AGENTS.md` (or that assistant's), then **Overwrite with Tisty**: the file ends up with Global in front of your part, and the original as backup #1. See [A rule in Global](#a-rule-in-global).
 
 **The whole folder stopped writing.** Check that AGENTS still sits at the top of the Library, with that name and its robot icon, and not archived.
 
