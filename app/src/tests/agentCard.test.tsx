@@ -101,6 +101,16 @@ beforeEach(() => {
   page.body = "";
 });
 
+describe("an agent document's name on its card", () => {
+  it("says its name and keeps its path small under it", () => {
+    shown(card([], { name: "rules/horario.md", label: "Horario laboral" }));
+    expect(screen.getByText("Horario laboral").className).toContain("text-[21px]");
+    const path = screen.getByText("rules/horario.md");
+    expect(path.className).toContain("text-[12px]");
+    expect(path.title).toBe("rules/horario.md");
+  });
+});
+
 describe("an agent document's card", () => {
   it("says what the document is, where it goes and that it is in sync", async () => {
     const changed = vi.fn();
