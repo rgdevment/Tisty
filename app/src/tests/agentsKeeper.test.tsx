@@ -124,6 +124,31 @@ describe("the keeper of AGENTS", () => {
     expect(sent("agents_loose")[0].args).toEqual({ at: loose.at, away: true });
   });
 
+  it("lets AGENTS go once its last document leaves while the window watches, and steps out", async () => {
+    ipc.answer = (cmd) => Promise.resolve(cmd === "agents_empty");
+    desk.papers = { folders: agents, docs: [doc("x", "claude")] };
+    desk.here = "claude";
+    const { rerender } = render(<AgentsKeeper />);
+    expect(sent("agents_empty")).toHaveLength(0);
+    desk.papers = { folders: agents, docs: [] };
+    rerender(<AgentsKeeper />);
+    await waitFor(() => expect(sent("agents_empty")).toHaveLength(1));
+    await waitFor(() => expect(desk.setHere).toHaveBeenCalledWith(null));
+    expect(desk.papersChanged).toHaveBeenCalled();
+  });
+
+  it("keeps an AGENTS made empty the first time, however the folders around it change", async () => {
+    ipc.answer = (cmd) => Promise.resolve(cmd === "agents_empty");
+    desk.papers = { folders: [], docs: [] };
+    const { rerender } = render(<AgentsKeeper />);
+    desk.papers = { folders: [agents[0]], docs: [] };
+    rerender(<AgentsKeeper />);
+    desk.papers = { folders: agents, docs: [doc("x", "elsewhere")] };
+    rerender(<AgentsKeeper />);
+    await new Promise((ready) => setTimeout(ready, 50));
+    expect(sent("agents_empty")).toHaveLength(0);
+  });
+
   it("opens to bring another file when the AGENTS menu or Settings asks", async () => {
     ipc.answer = (cmd) =>
       cmd === "agents_look"

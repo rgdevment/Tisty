@@ -324,9 +324,13 @@ fn answered(room: &mut Room, name: &str, away: bool) -> Rounded {
 }
 
 #[test]
-fn an_agents_left_empty_stays_and_asks_about_each_file_its_documents_left() {
+fn emptying_agents_takes_it_out_of_tisty_and_touches_no_agent_file() {
     let mut room = room();
     room.bring(&[".claude/CLAUDE.md", ".codex/AGENTS.md"]);
+    assert!(
+        !emptied(&mut room.session).unwrap(),
+        "it still holds documents"
+    );
     let ids: Vec<String> = room
         .session
         .state
@@ -337,25 +341,32 @@ fn an_agents_left_empty_stays_and_asks_about_each_file_its_documents_left() {
     for id in ids {
         room.session.drop_doc(&id).unwrap();
     }
-    assert_eq!(room.folders(), ["AGENTS", "Claude", "Codex", "Global"]);
+    assert!(emptied(&mut room.session).unwrap());
+    assert!(room.folders().is_empty(), "{:?}", room.folders());
+    assert_eq!(room.read(".claude/CLAUDE.md"), "# Claude\nTests first.\n");
+    assert_eq!(room.read(".codex/AGENTS.md"), "Codex rules.\n");
+
     let look = room.look();
     assert!(look.asks);
-    assert_eq!(look.changes, 2);
-    assert_eq!(
-        loose(&room),
-        [room.at(".claude/CLAUDE.md"), room.at(".codex/AGENTS.md")]
+    assert!(
+        look.loose.is_empty(),
+        "with AGENTS gone nothing is taken away"
     );
-    assert_eq!(room.read(".claude/CLAUDE.md"), "# Claude\nTests first.\n");
-
-    answered(&mut room, ".claude/CLAUDE.md", false);
-    answered(&mut room, ".codex/AGENTS.md", false);
-    let look = room.look();
-    assert!(look.loose.is_empty() && !look.asks, "{look:?}");
-    assert_eq!(room.read(".codex/AGENTS.md"), "Codex rules.\n");
-    assert_eq!(room.kept(".codex/AGENTS.md"), 0);
-
+    let mut ledger = Ledger::open(room.session.paths.data(), HERE);
+    assert!(
+        round_now(&room.session, &room.homes, &mut ledger)
+            .loose
+            .is_empty()
+    );
+    let claude = look
+        .assistants
+        .iter()
+        .find(|one| one.id == "claude")
+        .unwrap();
+    assert!(claude.files.iter().all(|one| !one.held));
     let brought = room.bring(&[".claude/CLAUDE.md"]);
-    assert_eq!(brought.made, 1, "a file left be can be brought again");
+    assert_eq!(brought.made, 1, "entering again brings back what it finds");
+    assert_eq!(room.read(".claude/CLAUDE.md"), "# Claude\nTests first.\n");
 }
 
 #[test]

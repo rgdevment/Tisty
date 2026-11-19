@@ -101,6 +101,7 @@ export const agentsKeep = (at: string, tisty: boolean): Promise<Rounded> =>
 export const agentsTurn = (assistant: string | null, on: boolean): Promise<Rounded> =>
   invoke("agents_turn", { assistant, on });
 export const agentsRound = (): Promise<Rounded> => invoke("agents_round");
+export const agentsEmpty = (): Promise<boolean> => invoke("agents_empty");
 export const agentsLoose = (at: string, away: boolean): Promise<Rounded> =>
   invoke("agents_loose", { at, away });
 export const agentsLead = (): Promise<Rounded> => invoke("agents_lead");

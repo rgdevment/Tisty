@@ -212,7 +212,7 @@ pub fn looked(seen: &Gathered, homes: &Homes, found: &[Found]) -> Look {
     let held = addresses(&seen.bodies, &seen.gate);
     let placed = places::targets(homes, &seen.gate, ledger);
     let (changes, both) = weighed(ledger, &placed);
-    let loose: Vec<Loose> = loose_in(homes, &seen.gate, ledger, &placed)
+    let loose: Vec<Loose> = loose_in(homes, &seen.gate, ledger, &placed, root.is_some())
         .into_iter()
         .map(|(one, _)| one)
         .collect();
@@ -245,7 +245,11 @@ pub fn looked(seen: &Gathered, homes: &Homes, found: &[Found]) -> Look {
         waiting: waiting_here(seen, homes),
         unagreed: seen.gate.unagreed(),
         proposed: seen.proposed,
-        asks: !ledger.consented() || !both.is_empty() || !loose.is_empty() || !unled.is_empty(),
+        asks: root.is_none()
+            || !ledger.consented()
+            || !both.is_empty()
+            || !loose.is_empty()
+            || !unled.is_empty(),
         consented: ledger.consented(),
         all_on: ledger.syncs(""),
         assistants,
@@ -281,13 +285,15 @@ fn frees(homes: &Homes, gate: &Gate, at: &Path, file: &str) -> Option<bool> {
     }
 }
 
+// With AGENTS gone, its files wait to be brought back the next first time, never to be taken away.
 pub(crate) fn loose_in(
     homes: &Homes,
     gate: &Gate,
     ledger: &Ledger,
     placed: &[Placed],
+    rooted: bool,
 ) -> Vec<(Loose, Target)> {
-    if !ledger.consented() {
+    if !rooted || !ledger.consented() {
         return Vec::new();
     }
     let placing = |at: &Path| {
@@ -563,7 +569,8 @@ fn round_after(
         let _ = ledger.keep(data);
     }
     marked_led(data, ledger, &placed);
-    let loose = loose_in(homes, &gate, ledger, &placed)
+    let rooted = root_of(&session.state).is_some();
+    let loose = loose_in(homes, &gate, ledger, &placed, rooted)
         .into_iter()
         .map(|(one, _)| one)
         .collect();
@@ -899,7 +906,8 @@ pub fn loosened(
     let mut ledger = Ledger::open(data, here);
     let gate = gated(session, &ledger);
     let placed = places::targets(homes, &gate, &ledger);
-    let Some((_, target)) = loose_in(homes, &gate, &ledger, &placed)
+    let rooted = root_of(&session.state).is_some();
+    let Some((_, target)) = loose_in(homes, &gate, &ledger, &placed, rooted)
         .into_iter()
         .find(|(one, _)| one.at == at)
     else {
@@ -927,6 +935,24 @@ fn unlead(data: &Path, ledger: &mut Ledger, gone: &Target) {
         ledger.forget(&lead.at);
         let _ = ledger.keep(data);
     }
+}
+
+pub fn emptied(session: &mut Session) -> Answer<bool> {
+    let Some(root) = root_of(&session.state) else {
+        return Ok(false);
+    };
+    let tree = tree(&session.state, root);
+    if !docs_in(&session.state, &tree).is_empty() {
+        return Ok(false);
+    }
+    // Deepest first: a folder deleted before its children would lift them to the top.
+    let mut gone: Vec<FolderId> = tree.into_iter().collect();
+    gone.sort_by_key(|at| std::cmp::Reverse(session.state.depth(Some(*at))));
+    let ops = gone.into_iter().map(|id| Op::FolderDelete { id }).collect();
+    session
+        .commit_all(ops)
+        .map_err(|e| Refusal::about("cannotWrite", e.to_string()))?;
+    Ok(true)
 }
 
 pub fn led_again(session: &Session, homes: &Homes, here: &str) -> Answer<Rounded> {
@@ -1002,6 +1028,11 @@ pub fn agents_loose(
 ) -> Answer<Rounded> {
     let homes = homes()?;
     loosened(&held(&session), &homes, &here(), &at, away)
+}
+
+#[tauri::command]
+pub fn agents_empty(session: tauri::State<'_, Mutex<Session>>) -> Answer<bool> {
+    emptied(&mut held(&session))
 }
 
 #[tauri::command(async)]

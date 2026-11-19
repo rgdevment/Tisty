@@ -2,10 +2,12 @@ import { listen } from "@tauri-apps/api/event";
 import { useEffect, useRef, useState } from "react";
 import {
   AGENTS_MORE,
+  agentsEmpty,
   agentsLook,
   agentsPrint,
   agentsRoot,
   agentsRound,
+  agentsTree,
   inAgents,
 } from "../agentsSync";
 import { useDesk } from "../desk";
@@ -22,7 +24,7 @@ const SETTLE_MS = 800;
 type Asking = "first" | "more" | null;
 
 export default function AgentsKeeper() {
-  const { papers, here, papersChanged, setError } = useDesk();
+  const { papers, here, setHere, papersChanged, setError } = useDesk();
   const [asking, setAsking] = useState<Asking>(null);
   const entered = useRef<string | null>(null);
 
@@ -59,8 +61,32 @@ export default function AgentsKeeper() {
       .catch(() => undefined);
   }, [inside, papers.folders]);
 
-  // The last document leaving still needs a round, so an AGENTS left empty keeps one going.
   const root = agentsRoot(papers.folders)?.id;
+  const tree = agentsTree(papers.folders);
+  const holds = papers.docs.some((one) => one.folder && tree.has(one.folder));
+  // Only an AGENTS emptied while the window watched goes; one made or found empty stays.
+  const held = useRef<string | null>(null);
+  useEffect(() => {
+    if (!root) {
+      held.current = null;
+      return;
+    }
+    if (holds) {
+      held.current = root;
+      return;
+    }
+    if (held.current !== root) return;
+    held.current = null;
+    agentsEmpty()
+      .then((gone) => {
+        if (!gone) return;
+        if (inside) setHere(null);
+        papersChanged();
+      })
+      .catch(() => undefined);
+  }, [root, holds, inside, setHere, papersChanged]);
+
+  // The last document leaving still needs a round, so an AGENTS left empty keeps one going.
   const print = root ? `${root}:${agentsPrint(papers.docs, papers.folders)}` : "";
   useEffect(() => {
     if (!print) return;
