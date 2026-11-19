@@ -45,6 +45,7 @@ const SUGGESTED: Record<string, Twice[]> = {
     twice("assistants-and-mcp", "asistentes-y-mcp"),
     twice("mcp-permissions", "que-puede-hacer-un-asistente"),
     twice("mcp-tools", "herramientas-mcp"),
+    twice("agents-folder", "carpeta-agents"),
   ],
   "keeping:general": [
     twice("keyboard-shortcuts", "atajos-de-teclado"),

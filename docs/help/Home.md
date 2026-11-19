@@ -65,6 +65,7 @@ Tisty has no AI inside, and none is coming. But it speaks [MCP](https://modelcon
 - [[Assistants and MCP|Assistants-and-MCP]] — connecting one, letting it in, a day with your agent and what it costs.
 - [[What an assistant may do|MCP-Permissions]] — the limits, its word on your own tasks, and **To confirm**.
 - [[MCP tools reference|MCP-Tools]] — every tool the server offers.
+- [[AGENTS: your agents' rules, skills and memory|AGENTS-Folder]] — one folder for the files Claude Code, Codex, Copilot, Gemini and Cursor read, written by Tisty, with backups.
 
 ## Documents
 

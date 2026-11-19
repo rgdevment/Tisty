@@ -84,7 +84,7 @@ Un [widget](Widgets-en-documentos) no ejecuta nada ni nombra nada fuera de sí m
 
 ## Tus asistentes en AGENTS
 
-En la carpeta **AGENTS** guardas como documentos las reglas, las skills y la memoria de tus asistentes (Claude Code, Codex, GitHub Copilot, Gemini CLI y Cursor), y Tisty escribe por debajo los archivos que lee cada uno.
+En la carpeta **AGENTS** guardas como documentos las reglas, las skills y la memoria de tus asistentes (Claude Code, Codex, GitHub Copilot, Gemini CLI y Cursor), y Tisty escribe por debajo los archivos que lee cada uno. Cómo se usa, archivo por archivo y asistente por asistente, está en [[AGENTS|Carpeta-AGENTS]].
 
 **Qué lee y cuándo**
 
