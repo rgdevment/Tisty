@@ -685,14 +685,7 @@ pub(crate) fn open(app: &AppHandle, shown: Shown) {
         .build();
     match made {
         Ok(window) => {
-            // Should the page never say so, the window is not left hidden for good.
-            let late = window.clone();
-            std::thread::spawn(move || {
-                std::thread::sleep(std::time::Duration::from_secs(2));
-                if !late.is_visible().unwrap_or(false) {
-                    fronted(&late);
-                }
-            });
+            shown_late(&window);
             crate::tray::docked(app, true);
             let gone = app.clone();
             let named = label.clone();
@@ -722,6 +715,17 @@ pub(crate) fn open(app: &AppHandle, shown: Shown) {
             );
         }
     }
+}
+
+// Should the page never say so, the window is not left hidden for good.
+pub(crate) fn shown_late(window: &tauri::WebviewWindow) {
+    let late = window.clone();
+    std::thread::spawn(move || {
+        std::thread::sleep(std::time::Duration::from_secs(2));
+        if !late.is_visible().unwrap_or(false) {
+            fronted(&late);
+        }
+    });
 }
 
 // Windows may refuse the focus to a process the person is not using; raised above the rest, the window is seen anyway.

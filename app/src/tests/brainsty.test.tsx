@@ -11,6 +11,7 @@ const ipc = vi.hoisted(() => ({
   network: (): Promise<unknown> => Promise.resolve(null),
   groups: [] as unknown[],
   glance: "",
+  open: (): Promise<unknown> => Promise.resolve(null),
 }));
 
 vi.mock("@tauri-apps/api/core", () => ({
@@ -109,6 +110,8 @@ function answer(cmd: string): Promise<unknown> {
       return ipc.network();
     case "brainsty_groups":
       return Promise.resolve(ipc.groups);
+    case "brainsty_open":
+      return ipc.open();
     case "doc_glance":
       return Promise.resolve({ title: "Notes", heading: null, html: ipc.glance, more: false });
     case "served":
@@ -157,12 +160,15 @@ const drawnNetwork = async (search?: string) => {
   return { user, shown, network };
 };
 
-const allowed = [...kept.matchAll(/^ {4}"(\w+)",$/gm)].map(([, name]) => name);
+const allowed = [
+  ...(kept.match(/const ASKED[^=]*= \[([^\]]*)\]/)?.[1] ?? "").matchAll(/"(\w+)"/g),
+].map(([, name]) => name);
 
 beforeEach(() => {
   ipc.calls = [];
   ipc.network = () => Promise.resolve(small);
   ipc.groups = [PROJECTS];
+  ipc.open = () => Promise.resolve(null);
   ipc.glance = '<h2 id="bread" data-at="3">Bread</h2><p>About bread</p>';
   heard.on.clear();
   shell.shown = 0;
@@ -309,6 +315,35 @@ describe("Brainsty's own window", () => {
       },
     ]);
     expect(shell.closed).toBe(0);
+  });
+
+  it("says why when the main window could not be asked to open it", async () => {
+    const { user } = await drawnNetwork();
+    const refused = ipc.calls.length;
+    ipc.open = () => Promise.reject({ code: "internal" });
+
+    act(() => sigma.hands?.pick(0));
+    await user.click(await screen.findByRole("button", { name: t("brainstyOpen") }));
+
+    expect((await screen.findByRole("alert")).textContent).not.toBe("");
+    expect(ipc.calls.length).toBeGreaterThan(refused);
+    ipc.open = () => Promise.resolve(null);
+    await user.click(screen.getByRole("button", { name: t("brainstyOpen") }));
+    await waitFor(() => expect(screen.queryByRole("alert")).toBeNull());
+  });
+
+  it("keeps its page when a link in a preview is pressed", async () => {
+    ipc.glance = '<p>See <a href="https://example.com/far">the far site</a></p>';
+    const { user } = await drawnNetwork();
+    act(() => sigma.hands?.pick(0));
+    const link = await screen.findByText("the far site");
+    const went = vi.fn((e: Event) => e.defaultPrevented);
+    document.addEventListener("click", went);
+
+    await user.click(link);
+
+    document.removeEventListener("click", went);
+    expect(went).toHaveReturnedWith(true);
   });
 
   it("asks the main window to open a task on a double click", async () => {

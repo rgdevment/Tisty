@@ -6,6 +6,7 @@ import {
   brainstyGroups,
   type Group,
   type Network,
+  type Neuron,
   OPENED,
   openInMain,
   SPOKEN,
@@ -30,7 +31,12 @@ export default function BrainstyWindow() {
   const [, setRespoken] = useState(0);
   const [read, setRead] = useState<Read | null>(null);
   const [Drawn, setDrawn] = useState<LoadedBrainsty | null>(null);
+  const [trouble, setTrouble] = useState<string | null>(null);
   const escaping: Escaping = useRef(null);
+  const open = (one: Neuron) => {
+    setTrouble(null);
+    openInMain(one).catch((e: unknown) => setTrouble(saidPlainly(e)));
+  };
 
   useEffect(
     () =>
@@ -74,6 +80,14 @@ export default function BrainstyWindow() {
     return () => window.removeEventListener("keydown", leave, true);
   }, []);
 
+  useEffect(() => {
+    const stay = (e: MouseEvent) => {
+      if (e.target instanceof Element && e.target.closest("a[href]")) e.preventDefault();
+    };
+    document.addEventListener("click", stay, true);
+    return () => document.removeEventListener("click", stay, true);
+  }, []);
+
   const network = read && "network" in read ? read.network : null;
   return (
     <main
@@ -86,9 +100,14 @@ export default function BrainstyWindow() {
           {t("brainsty")}
         </h1>
         {network && <Counted network={network} />}
+        {trouble && (
+          <p role="alert" className="ml-auto truncate text-[11.5px] text-urgent">
+            {trouble}
+          </p>
+        )}
       </header>
       <div className="relative min-h-0 flex-1">
-        <Inside read={read} Drawn={Drawn} escaping={escaping} />
+        <Inside read={read} Drawn={Drawn} onOpen={open} escaping={escaping} />
       </div>
     </main>
   );
@@ -97,10 +116,12 @@ export default function BrainstyWindow() {
 function Inside({
   read,
   Drawn,
+  onOpen,
   escaping,
 }: {
   readonly read: Read | null;
   readonly Drawn: LoadedBrainsty | null;
+  readonly onOpen: (neuron: Neuron) => void;
   readonly escaping: Escaping;
 }) {
   if (read === null) return <Said text={t("brainstyReading")} />;
@@ -109,14 +130,7 @@ function Inside({
   if (network === null) return <Said text={t("brainstyNotYet")} />;
   if (network.nodes.length === 0) return <Said text={t("brainstyEmpty")} />;
   if (!Drawn) return <Said text={t("brainstyReading")} />;
-  return (
-    <Drawn
-      network={network}
-      groups={groups}
-      onOpen={(one) => void openInMain(one).catch(() => {})}
-      escaping={escaping}
-    />
-  );
+  return <Drawn network={network} groups={groups} onOpen={onOpen} escaping={escaping} />;
 }
 
 function Counted({ network }: { readonly network: Network }) {

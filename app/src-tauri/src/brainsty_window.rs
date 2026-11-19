@@ -40,11 +40,10 @@ where
     H: Fn(Invoke<Wry>) -> bool + Send + Sync + 'static,
 {
     move |invoke: Invoke<Wry>| {
-        let label = invoke.message.webview().label().to_string();
-        let command = invoke.message.command().to_string();
-        if allowed(&label, &command) {
+        if allowed(invoke.message.webview().label(), invoke.message.command()) {
             return handler(invoke);
         }
+        let command = invoke.message.command().to_string();
         witness::warn(
             channel::WINDOW,
             "Brainsty's window asked for a command it does not use",
@@ -139,35 +138,32 @@ pub(crate) fn keep_place(at: &Path, place: Place) {
     }
 }
 
+// In the screen's own pixels: a logical place would be read back through another monitor's scale.
 fn screens(app: &AppHandle) -> Vec<Screen> {
     app.available_monitors()
         .unwrap_or_default()
         .iter()
         .map(|monitor| {
             let area = monitor.work_area();
-            let scale = monitor.scale_factor();
-            let at = area.position.to_logical::<f64>(scale);
-            let size = area.size.to_logical::<f64>(scale);
             Screen {
-                x: at.x,
-                y: at.y,
-                width: size.width,
-                height: size.height,
+                x: f64::from(area.position.x),
+                y: f64::from(area.position.y),
+                width: f64::from(area.size.width),
+                height: f64::from(area.size.height),
             }
         })
         .collect()
 }
 
 fn seen_of(window: &tauri::WebviewWindow) -> Option<Seen> {
-    let scale = window.scale_factor().ok()?;
-    let at = window.outer_position().ok()?.to_logical::<f64>(scale);
-    let size = window.inner_size().ok()?.to_logical::<f64>(scale);
+    let at = window.outer_position().ok()?;
+    let size = window.inner_size().ok()?;
     Some(Seen {
         place: Place {
-            x: at.x,
-            y: at.y,
-            width: size.width,
-            height: size.height,
+            x: f64::from(at.x),
+            y: f64::from(at.y),
+            width: f64::from(size.width),
+            height: f64::from(size.height),
             maximized: false,
         },
         minimized: window.is_minimized().unwrap_or(false),
@@ -196,27 +192,19 @@ fn open(app: &AppHandle, near: Option<&str>) -> tauri::Result<()> {
         .min_inner_size(LEAST_WIDE, LEAST_TALL)
         .theme(theme(app))
         .visible(false);
-    let window = match restored {
-        Some(place) => building
-            .inner_size(place.width, place.height)
-            .position(place.x, place.y),
-        None => building.inner_size(WIDE, TALL).center(),
+    let window = building.inner_size(WIDE, TALL).center().build()?;
+    if let Some(place) = restored {
+        let _ = window.set_size(tauri::PhysicalSize::new(place.width, place.height));
+        let _ = window.set_position(tauri::PhysicalPosition::new(place.x, place.y));
     }
-    .build()?;
-    if restored.is_some_and(|place| place.maximized) {
-        let _ = window.maximize();
-    }
-    let late = window.clone();
-    std::thread::spawn(move || {
-        std::thread::sleep(std::time::Duration::from_secs(2));
-        if !late.is_visible().unwrap_or(false) {
-            crate::viewing::fronted(&late);
-        }
-    });
-    crate::tray::docked(app, true);
     let tracked = Arc::new(Mutex::new(
         seen_of(&window).and_then(|seen| after(restored, seen)),
     ));
+    if restored.is_some_and(|place| place.maximized) {
+        let _ = window.maximize();
+    }
+    crate::viewing::shown_late(&window);
+    crate::tray::docked(app, true);
     let gone = app.clone();
     window.on_window_event(move |event| match event {
         tauri::WindowEvent::Moved(_) | tauri::WindowEvent::Resized(_) => {
@@ -237,19 +225,25 @@ fn open(app: &AppHandle, near: Option<&str>) -> tauri::Result<()> {
     Ok(())
 }
 
-#[tauri::command(async)]
-pub fn brainsty_show(app: AppHandle, near: Option<String>) {
+fn shown_or_opened(app: &AppHandle, near: Option<&str>) {
     if let Some(window) = app.get_webview_window(LABEL) {
         crate::viewing::fronted(&window);
         return;
     }
-    if let Err(why) = open(&app, near.as_deref()) {
+    if let Err(why) = open(app, near) {
         witness::warn(
             channel::WINDOW,
             "Brainsty's window would not open",
             &[("why", Fact::Why(why.to_string()))],
         );
     }
+}
+
+// On the event loop, one press at a time, so two quick ones never build two windows.
+#[tauri::command(async)]
+pub fn brainsty_show(app: AppHandle, near: Option<String>) {
+    let asked = app.clone();
+    let _ = app.run_on_main_thread(move || shown_or_opened(&asked, near.as_deref()));
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
