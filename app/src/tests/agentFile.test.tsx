@@ -31,6 +31,7 @@ const place = (said: Said, more: Partial<Place> = {}): Place => ({
   shared: 1,
   changed: "2026-11-19T10:42:00Z",
   kept: [],
+  heldBy: [],
   ...more,
 });
 
@@ -43,6 +44,8 @@ const agent = (places: Place[], more: Partial<AgentDoc> = {}): AgentDoc => ({
   code: false,
   folderOff: false,
   twin: false,
+  here: "applied",
+  print: "p1",
   places,
   ...more,
 });
