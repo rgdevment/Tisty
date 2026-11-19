@@ -315,6 +315,57 @@ pub fn heeded(
     })
 }
 
+pub fn asked_to_unreach() -> bool {
+    crate::waking::unreaching(&crate::waking::said())
+}
+
+pub fn unreach() -> std::io::Result<bool> {
+    let reached = unreach_system();
+    // Last, since a step above that fails writes the log the sweep removes.
+    if let Ok(paths) = tisty_core::Paths::resolve() {
+        sweep(&paths);
+    }
+    reached
+}
+
+pub(crate) fn unreach_system() -> std::io::Result<bool> {
+    // A sandbox leaves only itself: starting with the system, the PATH and the keys are the real install's.
+    if tisty_core::paths::profile().is_some() {
+        return Ok(false);
+    }
+    let _ = crate::waking::wake(false);
+    crate::booking::forget();
+    let reached = crate::command::out_of_reach();
+    if let Some(home) = crate::command::beside() {
+        for at in tisty_core::Paths::shims()
+            .into_iter()
+            .filter(|at| crate::command::ours_on_the_shelf(at, &home))
+        {
+            let _ = std::fs::remove_file(&at);
+        }
+    }
+    // Revoking would cut every other machine off too, so leaving takes only this machine's copy.
+    #[cfg(windows)]
+    if let Some(sealed) = crate::sealed::home() {
+        let _ = std::fs::remove_dir_all(sealed);
+    }
+    reached
+}
+
+pub(crate) fn sweep(paths: &tisty_core::Paths) -> Vec<std::path::PathBuf> {
+    paths
+        .swept_on_leaving()
+        .into_iter()
+        .filter(|at| {
+            let _ = match at.is_dir() {
+                true => std::fs::remove_dir_all(at),
+                false => std::fs::remove_file(at),
+            };
+            at.exists()
+        })
+        .collect()
+}
+
 #[cfg(test)]
 #[path = "leaving_test.rs"]
 mod tests;
