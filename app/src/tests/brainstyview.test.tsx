@@ -5,7 +5,8 @@ import App from "../App";
 import type { Neuron } from "../brainsty";
 import type { Snapshot, Task } from "../core";
 import { t } from "../locales";
-import { openedHere } from "../ui/BrainstyAsked";
+import { openedHere } from "../ui/BrainstyView";
+import SideBrainsty from "../ui/SideBrainsty";
 
 Object.defineProperty(window, "innerWidth", { configurable: true, value: 1440 });
 
@@ -54,6 +55,39 @@ vi.mock("@tauri-apps/api/window", () => ({
   }),
 }));
 
+const sigma = vi.hoisted(() => ({
+  killed: 0,
+  stopped: 0,
+  hands: null as null | { pick: (node: number) => void; open: (node: number) => void },
+}));
+
+vi.mock("../ui/brainsty/drawing", () => ({
+  drawNetwork: () => ({
+    place: () => {},
+    retheme: () => {},
+    centre: () => {},
+    zoom: () => 0.5,
+    toScreen: (point: [number, number]) => point,
+    nodeOnScreen: () => undefined,
+    onFrame: () => () => {},
+    light: () => {},
+    hide: () => {},
+    beside: () => [],
+    heed: (hands: typeof sigma.hands) => {
+      sigma.hands = hands;
+      return () => {
+        sigma.hands = null;
+      };
+    },
+    focus: () => {},
+    kill: () => sigma.killed++,
+  }),
+}));
+
+vi.mock("../ui/brainsty/layingOut", () => ({
+  layOut: () => () => sigma.stopped++,
+}));
+
 const bread: Task = {
   id: "01A",
   title: "buy bread",
@@ -94,6 +128,11 @@ function answer(cmd: string): Promise<unknown> {
       return Promise.resolve([]);
     case "task_of":
       return ipc.task();
+    case "brain_network":
+      return Promise.resolve({
+        nodes: [{ id: "01A", kind: "task", title: "buy bread", state: "open" }],
+        edges: [],
+      });
     case "help_pages":
       return Promise.resolve([]);
     case "help_reference_here":
@@ -104,7 +143,9 @@ function answer(cmd: string): Promise<unknown> {
   }
 }
 
-const shown = () => ipc.calls.filter((one) => one.cmd === "brainsty_show");
+const asked = () => ipc.calls.filter((one) => one.cmd === "brain_network");
+
+const panel = () => screen.queryByRole("region", { name: t("brainsty") });
 
 const opened = async () => {
   const user = userEvent.setup();
@@ -127,46 +168,103 @@ beforeEach(() => {
   ipc.calls = [];
   ipc.task = () => Promise.resolve(bread);
   heard.on.clear();
+  Object.assign(sigma, { killed: 0, stopped: 0, hands: null });
 });
 
 describe("Brainsty from the main window", () => {
-  it("opens the network in its own window, leaving the main window as it was", async () => {
+  it("opens the network in the content panel, with the sidebar still there", async () => {
     const user = await opened();
 
     await user.click(screen.getByRole("button", { name: t("brainsty") }));
 
-    expect(shown()).toEqual([{ cmd: "brainsty_show", args: { near: null } }]);
-    expect(screen.queryByRole("dialog", { name: t("brainsty") })).toBeNull();
-    expect(screen.getByText("buy bread")).toBeTruthy();
+    expect(panel()).toBeTruthy();
+    expect(await screen.findByText("1 nodes · 0 connections")).toBeTruthy();
+    expect(asked()).toEqual([{ cmd: "brain_network", args: { near: null } }]);
+    expect(screen.getByRole("button", { name: t("brainsty") }).getAttribute("aria-current")).toBe(
+      "page",
+    );
+    expect(screen.queryByText("buy bread")).toBeNull();
   });
 
-  it("opens it near the task open beside the list", async () => {
+  it("opens it near the task open beside the list, and leaves no task open beside it", async () => {
     const user = await opened();
     await user.click(screen.getByText("buy bread"));
     await screen.findByRole("button", { name: t("expand") });
 
     await user.click(screen.getByRole("button", { name: t("brainsty") }));
 
-    expect(shown()[0].args).toEqual({ near: "01A" });
-    expect(screen.getByRole("button", { name: t("expand") })).toBeTruthy();
+    expect(asked()[0].args).toEqual({ near: "01A" });
+    expect(screen.queryByRole("button", { name: t("expand") })).toBeNull();
   });
 
-  it("opens beside the list a task the network asked for", async () => {
-    await opened();
+  it("hands the keys to the network once it is drawn", async () => {
+    const user = await opened();
+    await user.click(screen.getByRole("button", { name: t("brainsty") }));
+    const network = await screen.findByRole("figure", { name: t("brainstyNetwork") });
 
-    await waitFor(() => expect(heard.on.has("brainsty-open")).toBe(true));
-    act(() => heard.on.get("brainsty-open")?.({ payload: neuron("task", "01A", "buy bread") }));
+    await waitFor(() => expect(document.activeElement).toBe(network));
+    await user.keyboard("/");
+
+    expect(document.activeElement).toBe(
+      screen.getByRole("searchbox", { name: t("brainstySearch") }),
+    );
+  });
+
+  it("stays as it is when Brainsty is pressed again", async () => {
+    const user = await opened();
+
+    await user.click(screen.getByRole("button", { name: t("brainsty") }));
+    await screen.findByText("1 nodes · 0 connections");
+    await user.click(screen.getByRole("button", { name: t("brainsty") }));
+
+    expect(asked()).toHaveLength(1);
+  });
+
+  it("goes back to where it was with Escape, and stops everything it ran", async () => {
+    const user = await opened();
+    await user.click(screen.getByRole("button", { name: t("brainsty") }));
+    await waitFor(() => expect(sigma.hands).not.toBeNull());
+
+    await user.keyboard("{Escape}");
+
+    expect(panel()).toBeNull();
+    expect(await screen.findByText("buy bread")).toBeTruthy();
+    expect(sigma.killed).toBe(1);
+    expect(sigma.stopped).toBe(1);
+  });
+
+  it("leaves Escape typed in the sidebar to the sidebar", async () => {
+    const user = await opened();
+    await user.click(screen.getByRole("button", { name: t("brainsty") }));
+    await waitFor(() => expect(sigma.hands).not.toBeNull());
+
+    await user.click(screen.getByLabelText(t("sideSearch")));
+    await user.keyboard("{Escape}");
+
+    expect(panel()).toBeTruthy();
+    expect(sigma.killed).toBe(0);
+  });
+
+  it("opens what the network asks for in the same window", async () => {
+    const user = await opened();
+    await user.click(screen.getByRole("button", { name: t("brainsty") }));
+    await waitFor(() => expect(sigma.hands).not.toBeNull());
+
+    act(() => sigma.hands?.open(0));
 
     expect(await screen.findByRole("button", { name: t("expand") })).toBeTruthy();
+    expect(panel()).toBeNull();
+    await waitFor(() => expect(sigma.killed).toBe(1));
   });
+});
 
-  it("stops hearing the network once the window is gone", async () => {
-    const { unmount } = render(<App />);
-    await screen.findByText("buy bread");
-    await waitFor(() => expect(heard.on.has("brainsty-open")).toBe(true));
+describe("Brainsty on the folded sidebar", () => {
+  it("shows when the network is the view in sight", () => {
+    render(<SideBrainsty rail on onOpen={() => {}} />);
 
-    unmount();
-    await waitFor(() => expect(heard.on.has("brainsty-open")).toBe(false));
+    expect(screen.getByRole("button", { name: t("brainsty") }).getAttribute("aria-current")).toBe(
+      "page",
+    );
   });
 });
 

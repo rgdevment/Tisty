@@ -1,11 +1,16 @@
-import { useEffect, useRef, useState } from "react";
-import type { Neuron } from "../../brainsty";
-import { docGlance, type Glance } from "../../citing";
+import { useEffect, useState } from "react";
+import {
+  brainCard,
+  type Card,
+  type Near,
+  type Neuron,
+  type Tie,
+  taskAddress,
+} from "../../brainsty";
+import { copied, docAddress } from "../../core";
 import { numbered } from "../../format";
 import { fill, t } from "../../locales";
-import { taskCard } from "../../markdown";
-import { picturesWithin } from "../dressing";
-import Page from "../Page";
+import { CARDED, factsOf } from "./cardFacts";
 import { type Alike, wordsSaid } from "./guessing";
 
 export interface Guessed extends Alike {
@@ -15,44 +20,39 @@ export interface Guessed extends Alike {
 interface Props {
   readonly neuron: Neuron;
   readonly ties: number;
+  readonly tied: readonly [Tie, number][];
   readonly zone?: string;
   readonly alike?: readonly Guessed[];
+  readonly nodeOf?: (id: string) => number | undefined;
   readonly onOpen: () => void;
   readonly onClose: () => void;
   readonly onPick?: (node: number) => void;
 }
 
-// Its ids and places name another document, and the page beneath finds things by both.
-const unmarked = (html: string): string => {
-  const held = document.createElement("template");
-  held.innerHTML = html;
-  for (const one of held.content.querySelectorAll("[id], [data-at]")) {
-    one.removeAttribute("id");
-    one.removeAttribute("data-at");
-  }
-  return held.innerHTML;
-};
+const POINTING_SHOWN = 6;
 
-const TASKS = { tasks: true };
+const named = (one: { kind: string; title: string }): string =>
+  one.kind === "tag" ? `#${one.title}` : one.title;
 
 export default function Preview({
   neuron,
   ties,
+  tied,
   zone,
   alike = [],
+  nodeOf,
   onOpen,
   onClose,
   onPick,
 }: Props) {
-  const [glance, setGlance] = useState<Glance | null>(null);
-  const words = useRef<HTMLDivElement>(null);
+  const [card, setCard] = useState<Card | null>(null);
 
   useEffect(() => {
     let live = true;
-    setGlance(null);
-    if (neuron.kind === "doc" || neuron.kind === "page") {
-      docGlance(neuron.id).then(
-        (said) => live && setGlance({ ...said, html: unmarked(said.html) }),
+    setCard(null);
+    if (CARDED.has(neuron.kind)) {
+      brainCard(neuron.id).then(
+        (said) => live && setCard(said),
         () => undefined,
       );
     }
@@ -61,62 +61,79 @@ export default function Preview({
     };
   }, [neuron.id, neuron.kind]);
 
-  useEffect(() => {
-    if (!glance || !words.current) return;
-    let live = true;
-    picturesWithin(words.current, () => live);
-    return () => {
-      live = false;
-    };
-  }, [glance]);
-
+  const facts = card ? factsOf(neuron, card) : [];
+  const pointing = [...(card?.cited_by ?? []), ...(card?.mentioned_by ?? [])];
   return (
     <aside
       aria-label={neuron.title}
-      className="absolute top-3 right-3 z-10 flex max-h-[calc(100%-24px)] w-80 flex-col gap-2 overflow-hidden rounded-[10px] border border-hair bg-sheet p-4 shadow-lift"
+      className="absolute top-3 right-3 z-10 flex max-h-[calc(100%-24px)] w-80 flex-col gap-3 overflow-hidden rounded-[10px] border border-hair bg-sheet p-4 shadow-lift"
     >
-      <div className="flex items-start gap-2">
-        <h2 className="min-w-0 flex-1 text-[13px] leading-snug font-semibold break-words text-ink">
-          {neuron.kind === "tag" ? `#${neuron.title}` : neuron.title}
-        </h2>
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label={t("brainstyClosePreview")}
-          title={t("brainstyClosePreview")}
-          className="grid size-6 shrink-0 place-items-center rounded-md text-faint hover:bg-hover hover:text-ink"
-        >
-          ✕
-        </button>
-      </div>
-      <p className="text-[11.5px] text-faint">
-        {[t(`brainstyOne_${neuron.kind}`), zone, fill("brainstyTies", numbered(ties))]
-          .filter(Boolean)
-          .join(" · ")}
-      </p>
-      {neuron.kind === "task" && (
-        <div className="scroller max-h-56 shrink-0">
-          <Page
-            body={`${taskCard(neuron.id, neuron.title)}\n`}
-            label={neuron.title}
-            tall
-            untitled
-            cardsShown={TASKS}
-            onDoc={() => undefined}
-            onTask={onOpen}
-            onShown={(page) => page?.document.documentElement.classList.add("glanced")}
-          />
+      <div className="flex flex-col gap-1">
+        <div className="flex items-start gap-2">
+          <h2 className="min-w-0 flex-1 text-[13px] leading-snug font-semibold break-words text-ink">
+            {named(neuron)}
+          </h2>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label={t("brainstyClosePreview")}
+            title={t("brainstyClosePreview")}
+            className="grid size-6 shrink-0 place-items-center rounded-md text-faint hover:bg-hover hover:text-ink"
+          >
+            ✕
+          </button>
         </div>
-      )}
-      {glance && (
-        <div
-          ref={words}
-          className="scroller min-h-0 flex-1 text-[12.5px] leading-relaxed text-soft [&_img]:h-auto [&_img]:max-w-full [&_img]:rounded-md [&_.media-again]:ml-2 [&_.media-again]:text-accent [&_.media-again]:hover:underline [&_.picture-away]:block [&_.picture-away]:text-faint"
-          // biome-ignore lint/security/noDangerouslySetInnerHtml: the core's translator drew it, as every page
-          dangerouslySetInnerHTML={{ __html: glance.html }}
-        />
-      )}
-      {alike.length > 0 && <Guesses alike={alike} onPick={onPick} />}
+        <p className="text-[11.5px] text-faint">
+          {[t(`brainstyOne_${neuron.kind}`), zone, fill("brainstyTies", numbered(ties))]
+            .filter(Boolean)
+            .join(" · ")}
+        </p>
+      </div>
+      <div className="scroller flex min-h-0 flex-col gap-3">
+        {facts.length > 0 && (
+          <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-[12px]">
+            {facts.map(([label, value]) => (
+              <div key={label} className="contents">
+                <dt className="text-faint">{label}</dt>
+                <dd className="m-0 text-ink tabular-nums">{value}</dd>
+              </div>
+            ))}
+          </dl>
+        )}
+        {card?.tags && card.tags.length > 0 && (
+          <Part title={t("brainstyFactTags")}>
+            <p className="flex flex-wrap gap-1">
+              {card.tags.map((tag) => (
+                <span
+                  key={tag}
+                  className="rounded-full bg-hover px-2 py-0.5 text-[11.5px] text-soft"
+                >
+                  #{tag}
+                </span>
+              ))}
+            </p>
+          </Part>
+        )}
+        {tied.length > 0 && (
+          <Part title={t("brainstyTiesTitle")}>
+            <p className="flex flex-wrap gap-x-3 gap-y-1 text-[12px] text-soft">
+              {tied.map(([tie, many]) => (
+                <span key={tie}>
+                  <span className="text-ink tabular-nums">{numbered(many)}</span>{" "}
+                  {t(`brainstyTies_${tie}`)}
+                </span>
+              ))}
+            </p>
+          </Part>
+        )}
+        {pointing.length > 0 && (
+          <Part title={t("brainstyPointedHere")}>
+            <Pointing all={pointing} nodeOf={nodeOf} onPick={onPick} />
+          </Part>
+        )}
+        {alike.length > 0 && <Guesses alike={alike} onPick={onPick} />}
+        <Address neuron={neuron} />
+      </div>
       {neuron.kind !== "file" && (
         <button
           type="button"
@@ -127,6 +144,98 @@ export default function Preview({
         </button>
       )}
     </aside>
+  );
+}
+
+function Part({ title, children }: { readonly title: string; readonly children: React.ReactNode }) {
+  return (
+    <section aria-label={title} className="flex flex-col gap-1">
+      <h3 className="text-[11px] font-semibold tracking-wide text-faint uppercase">{title}</h3>
+      {children}
+    </section>
+  );
+}
+
+const addressOf = (neuron: Neuron): Promise<string | null> => {
+  if (neuron.kind === "task") return Promise.resolve(taskAddress(neuron.id));
+  if (neuron.kind === "doc" || neuron.kind === "page") return docAddress(neuron.id);
+  return Promise.resolve(null);
+};
+
+function Address({ neuron }: { readonly neuron: Neuron }) {
+  const [address, setAddress] = useState<string | null>(null);
+  const [taken, setTaken] = useState(false);
+
+  useEffect(() => {
+    let live = true;
+    setAddress(null);
+    setTaken(false);
+    addressOf(neuron).then(
+      (said) => live && setAddress(said),
+      () => undefined,
+    );
+    return () => {
+      live = false;
+    };
+  }, [neuron]);
+
+  if (!address) return null;
+  return (
+    <Part title={t("brainstyFactLink")}>
+      <p className="flex min-w-0 items-center gap-2">
+        <code className="min-w-0 flex-1 truncate text-[11.5px] text-soft" title={address}>
+          {address}
+        </code>
+        <button
+          type="button"
+          onClick={() =>
+            copied(address).then(
+              () => setTaken(true),
+              () => undefined,
+            )
+          }
+          className="shrink-0 rounded-md px-2 py-0.5 text-[11.5px] text-accent hover:bg-hover"
+        >
+          {taken ? t("linkCopied") : t("copyLink")}
+        </button>
+      </p>
+    </Part>
+  );
+}
+
+function Pointing({
+  all,
+  nodeOf,
+  onPick,
+}: {
+  readonly all: readonly Near[];
+  readonly nodeOf?: (id: string) => number | undefined;
+  readonly onPick?: (node: number) => void;
+}) {
+  const shown = all.slice(0, POINTING_SHOWN);
+  const more = all.length - shown.length;
+  return (
+    <ul className="flex flex-col gap-0.5 text-[12.5px]">
+      {shown.map((one) => {
+        const node = nodeOf?.(one.id);
+        return (
+          <li key={one.id} className="truncate">
+            {node === undefined ? (
+              <span className="text-soft">{named(one)}</span>
+            ) : (
+              <button
+                type="button"
+                onClick={() => onPick?.(node)}
+                className="max-w-full truncate text-left text-ink hover:underline"
+              >
+                {named(one)}
+              </button>
+            )}
+          </li>
+        );
+      })}
+      {more > 0 && <li className="text-faint">{fill("brainstyLegendMore", numbered(more))}</li>}
+    </ul>
   );
 }
 

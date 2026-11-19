@@ -353,7 +353,6 @@ pub fn keep_locale(
     session.keep(|config| config.locale = wanted.clone())?;
     session.locale = wanted.clone();
     language(&app, &wanted);
-    crate::brainsty_window::respoken(&app, &wanted);
     Ok(wanted)
 }
 
@@ -379,7 +378,7 @@ pub fn keep_theme(
     Ok(wanted)
 }
 
-pub fn window_theme(theme: Option<tisty_core::config::Theme>) -> Option<tauri::Theme> {
+fn window_theme(theme: Option<tisty_core::config::Theme>) -> Option<tauri::Theme> {
     theme.map(|one| match one {
         tisty_core::config::Theme::Light => tauri::Theme::Light,
         tisty_core::config::Theme::Dark => tauri::Theme::Dark,

@@ -91,7 +91,7 @@ export default function SideRail({
           </button>
         );
       })}
-      {onBrainsty && <SideBrainsty rail onOpen={onBrainsty} />}
+      {onBrainsty && <SideBrainsty rail on={chosen.named === "brainsty"} onOpen={onBrainsty} />}
       <span aria-hidden="true" className="my-1.5 h-px w-6 shrink-0 bg-hair" />
       <button
         type="button"

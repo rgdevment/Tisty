@@ -35,20 +35,46 @@ export interface Network {
 export interface Group {
   id: string;
   name: string;
-  color?: string;
+  color?: string | null;
+}
+
+export interface Near {
+  id: string;
+  kind: string;
+  title: string;
+  state?: string;
+}
+
+export type Due = "undated" | "ahead" | "today" | "late" | "underway" | "due_soon" | "overdue";
+
+export interface Card {
+  id: string;
+  kind: string;
+  title: string;
+  state: string;
+  standing?: Due;
+  lang?: string;
+  bytes?: number;
+  words?: number;
+  made?: string;
+  wrote?: string;
+  date?: string;
+  deadline?: string;
+  steps?: [number, number];
+  source?: string;
+  book?: Near;
+  part_of?: Near;
+  parts?: Near[];
+  tags?: string[];
+  cited_by?: Near[];
+  mentioned_by?: Near[];
 }
 
 export const OPENED = "brainsty-opened";
-export const OPEN_ASKED = "brainsty-open";
-export const SPOKEN = "spoken";
 
 export const brainNetwork = (near?: string): Promise<Network | null> =>
   invoke("brain_network", { near: near ?? null });
 
-export const brainstyGroups = (): Promise<Group[]> => invoke("brainsty_groups");
+export const brainCard = (id: string): Promise<Card | null> => invoke("brain_card", { id });
 
-export const showBrainsty = (near?: string): Promise<void> =>
-  invoke("brainsty_show", { near: near ?? null });
-
-export const openInMain = ({ kind, id, title }: Neuron): Promise<void> =>
-  invoke("brainsty_open", { neuron: { kind, id, title } });
+export const taskAddress = (id: string): string => `tisty://task?id=${id}`;

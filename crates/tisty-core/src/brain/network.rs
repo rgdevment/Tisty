@@ -138,6 +138,26 @@ pub fn network(paths: &Paths, shown: impl Fn(&str) -> bool, near: &[String]) -> 
         .flatten()
 }
 
+pub fn card_of(
+    paths: &Paths,
+    id: &str,
+    today: jiff::civil::Date,
+    shown: impl Fn(&str) -> bool,
+) -> Option<super::Card> {
+    let brain = Brain::looked_at(paths.cache())?;
+    brain
+        .card(id, today, shown)
+        .inspect_err(|e| {
+            witness::trace(
+                channel::BRAIN,
+                "the brain could not read a card",
+                &[("why", Fact::Why(e.to_string()))],
+            );
+        })
+        .ok()
+        .flatten()
+}
+
 pub fn kept_out(state: &State) -> HashSet<String> {
     state
         .tasks

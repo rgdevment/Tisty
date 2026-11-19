@@ -264,6 +264,8 @@ describe("the drawing of the network", () => {
     const drawing = drawNetwork(document.body, network, spots, () => undefined, light, "Inter");
     const graph = drawn.graph as Graph;
     const colour = nodeStyle("labelColor");
+    const backdrop = nodeStyle("backdropColor");
+    expect(backdrop({}, {}, { zoom: 1 })).toBe("#102030");
 
     drawing.place({ x: Float32Array.of(5, 6, 7), y: Float32Array.of(7, 8, 9) });
     drawing.place({ x: new Float32Array(), y: new Float32Array() });
@@ -278,6 +280,7 @@ describe("the drawing of the network", () => {
     drawing.retheme(dark);
     expect(graph.getNodeAttribute("0", "color")).not.toBe(before);
     expect(colour({ big: false }, {}, { zoom: 1 })).toBe("rgba(255, 255, 255, 1)");
+    expect(backdrop({}, {}, { zoom: 1 })).toBe("#405060");
     expect(drawn.refreshed).toBe(1);
 
     const frame = vi.fn();
@@ -314,14 +317,18 @@ describe("the drawing of the network", () => {
 
     expect(drawing.beside(0).sort()).toEqual([1]);
     expect(drawing.beside(9)).toEqual([]);
-    drawing.light(new Set([0, 1]));
+    drawing.light(new Set([0, 1]), 0);
     drawing.light(null);
 
     expect(drawn.states.map(([what, keys, state]) => [what, keys.length, state])).toEqual([
+      ["nodes", 0, { isPicked: false }],
+      ["nodes", 1, { isPicked: true }],
       ["nodes", 0, { isHighlighted: false }],
       ["edges", 0, { isHighlighted: false }],
       ["nodes", 2, { isHighlighted: true }],
       ["edges", 2, { isHighlighted: true }],
+      ["nodes", 1, { isPicked: false }],
+      ["nodes", 0, { isPicked: true }],
       ["nodes", 2, { isHighlighted: false }],
       ["edges", 2, { isHighlighted: false }],
       ["nodes", 0, { isHighlighted: true }],
@@ -332,7 +339,9 @@ describe("the drawing of the network", () => {
     expect(colour({ color: "#102030" }, {}, lit)).toBe("rgba(16, 32, 48, 0.12)");
     expect(colour({ color: "#102030" }, { isHighlighted: true }, lit)).toBe("#102030");
     expect(shown({ big: true }, {}, { zoom: 1, hasHighlighted: true } as never)).toBe("hidden");
-    expect(shown({ big: false }, { isHighlighted: true }, { zoom: 0 })).toBe("visible");
+    expect(shown({ big: false }, { isPicked: true }, lit)).toBe("visible");
+    expect(shown({ big: false }, { isHighlighted: true }, lit)).toBe("auto");
+    expect(shown({ big: false }, {}, lit)).toBe("hidden");
     expect(line(cite, {}, lit)).toBe("rgba(16, 32, 48, 0.066)");
   });
 
