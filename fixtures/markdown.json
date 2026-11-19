@@ -534,6 +534,7 @@
     "refs": [
       "Link:tisty:brainsty",
       "Link:tisty:agent",
+      "Link:tisty:agents",
       "Link:capture.png",
       "Link:https://www.tisty.app/docs/natural-language/",
       "Link:https://www.tisty.app/docs/spread-and-reminders/",
@@ -593,6 +594,23 @@
     ]
   },
   {
+    "name": "guide-agents-en",
+    "file": "app/src-tauri/resources/guide/en/agents-folder.md",
+    "falls_short": "drops the final newline",
+    "title": "AGENTS: your agents' rules",
+    "tags": [],
+    "refs": [
+      "Link:agents-sidebar.png",
+      "Link:agents-card.png",
+      "Link:agents-outside.png",
+      "Link:agents-other-computer.png",
+      "Link:agents-proposal.png",
+      "Link:https://www.tisty.app/docs/agents-folder/",
+      "Link:https://www.tisty.app/docs/privacy/",
+      "Link:tisty:agent"
+    ]
+  },
+  {
     "name": "guide-agent-en",
     "file": "app/src-tauri/resources/guide/en/agent.md",
     "falls_short": "drops the final newline",
@@ -627,6 +645,7 @@
     ],
     "refs": [
       "Link:https://github.com/rgdevment/Tisty/issues",
+      "Link:tisty:agents",
       "Link:https://www.tisty.app",
       "Doc:#2",
       "Doc:Rina's vet card",
@@ -665,6 +684,7 @@
     "refs": [
       "Link:tisty:brainsty",
       "Link:tisty:agent",
+      "Link:tisty:agents",
       "Link:captura.png",
       "Link:https://www.tisty.app/es/ayuda/lenguaje-natural/",
       "Link:https://www.tisty.app/es/ayuda/reparto-y-recordatorios/",
@@ -724,6 +744,23 @@
     ]
   },
   {
+    "name": "guide-agents-es",
+    "file": "app/src-tauri/resources/guide/es/carpeta-agents.md",
+    "falls_short": "drops the final newline",
+    "title": "AGENTS: las reglas de tus agentes",
+    "tags": [],
+    "refs": [
+      "Link:agents-barra.png",
+      "Link:agents-ficha.png",
+      "Link:agents-por-fuera.png",
+      "Link:agents-otro-equipo.png",
+      "Link:agents-propuesta.png",
+      "Link:https://www.tisty.app/es/ayuda/carpeta-agents/",
+      "Link:https://www.tisty.app/es/ayuda/privacidad/",
+      "Link:tisty:agent"
+    ]
+  },
+  {
     "name": "guide-agent-es",
     "file": "app/src-tauri/resources/guide/es/agentes.md",
     "falls_short": "drops the final newline",
@@ -758,6 +795,7 @@
     ],
     "refs": [
       "Link:https://github.com/rgdevment/Tisty/issues",
+      "Link:tisty:agents",
       "Link:https://www.tisty.app",
       "Doc:#2",
       "Doc:La cartilla de Rina",

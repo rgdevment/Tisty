@@ -36,6 +36,16 @@ pub const ATTACHED: &[&str] = &[
     "network-near.png",
     "estado.png",
     "state.png",
+    "agents-barra.png",
+    "agents-sidebar.png",
+    "agents-ficha.png",
+    "agents-card.png",
+    "agents-por-fuera.png",
+    "agents-outside.png",
+    "agents-otro-equipo.png",
+    "agents-other-computer.png",
+    "agents-propuesta.png",
+    "agents-proposal.png",
 ];
 
 pub const GUIDE_COVER: &str = "tisty:guide";
@@ -56,6 +66,10 @@ pub const GUIDE_PAGES_ES: &[(&str, &str)] = &[
     (
         "tisty:page",
         include_str!("../../resources/guide/es/pagina.md"),
+    ),
+    (
+        "tisty:agents",
+        include_str!("../../resources/guide/es/carpeta-agents.md"),
     ),
     (
         "tisty:agent",
@@ -79,6 +93,10 @@ pub const GUIDE_PAGES_EN: &[(&str, &str)] = &[
     (
         "tisty:page",
         include_str!("../../resources/guide/en/page.md"),
+    ),
+    (
+        "tisty:agents",
+        include_str!("../../resources/guide/en/agents-folder.md"),
     ),
     (
         "tisty:agent",

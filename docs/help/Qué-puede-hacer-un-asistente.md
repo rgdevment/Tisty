@@ -24,6 +24,7 @@ Lo que un asistente puede hacer es pequeño a propósito. Terminar, descartar y 
 - **Añadir a hoy en tu Diario**, una vez que lo abres a los agentes y solo cuando se lo pides: sus palabras van al final de hoy, bajo una línea con el minuto y su nombre.
 - **Leer y buscar** lo que ya hay, incluido el archivo.
 - **Ver y recuperar las [versiones anteriores](Documentos#versiones-anteriores) de un documento** que guarda este equipo: listarlas, leer una y volver a ella, y deshacer esa vuelta.
+- **Proponer un cambio a tus reglas y skills de [AGENTS](Carpeta-AGENTS#una-propuesta-de-tu-agente)**: queda aparte, en la ficha del documento, hasta que lo apruebas o lo descartas.
 
 ## Nunca
 
@@ -34,6 +35,7 @@ Lo que un asistente puede hacer es pequeño a propósito. Terminar, descartar y 
 - Marcar un paso tuyo o terminar una tarea tuya: solo puede decir que están listos.
 - Mover un día que pusiste **tú**.
 - Borrar un documento, ni renombrar o borrar una carpeta.
+- Escribir en [AGENTS](Carpeta-AGENTS#una-propuesta-de-tu-agente): un cambio a una regla o una skill queda como propuesta, aparte, hasta que lo apruebas en la ficha. Tampoco mueve, archiva ni marca esos documentos, cambia su línea `agent:`, propone sobre una memoria, mete un documento o crea una carpeta ahí, ni escribe en cualquier carpeta un documento con una línea `agent:`.
 - Vaciar el historial de un documento, ni leer o recuperar una versión que guarda otro de tus equipos.
 - Sacar una idea de la Lluvia de ideas de otra forma, marcar la hoja entera, archivarla ni moverla a una carpeta.
 - Alcanzar una tarea que plegaste.
