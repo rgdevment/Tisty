@@ -87,11 +87,11 @@ fn kept_in_agents<'a>(state: &'a State, said: &str) -> Option<(&'a Kept, bool)> 
     state
         .docs
         .values()
-        .find_map(|one| {
+        .filter_map(|one| {
             let exactly = one.file == said;
             (exactly || loosely(&one.file) == meant).then_some((one, exactly))
         })
-        .filter(|(one, _)| agents::holds(state, one))
+        .find(|(one, _)| agents::holds(state, one))
 }
 
 fn meant_document(said: &str) -> String {
