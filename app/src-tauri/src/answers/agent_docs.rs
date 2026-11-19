@@ -65,6 +65,8 @@ pub struct AgentDoc {
     /// The words the card was drawn from, so an approval names the text the person saw.
     print: String,
     places: Vec<Place>,
+    /// An assistant's change waiting beside the approved text, shown as a comparison.
+    proposal: Option<Box<super::agent_proposals::Proposal>>,
 }
 
 fn named(id: &str) -> String {
@@ -136,6 +138,7 @@ fn ledger(data: &Path) -> Ledger {
 
 struct Opened {
     card: Card,
+    body: String,
     print: String,
     gate: agents::Gate,
     label: String,
@@ -166,10 +169,10 @@ fn opened(
     file: &str,
 ) -> Answer<Option<Opened>> {
     let bodies = super::agents_sync::bodies(session);
-    let Some((card, label)) = bodies
+    let Some((card, label, body)) = bodies
         .iter()
         .find(|(one, _)| one == file)
-        .and_then(|(_, body)| Some((Card::of(body)?, agents::shown(body)?.label)))
+        .and_then(|(_, body)| Some((Card::of(body)?, agents::shown(body)?.label, body.clone())))
     else {
         return Ok(None);
     };
@@ -192,14 +195,10 @@ fn opened(
     let written = |one: &Placed| one.files.iter().any(|named| twins.contains(&named));
     let twin = all.iter().any(written);
     let places = placed_for(file, all);
-    let print = bodies
-        .iter()
-        .find(|(one, _)| one == file)
-        .map(|(_, body)| tisty_core::docs::print_of_text(body))
-        .unwrap_or_default();
     Ok(Some(Opened {
         card,
-        print,
+        print: tisty_core::docs::print_of_text(&body),
+        body,
         label,
         data,
         ledger,
@@ -240,9 +239,32 @@ pub fn agent_doc(
     match (at, asked) {
         (_, Some(Asked::Take { here })) => taken_here(&session, &file, here).map(Told::Card),
         (_, Some(Asked::Agree { print })) => agreed(&session, &file, &print).map(Told::Card),
+        (_, Some(Asked::Approve { print, over })) => settled(&session, &file, |one| {
+            super::agent_proposals::approve(one, &file, &print, &over)
+        }),
+        (_, Some(Asked::Discard { print })) => settled(&session, &file, |one| {
+            super::agent_proposals::discard(one, &file, &print)
+        }),
         (Some(at), Some(asked)) => done_at(&session, &file, &at, asked).map(Told::Text),
         _ => card(&session, &file).map(Told::Card),
     }
+}
+
+fn settled(
+    session: &Mutex<Session>,
+    file: &str,
+    then: impl FnOnce(&mut Session) -> Answer<()>,
+) -> Answer<Told> {
+    let machine = tisty_core::machine::here().unwrap_or_default();
+    {
+        let mut one = held(session);
+        then(&mut one)?;
+        if let Some(homes) = Homes::here() {
+            let mut ledger = Ledger::open(one.paths.data(), &machine);
+            super::agents_sync::round_now(&one, &homes, &mut ledger);
+        }
+    }
+    card(session, file).map(Told::Card)
 }
 
 fn taken_here(session: &Mutex<Session>, file: &str, here: bool) -> Answer<Option<AgentDoc>> {
@@ -339,6 +361,7 @@ pub(crate) fn card_of(
     let ledger = &opened.ledger;
     let card = opened.card;
     Ok(Some(AgentDoc {
+        proposal: super::agent_proposals::proposal_of(session, file, &opened.body).map(Box::new),
         kind: card.kind.word(),
         named: (card.level != agents::GLOBAL).then(|| named(&card.level)),
         code: card.code(),
@@ -382,6 +405,14 @@ pub enum Asked {
     Agree {
         print: String,
     },
+    /// The proposal the card showed, printed `print`, over the text it showed it against, printed `over`.
+    Approve {
+        print: String,
+        over: String,
+    },
+    Discard {
+        print: String,
+    },
 }
 
 pub(crate) fn done(
@@ -399,7 +430,10 @@ pub(crate) fn done(
         }
         Asked::Held { backup: None } => now(&target.at).map(|bytes| Some(text(&bytes))),
         Asked::Restore { backup } => agents::restore(data, ledger, target, backup).map(|()| None),
-        Asked::Take { .. } | Asked::Agree { .. } => Ok(None),
+        Asked::Take { .. }
+        | Asked::Agree { .. }
+        | Asked::Approve { .. }
+        | Asked::Discard { .. } => Ok(None),
     }
     .map_err(refused)
 }

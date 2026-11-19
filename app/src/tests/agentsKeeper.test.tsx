@@ -52,6 +52,7 @@ const look = (more: Partial<AgentsLook> = {}): AgentsLook => ({
   changes: 0,
   waiting: 0,
   unagreed: 0,
+  proposed: 0,
   consented: true,
   allOn: true,
   asks: false,

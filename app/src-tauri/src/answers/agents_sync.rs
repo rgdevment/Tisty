@@ -105,6 +105,8 @@ pub struct Look {
     pub waiting: usize,
     /// Documents whose words the person has not approved, held back from every agent's file.
     pub unagreed: usize,
+    /// Documents with an assistant's change waiting beside the approved text.
+    pub proposed: usize,
     pub consented: bool,
     pub all_on: bool,
     pub asks: bool,
@@ -128,6 +130,7 @@ fn found_here(homes: &Homes) -> Vec<Found> {
 pub struct Gathered {
     root: Option<FolderId>,
     docs: usize,
+    proposed: usize,
     bodies: Vec<(String, String)>,
     ledger: Ledger,
     gate: Gate,
@@ -141,10 +144,20 @@ pub fn gathered(session: &Session, here: &str) -> Gathered {
         docs: root
             .map(|root| docs_in(&session.state, &tree(&session.state, root)).len())
             .unwrap_or(0),
+        proposed: proposed_in(&session.state),
         bodies: bodies(session),
         gate: gated(session, &ledger),
         ledger,
     }
+}
+
+fn proposed_in(state: &tisty_core::State) -> usize {
+    state
+        .proposals
+        .keys()
+        .filter_map(|id| state.docs.get(id))
+        .filter(|kept| agents::holds(state, kept))
+        .count()
 }
 
 // A document no assistant here would read has nothing to wait for on this computer.
@@ -189,6 +202,7 @@ pub fn looked(seen: &Gathered, homes: &Homes, found: &[Found]) -> Look {
         changes,
         waiting: waiting_here(seen, homes),
         unagreed: seen.gate.unagreed(),
+        proposed: seen.proposed,
         asks: docs == 0 || !ledger.consented() || !both.is_empty(),
         consented: ledger.consented(),
         all_on: ledger.syncs(""),

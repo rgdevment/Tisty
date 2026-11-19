@@ -7,6 +7,7 @@ const glance = (over: Partial<Glance>): Glance => ({
   changes: 0,
   waiting: 0,
   unagreed: 0,
+  proposed: 0,
   consented: true,
   allOn: true,
   ...over,
@@ -23,6 +24,7 @@ const doc = (states: AgentDoc["places"][number]["said"][]): AgentDoc => ({
   twin: false,
   here: "applied",
   print: "p1",
+  proposal: null,
   places: states.map((said, n) => ({
     assistant: `a${n}`,
     named: `A${n}`,
@@ -77,6 +79,7 @@ describe("agent documents", () => {
     expect(glanceWord(glance({ changes: 2, waiting: 1 }))).toBe("changes");
     expect(glanceWord(glance({ waiting: 1 }))).toBe("waiting");
     expect(glanceWord(glance({ unagreed: 1 }))).toBe("waiting");
+    expect(glanceWord(glance({ proposed: 1 }))).toBe("waiting");
     expect(glanceWord(glance({}))).toBe("synced");
   });
 });

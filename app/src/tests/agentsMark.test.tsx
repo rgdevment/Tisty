@@ -23,6 +23,7 @@ const glance = (more: Partial<Glance> = {}): Glance => ({
   changes: 0,
   waiting: 0,
   unagreed: 0,
+  proposed: 0,
   consented: true,
   allOn: true,
   ...more,
@@ -77,6 +78,8 @@ describe("the AGENTS word in the sidebar", () => {
     expect(screen.getByText("3 waiting")).toBeTruthy();
     rerender(<AgentsWord glance={glance({ unagreed: 1 })} />);
     expect(screen.getByText("1 to approve")).toBeTruthy();
+    rerender(<AgentsWord glance={glance({ proposed: 2 })} />);
+    expect(screen.getByText("2 with a proposal")).toBeTruthy();
     rerender(<AgentsWord glance={glance({ allOn: false })} />);
     expect(screen.getByText("off")).toBeTruthy();
   });

@@ -892,3 +892,121 @@ fn a_document_an_import_left_here_unapproved_waits_and_is_never_taken() {
     assert_eq!(room.read(".claude/CLAUDE.md"), "# Claude\nTests first.\n");
     assert!(!Ledger::open(room.session.paths.data(), HERE).took(&file));
 }
+
+fn proposed(room: &mut Room, file: &str, body: &str) -> String {
+    let id = room
+        .session
+        .state
+        .docs
+        .values()
+        .find(|one| one.file == file)
+        .unwrap()
+        .id;
+    room.session
+        .commit(Op::DocProposal {
+            id,
+            d: tisty_core::event::Proposal {
+                body: Some(body.to_string()),
+                base: tisty_core::docs::read(&room.session.paths.docs(), file)
+                    .ok()
+                    .map(|now| tisty_core::docs::print_of_text(&now)),
+                settles: None,
+            },
+        })
+        .unwrap();
+    tisty_core::docs::print_of_text(body)
+}
+
+fn proposal_shown(room: &Room, file: &str) -> serde_json::Value {
+    let card =
+        crate::answers::agent_docs::card_of(&room.session, Some(&room.homes), HERE, file).unwrap();
+    serde_json::to_value(card.unwrap()).unwrap()["proposal"].clone()
+}
+
+#[test]
+fn a_proposal_waits_beside_the_approved_text_and_only_approving_writes_it() {
+    use crate::answers::agent_proposals::approve;
+    let mut room = room();
+    room.bring(&[".claude/CLAUDE.md"]);
+    let (file, body) = bodies(&room.session)[0].clone();
+    let print = proposed(
+        &mut room,
+        &file,
+        &body.replace("Tests first.", "Tests always."),
+    );
+    let mut ledger = Ledger::open(room.session.paths.data(), HERE);
+    round_now(&room.session, &room.homes, &mut ledger);
+
+    assert_eq!(room.read(".claude/CLAUDE.md"), "# Claude\nTests first.\n");
+    assert_eq!(room.look().proposed, 1);
+    let shown = proposal_shown(&room, &file);
+    assert_eq!(shown["print"], print.as_str());
+    assert_eq!(shown["stale"], false);
+    let lines = shown["lines"].as_array().unwrap();
+    assert!(lines.contains(&serde_json::json!({ "side": "file", "text": "Tests always." })));
+    assert!(lines.contains(&serde_json::json!({ "side": "tisty", "text": "Tests first." })));
+
+    let over = tisty_core::docs::print_of_text(&body);
+    approve(&mut room.session, &file, &print, &over).unwrap();
+    round_now(&room.session, &room.homes, &mut ledger);
+    assert_eq!(room.read(".claude/CLAUDE.md"), "# Claude\nTests always.\n");
+    assert!(room.session.state.proposals.is_empty());
+    assert_eq!(room.look().proposed, 0);
+    assert_eq!(room.look().unagreed, 0);
+}
+
+#[test]
+fn approving_takes_only_the_proposal_and_the_text_the_card_showed() {
+    use crate::answers::agent_proposals::approve;
+    let mut room = room();
+    room.bring(&[".claude/CLAUDE.md"]);
+    let (file, body) = bodies(&room.session)[0].clone();
+    let first = proposed(
+        &mut room,
+        &file,
+        &body.replace("Tests first.", "Tests always."),
+    );
+    let over = tisty_core::docs::print_of_text(&body);
+    let second = proposed(
+        &mut room,
+        &file,
+        &body.replace("Tests first.", "Tests never."),
+    );
+
+    let refused = approve(&mut room.session, &file, &first, &over).unwrap_err();
+    assert_eq!(refused.code, "agentProposalChanged");
+    let typed = body.replace("# Claude", "# Claude rules");
+    rewritten(&mut room.session, &file, &typed).unwrap();
+    assert!(approve(&mut room.session, &file, &second, &over).is_err());
+    assert_eq!(
+        tisty_core::docs::read(&room.session.paths.docs(), &file).unwrap(),
+        typed
+    );
+    assert_eq!(proposal_shown(&room, &file)["stale"], true);
+
+    let now = tisty_core::docs::print_of_text(&typed);
+    approve(&mut room.session, &file, &second, &now).unwrap();
+    let written = tisty_core::docs::read(&room.session.paths.docs(), &file).unwrap();
+    assert!(written.contains("Tests never."), "{written}");
+}
+
+#[test]
+fn discarding_settles_only_the_proposal_the_card_showed_and_writes_nothing() {
+    use crate::answers::agent_proposals::discard;
+    let mut room = room();
+    room.bring(&[".claude/CLAUDE.md"]);
+    let (file, body) = bodies(&room.session)[0].clone();
+    let first = proposed(&mut room, &file, &body.replace("Tests first.", "One."));
+    let second = proposed(&mut room, &file, &body.replace("Tests first.", "Two."));
+
+    let refused = discard(&mut room.session, &file, &first).unwrap_err();
+    assert_eq!(refused.code, "agentProposalChanged");
+    discard(&mut room.session, &file, &second).unwrap();
+    assert!(room.session.state.proposals.is_empty());
+    assert!(proposal_shown(&room, &file).is_null());
+    assert_eq!(
+        tisty_core::docs::read(&room.session.paths.docs(), &file).unwrap(),
+        body
+    );
+    assert_eq!(room.read(".claude/CLAUDE.md"), "# Claude\nTests first.\n");
+}

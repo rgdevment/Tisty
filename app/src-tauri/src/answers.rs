@@ -1,4 +1,5 @@
 pub mod agent_docs;
+pub mod agent_proposals;
 pub mod agent_rows;
 pub mod agents;
 pub mod agents_sync;
