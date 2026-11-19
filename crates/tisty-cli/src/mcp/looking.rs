@@ -19,7 +19,9 @@ use super::unpathing::unpathed_body;
 use super::{Refused, hitch, named, opened, trail, when};
 
 const TASK_ONLY: [&str; 2] = ["fields", "notes"];
-const DOC_ONLY: [&str; 7] = ["section", "from", "to", "chars", "cursor", "as", "marks"];
+const DOC_ONLY: [&str; 9] = [
+    "section", "from", "to", "chars", "cursor", "as", "marks", "versions", "version",
+];
 
 pub(super) fn read(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     let (only, other) = match (text(args, "task"), text(args, "doc")) {

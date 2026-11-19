@@ -339,8 +339,8 @@ in its own document: they are never merged into one body.
 
 Tisty keeps past versions of each document and task page, on each machine, never synced. Look \
 there when the person asks what a document said or wants an earlier state back:
-- `read_doc` with `versions` lists them, newest first; a task's id lists its page's.
-- `read_doc` with `version` reads one, under a `notice` that it is not what it says now.
+- `read` with `versions` lists them, newest first; a task's id lists its page's.
+- `read` with `version` reads one, under a `notice` that it is not what it says now.
 - `restore_doc` with `version` goes back to one over everything written since: do it when they \
 ask, and tell them what it replaced. `restore_doc` without `version` undoes it.
 

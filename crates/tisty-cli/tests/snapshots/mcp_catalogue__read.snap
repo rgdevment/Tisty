@@ -66,6 +66,14 @@ expression: tool
       "to": {
         "description": "Last line; left out, to the end",
         "type": "integer"
+      },
+      "version": {
+        "description": "A `version` from that list, read in place of the text",
+        "type": "string"
+      },
+      "versions": {
+        "description": "With `doc`: its past versions instead of its text, when, by whom, its size; a task id lists its page's",
+        "type": "boolean"
       }
     },
     "type": "object"

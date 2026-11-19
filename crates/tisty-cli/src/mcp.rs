@@ -391,7 +391,7 @@ fn pointed(name: &str) -> Option<&'static str> {
     const LISTING: &str = "`brain` searches the tasks and the documents — by text, or by the \
          sifting fields alone — and with `folder` lists what is written there. `catch_up` is the \
          one to ask first when you arrive.";
-    const GOING_BACK: &str = "What a document said before is read with `read_doc`: `versions` \
+    const GOING_BACK: &str = "What a document said before is read with `read`: `versions` \
          lists its past versions and `version` reads one. `restore_doc` undoes the last write, \
          or with `version` goes back to that one.";
 

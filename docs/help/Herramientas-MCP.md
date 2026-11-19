@@ -48,7 +48,7 @@ Las reglas detrás están en [[Qué puede hacer un asistente|Qué-puede-hacer-un
 | `append_doc` | Añadir a un documento, al final o bajo un título; en la página de una tarea, añadir bajo las notas del asistente o, con `replace`, juntar las notas de todos los asistentes en un resumen fechado de hasta 6000 caracteres, que conserva las líneas que escribiste y que `restore_doc` puede deshacer. En **Lluvia de ideas**, cada párrafo o elemento de una lista se vuelve una idea propia, con su fecha y su color, de hasta 140 caracteres; la idea misma, con su línea `> [!IDEA]` y sus palabras tal como están en la hoja, añadida a otro documento sale de la hoja, como cuando la anexas desde la ventana; una nota `[!IDEA]` que no nombra ninguna idea de ahí queda como nota adhesiva propia. En el **Diario**, cuando lo abres a los agentes, solo añade al final de hoy, bajo una línea con el minuto y el nombre del agente |
 | `edit_doc` | Cambiar un pasaje de un documento o de la página de una tarea |
 | `edit_table` | Leer o cambiar una tabla de un documento por sus filas y columnas: poner una celda, añadir, quitar u ordenar filas, renombrar una columna o darle un tipo. Un valor que su columna no sabe leer se conserva y se nombra en la respuesta |
-| `restore_doc` | Deshacer el último cambio que reemplazó texto de un documento, un pasaje cambiado o una escritura entera, desde sus [versiones anteriores](Documentos#versiones-anteriores) en este equipo; lo añadido al final y tus guardados no dejan nada que deshacer, y se niega si alguien escribió después. Deshacerlo dos veces lo devuelve. Con `version`, vuelve a una de las que lista `read_doc`, por encima de todo lo escrito después, y lo que reemplaza queda guardado; sin `version`, deshace esa vuelta. Con una tarea, devuelve las notas que reemplazó un resumen |
+| `restore_doc` | Deshacer el último cambio que reemplazó texto de un documento, un pasaje cambiado o una escritura entera, desde sus [versiones anteriores](Documentos#versiones-anteriores) en este equipo; lo añadido al final y tus guardados no dejan nada que deshacer, y se niega si alguien escribió después. Deshacerlo dos veces lo devuelve. Con `version`, vuelve a una de las que lista `read`, por encima de todo lo escrito después, y lo que reemplaza queda guardado; sin `version`, deshace esa vuelta. Con una tarea, devuelve las notas que reemplazó un resumen |
 | `folder` | Crear una carpeta |
 | `file_doc` | Poner uno o varios documentos en una carpeta |
 | `page_doc` | Hacer de documentos páginas de otro o sacarlas (`doc`), u ordenar las páginas de uno (`order` con `page_of`) |
@@ -74,7 +74,7 @@ Tu [Diario](Documentos#diario) queda fuera de todas las herramientas hasta que l
 
 Un asistente ve y recupera las mismas [versiones anteriores](Documentos#versiones-anteriores) que tú, con dos herramientas que ya usa, y solo las que guarda este equipo, porque las versiones no se sincronizan. Vaciarlas no tiene herramienta: eso es tuyo. Le pediste, por ejemplo, «vuelve “Paseos de Rina” a como estaba antes de tu cambio de esta mañana»; esto es lo que hace.
 
-**1. Lista las versiones,** con `read_doc` y `versions`:
+**1. Lista las versiones,** con `read` y `versions`:
 
 ```json
 { "doc": "k7w2pq9d-0003", "versions": true }
@@ -108,7 +108,7 @@ La respuesta trae la más nueva primero, cuántas guarda este equipo y su plazo 
 
 `written` es cuándo se escribió ese texto y `until`, hasta cuándo lo dijo el documento. `version` es el comienzo de su huella, que basta para nombrarla. Con el id de una tarea lista las versiones de su página. Llegan de a 40, y `next` dice desde dónde pedir las más viejas con `cursor`.
 
-**2. Lee la que busca,** con `read_doc` y `version`:
+**2. Lee la que busca,** con `read` y `version`:
 
 ```json
 { "doc": "k7w2pq9d-0003", "version": "7d21e8b0c9aa" }

@@ -86,7 +86,7 @@ impl Served {
     }
 
     fn read(&self, doc: &str) -> Value {
-        self.call("read_doc", json!({ "doc": doc }))["structuredContent"].clone()
+        self.call("read", json!({ "doc": doc }))["structuredContent"].clone()
     }
 
     fn body_of(&self, doc: &str) -> String {
@@ -98,7 +98,7 @@ impl Served {
     }
 
     fn versions(&self, doc: &str) -> Value {
-        let said = self.call("read_doc", json!({ "doc": doc, "versions": true }));
+        let said = self.call("read", json!({ "doc": doc, "versions": true }));
         went(&said);
         said["structuredContent"].clone()
     }
@@ -112,7 +112,7 @@ impl Served {
             .filter(|row| row.get("elsewhere").is_none())
             .filter_map(|row| row["version"].as_str())
             .find(|version| {
-                let read = self.call("read_doc", json!({ "doc": doc, "version": version }));
+                let read = self.call("read", json!({ "doc": doc, "version": version }));
                 read["structuredContent"]["body"]
                     .as_str()
                     .is_some_and(|body| body.contains(words))
@@ -266,7 +266,7 @@ fn a_past_version_is_read_under_a_notice_and_carries_no_print_to_write_with() {
     let doc = served.written_by_turns();
     let first = served.version_that_said(&doc, "Uno, como lo dejó el asistente.");
 
-    let said = served.call("read_doc", json!({ "doc": doc, "version": first }));
+    let said = served.call("read", json!({ "doc": doc, "version": first }));
 
     went(&said);
     let read = &said["structuredContent"];
@@ -363,7 +363,7 @@ fn the_text_a_document_already_says_is_no_version_to_go_back_to() {
             .all(|row| row["version"] != first.as_str()),
         "what it says now is listed as a past version: {listed}"
     );
-    let read = served.call("read_doc", json!({ "doc": doc, "version": first }));
+    let read = served.call("read", json!({ "doc": doc, "version": first }));
     assert!(refused(&read), "{read}");
     assert!(words(&read).contains("it is no past version"), "{read}");
 }
@@ -448,14 +448,14 @@ fn a_version_is_named_by_how_its_id_begins_when_only_one_begins_so() {
     let doc = served.written_by_turns();
     let first = served.version_that_said(&doc, "Uno, como lo dejó el asistente.");
 
-    let by_start = served.call("read_doc", json!({ "doc": doc, "version": &first[..8] }));
+    let by_start = served.call("read", json!({ "doc": doc, "version": &first[..8] }));
     went(&by_start);
     assert_eq!(by_start["structuredContent"]["body"], UNO);
 
-    let empty = served.call("read_doc", json!({ "doc": doc, "version": "" }));
+    let empty = served.call("read", json!({ "doc": doc, "version": "" }));
     assert!(empty["structuredContent"].get("print").is_some(), "{empty}");
 
-    let unknown = served.call("read_doc", json!({ "doc": doc, "version": "zz99" }));
+    let unknown = served.call("read", json!({ "doc": doc, "version": "zz99" }));
     assert!(refused(&unknown), "{unknown}");
     insta::assert_snapshot!(settled(&unknown, &[(doc.as_str(), "[doc]")]));
 
@@ -495,10 +495,7 @@ fn a_start_two_versions_share_is_refused_and_says_to_send_it_whole() {
     tisty_core::docs::write_by(&paths.docs(), &by, &doc, "# Acta\n\nla última\n").unwrap();
     let shared = starts.iter().find(|(_, seen)| **seen >= 2).unwrap().0;
 
-    let said = served.call(
-        "read_doc",
-        json!({ "doc": doc, "version": shared.to_string() }),
-    );
+    let said = served.call("read", json!({ "doc": doc, "version": shared.to_string() }));
 
     assert!(refused(&said), "{said}");
     assert!(
@@ -524,7 +521,7 @@ fn a_long_version_comes_as_its_outline_and_is_read_on_by_parts_with_no_print() {
         .unwrap()
         .to_string();
 
-    let whole = served.call("read_doc", json!({ "doc": doc, "version": version }));
+    let whole = served.call("read", json!({ "doc": doc, "version": version }));
     went(&whole);
     let outlined = &whole["structuredContent"];
     assert_eq!(outlined["whole"], false, "{outlined}");
@@ -532,7 +529,7 @@ fn a_long_version_comes_as_its_outline_and_is_read_on_by_parts_with_no_print() {
     assert!(words(&whole).contains("sending `version` again"), "{whole}");
 
     let first = served.call(
-        "read_doc",
+        "read",
         json!({ "doc": doc, "version": version, "chars": 5000 }),
     );
     went(&first);
@@ -543,7 +540,7 @@ fn a_long_version_comes_as_its_outline_and_is_read_on_by_parts_with_no_print() {
     );
 
     let second = served.call(
-        "read_doc",
+        "read",
         json!({ "doc": doc, "version": version, "chars": 5000, "cursor": next }),
     );
     went(&second);
@@ -565,7 +562,7 @@ fn a_long_version_comes_as_its_outline_and_is_read_on_by_parts_with_no_print() {
     assert_eq!(read, whole, "the parts are not the version");
 
     let section = served.call(
-        "read_doc",
+        "read",
         json!({ "doc": doc, "version": version, "section": 3 }),
     );
     went(&section);
@@ -607,7 +604,7 @@ fn past_forty_versions_the_list_hands_a_next_to_ask_the_older_ones_with() {
     );
 
     let older = served.call(
-        "read_doc",
+        "read",
         json!({ "doc": doc, "versions": true, "cursor": 40 }),
     );
     went(&older);
@@ -615,7 +612,7 @@ fn past_forty_versions_the_list_hands_a_next_to_ask_the_older_ones_with() {
     assert_eq!(older["versions"].as_array().unwrap().len(), 5);
     assert!(older.get("next").is_none(), "{older}");
     let oldest = older["versions"][4]["version"].as_str().unwrap();
-    let read = served.call("read_doc", json!({ "doc": doc, "version": oldest }));
+    let read = served.call("read", json!({ "doc": doc, "version": oldest }));
     assert_eq!(read["structuredContent"]["body"], UNO);
 }
 
@@ -656,7 +653,7 @@ fn a_version_kept_on_another_machine_is_marked_elsewhere_and_neither_read_nor_go
     insta::assert_snapshot!("listed_with_one_elsewhere", settled(&listed, &[]));
 
     let elsewhere = away["version"].as_str().unwrap();
-    let read = served.call("read_doc", json!({ "doc": doc, "version": elsewhere }));
+    let read = served.call("read", json!({ "doc": doc, "version": elsewhere }));
     assert!(refused(&read), "{read}");
     insta::assert_snapshot!(
         "reading_one_kept_elsewhere",
@@ -673,7 +670,7 @@ fn a_version_kept_on_another_machine_is_marked_elsewhere_and_neither_read_nor_go
     );
 
     let kept = here["version"].as_str().unwrap();
-    let read = served.call("read_doc", json!({ "doc": doc, "version": kept }));
+    let read = served.call("read", json!({ "doc": doc, "version": kept }));
     assert_eq!(read["structuredContent"]["body"], UNO);
 }
 
@@ -748,7 +745,7 @@ fn a_tasks_id_lists_and_reads_the_versions_of_its_page() {
     );
 
     let version = rows[0]["version"].as_str().unwrap();
-    let read = served.call("read_doc", json!({ "doc": task, "version": version }));
+    let read = served.call("read", json!({ "doc": task, "version": version }));
     went(&read);
     let body = read["structuredContent"]["body"].as_str().unwrap();
     assert!(
@@ -1012,7 +1009,7 @@ fn a_closed_tasks_page_still_lists_its_versions_and_takes_no_going_back() {
     served.person().closes(person::task(&task));
 
     assert_eq!(served.versions(&task)["versions"][0]["version"], version);
-    went(&served.call("read_doc", json!({ "doc": task, "version": version })));
+    went(&served.call("read", json!({ "doc": task, "version": version })));
 
     for doc in [&task, &page] {
         let back = served.call("restore_doc", json!({ "doc": doc, "version": version }));
@@ -1038,8 +1035,8 @@ fn a_task_out_of_sight_answers_for_its_versions_like_an_id_nobody_has() {
     served.person().hides(person::task(&task));
 
     for (name, args) in [
-        ("read_doc", json!({ "versions": true })),
-        ("read_doc", json!({ "version": version })),
+        ("read", json!({ "versions": true })),
+        ("read", json!({ "version": version })),
         ("restore_doc", json!({ "version": version })),
     ] {
         let with = |doc: &str| {
@@ -1069,8 +1066,8 @@ fn a_hidden_tasks_page_by_its_own_name_answers_like_a_page_nobody_has() {
     served.person().hides(person::task(&task));
 
     for (name, args) in [
-        ("read_doc", json!({ "versions": true })),
-        ("read_doc", json!({ "version": version })),
+        ("read", json!({ "versions": true })),
+        ("read", json!({ "version": version })),
         ("restore_doc", json!({ "version": version })),
         ("restore_doc", json!({ "version": " " })),
     ] {
@@ -1139,7 +1136,7 @@ fn listing_reading_and_carrying_out_are_asked_one_at_a_time() {
     let first = served.version_that_said(&doc, "Uno, como lo dejó el asistente.");
 
     let both = served.call(
-        "read_doc",
+        "read",
         json!({ "doc": doc, "versions": true, "version": first }),
     );
     assert!(refused(&both), "{both}");
@@ -1149,24 +1146,21 @@ fn listing_reading_and_carrying_out_are_asked_one_at_a_time() {
         json!({ "doc": doc, "versions": true, "as": "markdown" }),
         json!({ "doc": doc, "version": first, "as": "markdown" }),
     ] {
-        let carried = served.call("read_doc", args);
+        let carried = served.call("read", args);
         assert!(refused(&carried), "{carried}");
         assert!(words(&carried).contains("as it reads now"), "{carried}");
     }
 
-    let blank = served.call("read_doc", json!({ "doc": doc, "version": " " }));
+    let blank = served.call("read", json!({ "doc": doc, "version": " " }));
     assert!(
         blank["structuredContent"].get("print").is_some(),
         "an empty version is a field left out, as everywhere: {blank}"
     );
 
-    let plain = served.call("read_doc", json!({ "doc": doc, "versions": false }));
+    let plain = served.call("read", json!({ "doc": doc, "versions": false }));
     assert!(plain["structuredContent"].get("print").is_some(), "{plain}");
 
-    let by_parts = served.call(
-        "read_doc",
-        json!({ "doc": doc, "versions": true, "from": 2 }),
-    );
+    let by_parts = served.call("read", json!({ "doc": doc, "versions": true, "from": 2 }));
     assert!(refused(&by_parts), "{by_parts}");
     assert!(words(&by_parts).contains("takes no `from`"), "{by_parts}");
 }
@@ -1176,10 +1170,7 @@ fn a_cursor_past_the_last_version_says_so_instead_of_an_empty_list() {
     let served = Served::new();
     let doc = served.written_by_turns();
 
-    let past = served.call(
-        "read_doc",
-        json!({ "doc": doc, "versions": true, "cursor": 9 }),
-    );
+    let past = served.call("read", json!({ "doc": doc, "versions": true, "cursor": 9 }));
 
     went(&past);
     assert_eq!(past["structuredContent"]["versions"], json!([]));

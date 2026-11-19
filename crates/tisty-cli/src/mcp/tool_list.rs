@@ -226,7 +226,7 @@ pub(super) fn tools_without_hints() -> Value {
                 "properties": {
                     "doc": { "type": "string", "description": "A document's id, not its title, or a task's to put back the assistant's notes on its page" },
                     "even_if_more": { "type": "boolean", "description": "Go back over what was written since too; only once you read it and know, since the person may have written it" },
-                    "version": { "type": "string", "description": "A `version` from `read_doc` with `versions`, to go back to over all written since" }
+                    "version": { "type": "string", "description": "A `version` from `read` with `versions`, to go back to over all written since" }
                 },
                 "required": ["doc"]
             }))
@@ -478,7 +478,9 @@ pub(super) fn tools_without_hints() -> Value {
                     "cursor": { "type": "integer", "description": "The `next` a previous answer gave, with `chars`" },
                     "print": { "type": "string", "description": "The `print` a read gave: unchanged, only that is said; with `cursor`, the part's" },
                     "as": { "type": "string", "enum": ["markdown"], "description": "The whole document in GitHub Markdown for another tool; tell the person what `left_out` lists. Not with a part" },
-                    "marks": { "type": "boolean", "description": "With `doc`: only its highlighted and bold passages, each under its section" }
+                    "marks": { "type": "boolean", "description": "With `doc`: only its highlighted and bold passages, each under its section" },
+                    "versions": { "type": "boolean", "description": "With `doc`: its past versions instead of its text, when, by whom, its size; a task id lists its page's" },
+                    "version": { "type": "string", "description": "A `version` from that list, read in place of the text" }
                 }
             }))
         },

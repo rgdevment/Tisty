@@ -48,7 +48,7 @@ See [[What an assistant may do|MCP-Permissions]] for the rules behind them.
 | `append_doc` | Add to a document, at the end or under a heading; on a task's page, add under the assistant's notes, or with `replace` fold every assistant's notes into one dated digest of at most 6,000 characters that keeps any line you wrote and `restore_doc` can undo. On **Brainstorm**, each paragraph or list item becomes an idea of its own, dated and coloured, of at most 140 characters; the idea itself, its `> [!IDEA]` line and its words as the sheet has them, added to another document takes it off the sheet, as filing it from the window does, and an `[!IDEA]` note that names no idea there stays a sticky note of its own. In the **Diary**, once you open it to agents, it only adds to the end of today, under a line with the minute and the agent's name |
 | `edit_doc` | Change one passage of a document, or of a task's page |
 | `edit_table` | Read or change one table of a document by its rows and columns: set a cell, add, remove or sort rows, rename a column or give it a type. A value its column cannot read is kept and named in the answer |
-| `restore_doc` | Undo the last change that replaced a document's text, a changed passage or a whole write, from its [earlier versions](Documents#earlier-versions) on this computer; appends and your saves leave nothing to undo, and it is refused if something was written since. Undoing twice returns it. With `version` it goes back to one that `read_doc` lists, over everything written since, and what it replaces is kept; without `version` it undoes that go-back. With a task, put back the notes a digest replaced |
+| `restore_doc` | Undo the last change that replaced a document's text, a changed passage or a whole write, from its [earlier versions](Documents#earlier-versions) on this computer; appends and your saves leave nothing to undo, and it is refused if something was written since. Undoing twice returns it. With `version` it goes back to one that `read` lists, over everything written since, and what it replaces is kept; without `version` it undoes that go-back. With a task, put back the notes a digest replaced |
 | `folder` | Make a folder |
 | `file_doc` | Put one or several documents in a folder |
 | `page_doc` | Make documents into pages of another or take them out (`doc`), or put the pages of one in order (`order` with `page_of`) |
@@ -74,7 +74,7 @@ Your [Diary](Documents#diary) is outside every tool until you open it to agents 
 
 An assistant sees and goes back to the same [earlier versions](Documents#earlier-versions) you do, through two tools it already uses, and only those this computer keeps, since versions are not synced. Emptying them has no tool: that is yours. Say you asked «put "Rina's walks" back the way it was before your change this morning»; this is what it does.
 
-**1. It lists the versions,** with `read_doc` and `versions`:
+**1. It lists the versions,** with `read` and `versions`:
 
 ```json
 { "doc": "k7w2pq9d-0003", "versions": true }
@@ -108,7 +108,7 @@ The answer brings the newest first, how many this computer keeps and its limit i
 
 `written` is when that text was written and `until`, how long the document said it. `version` is the start of its print, enough to name it. A task's id lists its page's versions. They come 40 at a time, and `next` says where to ask for older ones with `cursor`.
 
-**2. It reads the one it wants,** with `read_doc` and `version`:
+**2. It reads the one it wants,** with `read` and `version`:
 
 ```json
 { "doc": "k7w2pq9d-0003", "version": "7d21e8b0c9aa" }
