@@ -298,12 +298,26 @@ impl Watching {
 
     // The window's own write may leave the print where it was, so its reminders are read again without waking the window.
     fn reread(&mut self, paths: &tisty_core::Paths) -> bool {
+        let opening = match self.looked {
+            true => None,
+            false => Some(self.opened(paths)),
+        };
         let Ok(state) = tisty_core::cache::summarised(&paths.store(), paths.cache()) else {
             return false;
         };
         self.state = state;
         self.known = true;
+        if let Some(print) = opening {
+            self.print = print;
+        }
         true
+    }
+
+    // The first reading is the window opening, so a first look left for the first bell would swallow that write.
+    fn opened(&mut self, paths: &tisty_core::Paths) -> String {
+        self.papers = tisty_core::docs::print(&paths.docs());
+        self.looked = true;
+        tisty_core::cache::fingerprint(&paths.store())
     }
 }
 
