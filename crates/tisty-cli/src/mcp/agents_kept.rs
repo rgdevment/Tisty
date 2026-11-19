@@ -2,6 +2,7 @@ use serde_json::Value;
 use tisty_core::{Paths, State, agents, model::FolderId, model::Kept};
 
 use super::Refused;
+use super::asked::text;
 use super::mistaken::{NAMES_A_DOCUMENT, NAMES_A_FOLDER};
 
 pub(super) fn proposed_or_left(
@@ -20,7 +21,8 @@ pub(super) fn proposed_or_left(
         }
         return Err(document_kept(kept));
     }
-    let into_agents = folders_named(name, args).any(|said| meant_in_agents(&state, &said));
+    let into_agents = places_named(name, args).any(|said| place_in_agents(&state, &said))
+        || named_alone(name, args).is_some_and(|said| meant_in_agents(&state, &said));
     if into_agents || makes_agents(name, args) {
         return Err(folder_kept());
     }
@@ -85,11 +87,11 @@ fn kept_in_agents<'a>(state: &'a State, said: &str) -> Option<(&'a Kept, bool)> 
     state
         .docs
         .values()
-        .filter(|one| agents::holds(state, one))
-        .find_map(|one| match one.file == said {
-            true => Some((one, true)),
-            false => (loosely(&one.file) == meant).then_some((one, false)),
+        .find_map(|one| {
+            let exactly = one.file == said;
+            (exactly || loosely(&one.file) == meant).then_some((one, exactly))
         })
+        .filter(|(one, _)| agents::holds(state, one))
 }
 
 fn meant_document(said: &str) -> String {
@@ -118,21 +120,31 @@ fn meant_in_agents(state: &State, said: &str) -> bool {
     })
 }
 
-// `folder` looks for a name sent alone at every depth, so that name must not be one in AGENTS.
-fn folders_named(name: &str, args: &Value) -> impl Iterator<Item = String> {
-    let given = NAMES_A_FOLDER.iter().filter_map(|key| args[*key].as_str());
-    let asked = match name {
-        "folder" => super::papers::filing::folder_asked(args).ok(),
+// The tools resolve a place with `folder_named` on this same value; only where it fails is a likeness enough.
+fn place_in_agents(state: &State, said: &str) -> bool {
+    match super::folder_named(state, said) {
+        Ok(at) => agents::holds_folder(state, at),
+        Err(_) => meant_in_agents(state, said),
+    }
+}
+
+fn places_named(name: &str, args: &Value) -> impl Iterator<Item = String> {
+    let given = NAMES_A_FOLDER.iter().filter_map(|key| text(args, key));
+    let under = match name {
+        "folder" => super::papers::filing::folder_asked(args)
+            .ok()
+            .and_then(|asked| asked.under),
         _ => None,
     };
-    let (under, alone) = match asked {
-        Some(asked) => {
-            let alone = asked.under.is_none() && args["inside"].as_str().is_none();
-            (asked.under, alone.then_some(asked.name))
-        }
-        None => (None, None),
-    };
-    given.map(str::to_string).chain(under).chain(alone)
+    given.chain(under)
+}
+
+// `folder` looks for a name sent alone at every depth, so that name must not be one in AGENTS.
+fn named_alone(name: &str, args: &Value) -> Option<String> {
+    let asked = (name == "folder")
+        .then(|| super::papers::filing::folder_asked(args).ok())
+        .flatten()?;
+    (asked.under.is_none() && text(args, "inside").is_none()).then_some(asked.name)
 }
 
 fn makes_agents(name: &str, args: &Value) -> bool {

@@ -4,8 +4,8 @@ use tisty_core::model::{Folder, FolderId, Kept};
 use ulid::Ulid;
 
 use super::{
-    folder_left_out, folders_named, kept_in_agents, left_out, loosely, makes_agents,
-    meant_document, meant_in_agents,
+    folder_left_out, kept_in_agents, left_out, loosely, makes_agents, meant_document,
+    meant_in_agents, named_alone, place_in_agents, places_named,
 };
 
 struct Shelf {
@@ -159,19 +159,44 @@ fn a_folder_in_agents_is_meant_by_its_id_its_name_or_its_path_however_written() 
 }
 
 #[test]
+fn a_place_the_tools_resolve_outside_agents_stays_open_even_named_like_one_inside() {
+    let mut shelf = shelf();
+    let mine = folder(Ulid::generate(), "Claude", None, None);
+    shelf.state.folders.insert(mine.id, mine);
+    assert!(!place_in_agents(&shelf.state, "Claude"));
+    assert!(!place_in_agents(&shelf.state, "Notes"));
+    assert!(place_in_agents(&shelf.state, "AGENTS / Claude"));
+    assert!(place_in_agents(&shelf.state, &shelf.claude.to_string()));
+    assert!(place_in_agents(&shelf.state, "AGENTS\u{2066}"));
+    assert!(place_in_agents(&shelf.state, "Claude\u{200b}"));
+    assert!(!place_in_agents(&shelf.state, "Nowhere"));
+}
+
+#[test]
 fn the_folder_tool_is_judged_by_the_place_it_reads_from_its_name() {
-    let said = |args: Value| folders_named("folder", &args).collect::<Vec<_>>();
-    assert_eq!(said(json!({ "name": "Claude" })), vec!["Claude"]);
-    assert_eq!(said(json!({ "name": "AGENTS / Codex" })), vec!["AGENTS"]);
+    let places = |args: Value| places_named("folder", &args).collect::<Vec<_>>();
+    let alone = |args: Value| named_alone("folder", &args);
     assert_eq!(
-        said(json!({ "name": "Codex", "inside": "Notes" })),
+        alone(json!({ "name": "Claude" })).as_deref(),
+        Some("Claude")
+    );
+    assert_eq!(
+        alone(json!({ "name": "Claude", "inside": " " })).as_deref(),
+        Some("Claude")
+    );
+    assert_eq!(alone(json!({ "name": "Claude", "inside": "Notes" })), None);
+    assert_eq!(alone(json!({ "name": "Notes / Claude" })), None);
+    assert_eq!(places(json!({ "name": "AGENTS / Codex" })), vec!["AGENTS"]);
+    assert_eq!(
+        places(json!({ "name": "Codex", "inside": " Notes" })),
         vec!["Notes"]
     );
-    assert!(said(json!({ "name": "" })).is_empty());
+    assert!(places(json!({ "name": "", "inside": "" })).is_empty());
     assert_eq!(
-        folders_named("file_doc", &json!({ "folder": "Notes", "name": "x" })).collect::<Vec<_>>(),
+        places_named("file_doc", &json!({ "folder": "Notes", "name": "x" })).collect::<Vec<_>>(),
         vec!["Notes"]
     );
+    assert_eq!(named_alone("file_doc", &json!({ "name": "AGENTS" })), None);
     assert!(makes_agents(
         "folder",
         &json!({ "name": "Work / AGEN\tTS" })

@@ -479,6 +479,10 @@ fn a_folder_named_with_hidden_marks_is_kept_like_agents() {
         ("folder", json!({ "name": "Claude", "icon": "home" })),
         (
             "folder",
+            json!({ "name": "Claude", "inside": " ", "icon": "home" }),
+        ),
+        (
+            "folder",
             json!({ "name": "Codex", "inside": format!(" {claude}") }),
         ),
         (
@@ -772,4 +776,14 @@ fn a_folder_outside_agents_still_takes_a_look_and_a_new_folder() {
         json!({ "doc": format!(" {}\n", served.elsewhere), "folder": "\tNotes / Claude " }),
     );
     assert_ne!(filed["result"]["isError"], true, "{filed}");
+
+    let mine = person.makes_folder("Claude", None, None);
+    let filed = served.call(
+        "file_doc",
+        json!({ "doc": served.elsewhere, "folder": "Claude" }),
+    );
+    assert_ne!(filed["result"]["isError"], true, "{filed}");
+    let state = served.state();
+    let elsewhere = state.docs.values().find(|one| one.file == served.elsewhere);
+    assert_eq!(elsewhere.unwrap().folder, Some(mine));
 }

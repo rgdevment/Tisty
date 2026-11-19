@@ -69,8 +69,7 @@ pub(crate) fn approve(session: &mut Session, file: &str, print: &str, over: &str
     settle(session, id, print)
 }
 
-// The card warns and approving refuses by one reading: a proposal made before the person changed
-// the `agent:` line would otherwise take the old line back.
+// One reading for the card's warning and the refusal, or an old proposal takes back an old `agent:` line.
 fn fits(now: &str, proposal: &str) -> Result<(), &'static str> {
     match proposable(now, proposal) {
         Ok(()) => Ok(()),
