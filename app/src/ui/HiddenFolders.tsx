@@ -1,10 +1,8 @@
-import { asksPerson } from "../agentDocs";
-import { agentsLit, agentsRoot } from "../agentsSync";
+import { agentsRoot } from "../agentsSync";
 import type { Papers } from "../core";
 import { trail } from "../folders";
 import { agentsHidden, agentsKeys, BRAINSTORM, DIARY, show, useHidden } from "../hiding";
 import { fill, t } from "../locales";
-import { AgentsWord, useAgentsGlance, useAgentsState } from "./AgentsMark";
 import { Band, Line, mild } from "./Rows";
 
 interface Row {
@@ -30,18 +28,10 @@ export const hiddenRows = (hidden: readonly string[], papers: Papers): Row[] => 
 
 interface Props {
   papers: Papers;
-  onOpen: (folder: string) => void;
 }
 
-export default function HiddenFolders({ papers, onOpen }: Readonly<Props>) {
-  const hidden = useHidden();
-  const rows = hiddenRows(hidden, papers);
-  const root = agentsRoot(papers.folders)?.id ?? null;
-  const veiled = agentsHidden(hidden, root);
-  const stance = useAgentsState(veiled ? root : null);
-  const lit = stance !== null && agentsLit(stance);
-  const glance = useAgentsGlance(veiled && lit ? root : null);
-  const waits = glance && asksPerson(glance) ? glance : null;
+export default function HiddenFolders({ papers }: Readonly<Props>) {
+  const rows = hiddenRows(useHidden(), papers);
   return (
     <>
       <Band label={t("hiddenTitle")} />
@@ -54,24 +44,7 @@ export default function HiddenFolders({ papers, onOpen }: Readonly<Props>) {
         )}
         {rows.map((one) => (
           <li key={one.keys[0]}>
-            <Line
-              title={one.name}
-              which="hidden"
-              why={
-                one.agents && waits && root ? (
-                  <span className="flex items-center gap-2">
-                    <AgentsWord glance={waits} />
-                    <button
-                      type="button"
-                      onClick={() => onOpen(root)}
-                      className="text-accent hover:underline"
-                    >
-                      {t("hiddenOpen")}
-                    </button>
-                  </span>
-                ) : undefined
-              }
-            >
+            <Line title={one.name} which="hidden">
               <button
                 type="button"
                 onClick={() => show(...one.keys)}

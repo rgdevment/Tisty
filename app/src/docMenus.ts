@@ -184,7 +184,8 @@ export const folderChoices = (folder: Folded, h: Hands, lit = false): Choice[] =
       onPick: () => h.parcels.packUp([], "tisty"),
     },
     ...(isRoot ? switchChoices(h, lit) : []),
-    hideChoice(isRoot ? agentsKeys(folder.id) : folder.id, folder.away),
+    // AGENTS hides only once off, so a hidden AGENTS never writes a file nobody sees.
+    ...(isRoot && lit ? [] : [hideChoice(isRoot ? agentsKeys(folder.id) : folder.id, folder.away)]),
     {
       // Only the folder that was shelved answers for itself; one below it comes back with it.
       key: "away",

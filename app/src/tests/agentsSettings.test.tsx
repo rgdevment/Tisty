@@ -100,18 +100,23 @@ describe("the AGENTS card in Settings", () => {
     expect(await screen.findByText("No agents found on this computer.")).toBeTruthy();
   });
 
-  it("says a hidden AGENTS keeps syncing and shows it again", async () => {
-    ipc.state = state({ folder: "A", consented: true });
+  it("says a hidden AGENTS is off and shows it again", async () => {
+    ipc.state = state({ folder: "A", consented: true, allOn: false });
+    ipc.look = look({ allOn: false });
     hide("A");
     render(<AgentsSettings busy={null} />);
     expect(
-      await screen.findByText("Hidden from the sidebar on this computer. It keeps syncing."),
+      await screen.findByText(
+        "Hidden from the sidebar on this computer, and off: it writes no agent file.",
+      ),
     ).toBeTruthy();
     await userEvent.click(screen.getByRole("button", { name: "Show again" }));
     expect(isHidden("A")).toBe(false);
     await settle();
     expect(
-      screen.queryByText("Hidden from the sidebar on this computer. It keeps syncing."),
+      screen.queryByText(
+        "Hidden from the sidebar on this computer, and off: it writes no agent file.",
+      ),
     ).toBeNull();
   });
 

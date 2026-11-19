@@ -358,6 +358,33 @@ describe("what the keeper does with the notice", () => {
     expect(sent("agents_turn")).toHaveLength(0);
   });
 
+  it("shows AGENTS again when turning it on, since on means seen", async () => {
+    hide(AGENTS);
+    ipc.state = state({ folder: "A", consented: true, allOn: false });
+    const notice = await opened();
+    await userEvent.click(notice.getByRole("button", { name: "Turn on" }));
+    await waitFor(() => expect(sent("agents_turn")).toHaveLength(1));
+    expect(isHidden(AGENTS)).toBe(false);
+  });
+
+  it("shows again an AGENTS hidden while on before hiding needed it off, and leaves it on", async () => {
+    desk.papers = withAgents;
+    hide("A");
+    ipc.state = state({ folder: "A", consented: true });
+    render(<AgentsKeeper />);
+    await waitFor(() => expect(isHidden("A")).toBe(false));
+    expect(sent("agents_turn")).toHaveLength(0);
+  });
+
+  it("leaves an AGENTS hidden while off where it is", async () => {
+    desk.papers = withAgents;
+    hide(AGENTS);
+    ipc.state = state({ folder: "A", consented: true, allOn: false });
+    render(<AgentsKeeper />);
+    await settle();
+    expect(isHidden(AGENTS)).toBe(true);
+  });
+
   it("turns on straight away from Settings", async () => {
     ipc.state = state({ folder: "A", consented: true, allOn: false });
     render(<AgentsKeeper />);

@@ -1,11 +1,10 @@
-import { act, render, renderHook, screen, waitFor, within } from "@testing-library/react";
+import { act, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { AgentsLook, AgentsState } from "../agentsSync";
 import type { Folded, Papers } from "../core";
 import { AGENTS, BRAINSTORM, DIARY, hide, isHidden, showAll } from "../hiding";
 import { adopt } from "../locales";
-import { useHiddenAgentsWaiting } from "../ui/AgentsMark";
 import HiddenFolders, { hiddenRows } from "../ui/HiddenFolders";
 
 const seen = vi.hoisted(() => ({
@@ -75,7 +74,7 @@ beforeEach(() => {
 
 describe("the hidden folders in Settings", () => {
   it("says so in one line when nothing is hidden", () => {
-    render(<HiddenFolders papers={papers} onOpen={vi.fn()} />);
+    render(<HiddenFolders papers={papers} />);
     expect(listed().getByText("No folder is hidden.")).toBeTruthy();
   });
 
@@ -83,7 +82,7 @@ describe("the hidden folders in Settings", () => {
     hide("C");
     hide(DIARY);
     hide(BRAINSTORM);
-    render(<HiddenFolders papers={papers} onOpen={vi.fn()} />);
+    render(<HiddenFolders papers={papers} />);
     expect(listed().getByText("trabajo / claude")).toBeTruthy();
     expect(listed().getByText("Diary")).toBeTruthy();
     expect(listed().getByText("Brainstorm")).toBeTruthy();
@@ -92,7 +91,7 @@ describe("the hidden folders in Settings", () => {
   it("brings one back to the sidebar and leaves the others hidden", async () => {
     hide("W");
     hide(DIARY);
-    render(<HiddenFolders papers={papers} onOpen={vi.fn()} />);
+    render(<HiddenFolders papers={papers} />);
     await userEvent.click(
       listed().getByRole("button", { name: "Show trabajo in the sidebar again" }),
     );
@@ -120,7 +119,7 @@ describe("the hidden folders in Settings", () => {
   it("shows AGENTS again under every key it was hidden by", async () => {
     hide("A");
     hide(AGENTS);
-    render(<HiddenFolders papers={papers} onOpen={vi.fn()} />);
+    render(<HiddenFolders papers={papers} />);
     await userEvent.click(
       listed().getByRole("button", { name: "Show AGENTS in the sidebar again" }),
     );
@@ -128,48 +127,13 @@ describe("the hidden folders in Settings", () => {
     expect(isHidden(AGENTS)).toBe(false);
   });
 
-  it("says what waits in a hidden AGENTS, with a link to open it", async () => {
+  it("names a hidden AGENTS and nothing more, since hidden it is off", async () => {
     hide(AGENTS);
     seen.look = look({ changes: 1 });
-    const onOpen = vi.fn();
-    render(<HiddenFolders papers={papers} onOpen={onOpen} />);
-    expect(await listed().findByText("1 changed")).toBeTruthy();
-    await userEvent.click(listed().getByRole("button", { name: "Open" }));
-    expect(onOpen).toHaveBeenCalledWith("A");
-  });
-
-  it("stays quiet about a hidden AGENTS in sync, and about one that is off", async () => {
-    hide(AGENTS);
-    seen.state = { ...lit, allOn: false };
-    seen.look = look({ changes: 1 });
-    render(<HiddenFolders papers={papers} onOpen={vi.fn()} />);
+    render(<HiddenFolders papers={papers} />);
     await settle();
     expect(listed().getByText("AGENTS")).toBeTruthy();
     expect(listed().queryByText("1 changed")).toBeNull();
-    expect(seen.asked).not.toContain("agents_look");
-  });
-});
-
-describe("the dot on the Settings gear", () => {
-  it("lights while a hidden AGENTS has something waiting", async () => {
-    hide(AGENTS);
-    seen.look = look({ waiting: 2 });
-    const { result } = renderHook(() => useHiddenAgentsWaiting(papers.folders));
-    await waitFor(() => expect(result.current).toBe(true));
-  });
-
-  it("stays dark while AGENTS shows in the sidebar, since its row says it there", async () => {
-    seen.look = look({ changes: 3 });
-    const { result } = renderHook(() => useHiddenAgentsWaiting(papers.folders));
-    await settle();
-    expect(result.current).toBe(false);
-    expect(seen.asked).not.toContain("agents_look");
-  });
-
-  it("stays dark for a hidden AGENTS in sync", async () => {
-    hide(AGENTS);
-    const { result } = renderHook(() => useHiddenAgentsWaiting(papers.folders));
-    await settle();
-    expect(result.current).toBe(false);
+    expect(seen.asked).toEqual([]);
   });
 });

@@ -7,6 +7,7 @@ import {
   AGENTS_MORE,
   type AgentsState,
   agentsEmpty,
+  agentsLit,
   agentsLook,
   agentsPrint,
   agentsRoot,
@@ -18,10 +19,11 @@ import {
   onlySwitchedOff,
 } from "../agentsSync";
 import { useDesk } from "../desk";
-import { AGENTS, hide } from "../hiding";
+import { AGENTS, agentsHidden, agentsKeys, hide, show, useHidden } from "../hiding";
 import { saidPlainly } from "../refusal";
 import AgentsAsleep from "./AgentsAsleep";
 import AgentsFirst from "./AgentsFirst";
+import { useAgentsState } from "./AgentsMark";
 import { waitingOf } from "./AgentsReview";
 
 export const AGENTS_FIRST = "tisty:agents-first";
@@ -52,6 +54,8 @@ export default function AgentsKeeper() {
 
   const light = useCallback(
     (state: AgentsState) => {
+      // On means seen: AGENTS never writes agent files from behind a hidden row.
+      show(...agentsKeys(state.folder));
       if (onlySwitchedOff(state)) return switchOn();
       lighting.current = true;
       setAsking("first");
@@ -114,6 +118,12 @@ export default function AgentsKeeper() {
   }, [inside, papers.folders]);
 
   const root = agentsRoot(papers.folders)?.id;
+  // Hidden while on came from before hiding needed AGENTS off; it shows again rather than go off unseen.
+  const stance = useAgentsState(root ?? null);
+  const veiled = agentsHidden(useHidden(), root);
+  useEffect(() => {
+    if (veiled && stance && agentsLit(stance)) show(...agentsKeys(stance.folder));
+  }, [veiled, stance]);
   const tree = agentsTree(papers.folders);
   const holds = papers.docs.some((one) => one.folder && tree.has(one.folder));
   // Only an AGENTS emptied while the window watched goes; one made or found empty stays.

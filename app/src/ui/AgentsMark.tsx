@@ -1,10 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { asksPerson, type Glance, type GlanceWord, glanceWord } from "../agentDocs";
-import { type AgentsState, agentsLit, agentsLook, agentsRoot, agentsState } from "../agentsSync";
-import type { Folded } from "../core";
-import { agentsHidden, useHidden } from "../hiding";
+import { type Glance, type GlanceWord, glanceWord } from "../agentDocs";
+import { AGENTS_CHANGED, type AgentsState, agentsLook, agentsState } from "../agentsSync";
 import { fill, t } from "../locales";
-import { AGENTS_CHANGED } from "./AgentsKeeper";
 import { AGENT_DOC_STOOD } from "./useAgentDoc";
 
 const TONE: Record<GlanceWord, string> = {
@@ -64,16 +61,6 @@ export function useAgentsGlance(root: string | null): Glance | null {
     };
   }, [ask, root]);
   return root ? glance : null;
-}
-
-/// A hidden AGENTS keeps syncing, so what waits for the person still has to show somewhere.
-export function useHiddenAgentsWaiting(folders: readonly Folded[]): boolean {
-  const root = agentsRoot(folders)?.id ?? null;
-  const veiled = agentsHidden(useHidden(), root);
-  const stance = useAgentsState(veiled ? root : null);
-  const lit = stance !== null && agentsLit(stance);
-  const glance = useAgentsGlance(veiled && lit ? root : null);
-  return glance !== null && asksPerson(glance);
 }
 
 const waitingSaid = (glance: Glance): string => {

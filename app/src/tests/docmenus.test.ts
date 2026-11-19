@@ -215,6 +215,15 @@ describe("the menu inside AGENTS", () => {
     expect(h.changed).not.toHaveBeenCalled();
   });
 
+  it("offers no Hide on AGENTS while it is on, only Turn AGENTS off", () => {
+    const h = hands();
+    h.papers = { folders: [folder, agentsRoot], docs: [] } as unknown as Papers;
+    const keys = folderChoices(agentsRoot, h, true).map((one) => one.key);
+    expect(keys).toContain("agentsOff");
+    expect(keys).not.toContain("hide");
+    expect(folderChoices(folder, h, true).map((one) => one.key)).toContain("hide");
+  });
+
   it("hides AGENTS under its own key, so the row stays hidden once its folder is made again", () => {
     showAll();
     const h = hands();

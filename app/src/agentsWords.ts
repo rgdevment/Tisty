@@ -400,12 +400,8 @@ const words = {
   agentsHide: ["Hide", "Ocultar"],
   agentsSwitchOff: ["Turn AGENTS off", "Apagar AGENTS"],
   agentsSettingsHidden: [
-    "Hidden from the sidebar on this computer. It keeps syncing.",
-    "Oculta de la barra en este equipo. Sigue sincronizando.",
-  ],
-  agentsHiddenDot: [
-    "AGENTS is hidden and something waits for you",
-    "AGENTS está oculta y algo espera tu decisión",
+    "Hidden from the sidebar on this computer, and off: it writes no agent file.",
+    "Oculta de la barra en este equipo, y apagada: no escribe ningún archivo de agente.",
   ],
   agentsSkillFiles: ["{name} files", "{name} archivos"],
   agentsSkillShow: ["Show the files of {name}", "Mostrar los archivos de {name}"],

@@ -227,15 +227,7 @@ export default function Stage() {
       onGreet={() => setGreet(true)}
       onDoc={openDoc}
       onChanged={refreshed}
-      hidden={
-        <HiddenFolders
-          papers={papers}
-          onOpen={(folder) => {
-            setHere(folder);
-            setChosen({ named: "docs" });
-          }}
-        />
-      }
+      hidden={<HiddenFolders papers={papers} />}
     />
   ) : sheet && task ? (
     <Detail
