@@ -100,7 +100,7 @@ Beside the AGENTS folder's name, the sidebar tells you how everything stands:
 | **off** | This computer is not allowed, or you paused the whole folder |
 | **empty** | The folder holds no documents |
 
-If more than one applies, the most pressing shows: first **off**, then **changed**, then **waiting** and last **to approve**.
+If more than one applies, the most pressing shows: **empty** when there are no documents, and if there are, first **off**, then **changed**, then **waiting** and last **to approve**.
 
 ![The sidebar in English with the AGENTS folder open, its purple robot icon and the words in sync on the right; inside, the subfolders Global, Claude, Codex and Gemini. In Claude, the rule How I work with a book icon, the rule Code style, the skill pr with a puzzle-piece icon and 3 files on the right, open, showing SKILL.md, scripts/open-pr.sh and template.md, and the memory MEMORY.md with a brain icon; the pointer over How I work shows claude · CLAUDE.md](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/agents/en-02-sidebar.png)
 
@@ -245,7 +245,7 @@ In an AGENTS document, the column beside the page does not show the paper size, 
 | **Original kept** | Whether backup #1 is there, the file as it was before Tisty touched it | Yes, before Tisty's first write |
 | **Syncs on this computer** | Whether Tisty keeps it up to date here | Yes; Yes, except Codex (paused); Tisty only reads it; No, AGENTS is off |
 
-Below, **History** opens the document's [earlier versions](Documents#earlier-versions), and **Copy link**, its [link](Documents#a-documents-link). If you already shared that document before, the sharing panel is still there.
+Below, **History**, once the document has earlier versions, opens its [history](Documents#earlier-versions), and **Copy link**, its [link](Documents#a-documents-link). If you already shared that document before, the sharing panel is still there.
 
 ### Each standing
 
@@ -375,7 +375,7 @@ Then the sidebar says **1 to approve** beside AGENTS, and the card warns «Its t
 
 If that document was already written to a file, the file does not change meanwhile: its card says **On hold** and names the document holding it, for example «This file stays as it was: claude · style.md changed or left AGENTS without your approval. Approve it, or put it back and take it out yourself.».
 
-A document an agent put in AGENTS, and not you, is not written either: its card says «An agent put it here, so no agent reads it until you move it yourself.». Move it yourself to another AGENTS subfolder (reordering it is not enough), and it applies.
+A document an agent put in AGENTS, and not you, is not written either: its card says «An agent put it here, so no agent reads it until you move it yourself.». Move it yourself to another AGENTS subfolder you made (reordering it is not enough), and it applies. If an agent made or renamed the folder it sits in, the same goes for everything inside it: move it to a folder of yours.
 
 ### Written by an earlier Tisty
 

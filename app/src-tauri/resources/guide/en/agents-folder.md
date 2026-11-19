@@ -145,7 +145,7 @@ An AGENTS document opens for reading, with a **card** at the top:
 - one row per file: «Claude reads it at `~/.claude/CLAUDE.md`», with when it changed and its backups;
 - the buttons **Edit**, **Backups** and **Pause sync with Claude**.
 
-Beside it, the **Agent file** panel takes the place of the paper size and the outline: **Read by**, **Written to**, **Format**, **Last written**, **Backups**, **Original kept** and **Syncs on this computer**, with **History** and **Copy link**.
+Beside it, the **Agent file** panel takes the place of the paper size and the outline: **Read by**, **Written to**, **Format**, **Last written**, **Backups**, **Original kept** and **Syncs on this computer**, with **Copy link** and, once it has earlier versions, **History**.
 
 ![The card of How I work with the labels Rule, Claude and In sync, the name in large type and the path CLAUDE.md under it, the row Claude reads it at ~/.claude/CLAUDE.md with 3 backups, and the buttons Edit, Backups and Pause sync with Claude; on the right, the Agent file panel with Read by Claude, Format Markdown · LF and Syncs on this computer Yes](agents-card.png)
 

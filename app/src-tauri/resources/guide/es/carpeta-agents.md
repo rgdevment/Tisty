@@ -145,7 +145,7 @@ Un documento de AGENTS se abre para leer, con una **ficha** arriba:
 - una fila por archivo: «Claude lo lee en `~/.claude/CLAUDE.md`», con cuándo cambió y sus respaldos;
 - los botones **Editar**, **Respaldos** y **Pausar la sincronización con Claude**.
 
-Al lado, el panel **Archivo del agente** ocupa el lugar del tamaño de hoja y del índice: **Lo lee**, **Se escribe en**, **Formato**, **Última escritura**, **Respaldos**, **Original guardado** y **Sincroniza en este equipo**, con **Historial** y **Copiar enlace**.
+Al lado, el panel **Archivo del agente** ocupa el lugar del tamaño de hoja y del índice: **Lo lee**, **Se escribe en**, **Formato**, **Última escritura**, **Respaldos**, **Original guardado** y **Sincroniza en este equipo**, con **Copiar enlace** y, cuando ya tiene versiones anteriores, **Historial**.
 
 ![La ficha de Cómo trabajo con las etiquetas Regla, Claude y Al día, el nombre en grande y la ruta CLAUDE.md debajo, la fila Claude lo lee en ~/.claude/CLAUDE.md con 3 respaldos, y los botones Editar, Respaldos y Pausar la sincronización con Claude; a la derecha, el panel Archivo del agente con Lo lee Claude, Formato Markdown · LF y Sincroniza en este equipo Sí](agents-ficha.png)
 

@@ -100,7 +100,7 @@ Junto al nombre de la carpeta AGENTS, la barra lateral te dice cómo está todo:
 | **apagada** | Este equipo no está autorizado, o pausaste toda la carpeta |
 | **vacía** | La carpeta no tiene documentos |
 
-Si hay más de una cosa, se ve la más urgente: primero **apagada**, después **con cambios**, después **en espera** y al final **por aprobar**.
+Si hay más de una cosa, se ve la más urgente: **vacía** cuando no hay documentos, y si los hay, primero **apagada**, después **con cambios**, después **en espera** y al final **por aprobar**.
 
 ![La barra lateral en español con la carpeta AGENTS abierta, su icono de robot morado y la palabra al día a la derecha; dentro, las subcarpetas Global, Claude, Codex y Gemini. En Claude, la regla Cómo trabajo con el icono de un libro, la regla Estilo de código, la skill pr con el icono de una pieza y 3 archivos a la derecha, abierta, mostrando SKILL.md, scripts/abrir-pr.sh y plantilla.md, y la memoria MEMORY.md con el icono de un cerebro; el puntero sobre Cómo trabajo muestra claude · CLAUDE.md](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/agents/es-02-barra.png)
 
@@ -245,7 +245,7 @@ En un documento de AGENTS, la columna de al lado no muestra el tamaño de hoja, 
 | **Original guardado** | Si ya está el respaldo n.º 1, el archivo de antes de que Tisty lo tocara | Sí, el de antes de la primera escritura de Tisty |
 | **Sincroniza en este equipo** | Si Tisty lo mantiene al día aquí | Sí; Sí, salvo Codex (en pausa); Tisty solo lo lee; No, AGENTS está apagada |
 
-Debajo, **Historial** abre las [versiones anteriores](Documentos#versiones-anteriores) del documento, y **Copiar enlace**, su [enlace](Documentos#el-enlace-de-un-documento). Si ya compartías ese documento antes, el panel de compartir sigue ahí.
+Debajo, **Historial**, cuando el documento ya tiene versiones anteriores, abre su [historial](Documentos#versiones-anteriores), y **Copiar enlace**, su [enlace](Documentos#el-enlace-de-un-documento). Si ya compartías ese documento antes, el panel de compartir sigue ahí.
 
 ### Cada estado
 
@@ -375,7 +375,7 @@ Entonces la barra dice **1 por aprobar** junto a AGENTS, y la ficha avisa «Su t
 
 Si ese documento ya se escribía en un archivo, el archivo no cambia mientras tanto: su ficha dice **En espera** y nombra el documento que lo detiene, por ejemplo «Este archivo queda como estaba: claude · estilo.md cambió o salió de AGENTS sin tu aprobación. Apruébalo, o vuelve a ponerlo y sácalo tú.».
 
-Un documento que puso en AGENTS un agente, y no tú, tampoco se escribe: su ficha dice «Lo puso aquí un agente, así que ningún agente lo lee hasta que lo muevas tú.». Muévelo tú a otra subcarpeta de AGENTS (cambiarlo de orden no basta), y se aplica.
+Un documento que puso en AGENTS un agente, y no tú, tampoco se escribe: su ficha dice «Lo puso aquí un agente, así que ningún agente lo lee hasta que lo muevas tú.». Muévelo tú a otra subcarpeta de AGENTS que hayas creado tú (cambiarlo de orden no basta), y se aplica. Si un agente creó o renombró la carpeta en que está, pasa lo mismo con todo lo que hay dentro: muévelo a una carpeta tuya.
 
 ### Escrito por un Tisty anterior
 
