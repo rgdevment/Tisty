@@ -81,9 +81,6 @@ pub(crate) fn alike(items: &[Item], tied: &HashSet<(usize, usize)>, caps: &Caps)
     let mut touched = Vec::new();
     for (at, vector) in base.vectors.iter().enumerate() {
         for &(term, weight) in vector {
-            if !base.weighty[term as usize] {
-                continue;
-            }
             for &(other, theirs) in &postings[term as usize] {
                 if other == at {
                     continue;
@@ -188,10 +185,7 @@ fn weighed<'a>(items: &'a [Item], caps: &Caps) -> (Base<'a>, usize) {
         counts.push(here);
     }
     let common_from = common_from(&df, items.len(), caps);
-    let weighty = df
-        .iter()
-        .map(|one| (2..common_from).contains(&(*one as usize)))
-        .collect();
+    let weighty = df.iter().map(|one| (*one as usize) < common_from).collect();
     let n = items.len() as f32;
     let vectors = counts
         .iter()
