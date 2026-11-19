@@ -1,9 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Neuron } from "../../brainsty";
 import { docGlance, type Glance } from "../../citing";
 import { numbered } from "../../format";
 import { fill, t } from "../../locales";
 import { taskCard } from "../../markdown";
+import { picturesWithin } from "../dressing";
 import Page from "../Page";
 
 interface Props {
@@ -29,6 +30,7 @@ const TASKS = { tasks: true };
 
 export default function Preview({ neuron, ties, zone, onOpen, onClose }: Props) {
   const [glance, setGlance] = useState<Glance | null>(null);
+  const words = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     let live = true;
@@ -43,6 +45,15 @@ export default function Preview({ neuron, ties, zone, onOpen, onClose }: Props) 
       live = false;
     };
   }, [neuron.id, neuron.kind]);
+
+  useEffect(() => {
+    if (!glance || !words.current) return;
+    let live = true;
+    picturesWithin(words.current, () => live);
+    return () => {
+      live = false;
+    };
+  }, [glance]);
 
   return (
     <aside
@@ -84,7 +95,8 @@ export default function Preview({ neuron, ties, zone, onOpen, onClose }: Props) 
       )}
       {glance && (
         <div
-          className="scroller min-h-0 flex-1 text-[12.5px] leading-relaxed text-soft"
+          ref={words}
+          className="scroller min-h-0 flex-1 text-[12.5px] leading-relaxed text-soft [&_img]:h-auto [&_img]:max-w-full [&_img]:rounded-md [&_.media-again]:ml-2 [&_.media-again]:text-accent [&_.media-again]:hover:underline [&_.picture-away]:block [&_.picture-away]:text-faint"
           // biome-ignore lint/security/noDangerouslySetInnerHtml: the core's translator drew it, as every page
           dangerouslySetInnerHTML={{ __html: glance.html }}
         />

@@ -58,9 +58,13 @@ export default function Brainsty({ network, onOpen, escaping }: Props) {
   );
   const live = useRef({ picked, hidden, onOpen });
   live.current = { picked, hidden, onOpen };
+  // The keys walk the network from the network itself, so the search hands the focus back once it is done.
+  const backToNetwork = () => host.current?.focus();
   escaping.current = () => {
-    if (query) setQuery("");
-    else if (picked !== null) setPicked(null);
+    if (query) {
+      setQuery("");
+      backToNetwork();
+    } else if (picked !== null) setPicked(null);
     else return false;
     return true;
   };
@@ -168,11 +172,17 @@ export default function Brainsty({ network, onOpen, escaping }: Props) {
     setQuery("");
     setPicked(node);
     drawing.current?.drawn.focus(node);
+    backToNetwork();
   };
   const shown = picked === null ? null : network.nodes[picked];
   return (
     <div className="absolute inset-0">
-      <figure ref={host} aria-label={t("brainstyNetwork")} className="absolute inset-0 m-0" />
+      <figure
+        ref={host}
+        tabIndex={-1}
+        aria-label={t("brainstyNetwork")}
+        className="absolute inset-0 m-0 outline-none focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-solid focus-visible:outline-accent"
+      />
       <Toolbar
         network={network}
         query={query}

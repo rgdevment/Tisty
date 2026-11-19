@@ -167,7 +167,13 @@ export function drawNetwork(
         },
       ],
     },
-    settings: { hideEdgesOnMove: true, labelRenderedSizeThreshold: 1, allowInvalidContainer: true },
+    // In pixels: measured in the layout's units, a small network that fills the window draws its nodes huge.
+    settings: {
+      hideEdgesOnMove: true,
+      labelRenderedSizeThreshold: 1,
+      allowInvalidContainer: true,
+      itemSizesReference: "screen",
+    },
   });
   const camera = sigma.getCamera();
   let zoom = quantized(zoomOf(camera.ratio));

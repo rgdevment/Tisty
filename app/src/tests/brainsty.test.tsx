@@ -11,6 +11,7 @@ Object.defineProperty(window, "innerWidth", { configurable: true, value: 1440 })
 const ipc = vi.hoisted(() => ({
   calls: [] as { cmd: string; args: Record<string, unknown> }[],
   network: (): Promise<unknown> => Promise.resolve(null),
+  glance: "",
 }));
 
 vi.mock("@tauri-apps/api/core", () => ({
@@ -18,6 +19,7 @@ vi.mock("@tauri-apps/api/core", () => ({
     ipc.calls.push({ cmd, args: args ?? {} });
     return answer(cmd);
   },
+  convertFileSrc: (path: string) => `asset://localhost/${path}`,
 }));
 
 const sigma = vi.hoisted(() => ({
@@ -144,9 +146,11 @@ function answer(cmd: string): Promise<unknown> {
       return Promise.resolve({
         title: "Notes",
         heading: null,
-        html: '<h2 id="bread" data-at="3">Bread</h2><p>About bread</p>',
+        html: ipc.glance,
         more: false,
       });
+    case "served":
+      return Promise.resolve("C:/home/data/attachments/rina.jpg");
     case "doc_drawn":
       return Promise.resolve(
         new TextEncoder().encode('<p><a class="card" data-task="01A">buy bread</a></p>').buffer,
@@ -195,6 +199,7 @@ beforeEach(() => {
   localStorage.clear();
   ipc.calls = [];
   ipc.network = () => Promise.resolve(small);
+  ipc.glance = '<h2 id="bread" data-at="3">Bread</h2><p>About bread</p>';
   Object.assign(sigma, {
     centred: [],
     placed: 0,
@@ -443,6 +448,102 @@ describe("the Brainsty section", () => {
     expect(last(sigma.hidden)).toEqual([true, true, false]);
     await user.click(layer().getByRole("button", { name: t("brainstyEverything") }));
     expect(last(sigma.hidden)).toEqual([false, false, false]);
+  });
+
+  it("filters the network by state and period", async () => {
+    const today = new Date().toISOString().slice(0, 10);
+    ipc.network = () =>
+      Promise.resolve({
+        ...small,
+        nodes: [
+          { ...small.nodes[0], when: today },
+          { ...small.nodes[1], state: "done", when: "2020-01-01" },
+          small.nodes[2],
+        ],
+      });
+    const user = await opened();
+    await user.click(screen.getByRole("button", { name: t("brainsty") }));
+    await screen.findByRole("figure", { name: t("brainstyNetwork") });
+    await user.click(layer().getByRole("button", { name: t("brainstyFilters") }));
+
+    await user.click(layer().getByRole("button", { name: t("brainstyStanding_done") }));
+    expect(last(sigma.hidden)).toEqual([false, true, false]);
+    await user.click(layer().getByRole("button", { name: t("brainstyEverything") }));
+    expect(last(sigma.hidden)).toEqual([false, false, false]);
+    await user.click(layer().getByRole("button", { name: t("brainstyPeriod_7") }));
+    expect(last(sigma.hidden)).toEqual([false, true, false]);
+    await user.click(layer().getByRole("button", { name: t("brainstyPeriod_0") }));
+    expect(last(sigma.hidden)).toEqual([false, false, false]);
+  });
+
+  it("brings the first find close with Enter in the search", async () => {
+    const user = await opened();
+    await user.click(screen.getByRole("button", { name: t("brainsty") }));
+    await screen.findByRole("figure", { name: t("brainstyNetwork") });
+
+    await user.type(screen.getByRole("searchbox", { name: t("brainstySearch") }), "bread{Enter}");
+
+    expect(sigma.focused).toEqual([1]);
+    expect(screen.getByRole<HTMLInputElement>("searchbox").value).toBe("");
+    expect(await layer().findByRole("complementary", { name: "buy bread" })).toBeTruthy();
+    expect(document.activeElement).toBe(layer().getByRole("figure"));
+    await user.keyboard("{Enter}");
+    await waitFor(() => expect(ipc.calls.some((one) => one.cmd === "task_of")).toBe(true));
+  });
+
+  it("hands the keys back to the network when Escape clears the search", async () => {
+    const user = await opened();
+    await user.click(screen.getByRole("button", { name: t("brainsty") }));
+    await screen.findByRole("figure", { name: t("brainstyNetwork") });
+
+    await user.type(screen.getByRole("searchbox", { name: t("brainstySearch") }), "bre");
+    await user.keyboard("{Escape}");
+
+    expect(screen.getByRole<HTMLInputElement>("searchbox").value).toBe("");
+    expect(document.activeElement).toBe(layer().getByRole("figure"));
+    expect(screen.getByRole("dialog", { name: t("brainsty") })).toBeTruthy();
+  });
+
+  it("keeps Tab inside, coming round through the network", async () => {
+    const user = await opened();
+    await user.click(screen.getByRole("button", { name: t("brainsty") }));
+    const network = await screen.findByRole("figure", { name: t("brainstyNetwork") });
+    const back = layer().getByRole("button", { name: new RegExp(t("goBack")) });
+    const filters = layer().getByRole("button", { name: t("brainstyFilters") });
+
+    await user.tab();
+    expect(document.activeElement).toBe(back);
+    await user.tab();
+    await user.tab();
+    expect(document.activeElement).toBe(filters);
+    await user.tab();
+    expect(document.activeElement).toBe(network);
+    await user.tab();
+    expect(document.activeElement).toBe(back);
+    await user.tab({ shift: true });
+    expect(document.activeElement).toBe(network);
+    await user.tab({ shift: true });
+    expect(document.activeElement).toBe(filters);
+  });
+
+  it("shows the pictures a document's preview holds", async () => {
+    ipc.glance = '<p>Rina</p><img src="attachments/rina.jpg" alt="Rina on the hill">';
+    const user = await opened();
+    await user.click(screen.getByRole("button", { name: t("brainsty") }));
+    await screen.findByRole("figure", { name: t("brainstyNetwork") });
+
+    act(() => sigma.hands?.pick(0));
+
+    const preview = await layer().findByRole("complementary", { name: "Notes" });
+    await waitFor(() =>
+      expect(
+        within(preview).getByRole("img", { name: "Rina on the hill" }).getAttribute("src"),
+      ).toBe("asset://localhost/C:/home/data/attachments/rina.jpg"),
+    );
+    expect(ipc.calls).toContainEqual({
+      cmd: "served",
+      args: { reference: "attachments/rina.jpg" },
+    });
   });
 
   it("jumps to the search with /", async () => {
