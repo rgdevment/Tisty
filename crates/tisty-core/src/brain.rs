@@ -17,7 +17,7 @@ mod nodes;
 mod own;
 mod reading;
 
-pub use alike::{Alike, Passed, Weighing};
+pub use alike::{Alike, Meaning, Passed, Weighing};
 pub use card::{Around, Card, DocFacts, Facts, Near, Section, TaskFacts, Tongue, Used};
 pub use decided::Decision;
 pub use network::{
@@ -26,7 +26,7 @@ pub use network::{
 };
 pub use reading::{Citing, Headed, Under, cited_by};
 
-const SCHEMA: i64 = 6;
+const SCHEMA: i64 = 7;
 const FILE: &str = "brain.db";
 const WAITS_FOR_OTHERS: std::time::Duration = std::time::Duration::from_secs(5);
 const PAGES_WORTH_COMPACTING: i64 = 256;
@@ -70,7 +70,12 @@ const TABLES: &str = "CREATE TABLE IF NOT EXISTS node(
         shared TEXT NOT NULL,
         method TEXT NOT NULL,
         PRIMARY KEY (a, b)) WITHOUT ROWID;
-    CREATE INDEX IF NOT EXISTS alike_by_b ON alike(b);";
+    CREATE INDEX IF NOT EXISTS alike_by_b ON alike(b);
+    CREATE TABLE IF NOT EXISTS vector(
+        id TEXT PRIMARY KEY,
+        stamp TEXT NOT NULL,
+        model TEXT NOT NULL,
+        said BLOB NOT NULL);";
 
 const DROPPED: &str = "DROP TABLE IF EXISTS node;
     DROP TABLE IF EXISTS edge;
@@ -79,16 +84,18 @@ const DROPPED: &str = "DROP TABLE IF EXISTS node;
     DROP TABLE IF EXISTS zone;
     DROP TABLE IF EXISTS words;
     DROP TABLE IF EXISTS alike;
+    DROP TABLE IF EXISTS vector;
     DELETE FROM meta;";
 
 // An edge is what its source wrote, so one aimed at a node that left stays for when it comes back.
-const GONE_WITH_A_NODE: [&str; 6] = [
+const GONE_WITH_A_NODE: [&str; 7] = [
     "DELETE FROM node WHERE id = ?1",
     "DELETE FROM edge WHERE source = ?1",
     "DELETE FROM card WHERE id = ?1",
     "DELETE FROM note WHERE id = ?1",
     "DELETE FROM words WHERE id = ?1",
     "DELETE FROM alike WHERE a = ?1 OR b = ?1",
+    "DELETE FROM vector WHERE id = ?1",
 ];
 
 pub struct Brain {
