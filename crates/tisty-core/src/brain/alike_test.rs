@@ -1043,3 +1043,40 @@ fn the_pass_reads_what_things_mean_before_it_weighs_them() {
         "nothing moved, so nothing was looked for to read"
     );
 }
+
+#[test]
+fn a_model_refused_at_one_look_is_asked_again_at_the_next_though_nothing_moved() {
+    let world = World::new();
+    let mut store = world.store();
+    task(&mut store, "Presupuesto familiar de diciembre", &[]);
+    fillers(&mut store);
+    drop(store);
+    super::super::kept_up(&world.paths, super::super::Round::Starting);
+    let mut weighing = Weighing::default();
+    assert_eq!(
+        weighing.kept(&world.paths, &mut Mute),
+        Some(Passed::Settling)
+    );
+    assert!(matches!(
+        weighing.kept(&world.paths, &mut Mute),
+        Some(Passed::Ran { .. })
+    ));
+    let mut words = Words::new();
+    weighing.kept(&world.paths, &mut words);
+    assert_eq!(words.read, 5, "the model that came back reads the base");
+}
+
+#[test]
+fn a_pass_waiting_for_the_writing_to_settle_lets_the_model_go() {
+    let world = World::new();
+    let mut store = world.store();
+    task(&mut store, "Presupuesto familiar de diciembre", &[]);
+    drop(store);
+    super::super::kept_up(&world.paths, super::super::Round::Starting);
+    let mut words = Words::new();
+    assert_eq!(
+        Weighing::default().kept(&world.paths, &mut words),
+        Some(Passed::Settling)
+    );
+    assert_eq!(words.rested, 1);
+}

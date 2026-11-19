@@ -212,16 +212,18 @@ impl Weighing {
         self.heard = turn;
         if !settled && self.waited < PATIENCE {
             self.waited += 1;
+            meaning.rest();
             return Some(Passed::Settling);
         }
         self.waited = 0;
-        // What things mean is looked for only when words or meanings moved since the last look.
+        // What things mean is looked for only when words or meanings moved since a look that could read.
         let now = (turn, turn_of(&brain.db, MEANT).ok().flatten());
         if self.read_at != Some(now) {
             if let Some(left) = meant_now(&mut brain, paths, meaning) {
                 return Some(left);
             }
-            self.read_at = Some((turn, turn_of(&brain.db, MEANT).ok().flatten()));
+            self.read_at =
+                (!meaning.refused()).then(|| (turn, turn_of(&brain.db, MEANT).ok().flatten()));
         }
         weighed_now(&mut brain, paths, meaning.version())
     }
