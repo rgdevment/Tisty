@@ -49,6 +49,7 @@ const place = (said: Said, more: Partial<Place> = {}): Place => ({
   shared: 1,
   changed: null,
   kept: [],
+  heldBy: [],
   ...more,
 });
 
@@ -59,6 +60,8 @@ const card = (places: Place[], more: Partial<AgentDoc> = {}): AgentDoc => ({
   name: "CLAUDE.md",
   code: false,
   folderOff: false,
+  here: "applied",
+  print: "p1",
   twin: false,
   places,
   ...more,
@@ -126,7 +129,7 @@ describe("an agent document's card", () => {
     expect(sent("agent_doc")[0].args).toEqual({
       file: "claude-rule.md",
       at: AT,
-      asked: { do: "bring" },
+      asked: { do: "bring", print: "p1" },
     });
   });
 
@@ -163,7 +166,7 @@ describe("an agent document's card", () => {
     expect(screen.getByRole("alert").textContent).toMatch(/both changed/);
     await userEvent.click(screen.getByRole("button", { name: "Keep the file's version" }));
     await waitFor(() => expect(on.onTaken).toHaveBeenCalled());
-    expect(sent("agent_doc")[0].args).toMatchObject({ asked: { do: "bring" } });
+    expect(sent("agent_doc")[0].args).toMatchObject({ asked: { do: "bring", print: "p1" } });
   });
 
   it("shows the file as it is now and closes it", async () => {
@@ -292,5 +295,67 @@ describe("an agent document's card", () => {
     );
     expect(screen.getByText("The code block is broken")).toBeTruthy();
     expect(screen.getByText(/file changed/)).toBeTruthy();
+  });
+
+  it("asks another computer's document to be applied here or not, and keeps the answer", async () => {
+    const changed = vi.fn();
+    window.addEventListener(AGENTS_CHANGED, changed);
+    shown(card([], { here: "waiting" }));
+    expect(screen.getByRole("status").textContent).toMatch(/comes from another computer/);
+    expect(screen.queryByText(/No assistant on this computer/)).toBeNull();
+    await userEvent.click(screen.getByRole("button", { name: "Not on this computer" }));
+    await waitFor(() => expect(changed).toHaveBeenCalled());
+    expect(sent("agent_doc")[0].args).toEqual({
+      file: "claude-rule.md",
+      asked: { do: "take", here: false },
+    });
+    await userEvent.click(screen.getByRole("button", { name: "Apply here" }));
+    await waitFor(() => expect(sent("agent_doc")).toHaveLength(2));
+    expect(sent("agent_doc")[1].args.asked).toEqual({ do: "take", here: true });
+    window.removeEventListener(AGENTS_CHANGED, changed);
+  });
+
+  it("offers only to apply a document the person declined here", () => {
+    shown(card([], { here: "declined" }));
+    expect(screen.getByRole("button", { name: "Apply here" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Not on this computer" })).toBeNull();
+  });
+
+  it("approves a text changed without the person only after saving the page and a yes", async () => {
+    asking.answer = () => Promise.resolve(false);
+    const on = shown(card([], { here: "notAgreed" }));
+    expect(screen.getByRole("status").textContent).toMatch(/until you approve it/);
+    await userEvent.click(screen.getByRole("button", { name: "Approve this text" }));
+    await waitFor(() => expect(asking.said).toHaveLength(1));
+    expect(sent("agent_doc")).toHaveLength(0);
+    asking.answer = () => Promise.resolve(true);
+    await userEvent.click(screen.getByRole("button", { name: "Approve this text" }));
+    await waitFor(() => expect(sent("agent_doc")).toHaveLength(1));
+    expect(on.onSettle).toHaveBeenCalled();
+    expect(sent("agent_doc")[0].args).toEqual({
+      file: "claude-rule.md",
+      asked: { do: "agree", print: "p1" },
+    });
+  });
+
+  it("says why a document is not written here when nothing can be done from the card", () => {
+    shown(card([], { here: "otherMemory" }));
+    expect(screen.getByRole("status").textContent).toMatch(/only read/);
+    expect(screen.queryByRole("button", { name: "Apply here" })).toBeNull();
+  });
+
+  it("says a file is on hold and names the document that holds it", () => {
+    shown(card([place({ state: "held" }, { heldBy: ["claude · tone.md"] })]));
+    expect(screen.getByText("On hold")).toBeTruthy();
+    expect(screen.getByText(/claude · tone.md changed or left AGENTS/)).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Overwrite with Tisty" })).toBeNull();
+  });
+
+  it("lets the person overwrite a file an earlier Tisty wrote, once they say yes", async () => {
+    shown(card([place({ state: "unproven" })]));
+    expect(screen.getByText("Written by an earlier Tisty")).toBeTruthy();
+    expect(screen.getByRole("alert").textContent).toMatch(/An earlier Tisty wrote this file/);
+    await userEvent.click(screen.getByRole("button", { name: "Overwrite with Tisty" }));
+    await waitFor(() => expect(sent("agents_keep")).toHaveLength(1));
   });
 });

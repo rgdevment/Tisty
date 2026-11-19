@@ -173,7 +173,7 @@ pub fn put_back(session: &mut Session, id: &str, was: &str) -> Answer<tisty_core
     let title = tisty_core::docs::titled(&whole);
     let book = book_of(session, id, &title);
     let hand = signing(&session.state);
-    session.retell(id, &whole, hand);
+    session.retell_written(id, &whole, hand);
     named_anew(session, book, id, &title);
     if let Some(task) = &task {
         let theirs = tisty_core::stages::ticked(task, &now);

@@ -128,6 +128,7 @@ impl Room {
                     tags: Some(Vec::new()),
                     by: None,
                     print: None,
+                    agreed: false,
                 }),
                 folder,
                 page_of,
@@ -756,6 +757,7 @@ fn taking_in_and_then_writing_says_who_wrote_last_without_taking_the_name_away()
             tags: Some(Vec::new()),
             by: Some("rgdevment".into()),
             print: None,
+            agreed: false,
         },
     });
 
@@ -1516,6 +1518,7 @@ lo suyo",
             tags: Some(Vec::new()),
             by: Some("mario".into()),
             print: None,
+            agreed: false,
         },
     });
     here.tell(Op::Signed {
@@ -1568,6 +1571,7 @@ lo mio",
             tags: Some(Vec::new()),
             by: Some("fulanito".into()),
             print: None,
+            agreed: false,
         },
     });
 
@@ -1951,6 +1955,7 @@ soy el largo",
                     tags: Some(Vec::new()),
                     by: None,
                     print: None,
+                    agreed: false,
                 }),
                 ..Default::default()
             },

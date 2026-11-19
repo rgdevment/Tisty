@@ -433,15 +433,47 @@ impl Session {
     /// `hand` is the alias to seal on the note, and only a write by the person has one: reading
     /// a body back to keep the state honest is not writing into it.
     pub fn retell(&mut self, file: &str, body: &str, hand: Option<String>) -> bool {
+        self.told(file, body, tisty_core::event::Said::of(body).by(hand))
+    }
+
+    /// The person wrote these words by hand, so they may reach an agent's file.
+    pub fn retell_written(&mut self, file: &str, body: &str, hand: Option<String>) -> bool {
+        self.told(
+            file,
+            body,
+            tisty_core::event::Said::of(body).by(hand).agreed(),
+        )
+    }
+
+    /// Writing over words the person approved keeps them approved; writing over anyone else's approves nothing.
+    pub fn retell_over(
+        &mut self,
+        file: &str,
+        body: &str,
+        hand: Option<String>,
+        over: Option<&str>,
+    ) -> bool {
+        let approved = self
+            .state
+            .docs
+            .values()
+            .find(|one| one.file == file)
+            .and_then(|one| one.agreed.as_deref());
+        match over.is_some() && approved == over {
+            true => self.retell_written(file, body, hand),
+            false => self.retell(file, body, hand),
+        }
+    }
+
+    fn told(&mut self, file: &str, body: &str, said: tisty_core::event::Said) -> bool {
         let mut told = self.state.settling(file, body);
-        if let Some(kept) = self.state.docs.values().find(|one| one.file == file) {
-            let said = tisty_core::event::Said::of(body).by(hand);
-            if said.news_for(kept) {
-                told.push(Op::DocSaid {
-                    id: kept.id,
-                    d: said,
-                });
-            }
+        if let Some(kept) = self.state.docs.values().find(|one| one.file == file)
+            && said.news_for(kept)
+        {
+            told.push(Op::DocSaid {
+                id: kept.id,
+                d: said,
+            });
         }
         if told.is_empty() {
             return false;

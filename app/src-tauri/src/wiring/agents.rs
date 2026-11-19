@@ -1,13 +1,13 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
 
-use tisty_core::agents::{Card, GLOBAL, Kind, Place as Spot, Target};
+use tisty_core::agents::{Admitted, Card, GLOBAL, Gate, Kind, Ledger, Place as Spot, Target};
 
 use super::places::var;
 
-pub const ICON: &str = "robot";
+pub const ICON: &str = tisty_core::agents::ICON;
 pub const HUE: &str = "purple";
-pub const FOLDER: &str = "AGENTS";
+pub const FOLDER: &str = tisty_core::agents::FOLDER;
 pub const GLOBAL_FOLDER: &str = "Global";
 
 const SHARED_SKILLS_OWNERS: [&str; 3] = ["codex", "copilot", "gemini"];
@@ -247,6 +247,17 @@ pub fn target_of(homes: &Homes, card: &Card) -> Option<(PathBuf, PathBuf)> {
     }
 }
 
+/// Whether some assistant on this computer would read the document at all.
+pub fn lands_here(homes: &Homes, card: &Card) -> bool {
+    match card.level == GLOBAL {
+        true => card.kind != Kind::Memory && !homes.detected().is_empty(),
+        false => {
+            homes.detected().iter().any(|one| one.id == card.level)
+                && target_of(homes, card).is_some()
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Placed {
     pub target: Target,
@@ -254,59 +265,49 @@ pub struct Placed {
     pub lead_in: Option<Target>,
 }
 
-struct Piece<'a> {
-    file: &'a str,
-    body: &'a str,
-    card: Card,
-}
-
-pub fn targets(homes: &Homes, docs: &[(String, String)]) -> Vec<Placed> {
+pub fn targets(homes: &Homes, gate: &Gate, ledger: &Ledger) -> Vec<Placed> {
     let detected = homes.detected();
-    let mut pieces: Vec<Piece> = docs
-        .iter()
-        .filter_map(|(file, body)| Card::of(body).map(|card| Piece { file, body, card }))
-        .collect();
+    let mut pieces: Vec<&Admitted> = gate.admitted().iter().collect();
     pieces.sort_by(|a, b| {
-        (a.card.level != GLOBAL, &a.card.name, a.file).cmp(&(
-            b.card.level != GLOBAL,
-            &b.card.name,
-            b.file,
-        ))
+        let key = |one: &&Admitted| {
+            (
+                one.card().level != GLOBAL,
+                one.card().name.clone(),
+                one.file().to_string(),
+            )
+        };
+        key(a).cmp(&key(b))
     });
     // The same file brought on two computers before they synced is one file, never written twice.
     let mut seen = BTreeSet::new();
-    pieces.retain(|one| seen.insert(one.card.address()));
+    pieces.retain(|one| seen.insert(one.card().address()));
     let mut out: BTreeMap<PathBuf, Placed> = BTreeMap::new();
-    let mut put = |assistant: &str, (root, at): (PathBuf, PathBuf), piece: &Piece| {
+    let mut put = |assistant: &str, (root, at): (PathBuf, PathBuf), piece: &Admitted| {
         let placed = out.entry(at.clone()).or_insert_with(|| Placed {
-            target: Target {
-                root,
-                at,
-                assistant: assistant.to_string(),
-                pieces: Vec::new(),
-            },
+            target: gate.target(ledger, root, at, assistant),
             files: Vec::new(),
             lead_in: None,
         });
-        placed.target.pieces.push(piece.body.to_string());
-        placed.files.push(piece.file.to_string());
+        placed.target.put(piece);
+        placed.files.push(piece.file().to_string());
     };
-    for piece in &pieces {
-        if piece.card.level != GLOBAL {
-            if detected.iter().any(|one| one.id == piece.card.level)
-                && let Some(spot) = target_of(homes, &piece.card)
+    for piece in pieces {
+        let card = piece.card();
+        if card.level != GLOBAL {
+            if detected.iter().any(|one| one.id == card.level)
+                && let Some(spot) = target_of(homes, card)
             {
-                put(&piece.card.level, spot, piece);
+                put(&card.level, spot, piece);
             }
             continue;
         }
         for one in &detected {
-            let spot = match piece.card.kind {
+            let spot = match card.kind {
                 Kind::Rule => homes.main_of(one).and_then(|main| {
                     let card = Card {
                         level: one.id.to_string(),
                         name: main.to_string(),
-                        ..piece.card.clone()
+                        ..card.clone()
                     };
                     target_of(homes, &card)
                 }),
@@ -320,7 +321,7 @@ pub fn targets(homes: &Homes, docs: &[(String, String)]) -> Vec<Placed> {
                         false => homes.skills_of(one.id),
                     }
                     .unzip();
-                    root.zip(skills.map(|at| under(&at, &piece.card.name)))
+                    root.zip(skills.map(|at| under(&at, &card.name)))
                 }
                 Kind::Memory => None,
             };
@@ -332,11 +333,13 @@ pub fn targets(homes: &Homes, docs: &[(String, String)]) -> Vec<Placed> {
     let mut all: Vec<Placed> = out.into_values().collect();
     for placed in &mut all {
         if placed.target.assistant == "gemini" && placed.target.at.ends_with(GEMINI_RULES) {
-            placed.lead_in = Some(Target {
-                at: placed.target.root.join(GEMINI_MEMORY),
-                pieces: Vec::new(),
-                ..placed.target.clone()
-            });
+            let at = placed.target.root.join(GEMINI_MEMORY);
+            placed.lead_in = Some(gate.target(
+                ledger,
+                placed.target.root.clone(),
+                at,
+                &placed.target.assistant,
+            ));
         }
     }
     all
@@ -345,6 +348,10 @@ pub fn targets(homes: &Homes, docs: &[(String, String)]) -> Vec<Placed> {
 pub fn lead_in_line() -> String {
     format!("@{GEMINI_RULES}")
 }
+
+#[cfg(test)]
+#[path = "agents_gated.rs"]
+pub(crate) mod gated;
 
 #[cfg(test)]
 #[path = "agents_test.rs"]

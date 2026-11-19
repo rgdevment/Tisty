@@ -1,4 +1,5 @@
 use super::*;
+use crate::wiring::agents::gated::{gated, id_of};
 use tisty_core::agents::{Kind, doc_of, round};
 
 struct Room {
@@ -23,14 +24,24 @@ fn rule(level: &str, name: &str, said: &str) -> String {
 
 impl Room {
     fn placed(&self, file: &str, docs: &[(&str, String)]) -> Placed {
+        let named: Vec<(String, String)> = docs
+            .iter()
+            .map(|(name, body)| (name.to_string(), body.clone()))
+            .collect();
+        let gated = gated(&self.ledger, &named);
+        let home = self.home.path();
+        let mut target =
+            gated
+                .gate
+                .target(&self.ledger, home.to_path_buf(), home.join(file), "codex");
+        for (name, _) in docs {
+            let id = gated.id(name);
+            let piece = gated.gate.admitted().iter().find(|one| one.file() == id);
+            target.put(piece.unwrap());
+        }
         Placed {
-            target: Target {
-                root: self.home.path().to_path_buf(),
-                at: self.home.path().join(file),
-                assistant: "codex".into(),
-                pieces: docs.iter().map(|(_, body)| body.clone()).collect(),
-            },
-            files: docs.iter().map(|(file, _)| file.to_string()).collect(),
+            files: target.files().map(str::to_string).collect(),
+            target,
             lead_in: None,
         }
     }
@@ -52,11 +63,14 @@ fn a_document_is_shown_in_every_file_it_is_written_into_with_its_place_there() {
     let own = ("codex.md", rule("codex", "AGENTS.md", "Use Rust.\n"));
     let claude = room.placed("claude/CLAUDE.md", std::slice::from_ref(&global));
     let codex = room.placed("codex/AGENTS.md", &[global.clone(), own]);
-    let found = placed_for("global.md", vec![claude, codex.clone()]);
+    let found = placed_for(&id_of("global.md"), vec![claude, codex.clone()]);
     assert_eq!(found.len(), 2);
     assert_eq!(found[1], (codex.target, 0));
-    assert_eq!(placed_for("codex.md", vec![codex_of(&room)])[0].1, 1);
-    assert!(placed_for("elsewhere.md", vec![codex_of(&room)]).is_empty());
+    assert_eq!(
+        placed_for(&id_of("codex.md"), vec![codex_of(&room)])[0].1,
+        1
+    );
+    assert!(placed_for(&id_of("elsewhere.md"), vec![codex_of(&room)]).is_empty());
 }
 
 fn codex_of(room: &Room) -> Placed {
@@ -175,7 +189,7 @@ fn a_backup_is_seen_then_put_back_and_the_file_reads_as_changed_outside() {
         &room.ledger,
         &codex.target,
         0,
-        Asked::Held { backup: Some(1) },
+        &Asked::Held { backup: Some(1) },
     )
     .unwrap();
     assert_eq!(seen.as_deref(), Some("Written by hand.\n"));
@@ -184,7 +198,7 @@ fn a_backup_is_seen_then_put_back_and_the_file_reads_as_changed_outside() {
         &room.ledger,
         &codex.target,
         0,
-        Asked::Held { backup: None },
+        &Asked::Held { backup: None },
     )
     .unwrap();
     assert!(now.unwrap().contains("Use Rust."));
@@ -194,7 +208,7 @@ fn a_backup_is_seen_then_put_back_and_the_file_reads_as_changed_outside() {
             &room.ledger,
             &codex.target,
             0,
-            Asked::Restore { backup: 1 }
+            &Asked::Restore { backup: 1 }
         )
         .unwrap(),
         None
@@ -210,7 +224,7 @@ fn a_backup_is_seen_then_put_back_and_the_file_reads_as_changed_outside() {
             &room.ledger,
             &codex.target,
             0,
-            Asked::Restore { backup: 9 }
+            &Asked::Restore { backup: 9 }
         )
         .is_err()
     );
@@ -224,7 +238,7 @@ fn a_file_too_big_to_draw_is_refused_not_read() {
     let big = vec![b'a'; tisty_core::docs::READ_AT_MOST as usize + 1];
     std::fs::write(&codex.target.at, big).unwrap();
     let asked = Asked::Held { backup: None };
-    assert!(done(room.data.path(), &room.ledger, &codex.target, 0, asked).is_err());
+    assert!(done(room.data.path(), &room.ledger, &codex.target, 0, &asked).is_err());
 }
 
 #[test]
@@ -234,8 +248,8 @@ fn a_computer_that_has_not_said_yes_never_shows_the_file() {
     std::fs::create_dir_all(codex.target.at.parent().unwrap()).unwrap();
     std::fs::write(&codex.target.at, "Be brief.\n").unwrap();
     let asked = Asked::Held { backup: None };
-    let shown = done(room.data.path(), &room.ledger, &codex.target, 0, asked);
+    let shown = done(room.data.path(), &room.ledger, &codex.target, 0, &asked);
     assert_eq!(shown.unwrap().as_deref(), Some("Be brief.\n"));
     let stranger = Ledger::fresh("machine-a");
-    assert!(done(room.data.path(), &stranger, &codex.target, 0, asked).is_err());
+    assert!(done(room.data.path(), &stranger, &codex.target, 0, &asked).is_err());
 }

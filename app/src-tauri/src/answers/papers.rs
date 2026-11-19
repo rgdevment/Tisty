@@ -507,7 +507,7 @@ pub fn doc_new(
             by: signed_as.clone(),
             file: made.id.clone(),
             order,
-            said: Some(tisty_core::event::Said::of("")),
+            said: Some(tisty_core::event::Said::of("").agreed()),
             folder,
             page_of,
             task_of: None,
@@ -1009,6 +1009,7 @@ pub fn docs_catch_up(session: tauri::State<'_, Mutex<Session>>) -> Answer<Vec<Fi
                         key: None,
                         brainstorm: false,
                         diary: false,
+                        agreed: false,
                     })
                     .by(None);
                 said.news_for(kept).then_some(Op::DocSaid {
@@ -1150,20 +1151,36 @@ pub fn doc_write(
     anyway: Option<bool>,
     since: Option<String>,
 ) -> Answer<Kept> {
-    let mut session = held(&session);
+    written_by_hand(&mut held(&session), id, body, anyway, since)
+}
+
+pub(crate) fn written_by_hand(
+    session: &mut Session,
+    id: String,
+    body: String,
+    anyway: Option<bool>,
+    since: Option<String>,
+) -> Answer<Kept> {
     writable(&session.state, &id)?;
+    // Written anyway, the words came from what the page was opened on, not from what the disk holds now.
+    let built_on = since.clone();
     let since = since.filter(|_| !anyway.unwrap_or(false));
     if since.is_none() && !anyway.unwrap_or(false) && session.moved(&id) {
         return Err(Refusal::about("documentMoved", id));
     }
     let root = session.paths.docs();
     let title = tisty_core::docs::titled(&body);
-    if let Ok(was) = tisty_core::docs::read(&root, &id)
-        && tisty_core::docs::unchanged(&was, &body)
+    let was = tisty_core::docs::read(&root, &id).ok();
+    if let Some(was) = &was
+        && tisty_core::docs::unchanged(was, &body)
     {
-        let print = tisty_core::docs::print_of_text(&was);
+        let print = tisty_core::docs::print_of_text(was);
         return Ok(Kept { id, title, print });
     }
+    let replaced = match anyway.unwrap_or(false) {
+        true => built_on,
+        false => was.as_deref().map(tisty_core::docs::print_of_text),
+    };
     let print = tisty_core::docs::print_of_text(&body);
     let wrote = match &since {
         Some(seen) => tisty_core::docs::write_over(&root, &session.writer(), &id, &body, seen),
@@ -1174,10 +1191,10 @@ pub fn doc_write(
     }
     session.mind_body(&id, &tisty_core::docs::settled(&body));
     session.corpus.forget(&id);
-    let book = book_of(&session, &id, &title);
+    let book = book_of(session, &id, &title);
     let hand = signing(&session.state);
-    session.retell(&id, &body, hand);
-    named_anew(&mut session, book, &id, &title);
+    session.retell_over(&id, &body, hand, replaced.as_deref());
+    named_anew(session, book, &id, &title);
     Ok(Kept { id, title, print })
 }
 
@@ -1251,7 +1268,7 @@ pub fn doc_merge(
     let title = tisty_core::docs::titled(&body);
     let book = book_of(&session, &id, &title);
     let hand = signing(&session.state);
-    session.retell(&id, &body, hand);
+    session.retell_over(&id, &body, hand, Some(&seen));
     named_anew(&mut session, book, &id, &title);
     let print = tisty_core::docs::print_of_text(&body);
     Ok(Some(Woven { body, print, title }))

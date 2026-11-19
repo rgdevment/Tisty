@@ -24,6 +24,9 @@ pub struct Folder {
     pub color: Option<String>,
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub archived: bool,
+    /// Whoever last made, named, moved or archived it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub placed_by: Option<crate::event::DeviceId>,
 }
 
 impl Folder {
@@ -36,6 +39,7 @@ impl Folder {
             icon: None,
             color: None,
             archived: false,
+            placed_by: None,
         }
     }
 }
@@ -183,6 +187,14 @@ pub struct Kept {
     pub key: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub edited: Option<crate::event::Edited>,
+    /// The print the person last wrote by hand, and who did: the only words an agent's file may take.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub agreed: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub agreed_by: Option<crate::event::DeviceId>,
+    /// Whoever last put it where it is: made, moved, archived or brought back.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub placed_by: Option<crate::event::DeviceId>,
 }
 
 #[cfg(test)]

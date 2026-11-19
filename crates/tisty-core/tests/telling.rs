@@ -265,6 +265,7 @@ fn a_note_of_what_a_document_said_is_one_no_build_may_walk_past() {
             tags: Some(Vec::new()),
             by: None,
             print: None,
+            agreed: false,
         },
     };
 
@@ -366,6 +367,7 @@ fn a_note_reaches_the_document_it_speaks_of() {
                 tags: Some(Vec::new()),
                 by: None,
                 print: None,
+                agreed: false,
             }),
             folder: None,
             page_of: None,
@@ -394,6 +396,7 @@ fn a_note_reaches_the_document_it_speaks_of() {
             tags: Some(Vec::new()),
             by: None,
             print: None,
+            agreed: false,
         },
     })
     .unwrap();
@@ -460,6 +463,7 @@ fn the_note_goes_out_unmarked_so_an_older_build_stops_rather_than_guesses() {
             tags: Some(Vec::new()),
             by: None,
             print: None,
+            agreed: false,
         },
     })
     .unwrap();
@@ -602,6 +606,7 @@ fn what_cannot_be_walked_past_without_losing_something_is_not_optional() {
                 tags: Some(Vec::new()),
                 by: None,
                 print: None,
+                agreed: false,
             },
         },
     ];

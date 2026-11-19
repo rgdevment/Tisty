@@ -5,6 +5,8 @@ const glance = (over: Partial<Glance>): Glance => ({
   folder: "f1",
   docs: 3,
   changes: 0,
+  waiting: 0,
+  unagreed: 0,
   consented: true,
   allOn: true,
   ...over,
@@ -18,12 +20,15 @@ const doc = (states: AgentDoc["places"][number]["said"][]): AgentDoc => ({
   code: false,
   folderOff: false,
   twin: false,
+  here: "applied",
+  print: "p1",
   places: states.map((said, n) => ({
     assistant: `a${n}`,
     named: `A${n}`,
     at: `/home/a${n}/AGENTS.md`,
     said,
     shared: 1,
+    heldBy: [],
     changed: null,
     kept: [],
   })),
@@ -68,6 +73,9 @@ describe("agent documents", () => {
     expect(glanceWord(glance({ consented: false }))).toBe("off");
     expect(glanceWord(glance({ allOn: false }))).toBe("off");
     expect(glanceWord(glance({ changes: 2 }))).toBe("changes");
+    expect(glanceWord(glance({ changes: 2, waiting: 1 }))).toBe("changes");
+    expect(glanceWord(glance({ waiting: 1 }))).toBe("waiting");
+    expect(glanceWord(glance({ unagreed: 1 }))).toBe("waiting");
     expect(glanceWord(glance({}))).toBe("synced");
   });
 });

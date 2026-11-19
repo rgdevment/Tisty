@@ -23,6 +23,8 @@ export interface AgentsLook {
   folder: string | null;
   docs: number;
   changes: number;
+  waiting: number;
+  unagreed: number;
   consented: boolean;
   allOn: boolean;
   asks: boolean;

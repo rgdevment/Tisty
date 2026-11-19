@@ -1,3 +1,4 @@
+use super::gated::{consented, gated};
 use super::*;
 use tisty_core::agents::{doc_of, found};
 
@@ -148,17 +149,19 @@ fn global_rules_lead_each_main_file_and_global_skills_land_once_where_they_are_s
             doc("cursor", Kind::Skill, "x/SKILL.md", "x\n"),
         ),
     ];
-    let placed = targets(&homes, &docs);
+    let ledger = consented();
+    let gated = gated(&ledger, &docs);
+    let placed = targets(&homes, &gated.gate, &ledger);
     let claude = placed
         .iter()
         .find(|one| one.target.at == homes.root("claude").unwrap().join("CLAUDE.md"))
         .unwrap();
-    assert_eq!(claude.files, ["b", "a"]);
+    assert_eq!(gated.named(&claude.files), ["b", "a"]);
     let codex = placed
         .iter()
         .find(|one| one.target.at == homes.root("codex").unwrap().join("AGENTS.md"))
         .unwrap();
-    assert_eq!(codex.files, ["b"]);
+    assert_eq!(gated.named(&codex.files), ["b"]);
     let gemini = placed
         .iter()
         .find(|one| one.target.assistant == "gemini" && one.target.at.ends_with(GEMINI_RULES))
@@ -187,7 +190,8 @@ fn global_rules_lead_each_main_file_and_global_skills_land_once_where_they_are_s
 fn a_document_without_a_card_is_never_placed() {
     let (_tmp, homes) = seeded();
     let docs = vec![("a".to_string(), "# Just notes\n".to_string())];
-    assert!(targets(&homes, &docs).is_empty());
+    let ledger = consented();
+    assert!(targets(&homes, &gated(&ledger, &docs).gate, &ledger).is_empty());
 }
 
 #[test]
@@ -201,7 +205,8 @@ fn global_rules_go_to_the_codex_override_when_codex_reads_it() {
         "g".to_string(),
         doc(GLOBAL, Kind::Rule, "style.md", "Spanish.\n"),
     )];
-    let placed = targets(&homes, &docs);
+    let ledger = consented();
+    let placed = targets(&homes, &gated(&ledger, &docs).gate, &ledger);
     let codex: Vec<&PathBuf> = placed
         .iter()
         .filter(|one| one.target.assistant == "codex")
@@ -218,11 +223,13 @@ fn the_same_file_brought_on_two_computers_is_written_once() {
     let (_tmp, homes) = seeded();
     let twice = doc("claude", Kind::Rule, "CLAUDE.md", "# Claude\n");
     let docs = vec![("b".to_string(), twice.clone()), ("a".to_string(), twice)];
-    let placed = targets(&homes, &docs);
+    let ledger = consented();
+    let gated = gated(&ledger, &docs);
+    let placed = targets(&homes, &gated.gate, &ledger);
     let claude = placed
         .iter()
         .find(|one| one.target.assistant == "claude")
         .unwrap();
-    assert_eq!(claude.files, ["a"]);
+    assert_eq!(gated.named(&claude.files), ["a"]);
     assert_eq!(claude.target.pieces.len(), 1);
 }

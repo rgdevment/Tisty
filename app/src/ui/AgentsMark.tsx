@@ -9,6 +9,7 @@ const TONE: Record<GlanceWord, string> = {
   empty: "text-faint",
   synced: "text-hue-green",
   changes: "text-hue-amber",
+  waiting: "text-hue-amber",
   off: "text-faint",
 };
 
@@ -48,6 +49,10 @@ export function AgentsWord({ glance }: { glance: Glance }) {
     empty: t("agentsFolderEmpty"),
     synced: t("agentsFolderSynced"),
     changes: fill("agentsFolderChanges", String(glance.changes)),
+    waiting:
+      glance.waiting > 0
+        ? fill("agentsFolderWaiting", String(glance.waiting))
+        : fill("agentsFolderUnagreed", String(glance.unagreed)),
     off: t("agentsPaused"),
   }[word];
   return (

@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import {
   type AgentDoc,
+  agentAgree,
   agentBring,
   agentHeld,
   agentRestore,
+  agentTake,
   type Place,
   type Said,
   touched,
@@ -13,7 +15,15 @@ import { useDesk } from "../desk";
 import { fill, t } from "../locales";
 import { saidPlainly } from "../refusal";
 import { sure } from "../sure";
-import { Action, BackupsModal, FileModal, Pill, PlaceRow, type Shown } from "./AgentCardParts";
+import {
+  Action,
+  BackupsModal,
+  FileModal,
+  HereNote,
+  Pill,
+  PlaceRow,
+  type Shown,
+} from "./AgentCardParts";
 import { AGENTS_CHANGED } from "./AgentsKeeper";
 import Glyph from "./Glyph";
 
@@ -34,6 +44,8 @@ const STATE: Record<Said["state"], { word: Parameters<typeof t>[0]; tone: string
   {
     synced: { word: "agentSynced", tone: "text-hue-green bg-hue-green/10", glyph: "done" },
     pending: { word: "agentPending", tone: "text-soft bg-hover", glyph: "refresh" },
+    held: { word: "agentHeldPill", tone: "text-hue-amber bg-hue-amber/10", glyph: "pause" },
+    unproven: { word: "agentUnproven", tone: "text-hue-amber bg-hue-amber/10", glyph: "alert" },
     outside: { word: "agentOutside", tone: "text-hue-amber bg-hue-amber/10", glyph: "alert" },
     both: { word: "agentBoth", tone: "text-hue-red bg-hue-red/10", glyph: "alert" },
     off: { word: "agentPaused", tone: "text-soft bg-hover", glyph: "pause" },
@@ -44,9 +56,16 @@ const STATE: Record<Said["state"], { word: Parameters<typeof t>[0]; tone: string
     unreadable: { word: "agentUnreadable", tone: "text-hue-red bg-hue-red/10", glyph: "alert" },
   };
 
+const SAID_OF: Partial<Record<Said["state"], "agentBothSaid" | "agentUnprovenSaid">> = {
+  both: "agentBothSaid",
+  unproven: "agentUnprovenSaid",
+};
+
 const ORDER: readonly Said["state"][] = [
   "both",
   "outside",
+  "unproven",
+  "held",
   "broken",
   "linked",
   "unreadable",
@@ -100,13 +119,11 @@ export default function AgentCard({
   // Words still waiting to be saved land first, so the document the file comes over is the one on the page.
   const bring = (place: Place) =>
     Promise.resolve(onSettle())
-      .then(() => agentBring(file, place.at))
+      .then(() => agentBring(file, place.at, doc.print))
       .then(() => (showing.current === file ? onTaken() : undefined))
-      .then(() => {
-        papersChanged();
-        done();
-      })
-      .catch(failed);
+      .then(papersChanged)
+      .catch(failed)
+      .finally(done);
   // Each action asks first, and a refusal anywhere along the way is shown, never left unheard.
   const asked = (said: string, then: () => Promise<unknown>) =>
     sure(said)
@@ -122,6 +139,14 @@ export default function AgentCard({
         setKept(null);
         done();
       }),
+    );
+  const take = (here: boolean) => agentTake(file, here).then(done).catch(failed);
+  // Approving sends what the page says now, so words still waiting to be saved land first.
+  const agree = () =>
+    asked(t("agentAgreeSure"), () =>
+      Promise.resolve(onSettle())
+        .then(() => agentAgree(file, doc.print))
+        .finally(done),
     );
   const turn = (place: Place) =>
     agentsTurn(place.assistant, place.said.state === "off")
@@ -145,7 +170,7 @@ export default function AgentCard({
       <p className="mt-2.5 mb-3 text-[21px] font-medium text-ink">{doc.name}</p>
       {own && <p className="mb-3 text-[12.5px] text-soft">{t("agentMemoryOwn")}</p>}
       <div className="rounded-[10px] bg-panel px-3.5 py-1">
-        {doc.places.length === 0 && (
+        {doc.places.length === 0 && (doc.here === "applied" || doc.here === "away") && (
           <p className="py-2 text-[12.5px] text-soft">
             {t(doc.twin ? "agentTwin" : "agentNowhere")}
           </p>
@@ -161,6 +186,14 @@ export default function AgentCard({
         ))}
       </div>
       {doc.folderOff && <p className="mt-3 text-[12.5px] text-soft">{t("agentFolderOff")}</p>}
+      <HereNote here={doc.here} onTake={take} onAgree={agree} />
+      {doc.places
+        .filter((one) => one.said.state === "held")
+        .map((one) => (
+          <p key={one.at} className="mt-3 text-[12.5px] text-hue-amber">
+            {fill("agentHeldSaid", one.heldBy.join(", "))}
+          </p>
+        ))}
       {changed.map((outside) => (
         <div
           key={outside.at}
@@ -169,9 +202,7 @@ export default function AgentCard({
         >
           <Glyph name="alert" className="mt-0.5 h-[15px] w-[15px] shrink-0" />
           <div className="min-w-0">
-            <p className="font-medium">
-              {t(outside.said.state === "both" ? "agentBothSaid" : "agentOutsideSaid")}
-            </p>
+            <p className="font-medium">{t(SAID_OF[outside.said.state] ?? "agentOutsideSaid")}</p>
             <p className="mt-0.5">{fill("agentOutsideWhere", outside.at)}</p>
             <div className="mt-2 flex flex-wrap gap-2">
               {outside.said.state === "outside" && outside.said.mine && owned(outside) && (

@@ -253,7 +253,9 @@ impl State {
                 self.heard.insert(event.device.clone(), at);
             }
         }
+        let before = self.placement(event);
         self.applied(event);
+        self.placed(event, before);
     }
 
     // Another computer's older word never undoes a version this log already knows was sent, nor brings back what was stopped.

@@ -8,6 +8,14 @@ const words = {
     "Sync is paused for this assistant",
     "La sincronización de este asistente está en pausa",
   ],
+  agentDocChanged: [
+    "This document changed since its card was drawn. Read it again before approving it.",
+    "Este documento cambió desde que se mostró su ficha. Léelo de nuevo antes de aprobarlo.",
+  ],
+  agentHeld: [
+    "A document in this file changed without your approval, so the file is left as it is",
+    "Un documento de este archivo cambió sin tu aprobación, así que el archivo queda como está",
+  ],
   agentOwn: [
     "The agent writes this file itself, so Tisty only reads it",
     "Este archivo lo escribe el agente, así que Tisty solo lo lee",
@@ -177,6 +185,43 @@ const words = {
   agentLinkedFile: ["The file is a link", "El archivo es un enlace"],
   agentBroken: ["The code block is broken", "El bloque de código está roto"],
   agentUnreadable: ["Cannot be read", "No se puede leer"],
+  agentHeldPill: ["On hold", "En espera"],
+  agentHeldSaid: [
+    "This file stays as it was: {name} changed or left AGENTS without your approval. Approve it, or put it back and take it out yourself.",
+    "Este archivo queda como estaba: {name} cambió o salió de AGENTS sin tu aprobación. Apruébalo, o vuelve a ponerlo y sácalo tú.",
+  ],
+  agentUnproven: ["Written by an earlier Tisty", "Escrito por un Tisty anterior"],
+  agentUnprovenSaid: [
+    "An earlier Tisty wrote this file without noting which documents it came from, so it is left as it is until you choose",
+    "Un Tisty anterior escribió este archivo sin anotar de qué documentos venía, así que queda como está hasta que elijas",
+  ],
+  agentHereWaiting: [
+    "This document comes from another computer. Apply it to the agents on this one?",
+    "Este documento viene de otro equipo. ¿Lo aplicas a los agentes de este?",
+  ],
+  agentHereDeclined: [
+    "You chose not to apply it on this computer.",
+    "Elegiste no aplicarlo en este equipo.",
+  ],
+  agentHereNotAgreed: [
+    "Its text does not have your approval yet, so it reaches no agent until you approve it.",
+    "Su texto aún no tiene tu aprobación, así que no llega a ningún agente hasta que lo apruebes.",
+  ],
+  agentHerePlacedByAgent: [
+    "An agent put it here, so no agent reads it until you move it yourself.",
+    "Lo puso aquí un agente, así que ningún agente lo lee hasta que lo muevas tú.",
+  ],
+  agentHereOtherMemory: [
+    "Another computer's agent memory: on this one it is only read.",
+    "Memoria del agente de otro equipo: en este solo se lee.",
+  ],
+  agentApplyHere: ["Apply here", "Aplicar aquí"],
+  agentNotHere: ["Not on this computer", "No en este equipo"],
+  agentAgree: ["Approve this text", "Aprobar este texto"],
+  agentAgreeSure: [
+    "Approve what this document says now? Read it first: it is written to your agents' files.",
+    "¿Apruebas lo que dice ahora este documento? Léelo antes: se escribe en los archivos de tus agentes.",
+  ],
   agentMemoryOwn: [
     "The agent writes this file itself: Tisty shows it and brings it in, and never writes over it.",
     "Este archivo lo escribe el agente: Tisty lo muestra y lo trae, y nunca lo sobrescribe.",
@@ -245,6 +290,8 @@ const words = {
   agentsFolderEmpty: ["empty", "vacía"],
   agentsFolderSynced: ["in sync", "al día"],
   agentsFolderChanges: ["{name} changed", "{name} con cambios"],
+  agentsFolderWaiting: ["{name} waiting", "{name} en espera"],
+  agentsFolderUnagreed: ["{name} to approve", "{name} por aprobar"],
   agentsPaused: ["off", "apagada"],
   agentNoCard: [
     "This document is not an agent document",

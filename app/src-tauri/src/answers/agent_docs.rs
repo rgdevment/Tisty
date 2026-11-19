@@ -1,7 +1,7 @@
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 
-use tisty_core::agents::{self, Card, Ledger, Refused, Standing, Target};
+use tisty_core::agents::{self, Card, Ledger, Refused, Seen, Standing, Target};
 
 use super::agents_sync::refused;
 use crate::wiring::agents::{Homes, Placed, assistant, targets};
@@ -12,6 +12,8 @@ use crate::{Answer, Refusal, Session, held};
 pub enum Said {
     Synced,
     Pending,
+    Held,
+    Unproven,
     Outside { mine: bool, gone: bool },
     Both,
     Off,
@@ -40,6 +42,8 @@ pub struct Place {
     shared: usize,
     changed: Option<String>,
     kept: Vec<Backup>,
+    /// The documents that hold this file back, by title.
+    held_by: Vec<String>,
 }
 
 #[derive(serde::Serialize, Debug)]
@@ -54,6 +58,10 @@ pub struct AgentDoc {
     folder_off: bool,
     /// Another document in AGENTS carries the same card, so this one is never written.
     twin: bool,
+    /// Whether this computer writes it, and if not, why: the person's choice or approval waits.
+    here: &'static str,
+    /// The words the card was drawn from, so an approval names the text the person saw.
+    print: String,
     places: Vec<Place>,
 }
 
@@ -65,6 +73,8 @@ pub(crate) fn said(standing: Standing, piece: usize) -> Said {
     match standing {
         Standing::UpToDate | Standing::Agreed => Said::Synced,
         Standing::Write | Standing::Wrote => Said::Pending,
+        Standing::Held => Said::Held,
+        Standing::Unproven => Said::Unproven,
         Standing::Outside { now, piece: traced } => Said::Outside {
             mine: traced == Some(piece),
             gone: now.is_none(),
@@ -96,6 +106,7 @@ pub(crate) fn place(data: &Path, ledger: &Ledger, target: &Target, piece: usize)
         said: said(agents::standing(ledger, target), piece),
         shared: target.pieces.len(),
         changed: changed_at(&target.at),
+        held_by: Vec::new(),
         kept: agents::kept(data, &target.at)
             .into_iter()
             .map(|one| Backup {
@@ -122,13 +133,34 @@ fn ledger(data: &Path) -> Ledger {
 
 struct Opened {
     card: Card,
+    print: String,
+    gate: agents::Gate,
     data: PathBuf,
+    ledger: Ledger,
     twin: bool,
+    here: Seen,
     places: Vec<(Target, usize)>,
 }
 
+fn here_word(seen: Seen) -> &'static str {
+    match seen {
+        Seen::Admitted => "applied",
+        Seen::WaitingHere => "waiting",
+        Seen::DeclinedHere => "declined",
+        Seen::NotAgreed => "notAgreed",
+        Seen::PlacedByAgent => "placedByAgent",
+        Seen::OtherComputersMemory => "otherMemory",
+        Seen::Away | Seen::Plain | Seen::Unread => "away",
+    }
+}
+
 // Only a document in AGENTS is written anywhere; elsewhere its card is a property like any other.
-fn opened(session: &Session, file: &str) -> Answer<Option<Opened>> {
+fn opened(
+    session: &Session,
+    homes: Option<&Homes>,
+    machine: &str,
+    file: &str,
+) -> Answer<Option<Opened>> {
     let bodies = super::agents_sync::bodies(session);
     let Some(card) = bodies
         .iter()
@@ -145,23 +177,38 @@ fn opened(session: &Session, file: &str) -> Answer<Option<Opened>> {
         })
         .map(|(one, _)| one)
         .collect();
-    let all = match Homes::here() {
-        Some(homes) => targets(&homes, &bodies),
+    let data = session.paths.data().to_path_buf();
+    let ledger = Ledger::open(&data, machine);
+    let gate = super::agents_sync::gated(session, &ledger);
+    let here = gate.seen(file).unwrap_or(Seen::Away);
+    let all = match homes {
+        Some(homes) => targets(homes, &gate, &ledger),
         None => Vec::new(),
     };
     let written = |one: &Placed| one.files.iter().any(|named| twins.contains(&named));
     let twin = all.iter().any(written);
     let places = placed_for(file, all);
+    let print = bodies
+        .iter()
+        .find(|(one, _)| one == file)
+        .map(|(_, body)| tisty_core::docs::print_of_text(body))
+        .unwrap_or_default();
     Ok(Some(Opened {
         card,
-        data: session.paths.data().to_path_buf(),
-        twin: twin && places.is_empty(),
+        print,
+        data,
+        ledger,
+        gate,
+        twin: twin && places.is_empty() && here == Seen::Admitted,
+        here,
         places,
     }))
 }
 
 fn one_place(session: &Session, file: &str, at: &str) -> Answer<(PathBuf, Target, usize)> {
-    let opened = opened(session, file)?.ok_or_else(|| Refusal::of("agentNoCard"))?;
+    let machine = tisty_core::machine::here().unwrap_or_default();
+    let opened = opened(session, Homes::here().as_ref(), &machine, file)?
+        .ok_or_else(|| Refusal::of("agentNoCard"))?;
     let (target, piece) = opened
         .places
         .into_iter()
@@ -185,17 +232,106 @@ pub fn agent_doc(
     at: Option<String>,
     asked: Option<Asked>,
 ) -> Answer<Told> {
-    match at.zip(asked) {
-        Some((at, asked)) => done_at(&session, &file, &at, asked).map(Told::Text),
-        None => card(&session, &file).map(Told::Card),
+    match (at, asked) {
+        (_, Some(Asked::Take { here })) => taken_here(&session, &file, here).map(Told::Card),
+        (_, Some(Asked::Agree { print })) => agreed(&session, &file, &print).map(Told::Card),
+        (Some(at), Some(asked)) => done_at(&session, &file, &at, asked).map(Told::Text),
+        _ => card(&session, &file).map(Told::Card),
     }
 }
 
+fn taken_here(session: &Mutex<Session>, file: &str, here: bool) -> Answer<Option<AgentDoc>> {
+    let machine = tisty_core::machine::here().unwrap_or_default();
+    take_here(&held(session), Homes::here().as_ref(), &machine, file, here)?;
+    card(session, file)
+}
+
+fn agreed(session: &Mutex<Session>, file: &str, print: &str) -> Answer<Option<AgentDoc>> {
+    let machine = tisty_core::machine::here().unwrap_or_default();
+    agree(
+        &mut held(session),
+        Homes::here().as_ref(),
+        &machine,
+        file,
+        print,
+    )?;
+    card(session, file)
+}
+
+pub(crate) fn take_here(
+    session: &Session,
+    homes: Option<&Homes>,
+    machine: &str,
+    file: &str,
+    here: bool,
+) -> Answer<()> {
+    let data = session.paths.data();
+    let mut ledger = Ledger::open(data, machine);
+    ledger.take(file, here);
+    ledger.keep(data).map_err(refused)?;
+    if let Some(homes) = homes {
+        super::agents_sync::round_now(session, homes, &mut ledger);
+    }
+    Ok(())
+}
+
+// Only the words the person was shown become theirs, so they may reach the agents' files.
+pub(crate) fn agree(
+    session: &mut Session,
+    homes: Option<&Homes>,
+    machine: &str,
+    file: &str,
+    print: &str,
+) -> Answer<()> {
+    let body = tisty_core::docs::read(&session.paths.docs(), file)
+        .map_err(|e| Refusal::about("cannotWrite", e.to_string()))?;
+    if tisty_core::docs::print_of_text(&body) != print {
+        return Err(Refusal::of("agentDocChanged"));
+    }
+    let hand = crate::signing(&session.state);
+    session.retell_written(file, &body, hand);
+    if let Some(homes) = homes {
+        let mut ledger = Ledger::open(session.paths.data(), machine);
+        super::agents_sync::round_now(session, homes, &mut ledger);
+    }
+    Ok(())
+}
+
+fn held_by(
+    state: &tisty_core::State,
+    gate: &agents::Gate,
+    ledger: &Ledger,
+    target: &Target,
+) -> Vec<String> {
+    ledger
+        .applied_at(&target.at)
+        .filter(|file| gate.held(file))
+        .map(|file| {
+            state
+                .docs
+                .values()
+                .find(|one| one.file == file)
+                .and_then(|one| one.title.clone())
+                .unwrap_or_else(|| file.to_string())
+        })
+        .collect()
+}
+
 fn card(session: &Mutex<Session>, file: &str) -> Answer<Option<AgentDoc>> {
-    let Some(opened) = opened(&held(session), file)? else {
+    let machine = tisty_core::machine::here().unwrap_or_default();
+    card_of(&held(session), Homes::here().as_ref(), &machine, file)
+}
+
+pub(crate) fn card_of(
+    session: &Session,
+    homes: Option<&Homes>,
+    machine: &str,
+    file: &str,
+) -> Answer<Option<AgentDoc>> {
+    let Some(opened) = opened(session, homes, machine, file)? else {
         return Ok(None);
     };
-    let ledger = ledger(&opened.data);
+    let ledger = &opened.ledger;
     let card = opened.card;
     Ok(Some(AgentDoc {
         kind: card.kind.word(),
@@ -203,27 +339,42 @@ fn card(session: &Mutex<Session>, file: &str) -> Answer<Option<AgentDoc>> {
         code: card.code(),
         folder_off: ledger.consented() && !ledger.syncs(""),
         twin: opened.twin,
+        here: here_word(opened.here),
+        print: opened.print,
         places: opened
             .places
             .iter()
-            .map(|(target, piece)| place(&opened.data, &ledger, target, *piece))
+            .map(|(target, piece)| Place {
+                held_by: held_by(&session.state, &opened.gate, ledger, target),
+                ..place(&opened.data, ledger, target, *piece)
+            })
             .collect(),
         level: card.level,
         name: card.name,
     }))
 }
 
-#[derive(serde::Deserialize, Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(serde::Deserialize, Debug, Clone, PartialEq, Eq)]
 #[serde(rename_all = "camelCase", tag = "do")]
 pub enum Asked {
     /// The document as the file now says it, written in through the core so its history keeps what it said.
-    Bring,
+    Bring {
+        #[serde(default)]
+        print: Option<String>,
+    },
     /// What the file holds now, or one of its backups, as text to look at.
     Held {
         backup: Option<u64>,
     },
     Restore {
         backup: u64,
+    },
+    /// «Apply here» or «not on this computer», kept in this computer's ledger alone.
+    Take {
+        here: bool,
+    },
+    Agree {
+        print: String,
     },
 }
 
@@ -232,16 +383,17 @@ pub(crate) fn done(
     ledger: &Ledger,
     target: &Target,
     piece: usize,
-    asked: Asked,
+    asked: &Asked,
 ) -> Answer<Option<String>> {
-    match asked {
+    match *asked {
         Asked::Held { backup: None } if !ledger.consented() => Err(Refused::NoConsent),
-        Asked::Bring => agents::bring(ledger, target, piece).map(Some),
+        Asked::Bring { .. } => agents::bring(ledger, target, piece).map(Some),
         Asked::Held { backup: Some(n) } => {
             agents::read_kept(data, &target.at, n).map(|bytes| Some(text(&bytes)))
         }
         Asked::Held { backup: None } => now(&target.at).map(|bytes| Some(text(&bytes))),
         Asked::Restore { backup } => agents::restore(data, ledger, target, backup).map(|()| None),
+        Asked::Take { .. } | Asked::Agree { .. } => Ok(None),
     }
     .map_err(refused)
 }
@@ -264,33 +416,53 @@ fn text(bytes: &[u8]) -> String {
 fn done_at(session: &Mutex<Session>, file: &str, at: &str, asked: Asked) -> Answer<Option<String>> {
     let (data, target, piece) = one_place(&held(session), file, at)?;
     // What writes waits for any sync round, which writes the same files under the lock.
-    let mut writing = matches!(asked, Asked::Restore { .. } | Asked::Bring).then(|| held(session));
+    let mut writing =
+        matches!(asked, Asked::Restore { .. } | Asked::Bring { .. }).then(|| held(session));
     match (
-        done(&data, &ledger(&data), &target, piece, asked)?,
+        done(&data, &ledger(&data), &target, piece, &asked)?,
         writing.as_deref_mut(),
+        &asked,
     ) {
-        (Some(body), Some(session)) if asked == Asked::Bring => kept_in(
+        (Some(body), Some(session), Asked::Bring { print }) => kept_in(
             session,
             Homes::here().as_ref(),
-            file,
-            &body,
-            &target.assistant,
+            Brought {
+                file,
+                body: &body,
+                by: &target.assistant,
+                seen: print.as_deref(),
+            },
         ),
-        (told, _) => Ok(told),
+        (told, _, _) => Ok(told),
     }
 }
 
 // Brought words are written as the assistant whose file they come from, so the history keeps what the
 // document said before, and a round settles the file at once.
+pub(crate) struct Brought<'a> {
+    pub(crate) file: &'a str,
+    pub(crate) body: &'a str,
+    pub(crate) by: &'a str,
+    pub(crate) seen: Option<&'a str>,
+}
+
 pub(crate) fn kept_in(
     session: &mut Session,
     homes: Option<&Homes>,
-    file: &str,
-    body: &str,
-    by: &str,
+    brought: Brought,
 ) -> Answer<Option<String>> {
+    let Brought {
+        file,
+        body,
+        by,
+        seen,
+    } = brought;
     let was = tisty_core::docs::read(&session.paths.docs(), file)
         .map_err(|e| Refusal::about("cannotWrite", e.to_string()))?;
+    // Words written after the card was drawn are never brought over unseen.
+    if seen.is_some_and(|seen| tisty_core::docs::print_of_text(&was) != seen) {
+        return Err(Refusal::of("agentDocChanged"));
+    }
     if tisty_core::docs::unchanged(&was, body) {
         return Err(Refusal::of("agentBringSame"));
     }

@@ -50,6 +50,8 @@ const look = (more: Partial<AgentsLook> = {}): AgentsLook => ({
   folder: "a",
   docs: 1,
   changes: 0,
+  waiting: 0,
+  unagreed: 0,
   consented: true,
   allOn: true,
   asks: false,
