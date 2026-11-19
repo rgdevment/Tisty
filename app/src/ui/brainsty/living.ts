@@ -105,7 +105,7 @@ export function livingOn(
     brush.clearRect(0, 0, canvas.width, canvas.height);
     const ratio = canvas.width / Math.max(container.clientWidth, 1);
     const spot = (node: number) => {
-      const at = drawing.nodeOnScreen(node);
+      const at = hidden[node] ? undefined : drawing.nodeOnScreen(node);
       return at && [at[0] * ratio, at[1] * ratio];
     };
     for (const one of travellers) {
