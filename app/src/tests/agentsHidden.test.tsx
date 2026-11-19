@@ -78,14 +78,14 @@ describe("the hidden folders in Settings", () => {
     expect(listed().getByText("No folder is hidden.")).toBeTruthy();
   });
 
-  it("names each one by its whole path, the diary and the brainstorm too", () => {
+  it("names each one by its whole path, the diary and Ideas too", () => {
     hide("C");
     hide(DIARY);
     hide(BRAINSTORM);
     render(<HiddenFolders papers={papers} />);
     expect(listed().getByText("trabajo / claude")).toBeTruthy();
     expect(listed().getByText("Diary")).toBeTruthy();
-    expect(listed().getByText("Brainstorm")).toBeTruthy();
+    expect(listed().getByText("Ideas")).toBeTruthy();
   });
 
   it("brings one back to the sidebar and leaves the others hidden", async () => {
