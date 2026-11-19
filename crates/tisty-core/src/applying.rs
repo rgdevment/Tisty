@@ -361,8 +361,42 @@ impl State {
             if let Some(gone) = self.docs.remove(&one) {
                 self.shed.insert(gone.file);
             }
+            self.agent_notes.remove(&one);
             self.tombstones.insert(one);
         }
+    }
+
+    pub(crate) fn doc_compacted(
+        &mut self,
+        event: &Event,
+        id: &DocId,
+        print: &Option<String>,
+        before: &Option<String>,
+    ) {
+        let said = crate::model::Compacted {
+            at: event.timestamp,
+            by: event.device.clone(),
+            via: event.via.clone(),
+            print: print.clone(),
+            before: before.clone(),
+        };
+        self.doc_marked(id, |doc| doc.compacted = Some(said));
+    }
+
+    // The newest note wins by when it was written, so one carried late from another machine never buries it.
+    pub(crate) fn gist_said(&mut self, event: &Event, id: &DocId, d: &crate::event::Gist) {
+        let at = d.at.unwrap_or(event.timestamp);
+        if self.agent_notes.get(id).is_some_and(|had| had.at > at) {
+            return;
+        }
+        let note = crate::model::AgentNote {
+            print: d.print.clone(),
+            summary: d.summary.clone(),
+            notes: d.notes.clone(),
+            at,
+            by: event.device.clone(),
+        };
+        self.agent_notes.insert(*id, note);
     }
 
     pub(crate) fn doc_said(&mut self, event: &Event, id: &DocId, d: &Said) {
@@ -646,3 +680,7 @@ fn flagged_by(event: &Event, d: &crate::event::Flag) -> crate::model::Flagged {
         instead: d.instead.clone(),
     }
 }
+
+#[cfg(test)]
+#[path = "applying_test.rs"]
+mod tests;

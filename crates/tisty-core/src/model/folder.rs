@@ -73,6 +73,18 @@ pub fn reason_points_elsewhere(reason: &str) -> bool {
     matches!(reason, "duplicate_of" | "moved" | "superseded")
 }
 
+/// Kept apart from `Kept`, which reaches the window and the parcel: the person never sees it.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct AgentNote {
+    pub print: String,
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub summary: String,
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub notes: String,
+    pub at: jiff::Timestamp,
+    pub by: crate::event::DeviceId,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Compacted {
     pub at: jiff::Timestamp,

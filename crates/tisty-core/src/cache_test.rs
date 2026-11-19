@@ -924,7 +924,11 @@ fn a_gist_outlives_a_schema_that_moved() {
         "the rebuild did not run, so nothing was put to the test"
     );
     assert_eq!(
-        cache.gist("mac0-0001").map(|one| one.summary),
+        cache
+            .gists()
+            .into_iter()
+            .find(|(id, _)| id == "mac0-0001")
+            .map(|(_, one)| one.summary),
         Some(said.summary),
         "the rebuild threw the agents' margin away"
     );
@@ -944,7 +948,7 @@ fn a_gist_whose_document_is_gone_is_forgotten_even_without_a_card() {
     assert!(cache.note_gist("mac0-0009", &said));
 
     cache.forget_cards(&std::collections::BTreeSet::new());
-    assert!(cache.gist("mac0-0009").is_none());
+    assert!(cache.gists().is_empty());
 }
 
 #[test]
@@ -1409,4 +1413,52 @@ fn the_diary_s_door_survives_the_cache_whether_built_whole_or_advanced_by_a_writ
         let opened = project(&f.store_root, &f.cache_dir).unwrap();
         assert_eq!(opened.diary_open, open, "the cache kept an old door");
     }
+}
+
+#[test]
+fn an_agent_s_note_survives_the_cache_whether_built_whole_or_advanced_by_a_write() {
+    let f = loaded();
+    let mut store = Store::open(&f.store_root, DeviceId("dev_a".into())).unwrap();
+    let doc = Ulid::generate();
+    store
+        .append(Op::DocAdd {
+            id: doc,
+            d: crate::event::DocAdd {
+                wrote: None,
+                guest: false,
+                sown: false,
+                made: None,
+                by: None,
+                said: None,
+                file: "a3f1-0001".into(),
+                order: "a0".into(),
+                folder: None,
+                page_of: None,
+                task_of: None,
+                edited: None,
+            },
+        })
+        .unwrap();
+    let said = |summary: &str| Op::DocGist {
+        id: doc,
+        d: crate::event::Gist {
+            print: "print".into(),
+            summary: summary.into(),
+            notes: String::new(),
+            at: None,
+        },
+    };
+    store.append(said("built whole")).unwrap();
+    project(&f.store_root, &f.cache_dir).unwrap();
+    let whole = project(&f.store_root, &f.cache_dir).unwrap();
+    assert_eq!(whole.agent_notes[&doc].summary, "built whole");
+
+    let mut cache = Cache::open(&f.cache_dir).unwrap();
+    let mut state = whole;
+    let note = store.append(said("advanced by a write")).unwrap();
+    state.apply(&note);
+    advance(cache.as_mut(), &state, &[note], &f.store_root, false);
+
+    let advanced = project(&f.store_root, &f.cache_dir).unwrap();
+    assert_eq!(advanced.agent_notes[&doc].summary, "advanced by a write");
 }

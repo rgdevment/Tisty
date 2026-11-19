@@ -447,7 +447,7 @@ pub(super) fn tools_without_hints() -> Value {
         {
             "name": "sum_up",
             "title": "Say what a document is about",
-            "description": "Leave a `summary` and `notes` on a document for the next agent, kept on this machine only and unseen by the person; a later write marks it stale. Write it after reading a long document, never instead, saying what it says.",
+            "description": "Leave the next agent a `summary` and `notes` on a document, replacing the last; they reach the person's other computers, unseen by the person, and go stale when it is written. Write them after reading it, never instead.",
             "inputSchema": shaped(json!({
                 "properties": {
                     "doc": named_doc_field(),

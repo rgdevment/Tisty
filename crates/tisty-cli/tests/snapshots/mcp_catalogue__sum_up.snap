@@ -9,7 +9,7 @@ expression: tool
     "openWorldHint": false,
     "readOnlyHint": false
   },
-  "description": "Leave a `summary` and `notes` on a document for the next agent, kept on this machine only and unseen by the person; a later write marks it stale. Write it after reading a long document, never instead, saying what it says.",
+  "description": "Leave the next agent a `summary` and `notes` on a document, replacing the last; they reach the person's other computers, unseen by the person, and go stale when it is written. Write them after reading it, never instead.",
   "inputSchema": {
     "additionalProperties": false,
     "properties": {

@@ -2718,3 +2718,35 @@ fn two_languages_that_travel_without_their_anchor_land_still_together() {
     let walks = there.titled("Walks").id;
     assert_eq!(there.state.tongues_of(walks).len(), 2);
 }
+
+#[test]
+fn a_parcel_never_carries_what_an_agent_noted_about_a_document() {
+    let room = tmp();
+    let mut here = Room::new(room.path(), "mine");
+    let box_at = filled(&mut here);
+    let obra = here.titled("Obra").id;
+    here.tell(Op::DocGist {
+        id: obra,
+        d: tisty_core::event::Gist {
+            print: "print".into(),
+            summary: "solo para agentes".into(),
+            notes: "tampoco esto".into(),
+            at: None,
+        },
+    });
+    parcel::write(&here.paths, &here.state, &[], &box_at, &Along::default()).unwrap();
+
+    let file = std::fs::File::open(&box_at).unwrap();
+    let mut zip = zip::ZipArchive::new(file).unwrap();
+    for i in 0..zip.len() {
+        let mut one = zip.by_index(i).unwrap();
+        let mut held = Vec::new();
+        std::io::Read::read_to_end(&mut one, &mut held).unwrap();
+        let said = String::from_utf8_lossy(&held);
+        assert!(
+            !said.contains("solo para agentes") && !said.contains("tampoco esto"),
+            "{}: {said}",
+            one.name().unwrap()
+        );
+    }
+}
