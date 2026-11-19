@@ -38,6 +38,7 @@ export default function BrainstyView({ near, groups, onOpen, onLeave }: Props) {
   const [read, setRead] = useState<Read | null>(null);
   const [Drawn, setDrawn] = useState<LoadedBrainsty | null>(null);
   const escaping: Escaping = useRef(null);
+  const view = useRef<HTMLElement>(null);
   const leaving = useRef(onLeave);
   leaving.current = onLeave;
 
@@ -57,7 +58,7 @@ export default function BrainstyView({ near, groups, onOpen, onLeave }: Props) {
   useEffect(() => {
     // Heard after the rest of the window, so a menu or a dialog open over the view shuts first.
     const leave = (e: KeyboardEvent) => {
-      if (e.key !== "Escape" || e.defaultPrevented) return;
+      if (e.key !== "Escape" || e.defaultPrevented || !meantFor(view.current, e.target)) return;
       e.preventDefault();
       if (!escaping.current?.()) leaving.current();
     };
@@ -67,7 +68,11 @@ export default function BrainstyView({ near, groups, onOpen, onLeave }: Props) {
 
   const network = read && "network" in read ? read.network : null;
   return (
-    <section aria-label={t("brainsty")} className="flex min-h-0 min-w-0 flex-col bg-bg text-ink">
+    <section
+      ref={view}
+      aria-label={t("brainsty")}
+      className="flex min-h-0 min-w-0 flex-col bg-bg text-ink"
+    >
       <header className="flex h-11 shrink-0 items-center gap-3 border-b border-hair px-4">
         <h1 className="flex items-center gap-2 text-[13px] font-semibold">
           <Glyph name="network" className="h-4 w-4 text-accent" />
@@ -81,6 +86,12 @@ export default function BrainstyView({ near, groups, onOpen, onLeave }: Props) {
     </section>
   );
 }
+
+// Escape typed into a field elsewhere in the window, such as the sidebar's search, belongs there.
+const meantFor = (view: HTMLElement | null, target: EventTarget | null): boolean =>
+  !(target instanceof Element) ||
+  target.closest("input, textarea, select, [contenteditable]") === null ||
+  (view?.contains(target) ?? false);
 
 function Inside({
   read,

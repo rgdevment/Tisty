@@ -72,6 +72,10 @@ export default function Stage() {
     underway,
   } = desk;
   const tagNames = useMemo(() => data.tags.map((one) => one.tag), [data.tags]);
+  const groups = useMemo(
+    () => [...papers.folders, ...(data.every ?? data.lists)],
+    [papers.folders, data.every, data.lists],
+  );
   const refreshed = () => {
     load();
     lookPapers();
@@ -93,8 +97,11 @@ export default function Stage() {
   ) : chosen.named === "brainsty" ? (
     <BrainstyView
       near={chosen.near}
-      groups={[...papers.folders, ...(data.every ?? data.lists)]}
-      onOpen={(one) => openedHere(one, desk)}
+      groups={groups}
+      onOpen={(one) => {
+        setCameFrom(null);
+        openedHere(one, desk);
+      }}
       onLeave={() => setChosen(cameFrom ?? { named: "tasks" })}
     />
   ) : chosen.named === "docs" && !chosen.doc && here !== undefined ? (

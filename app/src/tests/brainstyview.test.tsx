@@ -220,6 +220,18 @@ describe("Brainsty from the main window", () => {
     expect(sigma.stopped).toBe(1);
   });
 
+  it("leaves Escape typed in the sidebar to the sidebar", async () => {
+    const user = await opened();
+    await user.click(screen.getByRole("button", { name: t("brainsty") }));
+    await waitFor(() => expect(sigma.hands).not.toBeNull());
+
+    await user.click(screen.getByLabelText(t("sideSearch")));
+    await user.keyboard("{Escape}");
+
+    expect(panel()).toBeTruthy();
+    expect(sigma.killed).toBe(0);
+  });
+
   it("opens what the network asks for in the same window", async () => {
     const user = await opened();
     await user.click(screen.getByRole("button", { name: t("brainsty") }));
