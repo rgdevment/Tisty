@@ -296,7 +296,7 @@ lines, sizes, pages, who cites it and the `print` — for a few hundred tokens, 
 `doc` then takes a `section`, a run of lines, or a budget of `chars`, about 12,000 characters at \
 a time: a document longer than that asked for whole comes back as its outline, so ask for the \
 parts, or `marks` for only what is highlighted or bold, under each section's `at`. Reading one \
-again while you hold its text, send its `print`: unchanged, it says only so. To see where it \
+whole again while you hold it, send its `print`: unchanged, it says only so. To see where it \
 says something, `brain` with `doc` and `query` gives those lines and the ones around each. Change what is there before adding: `edit_doc` changes the passage that is \
 wrong, `write_doc` with the `print` you read at writes the body again when its shape no longer \
 serves, `edit_table` changes a table by its rows and columns without touching its Markdown, and \

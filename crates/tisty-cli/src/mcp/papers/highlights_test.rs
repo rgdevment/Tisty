@@ -97,6 +97,37 @@ fn past_the_budget_the_rest_is_counted_and_left_for_a_section() {
 }
 
 #[test]
+fn a_mark_on_a_heading_is_under_that_heading() {
+    let said = answered(
+        "# Plan\n\n## The **key** part\n\nPlain.\n",
+        &json!({ "marks": true }),
+        "x",
+        "",
+        Map::new(),
+    )
+    .ok()
+    .unwrap();
+    assert_eq!(said["structuredContent"]["marks"][0]["at"], 1);
+}
+
+#[test]
+fn marks_that_fill_the_budget_exactly_all_come() {
+    let half = "z".repeat(WHOLE_UP_TO / 2 - 4);
+    let body = format!("# Even\n\n**{half}**\n\n**{half}**\n");
+    let said = answered(&body, &json!({ "marks": true }), "x", "", Map::new())
+        .ok()
+        .unwrap();
+    assert!(said["structuredContent"].get("marks_left").is_none());
+    assert_eq!(
+        said["structuredContent"]["marks"][0]["marks"]
+            .as_array()
+            .unwrap()
+            .len(),
+        2
+    );
+}
+
+#[test]
 fn a_passage_longer_than_a_read_holds_is_cut_and_said_so() {
     let long = "y".repeat(WHOLE_UP_TO + 500);
     let body = format!("# Long\n\n**{long}**\n");

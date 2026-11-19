@@ -287,6 +287,52 @@ fn a_document_read_again_with_its_print_says_only_that_nothing_changed() {
 }
 
 #[test]
+fn a_part_asked_with_the_print_still_comes_whole() {
+    let served = Served::new();
+    let doc = served
+        .person()
+        .writes_doc("# Recetas\n\narroz\n\n## Postres\n\nflan\n");
+    let mut talk = served.connect();
+    let first = talk.call("read", json!({ "doc": doc, "section": 0 }));
+    let print = shown(&first)["print"].as_str().unwrap().to_string();
+
+    for part in [
+        json!({ "section": 1 }),
+        json!({ "from": 5, "to": 7 }),
+        json!({ "chars": 50 }),
+        json!({ "marks": true }),
+        json!({ "as": "markdown" }),
+    ] {
+        let mut args = part.clone();
+        args["doc"] = json!(doc);
+        args["print"] = json!(print);
+        let said = talk.call("read", args);
+        assert!(shown(&said).get("unchanged").is_none(), "{part}: {said}");
+        assert!(shown(&said).get("changed").is_none(), "{part}: {said}");
+    }
+}
+
+#[test]
+fn an_old_print_beside_a_cursor_or_a_first_budget_says_it_changed() {
+    let served = Served::new();
+    let doc = served.person().writes_doc("# Recetas\n\narroz\n");
+    let mut talk = served.connect();
+    let first = talk.call("read", json!({ "doc": doc }));
+    let print = shown(&first)["print"].as_str().unwrap().to_string();
+    served
+        .person()
+        .saves_doc(&doc, "# Recetas\n\narroz y porotos\n");
+
+    for asked in [json!({ "cursor": 2 }), json!({ "chars": 50, "cursor": 1 })] {
+        let mut args = asked.clone();
+        args["doc"] = json!(doc);
+        args["print"] = json!(print);
+        let said = talk.call("read", args);
+        assert_eq!(shown(&said)["changed"], true, "{asked}: {said}");
+    }
+}
+
+#[test]
 fn a_document_carried_out_with_an_old_print_says_it_changed() {
     let served = Served::new();
     let doc = served.person().writes_doc("# Recetas\n\narroz\n");

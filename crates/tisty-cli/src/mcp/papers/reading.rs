@@ -577,10 +577,11 @@ pub(in crate::mcp) fn read_doc(paths: &Paths, args: &Value) -> Result<Value, Ref
         )),
         (false, None) => None,
     };
-    if held.as_deref() == Some(print.as_str()) {
+    let stale = held.as_deref().is_some_and(|one| one != print);
+    if held.is_some() && !stale && !asks_a_part(args) {
         return Ok(unchanged(&state, kept, &which, &body, &print, standing));
     }
-    if held.is_some() {
+    if stale {
         kept_of.insert("changed".into(), json!(true));
     }
     if super::outward::asked(args)? {
@@ -597,13 +598,11 @@ pub(in crate::mcp) fn read_doc(paths: &Paths, args: &Value) -> Result<Value, Ref
         }
         None => String::new(),
     };
-    let warned = match held {
-        Some(_) => {
-            format!(
-                "{warned}(It was written since the print you sent, so here it is as it reads now.)\n\n"
-            )
-        }
-        None => warned,
+    let warned = match stale {
+        true => format!(
+            "{warned}(It was written since the print you sent, so here it is as it reads now.)\n\n"
+        ),
+        false => warned,
     };
     let warned = match super::super::ideas::is_sheet(&body) {
         true => format!(
@@ -752,6 +751,13 @@ fn unchanged(
         ),
         said,
     )
+}
+
+// Only a read of the whole is known to be what the agent holds; a part may be one it never read.
+fn asks_a_part(args: &Value) -> bool {
+    ["section", "from", "to", "chars", "cursor", "marks", "as"]
+        .iter()
+        .any(|key| args.get(*key).is_some())
 }
 
 fn carried_on(args: &Value) -> bool {
