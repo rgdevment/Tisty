@@ -21,6 +21,7 @@ const PASSED: &str = "alike_turn";
 const METHOD: &str = "words";
 const KIN_BOOK: &str = "book:";
 const KIN_TONGUE: &str = "tongue:";
+const PATIENCE: u32 = 10;
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct Alike {
@@ -58,7 +59,7 @@ pub(super) fn counted(
 ) -> Option<Counted> {
     match holder {
         Holder::Doc(kept) => {
-            let title = kept.title.as_deref().unwrap_or_default();
+            let text = body.or(kept.title.as_deref()).unwrap_or_default();
             let mut kin = Vec::new();
             if let Some(book) = ground.book_of(kept) {
                 kin.push(format!("{KIN_BOOK}{book}"));
@@ -69,7 +70,7 @@ pub(super) fn counted(
             Some(Counted {
                 lang: kept.lang.as_deref().and_then(primary),
                 kin,
-                said: words::said(&words::counted(&[title, body.unwrap_or_default()])),
+                said: words::said(&words::counted(&[text])),
             })
         }
         Holder::Task(task) => {
@@ -139,9 +140,9 @@ pub(super) fn kept_in_round(
     tx: &Transaction,
     rewritten: &[Rewritten],
     out: &HashSet<String>,
-    gone: usize,
+    gone: &[&String],
 ) -> rusqlite::Result<()> {
-    let mut moved = gone > 0;
+    let mut moved = false;
     let mut put = tx.prepare("INSERT OR REPLACE INTO words VALUES (?, ?, ?, ?, ?)")?;
     for one in rewritten.iter().filter(|one| !out.contains(one.id)) {
         put.execute(rusqlite::params![
@@ -154,6 +155,7 @@ pub(super) fn kept_in_round(
         moved = true;
     }
     let held = ids(tx, "SELECT id FROM words")?;
+    moved |= gone.iter().any(|id| held.contains(*id));
     let mut unworded = tx.prepare("DELETE FROM words WHERE id = ?")?;
     let mut unlike = tx.prepare("DELETE FROM alike WHERE a = ?1 OR b = ?1")?;
     for id in held.iter().filter(|one| out.contains(*one)) {
@@ -174,10 +176,11 @@ pub(super) fn kept_in_round(
 #[derive(Debug, Default)]
 pub struct Weighing {
     heard: Option<u64>,
+    waited: u32,
 }
 
 impl Weighing {
-    // A turn that moved since the last look means somebody is still writing, so the pass waits for it to hold still.
+    // A turn that moved since the last look means somebody is still writing, so the pass waits, but never past its patience.
     pub fn kept(&mut self, paths: &Paths) -> Option<Passed> {
         if !paths.store().is_dir() {
             return None;
@@ -186,9 +189,11 @@ impl Weighing {
         let turn = turn_of(&brain.db, TURN).ok().flatten();
         let settled = turn == self.heard;
         self.heard = turn;
-        if !settled {
+        if !settled && self.waited < PATIENCE {
+            self.waited += 1;
             return Some(Passed::Settling);
         }
+        self.waited = 0;
         weighed_now(&mut brain, paths)
     }
 }
@@ -416,7 +421,7 @@ fn tied(db: &Connection, ids: &[String]) -> rusqlite::Result<HashSet<(usize, usi
         .map(|(n, id)| (id.as_str(), n))
         .collect();
     let mut by_uid: HashMap<String, usize> = HashMap::new();
-    let mut by_title: HashMap<String, Option<usize>> = HashMap::new();
+    let mut by_title: HashMap<String, (usize, Option<usize>)> = HashMap::new();
     let mut nodes = db.prepare("SELECT id, uid, title, kind FROM node")?;
     let rows = nodes.query_map([], |row| {
         Ok((
@@ -428,17 +433,14 @@ fn tied(db: &Connection, ids: &[String]) -> rusqlite::Result<HashSet<(usize, usi
     })?;
     for row in rows {
         let (id, uid, title, kind) = row?;
-        let Some(&n) = at.get(id.as_str()) else {
-            continue;
-        };
-        if let Some(uid) = uid {
+        let n = at.get(id.as_str()).copied();
+        if let (Some(uid), Some(n)) = (uid, n) {
             by_uid.insert(uid, n);
         }
+        // A title two documents carry names neither, whether or not each has words, as the card reads it.
         if kind == Kind::Doc.as_str() || kind == Kind::Page.as_str() {
-            by_title
-                .entry(title)
-                .and_modify(|one| *one = None)
-                .or_insert(Some(n));
+            let carried = by_title.entry(title).or_insert((0, n));
+            carried.0 += 1;
         }
     }
     let node_of = |target: &str| {
@@ -447,7 +449,10 @@ fn tied(db: &Connection, ids: &[String]) -> rusqlite::Result<HashSet<(usize, usi
             .or_else(|| by_uid.get(target).copied())
             .or_else(|| {
                 let title = target.strip_prefix(TITLED)?;
-                by_title.get(title).copied().flatten()
+                by_title
+                    .get(title)
+                    .filter(|(carried, _)| *carried == 1)
+                    .and_then(|(_, n)| *n)
             })
     };
     let mut edges = db.prepare(

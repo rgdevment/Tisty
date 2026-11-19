@@ -117,6 +117,10 @@ fn every_document_and_task_keeps_its_words_with_its_stamp_and_nothing_else_does(
     }
     assert!(words[&errand.to_string()].2.contains("passport:1"));
     assert!(words[&file].2.contains("lisbon:1"));
+    assert!(
+        words[&file].2.contains("trips:1"),
+        "a title is counted once"
+    );
     assert_eq!(turn(&brain), Some(1));
 
     world.refreshed(&mut brain, &state);
@@ -656,4 +660,93 @@ fn a_link_by_a_document_s_id_ties_it_and_a_title_two_documents_carry_ties_neithe
     assert!(found.contains(&pair(&naming, &one)), "{found:?}");
     assert!(found.contains(&pair(&naming, &other)), "{found:?}");
     assert!(!found.contains(&pair(&router, &slow)), "{found:?}");
+}
+
+#[test]
+fn a_pass_that_keeps_being_put_off_runs_once_its_patience_is_spent() {
+    let world = World::new();
+    let mut store = world.store();
+    let (_, budget) = doc(&world, &mut store, BUDGET, None, None);
+    doc(&world, &mut store, SPENDING, None, None);
+    fillers(&mut store);
+    drop(store);
+    let mut weighing = Weighing::default();
+    let file = world.paths.docs().join(format!("{budget}.md"));
+    let mut put_off = 0;
+    loop {
+        let mut body = std::fs::read_to_string(&file).unwrap();
+        body.push_str("\nOtra línea.\n");
+        std::fs::write(&file, body).unwrap();
+        super::super::kept_up(&world.paths, super::super::Round::Nudged);
+        match weighing.kept(&world.paths) {
+            Some(Passed::Settling) => put_off += 1,
+            Some(Passed::Ran { .. }) => break,
+            other => panic!("{other:?}"),
+        }
+        assert!(put_off <= PATIENCE, "it never ran");
+    }
+    assert_eq!(put_off, PATIENCE);
+}
+
+#[test]
+fn a_title_a_hidden_diary_page_also_carries_ties_no_one() {
+    let world = World::new();
+    let mut store = world.store();
+    let (book, _) = doc(
+        &world,
+        &mut store,
+        "---\ndiary: on\n---\n\n# Diario 2026\n",
+        None,
+        None,
+    );
+    doc(
+        &world,
+        &mut store,
+        "# Huerto urbano\n\nHoy regué.\n",
+        Some(book),
+        None,
+    );
+    let (_, garden) = doc(
+        &world,
+        &mut store,
+        "# Huerto urbano\n\nTomates y albahaca al sol.\n",
+        None,
+        None,
+    );
+    let (_, naming) = doc(
+        &world,
+        &mut store,
+        "# Riego\n\nRegar tomates y albahaca del [[Huerto urbano]].\n",
+        None,
+        None,
+    );
+    fillers(&mut store);
+    let mut state = world.state();
+    state.docs.get_mut(&book).unwrap().diary = true;
+    let mut brain = world.brain();
+    world.refreshed(&mut brain, &state);
+    brain.weigh_alike(&caps()).unwrap();
+    assert!(
+        ends(&brain).contains(&pair(&naming, &garden)),
+        "{:?}",
+        ends(&brain)
+    );
+}
+
+#[test]
+fn a_file_that_leaves_moves_no_turn() {
+    let world = World::new();
+    let mut store = world.store();
+    fillers(&mut store);
+    let mut state = world.state();
+    state
+        .kept
+        .insert("files/plan.png".into(), ("ab12".into(), 3));
+    let mut brain = world.brain();
+    world.refreshed(&mut brain, &state);
+    let before = turn(&brain);
+
+    state.kept.remove("files/plan.png");
+    world.refreshed(&mut brain, &state);
+    assert_eq!(turn(&brain), before);
 }

@@ -312,7 +312,7 @@ impl Brain {
                 });
             }
         }
-        alike::kept_in_round(&tx, &rewritten, &out, gone.len())?;
+        alike::kept_in_round(&tx, &rewritten, &out, &gone)?;
         for sql in GONE_WITH_A_NODE {
             let mut taken = tx.prepare(sql)?;
             for id in &gone {

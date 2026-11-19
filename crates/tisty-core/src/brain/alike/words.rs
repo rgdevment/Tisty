@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-pub(crate) const KEPT_AT_MOST: usize = 1024;
+pub(crate) const KEPT_AT_MOST: usize = 256;
 const SHORTEST: usize = 3;
 const LONGEST: usize = 32;
 // A long run of letters and digits is an id or a hash: two notes naming one say nothing alike.
