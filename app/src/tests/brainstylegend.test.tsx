@@ -8,6 +8,7 @@ import { legendOf } from "../ui/brainsty/legendKeys";
 import { lineLook, nodeLook, type Palette } from "../ui/brainsty/looks";
 
 const palette: Palette = {
+  bg: "#ffffff",
   ink: "#111111",
   soft: "#555555",
   faint: "#999999",
@@ -85,29 +86,34 @@ describe("the legend over the network", () => {
       document.documentElement.style.setProperty(`--tisty-hue-${hue}`, colour);
   });
 
-  it("lists kinds, colours, states and lines, and folds away for next time", async () => {
+  it("starts folded, opens on asking with kinds, colours, states and lines, and stays as left", async () => {
     const user = userEvent.setup();
     const { unmount } = render(<Legend network={network} groups={groups} />);
+    const button = () => screen.getByRole("button", { name: t("brainstyLegend") });
+
+    expect(button().getAttribute("aria-expanded")).toBe("false");
+    expect(screen.queryByText("Proyectos")).toBeNull();
+    await user.click(button());
 
     expect(screen.getByText(t("brainstyOne_doc"))).toBeTruthy();
     expect(screen.getByText("Proyectos")).toBeTruthy();
     expect(screen.queryByText("Vacía")).toBeNull();
     expect(screen.getByText(t("brainstyStanding_archived"))).toBeTruthy();
     expect(screen.getByText(t("brainstyTie_mention"))).toBeTruthy();
-
-    await user.click(screen.getByRole("button", { name: t("brainstyLegend") }));
-    expect(screen.queryByText("Proyectos")).toBeNull();
     unmount();
 
+    const again = render(<Legend network={network} groups={groups} />);
+    expect(button().getAttribute("aria-expanded")).toBe("true");
+    await user.click(button());
+    expect(screen.queryByText("Proyectos")).toBeNull();
+    again.unmount();
+
     render(<Legend network={network} groups={groups} />);
-    expect(
-      screen.getByRole("button", { name: t("brainstyLegend") }).getAttribute("aria-expanded"),
-    ).toBe("false");
-    await user.click(screen.getByRole("button", { name: t("brainstyLegend") }));
-    expect(screen.getByText("Proyectos")).toBeTruthy();
+    expect(button().getAttribute("aria-expanded")).toBe("false");
   });
 
   it("names the amber curve and what it means", () => {
+    localStorage.setItem("tisty.brainstyLegend", "open");
     render(<Legend network={{ ...network, alike: [[0, 2, 700, "bread"]] }} groups={groups} />);
 
     expect(screen.getByText(t("brainstyAlike")).closest("p")?.getAttribute("title")).toBe(
@@ -116,6 +122,7 @@ describe("the legend over the network", () => {
   });
 
   it("shows the first colours and the rest on asking", async () => {
+    localStorage.setItem("tisty.brainstyLegend", "open");
     const user = userEvent.setup();
     const many: Group[] = Array.from({ length: 10 }, (_, at) => ({
       id: `g${at}`,
@@ -129,7 +136,7 @@ describe("the legend over the network", () => {
     render(<Legend network={crowded} groups={many} />);
 
     expect(screen.queryByText("Lista 9")).toBeNull();
-    await user.click(screen.getByRole("button", { name: /^2/ }));
+    await user.click(screen.getByRole("button", { name: /^4/ }));
     expect(screen.getByText("Lista 9")).toBeTruthy();
     await user.click(screen.getByRole("button", { name: t("brainstyLegendFewer") }));
     expect(screen.queryByText("Lista 9")).toBeNull();

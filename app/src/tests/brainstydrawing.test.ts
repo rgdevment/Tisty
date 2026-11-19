@@ -264,6 +264,8 @@ describe("the drawing of the network", () => {
     const drawing = drawNetwork(document.body, network, spots, () => undefined, light, "Inter");
     const graph = drawn.graph as Graph;
     const colour = nodeStyle("labelColor");
+    const backdrop = nodeStyle("backdropColor");
+    expect(backdrop({}, {}, { zoom: 1 })).toBe("#102030");
 
     drawing.place({ x: Float32Array.of(5, 6, 7), y: Float32Array.of(7, 8, 9) });
     drawing.place({ x: new Float32Array(), y: new Float32Array() });
@@ -278,6 +280,7 @@ describe("the drawing of the network", () => {
     drawing.retheme(dark);
     expect(graph.getNodeAttribute("0", "color")).not.toBe(before);
     expect(colour({ big: false }, {}, { zoom: 1 })).toBe("rgba(255, 255, 255, 1)");
+    expect(backdrop({}, {}, { zoom: 1 })).toBe("#405060");
     expect(drawn.refreshed).toBe(1);
 
     const frame = vi.fn();

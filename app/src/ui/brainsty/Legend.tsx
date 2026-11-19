@@ -11,28 +11,28 @@ interface Props {
   readonly groups: readonly Group[];
 }
 
-const SHUT = "tisty.brainstyLegend";
-const FEW = 8;
+const OPEN = "tisty.brainstyLegend";
+const FEW = 6;
 
-const keptShut = (): boolean => {
+const keptOpen = (): boolean => {
   try {
-    return localStorage.getItem(SHUT) === "shut";
+    return localStorage.getItem(OPEN) === "open";
   } catch {
     return false;
   }
 };
 
-const keepShut = (shut: boolean) => {
+const keepOpen = (open: boolean) => {
   try {
-    if (shut) localStorage.setItem(SHUT, "shut");
-    else localStorage.removeItem(SHUT);
+    if (open) localStorage.setItem(OPEN, "open");
+    else localStorage.removeItem(OPEN);
   } catch {
-    // Without storage the legend simply opens again next time.
+    // Without storage the legend simply starts folded next time.
   }
 };
 
 export default function Legend({ network, groups }: Props) {
-  const [shut, setShut] = useState(keptShut);
+  const [open, setOpen] = useState(keptOpen);
   const [palette, setPalette] = useState(paletteNow);
   const [all, setAll] = useState(false);
   useEffect(() => followTheme(() => setPalette(paletteNow())), []);
@@ -40,29 +40,31 @@ export default function Legend({ network, groups }: Props) {
   const shown = all ? legend.groups : legend.groups.slice(0, FEW);
   const more = legend.groups.length - shown.length;
   const turn = () => {
-    keepShut(!shut);
-    setShut(!shut);
+    keepOpen(!open);
+    setOpen(!open);
   };
 
   return (
     <section
       aria-label={t("brainstyLegend")}
-      className="absolute bottom-9 left-3 z-[5] flex max-h-[calc(100%-120px)] w-60 flex-col overflow-hidden rounded-[10px] border border-hair bg-bg/95 text-[11.5px] text-soft shadow-lift"
+      className={`absolute bottom-9 left-3 z-[5] flex max-h-[calc(100%-120px)] flex-col overflow-hidden rounded-[10px] border border-hair bg-bg/95 text-[11.5px] text-soft shadow-lift ${
+        open ? "w-[min(440px,calc(100%-24px))]" : ""
+      }`}
     >
       <button
         type="button"
         onClick={turn}
-        aria-expanded={!shut}
-        className="flex items-center gap-1.5 px-3 py-2 text-left font-semibold text-ink hover:bg-hover"
+        aria-expanded={open}
+        className="flex items-center gap-1.5 px-2.5 py-1.5 text-left font-semibold text-soft hover:bg-hover hover:text-ink"
       >
         <Glyph
           name="chevron"
-          className={`h-3 w-3 text-faint transition-transform duration-150 ${shut ? "-rotate-90" : ""}`}
+          className={`h-3 w-3 text-faint transition-transform duration-150 ${open ? "" : "-rotate-90"}`}
         />
         {t("brainstyLegend")}
       </button>
-      {!shut && (
-        <div className="flex min-h-0 flex-col gap-3 overflow-y-auto px-3 pb-3">
+      {open && (
+        <div className="scroller grid min-h-0 grid-cols-2 gap-x-5 gap-y-3 px-3 pb-3">
           <Part title={t("brainstyLegendKinds")}>
             {legend.kinds.map((one) => (
               <Row key={one.kind} label={t(`brainstyOne_${one.kind}`)}>

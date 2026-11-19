@@ -148,6 +148,8 @@ export function drawNetwork(
         {
           shape: { attribute: "shape", defaultValue: "circle" },
           labelFont: font,
+          // sigma backs a hovered or picked node and its title in white, where a light title vanishes.
+          backdropColor: () => seen.palette.bg,
           color: (at, state: Lit, shared: Seen) =>
             shared.hasHighlighted && !state.isHighlighted ? rgba(String(at.color), DIM) : at.color,
           labelVisibility: (at, state: Lit, shared: Seen) => {
