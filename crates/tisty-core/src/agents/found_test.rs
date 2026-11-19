@@ -334,6 +334,7 @@ fn a_rules_folder_brings_only_what_its_assistant_reads() {
     put(&rules.join("settings.json"), "{}");
     put(&rules.join("plugin/manifest.json"), "{}");
     put(&rules.join("plugin/kept.md"), "x\n");
+    put(&rules.join("synced/team.md"), "x\n");
     let instructions = home.path().join(".copilot/instructions");
     put(&instructions.join("tests.instructions.md"), "x\n");
     put(&instructions.join("readme.md"), "x\n");
@@ -353,6 +354,7 @@ fn a_rules_folder_brings_only_what_its_assistant_reads() {
         names_of(&found(&places)),
         [
             "rules/deep/style.MD",
+            "rules/synced/team.md",
             "rules/tone.md",
             "instructions/tests.instructions.md"
         ]

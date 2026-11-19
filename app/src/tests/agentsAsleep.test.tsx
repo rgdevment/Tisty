@@ -385,6 +385,37 @@ describe("what the keeper does with the notice", () => {
     expect(isHidden(AGENTS)).toBe(true);
   });
 
+  it("keeps AGENTS hidden when the first time closes without a yes", async () => {
+    hide(AGENTS);
+    ipc.look = look({ folder: null, consented: false, asks: true });
+    render(<AgentsKeeper />);
+    act(() => lightAgents());
+    const first = await screen.findByRole("dialog", { name: "Your agents, in one place" });
+    await userEvent.click(within(first).getByRole("button", { name: "Not now" }));
+    await settle();
+    expect(isHidden(AGENTS)).toBe(true);
+  });
+
+  it("shows AGENTS once the first time leaves it on", async () => {
+    hide(AGENTS);
+    ipc.look = look({ folder: null, consented: false, asks: true });
+    render(<AgentsKeeper />);
+    act(() => lightAgents());
+    const first = await screen.findByRole("dialog", { name: "Your agents, in one place" });
+    ipc.state = state({ folder: "A", consented: true });
+    await userEvent.click(within(first).getByRole("button", { name: "Not now" }));
+    await waitFor(() => expect(isHidden(AGENTS)).toBe(false));
+    expect(sent("agents_turn")).toHaveLength(0);
+  });
+
+  it("opens no notice for an AGENTS that turns out to be on", async () => {
+    ipc.state = state({ folder: "A", consented: true });
+    render(<AgentsKeeper />);
+    act(() => askToLight());
+    await settle();
+    expect(screen.queryByRole("dialog")).toBeNull();
+  });
+
   it("turns on straight away from Settings", async () => {
     ipc.state = state({ folder: "A", consented: true, allOn: false });
     render(<AgentsKeeper />);

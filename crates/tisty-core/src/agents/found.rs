@@ -29,12 +29,8 @@ const MANIFEST: &str = "manifest.json";
 const MARKDOWN: &str = ".md";
 // Copilot reads only `*.instructions.md` in its instructions folder; every other rules folder is Markdown.
 const READ_AS: [(&str, &str, &str); 1] = [("copilot", "instructions", ".instructions.md")];
-// Folders an assistant writes and rewrites by itself inside the places Tisty walks, in any capitalization.
-// Claude Code's `.trash` and Codex's `.system` are hidden, so the dot rule already keeps them out.
-const KEPT_BY_ASSISTANT: [&str; 1] = [
-    // Claude Code's copy of the claude.ai skills, a reserved name it may overwrite or delete (code.claude.com/docs/en/skills).
-    "synced",
-];
+// Skill folders an assistant rewrites itself: Claude Code's claude.ai copy (`.trash` and Codex's `.system` fall to the dot rule).
+const KEPT_BY_ASSISTANT: [&str; 1] = ["synced"];
 
 fn kept_by_assistant(leaf: &str) -> bool {
     KEPT_BY_ASSISTANT
@@ -135,9 +131,7 @@ fn kept_away(at: &Path, leaf: &str, walk: Walk) -> bool {
     match walk {
         Walk::Skills => !is_skill(at, leaf),
         Walk::Skill => leaf == "node_modules",
-        Walk::Read(_) => {
-            leaf == "node_modules" || kept_by_assistant(leaf) || at.join(MANIFEST).is_file()
-        }
+        Walk::Read(_) => leaf == "node_modules" || at.join(MANIFEST).is_file(),
     }
 }
 

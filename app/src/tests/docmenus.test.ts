@@ -201,7 +201,7 @@ describe("the menu inside AGENTS", () => {
     agentsAnswer.now = () => Promise.reject({ code: "x" });
     litFor(agentsRoot, folders, then);
     await flush();
-    expect(then).toHaveBeenLastCalledWith(false);
+    expect(then).toHaveBeenLastCalledWith(true);
   });
 
   it("says so when turning AGENTS off fails", async () => {

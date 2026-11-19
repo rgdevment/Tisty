@@ -109,9 +109,10 @@ export const litFor = (
   then: (lit: boolean) => void,
 ) => {
   if (agentsRoot(folders)?.id !== folder.id) return then(false);
+  // Unknown counts as on: turning off twice is harmless, hiding an AGENTS that writes is not.
   agentsState()
     .then((state) => then(agentsLit(state)))
-    .catch(() => then(false));
+    .catch(() => then(true));
 };
 
 /// `lit` only matters on the AGENTS folder itself, the one row that can be switched off.

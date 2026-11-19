@@ -50,13 +50,18 @@ export default function AgentsKeeper() {
     window.dispatchEvent(new Event(AGENTS_CHANGED));
   }, [papersChanged]);
 
-  const switchOn = useCallback(() => agentsTurn(null, true).then(changed), [changed]);
+  // On means seen: AGENTS never writes agent files from behind a hidden row.
+  const switchOn = useCallback(
+    (folder: string | null) => {
+      show(...agentsKeys(folder));
+      return agentsTurn(null, true).then(changed);
+    },
+    [changed],
+  );
 
   const light = useCallback(
     (state: AgentsState) => {
-      // On means seen: AGENTS never writes agent files from behind a hidden row.
-      show(...agentsKeys(state.folder));
-      if (onlySwitchedOff(state)) return switchOn();
+      if (onlySwitchedOff(state)) return switchOn(state.folder);
       lighting.current = true;
       setAsking("first");
       return Promise.resolve();
@@ -65,10 +70,11 @@ export default function AgentsKeeper() {
   );
 
   useEffect(() => {
+    // A row still learning its state may ask while AGENTS is on; then there is nothing to wake.
     const notice = () => {
       setStirring(undefined);
       agentsState()
-        .then(setAsleep)
+        .then((state) => !agentsLit(state) && setAsleep(state))
         .catch((e) => setError(saidPlainly(e)));
     };
     const now = () => {
@@ -212,7 +218,10 @@ export default function AgentsKeeper() {
     if (!lighting.current) return;
     lighting.current = false;
     agentsState()
-      .then((state) => (onlySwitchedOff(state) ? switchOn() : undefined))
+      .then((state) => {
+        if (onlySwitchedOff(state)) return switchOn(state.folder);
+        if (agentsLit(state)) show(...agentsKeys(state.folder));
+      })
       .catch((e) => setError(saidPlainly(e)));
   };
   return (
