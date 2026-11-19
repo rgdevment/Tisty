@@ -24,6 +24,7 @@ pub(super) fn writable(
     let Some(kept) = state.docs.values().find(|one| one.file == which) else {
         return Err(Refused::Tool(no_document_called(&state, which)));
     };
+    super::super::agents_kept::left_out(&state, kept)?;
     let named = doc_named(&state, which);
     if state.held_away(kept) {
         return Err(super::put_away(&state, kept, &named));

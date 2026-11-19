@@ -301,7 +301,13 @@ pub(in crate::mcp) fn file_doc(paths: &Paths, args: &Value) -> Result<Value, Ref
     ))
 }
 
-pub(in crate::mcp) fn folder(paths: &Paths, args: &Value) -> Result<Value, Refused> {
+pub(in crate::mcp) struct FolderAsked {
+    pub(in crate::mcp) under: Option<String>,
+    pub(in crate::mcp) name: String,
+}
+
+// The door reads `name` through this same function, so it judges the folder the tool will touch.
+pub(in crate::mcp) fn folder_asked(args: &Value) -> Result<FolderAsked, Refused> {
     let Some(said) = text(args, "name") else {
         return Err(Refused::Tool("a folder needs a `name`.".into()));
     };
@@ -329,6 +335,11 @@ pub(in crate::mcp) fn folder(paths: &Paths, args: &Value) -> Result<Value, Refus
     if name.is_empty() {
         return Err(Refused::Tool("a folder needs a `name`.".into()));
     }
+    Ok(FolderAsked { under, name })
+}
+
+pub(in crate::mcp) fn folder(paths: &Paths, args: &Value) -> Result<Value, Refused> {
+    let FolderAsked { under, name } = folder_asked(args)?;
     let icon = match text(args, "icon") {
         Some(key) => Some(tisty_core::model::icon::kept(&key).ok_or_else(|| {
             Refused::Tool(format!(
@@ -387,6 +398,7 @@ pub(in crate::mcp) fn folder(paths: &Paths, args: &Value) -> Result<Value, Refus
     if let Some(one) = state.folders.values().find(|one| {
         tisty_core::text::folded(&one.name) == wanted && (parent.is_none() || one.parent == parent)
     }) {
+        super::super::agents_kept::folder_left_out(&state, Some(one.id), &name)?;
         if state.folder_away(one.id) && (icon.is_some() || color.is_some()) {
             return Err(Refused::Tool(format!(
                 "{:?} is in the archive, and what it looks like is not changed while it is there.",
@@ -419,6 +431,7 @@ pub(in crate::mcp) fn folder(paths: &Paths, args: &Value) -> Result<Value, Refus
              instead of making another."
         )));
     }
+    super::super::agents_kept::folder_left_out(&state, parent, &name)?;
     let id = Ulid::generate();
     let order =
         tisty_core::order::last_of(state.under(parent).iter().map(|one| one.order.as_str()));

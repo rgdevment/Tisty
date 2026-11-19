@@ -55,6 +55,7 @@ pub(super) fn written_doc(
     if let Some(which) = text(args, "doc") {
         let mut first = None;
         if let Some(kept) = state.docs.values().find(|one| one.file == which) {
+            super::super::agents_kept::left_out(&state, kept)?;
             first = super::compacting::correcting(paths, kept, args);
             if first.is_none() {
                 super::compacting::released(&state, kept, args, &mut store)?;
@@ -249,6 +250,7 @@ pub(in crate::mcp) fn restore_doc(paths: &Paths, args: &Value) -> Result<Value, 
             super::super::mistaken::no_document_called(&state, &which),
         ));
     };
+    super::super::agents_kept::left_out(&state, kept)?;
     let named = doc_named(&state, &which);
     let past = match &version {
         Some(asked) => Some(super::versions::kept_here(
@@ -508,6 +510,7 @@ pub(in crate::mcp) fn append_doc(paths: &Paths, args: &Value) -> Result<Value, R
     let Some(kept) = state.docs.values().find(|one| one.file == which) else {
         return Err(Refused::Tool(no_document_called(&state, &which)));
     };
+    super::super::agents_kept::left_out(&state, kept)?;
     let named = doc_named(&state, &which);
     if state.held_away(kept) {
         return Err(super::put_away(&state, kept, &named));

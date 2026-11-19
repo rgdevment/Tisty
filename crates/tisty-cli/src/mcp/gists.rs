@@ -45,6 +45,7 @@ pub(super) fn sum_up(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     let Some(kept) = named_document(&state, &which) else {
         return Err(Refused::Tool(no_document_called(&state, &which)));
     };
+    super::agents_kept::left_out(&state, kept)?;
     if kept.task_of.is_some() {
         return Err(Refused::Tool(format!(
             "{} is a task's page. What a task stands at goes in `tick` with `state`, where the \

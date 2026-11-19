@@ -20,6 +20,14 @@ const words = {
     "This document's text does not have your approval yet. Approve it first, then the proposal.",
     "El texto de este documento aún no tiene tu aprobación. Apruébalo primero y después la propuesta.",
   ],
+  agentProposalRetargeted: [
+    "This proposal was made while the document's agent: line said something else, and approving it would put that line back. Discard it and ask again if you still want the change.",
+    "Esta propuesta se hizo cuando la línea agent: del documento decía otra cosa, y aprobarla devolvería esa línea. Descártala y vuelve a pedirla si aún quieres el cambio.",
+  ],
+  agentProposalUnfit: [
+    "This proposal no longer fits the document as it is now, so it can only be discarded.",
+    "Esta propuesta ya no cabe en el documento tal como está ahora, así que solo se puede descartar.",
+  ],
   agentHeld: [
     "A document in this file changed without your approval, so the file is left as it is",
     "Un documento de este archivo cambió sin tu aprobación, así que el archivo queda como está",

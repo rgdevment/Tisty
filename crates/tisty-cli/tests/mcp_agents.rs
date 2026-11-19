@@ -14,6 +14,8 @@ struct Served {
     home: TempDir,
     rule: String,
     elsewhere: String,
+    root: ulid::Ulid,
+    claude: ulid::Ulid,
 }
 
 impl Served {
@@ -22,23 +24,26 @@ impl Served {
         let person = person::Person::at(home.path());
         person.begins("algo mio");
         person.lets_the_agent_in();
-        let (_, claude) = person.keeps_agents();
+        let (root, claude) = person.keeps_agents();
         let rule = person.writes_doc_in(RULE, claude);
         let elsewhere = person.writes_doc("# Notes\n\nSomething of mine.\n");
         Self {
             home,
             rule,
             elsewhere,
+            root,
+            claude,
         }
     }
 
     fn call(&self, name: &str, args: Value) -> Value {
+        self.asked("tools/call", json!({ "name": name, "arguments": args }))
+    }
+
+    fn asked(&self, method: &str, params: Value) -> Value {
         let root = self.home.path();
-        let asked = json!({
-            "jsonrpc": "2.0", "id": 1, "method": "tools/call",
-            "params": { "name": name, "arguments": args },
-        })
-        .to_string();
+        let asked =
+            json!({ "jsonrpc": "2.0", "id": 1, "method": method, "params": params }).to_string();
         let mut child = Command::new(env!("CARGO_BIN_EXE_tisty"))
             .env("TISTY_DATA", root.join("data"))
             .env("TISTY_CONFIG", root.join("config"))
@@ -76,13 +81,39 @@ impl Served {
     fn refuses(&self, name: &str, args: Value) {
         let before = self.body(&self.rule);
         let placed = self.placed();
-        let said = self.call(name, args);
-        assert_eq!(said["result"]["isError"], true, "{name}: {said}");
+        let kept = self.kept();
+        let folders = self.folders();
+        let said = self.call(name, args.clone());
+        assert_eq!(said["result"]["isError"], true, "{name} {args}: {said}");
         let text = said["result"]["content"][0]["text"].as_str().unwrap();
-        assert!(text.contains(REFUSED), "{name}: {text}");
-        assert_eq!(self.body(&self.rule), before, "{name} changed the rule");
-        assert_eq!(self.placed(), placed, "{name} moved something in AGENTS");
-        assert!(self.state().proposals.is_empty(), "{name} left a proposal");
+        assert!(text.contains(REFUSED), "{name} {args}: {text}");
+        assert_eq!(
+            self.body(&self.rule),
+            before,
+            "{name} {args} changed the rule"
+        );
+        assert_eq!(
+            self.placed(),
+            placed,
+            "{name} {args} moved something in AGENTS"
+        );
+        assert_eq!(
+            self.kept(),
+            kept,
+            "{name} {args} changed what the log says of the rule"
+        );
+        assert_eq!(self.folders(), folders, "{name} {args} changed a folder");
+        assert!(
+            self.state().proposals.is_empty(),
+            "{name} {args} left a proposal"
+        );
+    }
+
+    fn folders(&self) -> (Option<ulid::Ulid>, Vec<tisty_core::model::Folder>) {
+        let state = self.state();
+        let mut all: Vec<_> = state.folders.values().cloned().collect();
+        all.sort_by_key(|one| one.id);
+        (tisty_core::agents::root_of(&state), all)
     }
 
     fn proposes(&self, name: &str, args: Value) -> Value {
@@ -393,4 +424,366 @@ fn a_whole_write_without_a_print_is_told_it_needs_one() {
     let text = said["result"]["content"][0]["text"].as_str().unwrap();
     assert!(text.contains("needs the `print`"), "{text}");
     assert!(served.proposal().is_none());
+}
+
+#[test]
+fn a_document_named_with_blanks_around_it_is_kept_like_its_bare_id() {
+    let served = Served::new();
+    let rule = served.rule.clone();
+    let padded = [
+        format!(" {rule}"),
+        format!("{rule}\n"),
+        format!("\t{rule} "),
+    ];
+    for padded in &padded {
+        served.refuses("restore_doc", json!({ "doc": padded }));
+        served.refuses("archive_doc", json!({ "doc": padded }));
+        served.refuses("file_doc", json!({ "doc": padded, "folder": "AGENTS" }));
+        served.refuses(
+            "sum_up",
+            json!({ "doc": padded, "summary": "Hidden words." }),
+        );
+        served.refuses(
+            "flag_doc",
+            json!({ "doc": padded, "reason": "obsolete", "body": "Old." }),
+        );
+    }
+    served.proposes(
+        "edit_doc",
+        json!({ "doc": padded[0], "old": "Tests first.", "new": "Tests never." }),
+    );
+    served.proposes("append_doc", json!({ "doc": padded[1], "body": "One." }));
+    served.proposes("append_doc", json!({ "doc": padded[2], "body": "Two." }));
+    let proposal = served.proposal().unwrap();
+    assert!(proposal.contains("Tests never."), "{proposal}");
+    assert!(proposal.ends_with("\n\nOne.\n\nTwo.\n"), "{proposal}");
+}
+
+#[test]
+fn a_folder_named_with_hidden_marks_is_kept_like_agents() {
+    let served = Served::new();
+    let person = person::Person::at(served.home.path());
+    person.makes_folder("Claude", None, None);
+    let claude = served.claude.to_string();
+    let cases: Vec<(&str, Value)> = vec![
+        ("folder", json!({ "name": "AGEN\tTS", "icon": "home" })),
+        (
+            "folder",
+            json!({ "name": "AGENTS\u{2066}", "icon": "home" }),
+        ),
+        (
+            "folder",
+            json!({ "name": "\u{202e}AGENTS", "icon": "home" }),
+        ),
+        ("folder", json!({ "name": "ÁGENTS", "icon": "home" })),
+        ("folder", json!({ "name": "Claude", "icon": "home" })),
+        (
+            "folder",
+            json!({ "name": "Claude", "inside": " ", "icon": "home" }),
+        ),
+        (
+            "folder",
+            json!({ "name": "Codex", "inside": format!(" {claude}") }),
+        ),
+        (
+            "file_doc",
+            json!({ "doc": served.elsewhere, "folder": format!(" {claude}") }),
+        ),
+        (
+            "file_doc",
+            json!({ "doc": served.elsewhere, "folder": format!("{}\n", served.root) }),
+        ),
+    ];
+    for (name, args) in cases {
+        served.refuses(name, args);
+    }
+}
+
+const NAMES_A_DOCUMENT: [&str; 8] = [
+    "doc",
+    "page_of",
+    "translation_of",
+    "of",
+    "after",
+    "before",
+    "order",
+    "instead",
+];
+const NAMES_A_FOLDER: [&str; 2] = ["folder", "inside"];
+const PROPOSES: [&str; 3] = ["write_doc", "edit_doc", "append_doc"];
+// A task, step, note, path, heading, cell or setting: never a document or a folder.
+const NAMES_NEITHER: [&str; 54] = [
+    "again",
+    "anyway",
+    "archived",
+    "at",
+    "body",
+    "color",
+    "column",
+    "compact",
+    "date",
+    "deadline",
+    "description",
+    "do",
+    "down",
+    "echo",
+    "even_if_more",
+    "from",
+    "icon",
+    "keep_compaction",
+    "label",
+    "lang",
+    "list",
+    "new",
+    "note",
+    "notes",
+    "old",
+    "part_of",
+    "parts",
+    "path",
+    "person_asked",
+    "print",
+    "priority",
+    "reason",
+    "remind",
+    "replace",
+    "replaces",
+    "row",
+    "section",
+    "source",
+    "state",
+    "step",
+    "steps",
+    "summary",
+    "table",
+    "tags",
+    "task",
+    "tasks",
+    "text",
+    "title",
+    "to",
+    "type",
+    "under",
+    "value",
+    "values",
+    "version",
+];
+
+impl Served {
+    fn tools_that_write(&self) -> Vec<(String, Vec<String>, Taken)> {
+        let listed = self.asked("tools/list", json!({}));
+        listed["result"]["tools"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter(|one| one["annotations"]["readOnlyHint"] != true)
+            // It reads the store and writes only a copy outside it, so the door lets it through.
+            .filter(|one| one["name"] != "export_doc")
+            .map(|one| {
+                let taken = one["inputSchema"]["properties"].as_object().unwrap();
+                let shapes = taken
+                    .iter()
+                    .map(|(key, shape)| (key.clone(), kinds(shape)))
+                    .collect();
+                let name = one["name"].as_str().unwrap().to_string();
+                (name, taken.keys().cloned().collect(), shapes)
+            })
+            .collect()
+    }
+
+    // Refused at the door, or left to the proposal path; either way nothing approved changes.
+    fn keeps_agents(&self, name: &str, args: Value, may_propose: bool) {
+        let before = self.body(&self.rule);
+        let placed = self.placed();
+        let kept = self.kept();
+        let folders = self.folders();
+        let said = self.call(name, args.clone());
+        let text = said["result"]["content"][0]["text"]
+            .as_str()
+            .unwrap_or_default();
+        let refused = said["result"]["isError"] == true && text.contains(REFUSED);
+        assert!(refused || may_propose, "{name} {args}: {said}");
+        assert_eq!(
+            self.body(&self.rule),
+            before,
+            "{name} {args} changed the rule"
+        );
+        assert_eq!(
+            self.placed(),
+            placed,
+            "{name} {args} moved something in AGENTS"
+        );
+        assert_eq!(
+            self.kept(),
+            kept,
+            "{name} {args} changed what the log says of the rule"
+        );
+        assert_eq!(self.folders(), folders, "{name} {args} changed a folder");
+    }
+}
+
+type Taken = std::collections::BTreeMap<String, Vec<String>>;
+
+fn kinds(shape: &Value) -> Vec<String> {
+    match (&shape["type"], shape.get("anyOf").or(shape.get("oneOf"))) {
+        (Value::String(one), _) => vec![one.clone()],
+        (Value::Array(many), _) => many
+            .iter()
+            .filter_map(|one| one.as_str().map(String::from))
+            .collect(),
+        (_, Some(Value::Array(many))) => many.iter().flat_map(kinds).collect(),
+        _ => Vec::new(),
+    }
+}
+
+fn documents_as_an_agent_could_write_them(rule: &str) -> Vec<(String, bool)> {
+    let mut all: Vec<(String, bool)> = [
+        format!(" {rule}"),
+        format!("{rule}\n"),
+        format!("\t{rule} "),
+        format!("tisty://doc/claude-md?id={rule}"),
+        format!(" tisty://doc/notes?id={rule}\n"),
+    ]
+    .into_iter()
+    .map(|one| (one, true))
+    .collect();
+    all.extend(
+        [
+            format!("\u{2066}{rule}"),
+            format!("{rule}\u{200b}"),
+            format!("\u{202e}{rule}"),
+            rule.to_uppercase(),
+            format!("tisty://doc/claude-md?id=\u{2066}{rule}"),
+        ]
+        .into_iter()
+        .map(|one| (one, false)),
+    );
+    all
+}
+
+fn folders_as_an_agent_could_write_them(served: &Served) -> Vec<String> {
+    vec![
+        " AGENTS".into(),
+        "AGENTS\n".into(),
+        "agents".into(),
+        "\tAgents / CLAUDE ".into(),
+        "AGENTS\u{2066}".into(),
+        "AGEN\tTS".into(),
+        "\u{202e}AGENTS".into(),
+        "ÁGENTS / Claude".into(),
+        "AGE\u{200b}NTS".into(),
+        format!(" {}", served.root),
+        format!("{}\n", served.claude),
+        served.claude.to_string().to_lowercase(),
+    ]
+}
+
+fn with(keys: &[String], key: &str, said: Value, elsewhere: &str) -> Value {
+    let takes = |one: &str| one != key && keys.iter().any(|k| k == one);
+    let mut args = serde_json::Map::new();
+    args.insert(key.to_string(), said);
+    let around = [
+        ("doc", json!(elsewhere)),
+        ("body", json!("# Placed")),
+        ("path", json!("C:/nowhere.md")),
+        ("name", json!("Codex")),
+        ("do", json!("add")),
+        ("old", json!("Tests first.")),
+        ("new", json!("Tests always.")),
+    ];
+    for (one, value) in around {
+        if takes(one) && (one != "doc" || NAMES_A_FOLDER.contains(&key)) {
+            args.insert(one.to_string(), value);
+        }
+    }
+    Value::Object(args)
+}
+
+#[test]
+fn every_tool_that_writes_keeps_agents_however_a_name_is_wrapped() {
+    let served = Served::new();
+    let tools = served.tools_that_write();
+    assert!(tools.len() > 20, "{tools:?}");
+    for (name, keys, _) in &tools {
+        for key in keys {
+            let placed = NAMES_A_DOCUMENT.contains(&key.as_str())
+                || NAMES_A_FOLDER.contains(&key.as_str())
+                || (name == "folder" && key == "name")
+                || NAMES_NEITHER.contains(&key.as_str());
+            assert!(
+                placed,
+                "{name} takes `{key}`: say whether it names a document, a folder or neither"
+            );
+        }
+    }
+
+    for (name, keys, shapes) in &tools {
+        for key in keys
+            .iter()
+            .filter(|key| NAMES_A_DOCUMENT.contains(&key.as_str()))
+        {
+            assert!(
+                !shapes[key].is_empty(),
+                "{name} `{key}` has no type to send"
+            );
+            let takes = |kind: &str| shapes[key].iter().any(|one| one == kind);
+            for (said, exactly) in documents_as_an_agent_could_write_them(&served.rule) {
+                let may_propose = exactly && key == "doc" && PROPOSES.contains(&name.as_str());
+                if takes("string") {
+                    let args = with(keys, key, json!(said), &served.elsewhere);
+                    served.keeps_agents(name, args, may_propose);
+                }
+                if takes("array") {
+                    let args = with(keys, key, json!([said]), &served.elsewhere);
+                    served.keeps_agents(name, args, false);
+                }
+            }
+        }
+        for key in keys
+            .iter()
+            .filter(|key| NAMES_A_FOLDER.contains(&key.as_str()))
+        {
+            for said in folders_as_an_agent_could_write_them(&served) {
+                let args = with(keys, key, json!(said), &served.elsewhere);
+                served.keeps_agents(name, args, false);
+            }
+        }
+    }
+    for said in folders_as_an_agent_could_write_them(&served) {
+        served.keeps_agents("folder", json!({ "name": said, "icon": "home" }), false);
+        served.keeps_agents(
+            "folder",
+            json!({ "name": format!("{said} / Codex") }),
+            false,
+        );
+    }
+    served.keeps_agents("folder", json!({ "name": "Claude", "icon": "home" }), false);
+}
+
+#[test]
+fn a_folder_outside_agents_still_takes_a_look_and_a_new_folder() {
+    let served = Served::new();
+    let person = person::Person::at(served.home.path());
+    let notes = person.makes_folder("Notes", None, None);
+    let said = served.call("folder", json!({ "name": " Notes ", "icon": "home" }));
+    assert_ne!(said["result"]["isError"], true, "{said}");
+    assert_eq!(served.state().folders[&notes].icon.as_deref(), Some("home"));
+    let made = served.call("folder", json!({ "name": "Claude", "inside": "Notes" }));
+    assert_ne!(made["result"]["isError"], true, "{made}");
+    assert_eq!(made["result"]["structuredContent"]["made"], true, "{made}");
+    let filed = served.call(
+        "file_doc",
+        json!({ "doc": format!(" {}\n", served.elsewhere), "folder": "\tNotes / Claude " }),
+    );
+    assert_ne!(filed["result"]["isError"], true, "{filed}");
+
+    let mine = person.makes_folder("Claude", None, None);
+    let filed = served.call(
+        "file_doc",
+        json!({ "doc": served.elsewhere, "folder": "Claude" }),
+    );
+    assert_ne!(filed["result"]["isError"], true, "{filed}");
+    let state = served.state();
+    let elsewhere = state.docs.values().find(|one| one.file == served.elsewhere);
+    assert_eq!(elsewhere.unwrap().folder, Some(mine));
 }

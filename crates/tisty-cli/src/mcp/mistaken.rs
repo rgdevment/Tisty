@@ -13,26 +13,36 @@ pub(super) const NAMES_A_DOCUMENT: [&str; 8] = [
     "instead",
 ];
 
-// The person hands over the address the window copies, and every tool goes on asking for an id.
-pub(super) fn by_their_ids(mut args: Value) -> Value {
-    for key in NAMES_A_DOCUMENT {
-        match args.get_mut(key) {
-            Some(Value::Array(many)) => many.iter_mut().for_each(by_its_id),
-            Some(one) => by_its_id(one),
-            None => {}
+pub(super) const NAMES_A_FOLDER: [&str; 2] = ["folder", "inside"];
+
+// The door and every tool read one value: a name without the blanks around it, an address as its id.
+pub(super) fn as_the_tools_read(mut args: Value) -> Value {
+    for (keys, read) in [
+        (&NAMES_A_DOCUMENT[..], by_its_id as fn(&str) -> String),
+        (&NAMES_A_FOLDER[..], |said: &str| said.trim().to_string()),
+    ] {
+        for key in keys {
+            match args.get_mut(*key) {
+                Some(Value::Array(many)) => many.iter_mut().for_each(|one| reread(one, read)),
+                Some(one) => reread(one, read),
+                None => {}
+            }
         }
     }
     args
 }
 
-fn by_its_id(said: &mut Value) {
-    let id = said
-        .as_str()
-        .and_then(tisty_core::address::doc_asked)
-        .map(str::to_owned);
-    if let Some(id) = id {
-        *said = Value::String(id);
+fn reread(said: &mut Value, read: fn(&str) -> String) {
+    if let Some(text) = said.as_str() {
+        *said = Value::String(read(text));
     }
+}
+
+fn by_its_id(said: &str) -> String {
+    let said = said.trim();
+    tisty_core::address::doc_asked(said)
+        .unwrap_or(said)
+        .to_string()
 }
 
 pub(super) fn named_document<'a>(state: &'a State, said: &str) -> Option<&'a Kept> {

@@ -67,8 +67,18 @@ impl Person {
     }
 
     pub fn keeps_agents(&self) -> (Ulid, Ulid) {
-        let (root, claude) = (Ulid::generate(), Ulid::generate());
-        let folder = |id, name: &str, parent, icon: Option<&str>| Op::FolderAdd {
+        let root = self.makes_folder(
+            tisty_core::agents::FOLDER,
+            None,
+            Some(tisty_core::agents::ICON),
+        );
+        let claude = self.makes_folder("Claude", Some(root), None);
+        (root, claude)
+    }
+
+    pub fn makes_folder(&self, name: &str, parent: Option<Ulid>, icon: Option<&str>) -> Ulid {
+        let id = Ulid::generate();
+        self.wrote(vec![Op::FolderAdd {
             id,
             d: tisty_core::event::FolderAdd {
                 name: name.into(),
@@ -77,17 +87,8 @@ impl Person {
                 icon: icon.map(str::to_string),
                 color: None,
             },
-        };
-        self.wrote(vec![
-            folder(
-                root,
-                tisty_core::agents::FOLDER,
-                None,
-                Some(tisty_core::agents::ICON),
-            ),
-            folder(claude, "Claude", Some(root), None),
-        ]);
-        (root, claude)
+        }]);
+        id
     }
 
     pub fn writes_doc_in(&self, body: &str, folder: Ulid) -> String {

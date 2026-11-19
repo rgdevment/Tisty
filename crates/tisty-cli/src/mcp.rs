@@ -266,7 +266,7 @@ thread_local! {
 
 fn vetted(name: &str, params: &Value) -> Result<(Value, Option<Takes>), Refused> {
     let taken = what_it_takes(name);
-    let args = mistaken::by_their_ids(without_nulls(
+    let args = mistaken::as_the_tools_read(without_nulls(
         taken.as_ref(),
         params.get("arguments").cloned().unwrap_or(json!({})),
     ));

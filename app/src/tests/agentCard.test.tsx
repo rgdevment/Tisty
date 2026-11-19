@@ -410,6 +410,7 @@ describe("an agent document's card", () => {
           via: "Claude Code",
           at: "2026-11-19T10:42:00Z",
           stale: true,
+          unfit: null,
           lines: [
             { side: "same", text: "# Claude" },
             { side: "tisty", text: "Tests first." },
@@ -432,6 +433,7 @@ describe("an agent document's card", () => {
       via: null,
       at: "2026-11-19T10:42:00Z",
       stale: false,
+      unfit: null,
       lines: [],
     };
     const on = shown(card([place({ state: "synced" })], { proposal }));
@@ -448,12 +450,30 @@ describe("an agent document's card", () => {
     expect(desk.papersChanged).toHaveBeenCalled();
   });
 
+  it("says why a proposal over another agent: line can only be discarded, and offers no approving", () => {
+    const proposal = {
+      print: "q1",
+      via: "Claude Code",
+      at: "2026-11-19T10:42:00Z",
+      stale: true,
+      unfit: "agentProposalRetargeted" as const,
+      lines: [],
+    };
+    shown(card([place({ state: "synced" })], { proposal }));
+    const region = screen.getByRole("region", { name: "An agent's proposal" });
+    expect(region.textContent).toMatch(/approving it would put that line back/);
+    expect(region.textContent).not.toMatch(/proposed over an earlier version/);
+    expect(screen.queryByRole("button", { name: "Approve the change" })).toBeNull();
+    expect(screen.getByRole("button", { name: "Discard" })).toBeTruthy();
+  });
+
   it("discards the proposal only on a yes, and a refusal is shown", async () => {
     const proposal = {
       print: "q1",
       via: null,
       at: "2026-11-19T10:42:00Z",
       stale: false,
+      unfit: null,
       lines: [],
     };
     asking.answer = () => Promise.resolve(false);
@@ -480,6 +500,7 @@ describe("an agent's proposal while the page is written", () => {
       via: null,
       at: "2026-11-19T10:42:00Z",
       stale: false,
+      unfit: null,
       lines: [],
     };
     shown(card([], { proposal }), { editing: true });
