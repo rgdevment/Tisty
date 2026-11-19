@@ -69,7 +69,7 @@ Con la rueda acercas y alejas; arrastrando te mueves. Al primer toque la red dej
 
 - **Un clic en un nodo** lo resalta junto con sus vecinos, atenúa el resto y abre su vista previa, a la derecha. Arriba dice qué es, dónde vive y cuántas conexiones tiene: «Documento · Mascotas · 6 conexiones». Debajo:
   - de un documento o una página, sus primeras líneas, con sus fotos;
-  - de una tarea, su tarjeta, la misma que dibuja un documento que la cita: su lista, su fecha o su estado y sus pasos, que despliegas y marcas ahí mismo. Un clic en la tarjeta la abre;
+  - de una tarea, su tarjeta, la misma que dibuja un documento que la cita: su lista, su fecha o su estado y cuántos pasos lleva. Aquí se lee, no se cambia: un clic en la tarjeta la abre en la ventana principal, y ahí marcas sus pasos;
   - de una etiqueta, su nombre y cuántas conexiones tiene.
 - **Abrir**, en la vista previa, o **un doble clic** en el nodo, trae al frente la ventana principal y lo abre ahí: un documento en la Biblioteca, una tarea junto a su lista, una etiqueta en su vista. La red queda abierta detrás, con el mismo nodo elegido; otro clic en **Brainsty** te devuelve a ella.
 - **Una imagen o un archivo** tienen vista previa, pero no **Abrir**: se abren desde el documento o la tarea que los usa, su vecino en la red.
@@ -113,7 +113,7 @@ Hace un mes que no tocas nada de Rina y quieres saber cómo va.
 1. **Brainsty** en la barra lateral. La red se abre en su ventana, en lo último que escribiste: el acta del condominio.
 2. `/`, `rina`, `Enter`. La red se centra en «Rina», la ficha de la carpeta **Mascotas**, y su vista previa muestra sus primeras líneas.
 3. Te acercas con la rueda: aparecen sus vecinos con título, «Veterinaria» unida por una línea punteada (la mencionas en una frase), la tarjeta sólida de «Vacuna anual de Rina» y la foto del paseo con su miniatura.
-4. Un clic en «Vacuna anual de Rina»: la vista previa muestra su tarjeta, «1 de 3 pasos», vence el viernes. Despliegas los pasos y marcas «Pedir hora» ahí mismo. **Abrir** trae al frente la ventana principal, con la tarea junto a su lista.
+4. Un clic en «Vacuna anual de Rina»: la vista previa muestra su tarjeta, «1 de 3 pasos», vence el viernes. **Abrir** trae al frente la ventana principal, con la tarea junto a su lista, y ahí marcas «Pedir hora».
 5. Otro clic en **Brainsty** te devuelve a la red, que seguía detrás. **Filtros**, **Etiqueta** `rina` y **Tocado** **Últimos 30 días**: quedan sus dos documentos y las tareas en curso que se movieron este mes.
 6. **Mostrar todo**, y `Esc` hasta que la ventana se cierra. La ventana principal sigue en la tarea que abriste.
 
@@ -129,9 +129,9 @@ Se parecen de dos formas:
 Las reglas:
 
 - **Como mucho tres parecidos por cosa**, y cada punta tiene que estar entre las más cercanas de la otra. Los de palabras van primero, porque se explican; los de sentido llenan lo que queda.
-- **Lo que ya está unido no se adivina**: una cita, una mención, una página y su libro, un documento y su versión en otro idioma, una tarea y su página.
+- **Lo que ya está unido no se adivina**: si una línea de la red ya los une (una cita, una mención, una parte y su tarea, el documento donde nació una tarea), o si son una página y su libro, un documento y su versión en otro idioma, o una tarea y su página.
 - **Un documento en otro idioma** tiene su propio lugar entre los tres, para que una traducción no quede tapada por parientes del mismo idioma.
-- **El umbral sale de lo que guardas**, no de una cifra fija. Dentro de un mismo idioma, un parecido por sentido tiene que destacar muy por encima de todo lo demás a lo que se parecen sus dos puntas. Con muchas tareas casi iguales, como «Pagar la luz de marzo» y «Pagar la luz de abril», se anotan pocos parecidos, y está bien.
+- **El umbral sale de lo que guardas**, no de una cifra fija. Dentro de un mismo idioma, un parecido por sentido tiene que destacar muy por encima de todo lo demás a lo que se parecen sus dos puntas. Entre muchas tareas casi iguales, como «Pagar la luz de marzo», «Pagar la luz de abril» y las de cada mes, el sentido no elige ninguna, porque se parecen todas por igual; si *pagar* y *luz* son poco comunes en lo que guardas, las une lo que comparten en palabras.
 
 **Cuándo.** Una pasada de baja prioridad, en segundo plano, mira cada 30 segundos y espera a que dejes de escribir, cinco minutos como mucho, antes de leer. Solo lee lo que cambió. Cuando una versión nueva de Tisty cambia la base de Brainsty, esta se rehace una vez, en el primer arranque: mientras tanto la red dice «Brainsty todavía está leyendo lo que guardas. Vuelve a abrirlo en un momento.».
 

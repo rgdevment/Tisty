@@ -67,7 +67,7 @@ La red cambia con la distancia. De lejos, con la rueda hacia atrás, sus puntos 
 
 ![«Rina» elegida de cerca en la ventana de Brainsty: sus vecinos con título, el resto atenuado y, a la derecha, la vista previa del documento con lo que es, su carpeta y cuántas conexiones tiene, sus primeras líneas, la foto de Rina y el botón Abrir](red-cerca.png)
 
-- **Un clic** en un punto lo resalta con sus vecinos y abre su vista previa: las primeras líneas de un documento, con sus fotos, o la tarjeta de una tarea, con sus pasos para marcarlos ahí mismo.
+- **Un clic** en un punto lo resalta con sus vecinos y abre su vista previa: las primeras líneas de un documento, con sus fotos, o la tarjeta de una tarea, con su lista, su fecha y cuántos pasos lleva. Los pasos se marcan al abrirla.
 - **Abrir**, o un doble clic, trae al frente la ventana principal y abre ahí el documento, la tarea o la etiqueta. La red queda abierta detrás, para volver a ella. Una imagen o un archivo no se abre desde la red: ábrelo desde lo que lo usa.
 - **Buscar en la red**, arriba, o `/`: escribe parte de un título y `Enter` centra la red en él.
 - **Filtros**, el embudo junto al buscador: qué tipos mostrar, el estado de las tareas, una etiqueta y **Tocado**, para ver solo lo que cambió en los últimos días.

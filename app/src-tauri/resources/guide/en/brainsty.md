@@ -67,7 +67,7 @@ The network changes with the distance. From afar, with the wheel backwards, its 
 
 ![«Rina» picked up close in Brainsty's window: her neighbours with titles, the rest dimmed and, on the right, the document's preview with what it is, its folder and how many connections it has, its first lines, Rina's photo and the Open button](network-near.png)
 
-- **A click** on a dot lights it up with its neighbours and opens its preview: a document's first lines, with its pictures, or a task's card, with its steps to tick right there.
+- **A click** on a dot lights it up with its neighbours and opens its preview: a document's first lines, with its pictures, or a task's card, with its list, its date and how many steps are done. Steps are ticked once you open it.
 - **Open**, or a double click, brings the main window to the front and opens the document, the task or the tag there. The network stays open behind it, to come back to. A picture or a file does not open from the network: open it from what uses it.
 - **Search the network**, at the top, or `/`: type part of a title and `Enter` centres the network on it.
 - **Filters**, the funnel beside the search box: which kinds to show, the state of tasks, a tag and **Touched**, to see only what changed in the last days.

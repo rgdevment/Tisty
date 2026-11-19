@@ -69,7 +69,7 @@ The wheel zooms in and out; dragging moves you around. At the first touch the ne
 
 - **A click on a node** lights it up with its neighbours, dims the rest and opens its preview, on the right. At the top it says what it is, where it lives and how many connections it has: «Document · Pets · 6 connections». Below:
   - for a document or a page, its first lines, with its pictures;
-  - for a task, its card, the same one a document that cites it draws: its list, its date or its state and its steps, which you unfold and tick right there. A click on the card opens it;
+  - for a task, its card, the same one a document that cites it draws: its list, its date or its state and how many steps are done. Here it is read, not changed: a click on the card opens it in the main window, where you tick its steps;
   - for a tag, its name and how many connections it has.
 - **Open**, in the preview, or **a double click** on the node, brings the main window to the front and opens it there: a document in the Library, a task beside its list, a tag in its view. The network stays open behind it, with the same node picked; another click on **Brainsty** takes you back to it.
 - **A picture or a file** has a preview but no **Open**: it opens from the document or the task that uses it, its neighbour in the network.
@@ -113,7 +113,7 @@ You have not touched anything about Rina for a month and want to know how it is 
 1. **Brainsty** in the sidebar. The network opens in its window, on what you wrote last: the building minutes.
 2. `/`, `rina`, `Enter`. The network centres on «Rina», the note in the **Pets** folder, and its preview shows its first lines.
 3. You come closer with the wheel: her neighbours show with titles, «Vet» joined by a dashed line (you mention it in a sentence), the solid card of «Rina's yearly vaccine» and the photo of the walk with its thumbnail.
-4. A click on «Rina's yearly vaccine»: the preview shows its card, «1 of 3 steps», due on Friday. You unfold the steps and tick «Book a slot» right there. **Open** brings the main window to the front, with the task beside its list.
+4. A click on «Rina's yearly vaccine»: the preview shows its card, «1 of 3 steps», due on Friday. **Open** brings the main window to the front, with the task beside its list, and there you tick «Book a slot».
 5. Another click on **Brainsty** takes you back to the network, still behind. **Filters**, **Tag** `rina` and **Touched** **Last 30 days**: her two documents and the tasks under way that moved this month remain.
 6. **Show everything**, and `Esc` until the window closes. The main window stays on the task you opened.
 
@@ -129,9 +129,9 @@ They are alike in two ways:
 The rules:
 
 - **Three alike at most for each thing**, and each end must be among the other's closest. Those by words come first, because they explain themselves; those by meaning fill what room is left.
-- **What is already tied is not guessed**: a citation, a mention, a page and its book, a document and its version in another language, a task and its page.
+- **What is already tied is not guessed**: when a line in the network already ties them (a citation, a mention, a part and its task, the document a task was born in), or when they are a page and its book, a document and its version in another language, or a task and its page.
 - **A document in another language** has a place of its own among the three, so a translation is not crowded out by kin in the same language.
-- **The bar comes from what you keep**, not from a fixed figure. Within one language, a guess by meaning must stand well above everything else its two ends resemble. With many near-twin tasks, like «Pay the March power bill» and «Pay the April power bill», few guesses are kept, and that is fine.
+- **The bar comes from what you keep**, not from a fixed figure. Within one language, a guess by meaning must stand well above everything else its two ends resemble. Among many near-twin tasks, like «Pay the March power bill», «Pay the April power bill» and one for every month, meaning picks none of them, since they all look alike the same; if *pay* and *power* are uncommon in what you keep, what they share in words ties them.
 
 **When.** A low-priority pass, in the background, looks every 30 seconds and waits for you to stop writing, five minutes at most, before reading. It reads only what changed. When a new version of Tisty changes Brainsty's base, the base is built again once, on the first start: meanwhile the network says «Brainsty is still reading what you keep. Open it again in a moment.».
 
