@@ -44,7 +44,11 @@ pub(super) fn answered(
     let mut said = String::new();
     let mut shown = 0;
     for one in &found {
-        let cost = one.said.chars().count();
+        let (passage, clipped) = match one.said.char_indices().nth(WHOLE_UP_TO) {
+            Some((at, _)) => (format!("{}…", &one.said[..at]), true),
+            None => (one.said.clone(), false),
+        };
+        let cost = passage.chars().count();
         if cost > room && shown > 0 {
             break;
         }
@@ -66,9 +70,13 @@ pub(super) fn answered(
             groups.push(group);
         }
         if let Some(Value::Array(marks)) = groups.last_mut().map(|last| &mut last["marks"]) {
-            marks.push(json!({ "line": one.line, "said": one.said }));
+            let mut mark = json!({ "line": one.line, "said": passage });
+            if clipped {
+                mark["cut"] = json!(true);
+            }
+            marks.push(mark);
         }
-        said.push_str(&format!("\n{}: {}", one.line, one.said));
+        said.push_str(&format!("\n{}: {passage}", one.line));
     }
     for group in &mut groups {
         if group["at"].is_null()

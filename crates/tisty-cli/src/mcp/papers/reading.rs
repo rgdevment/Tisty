@@ -580,6 +580,9 @@ pub(in crate::mcp) fn read_doc(paths: &Paths, args: &Value) -> Result<Value, Ref
     if held.as_deref() == Some(print.as_str()) {
         return Ok(unchanged(&state, kept, &which, &body, &print, standing));
     }
+    if held.is_some() {
+        kept_of.insert("changed".into(), json!(true));
+    }
     if super::outward::asked(args)? {
         let named = match super::super::written_title(&state, &which, &body).is_empty() {
             true => "This document".to_string(),
@@ -596,7 +599,6 @@ pub(in crate::mcp) fn read_doc(paths: &Paths, args: &Value) -> Result<Value, Ref
     };
     let warned = match held {
         Some(_) => {
-            kept_of.insert("changed".into(), json!(true));
             format!(
                 "{warned}(It was written since the print you sent, so here it is as it reads now.)\n\n"
             )

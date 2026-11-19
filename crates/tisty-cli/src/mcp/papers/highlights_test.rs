@@ -97,6 +97,22 @@ fn past_the_budget_the_rest_is_counted_and_left_for_a_section() {
 }
 
 #[test]
+fn a_passage_longer_than_a_read_holds_is_cut_and_said_so() {
+    let long = "y".repeat(WHOLE_UP_TO + 500);
+    let body = format!("# Long\n\n**{long}**\n");
+    let said = answered(&body, &json!({ "marks": true }), "x", "", Map::new())
+        .ok()
+        .unwrap();
+    let mark = &said["structuredContent"]["marks"][0]["marks"][0];
+    assert_eq!(mark["cut"], true, "{mark}");
+    assert_eq!(
+        mark["said"].as_str().unwrap().chars().count(),
+        WHOLE_UP_TO + 1
+    );
+    assert!(said["structuredContent"].get("marks_left").is_none());
+}
+
+#[test]
 fn marks_is_asked_only_when_true_and_never_with_lines_or_chars() {
     assert_eq!(asked(&json!({})).ok(), Some(false));
     assert_eq!(asked(&json!({ "marks": false })).ok(), Some(false));

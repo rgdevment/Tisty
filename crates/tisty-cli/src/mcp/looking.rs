@@ -91,19 +91,24 @@ fn read_task(paths: &Paths, args: &Value, said: String) -> Result<Value, Refused
         }
     };
     let owner = tisty_core::task_docs::owner(&state, task.id);
-    let page = wants("document")
+    let (page, page_print) = wants("document")
         .then(|| {
             let kept = tisty_core::task_docs::of(&state, owner)?;
             let body = tisty_core::docs::read(&paths.docs(), &kept.file).ok()?;
+            let print = tisty_core::attach::printed(body.as_bytes());
             // The page comes back as it is stored, so it can be written back as it came.
             let (body, boxed) = tisty_core::stages::ticked_boxes(task, &body);
             let yours = task.is_open();
             let digest = tisty_core::docs::read_notes_before(paths.data(), &kept.file)
                 .filter(|slot| !slot.undone)
                 .map(|slot| slot.after);
-            Some(Page::new(kept.file.clone(), body, boxed, yours, digest))
+            Some((
+                Page::new(kept.file.clone(), body, boxed, yours, digest),
+                print,
+            ))
         })
-        .flatten();
+        .flatten()
+        .unzip();
     let named = |key: &str| asked.iter().any(|one| one == key);
     let shown_page = page.as_ref().and_then(Page::whole);
     let description = task.description.as_deref().filter(|one| {
@@ -138,6 +143,7 @@ fn read_task(paths: &Paths, args: &Value, said: String) -> Result<Value, Refused
     }
     if let Some(page) = &page {
         whole["document"] = page.structured();
+        whole["document"]["print"] = json!(page_print);
     }
     let parts: Vec<&Task> = state
         .parts_of(task.id)

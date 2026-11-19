@@ -287,6 +287,42 @@ fn a_document_read_again_with_its_print_says_only_that_nothing_changed() {
 }
 
 #[test]
+fn a_document_carried_out_with_an_old_print_says_it_changed() {
+    let served = Served::new();
+    let doc = served.person().writes_doc("# Recetas\n\narroz\n");
+    let mut talk = served.connect();
+    let first = talk.call("read", json!({ "doc": doc }));
+    let print = shown(&first)["print"].as_str().unwrap().to_string();
+    served
+        .person()
+        .saves_doc(&doc, "# Recetas\n\narroz y porotos\n");
+
+    let carried = talk.call(
+        "read",
+        json!({ "doc": doc, "as": "markdown", "print": print }),
+    );
+    assert_eq!(shown(&carried)["changed"], true, "{carried}");
+}
+
+#[test]
+fn a_tasks_page_comes_with_the_print_edit_doc_takes() {
+    let served = Served::new();
+    let mut talk = served.connect();
+    let task = proposed(&mut talk, "Plan the week");
+    talk.call(
+        "append_doc",
+        json!({ "doc": task, "body": "Something to keep." }),
+    );
+
+    let read = talk.call("read", json!({ "task": task }));
+    let page = &shown(&read)["document"];
+    let file = page["file"].as_str().unwrap();
+    let as_doc = talk.call("read", json!({ "doc": file }));
+    assert_eq!(page["print"], shown(&as_doc)["print"], "{read}");
+    assert_ne!(page["print"], shown(&read)["print"]);
+}
+
+#[test]
 fn an_unchanged_document_marked_since_still_says_so() {
     let served = Served::new();
     let doc = served.person().writes_doc("# Recetas\n\narroz\n");

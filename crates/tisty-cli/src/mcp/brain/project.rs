@@ -59,8 +59,8 @@ pub(super) fn stage(task: &Task, state_line: Option<&str>) -> Stage {
     if task.resolved.is_some() {
         return Stage::Waiting;
     }
-    let (done, _) = task.steps_done();
-    match done > 0 || state_line.is_some() {
+    let moved = task.steps.iter().any(|step| step.done || step.said);
+    match moved || state_line.is_some() {
         true => Stage::UnderWay,
         false => Stage::NotStarted,
     }
@@ -95,7 +95,12 @@ pub(in crate::mcp) struct Progress {
 
 pub(in crate::mcp) fn progress(paths: &Paths, state: &State, task: &Task) -> Progress {
     let line = state_line(paths, state, task);
-    let (done, all) = task.steps_done();
+    let all = task.steps.len();
+    let done = task
+        .steps
+        .iter()
+        .filter(|step| step.done || step.said)
+        .count();
     Progress {
         stage: stage(task, line.as_deref()),
         done,

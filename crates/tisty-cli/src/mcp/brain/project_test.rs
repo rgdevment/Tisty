@@ -63,3 +63,25 @@ fn a_long_step_is_cut_on_a_character() {
     assert!(said.ends_with('…'));
     assert_eq!(cut("short"), "short");
 }
+
+#[test]
+fn a_step_given_an_agents_word_counts_as_ticked_and_is_not_next() {
+    let mut task = Task::new(ulid::Ulid::generate(), "A part", "a0");
+    let step = |text: &str, said: bool| tisty_core::model::Step {
+        id: ulid::Ulid::generate(),
+        text: text.into(),
+        done: false,
+        order: "a0".into(),
+        by_agent: false,
+        said,
+    };
+    task.steps = vec![step("first", true), step("second", false)];
+    let room = tempfile::tempdir().unwrap();
+    let paths = Paths::new(room.path().join("data"), room.path().join("config"));
+
+    let held = progress(&paths, &State::default(), &task);
+    assert_eq!(
+        held.told(),
+        "under way, 1 of 2 steps ticked, next \"second\""
+    );
+}
