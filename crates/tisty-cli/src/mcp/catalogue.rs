@@ -25,7 +25,7 @@ Before you act, ask for the short guide it needs:\n\
 - Reading, writing or changing a document: `rules` «documents», and `language` for what Tisty adds to \
 Markdown, one topic at a time.\n\
 - Tidying, consolidating or compacting: `rules` «tidying».\n\
-- Jotting or sorting ideas on Brainstorm: `rules` «ideas».\n\
+- Jotting or sorting ideas on the Ideas sheet: `rules` «ideas».\n\
 - Anything else: `rules` alone gives the basics and this index again.";
 
 const TAUGHT: &str = "\
@@ -64,7 +64,7 @@ Whatever you write or edit — a task's description, a journal note, a task's pa
 the person reads in the window, so make it visual, readable and in order, never a wall of plain \
 text:
 - A heading for each part when there is more than one, and short paragraphs, one line each. A \
-task's page keeps the sections it has, so write under them; Brainstorm takes ideas alone, \
+task's page keeps the sections it has, so write under them; the Ideas sheet takes ideas alone, \
 a few words each.
 - A list for findings, options or what is left, numbered when the order matters; a table to \
 compare.
@@ -94,10 +94,10 @@ and it rarely ends. Adding to the document that already covers a subject beats w
 one.
 
 An idea is a thought caught on the fly, before anyone knows whether it is something to do or \
-something to keep: a few words, 140 at most, dated, on the Brainstorm sheet. It waits for the \
+something to keep: a few words, 140 at most, dated, on the Ideas sheet. It waits for the \
 person to sort it out: it becomes a task, goes into the document on its subject, or is set aside. \
 A note is something else: the dated line in a task's journal, which `note` writes. When the \
-person says «jot this idea» or asks for a brainstorm, the ideas go on Brainstorm, as `rules` \
+person says «jot this idea» or asks for a brainstorm, the ideas go on the Ideas sheet, as `rules` \
 «ideas» says.
 
 So: something that will be done is a task — `propose` it. Something that will be looked up \
@@ -324,7 +324,7 @@ Everything you write has a place. `brain` with nothing, or `catch_up`, names the
 document in the one its subject belongs to, as a task goes in its list. When none fits, ask the \
 person, suggesting a name — «Shall I keep it in a new folder Work / Login?» — and make the folder \
 only once they agree. A document stays outside every folder only when the person asks for that, \
-or when it is Brainstorm, which the window keeps pinned at the top.
+or when it is the Ideas sheet, which the window keeps pinned at the top.
 
 A document can hold pages, one level deep, for one long thing in parts — a book by chapters, a \
 year of minutes; `page_doc` and `write_doc` with `page_of` say how. A locked document, or \
@@ -423,7 +423,7 @@ even when it may be worth keeping: keeping it is the person's choice. «Clean up
 away»: `archive_doc` puts a document away, or \
 brings it back, only when the person says archive, put away or bring back. \
 Nothing here closes, drops or erases a task: finishing one is `say_done`, and the closing stays \
-theirs. An idea on Brainstorm is marked the same way, one by one, never the whole sheet: `rules` \
+theirs. An idea on the Ideas sheet is marked the same way, one by one, never the whole sheet: `rules` \
 «ideas».
 
 ## Writing
@@ -469,13 +469,13 @@ either: an edit made there is marked as changed outside and waits for the person
 document is the other way round: the assistant keeps writing its own memory file, and Tisty only \
 shows it.
 
-## Brainstorm
+## Ideas
 
 An idea is a thought caught on the fly, before anyone knows whether it is something to do or \
-something to keep: a few words, 140 at most, dated, on the Brainstorm sheet. It waits for the \
+something to keep: a few words, 140 at most, dated, on the Ideas sheet. It waits for the \
 person to sort it out: it becomes a task, goes into the document on its subject, or is set aside.
 
-Brainstorm is the person's sheet of ideas: an ordinary document with `brainstorm: on` in its \
+Ideas is the person's sheet of ideas: an ordinary document with `brainstorm: on` in its \
 properties, pinned at the top of the Library and shown as sticky notes, whatever title it carries \
 in their language. `catch_up` names it and says how many ideas wait. With no sheet yet, make it \
 with `write_doc`: `view: notes` and `brainstorm: on` in its properties, the title in their \
@@ -552,7 +552,7 @@ const TOPICS: &[(&str, &[&str])] = &[
         ],
     ),
     ("tidying", &["Compacting", "Assistants' files in AGENTS"]),
-    ("ideas", &["Brainstorm"]),
+    ("ideas", &["Ideas"]),
 ];
 
 const INDEX: &str = "\
@@ -566,7 +566,7 @@ updating before adding, its past versions and going back to one, marking what ha
 writing, the person's diary, and the assistants' own rules, skills and memory kept in AGENTS.
 - `rules` «tidying»: putting documents and task pages back in order, consolidating and \
 compacting them.
-- `rules` «ideas»: Brainstorm, the person's sheet of ideas: jotting them, turning them into tasks \
+- `rules` «ideas»: Ideas, the person's sheet of ideas: jotting them, turning them into tasks \
 and documents, and marking the old ones.
 - `rules` «all»: every rule at once.
 - `language`: what Tisty adds to Markdown, one topic at a time; plain Markdown needs none of it.";

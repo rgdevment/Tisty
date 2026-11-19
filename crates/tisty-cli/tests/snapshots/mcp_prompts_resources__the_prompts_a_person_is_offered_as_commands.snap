@@ -67,7 +67,7 @@ expression: "said[\"result\"]"
           "name": "subject"
         }
       ],
-      "description": "Think up short ideas on a subject together, and jot on Brainstorm the ones I keep.",
+      "description": "Think up short ideas on a subject together, and jot the ones I keep on the Ideas sheet.",
       "name": "brainstorm",
       "title": "Brainstorm ideas with me"
     },
@@ -78,9 +78,9 @@ expression: "said[\"result\"]"
           "name": "subject"
         }
       ],
-      "description": "Group the ideas waiting on Brainstorm and propose which become tasks, which go into documents and which are marked as old.",
+      "description": "Group the ideas waiting on the Ideas sheet and propose which become tasks, which go into documents and which are marked as old.",
       "name": "sort_ideas",
-      "title": "Sort out my Brainstorm"
+      "title": "Sort out my Ideas"
     },
     {
       "arguments": [
