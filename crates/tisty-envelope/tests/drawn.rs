@@ -24,6 +24,28 @@ fn every_document_there_is_speaks_the_contract() {
 }
 
 #[test]
+fn an_agent_document_travels_without_its_card_and_with_the_files_own_properties() {
+    let skill = "---\nagent: claude/skill/pdf/SKILL.md\n---\n---\nname: pdf\ndescription: Fill PDF forms.\n---\n# PDF\n";
+    let long = format!(
+        "---\nagent: claude/skill/pdf/SKILL.md\n---\n---\nname: pdf\ndescription: {}\n---\n# PDF\n",
+        "x".repeat(600)
+    );
+    for text in [skill, long.as_str()] {
+        assert_eq!(wrong_in(text), Vec::<String>::new(), "{text}");
+        let shared = ready(
+            &tisty_markdown::html(&tisty_markdown::read(text)),
+            &Places::default(),
+        );
+        assert!(!shared.contains("agent"), "{shared}");
+        assert_eq!(
+            shared.matches("<dl class=\"front\">").count(),
+            1,
+            "{shared}"
+        );
+    }
+}
+
+#[test]
 fn every_formula_the_translator_can_write_speaks_the_contract() {
     let formulas = [
         r"\cancel{x}",

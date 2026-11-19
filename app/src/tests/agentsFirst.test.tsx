@@ -26,6 +26,7 @@ const sent = (cmd: string) => ipc.calls.filter((one) => one.cmd === cmd);
 const look: AgentsLook = {
   folder: null,
   docs: 0,
+  changes: 0,
   consented: false,
   allOn: true,
   asks: true,

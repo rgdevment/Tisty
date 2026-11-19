@@ -25,6 +25,26 @@ source: the Tisty guide
 
 `tags:` files the document under each tag, the same as one written with `#` in a sentence. `title:` gives it another title; `paper:`, `sheets:` and `orientation:` say which sheet it prints on, and `lang:`, which language it is written in. Any other, like `source:`, is kept as it is.
 
+### An agent document
+
+`agent:` turns the sheet into an agent document: Tisty writes its body, as it is, to the file an AI assistant reads. The value says who it is for, what it is and where it goes: `level/kind/name`. A card on top of the page shows the kind, where it is written, its state and its backups, and the file's own properties show as fields.
+
+```yaml title="A Claude skill, as Tisty brings it in"
+---
+agent: claude/skill/vaccines/SKILL.md
+title: claude · vaccines/SKILL.md
+---
+---
+name: vaccines
+description: Notes Rina's or Roger's next vaccine when Mario asks for it.
+---
+
+# Vaccines
+
+1. Find the card in Tisty.
+2. Write the date down as a task.
+```
+
 ---
 
 ## Words

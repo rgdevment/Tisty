@@ -25,6 +25,26 @@ fuente: la guía de Tisty
 
 `tags:` archiva el documento bajo cada etiqueta, igual que una escrita con `#` en una frase. `title:` le da otro título; `paper:`, `sheets:` y `orientation:` dicen en qué hoja se imprime, y `lang:`, en qué idioma está escrito. Cualquier otra, como `fuente:`, se guarda tal cual.
 
+### Un documento de agente
+
+`agent:` convierte la hoja en un documento de agente: Tisty escribe su cuerpo, tal cual, en el archivo que lee un asistente de IA. El valor dice para quién es, qué es y dónde va: `nivel/tipo/nombre`. Arriba de la página aparece una ficha con el tipo, el destino, el estado y los respaldos, y las propiedades del archivo mismo se ven como campos.
+
+```yaml title="Una skill de Claude, como la trae Tisty"
+---
+agent: claude/skill/vacunas/SKILL.md
+title: claude · vacunas/SKILL.md
+---
+---
+name: vacunas
+description: Anota la próxima vacuna de Rina o de Roger cuando Mario la pide.
+---
+
+# Vacunas
+
+1. Busca la cartilla en Tisty.
+2. Anota la fecha como tarea.
+```
+
 ---
 
 ## Palabras

@@ -68,7 +68,9 @@ export default function AgentsKeeper() {
   useEffect(() => {
     if (!print) return;
     const later = window.setTimeout(() => {
-      agentsRound().catch((e) => setError(saidPlainly(e)));
+      agentsRound()
+        .then(() => window.dispatchEvent(new Event(AGENTS_CHANGED)))
+        .catch((e) => setError(saidPlainly(e)));
     }, SETTLE_MS);
     return () => window.clearTimeout(later);
   }, [print, setError]);

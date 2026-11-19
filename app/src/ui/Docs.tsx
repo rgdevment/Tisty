@@ -45,6 +45,7 @@ import { attachedAll } from "../reshaping";
 import { busy, holds, queued } from "../saving";
 import { sure } from "../sure";
 import { chooseTongue, docDress, tonguesOf, twinOf } from "../tongues";
+import AgentCard from "./AgentCard";
 import { changedIn, MARK_FADES } from "./anchoring";
 import Beside, { trailed } from "./Beside";
 import Contents from "./Contents";
@@ -61,6 +62,7 @@ import { type LoadedSheet, sheetLoaded } from "./sheetLoaded";
 import { pageFor } from "./sheets";
 import { CompactBar, MarkBar, StirredBar } from "./Tidied";
 import Tongues, { standingHead } from "./Tongues";
+import { useAgentDoc } from "./useAgentDoc";
 import { useEarlier } from "./useEarlier";
 import { useLeaving } from "./useLeaving";
 import { useLinkable } from "./useLinkable";
@@ -546,6 +548,9 @@ export default function Docs({
   // What the archive holds is read-only, whether the document says so or the folder above it does.
   const shelved = Boolean(own?.away);
   const bolted = Boolean(own?.locked) || shelved;
+  const agent = useAgentDoc(open?.file ?? null, body);
+  // An agent's file is kept byte for byte, so the paper it is shown on stays on this computer.
+  const laidHere = bolted || agent.held || agent.doc !== null;
 
   const diaryWritten = (today: Today) => {
     onKept({ id: own?.id ?? "", title: called });
@@ -768,7 +773,7 @@ export default function Docs({
   const onNotes = noted && (brainstorm || inEditor !== open?.file);
   const laid = useMemo(() => laidIn(body), [body]);
   const leaf =
-    (open && (bolted ? (sized[open.file] ?? laid.paper) : (laid.paper ?? sized[open.file]))) ||
+    (open && (laidHere ? (sized[open.file] ?? laid.paper) : (laid.paper ?? sized[open.file]))) ||
     "a4";
   const sheets = Boolean(open) && laid.sheets;
   const landscape = Boolean(open) && laid.landscape;
@@ -950,7 +955,7 @@ export default function Docs({
   };
 
   const reshape = (made: (now: string) => string) => {
-    if (!open || bolted) return;
+    if (!open || laidHere) return;
     const now = made(held.current?.id === open.file ? held.current.body : body);
     wrote(now);
     dressAlike(now);
@@ -966,10 +971,10 @@ export default function Docs({
     if (!open) return;
     if (sheets) keptBeside(paper, landscape);
     const { [open.file]: _, ...others } = sized;
-    const now = bolted ? { ...others, [open.file]: paper } : others;
+    const now = laidHere ? { ...others, [open.file]: paper } : others;
     setSized(now);
     window.localStorage.setItem("tisty.paper", JSON.stringify(now));
-    if (bolted) return;
+    if (laidHere) return;
     const latest = held.current?.id === open.file ? held.current.body : body;
     const laid = withPaper(latest, paper);
     wrote(laid);
@@ -1111,11 +1116,32 @@ export default function Docs({
                   onSeen={(at) => {
                     if (own?.file) stood.current.set(own.file, at);
                   }}
-                  reading={bolted}
+                  reading={bolted || agent.held}
                   label={called || t("untitledDoc")}
                   onDoc={toDoc}
                   onTag={onTag}
-                  above={placed}
+                  above={
+                    agent.doc ? (
+                      <>
+                        <AgentCard
+                          doc={agent.doc}
+                          file={open.file}
+                          editing={agent.editing}
+                          locked={bolted}
+                          onEdit={agent.onEdit}
+                          onSettle={async () => {
+                            await flush();
+                            if (held.current) return Promise.reject({ code: "unsavedStays" });
+                          }}
+                          onTaken={() => reread(open.file)}
+                          onError={onError}
+                        />
+                        {placed}
+                      </>
+                    ) : (
+                      placed
+                    )
+                  }
                   belowFolds={!above}
                   below={
                     above
@@ -1391,6 +1417,7 @@ export default function Docs({
           onKeep={flush}
           onEarlier={past.show}
           body={body}
+          carded={Boolean(agent.doc)}
           tags={known.find((one) => one.file === open.file)?.tags ?? NO_TAGS}
           kept={saved}
           heads={heads}
@@ -1403,7 +1430,7 @@ export default function Docs({
           sheets={sheets}
           landscape={landscape}
           onSheets={
-            bolted
+            laidHere
               ? undefined
               : (on) => {
                   if (on) keptBeside(leaf, false);
@@ -1411,7 +1438,7 @@ export default function Docs({
                 }
           }
           onLandscape={
-            bolted
+            laidHere
               ? undefined
               : (turned) => {
                   if (sheets) keptBeside(leaf, turned);

@@ -2,12 +2,10 @@ use tisty_markdown::front;
 
 use super::Refused;
 
-pub const KEY: &str = "agent";
+pub const KEY: &str = front::AGENT;
 pub const GLOBAL: &str = "global";
 const BOM: char = '\u{feff}';
 const MARKDOWN: [&str; 3] = ["md", "markdown", "mdc"];
-const NAME_AT_MOST: usize = 400;
-const LEVEL_AT_MOST: usize = 40;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Kind {
@@ -56,17 +54,11 @@ impl Card {
             .into_iter()
             .find(|one| one.key.eq_ignore_ascii_case(KEY))?;
         let (address, flags) = field.values.split_first()?;
-        let mut parts = address.splitn(3, '/');
-        let level = parts.next()?.to_string();
-        let kind = Kind::read(parts.next()?)?;
-        let name = parts.next()?.to_string();
-        if !fit_level(&level) || !fit_name(&name) {
-            return None;
-        }
+        let (level, kind, name) = front::agent_address(address)?;
         let mut card = Self {
-            level,
-            kind,
-            name,
+            level: level.to_string(),
+            kind: Kind::read(kind)?,
+            name: name.to_string(),
             endings: Endings::Lf,
             bom: false,
             open_end: false,
@@ -109,26 +101,6 @@ impl Card {
     }
 }
 
-fn fit_level(level: &str) -> bool {
-    !level.is_empty()
-        && level.len() <= LEVEL_AT_MOST
-        && level
-            .bytes()
-            .all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'-')
-}
-
-fn fit_name(name: &str) -> bool {
-    !name.is_empty()
-        && name.len() <= NAME_AT_MOST
-        && !name.chars().any(|one| {
-            one.is_control() || matches!(one, '\\' | ':' | ',' | '[' | ']' | '"' | '\'' | '#')
-        })
-        && name
-            .split('/')
-            .all(|step| !step.is_empty() && step != "." && step != "..")
-        && name.trim() == name
-}
-
 fn extension(name: &str) -> String {
     let leaf = name.rsplit('/').next().unwrap_or(name);
     match leaf.rsplit_once('.') {
@@ -138,7 +110,7 @@ fn extension(name: &str) -> String {
 }
 
 pub fn doc_of(level: &str, kind: Kind, name: &str, file: &[u8]) -> Result<String, Refused> {
-    if !fit_level(level) || !fit_name(name) {
+    if !front::agent_level(level) || !front::agent_name(name) {
         return Err(Refused::Name);
     }
     let text = std::str::from_utf8(file).map_err(|_| Refused::NotText)?;

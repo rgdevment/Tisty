@@ -62,6 +62,8 @@ interface Props {
   title: string;
   paper: string;
   body: string;
+  /** An agent document: its card is shown above the page, so its properties stay out of Details. */
+  carded?: boolean;
   tags: readonly string[];
   kept: number;
   heads: Head[];
@@ -111,7 +113,8 @@ const editedOf = ({ by, editors }: NonNullable<DocFacts["edited"]>) => ({
 // Read once per version of the text and its facts: the column is drawn again far more often than either changes.
 const useFacts = (props: Props, facts: DocFacts | null): Facts => {
   const { body, tags, heads } = props;
-  const onFront = heads.find((one) => one.level === 0)?.go;
+  const agent = Boolean(props.carded);
+  const onFront = agent ? undefined : heads.find((one) => one.level === 0)?.go;
   return useMemo(() => {
     const times = often(body);
     const holds = holdsOf(body, facts).join(" · ");
@@ -125,12 +128,12 @@ const useFacts = (props: Props, facts: DocFacts | null): Facts => {
       wrote: facts ? dated(facts.wrote) : undefined,
       weighs: facts ? weigh(facts.bytes) : undefined,
       holds: holds || undefined,
-      fields: fields(body),
+      fields: agent ? [] : fields(body),
       overgrown: overgrown(body),
       onFront,
       tags: tags.map((name) => ({ name, times: times.get(name) ?? 0 })),
     };
-  }, [body, facts, tags, onFront]);
+  }, [body, facts, tags, onFront, agent]);
 };
 
 export default function Beside(props: Props) {

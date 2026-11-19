@@ -22,6 +22,7 @@ export interface AssistantSeen {
 export interface AgentsLook {
   folder: string | null;
   docs: number;
+  changes: number;
   consented: boolean;
   allOn: boolean;
   asks: boolean;

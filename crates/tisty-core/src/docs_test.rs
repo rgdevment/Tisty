@@ -2497,6 +2497,16 @@ fn the_title_front_matter_gives_names_the_document_before_any_heading() {
 }
 
 #[test]
+fn an_agent_skills_own_properties_never_name_the_document() {
+    let skill = "---\nagent: claude/skill/pdf/SKILL.md\n---\n---\nname: pdf\n---\n# PDF\n";
+    assert_eq!(titled(skill), "PDF");
+    assert_eq!(
+        titled("---\ntags: [a]\n---\n---\nname: pdf\n---\n"),
+        "name: pdf"
+    );
+}
+
+#[test]
 fn a_title_is_read_in_one_spelling() {
     assert_eq!(titled("# Disen\u{0303}o"), "Diseño");
 }

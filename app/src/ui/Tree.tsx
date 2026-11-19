@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { agentsRoot } from "../agentsSync";
 import type { Filed, Folded, Papers } from "../core";
 import { trail } from "../folders";
 import { BRAINSTORM, DIARY, show, showAll, useHidden } from "../hiding";
@@ -6,6 +7,7 @@ import { led } from "../leading";
 import { fill, t } from "../locales";
 import { compactedBy } from "../tidying";
 import { clientNamed } from "../who";
+import { AgentsWord, useAgentsGlance } from "./AgentsMark";
 import {
   type Carried,
   DEEPEST,
@@ -77,6 +79,7 @@ export default function Tree({
   onHereMenu,
   onDocMenu,
 }: Props) {
+  const agents = useAgentsGlance(agentsRoot(papers.folders)?.id ?? null);
   // Nothing arrives open: with two hundred documents a tree that unfolds itself is a wall.
   const [opened, setOpened] = useState<Set<string>>(new Set());
   const [spread, setSpread] = useState<Set<string>>(new Set());
@@ -822,9 +825,13 @@ export default function Tree({
               }`}
             >
               <span className="truncate">{folder.name}</span>
-              <span className="ml-auto pr-1 text-[11.5px] text-faint opacity-0 transition-opacity group-hover/row:opacity-100 motion-reduce:transition-none">
-                {folder.holds || ""}
-              </span>
+              {agents?.folder === folder.id ? (
+                <AgentsWord glance={agents} />
+              ) : (
+                <span className="ml-auto pr-1 text-[11.5px] text-faint opacity-0 transition-opacity group-hover/row:opacity-100 motion-reduce:transition-none">
+                  {folder.holds || ""}
+                </span>
+              )}
             </button>
           </div>
         </div>
