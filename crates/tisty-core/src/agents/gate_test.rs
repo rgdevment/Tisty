@@ -425,3 +425,20 @@ fn a_file_written_before_the_ledger_knew_its_documents_is_taken_once_they_say_th
         [file.as_str()]
     );
 }
+
+#[test]
+fn learning_a_files_documents_never_moves_what_the_file_was_last_seen_saying() {
+    let mut world = world();
+    world.made(HERE, &memory("What the document says.\n"), true);
+    let at = world.home.path().join(".claude").join("CLAUDE.md");
+    std::fs::create_dir_all(at.parent().unwrap()).unwrap();
+    std::fs::write(&at, "What the agent wrote.\n").unwrap();
+    world.ledger.settle(&at, b"What the agent wrote.\n");
+
+    assert_eq!(world.round().1, Standing::UpToDate);
+    assert_eq!(world.round().1, Standing::UpToDate);
+    assert_eq!(
+        world.ledger.written(&at),
+        Some(crate::attach::printed(b"What the agent wrote.\n").as_str())
+    );
+}

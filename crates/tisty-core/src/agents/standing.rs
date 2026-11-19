@@ -344,10 +344,8 @@ pub fn round(data: &Path, ledger: &mut Ledger, targets: &[Target]) -> Vec<Standi
                 Err(why) => Standing::Unreadable(why.to_string()),
             },
             (Standing::UpToDate, _) if target.unproven || target.stale_in(ledger) => {
-                if let Ok(wanted) = wanted(target) {
-                    target.settled_in(ledger, &wanted);
-                    settled = true;
-                }
+                ledger.applied_to(&target.at, target.files().map(str::to_string));
+                settled = true;
                 Standing::UpToDate
             }
             (Standing::Agreed, _) => {
