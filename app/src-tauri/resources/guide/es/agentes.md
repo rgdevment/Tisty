@@ -69,7 +69,7 @@ Para cerrar y borrar no hay herramienta: no es que esté escondida, es que no ex
 
 ## Cómo pedírselo
 
-Háblale como a una persona: «anota esto como tarea para el viernes», «guarda esta decisión en el documento del proyecto», «¿cómo lo resolvimos la otra vez?». Además, Tisty le entrega siete pedidos listos que tu asistente muestra como comandos; en Claude Code están en el menú de `/`:
+Háblale como a una persona: «anota esto como tarea para el viernes», «guarda esta decisión en el documento del proyecto», «¿cómo lo resolvimos la otra vez?». Además, Tisty le entrega ocho pedidos listos que tu asistente muestra como comandos; en Claude Code están en el menú de `/`:
 
 | Pedido | Qué hace |
 | --- | --- |
@@ -80,6 +80,9 @@ Háblale como a una persona: «anota esto como tarea para el viernes», «guarda
 | `keep_decision` | Guarda una decisión en el documento de su tema |
 | `brainstorm` | Hace una lluvia de ideas contigo y anota las que te quedas |
 | `sort_ideas` | Ordena las ideas que esperan, sin cambiar nada hasta que lo digas |
+| `consolidate` | Revisa lo que guarda Tisty, una carpeta, una lista o un tema a la vez, y propone arreglos: resúmenes viejos, enlaces que no llevan a ninguna parte, documentos repetidos y estados que quedaron atrás. Hace solo lo que apruebas y nunca borra |
+
+Cada uno acepta una palabra detrás. `/mcp__tisty__consolidate Cocina` revisa solo la carpeta Cocina: tu agente te muestra lo que encontró, numerado y con el arreglo que haría; contestas «1 y 2» y hace solo esos dos. Lo viejo nunca se borra: queda marcado, y lo borras tú. Una pasada entera, llamada por llamada, está en [asistentes y MCP](https://www.tisty.app/es/ayuda/asistentes-y-mcp/).
 
 Y con `@` le pasas un documento por su título.
 

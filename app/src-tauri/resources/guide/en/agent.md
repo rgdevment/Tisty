@@ -69,7 +69,7 @@ For closing and deleting there is no tool: not hidden, absent. The rest is refus
 
 ## How to ask it
 
-Talk to it as you would to a person: "note this as a task for Friday", "keep this decision in the project's document", "how did we solve this last time?". Tisty also hands it seven ready-made requests your assistant shows as commands; in Claude Code they are in the `/` menu:
+Talk to it as you would to a person: "note this as a task for Friday", "keep this decision in the project's document", "how did we solve this last time?". Tisty also hands it eight ready-made requests your assistant shows as commands; in Claude Code they are in the `/` menu:
 
 | Request | What it does |
 | --- | --- |
@@ -80,6 +80,9 @@ Talk to it as you would to a person: "note this as a task for Friday", "keep thi
 | `keep_decision` | Keeps a decision in the document on its subject |
 | `brainstorm` | Brainstorms with you and jots the ideas you keep |
 | `sort_ideas` | Sorts out the ideas waiting, changing nothing until you say |
+| `consolidate` | Goes over what Tisty keeps, a folder, a list or a subject at a time, and proposes fixes: stale summaries, links that lead nowhere, doubled documents and states left behind. It makes only the ones you approve and never deletes |
+
+Each one takes a word after it. `/mcp__tisty__consolidate Kitchen` goes over the Kitchen folder alone: your agent shows you what it found, numbered and with the fix it would make; you answer «1 and 2» and it makes only those two. Nothing old is ever deleted: it is marked, and you delete it. A whole pass, call by call, is in [assistants and MCP](https://www.tisty.app/docs/assistants-and-mcp/).
 
 And with `@` you hand it a document by its title.
 
