@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState } from "react";
-import { agentsLit, agentsRoot, askToLight } from "../agentsSync";
+import { asksPerson } from "../agentDocs";
+import { agentsPaint, askAgents, folderShown } from "../agentsSync";
 import type { Filed, Folded, Papers } from "../core";
 import { AGENTS, agentsHidden, BRAINSTORM, DIARY, useHidden } from "../hiding";
 import { led } from "../leading";
 import { fill, t } from "../locales";
 import { compactedBy } from "../tidying";
 import { clientNamed } from "../who";
-import { AgentsWord, useAgentsGlance, useAgentsState } from "./AgentsMark";
+import { AgentsWord, useAgentsGlance, useAgentsStage } from "./AgentsMark";
 import { grouped, inSkill, KIND_GLYPH, type SkillGroup, useAgentRows } from "./agentRows";
 import {
   type Carried,
@@ -79,17 +80,13 @@ export default function Tree({
   onHereMenu,
   onDocMenu,
 }: Props) {
-  const root = agentsRoot(papers.folders)?.id ?? null;
-  const stance = useAgentsState(root);
+  const { root, stage } = useAgentsStage(papers);
   const hidden = useHidden();
   // While the sidebar is sifted everything shows, so a match never sits behind a hidden row.
   const veiled = (key: string) => !unfolded && hidden.includes(key);
   const agentsVeiled = !unfolded && agentsHidden(hidden, root);
-  const switchedOn = stance !== null && agentsLit(stance);
-  // Dim only once known to be off: an AGENTS still learning its state is drawn plain, never off.
-  const asleep = !root || (stance !== null && !switchedOn);
-  // Nothing of an agent's is looked at until this computer is known to have said yes.
-  const agents = useAgentsGlance(switchedOn && !agentsVeiled ? root : null);
+  // Nothing of an agent's is looked at until the folder is known to sync.
+  const agents = useAgentsGlance(stage === "syncs" && !agentsVeiled ? root : null);
   const unborn = !root && !agentsVeiled && !unfolded;
   const agentRows = useAgentRows(papers);
   // Nothing arrives open: with two hundred documents a tree that unfolds itself is a wall.
@@ -481,7 +478,7 @@ export default function Tree({
           </span>
         </span>
         <span className="flex min-w-0 flex-1 items-center gap-1.5 py-1 pl-1.5 text-[13px] text-faint">
-          <span className="truncate">{folder.name}</span>
+          <span className="truncate">{folderShown(folder)}</span>
           <span className="ml-auto shrink-0 pr-1 text-[10.5px] opacity-0 transition-opacity group-hover/row:opacity-100 motion-reduce:transition-none">
             {t("folderTrace")}
           </span>
@@ -859,7 +856,10 @@ export default function Tree({
 
   const branch = (folder: Folded, depth: number) => {
     const closed = !unfolded && !opened.has(folder.id);
-    const dim = folder.id === root && asleep;
+    const isRoot = folder.id === root;
+    // Nothing brought yet: the row opens the first time instead of an empty folder.
+    const dim = isRoot && stage === "unbrought";
+    const shown = folderShown(folder);
     const kids = drawnUnder(folder.id);
     const papersIn = inside(folder.id);
     return (
@@ -894,12 +894,12 @@ export default function Tree({
             <Grip
               at={8 + depth * STEP}
               open={!closed}
-              label={fill(closed ? "openFolder" : "closeFolder", folder.name)}
+              label={fill(closed ? "openFolder" : "closeFolder", shown)}
               controls={`holds-${folder.id}`}
               onPress={() => fold(folder.id)}
             >
               <span
-                className={`flex items-center ${painted(folder.color)}${dim ? " opacity-50" : ""}`}
+                className={`flex items-center ${isRoot ? agentsPaint(stage) : painted(folder.color)}`}
               >
                 <Glyph name={folder.icon ?? "folder"} className="h-[15px] w-[15px]" />
               </span>
@@ -909,22 +909,18 @@ export default function Tree({
               data-row={folder.id}
               tabIndex={stops(folder.id) ? 0 : -1}
               onFocus={() => setReached(folder.id)}
-              onKeyDown={(e) =>
-                typed(e, { id: folder.id, kind: "folder", name: folder.name }, folder.id)
-              }
+              onKeyDown={(e) => typed(e, { id: folder.id, kind: "folder", name: shown }, folder.id)}
               aria-keyshortcuts={shortcuts("folder")}
               onPointerDown={(e) => grab(e, folder.id, "folder")}
-              onClick={tapped(() => (dim ? askToLight() : onHere?.(folder.id)))}
-              aria-label={folderSaid(folder, dim)}
+              onClick={tapped(() => (dim ? askAgents() : onHere?.(folder.id)))}
+              aria-label={folderSaid(folder)}
               aria-current={here === folder.id ? "true" : undefined}
               className={`flex min-w-0 flex-1 items-center gap-1.5 py-1 pl-1.5 text-left text-[13px] ${
                 dim ? "text-faint" : here === folder.id ? "text-ink" : "text-soft"
               }`}
             >
-              <span className="truncate">{folder.name}</span>
-              {dim ? (
-                <Asleep />
-              ) : agents?.folder === folder.id ? (
+              <span className="truncate">{shown}</span>
+              {dim ? null : isRoot && agents?.folder === folder.id && asksPerson(agents) ? (
                 <AgentsWord glance={agents} />
               ) : (
                 <span className="ml-auto pr-1 text-[11.5px] text-faint opacity-0 transition-opacity group-hover/row:opacity-100 motion-reduce:transition-none">
@@ -961,18 +957,22 @@ export default function Tree({
     );
   };
 
-  const folderSaid = (folder: Folded, dim: boolean) => {
-    if (lifted?.id === folder.id) return fill("liftedIs", folder.name);
-    return dim ? `${folder.name} — ${t("agentsPaused")}` : folder.name;
+  // The state the sidebar shows by colour alone is said in words to whoever cannot see it.
+  const folderSaid = (folder: Folded) => {
+    const shown = folderShown(folder);
+    if (lifted?.id === folder.id) return fill("liftedIs", shown);
+    if (folder.id !== root) return shown;
+    if (stage === "unbrought") return `${shown} — ${t("agentsUnbroughtSaid")}`;
+    return stage === "brought" ? `${shown} — ${t("agentsNotSynced")}` : shown;
   };
 
-  // With no folder yet, AGENTS still stands in the sidebar, off, so the person learns it exists.
+  // With no folder yet, Agents still stands in the sidebar, grey, so the person learns it exists.
   const unbornRow = () => (
     <li key={AGENTS} className="relative">
       <div className="group/row flex items-center rounded-md has-[:focus-visible]:bg-hover">
         <span
           aria-hidden="true"
-          className={`ml-2 grid h-5 w-[18px] shrink-0 place-items-center opacity-50 ${painted("purple")}`}
+          className={`ml-2 grid h-5 w-[18px] shrink-0 place-items-center ${agentsPaint("unbrought")}`}
         >
           <Glyph name="robot" className="h-[15px] w-[15px]" />
         </span>
@@ -986,12 +986,11 @@ export default function Tree({
             e.preventDefault();
             walk(AGENTS, e.key === "ArrowDown" ? 1 : -1);
           }}
-          onClick={askToLight}
-          aria-label={`AGENTS — ${t("agentsPaused")}`}
+          onClick={askAgents}
+          aria-label={`${t("agentsName")} — ${t("agentsUnbroughtSaid")}`}
           className="flex min-w-0 flex-1 items-center gap-1.5 py-1 pl-1.5 text-left text-[13px] text-faint"
         >
-          <span className="truncate">AGENTS</span>
-          <Asleep />
+          <span className="truncate">{t("agentsName")}</span>
         </button>
       </div>
     </li>
@@ -1120,14 +1119,6 @@ export default function Tree({
       {tree}
       {kept}
     </div>
-  );
-}
-
-function Asleep() {
-  return (
-    <span className="ml-auto shrink-0 pr-1 text-[11.5px] text-faint" data-agents="off">
-      {t("agentsPaused")}
-    </span>
   );
 }
 

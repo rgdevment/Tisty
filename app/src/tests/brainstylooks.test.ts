@@ -35,7 +35,7 @@ const one = (kind: Neuron["kind"], state?: string, group?: string): Neuron => ({
 
 describe("how Brainsty draws each node and line", () => {
   it("reads every hue of the palette from Tisty's colours", () => {
-    expect(Object.keys(palette.hues)).toEqual([...HUE_KEYS]);
+    expect(Object.keys(palette.hues)).toEqual([...HUE_KEYS, "coral"]);
     expect(palette.tag).toBe("rgb(122 68 184)");
     expect(palette.file).toBe("#6a6a70");
   });

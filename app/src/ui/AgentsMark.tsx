@@ -1,16 +1,18 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { type Glance, type GlanceWord, glanceWord } from "../agentDocs";
-import { AGENTS_CHANGED, type AgentsState, agentsLook, agentsState } from "../agentsSync";
-import { fill, t } from "../locales";
+import { asksPerson, type Glance } from "../agentDocs";
+import {
+  AGENTS_CHANGED,
+  type AgentsStage,
+  type AgentsState,
+  agentsHeld,
+  agentsLook,
+  agentsRoot,
+  agentsStage,
+  agentsState,
+} from "../agentsSync";
+import type { Papers } from "../core";
+import { fill } from "../locales";
 import { AGENT_DOC_STOOD } from "./useAgentDoc";
-
-const TONE: Record<GlanceWord, string> = {
-  empty: "text-faint",
-  synced: "text-hue-green",
-  changes: "text-hue-amber",
-  waiting: "text-hue-amber",
-  off: "text-faint",
-};
 
 // Only whether each assistant's folder exists, so it may ask before the person ever said yes; without a folder AGENTS is off anyway.
 export function useAgentsState(root: string | null): AgentsState | null {
@@ -31,6 +33,22 @@ export function useAgentsState(root: string | null): AgentsState | null {
     return () => window.removeEventListener(AGENTS_CHANGED, ask);
   }, [ask, root]);
   return root ? state : null;
+}
+
+export interface AgentsSeen {
+  root: string | null;
+  stance: AgentsState | null;
+  stage: AgentsStage | null;
+}
+
+export function useAgentsStage(papers: Papers): AgentsSeen {
+  const root = agentsRoot(papers.folders)?.id ?? null;
+  const stance = useAgentsState(root);
+  return {
+    root,
+    stance,
+    stage: agentsStage(root, stance, agentsHeld(papers.docs, papers.folders)),
+  };
 }
 
 // Looking reads the assistants' folders, so it waits for a round, the window's return or AGENTS appearing.
@@ -69,17 +87,13 @@ const waitingSaid = (glance: Glance): string => {
   return fill("agentsFolderProposed", String(glance.proposed));
 };
 
+/// Only what waits for the person has a word in the sidebar; otherwise Agents shows its count like any folder.
 export function AgentsWord({ glance }: { glance: Glance }) {
-  const word = glanceWord(glance);
-  const said = {
-    empty: t("agentsFolderEmpty"),
-    synced: t("agentsFolderSynced"),
-    changes: fill("agentsFolderChanges", String(glance.changes)),
-    waiting: waitingSaid(glance),
-    off: t("agentsPaused"),
-  }[word];
+  if (!asksPerson(glance)) return null;
+  const said =
+    glance.changes > 0 ? fill("agentsFolderChanges", String(glance.changes)) : waitingSaid(glance);
   return (
-    <span className={`ml-auto shrink-0 pr-1 text-[11.5px] ${TONE[word]}`} data-agents={word}>
+    <span className="ml-auto shrink-0 pr-1 text-[11.5px] text-hue-amber" data-agents="asks">
       {said}
     </span>
   );
