@@ -239,11 +239,14 @@ fn shown_or_opened(app: &AppHandle, near: Option<&str>) {
     }
 }
 
-// On the event loop, one press at a time, so two quick ones never build two windows.
+#[derive(Default)]
+pub struct Opening(Mutex<()>);
+
+// One press at a time, so two quick ones never build two windows.
 #[tauri::command(async)]
-pub fn brainsty_show(app: AppHandle, near: Option<String>) {
-    let asked = app.clone();
-    let _ = app.run_on_main_thread(move || shown_or_opened(&asked, near.as_deref()));
+pub fn brainsty_show(app: AppHandle, opening: tauri::State<'_, Opening>, near: Option<String>) {
+    let _one_at_a_time = opening.0.lock().unwrap_or_else(PoisonError::into_inner);
+    shown_or_opened(&app, near.as_deref());
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]

@@ -340,10 +340,14 @@ describe("Brainsty's own window", () => {
     const went = vi.fn((e: Event) => e.defaultPrevented);
     document.addEventListener("click", went);
 
+    document.addEventListener("auxclick", went);
     await user.click(link);
+    await user.pointer({ keys: "[MouseMiddle]", target: link });
 
     document.removeEventListener("click", went);
-    expect(went).toHaveReturnedWith(true);
+    document.removeEventListener("auxclick", went);
+    expect(went).toHaveBeenCalledTimes(2);
+    expect(went.mock.results.every((one) => one.value === true)).toBe(true);
   });
 
   it("asks the main window to open a task on a double click", async () => {

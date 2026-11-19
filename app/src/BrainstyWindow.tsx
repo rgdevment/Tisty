@@ -84,8 +84,11 @@ export default function BrainstyWindow() {
     const stay = (e: MouseEvent) => {
       if (e.target instanceof Element && e.target.closest("a[href]")) e.preventDefault();
     };
-    document.addEventListener("click", stay, true);
-    return () => document.removeEventListener("click", stay, true);
+    for (const kind of ["click", "auxclick"] as const) document.addEventListener(kind, stay, true);
+    return () => {
+      for (const kind of ["click", "auxclick"] as const)
+        document.removeEventListener(kind, stay, true);
+    };
   }, []);
 
   const network = read && "network" in read ? read.network : null;

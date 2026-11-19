@@ -1381,6 +1381,7 @@ pub fn run() {
         .manage(answers::cards::Glimpses::default())
         .manage(answers::clouding::Consenting::default())
         .manage(viewing::Views::default())
+        .manage(brainsty_window::Opening::default())
         .manage(finishing::Finishers::default())
         .manage(Packing::default())
         .manage(Erasing::default())
