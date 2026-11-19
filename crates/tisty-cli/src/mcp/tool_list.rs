@@ -410,7 +410,7 @@ pub(super) fn tools_without_hints() -> Value {
         {
             "name": "reschedule",
             "title": "Move the day of a task an agent filed",
-            "description": "Change the `date` or `deadline` of a task an agent filed, when what you learnt moves it; null takes one off and the other stays. A task the person filed keeps their days: it is refused, so say what you learnt with `note`. A change answers with both days as they stand.",
+            "description": "Change the `date` or `deadline` of a task an agent filed, when what you learnt moves it; null takes one off and the other stays. Refused on the person's task or one said done or not doing: say what you learnt with `note`. A change answers with both days as they stand.",
             "inputSchema": shaped(json!({
                 "properties": {
                     "task": { "type": "string", "description": "The task id" },
