@@ -215,7 +215,7 @@ Every document of yours has a link, to reach it from a chat, a note, your browse
 For example, you are planning the summer trip with your agent. Under **Export** of «Summer plan», in the folder Personal / Trips, you choose **Copy link** and paste it in the chat: «Check the flight dates in tisty://doc/personal/trips/summer-plan?id=k7tq2mzw-0012». Your agent does not search for it: it asks for it by its link,
 
 ```json
-{ "name": "read_doc", "arguments": { "doc": "tisty://doc/personal/trips/summer-plan?id=k7tq2mzw-0012" } }
+{ "name": "read", "arguments": { "doc": "tisty://doc/personal/trips/summer-plan?id=k7tq2mzw-0012" } }
 ```
 
 and Tisty answers with that very document, `"doc": "k7tq2mzw-0012"`, `"title": "Summer plan"`, `"folder": "Personal / Trips"`, with its text. If you later call it «Summer holidays» and move it to Family, the same link still gets there. Paste it to your agent on another computer that does not hold your store, and Tisty tells it there is no document with that id there.

@@ -599,7 +599,7 @@ wants. What that call writes over is kept in turn, so the same call again puts
 your afternoon back — and the answer says it went further than one write, which
 is the thing to look for if a document is suddenly shorter than you left it.
 
-**It can go back further, and only to what this computer kept.** `read_doc`
+**It can go back further, and only to what this computer kept.** `read`
 with `versions` lists a document's earlier versions and `version` reads one, so
 an assistant sees what it said before without guessing. `restore_doc` with
 `version` puts one back over everything written since; what it replaces is
