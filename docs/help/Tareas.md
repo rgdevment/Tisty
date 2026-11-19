@@ -21,7 +21,7 @@ flowchart TD
   A[Aparece algo] --> B{¿Lo vas a hacer,<br/>o a volver a leer?}
   B -->|Hacerlo| T[Una tarea]
   B -->|Volver a leerlo| D[Un documento]
-  B -->|Todavía no lo sé| I[Una idea en la<br/>Lluvia de ideas]
+  B -->|Todavía no lo sé| I[Una idea en<br/>Ideas]
   I -->|Convertir en tarea| T
   I -->|Anexar a un documento| D
   T --> P[Su página: notas, pasos,<br/>archivos, grabaciones]
@@ -36,7 +36,7 @@ flowchart TD
 
 Lo que vas a hacer es una tarea. Lo que vas a volver a consultar es un documento: una receta no es una tarea con pasos, y un pendiente no es un documento. Cuando hacer una tarea te enseña algo que vas a necesitar de nuevo más allá de ella —el arreglo de una falla que vuelve, cómo quiere un proveedor que le pidan— guárdalo también en un documento.
 
-**Antes de las dos, muchas veces hay una idea.** Una idea es un pensamiento atrapado al vuelo, antes de saber si es algo que hacer o algo que guardar: pocas palabras, 140 como máximo, con fecha, en la hoja Lluvia de ideas. Espera a que la ordenes: se vuelve tarea, va al documento de su tema o se aparta. Una nota es otra cosa: la línea fechada en la bitácora de una tarea.
+**Antes de las dos, muchas veces hay una idea.** Una idea es un pensamiento atrapado al vuelo, antes de saber si es algo que hacer o algo que guardar: pocas palabras, 140 como máximo, con fecha, en la hoja Ideas. Espera a que la ordenes: se vuelve tarea, va al documento de su tema o se aparta. Una nota es otra cosa: la línea fechada en la bitácora de una tarea.
 
 Lo que guarda una tarea cerrada, y cómo la encuentra el buscador, está en [[El archivo|El-archivo]].
 
@@ -65,7 +65,7 @@ Prueba con:
 
 ## Captura rápida desde cualquier parte
 
-Presiona `Ctrl` + `Shift` + `Space` desde donde estés y se abre una ventanita para una tarea. `Enter` la guarda, `Esc` la cierra y sigues con lo tuyo. `Tab` la cambia a **Idea**, para la [Lluvia de ideas](Documentos#lluvia-de-ideas), o a **Diario**, que escribe en hoy en el [Diario](Documentos#diario). Si ese atajo ya lo usa otro programa, Tisty toma otro y te dice cuál en Configuración.
+Presiona `Ctrl` + `Shift` + `Space` desde donde estés y se abre una ventanita para una tarea. `Enter` la guarda, `Esc` la cierra y sigues con lo tuyo. `Tab` la cambia a **Idea**, para la [Ideas](Documentos#ideas), o a **Diario**, que escribe en hoy en el [Diario](Documentos#diario). Si ese atajo ya lo usa otro programa, Tisty toma otro y te dice cuál en Configuración.
 
 ## Las vistas
 
@@ -128,7 +128,7 @@ Cuando un paso necesita más, pasa el puntero sobre su casilla abierta y pulsa *
 - El trayecto de las dos cuenta cuándo se sumó una parte y cuándo se soltó.
 - Cerrar una tarea con partes abiertas te pide soltarlas en el mismo gesto, y deshacer las devuelve.
 - Junto a la página, **Enlazado desde** dice qué documentos y qué otras tareas citan o mencionan esta. Mira [[Tareas en documentos|Tareas-en-documentos]].
-- Una tarea creada desde un documento, o desde una idea de la Lluvia de ideas, muestra junto a su página **Nació en**: un clic abre ese documento.
+- Una tarea creada desde un documento, o desde una idea de Ideas, muestra junto a su página **Nació en**: un clic abre ese documento.
 
 ## Desde un calendario
 
@@ -149,7 +149,7 @@ Lo que escribas en **Esta vez** es de la vuelta que corre. Al completarla se gua
 
 Sin un repaso cada tanto, lo capturado se acumula sin decidir. **Revisión semanal**, en la fila de vistas de la barra lateral, junta en una página lo que conviene mirar una vez por semana, en tres paradas. Cada parada se marca ✓ cuando ya no espera nada:
 
-1. **Por decidir**: las tareas sin lista, con **Abrir** para darles lista o fecha, **Completar** y **No la haré**. Y si quedan ideas, **Abrir la Lluvia de ideas**, que es donde se ordenan.
+1. **Por decidir**: las tareas sin lista, con **Abrir** para darles lista o fecha, **Completar** y **No la haré**. Y si quedan ideas, **Abrir Ideas**, que es donde se ordenan.
 2. **Marcados como pasados**: los documentos que un agente marcó, con su motivo. **Archivar**, **Borrarlo** o **Quitar la marca**.
 3. **Hace tiempo que no abres**: los mismos de la Biblioteca, sin abrir en este equipo ni escribir en 60 días, para **Abrir** o **Archivar**.
 

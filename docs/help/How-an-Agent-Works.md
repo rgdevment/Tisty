@@ -97,6 +97,14 @@ A document's card says what it holds and where, without reading it: its sections
   "outline": [ { "title": "Decisions", "line": 3, "to": 8 }, { "title": "Out of scope", "line": 10, "to": 14 } ] }
 ```
 
+A document's or a task's card also brings what Tisty guesses is alike, apart, under `guessed`: nobody linked it, so the agent reads both before joining or merging anything.
+
+```json
+> brain {"task": "…Ask for a quote on the roof…"}
+{ "guessed": [ { "kind": "doc", "title": "House repairs", "score": 0.42, "shared": ["quote", "roof"] } ] }
+"Guessed alike by Tisty, linked by no one: \"House repairs\" […] (shares quote, roof)."
+```
+
 With each section's lines, the agent reads only the one it needs, with the same tool that reads a task: `read` with `doc` brings the whole document, one section (`section`), some lines (`from`, `to`) or a piece at a time (`chars`). With `marks`, it brings only what the document highlights or sets in bold, grouped by section: on a 24 KB document, about 2,300 bytes. With `versions`, in place of the text, it lists its earlier versions on this computer, and `version` reads one, under a notice that it is not what it says now.
 
 **Reading again costs almost nothing.** Every read comes with a `print`. If the agent reads again with that `print` and nothing changed, Tisty answers only that, with the time of its earlier read. The answer takes this shape (this excerpt does not come from the session above, but from Tisty's code):

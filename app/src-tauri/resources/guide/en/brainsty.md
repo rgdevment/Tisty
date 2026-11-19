@@ -60,24 +60,25 @@ On a task's page, **A new task** creates a part of that task, in its same list.
 | Solid line | a citation, a card |
 | Dashed line | a mention, a link in a sentence |
 | Thin line | a page and its book, a part and its task, the document a task was born in |
+| Amber curve | a guess: what Tisty guesses is alike, because they share uncommon words and nobody tied them |
 
 Lists and folders are not dots: they are the colour and the zone where their things gather.
 
 The network changes with the distance. From afar, with the wheel backwards, its dots make a brain seen from the side, with no titles. At middle distance the coloured zones show. Up close, every title, each kind of line, the tags and each picture's thumbnail.
 
-![«Rina» picked up close in Brainsty's window: her neighbours with titles, the rest dimmed and, on the right, the document's preview with what it is, its folder and how many connections it has, its first lines, Rina's photo and the Open button](network-near.png)
+![«Rina» picked up close in Brainsty's window: her neighbours with titles, the rest dimmed and, on the right, the document's preview with what it is, its folder and how many connections it has, its first lines, Rina's photo, the Alike section with «Saturday walks» and «Tisty guesses: they share rina and park», and the Open button; in the network, an amber curve joins Rina to «Saturday walks»](network-near.png)
 
 - **A click** on a dot lights it up with its neighbours and opens its preview: a document's first lines, with its pictures, or a task's card, with its list, its date and how many steps are done. Steps are ticked once you open it.
 - **Open**, or a double click, brings the main window to the front and opens the document, the task or the tag there. The network stays open behind it, to come back to. A picture or a file does not open from the network: open it from what uses it.
 - **Search the network**, at the top, or `/`: type part of a title and `Enter` centres the network on it.
-- **Filters**, the funnel beside the search box: which kinds to show, the state of tasks, a tag and **Touched**, to see only what changed in the last days.
+- **Filters**, the funnel beside the search box: which kinds to show, **Alike** for the amber curves, the state of tasks, a tag and **Touched**, to see only what changed in the last days.
 - **With the keyboard**: `Tab` goes round the search box, the filters and the network; the arrows walk from a dot to its neighbour, `Enter` opens and `Esc` lets go, first the search, then the dot, and the last one closes the window.
 
 **Try it:** open **Brainsty** now. The network starts on this sheet, with its neighbours around it: the guide's cover, which it is a page of, and what names it or what it names. Search `one of`, `Enter`, and then **Open**: **One of each** opens in this window, with the network waiting behind. Come back to it with another click on **Brainsty**.
 
 ## What your agent reads
 
-Your agent reads the same network, but as an index. With a single tool, `brain`, it finds tasks and documents by their words, the Archive beside the rest; it brings a document's card, with its sections, who cites it and its decisions in force first, without reading it whole; and it sees a project grouped as blocked, under way, waiting for you and not started. When it names a task or a document by its exact title between quotes, Tisty links it when saving, as when you do. [Your agent's page](tisty:agent) tells it step by step.
+Your agent reads the same network, but as an index. With a single tool, `brain`, it finds tasks and documents by their words, the Archive beside the rest; it brings a document's card, with its sections, who cites it and its decisions in force first, without reading it whole; and it sees a project grouped as blocked, under way, waiting for you and not started. On the card, what Tisty guesses is alike comes apart, under `guessed`, with the shared words, so it is never mistaken for what someone wrote. When it names a task or a document by its exact title between quotes, Tisty links it when saving, as when you do. [Your agent's page](tisty:agent) tells it step by step.
 
 ## Good to know
 
@@ -85,6 +86,6 @@ Your agent reads the same network, but as an index. With a single tool, `brain`,
 - **What you hide does not show** in the network, nor does it reach your agent.
 - **Outside Tisty**, a link to another document and a task's card stay only as their words: in standard Markdown, in Word, in the PDF and in Folio.
 - **Up to 12,000 dots.** Past that, the network keeps what you touched last, its neighbours, your documents and the tasks under way, and tells you at the top how much was left out.
-- **You wrote every line in the network.** Apart from it, in the background, Tisty notes which documents and tasks are alike because they share at least two uncommon words, like *quote* and *roof*. Today those guesses are not drawn and do not reach your agent, and hidden tasks and your Diary never go through it. [The Brainsty network](https://www.tisty.app/docs/brainsty-network/), in the help, tells it.
+- **You wrote every straight line; not the amber curve.** Tisty ties as alike the documents and tasks that share at least two uncommon words, like *quote* and *roof*. The curve shows up close or around the dot you pick, and its preview says why: «Tisty guesses: they share *quote* and *roof*». Hidden tasks and your Diary never go through it. [The Brainsty network](https://www.tisty.app/docs/brainsty-network/), in the help, tells it.
 
 Every detail, with an example from start to end, is in the help: [linking documents](https://www.tisty.app/docs/linking-documents/), [tasks in documents](https://www.tisty.app/docs/tasks-in-documents/) and [the Brainsty network](https://www.tisty.app/docs/brainsty-network/).

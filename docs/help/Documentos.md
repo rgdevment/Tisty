@@ -25,7 +25,7 @@ flowchart TD
   A[Aparece algo] --> B{¿Lo vas a hacer,<br/>o a volver a leer?}
   B -->|Hacerlo| T[Una tarea]
   B -->|Volver a leerlo| D[Un documento]
-  B -->|Todavía no lo sé| I[Una idea en la<br/>Lluvia de ideas]
+  B -->|Todavía no lo sé| I[Una idea en<br/>Ideas]
   I -->|Convertir en tarea| T
   I -->|Anexar a un documento| D
   T --> P[Su página: notas, pasos,<br/>archivos, grabaciones]
@@ -40,7 +40,7 @@ flowchart TD
 
 Lo que vas a hacer es una tarea. Lo que vas a volver a consultar es un documento: una receta no es una tarea con pasos, y un pendiente no es un documento. Cuando hacer una tarea te enseña algo que vas a necesitar de nuevo más allá de ella —el arreglo de una falla que vuelve, cómo quiere un proveedor que le pidan— guárdalo también en un documento.
 
-**Antes de las dos, muchas veces hay una idea.** Una idea es un pensamiento atrapado al vuelo, antes de saber si es algo que hacer o algo que guardar: pocas palabras, 140 como máximo, con fecha, en la hoja Lluvia de ideas. Espera a que la ordenes: se vuelve tarea, va al documento de su tema o se aparta. Una nota es otra cosa: la línea fechada en la bitácora de una tarea.
+**Antes de las dos, muchas veces hay una idea.** Una idea es un pensamiento atrapado al vuelo, antes de saber si es algo que hacer o algo que guardar: pocas palabras, 140 como máximo, con fecha, en la hoja Ideas. Espera a que la ordenes: se vuelve tarea, va al documento de su tema o se aparta. Una nota es otra cosa: la línea fechada en la bitácora de una tarea.
 
 Cómo funcionan la página, los pasos y las partes de una tarea está en [[Tareas]]; lo que guarda una cerrada, en [[El archivo|El-archivo]].
 
@@ -52,17 +52,17 @@ La primera línea del documento es su título: no hay que ponerle nombre.
 
 `Ctrl`/`⌘` + `X` y `V` mueven un documento entre carpetas.
 
-## Lluvia de ideas
+## Ideas
 
-Una idea que llega en medio de otra cosa todavía no tiene dónde ir. Pulsa `Ctrl` + `Shift` + `Space` y después `Tab` para cambiar de **Tarea** a **Idea** (o el atajo propio de la idea, cuando lo elijas en **Configuración**), escríbela, hasta 140 caracteres, y pulsa `Enter`: cae en **Lluvia de ideas**, con su fecha, sin abrir la ventana ni elegir una carpeta. En **Configuración** eliges los dos atajos; el de la idea queda apagado hasta que lo elijas, porque `Ctrl` + `Alt` es AltGr en muchos teclados. Sin teclado, el **+** al final de la fila de vistas abre la misma captura.
+Una idea que llega en medio de otra cosa todavía no tiene dónde ir. Pulsa `Ctrl` + `Shift` + `Space` y después `Tab` para cambiar de **Tarea** a **Idea** (o el atajo propio de la idea, cuando lo elijas en **Configuración**), escríbela, hasta 140 caracteres, y pulsa `Enter`: cae en **Ideas**, con su fecha, sin abrir la ventana ni elegir una carpeta. En **Configuración** eliges los dos atajos; el de la idea queda apagado hasta que lo elijas, porque `Ctrl` + `Alt` es AltGr en muchos teclados. Sin teclado, el **+** al final de la fila de vistas abre la misma captura.
 
-![Un pensamiento rápido, para no olvidarlo: las ideas del momento como notas adhesivas de colores en la Lluvia de ideas, con fecha y escritas a mano, para ordenarlas después en una tarea o un documento](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/web/es-03-ideas.png)
+![Un pensamiento rápido, para no olvidarlo: las ideas del momento como notas adhesivas de colores en Ideas, con fecha y escritas a mano, para ordenarlas después en una tarea o un documento](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/web/es-03-ideas.png)
 
-- **Lluvia de ideas es un documento normal**, anclado arriba en la Biblioteca. La primera idea lo crea. Puedes abrirlo, cambiar sus notas, duplicarlo, archivarlo o eliminarlo; su menú no ofrece moverlo ni exportarlo. Cada idea queda escrita en él como una nota adhesiva `[!IDEA]`, con su fecha y su color, la misma que puede llevar cualquier documento.
+- **Ideas es un documento normal**, anclado arriba en la Biblioteca. La primera idea lo crea. Puedes abrirlo, cambiar sus notas, duplicarlo, archivarlo o eliminarlo; su menú no ofrece moverlo ni exportarlo. Cada idea queda escrita en él como una nota adhesiva `[!IDEA]`, con su fecha y su color, la misma que puede llevar cualquier documento.
 - **Se ve como notas pegadas en una hoja**, un poco torcidas, de distintos colores y con letra de mano: son ideas del momento. La más nueva va primero. Pulsa una para cambiarla, **Nueva idea** agrega otra y la **×** la quita. Arrastra una nota por su borde sobre otra para dejarla en ese lugar, o pulsa `Alt` y una flecha sobre ella; sigue tan torcida como estaba.
 - **El archivo sigue siendo Markdown.** Cada nota es un `[!IDEA]` cuya primera línea dice el día y el minuto en que llegó, y su color, que se elige al crearla y no cambia aunque la muevas, y **Ver Markdown** muestra el texto, solo para leer: una idea es texto suelto, y las tablas y los diagramas van en un documento propio. Cualquier documento con `view: notes` en sus [propiedades](https://markdown.tisty.app/es/propiedades) se ve igual.
-- **Ordénalas después**: en cada nota, **Anexar a un documento** la agrega al final del documento que elijas, como la misma nota adhesiva con su fecha y su color, junto al texto, y **Convertir en tarea** la guarda como tarea, leída como cualquier captura rápida, con sus fechas, listas y etiquetas. En los dos casos la idea sale de la hoja. La Biblioteca muestra junto a la Lluvia de ideas cuántas esperan todavía.
-- **Tu agente de IA también las ordena**: si se lo pides, anota ideas, anexa una a un documento o la convierte en tarea, y la idea sale de la hoja como cuando lo haces tú. Las que da por viejas solo las marca: la nota lleva un ◆ con el motivo, **Borrarla** la quita y **Quitar la marca** la conserva, y la franja sobre la hoja hace lo mismo con todas de un clic. La Lluvia de ideas también lleva el ◆ en la Biblioteca.
+- **Ordénalas después**: en cada nota, **Anexar a un documento** la agrega al final del documento que elijas, como la misma nota adhesiva con su fecha y su color, junto al texto, y **Convertir en tarea** la guarda como tarea, leída como cualquier captura rápida, con sus fechas, listas y etiquetas. En los dos casos la idea sale de la hoja. La Biblioteca muestra junto a Ideas cuántas esperan todavía.
+- **Tu agente de IA también las ordena**: si se lo pides, anota ideas, anexa una a un documento o la convierte en tarea, y la idea sale de la hoja como cuando lo haces tú. Las que da por viejas solo las marca: la nota lleva un ◆ con el motivo, **Borrarla** la quita y **Quitar la marca** la conserva, y la franja sobre la hoja hace lo mismo con todas de un clic. Ideas también lleva el ◆ en la Biblioteca.
 
 ## Diario
 
@@ -74,7 +74,7 @@ Lo que pasó hoy, en la casa o en el trabajo, tiene un solo lugar: **Diario**, c
 - **Un día se corrige donde está**: un clic en lo que escribiste ese día lo vuelve una caja con sus palabras en Markdown. `Ctrl`/`⌘` + `Enter` o **Guardar** lo guarda y sigues en la línea de días; `Esc` o **Cancelar** lo deja como estaba. Las notas adhesivas del día quedan fuera de la caja y, al guardar, siguen después de las palabras, en su orden. Si vacías la caja, el día queda solo con sus notas, o desaparece si no tiene ninguna.
 - **La × de una nota**, que aparece al pasar el cursor, la quita después de preguntarte, porque el diario no guarda una copia.
 - **El lápiz** abre el mes como documento para lo que la línea de días no cambia: la introducción del mes, las palabras de una nota o pasar una nota a otro día. Al ir a otro lado, o al tocar **Diario** otra vez, vuelves a la línea de días.
-- **Desde cualquier parte**: en la captura rápida, `Tab` pasa de **Tarea** a **Idea** y después a **Diario**, que escribe en hoy sin abrir la ventana. En una nota de la Lluvia de ideas, **Anexar a un documento** ofrece primero **Diario de hoy**.
+- **Desde cualquier parte**: en la captura rápida, `Tab` pasa de **Tarea** a **Idea** y después a **Diario**, que escribe en hoy sin abrir la ventana. En una nota de Ideas, **Anexar a un documento** ofrece primero **Diario de hoy**.
 - **Las tareas que terminaste ese día** se pliegan bajo lo que escribiste, como «3 tareas cerradas»; cada una se abre con un clic. Una que descartaste no sale, y un día en el que no escribiste no muestra ninguna. Solo se ven, nunca se escriben en el texto.
 - **Solo tú.** Ningún agente ve tu diario hasta que pulsas **Solo tú** arriba y dice **Abierto a los agentes**. Abierto, un agente lo lee y, solo cuando se lo pides, añade al final de hoy bajo una línea con el minuto y su nombre. Nunca cambia lo que escribiste. Púlsalo otra vez para guardarlo solo para ti. La puerta es una sola para todos los años y para todos tus equipos, y solo la conoce Tisty 1.48 o más nuevo. Por eso **Diario** no empieza tu diario mientras alguno de tus equipos use una versión anterior, y te dice cuál: actualízalo o quítalo de tus equipos. Desde que existe un diario, un equipo con una versión anterior deja de sincronizar antes de recibir nada de él y te pide actualizarlo.
 - **Nunca se comparte por link**: el diario no tiene panel lateral ni **Compartir**, y Folio lo rechaza. Sí viaja con tu sincronización y con tus respaldos, como cualquier documento.
@@ -87,7 +87,7 @@ Lo que guardaste y no volviste a abrir vuelve solo a la vista. Al pulsar **Bibli
 - **Hace tiempo que no abres** lista los documentos que no abriste en este equipo ni nadie escribió en 60 días, el más olvidado primero, con su carpeta y hace cuánto. Muestra cinco, y **Ver los N** despliega el resto. Al pasar el puntero dice si cuenta desde la última vez que lo abriste aquí o desde la última vez que se escribió.
 - **Un documento al azar** abre uno que no hayas abierto esta semana.
 - **Cuenta lo que abres aquí**: el día en que abres un documento se anota solo en este equipo y no viaja con tu sincronización. Abrir una página cuenta para su documento, y abrir uno de sus idiomas, para todos. Antes de esta función no había registro, así que al principio cuenta el día en que se escribió.
-- **No salen** los archivados, los que un agente marcó como pasados, que ya esperan tu decisión, el Diario, la Lluvia de ideas ni la guía de Tisty.
+- **No salen** los archivados, los que un agente marcó como pasados, que ya esperan tu decisión, el Diario, Ideas ni la guía de Tisty.
 - **Con el botón derecho** cada uno tiene su menú de siempre: archívalo si ya cumplió.
 
 ## Carpetas

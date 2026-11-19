@@ -15,7 +15,7 @@ Lo que un asistente puede hacer es pequeño a propósito. Terminar, descartar y 
 - **Ordenar documentos en carpetas**, hacer de un documento una página de otro y fijar el orden en que se leen sus páginas.
 - **Marcar un documento que ya cumplió su vida**: una propuesta, no un borrado (más abajo).
 - **Archivar un documento, o desarchivarlo**, cuando se lo pides.
-- **Anotar ideas en la Lluvia de ideas** cuando se lo pides, y ordenarlas contigo: una idea que anexa a un documento o convierte en tarea sale de la hoja, como cuando lo haces tú.
+- **Anotar ideas en Ideas** cuando se lo pides, y ordenarlas contigo: una idea que anexa a un documento o convierte en tarea sale de la hoja, como cuando lo haces tú.
 - **Guardar una copia de un archivo** que le indiques, en una tarea o dentro de un documento.
 - **Crear una carpeta** para documentos, con su icono y su color.
 - **Traer un archivo Markdown** como documento, o **sacar un documento** como archivos a una carpeta de este equipo.
@@ -37,7 +37,7 @@ Lo que un asistente puede hacer es pequeño a propósito. Terminar, descartar y 
 - Borrar un documento, ni renombrar o borrar una carpeta.
 - Escribir en [AGENTS](Carpeta-AGENTS#una-propuesta-de-tu-agente): un cambio a una regla o una skill queda como propuesta, aparte, hasta que lo apruebas en la ficha. Tampoco mueve, archiva ni marca esos documentos, cambia su línea `agent:`, propone sobre una memoria, mete un documento o crea una carpeta ahí, ni escribe en cualquier carpeta un documento con una línea `agent:`.
 - Vaciar el historial de un documento, ni leer o recuperar una versión que guarda otro de tus equipos.
-- Sacar una idea de la Lluvia de ideas de otra forma, marcar la hoja entera, archivarla ni moverla a una carpeta.
+- Sacar una idea de Ideas de otra forma, marcar la hoja entera, archivarla ni moverla a una carpeta.
 - Alcanzar una tarea que plegaste.
 - Tomar archivos de cualquier lugar que no sea Descargas, Documentos, Imágenes, el escritorio o la carpeta temporal.
 - Anotar lo mismo dos veces: una tarea anotada desde el mismo origen se rechaza y se le devuelve la que ya existe.
@@ -84,7 +84,7 @@ El [Diario](Documentos#diario) queda fuera de la vista de todo asistente hasta q
 
 Un asistente puede **marcar** un documento o una página que ya cumplió su vida: ves un rombo junto a su nombre y, al abrirlo, lo que dijo el asistente. Borrarlo, archivarlo o quitarle el rombo sigue siendo tuyo: un clic cada cosa, y borrar o desmarcar todo un grupo de copias que marcó juntas también toma un clic.
 
-Una idea de la Lluvia de ideas que ya cumplió su vida se marca igual, una por una: la nota lleva un rombo con el motivo, **Borrarla** la quita y **Quitar la marca** la conserva.
+Una idea de Ideas que ya cumplió su vida se marca igual, una por una: la nota lleva un rombo con el motivo, **Borrarla** la quita y **Quitar la marca** la conserva.
 
 ## Lo que lee es lo que escribiste, no órdenes
 

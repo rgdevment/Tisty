@@ -21,7 +21,7 @@ flowchart TD
   A[Something comes up] --> B{Will you do it,<br/>or come back to read it?}
   B -->|Do it| T[A task]
   B -->|Read it again| D[A document]
-  B -->|Not sure yet| I[An idea in<br/>Brainstorm]
+  B -->|Not sure yet| I[An idea in<br/>Ideas]
   I -->|Turn into a task| T
   I -->|File in a document| D
   T --> P[Its page: notes, steps,<br/>files, recordings]
@@ -36,7 +36,7 @@ flowchart TD
 
 Something you will do is a task. Something you will come back to is a document — a recipe is not a task with steps, and a to-do is not a document. When doing a task teaches you something you will need again beyond it — the fix for a fault that returns, how a supplier wants an order — put it in a document as well.
 
-**Before either, there is often an idea.** An idea is a thought caught on the fly, before you know whether it is something to do or something to keep: a few words, 140 at most, dated, on the Brainstorm sheet. It waits for you to sort it out: it becomes a task, goes into the document on its subject, or is set aside. A note is something else: the dated line in a task's journal.
+**Before either, there is often an idea.** An idea is a thought caught on the fly, before you know whether it is something to do or something to keep: a few words, 140 at most, dated, on the Ideas sheet. It waits for you to sort it out: it becomes a task, goes into the document on its subject, or is set aside. A note is something else: the dated line in a task's journal.
 
 What a closed task keeps, and how search finds it, is in [[The archive|Archive]].
 
@@ -65,7 +65,7 @@ Try:
 
 ## Quick capture from anywhere
 
-Press `Ctrl` + `Shift` + `Space` wherever you are, and a small window opens for one task. `Enter` files it, `Esc` closes it, and you carry on with what you were doing. `Tab` turns it to an **Idea** for [Brainstorm](Documents#brainstorm) or to **Diary**, which writes in today's [Diary](Documents#diary). If another program already holds that shortcut, Tisty takes another one and tells you which in Settings.
+Press `Ctrl` + `Shift` + `Space` wherever you are, and a small window opens for one task. `Enter` files it, `Esc` closes it, and you carry on with what you were doing. `Tab` turns it to an **Idea** for [Ideas](Documents#ideas) or to **Diary**, which writes in today's [Diary](Documents#diary). If another program already holds that shortcut, Tisty takes another one and tells you which in Settings.
 
 ## The views
 
@@ -128,7 +128,7 @@ When a step needs more, hover over its open box and press **↗**: it becomes a 
 - The trail of both tells when a part joined and when it was let go.
 - Closing a task with parts still open asks you to let them go in the same breath, and undo brings them back.
 - Beside the page, **Linked from** tells which documents and which other tasks cite or mention this one. See [[Tasks in documents|Tasks-in-Documents]].
-- A task made from a document, or from an idea on the Brainstorm, shows **Born in** beside its page: a click opens that document.
+- A task made from a document, or from an idea in Ideas, shows **Born in** beside its page: a click opens that document.
 
 ## From a calendar
 
@@ -149,7 +149,7 @@ What you write under **This time** belongs to the round under way. Completing it
 
 Without a look back now and then, what you capture piles up undecided. **Weekly review**, in the sidebar's row of views, gathers on one page what is worth a look once a week, in three stops. Each stop shows ✓ once nothing waits in it:
 
-1. **To decide**: tasks with no list, with **Open** to give them a list or a day, **Complete** and **Not doing it**. And if ideas are left, **Open Brainstorm**, where they are sorted.
+1. **To decide**: tasks with no list, with **Open** to give them a list or a day, **Complete** and **Not doing it**. And if ideas are left, **Open Ideas**, where they are sorted.
 2. **Marked as past**: documents an agent marked, with its reason. **Archive**, **Delete it** or **Remove the mark**.
 3. **Not opened in a while**: the same as in the Library, not opened on this computer nor written in 60 days, to **Open** or **Archive**.
 

@@ -307,7 +307,7 @@ Dentro de un aviso cabe casi todo, siempre que cada línea lleve su `>`:
 
 ## Notas adhesivas
 
-Un sexto tipo, **Idea** en el menú `/`, es una nota pegada en la hoja, con letra de mano, un poco torcida y sujeta con cinta o chinche. Su primera línea dice cuándo se escribió, su color y su lado, en cualquier orden y separados por un punto medio; ninguno es obligatorio. Así escribe la **Lluvia de ideas** cada idea.
+Un sexto tipo, **Idea** en el menú `/`, es una nota pegada en la hoja, con letra de mano, un poco torcida y sujeta con cinta o chinche. Su primera línea dice cuándo se escribió, su color y su lado, en cualquier orden y separados por un punto medio; ninguno es obligatorio. Así escribe **Ideas** cada idea.
 
 > [!IDEA] 2026-11-12 09:12 · yellow
 > Probar el parque nuevo, el de la laguna.
@@ -317,7 +317,7 @@ Con `right` o `left` se va al costado, y los párrafos que siguen la rodean:
 > [!IDEA] 2026-11-12 · blue · right
 > ¿Roger puede comer zanahoria?
 
-Este párrafo corre al lado de la nota azul, que está a la derecha. Así queda una idea que anexaste a un documento desde la Lluvia de ideas: junto a lo que ya estaba escrito, sin cortarlo. Cuando el texto es más largo que la nota, sigue por debajo de ella, a todo el ancho de la hoja.
+Este párrafo corre al lado de la nota azul, que está a la derecha. Así queda una idea que anexaste a un documento desde Ideas: junto a lo que ya estaba escrito, sin cortarlo. Cuando el texto es más largo que la nota, sigue por debajo de ella, a todo el ancho de la hoja.
 
 > [!IDEA] pink · left
 > Sin fecha, y a la izquierda.
