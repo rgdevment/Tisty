@@ -111,7 +111,7 @@ fn a_shut_diary_answers_every_tool_as_a_document_that_is_not_there() {
     std::fs::write(&picture, "una foto").unwrap();
 
     for file in [&book, &page] {
-        answered_as_missing(&served, "read_doc", |doc| json!({ "doc": doc }), file);
+        answered_as_missing(&served, "read", |doc| json!({ "doc": doc }), file);
         answered_as_missing(&served, "brain", |doc| json!({ "doc": doc }), file);
         answered_as_missing(
             &served,
@@ -302,7 +302,7 @@ fn an_opened_diary_is_seen_but_its_words_are_never_rewritten() {
 
     let listed = served.call("brain", json!({ "scope": "either" }));
     assert!(listed.to_string().contains(&book), "{listed}");
-    let read = served.call("read_doc", json!({ "doc": page }));
+    let read = served.call("read", json!({ "doc": page }));
     assert!(read.to_string().contains("Paseo con Rina"), "{read}");
 
     let edited = served.call(

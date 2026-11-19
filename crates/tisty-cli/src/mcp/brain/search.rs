@@ -234,6 +234,7 @@ pub(in crate::mcp) fn found(paths: &Paths, args: &Value) -> Result<Value, Refuse
     if hid {
         whole["unpathed"] = json!(UNPATHED);
     }
+    super::super::each::said_once(&mut whole, &["matches", "docs"]);
     Ok(mirrored(
         format!(
             "{all} task(s) and {papers_all} document(s) match {asked:?}; showing {} and {}.
@@ -378,20 +379,19 @@ pub(super) fn inside_a_doc(
                 .collect::<Vec<_>>()
                 .join("\n"),
             match all > found.len() {
-                true => "\nThe rest: narrow the words, or read on with `read_doc` `from` a line.",
+                true => "\nThe rest: narrow the words, or read on with `read` `from` a line.",
                 false => "",
             }
         ),
     };
-    Ok(mirrored(
-        said,
-        json!({
-            "doc": which,
-            "lines": found,
-            "total": all,
-            "print": tisty_core::attach::printed(body.as_bytes()),
-        }),
-    ))
+    let mut kept = json!({
+        "doc": which,
+        "lines": found,
+        "total": all,
+        "print": tisty_core::attach::printed(body.as_bytes()),
+    });
+    super::super::each::said_once(&mut kept, &["lines"]);
+    Ok(mirrored(said, kept))
 }
 const AROUND_A_HIT: usize = 1;
 const AROUND_AT_MOST: usize = 10;

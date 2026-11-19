@@ -35,11 +35,3 @@ fn a_frame_too_long_by_itself_is_cut_at_the_cap() {
     assert_eq!(said.chars().count(), SAID_AT_MOST);
     assert!(said.ends_with('…'));
 }
-
-#[test]
-fn a_long_step_is_cut_on_a_character() {
-    let step = "ñ".repeat(STEP_SHOWN + 5);
-    let said = cut(&step);
-    assert_eq!(said.chars().count(), STEP_SHOWN + 1);
-    assert!(said.ends_with('…'));
-}

@@ -153,12 +153,12 @@ fn edited(paths: &Paths, args: &Value, as_sent: bool) -> Result<Value, Refused> 
                 Some((line, near)) => format!(
                     "nothing in {named} reads exactly like that `old`, so nothing was changed. \
                      The nearest it has is line {line}:\n\n{near}\n\nCopy it character for \
-                     character as `read_doc` hands it back, or name the place with `section` \
+                     character as `read` hands it back, or name the place with `section` \
                      or `from` and `to`."
                 ),
                 None => format!(
                     "nothing in {named} reads like that `old`, so nothing was changed. Ask \
-                     `brain` with this `doc` and a `query` where the words are, or `read_doc` for the part you \
+                     `brain` with this `doc` and a `query` where the words are, or `read` for the part you \
                      mean."
                 ),
             }
@@ -167,7 +167,7 @@ fn edited(paths: &Paths, args: &Value, as_sent: bool) -> Result<Value, Refused> 
             "that `old` is the whole of {named}, which `edit_doc` will not take: a passage it \
              cannot tell from the document is a rewrite wearing an edit's clothes. Nothing was \
              changed. Edit the passage that differs, or replace the body with `write_doc`, naming \
-             {named} and the `print` `read_doc` gave you."
+             {named} and the `print` `read` gave you."
         ))),
         tisty_core::docs::Change::Twice(many) => Err(Refused::Tool({
             let body = tisty_core::docs::read(&paths.docs(), &which).unwrap_or_default();

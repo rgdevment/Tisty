@@ -5,7 +5,7 @@ use super::super::jsonrpc::told;
 
 // A document carried whole still has to fit a conversation; past this it leaves as files.
 const AT_MOST: usize = 40_000;
-const PARTS: [&str; 4] = ["section", "from", "to", "chars"];
+const PARTS: [&str; 5] = ["section", "from", "to", "chars", "marks"];
 // What `to_standard` writes as HTML because Markdown has no word for it.
 const TAGGED: [&str; 4] = ["<mark", "<ins>", "<span data-ico", "<details>"];
 

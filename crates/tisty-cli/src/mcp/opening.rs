@@ -1,6 +1,6 @@
-use tisty_core::model::Task;
 use tisty_core::{DeviceId, Paths, State};
 
+use super::brain::project::progress;
 use super::jsonrpc::speaking_as;
 use super::looking::named_task;
 use super::pressing::{pressed, pressing, tallied};
@@ -12,7 +12,6 @@ use super::{seen_by, when};
 pub(crate) const SAID_AT_MOST: usize = 2_000;
 const OPEN_TASKS_SHOWN: usize = 3;
 const MOVED_NAMED: usize = 5;
-const STEP_SHOWN: usize = 80;
 
 // A door the person has not opened says nothing, as the MCP lets nothing through it.
 pub(crate) fn opening(paths: &Paths, client: &str) -> Option<String> {
@@ -35,10 +34,10 @@ pub(crate) fn opening(paths: &Paths, client: &str) -> Option<String> {
         for (id, at) in &left {
             if let Some(task) = state.tasks.get(id) {
                 lines.push(format!(
-                    "- {}, last written {}{}",
+                    "- {}, last written {}: {}",
                     named_task(&state, task),
                     when(*at),
-                    steps_left(task)
+                    progress(paths, &state, task).told()
                 ));
             }
         }
@@ -65,25 +64,6 @@ fn registered(paths: &Paths) -> Option<DeviceId> {
     let table = toml::from_str::<toml::Table>(&text).ok()?;
     let agent = table.get("agent_id")?.as_str()?.trim();
     (!agent.is_empty()).then(|| DeviceId(agent.to_string()))
-}
-
-fn steps_left(task: &Task) -> String {
-    let all = task.steps.len();
-    let left: Vec<&str> = task
-        .steps
-        .iter()
-        .filter(|step| !step.done && !step.said)
-        .map(|step| step.text.trim())
-        .collect();
-    match (all, left.first()) {
-        (0, _) => String::new(),
-        (_, None) => format!("; all {all} steps ticked, not said done"),
-        (_, Some(next)) => format!(
-            "; {} of {all} steps ticked, next {:?}",
-            all - left.len(),
-            cut(next)
-        ),
-    }
 }
 
 fn moved(paths: &Paths, state: &State, agent: &DeviceId, today: jiff::civil::Date) -> Vec<String> {
@@ -161,13 +141,6 @@ fn capped(mut lines: Vec<String>) -> String {
         said = said.chars().take(SAID_AT_MOST - 1).collect::<String>() + "…";
     }
     said
-}
-
-fn cut(step: &str) -> String {
-    match step.char_indices().nth(STEP_SHOWN) {
-        Some((at, _)) => format!("{}…", &step[..at]),
-        None => step.to_string(),
-    }
 }
 
 #[cfg(test)]

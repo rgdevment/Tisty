@@ -4,6 +4,7 @@ mod brain;
 mod catalogue;
 mod chores;
 mod diary;
+mod each;
 mod guide;
 mod handing;
 mod helping;
@@ -321,7 +322,6 @@ fn answered(
         "say_not_doing" => spoken(paths, name, &args, "body", |args| {
             say_not_doing(paths, args)
         }),
-        "read_doc" => read_doc(paths, &args),
         "archive_doc" => archive_doc(paths, &args),
         "flag_doc" => flag_doc(paths, &args),
         "export_doc" => export_doc(paths, &args),
@@ -714,7 +714,7 @@ fn first_apart(was: &str, whole: &str) -> usize {
 
 const ECHO_LINE_AT_MOST: usize = 1_000;
 
-/// What the document reads like around a change, so seeing it does not cost a whole `read_doc`.
+/// What the document reads like around a change, so seeing it does not cost a whole `read`.
 fn echoed(args: &Value, was: &str, whole: &str) -> Option<Value> {
     if !args.get("echo").and_then(Value::as_bool).unwrap_or(false) {
         return None;

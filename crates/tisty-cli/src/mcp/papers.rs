@@ -3,6 +3,7 @@ pub(super) mod compacting;
 pub(super) mod editing;
 pub(super) mod filing;
 pub(super) mod flagging;
+pub(super) mod highlights;
 pub(super) mod importing;
 pub(super) mod listing;
 pub(super) mod outward;
