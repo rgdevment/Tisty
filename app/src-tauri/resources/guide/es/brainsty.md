@@ -89,7 +89,7 @@ Debajo vienen sus **Etiquetas**; sus **Conexiones** por tipo, como «2 citas 3 m
 tisty://doc/mascotas/rina?id=…
 ```
 
-**Pruébalo:** abre **Brainsty** ahora. La red arranca en esta hoja, con sus vecinos alrededor: la portada de la guía, de la que es página, y lo que la nombra o ella nombra. Haz un clic en esta hoja y mira su ficha: **Página de** nombra la portada, y en **Apuntan aquí** está la portada, que la cita. Después busca `uno de cada`, `Enter`, y **Abrir**: **Uno de cada cosa** se abre en el lugar de la red. Vuelve con otro clic en **Brainsty** y, esta vez, sal con `Esc`: el último te devuelve a **Uno de cada cosa**, donde estabas.
+**Pruébalo:** abre **Brainsty** ahora. La red arranca en esta hoja, con sus vecinos alrededor: la portada de la guía, de la que es página, y lo que la nombra o ella nombra. Haz un clic en esta hoja y mira su ficha: en **Apuntan aquí** está la portada de la guía, que la cita con su tarjeta. Después busca `uno de cada`, `Enter`, y **Abrir**: **Uno de cada cosa** se abre en el lugar de la red. Vuelve con otro clic en **Brainsty** y, esta vez, sal con `Esc`: el último te devuelve a **Uno de cada cosa**, donde estabas.
 
 ## Lo que lee tu agente
 

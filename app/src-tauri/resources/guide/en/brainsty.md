@@ -89,7 +89,7 @@ Below come its **Tags**; its **Connections** by kind, like «2 cites 3 mentions�
 tisty://doc/pets/rina?id=…
 ```
 
-**Try it:** open **Brainsty** now. The network starts on this sheet, with its neighbours around it: the guide's cover, which it is a page of, and what names it or what it names. Click this sheet and look at its card: **Page of** names the cover, and under **Pointing here** is the cover, which cites it. Then search `one of`, `Enter`, and **Open**: **One of each** opens in the network's place. Come back with another click on **Brainsty** and, this time, leave with `Esc`: the last one takes you back to **One of each**, where you were.
+**Try it:** open **Brainsty** now. The network starts on this sheet, with its neighbours around it: the guide's cover, which it is a page of, and what names it or what it names. Click this sheet and look at its card: under **Pointing here** is the guide's cover, which cites it with its card. Then search `one of`, `Enter`, and **Open**: **One of each** opens in the network's place. Come back with another click on **Brainsty** and, this time, leave with `Esc`: the last one takes you back to **One of each**, where you were.
 
 ## What your agent reads
 

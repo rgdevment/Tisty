@@ -169,7 +169,7 @@ Sirve también entre idiomas cuando lo que comparten son nombres: una tarea en i
 
 ### Un error de tipeo
 
-Escribes rápido y anotas «La imrpesora nueva no imprime en color». Una semana después, Jaime te pide «Instalar la impresora nueva». Solo comparten *nueva*, pero *imrpesora* está a un cambio de *impresora*, y Tisty las une: «Tisty lo adivina: comparten *impresora ≈ imrpesora* y *nueva*».
+Escribes rápido y anotas «La imrpesora nueva no imprime en color». Una semana después, Jaime te pide «Instalar la impresora nueva». Solo comparten *nueva*, pero *imrpesora* está a un cambio de *impresora*, y Tisty las une: «Tisty lo adivina: comparten *impresora ≈ imrpesora* y *nueva*». En inglés funciona igual, con palabras de seis letras o más.
 
 - **Un cambio** es una letra de más, una de menos, una distinta o dos letras vecinas que cambiaron de lugar, como *rp* por *pr*.
 - **Solo palabras de seis letras o más.** *Casa* y *cosa* son dos palabras, no un error.
@@ -188,7 +188,9 @@ Anotas «Pagar la cuenta del agua» y, otro día, tu agente anota en inglés «P
 - **Si no sabe adivinarlo, no la une por diccionario.** Una tarea que solo dice «Router», o «Rina's yearly vaccine», no trae ninguna de esas palabras. Las palabras en común y el tipeo sí la siguen uniendo.
 - **Solo la app lee el diccionario**, en su pasada de baja prioridad. La puerta de tu agente no lo carga: tu agente ve en la ficha los parecidos que la app ya guardó.
 
-Las reglas:
+### Lo que vale para las tres
+
+Un tipeo o una traducción cuenta como una palabra en común: dos cosas se parecen solo si comparten al menos dos palabras de peso, y al menos una escrita distinta en cada lado.
 
 - **Como mucho tres parecidos por cosa**, y cada punta tiene que estar entre las tres más cercanas de la otra.
 - **El umbral sale de lo que guardas**, no de una cifra fija: el parecido tiene que superar lo que alcanza un par de cada mil en tu base.

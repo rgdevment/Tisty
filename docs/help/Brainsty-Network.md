@@ -169,9 +169,9 @@ It works across languages too when what they share are names: a task in English 
 
 ### A typo
 
-You type fast and jot «The new pritner prints no colour». A week later, Jaime asks you to «Set up the new printer». They share only *new*, but *pritner* is one change away from *printer*, and Tisty ties them: «Tisty guesses: they share *printer ≈ pritner* and *new*».
+You type fast and jot «La imrpesora nueva no imprime en color» (the new printer prints no colour). A week later, Jaime asks you to «Instalar la impresora nueva». They share only *nueva*, but *imrpesora* is one change away from *impresora*, and Tisty ties them: «Tisty guesses: they share *impresora ≈ imrpesora* and *nueva*». It works the same in English, for a word of six letters or more.
 
-- **One change** is a letter too many, one too few, a different one or two neighbouring letters that swapped places, like *tn* for *nt*.
+- **One change** is a letter too many, one too few, a different one or two neighbouring letters that swapped places, like *rp* for *pr*.
 - **Only words of six letters or more.** *Cast* and *cost* are two words, not a mistake.
 - **Never words with digits.** *chapter1* and *chapter2* were written apart on purpose.
 - Of the two spellings, the one you use more in what you keep is the one that counts as right.
@@ -188,7 +188,9 @@ You jot «Pagar la cuenta del agua» and, another day, your agent jots in Englis
 - **When it cannot guess, it does not tie it by dictionary.** A task that only says «Router», or «Rina's yearly vaccine», carries none of those words. Shared words and typos still tie it.
 - **Only the app reads the dictionary**, in its low-priority pass. Your agent's gate does not load it: your agent sees on the card the guesses the app already kept.
 
-The rules:
+### What holds for all three
+
+A typo or a translation counts like a shared word: two things are alike only when they share at least two weighty words, and at least one of them written differently on each side.
 
 - **Three alike at most for each thing**, and each end must be among the other's three closest.
 - **The bar comes from what you keep**, not from a fixed figure: a guess must beat what one pair in a thousand reaches in your base.
@@ -203,7 +205,7 @@ The rules:
 **Where they show:**
 
 - **In the network**, as an amber curve: up close between two nodes in view, and around the node you pick from any distance. How opaque it is is measured among the guesses in your base: the most opaque is the most alike.
-- **On the card**, in its **Alike** section, apart from the connections. They show as the base keeps them, with no accents and in lowercase. A shared word goes alone, *quote*; a typo or a translation, with what each side wrote, *printer ≈ pritner* or *pagar ≈ pay*.
+- **On the card**, in its **Alike** section, apart from the connections. They show as the base keeps them, with no accents and in lowercase. A shared word goes alone, *quote*; a typo or a translation, with what each side wrote, *impresora ≈ imrpesora* or *pagar ≈ pay*.
 - **On the card your agent reads**, under `guessed`, apart from everything someone wrote. Each guess brings its title, its score and what they share, and the rules ask it to read both before joining anything. A pair comes as `a≈b`, with no spaces: it is a translation or a typo, never a word both of them wrote:
 
 ```json
