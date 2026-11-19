@@ -212,6 +212,39 @@ describe("the drawing of the network", () => {
     expect((drawn.shared[1] as { zoom: number }).zoom).toBeCloseTo(0.5);
   });
 
+  it("keeps node sizes up to a few thousand nodes and shrinks them in a crowded network, also on a new theme", () => {
+    const crowd = (count: number): Network => ({
+      nodes: Array.from({ length: count }, (_, n) => ({
+        id: `t${n}`,
+        kind: "task",
+        title: `t${n}`,
+      })),
+      edges: [],
+    });
+    const sizeIn = (count: number) => {
+      const zeros = new Float32Array(count);
+      const drawing = drawNetwork(
+        document.body,
+        crowd(count),
+        { x: zeros, y: zeros },
+        () => undefined,
+        light,
+        "Inter",
+      );
+      return {
+        drawing,
+        size: () => (drawn.graph as Graph).getNodeAttribute("0", "size") as number,
+      };
+    };
+
+    const few = sizeIn(3).size();
+    expect(sizeIn(5600).size()).toBe(few);
+    const cap = sizeIn(12000);
+    expect(cap.size()).toBeCloseTo(few * Math.sqrt(6000 / 12000));
+    cap.drawing.retheme(dark);
+    expect(cap.size()).toBeCloseTo(few * Math.sqrt(6000 / 12000));
+  });
+
   it("moves the nodes, follows the theme, maps places to the screen and lets go when killed", () => {
     const drawing = drawNetwork(document.body, network, spots, () => undefined, light, "Inter");
     const graph = drawn.graph as Graph;

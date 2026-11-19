@@ -22,6 +22,8 @@ const BATCH = 10;
 const MOST = 300;
 const BUDGET_MS = 4000;
 const CALM = 0.002;
+// Each step costs the page time in proportion to its nodes, so a big network shows fewer of them.
+const STEP_MS_PER_NODE = 1 / 30;
 
 const hashed = (text: string): number => {
   let h = 2166136261;
@@ -102,6 +104,13 @@ export function movedBy(before: Spots, after: Spots): number {
   return sum / after.x.length / widthOf(after);
 }
 
+// Gephi's coarser Barnes–Hut makes a big network's iterations about three times cheaper, and a lighter brake lets each one go further.
+export function forcesFor(order: number) {
+  const inferred = forceAtlas2.inferSettings(order);
+  const big = inferred.barnesHutOptimize ? { barnesHutTheta: 1.2, slowDown: 3 } : {};
+  return { ...inferred, gravity: 1, scalingRatio: 10, ...big };
+}
+
 export function settle(
   asked: Asked,
   tell: (step: Step) => void,
@@ -109,9 +118,10 @@ export function settle(
 ) {
   const started = now();
   const graph = graphOf(asked);
-  const settings = { ...forceAtlas2.inferSettings(graph), gravity: 1, scalingRatio: 10 };
+  const settings = forcesFor(graph.order);
   let spots = spotsOf(graph);
   let iterations = 0;
+  let told = started;
   while (iterations < MOST && graph.size > 0 && now() - started < BUDGET_MS) {
     forceAtlas2.assign(graph, { iterations: BATCH, settings });
     iterations += BATCH;
@@ -119,7 +129,10 @@ export function settle(
     const moved = movedBy(spots, next);
     spots = next;
     if (moved < CALM) break;
-    tell({ x: next.x.slice(), y: next.y.slice(), done: false, iterations, ms: now() - started });
+    const at = now();
+    if (at - told < graph.order * STEP_MS_PER_NODE) continue;
+    told = at;
+    tell({ x: next.x.slice(), y: next.y.slice(), done: false, iterations, ms: at - started });
   }
   tell({ ...spots, done: true, iterations, ms: now() - started });
 }

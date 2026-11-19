@@ -3,6 +3,7 @@ import type { Neuron } from "../brainsty";
 import { layOut } from "../ui/brainsty/layingOut";
 import {
   edgesOf,
+  forcesFor,
   graphOf,
   movedBy,
   type Step,
@@ -26,6 +27,21 @@ describe("where the network starts and how it settles", () => {
     const apart = Math.hypot(first.x[0] - first.x[2], first.y[0] - first.y[2]);
     expect(home).toBeLessThan(apart);
     expect(Math.hypot(first.x[3], first.y[3])).toBeLessThan(apart);
+  });
+
+  it("keeps the library's forces for a small network and trades Barnes–Hut detail for iterations in a big one", () => {
+    expect(forcesFor(1500)).toMatchObject({
+      barnesHutOptimize: false,
+      slowDown: 1 + Math.log(1500),
+    });
+    expect(forcesFor(1500)).not.toHaveProperty("barnesHutTheta");
+    expect(forcesFor(12000)).toMatchObject({
+      barnesHutOptimize: true,
+      barnesHutTheta: 1.2,
+      slowDown: 3,
+      gravity: 1,
+      scalingRatio: 10,
+    });
   });
 
   it("flattens the lines into pairs and builds a graph that skips loops and repeats", () => {
@@ -70,6 +86,27 @@ describe("where the network starts and how it settles", () => {
     expect(last.iterations).toBeGreaterThan(0);
     expect(last.ms).toBeGreaterThan(0);
     expect(last.x).toHaveLength(30);
+  });
+
+  it("spaces the steps it tells by the size of the network, and still ends with the last", () => {
+    const nodes = Array.from({ length: 60 }, (_, n) => neuron(`n${n}`, `g${n % 3}`));
+    const lines = nodes.slice(1).map((_, n): [number, number, number] => [n, n + 1, 0]);
+    const steps: Step[] = [];
+    let clock = 0;
+
+    settle(
+      { ...seeded(nodes), edges: edgesOf(lines) },
+      (step) => steps.push(step),
+      () => {
+        clock += 0.5;
+        return clock;
+      },
+    );
+
+    const told = steps.filter((one) => !one.done).map((one) => one.iterations);
+    expect(told.length).toBeGreaterThan(1);
+    expect(told.every((one) => one % 20 === 0)).toBe(true);
+    expect(steps[steps.length - 1].done).toBe(true);
   });
 
   it("stops once its time is spent", () => {

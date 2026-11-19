@@ -61,7 +61,7 @@ export default function Brainsty({ network, onOpen, escaping }: Props) {
   // The keys walk the network from the network itself, so the search hands the focus back once it is done.
   const backToNetwork = () => host.current?.focus();
   escaping.current = () => {
-    if (query) {
+    if (query || (finder.current !== null && document.activeElement === finder.current)) {
       setQuery("");
       backToNetwork();
     } else if (picked !== null) setPicked(null);
