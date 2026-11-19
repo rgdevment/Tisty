@@ -1,4 +1,4 @@
-use super::by_their_ids;
+use super::as_the_tools_read;
 use serde_json::json;
 
 const ADDRESS: &str = "tisty://doc/personal/proyectos/validacion-de-datos?id=4nnctnme-0039";
@@ -16,7 +16,7 @@ fn an_address_stands_for_its_id_wherever_a_tool_names_a_document() {
     });
 
     assert_eq!(
-        by_their_ids(asked),
+        as_the_tools_read(asked),
         json!({
             "doc": "4nnctnme-0039",
             "page_of": "4nnctnme-0001",
@@ -34,7 +34,7 @@ fn each_address_in_a_list_of_documents_stands_for_its_own_id() {
     let asked = json!({ "doc": [ADDRESS, "4nnctnme-0040", "Actas de marzo"], "folder": "Trabajo" });
 
     assert_eq!(
-        by_their_ids(asked),
+        as_the_tools_read(asked),
         json!({ "doc": ["4nnctnme-0039", "4nnctnme-0040", "Actas de marzo"], "folder": "Trabajo" })
     );
 }
@@ -47,7 +47,7 @@ fn the_pages_put_in_order_may_each_be_named_by_its_address() {
     });
 
     assert_eq!(
-        by_their_ids(asked),
+        as_the_tools_read(asked),
         json!({ "page_of": "4nnctnme-0001", "order": ["4nnctnme-0005", "4nnctnme-0004"] })
     );
 }
@@ -65,7 +65,7 @@ fn an_address_written_anywhere_else_stays_as_the_words_it_is() {
         "folder": ADDRESS,
     });
 
-    assert_eq!(by_their_ids(asked.clone()), asked);
+    assert_eq!(as_the_tools_read(asked.clone()), asked);
 }
 
 #[test]
@@ -76,6 +76,32 @@ fn what_is_no_address_of_a_document_is_left_for_the_tool_to_refuse() {
         "of": "tisty://doc?id=4nnctnme-0039&folder=x",
     });
 
-    assert_eq!(by_their_ids(asked.clone()), asked);
-    assert_eq!(by_their_ids(json!("doc")), json!("doc"));
+    assert_eq!(as_the_tools_read(asked.clone()), asked);
+    assert_eq!(as_the_tools_read(json!("doc")), json!("doc"));
+}
+
+#[test]
+fn a_name_reaches_the_door_and_the_tool_without_the_blanks_around_it() {
+    let asked = json!({
+        "doc": " 4nnctnme-0040\n",
+        "page_of": "\t4nnctnme-0001",
+        "order": [" 4nnctnme-0005 ", 7],
+        "folder": " AGENTS / Claude\n",
+        "inside": "\tTrabajo ",
+        "after": 20,
+        "of": "\u{2066}4nnctnme-0003",
+    });
+
+    assert_eq!(
+        as_the_tools_read(asked),
+        json!({
+            "doc": "4nnctnme-0040",
+            "page_of": "4nnctnme-0001",
+            "order": ["4nnctnme-0005", 7],
+            "folder": "AGENTS / Claude",
+            "inside": "Trabajo",
+            "after": 20,
+            "of": "\u{2066}4nnctnme-0003",
+        })
+    );
 }
