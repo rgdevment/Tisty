@@ -324,29 +324,47 @@ impl Store {
         ops: Vec<Op>,
         settled: impl FnOnce(&[Event]) -> bool,
     ) -> Result<Option<Vec<Event>>> {
-        let batch = (ops.len() > 1).then(ulid::Ulid::generate);
         let root = self.root.clone();
-
         self.locked(|s| {
             let held = read_all(&root)?;
             if settled(&held) {
                 return Ok(None);
             }
-            // Judged against the whole log, written after the whole log: a clock behind another
-            // machine's would otherwise stamp this before the event that let it through, and
-            // the replay — sorted by stamp — would let it go everywhere.
-            if let Some(newest) = held.iter().map(|one| one.timestamp).max() {
-                s.after(newest);
-            }
-            let mut written = Vec::with_capacity(ops.len());
-            for op in ops {
-                let mut event = s.minted(op);
-                event.batch = batch;
-                written.push(event);
-            }
-            s.write_all(&written)?;
-            Ok(Some(written))
+            s.written_after(&held, ops).map(Some)
         })
+    }
+
+    // Several processes carrying the same thing at once write it once: each op is judged under the lock.
+    pub fn append_batch_missing(
+        &mut self,
+        ops: Vec<Op>,
+        already: impl Fn(&[Event], &Op) -> bool,
+    ) -> Result<Vec<Event>> {
+        let root = self.root.clone();
+        self.locked(|s| {
+            let held = read_all(&root)?;
+            let missing: Vec<Op> = ops.into_iter().filter(|op| !already(&held, op)).collect();
+            if missing.is_empty() {
+                return Ok(Vec::new());
+            }
+            s.written_after(&held, missing)
+        })
+    }
+
+    // A clock behind another machine's would stamp this before the event that let it through.
+    fn written_after(&mut self, held: &[Event], ops: Vec<Op>) -> Result<Vec<Event>> {
+        let batch = (ops.len() > 1).then(ulid::Ulid::generate);
+        if let Some(newest) = held.iter().map(|one| one.timestamp).max() {
+            self.after(newest);
+        }
+        let mut written = Vec::with_capacity(ops.len());
+        for op in ops {
+            let mut event = self.minted(op);
+            event.batch = batch;
+            written.push(event);
+        }
+        self.write_all(&written)?;
+        Ok(written)
     }
 
     fn after(&mut self, newest: jiff::Timestamp) {

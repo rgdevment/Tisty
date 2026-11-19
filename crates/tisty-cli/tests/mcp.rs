@@ -8209,3 +8209,24 @@ fn a_note_kept_here_at_the_same_hour_as_the_one_in_the_log_is_not_carried_again(
     assert_eq!(gists_in_the_log(&served).len(), 1);
     assert_eq!(left_in_the_cache(&served), 0);
 }
+
+#[test]
+fn many_sessions_starting_together_carry_each_note_kept_here_once() {
+    let served = Served::new();
+    served.person().lets_the_agent_in();
+    let docs: Vec<String> = (1..=4)
+        .map(|n| wrote_paper(&served, &format!("# Acta {n}\n\nlo que se hablo.")))
+        .collect();
+    for doc in &docs {
+        kept_here_before_notes_travelled(&served, doc, "lo de antes", "2026-03-01T10:00:00Z");
+    }
+
+    std::thread::scope(|all| {
+        for _ in 0..8 {
+            all.spawn(|| served.call("catch_up", serde_json::json!({})));
+        }
+    });
+
+    assert_eq!(gists_in_the_log(&served).len(), docs.len());
+    assert_eq!(left_in_the_cache(&served), 0);
+}

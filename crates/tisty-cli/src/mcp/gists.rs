@@ -1,7 +1,7 @@
 use serde_json::{Value, json};
 use tisty_core::event::Gist;
 use tisty_core::model::{AgentNote, Kept};
-use tisty_core::{Op, Paths, State, Store};
+use tisty_core::{Event, Op, Paths, State, Store};
 
 use super::asked::text;
 use super::jsonrpc::{speaking_through, told};
@@ -155,12 +155,7 @@ pub(super) fn carried_over(paths: &Paths) {
     let mut ops = Vec::new();
     let mut settled = Vec::new();
     for (file, gist) in kept_here {
-        if let Some(kept) = a_document(&state, &file)
-            && !state
-                .agent_notes
-                .get(&kept.id)
-                .is_some_and(|had| had.at >= gist.at)
-        {
+        if let Some(kept) = a_document(&state, &file) {
             ops.push(Op::DocGist {
                 id: kept.id,
                 d: Gist {
@@ -173,12 +168,23 @@ pub(super) fn carried_over(paths: &Paths) {
         }
         settled.push(file);
     }
-    if !ops.is_empty() && store.append_batch(ops).is_err() {
+    if !ops.is_empty() && store.append_batch_missing(ops, already_carried).is_err() {
         return;
     }
     for file in settled {
         cache.forget_gist(&file);
     }
+}
+
+fn already_carried(held: &[Event], op: &Op) -> bool {
+    let Op::DocGist { id, d } = op else {
+        return false;
+    };
+    let at = d.at.unwrap_or_default();
+    held.iter().any(|one| match &one.op {
+        Op::DocGist { id: was, d: said } => was == id && said.at.unwrap_or(one.timestamp) >= at,
+        _ => false,
+    })
 }
 
 // The whole log, the shut diary too: a note written while it was open still belongs to it.

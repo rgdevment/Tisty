@@ -2224,3 +2224,25 @@ fn being_overtaken_speaks_of_the_write_that_found_another_hand_not_of_every_writ
         "the next write finds only its own, so what it carries can be trusted again"
     );
 }
+
+#[test]
+fn a_batch_judged_under_the_lock_writes_only_what_the_log_does_not_hold() {
+    let tmp = tempfile::tempdir().unwrap();
+    let mut store = Store::open(tmp.path(), crate::event::DeviceId("dev_a".into())).unwrap();
+    let added = |title: &str| Op::TaskAdd {
+        id: ulid::Ulid::generate(),
+        d: crate::event::TaskAdd::new(title, "a0"),
+    };
+    let first = added("first");
+    store.append(first.clone()).unwrap();
+    let held = |log: &[Event], op: &Op| log.iter().any(|one| one.op == *op);
+
+    let written = store
+        .append_batch_missing(vec![first.clone(), added("second")], held)
+        .unwrap();
+    let again = store.append_batch_missing(vec![first], held).unwrap();
+
+    assert_eq!(written.len(), 1);
+    assert!(again.is_empty());
+    assert_eq!(store.read_all().unwrap().len(), 2);
+}
