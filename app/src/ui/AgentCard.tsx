@@ -107,23 +107,22 @@ export default function AgentCard({
         done();
       })
       .catch(failed);
-  const overwrite = async (place: Place) => {
-    if (!(await sure(fill("agentOverwriteSure", place.at)))) return;
-    agentsKeep(place.at, true).then(done).catch(failed);
-  };
-  const keepFile = async (place: Place) => {
-    if (await sure(fill("agentKeepFileSure", place.at))) bring(place);
-  };
-  const restore = async (place: Place, backup: number) => {
-    if (!(await sure(fill("agentRestoreSure", place.at)))) return;
-    agentRestore(file, place.at, backup)
-      .then(() => {
+  // Each action asks first, and a refusal anywhere along the way is shown, never left unheard.
+  const asked = (said: string, then: () => Promise<unknown>) =>
+    sure(said)
+      .then((yes) => (yes ? then() : undefined))
+      .catch(failed);
+  const overwrite = (place: Place) =>
+    asked(fill("agentOverwriteSure", place.at), () => agentsKeep(place.at, true).then(done));
+  const keepFile = (place: Place) => asked(fill("agentKeepFileSure", place.at), () => bring(place));
+  const restore = (place: Place, backup: number) =>
+    asked(fill("agentRestoreSure", place.at), () =>
+      agentRestore(file, place.at, backup).then(() => {
         setShown(null);
         setKept(null);
         done();
-      })
-      .catch(failed);
-  };
+      }),
+    );
   const turn = (place: Place) =>
     agentsTurn(place.assistant, place.said.state === "off")
       .then(done)
