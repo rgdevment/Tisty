@@ -55,17 +55,17 @@ AGENTS está en tu barra lateral aunque nunca la hayas usado: el robot morado, a
 
 La lista trae solo lo que tu asistente lee de verdad. Lo demás no aparece, ni atenuado.
 
-**Skills.** Una skill es una carpeta justo dentro de la carpeta de skills del asistente, con un `SKILL.md` en su raíz. Las carpetas de skills que Tisty recorre son:
+**Skills.** Una skill es una carpeta con un `SKILL.md` en su raíz. Tisty la busca tan abajo como la busca cada asistente, así que una skill que guardas en una carpeta de categoría, como `~/.agents/skills/trabajo/pr/`, aparece cuando su asistente la lee desde ahí:
 
-| Asistente | Carpeta de skills |
-| :-- | :-- |
-| Claude Code | `~/.claude/skills` |
-| Codex | `~/.agents/skills`, que comparte con Copilot y Gemini |
-| GitHub Copilot CLI | `~/.copilot/skills` |
-| Gemini CLI | `~/.gemini/skills` |
-| Cursor | `~/.cursor/skills` |
+| Asistente | Carpeta de skills | Dónde puede estar una skill |
+| :-- | :-- | :-- |
+| Claude Code | `~/.claude/skills` | justo adentro, como `skills/pr/` |
+| Codex | `~/.agents/skills`, que comparte con Copilot y Gemini | hasta seis carpetas más abajo, como `skills/trabajo/pr/` |
+| GitHub Copilot CLI | `~/.copilot/skills` | justo adentro |
+| Gemini CLI | `~/.gemini/skills` | justo adentro |
+| Cursor | `~/.cursor/skills` | en cualquier carpeta de categoría |
 
-Una carpeta sin `SKILL.md` en su raíz no es una skill y no aparece, tampoco lo que tenga adentro: Tisty no busca skills dentro de carpetas que las agrupen. Cada skill es **una fila**, como **pr · Skill · 3 archivos**, con una casilla que la trae entera: cada archivo de la skill queda como un documento, y en la barra lateral se ve como una sola fila, **pr**, con **3 archivos** a la derecha. Un archivo de credenciales dentro de una skill, como una llave `.pem`, sigue sin entrar.
+Una carpeta sin `SKILL.md` que su asistente no lee más abajo no es una skill y no aparece. Tisty nunca busca una skill dentro de otra: un `SKILL.md` más adentro de `pr/` es un archivo más de **pr**. Cada skill es **una fila**, como **pr · Skill · 3 archivos**, con una casilla que la trae entera: cada archivo de la skill queda como un documento, y en la barra lateral se ve como una sola fila, **pr**, con **3 archivos** a la derecha. Un archivo de credenciales dentro de una skill, como una llave `.pem`, sigue sin entrar.
 
 **Reglas.** De una carpeta de reglas entra solo lo que el asistente lee:
 

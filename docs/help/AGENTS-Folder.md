@@ -55,17 +55,17 @@ AGENTS is in your sidebar even if you never used it: the purple robot, dimmed, w
 
 The list brings only what your assistant really reads. The rest does not show, not even greyed out.
 
-**Skills.** A skill is a folder right inside the assistant's skills folder, with a `SKILL.md` at its root. The skills folders Tisty walks are:
+**Skills.** A skill is a folder with a `SKILL.md` at its root. Tisty looks for it as deep as each assistant does, so a skill you keep inside a category folder, such as `~/.agents/skills/work/pr/`, shows when its assistant reads it from there:
 
-| Assistant | Skills folder |
-| :-- | :-- |
-| Claude Code | `~/.claude/skills` |
-| Codex | `~/.agents/skills`, which it shares with Copilot and Gemini |
-| GitHub Copilot CLI | `~/.copilot/skills` |
-| Gemini CLI | `~/.gemini/skills` |
-| Cursor | `~/.cursor/skills` |
+| Assistant | Skills folder | Where a skill can be |
+| :-- | :-- | :-- |
+| Claude Code | `~/.claude/skills` | right inside, such as `skills/pr/` |
+| Codex | `~/.agents/skills`, which it shares with Copilot and Gemini | up to six folders down, such as `skills/work/pr/` |
+| GitHub Copilot CLI | `~/.copilot/skills` | right inside |
+| Gemini CLI | `~/.gemini/skills` | right inside |
+| Cursor | `~/.cursor/skills` | in any category folder |
 
-A folder without a `SKILL.md` at its root is not a skill and does not show, and neither does what it holds: Tisty does not look for skills inside folders that group them. Each skill is **one row**, such as **pr · Skill · 3 files**, with one box that brings it whole: each file of the skill becomes a document, and in the sidebar it shows as a single row, **pr**, with **3 files** on the right. A credentials file inside a skill, such as a `.pem` key, still stays out.
+A folder without a `SKILL.md` that its assistant does not read deeper is not a skill and does not show. Tisty never looks for a skill inside another: a `SKILL.md` deeper inside `pr/` is just one more file of **pr**. Each skill is **one row**, such as **pr · Skill · 3 files**, with one box that brings it whole: each file of the skill becomes a document, and in the sidebar it shows as a single row, **pr**, with **3 files** on the right. A credentials file inside a skill, such as a `.pem` key, still stays out.
 
 **Rules.** From a rules folder, only what the assistant reads comes in:
 
