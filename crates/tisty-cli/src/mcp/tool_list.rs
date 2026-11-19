@@ -56,7 +56,7 @@ pub(super) fn tools_without_hints() -> Value {
         {
             "name": "describe",
             "title": "Describe a task",
-            "description": "Write the description of an open task. It replaces the old one whole: `read` first and keep what holds; what you learnt goes in `note`.",
+            "description": "Rewrite the description of an open task, replacing the old one whole: `read` the task first and keep what still holds. What you learnt goes in the journal with `note`, the rest of its page with `edit_doc`. Refused once it is said done or not doing; the answer names the task.",
             "inputSchema": on_a_task(
                 json!({ "body": { "type": "string", "description": "What the task is, in the Tisty language" } }),
                 &["body"],
@@ -133,7 +133,7 @@ pub(super) fn tools_without_hints() -> Value {
         {
             "name": "move",
             "title": "Hang a task under another, or move it to a list",
-            "description": "`part_of` hangs a task under another, or null lets it stand alone; `list` moves it to a better list. One level: a task with parts is no part. A closed task takes nothing; a whole said done or not doing takes no new part.",
+            "description": "Hang a task under another with `part_of`, or send null to let it stand alone; `list` moves it to another list; both fit in one call. One level only: a task with parts is never a part. A closed task does not move, and a whole said done or not doing takes no new part. The answer says where it stands; a refusal says why. Its day is `reschedule`.",
             "inputSchema": on_a_task(
                 json!({
                     "part_of": { "type": ["string", "null"], "description": "Id of the task to hang it under, or null to let it go" },
@@ -373,7 +373,7 @@ pub(super) fn tools_without_hints() -> Value {
         {
             "name": "tongue_doc",
             "title": "Join or leave a document's languages",
-            "description": "With `of`, join `doc` to that document's languages, moving it to its folder; without, take `doc` out of its languages. Both say their language in a `lang:` property, or `lang` for `doc`. A new translation is `write_doc` with `translation_of`.",
+            "description": "Join a document to another's languages, or take it out of them. With `of`, `doc` joins them and moves to that document's folder; without, `doc` stands on its own again. To join, each says its language in a `lang:` property, or `lang` for `doc`; a language already there or a page is refused, saying why. A new translation is `write_doc` with `translation_of`.",
             "inputSchema": shaped(json!({
                 "properties": {
                     "doc": { "type": "string", "description": "Id of the document to join or take out, not its title" },
@@ -410,7 +410,7 @@ pub(super) fn tools_without_hints() -> Value {
         {
             "name": "reschedule",
             "title": "Move the day of a task an agent filed",
-            "description": "Change the `date` or `deadline` of a task an agent filed, when what you learnt moves it. A day the person set is theirs. Null takes a day off; nothing else changes.",
+            "description": "Change the `date` or `deadline` of a task an agent filed, when what you learnt moves it; null takes one off and the other stays. Refused on the person's task or one said done or not doing: say what you learnt with `note`. A change answers with both days as they stand.",
             "inputSchema": shaped(json!({
                 "properties": {
                     "task": { "type": "string", "description": "The task id" },
