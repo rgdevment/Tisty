@@ -29,6 +29,7 @@ pub enum Said {
 pub struct Backup {
     n: u64,
     bytes: u64,
+    pinned: bool,
 }
 
 #[derive(serde::Serialize, Debug)]
@@ -53,6 +54,7 @@ pub struct AgentDoc {
     level: String,
     named: Option<String>,
     name: String,
+    label: String,
     code: bool,
     /// Sync is off for the whole AGENTS folder, so no single assistant can be turned back on here.
     folder_off: bool,
@@ -112,6 +114,7 @@ pub(crate) fn place(data: &Path, ledger: &Ledger, target: &Target, piece: usize)
             .map(|one| Backup {
                 n: one.n,
                 bytes: one.bytes,
+                pinned: one.pinned,
             })
             .collect(),
     }
@@ -135,6 +138,7 @@ struct Opened {
     card: Card,
     print: String,
     gate: agents::Gate,
+    label: String,
     data: PathBuf,
     ledger: Ledger,
     twin: bool,
@@ -162,10 +166,10 @@ fn opened(
     file: &str,
 ) -> Answer<Option<Opened>> {
     let bodies = super::agents_sync::bodies(session);
-    let Some(card) = bodies
+    let Some((card, label)) = bodies
         .iter()
         .find(|(one, _)| one == file)
-        .and_then(|(_, body)| Card::of(body))
+        .and_then(|(_, body)| Some((Card::of(body)?, agents::shown(body)?.label)))
     else {
         return Ok(None);
     };
@@ -196,6 +200,7 @@ fn opened(
     Ok(Some(Opened {
         card,
         print,
+        label,
         data,
         ledger,
         gate,
@@ -351,6 +356,7 @@ pub(crate) fn card_of(
             .collect(),
         level: card.level,
         name: card.name,
+        label: opened.label,
     }))
 }
 

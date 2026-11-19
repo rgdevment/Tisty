@@ -17,6 +17,7 @@ const doc = (states: AgentDoc["places"][number]["said"][]): AgentDoc => ({
   level: "global",
   named: null,
   name: "AGENTS.md",
+  label: "AGENTS.md",
   code: false,
   folderOff: false,
   twin: false,

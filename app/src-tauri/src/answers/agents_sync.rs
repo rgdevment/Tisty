@@ -24,11 +24,11 @@ pub fn root_of(state: &State) -> Option<FolderId> {
     agents::root_of(state)
 }
 
-fn tree(state: &State, root: FolderId) -> BTreeSet<FolderId> {
+pub(crate) fn tree(state: &State, root: FolderId) -> BTreeSet<FolderId> {
     agents::tree(state, root)
 }
 
-fn docs_in<'a>(state: &'a State, tree: &BTreeSet<FolderId>) -> Vec<&'a Kept> {
+pub(crate) fn docs_in<'a>(state: &'a State, tree: &BTreeSet<FolderId>) -> Vec<&'a Kept> {
     state
         .docs
         .values()

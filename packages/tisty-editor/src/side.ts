@@ -113,6 +113,12 @@ export type Panel =
       readonly exporting?: boolean;
     }
   | { readonly kind: "index"; readonly heads: readonly Head[]; readonly book?: Book }
+  | {
+      readonly kind: "facts";
+      readonly label: string;
+      readonly rows: readonly (readonly [string, string])[];
+      readonly acts?: readonly Act[];
+    }
   | { readonly kind: "details"; readonly facts: Facts; readonly open?: boolean }
   | { readonly kind: "acts"; readonly acts: readonly Act[] }
   | {
@@ -137,10 +143,10 @@ export type Panel =
       readonly open?: boolean;
     };
 
-export type About = Extract<Panel, { kind: "title" | "paper" | "index" }>;
+export type About = Extract<Panel, { kind: "title" | "paper" | "index" | "facts" }>;
 export type More = Exclude<Panel, About>;
 
-const ABOUT = new Set<Panel["kind"]>(["title", "paper", "index"]);
+const ABOUT = new Set<Panel["kind"]>(["title", "paper", "index", "facts"]);
 
 const isAbout = (panel: Panel): panel is About => ABOUT.has(panel.kind);
 

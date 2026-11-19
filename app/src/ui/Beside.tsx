@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { type Facts, fields, type Head, type Leaf, overgrown, type Panel } from "tisty-editor/read";
+import type { AgentDoc } from "../agentDocs";
 import type { Citing } from "../citing";
 import { asLink } from "../copying";
 import type { Filed, Folded } from "../core";
@@ -9,6 +10,7 @@ import { brainstormIn } from "../front";
 import { waysOut } from "../leaving";
 import { fill, t } from "../locales";
 import { tongueName } from "../tongues";
+import { agentFacts } from "./agentFile";
 import LanguageReview from "./LanguageReview";
 import Menu, { type Choice } from "./Menu";
 import { dated, held, holdsOf } from "./paperFacts";
@@ -62,8 +64,9 @@ interface Props {
   title: string;
   paper: string;
   body: string;
-  /** An agent document: its card is shown above the page, so its properties stay out of Details. */
-  carded?: boolean;
+  /** An agent document: its file stands where the paper and the outline are, and its card's properties stay out of Details. */
+  agent?: AgentDoc | null;
+  under?: string;
   tags: readonly string[];
   kept: number;
   heads: Head[];
@@ -113,7 +116,7 @@ const editedOf = ({ by, editors }: NonNullable<DocFacts["edited"]>) => ({
 // Read once per version of the text and its facts: the column is drawn again far more often than either changes.
 const useFacts = (props: Props, facts: DocFacts | null): Facts => {
   const { body, tags, heads } = props;
-  const agent = Boolean(props.carded);
+  const agent = Boolean(props.agent);
   const onFront = agent ? undefined : heads.find((one) => one.level === 0)?.go;
   return useMemo(() => {
     const times = often(body);
@@ -161,6 +164,7 @@ export default function Beside(props: Props) {
   }, [paper, kept]);
 
   const details = useFacts({ ...props, body, heads }, facts);
+  const agent = props.agent ?? null;
   const shared = useSharedRow(
     brainstormIn(body) ? undefined : props.doc,
     props.onError,
@@ -189,30 +193,57 @@ export default function Beside(props: Props) {
   const pagesSaid = pages.map((one) => `${one.id}:${one.file}:${one.title}`).join("|");
   const tonguesSaid = (props.tongues ?? []).map((one) => `${one.id}:${one.lang}`).join("|");
   // biome-ignore lint/correctness/useExhaustiveDependencies: the presses read the window's latest through `latest`, and arrays by what they say
-  const panels = useMemo(
-    (): Panel[] => [
-      {
-        kind: "title",
-        title: props.title || t("untitledDoc"),
-        trail: [
-          { key: "all", label: t("everyPaper"), onPick: () => latest.current.onFolder?.(null) },
-          ...trail.map((one) => ({
-            key: one.id,
-            label: one.name,
-            onPick: () => latest.current.onFolder?.(one.id),
-          })),
-        ],
-        tongues: (props.tongues ?? []).map((one) => ({
+  const panels = useMemo((): Panel[] => {
+    const titled: Panel = {
+      kind: "title",
+      title: props.title || t("untitledDoc"),
+      under: props.under,
+      trail: [
+        { key: "all", label: t("everyPaper"), onPick: () => latest.current.onFolder?.(null) },
+        ...trail.map((one) => ({
           key: one.id,
-          label: tongueName(one.lang ?? ""),
-          lang: one.lang ?? "",
-          on: one.file === paper || one.id === up?.id,
-          away: one.away,
-          onPick: () => latest.current.onTongue?.(one),
+          label: one.name,
+          onPick: () => latest.current.onFolder?.(one.id),
         })),
-        onApart: () => latest.current.onApart(),
-        onShut: () => latest.current.onShut(),
-      },
+      ],
+      tongues: (props.tongues ?? []).map((one) => ({
+        key: one.id,
+        label: tongueName(one.lang ?? ""),
+        lang: one.lang ?? "",
+        on: one.file === paper || one.id === up?.id,
+        away: one.away,
+        onPick: () => latest.current.onTongue?.(one),
+      })),
+      onApart: () => latest.current.onApart(),
+      onShut: () => latest.current.onShut(),
+    };
+    const cited = citedPanel(citing, (one) => latest.current.onCited?.(one));
+    const facts: Panel = { kind: "details", facts: details, open: short };
+    if (agent)
+      return [
+        titled,
+        agentFacts(agent, body, [
+          ...(hasEarlier
+            ? [
+                {
+                  key: "history",
+                  label: t("agentFileHistory"),
+                  onPick: () => latest.current.onEarlier?.(),
+                },
+              ]
+            : []),
+          {
+            key: "link",
+            label: t("copyLink"),
+            onPick: () => void asLink(paper).catch((problem) => latest.current.onError?.(problem)),
+          },
+        ]),
+        ...cited,
+        facts,
+        ...(shared.shared && shared.panel ? [shared.panel] : []),
+      ];
+    return [
+      titled,
       {
         kind: "paper",
         leaf: props.leaf,
@@ -243,33 +274,36 @@ export default function Beside(props: Props) {
           pages: pages.map((one) => leafOf(one, paper, (doc) => latest.current.onPage?.(doc))),
         },
       },
-      ...citedPanel(citing, (one) => latest.current.onCited?.(one)),
-      { kind: "details", facts: details, open: short },
+      ...cited,
+      facts,
       ...(hasEarlier ? [earlierPanel(() => latest.current.onEarlier?.())] : []),
       ...(shared.panel ? [shared.panel] : []),
-    ],
-    [
-      props.title,
-      trailSaid,
-      props.leaf,
-      canSheets,
-      canTurn,
-      sheets,
-      props.landscape,
-      props.making,
-      heads,
-      up?.id,
-      up?.title,
-      pagesSaid,
-      tonguesSaid,
-      paper,
-      details,
-      short,
-      citing,
-      hasEarlier,
-      shared.panel,
-    ],
-  );
+    ];
+  }, [
+    props.title,
+    props.under,
+    agent,
+    body,
+    shared.shared,
+    trailSaid,
+    props.leaf,
+    canSheets,
+    canTurn,
+    sheets,
+    props.landscape,
+    props.making,
+    heads,
+    up?.id,
+    up?.title,
+    pagesSaid,
+    tonguesSaid,
+    paper,
+    details,
+    short,
+    citing,
+    hasEarlier,
+    shared.panel,
+  ]);
 
   return (
     <aside

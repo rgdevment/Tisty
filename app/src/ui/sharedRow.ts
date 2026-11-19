@@ -610,6 +610,7 @@ export const useSharedRow = (
 
   return {
     panel,
+    shared: hands !== null,
     asking,
     termsOnly,
     reviewing,

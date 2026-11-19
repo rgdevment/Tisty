@@ -4,6 +4,7 @@ mod gate;
 mod kept;
 mod ledger;
 mod rooted;
+mod shown;
 mod standing;
 
 pub use card::{Card, Endings, GLOBAL, KEY, Kind, brought, doc_of, rendered};
@@ -12,6 +13,7 @@ pub use gate::{Admitted, Asked, Gate, Seen, gate};
 pub use kept::{KEPT_AT_MOST, Kept, kept, read_kept};
 pub use ledger::Ledger;
 pub use rooted::{FOLDER, ICON, holds, holds_folder, root_of, tree};
+pub use shown::{Shown, shown};
 pub use standing::{Standing, Target, bring, lead_in, overwrite, restore, round, standing, wanted};
 
 #[derive(Debug, Clone, PartialEq, Eq)]

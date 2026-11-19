@@ -551,6 +551,7 @@ export default function Docs({
   const agent = useAgentDoc(open?.file ?? null, body);
   // An agent's file is kept byte for byte, so the paper it is shown on stays on this computer.
   const laidHere = bolted || agent.held || agent.doc !== null;
+  const shownTitle = agent.doc?.label || called;
 
   const diaryWritten = (today: Today) => {
     onKept({ id: own?.id ?? "", title: called });
@@ -813,7 +814,7 @@ export default function Docs({
   ) : (
     ((spoken && !beside) || own?.tongueApart || pageMore) && (
       <div className="ribbon">
-        <span className="ribbon-title">{called || t("untitledDoc")}</span>
+        <span className="ribbon-title">{shownTitle || t("untitledDoc")}</span>
         {own?.tongueApart && <p role="note">{t("tongueApart")}</p>}
         {!beside && spoken}
         {pageMore}
@@ -1117,7 +1118,7 @@ export default function Docs({
                     if (own?.file) stood.current.set(own.file, at);
                   }}
                   reading={bolted || agent.held}
-                  label={called || t("untitledDoc")}
+                  label={shownTitle || t("untitledDoc")}
                   onDoc={toDoc}
                   onTag={onTag}
                   above={
@@ -1410,14 +1411,15 @@ export default function Docs({
       {past.view}
       {beside && open && (
         <Beside
-          title={called}
+          title={shownTitle}
           paper={open.file}
           doc={known.find((one) => one.file === open.file)?.id}
           onError={onError}
           onKeep={flush}
           onEarlier={past.show}
           body={body}
-          carded={Boolean(agent.doc)}
+          agent={agent.doc}
+          under={agent.doc ? `${agent.doc.level} · ${agent.doc.name}` : undefined}
           tags={known.find((one) => one.file === open.file)?.tags ?? NO_TAGS}
           kept={saved}
           heads={heads}
