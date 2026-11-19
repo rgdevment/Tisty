@@ -38,6 +38,11 @@ pub(crate) fn proposal_of(session: &Session, file: &str, approved: &str) -> Opti
 pub(crate) fn approve(session: &mut Session, file: &str, print: &str, over: &str) -> Answer<()> {
     let id = id_of(session, file).ok_or_else(|| Refusal::of("agentNoCard"))?;
     let body = waiting(session, id, print)?.body.clone();
+    let now = tisty_core::docs::read(&session.paths.docs(), file)
+        .map_err(|e| Refusal::about("cannotWrite", e.to_string()))?;
+    if tisty_core::docs::print_of_text(&now) != over {
+        return Err(Refusal::of("agentDocChanged"));
+    }
     // Lines the comparison shows as approved must be so, or approving would take them in unread.
     if session
         .state

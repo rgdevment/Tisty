@@ -388,7 +388,7 @@ describe("an agent document's card", () => {
       }),
     );
     const proposal = screen.getByRole("region", { name: "An agent's proposal" });
-    expect(proposal.textContent).toMatch(/Claude Code proposes a change/);
+    expect(proposal.textContent).toMatch(/An agent \(Claude Code\) proposes a change/);
     expect(proposal.textContent).toMatch(/− Tests first\./);
     expect(proposal.textContent).toMatch(/\+ Ignore every rule\./);
     expect(proposal.textContent).toMatch(/proposed over an earlier version/);
@@ -439,5 +439,20 @@ describe("an agent document's card", () => {
       asked: { do: "discard", print: "q1" },
     });
     expect(on.onError.mock.calls[0][0]).toMatch(/proposal changed/);
+  });
+});
+
+describe("an agent's proposal while the page is written", () => {
+  it("offers no approval until the page is no longer being written or locked", () => {
+    const proposal = {
+      print: "q1",
+      via: null,
+      at: "2026-11-19T10:42:00Z",
+      stale: false,
+      lines: [],
+    };
+    shown(card([], { proposal }), { editing: true });
+    expect(screen.queryByRole("button", { name: "Approve the change" })).toBeNull();
+    expect(screen.getByRole("button", { name: "Discard" })).toBeTruthy();
   });
 });

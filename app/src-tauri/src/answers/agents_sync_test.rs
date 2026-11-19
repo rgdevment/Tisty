@@ -950,6 +950,23 @@ fn a_proposal_waits_beside_the_approved_text_and_only_approving_writes_it() {
     approve(&mut room.session, &file, &print, &over).unwrap();
     round_now(&room.session, &room.homes, &mut ledger);
     assert_eq!(room.read(".claude/CLAUDE.md"), "# Claude\nTests always.\n");
+
+    let sent = body.replace(
+        "Tests first.",
+        "Tests always.\n\tRun [[Notes]] and #check **now**.",
+    );
+    let print = proposed(&mut room, &file, &sent);
+    let over = tisty_core::docs::print_of_text(&body.replace("Tests first.", "Tests always."));
+    approve(&mut room.session, &file, &print, &over).unwrap();
+    round_now(&room.session, &room.homes, &mut ledger);
+    assert_eq!(
+        tisty_core::docs::read(&room.session.paths.docs(), &file).unwrap(),
+        sent
+    );
+    assert_eq!(
+        room.read(".claude/CLAUDE.md"),
+        "# Claude\nTests always.\n\tRun [[Notes]] and #check **now**.\n"
+    );
     assert!(room.session.state.proposals.is_empty());
     assert_eq!(room.look().proposed, 0);
     assert_eq!(room.look().unagreed, 0);
@@ -977,7 +994,8 @@ fn approving_takes_only_the_proposal_and_the_text_the_card_showed() {
     assert_eq!(refused.code, "agentProposalChanged");
     let typed = body.replace("# Claude", "# Claude rules");
     rewritten(&mut room.session, &file, &typed).unwrap();
-    assert!(approve(&mut room.session, &file, &second, &over).is_err());
+    let refused = approve(&mut room.session, &file, &second, &over).unwrap_err();
+    assert_eq!(refused.code, "agentDocChanged");
     assert_eq!(
         tisty_core::docs::read(&room.session.paths.docs(), &file).unwrap(),
         typed

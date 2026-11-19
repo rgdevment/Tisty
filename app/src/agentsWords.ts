@@ -224,8 +224,8 @@ const words = {
     "Memoria del agente de otro equipo: en este solo se lee.",
   ],
   agentProposalLabel: ["An agent's proposal", "Propuesta de un agente"],
-  agentProposalBy: ["{name} proposes a change", "{name} propone un cambio"],
-  agentProposalSomeone: ["An agent", "Un agente"],
+  agentProposalBy: ["An agent ({name}) proposes a change", "Un agente ({name}) propone un cambio"],
+  agentProposalSomeone: ["An agent proposes a change", "Un agente propone un cambio"],
   agentProposalPill: ["Proposal", "Propuesta"],
   agentProposalLead: [
     "Nothing of it reaches your agents' files until you approve it. What it changes in the approved text:",

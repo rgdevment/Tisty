@@ -7,12 +7,12 @@ import Glyph from "./Glyph";
 
 interface Props {
   readonly proposal: Proposal;
-  readonly onApprove: () => void;
+  readonly onApprove?: () => void;
   readonly onDiscard: () => void;
 }
 
 export default function AgentProposal({ proposal, onApprove, onDiscard }: Props) {
-  const who = proposal.via ?? t("agentProposalSomeone");
+  const said = proposal.via ? fill("agentProposalBy", proposal.via) : t("agentProposalSomeone");
   return (
     <section
       aria-label={t("agentProposalLabel")}
@@ -20,7 +20,7 @@ export default function AgentProposal({ proposal, onApprove, onDiscard }: Props)
     >
       <p className="flex items-center gap-1.5 font-medium text-hue-purple">
         <Glyph name="pencil" className="h-[14px] w-[14px] shrink-0" />
-        {fill("agentProposalBy", who)}
+        {said}
         <span className="font-normal text-faint">· {stamped(proposal.at)}</span>
       </p>
       <p className="mt-1 text-soft">{t("agentProposalLead")}</p>
@@ -31,7 +31,7 @@ export default function AgentProposal({ proposal, onApprove, onDiscard }: Props)
         came={t("agentProposalProposed")}
       />
       <div className="mt-2.5 flex flex-wrap gap-2">
-        <Action glyph="done" label={t("agentApproveChange")} onClick={onApprove} />
+        {onApprove && <Action glyph="done" label={t("agentApproveChange")} onClick={onApprove} />}
         <Action glyph="close" label={t("agentDiscardChange")} onClick={onDiscard} />
       </div>
     </section>

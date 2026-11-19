@@ -213,7 +213,7 @@ export default function AgentCard({
       {doc.proposal && (
         <AgentProposal
           proposal={doc.proposal}
-          onApprove={() => doc.proposal && approve(doc.proposal)}
+          onApprove={takes ? () => doc.proposal && approve(doc.proposal) : undefined}
           onDiscard={() => doc.proposal && discard(doc.proposal)}
         />
       )}
