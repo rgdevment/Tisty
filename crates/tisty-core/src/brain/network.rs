@@ -4,6 +4,7 @@ use jiff::Timestamp;
 use serde::Serialize;
 
 use super::Brain;
+use super::alike::SHOWN;
 use crate::witness::{self, Fact, channel};
 use crate::{Paths, State, Task};
 
@@ -107,8 +108,9 @@ impl Brain {
         }
         let mut guessed: Vec<Guessed> = Vec::new();
         {
-            let mut asked =
-                tx.prepare("SELECT a, b, score, shared FROM alike WHERE method = 'words'")?;
+            let mut asked = tx.prepare(&format!(
+                "SELECT a, b, score, shared FROM alike WHERE {SHOWN}"
+            ))?;
             let rows = asked.query_map([], |row| {
                 Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?))
             })?;

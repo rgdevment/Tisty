@@ -130,17 +130,17 @@ fn every_document_and_task_keeps_its_words_with_its_stamp_and_nothing_else_does(
         "a round that writes no words leaves the turn"
     );
     assert!(matches!(
-        brain.weigh_alike(&caps()).unwrap(),
+        brain.weigh_alike(&caps(), None).unwrap(),
         Passed::Ran { .. }
     ));
-    assert_eq!(brain.weigh_alike(&caps()).unwrap(), Passed::Idle);
+    assert_eq!(brain.weigh_alike(&caps(), None).unwrap(), Passed::Idle);
 }
 
 #[test]
 fn an_empty_base_has_nothing_to_weigh() {
     let world = World::new();
     let mut brain = world.brain();
-    assert_eq!(brain.weigh_alike(&caps()).unwrap(), Passed::Idle);
+    assert_eq!(brain.weigh_alike(&caps(), None).unwrap(), Passed::Idle);
 }
 
 #[test]
@@ -155,7 +155,7 @@ fn two_notes_sharing_two_weighty_words_are_alike_and_say_why() {
     world.refreshed(&mut brain, &state);
 
     assert!(matches!(
-        brain.weigh_alike(&caps()).unwrap(),
+        brain.weigh_alike(&caps(), None).unwrap(),
         Passed::Ran {
             rows: 1,
             written: 1,
@@ -214,7 +214,7 @@ fn a_hidden_task_or_a_diary_page_never_gets_alike_rows_nor_shows_through_a_reade
     state.docs.get_mut(&book).unwrap().diary = true;
     let mut brain = world.brain();
     world.refreshed(&mut brain, &state);
-    brain.weigh_alike(&caps()).unwrap();
+    brain.weigh_alike(&caps(), None).unwrap();
 
     let (plain_id, secret_id) = (plain.to_string(), secret.to_string());
     assert!(
@@ -245,7 +245,7 @@ fn a_hidden_task_or_a_diary_page_never_gets_alike_rows_nor_shows_through_a_reade
     );
     assert!(!worded_ids(&brain).contains_key(&secret_id));
     assert!(brain.alike(&plain_id, everyone).unwrap().is_empty());
-    brain.weigh_alike(&caps()).unwrap();
+    brain.weigh_alike(&caps(), None).unwrap();
     assert!(rows(&brain).is_empty(), "nor does a pass bring them back");
 }
 
@@ -266,7 +266,7 @@ fn a_book_that_becomes_a_diary_takes_its_pages_out_though_they_did_not_change() 
     let mut state = world.state();
     let mut brain = world.brain();
     world.refreshed(&mut brain, &state);
-    brain.weigh_alike(&caps()).unwrap();
+    brain.weigh_alike(&caps(), None).unwrap();
     assert_eq!(ends(&brain), [pair(&page, &budget)]);
 
     std::fs::write(
@@ -328,7 +328,7 @@ fn what_is_tied_already_is_not_guessed() {
     state.tasks.get_mut(&part).unwrap().part_of = Some(whole);
     let mut brain = world.brain();
     world.refreshed(&mut brain, &state);
-    brain.weigh_alike(&caps()).unwrap();
+    brain.weigh_alike(&caps(), None).unwrap();
 
     let found = ends(&brain);
     assert!(found.contains(&pair(&one, &other)), "{found:?}");
@@ -391,7 +391,7 @@ fn pages_of_one_book_and_languages_of_one_document_are_kin() {
     english_kept.translation_of = Some(spanish);
     let mut brain = world.brain();
     world.refreshed(&mut brain, &state);
-    brain.weigh_alike(&caps()).unwrap();
+    brain.weigh_alike(&caps(), None).unwrap();
 
     assert_eq!(worded_ids(&brain)[&spanish_file].1.as_deref(), Some("es"));
     let found = ends(&brain);
@@ -446,14 +446,17 @@ fn a_round_that_writes_words_meanwhile_leaves_the_pass_to_the_next_one() {
     let mut brain = world.brain();
     world.refreshed(&mut brain, &state);
 
-    let weighed = brain.weighed(&caps()).unwrap().expect("words to weigh");
+    let weighed = brain
+        .weighed(&caps(), None)
+        .unwrap()
+        .expect("words to weigh");
     state.tasks.get_mut(&errands[0]).unwrap().title = "water the ferns".into();
     world.refreshed(&mut brain, &state);
     assert_eq!(brain.kept_alike(weighed).unwrap(), Passed::Overtaken);
     assert!(rows(&brain).is_empty());
 
     assert!(matches!(
-        brain.weigh_alike(&caps()).unwrap(),
+        brain.weigh_alike(&caps(), None).unwrap(),
         Passed::Ran { .. }
     ));
     assert_eq!(ends(&brain), [pair(&budget, &spending)]);
@@ -469,12 +472,12 @@ fn a_pass_writes_only_what_changed() {
     let mut state = world.state();
     let mut brain = world.brain();
     world.refreshed(&mut brain, &state);
-    brain.weigh_alike(&caps()).unwrap();
+    brain.weigh_alike(&caps(), None).unwrap();
 
     state.tasks.get_mut(&errands[0]).unwrap().title = "water the ferns".into();
     world.refreshed(&mut brain, &state);
     assert!(matches!(
-        brain.weigh_alike(&caps()).unwrap(),
+        brain.weigh_alike(&caps(), None).unwrap(),
         Passed::Ran {
             rows: 1,
             written: 0,
@@ -488,7 +491,7 @@ fn a_pass_writes_only_what_changed() {
     assert!(rows(&brain).is_empty(), "what is gone takes its rows along");
     assert!(!worded_ids(&brain).contains_key(&budget));
     assert!(matches!(
-        brain.weigh_alike(&caps()).unwrap(),
+        brain.weigh_alike(&caps(), None).unwrap(),
         Passed::Ran {
             rows: 0,
             written: 0,
@@ -522,7 +525,7 @@ fn the_pass_waits_for_the_words_to_hold_still_and_runs_only_when_they_moved() {
     let world = World::new();
     let mut weighing = Weighing::default();
     assert_eq!(
-        weighing.kept(&world.paths),
+        weighing.kept(&world.paths, None),
         None,
         "a swept store is left alone"
     );
@@ -532,21 +535,21 @@ fn the_pass_waits_for_the_words_to_hold_still_and_runs_only_when_they_moved() {
     fillers(&mut store);
     drop(store);
     super::super::kept_up(&world.paths, super::super::Round::Starting);
-    assert_eq!(weighing.kept(&world.paths), Some(Passed::Settling));
+    assert_eq!(weighing.kept(&world.paths, None), Some(Passed::Settling));
     assert!(matches!(
-        weighing.kept(&world.paths),
+        weighing.kept(&world.paths, None),
         Some(Passed::Ran { .. })
     ));
-    assert_eq!(weighing.kept(&world.paths), Some(Passed::Idle));
+    assert_eq!(weighing.kept(&world.paths, None), Some(Passed::Idle));
 
     let file = world.paths.docs().join(format!("{budget}.md"));
     let mut body = std::fs::read_to_string(&file).unwrap();
     body.push_str("\nY la luz.\n");
     std::fs::write(&file, body).unwrap();
     super::super::kept_up(&world.paths, super::super::Round::Nudged);
-    assert_eq!(weighing.kept(&world.paths), Some(Passed::Settling));
+    assert_eq!(weighing.kept(&world.paths, None), Some(Passed::Settling));
     assert!(matches!(
-        weighing.kept(&world.paths),
+        weighing.kept(&world.paths, None),
         Some(Passed::Ran { .. })
     ));
 }
@@ -604,6 +607,7 @@ fn only_documents_pages_and_tasks_in_sight_are_owed_words() {
         stamp: "s",
         counted: Counted {
             lang: None,
+            guess: None,
             kin: Vec::new(),
             said: String::new(),
         },
@@ -654,7 +658,7 @@ fn a_link_by_a_document_s_id_ties_it_and_a_title_two_documents_carry_ties_neithe
     let state = world.state();
     let mut brain = world.brain();
     world.refreshed(&mut brain, &state);
-    brain.weigh_alike(&caps()).unwrap();
+    brain.weigh_alike(&caps(), None).unwrap();
 
     let found = ends(&brain);
     assert!(found.contains(&pair(&naming, &one)), "{found:?}");
@@ -681,7 +685,7 @@ fn a_pass_that_keeps_being_put_off_runs_once_its_patience_is_spent() {
     let mut put_off = 0;
     loop {
         written();
-        match weighing.kept(&world.paths) {
+        match weighing.kept(&world.paths, None) {
             Some(Passed::Settling) => put_off += 1,
             Some(Passed::Ran { .. }) => break,
             other => panic!("{other:?}"),
@@ -692,7 +696,7 @@ fn a_pass_that_keeps_being_put_off_runs_once_its_patience_is_spent() {
 
     written();
     assert_eq!(
-        weighing.kept(&world.paths),
+        weighing.kept(&world.paths, None),
         Some(Passed::Settling),
         "its patience starts over"
     );
@@ -758,7 +762,7 @@ fn a_title_a_hidden_diary_page_also_carries_still_ties_the_one_every_reader_sees
     state.docs.get_mut(&book).unwrap().diary = true;
     let mut brain = world.brain();
     world.refreshed(&mut brain, &state);
-    brain.weigh_alike(&caps()).unwrap();
+    brain.weigh_alike(&caps(), None).unwrap();
     assert!(
         !ends(&brain).contains(&pair(&naming, &garden)),
         "{:?}",
@@ -782,4 +786,172 @@ fn a_file_that_leaves_moves_no_turn() {
     state.kept.remove("files/plan.png");
     world.refreshed(&mut brain, &state);
     assert_eq!(turn(&brain), before);
+}
+
+fn guesses(brain: &Brain) -> BTreeMap<String, Option<String>> {
+    let mut asked = brain.db.prepare("SELECT id, guess FROM words").unwrap();
+    asked
+        .query_map([], |row| Ok((row.get(0)?, row.get(1)?)))
+        .unwrap()
+        .map(Result::unwrap)
+        .collect()
+}
+
+fn dictionary_at(world: &World) -> std::path::PathBuf {
+    let at = world.paths.cache().join("dictionary.tsv");
+    std::fs::write(&at, "agua\twater\ncuenta\tbill\npagar\tpay\n").unwrap();
+    at
+}
+
+#[test]
+fn the_round_keeps_the_language_each_one_seems_written_in() {
+    let world = World::new();
+    let mut store = world.store();
+    let spanish = task(&mut store, "Pagar la cuenta del agua", &[]).to_string();
+    let english = task(&mut store, "Pay the water bill", &[]).to_string();
+    let unknown = task(&mut store, "Router", &[]).to_string();
+    let (declared, declared_file) =
+        doc(&world, &mut store, "# Router\n\nRouter wifi.\n", None, None);
+    let (other, other_file) = doc(
+        &world,
+        &mut store,
+        "# Notes\n\nLa casa y el jardín.\n",
+        None,
+        None,
+    );
+    let mut state = world.state();
+    state.docs.get_mut(&declared).unwrap().lang = Some("en-GB".into());
+    state.docs.get_mut(&other).unwrap().lang = Some("pt".into());
+    let mut brain = world.brain();
+    world.refreshed(&mut brain, &state);
+
+    let guessed = guesses(&brain);
+    assert_eq!(guessed[&spanish].as_deref(), Some("es"));
+    assert_eq!(guessed[&english].as_deref(), Some("en"));
+    assert_eq!(guessed[&unknown], None);
+    assert_eq!(
+        guessed[&declared_file].as_deref(),
+        Some("en"),
+        "a declared language wins"
+    );
+    assert_eq!(
+        guessed[&other_file].as_deref(),
+        Some("es"),
+        "a language the dictionary does not speak is guessed from the text"
+    );
+}
+
+#[test]
+fn a_hidden_task_keeps_no_language_either() {
+    let world = World::new();
+    let mut store = world.store();
+    let secret = task(&mut store, "Pagar la cuenta del agua", &[]);
+    let mut state = world.state();
+    state.tasks.get_mut(&secret).unwrap().hidden = true;
+    let mut brain = world.brain();
+    world.refreshed(&mut brain, &state);
+    assert!(!guesses(&brain).contains_key(&secret.to_string()));
+}
+
+#[test]
+fn a_spanish_task_and_its_english_twin_are_kept_alike_through_the_dictionary_file() {
+    let world = World::new();
+    let mut store = world.store();
+    let spanish = task(&mut store, "Pagar la cuenta del agua", &[]).to_string();
+    let english = task(&mut store, "Pay the water bill", &[]).to_string();
+    fillers(&mut store);
+    drop(store);
+    super::super::kept_up(&world.paths, super::super::Round::Starting);
+    let at = dictionary_at(&world);
+    let mut weighing = Weighing::default();
+    assert_eq!(
+        weighing.kept(&world.paths, Some(&at)),
+        Some(Passed::Settling)
+    );
+    assert!(matches!(
+        weighing.kept(&world.paths, Some(&at)),
+        Some(Passed::Ran { translated: 1, .. })
+    ));
+
+    let brain = world.brain();
+    let all = rows(&brain);
+    let (a, b) = pair(&spanish, &english);
+    assert_eq!(all.len(), 1, "{all:?}");
+    assert_eq!((&all[0].0, &all[0].1), (&a, &b));
+    assert_eq!(all[0].3, "dictionary");
+    for told in ["pagar≈pay", "cuenta≈bill", "agua≈water"] {
+        let flipped = told.split('≈').rev().collect::<Vec<_>>().join("≈");
+        assert!(
+            all[0].2.contains(told) || all[0].2.contains(&flipped),
+            "{} misses {told}",
+            all[0].2
+        );
+    }
+    assert_eq!(
+        brain.alike(&spanish, everyone).unwrap()[0].method,
+        "dictionary"
+    );
+}
+
+#[test]
+fn a_dictionary_that_cannot_be_read_waits_then_leaves_shared_words_and_warns_once() {
+    let world = World::new();
+    let mut store = world.store();
+    task(&mut store, "Pagar la cuenta del agua", &[]);
+    task(&mut store, "Pay the water bill", &[]);
+    fillers(&mut store);
+    drop(store);
+    super::super::kept_up(&world.paths, super::super::Round::Starting);
+    let missing = world.paths.cache().join("missing.tsv");
+    let mut weighing = Weighing::default();
+    for _ in 0..=PATIENCE {
+        assert_eq!(
+            weighing.kept(&world.paths, Some(&missing)),
+            Some(Passed::Settling),
+            "one bad read drops no guess"
+        );
+    }
+    assert!(matches!(
+        weighing.kept(&world.paths, Some(&missing)),
+        Some(Passed::Ran {
+            rows: 0,
+            translated: 0,
+            ..
+        })
+    ));
+    assert_eq!(weighing.missed, PATIENCE + 1, "warned once");
+    weighing.kept(&world.paths, Some(&missing));
+    assert_eq!(weighing.missed, PATIENCE + 1);
+}
+
+#[test]
+fn a_pair_that_changes_track_is_written_again() {
+    let world = World::new();
+    let mut store = world.store();
+    let spanish = task(&mut store, "Pagar la cuenta del agua", &[]).to_string();
+    let english = task(&mut store, "Pay the water bill", &[]).to_string();
+    fillers(&mut store);
+    let state = world.state();
+    let mut brain = world.brain();
+    world.refreshed(&mut brain, &state);
+    let dictionary =
+        Dictionary::parsed("agua\twater\ncuenta\tbill\npagar\tpay\n".to_string()).unwrap();
+    brain.weigh_alike(&caps(), Some(&dictionary)).unwrap();
+    let (a, b) = pair(&spanish, &english);
+    brain
+        .db
+        .execute(
+            "UPDATE alike SET method = 'words' WHERE a = ?1 AND b = ?2",
+            [&a, &b],
+        )
+        .unwrap();
+    brain
+        .db
+        .execute("DELETE FROM meta WHERE key = ?1", [PASSED])
+        .unwrap();
+    assert!(matches!(
+        brain.weigh_alike(&caps(), Some(&dictionary)).unwrap(),
+        Passed::Ran { written: 1, .. }
+    ));
+    assert_eq!(rows(&brain)[0].3, "dictionary");
 }
