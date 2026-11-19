@@ -3,6 +3,7 @@ import type { Neuron } from "../brainsty";
 import { layOut } from "../ui/brainsty/layingOut";
 import {
   edgesOf,
+  forcesFor,
   graphOf,
   movedBy,
   type Step,
@@ -26,6 +27,21 @@ describe("where the network starts and how it settles", () => {
     const apart = Math.hypot(first.x[0] - first.x[2], first.y[0] - first.y[2]);
     expect(home).toBeLessThan(apart);
     expect(Math.hypot(first.x[3], first.y[3])).toBeLessThan(apart);
+  });
+
+  it("keeps the library's forces for a small network and trades Barnes–Hut detail for iterations in a big one", () => {
+    expect(forcesFor(1500)).toMatchObject({
+      barnesHutOptimize: false,
+      slowDown: 1 + Math.log(1500),
+    });
+    expect(forcesFor(1500)).not.toHaveProperty("barnesHutTheta");
+    expect(forcesFor(12000)).toMatchObject({
+      barnesHutOptimize: true,
+      barnesHutTheta: 1.2,
+      slowDown: 3,
+      gravity: 1,
+      scalingRatio: 10,
+    });
   });
 
   it("flattens the lines into pairs and builds a graph that skips loops and repeats", () => {

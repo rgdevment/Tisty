@@ -102,6 +102,13 @@ export function movedBy(before: Spots, after: Spots): number {
   return sum / after.x.length / widthOf(after);
 }
 
+// Gephi's coarser Barnes–Hut and a lighter brake let a big network take about three times the iterations in the same time.
+export function forcesFor(order: number) {
+  const inferred = forceAtlas2.inferSettings(order);
+  const big = inferred.barnesHutOptimize ? { barnesHutTheta: 1.2, slowDown: 3 } : {};
+  return { ...inferred, gravity: 1, scalingRatio: 10, ...big };
+}
+
 export function settle(
   asked: Asked,
   tell: (step: Step) => void,
@@ -109,7 +116,7 @@ export function settle(
 ) {
   const started = now();
   const graph = graphOf(asked);
-  const settings = { ...forceAtlas2.inferSettings(graph), gravity: 1, scalingRatio: 10 };
+  const settings = forcesFor(graph.order);
   let spots = spotsOf(graph);
   let iterations = 0;
   while (iterations < MOST && graph.size > 0 && now() - started < BUDGET_MS) {
