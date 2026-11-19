@@ -1235,6 +1235,84 @@ fn approving_takes_only_the_proposal_and_the_text_the_card_showed() {
 }
 
 #[test]
+fn an_old_proposal_never_takes_back_the_agent_line_the_person_changed_since() {
+    use crate::answers::agent_proposals::approve;
+    let mut room = room();
+    room.bring(&[".claude/CLAUDE.md"]);
+    global_doc(
+        &mut room,
+        "Spanish.
+",
+    );
+    let (file, body) = bodies(&room.session)
+        .into_iter()
+        .find(|(_, body)| body.contains("global/rule/style.md"))
+        .unwrap();
+    let print = proposed(
+        &mut room,
+        &file,
+        &body.replace("Spanish.", "Spanish always."),
+    );
+
+    // Without its agent: line the document draws no card, so only approving is left to refuse.
+    for (typed, drawn) in [
+        (
+            body.replace("global/rule/style.md", "claude/rule/style.md"),
+            true,
+        ),
+        (
+            body.replace(
+                "agent: global/rule/style.md
+",
+                "",
+            ),
+            false,
+        ),
+    ] {
+        rewritten(&mut room.session, &file, &typed).unwrap();
+        let now = tisty_core::docs::print_of_text(&typed);
+        let refused = approve(&mut room.session, &file, &print, &now).unwrap_err();
+        assert_eq!(refused.code, "agentProposalRetargeted", "{typed}");
+        assert_eq!(
+            tisty_core::docs::read(&room.session.paths.docs(), &file).unwrap(),
+            typed
+        );
+        if drawn {
+            assert_eq!(
+                proposal_shown(&room, &file)["unfit"],
+                "agentProposalRetargeted"
+            );
+        }
+    }
+    assert!(!room.session.state.proposals.is_empty());
+}
+
+#[test]
+fn an_old_proposal_that_no_longer_fits_the_text_as_it_is_now_is_only_discarded() {
+    use crate::answers::agent_proposals::approve;
+    let mut room = room();
+    room.bring(&[".claude/CLAUDE.md"]);
+    let (file, body) = bodies(&room.session)[0].clone();
+    let print = proposed(
+        &mut room,
+        &file,
+        &body.replace("Tests first.", "Tests always."),
+    );
+    let long = "Line.\n".repeat(tisty_core::agents::PROPOSAL_LINES_AT_MOST);
+    let typed = format!("{body}{long}");
+    rewritten(&mut room.session, &file, &typed).unwrap();
+
+    assert_eq!(proposal_shown(&room, &file)["unfit"], "agentProposalUnfit");
+    let now = tisty_core::docs::print_of_text(&typed);
+    let refused = approve(&mut room.session, &file, &print, &now).unwrap_err();
+    assert_eq!(refused.code, "agentProposalUnfit");
+    assert_eq!(
+        tisty_core::docs::read(&room.session.paths.docs(), &file).unwrap(),
+        typed
+    );
+}
+
+#[test]
 fn discarding_settles_only_the_proposal_the_card_showed_and_writes_nothing() {
     use crate::answers::agent_proposals::discard;
     let mut room = room();

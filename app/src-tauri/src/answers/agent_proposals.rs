@@ -1,3 +1,4 @@
+use tisty_core::agents::{Unfit, proposable};
 use tisty_core::event::{Op, Proposal as Settled};
 
 use super::agents_sync::{Line, compared};
@@ -10,6 +11,7 @@ pub struct Proposal {
     via: Option<String>,
     at: String,
     stale: bool,
+    unfit: Option<&'static str>,
     lines: Vec<Line>,
 }
 
@@ -30,6 +32,7 @@ pub(crate) fn proposal_of(session: &Session, file: &str, approved: &str) -> Opti
         via: waiting.via.clone(),
         at: waiting.at.to_string(),
         stale: waiting.base.as_ref().is_some_and(|base| *base != print),
+        unfit: fits(approved, &waiting.body).err(),
         lines: compared(approved.as_bytes(), waiting.body.as_bytes()),
     })
 }
@@ -53,6 +56,7 @@ pub(crate) fn approve(session: &mut Session, file: &str, print: &str, over: &str
     {
         return Err(Refusal::of("agentProposalOverUnagreed"));
     }
+    fits(&now, &body).map_err(Refusal::of)?;
     super::papers::written_by_hand(
         session,
         file.to_string(),
@@ -63,6 +67,15 @@ pub(crate) fn approve(session: &mut Session, file: &str, print: &str, over: &str
     let hand = crate::signing(&session.state);
     session.retell_written(file, &body, hand);
     settle(session, id, print)
+}
+
+// One reading for the card's warning and the refusal, or an old proposal takes back an old `agent:` line.
+fn fits(now: &str, proposal: &str) -> Result<(), &'static str> {
+    match proposable(now, proposal) {
+        Ok(()) => Ok(()),
+        Err(Unfit::NoCard | Unfit::Retargeted) => Err("agentProposalRetargeted"),
+        Err(_) => Err("agentProposalUnfit"),
+    }
 }
 
 pub(crate) fn discard(session: &mut Session, file: &str, print: &str) -> Answer<()> {

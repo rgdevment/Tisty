@@ -154,6 +154,7 @@ describe("what the agent file panel says", () => {
       via: null,
       at: "2026-11-19T10:42:00Z",
       stale: false,
+      unfit: null,
       lines: [],
     };
     const said = rows(agent([place({ state: "synced" })], { proposal }));
