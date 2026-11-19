@@ -10,11 +10,12 @@ pub(crate) fn plain(said: &str) -> String {
         .collect()
 }
 
-pub(crate) const SAMPLES: [&str; 4] = [
+pub(crate) const SAMPLES: [&str; 5] = [
     include_str!("../../../app/src-tauri/resources/guide/es/muestra.md"),
     include_str!("../../../app/src-tauri/resources/guide/en/sample.md"),
     "---\ntags: [rina]\n---\n\n# Uno\n\nTexto con #rina y `code`.\n\n- a\n- b\n\n  sigue\n\n> cita\n> [!NOTE]\n\n```rust\nfn x() {}\n```\n\n| a | b |\n|---|---|\n| 1 | 2 |\n\nTítulo\n===\n\nfin\n",
     "Uno\n\nDos\n\n<div>\nhtml\n</div>\n\n    indentado\n\n1. uno\n2. dos\n\n$$x$$\n\n- [ ] paso\n- [x] hecho\n\núltimo",
+    "---\nagent: claude/skill/pdf/SKILL.md\ntitle: claude · pdf/SKILL.md\n---\n---\nname: pdf\ndescription: Fill PDF forms.\n---\n\n# PDF\n\n1. Read the fields.\n\n```sh\nls\n```\n",
 ];
 
 pub(crate) const PIECES: [&str; 26] = [

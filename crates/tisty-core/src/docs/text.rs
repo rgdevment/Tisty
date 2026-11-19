@@ -23,7 +23,11 @@ pub fn titled(body: &str) -> String {
     if let Some(named) = tisty_markdown::front::title(body) {
         return crate::text::plainly(&named);
     }
-    let past = tisty_markdown::front::span(body).map_or(0, |at| at.end);
+    let mut past = tisty_markdown::front::span(body).map_or(0, |at| at.end);
+    // An agent document's file may open with its own properties, which are no title either.
+    if tisty_markdown::front::carded(&body[..past]) {
+        past += tisty_markdown::front::span(&body[past..]).map_or(0, |at| at.end);
+    }
     let said: Vec<&str> = body[past..].lines().collect();
     let mut fence = Fencing::default();
     let first = said

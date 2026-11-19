@@ -17,15 +17,12 @@ pub(crate) struct Drawing<'a> {
 
 // A sibling rule reaching the block past the properties restyles every block of its kind as blocks come and go.
 pub(crate) fn titled(blocks: &[Block]) -> Option<usize> {
-    match blocks {
-        [front, words, ..]
-            if matches!(front.kind, Kind::Front)
-                && matches!(words.kind, Kind::Paragraph | Kind::Heading(1..=3)) =>
-        {
-            Some(words.at.start)
-        }
-        _ => None,
-    }
+    let fronts = blocks
+        .iter()
+        .take_while(|one| matches!(one.kind, Kind::Front))
+        .count();
+    let words = blocks.get(fronts).filter(|_| fronts > 0)?;
+    matches!(words.kind, Kind::Paragraph | Kind::Heading(1..=3)).then_some(words.at.start)
 }
 
 fn title_class(block: &Block, drawing: &Drawing) -> &'static str {
@@ -189,9 +186,32 @@ pub(crate) fn anchors(doc: &Doc) -> HashMap<usize, String> {
     names(doc).into_iter().collect()
 }
 
-fn front(said: &str, at: &str, out: &mut String) {
-    let _ = write!(out, "<dl class=\"front\" {at}>");
-    for field in crate::front::fields(said) {
+fn front(said: &str, at: &str, own: bool, out: &mut String) {
+    // The card is drawn by the agent view above the page, so the page keeps only its place.
+    if crate::front::carded(said) {
+        let _ = write!(out, "<dl class=\"front agent-card\" {at}></dl>");
+        return;
+    }
+    let fields = crate::front::fields(said);
+    // A skill's own properties too long or too many to read as fields are shown as written, never dropped.
+    if own && fields.is_empty() {
+        let lines: Vec<&str> = said.trim_end().lines().collect();
+        let inner = lines
+            .get(1..lines.len().saturating_sub(1))
+            .unwrap_or_default();
+        let _ = write!(
+            out,
+            "<dl class=\"front agent-own\" {at}><pre>{}</pre></dl>",
+            escaped(&inner.join("\n"))
+        );
+        return;
+    }
+    let class = match own {
+        true => "front agent-own",
+        false => "front",
+    };
+    let _ = write!(out, "<dl class=\"{class}\" {at}>");
+    for field in fields {
         let _ = write!(out, "<div><dt>{}</dt><dd>", escaped(&field.key));
         let tagged = crate::front::tagging(&field.key);
         let values: Vec<String> = match tagged {
@@ -339,7 +359,11 @@ pub(crate) fn draw_as(block: &Block, text: &str, drawing: &Drawing, at: &str, ou
         Kind::Rule => {
             let _ = write!(out, "<hr {at}>");
         }
-        Kind::Front => front(&text[block.at.clone()], at, out),
+        Kind::Front => {
+            // Only an agent document holds a second block, the file's own, which the page shows.
+            let own = crate::front::span(text).is_some_and(|top| top.end == block.at.start);
+            front(&text[block.at.clone()], at, own, out);
+        }
         Kind::Definition { label, to } => {
             let _ = write!(
                 out,

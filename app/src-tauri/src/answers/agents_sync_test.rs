@@ -416,3 +416,26 @@ fn a_choice_left_for_later_is_asked_again() {
     assert!(look.both.is_empty());
     assert!(!look.asks);
 }
+
+#[test]
+fn bringing_a_file_in_rewrites_the_document_and_a_second_bring_is_refused() {
+    let mut room = room();
+    room.bring(&[".claude/CLAUDE.md"]);
+    put(
+        &room.home.join(".claude/CLAUDE.md"),
+        "# Claude\nTests last.\n",
+    );
+    let file = bodies(&room.session)[0].0.clone();
+    let ledger = Ledger::open(room.session.paths.data(), HERE);
+    let placed = places::targets(&room.homes, &bodies(&room.session));
+    let one = placed.iter().find(|one| one.files.contains(&file)).unwrap();
+    let brought = agents::bring(&ledger, &one.target, 0).unwrap();
+    let bring = |session: &mut Session| {
+        crate::answers::agent_docs::kept_in(session, Some(&room.homes), &file, &brought, "claude")
+    };
+    bring(&mut room.session).unwrap();
+    assert!(bodies(&room.session)[0].1.contains("Tests last."));
+    assert_eq!(room.read(".claude/CLAUDE.md"), "# Claude\nTests last.\n");
+    assert_eq!(room.look().changes, 0);
+    assert_eq!(bring(&mut room.session).unwrap_err().code, "agentBringSame");
+}

@@ -212,7 +212,9 @@ export const GHOST = "[data-ghost]";
 
 // The core marks the paragraph right after the properties as the title, so a line begun there wears it too.
 export const titledAfterFront = (ghost: Element) => {
-  const after = ghost.previousElementSibling?.matches(".page > .front:first-child");
+  const after = ghost.previousElementSibling?.matches(
+    ".page > .front:first-child, .page > .front:first-child + .front.agent-own",
+  );
   if (after && ghost.matches("p") && !ghost.nextElementSibling?.matches(".title"))
     ghost.classList.add("title");
 };

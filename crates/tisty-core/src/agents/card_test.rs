@@ -201,3 +201,25 @@ fn bringing_a_change_in_rewrites_only_the_cards_own_line() {
     assert!(back.contains("\n  agent: kept as written\n"));
     assert!(back.ends_with("---\nNew.\n"));
 }
+
+#[test]
+fn the_translator_and_the_engine_agree_on_what_a_card_is() {
+    let addresses = [
+        "global/rule/AGENTS.md",
+        "[claude-code/skill/pdf/SKILL.md, crlf, bom]",
+        "yo",
+        "global/note/x.md",
+        "Global/rule/x.md",
+        "global/rule/",
+        "[global/rule/x.md, odd]",
+        "claude/rule/notes#1.md",
+        "claude/rule/../CLAUDE.md",
+        "claude/rule/a//b.md",
+        "a-very-long-level-name-that-no-assistant-has-ever-had/rule/x.md",
+    ];
+    for address in addresses {
+        let body = format!("---\n{KEY}: {address}\n---\nbody\n");
+        let carded = tisty_markdown::front::carded(&body);
+        assert_eq!(Card::of(&body).is_some(), carded, "{address}");
+    }
+}

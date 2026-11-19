@@ -425,8 +425,13 @@ export const answered = (page: Document, asked: Went, reach: Reaching) => {
     reach.onBegin(reach.body.length, "", last ?? page.querySelector(".page") ?? page.body);
   }
   // The properties are kept out of the page, so asking for them, as the column's Edit does, opens their window.
-  if (asked.kind === "block" && placedAt(page, ".page > .front", asked.at))
-    reach.onPiece?.("front", { at: asked.at[0], nth: 0 });
+  if (asked.kind === "block") {
+    const front = placedAt(page, ".page > .front", asked.at);
+    // An agent's card and its file's own properties open only while the page is written, never while it is held.
+    const opens = front?.matches(".agent-card, .agent-own") ? Boolean(reach.onBegin) : true;
+    const nth = front?.matches(".agent-own") ? 1 : 0;
+    if (front && opens) reach.onPiece?.("front", { at: asked.at[0], nth });
+  }
   if (asked.kind === "block" && reach.onHintWords) {
     const hint = placedAt<HTMLElement>(page, ".page > :is(.hint, .hint-gone)", asked.at);
     if (hint) reach.onHintWords(asked.at, hint);

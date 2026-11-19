@@ -1155,3 +1155,68 @@ fn an_edit_past_the_last_block_draws_the_last_one() {
     assert!(near.html.contains("Two."));
     assert_eq!(placed_near(&read(""), 0, 0, None).drawn, 0..0);
 }
+
+const SKILL: &str = "---\nagent: claude/skill/pdf/SKILL.md\ntitle: claude · pdf/SKILL.md\n---\n---\nname: pdf\ndescription: Fill PDF forms.\n---\n\n# PDF\n";
+
+#[test]
+fn an_agent_card_is_left_to_the_agent_view_and_a_skills_own_properties_show_as_fields() {
+    let doc = read(SKILL);
+    assert_eq!(kinds(SKILL)[..2], [Kind::Front, Kind::Front]);
+    assert_eq!(
+        &SKILL[doc.blocks()[1].at.clone()],
+        "---\nname: pdf\ndescription: Fill PDF forms.\n---\n"
+    );
+    let drawn = html(&doc);
+    assert!(drawn.contains("<dl class=\"front agent-card\""), "{drawn}");
+    assert!(!drawn.contains("<dt>agent</dt>"), "{drawn}");
+    assert!(drawn.contains("<dl class=\"front agent-own\""), "{drawn}");
+    assert!(
+        drawn.contains("<dt>description</dt><dd>Fill PDF forms.</dd>"),
+        "{drawn}"
+    );
+    assert!(!drawn.contains("<hr"), "{drawn}");
+    assert!(drawn.contains("<h1 id=\"pdf\" class=\"title\""), "{drawn}");
+    assert_eq!(doc.write(), SKILL);
+}
+
+#[test]
+fn a_skills_own_properties_too_long_for_fields_are_shown_as_written() {
+    let long = "x".repeat(crate::front::VALUE_AT_MOST + 1);
+    let skill = format!(
+        "---\nagent: claude/skill/pdf/SKILL.md\n---\n---\nname: pdf\ndescription: {long}\n---\n# PDF\n"
+    );
+    let drawn = html(&read(&skill));
+    assert!(drawn.contains("<dl class=\"front agent-own\""), "{drawn}");
+    assert!(
+        drawn.contains(&format!("<pre>name: pdf\ndescription: {long}</pre>")),
+        "{drawn}"
+    );
+}
+
+#[test]
+fn only_an_agent_card_lets_a_second_block_of_properties_through() {
+    let fronts = |text: &str| {
+        kinds(text)
+            .iter()
+            .filter(|one| **one == Kind::Front)
+            .count()
+    };
+    assert_eq!(fronts("---\ntitle: x\n---\n---\nname: y\n---\n"), 1);
+    let rule = "---\nagent: global/rule/AGENTS.md\n---\n# Rules\n\n---\n\nmore\n";
+    assert_eq!(fronts(rule), 1);
+    assert!(!html(&read(rule)).contains("<dt>agent</dt>"));
+    let stray = "---\nagent: yo\n---\n---\nname: y\n---\n";
+    assert_eq!(fronts(stray), 1);
+    assert!(html(&read(stray)).contains("<dt>agent</dt><dd>yo</dd>"));
+    for odd in [
+        "global/note/x.md",
+        "Global/rule/x.md",
+        "global/rule/",
+        "[global/rule/x.md, odd]",
+    ] {
+        let text = format!("---\nagent: {odd}\n---\n---\nname: y\n---\n");
+        assert_eq!(fronts(&text), 1, "{odd}");
+    }
+    let flagged = "---\nagent: [claude/skill/pdf/SKILL.md, crlf, bom]\n---\n---\nname: y\n---\n";
+    assert_eq!(fronts(flagged), 2);
+}

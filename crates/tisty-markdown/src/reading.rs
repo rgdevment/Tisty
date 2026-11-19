@@ -26,7 +26,13 @@ pub(crate) fn reading(text: &str, passes: &[fn(&mut Vec<Span>, &str)]) -> Doc {
     // The tokenizer would take any fenced run of lines for front matter; only the top one is.
     if let Some(front) = crate::front::span(text) {
         skip = front.end;
+        let carded = crate::front::carded(&text[front.clone()]);
         blocks.push(leaf(Kind::Front, front));
+        // An agent's file kept under its card may open with its own properties, as a skill does.
+        if let Some(own) = crate::front::span(&text[skip..]).filter(|_| carded) {
+            blocks.push(leaf(Kind::Front, skip + own.start..skip + own.end));
+            skip += own.end;
+        }
     }
     tokened(text, skip..text.len(), &Defined::default(), &mut blocks);
     let crossing = crate::rereading::crossing(text);

@@ -948,7 +948,8 @@ figure.example .drawn img {
   height: auto;
   border-radius: 8px;
 }
-figure.example .drawn .front {
+figure.example .drawn .front,
+.page > .front.agent-own {
   display: grid;
   grid-template-columns: max-content minmax(0, 1fr);
   gap: 6px 16px;
@@ -959,14 +960,24 @@ figure.example .drawn .front {
   background: var(--tisty-panel);
   font-size: 0.9em;
 }
-figure.example .drawn .front > div {
+figure.example .drawn .front > div,
+.page > .front.agent-own > div {
   display: contents;
 }
-figure.example .drawn .front dt {
+figure.example .drawn .front dt,
+.page > .front.agent-own dt {
   color: var(--tisty-faint);
 }
-figure.example .drawn .front dd {
+figure.example .drawn .front dd,
+.page > .front.agent-own dd {
   margin: 0;
+}
+.page > .front.agent-own > pre {
+  grid-column: 1 / -1;
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-family: ui-monospace, "Cascadia Mono", "SF Mono", Menlo, Consolas, monospace;
 }
 figure.example .drawn > hr {
   position: relative;
@@ -1351,4 +1362,7 @@ html.lively:not(.sheeted) .page {
   background: color-mix(in srgb, var(--tisty-hue-green) 26%, transparent);
   text-decoration: none;
   border-radius: 3px;
+}
+.page > .front.agent-own {
+  margin: 0 0 1.2em;
 }

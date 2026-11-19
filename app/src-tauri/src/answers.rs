@@ -1,3 +1,4 @@
+pub mod agent_docs;
 pub mod agents;
 pub mod agents_sync;
 pub mod attaching;

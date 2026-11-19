@@ -131,7 +131,9 @@ export const caretOn = (writer: Writer) => {
 
   // The properties are kept off the page, so a caret come back from them stands where the words begin.
   const pastFront = (text: string, at: number) => {
-    const front = page.querySelector(".page > .front[data-at]");
+    const first = page.querySelector(".page > .front[data-at]");
+    const own = first?.nextElementSibling;
+    const front = own?.matches(".front.agent-own[data-at]") ? own : first;
     const span = placeOf(front);
     if (!span || byteFrom(writer.reckoned, text, at) > span[1]) return null;
     const next = placeOf(front?.nextElementSibling);

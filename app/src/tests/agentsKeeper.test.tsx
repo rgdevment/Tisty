@@ -49,6 +49,7 @@ const agents = [folder("a", null, { name: "AGENTS", icon: "robot" }), folder("cl
 const look = (more: Partial<AgentsLook> = {}): AgentsLook => ({
   folder: "a",
   docs: 1,
+  changes: 0,
   consented: true,
   allOn: true,
   asks: false,
@@ -109,6 +110,16 @@ describe("the keeper of AGENTS", () => {
     render(<AgentsKeeper />);
     await waitFor(() => expect(sent("agents_round")).toHaveLength(1), { timeout: 2000 });
     await waitFor(() => expect(desk.setError).toHaveBeenCalled());
+  });
+
+  it("tells the rest of the window once a round is done", async () => {
+    const heard = vi.fn();
+    window.addEventListener(AGENTS_CHANGED, heard);
+    ipc.answer = (cmd) => Promise.resolve(cmd === "agents_round" ? { both: [] } : false);
+    desk.papers = { folders: agents, docs: [doc("x", "claude")] };
+    render(<AgentsKeeper />);
+    await waitFor(() => expect(heard).toHaveBeenCalled(), { timeout: 2000 });
+    window.removeEventListener(AGENTS_CHANGED, heard);
   });
 
   it("opens when Settings asks, and tells the rest of the window once it closes", async () => {
