@@ -119,13 +119,11 @@ export default function AgentCard({
   // Words still waiting to be saved land first, so the document the file comes over is the one on the page.
   const bring = (place: Place) =>
     Promise.resolve(onSettle())
-      .then(() => agentBring(file, place.at))
+      .then(() => agentBring(file, place.at, doc.print))
       .then(() => (showing.current === file ? onTaken() : undefined))
-      .then(() => {
-        papersChanged();
-        done();
-      })
-      .catch(failed);
+      .then(papersChanged)
+      .catch(failed)
+      .finally(done);
   // Each action asks first, and a refusal anywhere along the way is shown, never left unheard.
   const asked = (said: string, then: () => Promise<unknown>) =>
     sure(said)

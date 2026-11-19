@@ -430,7 +430,16 @@ fn bringing_a_file_in_rewrites_the_document_and_a_second_bring_is_refused() {
     let one = placed.iter().find(|one| one.files.contains(&file)).unwrap();
     let brought = agents::bring(&ledger, &one.target, 0).unwrap();
     let bring = |session: &mut Session| {
-        crate::answers::agent_docs::kept_in(session, Some(&room.homes), &file, &brought, "claude")
+        crate::answers::agent_docs::kept_in(
+            session,
+            Some(&room.homes),
+            crate::answers::agent_docs::Brought {
+                file: &file,
+                body: &brought,
+                by: "claude",
+                seen: None,
+            },
+        )
     };
     bring(&mut room.session).unwrap();
     assert!(bodies(&room.session)[0].1.contains("Tests last."));
@@ -799,4 +808,87 @@ fn writing_anyway_approves_only_what_the_page_was_opened_on() {
         room.read(".claude/CLAUDE.md"),
         "# Claude\nTests first, always.\n"
     );
+}
+
+#[test]
+fn bringing_the_file_in_never_takes_away_words_written_after_the_card_was_drawn() {
+    use crate::answers::agent_docs::{Brought, kept_in};
+    let mut room = room();
+    room.bring(&[".claude/CLAUDE.md"]);
+    let (file, body) = bodies(&room.session)[0].clone();
+    let drawn = tisty_core::docs::print_of_text(&body);
+    put(
+        &room.home.join(".claude/CLAUDE.md"),
+        "# Claude\nTests last.\n",
+    );
+    let typed = body.replace("Tests first.", "Tests first, just typed.");
+    rewritten(&mut room.session, &file, &typed).unwrap();
+
+    let from_file = body.replace("Tests first.", "Tests last.");
+    let brought = Brought {
+        file: &file,
+        body: &from_file,
+        by: "claude",
+        seen: Some(&drawn),
+    };
+    let refused = kept_in(&mut room.session, Some(&room.homes), brought).unwrap_err();
+    assert_eq!(refused.code, "agentDocChanged");
+    assert!(bodies(&room.session)[0].1.contains("just typed"));
+}
+
+#[test]
+fn what_the_person_let_in_here_stays_applied_after_another_computer_approves_a_change() {
+    let mut room = room();
+    room.bring(&[".claude/CLAUDE.md"]);
+    let mut ledger = Ledger::open(room.session.paths.data(), HERE);
+    round_now(&room.session, &room.homes, &mut ledger);
+    let (file, body) = bodies(&room.session)[0].clone();
+    assert!(Ledger::open(room.session.paths.data(), HERE).took(&file));
+
+    let changed = body.replace("Tests first.", "Tests from the laptop.");
+    tisty_core::docs::write(&room.session.paths.docs(), &file, &changed).unwrap();
+    let id = room
+        .session
+        .state
+        .docs
+        .values()
+        .find(|one| one.file == file)
+        .unwrap()
+        .id;
+    let laptop = tisty_core::DeviceId(tisty_core::config::new_device_id());
+    tisty_core::Store::open(room.session.paths.store(), laptop)
+        .unwrap()
+        .append(Op::DocSaid {
+            id,
+            d: tisty_core::event::Said::of(&changed).agreed(),
+        })
+        .unwrap();
+    room.session.reload().unwrap();
+
+    round_now(&room.session, &room.homes, &mut ledger);
+    assert_eq!(
+        room.read(".claude/CLAUDE.md"),
+        "# Claude\nTests from the laptop.\n"
+    );
+}
+
+#[test]
+fn a_document_an_import_left_here_unapproved_waits_and_is_never_taken() {
+    let mut room = room();
+    room.bring(&[".claude/CLAUDE.md"]);
+    let file = made_in_the_window(&mut room);
+    let body = agents::doc_of(
+        agents::GLOBAL,
+        agents::Kind::Rule,
+        "style.md",
+        b"Spanish.\n",
+    )
+    .unwrap();
+    tisty_core::docs::write(&room.session.paths.docs(), &file, &body).unwrap();
+    room.session.retell(&file, &body, None);
+
+    let mut ledger = Ledger::open(room.session.paths.data(), HERE);
+    round_now(&room.session, &room.homes, &mut ledger);
+    assert_eq!(room.read(".claude/CLAUDE.md"), "# Claude\nTests first.\n");
+    assert!(!Ledger::open(room.session.paths.data(), HERE).took(&file));
 }

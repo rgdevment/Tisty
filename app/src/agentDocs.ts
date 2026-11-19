@@ -94,15 +94,15 @@ export const carded = (body: string): boolean => {
 
 export const agentDoc = (file: string): Promise<AgentDoc | null> => invoke("agent_doc", { file });
 type Asked =
-  | { do: "bring" }
+  | { do: "bring"; print: string }
   | { do: "held"; backup: number | null }
   | { do: "restore"; backup: number };
 
 const agentDo = (file: string, at: string, asked: Asked): Promise<string | null> =>
   invoke("agent_doc", { file, at, asked });
 
-export const agentBring = (file: string, at: string): Promise<void> =>
-  agentDo(file, at, { do: "bring" }).then(() => undefined);
+export const agentBring = (file: string, at: string, print: string): Promise<void> =>
+  agentDo(file, at, { do: "bring", print }).then(() => undefined);
 export const agentHeld = (file: string, at: string, backup: number | null): Promise<string> =>
   agentDo(file, at, { do: "held", backup }).then((text) => text ?? "");
 export const agentRestore = (file: string, at: string, backup: number): Promise<void> =>

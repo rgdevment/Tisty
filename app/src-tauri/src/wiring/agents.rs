@@ -5,9 +5,9 @@ use tisty_core::agents::{Admitted, Card, GLOBAL, Gate, Kind, Ledger, Place as Sp
 
 use super::places::var;
 
-pub const ICON: &str = "robot";
+pub const ICON: &str = tisty_core::agents::ICON;
 pub const HUE: &str = "purple";
-pub const FOLDER: &str = "AGENTS";
+pub const FOLDER: &str = tisty_core::agents::FOLDER;
 pub const GLOBAL_FOLDER: &str = "Global";
 
 const SHARED_SKILLS_OWNERS: [&str; 3] = ["codex", "copilot", "gemini"];

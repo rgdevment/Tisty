@@ -358,7 +358,10 @@ pub(crate) fn card_of(
 #[serde(rename_all = "camelCase", tag = "do")]
 pub enum Asked {
     /// The document as the file now says it, written in through the core so its history keeps what it said.
-    Bring,
+    Bring {
+        #[serde(default)]
+        print: Option<String>,
+    },
     /// What the file holds now, or one of its backups, as text to look at.
     Held {
         backup: Option<u64>,
@@ -384,7 +387,7 @@ pub(crate) fn done(
 ) -> Answer<Option<String>> {
     match *asked {
         Asked::Held { backup: None } if !ledger.consented() => Err(Refused::NoConsent),
-        Asked::Bring => agents::bring(ledger, target, piece).map(Some),
+        Asked::Bring { .. } => agents::bring(ledger, target, piece).map(Some),
         Asked::Held { backup: Some(n) } => {
             agents::read_kept(data, &target.at, n).map(|bytes| Some(text(&bytes)))
         }
@@ -413,33 +416,53 @@ fn text(bytes: &[u8]) -> String {
 fn done_at(session: &Mutex<Session>, file: &str, at: &str, asked: Asked) -> Answer<Option<String>> {
     let (data, target, piece) = one_place(&held(session), file, at)?;
     // What writes waits for any sync round, which writes the same files under the lock.
-    let mut writing = matches!(asked, Asked::Restore { .. } | Asked::Bring).then(|| held(session));
+    let mut writing =
+        matches!(asked, Asked::Restore { .. } | Asked::Bring { .. }).then(|| held(session));
     match (
         done(&data, &ledger(&data), &target, piece, &asked)?,
         writing.as_deref_mut(),
+        &asked,
     ) {
-        (Some(body), Some(session)) if asked == Asked::Bring => kept_in(
+        (Some(body), Some(session), Asked::Bring { print }) => kept_in(
             session,
             Homes::here().as_ref(),
-            file,
-            &body,
-            &target.assistant,
+            Brought {
+                file,
+                body: &body,
+                by: &target.assistant,
+                seen: print.as_deref(),
+            },
         ),
-        (told, _) => Ok(told),
+        (told, _, _) => Ok(told),
     }
 }
 
 // Brought words are written as the assistant whose file they come from, so the history keeps what the
 // document said before, and a round settles the file at once.
+pub(crate) struct Brought<'a> {
+    pub(crate) file: &'a str,
+    pub(crate) body: &'a str,
+    pub(crate) by: &'a str,
+    pub(crate) seen: Option<&'a str>,
+}
+
 pub(crate) fn kept_in(
     session: &mut Session,
     homes: Option<&Homes>,
-    file: &str,
-    body: &str,
-    by: &str,
+    brought: Brought,
 ) -> Answer<Option<String>> {
+    let Brought {
+        file,
+        body,
+        by,
+        seen,
+    } = brought;
     let was = tisty_core::docs::read(&session.paths.docs(), file)
         .map_err(|e| Refusal::about("cannotWrite", e.to_string()))?;
+    // Words written after the card was drawn are never brought over unseen.
+    if seen.is_some_and(|seen| tisty_core::docs::print_of_text(&was) != seen) {
+        return Err(Refusal::of("agentDocChanged"));
+    }
     if tisty_core::docs::unchanged(&was, body) {
         return Err(Refusal::of("agentBringSame"));
     }

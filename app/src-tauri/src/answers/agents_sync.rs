@@ -21,33 +21,11 @@ fn homes() -> Answer<Homes> {
 }
 
 pub fn root_of(state: &State) -> Option<FolderId> {
-    state
-        .folders
-        .values()
-        .filter(|one| {
-            one.parent.is_none()
-                && !one.archived
-                && one.icon.as_deref() == Some(places::ICON)
-                && one.name == places::FOLDER
-        })
-        .map(|one| one.id)
-        .min()
+    agents::root_of(state)
 }
 
 fn tree(state: &State, root: FolderId) -> BTreeSet<FolderId> {
-    let mut all = BTreeSet::from([root]);
-    loop {
-        let more: Vec<FolderId> = state
-            .folders
-            .values()
-            .filter(|one| one.parent.is_some_and(|up| all.contains(&up)) && !all.contains(&one.id))
-            .map(|one| one.id)
-            .collect();
-        if more.is_empty() {
-            return all;
-        }
-        all.extend(more);
-    }
+    agents::tree(state, root)
 }
 
 fn docs_in<'a>(state: &'a State, tree: &BTreeSet<FolderId>) -> Vec<&'a Kept> {
@@ -388,7 +366,11 @@ fn led_in(
 }
 
 pub(crate) fn round_now(session: &Session, homes: &Homes, ledger: &mut Ledger) -> Rounded {
-    let placed = places::targets(homes, &gated(session, ledger), ledger);
+    let gate = gated(session, ledger);
+    if ledger.taken_all(gate.admitted().iter().map(agents::Admitted::file)) {
+        let _ = ledger.keep(session.paths.data());
+    }
+    let placed = places::targets(homes, &gate, ledger);
     rounded(session.paths.data(), ledger, &placed)
 }
 

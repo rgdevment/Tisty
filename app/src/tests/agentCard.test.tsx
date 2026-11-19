@@ -129,7 +129,7 @@ describe("an agent document's card", () => {
     expect(sent("agent_doc")[0].args).toEqual({
       file: "claude-rule.md",
       at: AT,
-      asked: { do: "bring" },
+      asked: { do: "bring", print: "p1" },
     });
   });
 
@@ -166,7 +166,7 @@ describe("an agent document's card", () => {
     expect(screen.getByRole("alert").textContent).toMatch(/both changed/);
     await userEvent.click(screen.getByRole("button", { name: "Keep the file's version" }));
     await waitFor(() => expect(on.onTaken).toHaveBeenCalled());
-    expect(sent("agent_doc")[0].args).toMatchObject({ asked: { do: "bring" } });
+    expect(sent("agent_doc")[0].args).toMatchObject({ asked: { do: "bring", print: "p1" } });
   });
 
   it("shows the file as it is now and closes it", async () => {

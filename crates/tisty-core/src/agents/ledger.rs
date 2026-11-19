@@ -111,6 +111,13 @@ impl Ledger {
         into.insert(file.to_string());
     }
 
+    // What the person's hand let in here stays taken after another computer is the last to approve it.
+    pub fn taken_all<'a>(&mut self, files: impl IntoIterator<Item = &'a str>) -> bool {
+        let before = self.took.len();
+        self.took.extend(files.into_iter().map(str::to_string));
+        self.took.len() != before
+    }
+
     pub fn took(&self, file: &str) -> bool {
         self.took.contains(file)
     }

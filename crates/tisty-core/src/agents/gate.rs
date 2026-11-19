@@ -108,7 +108,7 @@ pub fn gate(asked: &Asked) -> Gate {
     let Some(root) = asked.root else {
         return gate;
     };
-    let tree = tree(asked.state, root);
+    let tree = super::tree(asked.state, root);
     for kept in asked.state.docs.values() {
         if kept.task_of.is_some() || !kept.folder.is_some_and(|at| tree.contains(&at)) {
             continue;
@@ -128,22 +128,6 @@ pub fn gate(asked: &Asked) -> Gate {
         .map(str::to_string)
         .collect();
     gate
-}
-
-fn tree(state: &State, root: FolderId) -> BTreeSet<FolderId> {
-    let mut all = BTreeSet::from([root]);
-    loop {
-        let more: Vec<FolderId> = state
-            .folders
-            .values()
-            .filter(|one| one.parent.is_some_and(|up| all.contains(&up)) && !all.contains(&one.id))
-            .map(|one| one.id)
-            .collect();
-        if more.is_empty() {
-            return all;
-        }
-        all.extend(more);
-    }
 }
 
 fn weighed(asked: &Asked, kept: &Kept) -> (Seen, Option<Admitted>, bool) {
@@ -185,7 +169,7 @@ fn admitted(
         return (Seen::DeclinedHere, None);
     }
     let agreed_here = kept.agreed_by.as_ref() == Some(*me);
-    if !(ledger.took(&kept.file) || made_here || agreed_here) {
+    if !(ledger.took(&kept.file) || agreed_here) {
         return (Seen::WaitingHere, None);
     }
     let admitted = Admitted {
