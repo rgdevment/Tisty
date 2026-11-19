@@ -49,6 +49,7 @@ pub struct State {
     pub forebears: BTreeSet<String>,
     pub persons: crate::person::Persons,
     pub diary_open: bool,
+    pub agent_notes: BTreeMap<DocId, crate::model::AgentNote>,
     pub(crate) fill: Fill,
     pub(crate) tombstones: BTreeSet<Ulid>,
 }
@@ -455,17 +456,9 @@ impl State {
             Op::IdeaUnflag { id, idea } => {
                 self.doc_marked(id, |doc| doc.ideas_flagged.retain(|one| one.idea != *idea))
             }
-            Op::DocCompacted { id, print, before } => {
-                let said = crate::model::Compacted {
-                    at: event.timestamp,
-                    by: event.device.clone(),
-                    via: event.via.clone(),
-                    print: print.clone(),
-                    before: before.clone(),
-                };
-                self.doc_marked(id, |doc| doc.compacted = Some(said));
-            }
+            Op::DocCompacted { id, print, before } => self.doc_compacted(event, id, print, before),
             Op::DocUncompacted { id } => self.doc_marked(id, |doc| doc.compacted = None),
+            Op::DocGist { id, d } => self.gist_said(event, id, d),
             Op::DeviceJoin { d, k, p } => self.device_joined(event, d, k, p),
             Op::DeviceKey { d, p } => self.key_published(event, d, p),
             Op::DeviceRotate { d, p } => {

@@ -339,7 +339,7 @@ fn undoing(event: &Event, before: &State) -> Option<Op> {
         }
 
         Op::DocTongue { id, .. } => untongued(*id, before),
-        Op::DocSigned { .. } | Op::DiaryAgents { .. } => None,
+        Op::DocSigned { .. } | Op::DiaryAgents { .. } | Op::DocGist { .. } => None,
         Op::DocArchive { id } => Some(Op::DocUnarchive { id: *id }),
         Op::DocUnarchive { id } => Some(Op::DocArchive { id: *id }),
         Op::FolderArchive { id } => Some(Op::FolderUnarchive { id: *id }),

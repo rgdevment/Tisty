@@ -215,7 +215,7 @@ pub(in crate::mcp) fn outlined(
                 if !card.keywords.is_empty() {
                     row.insert("about".into(), json!(card.keywords));
                 }
-                if let Some(said) = gist_of(held.as_ref(), &one.file, &card.print) {
+                if let Some(said) = gist_of(state, held.as_ref(), one, &card.print) {
                     row.insert("gist".into(), shortened(said));
                 }
             }
@@ -291,7 +291,7 @@ pub(in crate::mcp) fn outlined(
     if card.links > 0 {
         kept_of.insert("links".into(), json!(card.links));
     }
-    if let Some(said) = gist_of(held.as_ref(), &which, &card.print) {
+    if let Some(said) = gist_of(state, held.as_ref(), kept, &card.print) {
         kept_of.insert("gist".into(), json!(said));
     }
     if let Some(up) = kept.page_of.and_then(|up| named_doc(state, up)) {

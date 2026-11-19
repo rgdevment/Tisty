@@ -482,6 +482,17 @@ impl Person {
         }]);
     }
 
+    pub fn leaves_an_agent_s_note(&self) {
+        self.wrote(vec![Op::DocGist {
+            id: Ulid::generate(),
+            d: tisty_core::event::Gist {
+                print: "print".into(),
+                summary: "what the document says".into(),
+                notes: String::new(),
+            },
+        }]);
+    }
+
     pub fn names_who_signs_and_seals(&self) {
         let root = tisty_share_proto::identity::Root::from_bytes(&[3; 32]);
         let key = tisty_share_proto::identity::ShareKey::from_bytes(&[4; 32]);

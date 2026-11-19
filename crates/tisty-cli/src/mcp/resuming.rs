@@ -324,6 +324,10 @@ impl Moving {
 }
 
 fn moving(state: &State, owners: &BTreeMap<String, TaskId>, event: &Event) -> Option<Moving> {
+    // An agent's note leaves the document as it was.
+    if matches!(event.op, Op::DocGist { .. }) {
+        return None;
+    }
     let (named, id) = what_it_touched(event)?;
     if let Some(task) = touched_task(state, owners, &named, &id) {
         return state

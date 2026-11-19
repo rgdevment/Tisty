@@ -1410,3 +1410,50 @@ fn the_diary_s_door_survives_the_cache_whether_built_whole_or_advanced_by_a_writ
         assert_eq!(opened.diary_open, open, "the cache kept an old door");
     }
 }
+
+#[test]
+fn an_agent_s_note_survives_the_cache_whether_built_whole_or_advanced_by_a_write() {
+    let f = loaded();
+    let mut store = Store::open(&f.store_root, DeviceId("dev_a".into())).unwrap();
+    let doc = Ulid::generate();
+    store
+        .append(Op::DocAdd {
+            id: doc,
+            d: crate::event::DocAdd {
+                wrote: None,
+                guest: false,
+                sown: false,
+                made: None,
+                by: None,
+                said: None,
+                file: "a3f1-0001".into(),
+                order: "a0".into(),
+                folder: None,
+                page_of: None,
+                task_of: None,
+                edited: None,
+            },
+        })
+        .unwrap();
+    let said = |summary: &str| Op::DocGist {
+        id: doc,
+        d: crate::event::Gist {
+            print: "print".into(),
+            summary: summary.into(),
+            notes: String::new(),
+        },
+    };
+    store.append(said("built whole")).unwrap();
+    project(&f.store_root, &f.cache_dir).unwrap();
+    let whole = project(&f.store_root, &f.cache_dir).unwrap();
+    assert_eq!(whole.agent_notes[&doc].summary, "built whole");
+
+    let mut cache = Cache::open(&f.cache_dir).unwrap();
+    let mut state = whole;
+    let note = store.append(said("advanced by a write")).unwrap();
+    state.apply(&note);
+    advance(cache.as_mut(), &state, &[note], &f.store_root, false);
+
+    let advanced = project(&f.store_root, &f.cache_dir).unwrap();
+    assert_eq!(advanced.agent_notes[&doc].summary, "advanced by a write");
+}

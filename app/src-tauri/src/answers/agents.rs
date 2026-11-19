@@ -63,6 +63,7 @@ pub fn hands(
     for event in events
         .iter()
         .filter(|one| assistants.contains(&one.device) && one.entity_id().is_some())
+        .filter(|one| !matches!(one.op, Op::DocGist { .. }))
     {
         let key = event.via.as_deref().map(|via| {
             tisty_core::agent::client_id(via).map_or_else(|| via.to_lowercase(), str::to_string)
@@ -194,3 +195,7 @@ pub fn opened_by_default(session: &mut Session) {
         ),
     }
 }
+
+#[cfg(test)]
+#[path = "agents_test.rs"]
+mod tests;

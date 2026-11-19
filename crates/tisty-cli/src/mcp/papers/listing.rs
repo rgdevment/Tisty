@@ -110,7 +110,7 @@ pub(in crate::mcp) fn docs(paths: &Paths, args: &Value) -> Result<Value, Refused
                 kept_of.insert("wrote".into(), json!(at.to_string()));
             }
             if let Some(card) = card
-                && let Some(said) = gist_of(held.as_ref(), &one.file, &card.print)
+                && let Some(said) = gist_of(&state, held.as_ref(), one, &card.print)
             {
                 kept_of.insert("gist".into(), json!(shortened(said)));
             }

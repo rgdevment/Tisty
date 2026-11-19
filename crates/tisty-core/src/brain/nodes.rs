@@ -52,6 +52,17 @@ pub(super) fn nodes<'a>(
             "open"
         };
         let told = serde_json::to_string(kept).unwrap_or_default();
+        let leaned_on = ground.leaned_on(kept);
+        let noted = agent_note(state, kept);
+        let mut parts = vec![
+            told.as_str(),
+            docs.told(&kept.file),
+            group.as_deref().unwrap_or_default(),
+            standing,
+            ground.sheet(),
+            &leaned_on,
+        ];
+        parts.extend(noted.as_deref());
         all.insert(
             kept.file.clone(),
             Node {
@@ -60,14 +71,7 @@ pub(super) fn nodes<'a>(
                     None => Kind::Doc,
                 },
                 title: kept.title.clone().unwrap_or_else(|| kept.file.clone()),
-                stamp: stamped(&[
-                    &told,
-                    docs.told(&kept.file),
-                    group.as_deref().unwrap_or_default(),
-                    standing,
-                    ground.sheet(),
-                    &ground.leaned_on(kept),
-                ]),
+                stamp: stamped(&parts),
                 group,
                 standing: Some(standing),
                 uid: Some(kept.id.to_string()),
@@ -150,6 +154,18 @@ pub(super) fn zones(state: &State) -> BTreeMap<String, String> {
         .values()
         .map(|list| (list.id.to_string(), list.name.clone()));
     folders.chain(lists).collect()
+}
+
+pub(super) fn noted(state: &State, node: &Node) -> Option<String> {
+    match node.holder {
+        Holder::Doc(kept) => agent_note(state, kept),
+        Holder::Task(_) | Holder::Nothing => None,
+    }
+}
+
+fn agent_note(state: &State, kept: &Kept) -> Option<String> {
+    let note = state.agent_notes.get(&kept.id)?;
+    serde_json::to_string(note).ok()
 }
 
 // A page lives in its book's folder whatever its own record says.

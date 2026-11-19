@@ -169,7 +169,7 @@ What an assistant writes is signed with the name of the program it spoke through
 
 Tisty keeps a small card for each document — its headings, how long it is, what it leans on — worked out from the text itself, on this machine, and never sent anywhere. An assistant reads that card to pick the document it needs, then asks for only the part it wants, or changes that part without reading the rest. A long document is not poured into a model because an assistant wanted one paragraph of it.
 
-Having read a document, it can leave a short summary for the next assistant — kept on this machine, never synced, and not part of what you wrote.
+Having read a document, it can leave a short summary for the next assistant. It travels to your other computers with everything else, so an assistant there finds it too, but you never see it, it never goes to Folio, and it is not part of what you wrote.
 
 Tisty knows what each answer costs, and keeps cutting it. Measured on a 256 KB Markdown work log, against an agent that rereads the whole file every session:
 

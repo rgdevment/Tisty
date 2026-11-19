@@ -59,7 +59,7 @@ fn the_instructions_an_agent_reads_when_it_connects() {
     insta::assert_snapshot!(kept);
 }
 
-const DOOR_AT_MOST: usize = 40_350;
+const DOOR_AT_MOST: usize = 40_348;
 const DOOR_SLACK: usize = 1_000;
 
 #[test]
@@ -85,9 +85,9 @@ fn what_an_agent_pays_to_have_tisty_connected_only_shrinks() {
 }
 
 #[test]
-fn brain_and_read_stay_within_the_weight_each_was_given() {
+fn brain_read_and_sum_up_stay_within_the_weight_each_was_given() {
     let said = ask(&[request("tools/list", &json!({}))]);
-    for (name, at_most) in [("brain", 3_800), ("read", 2_140)] {
+    for (name, at_most) in [("brain", 3_800), ("read", 2_140), ("sum_up", 900)] {
         let tool = said[0]["result"]["tools"]
             .as_array()
             .unwrap()

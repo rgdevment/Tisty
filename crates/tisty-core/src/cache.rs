@@ -10,7 +10,7 @@ use crate::{
 };
 
 /// Tied to the event schema: an older build then misses the cache and meets the version guard.
-const SCHEMA: i64 = crate::event::SCHEMA_VERSION as i64 + 32;
+const SCHEMA: i64 = crate::event::SCHEMA_VERSION as i64 + 33;
 
 pub struct Cache {
     db: Connection,
@@ -59,7 +59,8 @@ impl Cache {
                  DROP TABLE IF EXISTS tombstone;
                  DROP TABLE IF EXISTS paper;
                  DROP TABLE IF EXISTS kept;
-                 DROP TABLE IF EXISTS holder;",
+                 DROP TABLE IF EXISTS holder;
+                 DROP TABLE IF EXISTS agent_note;",
             )
         {
             witness::warn(
@@ -83,6 +84,7 @@ impl Cache {
                      id TEXT PRIMARY KEY,
                      sha256 TEXT NOT NULL,
                      bytes INTEGER NOT NULL);
+                 CREATE TABLE IF NOT EXISTS agent_note(id TEXT PRIMARY KEY, said TEXT NOT NULL);
                  CREATE TABLE IF NOT EXISTS holder(
                      id TEXT NOT NULL,
                      device TEXT NOT NULL,
@@ -144,6 +146,36 @@ impl Cache {
         held
     }
 
+    // Read back whole or not at all: one row lost would read as a note never written.
+    fn every_agent_note(
+        &self,
+    ) -> Option<std::collections::BTreeMap<crate::model::DocId, crate::model::AgentNote>> {
+        let mut asked = self.db.prepare("SELECT id, said FROM agent_note").ok()?;
+        let rows = asked
+            .query_map([], |row| {
+                Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
+            })
+            .ok()?;
+        rows.map(|one| {
+            let (id, said) = one.ok()?;
+            Some((id.parse().ok()?, serde_json::from_str(&said).ok()?))
+        })
+        .collect()
+    }
+
+    fn agent_note_carried(&self, state: &State, entity: ulid::Ulid) -> rusqlite::Result<()> {
+        if let Some(note) = state.agent_notes.get(&entity) {
+            self.db.execute(
+                "INSERT OR REPLACE INTO agent_note VALUES (?,?)",
+                rusqlite::params![
+                    entity.to_string(),
+                    serde_json::to_string(note).unwrap_or_default()
+                ],
+            )?;
+        }
+        Ok(())
+    }
+
     pub fn load(&self, fingerprint: &str, bodies: bool) -> Option<State> {
         if self.meta("schema")? != SCHEMA.to_string() || self.meta("fingerprint")? != fingerprint {
             return None;
@@ -180,6 +212,7 @@ impl Cache {
             .unwrap_or_default();
         state.kept = self.every_kept();
         state.holders = self.every_holder();
+        state.agent_notes = self.every_agent_note()?;
         state.agents = self
             .meta("agents")
             .and_then(|said| serde_json::from_str(&said).ok())
@@ -335,6 +368,7 @@ impl Cache {
             tx.execute("DELETE FROM tombstone", [])?;
             tx.execute("DELETE FROM kept", [])?;
             tx.execute("DELETE FROM holder", [])?;
+            tx.execute("DELETE FROM agent_note", [])?;
             {
                 let mut task = tx.prepare("INSERT INTO task VALUES (?,?)")?;
                 let mut body = tx.prepare("INSERT INTO task_body VALUES (?,?)")?;
@@ -371,6 +405,11 @@ impl Cache {
                     for one in who {
                         whose.execute(rusqlite::params![at, one.0])?;
                     }
+                }
+                let mut noted = tx.prepare("INSERT INTO agent_note VALUES (?,?)")?;
+                for (id, note) in &state.agent_notes {
+                    let said = serde_json::to_string(note).unwrap_or_default();
+                    noted.execute(rusqlite::params![id.to_string(), said])?;
                 }
             }
             {
@@ -442,6 +481,7 @@ impl Cache {
             return Ok(());
         }
         let carried = (|| -> rusqlite::Result<()> {
+            self.agent_note_carried(state, entity)?;
             let id = entity.to_string();
             if let Some(folder) = state.folders.get(&entity) {
                 let doc = serde_json::to_string(folder).unwrap_or_default();
