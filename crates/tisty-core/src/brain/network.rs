@@ -9,6 +9,8 @@ use crate::{Paths, State, Task};
 
 // A tie travels as its place in this list, so the window reads the numbers in this order.
 pub const TIES: [&str; 5] = ["cite", "mention", "structure", "tag", "uses"];
+// A guess travels with its method as its place in this list.
+pub const GUESSED_BY: [&str; 2] = ["words", "meaning"];
 pub const NODES_AT_MOST: usize = 12_000;
 pub const EDGES_AT_MOST: usize = 40_000;
 
@@ -42,7 +44,14 @@ pub struct Network {
     pub near: Option<u32>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub left_out: Option<LeftOut>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub alike: Vec<Guess>,
 }
+
+// Both ends, the score in thousandths, the method and the shared words: Tisty's guess, apart from what anyone wrote.
+pub type Guess = (u32, u32, u16, u8, String);
+
+type Guessed = (String, String, f64, String, String);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 struct Caps {
@@ -98,8 +107,26 @@ impl Brain {
                 ties.push(row?);
             }
         }
+        let mut guessed: Vec<Guessed> = Vec::new();
+        {
+            let mut asked = tx.prepare("SELECT a, b, score, method, shared FROM alike")?;
+            let rows = asked.query_map([], |row| {
+                Ok((
+                    row.get(0)?,
+                    row.get(1)?,
+                    row.get(2)?,
+                    row.get(3)?,
+                    row.get(4)?,
+                ))
+            })?;
+            for row in rows {
+                guessed.push(row?);
+            }
+        }
         drop(tx);
-        Ok(Some(woven(held, &ties, near, CAPS)))
+        let mut network = woven(held, &ties, near, CAPS);
+        network.alike = guesses(&network.nodes, &guessed);
+        Ok(Some(network))
     }
 }
 
@@ -305,7 +332,26 @@ fn renumbered(
         nodes,
         edges,
         left_out,
+        alike: Vec::new(),
     }
+}
+
+// A guess shows only between two nodes in sight, so the gate and the caps that kept them decide it too.
+fn guesses(nodes: &[Neuron], guessed: &[Guessed]) -> Vec<Guess> {
+    let at: HashMap<&str, u32> = nodes
+        .iter()
+        .enumerate()
+        .filter_map(|(n, one)| Some((one.id.as_str(), u32::try_from(n).ok()?)))
+        .collect();
+    guessed
+        .iter()
+        .filter_map(|(a, b, score, method, shared)| {
+            let (&from, &to) = (at.get(a.as_str())?, at.get(b.as_str())?);
+            let by = GUESSED_BY.iter().position(|one| one == method)?;
+            let thousandths = (score.clamp(0.0, 1.0) * 1000.0).round() as u16;
+            (from != to).then(|| (from, to, thousandths, by as u8, shared.clone()))
+        })
+        .collect()
 }
 
 // A tag or a file stands for what holds it, so one whose holders are all out of sight goes too.

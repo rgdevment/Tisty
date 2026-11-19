@@ -26,6 +26,9 @@ const INCOMING: &str = "SELECT e.kind, n.id, n.kind, n.title, n.state, c.said
 const TITLES_AIMED: &str = "SELECT DISTINCT substr(target, 3) FROM edge
     WHERE source = ?1 AND kind = 'mention' AND substr(target, 1, 2) = '[['
     ORDER BY 1";
+const GUESSED: &str = "SELECT b, score, method, shared FROM alike WHERE a = ?1
+    UNION ALL SELECT a, score, method, shared FROM alike WHERE b = ?1
+    ORDER BY 2 DESC, 1";
 pub(super) const CARRYING: &str =
     "SELECT id, kind, title, state FROM node WHERE kind IN ('doc', 'page') AND title = ?1";
 
@@ -50,6 +53,8 @@ pub struct Card {
     pub facts: Facts,
     #[serde(flatten)]
     pub around: Around,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub guessed: Vec<Guessed>,
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub decisions: Vec<Decision>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -126,6 +131,20 @@ pub struct Near {
     pub title: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub state: Option<String>,
+}
+
+// Tisty's guess, apart from what anyone wrote: the words both share, or none when they are alike in sense alone.
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct Guessed {
+    pub id: String,
+    pub kind: String,
+    pub title: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub state: Option<String>,
+    pub score: f64,
+    pub by: String,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub shared: Vec<String>,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Serialize)]
@@ -215,11 +234,16 @@ impl Brain {
                 .optional()?,
             None => None,
         };
-        match row.kind.as_str() {
-            "task" => reader.task(row, &said, zone, today),
-            "doc" | "page" => reader.doc(row, &said, zone),
-            _ => Ok(None),
-        }
+        let card = match row.kind.as_str() {
+            "task" => reader.task(row, &said, zone, today)?,
+            "doc" | "page" => reader.doc(row, &said, zone)?,
+            _ => None,
+        };
+        card.map(|mut card| {
+            card.guessed = reader.guessed(&card.id)?;
+            Ok(card)
+        })
+        .transpose()
     }
 }
 
@@ -410,6 +434,36 @@ impl<F: Fn(&str) -> bool> Reader<'_, F> {
             .collect())
     }
 
+    // Both ends pass the gate, or the guess is not there: a hidden task is never named through it.
+    fn guessed(&self, id: &str) -> rusqlite::Result<Vec<Guessed>> {
+        let mut asked = self.db.prepare_cached(GUESSED)?;
+        let rows: Vec<(String, f64, String, String)> = asked
+            .query_map([id], |one| {
+                Ok((one.get(0)?, one.get(1)?, one.get(2)?, one.get(3)?))
+            })?
+            .collect::<rusqlite::Result<_>>()?;
+        let mut all = Vec::new();
+        for (other, score, by, shared) in rows {
+            let Some(near) = self.near(&other)? else {
+                continue;
+            };
+            all.push(Guessed {
+                id: near.id,
+                kind: near.kind,
+                title: near.title,
+                state: near.state,
+                score: (score * 100.0).round() / 100.0,
+                by,
+                shared: shared
+                    .split(' ')
+                    .filter(|one| !one.is_empty())
+                    .map(str::to_string)
+                    .collect(),
+            });
+        }
+        Ok(all)
+    }
+
     fn titles_aimed(&self, id: &str) -> rusqlite::Result<Vec<String>> {
         let mut asked = self.db.prepare_cached(TITLES_AIMED)?;
         asked.query_map([id], |one| one.get(0))?.collect()
@@ -490,6 +544,7 @@ fn carded(row: Row, around: Around) -> Card {
         standing: None,
         facts: Facts::Doc(DocFacts::default()),
         around,
+        guessed: Vec::new(),
         decisions: Vec::new(),
         decisions_more: None,
         sections: Vec::new(),

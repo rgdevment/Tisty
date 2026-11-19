@@ -18,11 +18,11 @@ mod own;
 mod reading;
 
 pub use alike::{Alike, Meaning, Passed, Weighing};
-pub use card::{Around, Card, DocFacts, Facts, Near, Section, TaskFacts, Tongue, Used};
+pub use card::{Around, Card, DocFacts, Facts, Guessed, Near, Section, TaskFacts, Tongue, Used};
 pub use decided::Decision;
 pub use network::{
-    EDGES_AT_MOST, LeftOut, NODES_AT_MOST, Network, Neuron, TIES, dates, kept_out, network,
-    touched_last,
+    EDGES_AT_MOST, GUESSED_BY, Guess, LeftOut, NODES_AT_MOST, Network, Neuron, TIES, dates,
+    kept_out, network, touched_last,
 };
 pub use reading::{Citing, Headed, Under, cited_by};
 
