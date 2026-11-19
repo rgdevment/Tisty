@@ -345,6 +345,40 @@ pub fn targets(homes: &Homes, gate: &Gate, ledger: &Ledger) -> Vec<Placed> {
     all
 }
 
+/// The assistant that answers for a file Tisty wrote, and the folder it may write in.
+pub fn owner_of(homes: &Homes, at: &Path) -> Option<(&'static str, PathBuf)> {
+    let detected = homes.detected();
+    if at.starts_with(homes.shared()) {
+        return homes.shared_owner(&detected).map(|id| (id, homes.shared()));
+    }
+    detected.into_iter().find_map(|one| {
+        homes
+            .root(one.id)
+            .filter(|root| at.starts_with(root))
+            .map(|root| (one.id, root))
+    })
+}
+
+// The agent writes its memory itself, so Tisty never offers to take it away.
+pub fn agents_own(homes: &Homes, at: &Path) -> bool {
+    let gemini = homes
+        .root("gemini")
+        .is_some_and(|root| at == root.join(GEMINI_MEMORY));
+    let claude = homes
+        .root("claude")
+        .is_some_and(|root| at.starts_with(root.join("projects")));
+    gemini || claude
+}
+
+/// The file that names a file of Tisty's rules, for the assistant that reads them only through it.
+pub fn lead_of(rules: &Target) -> Option<Target> {
+    (rules.assistant == "gemini" && rules.at == rules.root.join(GEMINI_RULES)).then(|| {
+        let mut lead = rules.clone();
+        lead.at = rules.root.join(GEMINI_MEMORY);
+        lead
+    })
+}
+
 pub fn lead_in_line() -> String {
     format!("@{GEMINI_RULES}")
 }

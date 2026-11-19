@@ -1,5 +1,5 @@
 use super::*;
-use crate::agents::{Admitted, GLOBAL, doc_of, kept as backups, read_kept};
+use crate::agents::{Admitted, GLOBAL, KEPT_AT_MOST, doc_of, kept as backups, read_kept};
 
 struct Room {
     data: tempfile::TempDir,
@@ -690,4 +690,191 @@ fn putting_back_a_backup_the_file_already_holds_leaves_no_new_one() {
     assert_eq!(backups(room.data.path(), &target.at).len(), 2);
     restore(room.data.path(), &room.ledger, &target, 1).unwrap();
     assert_eq!(backups(room.data.path(), &target.at).len(), 2);
+}
+
+#[test]
+fn the_persons_first_file_outlives_every_backup_cap_through_real_rounds() {
+    let mut room = room();
+    let at = ".claude/CLAUDE.md";
+    let original = "# Mine\r\n\r\nWritten by hand.";
+    let first = room.target(at, vec![rule("claude", "CLAUDE.md", original)]);
+    std::fs::create_dir_all(first.at.parent().unwrap()).unwrap();
+    std::fs::write(&first.at, original).unwrap();
+    assert_eq!(
+        room.round(std::slice::from_ref(&first)),
+        [Standing::UpToDate]
+    );
+
+    let edits = KEPT_AT_MOST + 5;
+    for n in 0..edits {
+        let target = room.target(
+            at,
+            vec![
+                rule(GLOBAL, "common.md", &format!("Edit {n}.\n")),
+                rule("claude", "CLAUDE.md", original),
+            ],
+        );
+        assert_eq!(room.round(&[target]), [Standing::Wrote], "edit {n}");
+    }
+
+    let kept = backups(room.data.path(), &first.at);
+    assert_eq!(kept.len(), KEPT_AT_MOST + 1);
+    let pinned = kept.last().unwrap();
+    assert!(pinned.pinned);
+    assert_eq!(
+        read_kept(room.data.path(), &first.at, pinned.n).unwrap(),
+        original.as_bytes()
+    );
+}
+
+#[test]
+fn a_file_brought_after_a_global_rule_takes_the_rule_with_a_backup_of_itself() {
+    let mut room = room();
+    let theirs = "# Codex\n\nTheirs.\n";
+    let mut target = room.target(
+        ".codex/AGENTS.override.md",
+        vec![rule(GLOBAL, "common.md", "Common.\n")],
+    );
+    std::fs::create_dir_all(target.at.parent().unwrap()).unwrap();
+    std::fs::write(&target.at, theirs).unwrap();
+    assert!(matches!(
+        room.round(std::slice::from_ref(&target))[0],
+        Standing::Both { .. }
+    ));
+
+    let brought = piece(&rule("codex", "AGENTS.override.md", theirs));
+    target.put(&brought);
+    assert!(adopted(&mut room.ledger, &target, brought.file()));
+    assert_eq!(standing(&room.ledger, &target), Standing::Write);
+    assert_eq!(room.round(std::slice::from_ref(&target)), [Standing::Wrote]);
+    assert_eq!(read(&target), "Common.\n\n# Codex\n\nTheirs.\n");
+    let kept = backups(room.data.path(), &target.at);
+    assert_eq!(
+        read_kept(room.data.path(), &target.at, kept[0].n).unwrap(),
+        theirs.as_bytes()
+    );
+}
+
+#[test]
+fn only_a_file_still_as_it_was_brought_is_adopted() {
+    let mut room = room();
+    let brought = piece(&rule("codex", "AGENTS.md", "Brought.\n"));
+    let mut target = room.target(".codex/AGENTS.md", vec![]);
+    target.put(&brought);
+    assert!(!adopted(&mut room.ledger, &target, brought.file()));
+
+    std::fs::create_dir_all(target.at.parent().unwrap()).unwrap();
+    std::fs::write(&target.at, "Changed since.\n").unwrap();
+    assert!(!adopted(&mut room.ledger, &target, brought.file()));
+    assert!(!adopted(&mut room.ledger, &target, "another-doc"));
+
+    std::fs::write(&target.at, "Brought.\n").unwrap();
+    room.ledger.settle(&target.at, b"Earlier.\n");
+    assert!(!adopted(&mut room.ledger, &target, brought.file()));
+
+    room.ledger = Ledger::fresh("machine-a");
+    assert!(!adopted(&mut room.ledger, &target, brought.file()));
+    assert!(room.ledger.written(&target.at).is_none());
+}
+
+#[test]
+fn a_file_no_document_places_goes_with_a_backup_and_is_forgotten() {
+    let mut room = room();
+    let placed = room.target(
+        ".claude/rules/style.md",
+        vec![rule("claude", "rules/style.md", "Style.\n")],
+    );
+    room.round(std::slice::from_ref(&placed));
+    let loose = room.target(".claude/rules/style.md", vec![]);
+
+    removed(room.data.path(), &mut room.ledger, &loose).unwrap();
+    assert!(!loose.at.exists());
+    assert!(room.ledger.written(&loose.at).is_none());
+    let kept = backups(room.data.path(), &loose.at);
+    assert_eq!(
+        read_kept(room.data.path(), &loose.at, kept[0].n).unwrap(),
+        b"Style.\n"
+    );
+    removed(room.data.path(), &mut room.ledger, &loose).unwrap();
+}
+
+#[test]
+fn a_file_is_never_taken_away_while_a_document_places_it_or_without_leave() {
+    let mut room = room();
+    let placed = room.target(
+        ".codex/AGENTS.md",
+        vec![rule("codex", "AGENTS.md", "Rules.\n")],
+    );
+    room.round(std::slice::from_ref(&placed));
+    assert_eq!(
+        removed(room.data.path(), &mut room.ledger, &placed),
+        Err(Refused::Held)
+    );
+    let mut held = room.target(".codex/AGENTS.md", vec![]);
+    held.held = true;
+    assert_eq!(
+        removed(room.data.path(), &mut room.ledger, &held),
+        Err(Refused::Held)
+    );
+    let loose = room.target(".codex/AGENTS.md", vec![]);
+    room.ledger.turn("codex", false);
+    assert_eq!(
+        removed(room.data.path(), &mut room.ledger, &loose),
+        Err(Refused::Off)
+    );
+    room.ledger = Ledger::fresh("machine-a");
+    assert_eq!(
+        removed(room.data.path(), &mut room.ledger, &loose),
+        Err(Refused::NoConsent)
+    );
+    assert_eq!(read(&placed), "Rules.\n");
+}
+
+#[test]
+fn a_loose_file_behind_a_link_is_never_taken_away() {
+    let mut room = room();
+    let mut loose = room.target(".codex/AGENTS.md", vec![]);
+    loose.at = room.home.path().join("..").join("AGENTS.md");
+    assert_eq!(
+        removed(room.data.path(), &mut room.ledger, &loose),
+        Err(Refused::Linked)
+    );
+}
+
+#[test]
+fn only_tistys_import_line_leaves_the_agents_own_file() {
+    let room = room();
+    let target = room.target(".gemini/GEMINI.md", vec![]);
+    let line = "@tisty-rules.md";
+    assert!(!leads(&target, line));
+    assert_eq!(
+        lead_out(room.data.path(), &room.ledger, &target, line),
+        Ok(false)
+    );
+    std::fs::create_dir_all(target.at.parent().unwrap()).unwrap();
+    std::fs::write(&target.at, "- likes tea\r\n@tisty-rules.md\r\n- and rain").unwrap();
+    assert!(leads(&target, line));
+
+    assert_eq!(
+        lead_out(room.data.path(), &room.ledger, &target, line),
+        Ok(true)
+    );
+    assert_eq!(read(&target), "- likes tea\r\n- and rain");
+    assert!(!leads(&target, line));
+    assert_eq!(
+        lead_out(room.data.path(), &room.ledger, &target, line),
+        Ok(false)
+    );
+    assert_eq!(backups(room.data.path(), &target.at).len(), 1);
+
+    std::fs::write(&target.at, [0xff, 0xfe]).unwrap();
+    assert_eq!(
+        lead_out(room.data.path(), &room.ledger, &target, line),
+        Err(Refused::NotText)
+    );
+    let stranger = Ledger::fresh("machine-a");
+    assert_eq!(
+        lead_out(room.data.path(), &stranger, &target, line),
+        Err(Refused::NoConsent)
+    );
 }
