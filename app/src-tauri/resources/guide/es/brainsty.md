@@ -42,9 +42,14 @@ En la página de una tarea, **Una tarea nueva** crea una parte de esa tarea, en 
 
 ## La red
 
-**Brainsty**, en la barra lateral bajo las vistas de tareas, abre todo lo que guardas como una sola red. Arranca en lo que estabas mirando y, al cerrarla con `Esc` o **Volver**, la ventana queda tal como estaba.
+**Brainsty**, en la barra lateral bajo las vistas de tareas, abre todo lo que guardas como una sola red, en su propia ventana. Arranca en lo que estabas mirando, y la ventana principal sigue libre al lado: puedes escribir mientras la red se acomoda.
 
-![La red alejada: cada carpeta y cada lista con su color, los documentos como cuadrados, las tareas como círculos y las etiquetas como puntos morados](red.png)
+![La ventana de Brainsty, con su barra de título del sistema, junto a la ventana principal: arriba dice «Brainsty» y la cuenta, «589 nodos · 1252 conexiones», y abajo la red alejada, con cada carpeta y cada lista de su color, los documentos como cuadrados, las tareas como círculos y las etiquetas como puntos morados](red.png)
+
+- **Nunca hay más de una.** Si ya está abierta, otro clic en **Brainsty** solo la trae al frente, tal como la dejaste.
+- **Se acuerda de dónde la pusiste**: su tamaño, su lugar y si estaba maximizada, en cada equipo. Si ese lugar quedó en una pantalla que ya no está conectada, se abre centrada.
+- **Sigue a Tisty**: el tema claro u oscuro y el idioma, también si los cambias con ella abierta.
+- **Al cerrarla no queda nada corriendo.** La red gasta solo mientras la miras. La cierras con su botón de cerrar o con el último `Esc`.
 
 | En la red | Es |
 | --- | --- |
@@ -60,14 +65,15 @@ Las listas y las carpetas no son puntos: son el color y la zona donde se junta l
 
 La red cambia con la distancia. De lejos, con la rueda hacia atrás, sus puntos forman un cerebro visto de lado, sin títulos. A media distancia aparecen las zonas de color. De cerca, todos los títulos, cada tipo de línea, las etiquetas y la miniatura de cada imagen.
 
-![«Rina» elegida de cerca: sus vecinos con título, el resto atenuado y, al lado, la vista previa del documento](red-cerca.png)
+![«Rina» elegida de cerca en la ventana de Brainsty: sus vecinos con título, el resto atenuado y, a la derecha, la vista previa del documento con lo que es, su carpeta y cuántas conexiones tiene, sus primeras líneas, la foto de Rina y el botón Abrir](red-cerca.png)
 
-- **Un clic** en un punto lo resalta con sus vecinos y abre su vista previa; **Abrir**, o un doble clic, lo abre.
+- **Un clic** en un punto lo resalta con sus vecinos y abre su vista previa: las primeras líneas de un documento, con sus fotos, o la tarjeta de una tarea, con su lista, su fecha y cuántos pasos lleva. Los pasos se marcan al abrirla.
+- **Abrir**, o un doble clic, trae al frente la ventana principal y abre ahí el documento, la tarea o la etiqueta. La red queda abierta detrás, para volver a ella. Una imagen o un archivo no se abre desde la red: ábrelo desde lo que lo usa.
 - **Buscar en la red**, arriba, o `/`: escribe parte de un título y `Enter` centra la red en él.
 - **Filtros**, el embudo junto al buscador: qué tipos mostrar, el estado de las tareas, una etiqueta y **Tocado**, para ver solo lo que cambió en los últimos días.
-- **Con el teclado**: las flechas caminan de un punto a su vecino, `Enter` abre y `Esc` suelta, primero la búsqueda, después el punto y al final la red.
+- **Con el teclado**: `Tab` recorre el buscador, los filtros y la red; las flechas caminan de un punto a su vecino, `Enter` abre y `Esc` suelta, primero la búsqueda, después el punto, y el último cierra la ventana.
 
-**Pruébalo:** abre **Brainsty** ahora. La red arranca en esta hoja, con sus vecinos alrededor: la portada de la guía, de la que es página, y lo que la nombra o ella nombra. Busca `uno de cada` y llegas a **Uno de cada cosa**.
+**Pruébalo:** abre **Brainsty** ahora. La red arranca en esta hoja, con sus vecinos alrededor: la portada de la guía, de la que es página, y lo que la nombra o ella nombra. Busca `uno de cada`, `Enter`, y después **Abrir**: **Uno de cada cosa** se abre en esta ventana, con la red esperando detrás. Vuelve a ella con otro clic en **Brainsty**.
 
 ## Lo que lee tu agente
 
@@ -78,6 +84,7 @@ Tu agente lee la misma red, pero como un índice. Con una sola herramienta, `bra
 - **Todo queda en este equipo.** La red se calcula aquí y se rehace sola: no se sincroniza ni sale con lo que compartes o exportas. Cada equipo la dibuja de nuevo con tus documentos y tareas.
 - **Lo que ocultas no aparece** en la red ni le llega a tu agente.
 - **Fuera de Tisty**, un enlace a otro documento y la tarjeta de una tarea quedan solo como sus palabras: en Markdown estándar, en Word, en el PDF y en Folio.
-- **Hasta 12.000 puntos.** Más allá, la red guarda lo último que tocaste, sus vecinos, tus documentos y las tareas en curso, y te dice cuánto quedó fuera.
+- **Hasta 12.000 puntos.** Más allá, la red guarda lo último que tocaste, sus vecinos, tus documentos y las tareas en curso, y te dice arriba cuánto quedó fuera.
+- **Cada línea de la red la escribiste tú.** Aparte, en segundo plano, Tisty anota qué documentos y tareas se parecen porque comparten al menos dos palabras poco comunes, como *presupuesto* y *techo*. Hoy esos parecidos no se dibujan ni llegan a tu agente, y las tareas ocultas y tu Diario nunca pasan por ahí. Lo cuenta [la red de Brainsty](https://www.tisty.app/es/ayuda/red-de-brainsty/), en la ayuda.
 
 Cada detalle, con un ejemplo de principio a fin, está en la ayuda: [enlazar documentos](https://www.tisty.app/es/ayuda/enlazar-documentos/), [tareas en documentos](https://www.tisty.app/es/ayuda/tareas-en-documentos/) y [la red de Brainsty](https://www.tisty.app/es/ayuda/red-de-brainsty/).

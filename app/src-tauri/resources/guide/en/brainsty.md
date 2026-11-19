@@ -42,9 +42,14 @@ On a task's page, **A new task** creates a part of that task, in its same list.
 
 ## The network
 
-**Brainsty**, in the sidebar under the task views, opens everything you keep as one network. It starts on what you were looking at and, when you close it with `Esc` or **Back**, the window is just as it was.
+**Brainsty**, in the sidebar under the task views, opens everything you keep as one network, in a window of its own. It starts on what you were looking at, and the main window stays free beside it: you can write while the network settles.
 
-![The network zoomed out: each folder and each list in its colour, documents as squares, tasks as circles and tags as purple dots](network.png)
+![Brainsty's window, with the system's title bar, beside the main window: at the top it says «Brainsty» and the count, «589 nodes · 1252 connections», and below, the network zoomed out, with each folder and each list in its colour, documents as squares, tasks as circles and tags as purple dots](network.png)
+
+- **There is never more than one.** If it is already open, another click on **Brainsty** only brings it to the front, just as you left it.
+- **It remembers where you put it**: its size, its place and whether it was maximised, on each computer. If that place was on a screen no longer plugged in, it opens centred.
+- **It follows Tisty**: the light or dark theme and the language, also when you change them while it is open.
+- **Once closed, nothing keeps running.** The network costs something only while you look at it. You close it with its close button or with the last `Esc`.
 
 | In the network | It is |
 | --- | --- |
@@ -60,14 +65,15 @@ Lists and folders are not dots: they are the colour and the zone where their thi
 
 The network changes with the distance. From afar, with the wheel backwards, its dots make a brain seen from the side, with no titles. At middle distance the coloured zones show. Up close, every title, each kind of line, the tags and each picture's thumbnail.
 
-![«Rina» picked up close: her neighbours with titles, the rest dimmed and, beside it, the document's preview](network-near.png)
+![«Rina» picked up close in Brainsty's window: her neighbours with titles, the rest dimmed and, on the right, the document's preview with what it is, its folder and how many connections it has, its first lines, Rina's photo and the Open button](network-near.png)
 
-- **A click** on a dot lights it up with its neighbours and opens its preview; **Open**, or a double click, opens it.
+- **A click** on a dot lights it up with its neighbours and opens its preview: a document's first lines, with its pictures, or a task's card, with its list, its date and how many steps are done. Steps are ticked once you open it.
+- **Open**, or a double click, brings the main window to the front and opens the document, the task or the tag there. The network stays open behind it, to come back to. A picture or a file does not open from the network: open it from what uses it.
 - **Search the network**, at the top, or `/`: type part of a title and `Enter` centres the network on it.
 - **Filters**, the funnel beside the search box: which kinds to show, the state of tasks, a tag and **Touched**, to see only what changed in the last days.
-- **With the keyboard**: the arrows walk from a dot to its neighbour, `Enter` opens and `Esc` lets go, first the search, then the dot and last the network.
+- **With the keyboard**: `Tab` goes round the search box, the filters and the network; the arrows walk from a dot to its neighbour, `Enter` opens and `Esc` lets go, first the search, then the dot, and the last one closes the window.
 
-**Try it:** open **Brainsty** now. The network starts on this sheet, with its neighbours around it: the guide's cover, which it is a page of, and what names it or what it names. Search `one of` and you reach **One of each**.
+**Try it:** open **Brainsty** now. The network starts on this sheet, with its neighbours around it: the guide's cover, which it is a page of, and what names it or what it names. Search `one of`, `Enter`, and then **Open**: **One of each** opens in this window, with the network waiting behind. Come back to it with another click on **Brainsty**.
 
 ## What your agent reads
 
@@ -78,6 +84,7 @@ Your agent reads the same network, but as an index. With a single tool, `brain`,
 - **Everything stays on this computer.** The network is worked out here and rebuilds itself: it is not synced and does not leave with what you share or export. Each computer draws it again from your documents and tasks.
 - **What you hide does not show** in the network, nor does it reach your agent.
 - **Outside Tisty**, a link to another document and a task's card stay only as their words: in standard Markdown, in Word, in the PDF and in Folio.
-- **Up to 12,000 dots.** Past that, the network keeps what you touched last, its neighbours, your documents and the tasks under way, and tells you how much was left out.
+- **Up to 12,000 dots.** Past that, the network keeps what you touched last, its neighbours, your documents and the tasks under way, and tells you at the top how much was left out.
+- **You wrote every line in the network.** Apart from it, in the background, Tisty notes which documents and tasks are alike because they share at least two uncommon words, like *quote* and *roof*. Today those guesses are not drawn and do not reach your agent, and hidden tasks and your Diary never go through it. [The Brainsty network](https://www.tisty.app/docs/brainsty-network/), in the help, tells it.
 
 Every detail, with an example from start to end, is in the help: [linking documents](https://www.tisty.app/docs/linking-documents/), [tasks in documents](https://www.tisty.app/docs/tasks-in-documents/) and [the Brainsty network](https://www.tisty.app/docs/brainsty-network/).
