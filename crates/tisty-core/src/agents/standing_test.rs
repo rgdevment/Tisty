@@ -830,46 +830,114 @@ fn a_file_is_never_taken_away_while_a_document_places_it_or_without_leave() {
     assert_eq!(read(&placed), "Rules.\n");
 }
 
+fn loose_under(room: &Room, root: &str, at: &str) -> Target {
+    let mut loose = room.target(at, vec![]);
+    loose.root = room.home.path().join(root);
+    std::fs::create_dir_all(loose.at.parent().unwrap()).unwrap();
+    std::fs::write(&loose.at, "Tisty's.\n").unwrap();
+    loose
+}
+
 #[test]
-fn a_loose_skill_takes_its_emptied_folder_and_nothing_else() {
+fn an_emptied_skill_folder_goes_and_every_folder_the_assistant_or_person_keeps_stays() {
     let mut room = room();
-    let placed = room.target(
-        ".claude/skills/tidy/SKILL.md",
-        vec![doc_of("claude", Kind::Skill, "tidy/SKILL.md", b"Tidy.\n").unwrap()],
+    let home = room.home.path().to_path_buf();
+    let skill = loose_under(&room, ".claude", ".claude/skills/tidy/SKILL.md");
+    let rule = loose_under(&room, ".claude", ".claude/rules/last.md");
+    let mixed = loose_under(&room, ".claude", ".claude/skills/mixed/SKILL.md");
+    std::fs::write(home.join(".claude/skills/mixed/notes.txt"), "Mine.\n").unwrap();
+    let shared = loose_under(&room, ".agents", ".agents/skills/k/SKILL.md");
+    let alone = loose_under(&room, ".codex", ".codex/AGENTS.md");
+    for loose in [&skill, &rule, &mixed, &shared, &alone] {
+        removed(room.data.path(), &mut room.ledger, loose).unwrap();
+        assert!(!loose.at.exists(), "{}", loose.at.display());
+    }
+    assert!(!home.join(".claude/skills/tidy").exists());
+    assert!(!home.join(".agents/skills/k").exists());
+    for stays in [
+        ".claude",
+        ".claude/skills",
+        ".claude/rules",
+        ".claude/skills/mixed",
+        ".agents",
+        ".agents/skills",
+        ".codex",
+    ] {
+        assert!(home.join(stays).is_dir(), "{stays} stays");
+    }
+    assert_eq!(
+        std::fs::read_to_string(home.join(".claude/skills/mixed/notes.txt")).unwrap(),
+        "Mine.\n"
     );
-    room.round(std::slice::from_ref(&placed));
-    let mut loose = room.target(".claude/skills/tidy/SKILL.md", vec![]);
-    loose.root = room.home.path().join(".claude");
-    removed(room.data.path(), &mut room.ledger, &loose).unwrap();
-    assert!(!room.home.path().join(".claude/skills/tidy").exists());
-    assert!(
-        room.home.path().join(".claude/skills").exists(),
-        "the assistant's own folder stays"
-    );
+}
 
-    let last = room.target(
-        ".claude/rules/last.md",
-        vec![rule("claude", "rules/last.md", "Last.\n")],
+#[test]
+fn a_relative_folder_is_never_written_nor_emptied() {
+    let mut room = room();
+    let mut target = room.target(
+        ".claude/CLAUDE.md",
+        vec![rule("claude", "CLAUDE.md", "X.\n")],
     );
-    room.round(std::slice::from_ref(&last));
-    let mut loose = room.target(".claude/rules/last.md", vec![]);
-    loose.root = room.home.path().join(".claude");
-    removed(room.data.path(), &mut room.ledger, &loose).unwrap();
-    assert!(room.home.path().join(".claude/rules").is_dir());
+    target.root = PathBuf::from(".claude");
+    target.at = PathBuf::from(".claude").join("CLAUDE.md");
+    assert_eq!(
+        room.round(std::slice::from_ref(&target)),
+        [Standing::Linked]
+    );
+    let mut loose = target.clone();
+    loose.pieces.clear();
+    assert_eq!(
+        removed(room.data.path(), &mut room.ledger, &loose),
+        Err(Refused::Linked)
+    );
+    let mut rooted = loose_under(&room, ".claude", ".claude/skills/tidy/SKILL.md");
+    std::fs::remove_file(&rooted.at).unwrap();
+    rooted.root = PathBuf::from(".claude");
+    emptied_up(&rooted);
+    assert!(room.home.path().join(".claude/skills/tidy").is_dir());
+}
 
-    let alone = room.target(
-        ".codex/AGENTS.md",
-        vec![rule("codex", "AGENTS.md", "Only.\n")],
-    );
-    room.round(std::slice::from_ref(&alone));
-    let mut loose = room.target(".codex/AGENTS.md", vec![]);
-    loose.root = room.home.path().join(".codex");
-    removed(room.data.path(), &mut room.ledger, &loose).unwrap();
-    assert!(!loose.at.exists());
+fn linked_folder(from: &Path, to: &Path) {
+    #[cfg(windows)]
+    {
+        let made = std::process::Command::new("cmd")
+            .args(["/C", "mklink", "/J"])
+            .arg(from)
+            .arg(to)
+            .output()
+            .unwrap();
+        assert!(made.status.success(), "{made:?}");
+    }
+    #[cfg(not(windows))]
+    std::os::unix::fs::symlink(to, from).unwrap();
+}
+
+#[test]
+fn a_linked_skill_folder_is_never_removed_even_when_what_it_points_at_is_empty() {
+    let room = room();
+    let home = room.home.path();
+    let elsewhere = home.join("dotfiles").join("demo");
+    std::fs::create_dir_all(&elsewhere).unwrap();
+    std::fs::write(elsewhere.join("a.md"), "A.\n").unwrap();
+    std::fs::write(elsewhere.join("b.md"), "B.\n").unwrap();
+    std::fs::create_dir_all(home.join(".claude/skills")).unwrap();
+    let demo = home.join(".claude").join("skills").join("demo");
+    linked_folder(&demo, &elsewhere);
+
+    let mut loose = room.target(".claude/skills/demo/a.md", vec![]);
+    loose.root = home.join(".claude");
+    std::fs::remove_file(&loose.at).unwrap();
+    emptied_up(&loose);
+    assert!(std::fs::symlink_metadata(&demo).is_ok(), "the link stays");
+    assert!(elsewhere.join("b.md").exists());
+
+    std::fs::remove_file(elsewhere.join("b.md")).unwrap();
+    emptied_up(&loose);
     assert!(
-        room.home.path().join(".codex").is_dir(),
-        "the assistant's folder stays even when emptied"
+        std::fs::symlink_metadata(&demo).is_ok(),
+        "an empty target keeps its link"
     );
+    assert!(elsewhere.is_dir());
 }
 
 #[test]

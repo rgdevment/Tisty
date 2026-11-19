@@ -121,7 +121,7 @@ fn linked(target: &Target) -> bool {
             Component::Normal(_) | Component::RootDir | Component::Prefix(_)
         )
     });
-    if stepped_out || !target.at.starts_with(&target.root) {
+    if stepped_out || !target.root.is_absolute() || !target.at.starts_with(&target.root) {
         return true;
     }
     target
@@ -408,10 +408,17 @@ pub fn removed(data: &Path, ledger: &mut Ledger, target: &Target) -> Result<(), 
 }
 
 // A skill's folder left with nothing in it would still be listed; the assistant's own folders, such as `rules`, stay.
+// Removing a link to a folder takes the link away whatever the folder holds, so a link stops the climb.
 fn emptied_up(target: &Target) {
+    if !target.root.is_absolute() {
+        return;
+    }
     for up in target.at.ancestors().skip(1) {
         let own = up == target.root || up.parent().is_none_or(|parent| parent == target.root);
-        if own || !up.starts_with(&target.root) || std::fs::remove_dir(up).is_err() {
+        if own || !up.starts_with(&target.root) || super::link(up) {
+            return;
+        }
+        if std::fs::remove_dir(up).is_err() {
             return;
         }
     }

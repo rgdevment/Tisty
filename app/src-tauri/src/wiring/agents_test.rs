@@ -233,3 +233,18 @@ fn the_same_file_brought_on_two_computers_is_written_once() {
     assert_eq!(gated.named(&claude.files), ["a"]);
     assert_eq!(claude.target.pieces.len(), 1);
 }
+
+#[test]
+fn a_relative_folder_named_by_a_variable_counts_as_never_named() {
+    let tmp = tempfile::tempdir().unwrap();
+    let homes = Homes::with(
+        tmp.path(),
+        &[
+            ("CLAUDE_CONFIG_DIR", Path::new(".claude2")),
+            ("CODEX_HOME", &tmp.path().join("codex-here")),
+        ],
+    );
+    assert_eq!(homes.root("claude"), Some(tmp.path().join(".claude")));
+    assert_eq!(homes.root("codex"), Some(tmp.path().join("codex-here")));
+    assert!(Homes::told(PathBuf::from("home"), []).is_none());
+}

@@ -76,22 +76,35 @@ const MOVED_BY: [&str; 4] = [
 impl Homes {
     pub fn here() -> Option<Self> {
         let home = var(if cfg!(windows) { "USERPROFILE" } else { "HOME" })?;
-        let told = MOVED_BY
-            .into_iter()
-            .filter_map(|named| var(named).map(|at| (named, at)))
-            .collect();
-        Some(Self { home, told })
+        Self::told(
+            home,
+            MOVED_BY
+                .into_iter()
+                .filter_map(|named| var(named).map(|at| (named, at))),
+        )
+    }
+
+    // A relative folder would land wherever Tisty happens to run, so it counts as never said.
+    fn told(
+        home: PathBuf,
+        told: impl IntoIterator<Item = (&'static str, PathBuf)>,
+    ) -> Option<Self> {
+        home.is_absolute().then(|| Self {
+            home,
+            told: told
+                .into_iter()
+                .filter(|(_, at)| at.is_absolute())
+                .collect(),
+        })
     }
 
     #[cfg(test)]
     pub fn with(home: &Path, told: &[(&'static str, &Path)]) -> Self {
-        Self {
-            home: home.to_path_buf(),
-            told: told
-                .iter()
-                .map(|(named, at)| (*named, at.to_path_buf()))
-                .collect(),
-        }
+        Self::told(
+            home.to_path_buf(),
+            told.iter().map(|(named, at)| (*named, at.to_path_buf())),
+        )
+        .unwrap_or_default()
     }
 
     fn moved(&self, named: &str, usual: &str) -> PathBuf {
