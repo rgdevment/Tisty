@@ -25,7 +25,7 @@ const network: Network = {
   ],
 };
 
-const showing = { on: true, picked: null, zoom: 1, hidden: [] };
+const showing = { on: true, picked: null, zoom: 1, hidden: [], inView: () => true };
 
 describe("Tisty's guesses in the network", () => {
   it("weighs each guess within its own method, so neither method always looks faint", () => {
@@ -57,6 +57,18 @@ describe("Tisty's guesses in the network", () => {
     expect(fading[0].fade).toBeLessThan(1);
   });
 
+  it("near up, shows only a guess with both ends in view, which would otherwise cross the whole view", () => {
+    const curves = curvesOf(network.alike ?? []);
+
+    const shown = curvesShown(curves, { ...showing, inView: (node) => node !== 3 });
+
+    expect(shown.map(({ curve }) => [curve.from, curve.to])).toEqual([
+      [0, 1],
+      [2, 0],
+    ]);
+    expect(curvesShown(curves, { ...showing, picked: 3, inView: () => false })).toHaveLength(2);
+  });
+
   it("shows only the picked node's guesses, from any distance", () => {
     const curves = curvesOf(network.alike ?? []);
 
@@ -66,8 +78,7 @@ describe("Tisty's guesses in the network", () => {
       [3, 0],
       [2, 3],
     ]);
-    expect(shown.every((one) => one.fade === 1 && !one.bothInSight)).toBe(true);
-    expect(curvesShown(curves, showing).every((one) => one.bothInSight)).toBe(true);
+    expect(shown.every((one) => one.fade === 1)).toBe(true);
   });
 
   it("shows none with the filter off, nor one with an end out of sight", () => {

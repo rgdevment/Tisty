@@ -81,6 +81,7 @@ vi.mock("../ui/brainsty/drawing", () => ({
     centre: (on: number) => sigma.centred.push(on),
     zoom: () => 0.5,
     toScreen: (point: [number, number]) => point,
+    toGraph: (point: [number, number]) => point,
     nodeOnScreen: () => undefined,
     onFrame: () => () => {},
     light: (nodes: ReadonlySet<number> | null) => sigma.lit.push(nodes ? [...nodes] : null),

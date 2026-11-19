@@ -54,6 +54,7 @@ const drawingOf = (zoom: number) => {
   const frames: (() => void)[] = [];
   const drawing = {
     zoom: () => zoom,
+    toGraph: (point: [number, number]) => point,
     nodeOnScreen: (node: number) =>
       [
         [10, 10],
@@ -86,10 +87,10 @@ describe("the amber curves", () => {
     paintCurves(
       canvas,
       [
-        { curve: { from: 0, to: 1, strength: 1 }, fade: 1, bothInSight: false },
-        { curve: { from: 1, to: 2, strength: 0 }, fade: 1, bothInSight: false },
-        { curve: { from: 2, to: 2, strength: 0 }, fade: 1, bothInSight: false },
-        { curve: { from: 0, to: 9, strength: 0 }, fade: 1, bothInSight: false },
+        { curve: { from: 0, to: 1, strength: 1 }, fade: 1 },
+        { curve: { from: 1, to: 2, strength: 0 }, fade: 1 },
+        { curve: { from: 2, to: 2, strength: 0 }, fade: 1 },
+        { curve: { from: 0, to: 9, strength: 0 }, fade: 1 },
       ],
       (node) => ends[node],
       "#e0a030",
@@ -106,28 +107,6 @@ describe("the amber curves", () => {
     expect(strokes[1].colour).toBe("rgba(224, 160, 48, 0.3)");
   });
 
-  it("near up, leave out a guess with an end off screen, which would cross the whole view", () => {
-    const { canvas, strokes } = brushed();
-    const ends: Record<number, [number, number]> = { 0: [10, 10], 1: [50, 10], 2: [500, 40] };
-
-    paintCurves(
-      canvas,
-      [
-        { curve: { from: 0, to: 1, strength: 1 }, fade: 1, bothInSight: true },
-        { curve: { from: 1, to: 2, strength: 1 }, fade: 1, bothInSight: true },
-        { curve: { from: 1, to: 2, strength: 1 }, fade: 1, bothInSight: false },
-      ],
-      (node) => ends[node],
-      "#e0a030",
-      1,
-    );
-
-    expect(strokes.map((one) => one.path[1].slice(2))).toEqual([
-      [50, 10],
-      [500, 40],
-    ]);
-  });
-
   it("draw nothing without a canvas to paint on", () => {
     const canvas = document.createElement("canvas");
     vi.spyOn(canvas, "getContext").mockReturnValue(null);
@@ -135,7 +114,7 @@ describe("the amber curves", () => {
     expect(() =>
       paintCurves(
         canvas,
-        [{ curve: { from: 0, to: 1, strength: 1 }, fade: 1, bothInSight: false }],
+        [{ curve: { from: 0, to: 1, strength: 1 }, fade: 1 }],
         () => [0, 0],
         "#e0a030",
         1,
@@ -159,6 +138,15 @@ describe("the amber curves", () => {
     expect(container.firstElementChild).toBe(canvas);
     expect(canvas.style.pointerEvents).toBe("none");
     expect(frames).toHaveLength(1);
+    frames[0]();
+    expect(strokes).toHaveLength(0);
+    curves.reshape({ x: Float32Array.of(10, 50), y: Float32Array.of(10, 10) });
+    frames[0]();
+    expect(strokes).toHaveLength(0);
+    curves.reshape({ x: Float32Array.of(10, 50, 900), y: Float32Array.of(10, 10, 40) });
+    frames[0]();
+    expect(strokes).toHaveLength(1);
+    curves.reshape({ x: Float32Array.of(10, 50, 90), y: Float32Array.of(10, 10, 40) });
     frames[0]();
     expect(strokes).toHaveLength(2);
     curves.pick(0);

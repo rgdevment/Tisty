@@ -3,9 +3,11 @@ import type { Drawing } from "./drawing";
 import { alphaOf, type Curve, curvesOf, curvesShown, type Showing, type Shown } from "./guessing";
 import { type Palette, rgba } from "./looks";
 import { fitted, LAID } from "./overlays";
+import type { Spots } from "./settling";
 import type { Point } from "./zones";
 
 export interface Curves {
+  reshape: (spots: Spots) => void;
   show: (on: boolean) => void;
   pick: (node: number | null) => void;
   sift: (hidden: readonly boolean[]) => void;
@@ -20,10 +22,6 @@ export const bendOf = ([x1, y1]: Point, [x2, y2]: Point): Point => [
   (x1 + x2) / 2 - (y2 - y1) * BEND,
   (y1 + y2) / 2 + (x2 - x1) * BEND,
 ];
-
-// Near up, a guess shows only between two nodes in sight: one reaching far would cross the whole view.
-const inSight = ([x, y]: Point, width: number, height: number): boolean =>
-  x >= 0 && x <= width && y >= 0 && y <= height;
 
 const outside = (points: readonly Point[], width: number, height: number): boolean =>
   points.every(([x]) => x < 0) ||
@@ -44,19 +42,14 @@ export function paintCurves(
   brush.lineWidth = WIDTH * scale;
   brush.lineCap = "round";
   const { width, height } = canvas;
-  for (const { curve, fade, bothInSight } of shown) {
+  for (const { curve, fade } of shown) {
     const from = onScreen(curve.from);
     const to = onScreen(curve.to);
     if (!from || !to) continue;
     const [a, bend, b] = [from, bendOf(from, to), to].map(
       ([x, y]): Point => [x * scale, y * scale],
     );
-    if (
-      bothInSight
-        ? !inSight(a, width, height) || !inSight(b, width, height)
-        : outside([a, bend, b], width, height)
-    )
-      continue;
+    if (outside([a, bend, b], width, height)) continue;
     brush.strokeStyle = rgba(amber, alphaOf(curve.strength) * fade);
     brush.beginPath();
     brush.moveTo(a[0], a[1]);
@@ -76,16 +69,38 @@ export function curvesOn(
   Object.assign(canvas.style, LAID);
   container.prepend(canvas);
   const curves: Curve[] = curvesOf(network.alike ?? []);
-  const showing: Omit<Showing, "zoom"> = { on: true, picked: null, hidden: [] };
+  const showing: Omit<Showing, "zoom" | "inView"> = { on: true, picked: null, hidden: [] };
   let amber = palette.hues.amber;
+  let placed: Spots | null = null;
+  // Near up, a guess shows only between two nodes in view: one reaching far would cross the whole view.
+  const inViewNow = (): ((node: number) => boolean) => {
+    if (!placed) return () => false;
+    const { x, y } = placed;
+    const corners = [
+      drawing.toGraph([0, 0]),
+      drawing.toGraph([container.clientWidth, container.clientHeight]),
+    ];
+    const [left, right] = [
+      Math.min(corners[0][0], corners[1][0]),
+      Math.max(corners[0][0], corners[1][0]),
+    ];
+    const [top, bottom] = [
+      Math.min(corners[0][1], corners[1][1]),
+      Math.max(corners[0][1], corners[1][1]),
+    ];
+    return (node) => x[node] >= left && x[node] <= right && y[node] >= top && y[node] <= bottom;
+  };
   const paint = () => {
     const scale = fitted(canvas, container);
-    const shown = curvesShown(curves, { ...showing, zoom: drawing.zoom() });
+    const shown = curvesShown(curves, { ...showing, zoom: drawing.zoom(), inView: inViewNow() });
     paintCurves(canvas, shown, drawing.nodeOnScreen, amber, scale);
   };
   const unhook = curves.length > 0 ? drawing.onFrame(paint) : () => undefined;
   const repaint = () => curves.length > 0 && paint();
   return {
+    reshape: (spots) => {
+      if (spots.x.length === network.nodes.length) placed = spots;
+    },
     show: (on) => {
       showing.on = on;
       repaint();

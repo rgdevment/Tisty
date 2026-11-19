@@ -87,6 +87,7 @@ export default function Brainsty({ network, groups, onOpen, escaping }: Props) {
     );
     const curves = curvesOn(container, drawn, network, palette);
     curves.show(live.current.guessing);
+    curves.reshape(shaped);
     const overlays = overlaysOn(container, drawn, network, hueOf, palette, PICTURES);
     overlays.reshape(shaped);
     const near = network.near;
@@ -132,6 +133,7 @@ export default function Brainsty({ network, groups, onOpen, escaping }: Props) {
       const placed = brainShaped(step);
       drawn.place(placed);
       overlays.reshape(placed);
+      curves.reshape(placed);
       followSoon();
       if (!step.done) return;
       container.dataset.laidMs = String(Math.round(step.ms));
