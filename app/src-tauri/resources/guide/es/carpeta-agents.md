@@ -207,7 +207,7 @@ Dos avisos más que puedes ver en una ficha:
 
 Tu agente **lee** tus documentos de AGENTS, como cualquier otro: le pides «¿qué reglas mías lees?» y te responde con sus títulos. Pero **no los escribe por su cuenta**: cuando cambia uno, su cambio queda aparte, como una propuesta, y solo llega a tus agentes si lo apruebas. Una regla de AGENTS llega a todos tus agentes, en todos tus equipos, y nadie más que tú debería decidir qué dice.
 
-Tampoco puede mover, archivar ni marcar esos documentos, cambiar su línea `agent:`, proponer sobre una memoria ni crear un documento nuevo con una línea `agent:`, en ninguna carpeta. Si lo intenta, Tisty se lo rechaza sin tocar nada y le dice cómo proponer.
+Tampoco puede mover, archivar ni marcar esos documentos, cambiar su línea `agent:`, proponer sobre una memoria ni crear un documento nuevo con una línea `agent:`, en ninguna carpeta. Si lo intenta, Tisty se lo rechaza sin tocar nada y le dice cómo proponer el cambio o que te cuente qué cambiaría.
 
 ## Una propuesta de tu agente
 

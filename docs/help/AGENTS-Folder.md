@@ -481,7 +481,7 @@ If Tisty is open while the agent proposes, the proposal does not show at once: y
 
 **3. You approve or discard.**
 
-- **Approve the change** asks «Approve this change? It is written to the document and to your agents' files.». With your yes, the document says what was proposed, with your approval, and Tisty writes it to `~/.claude/CLAUDE.md` like any change of yours, with its backup first. What it said before stays in its history.
+- **Approve the change** asks «Approve this change? It is written to the document and to your agents' files.». With your yes, the document says what was proposed, with your approval, and on each computer where that document applies, Tisty writes it to `~/.claude/CLAUDE.md` like any change of yours, with its backup first. What it said before stays in its history.
 - **Discard** asks «Discard this proposal? The document stays as you approved it.». The proposal goes and nothing else changes.
 
 Each button acts only on what the card showed you. If the agent wrote again while you were looking, Tisty does not choose for you: «The proposal changed since the card showed it. Look at it again before choosing.». While you edit the document, **Approve the change** does not show: press **Done** first.
@@ -507,7 +507,7 @@ Each button acts only on what the card showed you. If the agent wrote again whil
 changes, so nothing was proposed. Tell the person what you would change and why.
 ```
 
-**Moving, archiving, marking or summing up** an AGENTS document, attaching a file to it, going back to an earlier version, putting another document or making a folder inside AGENTS is refused, and Tisty tells it how to propose:
+**Moving, archiving, marking or summing up** an AGENTS document, attaching a file to it or going back to an earlier version is refused, and Tisty tells it how to propose:
 
 ```text
 the document "claude · CLAUDE.md" holds an assistant's own files in AGENTS, which only the person
@@ -516,6 +516,8 @@ change its text, propose it: `write_doc` with `doc`, `print` and the whole `body
 `append_doc` at its end, and nothing else with them. The person approves or discards it on the
 document's card.
 ```
+
+**Putting another document or making a folder** inside AGENTS is refused too, and there Tisty asks it to tell you what it would change, for you to do it.
 
 **A new document with an `agent:` line** is refused in any folder, so nobody can bring a rule in from outside:
 

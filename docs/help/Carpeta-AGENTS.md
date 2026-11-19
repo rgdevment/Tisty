@@ -481,7 +481,7 @@ Si Tisty está abierto mientras el agente propone, la propuesta no aparece al in
 
 **3. Apruebas o descartas.**
 
-- **Aprobar el cambio** pregunta «¿Apruebas este cambio? Se escribe en el documento y en los archivos de tus agentes.». Con tu sí, el documento pasa a decir lo propuesto, con tu aprobación, y Tisty lo escribe en `~/.claude/CLAUDE.md` como cualquier cambio tuyo, con su respaldo antes. Lo que decía antes queda en su historial.
+- **Aprobar el cambio** pregunta «¿Apruebas este cambio? Se escribe en el documento y en los archivos de tus agentes.». Con tu sí, el documento pasa a decir lo propuesto, con tu aprobación, y en cada equipo donde ese documento se aplica, Tisty lo escribe en `~/.claude/CLAUDE.md` como cualquier cambio tuyo, con su respaldo antes. Lo que decía antes queda en su historial.
 - **Descartar** pregunta «¿Descartas esta propuesta? El documento queda como lo aprobaste.». La propuesta se va y nada más cambia.
 
 Cada botón actúa solo sobre lo que la ficha te mostró. Si el agente volvió a escribir mientras mirabas, Tisty no elige por ti: «La propuesta cambió desde que la ficha la mostró. Revísala de nuevo antes de elegir.». Mientras editas el documento, **Aprobar el cambio** no aparece: pulsa **Listo** primero.
@@ -507,7 +507,7 @@ Cada botón actúa solo sobre lo que la ficha te mostró. Si el agente volvió a
 changes, so nothing was proposed. Tell the person what you would change and why.
 ```
 
-**Mover, archivar, marcar o resumir** un documento de AGENTS, adjuntarle un archivo, volver a una versión anterior, meter otro documento o crear una carpeta dentro de AGENTS se rechaza, y Tisty le dice cómo proponer:
+**Mover, archivar, marcar o resumir** un documento de AGENTS, adjuntarle un archivo o volver a una versión anterior se rechaza, y Tisty le dice cómo proponer:
 
 ```text
 the document "claude · CLAUDE.md" holds an assistant's own files in AGENTS, which only the person
@@ -516,6 +516,8 @@ change its text, propose it: `write_doc` with `doc`, `print` and the whole `body
 `append_doc` at its end, and nothing else with them. The person approves or discards it on the
 document's card.
 ```
+
+**Meter otro documento o crear una carpeta** dentro de AGENTS también se rechaza, y ahí Tisty le pide contarte qué cambiaría, para que lo hagas tú.
 
 **Un documento nuevo con una línea `agent:`** se rechaza en cualquier carpeta, para que nadie pueda traer una regla desde fuera:
 

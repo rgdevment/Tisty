@@ -207,7 +207,7 @@ Two more notices you may see on a card:
 
 Your agent **reads** your AGENTS documents like any other: you ask «which of my rules do you read?» and it answers with their titles. But it **does not write them on its own**: when it changes one, its change stays apart, as a proposal, and reaches your agents only if you approve it. An AGENTS rule reaches all your agents, on all your computers, and nobody but you should decide what it says.
 
-Nor can it move, archive or mark those documents, change their `agent:` line, propose on a memory or make a new document with an `agent:` line, in any folder. If it tries, Tisty refuses it, touching nothing, and tells it how to propose.
+Nor can it move, archive or mark those documents, change their `agent:` line, propose on a memory or make a new document with an `agent:` line, in any folder. If it tries, Tisty refuses it, touching nothing, and tells it how to propose the change or to tell you what it would change.
 
 ## A proposal from your agent
 
