@@ -672,12 +672,15 @@ fn a_pass_that_keeps_being_put_off_runs_once_its_patience_is_spent() {
     drop(store);
     let mut weighing = Weighing::default();
     let file = world.paths.docs().join(format!("{budget}.md"));
-    let mut put_off = 0;
-    loop {
+    let written = || {
         let mut body = std::fs::read_to_string(&file).unwrap();
         body.push_str("\nOtra línea.\n");
         std::fs::write(&file, body).unwrap();
         super::super::kept_up(&world.paths, super::super::Round::Nudged);
+    };
+    let mut put_off = 0;
+    loop {
+        written();
         match weighing.kept(&world.paths) {
             Some(Passed::Settling) => put_off += 1,
             Some(Passed::Ran { .. }) => break,
@@ -686,6 +689,36 @@ fn a_pass_that_keeps_being_put_off_runs_once_its_patience_is_spent() {
         assert!(put_off <= PATIENCE, "it never ran");
     }
     assert_eq!(put_off, PATIENCE);
+
+    written();
+    assert_eq!(
+        weighing.kept(&world.paths),
+        Some(Passed::Settling),
+        "its patience starts over"
+    );
+}
+
+#[test]
+fn a_document_whose_file_cannot_be_read_still_counts_its_title() {
+    let world = World::new();
+    let mut store = world.store();
+    let (_, file) = doc(
+        &world,
+        &mut store,
+        "# Lisbon trip\n\nIn spring\n",
+        None,
+        None,
+    );
+    std::fs::remove_file(world.paths.docs().join(format!("{file}.md"))).unwrap();
+    let state = world.state();
+    let mut brain = world.brain();
+    world.refreshed(&mut brain, &state);
+
+    let said = &worded_ids(&brain)[&file].2;
+    assert!(
+        said.contains("lisbon:1") && !said.contains("spring"),
+        "{said}"
+    );
 }
 
 #[test]
