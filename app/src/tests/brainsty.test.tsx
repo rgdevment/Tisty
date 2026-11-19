@@ -390,6 +390,17 @@ describe("the Brainsty section", () => {
         args: { body: "![buy bread](tisty:task/01A)\n" },
       }),
     );
+    const frame = await waitFor(() => {
+      const found = document.querySelector<HTMLIFrameElement>("aside iframe");
+      expect(found?.srcdoc).toContain("<article");
+      return found as HTMLIFrameElement;
+    });
+    const card = frame.contentDocument as Document;
+    card.open();
+    card.write(frame.srcdoc);
+    card.close();
+    frame.dispatchEvent(new Event("load"));
+    await waitFor(() => expect(card.documentElement.classList).toContain("glanced"));
 
     await user.type(screen.getByRole("searchbox", { name: t("brainstySearch") }), "zzz");
     expect(await screen.findByText(t("brainstyNothingFound"))).toBeTruthy();
