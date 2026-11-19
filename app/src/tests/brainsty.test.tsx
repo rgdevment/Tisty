@@ -31,6 +31,7 @@ vi.mock("@tauri-apps/plugin-clipboard-manager", () => ({
 const ways = vi.hoisted(() => ({ opened: [] as unknown[], left: 0 }));
 
 const sigma = vi.hoisted(() => ({
+  turns: [] as unknown[],
   centred: [] as number[],
   placed: 0,
   rethemed: 0,
@@ -75,6 +76,8 @@ vi.mock("../ui/brainsty/drawing", () => ({
       };
     },
     focus: (node: number) => sigma.focused.push(node),
+    turn: (turn: unknown) => sigma.turns.push(turn),
+    turned: () => false,
     kill: () => sigma.killed++,
   }),
 }));
@@ -176,6 +179,7 @@ beforeEach(() => {
     placed: 0,
     rethemed: 0,
     killed: 0,
+    turns: [],
     stopped: 0,
     step: null,
     focused: [],
@@ -481,6 +485,39 @@ describe("Brainsty in the content panel", () => {
     expect(document.activeElement).toBe(screen.getByRole("searchbox"));
     await user.tab();
     expect(document.activeElement).toBe(screen.getByRole("button", { name: t("brainstyFilters") }));
+  });
+
+  it("comes alive once laid out, and pauses on asking until asked again on this computer", async () => {
+    localStorage.removeItem("tisty.brainstyLiving");
+    const { user, shown } = await drawnNetwork();
+    const spots = { x: new Float32Array(3), y: new Float32Array(3) };
+
+    sigma.step?.({ ...spots, done: true, iterations: 20, ms: 12 });
+    await waitFor(() => expect(sigma.turns.length).toBeGreaterThan(0));
+    await user.click(screen.getByRole("button", { name: t("brainstyStill") }));
+    const turned = sigma.turns.length;
+    await new Promise((frame) => requestAnimationFrame(frame));
+    await new Promise((frame) => requestAnimationFrame(frame));
+
+    expect(sigma.turns.length).toBe(turned);
+    expect(localStorage.getItem("tisty.brainstyLiving")).toBe("paused");
+    shown.unmount();
+    await drawnNetwork();
+    const alive = screen.getByRole("button", { name: t("brainstyAlive") });
+    expect(alive.getAttribute("aria-pressed")).toBe("false");
+    await user.click(alive);
+    expect(localStorage.getItem("tisty.brainstyLiving")).toBeNull();
+  });
+
+  it("stays still when the computer asks for less motion", async () => {
+    localStorage.removeItem("tisty.brainstyLiving");
+    const asked = vi.spyOn(window, "matchMedia").mockReturnValue({
+      matches: true,
+    } as MediaQueryList);
+    await drawnNetwork();
+
+    expect(screen.getByRole("button", { name: t("brainstyAlive") })).toBeTruthy();
+    asked.mockRestore();
   });
 
   it("jumps to the search with /", async () => {

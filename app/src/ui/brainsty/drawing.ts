@@ -10,6 +10,7 @@ import {
   sdfSquare,
 } from "sigma/rendering";
 import { type Network, TIES } from "../../brainsty";
+import { spinning, type Turn } from "./globe";
 import {
   bigOnes,
   crowding,
@@ -41,6 +42,8 @@ export interface Drawing {
   beside: (node: number) => number[];
   heed: (hands: Hands) => () => void;
   focus: (node: number) => void;
+  turn: (turn: Turn | null) => void;
+  turned: () => boolean;
   kill: () => void;
 }
 
@@ -192,6 +195,7 @@ export function drawNetwork(
     },
   });
   const camera = sigma.getCamera();
+  const spin = spinning(sigma, () => graph.nodes());
   let zoom = quantized(zoomOf(camera.ratio));
   sigma.setGraphState({ zoom });
   const zoomed = () => {
@@ -225,6 +229,7 @@ export function drawNetwork(
     place: ({ x, y }) => {
       if (x.length !== graph.order) return;
       framed = false;
+      spin.moved();
       graph.updateEachNodeAttributes(
         (key, at) => {
           const n = Number(key);
@@ -244,7 +249,7 @@ export function drawNetwork(
     },
     centre: (on) =>
       onceFramed(() => {
-        const shown = sigma.getNodeDisplayData(String(on));
+        const shown = spin.framed(String(on));
         if (shown) camera.setState({ x: shown.x, y: shown.y, ratio: NEAR_RATIO });
       }),
     zoom: () => zoom,
@@ -259,6 +264,12 @@ export function drawNetwork(
     nodeOnScreen: (node) => {
       const key = String(node);
       if (!graph.hasNode(key)) return undefined;
+      if (spin.turned()) {
+        const spun = spin.framed(key);
+        if (!spun) return undefined;
+        const at = sigma.framedGraphToViewport(spun);
+        return [at.x, at.y];
+      }
       const at = sigma.graphToViewport({
         x: graph.getNodeAttribute(key, "x"),
         y: graph.getNodeAttribute(key, "y"),
@@ -312,13 +323,15 @@ export function drawNetwork(
     },
     focus: (node) =>
       onceFramed(() => {
-        const shown = sigma.getNodeDisplayData(String(node));
+        const shown = spin.framed(String(node));
         if (!shown) return;
         void camera.animate(
           { x: shown.x, y: shown.y, ratio: Math.min(camera.ratio, FOCUS_RATIO) },
           { duration: 300 },
         );
       }),
+    turn: spin.turn,
+    turned: spin.turned,
     kill: () => {
       waiting = null;
       sigma.off("afterRender", drew);

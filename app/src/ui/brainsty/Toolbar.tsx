@@ -15,6 +15,8 @@ interface Props {
   readonly onSift: (sift: Sift) => void;
   readonly tags: readonly number[];
   readonly finder?: Ref<HTMLInputElement>;
+  readonly alive: boolean;
+  readonly onAlive: (alive: boolean) => void;
 }
 
 const chip = (on: boolean) =>
@@ -39,6 +41,8 @@ export default function Toolbar({
   onSift,
   tags,
   finder,
+  alive,
+  onAlive,
 }: Props) {
   const [open, setOpen] = useState(false);
   const asked = query.trim() !== "";
@@ -71,6 +75,18 @@ export default function Toolbar({
           }`}
         >
           <Glyph name="filter" className="h-3.5 w-3.5" />
+        </button>
+        <button
+          type="button"
+          onClick={() => onAlive(!alive)}
+          aria-pressed={alive}
+          aria-label={t(alive ? "brainstyStill" : "brainstyAlive")}
+          title={t(alive ? "brainstyStill" : "brainstyAlive")}
+          className={`grid size-7 shrink-0 place-items-center rounded-md hover:bg-hover ${
+            alive ? "text-accent" : "text-faint"
+          }`}
+        >
+          <Glyph name={alive ? "pause" : "play"} className="h-3.5 w-3.5" />
         </button>
       </div>
       {asked && (

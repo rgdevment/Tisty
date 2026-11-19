@@ -56,6 +56,7 @@ vi.mock("@tauri-apps/api/window", () => ({
 }));
 
 const sigma = vi.hoisted(() => ({
+  turns: [] as unknown[],
   killed: 0,
   stopped: 0,
   hands: null as null | { pick: (node: number) => void; open: (node: number) => void },
@@ -80,6 +81,8 @@ vi.mock("../ui/brainsty/drawing", () => ({
       };
     },
     focus: () => {},
+    turn: (turn: unknown) => sigma.turns.push(turn),
+    turned: () => false,
     kill: () => sigma.killed++,
   }),
 }));
@@ -169,7 +172,7 @@ beforeEach(() => {
   ipc.calls = [];
   ipc.task = () => Promise.resolve(bread);
   heard.on.clear();
-  Object.assign(sigma, { killed: 0, stopped: 0, hands: null });
+  Object.assign(sigma, { killed: 0, stopped: 0, hands: null, turns: [] });
 });
 
 describe("Brainsty from the main window", () => {

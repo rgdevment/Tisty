@@ -11,13 +11,15 @@ import { amidMembers, laidEdges } from "./brainsty/grouping";
 import { alikeOf } from "./brainsty/guessing";
 import { type Icons, iconsOn } from "./brainsty/icons";
 import { layOut } from "./brainsty/layingOut";
-import { degreesOf, paletteNow } from "./brainsty/looks";
+import { type Living, livingOn } from "./brainsty/living";
+import { degreesOf, nodeLook, paletteNow } from "./brainsty/looks";
 import { type Overlays, overlaysOn } from "./brainsty/overlays";
 import Preview from "./brainsty/Preview";
 import { edgesOf, seeded } from "./brainsty/settling";
 import { brainShaped } from "./brainsty/shape";
 import { EVERYTHING, found, hiddenBy, type Sift } from "./brainsty/sifting";
 import Toolbar from "./brainsty/Toolbar";
+import { turnedByHand } from "./brainsty/turning";
 import { walker } from "./brainsty/walking";
 import { followTheme } from "./theming";
 
@@ -38,11 +40,13 @@ export default function Brainsty({ network, groups, onOpen, escaping }: Props) {
     overlays: Overlays;
     curves: Curves;
     icons: Icons;
+    living: Living;
   } | null>(null);
   const [ready, setReady] = useState(false);
   const [picked, setPicked] = useState<number | null>(null);
   const [query, setQuery] = useState("");
   const [sift, setSift] = useState<Sift>(EVERYTHING);
+  const [alive, setAlive] = useState(aliveAtFirst);
   const hues = useRef<HueOf>(() => undefined);
   const tinted = new Map<string, string>();
   const named = new Map<string, string>();
@@ -107,6 +111,12 @@ export default function Brainsty({ network, groups, onOpen, escaping }: Props) {
     const overlays = overlaysOn(container, drawn, network, hueOf, palette, PICTURES);
     overlays.reshape(shaped);
     const icons = iconsOn(container, drawn, network, palette, PICTURES.shows);
+    let colours = palette;
+    const living = livingOn(container, drawn, network, (node) => {
+      const one = network.nodes[node];
+      return nodeLook(one, hueOf(one.group), colours).color;
+    });
+    const unturned = turnedByHand(container, living.turnBy);
     const near = network.near;
     let following = near !== undefined;
     let frame = 0;
@@ -153,6 +163,7 @@ export default function Brainsty({ network, groups, onOpen, escaping }: Props) {
       curves.reshape(placed);
       followSoon();
       if (!step.done) return;
+      living.ready();
       container.dataset.laidMs = String(Math.round(step.ms));
       container.dataset.iterations = String(step.iterations);
     });
@@ -162,8 +173,9 @@ export default function Brainsty({ network, groups, onOpen, escaping }: Props) {
       overlays.retheme(next);
       curves.retheme(next);
       icons.retheme(next);
+      colours = next;
     });
-    drawing.current = { drawn, overlays, curves, icons };
+    drawing.current = { drawn, overlays, curves, icons, living };
     setReady(true);
     return () => {
       cancelAnimationFrame(frame);
@@ -176,6 +188,8 @@ export default function Brainsty({ network, groups, onOpen, escaping }: Props) {
       overlays.stop();
       curves.stop();
       icons.stop();
+      unturned();
+      living.stop();
       drawing.current = null;
       drawn.kill();
     };
@@ -187,6 +201,7 @@ export default function Brainsty({ network, groups, onOpen, escaping }: Props) {
     drawing.current.overlays.sift(hidden);
     drawing.current.curves.sift(hidden);
     drawing.current.icons.sift(hidden);
+    drawing.current.living.sift(hidden);
     setPicked((was) => (was !== null && hidden[was] ? null : was));
   }, [ready, hidden]);
 
@@ -205,6 +220,13 @@ export default function Brainsty({ network, groups, onOpen, escaping }: Props) {
   useEffect(() => {
     if (ready) drawing.current?.curves.show(sift.alike);
   }, [ready, sift.alike]);
+
+  useEffect(() => {
+    const living = drawing.current?.living;
+    if (!ready || !living) return;
+    if (alive) living.play();
+    else living.pause();
+  }, [ready, alive]);
 
   const choose = (node: number) => {
     setQuery("");
@@ -232,6 +254,11 @@ export default function Brainsty({ network, groups, onOpen, escaping }: Props) {
         onSift={setSift}
         tags={tags}
         finder={finder}
+        alive={alive}
+        onAlive={(next) => {
+          keepAlive(next);
+          setAlive(next);
+        }}
       />
       {shown && picked !== null && (
         <Preview
@@ -252,6 +279,26 @@ export default function Brainsty({ network, groups, onOpen, escaping }: Props) {
     </div>
   );
 }
+
+const STILL = "tisty.brainstyLiving";
+
+const aliveAtFirst = (): boolean => {
+  if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return false;
+  try {
+    return localStorage.getItem(STILL) !== "paused";
+  } catch {
+    return true;
+  }
+};
+
+const keepAlive = (alive: boolean) => {
+  try {
+    if (alive) localStorage.removeItem(STILL);
+    else localStorage.setItem(STILL, "paused");
+  } catch {
+    // Without storage the network simply comes back alive next time.
+  }
+};
 
 const PICTURES = {
   shows: pictured,
