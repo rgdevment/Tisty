@@ -168,7 +168,7 @@ export default function AgentCard({
         )}
       </div>
       <p className="mt-2.5 text-[21px] font-medium text-ink">{doc.label}</p>
-      <p className="mb-3 truncate text-[12px] text-faint" title={doc.name}>
+      <p className="mb-3 truncate text-[11.5px] text-faint" title={doc.name}>
         {doc.name}
       </p>
       {own && <p className="mb-3 text-[12.5px] text-soft">{t("agentMemoryOwn")}</p>}

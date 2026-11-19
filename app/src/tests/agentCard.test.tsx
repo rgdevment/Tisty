@@ -106,7 +106,7 @@ describe("an agent document's name on its card", () => {
     shown(card([], { name: "rules/horario.md", label: "Horario laboral" }));
     expect(screen.getByText("Horario laboral").className).toContain("text-[21px]");
     const path = screen.getByText("rules/horario.md");
-    expect(path.className).toContain("text-[12px]");
+    expect(path.className).toContain("text-[11.5px]");
     expect(path.title).toBe("rules/horario.md");
   });
 });
