@@ -66,7 +66,8 @@ describe("Tisty's guesses in the network", () => {
       [3, 0],
       [2, 3],
     ]);
-    expect(shown.every((one) => one.fade === 1)).toBe(true);
+    expect(shown.every((one) => one.fade === 1 && !one.bothInSight)).toBe(true);
+    expect(curvesShown(curves, showing).every((one) => one.bothInSight)).toBe(true);
   });
 
   it("shows none with the filter off, nor one with an end out of sight", () => {

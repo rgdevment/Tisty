@@ -10,6 +10,7 @@ export interface Curve {
 export interface Shown {
   curve: Curve;
   fade: number;
+  bothInSight: boolean;
 }
 
 export interface Showing {
@@ -52,11 +53,13 @@ export function curvesShown(curves: readonly Curve[], showing: Showing): Shown[]
   if (!showing.on) return [];
   const { picked, hidden } = showing;
   const near = lineDetail(showing.zoom);
-  return curves.flatMap((curve) => {
+  return curves.flatMap((curve): Shown[] => {
     if (hidden[curve.from] || hidden[curve.to]) return [];
     if (picked !== null)
-      return curve.from === picked || curve.to === picked ? [{ curve, fade: 1 }] : [];
-    return near > 0 ? [{ curve, fade: near }] : [];
+      return curve.from === picked || curve.to === picked
+        ? [{ curve, fade: 1, bothInSight: false }]
+        : [];
+    return near > 0 ? [{ curve, fade: near, bothInSight: true }] : [];
   });
 }
 

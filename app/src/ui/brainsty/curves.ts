@@ -21,6 +21,10 @@ export const bendOf = ([x1, y1]: Point, [x2, y2]: Point): Point => [
   (y1 + y2) / 2 + (x2 - x1) * BEND,
 ];
 
+// Near up, a guess shows only between two nodes in sight: one reaching far would cross the whole view.
+const inSight = ([x, y]: Point, width: number, height: number): boolean =>
+  x >= 0 && x <= width && y >= 0 && y <= height;
+
 const outside = (points: readonly Point[], width: number, height: number): boolean =>
   points.every(([x]) => x < 0) ||
   points.every(([x]) => x > width) ||
@@ -39,14 +43,20 @@ export function paintCurves(
   brush.clearRect(0, 0, canvas.width, canvas.height);
   brush.lineWidth = WIDTH * scale;
   brush.lineCap = "round";
-  for (const { curve, fade } of shown) {
+  const { width, height } = canvas;
+  for (const { curve, fade, bothInSight } of shown) {
     const from = onScreen(curve.from);
     const to = onScreen(curve.to);
     if (!from || !to) continue;
     const [a, bend, b] = [from, bendOf(from, to), to].map(
       ([x, y]): Point => [x * scale, y * scale],
     );
-    if (outside([a, bend, b], canvas.width, canvas.height)) continue;
+    if (
+      bothInSight
+        ? !inSight(a, width, height) || !inSight(b, width, height)
+        : outside([a, bend, b], width, height)
+    )
+      continue;
     brush.strokeStyle = rgba(amber, alphaOf(curve.strength) * fade);
     brush.beginPath();
     brush.moveTo(a[0], a[1]);
