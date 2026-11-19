@@ -21,7 +21,6 @@ tisty-help = { path = "crates/tisty-help" }
 tisty-onedrive = { path = "crates/tisty-onedrive" }
 tisty-webdav = { path = "crates/tisty-webdav" }
 tisty-core = { path = "crates/tisty-core" }
-tisty-meaning = { path = "crates/tisty-meaning" }
 tisty-markdown = { path = "crates/tisty-markdown", default-features = false }
 tisty-nl = { path = "crates/tisty-nl" }
 tisty-share-proto = { path = "crates/tisty-share-proto", default-features = false }

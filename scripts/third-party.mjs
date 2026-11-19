@@ -9,30 +9,6 @@ const out = join(root, "THIRD-PARTY-BUNDLED.md");
 const texts = join(root, "THIRD-PARTY-LICENSES.md");
 const REPO = "https://github.com/rgdevment/Tisty/blob/main";
 
-const MODELS = [
-  {
-    name: "sentence-transformers/static-similarity-mrl-multilingual-v1",
-    source: "https://huggingface.co/sentence-transformers/static-similarity-mrl-multilingual-v1",
-    revision: "b68f4122911bcffcd6e1f695f2d99cd6788972d8",
-    licence: "Apache-2.0",
-    changed:
-      "Tisty carries a modified copy in `resources/brain`, made by `cargo run -p tisty-meaning --example derive` " +
-      "from `0_StaticEmbedding/model.safetensors` and `0_StaticEmbedding/tokenizer.json` of that revision: " +
-      "each token keeps the first 256 of its 1024 values, stored as one signed byte with one scale per token " +
-      "(`table.bin`), and the vocabulary is written one piece per line (`vocab.txt`). The model publishes no " +
-      "NOTICE file. The Apache License 2.0 text is in " +
-      `[THIRD-PARTY-LICENSES.md](${REPO}/THIRD-PARTY-LICENSES.md)` +
-      ", carried by the crates under it, and at " +
-      "https://www.apache.org/licenses/LICENSE-2.0.",
-  },
-];
-
-const models = () =>
-  MODELS.map(
-    (one) =>
-      `### [\`${one.name}\`](${one.source}) — ${one.licence}\n\nRevision \`${one.revision}\`. ${one.changed}`,
-  ).join("\n\n");
-
 const shipped = () => {
   const lock = JSON.parse(readFileSync(join(root, "package-lock.json"), "utf8"));
   const seen = new Map();
@@ -361,10 +337,6 @@ ${listed(js)}
 | Crate | Version | Licence |
 | --- | --- | --- |
 ${listed(rs)}
-
-## Models (${MODELS.length})
-
-${models()}
 
 ## The notices themselves
 

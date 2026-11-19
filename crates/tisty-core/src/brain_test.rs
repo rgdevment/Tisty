@@ -316,6 +316,36 @@ fn an_older_base_is_built_again_from_nothing() {
 }
 
 #[test]
+fn a_base_that_kept_a_models_vectors_is_built_again_without_them() {
+    let dir = tempfile::tempdir().unwrap();
+    {
+        let brain = Brain::open(dir.path()).unwrap();
+        brain
+            .db
+            .execute_batch(
+                "CREATE TABLE vector(id TEXT PRIMARY KEY, stamp TEXT NOT NULL,
+                     model TEXT NOT NULL, said BLOB NOT NULL);
+                 INSERT INTO vector VALUES ('x', 's', 'static', x'00');
+                 UPDATE meta SET value = '7' WHERE key = 'schema';",
+            )
+            .unwrap();
+    }
+
+    let brain = Brain::open(dir.path()).expect("a base of schema 7 opens");
+
+    let tables: i64 = brain
+        .db
+        .query_row(
+            "SELECT count(*) FROM sqlite_master WHERE type = 'table' AND name = 'vector'",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert_eq!(tables, 0, "no vector of what was written stays behind");
+    assert_eq!(said(&brain.db, "schema").unwrap(), Some(SCHEMA.to_string()));
+}
+
+#[test]
 fn a_newer_base_is_left_to_the_tisty_that_keeps_it() {
     let dir = tempfile::tempdir().unwrap();
     {

@@ -1,10 +1,9 @@
 use std::time::{Duration, Instant};
 
 use tisty_core::Paths;
-use tisty_core::brain::{self, Meaning, Refreshed, Round};
+use tisty_core::brain::{self, Refreshed, Round};
 use tisty_core::witness::{self, channel};
 
-use super::meaning::Shipped;
 use crate::herald::Nudge;
 
 const EVERY: Duration = Duration::from_secs(30);
@@ -12,7 +11,6 @@ const LISTENS: Duration = Duration::from_secs(1);
 // Typing writes about once a second, and each round reads the whole state again.
 const SETTLES: Duration = Duration::from_secs(5);
 const WEIGHS_EVERY: Duration = Duration::from_secs(30);
-const READS_ON_AFTER: Duration = Duration::from_secs(1);
 
 pub(super) fn keep(paths: Paths, nudge: Nudge, moved: Nudge) {
     let weighing = paths.clone();
@@ -58,30 +56,16 @@ fn kept(paths: &Paths, round: Round, moved: &Nudge) {
 fn weigh(paths: &Paths) {
     crate::desktop::lowered();
     let mut weighing = brain::Weighing::default();
-    let mut shipped = Shipped::beside_the_app();
-    let mut wait = WEIGHS_EVERY;
     loop {
-        std::thread::sleep(wait);
-        let done = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-            weighing.kept(paths, &mut shipped)
-        }));
-        wait = next_look(done.as_ref().ok().copied().flatten());
+        std::thread::sleep(WEIGHS_EVERY);
+        let done = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| weighing.kept(paths)));
         if done.is_err() {
-            shipped.rest();
             witness::error(
                 channel::BRAIN,
                 "the brain could not weigh what is alike",
                 &[],
             );
         }
-    }
-}
-
-// What is left to read comes back at once; everything else waits for the next look.
-fn next_look(passed: Option<brain::Passed>) -> Duration {
-    match passed {
-        Some(brain::Passed::Meaning { .. }) => READS_ON_AFTER,
-        _ => WEIGHS_EVERY,
     }
 }
 

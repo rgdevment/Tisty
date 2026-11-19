@@ -5859,7 +5859,6 @@ dependencies = [
  "tisty-google",
  "tisty-help",
  "tisty-markdown",
- "tisty-meaning",
  "tisty-nl",
  "tisty-onedrive",
  "tisty-share-proto",
@@ -5893,16 +5892,6 @@ dependencies = [
  "serde_json",
  "tisty-contracts",
  "unicase",
- "unicode-normalization",
-]
-
-[[package]]
-name = "tisty-meaning"
-version = "0.1.0"
-dependencies = [
- "regex-syntax",
- "serde_json",
- "sha2 0.11.1",
  "unicode-normalization",
 ]
 

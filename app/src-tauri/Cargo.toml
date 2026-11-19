@@ -52,7 +52,6 @@ tisty-google.workspace = true
 tisty-onedrive.workspace = true
 tisty-webdav.workspace = true
 tisty-core.workspace = true
-tisty-meaning.workspace = true
 tisty-contracts = { path = "../../contracts/dist/rust" }
 tisty-envelope.workspace = true
 tisty-share-proto = { workspace = true, features = ["mint"] }

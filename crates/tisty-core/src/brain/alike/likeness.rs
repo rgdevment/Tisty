@@ -1,8 +1,5 @@
 use std::collections::{HashMap, HashSet};
 
-use super::meant::Meant;
-use super::nearness;
-
 pub(crate) struct Caps {
     pub(crate) weighed: usize,
     pub(crate) closest: usize,
@@ -12,9 +9,7 @@ pub(crate) struct Caps {
     pub(crate) common: usize,
     pub(crate) common_at_least: usize,
     pub(crate) steps: u64,
-    pub(crate) pairs: u64,
     pub(crate) chance: f64,
-    pub(crate) standout: f64,
 }
 
 pub(crate) const CAPS: Caps = Caps {
@@ -26,31 +21,13 @@ pub(crate) const CAPS: Caps = Caps {
     common: 20,
     common_at_least: 3,
     steps: 20_000_000,
-    pairs: 20_000_000,
     chance: 0.001,
-    standout: 6.0,
 };
 
 pub(crate) struct Item {
     pub(crate) lang: Option<String>,
     pub(crate) kin: Vec<String>,
     pub(crate) words: Vec<(String, String, u32)>,
-    pub(crate) meant: Option<Meant>,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum Method {
-    Words,
-    Meaning,
-}
-
-impl Method {
-    pub(crate) fn as_str(self) -> &'static str {
-        match self {
-            Method::Words => "words",
-            Method::Meaning => "meaning",
-        }
-    }
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -59,7 +36,6 @@ pub(crate) struct Pair {
     pub(crate) b: usize,
     pub(crate) score: f32,
     pub(crate) shared: Vec<String>,
-    pub(crate) method: Method,
 }
 
 #[derive(Debug, Default)]
@@ -67,17 +43,14 @@ pub(crate) struct Outcome {
     pub(crate) pairs: Vec<Pair>,
     pub(crate) steps: u64,
     pub(crate) common_from: usize,
-    pub(crate) compared: u64,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
-pub(crate) enum Tongue {
+enum Tongue {
     Same,
     Other,
 }
 
-pub(crate) type Near = [Vec<(usize, f32)>; 2];
-pub(crate) type Found = (Tongue, usize, usize, f32);
 type Vector = Vec<(u32, f32)>;
 
 struct Base<'a> {
@@ -88,31 +61,6 @@ struct Base<'a> {
 
 pub(crate) fn alike(items: &[Item], tied: &HashSet<(usize, usize)>, caps: &Caps) -> Outcome {
     let (base, common_from) = weighed(items, caps);
-    let apart = |a: usize, b: usize| {
-        tied.contains(&(a.min(b), a.max(b)))
-            || items[a].kin.iter().any(|one| items[b].kin.contains(one))
-    };
-    let (by_words, steps) = by_words(items, &base, &apart, caps);
-    let (by_meaning, compared) = nearness::by_meaning(items, &apart, caps);
-    Outcome {
-        pairs: kept(
-            items.len(),
-            [(Method::Words, by_words), (Method::Meaning, by_meaning)],
-            &base,
-            caps,
-        ),
-        steps,
-        common_from,
-        compared,
-    }
-}
-
-fn by_words(
-    items: &[Item],
-    base: &Base,
-    apart: &impl Fn(usize, usize) -> bool,
-    caps: &Caps,
-) -> (Vec<Found>, u64) {
     let mut postings: Vec<Vec<(usize, f32)>> = vec![Vec::new(); base.told.len()];
     for (at, vector) in base.vectors.iter().enumerate() {
         for &(term, weight) in vector {
@@ -121,9 +69,13 @@ fn by_words(
             }
         }
     }
+    let apart = |a: usize, b: usize| {
+        tied.contains(&(a.min(b), a.max(b)))
+            || items[a].kin.iter().any(|one| items[b].kin.contains(one))
+    };
     let mut steps = 0;
     let mut spread = [Spread::default(), Spread::default()];
-    let mut ranked: Vec<Near> = Vec::with_capacity(items.len());
+    let mut ranked: Vec<[Vec<(usize, f32)>; 2]> = Vec::with_capacity(items.len());
     let mut score = vec![0f32; items.len()];
     let mut both = vec![0u32; items.len()];
     let mut touched = Vec::new();
@@ -141,7 +93,7 @@ fn by_words(
                 steps += 1;
             }
         }
-        let mut near: Near = [Vec::new(), Vec::new()];
+        let mut near: [Vec<(usize, f32)>; 2] = [Vec::new(), Vec::new()];
         for other in touched.drain(..) {
             let (said, shared) = (score[other], both[other]);
             score[other] = 0.0;
@@ -159,64 +111,50 @@ fn by_words(
         }
         ranked.push(near);
     }
-    let langs: Vec<Option<&str>> = items.iter().map(|item| item.lang.as_deref()).collect();
-    let floors = floors(&langs, &spread, Pairs::All, caps);
-    (mutual(&ranked, &floors, |at| at), steps)
-}
-
-// Both ends rank each other, and the pair beats the floor of its own tongue.
-pub(crate) fn mutual(
-    ranked: &[Near],
-    floors: &[f32; 2],
-    index: impl Fn(usize) -> usize,
-) -> Vec<Found> {
-    let mut found = Vec::new();
+    let floors = floors(items, &spread, caps);
+    let mut found: Vec<(Tongue, usize, usize, f32)> = Vec::new();
     for (at, near) in ranked.iter().enumerate() {
         for tongue in [Tongue::Same, Tongue::Other] {
             for &(other, said) in &near[tongue as usize] {
-                let back = ranked[other][tongue as usize]
+                let mutual = ranked[other][tongue as usize]
                     .iter()
                     .any(|(back, _)| *back == at);
-                if at < other && back && said >= floors[tongue as usize] {
-                    found.push((tongue, index(at), index(other), said));
+                if at < other && mutual && said >= floors[tongue as usize] {
+                    found.push((tongue, at, other, said));
                 }
             }
         }
     }
-    found
-}
-
-// Words say why, so they are kept first; another language scores lower by nature, so its slot fills before the rest.
-fn kept(n: usize, by: [(Method, Vec<Found>); 2], base: &Base, caps: &Caps) -> Vec<Pair> {
-    let mut held = vec![0usize; n];
-    let mut taken = HashSet::new();
+    // Another language scores lower by nature, so its own slot is filled before the rest.
+    found.sort_by(|x, y| {
+        (y.0 as u8)
+            .cmp(&(x.0 as u8))
+            .then(y.3.total_cmp(&x.3))
+            .then((x.1, x.2).cmp(&(y.1, y.2)))
+    });
+    let mut held = vec![0usize; items.len()];
     let mut pairs = Vec::new();
-    for (method, mut found) in by {
-        found.sort_by(|x, y| {
-            (y.0 as u8)
-                .cmp(&(x.0 as u8))
-                .then(y.3.total_cmp(&x.3))
-                .then((x.1, x.2).cmp(&(y.1, y.2)))
-        });
-        for (_, a, b, said) in found {
-            if held[a] >= caps.closest || held[b] >= caps.closest || !taken.insert((a, b)) {
-                continue;
-            }
-            held[a] += 1;
-            held[b] += 1;
-            pairs.push(Pair {
-                a,
-                b,
-                score: said,
-                shared: shared_words(base, a, b, caps.told),
-                method,
-            });
+    for (_, a, b, said) in found {
+        if held[a] >= caps.closest || held[b] >= caps.closest {
+            continue;
         }
+        held[a] += 1;
+        held[b] += 1;
+        pairs.push(Pair {
+            a,
+            b,
+            score: said,
+            shared: shared_words(&base, a, b, caps.told),
+        });
     }
-    pairs
+    Outcome {
+        pairs,
+        steps,
+        common_from,
+    }
 }
 
-pub(crate) fn tongue_of(one: &Item, other: &Item) -> Tongue {
+fn tongue_of(one: &Item, other: &Item) -> Tongue {
     match (&one.lang, &other.lang) {
         (Some(mine), Some(theirs)) if mine != theirs => Tongue::Other,
         _ => Tongue::Same,
@@ -300,7 +238,7 @@ fn common_from(df: &[u32], n: usize, caps: &Caps) -> usize {
 
 const BINS: usize = 1024;
 
-pub(crate) struct Spread {
+struct Spread {
     bins: Vec<u64>,
 }
 
@@ -313,17 +251,9 @@ impl Default for Spread {
 }
 
 impl Spread {
-    pub(crate) fn add(&mut self, score: f32) {
-        self.add_times(score, 1);
-    }
-
-    pub(crate) fn add_times(&mut self, score: f32, times: u64) {
+    fn add(&mut self, score: f32) {
         let at = (score.clamp(0.0, 1.0) * (BINS - 1) as f32) as usize;
-        self.bins[at] += times;
-    }
-
-    fn counted(&self) -> u64 {
-        self.bins.iter().sum()
+        self.bins[at] += 1;
     }
 
     fn floor_for(&self, kept: u64) -> f32 {
@@ -338,35 +268,19 @@ impl Spread {
     }
 }
 
-// Words count every pair of the base, though most share nothing; meaning counts the pairs it compared.
-#[derive(Clone, Copy)]
-pub(crate) enum Pairs {
-    All,
-    Compared,
-}
-
 // Chance is what one pair in a thousand reaches in this base, never stricter than room for each node's closest.
-pub(crate) fn floors(
-    langs: &[Option<&str>],
-    spread: &[Spread; 2],
-    pairs: Pairs,
-    caps: &Caps,
-) -> [f32; 2] {
-    let n = langs.len() as u64;
+fn floors(items: &[Item], spread: &[Spread; 2], caps: &Caps) -> [f32; 2] {
+    let n = items.len() as u64;
     let mut speakers: HashMap<&str, u64> = HashMap::new();
-    for lang in langs.iter().flatten() {
-        *speakers.entry(lang).or_default() += 1;
+    for item in items {
+        if let Some(lang) = &item.lang {
+            *speakers.entry(lang.as_str()).or_default() += 1;
+        }
     }
     let declared: u64 = speakers.values().sum();
     let abroad_pairs: u64 = speakers.values().map(|m| m * (declared - m)).sum();
     let abroad_nodes: u64 = speakers.values().filter(|m| **m < declared).sum();
-    let (same_pairs, abroad_pairs) = match pairs {
-        Pairs::All => (n * n.saturating_sub(1) - abroad_pairs, abroad_pairs),
-        Pairs::Compared => (
-            spread[Tongue::Same as usize].counted(),
-            spread[Tongue::Other as usize].counted(),
-        ),
-    };
+    let same_pairs = n * n.saturating_sub(1) - abroad_pairs;
     let kept = |pairs: u64, room: u64| ((pairs as f64 * caps.chance).ceil() as u64).max(room);
     [
         spread[Tongue::Same as usize].floor_for(kept(same_pairs, caps.closest as u64 * n)),
