@@ -228,7 +228,7 @@ pub(super) fn of_task(paths: &Paths, which: &str, args: &Value) -> Result<Value,
 fn linked(which: &str, card: Option<Card>, kind: &str, args: &Value) -> Result<Value, Refused> {
     let Some(card) = card else {
         return Err(Refused::Tool(format!(
-            "{NO_BASE} Its links are in its text: `read_doc` or `read` with {which}."
+            "{NO_BASE} Its links are in its text: `read` with {which}."
         )));
     };
     let most = how_many(args, LINKS_BY_DEFAULT, LINKS_AT_MOST);

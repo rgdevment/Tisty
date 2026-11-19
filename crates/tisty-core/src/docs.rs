@@ -7,6 +7,7 @@ use crate::{Error, Result, event::DeviceId, store::write_atomic};
 
 mod cards;
 mod carried;
+mod highlighted;
 mod prints;
 mod relabel;
 mod text;
@@ -19,6 +20,7 @@ pub use carried::{
     print_of_text, read_as_printed, read_carried, read_notes_before, read_notes_left,
     read_state_left, rewrite_if, whole_of,
 };
+pub use highlighted::{Highlight, highlighted};
 pub use prints::{Prints, Seen};
 pub use relabel::{another_name, book_to_relabel, relabel_page, relabeled};
 use text::{Fencing, unspanned, wordless};

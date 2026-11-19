@@ -50,7 +50,7 @@ expression: tool
         "type": "boolean"
       },
       "print": {
-        "description": "The `print` `read_doc` gave with the text you worked from; if the document changed since, nothing is written",
+        "description": "The `print` `read` or `brain` gave with the text you worked from; if the document changed since, nothing is written",
         "type": "string"
       },
       "translation_of": {

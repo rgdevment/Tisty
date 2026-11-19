@@ -18,11 +18,39 @@ use super::task_state::Stated;
 use super::unpathing::unpathed_body;
 use super::{Refused, hitch, named, opened, trail, when};
 
+const TASK_ONLY: [&str; 2] = ["fields", "notes"];
+const DOC_ONLY: [&str; 9] = [
+    "section", "from", "to", "chars", "cursor", "as", "marks", "versions", "version",
+];
+
 pub(super) fn read(paths: &Paths, args: &Value) -> Result<Value, Refused> {
-    let today = jiff::Zoned::now().date();
-    let Some(said) = text(args, "task") else {
-        return Err(Refused::Tool("reading needs a `task` id.".into()));
+    let (only, other) = match (text(args, "task"), text(args, "doc")) {
+        (Some(_), Some(_)) => {
+            return Err(Refused::Tool(
+                "`read` reads one thing at a time: a `task` or a `doc`, not both.".into(),
+            ));
+        }
+        (None, None) => {
+            return Err(Refused::Tool(
+                "`read` needs a `task` id or a `doc` id; `brain` finds either.".into(),
+            ));
+        }
+        (Some(_), None) => (&DOC_ONLY[..], "a `doc`"),
+        (None, Some(_)) => (&TASK_ONLY[..], "a `task`"),
     };
+    if let Some(stray) = only.iter().find(|key| args.get(**key).is_some()) {
+        return Err(Refused::Tool(format!(
+            "`{stray}` is for reading {other}, so it goes with {other} id. Nothing was read."
+        )));
+    }
+    match text(args, "task") {
+        Some(said) => read_task(paths, args, said),
+        None => super::papers::reading::read_doc(paths, args),
+    }
+}
+
+fn read_task(paths: &Paths, args: &Value, said: String) -> Result<Value, Refused> {
+    let today = jiff::Zoned::now().date();
     let (state, store) = opened(paths)?;
     let Ok(id) = said.parse::<TaskId>() else {
         return Err(Refused::Tool(not_a_task_id(&state, &said)));
@@ -65,19 +93,24 @@ pub(super) fn read(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         }
     };
     let owner = tisty_core::task_docs::owner(&state, task.id);
-    let page = wants("document")
+    let (page, page_print) = wants("document")
         .then(|| {
             let kept = tisty_core::task_docs::of(&state, owner)?;
             let body = tisty_core::docs::read(&paths.docs(), &kept.file).ok()?;
+            let print = tisty_core::attach::printed(body.as_bytes());
             // The page comes back as it is stored, so it can be written back as it came.
             let (body, boxed) = tisty_core::stages::ticked_boxes(task, &body);
             let yours = task.is_open();
             let digest = tisty_core::docs::read_notes_before(paths.data(), &kept.file)
                 .filter(|slot| !slot.undone)
                 .map(|slot| slot.after);
-            Some(Page::new(kept.file.clone(), body, boxed, yours, digest))
+            Some((
+                Page::new(kept.file.clone(), body, boxed, yours, digest),
+                print,
+            ))
         })
-        .flatten();
+        .flatten()
+        .unzip();
     let named = |key: &str| asked.iter().any(|one| one == key);
     let shown_page = page.as_ref().and_then(Page::whole);
     let description = task.description.as_deref().filter(|one| {
@@ -112,6 +145,7 @@ pub(super) fn read(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     }
     if let Some(page) = &page {
         whole["document"] = page.structured();
+        whole["document"]["print"] = json!(page_print);
     }
     let parts: Vec<&Task> = state
         .parts_of(task.id)
@@ -192,8 +226,43 @@ pub(super) fn read(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     if wants("journal") {
         plainly.push_str(&notes.told(UNPATHED));
     }
+    super::each::said_once(&mut whole, &["journal", "parts"]);
+    let print = answer_print(&plainly, &whole);
+    if let Some(since) = text(args, "print").and_then(|held| held_since(&held, &print)) {
+        return Ok(told(
+            format!(
+                "Nothing on {} changed since you read it{since}: what you hold still stands. \
+                 Without `print`, `read` brings it whole again.",
+                named_task(&state, task)
+            ),
+            json!({ "id": task.id.to_string(), "status": task.status, "unchanged": true, "print": text(args, "print") }),
+        ));
+    }
+    whole["print"] = json!(format!("{print}.{}", jiff::Timestamp::now().as_second()));
     Ok(mirrored(plainly, whole))
 }
+
+fn answer_print(plainly: &str, whole: &Value) -> String {
+    let shown = format!("{plainly}\n{whole}");
+    tisty_core::attach::printed(shown.as_bytes())[..PRINT_HELD].to_string()
+}
+
+// The print carries the second it was read at, so «unchanged since» needs no memory of the call.
+fn held_since(held: &str, print: &str) -> Option<String> {
+    let (said, at) = held.split_once('.').unwrap_or((held, ""));
+    if said != print {
+        return None;
+    }
+    let since = at
+        .parse::<i64>()
+        .ok()
+        .and_then(|second| jiff::Timestamp::from_second(second).ok())
+        .map(|at| format!(", {}", when(at)))
+        .unwrap_or_default();
+    Some(since)
+}
+
+const PRINT_HELD: usize = 16;
 
 pub(super) fn catch_up(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     let (state, store) = opened(paths)?;
@@ -273,11 +342,14 @@ pub(super) fn catch_up(paths: &Paths, args: &Value) -> Result<Value, Refused> {
             .task_at
             .map(|at| format!(", {}", when(at)))
             .unwrap_or_default();
+        let progress = super::brain::project::progress(paths, &state, task);
         said.push(format!(
-            "You last worked on {}{on}: `read` it.",
-            named_task(&state, task)
+            "You last worked on {}{on}: {}. `read` it.",
+            named_task(&state, task),
+            progress.told()
         ));
         let mut last = json!({ "id": task.id.to_string(), "title": task.title });
+        progress.put(&mut last);
         if let Some(list) = list_of(&state, task) {
             last["list"] = json!(list);
         }
@@ -417,7 +489,9 @@ pub(super) fn catch_up(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     if asked.is_none() {
         looks_now(paths, &seen, whole);
     }
-    Ok(told(said.join(" "), Value::Object(kept)))
+    let mut kept = Value::Object(kept);
+    super::each::said_once(&mut kept, &["tasks", "docs", "pressing"]);
+    Ok(told(said.join(" "), kept))
 }
 
 pub(super) fn counted_tags(state: &State) -> Vec<(&str, usize)> {
@@ -531,7 +605,7 @@ pub(super) const NEWEST_SHOWN: usize = 8;
 
 const TAGS_AT_A_GLANCE: usize = 40;
 const AT_A_GLANCE: usize = 30;
-const READ_FIELDS: [&str; 25] = [
+const READ_FIELDS: [&str; 26] = [
     "id",
     "title",
     "status",
@@ -557,6 +631,7 @@ const READ_FIELDS: [&str; 25] = [
     "document",
     "journal",
     "kept",
+    "print",
 ];
 
 /// The tombstone knows: what the person erased is said to be erased, not merely missing.

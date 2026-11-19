@@ -97,7 +97,7 @@ pub struct TaskFacts {
     pub links: Vec<String>,
 }
 
-// Lines take both ends as `read_doc` does; bytes are half-open so `&body[from..to]` is the section.
+// Lines take both ends as `read` does; bytes are half-open so `&body[from..to]` is the section.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Section {
     pub title: String,

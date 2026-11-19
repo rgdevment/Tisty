@@ -306,7 +306,7 @@ fn sorting_ideas(paths: &Paths, said: Option<&str>) -> String {
         None => "every idea".to_string(),
     };
     format!(
-        "Help me sort out my ideas in Tisty. Ask `rules` «ideas» first, then `read_doc` {}, and \
+        "Help me sort out my ideas in Tisty. Ask `rules` «ideas» first, then `read` {}, and \
          look at {which} on it. Tell me in a few lines, by their words and never by id, which \
          belong together and why, which would become a task and in which list, which belong in a \
          document and which one (`brain` finds it), and which are done, old or repeated. Change nothing \

@@ -173,7 +173,7 @@ fn a_long_sheet_is_read_in_parts_and_never_as_its_outline_of_minutes() {
     }
     let sheet = served.person().writes_doc(&body);
 
-    let read = served.call("read_doc", json!({ "doc": sheet }));
+    let read = served.call("read", json!({ "doc": sheet }));
 
     let kept = &read["structuredContent"];
     assert_eq!(kept["brainstorm"], json!(true), "{read}");
@@ -279,7 +279,7 @@ fn an_idea_is_marked_for_the_person_and_stays_on_the_sheet() {
             .all(|one| one.flagged.is_none())
     );
 
-    let read = served.call("read_doc", json!({ "doc": sheet }));
+    let read = served.call("read", json!({ "doc": sheet }));
     assert_eq!(
         read["structuredContent"]["marked"][0]["idea"],
         json!(CONCERT),
@@ -901,7 +901,7 @@ fn a_long_sheet_is_read_one_whole_idea_at_a_time() {
         served.call("append_doc", json!({ "doc": sheet, "body": many }));
     }
 
-    let read = served.call("read_doc", json!({ "doc": sheet }));
+    let read = served.call("read", json!({ "doc": sheet }));
 
     let next = read["structuredContent"]["next"].as_u64().unwrap() as usize;
     let body = served.body(&sheet);

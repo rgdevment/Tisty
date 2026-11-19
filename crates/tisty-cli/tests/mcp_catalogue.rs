@@ -59,7 +59,7 @@ fn the_instructions_an_agent_reads_when_it_connects() {
     insta::assert_snapshot!(kept);
 }
 
-const DOOR_AT_MOST: usize = 40_720;
+const DOOR_AT_MOST: usize = 40_350;
 const DOOR_SLACK: usize = 1_000;
 
 #[test]
@@ -84,23 +84,23 @@ fn what_an_agent_pays_to_have_tisty_connected_only_shrinks() {
     );
 }
 
-const BRAIN_AT_MOST: usize = 3_800;
-
 #[test]
-fn brain_stays_within_the_weight_it_was_given() {
+fn brain_and_read_stay_within_the_weight_each_was_given() {
     let said = ask(&[request("tools/list", &json!({}))]);
-    let brain = said[0]["result"]["tools"]
-        .as_array()
-        .unwrap()
-        .iter()
-        .find(|tool| tool["name"] == "brain")
-        .unwrap();
-    let weight = serde_json::to_string(brain).unwrap().len();
+    for (name, at_most) in [("brain", 3_800), ("read", 2_140)] {
+        let tool = said[0]["result"]["tools"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|tool| tool["name"] == name)
+            .unwrap();
+        let weight = serde_json::to_string(tool).unwrap().len();
 
-    assert!(
-        weight <= BRAIN_AT_MOST,
-        "`brain` weighs {weight} bytes in the list, past the {BRAIN_AT_MOST} it was given: say it in fewer words, or move the how-to into `rules`"
-    );
+        assert!(
+            weight <= at_most,
+            "`{name}` weighs {weight} bytes in the list, past the {at_most} it was given: say it in fewer words, or move the how-to into `rules`"
+        );
+    }
 }
 
 #[test]

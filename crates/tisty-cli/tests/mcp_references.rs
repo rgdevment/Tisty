@@ -79,7 +79,7 @@ impl Connection {
     }
 
     fn body_of(&mut self, doc: &str) -> String {
-        let said = self.call("read_doc", json!({ "doc": doc }));
+        let said = self.call("read", json!({ "doc": doc }));
         said["structuredContent"]["body"]
             .as_str()
             .unwrap_or_default()
@@ -235,7 +235,7 @@ fn a_line_the_person_wrote_is_kept_as_they_wrote_it_when_the_document_is_written
         .person()
         .writes_doc("# Plans\n\nRead «Brainsty: decisiones» later.\n");
     let mut talk = served.connect();
-    let print = talk.call("read_doc", json!({ "doc": plans }))["structuredContent"]["print"]
+    let print = talk.call("read", json!({ "doc": plans }))["structuredContent"]["print"]
         .as_str()
         .unwrap()
         .to_string();

@@ -33,8 +33,9 @@ pub(super) fn touch(name: &str, aimed: Option<TaskId>, writes: bool, said: &Valu
     let shown = &said["structuredContent"];
     match name {
         "say_done" | "say_not_doing" => Touch::Ended,
+        // Only a task's own read opens it: its page read as a document is a look, as it always was.
         "read" => match aimed {
-            Some(task) if still_open(shown) => Touch::Read(task),
+            Some(task) if still_open(shown) && shown["id"] == task.to_string() => Touch::Read(task),
             _ => Touch::Looked,
         },
         // A task filed with nothing to tick is a note for the person, never the agent's own work.

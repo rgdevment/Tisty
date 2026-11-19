@@ -163,6 +163,7 @@ pub(in crate::mcp) fn docs(paths: &Paths, args: &Value) -> Result<Value, Refused
         .collect();
     lines.extend(placing::told_below(&below));
     let mut kept = json!({ "docs": shown, "total": all });
+    super::super::each::said_once(&mut kept, &["docs"]);
     if !below.is_empty() {
         kept["below"] = json!(below);
     }

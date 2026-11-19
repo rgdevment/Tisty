@@ -490,6 +490,8 @@ pub(in crate::mcp) fn read_doc(paths: &Paths, args: &Value) -> Result<Value, Ref
     }
     let folder = kept.folder.map(|at| trail(&state, at));
     let body = tisty_core::docs::read(&paths.docs(), &which).map_err(hitch)?;
+    let print = tisty_core::attach::printed(body.as_bytes());
+    let held = text(args, "print").filter(|_| !carried_on(args));
     let pages: Vec<String> = state
         .pages_read(kept.id, &body)
         .iter()
@@ -505,10 +507,7 @@ pub(in crate::mcp) fn read_doc(paths: &Paths, args: &Value) -> Result<Value, Ref
     );
     kept_of.insert("chars".into(), json!(body.chars().count()));
     kept_of.insert("lines".into(), json!(body.lines().count()));
-    kept_of.insert(
-        "print".into(),
-        json!(tisty_core::attach::printed(body.as_bytes())),
-    );
+    kept_of.insert("print".into(), json!(print));
     if let Some(folder) = folder {
         kept_of.insert("folder".into(), json!(folder));
     }
@@ -578,6 +577,13 @@ pub(in crate::mcp) fn read_doc(paths: &Paths, args: &Value) -> Result<Value, Ref
         )),
         (false, None) => None,
     };
+    let stale = held.as_deref().is_some_and(|one| one != print);
+    if held.is_some() && !stale && !asks_a_part(args) {
+        return Ok(unchanged(&state, kept, &which, &body, &print, standing));
+    }
+    if stale {
+        kept_of.insert("changed".into(), json!(true));
+    }
     if super::outward::asked(args)? {
         let named = match super::super::written_title(&state, &which, &body).is_empty() {
             true => "This document".to_string(),
@@ -592,6 +598,12 @@ pub(in crate::mcp) fn read_doc(paths: &Paths, args: &Value) -> Result<Value, Ref
         }
         None => String::new(),
     };
+    let warned = match stale {
+        true => format!(
+            "{warned}(It was written since the print you sent, so here it is as it reads now.)\n\n"
+        ),
+        false => warned,
+    };
     let warned = match super::super::ideas::is_sheet(&body) {
         true => format!(
             "{warned}{}\n\n",
@@ -599,6 +611,11 @@ pub(in crate::mcp) fn read_doc(paths: &Paths, args: &Value) -> Result<Value, Ref
         ),
         false => warned,
     };
+    if super::highlights::asked(args)? {
+        let title = super::super::written_title(&state, &which, &body);
+        let named = super::super::named_as(&state, &which, &title);
+        return super::highlights::answered(&body, args, &named, &warned, kept_of);
+    }
 
     by_parts(
         Reading {
@@ -685,15 +702,15 @@ pub(super) fn by_parts(
                 kept_of.insert("whole".into(), json!(false));
                 more += &match (past, kept_of.contains_key("brainstorm")) {
                     (true, _) => format!(
-                        "\n\n(More from line {next}: `read_doc` with this `version` and `from` \
+                        "\n\n(More from line {next}: `read` with this `version` and `from` \
                          {next}.)"
                     ),
                     (false, true) => format!(
-                        "\n\n(More ideas from line {next}: `read_doc` with `chars`, `cursor` \
+                        "\n\n(More ideas from line {next}: `read` with `chars`, `cursor` \
                          {next} and this `print`.)"
                     ),
                     (false, false) => {
-                        format!("\n\n(More from line {next}: `read_doc` with `from` {next}.)")
+                        format!("\n\n(More from line {next}: `read` with `from` {next}.)")
                     }
                 };
             }
@@ -703,6 +720,48 @@ pub(super) fn by_parts(
             ))
         }
     }
+}
+
+fn unchanged(
+    state: &State,
+    kept: &tisty_core::model::Kept,
+    which: &str,
+    body: &str,
+    print: &str,
+    standing: Option<String>,
+) -> Value {
+    let since = kept
+        .wrote
+        .map(|at| format!(", {}", when(at)))
+        .unwrap_or_default();
+    let title = super::super::written_title(state, which, body);
+    let mut said = json!({ "doc": which, "title": title, "print": print, "unchanged": true });
+    let notice = match standing {
+        Some(standing) => {
+            said["notice"] = json!(standing);
+            format!(" ({standing})")
+        }
+        None => String::new(),
+    };
+    told(
+        format!(
+            "{} reads as it did at that print: unchanged since it was last written{since}.{notice} \
+             If you do not hold its text, read it again without `print`.",
+            super::super::named_as(state, which, &title)
+        ),
+        said,
+    )
+}
+
+// Only a read of the whole is known to be what the agent holds; a part may be one it never read.
+fn asks_a_part(args: &Value) -> bool {
+    ["section", "from", "to", "chars", "cursor", "marks", "as"]
+        .iter()
+        .any(|key| args.get(*key).is_some())
+}
+
+fn carried_on(args: &Value) -> bool {
+    args.get("chars").is_some() && args.get("cursor").and_then(Value::as_u64).unwrap_or(1) > 1
 }
 
 pub(super) fn left_named(

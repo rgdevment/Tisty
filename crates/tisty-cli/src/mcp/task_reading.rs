@@ -95,7 +95,7 @@ impl Page {
             false => format!("\n\nIts page:\n{}", self.body.trim_end()),
             true => format!(
                 "\n\nIts page holds {} characters, so here are its sections rather than the whole \
-                 of it: `read_doc` {:?} with a `section` brings one.\n{}",
+                 of it: `read` with `doc` {:?} and a `section` brings one.\n{}",
                 self.body.chars().count(),
                 self.file,
                 tisty_core::docs::outlined(&self.body)

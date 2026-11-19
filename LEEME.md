@@ -466,7 +466,7 @@ conserves. Cada herramienta se describe en
 - **La bitácora y los archivos de una tarea** — `note`, `reword_note`, `attach`
 - **Documentos** — escribir uno, agregarle, cambiar un pasaje o una tabla, leer
   solo la parte que necesita: `write_doc`, `append_doc`, `edit_doc`,
-  `edit_table`, `read_doc`, `sum_up`, `restore_doc`, `import_doc`,
+  `edit_table`, `read`, `sum_up`, `restore_doc`, `import_doc`,
   `export_doc`, `archive_doc`, `flag_doc`
 - **Carpetas, páginas e idiomas** — `folder`, `file_doc`, `page_doc`,
   `tongue_doc`
