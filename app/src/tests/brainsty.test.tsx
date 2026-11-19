@@ -557,4 +557,27 @@ describe("the Brainsty section", () => {
       screen.getByRole("searchbox", { name: t("brainstySearch") }),
     );
   });
+
+  it("leaves an empty search with Escape before the picked node and the network", async () => {
+    const user = await opened();
+    await user.click(screen.getByRole("button", { name: t("brainsty") }));
+    const network = await screen.findByRole("figure", { name: t("brainstyNetwork") });
+    await user.keyboard("/");
+    await user.keyboard("{Escape}");
+    expect(document.activeElement).toBe(network);
+    expect(screen.getByRole("dialog", { name: t("brainsty") })).toBeTruthy();
+
+    act(() => sigma.hands?.pick(0));
+    await layer().findByRole("complementary", { name: "Notes" });
+    await user.keyboard("/");
+    await user.keyboard("{Escape}");
+
+    expect(document.activeElement).toBe(network);
+    expect(layer().getByRole("complementary", { name: "Notes" })).toBeTruthy();
+    await user.keyboard("{Escape}");
+    expect(layer().queryByRole("complementary", { name: "Notes" })).toBeNull();
+    expect(screen.getByRole("dialog", { name: t("brainsty") })).toBeTruthy();
+    await user.keyboard("{Escape}");
+    expect(screen.queryByRole("dialog", { name: t("brainsty") })).toBeNull();
+  });
 });

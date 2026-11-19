@@ -11,6 +11,7 @@ import {
 import { type Network, TIES } from "../../brainsty";
 import {
   bigOnes,
+  crowding,
   DASH,
   degreesOf,
   type LineLook,
@@ -104,13 +105,19 @@ export function drawNetwork(
   const seen = { palette };
   const degrees = degreesOf(network.nodes.length, network.edges);
   const big = bigOnes(degrees);
+  const shrink = crowding(network.nodes.length);
+  const looked = (n: number, colours: Palette) => {
+    const one = network.nodes[n];
+    const look = nodeLook(one, hueOf(one.group), colours, degrees[n]);
+    return { ...look, size: look.size * shrink };
+  };
   network.nodes.forEach((one, n) => {
     graph.addNode(String(n), {
       x: spots.x[n],
       y: spots.y[n],
       label: one.kind === "tag" ? `#${one.title}` : one.title,
       big: big[n],
-      ...nodeLook(one, hueOf(one.group), palette, degrees[n]),
+      ...looked(n, palette),
     });
   });
   for (const [from, to, code] of network.edges) {
@@ -199,11 +206,7 @@ export function drawNetwork(
     },
     retheme: (next) => {
       seen.palette = next;
-      graph.updateEachNodeAttributes((key, at) => {
-        const n = Number(key);
-        const one = network.nodes[n];
-        return { ...at, ...nodeLook(one, hueOf(one.group), next, degrees[n]) };
-      });
+      graph.updateEachNodeAttributes((key, at) => ({ ...at, ...looked(Number(key), next) }));
       graph.updateEachEdgeAttributes((_, at) => ({
         ...at,
         ...lineAttributes(lineLook(at.tie, next)),

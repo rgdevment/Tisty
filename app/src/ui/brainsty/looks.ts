@@ -122,6 +122,12 @@ const baseOf = (kind: NeuronKind, palette: Palette): string => palette[TONE[kind
 
 export const weightOf = (degree: number): number => 1 + Math.min(2, 0.35 * Math.log2(1 + degree));
 
+const ROOMY = 6000;
+
+// Past the count the looks were drawn for, nodes shrink so the whole network covers the same share of the window.
+export const crowding = (count: number): number =>
+  Math.min(1, Math.sqrt(ROOMY / Math.max(count, 1)));
+
 export function nodeLook(
   neuron: Neuron,
   hue: string | undefined,
