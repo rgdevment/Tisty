@@ -60,6 +60,7 @@ Todo lo que escribe va firmado con el nombre del programa por el que habló: «p
 - Cerrar, reabrir ni borrar una tarea, ni borrar un documento o una idea.
 - Marcar un paso tuyo o terminar una tarea tuya: solo dice que están listos, y tú tomas su palabra o no.
 - Mover un día que pusiste tú.
+- Cambiar las reglas, skills o memoria de tus agentes en la carpeta AGENTS: las lee, y te dice qué cambiaría para que lo hagas tú.
 - Crear listas ni poner rutinas: sin una de tus listas, lo que anota entra en la bandeja.
 - Escribir encima de lo que cambiaste mientras él pensaba: se le pide que vuelva a leer.
 - Ver tu Diario mientras dice **Solo tú**, ni cambiar lo que escribiste en él cuando lo abres.
