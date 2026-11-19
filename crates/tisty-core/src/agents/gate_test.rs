@@ -442,3 +442,15 @@ fn learning_a_files_documents_never_moves_what_the_file_was_last_seen_saying() {
         Some(crate::attach::printed(b"What the agent wrote.\n").as_str())
     );
 }
+
+#[test]
+fn only_an_agent_document_without_approval_is_counted_as_waiting_for_one() {
+    let mut world = world();
+    let (_, carded) = world.made(AGENT, &rule("An agent's rule.\n"), false);
+    let (_, plain) = world.made(AGENT, "# Just notes\n", false);
+    let gate = world.gate();
+    assert_eq!(gate.unagreed(), 1);
+    let seen: Vec<(&str, Seen)> = gate.all_seen().collect();
+    assert!(seen.contains(&(carded.as_str(), Seen::NotAgreed)));
+    assert!(seen.contains(&(plain.as_str(), Seen::NotAgreed)));
+}
