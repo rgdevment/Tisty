@@ -335,7 +335,7 @@ jobs:
         run: |
           cargo llvm-cov nextest \
             -p tisty-core -p tisty-nl -p tisty-sync -p tisty-carrier -p tisty-google -p tisty-onedrive -p tisty-webdav \
-            -p tisty-cli -p tisty-share-proto -p tisty-envelope -p tisty-sharing \
+            -p tisty-cli -p tisty-share-proto -p tisty-envelope -p tisty-sharing -p tisty-meaning \
             --lcov --output-path lcov-rust.info
 
       - name: No window lines to measure on this branch
