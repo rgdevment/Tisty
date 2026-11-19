@@ -445,6 +445,44 @@ describe("the Brainsty section", () => {
     expect(last(sigma.hidden)).toEqual([false, false, false]);
   });
 
+  it("filters the network by state and period", async () => {
+    const today = new Date().toISOString().slice(0, 10);
+    ipc.network = () =>
+      Promise.resolve({
+        ...small,
+        nodes: [
+          { ...small.nodes[0], when: today },
+          { ...small.nodes[1], state: "done", when: "2020-01-01" },
+          small.nodes[2],
+        ],
+      });
+    const user = await opened();
+    await user.click(screen.getByRole("button", { name: t("brainsty") }));
+    await screen.findByRole("figure", { name: t("brainstyNetwork") });
+    await user.click(layer().getByRole("button", { name: t("brainstyFilters") }));
+
+    await user.click(layer().getByRole("button", { name: t("brainstyStanding_done") }));
+    expect(last(sigma.hidden)).toEqual([false, true, false]);
+    await user.click(layer().getByRole("button", { name: t("brainstyEverything") }));
+    expect(last(sigma.hidden)).toEqual([false, false, false]);
+    await user.click(layer().getByRole("button", { name: t("brainstyPeriod_7") }));
+    expect(last(sigma.hidden)).toEqual([false, true, false]);
+    await user.click(layer().getByRole("button", { name: t("brainstyPeriod_0") }));
+    expect(last(sigma.hidden)).toEqual([false, false, false]);
+  });
+
+  it("brings the first find close with Enter in the search", async () => {
+    const user = await opened();
+    await user.click(screen.getByRole("button", { name: t("brainsty") }));
+    await screen.findByRole("figure", { name: t("brainstyNetwork") });
+
+    await user.type(screen.getByRole("searchbox", { name: t("brainstySearch") }), "bread{Enter}");
+
+    expect(sigma.focused).toEqual([1]);
+    expect(screen.getByRole<HTMLInputElement>("searchbox").value).toBe("");
+    expect(await layer().findByRole("complementary", { name: "buy bread" })).toBeTruthy();
+  });
+
   it("jumps to the search with /", async () => {
     const user = await opened();
     await user.click(screen.getByRole("button", { name: t("brainsty") }));
