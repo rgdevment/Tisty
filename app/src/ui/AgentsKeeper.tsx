@@ -1,22 +1,31 @@
 import { listen } from "@tauri-apps/api/event";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
+  AGENTS_ASLEEP,
+  AGENTS_CHANGED,
+  AGENTS_LIGHT,
   AGENTS_MORE,
+  type AgentsState,
   agentsEmpty,
   agentsLook,
   agentsPrint,
   agentsRoot,
   agentsRound,
+  agentsState,
   agentsTree,
+  agentsTurn,
   inAgents,
+  onlySwitchedOff,
 } from "../agentsSync";
 import { useDesk } from "../desk";
+import { AGENTS, hide } from "../hiding";
 import { saidPlainly } from "../refusal";
+import AgentsAsleep from "./AgentsAsleep";
 import AgentsFirst from "./AgentsFirst";
 import { waitingOf } from "./AgentsReview";
 
 export const AGENTS_FIRST = "tisty:agents-first";
-export const AGENTS_CHANGED = "tisty:agents-changed";
+export { AGENTS_CHANGED };
 
 export const askAgents = () => window.dispatchEvent(new Event(AGENTS_FIRST));
 
@@ -27,7 +36,49 @@ type Asking = "first" | "more" | null;
 export default function AgentsKeeper() {
   const { papers, here, setHere, papersChanged, setError } = useDesk();
   const [asking, setAsking] = useState<Asking>(null);
+  const [asleep, setAsleep] = useState<AgentsState | null>(null);
+  const [waking, setWaking] = useState(false);
+  const [stirring, setStirring] = useState<string>();
   const entered = useRef<string | null>(null);
+  // Turned on from the notice: once the first time closes with AGENTS allowed, its switch goes on too.
+  const lighting = useRef(false);
+
+  const changed = useCallback(() => {
+    papersChanged();
+    window.dispatchEvent(new Event(AGENTS_CHANGED));
+  }, [papersChanged]);
+
+  const switchOn = useCallback(() => agentsTurn(null, true).then(changed), [changed]);
+
+  const light = useCallback(
+    (state: AgentsState) => {
+      if (onlySwitchedOff(state)) return switchOn();
+      lighting.current = true;
+      setAsking("first");
+      return Promise.resolve();
+    },
+    [switchOn],
+  );
+
+  useEffect(() => {
+    const notice = () => {
+      setStirring(undefined);
+      agentsState()
+        .then(setAsleep)
+        .catch((e) => setError(saidPlainly(e)));
+    };
+    const now = () => {
+      agentsState()
+        .then(light)
+        .catch((e) => setError(saidPlainly(e)));
+    };
+    window.addEventListener(AGENTS_ASLEEP, notice);
+    window.addEventListener(AGENTS_LIGHT, now);
+    return () => {
+      window.removeEventListener(AGENTS_ASLEEP, notice);
+      window.removeEventListener(AGENTS_LIGHT, now);
+    };
+  }, [light, setError]);
 
   useEffect(() => {
     const first = () => setAsking("first");
@@ -124,10 +175,35 @@ export default function AgentsKeeper() {
     return () => window.clearTimeout(later);
   }, [print, setError]);
 
+  if (!asking && asleep) {
+    const woken = () => {
+      setWaking(true);
+      light(asleep)
+        .then(() => setAsleep(null))
+        .catch((e) => setStirring(saidPlainly(e)))
+        .finally(() => setWaking(false));
+    };
+    return (
+      <AgentsAsleep
+        state={asleep}
+        busy={waking}
+        trouble={stirring}
+        onLight={woken}
+        onLater={() => setAsleep(null)}
+        onHide={() => {
+          hide(AGENTS);
+          setAsleep(null);
+        }}
+      />
+    );
+  }
   if (!asking) return null;
-  const changed = () => {
-    papersChanged();
-    window.dispatchEvent(new Event(AGENTS_CHANGED));
+  const closed = () => {
+    if (!lighting.current) return;
+    lighting.current = false;
+    agentsState()
+      .then((state) => (onlySwitchedOff(state) ? switchOn() : undefined))
+      .catch((e) => setError(saidPlainly(e)));
   };
   return (
     <AgentsFirst
@@ -136,6 +212,7 @@ export default function AgentsKeeper() {
         setAsking(null);
         window.dispatchEvent(new Event(AGENTS_CHANGED));
         if (leaving.current === root && !holds) letGo();
+        closed();
       }}
       onChanged={changed}
     />

@@ -2,7 +2,7 @@ import { createContext, useContext } from "react";
 import type { Filed, Folded, List, Snapshot, Task } from "./core";
 import { detailOf, erasing } from "./detailing";
 import { diaryToday } from "./diary";
-import { docChoices, folderChoices, type Hands, hereChoices } from "./docMenus";
+import { docChoices, folderChoices, type Hands, hereChoices, litFor } from "./docMenus";
 import { DIARY, hideChoice } from "./hiding";
 import { layoutOf } from "./layout";
 import { type ListHands, listChoices } from "./listMenus";
@@ -137,12 +137,14 @@ export function deskOf(state: State, data: Snapshot) {
     setMenu({ at, label: t("docsActions"), choices: hereChoices(hands) });
 
   const folderMenu = (folder: Folded, at: { x: number; y: number }) =>
-    setMenu({
-      at,
-      on: folder.id,
-      label: t("folderActions"),
-      choices: folderChoices(folder, hands),
-    });
+    litFor(folder, papers.folders, (lit) =>
+      setMenu({
+        at,
+        on: folder.id,
+        label: t("folderActions"),
+        choices: folderChoices(folder, hands, lit),
+      }),
+    );
 
   const diaryMenu = (at: { x: number; y: number }) =>
     setMenu({

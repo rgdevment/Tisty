@@ -32,6 +32,7 @@ export type Which =
   | "rebuild"
   | "recover"
   | "missing"
+  | "hidden"
   | "unread"
   | "twins"
   | "keys"
@@ -77,6 +78,7 @@ export const NAMED: Record<Which, Parameters<typeof t>[0]> = {
   rebuild: "quickIndex",
   recover: "upkeepLook",
   missing: "missingTitle",
+  hidden: "hiddenTitle",
   unread: "unreadTitle",
   twins: "twinsAre",
   keys: "keysTitle",

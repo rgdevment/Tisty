@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { type Glance, type GlanceWord, glanceWord } from "../agentDocs";
-import { agentsLook } from "../agentsSync";
+import { asksPerson, type Glance, type GlanceWord, glanceWord } from "../agentDocs";
+import { type AgentsState, agentsLit, agentsLook, agentsRoot, agentsState } from "../agentsSync";
+import type { Folded } from "../core";
+import { agentsHidden, useHidden } from "../hiding";
 import { fill, t } from "../locales";
 import { AGENTS_CHANGED } from "./AgentsKeeper";
 import { AGENT_DOC_STOOD } from "./useAgentDoc";
@@ -12,6 +14,27 @@ const TONE: Record<GlanceWord, string> = {
   waiting: "text-hue-amber",
   off: "text-faint",
 };
+
+// Only whether each assistant's folder exists, so it may ask before the person ever said yes; without a folder AGENTS is off anyway.
+export function useAgentsState(root: string | null): AgentsState | null {
+  const [state, setState] = useState<AgentsState | null>(null);
+  const asked = useRef(0);
+  const ask = useCallback(() => {
+    const turn = ++asked.current;
+    agentsState()
+      .then((now) => turn === asked.current && setState(now))
+      .catch(() => turn === asked.current && setState(null));
+  }, []);
+  useEffect(() => {
+    if (root) ask();
+  }, [ask, root]);
+  useEffect(() => {
+    if (!root) return;
+    window.addEventListener(AGENTS_CHANGED, ask);
+    return () => window.removeEventListener(AGENTS_CHANGED, ask);
+  }, [ask, root]);
+  return root ? state : null;
+}
 
 // Looking reads the assistants' folders, so it waits for a round, the window's return or AGENTS appearing.
 export function useAgentsGlance(root: string | null): Glance | null {
@@ -41,6 +64,16 @@ export function useAgentsGlance(root: string | null): Glance | null {
     };
   }, [ask, root]);
   return root ? glance : null;
+}
+
+/// A hidden AGENTS keeps syncing, so what waits for the person still has to show somewhere.
+export function useHiddenAgentsWaiting(folders: readonly Folded[]): boolean {
+  const root = agentsRoot(folders)?.id ?? null;
+  const veiled = agentsHidden(useHidden(), root);
+  const stance = useAgentsState(veiled ? root : null);
+  const lit = stance !== null && agentsLit(stance);
+  const glance = useAgentsGlance(veiled && lit ? root : null);
+  return glance !== null && asksPerson(glance);
 }
 
 const waitingSaid = (glance: Glance): string => {

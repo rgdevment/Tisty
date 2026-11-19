@@ -17,6 +17,9 @@ const ipc = vi.hoisted(() => ({
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: (cmd: string, args?: Record<string, unknown>) => {
     ipc.calls.push({ cmd, args: args ?? {} });
+    // Settings asks first whether this computer said yes; these cards always find it did.
+    if (cmd === "agents_state")
+      return Promise.resolve({ folder: "f", consented: true, allOn: true, assistants: [] });
     return ipc.answer(cmd, args ?? {});
   },
 }));

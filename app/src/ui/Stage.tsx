@@ -15,6 +15,7 @@ import Detail from "./Detail";
 import Docs from "./Docs";
 import Folder from "./Folder";
 import Help from "./Help";
+import HiddenFolders from "./HiddenFolders";
 import Keeping from "./Keeping";
 import Lists from "./Lists";
 import Matrix from "./Matrix";
@@ -226,6 +227,15 @@ export default function Stage() {
       onGreet={() => setGreet(true)}
       onDoc={openDoc}
       onChanged={refreshed}
+      hidden={
+        <HiddenFolders
+          papers={papers}
+          onOpen={(folder) => {
+            setHere(folder);
+            setChosen({ named: "docs" });
+          }}
+        />
+      }
     />
   ) : sheet && task ? (
     <Detail

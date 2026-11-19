@@ -5,6 +5,7 @@ import { cameFrom } from "../guide/help";
 import { useKnocking } from "../knocking";
 import { t } from "../locales";
 import type { Chosen, Lean } from "../views";
+import { useHiddenAgentsWaiting } from "./AgentsMark";
 import Coming from "./Coming";
 import { findNow, useFindKey } from "./finding";
 import Knocking, { KnockDot } from "./Knocking";
@@ -81,7 +82,14 @@ export default function Sidebar({
 }: Props) {
   useRoomFor(room);
   const knocked = useKnocking().waiting.length > 0;
-  const told = knocked ? t("knockDot") : tried ? t("doorKnockedUnnamed") : undefined;
+  const agentsWait = useHiddenAgentsWaiting(papers.folders);
+  const told = knocked
+    ? t("knockDot")
+    : tried
+      ? t("doorKnockedUnnamed")
+      : agentsWait
+        ? t("agentsHiddenDot")
+        : undefined;
   const keeping = chosen.named === "keeping";
   const away = useRef<Chosen>({ named: "tasks" });
   if (!keeping) away.current = chosen;
@@ -205,6 +213,13 @@ export default function Sidebar({
               role="img"
               aria-label={t("doorKnockedUnnamed")}
               className="absolute top-1 right-1 h-[7px] w-[7px] rounded-full bg-hue-blue"
+            />
+          )}
+          {agentsWait && !knocked && !tried && (
+            <span
+              role="img"
+              aria-label={t("agentsHiddenDot")}
+              className="absolute top-1 right-1 h-[7px] w-[7px] rounded-full bg-hue-amber"
             />
           )}
         </button>
