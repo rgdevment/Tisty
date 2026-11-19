@@ -391,8 +391,14 @@ fn pointed(name: &str) -> Option<&'static str> {
     const LISTING: &str = "`brain` searches the tasks and the documents — by text, or by the \
          sifting fields alone — and with `folder` lists what is written there. `catch_up` is the \
          one to ask first when you arrive.";
+    const GOING_BACK: &str = "What a document said before is read with `read_doc`: `versions` \
+         lists its past versions and `version` reads one. `restore_doc` undoes the last write, \
+         or with `version` goes back to that one.";
 
     Some(match name {
+        "doc_history" | "history_doc" | "versions" | "versions_doc" | "doc_versions"
+        | "list_versions" | "version_history" | "read_version" | "diff_doc" | "revert_doc"
+        | "rollback_doc" | "undo_doc" => GOING_BACK,
         "delete_doc" | "remove_doc" | "drop_doc" | "erase_doc" | "trash_doc"
         | "delete_document" | "doc_delete" | "rm_doc" => ERASING_A_DOCUMENT,
         "unarchive_doc" | "unarchive" | "archive" | "shelve_doc" | "restore_archive"

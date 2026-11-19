@@ -45,6 +45,8 @@ You do it once on each of your other machines. Until then nothing that machine w
 
 Tisty merges **block by block**: you edit the introduction on one machine, someone edits the closing paragraph on the other, and both land with nothing to answer. Only a real overlap becomes a question: the window shows the two side by side and you keep **This one**, **The other** or **Both**.
 
+A document's [earlier versions](Documents#earlier-versions) do not travel: each machine keeps what was replaced on it, what a change from another machine replaced included, and prunes them on its own. A new machine starts without them, even once it holds all your documents. For example, you wrote «Rina's walks» on Marisol's laptop in the morning and corrected it in the afternoon, with your desktop off. The morning's text never reached the desktop, so there the list shows it as **Not on this computer; Marisol's laptop keeps it**: it is read and gone back to on the laptop.
+
 ## Large attachments
 
 By default every machine carries every attachment, so any of them opens anything with the network off. For files above **25 MB**, Settings offers two other ways:
@@ -57,6 +59,8 @@ A local copy is only let go of after the one in the shared folder is found to ha
 ## Backups
 
 **Back up by hand, shared folder or not** — a shared folder is not a backup. In **Settings › Your data**, **Create backup…** writes one zip with your whole history, kept wherever you like, and restores from the same place.
+
+The zip also carries the [earlier versions](Documents#earlier-versions) of your documents this machine keeps, and it is the only way to take them to another machine. Restoring it swaps this machine's for the ones it brings, and their limit in days counts again from that day.
 
 ## Syncing through Google Drive directly
 

@@ -45,6 +45,8 @@ Se hace una vez en cada uno de tus otros equipos. Hasta entonces no entra nada d
 
 Tisty une los cambios **bloque a bloque**: editas la introducción en un equipo, alguien edita el párrafo final en el otro, y los dos cambios llegan sin preguntarte nada. Solo un choque real se vuelve pregunta: la ventana te muestra las dos versiones una junto a otra y te quedas con **Esta**, **La otra** o **Las dos**.
 
+Las [versiones anteriores](Documentos#versiones-anteriores) de un documento no viajan: cada equipo guarda lo que se reemplazó en él, también lo que reemplazó un cambio llegado de otro equipo, y las poda por su cuenta. Un equipo nuevo empieza sin ellas, aunque reciba todos tus documentos. Por ejemplo, escribiste «Paseos de Rina» en el Portátil de Marisol en la mañana y lo corregiste en la tarde, con tu escritorio apagado. El texto de la mañana nunca llegó al escritorio, así que ahí la lista lo muestra como **No está en este equipo; lo guarda Portátil de Marisol**: se lee y se recupera en el portátil.
+
 ## Adjuntos grandes
 
 Por defecto cada equipo lleva todos los adjuntos, así que cualquiera abre cualquier cosa sin red. Para archivos de más de **25 MB**, Configuración ofrece otras dos formas:
@@ -57,6 +59,8 @@ Una copia local solo se suelta después de comprobar que la de la carpeta compar
 ## Respaldos
 
 **Respalda a mano, sincronices o no**: una carpeta compartida no es un respaldo. En **Configuración › Tus datos**, **Crear respaldo…** escribe un zip con toda tu historia, que guardas donde quieras, y desde ahí mismo se restaura.
+
+El zip lleva también las [versiones anteriores](Documentos#versiones-anteriores) de tus documentos que guarda este equipo, y es la única forma de llevarlas a otra máquina. Restaurarlo cambia las de este equipo por las que trae, y su plazo de días vuelve a contar desde ese día.
 
 ## Sincronizar con Google Drive directamente
 

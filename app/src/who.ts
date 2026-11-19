@@ -47,6 +47,10 @@ const placed = (device: string | undefined): { here: boolean; name: string } | u
   return machine ? { here: machine === here, name: machines[machine] ?? machine } : undefined;
 };
 
+/** The machine a device is, or the one an assistant lives on, once it has said its name. */
+export const machineOf = (device: string | undefined): string | undefined =>
+  device ? machines[hosts[device] ?? device] : undefined;
+
 export const hostedOn = (device: string | undefined): string | undefined => {
   const at = placed(device);
   if (!at) return undefined;

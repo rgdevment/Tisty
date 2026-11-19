@@ -1,0 +1,21 @@
+---
+source: crates/tisty-cli/tests/mcp_versions.rs
+expression: "settled(&said[\"structuredContent\"], &[])"
+---
+{
+  "chars": 40,
+  "doc": "[doc]",
+  "for_the_person": "the document \"Acta\", outside any folder",
+  "lines": 3,
+  "pages_kept_back": [],
+  "print": "[print]",
+  "said": "Wrote \"Acta\" again, whole. What it said before is kept in its history on this machine: `restore_doc` puts it back. That went back to version [version 1], over everything written since: what it wrote over is kept in turn, so `restore_doc` without `version` puts it back.",
+  "title": "Acta",
+  "went_back_to": {
+    "by": "Claude Code",
+    "bytes": 41,
+    "until": "[when]",
+    "version": "[version 1]",
+    "written": "[when]"
+  }
+}

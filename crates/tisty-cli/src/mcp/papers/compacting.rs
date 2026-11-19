@@ -337,6 +337,20 @@ pub(in crate::mcp) fn awaiting(state: &State, kept: &Kept) -> Result<(), Refused
     }
 }
 
+// Going back to an older version is another write over a compaction the person has not judged yet.
+pub(super) fn not_while_awaiting(state: &State, kept: &Kept) -> Result<(), Refused> {
+    match kept.compacted {
+        None => Ok(()),
+        Some(_) => Err(Refused::Tool(format!(
+            "{} was compacted and waits for the person to keep it or undo it in the window; \
+             going back to an older version now would cost them that one-click undo, so nothing \
+             was changed. `restore_doc` without `version` undoes the compaction itself; for an \
+             older version, tell them which one and why, and go back once they keep or undo it.",
+            doc_named(state, &kept.file)
+        ))),
+    }
+}
+
 pub(in crate::mcp) fn released(
     state: &State,
     kept: &Kept,

@@ -13,6 +13,7 @@ Todo vive en una carpeta de tu disco:
 - **Tareas y eventos**: JSONL en texto plano, un registro que solo crece. Se lee con `cat`, se busca con `grep` y se procesa con `jq`.
 - **Documentos**: archivos Markdown normales.
 - **AGENTS, si la usas**: las reglas, skills y memoria de tus asistentes, como documentos. Fuera de esta carpeta, Tisty escribe además los archivos que lee cada asistente ([qué lee y cuándo](#tus-asistentes-en-agents)).
+- **Versiones anteriores de tus documentos**: Markdown como los documentos, en la carpeta `history`. Cada una se guarda 30 días desde que fue reemplazada, o lo que elijas en **Configuración › Tus datos**; la más reciente de cada documento, y lo que te devolvería **Volver a lo que decía antes**, no vencen. Se quedan en este equipo: nunca se sincronizan ni van en un paquete, pero sí en tus respaldos. [Cómo funcionan](Documentos#versiones-anteriores).
 - **Tu diario**: Markdown como cualquier documento, un libro por año. Ningún agente lo ve hasta que lo abres desde el propio Diario, en Tisty 1.48 o más nuevo; nunca se comparte por link, y viaja con tu sincronización y tus respaldos como lo demás, y dentro de un paquete `.tistyx` cuando exportas todo.
 - **Adjuntos**: los archivos tal cual, sin modificar.
 - **Configuración local**: incluye el identificador de este equipo y su clave de firma. La mitad privada de la clave nunca sale del equipo.
@@ -27,6 +28,8 @@ Nada está ofuscado, y nada está en un formato que solo Tisty sepa leer.
 
 > [!WARNING]
 > **Un registro que solo crece no olvida.** Si una contraseña termina en una tarea, borrar la tarea la quita de lo que ves, no de la historia que hay debajo; y si ya llegó a la carpeta compartida, está en cada equipo que la bajó, más el historial de versiones de tu proveedor. Deja los secretos fuera, o en `private/`.
+>
+> Un documento tampoco olvida enseguida: un texto que borras a propósito sigue en sus [versiones anteriores](Documentos#versiones-anteriores), en cada equipo que lo tenía cuando se reemplazó. Sale de ahí cuando la versión que lo tiene pasa su plazo y no es la más reciente ni lo que te devolvería **Volver a lo que decía antes**, o cuando vacías su historial o borras el documento. Los respaldos hechos entretanto lo conservan: los tuyos, y los últimos que Tisty escribe por su cuenta dentro de su carpeta privada antes de un cambio, como cambiar cómo sincronizas.
 
 ## Quién puede alcanzar tus datos
 

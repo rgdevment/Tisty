@@ -1,14 +1,18 @@
 use std::collections::HashMap;
 use std::fmt::Write as _;
 
-use crate::inline::{escaped, inline, sourced};
+use crate::inline::{Told, escaped, sourced};
 use crate::{Block, Callout, Column, Doc, Holds, Kind, Lean, values};
 
-struct Drawing {
-    anchors: HashMap<usize, String>,
-    aligned: bool,
-    placed: bool,
-    title: Option<usize>,
+#[derive(Clone, Copy)]
+pub(crate) struct Drawing<'a> {
+    pub(crate) anchors: &'a HashMap<usize, String>,
+    pub(crate) aligned: bool,
+    pub(crate) placed: bool,
+    pub(crate) title: Option<usize>,
+    // What a comparison shows beside its newer self would name the same place twice.
+    pub(crate) named: bool,
+    pub(crate) told: Told<'a>,
 }
 
 // A sibling rule reaching the block past the properties restyles every block of its kind as blocks come and go.
@@ -42,11 +46,14 @@ pub fn html_placed(doc: &Doc) -> String {
 }
 
 fn page_of(doc: &Doc, placed: bool) -> String {
+    let anchors = anchors(doc);
     let drawing = Drawing {
-        anchors: anchors(doc),
+        anchors: &anchors,
         aligned: false,
         placed,
         title: titled(doc.blocks()),
+        named: true,
+        told: Told::default(),
     };
     let mut out = String::new();
     for block in doc.blocks() {
@@ -118,10 +125,12 @@ pub fn placed_near(doc: &Doc, from: usize, to: usize, shown: Option<[u32; 2]>) -
         (HashMap::new(), None)
     };
     let drawing = Drawing {
-        anchors,
+        anchors: &anchors,
         aligned: false,
         placed: true,
         title: titled(blocks),
+        named: true,
+        told: Told::default(),
     };
     let mut html = String::new();
     for block in again {
@@ -140,11 +149,14 @@ pub fn placed_near(doc: &Doc, from: usize, to: usize, shown: Option<[u32; 2]>) -
 
 // Cut only between top-level blocks, so each piece is whole HTML that can be laid after the last.
 pub fn pieces(doc: &Doc, about: usize) -> Vec<String> {
+    let anchors = anchors(doc);
     let drawing = Drawing {
-        anchors: anchors(doc),
+        anchors: &anchors,
         aligned: true,
         placed: false,
         title: titled(doc.blocks()),
+        named: true,
+        told: Told::default(),
     };
     let mut all = Vec::new();
     let mut out = String::new();
@@ -173,7 +185,7 @@ fn names(doc: &Doc) -> Vec<(usize, String)> {
     }
 }
 
-fn anchors(doc: &Doc) -> HashMap<usize, String> {
+pub(crate) fn anchors(doc: &Doc) -> HashMap<usize, String> {
     names(doc).into_iter().collect()
 }
 
@@ -212,8 +224,64 @@ fn front(said: &str, at: &str, out: &mut String) {
     out.push_str("</dl>");
 }
 
-fn draw(block: &Block, text: &str, drawing: &Drawing, out: &mut String) {
-    let at = format!("data-at=\"{}-{}\"", block.at.start, block.at.end);
+pub(crate) fn draw(block: &Block, text: &str, drawing: &Drawing, out: &mut String) {
+    draw_as(block, text, drawing, &placed_at(block, None), out);
+}
+
+pub(crate) fn placed_at(block: &Block, change: Option<&str>) -> String {
+    let (start, end) = (block.at.start, block.at.end);
+    match change {
+        Some(how) => format!("data-at=\"{start}-{end}\" data-change=\"{how}\""),
+        None => format!("data-at=\"{start}-{end}\""),
+    }
+}
+
+/// What a block that only holds others opens and shuts with.
+pub(crate) fn shell(
+    block: &Block,
+    text: &str,
+    drawing: &Drawing,
+    at: &str,
+) -> Option<(String, &'static str)> {
+    Some(match &block.kind {
+        Kind::Quote => (format!("<blockquote {at}>"), "</blockquote>"),
+        Kind::Callout(kind) => (called(*kind, at, block, text), "</blockquote>"),
+        Kind::List { start: None } => (format!("<ul {at}>"), "</ul>"),
+        Kind::List { start: Some(1) } => (format!("<ol {at}>"), "</ol>"),
+        Kind::List { start: Some(first) } => (format!("<ol start=\"{first}\" {at}>"), "</ol>"),
+        Kind::Details { summary, open } => {
+            let open = if *open { " open" } else { "" };
+            let head = format!(
+                "<details{open} {at}><summary>{}</summary>",
+                escaped(summary)
+            );
+            (head, "</details>")
+        }
+        Kind::Aligned { how } => (format!("<div align=\"{how}\" {at}>"), "</div>"),
+        Kind::Note { label } => {
+            let id = match drawing.named {
+                true => format!(" id=\"fn-{}\"", escaped(&label.to_lowercase())),
+                false => String::new(),
+            };
+            let head = format!(
+                "<div class=\"footnote\"{id} {at}><span class=\"fn-label\">{}</span>",
+                escaped(label)
+            );
+            (head, "</div>")
+        }
+        _ => return None,
+    })
+}
+
+pub(crate) fn draw_as(block: &Block, text: &str, drawing: &Drawing, at: &str, out: &mut String) {
+    if let Some((open, shut)) = shell(block, text, drawing, at) {
+        out.push_str(&open);
+        for inner in &block.inner {
+            draw(inner, text, drawing, out);
+        }
+        out.push_str(shut);
+        return;
+    }
     match &block.kind {
         Kind::Heading(level) => {
             let id = drawing
@@ -222,41 +290,45 @@ fn draw(block: &Block, text: &str, drawing: &Drawing, out: &mut String) {
                 .map(|id| format!(" id=\"{}\"", escaped(id)));
             let class = title_class(block, drawing);
             let _ = write!(out, "<h{level}{}{class} {at}>", id.unwrap_or_default());
-            sourced(&block.spans, text, drawing.placed, out);
+            sourced(&block.spans, text, drawing.placed, drawing.told, out);
             let _ = write!(out, "</h{level}>");
         }
         Kind::Paragraph => {
             let _ = write!(out, "<p{} {at}>", title_class(block, drawing));
-            sourced(&block.spans, text, drawing.placed, out);
+            sourced(&block.spans, text, drawing.placed, drawing.told, out);
             out.push_str("</p>");
         }
-        Kind::Quote => wrapped(
-            &format!("<blockquote {at}>"),
-            "</blockquote>",
-            block,
-            text,
-            drawing,
-            out,
-        ),
-        Kind::Callout(kind) => called(*kind, &at, block, text, drawing, out),
-        Kind::List { start } => {
-            let open = match start {
-                None => format!("<ul {at}>"),
-                Some(1) => format!("<ol {at}>"),
-                Some(first) => format!("<ol start=\"{first}\" {at}>"),
-            };
-            let shut = if start.is_some() { "</ol>" } else { "</ul>" };
-            wrapped(&open, shut, block, text, drawing, out);
+        Kind::Item { done } => {
+            item_open(*done, at, block, text, drawing, out);
+            for inner in &block.inner {
+                draw(inner, text, drawing, out);
+            }
+            out.push_str("</li>");
         }
-        Kind::Item { done } => item(*done, &at, block, text, drawing, out),
         Kind::Code { tongue, title } => code(
             tongue.as_deref(),
             title.as_deref(),
-            &at,
-            (block, text, drawing.placed),
+            at,
+            (block, text, drawing),
             out,
         ),
-        Kind::Table { columns } => table(columns, &at, block, text, out),
+        Kind::Table { columns } => {
+            let read = values::read(columns, block, text);
+            table_open(columns, at, out);
+            let mut body = false;
+            for row_at in 0..block.inner.len() {
+                row(
+                    (columns, &read),
+                    (block, row_at),
+                    text,
+                    drawing,
+                    None,
+                    &mut body,
+                    out,
+                );
+            }
+            table_shut(columns, &read, body, out);
+        }
         Kind::Html => {
             let _ = write!(
                 out,
@@ -267,7 +339,7 @@ fn draw(block: &Block, text: &str, drawing: &Drawing, out: &mut String) {
         Kind::Rule => {
             let _ = write!(out, "<hr {at}>");
         }
-        Kind::Front => front(&text[block.at.clone()], &at, out),
+        Kind::Front => front(&text[block.at.clone()], at, out),
         Kind::Definition { label, to } => {
             let _ = write!(
                 out,
@@ -276,39 +348,18 @@ fn draw(block: &Block, text: &str, drawing: &Drawing, out: &mut String) {
                 escaped(to)
             );
         }
-        Kind::Details { summary, open } => {
-            let open = if *open { " open" } else { "" };
-            let head = format!(
-                "<details{open} {at}><summary>{}</summary>",
-                escaped(summary)
-            );
-            wrapped(&head, "</details>", block, text, drawing, out);
-        }
-        Kind::Aligned { how } => {
-            let head = format!("<div align=\"{how}\" {at}>");
-            wrapped(&head, "</div>", block, text, drawing, out);
-        }
-        Kind::Note { label } => {
-            let head = format!(
-                "<div class=\"footnote\" id=\"fn-{0}\" {at}><span class=\"fn-label\">{1}</span>",
-                escaped(&label.to_lowercase()),
-                escaped(label)
-            );
-            wrapped(&head, "</div>", block, text, drawing, out);
-        }
-        Kind::Row { .. } | Kind::Cell => {}
+        Kind::Quote
+        | Kind::Callout(_)
+        | Kind::List { .. }
+        | Kind::Details { .. }
+        | Kind::Aligned { .. }
+        | Kind::Note { .. }
+        | Kind::Row { .. }
+        | Kind::Cell => {}
     }
 }
 
-fn wrapped(open: &str, shut: &str, block: &Block, text: &str, drawing: &Drawing, out: &mut String) {
-    out.push_str(open);
-    for inner in &block.inner {
-        draw(inner, text, drawing, out);
-    }
-    out.push_str(shut);
-}
-
-fn called(kind: Callout, at: &str, block: &Block, text: &str, drawing: &Drawing, out: &mut String) {
+fn called(kind: Callout, at: &str, block: &Block, text: &str) -> String {
     let name = match kind {
         Callout::Note => "note",
         Callout::Tip => "tip",
@@ -321,11 +372,11 @@ fn called(kind: Callout, at: &str, block: &Block, text: &str, drawing: &Drawing,
     for (key, value) in crate::IdeaHead::of(kind, &text[block.at.clone()]).said() {
         let _ = write!(said, " data-{key}=\"{value}\"");
     }
-    let open = format!("<blockquote class=\"callout\" data-callout=\"{name}\"{said} {at}>");
-    wrapped(&open, "</blockquote>", block, text, drawing, out);
+    format!("<blockquote class=\"callout\" data-callout=\"{name}\"{said} {at}>")
 }
 
-fn item(
+/// An item up to what it holds inside; whoever draws that shuts it with `</li>`.
+pub(crate) fn item_open(
     done: Option<bool>,
     at: &str,
     block: &Block,
@@ -344,18 +395,14 @@ fn item(
             let _ = write!(out, "<li {at}>");
         }
     }
-    sourced(&block.spans, text, drawing.placed, out);
-    for inner in &block.inner {
-        draw(inner, text, drawing, out);
-    }
-    out.push_str("</li>");
+    sourced(&block.spans, text, drawing.placed, drawing.told, out);
 }
 
 fn code(
     tongue: Option<&str>,
     title: Option<&str>,
     at: &str,
-    (block, text, placed): (&Block, &str, bool),
+    (block, text, drawing): (&Block, &str, &Drawing),
     out: &mut String,
 ) {
     let said: String = block
@@ -375,10 +422,19 @@ fn code(
         .unwrap_or_default();
     let _ = write!(
         out,
-        "<pre><code{class}{}>{}</code></pre></figure>",
-        written_at(block, text, &said, placed),
-        escaped(&said)
+        "<pre><code{class}{}>",
+        written_at(block, text, &said, drawing.placed)
     );
+    let told = drawing.told;
+    match told.at.is_empty() {
+        true => out.push_str(&escaped(&said)),
+        false => block.spans.iter().for_each(|one| {
+            told.parted(one.at.clone(), |part, tells| {
+                told.marked(tells, out, |out| out.push_str(&escaped(&text[part])));
+            });
+        }),
+    }
+    out.push_str("</code></pre></figure>");
 }
 
 // Code inside a quote loses each line's marker, so only code written in one piece can be written on.
@@ -424,7 +480,7 @@ fn drawn(tongue: Option<&str>, said: &str, at: &str, out: &mut String) -> bool {
 }
 
 // The block is a box of its own so a table wider than the sheet scrolls instead of squeezing its words.
-fn table(columns: &[Column], at: &str, block: &Block, text: &str, out: &mut String) {
+pub(crate) fn table_open(columns: &[Column], at: &str, out: &mut String) {
     let _ = write!(out, "<div class=\"table\" {at}><table><colgroup>");
     for column in columns {
         match column.wide {
@@ -435,28 +491,50 @@ fn table(columns: &[Column], at: &str, block: &Block, text: &str, out: &mut Stri
         }
     }
     out.push_str("</colgroup>");
-    let read = values::read(columns, block, text);
-    let mut body = false;
-    for (row_at, row) in block.inner.iter().enumerate() {
-        let head = matches!(row.kind, Kind::Row { head: true });
-        if !head && !body {
-            out.push_str("<tbody>");
-            body = true;
-        }
-        out.push_str(if head { "<thead><tr>" } else { "<tr>" });
-        for (index, cell) in row.inner.iter().enumerate() {
-            let column = columns.get(index);
-            if head {
-                headed(column, out);
-                inline(&cell.spans, text, out);
-                out.push_str("</th>");
-            } else {
-                let seen = row_at.checked_sub(1).and_then(|one| read.at(one, index));
-                celled(column, seen, cell, text, out);
-            }
-        }
-        out.push_str(if head { "</tr></thead>" } else { "</tr>" });
+}
+
+/// One row of a table, read as its own table reads it; `body` says whether the rows under the head began.
+pub(crate) fn row(
+    (columns, read): (&[Column], &values::Read),
+    (table, row_at): (&Block, usize),
+    text: &str,
+    drawing: &Drawing,
+    change: Option<&str>,
+    body: &mut bool,
+    out: &mut String,
+) {
+    let Some(row) = table.inner.get(row_at) else {
+        return;
+    };
+    let head = matches!(row.kind, Kind::Row { head: true });
+    if !head && !*body {
+        out.push_str("<tbody>");
+        *body = true;
     }
+    let changed = change
+        .map(|how| format!(" data-change=\"{how}\""))
+        .unwrap_or_default();
+    let _ = write!(out, "{}<tr{changed}>", if head { "<thead>" } else { "" });
+    for (index, cell) in row.inner.iter().enumerate() {
+        let column = columns.get(index);
+        if head {
+            headed(column, out);
+            sourced(&cell.spans, text, false, drawing.told, out);
+            out.push_str("</th>");
+        } else {
+            let seen = row_at.checked_sub(1).and_then(|one| read.at(one, index));
+            // A typed value shows no word to mark, so the cell itself says its words changed.
+            let touched = match drawing.told.touches(&cell.at) {
+                true => format!(" data-change=\"{}\"", drawing.told.change),
+                false => String::new(),
+            };
+            celled(column, seen, cell, text, (drawing.told, &touched), out);
+        }
+    }
+    out.push_str(if head { "</tr></thead>" } else { "</tr>" });
+}
+
+pub(crate) fn table_shut(columns: &[Column], read: &values::Read, body: bool, out: &mut String) {
     if body {
         out.push_str("</tbody>");
     }
@@ -515,12 +593,13 @@ fn celled(
     seen: Option<&values::Seen>,
     cell: &Block,
     text: &str,
+    (told, touched): (Told, &str),
     out: &mut String,
 ) {
     let lean = leaned(column);
     let Some(seen) = seen.filter(|_| column.is_some_and(|one| one.typed.is_some())) else {
-        let _ = write!(out, "<td{lean}>");
-        inline(&cell.spans, text, out);
+        let _ = write!(out, "<td{touched}{lean}>");
+        sourced(&cell.spans, text, false, told, out);
         out.push_str("</td>");
         return;
     };
@@ -531,10 +610,10 @@ fn celled(
     if seen.amiss {
         out.push_str(" data-amiss");
     }
-    let _ = write!(out, "{}{lean}>", whole(column));
+    let _ = write!(out, "{touched}{}{lean}>", whole(column));
     match &seen.shown {
         Some(shown) => out.push_str(&escaped(shown)),
-        None => inline(&cell.spans, text, out),
+        None => sourced(&cell.spans, text, false, told, out),
     }
     out.push_str("</td>");
 }

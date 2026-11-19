@@ -15,7 +15,8 @@ import {
 } from "../tidying";
 import { clientNamed } from "../who";
 
-const BAR = "mx-auto mb-2 flex w-full flex-wrap items-center gap-x-3 gap-y-1 px-10 text-[11.5px]";
+const INLINE = "mb-2 flex w-full flex-wrap items-center gap-x-3 gap-y-1 text-[11.5px]";
+const BAR = `mx-auto px-10 ${INLINE}`;
 export const MILD = "rounded-[10px] border border-line px-2 py-0.5 text-[11.5px] hover:bg-hover";
 export const RISKY = `${MILD} text-urgent`;
 
@@ -205,6 +206,35 @@ export function CompactBar({ own, style, last, backable, onUndo, onKeep }: Compa
       )}
       <button type="button" onClick={onKeep} className={MILD}>
         {t("compactKeep")}
+      </button>
+    </div>
+  );
+}
+
+interface StirredProps {
+  style?: CSSProperties;
+  said: string;
+  see?: { label: string; onPick: () => void };
+  onBack?: () => void;
+  onGone: () => void;
+}
+
+export function StirredBar({ style, said, see, onBack, onGone }: StirredProps) {
+  return (
+    <div style={style} className={style ? BAR : INLINE}>
+      <span className="text-soft">{said}</span>
+      {see && (
+        <button type="button" onClick={see.onPick} className={MILD}>
+          {see.label}
+        </button>
+      )}
+      {onBack && (
+        <button type="button" onClick={onBack} className={MILD}>
+          {t("docStirredBack")}
+        </button>
+      )}
+      <button type="button" onClick={onGone} className={MILD}>
+        {t("docStirredGone")}
       </button>
     </div>
   );

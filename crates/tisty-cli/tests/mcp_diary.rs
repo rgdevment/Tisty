@@ -154,6 +154,24 @@ fn a_shut_diary_answers_every_tool_as_a_document_that_is_not_there() {
         answered_as_missing(&served, "restore_doc", |doc| json!({ "doc": doc }), file);
         answered_as_missing(
             &served,
+            "restore_doc",
+            |doc| json!({ "doc": doc, "version": "0a1b2c3d" }),
+            file,
+        );
+        answered_as_missing(
+            &served,
+            "read_doc",
+            |doc| json!({ "doc": doc, "versions": true }),
+            file,
+        );
+        answered_as_missing(
+            &served,
+            "read_doc",
+            |doc| json!({ "doc": doc, "version": "0a1b2c3d" }),
+            file,
+        );
+        answered_as_missing(
+            &served,
             "file_doc",
             |doc| json!({ "doc": doc, "folder": "Personal" }),
             file,
@@ -350,6 +368,25 @@ fn an_agent_adds_only_at_the_end_of_today_signed_once_the_diary_is_open() {
 }
 
 #[test]
+fn what_an_open_diary_said_before_is_never_listed_nor_read() {
+    let served = Served::new();
+    let (book, page) = served.diary();
+    served.person().opens_the_diary_to_agents(true);
+
+    for file in [&book, &page] {
+        for args in [
+            json!({ "doc": file, "versions": true }),
+            json!({ "doc": file, "version": "0a1b2c3d" }),
+        ] {
+            let answer = served.call("read_doc", args);
+            assert!(refused(&answer), "{answer}");
+            assert!(answer.to_string().contains("no version of it"), "{answer}");
+        }
+    }
+    assert!(!refused(&served.call("read_doc", json!({ "doc": page }))));
+}
+
+#[test]
 fn every_other_change_to_an_open_diary_is_refused() {
     let served = Served::new();
     let (book, page) = served.diary();
@@ -370,6 +407,7 @@ fn every_other_change_to_an_open_diary_is_refused() {
         ("page_doc", json!({ "doc": other, "page_of": book })),
         ("tongue_doc", json!({ "doc": other, "of": page })),
         ("restore_doc", json!({ "doc": page })),
+        ("restore_doc", json!({ "doc": page, "version": "0a1b2c3d" })),
         ("edit_table", json!({ "doc": page, "do": "add_row" })),
         ("write_doc", json!({ "doc": page, "body": "# Noviembre\n" })),
         (

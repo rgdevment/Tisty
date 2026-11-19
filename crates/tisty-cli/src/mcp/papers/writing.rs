@@ -221,42 +221,87 @@ pub(in crate::mcp) fn restore_doc(paths: &Paths, args: &Value) -> Result<Value, 
         ));
     };
     let (which, a_task_s) = super::compacting::page_to_restore(paths, &which)?;
-    if a_task_s
+    let version = text(args, "version");
+    if version.is_none()
+        && a_task_s
         && let Some(slot) = tisty_core::docs::read_notes_before(paths.data(), &which)
         && let Ok(now) = tisty_core::docs::read(&paths.docs(), &which)
         && let Some(body) = tisty_core::assistant_notes::swapped(&now, &slot.after, &slot.before)
+        && !super::versions::undoes_a_going_back(paths, &which, &now)
+            .is_some_and(|back| super::compacting::only_the_notes(&now, &back.body).is_ok())
     {
         return notes_put_back(paths, &which, &slot, &now, &body);
     }
-    let (state, _) = opened(paths)?;
-    if !a_task_s && super::super::mistaken::named_document(&state, &which).is_none() {
+    let (state, mut store) = opened(paths)?;
+    let kept = match a_task_s {
+        true => state.docs.values().find(|one| one.file == which),
+        false => super::super::mistaken::named_document(&state, &which),
+    };
+    let Some(kept) = kept else {
         return Err(Refused::Missing(
             super::super::mistaken::no_document_called(&state, &which),
         ));
-    }
+    };
     let named = doc_named(&state, &which);
-    let Some(tisty_core::history::Before { body: was, left }) =
-        tisty_core::history::back(paths.data(), &which)
-    else {
-        return Err(Refused::Tool(format!(
-            "nothing is kept beside {named} to go back to. Only a write that replaced a body \
-             is held, and adding to the end — `append_doc`, or a file kept with `attach` — \
-             replaces nothing."
-        )));
+    let past = match &version {
+        Some(asked) => Some(super::versions::kept_here(
+            paths, &state, &store, kept, asked,
+        )?),
+        None => None,
+    };
+    let (was, left) = match &past {
+        Some(one) => (one.body.clone(), None),
+        None => match tisty_core::history::back(paths.data(), &which) {
+            Some(tisty_core::history::Before { body, left }) => (body, left),
+            None => {
+                return Err(Refused::Tool(format!(
+                    "nothing is kept beside {named} to go back to. Only a write that replaced a \
+                     body is held, and adding to the end — `append_doc`, or a file kept with \
+                     `attach` — replaces nothing."
+                )));
+            }
+        },
     };
     let now = tisty_core::docs::read(&paths.docs(), &which).map_err(hitch)?;
+    let toggling =
+        past.is_none() && super::versions::undoes_a_going_back(paths, &which, &now).is_some();
     if a_task_s {
-        super::compacting::only_the_notes(&now, &was)?;
+        super::compacting::only_the_notes(&now, &was).map_err(|refused| {
+            match (&past, toggling) {
+                (Some(_), _) => Refused::Tool(format!(
+                    "going back by a task's id reaches only the assistant's notes, and that \
+                     version differs elsewhere too — its steps, or the person's words. Nothing \
+                     was changed. To take the whole page back, steps and all, send its own name, \
+                     `{which}`, as `doc`."
+                )),
+                (None, true) => Refused::Tool(format!(
+                    "the page was last moved between two of its versions whole, steps and all, by \
+                     its own name, and a task's id reaches only the assistant's notes. Nothing \
+                     was changed. Move it back and forth by that name: `restore_doc` with \
+                     `{which}` as `doc`."
+                )),
+                (None, false) => refused,
+            }
+        })?;
     }
     if tisty_core::docs::unchanged(&now, &was) {
-        return Err(Refused::Tool(format!(
-            "{named} already says what is kept beside it, so there is nothing to go back to."
-        )));
+        return Err(Refused::Tool(match &past {
+            Some(one) => format!(
+                "{named} already says what version {} says, so there is nothing to go back to.",
+                one.short()
+            ),
+            None => format!(
+                "{named} already says what is kept beside it, so there is nothing to go back to."
+            ),
+        }));
+    }
+    if past.is_some() {
+        super::compacting::not_while_awaiting(&state, kept)?;
     }
     // Adding to the end keeps nothing, and neither does the window's own save. Either one leaves
     // the kept body further back than one step, and putting it back would take their writing too.
     let print = tisty_core::attach::printed(now.as_bytes());
-    let more = left.as_deref() != Some(print.as_str());
+    let more = past.is_none() && left.as_deref() != Some(print.as_str());
     let asked = args
         .get("even_if_more")
         .and_then(Value::as_bool)
@@ -271,7 +316,6 @@ pub(in crate::mcp) fn restore_doc(paths: &Paths, args: &Value) -> Result<Value, 
         )));
     }
 
-    let (state, mut store) = opened(paths)?;
     super::super::ideas::brings_back_no_idea(&state, &which, &now, &was)?;
     let mut said = over_again(
         paths,
@@ -281,11 +325,23 @@ pub(in crate::mcp) fn restore_doc(paths: &Paths, args: &Value) -> Result<Value, 
         &which,
         &was,
     )?;
-    if let Some(kept) = state.docs.values().find(|one| one.file == which)
-        && kept
-            .compacted
-            .as_ref()
-            .is_some_and(|one| one.undone_by(&now, &was))
+    if let Some(one) = &past {
+        let whole = tisty_core::docs::read(&paths.docs(), &which).unwrap_or_default();
+        if now == whole {
+            return Err(Refused::Tool(format!(
+                "{named} already says what version {} says, with the lines naming its pages, so \
+                 nothing was changed.",
+                one.short()
+            )));
+        }
+        if super::task_pages::page_named("restore_doc", args).is_none() {
+            super::versions::went_back(paths, &which, &now, &whole);
+        }
+    }
+    if kept
+        .compacted
+        .as_ref()
+        .is_some_and(|one| one.undone_by(&now, &was))
         && let Err(e) = store.append(Op::DocUncompacted { id: kept.id })
     {
         tisty_core::witness::warn(
@@ -294,7 +350,8 @@ pub(in crate::mcp) fn restore_doc(paths: &Paths, args: &Value) -> Result<Value, 
             &[("code", tisty_core::witness::Fact::Code(e.coded()))],
         );
     }
-    if let Some(kept) = state.docs.values().find(|one| one.file == which)
+    if past.is_none()
+        && !toggling
         && kept.compacted.is_none()
         && let Some(mark) = compaction_put_back(&store, kept.id, &was)
         && let Err(e) = store.append(mark)
@@ -314,6 +371,21 @@ pub(in crate::mcp) fn restore_doc(paths: &Paths, args: &Value) -> Result<Value, 
             ));
         }
         said["structuredContent"]["over_more_than_one_write"] = json!(true);
+    }
+    if let Some(one) = &past {
+        let went = format!(
+            " That went back to version {}, over everything written since: what it wrote over \
+             is kept in turn, so `restore_doc` without `version` puts it back.",
+            one.short()
+        );
+        for at in ["/content/0/text", "/structuredContent/said"] {
+            if let Some(Value::String(text)) = said.pointer_mut(at) {
+                text.push_str(&went);
+            }
+        }
+        let mut back_to = serde_json::Map::new();
+        one.row.told_into(&mut back_to);
+        said["structuredContent"]["went_back_to"] = Value::Object(back_to);
     }
     Ok(said)
 }
@@ -653,7 +725,8 @@ print: {}",
                 format!(
                     "Wrote {} again, whole. {}{}{}{}{}",
                     written_name(state, which, &whole),
-                    "What it said before is kept beside the documents.",
+                    "What it said before is kept in its history on this machine: \
+                     `restore_doc` puts it back.",
                     twice_words(state, &twice) + &anew,
                     match kept_back.is_empty() {
                         true => String::new(),
@@ -969,8 +1042,8 @@ pub(super) fn in_its_place(
             let anew = super::named_anew(paths, state, store, which, &whole);
             Ok(told(
                 format!(
-                    "Changed lines {from} to {to} of {}. What it was is kept beside the \
-                     documents.{}{}{}",
+                    "Changed lines {from} to {to} of {}. What it was is kept in its history \
+                     on this machine: `restore_doc` puts it back.{}{}{}",
                     written_name(state, which, &whole),
                     loose_words(state, &loose),
                     twice_words(state, &twice) + &anew,

@@ -42,7 +42,10 @@ pub(in crate::mcp) fn on_its_page(
 ) -> Result<Value, Refused> {
     let (state, _) = opened(paths)?;
     let Some(id) = tisty_core::task_docs::behind(&state).get(file).copied() else {
-        return write();
+        let before = tisty_core::docs::read(&paths.docs(), file).unwrap_or_default();
+        let said = write()?;
+        super::versions::noted_if_gone_back(paths, file, &before, &said);
+        return Ok(said);
     };
     if let Some(kept) = state.docs.values().find(|one| one.file == file) {
         in_sight(&state, kept, file)?;
@@ -71,6 +74,7 @@ pub(in crate::mcp) fn on_its_page(
         {
             *print = Value::String(tisty_core::attach::printed(now.as_bytes()));
         }
+        super::versions::noted_if_gone_back(paths, file, &page.before, &said);
     }
     Ok(said)
 }

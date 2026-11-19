@@ -466,11 +466,28 @@ pub(in crate::mcp) fn read_doc(paths: &Paths, args: &Value) -> Result<Value, Ref
             "reading a document needs its `doc` name.".into(),
         ));
     };
-    let (state, _) = opened(paths)?;
+    let past = super::versions::Asked::of(args)?;
+    let (state, store) = opened(paths)?;
+    let which = match past {
+        Some(_) => super::versions::page_or_doc(&state, &which)?,
+        None => which,
+    };
     let Some(kept) = state.docs.values().find(|one| one.file == which) else {
         return Err(Refused::Missing(no_document_called(&state, &which)));
     };
     in_sight(&state, kept, &which)?;
+    if past.is_some() {
+        super::versions::not_the_diary(paths, &state, kept)?;
+    }
+    match past {
+        Some(super::versions::Asked::List) => {
+            return super::versions::listed(paths, &state, &store, kept, args);
+        }
+        Some(super::versions::Asked::One(asked)) => {
+            return super::versions::read(paths, &state, &store, kept, &asked, args);
+        }
+        None => {}
+    }
     let folder = kept.folder.map(|at| trail(&state, at));
     let body = tisty_core::docs::read(&paths.docs(), &which).map_err(hitch)?;
     let pages: Vec<String> = state
@@ -583,19 +600,58 @@ pub(in crate::mcp) fn read_doc(paths: &Paths, args: &Value) -> Result<Value, Ref
         false => warned,
     };
 
-    match part_asked(&body, args)? {
+    by_parts(
+        Reading {
+            body: &body,
+            title: super::super::written_title(&state, &which, &body),
+            warned,
+            past: false,
+        },
+        args,
+        kept_of,
+    )
+}
+
+pub(super) struct Reading<'a> {
+    pub body: &'a str,
+    pub title: String,
+    pub warned: String,
+    /// A version kept from before: nothing edits it, and each part asks for it by `version` again.
+    pub past: bool,
+}
+
+pub(super) fn by_parts(
+    reading: Reading,
+    args: &Value,
+    mut kept_of: serde_json::Map<String, Value>,
+) -> Result<Value, Refused> {
+    let Reading {
+        body,
+        title,
+        warned,
+        past,
+    } = reading;
+    match part_asked(body, args)? {
         Part::Outline => {
             kept_of.insert("whole".into(), json!(false));
-            let all = tisty_core::docs::outlined(&body);
+            let all = tisty_core::docs::outlined(body);
             let (_, left) = outline_into(&all, &mut kept_of);
+            let how = match past {
+                true => {
+                    "Ask for a part with `section`, with `from` and `to`, or with `chars`, \
+                     sending `version` again."
+                }
+                false => {
+                    "Ask for a part with `section`, with `from` and `to`, or with `chars`. To \
+                     change a passage, `edit_doc` takes the words to replace and the ones to put \
+                     there: reading it whole to send it back whole costs many times more, and \
+                     risks writing over what the person did meanwhile."
+                }
+            };
             Ok(told(
                 format!(
-                    "{warned}{}\n\nThis one holds {} characters, so here is what is in it rather \
-                     than the whole of it. Ask for a part with `section`, with `from` and `to`, or \
-                     with `chars`. To change a passage, `edit_doc` takes the words to replace and \
-                     the ones to put there: reading it whole to send it back whole costs many \
-                     times more, and risks writing over what the person did meanwhile.{left}",
-                    super::super::written_title(&state, &which, &body),
+                    "{warned}{title}\n\nThis one holds {} characters, so here is what is in it \
+                     rather than the whole of it. {how}{left}",
                     body.chars().count()
                 ),
                 Value::Object(kept_of),
@@ -617,18 +673,28 @@ pub(in crate::mcp) fn read_doc(paths: &Paths, args: &Value) -> Result<Value, Ref
                 kept_of.insert("whole".into(), json!(false));
                 more = format!(
                     "\n\n(Line {to} runs past what one read holds, so it ends cut where the … \
-                     stands: change it with `edit_doc` by the words you see.)"
+                     stands{}.)",
+                    match past {
+                        true => "",
+                        false => ": change it with `edit_doc` by the words you see",
+                    }
                 );
             }
             if let Some(next) = next {
                 kept_of.insert("next".into(), json!(next));
                 kept_of.insert("whole".into(), json!(false));
-                more += &match kept_of.contains_key("brainstorm") {
-                    true => format!(
+                more += &match (past, kept_of.contains_key("brainstorm")) {
+                    (true, _) => format!(
+                        "\n\n(More from line {next}: `read_doc` with this `version` and `from` \
+                         {next}.)"
+                    ),
+                    (false, true) => format!(
                         "\n\n(More ideas from line {next}: `read_doc` with `chars`, `cursor` \
                          {next} and this `print`.)"
                     ),
-                    false => format!("\n\n(More from line {next}: `read_doc` with `from` {next}.)"),
+                    (false, false) => {
+                        format!("\n\n(More from line {next}: `read_doc` with `from` {next}.)")
+                    }
                 };
             }
             Ok(mirrored(
@@ -714,8 +780,8 @@ pub(super) fn in_this_order(paths: &Paths, args: &Value) -> Result<Value, Refuse
     ordered(paths, &state, &mut store, over, &order)?;
     Ok(told(
         format!(
-            "Read in that order now, in {}: {}. What it said before is kept beside the \
-             documents.",
+            "Read in that order now, in {}: {}. What it said before is kept in its history \
+             on this machine: `restore_doc` puts it back.",
             doc_named(&state, &said),
             named_all(&state, &order)
         ),

@@ -1,0 +1,29 @@
+---
+source: crates/tisty-cli/tests/mcp_versions.rs
+expression: "settled(&listed, &[])"
+---
+{
+  "doc": "[doc]",
+  "kept_days": 30,
+  "kept_elsewhere": 1,
+  "kept_here": 1,
+  "said": "\"Acta\" [[doc]] keeps 1 past version(s) on this machine, newest first; 1 marked `elsewhere` were written over on another of the person's machines, which alone may keep them: their text is not here, so from this one they are neither read nor gone back to. `read_doc` with `version` reads one, and `restore_doc` with `version` goes back to it. Versions never leave the machine that kept them, and stay 30 days.",
+  "title": "Acta",
+  "versions": [
+    {
+      "by": "the person",
+      "bytes": 40,
+      "elsewhere": "Portátil de Rina",
+      "until": "[when]",
+      "version": "[version 1]",
+      "written": "[when]"
+    },
+    {
+      "by": "Claude Code",
+      "bytes": 41,
+      "until": "[when]",
+      "version": "[version 2]",
+      "written": "[when]"
+    }
+  ]
+}
