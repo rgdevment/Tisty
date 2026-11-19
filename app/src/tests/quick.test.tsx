@@ -195,7 +195,7 @@ describe("capturing without the window", () => {
     await userEvent.type(screen.getByRole("textbox"), "call the vet{Enter}");
 
     await waitFor(() => expect(sent("jot").length).toBe(1));
-    expect(sent("jot")[0].args).toEqual({ idea: "call the vet", title: "Brainstorm" });
+    expect(sent("jot")[0].args).toEqual({ idea: "call the vet", title: "Ideas" });
     expect(sent("capture")).toEqual([]);
     expect(win.emitted).toContain("jotted");
     expect(await screen.findByText(/call the vet/)).toBeTruthy();

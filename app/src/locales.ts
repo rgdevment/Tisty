@@ -33,7 +33,7 @@ const en = {
     "Walk Roger every day at 8\nDriving lessons with Yisset every Saturday at 10\nWater the plants every Monday #home\nPay Lucas's school fee every month #school\nPick Lucas up from school every day at 4pm\nTake the pill every day at 9\nService the car every 6 months\nPay the rent every month\nTeam meeting every Monday at 11 #work\nTake the bins out every Tuesday #home\nGo to the gym every Wednesday at 7 #health",
   taskExamplesElse:
     "Buy school supplies for Lucas by Tuesday\nTidy the garage @Home on Sunday\nTake the car to the garage by Friday @Errands\nBuy bread and milk today\nPay the credit card by Friday !do @Money\nBuy Yisset's present by November 30 #family\nHelp Jaime move on Saturday at 10 @Family\nBook the dentist for Lucas this week #health\nChange the water filter every 3 months @Home\nSend the report tomorrow at 9 !decide #work @Office\nBook the holidays with Marisol by December 15 !decide #family",
-  brainstorm: "Brainstorm",
+  brainstorm: "Ideas",
   brainsty: "Brainsty",
   brainstyTip: "See how everything you keep is connected",
   brainstyReading: "Reading the network…",
@@ -824,7 +824,7 @@ const en = {
   weeklyLead: "Three stops to leave the week in order. Each one shows ✓ once nothing waits in it.",
   weeklyToDecide: "To decide",
   weeklyToDecideHint: "Tasks with no list, and ideas not sorted yet.",
-  weeklyIdeas: "Open Brainstorm, {name} waiting",
+  weeklyIdeas: "Open Ideas, {name} waiting",
   weeklyMarked: "Marked as past",
   weeklyMarkedHint: "Documents an agent marked as having had their day.",
   weeklyForgottenHint: "Not opened here nor written in 60 days.",
@@ -871,7 +871,7 @@ const en = {
   tongueTaken: "That language is already one of its languages",
   notOneOwnDoc: "Only what is your own can be shared",
   onlyADocumentShared: "A page goes with its document, and a task's words stay with the task",
-  brainstormStaysHere: "Brainstorm stays here; an idea travels in the document it goes into",
+  brainstormStaysHere: "Ideas stays here; an idea travels in the document it goes into",
   diaryStaysHere: "Your diary stays here, only yours",
   noIdentityToSign: "This computer has no identity to sign with yet",
   cannotSeal: "This document could not be made ready to share",
@@ -1714,7 +1714,7 @@ const en = {
   quickKeysOff: "No shortcut",
   quickIdea: "Quick idea",
   quickIdeaOn:
-    "{name} opens the same field ready for an idea. It lands in Brainstorm, dated, and Tisty stays where it was.",
+    "{name} opens the same field ready for an idea. It lands in Ideas, dated, and Tisty stays where it was.",
   quickIdeaOff: "No shortcut. Tab in the quick capture still switches to an idea.",
   quickIdeaKeys: "Shortcut for a quick idea",
   keysTaken: "Another application already uses {name}. Pick another one.",
@@ -2987,7 +2987,7 @@ const en = {
     "In the assistants you give Tisty's hooks, below: a session starts with the tasks it left open and what moved, and a turn that edited files without writing in Tisty is handed back to it once",
   agentsCanTitle: "What it can do",
   agentsCan:
-    "File a task with description, dates, priority, tags, steps and parts, into a list you already have · Add to the journal of any task, set it a reminder and keep a copy of a file with it · Move the day of what it filed · Work any task as it works a document: describe it, rename it, move it to another list, plan, reword and take off its open steps, correct its notes and rewrite its page · Say a step of yours is done, or a task done or not worth doing, as its word for you to take — closing stays yours · Write documents, add to them, correct them and their tables, give them pages and file them in folders · Archive a document when you ask, and mark one as old for you to delete · Jot ideas on Brainstorm and sort them out with you · Add to the end of today in your Diary, once you open it to agents · Make a folder, bring a Markdown file in or write a document out, write a document in another language, and leave a summary for the next assistant · Search your lists, your archive and your documents",
+    "File a task with description, dates, priority, tags, steps and parts, into a list you already have · Add to the journal of any task, set it a reminder and keep a copy of a file with it · Move the day of what it filed · Work any task as it works a document: describe it, rename it, move it to another list, plan, reword and take off its open steps, correct its notes and rewrite its page · Say a step of yours is done, or a task done or not worth doing, as its word for you to take — closing stays yours · Write documents, add to them, correct them and their tables, give them pages and file them in folders · Archive a document when you ask, and mark one as old for you to delete · Jot ideas on the Ideas sheet and sort them out with you · Add to the end of today in your Diary, once you open it to agents · Make a folder, bring a Markdown file in or write a document out, write a document in another language, and leave a summary for the next assistant · Search your lists, your archive and your documents",
   agentsCannotTitle: "What it can never do",
   agentsCannot:
     "Complete, reopen, drop or delete a task · Delete a document, an idea or a folder · See your Diary until you open it to agents, or change what you wrote in it · Undo or redo what you did · Move the day of a task you wrote, tick its steps or close it · Make a list — without one of yours it lands in the inbox, and everything it files is tagged #agent · Set routines · Touch syncing, settings or machines",
@@ -3423,7 +3423,7 @@ const es: Catalog = {
     "Sacar a pasear a Roger todos los días a las 8\nClases de manejo con Yisset cada sábado a las 10\nRegar las plantas cada lunes #casa\nPagar la cuota del colegio de Lucas cada mes #colegio\nRecoger a Lucas del colegio todos los días a las 16\nTomar la pastilla todos los días a las 9\nRevisar el auto cada 6 meses\nPagar el arriendo cada mes\nReunión con el equipo cada lunes a las 11 #trabajo\nSacar la basura cada martes #casa\nIr al gimnasio cada miércoles a las 7 #salud",
   taskExamplesElse:
     "Comprar materiales del colegio para Lucas antes del martes\nOrdenar el garaje @Casa el domingo\nLlevar el auto al taller antes del viernes @Pendientes\nComprar pan y leche hoy\nPagar la tarjeta antes del viernes !hacer @Finanzas\nComprar el regalo de Yisset antes del 30 de noviembre #familia\nAyudar a Jaime con la mudanza el sábado a las 10 @Familia\nPedir hora al dentista para Lucas esta semana #salud\nCambiar el filtro del agua cada 3 meses @Casa\nEnviar el informe mañana a las 9 !importante #trabajo @Oficina\nReservar las vacaciones con Marisol antes del 15 de diciembre !importante #familia",
-  brainstorm: "Lluvia de ideas",
+  brainstorm: "Ideas",
   brainsty: "Brainsty",
   brainstyTip: "Mira cómo se conecta todo lo que guardas",
   brainstyReading: "Leyendo la red…",
@@ -4223,7 +4223,7 @@ const es: Catalog = {
     "Tres paradas para dejar la semana en orden. Cada una se marca ✓ cuando ya no espera nada.",
   weeklyToDecide: "Por decidir",
   weeklyToDecideHint: "Tareas sin lista e ideas sin ordenar.",
-  weeklyIdeas: "Abrir la Lluvia de ideas, {name} por ordenar",
+  weeklyIdeas: "Abrir Ideas, {name} por ordenar",
   weeklyMarked: "Marcados como pasados",
   weeklyMarkedHint: "Documentos que un agente marcó como pasados.",
   weeklyForgottenHint: "Sin abrir aquí ni escribir en 60 días.",
@@ -4271,7 +4271,7 @@ const es: Catalog = {
   notOneOwnDoc: "Solo se puede compartir lo propio",
   onlyADocumentShared:
     "Una página va con su documento, y las palabras de una tarea se quedan con la tarea",
-  brainstormStaysHere: "La Lluvia de ideas se queda aquí; una idea viaja en el documento al que va",
+  brainstormStaysHere: "Ideas se queda aquí; una idea viaja en el documento al que va",
   diaryStaysHere: "Tu diario se queda aquí, solo para ti",
   noIdentityToSign: "Este computador todavía no tiene una identidad con la que firmar",
   cannotSeal: "Este documento no se pudo dejar listo para compartir",
@@ -5126,7 +5126,7 @@ const es: Catalog = {
   quickKeysOff: "Sin atajo",
   quickIdea: "Idea rápida",
   quickIdeaOn:
-    "{name} abre el mismo campo listo para una idea. Cae en Lluvia de ideas, con su fecha, y Tisty se queda donde estaba.",
+    "{name} abre el mismo campo listo para una idea. Cae en Ideas, con su fecha, y Tisty se queda donde estaba.",
   quickIdeaOff: "Sin atajo. En la captura rápida, Tab sigue cambiando a idea.",
   quickIdeaKeys: "Atajo de la idea rápida",
   keysTaken: "Otra aplicación ya usa {name}. Elige otro.",
@@ -6402,7 +6402,7 @@ const es: Catalog = {
     "En los asistentes a los que les agregas los hooks de Tisty, abajo: cada sesión empieza con las tareas que dejó abiertas y lo que se movió, y un turno en que editó archivos sin escribir en Tisty se le devuelve una vez",
   agentsCanTitle: "Lo que puede hacer",
   agentsCan:
-    "Anotar una tarea con descripción, fechas, prioridad, etiquetas, pasos y partes, en una lista que ya tengas · Añadir a la bitácora de cualquier tarea, ponerle un recordatorio y guardarle una copia de un archivo · Cambiar el día de lo que anotó él · Trabajar cualquier tarea como trabaja un documento: describirla, renombrarla, llevarla a otra lista, planear, reescribir y quitar sus pasos abiertos, corregir sus notas y reescribir su página · Decir que un paso tuyo está hecho, o que una tarea está hecha o no vale la pena, como su palabra para que tú la aceptes; cerrarla sigue siendo tuyo · Escribir documentos, añadirles, corregirlos, también sus tablas, darles páginas y guardarlos en carpetas · Archivar un documento cuando se lo pidas, y marcar uno como viejo para que tú lo borres · Anotar ideas en la Lluvia de ideas y ordenarlas contigo · Añadir al final de hoy en tu Diario, una vez que lo abres a los agentes · Crear una carpeta, traer un archivo Markdown o sacar un documento, escribir un documento en otro idioma y dejar un resumen para el siguiente asistente · Buscar en tus listas, tu archivo y tus documentos",
+    "Anotar una tarea con descripción, fechas, prioridad, etiquetas, pasos y partes, en una lista que ya tengas · Añadir a la bitácora de cualquier tarea, ponerle un recordatorio y guardarle una copia de un archivo · Cambiar el día de lo que anotó él · Trabajar cualquier tarea como trabaja un documento: describirla, renombrarla, llevarla a otra lista, planear, reescribir y quitar sus pasos abiertos, corregir sus notas y reescribir su página · Decir que un paso tuyo está hecho, o que una tarea está hecha o no vale la pena, como su palabra para que tú la aceptes; cerrarla sigue siendo tuyo · Escribir documentos, añadirles, corregirlos, también sus tablas, darles páginas y guardarlos en carpetas · Archivar un documento cuando se lo pidas, y marcar uno como viejo para que tú lo borres · Anotar ideas en la hoja Ideas y ordenarlas contigo · Añadir al final de hoy en tu Diario, una vez que lo abres a los agentes · Crear una carpeta, traer un archivo Markdown o sacar un documento, escribir un documento en otro idioma y dejar un resumen para el siguiente asistente · Buscar en tus listas, tu archivo y tus documentos",
   agentsCannotTitle: "Lo que no podrá hacer nunca",
   agentsCannot:
     "Completar, reabrir, descartar ni borrar una tarea · Borrar un documento, una idea o una carpeta · Ver tu Diario hasta que lo abres a los agentes, ni cambiar lo que escribiste en él · Deshacer ni rehacer lo que hiciste tú · Mover el día de una tarea que escribiste tú, marcar sus pasos ni cerrarla · Crear listas: sin una de las tuyas entra en la bandeja, y todo lo que deja lleva la etiqueta #agent · Poner rutinas · Tocar la sincronización, los ajustes ni las máquinas",

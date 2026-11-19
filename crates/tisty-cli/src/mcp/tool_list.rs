@@ -21,7 +21,7 @@ pub(super) fn tools_without_hints() -> Value {
         {
             "name": "propose",
             "title": "Propose a task",
-            "description": "Propose a task, something to do; what is kept to read again is `write_doc`. Several from one thread go in `tasks`, each judged alone. Work of several tasks with one end goes in `parts`, not packed into steps. An idea named as `source` leaves Brainstorm. Tisty tags it #agent.",
+            "description": "Propose a task, something to do; what is kept to read again is `write_doc`. Several from one thread go in `tasks`, each judged alone. Work of several tasks with one end goes in `parts`, not packed into steps. An idea named as `source` leaves Ideas. Tisty tags it #agent.",
             "inputSchema": shaped(json!({
                 "properties": {
                     "tasks": { "type": "array", "items": { "type": "object" }, "description": "Several tasks, each shaped like a single one, at most 32; left out for one" },
