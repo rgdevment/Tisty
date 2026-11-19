@@ -54,7 +54,7 @@ fn kept(paths: &Paths, round: Round, moved: &Nudge) {
 }
 
 fn weigh(paths: &Paths) {
-    lowered();
+    crate::desktop::lowered();
     let mut weighing = brain::Weighing::default();
     loop {
         std::thread::sleep(WEIGHS_EVERY);
@@ -68,19 +68,6 @@ fn weigh(paths: &Paths) {
         }
     }
 }
-
-#[cfg(windows)]
-#[allow(unsafe_code)]
-fn lowered() {
-    use windows::Win32::System::Threading::{
-        GetCurrentThread, SetThreadPriority, THREAD_PRIORITY_LOWEST,
-    };
-    // SAFETY: the pseudo handle of the calling thread, which lives as long as the call.
-    let _ = unsafe { SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_LOWEST) };
-}
-
-#[cfg(not(windows))]
-fn lowered() {}
 
 #[cfg(test)]
 #[path = "brain_test.rs"]
