@@ -12,7 +12,7 @@ import {
   spinning,
   trigOf,
 } from "../ui/brainsty/globe";
-import { type Clock, HOP_SECONDS, livingOn, TRAVELLERS } from "../ui/brainsty/living";
+import { type Clock, HOP_SECONDS, livingOn, travellersFor } from "../ui/brainsty/living";
 import { type Flash, setOut, stepped, type World } from "../ui/brainsty/travellers";
 import { turnedByHand } from "../ui/brainsty/turning";
 
@@ -249,7 +249,6 @@ describe("the living network", () => {
     expect(turns).toHaveLength(2);
     expect(turns[1].yaw).toBeGreaterThan(turns[0].yaw);
     expect(box.dataset.livingMs).toMatch(/^\d+\.\d\d$/);
-    expect(TRAVELLERS).toBe(12);
     expect(HOP_SECONDS).toBe(4);
   });
 
@@ -272,6 +271,31 @@ describe("the living network", () => {
     document.dispatchEvent(new PointerEvent("pointerup"));
     tick(50);
     expect(turns[3].yaw).toBeGreaterThan(0);
+  });
+
+  it("sends out more travellers as the network grows, two to ten", () => {
+    expect([1, 39, 59, 60, 99, 100, 149, 150, 249, 250, 9000].map(travellersFor)).toEqual([
+      2, 2, 2, 4, 4, 6, 6, 8, 8, 10, 10,
+    ]);
+  });
+
+  it("clears its travellers and stops when its effects are turned off, and says what a frame costs", () => {
+    const { clock, frames, tick } = fakeClock();
+    const { drawing, render } = drawingOf();
+    const living = livingOn(boxed(), drawing, chain, () => "#2266ff", clock);
+    living.ready();
+    living.play();
+    tick(16);
+    render();
+    expect(living.measured().ms).toBeGreaterThanOrEqual(0);
+
+    living.effects(false);
+    frames.length = 0;
+    tick(16);
+    expect(frames).toHaveLength(0);
+    expect(living.measured()).toEqual({ ms: 0, fps: 0 });
+    living.effects(true);
+    expect(frames).toHaveLength(1);
   });
 
   it("stops asking for frames when paused or hidden, and comes back when seen again", () => {

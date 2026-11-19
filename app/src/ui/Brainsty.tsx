@@ -1,9 +1,10 @@
 import { convertFileSrc } from "@tauri-apps/api/core";
-import { type RefObject, useEffect, useMemo, useRef, useState } from "react";
+import { type RefObject, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { type Group, type Network, type Neuron, OPENED } from "../brainsty";
 import { serve } from "../inUse";
 import { t } from "../locales";
 import { pictured } from "../previews";
+import Corner from "./brainsty/Corner";
 import { tiesAt } from "./brainsty/cardFacts";
 import { type Curves, curvesOn } from "./brainsty/curves";
 import { type Drawing, drawNetwork, type HueOf } from "./brainsty/drawing";
@@ -46,7 +47,9 @@ export default function Brainsty({ network, groups, onOpen, escaping }: Props) {
   const [picked, setPicked] = useState<number | null>(null);
   const [query, setQuery] = useState("");
   const [sift, setSift] = useState<Sift>(EVERYTHING);
-  const [alive, setAlive] = useState(aliveAtFirst);
+  const [lively, setLively] = useState(livelyAtFirst);
+  const [paused, setPaused] = useState(() => kept(STILL) === "paused");
+  const [costShown, setCostShown] = useState(false);
   const hues = useRef<HueOf>(() => undefined);
   const tinted = new Map<string, string>();
   const named = new Map<string, string>();
@@ -225,9 +228,22 @@ export default function Brainsty({ network, groups, onOpen, escaping }: Props) {
   useEffect(() => {
     const living = drawing.current?.living;
     if (!ready || !living) return;
-    if (alive) living.play();
-    else living.pause();
-  }, [ready, alive]);
+    living.effects(lively);
+    if (paused) living.pause();
+    else living.play();
+  }, [ready, lively, paused]);
+
+  useEffect(() => {
+    const shown = (e: KeyboardEvent) => {
+      if (!(e.ctrlKey && e.shiftKey && e.key.toLowerCase() === "m")) return;
+      e.preventDefault();
+      setCostShown((was) => !was);
+    };
+    window.addEventListener("keydown", shown);
+    return () => window.removeEventListener("keydown", shown);
+  }, []);
+
+  const cost = useCallback(() => drawing.current?.living.measured() ?? { ms: 0, fps: 0 }, []);
 
   const choose = (node: number) => {
     setQuery("");
@@ -255,11 +271,6 @@ export default function Brainsty({ network, groups, onOpen, escaping }: Props) {
         onSift={setSift}
         tags={tags}
         finder={finder}
-        alive={alive}
-        onAlive={(next) => {
-          keepAlive(next);
-          setAlive(next);
-        }}
       />
       {shown && picked !== null && (
         <Preview
@@ -274,6 +285,22 @@ export default function Brainsty({ network, groups, onOpen, escaping }: Props) {
           onClose={() => setPicked(null)}
         />
       )}
+      <Corner
+        network={network}
+        groups={groups}
+        lively={lively}
+        paused={paused}
+        onLively={(next) => {
+          keep(QUIET, next ? null : "off");
+          setLively(next);
+        }}
+        onPaused={(next) => {
+          keep(STILL, next ? "paused" : null);
+          setPaused(next);
+        }}
+        costShown={costShown}
+        cost={cost}
+      />
       <p className="pointer-events-none absolute bottom-3 left-3 text-[11.5px] text-faint">
         {t("brainstyKeys")}
       </p>
@@ -282,24 +309,27 @@ export default function Brainsty({ network, groups, onOpen, escaping }: Props) {
 }
 
 const STILL = "tisty.brainstyLiving";
+const QUIET = "tisty.brainstyEffects";
 
-const aliveAtFirst = (): boolean => {
-  if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return false;
+const kept = (key: string): string | null => {
   try {
-    return localStorage.getItem(STILL) !== "paused";
+    return localStorage.getItem(key);
   } catch {
-    return true;
+    return null;
   }
 };
 
-const keepAlive = (alive: boolean) => {
+const keep = (key: string, value: string | null) => {
   try {
-    if (alive) localStorage.removeItem(STILL);
-    else localStorage.setItem(STILL, "paused");
+    if (value === null) localStorage.removeItem(key);
+    else localStorage.setItem(key, value);
   } catch {
-    // Without storage the network simply comes back alive next time.
+    // Without storage the network simply starts as it always does.
   }
 };
+
+const livelyAtFirst = (): boolean =>
+  !window.matchMedia?.("(prefers-reduced-motion: reduce)").matches && kept(QUIET) !== "off";
 
 const PICTURES = {
   shows: pictured,

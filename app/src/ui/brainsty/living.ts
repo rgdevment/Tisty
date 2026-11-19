@@ -1,12 +1,20 @@
 import type { Network } from "../../brainsty";
 import type { Drawing } from "./drawing";
 import { PITCH_AT_MOST, type Turn } from "./globe";
-import { laidEdges } from "./grouping";
+import { isGroup, laidEdges } from "./grouping";
 import { bigOnes, degreesOf, rgba } from "./looks";
 import { fitted, LAID } from "./overlays";
 import { ease, type Flash, setOut, stepped, type Traveller, type World } from "./travellers";
 
-export const TRAVELLERS = 12;
+const STEPS: readonly [below: number, travellers: number][] = [
+  [60, 2],
+  [100, 4],
+  [150, 6],
+  [250, 8],
+];
+
+export const travellersFor = (nodes: number): number =>
+  STEPS.find(([below]) => nodes < below)?.[1] ?? 10;
 export const HOP_SECONDS = 4;
 const TURN_SECONDS = 60;
 const FLASH_SECONDS = 0.6;
@@ -17,6 +25,8 @@ export interface Living {
   ready: () => void;
   play: () => void;
   pause: () => void;
+  effects: (on: boolean) => void;
+  measured: () => { ms: number; fps: number };
   turnBy: (yaw: number, pitch: number) => void;
   hold: (held: boolean) => void;
   sift: (hidden: readonly boolean[]) => void;
@@ -97,6 +107,11 @@ export function livingOn(
   let rendering = 0;
   let held = false;
   let pressed = false;
+  let lively = true;
+  let counted = 0;
+  let countedFrom = 0;
+  let fps = 0;
+  const many = travellersFor(network.nodes.filter((one) => !isGroup(one.kind)).length);
 
   const painted = () => {
     const brush = canvas.getContext("2d");
@@ -150,6 +165,13 @@ export function livingOn(
   const measured = () => {
     painted();
     if (rendering === 0) return;
+    counted++;
+    const now = clock.now();
+    if (now - countedFrom >= 1000) {
+      fps = (counted * 1000) / (now - countedFrom);
+      counted = 0;
+      countedFrom = now;
+    }
     spent = spent * 0.9 + (ticked + clock.now() - rendering) * 0.1;
     rendering = 0;
     if (frames++ % MEASURED_EVERY === 0) container.dataset.livingMs = spent.toFixed(2);
@@ -185,12 +207,15 @@ export function livingOn(
     ticked = clock.now() - started;
     frame = clock.frame(tick);
   };
-  const running = () => laid && playing && container.ownerDocument.visibilityState !== "hidden";
+  const running = () =>
+    laid && playing && lively && container.ownerDocument.visibilityState !== "hidden";
   const run = () => {
     if (frame !== 0 || !running()) return;
     if (travellers.length === 0)
-      travellers = Array.from({ length: TRAVELLERS }, () => setOut(world.start()));
+      travellers = Array.from({ length: many }, () => setOut(world.start()));
     last = clock.now();
+    countedFrom = last;
+    counted = 0;
     frame = clock.frame(tick);
   };
   const halt = () => {
@@ -212,7 +237,19 @@ export function livingOn(
     pause: () => {
       playing = false;
       halt();
+      fps = 0;
     },
+    effects: (on) => {
+      lively = on;
+      if (!on) {
+        travellers = [];
+        flashes = [];
+        fps = 0;
+        painted();
+      }
+      seen();
+    },
+    measured: () => ({ ms: frame === 0 ? 0 : spent, fps: frame === 0 ? 0 : fps }),
     turnBy: (yaw, pitch) => {
       if (!laid) return;
       turn = {

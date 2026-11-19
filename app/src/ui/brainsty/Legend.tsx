@@ -47,7 +47,7 @@ export default function Legend({ network, groups }: Props) {
   return (
     <section
       aria-label={t("brainstyLegend")}
-      className={`absolute bottom-9 left-3 z-[5] flex max-h-[calc(100%-120px)] flex-col overflow-hidden rounded-[10px] border border-hair bg-bg/95 text-[11.5px] text-soft shadow-lift ${
+      className={`flex max-h-[60vh] flex-col overflow-hidden rounded-[10px] border border-hair bg-bg/95 text-[11.5px] text-soft shadow-lift ${
         open ? "w-[min(440px,calc(100%-24px))]" : ""
       }`}
     >

@@ -488,37 +488,57 @@ describe("Brainsty in the content panel", () => {
     expect(document.activeElement).toBe(screen.getByRole("button", { name: t("brainstyFilters") }));
   });
 
-  it("comes alive once laid out, and pauses on asking until asked again on this computer", async () => {
-    localStorage.removeItem("tisty.brainstyLiving");
+  it("comes alive once laid out, pauses or turns its effects off on asking, and remembers both", async () => {
+    localStorage.clear();
     const { user, shown } = await drawnNetwork();
     const spots = { x: new Float32Array(3), y: new Float32Array(3) };
 
     sigma.step?.({ ...spots, done: true, iterations: 20, ms: 12 });
     await waitFor(() => expect(sigma.turns.length).toBeGreaterThan(0));
-    await user.click(screen.getByRole("button", { name: t("brainstyStill") }));
+    await user.click(screen.getByRole("button", { name: t("brainstyPause") }));
     const turned = sigma.turns.length;
     await new Promise((frame) => requestAnimationFrame(frame));
     await new Promise((frame) => requestAnimationFrame(frame));
 
     expect(sigma.turns.length).toBe(turned);
     expect(localStorage.getItem("tisty.brainstyLiving")).toBe("paused");
+    await user.click(screen.getByRole("button", { name: t("brainstyEffects") }));
+    expect(localStorage.getItem("tisty.brainstyEffects")).toBe("off");
     shown.unmount();
+
     await drawnNetwork();
-    const alive = screen.getByRole("button", { name: t("brainstyAlive") });
-    expect(alive.getAttribute("aria-pressed")).toBe("false");
-    await user.click(alive);
+    const effects = screen.getByRole("button", { name: t("brainstyEffects") });
+    expect(effects.getAttribute("aria-pressed")).toBe("false");
+    expect(screen.getByRole("button", { name: t("brainstyResume") })).toHaveProperty(
+      "disabled",
+      true,
+    );
+    await user.click(effects);
+    await user.click(screen.getByRole("button", { name: t("brainstyResume") }));
+    expect(localStorage.getItem("tisty.brainstyEffects")).toBeNull();
     expect(localStorage.getItem("tisty.brainstyLiving")).toBeNull();
   });
 
-  it("stays still when the computer asks for less motion", async () => {
-    localStorage.removeItem("tisty.brainstyLiving");
+  it("keeps its effects off when the computer asks for less motion", async () => {
+    localStorage.clear();
     const asked = vi.spyOn(window, "matchMedia").mockReturnValue({
       matches: true,
     } as MediaQueryList);
     await drawnNetwork();
 
-    expect(screen.getByRole("button", { name: t("brainstyAlive") })).toBeTruthy();
+    expect(
+      screen.getByRole("button", { name: t("brainstyEffects") }).getAttribute("aria-pressed"),
+    ).toBe("false");
     asked.mockRestore();
+  });
+
+  it("shows what it costs a frame with Ctrl+Shift+M, and hides it again", async () => {
+    const { user } = await drawnNetwork();
+
+    await user.keyboard("{Control>}{Shift>}M{/Shift}{/Control}");
+    expect(screen.getByText(/ms a frame/)).toBeTruthy();
+    await user.keyboard("{Control>}{Shift>}M{/Shift}{/Control}");
+    expect(screen.queryByText(/ms a frame/)).toBeNull();
   });
 
   it("jumps to the search with /", async () => {
