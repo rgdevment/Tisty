@@ -68,7 +68,17 @@ export interface Brought {
   round: Rounded;
 }
 
+export interface AgentRow {
+  file: string;
+  kind: "rule" | "skill" | "memory";
+  level: string;
+  name: string;
+  label: string;
+  skill: string | null;
+}
+
 export const agentsLook = (): Promise<AgentsLook> => invoke("agents_look");
+export const agentsRows = (): Promise<AgentRow[]> => invoke("agents_rows");
 export const agentsBring = (chosen: string[]): Promise<Brought> =>
   invoke("agents_bring", { chosen });
 export const agentsKeep = (at: string, tisty: boolean): Promise<Rounded> =>

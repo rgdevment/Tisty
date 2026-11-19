@@ -20,6 +20,7 @@ export type Said =
 export interface Backup {
   readonly n: number;
   readonly bytes: number;
+  readonly pinned: boolean;
 }
 
 export interface Place {
@@ -47,6 +48,7 @@ export interface AgentDoc {
   readonly level: string;
   readonly named: string | null;
   readonly name: string;
+  readonly label: string;
   readonly code: boolean;
   readonly folderOff: boolean;
   readonly twin: boolean;

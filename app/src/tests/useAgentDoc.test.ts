@@ -18,6 +18,7 @@ const rule: AgentDoc = {
   level: "claude",
   named: "Claude",
   name: "CLAUDE.md",
+  label: "CLAUDE.md",
   code: false,
   folderOff: false,
   here: "applied",

@@ -1,7 +1,7 @@
 import { glyph, type ReadWord, type Say } from "tisty-sheet";
 import { offered, type Paper } from "./paper";
-import type { About, Book, Tongue } from "./side";
-import { made, pressed, toggle, tooled } from "./sideParts";
+import type { About, Act, Book, Tongue } from "./side";
+import { listed, made, pressed, toggle, tooled } from "./sideParts";
 
 type Of<K extends About["kind"]> = Extract<About, { kind: K }>;
 
@@ -243,8 +243,29 @@ const indexed = (page: Document, say: Say, panel: Of<"index">) => {
   return nav;
 };
 
+const pressedAct = (page: Document, act: Act) => {
+  const one = pressed(page, `side-act${act.main ? " is-main" : ""}`, act.label, (at) =>
+    act.onPick?.(at),
+  );
+  one.disabled = Boolean(act.off);
+  return one;
+};
+
+const factsOf = (page: Document, panel: Of<"facts">) => {
+  const part = made(page, "section", "side-facts-panel");
+  part.setAttribute("aria-label", panel.label);
+  part.append(made(page, "h3", "side-label", panel.label), listed(page, panel.rows));
+  if (panel.acts?.length) {
+    const acts = made(page, "div", "side-acts is-inside");
+    for (const act of panel.acts) acts.append(pressedAct(page, act));
+    part.append(acts);
+  }
+  return part;
+};
+
 export const besideAbout = (page: Document, say: Say, panel: About): HTMLElement => {
   if (panel.kind === "title") return titled(page, say, panel);
   if (panel.kind === "paper") return papered(page, say, panel);
+  if (panel.kind === "facts") return factsOf(page, panel);
   return indexed(page, say, panel);
 };
