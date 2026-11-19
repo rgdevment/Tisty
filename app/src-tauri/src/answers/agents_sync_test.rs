@@ -1061,3 +1061,45 @@ fn tags_an_earlier_build_took_from_an_agent_s_words_go_and_its_approval_stays() 
         .unwrap();
     assert_eq!(serde_json::to_value(card).unwrap()["here"], "applied");
 }
+
+#[test]
+fn a_proposal_another_process_wrote_survives_a_window_write_made_before_it_read_again() {
+    let mut room = room();
+    room.bring(&[".claude/CLAUDE.md", ".codex/AGENTS.md"]);
+    let (file, body) = bodies(&room.session)[0].clone();
+    let id = room
+        .session
+        .state
+        .docs
+        .values()
+        .find(|one| one.file == file)
+        .unwrap()
+        .id;
+    let mut beside = tisty_core::Store::open(
+        room.session.paths.store(),
+        tisty_core::DeviceId("dev_agent".into()),
+    )
+    .unwrap();
+    beside
+        .append(Op::DocProposal {
+            id,
+            d: tisty_core::event::Proposal {
+                body: Some(body.replace("Tests first.", "Tests always.")),
+                base: None,
+                settles: None,
+            },
+        })
+        .unwrap();
+
+    let (other, other_body) = bodies(&room.session)[1].clone();
+    let typed = other_body.replace("Codex rules.", "Codex rules, typed.");
+    tisty_core::docs::write(&room.session.paths.docs(), &other, &typed).unwrap();
+    room.session.retell(&other, &typed, None);
+
+    let projected =
+        tisty_core::cache::project(&room.session.paths.store(), room.session.paths.cache())
+            .unwrap();
+    assert!(projected.proposals.contains_key(&id));
+    room.session.reload().unwrap();
+    assert!(room.session.state.proposals.contains_key(&id));
+}
