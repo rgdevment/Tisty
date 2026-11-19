@@ -11,14 +11,19 @@ use crate::model::DocId;
 use crate::witness::{self, Fact, channel};
 use crate::{Paths, State};
 
+mod embedded;
 mod likeness;
+mod meant;
+mod nearness;
 mod words;
 
+pub use embedded::Meaning;
+use embedded::{BYTES_PER_PASS, MEANT};
 use likeness::{CAPS, Caps, Item};
 
 const TURN: &str = "words_turn";
 const PASSED: &str = "alike_turn";
-const METHOD: &str = "words";
+const PASSED_MEANT: &str = "alike_meant_turn";
 const KIN_BOOK: &str = "book:";
 const KIN_TONGUE: &str = "tongue:";
 const PATIENCE: u32 = 10;
@@ -36,12 +41,17 @@ pub enum Passed {
     Idle,
     Settling,
     Overtaken,
+    Meaning {
+        written: usize,
+        left: usize,
+    },
     Ran {
         nodes: usize,
         rows: usize,
         written: usize,
         steps: u64,
         common_from: usize,
+        compared: u64,
     },
 }
 
@@ -59,7 +69,6 @@ pub(super) fn counted(
 ) -> Option<Counted> {
     match holder {
         Holder::Doc(kept) => {
-            let text = body.or(kept.title.as_deref()).unwrap_or_default();
             let mut kin = Vec::new();
             if let Some(book) = ground.book_of(kept) {
                 kin.push(format!("{KIN_BOOK}{book}"));
@@ -70,22 +79,30 @@ pub(super) fn counted(
             Some(Counted {
                 lang: kept.lang.as_deref().and_then(primary),
                 kin,
-                said: words::said(&words::counted(&[text])),
+                said: words::said(&words::counted(&said_of(holder, body))),
             })
         }
+        Holder::Task(_) => Some(Counted {
+            lang: None,
+            kin: Vec::new(),
+            said: words::said(&words::counted(&said_of(holder, body))),
+        }),
+        Holder::Nothing => None,
+    }
+}
+
+pub(super) fn said_of<'a>(holder: &'a Holder, body: Option<&'a str>) -> Vec<&'a str> {
+    match holder {
+        Holder::Doc(kept) => vec![body.or(kept.title.as_deref()).unwrap_or_default()],
         Holder::Task(task) => {
             let mut texts = vec![task.title.as_str()];
             texts.extend(task.description.as_deref());
             texts.extend(task.steps.iter().map(|step| step.text.as_str()));
             texts.extend(task.log.iter().map(|entry| entry.body.as_str()));
             texts.extend(body);
-            Some(Counted {
-                lang: None,
-                kin: Vec::new(),
-                said: words::said(&words::counted(&texts)),
-            })
+            texts
         }
-        Holder::Nothing => None,
+        Holder::Nothing => Vec::new(),
     }
 }
 
@@ -158,9 +175,11 @@ pub(super) fn kept_in_round(
     moved |= gone.iter().any(|id| held.contains(*id));
     let mut unworded = tx.prepare("DELETE FROM words WHERE id = ?")?;
     let mut unlike = tx.prepare("DELETE FROM alike WHERE a = ?1 OR b = ?1")?;
+    let mut unmeant = tx.prepare("DELETE FROM vector WHERE id = ?1")?;
     for id in held.iter().filter(|one| out.contains(*one)) {
         unworded.execute([id])?;
         unlike.execute([id])?;
+        unmeant.execute([id])?;
         moved = true;
     }
     if moved {
@@ -181,7 +200,7 @@ pub struct Weighing {
 
 impl Weighing {
     // A turn that moved since the last look means somebody is still writing, so the pass waits, but never past its patience.
-    pub fn kept(&mut self, paths: &Paths) -> Option<Passed> {
+    pub fn kept(&mut self, paths: &Paths, meaning: &mut dyn Meaning) -> Option<Passed> {
         if !paths.store().is_dir() {
             return None;
         }
@@ -194,13 +213,49 @@ impl Weighing {
             return Some(Passed::Settling);
         }
         self.waited = 0;
-        weighed_now(&mut brain, paths)
+        if let Some(left) = meant_now(&mut brain, paths, meaning) {
+            return Some(left);
+        }
+        weighed_now(&mut brain, paths, meaning.version())
     }
 }
 
-fn weighed_now(brain: &mut Brain, paths: &Paths) -> Option<Passed> {
+fn meant_now(brain: &mut Brain, paths: &Paths, meaning: &mut dyn Meaning) -> Option<Passed> {
     let started = Instant::now();
-    match brain.weigh_alike(&CAPS) {
+    match brain.embed(paths, meaning, BYTES_PER_PASS) {
+        Ok(Some(embedded)) => {
+            witness::trace(
+                channel::BRAIN,
+                "the brain read what things mean",
+                &[
+                    ("written", Fact::Count(embedded.written)),
+                    ("left", Fact::Count(embedded.left)),
+                    (
+                        "ms",
+                        Fact::Count(started.elapsed().as_millis().try_into().unwrap_or(0)),
+                    ),
+                ],
+            );
+            (embedded.left > 0).then_some(Passed::Meaning {
+                written: embedded.written,
+                left: embedded.left,
+            })
+        }
+        Ok(None) => None,
+        Err(e) => {
+            warned(
+                "the brain could not read what things mean",
+                paths.cache(),
+                &e.to_string(),
+            );
+            None
+        }
+    }
+}
+
+fn weighed_now(brain: &mut Brain, paths: &Paths, version: &str) -> Option<Passed> {
+    let started = Instant::now();
+    match brain.weigh_alike(&CAPS, Some(version)) {
         Ok(passed) => {
             if let Passed::Ran {
                 nodes,
@@ -208,6 +263,7 @@ fn weighed_now(brain: &mut Brain, paths: &Paths) -> Option<Passed> {
                 written,
                 steps,
                 common_from,
+                compared,
             } = passed
             {
                 witness::trace(
@@ -219,6 +275,10 @@ fn weighed_now(brain: &mut Brain, paths: &Paths) -> Option<Passed> {
                         ("written", Fact::Count(written)),
                         ("steps", Fact::Count(steps.try_into().unwrap_or(usize::MAX))),
                         ("common_from", Fact::Count(common_from)),
+                        (
+                            "compared",
+                            Fact::Count(compared.try_into().unwrap_or(usize::MAX)),
+                        ),
                         (
                             "ms",
                             Fact::Count(started.elapsed().as_millis().try_into().unwrap_or(0)),
@@ -246,31 +306,47 @@ struct Worded {
 
 pub(super) struct Weighed {
     turn: u64,
+    meant: Option<u64>,
+    with_meaning: bool,
     ids: Vec<String>,
     found: likeness::Outcome,
 }
 
 impl Brain {
-    pub(super) fn weigh_alike(&mut self, caps: &Caps) -> rusqlite::Result<Passed> {
-        match self.weighed(caps)? {
+    pub(super) fn weigh_alike(
+        &mut self,
+        caps: &Caps,
+        version: Option<&str>,
+    ) -> rusqlite::Result<Passed> {
+        match self.weighed(caps, version)? {
             Some(weighed) => self.kept_alike(weighed),
             None => Ok(Passed::Idle),
         }
     }
 
-    pub(super) fn weighed(&self, caps: &Caps) -> rusqlite::Result<Option<Weighed>> {
+    pub(super) fn weighed(
+        &self,
+        caps: &Caps,
+        version: Option<&str>,
+    ) -> rusqlite::Result<Option<Weighed>> {
         let snapshot = self.db.unchecked_transaction()?;
         let Some(turn) = turn_of(&snapshot, TURN)? else {
             return Ok(None);
         };
-        if turn_of(&snapshot, PASSED)? == Some(turn) {
+        let meant = version
+            .map(|_| turn_of(&snapshot, MEANT))
+            .transpose()?
+            .flatten();
+        if turn_of(&snapshot, PASSED)? == Some(turn) && turn_of(&snapshot, PASSED_MEANT)? == meant {
             return Ok(None);
         }
-        let worded = worded(&snapshot)?;
+        let worded = worded(&snapshot, version)?;
         let tied = tied(&snapshot, &worded.ids)?;
         drop(snapshot);
         Ok(Some(Weighed {
             turn,
+            meant,
+            with_meaning: version.is_some(),
             found: likeness::alike(&worded.items, &tied, caps),
             ids: worded.ids,
         }))
@@ -281,7 +357,11 @@ impl Brain {
         let tx = self
             .db
             .transaction_with_behavior(TransactionBehavior::Immediate)?;
-        if turn_of(&tx, TURN)? != Some(weighed.turn) {
+        let meant_now = match weighed.with_meaning {
+            true => turn_of(&tx, MEANT)?,
+            false => None,
+        };
+        if turn_of(&tx, TURN)? != Some(weighed.turn) || meant_now != weighed.meant {
             return Ok(Passed::Overtaken);
         }
         let wanted: Held = weighed
@@ -291,7 +371,11 @@ impl Brain {
             .map(|pair| {
                 (
                     (weighed.ids[pair.a].clone(), weighed.ids[pair.b].clone()),
-                    (thousandths(f64::from(pair.score)), pair.shared.join(" ")),
+                    (
+                        thousandths(f64::from(pair.score)),
+                        pair.shared.join(" "),
+                        pair.method.as_str().to_string(),
+                    ),
                 )
             })
             .collect();
@@ -308,13 +392,13 @@ impl Brain {
                 .iter()
                 .filter(|(key, told)| held.get(*key) != Some(told))
             {
-                let (score, shared) = told;
+                let (score, shared, method) = told;
                 like.execute(rusqlite::params![
                     a,
                     b,
                     *score as f64 / 1000.0,
                     shared,
-                    METHOD
+                    method
                 ])?;
                 written += 1;
             }
@@ -323,6 +407,13 @@ impl Brain {
             "INSERT OR REPLACE INTO meta VALUES (?, ?)",
             [PASSED, &weighed.turn.to_string()],
         )?;
+        match weighed.meant {
+            Some(meant) => tx.execute(
+                "INSERT OR REPLACE INTO meta VALUES (?, ?)",
+                [PASSED_MEANT, &meant.to_string()],
+            )?,
+            None => tx.execute("DELETE FROM meta WHERE key = ?", [PASSED_MEANT])?,
+        };
         tx.commit()?;
         Ok(Passed::Ran {
             nodes: weighed.ids.len(),
@@ -330,6 +421,7 @@ impl Brain {
             written,
             steps: weighed.found.steps,
             common_from: weighed.found.common_from,
+            compared: weighed.found.compared,
         })
     }
 
@@ -360,7 +452,11 @@ impl Brain {
                 Ok(Alike {
                     id: row.get(0)?,
                     score: row.get(1)?,
-                    shared: shared.split(' ').map(str::to_string).collect(),
+                    shared: shared
+                        .split(' ')
+                        .filter(|one| !one.is_empty())
+                        .map(str::to_string)
+                        .collect(),
                     method: row.get(3)?,
                 })
             })?
@@ -383,7 +479,11 @@ fn ids(db: &Connection, sql: &str) -> rusqlite::Result<HashSet<String>> {
     rows.collect()
 }
 
-fn worded(db: &Connection) -> rusqlite::Result<Worded> {
+fn worded(db: &Connection, version: Option<&str>) -> rusqlite::Result<Worded> {
+    let mut vectors = match version {
+        Some(version) => embedded::vectors(db, version)?,
+        None => HashMap::new(),
+    };
     let mut asked = db.prepare("SELECT id, lang, kin, said FROM words ORDER BY id")?;
     let rows = asked.query_map([], |row| {
         let kin: String = row.get(2)?;
@@ -398,6 +498,7 @@ fn worded(db: &Connection) -> rusqlite::Result<Worded> {
                     .map(str::to_string)
                     .collect(),
                 words: words::read(&said),
+                meant: None,
             },
         ))
     })?;
@@ -406,7 +507,8 @@ fn worded(db: &Connection) -> rusqlite::Result<Worded> {
         items: Vec::new(),
     };
     for row in rows {
-        let (id, item) = row?;
+        let (id, mut item) = row?;
+        item.meant = vectors.remove(&id);
         worded.ids.push(id);
         worded.items.push(item);
     }
@@ -474,14 +576,14 @@ fn tied(db: &Connection, ids: &[String]) -> rusqlite::Result<HashSet<(usize, usi
     Ok(tied)
 }
 
-type Held = HashMap<(String, String), (i64, String)>;
+type Held = HashMap<(String, String), (i64, String, String)>;
 
 fn held_alike(db: &Connection) -> rusqlite::Result<Held> {
-    let mut asked = db.prepare("SELECT a, b, score, shared FROM alike")?;
+    let mut asked = db.prepare("SELECT a, b, score, shared, method FROM alike")?;
     let rows = asked.query_map([], |row| {
         Ok((
             (row.get(0)?, row.get(1)?),
-            (thousandths(row.get(2)?), row.get(3)?),
+            (thousandths(row.get(2)?), row.get(3)?, row.get(4)?),
         ))
     })?;
     rows.collect()

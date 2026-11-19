@@ -540,6 +540,12 @@ written once with the crates that carry it.
 | `zune-core` | 0.5.3 | MIT OR Apache-2.0 OR Zlib |
 | `zune-jpeg` | 0.5.15 | MIT OR Apache-2.0 OR Zlib |
 
+## Models (1)
+
+### [`sentence-transformers/static-similarity-mrl-multilingual-v1`](https://huggingface.co/sentence-transformers/static-similarity-mrl-multilingual-v1) — Apache-2.0
+
+Revision `b68f4122911bcffcd6e1f695f2d99cd6788972d8`. Tisty carries a modified copy in `resources/brain`, made by `cargo run -p tisty-meaning --example derive` from `0_StaticEmbedding/model.safetensors` and `0_StaticEmbedding/tokenizer.json` of that revision: each token keeps the first 256 of its 1024 values, stored as one signed byte with one scale per token (`table.bin`), and the vocabulary is written one piece per line (`vocab.txt`). The model publishes no NOTICE file. The Apache License 2.0 text is in [THIRD-PARTY-LICENSES.md](https://github.com/rgdevment/Tisty/blob/main/THIRD-PARTY-LICENSES.md), carried by the crates under it, and at https://www.apache.org/licenses/LICENSE-2.0.
+
 ## The notices themselves
 
 ### `@antfu/install-pkg` — MIT

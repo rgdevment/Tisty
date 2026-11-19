@@ -4,6 +4,7 @@ use tisty_core::{Config, Event, Op, Paths, State, Store};
 use crate::{Answer, Refusal, blamed, folder_open, signing, stale, worded};
 
 mod brain;
+mod meaning;
 
 pub struct Session {
     pub paths: Paths,

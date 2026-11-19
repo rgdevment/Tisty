@@ -5858,6 +5858,7 @@ dependencies = [
  "tisty-google",
  "tisty-help",
  "tisty-markdown",
+ "tisty-meaning",
  "tisty-nl",
  "tisty-onedrive",
  "tisty-share-proto",
