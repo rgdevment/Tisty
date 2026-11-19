@@ -59,7 +59,7 @@ Settings takes over the sidebar with its sections:
 - **Your data** — where it lives, backups, documents from another Tisty, and leaving.
 - **Assistants** — the [[MCP door|Assistants-and-MCP]].
 - **Maintenance** — the store review, loose attachments, freeing up space and reporting a problem.
-- **About** — the version, updates and release candidates.
+- **About** — the version, updates and release candidates. At its foot, **Third-party notices** names each piece Tisty carries inside, with its version and its licence; the data of Brainsty's Spanish–English dictionary is there too, with its authors and WordNet's licence in full. **Licence texts** brings the full text of each licence in the core.
 
 ## Updates
 

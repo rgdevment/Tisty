@@ -217,7 +217,7 @@ Entre lo que vas a hacer y lo que vas a guardar hay algo más suelto. Una idea e
 
 ### Anótala en cuanto llega
 
-En la captura rápida, `Tab` cambia de **Tarea** a **Idea**: escríbela y `Enter` la deja en **Ideas**, el documento anclado arriba en la **Biblioteca**, con su fecha y sin elegir carpeta. **Pruébalo:** abre la captura rápida, presiona `Tab` y escribe lo primero que se te ocurra.
+En la captura rápida, `Tab` cambia de **Tarea** a **Idea**: escríbela y `Enter` la deja en **Ideas**, el documento anclado arriba en la **Biblioteca**, con su fecha y sin elegir carpeta. En la barra lateral se llama siempre **Ideas** y lleva una ampolleta, diga lo que diga su título, para que no la confundas con **Brainsty**, justo arriba. **Pruébalo:** abre la captura rápida, presiona `Tab` y escribe lo primero que se te ocurra.
 
 ### Ordénalas cuando llegue su momento
 
