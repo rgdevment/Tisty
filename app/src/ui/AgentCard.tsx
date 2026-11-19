@@ -13,7 +13,7 @@ import {
   type Said,
   touched,
 } from "../agentDocs";
-import { agentsKeep, agentsTurn } from "../agentsSync";
+import { agentsKeep, agentsLead, agentsTurn } from "../agentsSync";
 import { useDesk } from "../desk";
 import { fill, t } from "../locales";
 import { saidPlainly } from "../refusal";
@@ -49,6 +49,7 @@ const STATE: Record<Said["state"], { word: Parameters<typeof t>[0]; tone: string
     synced: { word: "agentSynced", tone: "text-hue-green bg-hue-green/10", glyph: "done" },
     pending: { word: "agentPending", tone: "text-soft bg-hover", glyph: "refresh" },
     held: { word: "agentHeldPill", tone: "text-hue-amber bg-hue-amber/10", glyph: "pause" },
+    unled: { word: "agentPaused", tone: "text-hue-amber bg-hue-amber/10", glyph: "pause" },
     unproven: { word: "agentUnproven", tone: "text-hue-amber bg-hue-amber/10", glyph: "alert" },
     outside: { word: "agentOutside", tone: "text-hue-amber bg-hue-amber/10", glyph: "alert" },
     both: { word: "agentBoth", tone: "text-hue-red bg-hue-red/10", glyph: "alert" },
@@ -70,6 +71,7 @@ const ORDER: readonly Said["state"][] = [
   "outside",
   "unproven",
   "held",
+  "unled",
   "broken",
   "linked",
   "unreadable",
@@ -163,6 +165,7 @@ export default function AgentCard({
     );
   const discard = (proposal: Proposal) =>
     asked(t("agentDiscardSure"), () => agentDiscard(file, proposal.print).finally(done));
+  const lead = () => agentsLead().then(done).catch(failed);
   const turn = (place: Place) =>
     agentsTurn(place.assistant, place.said.state === "off")
       .then(done)
@@ -223,6 +226,16 @@ export default function AgentCard({
           <p key={one.at} className="mt-3 text-[12.5px] text-hue-amber">
             {fill("agentHeldSaid", one.heldBy.join(", "))}
           </p>
+        ))}
+      {doc.places
+        .filter((one) => one.said.state === "unled")
+        .map((one) => (
+          <div key={one.at} className="mt-3 text-[12.5px] text-hue-amber">
+            <p>{fill("agentUnledSaid", one.named)}</p>
+            <div className="mt-2 flex">
+              <Action glyph="refresh" label={t("agentsLeadAgain")} onClick={lead} />
+            </div>
+          </div>
         ))}
       {changed.map((outside) => (
         <div

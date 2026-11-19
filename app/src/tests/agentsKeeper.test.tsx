@@ -1,7 +1,7 @@
 import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { AgentsLook } from "../agentsSync";
+import { type AgentsLook, bringMoreAgents } from "../agentsSync";
 import type { Filed, Folded, Papers } from "../core";
 import { adopt } from "../locales";
 import AgentsKeeper, { AGENTS_CHANGED, askAgents } from "../ui/AgentsKeeper";
@@ -66,6 +66,8 @@ const look = (more: Partial<AgentsLook> = {}): AgentsLook => ({
   asks: false,
   assistants: [],
   both: [],
+  loose: [],
+  unled: [],
   ...more,
 });
 
@@ -74,7 +76,6 @@ beforeEach(() => {
   ipc.calls = [];
   ipc.answer = (cmd) => {
     if (cmd === "agents_look") return Promise.resolve(look());
-    if (cmd === "agents_empty") return Promise.resolve(false);
     return Promise.resolve({ told: [], both: [] });
   };
   desk.papers = { folders: [], docs: [] };
@@ -104,14 +105,52 @@ describe("the keeper of AGENTS", () => {
     expect(screen.queryByText("Tus agentes, en un solo lugar")).toBeNull();
   });
 
-  it("lets an empty AGENTS go and steps out of it", async () => {
-    ipc.answer = (cmd) => Promise.resolve(cmd === "agents_empty");
+  it("keeps an empty AGENTS, still rounds it, and asks at once about a file left behind", async () => {
+    const loose = { at: "/h/.claude/rules/tone.md", assistant: "claude", changed: false };
+    ipc.answer = (cmd) => {
+      if (cmd === "agents_round")
+        return Promise.resolve({ told: [], both: [], loose: [loose], unled: [] });
+      if (cmd === "agents_look") return Promise.resolve(look({ docs: 0, loose: [loose] }));
+      return Promise.resolve({ told: [], both: [], loose: [], unled: [] });
+    };
     desk.papers = { folders: agents, docs: [] };
-    desk.here = "claude";
     render(<AgentsKeeper />);
-    await waitFor(() => expect(sent("agents_empty")).toHaveLength(1));
-    await waitFor(() => expect(desk.setHere).toHaveBeenCalledWith(null));
-    expect(desk.papersChanged).toHaveBeenCalled();
+    await waitFor(() => expect(sent("agents_round")).toHaveLength(1), { timeout: 2000 });
+    await screen.findByText("¿Quitar también el archivo?");
+    expect(desk.setHere).not.toHaveBeenCalled();
+    expect(sent("agents_empty")).toHaveLength(0);
+    await userEvent.click(screen.getByRole("button", { name: "Quitar el archivo" }));
+    await waitFor(() => expect(sent("agents_loose")).toHaveLength(1));
+    expect(sent("agents_loose")[0].args).toEqual({ at: loose.at, away: true });
+  });
+
+  it("opens to bring another file when the AGENTS menu or Settings asks", async () => {
+    ipc.answer = (cmd) =>
+      cmd === "agents_look"
+        ? Promise.resolve(
+            look({
+              assistants: [
+                {
+                  id: "codex",
+                  name: "Codex",
+                  on: true,
+                  files: [
+                    {
+                      at: "/h/.codex/AGENTS.override.md",
+                      name: "AGENTS.override.md",
+                      kind: "rule",
+                      skip: null,
+                      held: false,
+                    },
+                  ],
+                },
+              ],
+            }),
+          )
+        : Promise.resolve(false);
+    render(<AgentsKeeper />);
+    act(() => bringMoreAgents());
+    await screen.findByText("Traer otro archivo");
   });
 
   it("syncs once a change inside AGENTS settles, and says so when it fails", async () => {
