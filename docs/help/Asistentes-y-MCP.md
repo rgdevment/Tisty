@@ -140,6 +140,8 @@ Cada uno toma una palabra detrás, como `/mcp__tisty__solved_before timeouts`, o
 
 ## Un día con tu agente
 
+Una sesión real, llamada por llamada y con un extracto de cada respuesta, está en [[Cómo trabaja un agente|Cómo-trabaja-un-agente]].
+
 Lo que hace un agente conectado a Tisty en un trabajo real:
 
 1. **Pregunta qué cambió** desde su última sesión, y quién lo cambió, en vez de releerlo todo. La misma respuesta le nombra las tareas que apremian, las vencidas primero, así que una que vuelve cada mes le llega el día que toca.

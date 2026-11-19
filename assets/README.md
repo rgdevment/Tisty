@@ -9,6 +9,7 @@ to the code that reads it, in `app/src-tauri/icons/` and `app/src/assets/`.
 | `icons/` | The mark, from its SVG master | README, Store listing, press |
 | `mascot/` | Tisto, Tisty's beaver, in colour and in one ink | Sources of the drawings the app and the Store use |
 | `screens/` | The screens that present Tisty, one set per language | The Store listing, the READMEs, the help and tisty.app |
+| `help/` | Real captures of the app, taken in a clean machine, `es-` and `en-` | The pages of the help that show a step the guide does not |
 
 ## Icons
 

@@ -107,6 +107,8 @@ A document takes tags the way a task does: write `#contract` in the middle of a 
 
 ## Linking documents
 
+All of this, with pictures and an example from start to end, is in [[Linking documents|Linking-Documents]]; here is the gist.
+
 A document on its own gets forgotten; a linked one gets found again. Type `[[` in a document and go on with a few words of its title: Tisty offers the ones that fit, first those that begin that way, then those written lately. `[[` alone shows the ones you wrote last. `Enter` leaves a link like `[Trips](tisty:doc/…)`, which points at the document and not at its name: rename it and the link still gets there. The `[[ ]]` are not kept.
 
 - **To a section**: follow the title with `#` (`[[Trips#hot`) and pick one of its headings. The link opens the document right there; if that section is gone, it opens at the top.
@@ -115,6 +117,8 @@ A document on its own gets forgotten; a linked one gets found again. Type `[[` i
 - `[[#2]]` still names the second step, as always.
 
 ## Citing a task
+
+With pictures, a table of what the card shows in each case and a whole example: [[Tasks in documents|Tasks-in-Documents]].
 
 What you know about a subject lives in its document; the work you did on it, in its tasks. Cite the task in the document and you find it where you will look for it: «Car» shows «Change the tyres», closed in March, and a click takes you to how it was solved.
 

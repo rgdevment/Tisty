@@ -116,7 +116,7 @@ Un enlace solo en su párrafo se dibuja como una tarjeta; está más abajo, en *
 
 Dos corchetes dobles nombran algo sin enlazarlo: [[La cartilla de Rina]] queda como una ficha con ese nombre. Con un número, [[#2]] trae las palabras de la segunda etapa de esta hoja, que está más abajo, en **Listas**, y un clic te lleva a ella. En la página de una tarea, ese número es el de uno de sus pasos.
 
-Otro documento también se menciona dentro de una frase: aquí está [la página de Rina](tisty:page), y un clic la abre.
+Otro documento también se menciona dentro de una frase: aquí está [la página de Rina](tisty:page), y un clic la abre. Se escribe con `[[` y unas palabras de su título; con `#` después del título, el enlace va a una de sus secciones: `[[qué es#tareas` lleva a **Las tareas**, en [la portada de esta guía](tisty:guide). Al dejar el puntero encima se ve su vista previa, y la página enlazada lo cuenta en **Enlazado desde**. Todo lo que une estas formas está en [Brainsty](tisty:brainsty).
 
 ### Notas al pie
 

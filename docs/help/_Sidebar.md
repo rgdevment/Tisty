@@ -27,6 +27,12 @@
 - [[Widgets]]
 - [Tisty Markdown guide ↗](https://markdown.tisty.app)
 
+**Brainsty**
+- [[Linking documents|Linking-Documents]]
+- [[Tasks in documents|Tasks-in-Documents]]
+- [[The network|Brainsty-Network]]
+- [[How an agent works|How-an-Agent-Works]]
+
 **Your data**
 - [[Sync and backup|Sync-and-Backup]]
 - [[Privacy]]
@@ -61,6 +67,12 @@
 - [[Diagramas]]
 - [[Widgets|Widgets-en-documentos]]
 - [Guía de Markdown de Tisty ↗](https://markdown.tisty.app/es/)
+
+**Brainsty**
+- [[Enlazar documentos|Enlazar-documentos]]
+- [[Tareas en documentos|Tareas-en-documentos]]
+- [[La red|Red-de-Brainsty]]
+- [[Cómo trabaja un agente|Cómo-trabaja-un-agente]]
 
 **Tus datos**
 - [[Sincronizar y respaldar|Sincronizar-y-respaldar]]

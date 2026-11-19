@@ -116,7 +116,7 @@ A link alone in its paragraph is drawn as a card; it is further down, under **Ca
 
 Two double brackets name something without linking it: [[Rina's vet card]] stays as a chip with that name. With a number, [[#2]] brings the words of this sheet's second stage, which is further down, under **Lists**, and a click takes you to it. On a task's page, that number is one of its steps.
 
-Another document is mentioned inside a sentence too: here is [Rina's page](tisty:page), and a click opens it.
+Another document is mentioned inside a sentence too: here is [Rina's page](tisty:page), and a click opens it. It is written with `[[` and a few words of its title; with `#` after the title, the link goes to one of its sections: `[[what is#tasks` leads to **Tasks**, on [this guide's cover](tisty:guide). Resting the pointer on it shows its preview, and the linked page tells it in **Linked from**. Everything that joins these forms is in [Brainsty](tisty:brainsty).
 
 ### Footnotes
 

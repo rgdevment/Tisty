@@ -32,6 +32,14 @@ Un agente concentrado en el código se olvida de Tisty. Hay dos ayudas, y las do
 - **Pedirle que deje su tarea al día**: si sigue trabajando y la tarea que abrió lleva diez minutos sin una palabra suya, o mientras escribe otras tres cosas, la siguiente respuesta de Tisty le pide una vez que marque lo que hizo y, si terminó, que lo diga con la prueba. Llega a todos los asistentes, aunque solo cuando llaman a Tisty.
 - **Los hooks**: en Claude Code, Cursor, Gemini CLI y GitHub Copilot, **Agregar**, bajo la fila del asistente conectado, te dice qué archivo va a escribir y pone ahí los hooks de Tisty. Desde su próxima sesión, y mientras la puerta esté abierta, cada una empieza con las últimas tareas abiertas en que escribieron tus agentes, lo que se movió y lo que apremia, aunque el agente no llame a Tisty; y si un turno editó archivos sin escribir nada en Tisty, se lo devuelve una vez para que marque lo terminado. **Quitar**, junto a los hooks, los saca, y **Recordarle al empezar y al terminar cada turno** los apaga sin quitarlos.
 
+## Lo que lee: Brainsty
+
+Tu agente no lee todo lo que guardas: lo recorre. Con una sola herramienta, `brain`, busca tareas y documentos por sus palabras, con el Archivo junto a lo demás y primero lo que tiene esas palabras en su título. Pide la ficha de un documento (sus secciones con sus líneas, quién lo cita y sus decisiones vigentes primero) y después, con `read`, lee solo la sección que necesita, o solo lo que resaltaste o pusiste en negrita. Si vuelve a leer algo que no cambió, Tisty le dice solo eso, sin mandarle el texto otra vez. Y mira un proyecto entero agrupado en bloqueado, en curso, esperándote y sin empezar: una parte cuyo estado empieza con «Bloqueada:» cuenta como bloqueada.
+
+![La página de «Webhook de confirmación» con su sección Estado, firmada por Claude Code: lo hecho, lo que falta, las decisiones vigentes y lo descartado](estado.png)
+
+Al retomar una tarea, lo primero que le llega es su **Estado**, el que ves arriba, y solo las notas escritas después. Si los pasos cambiaron o llegaron notas después del estado, Tisty le avisa que quedó viejo. Cada llamada, con un extracto de lo que Tisty responde, está en [cómo trabaja un agente](https://www.tisty.app/es/ayuda/como-trabaja-un-agente/).
+
 ## Lo que puede hacer
 
 - Proponer tareas con sus pasos, sus partes y su fecha, ponerles un recordatorio y anotar en su bitácora.

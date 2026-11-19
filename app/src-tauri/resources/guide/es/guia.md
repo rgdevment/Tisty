@@ -31,9 +31,11 @@ Las tareas van en listas, los documentos en carpetas, y lo que es mucho para una
 
 Hasta dónde llega: cada persona tiene su propio Tisty y sus propios agentes. No reparte trabajo entre personas ni lleva un equipo; cuando alguien necesita lo que sabes, le compartes el documento.
 
-### Lo que viene
+### Todo unido: Brainsty
 
-Estoy trabajando en Brainsty, el cerebro de Tisty: todo lo que guardas, con lo que lo une, dibujado como una sola red. Tú la verás de lejos, como un mapa de todos tus proyectos. Tu agente la leerá de cerca, como un índice que le dice dónde mirar sin leerlo todo. Todavía no tiene fecha; cuando llegue, esta guía lo va a contar.
+Brainsty es el cerebro de Tisty: todo lo que guardas, con lo que lo une, dibujado como una sola red. Tú la ves de lejos, como un mapa de todos tus proyectos, y de cerca, cada documento con sus tareas. Tu agente la lee como un índice que le dice dónde mirar sin leerlo todo. Las uniones las haces tú al escribir: `[[` enlaza un documento con otro, y `/` cita una tarea o crea una nueva ahí mismo, en el documento.
+
+![Brainsty: todo unido, la página de esta guía que lo cuenta y lo deja probar](tisty:brainsty)
 
 ## ¿Cómo funciona?
 
@@ -261,6 +263,7 @@ Para escribir:
 - El **⋯** de arriba del documento lo pasa a **Markdown**, el texto con todas sus marcas a la vista; `Ctrl`/`⌘` + `E` también, y **Enriquecido** te devuelve a la página.
 - Arrastra un archivo dentro para adjuntarlo: la cartilla de vacunas de Rina, el PDF del seguro.
 - Inserta **otro documento**: en un párrafo propio aparece como tarjeta; dentro de una frase, como enlace con su título. En los dos casos, un clic lo abre.
+- Escribe `[[` y unas palabras de un título para enlazar otro documento, o una de sus secciones con `#`. Junto a cada documento, **Enlazado desde** te dice quién lo enlaza.
 
 **Exportar**, en el panel del documento, te muestra su PDF, lo guarda en PDF, como página web o como Word, y lo copia como Markdown estándar para cualquier otro editor. Prueba con esta guía: sale con sus diagramas, sus tablas y sus hojas.
 
@@ -564,6 +567,7 @@ Nada de esto hace falta para empezar. Está aquí para cuando lo necesites.
 | `Ctrl`/`⌘` + `E` | Cambiar el documento entre Enriquecido y Markdown |
 | `F1` | Abrir la guía de Markdown de Tisty en lo que estás escribiendo |
 | `Ctrl`/`⌘` + `K` | Ir al buscador de arriba de la barra lateral; escribiendo un documento, poner un enlace |
+| `[[` | Enlazar otro documento por su título; con `#`, una de sus secciones |
 | `Tab` · `Shift` + `Tab` | Recorrer las celdas de una tabla; en una lista, meter o sacar un elemento |
 | `Ctrl`/`⌘` + `X` · `V` | Mover un documento entre carpetas |
 | `Esc` | Cerrar lo que esté abierto |

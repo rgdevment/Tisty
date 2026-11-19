@@ -140,6 +140,8 @@ Each one takes a word after it, like `/mcp__tisty__solved_before timeouts`, or n
 
 ## A day with your agent
 
+A real session, call by call and with an excerpt of each answer, is in [[How an agent works|How-an-Agent-Works]].
+
 What an agent connected to Tisty does on a real piece of work:
 
 1. **It asks what moved** since its last session, and who moved it, instead of rereading everything. The same answer names the tasks that press, overdue first, so one that comes back every month reaches it on its day.
