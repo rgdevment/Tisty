@@ -27,3 +27,34 @@ pub async fn brain_network(
     })
     .await
 }
+
+#[derive(Debug, PartialEq, Eq, serde::Serialize)]
+pub struct Group {
+    id: String,
+    name: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    color: Option<String>,
+}
+
+pub(crate) fn groups_of(state: &tisty_core::State) -> Vec<Group> {
+    let folders = state.folders.values().map(|one| Group {
+        id: one.id.to_string(),
+        name: one.name.clone(),
+        color: one.color.clone(),
+    });
+    let lists = state.lists.values().map(|one| Group {
+        id: one.id.to_string(),
+        name: one.name.clone(),
+        color: one.color.clone(),
+    });
+    folders.chain(lists).collect()
+}
+
+#[tauri::command]
+pub fn brainsty_groups(session: tauri::State<'_, Mutex<Session>>) -> Vec<Group> {
+    groups_of(&held(&session).state)
+}
+
+#[cfg(test)]
+#[path = "brainsty_test.rs"]
+mod tests;

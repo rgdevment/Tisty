@@ -599,7 +599,7 @@ pub fn heard_links(app: &AppHandle, links: &[url::Url]) {
     }
 }
 
-fn spanish(app: &AppHandle) -> bool {
+pub(crate) fn spanish(app: &AppHandle) -> bool {
     app.try_state::<Mutex<Session>>()
         .and_then(|session| session.lock().ok().map(|one| one.locale.clone()))
         .map(|locale| {
@@ -725,7 +725,7 @@ pub(crate) fn open(app: &AppHandle, shown: Shown) {
 }
 
 // Windows may refuse the focus to a process the person is not using; raised above the rest, the window is seen anyway.
-fn fronted(window: &tauri::WebviewWindow) {
+pub(crate) fn fronted(window: &tauri::WebviewWindow) {
     let _ = window.show();
     let _ = window.unminimize();
     let _ = window.set_always_on_top(true);
