@@ -1942,7 +1942,7 @@ fn leaving_sweeps_what_tisty_left_and_never_the_person_s_folder() {
         std::fs::write(at, b"x").unwrap();
     }
 
-    super::sweep(&paths);
+    crate::leaving::sweep(&paths);
 
     assert!(
         store.is_file() && doc.is_file(),

@@ -654,56 +654,7 @@ fn now_secs() -> u64 {
 const TURN_ASKED_AGAIN: std::time::Duration = std::time::Duration::from_millis(100);
 const ROUND_WAITED_OUT: std::time::Duration = std::time::Duration::from_secs(120);
 
-pub fn asked_to_unreach() -> bool {
-    waking::unreaching(&waking::said())
-}
-
-pub fn unreach() -> std::io::Result<bool> {
-    let reached = unreach_system();
-    // Last, since a step above that fails writes the log the sweep removes.
-    if let Ok(paths) = tisty_core::Paths::resolve() {
-        sweep(&paths);
-    }
-    reached
-}
-
-fn unreach_system() -> std::io::Result<bool> {
-    // A sandbox leaves only itself: starting with the system, the PATH and the keys are the real install's.
-    if tisty_core::paths::profile().is_some() {
-        return Ok(false);
-    }
-    let _ = waking::wake(false);
-    booking::forget();
-    let reached = command::out_of_reach();
-    if let Some(home) = command::beside() {
-        for at in tisty_core::Paths::shims()
-            .into_iter()
-            .filter(|at| command::ours_on_the_shelf(at, &home))
-        {
-            let _ = std::fs::remove_file(&at);
-        }
-    }
-    // Revoking would cut every other machine off too, so leaving takes only this machine's copy.
-    #[cfg(windows)]
-    if let Some(sealed) = sealed::home() {
-        let _ = std::fs::remove_dir_all(sealed);
-    }
-    reached
-}
-
-fn sweep(paths: &tisty_core::Paths) -> Vec<std::path::PathBuf> {
-    paths
-        .swept_on_leaving()
-        .into_iter()
-        .filter(|at| {
-            let _ = match at.is_dir() {
-                true => std::fs::remove_dir_all(at),
-                false => std::fs::remove_file(at),
-            };
-            at.exists()
-        })
-        .collect()
-}
+pub use leaving::{asked_to_unreach, unreach};
 
 /// Leaving from the window as the uninstaller does; what could not be undone is named, unless asked to go anyway.
 #[tauri::command]
@@ -714,14 +665,14 @@ async fn leave_here(
     anyway: Option<bool>,
 ) -> Answer<Vec<String>> {
     let _done = alone.inner().waited(ROUND_WAITED_OUT).await?;
-    let reached = tauri::async_runtime::spawn_blocking(unreach_system)
+    let reached = tauri::async_runtime::spawn_blocking(leaving::unreach_system)
         .await
         .map_err(|_| Refusal::of("internal"))?;
     booking.forgotten();
     let mut session = held(&session);
     // Windows keeps an open database from being deleted, so the cache lets go before the sweep.
     session.cache = None;
-    let mut left: Vec<String> = sweep(&session.paths)
+    let mut left: Vec<String> = leaving::sweep(&session.paths)
         .iter()
         .map(|at| at.display().to_string())
         .collect();
