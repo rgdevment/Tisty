@@ -21,7 +21,13 @@ This page covers linking a document to another one or to a section of another, s
 
 The document you are writing and the archived ones are not offered. A document in several languages shows up once, in the app's language.
 
-What stays is a link with the document's title, like `[Vet](tisty:doc/…)`. The `[[ ]]` are not written: they were only the way to ask. The link points at the document, not at its name, so if tomorrow you rename it «Rina and Roger's vet», the link still gets there; the text you see is the one it had when you wrote it, and you change it like any other word.
+What stays is a link with the document's title, like this:
+
+```markdown
+[Vet](tisty:doc/…)
+```
+
+The `[[ ]]` are not written: they were only the way to ask. The link points at the document, not at its name, so if tomorrow you rename it «Rina and Roger's vet», the link still gets there; the text you see is the one it had when you wrote it, and you change it like any other word.
 
 It works the same in the page you read and write and in the **Markdown** view (`Ctrl`/`⌘` + `E`), where you see the link with all its marks.
 

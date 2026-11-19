@@ -21,7 +21,13 @@ Esta página cuenta cómo enlazar un documento con otro o con una sección de ot
 
 No se ofrecen el documento que estás escribiendo ni los archivados. Un documento en varios idiomas aparece una vez, en el idioma de la app.
 
-Queda un enlace con el título del documento, como `[Veterinaria](tisty:doc/…)`. Los `[[ ]]` no quedan escritos: eran solo la forma de pedirlo. El enlace apunta al documento, no a su nombre, así que si mañana lo renombras «Veterinaria de Rina y Roger», el enlace sigue llegando; el texto que se ve es el que había cuando lo escribiste, y lo cambias como cualquier otra palabra.
+Queda un enlace con el título del documento, así:
+
+```markdown
+[Veterinaria](tisty:doc/…)
+```
+
+Los `[[ ]]` no quedan escritos: eran solo la forma de pedirlo. El enlace apunta al documento, no a su nombre, así que si mañana lo renombras «Veterinaria de Rina y Roger», el enlace sigue llegando; el texto que se ve es el que había cuando lo escribiste, y lo cambias como cualquier otra palabra.
 
 Funciona igual en la página que lees y escribes y en la vista **Markdown** (`Ctrl`/`⌘` + `E`), donde ves el enlace con todas sus marcas.
 
