@@ -124,7 +124,7 @@ Las reglas completas están en [[Qué puede hacer un asistente|Qué-puede-hacer-
 
 La memoria y el contexto que Tisty guarda para tu agente están a un comando o a una `@`, sin aprender nombres de herramientas.
 
-**Siete pedidos listos.** Tisty le entrega a tu asistente siete pedidos que muestra como comandos. En Claude Code están en el menú de `/`, y `/mcp__tisty__pick_up` y los demás los ejecutan; otros asistentes que toman pedidos de un servidor los muestran en su propio menú.
+**Ocho pedidos listos.** Tisty le entrega a tu asistente ocho pedidos que muestra como comandos. En Claude Code están en el menú de `/`, y `/mcp__tisty__pick_up` y los demás los ejecutan; otros asistentes que toman pedidos de un servidor los muestran en su propio menú.
 
 - **Retomar donde lo dejé** (`pick_up`): lo que se movió desde la última vez que pasó el agente y quién lo movió y, después, la tarea abierta en la que trabajó por última vez, con sus pasos, su página y sus últimas notas. No cambia nada.
 - **Dejar esto listo para retomarlo** (`leave_off`): en una sola llamada marca los pasos terminados y deja el estado de la tarea: lo hecho, lo que falta y lo que sigue, las decisiones vigentes y lo descartado. Anota solo lo que cambia algo, con su porqué; si todo está hecho, lo dice con la prueba, y una decisión que dura más que la tarea va a su documento, con fecha y la que reemplaza tachada; si ningún documento cubre el tema, queda en el estado y te lo dice.
@@ -133,8 +133,25 @@ La memoria y el contexto que Tisty guarda para tu agente están a un comando o a
 - **Guardar esta decisión en su documento** (`keep_decision`): la decisión que acabas de tomar va al único documento de su tema, en su lugar, y la que reemplaza queda tachada; si ningún documento lo cubre, te pregunta dónde va.
 - **Hacer una lluvia de ideas conmigo** (`brainstorm`): propone ideas cortas sobre un tema, numeradas, dice cuáles ya están en la Lluvia de ideas o ya son una tarea o un documento, y anota en la Lluvia de ideas solo las que te quedas.
 - **Ordenar mi Lluvia de ideas** (`sort_ideas`): lee las ideas que esperan y te dice cuáles van juntas, cuáles serían una tarea y en qué lista, cuáles van a qué documento y cuáles están viejas. No cambia nada hasta que lo digas, y entonces hace solo eso.
+- **Revisar lo que guarda Tisty y proponer arreglos** (`consolidate`): el «dreaming» de Tisty, una pasada que corre solo cuando la pides. Busca resúmenes de agentes que quedaron viejos porque el documento cambió, enlaces que no llevan a ninguna parte, documentos repetidos o mal ordenados y tareas cuyo estado quedó atrás. Te muestra lo que encontró, numerado y con el arreglo que haría, y solo cambia lo que apruebas. Nunca borra: lo viejo queda marcado para que tú lo borres con un clic, lo guardes o le quites la marca. Con una palabra detrás, como `/mcp__tisty__consolidate Cocina`, revisa solo esa carpeta, lista o tema.
 
 Cada uno toma una palabra detrás, como `/mcp__tisty__solved_before timeouts`, o nada, y entonces trabaja con lo que se ha hablado en la conversación.
+
+**Una pasada de `consolidate`, de principio a fin.** Mario escribe `/mcp__tisty__consolidate Cocina`. El asistente lee primero las reglas de orden (`rules` con `topic: "tidying"`) y lo que se movió (`catch_up`), y después mira la carpeta sin cambiar nada:
+
+- `brain` con `{ "folder": "Cocina" }` le trae cada documento con el resumen que dejó un agente; uno escrito antes del último cambio del documento llega con `"stale": true`.
+- `brain` con `{ "doc": … }` le trae la ficha de cada documento: `dead` nombra los enlaces que no llevan a ninguna parte, y `alike`, `repeated` y `mislabeled`, lo repetido o mal nombrado.
+- En la ficha de una tarea, `brain` con `{ "task": … }`, `state_old` dice que el estado se escribió antes de que cambiaran sus pasos o llegara una decisión.
+
+Y responde, por ejemplo:
+
+> 1. **«Recetas de la semana»** (Cocina): el resumen del agente es anterior al último cambio. Lo leería de nuevo y dejaría uno que diga «Menú de lunes a viernes, con la lista de compras al final».
+> 2. **«Recetas de la semana»**: el enlace a «Arroz con porotos» no lleva a ninguna parte; esa receta ahora está en **«Arroces»** (Cocina). Lo apuntaría ahí.
+> 3. **«Lista de compras (copia)»** (Cocina): dice lo mismo que **«Lista de compras»**. La marcaría como copia de esa.
+>
+> ¿Cuáles hago?
+
+Mario contesta «1 y 2». El asistente hace solo eso (`sum_up` y `edit_doc`) y termina diciendo qué cambió, qué queda esperando y cómo deshacerlo. La copia del punto 3 sigue como estaba. Si hubiera dicho que sí, la copia habría quedado marcada (`flag_doc`), no borrada: la borras tú con un clic, la guardas o le quitas la marca. Un documento que escribiste tú se pregunta por separado, y en la carpeta AGENTS el asistente solo te dice qué cambiaría.
 
 **Documentos para mencionar.** Tus documentos que no están guardados en el archivo también se ofrecen (tu Diario, solo mientras está abierto a los agentes), así que puedes pasarle uno al asistente por su nombre: en Claude Code, escribe `@` y elígelo por su título y su carpeta. Un documento de hasta unos 12 000 caracteres llega entero; uno más largo llega como su índice, sus títulos y sus líneas, y el asistente pide la parte que necesita.
 
