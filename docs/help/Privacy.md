@@ -84,7 +84,7 @@ A [widget](Widgets) runs nothing and names nothing outside itself. An attached `
 
 ## Your assistants in AGENTS
 
-In the **AGENTS** folder you keep your assistants' rules, skills and memory as documents (Claude Code, Codex, GitHub Copilot, Gemini CLI and Cursor), and Tisty writes underneath the files each one reads.
+In the **AGENTS** folder you keep your assistants' rules, skills and memory as documents (Claude Code, Codex, GitHub Copilot, Gemini CLI and Cursor), and Tisty writes underneath the files each one reads. How to use it, file by file and assistant by assistant, is in [[AGENTS|AGENTS-Folder]].
 
 **What it reads, and when**
 
