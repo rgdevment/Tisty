@@ -4,6 +4,7 @@ import { type Group, type Network, type Neuron, OPENED } from "../brainsty";
 import { serve } from "../inUse";
 import { t } from "../locales";
 import { pictured } from "../previews";
+import { tiesAt } from "./brainsty/cardFacts";
 import { type Curves, curvesOn } from "./brainsty/curves";
 import { type Drawing, drawNetwork, type HueOf } from "./brainsty/drawing";
 import { alikeOf } from "./brainsty/guessing";
@@ -50,6 +51,14 @@ export default function Brainsty({ network, groups, onOpen, escaping }: Props) {
     [network, picked, hidden, sift.alike],
   );
   const degrees = useMemo(() => degreesOf(network.nodes.length, network.edges), [network]);
+  const tied = useMemo(
+    () => (picked === null ? [] : tiesAt(network.edges, picked)),
+    [network, picked],
+  );
+  const indexOf = useMemo(
+    () => new Map(network.nodes.map((one, node) => [one.id, node])),
+    [network],
+  );
   const tags = useMemo(
     () =>
       network.nodes
@@ -177,6 +186,7 @@ export default function Brainsty({ network, groups, onOpen, escaping }: Props) {
       picked === null
         ? null
         : new Set([picked, ...drawn.beside(picked), ...alike.map((one) => one.node)]),
+      picked,
     );
     drawing.current?.curves.pick(picked);
   }, [ready, picked, alike]);
@@ -216,6 +226,8 @@ export default function Brainsty({ network, groups, onOpen, escaping }: Props) {
         <Preview
           neuron={shown}
           ties={degrees[picked]}
+          tied={tied}
+          nodeOf={(id) => indexOf.get(id)}
           zone={shown.group ? named.get(shown.group) : undefined}
           alike={alike.map((one) => ({ ...one, neuron: network.nodes[one.node] }))}
           onPick={choose}

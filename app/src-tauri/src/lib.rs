@@ -1246,6 +1246,7 @@ fn commands() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool + Send + Sync +
         answers::citing::doc_cited_by,
         answers::cards::cards_drawn,
         answers::brainsty::brain_network,
+        answers::brainsty::brain_card,
         answers::cited_tasks::task_step_marked,
         answers::citing::doc_heads,
         answers::citing::doc_glance,

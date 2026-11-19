@@ -8,7 +8,7 @@ import BrainstyView from "../ui/BrainstyView";
 const ipc = vi.hoisted(() => ({
   calls: [] as { cmd: string; args: Record<string, unknown> }[],
   network: (): Promise<unknown> => Promise.resolve(null),
-  glance: "",
+  card: null as unknown,
 }));
 
 vi.mock("@tauri-apps/api/core", () => ({
@@ -81,16 +81,8 @@ function answer(cmd: string): Promise<unknown> {
   switch (cmd) {
     case "brain_network":
       return ipc.network();
-    case "doc_glance":
-      return Promise.resolve({ title: "Notes", heading: null, html: ipc.glance, more: false });
-    case "served":
-      return Promise.resolve("C:/home/data/attachments/rina.jpg");
-    case "doc_drawn":
-      return Promise.resolve(
-        new TextEncoder().encode('<p><a class="card" data-task="01A">buy bread</a></p>').buffer,
-      );
-    case "cards_drawn":
-      return Promise.resolve(['<span class="doc-card is-task">buy bread</span>']);
+    case "brain_card":
+      return Promise.resolve(ipc.card);
     default:
       return Promise.resolve(null);
   }
@@ -152,7 +144,18 @@ const drawnNetwork = async () => {
 beforeEach(() => {
   ipc.calls = [];
   ipc.network = () => Promise.resolve(small);
-  ipc.glance = '<h2 id="bread" data-at="3">Bread</h2><p>About bread</p>';
+  ipc.card = {
+    id: "notes.md",
+    kind: "doc",
+    title: "Notes",
+    state: "open",
+    bytes: 2400,
+    words: 380,
+    wrote: "2026-11-18T15:00:00Z",
+    lang: "en",
+    tags: ["home"],
+    cited_by: [{ id: "01A", kind: "task", title: "buy bread" }],
+  };
   ways.opened = [];
   ways.left = 0;
   Object.assign(sigma, {
@@ -291,7 +294,7 @@ describe("Brainsty in the content panel", () => {
     expect(sigma.stopped).toBe(1);
   });
 
-  it("previews a picked document in its folder, and opens it", async () => {
+  it("shows a picked document's card in its folder, and opens it", async () => {
     const { user } = await drawnNetwork();
 
     act(() => sigma.hands?.pick(0));
@@ -299,13 +302,57 @@ describe("Brainsty in the content panel", () => {
     const preview = await screen.findByRole("complementary", { name: "Notes" });
     expect(preview.textContent).toContain("Proyectos");
     expect(preview.textContent).toContain("1 connections");
-    expect(await screen.findByText("About bread")).toBeTruthy();
-    expect(preview.querySelector("[id], [data-at]")).toBeNull();
+    expect(await within(preview).findByText(t("brainstyFactWrote"))).toBeTruthy();
+    expect(within(preview).getByText("2.4 kB · 380 words")).toBeTruthy();
+    expect(within(preview).getByText("EN")).toBeTruthy();
+    expect(within(preview).getByText("#home")).toBeTruthy();
+    const ties = within(preview).getByRole("region", { name: t("brainstyTiesTitle") });
+    expect(ties.textContent).toContain(t("brainstyTies_cite"));
+    expect(ipc.calls).toContainEqual({ cmd: "brain_card", args: { id: "notes.md" } });
     expect(last(sigma.lit)).toEqual([0, 1]);
-    await user.click(screen.getByRole("button", { name: t("brainstyOpen") }));
+
+    await user.click(within(preview).getByRole("button", { name: "buy bread" }));
+    expect(await screen.findByRole("complementary", { name: "buy bread" })).toBeTruthy();
+    act(() => sigma.hands?.pick(0));
+    await user.click(await screen.findByRole("button", { name: t("brainstyOpen") }));
 
     expect(ways.opened).toEqual([small.nodes[0]]);
     expect(ways.left).toBe(0);
+  });
+
+  it("tells a task's state, days and steps, and nothing it does not know", async () => {
+    ipc.card = {
+      id: "01A",
+      kind: "task",
+      title: "buy bread",
+      state: "open",
+      standing: "late",
+      date: "2026-11-18",
+      steps: [2, 5],
+    };
+    await drawnNetwork();
+
+    act(() => sigma.hands?.pick(1));
+
+    const preview = await screen.findByRole("complementary", { name: "buy bread" });
+    await within(preview).findByText(t("brainstyFactState"));
+    expect(
+      within(preview).getByText(`${t("brainstyStanding_live")} · ${t("brainstyDue_late")}`),
+    ).toBeTruthy();
+    expect(within(preview).getByText("2 of 5 done")).toBeTruthy();
+    expect(within(preview).getByText(/18/)).toBeTruthy();
+    expect(within(preview).queryByText(t("brainstyFactDeadline"))).toBeNull();
+    expect(within(preview).queryByText(t("brainstyPointedHere"))).toBeNull();
+  });
+
+  it("asks no card for what has none, such as a tag", async () => {
+    await drawnNetwork();
+
+    act(() => sigma.hands?.pick(2));
+
+    const preview = await screen.findByRole("complementary", { name: "home" });
+    expect(preview.textContent).toContain(t("brainstyTies_tag"));
+    expect(ipc.calls.some((one) => one.cmd === "brain_card")).toBe(false);
   });
 
   it("opens a task on a double click", async () => {
@@ -322,33 +369,14 @@ describe("Brainsty in the content panel", () => {
     await user.type(screen.getByRole("searchbox", { name: t("brainstySearch") }), "bread");
     await user.click(await screen.findByRole("button", { name: /buy bread/ }));
     expect(sigma.focused).toEqual([1]);
-    await waitFor(() =>
-      expect(ipc.calls).toContainEqual({
-        cmd: "doc_drawn",
-        args: { body: "![buy bread](tisty:task/01A)\n" },
-      }),
-    );
-    const frame = await waitFor(() => {
-      const found = document.querySelector<HTMLIFrameElement>("aside iframe");
-      expect(found?.srcdoc).toContain("<article");
-      return found as HTMLIFrameElement;
-    });
-    const card = frame.contentDocument as Document;
-    card.open();
-    card.write(frame.srcdoc);
-    card.close();
-    frame.dispatchEvent(new Event("load"));
-    await waitFor(() => expect(card.documentElement.classList).toContain("glanced"));
-    expect(card.documentElement.classList).toContain("untitled");
+    expect(await screen.findByRole("complementary", { name: "buy bread" })).toBeTruthy();
 
     await user.type(screen.getByRole("searchbox", { name: t("brainstySearch") }), "zzz");
     expect(await screen.findByText(t("brainstyNothingFound"))).toBeTruthy();
     await user.keyboard("{Escape}");
     expect(screen.queryByText(t("brainstyNothingFound"))).toBeNull();
     expect(screen.getByRole("complementary", { name: "buy bread" })).toBeTruthy();
-    act(() => {
-      card.body.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
-    });
+    await user.keyboard("{Escape}");
     expect(screen.queryByRole("complementary", { name: "buy bread" })).toBeNull();
     expect(ways.left).toBe(0);
     await user.keyboard("{Escape}");
@@ -426,24 +454,6 @@ describe("Brainsty in the content panel", () => {
     expect(document.activeElement).toBe(screen.getByRole("searchbox"));
     await user.tab();
     expect(document.activeElement).toBe(screen.getByRole("button", { name: t("brainstyFilters") }));
-  });
-
-  it("shows the pictures a document's preview holds", async () => {
-    ipc.glance = '<p>Rina</p><img src="attachments/rina.jpg" alt="Rina on the hill">';
-    await drawnNetwork();
-
-    act(() => sigma.hands?.pick(0));
-
-    const preview = await screen.findByRole("complementary", { name: "Notes" });
-    await waitFor(() =>
-      expect(preview.querySelector("img")?.getAttribute("src")).toBe(
-        "asset://localhost/C:/home/data/attachments/rina.jpg",
-      ),
-    );
-    expect(ipc.calls).toContainEqual({
-      cmd: "served",
-      args: { reference: "attachments/rina.jpg" },
-    });
   });
 
   it("jumps to the search with /", async () => {

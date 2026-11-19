@@ -1,6 +1,6 @@
 use std::sync::Mutex;
 
-use tisty_core::brain::{self, Network};
+use tisty_core::brain::{self, Card, Network};
 
 use crate::{Answer, Session, elsewhere, held};
 
@@ -26,4 +26,17 @@ pub async fn brain_network(
         })
     })
     .await
+}
+
+#[tauri::command]
+pub async fn brain_card(
+    session: tauri::State<'_, Mutex<Session>>,
+    id: String,
+) -> Answer<Option<Card>> {
+    let (paths, hidden) = {
+        let session = held(&session);
+        (session.paths.clone(), brain::kept_out(&session.state))
+    };
+    let today = jiff::Zoned::now().date();
+    elsewhere(move || brain::card_of(&paths, &id, today, |one| !hidden.contains(one))).await
 }

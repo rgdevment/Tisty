@@ -38,7 +38,37 @@ export interface Group {
   color?: string | null;
 }
 
+export interface Near {
+  id: string;
+  kind: string;
+  title: string;
+  state?: string;
+}
+
+export type Due = "undated" | "ahead" | "today" | "late" | "underway" | "due_soon" | "overdue";
+
+export interface Card {
+  id: string;
+  kind: string;
+  title: string;
+  state: string;
+  standing?: Due;
+  lang?: string;
+  bytes?: number;
+  words?: number;
+  made?: string;
+  wrote?: string;
+  date?: string;
+  deadline?: string;
+  steps?: [number, number];
+  tags?: string[];
+  cited_by?: Near[];
+  mentioned_by?: Near[];
+}
+
 export const OPENED = "brainsty-opened";
 
 export const brainNetwork = (near?: string): Promise<Network | null> =>
   invoke("brain_network", { near: near ?? null });
+
+export const brainCard = (id: string): Promise<Card | null> => invoke("brain_card", { id });
