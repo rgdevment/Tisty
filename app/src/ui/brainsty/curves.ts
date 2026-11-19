@@ -16,7 +16,7 @@ export interface Curves {
 }
 
 const BEND = 0.2;
-const WIDTH = 1.5;
+export const WIDTH = 1.5;
 
 export const bendOf = ([x1, y1]: Point, [x2, y2]: Point): Point => [
   (x1 + x2) / 2 - (y2 - y1) * BEND,

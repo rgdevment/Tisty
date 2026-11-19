@@ -1,5 +1,7 @@
 import { type Group, type Network, type NeuronKind, TIES, type Tie } from "../../brainsty";
-import { lineLook, nodeLook, type Palette, type Shape, type Standing } from "./looks";
+import { WIDTH } from "./curves";
+import { alphaOf } from "./guessing";
+import { lineLook, nodeLook, type Palette, rgba, type Shape, type Standing } from "./looks";
 
 export interface KindKey {
   kind: NeuronKind;
@@ -33,6 +35,7 @@ export interface Legend {
   groups: GroupKey[];
   standings: StandingKey[];
   lines: LineKey[];
+  alike: { color: string; size: number } | null;
 }
 
 const KINDS: readonly NeuronKind[] = ["doc", "page", "task", "tag", "file"];
@@ -76,5 +79,9 @@ export function legendOf(network: Network, groups: readonly Group[], palette: Pa
     return { tie, color: look.color, size: look.size, dashed: look.gap > 0 };
   });
 
-  return { kinds, groups: tinted, standings, lines };
+  const alike = network.alike?.length
+    ? { color: rgba(palette.hues.amber, alphaOf(1)), size: WIDTH }
+    : null;
+
+  return { kinds, groups: tinted, standings, lines, alike };
 }

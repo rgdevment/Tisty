@@ -14,7 +14,7 @@ const palette: Palette = {
   accent: "#2266ff",
   tag: "#aa44ff",
   file: "#888888",
-  hues: { teal: "#11aa99", orange: "#ff8800", pink: "#ff66aa" },
+  hues: { teal: "#11aa99", orange: "#ff8800", pink: "#ff66aa", amber: "#ffbb00" },
 };
 
 const network: Network = {
@@ -62,10 +62,19 @@ describe("what the legend says", () => {
   });
 
   it("names only the lines in the network, dashed where the network dashes them", () => {
+    expect(legend.alike).toBeNull();
     expect(legend.lines).toEqual([
       { tie: "mention", color: lineLook("mention", palette).color, size: 1, dashed: true },
       { tie: "tag", color: lineLook("tag", palette).color, size: 0.5, dashed: false },
     ]);
+  });
+});
+
+describe("the alike curve in the legend", () => {
+  it("is named, amber, when the network carries guesses", () => {
+    const guessed = legendOf({ ...network, alike: [[0, 2, 700, "bread"]] }, groups, palette);
+
+    expect(guessed.alike).toEqual({ color: "rgba(255, 187, 0, 0.95)", size: 1.5 });
   });
 });
 
@@ -96,6 +105,14 @@ describe("the legend over the network", () => {
     ).toBe("false");
     await user.click(screen.getByRole("button", { name: t("brainstyLegend") }));
     expect(screen.getByText("Proyectos")).toBeTruthy();
+  });
+
+  it("names the amber curve and what it means", () => {
+    render(<Legend network={{ ...network, alike: [[0, 2, 700, "bread"]] }} groups={groups} />);
+
+    expect(screen.getByText(t("brainstyAlike")).closest("p")?.getAttribute("title")).toBe(
+      t("brainstyAlikeWhat"),
+    );
   });
 
   it("shows the first colours and the rest on asking", async () => {

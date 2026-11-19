@@ -96,7 +96,7 @@ export default function Legend({ network, groups }: Props) {
               </Row>
             ))}
           </Part>
-          {legend.lines.length > 0 && (
+          {(legend.lines.length > 0 || legend.alike) && (
             <Part title={t("brainstyLegendLines")}>
               {legend.lines.map((one) => (
                 <Row key={one.tie} label={t(`brainstyTie_${one.tie}`)}>
@@ -113,6 +113,18 @@ export default function Legend({ network, groups }: Props) {
                   </svg>
                 </Row>
               ))}
+              {legend.alike && (
+                <Row label={t("brainstyAlike")} title={t("brainstyAlikeWhat")}>
+                  <svg viewBox="0 0 24 8" aria-hidden="true" className="h-2 w-6 shrink-0">
+                    <path
+                      d="M1 7 Q12 -2 23 7"
+                      fill="none"
+                      stroke={legend.alike.color}
+                      strokeWidth={legend.alike.size}
+                    />
+                  </svg>
+                </Row>
+              )}
             </Part>
           )}
         </div>
@@ -130,9 +142,17 @@ function Part({ title, children }: { readonly title: string; readonly children: 
   );
 }
 
-function Row({ label, children }: { readonly label: string; readonly children: React.ReactNode }) {
+function Row({
+  label,
+  title,
+  children,
+}: {
+  readonly label: string;
+  readonly title?: string;
+  readonly children: React.ReactNode;
+}) {
   return (
-    <p className="flex items-center gap-2">
+    <p className="flex items-center gap-2" title={title}>
       <span className="grid w-6 shrink-0 place-items-center">{children}</span>
       <span className="truncate">{label}</span>
     </p>
