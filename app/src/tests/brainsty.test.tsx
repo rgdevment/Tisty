@@ -181,6 +181,35 @@ describe("Brainsty in the content panel", () => {
     expect(ways.left).toBe(1);
   });
 
+  it("redraws when the panel changes width while the window does not", async () => {
+    const seen: { told?: () => void; gone: boolean } = { gone: false };
+    vi.stubGlobal(
+      "ResizeObserver",
+      class {
+        constructor(told: () => void) {
+          seen.told = told;
+        }
+        observe() {}
+        disconnect() {
+          seen.gone = true;
+        }
+      },
+    );
+    const resized = vi.fn();
+    window.addEventListener("resize", resized);
+    const { shown } = await opened();
+
+    seen.told?.();
+    seen.told?.();
+    await new Promise((frame) => requestAnimationFrame(frame));
+    shown.unmount();
+
+    window.removeEventListener("resize", resized);
+    vi.unstubAllGlobals();
+    expect(resized).toHaveBeenCalledTimes(1);
+    expect(seen.gone).toBe(true);
+  });
+
   it("leaves Escape to what sits over it", async () => {
     await opened();
     await screen.findByText("3 nodes · 2 connections");
@@ -389,11 +418,10 @@ describe("Brainsty in the content panel", () => {
     expect(ways.left).toBe(0);
   });
 
-  it("reaches the network and its controls with Tab, in the order they stand", async () => {
+  it("takes the focus once drawn, and reaches its controls with Tab, in the order they stand", async () => {
     const { user, network } = await drawnNetwork();
 
-    await user.tab();
-    expect(document.activeElement).toBe(network);
+    await waitFor(() => expect(document.activeElement).toBe(network));
     await user.tab();
     expect(document.activeElement).toBe(screen.getByRole("searchbox"));
     await user.tab();

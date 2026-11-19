@@ -197,6 +197,19 @@ describe("Brainsty from the main window", () => {
     expect(screen.queryByRole("button", { name: t("expand") })).toBeNull();
   });
 
+  it("hands the keys to the network once it is drawn", async () => {
+    const user = await opened();
+    await user.click(screen.getByRole("button", { name: t("brainsty") }));
+    const network = await screen.findByRole("figure", { name: t("brainstyNetwork") });
+
+    await waitFor(() => expect(document.activeElement).toBe(network));
+    await user.keyboard("/");
+
+    expect(document.activeElement).toBe(
+      screen.getByRole("searchbox", { name: t("brainstySearch") }),
+    );
+  });
+
   it("stays as it is when Brainsty is pressed again", async () => {
     const user = await opened();
 

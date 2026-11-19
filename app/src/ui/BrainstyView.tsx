@@ -67,6 +67,29 @@ export default function BrainstyView({ near, groups, onOpen, onLeave }: Props) {
   }, []);
 
   const network = read && "network" in read ? read.network : null;
+  const drawn = network !== null && network.nodes.length > 0 && Drawn !== null;
+  useEffect(() => {
+    if (!drawn) return;
+    // Opened from the sidebar, the focus sits on a button the arrows leave alone.
+    view.current?.querySelector<HTMLElement>("figure[tabindex]")?.focus({ preventScroll: true });
+  }, [drawn]);
+
+  useEffect(() => {
+    const room = view.current;
+    if (!room || typeof ResizeObserver === "undefined") return;
+    let frame = 0;
+    // The panel can change width while the window keeps its own, and sigma redraws only on the window's resize.
+    const watching = new ResizeObserver(() => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => window.dispatchEvent(new Event("resize")));
+    });
+    watching.observe(room);
+    return () => {
+      cancelAnimationFrame(frame);
+      watching.disconnect();
+    };
+  }, []);
+
   return (
     <section
       ref={view}
