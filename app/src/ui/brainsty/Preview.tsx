@@ -47,7 +47,7 @@ export default function Preview({ neuron, ties, zone, onOpen, onClose }: Props) 
   return (
     <aside
       aria-label={neuron.title}
-      className="absolute top-3 right-3 z-10 flex max-h-[calc(100%-24px)] w-80 flex-col gap-2 overflow-hidden rounded-[10px] border border-hair bg-bg p-4 shadow-lift"
+      className="absolute top-3 right-3 z-10 flex max-h-[calc(100%-24px)] w-80 flex-col gap-2 overflow-hidden rounded-[10px] border border-hair bg-sheet p-4 shadow-lift"
     >
       <div className="flex items-start gap-2">
         <h2 className="min-w-0 flex-1 text-[13px] leading-snug font-semibold break-words text-ink">
@@ -74,9 +74,11 @@ export default function Preview({ neuron, ties, zone, onOpen, onClose }: Props) 
             body={`${taskCard(neuron.id, neuron.title)}\n`}
             label={neuron.title}
             tall
+            untitled
             cardsShown={TASKS}
             onDoc={() => undefined}
             onTask={onOpen}
+            onShown={(page) => page?.document.documentElement.classList.add("glanced")}
           />
         </div>
       )}

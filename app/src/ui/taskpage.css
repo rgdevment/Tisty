@@ -308,6 +308,12 @@ html.held .page > .front dd {
   margin: 0;
 }
 
+/* A card alone in a narrow glance keeps the glance's words, not a page's margins. */
+html.tall.glanced .page {
+  padding: 0;
+  font-size: 13px;
+}
+
 .page-drop-caret {
   position: absolute;
   z-index: 15;
