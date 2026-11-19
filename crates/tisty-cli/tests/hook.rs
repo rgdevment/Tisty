@@ -275,7 +275,8 @@ fn anything_unexpected_exits_quietly() {
         vec!["hook", "claude-code", "stop", "extra"],
     ] {
         let mut child = home.tisty(&args).spawn().unwrap();
-        child.stdin.take().unwrap().write_all(b"not json").unwrap();
+        // A hook that gives up on its arguments may leave before reading, closing the pipe first.
+        let _ = child.stdin.take().unwrap().write_all(b"not json");
         let said = child.wait_with_output().unwrap();
         assert!(said.status.success(), "{args:?}: {said:?}");
         assert!(said.stdout.is_empty(), "{args:?}: {said:?}");
