@@ -2,6 +2,9 @@ import { invoke } from "@tauri-apps/api/core";
 import type { Filed, Folded } from "./core";
 
 export const AGENTS_ICON = "robot";
+export const AGENTS_MORE = "tisty:agents-more";
+
+export const bringMoreAgents = () => window.dispatchEvent(new Event(AGENTS_MORE));
 export const AGENTS_NAME = "AGENTS";
 
 export interface FileSeen {
@@ -19,6 +22,12 @@ export interface AssistantSeen {
   files: FileSeen[];
 }
 
+export interface Loose {
+  at: string;
+  assistant: string;
+  changed: boolean;
+}
+
 export interface AgentsLook {
   folder: string | null;
   docs: number;
@@ -31,6 +40,8 @@ export interface AgentsLook {
   asks: boolean;
   assistants: AssistantSeen[];
   both: Both[];
+  loose: Loose[];
+  unled: string[];
 }
 
 export interface Line {
@@ -55,6 +66,8 @@ export interface Told {
 export interface Rounded {
   told: Told[];
   both: Both[];
+  loose: Loose[];
+  unled: string[];
 }
 
 export interface Refused {
@@ -89,6 +102,9 @@ export const agentsTurn = (assistant: string | null, on: boolean): Promise<Round
   invoke("agents_turn", { assistant, on });
 export const agentsRound = (): Promise<Rounded> => invoke("agents_round");
 export const agentsEmpty = (): Promise<boolean> => invoke("agents_empty");
+export const agentsLoose = (at: string, away: boolean): Promise<Rounded> =>
+  invoke("agents_loose", { at, away });
+export const agentsLead = (): Promise<Rounded> => invoke("agents_lead");
 
 export const agentsRoot = (folders: readonly Folded[]): Folded | undefined =>
   folders

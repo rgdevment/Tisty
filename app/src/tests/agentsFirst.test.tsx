@@ -1,8 +1,8 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { AgentsLook, Both, Brought } from "../agentsSync";
-import { agentsPrint, agentsRoot, inAgents } from "../agentsSync";
+import { AGENTS_MORE, agentsPrint, agentsRoot, inAgents } from "../agentsSync";
 import type { Filed, Folded } from "../core";
 import { adopt } from "../locales";
 import AgentsFirst from "../ui/AgentsFirst";
@@ -34,6 +34,8 @@ const look: AgentsLook = {
   allOn: true,
   asks: true,
   both: [],
+  loose: [],
+  unled: [],
   assistants: [
     {
       id: "claude",
@@ -82,7 +84,7 @@ const both: Both = {
 const brought = (more: Partial<Brought> = {}): Brought => ({
   made: 2,
   refused: [],
-  round: { told: [], both: [] },
+  round: { told: [], both: [], loose: [], unled: [] },
   ...more,
 });
 
@@ -139,7 +141,9 @@ describe("the first time AGENTS opens", () => {
     ipc.answer = (cmd) => {
       if (cmd === "agents_look") return Promise.resolve(look);
       if (cmd === "agents_bring")
-        return Promise.resolve(brought({ round: { told: [], both: [both] } }));
+        return Promise.resolve(
+          brought({ round: { told: [], both: [both], loose: [], unled: [] } }),
+        );
       return Promise.resolve({ told: [], both: [] });
     };
     render(<AgentsFirst onClose={() => {}} onChanged={() => {}} />);
@@ -265,6 +269,217 @@ describe("a choice left for later", () => {
   });
 });
 
+describe("bringing another file after the first time", () => {
+  const consented: AgentsLook = { ...look, folder: "f", docs: 2, consented: true, asks: false };
+
+  it("ticks nothing, waits for a choice and brings only what was ticked", async () => {
+    ipc.answer = (cmd) => {
+      if (cmd === "agents_look") return Promise.resolve(consented);
+      if (cmd === "agents_bring") return Promise.resolve(brought({ made: 1 }));
+      return Promise.resolve({ told: [], both: [], loose: [], unled: [] });
+    };
+    render(<AgentsFirst more onClose={() => {}} onChanged={() => {}} />);
+    await screen.findByText("Traer otro archivo");
+    expect(screen.getByText(/todavía no están en AGENTS/)).toBeTruthy();
+    expect(screen.queryByText(/Queda en tu Tisty/)).toBeNull();
+    const bring = screen.getByRole("button", { name: "Traer" }) as HTMLButtonElement;
+    expect(bring.disabled).toBe(true);
+    await userEvent.click(screen.getByText("Codex · 1 archivo"));
+    await userEvent.click(screen.getByRole("checkbox", { name: /AGENTS\.md/ }));
+    await userEvent.click(bring);
+    await waitFor(() => expect(sent("agents_bring")).toHaveLength(1));
+    expect(sent("agents_bring")[0].args.chosen).toEqual(["/h/.codex/AGENTS.md"]);
+    await screen.findByText(/Entró 1 documento a AGENTS/);
+  });
+
+  it("says so when every file is already in AGENTS", async () => {
+    const all: AgentsLook = {
+      ...consented,
+      assistants: [
+        {
+          id: "codex",
+          name: "Codex",
+          on: true,
+          files: [
+            { at: "/h/.codex/AGENTS.md", name: "AGENTS.md", kind: "rule", skip: null, held: true },
+          ],
+        },
+      ],
+    };
+    ipc.answer = (cmd) =>
+      cmd === "agents_look" ? Promise.resolve(all) : Promise.resolve(brought());
+    render(<AgentsFirst more onClose={() => {}} onChanged={() => {}} />);
+    await screen.findByText("Todos los archivos de agentes de este equipo ya están en AGENTS.");
+  });
+
+  it("is the first time still when this computer never said yes", async () => {
+    render(<AgentsFirst more onClose={() => {}} onChanged={() => {}} />);
+    await screen.findByText("Tus agentes, en un solo lugar");
+    expect(screen.getByRole("button", { name: "Traer y sincronizar" })).toBeTruthy();
+  });
+
+  it("offers to bring a main file never brought instead of only writing over it", async () => {
+    const composed: Both = {
+      ...both,
+      at: "/h/.codex/AGENTS.md",
+      assistant: "codex",
+      composed: true,
+    };
+    ipc.answer = (cmd) => {
+      if (cmd === "agents_look")
+        return Promise.resolve({ ...consented, asks: true, both: [composed] });
+      if (cmd === "agents_bring") return Promise.resolve(brought({ made: 1 }));
+      return Promise.resolve({ told: [], both: [], loose: [], unled: [] });
+    };
+    const closed = vi.fn();
+    render(<AgentsFirst onClose={closed} onChanged={() => {}} />);
+    await screen.findByText(/Tisty nunca trajo este archivo/);
+    expect(screen.queryByText(/solo puedes conservar el de Tisty/)).toBeNull();
+    await userEvent.click(screen.getByRole("button", { name: "Traer a AGENTS" }));
+    await waitFor(() => expect(sent("agents_bring")).toHaveLength(1));
+    expect(sent("agents_bring")[0].args.chosen).toEqual(["/h/.codex/AGENTS.md"]);
+    await waitFor(() => expect(closed).toHaveBeenCalled());
+  });
+});
+
+describe("AGENTS made again on a computer that already said yes", () => {
+  it("ticks what it finds, as the first time did", async () => {
+    ipc.answer = (cmd) =>
+      cmd === "agents_look"
+        ? Promise.resolve({ ...look, consented: true, asks: false })
+        : Promise.resolve(brought());
+    render(<AgentsFirst onClose={() => {}} onChanged={() => {}} />);
+    await userEvent.click(await screen.findByText("Codex · 1 archivo"));
+    expect((screen.getByRole("checkbox", { name: /AGENTS\.md/ }) as HTMLInputElement).checked).toBe(
+      true,
+    );
+  });
+});
+
+describe("a main file the bring turns away", () => {
+  it("keeps asking and says why it did not come in", async () => {
+    const composed: Both = {
+      ...both,
+      at: "/h/.codex/AGENTS.md",
+      assistant: "codex",
+      composed: true,
+    };
+    ipc.answer = (cmd) => {
+      if (cmd === "agents_look")
+        return Promise.resolve({
+          ...look,
+          folder: "f",
+          docs: 2,
+          consented: true,
+          both: [composed],
+        });
+      if (cmd === "agents_bring")
+        return Promise.resolve(
+          brought({ made: 0, refused: [{ at: composed.at, why: "token", reason: "secret" }] }),
+        );
+      return Promise.resolve({ told: [], both: [], loose: [], unled: [] });
+    };
+    render(<AgentsFirst onClose={() => {}} onChanged={() => {}} />);
+    await userEvent.click(await screen.findByRole("button", { name: "Traer a AGENTS" }));
+    await screen.findByText(/Parece llevar una credencial/);
+    expect(screen.getByText("Existe en los dos lados")).toBeTruthy();
+  });
+
+  it("clears the reason once the person leaves that file for later", async () => {
+    const composed: Both = {
+      ...both,
+      at: "/h/.codex/AGENTS.md",
+      assistant: "codex",
+      composed: true,
+    };
+    const loose = { at: "/h/.claude/rules/tone.md", assistant: "claude", changed: false };
+    ipc.answer = (cmd) => {
+      if (cmd === "agents_look")
+        return Promise.resolve({
+          ...look,
+          folder: "f",
+          docs: 2,
+          consented: true,
+          both: [composed],
+          loose: [loose],
+        });
+      if (cmd === "agents_bring")
+        return Promise.resolve(
+          brought({ made: 0, refused: [{ at: composed.at, why: "token", reason: "secret" }] }),
+        );
+      return Promise.resolve({ told: [], both: [], loose: [], unled: [] });
+    };
+    render(<AgentsFirst onClose={() => {}} onChanged={() => {}} />);
+    await userEvent.click(await screen.findByRole("button", { name: "Traer a AGENTS" }));
+    await screen.findByText(/Parece llevar una credencial/);
+    await userEvent.click(screen.getByRole("button", { name: "Decidir después" }));
+    await screen.findByText("¿Quitar también el archivo?");
+    expect(screen.queryByText(/Parece llevar una credencial/)).toBeNull();
+  });
+});
+
+describe("what waits for the person after a rule leaves", () => {
+  const loose = { at: "/h/.claude/rules/tone.md", assistant: "claude", changed: true };
+  const waiting = (more: Partial<AgentsLook>): AgentsLook => ({
+    ...look,
+    folder: "f",
+    docs: 1,
+    consented: true,
+    asks: true,
+    ...more,
+  });
+
+  it("asks whether to take the file away too, says it changed, and can leave it", async () => {
+    ipc.answer = (cmd) =>
+      cmd === "agents_look"
+        ? Promise.resolve(waiting({ loose: [loose] }))
+        : Promise.resolve({ told: [], both: [], loose: [], unled: [] });
+    const closed = vi.fn();
+    render(<AgentsFirst onClose={closed} onChanged={() => {}} />);
+    await screen.findByText("¿Quitar también el archivo?");
+    expect(screen.getByText(/Claude lo sigue leyendo/)).toBeTruthy();
+    expect(screen.getByText(/Cambió después de la última vez/)).toBeTruthy();
+    expect(screen.getByText(/queda un respaldo/)).toBeTruthy();
+    await userEvent.click(screen.getByRole("button", { name: "Dejarlo" }));
+    await waitFor(() => expect(sent("agents_loose")).toHaveLength(1));
+    expect(sent("agents_loose")[0].args).toEqual({ at: loose.at, away: false });
+    await waitFor(() => expect(closed).toHaveBeenCalled());
+  });
+
+  it("shows why a file could not go and keeps asking", async () => {
+    ipc.answer = (cmd) => {
+      if (cmd === "agents_look") return Promise.resolve(waiting({ loose: [loose] }));
+      if (cmd === "agents_loose") return Promise.reject({ code: "agentLinked" });
+      return Promise.resolve({ told: [], both: [], loose: [], unled: [] });
+    };
+    render(<AgentsFirst onClose={() => {}} onChanged={() => {}} />);
+    await userEvent.click(await screen.findByRole("button", { name: "Quitar el archivo" }));
+    await waitFor(() => expect(sent("agents_loose")).toHaveLength(1));
+    expect(screen.getByText("¿Quitar también el archivo?")).toBeTruthy();
+  });
+
+  it("asks before putting Gemini's line back, and can leave it paused", async () => {
+    ipc.answer = (cmd) =>
+      cmd === "agents_look"
+        ? Promise.resolve(
+            waiting({
+              unled: ["gemini", "gemini"],
+              assistants: [{ id: "gemini", name: "Gemini", on: true, files: [] }],
+            }),
+          )
+        : Promise.resolve({ told: [], both: [], loose: [], unled: [] });
+    const closed = vi.fn();
+    render(<AgentsFirst onClose={closed} onChanged={() => {}} />);
+    await screen.findByText("Falta la línea de Tisty");
+    expect(screen.getByText(/Gemini queda en pausa hasta que tú lo hagas/)).toBeTruthy();
+    await userEvent.click(screen.getByRole("button", { name: "Volver a ponerla" }));
+    await waitFor(() => expect(sent("agents_lead")).toHaveLength(1));
+    await userEvent.click(await screen.findByRole("button", { name: "Dejarlo en pausa" }));
+    await waitFor(() => expect(closed).toHaveBeenCalled());
+    expect(sent("agents_lead")).toHaveLength(1);
+  });
+});
+
 describe("finding AGENTS among the folders", () => {
   const folders = [
     folder("work", null),
@@ -286,6 +501,74 @@ describe("finding AGENTS among the folders", () => {
     const before = agentsPrint([doc("x", "claude", "1"), doc("y", "work", "1")], folders);
     expect(agentsPrint([doc("x", "claude", "1"), doc("y", "work", "2")], folders)).toBe(before);
     expect(agentsPrint([doc("x", "claude", "2"), doc("y", "work", "1")], folders)).not.toBe(before);
+  });
+});
+
+describe("what Settings offers once this computer said yes", () => {
+  const said = (more: Partial<AgentsLook>): AgentsLook => ({
+    ...look,
+    folder: "f",
+    docs: 2,
+    consented: true,
+    asks: false,
+    ...more,
+  });
+
+  it("brings another file from Settings", async () => {
+    ipc.answer = (cmd) =>
+      cmd === "agents_look" ? Promise.resolve(said({})) : Promise.resolve(null);
+    const asked = vi.fn();
+    window.addEventListener(AGENTS_MORE, asked);
+    render(<AgentsSettings busy={null} />);
+    await userEvent.click(await screen.findByRole("button", { name: "Traer otro archivo" }));
+    expect(asked).toHaveBeenCalled();
+    window.removeEventListener(AGENTS_MORE, asked);
+  });
+
+  it("counts the files no rule writes any more and opens them for review", async () => {
+    const loose = { at: "/h/a.md", assistant: "claude", changed: false };
+    ipc.answer = (cmd) =>
+      cmd === "agents_look"
+        ? Promise.resolve(said({ loose: [loose, { ...loose, at: "/h/b.md" }] }))
+        : Promise.resolve(null);
+    render(<AgentsSettings busy={null} />);
+    await screen.findByText("2 archivos ya no son de ninguna regla de AGENTS.");
+    ipc.answer = (cmd) =>
+      cmd === "agents_look" ? Promise.resolve(said({ loose: [loose] })) : Promise.resolve(null);
+    act(() => window.dispatchEvent(new Event(AGENTS_CHANGED)));
+    await screen.findByText("1 archivo ya no es de ninguna regla de AGENTS.");
+  });
+
+  it("says why Gemini is paused and puts the line back", async () => {
+    ipc.answer = (cmd) =>
+      cmd === "agents_look"
+        ? Promise.resolve(
+            said({
+              unled: ["gemini"],
+              assistants: [{ id: "gemini", name: "Gemini", on: true, files: [] }],
+            }),
+          )
+        : Promise.resolve({ told: [], both: [], loose: [], unled: [] });
+    render(<AgentsSettings busy={null} />);
+    await screen.findByText("En pausa: falta la línea @tisty-rules.md en GEMINI.md.");
+    await userEvent.click(screen.getByRole("button", { name: "Volver a ponerla" }));
+    await waitFor(() => expect(sent("agents_lead")).toHaveLength(1));
+  });
+
+  it("says when putting the line back failed", async () => {
+    ipc.answer = (cmd) => {
+      if (cmd === "agents_look")
+        return Promise.resolve(
+          said({
+            unled: ["gemini"],
+            assistants: [{ id: "gemini", name: "Gemini", on: true, files: [] }],
+          }),
+        );
+      return Promise.reject({ code: "agentLinked" });
+    };
+    render(<AgentsSettings busy={null} />);
+    await userEvent.click(await screen.findByRole("button", { name: "Volver a ponerla" }));
+    await waitFor(() => expect(sent("agents_lead")).toHaveLength(1));
   });
 });
 

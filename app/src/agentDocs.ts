@@ -7,6 +7,7 @@ export type AgentKind = "rule" | "skill" | "memory";
 export type Said =
   | { state: "synced" }
   | { state: "pending" }
+  | { state: "unled" }
   | { state: "held" }
   | { state: "unproven" }
   | { state: "outside"; mine: boolean; gone: boolean }
@@ -144,10 +145,16 @@ export const fencedFile = (text: string, at: string): string => {
 };
 
 export const glanceWord = (glance: Glance): GlanceWord => {
-  if (glance.docs === 0) return "empty";
+  if (glance.docs === 0 && glance.changes === 0) return "empty";
   if (!glance.consented || !glance.allOn) return "off";
   if (glance.changes > 0) return "changes";
   return glance.waiting + glance.unagreed + glance.proposed > 0 ? "waiting" : "synced";
+};
+
+// What waits for the person still shows where AGENTS sits hidden; a quiet AGENTS stays quiet there.
+export const asksPerson = (glance: Glance): boolean => {
+  const word = glanceWord(glance);
+  return word === "changes" || word === "waiting";
 };
 
 export const touched = (place: Place): boolean =>

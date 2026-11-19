@@ -9,8 +9,8 @@ const words = {
     "La sincronización de este asistente está en pausa",
   ],
   agentDocChanged: [
-    "This document changed since its card was drawn. Read it again before approving it.",
-    "Este documento cambió desde que se mostró su ficha. Léelo de nuevo antes de aprobarlo.",
+    "This document changed since its card was drawn. Read it again and try once more.",
+    "Este documento cambió desde que se mostró su ficha. Léelo de nuevo y vuelve a intentarlo.",
   ],
   agentProposalChanged: [
     "The proposal changed since the card showed it. Look at it again before choosing.",
@@ -150,6 +150,43 @@ const words = {
   agentsKeepTisty: ["Keep Tisty's", "Conservar el de Tisty"],
   agentsKeepFile: ["Keep the file", "Conservar el archivo"],
   agentsLater: ["Decide later", "Decidir después"],
+  agentsBringIn: ["Bring it into AGENTS", "Traer a AGENTS"],
+  agentsBothBring: [
+    "Tisty has never brought this file. Bring it into AGENTS and it keeps what it says, with Tisty's part added on top.",
+    "Tisty nunca trajo este archivo. Si lo traes a AGENTS, queda con lo que dice y con lo de Tisty agregado arriba.",
+  ],
+  agentsMoreTitle: ["Bring another file", "Traer otro archivo"],
+  agentsMoreLead: [
+    "These are the agent files on this computer that are not in AGENTS yet. Choose what to bring:",
+    "Estos son los archivos de agentes de este equipo que todavía no están en AGENTS. Elige qué traer:",
+  ],
+  agentsMoreNone: [
+    "Every agent file on this computer is already in AGENTS.",
+    "Todos los archivos de agentes de este equipo ya están en AGENTS.",
+  ],
+  agentsBring: ["Bring", "Traer"],
+  agentsLooseTitle: ["Take the file away too?", "¿Quitar también el archivo?"],
+  agentsLooseLead: [
+    "No rule in AGENTS writes this {name} file any more, but it is still on disk and {name} keeps reading it.",
+    "Ninguna regla de AGENTS escribe ya este archivo de {name}, pero sigue en el disco y {name} lo sigue leyendo.",
+  ],
+  agentsLooseChanged: [
+    "It changed after Tisty last wrote it.",
+    "Cambió después de la última vez que Tisty lo escribió.",
+  ],
+  agentsLooseBackup: [
+    "If you take it away, a backup stays on this computer.",
+    "Si lo quitas, queda un respaldo en este equipo.",
+  ],
+  agentsLooseAway: ["Take the file away", "Quitar el archivo"],
+  agentsLooseStay: ["Leave it", "Dejarlo"],
+  agentsUnledTitle: ["Tisty's line is missing", "Falta la línea de Tisty"],
+  agentsUnledLead: [
+    "The line @tisty-rules.md is no longer in GEMINI.md, so {name} does not read your rules. Tisty does not put it back by itself: {name} stays paused until you do.",
+    "La línea @tisty-rules.md ya no está en GEMINI.md, así que {name} no lee tus reglas. Tisty no la vuelve a poner sola: {name} queda en pausa hasta que tú lo hagas.",
+  ],
+  agentsLeadAgain: ["Put the line back", "Volver a ponerla"],
+  agentsLeavePaused: ["Leave it paused", "Dejarlo en pausa"],
   agentsDone: ["Done", "Listo"],
   agentsSettingsTitle: ["AGENTS", "AGENTS"],
   agentsSettingsLine: [
@@ -174,6 +211,19 @@ const words = {
     "{name} archivos dicen algo distinto en Tisty y en el agente.",
   ],
   agentsSettingsReview: ["Review", "Revisar"],
+  agentsSettingsMore: ["Bring another file", "Traer otro archivo"],
+  agentsSettingsLooseOne: [
+    "1 file no longer belongs to any rule in AGENTS.",
+    "1 archivo ya no es de ninguna regla de AGENTS.",
+  ],
+  agentsSettingsLoose: [
+    "{name} files no longer belong to any rule in AGENTS.",
+    "{name} archivos ya no son de ninguna regla de AGENTS.",
+  ],
+  agentsSettingsUnled: [
+    "Paused: the line @tisty-rules.md is missing from GEMINI.md.",
+    "En pausa: falta la línea @tisty-rules.md en GEMINI.md.",
+  ],
   agentsSettingsOff: [
     "Off: its files stay as they are, and nothing in Tisty is deleted.",
     "Apagado: sus archivos quedan como están y no se borra nada en Tisty.",
@@ -188,6 +238,10 @@ const words = {
   agentOutside: ["Changed outside", "Cambiado por fuera"],
   agentBoth: ["Changed on both sides", "Cambiado en los dos lados"],
   agentPaused: ["Paused", "En pausa"],
+  agentUnledSaid: [
+    "{name} does not read this rule: the line @tisty-rules.md is missing from GEMINI.md, and Tisty does not put it back by itself.",
+    "{name} no lee esta regla: falta la línea @tisty-rules.md en GEMINI.md, y Tisty no la vuelve a poner sola.",
+  ],
   agentNotAllowed: ["Not allowed on this computer", "Sin permiso en este equipo"],
   agentNothing: ["Nothing to write", "Nada que escribir"],
   agentLinkedFile: ["The file is a link", "El archivo es un enlace"],
@@ -273,7 +327,7 @@ const words = {
   agentComposedOne: ["together with one other document", "junto con otro documento"],
   agentFolderOff: [
     "Sync is off for the whole AGENTS folder. Turn it back on in Settings › Assistants.",
-    "La sincronización está apagada para toda la carpeta AGENTS. Vuelve a encenderla en Ajustes › Asistentes.",
+    "La sincronización está apagada para toda la carpeta AGENTS. Vuelve a encenderla en Configuración › Asistentes.",
   ],
   agentChangedAt: ["file changed {name}", "el archivo cambió {name}"],
   agentBackups: ["{name} backups", "{name} respaldos"],

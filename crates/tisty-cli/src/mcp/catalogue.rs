@@ -457,7 +457,7 @@ of your own: `diary: on` is the person's to write.
 
 A document whose properties hold an `agent:` line is an assistant's own file kept in the folder \
 AGENTS — a rule file such as `CLAUDE.md`, a skill, a script — and Tisty writes its text, byte for \
-byte, to the file that assistant reads, on each computer where the person turned that on. `read` \
+byte, to the file that assistant reads, on each computer where the person applied the document. `read` \
 gives the text the person approved. You change one only by proposing: `write_doc` with `doc` and \
 `print`, `edit_doc` or `append_doc` keep your text byte for byte, apart, and nothing reaches any \
 file until the person approves it on the document's card: say so, never call it done. A later \

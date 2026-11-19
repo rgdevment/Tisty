@@ -96,3 +96,44 @@ fn what_this_computer_chose_and_applied_is_kept_and_read_back() {
     changed.take("a-0002", true);
     assert!(changed.took("a-0002") && !changed.left("a-0002"));
 }
+
+#[test]
+fn a_file_forgotten_is_no_longer_answered_for_and_the_line_mark_reads_back() {
+    let data = tempfile::tempdir().unwrap();
+    let at = Path::new("/home/rina/.claude/rules/style.md");
+    let gemini = Path::new("/home/rina/.gemini/GEMINI.md");
+    let mut ledger = Ledger::fresh("machine-a");
+    ledger.consent(true);
+    ledger.settle(at, b"Style.\n");
+    ledger.applied_to(at, ["a-0001".to_string()]);
+    ledger.lead(gemini);
+    ledger.keep(data.path()).unwrap();
+
+    let mut again = Ledger::open(data.path(), "machine-a");
+    assert!(again.led(gemini));
+    assert_eq!(
+        again.written_files().map(|(at, _)| at).collect::<Vec<_>>(),
+        [at]
+    );
+    again.forget(at);
+    assert!(again.written(at).is_none());
+    assert_eq!(again.applied_at(at).count(), 0);
+    assert!(again.took("a-0001"));
+    again.forget(gemini);
+    assert!(!again.led(gemini));
+}
+
+#[test]
+fn a_ledger_from_an_earlier_build_reads_without_the_line_mark() {
+    let data = tempfile::tempdir().unwrap();
+    let folder = data.path().join("agents");
+    std::fs::create_dir_all(&folder).unwrap();
+    std::fs::write(
+        folder.join("ledger.json"),
+        r#"{"machine":"machine-a","consented":true}"#,
+    )
+    .unwrap();
+    let ledger = Ledger::open(data.path(), "machine-a");
+    assert!(ledger.consented());
+    assert!(!ledger.led(Path::new("/home/rina/.gemini/GEMINI.md")));
+}

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { asksPerson } from "../agentDocs";
 import { agentsRoot } from "../agentsSync";
 import type { Filed, Folded, Papers } from "../core";
 import { trail } from "../folders";
@@ -1078,6 +1079,7 @@ export default function Tree({
             >
               <Glyph name="hide" className="h-[14px] w-[14px] shrink-0" />
               <span className="truncate">{one.name}</span>
+              {agents?.folder === one.key && asksPerson(agents) && <AgentsWord glance={agents} />}
             </button>
           </li>
         ))}

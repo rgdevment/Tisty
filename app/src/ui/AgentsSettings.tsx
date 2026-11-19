@@ -1,5 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
-import { type AgentsLook, agentsLook, agentsTurn } from "../agentsSync";
+import {
+  type AgentsLook,
+  type AssistantSeen,
+  agentsLead,
+  agentsLook,
+  agentsTurn,
+  bringMoreAgents,
+} from "../agentsSync";
 import { fill, t } from "../locales";
 import { saidPlainly } from "../refusal";
 import { AGENTS_CHANGED, askAgents } from "./AgentsKeeper";
@@ -8,6 +15,12 @@ import { Knob, Line } from "./Rows";
 
 const small =
   "mt-2 self-start rounded-md border border-line px-2.5 py-0.5 text-[12.5px] text-soft hover:border-accent hover:text-accent";
+
+const whyOf = (look: AgentsLook, one: AssistantSeen): string | undefined => {
+  if (!look.allOn) return undefined;
+  if (!one.on) return t("agentsSettingsOff");
+  return look.unled.includes(one.id) ? t("agentsSettingsUnled") : undefined;
+};
 
 export default function AgentsSettings({ busy }: Readonly<{ busy: Which | null }>) {
   const [look, setLook] = useState<AgentsLook>();
@@ -24,6 +37,16 @@ export default function AgentsSettings({ busy }: Readonly<{ busy: Which | null }
     window.addEventListener(AGENTS_CHANGED, looked);
     return () => window.removeEventListener(AGENTS_CHANGED, looked);
   }, [looked]);
+
+  const lead = () => {
+    setTrouble(undefined);
+    agentsLead()
+      .then(() => {
+        looked();
+        window.dispatchEvent(new Event(AGENTS_CHANGED));
+      })
+      .catch((e) => setTrouble({ card: "wiring", text: saidPlainly(e) }));
+  };
 
   const turn = (assistant: string | null, on: boolean) => {
     setTrouble(undefined);
@@ -63,6 +86,23 @@ export default function AgentsSettings({ busy }: Readonly<{ busy: Which | null }
           </button>
         </>
       )}
+      {look?.consented && look.loose.length > 0 && (
+        <>
+          <p className="mt-2 text-[12.5px] text-soft">
+            {look.loose.length === 1
+              ? t("agentsSettingsLooseOne")
+              : fill("agentsSettingsLoose", String(look.loose.length))}
+          </p>
+          <button type="button" onClick={askAgents} className={small}>
+            {t("agentsSettingsReview")}
+          </button>
+        </>
+      )}
+      {look?.consented && look.folder && (
+        <button type="button" onClick={bringMoreAgents} className={small}>
+          {t("agentsSettingsMore")}
+        </button>
+      )}
       {look?.assistants.length === 0 && (
         <p className="mt-2 text-[12.5px] text-faint">{t("agentsSettingsNone")}</p>
       )}
@@ -83,7 +123,7 @@ export default function AgentsSettings({ busy }: Readonly<{ busy: Which | null }
             <Line
               key={one.id}
               title={fill("agentsSettingsOne", one.name)}
-              why={one.on || !look.allOn ? undefined : t("agentsSettingsOff")}
+              why={whyOf(look, one)}
               which="wiring"
             >
               <Knob
@@ -94,6 +134,11 @@ export default function AgentsSettings({ busy }: Readonly<{ busy: Which | null }
               />
             </Line>
           ))}
+          {look.unled.length > 0 && (
+            <button type="button" onClick={lead} className={small}>
+              {t("agentsLeadAgain")}
+            </button>
+          )}
         </div>
       )}
     </Card>

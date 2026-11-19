@@ -121,7 +121,7 @@ fn linked(target: &Target) -> bool {
             Component::Normal(_) | Component::RootDir | Component::Prefix(_)
         )
     });
-    if stepped_out || !target.at.starts_with(&target.root) {
+    if stepped_out || !target.root.is_absolute() || !target.at.starts_with(&target.root) {
         return true;
     }
     target
@@ -364,6 +364,66 @@ pub fn round(data: &Path, ledger: &mut Ledger, targets: &[Target]) -> Vec<Standi
     told
 }
 
+// A file just brought in stands for itself, so what joins it later is written over it with a backup, not asked about.
+pub fn adopted(ledger: &mut Ledger, target: &Target, brought: &str) -> bool {
+    if !ledger.consented() || ledger.written(&target.at).is_some() || linked(target) {
+        return false;
+    }
+    let Some(piece) = target.pieces.iter().find(|one| one.file() == brought) else {
+        return false;
+    };
+    let Ok(itself) = rendered(piece.body()) else {
+        return false;
+    };
+    if !matches!(on_disk(&target.at), Ok(Some(now)) if now == itself) {
+        return false;
+    }
+    ledger.settle(&target.at, &itself);
+    ledger.applied_to(&target.at, [brought.to_string()]);
+    true
+}
+
+// No document places this file any more; the person chose to take it away, so it leaves a backup first.
+pub fn removed(data: &Path, ledger: &mut Ledger, target: &Target) -> Result<(), Refused> {
+    if !ledger.consented() {
+        return Err(Refused::NoConsent);
+    }
+    if !ledger.syncs(&target.assistant) {
+        return Err(Refused::Off);
+    }
+    if !target.pieces.is_empty() || target.held {
+        return Err(Refused::Held);
+    }
+    if linked(target) {
+        return Err(Refused::Linked);
+    }
+    if let Some(was) = on_disk(&target.at)? {
+        kept::keep(data, &target.at, &was)?;
+        std::fs::remove_file(&target.at)?;
+        emptied_up(target);
+    }
+    ledger.forget(&target.at);
+    kept_ledger(data, ledger);
+    Ok(())
+}
+
+// A skill's folder left with nothing in it would still be listed; the assistant's own folders, such as `rules`, stay.
+// Removing a link to a folder takes the link away whatever the folder holds, so a link stops the climb.
+fn emptied_up(target: &Target) {
+    if !target.root.is_absolute() {
+        return;
+    }
+    for up in target.at.ancestors().skip(1) {
+        let own = up == target.root || up.parent().is_none_or(|parent| parent == target.root);
+        if own || !up.starts_with(&target.root) || super::link(up) {
+            return;
+        }
+        if std::fs::remove_dir(up).is_err() {
+            return;
+        }
+    }
+}
+
 pub fn bring(ledger: &Ledger, target: &Target, piece: usize) -> Result<String, Refused> {
     if !ledger.consented() {
         return Err(Refused::NoConsent);
@@ -434,6 +494,48 @@ pub fn lead_in(data: &Path, ledger: &Ledger, target: &Target, line: &str) -> Res
     now.extend_from_slice(line.as_bytes());
     now.extend_from_slice(newline);
     written_over(data, &target.at, &now, None)?;
+    Ok(true)
+}
+
+// A file Tisty cannot read is never taken for one the person emptied of the line.
+pub fn lacks(target: &Target, line: &str) -> bool {
+    if linked(target) {
+        return false;
+    }
+    match on_disk(&target.at) {
+        Ok(None) => true,
+        Ok(Some(was)) => {
+            std::str::from_utf8(&was).is_ok_and(|text| !text.lines().any(|one| one.trim() == line))
+        }
+        Err(_) => false,
+    }
+}
+
+// Only the line Tisty put there leaves; whatever the agent wrote around it stays.
+pub fn lead_out(
+    data: &Path,
+    ledger: &Ledger,
+    target: &Target,
+    line: &str,
+) -> Result<bool, Refused> {
+    if !ledger.consented() {
+        return Err(Refused::NoConsent);
+    }
+    if linked(target) {
+        return Err(Refused::Linked);
+    }
+    let Some(was) = on_disk(&target.at)? else {
+        return Ok(false);
+    };
+    let text = std::str::from_utf8(&was).map_err(|_| Refused::NotText)?;
+    let left: String = text
+        .split_inclusive('\n')
+        .filter(|one| one.trim() != line)
+        .collect();
+    if left.len() == text.len() {
+        return Ok(false);
+    }
+    written_over(data, &target.at, left.as_bytes(), None)?;
     Ok(true)
 }
 

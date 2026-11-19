@@ -1,4 +1,5 @@
 import { open as pick } from "@tauri-apps/plugin-dialog";
+import { bringMoreAgents, inAgents } from "./agentsSync";
 import { asLink, asPlain } from "./copying";
 import {
   DEEPEST,
@@ -63,6 +64,7 @@ export const hereChoices = (h: Hands, folder?: string): Choice[] => [
     apart: true,
     onPick: () => h.bringIn(folder),
   },
+  ...agentsChoices(h, folder),
   { key: "unpack", icon: "↧", label: t("unpackIt"), onPick: () => h.parcels.takeParcel() },
   {
     key: "packAll",
@@ -71,6 +73,12 @@ export const hereChoices = (h: Hands, folder?: string): Choice[] => [
     onPick: () => h.parcels.packUp([], "tisty"),
   },
 ];
+
+// Only inside AGENTS: another agent file can be brought after the first time.
+const agentsChoices = (h: Hands, folder: string | undefined, off = false): Choice[] =>
+  inAgents(folder, h.papers.folders)
+    ? [{ key: "agentsMore", icon: "↧", label: t("agentsMoreTitle"), off, onPick: bringMoreAgents }]
+    : [];
 
 export const folderChoices = (folder: Folded, h: Hands): Choice[] => [
   {
@@ -124,6 +132,7 @@ export const folderChoices = (folder: Folded, h: Hands): Choice[] => [
     off: folder.away,
     onPick: () => h.bringIn(folder.id),
   },
+  ...agentsChoices(h, folder.id, folder.away),
   {
     key: "unpack",
     icon: "↧",

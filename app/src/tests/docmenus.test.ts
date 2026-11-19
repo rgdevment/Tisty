@@ -31,6 +31,22 @@ vi.mock("../copying", () => ({
 }));
 
 const folder = { id: "f1", name: "Casa", away: false, archived: false } as unknown as Folded;
+const agentsRoot = {
+  id: "a1",
+  name: "AGENTS",
+  icon: "robot",
+  parent: null,
+  away: false,
+  archived: false,
+} as unknown as Folded;
+const agentsClaude = {
+  id: "a2",
+  name: "Claude",
+  icon: null,
+  parent: "a1",
+  away: false,
+  archived: false,
+} as unknown as Folded;
 const doc = {
   id: "d1",
   file: "dev_a-0001",
@@ -127,6 +143,22 @@ describe("the menu of a folder", () => {
     expect(h.dropFolder).toHaveBeenCalledWith(folder);
     expect(sent()).toContain("folder_away");
     expect(h.changed).toHaveBeenCalled();
+  });
+});
+
+describe("the menu inside AGENTS", () => {
+  it("brings another agent file from the AGENTS folders alone", () => {
+    const h = hands();
+    h.papers = { folders: [folder, agentsRoot, agentsClaude], docs: [] } as unknown as Papers;
+    const asked = vi.fn();
+    window.addEventListener("tisty:agents-more", asked);
+    pick(folderChoices(agentsClaude, h), "agentsMore").onPick?.();
+    pick(hereChoices(h, "a1"), "agentsMore").onPick?.();
+    window.removeEventListener("tisty:agents-more", asked);
+    expect(asked).toHaveBeenCalledTimes(2);
+    expect(folderChoices(folder, h).some((one) => one.key === "agentsMore")).toBe(false);
+    expect(hereChoices(h).some((one) => one.key === "agentsMore")).toBe(false);
+    expect(pick(folderChoices({ ...agentsClaude, away: true }, h), "agentsMore").off).toBe(true);
   });
 });
 
