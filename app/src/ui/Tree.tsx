@@ -1,14 +1,12 @@
 import { useEffect, useRef, useState } from "react";
-import { asksPerson } from "../agentDocs";
-import { agentsRoot } from "../agentsSync";
+import { agentsLit, agentsRoot, askToLight } from "../agentsSync";
 import type { Filed, Folded, Papers } from "../core";
-import { trail } from "../folders";
-import { BRAINSTORM, DIARY, show, showAll, useHidden } from "../hiding";
+import { AGENTS, agentsHidden, BRAINSTORM, DIARY, useHidden } from "../hiding";
 import { led } from "../leading";
 import { fill, t } from "../locales";
 import { compactedBy } from "../tidying";
 import { clientNamed } from "../who";
-import { AgentsWord, useAgentsGlance } from "./AgentsMark";
+import { AgentsWord, useAgentsGlance, useAgentsState } from "./AgentsMark";
 import { grouped, inSkill, KIND_GLYPH, type SkillGroup, useAgentRows } from "./agentRows";
 import {
   type Carried,
@@ -81,7 +79,18 @@ export default function Tree({
   onHereMenu,
   onDocMenu,
 }: Props) {
-  const agents = useAgentsGlance(agentsRoot(papers.folders)?.id ?? null);
+  const root = agentsRoot(papers.folders)?.id ?? null;
+  const stance = useAgentsState(root);
+  const hidden = useHidden();
+  // While the sidebar is sifted everything shows, so a match never sits behind a hidden row.
+  const veiled = (key: string) => !unfolded && hidden.includes(key);
+  const agentsVeiled = !unfolded && agentsHidden(hidden, root);
+  const switchedOn = stance !== null && agentsLit(stance);
+  // Dim only once known to be off: an AGENTS still learning its state is drawn plain, never off.
+  const asleep = !root || (stance !== null && !switchedOn);
+  // Nothing of an agent's is looked at until this computer is known to have said yes.
+  const agents = useAgentsGlance(switchedOn && !agentsVeiled ? root : null);
+  const unborn = !root && !agentsVeiled && !unfolded;
   const agentRows = useAgentRows(papers);
   // Nothing arrives open: with two hundred documents a tree that unfolds itself is a wall.
   const [opened, setOpened] = useState<Set<string>>(new Set());
@@ -92,9 +101,6 @@ export default function Tree({
   );
   const [reached, setReached] = useState<string | null>(null);
   const listed = useRef<HTMLDivElement>(null);
-  const hidden = useHidden();
-  // While the sidebar is sifted everything shows, so a match never sits behind a hidden row.
-  const veiled = (key: string) => !unfolded && hidden.includes(key);
 
   const rows = () => Array.from(listed.current?.querySelectorAll<HTMLElement>("[data-row]") ?? []);
 
@@ -410,7 +416,9 @@ export default function Tree({
   const pinShown = pin && !veiled(BRAINSTORM) ? pin : undefined;
 
   const drawnUnder = (parent: string | null) =>
-    under(parent).filter((one) => one.away || !veiled(one.id));
+    under(parent).filter(
+      (one) => one.away || (!veiled(one.id) && !(one.id === root && agentsVeiled)),
+    );
 
   const gathered = (one: Filed) => Boolean(onDiary && one.diary && !one.pageOf && !one.away);
   const diaries = papers.docs
@@ -419,7 +427,11 @@ export default function Tree({
   const diaryShown = Boolean(onDiary) && (!unfolded || diaries.length > 0) && !veiled(DIARY);
   // Only a row the tree draws can hold the tab stop: a page or a book folded away never would.
   const first =
-    pinShown?.id ?? (diaryShown ? DIARY : undefined) ?? drawnUnder(null)[0]?.id ?? "unfiled";
+    pinShown?.id ??
+    (diaryShown ? DIARY : undefined) ??
+    drawnUnder(null)[0]?.id ??
+    (unborn ? AGENTS : undefined) ??
+    "unfiled";
 
   const inside = (folder: string | null) =>
     papers.docs.filter(
@@ -847,6 +859,7 @@ export default function Tree({
 
   const branch = (folder: Folded, depth: number) => {
     const closed = !unfolded && !opened.has(folder.id);
+    const dim = folder.id === root && asleep;
     const kids = drawnUnder(folder.id);
     const papersIn = inside(folder.id);
     return (
@@ -885,7 +898,9 @@ export default function Tree({
               controls={`holds-${folder.id}`}
               onPress={() => fold(folder.id)}
             >
-              <span className={`flex items-center ${painted(folder.color)}`}>
+              <span
+                className={`flex items-center ${painted(folder.color)}${dim ? " opacity-50" : ""}`}
+              >
                 <Glyph name={folder.icon ?? "folder"} className="h-[15px] w-[15px]" />
               </span>
             </Grip>
@@ -899,15 +914,17 @@ export default function Tree({
               }
               aria-keyshortcuts={shortcuts("folder")}
               onPointerDown={(e) => grab(e, folder.id, "folder")}
-              onClick={tapped(() => onHere?.(folder.id))}
-              aria-label={lifted?.id === folder.id ? fill("liftedIs", folder.name) : folder.name}
+              onClick={tapped(() => (dim ? askToLight() : onHere?.(folder.id)))}
+              aria-label={folderSaid(folder, dim)}
               aria-current={here === folder.id ? "true" : undefined}
               className={`flex min-w-0 flex-1 items-center gap-1.5 py-1 pl-1.5 text-left text-[13px] ${
-                here === folder.id ? "text-ink" : "text-soft"
+                dim ? "text-faint" : here === folder.id ? "text-ink" : "text-soft"
               }`}
             >
               <span className="truncate">{folder.name}</span>
-              {agents?.folder === folder.id ? (
+              {dim ? (
+                <Asleep />
+              ) : agents?.folder === folder.id ? (
                 <AgentsWord glance={agents} />
               ) : (
                 <span className="ml-auto pr-1 text-[11.5px] text-faint opacity-0 transition-opacity group-hover/row:opacity-100 motion-reduce:transition-none">
@@ -944,6 +961,42 @@ export default function Tree({
     );
   };
 
+  const folderSaid = (folder: Folded, dim: boolean) => {
+    if (lifted?.id === folder.id) return fill("liftedIs", folder.name);
+    return dim ? `${folder.name} — ${t("agentsPaused")}` : folder.name;
+  };
+
+  // With no folder yet, AGENTS still stands in the sidebar, off, so the person learns it exists.
+  const unbornRow = () => (
+    <li key={AGENTS} className="relative">
+      <div className="group/row flex items-center rounded-md has-[:focus-visible]:bg-hover">
+        <span
+          aria-hidden="true"
+          className={`ml-2 grid h-5 w-[18px] shrink-0 place-items-center opacity-50 ${painted("purple")}`}
+        >
+          <Glyph name="robot" className="h-[15px] w-[15px]" />
+        </span>
+        <button
+          type="button"
+          data-row={AGENTS}
+          tabIndex={stops(AGENTS) ? 0 : -1}
+          onFocus={() => setReached(AGENTS)}
+          onKeyDown={(e) => {
+            if (e.key !== "ArrowDown" && e.key !== "ArrowUp") return;
+            e.preventDefault();
+            walk(AGENTS, e.key === "ArrowDown" ? 1 : -1);
+          }}
+          onClick={askToLight}
+          aria-label={`AGENTS — ${t("agentsPaused")}`}
+          className="flex min-w-0 flex-1 items-center gap-1.5 py-1 pl-1.5 text-left text-[13px] text-faint"
+        >
+          <span className="truncate">AGENTS</span>
+          <Asleep />
+        </button>
+      </div>
+    </li>
+  );
+
   const loose = papers.docs.filter(
     (one) =>
       one !== pin &&
@@ -970,6 +1023,7 @@ export default function Tree({
       {pinShown && paper(pinShown, 0)}
       {onDiary && diaryShown && diary(onDiary)}
       {drawnUnder(null).flatMap((folder) => [branch(folder, 0)])}
+      {unborn && unbornRow()}
 
       <li className="relative">
         <div
@@ -1061,54 +1115,19 @@ export default function Tree({
     </div>
   );
 
-  const veils = [
-    ...(pin && veiled(BRAINSTORM) ? [{ key: BRAINSTORM, name: t("brainstorm") }] : []),
-    ...(onDiary && veiled(DIARY) ? [{ key: DIARY, name: t("diary") }] : []),
-    ...papers.folders
-      .filter((one) => !one.away && veiled(one.id))
-      .map((one) => ({ key: one.id, name: trail(papers.folders, one.id) })),
-  ];
-
-  const veiledRows = veils.length > 0 && (
-    <div className="mt-2">
-      <h3 className="px-2.5 py-1 text-[11.5px] font-semibold tracking-[0.06em] text-faint uppercase">
-        {t("hiddenRows")}
-      </h3>
-      <ul aria-label={t("hiddenRows")} className="flex flex-col gap-px">
-        {veils.map((one) => (
-          <li key={one.key}>
-            <button
-              type="button"
-              onClick={() => show(one.key)}
-              title={fill("showHiddenOne", one.name)}
-              className="flex w-full min-w-0 items-center gap-1.5 rounded-md py-1 pr-2 pl-2 text-left text-[13px] text-faint hover:bg-hover"
-            >
-              <Glyph name="hide" className="h-[14px] w-[14px] shrink-0" />
-              <span className="truncate">{one.name}</span>
-              {agents?.folder === one.key && asksPerson(agents) && <AgentsWord glance={agents} />}
-            </button>
-          </li>
-        ))}
-        <li>
-          <button
-            type="button"
-            onClick={showAll}
-            className="flex w-full items-center gap-1.5 rounded-md py-1 pr-2 pl-2 text-left text-[12.5px] text-accent hover:bg-hover"
-          >
-            <Glyph name="eye-thing" className="h-[14px] w-[14px] shrink-0" />
-            {t("showHidden")}
-          </button>
-        </li>
-      </ul>
-    </div>
-  );
-
   return (
     <div ref={listed} className={carried ? "carrying select-none" : undefined}>
       {tree}
       {kept}
-      {veiledRows}
     </div>
+  );
+}
+
+function Asleep() {
+  return (
+    <span className="ml-auto shrink-0 pr-1 text-[11.5px] text-faint" data-agents="off">
+      {t("agentsPaused")}
+    </span>
   );
 }
 

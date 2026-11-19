@@ -974,6 +974,46 @@ pub fn led_again(session: &Session, homes: &Homes, here: &str) -> Answer<Rounded
     Ok(round_now(session, homes, &mut ledger))
 }
 
+#[derive(Debug, PartialEq, Eq, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Present {
+    pub id: String,
+    pub name: String,
+}
+
+#[derive(Debug, PartialEq, Eq, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Stance {
+    pub folder: Option<String>,
+    pub consented: bool,
+    pub all_on: bool,
+    pub assistants: Vec<Present>,
+}
+
+/// Whether AGENTS is on and which assistants have a folder here: before the person's yes, nothing inside one is looked at.
+pub fn stance(session: &Session, homes: &Homes, here: &str) -> Stance {
+    let ledger = Ledger::open(session.paths.data(), here);
+    Stance {
+        folder: root_of(&session.state).map(|at| at.to_string()),
+        consented: ledger.consented(),
+        all_on: ledger.syncs(""),
+        assistants: homes
+            .detected()
+            .into_iter()
+            .map(|one| Present {
+                id: one.id.to_string(),
+                name: one.name.to_string(),
+            })
+            .collect(),
+    }
+}
+
+#[tauri::command(async)]
+pub fn agents_state(session: tauri::State<'_, Mutex<Session>>) -> Answer<Stance> {
+    let homes = homes()?;
+    Ok(stance(&held(&session), &homes, &here()))
+}
+
 #[tauri::command(async)]
 pub fn agents_look(session: tauri::State<'_, Mutex<Session>>) -> Answer<Look> {
     let homes = homes()?;

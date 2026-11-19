@@ -1,7 +1,7 @@
 import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Folded, Papers } from "../core";
-import { BRAINSTORM, DIARY, hide, hideChoice, isHidden, showAll } from "../hiding";
+import { BRAINSTORM, DIARY, hide, hideChoice, isHidden, show, showAll } from "../hiding";
 import SideRail from "../ui/SideRail";
 import Tree from "../ui/Tree";
 
@@ -57,19 +57,22 @@ const hiddenList = () => screen.queryByRole("list", { name: "Hidden" });
 describe("hiding rows from the sidebar", () => {
   beforeEach(() => showAll());
 
-  it("draws no section for hidden rows while nothing is hidden", () => {
+  it("draws no section for hidden rows, even with rows hidden", () => {
+    hide("F1");
+    hide(DIARY);
     drawn();
 
     expect(hiddenList()).toBeNull();
+    expect(screen.queryByRole("button", { name: "Show hidden" })).toBeNull();
   });
 
-  it("takes a hidden folder and all it holds out of the tree, and lists it under Hidden", () => {
+  it("takes a hidden folder and all it holds out of the sidebar without a trace", () => {
     hide("F1");
     drawn();
 
     expect(within(tree()).queryByRole("button", { name: "agents" })).toBeNull();
     expect(within(tree()).getByRole("button", { name: "trabajo" })).toBeTruthy();
-    expect(within(hiddenList() as HTMLElement).getByText("agents")).toBeTruthy();
+    expect(screen.queryByText("agents")).toBeNull();
   });
 
   it("does not call a folder empty when all it holds is a hidden folder", () => {
@@ -78,27 +81,6 @@ describe("hiding rows from the sidebar", () => {
     fireEvent.click(screen.getByRole("button", { name: "Open agents" }));
 
     expect(within(tree()).queryByText("empty")).toBeNull();
-  });
-
-  it("names a hidden folder by its whole path, so two of one name stay apart", () => {
-    hide("F2");
-    drawn();
-
-    expect(within(hiddenList() as HTMLElement).getByText("agents / claude")).toBeTruthy();
-  });
-
-  it("brings one row back with a click, and every row with Show hidden", () => {
-    hide("F1");
-    hide(DIARY);
-    drawn();
-
-    fireEvent.click(screen.getByTitle("Show agents in the sidebar again"));
-    expect(within(tree()).getByRole("button", { name: "agents" })).toBeTruthy();
-    expect(isHidden(DIARY)).toBe(true);
-
-    fireEvent.click(screen.getByRole("button", { name: "Show hidden" }));
-    expect(within(tree()).getByRole("button", { name: "Diary" })).toBeTruthy();
-    expect(hiddenList()).toBeNull();
   });
 
   it("keeps a hidden diary and brainstorm out of the tree, and out of the folders they sit in", () => {
@@ -110,9 +92,7 @@ describe("hiding rows from the sidebar", () => {
     expect(within(tree()).queryByRole("button", { name: "Diary" })).toBeNull();
     expect(within(tree()).queryByRole("button", { name: "Ideas" })).toBeNull();
     expect(within(tree()).queryByRole("button", { name: "2026" })).toBeNull();
-    const listed = within(hiddenList() as HTMLElement);
-    expect(listed.getByText("Ideas")).toBeTruthy();
-    expect(listed.getByText("Diary")).toBeTruthy();
+    expect(hiddenList()).toBeNull();
   });
 
   it("leaves the tab stop on a drawn row when the rows ahead of it are hidden", () => {
@@ -194,5 +174,19 @@ describe("hiding rows from the sidebar", () => {
 
     expect(isHidden("F3")).toBe(true);
     expect(hideChoice("F3").label).toBe("Show in the sidebar");
+  });
+
+  it("shows a row hidden under any of its keys, and showing takes every key away", () => {
+    hide("old-id");
+    const choice = hideChoice(["agents", "old-id"]);
+    expect(choice.label).toBe("Show in the sidebar");
+    choice.onPick?.();
+    expect(isHidden("old-id")).toBe(false);
+
+    hideChoice(["agents", "old-id"]).onPick?.();
+    expect(isHidden("agents")).toBe(true);
+    expect(isHidden("old-id")).toBe(false);
+    show("agents");
+    expect(isHidden("agents")).toBe(false);
   });
 });

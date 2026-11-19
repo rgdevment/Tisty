@@ -1,7 +1,7 @@
 import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { AgentsLook, Both, Brought } from "../agentsSync";
+import type { AgentsLook, Both, Brought, FileSeen } from "../agentsSync";
 import { AGENTS_MORE, agentsPrint, agentsRoot, inAgents } from "../agentsSync";
 import type { Filed, Folded } from "../core";
 import { adopt } from "../locales";
@@ -17,6 +17,9 @@ const ipc = vi.hoisted(() => ({
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: (cmd: string, args?: Record<string, unknown>) => {
     ipc.calls.push({ cmd, args: args ?? {} });
+    // Settings asks first whether this computer said yes; these cards always find it did.
+    if (cmd === "agents_state")
+      return Promise.resolve({ folder: "f", consented: true, allOn: true, assistants: [] });
     return ipc.answer(cmd, args ?? {});
   },
 }));
@@ -106,8 +109,8 @@ describe("the first time AGENTS opens", () => {
         /Queda en tu Tisty: en tus equipos y donde tú sincronices\. Nadie más lo ve\./,
       ),
     ).toBeTruthy();
-    await screen.findByText("Claude · 2 archivos");
-    expect(screen.getByText("Codex · 1 archivo")).toBeTruthy();
+    await screen.findByText("Claude · 2 reglas");
+    expect(screen.getByText("Codex · 1 regla")).toBeTruthy();
     expect(screen.getByText(/Se sincroniza solo con Claude, Codex\./)).toBeTruthy();
     expect(screen.getByText(/respaldo/)).toBeTruthy();
   });
@@ -115,7 +118,7 @@ describe("the first time AGENTS opens", () => {
   it("«Ahora no» closes without bringing anything", async () => {
     const closed = vi.fn();
     render(<AgentsFirst onClose={closed} onChanged={() => {}} />);
-    await screen.findByText("Claude · 2 archivos");
+    await screen.findByText("Claude · 2 reglas");
     await userEvent.click(screen.getByRole("button", { name: "Ahora no" }));
     expect(closed).toHaveBeenCalled();
     expect(sent("agents_bring")).toHaveLength(0);
@@ -123,9 +126,9 @@ describe("the first time AGENTS opens", () => {
 
   it("brings only the files left chosen, file by file", async () => {
     render(<AgentsFirst onClose={() => {}} onChanged={() => {}} />);
-    await userEvent.click(await screen.findByText("Claude · 2 archivos"));
+    await userEvent.click(await screen.findByText("Claude · 2 reglas"));
     await userEvent.click(screen.getByRole("checkbox", { name: /rules\/tone\.md/ }));
-    expect((screen.getByRole("checkbox", { name: /k\/\.env/ }) as HTMLInputElement).disabled).toBe(
+    expect((screen.getByRole("checkbox", { name: /^k · / }) as HTMLInputElement).disabled).toBe(
       true,
     );
     await userEvent.click(screen.getByRole("button", { name: "Traer y sincronizar" }));
@@ -147,7 +150,7 @@ describe("the first time AGENTS opens", () => {
       return Promise.resolve({ told: [], both: [] });
     };
     render(<AgentsFirst onClose={() => {}} onChanged={() => {}} />);
-    await screen.findByText("Claude · 2 archivos");
+    await screen.findByText("Claude · 2 reglas");
     await userEvent.click(screen.getByRole("button", { name: "Traer y sincronizar" }));
     await screen.findByText("Existe en los dos lados");
     expect(screen.getByText(/Tests first\./)).toBeTruthy();
@@ -198,7 +201,7 @@ describe("what the person chooses and why something stays out", () => {
       return Promise.resolve({ told: [], both: [] });
     };
     render(<AgentsFirst onClose={() => {}} onChanged={() => {}} />);
-    await userEvent.click(await screen.findByText("Claude · 2 archivos"));
+    await userEvent.click(await screen.findByText("Claude · 1 regla · 1 memoria"));
     const memory = screen.getByRole("checkbox", { name: /MEMORY\.md/ }) as HTMLInputElement;
     expect(memory.checked).toBe(false);
     expect(memory.disabled).toBe(false);
@@ -217,8 +220,89 @@ describe("what the person chooses and why something stays out", () => {
       return Promise.resolve(brought({ made: 0 }));
     };
     render(<AgentsFirst onClose={() => {}} onChanged={() => {}} />);
-    await screen.findByText("Claude · 1 archivo");
+    await screen.findByText("Claude · 1 memoria");
     expect(screen.getByRole("button", { name: "Autorizar y sincronizar" })).toBeTruthy();
+  });
+
+  it("offers a skill as one row that brings every file it holds", async () => {
+    const skill = (name: string, more: Partial<FileSeen> = {}): FileSeen => ({
+      at: `/h/.claude/skills/${name}`,
+      name,
+      kind: "skill",
+      skip: null,
+      held: false,
+      ...more,
+    });
+    const withSkills: AgentsLook = {
+      ...look,
+      assistants: [
+        {
+          id: "claude",
+          name: "Claude",
+          on: true,
+          files: [
+            skill("pr/SKILL.md"),
+            skill("pr/plantilla.md"),
+            skill("pr/scripts/abrir.sh"),
+            skill("pr/key.pem", { skip: "credentials" }),
+            skill("tono/SKILL.md", { held: true }),
+            skill("solo/SKILL.md"),
+          ],
+        },
+      ],
+    };
+    ipc.answer = (cmd) => {
+      if (cmd === "agents_look") return Promise.resolve(withSkills);
+      if (cmd === "agents_bring") return Promise.resolve(brought({ made: 3 }));
+      return Promise.resolve({ told: [], both: [] });
+    };
+    render(<AgentsFirst onClose={() => {}} onChanged={() => {}} />);
+    await userEvent.click(await screen.findByText("Claude · 2 skills"));
+    const pr = screen.getByRole("checkbox", {
+      name: "pr · Skill · 3 archivos",
+    }) as HTMLInputElement;
+    expect(pr.checked).toBe(true);
+    expect(screen.getByRole("checkbox", { name: "solo · Skill · 1 archivo" })).toBeTruthy();
+    const held = screen.getByRole("checkbox", { name: /^tono · / }) as HTMLInputElement;
+    expect(held.disabled).toBe(true);
+    await userEvent.click(screen.getByRole("checkbox", { name: "solo · Skill · 1 archivo" }));
+    await userEvent.click(pr);
+    expect(pr.checked).toBe(false);
+    await userEvent.click(pr);
+    await userEvent.click(screen.getByRole("button", { name: "Traer y sincronizar" }));
+    await waitFor(() => expect(sent("agents_bring")).toHaveLength(1));
+    expect(sent("agents_bring")[0].args.chosen).toEqual([
+      "/h/.claude/skills/pr/SKILL.md",
+      "/h/.claude/skills/pr/plantilla.md",
+      "/h/.claude/skills/pr/scripts/abrir.sh",
+    ]);
+  });
+
+  it("says when an assistant has nothing to bring", async () => {
+    ipc.answer = (cmd) =>
+      cmd === "agents_look"
+        ? Promise.resolve({
+            ...look,
+            assistants: [
+              {
+                id: "gemini",
+                name: "Gemini",
+                on: true,
+                files: [
+                  {
+                    at: "/h/.gemini/skills/k/key.pem",
+                    name: "k/key.pem",
+                    kind: "skill",
+                    skip: "credentials",
+                    held: false,
+                  },
+                ],
+              },
+            ],
+          })
+        : Promise.resolve(null);
+    render(<AgentsFirst onClose={() => {}} onChanged={() => {}} />);
+    expect(await screen.findByText("Gemini · nada para traer")).toBeTruthy();
   });
 
   it("says in the person's language why a file stayed out", async () => {
@@ -242,7 +326,7 @@ describe("what the person chooses and why something stays out", () => {
       return Promise.resolve({ told: [], both: [] });
     };
     render(<AgentsFirst onClose={() => {}} onChanged={() => {}} />);
-    await screen.findByText("Claude · 2 archivos");
+    await screen.findByText("Claude · 2 reglas");
     await userEvent.click(screen.getByRole("button", { name: "Traer y sincronizar" }));
     await screen.findByText(/Parece llevar una credencial/);
     expect(screen.getByText("Es más grande de lo que cabe en un documento.")).toBeTruthy();
@@ -284,7 +368,7 @@ describe("bringing another file after the first time", () => {
     expect(screen.queryByText(/Queda en tu Tisty/)).toBeNull();
     const bring = screen.getByRole("button", { name: "Traer" }) as HTMLButtonElement;
     expect(bring.disabled).toBe(true);
-    await userEvent.click(screen.getByText("Codex · 1 archivo"));
+    await userEvent.click(screen.getByText("Codex · 1 regla"));
     await userEvent.click(screen.getByRole("checkbox", { name: /AGENTS\.md/ }));
     await userEvent.click(bring);
     await waitFor(() => expect(sent("agents_bring")).toHaveLength(1));
@@ -349,7 +433,7 @@ describe("AGENTS made again on a computer that already said yes", () => {
         ? Promise.resolve({ ...look, consented: true, asks: false })
         : Promise.resolve(brought());
     render(<AgentsFirst onClose={() => {}} onChanged={() => {}} />);
-    await userEvent.click(await screen.findByText("Codex · 1 archivo"));
+    await userEvent.click(await screen.findByText("Codex · 1 regla"));
     expect((screen.getByRole("checkbox", { name: /AGENTS\.md/ }) as HTMLInputElement).checked).toBe(
       true,
     );

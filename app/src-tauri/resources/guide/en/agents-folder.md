@@ -1,6 +1,6 @@
 # AGENTS: your agents' rules
 
-This sheet is a page of the guide. It tells the AGENTS folder: how to keep your AI agents' rules, skills and memory in Tisty, how they reach the files each one reads, what to do when a file changes outside or on another computer, how to bring a file in later or take away the one of a rule you take out, and how to approve what your agent proposes.
+This sheet is a page of the guide. It tells the AGENTS folder: how to turn it on, off or hide it, how to keep your AI agents' rules, skills and memory in Tisty, how they reach the files each one reads, what to do when a file changes outside or on another computer, how to bring a file in later or take away the one of a rule you take out, and how to approve what your agent proposes.
 
 I use more than one AI agent, and each one reads its rules from a different file, in a different folder: `CLAUDE.md`, `AGENTS.md`, `copilot-instructions.md`, `GEMINI.md`. Changing one rule everywhere meant opening four files, and sooner or later one fell behind. AGENTS gathers those files in Tisty, as documents, and Tisty writes underneath the file each agent reads.
 
@@ -9,7 +9,7 @@ I use more than one AI agent, and each one reads its rules from a different file
 
 ## What it is and when it helps
 
-AGENTS is a folder in your Library, at the top, with a robot icon. Each document inside it is one of an agent's files: a **rule**, a **skill** or its **memory**. It works with Claude Code, Codex, GitHub Copilot CLI, Gemini CLI and Cursor.
+AGENTS is a folder in your Library, at the top, with a robot icon. It sits in your sidebar from day one, dim and with the word **off**, until you turn it on on this computer. Each document inside it is one of an agent's files: a **rule**, a **skill** or its **memory**. It works with Claude Code, Codex, GitHub Copilot CLI, Gemini CLI and Cursor.
 
 It helps when:
 
@@ -22,14 +22,20 @@ It does not handle each repository's rules: only the files in your user folder, 
 
 ## Getting started
 
-1. Open **Settings → Assistants**. On the **AGENTS** card, press **Create the AGENTS folder**.
-2. **Your agents, in one place** opens, with what it found in your assistants' folders: **only their names and sizes**. It has not opened any file yet.
-3. Open an assistant's row, such as **Claude · 7 files**, and tick what you want to bring. Rules and skills come ticked; **Agent memory**, unticked. Settings and credentials show greyed out and stay out.
+While it is off, the sidebar shows the purple robot dimmed and, beside it, **off**. Off means one of three things: there is no AGENTS folder yet, this computer never allowed it, or you switched off **Sync the AGENTS folder**. Nothing of your agents' is read meanwhile.
+
+1. In the sidebar, click **AGENTS**. A short notice opens: a line that tells what AGENTS is, and what Tisty saw on this computer, such as «I found Claude and Codex on this computer.», or «I found no assistant on this computer.». Below, «I only checked whether their folders exist; I read nothing inside them.».
+2. Press **Turn on**. **Your agents, in one place** opens, with what it found in your assistants' folders: **only their names and sizes**. It has not opened any file yet.
+3. Open an assistant's row, such as **Claude · 2 rules · 1 skill · 1 memory**, and tick what you want to bring. Each rule is one row, and so is each skill, whole: the row **pr · Skill · 3 files** brings the `pr` skill with all its files, with a single box. Rules and skills come ticked; **Agent memory**, unticked. Settings and credentials show greyed out and stay out, and hidden files, those starting with a dot, do not even show.
 4. Press **Bring and sync**. Tisty opens only what you ticked and tells you how many documents came in.
+
+The notice in step 1 has two more buttons. **Not now** leaves AGENTS off in the sidebar, without reading anything. **Hide** takes it out of the sidebar on this computer, as **Turning AGENTS off or hiding it**, further down, tells.
+
+The list brings only what your assistant really reads. A skill is a folder with its `SKILL.md` at the root, such as `~/.claude/skills/pr/`, found as deep as its assistant looks: right inside for Claude, Copilot and Gemini, up to six folders down for Codex, and in any category folder for Cursor. From `~/.claude/rules` the `.md` files come in, and from `~/.copilot/instructions`, the `.instructions.md` ones. Nothing starting with a dot shows, such as Codex's `skills/.system/`, and neither does Claude Code's `skills/synced/`, the copy of the skills in your claude.ai account, which Claude Code may overwrite or delete. Each assistant's row counts rules, skills and memories, not files: with nothing to bring, it says **Claude · nothing to bring**.
 
 If you have no agent files yet, the button says **Allow and sync**, and pressing it still makes AGENTS with its **Global** subfolder, empty, ready for your first rule. What your agent makes later you bring with **Bring another file**, as told further down.
 
-**Try it:** open **Settings → Assistants** and press **Create the AGENTS folder** to see what it finds on this computer. If you only wanted to look, **Not now** closes the box without reading anything. If you already made it, the card offers no button: the folder sits at the top of your Library.
+**Try it:** click **AGENTS**, dim in your sidebar, to see which assistants it finds on this computer. If you only wanted to look, **Not now** leaves it as it was. If you already turned it on, it shows in its colour, without **off**, and a click takes you to your documents. The same is in **Settings → Assistants**, on the **AGENTS** card: while it is off, it says which assistants it found and offers **Turn on** and **Hide**.
 
 Afterwards, in the sidebar, each document shows with its name and an icon: a book for a rule, a piece for a skill and a brain for memory. Hover over one and you see which file it is.
 
@@ -187,9 +193,23 @@ If one day you want Tisty to leave Claude's files alone, for example while you t
 
 Paused, Tisty neither opens nor writes those files, and you keep editing your documents. **Resume sync with Claude** writes what you changed, except a file that changed outside meanwhile, which stays marked for you to decide. A pause belongs to this computer only.
 
+## Turning AGENTS off or hiding it
+
+**Turning it all off.** Right-click **AGENTS** and choose **Turn AGENTS off**. It is the same switch as **Sync the AGENTS folder**, in **Settings → Assistants**: your documents stay where they are, Tisty touches none of your agents' files, and AGENTS shows dim again, with **off**. Dim as it is, if it holds documents, its arrow unfolds it, so they stay at hand to read. The folded sidebar shows it dim too.
+
+To turn it on again, click it and press **Turn on**. Since this computer had already allowed it, the first-time box does not come back: only the sync switches on.
+
+**Taking it out of the sidebar.** AGENTS hides only while off: on, its right-click offers **Turn AGENTS off** and no hiding. Turn it off, click it and press **Hide**, or use **Hide** on its card in **Settings → Assistants**. It leaves the sidebar on this computer without a trace, and you find it in **Settings → General**, under **Hidden folders**, with **Show again**, which puts it back in the sidebar, dim. **Turn on**, on the card, turns it on and shows it again too: on, it always shows.
+
+Hidden, AGENTS stays off: it writes none of your agents' files, and nothing from those files waits for your decision. If an agent proposes a change while it is hidden, the proposal is only kept, and you see it when you show AGENTS again and turn it on.
+
+If an earlier version of Tisty had it hidden while on, you now find it in the sidebar again, on. From there you can turn it off and hide it.
+
+Nothing that comes through MCP turns AGENTS on or off, or hides or shows it: you do that, in Tisty's window.
+
 ## Bring another file
 
-The first time does not have to be the only one. If you install a new assistant or write by hand a rules file that did not exist before, you bring it in later.
+The first time does not have to be the only one. If you install a new assistant or write by hand a rules file that did not exist before, you bring it in later. The list is the same as the first time: a skill is a single row that comes in whole, and what is hidden or what the assistant itself maintains does not show.
 
 **An example.** You write a new rule for Claude Code in your editor:
 
@@ -230,7 +250,7 @@ When you delete a rule, move it out of AGENTS or go back to a version without it
 
 If you edited it by hand after Tisty wrote it, the box tells you before you choose. It never asks about your agent's memory, or about a paused assistant.
 
-**Emptying AGENTS.** If you take all its documents out with Tisty open, it first asks about each file, and then the folder goes. **Create the AGENTS folder**, in **Settings → Assistants**, makes it again, with the first-time box and your rules and skills already ticked.
+**Emptying AGENTS.** If you take all its documents out with Tisty open, it first asks about each file, and then the folder goes. AGENTS stays in the sidebar dim, **off**, as at the start: a click on it and **Turn on** make it again, with the first-time box and your rules and skills already ticked.
 
 ## A second computer
 
@@ -238,7 +258,7 @@ Your AGENTS documents travel with your sync to your other computers, but **each 
 
 **An example.** On the home computer you brought in your `CLAUDE.md` and wrote the rule «For all my agents». There they applied by themselves. On the work computer:
 
-1. In **Settings → Assistants**, press **Allow on this computer** and bring, if you like, this computer's files.
+1. In the sidebar, AGENTS arrives dim, **off**: your documents travelled, but this computer has not allowed it yet. With its arrow you can already read them. Click **AGENTS**, press **Turn on** and bring, if you like, this computer's files.
 2. The sidebar says **2 waiting** beside AGENTS.
 3. Open **For all my agents**. The card says «This document comes from another computer. Apply it to the agents on this one?».
 4. **Apply here** writes it to this computer's files, with its backup first. **Not on this computer** leaves it out here, and **Apply here** stays at hand if you change your mind.

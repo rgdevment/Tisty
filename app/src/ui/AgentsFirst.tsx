@@ -14,6 +14,7 @@ import {
 } from "../agentsSync";
 import { fill, t, type Word } from "../locales";
 import { saidPlainly } from "../refusal";
+import { skillDirs, skillOf } from "../skillFolders";
 import {
   BothReview,
   button,
@@ -43,17 +44,68 @@ const reasonSaid = (one: Refused): string => {
 
 const listed = (names: string[]) => names.join(", ");
 
-const counted = (one: AssistantSeen, count: number): string => {
-  if (count === 0 && one.files.some((file) => file.held))
-    return fill("agentsFirstAllHeld", one.name);
-  if (count === 1) return fill("agentsFirstCountOne", one.name);
-  return fill("agentsFirstCount", one.name, String(count));
+/// What the list offers: a rule or a memory is one file, a skill is its whole folder.
+export interface Offered {
+  key: string;
+  kind: FileSeen["kind"];
+  name: string;
+  files: FileSeen[];
+}
+
+export const offeredOf = (files: readonly FileSeen[]): Offered[] => {
+  const rows: Offered[] = [];
+  const skills = new Map<string, Offered>();
+  const dirs = skillDirs(files.filter((file) => file.kind === "skill").map((file) => file.name));
+  for (const file of files) {
+    if (file.kind !== "skill") {
+      rows.push({ key: file.at, kind: file.kind, name: file.name, files: [file] });
+      continue;
+    }
+    const name = skillOf(file.name, dirs);
+    const known = skills.get(name);
+    if (known) {
+      known.files.push(file);
+      continue;
+    }
+    const row: Offered = { key: `skill:${name}`, kind: "skill", name, files: [file] };
+    skills.set(name, row);
+    rows.push(row);
+  }
+  return rows;
 };
 
-const fileSaid = (file: FileSeen): string => {
-  if (file.held) return t("agentsFirstHeld");
-  if (file.skip) return t(skipWord(file.skip));
-  return t(kindWord(file.kind));
+const takeableIn = (row: Offered) => row.files.filter(takeable);
+
+const COUNT_WORDS: Record<FileSeen["kind"], [Word, Word]> = {
+  rule: ["agentsCountRule", "agentsCountRules"],
+  skill: ["agentsCountSkill", "agentsCountSkills"],
+  memory: ["agentsCountMemory", "agentsCountMemories"],
+};
+
+const counted = (one: AssistantSeen, rows: Offered[]): string => {
+  const ready = rows.filter((row) => takeableIn(row).length > 0);
+  if (ready.length === 0 && one.files.some((file) => file.held))
+    return fill("agentsFirstAllHeld", one.name);
+  const parts = (["rule", "skill", "memory"] as const)
+    .map((kind) => [kind, ready.filter((row) => row.kind === kind).length] as const)
+    .filter(([, many]) => many > 0)
+    .map(([kind, many]) =>
+      many === 1 ? t(COUNT_WORDS[kind][0]) : fill(COUNT_WORDS[kind][1], String(many)),
+    );
+  if (parts.length === 0) return fill("agentsFirstNothing", one.name);
+  return `${one.name} · ${parts.join(" · ")}`;
+};
+
+const filesSaid = (count: number) =>
+  count === 1 ? t("agentsSkillFile") : fill("agentsSkillFiles", String(count));
+
+const rowSaid = (row: Offered): string => {
+  if (row.files.every((file) => file.held)) return t("agentsFirstHeld");
+  const ready = takeableIn(row);
+  const skipped = row.files.find((file) => file.skip)?.skip;
+  if (ready.length === 0 && skipped) return t(skipWord(skipped));
+  if (row.kind !== "skill") return t(kindWord(row.kind));
+  return `${t(kindWord("skill"))} · ${filesSaid(ready.length)}`;
 };
 
 const broughtSaid = (made: number): string => {
@@ -79,9 +131,9 @@ function Assistant({
   one,
   chosen,
   onToggle,
-}: Readonly<{ one: AssistantSeen; chosen: Set<string>; onToggle: (at: string) => void }>) {
+}: Readonly<{ one: AssistantSeen; chosen: Set<string>; onToggle: (at: string[]) => void }>) {
   const [open, setOpen] = useState(false);
-  const count = one.files.filter(takeable).length;
+  const rows = offeredOf(one.files);
   return (
     <li className="border-t border-hair first:border-t-0">
       <button
@@ -90,34 +142,39 @@ function Assistant({
         onClick={() => setOpen(!open)}
         className="flex w-full items-center gap-2 px-3 py-2 text-left text-[13px] font-medium hover:bg-hover"
       >
-        <span className="flex-1">{counted(one, count)}</span>
+        <span className="flex-1">{counted(one, rows)}</span>
         <span className="text-faint">{open ? "▾" : "▸"}</span>
       </button>
       {open && (
         <ul className="pb-1.5">
-          {one.files.map((file) => (
-            <li key={file.at}>
-              <label
-                title={file.at}
-                className={`flex items-start gap-2.5 px-3 py-1 text-[12.5px] ${takeable(file) ? "cursor-pointer hover:bg-hover" : "opacity-60"}`}
-              >
-                <input
-                  type="checkbox"
-                  aria-label={`${file.name} · ${fileSaid(file)}`}
-                  checked={chosen.has(file.at)}
-                  disabled={!takeable(file)}
-                  onChange={() => onToggle(file.at)}
-                  className="mt-0.5 accent-accent"
-                />
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate font-mono text-[11.5px] text-ink">
-                    {file.name}
+          {rows.map((row) => {
+            const ready = takeableIn(row);
+            const ats = ready.map((file) => file.at);
+            const on = ats.length > 0 && ats.every((at) => chosen.has(at));
+            return (
+              <li key={row.key}>
+                <label
+                  title={row.files[0].at}
+                  className={`flex items-start gap-2.5 px-3 py-1 text-[12.5px] ${ats.length ? "cursor-pointer hover:bg-hover" : "opacity-60"}`}
+                >
+                  <input
+                    type="checkbox"
+                    aria-label={`${row.name} · ${rowSaid(row)}`}
+                    checked={on}
+                    disabled={ats.length === 0}
+                    onChange={() => onToggle(ats)}
+                    className="mt-0.5 accent-accent"
+                  />
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate font-mono text-[11.5px] text-ink">
+                      {row.name}
+                    </span>
+                    <span className="block text-[11.5px] text-soft">{rowSaid(row)}</span>
                   </span>
-                  <span className="block text-[11.5px] text-soft">{fileSaid(file)}</span>
-                </span>
-              </label>
-            </li>
-          ))}
+                </label>
+              </li>
+            );
+          })}
         </ul>
       )}
     </li>
@@ -160,10 +217,14 @@ export default function AgentsFirst({ more = false, onClose, onChanged }: Readon
       .catch((e) => setTrouble(saidPlainly(e)));
   }, [more]);
 
-  const toggle = (at: string) => {
+  // A skill comes whole: its row ticks or unticks every file it holds.
+  const toggle = (ats: string[]) => {
     const next = new Set(chosen);
-    if (next.has(at)) next.delete(at);
-    else next.add(at);
+    const all = ats.every((at) => next.has(at));
+    for (const at of ats) {
+      if (all) next.delete(at);
+      else next.add(at);
+    }
     setChosen(next);
   };
 

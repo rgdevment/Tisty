@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Filed, Folded, Papers } from "../core";
-import { docChoices, folderChoices, type Hands, hereChoices } from "../docMenus";
+import { docChoices, folderChoices, type Hands, hereChoices, litFor } from "../docMenus";
+import { AGENTS, isHidden, showAll } from "../hiding";
 import { t } from "../locales";
 import type { Choice } from "../ui/Menu";
 
@@ -12,12 +13,20 @@ vi.mock("@tauri-apps/api/core", () => ({
     if (cmd === "doc_read") return Promise.resolve({ body: "# Hola" });
     if (cmd === "doc_export") return Promise.resolve({ files: 2, missed: 0, left: 0 });
     if (cmd === "doc_copy") return Promise.resolve({ id: "d9" });
+    if (cmd === "agents_state") return agentsAnswer.now();
+    if (cmd === "agents_turn" && agentsAnswer.refuses) return Promise.reject({ code: "x" });
     return Promise.resolve(null);
   },
 }));
 
 vi.mock("@tauri-apps/plugin-dialog", () => ({
   open: () => Promise.resolve("C:/fuera"),
+}));
+
+const agentsAnswer = vi.hoisted(() => ({
+  refuses: false,
+  now: (): Promise<unknown> =>
+    Promise.resolve({ folder: "a1", consented: true, allOn: true, assistants: [] }),
 }));
 
 const linking = vi.hoisted(() => ({ files: [] as string[], refuses: false }));
@@ -159,6 +168,71 @@ describe("the menu inside AGENTS", () => {
     expect(folderChoices(folder, h).some((one) => one.key === "agentsMore")).toBe(false);
     expect(hereChoices(h).some((one) => one.key === "agentsMore")).toBe(false);
     expect(pick(folderChoices({ ...agentsClaude, away: true }, h), "agentsMore").off).toBe(true);
+  });
+
+  it("turns AGENTS off from its own folder while it is on, and nowhere else", async () => {
+    const h = hands();
+    h.papers = { folders: [folder, agentsRoot, agentsClaude], docs: [] } as unknown as Papers;
+    const has = (choices: Choice[]) => choices.some((one) => one.key === "agentsOff");
+    expect(has(folderChoices(agentsRoot, h, false))).toBe(false);
+    expect(has(folderChoices(agentsClaude, h, true))).toBe(false);
+    expect(has(folderChoices(folder, h, true))).toBe(false);
+    const heard = vi.fn();
+    window.addEventListener("tisty:agents-changed", heard);
+    const off = pick(folderChoices(agentsRoot, h, true), "agentsOff");
+    expect(off.label).toBe("Turn AGENTS off");
+    off.onPick?.();
+    await flush();
+    window.removeEventListener("tisty:agents-changed", heard);
+    expect(calls).toEqual([{ cmd: "agents_turn", args: { assistant: null, on: false } }]);
+    expect(h.changed).toHaveBeenCalled();
+    expect(heard).toHaveBeenCalled();
+  });
+
+  it("asks whether AGENTS is on only for its own folder's menu", async () => {
+    const folders = [folder, agentsRoot, agentsClaude];
+    const then = vi.fn();
+    litFor(folder, folders, then);
+    expect(then).toHaveBeenLastCalledWith(false);
+    expect(sent()).toEqual([]);
+    litFor(agentsRoot, folders, then);
+    await flush();
+    expect(then).toHaveBeenLastCalledWith(true);
+    agentsAnswer.now = () => Promise.reject({ code: "x" });
+    litFor(agentsRoot, folders, then);
+    await flush();
+    expect(then).toHaveBeenLastCalledWith(true);
+  });
+
+  it("says so when turning AGENTS off fails", async () => {
+    agentsAnswer.refuses = true;
+    const h = hands();
+    h.papers = { folders: [agentsRoot], docs: [] } as unknown as Papers;
+    pick(folderChoices(agentsRoot, h, true), "agentsOff").onPick?.();
+    await flush();
+    agentsAnswer.refuses = false;
+    expect(h.fail).toHaveBeenCalled();
+    expect(h.changed).not.toHaveBeenCalled();
+  });
+
+  it("offers no Hide on AGENTS while it is on, only Turn AGENTS off", () => {
+    const h = hands();
+    h.papers = { folders: [folder, agentsRoot], docs: [] } as unknown as Papers;
+    const keys = folderChoices(agentsRoot, h, true).map((one) => one.key);
+    expect(keys).toContain("agentsOff");
+    expect(keys).not.toContain("hide");
+    expect(folderChoices(folder, h, true).map((one) => one.key)).toContain("hide");
+  });
+
+  it("hides AGENTS under its own key, so the row stays hidden once its folder is made again", () => {
+    showAll();
+    const h = hands();
+    h.papers = { folders: [folder, agentsRoot], docs: [] } as unknown as Papers;
+    pick(folderChoices(agentsRoot, h), "hide").onPick?.();
+    expect(isHidden(AGENTS)).toBe(true);
+    expect(isHidden("a1")).toBe(false);
+    pick(folderChoices(agentsRoot, h), "hide").onPick?.();
+    expect(isHidden(AGENTS)).toBe(false);
   });
 });
 

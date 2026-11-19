@@ -5,11 +5,11 @@ Uso más de un agente de IA, y cada uno lee sus reglas de un archivo distinto, e
 > [!TIP]
 > **En corto:** la carpeta **AGENTS** guarda como documentos las reglas, las skills y la memoria de Claude Code, Codex, GitHub Copilot CLI, Gemini CLI y Cursor. Lo que escribes en **Global** llega a todos; lo que escribes en la carpeta de un asistente, solo a él. Antes de sobrescribir un archivo, Tisty guarda lo que tenía, un cambio hecho por fuera nunca se pisa: queda marcado hasta que tú decides. Y un agente no escribe tus reglas: te propone el cambio, y solo tú lo apruebas.
 
-![La primera vez de AGENTS en español: el aviso Tus agentes, en un solo lugar, con sus tres líneas sobre privacidad, sincronización y respaldo, y debajo la lista Encontré esto. Elige qué traer, con Claude · 7 archivos abierto: CLAUDE.md y dos archivos de rules marcados como Regla, la skill pr/SKILL.md marcada como Skill, una memoria de proyecto sin marcar como Memoria del agente y un .env dentro de una skill atenuado con credenciales, no entra; más abajo Codex · 2 archivos y Gemini · 1 archivo plegados, y los botones Ahora no y Traer y sincronizar](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/agents/es-01-primera-vez.png)
+![La primera vez de AGENTS en español: el aviso Tus agentes, en un solo lugar, con sus tres líneas sobre privacidad, sincronización y respaldo, y debajo la lista Encontré esto. Elige qué traer, con la fila Claude · 2 reglas · 1 skill · 1 memoria abierta: CLAUDE.md y rules/estilo.md marcados como Regla, la skill pr en una sola fila, pr · Skill · 3 archivos, marcada con una sola casilla, y una memoria de proyecto MEMORY.md sin marcar como Memoria del agente; ningún archivo ni carpeta que empiece con un punto, ni skills/synced, en la lista; más abajo las filas de Codex y Gemini plegadas, con lo que traen cada una, y los botones Ahora no y Traer y sincronizar](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/agents/es-01-primera-vez.png)
 
 ## Qué es y cuándo te sirve
 
-AGENTS es una carpeta de tu Biblioteca, arriba de todo, con el icono de un robot. Cada documento que tiene adentro es un archivo de un agente: una regla, una skill o su memoria. Lo editas en Tisty como cualquier documento, con su buscador y sus versiones anteriores, y Tisty escribe el archivo que ese agente lee, byte a byte. Al lado, el panel **Archivo del agente** te dice quién lo lee, dónde se escribe y cuántos respaldos tiene.
+AGENTS es una carpeta de tu Biblioteca, arriba de todo, con el icono de un robot. Está en tu barra lateral desde el primer día, atenuada y con la palabra **apagada**, hasta que la enciendes en este equipo. Cada documento que tiene adentro es un archivo de un agente: una regla, una skill o su memoria. Lo editas en Tisty como cualquier documento, con su buscador y sus versiones anteriores, y Tisty escribe el archivo que ese agente lee, byte a byte. Al lado, el panel **Archivo del agente** te dice quién lo lee, dónde se escribe y cuántos respaldos tiene.
 
 Te sirve cuando:
 
@@ -24,18 +24,86 @@ No te sirve para los archivos de cada repositorio: AGENTS maneja los archivos de
 
 ## La primera vez
 
-1. Abre **Configuración › Asistentes**. En la tarjeta **AGENTS**, pulsa **Crear la carpeta AGENTS**.
-2. Se abre **Tus agentes, en un solo lugar**. Tisty miró qué asistentes tienes en este equipo y qué archivos hay en sus carpetas, **solo sus nombres y tamaños**: todavía no abrió ninguno.
+AGENTS está en tu barra lateral aunque nunca la hayas usado: el robot morado, atenuado, con la palabra **apagada** al lado. Así sabes que existe, y nada de tus agentes se lee hasta que tú lo dices. Apagada quiere decir una de tres cosas:
+
+- todavía no hay carpeta AGENTS;
+- este equipo nunca la autorizó, por ejemplo porque tus documentos de AGENTS llegaron con la sincronización desde otro equipo;
+- apagaste **Sincronizar la carpeta AGENTS**, o **Apagar AGENTS** en su botón derecho.
+
+![La barra lateral en español con AGENTS apagada: arriba de la Biblioteca, el icono del robot morado atenuado, el nombre AGENTS en gris claro y a la derecha la palabra apagada; debajo, las carpetas Casa y Trabajo con sus colores de siempre, para que se note la diferencia](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/agents/es-12-apagada-en-la-barra.png)
+
+1. En la barra, haz clic en **AGENTS**. Se abre un aviso corto, **AGENTS**: «AGENTS reúne las reglas, skills y memoria de tus agentes como documentos de Tisty, y escribe el archivo que lee cada uno. En este equipo está apagada.». Debajo, lo que Tisty vio en este equipo, como «Encontré Claude y Codex en este equipo.», o «No encontré ningún asistente en este equipo.» si no hay ninguno, y en gris «Solo miré si existen sus carpetas; no leí nada de adentro.». Tres botones:
+   - **Encender** sigue con la primera vez, en el paso 2.
+   - **Ahora no** cierra el aviso y deja AGENTS apagada en la barra.
+   - **Ocultar** la saca de la barra en este equipo y la deja en **Configuración › General › Carpetas ocultas**: mira [Ocultarla de la barra](#ocultarla-de-la-barra).
+
+   ![El aviso AGENTS en español, sobre la ventana atenuada: la línea AGENTS reúne las reglas, skills y memoria de tus agentes como documentos de Tisty, y escribe el archivo que lee cada uno. En este equipo está apagada., debajo Encontré Claude y Codex en este equipo. y en gris Solo miré si existen sus carpetas; no leí nada de adentro.; abajo, el botón Ocultar a la izquierda y Ahora no y Encender, este destacado, a la derecha](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/agents/es-13-aviso-apagada.png)
+
+2. Con **Encender** se abre **Tus agentes, en un solo lugar**. Tisty miró qué asistentes tienes en este equipo y qué archivos hay en sus carpetas, **solo sus nombres y tamaños**: todavía no abrió ninguno.
 3. Arriba, tres líneas te dicen lo que pasa desde ahora:
    - 🔒 **Queda en tu Tisty**: en tus equipos y donde tú sincronices. Nadie más lo ve.
    - ↻ **Se sincroniza solo** con los asistentes que encontró, por ejemplo «Se sincroniza solo con Claude, Codex, Gemini.».
    - ⧉ **Antes de cambiar un archivo de un agente, Tisty guarda un respaldo en este equipo.**
-4. Debajo, **Encontré esto. Elige qué traer:**, una fila por asistente, como **Claude · 7 archivos**. Ábrela con un clic para ver cada archivo con su casilla y qué es: **Regla**, **Skill** o **Memoria del agente**. Pasa el puntero sobre un archivo para ver su ruta completa.
-5. Marca lo que quieres traer. Las reglas y las skills vienen marcadas; **la memoria del agente viene sin marcar**, porque una vez en Tisty viaja con tu sincronización, y la marcas tú si la quieres.
+4. Debajo, **Encontré esto. Elige qué traer:**, una fila por asistente, con lo que tiene para traer, como **Claude · 2 reglas · 1 skill · 1 memoria**. Ábrela con un clic: cada regla y cada memoria es una fila con su casilla, y cada skill es **una sola fila**, entera, como **pr · Skill · 3 archivos**. Pasa el puntero sobre una fila para ver su ruta completa.
+5. Marca lo que quieres traer. Una skill entra entera con su casilla: su `SKILL.md`, sus scripts y sus referencias. Las reglas y las skills vienen marcadas; **la memoria del agente viene sin marcar**, porque una vez en Tisty viaja con tu sincronización, y la marcas tú si la quieres.
 6. Pulsa **Traer y sincronizar**. Si no marcaste nada, el botón dice **Autorizar y sincronizar**: autoriza este equipo sin traer archivos, y si AGENTS todavía no existe, la crea vacía, con su **Global**.
 7. Tisty abre solo los archivos que marcaste, los guarda como documentos y te dice cuántos entraron: «Entraron 7 documentos a AGENTS, y desde ahora Tisty los mantiene al día.». Lo que no pudo entrar aparece bajo **Esto no entró:**, con el motivo. **Listo** cierra el aviso.
 
-**Ahora no** cierra el aviso sin leer nada. Puedes volver cuando quieras desde la misma tarjeta de Configuración.
+**Ahora no** cierra el aviso sin leer nada, y AGENTS sigue apagada en la barra. Lo que entra en la lista, y lo que no, lo cuenta [Qué entra en la lista](#qué-entra-en-la-lista). Puedes volver cuando quieras con un clic en ella, o desde la tarjeta **AGENTS** de **Configuración › Asistentes**, que mientras está apagada dice lo mismo que el aviso, qué asistentes encontró, con **Encender** y **Ocultar**.
+
+### Qué entra en la lista
+
+La lista trae solo lo que tu asistente lee de verdad. Lo demás no aparece, ni atenuado.
+
+**Skills.** Una skill es una carpeta con un `SKILL.md` en su raíz. Tisty la busca tan abajo como la busca cada asistente, así que una skill que guardas en una carpeta de categoría, como `~/.agents/skills/trabajo/pr/`, aparece cuando su asistente la lee desde ahí:
+
+| Asistente | Carpeta de skills | Dónde puede estar una skill |
+| :-- | :-- | :-- |
+| Claude Code | `~/.claude/skills` | justo adentro, como `skills/pr/` |
+| Codex | `~/.agents/skills`, que comparte con Copilot y Gemini | hasta seis carpetas más abajo, como `skills/trabajo/pr/` |
+| GitHub Copilot CLI | `~/.copilot/skills` | justo adentro |
+| Gemini CLI | `~/.gemini/skills` | justo adentro |
+| Cursor | `~/.cursor/skills` | en cualquier carpeta de categoría |
+
+Una carpeta sin `SKILL.md` que su asistente no lee más abajo no es una skill y no aparece. Tisty nunca busca una skill dentro de otra: un `SKILL.md` más adentro de `pr/` es un archivo más de **pr**. Cada skill es **una fila**, como **pr · Skill · 3 archivos**, con una casilla que la trae entera: cada archivo de la skill queda como un documento, y en la barra lateral se ve como una sola fila, **pr**, con **3 archivos** a la derecha. Un archivo de credenciales dentro de una skill, como una llave `.pem`, sigue sin entrar.
+
+**Reglas.** De una carpeta de reglas entra solo lo que el asistente lee:
+
+- Claude Code: los `.md` de `~/.claude/rules`, también en sus subcarpetas.
+- GitHub Copilot CLI: los `.instructions.md` de `~/.copilot/instructions`, también en sus subcarpetas. Un `.md` común ahí no aparece, porque Copilot tampoco lo lee.
+- Una carpeta dentro de una carpeta de reglas que tiene su propio `manifest.json` queda fuera entera: es de otro programa, no tuya.
+
+**Memoria del agente.** Solo sus archivos `.md`.
+
+**Lo que nunca aparece:**
+
+- **Un archivo o una carpeta oculta**, cuyo nombre empieza con un punto, a cualquier profundidad. Eso deja fuera, por ejemplo, `skills/.trash/` de Claude Code y `skills/.system/` de Codex, sus skills de sistema, que Codex reescribe solo.
+- **`skills/synced/` de Claude Code**, con cualquier mezcla de mayúsculas: es la copia de las skills de tu cuenta de claude.ai, que Claude Code puede sobrescribir o borrar, así que no es tuya para editar.
+
+**Un ejemplo.** Tu carpeta de Claude tiene:
+
+```text
+~/.claude/
+├── CLAUDE.md
+├── rules/
+│   ├── estilo.md
+│   └── notas.txt
+└── skills/
+    ├── pr/
+    │   ├── SKILL.md
+    │   ├── scripts/abrir-pr.sh
+    │   └── plantilla.md
+    ├── notas-sueltas/
+    │   └── ideas.md
+    ├── .trash/
+    │   └── …
+    └── synced/
+        └── …
+```
+
+La fila de Claude dice **Claude · 2 reglas · 1 skill**: `CLAUDE.md` y `rules/estilo.md` como **Regla**, y **pr · Skill · 3 archivos**. `notas.txt` no aparece, porque no es un `.md`; `notas-sueltas`, porque no tiene `SKILL.md`; `.trash`, porque es oculta, y `synced`, porque es la copia que Claude Code mantiene de tu cuenta de claude.ai.
+
+**La fila de cada asistente** cuenta reglas, skills y memorias, no archivos: una skill de diez archivos suma una, como en **Claude · 2 reglas · 3 skills · 1 memoria**. Si no queda nada que traer, dice **Claude · nada para traer**, y si todo ya está en AGENTS, **Claude · ya está en AGENTS**.
 
 ### Lo que dice la lista junto a un archivo
 
@@ -43,14 +111,13 @@ No te sirve para los archivos de cada repositorio: AGENTS maneja los archivos de
 | :-- | :-- |
 | **Regla**, **Skill**, **Memoria del agente** | Se puede traer. La memoria viene sin marcar |
 | **ya está en AGENTS** | Un documento de AGENTS ya lo representa, así que se compara en vez de traerlo de nuevo |
-| **ajustes, no entra** | Tiene el nombre de un archivo de ajustes, como `settings.json`, `config.toml`, `hooks.json` o `mcp.json`. Dentro de una skill sí entra |
-| **credenciales, no entra** | Su nombre es el de un archivo de credenciales, como `.credentials.json`, `auth.json`, `.env`, o una llave `.pem`, `.key` o `id_rsa` |
+| **credenciales, no entra** | Su nombre es el de un archivo de credenciales, como `credentials.json`, `auth.json`, o una llave `.pem`, `.key` o `id_rsa`. Los que empiezan con un punto, como `.env` o `.credentials.json`, ni siquiera aparecen |
 | **propio de Tisty** | Un archivo que dejó Tisty o uno temporal, como `tisty.json` o uno que termina en `.tmp` |
 | **es un enlace, no entra** | Es un enlace simbólico: Tisty no lo sigue |
 | **demasiado grande** | Pasa de 512 kB, lo que cabe en un documento |
 | **demasiados archivos** | Tisty ya había visto 2.000 archivos en las carpetas de tus asistentes y dejó de mirar |
 
-Lo que aparece atenuado no se puede marcar. Tisty tampoco entra en carpetas ocultas (las que empiezan con un punto) ni en `node_modules`, ni baja más de ocho niveles.
+Lo que aparece atenuado no se puede marcar. Los archivos y las carpetas ocultos, los que empiezan con un punto, nunca aparecen. Tisty tampoco entra en `node_modules`, ni baja más de ocho niveles.
 
 ### Si un archivo no entra
 
@@ -76,7 +143,7 @@ La primera vez no tiene que ser la única. Si instalas un asistente nuevo, si cr
 - **Desde la barra lateral:** botón derecho sobre AGENTS, o sobre cualquier carpeta dentro de ella, y **Traer otro archivo**.
 - **Desde Configuración › Asistentes:** en la tarjeta **AGENTS**, el botón **Traer otro archivo**.
 
-Se abre **Traer otro archivo**, con «Estos son los archivos de agentes de este equipo que todavía no están en AGENTS. Elige qué traer:» y la misma lista de la primera vez, con una diferencia: **no viene nada marcado**, ni siquiera las reglas. Marca lo que quieres y pulsa **Traer**: el botón no se activa hasta que marcas algo. Lo que Tisty ya escribe desde un documento dice **ya está en AGENTS**, y si no queda nada por traer, el aviso dice «Todos los archivos de agentes de este equipo ya están en AGENTS.».
+Se abre **Traer otro archivo**, con «Estos son los archivos de agentes de este equipo que todavía no están en AGENTS. Elige qué traer:» y la misma lista de la primera vez, con sus mismas reglas: una skill es una sola fila que entra entera, y lo oculto o lo que mantiene el propio asistente no aparece. Con una diferencia: **no viene nada marcado**, ni siquiera las reglas. Marca lo que quieres y pulsa **Traer**: el botón no se activa hasta que marcas algo. Lo que Tisty ya escribe desde un documento dice **ya está en AGENTS**, y si no queda nada por traer, el aviso dice «Todos los archivos de agentes de este equipo ya están en AGENTS.».
 
 **Un ejemplo.** Un día escribes a mano en tu editor una regla nueva para Claude Code, `~/.claude/rules/pruebas.md`:
 
@@ -154,10 +221,10 @@ Junto al nombre de la carpeta AGENTS, la barra lateral te dice cómo está todo:
 | **3 en espera** | Tres documentos llegaron de [otro de tus equipos](#en-varios-equipos) y esperan que elijas si los aplicas en este |
 | **1 por aprobar** | Un documento cambió sin pasar por tus manos, y no llega a ningún agente hasta que [lo apruebes](#por-aprobar) |
 | **1 con propuesta** | Un agente [propone un cambio](#una-propuesta-de-tu-agente) a un documento, y espera que lo apruebes o lo descartes |
-| **apagada** | Este equipo no está autorizado, o pausaste toda la carpeta |
+| **apagada** | AGENTS se ve atenuada: todavía no hay carpeta, este equipo no la autorizó, o la apagaste. Un clic en ella abre el aviso con **Encender** |
 | **vacía** | La carpeta no tiene documentos, y nada espera que decidas |
 
-Si hay más de una cosa, se ve la más urgente: **vacía** cuando no hay documentos ni nada que decidir, y si no, primero **apagada**, después **con cambios**, después **en espera**, después **por aprobar** y al final **con propuesta**.
+Si hay más de una cosa, se ve la más urgente. **apagada** va antes que todo. Encendida, **vacía** cuando no hay documentos ni nada que decidir, y si no, primero **con cambios**, después **en espera**, después **por aprobar** y al final **con propuesta**.
 
 ![La barra lateral en español con la carpeta AGENTS abierta, su icono de robot morado y la palabra al día a la derecha; dentro, las subcarpetas Global, Claude, Codex y Gemini. En Claude, la regla Cómo trabajo con el icono de un libro, la regla Estilo de código, la skill pr con el icono de una pieza y 3 archivos a la derecha, abierta, mostrando SKILL.md, scripts/abrir-pr.sh y plantilla.md, y la memoria MEMORY.md con el icono de un cerebro; el puntero sobre Cómo trabajo muestra claude · CLAUDE.md](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/agents/es-02-barra.png)
 
@@ -315,7 +382,7 @@ Debajo, **Historial**, cuando el documento ya tiene versiones anteriores, abre s
 | **Escrito por un Tisty anterior** | Una versión anterior de Tisty escribió el archivo sin anotar de qué documentos venía, y hoy no dice lo mismo que ellos | **Ver el archivo**, y después **Sobrescribir con Tisty** si te quedas con el documento |
 | **En espera** | Uno de los documentos que arman este archivo [cambió sin tu aprobación](#por-aprobar), o salió de AGENTS por mano de un agente, así que el archivo queda como estaba. La ficha nombra ese documento | Aprobar ese documento, o volver a ponerlo y sacarlo tú |
 | **En pausa** | Pausaste la sincronización de ese asistente, o de toda la carpeta. En Gemini, también cuando falta la línea `@tisty-rules.md` en `GEMINI.md` | **Reanudar** cuando quieras; en Gemini, [**Volver a ponerla**](#gemini-en-pausa) |
-| **Sin permiso en este equipo** | Este equipo no autorizó AGENTS | **Autorizar en este equipo**, en Configuración › Asistentes |
+| **Sin permiso en este equipo** | Este equipo no autorizó AGENTS, que se ve atenuada en la barra | Clic en AGENTS y **Encender**, o **Encender** en Configuración › Asistentes |
 | **Nada que escribir** | El documento quedó vacío, y Tisty nunca vacía un archivo de un agente | Escribir algo, o sacar el documento de AGENTS |
 | **El archivo es un enlace** | El archivo, o una carpeta en su camino, es un enlace simbólico; escribirlo reemplazaría el enlace | Cambiar el enlace por el archivo real |
 | **El bloque de código está roto** | El bloque que guarda un script ya no está entero | Arreglar el bloque en el documento |
@@ -377,7 +444,11 @@ Las versiones anteriores del **documento**, en cambio, son las de cualquier docu
 
 **Pausar un asistente.** En la ficha, **Pausar la sincronización con Claude**, o el enlace **Pausar Claude** en su fila. También en **Configuración › Asistentes**, en la tarjeta **AGENTS**, con el interruptor **Sincronizar Claude**. En pausa, Tisty no abre ni escribe los archivos de ese asistente: quedan como los dejó la última escritura, y tú sigues editando tus documentos. **Reanudar la sincronización con Claude** escribe lo que cambiaste, salvo un archivo que cambió por fuera mientras tanto, que queda marcado para que decidas.
 
-**Apagar toda la carpeta.** En la misma tarjeta, **Sincronizar la carpeta AGENTS**. Apagada, la barra dice **apagada** junto a AGENTS, y la ficha de cada documento dice «La sincronización está apagada para toda la carpeta AGENTS.».
+**Apagar toda la carpeta.** Botón derecho sobre AGENTS y **Apagar AGENTS**, o en la misma tarjeta, **Sincronizar la carpeta AGENTS**: es el mismo interruptor. Tus documentos quedan, Tisty no toca ningún archivo de tus agentes, y AGENTS vuelve a verse atenuada, con **apagada** al lado. La ficha de cada documento dice «La sincronización está apagada para toda la carpeta AGENTS.». Atenuada y todo, si tiene documentos, su flecha la despliega, así que siguen a mano para leerlos; la barra plegada también la muestra atenuada.
+
+![El menú del botón derecho sobre AGENTS en español, con AGENTS encendida y al día en la barra: entre sus opciones, Traer otro archivo y Apagar AGENTS, con el icono de encendido, y sin Ocultar de la barra](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/agents/es-14-apagar-agents.png)
+
+**Encenderla otra vez.** Un clic en AGENTS, atenuada, abre el aviso; **Encender** vuelve a encender la sincronización de una vez, sin el aviso de la primera vez, porque este equipo ya la había autorizado. También sirve **Encender** en la tarjeta de Configuración › Asistentes.
 
 ![La tarjeta AGENTS de Configuración › Asistentes en español: la línea Las reglas, skills y memoria de tus agentes como documentos de Tisty, el botón Traer otro archivo, y debajo el interruptor Sincronizar la carpeta AGENTS encendido y Sincronizar Claude, Sincronizar Codex y Sincronizar Gemini, con Codex apagado y la nota Apagado: sus archivos quedan como están y no se borra nada en Tisty](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/agents/es-06-configuracion.png)
 
@@ -428,13 +499,23 @@ Si sacas todos los documentos de AGENTS mientras Tisty está abierto, primero te
 
 Solo se va una AGENTS que tenía documentos y vaciaste con la ventana abierta. Una AGENTS vacía de otra forma se queda: la que se creó sin encontrar archivos, o la que ya estaba vacía al abrir Tisty.
 
-Si después quieres AGENTS otra vez, **Crear la carpeta AGENTS**, en Configuración › Asistentes, abre de nuevo el aviso de la primera vez, con las reglas y las skills que encuentre ya marcadas, también las que dejaste, y la memoria sin marcar, como siempre.
+Vaciada, AGENTS vuelve a la barra como al principio: atenuada, **apagada**. Si la quieres otra vez, un clic en ella y **Encender** abren de nuevo el aviso de la primera vez, con las reglas y las skills que encuentre ya marcadas, también las que dejaste, y la memoria sin marcar, como siempre.
 
 ### Ocultarla de la barra
 
-Si no quieres verla todo el tiempo, botón derecho sobre AGENTS y **Ocultar de la barra**. Solo desaparece de la barra lateral en este equipo: se sigue sincronizando, y la encuentras en **Ocultas**, al pie de la barra, o con **Mostrar ocultas**.
+Si no usas AGENTS y no quieres verla en la barra, ni siquiera atenuada, ocúltala. **Solo se oculta apagada**: encendida, su botón derecho ofrece **Apagar AGENTS** y no ocultarla, para que nunca quede escribiendo archivos que no ves.
 
-Oculta y todo, si algo espera tu decisión, su fila en **Ocultas** lo dice, como **1 con cambios** o **2 en espera**. Si todo está al día, no dice nada.
+1. Si está encendida, botón derecho sobre AGENTS y **Apagar AGENTS**. Queda atenuada.
+2. Haz clic en ella y pulsa **Ocultar**. También están **Ocultar** en la tarjeta **AGENTS** de Configuración › Asistentes y **Ocultar de la barra** en su botón derecho, ahora que está apagada.
+
+AGENTS sale de la barra lateral en este equipo sin dejar rastro, y queda en **Configuración › General › Carpetas ocultas**, junto a cualquier otra carpeta que hayas ocultado: mira [Ocultar una carpeta de la barra](Documentos#ocultar-una-carpeta-de-la-barra). Su tarjeta en Configuración › Asistentes dice «Oculta de la barra en este equipo, y apagada: no escribe ningún archivo de agente.», con **Volver a mostrar**.
+
+- **Volver a mostrar**, en Carpetas ocultas o en la tarjeta, la devuelve a la barra, atenuada y apagada.
+- **Encender**, en la tarjeta, la enciende y también la vuelve a mostrar: encendida, AGENTS siempre se ve.
+
+**Oculta, AGENTS está apagada.** No escribe ningún archivo de tus agentes, y nada de esos archivos espera tu decisión. Si un agente te propone un cambio mientras está oculta, la propuesta solo se guarda: la ves en la ficha del documento cuando vuelves a mostrar AGENTS y la enciendes.
+
+**Si venías de una versión anterior** en la que habías ocultado AGENTS encendida, ahora la encuentras otra vez en la barra, encendida. Desde ahí, si no la quieres ver, apágala y ocúltala.
 
 ### Lo que la deja de convertir en AGENTS
 
@@ -448,7 +529,7 @@ Si usas Tisty en más de un equipo, por ejemplo el computador de la casa y el de
 
 **Un ejemplo.** En el equipo de la casa trajiste tu `CLAUDE.md` y escribiste en **AGENTS › Global** la regla «Para todos mis agentes». Ahí se aplicaron solas: las trajiste y las escribiste tú, en ese equipo. Ahora instalas Tisty en el equipo del trabajo y sincronizas:
 
-1. En **Configuración › Asistentes**, la tarjeta **AGENTS** dice «Este equipo todavía no lo autorizó.». Pulsa **Autorizar en este equipo**.
+1. En la barra, AGENTS llega atenuada, **apagada**: tus documentos ya viajaron, pero este equipo todavía no la autorizó. Con su flecha puedes desplegarla y leerlos desde ya. Haz clic en **AGENTS** y pulsa **Encender**, o **Encender** en la tarjeta **AGENTS** de **Configuración › Asistentes**.
 2. Se abre el mismo aviso de la primera vez, con los archivos de este equipo. Los que ya tienen documento dicen **ya está en AGENTS**, y si todo lo que encontró ya está, el aviso dice «Todo lo que encontré ya está en AGENTS. Autoriza este equipo para mantenerlo al día:». Marca lo que quieras traer de este equipo, como la memoria de sus proyectos, y pulsa **Traer y sincronizar** o **Autorizar y sincronizar**.
 3. La barra dice **2 en espera** junto a AGENTS: los dos documentos que vienen de la casa.
 4. Abre **Para todos mis agentes**. La ficha todavía no tiene filas de archivos, y un aviso ámbar dice «Este documento viene de otro equipo. ¿Lo aplicas a los agentes de este?», con dos botones:
@@ -499,7 +580,7 @@ Qué guarda Tisty de todo esto, y qué viaja, está en [Privacidad](Privacidad#t
 
 ## Con tu agente, por MCP
 
-Un agente que dejas entrar por [[MCP|Asistentes-y-MCP]] **lee** tus documentos de AGENTS como cualquier otro, y su guía le explica qué son. **No los escribe: te propone el cambio, y solo tú lo apruebas.** Por ejemplo, le pides a Claude Code «¿Qué reglas mías lees?».
+Un agente que dejas entrar por [[MCP|Asistentes-y-MCP]] **lee** tus documentos de AGENTS como cualquier otro, y su guía le explica qué son. **No los escribe: te propone el cambio, y solo tú lo apruebas.** Tampoco puede encender o apagar AGENTS, ni ocultarla o mostrarla: ninguna herramienta MCP lo hace, solo tú, en la ventana de Tisty. Por ejemplo, le pides a Claude Code «¿Qué reglas mías lees?».
 
 **1. Lee su guía.** `rules` con el tema «documents» trae, entre otras, la sección sobre AGENTS:
 
@@ -663,6 +744,10 @@ Y editar el archivo en disco tampoco sirve: ese cambio queda como **Cambiado por
 
 **La primera vez dejé un archivo sin marcar. ¿Lo puedo traer ahora?** Sí, con **Traer otro archivo**, desde el botón derecho sobre AGENTS o desde Configuración › Asistentes. Mira [Traer otro archivo](#traer-otro-archivo).
 
+**¿Por qué tengo AGENTS en la barra si nunca la usé?** Está ahí, atenuada y **apagada**, para que sepas que existe. Apagada no lee nada: antes de que pulses **Encender** solo mira si existe la carpeta de cada asistente, como `~/.claude`, para decirte cuáles encontró. Si no la quieres ver, haz clic en ella y **Ocultar**; vuelve con **Volver a mostrar**, en Configuración › General › Carpetas ocultas.
+
+**¿Mi agente puede proponerme un cambio con AGENTS oculta?** La propuesta se guarda, pero no la ves ni llega a ningún archivo: oculta, AGENTS está apagada. Aparece en la ficha del documento cuando vuelves a mostrar AGENTS y la enciendes.
+
 **¿Por qué AGENTS dice vacía?** No tiene documentos: la creaste sin que Tisty encontrara archivos, o sus documentos salieron mientras Tisty estaba cerrado, por ejemplo al sincronizar con otro equipo. Escribe una regla con su línea `agent:`, o trae un archivo con **Traer otro archivo**.
 
 ## Si algo no cuadra
@@ -674,7 +759,7 @@ Y editar el archivo en disco tampoco sirve: ese cambio queda como **Cambiado por
 **Mi cambio en Tisty no llega al archivo.** Mira el estado en la ficha del documento:
 
 - **En pausa**: reanuda ese asistente, o la carpeta, en la ficha o en Configuración › Asistentes.
-- **Sin permiso en este equipo**: pulsa **Autorizar en este equipo** en Configuración › Asistentes.
+- **Sin permiso en este equipo**: AGENTS se ve atenuada en la barra. Haz clic en ella y pulsa **Encender**.
 - **Cambiado por fuera** o **Cambiado en los dos lados**: Tisty espera tu decisión antes de escribir.
 - **Nada que escribir**, **El archivo es un enlace** o **El bloque de código está roto**: la tabla de [cada estado](#cada-estado) dice qué hacer.
 - **«Ningún asistente de este equipo lee este documento todavía.»**: revisa la línea `agent:`. El nivel debe ser un asistente que esté en este equipo, y el nombre, un archivo que ese asistente lea.
@@ -683,7 +768,7 @@ Y editar el archivo en disco tampoco sirve: ese cambio queda como **Cambiado por
 - **Escrito por un Tisty anterior**: mira el archivo y, si te quedas con el documento, **Sobrescribir con Tisty**.
 - **Un aviso ámbar sobre otro equipo o tu aprobación**: el documento todavía no se aplica en este equipo. Mira [En varios equipos](#en-varios-equipos).
 
-**Mi regla no llega a mi otro equipo.** En ese equipo, revisa que AGENTS esté autorizado (**Autorizar en este equipo**, en Configuración › Asistentes) y abre el documento: si dice «Este documento viene de otro equipo», pulsa **Aplicar aquí**; si dice «Elegiste no aplicarlo en este equipo.», también. Si la ficha dice «Ningún asistente de este equipo lee este documento todavía.», ese equipo no tiene el asistente de la regla.
+**Mi regla no llega a mi otro equipo.** En ese equipo, revisa que AGENTS no se vea atenuada en la barra (si lo está, haz clic en ella y **Encender**) y abre el documento: si dice «Este documento viene de otro equipo», pulsa **Aplicar aquí**; si dice «Elegiste no aplicarlo en este equipo.», también. Si la ficha dice «Ningún asistente de este equipo lee este documento todavía.», ese equipo no tiene el asistente de la regla.
 
 **La barra dice por aprobar y yo no cambié nada.** El texto de un documento cambió sin pasar por la ventana de Tisty, por ejemplo con un paquete importado o una edición directa en la carpeta de datos. Ábrelo, léelo, y si está bien, **Aprobar este texto**.
 
@@ -691,7 +776,9 @@ Y editar el archivo en disco tampoco sirve: ese cambio queda como **Cambiado por
 
 **Me pregunta «¿Quitar también el archivo?» y no borré nada.** También cuenta como sacar una regla cambiar su línea `agent:` por la de otro archivo, o volver a una versión anterior que no tenía ficha. Si no quieres tocar nada, **Dejarlo** lo deja donde está.
 
-**AGENTS desapareció.** Sacaste todos sus documentos con Tisty abierto, y cuando eso pasa la carpeta se va. Si la quieres de vuelta, **Crear la carpeta AGENTS** en Configuración › Asistentes trae otra vez lo que encuentre. Si no la vaciaste, búscala en **Ocultas**, al pie de la barra.
+**AGENTS no está en la barra.** La ocultaste, en este equipo: está en **Configuración › General › Carpetas ocultas**, y **Volver a mostrar** la devuelve, atenuada. Si la vaciaste con Tisty abierto, no se oculta: vuelve sola a la barra, atenuada, y un clic en ella y **Encender** traen otra vez lo que encuentre.
+
+**AGENTS se ve atenuada y dice apagada.** Está apagada en este equipo: todavía no la creaste, este equipo nunca la autorizó, o la apagaste. Haz clic en ella y pulsa **Encender**. Mira [La primera vez](#la-primera-vez).
 
 **Toda la carpeta dejó de escribir.** Revisa que AGENTS siga arriba de todo en la Biblioteca, con ese nombre y su icono de robot, y sin archivar.
 

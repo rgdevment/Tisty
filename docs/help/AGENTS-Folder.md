@@ -5,11 +5,11 @@ I use more than one AI agent, and each one reads its rules from a different file
 > [!TIP]
 > **In short:** the **AGENTS** folder keeps the rules, skills and memory of Claude Code, Codex, GitHub Copilot CLI, Gemini CLI and Cursor as documents. What you write in **Global** reaches all of them; what you write in one assistant's folder reaches only that one. Before writing over a file, Tisty keeps what it held, a change made outside is never written over: it stays marked until you decide. And an agent does not write your rules: it proposes the change, and only you approve it.
 
-![AGENTS the first time, in English: the box Your agents, in one place, with its three lines on privacy, sync and backups, and below it the list This is what I found. Choose what to bring, with Claude · 7 files open: CLAUDE.md and two files in rules ticked as Rule, the skill pr/SKILL.md ticked as Skill, a project memory unticked as Agent memory, and a .env inside a skill greyed out with credentials, left out; further down Codex · 2 files and Gemini · 1 file folded, and the buttons Not now and Bring and sync](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/agents/en-01-first-run.png)
+![AGENTS the first time, in English: the box Your agents, in one place, with its three lines on privacy, sync and backups, and below it the list This is what I found. Choose what to bring, with the row Claude · 2 rules · 1 skill · 1 memory open: CLAUDE.md and rules/style.md ticked as Rule, the skill pr on a single row, pr · Skill · 3 files, ticked with a single box, and a project memory MEMORY.md unticked as Agent memory; no file or folder starting with a dot, and no skills/synced, in the list; further down Codex's and Gemini's rows folded, each with what it brings, and the buttons Not now and Bring and sync](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/agents/en-01-first-run.png)
 
 ## What it is and when it helps
 
-AGENTS is a folder in your Library, at the top, with a robot icon. Each document inside it is one of an agent's files: a rule, a skill or its memory. You edit it in Tisty like any document, with its search and its earlier versions, and Tisty writes the file that agent reads, byte for byte. Beside it, the **Agent file** panel tells you who reads it, where it is written and how many backups it has.
+AGENTS is a folder in your Library, at the top, with a robot icon. It sits in your sidebar from day one, dim and with the word **off**, until you turn it on on this computer. Each document inside it is one of an agent's files: a rule, a skill or its memory. You edit it in Tisty like any document, with its search and its earlier versions, and Tisty writes the file that agent reads, byte for byte. Beside it, the **Agent file** panel tells you who reads it, where it is written and how many backups it has.
 
 It helps when:
 
@@ -24,18 +24,86 @@ It is not for each repository's files: AGENTS handles your user's files, the one
 
 ## The first time
 
-1. Open **Settings › Assistants**. On the **AGENTS** card, press **Create the AGENTS folder**.
-2. **Your agents, in one place** opens. Tisty looked at which assistants you have on this computer and which files sit in their folders, **only their names and sizes**: it has not opened any of them yet.
+AGENTS is in your sidebar even if you never used it: the purple robot, dimmed, with the word **off** beside it. That way you know it exists, and nothing of your agents' is read until you say so. Off means one of three things:
+
+- there is no AGENTS folder yet;
+- this computer never allowed it, for example because your AGENTS documents arrived with sync from another computer;
+- you switched off **Sync the AGENTS folder**, or chose **Turn AGENTS off** on its right-click.
+
+![The sidebar in English with AGENTS off: at the top of the Library, the purple robot icon dimmed, the name AGENTS in light grey and on the right the word off; below it, the folders Home and Work in their usual colours, so the difference shows](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/agents/en-12-off-in-the-sidebar.png)
+
+1. In the sidebar, click **AGENTS**. A short notice opens, **AGENTS**: «AGENTS gathers your agents' rules, skills and memory as Tisty documents, and writes the file each one reads. It is off on this computer.». Below, what Tisty saw on this computer, such as «I found Claude and Codex on this computer.», or «I found no assistant on this computer.» if there is none, and in grey «I only checked whether their folders exist; I read nothing inside them.». Three buttons:
+   - **Turn on** goes on with the first time, at step 2.
+   - **Not now** closes the notice and leaves AGENTS off in the sidebar.
+   - **Hide** takes it out of the sidebar on this computer and leaves it in **Settings › General › Hidden folders**: see [Hiding it from the sidebar](#hiding-it-from-the-sidebar).
+
+   ![The AGENTS notice in English, over the dimmed window: the line AGENTS gathers your agents' rules, skills and memory as Tisty documents, and writes the file each one reads. It is off on this computer., below it I found Claude and Codex on this computer. and in grey I only checked whether their folders exist; I read nothing inside them.; at the bottom, the button Hide on the left and Not now and Turn on, the latter highlighted, on the right](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/agents/en-13-off-notice.png)
+
+2. With **Turn on**, **Your agents, in one place** opens. Tisty looked at which assistants you have on this computer and which files sit in their folders, **only their names and sizes**: it has not opened any of them yet.
 3. At the top, three lines tell you what happens from now on:
    - 🔒 **It stays in your Tisty**: on your computers and wherever you sync. Nobody else sees it.
    - ↻ **It syncs by itself** with the assistants it found, for example «It syncs by itself with Claude, Codex, Gemini.».
    - ⧉ **Before changing an agent's file, Tisty keeps a backup on this computer.**
-4. Below, **This is what I found. Choose what to bring:**, one row per assistant, such as **Claude · 7 files**. Open it with a click to see each file with its box and what it is: **Rule**, **Skill** or **Agent memory**. Hover over a file to see its full path.
-5. Tick what you want to bring. Rules and skills come ticked; **agent memory comes unticked**, because once in Tisty it travels with your sync, so you tick it yourself if you want it.
+4. Below, **This is what I found. Choose what to bring:**, one row per assistant, with what it has to bring, such as **Claude · 2 rules · 1 skill · 1 memory**. Open it with a click: each rule and each memory is a row with its box, and each skill is **one single row**, whole, such as **pr · Skill · 3 files**. Hover over a row to see its full path.
+5. Tick what you want to bring. A skill comes in whole with its box: its `SKILL.md`, its scripts and its references. Rules and skills come ticked; **agent memory comes unticked**, because once in Tisty it travels with your sync, so you tick it yourself if you want it.
 6. Press **Bring and sync**. If you ticked nothing, the button reads **Allow and sync**: it allows this computer without bringing any file, and if AGENTS does not exist yet, it makes it empty, with its **Global**.
 7. Tisty opens only the files you ticked, keeps them as documents and tells you how many came in: «7 documents came into AGENTS, and Tisty keeps them in sync from now on.». Whatever could not come in shows under **These did not come in:**, with the reason. **Done** closes the box.
 
-**Not now** closes the box without reading anything. You can come back whenever you like from the same card in Settings.
+**Not now** closes the box without reading anything, and AGENTS stays off in the sidebar. What comes into the list, and what does not, is in [What comes into the list](#what-comes-into-the-list). You can come back whenever you like with a click on it, or from the **AGENTS** card in **Settings › Assistants**, which while it is off says the same as the notice, which assistants it found, with **Turn on** and **Hide**.
+
+### What comes into the list
+
+The list brings only what your assistant really reads. The rest does not show, not even greyed out.
+
+**Skills.** A skill is a folder with a `SKILL.md` at its root. Tisty looks for it as deep as each assistant does, so a skill you keep inside a category folder, such as `~/.agents/skills/work/pr/`, shows when its assistant reads it from there:
+
+| Assistant | Skills folder | Where a skill can be |
+| :-- | :-- | :-- |
+| Claude Code | `~/.claude/skills` | right inside, such as `skills/pr/` |
+| Codex | `~/.agents/skills`, which it shares with Copilot and Gemini | up to six folders down, such as `skills/work/pr/` |
+| GitHub Copilot CLI | `~/.copilot/skills` | right inside |
+| Gemini CLI | `~/.gemini/skills` | right inside |
+| Cursor | `~/.cursor/skills` | in any category folder |
+
+A folder without a `SKILL.md` that its assistant does not read deeper is not a skill and does not show. Tisty never looks for a skill inside another: a `SKILL.md` deeper inside `pr/` is just one more file of **pr**. Each skill is **one row**, such as **pr · Skill · 3 files**, with one box that brings it whole: each file of the skill becomes a document, and in the sidebar it shows as a single row, **pr**, with **3 files** on the right. A credentials file inside a skill, such as a `.pem` key, still stays out.
+
+**Rules.** From a rules folder, only what the assistant reads comes in:
+
+- Claude Code: the `.md` files in `~/.claude/rules`, subfolders included.
+- GitHub Copilot CLI: the `.instructions.md` files in `~/.copilot/instructions`, subfolders included. A plain `.md` there does not show, because Copilot does not read it either.
+- A folder inside a rules folder that has its own `manifest.json` stays out whole: it belongs to another program, not to you.
+
+**Agent memory.** Only its `.md` files.
+
+**What never shows:**
+
+- **A hidden file or folder**, whose name starts with a dot, at any depth. That leaves out, for example, Claude Code's `skills/.trash/` and Codex's `skills/.system/`, its system skills, which Codex rewrites itself.
+- **Claude Code's `skills/synced/`**, in any capitalization: it is the copy of the skills in your claude.ai account, which Claude Code may overwrite or delete, so it is not yours to edit.
+
+**An example.** Your Claude folder holds:
+
+```text
+~/.claude/
+├── CLAUDE.md
+├── rules/
+│   ├── style.md
+│   └── notes.txt
+└── skills/
+    ├── pr/
+    │   ├── SKILL.md
+    │   ├── scripts/open-pr.sh
+    │   └── template.md
+    ├── loose-notes/
+    │   └── ideas.md
+    ├── .trash/
+    │   └── …
+    └── synced/
+        └── …
+```
+
+Claude's row reads **Claude · 2 rules · 1 skill**: `CLAUDE.md` and `rules/style.md` as **Rule**, and **pr · Skill · 3 files**. `notes.txt` does not show, because it is not a `.md`; `loose-notes`, because it has no `SKILL.md`; `.trash`, because it is hidden, and `synced`, because it is the copy Claude Code keeps of your claude.ai account.
+
+**Each assistant's row** counts rules, skills and memories, not files: a ten-file skill adds one, as in **Claude · 2 rules · 3 skills · 1 memory**. With nothing left to bring it says **Claude · nothing to bring**, and if everything is already in AGENTS, **Claude · already in AGENTS**.
 
 ### What the list says beside a file
 
@@ -43,14 +111,13 @@ It is not for each repository's files: AGENTS handles your user's files, the one
 | :-- | :-- |
 | **Rule**, **Skill**, **Agent memory** | It can come in. Memory comes unticked |
 | **already in AGENTS** | A document in AGENTS already stands for it, so it is compared instead of brought again |
-| **settings, left out** | It carries a settings file's name, such as `settings.json`, `config.toml`, `hooks.json` or `mcp.json`. Inside a skill it does come in |
-| **credentials, left out** | Its name is a credentials file's, such as `.credentials.json`, `auth.json`, `.env`, or a `.pem`, `.key` or `id_rsa` key |
+| **credentials, left out** | Its name is a credentials file's, such as `credentials.json`, `auth.json`, or a `.pem`, `.key` or `id_rsa` key. Those starting with a dot, such as `.env` or `.credentials.json`, do not even show |
 | **Tisty's own** | A file Tisty left or a temporary one, such as `tisty.json` or one ending in `.tmp` |
 | **a link, left out** | It is a symbolic link: Tisty does not follow it |
 | **too big** | Larger than 512 kB, what a document can hold |
 | **too many files** | Tisty had already seen 2,000 files in your assistants' folders and stopped looking |
 
-What is greyed out cannot be ticked. Tisty also skips hidden folders (those starting with a dot) and `node_modules`, and goes no deeper than eight levels.
+What is greyed out cannot be ticked. Hidden files and folders, those starting with a dot, never show. Tisty also skips `node_modules`, and goes no deeper than eight levels.
 
 ### If a file does not come in
 
@@ -76,7 +143,7 @@ The first time does not have to be the only one. If you install a new assistant,
 - **From the sidebar:** right-click AGENTS, or any folder inside it, and choose **Bring another file**.
 - **From Settings › Assistants:** on the **AGENTS** card, the **Bring another file** button.
 
-**Bring another file** opens, with «These are the agent files on this computer that are not in AGENTS yet. Choose what to bring:» and the same list as the first time, with one difference: **nothing comes ticked**, not even the rules. Tick what you want and press **Bring**: the button stays off until you tick something. What Tisty already writes from a document says **already in AGENTS**, and if nothing is left to bring, the box says «Every agent file on this computer is already in AGENTS.».
+**Bring another file** opens, with «These are the agent files on this computer that are not in AGENTS yet. Choose what to bring:» and the same list as the first time, with the same rules: a skill is a single row that comes in whole, and what is hidden or what the assistant itself maintains does not show. With one difference: **nothing comes ticked**, not even the rules. Tick what you want and press **Bring**: the button stays off until you tick something. What Tisty already writes from a document says **already in AGENTS**, and if nothing is left to bring, the box says «Every agent file on this computer is already in AGENTS.».
 
 **An example.** One day you write a new rule for Claude Code by hand in your editor, `~/.claude/rules/tests.md`:
 
@@ -154,10 +221,10 @@ Beside the AGENTS folder's name, the sidebar tells you how everything stands:
 | **3 waiting** | Three documents came from [another of your computers](#on-several-computers) and wait for you to choose whether to apply them on this one |
 | **1 to approve** | A document changed without going through your hands, and reaches no agent until you [approve it](#to-approve) |
 | **1 with a proposal** | An agent [proposes a change](#a-proposal-from-your-agent) to a document, and waits for you to approve or discard it |
-| **off** | This computer is not allowed, or you paused the whole folder |
+| **off** | AGENTS shows dim: there is no folder yet, this computer has not allowed it, or you turned it off. A click on it opens the notice with **Turn on** |
 | **empty** | The folder holds no documents, and nothing waits for you to decide |
 
-If more than one applies, the most pressing shows: **empty** when there are no documents and nothing to decide, and if not, first **off**, then **changed**, then **waiting**, then **to approve** and last **with a proposal**.
+If more than one applies, the most pressing shows. **off** comes before everything. On, **empty** when there are no documents and nothing to decide, and if not, first **changed**, then **waiting**, then **to approve** and last **with a proposal**.
 
 ![The sidebar in English with the AGENTS folder open, its purple robot icon and the words in sync on the right; inside, the subfolders Global, Claude, Codex and Gemini. In Claude, the rule How I work with a book icon, the rule Code style, the skill pr with a puzzle-piece icon and 3 files on the right, open, showing SKILL.md, scripts/open-pr.sh and template.md, and the memory MEMORY.md with a brain icon; the pointer over How I work shows claude · CLAUDE.md](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/agents/en-02-sidebar.png)
 
@@ -315,7 +382,7 @@ Below, **History**, once the document has earlier versions, opens its [history](
 | **Written by an earlier Tisty** | An earlier version of Tisty wrote the file without noting which documents it came from, and today it does not say what they say | **See the file**, then **Overwrite with Tisty** if you keep the document |
 | **On hold** | One of the documents that make up this file [changed without your approval](#to-approve), or left AGENTS by an agent's hand, so the file stays as it was. The card names that document | Approve that document, or put it back and take it out yourself |
 | **Paused** | You paused sync for that assistant, or for the whole folder. For Gemini, also when the line `@tisty-rules.md` is missing from `GEMINI.md` | **Resume** whenever you like; for Gemini, [**Put the line back**](#gemini-paused) |
-| **Not allowed on this computer** | This computer has not allowed AGENTS | **Allow on this computer**, in Settings › Assistants |
+| **Not allowed on this computer** | This computer has not allowed AGENTS, which shows dim in the sidebar | Click AGENTS and **Turn on**, or **Turn on** in Settings › Assistants |
 | **Nothing to write** | The document is empty, and Tisty never empties an agent's file | Write something, or take the document out of AGENTS |
 | **The file is a link** | The file, or a folder on its way, is a symbolic link; writing it would replace the link | Swap the link for the real file |
 | **The code block is broken** | The block that holds a script is no longer whole | Mend the block in the document |
@@ -377,7 +444,11 @@ The **document's** earlier versions, on the other hand, are those of any documen
 
 **Pausing one assistant.** On the card, **Pause sync with Claude**, or the **Pause Claude** link on its row. Also in **Settings › Assistants**, on the **AGENTS** card, with the **Sync Claude** switch. Paused, Tisty neither opens nor writes that assistant's files: they stay as the last write left them, and you keep editing your documents. **Resume sync with Claude** writes what you changed, except a file that changed outside in the meantime, which stays marked for you to decide.
 
-**Turning the whole folder off.** On the same card, **Sync the AGENTS folder**. Off, the sidebar says **off** beside AGENTS, and each document's card says «Sync is off for the whole AGENTS folder.».
+**Turning the whole folder off.** Right-click AGENTS and choose **Turn AGENTS off**, or on the same card, **Sync the AGENTS folder**: it is the same switch. Your documents stay, Tisty touches none of your agents' files, and AGENTS shows dim again, with **off** beside it. Each document's card says «Sync is off for the whole AGENTS folder.». Dim as it is, if it holds documents, its arrow unfolds it, so they stay at hand to read; the folded sidebar shows it dim too.
+
+![The right-click menu on AGENTS in English, with AGENTS on and in sync in the sidebar: among its choices, Bring another file and Turn AGENTS off, with the power icon, and no Hide from the sidebar](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/agents/en-14-turn-agents-off.png)
+
+**Turning it on again.** A click on AGENTS, dim, opens the notice; **Turn on** switches the sync back on at once, without the first-time box, because this computer had already allowed it. **Turn on** on the card in Settings › Assistants works too.
 
 ![The AGENTS card in Settings › Assistants, in English: the line Your agents' rules, skills and memory as Tisty documents, the button Bring another file, and below it the switch Sync the AGENTS folder on and Sync Claude, Sync Codex and Sync Gemini, with Codex off and the note Off: its files stay as they are, and nothing in Tisty is deleted](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/agents/en-06-settings.png)
 
@@ -428,13 +499,23 @@ If you take every document out of AGENTS while Tisty is open, it first asks abou
 
 Only an AGENTS that held documents and that you emptied with the window open goes. An AGENTS empty some other way stays: one made without finding any files, or one that was already empty when Tisty opened.
 
-If you later want AGENTS again, **Create the AGENTS folder**, in Settings › Assistants, opens the first-time box again, with the rules and skills it finds already ticked, the ones you left included, and memory unticked, as always.
+Emptied, AGENTS goes back to the sidebar as at the start: dim, **off**. If you want it again, a click on it and **Turn on** open the first-time box again, with the rules and skills it finds already ticked, the ones you left included, and memory unticked, as always.
 
 ### Hiding it from the sidebar
 
-If you would rather not see it all the time, right-click AGENTS and choose **Hide from the sidebar**. It only leaves the sidebar on this computer: it keeps syncing, and you find it under **Hidden**, at the bottom of the sidebar, or with **Show hidden**.
+If you do not use AGENTS and do not want to see it in the sidebar, not even dim, hide it. **It hides only while off**: on, its right-click offers **Turn AGENTS off** and no hiding, so it never keeps writing files you do not see.
 
-Even hidden, if something waits for your decision, its row under **Hidden** says so, such as **1 changed** or **2 waiting**. If everything is in sync, it says nothing.
+1. If it is on, right-click AGENTS and choose **Turn AGENTS off**. It goes dim.
+2. Click it and press **Hide**. There is also **Hide** on the **AGENTS** card in Settings › Assistants, and **Hide from the sidebar** on its right-click, now that it is off.
+
+AGENTS leaves the sidebar on this computer without a trace, and sits in **Settings › General › Hidden folders**, beside any other folder you hid: see [Hiding a folder from the sidebar](Documents#hiding-a-folder-from-the-sidebar). Its card in Settings › Assistants says «Hidden from the sidebar on this computer, and off: it writes no agent file.», with **Show again**.
+
+- **Show again**, in Hidden folders or on the card, puts it back in the sidebar, dim and off.
+- **Turn on**, on the card, turns it on and shows it again too: on, AGENTS always shows.
+
+**Hidden, AGENTS is off.** It writes none of your agents' files, and nothing from those files waits for your decision. If an agent proposes a change while it is hidden, the proposal is only kept: you see it on the document's card when you show AGENTS again and turn it on.
+
+**If you come from an earlier version** where you had hidden AGENTS while on, you now find it in the sidebar again, on. From there, if you would rather not see it, turn it off and hide it.
 
 ### What stops it being AGENTS
 
@@ -448,7 +529,7 @@ If you use Tisty on more than one computer, say the one at home and the one at w
 
 **An example.** On the home computer you brought in your `CLAUDE.md` and wrote the rule «For all my agents» in **AGENTS › Global**. There they applied by themselves: you brought them and wrote them, on that computer. Now you install Tisty on the work computer and sync:
 
-1. In **Settings › Assistants**, the **AGENTS** card says «This computer has not allowed it yet.». Press **Allow on this computer**.
+1. In the sidebar, AGENTS arrives dim, **off**: your documents already travelled, but this computer has not allowed it yet. With its arrow you can unfold it and read them right away. Click **AGENTS** and press **Turn on**, or **Turn on** on the **AGENTS** card in **Settings › Assistants**.
 2. The same first-run box opens, with this computer's files. Those that already have a document say **already in AGENTS**, and if everything it found is already there, the box says «Everything I found is already in AGENTS. Allow this computer to keep it in sync:». Tick what you want to bring from this computer, such as its projects' memory, and press **Bring and sync** or **Allow and sync**.
 3. The sidebar says **2 waiting** beside AGENTS: the two documents that come from home.
 4. Open **For all my agents**. The card has no file rows yet, and an amber notice says «This document comes from another computer. Apply it to the agents on this one?», with two buttons:
@@ -499,7 +580,7 @@ What Tisty keeps of all this, and what travels, is in [Privacy](Privacy#your-ass
 
 ## With your agent, through MCP
 
-An agent you let in through [[MCP|Assistants-and-MCP]] **reads** your AGENTS documents like any other, and its guide tells it what they are. **It does not write them: it proposes the change, and only you approve it.** For example, you ask Claude Code «Which of my rules do you read?».
+An agent you let in through [[MCP|Assistants-and-MCP]] **reads** your AGENTS documents like any other, and its guide tells it what they are. **It does not write them: it proposes the change, and only you approve it.** Nor can it turn AGENTS on or off, or hide or show it: no MCP tool does that, only you, in Tisty's window. For example, you ask Claude Code «Which of my rules do you read?».
 
 **1. It reads its guide.** `rules` with the topic «documents» brings, among others, the section on AGENTS:
 
@@ -663,6 +744,10 @@ And editing the file on disk does not help either: that change stands as **Chang
 
 **The first time I left a file unticked. Can I bring it now?** Yes, with **Bring another file**, by right-clicking AGENTS or from Settings › Assistants. See [Bring another file](#bring-another-file).
 
+**Why do I have AGENTS in the sidebar if I never used it?** It is there, dim and **off**, so you know it exists. Off, it reads nothing: before you press **Turn on** it only checks whether each assistant's folder exists, such as `~/.claude`, to tell you which ones it found. If you would rather not see it, click it and **Hide**; it comes back with **Show again**, in Settings › General › Hidden folders.
+
+**Can my agent propose a change while AGENTS is hidden?** The proposal is kept, but you do not see it and it reaches no file: hidden, AGENTS is off. It shows on the document's card when you show AGENTS again and turn it on.
+
 **Why does AGENTS say empty?** It holds no documents: you made it without Tisty finding any files, or its documents left while Tisty was closed, for example when syncing with another computer. Write a rule with its `agent:` line, or bring a file with **Bring another file**.
 
 ## When something does not add up
@@ -674,7 +759,7 @@ And editing the file on disk does not help either: that change stands as **Chang
 **My change in Tisty does not reach the file.** Look at the standing on the document's card:
 
 - **Paused**: resume that assistant, or the folder, on the card or in Settings › Assistants.
-- **Not allowed on this computer**: press **Allow on this computer** in Settings › Assistants.
+- **Not allowed on this computer**: AGENTS shows dim in the sidebar. Click it and press **Turn on**.
 - **Changed outside** or **Changed on both sides**: Tisty waits for your decision before writing.
 - **Nothing to write**, **The file is a link** or **The code block is broken**: the table of [each standing](#each-standing) says what to do.
 - **«No assistant on this computer reads this document yet.»**: check the `agent:` line. The level must be an assistant on this computer, and the name a file that assistant reads.
@@ -683,7 +768,7 @@ And editing the file on disk does not help either: that change stands as **Chang
 - **Written by an earlier Tisty**: look at the file and, if you keep the document, **Overwrite with Tisty**.
 - **An amber notice about another computer or your approval**: the document is not applied on this computer yet. See [On several computers](#on-several-computers).
 
-**My rule does not reach my other computer.** On that computer, check that AGENTS is allowed (**Allow on this computer**, in Settings › Assistants) and open the document: if it says «This document comes from another computer», press **Apply here**; if it says «You chose not to apply it on this computer.», that too. If the card says «No assistant on this computer reads this document yet.», that computer does not have the rule's assistant.
+**My rule does not reach my other computer.** On that computer, check that AGENTS does not show dim in the sidebar (if it does, click it and **Turn on**) and open the document: if it says «This document comes from another computer», press **Apply here**; if it says «You chose not to apply it on this computer.», that too. If the card says «No assistant on this computer reads this document yet.», that computer does not have the rule's assistant.
 
 **The sidebar says to approve and I changed nothing.** A document's text changed without going through Tisty's window, for example through an imported parcel or a direct edit in the data folder. Open it, read it, and if it is right, **Approve this text**.
 
@@ -691,7 +776,9 @@ And editing the file on disk does not help either: that change stands as **Chang
 
 **It asks «Take the file away too?» and I deleted nothing.** Changing a rule's `agent:` line to another file's, or going back to an earlier version that had no card, also counts as taking a rule out. If you would rather touch nothing, **Leave it** leaves it where it is.
 
-**AGENTS is gone.** You took all its documents out with Tisty open, and when that happens the folder goes. If you want it back, **Create the AGENTS folder** in Settings › Assistants brings in what it finds again. If you did not empty it, look under **Hidden**, at the bottom of the sidebar.
+**AGENTS is not in the sidebar.** You hid it, on this computer: it is in **Settings › General › Hidden folders**, and **Show again** brings it back, dim. If you emptied it with Tisty open, it does not hide: it comes back to the sidebar by itself, dim, and a click on it and **Turn on** bring in what it finds again.
+
+**AGENTS shows dim and says off.** It is off on this computer: you have not made it yet, this computer never allowed it, or you turned it off. Click it and press **Turn on**. See [The first time](#the-first-time).
 
 **The whole folder stopped writing.** Check that AGENTS still sits at the top of the Library, with that name and its robot icon, and not archived.
 

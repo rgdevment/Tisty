@@ -98,6 +98,42 @@ What you kept and never opened again comes back into view on its own. Choose **L
 - **Archive a whole folder** with the right button when work is over: it drops to the **Archived** shelf at the foot of the tree with its icon, subfolders and pages exactly as you left them. There it reads and exports, but nothing writes into it and nothing new goes in.
 - **Bring it back** and it returns the same — including documents you had archived by hand in there, which stay archived.
 
+### Hiding a folder from the sidebar
+
+Some folders you do not want to archive, because what they hold still matters, but you do not need to see them every time you open Tisty either. Hiding one takes it out of the sidebar on this computer, without touching anything it holds.
+
+It helps when:
+
+- **You use one computer for each thing.** On the work computer you do not need **Home**, with Rina's vaccines and Lucas's birthday, and on the home one you do not need **Work / Clients**.
+- **The sidebar grew too much.** A folder you look at twice a year, such as **Paperwork**, can leave the view without being archived.
+- **You do not use the Diary or Ideas** and would rather not see them at the top of the Library.
+
+**Hiding it:**
+
+1. In the sidebar, right-click the folder and choose **Hide from the sidebar**.
+2. The folder leaves the sidebar without a trace: no row and no hidden section stays behind.
+
+**Seeing it again:**
+
+1. Open **Settings › General** and scroll down to **Hidden folders**: «Folders hidden from the sidebar on this computer. They keep everything they hold, and search, the palette and Move to still find them.».
+2. Each hidden folder is a row with its whole path, such as **Work / Clients**, and the button **Show again**. Press it and it goes back to the sidebar, in its place.
+
+If you hid none, the section says «No folder is hidden.».
+
+![The Hidden folders section of Settings › General in English: the title Hidden folders, the line Folders hidden from the sidebar on this computer. They keep everything they hold, and search, the palette and Move to still find them., and three rows, AGENTS, Home and Work / Clients, each with the button Show again on the right](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/agents/en-15-hidden-folders.png)
+
+**An example.** On the work computer, right-click **Home** and choose **Hide from the sidebar**: **Home** and everything inside it, such as **Home / Rina**, leave the sidebar. One afternoon Marisol asks you for Rina's vaccination card. You type it in the search at the top of the sidebar and it shows up, even though **Home** is hidden, and you open it from there. On the home computer, **Home** is still in the sidebar as always.
+
+Worth knowing:
+
+- **It belongs to this computer.** What you hide does not travel with your sync: on your other computers the folder stays in view, and each computer hides its own.
+- **Nothing is deleted or moved.** The folder keeps its documents and subfolders, and search, the palette and **Move to** still find it: you can move a document into a hidden folder, and it goes in all the same.
+- **The sidebar filter shows it.** While you type in the Library's filter, hidden folders show too, so a match never stays hidden. When you close the filter with `Esc`, they hide again.
+- **A subfolder on its own.** You can hide **Work / Clients** and leave **Work** in view. Its row in Hidden folders names the whole path, so you know which one it is.
+- **The Diary and Ideas too.** Right-click **Diary** or **Ideas** and choose **Hide from the sidebar**. In Hidden folders they show by name, and **Show again** puts them back at the top of the Library.
+- **An archived folder does not hide.** On the **Archived** shelf the choice shows greyed out: it is already out of your way.
+- **AGENTS hides only while off.** On, its right-click offers **Turn AGENTS off** instead of hiding; off, its notice offers **Hide**. Hidden, AGENTS stays off: it writes none of your agents' files, and a proposal from your agent is only kept until you show it again and turn it on. [Hiding it from the sidebar](AGENTS-Folder#hiding-it-from-the-sidebar) tells it.
+
 ## Tags
 
 A document takes tags the way a task does: write `#contract` in the middle of a sentence and the document is filed under it. The tag lives in the sentence, not a hidden header, so taking the file to another editor takes the tag with it. A note brought from elsewhere with `tags:` in its [properties](https://markdown.tisty.app/properties) is filed under those too.

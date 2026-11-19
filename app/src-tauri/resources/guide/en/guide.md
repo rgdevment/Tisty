@@ -92,7 +92,7 @@ How to connect it, how to let it in or keep it out, and how to ask it for things
 
 ### Your agents' rules, in one place
 
-Each agent reads its rules from its own file: Claude Code from `CLAUDE.md`, Codex from `AGENTS.md`, Gemini from `GEMINI.md`. The **AGENTS** folder, at the top of the Library, gathers them in Tisty as documents: you write a rule once and Tisty writes it to each one's file, with a backup before touching it. A change you make outside is never written over, each computer chooses what it applies, and your agent does not write your rules: it proposes the change, and only you approve it. You start in **Settings → Assistants**, with **Create the AGENTS folder**.
+Each agent reads its rules from its own file: Claude Code from `CLAUDE.md`, Codex from `AGENTS.md`, Gemini from `GEMINI.md`. The **AGENTS** folder, at the top of the Library, gathers them in Tisty as documents: you write a rule once and Tisty writes it to each one's file, with a backup before touching it. A change you make outside is never written over, each computer chooses what it applies, and your agent does not write your rules: it proposes the change, and only you approve it. It sits in your sidebar from the start, dim and **off**, and reads nothing of your agents' until you say so: you start by clicking it and pressing **Turn on**.
 
 ![AGENTS: your agents' rules, the page of this guide that tells it with examples](tisty:agents)
 

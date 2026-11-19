@@ -1,15 +1,22 @@
 import { useCallback, useEffect, useState } from "react";
 import {
+  AGENTS_CHANGED,
   type AgentsLook,
+  type AgentsState,
   type AssistantSeen,
   agentsLead,
+  agentsLit,
   agentsLook,
+  agentsState,
   agentsTurn,
   bringMoreAgents,
+  lightAgents,
 } from "../agentsSync";
+import { AGENTS, agentsHidden, agentsKeys, hide, show, useHidden } from "../hiding";
 import { fill, t } from "../locales";
 import { saidPlainly } from "../refusal";
-import { AGENTS_CHANGED, askAgents } from "./AgentsKeeper";
+import { AgentsFound } from "./AgentsAsleep";
+import { askAgents } from "./AgentsKeeper";
 import Card, { type Which, type Word } from "./Card";
 import { Knob, Line } from "./Rows";
 
@@ -23,12 +30,19 @@ const whyOf = (look: AgentsLook, one: AssistantSeen): string | undefined => {
 };
 
 export default function AgentsSettings({ busy }: Readonly<{ busy: Which | null }>) {
+  const [state, setState] = useState<AgentsState>();
   const [look, setLook] = useState<AgentsLook>();
   const [trouble, setTrouble] = useState<Word>();
+  const hidden = agentsHidden(useHidden(), state?.folder);
 
+  // Before this computer's yes, only whether each assistant's folder exists is looked at.
   const looked = useCallback(() => {
-    agentsLook()
-      .then(setLook)
+    agentsState()
+      .then((now) => {
+        setState(now);
+        if (!now.consented) return setLook(undefined);
+        return agentsLook().then(setLook);
+      })
       .catch((e) => setTrouble({ card: "wiring", text: saidPlainly(e) }));
   }, []);
 
@@ -61,16 +75,30 @@ export default function AgentsSettings({ busy }: Readonly<{ busy: Which | null }
   return (
     <Card title={t("agentsSettingsTitle")} which="wiring" busy={busy} trouble={trouble}>
       <p className="text-[12.5px] leading-relaxed text-soft">{t("agentsSettingsLine")}</p>
-      {look && !look.folder && (
-        <button type="button" onClick={askAgents} className={small}>
-          {t("agentsSettingsCreate")}
-        </button>
+      {state && !agentsLit(state) && (
+        <div className="mt-3">
+          <AgentsFound state={state} />
+          <div className="flex gap-2">
+            <button type="button" onClick={lightAgents} className={small}>
+              {t("agentsLight")}
+            </button>
+            {!hidden && (
+              <button type="button" onClick={() => hide(AGENTS)} className={small}>
+                {t("agentsHide")}
+              </button>
+            )}
+          </div>
+        </div>
       )}
-      {look?.folder && !look.consented && (
+      {hidden && (
         <>
-          <p className="mt-2 text-[12.5px] text-soft">{t("agentsSettingsAsk")}</p>
-          <button type="button" onClick={askAgents} className={small}>
-            {t("agentsSettingsAllow")}
+          <p className="mt-2 text-[12.5px] text-soft">{t("agentsSettingsHidden")}</p>
+          <button
+            type="button"
+            onClick={() => show(...agentsKeys(state?.folder))}
+            className={small}
+          >
+            {t("showAgain")}
           </button>
         </>
       )}
@@ -103,7 +131,7 @@ export default function AgentsSettings({ busy }: Readonly<{ busy: Which | null }
           {t("agentsSettingsMore")}
         </button>
       )}
-      {look?.assistants.length === 0 && (
+      {look && state && agentsLit(state) && look.assistants.length === 0 && (
         <p className="mt-2 text-[12.5px] text-faint">{t("agentsSettingsNone")}</p>
       )}
       {look?.consented && (

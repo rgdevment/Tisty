@@ -1688,3 +1688,44 @@ fn the_last_rule_leaving_asks_about_its_file_before_agents_goes() {
     assert!(emptied(&mut room.session, &room.homes, HERE).unwrap());
     assert!(room.folders().is_empty(), "{:?}", room.folders());
 }
+
+#[test]
+fn the_state_names_only_the_assistants_whose_folder_is_here() {
+    let room = room();
+    std::fs::write(room.home.join(".cursor"), "not a folder").unwrap();
+    let state = stance(&room.session, &room.homes, HERE);
+    let names: Vec<&str> = state
+        .assistants
+        .iter()
+        .map(|one| one.name.as_str())
+        .collect();
+    assert_eq!(names, ["Claude", "Codex", "Copilot"]);
+    assert_eq!(state.folder, None);
+    assert!(!state.consented);
+    assert!(state.all_on);
+}
+
+#[test]
+fn the_state_follows_the_first_time_and_the_switch_without_touching_a_file() {
+    let mut room = room();
+    room.bring(&[".claude/CLAUDE.md"]);
+    let before = room.read(".claude/CLAUDE.md");
+    let on = stance(&room.session, &room.homes, HERE);
+    assert!(on.folder.is_some() && on.consented && on.all_on);
+    turned(&room.session, &room.homes, HERE, None, false).unwrap();
+    let off = stance(&room.session, &room.homes, HERE);
+    assert_eq!(
+        (off.folder, off.consented, off.all_on),
+        (on.folder, true, false)
+    );
+    assert_eq!(room.read(".claude/CLAUDE.md"), before);
+}
+
+#[test]
+fn another_computer_has_not_said_yes_for_this_one() {
+    let mut room = room();
+    room.bring(&[".claude/CLAUDE.md"]);
+    let there = stance(&room.session, &room.homes, "another-computer");
+    assert!(there.folder.is_some());
+    assert!(!there.consented);
+}

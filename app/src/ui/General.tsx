@@ -36,6 +36,7 @@ interface Props {
   onChanged: () => void;
   onGreet: () => void;
   onDoc: (paper: string) => void;
+  hidden?: React.ReactNode;
 }
 
 export default function General({
@@ -55,6 +56,7 @@ export default function General({
   onChanged,
   onGreet,
   onDoc,
+  hidden,
 }: Props) {
   const held = busy !== null;
   const chosenOff = kept?.quickKeys === "off";
@@ -331,6 +333,7 @@ export default function General({
           </button>
         </Line>
       </div>
+      {hidden}
     </>
   );
 }
