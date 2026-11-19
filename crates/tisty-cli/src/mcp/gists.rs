@@ -123,8 +123,7 @@ pub(super) fn gist_told(gist: &Value, summary_most: usize, notes_most: usize) ->
     }
 }
 
-pub(super) fn gist_of(state: &State, which: &str, print: &str) -> Option<Value> {
-    let kept = state.docs.values().find(|one| one.file == which)?;
+pub(super) fn gist_of(state: &State, kept: &Kept, print: &str) -> Option<Value> {
     let held = state.agent_notes.get(&kept.id)?;
     let mut said = serde_json::Map::new();
     if !held.summary.is_empty() {
