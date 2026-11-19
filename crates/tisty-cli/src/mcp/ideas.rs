@@ -32,7 +32,7 @@ pub(super) fn holds_ideas(state: &State, file: &str) -> bool {
 
 pub(super) fn no_pages_on_a_sheet(state: &State, file: &str) -> Refused {
     Refused::Tool(format!(
-        "{} is Brainstorm, a sheet of ideas the window keeps pinned on its own: it holds no pages \
+        "{} is Ideas, a sheet of ideas the window keeps pinned on its own: it holds no pages \
          and is no page. Hang the page under the document of its subject.",
         doc_named(state, file)
     ))
@@ -41,14 +41,14 @@ pub(super) fn no_pages_on_a_sheet(state: &State, file: &str) -> Refused {
 pub(super) fn sheet_may_start(paths: &Paths, state: &State, placed: bool) -> Result<(), Refused> {
     if let Some((kept, _)) = sheet(paths, state) {
         return Err(Refused::Tool(format!(
-            "the person's Brainstorm is already {}, and there is only ever one: add these ideas \
+            "the person's Ideas sheet is already {}, and there is only ever one: add these ideas \
              to it with `append_doc`. Nothing was written.",
             doc_named(state, &kept.file)
         )));
     }
     if placed {
         return Err(Refused::Tool(
-            "Brainstorm is pinned at the top of the Library on its own: send it without `folder` \
+            "Ideas is pinned at the top of the Library on its own: send it without `folder` \
              or `page_of`. Nothing was written."
                 .into(),
         ));
@@ -85,7 +85,7 @@ pub(super) fn brings_back_no_idea(
 
 pub(super) fn sheet_stays_put(state: &State, file: &str) -> Refused {
     Refused::Tool(format!(
-        "{} is Brainstorm, pinned at the top of the Library on its own: it goes in no folder and \
+        "{} is Ideas, pinned at the top of the Library on its own: it goes in no folder and \
          joins no other document's languages, and only the person puts it away, from the window, \
          since every idea on it would go with it. Nothing was changed.",
         doc_named(state, file)
@@ -94,7 +94,7 @@ pub(super) fn sheet_stays_put(state: &State, file: &str) -> Refused {
 
 pub(super) fn nothing_but_ideas(state: &State, file: &str) -> Refused {
     Refused::Tool(format!(
-        "{} is Brainstorm, and everything on it is an idea of a few words: a file added at its \
+        "{} is Ideas, and everything on it is an idea of a few words: a file added at its \
          end would be glued onto the last idea. Attach it to the document or the task its \
          subject belongs to. Nothing was copied.",
         doc_named(state, file)
@@ -117,11 +117,11 @@ pub(super) fn glance(paths: &Paths, state: &State) -> Option<(String, Value)> {
     Some((
         match waiting {
             0 => format!(
-                "Brainstorm, {named}, holds no idea now: new ones are jotted on it, as `rules` \
+                "The Ideas sheet, {named}, holds no idea now: new ones are jotted on it, as `rules` \
                  «ideas» says."
             ),
             _ => format!(
-                "Brainstorm, {named}, holds {waiting} idea(s) not yet sorted{marks}: `rules` \
+                "The Ideas sheet, {named}, holds {waiting} idea(s) not yet sorted{marks}: `rules` \
                  «ideas» says how to work them."
             ),
         },
@@ -141,7 +141,7 @@ pub(super) fn about_sheet(
 ) -> String {
     let marked = brainstorm::marked(kept, body);
     let mut said = format!(
-        "This is Brainstorm: {} idea(s), oldest first, each a `> [!IDEA]` note headed by the \
+        "This is the Ideas sheet: {} idea(s), oldest first, each a `> [!IDEA]` note headed by the \
          minute it came and its colour. An idea is named `{}#` and that heading. `rules` «ideas» \
          says how to sort them.",
         brainstorm::ideas(body),
@@ -214,7 +214,7 @@ fn ideas_in(said: &str) -> Result<Vec<String>, Refused> {
         {
             return Err(Refused::Tool(
                 "each idea's `> [!IDEA]` line, with the minute it came and its colour, is Tisty's \
-                 to write, and a heading has no place on Brainstorm. Send the ideas alone: one per \
+                 to write, and a heading has no place on the Ideas sheet. Send the ideas alone: one per \
                  paragraph, or one per item of a list. Nothing was written."
                     .into(),
             ));
@@ -321,7 +321,7 @@ pub(super) fn jotted_on(
     let named = doc_named(state, &kept.file);
     if text(args, "under").is_some() {
         return Err(Refused::Tool(format!(
-            "{named} is Brainstorm, where every idea goes at the end, dated as it comes. Send \
+            "{named} is Ideas, where every idea goes at the end, dated as it comes. Send \
              them without `under`."
         )));
     }
@@ -497,7 +497,7 @@ pub(super) fn keeps_every_idea(
     if !is_sheet(before) {
         return match is_sheet(after) {
             true => Err(Refused::Tool(format!(
-                "`brainstorm: on` would turn {} into a Brainstorm sheet, and a sheet is only ever \
+                "`brainstorm: on` would turn {} into an Ideas sheet, and a sheet is only ever \
                  made new with `write_doc`, as `rules` «ideas» says. Leave that line out. Nothing \
                  was written.",
                 doc_named(state, which)
@@ -508,7 +508,7 @@ pub(super) fn keeps_every_idea(
     let named = doc_named(state, which);
     if !is_sheet(after) {
         return Err(Refused::Tool(format!(
-            "{named} is the person's Brainstorm, and `brainstorm: on` in its properties is what \
+            "{named} is the person's Ideas sheet, and `brainstorm: on` in its properties is what \
              makes it so. Keep that line. Nothing was written."
         )));
     }
@@ -543,7 +543,7 @@ pub(super) fn keeps_every_idea(
     }
     if let Some(gone) = lost.first() {
         return Err(Refused::Tool(format!(
-            "{named} is the person's Brainstorm, and this write would take {} idea(s) off it or \
+            "{named} is the person's Ideas sheet, and this write would take {} idea(s) off it or \
              leave them without their words, «{}» first. Taking an idea off is theirs: mark it \
              with `flag_doc`, `doc` \"{which}#{}\", or file it in a document or a task, which \
              takes it off as the window does. Nothing was written.",
@@ -569,7 +569,7 @@ pub(super) fn keeps_every_idea(
 
 pub(super) fn whole_sheet_refused(state: &State, which: &str) -> Refused {
     Refused::Tool(format!(
-        "{} is Brainstorm, where the person's ideas wait: marking it would let one click delete \
+        "{} is Ideas, where the person's ideas wait: marking it would let one click delete \
          them all. Mark the ideas that had their day instead, each as `{which}#` and its \
          heading. Archiving or deleting the whole sheet is the person's, from the window.",
         doc_named(state, which)
@@ -591,7 +591,7 @@ pub(super) fn flag_ideas(
         .map_or_else(String::new, |(doc, _)| doc.to_string());
     let Some((kept, sheet_body)) = sheet_named(paths, &state, &first) else {
         return Err(Refused::Tool(format!(
-            "{first:?} is not Brainstorm, so `{first}#` and a heading names no idea. Ideas are \
+            "{first:?} is not the Ideas sheet, so `{first}#` and a heading names no idea. Ideas are \
              named by the sheet's id: `catch_up` gives it. A document is marked by its id alone. \
              Nothing was marked."
         )));
@@ -688,7 +688,7 @@ fn idea_on(on: &[Idea], sheet: &str, named: &str, which: &str) -> Result<Idea, R
     };
     if doc != sheet {
         return Err(Refused::Tool(format!(
-            "{which:?} names an idea of {doc:?}, but ideas live on Brainstorm, {named}: name each \
+            "{which:?} names an idea of {doc:?}, but ideas live on the Ideas sheet, {named}: name each \
              as `{sheet}#` and its heading. Nothing was marked."
         )));
     }

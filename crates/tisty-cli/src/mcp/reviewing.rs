@@ -36,7 +36,7 @@ pub(super) fn glance(
     };
     let said = format!(
         "The person's weekly review, «{}»{held}, is due {when}: {} task(s) with no list and \
-         {} idea(s) on Brainstorm to decide, {} document(s) marked as past, and {} not opened on \
+         {} idea(s) on the Ideas sheet to decide, {} document(s) marked as past, and {} not opened on \
          this computer nor written for 60 days. {HOW_TO_HELP}",
         task.title, counted.unlisted, counted.ideas, counted.marked, counted.forgotten,
     );

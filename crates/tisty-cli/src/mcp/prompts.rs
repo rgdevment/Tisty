@@ -64,17 +64,17 @@ const PROMPTS: [Prompt; 8] = [
     Prompt {
         name: "brainstorm",
         title: "Brainstorm ideas with me",
-        description: "Think up short ideas on a subject together, and jot on Brainstorm the ones I \
-                      keep.",
+        description: "Think up short ideas on a subject together, and jot the ones I keep on the \
+                      Ideas sheet.",
         takes: "subject",
         takes_what: "What the ideas are about; left out, what we have been talking about",
         asks: brainstorming,
     },
     Prompt {
         name: "sort_ideas",
-        title: "Sort out my Brainstorm",
-        description: "Group the ideas waiting on Brainstorm and propose which become tasks, which \
-                      go into documents and which are marked as old.",
+        title: "Sort out my Ideas",
+        description: "Group the ideas waiting on the Ideas sheet and propose which become tasks, \
+                      which go into documents and which are marked as old.",
         takes: "subject",
         takes_what: "A word for the ideas to sort; left out, all of them",
         asks: sorting_ideas,
@@ -290,8 +290,8 @@ fn sheet_named(paths: &Paths) -> String {
             super::ideas::sheet(paths, &state).map(|(kept, _)| doc_named(&state, &kept.file))
         })
         .map_or_else(
-            || "Brainstorm (`catch_up` names it)".to_string(),
-            |named| format!("Brainstorm, {named}"),
+            || "the Ideas sheet (`catch_up` names it)".to_string(),
+            |named| format!("the Ideas sheet, {named}"),
         )
 }
 
@@ -304,7 +304,7 @@ fn brainstorming(paths: &Paths, said: Option<&str>) -> String {
         "Brainstorm with me in Tisty {about}. Ask `rules` «ideas» first. Offer ideas a few words \
          long, 140 characters at most, numbered so I can pick, and say which ones are already on \
          {} or already a task or a document (`brain`). Jot nothing until I say which to keep; then \
-         `append_doc` the ones I keep on Brainstorm, one per item of a list, and tell me how many \
+         `append_doc` the ones I keep on the Ideas sheet, one per item of a list, and tell me how many \
          went on.",
         sheet_named(paths)
     )
