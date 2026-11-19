@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { showBrainsty } from "./brainsty";
 import { chosenWidth, railed, useBreadth } from "./breadth";
 import { docFile, folderFile } from "./core";
 import { DeskProvider, deskOf } from "./desk";
@@ -8,7 +8,7 @@ import { t } from "./locales";
 import { saidPlainly } from "./refusal";
 import AgentsKeeper from "./ui/AgentsKeeper";
 import { WEEK } from "./ui/Ahead";
-import BrainstyScreen from "./ui/BrainstyScreen";
+import BrainstyAsked from "./ui/BrainstyAsked";
 import Calendars from "./ui/Calendars";
 import HelpKey from "./ui/HelpKey";
 import Layers from "./ui/Layers";
@@ -20,13 +20,11 @@ import Sidebar from "./ui/Sidebar";
 import Spine from "./ui/Spine";
 import Stage from "./ui/Stage";
 import WindowChrome from "./ui/WindowChrome";
-import type { Chosen } from "./views";
 import { useWindow } from "./windowing";
 
 export default function App() {
   const held = useWindow();
   const kept = useBreadth();
-  const [network, setNetwork] = useState<{ on: Chosen; near?: string } | null>(null);
   const { data, error } = held;
   if (!data) {
     return (
@@ -66,14 +64,10 @@ export default function App() {
     toDiary,
   } = desk;
   const side = chosenWidth(railed(kept, chosen.named === "keeping"));
-  // Opened over where you are and gone once anything else is chosen, so closing it puts you back there.
-  if (network && network.on !== chosen) setNetwork(null);
-  const networkOpen = network?.on === chosen ? network : null;
   const openNetwork = () =>
-    setNetwork({
-      on: chosen,
-      near: desk.selected ?? (chosen.named === "docs" ? chosen.doc : undefined),
-    });
+    showBrainsty(desk.selected ?? (chosen.named === "docs" ? chosen.doc : undefined)).catch((e) =>
+      setError(saidPlainly(e)),
+    );
 
   return (
     <DeskProvider value={desk}>
@@ -82,7 +76,7 @@ export default function App() {
         style={side === null ? undefined : ({ "--tisty-side": `${side}px` } as React.CSSProperties)}
       >
         <WindowChrome />
-        {networkOpen && <BrainstyScreen near={networkOpen.near} onClose={() => setNetwork(null)} />}
+        <BrainstyAsked />
 
         <Layers parcels={desk.parcels.shown} />
         <News />

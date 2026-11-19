@@ -192,10 +192,26 @@ export function drawNetwork(
     sigma.setGraphState({ zoom });
   };
   camera.on("updated", zoomed);
+  // sigma frames a node's place only as it draws, so until then the camera would fly off the network.
+  let framed = false;
+  let waiting: (() => void) | null = null;
+  const drew = () => {
+    framed = true;
+    const look = waiting;
+    waiting = null;
+    look?.();
+  };
+  const onceFramed = (look: () => void) => {
+    if (framed) look();
+    else waiting = look;
+  };
+  sigma.on("afterRender", drew);
+  sigma.scheduleRender();
   const lit: { nodes: string[]; edges: string[] } = { nodes: [], edges: [] };
   return {
     place: ({ x, y }) => {
       if (x.length !== graph.order) return;
+      framed = false;
       graph.updateEachNodeAttributes(
         (key, at) => {
           const n = Number(key);
@@ -213,10 +229,11 @@ export function drawNetwork(
       }));
       sigma.refresh();
     },
-    centre: (on) => {
-      const shown = sigma.getNodeDisplayData(String(on));
-      if (shown) camera.setState({ x: shown.x, y: shown.y, ratio: NEAR_RATIO });
-    },
+    centre: (on) =>
+      onceFramed(() => {
+        const shown = sigma.getNodeDisplayData(String(on));
+        if (shown) camera.setState({ x: shown.x, y: shown.y, ratio: NEAR_RATIO });
+      }),
     zoom: () => zoom,
     toScreen: ([x, y]) => {
       const at = sigma.graphToViewport({ x, y });
@@ -273,15 +290,18 @@ export function drawNetwork(
         sigma.off("clickStage", hands.clear);
       };
     },
-    focus: (node) => {
-      const shown = sigma.getNodeDisplayData(String(node));
-      if (!shown) return;
-      void camera.animate(
-        { x: shown.x, y: shown.y, ratio: Math.min(camera.ratio, FOCUS_RATIO) },
-        { duration: 300 },
-      );
-    },
+    focus: (node) =>
+      onceFramed(() => {
+        const shown = sigma.getNodeDisplayData(String(node));
+        if (!shown) return;
+        void camera.animate(
+          { x: shown.x, y: shown.y, ratio: Math.min(camera.ratio, FOCUS_RATIO) },
+          { duration: 300 },
+        );
+      }),
     kill: () => {
+      waiting = null;
+      sigma.off("afterRender", drew);
       camera.off("updated", zoomed);
       sigma.kill();
     },

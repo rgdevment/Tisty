@@ -1,0 +1,12 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "brainsty",
+  "description": "Capability for Brainsty's own window: it shows itself, hears the app's language and closes",
+  "windows": ["brainsty"],
+  "permissions": [
+    "core:event:allow-listen",
+    "core:event:allow-unlisten",
+    "core:window:allow-show",
+    "core:window:allow-close"
+  ]
+}

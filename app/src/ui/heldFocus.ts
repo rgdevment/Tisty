@@ -3,19 +3,14 @@ import { type RefObject, useEffect } from "react";
 export const REACHABLE =
   'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
-export const tabbedInside = (
-  box: HTMLElement,
-  backwards: boolean,
-  stop: HTMLElement = box,
-): HTMLElement | null => {
+export const tabbedInside = (box: HTMLElement, backwards: boolean): HTMLElement | null => {
   const inside = Array.from(box.querySelectorAll<HTMLElement>(REACHABLE));
   if (inside.length === 0) return null;
   const first = backwards ? inside[inside.length - 1] : inside[0];
   const edge = backwards ? inside[0] : inside[inside.length - 1];
   const at = box.ownerDocument.activeElement;
-  if (at === stop || at === box || !box.contains(at)) return first;
-  if (at !== edge) return null;
-  return stop === box ? first : stop;
+  if (at === box || !box.contains(at)) return first;
+  return at === edge ? first : null;
 };
 
 // What sits over the window takes the focus in, keeps it inside and gives it back when it shuts.

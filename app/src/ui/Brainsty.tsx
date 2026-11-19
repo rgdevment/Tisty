@@ -1,7 +1,6 @@
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { type RefObject, useEffect, useMemo, useRef, useState } from "react";
-import { type Network, type Neuron, OPENED } from "../brainsty";
-import { useDesk } from "../desk";
+import { type Group, type Network, type Neuron, OPENED } from "../brainsty";
 import { serve } from "../inUse";
 import { t } from "../locales";
 import { pictured } from "../previews";
@@ -21,12 +20,12 @@ export type Escaping = RefObject<(() => boolean) | null>;
 
 interface Props {
   readonly network: Network;
+  readonly groups: readonly Group[];
   readonly onOpen: (neuron: Neuron) => void;
   readonly escaping: Escaping;
 }
 
-export default function Brainsty({ network, onOpen, escaping }: Props) {
-  const { papers, data } = useDesk();
+export default function Brainsty({ network, groups, onOpen, escaping }: Props) {
   const host = useRef<HTMLElement>(null);
   const finder = useRef<HTMLInputElement>(null);
   const drawing = useRef<{ drawn: Drawing; overlays: Overlays } | null>(null);
@@ -37,11 +36,7 @@ export default function Brainsty({ network, onOpen, escaping }: Props) {
   const hues = useRef<HueOf>(() => undefined);
   const tinted = new Map<string, string>();
   const named = new Map<string, string>();
-  for (const one of papers.folders) {
-    named.set(one.id, one.name);
-    if (one.color) tinted.set(one.id, one.color);
-  }
-  for (const one of data.every ?? data.lists) {
+  for (const one of groups) {
     named.set(one.id, one.name);
     if (one.color) tinted.set(one.id, one.color);
   }
@@ -179,7 +174,8 @@ export default function Brainsty({ network, onOpen, escaping }: Props) {
     <div className="absolute inset-0">
       <figure
         ref={host}
-        tabIndex={-1}
+        // biome-ignore lint/a11y/noNoninteractiveTabindex: the arrows walk the network, so Tab has to reach it
+        tabIndex={0}
         aria-label={t("brainstyNetwork")}
         className="absolute inset-0 m-0 outline-none focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-solid focus-visible:outline-accent"
       />

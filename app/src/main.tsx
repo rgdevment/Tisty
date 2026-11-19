@@ -44,6 +44,7 @@ const windows = {
   moving: () => import("./Moving"),
   viewing: () => import("./Viewing"),
   quick: () => import("./Quick"),
+  brainsty: () => import("./BrainstyWindow"),
   main: () => import("./App"),
 };
 const own =
@@ -53,7 +54,9 @@ const own =
       ? windows.viewing
       : quick
         ? windows.quick
-        : windows.main;
+        : label === "brainsty"
+          ? windows.brainsty
+          : windows.main;
 
 const shown = () =>
   Promise.all([
