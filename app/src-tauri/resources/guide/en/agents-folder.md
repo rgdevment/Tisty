@@ -230,7 +230,7 @@ When you delete a rule, move it out of AGENTS or go back to a version without it
 
 If you edited it by hand after Tisty wrote it, the box tells you before you choose. It never asks about your agent's memory, or about a paused assistant.
 
-**Emptying AGENTS.** If you take all its documents out with Tisty open, it first asks about each file, and then the folder goes. **Create the AGENTS folder** makes it again, with the first-time box and what it finds already ticked.
+**Emptying AGENTS.** If you take all its documents out with Tisty open, it first asks about each file, and then the folder goes. **Create the AGENTS folder**, in **Settings → Assistants**, makes it again, with the first-time box and your rules and skills already ticked.
 
 ## A second computer
 

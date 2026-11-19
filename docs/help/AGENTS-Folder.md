@@ -115,7 +115,7 @@ With **Bring it into AGENTS**, the file comes in as a document in **AGENTS › C
 
 ### Codex's `AGENTS.override.md`
 
-Codex reads `~/.codex/AGENTS.override.md` instead of `AGENTS.md` when it exists, so your Global rules go to that file while it exists. If you make it after the first time, Tisty asks **It exists on both sides** with **Bring it into AGENTS**, as with any file it never brought. Once you bring it:
+Codex reads `~/.codex/AGENTS.override.md` instead of `AGENTS.md` when it exists, so your Global rules go to that file while it exists. If you make it after the first time and have rules in Global, Tisty asks **It exists on both sides** with **Bring it into AGENTS**, as with any file it never brought. With no rules in Global it asks nothing: bring it with **Bring another file**. Once you bring it:
 
 - `AGENTS.override.md` holds your Global rule on top and what you wrote below, and from then on Codex gets Global there;
 - `AGENTS.md` keeps only your Codex rules, without Global. Codex does not read it while the override exists.
@@ -426,7 +426,7 @@ If you take every document out of AGENTS while Tisty is open, it first asks abou
 
 Only an AGENTS that held documents and that you emptied with the window open goes. An AGENTS empty some other way stays: one made without finding any files, or one that was already empty when Tisty opened.
 
-If you later want AGENTS again, **Create the AGENTS folder**, in Settings › Assistants, opens the first-time box again, with what it finds already ticked, the files you left included.
+If you later want AGENTS again, **Create the AGENTS folder**, in Settings › Assistants, opens the first-time box again, with the rules and skills it finds already ticked, the ones you left included, and memory unticked, as always.
 
 ### Hiding it from the sidebar
 
@@ -661,7 +661,7 @@ And editing the file on disk does not help either: that change stands as **Chang
 
 **The first time I left a file unticked. Can I bring it now?** Yes, with **Bring another file**, by right-clicking AGENTS or from Settings › Assistants. See [Bring another file](#bring-another-file).
 
-**Why does AGENTS say empty?** It holds no documents: you made it without Tisty finding any files, or it was already empty when Tisty opened. Write a rule with its `agent:` line, or bring a file with **Bring another file**.
+**Why does AGENTS say empty?** It holds no documents: you made it without Tisty finding any files, or its documents left while Tisty was closed, for example when syncing with another computer. Write a rule with its `agent:` line, or bring a file with **Bring another file**.
 
 ## When something does not add up
 

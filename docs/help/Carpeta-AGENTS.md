@@ -115,7 +115,7 @@ Con **Traer a AGENTS**, el archivo entra como un documento en **AGENTS › Codex
 
 ### El `AGENTS.override.md` de Codex
 
-Codex lee `~/.codex/AGENTS.override.md` en vez de `AGENTS.md` cuando existe, así que tus reglas de Global van a ese archivo mientras exista. Si lo creas después de la primera vez, Tisty te pregunta **Existe en los dos lados** con **Traer a AGENTS**, como con cualquier archivo que nunca trajo. Al traerlo:
+Codex lee `~/.codex/AGENTS.override.md` en vez de `AGENTS.md` cuando existe, así que tus reglas de Global van a ese archivo mientras exista. Si lo creas después de la primera vez y tienes reglas en Global, Tisty te pregunta **Existe en los dos lados** con **Traer a AGENTS**, como con cualquier archivo que nunca trajo. Sin reglas en Global no pregunta nada: tráelo con **Traer otro archivo**. Al traerlo:
 
 - `AGENTS.override.md` queda con tu regla de Global arriba y lo que escribiste debajo, y desde ahí Codex recibe Global ahí;
 - `AGENTS.md` queda solo con tus reglas de Codex, sin Global. Codex no lo lee mientras exista el override.
@@ -426,7 +426,7 @@ Si sacas todos los documentos de AGENTS mientras Tisty está abierto, primero te
 
 Solo se va una AGENTS que tenía documentos y vaciaste con la ventana abierta. Una AGENTS vacía de otra forma se queda: la que se creó sin encontrar archivos, o la que ya estaba vacía al abrir Tisty.
 
-Si después quieres AGENTS otra vez, **Crear la carpeta AGENTS**, en Configuración › Asistentes, abre de nuevo el aviso de la primera vez, con lo que encuentre ya marcado, también los archivos que dejaste.
+Si después quieres AGENTS otra vez, **Crear la carpeta AGENTS**, en Configuración › Asistentes, abre de nuevo el aviso de la primera vez, con las reglas y las skills que encuentre ya marcadas, también las que dejaste, y la memoria sin marcar, como siempre.
 
 ### Ocultarla de la barra
 
@@ -661,7 +661,7 @@ Y editar el archivo en disco tampoco sirve: ese cambio queda como **Cambiado por
 
 **La primera vez dejé un archivo sin marcar. ¿Lo puedo traer ahora?** Sí, con **Traer otro archivo**, desde el botón derecho sobre AGENTS o desde Configuración › Asistentes. Mira [Traer otro archivo](#traer-otro-archivo).
 
-**¿Por qué AGENTS dice vacía?** No tiene documentos: la creaste sin que Tisty encontrara archivos, o ya estaba vacía al abrir Tisty. Escribe una regla con su línea `agent:`, o trae un archivo con **Traer otro archivo**.
+**¿Por qué AGENTS dice vacía?** No tiene documentos: la creaste sin que Tisty encontrara archivos, o sus documentos salieron mientras Tisty estaba cerrado, por ejemplo al sincronizar con otro equipo. Escribe una regla con su línea `agent:`, o trae un archivo con **Traer otro archivo**.
 
 ## Si algo no cuadra
 

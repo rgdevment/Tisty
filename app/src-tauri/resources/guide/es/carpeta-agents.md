@@ -230,7 +230,7 @@ Cuando borras una regla, la mueves fuera de AGENTS o vuelves a una versión sin 
 
 Si lo editaste a mano después de que Tisty lo escribió, el aviso te lo dice antes de que elijas. Nunca pregunta por la memoria de tu agente, ni por un asistente en pausa.
 
-**Vaciar AGENTS.** Si sacas todos sus documentos con Tisty abierto, primero te pregunta por cada archivo, y después la carpeta desaparece. **Crear la carpeta AGENTS** la vuelve a crear, con el aviso de la primera vez y lo que encuentre ya marcado.
+**Vaciar AGENTS.** Si sacas todos sus documentos con Tisty abierto, primero te pregunta por cada archivo, y después la carpeta desaparece. **Crear la carpeta AGENTS**, en **Configuración → Asistentes**, la vuelve a crear, con el aviso de la primera vez y tus reglas y skills ya marcadas.
 
 ## Un segundo equipo
 
