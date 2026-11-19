@@ -1,5 +1,6 @@
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { markup } from "tisty-editor/read";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Filed, IdeaMarked, Papers } from "../core";
 import { asksSure } from "../sure";
@@ -182,5 +183,17 @@ describe("Brainstorm in the Library", () => {
     );
 
     expect(screen.getByTitle("An agent says 2 ideas have had their day").textContent).toBe("◆");
+  });
+
+  it("wears a light bulb, apart from Brainsty's network", () => {
+    const papers: Papers = { folders: [], docs: sheet([]) };
+    const { container } = render(
+      <Tree papers={papers} pinned="a3f1-0001" ideas={3} onOpen={() => {}} onFile={() => {}} />,
+    );
+
+    const drawn = container.querySelector(".brainstorm-mark path")?.getAttribute("d") ?? "";
+    expect(drawn).not.toBe("");
+    expect(markup("idea")).toContain(drawn);
+    expect(markup("brain")).not.toContain(drawn);
   });
 });

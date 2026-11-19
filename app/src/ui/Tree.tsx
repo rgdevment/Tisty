@@ -556,7 +556,7 @@ export default function Tree({
                 ? "archive"
                 : "alignleft"
               : doc === pin
-                ? "brain"
+                ? "idea"
                 : "page"
         }
         className={
