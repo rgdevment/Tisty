@@ -552,6 +552,79 @@ fn a_tool_brain_took_over_answers_its_old_call_with_the_way_to_it() {
     }
 }
 
+fn logged(served: &Served) -> String {
+    let store = served.home.path().join("data").join("store");
+    let mut said = String::new();
+    for dir in std::fs::read_dir(store).unwrap().filter_map(Result::ok) {
+        if let Ok(one) = std::fs::read_to_string(dir.path().join("active.tisty")) {
+            said.push_str(&one);
+        }
+    }
+    said
+}
+
+#[test]
+fn a_tool_that_moved_writes_nothing() {
+    let served = Served::new();
+    let doc = served.person().writes_doc("# Plan\n\nSteps.\n");
+    let mut talk = served.connect();
+    talk.brain(json!({}));
+    let before = logged(&served);
+
+    for (name, args) in [
+        ("find", json!({ "query": "plan" })),
+        ("docs", json!({ "folders": true })),
+        ("outline_doc", json!({ "doc": doc })),
+        ("lists", json!({})),
+        ("tags", json!({})),
+        ("read_doc", json!({ "doc": doc, "section": 0 })),
+    ] {
+        let said = talk.asked(name, args);
+        assert_eq!(said["isError"], true, "{name}: {said}");
+    }
+
+    assert_eq!(logged(&served), before, "nothing was written");
+    talk.call("folder", json!({ "name": "Casa" }));
+    assert_ne!(logged(&served), before, "as a write is");
+}
+
+#[test]
+fn a_limit_past_a_hundred_brings_a_hundred_and_says_how_to_go_on() {
+    let served = Served::new();
+    for n in 0..105 {
+        served.person().captures(&format!("Water plant {n}"));
+    }
+    let mut talk = served.connect();
+
+    let found = talk.brain(json!({ "query": "water", "limit": 500 }));
+
+    assert_eq!(found["total"], 105, "{found}");
+    assert_eq!(found["matches"].as_array().unwrap().len(), 100);
+    assert!(
+        found["next"].as_str().unwrap().contains("`after` 100"),
+        "{found}"
+    );
+}
+
+#[test]
+fn a_long_line_is_quoted_cut_around_the_word_it_says() {
+    let served = Served::new();
+    let filler = "palabra ".repeat(60);
+    served
+        .person()
+        .writes_doc(&format!("# Diario\n\n{filler}el riego de marzo {filler}\n"));
+    let mut talk = served.connect();
+
+    let found = talk.brain(json!({ "query": "riego" }));
+
+    let line = found["docs"][0]["line"].as_str().unwrap();
+    assert!(line.contains("el riego de marzo"), "{line}");
+    assert!(
+        line.chars().count() <= 122,
+        "a line of nearly a thousand characters is quoted around the word: {line}"
+    );
+}
+
 #[test]
 fn a_search_cut_short_says_how_to_go_on_and_empty_fields_are_named() {
     let served = Served::new();

@@ -3519,6 +3519,12 @@ fn what_an_agent_remembers_travels_in_the_log_and_never_into_the_document() {
     let said: serde_json::Value = serde_json::from_str(line).unwrap();
     assert_eq!(said["op"], "doc.gist", "{line}");
     assert_eq!(said["opt"], true, "an older Tisty skips it: {line}");
+    let fields: Vec<&String> = said["d"].as_object().unwrap().keys().collect();
+    assert_eq!(
+        fields,
+        ["print", "summary"],
+        "the note carries no time of its own, its event dates it: {line}"
+    );
     let body = std::fs::read_to_string(
         served
             .home
@@ -3528,6 +3534,43 @@ fn what_an_agent_remembers_travels_in_the_log_and_never_into_the_document() {
     )
     .unwrap();
     assert!(!body.contains("un secreto"), "nor in the document: {body}");
+}
+
+#[test]
+fn an_export_never_carries_what_an_agent_noted_about_the_document() {
+    let served = Served::new();
+    served.person().lets_the_agent_in();
+    let doc = wrote_paper(&served, "# Acta\n\nlo que se hablo.");
+    let kept = served.call(
+        "sum_up",
+        serde_json::json!({ "doc": &doc, "summary": "un secreto de trabajo", "notes": "la seccion de abril" }),
+    );
+    assert_eq!(kept["result"]["structuredContent"]["kept"], true, "{kept}");
+    let out = tempfile::Builder::new()
+        .tempdir_in(std::env::temp_dir())
+        .unwrap();
+
+    let said = served.call(
+        "export_doc",
+        serde_json::json!({ "doc": &doc, "into": out.path().to_str().unwrap() }),
+    );
+
+    assert_ne!(said["result"]["isError"], true, "{said}");
+    let mut written = String::new();
+    let mut walk = vec![out.path().to_path_buf()];
+    while let Some(at) = walk.pop() {
+        for one in std::fs::read_dir(&at).unwrap().flatten() {
+            match one.path().is_dir() {
+                true => walk.push(one.path()),
+                false => written.push_str(&std::fs::read_to_string(one.path()).unwrap_or_default()),
+            }
+        }
+    }
+    assert!(written.contains("lo que se hablo"), "{written}");
+    assert!(
+        !written.contains("un secreto") && !written.contains("la seccion de abril"),
+        "the note is for the next agent, never for whoever reads the copy: {written}"
+    );
 }
 
 #[test]
