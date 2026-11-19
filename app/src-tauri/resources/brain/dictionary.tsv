@@ -1094,6 +1094,7 @@ afrodita	aphrodite
 afrontar	confront
 afta	sore
 afueras	suburb
+ag	antigen
 agachadiza	snipe
 agachar	crouch
 agacharse	crouch
@@ -1975,6 +1976,7 @@ alzaprima	crowbar
 alzar	stand
 alzarse	rise
 alzavalvulas	tappet
+am	forenoon
 ama	owner
 amabilidad	amiability
 amable	kind
@@ -3731,6 +3733,7 @@ arzobispado	archbishopric
 arzobispal	archepiscopal
 arzobispo	archbishop
 arzon	pommel
+as	ace
 asa	grip
 asado	broil
 asador	grill
@@ -4422,6 +4425,7 @@ auxiliar	help
 auxilio	aid
 auxina	auxin
 auxinas	auxin
+av	ab
 avadavat	amadavat
 aval	guarantee
 avalador	bondsman
@@ -4528,6 +4532,7 @@ axioma	axiom
 axiomaticamente	axiomatically
 axiomatico	axiomatic
 axonico	axonal
+ay	groan
 aya	governess
 ayatola	ayatollah
 ayax	ajax
@@ -5103,6 +5108,7 @@ bazo	lien
 bazofia	pigswill
 bazuca	bazooka
 bbl	barrel
+be	baa
 beaner	beanball
 beateria	sanctimoniousness
 beatificacion	canonisation
@@ -5305,6 +5311,7 @@ betun	bitumen
 betunero	bootblack
 bezoar	hairball
 bezzant	bezant
+bf	lf
 biauricular	biaural
 biaxial	biaxal
 biberon	bottle
@@ -8644,6 +8651,7 @@ cizalla	shear
 cizallas	snips
 cizana	cheat
 cizanar	antagonise
+cl	centiliter
 clac	beaver
 claca	claque
 cladistica	cladistics
@@ -8819,9 +8827,11 @@ clube	club
 clueca	broody
 clupeidos	clupeidae
 cluster	bunch
+cm	centimeter
 cnidario	cnidarian
 cnidarios	cnidaria
 cnidiosporidios	cnidosporidia
+co	linkage
 coaccion	coercion
 coaccionar	coerce
 coadyuvar	collaborate
@@ -10584,7 +10594,9 @@ coyunda	lead
 coyuntura	position
 coyunturalismo	expedience
 coyunturalmente	circumstantially
+cp	postcode
 cpu	c.p.u.
+cr	chromium
 cracidos	cracidae
 cracinae	curassow
 crack	genius
@@ -10857,6 +10869,7 @@ cruzado	crossed
 cruzar	cross
 cruzarse	cross
 cryptophyta	cryptomonad
+cs	cps
 ctenoforo	ctenophore
 ctenoforos	ctenophora
 cua	kwa
@@ -12861,6 +12874,7 @@ dextrina	dextrin
 dextrorso	clockwise
 dextrosa	dextroglucose
 deyeccion	excretion
+dg	decigram
 dhak	dak
 dhaka	dacca
 dhal	dahl
@@ -13486,6 +13500,8 @@ djibuti	djibouti
 dkg	dag
 dkl	dal
 dkm	dam
+dl	dal
+dm	doc
 dobladillo	hem
 dobladura	bend
 doblaje	dubbing
@@ -13991,6 +14007,7 @@ ejercitar	exercise
 ejercitarse	exercise
 ejercito	army
 ejido	commons
+el	salvador
 ela	als
 elaboracion	devising
 elaboradamente	elaborately
@@ -15381,6 +15398,7 @@ eructo	belch
 erudicion	encyclopaedism
 erudito	bookman
 erupcion	burst
+es	1
 esbeltez	slenderness
 esbelto	lean
 esbirro	collaborator
@@ -16572,6 +16590,7 @@ euterio	eutherian
 euterios	eutherian
 eutrofico	eutrophic
 eutrofizacion	eutrophication
+ev	dose
 eva	eve
 evacuacion	evacuation
 evacuado	evacuee
@@ -17017,6 +17036,7 @@ eyector	ejector
 ezed	z
 ezekiel	ezechiel
 ezequiel	ezechiel
+f	performance
 faba	bean
 fabaceas	fabaceae
 fabianismo	fabianism
@@ -17284,6 +17304,7 @@ faxear	facsimile
 fay	faerie
 fayenza	faience
 faz	face
+fe	faith
 fealdad	ugliness
 feamente	awfully
 febrero	feb
@@ -17445,6 +17466,7 @@ fetua	fatwa
 feudalismo	feudalism
 feudatario	feudatory
 feudo	feoff
+fi	phi
 fiabilidad	dependability
 fiable	dependable
 fiador	bondsman
@@ -18714,6 +18736,7 @@ gazmonada	priggishness
 gazmoneria	primness
 gaznapiro	dolt
 gdansk	danzig
+ge	g
 gea	gaea
 geastraceas	geastraceae
 geco	gecko
@@ -19066,6 +19089,7 @@ glutamina	glutamine
 glutelina	glutelin
 gluteo	glute
 gluteos	arse
+gm	g
 gnation	gnathion
 gnatostomados	gnathostomata
 gneis	gneiss
@@ -19202,6 +19226,7 @@ gozne	hinge
 gozo	joy
 gozoso	joyful
 gozque	cur
+gr	g
 grabacion	recording
 grabado	engraving
 grabador	engraver
@@ -19601,6 +19626,7 @@ guyarat	gujarat
 guyarati	gujarati
 gymnospermae	gymnosperm
 gyrostabilizer	gyrostabiliser
+h	hour
 h2o	water
 haba	bean
 habacuc	habakkuk
@@ -20511,6 +20537,8 @@ hito	milestone
 hiyab	hijab
 hizbollah	hezbollah
 hizbullah	hezbollah
+hl	hectoliter
+hm	hectometer
 hoagie	bomber
 hoar	frost
 hoatzin	hoactzin
@@ -20875,6 +20903,8 @@ hypochoeris	hypochaeris
 hyracoidea	coney
 hyrax	coney
 hyssopus	hyssop
+hz	cps
+ia	ai
 iambus	iamb
 iberico	iberian
 ibero	iberian
@@ -22620,8 +22650,10 @@ ionizar	ionate
 ionosfera	ionosphere
 iontoforesis	emda
 ioway	iowa
+ip	informatics
 ipsilon	upsilon
 ipso	ipsus
+ir	go
 ira	anger
 iracundia	irascibility
 iracundosamente	tetchily
@@ -22961,6 +22993,7 @@ jesuita	jesuit
 jesuitico	jesuit
 jesus	redeemer
 jezabel	jezebel
+ji	chi
 jibia	cuttle
 jibingly	gibingly
 jicara	calabash
@@ -23146,6 +23179,7 @@ juvenilmente	boyishly
 juventud	youth
 juzgado	court
 juzgar	consider
+k2	dapsang
 kaaba	caaba
 kaf	kaph
 kafkiano	kafkaesque
@@ -23272,11 +23306,13 @@ kishinev	chisinau
 kismet	kismat
 kitul	kittul
 klistron	klystron
+km	kilometer
 knawel	knawe
 kneset	knesset
 kniphofia	flameflower
 knossos	cnossos
 knut	knout
+ko	kayo
 kochia	bassia
 kokihi	tetragonia
 koljos	kolkhoz
@@ -23298,6 +23334,7 @@ kripton	kr
 kris	crease
 krishnaismo	krishnaism
 kruschev	khrushchev
+kt	carat
 kuangchou	canton
 kucheo	kuchean
 kudu	koodoo
@@ -24423,6 +24460,7 @@ lovastatina	lovastatin
 loza	clayware
 lozania	life
 lozano	weedy
+lr	lawrencium
 lsd	acid
 lubina	bass
 lubricacion	lubrication
@@ -24532,6 +24570,7 @@ luxemburgues	luxemburger
 luxemburguesa	luxembourger
 luz	light
 luzbel	beelzebub
+lx	lux
 lychnis	catchfly
 lycium	boxthorn
 lycopersicum	lycopersicon
@@ -25412,6 +25451,8 @@ mazzard	gean
 mbit	mb
 mckinley	denali
 mcm	lcm
+md	maryland
+me	maine
 meadero	jakes
 meado	pee
 meandro	meander
@@ -26401,6 +26442,8 @@ mixomicetes	myxomycetes
 mixosporidios	myxosporidia
 mixturar	mix
 mizenmast	mizen
+ml	cc
+mn	manganese
 mnemonista	mnemonist
 mnemosina	mnemosyne
 mnemosine	mnemosyne
@@ -26863,6 +26906,7 @@ mozambiquena	mozambican
 mozambiqueno	mozambican
 mozartiano	mozartean
 mozo	younker
+mu	moo
 muare	moire
 muchacha	girl
 muchacho	younker
@@ -27067,6 +27111,7 @@ muy	well
 muyahid	mujahadeen
 muyahidin	mujahadeen
 muzjik	moujik
+my	mu
 myanmar	burma
 mycobacterium	mycobacteria
 mycophagist	mycophage
@@ -27508,6 +27553,7 @@ newsvendor	newsagent
 newswriter	correspondent
 newtoniano	newtonian
 nexo	link
+ng	nanogram
 niacina	niacin
 nibelungo	nibelung
 nicab	yashmac
@@ -27607,6 +27653,8 @@ nivelar	balance
 nivoso	nivose
 nix	aught
 niza	nice
+nj	jersey
+no	non
 nobelio	no
 nobelista	nobelist
 noblemente	majestically
@@ -28103,6 +28151,7 @@ ojibway	chippewa
 ojiva	load
 ojo	eye
 ojos	eyes
+ok	o.k.
 okeh	o.k.
 okey	o.k.
 oklahoma	ok
@@ -28507,6 +28556,7 @@ orwelliano	orwellian
 orza	luff
 orzar	luff
 orzuelo	hordeolum
+os	bone
 osadamente	daringly
 osadia	boldness
 osado	bold
@@ -29503,6 +29553,8 @@ payasear	fool
 payaso	buffoon
 payute	paiute
 paz	peace
+pc	microcomputer
+pd	palladium
 pda	organiser
 pdg	captive
 peaje	tolbooth
@@ -30798,6 +30850,7 @@ pluviometro	pluviometer
 pluviosidad	foulness
 pluviselva	rainforest
 plzen	pilsen
+pm	mp
 pmf	faq
 pn000	miss
 pnb	gnp
@@ -32141,6 +32194,7 @@ prurito	lecherousness
 prusia	preussen
 prusiano	prussian
 prusiato	cyanide
+ps	polystyrene
 psamoma	psammoma
 psefologo	psephologist
 pseudoalucinacion	pseudohallucination
@@ -32217,6 +32271,7 @@ psittaciformes	parrot
 psittacosaurus	psittacosaur
 psocopteros	corrodentia
 psyllidae	chermidae
+pt	platinum
 pteretis	matteuccia
 pteridaceas	pteridaceae
 pteridium	bracken
@@ -32236,6 +32291,7 @@ ptialina	ptyalin
 ptolemaico	ptolemaic
 ptolomeo	ptolemy
 ptomaina	ptomain
+pu	plutonium
 pua	tine
 pub	pothouse
 pubertad	puberty
@@ -32444,6 +32500,7 @@ qabala	cabala
 qat	cat
 qatar	katar
 qatari	katari
+qi	ch'i
 qing	ch'ing
 qintar	qindarka
 qom	qum
@@ -34482,6 +34539,8 @@ rizomorfo	rhizomorph
 rizopodo	rhizopod
 rizopodos	rhizopoda
 rizotomia	rhizotomy
+rn	radon
+ro	rho
 roano	roan
 robacarteras	cutpurse
 robar	steal
@@ -34778,6 +34837,7 @@ rutina	custom
 rutinariamente	commonly
 rutinario	uneventful
 rwanda	ruanda
+sa	ld.
 sab	sabbatum
 sabado	sabbatum
 sabalo	shad
@@ -35229,6 +35289,7 @@ sazon	ripeness
 sazonado	seasoned
 sazonador	relish
 sazonar	spice
+sb	antimony
 scallopini	scallopine
 scam	cozenage
 scampo	langoustine
@@ -36126,6 +36187,7 @@ slide	coast
 slip	briefs
 slipover	pullover
 slobberer	dribbler
+sm	samarium
 smart	smarta
 smidge	iota
 smidgeon	iota
@@ -36143,6 +36205,7 @@ snobismo	snobbery
 snoek	barracouta
 snorkel	snorkeling
 snowboard	snowboarding
+so	os
 soakage	soak
 soba	caressing
 sobaco	armpit
@@ -36625,6 +36688,7 @@ sporophyll	sporophyl
 spot	ad
 spreadhead	spread
 sprint	dash
+sr	mister
 sras	sars
 sri	ceylon
 staccato	disconnected
@@ -37187,6 +37251,7 @@ syllabus	curriculum
 symphytum	comfrey
 synchytriaceas	synchytriaceae
 syrah	shiraz
+ta	mt
 taba	anklebone
 tabaco	tobacco
 tabanidos	tabanidae
@@ -38057,6 +38122,7 @@ thriller	mystery
 thymus	thyme
 thyrsopteridaceae	thyrsopteris
 thysanoptera	thrip
+ti	it
 tia	aunt
 tiabendazol	thiabendazole
 tiamina	aneurin
@@ -38283,6 +38349,9 @@ tiznarse	black
 tizne	blot
 tiznon	blot
 tizon	brand
+tl	thallium
+tm	thulium
+to	tho
 toalla	towel
 toba	tufa
 tobera	nose
@@ -39372,10 +39441,12 @@ tutelar	tutor
 tuteria	tuition
 tutor	defender
 tutoria	tutorial
+tv	television
 twirler	hurler
 txoko	corner
 tyrannosaurus	tyrannosaur
 tzetze	glossina
+ua	au
 uadi	wadi
 ualabi	wallaby
 uapiti	elk
@@ -39395,6 +39466,7 @@ ucraniano	ukrainian
 ucranio	ukrainian
 udmurto	udmurt
 udometro	pluviometer
+ue	ec
 ufanarse	blow
 ufania	conceit
 ugandes	ugandan
@@ -39454,6 +39526,7 @@ umbelliferae	apiaceae
 umbral	beginning
 umbro	umbrian
 umlaut	diaeresis
+un	email
 una	hoof
 unanimemente	unanimously
 unanimente	clear
@@ -40630,6 +40703,7 @@ water	can
 waterfinder	dowser
 wavelet	riffle
 wayland	volund
+wc	closet
 weaverbird	weaver
 weber	wb
 weberio	wb
@@ -40720,6 +40794,7 @@ xilosa	xylose
 xinjiang	sinkiang
 xizang	sitsang
 xtc	adam
+ya	already
 yabiru	jabiru
 yaca	guanabana
 yacare	caiman
@@ -40764,6 +40839,8 @@ yave	jahvey
 yaya	gran
 yayo	gramps
 ybit	yb
+yd	pace
+ye	y
 yearner	longer
 yeatsiano	yeatsian
 yeddo	edo
@@ -40792,6 +40869,7 @@ yeyunitis	jejunitis
 yeyuno	jejunum
 yeyunoileitis	jejunoileitis
 yhvh	jahvey
+yi	lolo
 yibuti	djibouti
 yibutiano	djiboutian
 yibutiense	djiboutian
@@ -40802,6 +40880,7 @@ yidis	yiddish
 yidish	yiddish
 yihad	jehad
 yip	yelp
+yo	ego
 yobibyte	yb
 yodacion	iodination
 yodado	iodinated
@@ -40989,6 +41068,7 @@ zip	aught
 ziper	zip
 zirconio	zirconium
 zit	hickey
+zn	zinc
 zocalo	pane
 zoco	souk
 zodiaco	zodiac
@@ -41030,6 +41110,7 @@ zosteraceas	zosteraceae
 zote	dimwit
 zozobra	anxiety
 zozobrar	fail
+zr	zirconium
 zucchini	courgette
 zueco	clog
 zulo	drop

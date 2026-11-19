@@ -31,7 +31,7 @@ fn base(mut items: Vec<Item>) -> Vec<Item> {
 }
 
 fn dictionary() -> Dictionary {
-    Dictionary::parsed("pagar\tpay\nagua\twater\ncuenta\tbill\n").unwrap()
+    Dictionary::parsed("agua\twater\ncuenta\tbill\npagar\tpay\n".to_string()).unwrap()
 }
 
 fn tracked(
@@ -135,4 +135,11 @@ fn two_words_one_key_stands_for_count_once_under_the_first_written() {
             ("agua".to_string(), "agua".to_string(), 1),
         ]
     );
+}
+
+#[test]
+fn readers_show_every_track_the_pass_writes() {
+    for method in [WORDS, TYPO, DICTIONARY] {
+        assert!(SHOWN.contains(&format!("'{method}'")), "{method}");
+    }
 }

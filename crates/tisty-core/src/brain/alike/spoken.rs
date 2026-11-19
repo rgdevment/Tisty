@@ -16,9 +16,9 @@ pub(crate) fn guessed(texts: &[&str]) -> Option<&'static str> {
     let (mut spanish, mut english) = (0usize, 0usize);
     for text in texts {
         for word in text.split(|one: char| !one.is_alphanumeric()) {
-            let word = word.to_lowercase();
-            spanish += usize::from(SPANISH_TELLS.contains(&word.as_str()));
-            english += usize::from(ENGLISH_TELLS.contains(&word.as_str()));
+            let tells = |all: &[&str]| all.iter().any(|one| one.eq_ignore_ascii_case(word));
+            spanish += usize::from(tells(SPANISH_TELLS));
+            english += usize::from(tells(ENGLISH_TELLS));
         }
     }
     match spanish.cmp(&english) {

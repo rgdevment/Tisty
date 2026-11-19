@@ -1,41 +1,55 @@
-use std::collections::HashMap;
+use std::ops::Range;
 use std::path::Path;
 
-// A Spanish word, folded, and the English word it stands for: one line each, a tab between.
 #[derive(Debug, Default)]
-pub struct Dictionary {
-    english: HashMap<String, String>,
+pub(crate) struct Dictionary {
+    said: String,
+    entries: Vec<(Range<usize>, Range<usize>)>,
 }
 
 impl Dictionary {
-    pub fn read(at: &Path) -> Result<Self, String> {
+    pub(crate) fn read(at: &Path) -> Result<Self, String> {
         let said = std::fs::read_to_string(at).map_err(|e| e.to_string())?;
-        Self::parsed(&said)
+        Self::parsed(said)
     }
 
-    pub(crate) fn parsed(said: &str) -> Result<Self, String> {
-        let mut english = HashMap::new();
-        for (n, line) in said.lines().enumerate() {
-            match line.split_once('\t') {
-                Some((spanish, word)) if !spanish.is_empty() && !word.is_empty() => {
-                    english.insert(spanish.to_string(), word.to_string());
-                }
-                _ => return Err(format!("line {} is not a word, a tab and a word", n + 1)),
+    // Kept as written and searched in order, so the table costs about its own size in memory.
+    pub(crate) fn parsed(said: String) -> Result<Self, String> {
+        let mut entries: Vec<(Range<usize>, Range<usize>)> = Vec::new();
+        let mut at = 0;
+        for (n, line) in said.split_inclusive('\n').enumerate() {
+            let text = line.strip_suffix('\n').unwrap_or(line);
+            let Some((spanish, english)) = text
+                .split_once('\t')
+                .filter(|(a, b)| !a.is_empty() && !b.is_empty() && !b.contains('\t'))
+            else {
+                return Err(format!("line {} is not a word, a tab and a word", n + 1));
+            };
+            let spanish_at = at..at + spanish.len();
+            let english_at = spanish_at.end + 1..spanish_at.end + 1 + english.len();
+            if entries
+                .last()
+                .is_some_and(|(last, _)| said[last.clone()] >= *spanish)
+            {
+                return Err(format!("line {} is out of order", n + 1));
             }
+            entries.push((spanish_at, english_at));
+            at += line.len();
         }
-        Ok(Self { english })
+        Ok(Self { said, entries })
     }
 
     pub(crate) fn english_of(&self, spanish: &str) -> Option<&str> {
-        self.english.get(spanish).map(String::as_str)
+        let at = self
+            .entries
+            .binary_search_by(|(word, _)| self.said[word.clone()].cmp(spanish))
+            .ok()?;
+        Some(&self.said[self.entries[at].1.clone()])
     }
 
-    pub fn len(&self) -> usize {
-        self.english.len()
-    }
-
-    pub fn is_empty(&self) -> bool {
-        self.english.is_empty()
+    #[cfg(test)]
+    pub(crate) fn len(&self) -> usize {
+        self.entries.len()
     }
 }
 

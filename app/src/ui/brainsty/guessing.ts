@@ -75,7 +75,6 @@ export function alikeOf(network: Network, node: number, hidden: readonly boolean
 
 const SOUNDS_I = /^h?i(?![aeiouáéíóú])/i;
 
-// A translation or a typo comes as «pagar≈pay»: each side's own word, spaced to be read.
 const wordsOf = (shared: string): string[] =>
   shared
     .split(" ")

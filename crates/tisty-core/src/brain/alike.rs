@@ -19,8 +19,9 @@ mod tracks;
 mod typos;
 mod words;
 
-pub use dictionary::Dictionary;
+use dictionary::Dictionary;
 use likeness::{CAPS, Caps, Item};
+pub(super) use tracks::SHOWN;
 use tracks::Tracked;
 
 const TURN: &str = "words_turn";
@@ -195,7 +196,8 @@ pub(super) fn kept_in_round(
 pub struct Weighing {
     heard: Option<u64>,
     waited: u32,
-    warned: bool,
+    dictionary: Option<Dictionary>,
+    missed: u32,
 }
 
 impl Weighing {
@@ -213,37 +215,44 @@ impl Weighing {
             return Some(Passed::Settling);
         }
         self.waited = 0;
-        let warned = &mut self.warned;
-        let mut read = || match dictionary.map(Dictionary::read)? {
-            Ok(dictionary) => Some(dictionary),
-            Err(why) => {
-                if !std::mem::replace(warned, true) {
-                    warned_dictionary(dictionary, why);
+        if let Some(at) = dictionary
+            && self.dictionary.is_none()
+        {
+            match Dictionary::read(at) {
+                Ok(read) => self.dictionary = Some(read),
+                Err(_) if self.missed < PATIENCE => {
+                    self.missed += 1;
+                    return Some(Passed::Settling);
                 }
-                None
+                Err(why) => {
+                    if self.missed == PATIENCE {
+                        self.missed += 1;
+                        warned_dictionary(at, why);
+                    }
+                }
             }
-        };
-        weighed_now(&mut brain, paths, &mut read)
+        }
+        weighed_now(&mut brain, paths, self.dictionary.as_ref())
     }
 }
 
-fn warned_dictionary(at: Option<&Path>, why: String) {
+// A table that cannot be read gives up its guesses only after the pass's patience, so one bad read drops none.
+fn warned_dictionary(at: &Path, why: String) {
     witness::warn(
         channel::BRAIN,
         "the dictionary could not be read, so no guess crosses from Spanish to English",
         &[
-            (
-                "at",
-                Fact::Path(at.map(Path::to_path_buf).unwrap_or_default()),
-            ),
+            ("at", Fact::Path(at.to_path_buf())),
             ("why", Fact::Why(why)),
         ],
     );
 }
 
-type Reading<'a> = dyn FnMut() -> Option<Dictionary> + 'a;
-
-fn weighed_now(brain: &mut Brain, paths: &Paths, dictionary: &mut Reading) -> Option<Passed> {
+fn weighed_now(
+    brain: &mut Brain,
+    paths: &Paths,
+    dictionary: Option<&Dictionary>,
+) -> Option<Passed> {
     let started = Instant::now();
     match brain.weigh_alike(&CAPS, dictionary) {
         Ok(passed) => {
@@ -304,7 +313,7 @@ impl Brain {
     pub(super) fn weigh_alike(
         &mut self,
         caps: &Caps,
-        dictionary: &mut Reading,
+        dictionary: Option<&Dictionary>,
     ) -> rusqlite::Result<Passed> {
         match self.weighed(caps, dictionary)? {
             Some(weighed) => self.kept_alike(weighed),
@@ -315,7 +324,7 @@ impl Brain {
     pub(super) fn weighed(
         &self,
         caps: &Caps,
-        dictionary: &mut Reading,
+        dictionary: Option<&Dictionary>,
     ) -> rusqlite::Result<Option<Weighed>> {
         let snapshot = self.db.unchecked_transaction()?;
         let Some(turn) = turn_of(&snapshot, TURN)? else {
@@ -327,16 +336,9 @@ impl Brain {
         let worded = worded(&snapshot)?;
         let tied = tied(&snapshot, &worded.ids)?;
         drop(snapshot);
-        let dictionary = dictionary();
         Ok(Some(Weighed {
             turn,
-            found: tracks::alike(
-                &worded.items,
-                &worded.guesses,
-                &tied,
-                caps,
-                dictionary.as_ref(),
-            ),
+            found: tracks::alike(&worded.items, &worded.guesses, &tied, caps, dictionary),
             ids: worded.ids,
         }))
     }

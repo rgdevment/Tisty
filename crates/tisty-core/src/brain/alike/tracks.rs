@@ -8,6 +8,7 @@ use super::typos;
 pub(crate) const WORDS: &str = "words";
 pub(crate) const TYPO: &str = "typo";
 pub(crate) const DICTIONARY: &str = "dictionary";
+pub(crate) const SHOWN: &str = "method IN ('words', 'typo', 'dictionary')";
 
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct Found {

@@ -2,7 +2,6 @@ use std::collections::{BTreeSet, HashMap};
 
 pub(crate) const SHORTEST: usize = 6;
 
-// Each word one edit from a more used one takes its key; the most used names its class, so nothing chains.
 pub(crate) fn classes(vocabulary: &[(&str, u32)]) -> HashMap<String, String> {
     let mut by_variant: HashMap<String, Vec<usize>> = HashMap::new();
     for (at, (word, _)) in vocabulary.iter().enumerate() {

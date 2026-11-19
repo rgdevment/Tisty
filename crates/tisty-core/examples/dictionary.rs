@@ -1,4 +1,3 @@
-// cargo run -p tisty-core --example dictionary -- <omw-es.xml> <omw-en.xml> <dictionary.tsv>
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 
 use sha2::{Digest, Sha256};
@@ -6,9 +5,6 @@ use tisty_core::text::folded;
 
 const SPANISH_SHA256: &str = "9822d50707d3e3322e040a1f551996b0957d1d9c98e0a686dc04219c17656652";
 const ENGLISH_SHA256: &str = "3ab4c3e4324a6d1676cf23ea3eafdd8f858f92969bf85108d049db6b7e4539bd";
-const SHORTEST: usize = 3;
-const LONGEST: usize = 32;
-const ID_LIKE_FROM: usize = 8;
 
 struct Sense {
     synset: String,
@@ -102,16 +98,11 @@ fn single(word: &str) -> bool {
     !word.contains([' ', '_', '-'])
 }
 
+// The pass splits text where a letter or digit ends, so a word with anything else in it is never looked up.
 fn looked_up(word: &str) -> bool {
-    let length = word.chars().count();
-    let digits = word.chars().filter(char::is_ascii_digit).count();
-    (SHORTEST..=LONGEST).contains(&length)
-        && word.chars().all(char::is_alphanumeric)
-        && digits != length
-        && !(digits > 0 && length >= ID_LIKE_FROM)
+    word.chars().all(char::is_alphanumeric)
 }
 
-// Each Spanish word stands for the English word it shares the most-used synsets with, ties to the first in order.
 fn table(spanish: &[Entry], english: &[Entry]) -> String {
     let mut used: HashMap<&str, u64> = HashMap::new();
     let mut members: HashMap<&str, Vec<String>> = HashMap::new();

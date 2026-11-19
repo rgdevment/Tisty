@@ -32,7 +32,6 @@ pub(crate) struct Item {
     pub(crate) words: Vec<(String, String, u32)>,
 }
 
-// Shared words make a guess; a track made by typos or a dictionary needs each side to write one key its own way.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum Rule {
     Words,
@@ -60,7 +59,6 @@ enum Tongue {
     Other,
 }
 
-// A key, its weight, and how this node wrote it.
 type Vector = Vec<(u32, f32, u32)>;
 
 struct Base<'a> {
@@ -143,7 +141,7 @@ pub(crate) fn alike(
     }
 }
 
-// Under a dictionary or a typo, a key both write the same way counts only if it weighs on its own.
+// A word both sides write alike already had its say in the shared-words track.
 fn tallied(
     base: &Base,
     postings: &[Vec<(usize, f32, u32)>],
@@ -329,7 +327,7 @@ fn common_from(df: &[u32], n: usize, caps: &Caps) -> usize {
     ceiling + 1
 }
 
-// A common key two sides reach by different words still tells, up to a quarter of the base and within its own budget.
+// A translation often lands on a common English word, which the 5 % cut alone would silence; the budget stays one.
 fn loose(df: &[u32], weighty: &[bool], crossed: &[bool], n: usize, caps: &Caps) -> Vec<bool> {
     let below = n / caps.loose_share;
     let mut wanted: Vec<usize> = (0..df.len())
@@ -337,7 +335,10 @@ fn loose(df: &[u32], weighty: &[bool], crossed: &[bool], n: usize, caps: &Caps) 
         .collect();
     wanted.sort_by_key(|at| (df[*at], *at));
     let mut loose = vec![false; df.len()];
-    let mut spent = 0u64;
+    let mut spent: u64 = (0..df.len())
+        .filter(|at| weighty[*at] && df[*at] >= 2)
+        .map(|at| u64::from(df[at]).pow(2))
+        .sum();
     for at in wanted {
         spent += u64::from(df[at]).pow(2);
         if spent > caps.steps {
@@ -401,7 +402,7 @@ fn floors(items: &[Item], spread: &[Spread; 2], caps: &Caps) -> [f32; 2] {
     ]
 }
 
-// Each side's own word when they differ, so a guess reads «pagar≈pay»; a track's guess must show one.
+// A track's guess that shows no word each side wrote its own way could not say why it was made.
 fn shared_words(base: &Base, a: usize, b: usize, told: usize, rule: Rule) -> (Vec<String>, bool) {
     let theirs: HashMap<u32, (f32, u32)> = base.vectors[b]
         .iter()
