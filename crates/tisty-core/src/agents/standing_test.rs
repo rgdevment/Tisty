@@ -838,13 +838,24 @@ fn a_loose_skill_takes_its_emptied_folder_and_nothing_else() {
         vec![doc_of("claude", Kind::Skill, "tidy/SKILL.md", b"Tidy.\n").unwrap()],
     );
     room.round(std::slice::from_ref(&placed));
-    std::fs::create_dir_all(room.home.path().join(".claude/skills/keep")).unwrap();
     let mut loose = room.target(".claude/skills/tidy/SKILL.md", vec![]);
     loose.root = room.home.path().join(".claude");
     removed(room.data.path(), &mut room.ledger, &loose).unwrap();
     assert!(!room.home.path().join(".claude/skills/tidy").exists());
-    assert!(room.home.path().join(".claude/skills/keep").exists());
-    assert!(room.home.path().join(".claude/skills").exists());
+    assert!(
+        room.home.path().join(".claude/skills").exists(),
+        "the assistant's own folder stays"
+    );
+
+    let last = room.target(
+        ".claude/rules/last.md",
+        vec![rule("claude", "rules/last.md", "Last.\n")],
+    );
+    room.round(std::slice::from_ref(&last));
+    let mut loose = room.target(".claude/rules/last.md", vec![]);
+    loose.root = room.home.path().join(".claude");
+    removed(room.data.path(), &mut room.ledger, &loose).unwrap();
+    assert!(room.home.path().join(".claude/rules").is_dir());
 }
 
 #[test]

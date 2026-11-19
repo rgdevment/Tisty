@@ -150,7 +150,7 @@ export default function AgentsFirst({ more = false, onClose, onChanged }: Readon
           setWaiting(queue);
           setReviewing(true);
         }
-        const ticked = seen.consented ? () => false : chosenFirst;
+        const ticked = more && seen.consented ? () => false : chosenFirst;
         setChosen(
           new Set(
             seen.assistants.flatMap((one) => one.files.filter(ticked).map((file) => file.at)),
@@ -200,6 +200,11 @@ export default function AgentsFirst({ more = false, onClose, onChanged }: Readon
       .finally(() => setBusy(false));
   };
 
+  const skip = () => {
+    setTrouble(undefined);
+    setWaiting(waiting.slice(1));
+  };
+
   const shown = waiting[0];
   useEffect(() => {
     if (reviewing && !shown) onClose();
@@ -219,7 +224,7 @@ export default function AgentsFirst({ more = false, onClose, onChanged }: Readon
         busy={busy}
         trouble={trouble}
         bringable={bringable}
-        onLater={() => setWaiting(waiting.slice(1))}
+        onLater={skip}
         onKeep={(tisty) => answered(() => agentsKeep(at, tisty))}
         onBring={() => answered(() => bringOne(at))}
       />
@@ -242,7 +247,7 @@ export default function AgentsFirst({ more = false, onClose, onChanged }: Readon
         name={nameOf(shown.assistant)}
         busy={busy}
         trouble={trouble}
-        onLater={() => setWaiting(waiting.slice(1))}
+        onLater={skip}
         onLead={() => answered(agentsLead)}
       />
     );

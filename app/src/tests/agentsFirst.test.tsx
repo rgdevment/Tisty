@@ -342,6 +342,20 @@ describe("bringing another file after the first time", () => {
   });
 });
 
+describe("AGENTS made again on a computer that already said yes", () => {
+  it("ticks what it finds, as the first time did", async () => {
+    ipc.answer = (cmd) =>
+      cmd === "agents_look"
+        ? Promise.resolve({ ...look, consented: true, asks: false })
+        : Promise.resolve(brought());
+    render(<AgentsFirst onClose={() => {}} onChanged={() => {}} />);
+    await userEvent.click(await screen.findByText("Codex · 1 archivo"));
+    expect((screen.getByRole("checkbox", { name: /AGENTS\.md/ }) as HTMLInputElement).checked).toBe(
+      true,
+    );
+  });
+});
+
 describe("a main file the bring turns away", () => {
   it("keeps asking and says why it did not come in", async () => {
     const composed: Both = {
@@ -369,6 +383,38 @@ describe("a main file the bring turns away", () => {
     await userEvent.click(await screen.findByRole("button", { name: "Traer a AGENTS" }));
     await screen.findByText(/Parece llevar una credencial/);
     expect(screen.getByText("Existe en los dos lados")).toBeTruthy();
+  });
+
+  it("clears the reason once the person leaves that file for later", async () => {
+    const composed: Both = {
+      ...both,
+      at: "/h/.codex/AGENTS.md",
+      assistant: "codex",
+      composed: true,
+    };
+    const loose = { at: "/h/.claude/rules/tone.md", assistant: "claude", changed: false };
+    ipc.answer = (cmd) => {
+      if (cmd === "agents_look")
+        return Promise.resolve({
+          ...look,
+          folder: "f",
+          docs: 2,
+          consented: true,
+          both: [composed],
+          loose: [loose],
+        });
+      if (cmd === "agents_bring")
+        return Promise.resolve(
+          brought({ made: 0, refused: [{ at: composed.at, why: "token", reason: "secret" }] }),
+        );
+      return Promise.resolve({ told: [], both: [], loose: [], unled: [] });
+    };
+    render(<AgentsFirst onClose={() => {}} onChanged={() => {}} />);
+    await userEvent.click(await screen.findByRole("button", { name: "Traer a AGENTS" }));
+    await screen.findByText(/Parece llevar una credencial/);
+    await userEvent.click(screen.getByRole("button", { name: "Decidir después" }));
+    await screen.findByText("¿Quitar también el archivo?");
+    expect(screen.queryByText(/Parece llevar una credencial/)).toBeNull();
   });
 });
 
