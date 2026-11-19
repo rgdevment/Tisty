@@ -28,7 +28,23 @@ export interface Network {
   left_out?: LeftOut;
 }
 
+export interface Group {
+  id: string;
+  name: string;
+  color?: string;
+}
+
 export const OPENED = "brainsty-opened";
+export const OPEN_ASKED = "brainsty-open";
+export const SPOKEN = "spoken";
 
 export const brainNetwork = (near?: string): Promise<Network | null> =>
   invoke("brain_network", { near: near ?? null });
+
+export const brainstyGroups = (): Promise<Group[]> => invoke("brainsty_groups");
+
+export const showBrainsty = (near?: string): Promise<void> =>
+  invoke("brainsty_show", { near: near ?? null });
+
+export const openInMain = ({ kind, id, title }: Neuron): Promise<void> =>
+  invoke("brainsty_open", { neuron: { kind, id, title } });

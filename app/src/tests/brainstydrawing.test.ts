@@ -42,6 +42,8 @@ const drawn = vi.hoisted(() => ({
   refreshed: 0,
   killed: 0,
   shown: true,
+  raw: false,
+  scheduled: 0,
 }));
 
 vi.mock("sigma", () => ({
@@ -52,7 +54,11 @@ vi.mock("sigma", () => ({
       drawn.options = options;
     }
     getNodeDisplayData() {
-      return drawn.shown ? { x: 0.25, y: 0.75 } : undefined;
+      if (!drawn.shown) return undefined;
+      return drawn.raw ? { x: 412, y: -96 } : { x: 0.25, y: 0.75 };
+    }
+    scheduleRender() {
+      drawn.scheduled++;
     }
     getCamera() {
       return drawn.camera;
@@ -112,6 +118,10 @@ const network: Network = {
 
 const spots = { x: Float32Array.of(1, 2, 3), y: Float32Array.of(3, 4, 5) };
 
+const rendered = () => {
+  for (const one of drawn.events.afterRender ?? []) one(undefined as never);
+};
+
 const nodeStyle = (name: string) => drawn.options.styles.nodes[1][name] as Styled;
 const edgeStyle = (name: string) => drawn.options.styles.edges[1][name] as Styled;
 
@@ -119,6 +129,8 @@ beforeEach(() => {
   drawn.refreshed = 0;
   drawn.killed = 0;
   drawn.shown = true;
+  drawn.raw = false;
+  drawn.scheduled = 0;
   drawn.shared = [];
   drawn.states = [];
   drawn.events = {};
@@ -266,18 +278,20 @@ describe("the drawing of the network", () => {
 
     const frame = vi.fn();
     const unhook = drawing.onFrame(frame);
-    for (const one of drawn.events.afterRender ?? []) one(undefined as never);
+    rendered();
     unhook();
     expect(frame).toHaveBeenCalledTimes(1);
-    expect(drawn.events.afterRender).toHaveLength(0);
+    expect(drawn.events.afterRender).toHaveLength(1);
 
     drawing.kill();
     expect(drawn.killed).toBe(1);
     expect(drawn.camera.heard).toHaveLength(0);
+    expect(drawn.events.afterRender).toHaveLength(0);
   });
 
   it("centres the camera on a node it can see, and leaves it be otherwise", () => {
     const drawing = drawNetwork(document.body, network, spots, () => undefined, light, "Inter");
+    rendered();
 
     drawing.centre(1);
     drawn.shown = false;
@@ -350,8 +364,38 @@ describe("the drawing of the network", () => {
     expect(drawn.events.clickNode).toHaveLength(0);
   });
 
+  it("waits for sigma to frame the places it was given before the camera follows a node", () => {
+    drawn.raw = true;
+    const drawing = drawNetwork(document.body, network, spots, () => undefined, light, "Inter");
+    expect(drawn.scheduled).toBe(1);
+
+    drawing.centre(1);
+    expect(drawn.camera.set).toEqual([]);
+    drawn.raw = false;
+    rendered();
+    expect(drawn.camera.set).toEqual([{ x: 0.25, y: 0.75, ratio: expect.any(Number) }]);
+
+    drawn.camera.set = [];
+    drawing.place({ x: Float32Array.of(500, 600, 700), y: Float32Array.of(7, 8, 9) });
+    drawn.raw = true;
+    drawing.focus(1);
+    drawing.centre(2);
+    expect(drawn.camera.set).toEqual([]);
+    drawn.raw = false;
+    rendered();
+    rendered();
+    expect(drawn.camera.set).toEqual([{ x: 0.25, y: 0.75, ratio: expect.any(Number) }]);
+
+    drawing.place({ x: Float32Array.of(1, 2, 3), y: Float32Array.of(7, 8, 9) });
+    drawing.focus(1);
+    drawing.kill();
+    rendered();
+    expect(drawn.camera.set).toHaveLength(1);
+  });
+
   it("brings a node close when it is chosen, and leaves the camera be when it cannot", () => {
     const drawing = drawNetwork(document.body, network, spots, () => undefined, light, "Inter");
+    rendered();
 
     drawing.focus(1);
     drawn.shown = false;

@@ -349,6 +349,7 @@ pub fn keep_locale(
     session.keep(|config| config.locale = wanted.clone())?;
     session.locale = wanted.clone();
     language(&app, &wanted);
+    crate::brainsty_window::respoken(&app, &wanted);
     Ok(wanted)
 }
 
@@ -374,16 +375,20 @@ pub fn keep_theme(
     Ok(wanted)
 }
 
+pub fn window_theme(theme: Option<tisty_core::config::Theme>) -> Option<tauri::Theme> {
+    theme.map(|one| match one {
+        tisty_core::config::Theme::Light => tauri::Theme::Light,
+        tisty_core::config::Theme::Dark => tauri::Theme::Dark,
+    })
+}
+
 /// The window's own theme is what the webview reads `prefers-color-scheme` from, so the
 /// page repaints by itself; absent, the window goes back to following the computer.
 pub fn appearance<R: tauri::Runtime>(
     app: &tauri::AppHandle<R>,
     theme: Option<tisty_core::config::Theme>,
 ) {
-    let wanted = theme.map(|one| match one {
-        tisty_core::config::Theme::Light => tauri::Theme::Light,
-        tisty_core::config::Theme::Dark => tauri::Theme::Dark,
-    });
+    let wanted = window_theme(theme);
     for window in app.webview_windows().values() {
         if let Err(why) = window.set_theme(wanted) {
             witness::warn(
