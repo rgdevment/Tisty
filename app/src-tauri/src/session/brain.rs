@@ -10,8 +10,11 @@ const EVERY: Duration = Duration::from_secs(30);
 const LISTENS: Duration = Duration::from_secs(1);
 // Typing writes about once a second, and each round reads the whole state again.
 const SETTLES: Duration = Duration::from_secs(5);
+const WEIGHS_EVERY: Duration = Duration::from_secs(30);
 
 pub(super) fn keep(paths: Paths, nudge: Nudge, moved: Nudge) {
+    let weighing = paths.clone();
+    std::thread::spawn(move || weigh(&weighing));
     std::thread::spawn(move || {
         let mut heard = tisty_core::stirring::rung(&paths);
         let mut written = false;
@@ -49,6 +52,35 @@ fn kept(paths: &Paths, round: Round, moved: &Nudge) {
         Err(_) => witness::error(channel::BRAIN, "the brain could not be kept up", &[]),
     }
 }
+
+fn weigh(paths: &Paths) {
+    lowered();
+    loop {
+        std::thread::sleep(WEIGHS_EVERY);
+        let done =
+            std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| brain::alike_kept(paths)));
+        if done.is_err() {
+            witness::error(
+                channel::BRAIN,
+                "the brain could not weigh what is alike",
+                &[],
+            );
+        }
+    }
+}
+
+#[cfg(windows)]
+#[allow(unsafe_code)]
+fn lowered() {
+    use windows::Win32::System::Threading::{
+        GetCurrentThread, SetThreadPriority, THREAD_PRIORITY_LOWEST,
+    };
+    // SAFETY: the pseudo handle of the calling thread, which lives as long as the call.
+    let _ = unsafe { SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_LOWEST) };
+}
+
+#[cfg(not(windows))]
+fn lowered() {}
 
 #[cfg(test)]
 #[path = "brain_test.rs"]

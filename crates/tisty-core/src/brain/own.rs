@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 
+use super::alike;
 use super::card::{DocFacts, Section, TaskFacts, Tongue};
 use super::decided::{Decision, decisions};
 use super::linked::{Ground, Holder, Read, Shown, Ties};
@@ -10,6 +11,7 @@ use crate::{State, Task};
 pub(super) struct Fresh {
     pub(super) ties: Ties,
     pub(super) said: Option<String>,
+    pub(super) words: Option<alike::Counted>,
 }
 
 // Bare ids, so a neighbour's title or state can change without this card being written again.
@@ -36,6 +38,7 @@ pub(super) struct Own<F> {
 pub(super) fn fresh(state: &State, ground: &Ground, id: &str, node: &Node) -> Fresh {
     let mut read = ground.read(id, &node.holder);
     let shows = std::mem::take(&mut read.shows);
+    let words = alike::counted(state, ground, &node.holder, read.body.as_deref());
     let said = match node.holder {
         Holder::Doc(kept) => serde_json::to_string(&Own {
             shows,
@@ -52,6 +55,7 @@ pub(super) fn fresh(state: &State, ground: &Ground, id: &str, node: &Node) -> Fr
     Fresh {
         ties: read.ties,
         said,
+        words,
     }
 }
 
