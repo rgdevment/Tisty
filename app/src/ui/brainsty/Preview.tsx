@@ -1,5 +1,13 @@
 import { useEffect, useState } from "react";
-import { brainCard, type Card, type Near, type Neuron, type Tie } from "../../brainsty";
+import {
+  brainCard,
+  type Card,
+  type Near,
+  type Neuron,
+  type Tie,
+  taskAddress,
+} from "../../brainsty";
+import { copied, docAddress } from "../../core";
 import { numbered } from "../../format";
 import { fill, t } from "../../locales";
 import { CARDED, factsOf } from "./cardFacts";
@@ -124,6 +132,7 @@ export default function Preview({
           </Part>
         )}
         {alike.length > 0 && <Guesses alike={alike} onPick={onPick} />}
+        <Address neuron={neuron} />
       </div>
       {neuron.kind !== "file" && (
         <button
@@ -144,6 +153,53 @@ function Part({ title, children }: { readonly title: string; readonly children: 
       <h3 className="text-[11px] font-semibold tracking-wide text-faint uppercase">{title}</h3>
       {children}
     </section>
+  );
+}
+
+const addressOf = (neuron: Neuron): Promise<string | null> => {
+  if (neuron.kind === "task") return Promise.resolve(taskAddress(neuron.id));
+  if (neuron.kind === "doc" || neuron.kind === "page") return docAddress(neuron.id);
+  return Promise.resolve(null);
+};
+
+function Address({ neuron }: { readonly neuron: Neuron }) {
+  const [address, setAddress] = useState<string | null>(null);
+  const [taken, setTaken] = useState(false);
+
+  useEffect(() => {
+    let live = true;
+    setAddress(null);
+    setTaken(false);
+    addressOf(neuron).then(
+      (said) => live && setAddress(said),
+      () => undefined,
+    );
+    return () => {
+      live = false;
+    };
+  }, [neuron]);
+
+  if (!address) return null;
+  return (
+    <Part title={t("brainstyFactLink")}>
+      <p className="flex min-w-0 items-center gap-2">
+        <code className="min-w-0 flex-1 truncate text-[11.5px] text-soft" title={address}>
+          {address}
+        </code>
+        <button
+          type="button"
+          onClick={() =>
+            copied(address).then(
+              () => setTaken(true),
+              () => undefined,
+            )
+          }
+          className="shrink-0 rounded-md px-2 py-0.5 text-[11.5px] text-accent hover:bg-hover"
+        >
+          {taken ? t("linkCopied") : t("copyLink")}
+        </button>
+      </p>
+    </Part>
   );
 }
 

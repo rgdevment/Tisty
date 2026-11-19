@@ -61,6 +61,10 @@ export interface Card {
   date?: string;
   deadline?: string;
   steps?: [number, number];
+  source?: string;
+  book?: Near;
+  part_of?: Near;
+  parts?: Near[];
   tags?: string[];
   cited_by?: Near[];
   mentioned_by?: Near[];
@@ -72,3 +76,5 @@ export const brainNetwork = (near?: string): Promise<Network | null> =>
   invoke("brain_network", { near: near ?? null });
 
 export const brainCard = (id: string): Promise<Card | null> => invoke("brain_card", { id });
+
+export const taskAddress = (id: string): string => `tisty://task?id=${id}`;

@@ -19,6 +19,15 @@ vi.mock("@tauri-apps/api/core", () => ({
   convertFileSrc: (path: string) => `asset://localhost/${path}`,
 }));
 
+const clip = vi.hoisted(() => ({ taken: [] as string[] }));
+
+vi.mock("@tauri-apps/plugin-clipboard-manager", () => ({
+  writeText: (text: string) => {
+    clip.taken.push(text);
+    return Promise.resolve();
+  },
+}));
+
 const ways = vi.hoisted(() => ({ opened: [] as unknown[], left: 0 }));
 
 const sigma = vi.hoisted(() => ({
@@ -83,6 +92,8 @@ function answer(cmd: string): Promise<unknown> {
       return ipc.network();
     case "brain_card":
       return Promise.resolve(ipc.card);
+    case "doc_address":
+      return Promise.resolve("tisty://doc/Proyectos/Notes?id=notes.md");
     default:
       return Promise.resolve(null);
   }
@@ -153,9 +164,11 @@ beforeEach(() => {
     words: 380,
     wrote: "2026-11-18T15:00:00Z",
     lang: "en",
+    book: { id: "plans.md", kind: "doc", title: "Plans" },
     tags: ["home"],
     cited_by: [{ id: "01A", kind: "task", title: "buy bread" }],
   };
+  clip.taken = [];
   ways.opened = [];
   ways.left = 0;
   Object.assign(sigma, {
@@ -306,6 +319,13 @@ describe("Brainsty in the content panel", () => {
     expect(within(preview).getByText("2.4 kB · 380 words")).toBeTruthy();
     expect(within(preview).getByText("EN")).toBeTruthy();
     expect(within(preview).getByText("#home")).toBeTruthy();
+    expect(within(preview).getByText("Plans")).toBeTruthy();
+    expect(
+      await within(preview).findByText("tisty://doc/Proyectos/Notes?id=notes.md"),
+    ).toBeTruthy();
+    await user.click(within(preview).getByRole("button", { name: t("copyLink") }));
+    expect(await within(preview).findByRole("button", { name: t("linkCopied") })).toBeTruthy();
+    expect(clip.taken).toEqual(["tisty://doc/Proyectos/Notes?id=notes.md"]);
     const ties = within(preview).getByRole("region", { name: t("brainstyTiesTitle") });
     expect(ties.textContent).toContain(t("brainstyTies_cite"));
     expect(ipc.calls).toContainEqual({ cmd: "brain_card", args: { id: "notes.md" } });
@@ -329,6 +349,9 @@ describe("Brainsty in the content panel", () => {
       standing: "late",
       date: "2026-11-18",
       steps: [2, 5],
+      source: "sereno#12",
+      part_of: { id: "01Z", kind: "task", title: "the party" },
+      parts: [{ id: "01Y", kind: "task", title: "the cake" }],
     };
     await drawnNetwork();
 
@@ -340,6 +363,9 @@ describe("Brainsty in the content panel", () => {
       within(preview).getByText(`${t("brainstyStanding_live")} · ${t("brainstyDue_late")}`),
     ).toBeTruthy();
     expect(within(preview).getByText("2 of 5 done")).toBeTruthy();
+    expect(within(preview).getByText("sereno#12")).toBeTruthy();
+    expect(within(preview).getByText("the party")).toBeTruthy();
+    expect(await within(preview).findByText("tisty://task?id=01A")).toBeTruthy();
     expect(within(preview).getByText(/18/)).toBeTruthy();
     expect(within(preview).queryByText(t("brainstyFactDeadline"))).toBeNull();
     expect(within(preview).queryByText(t("brainstyPointedHere"))).toBeNull();
@@ -353,6 +379,7 @@ describe("Brainsty in the content panel", () => {
     const preview = await screen.findByRole("complementary", { name: "home" });
     expect(preview.textContent).toContain(t("brainstyTies_tag"));
     expect(ipc.calls.some((one) => one.cmd === "brain_card")).toBe(false);
+    expect(within(preview).queryByText(t("brainstyFactLink"))).toBeNull();
   });
 
   it("opens a task on a double click", async () => {
