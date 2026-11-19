@@ -10,7 +10,7 @@ use crate::{
 };
 
 /// Tied to the event schema: an older build then misses the cache and meets the version guard.
-const SCHEMA: i64 = crate::event::SCHEMA_VERSION as i64 + 34;
+const SCHEMA: i64 = crate::event::SCHEMA_VERSION as i64 + 35;
 
 pub struct Cache {
     db: Connection,
@@ -60,7 +60,8 @@ impl Cache {
                  DROP TABLE IF EXISTS paper;
                  DROP TABLE IF EXISTS kept;
                  DROP TABLE IF EXISTS holder;
-                 DROP TABLE IF EXISTS agent_note;",
+                 DROP TABLE IF EXISTS agent_note;
+                 DROP TABLE IF EXISTS agent_proposal;",
             )
         {
             witness::warn(
@@ -85,6 +86,7 @@ impl Cache {
                      sha256 TEXT NOT NULL,
                      bytes INTEGER NOT NULL);
                  CREATE TABLE IF NOT EXISTS agent_note(id TEXT PRIMARY KEY, said TEXT NOT NULL);
+                 CREATE TABLE IF NOT EXISTS agent_proposal(id TEXT PRIMARY KEY, said TEXT NOT NULL);
                  CREATE TABLE IF NOT EXISTS holder(
                      id TEXT NOT NULL,
                      device TEXT NOT NULL,
@@ -176,6 +178,41 @@ impl Cache {
         Ok(())
     }
 
+    fn every_proposal(
+        &self,
+    ) -> Option<std::collections::BTreeMap<crate::model::DocId, crate::model::Proposed>> {
+        let mut asked = self
+            .db
+            .prepare("SELECT id, said FROM agent_proposal")
+            .ok()?;
+        let rows = asked
+            .query_map([], |row| {
+                Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
+            })
+            .ok()?;
+        rows.map(|one| {
+            let (id, said) = one.ok()?;
+            Some((id.parse().ok()?, serde_json::from_str(&said).ok()?))
+        })
+        .collect()
+    }
+
+    // A settled proposal leaves no row behind, or it would read back as still waiting.
+    fn proposal_carried(&self, state: &State, entity: ulid::Ulid) -> rusqlite::Result<()> {
+        let id = entity.to_string();
+        match state.proposals.get(&entity) {
+            Some(one) => self.db.execute(
+                "INSERT OR REPLACE INTO agent_proposal VALUES (?,?)",
+                rusqlite::params![id, serde_json::to_string(one).unwrap_or_default()],
+            ),
+            None if state.tombstones.contains(&entity) || state.docs.contains_key(&entity) => self
+                .db
+                .execute("DELETE FROM agent_proposal WHERE id = ?", [id]),
+            None => Ok(0),
+        }
+        .map(|_| ())
+    }
+
     pub fn load(&self, fingerprint: &str, bodies: bool) -> Option<State> {
         if self.meta("schema")? != SCHEMA.to_string() || self.meta("fingerprint")? != fingerprint {
             return None;
@@ -213,6 +250,7 @@ impl Cache {
         state.kept = self.every_kept();
         state.holders = self.every_holder();
         state.agent_notes = self.every_agent_note()?;
+        state.proposals = self.every_proposal()?;
         state.agents = self
             .meta("agents")
             .and_then(|said| serde_json::from_str(&said).ok())
@@ -369,6 +407,7 @@ impl Cache {
             tx.execute("DELETE FROM kept", [])?;
             tx.execute("DELETE FROM holder", [])?;
             tx.execute("DELETE FROM agent_note", [])?;
+            tx.execute("DELETE FROM agent_proposal", [])?;
             {
                 let mut task = tx.prepare("INSERT INTO task VALUES (?,?)")?;
                 let mut body = tx.prepare("INSERT INTO task_body VALUES (?,?)")?;
@@ -410,6 +449,11 @@ impl Cache {
                 for (id, note) in &state.agent_notes {
                     let said = serde_json::to_string(note).unwrap_or_default();
                     noted.execute(rusqlite::params![id.to_string(), said])?;
+                }
+                let mut proposed = tx.prepare("INSERT INTO agent_proposal VALUES (?,?)")?;
+                for (id, one) in &state.proposals {
+                    let said = serde_json::to_string(one).unwrap_or_default();
+                    proposed.execute(rusqlite::params![id.to_string(), said])?;
                 }
             }
             {
@@ -482,6 +526,7 @@ impl Cache {
         }
         let carried = (|| -> rusqlite::Result<()> {
             self.agent_note_carried(state, entity)?;
+            self.proposal_carried(state, entity)?;
             let id = entity.to_string();
             if let Some(folder) = state.folders.get(&entity) {
                 let doc = serde_json::to_string(folder).unwrap_or_default();

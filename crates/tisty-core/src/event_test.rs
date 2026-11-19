@@ -477,3 +477,23 @@ fn an_agent_s_note_is_skipped_by_older_builds_and_never_stops_an_undo() {
     assert_eq!(said["op"], "doc.gist");
     assert!(said["d"].get("notes").is_none(), "{said}");
 }
+
+#[test]
+fn a_proposal_is_skipped_by_older_builds_and_never_stops_an_undo() {
+    let op = Op::DocProposal {
+        id: id(),
+        d: crate::event::Proposal {
+            body: Some("# Rules\n".into()),
+            base: Some("print".into()),
+            settles: None,
+        },
+    };
+    assert!(op.is_optional());
+    assert!(op.settles());
+    assert!(!op.destroys());
+    let ev = Event::new(DeviceId("dev_a3f1".into()), at(1), op);
+    assert_eq!(ev.entity_id(), Some(id()));
+    let said = serde_json::to_value(&ev).unwrap();
+    assert_eq!(said["op"], "doc.proposal");
+    assert!(said["d"].get("settles").is_none(), "{said}");
+}

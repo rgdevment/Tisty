@@ -32,6 +32,8 @@ const KNOWN = [
   "agentOff",
   "agentHeld",
   "agentDocChanged",
+  "agentProposalChanged",
+  "agentProposalOverUnagreed",
   "agentOwn",
   "agentEmpty",
   "agentLinked",

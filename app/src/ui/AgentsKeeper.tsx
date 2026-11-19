@@ -1,3 +1,4 @@
+import { listen } from "@tauri-apps/api/event";
 import { useEffect, useRef, useState } from "react";
 import {
   agentsEmpty,
@@ -28,6 +29,14 @@ export default function AgentsKeeper() {
     const ask = () => setAsking(true);
     window.addEventListener(AGENTS_FIRST, ask);
     return () => window.removeEventListener(AGENTS_FIRST, ask);
+  }, []);
+
+  // An assistant's proposal changes no document the sidebar lists, so the log stirring is the only sign of it.
+  useEffect(() => {
+    const stirred = listen("stirred", () => window.dispatchEvent(new Event(AGENTS_CHANGED)));
+    return () => {
+      stirred.then((off) => off()).catch(() => undefined);
+    };
   }, []);
 
   const inside = inAgents(here, papers.folders);

@@ -46,6 +46,7 @@ const agent = (places: Place[], more: Partial<AgentDoc> = {}): AgentDoc => ({
   twin: false,
   here: "applied",
   print: "p1",
+  proposal: null,
   places,
   ...more,
 });
@@ -135,6 +136,30 @@ describe("what the agent file panel says", () => {
     expect(
       rows(agent([place({ state: "synced" })], { kind: "memory" })).get("Syncs on this computer"),
     ).toBe("Tisty only reads it");
+  });
+
+  it("says why this computer does not apply it, by the same states as its card", () => {
+    const syncs = (more: Partial<AgentDoc>) => rows(agent([], more)).get("Syncs on this computer");
+    expect(syncs({ here: "waiting" })).toBe("No: it waits for «Apply here»");
+    expect(syncs({ here: "declined" })).toBe("No: not on this computer");
+    expect(syncs({ here: "notAgreed" })).toBe("No: its text waits for your approval");
+    expect(syncs({ here: "placedByAgent" })).toBe("No: an agent put it here");
+    expect(syncs({ here: "otherMemory" })).toBe("No: another computer's memory");
+    expect(syncs({ here: "away" })).toBe("No");
+  });
+
+  it("still syncs the approved text while an agent's proposal waits, and says so", () => {
+    const proposal = {
+      print: "q1",
+      via: null,
+      at: "2026-11-19T10:42:00Z",
+      stale: false,
+      lines: [],
+    };
+    const said = rows(agent([place({ state: "synced" })], { proposal }));
+    expect(said.get("Syncs on this computer")).toBe(
+      "Yes · an agent's change waits for your approval",
+    );
   });
 });
 

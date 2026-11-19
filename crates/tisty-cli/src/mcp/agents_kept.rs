@@ -1,33 +1,46 @@
 use serde_json::Value;
-use tisty_core::{Paths, State, agents};
+use tisty_core::{Paths, State, agents, model::Kept};
 
 use super::Refused;
 use super::mistaken::NAMES_A_DOCUMENT;
 
 const NAMES_A_FOLDER: [&str; 2] = ["folder", "inside"];
 
-pub(super) fn left_to_the_person(paths: &Paths, name: &str, args: &Value) -> Result<(), Refused> {
+pub(super) fn proposed_or_left(
+    paths: &Paths,
+    name: &str,
+    args: &Value,
+) -> Result<Option<Value>, Refused> {
     if super::only_reads(name, &serde_json::json!({ "arguments": args })) {
-        return Ok(());
+        return Ok(None);
     }
     let state = tisty_core::cache::project(&paths.store(), paths.cache()).map_err(super::hitch)?;
-    if let Some(title) = documents_named(args).find_map(|file| kept_in_agents(&state, file)) {
-        return Err(refused(&format!("the document {title:?}")));
+    if let Some(kept) = documents_named(args).find_map(|file| kept_in_agents(&state, file)) {
+        if super::proposing::takes(name, args) {
+            return super::proposing::proposed(paths, &state, name, args, &kept.file).map(Some);
+        }
+        let title = kept.title.clone().unwrap_or_else(|| kept.file.clone());
+        return Err(refused(&format!("the document {title:?}"), PROPOSE));
     }
     let into_agents = folders_named(name, args).any(|said| {
         super::folder_named(&state, &said).is_ok_and(|at| agents::holds_folder(&state, at))
     });
     if into_agents || makes_agents(name, args) {
-        return Err(refused(&format!("the folder {}", agents::FOLDER)));
+        return Err(refused(&format!("the folder {}", agents::FOLDER), TELL));
     }
-    Ok(())
+    Ok(None)
 }
 
-fn refused(what: &str) -> Refused {
+const PROPOSE: &str = "To change its text, propose it: `write_doc` with `doc`, `print` and the \
+                       whole `body`, `edit_doc`, or `append_doc` at its end, and nothing else \
+                       with them. The person approves or discards it on the document's card.";
+const TELL: &str = "Tell the person what you would change and why, and they make the change \
+                    from the document's card.";
+
+fn refused(what: &str, then: &str) -> Refused {
     Refused::Tool(format!(
         "{what} holds an assistant's own files in AGENTS, which only the person changes, in Tisty: \
-         nothing an assistant writes, moves or marks there reaches them. Tell the person what \
-         you would change and why, and they make the change from the document's card."
+         nothing an assistant moves, files, marks or sums up there reaches them. {then}"
     ))
 }
 
@@ -42,9 +55,9 @@ fn documents_named(args: &Value) -> impl Iterator<Item = &str> {
         .filter_map(Value::as_str)
 }
 
-fn kept_in_agents(state: &State, file: &str) -> Option<String> {
+fn kept_in_agents<'a>(state: &'a State, file: &str) -> Option<&'a Kept> {
     let kept = state.docs.values().find(|one| one.file == file)?;
-    agents::holds(state, kept).then(|| kept.title.clone().unwrap_or_else(|| file.to_string()))
+    agents::holds(state, kept).then_some(kept)
 }
 
 // The folder tool names its place in `name` as a path, and the last step is the folder itself.

@@ -2,11 +2,14 @@ import { useEffect, useRef, useState } from "react";
 import {
   type AgentDoc,
   agentAgree,
+  agentApprove,
   agentBring,
+  agentDiscard,
   agentHeld,
   agentRestore,
   agentTake,
   type Place,
+  type Proposal,
   type Said,
   touched,
 } from "../agentDocs";
@@ -24,6 +27,7 @@ import {
   PlaceRow,
   type Shown,
 } from "./AgentCardParts";
+import AgentProposal from "./AgentProposal";
 import { AGENTS_CHANGED } from "./AgentsKeeper";
 import Glyph from "./Glyph";
 
@@ -148,6 +152,17 @@ export default function AgentCard({
         .then(() => agentAgree(file, doc.print))
         .finally(done),
     );
+  // Approving writes the proposal over the page, so words still waiting to be saved land first and the page is read again.
+  const approve = (proposal: Proposal) =>
+    asked(t("agentApproveSure"), () =>
+      Promise.resolve(onSettle())
+        .then(() => agentApprove(file, proposal.print, doc.print))
+        .then(() => (showing.current === file ? onTaken() : undefined))
+        .then(papersChanged)
+        .finally(done),
+    );
+  const discard = (proposal: Proposal) =>
+    asked(t("agentDiscardSure"), () => agentDiscard(file, proposal.print).finally(done));
   const turn = (place: Place) =>
     agentsTurn(place.assistant, place.said.state === "off")
       .then(done)
@@ -164,6 +179,11 @@ export default function AgentCard({
         {state && (
           <Pill tone={STATE[state].tone} glyph={STATE[state].glyph}>
             {t(STATE[state].word)}
+          </Pill>
+        )}
+        {doc.proposal && (
+          <Pill tone="text-hue-purple bg-hue-purple/10" glyph="pencil">
+            {t("agentProposalPill")}
           </Pill>
         )}
       </div>
@@ -190,6 +210,13 @@ export default function AgentCard({
       </div>
       {doc.folderOff && <p className="mt-3 text-[12.5px] text-soft">{t("agentFolderOff")}</p>}
       <HereNote here={doc.here} onTake={take} onAgree={agree} />
+      {doc.proposal && (
+        <AgentProposal
+          proposal={doc.proposal}
+          onApprove={takes ? () => doc.proposal && approve(doc.proposal) : undefined}
+          onDiscard={() => doc.proposal && discard(doc.proposal)}
+        />
+      )}
       {doc.places
         .filter((one) => one.said.state === "held")
         .map((one) => (

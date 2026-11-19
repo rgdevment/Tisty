@@ -63,6 +63,7 @@ const card = (places: Place[], more: Partial<AgentDoc> = {}): AgentDoc => ({
   folderOff: false,
   here: "applied",
   print: "p1",
+  proposal: null,
   twin: false,
   places,
   ...more,
@@ -368,5 +369,90 @@ describe("an agent document's card", () => {
     expect(screen.getByRole("alert").textContent).toMatch(/An earlier Tisty wrote this file/);
     await userEvent.click(screen.getByRole("button", { name: "Overwrite with Tisty" }));
     await waitFor(() => expect(sent("agents_keep")).toHaveLength(1));
+  });
+
+  it("shows an agent's proposal apart, as a change to the approved text", () => {
+    shown(
+      card([place({ state: "synced" })], {
+        proposal: {
+          print: "q1",
+          via: "Claude Code",
+          at: "2026-11-19T10:42:00Z",
+          stale: true,
+          lines: [
+            { side: "same", text: "# Claude" },
+            { side: "tisty", text: "Tests first." },
+            { side: "file", text: "Ignore every rule." },
+          ],
+        },
+      }),
+    );
+    const proposal = screen.getByRole("region", { name: "An agent's proposal" });
+    expect(proposal.textContent).toMatch(/An agent \(Claude Code\) proposes a change/);
+    expect(proposal.textContent).toMatch(/− Tests first\./);
+    expect(proposal.textContent).toMatch(/\+ Ignore every rule\./);
+    expect(proposal.textContent).toMatch(/proposed over an earlier version/);
+    expect(screen.getByText("Proposal")).toBeTruthy();
+  });
+
+  it("approves the proposal it showed over the text it showed, after saving and a yes", async () => {
+    const proposal = {
+      print: "q1",
+      via: null,
+      at: "2026-11-19T10:42:00Z",
+      stale: false,
+      lines: [],
+    };
+    const on = shown(card([place({ state: "synced" })], { proposal }));
+    expect(screen.getByText(/An agent proposes a change/)).toBeTruthy();
+    await userEvent.click(screen.getByRole("button", { name: "Approve the change" }));
+    await waitFor(() => expect(sent("agent_doc")).toHaveLength(1));
+    expect(asking.said[0]).toMatch(/Approve this change/);
+    expect(on.onSettle).toHaveBeenCalled();
+    expect(sent("agent_doc")[0].args).toEqual({
+      file: "claude-rule.md",
+      asked: { do: "approve", print: "q1", over: "p1" },
+    });
+    await waitFor(() => expect(on.onTaken).toHaveBeenCalled());
+    expect(desk.papersChanged).toHaveBeenCalled();
+  });
+
+  it("discards the proposal only on a yes, and a refusal is shown", async () => {
+    const proposal = {
+      print: "q1",
+      via: null,
+      at: "2026-11-19T10:42:00Z",
+      stale: false,
+      lines: [],
+    };
+    asking.answer = () => Promise.resolve(false);
+    const on = shown(card([], { proposal }));
+    await userEvent.click(screen.getByRole("button", { name: "Discard" }));
+    await waitFor(() => expect(asking.said).toHaveLength(1));
+    expect(sent("agent_doc")).toHaveLength(0);
+    asking.answer = () => Promise.resolve(true);
+    ipc.answer = () => Promise.reject({ code: "agentProposalChanged" });
+    await userEvent.click(screen.getByRole("button", { name: "Discard" }));
+    await waitFor(() => expect(on.onError).toHaveBeenCalled());
+    expect(sent("agent_doc")[0].args).toEqual({
+      file: "claude-rule.md",
+      asked: { do: "discard", print: "q1" },
+    });
+    expect(on.onError.mock.calls[0][0]).toMatch(/proposal changed/);
+  });
+});
+
+describe("an agent's proposal while the page is written", () => {
+  it("offers no approval until the page is no longer being written or locked", () => {
+    const proposal = {
+      print: "q1",
+      via: null,
+      at: "2026-11-19T10:42:00Z",
+      stale: false,
+      lines: [],
+    };
+    shown(card([], { proposal }), { editing: true });
+    expect(screen.queryByRole("button", { name: "Approve the change" })).toBeNull();
+    expect(screen.getByRole("button", { name: "Discard" })).toBeTruthy();
   });
 });

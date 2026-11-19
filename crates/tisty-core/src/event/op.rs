@@ -101,6 +101,7 @@ pub const KNOWN_OPS: &[&str] = &[
     "doc.idea.unflag",
     "diary.agents",
     "doc.gist",
+    "doc.proposal",
 ];
 
 pub const RETIRED_OPS: &[&str] = &["share.doc", "share.version", "share.stop"];
@@ -281,6 +282,9 @@ pub enum Op {
     /// What an agent left the next agent about a document; the person never reads it.
     #[serde(rename = "doc.gist")]
     DocGist { id: DocId, d: Gist },
+    /// An assistant's change to an AGENTS document, kept apart from the text the person approved.
+    #[serde(rename = "doc.proposal")]
+    DocProposal { id: DocId, d: Proposal },
     #[serde(rename = "doc.lock")]
     DocLock { id: DocId },
     #[serde(rename = "doc.unlock")]
@@ -396,6 +400,18 @@ pub struct Gist {
     pub notes: String,
 }
 
+/// With a body, what an assistant proposes over the approved text printed `base`; without one,
+/// the person settled the proposal printed `settles`, and a newer one stays.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Proposal {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub body: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub base: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub settles: Option<String>,
+}
+
 /// The document whose languages this one joins: the anchor of the group, never one of its members.
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Tongue {
@@ -463,6 +479,7 @@ impl Op {
                 | Op::DocCompacted { .. }
                 | Op::DocUncompacted { .. }
                 | Op::DocGist { .. }
+                | Op::DocProposal { .. }
                 | Op::DiaryAgents { .. }
                 | Op::Signed { .. }
                 | Op::SharingKept { .. }
@@ -510,6 +527,7 @@ impl Op {
                 | Op::DocCompacted { .. }
                 | Op::DocUncompacted { .. }
                 | Op::DocGist { .. }
+                | Op::DocProposal { .. }
                 | Op::DocTongue { .. }
                 | Op::DiaryAgents { .. }
                 | Op::TaskPaged { .. }
@@ -569,6 +587,7 @@ impl Op {
             Op::DocCompacted { print, before, .. } => Op::DocCompacted { id, print, before },
             Op::DocUncompacted { .. } => Op::DocUncompacted { id },
             Op::DocGist { d, .. } => Op::DocGist { id, d },
+            Op::DocProposal { d, .. } => Op::DocProposal { id, d },
             Op::DocUnarchive { .. } => Op::DocUnarchive { id },
             Op::DocLock { .. } => Op::DocLock { id },
             Op::DocUnlock { .. } => Op::DocUnlock { id },
@@ -724,6 +743,7 @@ impl Op {
             | Op::DocCompacted { id, .. }
             | Op::DocUncompacted { id }
             | Op::DocGist { id, .. }
+            | Op::DocProposal { id, .. }
             | Op::DocLock { id }
             | Op::DocUnlock { id }
             | Op::DocTongue { id, .. } => Some(*id),
@@ -1102,7 +1122,11 @@ impl Said {
             // is written with one, and noting the shorter count makes every later read look
             // like news and write another note.
             bytes: Some(settled.len() as u64),
-            tags: Some(crate::tagging::tags_in(body)),
+            // An assistant's file keeps its #words as written: they are its text, never Tisty tags.
+            tags: Some(match crate::agents::Card::of(body) {
+                Some(_) => Vec::new(),
+                None => crate::tagging::tags_in(body),
+            }),
             by: None,
             lang: Some(tisty_markdown::front::lang(body)),
             key: Some(crate::tongues::key_of(body)),

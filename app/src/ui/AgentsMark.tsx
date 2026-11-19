@@ -43,16 +43,19 @@ export function useAgentsGlance(root: string | null): Glance | null {
   return root ? glance : null;
 }
 
+const waitingSaid = (glance: Glance): string => {
+  if (glance.waiting > 0) return fill("agentsFolderWaiting", String(glance.waiting));
+  if (glance.unagreed > 0) return fill("agentsFolderUnagreed", String(glance.unagreed));
+  return fill("agentsFolderProposed", String(glance.proposed));
+};
+
 export function AgentsWord({ glance }: { glance: Glance }) {
   const word = glanceWord(glance);
   const said = {
     empty: t("agentsFolderEmpty"),
     synced: t("agentsFolderSynced"),
     changes: fill("agentsFolderChanges", String(glance.changes)),
-    waiting:
-      glance.waiting > 0
-        ? fill("agentsFolderWaiting", String(glance.waiting))
-        : fill("agentsFolderUnagreed", String(glance.unagreed)),
+    waiting: waitingSaid(glance),
     off: t("agentsPaused"),
   }[word];
   return (

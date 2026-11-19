@@ -1091,6 +1091,7 @@ impl Session {
     }
 
     pub fn commit(&mut self, op: Op) -> tisty_core::Result<()> {
+        self.behind |= self.stale();
         let event = self.store.append(op)?;
         self.writes += 1;
         self.state.apply(&event);
@@ -1101,6 +1102,7 @@ impl Session {
     }
 
     pub fn commit_all(&mut self, ops: Vec<Op>) -> tisty_core::Result<()> {
+        self.behind |= self.stale();
         let events = self.store.append_batch(ops)?;
         self.writes += 1;
         for event in &events {
@@ -1117,8 +1119,8 @@ impl Session {
         self.behind = true;
     }
 
-    /// A state that missed a commit must not stamp the cache as current, or the projection that
-    /// would have caught up loads the gap back.
+    /// A state that missed a commit, or lines another device wrote since it was read, must not
+    /// stamp the cache as current, or the projection that would have caught up loads the gap back.
     pub fn carry(&mut self, events: &[Event]) -> String {
         let overtaken = self.store.overtaken();
         let cache = match self.behind {

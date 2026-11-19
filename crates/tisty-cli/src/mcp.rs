@@ -22,6 +22,7 @@ mod papers;
 mod placing;
 mod pressing;
 mod prompts;
+mod proposing;
 mod referencing;
 mod resources;
 mod resuming;
@@ -276,7 +277,9 @@ fn vetted(name: &str, params: &Value) -> Result<(Value, Option<Takes>), Refused>
 }
 
 fn called(paths: &Paths, name: &str, args: Value, taken: Option<&Takes>) -> Result<Value, Refused> {
-    agents_kept::left_to_the_person(paths, name, &args)?;
+    if let Some(proposed) = agents_kept::proposed_or_left(paths, name, &args)? {
+        return Ok(proposed);
+    }
     diary::left_alone(paths, name, &args)?;
     match papers::task_pages::page_written(name, &args) {
         Some(file) => {

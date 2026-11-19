@@ -23,6 +23,7 @@ const rule: AgentDoc = {
   folderOff: false,
   here: "applied",
   print: "p1",
+  proposal: null,
   twin: false,
   places: [],
 };

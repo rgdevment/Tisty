@@ -425,6 +425,7 @@ impl State {
                 self.shed.insert(gone.file);
             }
             self.agent_notes.remove(&one);
+            self.proposals.remove(&one);
             self.tombstones.insert(one);
         }
     }
@@ -455,6 +456,31 @@ impl State {
             by: event.device.clone(),
         };
         self.agent_notes.insert(*id, note);
+    }
+
+    pub(crate) fn proposal_said(&mut self, event: &Event, id: &DocId, d: &crate::event::Proposal) {
+        match (&d.body, &d.settles) {
+            (Some(body), _) if self.docs.contains_key(id) => {
+                let said = crate::model::Proposed {
+                    print: crate::docs::print_of_text(body),
+                    body: body.to_string(),
+                    base: d.base.clone(),
+                    at: event.timestamp,
+                    by: event.device.clone(),
+                    via: event.via.clone(),
+                };
+                self.proposals.insert(*id, said);
+            }
+            (None, Some(settles))
+                if self
+                    .proposals
+                    .get(id)
+                    .is_some_and(|one| &one.print == settles) =>
+            {
+                self.proposals.remove(id);
+            }
+            _ => {}
+        }
     }
 
     pub(crate) fn doc_said(&mut self, event: &Event, id: &DocId, d: &Said) {
