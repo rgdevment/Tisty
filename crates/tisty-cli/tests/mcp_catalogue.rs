@@ -145,6 +145,63 @@ fn the_guides_weigh_what_the_rules_tool_says_they_do() {
 }
 
 #[test]
+fn nothing_an_agent_is_handed_names_a_tool_that_moved() {
+    let call = |name: &str, arguments: Value| {
+        request(
+            "tools/call",
+            &json!({ "name": name, "arguments": arguments }),
+        )
+    };
+    let prompts = ask(&[request("prompts/list", &json!({}))]);
+    let mut asked = vec![
+        request("server/discover", &json!({})),
+        request("tools/list", &json!({})),
+        request("prompts/list", &json!({})),
+        call("rules", json!({})),
+        call("language", json!({})),
+        call("language", json!({ "topic": "all" })),
+        call("help", json!({ "lang": "en" })),
+        call("help", json!({ "lang": "es" })),
+    ];
+    for topic in ["tasks", "documents", "tidying", "ideas", "all"] {
+        asked.push(call("rules", json!({ "topic": topic })));
+    }
+    for prompt in prompts[0]["result"]["prompts"].as_array().unwrap() {
+        asked.push(request(
+            "prompts/get",
+            &json!({ "name": prompt["name"], "arguments": {} }),
+        ));
+    }
+
+    let answers = ask(&asked);
+
+    assert_eq!(answers.len(), asked.len());
+    for one in &answers {
+        assert!(
+            one.get("error").is_none() && one["result"]["isError"] != true,
+            "every text is read, none refused: {one}"
+        );
+    }
+    let said = serde_json::to_string(&answers).unwrap();
+    for read in [
+        "How Tisty itself works",
+        "Pick up where I left off",
+        "# Tisty Markdown",
+    ] {
+        assert!(said.contains(read), "{read} was not handed");
+    }
+    // `docs`, `lists` and `tags` moved too, but they are also the names of fields and answer keys.
+    let named: Vec<&str> = ["find", "outline_doc", "read_doc"]
+        .into_iter()
+        .filter(|name| said.contains(&format!("`{name}`")))
+        .collect();
+    assert!(
+        named.is_empty(),
+        "an agent is still pointed at {named:?}, which only answer that they moved: name `brain` or `read` instead"
+    );
+}
+
+#[test]
 fn the_names_of_the_tools_an_agent_is_offered() {
     let said = ask(&[request("tools/list", &json!({}))]);
     let names: Vec<&str> = said[0]["result"]["tools"]
