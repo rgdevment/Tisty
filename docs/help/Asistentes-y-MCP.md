@@ -169,7 +169,7 @@ Lo que escribe un asistente va firmado con el nombre del programa por el que hab
 
 Tisty guarda una pequeña ficha de cada documento (sus títulos, cuánto mide, en qué se apoya) que saca del propio texto, en este equipo, y que nunca envía a ninguna parte. Un asistente lee esa ficha para elegir el documento que necesita, y después pide solo la parte que quiere, o cambia esa parte sin leer el resto. Un documento largo no se vuelca en un modelo porque un asistente quería un párrafo.
 
-Después de leer un documento, puede dejar un resumen corto para el siguiente asistente: queda en este equipo, nunca se sincroniza y no forma parte de lo que escribiste.
+Después de leer un documento, puede dejar un resumen corto para el siguiente asistente. Viaja a tus otros equipos con todo lo demás, así que un asistente también lo encuentra allá, pero tú no lo ves, nunca sale a Folio y no forma parte de lo que escribiste.
 
 Tisty sabe lo que cuesta cada respuesta, y lo sigue recortando. Medido sobre una bitácora de trabajo de 256 KB en Markdown, frente a un agente que relee el archivo entero en cada sesión:
 

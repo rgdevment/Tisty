@@ -7,7 +7,7 @@ use tisty_core::standing::Standing;
 
 use super::asked::{strings, text};
 use super::jsonrpc::{mirrored, told};
-use super::mistaken::{named_document, no_document_called, not_a_task_id};
+use super::mistaken::not_a_task_id;
 use super::pressing::{name_pressing, pressed, pressing, tallied};
 use super::resuming::{
     Asked, MOVED_SHOWN, Since, ended_task, last_task, left_off, looks_now, moved_since, seen_whole,
@@ -523,83 +523,6 @@ fn newest_docs(state: &State) -> Vec<Value> {
 
 // The same text is published, drawn for people and whole for assistants, so an answer can point a person there.
 pub(super) const GUIDE: &str = "https://markdown.tisty.app/";
-
-/// A summary is the one thing about a document that cannot be worked out from it, so an agent
-/// that has read one leaves what it learnt here rather than making the next one read it again.
-pub(super) fn sum_up(paths: &Paths, args: &Value) -> Result<Value, Refused> {
-    let Some(which) = text(args, "doc") else {
-        return Err(Refused::Tool(
-            "saying what a document is about needs its `doc` name.".into(),
-        ));
-    };
-    let summary = text(args, "summary").unwrap_or_default();
-    let notes = text(args, "notes").unwrap_or_default();
-    if summary.is_empty() && notes.is_empty() {
-        return Err(Refused::Tool(
-            "this takes a `summary` of what the document says, `notes` for what the next agent \
-             should know about it, or both."
-                .into(),
-        ));
-    }
-    if summary.chars().count() > tisty_core::docs::SUMMARY_AT_MOST {
-        return Err(Refused::Tool(format!(
-            "a summary past {} characters is not a summary. Say what the document is for and \
-             what a reader would come to it for.",
-            tisty_core::docs::SUMMARY_AT_MOST
-        )));
-    }
-    if notes.chars().count() > tisty_core::docs::NOTES_AT_MOST {
-        return Err(Refused::Tool(format!(
-            "`notes` runs past {} characters. What does not fit belongs in the document itself, \
-             where the person can see it.",
-            tisty_core::docs::NOTES_AT_MOST
-        )));
-    }
-
-    let (state, store) = opened(paths)?;
-    if named_document(&state, &which).is_none() {
-        return Err(Refused::Tool(no_document_called(&state, &which)));
-    }
-    let Some(cache) = tisty_core::cache::Cache::open(paths.cache()).ok().flatten() else {
-        return Err(Refused::Tool(
-            "this machine has nowhere to keep what you read, so nothing was written. It is not \
-             worth another try: read the document when you need it."
-                .into(),
-        ));
-    };
-    let Some(card) = tisty_core::docs::card_of(&paths.docs(), Some(&cache), &which) else {
-        return Err(Refused::Tool(format!(
-            "{which:?} is named in the log but its text is not on this machine yet."
-        )));
-    };
-
-    let held = tisty_core::docs::Gist {
-        print: card.print.clone(),
-        summary: summary.clone(),
-        notes: notes.clone(),
-        at: jiff::Timestamp::now(),
-        by: Some(store.device().0.clone()),
-    };
-    if !cache.note_gist(&which, &held) {
-        return Err(Refused::Tool(
-            "what you read could not be kept on this machine, so nothing was written.".into(),
-        ));
-    }
-
-    Ok(told(
-        format!(
-            "Kept what {} is about, against the text as it reads now. It stays on this \
-             machine, and the next reader is told if the document has moved since.",
-            super::named_as(&state, &which, &card.title)
-        ),
-        json!({
-            "doc": which,
-            "title": super::title_of(&state, &which, card.title.clone()),
-            "print": card.print,
-            "kept": true,
-        }),
-    ))
-}
 
 pub(super) const NEWEST_SHOWN: usize = 8;
 

@@ -878,6 +878,10 @@ fn every_read_of_a_page_names_it_by_its_task() {
         text_of(&summed).contains("the page of \"algo mio\""),
         "{summed}"
     );
+    assert_eq!(
+        summed["result"]["isError"], true,
+        "a task's state goes on its page: {summed}"
+    );
     assert!(
         text_of(&tabled).contains("the page of \"algo mio\""),
         "{tabled}"

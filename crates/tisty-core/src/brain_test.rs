@@ -590,3 +590,45 @@ fn a_damaged_base_leaves_no_journal_behind() {
         assert!(!dir.path().join(format!("{FILE}{tail}")).exists());
     }
 }
+
+fn noted(brain: &Brain) -> BTreeMap<String, String> {
+    let mut asked = brain.db.prepare("SELECT id, said FROM note").unwrap();
+    asked
+        .query_map([], |row| Ok((row.get(0)?, row.get(1)?)))
+        .unwrap()
+        .map(Result::unwrap)
+        .collect()
+}
+
+fn summed_up(store: &mut Store, id: Ulid, summary: &str) {
+    store
+        .append(Op::DocGist {
+            id,
+            d: crate::event::Gist {
+                print: "print".into(),
+                summary: summary.into(),
+                notes: String::new(),
+            },
+        })
+        .unwrap();
+}
+
+#[test]
+fn an_agent_s_note_reaches_the_base_and_the_newest_one_stays() {
+    let world = World::new();
+    let mut store = world.store();
+    let (id, file) = doc(&world, &mut store, "# Trips\n", None, None);
+    let (_, bare) = doc(&world, &mut store, "# Lisbon\n", None, None);
+    summed_up(&mut store, id, "where we went");
+    let mut brain = world.brain();
+    world.refreshed(&mut brain, &world.state());
+    assert!(noted(&brain)[&file].contains("where we went"));
+    assert!(!noted(&brain).contains_key(&bare), "{:?}", noted(&brain));
+
+    summed_up(&mut store, id, "where we go next");
+    world.refreshed(&mut brain, &world.state());
+
+    let said = noted(&brain);
+    assert!(said[&file].contains("where we go next"), "{said:?}");
+    assert_eq!(said.len(), 1, "{said:?}");
+}

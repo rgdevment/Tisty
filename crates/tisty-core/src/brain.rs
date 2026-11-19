@@ -230,6 +230,8 @@ impl Brain {
             let mut tie = tx.prepare("INSERT OR IGNORE INTO edge VALUES (?, ?, ?)")?;
             let mut carded = tx.prepare("INSERT OR REPLACE INTO card VALUES (?, ?, ?)")?;
             let mut uncarded = tx.prepare("DELETE FROM card WHERE id = ?")?;
+            let mut noted = tx.prepare("INSERT OR REPLACE INTO note VALUES (?, ?)")?;
+            let mut unnoted = tx.prepare("DELETE FROM note WHERE id = ?")?;
             for (id, node) in &wanted {
                 if held.get(id) == Some(&node.stamp) {
                     continue;
@@ -253,6 +255,10 @@ impl Brain {
                 match own.said {
                     Some(said) => carded.execute(rusqlite::params![id, node.stamp, said])?,
                     None => uncarded.execute([id])?,
+                };
+                match nodes::noted(state, node) {
+                    Some(said) => noted.execute(rusqlite::params![id, said])?,
+                    None => unnoted.execute([id])?,
                 };
                 written += 1;
             }

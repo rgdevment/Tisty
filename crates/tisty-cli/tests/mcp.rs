@@ -3496,7 +3496,7 @@ fn a_summary_of_a_document_that_moved_says_so_rather_than_lying() {
 }
 
 #[test]
-fn what_an_agent_remembers_never_leaves_this_machine() {
+fn what_an_agent_remembers_travels_in_the_log_and_never_into_the_document() {
     let served = Served::new();
     served.person().lets_the_agent_in();
     let doc = wrote_paper(&served, "# Acta\n\nlo que se hablo.");
@@ -3512,10 +3512,13 @@ fn what_an_agent_remembers_never_leaves_this_machine() {
             written.push_str(&said);
         }
     }
-    assert!(
-        !written.contains("un secreto de trabajo"),
-        "it is not in the log, so it never syncs: {written}"
-    );
+    let line = written
+        .lines()
+        .find(|one| one.contains("un secreto de trabajo"))
+        .unwrap_or_else(|| panic!("it travels in the log: {written}"));
+    let said: serde_json::Value = serde_json::from_str(line).unwrap();
+    assert_eq!(said["op"], "doc.gist", "{line}");
+    assert_eq!(said["opt"], true, "an older Tisty skips it: {line}");
     let body = std::fs::read_to_string(
         served
             .home
@@ -8008,4 +8011,166 @@ fn every_way_of_writing_into_a_put_away_document_says_who_brings_it_back() {
         "{said}"
     );
     assert!(!said.contains("write there"), "{said}");
+}
+
+fn gists_in_the_log(served: &Served) -> Vec<serde_json::Value> {
+    let store = served.home.path().join("data/store");
+    let mut found = Vec::new();
+    for dir in std::fs::read_dir(&store).unwrap().filter_map(Result::ok) {
+        let Ok(said) = std::fs::read_to_string(dir.path().join("active.tisty")) else {
+            continue;
+        };
+        found.extend(
+            said.lines()
+                .filter_map(|line| serde_json::from_str::<serde_json::Value>(line).ok())
+                .filter(|one| one["op"] == "doc.gist"),
+        );
+    }
+    found
+}
+
+fn kept_here_before_notes_travelled(served: &Served, doc: &str, summary: &str, at: &str) {
+    let cache = tisty_core::cache::Cache::open(&served.home.path().join("cache"))
+        .unwrap()
+        .unwrap();
+    let print = served.call("read", serde_json::json!({ "doc": doc }))["result"]
+        ["structuredContent"]["print"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    let gist = tisty_core::docs::Gist {
+        print,
+        summary: summary.into(),
+        notes: String::new(),
+        at: at.parse().unwrap(),
+        by: None,
+    };
+    assert!(cache.note_gist(doc, &gist));
+}
+
+#[test]
+fn saying_the_same_about_a_document_again_writes_nothing_more() {
+    let served = Served::new();
+    served.person().lets_the_agent_in();
+    let doc = wrote_paper(&served, "# Acta\n\nlo que se hablo.");
+    let said = serde_json::json!({ "doc": &doc, "summary": "el acta de mayo" });
+
+    let first = served.call("sum_up", said.clone());
+    let again = served.call("sum_up", said);
+
+    assert_eq!(
+        again["result"]["structuredContent"]["kept"], true,
+        "{again}"
+    );
+    assert_eq!(
+        first["result"]["structuredContent"]["kept"], true,
+        "{first}"
+    );
+    assert_eq!(gists_in_the_log(&served).len(), 1);
+}
+
+#[test]
+fn a_note_on_a_document_is_not_news_of_the_document_moving() {
+    let served = Served::new();
+    served.person().lets_the_agent_in();
+    let doc = wrote_paper(&served, "# Acta\n\nlo que se hablo.");
+    let first = served.call("catch_up", serde_json::json!({}));
+    let cursor = first["result"]["structuredContent"]["cursor"]
+        .as_str()
+        .unwrap()
+        .to_string();
+
+    served.call(
+        "sum_up",
+        serde_json::json!({ "doc": &doc, "summary": "el acta de mayo" }),
+    );
+    let quiet = served.call("catch_up", serde_json::json!({ "since": &cursor }));
+    assert!(
+        quiet["result"]["structuredContent"]["docs"].is_null(),
+        "{quiet}"
+    );
+
+    served.call(
+        "append_doc",
+        serde_json::json!({ "doc": &doc, "body": "Y algo mas." }),
+    );
+    let moved = served.call("catch_up", serde_json::json!({ "since": &cursor }));
+    assert!(
+        moved["result"]["structuredContent"]["docs"].is_array(),
+        "{moved}"
+    );
+}
+
+#[test]
+fn a_different_note_on_the_same_text_corrects_the_last_and_rings_the_window() {
+    let served = Served::new();
+    served.person().lets_the_agent_in();
+    let doc = wrote_paper(&served, "# Acta\n\nlo que se hablo.");
+    let bell = served.home.path().join("cache").join("stirred");
+    served.call(
+        "sum_up",
+        serde_json::json!({ "doc": &doc, "summary": "el acta de abril" }),
+    );
+    std::fs::remove_file(&bell).unwrap();
+
+    served.call(
+        "sum_up",
+        serde_json::json!({ "doc": &doc, "summary": "el acta de mayo" }),
+    );
+
+    assert!(bell.exists(), "a note is a write the window and sync catch");
+    assert_eq!(gists_in_the_log(&served).len(), 2);
+    let seen = served.call("brain", serde_json::json!({ "doc": &doc }));
+    assert_eq!(
+        seen["result"]["structuredContent"]["gist"]["summary"], "el acta de mayo",
+        "{seen}"
+    );
+}
+
+#[test]
+fn a_note_kept_here_before_notes_travelled_is_still_read_here_and_never_travels() {
+    let served = Served::new();
+    served.person().lets_the_agent_in();
+    let doc = wrote_paper(&served, "# Acta\n\nlo que se hablo.");
+    kept_here_before_notes_travelled(&served, &doc, "lo de antes", "2026-03-01T10:00:00Z");
+
+    let seen = served.call("brain", serde_json::json!({ "doc": &doc }));
+    let gist = &seen["result"]["structuredContent"]["gist"];
+    assert_eq!(gist["summary"], "lo de antes", "{seen}");
+    assert_eq!(gist["by_agent"], true, "{gist}");
+    assert!(gist["stale"].is_null(), "{gist}");
+    assert!(
+        gists_in_the_log(&served).is_empty(),
+        "it stays on this machine"
+    );
+
+    served.call(
+        "append_doc",
+        serde_json::json!({ "doc": &doc, "body": "Y algo mas." }),
+    );
+    let moved = served.call("brain", serde_json::json!({ "doc": &doc }));
+    assert_eq!(
+        moved["result"]["structuredContent"]["gist"]["stale"], true,
+        "{moved}"
+    );
+}
+
+#[test]
+fn a_note_that_came_as_an_event_wins_over_one_kept_here() {
+    let served = Served::new();
+    served.person().lets_the_agent_in();
+    let doc = wrote_paper(&served, "# Acta\n\nlo que se hablo.");
+    served.call(
+        "sum_up",
+        serde_json::json!({ "doc": &doc, "summary": "lo de ahora" }),
+    );
+    kept_here_before_notes_travelled(&served, &doc, "lo de antes", "2030-01-01T10:00:00Z");
+
+    let seen = served.call("brain", serde_json::json!({ "doc": &doc }));
+
+    assert_eq!(
+        seen["result"]["structuredContent"]["gist"]["summary"], "lo de ahora",
+        "{seen}"
+    );
+    assert_eq!(gists_in_the_log(&served).len(), 1);
 }

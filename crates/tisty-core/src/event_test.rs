@@ -457,3 +457,23 @@ fn a_retired_operation_keeps_its_name_so_no_new_one_can_take_it() {
         assert!(!KNOWN_OPS.contains(name), "{name}");
     }
 }
+
+#[test]
+fn an_agent_s_note_is_skipped_by_older_builds_and_never_stops_an_undo() {
+    let op = Op::DocGist {
+        id: id(),
+        d: Gist {
+            print: "print".into(),
+            summary: "what it says".into(),
+            notes: String::new(),
+        },
+    };
+    assert!(op.is_optional());
+    assert!(op.settles());
+    assert!(!op.destroys());
+    let ev = Event::new(DeviceId("dev_a3f1".into()), at(1), op);
+    assert_eq!(ev.entity_id(), Some(id()));
+    let said = serde_json::to_value(&ev).unwrap();
+    assert_eq!(said["op"], "doc.gist");
+    assert!(said["d"].get("notes").is_none(), "{said}");
+}

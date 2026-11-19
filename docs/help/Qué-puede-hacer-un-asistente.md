@@ -20,7 +20,7 @@ Lo que un asistente puede hacer es pequeño a propósito. Terminar, descartar y 
 - **Crear una carpeta** para documentos, con su icono y su color.
 - **Traer un archivo Markdown** como documento, o **sacar un documento** como archivos a una carpeta de este equipo.
 - **Escribir un documento en otro idioma**, o unir dos que dicen lo mismo.
-- **Dejar un resumen corto** de un documento largo para el siguiente asistente, guardado en este equipo.
+- **Dejar un resumen corto** de un documento largo para el siguiente asistente, también en tus otros equipos y sin mostrártelo.
 - **Añadir a hoy en tu Diario**, una vez que lo abres a los agentes y solo cuando se lo pides: sus palabras van al final de hoy, bajo una línea con el minuto y su nombre.
 - **Leer y buscar** lo que ya hay, incluido el archivo.
 - **Ver y recuperar las [versiones anteriores](Documentos#versiones-anteriores) de un documento** que guarda este equipo: listarlas, leer una y volver a ella, y deshacer esa vuelta.

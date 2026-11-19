@@ -5,6 +5,7 @@ mod catalogue;
 mod chores;
 mod diary;
 mod each;
+mod gists;
 mod guide;
 mod handing;
 mod helping;
@@ -47,9 +48,10 @@ use asked::{Takes, only_what_it_takes, short_and_plain, text, what_it_takes, wit
 use attaching::attach;
 use catalogue::{instructions, tools};
 use chores::{describe, note, plan, propose, remind, reschedule, say_done, say_not_doing, untick};
+use gists::{A_GIST_IN_A_LINE, gist_of, gist_told, sum_up};
 use guide::language;
 use helping::help;
-use looking::{NEWEST_SHOWN, catch_up, gone, how_it_ended, read, sum_up};
+use looking::{NEWEST_SHOWN, catch_up, gone, how_it_ended, read};
 use mending::{rename, reword_note, reword_step, unplan};
 use spoken::spoken;
 
@@ -346,10 +348,9 @@ fn answered(
 }
 
 // A tool missing here only rings for nothing; the window's own round still catches what it wrote.
-const ONLY_READS: [&str; 14] = [
+const ONLY_READS: [&str; 13] = [
     "brain",
     "find",
-    "sum_up",
     "read",
     "read_doc",
     "outline_doc",
@@ -1199,52 +1200,6 @@ fn shortened(said: Value) -> Value {
         kept.insert("more".into(), json!(true));
     }
     Value::Object(kept)
-}
-
-const A_GIST_IN_A_LINE: usize = 120;
-
-// A client that reads only the text would never see what an earlier reader left.
-fn gist_told(gist: &Value, summary_most: usize, notes_most: usize) -> String {
-    let stale = match gist["stale"] == json!(true) {
-        true => " (stale: written against an older version)",
-        false => "",
-    };
-    let cut = |said: &str, most: usize| match said.chars().count() > most {
-        true => format!("{}…", said.chars().take(most).collect::<String>()),
-        false => said.to_string(),
-    };
-    let mut told = Vec::new();
-    if let Some(summary) = gist["summary"].as_str() {
-        told.push(format!(
-            "An agent's summary: {}",
-            cut(summary, summary_most)
-        ));
-    }
-    if let Some(notes) = gist["notes"].as_str() {
-        told.push(format!("Its notes: {}", cut(notes, notes_most)));
-    }
-    match told.is_empty() {
-        true => String::new(),
-        false => format!("{}{stale}", told.join("\n")),
-    }
-}
-
-/// What was written about a document, and whether it still describes the text that is there.
-fn gist_of(cache: Option<&tisty_core::cache::Cache>, which: &str, print: &str) -> Option<Value> {
-    let held = cache?.gist(which)?;
-    let mut kept = serde_json::Map::new();
-    if !held.summary.is_empty() {
-        kept.insert("summary".into(), json!(held.summary));
-    }
-    if !held.notes.is_empty() {
-        kept.insert("notes".into(), json!(held.notes));
-    }
-    kept.insert("said_at".into(), json!(held.at.to_string()));
-    kept.insert("by_agent".into(), json!(true));
-    if held.print != print {
-        kept.insert("stale".into(), json!(true));
-    }
-    Some(Value::Object(kept))
 }
 
 /// Long enough that reading it whole is a decision, not an accident.

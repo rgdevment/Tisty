@@ -434,6 +434,36 @@ fn a_folder_ahead_of_us_is_the_same_lineage_because_only_the_end_grows(shared: &
     assert_eq!(shared.kin(&one), Kin::SameLineage);
 }
 
+fn an_agent_s_note_on_a_document_reaches_the_other_machine(shared: &Shared) {
+    let one = machine("uno");
+    filed(&one, "uno-0001", "# Acta
+");
+    let id = tisty_core::State::replay(&tisty_core::store::read_all(&one.store).unwrap())
+        .docs
+        .values()
+        .next()
+        .unwrap()
+        .id;
+    says(
+        &one,
+        Op::DocGist {
+            id,
+            d: tisty_core::event::Gist {
+                print: "print".into(),
+                summary: "de que trata el acta".into(),
+                notes: String::new(),
+            },
+        },
+    );
+    shared.carry(&one, Way::Push, &[]).unwrap();
+
+    let two = blank("dos");
+    shared.carry(&two, Way::Pull, &[]).unwrap();
+
+    let there = tisty_core::State::replay(&tisty_core::store::read_all(&two.store).unwrap());
+    assert_eq!(there.agent_notes[&id].summary, "de que trata el acta");
+}
+
 fn a_document_written_on_the_other_machine_lands_on_the_first_sync_not_the_second(shared: &Shared) {
     let one = machine("uno");
     let two = blank("dos");
@@ -1199,6 +1229,7 @@ both_sides! {
     a_folder_that_already_holds_everything_of_ours_is_the_same_lineage,
     a_tail_we_never_sent_is_still_the_same_lineage_not_a_clash,
     a_folder_ahead_of_us_is_the_same_lineage_because_only_the_end_grows,
+    an_agent_s_note_on_a_document_reaches_the_other_machine,
     a_document_written_on_the_other_machine_lands_on_the_first_sync_not_the_second,
     a_document_the_other_machine_deleted_is_never_brought_back_by_the_new_reckoning,
     a_seat_nobody_ever_wrote_in_is_not_taken_home,

@@ -20,7 +20,7 @@ What an assistant may do is deliberately small. Finishing, dropping and deleting
 - **Make a folder** for documents, with an icon and a colour.
 - **Bring a Markdown file in** as a document, or **write a document out** as files in a folder on this machine.
 - **Write a document in another language**, or join two that say the same.
-- **Leave a short summary** of a long document for the next assistant, kept on this machine.
+- **Leave a short summary** of a long document for the next assistant, on your other computers too, never shown to you.
 - **Add to today in your Diary**, once you open it to agents and only when you ask: its words go at the end of today, under a line with the minute and its name.
 - **Read and search** what is already there, including the archive.
 - **See and go back to a document's [earlier versions](Documents#earlier-versions)** this computer keeps: list them, read one and go back to it, and undo that go-back.
