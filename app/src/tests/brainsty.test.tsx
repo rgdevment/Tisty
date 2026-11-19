@@ -488,35 +488,28 @@ describe("Brainsty in the content panel", () => {
     expect(document.activeElement).toBe(screen.getByRole("button", { name: t("brainstyFilters") }));
   });
 
-  it("comes alive once laid out, pauses or turns its effects off on asking, and remembers both", async () => {
+  it("comes alive once laid out, and the legend's switch turns the effects off for this computer", async () => {
     localStorage.clear();
     const { user, shown } = await drawnNetwork();
     const spots = { x: new Float32Array(3), y: new Float32Array(3) };
 
     sigma.step?.({ ...spots, done: true, iterations: 20, ms: 12 });
     await waitFor(() => expect(sigma.turns.length).toBeGreaterThan(0));
-    await user.click(screen.getByRole("button", { name: t("brainstyPause") }));
-    const turned = sigma.turns.length;
-    await new Promise((frame) => requestAnimationFrame(frame));
-    await new Promise((frame) => requestAnimationFrame(frame));
+    expect(screen.queryByRole("switch")).toBeNull();
+    await user.click(screen.getByRole("button", { name: t("brainstyLegend") }));
+    const effects = screen.getByRole("switch", { name: t("brainstyEffects") });
+    expect(effects.getAttribute("aria-checked")).toBe("true");
+    await user.click(effects);
 
-    expect(sigma.turns.length).toBe(turned);
-    expect(localStorage.getItem("tisty.brainstyLiving")).toBe("paused");
-    await user.click(screen.getByRole("button", { name: t("brainstyEffects") }));
+    expect(sigma.turns[sigma.turns.length - 1]).toBeNull();
     expect(localStorage.getItem("tisty.brainstyEffects")).toBe("off");
     shown.unmount();
 
     await drawnNetwork();
-    const effects = screen.getByRole("button", { name: t("brainstyEffects") });
-    expect(effects.getAttribute("aria-pressed")).toBe("false");
-    expect(screen.getByRole("button", { name: t("brainstyResume") })).toHaveProperty(
-      "disabled",
-      true,
-    );
-    await user.click(effects);
-    await user.click(screen.getByRole("button", { name: t("brainstyResume") }));
+    const again = screen.getByRole("switch", { name: t("brainstyEffects") });
+    expect(again.getAttribute("aria-checked")).toBe("false");
+    await user.click(again);
     expect(localStorage.getItem("tisty.brainstyEffects")).toBeNull();
-    expect(localStorage.getItem("tisty.brainstyLiving")).toBeNull();
   });
 
   it("keeps its effects off when the computer asks for less motion", async () => {
@@ -526,8 +519,9 @@ describe("Brainsty in the content panel", () => {
     } as MediaQueryList);
     await drawnNetwork();
 
+    await userEvent.setup().click(screen.getByRole("button", { name: t("brainstyLegend") }));
     expect(
-      screen.getByRole("button", { name: t("brainstyEffects") }).getAttribute("aria-pressed"),
+      screen.getByRole("switch", { name: t("brainstyEffects") }).getAttribute("aria-checked"),
     ).toBe("false");
     asked.mockRestore();
   });

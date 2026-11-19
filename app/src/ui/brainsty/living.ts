@@ -19,12 +19,11 @@ export const HOP_SECONDS = 4;
 const TURN_SECONDS = 60;
 const FLASH_SECONDS = 0.6;
 const LONGEST_STEP = 0.1;
+const ZOOM_REST_MS = 800;
 const MEASURED_EVERY = 30;
 
 export interface Living {
   ready: () => void;
-  play: () => void;
-  pause: () => void;
   effects: (on: boolean) => void;
   measured: () => { ms: number; fps: number };
   turnBy: (yaw: number, pitch: number) => void;
@@ -98,7 +97,6 @@ export function livingOn(
   let flashes: Flash[] = [];
   let turn: Turn = { yaw: 0, pitch: 0 };
   let laid = false;
-  let playing = false;
   let frame = 0;
   let last = 0;
   let spent = 0;
@@ -106,7 +104,8 @@ export function livingOn(
   let ticked = 0;
   let rendering = 0;
   let held = false;
-  let pressed = false;
+  let over = false;
+  let zoomedAt = Number.NEGATIVE_INFINITY;
   let lively = true;
   let counted = 0;
   let countedFrom = 0;
@@ -180,21 +179,25 @@ export function livingOn(
   const unheard = drawing.beforeFrame(() => {
     if (frame !== 0) rendering = clock.now();
   });
-  const press = () => {
-    pressed = true;
+  const enter = () => {
+    over = true;
   };
-  const release = () => {
-    pressed = false;
+  const leave = () => {
+    over = false;
   };
-  container.addEventListener("pointerdown", press, true);
-  container.ownerDocument.addEventListener("pointerup", release);
+  const zoom = () => {
+    zoomedAt = clock.now();
+  };
+  container.addEventListener("pointerenter", enter);
+  container.addEventListener("pointerleave", leave);
+  container.addEventListener("wheel", zoom, { passive: true });
+  const still = () => held || over || clock.now() - zoomedAt < ZOOM_REST_MS;
 
   const tick = (at: number) => {
     const started = clock.now();
     const seconds = Math.min(LONGEST_STEP, Math.max(0, (at - last) / 1000));
     last = at;
-    if (!held && !pressed)
-      turn = { ...turn, yaw: turn.yaw + (seconds * 2 * Math.PI) / TURN_SECONDS };
+    if (!still()) turn = { ...turn, yaw: turn.yaw + (seconds * 2 * Math.PI) / TURN_SECONDS };
     const fresh: Flash[] = [];
     travellers = travellers.map((one) => stepped(world, one, seconds, HOP_SECONDS, fresh));
     flashes = [
@@ -208,8 +211,7 @@ export function livingOn(
     ticked = clock.now() - started;
     frame = clock.frame(tick);
   };
-  const running = () =>
-    laid && playing && lively && container.ownerDocument.visibilityState !== "hidden";
+  const running = () => laid && lively && container.ownerDocument.visibilityState !== "hidden";
   const run = () => {
     if (frame !== 0 || !running()) return;
     if (travellers.length === 0)
@@ -230,15 +232,6 @@ export function livingOn(
     ready: () => {
       laid = true;
       seen();
-    },
-    play: () => {
-      playing = true;
-      seen();
-    },
-    pause: () => {
-      playing = false;
-      halt();
-      fps = 0;
     },
     effects: (on) => {
       lively = on;
@@ -271,8 +264,9 @@ export function livingOn(
     stop: () => {
       halt();
       container.ownerDocument.removeEventListener("visibilitychange", seen);
-      container.removeEventListener("pointerdown", press, true);
-      container.ownerDocument.removeEventListener("pointerup", release);
+      container.removeEventListener("pointerenter", enter);
+      container.removeEventListener("pointerleave", leave);
+      container.removeEventListener("wheel", zoom);
       unheard();
       unhook();
       canvas.remove();

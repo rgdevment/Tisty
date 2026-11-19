@@ -9,6 +9,8 @@ import { paletteNow, type Shape } from "./looks";
 interface Props {
   readonly network: Network;
   readonly groups: readonly Group[];
+  readonly lively?: boolean;
+  readonly onLively?: (lively: boolean) => void;
 }
 
 const OPEN = "tisty.brainstyLegend";
@@ -31,7 +33,7 @@ const keepOpen = (open: boolean) => {
   }
 };
 
-export default function Legend({ network, groups }: Props) {
+export default function Legend({ network, groups, lively, onLively }: Props) {
   const [open, setOpen] = useState(keptOpen);
   const [palette, setPalette] = useState(paletteNow);
   const [all, setAll] = useState(false);
@@ -65,6 +67,7 @@ export default function Legend({ network, groups }: Props) {
       </button>
       {open && (
         <div className="scroller grid min-h-0 grid-cols-2 gap-x-5 gap-y-3 px-3 pb-3">
+          {onLively && <Effects on={lively ?? false} onTurn={() => onLively(!(lively ?? false))} />}
           <Part title={t("brainstyLegendKinds")}>
             {legend.kinds.map((one) => (
               <Row key={one.kind} label={t(`brainstyOne_${one.kind}`)}>
@@ -132,6 +135,33 @@ export default function Legend({ network, groups }: Props) {
         </div>
       )}
     </section>
+  );
+}
+
+function Effects({ on, onTurn }: { readonly on: boolean; readonly onTurn: () => void }) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={on}
+      onClick={onTurn}
+      title={t(on ? "brainstyEffectsOff" : "brainstyEffectsOn")}
+      className="col-span-2 flex items-center justify-between gap-3 rounded-md py-1 text-left hover:text-ink"
+    >
+      <span className="font-semibold text-soft">{t("brainstyEffects")}</span>
+      <span
+        aria-hidden="true"
+        className={`relative h-4 w-7 shrink-0 rounded-full transition-colors duration-150 ${
+          on ? "bg-accent" : "bg-hair"
+        }`}
+      >
+        <span
+          className={`absolute top-0.5 size-3 rounded-full bg-bg transition-[left] duration-150 ${
+            on ? "left-3.5" : "left-0.5"
+          }`}
+        />
+      </span>
+    </button>
   );
 }
 

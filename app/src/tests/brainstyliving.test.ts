@@ -238,7 +238,6 @@ describe("the living network", () => {
     const box = boxed();
     const living = livingOn(box, drawing, chain, () => "#2266ff", { clock });
 
-    living.play();
     expect(frames).toHaveLength(0);
     living.ready();
     expect(frames).toHaveLength(1);
@@ -252,25 +251,25 @@ describe("the living network", () => {
     expect(HOP_SECONDS).toBe(4);
   });
 
-  it("holds the turn while a node is picked or the network is pressed, and walks on", () => {
+  it("holds the turn while a node is picked, the pointer is over it or it is zoomed, and walks on", () => {
     const { clock, tick } = fakeClock();
     const { drawing, turns } = drawingOf();
     const box = boxed();
     const living = livingOn(box, drawing, chain, () => "#2266ff", { clock });
     living.ready();
-    living.play();
+    const yaws = () => turns.map((one) => one.yaw);
 
     living.hold(true);
     tick(50);
-    tick(50);
-    expect(turns.map((one) => one.yaw)).toEqual([0, 0]);
     living.hold(false);
-    box.dispatchEvent(new PointerEvent("pointerdown"));
+    box.dispatchEvent(new PointerEvent("pointerenter"));
     tick(50);
-    expect(turns[2].yaw).toBe(0);
-    document.dispatchEvent(new PointerEvent("pointerup"));
+    box.dispatchEvent(new PointerEvent("pointerleave"));
+    box.dispatchEvent(new WheelEvent("wheel"));
     tick(50);
-    expect(turns[3].yaw).toBeGreaterThan(0);
+    expect(yaws()).toEqual([0, 0, 0]);
+    tick(800);
+    expect(yaws()[3]).toBeGreaterThan(0);
   });
 
   it("sends out more travellers as the network grows, two to ten", () => {
@@ -288,7 +287,6 @@ describe("the living network", () => {
       afterTurn: followed,
     });
     living.ready();
-    living.play();
     tick(16);
     render();
     expect(living.measured().ms).toBeGreaterThanOrEqual(0);
@@ -306,19 +304,11 @@ describe("the living network", () => {
     expect(frames).toHaveLength(1);
   });
 
-  it("stops asking for frames when paused or hidden, and comes back when seen again", () => {
+  it("stops asking for frames while the window is hidden, and comes back when seen again", () => {
     const { clock, frames, tick } = fakeClock();
     const { drawing } = drawingOf();
     const living = livingOn(boxed(), drawing, chain, () => "#2266ff", { clock });
     living.ready();
-    living.play();
-    living.pause();
-    expect(clock.cancel).toHaveBeenCalled();
-    frames.length = 0;
-    tick(16);
-    expect(frames).toHaveLength(0);
-
-    living.play();
     expect(frames).toHaveLength(1);
     const visibility = vi.spyOn(document, "visibilityState", "get").mockReturnValue("hidden");
     document.dispatchEvent(new Event("visibilitychange"));
@@ -353,7 +343,6 @@ describe("the living network", () => {
     living.ready();
     living.turnBy(0.5, 5);
     expect(turns[0]).toEqual({ yaw: 0.5, pitch: PITCH_AT_MOST });
-    living.play();
     living.sift([true, false, false, false, false]);
     for (const one of frames) one();
     expect(brush.arc).toHaveBeenCalled();

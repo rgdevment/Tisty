@@ -48,7 +48,6 @@ export default function Brainsty({ network, groups, onOpen, escaping }: Props) {
   const [query, setQuery] = useState("");
   const [sift, setSift] = useState<Sift>(EVERYTHING);
   const [lively, setLively] = useState(livelyAtFirst);
-  const [paused, setPaused] = useState(() => kept(STILL) === "paused");
   const [costShown, setCostShown] = useState(false);
   const hues = useRef<HueOf>(() => undefined);
   const tinted = new Map<string, string>();
@@ -239,9 +238,7 @@ export default function Brainsty({ network, groups, onOpen, escaping }: Props) {
     const living = drawing.current?.living;
     if (!ready || !living) return;
     living.effects(lively);
-    if (paused) living.pause();
-    else living.play();
-  }, [ready, lively, paused]);
+  }, [ready, lively]);
 
   useEffect(() => {
     const shown = (e: KeyboardEvent) => {
@@ -299,14 +296,9 @@ export default function Brainsty({ network, groups, onOpen, escaping }: Props) {
         network={network}
         groups={groups}
         lively={lively}
-        paused={paused}
         onLively={(next) => {
           keep(QUIET, next ? null : "off");
           setLively(next);
-        }}
-        onPaused={(next) => {
-          keep(STILL, next ? "paused" : null);
-          setPaused(next);
         }}
         costShown={costShown}
         cost={cost}
@@ -318,7 +310,6 @@ export default function Brainsty({ network, groups, onOpen, escaping }: Props) {
   );
 }
 
-const STILL = "tisty.brainstyLiving";
 const QUIET = "tisty.brainstyEffects";
 
 const kept = (key: string): string | null => {
