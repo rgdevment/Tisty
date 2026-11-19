@@ -22,6 +22,8 @@ const BATCH = 10;
 const MOST = 300;
 const BUDGET_MS = 4000;
 const CALM = 0.002;
+// Each step costs the page time in proportion to its nodes, so a big network shows fewer of them.
+const STEP_MS_PER_NODE = 1 / 30;
 
 const hashed = (text: string): number => {
   let h = 2166136261;
@@ -119,6 +121,7 @@ export function settle(
   const settings = forcesFor(graph.order);
   let spots = spotsOf(graph);
   let iterations = 0;
+  let told = started;
   while (iterations < MOST && graph.size > 0 && now() - started < BUDGET_MS) {
     forceAtlas2.assign(graph, { iterations: BATCH, settings });
     iterations += BATCH;
@@ -126,7 +129,10 @@ export function settle(
     const moved = movedBy(spots, next);
     spots = next;
     if (moved < CALM) break;
-    tell({ x: next.x.slice(), y: next.y.slice(), done: false, iterations, ms: now() - started });
+    const at = now();
+    if (at - told < graph.order * STEP_MS_PER_NODE) continue;
+    told = at;
+    tell({ x: next.x.slice(), y: next.y.slice(), done: false, iterations, ms: at - started });
   }
   tell({ ...spots, done: true, iterations, ms: now() - started });
 }

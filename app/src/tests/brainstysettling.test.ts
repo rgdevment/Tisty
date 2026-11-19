@@ -88,6 +88,27 @@ describe("where the network starts and how it settles", () => {
     expect(last.x).toHaveLength(30);
   });
 
+  it("spaces the steps it tells by the size of the network, and still ends with the last", () => {
+    const nodes = Array.from({ length: 60 }, (_, n) => neuron(`n${n}`, `g${n % 3}`));
+    const lines = nodes.slice(1).map((_, n): [number, number, number] => [n, n + 1, 0]);
+    const steps: Step[] = [];
+    let clock = 0;
+
+    settle(
+      { ...seeded(nodes), edges: edgesOf(lines) },
+      (step) => steps.push(step),
+      () => {
+        clock += 0.5;
+        return clock;
+      },
+    );
+
+    const told = steps.filter((one) => !one.done).map((one) => one.iterations);
+    expect(told.length).toBeGreaterThan(1);
+    expect(told.every((one) => one % 20 === 0)).toBe(true);
+    expect(steps[steps.length - 1].done).toBe(true);
+  });
+
   it("stops once its time is spent", () => {
     const nodes = Array.from({ length: 30 }, (_, n) => neuron(`n${n}`));
     const lines = nodes.slice(1).map((_, n): [number, number, number] => [0, n + 1, 0]);
