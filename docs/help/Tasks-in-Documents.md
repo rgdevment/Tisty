@@ -51,7 +51,7 @@ The card reads the task every time it is drawn, so it never goes stale:
 
 ## Where it was born: Born in
 
-A task created from a document remembers the document and the section you wrote it in. Beside its page, the **Born in** row names them, and a click opens that document. A task that came from a Brainstorm idea shows the same.
+A task created from a document remembers the document and the section you wrote it in. Beside its page, the **Born in** row names them, and a click opens that document. A task that came from an idea in Ideas shows the same.
 
 ![Beside the page of «Check the gate hinges», Born in names the November minutes and their section, and Linked from, the same minutes](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/help/en-born-in.png)
 

@@ -15,7 +15,7 @@ What an assistant may do is deliberately small. Finishing, dropping and deleting
 - **File documents into folders**, make one document a page of another, and set the order its pages are read in.
 - **Mark a document as having had its day** — a proposal, not a deletion (see below).
 - **Put a document away, or bring it back**, when you ask.
-- **Jot ideas on Brainstorm** when you ask, and sort them out with you: an idea it files in a document or turns into a task leaves the sheet, as it does when you do it.
+- **Jot ideas in Ideas** when you ask, and sort them out with you: an idea it files in a document or turns into a task leaves the sheet, as it does when you do it.
 - **Keep a copy of a file** you point it at, on a task or inside a document.
 - **Make a folder** for documents, with an icon and a colour.
 - **Bring a Markdown file in** as a document, or **write a document out** as files in a folder on this machine.
@@ -37,7 +37,7 @@ What an assistant may do is deliberately small. Finishing, dropping and deleting
 - Delete a document, or rename or delete a folder.
 - Write in [AGENTS](AGENTS-Folder#a-proposal-from-your-agent): a change to a rule or a skill stays as a proposal, apart, until you approve it on the card. Nor does it move, archive or mark those documents, change their `agent:` line, propose on a memory, put a document or make a folder there, or write in any folder a document with an `agent:` line.
 - Empty a document's history, or read or go back to a version another of your computers keeps.
-- Take an idea off Brainstorm any other way, mark the whole sheet, put it away or move it into a folder.
+- Take an idea out of Ideas any other way, mark the whole sheet, put it away or move it into a folder.
 - Reach a task you folded away.
 - Take files from anywhere but Downloads, Documents, Pictures, the desktop and the temporary folder.
 - File the same thing twice: a task filed from the same source is refused, and the existing one is handed back.
@@ -84,7 +84,7 @@ The [Diary](Documents#diary) is out of every assistant's sight until you press *
 
 An assistant can **mark** a document or a page that has had its day: you see a diamond beside its name and, when you open it, what the assistant said. Deleting it, putting it away or taking the diamond off stays yours: one click each, and deleting or unmarking a whole set of copies it marked together takes one click too.
 
-An idea on Brainstorm that had its day is marked the same way, one by one: the note wears a diamond with the reason, **Delete it** takes it off and **Remove the mark** keeps it.
+An idea in Ideas that had its day is marked the same way, one by one: the note wears a diamond with the reason, **Delete it** takes it off and **Remove the mark** keeps it.
 
 ## What it reads is your writing, not orders
 
