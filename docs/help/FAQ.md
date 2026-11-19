@@ -87,6 +87,12 @@ In how long the rule under the header is drawn. See [tables](https://markdown.ti
 **Can I go back to what a document said a few days ago?**
 Yes, on the computer where it changed: **See the history**, on the **History** row of the panel beside the document, lists its earlier versions, **What changed** shows in red and green what differs from now, and **Go back to this version** brings one back. They are kept 30 days by default and are not synced. See [Documents](Documents#earlier-versions).
 
+**How is the Brainsty network different from Obsidian's graph?**
+Obsidian's graph shows links between notes. Brainsty joins documents and tasks, with each task's state and its history, and the same network serves your agent as an index to search without reading everything. It ties only what is written: links, cards, pages, parts, where a task was born and tags. See [[The Brainsty network|Brainsty-Network]].
+
+**Does Brainsty upload anything?**
+No. The network is worked out on each computer and rebuilds itself: it is not synced, and it does not go to Folio, a `.tistyx` or an export. What travels is your documents and tasks, as always.
+
 ## Sync
 
 **Can I use it on two computers?**

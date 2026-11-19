@@ -127,7 +127,7 @@ When a step needs more, hover over its open box and press **↗**: it becomes a 
 - Beside the page, **Parts** takes a new one on its own line, and **Part of another…** finds the task it belongs to by name. **Let it go** detaches a part.
 - The trail of both tells when a part joined and when it was let go.
 - Closing a task with parts still open asks you to let them go in the same breath, and undo brings them back.
-- Beside the page, **Linked from** tells which documents and which other tasks cite or mention this one.
+- Beside the page, **Linked from** tells which documents and which other tasks cite or mention this one. See [[Tasks in documents|Tasks-in-Documents]].
 - A task made from a document, or from an idea on the Brainstorm, shows **Born in** beside its page: a click opens that document.
 
 ## From a calendar

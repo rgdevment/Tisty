@@ -107,6 +107,8 @@ Un documento lleva etiquetas igual que una tarea: escribe `#contrato` en medio d
 
 ## Enlazar documentos
 
+Todo esto, con capturas y un ejemplo de principio a fin, está en [[Enlazar documentos|Enlazar-documentos]]; aquí va lo esencial.
+
 Un documento suelto se olvida; uno enlazado se vuelve a encontrar. Escribe `[[` en un documento y sigue con unas palabras de su título: Tisty te ofrece los que calzan, primero los que empiezan así y después los escritos hace poco. Con `[[` solo, te muestra los últimos que escribiste. `Enter` deja un enlace como `[Viajes](tisty:doc/…)`, que apunta al documento y no a su nombre: si lo renombras, el enlace sigue llegando. Los `[[ ]]` no quedan escritos.
 
 - **A una sección**: sigue el título con `#` (`[[Viajes#hot`) y elige uno de sus encabezados. El enlace abre el documento justo ahí; si esa sección ya no existe, lo abre al comienzo.
@@ -115,6 +117,8 @@ Un documento suelto se olvida; uno enlazado se vuelve a encontrar. Escribe `[[` 
 - `[[#2]]` sigue nombrando el segundo paso, como siempre.
 
 ## Citar una tarea
+
+Con capturas, la tabla de lo que muestra la tarjeta en cada caso y un ejemplo completo: [[Tareas en documentos|Tareas-en-documentos]].
 
 Lo que sabes de un tema vive en su documento; el trabajo que hiciste sobre él, en sus tareas. Cita la tarea en el documento y la encuentras donde la vas a buscar: «Auto» muestra «Cambiar los neumáticos», cerrada en marzo, y un clic te lleva a cómo se resolvió.
 

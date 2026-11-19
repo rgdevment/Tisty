@@ -79,6 +79,15 @@ Documents are a Markdown notebook beside the tasks: callouts, tables, diagrams, 
 - [[Widgets]] — a fixed view of HTML and CSS inside a document, and opening it apart.
 - [Tisty Markdown guide ↗](https://markdown.tisty.app) — every mark a document can hold, with its examples drawn.
 
+## Brainsty: everything joined
+
+What you keep was already joined: a document cites another, a task was born in some minutes, a book has pages. Brainsty makes those ties a single gesture to write, shows them as one network and serves them to your agent as an index it walks without reading everything.
+
+- [[Linking documents|Linking-Documents]]: `[[` to link a document or one of its sections, the preview and **Linked from**.
+- [[Tasks in documents|Tasks-in-Documents]]: citing a task as a live card, creating one with `/` without leaving the document, and **Born in**.
+- [[The Brainsty network|Brainsty-Network]]: everything you keep drawn as a network, from afar and up close, with its search, its filters and the keyboard.
+- [[How an agent works|How-an-Agent-Works]]: a real session, call by call: `brain`, a task's state, Tisty's questions and the hooks.
+
 ## Your data
 
 - [[Sync and backup|Sync-and-Backup]] — two machines through a folder you already sync, or your Google Drive, OneDrive or WebDAV server directly, with what you keep there encrypted if you want.

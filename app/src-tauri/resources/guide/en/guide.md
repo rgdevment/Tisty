@@ -31,9 +31,11 @@ Tasks go in lists, documents in folders, and what is too much for one go is spli
 
 How far it reaches: each person has their own Tisty and their own agents. It does not hand out work between people or run a team; when someone needs what you know, you share the document with them.
 
-### What is coming
+### Everything joined: Brainsty
 
-I am working on Brainsty, Tisty's brain: everything you keep, with what joins it, drawn as one network. You will see it from afar, as a map of all your projects. Your agent will read it up close, as an index that tells it where to look without reading everything. It has no date yet; when it arrives, this guide will tell about it.
+Brainsty is Tisty's brain: everything you keep, with what joins it, drawn as one network. You see it from afar, as a map of all your projects, and up close, each document with its tasks. Your agent reads it as an index that tells it where to look without reading everything. You make the ties as you write: `[[` links a document to another, and `/` cites a task or creates a new one right there, in the document.
+
+![Brainsty: everything joined, the page of this guide that tells it and lets you try it](tisty:brainsty)
 
 ## How does it work?
 
@@ -261,6 +263,7 @@ To write:
 - The **⋯** at the top of the document turns it to **Markdown**, the text with all its marks in view; so does `Ctrl`/`⌘` + `E`, and **Rich text** takes you back to the page.
 - Drag a file in to attach it: Rina's vaccination card, the insurance PDF.
 - Insert **another document**: in a paragraph of its own it shows as a card; inside a sentence, as a link with its title. Either way, a click opens it.
+- Type `[[` and a few words of a title to link another document, or one of its sections with `#`. Beside each document, **Linked from** tells you who links to it.
 
 **Export**, in the document's panel, shows you its PDF, saves it as a PDF, a web page or a Word file, and copies it as standard Markdown for any other editor. Try it with this guide: it comes out with its diagrams, its tables and its sheets.
 
@@ -564,6 +567,7 @@ None of this is needed to get started. It is here for when you need it.
 | `Ctrl`/`⌘` + `E` | Switch the document between Rich text and Markdown |
 | `F1` | Open the Tisty Markdown guide on what you are writing |
 | `Ctrl`/`⌘` + `K` | Go to the search at the top of the sidebar; while writing a document, put a link |
+| `[[` | Link another document by its title; with `#`, one of its sections |
 | `Tab` · `Shift` + `Tab` | Walk the cells of a table; in a list, put an item in or take it out |
 | `Ctrl`/`⌘` + `X` · `V` | Move a document between folders |
 | `Esc` | Close whatever is open |
