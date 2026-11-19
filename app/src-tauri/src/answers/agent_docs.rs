@@ -269,19 +269,37 @@ fn done_at(session: &Mutex<Session>, file: &str, at: &str, asked: Asked) -> Answ
         done(&data, &ledger(&data), &target, piece, asked)?,
         writing.as_deref_mut(),
     ) {
-        (Some(body), Some(session)) if asked == Asked::Bring => kept_in(session, file, &body),
+        (Some(body), Some(session)) if asked == Asked::Bring => kept_in(
+            session,
+            Homes::here().as_ref(),
+            file,
+            &body,
+            &target.assistant,
+        ),
         (told, _) => Ok(told),
     }
 }
 
-// Brought words go in through the core's rewrite, so the document's history keeps what it said before.
-fn kept_in(session: &mut Session, file: &str, body: &str) -> Answer<Option<String>> {
+// Brought words are written as the assistant whose file they come from, so the history keeps what the
+// document said before, and a round settles the file at once.
+pub(crate) fn kept_in(
+    session: &mut Session,
+    homes: Option<&Homes>,
+    file: &str,
+    body: &str,
+    by: &str,
+) -> Answer<Option<String>> {
     let was = tisty_core::docs::read(&session.paths.docs(), file)
         .map_err(|e| Refusal::about("cannotWrite", e.to_string()))?;
     if tisty_core::docs::unchanged(&was, body) {
         return Err(Refusal::of("agentBringSame"));
     }
-    super::agents_sync::rewritten(session, file, body).map(|()| None)
+    super::agents_sync::rewritten_by(session, file, body, Some(by.to_string()))?;
+    if let Some(homes) = homes {
+        let mut ledger = ledger(session.paths.data());
+        super::agents_sync::round_now(session, homes, &mut ledger);
+    }
+    Ok(None)
 }
 
 #[cfg(test)]

@@ -352,7 +352,7 @@ fn led_in(
     }
 }
 
-fn round_now(session: &Session, homes: &Homes, ledger: &mut Ledger) -> Rounded {
+pub(crate) fn round_now(session: &Session, homes: &Homes, ledger: &mut Ledger) -> Rounded {
     let placed = places::targets(homes, &bodies(session));
     rounded(session.paths.data(), ledger, &placed)
 }
@@ -607,18 +607,28 @@ pub fn kept_side(
 }
 
 // The document's former words stay in its history, which is Tisty's side of the backup.
-pub(crate) fn rewritten(session: &mut Session, file: &str, body: &str) -> Answer<()> {
+fn rewritten(session: &mut Session, file: &str, body: &str) -> Answer<()> {
+    rewritten_by(session, file, body, None)
+}
+
+/// Written as `via`, so the document's history keeps what it said before whoever wrote it last.
+pub(crate) fn rewritten_by(
+    session: &mut Session,
+    file: &str,
+    body: &str,
+    via: Option<String>,
+) -> Answer<()> {
     let docs = session.paths.docs();
     let cannot = |e: tisty_core::Error| Refusal::about("cannotWrite", e.to_string());
     let at = tisty_core::docs::resolve(&docs, file).map_err(cannot)?;
     let print = tisty_core::docs::print_of(&at)
         .map_err(|e| Refusal::about("cannotWrite", e.to_string()))?
         .unwrap_or_default();
-    let made =
-        tisty_core::docs::rewrite(&docs, &session.writer(), file, body, &print).map_err(cannot)?;
+    let writer = tisty_core::history::Writer::now(session.paths.data(), via.clone());
+    let made = tisty_core::docs::rewrite(&docs, &writer, file, body, &print).map_err(cannot)?;
     match made {
         tisty_core::docs::Rewrite::Made { .. } => {
-            session.retell(file, body, None);
+            session.retell(file, body, via);
             Ok(())
         }
         tisty_core::docs::Rewrite::Moved => Err(Refusal::about("documentMoved", file.to_string())),

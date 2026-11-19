@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   type AgentDoc,
   agentBring,
@@ -9,6 +9,7 @@ import {
   touched,
 } from "../agentDocs";
 import { agentsKeep, agentsTurn } from "../agentsSync";
+import { useDesk } from "../desk";
 import { fill, t } from "../locales";
 import { saidPlainly } from "../refusal";
 import { sure } from "../sure";
@@ -22,7 +23,8 @@ interface Props {
   readonly editing: boolean;
   readonly locked: boolean;
   readonly onEdit: (editing: boolean) => void;
-  readonly onSettle: () => Promise<unknown> | undefined;
+  readonly onSettle: () => Promise<void>;
+  readonly onTaken: () => Promise<void>;
   readonly onError: (said: string) => void;
 }
 
@@ -65,6 +67,7 @@ export default function AgentCard({
   locked,
   onEdit,
   onSettle,
+  onTaken,
   onError,
 }: Props) {
   const [shown, setShown] = useState<Shown | null>(null);
@@ -79,6 +82,15 @@ export default function AgentCard({
   // A file speaks for the document only when it is that assistant's own: a Global rule is never rewritten from one of them.
   const owned = (place: Place) => takes && doc.level === place.assistant;
 
+  const { papersChanged } = useDesk();
+  // The page is read again only while it still shows the document the words were brought into.
+  const showing = useRef<string | null>(file);
+  useEffect(() => {
+    showing.current = file;
+    return () => {
+      showing.current = null;
+    };
+  }, [file]);
   const failed = (e: unknown) => onError(saidPlainly(e));
   const done = () => window.dispatchEvent(new Event(AGENTS_CHANGED));
   const show = (place: Place, backup: number | null) =>
@@ -89,7 +101,11 @@ export default function AgentCard({
   const bring = (place: Place) =>
     Promise.resolve(onSettle())
       .then(() => agentBring(file, place.at))
-      .then(done)
+      .then(() => (showing.current === file ? onTaken() : undefined))
+      .then(() => {
+        papersChanged();
+        done();
+      })
       .catch(failed);
   const overwrite = async (place: Place) => {
     if (!(await sure(fill("agentOverwriteSure", place.at)))) return;

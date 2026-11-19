@@ -1129,7 +1129,11 @@ export default function Docs({
                           editing={agent.editing}
                           locked={bolted}
                           onEdit={agent.onEdit}
-                          onSettle={flush}
+                          onSettle={async () => {
+                            await flush();
+                            if (held.current) return Promise.reject({ code: "unsavedStays" });
+                          }}
+                          onTaken={() => reread(open.file)}
                           onError={onError}
                         />
                         {placed}
