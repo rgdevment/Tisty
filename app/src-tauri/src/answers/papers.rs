@@ -1151,7 +1151,16 @@ pub fn doc_write(
     anyway: Option<bool>,
     since: Option<String>,
 ) -> Answer<Kept> {
-    let mut session = held(&session);
+    written_by_hand(&mut held(&session), id, body, anyway, since)
+}
+
+pub(crate) fn written_by_hand(
+    session: &mut Session,
+    id: String,
+    body: String,
+    anyway: Option<bool>,
+    since: Option<String>,
+) -> Answer<Kept> {
     writable(&session.state, &id)?;
     let since = since.filter(|_| !anyway.unwrap_or(false));
     if since.is_none() && !anyway.unwrap_or(false) && session.moved(&id) {
@@ -1159,12 +1168,14 @@ pub fn doc_write(
     }
     let root = session.paths.docs();
     let title = tisty_core::docs::titled(&body);
-    if let Ok(was) = tisty_core::docs::read(&root, &id)
-        && tisty_core::docs::unchanged(&was, &body)
+    let was = tisty_core::docs::read(&root, &id).ok();
+    if let Some(was) = &was
+        && tisty_core::docs::unchanged(was, &body)
     {
-        let print = tisty_core::docs::print_of_text(&was);
+        let print = tisty_core::docs::print_of_text(was);
         return Ok(Kept { id, title, print });
     }
+    let replaced = was.as_deref().map(tisty_core::docs::print_of_text);
     let print = tisty_core::docs::print_of_text(&body);
     let wrote = match &since {
         Some(seen) => tisty_core::docs::write_over(&root, &session.writer(), &id, &body, seen),
@@ -1175,10 +1186,10 @@ pub fn doc_write(
     }
     session.mind_body(&id, &tisty_core::docs::settled(&body));
     session.corpus.forget(&id);
-    let book = book_of(&session, &id, &title);
+    let book = book_of(session, &id, &title);
     let hand = signing(&session.state);
-    session.retell_over(&id, &body, hand, since.as_deref());
-    named_anew(&mut session, book, &id, &title);
+    session.retell_over(&id, &body, hand, replaced.as_deref());
+    named_anew(session, book, &id, &title);
     Ok(Kept { id, title, print })
 }
 

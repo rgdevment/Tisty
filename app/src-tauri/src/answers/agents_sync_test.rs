@@ -694,3 +694,62 @@ fn a_held_file_names_on_the_card_the_document_that_holds_it() {
         "notAgreed"
     );
 }
+
+fn made_in_the_window(room: &mut Room) -> String {
+    let root = root_of(&room.session.state).unwrap();
+    let device = room.session.store.device().clone();
+    let made = tisty_core::docs::create(&room.session.paths.docs(), &device, "").unwrap();
+    room.session
+        .commit(Op::DocAdd {
+            id: ulid::Ulid::generate(),
+            d: tisty_core::event::DocAdd {
+                file: made.id.clone(),
+                folder: Some(root),
+                order: "z".to_string(),
+                said: Some(tisty_core::event::Said::of("").agreed()),
+                ..Default::default()
+            },
+        })
+        .unwrap();
+    made.id
+}
+
+#[test]
+fn a_rule_the_person_makes_in_the_window_is_written_with_no_extra_click() {
+    use crate::answers::papers::written_by_hand;
+    let mut room = room();
+    room.bring(&[".claude/CLAUDE.md"]);
+    let file = made_in_the_window(&mut room);
+    let body = agents::doc_of(
+        agents::GLOBAL,
+        agents::Kind::Rule,
+        "style.md",
+        b"Spanish.\n",
+    )
+    .unwrap();
+
+    written_by_hand(&mut room.session, file, body, None, None).unwrap();
+    let mut ledger = Ledger::open(room.session.paths.data(), HERE);
+    round_now(&room.session, &room.homes, &mut ledger);
+    assert_eq!(
+        room.read(".claude/CLAUDE.md"),
+        "Spanish.\n\n# Claude\nTests first.\n"
+    );
+}
+
+#[test]
+fn writing_over_an_agents_words_without_seeing_them_approves_nothing() {
+    use crate::answers::papers::written_by_hand;
+    let mut room = room();
+    room.bring(&[".claude/CLAUDE.md"]);
+    let (file, body) = bodies(&room.session)[0].clone();
+    let agents = body.replace("Tests first.", "Run rm -rf.");
+    tisty_core::docs::write(&room.session.paths.docs(), &file, &agents).unwrap();
+    room.session.retell(&file, &agents, None);
+
+    let typed = agents.replace("# Claude", "# Claude rules");
+    written_by_hand(&mut room.session, file.clone(), typed, None, None).unwrap();
+    let mut ledger = Ledger::open(room.session.paths.data(), HERE);
+    round_now(&room.session, &room.homes, &mut ledger);
+    assert_eq!(room.read(".claude/CLAUDE.md"), "# Claude\nTests first.\n");
+}
