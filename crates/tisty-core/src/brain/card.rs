@@ -3,6 +3,7 @@ use rusqlite::{Connection, OptionalExtension};
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
 
 use super::Brain;
+use super::alike::SHOWN;
 use super::decided::Decision;
 use super::linked::{TITLED, paper_named};
 use super::own::Own;
@@ -26,9 +27,6 @@ const INCOMING: &str = "SELECT e.kind, n.id, n.kind, n.title, n.state, c.said
 const TITLES_AIMED: &str = "SELECT DISTINCT substr(target, 3) FROM edge
     WHERE source = ?1 AND kind = 'mention' AND substr(target, 1, 2) = '[['
     ORDER BY 1";
-const GUESSED: &str = "SELECT b, score, shared FROM alike WHERE a = ?1 AND method = 'words'
-    UNION ALL SELECT a, score, shared FROM alike WHERE b = ?1 AND method = 'words'
-    ORDER BY 2 DESC, 1";
 pub(super) const CARRYING: &str =
     "SELECT id, kind, title, state FROM node WHERE kind IN ('doc', 'page') AND title = ?1";
 
@@ -435,7 +433,11 @@ impl<F: Fn(&str) -> bool> Reader<'_, F> {
 
     // Both ends pass the gate, or the guess is not there: a hidden task is never named through it.
     fn guessed(&self, id: &str) -> rusqlite::Result<Vec<Guessed>> {
-        let mut asked = self.db.prepare_cached(GUESSED)?;
+        let mut asked = self.db.prepare_cached(&format!(
+            "SELECT b, score, shared FROM alike WHERE a = ?1 AND {SHOWN}
+             UNION ALL SELECT a, score, shared FROM alike WHERE b = ?1 AND {SHOWN}
+             ORDER BY 2 DESC, 1"
+        ))?;
         let rows: Vec<(String, f64, String)> = asked
             .query_map([id], |one| Ok((one.get(0)?, one.get(1)?, one.get(2)?)))?
             .collect::<rusqlite::Result<_>>()?;

@@ -16,3 +16,11 @@ fn quiet_rounds_come_on_their_own_and_only_then() {
     assert_eq!(due(false, SETTLES), None);
     assert_eq!(due(false, EVERY), Some(Round::Looking));
 }
+
+#[test]
+fn the_dictionary_is_looked_for_where_the_bundler_puts_resources() {
+    let exe = Path::new("install").join("Tisty.exe");
+    let found = beside(&exe);
+    assert!(found.ends_with(DICTIONARY));
+    assert!(found.starts_with("install"));
+}

@@ -1,3 +1,4 @@
+use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant};
 
 use tisty_core::Paths;
@@ -11,6 +12,7 @@ const LISTENS: Duration = Duration::from_secs(1);
 // Typing writes about once a second, and each round reads the whole state again.
 const SETTLES: Duration = Duration::from_secs(5);
 const WEIGHS_EVERY: Duration = Duration::from_secs(30);
+const DICTIONARY: &str = "resources/brain/dictionary.tsv";
 
 pub(super) fn keep(paths: Paths, nudge: Nudge, moved: Nudge) {
     let weighing = paths.clone();
@@ -56,9 +58,12 @@ fn kept(paths: &Paths, round: Round, moved: &Nudge) {
 fn weigh(paths: &Paths) {
     crate::desktop::lowered();
     let mut weighing = brain::Weighing::default();
+    let dictionary = std::env::current_exe().ok().as_deref().map(beside);
     loop {
         std::thread::sleep(WEIGHS_EVERY);
-        let done = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| weighing.kept(paths)));
+        let done = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            weighing.kept(paths, dictionary.as_deref())
+        }));
         if done.is_err() {
             witness::error(
                 channel::BRAIN,
@@ -67,6 +72,18 @@ fn weigh(paths: &Paths) {
             );
         }
     }
+}
+
+#[cfg(target_os = "macos")]
+fn beside(exe: &Path) -> PathBuf {
+    let folder = exe.parent().unwrap_or(exe);
+    folder.join("../Resources").join(DICTIONARY)
+}
+
+#[cfg(not(target_os = "macos"))]
+fn beside(exe: &Path) -> PathBuf {
+    let folder = exe.parent().unwrap_or(exe);
+    folder.join(DICTIONARY)
 }
 
 #[cfg(test)]

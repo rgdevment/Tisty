@@ -373,6 +373,7 @@ fn a_guess_comes_apart_from_the_lines_and_only_between_two_nodes_in_sight() {
     let budget = task(&mut store, "Presupuesto familiar", &[]).to_string();
     let spending = task(&mut store, "Gastos de diciembre", &[]).to_string();
     let secret = task(&mut store, "Regalo sorpresa", &[]).to_string();
+    let typed = task(&mut store, "Ntoas del mes", &[]).to_string();
     let (_, notes) = doc(&world, &mut store, "# Notes\n\nNothing yet.\n", None, None);
     let mut brain = world.brain();
     world.refreshed(&mut brain, &world.state());
@@ -385,8 +386,10 @@ fn a_guess_comes_apart_from_the_lines_and_only_between_two_nodes_in_sight() {
             (&budget, &secret, 0.8, "words", "regalo"),
             (&budget, "gone", 0.8, "words", "nada"),
             (&budget, &notes, 0.5, "a method not known yet", ""),
+            (&spending, &secret, 0.7, "dictionary", "regalo≈gift"),
         ],
     );
+    guessed_between(&brain, &[(&notes, &typed, 0.3, "typo", "notas≈ntoas")]);
 
     let network = brain
         .network(|id| id != secret, &[])
@@ -410,8 +413,12 @@ fn a_guess_comes_apart_from_the_lines_and_only_between_two_nodes_in_sight() {
             "diciembre notas".to_string(),
         ),
     ];
+    wanted.push((place(&notes), place(&typed), 300, "notas≈ntoas".to_string()));
     wanted.sort_unstable();
-    assert_eq!(guesses, wanted, "only shared words make a guess");
+    assert_eq!(
+        guesses, wanted,
+        "shared words, a typo or a translation make a guess"
+    );
     assert!(network.edges.is_empty(), "a guess is never a written line");
     assert!(!network.nodes.iter().any(|one| one.id == secret));
 }

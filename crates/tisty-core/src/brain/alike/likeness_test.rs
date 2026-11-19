@@ -38,7 +38,7 @@ fn with_fillers(mut items: Vec<Item>, how_many: usize) -> Vec<Item> {
 }
 
 fn drawn(items: &[Item], caps: &Caps) -> Vec<(usize, usize)> {
-    let mut all: Vec<(usize, usize)> = alike(items, &HashSet::new(), caps)
+    let mut all: Vec<(usize, usize)> = alike(items, &HashSet::new(), caps, Rule::Words)
         .pairs
         .iter()
         .map(|pair| (pair.a, pair.b))
@@ -200,7 +200,7 @@ fn what_is_tied_or_kin_already_stays_apart() {
     items[2].kin = vec!["book:trips".into()];
     items[3].kin = vec!["book:trips".into()];
     let tied: HashSet<(usize, usize)> = [(0, 1)].into();
-    let found: Vec<(usize, usize)> = alike(&items, &tied, &caps())
+    let found: Vec<(usize, usize)> = alike(&items, &tied, &caps(), Rule::Words)
         .pairs
         .iter()
         .map(|pair| (pair.a, pair.b))
@@ -212,12 +212,12 @@ fn what_is_tied_or_kin_already_stays_apart() {
 fn the_budget_bounds_every_pair_the_pass_compares() {
     let items = with_fillers(vec![item(&["oven", "bread"]), item(&["oven", "bread"])], 4);
     let within = Caps { steps: 8, ..caps() };
-    let found = alike(&items, &HashSet::new(), &within);
+    let found = alike(&items, &HashSet::new(), &within, Rule::Words);
     assert_eq!(found.pairs.len(), 1);
     assert!(found.steps <= within.steps, "{} steps", found.steps);
 
     let short = Caps { steps: 7, ..caps() };
-    let found = alike(&items, &HashSet::new(), &short);
+    let found = alike(&items, &HashSet::new(), &short, Rule::Words);
     assert!(found.pairs.is_empty());
     assert_eq!(found.common_from, 2, "no word is left to weigh");
     assert_eq!(found.steps, 0);
@@ -245,7 +245,7 @@ fn the_why_names_the_heaviest_words_as_first_written() {
     };
     let items = with_fillers(vec![one, other], 4);
     let told = Caps { told: 2, ..caps() };
-    let found = alike(&items, &HashSet::new(), &told);
+    let found = alike(&items, &HashSet::new(), &told, Rule::Words);
     assert_eq!(found.pairs[0].shared, ["método", "bread"]);
 }
 
@@ -260,5 +260,111 @@ fn a_node_with_no_words_breaks_nothing() {
         4,
     );
     assert_eq!(drawn(&items, &caps()), [(1, 2)]);
-    assert!(alike(&[], &HashSet::new(), &caps()).pairs.is_empty());
+    assert!(
+        alike(&[], &HashSet::new(), &caps(), Rule::Words)
+            .pairs
+            .is_empty()
+    );
+}
+
+fn written(words: &[(&str, &str)]) -> Item {
+    Item {
+        lang: None,
+        kin: Vec::new(),
+        words: words
+            .iter()
+            .map(|(key, said)| (key.to_string(), said.to_string(), 1))
+            .collect(),
+    }
+}
+
+fn found(items: &[Item], caps: &Caps, rule: Rule) -> Vec<(usize, usize, Vec<String>)> {
+    alike(items, &HashSet::new(), caps, rule)
+        .pairs
+        .into_iter()
+        .map(|pair| (pair.a, pair.b, pair.shared))
+        .collect()
+}
+
+#[test]
+fn a_track_needs_each_side_to_write_one_key_its_own_way() {
+    let items = with_fillers(
+        vec![
+            written(&[("pay", "pagar"), ("water", "agua")]),
+            written(&[("pay", "pay"), ("water", "water")]),
+            written(&[("oven", "oven"), ("bread", "bread")]),
+            written(&[("oven", "oven"), ("bread", "bread")]),
+        ],
+        6,
+    );
+    assert_eq!(drawn(&items, &caps()), [(0, 1), (2, 3)]);
+    assert_eq!(
+        found(&items, &caps(), Rule::Equivalent { loose: false }),
+        [(
+            0,
+            1,
+            vec!["pagar≈pay".to_string(), "agua≈water".to_string()]
+        )]
+    );
+}
+
+#[test]
+fn a_common_key_reached_by_two_words_tells_only_when_loose() {
+    let mut items = vec![
+        written(&[("card", "tarjeta"), ("bank", "banco")]),
+        written(&[("card", "card"), ("bank", "bank")]),
+    ];
+    for n in 0..3 {
+        items.push(written(&[
+            ("card", "card"),
+            (&format!("errand{n}"), "errand"),
+        ]));
+    }
+    let items = with_fillers(items, 25);
+    let real = Caps {
+        steps: u64::MAX,
+        ..CAPS
+    };
+    assert!(found(&items, &real, Rule::Words).is_empty());
+    assert!(found(&items, &real, Rule::Equivalent { loose: false }).is_empty());
+    assert_eq!(
+        found(&items, &real, Rule::Equivalent { loose: true }),
+        [(
+            0,
+            1,
+            vec!["banco≈bank".to_string(), "tarjeta≈card".to_string()]
+        )]
+    );
+}
+
+#[test]
+fn a_track_drops_a_pair_whose_told_words_show_no_equivalence() {
+    let heavy = |said: &str| Item {
+        lang: None,
+        kin: Vec::new(),
+        words: vec![
+            ("oven".to_string(), "oven".to_string(), 9),
+            ("bread".to_string(), said.to_string(), 1),
+        ],
+    };
+    let items = with_fillers(vec![heavy("pan"), heavy("bread")], 6);
+    let one = Caps { told: 1, ..caps() };
+    assert!(found(&items, &one, Rule::Equivalent { loose: false }).is_empty());
+    let two = Caps { told: 2, ..caps() };
+    assert_eq!(
+        found(&items, &two, Rule::Equivalent { loose: false }),
+        [(0, 1, vec!["oven".to_string(), "pan≈bread".to_string()])]
+    );
+}
+
+#[test]
+fn loose_keys_stay_under_a_quarter_of_the_base_and_within_the_budget() {
+    let caps = Caps { steps: 30, ..CAPS };
+    let df = [5, 5, 9, 2, 3];
+    let weighty = [false, false, false, true, false];
+    let crossed = [true, true, true, true, false];
+    assert_eq!(
+        loose(&df, &weighty, &crossed, 30, &caps),
+        [true, false, false, false, false]
+    );
 }

@@ -813,6 +813,7 @@ fn a_card_lists_its_guesses_apart_and_never_names_what_the_reader_may_not_see() 
         (&plans, &budget, 0.912, "words", "plan"),
         (&spending, &plans, 0.97, "meaning", ""),
         (&budget, &secret, 0.99, "words", "regalo"),
+        (&budget, &plans, 0.5, "a method not known yet", ""),
     ] {
         brain
             .db
@@ -875,4 +876,41 @@ fn a_card_with_no_guess_says_nothing_of_them() {
     let said = serde_json::to_value(card_of(&brain, &party)).unwrap();
 
     assert!(said.get("guessed").is_none(), "{said}");
+}
+
+#[test]
+fn a_card_shows_a_typo_and_a_translation_by_what_each_side_wrote() {
+    let world = World::new();
+    let mut store = world.store();
+    let bill = task(&mut store, "Pagar la cuenta del agua", &[]).to_string();
+    let paid = task(&mut store, "Pay the water bill", &[]).to_string();
+    let typed = task(&mut store, "Pagar la cuetna del agua", &[]).to_string();
+    let mut brain = world.brain();
+    world.refreshed(&mut brain, &world.state());
+    for (a, b, score, method, shared) in [
+        (&bill, &paid, 0.61, "dictionary", "agua≈water pagar≈pay"),
+        (&bill, &typed, 0.9, "typo", "cuenta≈cuetna agua"),
+    ] {
+        brain
+            .db
+            .execute(
+                "INSERT INTO alike(a, b, score, shared, method) VALUES (?1, ?2, ?3, ?4, ?5)",
+                rusqlite::params![a, b, score, shared, method],
+            )
+            .unwrap();
+    }
+
+    let shared: Vec<Vec<String>> = card_of(&brain, &bill)
+        .guessed
+        .into_iter()
+        .map(|one| one.shared)
+        .collect();
+
+    assert_eq!(
+        shared,
+        [
+            vec!["cuenta≈cuetna".to_string(), "agua".to_string()],
+            vec!["agua≈water".to_string(), "pagar≈pay".to_string()],
+        ]
+    );
 }
