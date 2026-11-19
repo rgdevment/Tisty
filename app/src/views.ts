@@ -15,7 +15,8 @@ export type Named =
   | "archive"
   | "keeping"
   | "weekly"
-  | "help";
+  | "help"
+  | "brainsty";
 
 export type Tab = "general" | "sync" | "security" | "data" | "agents" | "upkeep" | "about";
 
@@ -57,6 +58,7 @@ export const axisWord = (axis: Axis) =>
 export interface Chosen {
   named?: Named;
   doc?: string;
+  near?: string;
   tab?: Tab;
   move?: Heading;
   movedAt?: number;
@@ -132,6 +134,7 @@ export function accepts(chosen: Chosen): boolean {
   if (chosen.named === "keeping") return false;
   if (chosen.named === "weekly") return false;
   if (chosen.named === "help") return false;
+  if (chosen.named === "brainsty") return false;
 
   if (chosen.named === "tags") return (chosen.tags?.length ?? 0) > 0;
   return true;

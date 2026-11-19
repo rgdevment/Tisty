@@ -21,8 +21,8 @@ pub use alike::{Alike, Passed, Weighing};
 pub use card::{Around, Card, DocFacts, Facts, Guessed, Near, Section, TaskFacts, Tongue, Used};
 pub use decided::Decision;
 pub use network::{
-    EDGES_AT_MOST, Guess, LeftOut, NODES_AT_MOST, Network, Neuron, TIES, dates, kept_out, network,
-    touched_last,
+    EDGES_AT_MOST, Guess, LeftOut, NODES_AT_MOST, Network, Neuron, TIES, card_of, dates, kept_out,
+    network, touched_last,
 };
 pub use reading::{Citing, Headed, Under, cited_by};
 

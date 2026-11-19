@@ -35,7 +35,7 @@ export interface Drawing {
   toGraph: (point: Point) => Point;
   nodeOnScreen: (node: number) => Point | undefined;
   onFrame: (listener: () => void) => () => void;
-  light: (nodes: ReadonlySet<number> | null) => void;
+  light: (nodes: ReadonlySet<number> | null, picked?: number | null) => void;
   hide: (hidden: readonly boolean[]) => void;
   beside: (node: number) => number[];
   heed: (hands: Hands) => () => void;
@@ -57,6 +57,7 @@ interface Seen {
 interface Lit {
   isHovered?: boolean;
   isHighlighted?: boolean;
+  isPicked?: boolean;
 }
 
 interface Line {
@@ -128,6 +129,7 @@ export function drawNetwork(
   }
   const sigma = new Sigma(graph, container, {
     customGraphState: { zoom: 0 },
+    customNodeState: { isPicked: false },
     primitives: {
       nodes: { shapes: [sdfCircle(), sdfSquare()], layers: [layerFill()] },
       edges: {
@@ -148,10 +150,14 @@ export function drawNetwork(
         {
           shape: { attribute: "shape", defaultValue: "circle" },
           labelFont: font,
+          // sigma backs a hovered or picked node and its title in white, where a light title vanishes.
+          backdropColor: () => seen.palette.bg,
           color: (at, state: Lit, shared: Seen) =>
             shared.hasHighlighted && !state.isHighlighted ? rgba(String(at.color), DIM) : at.color,
           labelVisibility: (at, state: Lit, shared: Seen) => {
-            if (state.isHovered || state.isHighlighted) return "visible";
+            if (state.isHovered || state.isPicked) return "visible";
+            // Forced titles skip sigma's grid, so a crowd of neighbours would print over each other.
+            if (state.isHighlighted) return "auto";
             if (shared.hasHighlighted) return "hidden";
             return titleShown(Boolean(at.big), shared.zoom) > 0 ? "auto" : "hidden";
           },
@@ -208,7 +214,11 @@ export function drawNetwork(
   };
   sigma.on("afterRender", drew);
   sigma.scheduleRender();
-  const lit: { nodes: string[]; edges: string[] } = { nodes: [], edges: [] };
+  const lit: { nodes: string[]; edges: string[]; picked: string[] } = {
+    nodes: [],
+    edges: [],
+    picked: [],
+  };
   return {
     place: ({ x, y }) => {
       if (x.length !== graph.order) return;
@@ -257,7 +267,10 @@ export function drawNetwork(
       sigma.on("afterRender", listener);
       return () => sigma.off("afterRender", listener);
     },
-    light: (nodes) => {
+    light: (nodes, picked = null) => {
+      sigma.setNodesState(lit.picked, { isPicked: false });
+      lit.picked = picked !== null && graph.hasNode(String(picked)) ? [String(picked)] : [];
+      sigma.setNodesState(lit.picked, { isPicked: true });
       sigma.setNodesState(lit.nodes, { isHighlighted: false });
       sigma.setEdgesState(lit.edges, { isHighlighted: false });
       lit.nodes = nodes ? [...nodes].map(String).filter((key) => graph.hasNode(key)) : [];

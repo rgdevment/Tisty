@@ -2,7 +2,8 @@ use jiff::Timestamp;
 
 use super::super::tests::{World, doc, task};
 use super::{
-    CAPS, Caps, Held, LeftOut, Network, Neuron, TIES, dates, kept_out, network, touched_last, woven,
+    CAPS, Caps, Held, LeftOut, Network, Neuron, TIES, card_of, dates, kept_out, network,
+    touched_last, woven,
 };
 
 fn neuron(id: &str, kind: &str, state: Option<&str>) -> Held {
@@ -113,6 +114,22 @@ fn a_base_never_built_has_no_network_yet() {
 
     assert_eq!(brain.network(|_| true, &[]).unwrap(), None);
     assert_eq!(network(&World::new().paths, |_| true, &[]), None);
+}
+
+#[test]
+fn a_card_is_read_from_the_base_on_disk_and_never_for_what_is_kept_out() {
+    let world = World::new();
+    let today = jiff::civil::date(2026, 11, 19);
+    assert_eq!(card_of(&world.paths, "x", today, |_| true), None);
+    let mut store = world.store();
+    let party = task(&mut store, "the party", &["home"]).to_string();
+    let mut brain = world.brain();
+    world.refreshed(&mut brain, &world.state());
+
+    let card = card_of(&world.paths, &party, today, |_| true).expect("the task's card");
+    assert_eq!(card.title, "the party");
+    assert_eq!(card.around.tags, ["home"]);
+    assert_eq!(card_of(&world.paths, &party, today, |id| id != party), None);
 }
 
 #[test]

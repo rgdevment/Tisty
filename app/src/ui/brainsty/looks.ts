@@ -5,6 +5,7 @@ export type Shape = "square" | "circle";
 export type Standing = "live" | "done" | "archived";
 
 export interface Palette {
+  bg: string;
   ink: string;
   soft: string;
   faint: string;
@@ -95,6 +96,7 @@ export function paletteFrom(read: (name: string) => string): Palette {
   const hues: Record<string, string> = {};
   for (const key of HUE_KEYS) hues[key] = read(`--tisty-hue-${key}`);
   return {
+    bg: read("--tisty-bg"),
     ink: read("--tisty-ink"),
     soft: read("--tisty-soft"),
     faint: read("--tisty-faint"),

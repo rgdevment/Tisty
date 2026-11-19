@@ -4,7 +4,6 @@ mod admitting;
 mod answers;
 mod asked;
 mod booking;
-mod brainsty_window;
 mod command;
 mod desktop;
 mod diagramming;
@@ -1247,9 +1246,7 @@ fn commands() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool + Send + Sync +
         answers::citing::doc_cited_by,
         answers::cards::cards_drawn,
         answers::brainsty::brain_network,
-        answers::brainsty::brainsty_groups,
-        brainsty_window::brainsty_show,
-        brainsty_window::brainsty_open,
+        answers::brainsty::brain_card,
         answers::cited_tasks::task_step_marked,
         answers::citing::doc_heads,
         answers::citing::doc_glance,
@@ -1383,7 +1380,6 @@ pub fn run() {
         .manage(answers::cards::Glimpses::default())
         .manage(answers::clouding::Consenting::default())
         .manage(viewing::Views::default())
-        .manage(brainsty_window::Opening::default())
         .manage(finishing::Finishers::default())
         .manage(Packing::default())
         .manage(Erasing::default())
@@ -1394,7 +1390,7 @@ pub fn run() {
         .manage(sealing::Turns::default())
         .manage(handed::Knocking::default())
         .manage(starting::Starting::default())
-        .invoke_handler(starting::waiting(brainsty_window::kept_apart(commands())))
+        .invoke_handler(starting::waiting(commands()))
         .build(context())
         .expect("error while running tauri application")
         .run(|_app, _event| {
