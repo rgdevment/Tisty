@@ -8,6 +8,7 @@ use crate::{
     witness::{self, Fact, channel},
 };
 
+mod alike;
 mod card;
 mod decided;
 mod linked;
@@ -16,6 +17,7 @@ mod nodes;
 mod own;
 mod reading;
 
+pub use alike::{Alike, Passed, Weighing};
 pub use card::{Around, Card, DocFacts, Facts, Near, Section, TaskFacts, Tongue, Used};
 pub use decided::Decision;
 pub use network::{
@@ -24,7 +26,7 @@ pub use network::{
 };
 pub use reading::{Citing, Headed, Under, cited_by};
 
-const SCHEMA: i64 = 5;
+const SCHEMA: i64 = 6;
 const FILE: &str = "brain.db";
 const WAITS_FOR_OTHERS: std::time::Duration = std::time::Duration::from_secs(5);
 const PAGES_WORTH_COMPACTING: i64 = 256;
@@ -54,21 +56,39 @@ const TABLES: &str = "CREATE TABLE IF NOT EXISTS node(
         said TEXT NOT NULL);
     CREATE TABLE IF NOT EXISTS zone(
         id TEXT PRIMARY KEY,
-        name TEXT NOT NULL);";
+        name TEXT NOT NULL);
+    CREATE TABLE IF NOT EXISTS words(
+        id TEXT PRIMARY KEY,
+        stamp TEXT NOT NULL,
+        lang TEXT,
+        kin TEXT NOT NULL,
+        said TEXT NOT NULL);
+    CREATE TABLE IF NOT EXISTS alike(
+        a TEXT NOT NULL,
+        b TEXT NOT NULL,
+        score REAL NOT NULL,
+        shared TEXT NOT NULL,
+        method TEXT NOT NULL,
+        PRIMARY KEY (a, b)) WITHOUT ROWID;
+    CREATE INDEX IF NOT EXISTS alike_by_b ON alike(b);";
 
 const DROPPED: &str = "DROP TABLE IF EXISTS node;
     DROP TABLE IF EXISTS edge;
     DROP TABLE IF EXISTS card;
     DROP TABLE IF EXISTS note;
     DROP TABLE IF EXISTS zone;
+    DROP TABLE IF EXISTS words;
+    DROP TABLE IF EXISTS alike;
     DELETE FROM meta;";
 
 // An edge is what its source wrote, so one aimed at a node that left stays for when it comes back.
-const GONE_WITH_A_NODE: [&str; 4] = [
+const GONE_WITH_A_NODE: [&str; 6] = [
     "DELETE FROM node WHERE id = ?1",
     "DELETE FROM edge WHERE source = ?1",
     "DELETE FROM card WHERE id = ?1",
     "DELETE FROM note WHERE id = ?1",
+    "DELETE FROM words WHERE id = ?1",
+    "DELETE FROM alike WHERE a = ?1 OR b = ?1",
 ];
 
 pub struct Brain {
@@ -219,11 +239,13 @@ impl Brain {
             .map(|(id, node)| (id.as_str(), own::fresh(state, &ground, id, node)))
             .collect();
         let zones = nodes::zones(state);
+        let out = alike::kept_out(state, docs);
         let tx = self
             .db
             .transaction_with_behavior(TransactionBehavior::Immediate)?;
         let held = stamps(&tx)?;
         let mut written = 0;
+        let mut rewritten = Vec::new();
         {
             let mut put = tx.prepare("INSERT OR REPLACE INTO node VALUES (?, ?, ?, ?, ?, ?, ?)")?;
             let mut untied = tx.prepare("DELETE FROM edge WHERE source = ?")?;
@@ -252,6 +274,13 @@ impl Brain {
                 for (target, kind) in own.ties {
                     tie.execute(rusqlite::params![id, target, kind.as_str()])?;
                 }
+                if let Some(counted) = own.words {
+                    rewritten.push(alike::Rewritten {
+                        id,
+                        stamp: &node.stamp,
+                        counted,
+                    });
+                }
                 match own.said {
                     Some(said) => carded.execute(rusqlite::params![id, node.stamp, said])?,
                     None => uncarded.execute([id])?,
@@ -274,6 +303,16 @@ impl Brain {
             .keys()
             .filter(|one| !wanted.contains_key(*one))
             .collect();
+        for id in alike::unworded(&tx, &wanted, &out, &rewritten)? {
+            if let Some(counted) = own::fresh(state, &ground, id, &wanted[id]).words {
+                rewritten.push(alike::Rewritten {
+                    id,
+                    stamp: &wanted[id].stamp,
+                    counted,
+                });
+            }
+        }
+        alike::kept_in_round(&tx, &rewritten, &out, &gone)?;
         for sql in GONE_WITH_A_NODE {
             let mut taken = tx.prepare(sql)?;
             for id in &gone {

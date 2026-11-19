@@ -182,7 +182,10 @@ impl<'a> Ground<'a> {
 
     fn of_task(&self, own: &str, task: &Task, read: &mut Read) {
         let Read {
-            ties, away, shows, ..
+            ties,
+            away,
+            shows,
+            body,
         } = read;
         let said = task
             .description
@@ -196,6 +199,9 @@ impl<'a> Ground<'a> {
         for file in self.pages_of_tasks.get(&task.id).into_iter().flatten() {
             if let Some(page) = self.docs.read(file) {
                 self.written(own, &page, None, (ties, shows), Some(away));
+                let pages = body.get_or_insert_with(String::new);
+                pages.push_str(&page);
+                pages.push('\n');
             }
         }
         if let Some(whole) = task.part_of {

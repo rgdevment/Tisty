@@ -254,6 +254,19 @@ pub(crate) fn known_as(at: &std::path::Path) -> Option<String> {
     Some(format!("{changed}.{:x}.{named}", id.VolumeSerialNumber))
 }
 
+#[cfg(windows)]
+#[allow(unsafe_code)]
+pub(crate) fn lowered() {
+    use windows::Win32::System::Threading::{
+        GetCurrentThread, SetThreadPriority, THREAD_PRIORITY_LOWEST,
+    };
+    // SAFETY: the pseudo handle of the calling thread, which lives as long as the call.
+    let _ = unsafe { SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_LOWEST) };
+}
+
+#[cfg(not(windows))]
+pub(crate) fn lowered() {}
+
 #[cfg(not(target_os = "macos"))]
 pub(crate) fn translated() -> bool {
     false
