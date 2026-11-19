@@ -21,6 +21,8 @@ const glance = (more: Partial<Glance> = {}): Glance => ({
   folder: "a",
   docs: 3,
   changes: 0,
+  waiting: 0,
+  unagreed: 0,
   consented: true,
   allOn: true,
   ...more,

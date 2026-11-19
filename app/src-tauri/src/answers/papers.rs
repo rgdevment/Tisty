@@ -507,7 +507,7 @@ pub fn doc_new(
             by: signed_as.clone(),
             file: made.id.clone(),
             order,
-            said: Some(tisty_core::event::Said::of("")),
+            said: Some(tisty_core::event::Said::of("").agreed()),
             folder,
             page_of,
             task_of: None,
@@ -804,7 +804,7 @@ fn kept_on_the_page(
     session.mind_body(id, &tisty_core::docs::settled(&both));
     session.corpus.forget(id);
     let hand = signing(&session.state);
-    session.retell(id, &both, hand);
+    session.retell_written(id, &both, hand);
     Ok(())
 }
 
@@ -1009,6 +1009,7 @@ pub fn docs_catch_up(session: tauri::State<'_, Mutex<Session>>) -> Answer<Vec<Fi
                         key: None,
                         brainstorm: false,
                         diary: false,
+                        agreed: false,
                     })
                     .by(None);
                 said.news_for(kept).then_some(Op::DocSaid {
@@ -1176,7 +1177,7 @@ pub fn doc_write(
     session.corpus.forget(&id);
     let book = book_of(&session, &id, &title);
     let hand = signing(&session.state);
-    session.retell(&id, &body, hand);
+    session.retell_written(&id, &body, hand);
     named_anew(&mut session, book, &id, &title);
     Ok(Kept { id, title, print })
 }
@@ -1196,7 +1197,7 @@ pub(crate) fn named_anew(session: &mut Session, book: Option<String>, page: &str
     {
         session.corpus.forget(&up);
         let hand = signing(&session.state);
-        session.retell(&up, &now, hand);
+        session.retell_written(&up, &now, hand);
     }
 }
 
@@ -1251,7 +1252,7 @@ pub fn doc_merge(
     let title = tisty_core::docs::titled(&body);
     let book = book_of(&session, &id, &title);
     let hand = signing(&session.state);
-    session.retell(&id, &body, hand);
+    session.retell_written(&id, &body, hand);
     named_anew(&mut session, book, &id, &title);
     let print = tisty_core::docs::print_of_text(&body);
     Ok(Some(Woven { body, print, title }))

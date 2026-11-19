@@ -59,6 +59,7 @@ const card = (places: Place[], more: Partial<AgentDoc> = {}): AgentDoc => ({
   name: "CLAUDE.md",
   code: false,
   folderOff: false,
+  here: "applied",
   twin: false,
   places,
   ...more,
@@ -292,5 +293,55 @@ describe("an agent document's card", () => {
     );
     expect(screen.getByText("The code block is broken")).toBeTruthy();
     expect(screen.getByText(/file changed/)).toBeTruthy();
+  });
+
+  it("asks another computer's document to be applied here or not, and keeps the answer", async () => {
+    const changed = vi.fn();
+    window.addEventListener(AGENTS_CHANGED, changed);
+    shown(card([], { here: "waiting" }));
+    expect(screen.getByRole("status").textContent).toMatch(/comes from another computer/);
+    expect(screen.queryByText(/No assistant on this computer/)).toBeNull();
+    await userEvent.click(screen.getByRole("button", { name: "Not on this computer" }));
+    await waitFor(() => expect(changed).toHaveBeenCalled());
+    expect(sent("agent_doc")[0].args).toEqual({
+      file: "claude-rule.md",
+      asked: { do: "take", here: false },
+    });
+    await userEvent.click(screen.getByRole("button", { name: "Apply here" }));
+    await waitFor(() => expect(sent("agent_doc")).toHaveLength(2));
+    expect(sent("agent_doc")[1].args.asked).toEqual({ do: "take", here: true });
+    window.removeEventListener(AGENTS_CHANGED, changed);
+  });
+
+  it("offers only to apply a document the person declined here", () => {
+    shown(card([], { here: "declined" }));
+    expect(screen.getByRole("button", { name: "Apply here" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Not on this computer" })).toBeNull();
+  });
+
+  it("approves a text changed without the person only after saving the page and a yes", async () => {
+    asking.answer = () => Promise.resolve(false);
+    const on = shown(card([], { here: "notAgreed" }));
+    expect(screen.getByRole("status").textContent).toMatch(/until you approve it/);
+    await userEvent.click(screen.getByRole("button", { name: "Approve this text" }));
+    await waitFor(() => expect(asking.said).toHaveLength(1));
+    expect(sent("agent_doc")).toHaveLength(0);
+    asking.answer = () => Promise.resolve(true);
+    await userEvent.click(screen.getByRole("button", { name: "Approve this text" }));
+    await waitFor(() => expect(sent("agent_doc")).toHaveLength(1));
+    expect(on.onSettle).toHaveBeenCalled();
+    expect(sent("agent_doc")[0].args).toEqual({ file: "claude-rule.md", asked: { do: "agree" } });
+  });
+
+  it("says why a document is not written here when nothing can be done from the card", () => {
+    shown(card([], { here: "otherMemory" }));
+    expect(screen.getByRole("status").textContent).toMatch(/only read/);
+    expect(screen.queryByRole("button", { name: "Apply here" })).toBeNull();
+  });
+
+  it("says a file is on hold when another of its documents changed without approval", () => {
+    shown(card([place({ state: "held" })]));
+    expect(screen.getByText("On hold")).toBeTruthy();
+    expect(screen.getByText(/stays as it was until you approve it/)).toBeTruthy();
   });
 });

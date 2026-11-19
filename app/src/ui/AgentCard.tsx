@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import {
   type AgentDoc,
+  agentAgree,
   agentBring,
   agentHeld,
   agentRestore,
+  agentTake,
   type Place,
   type Said,
   touched,
@@ -13,7 +15,15 @@ import { useDesk } from "../desk";
 import { fill, t } from "../locales";
 import { saidPlainly } from "../refusal";
 import { sure } from "../sure";
-import { Action, BackupsModal, FileModal, Pill, PlaceRow, type Shown } from "./AgentCardParts";
+import {
+  Action,
+  BackupsModal,
+  FileModal,
+  HereNote,
+  Pill,
+  PlaceRow,
+  type Shown,
+} from "./AgentCardParts";
 import { AGENTS_CHANGED } from "./AgentsKeeper";
 import Glyph from "./Glyph";
 
@@ -34,6 +44,7 @@ const STATE: Record<Said["state"], { word: Parameters<typeof t>[0]; tone: string
   {
     synced: { word: "agentSynced", tone: "text-hue-green bg-hue-green/10", glyph: "done" },
     pending: { word: "agentPending", tone: "text-soft bg-hover", glyph: "refresh" },
+    held: { word: "agentHeldPill", tone: "text-hue-amber bg-hue-amber/10", glyph: "pause" },
     outside: { word: "agentOutside", tone: "text-hue-amber bg-hue-amber/10", glyph: "alert" },
     both: { word: "agentBoth", tone: "text-hue-red bg-hue-red/10", glyph: "alert" },
     off: { word: "agentPaused", tone: "text-soft bg-hover", glyph: "pause" },
@@ -47,6 +58,7 @@ const STATE: Record<Said["state"], { word: Parameters<typeof t>[0]; tone: string
 const ORDER: readonly Said["state"][] = [
   "both",
   "outside",
+  "held",
   "broken",
   "linked",
   "unreadable",
@@ -123,6 +135,14 @@ export default function AgentCard({
         done();
       }),
     );
+  const take = (here: boolean) => agentTake(file, here).then(done).catch(failed);
+  // Approving sends what the page says now, so words still waiting to be saved land first.
+  const agree = () =>
+    asked(t("agentAgreeSure"), () =>
+      Promise.resolve(onSettle())
+        .then(() => agentAgree(file))
+        .then(done),
+    );
   const turn = (place: Place) =>
     agentsTurn(place.assistant, place.said.state === "off")
       .then(done)
@@ -145,7 +165,7 @@ export default function AgentCard({
       <p className="mt-2.5 mb-3 text-[21px] font-medium text-ink">{doc.name}</p>
       {own && <p className="mb-3 text-[12.5px] text-soft">{t("agentMemoryOwn")}</p>}
       <div className="rounded-[10px] bg-panel px-3.5 py-1">
-        {doc.places.length === 0 && (
+        {doc.places.length === 0 && (doc.here === "applied" || doc.here === "away") && (
           <p className="py-2 text-[12.5px] text-soft">
             {t(doc.twin ? "agentTwin" : "agentNowhere")}
           </p>
@@ -161,6 +181,10 @@ export default function AgentCard({
         ))}
       </div>
       {doc.folderOff && <p className="mt-3 text-[12.5px] text-soft">{t("agentFolderOff")}</p>}
+      <HereNote here={doc.here} onTake={take} onAgree={agree} />
+      {doc.places.some((one) => one.said.state === "held") && (
+        <p className="mt-3 text-[12.5px] text-hue-amber">{t("agentHeldSaid")}</p>
+      )}
       {changed.map((outside) => (
         <div
           key={outside.at}

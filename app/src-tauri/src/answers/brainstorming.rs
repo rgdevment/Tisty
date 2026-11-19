@@ -103,7 +103,7 @@ pub fn filing(session: &mut Session, file: &str, idea: &str, heading: &str) -> A
     .map_err(super::papers::unwritten)?;
     session.corpus.forget(file);
     let hand = signing(&session.state);
-    session.retell(file, &whole, hand);
+    session.retell_written(file, &whole, hand);
     Ok(())
 }
 
@@ -154,7 +154,7 @@ pub fn jotting(
     .map_err(super::papers::unwritten)?;
     session.corpus.forget(&file);
     let hand = signing(&session.state);
-    session.retell(&file, &whole, hand);
+    session.retell_written(&file, &whole, hand);
     Ok(Jotted { file, made })
 }
 

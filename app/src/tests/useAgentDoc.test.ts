@@ -20,6 +20,7 @@ const rule: AgentDoc = {
   name: "CLAUDE.md",
   code: false,
   folderOff: false,
+  here: "applied",
   twin: false,
   places: [],
 };

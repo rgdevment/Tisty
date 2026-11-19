@@ -254,6 +254,7 @@ impl State {
             }
         }
         self.applied(event);
+        self.placed(event);
     }
 
     // Another computer's older word never undoes a version this log already knows was sent, nor brings back what was stopped.

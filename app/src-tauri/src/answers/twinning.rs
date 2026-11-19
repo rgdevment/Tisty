@@ -393,7 +393,7 @@ fn joined(
         };
         // Left unminded, so an editor holding the old body is told the file moved under it.
         session.corpus.forget(id);
-        session.retell(id, &whole, hand.clone());
+        session.retell_written(id, &whole, hand.clone());
     }
     if !plan.ops.is_empty() {
         unmoved(session, &plan)?;

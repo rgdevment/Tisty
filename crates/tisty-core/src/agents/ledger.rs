@@ -20,6 +20,12 @@ pub struct Ledger {
     off: BTreeSet<String>,
     #[serde(default)]
     wrote: BTreeMap<String, String>,
+    #[serde(default)]
+    took: BTreeSet<String>,
+    #[serde(default)]
+    left: BTreeSet<String>,
+    #[serde(default)]
+    applied: BTreeMap<String, BTreeSet<String>>,
 }
 
 impl Ledger {
@@ -93,6 +99,47 @@ impl Ledger {
 
     pub fn settle(&mut self, at: &Path, bytes: &[u8]) {
         self.wrote.insert(keyed(at), crate::attach::printed(bytes));
+    }
+
+    /// The person's «apply here» or «not on this computer», for this computer alone.
+    pub fn take(&mut self, file: &str, here: bool) {
+        let (into, out) = match here {
+            true => (&mut self.took, &mut self.left),
+            false => (&mut self.left, &mut self.took),
+        };
+        out.remove(file);
+        into.insert(file.to_string());
+    }
+
+    pub fn took(&self, file: &str) -> bool {
+        self.took.contains(file)
+    }
+
+    pub fn left(&self, file: &str) -> bool {
+        self.left.contains(file)
+    }
+
+    // What went into a file stays taken here, so a later change of this computer's name drops nothing from it.
+    pub fn applied_to(&mut self, at: &Path, files: impl IntoIterator<Item = String>) {
+        let files: BTreeSet<String> = files.into_iter().collect();
+        self.took.extend(files.iter().cloned());
+        self.applied.insert(keyed(at), files);
+    }
+
+    pub fn applied_at(&self, at: &Path) -> impl Iterator<Item = &str> {
+        self.applied
+            .get(&keyed(at))
+            .into_iter()
+            .flatten()
+            .map(String::as_str)
+    }
+
+    pub fn applied(&self) -> BTreeSet<&str> {
+        self.applied
+            .values()
+            .flatten()
+            .map(String::as_str)
+            .collect()
     }
 }
 

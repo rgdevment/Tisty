@@ -1,4 +1,5 @@
 use super::*;
+use crate::wiring::agents::gated::{gated, id_of};
 use tisty_core::agents::{Kind, doc_of, round};
 
 struct Room {
@@ -23,14 +24,24 @@ fn rule(level: &str, name: &str, said: &str) -> String {
 
 impl Room {
     fn placed(&self, file: &str, docs: &[(&str, String)]) -> Placed {
+        let named: Vec<(String, String)> = docs
+            .iter()
+            .map(|(name, body)| (name.to_string(), body.clone()))
+            .collect();
+        let gated = gated(&self.ledger, &named);
+        let home = self.home.path();
+        let mut target =
+            gated
+                .gate
+                .target(&self.ledger, home.to_path_buf(), home.join(file), "codex");
+        for (name, _) in docs {
+            let id = gated.id(name);
+            let piece = gated.gate.admitted().iter().find(|one| one.file() == id);
+            target.put(piece.unwrap());
+        }
         Placed {
-            target: Target {
-                root: self.home.path().to_path_buf(),
-                at: self.home.path().join(file),
-                assistant: "codex".into(),
-                pieces: docs.iter().map(|(_, body)| body.clone()).collect(),
-            },
-            files: docs.iter().map(|(file, _)| file.to_string()).collect(),
+            files: target.files().map(str::to_string).collect(),
+            target,
             lead_in: None,
         }
     }
@@ -52,11 +63,14 @@ fn a_document_is_shown_in_every_file_it_is_written_into_with_its_place_there() {
     let own = ("codex.md", rule("codex", "AGENTS.md", "Use Rust.\n"));
     let claude = room.placed("claude/CLAUDE.md", std::slice::from_ref(&global));
     let codex = room.placed("codex/AGENTS.md", &[global.clone(), own]);
-    let found = placed_for("global.md", vec![claude, codex.clone()]);
+    let found = placed_for(&id_of("global.md"), vec![claude, codex.clone()]);
     assert_eq!(found.len(), 2);
     assert_eq!(found[1], (codex.target, 0));
-    assert_eq!(placed_for("codex.md", vec![codex_of(&room)])[0].1, 1);
-    assert!(placed_for("elsewhere.md", vec![codex_of(&room)]).is_empty());
+    assert_eq!(
+        placed_for(&id_of("codex.md"), vec![codex_of(&room)])[0].1,
+        1
+    );
+    assert!(placed_for(&id_of("elsewhere.md"), vec![codex_of(&room)]).is_empty());
 }
 
 fn codex_of(room: &Room) -> Placed {

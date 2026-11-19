@@ -6,6 +6,7 @@ export type AgentKind = "rule" | "skill" | "memory";
 export type Said =
   | { state: "synced" }
   | { state: "pending" }
+  | { state: "held" }
   | { state: "outside"; mine: boolean; gone: boolean }
   | { state: "both" }
   | { state: "off" }
@@ -30,6 +31,15 @@ export interface Place {
   readonly kept: readonly Backup[];
 }
 
+export type Here =
+  | "applied"
+  | "waiting"
+  | "declined"
+  | "notAgreed"
+  | "placedByAgent"
+  | "otherMemory"
+  | "away";
+
 export interface AgentDoc {
   readonly kind: AgentKind;
   readonly level: string;
@@ -38,6 +48,7 @@ export interface AgentDoc {
   readonly code: boolean;
   readonly folderOff: boolean;
   readonly twin: boolean;
+  readonly here: Here;
   readonly places: readonly Place[];
 }
 
@@ -45,11 +56,13 @@ export interface Glance {
   readonly folder: string | null;
   readonly docs: number;
   readonly changes: number;
+  readonly waiting: number;
+  readonly unagreed: number;
   readonly consented: boolean;
   readonly allOn: boolean;
 }
 
-export type GlanceWord = "empty" | "synced" | "changes" | "off";
+export type GlanceWord = "empty" | "synced" | "changes" | "waiting" | "off";
 
 const LEVEL = /^[a-z0-9-]{1,40}$/;
 const KINDS = new Set(["rule", "skill", "memory"]);
@@ -91,6 +104,10 @@ export const agentHeld = (file: string, at: string, backup: number | null): Prom
   agentDo(file, at, { do: "held", backup }).then((text) => text ?? "");
 export const agentRestore = (file: string, at: string, backup: number): Promise<void> =>
   agentDo(file, at, { do: "restore", backup }).then(() => undefined);
+export const agentTake = (file: string, here: boolean): Promise<AgentDoc | null> =>
+  invoke("agent_doc", { file, asked: { do: "take", here } });
+export const agentAgree = (file: string): Promise<AgentDoc | null> =>
+  invoke("agent_doc", { file, asked: { do: "agree" } });
 
 const MARKDOWN = new Set(["md", "markdown", "mdc"]);
 
@@ -106,7 +123,8 @@ export const fencedFile = (text: string, at: string): string => {
 export const glanceWord = (glance: Glance): GlanceWord => {
   if (glance.docs === 0) return "empty";
   if (!glance.consented || !glance.allOn) return "off";
-  return glance.changes > 0 ? "changes" : "synced";
+  if (glance.changes > 0) return "changes";
+  return glance.waiting + glance.unagreed > 0 ? "waiting" : "synced";
 };
 
 export const touched = (place: Place): boolean =>
