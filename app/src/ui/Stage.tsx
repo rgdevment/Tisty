@@ -10,6 +10,7 @@ import { shown } from "../tongues";
 import { title } from "../views";
 import About from "./About";
 import Board from "./Board";
+import BrainstyView, { openedHere } from "./BrainstyView";
 import Detail from "./Detail";
 import Docs from "./Docs";
 import Folder from "./Folder";
@@ -21,10 +22,12 @@ import Review from "./Review";
 import Spread from "./Spread";
 
 export default function Stage() {
+  const desk = useDesk();
   const {
     act,
     beside,
     bringBack,
+    cameFrom,
     carried,
     carries,
     chosen,
@@ -67,7 +70,7 @@ export default function Stage() {
     tight,
     told,
     underway,
-  } = useDesk();
+  } = desk;
   const tagNames = useMemo(() => data.tags.map((one) => one.tag), [data.tags]);
   const refreshed = () => {
     load();
@@ -87,6 +90,13 @@ export default function Stage() {
   useEffect(() => afterMove(() => fresh.current()), []);
   return chosen.named === "help" ? (
     <Help topic={chosen.topic} from={chosen.from} />
+  ) : chosen.named === "brainsty" ? (
+    <BrainstyView
+      near={chosen.near}
+      groups={[...papers.folders, ...(data.every ?? data.lists)]}
+      onOpen={(one) => openedHere(one, desk)}
+      onLeave={() => setChosen(cameFrom ?? { named: "tasks" })}
+    />
   ) : chosen.named === "docs" && !chosen.doc && here !== undefined ? (
     <Folder
       folder={standing ?? null}

@@ -1,7 +1,7 @@
 import { readdirSync, readFileSync } from "node:fs";
 
 const HELD_ONLY_BY = {
-  Page: ["App", "Viewing", "BrainstyWindow"],
+  Page: ["App", "Viewing"],
   Sheet: ["App"],
 };
 

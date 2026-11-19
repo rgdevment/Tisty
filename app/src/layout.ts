@@ -15,7 +15,11 @@ interface Seen {
 }
 
 export const layoutOf = ({ chosen, open, mode, tight, calm, asideShut }: Seen) => {
-  const outside = chosen.named === "docs" || chosen.named === "keeping" || chosen.named === "help";
+  const outside =
+    chosen.named === "docs" ||
+    chosen.named === "keeping" ||
+    chosen.named === "help" ||
+    chosen.named === "brainsty";
   const sheet = open && !outside && (mode === "sheet" || tight);
   const beside = open && !outside && !sheet;
   const aside =

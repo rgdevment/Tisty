@@ -1,17 +1,14 @@
 import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import kept from "../../src-tauri/src/brainsty_window.rs?raw";
-import BrainstyWindow from "../BrainstyWindow";
-import type { Group, Network } from "../brainsty";
-import { adopt, t } from "../locales";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { Group, Network, Neuron } from "../brainsty";
+import { t } from "../locales";
+import BrainstyView from "../ui/BrainstyView";
 
 const ipc = vi.hoisted(() => ({
   calls: [] as { cmd: string; args: Record<string, unknown> }[],
   network: (): Promise<unknown> => Promise.resolve(null),
-  groups: [] as unknown[],
   glance: "",
-  open: (): Promise<unknown> => Promise.resolve(null),
 }));
 
 vi.mock("@tauri-apps/api/core", () => ({
@@ -22,32 +19,7 @@ vi.mock("@tauri-apps/api/core", () => ({
   convertFileSrc: (path: string) => `asset://localhost/${path}`,
 }));
 
-const heard = vi.hoisted(() => ({
-  on: new Map<string, (event: { payload: unknown }) => void>(),
-}));
-
-vi.mock("@tauri-apps/api/event", () => ({
-  listen: (name: string, handler: (event: { payload: unknown }) => void) => {
-    heard.on.set(name, handler);
-    return Promise.resolve(() => heard.on.delete(name));
-  },
-  emit: () => Promise.resolve(),
-}));
-
-const shell = vi.hoisted(() => ({ shown: 0, closed: 0 }));
-
-vi.mock("@tauri-apps/api/window", () => ({
-  getCurrentWindow: () => ({
-    show: () => {
-      shell.shown++;
-      return Promise.resolve();
-    },
-    close: () => {
-      shell.closed++;
-      return Promise.resolve();
-    },
-  }),
-}));
+const ways = vi.hoisted(() => ({ opened: [] as unknown[], left: 0 }));
 
 const sigma = vi.hoisted(() => ({
   centred: [] as number[],
@@ -109,10 +81,6 @@ function answer(cmd: string): Promise<unknown> {
   switch (cmd) {
     case "brain_network":
       return ipc.network();
-    case "brainsty_groups":
-      return Promise.resolve(ipc.groups);
-    case "brainsty_open":
-      return ipc.open();
     case "doc_glance":
       return Promise.resolve({ title: "Notes", heading: null, html: ipc.glance, more: false });
     case "served":
@@ -161,33 +129,32 @@ const last = <T,>(all: T[]): T | undefined => all[all.length - 1];
 
 const asked = (cmd: string) => ipc.calls.filter((one) => one.cmd === cmd);
 
-const opened = async (search = "?locale=en&near=01A") => {
-  window.history.replaceState(null, "", `/${search}`);
+const opened = async (near: string | null = "01A") => {
   const user = userEvent.setup();
-  const shown = render(<BrainstyWindow />);
+  const shown = render(
+    <BrainstyView
+      near={near ?? undefined}
+      groups={[PROJECTS]}
+      onOpen={(one: Neuron) => ways.opened.push(one)}
+      onLeave={() => ways.left++}
+    />,
+  );
   return { user, shown };
 };
 
-const drawnNetwork = async (search?: string) => {
-  const { user, shown } = await opened(search);
+const drawnNetwork = async () => {
+  const { user, shown } = await opened();
   const network = await screen.findByRole("figure", { name: t("brainstyNetwork") });
   await waitFor(() => expect(sigma.hands).not.toBeNull());
   return { user, shown, network };
 };
 
-const allowed = [
-  ...(kept.match(/const ASKED[^=]*= \[([^\]]*)\]/)?.[1] ?? "").matchAll(/"(\w+)"/g),
-].map(([, name]) => name);
-
 beforeEach(() => {
   ipc.calls = [];
   ipc.network = () => Promise.resolve(small);
-  ipc.groups = [PROJECTS];
-  ipc.open = () => Promise.resolve(null);
   ipc.glance = '<h2 id="bread" data-at="3">Bread</h2><p>About bread</p>';
-  heard.on.clear();
-  shell.shown = 0;
-  shell.closed = 0;
+  ways.opened = [];
+  ways.left = 0;
   Object.assign(sigma, {
     centred: [],
     placed: 0,
@@ -202,52 +169,37 @@ beforeEach(() => {
   });
 });
 
-afterEach(() => {
-  adopt("en");
-  window.history.replaceState(null, "", "/");
-});
-
-describe("Brainsty's own window", () => {
-  it("shows itself, counts the network near what it was opened on and closes with Escape", async () => {
+describe("Brainsty in the content panel", () => {
+  it("counts the network near what it was opened on and leaves with Escape", async () => {
     const { user } = await opened();
 
     expect(await screen.findByText("3 nodes · 2 connections")).toBeTruthy();
-    expect(shell.shown).toBe(1);
     expect(asked("brain_network")).toEqual([{ cmd: "brain_network", args: { near: "01A" } }]);
-    expect(asked("brainsty_groups")).toHaveLength(1);
 
     await user.keyboard("{Escape}");
 
-    expect(shell.closed).toBe(1);
+    expect(ways.left).toBe(1);
+  });
+
+  it("leaves Escape to what sits over it", async () => {
+    await opened();
+    await screen.findByText("3 nodes · 2 connections");
+    const shut = (e: KeyboardEvent) => e.preventDefault();
+    document.addEventListener("keydown", shut);
+
+    document.body.dispatchEvent(
+      new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true }),
+    );
+
+    document.removeEventListener("keydown", shut);
+    expect(ways.left).toBe(0);
   });
 
   it("opens on what was last touched when nothing is open beside it", async () => {
-    await opened("?locale=en");
+    await opened(null);
 
     await screen.findByText("3 nodes · 2 connections");
     expect(asked("brain_network")[0].args).toEqual({ near: null });
-  });
-
-  it("speaks the language it was opened in, and the app's when it changes", async () => {
-    await drawnNetwork("?locale=es");
-    expect(screen.getByText(t("brainstyKeys")).textContent).toMatch(/Esc/);
-    expect(document.documentElement.lang).toBe("es");
-    const spanish = t("brainstyKeys");
-
-    act(() => heard.on.get("spoken")?.({ payload: "en" }));
-
-    expect(screen.getByText(t("brainstyKeys")).textContent).not.toBe(spanish);
-    expect(document.documentElement.lang).toBe("en");
-    act(() => heard.on.get("spoken")?.({ payload: null }));
-    expect(document.documentElement.lang).toBe(navigator.language);
-  });
-
-  it("stops hearing the app's language once it is gone", async () => {
-    const { shown } = await drawnNetwork();
-    expect(heard.on.has("spoken")).toBe(true);
-
-    shown.unmount();
-    await waitFor(() => expect(heard.on.has("spoken")).toBe(false));
   });
 
   it("says so while the base is still being built", async () => {
@@ -310,7 +262,7 @@ describe("Brainsty's own window", () => {
     expect(sigma.stopped).toBe(1);
   });
 
-  it("previews a picked document in its folder, and asks the main window to open it", async () => {
+  it("previews a picked document in its folder, and opens it", async () => {
     const { user } = await drawnNetwork();
 
     act(() => sigma.hands?.pick(0));
@@ -323,61 +275,19 @@ describe("Brainsty's own window", () => {
     expect(last(sigma.lit)).toEqual([0, 1]);
     await user.click(screen.getByRole("button", { name: t("brainstyOpen") }));
 
-    expect(asked("brainsty_open")).toEqual([
-      {
-        cmd: "brainsty_open",
-        args: { neuron: { kind: "doc", id: "notes.md", title: "Notes" } },
-      },
-    ]);
-    expect(shell.closed).toBe(0);
+    expect(ways.opened).toEqual([small.nodes[0]]);
+    expect(ways.left).toBe(0);
   });
 
-  it("says why when the main window could not be asked to open it", async () => {
-    const { user } = await drawnNetwork();
-    const refused = ipc.calls.length;
-    ipc.open = () => Promise.reject({ code: "internal" });
-
-    act(() => sigma.hands?.pick(0));
-    await user.click(await screen.findByRole("button", { name: t("brainstyOpen") }));
-
-    expect((await screen.findByRole("alert")).textContent).not.toBe("");
-    expect(ipc.calls.length).toBeGreaterThan(refused);
-    ipc.open = () => Promise.resolve(null);
-    await user.click(screen.getByRole("button", { name: t("brainstyOpen") }));
-    await waitFor(() => expect(screen.queryByRole("alert")).toBeNull());
-  });
-
-  it("keeps its page when a link in a preview is pressed", async () => {
-    ipc.glance = '<p>See <a href="https://example.com/far">the far site</a></p>';
-    const { user } = await drawnNetwork();
-    act(() => sigma.hands?.pick(0));
-    const link = await screen.findByText("the far site");
-    const went = vi.fn((e: Event) => e.defaultPrevented);
-    document.addEventListener("click", went);
-
-    document.addEventListener("auxclick", went);
-    await user.click(link);
-    await user.pointer({ keys: "[MouseMiddle]", target: link });
-
-    document.removeEventListener("click", went);
-    document.removeEventListener("auxclick", went);
-    expect(went).toHaveBeenCalledTimes(2);
-    expect(went.mock.results.every((one) => one.value === true)).toBe(true);
-  });
-
-  it("asks the main window to open a task on a double click", async () => {
+  it("opens a task on a double click", async () => {
     await drawnNetwork();
 
     act(() => sigma.hands?.open(1));
 
-    await waitFor(() =>
-      expect(asked("brainsty_open")[0]?.args).toEqual({
-        neuron: { kind: "task", id: "01A", title: "buy bread" },
-      }),
-    );
+    expect(ways.opened).toEqual([small.nodes[1]]);
   });
 
-  it("lets go of the search, then the picked node, then the window with each Escape", async () => {
+  it("lets go of the search, then the picked node, then the view with each Escape", async () => {
     const { user } = await drawnNetwork();
 
     await user.type(screen.getByRole("searchbox", { name: t("brainstySearch") }), "bread");
@@ -411,9 +321,9 @@ describe("Brainsty's own window", () => {
       card.body.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
     });
     expect(screen.queryByRole("complementary", { name: "buy bread" })).toBeNull();
-    expect(shell.closed).toBe(0);
+    expect(ways.left).toBe(0);
     await user.keyboard("{Escape}");
-    expect(shell.closed).toBe(1);
+    expect(ways.left).toBe(1);
   });
 
   it("filters the network by kind, and shows everything again", async () => {
@@ -465,7 +375,7 @@ describe("Brainsty's own window", () => {
     expect(await screen.findByRole("complementary", { name: "buy bread" })).toBeTruthy();
     expect(document.activeElement).toBe(network);
     await user.keyboard("{Enter}");
-    await waitFor(() => expect(asked("brainsty_open")).toHaveLength(1));
+    expect(ways.opened).toEqual([small.nodes[1]]);
   });
 
   it("hands the keys back to the network when Escape clears the search", async () => {
@@ -476,7 +386,7 @@ describe("Brainsty's own window", () => {
 
     expect(screen.getByRole<HTMLInputElement>("searchbox").value).toBe("");
     expect(document.activeElement).toBe(network);
-    expect(shell.closed).toBe(0);
+    expect(ways.left).toBe(0);
   });
 
   it("reaches the network and its controls with Tab, in the order they stand", async () => {
@@ -518,12 +428,12 @@ describe("Brainsty's own window", () => {
     );
   });
 
-  it("leaves an empty search with Escape before the picked node and the window", async () => {
+  it("leaves an empty search with Escape before the picked node and the view", async () => {
     const { user, network } = await drawnNetwork();
     await user.keyboard("/");
     await user.keyboard("{Escape}");
     expect(document.activeElement).toBe(network);
-    expect(shell.closed).toBe(0);
+    expect(ways.left).toBe(0);
 
     act(() => sigma.hands?.pick(0));
     await screen.findByRole("complementary", { name: "Notes" });
@@ -534,24 +444,9 @@ describe("Brainsty's own window", () => {
     expect(screen.getByRole("complementary", { name: "Notes" })).toBeTruthy();
     await user.keyboard("{Escape}");
     expect(screen.queryByRole("complementary", { name: "Notes" })).toBeNull();
-    expect(shell.closed).toBe(0);
+    expect(ways.left).toBe(0);
     await user.keyboard("{Escape}");
-    expect(shell.closed).toBe(1);
-  });
-
-  it("asks only for the commands its window is allowed", async () => {
-    ipc.glance = '<p>Rina</p><img src="attachments/rina.jpg" alt="Rina on the hill">';
-    const { user } = await drawnNetwork();
-    act(() => sigma.hands?.pick(0));
-    await screen.findByRole("complementary", { name: "Notes" });
-    await waitFor(() => expect(asked("served")).toHaveLength(1));
-    await user.click(screen.getByRole("button", { name: t("brainstyOpen") }));
-    act(() => sigma.hands?.pick(1));
-    await waitFor(() => expect(asked("cards_drawn").length).toBeGreaterThan(0));
-
-    expect(allowed).toContain("brain_network");
-    const used = [...new Set(ipc.calls.map((one) => one.cmd))];
-    expect(used.filter((one) => !allowed.includes(one))).toEqual([]);
+    expect(ways.left).toBe(1);
   });
 
   it("lists what Tisty guesses beside a picked node, strongest first, with why, and the filter takes them away", async () => {

@@ -1,4 +1,3 @@
-import { showBrainsty } from "./brainsty";
 import { chosenWidth, railed, useBreadth } from "./breadth";
 import { docFile, folderFile } from "./core";
 import { DeskProvider, deskOf } from "./desk";
@@ -8,7 +7,6 @@ import { t } from "./locales";
 import { saidPlainly } from "./refusal";
 import AgentsKeeper from "./ui/AgentsKeeper";
 import { WEEK } from "./ui/Ahead";
-import BrainstyAsked from "./ui/BrainstyAsked";
 import Calendars from "./ui/Calendars";
 import HelpKey from "./ui/HelpKey";
 import Layers from "./ui/Layers";
@@ -64,10 +62,14 @@ export default function App() {
     toDiary,
   } = desk;
   const side = chosenWidth(railed(kept, chosen.named === "keeping"));
-  const openNetwork = () =>
-    showBrainsty(desk.selected ?? (chosen.named === "docs" ? chosen.doc : undefined)).catch((e) =>
-      setError(saidPlainly(e)),
-    );
+  const openNetwork = () => {
+    if (chosen.named === "brainsty") return;
+    choose({
+      named: "brainsty",
+      near: desk.selected ?? (chosen.named === "docs" ? chosen.doc : undefined),
+    });
+    desk.setCameFrom(chosen);
+  };
 
   return (
     <DeskProvider value={desk}>
@@ -76,7 +78,6 @@ export default function App() {
         style={side === null ? undefined : ({ "--tisty-side": `${side}px` } as React.CSSProperties)}
       >
         <WindowChrome />
-        <BrainstyAsked />
 
         <Layers parcels={desk.parcels.shown} />
         <News />

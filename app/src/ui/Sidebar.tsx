@@ -141,7 +141,7 @@ export default function Sidebar({
             query={query}
             onSearch={onSearch ?? (() => onChoose({ named: "search" }))}
           />
-          {onBrainsty && <SideBrainsty onOpen={onBrainsty} />}
+          {onBrainsty && <SideBrainsty on={chosen.named === "brainsty"} onOpen={onBrainsty} />}
           <SideLibrary
             papers={papers}
             chosen={chosen}
