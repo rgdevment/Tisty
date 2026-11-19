@@ -84,7 +84,7 @@ pub(crate) fn by_meaning(
         }
     };
     let whole = (m as u64) * (m as u64 - 1) / 2;
-    if whole <= caps.pairs {
+    if whole <= caps.pairs || m < 3 {
         for one in 0..m {
             for other in one + 1..m {
                 weigh(one, other);

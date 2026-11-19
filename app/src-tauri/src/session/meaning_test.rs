@@ -43,17 +43,19 @@ fn the_shipped_model_reads_a_text_and_rests_until_asked_again() {
 }
 
 #[test]
-fn a_missing_model_is_refused_once_and_never_read_again() {
+fn a_missing_model_is_refused_for_a_while_and_tried_again_after() {
     let empty = tempfile::tempdir().unwrap();
     let mut shipped = Shipped::at(Some(empty.path().to_path_buf()));
     assert!(shipped.meaning("hola").is_none());
     assert!(shipped.refused());
-    std::fs::copy(
-        in_the_tree().join("vocab.txt"),
-        empty.path().join("vocab.txt"),
-    )
-    .unwrap();
-    assert!(shipped.meaning("hola").is_none(), "a refusal holds");
+    for file in ["table.bin", "vocab.txt"] {
+        std::fs::copy(in_the_tree().join(file), empty.path().join(file)).unwrap();
+    }
+    assert!(shipped.meaning("hola").is_none(), "a refusal holds a while");
+
+    shipped.refused_at = Instant::now().checked_sub(TRIES_AGAIN_AFTER + Duration::from_secs(1));
+    assert!(!shipped.refused());
+    assert_eq!(shipped.meaning("hola").map(|one| one.len()), Some(256));
 }
 
 #[test]

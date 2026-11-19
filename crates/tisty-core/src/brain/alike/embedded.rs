@@ -67,7 +67,9 @@ impl Brain {
             true => (Vec::new(), 0),
             false => meant(paths, meaning, &pending, budget),
         };
-        meaning.rest();
+        if left == 0 {
+            meaning.rest();
+        }
         let written = self.kept_meant(&fresh, &version)?;
         Ok(Some(Embedded { written, left }))
     }

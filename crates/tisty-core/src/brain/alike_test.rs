@@ -22,6 +22,7 @@ fn everyone(_: &str) -> bool {
 pub(in crate::brain) struct Words {
     pub(in crate::brain) version: &'static str,
     pub(in crate::brain) read: usize,
+    pub(in crate::brain) rested: usize,
     pub(in crate::brain) gives_up_after: Option<usize>,
 }
 
@@ -30,6 +31,7 @@ impl Words {
         Self {
             version: "words-v1",
             read: 0,
+            rested: 0,
             gives_up_after: None,
         }
     }
@@ -63,6 +65,10 @@ impl Meaning for Words {
         }
         self.read += 1;
         Some(meant_by_subject(text))
+    }
+
+    fn rest(&mut self) {
+        self.rested += 1;
     }
 }
 
@@ -1030,5 +1036,10 @@ fn the_pass_reads_what_things_mean_before_it_weighs_them() {
     assert_eq!(words.read, 6);
     let brain = world.brain();
     assert_eq!(vector_ids(&brain).len(), 6);
+    let rested = words.rested;
     assert_eq!(weighing.kept(&world.paths, &mut words), Some(Passed::Idle));
+    assert_eq!(
+        words.rested, rested,
+        "nothing moved, so nothing was looked for to read"
+    );
 }

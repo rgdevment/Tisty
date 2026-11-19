@@ -52,6 +52,7 @@ pub enum Passed {
         steps: u64,
         common_from: usize,
         compared: u64,
+        by_meaning: usize,
     },
 }
 
@@ -195,6 +196,7 @@ pub(super) fn kept_in_round(
 #[derive(Debug, Default)]
 pub struct Weighing {
     heard: Option<u64>,
+    read_at: Option<(Option<u64>, Option<u64>)>,
     waited: u32,
 }
 
@@ -213,8 +215,13 @@ impl Weighing {
             return Some(Passed::Settling);
         }
         self.waited = 0;
-        if let Some(left) = meant_now(&mut brain, paths, meaning) {
-            return Some(left);
+        // What things mean is looked for only when words or meanings moved since the last look.
+        let now = (turn, turn_of(&brain.db, MEANT).ok().flatten());
+        if self.read_at != Some(now) {
+            if let Some(left) = meant_now(&mut brain, paths, meaning) {
+                return Some(left);
+            }
+            self.read_at = Some((turn, turn_of(&brain.db, MEANT).ok().flatten()));
         }
         weighed_now(&mut brain, paths, meaning.version())
     }
@@ -264,6 +271,7 @@ fn weighed_now(brain: &mut Brain, paths: &Paths, version: &str) -> Option<Passed
                 steps,
                 common_from,
                 compared,
+                by_meaning,
             } = passed
             {
                 witness::trace(
@@ -279,6 +287,7 @@ fn weighed_now(brain: &mut Brain, paths: &Paths, version: &str) -> Option<Passed
                             "compared",
                             Fact::Count(compared.try_into().unwrap_or(usize::MAX)),
                         ),
+                        ("by_meaning", Fact::Count(by_meaning)),
                         (
                             "ms",
                             Fact::Count(started.elapsed().as_millis().try_into().unwrap_or(0)),
@@ -306,8 +315,7 @@ struct Worded {
 
 pub(super) struct Weighed {
     turn: u64,
-    meant: Option<u64>,
-    with_meaning: bool,
+    meant: Option<Option<u64>>,
     ids: Vec<String>,
     found: likeness::Outcome,
 }
@@ -333,11 +341,10 @@ impl Brain {
         let Some(turn) = turn_of(&snapshot, TURN)? else {
             return Ok(None);
         };
-        let meant = version
-            .map(|_| turn_of(&snapshot, MEANT))
-            .transpose()?
-            .flatten();
-        if turn_of(&snapshot, PASSED)? == Some(turn) && turn_of(&snapshot, PASSED_MEANT)? == meant {
+        let meant = version.map(|_| turn_of(&snapshot, MEANT)).transpose()?;
+        if turn_of(&snapshot, PASSED)? == Some(turn)
+            && turn_of(&snapshot, PASSED_MEANT)? == meant.flatten()
+        {
             return Ok(None);
         }
         let worded = worded(&snapshot, version)?;
@@ -346,7 +353,6 @@ impl Brain {
         Ok(Some(Weighed {
             turn,
             meant,
-            with_meaning: version.is_some(),
             found: likeness::alike(&worded.items, &tied, caps),
             ids: worded.ids,
         }))
@@ -357,11 +363,11 @@ impl Brain {
         let tx = self
             .db
             .transaction_with_behavior(TransactionBehavior::Immediate)?;
-        let meant_now = match weighed.with_meaning {
-            true => turn_of(&tx, MEANT)?,
-            false => None,
+        let meant_moved = match weighed.meant {
+            Some(meant) => turn_of(&tx, MEANT)? != meant,
+            None => false,
         };
-        if turn_of(&tx, TURN)? != Some(weighed.turn) || meant_now != weighed.meant {
+        if turn_of(&tx, TURN)? != Some(weighed.turn) || meant_moved {
             return Ok(Passed::Overtaken);
         }
         let wanted: Held = weighed
@@ -407,7 +413,7 @@ impl Brain {
             "INSERT OR REPLACE INTO meta VALUES (?, ?)",
             [PASSED, &weighed.turn.to_string()],
         )?;
-        match weighed.meant {
+        match weighed.meant.flatten() {
             Some(meant) => tx.execute(
                 "INSERT OR REPLACE INTO meta VALUES (?, ?)",
                 [PASSED_MEANT, &meant.to_string()],
@@ -422,6 +428,12 @@ impl Brain {
             steps: weighed.found.steps,
             common_from: weighed.found.common_from,
             compared: weighed.found.compared,
+            by_meaning: weighed
+                .found
+                .pairs
+                .iter()
+                .filter(|pair| pair.method == likeness::Method::Meaning)
+                .count(),
         })
     }
 

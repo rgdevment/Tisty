@@ -120,6 +120,10 @@ fn a_pass_reads_up_to_its_budget_and_says_what_is_left() {
             left: 1
         }
     );
+    assert_eq!(
+        words.rested, 0,
+        "the model stays while there is more to read"
+    );
     let third = brain.embed(&world.paths, &mut words, 1).unwrap().unwrap();
     assert_eq!(
         third,
@@ -128,6 +132,7 @@ fn a_pass_reads_up_to_its_budget_and_says_what_is_left() {
             left: 0
         }
     );
+    assert_eq!(words.rested, 1);
     assert_eq!(vectors_of(&brain).len(), 3);
 }
 

@@ -18,7 +18,7 @@ fn table(rows: &[(f32, &[i8])]) -> Vec<u8> {
 
 fn small() -> Model {
     Model::read(
-        &table(&[
+        table(&[
             (1.0, &[0, 0]),
             (1.0, &[0, 0]),
             (0.5, &[2, 0]),
@@ -34,7 +34,7 @@ fn the_shipped_table_means_what_the_published_model_means() {
     let at = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("../../app/src-tauri/resources/brain");
     let model = Model::read(
-        &std::fs::read(at.join("table.bin")).unwrap(),
+        std::fs::read(at.join("table.bin")).unwrap(),
         &std::fs::read_to_string(at.join("vocab.txt")).unwrap(),
     )
     .unwrap();
@@ -75,14 +75,14 @@ fn a_text_with_no_pieces_means_nothing() {
 
 #[test]
 fn a_table_shorter_than_its_head_is_refused() {
-    assert!(Model::read(&[1, 0, 0], SMALL_VOCAB).is_err());
+    assert!(Model::read(vec![1, 0, 0], SMALL_VOCAB).is_err());
 }
 
 #[test]
 fn a_table_whose_length_disagrees_with_its_head_is_refused() {
     let mut bytes = table(&[(1.0, &[0]), (1.0, &[0]), (1.0, &[1]), (1.0, &[2])]);
     bytes.pop();
-    let refused = Model::read(&bytes, SMALL_VOCAB).err().unwrap();
+    let refused = Model::read(bytes, SMALL_VOCAB).err().unwrap();
     assert_eq!(
         refused.to_string(),
         "the table is not as long as its head says"
@@ -95,7 +95,7 @@ fn a_table_without_dimensions_is_refused() {
     bytes.extend(4u32.to_le_bytes());
     bytes.extend(0u32.to_le_bytes());
     bytes.extend([0u8; 16]);
-    assert!(Model::read(&bytes, SMALL_VOCAB).is_err());
+    assert!(Model::read(bytes, SMALL_VOCAB).is_err());
 }
 
 #[test]
@@ -103,13 +103,13 @@ fn a_table_naming_more_rows_than_fit_is_refused() {
     let mut bytes = Vec::new();
     bytes.extend(u32::MAX.to_le_bytes());
     bytes.extend(u32::MAX.to_le_bytes());
-    assert!(Model::read(&bytes, SMALL_VOCAB).is_err());
+    assert!(Model::read(bytes, SMALL_VOCAB).is_err());
 }
 
 #[test]
 fn a_vocabulary_of_another_length_is_refused() {
     let bytes = table(&[(1.0, &[0]), (1.0, &[0])]);
-    let refused = Model::read(&bytes, SMALL_VOCAB).err().unwrap();
+    let refused = Model::read(bytes, SMALL_VOCAB).err().unwrap();
     assert_eq!(
         refused.to_string(),
         "the vocabulary and the table differ in length"
@@ -119,5 +119,5 @@ fn a_vocabulary_of_another_length_is_refused() {
 #[test]
 fn a_vocabulary_without_its_unknown_piece_is_refused() {
     let bytes = table(&[(1.0, &[0]), (1.0, &[0])]);
-    assert!(Model::read(&bytes, "sol\nluna").is_err());
+    assert!(Model::read(bytes, "sol\nluna").is_err());
 }

@@ -52,6 +52,8 @@ impl Ranges {
 impl Pieces {
     pub(crate) fn read(vocab: &str) -> Option<Self> {
         let ids: HashMap<String, u32> = vocab
+            .strip_suffix('\n')
+            .unwrap_or(vocab)
             .split('\n')
             .enumerate()
             .map(|(id, piece)| Some((piece.to_string(), u32::try_from(id).ok()?)))

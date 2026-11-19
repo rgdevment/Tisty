@@ -88,3 +88,10 @@ fn nothing_written_gives_no_pieces() {
     assert!(small().of("").is_empty());
     assert!(small().of(" \n\t ").is_empty());
 }
+
+#[test]
+fn a_vocabulary_ending_in_a_line_break_reads_as_written() {
+    let ended = Pieces::read("[PAD]\n[UNK]\nhola\n").unwrap();
+    assert_eq!(ended.len(), 3);
+    assert_eq!(ended.of("hola"), vec![2]);
+}

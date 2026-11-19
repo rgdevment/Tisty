@@ -20,11 +20,12 @@ pub struct Model {
     pieces: Pieces,
     dims: usize,
     scales: Vec<f32>,
-    values: Vec<i8>,
+    table: Vec<u8>,
+    values_at: usize,
 }
 
 impl Model {
-    pub fn read(table: &[u8], vocab: &str) -> Result<Self, Unread> {
+    pub fn read(table: Vec<u8>, vocab: &str) -> Result<Self, Unread> {
         let number = |at: usize| -> Result<usize, Unread> {
             let bytes = table
                 .get(at..at + 4)
@@ -54,15 +55,12 @@ impl Model {
             .iter()
             .map(|one| f32::from_le_bytes(*one))
             .collect();
-        let values = table[scales_end..]
-            .iter()
-            .map(|one| i8::from_le_bytes([*one]))
-            .collect();
         Ok(Self {
             pieces,
             dims,
             scales,
-            values,
+            table,
+            values_at: scales_end,
         })
     }
 
@@ -81,9 +79,9 @@ impl Model {
         for id in self.pieces.of(text) {
             let row = id as usize;
             let scale = self.scales[row];
-            let values = &self.values[row * self.dims..(row + 1) * self.dims];
-            for (into, value) in sum.iter_mut().zip(values) {
-                *into += f32::from(*value) * scale;
+            let from = self.values_at + row * self.dims;
+            for (into, value) in sum.iter_mut().zip(&self.table[from..from + self.dims]) {
+                *into += f32::from(i8::from_le_bytes([*value])) * scale;
             }
             counted += 1;
         }

@@ -148,3 +148,12 @@ fn the_closest_are_kept_in_order_and_a_tie_goes_to_the_earlier() {
     assert!(admits(&list, 3, 1, 0.5));
     assert!(!admits(&[], 0, 1, 1.0));
 }
+
+#[test]
+fn two_alone_are_compared_whole_whatever_the_budget() {
+    let none = Caps {
+        pairs: 0,
+        ..caps(1.0)
+    };
+    assert_eq!(by_meaning(&twins(), &|_, _| false, &none).1, 1);
+}
