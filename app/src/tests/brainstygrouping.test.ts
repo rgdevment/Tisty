@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { Group, Network } from "../brainsty";
 import { amidMembers, laidEdges, withGroupsAfter } from "../ui/brainsty/grouping";
+import { EVERYTHING, hiddenBy } from "../ui/brainsty/sifting";
 
 const network: Network = {
   nodes: [
@@ -57,5 +58,13 @@ describe("folders and lists as nodes of the view", () => {
     expect([...placed.x]).toEqual([0, 4, 10, 7, 2, 10]);
     expect([...placed.y]).toEqual([2, 6, 1, 7, 4, 1]);
     expect(spots.x[4]).toBe(99);
+  });
+
+  it("hides a folder or list once the filters hide every one of its members", () => {
+    const today = new Date("2026-11-19");
+    const tasks = { ...EVERYTHING, kinds: new Set(["task", "list", "folder"] as const) };
+
+    expect(hiddenBy(grown, tasks, today)).toEqual([true, true, false, true, true, false]);
+    expect(hiddenBy(grown, EVERYTHING, today)).toEqual([false, false, false, false, false, false]);
   });
 });
