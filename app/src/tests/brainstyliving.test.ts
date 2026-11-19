@@ -198,15 +198,24 @@ const fakeClock = () => {
 const drawingOf = () => {
   const turns: { yaw: number; pitch: number }[] = [];
   const frames: (() => void)[] = [];
+  const before: (() => void)[] = [];
   const drawing = {
     nodeOnScreen: (node: number) => [10 + node * 30, 20] as [number, number],
     onFrame: (listener: () => void) => {
       frames.push(listener);
       return () => frames.splice(frames.indexOf(listener), 1);
     },
+    beforeFrame: (listener: () => void) => {
+      before.push(listener);
+      return () => before.splice(before.indexOf(listener), 1);
+    },
     turn: (turn: { yaw: number; pitch: number }) => turns.push(turn),
   } as unknown as Drawing;
-  return { drawing, turns, frames };
+  const render = () => {
+    for (const one of before) one();
+    for (const one of frames) one();
+  };
+  return { drawing, turns, frames, render };
 };
 
 const boxed = () => {
@@ -225,7 +234,7 @@ describe("the living network", () => {
 
   it("waits for the layout and the person, then turns and walks one frame at a time", () => {
     const { clock, frames, tick } = fakeClock();
-    const { drawing, turns } = drawingOf();
+    const { drawing, turns, render } = drawingOf();
     const box = boxed();
     const living = livingOn(box, drawing, chain, () => "#2266ff", clock);
 
@@ -234,6 +243,7 @@ describe("the living network", () => {
     living.ready();
     expect(frames).toHaveLength(1);
     tick(50);
+    render();
     tick(50);
 
     expect(turns).toHaveLength(2);
@@ -241,6 +251,27 @@ describe("the living network", () => {
     expect(box.dataset.livingMs).toMatch(/^\d+\.\d\d$/);
     expect(TRAVELLERS).toBe(12);
     expect(HOP_SECONDS).toBe(4);
+  });
+
+  it("holds the turn while a node is picked or the network is pressed, and walks on", () => {
+    const { clock, tick } = fakeClock();
+    const { drawing, turns } = drawingOf();
+    const box = boxed();
+    const living = livingOn(box, drawing, chain, () => "#2266ff", clock);
+    living.ready();
+    living.play();
+
+    living.hold(true);
+    tick(50);
+    tick(50);
+    expect(turns.map((one) => one.yaw)).toEqual([0, 0]);
+    living.hold(false);
+    box.dispatchEvent(new PointerEvent("pointerdown"));
+    tick(50);
+    expect(turns[2].yaw).toBe(0);
+    document.dispatchEvent(new PointerEvent("pointerup"));
+    tick(50);
+    expect(turns[3].yaw).toBeGreaterThan(0);
   });
 
   it("stops asking for frames when paused or hidden, and comes back when seen again", () => {

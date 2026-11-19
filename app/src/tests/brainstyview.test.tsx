@@ -71,6 +71,7 @@ vi.mock("../ui/brainsty/drawing", () => ({
     toScreen: (point: [number, number]) => point,
     nodeOnScreen: () => undefined,
     onFrame: () => () => {},
+    beforeFrame: () => () => {},
     light: () => {},
     hide: () => {},
     beside: () => [],

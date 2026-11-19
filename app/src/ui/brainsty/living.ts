@@ -8,7 +8,7 @@ import { ease, type Flash, setOut, stepped, type Traveller, type World } from ".
 
 export const TRAVELLERS = 12;
 export const HOP_SECONDS = 4;
-const TURN_SECONDS = 120;
+const TURN_SECONDS = 60;
 const FLASH_SECONDS = 0.6;
 const LONGEST_STEP = 0.1;
 const MEASURED_EVERY = 30;
@@ -18,6 +18,7 @@ export interface Living {
   play: () => void;
   pause: () => void;
   turnBy: (yaw: number, pitch: number) => void;
+  hold: (held: boolean) => void;
   sift: (hidden: readonly boolean[]) => void;
   stop: () => void;
 }
@@ -92,6 +93,10 @@ export function livingOn(
   let last = 0;
   let spent = 0;
   let frames = 0;
+  let ticked = 0;
+  let rendering = 0;
+  let held = false;
+  let pressed = false;
 
   const painted = () => {
     const brush = canvas.getContext("2d");
@@ -142,13 +147,32 @@ export function livingOn(
       brush.stroke();
     }
   };
-  const unhook = drawing.onFrame(painted);
+  const measured = () => {
+    painted();
+    if (rendering === 0) return;
+    spent = spent * 0.9 + (ticked + clock.now() - rendering) * 0.1;
+    rendering = 0;
+    if (frames++ % MEASURED_EVERY === 0) container.dataset.livingMs = spent.toFixed(2);
+  };
+  const unhook = drawing.onFrame(measured);
+  const unheard = drawing.beforeFrame(() => {
+    if (frame !== 0) rendering = clock.now();
+  });
+  const press = () => {
+    pressed = true;
+  };
+  const release = () => {
+    pressed = false;
+  };
+  container.addEventListener("pointerdown", press, true);
+  container.ownerDocument.addEventListener("pointerup", release);
 
   const tick = (at: number) => {
     const started = clock.now();
     const seconds = Math.min(LONGEST_STEP, Math.max(0, (at - last) / 1000));
     last = at;
-    turn = { ...turn, yaw: turn.yaw + (seconds * 2 * Math.PI) / TURN_SECONDS };
+    if (!held && !pressed)
+      turn = { ...turn, yaw: turn.yaw + (seconds * 2 * Math.PI) / TURN_SECONDS };
     const fresh: Flash[] = [];
     travellers = travellers.map((one) => stepped(world, one, seconds, HOP_SECONDS, fresh));
     flashes = [
@@ -158,8 +182,7 @@ export function livingOn(
       ...fresh,
     ];
     drawing.turn(turn);
-    spent = spent * 0.9 + (clock.now() - started) * 0.1;
-    if (frames++ % MEASURED_EVERY === 0) container.dataset.livingMs = spent.toFixed(2);
+    ticked = clock.now() - started;
     frame = clock.frame(tick);
   };
   const running = () => laid && playing && container.ownerDocument.visibilityState !== "hidden";
@@ -198,6 +221,9 @@ export function livingOn(
       };
       drawing.turn(turn);
     },
+    hold: (on) => {
+      held = on;
+    },
     sift: (next) => {
       hidden = next;
       travellers = travellers.map((one) => (hidden[one.to] ? setOut(world.start()) : one));
@@ -205,6 +231,9 @@ export function livingOn(
     stop: () => {
       halt();
       container.ownerDocument.removeEventListener("visibilitychange", seen);
+      container.removeEventListener("pointerdown", press, true);
+      container.ownerDocument.removeEventListener("pointerup", release);
+      unheard();
       unhook();
       canvas.remove();
     },

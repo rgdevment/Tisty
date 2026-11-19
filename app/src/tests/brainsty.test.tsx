@@ -66,6 +66,7 @@ vi.mock("../ui/brainsty/drawing", () => ({
     toGraph: (point: [number, number]) => point,
     nodeOnScreen: () => undefined,
     onFrame: () => () => {},
+    beforeFrame: () => () => {},
     light: (nodes: ReadonlySet<number> | null) => sigma.lit.push(nodes ? [...nodes] : null),
     hide: (hidden: boolean[]) => sigma.hidden.push(hidden),
     beside: (node: number) => (node === 0 ? [1] : []),

@@ -215,6 +215,7 @@ export default function Brainsty({ network, groups, onOpen, escaping }: Props) {
     drawn.light(lit, picked);
     drawing.current?.icons.light(lit);
     drawing.current?.curves.pick(picked);
+    drawing.current?.living.hold(picked !== null);
   }, [ready, picked, alike]);
 
   useEffect(() => {

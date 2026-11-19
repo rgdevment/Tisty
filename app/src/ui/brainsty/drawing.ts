@@ -37,6 +37,7 @@ export interface Drawing {
   toGraph: (point: Point) => Point;
   nodeOnScreen: (node: number) => Point | undefined;
   onFrame: (listener: () => void) => () => void;
+  beforeFrame: (listener: () => void) => () => void;
   light: (nodes: ReadonlySet<number> | null, picked?: number | null) => void;
   hide: (hidden: readonly boolean[]) => void;
   beside: (node: number) => number[];
@@ -279,6 +280,10 @@ export function drawNetwork(
     onFrame: (listener) => {
       sigma.on("afterRender", listener);
       return () => sigma.off("afterRender", listener);
+    },
+    beforeFrame: (listener) => {
+      sigma.on("beforeRender", listener);
+      return () => sigma.off("beforeRender", listener);
     },
     light: (nodes, picked = null) => {
       sigma.setNodesState(lit.picked, { isPicked: false });
