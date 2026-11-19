@@ -208,6 +208,94 @@ Every document of yours has a link, to reach it from a chat, a note, your browse
 - **Inside a document shared through Folio it does not travel**: a Markdown link arrives as its words, and an address written on its own arrives as written, folders and title included.
 - **Whoever gets it reads** its folder names and its title.
 
+## Earlier versions
+
+Each document keeps, on this computer, what it said before it changed, as a history of versions: you open the list, read how it stood and, if it helps, go back to it. Task pages too. I made it for the day a change, yours or an assistant's, took away something you still needed.
+
+### When they help
+
+- **An assistant rewrote too much.** You asked your agent to tidy «Rina's walks» and it left out the times. The version from before its write is in the list: see what changed and go back to it.
+- **You deleted a paragraph and need it a week later.** You took the guest list out of «Lucas's birthday» because it was settled, and now Marisol asks who was coming. A version from before that change still has it, even after the document kept changing.
+- **You want to see how something stood on a given day.** Each version carries its date, so you read the plan as it was on Tuesday without touching today's.
+- **You wrote something that should not stay kept.** Delete the text, then empty that document's history (below).
+
+### Seeing a version and going back to it
+
+1. Open the document. In the panel beside it, the **History** row says **on this computer** and has **See the history**. On a task's page the button is **Versions of this page**.
+2. The list sits on the left, newest first. Each row says when that version was written (only the time if it was today), who wrote it (**you**, **an assistant** or its program's name, such as **Claude Code**) and its size.
+3. Click one to read it on the right, as it looked.
+4. **Go back to this version**, above what you read, asks first: the document goes back to saying what it said in it, and what it says now is kept.
+5. The document shows **It went back to the version from** and the date, with **Put back what it said before**: that button undoes the go-back if you picked the wrong one.
+
+On a task's page the words come back, not the task's state: no step is removed and no box changes, and a step that version names and the task no longer has comes back as a new step.
+
+If there are none yet, the list says so: Tisty keeps one when 30 minutes go by without changes or when the one writing changes.
+
+### Seeing what changed
+
+Before going back to a version, you can see exactly what changed, in a document or on a task's page:
+
+1. Pick a version in the list. **What changed**, above what you read, compares it with what the document says now.
+2. To compare two versions with each other, press **Compare** on another row of the list. It always reads from the older to the newer, whatever order you pick them in. **Compare** again on that row goes back to comparing with what it says now, and **What changed** turns the comparison off.
+3. At the top, a line says what is compared, such as «From the version of 04:10 PM to what it says now» or «From the version of 04:10 PM to the one of 05:45 PM», and how many blocks changed: **What went** and **What came**, each with its number. When there is no difference, it says **They say the same: nothing changed.**
+
+The comparison is a single page, drawn as always, that opens at the first change. What went shows in red and what came in green, one above the other; inside a paragraph, an item, a cell or a line of code that changed, the old words are struck through and the new ones highlighted. What only changes how something is written and not what it says does not count as a change: line endings, an item's number in a numbered list and the spaces of a table.
+
+For example: Claude Code rewrote the times paragraph of «Rina's walks» and you do not know what it touched. Open **See the history**, pick the version from before its change and press **What changed**. The old paragraph shows in red and the new one in green, and inside it «at 8:00» is struck through and «early» highlighted; at the top it says **What went: 1** and **What came: 1**. Now you know that was all that changed: go back with **Go back to this version**, or copy the time and keep the rest.
+
+- **Only this computer's versions.** A row from another computer has no **Compare**, because its text is not here.
+- **Now means what is saved.** If what you typed could not be saved yet, nothing is compared, and the window says so: settle that first, then compare again.
+- **A document too long.** When what differs between the two versions is so large that marking it would take too long, about 4,000 differing blocks a side, the view says so and offers **See the whole version**. A small change in a long document is always marked, because what both versions share at the start and the end does not count.
+
+### When a version is kept
+
+Not at every key or every save. What was there becomes a version when someone writes in the document:
+
+- **after 30 minutes without changes**, or
+- **being someone other than whoever wrote last**: you after an assistant, an assistant after you, or two different assistants.
+
+For example: at 9:00 Mario opens yesterday's meeting minutes and corrects them for twenty minutes, with no long pauses. A single version is kept, yesterday's: the saves of those twenty minutes are one write. At 11:00 he corrects them again, and what they said at 9:20 becomes a version. At 11:05 Claude Code adds a summary, and what Mario had left becomes another version, because the one writing changed.
+
+A version is the document's whole text as it stood, in a Markdown file inside the `history` folder of your data. Attachments stay out, where they always are. What arrives from your other computers follows the same rule, with the time and the writer of whoever wrote it there.
+
+### How long they are kept
+
+**30 days** by default, counted from when the version was replaced and not from when you wrote it, so you can always go back to how the document stood when the limit began.
+
+To change it, in **Settings › Your data › Document history**, **Keep earlier versions for** offers **1 day**, **5 days**, **15 days** or **30 days**. Each computer has its own. On opening Tisty, once a day at most, the versions past the limit go, so a shorter limit takes effect at that tidy. Go from 30 to 5 days and the next tidy deletes the versions replaced more than 5 days ago; those of the last 5 stay.
+
+Two always stay, whatever their age:
+
+- **The latest.** The last earlier version of each document never runs out, even when the document has not changed in months. A quiet document always keeps its way back.
+- **The one that undoes the last change:** what **Put back what it said before** would bring back.
+
+### Emptying the history
+
+**Empty the history**, at the foot of the list, deletes every earlier version of that document from this computer, including the one that lets you undo the last change. What the document says now stays as it is. It asks first, because this cannot be undone.
+
+It is there for a text you deleted on purpose: you pasted a number into «Insurance details» that should not stay there, and took it out. Until you empty the history, that number is still in the version from before. Empty it and, if you sync, do it too on each computer the text reached, because each keeps its own versions. Backups you made in the meantime keep it; see [Privacy](Privacy#what-is-stored).
+
+### On your other computers
+
+**Versions are not synced.** Each computer keeps what was replaced on it, what a change from another computer replaced included, and prunes them with its own limit.
+
+- **A version another computer keeps** shows in the list while the limit lasts, as **Not on this computer; … keeps it**, with that computer's name, for instance «Not on this computer; Marisol's laptop keeps it». Its text is only there, so here it can be neither read nor gone back to: open it on that computer.
+- **A new computer starts with no earlier versions,** even once it holds all your documents. What that computer changes from then on, it keeps.
+- **To take them to another machine,** use a [backup](Sync-and-Backup#backups): the zip carries them, and restoring it swaps that computer's for the ones it brings.
+
+### Edge cases
+
+- **Deleting a document** deletes its versions too, on every computer. To keep one, go back to it or copy it first.
+- **A task's page** has versions of its own, under **Versions of this page**. Going back to one brings its words and never removes steps (above).
+- **The [Diary](#diary)** keeps versions on this computer too, which count toward what your computer and your backups hold, but its view has no **History** row: they are not listed from the window.
+- **An archived or locked document, and a closed task's page,** show their versions but do not offer **Go back to this version**. Unarchive or unlock it (or its archived folder, or the locked document it is a page of), or reopen the task with **Reopen**, to go back to one.
+- **Restoring a backup** swaps this computer's versions for the zip's, and their limit counts again from that day.
+- **On updating from a Tisty without the history,** the copy each document used to keep of what it said before became its first version on its own.
+
+### With your assistant
+
+You also go back without opening the list: when something writes in the document you have open, the bar offers **Put back what it said before**. An assistant lists, reads and goes back to the same versions with `read_doc` and `restore_doc`, and can never empty them: that is yours. You can ask in your own words: «put "Rina's walks" back the way it was before your change yesterday». How it does it, with examples, is in [MCP tools](MCP-Tools#a-documents-earlier-versions).
+
 ## Taking documents out
 
 A document leaves whole — every conversion is in [Convert to and from Markdown](Convert-to-and-from-Markdown):

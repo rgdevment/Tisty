@@ -23,6 +23,7 @@ Lo que un asistente puede hacer es pequeño a propósito. Terminar, descartar y 
 - **Dejar un resumen corto** de un documento largo para el siguiente asistente, guardado en este equipo.
 - **Añadir a hoy en tu Diario**, una vez que lo abres a los agentes y solo cuando se lo pides: sus palabras van al final de hoy, bajo una línea con el minuto y su nombre.
 - **Leer y buscar** lo que ya hay, incluido el archivo.
+- **Ver y recuperar las [versiones anteriores](Documentos#versiones-anteriores) de un documento** que guarda este equipo: listarlas, leer una y volver a ella, y deshacer esa vuelta.
 
 ## Nunca
 
@@ -33,6 +34,7 @@ Lo que un asistente puede hacer es pequeño a propósito. Terminar, descartar y 
 - Marcar un paso tuyo o terminar una tarea tuya: solo puede decir que están listos.
 - Mover un día que pusiste **tú**.
 - Borrar un documento, ni renombrar o borrar una carpeta.
+- Vaciar el historial de un documento, ni leer o recuperar una versión que guarda otro de tus equipos.
 - Sacar una idea de la Lluvia de ideas de otra forma, marcar la hoja entera, archivarla ni moverla a una carpeta.
 - Alcanzar una tarea que plegaste.
 - Tomar archivos de cualquier lugar que no sea Descargas, Documentos, Imágenes, el escritorio o la carpeta temporal.
@@ -69,7 +71,7 @@ Una tarea que cerraste le llega al asistente con un aviso que lo dice. Se lee ta
 
 - **Para corregir un pasaje** tiene que nombrarlo exactamente como está escrito. Si ese texto no está, o está dos veces, no se escribe nada.
 - **Para reescribir un documento entero** tiene que devolver la *huella* de la versión que leyó. Si escribiste en el documento entretanto, la huella ya no cuadra: no se escribe nada y se le pide que vuelva a leer. Lo que escribiste mientras pensaba no se puede perder.
-- La ventana te avisa cuando algo escribió en el documento que tienes abierto. Si lo que reemplazó sigue guardado, la misma barra te ofrece **Volver a lo que decía antes**, y lo que dice ahora también queda guardado, así que la elección no es definitiva.
+- La ventana te avisa cuando algo escribió en el documento que tienes abierto. Si lo que reemplazó sigue entre sus [versiones anteriores](Documentos#versiones-anteriores), la misma barra te ofrece **Volver a lo que decía antes**, y lo que dice ahora también queda guardado, así que la elección no es definitiva.
 - Un documento que archivaste lo puede leer igual, y se le avisa que lo archivaste; no puede escribir en él hasta que lo desarchives o se lo pidas.
 
 ## Tu Diario sigue siendo tuyo

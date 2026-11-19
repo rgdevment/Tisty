@@ -1,0 +1,14 @@
+---
+source: crates/tisty-cli/tests/mcp_versions.rs
+expression: "settled(&waiting, &[(doc.as_str(), \"[doc]\")])"
+---
+{
+  "content": [
+    {
+      "text": "\"Acta\" [[doc]] was compacted and waits for the person to keep it or undo it in the window; going back to an older version now would cost them that one-click undo, so nothing was changed. `restore_doc` without `version` undoes the compaction itself; for an older version, tell them which one and why, and go back once they keep or undo it.",
+      "type": "text"
+    }
+  ],
+  "isError": true,
+  "resultType": "complete"
+}

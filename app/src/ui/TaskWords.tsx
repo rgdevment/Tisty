@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { type RefObject, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Asking } from "tisty-editor/edit";
 import {
   addPart,
+  docBack,
   docWrite,
   type Filed,
   stepDates,
@@ -14,12 +15,16 @@ import {
 import { WROTE } from "../detailing";
 import { stamped } from "../format";
 import { fill, t } from "../locales";
-import { holds, queued } from "../saving";
+import { holds, queued, settled as saved } from "../saving";
+import { sure } from "../sure";
 import { useKeptHeight } from "./heights";
+import type { CardsShown } from "./liveCards";
 import type { Viewing } from "./liveSheet";
 import Skeleton from "./Skeleton";
 import { type LoadedSheet, sheetLoaded } from "./sheetLoaded";
+import { StirredBar } from "./Tidied";
 import { useTaskAsks } from "./taskAsking";
+import { useEarlier } from "./useEarlier";
 import { useWholeKeys } from "./wholeKeys";
 
 const SETTLES = 700;
@@ -40,6 +45,8 @@ interface Props {
   onTask?: (id: string) => void;
   onTaskDone?: (id: string, title: string) => void;
   onTaskStep?: (id: string, step: string, done: boolean) => void;
+  /** The page went back to an earlier version, so the task's steps may have moved with it. */
+  onWentBack?: () => void;
 }
 
 // The core refuses the rest the same way: a part holds no parts, and a routine holds none.
@@ -64,6 +71,7 @@ export default function TaskWords({
   onTask,
   onTaskDone,
   onTaskStep,
+  onWentBack,
 }: Props) {
   const [doc, setDoc] = useState<TaskDoc | null>(null);
   const [Sheet, setSheet] = useState<LoadedSheet | null>(null);
@@ -121,6 +129,40 @@ export default function TaskWords({
     };
   }, [task.id, open, turn]);
 
+  const [wentBackTo, setWentBackTo] = useState<string | null>(null);
+  useEffect(() => setWentBackTo(null), [task.id]);
+  const typed = useRef<() => Promise<unknown>>(() => Promise.resolve());
+  const reread = () => {
+    setTurn((one) => one + 1);
+    onWentBack?.();
+  };
+  const cardsShown = useMemo(() => ({ tasks: true, here: task.id, heard: task }), [task]);
+  const past = useEarlier({
+    file: doc?.file || undefined,
+    title: task.title,
+    page: true,
+    cardsShown,
+    writable: open && !doc?.held,
+    before: () => typed.current(),
+    onWentBack: (_, when) => {
+      setWentBackTo(when);
+      reread();
+    },
+    onEmptied: () => setWentBackTo(null),
+    onError: (e) => onError?.(e),
+  });
+  const undo = async () => {
+    if (!doc?.file || !(await sure(t("backSure")))) return;
+    try {
+      await typed.current();
+      await docBack(doc.file);
+      setWentBackTo(null);
+      reread();
+    } catch (e) {
+      onError?.(e);
+    }
+  };
+
   // While the page is read, its room stays as it last was, so what is under it never jumps.
   if (!doc || !Sheet)
     return (
@@ -143,6 +185,8 @@ export default function TaskWords({
         onError={onError}
         onDoc={onDoc}
         onMoved={() => setTurn((one) => one + 1)}
+        typed={typed}
+        cardsShown={cardsShown}
         shaping={shaping}
         view={view}
         asking={doc.held ? undefined : asking}
@@ -156,6 +200,27 @@ export default function TaskWords({
             : (title) => addPart(task.id, title).then((one) => one.id)
         }
       />
+      {wentBackTo && (
+        <div className="px-8">
+          <StirredBar
+            said={fill("earlierWentBack", wentBackTo)}
+            onBack={open && !doc.held ? () => void undo() : undefined}
+            onGone={() => setWentBackTo(null)}
+          />
+        </div>
+      )}
+      {doc.file && (
+        <div className="flex justify-end px-8">
+          <button
+            type="button"
+            onClick={past.show}
+            className="rounded-md px-2 py-1 text-[11.5px] text-faint hover:bg-hover hover:text-ink"
+          >
+            {t("earlierOfPage")}
+          </button>
+        </div>
+      )}
+      {past.view}
       {picker}
     </div>
   );
@@ -171,6 +236,8 @@ function Written({
   onError,
   onDoc,
   onMoved,
+  typed: leaving,
+  cardsShown,
   shaping,
   view,
   asking,
@@ -193,6 +260,8 @@ function Written({
   onError?: (problem: unknown) => void;
   onDoc?: (id: string) => void;
   onMoved: () => void;
+  typed: RefObject<() => Promise<unknown>>;
+  cardsShown: CardsShown;
   shaping?: boolean;
   view?: Viewing;
   asking?: Asking;
@@ -205,7 +274,6 @@ function Written({
   // A task's page keeps its template's sections, so it is written by block alone.
   const { allAsked } = useWholeKeys(true, false);
   const [text, setText] = useState(doc.body);
-  const cardsShown = useMemo(() => ({ tasks: true, here: task.id, heard: task }), [task]);
   const waiting = useRef<string | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const failed = useRef(onError);
@@ -224,6 +292,7 @@ function Written({
   const learnt = useRef(doc.body);
   const typed = useRef(doc.body);
   const [clash, setClash] = useState(false);
+  const weaving = useRef<Promise<boolean>>(Promise.resolve(true));
 
   // Typing that came while one weave was out is woven again over it, so none of it is dropped.
   const weave = useCallback(
@@ -247,7 +316,8 @@ function Written({
       if (!file.current && named) file.current = named;
       if (stale.current) return;
       stale.current = true;
-      void weave(known.current).then((woven) => (woven ? moved.current() : setClash(true)));
+      weaving.current = weave(known.current);
+      void weaving.current.then((woven) => (woven ? moved.current() : setClash(true)));
     },
     [weave],
   );
@@ -313,6 +383,15 @@ function Written({
   }, [task.id, ensure, clashed]);
 
   useEffect(() => holds(flush), [flush]);
+  useEffect(() => {
+    // Words a save or a weave could not place are only on the screen, so whoever would write over the page is refused.
+    leaving.current = async () => {
+      flush();
+      await saved();
+      const placed = stale.current ? await weaving.current : typed.current === known.current;
+      if (!placed) return Promise.reject({ code: "unsavedStays" });
+    };
+  }, [leaving, flush]);
   useEffect(() => {
     window.addEventListener("blur", flush);
     return () => {

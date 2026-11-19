@@ -23,6 +23,7 @@ What an assistant may do is deliberately small. Finishing, dropping and deleting
 - **Leave a short summary** of a long document for the next assistant, kept on this machine.
 - **Add to today in your Diary**, once you open it to agents and only when you ask: its words go at the end of today, under a line with the minute and its name.
 - **Read and search** what is already there, including the archive.
+- **See and go back to a document's [earlier versions](Documents#earlier-versions)** this computer keeps: list them, read one and go back to it, and undo that go-back.
 
 ## Never
 
@@ -33,6 +34,7 @@ What an assistant may do is deliberately small. Finishing, dropping and deleting
 - Tick a step of yours, or finish a task of yours: it can only say they are done.
 - Move a day **you** set.
 - Delete a document, or rename or delete a folder.
+- Empty a document's history, or read or go back to a version another of your computers keeps.
 - Take an idea off Brainstorm any other way, mark the whole sheet, put it away or move it into a folder.
 - Reach a task you folded away.
 - Take files from anywhere but Downloads, Documents, Pictures, the desktop and the temporary folder.
@@ -69,7 +71,7 @@ A task you closed comes to the assistant with a notice saying so. It reads as it
 
 - **To correct a passage** it has to name it exactly as it is written. If that text is not there, or is there twice, nothing is written at all.
 - **To write a whole body again** it has to send back the *print* of the version it read. If you wrote in the document in between, the print no longer matches: nothing is written, and it is told to read again. What you typed while it was thinking cannot be lost.
-- The window tells you when something wrote in the document you have open. Where what it replaced is still kept, the same bar offers **Put back what it said before** — and what it says now is kept too, so the choice is not final.
+- The window tells you when something wrote in the document you have open. Where what it replaced is still among its [earlier versions](Documents#earlier-versions), the same bar offers **Put back what it said before** — and what it says now is kept too, so the choice is not final.
 - A document you archived it can still read, and it is told you archived it; it cannot write in it until you bring it back, or ask it to.
 
 ## Your Diary stays yours

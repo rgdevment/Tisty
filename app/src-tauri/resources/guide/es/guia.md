@@ -450,6 +450,18 @@ Del código hay más que decir, y cabe en su propia página:
 
 ![Cuando lo que anotas es código: la página de código de esta guía](tisty:code)
 
+### Volver a lo que decía antes
+
+Cada documento guarda en este equipo lo que decía antes, para el día en que un cambio se lleva algo que todavía necesitas. Por ejemplo, le pides a tu agente que ordene «Paseos de Rina» y lo deja sin los horarios:
+
+1. En el panel junto al documento, la fila **Historial** tiene **Ver el historial**.
+2. A la izquierda están sus versiones, la más nueva primero, con la hora, quién la escribió y cuánto pesa. Haz clic en la de antes del cambio de tu agente y léela a la derecha. **Qué cambió**, arriba, te muestra en rojo lo que tu agente quitó y en verde lo que puso.
+3. **Volver a esta versión** la trae de vuelta. Lo que decía queda guardado, y **Volver a lo que decía antes**, en la barra del documento, deshace la vuelta.
+
+Tisty guarda una versión cuando pasan 30 minutos sin cambios o cuando cambia quien escribe, tú o un asistente. En la página de una tarea, lo mismo está en **Versiones de esta página**, y vuelven las palabras sin quitar ningún paso.
+
+El historial es de este equipo: no se sincroniza, y un equipo nuevo empieza sin él. Se guarda 30 días, o 1, 5 o 15 si lo eliges en Configuración → Tus datos, y la última versión queda siempre. Para que un texto que borraste a propósito no quede guardado, **Vaciar el historial**, al pie de la lista, lo borra de este equipo. Más en [documentos](https://www.tisty.app/es/ayuda/documentos/).
+
 ### Lo que viene de afuera
 
 ¿Ya tienes notas en otro lado? No hace falta copiarlas a mano. Lo que llega de afuera entra convertido en Markdown de Tisty, y el archivo de donde vino no se toca:

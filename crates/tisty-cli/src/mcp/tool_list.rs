@@ -221,11 +221,12 @@ pub(super) fn tools_without_hints() -> Value {
         {
             "name": "restore_doc",
             "title": "Put a document back the way it was",
-            "description": "Undo the last write to a document: a changed passage or a whole write is put back; appends and the person's saves keep nothing to undo. Refused if written since, unless `even_if_more`. Undoing twice returns it. Use it when a write answers something unexpected, instead of retyping.",
+            "description": "Undo the last write to a document: a changed passage or a whole write is put back; appends and the person's saves keep nothing to undo. Refused if written since, unless `even_if_more`. Undoing twice returns it. Use it when a write answers something unexpected, instead of retyping. With `version` it goes back to a past version instead, and without it undoes that.",
             "inputSchema": shaped(json!({
                 "properties": {
                     "doc": { "type": "string", "description": "A document's id, not its title, or a task's to put back the assistant's notes on its page" },
-                    "even_if_more": { "type": "boolean", "description": "Go back over what was written since too; only once you read it and know, since the person may have written it" }
+                    "even_if_more": { "type": "boolean", "description": "Go back over what was written since too; only once you read it and know, since the person may have written it" },
+                    "version": { "type": "string", "description": "A `version` from `read_doc` with `versions`, to go back to over all written since" }
                 },
                 "required": ["doc"]
             }))
@@ -399,10 +400,12 @@ pub(super) fn tools_without_hints() -> Value {
         {
             "name": "read_doc",
             "title": "Read a document, or a part of one",
-            "description": "A document's text and the `print` it reads at. Past about 12,000 characters it comes back as its outline (`whole` false): then ask for a `section`, lines, or `chars` at a time. Every part brings the print, so `edit_doc` needs no whole read.",
+            "description": "A document's text and the `print` it reads at. Past about 12,000 characters it comes back as its outline (`whole` false): then ask for a `section`, lines, or `chars` at a time. Every part brings the print, so `edit_doc` needs no whole read. `versions` lists what it said before, and `version` reads one.",
             "inputSchema": shaped(json!({
                 "properties": {
                     "doc": named_doc_field(),
+                    "versions": { "type": "boolean", "description": "Its past versions instead of its text: when each was written, by whom, its size. A task's id lists its page's" },
+                    "version": { "type": "string", "description": "A `version` from that list, read in place of the text" },
                     "print": { "type": "string", "description": "The `print` the previous part came with; only with `cursor`" },
                     "section": { "type": "integer", "description": "A heading and all under it, by its `at` on the card `brain` gives, from 0" },
                     "from": { "type": "integer", "description": "First line, from 1" },
@@ -523,7 +526,7 @@ pub(super) fn tools_without_hints() -> Value {
         json!({
             "name": "rules",
             "title": "Read the rules for working here, by topic",
-            "description": "Read the rules an agent works by here, one guide per `topic`, 3,000 to 11,000 characters each, 33,000 for `all`; without `topic`, the basics and an index. Read the one the instructions name before a first write of its kind. Markdown syntax is `language`; how the app works, `help`.",
+            "description": "Read the rules an agent works by here, one guide per `topic`, 3,000 to 11,000 characters each, 34,000 for `all`; without `topic`, the basics and an index. Read the one the instructions name before a first write of its kind. Markdown syntax is `language`; how the app works, `help`.",
             "inputSchema": shaped(json!({
                 "properties": {
                     "topic": {

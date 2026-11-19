@@ -1,0 +1,12 @@
+---
+source: crates/tisty-cli/tests/mcp_versions.rs
+expression: "settled(&listed, &[])"
+---
+{
+  "doc": "[doc]",
+  "kept_days": 30,
+  "kept_here": 0,
+  "said": "Nothing of what \"Acta\" [[doc]] said before is kept on this machine. A text becomes a version when it is written over after half an hour untouched, or by someone else, and stays 30 days; versions never leave the machine that kept them.",
+  "title": "Acta",
+  "versions": []
+}

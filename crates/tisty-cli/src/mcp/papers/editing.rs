@@ -189,8 +189,8 @@ fn edited(paths: &Paths, args: &Value, as_sent: bool) -> Result<Value, Refused> 
             let anew = super::named_anew(paths, &state, &mut store, &which, &whole);
             Ok(told(
                 format!(
-                    "Changed that passage in {}, {}. What it was is kept beside the \
-                     documents.{}{}{}{}",
+                    "Changed that passage in {}, {}. What it was is kept in its history on \
+                     this machine: `restore_doc` puts it back.{}{}{}{}",
                     written_name(&state, &which, &whole),
                     by_how_much(&was, &whole),
                     loose_words(&state, &loose),

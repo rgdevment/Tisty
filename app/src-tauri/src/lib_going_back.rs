@@ -1,5 +1,6 @@
 use super::Session;
-use crate::answers::papers::{compacted_last, one_step_back, went_back};
+use crate::answers::earlier::went_back;
+use crate::answers::papers::{compacted_last, one_step_back};
 use tisty_core::{Op, Paths};
 
 struct Desk {

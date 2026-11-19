@@ -118,6 +118,8 @@ pub struct Settings {
     quick_keys: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     idea_keys: Option<String>,
+    #[serde(default)]
+    history_days: u32,
 }
 
 #[tauri::command]
@@ -139,6 +141,7 @@ fn as_settings(session: &Session) -> Settings {
         calendar: session.config.calendar,
         quick_keys: session.config.quick_keys.clone(),
         idea_keys: session.config.idea_keys.clone(),
+        history_days: session.config.history_days(),
     }
 }
 

@@ -4,6 +4,7 @@ mod bare;
 pub mod canon;
 #[cfg(feature = "outline")]
 pub mod cards;
+mod compared;
 mod defined;
 #[cfg(feature = "details")]
 mod details;
@@ -35,6 +36,7 @@ mod ranges;
 mod reading;
 pub mod refs;
 mod rereading;
+mod shared;
 mod short;
 mod standard;
 #[cfg(feature = "tables")]
@@ -47,6 +49,7 @@ mod values;
 pub mod vocab;
 mod writing;
 
+pub use compared::{Compared, compared};
 pub use inline::{escaped, filed};
 #[cfg(feature = "outline")]
 pub use outline::{Head, outline, sections};

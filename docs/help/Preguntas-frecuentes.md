@@ -84,6 +84,9 @@ No. Los dos se dibujan con código que va dentro de Tisty: no se descarga nada, 
 **¿Por qué sobrevive el ancho de las columnas de mi tabla, y dónde se guarda?**
 En lo larga que se dibuja la raya bajo el encabezado. Mira [tablas](https://markdown.tisty.app/es/tablas) en la guía de Markdown de Tisty.
 
+**¿Puedo volver a lo que decía un documento hace unos días?**
+Sí, en el equipo donde se cambió: **Ver el historial**, en la fila **Historial** del panel junto al documento, lista sus versiones anteriores, **Qué cambió** te muestra en rojo y verde qué es distinto de lo de ahora, y **Volver a esta versión** la recupera. Se guardan 30 días por defecto y no se sincronizan. Mira [Documentos](Documentos#versiones-anteriores).
+
 ## Sincronización
 
 **¿Puedo usarlo en dos equipos?**

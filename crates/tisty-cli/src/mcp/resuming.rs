@@ -291,15 +291,24 @@ pub(super) fn whose(
     ))
 }
 
+// A body that came in shared is signed by whoever wrote it there, which is not the person here.
+pub(super) fn signed_by_another(
+    state: &State,
+    by: &DeviceId,
+    signed: Option<&str>,
+) -> Option<String> {
+    signed
+        .filter(|hand| !state.assistants.contains(by) && !state.mine_to_write(hand))
+        .map(str::to_string)
+}
+
 fn mover(state: &State, event: &Event, me: &DeviceId) -> Option<String> {
-    if let Op::DocSaid { d, .. } = &event.op
-        && let Some(hand) = d.by.as_deref()
-        && !state.assistants.contains(&event.device)
-        && !state.mine_to_write(hand)
-    {
-        return Some(hand.to_string());
-    }
-    whose(state, &event.device, event.via.as_deref(), me)
+    let signed = match &event.op {
+        Op::DocSaid { d, .. } => d.by.as_deref(),
+        _ => None,
+    };
+    signed_by_another(state, &event.device, signed)
+        .or_else(|| whose(state, &event.device, event.via.as_deref(), me))
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]

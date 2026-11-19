@@ -43,13 +43,13 @@ Las reglas detrás están en [[Qué puede hacer un asistente|Qué-puede-hacer-un
 
 | Herramienta | Qué hace |
 | :-- | :-- |
-| `read_doc` | Leer un documento, o una parte; o, con `as`, el documento completo en Markdown estándar, para llevarlo a Confluence, Jira, Notion, Linear o GitHub con sus propias herramientas (mira más abajo). **Lluvia de ideas** llega por partes, idea por idea, nunca como una lista de horas |
+| `read_doc` | Leer un documento, o una parte; o, con `as`, el documento completo en Markdown estándar, para llevarlo a Confluence, Jira, Notion, Linear o GitHub con sus propias herramientas (mira más abajo). **Lluvia de ideas** llega por partes, idea por idea, nunca como una lista de horas. Con `versions`, en vez del texto, lista sus [versiones anteriores](Documentos#versiones-anteriores), la más nueva primero: cuándo se escribió cada una, quién y cuánto pesa; el id de una tarea lista las de su página. Con `version` lee una, bajo un aviso de que no es lo que dice ahora. Una versión que reemplazó otro de tus equipos sale como `elsewhere`, con el nombre de ese equipo, y no se lee ni se recupera |
 | `sum_up` | Dejar un resumen corto de qué trata un documento, para el siguiente que lo lea |
 | `write_doc` | Escribir un documento nuevo, o reescribir uno entero; con `compact`, poner en orden uno que creció por sesiones (ver abajo); con `translation_of`, escribirlo como otro idioma de un documento tuyo (uno que escribió otra persona se rechaza) |
 | `append_doc` | Añadir a un documento, al final o bajo un título; en la página de una tarea, añadir bajo las notas del asistente o, con `replace`, juntar las notas de todos los asistentes en un resumen fechado de hasta 6000 caracteres, que conserva las líneas que escribiste y que `restore_doc` puede deshacer. En **Lluvia de ideas**, cada párrafo o elemento de una lista se vuelve una idea propia, con su fecha y su color, de hasta 140 caracteres; la idea misma, con su línea `> [!IDEA]` y sus palabras tal como están en la hoja, añadida a otro documento sale de la hoja, como cuando la anexas desde la ventana; una nota `[!IDEA]` que no nombra ninguna idea de ahí queda como nota adhesiva propia. En el **Diario**, cuando lo abres a los agentes, solo añade al final de hoy, bajo una línea con el minuto y el nombre del agente |
 | `edit_doc` | Cambiar un pasaje de un documento o de la página de una tarea |
 | `edit_table` | Leer o cambiar una tabla de un documento por sus filas y columnas: poner una celda, añadir, quitar u ordenar filas, renombrar una columna o darle un tipo. Un valor que su columna no sabe leer se conserva y se nombra en la respuesta |
-| `restore_doc` | Volver un documento a como estaba, desde la copia guardada junto a los documentos; con una tarea, devuelve las notas que reemplazó un resumen |
+| `restore_doc` | Deshacer el último cambio que reemplazó texto de un documento, un pasaje cambiado o una escritura entera, desde sus [versiones anteriores](Documentos#versiones-anteriores) en este equipo; lo añadido al final y tus guardados no dejan nada que deshacer, y se niega si alguien escribió después. Deshacerlo dos veces lo devuelve. Con `version`, vuelve a una de las que lista `read_doc`, por encima de todo lo escrito después, y lo que reemplaza queda guardado; sin `version`, deshace esa vuelta. Con una tarea, devuelve las notas que reemplazó un resumen |
 | `folder` | Crear una carpeta |
 | `file_doc` | Poner uno o varios documentos en una carpeta |
 | `page_doc` | Hacer de documentos páginas de otro o sacarlas (`doc`), u ordenar las páginas de uno (`order` con `page_of`) |
@@ -70,6 +70,75 @@ Al traer un archivo Markdown se copia lo que su texto señala, pero solo lo que 
 ## El Diario
 
 Tu [Diario](Documentos#diario) queda fuera de todas las herramientas hasta que lo abres a los agentes desde el propio Diario: `brain`, `catch_up` y los documentos que se ofrecen con `@` lo dejan fuera, y una herramienta que recibe una de sus páginas responde como ante un documento que no existe. Abierto, las herramientas de lectura lo leen y `append_doc` añade al final de hoy; toda herramienta que cambiaría, movería, marcaría o archivaría lo que escribiste ahí se rechaza, y ninguna puede empezar un diario.
+
+## Versiones anteriores de un documento
+
+Un asistente ve y recupera las mismas [versiones anteriores](Documentos#versiones-anteriores) que tú, con dos herramientas que ya usa, y solo las que guarda este equipo, porque las versiones no se sincronizan. Vaciarlas no tiene herramienta: eso es tuyo. Le pediste, por ejemplo, «vuelve “Paseos de Rina” a como estaba antes de tu cambio de esta mañana»; esto es lo que hace.
+
+**1. Lista las versiones,** con `read_doc` y `versions`:
+
+```json
+{ "doc": "k7w2pq9d-0003", "versions": true }
+```
+
+La respuesta trae la más nueva primero, cuántas guarda este equipo y su plazo en días (recortada aquí):
+
+```json
+{
+  "title": "Paseos de Rina",
+  "kept_here": 2,
+  "kept_days": 30,
+  "versions": [
+    {
+      "version": "a3f9c2e17b04",
+      "written": "2026-11-18 10:42",
+      "by": "Claude Code",
+      "until": "2026-11-18 11:05",
+      "bytes": 3120
+    },
+    {
+      "version": "7d21e8b0c9aa",
+      "written": "2026-11-17 19:10",
+      "by": "the person",
+      "until": "2026-11-18 10:42",
+      "bytes": 2988
+    }
+  ]
+}
+```
+
+`written` es cuándo se escribió ese texto y `until`, hasta cuándo lo dijo el documento. `version` es el comienzo de su huella, que basta para nombrarla. Con el id de una tarea lista las versiones de su página. Llegan de a 40, y `next` dice desde dónde pedir las más viejas con `cursor`.
+
+**2. Lee la que busca,** con `read_doc` y `version`:
+
+```json
+{ "doc": "k7w2pq9d-0003", "version": "7d21e8b0c9aa" }
+```
+
+Vuelve su texto bajo un aviso, para que no la confunda con lo que el documento dice ahora: «This is a past version of "Paseos de Rina" …, not what it says now». No trae `print`, así que no sirve para escribir encima con `edit_doc` ni `write_doc`. Una versión larga se lee por partes, como cualquier documento.
+
+**3. Vuelve a ella,** con `restore_doc` y `version`:
+
+```json
+{ "doc": "k7w2pq9d-0003", "version": "7d21e8b0c9aa" }
+```
+
+El documento vuelve a decir lo de esa versión, por encima de todo lo escrito después, sin pedir `even_if_more`, porque la versión se nombró a propósito. Lo que reemplaza queda guardado, la respuesta lo cuenta en `went_back_to`, y `restore_doc` sin `version` deshace la vuelta.
+
+**Una versión que guarda otro equipo** sale en la lista con `elsewhere` y el nombre de ese equipo:
+
+```json
+{
+  "version": "c0ffee12ab34",
+  "written": "2026-11-16 08:30",
+  "by": "the person",
+  "until": "2026-11-16 21:15",
+  "bytes": 2950,
+  "elsewhere": "Portátil de Marisol"
+}
+```
+
+Leerla o volver a ella se rechaza sin cambiar nada: «that version … was written over on Portátil de Marisol, not on this machine». El asistente te dice en qué equipo está, para que la abras allá.
 
 ## Llevar un documento a otra herramienta
 

@@ -581,7 +581,7 @@ whole document again, not only add to it — but only by sending back the print
 that document read at when it last looked. If you have written in it since, the
 write is refused and it has to read again. It can be wrong about a document; it
 cannot quietly take what you wrote while it was thinking. What it wrote over is
-kept beside the documents either way.
+kept in the document's earlier versions on this computer either way.
 
 **It can take one step back, and only when that step is the whole distance.**
 That kept body is not only held, it is reachable: `restore_doc` puts it back,
@@ -598,6 +598,14 @@ since, and an assistant that has read the document may decide that is what it
 wants. What that call writes over is kept in turn, so the same call again puts
 your afternoon back — and the answer says it went further than one write, which
 is the thing to look for if a document is suddenly shorter than you left it.
+
+**It can go back further, and only to what this computer kept.** `read_doc`
+with `versions` lists a document's earlier versions and `version` reads one, so
+an assistant sees what it said before without guessing. `restore_doc` with
+`version` puts one back over everything written since; what it replaces is
+kept in turn, and the same call without `version` undoes it. A version kept
+only on another of your computers is listed, never read or put back from here.
+**Empty the history** in the window is yours alone: no tool deletes versions.
 
 **Attachments are the one thing that leaves the machine.** They reach the shared
 folder, and from there whatever cloud client you run. So the file an assistant

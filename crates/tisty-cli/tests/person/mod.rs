@@ -372,6 +372,56 @@ impl Person {
         tisty_core::docs::write(&self.paths.docs(), file, body).unwrap();
     }
 
+    pub fn rewrites_doc(&self, file: &str, body: &str) {
+        self.writes_over(file, body, None);
+        self.retells(&[file]);
+    }
+
+    pub fn rewrites_its_page(&self, id: TaskId, file: &str, body: &str) {
+        let was = tisty_core::docs::read(&self.paths.docs(), file).unwrap();
+        self.writes_over(file, body, None);
+        self.wrote(tisty_core::paged::paged(id, &was, body));
+        self.retells(&[file]);
+    }
+
+    fn writes_over(&self, file: &str, body: &str, via: Option<&str>) {
+        let by = tisty_core::history::Writer::now(self.paths.data(), via.map(str::to_string));
+        tisty_core::docs::write_by(&self.paths.docs(), &by, file, body).unwrap();
+    }
+
+    pub fn another_machine_writes(&self, file: &str, body: &str, via: Option<&str>, aside: &Path) {
+        let id = self
+            .state()
+            .docs
+            .values()
+            .find(|one| one.file == file)
+            .unwrap()
+            .id;
+        Store::open(aside, tisty_core::DeviceId(PHONE.into()))
+            .unwrap()
+            .speaking_through(via.map(str::to_string))
+            .append(Op::DocSaid {
+                id,
+                d: tisty_core::event::Said::of(body),
+            })
+            .unwrap();
+    }
+
+    pub fn takes_in_what_that_machine_wrote(&self, file: &str, body: &str, via: Option<&str>) {
+        self.writes_over(file, body, via);
+    }
+
+    pub fn names_that_machine(&self, name: &str, aside: &Path) {
+        Store::open(aside, tisty_core::DeviceId(PHONE.into()))
+            .unwrap()
+            .append(Op::DeviceNamed {
+                d: tisty_core::DeviceId(PHONE.into()),
+                name: name.into(),
+                os: None,
+            })
+            .unwrap();
+    }
+
     // The window tells the trail which sections of a task's page it wrote in, as it saves.
     pub fn writes_on_its_page(&self, id: TaskId, file: &str, body: &str) {
         let was = tisty_core::docs::read(&self.paths.docs(), file).unwrap();

@@ -328,6 +328,8 @@ pub(crate) fn within(paths: &Paths, from: &Path, at_most: u64) -> Result<Restore
     let was = Config::load_or_init(paths)?;
     let mut config = was.clone();
     config.device_id = crate::DeviceId(crate::config::new_device_id());
+    // The agent now runs on the machine's new id, which has to say so again for others to place it.
+    config.agent_vouched = None;
     config.synced_at = None;
     config.heard_at = None;
     config.sync = None;

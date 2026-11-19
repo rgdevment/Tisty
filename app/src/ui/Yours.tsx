@@ -1,12 +1,13 @@
 import { open } from "@tauri-apps/plugin-dialog";
 import { useState } from "react";
 import { typed } from "../clouds";
-import { type About, backUp, type Carrying, restore, revealed } from "../core";
+import { type About, backUp, type Carrying, restore, revealed, type Settings } from "../core";
 import { fill, t } from "../locales";
 import { saidPlainly } from "../refusal";
 import { sure } from "../sure";
 import Backup, { backupMadeSaid, whereToBackUp } from "./Backup";
 import type { Run, Which, Word } from "./Card";
+import EarlierLimit from "./EarlierLimit";
 import Leave from "./Leave";
 import { Band, Line, mild, risky } from "./Rows";
 
@@ -14,6 +15,8 @@ interface Props {
   state: Carrying;
   holds: string;
   build: About | null;
+  kept: Settings | null;
+  setKept: (kept: Settings) => void;
   busy: Which | null;
   said?: Word;
   trouble?: Word;
@@ -28,6 +31,8 @@ export default function Yours({
   state,
   holds,
   build,
+  kept,
+  setKept,
   busy,
   said,
   trouble,
@@ -90,6 +95,17 @@ export default function Yours({
           </button>
         </Line>
       </Backup>
+
+      {kept && (
+        <EarlierLimit
+          kept={kept}
+          setKept={setKept}
+          held={held}
+          said={said}
+          trouble={trouble}
+          run={run}
+        />
+      )}
 
       <Band label={t("whereItLives")} />
       <div className="border-t border-hair">

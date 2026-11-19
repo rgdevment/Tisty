@@ -4733,7 +4733,7 @@ fn a_passage_can_be_taken_out_and_what_it_was_is_kept_on_disk() {
 
     assert_eq!(body_of(&served, &doc), "# Acta\n\nuno\n\ntres\n");
     let kept = tisty_core::history::back(&served.home.path().join("data"), &doc)
-        .expect("what it was is kept beside the documents")
+        .expect("what it was is kept in the document's history")
         .body;
     assert!(kept.contains("dos"), "{kept}");
 }

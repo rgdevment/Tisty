@@ -788,6 +788,35 @@ fn the_machine_is_renamed_before_anything_is_replaced() {
 }
 
 #[test]
+fn the_agent_is_spoken_for_again_by_the_machines_new_name() {
+    let dir = tempfile::tempdir().unwrap();
+    let paths = Paths::new(dir.path().join("data"), dir.path().join("config"));
+    let mut config = Config::load_or_init(&paths).unwrap();
+    config.agent_id = Some(DeviceId("agent_mine".into()));
+    config.agent_vouched = config.agent_id.clone();
+    config.save(&paths).unwrap();
+    let mut store = Store::open(paths.store(), config.device_id.clone()).unwrap();
+    store
+        .append(Op::TaskAdd {
+            id: Ulid::generate(),
+            d: TaskAdd::new("lo de antes", "a0"),
+        })
+        .unwrap();
+
+    let out = tempfile::tempdir().unwrap();
+    let file = out.path().join("tisty.zip");
+    write(paths.data(), &file, tmp().path(), None).unwrap();
+    read(&paths, &file).unwrap();
+
+    let now = Config::load(&paths.config_file()).unwrap().unwrap();
+    assert_eq!(now.agent_id, config.agent_id, "the agent was forgotten");
+    assert_eq!(
+        now.agent_vouched, None,
+        "the agent stays placed on a machine name that was just retired"
+    );
+}
+
+#[test]
 fn a_zip_bomb_is_refused_and_costs_nothing() {
     let (_src, data) = filled("lo mio");
     let paths = Paths::new(&data, data.parent().unwrap().join("config"));

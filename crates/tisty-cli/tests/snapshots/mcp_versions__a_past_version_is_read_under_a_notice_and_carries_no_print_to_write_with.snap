@@ -1,0 +1,19 @@
+---
+source: crates/tisty-cli/tests/mcp_versions.rs
+expression: "settled(read, &[])"
+---
+{
+  "body": "# Acta\n\nUno, como lo dejó el asistente.\n",
+  "by": "Claude Code",
+  "bytes": 41,
+  "chars": 40,
+  "doc": "[doc]",
+  "from": 1,
+  "lines": 3,
+  "notice": "This is a past version of \"Acta\" [[doc]], not what it says now: what it said until [when], written by Claude Code on [when]. `restore_doc` with this `version` goes back to it.",
+  "title": "Acta",
+  "to": 3,
+  "until": "[when]",
+  "version": "[version 1]",
+  "written": "[when]"
+}

@@ -1,0 +1,20 @@
+---
+source: crates/tisty-cli/tests/mcp_versions.rs
+expression: "settled(&listed, &[(page.as_str(), \"[page]\")])"
+---
+{
+  "doc": "[page]",
+  "kept_days": 30,
+  "kept_here": 1,
+  "said": "the page of \"Renovar el pasaporte\" [[page]] keeps 1 past version(s) on this machine, newest first. `read_doc` with `version` reads one, and `restore_doc` with `version` goes back to it. Versions never leave the machine that kept them, and stay 30 days.",
+  "title": "Renovar el pasaporte",
+  "versions": [
+    {
+      "by": "Claude Code",
+      "bytes": 431,
+      "until": "[when]",
+      "version": "[version 1]",
+      "written": "[when]"
+    }
+  ]
+}

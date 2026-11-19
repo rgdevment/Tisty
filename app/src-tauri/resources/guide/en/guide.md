@@ -450,6 +450,18 @@ There is more to say about code, and it fits on a page of its own:
 
 ![When what you write down is code: this guide's code page](tisty:code)
 
+### Going back to what it said before
+
+Each document keeps, on this computer, what it said before, for the day a change takes away something you still need. Say you ask your agent to tidy «Rina's walks» and it leaves out the times:
+
+1. In the panel beside the document, the **History** row has **See the history**.
+2. Its versions sit on the left, newest first, with the time, who wrote each and its size. Click the one from before your agent's change and read it on the right. **What changed**, above it, shows in red what your agent took out and in green what it put in.
+3. **Go back to this version** brings it back. What it said is kept, and **Put back what it said before**, on the document's bar, undoes the go-back.
+
+Tisty keeps a version when 30 minutes go by without changes or when the one writing changes, you or an assistant. On a task's page the same is under **Versions of this page**, and the words come back without removing any step.
+
+The history belongs to this computer: it is not synced, and a new computer starts without it. It is kept 30 days, or 1, 5 or 15 if you choose so in Settings → Your data, and the last version always stays. So that a text you deleted on purpose is not kept, **Empty the history**, at the foot of the list, deletes it from this computer. More in [documents](https://www.tisty.app/docs/documents/).
+
 ### What comes from elsewhere
 
 Already have notes somewhere else? No need to copy them by hand. What arrives from elsewhere comes in converted into Tisty Markdown, and the file it came from is not touched:

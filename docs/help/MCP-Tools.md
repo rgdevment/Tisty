@@ -43,13 +43,13 @@ See [[What an assistant may do|MCP-Permissions]] for the rules behind them.
 
 | Tool | What it does |
 | :-- | :-- |
-| `read_doc` | Read a document, or one part of it — or, with `as`, the whole of it in standard Markdown, to take to Confluence, Jira, Notion, Linear or GitHub through their own tools (see below). **Brainstorm** comes in parts, idea by idea, never as a list of times |
+| `read_doc` | Read a document, or one part of it — or, with `as`, the whole of it in standard Markdown, to take to Confluence, Jira, Notion, Linear or GitHub through their own tools (see below). **Brainstorm** comes in parts, idea by idea, never as a list of times. With `versions`, in place of the text, it lists its [earlier versions](Documents#earlier-versions), newest first: when each was written, by whom and its size; a task's id lists its page's. With `version` it reads one, under a notice that it is not what it says now. A version another of your computers replaced comes as `elsewhere`, with that computer's name, and is neither read nor gone back to |
 | `sum_up` | Leave a short summary of what a document is about, for the next reader |
 | `write_doc` | Write a new document, or write one again whole — or, with `compact`, put one that grew by sessions back in order (see below); with `translation_of`, write it as another language of one of your own documents (one someone else wrote is refused) |
 | `append_doc` | Add to a document, at the end or under a heading; on a task's page, add under the assistant's notes, or with `replace` fold every assistant's notes into one dated digest of at most 6,000 characters that keeps any line you wrote and `restore_doc` can undo. On **Brainstorm**, each paragraph or list item becomes an idea of its own, dated and coloured, of at most 140 characters; the idea itself, its `> [!IDEA]` line and its words as the sheet has them, added to another document takes it off the sheet, as filing it from the window does, and an `[!IDEA]` note that names no idea there stays a sticky note of its own. In the **Diary**, once you open it to agents, it only adds to the end of today, under a line with the minute and the agent's name |
 | `edit_doc` | Change one passage of a document, or of a task's page |
 | `edit_table` | Read or change one table of a document by its rows and columns: set a cell, add, remove or sort rows, rename a column or give it a type. A value its column cannot read is kept and named in the answer |
-| `restore_doc` | Put a document back the way it was, from the copy kept beside the documents; with a task, put back the notes a digest replaced |
+| `restore_doc` | Undo the last change that replaced a document's text, a changed passage or a whole write, from its [earlier versions](Documents#earlier-versions) on this computer; appends and your saves leave nothing to undo, and it is refused if something was written since. Undoing twice returns it. With `version` it goes back to one that `read_doc` lists, over everything written since, and what it replaces is kept; without `version` it undoes that go-back. With a task, put back the notes a digest replaced |
 | `folder` | Make a folder |
 | `file_doc` | Put one or several documents in a folder |
 | `page_doc` | Make documents into pages of another or take them out (`doc`), or put the pages of one in order (`order` with `page_of`) |
@@ -70,6 +70,75 @@ Bringing a Markdown file in copies what its text points at, but only what sits i
 ## The Diary
 
 Your [Diary](Documents#diary) is outside every tool until you open it to agents from the Diary itself: `brain`, `catch_up` and the documents offered for `@` leave it out, and a tool given one of its pages answers as for a document that does not exist. Open, the reading tools read it and `append_doc` adds to the end of today; every tool that would change, move, mark or put away what you wrote there is refused, and none can start a diary.
+
+## A document's earlier versions
+
+An assistant sees and goes back to the same [earlier versions](Documents#earlier-versions) you do, through two tools it already uses, and only those this computer keeps, since versions are not synced. Emptying them has no tool: that is yours. Say you asked «put "Rina's walks" back the way it was before your change this morning»; this is what it does.
+
+**1. It lists the versions,** with `read_doc` and `versions`:
+
+```json
+{ "doc": "k7w2pq9d-0003", "versions": true }
+```
+
+The answer brings the newest first, how many this computer keeps and its limit in days (cut down here):
+
+```json
+{
+  "title": "Rina's walks",
+  "kept_here": 2,
+  "kept_days": 30,
+  "versions": [
+    {
+      "version": "a3f9c2e17b04",
+      "written": "2026-11-18 10:42",
+      "by": "Claude Code",
+      "until": "2026-11-18 11:05",
+      "bytes": 3120
+    },
+    {
+      "version": "7d21e8b0c9aa",
+      "written": "2026-11-17 19:10",
+      "by": "the person",
+      "until": "2026-11-18 10:42",
+      "bytes": 2988
+    }
+  ]
+}
+```
+
+`written` is when that text was written and `until`, how long the document said it. `version` is the start of its print, enough to name it. A task's id lists its page's versions. They come 40 at a time, and `next` says where to ask for older ones with `cursor`.
+
+**2. It reads the one it wants,** with `read_doc` and `version`:
+
+```json
+{ "doc": "k7w2pq9d-0003", "version": "7d21e8b0c9aa" }
+```
+
+Its text comes back under a notice, so it is not taken for what the document says now: «This is a past version of "Rina's walks" …, not what it says now». It carries no `print`, so it cannot be used to write over with `edit_doc` or `write_doc`. A long version reads in parts, like any document.
+
+**3. It goes back to it,** with `restore_doc` and `version`:
+
+```json
+{ "doc": "k7w2pq9d-0003", "version": "7d21e8b0c9aa" }
+```
+
+The document goes back to saying what that version said, over everything written since, without asking for `even_if_more`, because the version was named on purpose. What it replaces is kept, the answer tells it in `went_back_to`, and `restore_doc` without `version` undoes the go-back.
+
+**A version another computer keeps** comes in the list with `elsewhere` and that computer's name:
+
+```json
+{
+  "version": "c0ffee12ab34",
+  "written": "2026-11-16 08:30",
+  "by": "the person",
+  "until": "2026-11-16 21:15",
+  "bytes": 2950,
+  "elsewhere": "Marisol's laptop"
+}
+```
+
+Reading it or going back to it is refused and changes nothing: «that version … was written over on Marisol's laptop, not on this machine». The assistant tells you which computer has it, so you open it there.
 
 ## Taking a document to another tool
 
