@@ -634,7 +634,7 @@ pub(super) fn over_again(
     }
     let Some(print) = text(args, "print") else {
         return Err(Refused::Tool(format!(
-            "replacing the body of {called} needs the `print` you read it at, which `read_doc` hands back beside the text. Read it, then send that print with the new body."
+            "replacing the body of {called} needs the `print` you read it at, which `read` hands back beside the text. Read it, then send that print with the new body."
         )));
     };
 

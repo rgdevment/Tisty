@@ -256,13 +256,14 @@ fn a_task_said_done_closed_or_hidden_since_is_not_asked_about() {
 fn a_call_is_judged_by_what_it_named_and_what_it_answered() {
     let task = Ulid::generate();
     let answered = |shown: Value| json!({ "structuredContent": shown });
+    let id = task.to_string();
 
     assert_eq!(
         touch(
             "read",
             Some(task),
             false,
-            &answered(json!({ "status": "open" }))
+            &answered(json!({ "id": id, "status": "open" }))
         ),
         Touch::Read(task)
     );
@@ -271,7 +272,17 @@ fn a_call_is_judged_by_what_it_named_and_what_it_answered() {
             "read",
             Some(task),
             false,
-            &answered(json!({ "status": "done" }))
+            &answered(json!({ "doc": format!("t_{}-0001", id.to_lowercase()), "body": "" }))
+        ),
+        Touch::Looked,
+        "its page read as a document is only a look"
+    );
+    assert_eq!(
+        touch(
+            "read",
+            Some(task),
+            false,
+            &answered(json!({ "id": id, "status": "done" }))
         ),
         Touch::Looked
     );
@@ -280,7 +291,7 @@ fn a_call_is_judged_by_what_it_named_and_what_it_answered() {
             "read",
             Some(task),
             false,
-            &answered(json!({ "said_done": "2026-11-17 10:00" }))
+            &answered(json!({ "id": id, "said_done": "2026-11-17 10:00" }))
         ),
         Touch::Looked
     );

@@ -190,7 +190,7 @@ pub(super) fn tools_without_hints() -> Value {
                     "keep_compaction": kept_compaction_field(),
                     "body": { "type": "string", "description": "The whole document; its first line is its title. One line per paragraph: a single newline is a line break, so wrapped text reads broken" },
                     "doc": { "type": "string", "description": "Id of a document to write again whole, not its title; needs `print`. Left out, a new one" },
-                    "print": { "type": "string", "description": "The `print` `read_doc` gave with the text you worked from; if the document changed since, nothing is written" },
+                    "print": { "type": "string", "description": "The `print` `read` or `brain` gave with the text you worked from; if the document changed since, nothing is written" },
                     "folder": { "type": "string", "description": "The existing folder its subject belongs in, by name, path or id; left out needs a reason. Not with `doc`: `file_doc` moves one" },
                     "compact": { "type": "boolean", "description": "With `doc` and `print`: this write puts the document back in order, as `rules` «tidying» says. Refused on one the person began unless `person_asked`" },
                     "person_asked": { "type": "boolean", "description": "With `compact`: the person asked you in this conversation to compact a document they began" },
@@ -226,7 +226,7 @@ pub(super) fn tools_without_hints() -> Value {
                 "properties": {
                     "doc": { "type": "string", "description": "A document's id, not its title, or a task's to put back the assistant's notes on its page" },
                     "even_if_more": { "type": "boolean", "description": "Go back over what was written since too; only once you read it and know, since the person may have written it" },
-                    "version": { "type": "string", "description": "A `version` from `read_doc` with `versions`, to go back to over all written since" }
+                    "version": { "type": "string", "description": "A `version` from `read` with `versions`, to go back to over all written since" }
                 },
                 "required": ["doc"]
             }))
@@ -239,12 +239,12 @@ pub(super) fn tools_without_hints() -> Value {
                 "properties": {
                     "keep_compaction": kept_compaction_field(),
                     "doc": named_doc_field(),
-                    "old": { "type": "string", "description": "The passage as written now, from `read_doc`, matching one place only; take in a line around it if needed. Not with `section` or lines" },
+                    "old": { "type": "string", "description": "The passage as written now, from `read`, matching one place only; take in a line around it if needed. Not with `section` or lines" },
                     "new": { "type": "string", "description": "What takes its place; empty takes the passage out" },
                     "section": { "type": "integer", "description": "A heading and all under it, by its `at` on the card `brain` gives, from 0. Needs `print`" },
                     "from": { "type": "integer", "description": "First line to replace, from 1. Needs `print`" },
                     "to": { "type": "integer", "description": "Last line; left out, to the end. Only with `from`" },
-                    "print": { "type": "string", "description": "The `print` from `read_doc` or `brain`, for `section` or lines only. If anyone wrote since, nothing changes: ask `brain` again" },
+                    "print": { "type": "string", "description": "The `print` from `read` or `brain`, for `section` or lines only. If anyone wrote since, nothing changes: ask `brain` again" },
                     "echo": echo_field()
                 },
                 "required": ["doc", "new"]
@@ -297,7 +297,7 @@ pub(super) fn tools_without_hints() -> Value {
         {
             "name": "export_doc",
             "title": "Export a document to a folder",
-            "description": "Write a document out as Markdown files in a folder on this machine, its pages numbered in reading order and its files beside them. A copy: nothing here changes. For another tool, `read_doc` with `as`.",
+            "description": "Write a document out as Markdown files in a folder on this machine, its pages numbered in reading order and its files beside them. A copy: nothing here changes. For another tool, `read` with `as`.",
             "inputSchema": shaped(json!({
                 "properties": {
                     "doc": named_doc_field(),
@@ -398,26 +398,6 @@ pub(super) fn tools_without_hints() -> Value {
             }))
         },
         {
-            "name": "read_doc",
-            "title": "Read a document, or a part of one",
-            "description": "A document's text and the `print` it reads at. Past about 12,000 characters it comes back as its outline (`whole` false): then ask for a `section`, lines, or `chars` at a time. Every part brings the print, so `edit_doc` needs no whole read. `versions` lists what it said before, and `version` reads one.",
-            "inputSchema": shaped(json!({
-                "properties": {
-                    "doc": named_doc_field(),
-                    "versions": { "type": "boolean", "description": "Its past versions instead of its text: when each was written, by whom, its size. A task's id lists its page's" },
-                    "version": { "type": "string", "description": "A `version` from that list, read in place of the text" },
-                    "print": { "type": "string", "description": "The `print` the previous part came with; only with `cursor`" },
-                    "section": { "type": "integer", "description": "A heading and all under it, by its `at` on the card `brain` gives, from 0" },
-                    "from": { "type": "integer", "description": "First line, from 1" },
-                    "to": { "type": "integer", "description": "Last line; left out, to the end" },
-                    "chars": { "type": "integer", "description": "About how many characters to bring; the answer gives `next` when there is more" },
-                    "cursor": { "type": "integer", "description": "The `next` a previous answer gave, with `chars`" },
-                    "as": { "type": "string", "enum": ["markdown"], "description": "The whole document in GitHub Markdown for another tool; tell the person what `left_out` lists (`rules` «documents»). Not with `section`, lines or `chars`" }
-                },
-                "required": ["doc"]
-            }))
-        },
-        {
             "name": "catch_up",
             "title": "Where things stand, and what has moved",
             "description": "Where things stand: lists, folders, top tags, counts, pressing tasks, newest documents, a `cursor`; what others moved since your last `catch_up`; `last`, the open task you were on. Ask it first.",
@@ -479,25 +459,35 @@ pub(super) fn tools_without_hints() -> Value {
         },
         {
             "name": "read",
-            "title": "Read a whole task",
-            "description": "Everything a task holds: steps, its `state`, its `document` page, the notes after that state (ids for `reword_note`), parts and files. Read it before noting or mending; `fields` narrows it. A closed task comes with `closed`: it is history.",
+            "title": "Read a task or a document",
+            "description": "The exact text of one task or document. `task`: its steps, `state`, `document` page, the notes after that state (ids for `reword_note`), parts and files; read it before noting or mending; a closed one has `closed`: it is history. `doc`: its text and the `print` `edit_doc` takes; past about 12,000 characters it comes as its outline, so ask a `section`, lines or `chars`. Where a thing sits and what cites it is `brain`.",
             "inputSchema": shaped(json!({
                 "properties": {
-                    "task": { "type": "string", "description": "The task id" },
+                    "task": { "type": "string", "description": "A task's id" },
+                    "doc": named_doc_field(),
                     "fields": {
                         "type": "array",
                         "items": { "type": "string" },
-                        "description": "Only these keys; the id always comes"
+                        "description": "With `task`: only these keys; the id always comes"
                     },
-                    "notes": { "type": "integer", "description": "How many latest notes, cut at 4000 chars; 0: all, whole" }
-                },
-                "required": ["task"]
+                    "notes": { "type": "integer", "description": "With `task`: how many latest notes, cut at 4000 chars; 0: all, whole" },
+                    "section": { "type": "integer", "description": "With `doc`: a heading and all under it, by its `at` from `brain`, from 0" },
+                    "from": { "type": "integer", "description": "First line, from 1" },
+                    "to": { "type": "integer", "description": "Last line; left out, to the end" },
+                    "chars": { "type": "integer", "description": "About how many characters; `next` says where more starts" },
+                    "cursor": { "type": "integer", "description": "The `next` a previous answer gave, with `chars`" },
+                    "print": { "type": "string", "description": "The `print` a read gave: unchanged, only that is said; with `cursor`, the part's" },
+                    "as": { "type": "string", "enum": ["markdown"], "description": "The whole document in GitHub Markdown for another tool; tell the person what `left_out` lists. Not with a part" },
+                    "marks": { "type": "boolean", "description": "With `doc`: only its highlighted and bold passages, each under its section" },
+                    "versions": { "type": "boolean", "description": "With `doc`: its past versions instead of its text, when, by whom, its size; a task id lists its page's" },
+                    "version": { "type": "string", "description": "A `version` from that list, read in place of the text" }
+                }
             }))
         },
         {
             "name": "brain",
             "title": "Find anything kept and see how it connects",
-            "description": "Search and walk the person's tasks and documents, archive included, without opening them. `query` ranks them by where the words turn up, then by how recent, each with its newest line saying them; when none has every word, those with the most come, said so. The other fields sift tasks. `doc` or `task` alone gives its card: a document's sections with `at`, lines and the `print` `edit_doc` needs, a task's state, steps and parts, and what cites each; `links` brings its neighbours of one kind; `doc` with `query`, its lines. `part_of` alone groups a project's open parts: blocked, under way, waiting on the person, not started. `folder` or `scope` alone lists documents; nothing at all, the lists, folders and tags with their counts. Answers are capped and `next` says how to go on. The text itself is `read` for a task, `read_doc` for a document.",
+            "description": "Search and walk the person's tasks and documents, archive included, without opening them. `query` ranks them by where the words turn up, then by how recent, each with its newest line saying them; when none has every word, those with the most come, said so. The other fields sift tasks. `doc` or `task` alone gives its card: a document's sections with `at`, lines and the `print` `edit_doc` needs, a task's state, steps and parts, and what cites each; `links` brings its neighbours of one kind; `doc` with `query`, its lines. `part_of` alone groups a project's open parts: blocked, under way, waiting on the person, not started. `folder` or `scope` alone lists documents; nothing at all, the lists, folders and tags with their counts. Answers are capped and `next` says how to go on. The text itself is `read`.",
             "inputSchema": shaped(json!({
                 "properties": {
                     "query": { "type": "string", "description": "Words, in any order, accents or not; quote a phrase. Not needed when sifting" },

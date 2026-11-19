@@ -395,7 +395,7 @@ fn a_reason_not_in_the_list_is_refused() {
 fn a_document_an_agent_wrote_is_compacted_and_says_so() {
     let served = Served::new();
     let doc = served.paper("# Login\n\nOne.\n\n## Session 1\n\nTwo.\n\n## Session 2\n\nTwo.\n");
-    let print = said(&served.call("read_doc", json!({ "doc": &doc })))["print"].clone();
+    let print = said(&served.call("read", json!({ "doc": &doc })))["print"].clone();
 
     let done = served.call(
         "write_doc",
@@ -410,10 +410,10 @@ fn a_document_an_agent_wrote_is_compacted_and_says_so() {
     assert!(said(&done)["size"]["after"].as_u64() < said(&done)["size"]["before"].as_u64());
     assert_eq!(said(&done)["dropped"], json!([]));
 
-    let read = said(&served.call("read_doc", json!({ "doc": &doc }))).clone();
+    let read = said(&served.call("read", json!({ "doc": &doc }))).clone();
     assert!(read["compacted"]["at"].is_string(), "{read}");
     went(&served.call("restore_doc", json!({ "doc": &doc })));
-    let back = said(&served.call("read_doc", json!({ "doc": &doc }))).clone();
+    let back = said(&served.call("read", json!({ "doc": &doc }))).clone();
     assert!(
         back["body"].as_str().unwrap().contains("Session 1"),
         "{back}"
@@ -430,7 +430,7 @@ fn a_document_the_person_began_is_compacted_only_when_they_asked() {
     let doc = served
         .person()
         .writes_doc("# Recipes\n\nSoup.\n\n## Soup\n\nSoup.\n");
-    let print = said(&served.call("read_doc", json!({ "doc": &doc })))["print"].clone();
+    let print = said(&served.call("read", json!({ "doc": &doc })))["print"].clone();
     let asked = |asked: bool| {
         json!({
             "doc": &doc,
@@ -565,7 +565,7 @@ fn an_import_refused_once_its_files_are_copied_takes_back_only_those_it_copied()
 fn a_compacted_document_takes_no_other_write_until_the_person_decides() {
     let served = Served::new();
     let doc = served.paper("# Login\n\nOne.\n\n## Session 1\n\nTwo.\n\n## Session 2\n\nTwo.\n");
-    let print = said(&served.call("read_doc", json!({ "doc": &doc })))["print"].clone();
+    let print = said(&served.call("read", json!({ "doc": &doc })))["print"].clone();
     went(&served.call(
         "write_doc",
         json!({
@@ -575,7 +575,7 @@ fn a_compacted_document_takes_no_other_write_until_the_person_decides() {
             "body": "# Login\n\nOne. Two.\n",
         }),
     ));
-    let now = said(&served.call("read_doc", json!({ "doc": &doc })))["print"].clone();
+    let now = said(&served.call("read", json!({ "doc": &doc })))["print"].clone();
 
     let added = refused(&served.call("append_doc", json!({ "doc": &doc, "body": "Three." })));
     let edited = refused(&served.call(
@@ -591,7 +591,7 @@ fn a_compacted_document_takes_no_other_write_until_the_person_decides() {
     }
 
     went(&served.call("restore_doc", json!({ "doc": &doc })));
-    let back = said(&served.call("read_doc", json!({ "doc": &doc }))).clone();
+    let back = said(&served.call("read", json!({ "doc": &doc }))).clone();
     assert!(
         back["body"].as_str().unwrap().contains("Session 1"),
         "{back}"
@@ -604,7 +604,7 @@ fn a_compacted_document_takes_no_other_write_until_the_person_decides() {
 fn the_person_keeping_a_compaction_in_the_conversation_lets_the_next_write_through() {
     let served = Served::new();
     let doc = served.paper("# Login\n\nOne.\n\n## Session 1\n\nTwo.\n\n## Session 2\n\nTwo.\n");
-    let print = said(&served.call("read_doc", json!({ "doc": &doc })))["print"].clone();
+    let print = said(&served.call("read", json!({ "doc": &doc })))["print"].clone();
     went(&served.call(
         "write_doc",
         json!({
@@ -620,7 +620,7 @@ fn the_person_keeping_a_compaction_in_the_conversation_lets_the_next_write_throu
         json!({ "doc": &doc, "body": "Three.", "keep_compaction": true }),
     ));
 
-    let read = said(&served.call("read_doc", json!({ "doc": &doc }))).clone();
+    let read = said(&served.call("read", json!({ "doc": &doc }))).clone();
     assert!(read["compacted"].is_null(), "{read}");
     assert!(read["body"].as_str().unwrap().contains("Three."), "{read}");
 }
@@ -632,7 +632,7 @@ fn a_compaction_that_loses_a_link_is_refused_naming_it() {
     let doc = served.paper(&format!(
         "# Login\n\nOne, see https://example.com/old and [tokens](tisty:doc/{other}).\n\n## Session 1\n\nTwo.\n\n## Session 2\n\nTwo.\n"
     ));
-    let print = said(&served.call("read_doc", json!({ "doc": &doc })))["print"].clone();
+    let print = said(&served.call("read", json!({ "doc": &doc })))["print"].clone();
 
     let lost = refused(&served.call(
         "write_doc",
@@ -643,7 +643,7 @@ fn a_compaction_that_loses_a_link_is_refused_naming_it() {
     assert!(lost.contains("https://example.com/old"), "{lost}");
     assert!(lost.contains(&format!("tisty:doc/{other}")), "{lost}");
     assert!(lost.contains("Nothing was written"), "{lost}");
-    let read = said(&served.call("read_doc", json!({ "doc": &doc }))).clone();
+    let read = said(&served.call("read", json!({ "doc": &doc }))).clone();
     assert!(read["compacted"].is_null(), "{read}");
     assert!(
         read["body"].as_str().unwrap().contains("Session 1"),
@@ -657,7 +657,7 @@ fn a_compaction_lists_the_links_its_history_only_mentions() {
     let doc = served.paper(
         "# Login\n\nOne, see https://example.com/old.\n\n## Session 1\n\nTwo.\n\n## Session 2\n\nTwo.\n",
     );
-    let print = said(&served.call("read_doc", json!({ "doc": &doc })))["print"].clone();
+    let print = said(&served.call("read", json!({ "doc": &doc })))["print"].clone();
 
     let done = served.call(
         "write_doc",
@@ -681,18 +681,18 @@ fn a_compaction_lists_the_links_its_history_only_mentions() {
 fn a_compaction_still_the_last_write_is_corrected_and_undoes_to_the_first_body() {
     let served = Served::new();
     let doc = served.paper("# Login\n\nOne.\n\n## Session 1\n\nTwo.\n\n## Session 2\n\nTwo.\n");
-    let print = said(&served.call("read_doc", json!({ "doc": &doc })))["print"].clone();
+    let print = said(&served.call("read", json!({ "doc": &doc })))["print"].clone();
     went(&served.call(
         "write_doc",
         json!({ "doc": &doc, "print": print, "compact": true, "body": "# Login\n\nOne. Two.\n" }),
     ));
-    let now = said(&served.call("read_doc", json!({ "doc": &doc })))["print"].clone();
+    let now = said(&served.call("read", json!({ "doc": &doc })))["print"].clone();
 
     went(&served.call(
         "write_doc",
         json!({ "doc": &doc, "print": now, "compact": true, "body": "# Login\n\nOne, two.\n" }),
     ));
-    let read = said(&served.call("read_doc", json!({ "doc": &doc }))).clone();
+    let read = said(&served.call("read", json!({ "doc": &doc }))).clone();
     assert!(read["compacted"]["at"].is_string(), "{read}");
     assert!(
         read["body"].as_str().unwrap().contains("One, two."),
@@ -700,7 +700,7 @@ fn a_compaction_still_the_last_write_is_corrected_and_undoes_to_the_first_body()
     );
 
     went(&served.call("restore_doc", json!({ "doc": &doc })));
-    let back = said(&served.call("read_doc", json!({ "doc": &doc }))).clone();
+    let back = said(&served.call("read", json!({ "doc": &doc }))).clone();
     let body = back["body"].as_str().unwrap();
     assert!(body.contains("Session 1"), "{back}");
     assert!(!body.contains("One. Two."), "{back}");
@@ -711,7 +711,7 @@ fn a_compaction_still_the_last_write_is_corrected_and_undoes_to_the_first_body()
 fn a_compaction_written_over_since_is_not_compacted_again() {
     let served = Served::new();
     let doc = served.paper("# Login\n\nOne.\n\n## Session 1\n\nTwo.\n\n## Session 2\n\nTwo.\n");
-    let print = said(&served.call("read_doc", json!({ "doc": &doc })))["print"].clone();
+    let print = said(&served.call("read", json!({ "doc": &doc })))["print"].clone();
     went(&served.call(
         "write_doc",
         json!({ "doc": &doc, "print": print, "compact": true, "body": "# Login\n\nOne. Two.\n" }),
@@ -719,7 +719,7 @@ fn a_compaction_written_over_since_is_not_compacted_again() {
     served
         .person()
         .saves_doc(&doc, "# Login\n\nOne. Two. Three.\n");
-    let now = said(&served.call("read_doc", json!({ "doc": &doc })))["print"].clone();
+    let now = said(&served.call("read", json!({ "doc": &doc })))["print"].clone();
 
     let again = refused(&served.call(
         "write_doc",
@@ -732,7 +732,7 @@ fn a_compaction_written_over_since_is_not_compacted_again() {
 fn a_compaction_that_grows_the_body_says_so() {
     let served = Served::new();
     let doc = served.paper("# Login\n\nOne.\n");
-    let print = said(&served.call("read_doc", json!({ "doc": &doc })))["print"].clone();
+    let print = said(&served.call("read", json!({ "doc": &doc })))["print"].clone();
 
     let done = served.call(
         "write_doc",
@@ -775,7 +775,7 @@ fn links_to_nothing_or_to_documents_marked_now_need_no_line_in_the_history() {
         "flag_doc",
         json!({ "doc": &old, "reason": "obsolete", "body": "Its branch was merged." }),
     ));
-    let print = said(&served.call("read_doc", json!({ "doc": &doc })))["print"].clone();
+    let print = said(&served.call("read", json!({ "doc": &doc })))["print"].clone();
 
     went(&served.call(
         "write_doc",
@@ -1122,7 +1122,7 @@ fn a_digest_longer_than_the_notes_should_ever_be_is_refused() {
 fn undoing_an_undone_compaction_brings_the_compaction_back_waiting_for_the_person() {
     let served = Served::new();
     let doc = served.paper("# Login\n\nOne.\n\n## Session 1\n\nTwo.\n\n## Session 2\n\nTwo.\n");
-    let print = said(&served.call("read_doc", json!({ "doc": &doc })))["print"].clone();
+    let print = said(&served.call("read", json!({ "doc": &doc })))["print"].clone();
     went(&served.call(
         "write_doc",
         json!({ "doc": &doc, "print": print, "compact": true, "body": "# Login\n\nOne. Two.\n" }),
@@ -1131,7 +1131,7 @@ fn undoing_an_undone_compaction_brings_the_compaction_back_waiting_for_the_perso
 
     went(&served.call("restore_doc", json!({ "doc": &doc })));
 
-    let read = said(&served.call("read_doc", json!({ "doc": &doc }))).clone();
+    let read = said(&served.call("read", json!({ "doc": &doc }))).clone();
     assert!(
         read["body"].as_str().unwrap().contains("One. Two."),
         "{read}"
@@ -1143,7 +1143,7 @@ fn undoing_an_undone_compaction_brings_the_compaction_back_waiting_for_the_perso
 fn a_compaction_the_person_kept_is_not_marked_again_when_undone_twice() {
     let served = Served::new();
     let doc = served.paper("# Login\n\nOne.\n\n## Session 1\n\nTwo.\n\n## Session 2\n\nTwo.\n");
-    let print = said(&served.call("read_doc", json!({ "doc": &doc })))["print"].clone();
+    let print = said(&served.call("read", json!({ "doc": &doc })))["print"].clone();
     went(&served.call(
         "write_doc",
         json!({ "doc": &doc, "print": print, "compact": true, "body": "# Login\n\nOne. Two.\n" }),
@@ -1155,7 +1155,7 @@ fn a_compaction_the_person_kept_is_not_marked_again_when_undone_twice() {
 
     went(&served.call("restore_doc", json!({ "doc": &doc })));
 
-    let read = said(&served.call("read_doc", json!({ "doc": &doc }))).clone();
+    let read = said(&served.call("read", json!({ "doc": &doc }))).clone();
     assert!(
         read["body"].as_str().unwrap().contains("One. Two."),
         "{read}"

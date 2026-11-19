@@ -60,7 +60,7 @@ impl Served {
     }
 
     fn body(&self, doc: &str) -> String {
-        self.call("read_doc", json!({ "doc": doc }))["result"]["structuredContent"]["body"]
+        self.call("read", json!({ "doc": doc }))["result"]["structuredContent"]["body"]
             .as_str()
             .unwrap()
             .to_string()

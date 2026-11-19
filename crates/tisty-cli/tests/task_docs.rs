@@ -130,7 +130,7 @@ fn an_assistant_writes_a_task_s_page_with_the_document_tools_but_never_files_it(
     served.written_for(&task, "The person's own words.");
     let file = format!("t_{}-0001", task.to_ascii_lowercase());
     let body = || {
-        let read = served.call("read_doc", serde_json::json!({ "doc": file }));
+        let read = served.call("read", serde_json::json!({ "doc": file }));
         read["result"]["structuredContent"]["body"]
             .as_str()
             .unwrap_or_default()
@@ -167,7 +167,7 @@ fn a_page_that_loses_the_lines_naming_its_task_is_put_back() {
         .to_string();
     served.written_for(&task, "The person's own words.");
     let file = format!("t_{}-0001", task.to_ascii_lowercase());
-    let read = served.call("read_doc", serde_json::json!({ "doc": file }));
+    let read = served.call("read", serde_json::json!({ "doc": file }));
     let before = read["result"]["structuredContent"]["body"]
         .as_str()
         .unwrap()
@@ -180,7 +180,7 @@ fn a_page_that_loses_the_lines_naming_its_task_is_put_back() {
     );
 
     assert_eq!(refused["result"]["isError"], true, "{refused}");
-    let after = served.call("read_doc", serde_json::json!({ "doc": file }));
+    let after = served.call("read", serde_json::json!({ "doc": file }));
     assert_eq!(
         after["result"]["structuredContent"]["body"].as_str(),
         Some(before.as_str()),
@@ -280,7 +280,7 @@ fn what_an_assistant_changes_on_a_task_it_filed_reaches_its_page() {
     assert!(!body.contains("Bring the card"), "{body}");
     assert!(!body.contains("- [ ] Call the vet\n"), "{body}");
     assert!(body.starts_with("---\ntask: "), "{body}");
-    let read = served.call("read_doc", serde_json::json!({ "doc": file }));
+    let read = served.call("read", serde_json::json!({ "doc": file }));
     let kept = read["result"]["structuredContent"]["body"]
         .as_str()
         .unwrap_or_default();
@@ -329,7 +329,7 @@ fn an_assistant_adds_to_the_page_of_a_task_it_filed_under_its_own_notes_by_the_t
     let said = added["result"]["content"][0]["text"].as_str().unwrap();
     assert!(said.contains("assistant's notes"), "{said}");
     let file = format!("t_{}-0001", task.to_ascii_lowercase());
-    let read = served.call("read_doc", serde_json::json!({ "doc": file }));
+    let read = served.call("read", serde_json::json!({ "doc": file }));
     let body = read["result"]["structuredContent"]["body"]
         .as_str()
         .unwrap_or_default();
@@ -425,7 +425,7 @@ fn putting_the_persons_page_back_undoes_the_assistants_edit() {
     served.written_for(&task, "Mis palabras.");
     let file = format!("t_{}-0001", task.to_ascii_lowercase());
     let body = || {
-        let read = served.call("read_doc", serde_json::json!({ "doc": file }));
+        let read = served.call("read", serde_json::json!({ "doc": file }));
         read["result"]["structuredContent"]["body"]
             .as_str()
             .unwrap_or_default()
@@ -457,8 +457,7 @@ fn persons_task(served: &Served) -> String {
 }
 
 fn page_of(served: &Served, file: &str) -> serde_json::Value {
-    served.call("read_doc", serde_json::json!({ "doc": file }))["result"]["structuredContent"]
-        .clone()
+    served.call("read", serde_json::json!({ "doc": file }))["result"]["structuredContent"].clone()
 }
 
 #[test]
@@ -864,14 +863,14 @@ fn every_read_of_a_page_names_it_by_its_task() {
     served.written_for(&task, "## Description\n\nMis palabras.");
     let file = format!("t_{}-0001", task.to_ascii_lowercase());
 
-    let read = served.call("read_doc", serde_json::json!({ "doc": file }));
+    let read = served.call("read", serde_json::json!({ "doc": file }));
     let outlined = served.call("brain", serde_json::json!({ "doc": file }));
     let summed = served.call(
         "sum_up",
         serde_json::json!({ "doc": file, "summary": "Palabras de la persona." }),
     );
     let tabled = served.call("edit_table", serde_json::json!({ "doc": file }));
-    let by_id = served.call("read_doc", serde_json::json!({ "doc": task }));
+    let by_id = served.call("read", serde_json::json!({ "doc": task }));
 
     assert_eq!(read["result"]["structuredContent"]["title"], "algo mio");
     assert_eq!(outlined["result"]["structuredContent"]["title"], "algo mio");
@@ -900,11 +899,8 @@ fn no_read_of_a_long_document_runs_past_its_caps() {
     let doc = served.person().writes_doc(&long);
 
     let outlined = served.call("brain", serde_json::json!({ "doc": doc }));
-    let whole = served.call("read_doc", serde_json::json!({ "doc": doc }));
-    let chars = served.call(
-        "read_doc",
-        serde_json::json!({ "doc": doc, "chars": 200_000 }),
-    );
+    let whole = served.call("read", serde_json::json!({ "doc": doc }));
+    let chars = served.call("read", serde_json::json!({ "doc": doc, "chars": 200_000 }));
     let found = served.call("brain", serde_json::json!({ "doc": doc, "query": "aguja" }));
 
     for answer in [&outlined, &whole] {
@@ -992,7 +988,7 @@ fn a_closed_task_s_page_says_it_went_with_its_task() {
     let file = format!("t_{}-0001", task.to_ascii_lowercase());
     served.person().closes(person::task(&task));
 
-    let read = served.call("read_doc", serde_json::json!({ "doc": file }));
+    let read = served.call("read", serde_json::json!({ "doc": file }));
 
     assert!(text_of(&read).contains("closed task"), "{read}");
 }
@@ -1082,7 +1078,7 @@ fn a_long_log_s_outline_keeps_its_days_and_a_long_line_its_cap() {
 
     let outlined = served.call("brain", serde_json::json!({ "doc": log }));
     let line = served.call(
-        "read_doc",
+        "read",
         serde_json::json!({ "doc": wide, "from": 3, "to": 3 }),
     );
 
@@ -1117,7 +1113,7 @@ fn an_outline_keeps_every_chapter_and_a_cut_line_says_so() {
 
     let outlined = served.call("brain", serde_json::json!({ "doc": book }));
     let line = served.call(
-        "read_doc",
+        "read",
         serde_json::json!({ "doc": wide, "from": 3, "to": 3 }),
     );
 

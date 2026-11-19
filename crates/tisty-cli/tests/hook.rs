@@ -160,6 +160,38 @@ fn a_session_starts_knowing_the_open_tasks_this_client_left() {
 }
 
 #[test]
+fn the_hook_and_catch_up_say_the_same_of_the_task_left_open() {
+    let home = Home::new();
+    home.person().lets_the_agent_in();
+    let mut agent = home.connect("claude-code");
+    agent.call(
+        "propose",
+        json!({ "title": "Ship the hooks", "list": "Personal", "steps": ["one", "two"] }),
+    );
+    let id = home.person().id_of("Ship the hooks").to_string();
+    agent.call(
+        "tick",
+        json!({ "task": id, "step": "one", "state": "Blocked: waiting for the signing key." }),
+    );
+
+    let started = started(&home);
+    let caught = agent.ask("tools/call", json!({ "name": "catch_up", "arguments": {} }));
+    let last = &caught["result"]["structuredContent"]["last"];
+    let said = caught["result"]["content"][0]["text"].as_str().unwrap();
+
+    let progress =
+        "blocked, 1 of 2 steps ticked, next \"two\"; state: Blocked: waiting for the signing key.";
+    assert!(started.contains(progress), "{started}");
+    assert!(said.contains(progress), "{said}");
+    assert_eq!(last["stage"], "blocked", "{last}");
+    assert_eq!(last["steps"], json!([1, 2]), "{last}");
+    assert_eq!(
+        last["state"], "Blocked: waiting for the signing key.",
+        "{last}"
+    );
+}
+
+#[test]
 fn what_the_person_moved_since_the_last_catch_up_comes_with_it() {
     let home = Home::new();
     home.person().lets_the_agent_in();
@@ -243,7 +275,8 @@ fn anything_unexpected_exits_quietly() {
         vec!["hook", "claude-code", "stop", "extra"],
     ] {
         let mut child = home.tisty(&args).spawn().unwrap();
-        child.stdin.take().unwrap().write_all(b"not json").unwrap();
+        // A hook that gives up on its arguments may leave before reading, closing the pipe first.
+        let _ = child.stdin.take().unwrap().write_all(b"not json");
         let said = child.wait_with_output().unwrap();
         assert!(said.status.success(), "{args:?}: {said:?}");
         assert!(said.stdout.is_empty(), "{args:?}: {said:?}");

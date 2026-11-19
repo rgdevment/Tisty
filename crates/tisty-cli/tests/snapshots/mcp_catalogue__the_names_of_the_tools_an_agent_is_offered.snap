@@ -29,7 +29,6 @@ expression: names
   "page_doc",
   "tongue_doc",
   "folder",
-  "read_doc",
   "catch_up",
   "reschedule",
   "say_done",

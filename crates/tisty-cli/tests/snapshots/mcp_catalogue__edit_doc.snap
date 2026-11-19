@@ -34,11 +34,11 @@ expression: tool
         "type": "string"
       },
       "old": {
-        "description": "The passage as written now, from `read_doc`, matching one place only; take in a line around it if needed. Not with `section` or lines",
+        "description": "The passage as written now, from `read`, matching one place only; take in a line around it if needed. Not with `section` or lines",
         "type": "string"
       },
       "print": {
-        "description": "The `print` from `read_doc` or `brain`, for `section` or lines only. If anyone wrote since, nothing changes: ask `brain` again",
+        "description": "The `print` from `read` or `brain`, for `section` or lines only. If anyone wrote since, nothing changes: ask `brain` again",
         "type": "string"
       },
       "section": {

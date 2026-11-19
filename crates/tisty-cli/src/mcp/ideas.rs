@@ -696,7 +696,7 @@ fn idea_on(on: &[Idea], sheet: &str, named: &str, which: &str) -> Result<Idea, R
     match found.as_slice() {
         [one] => Ok((*one).clone()),
         [] => Err(Refused::Tool(format!(
-            "no idea on {named} is headed {heading:?}. `read_doc` it: an idea's heading is the \
+            "no idea on {named} is headed {heading:?}. `read` it: an idea's heading is the \
              words after `[!IDEA]` on its first line. Nothing was marked."
         ))),
         _ => Err(Refused::Tool(format!(

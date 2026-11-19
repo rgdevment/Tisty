@@ -111,7 +111,7 @@ fn a_shut_diary_answers_every_tool_as_a_document_that_is_not_there() {
     std::fs::write(&picture, "una foto").unwrap();
 
     for file in [&book, &page] {
-        answered_as_missing(&served, "read_doc", |doc| json!({ "doc": doc }), file);
+        answered_as_missing(&served, "read", |doc| json!({ "doc": doc }), file);
         answered_as_missing(&served, "brain", |doc| json!({ "doc": doc }), file);
         answered_as_missing(
             &served,
@@ -160,13 +160,13 @@ fn a_shut_diary_answers_every_tool_as_a_document_that_is_not_there() {
         );
         answered_as_missing(
             &served,
-            "read_doc",
+            "read",
             |doc| json!({ "doc": doc, "versions": true }),
             file,
         );
         answered_as_missing(
             &served,
-            "read_doc",
+            "read",
             |doc| json!({ "doc": doc, "version": "0a1b2c3d" }),
             file,
         );
@@ -302,7 +302,7 @@ fn an_opened_diary_is_seen_but_its_words_are_never_rewritten() {
 
     let listed = served.call("brain", json!({ "scope": "either" }));
     assert!(listed.to_string().contains(&book), "{listed}");
-    let read = served.call("read_doc", json!({ "doc": page }));
+    let read = served.call("read", json!({ "doc": page }));
     assert!(read.to_string().contains("Paseo con Rina"), "{read}");
 
     let edited = served.call(
@@ -378,12 +378,12 @@ fn what_an_open_diary_said_before_is_never_listed_nor_read() {
             json!({ "doc": file, "versions": true }),
             json!({ "doc": file, "version": "0a1b2c3d" }),
         ] {
-            let answer = served.call("read_doc", args);
+            let answer = served.call("read", args);
             assert!(refused(&answer), "{answer}");
             assert!(answer.to_string().contains("no version of it"), "{answer}");
         }
     }
-    assert!(!refused(&served.call("read_doc", json!({ "doc": page }))));
+    assert!(!refused(&served.call("read", json!({ "doc": page }))));
 }
 
 #[test]

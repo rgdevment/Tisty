@@ -22,7 +22,7 @@ expression: tool
         "type": "boolean"
       },
       "version": {
-        "description": "A `version` from `read_doc` with `versions`, to go back to over all written since",
+        "description": "A `version` from `read` with `versions`, to go back to over all written since",
         "type": "string"
       }
     },

@@ -66,7 +66,7 @@ pub(super) fn not_a_task_id(state: &State, said: &str) -> String {
     }
     match named_document(state, said) {
         Some(kept) => format!(
-            "{said:?} is {}, not a task: `read_doc` reads it (its card from `brain` first when it is \
+            "{said:?} is {}, not a task: `read` with `doc` reads it (its card from `brain` first when it is \
              long), and `edit_doc` and `append_doc` write in it.",
             a_document(kept)
         ),

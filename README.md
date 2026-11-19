@@ -451,7 +451,7 @@ document for you to delete, put away or keep. Each tool is described in
 - **A task's journal and files** — `note`, `reword_note`, `attach`
 - **Documents** — write one, add to it, change a passage or a table, read only
   the part it needs: `write_doc`, `append_doc`, `edit_doc`, `edit_table`,
-  `read_doc`, `sum_up`, `restore_doc`, `import_doc`, `export_doc`,
+  `read`, `sum_up`, `restore_doc`, `import_doc`, `export_doc`,
   `archive_doc`, `flag_doc`
 - **Folders, pages and languages** — `folder`, `file_doc`, `page_doc`,
   `tongue_doc`

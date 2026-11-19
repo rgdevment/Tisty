@@ -117,7 +117,16 @@ fn each_tool_brain_took_over_names_its_way_and_no_other_does() {
         assert!(said.ends_with("Nothing was done."), "{said}");
     }
     assert!(moved("brain").is_none());
-    assert!(moved("read_doc").is_none());
+    assert!(moved("read").is_none());
+}
+
+#[test]
+fn read_doc_names_read_as_its_way() {
+    let Some(Refused::Tool(said)) = moved("read_doc") else {
+        panic!("read_doc has no notice");
+    };
+    assert!(said.starts_with("`read_doc` moved into `read`: call `read` with the same `doc`"));
+    assert!(said.ends_with("Nothing was done."), "{said}");
 }
 
 #[test]

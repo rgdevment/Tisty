@@ -9,31 +9,75 @@ expression: tool
     "openWorldHint": false,
     "readOnlyHint": true
   },
-  "description": "Everything a task holds: steps, its `state`, its `document` page, the notes after that state (ids for `reword_note`), parts and files. Read it before noting or mending; `fields` narrows it. A closed task comes with `closed`: it is history.",
+  "description": "The exact text of one task or document. `task`: its steps, `state`, `document` page, the notes after that state (ids for `reword_note`), parts and files; read it before noting or mending; a closed one has `closed`: it is history. `doc`: its text and the `print` `edit_doc` takes; past about 12,000 characters it comes as its outline, so ask a `section`, lines or `chars`. Where a thing sits and what cites it is `brain`.",
   "inputSchema": {
     "additionalProperties": false,
     "properties": {
+      "as": {
+        "description": "The whole document in GitHub Markdown for another tool; tell the person what `left_out` lists. Not with a part",
+        "enum": [
+          "markdown"
+        ],
+        "type": "string"
+      },
+      "chars": {
+        "description": "About how many characters; `next` says where more starts",
+        "type": "integer"
+      },
+      "cursor": {
+        "description": "The `next` a previous answer gave, with `chars`",
+        "type": "integer"
+      },
+      "doc": {
+        "description": "The document's id from `brain`, not its title",
+        "type": "string"
+      },
       "fields": {
-        "description": "Only these keys; the id always comes",
+        "description": "With `task`: only these keys; the id always comes",
         "items": {
           "type": "string"
         },
         "type": "array"
       },
+      "from": {
+        "description": "First line, from 1",
+        "type": "integer"
+      },
+      "marks": {
+        "description": "With `doc`: only its highlighted and bold passages, each under its section",
+        "type": "boolean"
+      },
       "notes": {
-        "description": "How many latest notes, cut at 4000 chars; 0: all, whole",
+        "description": "With `task`: how many latest notes, cut at 4000 chars; 0: all, whole",
+        "type": "integer"
+      },
+      "print": {
+        "description": "The `print` a read gave: unchanged, only that is said; with `cursor`, the part's",
+        "type": "string"
+      },
+      "section": {
+        "description": "With `doc`: a heading and all under it, by its `at` from `brain`, from 0",
         "type": "integer"
       },
       "task": {
-        "description": "The task id",
+        "description": "A task's id",
         "type": "string"
+      },
+      "to": {
+        "description": "Last line; left out, to the end",
+        "type": "integer"
+      },
+      "version": {
+        "description": "A `version` from that list, read in place of the text",
+        "type": "string"
+      },
+      "versions": {
+        "description": "With `doc`: its past versions instead of its text, when, by whom, its size; a task id lists its page's",
+        "type": "boolean"
       }
     },
-    "required": [
-      "task"
-    ],
     "type": "object"
   },
   "name": "read",
-  "title": "Read a whole task"
+  "title": "Read a task or a document"
 }

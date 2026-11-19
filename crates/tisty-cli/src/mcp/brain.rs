@@ -10,7 +10,7 @@ use super::Refused;
 use super::asked::text;
 
 mod cards;
-mod project;
+pub(super) mod project;
 mod ranking;
 pub(super) mod search;
 mod zones;
@@ -68,21 +68,28 @@ pub(super) fn brain(paths: &Paths, args: &Value) -> Result<Value, Refused> {
 }
 
 pub(super) fn moved(name: &str) -> Option<Refused> {
-    let way = match name {
-        "find" => {
-            "`brain` with the same `query` and fields, or with `doc` and `query` for the lines of one document"
-        }
-        "docs" => {
-            "`brain` with `folder` for a folder's documents, or with nothing for the lists, folders and tags"
-        }
-        "outline_doc" => {
-            "`brain` with `doc`: its card holds the outline, the `print` and who points at it"
-        }
-        "lists" | "tags" => "`brain` with nothing, or `catch_up`",
+    let (into, way) = match name {
+        "find" => (
+            "brain",
+            "`brain` with the same `query` and fields, or with `doc` and `query` for the lines of one document",
+        ),
+        "docs" => (
+            "brain",
+            "`brain` with `folder` for a folder's documents, or with nothing for the lists, folders and tags",
+        ),
+        "outline_doc" => (
+            "brain",
+            "`brain` with `doc`: its card holds the outline, the `print` and who points at it",
+        ),
+        "lists" | "tags" => ("brain", "`brain` with nothing, or `catch_up`"),
+        "read_doc" => (
+            "read",
+            "`read` with the same `doc` and fields: a section, lines, `chars` or `as`",
+        ),
         _ => return None,
     };
     Some(Refused::Tool(format!(
-        "`{name}` moved into `brain`: call {way}. Nothing was done."
+        "`{name}` moved into `{into}`: call {way}. Nothing was done."
     )))
 }
 

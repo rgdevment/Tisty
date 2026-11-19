@@ -302,7 +302,7 @@ Sirve para un texto que borraste a propósito: pegaste en «Datos del seguro» u
 
 ### Con tu asistente
 
-También vuelves atrás sin abrir la lista: cuando algo escribe en el documento que tienes abierto, la barra te ofrece **Volver a lo que decía antes**. Un asistente lista, lee y recupera las mismas versiones con `read_doc` y `restore_doc`, y nunca puede vaciarlas: eso es tuyo. Puedes pedírselo en tus palabras: «vuelve “Paseos de Rina” a como estaba antes de tu cambio de ayer». Cómo lo hace, con ejemplos, está en [Herramientas MCP](Herramientas-MCP#versiones-anteriores-de-un-documento).
+También vuelves atrás sin abrir la lista: cuando algo escribe en el documento que tienes abierto, la barra te ofrece **Volver a lo que decía antes**. Un asistente lista, lee y recupera las mismas versiones con `read` y `restore_doc`, y nunca puede vaciarlas: eso es tuyo. Puedes pedírselo en tus palabras: «vuelve “Paseos de Rina” a como estaba antes de tu cambio de ayer». Cómo lo hace, con ejemplos, está en [Herramientas MCP](Herramientas-MCP#versiones-anteriores-de-un-documento).
 
 ## Sacar documentos
 

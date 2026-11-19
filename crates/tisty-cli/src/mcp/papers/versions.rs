@@ -74,7 +74,7 @@ pub(super) fn not_the_diary(paths: &Paths, state: &State, kept: &Kept) -> Result
         false => Ok(()),
         true => Err(Refused::Tool(
             "the diary is the person's own, and so is what it said before: an assistant reads \
-             what it says now and no version of it. `read_doc` without `versions` or `version` \
+             what it says now and no version of it. `read` without `versions` or `version` \
              reads it."
                 .into(),
         )),
@@ -319,7 +319,7 @@ pub(super) fn listed(
              never leave the machine that kept them.{older}"
         ),
         (_, false, _) => format!(
-            "{named} keeps {here} past version(s) on this machine, newest first{}. `read_doc` \
+            "{named} keeps {here} past version(s) on this machine, newest first{}. `read` \
              with `version` reads one, and `restore_doc` with `version` goes back to it. \
              Versions never leave the machine that kept them, and stay {days} days.{older}",
             match away {
@@ -409,18 +409,18 @@ pub(super) fn kept_here(
         (Some(_), Some(_)) => {
             return Err(Refused::Tool(format!(
                 "{asked:?} begins more than one version of {named}. Send the `version` whole, \
-                 as `read_doc` with `versions` gives it."
+                 as `read` with `versions` gives it."
             )));
         }
         (None, _) if says.is_some_and(|now| now.starts_with(&wanted)) => {
             return Err(Refused::Tool(format!(
                 "{named} already says what version {asked:?} says, so it is no past version: \
-                 `read_doc` without `version` reads it, and there is nothing to go back to."
+                 `read` without `version` reads it, and there is nothing to go back to."
             )));
         }
         (None, _) => {
             return Err(Refused::Tool(format!(
-                "{named} keeps no version {asked:?}. `read_doc` with `versions` lists the ones \
+                "{named} keeps no version {asked:?}. `read` with `versions` lists the ones \
                  it keeps; one past its days, or emptied by the person, is gone."
             )));
         }
@@ -431,7 +431,7 @@ pub(super) fn kept_here(
             "that version of {named} was written over on {machine}, not on this machine, and \
              versions never leave the machine that kept them: its text is not here, so from \
              here it is neither read nor gone back to. Nothing was changed. Tell the person \
-             which machine may keep it; `read_doc` with `versions` shows the ones this machine \
+             which machine may keep it; `read` with `versions` shows the ones this machine \
              keeps, without `elsewhere`."
         )));
     }
