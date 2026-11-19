@@ -32,7 +32,7 @@ No te sirve para los archivos de cada repositorio: AGENTS maneja los archivos de
    - ⧉ **Antes de cambiar un archivo de un agente, Tisty guarda un respaldo en este equipo.**
 4. Debajo, **Encontré esto. Elige qué traer:**, una fila por asistente, como **Claude · 7 archivos**. Ábrela con un clic para ver cada archivo con su casilla y qué es: **Regla**, **Skill** o **Memoria del agente**. Pasa el puntero sobre un archivo para ver su ruta completa.
 5. Marca lo que quieres traer. Las reglas y las skills vienen marcadas; **la memoria del agente viene sin marcar**, porque una vez en Tisty viaja con tu sincronización, y la marcas tú si la quieres.
-6. Pulsa **Traer y sincronizar**. Si no marcaste nada, el botón dice **Autorizar y sincronizar**: autoriza este equipo sin traer archivos.
+6. Pulsa **Traer y sincronizar**. Si no marcaste nada, el botón dice **Autorizar y sincronizar**: autoriza este equipo sin traer archivos, y si AGENTS todavía no existe, la crea vacía, con su **Global**.
 7. Tisty abre solo los archivos que marcaste, los guarda como documentos y te dice cuántos entraron: «Entraron 7 documentos a AGENTS, y desde ahora Tisty los mantiene al día.». Lo que no pudo entrar aparece bajo **Esto no entró:**, con el motivo. **Listo** cierra el aviso.
 
 **Ahora no** cierra el aviso sin leer nada. Puedes volver cuando quieras desde la misma tarjeta de Configuración.
@@ -379,7 +379,7 @@ Las versiones anteriores del **documento**, en cambio, son las de cualquier docu
 
 **Apagar toda la carpeta.** En la misma tarjeta, **Sincronizar la carpeta AGENTS**. Apagada, la barra dice **apagada** junto a AGENTS, y la ficha de cada documento dice «La sincronización está apagada para toda la carpeta AGENTS.».
 
-![La tarjeta AGENTS de Configuración › Asistentes en español: la línea Las reglas, skills y memoria de tus agentes como documentos de Tisty, el interruptor Sincronizar la carpeta AGENTS encendido y debajo Sincronizar Claude, Sincronizar Codex y Sincronizar Gemini, con Codex apagado y la nota Apagado: sus archivos quedan como están y no se borra nada en Tisty; debajo, el botón Traer otro archivo](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/agents/es-06-configuracion.png)
+![La tarjeta AGENTS de Configuración › Asistentes en español: la línea Las reglas, skills y memoria de tus agentes como documentos de Tisty, el botón Traer otro archivo, y debajo el interruptor Sincronizar la carpeta AGENTS encendido y Sincronizar Claude, Sincronizar Codex y Sincronizar Gemini, con Codex apagado y la nota Apagado: sus archivos quedan como están y no se borra nada en Tisty](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/agents/es-06-configuracion.png)
 
 La pausa y el permiso son de este equipo.
 
@@ -419,6 +419,8 @@ Tisty no pregunta, y deja el archivo como está:
 - por un archivo de un asistente que pausaste o apagaste;
 - por un archivo cuyo documento [espera tu aprobación](#por-aprobar);
 - por un archivo que ya no existe.
+
+En tus otros equipos pasa lo mismo: cuando la regla borrada les llega con la sincronización, cada uno te pregunta por su propio archivo la próxima vez que Tisty lo mira, y el respaldo queda en ese equipo.
 
 ### Vaciar AGENTS
 

@@ -32,7 +32,7 @@ It is not for each repository's files: AGENTS handles your user's files, the one
    - ⧉ **Before changing an agent's file, Tisty keeps a backup on this computer.**
 4. Below, **This is what I found. Choose what to bring:**, one row per assistant, such as **Claude · 7 files**. Open it with a click to see each file with its box and what it is: **Rule**, **Skill** or **Agent memory**. Hover over a file to see its full path.
 5. Tick what you want to bring. Rules and skills come ticked; **agent memory comes unticked**, because once in Tisty it travels with your sync, so you tick it yourself if you want it.
-6. Press **Bring and sync**. If you ticked nothing, the button reads **Allow and sync**: it allows this computer without bringing any file.
+6. Press **Bring and sync**. If you ticked nothing, the button reads **Allow and sync**: it allows this computer without bringing any file, and if AGENTS does not exist yet, it makes it empty, with its **Global**.
 7. Tisty opens only the files you ticked, keeps them as documents and tells you how many came in: «7 documents came into AGENTS, and Tisty keeps them in sync from now on.». Whatever could not come in shows under **These did not come in:**, with the reason. **Done** closes the box.
 
 **Not now** closes the box without reading anything. You can come back whenever you like from the same card in Settings.
@@ -379,7 +379,7 @@ The **document's** earlier versions, on the other hand, are those of any documen
 
 **Turning the whole folder off.** On the same card, **Sync the AGENTS folder**. Off, the sidebar says **off** beside AGENTS, and each document's card says «Sync is off for the whole AGENTS folder.».
 
-![The AGENTS card in Settings › Assistants, in English: the line Your agents' rules, skills and memory as Tisty documents, the switch Sync the AGENTS folder on and below it Sync Claude, Sync Codex and Sync Gemini, with Codex off and the note Off: its files stay as they are, and nothing in Tisty is deleted; below, the button Bring another file](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/agents/en-06-settings.png)
+![The AGENTS card in Settings › Assistants, in English: the line Your agents' rules, skills and memory as Tisty documents, the button Bring another file, and below it the switch Sync the AGENTS folder on and Sync Claude, Sync Codex and Sync Gemini, with Codex off and the note Off: its files stay as they are, and nothing in Tisty is deleted](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/agents/en-06-settings.png)
 
 A pause and the permission belong to this computer.
 
@@ -419,6 +419,8 @@ Tisty does not ask, and leaves the file as it is:
 - about a file of an assistant you paused or turned off;
 - about a file whose document [waits for your approval](#to-approve);
 - about a file that no longer exists.
+
+Your other computers do the same: when the deleted rule reaches them through sync, each one asks about its own file the next time Tisty looks, and the backup stays on that computer.
 
 ### Emptying AGENTS
 
