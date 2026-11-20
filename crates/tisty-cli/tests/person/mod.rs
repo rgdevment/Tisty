@@ -210,6 +210,25 @@ impl Person {
         self.wrote(ops);
     }
 
+    // As a build before the diary was closed to `sum_up` let an agent do.
+    pub fn finds_an_old_note_on(&self, file: &str, summary: &str) {
+        let id = self
+            .state()
+            .docs
+            .values()
+            .find(|one| one.file == file)
+            .unwrap()
+            .id;
+        self.wrote(vec![Op::DocGist {
+            id,
+            d: tisty_core::event::Gist {
+                print: "print".into(),
+                summary: summary.into(),
+                notes: String::new(),
+            },
+        }]);
+    }
+
     pub fn drops(&self, id: TaskId) {
         self.wrote(vec![Op::TaskDrop { id }]);
     }

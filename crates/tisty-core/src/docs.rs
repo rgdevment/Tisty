@@ -424,7 +424,18 @@ pub fn laid_out_as(
     also: Option<&Path>,
 ) -> Result<Taken> {
     let body = read(&data.join("docs"), id)?;
-    laid_out_from(data, id, &body, pages, into, called, also)
+    let out = TakenOut {
+        called,
+        also,
+        shown: &|_| None,
+    };
+    laid_out_from(data, id, &body, pages, into, &out)
+}
+
+pub struct TakenOut<'a> {
+    pub called: Option<&'a str>,
+    pub also: Option<&'a Path>,
+    pub shown: &'a dyn Fn(&str) -> Option<String>,
 }
 
 /// Taken out from words given here rather than read from the store, as a task's dressed page is.
@@ -434,13 +445,13 @@ pub fn laid_out_from(
     body: &str,
     pages: &[String],
     into: &Path,
-    called: Option<&str>,
-    also: Option<&Path>,
+    out: &TakenOut,
 ) -> Result<Taken> {
+    let (called, also) = (out.called, out.also);
     if into.starts_with(data) || data.starts_with(into) {
         return Err(Error::OutsideTheStore(into.display().to_string()));
     }
-    let body = body.to_string();
+    let body = (out.shown)(body).unwrap_or_else(|| body.to_string());
 
     let named = match called {
         Some(one) => one.to_string(),
@@ -464,6 +475,7 @@ pub fn laid_out_from(
             missed += 1;
             continue;
         };
+        let body = (out.shown)(&body).unwrap_or(body);
         let title = titled(&body);
         let title = spelled(if title.is_empty() { page } else { &title });
         let at = format!("{:0wide$} {title}.{EXTENSION}", n + 1);

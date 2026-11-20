@@ -216,8 +216,18 @@ pub(super) fn newest_line(task: &Task, terms: &[String]) -> Option<(&'static str
 }
 
 // A log grows at its end, so the last line saying the most is the newest word on it.
-pub(super) fn newest_paper_line(paths: &Paths, file: &str, terms: &[String]) -> Option<String> {
+pub(super) fn newest_paper_line(
+    paths: &Paths,
+    state: &State,
+    file: &str,
+    terms: &[String],
+    flat: Option<&str>,
+) -> Option<String> {
     let body = tisty_core::docs::read(&paths.docs(), file).ok()?;
+    let (body, names_one_unseen) = match super::super::masking::masked(state, &body) {
+        Some(masked) => (masked, true),
+        None => (body, false),
+    };
     let mut best: Option<(usize, bool, &str)> = None;
     for line in prose(&body) {
         let saying = counted(line, terms);
@@ -230,7 +240,9 @@ pub(super) fn newest_paper_line(paths: &Paths, file: &str, terms: &[String]) -> 
             best = Some((saying, standing, line));
         }
     }
+    // The core's line is already flat, so a mask could no longer find what to cover in it.
     best.map(|(_, _, line)| tisty_core::docs::bare(line))
+        .or_else(|| flat.filter(|_| !names_one_unseen).map(str::to_string))
 }
 
 fn prose(body: &str) -> Vec<&str> {

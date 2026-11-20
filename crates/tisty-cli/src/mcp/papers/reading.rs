@@ -71,6 +71,7 @@ pub(in crate::mcp) fn export_doc(paths: &Paths, args: &Value) -> Result<Value, R
         let owner = tisty_core::task_docs::behind(&state).get(&which).copied()?;
         state.tasks.get(&owner)
     });
+    let masked = |text: &str| super::super::masking::masked(&state, text);
     let taken = match task {
         Some(task) => {
             let list = task
@@ -84,8 +85,11 @@ pub(in crate::mcp) fn export_doc(paths: &Paths, args: &Value) -> Result<Value, R
                 &dressed,
                 &pages,
                 &into,
-                Some(&tisty_core::docs::spelled(&task.title)),
-                beside.as_deref(),
+                &tisty_core::docs::TakenOut {
+                    called: Some(&tisty_core::docs::spelled(&task.title)),
+                    also: beside.as_deref(),
+                    shown: &masked,
+                },
             )
         }
         None => tisty_core::docs::laid_out_from(
@@ -94,8 +98,11 @@ pub(in crate::mcp) fn export_doc(paths: &Paths, args: &Value) -> Result<Value, R
             &state.keyed(&which, &body),
             &pages,
             &into,
-            None,
-            beside.as_deref(),
+            &tisty_core::docs::TakenOut {
+                called: None,
+                also: beside.as_deref(),
+                shown: &masked,
+            },
         ),
     }
     .map_err(hitch)?;
@@ -215,7 +222,7 @@ pub(in crate::mcp) fn outlined(
                 if !card.keywords.is_empty() {
                     row.insert("about".into(), json!(card.keywords));
                 }
-                if let Some(said) = gist_of(state, held.as_ref(), one, &card.print) {
+                if let Some(said) = gist_of(paths, state, held.as_ref(), one, &card.print) {
                     row.insert("gist".into(), shortened(said));
                 }
             }
@@ -291,7 +298,7 @@ pub(in crate::mcp) fn outlined(
     if card.links > 0 {
         kept_of.insert("links".into(), json!(card.links));
     }
-    if let Some(said) = gist_of(state, held.as_ref(), kept, &card.print) {
+    if let Some(said) = gist_of(paths, state, held.as_ref(), kept, &card.print) {
         kept_of.insert("gist".into(), json!(said));
     }
     if let Some(up) = kept.page_of.and_then(|up| named_doc(state, up)) {

@@ -516,3 +516,30 @@ fn an_agent_never_writes_today_into_a_locked_book_by_naming_another_year() {
     assert!(refused(&added), "{added}");
     assert!(!served.body(&page).contains("Jaime called."));
 }
+
+#[test]
+fn a_note_an_agent_left_on_the_diary_before_reaches_no_reader() {
+    let served = Served::new();
+    let (book, page) = served.diary();
+    served
+        .person()
+        .finds_an_old_note_on(&book, "Resumen viejo del diario");
+    served
+        .person()
+        .finds_an_old_note_on(&page, "Resumen viejo del mes");
+    served.person().opens_the_diary_to_agents(true);
+
+    for (name, args) in [
+        ("read", json!({ "doc": book })),
+        ("read", json!({ "doc": page })),
+        ("brain", json!({ "doc": book })),
+        ("brain", json!({ "scope": "either" })),
+    ] {
+        let said = served.call(name, args.clone());
+        assert!(!refused(&said), "{name} {args}: {said}");
+        assert!(
+            !said.to_string().contains("Resumen viejo"),
+            "{name} {args}: {said}"
+        );
+    }
+}

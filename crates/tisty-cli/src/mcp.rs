@@ -13,6 +13,7 @@ mod helping;
 mod ideas;
 mod jsonrpc;
 mod looking;
+mod masking;
 mod mending;
 mod mistaken;
 mod moving;
@@ -166,7 +167,10 @@ fn answer(
         "prompts/get" => aside(id, prompts::got(paths, &params)),
         "resources/list" => aside(id, resources::listed(paths, &params)),
         "resources/templates/list" => reply(id, resources::templates()),
-        "resources/read" => aside(id, resources::read(paths, &params)),
+        "resources/read" => aside(
+            id,
+            resources::read(paths, &params).map(|said| masking::answer_masked(paths, said)),
+        ),
         "tools/list" => reply(
             id,
             json!({
@@ -277,6 +281,26 @@ fn vetted(name: &str, params: &Value) -> Result<(Value, Option<Takes>), Refused>
 }
 
 fn called(paths: &Paths, name: &str, args: Value, taken: Option<&Takes>) -> Result<Value, Refused> {
+    let args = masking::args_unmasked(paths, name, args);
+    let said = written_or_read(paths, name, args, taken);
+    if !masking::reads_the_persons_words(name) {
+        return said;
+    }
+    match said {
+        Ok(said) => Ok(masking::answer_masked(paths, said)),
+        Err(Refused::Tool(why)) => Err(Refused::Tool(masking::text_masked(paths, why))),
+        Err(Refused::Unable(why)) => Err(Refused::Unable(masking::text_masked(paths, why))),
+        Err(Refused::Missing(why)) => Err(Refused::Missing(masking::text_masked(paths, why))),
+        Err(other) => Err(other),
+    }
+}
+
+fn written_or_read(
+    paths: &Paths,
+    name: &str,
+    args: Value,
+    taken: Option<&Takes>,
+) -> Result<Value, Refused> {
     if let Some(proposed) = agents_kept::proposed_or_left(paths, name, &args)? {
         return Ok(proposed);
     }
