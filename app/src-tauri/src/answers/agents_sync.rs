@@ -269,11 +269,12 @@ pub fn gathered(session: &Session, here: &str) -> Gathered {
 
 // Only a document with its card shows a proposal, so one without it has nothing to wait on.
 fn proposed_in(state: &tisty_core::State, gate: &Gate) -> usize {
+    let held = agents::holding(state);
     state
         .proposals
         .keys()
         .filter_map(|id| state.docs.get(id))
-        .filter(|kept| agents::holds(state, kept) && gate.carded(&kept.file))
+        .filter(|kept| held(kept) && gate.carded(&kept.file))
         .count()
 }
 
@@ -298,12 +299,13 @@ fn twins_named(session: &mut Session, here: &str) -> Answer<()> {
 // Only the body the log names, read without its card, lets a proposal go: one behind the log may still get it back.
 fn uncarded_let_go(session: &mut Session) -> Answer<()> {
     let (state, docs) = (&session.state, session.paths.docs());
+    let held = agents::holding(state);
     let ops: Vec<Op> = state
         .proposals
         .iter()
         .filter_map(|(id, waiting)| {
             let kept = state.docs.get(id)?;
-            if !agents::holds(state, kept) || state.held_away(kept) {
+            if !held(kept) || state.held_away(kept) {
                 return None;
             }
             let body = tisty_core::docs::read(&docs, &kept.file).ok()?;
@@ -319,6 +321,7 @@ fn uncarded_let_go(session: &mut Session) -> Answer<()> {
             })
         })
         .collect();
+    drop(held);
     if ops.is_empty() {
         return Ok(());
     }
