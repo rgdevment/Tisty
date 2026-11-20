@@ -83,6 +83,15 @@ describe("how Brainsty draws each node and line", () => {
     );
   });
 
+  it("draws what Tisty keeps for the agents small and quiet, whatever its folder colour", () => {
+    const theirs = nodeLook(one("doc", "open", "a1"), "blue", palette, 0, true);
+    const yours = nodeLook(one("doc", "open", "f1"), "blue", palette);
+
+    expect(theirs.size).toBeCloseTo(yours.size * 0.6);
+    expect(theirs.color).not.toBe(yours.color);
+    expect(theirs.color).toMatch(/, 0\.5\)$/);
+  });
+
   it("gives each kind of line its own look, and only a mention a gap", () => {
     const cite = lineLook("cite", palette);
     const mention = lineLook("mention", palette);

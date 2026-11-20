@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef } from "react";
-import { folderShown, isAgentsFolder } from "../agentsSync";
+import { agentsTree, folderShown, isAgentsFolder } from "../agentsSync";
 import { taskStepMarked } from "../citing";
 import { discard, patch, sow } from "../core";
 import { seeing, useDesk } from "../desk";
@@ -75,6 +75,7 @@ export default function Stage() {
     underway,
   } = desk;
   const tagNames = useMemo(() => data.tags.map((one) => one.tag), [data.tags]);
+  const agentsFolders = useMemo(() => agentsTree(papers.folders), [papers.folders]);
   const groups = useMemo(
     () => [
       ...papers.folders.map((one) => ({
@@ -82,10 +83,11 @@ export default function Stage() {
         name: folderShown(one),
         color: isAgentsFolder(one) ? AGENTS_HUE : one.color,
         kind: "folder" as const,
+        agents: agentsFolders.has(one.id),
       })),
       ...(data.every ?? data.lists).map((one) => ({ ...one, kind: "list" as const })),
     ],
-    [papers.folders, data.every, data.lists],
+    [papers.folders, data.every, data.lists, agentsFolders],
   );
   const refreshed = () => {
     load();

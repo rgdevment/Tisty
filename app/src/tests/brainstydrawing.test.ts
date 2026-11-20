@@ -260,6 +260,31 @@ describe("the drawing of the network", () => {
     expect((drawn.shared[1] as { zoom: number }).zoom).toBeCloseTo(0.5);
   });
 
+  it("draws the agents' documents small and quiets the lines that reach them, also on a new theme", () => {
+    drawNetwork(document.body, network, spots, () => undefined, light, "Inter");
+    const plain = drawn.graph as Graph;
+    const sizeBefore = plain.getNodeAttribute("0", "size") as number;
+    const alphaBefore = plain.getEdgeAttribute(plain.edges()[0], "alpha") as number;
+
+    const drawing = drawNetwork(
+      document.body,
+      network,
+      spots,
+      () => undefined,
+      light,
+      "Inter",
+      (group) => group === "f1",
+    );
+    const graph = drawn.graph as Graph;
+    const first = graph.edges()[0];
+    drawing.retheme(dark);
+
+    expect(graph.getNodeAttribute("0", "size")).toBeCloseTo(sizeBefore * 0.6);
+    expect(graph.getEdgeAttribute(first, "quiet")).toBe(true);
+    expect(graph.getEdgeAttribute(first, "alpha")).toBeCloseTo(alphaBefore * 0.4);
+    expect(graph.getEdgeAttribute(graph.edges()[2], "quiet")).toBe(false);
+  });
+
   it("keeps node sizes up to a few thousand nodes and shrinks them in a crowded network, also on a new theme", () => {
     const crowd = (count: number): Network => ({
       nodes: Array.from({ length: count }, (_, n) => ({
