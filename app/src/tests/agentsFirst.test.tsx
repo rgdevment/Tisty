@@ -232,7 +232,11 @@ describe("the first time AGENTS opens", () => {
       unmount();
     };
     await said(1, true, "Entró 1 documento a Agentes, y desde ahora Tisty lo mantiene al día.");
-    await said(0, true, "No entró nada nuevo. Desde ahora este equipo mantiene Agentes al día.");
+    await said(
+      0,
+      true,
+      "No entró nada nuevo. Agentes ya sincroniza en este equipo: lo que escribas ahí llega a sus asistentes.",
+    );
     await said(
       1,
       false,
@@ -763,6 +767,20 @@ describe("what Settings offers once this computer said yes", () => {
     window.removeEventListener(AGENTS_MORE, asked);
   });
 
+  it("says plainly that an assistant synced here has no files yet", async () => {
+    const gemini = { id: "gemini", name: "Gemini", on: true, files: [] };
+    ipc.answer = (cmd) =>
+      cmd === "agents_look"
+        ? Promise.resolve(said({ assistants: [...look.assistants, gemini] }))
+        : Promise.resolve(null);
+    render(<AgentsSettings busy={null} />);
+    expect(
+      await screen.findByText(
+        "Gemini: todavía sin reglas, skills ni memoria. Recibe lo que escribas en Global o en su carpeta.",
+      ),
+    ).toBeTruthy();
+  });
+
   it("counts the files no rule writes any more and opens them for review", async () => {
     const loose = { at: "/h/a.md", assistant: "claude", changed: false };
     ipc.answer = (cmd) =>
@@ -825,5 +843,76 @@ describe("the switches in Settings", () => {
     expect(sent("agents_turn")[0].args).toEqual({ assistant: "claude", on: false });
     await waitFor(() => expect(heard).toHaveBeenCalled());
     window.removeEventListener(AGENTS_CHANGED, heard);
+  });
+});
+
+describe("looking again, and an assistant with no files yet", () => {
+  const gemini = { id: "gemini", name: "Gemini", on: true, files: [] };
+  const consented = (more: Partial<AgentsLook> = {}): AgentsLook => ({
+    ...look,
+    folder: "f",
+    consented: true,
+    asks: false,
+    ...more,
+  });
+
+  it("says plainly that an assistant found here has nothing yet, the first time too", async () => {
+    ipc.answer = (cmd) =>
+      cmd === "agents_look"
+        ? Promise.resolve({ ...look, assistants: [...look.assistants, gemini] })
+        : Promise.resolve(brought());
+    render(<AgentsFirst onClose={() => {}} onChanged={() => {}} />);
+    expect(
+      await screen.findByText(
+        "Gemini: todavía sin reglas, skills ni memoria. Recibe lo que escribas en Global o en su carpeta.",
+      ),
+    ).toBeTruthy();
+  });
+
+  it("looks for real again and ticks only what is new", async () => {
+    ipc.answer = (cmd) =>
+      cmd === "agents_rescan" ? Promise.resolve(consented()) : Promise.resolve(brought());
+    render(<AgentsFirst more rescan onClose={() => {}} onChanged={() => {}} />);
+    await screen.findByText("Traer otro archivo");
+    expect(sent("agents_rescan")).toHaveLength(1);
+    expect(sent("agents_look")).toHaveLength(0);
+    await userEvent.click(screen.getByRole("button", { name: "Traer" }));
+    await waitFor(() => expect(sent("agents_bring")).toHaveLength(1));
+    expect(sent("agents_bring")[0].args.chosen).toEqual([
+      "/h/.claude/CLAUDE.md",
+      "/h/.claude/rules/tone.md",
+      "/h/.codex/AGENTS.md",
+    ]);
+  });
+
+  it("with nothing new, says what it found in each assistant", async () => {
+    const held = (files: FileSeen[]) => files.map((one) => ({ ...one, held: true }));
+    ipc.answer = () =>
+      Promise.resolve(
+        consented({
+          assistants: [{ ...look.assistants[1], files: held(look.assistants[1].files) }, gemini],
+        }),
+      );
+    render(<AgentsFirst more rescan onClose={() => {}} onChanged={() => {}} />);
+    expect(
+      await screen.findByText("No encontré nada nuevo. Esto es lo que hay en cada asistente:"),
+    ).toBeTruthy();
+    expect(screen.getByText("Codex · ya está en Agentes")).toBeTruthy();
+    expect(
+      screen.getByText(
+        "Gemini: todavía sin reglas, skills ni memoria. Recibe lo que escribas en Global o en su carpeta.",
+      ),
+    ).toBeTruthy();
+  });
+
+  it("says nothing came in without claiming an assistant was brought or kept up to date", async () => {
+    ipc.answer = (cmd) =>
+      cmd === "agents_look"
+        ? Promise.resolve({ ...look, assistants: [gemini] })
+        : Promise.resolve(brought({ made: 0 }));
+    render(<AgentsFirst onClose={() => {}} onChanged={() => {}} />);
+    await userEvent.click(await screen.findByRole("button", { name: "Traer y sincronizar" }));
+    const said = await screen.findByText(/No entró nada nuevo/);
+    expect(said.textContent).not.toMatch(/al día/);
   });
 });

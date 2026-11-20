@@ -10,6 +10,7 @@ mod proposal;
 mod rooted;
 mod shown;
 mod standing;
+mod subs;
 
 pub use agreeing::{Agreeing, Approved, Hand, agreeing};
 pub use card::{Card, Endings, GLOBAL, KEY, Kind, brought, doc_of, rendered};
@@ -28,6 +29,7 @@ pub use standing::{
     Standing, Target, adopted, bring, lacks, lead_in, lead_out, overwrite, removed, restore, round,
     standing, wanted,
 };
+pub use subs::{sub_folders, sub_id};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Refused {

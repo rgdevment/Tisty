@@ -96,6 +96,50 @@ pub(crate) fn joined_here(session: &mut Session) -> Answer<()> {
         .map_err(|e| Refusal::about("cannotWrite", e.to_string()))
 }
 
+// Each assistant found here has its folder in AGENTS, empty or not; only a computer that said yes adds them.
+pub(crate) fn subfolders_made(session: &mut Session, homes: &Homes, ledger: &Ledger) -> Answer<()> {
+    let Some(root) = root_of(&session.state).filter(|_| ledger.consented()) else {
+        return Ok(());
+    };
+    let names: Vec<&str> = [GLOBAL_FOLDER]
+        .into_iter()
+        .chain(homes.detected().into_iter().map(|one| one.name))
+        .collect();
+    let ops = agents::sub_folders(&session.state, root, &names);
+    if ops.is_empty() {
+        return Ok(());
+    }
+    session
+        .commit_all(ops)
+        .map_err(|e| Refusal::about("cannotWrite", e.to_string()))
+}
+
+/// What a new document made in Global or in an assistant's folder of AGENTS starts with, so its words reach that assistant.
+pub(crate) fn seeded(session: &Session, folder: Option<FolderId>) -> String {
+    let Some(root) = root_of(&session.state) else {
+        return String::new();
+    };
+    let at = folder.and_then(|id| session.state.folders.get(&id));
+    let level = match at {
+        Some(one) if one.parent == Some(root) && one.name == GLOBAL_FOLDER => GLOBAL,
+        Some(one) if one.parent == Some(root) => {
+            match ASSISTANTS.iter().find(|known| known.name == one.name) {
+                Some(known) => known.id,
+                None => return String::new(),
+            }
+        }
+        _ => return String::new(),
+    };
+    let taken: BTreeSet<String> = bodies(session)
+        .iter()
+        .filter_map(|(_, body)| Card::of(body).map(|card| card.address()))
+        .collect();
+    let address = |name: &str| format!("{level}/{}/{name}", Kind::Rule.word());
+    places::fresh_rule(level, |name| taken.contains(&address(name)))
+        .and_then(|name| agents::doc_of(level, Kind::Rule, &name, b"").ok())
+        .unwrap_or_default()
+}
+
 /// A document that waits here keeps waiting once its words are approved here: only «apply here» takes it.
 pub(crate) fn waits_marked(session: &Session, here: &str, file: &str) {
     let Some(kept) = session.state.docs.values().find(|one| one.file == file) else {
@@ -770,7 +814,7 @@ pub fn filed(session: &mut Session, bodies: &[(Found, String)]) -> Answer<Vec<(S
         order
     };
     let folder = |ops: &mut Vec<Op>, name: &str, parent: Option<FolderId>, mark: bool| {
-        let id = ulid::Ulid::generate();
+        let id = parent.map_or_else(ulid::Ulid::generate, |root| agents::sub_id(root, name));
         ops.push(Op::FolderAdd {
             id,
             d: tisty_core::event::FolderAdd {
@@ -882,6 +926,7 @@ pub fn brought_home(
     refused: Vec<Turned>,
 ) -> Answer<Brought> {
     let made = filed(session, read)?;
+    subfolders_made(session, homes, &ledger)?;
     let round = round_after(session, homes, &mut ledger, &made);
     Ok(Brought {
         made: made.len(),
@@ -1129,6 +1174,23 @@ pub fn agents_look(session: tauri::State<'_, Mutex<Session>>) -> Answer<Look> {
     Ok(looked(&seen, &homes, &found))
 }
 
+/// «Look again»: the assistants and their files are found anew, and each one found gets its folder.
+#[tauri::command(async)]
+pub fn agents_rescan(session: tauri::State<'_, Mutex<Session>>) -> Answer<Look> {
+    let homes = homes()?;
+    let mut session = held(&session);
+    session.reload()?;
+    rescanned(&mut session, &homes, &here())
+}
+
+pub(crate) fn rescanned(session: &mut Session, homes: &Homes, here: &str) -> Answer<Look> {
+    joined_here(session)?;
+    let ledger = Ledger::open(session.paths.data(), here);
+    subfolders_made(session, homes, &ledger)?;
+    let found = found_here(homes);
+    Ok(looked(&gathered(session, here), homes, &found))
+}
+
 #[tauri::command(async)]
 pub fn agents_bring(
     session: tauri::State<'_, Mutex<Session>>,
@@ -1180,6 +1242,7 @@ pub(crate) fn round_here(session: &mut Session, homes: &Homes, here: &str) -> An
     untagged(session);
     uncarded_let_go(session)?;
     let mut ledger = Ledger::open(session.paths.data(), here);
+    subfolders_made(session, homes, &ledger)?;
     Ok(round_now(session, homes, &mut ledger))
 }
 

@@ -130,7 +130,11 @@ fn bringing_files_only_the_chosen_ones_and_the_next_round_writes_nothing() {
     let brought = room.bring(&[".claude/CLAUDE.md", ".codex/AGENTS.md"]);
     assert_eq!(brought.made, 2);
     assert!(brought.refused.is_empty(), "{:?}", brought.refused);
-    assert_eq!(room.folders(), ["AGENTS", "Claude", "Codex", "Global"]);
+    assert_eq!(
+        room.folders(),
+        ["AGENTS", "Claude", "Codex", "Copilot", "Global"],
+        "every assistant found has its folder, brought from or not"
+    );
     let root = root_of(&room.session.state).unwrap();
     assert_eq!(
         room.session.state.folders[&root].color.as_deref(),
@@ -171,12 +175,13 @@ fn saying_yes_with_nothing_found_still_makes_agents_and_asks_no_more() {
     let mut room = room();
     let brought = room.bring(&[]);
     assert_eq!(brought.made, 0);
-    assert_eq!(room.folders(), ["AGENTS", "Global"]);
+    let every = ["AGENTS", "Claude", "Codex", "Copilot", "Global"];
+    assert_eq!(room.folders(), every);
     let look = room.look();
     assert!(look.consented);
     assert!(!look.asks, "{look:?}");
     assert_eq!(room.bring(&[]).made, 0);
-    assert_eq!(room.folders(), ["AGENTS", "Global"], "made once");
+    assert_eq!(room.folders(), every, "made once");
 }
 
 #[test]
@@ -2284,4 +2289,113 @@ fn words_an_agent_on_another_computer_wrote_are_named_as_an_agents_before_approv
     let shown = serde_json::to_value(card.unwrap()).unwrap();
     assert_eq!(shown["here"], "notAgreed");
     assert_eq!(shown["agreeing"]["hand"], "agent");
+}
+
+fn sub_of(room: &Room, name: &str) -> tisty_core::model::FolderId {
+    let root = root_of(&room.session.state).unwrap();
+    room.session
+        .state
+        .folders
+        .values()
+        .find(|one| one.parent == Some(root) && one.name == name)
+        .unwrap_or_else(|| panic!("no folder {name}"))
+        .id
+}
+
+#[test]
+fn every_assistant_found_has_its_folder_and_a_rule_written_there_reaches_it() {
+    let mut room = room();
+    std::fs::create_dir_all(room.home.join(".gemini/history")).unwrap();
+    room.bring(&[".claude/CLAUDE.md"]);
+    let names = room.folders();
+    for one in ["Global", "Claude", "Codex", "Copilot", "Gemini"] {
+        assert!(names.contains(&one.to_string()), "{one}: {names:?}");
+    }
+    assert!(!Path::new(&room.at(".gemini/tisty-rules.md")).exists());
+    assert!(!Path::new(&room.at(".gemini/GEMINI.md")).exists());
+
+    let gemini = sub_of(&room, "Gemini");
+    let seed = seeded(&room.session, Some(gemini));
+    assert_eq!(
+        Card::of(&seed).unwrap().address(),
+        "gemini/rule/tisty-rules.md"
+    );
+    let file = made_in_the_window(&mut room);
+    crate::answers::papers::written_by_hand(
+        &mut room.session,
+        file,
+        format!("{seed}Spanish.\n"),
+        None,
+        None,
+    )
+    .unwrap();
+    round_here(&mut room.session, &room.homes, HERE).unwrap();
+    assert_eq!(room.read(".gemini/tisty-rules.md"), "Spanish.\n");
+}
+
+#[test]
+fn a_new_document_starts_as_a_rule_of_the_folder_it_is_made_in() {
+    let mut room = room();
+    room.bring(&[".claude/CLAUDE.md"]);
+    let address = |room: &Room, name: &str| {
+        Card::of(&seeded(&room.session, Some(sub_of(room, name)))).map(|card| card.address())
+    };
+    assert_eq!(
+        address(&room, "Global").as_deref(),
+        Some("global/rule/rule.md")
+    );
+    assert_eq!(
+        address(&room, "Claude").as_deref(),
+        Some("claude/rule/rules/rule.md")
+    );
+    assert_eq!(
+        address(&room, "Codex").as_deref(),
+        Some("codex/rule/AGENTS.md")
+    );
+    assert_eq!(
+        address(&room, "Copilot").as_deref(),
+        Some("copilot/rule/copilot-instructions.md")
+    );
+    assert_eq!(seeded(&room.session, None), "");
+    let root = root_of(&room.session.state).unwrap();
+    assert_eq!(seeded(&room.session, Some(root)), "");
+}
+
+#[test]
+fn a_folder_of_agents_the_person_deleted_is_never_made_again() {
+    let mut room = room();
+    room.bring(&[".claude/CLAUDE.md"]);
+    let codex = sub_of(&room, "Codex");
+    room.session.commit(Op::FolderDelete { id: codex }).unwrap();
+    round_here(&mut room.session, &room.homes, HERE).unwrap();
+    assert!(!room.folders().contains(&"Codex".to_string()));
+}
+
+#[test]
+fn looking_again_finds_an_assistant_installed_since_and_gives_it_its_folder() {
+    let mut room = room();
+    room.bring(&[".claude/CLAUDE.md"]);
+    assert!(!room.folders().contains(&"Gemini".to_string()));
+    std::fs::create_dir_all(room.home.join(".gemini/tmp")).unwrap();
+
+    let look = rescanned(&mut room.session, &room.homes, HERE).unwrap();
+
+    assert!(room.folders().contains(&"Gemini".to_string()));
+    let gemini = look
+        .assistants
+        .iter()
+        .find(|one| one.id == "gemini")
+        .unwrap();
+    assert!(
+        gemini.files.is_empty(),
+        "nothing of Gemini's is read or brought"
+    );
+}
+
+#[test]
+fn looking_again_where_this_computer_never_said_yes_reads_nothing_and_makes_nothing() {
+    let mut room = room();
+    let look = rescanned(&mut room.session, &room.homes, HERE).unwrap();
+    assert!(!look.consented);
+    assert!(room.folders().is_empty());
 }

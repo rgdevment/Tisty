@@ -106,6 +106,14 @@ const words = {
   agentsSkillFile: ["1 file", "1 archivo"],
   agentsFirstHeld: ["already in Agents", "ya está en Agentes"],
   agentsFirstAllHeld: ["{name} · already in Agents", "{name} · ya está en Agentes"],
+  agentsNothingYet: [
+    "{name}: no rules, skills or memory yet. It gets what you write in Global or in its folder.",
+    "{name}: todavía sin reglas, skills ni memoria. Recibe lo que escribas en Global o en su carpeta.",
+  ],
+  agentsRescanNone: [
+    "Nothing new found. This is what each assistant has:",
+    "No encontré nada nuevo. Esto es lo que hay en cada asistente:",
+  ],
   agentsFirstAllHere: [
     "Everything I found is already in Agents. Sync this computer to keep it up to date:",
     "Todo lo que encontré ya está en Agentes. Sincroniza este equipo para mantenerlo al día:",
@@ -119,8 +127,8 @@ const words = {
     "Entró 1 documento a Agentes, y desde ahora Tisty lo mantiene al día.",
   ],
   agentsBroughtNone: [
-    "Nothing new came in. This computer now keeps Agents in sync.",
-    "No entró nada nuevo. Desde ahora este equipo mantiene Agentes al día.",
+    "Nothing new came in. Agents syncs on this computer now: what you write there reaches its assistants.",
+    "No entró nada nuevo. Agentes ya sincroniza en este equipo: lo que escribas ahí llega a sus asistentes.",
   ],
   agentsBroughtManyAlone: [
     "{name} documents came into Agents. Your agents' files stay as they are until you choose Sync.",
@@ -332,19 +340,20 @@ const words = {
   agentApproveChange: ["Approve the change", "Aprobar el cambio"],
   agentDiscardChange: ["Discard", "Descartar"],
   agentApproveSure: [
-    "Approve this change? It is written to the document, and to your agents' files on every computer that applies it.",
-    "¿Apruebas este cambio? Se escribe en el documento, y en los archivos de tus agentes en cada equipo que lo aplica.",
+    "Approve this change? It is written to the document, and reaches your agents' files on each computer where Agents syncs and you applied it.",
+    "¿Apruebas este cambio? Se escribe en el documento, y llega a los archivos de tus agentes en cada equipo donde Agentes sincroniza y lo aplicaste.",
   ],
   agentDiscardSure: [
     "Discard this proposal? The document stays as you approved it.",
     "¿Descartas esta propuesta? El documento queda como lo aprobaste.",
   ],
   agentApplyHere: ["Apply here", "Aplicar aquí"],
+  agentsRescan: ["Look again", "Buscar de nuevo"],
   agentNotHere: ["Not on this computer", "No en este equipo"],
   agentAgree: ["Approve this text", "Aprobar este texto"],
   agentAgreeSure: [
-    "Approve what this document says now? Read it first: it is written to your agents' files on every computer that applies it.",
-    "¿Apruebas lo que dice ahora este documento? Léelo antes: se escribe en los archivos de tus agentes en cada equipo que lo aplica.",
+    "Approve what this document says now? Read it first: it reaches your agents' files on each computer where Agents syncs and you applied it.",
+    "¿Apruebas lo que dice ahora este documento? Léelo antes: llega a los archivos de tus agentes en cada equipo donde Agentes sincroniza y lo aplicaste.",
   ],
   agentMemoryOwn: [
     "The agent writes this file itself: Tisty shows it and brings it in, and never writes over it.",

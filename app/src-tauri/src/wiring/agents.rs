@@ -58,6 +58,30 @@ pub fn assistant(id: &str) -> Option<&'static Assistant> {
     ASSISTANTS.iter().find(|one| one.id == id)
 }
 
+/// The first name a new rule of `level` can take that no document holds yet: the main file while it is free, then one in its rules folder.
+pub fn fresh_rule(level: &str, taken: impl Fn(&str) -> bool) -> Option<String> {
+    let numbered = |stem: &str, ext: &str| {
+        (1..)
+            .map(|n| match n {
+                1 => format!("{stem}{ext}"),
+                _ => format!("{stem}-{n}{ext}"),
+            })
+            .find(|name| !taken(name))
+    };
+    if level == GLOBAL {
+        return numbered("rule", ".md");
+    }
+    let one = assistant(level)?;
+    if let Some(main) = one.main.filter(|main| !taken(main)) {
+        return Some(main.to_string());
+    }
+    let ext = match one.id {
+        "copilot" => ".instructions.md",
+        _ => ".md",
+    };
+    numbered(&format!("{}/rule", one.rule_dir?), ext)
+}
+
 #[derive(Debug, Clone, Default)]
 pub struct Homes {
     home: PathBuf,

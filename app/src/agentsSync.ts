@@ -6,6 +6,9 @@ export const AGENTS_ICON = "robot";
 export const AGENTS_MORE = "tisty:agents-more";
 
 export const bringMoreAgents = () => window.dispatchEvent(new Event(AGENTS_MORE));
+export const AGENTS_RESCAN = "tisty:agents-rescan";
+/// «Look again»: the assistants are found anew and only what is new comes ticked.
+export const rescanAgents = () => window.dispatchEvent(new Event(AGENTS_RESCAN));
 export const AGENTS_NAME = "AGENTS";
 
 export interface FileSeen {
@@ -140,6 +143,7 @@ export const AGENTS_SYNC = "tisty:agents-sync";
 export const syncAgents = () => window.dispatchEvent(new Event(AGENTS_SYNC));
 
 export const agentsLook = (): Promise<AgentsLook> => invoke("agents_look");
+export const agentsRescan = (): Promise<AgentsLook> => invoke("agents_rescan");
 export const agentsRows = (only?: string[]): Promise<AgentRow[]> =>
   invoke("agents_rows", { only: only ?? null });
 /// `sync` is null to keep the switch as it is, as «Bring another file» does.
