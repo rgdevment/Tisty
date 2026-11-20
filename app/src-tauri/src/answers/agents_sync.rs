@@ -277,6 +277,24 @@ fn proposed_in(state: &tisty_core::State, gate: &Gate) -> usize {
         .count()
 }
 
+// Global rules that took one name on two computers before they synced each get one, so both reach the agents.
+fn twins_named(session: &mut Session, here: &str) -> Answer<()> {
+    let docs: Vec<(tisty_core::model::DocId, String, String)> = bodies(session)
+        .into_iter()
+        .filter_map(|(file, body)| {
+            let kept = session.state.docs.values().find(|one| one.file == file)?;
+            let agreed =
+                kept.agreed.as_deref() == Some(tisty_core::docs::print_of_text(&body).as_str());
+            agreed.then_some((kept.id, file, body))
+        })
+        .collect();
+    for (file, body) in agents::renamed_twins(&docs) {
+        waits_marked(session, here, &file);
+        rewritten(session, &file, &body)?;
+    }
+    Ok(())
+}
+
 // Only the body the log names, read without its card, lets a proposal go: one behind the log may still get it back.
 fn uncarded_let_go(session: &mut Session) -> Answer<()> {
     let (state, docs) = (&session.state, session.paths.docs());
@@ -1259,6 +1277,7 @@ pub(crate) fn round_here(session: &mut Session, homes: &Homes, here: &str) -> An
     joined_here(session)?;
     untagged(session);
     uncarded_let_go(session)?;
+    twins_named(session, here)?;
     let mut ledger = Ledger::open(session.paths.data(), here);
     subfolders_made(session, homes, &ledger)?;
     Ok(round_now(session, homes, &mut ledger))

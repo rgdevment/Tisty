@@ -150,6 +150,26 @@ pub fn brought(body: &str, file: &[u8]) -> Result<String, Refused> {
     Ok(format!("{block}{}", &fresh[fresh_span.end..]))
 }
 
+/// The same document under another name: its `agent:` line, and a title Tisty gave it, say the new one.
+pub(super) fn named_anew(body: &str, name: &str) -> Option<String> {
+    let was = Card::of(body)?;
+    let span = front::span(body)?;
+    let card = Card {
+        name: name.to_string(),
+        ..was.clone()
+    };
+    let titled = format!("title: {} · {}", was.level, was.name);
+    let block: String = body[span.clone()]
+        .split_inclusive('\n')
+        .map(|line| match (keyed(line), line.trim_end() == titled) {
+            (true, _) => format!("{}\n", card.line()),
+            (false, true) => format!("title: {} · {}\n", card.level, card.name),
+            (false, false) => line.to_string(),
+        })
+        .collect();
+    Some(format!("{block}{}", &body[span.end..]))
+}
+
 fn keyed(line: &str) -> bool {
     !line.starts_with([' ', '\t'])
         && line
