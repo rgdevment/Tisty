@@ -176,11 +176,10 @@ describe("the menu inside AGENTS", () => {
   };
   const keys = (choices: Choice[]) => choices.map((one) => one.key);
 
-  it("offers Sync, Bring another file and Hide on a brought Agents, and no Stop syncing", () => {
+  it("offers only Sync and Hide on a brought Agents", () => {
     const h = withRoot(hands());
     const choices = folderChoices(agentsRoot, h, "brought");
-    expect(keys(choices)).toEqual(expect.arrayContaining(["agentsSync", "agentsMore", "hide"]));
-    expect(keys(choices)).not.toContain("agentsUnsync");
+    expect(keys(choices)).toEqual(["agentsSync", "hide"]);
     const sync = pick(choices, "agentsSync");
     expect(sync.label).toBe("Sync");
     const heard = vi.fn();
@@ -191,12 +190,11 @@ describe("the menu inside AGENTS", () => {
     expect(sent()).toEqual([]);
   });
 
-  it("offers Bring another file and Stop syncing on an Agents that syncs, and no Hide", async () => {
+  it("offers only Stop syncing on an Agents that syncs, and on one whose stage is unknown", async () => {
     const h = withRoot(hands());
     const choices = folderChoices(agentsRoot, h, "syncs");
-    expect(keys(choices)).toEqual(expect.arrayContaining(["agentsMore", "agentsUnsync"]));
-    expect(keys(choices)).not.toContain("agentsSync");
-    expect(keys(choices)).not.toContain("hide");
+    expect(keys(choices)).toEqual(["agentsUnsync"]);
+    expect(keys(folderChoices(agentsRoot, h))).toEqual(["agentsUnsync"]);
     const heard = vi.fn();
     window.addEventListener("tisty:agents-changed", heard);
     const stop = pick(choices, "agentsUnsync");
@@ -209,21 +207,21 @@ describe("the menu inside AGENTS", () => {
     expect(heard).toHaveBeenCalled();
   });
 
-  it("offers only Hide on an Agents with nothing brought, neither sync nor another file", () => {
+  it("offers only Hide on an Agents with nothing brought", () => {
     const h = withRoot(hands());
-    const choices = keys(folderChoices(agentsRoot, h, "unbrought"));
-    expect(choices).toContain("hide");
-    expect(choices).not.toContain("agentsMore");
-    expect(choices).not.toContain("agentsSync");
-    expect(choices).not.toContain("agentsUnsync");
+    expect(keys(folderChoices(agentsRoot, h, "unbrought"))).toEqual(["hide"]);
   });
 
-  it("never renames Agents itself, whatever its stage, and still renames a folder below it", () => {
+  it("offers no folder action on Agents itself, whatever its stage, and every one below it", () => {
     const h = withRoot(hands());
-    for (const stage of ["unbrought", "brought", "syncs", null] as const)
-      expect(pick(folderChoices(agentsRoot, h, stage), "rename").off).toBe(true);
+    for (const stage of ["unbrought", "brought", "syncs", null] as const) {
+      const choices = keys(folderChoices(agentsRoot, h, stage));
+      for (const one of ["newDoc", "newFolder", "rename", "move", "agentsMore", "away", "drop"])
+        expect(choices).not.toContain(one);
+    }
+    const below = keys(folderChoices(agentsClaude, h));
+    expect(below).toEqual(expect.arrayContaining(["rename", "agentsMore", "drop"]));
     expect(pick(folderChoices(agentsClaude, h), "rename").off).toBe(false);
-    expect(pick(folderChoices(folder, h), "rename").off).toBe(false);
   });
 
   it("offers no sync choice on any other folder, whatever stage it is given", () => {
@@ -282,10 +280,10 @@ describe("the menu inside AGENTS", () => {
     showAll();
     const h = hands();
     h.papers = { folders: [folder, agentsRoot], docs: [] } as unknown as Papers;
-    pick(folderChoices(agentsRoot, h), "hide").onPick?.();
+    pick(folderChoices(agentsRoot, h, "brought"), "hide").onPick?.();
     expect(isHidden(AGENTS)).toBe(true);
     expect(isHidden("a1")).toBe(false);
-    pick(folderChoices(agentsRoot, h), "hide").onPick?.();
+    pick(folderChoices(agentsRoot, h, "brought"), "hide").onPick?.();
     expect(isHidden(AGENTS)).toBe(false);
   });
 });

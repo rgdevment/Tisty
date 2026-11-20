@@ -127,13 +127,21 @@ export const stageFor = (
     .catch(() => then("syncs"));
 };
 
-/// `stage` only matters on the Agents folder itself, the one row that brings, syncs and stops.
+// Hiding needs the folder unsynced first, so a hidden Agents never writes a file nobody sees.
+const agentsRootChoices = (folder: Folded, h: Hands, stage: AgentsStage | null): Choice[] => {
+  const hiding = { ...hideChoice(agentsKeys(folder.id)), apart: false };
+  if (stage === "unbrought") return [hiding];
+  if (stage === "brought") return [syncChoice(), hiding];
+  return [unsyncChoice(h)];
+};
+
+/// On Agents itself only syncing and hiding: an unknown stage counts as syncing.
 export const folderChoices = (
   folder: Folded,
   h: Hands,
   stage: AgentsStage | null = null,
 ): Choice[] => {
-  const isRoot = agentsRoot(h.papers.folders)?.id === folder.id;
+  if (agentsRoot(h.papers.folders)?.id === folder.id) return agentsRootChoices(folder, h, stage);
   return [
     {
       key: "newDoc",
@@ -160,8 +168,7 @@ export const folderChoices = (
       key: "rename",
       icon: "✎",
       label: t("rename"),
-      // Older builds and the engine find Agents by its stored name, so renaming it would lose it.
-      off: folder.away || isRoot,
+      off: folder.away,
       apart: true,
       onPick: () => h.rename(folder),
     },
@@ -187,8 +194,7 @@ export const folderChoices = (
       off: folder.away,
       onPick: () => h.bringIn(folder.id),
     },
-    ...(isRoot && stage === "brought" ? [syncChoice()] : []),
-    ...(isRoot && stage === "unbrought" ? [] : agentsChoices(h, folder.id, folder.away)),
+    ...agentsChoices(h, folder.id, folder.away),
     {
       key: "unpack",
       icon: "↧",
@@ -202,11 +208,7 @@ export const folderChoices = (
       label: t("packAll"),
       onPick: () => h.parcels.packUp([], "tisty"),
     },
-    ...(isRoot && stage === "syncs" ? [unsyncChoice(h)] : []),
-    // Agents hides only while it does not sync, so a hidden folder never writes a file nobody sees.
-    ...(isRoot && stage === "syncs"
-      ? []
-      : [hideChoice(isRoot ? agentsKeys(folder.id) : folder.id, folder.away)]),
+    hideChoice(folder.id, folder.away),
     {
       // Only the folder that was shelved answers for itself; one below it comes back with it.
       key: "away",
