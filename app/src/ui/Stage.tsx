@@ -82,10 +82,9 @@ export default function Stage() {
         ...one,
         name: folderShown(one),
         color: isAgentsFolder(one) ? AGENTS_HUE : one.color,
-        kind: "folder" as const,
         agents: agentsFolders.has(one.id),
       })),
-      ...(data.every ?? data.lists).map((one) => ({ ...one, kind: "list" as const })),
+      ...(data.every ?? data.lists),
     ],
     [papers.folders, data.every, data.lists, agentsFolders],
   );

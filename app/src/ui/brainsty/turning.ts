@@ -18,6 +18,11 @@ export function turnedByHand(
   };
   const moved = (event: PointerEvent) => {
     if (!from) return;
+    // A button let go outside the window never says so here, but the next move comes with no button held.
+    if (event.buttons === 0) {
+      from = null;
+      return;
+    }
     turnBy((event.clientX - from[0]) * PER_PIXEL, (event.clientY - from[1]) * PER_PIXEL);
     from = [event.clientX, event.clientY];
   };
@@ -30,11 +35,13 @@ export function turnedByHand(
   container.addEventListener("contextmenu", kept);
   page.addEventListener("pointermove", moved);
   page.addEventListener("pointerup", let_go);
+  page.addEventListener("pointercancel", let_go);
   return () => {
     container.removeEventListener("pointerdown", held, true);
     container.removeEventListener("mousedown", held, true);
     container.removeEventListener("contextmenu", kept);
     page.removeEventListener("pointermove", moved);
     page.removeEventListener("pointerup", let_go);
+    page.removeEventListener("pointercancel", let_go);
   };
 }

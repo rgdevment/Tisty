@@ -1,6 +1,6 @@
 import type { Neuron, NeuronKind, Tie } from "../../brainsty";
 
-export type Shape = "square" | "circle" | "diamond";
+export type Shape = "square" | "circle";
 
 export type Standing = "live" | "done" | "archived";
 
@@ -51,8 +51,6 @@ const SIZE: Record<NeuronKind, number> = {
   task: 5,
   tag: 2.5,
   file: 3,
-  folder: 8,
-  list: 8,
 };
 
 const STANDING: Record<Standing, { alpha: number; scale: number }> = {
@@ -70,7 +68,6 @@ const LINE: Record<
   structure: { size: 1, alpha: 0.6, gap: 0, tone: "soft" },
   tag: { size: 0.4, alpha: 0.15, gap: 0, tone: "tag" },
   uses: { size: 0.6, alpha: 0.3, gap: 0, tone: "file" },
-  member: { size: 0.4, alpha: 0.12, gap: 0, tone: "soft" },
 };
 
 const LIVE = new Set(["open", "said_done", "said_dropped"]);
@@ -82,10 +79,8 @@ export const standingOf = (neuron: Neuron): Standing => {
   return neuron.state === "done" ? "done" : "archived";
 };
 
-export const shapeOf = (kind: NeuronKind): Shape => {
-  if (kind === "list") return "diamond";
-  return kind === "doc" || kind === "page" || kind === "folder" ? "square" : "circle";
-};
+export const shapeOf = (kind: NeuronKind): Shape =>
+  kind === "doc" || kind === "page" ? "square" : "circle";
 
 const alphaOf = (said?: string): number => {
   if (said === undefined) return 1;
@@ -133,8 +128,6 @@ const TONE: Record<NeuronKind, keyof Omit<Palette, "hues">> = {
   task: "accent",
   tag: "tag",
   file: "file",
-  folder: "soft",
-  list: "accent",
 };
 
 const baseOf = (kind: NeuronKind, palette: Palette): string => palette[TONE[kind]];
@@ -178,10 +171,8 @@ export function nodeLook(
   };
 }
 
-// A tag, a folder or a list only says where something belongs, so it stays behind what was written.
-const BELONGING = new Set<NeuronKind>(["tag", "folder", "list"]);
-
-export const belongingFade = (kind: NeuronKind): number => (BELONGING.has(kind) ? 0.6 : 1);
+// A tag only says where something belongs, so it stays behind what was written.
+export const belongingFade = (kind: NeuronKind): number => (kind === "tag" ? 0.6 : 1);
 
 export function degreesOf(count: number, edges: readonly (readonly number[])[]): number[] {
   const degrees = new Array<number>(count).fill(0);

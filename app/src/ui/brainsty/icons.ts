@@ -17,8 +17,6 @@ const GLYPH: Record<NeuronKind, string> = {
   task: "checkbox",
   tag: "hash",
   file: "clip",
-  folder: "folder",
-  list: "list",
 };
 
 const DONE = "check-mark";
@@ -79,10 +77,13 @@ export function iconsOn(
   // Each glyph in each colour is drawn once and kept, so a frame only stamps images.
   function imageOf(glyph: string, colour: string): HTMLImageElement | undefined {
     const key = `${glyph}|${colour}`;
-    const kept = images.get(key);
-    if (kept) return kept;
+    if (images.has(key)) return images.get(key);
     const source = iconSource(glyph, colour);
-    if (!source) return undefined;
+    // A glyph with no drawing is remembered as such, so no frame asks for it again.
+    if (!source) {
+      images.set(key, undefined);
+      return undefined;
+    }
     const image = new Image();
     image.onload = painted;
     image.src = source;

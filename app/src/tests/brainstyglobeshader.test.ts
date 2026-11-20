@@ -20,6 +20,18 @@ describe("the globe's turn inside sigma's shaders", () => {
     expect(sewn).not.toContain('var GLSL_READ_NODE_DATA = /*glsl*/"');
   });
 
+  it("is GLSL that defines what sigma's programs call, with every number a float", () => {
+    expect(GLOBE_READ_NODE_DATA).toContain(
+      "vec4 readNodeData(sampler2D nodeDataTexture, int nodeDataTextureWidth, int nodeIndex) {",
+    );
+    expect(GLOBE_READ_NODE_DATA).toContain("float globeFade() {");
+    expect(GLOBE_READ_NODE_DATA).not.toMatch(/undefined|NaN/);
+    expect(GLOBE_READ_NODE_DATA).toContain("data.xy = 0.5 + vec2(x1, y2) * (1.0 + 0.15 * depth);");
+    expect(GLOBE_READ_NODE_DATA).toContain("data.z *= mix(0.6, 1.15, near);");
+    expect(GLOBE_READ_NODE_DATA).toContain("g_globeFadeSum += mix(0.3, 1.0, near);");
+    expect(GLOBE_READ_NODE_DATA.split("{").length).toBe(GLOBE_READ_NODE_DATA.split("}").length);
+  });
+
   it("refuses a sigma whose shaders no longer read as it expects", () => {
     expect(() => globed("var GLSL_READ_NODE_DATA = something else;")).toThrow(
       /sigma's shaders changed/,
@@ -27,12 +39,25 @@ describe("the globe's turn inside sigma's shaders", () => {
   });
 
   it("touches sigma's factory alone, whatever query the bundler adds", () => {
-    expect(globeShaders.transform("const a = 1;", "/x/node_modules/vite/client.js")).toBeNull();
+    const plugin = globeShaders();
+    expect(plugin.transform("const a = 1;", "/x/node_modules/vite/client.js")).toBeNull();
     expect(() =>
-      globeShaders.transform(
-        "const a = 1;",
-        "/x/node_modules/sigma/dist/factory-63e3ce33.esm.js?v=1",
-      ),
+      plugin.transform("const a = 1;", "/x/node_modules/sigma/dist/factory-63e3ce33.esm.js?v=1"),
     ).toThrow(/sigma's shaders changed/);
+  });
+
+  it("fails a build that never met sigma's factory, and leaves development and a failed build alone", () => {
+    const built = globeShaders({ mustSew: true });
+    built.transform("const a = 1;", "/x/node_modules/vite/client.js");
+    expect(() => built.buildEnd()).toThrow(/never reached the bundle/);
+    expect(() => built.buildEnd(new Error("broken"))).not.toThrow();
+    expect(() => globeShaders().buildEnd()).not.toThrow();
+
+    const sewn = globeShaders({ mustSew: true });
+    sewn.transform(
+      readFileSync(join(sigma, "dist", factory[0]), "utf8"),
+      join(sigma, "dist", factory[0]),
+    );
+    expect(() => sewn.buildEnd()).not.toThrow();
   });
 });

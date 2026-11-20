@@ -8,7 +8,7 @@ import Corner from "./brainsty/Corner";
 import { tiesAt } from "./brainsty/cardFacts";
 import { type Curves, curvesOn } from "./brainsty/curves";
 import { type Drawing, drawNetwork, type HueOf } from "./brainsty/drawing";
-import { amidMembers, laidEdges } from "./brainsty/grouping";
+import { groupsKey } from "./brainsty/grouping";
 import { alikeOf } from "./brainsty/guessing";
 import { type Icons, iconsOn } from "./brainsty/icons";
 import type { Motions } from "./brainsty/Legend";
@@ -43,6 +43,7 @@ export default function Brainsty({ network, groups, onOpen, escaping }: Props) {
     curves: Curves;
     icons: Icons;
     living: Living;
+    recolour: () => void;
   } | null>(null);
   const [ready, setReady] = useState(false);
   const [picked, setPicked] = useState<number | null>(null);
@@ -50,6 +51,7 @@ export default function Brainsty({ network, groups, onOpen, escaping }: Props) {
   const [sift, setSift] = useState<Sift>(EVERYTHING);
   const [motions, setMotions] = useState(motionsAtFirst);
   const [costShown, setCostShown] = useState(false);
+  const [agentsShown, setAgentsShown] = useState(() => kept(AGENTS) === "shown");
   const hues = useRef<HueOf>(() => undefined);
   const outside = useRef(new Set<string>());
   outside.current = new Set(groups.flatMap((one) => (one.agents ? [one.id] : [])));
@@ -60,7 +62,22 @@ export default function Brainsty({ network, groups, onOpen, escaping }: Props) {
     if (one.color) tinted.set(one.id, one.color);
   }
   hues.current = (group) => (group ? tinted.get(group) : undefined);
-  const hidden = useMemo(() => hiddenBy(network, sift, new Date()), [network, sift]);
+  const looked = groupsKey(groups);
+  const theirs = JSON.stringify([...outside.current]);
+  const agentsFolders = useMemo(() => new Set<string>(JSON.parse(theirs)), [theirs]);
+  const leftOut = agentsShown ? NONE : agentsFolders;
+  const legendGroups = useMemo(
+    () => (agentsShown ? groups : groups.filter((one) => !one.agents)),
+    [agentsShown, groups],
+  );
+  const hasAgents = useMemo(
+    () => network.nodes.some((one) => one.group !== undefined && agentsFolders.has(one.group)),
+    [network, agentsFolders],
+  );
+  const hidden = useMemo(
+    () => hiddenBy(network, sift, new Date(), leftOut),
+    [network, sift, leftOut],
+  );
   const hits = useMemo(() => found(network, query, hidden), [network, query, hidden]);
   const alike = useMemo(
     () => (picked === null || !sift.alike ? [] : alikeOf(network, picked, hidden)),
@@ -82,8 +99,9 @@ export default function Brainsty({ network, groups, onOpen, escaping }: Props) {
         .sort((one, other) => degrees[other] - degrees[one]),
     [network, degrees],
   );
-  const live = useRef({ picked, hidden, onOpen, guessing: sift.alike });
-  live.current = { picked, hidden, onOpen, guessing: sift.alike };
+  const live = useRef({ picked, hidden, onOpen, guessing: sift.alike, motions, looked });
+  live.current = { picked, hidden, onOpen, guessing: sift.alike, motions, looked };
+  const colouredBy = useRef(looked);
   // The keys walk the network from the network itself, so the search hands the focus back once it is done.
   const backToNetwork = () => host.current?.focus();
   escaping.current = () => {
@@ -99,7 +117,7 @@ export default function Brainsty({ network, groups, onOpen, escaping }: Props) {
     const container = host.current;
     if (!container) return;
     const spots = seeded(network.nodes);
-    const shaped = brainShaped(amidMembers(spots, network));
+    const shaped = brainShaped(spots);
     const hueOf: HueOf = (group) => hues.current(group);
     const outsideOf = (group?: string) => (group ? outside.current.has(group) : false);
     const palette = paletteNow();
@@ -123,7 +141,9 @@ export default function Brainsty({ network, groups, onOpen, escaping }: Props) {
       return nodeLook(one, hueOf(one.group), colours, 0, outsideOf(one.group)).color;
     };
     const icons = iconsOn(container, drawn, network, colourOf, PICTURES.shows);
-    const living = livingOn(container, drawn, network, colourOf);
+    const living = livingOn(container, drawn, network, colourOf, {
+      motions: live.current.motions,
+    });
     const unturned = turnedByHand(container, living.turnBy);
     const near = network.near;
     const pick = (node: number) => {
@@ -144,9 +164,9 @@ export default function Brainsty({ network, groups, onOpen, escaping }: Props) {
       find: () => finder.current?.focus(),
     });
     window.addEventListener("keydown", keyed);
-    const laid = laidEdges(network);
-    const stop = layOut({ ...spots, edges: edgesOf(laid), weights: weightsOf(laid) }, (step) => {
-      const placed = brainShaped(amidMembers(step, network));
+    const { edges } = network;
+    const stop = layOut({ ...spots, edges: edgesOf(edges), weights: weightsOf(edges) }, (step) => {
+      const placed = brainShaped(step);
       drawn.place(placed);
       overlays.reshape(placed);
       curves.reshape(placed);
@@ -155,15 +175,17 @@ export default function Brainsty({ network, groups, onOpen, escaping }: Props) {
       container.dataset.laidMs = String(Math.round(step.ms));
       container.dataset.iterations = String(step.iterations);
     });
-    const unfollow = followTheme(() => {
+    const recolour = () => {
       const next = paletteNow();
       drawn.retheme(next);
       overlays.retheme(next);
       curves.retheme(next);
       colours = next;
       icons.retheme();
-    });
-    drawing.current = { drawn, overlays, curves, icons, living };
+    };
+    const unfollow = followTheme(recolour);
+    colouredBy.current = live.current.looked;
+    drawing.current = { drawn, overlays, curves, icons, living, recolour };
     setReady(true);
     return () => {
       stop();
@@ -206,6 +228,13 @@ export default function Brainsty({ network, groups, onOpen, escaping }: Props) {
   useEffect(() => {
     if (ready) drawing.current?.curves.show(sift.alike);
   }, [ready, sift.alike]);
+
+  // A folder painted another colour shows at once, without laying the network out again.
+  useEffect(() => {
+    if (!ready || colouredBy.current === looked) return;
+    colouredBy.current = looked;
+    drawing.current?.recolour();
+  }, [ready, looked]);
 
   useEffect(() => {
     const living = drawing.current?.living;
@@ -252,6 +281,17 @@ export default function Brainsty({ network, groups, onOpen, escaping }: Props) {
         onSift={setSift}
         tags={tags}
         finder={finder}
+        agents={
+          hasAgents
+            ? {
+                shown: agentsShown,
+                onShow: (shown) => {
+                  keep(AGENTS, shown ? "shown" : null);
+                  setAgentsShown(shown);
+                },
+              }
+            : undefined
+        }
       />
       {shown && picked !== null && (
         <Preview
@@ -268,7 +308,7 @@ export default function Brainsty({ network, groups, onOpen, escaping }: Props) {
       )}
       <Corner
         network={network}
-        groups={groups}
+        groups={legendGroups}
         motions={motions}
         onMotions={(next) => {
           keep(TRAVEL, next.travel ? null : "off");
@@ -287,6 +327,8 @@ export default function Brainsty({ network, groups, onOpen, escaping }: Props) {
 
 const TRAVEL = "tisty.brainstyTravellers";
 const SPIN = "tisty.brainstySpin";
+const AGENTS = "tisty.brainstyAgents";
+const NONE: ReadonlySet<string> = new Set();
 
 const kept = (key: string): string | null => {
   try {

@@ -110,7 +110,7 @@ export default function Legend({ network, groups, motions, onMotions }: Props) {
                 </button>
               )}
               {legend.outside && (
-                <Row label={t("brainstyLegendAgents")} title={t("brainstyLegendAgentsWhat")}>
+                <Row label={t("brainstyLegendAgents")} what={t("brainstyLegendAgentsWhat")}>
                   <Dot shape="square" size={4} color={legend.outside.color} />
                 </Row>
               )}
@@ -142,7 +142,7 @@ export default function Legend({ network, groups, motions, onMotions }: Props) {
                 </Row>
               ))}
               {legend.alike && (
-                <Row label={t("brainstyAlike")} title={t("brainstyAlikeWhat")}>
+                <Row label={t("brainstyAlike")} what={t("brainstyAlikeWhat")}>
                   <svg viewBox="0 0 24 8" aria-hidden="true" className="h-2 w-6 shrink-0">
                     <path
                       d="M1 7 Q12 -2 23 7"
@@ -198,19 +198,21 @@ function Part({ title, children }: { readonly title: string; readonly children: 
   );
 }
 
+// The pointer reads what a row means on hovering it; a screen reader hears it as part of the row.
 function Row({
   label,
-  title,
+  what,
   children,
 }: {
   readonly label: string;
-  readonly title?: string;
+  readonly what?: string;
   readonly children: React.ReactNode;
 }) {
   return (
-    <p className="flex items-center gap-2" title={title}>
+    <p className="flex items-center gap-2" title={what}>
       <span className="grid w-6 shrink-0 place-items-center">{children}</span>
       <span className="truncate">{label}</span>
+      {what && <span className="sr-only">{what}</span>}
     </p>
   );
 }
@@ -233,7 +235,6 @@ function Dot({
         width: across,
         height: across,
         background: color,
-        transform: shape === "diamond" ? "rotate(45deg) scale(0.8)" : undefined,
       }}
     />
   );

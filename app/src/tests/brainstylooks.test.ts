@@ -77,7 +77,7 @@ describe("how Brainsty draws each node and line", () => {
     expect(nodeLook(one("doc", "open", "f1"), "blue", palette).color).toBe("rgba(31, 111, 178, 1)");
     expect(nodeLook(one("doc", "open"), undefined, palette).color).toBe("rgba(87, 87, 92, 1)");
     expect(nodeLook(one("tag"), undefined, palette).color).toBe("rgba(122, 68, 184, 0.6)");
-    expect(nodeLook(one("list", undefined, "l1"), "blue", palette).color).toBe(
+    expect(nodeLook(one("tag", undefined, "l1"), "blue", palette).color).toBe(
       "rgba(31, 111, 178, 0.6)",
     );
     expect(nodeLook(one("file"), undefined, palette).color).toBe("rgba(106, 106, 112, 1)");
@@ -101,7 +101,6 @@ describe("how Brainsty draws each node and line", () => {
     const structure = lineLook("structure", palette);
     const tag = lineLook("tag", palette);
     const uses = lineLook("uses", palette);
-    const member = lineLook("member", palette);
     expect(mention.gap).toBeGreaterThan(0);
     expect([cite, structure, tag, uses].every((one) => one.gap === 0)).toBe(true);
     expect(cite.size).toBeGreaterThan(structure.size);
@@ -109,10 +108,10 @@ describe("how Brainsty draws each node and line", () => {
     expect(tag.color).toBe("rgba(122, 68, 184, 0.15)");
     expect(uses.color).toBe("rgba(106, 106, 112, 0.3)");
     expect(Math.min(cite.alpha, mention.alpha, structure.alpha)).toBeGreaterThan(
-      Math.max(tag.alpha, uses.alpha, member.alpha),
+      Math.max(tag.alpha, uses.alpha),
     );
     expect(
-      new Set([cite, mention, structure, tag, uses, member].map((one) => JSON.stringify(one))).size,
-    ).toBe(6);
+      new Set([cite, mention, structure, tag, uses].map((one) => JSON.stringify(one))).size,
+    ).toBe(5);
   });
 });

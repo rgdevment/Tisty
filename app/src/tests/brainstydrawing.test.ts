@@ -116,7 +116,6 @@ vi.mock("sigma", () => ({
 vi.mock("sigma/rendering", () => ({
   sdfCircle: () => ({ name: "circle" }),
   sdfSquare: () => ({ name: "square" }),
-  sdfDiamond: () => ({ name: "diamond" }),
   layerFill: () => ({ name: "fill" }),
   layerPlain: (options: unknown) => ({ name: "plain", options }),
   layerDashed: (options: unknown) => ({ name: "dashed", options }),
@@ -193,7 +192,6 @@ describe("the drawing of the network", () => {
     expect(drawn.options.primitives.nodes.shapes.map((one) => one.name)).toEqual([
       "circle",
       "square",
-      "diamond",
     ]);
     expect(drawn.options.primitives.edges.layers.map((one) => one.name)).toEqual([
       "plain",

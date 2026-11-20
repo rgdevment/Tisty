@@ -86,7 +86,7 @@ Guessed alike by Tisty, linked by no one: \"Gastos de diciembre\" [01A] (open) (
 }
 
 #[test]
-fn a_guess_by_typo_or_translation_says_so_instead_of_words_shared() {
+fn a_guess_by_spelling_or_translation_says_so_instead_of_words_shared() {
     let mut said = Map::new();
     said.insert(
         "guessed".into(),
@@ -104,7 +104,7 @@ fn a_guess_by_typo_or_translation_says_so_instead_of_words_shared() {
         "{told}"
     );
     assert!(
-        told.contains("[01B] (alike by a typo: vacuna≈vacunas)"),
+        told.contains("[01B] (spelled almost the same: vacuna≈vacunas)"),
         "{told}"
     );
     assert!(told.contains("[01C] (shares gastos)"), "{told}");
