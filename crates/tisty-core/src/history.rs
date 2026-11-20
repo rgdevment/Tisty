@@ -12,6 +12,7 @@ pub use compared::{Compared, compared};
 pub use logged::{Logged, Machines, Row, logged, rows};
 
 pub const FOLDER: &str = "history";
+pub const GONE_BACK: &str = "gone-back";
 const ORIGINALS: &str = "originals";
 const ORIGINALS_AT: &str = "originals-at";
 const MARKER: &str = "state.json";
@@ -542,10 +543,16 @@ pub fn empty(data: &Path, id: &str) -> Result<usize> {
 }
 
 pub fn forget(data: &Path, id: &str) {
-    let Ok(shelf) = shelf(data, id) else {
-        return;
-    };
-    match std::fs::remove_dir_all(&shelf) {
+    if let Ok(mark) = crate::docs::resolve(&data.join(GONE_BACK), id) {
+        kept_or_warned(id, std::fs::remove_file(mark));
+    }
+    if let Ok(shelf) = shelf(data, id) {
+        kept_or_warned(id, std::fs::remove_dir_all(&shelf));
+    }
+}
+
+fn kept_or_warned(id: &str, gone: std::io::Result<()>) {
+    match gone {
         Ok(()) => {}
         Err(why) if why.kind() == std::io::ErrorKind::NotFound => {}
         Err(why) => witness::warn(

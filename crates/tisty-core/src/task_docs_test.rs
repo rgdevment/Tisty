@@ -851,3 +851,84 @@ fn a_task_s_words_are_put_away_while_no_turn_of_it_is_open() {
     applied(&mut state, Op::TaskReopen { id: second });
     assert!(!away(&state));
 }
+
+#[test]
+fn a_page_hung_under_a_hidden_task_s_page_goes_out_of_sight_with_it() {
+    let room = tempfile::tempdir().unwrap();
+    let mut state = State::default();
+    let task = Ulid::generate();
+    applied(
+        &mut state,
+        Op::TaskAdd {
+            id: task,
+            d: TaskAdd::new("Surprise for Ana", "a0"),
+        },
+    );
+    let words = made(
+        room.path(),
+        &crate::history::Writer::now(room.path(), None),
+        &state,
+        task,
+        task,
+        "",
+        None,
+    )
+    .unwrap();
+    applied(&mut state, words);
+    let up = of(&state, task).expect("the task's document").clone();
+    let mut page = up.clone();
+    page.id = Ulid::generate();
+    page.file = "hoja0001-0001".into();
+    page.task_of = None;
+    page.page_of = Some(up.id);
+    state.docs.insert(page.id, page.clone());
+
+    assert!(state.doc_in_sight(&page));
+    state.tasks.get_mut(&task).unwrap().hidden = true;
+    assert!(!state.doc_in_sight(&up));
+    assert!(!state.doc_in_sight(&page), "its page told of a hidden task");
+}
+
+#[test]
+fn what_an_agent_sees_leaves_out_a_page_hung_under_a_hidden_task_s_page() {
+    let room = tempfile::tempdir().unwrap();
+    let mut state = State::default();
+    let task = Ulid::generate();
+    applied(
+        &mut state,
+        Op::TaskAdd {
+            id: task,
+            d: TaskAdd::new("Surprise for Ana", "a0"),
+        },
+    );
+    let words = made(
+        room.path(),
+        &crate::history::Writer::now(room.path(), None),
+        &state,
+        task,
+        task,
+        "",
+        None,
+    )
+    .unwrap();
+    applied(&mut state, words);
+    let up = of(&state, task).expect("the task's document").clone();
+    let mut page = up.clone();
+    page.id = Ulid::generate();
+    page.file = "hoja0001-0001".into();
+    page.task_of = None;
+    page.page_of = Some(up.id);
+    state.docs.insert(page.id, page.clone());
+
+    let mut seen = state.clone();
+    seen.hung_out_of_sight();
+    assert_eq!(seen.docs.len(), 2, "a page of a task in sight stays");
+
+    state.tasks.get_mut(&task).unwrap().hidden = true;
+    state.hung_out_of_sight();
+    assert!(
+        state.docs.contains_key(&up.id),
+        "a task's own page stays for its task"
+    );
+    assert!(!state.docs.contains_key(&page.id));
+}

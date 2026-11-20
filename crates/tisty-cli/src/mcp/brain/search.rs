@@ -46,6 +46,19 @@ pub(in crate::mcp) fn found(paths: &Paths, args: &Value) -> Result<Value, Refuse
                 json!({ "found": { "hidden": true } }),
             ));
         }
+        if filed
+            .and_then(|id| state.tasks.get(&id))
+            .is_some_and(Task::is_dropped)
+        {
+            return Ok(told(
+                format!(
+                    "{} A new filing from this source takes `again`, and only if they want it \
+                     back.",
+                    super::super::chores::LET_GO
+                ),
+                json!({ "found": { "let_go": true } }),
+            ));
+        }
         let held = filed.and_then(|id| state.tasks.get(&id));
         return Ok(told(
             match held {

@@ -96,7 +96,7 @@ fn catch_up_names_brainstorm_and_how_many_ideas_wait_on_it() {
 
     let caught = served.call("catch_up", json!({}));
 
-    let glance = &caught["structuredContent"]["brainstorm"];
+    let glance = &caught["structuredContent"]["ideas"];
     assert_eq!(glance["doc"], json!(sheet), "{caught}");
     assert_eq!(glance["ideas"], json!(3));
     assert_eq!(glance["marked"], json!(0));
@@ -770,7 +770,7 @@ fn an_empty_sheet_is_still_named_and_a_new_one_is_not_sent_to_a_folder() {
 
     let caught = served.call("catch_up", json!({}));
 
-    let glance = &caught["structuredContent"]["brainstorm"];
+    let glance = &caught["structuredContent"]["ideas"];
     assert_eq!(glance["ideas"], json!(0), "{caught}");
     assert!(
         said(&caught).contains("holds no idea now"),

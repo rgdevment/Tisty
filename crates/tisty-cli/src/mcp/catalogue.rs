@@ -184,7 +184,7 @@ is written, and hands back the task that already exists, so you cannot duplicate
 Without a source, ask `brain` \
 first. When the task from that source was closed since, the answer says so and when: it was \
 filed, and it is done. When the person erased it, it stays erased; when they put it out of \
-sight, the answer says only that and names nothing. Only if the person asks you \
+sight or let it go, the answer says only that and names nothing. Only if the person asks you \
 in this conversation for it to be done again, propose it once more with `again`, saying in the \
 description how the last one ended.
 

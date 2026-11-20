@@ -643,22 +643,20 @@ fn summed_up(store: &mut Store, id: Ulid, summary: &str) {
         .unwrap();
 }
 
+// Nothing reads an agent's note from the base, so summing a document up rebuilds none of it.
 #[test]
-fn an_agent_s_note_reaches_the_base_and_the_newest_one_stays() {
+fn an_agent_s_note_moves_nothing_in_the_base() {
     let world = World::new();
     let mut store = world.store();
-    let (id, file) = doc(&world, &mut store, "# Trips\n", None, None);
-    let (_, bare) = doc(&world, &mut store, "# Lisbon\n", None, None);
-    summed_up(&mut store, id, "where we went");
+    let (id, _) = doc(&world, &mut store, "# Trips\n", None, None);
     let mut brain = world.brain();
     world.refreshed(&mut brain, &world.state());
-    assert!(noted(&brain)[&file].contains("where we went"));
-    assert!(!noted(&brain).contains_key(&bare), "{:?}", noted(&brain));
 
-    summed_up(&mut store, id, "where we go next");
-    world.refreshed(&mut brain, &world.state());
+    summed_up(&mut store, id, "where we went");
 
-    let said = noted(&brain);
-    assert!(said[&file].contains("where we go next"), "{said:?}");
-    assert_eq!(said.len(), 1, "{said:?}");
+    assert_eq!(
+        world.refreshed(&mut brain, &world.state()),
+        Refreshed::Unchanged
+    );
+    assert!(noted(&brain).is_empty(), "{:?}", noted(&brain));
 }

@@ -21,7 +21,7 @@ pub(super) fn writable(
     which: &str,
 ) -> Result<(tisty_core::State, tisty_core::Store, String), Refused> {
     let (state, mut store) = opened(paths)?;
-    let Some(kept) = state.docs.values().find(|one| one.file == which) else {
+    let Some(kept) = super::super::mistaken::named_document(&state, which) else {
         return Err(Refused::Tool(no_document_called(&state, which)));
     };
     super::super::agents_kept::left_out(&state, kept)?;

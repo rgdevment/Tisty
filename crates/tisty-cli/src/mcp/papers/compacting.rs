@@ -97,7 +97,7 @@ pub(super) fn compacted(
     body: &str,
     first: Option<Original>,
 ) -> Result<Value, Refused> {
-    let Some(kept) = state.docs.values().find(|one| one.file == which) else {
+    let Some(kept) = super::super::mistaken::named_document(state, which) else {
         return Err(Refused::Tool(no_document_called(state, which)));
     };
     if !agents_wrote(state, kept) && !flag(args, "person_asked") {

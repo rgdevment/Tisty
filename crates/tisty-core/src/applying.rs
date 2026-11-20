@@ -448,6 +448,9 @@ impl State {
     }
 
     pub(crate) fn gist_said(&mut self, event: &Event, id: &DocId, d: &crate::event::Gist) {
+        if !self.docs.contains_key(id) {
+            return;
+        }
         let note = crate::model::AgentNote {
             print: d.print.clone(),
             summary: d.summary.clone(),

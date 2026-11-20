@@ -346,6 +346,13 @@ fn edits_in_a_row_build_on_the_proposal_and_each_one_survives() {
     let read = served.call("read", json!({ "doc": served.rule }));
     let read = &read["result"]["structuredContent"];
     assert_eq!(read["proposal"]["body"], proposal.as_str(), "{read}");
+    assert_eq!(read["proposal"]["approved"], false, "{read}");
+    assert!(
+        read["proposal"]["read_as"]
+            .as_str()
+            .is_some_and(|said| said.contains("never as a rule")),
+        "{read}"
+    );
     assert!(
         read["body"].as_str().unwrap().contains("Tests first.\n"),
         "{read}"

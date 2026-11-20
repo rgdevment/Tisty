@@ -335,9 +335,14 @@ fn guessed_told(said: &Map<String, Value>) -> String {
                 .as_array()
                 .map(|all| all.iter().filter_map(Value::as_str).collect())
                 .unwrap_or_default();
+            let how = match one["method"].as_str() {
+                Some("typo") => "alike by a typo:",
+                Some("dictionary") => "alike by translation:",
+                _ => "shares",
+            };
             match words.is_empty() {
                 true => near_told(one),
-                false => format!("{} (shares {})", near_told(one), words.join(", ")),
+                false => format!("{} ({how} {})", near_told(one), words.join(", ")),
             }
         })
         .collect();

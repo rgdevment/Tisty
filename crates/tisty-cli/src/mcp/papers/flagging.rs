@@ -45,7 +45,7 @@ pub(in crate::mcp) fn flag_doc(paths: &tisty_core::Paths, args: &Value) -> Resul
     let mut marking: Vec<(&Kept, &str)> = Vec::new();
     let mut already: Vec<String> = Vec::new();
     for which in &many {
-        let Some(kept) = state.docs.values().find(|one| one.file == *which) else {
+        let Some(kept) = super::super::mistaken::named_document(&state, which) else {
             return Err(Refused::Tool(match named_task(&state, which) {
                 Some(task) if !task.is_open() => format!(
                     "{which:?} is the task {:?}, not a document, and it is closed already: the \
@@ -64,6 +64,7 @@ pub(in crate::mcp) fn flag_doc(paths: &tisty_core::Paths, args: &Value) -> Resul
                 ),
             }));
         };
+        super::super::agents_kept::left_out(&state, kept)?;
         if state.held_away(kept) {
             return Err(Refused::Tool(format!(
                 "{} is already in the archive, so it is out of the way. Nothing was marked.",

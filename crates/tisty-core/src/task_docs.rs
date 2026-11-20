@@ -487,10 +487,30 @@ impl State {
                 .any(|one| one.after.is_some() && is(one) && owner(self, one.id) == first)
     }
 
-    /// A task's words are seen while one of the turns they belong to is in sight.
+    /// A task's words, and any page hung under them, are seen while one of its turns is in sight.
     pub fn doc_in_sight(&self, kept: &crate::model::Kept) -> bool {
-        kept.task_of
-            .is_none_or(|first| self.some_turn(first, |task| !task.folded()))
+        let words_in_sight = |kept: &crate::model::Kept| {
+            kept.task_of
+                .is_none_or(|first| self.some_turn(first, |task| !task.folded()))
+        };
+        words_in_sight(kept)
+            && kept
+                .page_of
+                .and_then(|up| self.docs.get(&up))
+                .is_none_or(words_in_sight)
+    }
+
+    // Such a page would name its task to an agent through its place, as the shut diary would.
+    pub fn hung_out_of_sight(&mut self) {
+        let hidden: Vec<crate::model::DocId> = self
+            .docs
+            .values()
+            .filter(|one| one.task_of.is_none() && !self.doc_in_sight(one))
+            .map(|one| one.id)
+            .collect();
+        for id in hidden {
+            self.docs.remove(&id);
+        }
     }
 
     /// A task's words are put away with it, and come back the moment any turn of it is open again.

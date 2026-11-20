@@ -202,7 +202,20 @@ pub(super) fn proposed(
     }
     if let Some(source) = text(args, "source")
         && let Some(held) = already(&state, &source)
-        && let Some(task) = state.tasks.get(&held).filter(|one| !one.hidden)
+        && state.tasks.get(&held).is_some_and(Task::is_dropped)
+        && !again
+    {
+        return Ok(told(
+            format!(
+                "{LET_GO} Nothing was written. Only if they want it back, propose it once more \
+                 with `again` set."
+            ),
+            json!({ "id": null, "title": title, "proposed": false, "let_go": true }),
+        ));
+    }
+    if let Some(source) = text(args, "source")
+        && let Some(held) = already(&state, &source)
+        && let Some(task) = state.tasks.get(&held).filter(|one| !one.folded())
         && !(again && !task.is_open())
     {
         let (said, kept) = match task.completed_at.filter(|_| !task.is_open()) {
@@ -919,6 +932,10 @@ pub(super) fn note(paths: &Paths, args: &Value) -> Result<Value, Refused> {
 }
 
 pub(super) const NOTE_AT_MOST: usize = 4_000;
+
+// A task the person let go is no task to an agent, so the answer names nothing of it.
+pub(super) const LET_GO: &str =
+    "Already proposed from that source, and closed since: the person let it go.";
 
 pub(super) fn note_length(body: &str) -> usize {
     body.trim().chars().count()

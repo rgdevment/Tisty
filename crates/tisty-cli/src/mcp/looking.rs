@@ -476,7 +476,7 @@ pub(super) fn catch_up(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         }
         if let Some((glanced, sheet)) = super::ideas::glance(paths, &state) {
             said.push(glanced);
-            kept.insert("brainstorm".into(), sheet);
+            kept.insert("ideas".into(), sheet);
         }
         if let Some((due, review)) = super::reviewing::glance(paths, &state, today) {
             said.push(due);

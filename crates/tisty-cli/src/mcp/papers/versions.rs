@@ -112,10 +112,8 @@ fn past(paths: &Paths, state: &State, store: &Store, kept: &Kept) -> Result<Past
     })
 }
 
-const GONE_BACK: &str = "gone-back";
-
 fn gone_back_at(paths: &Paths, doc: &str) -> Option<std::path::PathBuf> {
-    tisty_core::docs::resolve(&paths.data().join(GONE_BACK), doc).ok()
+    tisty_core::docs::resolve(&paths.data().join(tisty_core::history::GONE_BACK), doc).ok()
 }
 
 pub(super) fn went_back(paths: &Paths, doc: &str, from: &str, to: &str) {

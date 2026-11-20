@@ -84,3 +84,28 @@ Guessed alike by Tisty, linked by no one: \"Gastos de diciembre\" [01A] (open) (
     assert_eq!(neighbours_told(&said), "", "a guess is no neighbour");
     assert_eq!(guessed_told(&Map::new()), "");
 }
+
+#[test]
+fn a_guess_by_typo_or_translation_says_so_instead_of_words_shared() {
+    let mut said = Map::new();
+    said.insert(
+        "guessed".into(),
+        json!([
+            { "id": "01A", "title": "Pagar la luz", "score": 0.8, "shared": ["pagar≈pay"], "method": "dictionary" },
+            { "id": "01B", "title": "Vacunas", "score": 0.7, "shared": ["vacuna≈vacunas"], "method": "typo" },
+            { "id": "01C", "title": "Gastos", "score": 0.6, "shared": ["gastos"], "method": "words" },
+        ]),
+    );
+
+    let told = guessed_told(&said);
+
+    assert!(
+        told.contains("[01A] (alike by translation: pagar≈pay)"),
+        "{told}"
+    );
+    assert!(
+        told.contains("[01B] (alike by a typo: vacuna≈vacunas)"),
+        "{told}"
+    );
+    assert!(told.contains("[01C] (shares gastos)"), "{told}");
+}
