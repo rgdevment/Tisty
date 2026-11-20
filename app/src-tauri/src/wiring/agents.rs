@@ -63,22 +63,15 @@ pub fn assistant(id: &str) -> Option<&'static Assistant> {
 #[derive(Debug, Clone, Default)]
 pub struct Homes {
     home: PathBuf,
-    told: BTreeMap<&'static str, PathBuf>,
+    told: tisty_core::agents::Told,
 }
-
-const MOVED_BY: [&str; 4] = [
-    "CLAUDE_CONFIG_DIR",
-    "CODEX_HOME",
-    "COPILOT_HOME",
-    "GEMINI_CLI_HOME",
-];
 
 impl Homes {
     pub fn here() -> Option<Self> {
         let home = var(if cfg!(windows) { "USERPROFILE" } else { "HOME" })?;
         Self::told(
             home,
-            MOVED_BY
+            tisty_core::agents::MOVED_BY
                 .into_iter()
                 .filter_map(|named| var(named).map(|at| (named, at))),
         )
@@ -107,27 +100,8 @@ impl Homes {
         .unwrap_or_default()
     }
 
-    fn moved(&self, named: &str, usual: &str) -> PathBuf {
-        self.told
-            .get(named)
-            .cloned()
-            .unwrap_or_else(|| self.home.join(usual))
-    }
-
     pub fn root(&self, id: &str) -> Option<PathBuf> {
-        Some(match id {
-            "claude" => self.moved("CLAUDE_CONFIG_DIR", ".claude"),
-            "codex" => self.moved("CODEX_HOME", ".codex"),
-            "copilot" => self.moved("COPILOT_HOME", ".copilot"),
-            // Gemini's variable stands for the home folder, and the CLI still keeps `.gemini` inside it.
-            "gemini" => self
-                .told
-                .get("GEMINI_CLI_HOME")
-                .unwrap_or(&self.home)
-                .join(".gemini"),
-            "cursor" => self.home.join(".cursor"),
-            _ => return None,
-        })
+        tisty_core::agents::assistant_root(&self.home, &self.told, id)
     }
 
     fn shared(&self) -> PathBuf {

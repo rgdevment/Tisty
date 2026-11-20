@@ -1,6 +1,7 @@
 mod card;
 mod found;
 mod gate;
+mod homes;
 mod joined;
 mod kept;
 mod ledger;
@@ -12,6 +13,7 @@ mod standing;
 pub use card::{Card, Endings, GLOBAL, KEY, Kind, brought, doc_of, rendered};
 pub use found::{Found, Place, Skip, brought_in, found};
 pub use gate::{Admitted, Asked, Gate, Seen, gate};
+pub use homes::{MOVED_BY, Told, assistant_folders, assistant_root, inside_an_assistant};
 pub use joined::joined;
 pub use kept::{KEPT_AT_MOST, Kept, kept, read_kept};
 pub use ledger::Ledger;
