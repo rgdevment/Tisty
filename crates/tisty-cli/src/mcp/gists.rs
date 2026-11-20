@@ -126,11 +126,16 @@ pub(super) fn gist_told(gist: &Value, summary_most: usize, notes_most: usize) ->
 
 // A note written before notes travelled stays readable on its own machine, under any that came as an event.
 pub(super) fn gist_of(
+    paths: &Paths,
     state: &State,
     cache: Option<&Cache>,
     kept: &Kept,
     print: &str,
 ) -> Option<Value> {
+    // A note an earlier build let an agent keep on the diary stays in the log, but no reader gets it.
+    if tisty_core::diary::holds(&paths.docs(), state, kept) {
+        return None;
+    }
     let held = match state.agent_notes.get(&kept.id) {
         Some(note) => tisty_core::docs::Gist {
             print: note.print.clone(),
