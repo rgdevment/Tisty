@@ -88,9 +88,9 @@ In how long the rule under the header is drawn. See [tables](https://markdown.ti
 Yes, on the computer where it changed: **See the history**, on the **History** row of the panel beside the document, lists its earlier versions, **What changed** shows in red and green what differs from now, and **Go back to this version** brings one back. They are kept 30 days by default and are not synced. See [Documents](Documents#earlier-versions).
 
 **How is the Brainsty network different from Obsidian's graph?**
-Obsidian's graph shows links between notes. Brainsty joins documents and tasks, with each task's state and its history, and the same network serves your agent as an index to search without reading everything. It draws with lines what is written (links, cards, pages, parts, where a task was born and tags) and, with an amber curve apart, what Tisty guesses is alike: because they share words, because one has a typo or because one is the other's translation, and it always says why. It opens in the content panel, beside the sidebar, with a legend of its colours, and costs nothing once you move to another view. See [[The Brainsty network|Brainsty-Network]].
+Obsidian's graph shows links between notes. Brainsty joins documents and tasks, with each task's state and its history, and the same network serves your agent as an index to search without reading everything. It draws with lines what is written (links, cards, pages, parts, where a task was born and tags) and, with an amber curve apart, what Tisty thinks is alike: because they share words, because one has a typo or because one is the other's translation, and it always says why. It opens in the content panel, beside the sidebar, with a legend of its colours, and costs nothing once you move to another view. See [[The Brainsty network|Brainsty-Network]].
 
-**Does Brainsty use AI to guess what is alike?**
+**Does Brainsty use AI to tell what is alike?**
 No. It uses fixed rules and a list of words: two uncommon words in common, a word a single change away from another, like *imrpesora* and *impresora*, or a pair from a Spanish–English dictionary made by linguists, like *pagar ≈ pay*. It neither understands nor learns from what you write, and all of it runs on your computer. See [No AI](Privacy#no-ai).
 
 **Does Brainsty upload anything?**

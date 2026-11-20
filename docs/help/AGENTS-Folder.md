@@ -56,7 +56,7 @@ The sidebar tells you how Agents stands by its colour, and no word appears besid
 
 ![The Agents folder open in the content panel in English, brought but not synced: in the sidebar, the grey robot and the name Agents in its normal colour, with no word on the right; in the panel, the title Agents with the grey robot and, just below, the quiet line Not synced with your agents · Sync, with Sync as a link; further down, the subfolders Global, Claude and Codex with their documents](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/agents/en-13-brought-not-synced.png)
 
-- **Coral is Agents' own**, and only while it syncs: purple belongs to diagrams, and no folder of yours can pick coral. In the Brainsty network, Agents and its documents are always drawn in coral, whether it syncs or not.
+- **Coral is Agents' own**, and only while it syncs: purple belongs to diagrams, and no folder of yours can pick coral. In the Brainsty network, Agents and its documents are always drawn in a faint coral, whether it syncs or not, smaller than yours and with fainter lines, so they do not cover what you write; the legend names them **AGENTS**. See [[The Brainsty network|Brainsty-Network#what-each-thing-is]].
 - **The state 2 line** shows only on Agents, never on its subfolders. Its **Sync** link does the same as the one on the right-click.
 - **With the sidebar folded**, Agents' robot has the same colour. Open or folded, a screen reader says the state in words: «Agents — nothing brought yet» or «Agents — Not synced with your agents».
 - **The right-click** also opens with the menu key or with `Shift` + `F10`, with Agents selected.

@@ -100,7 +100,7 @@ La ficha de un documento dice qué tiene y dónde, sin leerlo: sus secciones con
   "outline": [ { "title": "Decisiones", "line": 3, "to": 8 }, { "title": "Fuera de alcance", "line": 10, "to": 14 } ] }
 ```
 
-La ficha de un documento o de una tarea trae también lo que Tisty adivina que se parece, aparte, en `guessed`: nadie lo enlazó, así que el agente lee los dos antes de unir o fusionar nada.
+La ficha de un documento o de una tarea trae también lo que Tisty cree que se parece, aparte, en `guessed`: nadie lo enlazó, así que el agente lee los dos antes de unir o fusionar nada.
 
 ```json
 > brain {"task": "…Pedir presupuesto del techo…"}
