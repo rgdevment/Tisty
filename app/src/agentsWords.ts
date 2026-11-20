@@ -458,6 +458,20 @@ const words = {
     "{name} · un cambio propuesto por un agente espera tu aprobación",
   ],
   agentFileHistory: ["History", "Historial"],
+  agentFileSize: ["Size", "Tamaño"],
+  agentFileSizeFor: ["Size of {name}'s file", "Tamaño del archivo de {name}"],
+  agentFileBackupsFor: ["Backups of {name}'s file", "Respaldos del archivo de {name}"],
+  agentFileNearCap: [
+    "{name} · close to the 32 KiB Codex reads",
+    "{name} · cerca de los 32 KiB que lee Codex",
+  ],
+  agentFileOverCap: [
+    "{name} · past the 32 KiB Codex reads: it leaves the rest unread",
+    "{name} · pasa los 32 KiB que lee Codex: lo demás no lo lee",
+  ],
+  agentCopyPath: ["Copy the path", "Copiar la ruta"],
+  agentTrail: ["Folders", "Carpetas"],
+  agentCardActions: ["What you can do with this file", "Qué puedes hacer con este archivo"],
   agentNoCard: [
     "This document is not an agent document",
     "Este documento no es un documento de agente",

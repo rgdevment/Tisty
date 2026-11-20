@@ -45,7 +45,7 @@ import { attachedAll } from "../reshaping";
 import { busy, holds, queued } from "../saving";
 import { sure } from "../sure";
 import { chooseTongue, docDress, tonguesOf, twinOf } from "../tongues";
-import AgentCard from "./AgentCard";
+import AgentCard, { AgentButtons, AgentTrail } from "./AgentCard";
 import { changedIn, MARK_FADES } from "./anchoring";
 import Beside, { trailed } from "./Beside";
 import Contents from "./Contents";
@@ -62,6 +62,7 @@ import { type LoadedSheet, sheetLoaded } from "./sheetLoaded";
 import { pageFor } from "./sheets";
 import { CompactBar, MarkBar, StirredBar } from "./Tidied";
 import Tongues, { standingHead } from "./Tongues";
+import { cardFor, useAgentShelf } from "./useAgentCard";
 import { useAgentDoc } from "./useAgentDoc";
 import { useEarlier } from "./useEarlier";
 import { useLeaving } from "./useLeaving";
@@ -551,6 +552,9 @@ export default function Docs({
   const agent = useAgentDoc(open?.file ?? null, body);
   // An agent's file is kept byte for byte, so the paper it is shown on stays on this computer.
   const laidHere = bolted || agent.held || agent.doc !== null;
+  // An agent's file has its own card and no column: what the column told is on the card.
+  const agentShown = agent.held || agent.doc !== null;
+  const shelf = useAgentShelf(open?.file ?? null);
   const shownTitle = agent.doc?.label || called;
 
   const diaryWritten = (today: Today) => {
@@ -793,7 +797,12 @@ export default function Docs({
 
   // A sheet keeps its paper's width, so the column never covers it while folding the sidebar makes room.
   const beside =
-    Boolean(open) && !onNotes && !inDiary && (shown ?? fits) && (fits || !sheets || !reachable);
+    Boolean(open) &&
+    !onNotes &&
+    !inDiary &&
+    !agentShown &&
+    (shown ?? fits) &&
+    (fits || !sheets || !reachable);
   const [markdownOf, setMarkdownOf] = useState<string | null>(null);
   const viewing: Viewing = {
     markdown: Boolean(open) && markdownOf === open?.file,
@@ -812,15 +821,22 @@ export default function Docs({
       {!beside && spoken}
     </Ribbon>
   ) : (
-    ((spoken && !beside) || own?.tongueApart || pageMore) && (
-      <div className="ribbon">
-        <span className="ribbon-title">{shownTitle || t("untitledDoc")}</span>
+    ((spoken && !beside) || own?.tongueApart || pageMore || agentShown) && (
+      <div className={agentShown ? "ribbon agent-ribbon" : "ribbon"}>
+        <span className="ribbon-title">
+          {agentShown ? (
+            <AgentTrail trail={trailed(folders, own?.folder ?? null)} onFolder={onFolder} />
+          ) : (
+            shownTitle || t("untitledDoc")
+          )}
+        </span>
         {own?.tongueApart && <p role="note">{t("tongueApart")}</p>}
         {!beside && spoken}
         {pageMore}
       </div>
     )
   );
+  const agentCard = cardFor(agent, open?.file, { locked: bolted, flush, held, reread, onError });
   const wall = { maxWidth: `${across}px` };
   const sheetOf = useMemo(
     () => (sheets ? sheetFor(leaf, landscape, t("sheetsBreak")) : undefined),
@@ -1008,7 +1024,7 @@ export default function Docs({
   return (
     <main className="relative flex min-w-0 flex-1 flex-col overflow-hidden bg-desk">
       <div data-tauri-drag-region className="h-9 shrink-0" />
-      {open && !beside && !onNotes && !inDiary && (
+      {open && !beside && !onNotes && !inDiary && !agentShown && (
         <button
           type="button"
           onClick={() => {
@@ -1121,60 +1137,53 @@ export default function Docs({
                   label={shownTitle || t("untitledDoc")}
                   onDoc={toDoc}
                   onTag={onTag}
+                  agent={agentShown}
                   above={
-                    agent.doc ? (
+                    agentCard ? (
                       <>
-                        <AgentCard
-                          doc={agent.doc}
-                          file={open.file}
-                          editing={agent.editing}
-                          locked={bolted}
-                          onEdit={agent.onEdit}
-                          onSettle={async () => {
-                            await flush();
-                            if (held.current) return Promise.reject({ code: "unsavedStays" });
-                          }}
-                          onTaken={() => reread(open.file)}
-                          onError={onError}
-                        />
                         {placed}
+                        <AgentCard card={agentCard} shelf={shelf} body={body} />
                       </>
                     ) : (
                       placed
                     )
                   }
-                  belowFolds={!above}
+                  belowFolds={!above && !agentCard}
                   below={
-                    above
-                      ? next && <Onward next={next} onOpen={(doc) => onDoc?.(doc.file)} />
-                      : pages.length > 0 && (
-                          <Contents
-                            pages={pages}
-                            told={told}
-                            onOpen={(page) => onDoc?.(page.file)}
-                            onPut={
-                              bolted
-                                ? undefined
-                                : (page) => {
-                                    if (putting.current?.(page) === false) {
-                                      onError(t("leafNeedsTitle"));
-                                    }
+                    agentCard ? (
+                      <AgentButtons card={agentCard} shelf={shelf} onEarlier={past.show} />
+                    ) : above ? (
+                      next && <Onward next={next} onOpen={(doc) => onDoc?.(doc.file)} />
+                    ) : (
+                      pages.length > 0 && (
+                        <Contents
+                          pages={pages}
+                          told={told}
+                          onOpen={(page) => onDoc?.(page.file)}
+                          onPut={
+                            bolted
+                              ? undefined
+                              : (page) => {
+                                  if (putting.current?.(page) === false) {
+                                    onError(t("leafNeedsTitle"));
                                   }
-                            }
-                            onMove={
-                              bolted
-                                ? undefined
-                                : (page, before) => {
-                                    const how = ordering.current?.(page.file, before);
-                                    const named = page.title || t("untitledDoc");
-                                    if (how === "held") onError(fill("leafStaysPut", named));
-                                    if (how === "unseen") onError(fill("leafInText", named));
-                                    if (how === "titled") onError(fill("leafWouldName", named));
-                                    return how;
-                                  }
-                            }
-                          />
-                        )
+                                }
+                          }
+                          onMove={
+                            bolted
+                              ? undefined
+                              : (page, before) => {
+                                  const how = ordering.current?.(page.file, before);
+                                  const named = page.title || t("untitledDoc");
+                                  if (how === "held") onError(fill("leafStaysPut", named));
+                                  if (how === "unseen") onError(fill("leafInText", named));
+                                  if (how === "titled") onError(fill("leafWouldName", named));
+                                  return how;
+                                }
+                          }
+                        />
+                      )
+                    )
                   }
                   onOpen={(reference) => opened(reference).catch((e) => onError(saidPlainly(e)))}
                   onWrite={wrote}
@@ -1418,8 +1427,6 @@ export default function Docs({
           onKeep={flush}
           onEarlier={past.show}
           body={body}
-          agent={agent.doc}
-          under={agent.doc ? `${agent.doc.level} · ${agent.doc.name}` : undefined}
           tags={known.find((one) => one.file === open.file)?.tags ?? NO_TAGS}
           kept={saved}
           heads={heads}

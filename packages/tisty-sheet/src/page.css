@@ -1366,3 +1366,33 @@ html.lively:not(.sheeted) .page {
 .page > .front.agent-own {
   margin: 0 0 1.2em;
 }
+/* An agent's file lies inside its card: no paper, no title of Tisty's, read at about 62 characters. */
+html.agent.lively:not(.tall) .page {
+  max-width: 62ch;
+  margin: 0;
+  padding: 6px 16px 24px;
+  background: none;
+  box-shadow: none;
+  font-size: 13px;
+}
+html.agent .page:not([contenteditable="true"]) > .front.agent-own {
+  display: none;
+}
+html.agent:not(.untitled) .page > :is(h1, h2, h3, h4, h5, h6, h1.title, h2.title, h3.title) {
+  margin: 1.2em 0 0.4em;
+  padding: 0;
+  border: 0;
+  font-size: 14px;
+  font-weight: 620;
+  line-height: 1.35;
+  letter-spacing: 0;
+}
+html.agent:not(.untitled) .page > p.title {
+  margin: 0 0 1em;
+  padding: 0;
+  border: 0;
+  font-size: inherit;
+  font-weight: inherit;
+  line-height: inherit;
+  letter-spacing: 0;
+}
