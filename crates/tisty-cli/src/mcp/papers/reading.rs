@@ -50,6 +50,12 @@ pub(in crate::mcp) fn export_doc(paths: &Paths, args: &Value) -> Result<Value, R
             "{said:?} is not a folder. Name one that exists, and the files are left inside it."
         )));
     }
+    if tisty_core::agents::inside_an_assistant(&into) {
+        return Err(Refused::Tool(format!(
+            "{said:?} is inside an assistant's own folder, which only the Agents folder writes. \
+             Name a folder outside it."
+        )));
+    }
 
     let body = match kept.task_of {
         Some(_) => tisty_core::docs::read(&paths.docs(), &which).map_err(hitch)?,

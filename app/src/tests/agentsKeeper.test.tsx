@@ -221,6 +221,18 @@ describe("the keeper of AGENTS", () => {
     await waitFor(() => expect(desk.setError).toHaveBeenCalled());
   });
 
+  it("rounds again when another computer's AGENTS arrives, so the two join", async () => {
+    ipc.answer = (cmd) => Promise.resolve(cmd === "agents_round" ? { both: [] } : false);
+    desk.papers = { folders: agents, docs: [doc("x", "claude")] };
+    const { rerender } = render(<AgentsKeeper />);
+    await waitFor(() => expect(sent("agents_round")).toHaveLength(1), { timeout: 2000 });
+
+    const later = folder("b", null, { name: "AGENTS", icon: "robot" });
+    desk.papers = { folders: [...agents, later], docs: [doc("x", "claude")] };
+    rerender(<AgentsKeeper />);
+    await waitFor(() => expect(sent("agents_round")).toHaveLength(2), { timeout: 2000 });
+  });
+
   it("tells the rest of the window once a round is done", async () => {
     const heard = vi.fn();
     window.addEventListener(AGENTS_CHANGED, heard);

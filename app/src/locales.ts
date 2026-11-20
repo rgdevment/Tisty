@@ -1292,6 +1292,8 @@ const en = {
   documentBeingWritten: "Something else is writing this document. Try again in a moment",
   documentAway: "That one is in the archive. Bring it back to write in it",
   folderAway: "That folder is in the archive. Bring it back to change it",
+  agentsRootStays:
+    "Agents stays at the top, with its name and its robot, so it keeps guarding your agents' rules. Its color and its place among your folders are yours to change",
   folderAwayHolds: "That folder is in the archive. Nothing new goes into it",
   folderIsAway:
     "This one is in the archive with the folder that holds it. Bring the folder back to reach it",
@@ -4753,6 +4755,8 @@ const es: Catalog = {
     "Algo más está escribiendo este documento. Inténtalo de nuevo en un momento",
   documentAway: "Ese está en el archivo. Desarchívalo para escribir en él",
   folderAway: "Esa carpeta está en el archivo. Desarchívala para cambiarla",
+  agentsRootStays:
+    "Agentes se queda arriba, con su nombre y su robot, para seguir cuidando las reglas de tus agentes. Su color y su lugar entre tus carpetas sí los cambias",
   folderAwayHolds: "Esa carpeta está en el archivo. Nada nuevo entra en ella",
   folderIsAway:
     "Este está en el archivo con la carpeta que lo guarda. Desarchiva la carpeta para llegar a él",

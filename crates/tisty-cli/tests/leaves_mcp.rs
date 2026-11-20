@@ -7,12 +7,14 @@ mod person;
 
 struct Served {
     home: TempDir,
+    told: std::cell::RefCell<Vec<(&'static str, std::path::PathBuf)>>,
 }
 
 impl Served {
     fn new() -> Self {
         let served = Self {
             home: tempfile::tempdir().unwrap(),
+            told: std::cell::RefCell::default(),
         };
         let person = served.person();
         person.begins("algo mio");
@@ -35,6 +37,9 @@ impl Served {
             .env("NO_COLOR", "1")
             .env("LANG", "en_US.UTF-8")
             .env_remove("LC_ALL");
+        for (named, at) in self.told.borrow().iter() {
+            command.env(named, at);
+        }
         command
     }
 
@@ -5540,5 +5545,45 @@ fn an_address_of_no_document_here_is_refused_as_any_unknown_id() {
     assert!(
         why.contains("no document here is called \"zzzzzzzz-0001\""),
         "{why}"
+    );
+}
+
+#[test]
+fn nothing_is_exported_into_an_assistants_own_folder() {
+    let served = Served::new();
+    let doc = served.wrote(
+        "# Notas
+
+Palabras sueltas.",
+        None,
+    );
+    let out = tempfile::Builder::new()
+        .tempdir_in(std::env::temp_dir())
+        .unwrap();
+    let claude = out.path().join("claude-config");
+    std::fs::create_dir_all(claude.join("rules")).unwrap();
+    served
+        .told
+        .borrow_mut()
+        .push(("CLAUDE_CONFIG_DIR", claude.clone()));
+
+    for into in [claude.clone(), claude.join("rules")] {
+        let said = served.call(
+            "export_doc",
+            serde_json::json!({ "doc": &doc, "into": into.to_str().unwrap() }),
+        );
+        assert_eq!(said["result"]["isError"].as_bool(), Some(true), "{said}");
+    }
+    let left: Vec<_> = std::fs::read_dir(&claude).unwrap().flatten().collect();
+    assert_eq!(left.len(), 1, "only the assistant's own `rules` is there");
+
+    let beside = served.call(
+        "export_doc",
+        serde_json::json!({ "doc": &doc, "into": out.path().to_str().unwrap() }),
+    );
+    assert_ne!(
+        beside["result"]["isError"].as_bool(),
+        Some(true),
+        "{beside}"
     );
 }

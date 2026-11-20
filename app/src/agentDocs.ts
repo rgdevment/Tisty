@@ -40,6 +40,7 @@ export interface Place {
 export type Here =
   | "applied"
   | "waiting"
+  | "approvedWaiting"
   | "declined"
   | "notAgreed"
   | "placedByAgent"
@@ -52,6 +53,14 @@ export interface Proposal {
   readonly at: string;
   readonly stale: boolean;
   readonly unfit: "agentProposalRetargeted" | "agentProposalUnfit" | null;
+  readonly lines: readonly Line[];
+}
+
+export type Hand = "here" | "elsewhere" | "agent" | "earlier" | "outside";
+
+export interface Agreeing {
+  readonly hand: Hand;
+  readonly approved: "never" | "kept" | "elsewhere";
   readonly lines: readonly Line[];
 }
 
@@ -74,6 +83,7 @@ export interface AgentDoc {
   readonly print: string;
   readonly places: readonly Place[];
   readonly proposal: Proposal | null;
+  readonly agreeing?: Agreeing | null;
   readonly own: OwnFront;
 }
 

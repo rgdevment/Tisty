@@ -45,3 +45,18 @@ fn each_file_has_its_own_backups_inside_tistys_store() {
     assert!(kept(data.path(), codex).is_empty());
     assert!(data.path().join("agents").join("kept").is_dir());
 }
+
+#[test]
+fn keeping_the_same_bytes_again_adds_no_second_backup() {
+    let data = tempfile::tempdir().unwrap();
+    let at = Path::new("/home/rina/.gemini/GEMINI.md");
+    assert_eq!(keep(data.path(), at, b"one\n").unwrap(), 1);
+    assert_eq!(keep(data.path(), at, b"one\n").unwrap(), 1);
+    assert_eq!(keep(data.path(), at, b"two\n").unwrap(), 2);
+    assert_eq!(
+        keep(data.path(), at, b"one\n").unwrap(),
+        3,
+        "only the newest backup is compared"
+    );
+    assert_eq!(kept(data.path(), at).len(), 3);
+}

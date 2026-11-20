@@ -8,6 +8,7 @@ import {
   agentsTurn,
   bringMoreAgents,
   inAgents,
+  rescanAgents,
   syncAgents,
 } from "./agentsSync";
 import { asLink, asPlain } from "./copying";
@@ -106,6 +107,13 @@ const syncChoice = (): Choice => ({
   onPick: syncAgents,
 });
 
+const rescanChoice = (): Choice => ({
+  key: "agentsRescan",
+  icon: "⟳",
+  label: t("agentsRescan"),
+  onPick: rescanAgents,
+});
+
 const unsyncChoice = (h: Hands): Choice => ({
   key: "agentsUnsync",
   icon: "⏸",
@@ -120,7 +128,7 @@ export const stageFor = (
   then: (stage: AgentsStage | null) => void,
 ) => {
   const root = agentsRoot(papers.folders)?.id ?? null;
-  if (root !== folder.id) return then(null);
+  if (root !== folder.id && !inAgents(folder.id, papers.folders)) return then(null);
   // Unknown counts as syncing: stopping twice is harmless, hiding a folder that writes is not.
   agentsState()
     .then((state) => then(agentsStage(root, state)))
@@ -131,8 +139,8 @@ export const stageFor = (
 const agentsRootChoices = (folder: Folded, h: Hands, stage: AgentsStage | null): Choice[] => {
   const hiding = { ...hideChoice(agentsKeys(folder.id)), apart: false };
   if (stage === "unbrought") return [hiding];
-  if (stage === "brought") return [syncChoice(), hiding];
-  return [unsyncChoice(h)];
+  if (stage === "brought") return [syncChoice(), rescanChoice(), hiding];
+  return [unsyncChoice(h), rescanChoice()];
 };
 
 /// On Agents itself only syncing and hiding: an unknown stage counts as syncing.
@@ -142,6 +150,9 @@ export const folderChoices = (
   stage: AgentsStage | null = null,
 ): Choice[] => {
   if (agentsRoot(h.papers.folders)?.id === folder.id) return agentsRootChoices(folder, h, stage);
+  // Like Agents itself, a folder inside it hides only once nothing there writes a file nobody sees.
+  const hides =
+    !inAgents(folder.id, h.papers.folders) || stage === "brought" || stage === "unbrought";
   return [
     {
       key: "newDoc",
@@ -208,7 +219,7 @@ export const folderChoices = (
       label: t("packAll"),
       onPick: () => h.parcels.packUp([], "tisty"),
     },
-    hideChoice(folder.id, folder.away),
+    ...(hides ? [hideChoice(folder.id, folder.away)] : []),
     {
       // Only the folder that was shelved answers for itself; one below it comes back with it.
       key: "away",

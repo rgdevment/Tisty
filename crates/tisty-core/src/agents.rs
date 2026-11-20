@@ -1,25 +1,35 @@
+mod agreeing;
 mod card;
 mod found;
 mod gate;
+mod homes;
+mod joined;
 mod kept;
 mod ledger;
 mod proposal;
 mod rooted;
 mod shown;
 mod standing;
+mod subs;
 
+pub use agreeing::{Agreeing, Approved, Hand, agreeing};
 pub use card::{Card, Endings, GLOBAL, KEY, Kind, brought, doc_of, rendered};
 pub use found::{Found, Place, Skip, brought_in, found};
-pub use gate::{Admitted, Asked, Gate, Seen, gate};
+pub use gate::{Admitted, Asked, Gate, Seen, gate, unclaimed};
+pub use homes::{
+    KNOWN, Told, assistant_folders, assistant_root, home_here, inside_an_assistant, told_here,
+};
+pub use joined::joined;
 pub use kept::{KEPT_AT_MOST, Kept, kept, read_kept};
 pub use ledger::Ledger;
 pub use proposal::{PROPOSAL_AT_MOST, PROPOSAL_LINES_AT_MOST, Unfit, proposable};
-pub use rooted::{FOLDER, ICON, holds, holds_folder, root_of, tree};
+pub use rooted::{FOLDER, ICON, holds, holds_folder, root_of, roots, tree, unhooks};
 pub use shown::{OwnFront, Shown, own_front, shown};
 pub use standing::{
     Standing, Target, adopted, bring, lacks, lead_in, lead_out, overwrite, removed, restore, round,
     standing, wanted,
 };
+pub use subs::{sub_folders, sub_id};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Refused {

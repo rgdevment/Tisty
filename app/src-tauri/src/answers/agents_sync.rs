@@ -85,6 +85,78 @@ pub fn gated(session: &Session, ledger: &Ledger) -> Gate {
     })
 }
 
+// Two AGENTS made before their computers synced become one before anything here reads the folder.
+pub(crate) fn joined_here(session: &mut Session) -> Answer<()> {
+    let ops = agents::joined(&session.state);
+    if ops.is_empty() {
+        return Ok(());
+    }
+    session
+        .commit_all(ops)
+        .map_err(|e| Refusal::about("cannotWrite", e.to_string()))
+}
+
+// Each assistant found here has its folder in AGENTS, empty or not; only a computer that said yes adds them.
+pub(crate) fn subfolders_made(session: &mut Session, homes: &Homes, ledger: &Ledger) -> Answer<()> {
+    let Some(root) = root_of(&session.state).filter(|_| ledger.consented()) else {
+        return Ok(());
+    };
+    let names: Vec<&str> = [GLOBAL_FOLDER]
+        .into_iter()
+        .chain(homes.detected().into_iter().map(|one| one.name))
+        .collect();
+    let ops = agents::sub_folders(&session.state, root, &names);
+    if ops.is_empty() {
+        return Ok(());
+    }
+    session
+        .commit_all(ops)
+        .map_err(|e| Refusal::about("cannotWrite", e.to_string()))
+}
+
+/// What a new document made in Global or in an assistant's folder of AGENTS starts with, so its words reach that assistant.
+pub(crate) fn seeded(session: &Session, folder: Option<FolderId>) -> String {
+    let Some(root) = root_of(&session.state) else {
+        return String::new();
+    };
+    let at = folder.and_then(|id| session.state.folders.get(&id));
+    let level = match at {
+        Some(one) if one.parent == Some(root) && one.name == GLOBAL_FOLDER => GLOBAL,
+        Some(one) if one.parent == Some(root) => {
+            match ASSISTANTS.iter().find(|known| known.name == one.name) {
+                Some(known) => known.id,
+                None => return String::new(),
+            }
+        }
+        _ => return String::new(),
+    };
+    let taken: BTreeSet<String> = bodies(session)
+        .iter()
+        .filter_map(|(_, body)| Card::of(body).map(|card| card.address()))
+        .collect();
+    let address = |name: &str| format!("{level}/{}/{name}", Kind::Rule.word());
+    places::fresh_rule(level, |name| taken.contains(&address(name)))
+        .and_then(|name| agents::doc_of(level, Kind::Rule, &name, b"").ok())
+        .unwrap_or_default()
+}
+
+/// A document that waits here keeps waiting once its words are approved here: only «apply here» takes it.
+pub(crate) fn waits_marked(session: &Session, here: &str, file: &str) {
+    let Some(kept) = session.state.docs.values().find(|one| one.file == file) else {
+        return;
+    };
+    if here.is_empty() || !agents::holds(&session.state, kept) {
+        return;
+    }
+    let data = session.paths.data();
+    let Some(mut ledger) = Ledger::mine(data, here) else {
+        return;
+    };
+    if agents::unclaimed(kept, &ledger, session.store.device()) && ledger.wait_all([file]) {
+        let _ = ledger.keep(data);
+    }
+}
+
 // Another computer's memory never stands for this one's, so its file here can still be brought.
 fn addresses(bodies: &[(String, String)], gate: &Gate) -> BTreeSet<String> {
     bodies
@@ -161,25 +233,59 @@ pub struct Gathered {
 pub fn gathered(session: &Session, here: &str) -> Gathered {
     let root = root_of(&session.state);
     let ledger = Ledger::open(session.paths.data(), here);
+    let gate = gated(session, &ledger);
     Gathered {
         root,
         docs: root
             .map(|root| docs_in(&session.state, &tree(&session.state, root)).len())
             .unwrap_or(0),
-        proposed: proposed_in(&session.state),
+        proposed: proposed_in(&session.state, &gate),
         bodies: bodies(session),
-        gate: gated(session, &ledger),
+        gate,
         ledger,
     }
 }
 
-fn proposed_in(state: &tisty_core::State) -> usize {
+// Only a document with its card shows a proposal, so one without it has nothing to wait on.
+fn proposed_in(state: &tisty_core::State, gate: &Gate) -> usize {
     state
         .proposals
         .keys()
         .filter_map(|id| state.docs.get(id))
-        .filter(|kept| agents::holds(state, kept))
+        .filter(|kept| agents::holds(state, kept) && gate.carded(&kept.file))
         .count()
+}
+
+// Only the body the log names, read without its card, lets a proposal go: one behind the log may still get it back.
+fn uncarded_let_go(session: &mut Session) -> Answer<()> {
+    let (state, docs) = (&session.state, session.paths.docs());
+    let ops: Vec<Op> = state
+        .proposals
+        .iter()
+        .filter_map(|(id, waiting)| {
+            let kept = state.docs.get(id)?;
+            if !agents::holds(state, kept) || state.held_away(kept) {
+                return None;
+            }
+            let body = tisty_core::docs::read(&docs, &kept.file).ok()?;
+            let as_logged =
+                kept.print.as_deref() == Some(tisty_core::docs::print_of_text(&body).as_str());
+            (as_logged && Card::of(&body).is_none()).then(|| Op::DocProposal {
+                id: *id,
+                d: tisty_core::event::Proposal {
+                    body: None,
+                    base: None,
+                    settles: Some(waiting.print.clone()),
+                },
+            })
+        })
+        .collect();
+    if ops.is_empty() {
+        return Ok(());
+    }
+    session
+        .commit_all(ops)
+        .map_err(|e| Refusal::about("cannotWrite", e.to_string()))
 }
 
 // A document no assistant here would read has nothing to wait for on this computer.
@@ -271,14 +377,11 @@ fn frees(homes: &Homes, gate: &Gate, at: &Path, file: &str) -> Option<bool> {
     match gate.seen(file) {
         None | Some(Seen::Plain | Seen::DeclinedHere) => Some(true),
         Some(Seen::Admitted) => {
-            let card = gate
-                .admitted()
-                .iter()
-                .find(|one| one.file() == file)?
-                .card();
+            let piece = gate.admitted().iter().find(|one| one.file() == file)?;
+            let card = piece.card();
             let elsewhere = card.level != GLOBAL
                 && places::target_of(homes, card).map(|(_, there)| there) != Some(at.to_path_buf());
-            Some(elsewhere)
+            Some(elsewhere || (card.level == GLOBAL && places::wordless(piece)))
         }
         Some(_) => None,
     }
@@ -530,12 +633,14 @@ pub(crate) fn round_now(session: &Session, homes: &Homes, ledger: &mut Ledger) -
     round_after(session, homes, ledger, &[])
 }
 
-// An earlier build marked no line; it settled the agent's own file only once it had put its line in, unless that file is a memory document here.
+// An earlier build marked no line: a file it wrote nothing but its line into, or one still holding it, had it put there.
 fn marked_led(data: &Path, ledger: &mut Ledger, placed: &[Placed]) {
     let mut marked = false;
     for lead in placed.iter().filter_map(|one| one.lead_in.as_ref()) {
         let remembered = placed.iter().any(|one| one.target.at == lead.at);
-        if !ledger.led(&lead.at) && !remembered && ledger.written(&lead.at).is_some() {
+        let only_its_line = ledger.applied_at(&lead.at).next().is_none();
+        let put = only_its_line || !agents::lacks(lead, &places::lead_in_line());
+        if !ledger.led(&lead.at) && !remembered && put && ledger.written(&lead.at).is_some() {
             ledger.lead(&lead.at);
             marked = true;
         }
@@ -554,7 +659,8 @@ fn round_after(
 ) -> Rounded {
     let data = session.paths.data();
     let gate = gated(session, ledger);
-    if ledger.taken_all(gate.admitted().iter().map(agents::Admitted::file)) {
+    let taken = ledger.taken_all(gate.admitted().iter().map(agents::Admitted::file));
+    if ledger.wait_all(gate.unclaimed()) | taken {
         let _ = ledger.keep(session.paths.data());
     }
     let placed = places::targets(homes, &gate, ledger);
@@ -705,7 +811,7 @@ pub fn filed(session: &mut Session, bodies: &[(Found, String)]) -> Answer<Vec<(S
         order
     };
     let folder = |ops: &mut Vec<Op>, name: &str, parent: Option<FolderId>, mark: bool| {
-        let id = ulid::Ulid::generate();
+        let id = parent.map_or_else(ulid::Ulid::generate, |root| agents::sub_id(root, name));
         ops.push(Op::FolderAdd {
             id,
             d: tisty_core::event::FolderAdd {
@@ -817,6 +923,7 @@ pub fn brought_home(
     refused: Vec<Turned>,
 ) -> Answer<Brought> {
     let made = filed(session, read)?;
+    subfolders_made(session, homes, &ledger)?;
     let round = round_after(session, homes, &mut ledger, &made);
     Ok(Brought {
         made: made.len(),
@@ -898,11 +1005,29 @@ pub fn turned(
         Some(id) => ledger.turn(id, on),
         None => ledger.turn_all(on),
     }
+    if on {
+        adopted_as_they_stand(session, homes, &mut ledger);
+    }
     ledger.keep(session.paths.data()).map_err(refused)?;
     Ok(match on {
         true => round_now(session, homes, &mut ledger),
         false => Rounded::default(),
     })
+}
+
+// Files brought while nothing synced are taken as they stand the moment syncing starts, so what joins them is written over them with a backup.
+fn adopted_as_they_stand(session: &Session, homes: &Homes, ledger: &mut Ledger) {
+    let gate = gated(session, ledger);
+    for one in places::targets(homes, &gate, ledger) {
+        let own = one
+            .target
+            .pieces
+            .iter()
+            .find(|piece| piece.card().level == one.target.assistant);
+        if let Some(piece) = own {
+            agents::adopted(ledger, &one.target, piece.file());
+        }
+    }
 }
 
 pub fn loosened(
@@ -949,6 +1074,7 @@ fn unlead(data: &Path, ledger: &mut Ledger, gone: &Target) {
 
 // A file its last rule left waits for the person's answer first, or AGENTS would go and leave it unasked.
 pub fn emptied(session: &mut Session, homes: &Homes, here: &str) -> Answer<bool> {
+    joined_here(session)?;
     let Some(root) = root_of(&session.state) else {
         return Ok(false);
     };
@@ -1040,8 +1166,26 @@ pub fn agents_look(session: tauri::State<'_, Mutex<Session>>) -> Answer<Look> {
     let mut session = held(&session);
     // An assistant's proposal arrives in the log alone, so the look reads the log again first.
     session.reload()?;
+    joined_here(&mut session)?;
     let seen = gathered(&session, &here());
     Ok(looked(&seen, &homes, &found))
+}
+
+/// «Look again»: the assistants and their files are found anew, and each one found gets its folder.
+#[tauri::command(async)]
+pub fn agents_rescan(session: tauri::State<'_, Mutex<Session>>) -> Answer<Look> {
+    let homes = homes()?;
+    let mut session = held(&session);
+    session.reload()?;
+    rescanned(&mut session, &homes, &here())
+}
+
+pub(crate) fn rescanned(session: &mut Session, homes: &Homes, here: &str) -> Answer<Look> {
+    joined_here(session)?;
+    let ledger = Ledger::open(session.paths.data(), here);
+    subfolders_made(session, homes, &ledger)?;
+    let found = found_here(homes);
+    Ok(looked(&gathered(session, here), homes, &found))
 }
 
 #[tauri::command(async)]
@@ -1051,6 +1195,7 @@ pub fn agents_bring(
     sync: Option<bool>,
 ) -> Answer<Brought> {
     let homes = homes()?;
+    joined_here(&mut held(&session))?;
     let (ledger, known, writes) = consented_here(&held(&session), &homes, &here(), sync)?;
     let chosen: BTreeSet<String> = chosen.into_iter().collect();
     let (read, refused) = read_chosen(&ledger, &found_here(&homes), &chosen, &known, &writes);
@@ -1064,7 +1209,9 @@ pub fn agents_keep(
     tisty: bool,
 ) -> Answer<Rounded> {
     let homes = homes()?;
-    kept_side(&mut held(&session), &homes, &here(), &at, tisty)
+    let mut session = held(&session);
+    joined_here(&mut session)?;
+    kept_side(&mut session, &homes, &here(), &at, tisty)
 }
 
 #[tauri::command(async)]
@@ -1074,7 +1221,9 @@ pub fn agents_turn(
     on: bool,
 ) -> Answer<Rounded> {
     let homes = homes()?;
-    turned(&held(&session), &homes, &here(), assistant.as_deref(), on)
+    let mut session = held(&session);
+    joined_here(&mut session)?;
+    turned(&session, &homes, &here(), assistant.as_deref(), on)
 }
 
 #[tauri::command(async)]
@@ -1082,9 +1231,16 @@ pub fn agents_round(session: tauri::State<'_, Mutex<Session>>) -> Answer<Rounded
     let homes = homes()?;
     let mut session = held(&session);
     session.reload()?;
-    untagged(&mut session);
-    let mut ledger = Ledger::open(session.paths.data(), &here());
-    Ok(round_now(&session, &homes, &mut ledger))
+    round_here(&mut session, &homes, &here())
+}
+
+pub(crate) fn round_here(session: &mut Session, homes: &Homes, here: &str) -> Answer<Rounded> {
+    joined_here(session)?;
+    untagged(session);
+    uncarded_let_go(session)?;
+    let mut ledger = Ledger::open(session.paths.data(), here);
+    subfolders_made(session, homes, &ledger)?;
+    Ok(round_now(session, homes, &mut ledger))
 }
 
 #[tauri::command(async)]
@@ -1094,7 +1250,9 @@ pub fn agents_loose(
     away: bool,
 ) -> Answer<Rounded> {
     let homes = homes()?;
-    loosened(&held(&session), &homes, &here(), &at, away)
+    let mut session = held(&session);
+    joined_here(&mut session)?;
+    loosened(&session, &homes, &here(), &at, away)
 }
 
 #[tauri::command]
@@ -1106,7 +1264,9 @@ pub fn agents_empty(session: tauri::State<'_, Mutex<Session>>) -> Answer<bool> {
 #[tauri::command(async)]
 pub fn agents_lead(session: tauri::State<'_, Mutex<Session>>) -> Answer<Rounded> {
     let homes = homes()?;
-    led_again(&held(&session), &homes, &here())
+    let mut session = held(&session);
+    joined_here(&mut session)?;
+    led_again(&session, &homes, &here())
 }
 
 #[cfg(test)]

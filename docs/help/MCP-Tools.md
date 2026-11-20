@@ -145,7 +145,7 @@ If your assistant also reaches Confluence, Jira, Notion, Linear or GitHub, it ca
 
 Not everything makes the journey, and Tisty says so in each answer, so the assistant tells you before it publishes:
 
-- **Attached files** stay in Tisty. `export_doc` writes the document out with them into a folder, and from there the other tool can upload them.
+- **Attached files** stay in Tisty. `export_doc` writes the document out with them into a folder, and from there the other tool can upload them. It never leaves them inside an assistant's folder, such as `~/.claude` or the one `CLAUDE_CONFIG_DIR` names, even when it sits in Documents: only [[Agents|AGENTS-Folder]] writes there.
 - **Diagrams** stay as Mermaid code: GitHub, GitLab and Notion draw them; Confluence and Jira show them as code unless a Mermaid macro is used.
 - **Links to other documents and tasks** become plain words.
 - **Pages** come apart: each one is read on its own.

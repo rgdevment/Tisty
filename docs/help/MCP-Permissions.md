@@ -35,7 +35,7 @@ What an assistant may do is deliberately small. Finishing, dropping and deleting
 - Tick a step of yours, or finish a task of yours: it can only say they are done.
 - Move a day **you** set.
 - Delete a document, or rename or delete a folder.
-- Write in [Agents](AGENTS-Folder#a-proposal-from-your-agent): a change to a rule or a skill stays as a proposal, apart, until you approve it on the card. Nor does it move, archive or mark those documents, change their `agent:` line, propose on a memory, put a document or make a folder there, or write in any folder a document with an `agent:` line.
+- Write in [Agents](AGENTS-Folder#a-proposal-from-your-agent): a change to a rule or a skill stays as a proposal, apart, until you approve it on the card, and once approved it reaches your agents' files only on each computer where Agents syncs and you applied it; on another computer, approving it changes the words but does not apply it there. Any other tool that names those documents or the folder `AGENTS` is refused: it does not move, archive or mark them, propose on a memory, put a document or make a folder there, or move, rename or archive Agents. Nor does it add or change an `agent:` line in any document in any folder, `edit_doc` included, or write a new document with that line.
 - Empty a document's history, or read or go back to a version another of your computers keeps.
 - Take an idea out of Ideas any other way, mark the whole sheet, put it away or move it into a folder.
 - Reach a task you folded away.

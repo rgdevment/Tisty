@@ -6,6 +6,9 @@ export const AGENTS_ICON = "robot";
 export const AGENTS_MORE = "tisty:agents-more";
 
 export const bringMoreAgents = () => window.dispatchEvent(new Event(AGENTS_MORE));
+export const AGENTS_RESCAN = "tisty:agents-rescan";
+/// «Look again»: the assistants are found anew and only what is new comes ticked.
+export const rescanAgents = () => window.dispatchEvent(new Event(AGENTS_RESCAN));
 export const AGENTS_NAME = "AGENTS";
 
 export interface FileSeen {
@@ -140,6 +143,7 @@ export const AGENTS_SYNC = "tisty:agents-sync";
 export const syncAgents = () => window.dispatchEvent(new Event(AGENTS_SYNC));
 
 export const agentsLook = (): Promise<AgentsLook> => invoke("agents_look");
+export const agentsRescan = (): Promise<AgentsLook> => invoke("agents_rescan");
 export const agentsRows = (only?: string[]): Promise<AgentRow[]> =>
   invoke("agents_rows", { only: only ?? null });
 /// `sync` is null to keep the switch as it is, as «Bring another file» does.
@@ -155,10 +159,13 @@ export const agentsLoose = (at: string, away: boolean): Promise<Rounded> =>
   invoke("agents_loose", { at, away });
 export const agentsLead = (): Promise<Rounded> => invoke("agents_lead");
 
-export const agentsRoot = (folders: readonly Folded[]): Folded | undefined =>
+export const agentsRoots = (folders: readonly Folded[]): Folded[] =>
   folders
     .filter((one) => one.parent === null && !one.archived && isAgentsFolder(one))
-    .sort((a, b) => a.id.localeCompare(b.id))[0];
+    .sort((a, b) => a.id.localeCompare(b.id));
+
+export const agentsRoot = (folders: readonly Folded[]): Folded | undefined =>
+  agentsRoots(folders)[0];
 
 export const agentsTree = (folders: readonly Folded[]): Set<string> => {
   const root = agentsRoot(folders);

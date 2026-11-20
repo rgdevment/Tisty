@@ -26,7 +26,8 @@ const small =
 
 const whyOf = (look: AgentsLook, one: AssistantSeen): string | undefined => {
   if (!one.on) return t("agentsSettingsOff");
-  return look.unled.includes(one.id) ? t("agentsSettingsUnled") : undefined;
+  if (look.unled.includes(one.id)) return t("agentsSettingsUnled");
+  return one.files.length === 0 ? fill("agentsNothingYet", one.name) : undefined;
 };
 
 /// The same words and the same acts as the sidebar: Bring, Bring and sync, Sync, Stop syncing and Hide.
