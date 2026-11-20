@@ -31,7 +31,7 @@ export const glyphOf = (neuron: Neuron): string =>
 export const iconSource = (name: string, colour: string): string | null => {
   const drawn = markup(name);
   if (!drawn) return null;
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="${24 * DRAWN_AT}" height="${24 * DRAWN_AT}" fill="none" stroke="${colour}" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">${drawn}</svg>`;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="${24 * DRAWN_AT}" height="${24 * DRAWN_AT}" fill="none" stroke="${colour}" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">${drawn}</svg>`;
   return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
 };
 
@@ -46,6 +46,8 @@ export function iconsOn(
   Object.assign(canvas.style, LAID);
   container.append(canvas);
   const glyphs = network.nodes.map(glyphOf);
+  const tinted = () => network.nodes.map((_, node) => colourOf(node));
+  let colours = tinted();
   let images = new Map<string, HTMLImageElement | undefined>();
   let hidden: readonly boolean[] = [];
   let lit: ReadonlySet<number> | null = null;
@@ -62,11 +64,12 @@ export function iconsOn(
     const pictures = thumbsShown(drawing.zoom());
     network.nodes.forEach((one, node) => {
       if (hidden[node] || (pictures && one.kind === "file" && shows(one.id))) return;
-      const image = imageOf(glyphs[node], colourOf(node));
       const at = drawing.nodeOnScreen(node);
-      if (!image?.complete || !at) return;
+      if (!at) return;
       const [x, y] = [at[0] * ratio, at[1] * ratio];
       if (x < -side || y < -side || x > canvas.width + side || y > canvas.height + side) return;
+      const image = imageOf(glyphs[node], colours[node]);
+      if (!image?.complete) return;
       brush.globalAlpha = shown * (lit && !lit.has(node) ? DIMMED : 1);
       brush.drawImage(image, x - side / 2, y - side / 2, side, side);
     });
@@ -99,6 +102,7 @@ export function iconsOn(
     },
     retheme: () => {
       images = new Map();
+      colours = tinted();
       painted();
     },
     stop: () => {
