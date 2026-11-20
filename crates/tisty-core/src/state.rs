@@ -211,6 +211,18 @@ impl State {
         }
     }
 
+    // Only a folder inside AGENTS is remembered, by its root and its names, so a join can put back what it lifted.
+    pub(crate) fn agents_trail(&self, at: FolderId) -> Option<(FolderId, Vec<String>)> {
+        let names = self.named_trail(at)?;
+        let mut top = at;
+        while let Some(up) = self.folders.get(&top).and_then(|one| one.parent) {
+            top = up;
+        }
+        crate::agents::roots(self)
+            .contains(&top)
+            .then_some((top, names))
+    }
+
     pub(crate) fn named_trail(&self, at: FolderId) -> Option<Vec<String>> {
         let mut names = Vec::new();
         let mut up = Some(at);

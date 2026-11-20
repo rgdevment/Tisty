@@ -114,6 +114,27 @@ pub(crate) fn subfolders_made(session: &mut Session, homes: &Homes, ledger: &Led
         .map_err(|e| Refusal::about("cannotWrite", e.to_string()))
 }
 
+// Codex and Gemini read one rules file: a new document in their folder opens the one that holds it.
+pub(crate) fn one_rules_file(
+    session: &Session,
+    folder: Option<FolderId>,
+) -> Option<tisty_core::docs::Doc> {
+    let root = root_of(&session.state)?;
+    let at = session.state.folders.get(&folder?)?;
+    let known = ASSISTANTS.iter().find(|known| known.name == at.name);
+    let main = known
+        .filter(|_| at.parent == Some(root))
+        .and_then(|one| places::single_rule(one.id))?;
+    let address = format!("{}/{}/{main}", known?.id, Kind::Rule.word());
+    let (file, body) = bodies(session)
+        .into_iter()
+        .find(|(_, body)| Card::of(body).is_some_and(|card| card.address() == address))?;
+    Some(tisty_core::docs::Doc {
+        title: tisty_core::docs::titled(&body),
+        id: file,
+    })
+}
+
 /// What a new document made in Global or in an assistant's folder of AGENTS starts with, so its words reach that assistant.
 pub(crate) fn seeded(session: &Session, folder: Option<FolderId>) -> String {
     let Some(root) = root_of(&session.state) else {
@@ -254,6 +275,24 @@ fn proposed_in(state: &tisty_core::State, gate: &Gate) -> usize {
         .filter_map(|id| state.docs.get(id))
         .filter(|kept| agents::holds(state, kept) && gate.carded(&kept.file))
         .count()
+}
+
+// Global rules that took one name on two computers before they synced each get one, so both reach the agents.
+fn twins_named(session: &mut Session, here: &str) -> Answer<()> {
+    let docs: Vec<(tisty_core::model::DocId, String, String, bool)> = bodies(session)
+        .into_iter()
+        .filter_map(|(file, body)| {
+            let kept = session.state.docs.values().find(|one| one.file == file)?;
+            let agreed =
+                kept.agreed.as_deref() == Some(tisty_core::docs::print_of_text(&body).as_str());
+            Some((kept.id, file, body, agreed))
+        })
+        .collect();
+    for (file, body) in agents::renamed_twins(&docs) {
+        waits_marked(session, here, &file);
+        rewritten(session, &file, &body)?;
+    }
+    Ok(())
 }
 
 // Only the body the log names, read without its card, lets a proposal go: one behind the log may still get it back.
@@ -1238,6 +1277,7 @@ pub(crate) fn round_here(session: &mut Session, homes: &Homes, here: &str) -> An
     joined_here(session)?;
     untagged(session);
     uncarded_let_go(session)?;
+    twins_named(session, here)?;
     let mut ledger = Ledger::open(session.paths.data(), here);
     subfolders_made(session, homes, &ledger)?;
     Ok(round_now(session, homes, &mut ledger))

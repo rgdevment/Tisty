@@ -301,6 +301,7 @@ impl State {
         // anchor goes — here, where a delete arriving from another machine lands too.
         let away = self.folder_away(*id);
         let gone = self.named_trail(*id);
+        let agents = self.agents_trail(*id);
         self.folders.remove(id);
         self.tombstones.insert(*id);
         let orphaned: Vec<FolderId> = self
@@ -318,6 +319,7 @@ impl State {
         for doc in self.docs.values_mut() {
             if doc.folder == Some(*id) {
                 doc.folder = None;
+                doc.lifted_from = agents.clone();
                 doc.archived = doc.archived || (away && doc.page_of.is_none());
                 if doc.archived && doc.page_of.is_none() {
                     doc.folder_was = gone.clone();
@@ -634,6 +636,7 @@ impl State {
                 diary: d.said.as_ref().is_some_and(|one| one.diary),
                 compacted: None,
                 folder_was: None,
+                lifted_from: None,
                 task_of: d.task_of,
                 lang: d.said.as_ref().and_then(|one| one.lang.clone()).flatten(),
                 translation_of: None,
@@ -742,6 +745,7 @@ impl State {
         {
             doc.folder = folder;
             doc.folder_was = None;
+            doc.lifted_from = None;
         }
         // Pages live where their document lives, and follow it without being told.
         if let Some(under) = self.docs.get(id).filter(|one| one.page_of.is_none()) {

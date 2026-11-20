@@ -378,7 +378,9 @@ You do not have to write the `agent:` line by hand. A document you make with **N
 | **Gemini** | `agent: gemini/rule/tisty-rules.md` while no document has it |
 | **Cursor**, Agents itself or a folder of your own inside Agents | None: it is a plain document |
 
-**Codex and Gemini read a single rules file.** Once a document holds it, the next **New document** in their folder starts as a plain document, with no `agent:` line, which reaches no agent: write what is new in that same document, or in **Global** if it is for all of them. **Cursor** has no rules file of its own, so a new document in its folder also starts plain; bring its skills with **Bring another file**.
+**Codex and Gemini read a single rules file.** Once a document holds it, **New document** in their folder makes no other: it opens that same document, so you add what is new there. What is for all of them goes in **Global**.
+
+**Two Global rules with the same name.** If at home and at work you made a rule in **Global** before the two computers synced, both were born as `rule.md`. Once they meet, Tisty leaves the name to the older one and gives the other the next free one, `rule-2.md`, without touching its words: both reach your agents. On the computer where the other one came from outside, it waits for its **Apply here** like any document from another computer. **Cursor** has no rules file of its own, so a new document in its folder also starts plain; bring its skills with **Bring another file**.
 
 **An example.** Marisol has Agents syncing and has just installed Gemini CLI. **Agents › Gemini** shows up in the sidebar, with its green compass, empty.
 
@@ -396,7 +398,7 @@ title: gemini · tisty-rules.md
 Answer in Spanish.
 ```
 
-If she later makes another **New document** in **Gemini**, that one starts plain: Marisol adds the new rule to the same document.
+If she later presses **New document** in **Gemini** again, that same document opens, and Marisol adds the new rule there.
 
 ![PROVISIONAL — A new document in Agents › Gemini, in English: at the top the trail Agents / Gemini; the labels Rule, Gemini and In sync; the name tisty-rules.md; the facts box with Read by Gemini and Written to ~/.gemini/tisty-rules.md with its copy button; below, the text Answer in Spanish.; in the sidebar, the Gemini subfolder with its green compass and inside it the document tisty-rules.md with a book icon](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/agents/en-18-new-document-gemini.png)
 
@@ -733,10 +735,9 @@ Tisty joins them by itself, without asking:
 - **What comes from the other computer waits** for its **Apply here**, like any document from another computer. If both brought their `CLAUDE.md`, you see both documents in **Claude**: yours keeps being written and the other waits; choose which one you keep and take the other out.
 - **An archived folder moves over whole** and stays archived: what it held is not written again.
 
-Two rare cases are left as they are:
+- **What arrives late comes in too.** If on the other computer you wrote a document in its **Global** right before it was joined, once that document arrives Tisty moves it into your **Global** by itself, without asking, and its file is never offered for taking away because of it.
 
-- If the folder that would go holds something an agent put there, Tisty does not join them, because moving it would make it look placed by you. Move that document to a folder of yours yourself and the join happens by itself on the next round.
-- If, right while they join, you write a new document into the other computer's folder that was already deleted, that document lands outside Agents. Move it into Agents and it applies as always.
+One rare case is left as it is: if the folder that would go holds something an agent put there, Tisty does not join them, because moving it would make it look placed by you. Move that document to a folder of yours yourself and the join happens by itself on the next round.
 
 ### Memory belongs to the computer that brought it
 

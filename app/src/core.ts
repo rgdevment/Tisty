@@ -1402,8 +1402,9 @@ export type Arrived = Doc & Left;
 export const docImport = (from: string, folder?: string): Promise<Arrived> =>
   invoke("doc_import", { from, folder });
 
-export const docNew = (folder?: string, pageOf?: string): Promise<Doc> =>
-  invoke("doc_new", { folder, pageOf });
+/// `existing`: «New document» in Codex or Gemini opens its one rules file instead; a caller that writes over what it gets never asks.
+export const docNew = (folder?: string, pageOf?: string, existing?: boolean): Promise<Doc> =>
+  invoke("doc_new", existing ? { folder, pageOf, existing } : { folder, pageOf });
 export const docOrder = (id: string, body: string): Promise<boolean> =>
   invoke("doc_order", { id, body });
 export const docPage = (id: string, pageOf?: string): Promise<void> =>
