@@ -392,7 +392,7 @@ fn pointed(name: &str) -> Option<&'static str> {
          and no tool here does any of them. Say it should not be done with `say_not_doing`, and \
          they decide; what you only read goes in `note`.";
     const LOOKING_BACK: &str = "What is finished is not somewhere else: `brain` reaches it with \
-         `scope` set to `archive`, or `either` for both at once. A task the person closed comes \
+         `scope` set to `archive`, or `either` for both at once. A task the person finished comes \
          back from `brain` like any other, and `read` says when and how it ended.";
     const LISTING: &str = "`brain` searches the tasks and the documents — by text, or by the \
          sifting fields alone — and with `folder` lists what is written there. `catch_up` is the \

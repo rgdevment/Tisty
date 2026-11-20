@@ -375,3 +375,42 @@ fn a_page_hung_under_a_hidden_task_s_page_is_read_as_one_nobody_has() {
         nothing.to_string()
     );
 }
+
+#[test]
+fn a_task_the_person_let_go_is_never_named_by_its_source() {
+    let served = Served::new();
+    let made = served.call(
+        "propose",
+        json!({ "title": "secret zebra gift", "source": "mail:77", "list": "Personal" }),
+    );
+    let task = made["structuredContent"]["id"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    served.person().drops(person::task(&task));
+
+    let found = served.call("brain", json!({ "source": "mail:77" }));
+    let proposed = served.call(
+        "propose",
+        json!({ "title": "otra", "source": "mail:77", "list": "Personal" }),
+    );
+
+    for said in [&found, &proposed] {
+        assert!(!said.to_string().contains("secret zebra"), "{said}");
+        assert!(!said.to_string().contains(&task), "{said}");
+        assert!(said.to_string().contains("let it go"), "{said}");
+    }
+    assert_eq!(
+        found["structuredContent"]["found"]["let_go"], true,
+        "{found}"
+    );
+    assert_eq!(
+        proposed["structuredContent"]["proposed"], false,
+        "{proposed}"
+    );
+    let again = served.call(
+        "propose",
+        json!({ "title": "otra vez", "source": "mail:77", "list": "Personal", "again": true }),
+    );
+    assert_eq!(again["structuredContent"]["proposed"], true, "{again}");
+}

@@ -210,6 +210,10 @@ impl Person {
         self.wrote(ops);
     }
 
+    pub fn drops(&self, id: TaskId) {
+        self.wrote(vec![Op::TaskDrop { id }]);
+    }
+
     pub fn hides(&self, id: TaskId) {
         self.wrote(vec![Op::TaskHide { id }]);
     }
