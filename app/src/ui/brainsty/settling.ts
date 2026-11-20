@@ -1,6 +1,6 @@
 import Graph from "graphology";
 import forceAtlas2 from "graphology-layout-forceatlas2";
-import type { Neuron } from "../../brainsty";
+import { type Neuron, TIES, type Tie } from "../../brainsty";
 
 export interface Spots {
   x: Float32Array;
@@ -9,6 +9,21 @@ export interface Spots {
 
 export interface Asked extends Spots {
   edges: Uint32Array;
+  weights?: Float32Array;
+}
+
+// What a person or an agent wrote pulls hardest; a tag barely, and folders, lists and guesses stay out of the layout.
+export const PULL: Readonly<Record<Tie, number>> = {
+  cite: 3,
+  mention: 3,
+  structure: 3,
+  uses: 1.5,
+  tag: 0.3,
+  member: 0,
+};
+
+export function weightsOf(edges: readonly [number, number, number][]): Float32Array {
+  return Float32Array.from(edges, ([, , code]) => PULL[TIES[code] ?? "tag"]);
 }
 
 export interface Step extends Spots {
@@ -63,13 +78,15 @@ export function edgesOf(edges: readonly [number, number, number][]): Uint32Array
   return flat;
 }
 
-export function graphOf({ x, y, edges }: Asked): Graph {
+export function graphOf({ x, y, edges, weights }: Asked): Graph {
   const graph = new Graph({ type: "undirected" });
   for (let n = 0; n < x.length; n++) graph.addNode(String(n), { x: x[n], y: y[n] });
   for (let n = 0; n < edges.length; n += 2) {
     const from = String(edges[n]);
     const to = String(edges[n + 1]);
-    if (from !== to && graph.hasNode(from) && graph.hasNode(to)) graph.mergeEdge(from, to);
+    if (from === to || !graph.hasNode(from) || !graph.hasNode(to)) continue;
+    const weight = weights?.[n / 2] ?? 1;
+    graph.updateEdge(from, to, (at) => ({ weight: Math.max(Number(at.weight ?? 0), weight) }));
   }
   return graph;
 }

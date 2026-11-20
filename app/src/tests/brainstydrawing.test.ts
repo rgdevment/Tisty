@@ -242,8 +242,8 @@ describe("the drawing of the network", () => {
     expect(solid(mention, {}, { zoom: 0 })).toBe(colour(mention, {}, { zoom: 0 }));
     expect(gap(mention, {}, { zoom: 1 })).toBe(mention.gap);
     expect(solid(mention, {}, { zoom: 1 })).toBe("rgba(0, 0, 0, 0)");
-    expect(colour(mention, {}, { zoom: 0 })).toBe("rgba(16, 32, 48, 0.175)");
-    expect(colour(mention, {}, { zoom: 1 })).toBe("rgba(16, 32, 48, 0.5)");
+    expect(colour(mention, {}, { zoom: 0 })).toBe("rgba(16, 32, 48, 0.227)");
+    expect(colour(mention, {}, { zoom: 1 })).toBe("rgba(16, 32, 48, 0.65)");
     expect(size(mention, {}, { zoom: 0 })).toBeLessThan(size(mention, {}, { zoom: 1 }) as number);
   });
 
@@ -392,7 +392,7 @@ describe("the drawing of the network", () => {
     expect(shown({ big: false }, { isPicked: true }, lit)).toBe("visible");
     expect(shown({ big: false }, { isHighlighted: true }, lit)).toBe("auto");
     expect(shown({ big: false }, {}, lit)).toBe("hidden");
-    expect(line(cite, {}, lit)).toBe("rgba(16, 32, 48, 0.066)");
+    expect(line(cite, {}, lit)).toBe("rgba(16, 32, 48, 0.084)");
   });
 
   it("hides what the filters leave out, with the lines that reach it", () => {

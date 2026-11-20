@@ -1,7 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 
-// The core sends each line's kind as its place in this list.
-export const TIES = ["cite", "mention", "structure", "tag", "uses"] as const;
+// The core sends each line's kind as its place in this list; «member», last, is the view's own, from a folder or list to what it holds.
+export const TIES = ["cite", "mention", "structure", "tag", "uses", "member"] as const;
 
 export type Tie = (typeof TIES)[number];
 

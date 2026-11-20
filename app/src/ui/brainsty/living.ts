@@ -1,21 +1,26 @@
-import type { Network } from "../../brainsty";
+import { type Network, TIES } from "../../brainsty";
 import type { Drawing } from "./drawing";
 import { PITCH_AT_MOST, type Turn } from "./globe";
 import { isGroup, laidEdges } from "./grouping";
 import { bigOnes, degreesOf, rgba } from "./looks";
 import { fitted, LAID } from "./overlays";
+import { PULL } from "./settling";
 import { ease, type Flash, setOut, stepped, type Traveller, type World } from "./travellers";
 
-const STEPS: readonly [below: number, travellers: number][] = [
-  [60, 2],
-  [100, 4],
-  [150, 6],
-  [250, 8],
+export interface Pace {
+  travellers: number;
+  hop: number;
+}
+
+const PACES: readonly [below: number, pace: Pace][] = [
+  [60, { travellers: 4, hop: 3 }],
+  [100, { travellers: 8, hop: 4 }],
+  [150, { travellers: 10, hop: 5 }],
+  [350, { travellers: 12, hop: 6 }],
 ];
 
-export const travellersFor = (nodes: number): number =>
-  STEPS.find(([below]) => nodes < below)?.[1] ?? 10;
-export const HOP_SECONDS = 5;
+export const paceFor = (nodes: number): Pace =>
+  PACES.find(([below]) => nodes < below)?.[1] ?? { travellers: 14, hop: 7 };
 const TURN_SECONDS = 60;
 const FLASH_SECONDS = 0.6;
 const LONGEST_STEP = 0.1;
@@ -45,13 +50,20 @@ const CLOCK: Clock = {
   cancel: (frame) => cancelAnimationFrame(frame),
 };
 
-function neighboursOf(network: Network): number[][] {
+function neighboursOf(network: Network): { near: number[][]; pull: Map<number, number>[] } {
   const near = network.nodes.map((): number[] => []);
-  for (const [from, to] of laidEdges(network)) {
-    near[from].push(to);
-    near[to].push(from);
+  const pull = network.nodes.map(() => new Map<number, number>());
+  for (const [from, to, code] of laidEdges(network)) {
+    const weight = PULL[TIES[code] ?? "tag"];
+    for (const [one, other] of [
+      [from, to],
+      [to, from],
+    ]) {
+      if (!pull[one].has(other)) near[one].push(other);
+      pull[one].set(other, Math.max(pull[one].get(other) ?? 0, weight));
+    }
   }
-  return near;
+  return { near, pull };
 }
 
 export function livingOn(
@@ -64,7 +76,7 @@ export function livingOn(
   const canvas = container.ownerDocument.createElement("canvas");
   Object.assign(canvas.style, LAID);
   container.append(canvas);
-  const near = neighboursOf(network);
+  const { near, pull } = neighboursOf(network);
   const big = bigOnes(degreesOf(network.nodes.length, laidEdges(network)));
   let hidden: readonly boolean[] = [];
   const onScreen = (node: number): boolean => {
@@ -80,6 +92,7 @@ export function livingOn(
   const walkable = (node: number) => !hidden[node] && near[node].length > 0;
   const world: World = {
     neighbours: (node) => near[node].filter((one) => !hidden[one]),
+    pull: (from, to) => pull[from].get(to) ?? 1,
     kindOf: (node) => network.nodes[node].kind,
     big: (node) => big[node],
     flashy: (node) => network.nodes[node].kind === "tag" || big[node],
@@ -111,7 +124,7 @@ export function livingOn(
   let counted = 0;
   let countedFrom = 0;
   let fps = 0;
-  const many = travellersFor(network.nodes.filter((one) => !isGroup(one.kind)).length);
+  const pace = paceFor(network.nodes.filter((one) => !isGroup(one.kind)).length);
 
   const painted = () => {
     const brush = canvas.getContext("2d");
@@ -215,9 +228,9 @@ export function livingOn(
       turn = { ...turn, yaw: turn.yaw + (seconds * 2 * Math.PI) / TURN_SECONDS };
     const fresh: Flash[] = [];
     if (travelling && travellers.length === 0)
-      travellers = Array.from({ length: many }, () => setOut(world.start()));
+      travellers = Array.from({ length: pace.travellers }, () => setOut(world.start()));
     if (travelling)
-      travellers = travellers.map((one) => stepped(world, one, seconds, HOP_SECONDS, fresh));
+      travellers = travellers.map((one) => stepped(world, one, seconds, pace.hop, fresh));
     flashes = [
       ...flashes
         .map((one) => ({ ...one, age: one.age + seconds }))

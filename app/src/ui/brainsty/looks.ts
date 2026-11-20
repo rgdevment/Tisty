@@ -65,11 +65,12 @@ const LINE: Record<
   Tie,
   { size: number; alpha: number; gap: number; tone: "soft" | "tag" | "file" }
 > = {
-  cite: { size: 1.2, alpha: 0.55, gap: 0, tone: "soft" },
-  mention: { size: 1, alpha: 0.5, gap: 4, tone: "soft" },
-  structure: { size: 0.7, alpha: 0.4, gap: 0, tone: "soft" },
-  tag: { size: 0.5, alpha: 0.22, gap: 0, tone: "tag" },
-  uses: { size: 0.6, alpha: 0.35, gap: 0, tone: "file" },
+  cite: { size: 1.4, alpha: 0.7, gap: 0, tone: "soft" },
+  mention: { size: 1.2, alpha: 0.65, gap: 4, tone: "soft" },
+  structure: { size: 1, alpha: 0.6, gap: 0, tone: "soft" },
+  tag: { size: 0.4, alpha: 0.15, gap: 0, tone: "tag" },
+  uses: { size: 0.6, alpha: 0.3, gap: 0, tone: "file" },
+  member: { size: 0.4, alpha: 0.12, gap: 0, tone: "soft" },
 };
 
 const LIVE = new Set(["open", "said_done", "said_dropped"]);
@@ -95,7 +96,7 @@ export function rgba(colour: string, alpha: number): string {
   const hex = /^#([0-9a-f]{6})$/i.exec(colour.trim());
   if (hex) {
     const n = Number.parseInt(hex[1], 16);
-    return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${alpha})`;
+    return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${Math.round(alpha * 1000) / 1000})`;
   }
   const inside = /^rgba?\(([^)]*)\)$/i.exec(colour.trim());
   const parts = inside?.[1].split(/[\s,/]+/).filter(Boolean) ?? [];
@@ -170,9 +171,17 @@ export function nodeLook(
   return {
     shape: shapeOf(neuron.kind),
     size,
-    color: rgba(tinted ?? baseOf(neuron.kind, palette), standing.alpha),
+    color: rgba(
+      tinted ?? baseOf(neuron.kind, palette),
+      standing.alpha * belongingFade(neuron.kind),
+    ),
   };
 }
+
+// A tag, a folder or a list only says where something belongs, so it stays behind what was written.
+const BELONGING = new Set<NeuronKind>(["tag", "folder", "list"]);
+
+export const belongingFade = (kind: NeuronKind): number => (BELONGING.has(kind) ? 0.6 : 1);
 
 export function degreesOf(count: number, edges: readonly (readonly number[])[]): number[] {
   const degrees = new Array<number>(count).fill(0);

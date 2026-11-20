@@ -17,7 +17,7 @@ import { type Living, livingOn } from "./brainsty/living";
 import { degreesOf, nodeLook, paletteNow } from "./brainsty/looks";
 import { type Overlays, overlaysOn } from "./brainsty/overlays";
 import Preview from "./brainsty/Preview";
-import { edgesOf, seeded } from "./brainsty/settling";
+import { edgesOf, seeded, weightsOf } from "./brainsty/settling";
 import { brainShaped } from "./brainsty/shape";
 import { EVERYTHING, found, hiddenBy, type Sift } from "./brainsty/sifting";
 import Toolbar from "./brainsty/Toolbar";
@@ -144,7 +144,8 @@ export default function Brainsty({ network, groups, onOpen, escaping }: Props) {
       find: () => finder.current?.focus(),
     });
     window.addEventListener("keydown", keyed);
-    const stop = layOut({ ...spots, edges: edgesOf(laidEdges(network)) }, (step) => {
+    const laid = laidEdges(network);
+    const stop = layOut({ ...spots, edges: edgesOf(laid), weights: weightsOf(laid) }, (step) => {
       const placed = brainShaped(amidMembers(step, network));
       drawn.place(placed);
       overlays.reshape(placed);

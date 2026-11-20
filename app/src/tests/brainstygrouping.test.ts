@@ -33,12 +33,12 @@ describe("folders and lists as nodes of the view", () => {
     expect(grown.near).toBe(2);
   });
 
-  it("ties each member to its folder or list as a part of it", () => {
+  it("ties each member to its folder or list by a line of belonging, the view's own", () => {
     expect(grown.edges).toEqual([
       [0, 3, 3],
-      [0, 4, 2],
-      [1, 4, 2],
-      [2, 5, 2],
+      [0, 4, 5],
+      [1, 4, 5],
+      [2, 5, 5],
     ]);
   });
 
