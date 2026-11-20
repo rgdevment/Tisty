@@ -304,10 +304,11 @@ const keep = (key: string, value: string | null) => {
   }
 };
 
-const motionsAtFirst = (): Motions => {
-  const calm = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
-  return { travel: !calm && kept(TRAVEL) !== "off", spin: !calm && kept(SPIN) !== "off" };
-};
+// Both come on until the person turns one off in the legend; the system's «reduce motion» no longer decides for them.
+const motionsAtFirst = (): Motions => ({
+  travel: kept(TRAVEL) !== "off",
+  spin: kept(SPIN) !== "off",
+});
 
 const PICTURES = {
   shows: pictured,

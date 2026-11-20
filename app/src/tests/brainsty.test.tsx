@@ -515,7 +515,7 @@ describe("Brainsty in the content panel", () => {
     expect(localStorage.getItem("tisty.brainstyTravellers")).toBeNull();
   });
 
-  it("keeps travellers and turning off when the computer asks for less motion", async () => {
+  it("starts with travellers and turning on, even when the computer asks for less motion", async () => {
     localStorage.clear();
     const asked = vi.spyOn(window, "matchMedia").mockReturnValue({
       matches: true,
@@ -524,7 +524,7 @@ describe("Brainsty in the content panel", () => {
 
     await userEvent.setup().click(screen.getByRole("button", { name: t("brainstyLegend") }));
     for (const name of [t("brainstyTravellers"), t("brainstyTurning")])
-      expect(screen.getByRole("switch", { name }).getAttribute("aria-checked")).toBe("false");
+      expect(screen.getByRole("switch", { name }).getAttribute("aria-checked")).toBe("true");
     asked.mockRestore();
   });
 
