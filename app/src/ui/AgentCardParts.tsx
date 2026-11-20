@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { type AgentDoc, fencedFile, type Here, type Place } from "../agentDocs";
 import { copied } from "../core";
 import { weigh } from "../format";
@@ -180,12 +181,13 @@ const keyOf = (row: FactRow): string => {
 interface Facts {
   readonly doc: AgentDoc;
   readonly body: string;
+  readonly children?: ReactNode;
   readonly onBackups: (place: Place) => void;
   readonly onError: (e: unknown) => void;
 }
 
 // The only place the file's facts are told: the page under it keeps only the words.
-export function AgentFacts({ doc, body, onBackups, onError }: Facts) {
+export function AgentFacts({ doc, body, onBackups, onError, children }: Facts) {
   return (
     <dl
       aria-label={t("agentFileTitle")}
@@ -194,6 +196,7 @@ export function AgentFacts({ doc, body, onBackups, onError }: Facts) {
       {agentRows(doc, body).map((row) => (
         <Fact key={keyOf(row)} row={row} onBackups={onBackups} onError={onError} />
       ))}
+      {children}
     </dl>
   );
 }

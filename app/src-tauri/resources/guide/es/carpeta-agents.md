@@ -170,7 +170,7 @@ Un documento de Agentes no se ve como un documento más: se abre para leer, en u
 
 - **las etiquetas**: **Regla**, **Skill** o **Memoria del agente**; **Global** o el asistente; y el estado, como **Al día**;
 - **el nombre**, **Cómo trabajo**; en una skill, su `description` va debajo, en gris;
-- **el cuadro de datos del archivo**: **Lo lee**, **Se escribe en** con su botón para copiar la ruta, **Tamaño**, **Respaldos** con **Ver**, **Formato**, **Última escritura**, **Original guardado**, **Sincroniza en este equipo** y, en filas chicas, las demás propiedades del archivo, como `disable-model-invocation`;
+- **el cuadro de datos del archivo**: **Lo lee**, **Se escribe en** con su botón para copiar la ruta, **Tamaño**, **Respaldos** con **Ver**, **Formato**, **Última escritura**, **Original guardado**, **Sincroniza en este equipo**, **Compartido** cuando el documento tiene un enlace compartido activo y, en filas chicas, las demás propiedades del archivo, como `disable-model-invocation`;
 - **el texto del agente**, tal como lo escribiste, con encabezados compactos y sin hoja aparte. Tisty no le impone secciones ni convierte su primera línea en un título, y el archivo sigue siendo el mismo, byte a byte;
 - **al pie, los botones**: **Editar**, **Respaldos**, **Historial**, **Copiar enlace** y **Pausar la sincronización con Claude**.
 

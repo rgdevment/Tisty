@@ -99,6 +99,7 @@ function Both({ doc, more, on }: { doc: AgentDoc; more: Shown; on: Hands }) {
   const card = {
     doc,
     file: "claude-rule.md",
+    id: "01R",
     editing: more.editing ?? false,
     locked: more.locked ?? false,
     ...on,
@@ -230,7 +231,7 @@ describe("an agent document's card", () => {
   });
 
   it("shows the file as it is now and closes it", async () => {
-    ipc.answer = () => Promise.resolve("Tests first.\n");
+    ipc.answer = (cmd) => Promise.resolve(cmd === "agent_doc" ? "Tests first.\n" : null);
     shown(card([place(OUTSIDE)]));
     await userEvent.click(screen.getByRole("button", { name: "See the file" }));
     await screen.findByTestId("file");
@@ -246,7 +247,9 @@ describe("an agent document's card", () => {
       { n: 1, bytes: 30, pinned: true },
     ];
     ipc.answer = (_cmd, args) =>
-      Promise.resolve((args.asked as { do: string }).do === "held" ? "Old words.\n" : null);
+      Promise.resolve(
+        (args.asked as { do: string } | undefined)?.do === "held" ? "Old words.\n" : null,
+      );
     shown(card([place({ state: "synced" }, { kept })]));
     expect(screen.getByText(/2 backups/)).toBeTruthy();
     await userEvent.click(screen.getByRole("button", { name: "See" }));
@@ -676,5 +679,42 @@ describe("the shape of an agent's card", () => {
     expect(row.className).toContain("justify-between");
     expect(within(row).getByText("Claude").closest("dd")?.className).toContain("text-right");
     expect(screen.getByText(AT).className).toContain("font-mono");
+  });
+});
+
+describe("an agent document's share on its card", () => {
+  const SHARE = {
+    read: "https://tisty.cl/a#k",
+    edit: null,
+    version: 1,
+    taken: false,
+    held: false,
+    told: [],
+    owner: null,
+    signer: null,
+    editors: [],
+    signsAs: null,
+    languages: [],
+  };
+
+  it("adds no Shared row while the document has no share", async () => {
+    shown(card([place({ state: "synced" })]));
+    await waitFor(() => expect(sent("doc_share_card")).toHaveLength(1));
+    expect(sent("doc_share_card")[0].args).toEqual({ id: "01R" });
+    expect(screen.queryByText("Shared")).toBeNull();
+  });
+
+  it("tells a share that still stands as one more fact, opens it and stops it from there", async () => {
+    ipc.answer = (cmd) => Promise.resolve(cmd === "doc_share_card" ? SHARE : null);
+    shown(card([place({ state: "synced" })]));
+    const label = await screen.findByText("Shared");
+    const row = label.parentElement as HTMLElement;
+    expect(row.className).toContain("justify-between");
+    expect(within(row).getByText("Read only")).toBeTruthy();
+    await userEvent.click(within(row).getByRole("button", { name: "See" }));
+    expect(within(row).getByText("https://tisty.cl/a#k")).toBeTruthy();
+    expect(within(row).getByRole("button", { name: "Stop sharing" })).toBeTruthy();
+    await userEvent.click(within(row).getByRole("button", { name: "Hide" }));
+    expect(within(row).queryByText("https://tisty.cl/a#k")).toBeNull();
   });
 });

@@ -467,6 +467,7 @@ const words = {
   ],
   agentCopyPath: ["Copy the path", "Copiar la ruta"],
   agentTrail: ["Folders", "Carpetas"],
+  agentSharedHide: ["Hide", "Ocultar"],
   agentCardActions: ["What you can do with this file", "Qué puedes hacer con este archivo"],
   agentNoCard: [
     "This document is not an agent document",

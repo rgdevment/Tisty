@@ -839,7 +839,7 @@ export default function Docs({
       </div>
     )
   );
-  const agentCard = cardFor(agent, open?.file, { locked: bolted, flush, held, reread, onError });
+  const agentCard = cardFor(agent, own, { locked: bolted, flush, held, reread, onError });
   const wall = { maxWidth: `${across}px` };
   const sheetOf = useMemo(
     () => (sheets ? sheetFor(leaf, landscape, t("sheetsBreak")) : undefined),

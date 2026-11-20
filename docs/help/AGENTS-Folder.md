@@ -397,6 +397,7 @@ A document in Agents does not look like one more document. It opens **for readin
 | **Last written** | When the file last changed | today, 19:37 |
 | **Original kept** | Whether backup #1 is there, the file as it was before Tisty touched it | Yes, before Tisty's first write |
 | **Syncs on this computer** | Whether Tisty keeps it up to date here | Yes; Yes, except Codex (paused); Tisty only reads it; No, Agents does not sync; No: it waits for «Apply here»; No: its text waits for your approval. With a proposal waiting, it adds «an agent's change waits for your approval» |
+| **Shared** | Only when the document has a live shared link: whether it can be read or edited, and **See** shows the links with their copy button and the usual actions, such as **Stop sharing**. See [Sharing](Documents#sharing) | Read only · See |
 | **The file's properties** | The other keys of its heading, in small key and value rows. When there are too many, or they are too long to read as fields, they show as written | `disable-model-invocation` true; `applyTo` `**/*.rs` |
 
 **Codex's cap.** Codex reads its `AGENTS.md` up to 32 KiB and leaves the rest unread. When the file nears that cap, the **Size** row says so in amber: «29 kB · close to the 32 KiB Codex reads». Past it, it says so in red: «33.8 kB · past the 32 KiB Codex reads: it leaves the rest unread». It is a good moment to move long rules into a skill.

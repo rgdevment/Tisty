@@ -5,7 +5,9 @@ import type { Folded } from "../core";
 import { fill, t } from "../locales";
 import { Action, AgentFacts, BackupsModal, FileModal, HereNote, Pill } from "./AgentCardParts";
 import AgentProposal from "./AgentProposal";
+import { SharedFact, SharedWindows } from "./AgentShared";
 import Glyph from "./Glyph";
+import { useSharedRow } from "./sharedRow";
 import { type AgentShelf, type CardHands, type CardProps, useAgentCard } from "./useAgentCard";
 
 const KIND = { rule: "agentRule", skill: "agentSkill", memory: "agentMemory" } as const;
@@ -142,6 +144,7 @@ function Notices({ hands }: { hands: CardHands }) {
 
 export default function AgentCard({ card, shelf, body }: Props) {
   const hands = useAgentCard(card, shelf);
+  const shared = useSharedRow(card.id, hands.failed, card.onKeep);
   const { doc } = card;
   const state = worst(doc.places);
   return (
@@ -166,8 +169,11 @@ export default function AgentCard({ card, shelf, body }: Props) {
       <h2 className="mt-2.5 text-[21px] font-medium text-ink">{doc.label}</h2>
       {doc.own.about && <p className="mt-0.5 text-[12.5px] text-soft">{doc.own.about}</p>}
       {hands.own && <p className="mt-1.5 text-[12.5px] text-soft">{t("agentMemoryOwn")}</p>}
-      <AgentFacts doc={doc} body={body} onBackups={hands.seeBackups} onError={hands.failed} />
+      <AgentFacts doc={doc} body={body} onBackups={hands.seeBackups} onError={hands.failed}>
+        <SharedFact shared={shared} />
+      </AgentFacts>
       <Notices hands={hands} />
+      <SharedWindows shared={shared} id={card.id} title={doc.label} onError={hands.failed} />
       {hands.kept && !hands.shown && (
         <BackupsModal
           place={hands.kept}

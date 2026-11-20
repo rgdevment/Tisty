@@ -170,7 +170,7 @@ A document in Agents does not look like one more document: it opens for reading,
 
 - **the labels**: **Rule**, **Skill** or **Agent memory**; **Global** or the assistant; and the standing, such as **In sync**;
 - **the name**, **How I work**; on a skill, its `description` sits under it, in grey;
-- **the file's facts box**: **Read by**, **Written to** with its button to copy the path, **Size**, **Backups** with **See**, **Format**, **Last written**, **Original kept**, **Syncs on this computer** and, in small rows, the file's other properties, such as `disable-model-invocation`;
+- **the file's facts box**: **Read by**, **Written to** with its button to copy the path, **Size**, **Backups** with **See**, **Format**, **Last written**, **Original kept**, **Syncs on this computer**, **Shared** when the document has a live shared link and, in small rows, the file's other properties, such as `disable-model-invocation`;
 - **the agent's text**, just as you wrote it, with compact headings and no separate sheet. Tisty imposes no sections on it and never turns its first line into a title, and the file stays the same, byte for byte;
 - **at the foot, the buttons**: **Edit**, **Backups**, **History**, **Copy link** and **Pause sync with Claude**.
 

@@ -28,6 +28,8 @@ export interface CardProps {
   readonly onSettle: () => Promise<void>;
   readonly onTaken: () => Promise<void>;
   readonly onError: (said: string) => void;
+  readonly id?: string;
+  readonly onKeep?: () => Promise<unknown> | undefined;
 }
 
 export type CardHands = ReturnType<typeof useAgentCard>;
@@ -46,11 +48,18 @@ interface Page {
   readonly onError: (said: string) => void;
 }
 
-export const cardFor = (agent: Opened, file: string | undefined, page: Page): CardProps | null =>
-  agent.doc && file
+interface Paper {
+  readonly id: string;
+  readonly file: string;
+}
+
+export const cardFor = (agent: Opened, paper: Paper | undefined, page: Page): CardProps | null =>
+  agent.doc && paper
     ? {
         doc: agent.doc,
-        file,
+        file: paper.file,
+        id: paper.id,
+        onKeep: page.flush,
         editing: agent.editing,
         locked: page.locked,
         onEdit: agent.onEdit,
@@ -58,7 +67,7 @@ export const cardFor = (agent: Opened, file: string | undefined, page: Page): Ca
           await page.flush();
           if (page.held.current) return Promise.reject({ code: "unsavedStays" });
         },
-        onTaken: () => page.reread(file),
+        onTaken: () => page.reread(paper.file),
         onError: page.onError,
       }
     : null;
