@@ -69,7 +69,41 @@ pub struct AgentDoc {
     places: Vec<Place>,
     /// An assistant's change waiting beside the approved text, shown as a comparison.
     proposal: Option<Box<super::agent_proposals::Proposal>>,
+    /// Words waiting for the person's approval: what changed since the last approval, and whose hand wrote them.
+    agreeing: Option<Box<Agreeing>>,
     own: agents::OwnFront,
+}
+
+#[derive(serde::Serialize, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct Agreeing {
+    hand: agents::Hand,
+    approved: &'static str,
+    lines: Vec<super::agents_sync::Line>,
+}
+
+fn agreeing_of(session: &Session, file: &str, body: &str) -> Option<Box<Agreeing>> {
+    let kept = session.state.docs.values().find(|one| one.file == file)?;
+    let said = agents::agreeing(
+        &session.state,
+        session.paths.data(),
+        kept,
+        body,
+        session.store.device(),
+    );
+    let (approved, lines) = match said.approved {
+        agents::Approved::Never => ("never", Vec::new()),
+        agents::Approved::Elsewhere => ("elsewhere", Vec::new()),
+        agents::Approved::Kept(was) => (
+            "kept",
+            super::agents_sync::compared(was.as_bytes(), body.as_bytes()),
+        ),
+    };
+    Some(Box::new(Agreeing {
+        hand: said.hand,
+        approved,
+        lines,
+    }))
 }
 
 fn named(id: &str) -> String {
@@ -392,6 +426,9 @@ pub(crate) fn card_of(
     let card = opened.card;
     Ok(Some(AgentDoc {
         proposal: super::agent_proposals::proposal_of(session, file, &opened.body).map(Box::new),
+        agreeing: (opened.here == Seen::NotAgreed)
+            .then(|| agreeing_of(session, file, &opened.body))
+            .flatten(),
         own: agents::own_front(&opened.body),
         kind: card.kind.word(),
         named: (card.level != agents::GLOBAL).then(|| named(&card.level)),

@@ -293,6 +293,20 @@ const words = {
     "Its text does not have your approval yet, so it reaches no agent until you approve it.",
     "Su texto aún no tiene tu aprobación, así que no llega a ningún agente hasta que lo apruebes.",
   ],
+  agentHandHere: ["Written on this computer.", "Se escribió en este equipo."],
+  agentHandElsewhere: ["Written on another computer.", "Se escribió en otro equipo."],
+  agentHandAgent: ["Written by an agent.", "Lo escribió un agente."],
+  agentHandEarlier: ["An earlier version came back.", "Volvió una versión anterior."],
+  agentHandOutside: ["Changed outside Tisty.", "Cambió fuera de Tisty."],
+  agentAgreeNow: ["Now", "Ahora"],
+  agentAgreeNever: [
+    "Never approved: read all of it before approving it.",
+    "Nunca se aprobó: léelo entero antes de aprobarlo.",
+  ],
+  agentAgreeElsewhere: [
+    "The words last approved are not kept on this computer, so there is nothing to compare them with: read all of it.",
+    "Lo último aprobado no está guardado en este equipo, así que no hay con qué compararlo: léelo entero.",
+  ],
   agentHerePlacedByAgent: [
     "An agent put it here, so no agent reads it until you move it yourself.",
     "Lo puso aquí un agente, así que ningún agente lo lee hasta que lo muevas tú.",

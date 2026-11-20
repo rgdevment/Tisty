@@ -111,7 +111,7 @@ function Notices({ hands }: { hands: CardHands }) {
         <p className="mt-3 text-[12.5px] text-soft">{t(doc.twin ? "agentTwin" : "agentNowhere")}</p>
       )}
       {doc.folderOff && <p className="mt-3 text-[12.5px] text-soft">{t("agentFolderOff")}</p>}
-      <HereNote here={doc.here} onTake={hands.take} onAgree={hands.agree} />
+      <HereNote here={doc.here} agreeing={doc.agreeing} onTake={hands.take} onAgree={hands.agree} />
       {proposal && (
         <AgentProposal
           proposal={proposal}

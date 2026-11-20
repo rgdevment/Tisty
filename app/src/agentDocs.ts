@@ -56,6 +56,14 @@ export interface Proposal {
   readonly lines: readonly Line[];
 }
 
+export type Hand = "here" | "elsewhere" | "agent" | "earlier" | "outside";
+
+export interface Agreeing {
+  readonly hand: Hand;
+  readonly approved: "never" | "kept" | "elsewhere";
+  readonly lines: readonly Line[];
+}
+
 export interface OwnFront {
   readonly about: string | null;
   readonly fields: readonly (readonly [string, string])[];
@@ -75,6 +83,7 @@ export interface AgentDoc {
   readonly print: string;
   readonly places: readonly Place[];
   readonly proposal: Proposal | null;
+  readonly agreeing?: Agreeing | null;
   readonly own: OwnFront;
 }
 

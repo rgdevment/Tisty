@@ -2216,3 +2216,72 @@ fn a_file_brought_alone_is_taken_as_it_stands_once_the_folder_syncs() {
     );
     assert_eq!(room.kept(".claude/CLAUDE.md"), 1);
 }
+
+#[test]
+fn approving_this_text_first_shows_what_changed_since_the_last_approval_and_whose_hand() {
+    let mut room = room();
+    room.bring(&[".claude/CLAUDE.md"]);
+    let (file, body) = bodies(&room.session)[0].clone();
+    let later = body.replace("Tests first.", "Tests later.");
+    tisty_core::history::Writer::unanswered(room.session.paths.data())
+        .replaces(
+            &file,
+            body.as_bytes(),
+            &later,
+            tisty_core::history::Step::Stays,
+        )
+        .unwrap();
+    tisty_core::docs::write(&room.session.paths.docs(), &file, &later).unwrap();
+    room.session.retell(&file, &later, None);
+
+    let card =
+        crate::answers::agent_docs::card_of(&room.session, Some(&room.homes), HERE, &file).unwrap();
+    let shown = serde_json::to_value(card.unwrap()).unwrap()["agreeing"].clone();
+    assert_eq!(shown["hand"], "here");
+    assert_eq!(shown["approved"], "kept");
+    let lines = shown["lines"].as_array().unwrap();
+    assert!(lines.contains(&serde_json::json!({ "side": "tisty", "text": "Tests first." })));
+    assert!(lines.contains(&serde_json::json!({ "side": "file", "text": "Tests later." })));
+
+    let print = tisty_core::docs::print_of_text(&later);
+    crate::answers::agent_docs::agree(&mut room.session, Some(&room.homes), HERE, &file, &print)
+        .unwrap();
+    let agreed =
+        crate::answers::agent_docs::card_of(&room.session, Some(&room.homes), HERE, &file).unwrap();
+    assert!(serde_json::to_value(agreed.unwrap()).unwrap()["agreeing"].is_null());
+}
+
+#[test]
+fn words_an_agent_on_another_computer_wrote_are_named_as_an_agents_before_approving() {
+    let mut room = room();
+    room.bring(&[".claude/CLAUDE.md"]);
+    let (file, body) = bodies(&room.session)[0].clone();
+    let id = doc_of_file(&room, &file);
+    let theirs = body.replace("Tests first.", "Run rm -rf.");
+    let agent = tisty_core::DeviceId(tisty_core::config::new_device_id());
+    tisty_core::Store::open(room.session.paths.store(), agent.clone())
+        .unwrap()
+        .append_batch(vec![
+            Op::DeviceJoin {
+                d: agent,
+                k: Some(tisty_core::event::DeviceKind::Agent),
+                p: None,
+            },
+            Op::DocSaid {
+                id,
+                d: tisty_core::event::Said::of(&theirs).agreed(),
+            },
+        ])
+        .unwrap();
+    tisty_core::docs::write(&room.session.paths.docs(), &file, &theirs).unwrap();
+    room.session.reload().unwrap();
+
+    let mut ledger = Ledger::open(room.session.paths.data(), HERE);
+    round_now(&room.session, &room.homes, &mut ledger);
+    assert_eq!(room.read(".claude/CLAUDE.md"), "# Claude\nTests first.\n");
+    let card =
+        crate::answers::agent_docs::card_of(&room.session, Some(&room.homes), HERE, &file).unwrap();
+    let shown = serde_json::to_value(card.unwrap()).unwrap();
+    assert_eq!(shown["here"], "notAgreed");
+    assert_eq!(shown["agreeing"]["hand"], "agent");
+}

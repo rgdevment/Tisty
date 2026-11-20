@@ -1,3 +1,4 @@
+mod agreeing;
 mod card;
 mod found;
 mod gate;
@@ -10,6 +11,7 @@ mod rooted;
 mod shown;
 mod standing;
 
+pub use agreeing::{Agreeing, Approved, Hand, agreeing};
 pub use card::{Card, Endings, GLOBAL, KEY, Kind, brought, doc_of, rendered};
 pub use found::{Found, Place, Skip, brought_in, found};
 pub use gate::{Admitted, Asked, Gate, Seen, gate, unclaimed};
