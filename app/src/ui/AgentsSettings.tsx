@@ -34,7 +34,7 @@ export default function AgentsSettings({ busy }: Readonly<{ busy: Which | null }
   const [look, setLook] = useState<AgentsLook>();
   const [trouble, setTrouble] = useState<Word>();
   const hidden = agentsHidden(useHidden(), state?.folder);
-  const stage = state ? agentsStage(state.folder, state, state.held) : null;
+  const stage = state ? agentsStage(state.folder, state) : null;
 
   // Before this computer's yes, only whether each assistant's folder exists is looked at.
   const looked = useCallback(() => {

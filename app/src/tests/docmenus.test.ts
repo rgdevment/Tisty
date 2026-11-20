@@ -240,13 +240,6 @@ describe("the menu inside AGENTS", () => {
 
   it("asks for the stage only on Agents' own menu, and counts unknown as syncing", async () => {
     const at = { folders: [folder, agentsRoot, agentsClaude], docs: [] } as unknown as Papers;
-    const held = {
-      folders: at.folders,
-      docs: [
-        { ...doc, folder: "a2" },
-        { ...other, folder: "a1", away: true },
-      ],
-    } as unknown as Papers;
     const then = vi.fn();
     stageFor(folder, at, then);
     expect(then).toHaveBeenLastCalledWith(null);
@@ -261,7 +254,9 @@ describe("the menu inside AGENTS", () => {
     stageFor(agentsRoot, at, then);
     await flush();
     expect(then).toHaveBeenLastCalledWith("unbrought");
-    stageFor(agentsRoot, held, then);
+    agentsAnswer.now = () =>
+      Promise.resolve({ folder: "a1", held: 1, consented: false, allOn: true, assistants: [] });
+    stageFor(agentsRoot, at, then);
     await flush();
     expect(then).toHaveBeenLastCalledWith("brought");
     agentsAnswer.now = () => Promise.reject({ code: "x" });

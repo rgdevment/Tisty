@@ -2,7 +2,6 @@ import { open as pick } from "@tauri-apps/plugin-dialog";
 import {
   AGENTS_CHANGED,
   type AgentsStage,
-  agentsHeld,
   agentsRoot,
   agentsStage,
   agentsState,
@@ -91,7 +90,7 @@ const agentsChoices = (h: Hands, folder: string | undefined, off = false): Choic
     ? [{ key: "agentsMore", icon: "↧", label: t("agentsMoreTitle"), off, onPick: bringMoreAgents }]
     : [];
 
-/// «Stop syncing»: the documents stay, no agent file is touched, and the folder is brought but not synced.
+// Only the switch moves: no agent file is touched and no document goes.
 export const stopSyncing = (h: Hands) =>
   agentsTurn(null, false)
     .then(() => {
@@ -122,10 +121,9 @@ export const stageFor = (
 ) => {
   const root = agentsRoot(papers.folders)?.id ?? null;
   if (root !== folder.id) return then(null);
-  const held = agentsHeld(papers.docs, papers.folders);
   // Unknown counts as syncing: stopping twice is harmless, hiding a folder that writes is not.
   agentsState()
-    .then((state) => then(agentsStage(root, state, held)))
+    .then((state) => then(agentsStage(root, state)))
     .catch(() => then("syncs"));
 };
 

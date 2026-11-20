@@ -5,7 +5,6 @@ import {
   AGENTS_FIRST,
   AGENTS_SYNC,
   type AgentsState,
-  agentsHeld,
   agentsLit,
   agentsPaint,
   agentsStage,
@@ -131,29 +130,16 @@ describe("the three stages, as pure answers", () => {
     expect(onlySwitchedOff(state({ consented: true }))).toBe(false);
   });
 
-  it("tells the stage from the folder, this computer's answer and what the folder holds", () => {
-    expect(agentsStage("A", state({ consented: true, allOn: false }), 2)).toBe("brought");
-    expect(agentsStage("A", state({ consented: true, allOn: true }), 0)).toBe("syncs");
-    expect(agentsStage("A", state({ consented: true, allOn: true }), 5)).toBe("syncs");
-    expect(agentsStage("A", state({ consented: false }), 1)).toBe("brought");
-    expect(agentsStage(null, state({ consented: true }), 3)).toBe("unbrought");
-    expect(agentsStage(null, null, 0)).toBe("unbrought");
-    expect(agentsStage("A", state({ consented: true, allOn: false }), 0)).toBe("brought");
-    expect(agentsStage("A", state({ consented: false }), 0)).toBe("unbrought");
-    expect(agentsStage("A", null, 4)).toBeNull();
-  });
-
-  it("counts the documents in the Agents tree, not those put away nor elsewhere", () => {
-    const folders = [root, folder("C", "claude", { parent: "A" }), folder("W", "trabajo")];
-    const docs = [
-      filed("1", "A"),
-      filed("2", "C"),
-      filed("3", "C", { away: true }),
-      filed("4", "W"),
-      filed("5", null),
-    ];
-    expect(agentsHeld(docs, folders)).toBe(2);
-    expect(agentsHeld(docs, [folder("W", "trabajo")])).toBe(0);
+  it("tells the stage from the folder, this computer's answer and what the core counts in it", () => {
+    expect(agentsStage("A", state({ consented: true, allOn: false, held: 2 }))).toBe("brought");
+    expect(agentsStage("A", state({ consented: true, allOn: true, held: 0 }))).toBe("syncs");
+    expect(agentsStage("A", state({ consented: true, allOn: true, held: 5 }))).toBe("syncs");
+    expect(agentsStage("A", state({ consented: false, held: 1 }))).toBe("brought");
+    expect(agentsStage(null, state({ consented: true, held: 3 }))).toBe("unbrought");
+    expect(agentsStage(null, null)).toBe("unbrought");
+    expect(agentsStage("A", state({ consented: true, allOn: false, held: 0 }))).toBe("brought");
+    expect(agentsStage("A", state({ consented: false, held: 0 }))).toBe("unbrought");
+    expect(agentsStage("A", null)).toBeNull();
   });
 
   it("paints coral only while it syncs", () => {
@@ -318,7 +304,7 @@ describe("Agents in the sidebar, brought but not synced", () => {
   });
 
   it("counts as brought when another computer brought it and this one never said yes", async () => {
-    ipc.state = state({ consented: false });
+    ipc.state = state({ consented: false, held: 1 });
     tree(held);
     expect(await screen.findByRole("button", { name: broughtName })).toBeTruthy();
   });

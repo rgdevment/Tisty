@@ -46,8 +46,8 @@ export default function AgentsKeeper() {
       .then((state) => {
         if (agentsLit(state)) return;
         if (!onlySwitchedOff(state)) return setAsking("first");
-        show(...agentsKeys(state.folder));
         return agentsTurn(null, true).then((round) => {
+          show(...agentsKeys(state.folder));
           changed();
           // What syncing finds on both sides, or left behind, is asked about at once.
           if (waitingOf(round).length > 0) setAsking((now) => now ?? "first");

@@ -1009,7 +1009,10 @@ pub fn stance(session: &Session, homes: &Homes, here: &str) -> Stance {
     Stance {
         folder: root.map(|at| at.to_string()),
         held: root.map_or(0, |at| {
-            docs_in(&session.state, &tree(&session.state, at)).len()
+            docs_in(&session.state, &tree(&session.state, at))
+                .into_iter()
+                .filter(|kept| !session.state.held_away(kept))
+                .count()
         }),
         consented: ledger.consented(),
         all_on: ledger.syncs(""),

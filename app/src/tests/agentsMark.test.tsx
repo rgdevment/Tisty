@@ -97,7 +97,7 @@ describe("the stage the sidebar draws", () => {
   });
 
   it("is brought when the folder holds documents and does not sync", async () => {
-    ipc.answer = () => Promise.resolve(state({ consented: false, allOn: false }));
+    ipc.answer = () => Promise.resolve(state({ consented: false, allOn: false, held: 2 }));
     const { result } = renderHook(() => useAgentsStage(withAgents(2)));
     await waitFor(() => expect(result.current.stage).toBe("brought"));
   });

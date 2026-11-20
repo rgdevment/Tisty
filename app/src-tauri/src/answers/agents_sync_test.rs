@@ -1893,3 +1893,13 @@ fn an_agents_882_left_on_keeps_syncing() {
     let more = room.bring_as(&[".codex/AGENTS.md"], None);
     assert!(more.syncs);
 }
+
+#[test]
+fn a_document_put_away_does_not_count_as_brought() {
+    let mut room = room();
+    room.bring_as(&[".claude/CLAUDE.md"], Some(false));
+    assert_eq!(stance(&room.session, &room.homes, HERE).held, 1);
+    let id = room.session.state.docs.values().next().unwrap().id;
+    room.session.commit(Op::DocArchive { id }).unwrap();
+    assert_eq!(stance(&room.session, &room.homes, HERE).held, 0);
+}

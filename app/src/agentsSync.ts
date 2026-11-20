@@ -111,24 +111,14 @@ export const agentsLit = (state: AgentsState): boolean =>
 export const onlySwitchedOff = (state: AgentsState): boolean =>
   !!state.folder && state.consented && !state.allOn;
 
-/// Nothing brought yet, brought but not synced, or synced: the three ways the sidebar draws Agents.
 export type AgentsStage = "unbrought" | "brought" | "syncs";
 
-/// Unknown while the state is still on its way; a folder brought from another computer counts as brought.
-export const agentsStage = (
-  root: string | null,
-  state: AgentsState | null,
-  held: number,
-): AgentsStage | null => {
+// The count comes from the core alone, so the sidebar and Settings never tell two stages apart.
+export const agentsStage = (root: string | null, state: AgentsState | null): AgentsStage | null => {
   if (!root) return "unbrought";
   if (!state) return null;
   if (agentsLit(state)) return "syncs";
-  return held > 0 || state.consented ? "brought" : "unbrought";
-};
-
-export const agentsHeld = (docs: readonly Filed[], folders: readonly Folded[]): number => {
-  const tree = agentsTree(folders);
-  return docs.filter((one) => !one.away && one.folder && tree.has(one.folder)).length;
+  return state.held > 0 || state.consented ? "brought" : "unbrought";
 };
 
 /// The coral is Agents' own, and only while it syncs: the purple belongs to Diagrams.
@@ -144,7 +134,6 @@ export const folderShown = (one: Pick<Folded, "parent" | "icon" | "name">): stri
 
 export const AGENTS_CHANGED = "tisty:agents-changed";
 export const AGENTS_FIRST = "tisty:agents-first";
-/// The first time where nothing was brought yet; once synced, what still waits for the person.
 export const askAgents = () => window.dispatchEvent(new Event(AGENTS_FIRST));
 export const AGENTS_SYNC = "tisty:agents-sync";
 /// «Sync», from the folder's line, its menu or the settings card: at once where this computer said yes, else the first time.

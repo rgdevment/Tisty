@@ -1,12 +1,5 @@
 import { useState } from "react";
-import {
-  agentsHeld,
-  agentsPaint,
-  agentsRoot,
-  agentsStage,
-  folderShown,
-  syncAgents,
-} from "../agentsSync";
+import { agentsPaint, agentsRoot, agentsStage, folderShown, syncAgents } from "../agentsSync";
 import type { Filed, Folded } from "../core";
 import { countedAs, dateOf, longAgo, shortStamp } from "../format";
 import { led } from "../leading";
@@ -53,7 +46,7 @@ export default function Folder({
   const root = agentsRoot(folders)?.id ?? null;
   const isAgents = !!folder && folder.id === root;
   const stance = useAgentsState(isAgents ? root : null);
-  const stage = isAgents ? agentsStage(root, stance, agentsHeld(docs, folders)) : null;
+  const stage = isAgents ? agentsStage(root, stance) : null;
   const fold = (id: string) =>
     setShut((was) => {
       const now = new Set(was);

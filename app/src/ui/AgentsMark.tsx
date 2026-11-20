@@ -3,7 +3,6 @@ import {
   AGENTS_CHANGED,
   type AgentsStage,
   type AgentsState,
-  agentsHeld,
   agentsRoot,
   agentsStage,
   agentsState,
@@ -43,6 +42,6 @@ export function useAgentsStage(papers: Papers): AgentsSeen {
   return {
     root,
     stance,
-    stage: agentsStage(root, stance, agentsHeld(papers.docs, papers.folders)),
+    stage: agentsStage(root, stance),
   };
 }
