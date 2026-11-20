@@ -29,7 +29,15 @@ pub fn root_of(state: &State) -> Option<FolderId> {
 }
 
 pub fn tree(state: &State, root: FolderId) -> BTreeSet<FolderId> {
-    let mut all = BTreeSet::from([root]);
+    grown(state, BTreeSet::from([root]))
+}
+
+// An AGENTS not yet joined still guards what it holds.
+pub fn trees(state: &State) -> BTreeSet<FolderId> {
+    grown(state, roots(state).into_iter().collect())
+}
+
+fn grown(state: &State, mut all: BTreeSet<FolderId>) -> BTreeSet<FolderId> {
     loop {
         let more: Vec<FolderId> = state
             .folders
@@ -44,11 +52,8 @@ pub fn tree(state: &State, root: FolderId) -> BTreeSet<FolderId> {
     }
 }
 
-// An AGENTS not yet joined still guards what it holds.
 pub fn holds_folder(state: &State, folder: FolderId) -> bool {
-    roots(state)
-        .into_iter()
-        .any(|root| tree(state, root).contains(&folder))
+    trees(state).contains(&folder)
 }
 
 pub fn holds(state: &State, kept: &Kept) -> bool {
@@ -57,9 +62,7 @@ pub fn holds(state: &State, kept: &Kept) -> bool {
 
 // A page sits wherever the document it belongs to sits.
 pub fn holding(state: &State) -> impl Fn(&Kept) -> bool + '_ {
-    let tree = root_of(state)
-        .map(|root| tree(state, root))
-        .unwrap_or_default();
+    let tree = trees(state);
     move |kept| {
         let up = kept.page_of.and_then(|up| state.docs.get(&up));
         [Some(kept), up]
