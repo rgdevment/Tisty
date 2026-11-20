@@ -2,8 +2,8 @@ import { createContext, useContext } from "react";
 import type { Filed, Folded, List, Snapshot, Task } from "./core";
 import { detailOf, erasing } from "./detailing";
 import { diaryToday } from "./diary";
-import { docChoices, folderChoices, type Hands, hereChoices, litFor } from "./docMenus";
-import { DIARY, hideChoice } from "./hiding";
+import { docChoices, folderChoices, type Hands, hereChoices, stageFor } from "./docMenus";
+import { AGENTS, DIARY, hideChoice } from "./hiding";
 import { layoutOf } from "./layout";
 import { type ListHands, listChoices } from "./listMenus";
 import { t } from "./locales";
@@ -137,14 +137,23 @@ export function deskOf(state: State, data: Snapshot) {
     setMenu({ at, label: t("docsActions"), choices: hereChoices(hands) });
 
   const folderMenu = (folder: Folded, at: { x: number; y: number }) =>
-    litFor(folder, papers.folders, (lit) =>
+    stageFor(folder, papers, (stage) =>
       setMenu({
         at,
         on: folder.id,
         label: t("folderActions"),
-        choices: folderChoices(folder, hands, lit),
+        choices: folderChoices(folder, hands, stage),
       }),
     );
+
+  // Agents with nothing brought yet has no folder, so its row's menu offers only to hide it.
+  const agentsMenu = (at: { x: number; y: number }) =>
+    setMenu({
+      at,
+      on: AGENTS,
+      label: t("agentsName"),
+      choices: [{ ...hideChoice(AGENTS), apart: false }],
+    });
 
   const diaryMenu = (at: { x: number; y: number }) =>
     setMenu({
@@ -249,6 +258,7 @@ export function deskOf(state: State, data: Snapshot) {
     hereMenu,
     folderMenu,
     diaryMenu,
+    agentsMenu,
     docMenu,
     shown,
     shut,

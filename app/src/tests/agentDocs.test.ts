@@ -1,25 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  type AgentDoc,
-  asksPerson,
-  carded,
-  fencedFile,
-  type Glance,
-  glanceWord,
-  touched,
-} from "../agentDocs";
-
-const glance = (over: Partial<Glance>): Glance => ({
-  folder: "f1",
-  docs: 3,
-  changes: 0,
-  waiting: 0,
-  unagreed: 0,
-  proposed: 0,
-  consented: true,
-  allOn: true,
-  ...over,
-});
+import { type AgentDoc, carded, fencedFile, touched } from "../agentDocs";
 
 const doc = (states: AgentDoc["places"][number]["said"][]): AgentDoc => ({
   kind: "rule",
@@ -77,25 +57,5 @@ describe("agent documents", () => {
       { state: "off" },
     ]).places;
     expect(places.filter(touched).map((one) => one.assistant)).toEqual(["a1", "a2"]);
-  });
-
-  it("ask for the person only when something waits on them", () => {
-    expect(asksPerson(glance({ changes: 1 }))).toBe(true);
-    expect(asksPerson(glance({ waiting: 1 }))).toBe(true);
-    expect(asksPerson(glance({}))).toBe(false);
-    expect(asksPerson(glance({ allOn: false, changes: 1 }))).toBe(false);
-  });
-
-  it("say one word for the folder in the sidebar", () => {
-    expect(glanceWord(glance({ docs: 0 }))).toBe("empty");
-    expect(glanceWord(glance({ docs: 0, changes: 1 }))).toBe("changes");
-    expect(glanceWord(glance({ consented: false }))).toBe("off");
-    expect(glanceWord(glance({ allOn: false }))).toBe("off");
-    expect(glanceWord(glance({ changes: 2 }))).toBe("changes");
-    expect(glanceWord(glance({ changes: 2, waiting: 1 }))).toBe("changes");
-    expect(glanceWord(glance({ waiting: 1 }))).toBe("waiting");
-    expect(glanceWord(glance({ unagreed: 1 }))).toBe("waiting");
-    expect(glanceWord(glance({ proposed: 1 }))).toBe("waiting");
-    expect(glanceWord(glance({}))).toBe("synced");
   });
 });

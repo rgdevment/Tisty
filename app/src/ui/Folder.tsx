@@ -1,10 +1,12 @@
 import { useState } from "react";
+import { agentsPaint, agentsRoot, agentsStage, folderShown, syncAgents } from "../agentsSync";
 import type { Filed, Folded } from "../core";
 import { countedAs, dateOf, longAgo, shortStamp } from "../format";
 import { led } from "../leading";
 import { fill, t } from "../locales";
 import { weighed } from "../previews";
 import { atRandom, type Recalled, useForgotten } from "../useForgotten";
+import { useAgentsState } from "./AgentsMark";
 import Glyph from "./Glyph";
 import { painted } from "./Hue";
 import { asksForMenu, menuAt } from "./menuKeys";
@@ -41,6 +43,10 @@ export default function Folder({
   const [shut, setShut] = useState<Set<string>>(new Set());
   const [allForgotten, setAllForgotten] = useState(false);
   const forgotten = useForgotten(docs, !folder);
+  const root = agentsRoot(folders)?.id ?? null;
+  const isAgents = !!folder && folder.id === root;
+  const stance = useAgentsState(isAgents ? root : null);
+  const stage = isAgents ? agentsStage(root, stance) : null;
   const fold = (id: string) =>
     setShut((was) => {
       const now = new Set(was);
@@ -96,8 +102,10 @@ export default function Folder({
     .join(" · ");
 
   const pages = (id: string) => docs.filter((one) => one.pageOf === id).length;
-  const folderName = (id: string | null) =>
-    folders.find((at) => at.id === id)?.name ?? t("unfiled");
+  const folderName = (id: string | null) => {
+    const one = folders.find((at) => at.id === id);
+    return one ? folderShown(one) : t("unfiled");
+  };
   const forgottenShown = allForgotten ? forgotten : forgotten.slice(0, FORGOTTEN_AT_A_GLANCE);
   const rolled = () => {
     atRandom(docs)
@@ -185,7 +193,7 @@ export default function Folder({
       <span className={`shrink-0 ${painted(one.color)}`}>
         <Glyph name={one.icon ?? "folder"} className="h-3.5 w-3.5" />
       </span>
-      <span className="truncate font-medium text-ink">{one.name}</span>
+      <span className="truncate font-medium text-ink">{folderShown(one)}</span>
       <span className="shrink-0 text-[11.5px] text-faint">
         {one.holds ? countedAs(one.holds, "paperIsOne", "papersAre") : t("folderEmpty")}
       </span>
@@ -243,7 +251,7 @@ export default function Folder({
                 onClick={() => onHere(up.id)}
                 className="cursor-pointer text-[11.5px] text-faint hover:text-soft"
               >
-                {up.name}
+                {folderShown(up)}
               </button>
             </span>
           ))}
@@ -268,15 +276,31 @@ export default function Folder({
           }}
           className="flex items-center gap-2.5 text-left disabled:cursor-default"
         >
-          <span className={folder ? painted(folder.color) : "text-faint"}>
+          <span
+            className={
+              isAgents ? agentsPaint(stage) : folder ? painted(folder.color) : "text-faint"
+            }
+          >
             <Glyph
               name={folder ? (folder.icon ?? "folder") : "inbox"}
               className="h-[19px] w-[19px]"
             />
           </span>
-          {folder ? folder.name : t("unfiled")}
+          {folder ? folderShown(folder) : t("unfiled")}
         </button>
       </h1>
+      {stage === "brought" && (
+        <p className="mt-1 text-[12.5px] text-faint">
+          {t("agentsNotSynced")} ·{" "}
+          <button
+            type="button"
+            onClick={syncAgents}
+            className="cursor-pointer text-accent underline-offset-2 hover:underline"
+          >
+            {t("agentsSync")}
+          </button>
+        </p>
+      )}
       <p className="mt-1 text-[12.5px] text-faint">
         {under.length + inside.length === 0 ? t("folderHoldsNothing") : said}
       </p>
@@ -293,7 +317,7 @@ export default function Folder({
               <button
                 type="button"
                 onClick={() => fold(one.id)}
-                aria-label={fill(closed ? "openFolder" : "closeFolder", one.name)}
+                aria-label={fill(closed ? "openFolder" : "closeFolder", folderShown(one))}
                 aria-expanded={!closed}
                 aria-controls={`holds-${one.id}`}
                 className="grid h-5 w-3 shrink-0 cursor-pointer place-items-center rounded-md text-[9px] text-faint hover:text-ink"

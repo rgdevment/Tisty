@@ -83,7 +83,7 @@ describe("the agents' documents in the legend", () => {
       palette,
     );
 
-    expect(legend.outside).toEqual({ color: "rgba(153, 153, 153, 0.6)", count: 1 });
+    expect(legend.outside).toEqual({ color: "rgba(153, 153, 153, 0.5)", count: 1 });
     expect(legend.groups.map((one) => one.id)).not.toContain("a1");
     expect(legendOf(network, groups, palette).outside).toBeNull();
   });

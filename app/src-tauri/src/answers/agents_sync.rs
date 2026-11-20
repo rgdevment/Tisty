@@ -245,11 +245,10 @@ pub fn looked(seen: &Gathered, homes: &Homes, found: &[Found]) -> Look {
         waiting: waiting_here(seen, homes),
         unagreed: seen.gate.unagreed(),
         proposed: seen.proposed,
-        asks: root.is_none()
-            || !ledger.consented()
-            || !both.is_empty()
-            || !loose.is_empty()
-            || !unled.is_empty(),
+        // Only a folder that syncs asks on its own; one brought but not synced opens like any other.
+        asks: ledger.consented()
+            && ledger.syncs("")
+            && (!both.is_empty() || !loose.is_empty() || !unled.is_empty()),
         consented: ledger.consented(),
         all_on: ledger.syncs(""),
         assistants,
@@ -647,6 +646,8 @@ pub struct Brought {
     pub made: usize,
     pub refused: Vec<Turned>,
     pub round: Rounded,
+    /// Whether the folder syncs once brought: «Bring» alone leaves every agent file as it is.
+    pub syncs: bool,
 }
 
 pub fn read_chosen(
@@ -791,9 +792,17 @@ fn undone(docs: &Path, made: &[(String, PathBuf)], why: tisty_core::Error) -> Re
 
 type Known = (Ledger, BTreeSet<String>, BTreeSet<PathBuf>);
 
-pub fn consented_here(session: &Session, homes: &Homes, here: &str) -> Answer<Known> {
+/// `sync` is the person's word: none keeps the switch, and a first yes without it never syncs.
+pub fn consented_here(
+    session: &Session,
+    homes: &Homes,
+    here: &str,
+    sync: Option<bool>,
+) -> Answer<Known> {
     let mut ledger = Ledger::open(session.paths.data(), here);
+    let syncs = sync.unwrap_or(ledger.consented() && ledger.syncs(""));
     ledger.consent(true);
+    ledger.turn_all(syncs);
     ledger.keep(session.paths.data()).map_err(refused)?;
     let gate = gated(session, &ledger);
     let writes = written_now(&ledger, &places::targets(homes, &gate, &ledger));
@@ -813,6 +822,7 @@ pub fn brought_home(
         made: made.len(),
         refused,
         round,
+        syncs: ledger.syncs(""),
     })
 }
 
@@ -985,6 +995,8 @@ pub struct Present {
 #[serde(rename_all = "camelCase")]
 pub struct Stance {
     pub folder: Option<String>,
+    /// Documents in the folder, so a folder brought on another computer reads as brought here too.
+    pub held: usize,
     pub consented: bool,
     pub all_on: bool,
     pub assistants: Vec<Present>,
@@ -993,8 +1005,15 @@ pub struct Stance {
 /// Whether AGENTS is on and which assistants have a folder here: before the person's yes, nothing inside one is looked at.
 pub fn stance(session: &Session, homes: &Homes, here: &str) -> Stance {
     let ledger = Ledger::open(session.paths.data(), here);
+    let root = root_of(&session.state);
     Stance {
-        folder: root_of(&session.state).map(|at| at.to_string()),
+        folder: root.map(|at| at.to_string()),
+        held: root.map_or(0, |at| {
+            docs_in(&session.state, &tree(&session.state, at))
+                .into_iter()
+                .filter(|kept| !session.state.held_away(kept))
+                .count()
+        }),
         consented: ledger.consented(),
         all_on: ledger.syncs(""),
         assistants: homes
@@ -1029,9 +1048,10 @@ pub fn agents_look(session: tauri::State<'_, Mutex<Session>>) -> Answer<Look> {
 pub fn agents_bring(
     session: tauri::State<'_, Mutex<Session>>,
     chosen: Vec<String>,
+    sync: Option<bool>,
 ) -> Answer<Brought> {
     let homes = homes()?;
-    let (ledger, known, writes) = consented_here(&held(&session), &homes, &here())?;
+    let (ledger, known, writes) = consented_here(&held(&session), &homes, &here(), sync)?;
     let chosen: BTreeSet<String> = chosen.into_iter().collect();
     let (read, refused) = read_chosen(&ledger, &found_here(&homes), &chosen, &known, &writes);
     brought_home(&mut held(&session), &homes, ledger, &read, refused)

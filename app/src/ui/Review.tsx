@@ -1,4 +1,5 @@
 import { type ReactNode, useEffect, useState } from "react";
+import { folderShown } from "../agentsSync";
 import { complete, discard, docAway, docUnflag, type Filed, type List, type Task } from "../core";
 import { useDesk } from "../desk";
 import { dayOf, daysFrom, longAgo, whenLabel } from "../format";
@@ -46,8 +47,10 @@ export default function Review() {
   const failed = (e: unknown) => setError(saidPlainly(e));
   const putAway = (one: Filed) => docAway(one.id, true).then(lookPapers).catch(failed);
   const openDoc = (one: Filed) => setChosen({ named: "docs", doc: one.file });
-  const folderOf = (one: Filed) =>
-    papers.folders.find((at) => at.id === one.folder)?.name ?? t("unfiled");
+  const folderOf = (one: Filed) => {
+    const at = papers.folders.find((each) => each.id === one.folder);
+    return at ? folderShown(at) : t("unfiled");
+  };
 
   return (
     <main className="scroller min-w-0 flex-1 px-7 pt-5 pb-8">

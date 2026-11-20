@@ -1,5 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import type { Filed, Folded } from "./core";
+import { t } from "./locales";
 
 export const AGENTS_ICON = "robot";
 export const AGENTS_MORE = "tisty:agents-more";
@@ -80,6 +81,7 @@ export interface Brought {
   made: number;
   refused: Refused[];
   round: Rounded;
+  syncs: boolean;
 }
 
 export interface AgentRow {
@@ -93,6 +95,7 @@ export interface AgentRow {
 
 export interface AgentsState {
   folder: string | null;
+  held: number;
   consented: boolean;
   allOn: boolean;
   assistants: { id: string; name: string }[];
@@ -100,27 +103,48 @@ export interface AgentsState {
 
 export const agentsState = (): Promise<AgentsState> => invoke("agents_state");
 
-/// Off while there is no folder, this computer never said yes, or its sync is switched off.
+/// Syncing needs the folder, this computer's yes and its switch on.
 export const agentsLit = (state: AgentsState): boolean =>
   !!state.folder && state.consented && state.allOn;
 
-/// Only a folder this computer already allowed switches back on; the rest goes through the first time.
+/// Only a folder this computer already allowed syncs at once; the rest goes through the first time.
 export const onlySwitchedOff = (state: AgentsState): boolean =>
   !!state.folder && state.consented && !state.allOn;
 
+export type AgentsStage = "unbrought" | "brought" | "syncs";
+
+// The count comes from the core alone, so the sidebar and Settings never tell two stages apart.
+export const agentsStage = (root: string | null, state: AgentsState | null): AgentsStage | null => {
+  if (!root) return "unbrought";
+  if (!state) return null;
+  if (agentsLit(state)) return "syncs";
+  return state.held > 0 || state.consented ? "brought" : "unbrought";
+};
+
+/// The coral is Agents' own, and only while it syncs: the purple belongs to Diagrams.
+export const agentsPaint = (stage: AgentsStage | null): string =>
+  stage === "syncs" ? "text-hue-coral" : "text-faint";
+
+export const isAgentsFolder = (one: Pick<Folded, "parent" | "icon" | "name">): boolean =>
+  !one.parent && one.icon === AGENTS_ICON && one.name === AGENTS_NAME;
+
+/// The folder keeps its stored name, which older builds look for; the window says it in the person's language.
+export const folderShown = (one: Pick<Folded, "parent" | "icon" | "name">): string =>
+  isAgentsFolder(one) ? t("agentsName") : one.name;
+
 export const AGENTS_CHANGED = "tisty:agents-changed";
-export const AGENTS_ASLEEP = "tisty:agents-asleep";
-export const AGENTS_LIGHT = "tisty:agents-light";
-/// The short notice an AGENTS that is off answers with: what was found, and turn on, not now or hide.
-export const askToLight = () => window.dispatchEvent(new Event(AGENTS_ASLEEP));
-/// Turning on straight away, as the notice's «Turn on» and the settings card do.
-export const lightAgents = () => window.dispatchEvent(new Event(AGENTS_LIGHT));
+export const AGENTS_FIRST = "tisty:agents-first";
+export const askAgents = () => window.dispatchEvent(new Event(AGENTS_FIRST));
+export const AGENTS_SYNC = "tisty:agents-sync";
+/// «Sync», from the folder's line, its menu or the settings card: at once where this computer said yes, else the first time.
+export const syncAgents = () => window.dispatchEvent(new Event(AGENTS_SYNC));
 
 export const agentsLook = (): Promise<AgentsLook> => invoke("agents_look");
 export const agentsRows = (only?: string[]): Promise<AgentRow[]> =>
   invoke("agents_rows", { only: only ?? null });
-export const agentsBring = (chosen: string[]): Promise<Brought> =>
-  invoke("agents_bring", { chosen });
+/// `sync` is null to keep the switch as it is, as «Bring another file» does.
+export const agentsBring = (chosen: string[], sync: boolean | null): Promise<Brought> =>
+  invoke("agents_bring", { chosen, sync });
 export const agentsKeep = (at: string, tisty: boolean): Promise<Rounded> =>
   invoke("agents_keep", { at, tisty });
 export const agentsTurn = (assistant: string | null, on: boolean): Promise<Rounded> =>
@@ -133,13 +157,7 @@ export const agentsLead = (): Promise<Rounded> => invoke("agents_lead");
 
 export const agentsRoot = (folders: readonly Folded[]): Folded | undefined =>
   folders
-    .filter(
-      (one) =>
-        one.parent === null &&
-        !one.archived &&
-        one.icon === AGENTS_ICON &&
-        one.name === AGENTS_NAME,
-    )
+    .filter((one) => one.parent === null && !one.archived && isAgentsFolder(one))
     .sort((a, b) => a.id.localeCompare(b.id))[0];
 
 export const agentsTree = (folders: readonly Folded[]): Set<string> => {

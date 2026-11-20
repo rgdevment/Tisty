@@ -29,6 +29,8 @@ export interface LineLook {
   alpha: number;
 }
 
+export const AGENTS_HUE = "coral";
+
 export const HUE_KEYS = [
   "red",
   "orange",
@@ -105,6 +107,8 @@ export function rgba(colour: string, alpha: number): string {
 export function paletteFrom(read: (name: string) => string): Palette {
   const hues: Record<string, string> = {};
   for (const key of HUE_KEYS) hues[key] = read(`--tisty-hue-${key}`);
+  // Agents' own hue, never one a folder can pick, so zones and choices keep the eleven.
+  hues[AGENTS_HUE] = read(`--tisty-hue-${AGENTS_HUE}`);
   return {
     bg: read("--tisty-bg"),
     ink: read("--tisty-ink"),
@@ -143,9 +147,9 @@ export const crowding = (count: number): number =>
   Math.min(1, Math.sqrt(ROOMY / Math.max(count, 1)));
 
 // What Tisty keeps in step with the agents' own files is theirs, so it stays small and quiet beside the person's.
-export const OUTSIDE = { scale: 0.6, alpha: 0.6, lines: 0.4 } as const;
+export const OUTSIDE = { scale: 0.6, alpha: 0.5, lines: 0.4 } as const;
 
-export const outsideTone = (palette: Palette): string => palette.faint;
+export const outsideTone = (palette: Palette): string => palette.hues[AGENTS_HUE] || palette.faint;
 
 export function nodeLook(
   neuron: Neuron,

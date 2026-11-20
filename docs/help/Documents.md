@@ -120,7 +120,7 @@ It helps when:
 
 If you hid none, the section says «No folder is hidden.».
 
-![The Hidden folders section of Settings › General in English: the title Hidden folders, the line Folders hidden from the sidebar on this computer. They keep everything they hold, and search, the palette and Move to still find them., and three rows, AGENTS, Home and Work / Clients, each with the button Show again on the right](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/agents/en-15-hidden-folders.png)
+![The Hidden folders section of Settings › General in English: the title Hidden folders, the line Folders hidden from the sidebar on this computer. They keep everything they hold, and search, the palette and Move to still find them., and three rows, Agents with its grey robot, Home and Work / Clients, each with the button Show again on the right](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/agents/en-15-hidden-folders.png)
 
 **An example.** On the work computer, right-click **Home** and choose **Hide from the sidebar**: **Home** and everything inside it, such as **Home / Rina**, leave the sidebar. One afternoon Marisol asks you for Rina's vaccination card. You type it in the search at the top of the sidebar and it shows up, even though **Home** is hidden, and you open it from there. On the home computer, **Home** is still in the sidebar as always.
 
@@ -132,7 +132,7 @@ Worth knowing:
 - **A subfolder on its own.** You can hide **Work / Clients** and leave **Work** in view. Its row in Hidden folders names the whole path, so you know which one it is.
 - **The Diary and Ideas too.** Right-click **Diary** or **Ideas** and choose **Hide from the sidebar**. In Hidden folders they show by name, and **Show again** puts them back at the top of the Library.
 - **An archived folder does not hide.** On the **Archived** shelf the choice shows greyed out: it is already out of your way.
-- **AGENTS hides only while off.** On, its right-click offers **Turn AGENTS off** instead of hiding; off, its notice offers **Hide**. Hidden, AGENTS stays off: it writes none of your agents' files, and a proposal from your agent is only kept until you show it again and turn it on. [Hiding it from the sidebar](AGENTS-Folder#hiding-it-from-the-sidebar) tells it.
+- **Agents hides only while it does not sync.** With nothing brought yet or brought but not synced, its right-click offers **Hide from the sidebar**; while syncing it does not, and you choose **Stop syncing** first. Hidden, Agents does not sync: it writes none of your agents' files. [Hiding it from the sidebar](AGENTS-Folder#hiding-it-from-the-sidebar) tells it.
 
 ## Tags
 

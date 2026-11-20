@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef } from "react";
-import { agentsTree } from "../agentsSync";
+import { agentsTree, folderShown, isAgentsFolder } from "../agentsSync";
 import { taskStepMarked } from "../citing";
 import { discard, patch, sow } from "../core";
 import { seeing, useDesk } from "../desk";
@@ -12,6 +12,7 @@ import { title } from "../views";
 import About from "./About";
 import Board from "./Board";
 import BrainstyView, { openedHere } from "./BrainstyView";
+import { AGENTS_HUE } from "./brainsty/looks";
 import Detail from "./Detail";
 import Docs from "./Docs";
 import Folder from "./Folder";
@@ -79,6 +80,8 @@ export default function Stage() {
     () => [
       ...papers.folders.map((one) => ({
         ...one,
+        name: folderShown(one),
+        color: isAgentsFolder(one) ? AGENTS_HUE : one.color,
         kind: "folder" as const,
         agents: agentsFolders.has(one.id),
       })),
