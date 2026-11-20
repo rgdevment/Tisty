@@ -28,6 +28,8 @@ pub struct Ledger {
     applied: BTreeMap<String, BTreeSet<String>>,
     #[serde(default)]
     led: BTreeSet<String>,
+    #[serde(default)]
+    waits: BTreeSet<String>,
 }
 
 impl Ledger {
@@ -40,13 +42,7 @@ impl Ledger {
 
     // A ledger copied from another computer carries that computer's consent, never this one's.
     pub fn open(data: &Path, here: &str) -> Self {
-        let at = super::folder(data).join(NAMED);
-        let read = std::fs::metadata(&at)
-            .ok()
-            .filter(|meta| meta.len() <= READ_AT_MOST)
-            .and_then(|_| std::fs::read(&at).ok())
-            .and_then(|bytes| serde_json::from_slice::<Self>(&bytes).ok());
-        match read {
+        match Self::read(data) {
             Some(ledger) if ledger.machine == here => ledger,
             Some(_) => {
                 witness::warn(
@@ -58,6 +54,24 @@ impl Ledger {
             }
             None => Self::fresh(here),
         }
+    }
+
+    /// This computer's ledger, or none when the one kept here was written on another computer.
+    pub fn mine(data: &Path, here: &str) -> Option<Self> {
+        match Self::read(data) {
+            Some(ledger) if ledger.machine != here => None,
+            Some(ledger) => Some(ledger),
+            None => Some(Self::fresh(here)),
+        }
+    }
+
+    fn read(data: &Path) -> Option<Self> {
+        let at = super::folder(data).join(NAMED);
+        std::fs::metadata(&at)
+            .ok()
+            .filter(|meta| meta.len() <= READ_AT_MOST)
+            .and_then(|_| std::fs::read(&at).ok())
+            .and_then(|bytes| serde_json::from_slice::<Self>(&bytes).ok())
     }
 
     pub fn keep(&self, data: &Path) -> Result<(), Refused> {
@@ -111,6 +125,18 @@ impl Ledger {
         };
         out.remove(file);
         into.insert(file.to_string());
+        self.waits.remove(file);
+    }
+
+    // Once a document waited here, approving its words here still leaves the choice to «apply here».
+    pub fn wait_all<'a>(&mut self, files: impl IntoIterator<Item = &'a str>) -> bool {
+        let before = self.waits.len();
+        self.waits.extend(files.into_iter().map(str::to_string));
+        self.waits.len() != before
+    }
+
+    pub fn waits(&self, file: &str) -> bool {
+        self.waits.contains(file)
     }
 
     // What the person's hand let in here stays taken after another computer is the last to approve it.

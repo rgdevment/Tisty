@@ -56,6 +56,7 @@ pub struct Gate {
     seen: BTreeMap<String, Seen>,
     held: BTreeSet<String>,
     carded: BTreeSet<String>,
+    unclaimed: BTreeSet<String>,
 }
 
 impl Gate {
@@ -73,6 +74,11 @@ impl Gate {
 
     pub fn held(&self, file: &str) -> bool {
         self.held.contains(file)
+    }
+
+    /// Agent documents whose words came from another computer and this one has not yet taken or left.
+    pub fn unclaimed(&self) -> impl Iterator<Item = &str> {
+        self.unclaimed.iter().map(String::as_str)
     }
 
     /// Agent documents whose words wait for the person's approval.
@@ -116,6 +122,9 @@ pub fn gate(asked: &Asked) -> Gate {
         let (seen, admitted, carded) = weighed(asked, kept);
         if carded {
             gate.carded.insert(kept.file.clone());
+        }
+        if carded && matches!(seen, Seen::WaitingHere | Seen::NotAgreed) && unclaimed(asked, kept) {
+            gate.unclaimed.insert(kept.file.clone());
         }
         gate.seen.insert(kept.file.clone(), seen);
         gate.admitted.extend(admitted);
@@ -168,7 +177,8 @@ fn admitted(
     if ledger.left(&kept.file) {
         return (Seen::DeclinedHere, None);
     }
-    let agreed_here = kept.agreed_by.as_ref() == Some(*me);
+    // Words approved here count as applied here only for a document that never waited on this computer.
+    let agreed_here = kept.agreed_by.as_ref() == Some(*me) && !ledger.waits(&kept.file);
     if !(ledger.took(&kept.file) || agreed_here) {
         return (Seen::WaitingHere, None);
     }
@@ -178,6 +188,16 @@ fn admitted(
         card,
     };
     (Seen::Admitted, Some(admitted))
+}
+
+// Words last approved elsewhere, or never approved and made elsewhere, are another computer's until this one chooses.
+fn unclaimed(asked: &Asked, kept: &Kept) -> bool {
+    let me = Some(asked.me);
+    let elsewhere = match &kept.agreed_by {
+        Some(by) => Some(by) != me,
+        None => kept.made_by.as_ref() != me,
+    };
+    elsewhere && !asked.ledger.took(&kept.file) && !asked.ledger.left(&kept.file)
 }
 
 fn person(state: &State, who: Option<&DeviceId>) -> bool {

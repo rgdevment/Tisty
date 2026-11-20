@@ -1903,3 +1903,100 @@ fn a_document_put_away_does_not_count_as_brought() {
     room.session.commit(Op::DocArchive { id }).unwrap();
     assert_eq!(stance(&room.session, &room.homes, HERE).held, 0);
 }
+
+// A Global rule from the laptop, seen once by a round here, so this computer is asked about it.
+fn waiting_from_the_laptop(room: &mut Room) -> (String, String) {
+    room.bring(&[".claude/CLAUDE.md"]);
+    let file = from_another_computer(room, agents::Kind::Rule, "style.md", "Spanish.\n");
+    let mut ledger = Ledger::open(room.session.paths.data(), HERE);
+    round_now(&room.session, &room.homes, &mut ledger);
+    assert_eq!(room.look().waiting, 1);
+    let body = tisty_core::docs::read(&room.session.paths.docs(), &file).unwrap();
+    (file, body)
+}
+
+fn still_waits_then_applies(room: &mut Room, file: &str, said: &str) {
+    let mut ledger = Ledger::open(room.session.paths.data(), HERE);
+    round_now(&room.session, &room.homes, &mut ledger);
+    assert_eq!(room.read(".claude/CLAUDE.md"), "# Claude\nTests first.\n");
+    assert_eq!(room.look().waiting, 1, "the card still offers «apply here»");
+
+    crate::answers::agent_docs::take_here(&room.session, Some(&room.homes), HERE, file, true)
+        .unwrap();
+    assert_eq!(
+        room.read(".claude/CLAUDE.md"),
+        format!("{said}\n# Claude\nTests first.\n")
+    );
+}
+
+#[test]
+fn approving_a_proposal_on_a_second_computer_changes_the_words_but_never_applies_them_there() {
+    use crate::answers::agent_proposals::approve;
+    let mut room = room();
+    let (file, body) = waiting_from_the_laptop(&mut room);
+    let print = proposed(
+        &mut room,
+        &file,
+        &body.replace("Spanish.", "Always Spanish."),
+    );
+
+    let over = tisty_core::docs::print_of_text(&body);
+    approve(&mut room.session, &file, &print, &over).unwrap();
+
+    still_waits_then_applies(&mut room, &file, "Always Spanish.\n");
+}
+
+#[test]
+fn approving_this_text_on_a_second_computer_never_applies_it_there() {
+    use crate::answers::agent_docs::agree;
+    let mut room = room();
+    let (file, body) = waiting_from_the_laptop(&mut room);
+    let unapproved = body.replace("Spanish.", "Spanish, briefly.");
+    tisty_core::docs::write(&room.session.paths.docs(), &file, &unapproved).unwrap();
+    room.session.retell(&file, &unapproved, None);
+    let mut ledger = Ledger::open(room.session.paths.data(), HERE);
+    round_now(&room.session, &room.homes, &mut ledger);
+    assert_eq!(room.look().unagreed, 1);
+
+    let print = tisty_core::docs::print_of_text(&unapproved);
+    agree(&mut room.session, Some(&room.homes), HERE, &file, &print).unwrap();
+
+    assert_eq!(room.look().unagreed, 0);
+    still_waits_then_applies(&mut room, &file, "Spanish, briefly.\n");
+}
+
+#[test]
+fn restoring_a_version_on_a_second_computer_never_applies_it_there() {
+    let mut room = room();
+    let (file, body) = waiting_from_the_laptop(&mut room);
+    let earlier = body.replace("Spanish.", "Spanish, as it was.");
+
+    crate::answers::earlier::put_back(&mut room.session, &file, &earlier).unwrap();
+
+    still_waits_then_applies(&mut room, &file, "Spanish, as it was.\n");
+}
+
+#[test]
+fn a_document_is_marked_to_wait_before_its_words_are_approved_even_with_no_round_yet() {
+    let mut room = room();
+    room.bring(&[".claude/CLAUDE.md"]);
+    let file = from_another_computer(&mut room, agents::Kind::Rule, "style.md", "Spanish.\n");
+    let data = room.session.paths.data().to_path_buf();
+
+    waits_marked(&room.session, "another-computer", &file);
+    assert!(
+        Ledger::open(&data, HERE).consented(),
+        "another computer's ledger is never written over"
+    );
+    assert!(!Ledger::open(&data, HERE).waits(&file));
+
+    waits_marked(&room.session, HERE, &file);
+    assert!(Ledger::open(&data, HERE).waits(&file));
+
+    let (mine, _) = bodies(&room.session)
+        .into_iter()
+        .find(|(one, _)| *one != file)
+        .unwrap();
+    waits_marked(&room.session, HERE, &mine);
+    assert!(!Ledger::open(&data, HERE).waits(&mine));
+}

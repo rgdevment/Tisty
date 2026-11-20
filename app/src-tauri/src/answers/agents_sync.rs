@@ -85,6 +85,27 @@ pub fn gated(session: &Session, ledger: &Ledger) -> Gate {
     })
 }
 
+/// A document that waits here keeps waiting once its words are approved here: only «apply here» takes it.
+pub(crate) fn waits_marked(session: &Session, here: &str, file: &str) {
+    let in_agents = session
+        .state
+        .docs
+        .values()
+        .find(|one| one.file == file)
+        .is_some_and(|kept| agents::holds(&session.state, kept));
+    if here.is_empty() || !in_agents {
+        return;
+    }
+    let data = session.paths.data();
+    let Some(mut ledger) = Ledger::mine(data, here) else {
+        return;
+    };
+    let gate = gated(session, &ledger);
+    if ledger.wait_all(gate.unclaimed()) {
+        let _ = ledger.keep(data);
+    }
+}
+
 // Another computer's memory never stands for this one's, so its file here can still be brought.
 fn addresses(bodies: &[(String, String)], gate: &Gate) -> BTreeSet<String> {
     bodies
@@ -554,7 +575,8 @@ fn round_after(
 ) -> Rounded {
     let data = session.paths.data();
     let gate = gated(session, ledger);
-    if ledger.taken_all(gate.admitted().iter().map(agents::Admitted::file)) {
+    let taken = ledger.taken_all(gate.admitted().iter().map(agents::Admitted::file));
+    if ledger.wait_all(gate.unclaimed()) | taken {
         let _ = ledger.keep(session.paths.data());
     }
     let placed = places::targets(homes, &gate, ledger);
