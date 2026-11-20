@@ -49,7 +49,9 @@ interface Props {
   acting?: string | null;
   onOpen: (doc: Filed) => void;
   onDiary?: () => void;
+  onIdeas?: () => void;
   onDiaryMenu?: (at: { x: number; y: number }) => void;
+  onIdeasMenu?: (at: { x: number; y: number }) => void;
   onAgentsMenu?: (at: { x: number; y: number }) => void;
   onFile: (doc: string, folder?: string, before?: string) => void;
   onPage?: (doc: string, pageOf: string) => void;
@@ -72,7 +74,9 @@ export default function Tree({
   acting,
   onOpen,
   onDiary,
+  onIdeas,
   onDiaryMenu,
+  onIdeasMenu,
   onAgentsMenu,
   onFile,
   onPage,
@@ -411,6 +415,7 @@ export default function Tree({
 
   const pin = papers.docs.find((one) => one.file === pinned && !one.away && !one.pageOf);
   const pinShown = pin && !veiled(BRAINSTORM) ? pin : undefined;
+  const ideasUnborn = !pin && Boolean(onIdeas) && !unfolded && !veiled(BRAINSTORM);
 
   const drawnUnder = (parent: string | null) =>
     under(parent).filter(
@@ -425,6 +430,7 @@ export default function Tree({
   // Only a row the tree draws can hold the tab stop: a page or a book folded away never would.
   const first =
     pinShown?.id ??
+    (ideasUnborn ? BRAINSTORM : undefined) ??
     (diaryShown ? DIARY : undefined) ??
     drawnUnder(null)[0]?.id ??
     (unborn ? AGENTS : undefined) ??
@@ -784,6 +790,48 @@ export default function Tree({
     );
   };
 
+  // With no idea written yet, Ideas still stands in the library, and opening it makes the sheet.
+  const ideasRow = () => (
+    <li key={BRAINSTORM} className="relative">
+      <div
+        className="group/row relative flex items-center rounded-md has-[:focus-visible]:bg-hover"
+        onContextMenu={(e) => {
+          if (!onIdeasMenu) return;
+          e.preventDefault();
+          onIdeasMenu({ x: e.clientX, y: e.clientY });
+        }}
+      >
+        <span
+          aria-hidden="true"
+          className="ml-2 grid h-5 w-[18px] shrink-0 place-items-center text-faint"
+        >
+          <Glyph name="idea" className="brainstorm-mark h-[14px] w-[14px]" />
+        </span>
+        <button
+          type="button"
+          data-row={BRAINSTORM}
+          tabIndex={stops(BRAINSTORM) ? 0 : -1}
+          onFocus={() => setReached(BRAINSTORM)}
+          onKeyDown={(e) => {
+            if (onIdeasMenu && (e.key === "ContextMenu" || (e.shiftKey && e.key === "F10"))) {
+              e.preventDefault();
+              const box = e.currentTarget.getBoundingClientRect();
+              return onIdeasMenu({ x: box.left + 24, y: box.bottom });
+            }
+            if (e.key !== "ArrowDown" && e.key !== "ArrowUp") return;
+            e.preventDefault();
+            walk(BRAINSTORM, e.key === "ArrowDown" ? 1 : -1);
+          }}
+          aria-keyshortcuts={onIdeasMenu ? "Shift+F10" : undefined}
+          onClick={onIdeas}
+          className="flex min-w-0 flex-1 items-center gap-1.5 rounded-md py-1 pl-1.5 pr-2 text-left text-[13px] text-soft hover:bg-hover"
+        >
+          <span className="truncate">{t("brainstorm")}</span>
+        </button>
+      </div>
+    </li>
+  );
+
   const diary = (onToday: () => void) => {
     const holds = (book: Filed) =>
       book.file === open || pagesOf(book.id).some((one) => one.file === open);
@@ -1031,6 +1079,7 @@ export default function Tree({
         </li>
       )}
       {pinShown && paper(pinShown, 0)}
+      {ideasUnborn && ideasRow()}
       {onDiary && diaryShown && diary(onDiary)}
       {drawnUnder(null).flatMap((folder) => [branch(folder, 0)])}
       {unborn && unbornRow()}

@@ -1,9 +1,10 @@
 import { createContext, useContext } from "react";
+import { brainstormBegun } from "./brainstorm";
 import type { Filed, Folded, List, Snapshot, Task } from "./core";
 import { detailOf, erasing } from "./detailing";
 import { diaryToday } from "./diary";
 import { docChoices, folderChoices, type Hands, hereChoices, stageFor } from "./docMenus";
-import { AGENTS, DIARY, hideChoice } from "./hiding";
+import { AGENTS, BRAINSTORM, DIARY, hideChoice } from "./hiding";
 import { layoutOf } from "./layout";
 import { type ListHands, listChoices } from "./listMenus";
 import { t } from "./locales";
@@ -163,6 +164,14 @@ export function deskOf(state: State, data: Snapshot) {
       choices: [{ ...hideChoice(DIARY), apart: false }],
     });
 
+  const ideasMenu = (at: { x: number; y: number }) =>
+    setMenu({
+      at,
+      on: BRAINSTORM,
+      label: t("brainstorm"),
+      choices: [{ ...hideChoice(BRAINSTORM), apart: false }],
+    });
+
   const docMenu = (doc: Filed, at: { x: number; y: number }) =>
     setMenu({
       at,
@@ -237,6 +246,14 @@ export function deskOf(state: State, data: Snapshot) {
       })
       .catch((e) => setError(saidPlainly(e)));
 
+  const toIdeas = () =>
+    brainstormBegun(t("brainstorm"))
+      .then((sheet) => {
+        papersChanged();
+        choose({ named: "docs", doc: sheet });
+      })
+      .catch((e) => setError(saidPlainly(e)));
+
   return {
     ...state,
     data,
@@ -258,6 +275,7 @@ export function deskOf(state: State, data: Snapshot) {
     hereMenu,
     folderMenu,
     diaryMenu,
+    ideasMenu,
     agentsMenu,
     docMenu,
     shown,
@@ -269,6 +287,7 @@ export function deskOf(state: State, data: Snapshot) {
     opening,
     choose,
     toDiary,
+    toIdeas,
   };
 }
 

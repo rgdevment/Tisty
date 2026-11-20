@@ -15,6 +15,9 @@ export const jot = (idea: string, title: string): Promise<Jotted> => invoke("jot
 
 export const brainstormOf = (): Promise<Pinned | null> => invoke("brainstorm_of");
 
+export const brainstormBegun = (title: string): Promise<string> =>
+  invoke("brainstorm_begun", { title });
+
 export const ideaToDoc = (file: string, idea: string, heading: string): Promise<void> =>
   invoke("idea_to_doc", { file, idea, heading });
 

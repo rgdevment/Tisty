@@ -38,8 +38,10 @@ interface Props {
   onFile: (doc: string, folder?: string, before?: string) => void;
   onPage?: (doc: string, pageOf: string) => void;
   onDiary?: () => void;
+  onIdeas?: () => void;
   onBrainsty?: () => void;
   onDiaryMenu?: (at: { x: number; y: number }) => void;
+  onIdeasMenu?: (at: { x: number; y: number }) => void;
   onAgentsMenu?: (at: { x: number; y: number }) => void;
   onFolderMenu: (folder: Folded, at: { x: number; y: number }) => void;
   onDocMenu: (doc: Filed, at: { x: number; y: number }) => void;
@@ -69,8 +71,10 @@ export default function Sidebar({
   onFile,
   onPage,
   onDiary,
+  onIdeas,
   onBrainsty,
   onDiaryMenu,
+  onIdeasMenu,
   onAgentsMenu,
   onFolderMenu,
   onDocMenu,
@@ -158,7 +162,9 @@ export default function Sidebar({
             onFile={onFile}
             onPage={onPage}
             onDiary={onDiary}
+            onIdeas={onIdeas}
             onDiaryMenu={onDiaryMenu}
+            onIdeasMenu={onIdeasMenu}
             onAgentsMenu={onAgentsMenu}
             onFolderMenu={onFolderMenu}
             onDocMenu={onDocMenu}
