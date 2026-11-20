@@ -203,6 +203,7 @@ describe("thumbnails and overlays", () => {
       zoom: () => 0.4,
       toScreen: (point: [number, number]) => point,
       nodeOnScreen: () => undefined,
+      turned: () => false,
       onFrame: (listener: () => void) => {
         frame = listener;
         return unhook;

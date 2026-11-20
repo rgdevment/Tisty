@@ -68,7 +68,7 @@ export function overlaysOn(
   const frame = () => {
     fitted(canvas, container);
     const zoom = drawing.zoom();
-    paintZones(canvas, zones, drawing.toScreen, hues, zonesShown(zoom));
+    paintZones(canvas, zones, drawing.toScreen, hues, drawing.turned() ? 0 : zonesShown(zoom));
     thumbs.place(
       (node) => (hidden[node] ? undefined : drawing.nodeOnScreen(node)),
       thumbsShown(zoom),

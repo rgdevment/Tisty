@@ -4,6 +4,7 @@ import { createServer, type Plugin } from "vite";
 import { defineConfig } from "vitest/config";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
+import { globeShaders } from "./src/ui/brainsty/globeShader";
 
 const host = process.env.TAURI_DEV_HOST;
 
@@ -31,7 +32,8 @@ const lightViewer: Plugin = {
 };
 
 export default defineConfig(async () => ({
-  plugins: [react(), tailwindcss(), lightViewer],
+  plugins: [react(), tailwindcss(), lightViewer, globeShaders],
+  optimizeDeps: { rolldownOptions: { plugins: [globeShaders] } },
 
   test: {
     environment: "jsdom",

@@ -2,6 +2,7 @@ import type Graph from "graphology";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Network } from "../brainsty";
 import { drawNetwork } from "../ui/brainsty/drawing";
+import { depthOf, radiusOf, rotated, trigOf } from "../ui/brainsty/globe";
 import { type Palette, paletteFrom } from "../ui/brainsty/looks";
 
 type Styled = (
@@ -43,6 +44,12 @@ const drawn = vi.hoisted(() => ({
   killed: 0,
   shown: true,
   raw: false,
+  spread: false,
+  gl: {
+    useProgram: (_: unknown) => undefined,
+    getUniformLocation: (_: unknown, name: string) => name,
+    uniform4f: () => undefined,
+  },
   scheduled: 0,
 }));
 
@@ -53,8 +60,16 @@ vi.mock("sigma", () => ({
       drawn.graph = graph;
       drawn.options = options;
     }
-    getNodeDisplayData() {
+    webGLContext = drawn.gl;
+    getNodeDataTexture() {
+      return { getIndex: (key: string) => Number(key) };
+    }
+    framedGraphToViewport({ x, y }: { x: number; y: number }) {
+      return { x: x * 10, y: y * 10 };
+    }
+    getNodeDisplayData(key: string) {
       if (!drawn.shown) return undefined;
+      if (drawn.spread) return { x: 0.5 + Number(key) * 0.01, y: 0.5 };
       return drawn.raw ? { x: 412, y: -96 } : { x: 0.25, y: 0.75 };
     }
     scheduleRender() {
@@ -134,6 +149,7 @@ beforeEach(() => {
   drawn.killed = 0;
   drawn.shown = true;
   drawn.raw = false;
+  drawn.spread = false;
   drawn.scheduled = 0;
   drawn.shared = [];
   drawn.states = [];
@@ -307,17 +323,6 @@ describe("the drawing of the network", () => {
     expect(drawn.events.afterRender).toHaveLength(0);
   });
 
-  it("centres the camera on a node it can see, and leaves it be otherwise", () => {
-    const drawing = drawNetwork(document.body, network, spots, () => undefined, light, "Inter");
-    rendered();
-
-    drawing.centre(1);
-    drawn.shown = false;
-    drawing.centre(5);
-
-    expect(drawn.camera.set).toEqual([expect.objectContaining({ x: 0.25, y: 0.75 })]);
-  });
-
   it("lights a node with its neighbours and dims the rest", () => {
     const drawing = drawNetwork(document.body, network, spots, () => undefined, light, "Inter");
     const colour = nodeStyle("color");
@@ -388,25 +393,44 @@ describe("the drawing of the network", () => {
     expect(drawn.events.clickNode).toHaveLength(0);
   });
 
+  it("on a turned globe, gives a click to the node in front among those under the pointer", () => {
+    drawn.spread = true;
+    const drawing = drawNetwork(document.body, network, spots, () => undefined, light, "Inter");
+    const hands = { pick: vi.fn(), open: vi.fn(), clear: vi.fn() };
+    drawing.heed(hands);
+    const turn = { yaw: 1.3, pitch: 0.4 };
+    drawing.turn(turn);
+    drawn.gl.useProgram({} as never);
+    expect(drawing.turned()).toBe(true);
+    const places = [0, 1, 2].map((n) => ({ x: 0.5 + n * 0.01, y: 0.5 }));
+    const radius = radiusOf(places);
+    const nearness = places.map(
+      (at, n) => rotated(at.x, at.y, depthOf(at.x, at.y, n, radius), radius, trigOf(turn)).near,
+    );
+    const front = nearness.indexOf(Math.max(...nearness));
+    const back = nearness.indexOf(Math.min(...nearness));
+    const at = drawing.nodeOnScreen(back) ?? [0, 0];
+
+    for (const one of drawn.events.clickNode)
+      one({ node: String(back), event: { x: at[0], y: at[1] } } as never);
+    for (const one of drawn.events.doubleClickNode)
+      one({ node: String(back), preventSigmaDefault: () => undefined } as never);
+
+    expect(front).not.toBe(back);
+    expect(hands.pick).toHaveBeenCalledWith(front);
+    expect(hands.open).toHaveBeenCalledWith(back);
+  });
+
   it("waits for sigma to frame the places it was given before the camera follows a node", () => {
     drawn.raw = true;
     const drawing = drawNetwork(document.body, network, spots, () => undefined, light, "Inter");
     expect(drawn.scheduled).toBe(1);
 
-    drawing.centre(1);
-    expect(drawn.camera.set).toEqual([]);
-    drawn.raw = false;
-    rendered();
-    expect(drawn.camera.set).toEqual([{ x: 0.25, y: 0.75, ratio: expect.any(Number) }]);
-
-    drawn.camera.set = [];
     drawing.place({ x: Float32Array.of(500, 600, 700), y: Float32Array.of(7, 8, 9) });
     drawn.raw = true;
     drawing.focus(1);
-    drawing.centre(2);
     expect(drawn.camera.set).toEqual([]);
     drawn.raw = false;
-    rendered();
     rendered();
     expect(drawn.camera.set).toEqual([{ x: 0.25, y: 0.75, ratio: expect.any(Number) }]);
 
