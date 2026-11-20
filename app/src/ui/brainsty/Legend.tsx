@@ -171,7 +171,7 @@ function Toggle({
       role="switch"
       aria-checked={on}
       onClick={onTurn}
-      className="flex items-center gap-2 rounded px-0.5 text-soft hover:text-ink"
+      className="flex items-center gap-2 rounded-md px-0.5 text-soft hover:text-ink"
     >
       <span
         aria-hidden="true"

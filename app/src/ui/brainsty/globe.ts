@@ -119,6 +119,7 @@ export interface Spinning {
   turn: (next: Turn | null) => void;
   turned: () => boolean;
   framed: (key: string) => { x: number; y: number } | undefined;
+  nearness: (key: string) => number;
   moved: () => void;
 }
 
@@ -176,6 +177,11 @@ export function spinning(sigma: Spinnable, keys: () => readonly string[]): Spinn
       if (!laid || slot === undefined) return sigma.getNodeDisplayData(key);
       const spun = rotated(laid.x[slot], laid.y[slot], laid.z[slot], radius, trig);
       return { x: spun.x, y: spun.y };
+    },
+    nearness: (key) => {
+      const slot = turned() ? laid?.slot.get(key) : undefined;
+      if (!laid || slot === undefined) return 1;
+      return rotated(laid.x[slot], laid.y[slot], laid.z[slot], radius, trig).near;
     },
     moved: () => {
       laid = null;

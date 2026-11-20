@@ -73,6 +73,7 @@ interface Line {
 
 const CLEAR = "rgba(0, 0, 0, 0)";
 const FOCUS_RATIO = 0.12;
+const PICK_PX = 10;
 const FAR_SHARE = 0.35;
 const DIM = 0.12;
 
@@ -194,6 +195,7 @@ export function drawNetwork(
     },
   });
   const camera = sigma.getCamera();
+  let gone = new Set<string>();
   const spin = spinning(sigma, () => graph.nodes());
   let zoom = quantized(zoomOf(camera.ratio));
   sigma.setGraphState({ zoom });
@@ -293,8 +295,9 @@ export function drawNetwork(
       sigma.setGraphState({ hasHighlighted: lit.nodes.length > 0 });
     },
     hide: (hidden) => {
-      const [gone, kept] = split(graph.nodes(), (key) => Boolean(hidden[Number(key)]));
-      sigma.setNodesState(gone, { isHidden: true });
+      const [hiding, kept] = split(graph.nodes(), (key) => Boolean(hidden[Number(key)]));
+      gone = new Set(hiding);
+      sigma.setNodesState(hiding, { isHidden: true });
       sigma.setNodesState(kept, { isHidden: false });
       const [cut, whole] = split(graph.edges(), (edge) =>
         graph.extremities(edge).some((key) => hidden[Number(key)]),
@@ -305,10 +308,31 @@ export function drawNetwork(
     beside: (node) =>
       graph.hasNode(String(node)) ? graph.neighbors(String(node)).map(Number) : [],
     heed: (hands) => {
-      const picked = ({ node }: { node: string }) => hands.pick(Number(node));
-      const opened = (said: { node: string; preventSigmaDefault: () => void }) => {
+      // With no order by depth on the turned globe, a node behind can be drawn over the one in front.
+      const frontmost = (node: string, at?: { x: number; y: number }): number => {
+        if (!at || !spin.turned()) return Number(node);
+        let best = node;
+        let nearest = spin.nearness(node);
+        for (const key of graph.nodes()) {
+          if (gone.has(key)) continue;
+          const shown = spin.framed(key);
+          if (!shown) continue;
+          const spot = sigma.framedGraphToViewport(shown);
+          if (Math.abs(spot.x - at.x) > PICK_PX || Math.abs(spot.y - at.y) > PICK_PX) continue;
+          const near = spin.nearness(key);
+          if (near > nearest) [best, nearest] = [key, near];
+        }
+        return Number(best);
+      };
+      const picked = (said: { node: string; event?: { x: number; y: number } }) =>
+        hands.pick(frontmost(said.node, said.event));
+      const opened = (said: {
+        node: string;
+        event?: { x: number; y: number };
+        preventSigmaDefault: () => void;
+      }) => {
         said.preventSigmaDefault();
-        hands.open(Number(said.node));
+        hands.open(frontmost(said.node, said.event));
       };
       sigma.on("clickNode", picked);
       sigma.on("doubleClickNode", opened);

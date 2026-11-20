@@ -272,7 +272,7 @@ export default function Brainsty({ network, groups, onOpen, escaping }: Props) {
         costShown={costShown}
         cost={cost}
       />
-      <p className="pointer-events-none absolute bottom-3 left-3 text-[11.5px] text-faint">
+      <p className="pointer-events-none absolute bottom-3 left-3 max-w-[calc(100%-24px)] truncate rounded-md bg-bg/70 px-1.5 text-[11.5px] text-faint">
         {t("brainstyKeys")}
       </p>
     </div>
