@@ -55,7 +55,7 @@ Si todavía no tienes archivos de agentes, el aviso dice «No encontré archivos
 
 **Pruébalo:** haz clic en **Agentes**, en gris en tu barra, para ver qué asistentes encuentra en este equipo. Si solo querías mirar, la X la deja como estaba. Lo mismo está en **Configuración → Asistentes**, en la tarjeta **Agentes**: antes de traer nada dice qué asistentes encontró y ofrece **Traer**, **Traer y sincronizar** y **Ocultar**; traída, **Sincronizar**, **Traer otro archivo** y **Ocultar**; sincronizando, **Traer otro archivo**, **Dejar de sincronizar** y un interruptor por asistente, como **Sincronizar Claude**.
 
-Después, en la barra lateral, cada documento se ve con su nombre y un icono: un libro para una regla, una pieza para una skill y un cerebro para la memoria. Pasa el puntero sobre uno y ves de qué archivo es.
+Después, en la barra lateral, **Global** lleva un globo azul y cada asistente un símbolo propio en gris: un globo de conversación para Claude, una terminal para Codex, unas llaves para Copilot, una brújula para Gemini y un puntero para Cursor. Cada documento se ve con su nombre y un icono: un libro para una regla, una pieza para una skill y un cerebro para la memoria. Pasa el puntero sobre uno y ves de qué archivo es.
 
 ![La barra lateral con la carpeta Agentes abierta y sincronizando: el robot en coral y el nombre Agentes, sin ninguna palabra a la derecha; en Claude, la regla Cómo trabajo con el icono de un libro, la skill pr con el icono de una pieza y 3 archivos, y la memoria MEMORY.md con el icono de un cerebro; el puntero sobre Cómo trabajo muestra claude · CLAUDE.md](agents-barra.png)
 
@@ -117,7 +117,7 @@ Lo mismo pasa con el `AGENTS.md` de Codex, el `copilot-instructions.md` de Copil
 
 ## Una skill con su `SKILL.md`
 
-Una skill es una carpeta con un `SKILL.md` y, a veces, scripts. Cada archivo es un documento con la misma carpeta de skill en su línea `agent:`. El `SKILL.md` lleva además sus propias propiedades, que la ficha muestra como campos:
+Una skill es una carpeta con un `SKILL.md` y, a veces, scripts. Cada archivo es un documento con la misma carpeta de skill en su línea `agent:`. El `SKILL.md` lleva además sus propias propiedades: la ficha toma su `name` como nombre, pone su `description` debajo y el resto en su cuadro de datos, así que el texto empieza donde empieza lo que lee tu agente:
 
 ```markdown title="El SKILL.md de la skill pr"
 ---
@@ -164,18 +164,19 @@ No toca nada más de ese archivo, y si la línea ya está, no la repite.
 
 **Si borras esa línea**, Tisty lo toma como tu decisión y no la vuelve a poner. Gemini queda **En pausa**, y Tisty deja de escribir `tisty-rules.md`. La ficha de cada regla que Gemini lee te lo dice: «Gemini no lee esta regla: falta la línea @tisty-rules.md en GEMINI.md, y Tisty no la vuelve a poner sola.». También lo dicen **Configuración → Asistentes**, bajo **Sincronizar Gemini**, y el aviso **Falta la línea de Tisty** al entrar en Agentes. **Volver a ponerla**, en cualquiera de los tres, agrega otra vez la línea al final de `GEMINI.md` y Gemini vuelve a recibir tus reglas.
 
-## La ficha y el panel Archivo del agente
+## La ficha de un documento de agente
 
-Un documento de Agentes se abre para leer, con una **ficha** arriba:
+Un documento de Agentes no se ve como un documento más: se abre para leer, en una sola **ficha**, sin columna al lado. Arriba, el camino de carpetas, como «Agentes / Claude», y después:
 
-- las etiquetas: **Regla**, **Skill** o **Memoria del agente**; **Global** o el asistente; y el estado, como **Al día**;
-- el nombre, **Cómo trabajo**, y debajo, en pequeño, la ruta, `CLAUDE.md`;
-- una fila por archivo: «Claude lo lee en `~/.claude/CLAUDE.md`», con cuándo cambió y sus respaldos;
-- los botones **Editar**, **Respaldos** y **Pausar la sincronización con Claude**.
+- **las etiquetas**: **Regla**, **Skill** o **Memoria del agente**; **Global** o el asistente; y el estado, como **Al día**;
+- **el nombre**, **Cómo trabajo**; en una skill, su `description` va debajo, en gris;
+- **el cuadro de datos del archivo**: **Lo lee**, **Se escribe en** con su botón para copiar la ruta, **Tamaño**, **Respaldos** con **Ver**, **Formato**, **Última escritura**, **Original guardado**, **Sincroniza en este equipo**, **Compartido** cuando el documento tiene un enlace compartido activo y, en filas chicas, las demás propiedades del archivo, como `disable-model-invocation`;
+- **el texto del agente**, tal como lo escribiste, con encabezados compactos y sin hoja aparte. Tisty no le impone secciones ni convierte su primera línea en un título, y el archivo sigue siendo el mismo, byte a byte;
+- **al pie, los botones**: **Editar**, **Respaldos**, **Historial**, **Copiar enlace** y **Pausar la sincronización con Claude**.
 
-Al lado, el panel **Archivo del agente** ocupa el lugar del tamaño de hoja y del índice: **Lo lee**, **Se escribe en**, **Formato**, **Última escritura**, **Respaldos**, **Original guardado** y **Sincroniza en este equipo**, con **Copiar enlace** y, cuando ya tiene versiones anteriores, **Historial**.
+Codex lee su `AGENTS.md` solo hasta 32 KiB. Cuando el archivo se acerca a ese tope, **Tamaño** lo dice en ámbar, «cerca de los 32 KiB que lee Codex», y si lo pasa, en rojo: es el momento de pasar lo largo a una skill.
 
-![La ficha de Cómo trabajo con las etiquetas Regla, Claude y Al día, el nombre en grande y la ruta CLAUDE.md debajo, la fila Claude lo lee en ~/.claude/CLAUDE.md con 3 respaldos, y los botones Editar, Respaldos y Pausar la sincronización con Claude; a la derecha, el panel Archivo del agente con Lo lee Claude, Formato Markdown · LF y Sincroniza en este equipo Sí](agents-ficha.png)
+![PROVISORIA — La ficha de Cómo trabajo sin columna al lado: arriba el camino Agentes / Claude; las etiquetas Regla, Claude y Al día; el nombre en grande; el cuadro de datos con Lo lee Claude, Se escribe en ~/.claude/CLAUDE.md con su botón de copiar, Tamaño 3,2 kB, Respaldos 3 respaldos · Ver, Formato Markdown · LF y Sincroniza en este equipo Sí; debajo, el texto de la regla con encabezados compactos y sin hoja aparte; al pie, los botones Editar, Respaldos, Historial, Copiar enlace y Pausar la sincronización con Claude](agents-ficha.png)
 
 ## Un cambio por fuera: traer o sobrescribir
 
@@ -195,7 +196,7 @@ Mientras no eliges, Tisty no escribe ese archivo. Si cambiaste el archivo y tamb
 
 Antes de sobrescribir un archivo, Tisty guarda lo que tenía. El **respaldo n.º 1** es el original, el de antes de que Tisty lo tocara, y nunca se borra; además guarda los últimos 20. Viven en este equipo y no viajan con la sincronización.
 
-1. En la ficha, pulsa **Respaldos**, o el enlace **3 respaldos** de la fila.
+1. Al pie de la ficha, pulsa **Respaldos**, o **Ver** junto a **3 respaldos** en su cuadro de datos.
 2. Elige uno, como **Respaldo n.º 2 · 1,1 kB**. **Ver** lo muestra entero.
 3. **Recuperar** pregunta «¿Devolver este respaldo a `~/.claude/CLAUDE.md`? Lo que tiene ahora el archivo queda en un respaldo.» Di que sí.
 4. El archivo vuelve a decir lo del respaldo, y la ficha pasa a **Cambiado por fuera**: tu documento no cambió. **Traer el cambio** lo deja igual al respaldo; **Sobrescribir con Tisty**, si te arrepentiste.
@@ -206,7 +207,7 @@ Así nunca pierdes ninguno de los dos lados.
 
 Si un día quieres que Tisty no toque los archivos de Claude, por ejemplo mientras pruebas otras reglas a mano:
 
-- en la ficha, **Pausar la sincronización con Claude**; en un documento de Global, el enlace **Pausar Claude** de su fila;
+- al pie de la ficha, **Pausar la sincronización con Claude**; en un documento de Global, **Pausar Claude**;
 - o en **Configuración → Asistentes**, en la tarjeta **Agentes**, desactiva **Sincronizar Claude**. Para detener todos a la vez, **Dejar de sincronizar**, como cuenta la sección siguiente.
 
 En pausa, Tisty no abre ni escribe esos archivos, y tú sigues editando tus documentos. **Reanudar la sincronización con Claude** escribe lo que cambiaste, salvo un archivo que cambió por fuera mientras tanto, que queda marcado para que decidas. La pausa es solo de este equipo.

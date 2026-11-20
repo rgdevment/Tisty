@@ -13,6 +13,8 @@ type Props = {
   readonly untitled?: boolean;
   readonly viewing?: boolean;
   readonly shaping?: boolean;
+  /** An agent's file, drawn inside its card with no paper of its own. */
+  readonly agent?: boolean;
   readonly hidden: boolean;
   readonly wide?: number;
   readonly zoom?: number;
@@ -60,9 +62,12 @@ export default function Frame(props: Readonly<Props>) {
     untitled = false,
     viewing = false,
     shaping = false,
+    agent = false,
   } = props;
   const shaped = useRef(shaping);
   shaped.current = shaping;
+  const carded = useRef(agent);
+  carded.current = agent;
   const frame = useRef<HTMLIFrameElement>(null);
   const said = useRef(props);
   said.current = props;
@@ -117,6 +122,7 @@ export default function Frame(props: Readonly<Props>) {
       page.documentElement.classList.toggle("untitled", untitled);
       page.documentElement.classList.toggle("own-bar", viewing && ARROWED);
       page.documentElement.classList.toggle("shaping", shaped.current);
+      page.documentElement.classList.toggle("agent", carded.current);
       dressedAsWindow(page);
       fitted(page, said.current.wide, said.current.zoom);
       dress(page);
@@ -166,6 +172,10 @@ export default function Frame(props: Readonly<Props>) {
   useEffect(() => {
     frame.current?.contentDocument?.documentElement.classList.toggle("shaping", shaping);
   }, [shaping]);
+
+  useEffect(() => {
+    frame.current?.contentDocument?.documentElement.classList.toggle("agent", agent);
+  }, [agent]);
 
   useEffect(() => {
     const page = frame.current?.contentDocument;

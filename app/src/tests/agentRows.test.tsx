@@ -168,6 +168,11 @@ describe("AGENTS in the sidebar", () => {
     await screen.findByRole("button", { name: "Horario laboral" });
   };
 
+  it("marks an assistant's folder with its logo", async () => {
+    await opened();
+    expect(document.querySelector('[data-mark="claude"]')).toBeTruthy();
+  });
+
   it("shows each document by its name with its path on hover", async () => {
     await opened();
     expect(screen.getByRole("button", { name: "Horario laboral" }).title).toBe(

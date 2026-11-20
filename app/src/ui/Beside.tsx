@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { type Facts, fields, type Head, type Leaf, overgrown, type Panel } from "tisty-editor/read";
-import type { AgentDoc } from "../agentDocs";
 import { folderShown } from "../agentsSync";
 import type { Citing } from "../citing";
 import { asLink } from "../copying";
@@ -11,7 +10,6 @@ import { brainstormIn } from "../front";
 import { waysOut } from "../leaving";
 import { fill, t } from "../locales";
 import { tongueName } from "../tongues";
-import { agentFacts } from "./agentFile";
 import LanguageReview from "./LanguageReview";
 import Menu, { type Choice } from "./Menu";
 import { dated, held, holdsOf } from "./paperFacts";
@@ -65,8 +63,6 @@ interface Props {
   title: string;
   paper: string;
   body: string;
-  /** An agent document: its file stands where the paper and the outline are, and its card's properties stay out of Details. */
-  agent?: AgentDoc | null;
   under?: string;
   tags: readonly string[];
   kept: number;
@@ -117,8 +113,7 @@ const editedOf = ({ by, editors }: NonNullable<DocFacts["edited"]>) => ({
 // Read once per version of the text and its facts: the column is drawn again far more often than either changes.
 const useFacts = (props: Props, facts: DocFacts | null): Facts => {
   const { body, tags, heads } = props;
-  const agent = Boolean(props.agent);
-  const onFront = agent ? undefined : heads.find((one) => one.level === 0)?.go;
+  const onFront = heads.find((one) => one.level === 0)?.go;
   return useMemo(() => {
     const times = often(body);
     const holds = holdsOf(body, facts).join(" · ");
@@ -132,12 +127,12 @@ const useFacts = (props: Props, facts: DocFacts | null): Facts => {
       wrote: facts ? dated(facts.wrote) : undefined,
       weighs: facts ? weigh(facts.bytes) : undefined,
       holds: holds || undefined,
-      fields: agent ? [] : fields(body),
+      fields: fields(body),
       overgrown: overgrown(body),
       onFront,
       tags: tags.map((name) => ({ name, times: times.get(name) ?? 0 })),
     };
-  }, [body, facts, tags, onFront, agent]);
+  }, [body, facts, tags, onFront]);
 };
 
 export default function Beside(props: Props) {
@@ -165,7 +160,6 @@ export default function Beside(props: Props) {
   }, [paper, kept]);
 
   const details = useFacts({ ...props, body, heads }, facts);
-  const agent = props.agent ?? null;
   const shared = useSharedRow(
     brainstormIn(body) ? undefined : props.doc,
     props.onError,
@@ -220,29 +214,6 @@ export default function Beside(props: Props) {
     };
     const cited = citedPanel(citing, (one) => latest.current.onCited?.(one));
     const facts: Panel = { kind: "details", facts: details, open: short };
-    if (agent)
-      return [
-        titled,
-        agentFacts(agent, body, [
-          ...(hasEarlier
-            ? [
-                {
-                  key: "history",
-                  label: t("agentFileHistory"),
-                  onPick: () => latest.current.onEarlier?.(),
-                },
-              ]
-            : []),
-          {
-            key: "link",
-            label: t("copyLink"),
-            onPick: () => void asLink(paper).catch((problem) => latest.current.onError?.(problem)),
-          },
-        ]),
-        ...cited,
-        facts,
-        ...(shared.shared && shared.panel ? [shared.panel] : []),
-      ];
     return [
       titled,
       {
@@ -283,9 +254,6 @@ export default function Beside(props: Props) {
   }, [
     props.title,
     props.under,
-    agent,
-    body,
-    shared.shared,
     trailSaid,
     props.leaf,
     canSheets,

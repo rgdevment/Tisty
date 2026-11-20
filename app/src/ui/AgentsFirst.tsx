@@ -24,6 +24,7 @@ import {
   type Waiting,
   waitingOf,
 } from "./AgentsReview";
+import { AssistantMark } from "./AssistantMark";
 import Modal from "./Modal";
 
 const takeable = (one: FileSeen) => !one.skip && !one.held;
@@ -139,6 +140,7 @@ function Assistant({
         onClick={() => setOpen(!open)}
         className="flex w-full items-center gap-2 px-3 py-2 text-left text-[13px] font-medium hover:bg-hover"
       >
+        <AssistantMark id={one.id} className="h-[14px] w-[14px]" />
         <span className="flex-1">{counted(one, rows)}</span>
         <span className="text-faint">{open ? "▾" : "▸"}</span>
       </button>

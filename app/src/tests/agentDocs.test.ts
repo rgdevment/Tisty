@@ -21,8 +21,10 @@ const doc = (states: AgentDoc["places"][number]["said"][]): AgentDoc => ({
     shared: 1,
     heldBy: [],
     changed: null,
+    bytes: null,
     kept: [],
   })),
+  own: { about: null, fields: [], raw: null },
 });
 
 describe("agent documents", () => {

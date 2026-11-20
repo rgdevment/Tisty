@@ -7,6 +7,7 @@ import { fill, t } from "../locales";
 import { compactedBy } from "../tidying";
 import { clientNamed } from "../who";
 import { useAgentsStage } from "./AgentsMark";
+import { FolderMark } from "./AssistantMark";
 import { grouped, inSkill, KIND_GLYPH, type SkillGroup, useAgentRows } from "./agentRows";
 import {
   type Carried,
@@ -473,7 +474,7 @@ export default function Tree({
           style={{ marginLeft: `${8 + depth * STEP}px` }}
         >
           <span className={`flex items-center ${painted(folder.color)}`}>
-            <Glyph name={folder.icon ?? "folder"} className="h-[15px] w-[15px]" />
+            <FolderMark folder={folder} root={root} className="h-[15px] w-[15px]" />
           </span>
         </span>
         <span className="flex min-w-0 flex-1 items-center gap-1.5 py-1 pl-1.5 text-[13px] text-faint">
@@ -900,7 +901,7 @@ export default function Tree({
               <span
                 className={`flex items-center ${isRoot ? agentsPaint(stage) : painted(folder.color)}`}
               >
-                <Glyph name={folder.icon ?? "folder"} className="h-[15px] w-[15px]" />
+                <FolderMark folder={folder} root={root} className="h-[15px] w-[15px]" />
               </span>
             </Grip>
             <button

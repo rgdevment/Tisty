@@ -9,7 +9,7 @@ I use more than one AI agent, and each one reads its rules from a different file
 
 ## What it is and when it helps
 
-**Agents** is a folder in your Library, at the top, with a robot icon. It sits in your sidebar from day one, in grey, until you bring something in. Each document inside it is one of an agent's files: a rule, a skill or its memory. You read it and edit it in Tisty like any document, with its search and its earlier versions, and beside it, the **Agent file** panel tells you who reads it, where it is written and how many backups it has. If you sync it, Tisty writes the file that agent reads, byte for byte.
+**Agents** is a folder in your Library, at the top, with a robot icon. It sits in your sidebar from day one, in grey, until you bring something in. Each document inside it is one of an agent's files: a rule, a skill or its memory. You read it and edit it in Tisty, with its search and its earlier versions, but it does not look like one more document: it opens on its own [card](#the-card-of-an-agent-document), which tells you who reads it, where it is written and how many backups it has, with the agent's text just as you wrote it. If you sync it, Tisty writes the file that agent reads, byte for byte.
 
 It helps when:
 
@@ -240,7 +240,8 @@ Agents
     └── [brain]    GEMINI.md
 ```
 
-- **The icon**: a book for a **rule**, a puzzle piece for a **skill** and a brain for **agent memory**.
+- **Each subfolder's icon**: **Global** has a blue globe, and each assistant a symbol of its own in grey, which does not copy its logo: a chat bubble for Claude, a terminal for Codex, code braces for Copilot, a compass for Gemini and a pointer for Cursor. The same icons show in the first-time list and in **Settings › Assistants**. A subfolder you gave an icon of your own keeps it.
+- **Each document's icon**: a book for a **rule**, a puzzle piece for a **skill** and a brain for **agent memory**.
 - **The name**: the document's first heading, such as «How I work» in a `CLAUDE.md` that starts with `# How I work`. A skill takes the `name` in its `SKILL.md`. A script, or a file with no headings, is named after the file: `MEMORY.md`, `extract.py`.
 - **The path**: hover over a row and it shows, with the assistant in front: `claude · CLAUDE.md`, `claude · rules/style.md`.
 - **A skill is one single row**, with how many files it holds on the right, such as **pr** and **3 files**. A click opens it and shows its files by their path inside the skill: `SKILL.md`, `scripts/open-pr.sh`. So a 200-file skill takes one line until you open it. A skill of a single file shows like any other document.
@@ -280,7 +281,7 @@ The value has three parts, split by `/`:
 
 Sometimes it carries more marks, which Tisty adds only when it brings a file in, to write it back exactly as it was: `crlf` (lines ending the Windows way), `bom` (an invisible mark at the start), `as-is` (mixed line endings) and `open-end` (the file does not end in a line break). For example, `agent: [copilot/rule/copilot-instructions.md, crlf, bom]`. The [properties guide](https://markdown.tisty.app/properties) explains the rest.
 
-The page does not show that line: in its place, at the top of the document, sits its [card](#the-card-of-an-agent-document).
+The page does not show that line: the document opens on its [card](#the-card-of-an-agent-document).
 
 ## Global or one assistant
 
@@ -347,7 +348,7 @@ A Global skill is written once where several read it at a time:
 - in `~/.cursor/skills/pdf/`, for Cursor;
 - in `~/.agents/skills/pdf/`, one copy that Codex, Copilot and Gemini all read.
 
-The `SKILL.md` shows its own properties, its name and description, as fields under the card. The script is kept in a code block and written as is, without the block: the card says **Written as is**, and a Markdown document says **Written as Markdown**.
+The `SKILL.md`'s own properties stay out of the text: its `name` is the card's name, its `description` sits under it in a quiet line, and the rest, such as `disable-model-invocation: true`, go in small rows of the facts box. The script is kept in a code block and written as is, without the block: the card's **Format** row names the script's kind, such as SH · LF, and a Markdown document says Markdown · LF.
 
 ## Which file each assistant reads
 
@@ -373,32 +374,47 @@ What Tisty does with each one:
 
 ## The card of an agent document
 
-A document in Agents opens **for reading**, with a card at the top in place of its properties, and the **Agent file** panel beside it:
+A document in Agents does not look like one more document. It opens **for reading**, on a single card: at the top, what it is and where it goes; in the middle, the agent's text; at the foot, what you can do. There is no column beside it: everything useful is on the card.
 
-![An agent document open in English. At the top, the card of How I work: the labels Rule, Claude and In sync in green; below, the name How I work in large type and the path CLAUDE.md small and grey; the row Claude reads it at ~/.claude/CLAUDE.md with Written as Markdown · together with one other document · file changed 5 minutes ago and the link 3 backups on the right, and the buttons Edit, Backups and Pause sync with Claude. On the right, the Agent file panel with Read by Claude, Written to ~/.claude/CLAUDE.md, Format Markdown · LF, Last written, Backups 3 backups, Original kept Yes, Syncs on this computer Yes, and the buttons History and Copy link](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/agents/en-03-card.png)
+![PLACEHOLDER — An agent document open in English, with no column on the right. At the top, the path Agents / Claude. Below, the card of the skill ask: the labels Skill, Claude and In sync in green; the name ask in large type and, in a grey line, Ask which skill fits your situation. Then the facts box: Read by Claude; Written to ~/.claude/skills/ask/SKILL.md with the copy button; Size 12.7 kB; Backups 3 backups · See; Format Markdown · LF; Last written today 19:37; Original kept Yes; Syncs on this computer Yes; and in small type disable-model-invocation true. Below, the skill's text with compact headings and no separate sheet, and at the foot the buttons Edit, Backups, History, Copy link and Pause sync with Claude](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/agents/en-03-card.png)
 
-- **The labels**: the kind (**Rule**, **Skill** or **Agent memory**), the level (**Global** or the assistant) and the standing.
-- **The name**, the same as in the sidebar, and under it, in small type, **the path** of the file inside the assistant's folder, such as `CLAUDE.md` or `pr/SKILL.md`.
-- **One row per file it is written to**: «Claude reads it at» and the full path. Below, **Written as Markdown** or **Written as is**, whether it is put together «together with one other document» or «together with 2 other documents», when the file changed, and the link to its backups. A Global document has one row per assistant, each with its own **Pause Claude**, **Pause Codex**… link.
-- **The buttons**: **Edit** opens the document for writing and **Done** closes it again; **Backups**, when the file has any; and **Pause sync with Claude**, when the document is written to a single file.
+**At the very top, the folder path**: «Agents / Claude». A click on a folder opens it.
 
-A memory document has no **Edit**: the agent writes it, and the card says «The agent writes this file itself: Tisty shows it and brings it in, and never writes over it.».
+**The heading:**
 
-### The Agent file panel
+- **The labels**: the kind (**Rule**, **Skill** or **Agent memory**), the level (**Global** or the assistant) and the standing, in its colour.
+- **The name**, the same as in the sidebar. On a skill, its `description` sits under it, in a quiet line.
 
-In a document in Agents, the column beside the page does not show the paper size, the outline or **Share**: an agent's file is neither printed nor shared. In their place sits **Agent file**:
+**The file's facts box**, the only place they show:
 
 | Row | What it says | Example |
 | :-- | :-- | :-- |
 | **Read by** | Which assistants on this computer read the file | Claude, Codex |
-| **Written to** | The file's path. A Global document has one row per assistant: **Claude file**, **Codex file** | `~/.claude/CLAUDE.md` |
-| **Format** | Markdown, or the script's type; how its lines end, and the marks it keeps | Markdown · LF, or PY · CRLF · BOM |
-| **Last written** | When the file last changed | 5 minutes ago |
-| **Backups** | How many this computer keeps | 3 backups, or None yet |
+| **Written to** | The file's full path, with a button to copy it. A Global document has one per assistant: **Claude file**, **Codex file**. Under it, when the file is put together with other documents, «together with one other document» | `~/.claude/CLAUDE.md` |
+| **Size** | How much the file the assistant reads weighs, whole, even when several documents make it | 12.7 kB |
+| **Backups** | How many this computer keeps, and **See** to open them | 3 backups · See, or None yet |
+| **Format** | Markdown, or the script's kind; how its lines end, and the marks it keeps | Markdown · LF, or PY · CRLF · BOM |
+| **Last written** | When the file last changed | today, 19:37 |
 | **Original kept** | Whether backup #1 is there, the file as it was before Tisty touched it | Yes, before Tisty's first write |
-| **Syncs on this computer** | Whether Tisty keeps it up to date here | Yes; Yes, except Codex (paused); Tisty only reads it; No, Agents does not sync; No: it waits for «Apply here»; No: its text waits for your approval. With a proposal waiting, «an agent's change waits for your approval» is added |
+| **Syncs on this computer** | Whether Tisty keeps it up to date here | Yes; Yes, except Codex (paused); Tisty only reads it; No, Agents does not sync; No: it waits for «Apply here»; No: its text waits for your approval. With a proposal waiting, it adds «an agent's change waits for your approval» |
+| **Shared** | Only when the document has a live shared link: whether it can be read or edited, and **See** shows the links with their copy button and the usual actions, such as **Stop sharing**. See [Sharing](Documents#sharing) | Read only · See |
+| **The file's properties** | The other keys of its heading, in small key and value rows. When there are too many, or they are too long to read as fields, they show as written | `disable-model-invocation` true; `applyTo` `**/*.rs` |
 
-Below, **History**, once the document has earlier versions, opens its [history](Documents#earlier-versions), and **Copy link**, its [link](Documents#a-documents-link). If you already shared that document before, the sharing panel is still there.
+**Codex's cap.** Codex reads its `AGENTS.md` up to 32 KiB and leaves the rest unread. When the file nears that cap, the **Size** row says so in amber: «29 kB · close to the 32 KiB Codex reads». Past it, it says so in red: «33.8 kB · past the 32 KiB Codex reads: it leaves the rest unread». It is a good moment to move long rules into a skill.
+
+**The agent's text**, inside the same card, with no separate sheet. It is what you wrote, as is, with no sections or template imposed: Tisty draws it with compact headings, at reading width, and never turns its first line into a title. The file's heading is not repeated there, since the facts box already has it. What your agent reads does not change: the file stays the same, byte for byte.
+
+**The buttons, at the foot**, always at hand however long the text is:
+
+- **Edit** opens Tisty's editor on the text, heading included, and **Done** closes it again.
+- **Backups**, when the file has any. It opens the same list as **See** in the facts box.
+- **History** opens the document's [earlier versions](Documents#earlier-versions).
+- **Copy link** copies its [link](Documents#a-documents-link).
+- **Pause sync with Claude**, when the document is written to a single file. A Global one has a button per assistant: **Pause Claude**, **Pause Codex**…
+
+A memory document has no **Edit**: the agent writes it, and the card says «The agent writes this file itself: Tisty shows it and brings it in, and never writes over it.».
+
+**An example.** You open Codex's **Working hours** rule, which goes into `~/.codex/AGENTS.md` together with your Global rule. At the top you see «Agents / Codex» and the labels **Rule**, **Codex** and **In sync**. In the box, «Written to `~/.codex/AGENTS.md`», with «together with one other document» under it, and «Size 29 kB · close to the 32 KiB Codex reads» in amber. You read the text, decide to move the long part into a skill, and press **Edit** at the foot.
 
 ### Each standing
 
@@ -417,7 +433,7 @@ Below, **History**, once the document has earlier versions, opens its [history](
 | **The code block is broken** | The block that holds a script is no longer whole | Mend the block in the document |
 | **Cannot be read** | The file exists, but Tisty could not read it | Check its permissions |
 
-Two more notices can take the place of the rows:
+Two more notices can show under the facts box:
 
 - **«No assistant on this computer reads this document yet.»** The assistant is not on this computer, or the name is not a file that assistant reads.
 - **«Another document in Agents already writes this file, so this one is left out.»** Two documents carry the same `agent:` line: only one is written.
@@ -477,7 +493,7 @@ The **document's** earlier versions, on the other hand, are those of any documen
 
 - **No agent file is touched.** Your agents keep reading their files just as Tisty left them, and Tisty stops writing them and asking you to decide when they change outside.
 - **No document is deleted.** They stay in Agents, and you read and edit them as always; what you change stays in Tisty.
-- **Agents goes to state 2.** Its robot turns grey again and, when you open it, «Not synced with your agents · Sync» shows at the top. Each document's card says «The Agents folder does not sync with your agents. Choose Sync in the sidebar or in Settings › Assistants.», and the **Agent file** panel, under **Syncs on this computer**, «No, Agents does not sync».
+- **Agents goes to state 2.** Its robot turns grey again and, when you open it, «Not synced with your agents · Sync» shows at the top. Each document's card says «The Agents folder does not sync with your agents. Choose Sync in the sidebar or in Settings › Assistants.», and its facts box, under **Syncs on this computer**, «No, Agents does not sync».
 
 ![The right-click menu on Agents in English, with Agents syncing and its coral robot in the sidebar: one single option, Stop syncing, and nothing else; no Hide from the sidebar, no Bring another file, no folder action](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/agents/en-14-menu-while-syncing.png)
 
@@ -604,7 +620,7 @@ If you use Tisty on more than one computer, say the one at home and the one at w
 4. Open **For all my agents**. The card has no file rows yet, and an amber notice says «This document comes from another computer. Apply it to the agents on this one?», with two buttons:
    - **Apply here** writes it to the files of this computer's assistants, with its backup first, as always. If a file on this computer already said something else, Tisty does not write over it: the card stays at **Changed on both sides** and you choose.
    - **Not on this computer** leaves it out here. The card says «You chose not to apply it on this computer.», and **Apply here** stays at hand in case you change your mind.
-5. Do the same with **How I work**, your `CLAUDE.md`. The **Agent file** panel of each one says, under **Syncs on this computer**, «No: it waits for «Apply here»» until you choose, and «Yes» after.
+5. Do the same with **How I work**, your `CLAUDE.md`. The facts box of each one says, under **Syncs on this computer**, «No: it waits for «Apply here»» until you choose, and «Yes» after.
 
 ![The card in English of For all my agents on the work computer: the labels Rule and Global, the name For all my agents with the path for-all.md under it, no file rows, and the amber notice This document comes from another computer. Apply it to the agents on this one? with the buttons Apply here and Not on this computer; in the sidebar, Agents with its coral robot, with no word beside it](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/agents/en-08-another-computer.png)
 
@@ -740,7 +756,7 @@ Each button acts only on what the card showed you. If the agent wrote again whil
 **Good to know:**
 
 - **One proposal per document.** If the agent writes again, its change goes on top of its own proposal, and `read` hands it back apart from the approved text, in `proposal`. If it writes the approved text back, it withdraws it.
-- **Approved text keeps reaching your agents** while a proposal waits: a proposal on one rule holds back nothing else. The **Agent file** panel says so: «Yes · an agent's change waits for your approval».
+- **Approved text keeps reaching your agents** while a proposal waits: a proposal on one rule holds back nothing else. The card's facts box says so: «Yes · an agent's change waits for your approval».
 - **If the approved text changed since**, the card warns «It was proposed over an earlier version, so approving it may undo a change made since.». Look closely at the lines before approving.
 - **If the document is to approve**, you first approve its text with **Approve this text** and then the proposal: «This document's text does not have your approval yet. Approve it first, then the proposal.».
 - **`#words` in an agent document are not Tisty tags.** A rule that says «use #rust» does not show under that tag.

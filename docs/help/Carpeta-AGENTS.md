@@ -9,7 +9,7 @@ Uso más de un agente de IA, y cada uno lee sus reglas de un archivo distinto, e
 
 ## Qué es y cuándo te sirve
 
-**Agentes** es una carpeta de tu Biblioteca, arriba de todo, con el icono de un robot. Está en tu barra lateral desde el primer día, en gris, hasta que traes algo. Cada documento que tiene adentro es un archivo de un agente: una regla, una skill o su memoria. Lo lees y lo editas en Tisty como cualquier documento, con su buscador y sus versiones anteriores, y al lado, el panel **Archivo del agente** te dice quién lo lee, dónde se escribe y cuántos respaldos tiene. Si la sincronizas, Tisty escribe el archivo que ese agente lee, byte a byte.
+**Agentes** es una carpeta de tu Biblioteca, arriba de todo, con el icono de un robot. Está en tu barra lateral desde el primer día, en gris, hasta que traes algo. Cada documento que tiene adentro es un archivo de un agente: una regla, una skill o su memoria. Lo lees y lo editas en Tisty, con su buscador y sus versiones anteriores, pero no se ve como un documento más: se abre en su propia [ficha](#la-ficha-de-un-documento-de-agente), que te dice quién lo lee, dónde se escribe y cuántos respaldos tiene, con el texto del agente tal como lo escribiste. Si la sincronizas, Tisty escribe el archivo que ese agente lee, byte a byte.
 
 Te sirve cuando:
 
@@ -240,7 +240,8 @@ Agentes
     └── [cerebro]  GEMINI.md
 ```
 
-- **El icono**: un libro para una **regla**, una pieza de rompecabezas para una **skill** y un cerebro para la **memoria del agente**.
+- **El icono de cada subcarpeta**: **Global** lleva un globo azul, y cada asistente un símbolo propio en gris, que no imita su logo: un globo de conversación para Claude, una terminal para Codex, unas llaves de código para Copilot, una brújula para Gemini y un puntero para Cursor. Los mismos iconos aparecen en la lista de la primera vez y en **Configuración › Asistentes**. Una subcarpeta a la que le pusiste un icono tuyo lo conserva.
+- **El icono de cada documento**: un libro para una **regla**, una pieza de rompecabezas para una **skill** y un cerebro para la **memoria del agente**.
 - **El nombre**: el primer título del documento, como «Cómo trabajo» en un `CLAUDE.md` que empieza con `# Cómo trabajo`. Una skill toma el `name` de su `SKILL.md`. Un script, o un archivo sin títulos, se llama como el archivo: `MEMORY.md`, `extraer.py`.
 - **La ruta**: pasa el puntero sobre una fila y aparece, con el asistente delante: `claude · CLAUDE.md`, `claude · rules/estilo.md`.
 - **Una skill es una sola fila**, con cuántos archivos tiene a la derecha, como **pr** y **3 archivos**. Un clic la abre y muestra sus archivos por su ruta dentro de la skill: `SKILL.md`, `scripts/abrir-pr.sh`. Así, una skill de 200 archivos ocupa una línea hasta que la abres. Una skill de un solo archivo se ve como un documento más.
@@ -280,7 +281,7 @@ El valor tiene tres partes, separadas por `/`:
 
 A veces lleva marcas más, que Tisty pone solo al traer un archivo para escribirlo igual que estaba: `crlf` (líneas que terminan como en Windows), `bom` (una marca invisible al principio), `as-is` (finales de línea mezclados) y `open-end` (el archivo no termina en salto de línea). Por ejemplo, `agent: [copilot/rule/copilot-instructions.md, crlf, bom]`. La [guía de propiedades](https://markdown.tisty.app/es/propiedades) explica el resto.
 
-La página no muestra esa línea: en su lugar, arriba del documento, aparece su [ficha](#la-ficha-de-un-documento-de-agente).
+La página no muestra esa línea: el documento se abre en su [ficha](#la-ficha-de-un-documento-de-agente).
 
 ## Global o un asistente
 
@@ -347,7 +348,7 @@ Una skill de Global se escribe una sola vez donde la leen varios a la vez:
 - en `~/.cursor/skills/pdf/`, para Cursor;
 - en `~/.agents/skills/pdf/`, una sola copia que leen Codex, Copilot y Gemini.
 
-El `SKILL.md` muestra sus propias propiedades, su nombre y su descripción, como campos bajo la ficha. El script se guarda en un bloque de código y se escribe tal cual, sin el bloque: la ficha dice **Se escribe tal cual**, y un documento Markdown dice **Se escribe como Markdown**.
+Las propiedades propias del `SKILL.md` no ocupan el texto: su `name` es el nombre de la ficha, su `description` va debajo en una línea discreta, y el resto, como `disable-model-invocation: true`, va en filas chicas del cuadro de datos. El script se guarda en un bloque de código y se escribe tal cual, sin el bloque: la fila **Formato** del cuadro de datos dice el tipo del script, como SH · LF, y en un documento Markdown, Markdown · LF.
 
 ## Qué archivo lee cada asistente
 
@@ -373,32 +374,47 @@ Lo que hace Tisty con cada uno:
 
 ## La ficha de un documento de agente
 
-Un documento de Agentes se abre **para leer**, con una ficha arriba en lugar de sus propiedades, y el panel **Archivo del agente** a su lado:
+Un documento de Agentes no se ve como un documento más. Se abre **para leer**, en una sola ficha: arriba, qué es y dónde va; en el medio, el texto del agente; abajo, lo que puedes hacer. No hay columna al lado: todo lo útil está en la ficha.
 
-![Un documento de agente abierto en español. Arriba, la ficha de Cómo trabajo: las etiquetas Regla, Claude y Al día en verde; debajo el nombre Cómo trabajo en grande y la ruta CLAUDE.md pequeña y gris; la fila Claude lo lee en ~/.claude/CLAUDE.md con Se escribe como Markdown · junto con otro documento · el archivo cambió hace 5 minutos y el enlace 3 respaldos a la derecha, y los botones Editar, Respaldos y Pausar la sincronización con Claude. A la derecha, el panel Archivo del agente con Lo lee Claude, Se escribe en ~/.claude/CLAUDE.md, Formato Markdown · LF, Última escritura, Respaldos 3 respaldos, Original guardado Sí, Sincroniza en este equipo Sí, y los botones Historial y Copiar enlace](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/agents/es-03-ficha.png)
+![PROVISORIA — Un documento de agente abierto en español, sin columna a la derecha. Arriba, el camino Agentes / Claude. Debajo, la ficha de la skill ask: las etiquetas Skill, Claude y Al día en verde; el nombre ask en grande y, en una línea gris, Ask which skill fits your situation. Luego el cuadro de datos: Lo lee Claude; Se escribe en ~/.claude/skills/ask/SKILL.md con el botón de copiar; Tamaño 12,7 kB; Respaldos 3 respaldos · Ver; Formato Markdown · LF; Última escritura hoy 19:37; Original guardado Sí; Sincroniza en este equipo Sí; y en letra chica disable-model-invocation true. Debajo, el texto de la skill con encabezados compactos y sin hoja aparte, y al pie los botones Editar, Respaldos, Historial, Copiar enlace y Pausar la sincronización con Claude](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/agents/es-03-ficha.png)
 
-- **Las etiquetas**: el tipo (**Regla**, **Skill** o **Memoria del agente**), el nivel (**Global** o el asistente) y el estado.
-- **El nombre**, el mismo que en la barra lateral, y debajo, en pequeño, **la ruta** del archivo dentro de la carpeta del asistente, como `CLAUDE.md` o `pr/SKILL.md`.
-- **Una fila por archivo en que se escribe**: «Claude lo lee en» y la ruta completa. Debajo, **Se escribe como Markdown** o **Se escribe tal cual**, si se arma «junto con otro documento» o «junto con otros 2 documentos», cuándo cambió el archivo, y el enlace a sus respaldos. Un documento de Global tiene una fila por asistente, cada una con su enlace **Pausar Claude**, **Pausar Codex**…
-- **Los botones**: **Editar** abre el documento para escribir y **Listo** lo vuelve a cerrar; **Respaldos**, cuando el archivo tiene alguno; y **Pausar la sincronización con Claude**, cuando el documento se escribe en un solo archivo.
+**Arriba de todo, el camino de carpetas**: «Agentes / Claude». Un clic en una carpeta la abre.
 
-Un documento de memoria no tiene **Editar**: lo escribe el agente, y la ficha dice «Este archivo lo escribe el agente: Tisty lo muestra y lo trae, y nunca lo sobrescribe.».
+**La cabecera:**
 
-### El panel Archivo del agente
+- **Las etiquetas**: el tipo (**Regla**, **Skill** o **Memoria del agente**), el nivel (**Global** o el asistente) y el estado, con su color.
+- **El nombre**, el mismo que en la barra lateral. En una skill, su `description` va debajo, en una línea discreta.
 
-En un documento de Agentes, la columna de al lado no muestra el tamaño de hoja, el índice ni **Compartir**: un archivo de agente no se imprime ni se comparte. En su lugar está **Archivo del agente**:
+**El cuadro de datos del archivo**, el único lugar donde aparecen:
 
 | Fila | Qué dice | Ejemplo |
 | :-- | :-- | :-- |
 | **Lo lee** | Qué asistentes de este equipo leen el archivo | Claude, Codex |
-| **Se escribe en** | La ruta del archivo. Un documento de Global tiene una fila por asistente: **Archivo de Claude**, **Archivo de Codex** | `~/.claude/CLAUDE.md` |
+| **Se escribe en** | La ruta completa del archivo, con un botón para copiarla. Un documento de Global tiene una por asistente: **Archivo de Claude**, **Archivo de Codex**. Debajo, si el archivo se arma con otros documentos, «junto con otro documento» | `~/.claude/CLAUDE.md` |
+| **Tamaño** | Cuánto pesa el archivo que lee el asistente, entero, aunque se arme con varios documentos | 12,7 kB |
+| **Respaldos** | Cuántos guarda este equipo, y **Ver** para abrirlos | 3 respaldos · Ver, o Ninguno todavía |
 | **Formato** | Markdown, o el tipo del script; cómo terminan sus líneas, y las marcas que conserva | Markdown · LF, o PY · CRLF · BOM |
-| **Última escritura** | Cuándo cambió el archivo por última vez | hace 5 minutos |
-| **Respaldos** | Cuántos guarda este equipo | 3 respaldos, o Ninguno todavía |
+| **Última escritura** | Cuándo cambió el archivo por última vez | hoy, 19:37 |
 | **Original guardado** | Si ya está el respaldo n.º 1, el archivo de antes de que Tisty lo tocara | Sí, el de antes de la primera escritura de Tisty |
 | **Sincroniza en este equipo** | Si Tisty lo mantiene al día aquí | Sí; Sí, salvo Codex (en pausa); Tisty solo lo lee; No, Agentes no se sincroniza; No: espera «Aplicar aquí»; No: su texto espera tu aprobación. Con una propuesta esperando, se suma «un cambio propuesto por un agente espera tu aprobación» |
+| **Compartido** | Solo si el documento tiene un enlace compartido activo: si se puede leer o editar, y **Ver** muestra los enlaces con su botón para copiarlos y las acciones de siempre, como **Dejar de compartir**. Lo cuenta [Compartir](Documentos#compartir) | Solo leer · Ver |
+| **Las propiedades del archivo** | Las otras claves de su encabezado, en filas chicas de clave y valor. Si son demasiadas o muy largas para leerlas como campos, van tal como están escritas | `disable-model-invocation` true; `applyTo` `**/*.rs` |
 
-Debajo, **Historial**, cuando el documento ya tiene versiones anteriores, abre su [historial](Documentos#versiones-anteriores), y **Copiar enlace**, su [enlace](Documentos#el-enlace-de-un-documento). Si ya compartías ese documento antes, el panel de compartir sigue ahí.
+**El tope de Codex.** Codex lee su `AGENTS.md` hasta 32 KiB y deja sin leer lo que sigue. Cuando el archivo se acerca a ese tope, la fila **Tamaño** lo dice en ámbar: «29 kB · cerca de los 32 KiB que lee Codex». Si lo pasa, lo dice en rojo: «33,8 kB · pasa los 32 KiB que lee Codex: lo demás no lo lee». Es buen momento para pasar las reglas largas a una skill.
+
+**El texto del agente**, dentro de la misma ficha y sin hoja aparte. Es lo que escribiste, tal cual, sin secciones ni plantilla impuestas: Tisty lo dibuja con encabezados compactos, al ancho de lectura, y sin convertir su primera línea en un título. El encabezado del archivo no se repite ahí, porque ya está en el cuadro de datos. Lo que lee tu agente no cambia: el archivo sigue siendo el mismo, byte a byte.
+
+**Los botones, al pie**, siempre a mano aunque el texto sea largo:
+
+- **Editar** abre el editor de Tisty sobre el texto, con su encabezado, y **Listo** lo vuelve a cerrar.
+- **Respaldos**, cuando el archivo tiene alguno. Abre la misma lista que **Ver** en el cuadro de datos.
+- **Historial** abre las [versiones anteriores](Documentos#versiones-anteriores) del documento.
+- **Copiar enlace** copia su [enlace](Documentos#el-enlace-de-un-documento).
+- **Pausar la sincronización con Claude**, cuando el documento se escribe en un solo archivo. Uno de Global tiene un botón por asistente: **Pausar Claude**, **Pausar Codex**…
+
+Un documento de memoria no tiene **Editar**: lo escribe el agente, y la ficha dice «Este archivo lo escribe el agente: Tisty lo muestra y lo trae, y nunca lo sobrescribe.».
+
+**Un ejemplo.** Abres la regla **Horario laboral** de Codex, que va en `~/.codex/AGENTS.md` junto con tu regla de Global. Arriba ves «Agentes / Codex» y las etiquetas **Regla**, **Codex** y **Al día**. En el cuadro, «Se escribe en `~/.codex/AGENTS.md`», con «junto con otro documento» debajo, y «Tamaño 29 kB · cerca de los 32 KiB que lee Codex» en ámbar. Lees el texto, decides pasar la parte larga a una skill y pulsas **Editar** al pie.
 
 ### Cada estado
 
@@ -417,7 +433,7 @@ Debajo, **Historial**, cuando el documento ya tiene versiones anteriores, abre s
 | **El bloque de código está roto** | El bloque que guarda un script ya no está entero | Arreglar el bloque en el documento |
 | **No se puede leer** | El archivo existe, pero Tisty no pudo leerlo | Revisar sus permisos |
 
-Dos avisos más pueden ocupar el lugar de las filas:
+Dos avisos más pueden aparecer bajo el cuadro de datos:
 
 - **«Ningún asistente de este equipo lee este documento todavía.»** El asistente no está en este equipo, o el nombre no es un archivo que ese asistente lea.
 - **«Otro documento de Agentes ya escribe este archivo, así que este queda fuera.»** Dos documentos tienen la misma línea `agent:`: solo uno se escribe.
@@ -477,7 +493,7 @@ Las versiones anteriores del **documento**, en cambio, son las de cualquier docu
 
 - **Ningún archivo de tus agentes se toca.** Tus agentes siguen leyendo sus archivos tal como Tisty los dejó, y Tisty deja de escribirlos y de pedirte que decidas cuando cambian por fuera.
 - **Ningún documento se borra.** Siguen en Agentes, y los lees y los editas como siempre; lo que cambias queda en Tisty.
-- **Agentes pasa al estado 2.** Su robot vuelve al gris y, al abrirla, arriba aparece «No se sincroniza con tus agentes · Sincronizar». La ficha de cada documento dice «La carpeta Agentes no se sincroniza con tus agentes. Elige Sincronizar en la barra o en Configuración › Asistentes.», y el panel **Archivo del agente**, en **Sincroniza en este equipo**, «No, Agentes no se sincroniza».
+- **Agentes pasa al estado 2.** Su robot vuelve al gris y, al abrirla, arriba aparece «No se sincroniza con tus agentes · Sincronizar». La ficha de cada documento dice «La carpeta Agentes no se sincroniza con tus agentes. Elige Sincronizar en la barra o en Configuración › Asistentes.», y su cuadro de datos, en **Sincroniza en este equipo**, «No, Agentes no se sincroniza».
 
 ![El menú del botón derecho sobre Agentes en español, con Agentes sincronizando y su robot coral en la barra: una sola opción, Dejar de sincronizar, y nada más; ni Ocultar de la barra, ni Traer otro archivo, ni ninguna acción de carpeta](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/agents/es-14-menu-sincronizando.png)
 
@@ -604,7 +620,7 @@ Si usas Tisty en más de un equipo, por ejemplo el computador de la casa y el de
 4. Abre **Para todos mis agentes**. La ficha todavía no tiene filas de archivos, y un aviso ámbar dice «Este documento viene de otro equipo. ¿Lo aplicas a los agentes de este?», con dos botones:
    - **Aplicar aquí** lo escribe en los archivos de los asistentes de este equipo, con su respaldo antes, como siempre. Si un archivo de este equipo ya decía otra cosa, Tisty no lo pisa: la ficha queda en **Cambiado en los dos lados** y eliges.
    - **No en este equipo** lo deja fuera aquí. La ficha dice «Elegiste no aplicarlo en este equipo.», y **Aplicar aquí** sigue a mano por si cambias de idea.
-5. Haz lo mismo con **Cómo trabajo**, tu `CLAUDE.md`. El panel **Archivo del agente** de cada uno dice, en **Sincroniza en este equipo**, «No: espera «Aplicar aquí»» mientras no eliges, y «Sí» después.
+5. Haz lo mismo con **Cómo trabajo**, tu `CLAUDE.md`. El cuadro de datos de cada uno dice, en **Sincroniza en este equipo**, «No: espera «Aplicar aquí»» mientras no eliges, y «Sí» después.
 
 ![La ficha en español de Para todos mis agentes en el equipo del trabajo: las etiquetas Regla y Global, el nombre Para todos mis agentes con la ruta para-todos.md debajo, ninguna fila de archivos, y el aviso ámbar Este documento viene de otro equipo. ¿Lo aplicas a los agentes de este? con los botones Aplicar aquí y No en este equipo; en la barra lateral, Agentes con su robot coral, sin ninguna palabra al lado](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/agents/es-08-otro-equipo.png)
 
@@ -740,7 +756,7 @@ Cada botón actúa solo sobre lo que la ficha te mostró. Si el agente volvió a
 **Lo que conviene saber:**
 
 - **Una propuesta por documento.** Si el agente vuelve a escribir, su cambio va encima de su propia propuesta, y `read` se la entrega aparte del texto aprobado, en `proposal`. Si escribe de vuelta el texto aprobado, la retira.
-- **Lo aprobado sigue llegando a tus agentes** mientras una propuesta espera: una propuesta en una regla no detiene nada más. El panel **Archivo del agente** lo dice: «Sí · un cambio propuesto por un agente espera tu aprobación».
+- **Lo aprobado sigue llegando a tus agentes** mientras una propuesta espera: una propuesta en una regla no detiene nada más. El cuadro de datos de la ficha lo dice: «Sí · un cambio propuesto por un agente espera tu aprobación».
 - **Si el texto aprobado cambió después**, la ficha avisa «Se propuso sobre una versión anterior, así que aprobarla puede deshacer un cambio hecho después.». Mira bien las líneas antes de aprobar.
 - **Si el documento está por aprobar**, primero apruebas su texto con **Aprobar este texto** y después la propuesta: «El texto de este documento aún no tiene tu aprobación. Apruébalo primero y después la propuesta.».
 - **Los `#palabras` de un documento de agente no son etiquetas de Tisty.** Una regla que dice «usa #rust» no aparece bajo esa etiqueta.

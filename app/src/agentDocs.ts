@@ -32,6 +32,7 @@ export interface Place {
   readonly said: Said;
   readonly shared: number;
   readonly changed: string | null;
+  readonly bytes: number | null;
   readonly kept: readonly Backup[];
   readonly heldBy: readonly string[];
 }
@@ -54,6 +55,12 @@ export interface Proposal {
   readonly lines: readonly Line[];
 }
 
+export interface OwnFront {
+  readonly about: string | null;
+  readonly fields: readonly (readonly [string, string])[];
+  readonly raw: string | null;
+}
+
 export interface AgentDoc {
   readonly kind: AgentKind;
   readonly level: string;
@@ -67,6 +74,7 @@ export interface AgentDoc {
   readonly print: string;
   readonly places: readonly Place[];
   readonly proposal: Proposal | null;
+  readonly own: OwnFront;
 }
 
 const LEVEL = /^[a-z0-9-]{1,40}$/;

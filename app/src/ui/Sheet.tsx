@@ -113,6 +113,8 @@ type Props = {
   readonly kept?: boolean;
   readonly inline?: boolean;
   readonly shaping?: boolean;
+  /** An agent's file: the middle of its card, with no paper of its own. */
+  readonly agent?: boolean;
   // Whoever holds the page turns its view; left out, only Ctrl+E turns it.
   readonly view?: Viewing;
   readonly sheet?: SheetSize;
@@ -162,7 +164,11 @@ export default function Sheet(props: Readonly<Props>) {
   said.current = props;
   const lively = !props.inline && Boolean(props.wholeable);
   // A whole pixel wide, or the frame inside rounds down and leaves a sliver of the holder at its edge.
-  const widthOf = lively && !props.sheet ? "w-[round(down,85%,1px)] max-w-[1100px]" : "w-full";
+  const widthOf = props.agent
+    ? "w-full max-w-[760px]"
+    : lively && !props.sheet
+      ? "w-[round(down,85%,1px)] max-w-[1100px]"
+      : "w-full";
   // A task's page takes its file with its first words, a moment after they are saved.
   const fileNamed = async (): Promise<string | undefined> => {
     for (let waited = 0; waited <= NAMED_WAIT; waited += NAMED_STEP) {
@@ -1259,7 +1265,7 @@ export default function Sheet(props: Readonly<Props>) {
           // Until it is drawn the page holds the room it last took, so nothing under it jumps.
           ...(!ready && { minHeight: kept.height ?? 240 }),
         }}
-        className={`tisty-sheet relative mx-auto overflow-hidden rounded-[10px] bg-sheet ${lively ? "flex min-h-0 flex-1 flex-col" : "shrink-0"} ${widthOf}`}
+        className={`tisty-sheet relative mx-auto overflow-hidden ${props.agent ? "border-x border-line bg-sheet " : "rounded-[10px] bg-sheet "}${lively ? "flex min-h-0 flex-1 flex-col" : "shrink-0"} ${widthOf}`}
       >
         {!ready && <Skeleton inset={props.inline ? "46px 32px" : undefined} />}
         {lively && ready && <FrameThumb frame={framed} ready={ready} turned={turned} />}
@@ -1271,6 +1277,7 @@ export default function Sheet(props: Readonly<Props>) {
           tall={!lively}
           untitled={props.inline}
           shaping={props.shaping}
+          agent={props.agent}
           onDoc={(file, heading) => said.current.onDoc?.(file, heading)}
           onOpen={(reference) => said.current.onOpen?.(reference)}
           onTag={(tag) => said.current.onTag?.(tag)}

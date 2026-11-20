@@ -7,6 +7,7 @@ import { fill, t } from "../locales";
 import { weighed } from "../previews";
 import { atRandom, type Recalled, useForgotten } from "../useForgotten";
 import { useAgentsState } from "./AgentsMark";
+import { FolderMark } from "./AssistantMark";
 import Glyph from "./Glyph";
 import { painted } from "./Hue";
 import { asksForMenu, menuAt } from "./menuKeys";
@@ -191,7 +192,7 @@ export default function Folder({
       className={ROW}
     >
       <span className={`shrink-0 ${painted(one.color)}`}>
-        <Glyph name={one.icon ?? "folder"} className="h-3.5 w-3.5" />
+        <FolderMark folder={one} root={root} className="h-3.5 w-3.5" />
       </span>
       <span className="truncate font-medium text-ink">{folderShown(one)}</span>
       <span className="shrink-0 text-[11.5px] text-faint">
@@ -281,10 +282,11 @@ export default function Folder({
               isAgents ? agentsPaint(stage) : folder ? painted(folder.color) : "text-faint"
             }
           >
-            <Glyph
-              name={folder ? (folder.icon ?? "folder") : "inbox"}
-              className="h-[19px] w-[19px]"
-            />
+            {folder ? (
+              <FolderMark folder={folder} root={root} className="h-[19px] w-[19px]" />
+            ) : (
+              <Glyph name="inbox" className="h-[19px] w-[19px]" />
+            )}
           </span>
           {folder ? folderShown(folder) : t("unfiled")}
         </button>

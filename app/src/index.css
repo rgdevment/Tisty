@@ -510,6 +510,11 @@ label[for] {
   width: round(down, 85%, 1px);
   max-width: 1100px;
 }
+/* An agent's card is as wide as its words, and the folders above it line up with it. */
+.lively-room > .ribbon.agent-ribbon {
+  max-width: 760px;
+  padding-inline: 4px;
+}
 .ribbon-more {
   display: grid;
   flex: none;

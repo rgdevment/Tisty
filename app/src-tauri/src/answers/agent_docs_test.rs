@@ -254,3 +254,15 @@ fn a_computer_that_has_not_said_yes_never_shows_the_file() {
     let stranger = Ledger::fresh("machine-a");
     assert!(done(room.data.path(), &stranger, &codex.target, 0, &asked).is_err());
 }
+
+#[test]
+fn the_card_weighs_the_whole_file_the_assistant_reads_not_one_piece_of_it() {
+    let mut room = room();
+    let codex = codex_of(&room);
+    assert_eq!(room.place(&codex, 0).bytes, None);
+    room.written(std::slice::from_ref(&codex));
+    let whole = std::fs::metadata(&codex.target.at).unwrap().len();
+    assert!(whole > "Be brief.\n".len() as u64);
+    assert_eq!(room.place(&codex, 0).bytes, Some(whole));
+    assert_eq!(room.place(&codex, 1).bytes, Some(whole));
+}
