@@ -160,13 +160,20 @@ pub fn card_of(
         .flatten()
 }
 
-pub fn kept_out(state: &State) -> HashSet<String> {
-    state
+// The person's network leaves out what they hid or let go and, unlike an agent's view, the diary even when open.
+pub fn kept_out(root: &std::path::Path, state: &State) -> HashSet<String> {
+    let tasks = state
         .tasks
         .values()
-        .filter(|task| task.hidden)
-        .map(|task| task.id.to_string())
-        .collect()
+        .filter(|task| task.folded())
+        .map(|task| task.id.to_string());
+    let diary = crate::diary::books(root, state);
+    let words = state
+        .docs
+        .values()
+        .filter(|kept| !state.doc_in_sight(kept) || crate::diary::within(&diary, kept))
+        .map(|kept| kept.file.clone());
+    tasks.chain(words).collect()
 }
 
 impl Network {
@@ -189,16 +196,16 @@ pub fn dates(state: &State) -> HashMap<String, String> {
     docs.chain(tasks).collect()
 }
 
-pub fn touched_last(state: &State) -> Option<String> {
+pub fn touched_last(state: &State, kept_out: &HashSet<String>) -> Option<String> {
     let docs = state
         .papers()
         .filter_map(|kept| Some((kept.wrote.or(kept.made)?, kept.file.clone())));
     let tasks = state
         .tasks
         .values()
-        .filter(|task| !task.hidden)
         .map(|task| (touched(task), task.id.to_string()));
     docs.chain(tasks)
+        .filter(|(_, id)| !kept_out.contains(id))
         .max_by_key(|(at, _)| *at)
         .map(|(_, id)| id)
 }
