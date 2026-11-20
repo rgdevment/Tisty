@@ -130,6 +130,7 @@ describe("the Agents card in Settings", () => {
     const more = heard(AGENTS_MORE);
     render(<AgentsSettings busy={null} />);
     expect(await screen.findByRole("switch", { name: "Sync Claude" })).toBeTruthy();
+    expect(document.querySelector('[data-mark="claude"]')).toBeTruthy();
     expect(screen.queryByText("I found Claude on this computer.")).toBeNull();
     expect(screen.queryByText("Not synced with your agents")).toBeNull();
     expect(screen.queryByRole("button", { name: "Hide" })).toBeNull();

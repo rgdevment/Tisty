@@ -17,6 +17,7 @@ import { AGENTS, agentsHidden, agentsKeys, hide, show, useHidden } from "../hidi
 import { fill, t } from "../locales";
 import { saidPlainly } from "../refusal";
 import { AgentsFound } from "./AgentsFound";
+import { AssistantMark } from "./AssistantMark";
 import Card, { type Which, type Word } from "./Card";
 import { Knob, Line } from "./Rows";
 
@@ -165,7 +166,12 @@ function Syncing({
         {look.assistants.map((one) => (
           <Line
             key={one.id}
-            title={fill("agentsSettingsOne", one.name)}
+            title={
+              <span className="flex items-center gap-2">
+                <AssistantMark id={one.id} className="h-[14px] w-[14px]" />
+                {fill("agentsSettingsOne", one.name)}
+              </span>
+            }
             why={whyOf(look, one)}
             which="wiring"
           >
