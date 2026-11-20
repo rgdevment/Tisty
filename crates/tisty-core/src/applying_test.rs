@@ -75,3 +75,16 @@ fn a_document_taken_away_takes_its_note_and_its_pages_notes_with_it() {
 
     assert!(state.agent_notes.is_empty(), "{:?}", state.agent_notes);
 }
+
+#[test]
+fn a_note_for_a_document_already_gone_or_never_here_is_dropped() {
+    let (id, add) = added("dev_agent-0001", None);
+    let state = State::replay(&[
+        ev(1, add),
+        ev(2, Op::DocDelete { id }),
+        ev(3, gist(id, "late")),
+        ev(4, gist(Ulid::generate(), "orphan")),
+    ]);
+
+    assert!(state.agent_notes.is_empty(), "{:?}", state.agent_notes);
+}

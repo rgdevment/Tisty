@@ -90,9 +90,10 @@ pub(in crate::mcp) fn page_doc(paths: &Paths, args: &Value) -> Result<Value, Ref
     let up = match text(args, "page_of") {
         None => None,
         Some(said) => {
-            let Some(up) = state.docs.values().find(|one| one.file == said) else {
+            let Some(up) = super::super::mistaken::named_document(&state, &said) else {
                 return Err(Refused::Tool(no_document_called(&state, &said)));
             };
+            super::super::agents_kept::left_out(&state, up)?;
             if up.page_of.is_some() {
                 return Err(Refused::Tool(format!(
                     "{said} is a page itself, and a page holds no pages. Name the document it \
@@ -327,9 +328,10 @@ fn which_ones_move(state: &State, many: &[String], up: Option<DocId>) -> Result<
     let mut moving = Vec::new();
     let mut already = Vec::new();
     for which in many {
-        let Some(kept) = state.docs.values().find(|one| one.file == *which) else {
+        let Some(kept) = super::super::mistaken::named_document(state, which) else {
             return Err(Refused::Tool(no_document_called(state, which)));
         };
+        super::super::agents_kept::left_out(state, kept)?;
         super::compacting::awaiting(state, kept)?;
         if state.shut(kept.id) {
             return Err(Refused::Tool(format!(

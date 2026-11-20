@@ -40,7 +40,7 @@ fn beside(state: &State, args: &Value) -> Result<Beside, Refused> {
             }
         }
         (None, Some(which)) => {
-            let Some(kept) = state.docs.values().find(|one| one.file == which) else {
+            let Some(kept) = named_document(state, &which) else {
                 return Err(match named_task(state, &which) {
                     Some(task) if !task.is_open() => history(task),
                     Some(task) => Refused::Tool(format!(
@@ -50,6 +50,7 @@ fn beside(state: &State, args: &Value) -> Result<Beside, Refused> {
                     None => Refused::Tool(no_document_called(state, &which)),
                 });
             };
+            super::agents_kept::left_out(state, kept)?;
             super::papers::compacting::awaiting(state, kept)?;
             if state.shut(kept.id) {
                 return Err(Refused::Tool(format!(

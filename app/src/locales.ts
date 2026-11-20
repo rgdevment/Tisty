@@ -43,7 +43,7 @@ const en = {
   brainstyLeftOut: "{name} nodes and {other} connections left out",
   brainstyLeftOutWhy:
     "Past this size the network keeps what you touched last, its neighbours, your documents and the tasks under way.",
-  brainstyNetwork: "Network of your documents, pages, tasks, tags and files",
+  brainstyNetwork: "Network of your documents, pages, tasks, tags, files, folders and lists",
   brainstySearch: "Search the network",
   brainstyNothingFound: "Nothing by that name",
   brainstyFilters: "Filters",
@@ -3488,7 +3488,7 @@ const es: Catalog = {
   brainstyLeftOut: "{name} nodos y {other} conexiones quedaron fuera",
   brainstyLeftOutWhy:
     "Pasado este tamaño, la red guarda lo último que tocaste, sus vecinos, tus documentos y las tareas en curso.",
-  brainstyNetwork: "Red de tus documentos, páginas, tareas, etiquetas y archivos",
+  brainstyNetwork: "Red de tus documentos, páginas, tareas, etiquetas, archivos, carpetas y listas",
   brainstySearch: "Buscar en la red",
   brainstyNothingFound: "Nada con ese nombre",
   brainstyFilters: "Filtros",

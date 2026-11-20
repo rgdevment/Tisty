@@ -424,10 +424,15 @@ fn a_document_that_is_gone_takes_its_history_with_it() {
     crate::docs::create_named_by(&docs, &person(data, 0), DOC, UNO).unwrap();
     crate::docs::rewrite(&docs, &assistant(data, 1), DOC, DOS, &print(UNO)).unwrap();
 
+    let mark = crate::docs::resolve(&data.join(super::GONE_BACK), DOC).unwrap();
+    std::fs::create_dir_all(mark.parent().unwrap()).unwrap();
+    std::fs::write(&mark, "a\nb\n").unwrap();
+
     forget(data, DOC);
 
     assert!(versions(data, DOC).is_empty() && back(data, DOC).is_none());
     assert!(!data.join("history").join(DOC).exists());
+    assert!(!mark.exists(), "the mark that it went back outlived it");
 }
 
 #[test]

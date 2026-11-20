@@ -33,7 +33,7 @@ fn started_by_the_person() -> Refused {
     )
 }
 
-const LEFT_ALONE: [&str; 11] = [
+const LEFT_ALONE: [&str; 12] = [
     "write_doc",
     "import_doc",
     "edit_doc",
@@ -45,6 +45,7 @@ const LEFT_ALONE: [&str; 11] = [
     "page_doc",
     "tongue_doc",
     "attach",
+    "sum_up",
 ];
 
 // One door for every change but adding to today, so no tool can rewrite what the person wrote.
@@ -64,7 +65,7 @@ pub(super) fn left_alone(paths: &Paths, name: &str, args: &Value) -> Result<(), 
     match named.iter().find(|file| in_the_diary(paths, &state, file)) {
         Some(file) => Err(Refused::Tool(format!(
             "{} is the person's diary, and its words are theirs: nothing in it is rewritten, \
-             moved, marked or put away. Add to today with `append_doc`, and only when they ask. \
+             moved, marked, summed up or put away. Add to today with `append_doc`, and only when they ask. \
              Nothing was written.",
             doc_named(&state, file)
         ))),

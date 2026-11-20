@@ -245,8 +245,9 @@ pub(super) fn named_anew(
     )
 }
 
-const WRITES_DOCUMENTS: [&str; 10] = [
+const WRITES_DOCUMENTS: [&str; 11] = [
     "write_doc",
+    "import_doc",
     "append_doc",
     "edit_doc",
     "edit_table",

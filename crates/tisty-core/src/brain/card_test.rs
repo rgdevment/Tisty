@@ -837,6 +837,7 @@ fn a_card_lists_its_guesses_apart_and_never_names_what_the_reader_may_not_see() 
                 state: Some("open".into()),
                 score: 0.91,
                 shared: vec!["plan".into()],
+                method: "words".into(),
             },
             Guessed {
                 id: spending.clone(),
@@ -845,6 +846,7 @@ fn a_card_lists_its_guesses_apart_and_never_names_what_the_reader_may_not_see() 
                 state: Some("open".into()),
                 score: 0.42,
                 shared: vec!["presupuesto".into(), "familiar".into()],
+                method: "words".into(),
             },
         ]
     );

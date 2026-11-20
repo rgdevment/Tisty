@@ -54,7 +54,7 @@ pub(super) fn written_doc(
 
     if let Some(which) = text(args, "doc") {
         let mut first = None;
-        if let Some(kept) = state.docs.values().find(|one| one.file == which) {
+        if let Some(kept) = super::super::mistaken::named_document(&state, &which) {
             super::super::agents_kept::left_out(&state, kept)?;
             first = super::compacting::correcting(paths, kept, args);
             if first.is_none() {
@@ -507,7 +507,7 @@ pub(in crate::mcp) fn append_doc(paths: &Paths, args: &Value) -> Result<Value, R
                 .into(),
         ));
     }
-    let Some(kept) = state.docs.values().find(|one| one.file == which) else {
+    let Some(kept) = super::super::mistaken::named_document(&state, &which) else {
         return Err(Refused::Tool(no_document_called(&state, &which)));
     };
     super::super::agents_kept::left_out(&state, kept)?;
@@ -624,7 +624,7 @@ pub(super) fn over_again(
     which: &str,
     body: &str,
 ) -> Result<Value, Refused> {
-    let Some(kept) = state.docs.values().find(|one| one.file == which) else {
+    let Some(kept) = super::super::mistaken::named_document(state, which) else {
         return Err(Refused::Tool(no_document_called(state, which)));
     };
     let called = doc_named(state, which);
@@ -848,7 +848,7 @@ pub(super) fn where_it_lands(
     let page_of = match text(args, "page_of") {
         None => None,
         Some(said) => {
-            let Some(up) = state.docs.values().find(|one| one.file == said) else {
+            let Some(up) = super::super::mistaken::named_document(state, &said) else {
                 return Err(Refused::Tool(no_document_called(state, &said)));
             };
             let named = doc_named(state, &said);
