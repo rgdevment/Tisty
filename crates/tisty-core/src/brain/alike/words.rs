@@ -21,6 +21,82 @@ const STOP: &[&str] = &[
     "algo", "aqui", "alli", "asi", "les", "nos", "mis", "tus",
 ];
 
+// How a text is laid out, in Tisty's own words: a guide and its translation share these and nothing they are about.
+const LAYOUT: &[&str] = &[
+    "negrita",
+    "negritas",
+    "cursiva",
+    "cursivas",
+    "tachado",
+    "subrayado",
+    "titulo",
+    "titulos",
+    "subtitulo",
+    "encabezado",
+    "encabezados",
+    "nivel",
+    "niveles",
+    "numero",
+    "numeros",
+    "numerada",
+    "lista",
+    "listas",
+    "tabla",
+    "tablas",
+    "fila",
+    "filas",
+    "columna",
+    "columnas",
+    "celda",
+    "celdas",
+    "enlace",
+    "enlaces",
+    "bloque",
+    "bloques",
+    "casilla",
+    "casillas",
+    "vineta",
+    "vinetas",
+    "parrafo",
+    "parrafos",
+    "markdown",
+    "bold",
+    "italic",
+    "italics",
+    "strikethrough",
+    "underline",
+    "heading",
+    "headings",
+    "title",
+    "titles",
+    "subtitle",
+    "level",
+    "levels",
+    "number",
+    "numbers",
+    "numbered",
+    "list",
+    "lists",
+    "table",
+    "tables",
+    "row",
+    "rows",
+    "column",
+    "columns",
+    "cell",
+    "cells",
+    "link",
+    "links",
+    "block",
+    "blocks",
+    "checkbox",
+    "checkboxes",
+    "bullet",
+    "bullets",
+    "paragraph",
+    "paragraphs",
+];
+
 pub(crate) type Word = (String, String, u32);
 
 pub(crate) fn counted(texts: &[&str]) -> Vec<Word> {
@@ -99,7 +175,7 @@ fn weighed(word: &str) -> Option<String> {
         return None;
     }
     let key = crate::text::folded(word);
-    (!STOP.contains(&key.as_str())).then_some(key)
+    (!STOP.contains(&key.as_str()) && !LAYOUT.contains(&key.as_str())).then_some(key)
 }
 
 // The folded key is kept, so a pass never folds a word again; the written form only when it differs.

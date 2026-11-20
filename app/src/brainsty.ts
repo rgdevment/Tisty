@@ -78,4 +78,11 @@ export const brainNetwork = (near?: string): Promise<Network | null> =>
 
 export const brainCard = (id: string): Promise<Card | null> => invoke("brain_card", { id });
 
+export interface FileFacts {
+  bytes: number;
+  changed?: string;
+}
+
+export const brainFile = (id: string): Promise<FileFacts | null> => invoke("brain_file", { id });
+
 export const taskAddress = (id: string): string => `tisty://task?id=${id}`;

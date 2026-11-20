@@ -9,6 +9,8 @@ const ipc = vi.hoisted(() => ({
   calls: [] as { cmd: string; args: Record<string, unknown> }[],
   network: (): Promise<unknown> => Promise.resolve(null),
   card: null as unknown,
+  file: null as unknown,
+  opening: (): Promise<unknown> => Promise.resolve(null),
 }));
 
 vi.mock("@tauri-apps/api/core", () => ({
@@ -95,6 +97,12 @@ function answer(cmd: string): Promise<unknown> {
       return ipc.network();
     case "brain_card":
       return Promise.resolve(ipc.card);
+    case "brain_file":
+      return Promise.resolve(ipc.file);
+    case "served":
+      return Promise.resolve("C:/kept/map.png");
+    case "opened":
+      return ipc.opening();
     case "doc_address":
       return Promise.resolve("tisty://doc/Proyectos/Notes?id=notes.md");
     default:
@@ -129,6 +137,14 @@ const guessing: Network = {
   ],
 };
 
+const MAP = "attachments/map-1a2b3c4d.png";
+
+const filed: Network = {
+  ...small,
+  nodes: [...small.nodes, { id: MAP, kind: "file", title: "map-1a2b3c4d.png" }],
+  edges: [...small.edges, [0, 3, 4]],
+};
+
 const PROJECTS: Group = { id: "f1", name: "Proyectos", color: "teal" };
 
 const last = <T,>(all: T[]): T | undefined => all[all.length - 1];
@@ -158,6 +174,8 @@ const drawnNetwork = async () => {
 beforeEach(() => {
   ipc.calls = [];
   ipc.network = () => Promise.resolve(small);
+  ipc.file = null;
+  ipc.opening = () => Promise.resolve(null);
   ipc.card = {
     id: "notes.md",
     kind: "doc",
@@ -382,6 +400,75 @@ describe("Brainsty in the content panel", () => {
     expect(preview.textContent).toContain(t("brainstyTies_tag"));
     expect(ipc.calls.some((one) => one.cmd === "brain_card")).toBe(false);
     expect(within(preview).queryByText(t("brainstyFactLink"))).toBeNull();
+  });
+
+  it("says what a link is for, to the pointer and on a press", async () => {
+    const { user } = await drawnNetwork();
+
+    act(() => sigma.hands?.pick(0));
+
+    const preview = await screen.findByRole("complementary", { name: "Notes" });
+    const ask = await within(preview).findByRole("button", { name: t("brainstyLinkAsk") });
+    expect(ask.getAttribute("title")).toBe(t("brainstyLinkWhat"));
+    expect(ask.getAttribute("aria-expanded")).toBe("false");
+    expect(within(preview).queryByText(t("brainstyLinkWhat"))).toBeNull();
+    await user.click(ask);
+    expect(within(preview).getByText(t("brainstyLinkWhat"))).toBeTruthy();
+    expect(ask.getAttribute("aria-expanded")).toBe("true");
+  });
+
+  it("shows a file's picture, kind, size and day, who uses it, and opens it or shows it in its folder", async () => {
+    ipc.network = () => Promise.resolve(filed);
+    ipc.file = { bytes: 2400, changed: "2026-11-18T15:00:00Z" };
+    const { user } = await drawnNetwork();
+
+    act(() => sigma.hands?.pick(3));
+
+    const preview = await screen.findByRole("complementary", { name: "map-1a2b3c4d.png" });
+    expect(await within(preview).findByText("Image · PNG")).toBeTruthy();
+    expect(within(preview).getByText("2.4 kB")).toBeTruthy();
+    expect(within(preview).getByText(t("brainstyFactChanged"))).toBeTruthy();
+    await waitFor(() =>
+      expect(preview.querySelector("img")?.getAttribute("src")).toBe(
+        "asset://localhost/C:/kept/map.png",
+      ),
+    );
+    expect(within(preview).queryByRole("region", { name: t("brainstyTiesTitle") })).toBeNull();
+    expect(asked("brain_file")).toEqual([{ cmd: "brain_file", args: { id: MAP } }]);
+
+    await user.click(within(preview).getByRole("button", { name: t("brainstyOpen") }));
+    await user.click(within(preview).getByRole("button", { name: t("brainstyShowInFolder") }));
+    expect(asked("opened")).toEqual([{ cmd: "opened", args: { reference: MAP } }]);
+    expect(asked("shown_in_folder")).toEqual([
+      { cmd: "shown_in_folder", args: { reference: MAP } },
+    ]);
+    expect(ways.opened).toEqual([]);
+
+    const used = within(preview).getByRole("region", { name: t("brainstyUsedIn") });
+    await user.click(within(used).getByRole("button", { name: "Notes" }));
+    expect(await screen.findByRole("complementary", { name: "Notes" })).toBeTruthy();
+  });
+
+  it("says no more than the name of a file nothing in sight uses, and says so when one cannot be opened", async () => {
+    ipc.network = () => Promise.resolve(filed);
+    const { user } = await drawnNetwork();
+
+    act(() => sigma.hands?.pick(3));
+    const preview = await screen.findByRole("complementary", { name: "map-1a2b3c4d.png" });
+    await waitFor(() => expect(asked("brain_file")).toHaveLength(1));
+    expect(within(preview).queryByRole("button", { name: t("brainstyOpen") })).toBeNull();
+    expect(within(preview).queryByText(t("brainstyFactSize"))).toBeNull();
+    expect(preview.querySelector("img")).toBeNull();
+    expect(asked("served")).toEqual([]);
+
+    ipc.file = { bytes: 10 };
+    ipc.opening = () => Promise.reject({ code: "cannotOpen", about: MAP });
+    act(() => sigma.hands?.pick(0));
+    act(() => sigma.hands?.pick(3));
+    const again = await screen.findByRole("complementary", { name: "map-1a2b3c4d.png" });
+    await user.click(await within(again).findByRole("button", { name: t("brainstyOpen") }));
+    expect(await within(again).findByRole("alert")).toBeTruthy();
+    expect(within(again).queryByText(t("brainstyFactChanged"))).toBeNull();
   });
 
   it("opens a task on a double click", async () => {

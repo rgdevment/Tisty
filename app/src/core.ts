@@ -411,6 +411,8 @@ export const copyAttached = (reference: string, to: string): Promise<void> =>
   invoke("copied", { reference, to });
 
 export const opened = (reference: string): Promise<void> => invoke("opened", { reference });
+export const shownInFolder = (reference: string): Promise<void> =>
+  invoke("shown_in_folder", { reference });
 
 export type Keeper = "cloud" | "away" | "plain";
 

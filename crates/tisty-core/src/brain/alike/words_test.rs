@@ -20,6 +20,22 @@ fn function_words_and_short_ones_are_not_counted() {
 }
 
 #[test]
+fn words_for_how_a_text_is_laid_out_are_not_counted_in_either_language() {
+    assert_eq!(
+        words("La **negrita** y la cursiva, un Título de nivel 2, el número de la lista: Rina"),
+        vec!["rina"]
+    );
+    assert_eq!(
+        words("Bold and italic, a heading level, numbered lists, a table and a link: Roger"),
+        vec!["roger"]
+    );
+    assert_eq!(
+        words("cita veterinario quote"),
+        vec!["veterinario", "quote", "cita"]
+    );
+}
+
+#[test]
 fn a_word_counts_by_its_letters_whatever_its_accents_and_case_and_keeps_its_first_spelling() {
     assert_eq!(
         counted(&["Método nuevo", "el metodo"]),
