@@ -112,6 +112,7 @@ describe("the first time AGENTS opens", () => {
     ).toBeTruthy();
     await screen.findByText("Claude · 2 reglas");
     expect(screen.getByText("Codex · 1 regla")).toBeTruthy();
+    expect(document.querySelector('[data-mark="claude"]')).toBeTruthy();
     expect(screen.getByText(/Si sincronizas, llega solo a Claude, Codex\./)).toBeTruthy();
     expect(screen.getByText(/respaldo/)).toBeTruthy();
   });

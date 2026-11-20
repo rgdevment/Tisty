@@ -1,6 +1,9 @@
-import { fencedFile, type Here, type Place } from "../agentDocs";
-import { stamped, weigh } from "../format";
+import type { ReactNode } from "react";
+import { type AgentDoc, fencedFile, type Here, type Place } from "../agentDocs";
+import { copied } from "../core";
+import { weigh } from "../format";
 import { fill, t } from "../locales";
+import { agentRows, backupsSaid, type FactRow } from "./agentFile";
 import Glyph from "./Glyph";
 import Modal from "./Modal";
 import Page from "./Page";
@@ -98,52 +101,103 @@ function Link({ label, onClick }: { label: string; onClick: () => void }) {
   );
 }
 
-interface Row {
-  readonly place: Place;
-  readonly code: boolean;
-  readonly onBackups: () => void;
-  readonly onTurn?: () => void;
+function Copy({ at, onError }: { at: string; onError: (e: unknown) => void }) {
+  return (
+    <button
+      type="button"
+      title={t("agentCopyPath")}
+      aria-label={t("agentCopyPath")}
+      onClick={() => void copied(at).catch(onError)}
+      className="shrink-0 rounded-md p-0.5 text-faint hover:bg-hover hover:text-ink"
+    >
+      <Glyph name="copy" className="h-[13px] w-[13px]" />
+    </button>
+  );
 }
 
-export function PlaceRow({ place, code, onBackups, onTurn }: Row) {
+const TONE = { amber: "text-hue-amber", red: "text-hue-red" } as const;
+
+function Fact({
+  row,
+  onBackups,
+  onError,
+}: {
+  row: FactRow;
+  onBackups: (place: Place) => void;
+  onError: (e: unknown) => void;
+}) {
+  if (row.kind === "raw")
+    return (
+      <pre className="m-0 whitespace-pre-wrap break-words border-b border-hair py-1.5 font-mono text-[11.5px] text-soft last:border-b-0">
+        {row.value}
+      </pre>
+    );
+  const small = row.kind === "own";
   return (
-    <div className="border-b border-hair py-2 text-[12.5px] last:border-b-0">
-      <div className="flex items-center justify-between gap-3">
-        <span className="flex shrink-0 items-center gap-1.5 text-soft">
-          <Glyph name="upload" className="h-[13px] w-[13px]" />
-          {fill("agentWrittenTo", place.named)}
-        </span>
-        <code className="min-w-0 truncate text-[11.5px]" title={place.at}>
-          {place.at}
-        </code>
-      </div>
-      <div className="mt-1 flex flex-wrap items-center justify-between gap-2 text-faint">
-        <span>
-          {t(code ? "agentAsCode" : "agentAsMarkdown")}
-          {place.shared === 2 && ` · ${t("agentComposedOne")}`}
-          {place.shared > 2 && ` · ${fill("agentComposed", String(place.shared - 1))}`}
-          {place.changed && ` · ${fill("agentChangedAt", stamped(place.changed))}`}
-        </span>
-        <span className="flex items-center gap-2">
-          {place.kept.length > 0 && (
-            <Link
-              label={
-                place.kept.length === 1
-                  ? t("agentBackupsOne")
-                  : fill("agentBackups", String(place.kept.length))
-              }
-              onClick={onBackups}
-            />
-          )}
-          {onTurn && (
-            <Link
-              label={fill(place.said.state === "off" ? "agentResume" : "agentPause", place.named)}
-              onClick={onTurn}
-            />
-          )}
-        </span>
-      </div>
+    <div className="flex items-baseline justify-between gap-4 border-b border-hair py-1.5 last:border-b-0">
+      <dt className={`shrink-0 ${small ? "text-[11.5px] text-faint" : "text-soft"}`}>
+        {row.label}
+      </dt>
+      <dd className={`m-0 min-w-0 text-right ${small ? "text-[11.5px] text-soft" : "text-ink"}`}>
+        {row.kind === "path" && (
+          <span className="flex items-center justify-end gap-1.5">
+            <code className="min-w-0 truncate font-mono text-[11.5px]" title={row.at}>
+              {row.at}
+            </code>
+            <Copy at={row.at} onError={onError} />
+          </span>
+        )}
+        {row.kind === "path" && row.note && (
+          <span className="block text-[11.5px] text-faint">{row.note}</span>
+        )}
+        {row.kind === "backups" && (
+          <span>
+            {backupsSaid(row.place)}
+            {row.place.kept.length > 0 && (
+              <>
+                {" · "}
+                <Link label={t("agentSee")} onClick={() => onBackups(row.place)} />
+              </>
+            )}
+          </span>
+        )}
+        {(row.kind === "said" || row.kind === "own") && (
+          <span className={row.kind === "said" && row.tone ? TONE[row.tone] : undefined}>
+            {row.value}
+          </span>
+        )}
+      </dd>
     </div>
+  );
+}
+
+const keyOf = (row: FactRow): string => {
+  if (row.kind === "raw") return "raw";
+  if (row.kind === "path") return `path:${row.at}`;
+  if (row.kind === "backups") return `backups:${row.place.at}`;
+  return `${row.kind}:${row.label}`;
+};
+
+interface Facts {
+  readonly doc: AgentDoc;
+  readonly body: string;
+  readonly children?: ReactNode;
+  readonly onBackups: (place: Place) => void;
+  readonly onError: (e: unknown) => void;
+}
+
+// The only place the file's facts are told: the page under it keeps only the words.
+export function AgentFacts({ doc, body, onBackups, onError, children }: Facts) {
+  return (
+    <dl
+      aria-label={t("agentFileTitle")}
+      className="mt-3 rounded-[10px] bg-desk px-3.5 py-1 text-[12.5px]"
+    >
+      {agentRows(doc, body).map((row) => (
+        <Fact key={keyOf(row)} row={row} onBackups={onBackups} onError={onError} />
+      ))}
+      {children}
+    </dl>
   );
 }
 

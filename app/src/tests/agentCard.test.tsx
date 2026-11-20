@@ -1,10 +1,11 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { AgentDoc, Place, Said } from "../agentDocs";
 import { adopt } from "../locales";
-import AgentCard from "../ui/AgentCard";
+import AgentCard, { AgentButtons, AgentTrail } from "../ui/AgentCard";
 import { AGENTS_CHANGED } from "../ui/AgentsKeeper";
+import { useAgentShelf } from "../ui/useAgentCard";
 
 const ipc = vi.hoisted(() => ({
   calls: [] as { cmd: string; args: Record<string, unknown> }[],
@@ -15,6 +16,14 @@ vi.mock("@tauri-apps/api/core", () => ({
   invoke: (cmd: string, args?: Record<string, unknown>) => {
     ipc.calls.push({ cmd, args: args ?? {} });
     return ipc.answer(cmd, args ?? {});
+  },
+}));
+
+vi.mock("../core", async (real) => ({
+  ...(await real<typeof import("../core")>()),
+  copied: (text: string) => {
+    ipc.calls.push({ cmd: "copied", args: { text } });
+    return Promise.resolve();
   },
 }));
 
@@ -49,6 +58,7 @@ const place = (said: Said, more: Partial<Place> = {}): Place => ({
   said,
   shared: 1,
   changed: null,
+  bytes: null,
   kept: [],
   heldBy: [],
   ...more,
@@ -67,8 +77,11 @@ const card = (places: Place[], more: Partial<AgentDoc> = {}): AgentDoc => ({
   proposal: null,
   twin: false,
   places,
+  own: { about: null, fields: [], raw: null },
   ...more,
 });
+
+const BODY = "---\nagent: claude/rule/CLAUDE.md\n---\n# Rules\n";
 
 const hands = () => ({
   onEdit: vi.fn(),
@@ -77,17 +90,31 @@ const hands = () => ({
   onError: vi.fn(),
 });
 
-const shown = (doc: AgentDoc, more: { editing?: boolean; locked?: boolean } = {}) => {
-  const on = hands();
-  render(
-    <AgentCard
-      doc={doc}
-      file="claude-rule.md"
-      editing={more.editing ?? false}
-      locked={more.locked ?? false}
-      {...on}
-    />,
+type Shown = { editing?: boolean; locked?: boolean; earlier?: boolean };
+
+type Hands = ReturnType<typeof hands> & { onEarlier: () => void };
+
+function Both({ doc, more, on }: { doc: AgentDoc; more: Shown; on: Hands }) {
+  const shelf = useAgentShelf("claude-rule.md");
+  const card = {
+    doc,
+    file: "claude-rule.md",
+    id: "01R",
+    editing: more.editing ?? false,
+    locked: more.locked ?? false,
+    ...on,
+  };
+  return (
+    <>
+      <AgentCard card={card} shelf={shelf} body={BODY} />
+      <AgentButtons card={card} shelf={shelf} onEarlier={more.earlier ? on.onEarlier : undefined} />
+    </>
   );
+}
+
+const shown = (doc: AgentDoc, more: Shown = {}) => {
+  const on = { ...hands(), onEarlier: vi.fn() };
+  render(<Both doc={doc} more={more} on={on} />);
   return on;
 };
 
@@ -104,12 +131,33 @@ beforeEach(() => {
 });
 
 describe("an agent document's name on its card", () => {
-  it("says its name and keeps its path small under it", () => {
-    shown(card([], { name: "rules/horario.md", label: "Horario laboral" }));
-    expect(screen.getByText("Horario laboral").className).toContain("text-[21px]");
-    const path = screen.getByText("rules/horario.md");
-    expect(path.className).toContain("text-[11.5px]");
-    expect(path.title).toBe("rules/horario.md");
+  it("says its name as the card's heading, and the path only in the file's facts", () => {
+    shown(card([place({ state: "synced" })], { name: "rules/horario.md", label: "Horario" }));
+    expect(screen.getByRole("heading", { name: "Horario" }).className).toContain("text-[21px]");
+    expect(screen.queryByText("rules/horario.md")).toBeNull();
+    const facts = screen.getByLabelText("Agent file");
+    expect(within(facts).getByText(AT).title).toBe(AT);
+  });
+
+  it("puts a skill's description under its name and its other properties among the facts", () => {
+    const own = {
+      about: "Ask which skill fits",
+      fields: [["disable-model-invocation", "true"] as const],
+      raw: null,
+    };
+    shown(card([place({ state: "synced" })], { kind: "skill", label: "ask", own }));
+    expect(screen.getByText("Ask which skill fits").className).toContain("text-soft");
+    const facts = screen.getByLabelText("Agent file");
+    expect(within(facts).getByText("disable-model-invocation").className).toContain(
+      "text-[11.5px]",
+    );
+    expect(within(facts).getByText("true")).toBeTruthy();
+  });
+
+  it("shows properties too long to read as fields as they are written", () => {
+    const own = { about: null, fields: [], raw: "name: pr\ndescription: long" };
+    shown(card([], { own }));
+    expect(document.querySelector("pre")?.textContent).toBe("name: pr\ndescription: long");
   });
 });
 
@@ -121,7 +169,7 @@ describe("an agent document's card", () => {
     expect(screen.getByText("Rule")).toBeTruthy();
     expect(screen.getByText("In sync")).toBeTruthy();
     expect(screen.getByText(AT)).toBeTruthy();
-    expect(screen.getByText(/Written as Markdown/)).toBeTruthy();
+    expect(screen.getByText("Markdown · LF")).toBeTruthy();
     expect(screen.queryByRole("alert")).toBeNull();
     await userEvent.click(screen.getByRole("button", { name: "Edit" }));
     expect(on.onEdit).toHaveBeenCalledWith(true);
@@ -183,7 +231,7 @@ describe("an agent document's card", () => {
   });
 
   it("shows the file as it is now and closes it", async () => {
-    ipc.answer = () => Promise.resolve("Tests first.\n");
+    ipc.answer = (cmd) => Promise.resolve(cmd === "agent_doc" ? "Tests first.\n" : null);
     shown(card([place(OUTSIDE)]));
     await userEvent.click(screen.getByRole("button", { name: "See the file" }));
     await screen.findByTestId("file");
@@ -199,11 +247,16 @@ describe("an agent document's card", () => {
       { n: 1, bytes: 30, pinned: true },
     ];
     ipc.answer = (_cmd, args) =>
-      Promise.resolve((args.asked as { do: string }).do === "held" ? "Old words.\n" : null);
+      Promise.resolve(
+        (args.asked as { do: string } | undefined)?.do === "held" ? "Old words.\n" : null,
+      );
     shown(card([place({ state: "synced" }, { kept })]));
-    await userEvent.click(screen.getByRole("button", { name: "2 backups" }));
+    expect(screen.getByText(/2 backups/)).toBeTruthy();
+    await userEvent.click(screen.getByRole("button", { name: "See" }));
     expect(screen.getByText(/Backup #2/)).toBeTruthy();
-    await userEvent.click(screen.getAllByRole("button", { name: "See" })[0]);
+    await userEvent.click(
+      within(screen.getByRole("dialog")).getAllByRole("button", { name: "See" })[0],
+    );
     await screen.findByTestId("file");
     expect(page.body).toContain("Old words.");
     await userEvent.click(screen.getByRole("button", { name: "Restore" }));
@@ -339,7 +392,7 @@ describe("an agent document's card", () => {
       ]),
     );
     expect(screen.getByText("The code block is broken")).toBeTruthy();
-    expect(screen.getByText(/file changed/)).toBeTruthy();
+    expect(screen.getByText("Last written")).toBeTruthy();
   });
 
   it("asks another computer's document to be applied here or not, and keeps the answer", async () => {
@@ -508,5 +561,160 @@ describe("an agent's proposal while the page is written", () => {
     shown(card([], { proposal }), { editing: true });
     expect(screen.queryByRole("button", { name: "Approve the change" })).toBeNull();
     expect(screen.getByRole("button", { name: "Discard" })).toBeTruthy();
+  });
+});
+
+describe("the file's facts on an agent document's card", () => {
+  const codex = (bytes: number, kind: AgentDoc["kind"] = "rule") =>
+    card([place({ state: "synced" }, { assistant: "codex", named: "Codex", bytes })], {
+      level: "codex",
+      named: "Codex",
+      kind,
+    });
+
+  it("weighs the file and warns as it nears the 32 KiB Codex reads", () => {
+    shown(codex(2_000));
+    expect(screen.getByText("Size")).toBeTruthy();
+    expect(screen.queryByText(/32 KiB/)).toBeNull();
+  });
+
+  it("says when the file is close to what Codex reads", () => {
+    shown(codex(29 * 1024));
+    expect(screen.getByText(/close to the 32 KiB Codex reads/).className).toContain("hue-amber");
+  });
+
+  it("says when Codex leaves the end of the file unread", () => {
+    shown(codex(33 * 1024));
+    expect(screen.getByText(/past the 32 KiB Codex reads/).className).toContain("hue-red");
+  });
+
+  it("never warns about a Codex skill, which has no such cap", () => {
+    shown(codex(40 * 1024, "skill"));
+    expect(screen.queryByText(/32 KiB/)).toBeNull();
+  });
+
+  it("copies the path it writes to", async () => {
+    shown(card([place({ state: "synced" })]));
+    await userEvent.click(screen.getByRole("button", { name: "Copy the path" }));
+    await waitFor(() => expect(sent("copied")[0]?.args).toEqual({ text: AT }));
+  });
+
+  it("tells each place apart when several assistants read the document, and what each file joins", () => {
+    shown(
+      card(
+        [
+          place({ state: "synced" }, { shared: 2, bytes: 10 }),
+          place(
+            { state: "synced" },
+            { assistant: "codex", named: "Codex", at: "/c/AGENTS.md", shared: 3 },
+          ),
+        ],
+        { level: "global", named: null },
+      ),
+    );
+    expect(screen.getByText("Claude file")).toBeTruthy();
+    expect(screen.getByText("Codex file")).toBeTruthy();
+    expect(screen.getByText("Size of Claude's file")).toBeTruthy();
+    expect(screen.getByText("Backups of Codex's file")).toBeTruthy();
+    expect(screen.getByText("together with one other document")).toBeTruthy();
+    expect(screen.getByText("together with 2 other documents")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Backups" })).toBeNull();
+  });
+});
+
+describe("the buttons under an agent's words", () => {
+  it("opens the history and copies the document's link", async () => {
+    const on = shown(card([place({ state: "synced" })]), { earlier: true });
+    await userEvent.click(screen.getByRole("button", { name: "History" }));
+    await userEvent.click(screen.getByRole("button", { name: "Copy link" }));
+    expect(on.onEarlier).toHaveBeenCalled();
+    await waitFor(() => expect(sent("doc_address")[0]?.args).toEqual({ file: "claude-rule.md" }));
+  });
+
+  it("offers no history where the window has none", () => {
+    shown(card([place({ state: "synced" })]));
+    expect(screen.queryByRole("button", { name: "History" })).toBeNull();
+  });
+
+  it("opens the same backups from the button as from the facts", async () => {
+    shown(card([place({ state: "synced" }, { kept: [{ n: 1, bytes: 3, pinned: true }] })]));
+    await userEvent.click(screen.getByRole("button", { name: "Backups" }));
+    expect(screen.getByRole("dialog")).toBeTruthy();
+  });
+});
+
+describe("the folders above an agent document", () => {
+  it("names only its folders and opens the one pressed", async () => {
+    const onFolder = vi.fn();
+    const folder = (id: string, name: string, parent: string | null) =>
+      ({ id, name, parent, icon: parent ? null : "robot" }) as never;
+    render(
+      <AgentTrail
+        trail={[folder("a", "AGENTS", null), folder("c", "Claude", "a")]}
+        onFolder={onFolder}
+      />,
+    );
+    expect(screen.getByRole("navigation").textContent).toBe("Agents/Claude");
+    await userEvent.click(screen.getByRole("button", { name: "Claude" }));
+    expect(onFolder).toHaveBeenCalledWith("c");
+  });
+});
+
+describe("the shape of an agent's card", () => {
+  it("opens the card at the top, closes it under a thin line with the buttons, and keeps notices inside it", () => {
+    shown(card([place(OUTSIDE)]));
+    const top = screen.getByRole("region", { name: "Agent document" });
+    expect(top.className).toContain("rounded-t-[10px]");
+    const facts = screen.getByLabelText("Agent file");
+    const notice = within(top).getByRole("alert");
+    expect(facts.compareDocumentPosition(notice) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    const foot = screen.getByRole("navigation", { name: "What you can do with this file" });
+    expect(foot.className).toContain("rounded-b-[10px]");
+    expect(foot.className).toContain("border-t-hair");
+  });
+
+  it("lays each fact on its own row, its name on the left and its value on the right", () => {
+    shown(card([place({ state: "synced" })]));
+    const row = screen.getByText("Read by").parentElement as HTMLElement;
+    expect(row.className).toContain("justify-between");
+    expect(within(row).getByText("Claude").closest("dd")?.className).toContain("text-right");
+    expect(screen.getByText(AT).className).toContain("font-mono");
+  });
+});
+
+describe("an agent document's share on its card", () => {
+  const SHARE = {
+    read: "https://tisty.cl/a#k",
+    edit: null,
+    version: 1,
+    taken: false,
+    held: false,
+    told: [],
+    owner: null,
+    signer: null,
+    editors: [],
+    signsAs: null,
+    languages: [],
+  };
+
+  it("adds no Shared row while the document has no share", async () => {
+    shown(card([place({ state: "synced" })]));
+    await waitFor(() => expect(sent("doc_share_card")).toHaveLength(1));
+    expect(sent("doc_share_card")[0].args).toEqual({ id: "01R" });
+    expect(screen.queryByText("Shared")).toBeNull();
+  });
+
+  it("tells a share that still stands as one more fact, opens it and stops it from there", async () => {
+    ipc.answer = (cmd) => Promise.resolve(cmd === "doc_share_card" ? SHARE : null);
+    shown(card([place({ state: "synced" })]));
+    const label = await screen.findByText("Shared");
+    const row = label.parentElement as HTMLElement;
+    expect(row.className).toContain("justify-between");
+    expect(within(row).getByText("Read only")).toBeTruthy();
+    await userEvent.click(within(row).getByRole("button", { name: "See" }));
+    expect(within(row).getByText("https://tisty.cl/a#k")).toBeTruthy();
+    expect(within(row).getByRole("button", { name: "Stop sharing" })).toBeTruthy();
+    await userEvent.click(within(row).getByRole("button", { name: "Hide" }));
+    expect(within(row).queryByText("https://tisty.cl/a#k")).toBeNull();
   });
 });

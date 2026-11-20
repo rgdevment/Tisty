@@ -55,7 +55,7 @@ If you have no agent files yet, the box says «I found no agent files on this co
 
 **Try it:** click **Agents**, in grey in your sidebar, to see which assistants it finds on this computer. If you only wanted to look, the X leaves it as it was. The same is in **Settings → Assistants**, on the **Agents** card: before anything is brought it says which assistants it found and offers **Bring**, **Bring and sync** and **Hide**; brought, **Sync**, **Bring another file** and **Hide**; while syncing, **Bring another file**, **Stop syncing** and one switch per assistant, such as **Sync Claude**.
 
-Afterwards, in the sidebar, each document shows with its name and an icon: a book for a rule, a piece for a skill and a brain for memory. Hover over one and you see which file it is.
+Afterwards, in the sidebar, **Global** has a blue globe and each assistant a symbol of its own in grey: a chat bubble for Claude, a terminal for Codex, braces for Copilot, a compass for Gemini and a pointer for Cursor. Each document shows with its name and an icon: a book for a rule, a piece for a skill and a brain for memory. Hover over one and you see which file it is.
 
 ![The sidebar with the Agents folder open and syncing: the robot in coral and the name Agents, with no word on the right; in Claude, the rule How I work with a book icon, the skill pr with a puzzle-piece icon and 3 files, and the memory MEMORY.md with a brain icon; the pointer over How I work shows claude · CLAUDE.md](agents-sidebar.png)
 
@@ -117,7 +117,7 @@ The same goes for Codex's `AGENTS.md`, Copilot's `copilot-instructions.md` and G
 
 ## A skill with its `SKILL.md`
 
-A skill is a folder with a `SKILL.md` and, sometimes, scripts. Each file is a document with the same skill folder in its `agent:` line. The `SKILL.md` also carries its own properties, which the card shows as fields:
+A skill is a folder with a `SKILL.md` and, sometimes, scripts. Each file is a document with the same skill folder in its `agent:` line. The `SKILL.md` also carries its own properties: the card takes its `name` as the name, puts its `description` under it and the rest in its facts box, so the text starts where what your agent reads starts:
 
 ```markdown title="The SKILL.md of the pr skill"
 ---
@@ -164,18 +164,19 @@ It touches nothing else in that file, and if the line is already there it does n
 
 **If you delete that line**, Tisty takes it as your decision and does not put it back. Gemini stays **Paused**, and Tisty stops writing `tisty-rules.md`. The card of each rule Gemini reads tells you: «Gemini does not read this rule: the line @tisty-rules.md is missing from GEMINI.md, and Tisty does not put it back by itself.». **Settings → Assistants**, under **Sync Gemini**, says so too, and so does the box **Tisty's line is missing** when you go into Agents. **Put the line back**, in any of the three, adds the line again at the end of `GEMINI.md`, and Gemini gets your rules again.
 
-## The card and the Agent file panel
+## The card of an agent document
 
-A document in Agents opens for reading, with a **card** at the top:
+A document in Agents does not look like one more document: it opens for reading, on a single **card**, with no column beside it. At the top, the folder path, such as «Agents / Claude», and then:
 
-- the labels: **Rule**, **Skill** or **Agent memory**; **Global** or the assistant; and the standing, such as **In sync**;
-- the name, **How I work**, and under it, in small type, the path, `CLAUDE.md`;
-- one row per file: «Claude reads it at `~/.claude/CLAUDE.md`», with when it changed and its backups;
-- the buttons **Edit**, **Backups** and **Pause sync with Claude**.
+- **the labels**: **Rule**, **Skill** or **Agent memory**; **Global** or the assistant; and the standing, such as **In sync**;
+- **the name**, **How I work**; on a skill, its `description` sits under it, in grey;
+- **the file's facts box**: **Read by**, **Written to** with its button to copy the path, **Size**, **Backups** with **See**, **Format**, **Last written**, **Original kept**, **Syncs on this computer**, **Shared** when the document has a live shared link and, in small rows, the file's other properties, such as `disable-model-invocation`;
+- **the agent's text**, just as you wrote it, with compact headings and no separate sheet. Tisty imposes no sections on it and never turns its first line into a title, and the file stays the same, byte for byte;
+- **at the foot, the buttons**: **Edit**, **Backups**, **History**, **Copy link** and **Pause sync with Claude**.
 
-Beside it, the **Agent file** panel takes the place of the paper size and the outline: **Read by**, **Written to**, **Format**, **Last written**, **Backups**, **Original kept** and **Syncs on this computer**, with **Copy link** and, once it has earlier versions, **History**.
+Codex reads its `AGENTS.md` only up to 32 KiB. When the file nears that cap, **Size** says so in amber, «close to the 32 KiB Codex reads», and past it, in red: time to move the long part into a skill.
 
-![The card of How I work with the labels Rule, Claude and In sync, the name in large type and the path CLAUDE.md under it, the row Claude reads it at ~/.claude/CLAUDE.md with 3 backups, and the buttons Edit, Backups and Pause sync with Claude; on the right, the Agent file panel with Read by Claude, Format Markdown · LF and Syncs on this computer Yes](agents-card.png)
+![PLACEHOLDER — The card of How I work with no column beside it: at the top the path Agents / Claude; the labels Rule, Claude and In sync; the name in large type; the facts box with Read by Claude, Written to ~/.claude/CLAUDE.md with its copy button, Size 3.2 kB, Backups 3 backups · See, Format Markdown · LF and Syncs on this computer Yes; below, the rule's text with compact headings and no separate sheet; at the foot, the buttons Edit, Backups, History, Copy link and Pause sync with Claude](agents-card.png)
 
 ## A change made outside: bring it in or overwrite
 
@@ -195,7 +196,7 @@ Until you choose, Tisty does not write that file. If you changed both the file a
 
 Before writing over a file, Tisty keeps what it held. **Backup #1** is the original, the file as it was before Tisty touched it, and it is never removed; it also keeps the last 20. They live on this computer and do not travel with sync.
 
-1. On the card, press **Backups**, or the row's **3 backups** link.
+1. At the card's foot, press **Backups**, or **See** beside **3 backups** in its facts box.
 2. Pick one, such as **Backup #2 · 1.1 kB**. **See** shows it whole.
 3. **Restore** asks «Put this backup back in `~/.claude/CLAUDE.md`? What the file holds now is kept as a backup.» Say yes.
 4. The file says what the backup says again, and the card turns to **Changed outside**: your document did not change. **Bring the change in** makes it match the backup; **Overwrite with Tisty**, if you changed your mind.
@@ -206,7 +207,7 @@ That way you never lose either side.
 
 If one day you want Tisty to leave Claude's files alone, for example while you try other rules by hand:
 
-- on the card, **Pause sync with Claude**; in a Global document, its row's **Pause Claude** link;
+- at the card's foot, **Pause sync with Claude**; in a Global document, **Pause Claude**;
 - or in **Settings → Assistants**, on the **Agents** card, clear the **Sync Claude** switch. To stop them all at once, **Stop syncing**, as the next section tells.
 
 Paused, Tisty neither opens nor writes those files, and you keep editing your documents. **Resume sync with Claude** writes what you changed, except a file that changed outside meanwhile, which stays marked for you to decide. A pause belongs to this computer only.

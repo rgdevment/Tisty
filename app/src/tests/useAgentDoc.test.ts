@@ -26,6 +26,7 @@ const rule: AgentDoc = {
   proposal: null,
   twin: false,
   places: [],
+  own: { about: null, fields: [], raw: null },
 };
 
 describe("an agent document's hold", () => {

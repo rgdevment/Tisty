@@ -43,6 +43,7 @@ pub struct Place {
     /// How many documents the file is made of, so a composed file says so.
     shared: usize,
     changed: Option<String>,
+    bytes: Option<u64>,
     kept: Vec<Backup>,
     /// The documents that hold this file back, by title.
     held_by: Vec<String>,
@@ -68,6 +69,7 @@ pub struct AgentDoc {
     places: Vec<Place>,
     /// An assistant's change waiting beside the approved text, shown as a comparison.
     proposal: Option<Box<super::agent_proposals::Proposal>>,
+    own: agents::OwnFront,
 }
 
 fn named(id: &str) -> String {
@@ -96,6 +98,10 @@ pub(crate) fn said(standing: Standing, piece: usize) -> Said {
     }
 }
 
+fn bytes_at(at: &Path) -> Option<u64> {
+    std::fs::metadata(at).ok().map(|one| one.len())
+}
+
 fn changed_at(at: &Path) -> Option<String> {
     let when = std::fs::metadata(at).ok()?.modified().ok()?;
     jiff::Timestamp::try_from(when)
@@ -114,6 +120,7 @@ pub(crate) fn place(data: &Path, ledger: &Ledger, target: &Target, piece: usize)
         },
         shared: target.pieces.len(),
         changed: changed_at(&target.at),
+        bytes: bytes_at(&target.at),
         held_by: Vec::new(),
         kept: agents::kept(data, &target.at)
             .into_iter()
@@ -228,8 +235,12 @@ fn one_place(session: &Session, file: &str, at: &str) -> Answer<(PathBuf, Target
 #[derive(serde::Serialize, Debug)]
 #[serde(untagged)]
 pub enum Told {
-    Card(Option<AgentDoc>),
+    Card(Option<Box<AgentDoc>>),
     Text(Option<String>),
+}
+
+fn carded(card: Option<AgentDoc>) -> Told {
+    Told::Card(card.map(Box::new))
 }
 
 /// The card of a document, or, given a file and something to do there, what doing it gives back.
@@ -241,8 +252,8 @@ pub fn agent_doc(
     asked: Option<Asked>,
 ) -> Answer<Told> {
     match (at, asked) {
-        (_, Some(Asked::Take { here })) => taken_here(&session, &file, here).map(Told::Card),
-        (_, Some(Asked::Agree { print })) => agreed(&session, &file, &print).map(Told::Card),
+        (_, Some(Asked::Take { here })) => taken_here(&session, &file, here).map(carded),
+        (_, Some(Asked::Agree { print })) => agreed(&session, &file, &print).map(carded),
         (_, Some(Asked::Approve { print, over })) => settled(&session, &file, |one| {
             super::agent_proposals::approve(one, &file, &print, &over)
         }),
@@ -250,7 +261,7 @@ pub fn agent_doc(
             super::agent_proposals::discard(one, &file, &print)
         }),
         (Some(at), Some(asked)) => done_at(&session, &file, &at, asked).map(Told::Text),
-        _ => card(&session, &file).map(Told::Card),
+        _ => card(&session, &file).map(carded),
     }
 }
 
@@ -268,7 +279,7 @@ fn settled(
             super::agents_sync::round_now(&one, &homes, &mut ledger);
         }
     }
-    card(session, file).map(Told::Card)
+    card(session, file).map(carded)
 }
 
 fn taken_here(session: &Mutex<Session>, file: &str, here: bool) -> Answer<Option<AgentDoc>> {
@@ -368,6 +379,7 @@ pub(crate) fn card_of(
     let card = opened.card;
     Ok(Some(AgentDoc {
         proposal: super::agent_proposals::proposal_of(session, file, &opened.body).map(Box::new),
+        own: agents::own_front(&opened.body),
         kind: card.kind.word(),
         named: (card.level != agents::GLOBAL).then(|| named(&card.level)),
         code: card.code(),

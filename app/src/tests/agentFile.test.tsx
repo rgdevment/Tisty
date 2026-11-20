@@ -1,8 +1,7 @@
-import { act, render, screen, waitFor } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
+import { act, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { AgentDoc, Place, Said } from "../agentDocs";
-import { agentFacts, formatOf } from "../ui/agentFile";
+import { agentRows, backupsSaid, type FactRow, formatOf } from "../ui/agentFile";
 import Beside from "../ui/Beside";
 
 const linking = vi.hoisted(() => ({ files: [] as string[], card: null as unknown }));
@@ -30,6 +29,7 @@ const place = (said: Said, more: Partial<Place> = {}): Place => ({
   said,
   shared: 1,
   changed: "2026-11-19T10:42:00Z",
+  bytes: null,
   kept: [],
   heldBy: [],
   ...more,
@@ -48,12 +48,20 @@ const agent = (places: Place[], more: Partial<AgentDoc> = {}): AgentDoc => ({
   print: "p1",
   proposal: null,
   places,
+  own: { about: null, fields: [], raw: null },
   ...more,
 });
 
 const BODY = "---\nagent: claude/rule/rules/horario.md\n---\n# Horario laboral\n";
 
-const rows = (doc: AgentDoc, body = BODY) => new Map(agentFacts(doc, body, []).rows);
+const told = (row: FactRow): [string, string] => {
+  if (row.kind === "path") return [row.label, row.at];
+  if (row.kind === "backups") return [row.label, backupsSaid(row.place)];
+  if (row.kind === "raw") return ["", row.value];
+  return [row.label, row.value];
+};
+
+const rows = (doc: AgentDoc, body = BODY) => new Map(agentRows(doc, body).map(told));
 
 beforeEach(() => {
   linking.files = [];
@@ -114,15 +122,18 @@ describe("what the agent file panel says", () => {
     );
     expect(said.get("Read by")).toBe("Claude, Codex");
     expect(said.get("Codex file")).toBe("/c/AGENTS.md");
-    expect(said.get("Backups")).toBe("1 backup");
+    expect(said.get("Backups of Claude's file")).toBe("1 backup");
+    expect(said.get("Backups of Codex's file")).toBe("None yet");
     expect(said.get("Syncs on this computer")).toBe("Yes, except Codex (paused)");
   });
 
   it("says when nothing is written, nothing is kept yet and why it does not sync", () => {
     expect(rows(agent([])).get("Read by")).toBe("No assistant here");
     expect(rows(agent([])).get("Syncs on this computer")).toBe("No");
-    expect(rows(agent([])).get("Backups")).toBe("None yet");
-    expect(rows(agent([])).get("Last written")).toBe("");
+    expect(rows(agent([])).has("Backups")).toBe(false);
+    expect(rows(agent([])).has("Last written")).toBe(false);
+    expect(rows(agent([])).has("Original kept")).toBe(false);
+    expect(rows(agent([place({ state: "synced" })])).get("Backups")).toBe("None yet");
     expect(rows(agent([place({ state: "synced" })])).get("Original kept")).toBe(
       "Not yet: Tisty has not written over it",
     );
@@ -191,13 +202,11 @@ describe("when an agent file was written and who follows it", () => {
   });
 });
 
-describe("an agent document's column", () => {
-  const column = (doc: AgentDoc | null, onEarlier?: () => void) =>
+describe("any other document's column", () => {
+  it("keeps the paper and the outline", async () => {
     render(
       <Beside
-        title={doc?.label ?? "Notas"}
-        under={doc ? `${doc.level} · ${doc.name}` : undefined}
-        agent={doc}
+        title="Notas"
         paper="dev_a-0001"
         doc="01D"
         body={BODY}
@@ -212,50 +221,8 @@ describe("an agent document's column", () => {
         onTakeOut={() => {}}
         onShut={() => {}}
         onApart={() => {}}
-        onEarlier={onEarlier}
       />,
     );
-
-  it("shows the agent's file where the paper, the outline and sharing would be", async () => {
-    const seen: string[] = [];
-    column(agent([place({ state: "synced" })]), () => seen.push("earlier"));
-    await act(async () => {});
-    expect(screen.getByText("Horario laboral")).toBeTruthy();
-    expect(screen.getByText("claude · rules/horario.md")).toBeTruthy();
-    expect(screen.getByRole("region", { name: "Agent file" })).toBeTruthy();
-    expect(document.querySelector(".side-paper")).toBeNull();
-    expect(document.querySelector(".side-index")).toBeNull();
-    expect(document.querySelector("details[data-row=earlier]")).toBeNull();
-    expect(document.querySelector("details[data-row=details]")).toBeTruthy();
-    await userEvent.click(screen.getByRole("button", { name: "History" }));
-    await userEvent.click(screen.getByRole("button", { name: "Copy link" }));
-    expect(seen).toEqual(["earlier"]);
-    expect(linking.files).toEqual(["dev_a-0001"]);
-  });
-
-  it("still shows a share it already has, and never offers a new one", async () => {
-    column(agent([place({ state: "synced" })]));
-    await act(async () => {});
-    expect(document.querySelector("details[data-row=shared]")).toBeNull();
-    linking.card = {
-      read: "https://tisty.cl/a#k",
-      edit: null,
-      version: 1,
-      taken: false,
-      held: false,
-      told: [],
-      owner: null,
-      signer: null,
-      editors: [],
-      signsAs: null,
-      languages: [],
-    };
-    column(agent([place({ state: "synced" })]));
-    await waitFor(() => expect(document.querySelector("details[data-row=shared]")).toBeTruthy());
-  });
-
-  it("keeps the paper and the outline for any other document", async () => {
-    column(null);
     await act(async () => {});
     expect(document.querySelector(".side-paper")).toBeTruthy();
     expect(document.querySelector(".side-index")).toBeTruthy();

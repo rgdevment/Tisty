@@ -116,3 +116,100 @@ fn a_document_without_a_card_has_no_name_here() {
     assert_eq!(shown("# Just a page\n"), None);
     assert_eq!(shown("---\ntitle: x\n---\n# x\n"), None);
 }
+
+#[test]
+fn a_skill_lists_its_own_properties_but_the_name_its_title_already_says() {
+    let words = "---\nname: ask\ndescription: Ask which skill fits\ndisable-model-invocation: true\n---\n# Ask\n";
+    assert_eq!(
+        own_front(&doc("claude/skill/ask/SKILL.md", words)),
+        OwnFront {
+            about: Some("Ask which skill fits".into()),
+            fields: vec![["disable-model-invocation".into(), "true".into()]],
+            raw: None,
+        }
+    );
+}
+
+#[test]
+fn a_rule_keeps_its_name_property_and_joins_a_list_in_one_value() {
+    let words = "---\nname: horario\napplyTo:\n  - \"**/*.rs\"\n  - \"**/*.ts\"\n---\nWords.\n";
+    let own = own_front(&doc(
+        "copilot/rule/instructions/horario.instructions.md",
+        words,
+    ));
+    assert_eq!(own.about, None);
+    assert_eq!(
+        own.fields,
+        vec![
+            ["name".to_string(), "horario".to_string()],
+            ["applyTo".to_string(), "**/*.rs, **/*.ts".to_string()],
+        ]
+    );
+}
+
+#[test]
+fn properties_too_long_to_read_as_fields_come_back_as_written() {
+    let long = "a".repeat(501);
+    let words = format!("---\nname: pr\ndescription: {long}\n---\nWords.\n");
+    let own = own_front(&doc("claude/skill/pr/SKILL.md", &words));
+    assert_eq!(own.about, None);
+    assert!(own.fields.is_empty());
+    assert_eq!(own.raw, Some(format!("name: pr\ndescription: {long}")));
+}
+
+#[test]
+fn a_file_without_its_own_properties_or_a_page_without_a_card_lists_nothing() {
+    assert_eq!(
+        own_front(&doc("claude/rule/CLAUDE.md", "# Rules\n")),
+        OwnFront::default()
+    );
+    assert_eq!(
+        own_front("---\ntitle: x\n---\n---\nname: y\n---\n"),
+        OwnFront::default()
+    );
+    assert_eq!(
+        own_front(&doc("claude/rule/CLAUDE.md", "---\n---\nWords.\n")),
+        OwnFront::default()
+    );
+}
+
+#[test]
+fn an_empty_description_is_no_description() {
+    let words = "---\nname: pr\ndescription:\n---\n";
+    assert_eq!(
+        own_front(&doc("claude/skill/pr/SKILL.md", words)).about,
+        None
+    );
+}
+
+fn about(words: &str) -> Option<String> {
+    own_front(&doc("claude/skill/ask/SKILL.md", words)).about
+}
+
+#[test]
+fn a_description_written_over_several_lines_reads_as_one() {
+    let folded = "---\nname: ask\ndescription: >\n  Ask which skill\n  fits your situation.\n---\n";
+    assert_eq!(
+        about(folded).as_deref(),
+        Some("Ask which skill fits your situation.")
+    );
+    let kept = "---\nname: ask\ndescription: |-\n  First line.\n  Second line.\n---\n";
+    assert_eq!(about(kept).as_deref(), Some("First line.\nSecond line."));
+    let wrapped = "---\nname: ask\ndescription: Ask which skill\n  fits your situation.\n---\n";
+    assert_eq!(
+        about(wrapped).as_deref(),
+        Some("Ask which skill fits your situation.")
+    );
+}
+
+#[test]
+fn a_property_written_twice_is_listed_once_with_both_values() {
+    let words = "---\nname: ask\nmetadata: one\nmetadata: two\nallowed-tools: [Read, Grep]\n---\n";
+    assert_eq!(
+        own_front(&doc("claude/skill/ask/SKILL.md", words)).fields,
+        vec![
+            ["metadata".to_string(), "one, two".to_string()],
+            ["allowed-tools".to_string(), "Read, Grep".to_string()],
+        ]
+    );
+}

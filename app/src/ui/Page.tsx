@@ -23,6 +23,7 @@ type Props = Reaching & {
   readonly untitled?: boolean;
   readonly viewing?: boolean;
   readonly shaping?: boolean;
+  readonly agent?: boolean;
   readonly wide?: number;
   readonly zoom?: number;
   readonly onOutline?: (heads: Head[]) => void;
@@ -166,6 +167,7 @@ export default function Page(props: Readonly<Props>) {
           untitled={props.untitled}
           viewing={props.viewing}
           shaping={props.shaping}
+          agent={props.agent}
           hidden={!seen}
           wide={wide}
           sheet={props.sheet}

@@ -31,6 +31,12 @@ const store = vi.hoisted(() => ({
   asking: null as Asking | null,
   viewed: [] as Record<string, unknown>[],
   captured: [] as Record<string, unknown>[],
+  agent: null as unknown,
+}));
+
+vi.mock("../desk", async (real) => ({
+  ...(await real<typeof import("../desk")>()),
+  useDesk: () => ({ papersChanged: () => {} }),
 }));
 
 vi.mock("@tauri-apps/plugin-dialog", () => ({
@@ -100,6 +106,8 @@ vi.mock("@tauri-apps/api/core", async () => ({
         case "capture":
           store.captured.push(args ?? {});
           return Promise.resolve({ id: "01T", title: "Comprar pan", status: "open" });
+        case "agent_doc":
+          return Promise.resolve(store.agent);
         case "doc_merge":
           return Promise.resolve(store.woven && { body: store.woven, print: "woven" });
         default:
@@ -115,6 +123,8 @@ vi.mock("../ui/Sheet", () => ({
     onWrite,
     onShaped,
     reading,
+    above,
+    agent,
     below,
     seek,
     onSeen,
@@ -124,6 +134,8 @@ vi.mock("../ui/Sheet", () => ({
     onWrite: (text: string) => void;
     onShaped?: (text: string) => void;
     reading?: boolean;
+    above?: React.ReactNode;
+    agent?: boolean;
     below?: React.ReactNode;
     seek?: number;
     onSeen?: (at: number) => void;
@@ -134,8 +146,10 @@ vi.mock("../ui/Sheet", () => ({
       onShaped?.(store.shape ?? value.replace(/<[^>]+>/g, "").replace(/\n{3,}/g, "\n\n"));
     return (
       <>
+        {agent && above}
         <div
           data-testid="sheet"
+          data-agent={agent ? "" : undefined}
           data-seek={seek ?? ""}
           onScroll={(one) => onSeen?.((one.target as HTMLElement).scrollTop)}
         />
@@ -1017,6 +1031,100 @@ describe("a diagram made from the / menu", () => {
 
     expect(store.writes).toEqual([]);
     expect(store.viewed).toEqual([]);
+  });
+});
+
+describe("an agent's document", () => {
+  const RULE = "---\nagent: claude/rule/CLAUDE.md\n---\n# Reglas\n\nSé breve.\n";
+  const agentKnown: Filed[] = [
+    { id: "01A", file: "a3f1-0009", title: "", folder: "01C", archived: false, away: false },
+  ];
+  const folders = [
+    {
+      id: "01R",
+      name: "AGENTS",
+      parent: null,
+      icon: "robot",
+      holds: 0,
+      archived: false,
+      away: false,
+    },
+    {
+      id: "01C",
+      name: "Claude",
+      parent: "01R",
+      icon: null,
+      holds: 1,
+      archived: false,
+      away: false,
+    },
+  ];
+
+  beforeEach(() => {
+    store.bodies = { "a3f1-0009": RULE };
+    store.woven = null;
+    store.writes = [];
+    store.reads = 0;
+    store.delays = [];
+    store.shape = null;
+    store.clash = false;
+    store.agrees = true;
+    store.before = {};
+    store.backs = [];
+    store.coming = false;
+    store.refuse = null;
+    store.mute = false;
+    store.agent = {
+      kind: "rule",
+      level: "claude",
+      named: "Claude",
+      name: "CLAUDE.md",
+      label: "Reglas",
+      code: false,
+      folderOff: false,
+      twin: false,
+      here: "applied",
+      print: "p1",
+      proposal: null,
+      places: [],
+      own: { about: null, fields: [], raw: null },
+    };
+  });
+
+  it("lies in its own card with its buttons under it, its folders above and no column beside", async () => {
+    render(
+      <Docs
+        open="a3f1-0009"
+        known={agentKnown}
+        folders={folders as never}
+        onKept={vi.fn()}
+        onError={vi.fn()}
+      />,
+    );
+    expect(await screen.findByRole("heading", { name: "Reglas" }, { timeout: 3000 })).toBeTruthy();
+    expect(screen.getByTestId("sheet").hasAttribute("data-agent")).toBe(true);
+    expect(screen.getByRole("navigation", { name: "What you can do with this file" })).toBeTruthy();
+    expect(screen.getByRole("navigation", { name: "Folders" }).textContent).toBe("Agents/Claude");
+    expect(document.querySelector("[data-beside]")).toBeNull();
+    expect(screen.queryByRole("button", { name: t("beside") })).toBeNull();
+  });
+
+  it("draws a document with an agent line outside Agents as any other, even while it is asked about", async () => {
+    store.agent = null;
+    const outside: Filed[] = [{ ...agentKnown[0], folder: null }];
+    render(
+      <Docs
+        open="a3f1-0009"
+        known={outside}
+        folders={folders as never}
+        onKept={vi.fn()}
+        onError={vi.fn()}
+      />,
+    );
+    const sheet = await screen.findByTestId("sheet");
+    expect(sheet.hasAttribute("data-agent")).toBe(false);
+    await new Promise((done) => setTimeout(done, 50));
+    expect(screen.getByTestId("sheet").hasAttribute("data-agent")).toBe(false);
   });
 });
 
