@@ -1,7 +1,7 @@
 import { type Group, type GroupKind, type Network, type NeuronKind, TIES } from "../../brainsty";
 import type { Spots } from "./settling";
 
-const PART_OF = TIES.indexOf("structure");
+const MEMBER = TIES.indexOf("member");
 
 export const isGroup = (kind: NeuronKind): kind is GroupKind =>
   kind === "folder" || kind === "list";
@@ -26,7 +26,7 @@ export function withGroupsAfter(network: Network, groups: readonly Group[]): Net
       title: group.name,
       group: group.id,
     });
-    for (const member of members) edges.push([member, hub, PART_OF]);
+    for (const member of members) edges.push([member, hub, MEMBER]);
   }
   return nodes.length === network.nodes.length ? network : { ...network, nodes, edges };
 }

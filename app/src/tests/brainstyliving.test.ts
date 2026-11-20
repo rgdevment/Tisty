@@ -12,7 +12,7 @@ import {
   spinning,
   trigOf,
 } from "../ui/brainsty/globe";
-import { type Clock, HOP_SECONDS, livingOn, travellersFor } from "../ui/brainsty/living";
+import { type Clock, livingOn, paceFor } from "../ui/brainsty/living";
 import { type Flash, setOut, stepped, type World } from "../ui/brainsty/travellers";
 import { turnedByHand } from "../ui/brainsty/turning";
 
@@ -137,6 +137,7 @@ const near: Record<number, number[]> = { 0: [1], 1: [0, 2], 2: [1, 3], 3: [2], 4
 
 const worldOf = (seen = true, start = 0): World => ({
   neighbours: (node) => near[node],
+  pull: () => 1,
   kindOf: (node) => chain.nodes[node].kind,
   big: () => false,
   flashy: (node) => chain.nodes[node].kind === "tag",
@@ -163,6 +164,20 @@ describe("a traveller", () => {
 
     expect(path.slice(0, 4)).toEqual([0, 1, 2, 3]);
     expect(flashes.map((one) => one.node)).toEqual([2]);
+  });
+
+  it("takes the line someone wrote over the one that only says where things belong", () => {
+    const fork: World = {
+      ...worldOf(),
+      neighbours: () => [1, 2],
+      pull: (_, to) => (to === 1 ? 3 : 0.3),
+      kindOf: () => "doc",
+      rand: () => 0.85,
+    };
+    const one = stepped(fork, { ...setOut(0), rest: 0 }, 1, 1, []);
+
+    expect(one.to).toBe(1);
+    expect(stepped({ ...fork, pull: () => 1 }, { ...setOut(0), rest: 0 }, 1, 1, []).to).toBe(2);
   });
 
   it("goes back from a dead end, and sets out again from a node with no line", () => {
@@ -250,7 +265,6 @@ describe("the living network", () => {
     expect(turns).toHaveLength(2);
     expect(turns[1].yaw).toBeGreaterThan(turns[0].yaw);
     expect(box.dataset.livingMs).toMatch(/^\d+\.\d\d$/);
-    expect(HOP_SECONDS).toBe(5);
   });
 
   it("holds the turn while a node is picked, the pointer is on the network or the view is close, and walks on", () => {
@@ -279,9 +293,18 @@ describe("the living network", () => {
     expect(yaws()[5]).toBeGreaterThan(yaws()[4]);
   });
 
-  it("sends out more travellers as the network grows, two to ten", () => {
-    expect([1, 39, 59, 60, 99, 100, 149, 150, 249, 250, 9000].map(travellersFor)).toEqual([
-      2, 2, 2, 4, 4, 6, 6, 8, 8, 10, 10,
+  it("sends out more travellers, each slower, as the network grows", () => {
+    expect([1, 59, 60, 99, 100, 149, 150, 349, 350, 9000].map(paceFor)).toEqual([
+      { travellers: 4, hop: 3 },
+      { travellers: 4, hop: 3 },
+      { travellers: 8, hop: 4 },
+      { travellers: 8, hop: 4 },
+      { travellers: 10, hop: 5 },
+      { travellers: 10, hop: 5 },
+      { travellers: 12, hop: 6 },
+      { travellers: 12, hop: 6 },
+      { travellers: 14, hop: 7 },
+      { travellers: 14, hop: 7 },
     ]);
   });
 

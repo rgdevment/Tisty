@@ -65,8 +65,8 @@ describe("what the legend says", () => {
   it("names only the lines in the network, dashed where the network dashes them", () => {
     expect(legend.alike).toBeNull();
     expect(legend.lines).toEqual([
-      { tie: "mention", color: lineLook("mention", palette).color, size: 1, dashed: true },
-      { tie: "tag", color: lineLook("tag", palette).color, size: 0.5, dashed: false },
+      { tie: "mention", color: lineLook("mention", palette).color, size: 1.2, dashed: true },
+      { tie: "tag", color: lineLook("tag", palette).color, size: 0.4, dashed: false },
     ]);
   });
 });
