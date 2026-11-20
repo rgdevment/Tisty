@@ -6,6 +6,7 @@ import { fill, t } from "../locales";
 import { Action, AgentFacts, BackupsModal, FileModal, HereNote, Pill } from "./AgentCardParts";
 import AgentProposal from "./AgentProposal";
 import { SharedFact, SharedWindows } from "./AgentShared";
+import { assistantPill } from "./AssistantMark";
 import Glyph from "./Glyph";
 import { useSharedRow } from "./sharedRow";
 import { type AgentShelf, type CardHands, type CardProps, useAgentCard } from "./useAgentCard";
@@ -149,12 +150,12 @@ export default function AgentCard({ card, shelf, body }: Props) {
   const state = worst(doc.places);
   return (
     <section
-      className="agent-card mx-auto mt-1 w-full max-w-[760px] rounded-t-[10px] border border-b-0 border-line bg-sheet px-4 pt-4 pb-3"
+      className="agent-card mx-auto w-full max-w-[760px] border-x border-line bg-sheet px-4 pt-1 pb-3"
       aria-label={t("agentCard")}
     >
       <div className="flex flex-wrap items-center gap-2">
         <Pill tone="text-hue-purple bg-hue-purple/10">{t(KIND[doc.kind])}</Pill>
-        <Pill tone="text-hue-orange bg-hue-orange/10">{doc.named ?? t("agentGlobal")}</Pill>
+        <Pill tone={assistantPill(doc.level)}>{doc.named ?? t("agentGlobal")}</Pill>
         {state && (
           <Pill tone={STATE[state].tone} glyph={STATE[state].glyph}>
             {t(STATE[state].word)}
@@ -211,7 +212,7 @@ export function AgentButtons({ card, shelf, onEarlier }: Buttons) {
   return (
     <nav
       aria-label={t("agentCardActions")}
-      className="mx-auto mb-4 flex w-full max-w-[760px] flex-wrap gap-2 rounded-b-[10px] border border-line border-t-hair bg-sheet px-4 py-3"
+      className="sticky bottom-0 z-[2] mx-auto mb-4 flex w-full max-w-[760px] flex-wrap gap-2 rounded-b-[10px] border border-line border-t-hair bg-sheet px-4 py-3"
     >
       {!hands.own && !locked && (
         <Action
@@ -258,7 +259,7 @@ export function AgentTrail({ trail, onFolder }: Trail) {
   return (
     <nav
       aria-label={t("agentTrail")}
-      className="flex min-w-0 items-center gap-1 truncate text-[11.5px] font-normal text-faint"
+      className="flex min-w-0 items-center gap-1 truncate text-soft"
     >
       {trail.map((one, n) => (
         <span key={one.id} className="flex min-w-0 items-center gap-1">

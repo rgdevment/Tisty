@@ -661,16 +661,17 @@ describe("the folders above an agent document", () => {
 });
 
 describe("the shape of an agent's card", () => {
-  it("opens the card at the top, closes it under a thin line with the buttons, and keeps notices inside it", () => {
+  it("frames the card down its sides, closes it under a thin line with the buttons, and keeps notices inside it", () => {
     shown(card([place(OUTSIDE)]));
     const top = screen.getByRole("region", { name: "Agent document" });
-    expect(top.className).toContain("rounded-t-[10px]");
+    expect(top.className).toContain("border-x");
     const facts = screen.getByLabelText("Agent file");
     const notice = within(top).getByRole("alert");
     expect(facts.compareDocumentPosition(notice) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     const foot = screen.getByRole("navigation", { name: "What you can do with this file" });
     expect(foot.className).toContain("rounded-b-[10px]");
     expect(foot.className).toContain("border-t-hair");
+    expect(foot.className).toContain("sticky bottom-0");
   });
 
   it("lays each fact on its own row, its name on the left and its value on the right", () => {
@@ -716,5 +717,17 @@ describe("an agent document's share on its card", () => {
     expect(within(row).getByRole("button", { name: "Stop sharing" })).toBeTruthy();
     await userEvent.click(within(row).getByRole("button", { name: "Hide" }));
     expect(within(row).queryByText("https://tisty.cl/a#k")).toBeNull();
+  });
+});
+
+describe("the assistant's label on its card", () => {
+  it("takes the hue of the assistant's folder, and Global its blue", () => {
+    shown(card([], { level: "codex", named: "Codex" }));
+    expect(screen.getByText("Codex").className).toContain("text-hue-teal");
+  });
+
+  it("paints Global in blue", () => {
+    shown(card([], { level: "global", named: null }));
+    expect(screen.getByText("Global").className).toContain("text-hue-blue");
   });
 });

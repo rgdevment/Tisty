@@ -11,6 +11,20 @@ const MARKS: Record<string, string> = {
 };
 
 const GLOBAL = "global";
+
+// One hue per assistant, off Agents' coral, the diagrams' purple and Ideas' and Personal's; Global keeps its blue.
+const HUES: Record<string, { readonly ink: string; readonly pill: string }> = {
+  global: { ink: "text-hue-blue", pill: "text-hue-blue bg-hue-blue/10" },
+  claude: { ink: "text-hue-orange", pill: "text-hue-orange bg-hue-orange/10" },
+  codex: { ink: "text-hue-teal", pill: "text-hue-teal bg-hue-teal/10" },
+  copilot: { ink: "text-hue-indigo", pill: "text-hue-indigo bg-hue-indigo/10" },
+  gemini: { ink: "text-hue-green", pill: "text-hue-green bg-hue-green/10" },
+  cursor: { ink: "text-hue-brown", pill: "text-hue-brown bg-hue-brown/10" },
+};
+
+const UNKNOWN = { ink: "text-soft", pill: "text-soft bg-hover" };
+
+export const assistantPill = (id: string): string => (HUES[id] ?? UNKNOWN).pill;
 const LEVELS: Record<string, string> = {
   Global: GLOBAL,
   Claude: "claude",
@@ -34,7 +48,7 @@ interface Props {
 export function AssistantMark({ id, className = "h-4 w-4" }: Props) {
   const global = id === GLOBAL;
   return (
-    <span data-mark={id} className={`flex items-center ${global ? "text-hue-blue" : "text-soft"}`}>
+    <span data-mark={id} className={`flex items-center ${(HUES[id] ?? UNKNOWN).ink}`}>
       <Glyph name={global ? "globe-earth" : (MARKS[id] ?? "terminal")} className={className} />
     </span>
   );

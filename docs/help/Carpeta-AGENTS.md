@@ -240,7 +240,7 @@ Agentes
     └── [cerebro]  GEMINI.md
 ```
 
-- **El icono de cada subcarpeta**: **Global** lleva un globo azul, y cada asistente un símbolo propio en gris, que no imita su logo: un globo de conversación para Claude, una terminal para Codex, unas llaves de código para Copilot, una brújula para Gemini y un puntero para Cursor. Los mismos iconos aparecen en la lista de la primera vez y en **Configuración › Asistentes**. Una subcarpeta a la que le pusiste un icono tuyo lo conserva.
+- **El icono de cada subcarpeta**: **Global** lleva un globo azul, y cada asistente un símbolo propio, que no imita su logo, en el mismo color de su etiqueta en la ficha: un globo de conversación naranja para Claude, una terminal verde azulado para Codex, unas llaves de código índigo para Copilot, una brújula verde para Gemini y un puntero café para Cursor. Los mismos iconos aparecen en la lista de la primera vez y en **Configuración › Asistentes**. Una subcarpeta a la que le pusiste un icono tuyo lo conserva.
 - **El icono de cada documento**: un libro para una **regla**, una pieza de rompecabezas para una **skill** y un cerebro para la **memoria del agente**.
 - **El nombre**: el primer título del documento, como «Cómo trabajo» en un `CLAUDE.md` que empieza con `# Cómo trabajo`. Una skill toma el `name` de su `SKILL.md`. Un script, o un archivo sin títulos, se llama como el archivo: `MEMORY.md`, `extraer.py`.
 - **La ruta**: pasa el puntero sobre una fila y aparece, con el asistente delante: `claude · CLAUDE.md`, `claude · rules/estilo.md`.
@@ -404,9 +404,9 @@ Un documento de Agentes no se ve como un documento más. Se abre **para leer**, 
 
 **El texto del agente**, dentro de la misma ficha y sin hoja aparte. Es lo que escribiste, tal cual, sin secciones ni plantilla impuestas: Tisty lo dibuja con encabezados compactos, al ancho de lectura, y sin convertir su primera línea en un título. El encabezado del archivo no se repite ahí, porque ya está en el cuadro de datos. Lo que lee tu agente no cambia: el archivo sigue siendo el mismo, byte a byte.
 
-**Los botones, al pie**, siempre a mano aunque el texto sea largo:
+**Los botones, al pie**, fijos abajo mientras la ficha entera se desplaza junto con el texto:
 
-- **Editar** abre el editor de Tisty sobre el texto, con su encabezado, y **Listo** lo vuelve a cerrar.
+- **Editar** abre el editor de Tisty sobre el texto, con su encabezado y la barra del editor de siempre para títulos y listas, y **Listo** lo vuelve a cerrar.
 - **Respaldos**, cuando el archivo tiene alguno. Abre la misma lista que **Ver** en el cuadro de datos.
 - **Historial** abre las [versiones anteriores](Documentos#versiones-anteriores) del documento.
 - **Copiar enlace** copia su [enlace](Documentos#el-enlace-de-un-documento).

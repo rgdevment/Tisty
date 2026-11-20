@@ -240,7 +240,7 @@ Agents
     └── [brain]    GEMINI.md
 ```
 
-- **Each subfolder's icon**: **Global** has a blue globe, and each assistant a symbol of its own in grey, which does not copy its logo: a chat bubble for Claude, a terminal for Codex, code braces for Copilot, a compass for Gemini and a pointer for Cursor. The same icons show in the first-time list and in **Settings › Assistants**. A subfolder you gave an icon of your own keeps it.
+- **Each subfolder's icon**: **Global** has a blue globe, and each assistant a symbol of its own, which does not copy its logo, in the same colour as its label on the card: an orange chat bubble for Claude, a teal terminal for Codex, indigo code braces for Copilot, a green compass for Gemini and a brown pointer for Cursor. The same icons show in the first-time list and in **Settings › Assistants**. A subfolder you gave an icon of your own keeps it.
 - **Each document's icon**: a book for a **rule**, a puzzle piece for a **skill** and a brain for **agent memory**.
 - **The name**: the document's first heading, such as «How I work» in a `CLAUDE.md` that starts with `# How I work`. A skill takes the `name` in its `SKILL.md`. A script, or a file with no headings, is named after the file: `MEMORY.md`, `extract.py`.
 - **The path**: hover over a row and it shows, with the assistant in front: `claude · CLAUDE.md`, `claude · rules/style.md`.
@@ -404,9 +404,9 @@ A document in Agents does not look like one more document. It opens **for readin
 
 **The agent's text**, inside the same card, with no separate sheet. It is what you wrote, as is, with no sections or template imposed: Tisty draws it with compact headings, at reading width, and never turns its first line into a title. The file's heading is not repeated there, since the facts box already has it. What your agent reads does not change: the file stays the same, byte for byte.
 
-**The buttons, at the foot**, always at hand however long the text is:
+**The buttons, at the foot**, held at the bottom while the whole card scrolls with its text:
 
-- **Edit** opens Tisty's editor on the text, heading included, and **Done** closes it again.
+- **Edit** opens Tisty's editor on the text, heading included, with the editor's usual bar for headings and lists, and **Done** closes it again.
 - **Backups**, when the file has any. It opens the same list as **See** in the facts box.
 - **History** opens the document's [earlier versions](Documents#earlier-versions).
 - **Copy link** copies its [link](Documents#a-documents-link).

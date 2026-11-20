@@ -55,7 +55,7 @@ Si todavía no tienes archivos de agentes, el aviso dice «No encontré archivos
 
 **Pruébalo:** haz clic en **Agentes**, en gris en tu barra, para ver qué asistentes encuentra en este equipo. Si solo querías mirar, la X la deja como estaba. Lo mismo está en **Configuración → Asistentes**, en la tarjeta **Agentes**: antes de traer nada dice qué asistentes encontró y ofrece **Traer**, **Traer y sincronizar** y **Ocultar**; traída, **Sincronizar**, **Traer otro archivo** y **Ocultar**; sincronizando, **Traer otro archivo**, **Dejar de sincronizar** y un interruptor por asistente, como **Sincronizar Claude**.
 
-Después, en la barra lateral, **Global** lleva un globo azul y cada asistente un símbolo propio en gris: un globo de conversación para Claude, una terminal para Codex, unas llaves para Copilot, una brújula para Gemini y un puntero para Cursor. Cada documento se ve con su nombre y un icono: un libro para una regla, una pieza para una skill y un cerebro para la memoria. Pasa el puntero sobre uno y ves de qué archivo es.
+Después, en la barra lateral, **Global** lleva un globo azul y cada asistente un símbolo propio en el color de su etiqueta: un globo de conversación naranja para Claude, una terminal verde azulado para Codex, unas llaves índigo para Copilot, una brújula verde para Gemini y un puntero café para Cursor. Cada documento se ve con su nombre y un icono: un libro para una regla, una pieza para una skill y un cerebro para la memoria. Pasa el puntero sobre uno y ves de qué archivo es.
 
 ![La barra lateral con la carpeta Agentes abierta y sincronizando: el robot en coral y el nombre Agentes, sin ninguna palabra a la derecha; en Claude, la regla Cómo trabajo con el icono de un libro, la skill pr con el icono de una pieza y 3 archivos, y la memoria MEMORY.md con el icono de un cerebro; el puntero sobre Cómo trabajo muestra claude · CLAUDE.md](agents-barra.png)
 
@@ -172,7 +172,7 @@ Un documento de Agentes no se ve como un documento más: se abre para leer, en u
 - **el nombre**, **Cómo trabajo**; en una skill, su `description` va debajo, en gris;
 - **el cuadro de datos del archivo**: **Lo lee**, **Se escribe en** con su botón para copiar la ruta, **Tamaño**, **Respaldos** con **Ver**, **Formato**, **Última escritura**, **Original guardado**, **Sincroniza en este equipo**, **Compartido** cuando el documento tiene un enlace compartido activo y, en filas chicas, las demás propiedades del archivo, como `disable-model-invocation`;
 - **el texto del agente**, tal como lo escribiste, con encabezados compactos y sin hoja aparte. Tisty no le impone secciones ni convierte su primera línea en un título, y el archivo sigue siendo el mismo, byte a byte;
-- **al pie, los botones**: **Editar**, **Respaldos**, **Historial**, **Copiar enlace** y **Pausar la sincronización con Claude**.
+- **al pie, los botones**, fijos abajo mientras toda la ficha se desplaza: **Editar**, **Respaldos**, **Historial**, **Copiar enlace** y **Pausar la sincronización con Claude**. Al editar, el texto se corre a la derecha para dejar sitio a la barra del editor, como en cualquier documento.
 
 Codex lee su `AGENTS.md` solo hasta 32 KiB. Cuando el archivo se acerca a ese tope, **Tamaño** lo dice en ámbar, «cerca de los 32 KiB que lee Codex», y si lo pasa, en rojo: es el momento de pasar lo largo a una skill.
 
