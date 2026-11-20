@@ -29,6 +29,10 @@ const PASSED: &str = "alike_turn";
 const KIN_BOOK: &str = "book:";
 const KIN_TONGUE: &str = "tongue:";
 const PATIENCE: u32 = 10;
+pub const TISTY_NOTICES: &[&str] = &[
+    "Aquí hay algo que parece una credencial de verdad",
+    "Something here reads like a live credential",
+];
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct Alike {
@@ -69,7 +73,8 @@ pub(super) fn counted(
 ) -> Option<Counted> {
     match holder {
         Holder::Doc(kept) => {
-            let text = body.or(kept.title.as_deref()).unwrap_or_default();
+            let text = body.map_or_else(|| kept.title.clone().unwrap_or_default(), prose);
+            let text = text.as_str();
             let mut kin = Vec::new();
             if let Some(book) = ground.book_of(kept) {
                 kin.push(format!("{KIN_BOOK}{book}"));
@@ -90,12 +95,17 @@ pub(super) fn counted(
                 said: words::said(&words::counted(&[text])),
             })
         }
+        // A note tells how the task went, often in the same few words for any task, not what it is about.
         Holder::Task(task) => {
-            let mut texts = vec![task.title.as_str()];
-            texts.extend(task.description.as_deref());
-            texts.extend(task.steps.iter().map(|step| step.text.as_str()));
-            texts.extend(task.log.iter().map(|entry| entry.body.as_str()));
-            texts.extend(body);
+            let written = task
+                .description
+                .as_deref()
+                .into_iter()
+                .chain(task.steps.iter().map(|step| step.text.as_str()))
+                .chain(body)
+                .map(prose);
+            let said: Vec<String> = std::iter::once(task.title.clone()).chain(written).collect();
+            let texts: Vec<&str> = said.iter().map(String::as_str).collect();
             Some(Counted {
                 lang: None,
                 guess: spoken::guessed(&texts),
@@ -105,6 +115,21 @@ pub(super) fn counted(
         }
         Holder::Nothing => None,
     }
+}
+
+// Tisty's own notice over a credential reads the same in every document it lands in.
+fn prose(markdown: &str) -> String {
+    if !TISTY_NOTICES.iter().any(|notice| markdown.contains(notice)) {
+        return tisty_markdown::prose(markdown);
+    }
+    let unnoticed: Vec<&str> = markdown
+        .lines()
+        .filter(|line| {
+            let said = line.trim_start().trim_start_matches('>').trim_start();
+            !TISTY_NOTICES.iter().any(|notice| said.starts_with(notice))
+        })
+        .collect();
+    tisty_markdown::prose(&unnoticed.join("\n"))
 }
 
 fn primary(lang: &str) -> Option<String> {
@@ -124,7 +149,17 @@ pub(super) fn kept_out(state: &State, docs: &Docs) -> HashSet<String> {
         .values()
         .filter(|task| task.folded())
         .map(|task| task.id.to_string());
-    diary.chain(folded).collect()
+    diary.chain(folded).chain(agents_own(state)).collect()
+}
+
+// What the agents keep is their own words and code, mirrored from their files: it guesses nothing about the person's.
+fn agents_own(state: &State) -> Vec<String> {
+    let held = crate::agents::holding(state);
+    state
+        .papers()
+        .filter(|kept| held(kept))
+        .map(|kept| kept.file.clone())
+        .collect()
 }
 
 pub(super) struct Rewritten<'a> {

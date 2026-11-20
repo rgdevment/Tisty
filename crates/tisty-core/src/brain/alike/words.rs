@@ -25,8 +25,12 @@ pub(crate) type Word = (String, String, u32);
 
 pub(crate) fn counted(texts: &[&str]) -> Vec<Word> {
     let mut seen: HashMap<String, (String, u32)> = HashMap::new();
-    for text in texts {
-        for word in text.split(|one: char| !one.is_alphanumeric()) {
+    let spoken = texts
+        .iter()
+        .flat_map(|text| text.split_whitespace())
+        .filter(|token| !addressed(token));
+    for token in spoken {
+        for word in token.split(|one: char| !one.is_alphanumeric()) {
             let Some(key) = weighed(word) else {
                 continue;
             };
@@ -47,6 +51,42 @@ pub(crate) fn counted(texts: &[&str]) -> Vec<Word> {
     });
     all.truncate(KEPT_AT_MOST);
     all
+}
+
+const WRAPPING: &[char] = &[
+    '(', ')', '[', ']', '"', '\'', '«', '»', '“', '”', '‘', '’', '¿', '?', '¡', '!', ',', ';',
+];
+const CODE_MARKS: &[char] = &['=', '<', '>', '{', '}', '`', '|', '$'];
+
+// A link, a path, a file, a mail, a tag, an emoji, an entity or a name from code points somewhere, never alike.
+fn addressed(token: &str) -> bool {
+    let token = token.trim_matches(WRAPPING);
+    let emoji = token.len() > 2 && token.starts_with(':') && token.ends_with(':');
+    let token = token.trim_end_matches(['.', ':']);
+    let joined = |mark: char| {
+        token
+            .match_indices(mark)
+            .any(|(at, _)| around(token, at, mark.len_utf8()))
+    };
+    let separators = token.matches(['/', '\\']).count();
+    emoji
+        || token.contains("://")
+        || token.starts_with("www.")
+        || token.starts_with("--")
+        || token.starts_with('&')
+        || token.starts_with('#') && token[1..].starts_with(char::is_alphabetic)
+        || token.contains(CODE_MARKS)
+        || joined('.')
+        || joined('_')
+        || joined('@')
+        || separators >= 2
+        || separators == 1 && (token.contains('.') || token.starts_with(['/', '\\', '~']))
+}
+
+fn around(token: &str, at: usize, wide: usize) -> bool {
+    let before = token[..at].chars().next_back();
+    let after = token[at + wide..].chars().next();
+    before.is_some_and(char::is_alphanumeric) && after.is_some_and(char::is_alphanumeric)
 }
 
 fn weighed(word: &str) -> Option<String> {

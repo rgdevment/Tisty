@@ -32,6 +32,7 @@ mod page;
 #[cfg(feature = "pens")]
 mod pens;
 mod printed;
+mod prose;
 mod ranges;
 mod reading;
 pub mod refs;
@@ -56,6 +57,7 @@ pub use outline::{Head, outline, sections};
 pub use outside::{file_as_tisty, read_file};
 pub use page::{Near, html, html_placed, names_sum, pieces, placed_near, spans_sum};
 pub use printed::printed;
+pub use prose::prose;
 pub use reading::read;
 #[doc(hidden)]
 pub use reading::read_old;

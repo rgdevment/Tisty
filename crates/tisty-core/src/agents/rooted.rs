@@ -51,13 +51,22 @@ pub fn holds_folder(state: &State, folder: FolderId) -> bool {
         .any(|root| tree(state, root).contains(&folder))
 }
 
-// A page sits wherever the document it belongs to sits.
 pub fn holds(state: &State, kept: &Kept) -> bool {
-    let up = kept.page_of.and_then(|up| state.docs.get(&up));
-    [Some(kept), up]
-        .into_iter()
-        .flatten()
-        .any(|one| one.folder.is_some_and(|at| holds_folder(state, at)))
+    holding(state)(kept)
+}
+
+// A page sits wherever the document it belongs to sits.
+pub fn holding(state: &State) -> impl Fn(&Kept) -> bool + '_ {
+    let tree = root_of(state)
+        .map(|root| tree(state, root))
+        .unwrap_or_default();
+    move |kept| {
+        let up = kept.page_of.and_then(|up| state.docs.get(&up));
+        [Some(kept), up]
+            .into_iter()
+            .flatten()
+            .any(|one| one.folder.is_some_and(|at| tree.contains(&at)))
+    }
 }
 
 // Off the top, renamed, re-iconed, archived, made again or deleted while it holds anything, AGENTS would stop guarding what it holds.

@@ -1062,3 +1062,188 @@ fn a_backup_takes_no_base_and_no_guess_though_its_scratch_is_the_cache() {
     );
     assert!(world.paths.cache().join(super::super::FILE).is_file());
 }
+
+const SAMPLE_ES: &str = include_str!("../../../../app/src-tauri/resources/guide/es/muestra.md");
+const SAMPLE_EN: &str = include_str!("../../../../app/src-tauri/resources/guide/en/sample.md");
+const SHIPPED_DICTIONARY: &str =
+    include_str!("../../../../app/src-tauri/resources/brain/dictionary.tsv");
+const TEMPLATE_SH: &str = "---\ntisty-agent: claude:skill:wizard/template.sh\n---\n\n```sh\n#!/usr/bin/env bash\n# Make the text **bold** and blue: negrita en azul\necho \"<span class='blue'>$1</span>\"\n```\n";
+
+fn said_keys(brain: &Brain, id: &str) -> Vec<String> {
+    words::read(&worded_ids(brain)[id].2)
+        .into_iter()
+        .map(|(key, _, _)| key)
+        .collect()
+}
+
+fn agents_folder(state: &mut State) -> crate::model::FolderId {
+    let id = Ulid::generate();
+    let mut root = crate::model::Folder::new(id, crate::agents::FOLDER, "a0");
+    root.icon = Some(crate::agents::ICON.to_string());
+    state.folders.insert(id, root);
+    id
+}
+
+#[test]
+fn the_guide_sample_in_either_language_keeps_only_the_words_it_shows() {
+    let world = World::new();
+    let mut store = world.store();
+    let (_, spanish) = doc(&world, &mut store, SAMPLE_ES, None, None);
+    let (_, english) = doc(&world, &mut store, SAMPLE_EN, None, None);
+    let state = world.state();
+    let mut brain = world.brain();
+    world.refreshed(&mut brain, &state);
+
+    for id in [&spanish, &english] {
+        let keys = said_keys(&brain, id);
+        assert!(keys.contains(&"rina".to_string()), "{keys:?}");
+        for code in ["span", "div", "class", "style", "nbsp", "href", "https"] {
+            assert!(!keys.contains(&code.to_string()), "{id} keeps {code}");
+        }
+    }
+}
+
+#[test]
+fn an_agent_s_file_and_its_pages_keep_no_words_and_are_never_alike() {
+    let world = World::new();
+    let mut store = world.store();
+    let (_, sample) = doc(&world, &mut store, SAMPLE_ES, None, None);
+    let (wizard, template) = doc(&world, &mut store, TEMPLATE_SH, None, None);
+    let (_, page) = doc(
+        &world,
+        &mut store,
+        "# Negrita\n\nNegrita en azul.\n",
+        Some(wizard),
+        None,
+    );
+    fillers(&mut store);
+    let mut state = world.state();
+    let mut brain = world.brain();
+    world.refreshed(&mut brain, &state);
+    assert!(worded_ids(&brain).contains_key(&template));
+
+    let agents = agents_folder(&mut state);
+    state.docs.get_mut(&wizard).unwrap().folder = Some(agents);
+    world.refreshed(&mut brain, &state);
+    let dictionary = Dictionary::parsed(SHIPPED_DICTIONARY.to_string()).unwrap();
+    brain.weigh_alike(&caps(), Some(&dictionary)).unwrap();
+
+    let worded = worded_ids(&brain);
+    assert!(
+        !worded.contains_key(&template),
+        "moving it in takes its words"
+    );
+    assert!(
+        !worded.contains_key(&page),
+        "a page sits where its document does"
+    );
+    assert!(worded.contains_key(&sample));
+    assert!(
+        rows(&brain)
+            .iter()
+            .all(|(a, b, _, _)| ![a, b].iter().any(|one| *one == &template || *one == &page)),
+        "{:?}",
+        rows(&brain)
+    );
+}
+
+#[test]
+fn the_same_sample_in_two_languages_says_why_with_words_it_shows() {
+    let world = World::new();
+    let mut store = world.store();
+    let (_, spanish) = doc(&world, &mut store, SAMPLE_ES, None, None);
+    let (_, english) = doc(&world, &mut store, SAMPLE_EN, None, None);
+    fillers(&mut store);
+    let state = world.state();
+    let mut brain = world.brain();
+    world.refreshed(&mut brain, &state);
+    let dictionary = Dictionary::parsed(SHIPPED_DICTIONARY.to_string()).unwrap();
+    brain.weigh_alike(&caps(), Some(&dictionary)).unwrap();
+
+    let (a, b) = pair(&spanish, &english);
+    let all = rows(&brain);
+    let found = all.iter().find(|(x, y, _, _)| (x, y) == (&a, &b));
+    let (_, _, shared, _) = found.unwrap_or_else(|| panic!("{all:?}"));
+    for code in ["span", "div", "class", "dog", "nbsp"] {
+        assert!(
+            !shared.split([' ', '≈']).any(|one| one == code),
+            "{shared} says {code}"
+        );
+    }
+}
+
+#[test]
+fn a_task_s_notes_tell_how_it_went_and_join_it_to_nothing() {
+    let world = World::new();
+    let mut store = world.store();
+    let note = "Quedé de llamar de nuevo el lunes, falta confirmar el precio";
+    let mut noted = Vec::new();
+    for title in [
+        "Comprar un cargador de repuesto",
+        "Confirmar el check in del vuelo",
+    ] {
+        let id = task(&mut store, title, &[]);
+        store
+            .append(crate::Op::TaskLog {
+                id,
+                d: crate::event::LogAdd::new(Ulid::generate(), note),
+            })
+            .unwrap();
+        noted.push(id.to_string());
+    }
+    fillers(&mut store);
+    let state = world.state();
+    let mut brain = world.brain();
+    world.refreshed(&mut brain, &state);
+    brain.weigh_alike(&caps(), None).unwrap();
+
+    let keys = said_keys(&brain, &noted[0]);
+    assert!(keys.contains(&"cargador".to_string()));
+    assert!(!keys.contains(&"lunes".to_string()), "{keys:?}");
+    assert!(rows(&brain).is_empty(), "{:?}", rows(&brain));
+}
+
+#[test]
+fn tisty_s_own_notice_over_a_credential_says_nothing_in_either_language() {
+    let world = World::new();
+    let mut store = world.store();
+    let mut ids = Vec::new();
+    for notice in TISTY_NOTICES {
+        let body = format!(
+            "# Accesos\n\n> [!CAUTION]\n> {notice}: API_KEY. bórralo, cámbialo, remove it, change it.\n\nServidor de pruebas.\n"
+        );
+        ids.push(doc(&world, &mut store, &body, None, None).1);
+    }
+    let state = world.state();
+    let mut brain = world.brain();
+    world.refreshed(&mut brain, &state);
+
+    for id in &ids {
+        let keys = said_keys(&brain, id);
+        assert!(keys.contains(&"servidor".to_string()), "{keys:?}");
+        for told in ["credencial", "credential", "cambialo", "change"] {
+            assert!(!keys.contains(&told.to_string()), "{id} keeps {told}");
+        }
+    }
+}
+
+#[test]
+fn a_task_s_description_and_steps_count_only_their_prose() {
+    let world = World::new();
+    let mut store = world.store();
+    let id = task(&mut store, "Revisar el respaldo", &[]);
+    let mut state = world.state();
+    state.tasks.get_mut(&id).unwrap().description = Some(
+        "Ver https://tisty.app/respaldo y el script:\n\n```sh\nrsync --delete origen destino\n```\n\nCopiar `kept_up` al disco externo."
+            .to_string());
+    let mut brain = world.brain();
+    world.refreshed(&mut brain, &state);
+
+    let keys = said_keys(&brain, &id.to_string());
+    for kept in ["respaldo", "disco", "externo", "script"] {
+        assert!(keys.contains(&kept.to_string()), "{keys:?} misses {kept}");
+    }
+    for code in ["rsync", "origen", "destino", "kept", "https", "tisty"] {
+        assert!(!keys.contains(&code.to_string()), "{keys:?} keeps {code}");
+    }
+}
