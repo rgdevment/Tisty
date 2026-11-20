@@ -2161,3 +2161,22 @@ fn a_body_on_disk_behind_the_log_never_lets_a_proposal_go() {
     round_here(&mut room.session, &room.homes, HERE).unwrap();
     assert_eq!(room.session.state.proposals.len(), 1);
 }
+
+#[test]
+fn a_file_only_brought_is_never_recorded_as_written_nor_offered_to_take_away() {
+    let mut room = room();
+    room.bring_as(&[".claude/CLAUDE.md"], Some(false));
+    let data = room.session.paths.data().to_path_buf();
+    let claude = PathBuf::from(room.at(".claude/CLAUDE.md"));
+    assert_eq!(Ledger::open(&data, HERE).written(&claude), None);
+
+    let file = file_brought_from(&room, "CLAUDE.md");
+    moved_out(&mut room, &file);
+    turned(&room.session, &room.homes, HERE, None, true).unwrap();
+
+    assert!(
+        loose(&room).is_empty(),
+        "a file Tisty never wrote is never offered"
+    );
+    assert_eq!(room.read(".claude/CLAUDE.md"), "# Claude\nTests first.\n");
+}

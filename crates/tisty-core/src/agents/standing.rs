@@ -366,7 +366,12 @@ pub fn round(data: &Path, ledger: &mut Ledger, targets: &[Target]) -> Vec<Standi
 
 // A file just brought in stands for itself, so what joins it later is written over it with a backup, not asked about.
 pub fn adopted(ledger: &mut Ledger, target: &Target, brought: &str) -> bool {
-    if !ledger.consented() || ledger.written(&target.at).is_some() || linked(target) {
+    // Bringing alone touches nothing, the ledger included: only a file Tisty writes is ever recorded as written.
+    if !ledger.consented()
+        || !ledger.syncs(&target.assistant)
+        || ledger.written(&target.at).is_some()
+        || linked(target)
+    {
         return false;
     }
     let Some(piece) = target.pieces.iter().find(|one| one.file() == brought) else {
