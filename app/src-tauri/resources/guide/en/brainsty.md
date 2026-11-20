@@ -42,38 +42,44 @@ On a task's page, **A new task** creates a part of that task, in its same list.
 
 ## The network
 
-**Brainsty**, in the sidebar under the task views, opens everything you keep as one network. It opens in the content panel, like any other view, with the sidebar in sight and **Brainsty** marked in it. It starts near the document or the task you were on; if you were on none, on what you wrote last.
+**Brainsty**, in the sidebar under the task views, opens everything you keep as one network. It opens in the content panel, like any other view, with the sidebar in sight and **Brainsty** marked in it. It opens with the whole network in sight; the document or the task you were on stays as the starting point for the arrows.
 
-![Tisty's window with the sidebar on the left and Brainsty marked in it; in the content panel, the network zoomed out: at the top the count, «589 nodes · 1252 connections», each folder and each list in its colour, documents as squares, tasks as circles and tags as purple dots, and at the bottom left the Legend, folded](network.png)
+![Tisty's window with the sidebar on the left and Brainsty marked in it; in the content panel, the network zoomed out: at the top the count, «589 nodes · 1252 connections», each folder and each list in its colour, documents as squares, folders as big squares, lists as diamonds, tasks as circles and tags as purple dots, the network turned a little like a globe and two or three travellers with their trail on the lines, and at the bottom left the Legend, folded](network.png)
 
 - **It costs something only while you look at it.** When you move to another view, everything the network ran stops: the drawing, the settling of the dots and its work in the background.
 - **It is read again each time you come in**, so what you wrote meanwhile is already there. It starts clean: without the dot you had picked or the filters from last time.
 - **Legend**, at the bottom left, says what everything you see means. It comes folded and a click opens it. Each computer remembers whether you left it open.
 
-The **Legend** has four parts. **What it is** shows the shape of each kind there is in your network. **Colour: its folder or list** shows the coloured folders and lists, the fullest first; past six, **N more** shows the rest, and what has no colour takes its kind's tone. **State** shows how a task under way, a done one and an archived one look. **Lines, up close** shows each kind of line, and **Alike** too when Tisty guessed any. This table says the same:
+**The network is alive.** It turns by itself like a globe, once a minute, and what is behind looks smaller and fainter. **Travellers** walk its lines: dots of light that go from one node to the next every five seconds, with a short trail and a flash as they cross a tag or a node with many ties. There are two in a network under 60 nodes, and they go up two at a time to ten, from 250. The globe holds still while the pointer is on the network, a moment after you zoom in or out and while you have a node picked; over the empty space it keeps turning. To turn it yourself, drag with the right button or with `Shift`; a plain drag still moves the view.
+
+At the top, inside the open **Legend**, there are two switches, **Travellers** and **Turning**, each with a dot that lights up. With no turning, the network lies flat; with both off, it stays still. Each computer remembers how you left them, and they start off if your system asks for reduced motion.
+
+The **Legend** also has four parts. **What it is** shows the shape of each kind there is in your network. **Colour: its folder or list** shows the coloured folders and lists, the fullest first; past six, **N more** shows the rest, and what has no colour takes its kind's tone. **State** shows how a task under way, a done one and an archived one look. **Lines, up close** shows each kind of line, and **Alike** too when Tisty guessed any. This table says the same:
 
 | In the network | It is |
 | --- | --- |
 | Square | a document or a page, in its folder's colour |
+| Big square | a folder, amid its documents |
+| Diamond | a list, amid its tasks |
 | Circle | a task, in its list's colour: bright while under way, faint once done |
 | Purple dot | a tag |
 | Grey dot | a picture or a file |
 | Solid line | a citation, a card |
 | Dashed line | a mention, a link in a sentence |
-| Thin line | a page and its book, a part and its task, the document a task was born in |
+| Thin line | a page and its book, a part and its task, the document a task was born in, a folder or a list and what it holds |
 | Amber curve | a guess: what Tisty guesses is alike because they share uncommon words, one with a typo or a translation, and nobody tied them |
 
-Lists and folders are not dots: they are the colour and the zone where their things gather.
+Each folder and each list that holds something in the network is a node, tied to what it holds and amid it, and it also tints its zone with its colour.
 
-The network changes with the distance. From afar, with the wheel backwards, its dots make a brain seen from the side, with no titles. At middle distance the coloured zones show. Up close, every title, each kind of line, the tags and each picture's thumbnail.
+The network changes with the distance. From afar, with the wheel backwards, its dots make a brain seen from the side, with no titles. At middle distance the coloured zones show. Up close, every title, each kind of line, the tags, each picture's thumbnail and, inside each node, the icon of what it is: document, page, task, with a tick once done, tag, file, folder or list. With the network turned, the zones hide and fewer titles show.
 
 ![«Rina» picked up close in Brainsty, in the content panel beside the sidebar: her neighbours with titles, the rest dimmed and, on the right, her card: «Document · Pets · 6 connections», the rows Last written, Created, Size with its words and Language EN, the rina tag, Connections by kind, Pointing here with what cites her, Alike with «Saturday walks» and «Tisty guesses: they share rina and park», the Link with Copy link and the Open button; in the network, an amber curve joins Rina to «Saturday walks»](network-near.png)
 
 - **A click** on a dot lights it up with its neighbours and opens its card, on the right. The card does not show the document's text: it shows its facts, so you know what it is before you open it.
-- **Open**, `Enter` or a double click opens the document, the task or the tag in this same window, in the network's place. To come back to it, another click on **Brainsty**. A picture or a file does not open from the network: open it from what uses it.
+- **Open**, `Enter` or a double click opens the document, the task or the tag in this same window, in the network's place; a folder opens in **Documents** and a list in **Lists**. To come back to the network, another click on **Brainsty**. A picture or a file does not open from the network: open it from what uses it.
 - **Search the network**, at the top, or `/`: type part of a title and `Enter` centres the network on it.
-- **Filters**, the funnel beside the search box: which kinds to show, **Alike** for the amber curves, the state of tasks, a tag and **Touched**, to see only what changed in the last days.
-- **With the keyboard**: `Tab` goes round the search box, the filters and the network; the arrows walk from a dot to its neighbour, `Enter` opens and `Esc` lets go in layers: first the search, then the dot, and the last one takes you back to where you were. An `Esc` you type in a field of the sidebar stays in that field.
+- **Filters**, the funnel beside the search box: which kinds to show, **Folders** and **Lists** too, **Alike** for the amber curves, the state of tasks, a tag and **Touched**, to see only what changed in the last days. A folder or a list hides when the filters hide everything it holds.
+- **With the keyboard**: `Tab` goes round the search box, the filters and the network; the arrows walk from a dot to its neighbour, and the first one sets out from the document or the task you were on; `Enter` opens and `Esc` lets go in layers: first the search, then the dot, and the last one takes you back to where you were. An `Esc` you type in a field of the sidebar stays in that field. `Ctrl` + `Shift` + `M` shows, beside the legend, what drawing each frame costs.
 
 The card changes with what you pick:
 
@@ -89,7 +95,7 @@ Below come its **Tags**; its **Connections** by kind, like «2 cites 3 mentions�
 tisty://doc/pets/rina?id=…
 ```
 
-**Try it:** open **Brainsty** now. The network starts on this sheet, with its neighbours around it: the guide's cover, which it is a page of, and what names it or what it names. Click this sheet and look at its card: under **Pointing here** is the guide's cover, which cites it with its card. Then search `one of`, `Enter`, and **Open**: **One of each** opens in the network's place. Come back with another click on **Brainsty** and, this time, leave with `Esc`: the last one takes you back to **One of each**, where you were.
+**Try it:** open **Brainsty** now. The network opens whole, turning slowly, with its travellers walking. Rest the pointer on it and the globe stops. Search `brainsty`, `Enter`: the network picks this sheet, with its neighbours around it, and opens its card; under **Pointing here** is the guide's cover, which cites it with its card. Open the **Legend** and turn **Turning** off: the network lies flat. Then search `one of`, `Enter`, and **Open**: **One of each** opens in the network's place. Come back with another click on **Brainsty** and, this time, leave with `Esc`: the last one takes you back to **One of each**, where you were.
 
 ## What your agent reads
 
