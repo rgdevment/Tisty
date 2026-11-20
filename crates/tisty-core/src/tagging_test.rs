@@ -177,6 +177,7 @@ fn a_tag_that_changed_is_news_even_where_the_title_did_not() {
         diary: false,
         compacted: None,
         folder_was: None,
+        lifted_from: None,
         task_of: None,
         told: Default::default(),
         print: None,

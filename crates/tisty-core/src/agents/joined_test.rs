@@ -62,6 +62,25 @@ impl Log {
         id
     }
 
+    // Tisty names a folder of AGENTS the same way on every computer.
+    fn sub(&mut self, who: &str, name: &str, root: FolderId) -> FolderId {
+        let id = crate::agents::sub_id(root, name);
+        self.push(
+            who,
+            Op::FolderAdd {
+                id,
+                d: FolderAdd {
+                    name: name.into(),
+                    order: "a0".into(),
+                    parent: Some(root),
+                    icon: None,
+                    color: None,
+                },
+            },
+        );
+        id
+    }
+
     fn doc(&mut self, who: &str, file: &str, folder: Option<FolderId>) -> DocId {
         let id = Ulid::generate();
         self.push(
@@ -120,11 +139,11 @@ struct Two {
 fn two() -> Two {
     let mut log = Log::new();
     let desk = log.folder(DESK, FOLDER, None);
-    let desk_global = log.folder(DESK, "Global", Some(desk));
+    let desk_global = log.sub(DESK, "Global", desk);
     log.doc(DESK, "desk-global", Some(desk_global));
     std::thread::sleep(std::time::Duration::from_millis(2));
     let laptop = log.folder(LAPTOP, FOLDER, None);
-    let laptop_global = log.folder(LAPTOP, "Global", Some(laptop));
+    let laptop_global = log.sub(LAPTOP, "Global", laptop);
     log.doc(LAPTOP, "laptop-global", Some(laptop_global));
     assert!(desk < laptop);
     Two {
@@ -326,21 +345,59 @@ fn two_with_agent_folder() -> Two {
 }
 
 #[test]
-fn a_document_written_into_a_folder_already_joined_lands_outside_agents() {
+fn a_document_written_into_a_folder_already_joined_is_gathered_into_its_twin() {
     let mut two = two();
     let ops = joined(&two.log.state());
     two.log.pushed(DESK, ops);
     two.log.doc(LAPTOP, "laptop-late", Some(two.laptop_global));
+    let before = two.log.state();
+    assert!(!holds(
+        &before,
+        before
+            .docs
+            .values()
+            .find(|one| one.file == "laptop-late")
+            .unwrap()
+    ));
+
+    let gathered = joined(&before);
+    assert_eq!(
+        gathered,
+        joined(&before),
+        "both computers gather it the same way"
+    );
+    two.log.pushed(LAPTOP, gathered);
     let after = two.log.state();
-    assert_eq!(roots(&after), [two.desk]);
-    let late = after
-        .docs
-        .values()
-        .find(|one| one.file == "laptop-late")
-        .unwrap();
+    assert_eq!(folder_of(&after, "laptop-late"), Some(two.desk_global));
+    assert!(joined(&after).is_empty());
+}
+
+#[test]
+fn a_document_the_join_lifted_out_of_its_folder_goes_back_into_the_twin() {
+    let mut two = two();
+    let ops = joined(&two.log.state());
+    two.log.doc(LAPTOP, "laptop-late", Some(two.laptop_global));
+    two.log.pushed(DESK, ops);
+    let before = two.log.state();
+    assert_eq!(folder_of(&before, "laptop-late"), None);
+
+    two.log.pushed(DESK, joined(&before));
+    let after = two.log.state();
+    assert_eq!(folder_of(&after, "laptop-late"), Some(two.desk_global));
+}
+
+#[test]
+fn a_document_the_person_lifted_out_by_deleting_its_folder_stays_out() {
+    let mut log = Log::new();
+    let root = log.folder(DESK, FOLDER, None);
+    let claude = log.sub(DESK, "Claude", root);
+    log.doc(DESK, "rule", Some(claude));
+    log.push(DESK, Op::FolderDelete { id: claude });
+    let state = log.state();
+    assert_eq!(folder_of(&state, "rule"), None);
     assert!(
-        !holds(&after, late),
-        "a document written into a folder already joined lands outside AGENTS"
+        joined(&state).is_empty(),
+        "AGENTS is still there: the person took it out"
     );
 }
 

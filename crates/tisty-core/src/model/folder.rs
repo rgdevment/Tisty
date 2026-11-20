@@ -184,6 +184,9 @@ pub struct Kept {
     pub compacted: Option<Compacted>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub folder_was: Option<Vec<String>>,
+    /// The AGENTS root and the folder names it sat under when deleting that folder lifted it out.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub lifted_from: Option<(FolderId, Vec<String>)>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub task_of: Option<crate::model::TaskId>,
     /// The language its body says it is in.
