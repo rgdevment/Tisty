@@ -66,7 +66,7 @@ export default function Preview({
   return (
     <aside
       aria-label={neuron.title}
-      className="absolute top-3 right-3 z-10 flex max-h-[calc(100%-24px)] w-80 flex-col gap-3 overflow-hidden rounded-[10px] border border-hair bg-sheet p-4 shadow-lift"
+      className="absolute top-3 right-3 z-10 flex max-h-[calc(100%-24px)] w-80 @max-[720px]:top-14 @max-[720px]:max-h-[calc(100%-68px)] flex-col gap-3 overflow-hidden rounded-[10px] border border-hair bg-sheet p-4 shadow-lift"
     >
       <div className="flex flex-col gap-1">
         <div className="flex items-start gap-2">

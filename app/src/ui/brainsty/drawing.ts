@@ -10,6 +10,7 @@ import {
   sdfSquare,
 } from "sigma/rendering";
 import { type Network, TIES } from "../../brainsty";
+import { spinning, type Turn } from "./globe";
 import {
   bigOnes,
   crowding,
@@ -30,17 +31,19 @@ export type HueOf = (group?: string) => string | undefined;
 export interface Drawing {
   place: (spots: Spots) => void;
   retheme: (palette: Palette) => void;
-  centre: (on: number) => void;
   zoom: () => number;
   toScreen: (point: Point) => Point;
   toGraph: (point: Point) => Point;
   nodeOnScreen: (node: number) => Point | undefined;
   onFrame: (listener: () => void) => () => void;
+  beforeFrame: (listener: () => void) => () => void;
   light: (nodes: ReadonlySet<number> | null, picked?: number | null) => void;
   hide: (hidden: readonly boolean[]) => void;
   beside: (node: number) => number[];
   heed: (hands: Hands) => () => void;
   focus: (node: number) => void;
+  turn: (turn: Turn | null) => void;
+  turned: () => boolean;
   kill: () => void;
 }
 
@@ -69,8 +72,8 @@ interface Line {
 }
 
 const CLEAR = "rgba(0, 0, 0, 0)";
-const NEAR_RATIO = 0.35;
 const FOCUS_RATIO = 0.12;
+const PICK_PX = 10;
 const FAR_SHARE = 0.35;
 const DIM = 0.12;
 
@@ -192,6 +195,8 @@ export function drawNetwork(
     },
   });
   const camera = sigma.getCamera();
+  let gone = new Set<string>();
+  const spin = spinning(sigma, () => graph.nodes());
   let zoom = quantized(zoomOf(camera.ratio));
   sigma.setGraphState({ zoom });
   const zoomed = () => {
@@ -225,6 +230,7 @@ export function drawNetwork(
     place: ({ x, y }) => {
       if (x.length !== graph.order) return;
       framed = false;
+      spin.moved();
       graph.updateEachNodeAttributes(
         (key, at) => {
           const n = Number(key);
@@ -242,11 +248,6 @@ export function drawNetwork(
       }));
       sigma.refresh();
     },
-    centre: (on) =>
-      onceFramed(() => {
-        const shown = sigma.getNodeDisplayData(String(on));
-        if (shown) camera.setState({ x: shown.x, y: shown.y, ratio: NEAR_RATIO });
-      }),
     zoom: () => zoom,
     toScreen: ([x, y]) => {
       const at = sigma.graphToViewport({ x, y });
@@ -259,6 +260,12 @@ export function drawNetwork(
     nodeOnScreen: (node) => {
       const key = String(node);
       if (!graph.hasNode(key)) return undefined;
+      if (spin.turned()) {
+        const spun = spin.framed(key);
+        if (!spun) return undefined;
+        const at = sigma.framedGraphToViewport(spun);
+        return [at.x, at.y];
+      }
       const at = sigma.graphToViewport({
         x: graph.getNodeAttribute(key, "x"),
         y: graph.getNodeAttribute(key, "y"),
@@ -268,6 +275,10 @@ export function drawNetwork(
     onFrame: (listener) => {
       sigma.on("afterRender", listener);
       return () => sigma.off("afterRender", listener);
+    },
+    beforeFrame: (listener) => {
+      sigma.on("beforeRender", listener);
+      return () => sigma.off("beforeRender", listener);
     },
     light: (nodes, picked = null) => {
       sigma.setNodesState(lit.picked, { isPicked: false });
@@ -284,8 +295,9 @@ export function drawNetwork(
       sigma.setGraphState({ hasHighlighted: lit.nodes.length > 0 });
     },
     hide: (hidden) => {
-      const [gone, kept] = split(graph.nodes(), (key) => Boolean(hidden[Number(key)]));
-      sigma.setNodesState(gone, { isHidden: true });
+      const [hiding, kept] = split(graph.nodes(), (key) => Boolean(hidden[Number(key)]));
+      gone = new Set(hiding);
+      sigma.setNodesState(hiding, { isHidden: true });
       sigma.setNodesState(kept, { isHidden: false });
       const [cut, whole] = split(graph.edges(), (edge) =>
         graph.extremities(edge).some((key) => hidden[Number(key)]),
@@ -296,10 +308,31 @@ export function drawNetwork(
     beside: (node) =>
       graph.hasNode(String(node)) ? graph.neighbors(String(node)).map(Number) : [],
     heed: (hands) => {
-      const picked = ({ node }: { node: string }) => hands.pick(Number(node));
-      const opened = (said: { node: string; preventSigmaDefault: () => void }) => {
+      // With no order by depth on the turned globe, a node behind can be drawn over the one in front.
+      const frontmost = (node: string, at?: { x: number; y: number }): number => {
+        if (!at || !spin.turned()) return Number(node);
+        let best = node;
+        let nearest = spin.nearness(node);
+        for (const key of graph.nodes()) {
+          if (gone.has(key)) continue;
+          const shown = spin.framed(key);
+          if (!shown) continue;
+          const spot = sigma.framedGraphToViewport(shown);
+          if (Math.abs(spot.x - at.x) > PICK_PX || Math.abs(spot.y - at.y) > PICK_PX) continue;
+          const near = spin.nearness(key);
+          if (near > nearest) [best, nearest] = [key, near];
+        }
+        return Number(best);
+      };
+      const picked = (said: { node: string; event?: { x: number; y: number } }) =>
+        hands.pick(frontmost(said.node, said.event));
+      const opened = (said: {
+        node: string;
+        event?: { x: number; y: number };
+        preventSigmaDefault: () => void;
+      }) => {
         said.preventSigmaDefault();
-        hands.open(Number(said.node));
+        hands.open(frontmost(said.node, said.event));
       };
       sigma.on("clickNode", picked);
       sigma.on("doubleClickNode", opened);
@@ -312,13 +345,15 @@ export function drawNetwork(
     },
     focus: (node) =>
       onceFramed(() => {
-        const shown = sigma.getNodeDisplayData(String(node));
+        const shown = spin.framed(String(node));
         if (!shown) return;
         void camera.animate(
           { x: shown.x, y: shown.y, ratio: Math.min(camera.ratio, FOCUS_RATIO) },
           { duration: 300 },
         );
       }),
+    turn: spin.turn,
+    turned: spin.turned,
     kill: () => {
       waiting = null;
       sigma.off("afterRender", drew);

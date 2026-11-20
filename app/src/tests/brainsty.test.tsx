@@ -31,7 +31,7 @@ vi.mock("@tauri-apps/plugin-clipboard-manager", () => ({
 const ways = vi.hoisted(() => ({ opened: [] as unknown[], left: 0 }));
 
 const sigma = vi.hoisted(() => ({
-  centred: [] as number[],
+  turns: [] as unknown[],
   placed: 0,
   rethemed: 0,
   killed: 0,
@@ -59,12 +59,12 @@ vi.mock("../ui/brainsty/drawing", () => ({
   drawNetwork: () => ({
     place: () => sigma.placed++,
     retheme: () => sigma.rethemed++,
-    centre: (on: number) => sigma.centred.push(on),
     zoom: () => 0.5,
     toScreen: (point: [number, number]) => point,
     toGraph: (point: [number, number]) => point,
     nodeOnScreen: () => undefined,
     onFrame: () => () => {},
+    beforeFrame: () => () => {},
     light: (nodes: ReadonlySet<number> | null) => sigma.lit.push(nodes ? [...nodes] : null),
     hide: (hidden: boolean[]) => sigma.hidden.push(hidden),
     beside: (node: number) => (node === 0 ? [1] : []),
@@ -75,6 +75,8 @@ vi.mock("../ui/brainsty/drawing", () => ({
       };
     },
     focus: (node: number) => sigma.focused.push(node),
+    turn: (turn: unknown) => sigma.turns.push(turn),
+    turned: () => false,
     kill: () => sigma.killed++,
   }),
 }));
@@ -172,10 +174,10 @@ beforeEach(() => {
   ways.opened = [];
   ways.left = 0;
   Object.assign(sigma, {
-    centred: [],
     placed: 0,
     rethemed: 0,
     killed: 0,
+    turns: [],
     stopped: 0,
     step: null,
     focused: [],
@@ -277,17 +279,15 @@ describe("Brainsty in the content panel", () => {
     expect(alert.textContent).not.toBe("");
   });
 
-  it("draws the network centred on where it opens, following the layout until the person moves it", async () => {
+  it("opens on the whole network, following the layout without bringing the camera close", async () => {
     const { network } = await drawnNetwork();
     const spots = { x: new Float32Array(3), y: new Float32Array(3) };
 
     sigma.step?.({ ...spots, done: false, iterations: 10, ms: 5 });
-    await waitFor(() => expect(sigma.centred).toEqual([1, 1]));
-    network.dispatchEvent(new Event("pointerdown"));
     sigma.step?.({ ...spots, done: true, iterations: 20, ms: 12.4 });
     await new Promise((frame) => requestAnimationFrame(frame));
 
-    expect(sigma.centred).toEqual([1, 1]);
+    expect(sigma.focused).toEqual([]);
     expect(sigma.placed).toBe(2);
     expect(network.dataset.laidMs).toBe("12");
     expect(network.dataset.iterations).toBe("20");
@@ -481,6 +481,60 @@ describe("Brainsty in the content panel", () => {
     expect(document.activeElement).toBe(screen.getByRole("searchbox"));
     await user.tab();
     expect(document.activeElement).toBe(screen.getByRole("button", { name: t("brainstyFilters") }));
+  });
+
+  it("comes alive once laid out, and the legend turns the travellers and the turning apart, for this computer", async () => {
+    localStorage.clear();
+    const { user, shown } = await drawnNetwork();
+    const spots = { x: new Float32Array(3), y: new Float32Array(3) };
+
+    sigma.step?.({ ...spots, done: true, iterations: 20, ms: 12 });
+    await waitFor(() => expect(sigma.turns.length).toBeGreaterThan(0));
+    expect(screen.queryByRole("switch")).toBeNull();
+    await user.click(screen.getByRole("button", { name: t("brainstyLegend") }));
+    const turning = screen.getByRole("switch", { name: t("brainstyTurning") });
+    const travellers = screen.getByRole("switch", { name: t("brainstyTravellers") });
+    expect(turning.getAttribute("aria-checked")).toBe("true");
+    expect(travellers.getAttribute("aria-checked")).toBe("true");
+    await user.click(turning);
+
+    expect(sigma.turns[sigma.turns.length - 1]).toBeNull();
+    expect(localStorage.getItem("tisty.brainstySpin")).toBe("off");
+    expect(localStorage.getItem("tisty.brainstyTravellers")).toBeNull();
+    await user.click(travellers);
+    expect(localStorage.getItem("tisty.brainstyTravellers")).toBe("off");
+    shown.unmount();
+
+    await drawnNetwork();
+    expect(
+      screen.getByRole("switch", { name: t("brainstyTurning") }).getAttribute("aria-checked"),
+    ).toBe("false");
+    await user.click(screen.getByRole("switch", { name: t("brainstyTurning") }));
+    await user.click(screen.getByRole("switch", { name: t("brainstyTravellers") }));
+    expect(localStorage.getItem("tisty.brainstySpin")).toBeNull();
+    expect(localStorage.getItem("tisty.brainstyTravellers")).toBeNull();
+  });
+
+  it("keeps travellers and turning off when the computer asks for less motion", async () => {
+    localStorage.clear();
+    const asked = vi.spyOn(window, "matchMedia").mockReturnValue({
+      matches: true,
+    } as MediaQueryList);
+    await drawnNetwork();
+
+    await userEvent.setup().click(screen.getByRole("button", { name: t("brainstyLegend") }));
+    for (const name of [t("brainstyTravellers"), t("brainstyTurning")])
+      expect(screen.getByRole("switch", { name }).getAttribute("aria-checked")).toBe("false");
+    asked.mockRestore();
+  });
+
+  it("shows what it costs a frame with Ctrl+Shift+M, and hides it again", async () => {
+    const { user } = await drawnNetwork();
+
+    await user.keyboard("{Control>}{Shift>}M{/Shift}{/Control}");
+    expect(screen.getByText(/ms a frame/)).toBeTruthy();
+    await user.keyboard("{Control>}{Shift>}M{/Shift}{/Control}");
+    expect(screen.queryByText(/ms a frame/)).toBeNull();
   });
 
   it("jumps to the search with /", async () => {

@@ -1,23 +1,27 @@
 import { convertFileSrc } from "@tauri-apps/api/core";
-import { type RefObject, useEffect, useMemo, useRef, useState } from "react";
+import { type RefObject, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { type Group, type Network, type Neuron, OPENED } from "../brainsty";
 import { serve } from "../inUse";
 import { t } from "../locales";
 import { pictured } from "../previews";
+import Corner from "./brainsty/Corner";
 import { tiesAt } from "./brainsty/cardFacts";
 import { type Curves, curvesOn } from "./brainsty/curves";
 import { type Drawing, drawNetwork, type HueOf } from "./brainsty/drawing";
 import { amidMembers, laidEdges } from "./brainsty/grouping";
 import { alikeOf } from "./brainsty/guessing";
 import { type Icons, iconsOn } from "./brainsty/icons";
+import type { Motions } from "./brainsty/Legend";
 import { layOut } from "./brainsty/layingOut";
-import { degreesOf, paletteNow } from "./brainsty/looks";
+import { type Living, livingOn } from "./brainsty/living";
+import { degreesOf, nodeLook, paletteNow } from "./brainsty/looks";
 import { type Overlays, overlaysOn } from "./brainsty/overlays";
 import Preview from "./brainsty/Preview";
 import { edgesOf, seeded } from "./brainsty/settling";
 import { brainShaped } from "./brainsty/shape";
 import { EVERYTHING, found, hiddenBy, type Sift } from "./brainsty/sifting";
 import Toolbar from "./brainsty/Toolbar";
+import { turnedByHand } from "./brainsty/turning";
 import { walker } from "./brainsty/walking";
 import { followTheme } from "./theming";
 
@@ -38,11 +42,14 @@ export default function Brainsty({ network, groups, onOpen, escaping }: Props) {
     overlays: Overlays;
     curves: Curves;
     icons: Icons;
+    living: Living;
   } | null>(null);
   const [ready, setReady] = useState(false);
   const [picked, setPicked] = useState<number | null>(null);
   const [query, setQuery] = useState("");
   const [sift, setSift] = useState<Sift>(EVERYTHING);
+  const [motions, setMotions] = useState(motionsAtFirst);
+  const [costShown, setCostShown] = useState(false);
   const hues = useRef<HueOf>(() => undefined);
   const tinted = new Map<string, string>();
   const named = new Map<string, string>();
@@ -107,34 +114,20 @@ export default function Brainsty({ network, groups, onOpen, escaping }: Props) {
     const overlays = overlaysOn(container, drawn, network, hueOf, palette, PICTURES);
     overlays.reshape(shaped);
     const icons = iconsOn(container, drawn, network, palette, PICTURES.shows);
+    let colours = palette;
+    const living = livingOn(container, drawn, network, (node) => {
+      const one = network.nodes[node];
+      return nodeLook(one, hueOf(one.group), colours).color;
+    });
+    const unturned = turnedByHand(container, living.turnBy);
     const near = network.near;
-    let following = near !== undefined;
-    let frame = 0;
-    const follow = () => {
-      if (following && near !== undefined) drawn.centre(near);
-    };
-    // sigma takes the new places on its next frame, so the camera follows after it.
-    const followSoon = () => {
-      cancelAnimationFrame(frame);
-      frame = requestAnimationFrame(follow);
-    };
-    const letGo = () => {
-      following = false;
-    };
     const pick = (node: number) => {
-      letGo();
       setPicked(node);
       drawn.focus(node);
     };
-    follow();
     container.dataset.drawnMs = String(Math.round(sinceOpened()));
-    container.addEventListener("pointerdown", letGo);
-    container.addEventListener("wheel", letGo, { passive: true });
     const unheed = drawn.heed({
-      pick: (node) => {
-        letGo();
-        setPicked(node);
-      },
+      pick: (node) => setPicked(node),
       open: (node) => live.current.onOpen(network.nodes[node]),
       clear: () => setPicked(null),
     });
@@ -151,8 +144,8 @@ export default function Brainsty({ network, groups, onOpen, escaping }: Props) {
       drawn.place(placed);
       overlays.reshape(placed);
       curves.reshape(placed);
-      followSoon();
       if (!step.done) return;
+      living.ready();
       container.dataset.laidMs = String(Math.round(step.ms));
       container.dataset.iterations = String(step.iterations);
     });
@@ -162,20 +155,20 @@ export default function Brainsty({ network, groups, onOpen, escaping }: Props) {
       overlays.retheme(next);
       curves.retheme(next);
       icons.retheme(next);
+      colours = next;
     });
-    drawing.current = { drawn, overlays, curves, icons };
+    drawing.current = { drawn, overlays, curves, icons, living };
     setReady(true);
     return () => {
-      cancelAnimationFrame(frame);
       stop();
       unfollow();
       unheed();
       window.removeEventListener("keydown", keyed);
-      container.removeEventListener("pointerdown", letGo);
-      container.removeEventListener("wheel", letGo);
       overlays.stop();
       curves.stop();
       icons.stop();
+      unturned();
+      living.stop();
       drawing.current = null;
       drawn.kill();
     };
@@ -187,6 +180,7 @@ export default function Brainsty({ network, groups, onOpen, escaping }: Props) {
     drawing.current.overlays.sift(hidden);
     drawing.current.curves.sift(hidden);
     drawing.current.icons.sift(hidden);
+    drawing.current.living.sift(hidden);
     setPicked((was) => (was !== null && hidden[was] ? null : was));
   }, [ready, hidden]);
 
@@ -200,11 +194,31 @@ export default function Brainsty({ network, groups, onOpen, escaping }: Props) {
     drawn.light(lit, picked);
     drawing.current?.icons.light(lit);
     drawing.current?.curves.pick(picked);
+    drawing.current?.living.hold(picked !== null);
   }, [ready, picked, alike]);
 
   useEffect(() => {
     if (ready) drawing.current?.curves.show(sift.alike);
   }, [ready, sift.alike]);
+
+  useEffect(() => {
+    const living = drawing.current?.living;
+    if (!ready || !living) return;
+    living.travel(motions.travel);
+    living.spin(motions.spin);
+  }, [ready, motions]);
+
+  useEffect(() => {
+    const shown = (e: KeyboardEvent) => {
+      if (!(e.ctrlKey && e.shiftKey && e.key.toLowerCase() === "m")) return;
+      e.preventDefault();
+      setCostShown((was) => !was);
+    };
+    window.addEventListener("keydown", shown);
+    return () => window.removeEventListener("keydown", shown);
+  }, []);
+
+  const cost = useCallback(() => drawing.current?.living.measured() ?? { ms: 0, fps: 0 }, []);
 
   const choose = (node: number) => {
     setQuery("");
@@ -246,12 +260,49 @@ export default function Brainsty({ network, groups, onOpen, escaping }: Props) {
           onClose={() => setPicked(null)}
         />
       )}
-      <p className="pointer-events-none absolute bottom-3 left-3 text-[11.5px] text-faint">
+      <Corner
+        network={network}
+        groups={groups}
+        motions={motions}
+        onMotions={(next) => {
+          keep(TRAVEL, next.travel ? null : "off");
+          keep(SPIN, next.spin ? null : "off");
+          setMotions(next);
+        }}
+        costShown={costShown}
+        cost={cost}
+      />
+      <p className="pointer-events-none absolute bottom-3 left-3 max-w-[calc(100%-24px)] truncate rounded-md bg-bg/70 px-1.5 text-[11.5px] text-faint">
         {t("brainstyKeys")}
       </p>
     </div>
   );
 }
+
+const TRAVEL = "tisty.brainstyTravellers";
+const SPIN = "tisty.brainstySpin";
+
+const kept = (key: string): string | null => {
+  try {
+    return localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+};
+
+const keep = (key: string, value: string | null) => {
+  try {
+    if (value === null) localStorage.removeItem(key);
+    else localStorage.setItem(key, value);
+  } catch {
+    // Without storage the network simply starts as it always does.
+  }
+};
+
+const motionsAtFirst = (): Motions => {
+  const calm = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
+  return { travel: !calm && kept(TRAVEL) !== "off", spin: !calm && kept(SPIN) !== "off" };
+};
 
 const PICTURES = {
   shows: pictured,

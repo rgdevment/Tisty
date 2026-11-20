@@ -7,7 +7,6 @@ import { fill, t } from "../locales";
 import { saidPlainly } from "../refusal";
 import type { Escaping } from "./Brainsty";
 import { withGroupsAfter } from "./brainsty/grouping";
-import Legend from "./brainsty/Legend";
 import { brainstyLoaded, type LoadedBrainsty } from "./brainstyLoaded";
 import Glyph from "./Glyph";
 
@@ -155,12 +154,7 @@ function Inside({
   if (grown === null) return <Said text={t("brainstyNotYet")} />;
   if (grown.nodes.length === 0) return <Said text={t("brainstyEmpty")} />;
   if (!Drawn) return <Said text={t("brainstyReading")} />;
-  return (
-    <>
-      <Drawn network={grown} groups={groups} onOpen={onOpen} escaping={escaping} />
-      <Legend network={grown} groups={groups} />
-    </>
-  );
+  return <Drawn network={grown} groups={groups} onOpen={onOpen} escaping={escaping} />;
 }
 
 function Counted({ network }: { readonly network: Network }) {

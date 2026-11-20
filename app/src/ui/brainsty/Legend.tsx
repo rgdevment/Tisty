@@ -9,6 +9,13 @@ import { paletteNow, type Shape } from "./looks";
 interface Props {
   readonly network: Network;
   readonly groups: readonly Group[];
+  readonly motions?: Motions;
+  readonly onMotions?: (motions: Motions) => void;
+}
+
+export interface Motions {
+  travel: boolean;
+  spin: boolean;
 }
 
 const OPEN = "tisty.brainstyLegend";
@@ -31,7 +38,7 @@ const keepOpen = (open: boolean) => {
   }
 };
 
-export default function Legend({ network, groups }: Props) {
+export default function Legend({ network, groups, motions, onMotions }: Props) {
   const [open, setOpen] = useState(keptOpen);
   const [palette, setPalette] = useState(paletteNow);
   const [all, setAll] = useState(false);
@@ -47,7 +54,7 @@ export default function Legend({ network, groups }: Props) {
   return (
     <section
       aria-label={t("brainstyLegend")}
-      className={`absolute bottom-9 left-3 z-[5] flex max-h-[calc(100%-120px)] flex-col overflow-hidden rounded-[10px] border border-hair bg-bg/95 text-[11.5px] text-soft shadow-lift ${
+      className={`flex max-h-[60vh] flex-col overflow-hidden rounded-[10px] border border-hair bg-bg/95 text-[11.5px] text-soft shadow-lift ${
         open ? "w-[min(440px,calc(100%-24px))]" : ""
       }`}
     >
@@ -65,6 +72,20 @@ export default function Legend({ network, groups }: Props) {
       </button>
       {open && (
         <div className="scroller grid min-h-0 grid-cols-2 gap-x-5 gap-y-3 px-3 pb-3">
+          {motions && onMotions && (
+            <div className="col-span-2 flex items-center gap-4">
+              <Toggle
+                on={motions.travel}
+                label={t("brainstyTravellers")}
+                onTurn={() => onMotions({ ...motions, travel: !motions.travel })}
+              />
+              <Toggle
+                on={motions.spin}
+                label={t("brainstyTurning")}
+                onTurn={() => onMotions({ ...motions, spin: !motions.spin })}
+              />
+            </div>
+          )}
           <Part title={t("brainstyLegendKinds")}>
             {legend.kinds.map((one) => (
               <Row key={one.kind} label={t(`brainstyOne_${one.kind}`)}>
@@ -132,6 +153,34 @@ export default function Legend({ network, groups }: Props) {
         </div>
       )}
     </section>
+  );
+}
+
+function Toggle({
+  on,
+  label,
+  onTurn,
+}: {
+  readonly on: boolean;
+  readonly label: string;
+  readonly onTurn: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={on}
+      onClick={onTurn}
+      className="flex items-center gap-2 rounded-md px-0.5 text-soft hover:text-ink"
+    >
+      <span
+        aria-hidden="true"
+        className={`size-2 shrink-0 rounded-full transition-colors duration-150 ${
+          on ? "bg-accent shadow-[0_0_6px_var(--tisty-accent)]" : "border border-faint"
+        }`}
+      />
+      {label}
+    </button>
   );
 }
 

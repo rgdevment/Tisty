@@ -39,7 +39,7 @@
     "mermaid": "^12.1.0",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
-    "sigma": "^4.0.6",
+    "sigma": "4.0.6",
     "tisty-diagrams": "file:../packages/tisty-diagrams",
     "tisty-editor": "file:../packages/tisty-editor"
   },
