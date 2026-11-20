@@ -826,13 +826,11 @@ export default function Docs({
   ) : (
     ((spoken && !beside) || own?.tongueApart || pageMore || agentShown) && (
       <div className={agentShown ? "ribbon agent-ribbon" : "ribbon"}>
-        <span className="ribbon-title">
-          {agentShown ? (
-            <AgentTrail trail={trailed(folders, own?.folder ?? null)} onFolder={onFolder} />
-          ) : (
-            shownTitle || t("untitledDoc")
-          )}
-        </span>
+        {agentShown ? (
+          <AgentTrail trail={trailed(folders, own?.folder ?? null)} onFolder={onFolder} />
+        ) : (
+          <span className="ribbon-title">{shownTitle || t("untitledDoc")}</span>
+        )}
         {own?.tongueApart && <p role="note">{t("tongueApart")}</p>}
         {!beside && spoken}
         {pageMore}

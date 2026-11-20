@@ -162,7 +162,8 @@ export default function Sheet(props: Readonly<Props>) {
   const room = useRef<HTMLDivElement>(null);
   const said = useRef(props);
   said.current = props;
-  const lively = !props.inline && Boolean(props.wholeable);
+  // An agent's card scrolls as one with its words, so its page grows instead of scrolling inside.
+  const lively = !props.inline && Boolean(props.wholeable) && !props.agent;
   // A whole pixel wide, or the frame inside rounds down and leaves a sliver of the holder at its edge.
   const widthOf = props.agent
     ? "w-full max-w-[760px]"
