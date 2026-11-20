@@ -116,4 +116,6 @@ Después de tu sí, la sincronización queda encendida, y puedes pausarla para u
 
 Tisty no usa IA ni aprendizaje automático sobre tus datos, y no le envía nada a ningún modelo. El lenguaje natural son reglas fijas en tu equipo.
 
+Lo mismo vale para los parecidos de [Brainsty](Red-de-Brainsty#parecidos). Cuando une «Pagar la cuenta del agua» con «Pay the water bill», no entiende ni traduce nada: busca cada palabra en una lista fija de parejas español–inglés, *pagar ≈ pay*, *agua ≈ water*, y cuenta las que coinciden. Esa lista sale del [Open Multilingual Wordnet 2.0](https://github.com/omwn/omw-data), hecho por lingüistas, viene dentro del instalador y nunca sale de tu equipo ni se busca en internet. No aprende de lo que escribes: es la misma para todos y solo cambia con una versión nueva de Tisty. Sus autores y su licencia están en **Configuración › Acerca de › Avisos de terceros**.
+
 Si conectas un asistente tuyo por [[MCP|Asistentes-y-MCP]], lo que lea se va adonde vaya ese asistente. Esa puerta viene abierta en una instalación nueva, y un clic en Configuración › Asistentes la cierra.

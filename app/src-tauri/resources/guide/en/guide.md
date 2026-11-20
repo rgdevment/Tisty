@@ -217,7 +217,7 @@ Between what you will do and what you will keep there is something looser. An id
 
 ### Jot it down the moment it comes
 
-In the quick capture, `Tab` switches from **Task** to **Idea**: type it and `Enter` drops it in **Ideas**, the document pinned at the top of the **Library**, dated and without choosing a folder. **Try it:** open the quick capture, press `Tab` and write the first thing that comes to mind.
+In the quick capture, `Tab` switches from **Task** to **Idea**: type it and `Enter` drops it in **Ideas**, the document pinned at the top of the **Library**, dated and without choosing a folder. In the sidebar it is always called **Ideas** and wears a light bulb, whatever its title says, so you never mistake it for **Brainsty**, just above. **Try it:** open the quick capture, press `Tab` and write the first thing that comes to mind.
 
 ### Sort them out when their moment comes
 
