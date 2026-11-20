@@ -98,21 +98,17 @@ pub(crate) fn joined_here(session: &mut Session) -> Answer<()> {
 
 /// A document that waits here keeps waiting once its words are approved here: only «apply here» takes it.
 pub(crate) fn waits_marked(session: &Session, here: &str, file: &str) {
-    let in_agents = session
-        .state
-        .docs
-        .values()
-        .find(|one| one.file == file)
-        .is_some_and(|kept| agents::holds(&session.state, kept));
-    if here.is_empty() || !in_agents {
+    let Some(kept) = session.state.docs.values().find(|one| one.file == file) else {
+        return;
+    };
+    if here.is_empty() || !agents::holds(&session.state, kept) {
         return;
     }
     let data = session.paths.data();
     let Some(mut ledger) = Ledger::mine(data, here) else {
         return;
     };
-    let gate = gated(session, &ledger);
-    if ledger.wait_all(gate.unclaimed()) {
+    if agents::unclaimed(kept, &ledger, session.store.device()) && ledger.wait_all([file]) {
         let _ = ledger.keep(data);
     }
 }
@@ -217,16 +213,18 @@ fn proposed_in(state: &tisty_core::State, gate: &Gate) -> usize {
 }
 
 // A body read without its card cannot show the proposal again; one not read yet keeps it for later.
-fn uncarded_let_go(session: &mut Session, ledger: &Ledger) -> Answer<()> {
-    let gate = gated(session, ledger);
-    let ops: Vec<Op> = session
-        .state
+fn uncarded_let_go(session: &mut Session) -> Answer<()> {
+    let (state, docs) = (&session.state, session.paths.docs());
+    let ops: Vec<Op> = state
         .proposals
         .iter()
         .filter_map(|(id, waiting)| {
-            let file = &session.state.docs.get(id)?.file;
-            let read = matches!(gate.seen(file), Some(Seen::Plain | Seen::NotAgreed));
-            (read && !gate.carded(file)).then(|| Op::DocProposal {
+            let kept = state.docs.get(id)?;
+            if !agents::holds(state, kept) || state.held_away(kept) {
+                return None;
+            }
+            let body = tisty_core::docs::read(&docs, &kept.file).ok()?;
+            Card::of(&body).is_none().then(|| Op::DocProposal {
                 id: *id,
                 d: tisty_core::event::Proposal {
                     body: None,
@@ -1154,8 +1152,8 @@ pub fn agents_round(session: tauri::State<'_, Mutex<Session>>) -> Answer<Rounded
 pub(crate) fn round_here(session: &mut Session, homes: &Homes, here: &str) -> Answer<Rounded> {
     joined_here(session)?;
     untagged(session);
+    uncarded_let_go(session)?;
     let mut ledger = Ledger::open(session.paths.data(), here);
-    uncarded_let_go(session, &ledger)?;
     Ok(round_now(session, homes, &mut ledger))
 }
 

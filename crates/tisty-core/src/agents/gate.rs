@@ -127,7 +127,7 @@ pub fn gate(asked: &Asked) -> Gate {
         if carded {
             gate.carded.insert(kept.file.clone());
         }
-        if carded && matches!(seen, Seen::WaitingHere | Seen::NotAgreed) && unclaimed(asked, kept) {
+        if unclaimed(kept, asked.ledger, asked.me) {
             gate.unclaimed.insert(kept.file.clone());
         }
         gate.seen.insert(kept.file.clone(), seen);
@@ -195,13 +195,13 @@ fn admitted(
 }
 
 // Words last approved elsewhere, or never approved and made elsewhere, are another computer's until this one chooses.
-fn unclaimed(asked: &Asked, kept: &Kept) -> bool {
-    let me = Some(asked.me);
+pub fn unclaimed(kept: &Kept, ledger: &Ledger, me: &DeviceId) -> bool {
+    let me = Some(me);
     let elsewhere = match &kept.agreed_by {
         Some(by) => Some(by) != me,
         None => kept.made_by.as_ref() != me,
     };
-    elsewhere && !asked.ledger.took(&kept.file) && !asked.ledger.left(&kept.file)
+    elsewhere && !ledger.took(&kept.file) && !ledger.left(&kept.file)
 }
 
 fn person(state: &State, who: Option<&DeviceId>) -> bool {

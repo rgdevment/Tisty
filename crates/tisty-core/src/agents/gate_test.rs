@@ -641,7 +641,7 @@ fn approving_this_text_here_still_waits_to_be_applied() {
     let (id, file) = world.made(THERE, &rule("Unapproved.\n"), false);
     assert_eq!(world.gate().seen(&file), Some(Seen::NotAgreed));
     let unclaimed: Vec<String> = world.gate().unclaimed().map(str::to_string).collect();
-    assert_eq!(unclaimed, [file.clone()]);
+    assert_eq!(unclaimed, std::slice::from_ref(&file));
     world.ledger.wait_all(unclaimed.iter().map(String::as_str));
     world.written(HERE, id, &file, &rule("Unapproved.\n"), true);
 
@@ -676,4 +676,21 @@ fn a_document_this_computer_already_took_or_left_is_never_marked_to_wait() {
     world.ledger.take(&taken, true);
     world.ledger.take(&left, false);
     assert_eq!(world.gate().unclaimed().count(), 0);
+}
+
+#[test]
+fn losing_and_regaining_its_card_here_never_lets_a_waiting_document_in() {
+    let mut world = world();
+    let (id, file) = world.made(THERE, &rule("From the laptop.\n"), true);
+    for body in [
+        "# Notes\n\nNo card now.\n".to_string(),
+        rule("Card back.\n"),
+    ] {
+        std::fs::write(world.docs.path().join(format!("{file}.md")), &body).unwrap();
+        let unclaimed: Vec<String> = world.gate().unclaimed().map(str::to_string).collect();
+        world.ledger.wait_all(unclaimed.iter().map(String::as_str));
+        world.written(HERE, id, &file, &body, true);
+    }
+    assert_eq!(world.gate().seen(&file), Some(Seen::WaitingHere));
+    assert_eq!(world.on_disk(), None);
 }

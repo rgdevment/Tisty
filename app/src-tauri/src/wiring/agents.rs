@@ -3,8 +3,6 @@ use std::path::{Path, PathBuf};
 
 use tisty_core::agents::{Admitted, Card, GLOBAL, Gate, Kind, Ledger, Place as Spot, Target};
 
-use super::places::var;
-
 pub const ICON: &str = tisty_core::agents::ICON;
 pub const HUE: &str = "purple";
 pub const FOLDER: &str = tisty_core::agents::FOLDER;
@@ -68,12 +66,9 @@ pub struct Homes {
 
 impl Homes {
     pub fn here() -> Option<Self> {
-        let home = var(if cfg!(windows) { "USERPROFILE" } else { "HOME" })?;
         Self::told(
-            home,
-            tisty_core::agents::MOVED_BY
-                .into_iter()
-                .filter_map(|named| var(named).map(|at| (named, at))),
+            tisty_core::agents::home_here()?,
+            tisty_core::agents::told_here(),
         )
     }
 

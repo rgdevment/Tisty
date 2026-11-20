@@ -8,7 +8,7 @@ pub const MOVED_BY: [&str; 4] = [
     "GEMINI_CLI_HOME",
 ];
 
-const KNOWN: [&str; 5] = ["claude", "codex", "copilot", "gemini", "cursor"];
+pub const KNOWN: [&str; 5] = ["claude", "codex", "copilot", "gemini", "cursor"];
 
 pub type Told = BTreeMap<&'static str, PathBuf>;
 
@@ -44,17 +44,39 @@ pub fn inside_any(at: &Path, folders: &[PathBuf]) -> bool {
         .any(|one| at.starts_with(one))
 }
 
-pub fn inside_an_assistant(at: &Path) -> bool {
-    let var = |named: &str| std::env::var_os(named).map(PathBuf::from);
-    let Some(home) = var(if cfg!(windows) { "USERPROFILE" } else { "HOME" }) else {
-        return false;
-    };
-    let told: Told = MOVED_BY
+fn var(named: &str) -> Option<PathBuf> {
+    std::env::var_os(named).map(PathBuf::from)
+}
+
+pub fn home_here() -> Option<PathBuf> {
+    var(if cfg!(windows) { "USERPROFILE" } else { "HOME" })
+}
+
+// A relative folder would land wherever Tisty happens to run, so it counts as never said.
+pub fn told_here() -> Told {
+    MOVED_BY
         .into_iter()
         .filter_map(|named| var(named).map(|at| (named, at)))
         .filter(|(_, at)| at.is_absolute())
-        .collect();
-    inside_any(at, &assistant_folders(&home, &told))
+        .collect()
+}
+
+pub fn inside_an_assistant(at: &Path) -> bool {
+    let told = told_here();
+    let folders = match home_here().filter(|home| home.is_absolute()) {
+        Some(home) => assistant_folders(&home, &told),
+        None => told_alone(&told),
+    };
+    inside_any(at, &folders)
+}
+
+fn told_alone(told: &Told) -> Vec<PathBuf> {
+    told.iter()
+        .map(|(named, at)| match *named {
+            "GEMINI_CLI_HOME" => at.join(".gemini"),
+            _ => at.clone(),
+        })
+        .collect()
 }
 
 #[cfg(test)]

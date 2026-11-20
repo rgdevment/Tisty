@@ -147,8 +147,7 @@ export default function AgentsKeeper() {
       .catch(letGo);
   }, [root, holds, letGo]);
 
-  // The last document leaving still needs a round, so an AGENTS left empty keeps one going.
-  // A second AGENTS from another computer is joined by the round, so its arrival starts one.
+  // An AGENTS left empty still needs a round, and so does a second one arriving to be joined.
   const roots = agentsRoots(papers.folders)
     .map((one) => one.id)
     .join(",");

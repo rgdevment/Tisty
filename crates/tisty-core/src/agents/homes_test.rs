@@ -49,3 +49,23 @@ fn a_place_inside_any_assistants_folder_is_told_apart_from_one_beside_it() {
     ));
     assert!(!inside_any(&tmp.path().canonicalize().unwrap(), &folders));
 }
+
+#[test]
+fn without_a_home_the_folders_variables_name_are_still_guarded() {
+    let tmp = tempfile::tempdir().unwrap();
+    let claude = tmp.path().join("claude");
+    let gemini = tmp.path().join("gemini-home");
+    std::fs::create_dir_all(&claude).unwrap();
+    std::fs::create_dir_all(gemini.join(".gemini")).unwrap();
+    let alone = told_alone(&told(&[
+        ("CLAUDE_CONFIG_DIR", &claude),
+        ("GEMINI_CLI_HOME", &gemini),
+    ]));
+
+    assert!(inside_any(&claude.canonicalize().unwrap(), &alone));
+    assert!(inside_any(
+        &gemini.join(".gemini").canonicalize().unwrap(),
+        &alone
+    ));
+    assert!(!inside_any(&gemini.canonicalize().unwrap(), &alone));
+}
