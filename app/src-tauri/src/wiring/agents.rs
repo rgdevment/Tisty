@@ -1,7 +1,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
 
-use tisty_core::agents::{Admitted, Card, GLOBAL, Gate, Kind, Ledger, Place as Spot, Target};
+use tisty_core::agents::{self, Admitted, Card, GLOBAL, Gate, Kind, Ledger, Place as Spot, Target};
 
 pub const ICON: &str = tisty_core::agents::ICON;
 pub const HUE: &str = "purple";
@@ -305,6 +305,12 @@ pub fn targets(homes: &Homes, gate: &Gate, ledger: &Ledger) -> Vec<Placed> {
             {
                 put(&card.level, spot, piece);
             }
+            continue;
+        }
+        // A Global rule with no words yet, such as one just made, would only add a blank line to every file.
+        let blank = agents::rendered(piece.body())
+            .is_ok_and(|bytes| String::from_utf8_lossy(&bytes).trim().is_empty());
+        if blank {
             continue;
         }
         for one in &detected {

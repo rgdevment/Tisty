@@ -2399,3 +2399,18 @@ fn looking_again_where_this_computer_never_said_yes_reads_nothing_and_makes_noth
     assert!(!look.consented);
     assert!(room.folders().is_empty());
 }
+
+#[test]
+fn a_new_global_rule_still_empty_touches_no_agent_file() {
+    let mut room = room();
+    room.bring(&[".claude/CLAUDE.md"]);
+    let backups = room.kept(".claude/CLAUDE.md");
+    let seed = seeded(&room.session, Some(sub_of(&room, "Global")));
+    let file = made_in_the_window(&mut room);
+    crate::answers::papers::written_by_hand(&mut room.session, file, seed, None, None).unwrap();
+
+    round_here(&mut room.session, &room.homes, HERE).unwrap();
+
+    assert_eq!(room.read(".claude/CLAUDE.md"), "# Claude\nTests first.\n");
+    assert_eq!(room.kept(".claude/CLAUDE.md"), backups);
+}
