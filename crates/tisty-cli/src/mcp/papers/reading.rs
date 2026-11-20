@@ -830,7 +830,7 @@ pub(super) fn in_this_order(paths: &Paths, args: &Value) -> Result<Value, Refuse
         ));
     };
     let (state, mut store) = opened(paths)?;
-    let Some(up) = state.docs.values().find(|one| one.file == said) else {
+    let Some(up) = super::super::mistaken::named_document(&state, &said) else {
         return Err(Refused::Tool(no_document_by_that_id(&state, &said)));
     };
     if state.shut(up.id) {
@@ -929,7 +929,7 @@ pub(super) fn beside_ready(
         return Ok(());
     };
 
-    let Some(mark) = state.docs.values().find(|one| one.file == anchor) else {
+    let Some(mark) = super::super::mistaken::named_document(state, anchor) else {
         return Err(Refused::Tool(no_document_by_that_id(state, anchor)));
     };
     if mark.page_of != Some(up) {

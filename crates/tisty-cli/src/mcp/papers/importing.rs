@@ -275,7 +275,8 @@ fn task_named(state: &tisty_core::State, body: &str) -> Result<Option<TaskId>, R
     let Some(id) = tisty_core::task_front::read(body, &zone()).task else {
         return Ok(None);
     };
-    if !state.tasks.contains_key(&id) {
+    // A task the person hid or let go is no task to an agent, so its page comes in like one naming nothing.
+    if state.tasks.get(&id).is_none_or(|task| task.folded()) {
         return Ok(None);
     }
     reaching(state, &id.to_string()).map(|(id, _)| Some(id))

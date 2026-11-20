@@ -28,7 +28,7 @@ pub(in crate::mcp) fn archive_doc(paths: &Paths, args: &Value) -> Result<Value, 
         }
     };
     let (state, mut store) = opened(paths)?;
-    let Some(kept) = state.docs.values().find(|one| one.file == which) else {
+    let Some(kept) = super::super::mistaken::named_document(&state, &which) else {
         return Err(Refused::Tool(no_document_called(&state, &which)));
     };
     if away && super::super::ideas::sheet_named(paths, &state, &which).is_some() {
@@ -181,7 +181,7 @@ pub(in crate::mcp) fn file_doc(paths: &Paths, args: &Value) -> Result<Value, Ref
     let mut moving = Vec::new();
     let mut already = Vec::new();
     for which in &many {
-        let Some(kept) = state.docs.values().find(|one| one.file == *which) else {
+        let Some(kept) = super::super::mistaken::named_document(&state, which) else {
             return Err(Refused::Tool(no_document_called(&state, which)));
         };
         if let Some(up) = kept.page_of.and_then(|up| up_named(&state, up)) {

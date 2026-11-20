@@ -482,6 +482,7 @@ fn put_back(value: &mut Value, field: &str, link: &mut impl FnMut(&str) -> Strin
 fn seen(paths: &Paths) -> Option<State> {
     let mut state = tisty_core::cache::project(&paths.store(), paths.cache()).ok()?;
     tisty_core::diary::out_of_sight(&paths.docs(), &mut state);
+    state.hung_out_of_sight();
     Some(state)
 }
 

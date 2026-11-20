@@ -45,7 +45,7 @@ pub(in crate::mcp) fn said_into(kept: &Kept, tongues: &[&Kept], into: &mut Map<S
 fn found<'a>(state: &'a State, which: &str) -> Result<&'a Kept, Refused> {
     let kept = state
         .papers()
-        .find(|one| one.file == which)
+        .find(|one| one.file == which && state.doc_in_sight(one))
         .ok_or_else(|| Refused::Tool(format!("no document here is named {which:?}.")))?;
     if kept.page_of.is_some() {
         return Err(Refused::Tool(format!(

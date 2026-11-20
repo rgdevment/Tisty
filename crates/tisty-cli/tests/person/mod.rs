@@ -347,6 +347,30 @@ impl Person {
         self.wrote_doc_on(body, None)
     }
 
+    // As the window's new page does: it hangs under any document, a task's page too.
+    pub fn hangs_page_under(&self, up: &str, body: &str) -> String {
+        let up = self
+            .state()
+            .docs
+            .values()
+            .find(|one| one.file == up)
+            .unwrap()
+            .id;
+        let config = Config::load_or_init(&self.paths).unwrap();
+        let made = tisty_core::docs::create(&self.paths.docs(), &config.device_id, body).unwrap();
+        self.wrote(vec![Op::DocAdd {
+            id: Ulid::generate(),
+            d: tisty_core::event::DocAdd {
+                file: made.id.clone(),
+                order: "a0".into(),
+                page_of: Some(up),
+                said: Some(tisty_core::event::Said::of(body)),
+                ..Default::default()
+            },
+        }]);
+        made.id
+    }
+
     pub fn wrote_doc_days_ago(&self, body: &str, days: i64) -> String {
         let then = jiff::Timestamp::now() - jiff::SignedDuration::from_hours(24 * days);
         self.wrote_doc_on(body, Some(then))

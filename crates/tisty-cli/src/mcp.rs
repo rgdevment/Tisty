@@ -466,6 +466,7 @@ fn seen_by(
 ) -> Result<Option<(State, tisty_core::DeviceId)>, Refused> {
     let mut state = tisty_core::cache::project(&paths.store(), paths.cache()).map_err(hitch)?;
     tisty_core::diary::out_of_sight(&paths.docs(), &mut state);
+    state.hung_out_of_sight();
     // The log says who may write, not the settings file an agent could edit itself.
     Ok(state.agents.contains(&agent).then_some((state, agent)))
 }
