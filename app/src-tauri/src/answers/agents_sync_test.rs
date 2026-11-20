@@ -2197,3 +2197,22 @@ fn geminis_memory_taken_out_never_reads_as_a_line_the_person_took_away() {
     assert!(room.read(".gemini/GEMINI.md").contains("@tisty-rules.md"));
     assert!(room.read(".gemini/GEMINI.md").starts_with("- remembered\n"));
 }
+
+#[test]
+fn a_file_brought_alone_is_taken_as_it_stands_once_the_folder_syncs() {
+    let mut room = room();
+    room.bring_as(&[".claude/CLAUDE.md"], Some(false));
+    global_doc(&mut room, "Spanish.\n");
+
+    let round = turned(&room.session, &room.homes, HERE, None, true).unwrap();
+
+    assert!(
+        round.both.iter().all(|one| one.assistant != "claude"),
+        "the file brought stands for itself: {round:?}"
+    );
+    assert_eq!(
+        room.read(".claude/CLAUDE.md"),
+        "Spanish.\n\n# Claude\nTests first.\n"
+    );
+    assert_eq!(room.kept(".claude/CLAUDE.md"), 1);
+}

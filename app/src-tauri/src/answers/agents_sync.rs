@@ -963,11 +963,29 @@ pub fn turned(
         Some(id) => ledger.turn(id, on),
         None => ledger.turn_all(on),
     }
+    if on {
+        adopted_as_they_stand(session, homes, &mut ledger);
+    }
     ledger.keep(session.paths.data()).map_err(refused)?;
     Ok(match on {
         true => round_now(session, homes, &mut ledger),
         false => Rounded::default(),
     })
+}
+
+// Files brought while nothing synced are taken as they stand the moment syncing starts, so what joins them is written over them with a backup.
+fn adopted_as_they_stand(session: &Session, homes: &Homes, ledger: &mut Ledger) {
+    let gate = gated(session, ledger);
+    for one in places::targets(homes, &gate, ledger) {
+        let own = one
+            .target
+            .pieces
+            .iter()
+            .find(|piece| piece.card().level == one.target.assistant);
+        if let Some(piece) = own {
+            agents::adopted(ledger, &one.target, piece.file());
+        }
+    }
 }
 
 pub fn loosened(
