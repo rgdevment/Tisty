@@ -35,7 +35,7 @@ Lo que un asistente puede hacer es pequeño a propósito. Terminar, descartar y 
 - Marcar un paso tuyo o terminar una tarea tuya: solo puede decir que están listos.
 - Mover un día que pusiste **tú**.
 - Borrar un documento, ni renombrar o borrar una carpeta.
-- Escribir en [Agentes](Carpeta-AGENTS#una-propuesta-de-tu-agente): un cambio a una regla o una skill queda como propuesta, aparte, hasta que lo apruebas en la ficha. Tampoco mueve, archiva ni marca esos documentos, cambia su línea `agent:`, propone sobre una memoria, mete un documento o crea una carpeta ahí, ni escribe en cualquier carpeta un documento con una línea `agent:`.
+- Escribir en [Agentes](Carpeta-AGENTS#una-propuesta-de-tu-agente): un cambio a una regla o una skill queda como propuesta, aparte, hasta que lo apruebas en la ficha, y aprobado llega a los archivos de tus agentes solo en cada equipo donde Agentes sincroniza y lo aplicaste; en otro equipo, aprobarlo cambia el texto pero no lo aplica ahí. Cualquier otra herramienta que nombre esos documentos o la carpeta `AGENTS` se rechaza: no los mueve, archiva ni marca, no propone sobre una memoria, no mete un documento ni crea una carpeta ahí, y no mueve, renombra ni archiva Agentes. Tampoco agrega ni cambia una línea `agent:` en ningún documento de ninguna carpeta, `edit_doc` incluida, ni escribe un documento nuevo con esa línea.
 - Vaciar el historial de un documento, ni leer o recuperar una versión que guarda otro de tus equipos.
 - Sacar una idea de Ideas de otra forma, marcar la hoja entera, archivarla ni moverla a una carpeta.
 - Alcanzar una tarea que plegaste.

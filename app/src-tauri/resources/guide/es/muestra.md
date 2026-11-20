@@ -30,8 +30,9 @@ fuente: la guía de Tisty
 `agent:` convierte la hoja en un documento de agente: Tisty escribe su cuerpo, tal cual, en el archivo que lee un asistente de IA. El valor dice para quién es, qué es y dónde va: `nivel/tipo/nombre`. Solo vale dentro de la carpeta **Agentes**, y solo se escribe mientras sincroniza; en esta hoja, como en cualquier otra, es una propiedad más y nada se escribe. Dentro de Agentes:
 
 - **En la barra lateral**, el documento se llama por su primer título, o por el `name` de su skill, con un icono: un libro para una regla, una pieza para una skill y un cerebro para la memoria. Los archivos de una skill van juntos en una sola fila.
-- **Arriba de la página**, una ficha con el tipo, el nivel y el estado, el nombre en grande y la ruta debajo, una fila por archivo en que se escribe y los botones **Editar**, **Respaldos** y **Pausar la sincronización**. Las propiedades del archivo mismo, como `name` y `description`, se ven como campos.
-- **Al lado**, el panel **Archivo del agente** ocupa el lugar del tamaño de hoja y del índice: quién lo lee, dónde se escribe, su formato y sus respaldos.
+- **Al crearlo** con **Documento nuevo** dentro de **Global** o de la carpeta de un asistente, ya empieza con su línea `agent:` puesta: tú solo escribes la regla.
+- **Al abrirlo**, el documento no se ve como esta hoja: se abre en su propia ficha, sin nada al lado. Arriba, las etiquetas del tipo, el nivel y el estado, como **Regla**, **Claude** y **Al día**, y el nombre en grande. Debajo, el cuadro de datos del archivo: **Lo lee**, una fila **Se escribe en** por cada archivo, con su ruta, y su **Tamaño**, **Respaldos**, **Formato** y **Sincroniza en este equipo**. Las propiedades del archivo mismo, como `name` y `description`, se ven como campos.
+- **Dentro de la misma ficha** aparecen los avisos, como un archivo **Cambiado por fuera** o un texto que espera tu aprobación, y la propuesta de un agente, con **Aprobar el cambio** y **Descartar**. Después va el texto del agente, tal cual, y al pie los botones **Editar**, **Respaldos**, **Historial**, **Copiar enlace** y **Pausar la sincronización con Claude**.
 
 Todo, con ejemplos, en [Agentes: las reglas de tus agentes](tisty:agents).
 
