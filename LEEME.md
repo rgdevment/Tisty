@@ -168,7 +168,7 @@ parte.
 **Brainsty, el cerebro de Tisty.** Todo lo que guardas, con lo que lo une,
 dibujado como una sola red: un mapa de lejos para ti y, para tu agente, un
 índice que le dice dónde mirar sin leerlo todo. Además muestra, aparte, lo que
-Tisty adivina que se parece, sin IA. [Más abajo](#brainsty-todo-unido).
+Tisty cree que se parece, sin IA. [Más abajo](#brainsty-todo-unido).
 
 > Uso Tisty todos los días en macOS y en Windows. Si algo no encaja,
 > [abre un issue](https://github.com/rgdevment/Tisty/issues) — este proyecto
@@ -245,6 +245,11 @@ espera en Ideas.
   una segunda copia junto a la primera.
 - **Páginas para lo largo** — un runbook, un anexo, un libro por capítulos — con
   carpetas, idiomas, tablas, diagramas, fórmulas y un PDF propio.
+- **Versiones anteriores, en cada equipo** — cuando tu agente reescribe un
+  documento, o borras un párrafo que necesitas una semana después, **Ver el
+  historial** muestra lo que decía antes, **Qué cambió** lo marca en rojo y
+  verde, y **Volver a esta versión** lo trae de vuelta. Cada equipo guarda las
+  suyas, 30 días por defecto.
 
 ![Diagramas que siguen siendo texto: dibujas el diagrama y Tisty lo guarda como Mermaid, dentro de un Markdown que abre cualquier editor y lee cualquier agente, sin conexión](assets/screens/readme/es-02-diagramas.webp)
 
@@ -326,21 +331,26 @@ junto a tus listas.
   cita una tarea como una tarjeta viva, y el panel junto a un documento dice
   quién lo enlaza.
 - **Un mapa de lejos, el detalle de cerca** — los documentos como cuadrados, las
-  tareas como círculos del color de su lista, las carpetas y las listas como
-  nodos en medio de lo suyo, las etiquetas y los archivos; de cerca, cada
-  título, cada tipo de línea y el ícono de lo que es cada nodo. Una leyenda
-  plegada dice qué significa cada forma, cada color y cada línea.
+  tareas como círculos del color de su lista, las etiquetas y los archivos; las
+  carpetas y las listas dan el color y tiñen su zona. Lo que alguien escribió —
+  una cita, una mención, una parte — es lo que más acerca y más se ve. De cerca,
+  cada título, cada tipo de línea y cada nodo dibujado como su propio ícono. Una
+  leyenda plegada dice qué significa cada forma, cada color y cada línea.
 - **Una ficha, no el texto** — un clic en un nodo y su ficha dice qué es, sus
   fechas, su estado, lo que apunta a él y su enlace para copiar; **Abrir** te
-  lleva ahí.
-- **Parecidos, sin IA** — una curva ámbar une lo que nadie unió pero Tisty
-  adivina que se parece, y dice por qué: dos palabras poco comunes en común, un
-  error de tipeo (*impresora ≈ imrpesora*), o una tarea en español y su gemela
-  en inglés (*pagar ≈ pay*), con una lista fija de palabras hecha por
-  lingüistas. Todo corre en tu equipo.
+  lleva ahí, y un archivo se abre con el programa de tu sistema.
+- **Parecidos, sin IA** — una curva ámbar une lo que nadie unió pero Tisty cree
+  que se parece, y dice por qué: dos palabras poco comunes en común, un error de
+  tipeo (*impresora ≈ imrpesora*), o una tarea en español y su gemela en inglés
+  (*pagar ≈ pay*), con una lista fija de palabras hecha por lingüistas. Solo lee
+  la prosa que escribiste, nunca el código ni los archivos de tus agentes, y
+  todo corre en tu equipo.
+- **Lo que apartas queda aparte** — una tarea oculta o descartada, sus páginas y
+  tu Diario no están en la red, y los archivos de tus agentes esperan tras
+  **Mostrar AGENTS**.
 - **Viva, si la quieres** — la red gira despacio como un globo mientras unos
-  viajeros recorren sus líneas; dos interruptores en la leyenda la dejan
-  quieta.
+  viajeros recorren sus líneas, y se queda quieta mientras miras de cerca; dos
+  interruptores en la leyenda la dejan quieta del todo.
 - **La misma red para tu agente** — con una sola herramienta, `brain`, busca en
   el archivo junto a lo demás, lee la ficha de un documento sin leerlo entero y
   recibe los parecidos aparte, así que nunca los confunde con enlaces que
@@ -348,6 +358,31 @@ junto a tus listas.
 
 [La red de Brainsty](https://www.tisty.app/es/ayuda/red-de-brainsty/), en la
 ayuda, lo cuenta todo.
+
+### Agentes: las reglas de tus agentes, en un solo lugar
+
+Cada agente lee sus reglas de un archivo propio: Claude Code de `CLAUDE.md`,
+Codex de `AGENTS.md`, Gemini de `GEMINI.md`, Copilot de
+`copilot-instructions.md`. La carpeta **Agentes**, arriba en la Biblioteca, los
+junta en Tisty como documentos, con sus skills y su memoria.
+
+- **Traer o sincronizar** — **Traer** copia los archivos que marcas, para
+  leerlos y ordenarlos, sin escribir nada en ellos; **Traer y sincronizar**
+  además escribe la regla que cambias una vez en el archivo de cada agente, con
+  un respaldo antes de cada sobrescritura.
+- **Una regla para todos** — un documento en **Global** llega a cada asistente
+  del equipo; uno en **Claude**, solo a Claude.
+- **Tu agente propone, tú apruebas** — un agente lee tus reglas como cualquier
+  documento, pero un cambio suyo espera en la ficha, junto a lo que aprobaste,
+  hasta que dices que sí.
+- **Cada equipo decide** — una regla escrita en otro equipo espera **Aplicar
+  aquí**, y un cambio hecho por fuera de Tisty nunca se pisa: lo traes o te
+  quedas con el de Tisty.
+- **Nada que no deba tocar** — ajustes, credenciales, enlaces y lo que parece un
+  secreto nunca entran, y no se lee nada hasta que haces clic en la carpeta.
+
+[La carpeta Agentes](https://www.tisty.app/es/ayuda/carpeta-agents/), en la
+ayuda, cuenta cada paso.
 
 ## Un día con tu agente
 
@@ -1379,10 +1414,10 @@ formato.
 ### ¿Tisty usa IA?
 
 No, y no va a usarla. El lenguaje natural que convierte «llamar al banco a las
-3» en una tarea son reglas corriendo en tu equipo: sin modelo, sin petición,
-sin nube. Lo que Brainsty adivina que se parece sale de palabras en común, de
-un error de tipeo o de una lista fija de palabras español–inglés, nunca de un
-modelo. Si ya usas un asistente tuyo, Tisty deja una puerta
+3» en una tarea son reglas corriendo en tu equipo: sin modelo, sin petición, sin
+nube. Lo que Brainsty cree que se parece sale de palabras en común, de un error
+de tipeo o de una lista fija de palabras español–inglés, nunca de un modelo. Si
+ya usas un asistente tuyo, Tisty deja una puerta
 [MCP](https://modelcontextprotocol.io): viene abierta, un clic la cierra, y
 mientras está cerrada todo lo que intente se rechaza.
 
@@ -1403,6 +1438,12 @@ repositorio ya le entrega al asistente. Lo que se mueve — el avance, las
 decisiones, lo descartado, lo que falta — va en Tisty, donde queda fechado,
 buscable, se lee una sección a la vez y no se pierde entre ramas, equipos ni
 proyectos.
+
+Los archivos de tu carpeta personal, como `~/.claude/CLAUDE.md` o
+`~/.codex/AGENTS.md`, son otra cosa: la carpeta **Agentes** los trae a Tisty
+como documentos y, si la sincronizas, escribe tus cambios en ellos, con un
+respaldo antes. [Agentes](#agentes-las-reglas-de-tus-agentes-en-un-solo-lugar)
+cuenta cómo.
 
 ### ¿Puedo usarlo en dos equipos?
 
