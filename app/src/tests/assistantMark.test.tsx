@@ -60,7 +60,7 @@ describe("an assistant's mark", () => {
     }
   });
 
-  it("tints each assistant in a hue of its own, Global in blue, none of Agents' coral or the diagrams' purple", () => {
+  it("tints each assistant in a hue of its own, Global in blue, none of Agents' coral, the diagrams' purple or Ideas' pink", () => {
     const inks = [...ASSISTANTS, "global"].map((id) => {
       const { container, unmount } = render(<AssistantMark id={id} />);
       const ink = container
@@ -73,7 +73,7 @@ describe("an assistant's mark", () => {
       "text-hue-orange",
       "text-hue-teal",
       "text-hue-indigo",
-      "text-hue-pink",
+      "text-hue-green",
       "text-hue-brown",
       "text-hue-blue",
     ]);

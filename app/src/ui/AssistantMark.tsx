@@ -12,13 +12,13 @@ const MARKS: Record<string, string> = {
 
 const GLOBAL = "global";
 
-// One hue per assistant, kept off Agents' coral, the diagrams' purple and the states' green, amber and red.
+// One hue per assistant, off Agents' coral, the diagrams' purple and Ideas' and Personal's; Global keeps its blue.
 const HUES: Record<string, { readonly ink: string; readonly pill: string }> = {
   global: { ink: "text-hue-blue", pill: "text-hue-blue bg-hue-blue/10" },
   claude: { ink: "text-hue-orange", pill: "text-hue-orange bg-hue-orange/10" },
   codex: { ink: "text-hue-teal", pill: "text-hue-teal bg-hue-teal/10" },
   copilot: { ink: "text-hue-indigo", pill: "text-hue-indigo bg-hue-indigo/10" },
-  gemini: { ink: "text-hue-pink", pill: "text-hue-pink bg-hue-pink/10" },
+  gemini: { ink: "text-hue-green", pill: "text-hue-green bg-hue-green/10" },
   cursor: { ink: "text-hue-brown", pill: "text-hue-brown bg-hue-brown/10" },
 };
 
