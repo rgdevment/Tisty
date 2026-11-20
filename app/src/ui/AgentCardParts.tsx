@@ -1,9 +1,10 @@
 import type { ReactNode } from "react";
-import { type AgentDoc, fencedFile, type Here, type Place } from "../agentDocs";
+import { type AgentDoc, type Agreeing, fencedFile, type Here, type Place } from "../agentDocs";
 import { copied } from "../core";
 import { weigh } from "../format";
 import { fill, t } from "../locales";
 import { agentRows, backupsSaid, type FactRow } from "./agentFile";
+import ComparedLines from "./ComparedLines";
 import Glyph from "./Glyph";
 import Modal from "./Modal";
 import Page from "./Page";
@@ -52,6 +53,7 @@ export function Action({
 
 const HERE_SAID = {
   waiting: "agentHereWaiting",
+  approvedWaiting: "agentHereApprovedWaiting",
   declined: "agentHereDeclined",
   notAgreed: "agentHereNotAgreed",
   placedByAgent: "agentHerePlacedByAgent",
@@ -59,16 +61,47 @@ const HERE_SAID = {
 } as const;
 
 // What keeps this computer from writing the document, and what the person can do about it here.
+const HAND_SAID = {
+  here: "agentHandHere",
+  elsewhere: "agentHandElsewhere",
+  agent: "agentHandAgent",
+  earlier: "agentHandEarlier",
+  outside: "agentHandOutside",
+} as const;
+
+// Approving takes in the words as they are now, so the person sees first what changed since the last approval and whose hand wrote it.
+function Unagreed({ agreeing }: { agreeing: Agreeing }) {
+  return (
+    <div className="mt-1.5 text-ink">
+      <p>{t(HAND_SAID[agreeing.hand])}</p>
+      {agreeing.approved === "kept" ? (
+        <ComparedLines
+          lines={agreeing.lines}
+          gone={t("agentProposalApproved")}
+          came={t("agentAgreeNow")}
+        />
+      ) : (
+        <p className="mt-1">
+          {t(agreeing.approved === "never" ? "agentAgreeNever" : "agentAgreeElsewhere")}
+        </p>
+      )}
+    </div>
+  );
+}
+
 export function HereNote({
   here,
+  agreeing,
   onTake,
   onAgree,
 }: {
   here: Here;
+  agreeing?: Agreeing | null;
   onTake: (here: boolean) => void;
   onAgree: () => void;
 }) {
   if (here === "applied" || here === "away") return null;
+  const waits = here === "waiting" || here === "approvedWaiting";
   return (
     <div
       role="status"
@@ -77,11 +110,12 @@ export function HereNote({
       <Glyph name="alert" className="mt-0.5 h-[15px] w-[15px] shrink-0" />
       <div className="min-w-0">
         <p className="font-medium">{t(HERE_SAID[here])}</p>
+        {here === "notAgreed" && agreeing && <Unagreed agreeing={agreeing} />}
         <div className="mt-2 flex flex-wrap gap-2">
-          {(here === "waiting" || here === "declined") && (
+          {(waits || here === "declined") && (
             <Action glyph="done" label={t("agentApplyHere")} onClick={() => onTake(true)} />
           )}
-          {here === "waiting" && (
+          {waits && (
             <Action glyph="close" label={t("agentNotHere")} onClick={() => onTake(false)} />
           )}
           {here === "notAgreed" && (

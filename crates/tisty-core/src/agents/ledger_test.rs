@@ -137,3 +137,33 @@ fn a_ledger_from_an_earlier_build_reads_without_the_line_mark() {
     assert!(ledger.consented());
     assert!(!ledger.led(Path::new("/home/rina/.gemini/GEMINI.md")));
 }
+
+#[test]
+fn a_document_marked_to_wait_stays_marked_until_the_person_applies_or_leaves_it() {
+    let data = tempfile::tempdir().unwrap();
+    let mut ledger = Ledger::fresh("machine-a");
+    assert!(ledger.wait_all(["rule", "skill"]));
+    assert!(!ledger.wait_all(["rule"]), "marking again changes nothing");
+    ledger.keep(data.path()).unwrap();
+
+    let mut again = Ledger::open(data.path(), "machine-a");
+    assert!(again.waits("rule") && again.waits("skill"));
+    again.take("rule", true);
+    again.take("skill", false);
+    assert!(!again.waits("rule") && !again.waits("skill"));
+}
+
+#[test]
+fn only_this_computers_own_ledger_is_handed_back_to_be_written() {
+    let data = tempfile::tempdir().unwrap();
+    assert_eq!(
+        Ledger::mine(data.path(), "machine-a"),
+        Some(Ledger::fresh("machine-a"))
+    );
+    let mut ledger = Ledger::fresh("machine-a");
+    ledger.consent(true);
+    ledger.keep(data.path()).unwrap();
+
+    assert_eq!(Ledger::mine(data.path(), "machine-a"), Some(ledger));
+    assert_eq!(Ledger::mine(data.path(), "machine-b"), None);
+}

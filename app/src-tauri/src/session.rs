@@ -438,6 +438,8 @@ impl Session {
 
     /// The person wrote these words by hand, so they may reach an agent's file.
     pub fn retell_written(&mut self, file: &str, body: &str, hand: Option<String>) -> bool {
+        let here = tisty_core::machine::here().unwrap_or_default();
+        crate::answers::agents_sync::waits_marked(self, &here, file);
         self.told(
             file,
             body,

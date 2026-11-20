@@ -30,8 +30,9 @@ source: the Tisty guide
 `agent:` turns the sheet into an agent document: Tisty writes its body, as it is, to the file an AI assistant reads. The value says who it is for, what it is and where it goes: `level/kind/name`. It only counts inside the **Agents** folder, and is only written while it syncs; on this sheet, as on any other, it is one more property and nothing is written. Inside Agents:
 
 - **In the sidebar**, the document is called by its first heading, or by its skill's `name`, with an icon: a book for a rule, a piece for a skill and a brain for memory. A skill's files go together in one single row.
-- **On top of the page**, a card with the kind, the level and the standing, the name in large type and the path under it, one row per file it is written to and the buttons **Edit**, **Backups** and **Pause sync**. The file's own properties, such as `name` and `description`, show as fields.
-- **Beside it**, the **Agent file** panel takes the place of the paper size and the outline: who reads it, where it is written, its format and its backups.
+- **When you make it** with **New document** inside **Global** or an assistant's folder, it already starts with its `agent:` line in place: you only write the rule.
+- **When you open it**, the document does not look like this sheet: it opens on its own card, with nothing beside it. At the top, the labels for the kind, the level and the standing, such as **Rule**, **Claude** and **In sync**, and the name in large type. Below, the file's facts box: **Read by**, one **Written to** row for each file, with its path, and its **Size**, **Backups**, **Format** and **Syncs on this computer**. The file's own properties, such as `name` and `description`, show as fields.
+- **Inside the same card** come the notices, such as a file **Changed outside** or words waiting for your approval, and an agent's proposal, with **Approve the change** and **Discard**. Then comes the agent's text, as it is, and at the foot the buttons **Edit**, **Backups**, **History**, **Copy link** and **Pause sync with Claude**.
 
 Everything, with examples, in [Agents: your agents' rules](tisty:agents).
 

@@ -794,3 +794,131 @@ fn a_folder_outside_agents_still_takes_a_look_and_a_new_folder() {
     let elsewhere = state.docs.values().find(|one| one.file == served.elsewhere);
     assert_eq!(elsewhere.unwrap().folder, Some(mine));
 }
+
+// Every way the root could be taken off the top, renamed, re-iconed, archived, deleted or written over.
+fn unhooking(served: &Served, outside: ulid::Ulid) -> Vec<(&'static str, tisty_core::Op)> {
+    use tisty_core::Op;
+    use tisty_core::event::{FolderAdd, Look, Name};
+    let root = served.root;
+    let under = |folder| tisty_core::event::Filed {
+        folder: Some(Some(folder)),
+        page_of: None,
+        order: None,
+    };
+    vec![
+        (
+            "moved into another folder",
+            Op::FolderMove {
+                id: root,
+                d: under(outside),
+            },
+        ),
+        (
+            "renamed",
+            Op::FolderRename {
+                id: root,
+                d: Name {
+                    name: "Notes".into(),
+                },
+            },
+        ),
+        (
+            "re-iconed",
+            Op::FolderLook {
+                id: root,
+                d: Look {
+                    icon: Some(Some("home".into())),
+                    color: None,
+                },
+            },
+        ),
+        ("archived", Op::FolderArchive { id: root }),
+        ("deleted while it holds", Op::FolderDelete { id: root }),
+        (
+            "made again",
+            Op::FolderAdd {
+                id: root,
+                d: FolderAdd {
+                    name: "Notes".into(),
+                    order: "a0".into(),
+                    parent: None,
+                    icon: None,
+                    color: None,
+                },
+            },
+        ),
+    ]
+}
+
+#[test]
+fn agents_stays_hooked_whatever_moves_renames_or_deletes_its_root() {
+    for by_another_machine in [false, true] {
+        let probe = Served::new();
+        let nowhere = ulid::Ulid::nil();
+        for (how, op) in unhooking(&probe, nowhere) {
+            let served = Served::new();
+            let person = person::Person::at(served.home.path());
+            let outside = person.makes_folder("Elsewhere", None, None);
+            let op = retargeted(op, probe.root, served.root, nowhere, outside);
+            match by_another_machine {
+                false => person.does(op),
+                true => person.another_machine_does(op, &served.home.path().join("aside")),
+            }
+            assert_eq!(
+                tisty_core::agents::root_of(&served.state()),
+                Some(served.root),
+                "the root {how} (another machine: {by_another_machine})"
+            );
+            for (name, keys, shapes) in served.tools_that_write() {
+                for key in keys
+                    .iter()
+                    .filter(|key| NAMES_A_DOCUMENT.contains(&key.as_str()))
+                {
+                    let may_propose = key == "doc" && PROPOSES.contains(&name.as_str());
+                    let said = match shapes[key].iter().any(|one| one == "string") {
+                        true => json!(served.rule),
+                        false => json!([served.rule]),
+                    };
+                    let args = with(&keys, key, said, &served.elsewhere);
+                    served.keeps_agents(&name, args, may_propose);
+                }
+            }
+        }
+    }
+}
+
+fn retargeted(
+    op: tisty_core::Op,
+    root: ulid::Ulid,
+    to_root: ulid::Ulid,
+    claude: ulid::Ulid,
+    to_claude: ulid::Ulid,
+) -> tisty_core::Op {
+    let said = serde_json::to_string(&op)
+        .unwrap()
+        .replace(&root.to_string(), &to_root.to_string())
+        .replace(&claude.to_string(), &to_claude.to_string());
+    serde_json::from_str(&said).unwrap()
+}
+
+#[test]
+fn no_tool_slips_an_agent_line_into_a_document_outside_agents() {
+    let served = Served::new();
+    let before = served.body(&served.elsewhere);
+    let card = "---\nagent: claude/rule/CLAUDE.md\n---\n";
+    let said = served.call(
+        "edit_doc",
+        json!({ "doc": served.elsewhere, "old": "# Notes", "new": format!("{card}# Notes") }),
+    );
+    assert_eq!(said["result"]["isError"], true, "{said}");
+    assert_eq!(served.body(&served.elsewhere), before);
+
+    served.call(
+        "append_doc",
+        json!({ "doc": served.elsewhere, "body": card }),
+    );
+    assert!(
+        tisty_core::agents::Card::of(&served.body(&served.elsewhere)).is_none(),
+        "added at the end, those lines are words, never the document's card"
+    );
+}

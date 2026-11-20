@@ -1,9 +1,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
 
-use tisty_core::agents::{Admitted, Card, GLOBAL, Gate, Kind, Ledger, Place as Spot, Target};
-
-use super::places::var;
+use tisty_core::agents::{self, Admitted, Card, GLOBAL, Gate, Kind, Ledger, Place as Spot, Target};
 
 pub const ICON: &str = tisty_core::agents::ICON;
 pub const HUE: &str = "purple";
@@ -60,27 +58,41 @@ pub fn assistant(id: &str) -> Option<&'static Assistant> {
     ASSISTANTS.iter().find(|one| one.id == id)
 }
 
+/// The first name a new rule of `level` can take that no document holds yet: the main file while it is free, then one in its rules folder.
+pub fn fresh_rule(level: &str, taken: impl Fn(&str) -> bool) -> Option<String> {
+    let numbered = |stem: &str, ext: &str| {
+        (1..)
+            .map(|n| match n {
+                1 => format!("{stem}{ext}"),
+                _ => format!("{stem}-{n}{ext}"),
+            })
+            .find(|name| !taken(name))
+    };
+    if level == GLOBAL {
+        return numbered("rule", ".md");
+    }
+    let one = assistant(level)?;
+    if let Some(main) = one.main.filter(|main| !taken(main)) {
+        return Some(main.to_string());
+    }
+    let ext = match one.id {
+        "copilot" => ".instructions.md",
+        _ => ".md",
+    };
+    numbered(&format!("{}/rule", one.rule_dir?), ext)
+}
+
 #[derive(Debug, Clone, Default)]
 pub struct Homes {
     home: PathBuf,
-    told: BTreeMap<&'static str, PathBuf>,
+    told: tisty_core::agents::Told,
 }
-
-const MOVED_BY: [&str; 4] = [
-    "CLAUDE_CONFIG_DIR",
-    "CODEX_HOME",
-    "COPILOT_HOME",
-    "GEMINI_CLI_HOME",
-];
 
 impl Homes {
     pub fn here() -> Option<Self> {
-        let home = var(if cfg!(windows) { "USERPROFILE" } else { "HOME" })?;
         Self::told(
-            home,
-            MOVED_BY
-                .into_iter()
-                .filter_map(|named| var(named).map(|at| (named, at))),
+            tisty_core::agents::home_here()?,
+            tisty_core::agents::told_here(),
         )
     }
 
@@ -107,27 +119,8 @@ impl Homes {
         .unwrap_or_default()
     }
 
-    fn moved(&self, named: &str, usual: &str) -> PathBuf {
-        self.told
-            .get(named)
-            .cloned()
-            .unwrap_or_else(|| self.home.join(usual))
-    }
-
     pub fn root(&self, id: &str) -> Option<PathBuf> {
-        Some(match id {
-            "claude" => self.moved("CLAUDE_CONFIG_DIR", ".claude"),
-            "codex" => self.moved("CODEX_HOME", ".codex"),
-            "copilot" => self.moved("COPILOT_HOME", ".copilot"),
-            // Gemini's variable stands for the home folder, and the CLI still keeps `.gemini` inside it.
-            "gemini" => self
-                .told
-                .get("GEMINI_CLI_HOME")
-                .unwrap_or(&self.home)
-                .join(".gemini"),
-            "cursor" => self.home.join(".cursor"),
-            _ => return None,
-        })
+        tisty_core::agents::assistant_root(&self.home, &self.told, id)
     }
 
     fn shared(&self) -> PathBuf {
@@ -278,6 +271,12 @@ pub struct Placed {
     pub lead_in: Option<Target>,
 }
 
+// A Global rule with no words, just made or emptied, would only add a blank line to every file.
+pub fn wordless(piece: &Admitted) -> bool {
+    agents::rendered(piece.body())
+        .is_ok_and(|bytes| String::from_utf8_lossy(&bytes).trim().is_empty())
+}
+
 pub fn targets(homes: &Homes, gate: &Gate, ledger: &Ledger) -> Vec<Placed> {
     let detected = homes.detected();
     let mut pieces: Vec<&Admitted> = gate.admitted().iter().collect();
@@ -312,6 +311,9 @@ pub fn targets(homes: &Homes, gate: &Gate, ledger: &Ledger) -> Vec<Placed> {
             {
                 put(&card.level, spot, piece);
             }
+            continue;
+        }
+        if wordless(piece) {
             continue;
         }
         for one in &detected {

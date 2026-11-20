@@ -237,10 +237,12 @@ pub fn folder_rename(
         return Err(Refusal::of("noSuchFolder"));
     }
     folder_open(&session.state, id, false)?;
-    session.commit(Op::FolderRename {
+    let op = Op::FolderRename {
         id,
         d: tisty_core::event::Name { name },
-    })?;
+    };
+    stays_hooked(&session.state, std::slice::from_ref(&op))?;
+    session.commit(op)?;
     Ok(())
 }
 
@@ -271,13 +273,15 @@ pub fn folder_look(
         return Err(Refusal::of("noSuchFolder"));
     }
     folder_open(&session.state, id, false)?;
-    session.commit(Op::FolderLook {
+    let op = Op::FolderLook {
         id,
         d: tisty_core::event::Look {
             icon: Some(kept),
             color: Some(painted),
         },
-    })?;
+    };
+    stays_hooked(&session.state, std::slice::from_ref(&op))?;
+    session.commit(op)?;
     Ok(())
 }
 
@@ -289,7 +293,9 @@ pub fn folder_drop(session: tauri::State<'_, Mutex<Session>>, id: String) -> Ans
         return Err(Refusal::of("noSuchFolder"));
     }
     folder_open(&session.state, id, false)?;
-    session.commit(Op::FolderDelete { id })?;
+    let op = Op::FolderDelete { id };
+    stays_hooked(&session.state, std::slice::from_ref(&op))?;
+    session.commit(op)?;
     Ok(())
 }
 
@@ -330,6 +336,7 @@ pub fn folder_file(
         return Err(Refusal::of("intoItself"));
     }
     let ops = beside_folders(&session.state, id, parent, before);
+    stays_hooked(&session.state, &ops)?;
     session.commit_all(ops)?;
     Ok(())
 }
@@ -355,11 +362,13 @@ pub fn folder_away(
     if folder.archived == away {
         return Ok(());
     }
-    session.commit(if away {
+    let op = if away {
         Op::FolderArchive { id }
     } else {
         Op::FolderUnarchive { id }
-    })?;
+    };
+    stays_hooked(&session.state, std::slice::from_ref(&op))?;
+    session.commit(op)?;
     Ok(())
 }
 
@@ -429,3 +438,15 @@ pub fn beside_folders(
     });
     ops
 }
+
+// The core lets such an event go wherever it comes from; the window says so instead of seeming to do it.
+fn stays_hooked(state: &tisty_core::State, ops: &[Op]) -> Answer<()> {
+    match ops.iter().any(|op| tisty_core::agents::unhooks(state, op)) {
+        true => Err(Refusal::of("agentsRootStays")),
+        false => Ok(()),
+    }
+}
+
+#[cfg(test)]
+#[path = "shelves_test.rs"]
+mod tests;

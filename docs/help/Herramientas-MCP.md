@@ -145,7 +145,7 @@ Si tu asistente también llega a Confluence, Jira, Notion, Linear o GitHub, pued
 
 No todo hace el viaje, y Tisty lo dice en cada respuesta, para que el asistente te avise antes de publicar:
 
-- **Los archivos adjuntos** se quedan en Tisty. `export_doc` escribe el documento con ellos en una carpeta, y desde ahí la otra herramienta puede subirlos.
+- **Los archivos adjuntos** se quedan en Tisty. `export_doc` escribe el documento con ellos en una carpeta, y desde ahí la otra herramienta puede subirlos. Nunca los deja dentro de la carpeta de un asistente, como `~/.claude` o la que nombra `CLAUDE_CONFIG_DIR`, aunque esté en Documentos: esa carpeta solo la escribe [[Agentes|Carpeta-AGENTS]].
 - **Los diagramas** quedan como código Mermaid: GitHub, GitLab y Notion los dibujan; Confluence y Jira los muestran como código, salvo con una macro de Mermaid.
 - **Los enlaces a otros documentos y tareas** quedan como texto.
 - **Las páginas** van por separado: cada una se lee por su cuenta.

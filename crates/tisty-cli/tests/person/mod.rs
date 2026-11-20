@@ -62,6 +62,18 @@ impl Person {
         }
     }
 
+    pub fn does(&self, op: Op) {
+        self.wrote(vec![op]);
+    }
+
+    pub fn another_machine_does(&self, op: Op, aside: &Path) {
+        Store::open(aside, tisty_core::DeviceId(PHONE.into()))
+            .unwrap()
+            .append(op)
+            .unwrap();
+        self.syncs_that_machine(aside);
+    }
+
     pub fn lets_the_agent_in(&self) {
         tisty_core::agent::register(&self.paths).unwrap();
     }

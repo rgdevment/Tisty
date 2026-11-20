@@ -458,13 +458,14 @@ of your own: `diary: on` is the person's to write.
 
 A document whose properties hold an `agent:` line is an assistant's own file kept in the folder \
 AGENTS — a rule file such as `CLAUDE.md`, a skill, a script — and Tisty writes its text, byte for \
-byte, to the file that assistant reads, on each computer where the person applied the document. `read` \
+byte, to the file that assistant reads, on each computer where AGENTS syncs and the person applied \
+it. `read` \
 gives the text the person approved. You change one only by proposing: `write_doc` with `doc` and \
 `print`, `edit_doc` or `append_doc` keep your text byte for byte, apart, and nothing reaches any \
 file until the person approves it on the document's card: say so, never call it done. A later \
-write goes on top of your proposal, which `read` shows in `proposal`. Keep the `agent:` line; \
-moving, filing, marking or summing up these documents or the folder AGENTS, and a new body with \
-an `agent:` line, are refused: tell the person what to write. Never edit the file on disk \
+write goes on top of your proposal, which `read` shows in `proposal`. Keep the `agent:` line: \
+any other tool that names these documents or the folder AGENTS is refused, as is adding or \
+changing an `agent:` line anywhere: tell the person what to write. Never edit the file on disk \
 either: an edit made there is marked as changed outside and waits for the person. A memory \
 document is the other way round: the assistant keeps writing its own memory file, and Tisty only \
 shows it.

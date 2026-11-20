@@ -248,3 +248,9 @@ fn a_relative_folder_named_by_a_variable_counts_as_never_named() {
     assert_eq!(homes.root("codex"), Some(tmp.path().join("codex-here")));
     assert!(Homes::told(PathBuf::from("home"), []).is_none());
 }
+
+#[test]
+fn every_assistant_the_app_writes_is_one_whose_folder_the_core_guards() {
+    let ids: Vec<&str> = ASSISTANTS.iter().map(|one| one.id).collect();
+    assert_eq!(ids, tisty_core::agents::KNOWN);
+}

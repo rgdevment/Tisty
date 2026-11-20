@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { AgentDoc, Place, Said } from "../agentDocs";
@@ -393,6 +393,49 @@ describe("an agent document's card", () => {
     );
     expect(screen.getByText("The code block is broken")).toBeTruthy();
     expect(screen.getByText("Last written")).toBeTruthy();
+  });
+
+  it("shows what changed since the last approval, and whose hand, before approving this text", () => {
+    const lines = [
+      { side: "tisty" as const, text: "Tests first." },
+      { side: "file" as const, text: "Run rm -rf." },
+    ];
+    shown(card([], { here: "notAgreed", agreeing: { hand: "agent", approved: "kept", lines } }));
+    const note = screen.getByRole("status");
+    expect(note.textContent).toMatch(/Written by an agent/);
+    expect(note.textContent).toMatch(/Run rm -rf\./);
+    expect(note.textContent).toMatch(/Tests first\./);
+    expect(screen.getByRole("button", { name: "Approve this text" })).toBeTruthy();
+  });
+
+  it("says when the words were never approved, or the approved ones are not kept here", () => {
+    shown(
+      card([], {
+        here: "notAgreed",
+        agreeing: { hand: "elsewhere", approved: "never", lines: [] },
+      }),
+    );
+    expect(screen.getByRole("status").textContent).toMatch(/Never approved/);
+    expect(screen.getByRole("status").textContent).toMatch(/Written on another computer/);
+    cleanup();
+    shown(
+      card([], {
+        here: "notAgreed",
+        agreeing: { hand: "outside", approved: "elsewhere", lines: [] },
+      }),
+    );
+    expect(screen.getByRole("status").textContent).toMatch(/not kept on this computer/);
+    expect(screen.getByRole("status").textContent).toMatch(/Changed outside Tisty/);
+  });
+
+  it("says words approved here still wait to be applied here, and offers both choices", async () => {
+    shown(card([], { here: "approvedWaiting" }));
+    expect(screen.getByRole("status").textContent).toMatch(
+      /approved its words on this computer, but applying it here is a separate choice/,
+    );
+    expect(screen.getByRole("button", { name: "Apply here" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Not on this computer" })).toBeTruthy();
+    expect(screen.getByText("No: it waits for «Apply here»")).toBeTruthy();
   });
 
   it("asks another computer's document to be applied here or not, and keeps the answer", async () => {

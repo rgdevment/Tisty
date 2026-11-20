@@ -4,12 +4,14 @@ import {
   AGENTS_CHANGED,
   AGENTS_FIRST,
   AGENTS_MORE,
+  AGENTS_RESCAN,
   AGENTS_SYNC,
   agentsEmpty,
   agentsLit,
   agentsLook,
   agentsPrint,
   agentsRoot,
+  agentsRoots,
   agentsRound,
   agentsState,
   agentsTree,
@@ -28,7 +30,7 @@ export { AGENTS_CHANGED, askAgents } from "../agentsSync";
 
 const SETTLE_MS = 800;
 
-type Asking = "first" | "more" | null;
+type Asking = "first" | "more" | "rescan" | null;
 
 export default function AgentsKeeper() {
   const { papers, here, setHere, papersChanged, setError } = useDesk();
@@ -64,11 +66,14 @@ export default function AgentsKeeper() {
   useEffect(() => {
     const first = () => setAsking("first");
     const more = () => setAsking("more");
+    const rescan = () => setAsking("rescan");
     window.addEventListener(AGENTS_FIRST, first);
     window.addEventListener(AGENTS_MORE, more);
+    window.addEventListener(AGENTS_RESCAN, rescan);
     return () => {
       window.removeEventListener(AGENTS_FIRST, first);
       window.removeEventListener(AGENTS_MORE, more);
+      window.removeEventListener(AGENTS_RESCAN, rescan);
     };
   }, []);
 
@@ -146,8 +151,11 @@ export default function AgentsKeeper() {
       .catch(letGo);
   }, [root, holds, letGo]);
 
-  // The last document leaving still needs a round, so an AGENTS left empty keeps one going.
-  const print = root ? `${root}:${agentsPrint(papers.docs, papers.folders)}` : "";
+  // An AGENTS left empty still needs a round, and so does a second one arriving to be joined.
+  const roots = agentsRoots(papers.folders)
+    .map((one) => one.id)
+    .join(",");
+  const print = root ? `${roots}:${agentsPrint(papers.docs, papers.folders)}` : "";
   useEffect(() => {
     if (!print) return;
     const later = window.setTimeout(() => {
@@ -165,7 +173,8 @@ export default function AgentsKeeper() {
   if (!asking) return null;
   return (
     <AgentsFirst
-      more={asking === "more"}
+      more={asking === "more" || asking === "rescan"}
+      rescan={asking === "rescan"}
       onClose={() => {
         setAsking(null);
         window.dispatchEvent(new Event(AGENTS_CHANGED));

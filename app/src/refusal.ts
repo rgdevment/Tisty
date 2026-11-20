@@ -287,6 +287,7 @@ const KNOWN = [
   "documentAway",
   "folderAway",
   "folderAwayHolds",
+  "agentsRootStays",
   "folderIsAway",
   "pageIsAway",
   "pageOfLocked",

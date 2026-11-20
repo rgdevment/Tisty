@@ -69,7 +69,41 @@ pub struct AgentDoc {
     places: Vec<Place>,
     /// An assistant's change waiting beside the approved text, shown as a comparison.
     proposal: Option<Box<super::agent_proposals::Proposal>>,
+    /// Words waiting for the person's approval: what changed since the last approval, and whose hand wrote them.
+    agreeing: Option<Box<Agreeing>>,
     own: agents::OwnFront,
+}
+
+#[derive(serde::Serialize, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct Agreeing {
+    hand: agents::Hand,
+    approved: &'static str,
+    lines: Vec<super::agents_sync::Line>,
+}
+
+fn agreeing_of(session: &Session, file: &str, body: &str) -> Option<Box<Agreeing>> {
+    let kept = session.state.docs.values().find(|one| one.file == file)?;
+    let said = agents::agreeing(
+        &session.state,
+        session.paths.data(),
+        kept,
+        body,
+        session.store.device(),
+    );
+    let (approved, lines) = match said.approved {
+        agents::Approved::Never => ("never", Vec::new()),
+        agents::Approved::Elsewhere => ("elsewhere", Vec::new()),
+        agents::Approved::Kept(was) => (
+            "kept",
+            super::agents_sync::compared(was.as_bytes(), body.as_bytes()),
+        ),
+    };
+    Some(Box::new(Agreeing {
+        hand: said.hand,
+        approved,
+        lines,
+    }))
 }
 
 fn named(id: &str) -> String {
@@ -160,9 +194,11 @@ struct Opened {
     places: Vec<(Target, usize)>,
 }
 
-fn here_word(seen: Seen) -> &'static str {
+// Words approved here that still wait say so, or approving would read as applying.
+fn here_word(seen: Seen, agreed_here: bool) -> &'static str {
     match seen {
         Seen::Admitted => "applied",
+        Seen::WaitingHere if agreed_here => "approvedWaiting",
         Seen::WaitingHere => "waiting",
         Seen::DeclinedHere => "declined",
         Seen::NotAgreed => "notAgreed",
@@ -170,6 +206,15 @@ fn here_word(seen: Seen) -> &'static str {
         Seen::OtherComputersMemory => "otherMemory",
         Seen::Away | Seen::Plain | Seen::Unread => "away",
     }
+}
+
+fn agreed_here(session: &Session, file: &str) -> bool {
+    session
+        .state
+        .docs
+        .values()
+        .find(|one| one.file == file)
+        .is_some_and(|kept| kept.agreed_by.as_ref() == Some(session.store.device()))
 }
 
 // Only a document in AGENTS is written anywhere; elsewhere its card is a property like any other.
@@ -251,6 +296,7 @@ pub fn agent_doc(
     at: Option<String>,
     asked: Option<Asked>,
 ) -> Answer<Told> {
+    super::agents_sync::joined_here(&mut held(&session))?;
     match (at, asked) {
         (_, Some(Asked::Take { here })) => taken_here(&session, &file, here).map(carded),
         (_, Some(Asked::Agree { print })) => agreed(&session, &file, &print).map(carded),
@@ -363,6 +409,7 @@ fn card(session: &Mutex<Session>, file: &str) -> Answer<Option<AgentDoc>> {
     let machine = tisty_core::machine::here().unwrap_or_default();
     let mut session = held(session);
     session.reload()?;
+    super::agents_sync::joined_here(&mut session)?;
     card_of(&session, Homes::here().as_ref(), &machine, file)
 }
 
@@ -379,13 +426,16 @@ pub(crate) fn card_of(
     let card = opened.card;
     Ok(Some(AgentDoc {
         proposal: super::agent_proposals::proposal_of(session, file, &opened.body).map(Box::new),
+        agreeing: (opened.here == Seen::NotAgreed)
+            .then(|| agreeing_of(session, file, &opened.body))
+            .flatten(),
         own: agents::own_front(&opened.body),
         kind: card.kind.word(),
         named: (card.level != agents::GLOBAL).then(|| named(&card.level)),
         code: card.code(),
         folder_off: ledger.consented() && !ledger.syncs(""),
         twin: opened.twin,
-        here: here_word(opened.here),
+        here: here_word(opened.here, agreed_here(session, file)),
         print: opened.print,
         places: opened
             .places

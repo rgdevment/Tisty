@@ -7,6 +7,7 @@ import {
   agentsLead,
   agentsLook,
   agentsLoose,
+  agentsRescan,
   type Brought,
   type FileSeen,
   type Refused,
@@ -44,6 +45,25 @@ const reasonSaid = (one: Refused): string => {
 };
 
 const listed = (names: string[]) => names.join(", ");
+
+const summaryOf = (one: AssistantSeen): string =>
+  one.files.length === 0 ? fill("agentsNothingYet", one.name) : counted(one, offeredOf(one.files));
+
+// An assistant found with no file yet is named plainly, never left out as if nothing were there.
+function Empty({ assistants }: Readonly<{ assistants: AssistantSeen[] }>) {
+  const empty = assistants.filter((one) => one.files.length === 0);
+  if (empty.length === 0) return null;
+  return (
+    <ul className="mt-2 flex flex-col gap-1 text-[12.5px] text-soft">
+      {empty.map((one) => (
+        <li key={one.id} className="flex items-center gap-2">
+          <AssistantMark id={one.id} className="h-[13px] w-[13px]" />
+          {summaryOf(one)}
+        </li>
+      ))}
+    </ul>
+  );
+}
 
 /// What the list offers: a rule or a memory is one file, a skill is its whole folder.
 export interface Offered {
@@ -183,11 +203,18 @@ function Assistant({
 interface Props {
   /** Bringing one more file once this computer already said yes, so nothing is ticked for the person. */
   more?: boolean;
+  /** «Look again»: the assistants are found anew and only what is new comes ticked. */
+  rescan?: boolean;
   onClose: () => void;
   onChanged: () => void;
 }
 
-export default function AgentsFirst({ more = false, onClose, onChanged }: Readonly<Props>) {
+export default function AgentsFirst({
+  more = false,
+  rescan = false,
+  onClose,
+  onChanged,
+}: Readonly<Props>) {
   const [look, setLook] = useState<AgentsLook>();
   const [chosen, setChosen] = useState<Set<string>>(new Set());
   const [busy, setBusy] = useState(false);
@@ -198,7 +225,7 @@ export default function AgentsFirst({ more = false, onClose, onChanged }: Readon
   const [reviewing, setReviewing] = useState(false);
 
   useEffect(() => {
-    agentsLook()
+    (rescan ? agentsRescan() : agentsLook())
       .then((seen) => {
         setLook(seen);
         // A folder that already syncs has nothing to pick: only what waits for the person, if anything.
@@ -208,7 +235,7 @@ export default function AgentsFirst({ more = false, onClose, onChanged }: Readon
           setWaiting(queue);
           setReviewing(true);
         }
-        const ticked = more && seen.consented ? () => false : chosenFirst;
+        const ticked = more && seen.consented && !rescan ? () => false : chosenFirst;
         setChosen(
           new Set(
             seen.assistants.flatMap((one) => one.files.filter(ticked).map((file) => file.at)),
@@ -216,7 +243,7 @@ export default function AgentsFirst({ more = false, onClose, onChanged }: Readon
         );
       })
       .catch((e) => setTrouble(saidPlainly(e)));
-  }, [more]);
+  }, [more, rescan]);
 
   // A skill comes whole: its row ticks or unticks every file it holds.
   const toggle = (ats: string[]) => {
@@ -369,9 +396,23 @@ export default function AgentsFirst({ more = false, onClose, onChanged }: Readon
       {look && (
         <>
           <p className={`${adding ? "" : "mt-4 "}mb-1.5 text-[12.5px] font-semibold`}>
-            {pickSaid(assistants, found, adding)}
+            {rescan && adding && !found
+              ? t("agentsRescanNone")
+              : pickSaid(assistants, found, adding)}
           </p>
-          {assistants.some((one) => one.files.length > 0) && (
+          {rescan && adding && !found ? (
+            <ul className="flex flex-col gap-1 text-[12.5px] text-ink">
+              {assistants.map((one) => (
+                <li key={one.id} className="flex items-center gap-2">
+                  <AssistantMark id={one.id} className="h-[14px] w-[14px]" />
+                  {summaryOf(one)}
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <Empty assistants={assistants} />
+          )}
+          {!(rescan && adding && !found) && assistants.some((one) => one.files.length > 0) && (
             <ul className="rounded-[10px] border border-hair bg-panel">
               {assistants
                 .filter((one) => one.files.length > 0)

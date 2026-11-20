@@ -254,6 +254,14 @@ impl State {
                 self.heard.insert(event.device.clone(), at);
             }
         }
+        if crate::agents::unhooks(self, &event.op) {
+            crate::witness::warn(
+                crate::witness::channel::AGENT,
+                "an event would have unhooked the AGENTS folder, and was let go",
+                &[("by", crate::witness::Fact::Id(event.device.0.clone()))],
+            );
+            return;
+        }
         let before = self.placement(event);
         self.applied(event);
         self.placed(event, before);

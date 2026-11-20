@@ -480,11 +480,15 @@ pub fn doc_new(
         None => None,
     };
     let folder = under.unwrap_or(folder);
+    let seed = match page_of {
+        Some(_) => String::new(),
+        None => super::agents_sync::seeded(&session, folder),
+    };
     let made = tisty_core::docs::create_by(
         &session.paths.docs(),
         &session.writer(),
         &session.config.device_id,
-        "",
+        &seed,
     )
     .map_err(|e| blamed(channel::WINDOW, "a document could not be made", e))?;
 
@@ -507,7 +511,7 @@ pub fn doc_new(
             by: signed_as.clone(),
             file: made.id.clone(),
             order,
-            said: Some(tisty_core::event::Said::of("").agreed()),
+            said: Some(tisty_core::event::Said::of(&seed).agreed()),
             folder,
             page_of,
             task_of: None,
