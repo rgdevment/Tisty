@@ -85,6 +85,17 @@ pub fn gated(session: &Session, ledger: &Ledger) -> Gate {
     })
 }
 
+// Two AGENTS made before their computers synced become one before anything here reads the folder.
+pub(crate) fn joined_here(session: &mut Session) -> Answer<()> {
+    let ops = agents::joined(&session.state);
+    if ops.is_empty() {
+        return Ok(());
+    }
+    session
+        .commit_all(ops)
+        .map_err(|e| Refusal::about("cannotWrite", e.to_string()))
+}
+
 /// A document that waits here keeps waiting once its words are approved here: only «apply here» takes it.
 pub(crate) fn waits_marked(session: &Session, here: &str, file: &str) {
     let in_agents = session
@@ -971,6 +982,7 @@ fn unlead(data: &Path, ledger: &mut Ledger, gone: &Target) {
 
 // A file its last rule left waits for the person's answer first, or AGENTS would go and leave it unasked.
 pub fn emptied(session: &mut Session, homes: &Homes, here: &str) -> Answer<bool> {
+    joined_here(session)?;
     let Some(root) = root_of(&session.state) else {
         return Ok(false);
     };
@@ -1062,6 +1074,7 @@ pub fn agents_look(session: tauri::State<'_, Mutex<Session>>) -> Answer<Look> {
     let mut session = held(&session);
     // An assistant's proposal arrives in the log alone, so the look reads the log again first.
     session.reload()?;
+    joined_here(&mut session)?;
     let seen = gathered(&session, &here());
     Ok(looked(&seen, &homes, &found))
 }
@@ -1073,6 +1086,7 @@ pub fn agents_bring(
     sync: Option<bool>,
 ) -> Answer<Brought> {
     let homes = homes()?;
+    joined_here(&mut held(&session))?;
     let (ledger, known, writes) = consented_here(&held(&session), &homes, &here(), sync)?;
     let chosen: BTreeSet<String> = chosen.into_iter().collect();
     let (read, refused) = read_chosen(&ledger, &found_here(&homes), &chosen, &known, &writes);
@@ -1104,9 +1118,14 @@ pub fn agents_round(session: tauri::State<'_, Mutex<Session>>) -> Answer<Rounded
     let homes = homes()?;
     let mut session = held(&session);
     session.reload()?;
-    untagged(&mut session);
-    let mut ledger = Ledger::open(session.paths.data(), &here());
-    Ok(round_now(&session, &homes, &mut ledger))
+    round_here(&mut session, &homes, &here())
+}
+
+pub(crate) fn round_here(session: &mut Session, homes: &Homes, here: &str) -> Answer<Rounded> {
+    joined_here(session)?;
+    untagged(session);
+    let mut ledger = Ledger::open(session.paths.data(), here);
+    Ok(round_now(session, homes, &mut ledger))
 }
 
 #[tauri::command(async)]

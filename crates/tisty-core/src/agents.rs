@@ -1,6 +1,7 @@
 mod card;
 mod found;
 mod gate;
+mod joined;
 mod kept;
 mod ledger;
 mod proposal;
@@ -11,10 +12,11 @@ mod standing;
 pub use card::{Card, Endings, GLOBAL, KEY, Kind, brought, doc_of, rendered};
 pub use found::{Found, Place, Skip, brought_in, found};
 pub use gate::{Admitted, Asked, Gate, Seen, gate};
+pub use joined::joined;
 pub use kept::{KEPT_AT_MOST, Kept, kept, read_kept};
 pub use ledger::Ledger;
 pub use proposal::{PROPOSAL_AT_MOST, PROPOSAL_LINES_AT_MOST, Unfit, proposable};
-pub use rooted::{FOLDER, ICON, holds, holds_folder, root_of, tree};
+pub use rooted::{FOLDER, ICON, holds, holds_folder, root_of, roots, tree};
 pub use shown::{OwnFront, Shown, own_front, shown};
 pub use standing::{
     Standing, Target, adopted, bring, lacks, lead_in, lead_out, overwrite, removed, restore, round,

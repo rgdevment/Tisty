@@ -6,8 +6,9 @@ use crate::model::{FolderId, Kept};
 pub const FOLDER: &str = "AGENTS";
 pub const ICON: &str = "robot";
 
-pub fn root_of(state: &State) -> Option<FolderId> {
-    state
+/// Every AGENTS at the top, oldest first: two computers that made one before they synced hold two until they join.
+pub fn roots(state: &State) -> Vec<FolderId> {
+    let mut all: Vec<FolderId> = state
         .folders
         .values()
         .filter(|one| {
@@ -17,7 +18,13 @@ pub fn root_of(state: &State) -> Option<FolderId> {
                 && one.name == FOLDER
         })
         .map(|one| one.id)
-        .min()
+        .collect();
+    all.sort_unstable();
+    all
+}
+
+pub fn root_of(state: &State) -> Option<FolderId> {
+    roots(state).first().copied()
 }
 
 pub fn tree(state: &State, root: FolderId) -> BTreeSet<FolderId> {
@@ -36,8 +43,11 @@ pub fn tree(state: &State, root: FolderId) -> BTreeSet<FolderId> {
     }
 }
 
+// An AGENTS not yet joined still guards what it holds.
 pub fn holds_folder(state: &State, folder: FolderId) -> bool {
-    root_of(state).is_some_and(|root| tree(state, root).contains(&folder))
+    roots(state)
+        .into_iter()
+        .any(|root| tree(state, root).contains(&folder))
 }
 
 // A page sits wherever the document it belongs to sits.

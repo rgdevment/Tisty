@@ -363,6 +363,7 @@ fn card(session: &Mutex<Session>, file: &str) -> Answer<Option<AgentDoc>> {
     let machine = tisty_core::machine::here().unwrap_or_default();
     let mut session = held(session);
     session.reload()?;
+    super::agents_sync::joined_here(&mut session)?;
     card_of(&session, Homes::here().as_ref(), &machine, file)
 }
 

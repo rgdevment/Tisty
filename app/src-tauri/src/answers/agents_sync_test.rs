@@ -2000,3 +2000,95 @@ fn a_document_is_marked_to_wait_before_its_words_are_approved_even_with_no_round
     waits_marked(&room.session, HERE, &mine);
     assert!(!Ledger::open(&data, HERE).waits(&mine));
 }
+
+// The laptop made its own AGENTS, with the smaller id, before the two computers ever synced.
+fn laptops_own_agents(room: &mut Room) -> String {
+    let laptop = tisty_core::DeviceId(tisty_core::config::new_device_id());
+    let root = ulid::Ulid::from_parts(1, 1);
+    let claude = ulid::Ulid::from_parts(1, 2);
+    let body = agents::doc_of(
+        "claude",
+        agents::Kind::Rule,
+        "CLAUDE.md",
+        b"Laptop rules.\n",
+    )
+    .unwrap();
+    let made = tisty_core::docs::create(&room.session.paths.docs(), &laptop, &body).unwrap();
+    let folder = |id, name: &str, parent| Op::FolderAdd {
+        id,
+        d: tisty_core::event::FolderAdd {
+            name: name.to_string(),
+            order: "a0".to_string(),
+            parent,
+            icon: parent.is_none().then(|| places::ICON.to_string()),
+            color: None,
+        },
+    };
+    tisty_core::Store::open(room.session.paths.store(), laptop)
+        .unwrap()
+        .append_batch(vec![
+            folder(root, places::FOLDER, None),
+            folder(claude, "Claude", Some(root)),
+            Op::DocAdd {
+                id: ulid::Ulid::generate(),
+                d: tisty_core::event::DocAdd {
+                    file: made.id.clone(),
+                    folder: Some(claude),
+                    order: "a0".to_string(),
+                    said: Some(tisty_core::event::Said::of(&body).agreed()),
+                    ..Default::default()
+                },
+            },
+        ])
+        .unwrap();
+    room.session.reload().unwrap();
+    made.id
+}
+
+#[test]
+fn two_agents_join_without_touching_a_file_offering_one_loose_or_losing_an_approval() {
+    let mut room = room();
+    room.bring(&[".claude/CLAUDE.md", ".codex/AGENTS.md"]);
+    let data = room.session.paths.data().to_path_buf();
+    let mine: Vec<String> = bodies(&room.session)
+        .into_iter()
+        .map(|(file, _)| file)
+        .collect();
+    let before = Ledger::open(&data, HERE);
+    let backups = room.kept(".claude/CLAUDE.md");
+
+    let laptops = laptops_own_agents(&mut room);
+    assert_eq!(agents::roots(&room.session.state).len(), 2);
+    assert!(
+        !room.look().loose.is_empty(),
+        "before joining, this computer's own files read as left by every rule"
+    );
+
+    round_here(&mut room.session, &room.homes, HERE).unwrap();
+
+    assert_eq!(agents::roots(&room.session.state).len(), 1);
+    assert!(room.look().loose.is_empty());
+    let held: Vec<String> = bodies(&room.session)
+        .into_iter()
+        .map(|(file, _)| file)
+        .collect();
+    assert!(mine.iter().all(|file| held.contains(file)));
+    assert!(held.contains(&laptops));
+    assert_eq!(room.read(".claude/CLAUDE.md"), "# Claude\nTests first.\n");
+    assert_eq!(room.read(".codex/AGENTS.md"), "Codex rules.\n");
+    assert_eq!(room.kept(".claude/CLAUDE.md"), backups);
+    let after = Ledger::open(&data, HERE);
+    assert!(
+        mine.iter()
+            .all(|file| after.took(file) == before.took(file))
+    );
+    assert_eq!(after.applied(), before.applied());
+    assert_eq!(
+        gated(&room.session, &after).seen(&laptops),
+        Some(Seen::WaitingHere),
+        "the laptop's twin of CLAUDE.md waits here like any rule from elsewhere"
+    );
+    let mut names: Vec<String> = room.folders();
+    names.dedup();
+    assert_eq!(names, room.folders(), "no folder is there twice");
+}

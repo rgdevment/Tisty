@@ -155,10 +155,13 @@ export const agentsLoose = (at: string, away: boolean): Promise<Rounded> =>
   invoke("agents_loose", { at, away });
 export const agentsLead = (): Promise<Rounded> => invoke("agents_lead");
 
-export const agentsRoot = (folders: readonly Folded[]): Folded | undefined =>
+export const agentsRoots = (folders: readonly Folded[]): Folded[] =>
   folders
     .filter((one) => one.parent === null && !one.archived && isAgentsFolder(one))
-    .sort((a, b) => a.id.localeCompare(b.id))[0];
+    .sort((a, b) => a.id.localeCompare(b.id));
+
+export const agentsRoot = (folders: readonly Folded[]): Folded | undefined =>
+  agentsRoots(folders)[0];
 
 export const agentsTree = (folders: readonly Folded[]): Set<string> => {
   const root = agentsRoot(folders);

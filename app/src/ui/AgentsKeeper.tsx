@@ -10,6 +10,7 @@ import {
   agentsLook,
   agentsPrint,
   agentsRoot,
+  agentsRoots,
   agentsRound,
   agentsState,
   agentsTree,
@@ -147,7 +148,11 @@ export default function AgentsKeeper() {
   }, [root, holds, letGo]);
 
   // The last document leaving still needs a round, so an AGENTS left empty keeps one going.
-  const print = root ? `${root}:${agentsPrint(papers.docs, papers.folders)}` : "";
+  // A second AGENTS from another computer is joined by the round, so its arrival starts one.
+  const roots = agentsRoots(papers.folders)
+    .map((one) => one.id)
+    .join(",");
+  const print = root ? `${roots}:${agentsPrint(papers.docs, papers.folders)}` : "";
   useEffect(() => {
     if (!print) return;
     const later = window.setTimeout(() => {
