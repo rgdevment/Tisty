@@ -142,6 +142,7 @@ pub struct Guessed {
     pub score: f64,
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub shared: Vec<String>,
+    pub method: String,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Serialize)]
@@ -434,15 +435,17 @@ impl<F: Fn(&str) -> bool> Reader<'_, F> {
     // Both ends pass the gate, or the guess is not there: a hidden task is never named through it.
     fn guessed(&self, id: &str) -> rusqlite::Result<Vec<Guessed>> {
         let mut asked = self.db.prepare_cached(&format!(
-            "SELECT b, score, shared FROM alike WHERE a = ?1 AND {SHOWN}
-             UNION ALL SELECT a, score, shared FROM alike WHERE b = ?1 AND {SHOWN}
+            "SELECT b, score, shared, method FROM alike WHERE a = ?1 AND {SHOWN}
+             UNION ALL SELECT a, score, shared, method FROM alike WHERE b = ?1 AND {SHOWN}
              ORDER BY 2 DESC, 1"
         ))?;
-        let rows: Vec<(String, f64, String)> = asked
-            .query_map([id], |one| Ok((one.get(0)?, one.get(1)?, one.get(2)?)))?
+        let rows: Vec<(String, f64, String, String)> = asked
+            .query_map([id], |one| {
+                Ok((one.get(0)?, one.get(1)?, one.get(2)?, one.get(3)?))
+            })?
             .collect::<rusqlite::Result<_>>()?;
         let mut all = Vec::new();
-        for (other, score, shared) in rows {
+        for (other, score, shared, method) in rows {
             let Some(near) = self.near(&other)? else {
                 continue;
             };
@@ -457,6 +460,7 @@ impl<F: Fn(&str) -> bool> Reader<'_, F> {
                     .filter(|one| !one.is_empty())
                     .map(str::to_string)
                     .collect(),
+                method,
             });
         }
         Ok(all)
