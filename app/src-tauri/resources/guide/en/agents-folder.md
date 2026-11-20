@@ -55,7 +55,7 @@ If you have no agent files yet, the box says «I found no agent files on this co
 
 **Try it:** click **Agents**, in grey in your sidebar, to see which assistants it finds on this computer. If you only wanted to look, the X leaves it as it was. The same is in **Settings → Assistants**, on the **Agents** card: before anything is brought it says which assistants it found and offers **Bring**, **Bring and sync** and **Hide**; brought, **Sync**, **Bring another file** and **Hide**; while syncing, **Bring another file**, **Stop syncing** and one switch per assistant, such as **Sync Claude**.
 
-Afterwards, in the sidebar, **Global** has a blue globe and each assistant its logo in a single tone: Claude, Copilot, Gemini and Cursor; Codex, a terminal symbol. Each document shows with its name and an icon: a book for a rule, a piece for a skill and a brain for memory. Hover over one and you see which file it is.
+Afterwards, in the sidebar, **Global** has a blue globe and each assistant a symbol of its own in grey: a chat bubble for Claude, a terminal for Codex, braces for Copilot, a compass for Gemini and a pointer for Cursor. Each document shows with its name and an icon: a book for a rule, a piece for a skill and a brain for memory. Hover over one and you see which file it is.
 
 ![The sidebar with the Agents folder open and syncing: the robot in coral and the name Agents, with no word on the right; in Claude, the rule How I work with a book icon, the skill pr with a puzzle-piece icon and 3 files, and the memory MEMORY.md with a brain icon; the pointer over How I work shows claude · CLAUDE.md](agents-sidebar.png)
 

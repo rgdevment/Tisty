@@ -1,12 +1,29 @@
 import { render } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { AssistantMark, FolderMark, levelOf } from "../ui/AssistantMark";
+import Glyph from "../ui/Glyph";
 
 const folder = (name: string, parent: string | null, icon: string | null = null) => ({
   name,
   parent,
   icon,
 });
+
+const ASSISTANTS = ["claude", "codex", "copilot", "gemini", "cursor"];
+
+const glyphOf = (name: string) => {
+  const { container, unmount } = render(<Glyph name={name} />);
+  const said = container.querySelector("svg.glyph")?.innerHTML ?? "";
+  unmount();
+  return said;
+};
+
+const drawn = (id: string) => {
+  const { container, unmount } = render(<AssistantMark id={id} />);
+  const said = container.querySelector("svg.glyph")?.innerHTML ?? "";
+  unmount();
+  return said;
+};
 
 describe("which assistant a folder in Agents stands for", () => {
   it("reads it from the folder's name right under Agents, as the core files it", () => {
@@ -28,25 +45,34 @@ describe("which assistant a folder in Agents stands for", () => {
 });
 
 describe("an assistant's mark", () => {
-  it("draws each assistant's logo filled in the colour around it", () => {
-    for (const id of ["claude", "copilot", "gemini", "cursor"]) {
+  it("gives each assistant a glyph of the app's own set, none like another's", () => {
+    const glyphs = ASSISTANTS.map(drawn);
+    for (const one of glyphs) expect(one).not.toBe("");
+    expect(new Set(glyphs).size).toBe(ASSISTANTS.length);
+  });
+
+  it("borrows no logo: only plain outline glyphs, never a filled shape", () => {
+    for (const id of ASSISTANTS) {
       const { container, unmount } = render(<AssistantMark id={id} />);
-      const svg = container.querySelector(`svg[data-mark="${id}"]`);
-      expect(svg?.getAttribute("viewBox")).toBe("0 0 24 24");
-      expect(svg?.querySelector("path.solid")?.getAttribute("d")).toMatch(/^[Mm]/);
+      expect(container.querySelector(".solid")).toBeNull();
+      expect(container.querySelector("svg.glyph")?.getAttribute("viewBox")).toBe("0 0 24 24");
       unmount();
     }
   });
 
-  it("draws Global as a blue globe", () => {
+  it("draws every assistant in the sidebar's secondary grey, and only Global as a blue globe", () => {
+    for (const id of ASSISTANTS) {
+      const { container, unmount } = render(<AssistantMark id={id} />);
+      expect(container.querySelector(`[data-mark="${id}"]`)?.className).toContain("text-soft");
+      unmount();
+    }
     const { container } = render(<AssistantMark id="global" />);
-    expect(container.querySelector(".text-hue-blue svg.glyph")).toBeTruthy();
+    expect(container.querySelector('[data-mark="global"]')?.className).toContain("text-hue-blue");
+    expect(container.querySelector("svg.glyph")?.innerHTML).toBe(glyphOf("globe-earth"));
   });
 
-  it("draws a neutral glyph for an assistant with no logo to borrow", () => {
-    const { container } = render(<AssistantMark id="codex" />);
-    expect(container.querySelector("svg.glyph")).toBeTruthy();
-    expect(container.querySelector("[data-mark]")).toBeNull();
+  it("falls back to the terminal for an assistant it does not know yet", () => {
+    expect(drawn("windsurf")).toBe(glyphOf("terminal"));
   });
 });
 
@@ -57,17 +83,6 @@ describe("a folder's mark", () => {
     one.unmount();
     const other = render(<FolderMark folder={folder("Claude", "work")} root="agents" />);
     expect(other.container.querySelector("[data-mark]")).toBeNull();
-    expect(other.container.querySelector("svg.glyph")).toBeTruthy();
-  });
-});
-
-describe("the tone of an assistant's mark", () => {
-  it("draws every assistant in the sidebar's secondary grey, and only Global in blue", () => {
-    for (const id of ["claude", "copilot", "gemini", "cursor", "codex"]) {
-      const { container, unmount } = render(<AssistantMark id={id} />);
-      expect(container.querySelector(".text-soft")).toBeTruthy();
-      expect(container.querySelector(".text-hue-blue")).toBeNull();
-      unmount();
-    }
+    expect(other.container.querySelector("svg.glyph")?.innerHTML).toBe(glyphOf("folder"));
   });
 });

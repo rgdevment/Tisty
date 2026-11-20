@@ -240,7 +240,7 @@ Agentes
     └── [cerebro]  GEMINI.md
 ```
 
-- **El icono de cada subcarpeta**: **Global** lleva un globo azul, y cada asistente su logo en un solo tono, del color de la barra: Claude, Copilot, Gemini y Cursor. Codex lleva el símbolo de una terminal. Los mismos iconos aparecen en la lista de la primera vez y en **Configuración › Asistentes**. Una subcarpeta a la que le pusiste un icono tuyo lo conserva.
+- **El icono de cada subcarpeta**: **Global** lleva un globo azul, y cada asistente un símbolo propio en gris, que no imita su logo: un globo de conversación para Claude, una terminal para Codex, unas llaves de código para Copilot, una brújula para Gemini y un puntero para Cursor. Los mismos iconos aparecen en la lista de la primera vez y en **Configuración › Asistentes**. Una subcarpeta a la que le pusiste un icono tuyo lo conserva.
 - **El icono de cada documento**: un libro para una **regla**, una pieza de rompecabezas para una **skill** y un cerebro para la **memoria del agente**.
 - **El nombre**: el primer título del documento, como «Cómo trabajo» en un `CLAUDE.md` que empieza con `# Cómo trabajo`. Una skill toma el `name` de su `SKILL.md`. Un script, o un archivo sin títulos, se llama como el archivo: `MEMORY.md`, `extraer.py`.
 - **La ruta**: pasa el puntero sobre una fila y aparece, con el asistente delante: `claude · CLAUDE.md`, `claude · rules/estilo.md`.

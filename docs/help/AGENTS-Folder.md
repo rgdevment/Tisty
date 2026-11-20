@@ -240,7 +240,7 @@ Agents
     └── [brain]    GEMINI.md
 ```
 
-- **Each subfolder's icon**: **Global** has a blue globe, and each assistant its logo in a single tone, the sidebar's colour: Claude, Copilot, Gemini and Cursor. Codex has a terminal symbol. The same icons show in the first-time list and in **Settings › Assistants**. A subfolder you gave an icon of your own keeps it.
+- **Each subfolder's icon**: **Global** has a blue globe, and each assistant a symbol of its own in grey, which does not copy its logo: a chat bubble for Claude, a terminal for Codex, code braces for Copilot, a compass for Gemini and a pointer for Cursor. The same icons show in the first-time list and in **Settings › Assistants**. A subfolder you gave an icon of your own keeps it.
 - **Each document's icon**: a book for a **rule**, a puzzle piece for a **skill** and a brain for **agent memory**.
 - **The name**: the document's first heading, such as «How I work» in a `CLAUDE.md` that starts with `# How I work`. A skill takes the `name` in its `SKILL.md`. A script, or a file with no headings, is named after the file: `MEMORY.md`, `extract.py`.
 - **The path**: hover over a row and it shows, with the assistant in front: `claude · CLAUDE.md`, `claude · rules/style.md`.
