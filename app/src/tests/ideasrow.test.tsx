@@ -64,6 +64,20 @@ describe("Ideas in the library before any idea is written", () => {
     expect(row.getAttribute("aria-keyshortcuts")).toBe("Shift+F10");
   });
 
+  it("hands the arrows on to the Diary below it and back", async () => {
+    render(
+      <Tree papers={empty} onOpen={vi.fn()} onFile={vi.fn()} onDiary={vi.fn()} onIdeas={vi.fn()} />,
+    );
+    const user = userEvent.setup();
+    const [row] = ideas();
+    row.focus();
+
+    await user.keyboard("{ArrowDown}");
+    expect(document.activeElement).toBe(screen.getByRole("button", { name: t("diary") }));
+    await user.keyboard("{ArrowUp}");
+    expect(document.activeElement).toBe(row);
+  });
+
   it("gives way to the sheet once there is one", () => {
     const opened = vi.fn();
     render(
