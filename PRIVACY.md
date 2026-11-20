@@ -614,25 +614,29 @@ Copilot, Gemini CLI and Cursor. It has two ways of working, and you choose:
 It makes no network request either way; it reads and writes files on this
 computer, and only these:
 
-- **Before you say yes**, it looks only at which of your assistants' folders
-  exist, to show you the list. It opens no file in them.
-- **With your yes**, it opens only the files you ticked in that list and brings
-  them in as documents. The yes belongs to this computer: it is kept on it,
-  stamped with its identifier, and a copy that reaches another computer counts
-  for nothing there, so each of your computers asks for its own.
-- **While it syncs**, and only then, it opens the files that belong to a
-  document in Agents: to write them, and to see whether they changed outside
-  since it last wrote them. Only words you approved reach a file: a document
-  whose text waits for your approval is not written. A document that arrives
-  from another computer waits for **Apply here** on this one, and each
-  computer chooses what it applies. A document in Global is written to every
-  assistant Tisty finds on this computer, even one whose files you did not
-  tick. A change made outside is never written over; it stays marked until
-  you bring it in or write Tisty's version over it. In Gemini CLI's
-  `GEMINI.md`, which Gemini writes itself, Tisty only ever adds one line,
-  `@tisty-rules.md`, and takes nothing out.
-- **Brought but not synced**, it writes none of those files and does not
-  watch them; **Look again** reads only the folders, to offer what is new.
+- **Grey in the sidebar**, before anything is brought, it only checks whether
+  each assistant's folder exists, such as `~/.claude` or `~/.codex`, to tell you
+  which ones it found. It looks at nothing inside.
+- **When you click Agents**, and whenever **Look again** or **Bring another
+  file** shows what there is to bring, it looks at which files sit in your
+  assistants' folders — their names, their sizes, and whether they are links —
+  to show you the list. It opens none of them, and does not even list the ones
+  whose names start with a dot.
+- **With your yes**, **Bring** or **Bring and sync**, it opens only the files
+  you ticked in that list and brings them in as documents. The yes belongs to
+  this computer: it is kept on it, stamped with its identifier, and a copy that
+  reaches another computer counts for nothing there, so each of your computers
+  asks for its own.
+- **After that**, it opens only the files that belong to a document in Agents:
+  to see whether they changed outside and, only while it syncs, to write them.
+  Brought but not synced, it writes none of them. Only words you approved reach
+  a file: a document whose text waits for your approval is not written, and one
+  that arrives from another computer waits for **Apply here** on this one. A
+  document in Global is written to every assistant Tisty finds on this computer,
+  even one whose files you did not tick. A change made outside is never written
+  over; it stays marked until you bring it in or write Tisty's version over it.
+  In Gemini CLI's `GEMINI.md`, which Gemini writes itself, Tisty only ever adds
+  one line, `@tisty-rules.md`, and takes nothing out.
 - **The memory an assistant writes for itself** is brought in and shown, and
   never written back.
 - **An assistant connected through the door below** reads these documents like
