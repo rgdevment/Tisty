@@ -100,15 +100,19 @@ export const stopSyncing = (h: Hands) =>
     })
     .catch(h.fail);
 
-const syncChoices = (h: Hands, stage: AgentsStage | null): Choice[] => {
-  if (stage === "brought")
-    return [{ key: "agentsSync", icon: "↻", label: t("agentsSync"), onPick: syncAgents }];
-  if (stage === "syncs")
-    return [
-      { key: "agentsUnsync", icon: "⏸", label: t("agentsUnsync"), onPick: () => stopSyncing(h) },
-    ];
-  return [];
-};
+const syncChoice = (): Choice => ({
+  key: "agentsSync",
+  icon: "↻",
+  label: t("agentsSync"),
+  onPick: syncAgents,
+});
+
+const unsyncChoice = (h: Hands): Choice => ({
+  key: "agentsUnsync",
+  icon: "⏸",
+  label: t("agentsUnsync"),
+  onPick: () => stopSyncing(h),
+});
 
 /// Whether Agents syncs lives with this computer, so its own menu asks before it opens.
 export const stageFor = (
@@ -185,7 +189,7 @@ export const folderChoices = (
       off: folder.away,
       onPick: () => h.bringIn(folder.id),
     },
-    ...(isRoot && stage === "brought" ? syncChoices(h, stage) : []),
+    ...(isRoot && stage === "brought" ? [syncChoice()] : []),
     ...(isRoot && stage === "unbrought" ? [] : agentsChoices(h, folder.id, folder.away)),
     {
       key: "unpack",
@@ -200,7 +204,7 @@ export const folderChoices = (
       label: t("packAll"),
       onPick: () => h.parcels.packUp([], "tisty"),
     },
-    ...(isRoot && stage === "syncs" ? syncChoices(h, stage) : []),
+    ...(isRoot && stage === "syncs" ? [unsyncChoice(h)] : []),
     // Agents hides only while it does not sync, so a hidden folder never writes a file nobody sees.
     ...(isRoot && stage === "syncs"
       ? []
