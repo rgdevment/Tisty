@@ -282,3 +282,44 @@ fn anything_unexpected_exits_quietly() {
         assert!(said.stdout.is_empty(), "{args:?}: {said:?}");
     }
 }
+
+#[test]
+fn a_start_heard_twice_in_one_session_speaks_once_and_another_session_still_hears_it() {
+    let home = Home::new();
+    home.person().lets_the_agent_in();
+    let heard = json!({ "session_id": "s-twice", "source": "startup" });
+
+    let first = context(&home.hook("claude-code", "start", &heard));
+    // A start is kept for its 30 s window, and two runs may straddle a window's edge, but three never straddle two.
+    let again: Vec<Output> = (0..2)
+        .map(|_| home.hook("claude-code", "start", &heard))
+        .collect();
+    let other = home.hook(
+        "claude-code",
+        "start",
+        &json!({ "session_id": "s-other", "source": "startup" }),
+    );
+
+    assert!(first.starts_with("Tisty holds"), "{first}");
+    assert!(again.iter().all(|one| one.status.success()));
+    assert!(again.iter().any(|one| one.stdout.is_empty()), "{again:?}");
+    assert!(context(&other).starts_with("Tisty holds"));
+}
+
+#[test]
+fn the_switch_turned_off_in_the_settings_silences_a_start_through_the_binary() {
+    let home = Home::new();
+    home.person().lets_the_agent_in();
+    let config = home.home.path().join("config").join("config.toml");
+    let kept = std::fs::read_to_string(&config).unwrap();
+    std::fs::write(&config, format!("turn_hooks = false\n{kept}")).unwrap();
+
+    let said = home.hook(
+        "claude-code",
+        "start",
+        &json!({ "session_id": "s-off", "source": "startup" }),
+    );
+
+    assert!(said.status.success());
+    assert!(said.stdout.is_empty(), "{said:?}");
+}

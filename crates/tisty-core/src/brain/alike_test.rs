@@ -955,3 +955,110 @@ fn a_pair_that_changes_track_is_written_again() {
     ));
     assert_eq!(rows(&brain)[0].3, "dictionary");
 }
+
+const PAGAR: &str = "# Pagar la cuenta del agua\n\nPagar la cuenta del agua de la casa.\n";
+const PAY: &str = "# Pay the water bill\n\nPay the water bill of the house.\n";
+const TOLD: &str = "≈";
+
+// A Spanish document and its English twin, alike through the dictionary, beside four tasks that are not.
+fn twins_guessed_alike(world: &World) -> (String, String) {
+    let mut store = world.store();
+    let (_, spanish) = doc(world, &mut store, PAGAR, None, None);
+    let (_, english) = doc(world, &mut store, PAY, None, None);
+    fillers(&mut store);
+    drop(store);
+    super::super::kept_up(&world.paths, super::super::Round::Starting);
+    let at = world.paths.cache().join("dictionary.tsv");
+    std::fs::write(&at, "agua\twater\ncasa\thouse\ncuenta\tbill\npagar\tpay\n").unwrap();
+    let mut weighing = Weighing::default();
+    let ran = (0..=PATIENCE)
+        .map(|_| weighing.kept(&world.paths, Some(&at)))
+        .find(|passed| !matches!(passed, Some(Passed::Settling)));
+    assert!(
+        matches!(ran, Some(Some(Passed::Ran { translated: 1, .. }))),
+        "{ran:?}"
+    );
+    let guessed = world.brain().alike(&spanish, everyone).unwrap();
+    assert_eq!(guessed.len(), 1, "{guessed:?}");
+    assert_eq!(guessed[0].method, "dictionary");
+    (spanish, english)
+}
+
+fn every_byte_under(root: &std::path::Path) -> Vec<(std::path::PathBuf, Vec<u8>)> {
+    let mut found = Vec::new();
+    let mut waiting = vec![root.to_path_buf()];
+    while let Some(at) = waiting.pop() {
+        for one in std::fs::read_dir(&at).unwrap().map(Result::unwrap) {
+            let path = one.path();
+            if path.is_dir() {
+                waiting.push(path);
+            } else {
+                found.push((path.clone(), std::fs::read(&path).unwrap()));
+            }
+        }
+    }
+    found
+}
+
+fn holds(bytes: &[u8], said: &str) -> bool {
+    bytes
+        .windows(said.len())
+        .any(|window| window == said.as_bytes())
+}
+
+#[test]
+fn an_exported_document_carries_nothing_tisty_guessed_about_it() {
+    let world = World::new();
+    let (spanish, _) = twins_guessed_alike(&world);
+    let into = tempfile::tempdir().unwrap();
+
+    crate::docs::exported(world.paths.data(), &spanish, into.path()).unwrap();
+
+    let left = every_byte_under(into.path());
+    assert!(
+        left.iter()
+            .any(|(_, bytes)| holds(bytes, "Pagar la cuenta")),
+        "the export holds the document itself"
+    );
+    for (path, bytes) in &left {
+        assert!(!holds(bytes, TOLD), "{} tells a guess", path.display());
+        assert!(
+            !holds(bytes, "water bill"),
+            "{} names the twin",
+            path.display()
+        );
+        assert!(
+            !holds(bytes, "SQLite format"),
+            "{} is a base",
+            path.display()
+        );
+    }
+}
+
+#[test]
+fn a_backup_takes_no_base_and_no_guess_though_its_scratch_is_the_cache() {
+    let world = World::new();
+    twins_guessed_alike(&world);
+    let into = tempfile::tempdir().unwrap();
+    let file = into.path().join("copia.zip");
+
+    crate::backup::write(world.paths.data(), &file, world.paths.cache(), None).unwrap();
+
+    let mut zip = zip::ZipArchive::new(std::fs::File::open(&file).unwrap()).unwrap();
+    let mut names = Vec::new();
+    for at in 0..zip.len() {
+        let mut one = zip.by_index(at).unwrap();
+        let name = one.name().unwrap().to_string();
+        let mut bytes = Vec::new();
+        std::io::Read::read_to_end(&mut one, &mut bytes).unwrap();
+        assert!(!name.contains("brain") && !name.ends_with(".db"), "{name}");
+        assert!(!holds(&bytes, TOLD), "{name} tells a guess");
+        assert!(!holds(&bytes, "SQLite format"), "{name} is a base");
+        names.push(name);
+    }
+    assert!(
+        names.iter().any(|name| name.starts_with("docs")),
+        "{names:?}"
+    );
+    assert!(world.paths.cache().join(super::super::FILE).is_file());
+}
