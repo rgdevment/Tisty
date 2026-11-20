@@ -56,7 +56,7 @@ La barra te dice cómo está Agentes con su color, y al lado no aparece ninguna 
 
 ![La carpeta Agentes abierta en el panel de contenido en español, traída pero sin sincronizar: en la barra, el robot gris y el nombre Agentes en su color normal, sin ninguna palabra a la derecha; en el panel, el título Agentes con el robot gris y, justo debajo, la línea discreta No se sincroniza con tus agentes · Sincronizar, con Sincronizar como enlace; más abajo, las subcarpetas Global, Claude y Codex con sus documentos](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/agents/es-13-traida-sin-sincronizar.png)
 
-- **El coral es solo de Agentes**, y solo mientras sincroniza: el morado es de los diagramas, y ninguna carpeta tuya puede elegir el coral. En la red de Brainsty, Agentes y sus documentos se dibujan siempre en coral, sincronice o no.
+- **El coral es solo de Agentes**, y solo mientras sincroniza: el morado es de los diagramas, y ninguna carpeta tuya puede elegir el coral. En la red de Brainsty, Agentes y sus documentos se dibujan siempre en un coral tenue, sincronice o no, más chicos que los tuyos y con sus líneas más tenues, para no tapar lo que escribes tú; la leyenda los nombra **AGENTS**. Mira [[La red de Brainsty|Red-de-Brainsty#qué-es-cada-cosa]].
 - **La línea del estado 2** solo aparece en Agentes, nunca en sus subcarpetas. Su enlace **Sincronizar** hace lo mismo que el del botón derecho.
 - **Con la barra plegada**, el robot de Agentes tiene el mismo color. Abierta o plegada, un lector de pantalla dice el estado en palabras: «Agentes — todavía sin traer» o «Agentes — No se sincroniza con tus agentes».
 - **El botón derecho** también se abre con la tecla de menú o con `Shift` + `F10`, con Agentes seleccionada.

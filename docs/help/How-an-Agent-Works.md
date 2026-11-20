@@ -97,7 +97,7 @@ A document's card says what it holds and where, without reading it: its sections
   "outline": [ { "title": "Decisions", "line": 3, "to": 8 }, { "title": "Out of scope", "line": 10, "to": 14 } ] }
 ```
 
-A document's or a task's card also brings what Tisty guesses is alike, apart, under `guessed`: nobody linked it, so the agent reads both before joining or merging anything.
+A document's or a task's card also brings what Tisty thinks is alike, apart, under `guessed`: nobody linked it, so the agent reads both before joining or merging anything.
 
 ```json
 > brain {"task": "…Ask for a quote on the roof…"}
