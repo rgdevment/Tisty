@@ -76,6 +76,10 @@ impl Gate {
         self.held.contains(file)
     }
 
+    pub fn carded(&self, file: &str) -> bool {
+        self.carded.contains(file)
+    }
+
     /// Agent documents whose words came from another computer and this one has not yet taken or left.
     pub fn unclaimed(&self) -> impl Iterator<Item = &str> {
         self.unclaimed.iter().map(String::as_str)

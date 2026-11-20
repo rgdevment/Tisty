@@ -2092,3 +2092,44 @@ fn two_agents_join_without_touching_a_file_offering_one_loose_or_losing_an_appro
     names.dedup();
     assert_eq!(names, room.folders(), "no folder is there twice");
 }
+
+#[test]
+fn a_proposal_on_a_version_restored_without_its_card_stops_counting_and_is_let_go() {
+    let mut room = room();
+    room.bring(&[".claude/CLAUDE.md"]);
+    let (file, body) = bodies(&room.session)[0].clone();
+    proposed(
+        &mut room,
+        &file,
+        &body.replace("Tests first.", "Tests always."),
+    );
+    assert_eq!(room.look().proposed, 1);
+
+    crate::answers::earlier::put_back(&mut room.session, &file, "# Claude\nTests first.\n")
+        .unwrap();
+    assert_eq!(
+        room.look().proposed,
+        0,
+        "a proposal with no card to show it on is not counted"
+    );
+
+    round_here(&mut room.session, &room.homes, HERE).unwrap();
+    assert!(room.session.state.proposals.is_empty());
+}
+
+#[test]
+fn a_proposal_whose_document_cannot_be_read_is_kept_for_later() {
+    let mut room = room();
+    room.bring(&[".claude/CLAUDE.md"]);
+    let (file, body) = bodies(&room.session)[0].clone();
+    proposed(
+        &mut room,
+        &file,
+        &body.replace("Tests first.", "Tests always."),
+    );
+    let at = tisty_core::docs::resolve(&room.session.paths.docs(), &file).unwrap();
+    std::fs::remove_file(at).unwrap();
+
+    round_here(&mut room.session, &room.homes, HERE).unwrap();
+    assert_eq!(room.session.state.proposals.len(), 1);
+}

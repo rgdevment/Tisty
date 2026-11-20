@@ -193,25 +193,55 @@ pub struct Gathered {
 pub fn gathered(session: &Session, here: &str) -> Gathered {
     let root = root_of(&session.state);
     let ledger = Ledger::open(session.paths.data(), here);
+    let gate = gated(session, &ledger);
     Gathered {
         root,
         docs: root
             .map(|root| docs_in(&session.state, &tree(&session.state, root)).len())
             .unwrap_or(0),
-        proposed: proposed_in(&session.state),
+        proposed: proposed_in(&session.state, &gate),
         bodies: bodies(session),
-        gate: gated(session, &ledger),
+        gate,
         ledger,
     }
 }
 
-fn proposed_in(state: &tisty_core::State) -> usize {
+// Only a document with its card shows a proposal, so one without it has nothing to wait on.
+fn proposed_in(state: &tisty_core::State, gate: &Gate) -> usize {
     state
         .proposals
         .keys()
         .filter_map(|id| state.docs.get(id))
-        .filter(|kept| agents::holds(state, kept))
+        .filter(|kept| agents::holds(state, kept) && gate.carded(&kept.file))
         .count()
+}
+
+// A body read without its card cannot show the proposal again; one not read yet keeps it for later.
+fn uncarded_let_go(session: &mut Session, ledger: &Ledger) -> Answer<()> {
+    let gate = gated(session, ledger);
+    let ops: Vec<Op> = session
+        .state
+        .proposals
+        .iter()
+        .filter_map(|(id, waiting)| {
+            let file = &session.state.docs.get(id)?.file;
+            let read = matches!(gate.seen(file), Some(Seen::Plain | Seen::NotAgreed));
+            (read && !gate.carded(file)).then(|| Op::DocProposal {
+                id: *id,
+                d: tisty_core::event::Proposal {
+                    body: None,
+                    base: None,
+                    settles: Some(waiting.print.clone()),
+                },
+            })
+        })
+        .collect();
+    if ops.is_empty() {
+        return Ok(());
+    }
+    session
+        .commit_all(ops)
+        .map_err(|e| Refusal::about("cannotWrite", e.to_string()))
 }
 
 // A document no assistant here would read has nothing to wait for on this computer.
@@ -1125,6 +1155,7 @@ pub(crate) fn round_here(session: &mut Session, homes: &Homes, here: &str) -> An
     joined_here(session)?;
     untagged(session);
     let mut ledger = Ledger::open(session.paths.data(), here);
+    uncarded_let_go(session, &ledger)?;
     Ok(round_now(session, homes, &mut ledger))
 }
 
