@@ -81,3 +81,15 @@ fn the_shipped_table_reads_and_knows_the_everyday_words() {
         "a word that is the same is left out"
     );
 }
+
+// `examples/dictionary.rs` rebuilds this file from pinned sources; this pins what it must give.
+#[test]
+fn the_shipped_table_is_byte_for_byte_the_one_the_example_rebuilds() {
+    let bytes = std::fs::read(shipped()).unwrap();
+
+    assert_eq!(
+        crate::attach::printed(&bytes),
+        "11f70ce7a1362fcd3dcf802e4b6c449170666687a5c308fa50a927ff7211d9e4"
+    );
+    assert!(!bytes.contains(&b'\r'), "the table keeps LF line ends");
+}
