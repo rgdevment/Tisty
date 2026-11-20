@@ -12,7 +12,7 @@ Everything lives in one folder on your disk:
 
 - **Tasks and events** — plain-text JSONL, an append-only log. Readable with `cat`, searchable with `grep`, parseable with `jq`.
 - **Documents** — plain Markdown files.
-- **AGENTS, if you use it** — your assistants' rules, skills and memory, as documents. Outside this folder, Tisty also writes the files each assistant reads ([what it reads and when](#your-assistants-in-agents)).
+- **Agents, if you use it** — your assistants' rules, skills and memory, as documents. If you sync it, Tisty also writes, outside this folder, the files each assistant reads ([what it reads and when](#your-assistants-in-agents)).
 - **Earlier versions of your documents** — Markdown like the documents, in the `history` folder. Each is kept 30 days from when it was replaced, or what you choose in **Settings › Your data**; the latest of each document, and what **Put back what it said before** would bring back, never run out. They stay on this computer: never synced or put in a parcel, but carried by your backups. [How they work](Documents#earlier-versions).
 - **Your diary** — Markdown like any document, a book a year. No agent sees it until you open it from the Diary itself, on Tisty 1.48 or later; it is never shared by link, and it travels with your sync and your backups like the rest, and inside a `.tistyx` parcel when you export everything.
 - **Attachments** — the files themselves, unmodified.
@@ -48,7 +48,7 @@ Nothing is obfuscated, and nothing is in a format only Tisty can read.
 | **A `.tistyx` parcel you hand to someone** | Them, and whoever they hand it to |
 | **A `.tistyx` locked with six digits** | Whoever has both the file and the number |
 | **An assistant you let in** | Whatever service that assistant talks to |
-| **What you keep in AGENTS** | The same as your other documents, plus each assistant that reads those files and whatever service it talks to, even if you never let it in |
+| **What you keep in Agents** | The same as your other documents and, if you sync it, also each assistant that reads those files and whatever service it talks to, even if you never let it in |
 | **A task you save to your calendar** | Google or Microsoft, under their terms; with Apple Calendar, the Calendar app on your Mac and whatever it syncs with |
 
 ## The network requests Tisty makes
@@ -83,34 +83,35 @@ A [widget](Widgets) runs nothing and names nothing outside itself. An attached `
 
 **If you lose a computer.** Remove it in Settings › Security, under **Your identity**. Its key stops counting, and Folio tells whoever reads what it signed after that.
 
-## Your assistants in AGENTS
+## Your assistants in Agents
 
-In the **AGENTS** folder you keep your assistants' rules, skills and memory as documents (Claude Code, Codex, GitHub Copilot, Gemini CLI and Cursor), and Tisty writes underneath the files each one reads. How to use it, file by file and assistant by assistant, is in [[AGENTS|AGENTS-Folder]].
+In the **Agents** folder you keep your assistants' rules, skills and memory as documents (Claude Code, Codex, GitHub Copilot, Gemini CLI and Cursor). With **Bring** you only copy them into Tisty; with **Sync**, Tisty also writes underneath the files each one reads. How to use it, file by file and assistant by assistant, is in [[Agents|AGENTS-Folder]].
 
 **What it reads, and when**
 
-- **AGENTS' dim row and its notice**, in the sidebar, only check whether each assistant's folder exists, such as `~/.claude` or `~/.codex`, to tell you which ones it found. They look at nothing inside.
-- **When you press Turn on, before you say yes**, Tisty only looks at which files are in your assistants' folders, with their names and sizes, to show you the list. It opens none of them, and those starting with a dot it does not even list.
-- **With your yes**, it opens only the files you ticked in that list and brings them in as documents. The yes is this computer's: each of your computers asks for its own.
-- **After that**, it opens only the files that belong to a document in AGENTS, to write them and to see whether they changed outside. A **Global** document is written to every assistant Tisty finds on this computer, even one whose files you did not tick. A document that comes from another of your computers is not written until you press **Apply here** on this one, and only words you wrote or approved reach a file. A change made outside is never written over: it stays marked until you decide. In `GEMINI.md` it only adds one line, `@tisty-rules.md`; the rest of that file is Gemini's.
+- **Agents in grey in the sidebar, and its card in Settings › Assistants** before anything is brought, only check whether each assistant's folder exists, such as `~/.claude` or `~/.codex`, to tell you which ones it found. They look at nothing inside.
+- **When you click Agents and the first-time notice opens**, Tisty only looks at which files are in your assistants' folders, with their names and sizes, to show you the list. It opens none of them, and those starting with a dot it does not even list. Closing the notice with the X or `Esc` reads nothing more.
+- **With Bring or Bring and sync**, it opens only the files you ticked in that list and brings them in as documents. That permission is this computer's: each of your computers asks for its own.
+- **With Bring, Tisty does not write to your agents' files**: they stay as they are until you choose Sync. To show you what there is to bring, as in **Bring another file**, it looks again at which files are there, with their names and sizes.
+- **After that**, it opens only the files that belong to a document in Agents: to see whether they changed outside and, if it syncs, to write them. A **Global** document is written to every assistant Tisty finds on this computer, even one whose files you did not tick. A document that comes from another of your computers is not written until you press **Apply here** on this one, and only words you wrote or approved reach a file. A change made outside is never written over: it stays marked until you decide. In `GEMINI.md` it only adds one line, `@tisty-rules.md`; the rest of that file is Gemini's.
 - **The memory an assistant writes itself** is brought in and shown, but Tisty never writes over it.
 
-**What AGENTS never brings in**
+**What Agents never brings in**
 
-- `settings.json` and your assistants' other settings files (`config.toml`, `hooks.json`, `mcp.json`…), except one a skill carries in its own folder, and no credentials file (`.credentials.json`, `auth.json`, `.env`, `.pem`, `.key` or `id_rsa` keys…). It skips them by name, without opening them. And an AGENTS document is only written where each assistant keeps its rules, skills and memory, never to its settings or credentials files.
+- `settings.json` and your assistants' other settings files (`config.toml`, `hooks.json`, `mcp.json`…), except one a skill carries in its own folder, and no credentials file (`.credentials.json`, `auth.json`, `.env`, `.pem`, `.key` or `id_rsa` keys…). It skips them by name, without opening them. And a document in Agents is only written where each assistant keeps its rules, skills and memory, never to its settings or credentials files.
 - A file that looks like it holds a token, a password or a private key is checked on this computer and left out, with a notice. The check looks for known shapes and may not recognise them all: keep secrets out of your assistants' rules.
 - Nor does it follow symbolic links or bring in files over 512 kB.
 
 **What travels and what stays**
 
-- **Your AGENTS documents travel like the rest**: with your sync, your cloud (encrypted, if you encrypted it), your backups and a `.tistyx` parcel that carries everything. An assistant you let in through MCP reads them like any document, but does not change them, move them or make one: it can only propose a change, which waits apart until you approve it on the card ([how](AGENTS-Folder#a-proposal-from-your-agent)). The proposal travels with your documents, and nothing of it reaches your assistants before your approval.
-- **What you write in AGENTS reaches your assistants**: each one reads its file and sends it to the service it works with, even if you never connect it to Tisty.
-- **Stays on this computer**, in `data/agents/` inside Tisty's folder: your yes, which assistants you paused, which documents you applied or left out on this computer, a fingerprint of each file it wrote, and the backups. None of that travels with sync, backups or parcels.
+- **Your documents in Agents travel like the rest**: with your sync, your cloud (encrypted, if you encrypted it), your backups and a `.tistyx` parcel that carries everything. An assistant you let in through MCP reads them like any document, but does not change them, move them or make one: it can only propose a change, which waits apart until you approve it on the card ([how](AGENTS-Folder#a-proposal-from-your-agent)). The proposal travels with your documents, and nothing of it reaches your assistants before your approval.
+- **While syncing, what you write in Agents reaches your assistants**: each one reads its file and sends it to the service it works with, even if you never connect it to Tisty. Whether it syncs belongs to each computer, and does not travel.
+- **Stays on this computer**, in `data/agents/` inside Tisty's folder: this computer's permission, whether it syncs, which assistants you paused, which documents you applied or left out on this computer, a fingerprint of each file it wrote, and the backups. None of that travels with sync, backups or parcels.
 - **Before writing over** one of your assistants' files, Tisty keeps the version that was there. It holds the last 20 of each file and leaves no copies in your assistants' folders.
 
-**Turning it off without losing anything**
+**Stopping sync without losing anything**
 
-After your yes, sync stays on, and you can pause it for one assistant or turn the whole folder off, with **Turn AGENTS off** on its right-click. Off or hidden from the sidebar, AGENTS writes none of your assistants' files. Paused, Tisty neither opens nor writes those files on its own: they stay as the last write left them, and your documents stay in Tisty. A pause belongs to this computer. If you take a rule out of AGENTS, Tisty asks whether to take its file away too: it deletes it only if you say yes, and keeps a backup on this computer first. If you take every document out, it first asks the same about each file, and then the folder leaves Tisty and AGENTS goes back to the sidebar, off; what you chose to leave stays as it was. Tisty never empties an assistant's file, and never deletes one without asking you.
+With **Bring and sync** or **Sync**, sync stays on for this computer, and you can pause it for one assistant or stop syncing the whole folder, with **Stop syncing** on its right-click or in Settings › Assistants: no agent file is touched and no document is deleted. Not synced or hidden from the sidebar, Agents writes none of your assistants' files. Paused, Tisty neither opens nor writes those files on its own: they stay as the last write left them, and your documents stay in Tisty. A pause belongs to this computer. If you take a rule out of Agents while it syncs, Tisty asks whether to take its file away too: it deletes it only if you say yes, and keeps a backup on this computer first. If you take every document out, it first asks the same about each file, and then the folder leaves Tisty and Agents goes back to the sidebar in grey, nothing brought; what you chose to leave stays as it was. Tisty never empties an assistant's file, and never deletes one without asking you.
 
 ## No AI
 

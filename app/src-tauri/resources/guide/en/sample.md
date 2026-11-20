@@ -27,13 +27,13 @@ source: the Tisty guide
 
 ### An agent document
 
-`agent:` turns the sheet into an agent document: Tisty writes its body, as it is, to the file an AI assistant reads. The value says who it is for, what it is and where it goes: `level/kind/name`. It only counts inside the **AGENTS** folder; on this sheet, as on any other, it is one more property and nothing is written. Inside AGENTS:
+`agent:` turns the sheet into an agent document: Tisty writes its body, as it is, to the file an AI assistant reads. The value says who it is for, what it is and where it goes: `level/kind/name`. It only counts inside the **Agents** folder, and is only written while it syncs; on this sheet, as on any other, it is one more property and nothing is written. Inside Agents:
 
 - **In the sidebar**, the document is called by its first heading, or by its skill's `name`, with an icon: a book for a rule, a piece for a skill and a brain for memory. A skill's files go together in one single row.
 - **On top of the page**, a card with the kind, the level and the standing, the name in large type and the path under it, one row per file it is written to and the buttons **Edit**, **Backups** and **Pause sync**. The file's own properties, such as `name` and `description`, show as fields.
 - **Beside it**, the **Agent file** panel takes the place of the paper size and the outline: who reads it, where it is written, its format and its backups.
 
-Everything, with examples, in [AGENTS: your agents' rules](tisty:agents).
+Everything, with examples, in [Agents: your agents' rules](tisty:agents).
 
 ```yaml title="A Claude rule: in the sidebar it is called How I work"
 ---

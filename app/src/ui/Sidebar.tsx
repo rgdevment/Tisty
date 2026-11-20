@@ -40,6 +40,7 @@ interface Props {
   onDiary?: () => void;
   onBrainsty?: () => void;
   onDiaryMenu?: (at: { x: number; y: number }) => void;
+  onAgentsMenu?: (at: { x: number; y: number }) => void;
   onFolderMenu: (folder: Folded, at: { x: number; y: number }) => void;
   onDocMenu: (doc: Filed, at: { x: number; y: number }) => void;
   onDocsMenu: (at: { x: number; y: number }) => void;
@@ -70,6 +71,7 @@ export default function Sidebar({
   onDiary,
   onBrainsty,
   onDiaryMenu,
+  onAgentsMenu,
   onFolderMenu,
   onDocMenu,
   onDocsMenu,
@@ -157,6 +159,7 @@ export default function Sidebar({
             onPage={onPage}
             onDiary={onDiary}
             onDiaryMenu={onDiaryMenu}
+            onAgentsMenu={onAgentsMenu}
             onFolderMenu={onFolderMenu}
             onDocMenu={onDocMenu}
             onDocsMenu={onDocsMenu}

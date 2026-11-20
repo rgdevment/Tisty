@@ -1,12 +1,14 @@
 import { open as pick } from "@tauri-apps/plugin-dialog";
 import {
   AGENTS_CHANGED,
-  agentsLit,
+  type AgentsStage,
   agentsRoot,
+  agentsStage,
   agentsState,
   agentsTurn,
   bringMoreAgents,
   inAgents,
+  syncAgents,
 } from "./agentsSync";
 import { asLink, asPlain } from "./copying";
 import {
@@ -88,8 +90,8 @@ const agentsChoices = (h: Hands, folder: string | undefined, off = false): Choic
     ? [{ key: "agentsMore", icon: "↧", label: t("agentsMoreTitle"), off, onPick: bringMoreAgents }]
     : [];
 
-/// The same switch as «Sync the AGENTS folder»: the documents stay, and no agent file is touched.
-export const turnAgentsOff = (h: Hands) =>
+// Only the switch moves: no agent file is touched and no document goes.
+export const stopSyncing = (h: Hands) =>
   agentsTurn(null, false)
     .then(() => {
       h.changed();
@@ -97,27 +99,49 @@ export const turnAgentsOff = (h: Hands) =>
     })
     .catch(h.fail);
 
-const switchChoices = (h: Hands, lit: boolean): Choice[] =>
-  lit
-    ? [{ key: "agentsOff", icon: "⏻", label: t("agentsSwitchOff"), onPick: () => turnAgentsOff(h) }]
-    : [];
+const syncChoice = (): Choice => ({
+  key: "agentsSync",
+  icon: "↻",
+  label: t("agentsSync"),
+  onPick: syncAgents,
+});
 
-/// Whether AGENTS is on lives with this computer, so its own menu asks before it opens.
-export const litFor = (
+const unsyncChoice = (h: Hands): Choice => ({
+  key: "agentsUnsync",
+  icon: "⏸",
+  label: t("agentsUnsync"),
+  onPick: () => stopSyncing(h),
+});
+
+/// Whether Agents syncs lives with this computer, so its own menu asks before it opens.
+export const stageFor = (
   folder: Folded,
-  folders: readonly Folded[],
-  then: (lit: boolean) => void,
+  papers: Papers,
+  then: (stage: AgentsStage | null) => void,
 ) => {
-  if (agentsRoot(folders)?.id !== folder.id) return then(false);
-  // Unknown counts as on: turning off twice is harmless, hiding an AGENTS that writes is not.
+  const root = agentsRoot(papers.folders)?.id ?? null;
+  if (root !== folder.id) return then(null);
+  // Unknown counts as syncing: stopping twice is harmless, hiding a folder that writes is not.
   agentsState()
-    .then((state) => then(agentsLit(state)))
-    .catch(() => then(true));
+    .then((state) => then(agentsStage(root, state)))
+    .catch(() => then("syncs"));
 };
 
-/// `lit` only matters on the AGENTS folder itself, the one row that can be switched off.
-export const folderChoices = (folder: Folded, h: Hands, lit = false): Choice[] => {
-  const isRoot = agentsRoot(h.papers.folders)?.id === folder.id;
+// Hiding needs the folder unsynced first, so a hidden Agents never writes a file nobody sees.
+const agentsRootChoices = (folder: Folded, h: Hands, stage: AgentsStage | null): Choice[] => {
+  const hiding = { ...hideChoice(agentsKeys(folder.id)), apart: false };
+  if (stage === "unbrought") return [hiding];
+  if (stage === "brought") return [syncChoice(), hiding];
+  return [unsyncChoice(h)];
+};
+
+/// On Agents itself only syncing and hiding: an unknown stage counts as syncing.
+export const folderChoices = (
+  folder: Folded,
+  h: Hands,
+  stage: AgentsStage | null = null,
+): Choice[] => {
+  if (agentsRoot(h.papers.folders)?.id === folder.id) return agentsRootChoices(folder, h, stage);
   return [
     {
       key: "newDoc",
@@ -184,9 +208,7 @@ export const folderChoices = (folder: Folded, h: Hands, lit = false): Choice[] =
       label: t("packAll"),
       onPick: () => h.parcels.packUp([], "tisty"),
     },
-    ...(isRoot ? switchChoices(h, lit) : []),
-    // AGENTS hides only once off, so a hidden AGENTS never writes a file nobody sees.
-    ...(isRoot && lit ? [] : [hideChoice(isRoot ? agentsKeys(folder.id) : folder.id, folder.away)]),
+    hideChoice(folder.id, folder.away),
     {
       // Only the folder that was shelved answers for itself; one below it comes back with it.
       key: "away",

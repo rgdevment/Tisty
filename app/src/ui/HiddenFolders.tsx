@@ -28,7 +28,7 @@ export const hiddenRows = (
   };
   const rows = hidden.map(shelf).filter((one): one is Row => one !== null);
   return agentsHidden(hidden, root)
-    ? [{ keys: agentsKeys(root), name: "AGENTS", agents: true }, ...rows]
+    ? [{ keys: agentsKeys(root), name: t("agentsName"), agents: true }, ...rows]
     : rows;
 };
 

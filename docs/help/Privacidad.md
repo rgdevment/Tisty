@@ -12,7 +12,7 @@ Todo vive en una carpeta de tu disco:
 
 - **Tareas y eventos**: JSONL en texto plano, un registro que solo crece. Se lee con `cat`, se busca con `grep` y se procesa con `jq`.
 - **Documentos**: archivos Markdown normales.
-- **AGENTS, si la usas**: las reglas, skills y memoria de tus asistentes, como documentos. Fuera de esta carpeta, Tisty escribe además los archivos que lee cada asistente ([qué lee y cuándo](#tus-asistentes-en-agents)).
+- **Agentes, si la usas**: las reglas, skills y memoria de tus asistentes, como documentos. Si la sincronizas, Tisty escribe además, fuera de esta carpeta, los archivos que lee cada asistente ([qué lee y cuándo](#tus-asistentes-en-agentes)).
 - **Versiones anteriores de tus documentos**: Markdown como los documentos, en la carpeta `history`. Cada una se guarda 30 días desde que fue reemplazada, o lo que elijas en **Configuración › Tus datos**; la más reciente de cada documento, y lo que te devolvería **Volver a lo que decía antes**, no vencen. Se quedan en este equipo: nunca se sincronizan ni van en un paquete, pero sí en tus respaldos. [Cómo funcionan](Documentos#versiones-anteriores).
 - **Tu diario**: Markdown como cualquier documento, un libro por año. Ningún agente lo ve hasta que lo abres desde el propio Diario, en Tisty 1.48 o más nuevo; nunca se comparte por link, y viaja con tu sincronización y tus respaldos como lo demás, y dentro de un paquete `.tistyx` cuando exportas todo.
 - **Adjuntos**: los archivos tal cual, sin modificar.
@@ -48,7 +48,7 @@ Nada está ofuscado, y nada está en un formato que solo Tisty sepa leer.
 | **Un paquete `.tistyx` que le das a alguien** | Esa persona, y a quien se lo pase |
 | **Un `.tistyx` cerrado con seis dígitos** | Quien tenga el archivo y el número |
 | **Un asistente que dejas entrar** | El servicio con que hable ese asistente |
-| **Lo que guardas en AGENTS** | Lo mismo que tus otros documentos, y además cada asistente que lee esos archivos y el servicio con que hable, aunque no lo dejes entrar |
+| **Lo que guardas en Agentes** | Lo mismo que tus otros documentos y, si la sincronizas, además cada asistente que lee esos archivos y el servicio con que hable, aunque no lo dejes entrar |
 | **Una tarea que guardas en tu calendario** | Google o Microsoft, según sus términos; con el Calendario de Apple, la app Calendario de tu Mac y aquello con lo que sincronice |
 
 ## Las peticiones de red que hace Tisty
@@ -83,34 +83,35 @@ Un [widget](Widgets-en-documentos) no ejecuta nada ni nombra nada fuera de sí m
 
 **Si pierdes un computador.** Quítalo en Configuración › Seguridad, en **Tu identidad**. Su llave deja de valer, y Folio avisa a quien lea lo que firmó después de eso.
 
-## Tus asistentes en AGENTS
+## Tus asistentes en Agentes
 
-En la carpeta **AGENTS** guardas como documentos las reglas, las skills y la memoria de tus asistentes (Claude Code, Codex, GitHub Copilot, Gemini CLI y Cursor), y Tisty escribe por debajo los archivos que lee cada uno. Cómo se usa, archivo por archivo y asistente por asistente, está en [[AGENTS|Carpeta-AGENTS]].
+En la carpeta **Agentes** guardas como documentos las reglas, las skills y la memoria de tus asistentes (Claude Code, Codex, GitHub Copilot, Gemini CLI y Cursor). Con **Traer** solo los copias a Tisty; con **Sincronizar**, Tisty escribe además por debajo los archivos que lee cada uno. Cómo se usa, archivo por archivo y asistente por asistente, está en [[Agentes|Carpeta-AGENTS]].
 
 **Qué lee y cuándo**
 
-- **La fila atenuada de AGENTS y su aviso**, en la barra lateral, solo miran si existe la carpeta de cada asistente, como `~/.claude` o `~/.codex`, para decirte cuáles encontró. No miran nada de adentro.
-- **Cuando pulsas Encender, antes de que digas que sí**, Tisty solo mira qué archivos hay en las carpetas de tus asistentes, con su nombre y su tamaño, para mostrarte la lista. No abre ninguno, y los que empiezan con un punto ni siquiera los lista.
-- **Con tu sí**, abre solo los archivos que marcaste en esa lista y los trae como documentos. El sí vale para este equipo: cada equipo tuyo pide el suyo.
-- **Después**, abre solo los archivos que corresponden a un documento de AGENTS, para escribirlos y para ver si cambiaron por fuera. Un documento de **Global** se escribe en cada asistente que Tisty encuentra en este equipo, aunque no hayas marcado sus archivos. Un documento que llega de otro de tus equipos no se escribe hasta que pulsas **Aplicar aquí** en este, y solo llegan a un archivo las palabras que escribiste o aprobaste tú. Un cambio por fuera nunca se pisa: queda marcado hasta que tú decides. En `GEMINI.md` solo agrega una línea, `@tisty-rules.md`; el resto del archivo es de Gemini.
+- **Agentes en gris en la barra, y su tarjeta en Configuración › Asistentes** antes de traer nada, solo miran si existe la carpeta de cada asistente, como `~/.claude` o `~/.codex`, para decirte cuáles encontró. No miran nada de adentro.
+- **Cuando haces clic en Agentes y se abre el aviso de la primera vez**, Tisty solo mira qué archivos hay en las carpetas de tus asistentes, con su nombre y su tamaño, para mostrarte la lista. No abre ninguno, y los que empiezan con un punto ni siquiera los lista. Cerrar el aviso con la X o `Esc` no lee nada más.
+- **Con Traer o Traer y sincronizar**, abre solo los archivos que marcaste en esa lista y los trae como documentos. Ese permiso vale para este equipo: cada equipo tuyo pide el suyo.
+- **Con Traer, Tisty no escribe en los archivos de tus agentes**: quedan como están hasta que elijas Sincronizar. Para mostrarte qué hay para traer, como en **Traer otro archivo**, vuelve a mirar qué archivos hay, con su nombre y su tamaño.
+- **Después**, abre solo los archivos que corresponden a un documento de Agentes: para ver si cambiaron por fuera y, si sincroniza, para escribirlos. Un documento de **Global** se escribe en cada asistente que Tisty encuentra en este equipo, aunque no hayas marcado sus archivos. Un documento que llega de otro de tus equipos no se escribe hasta que pulsas **Aplicar aquí** en este, y solo llegan a un archivo las palabras que escribiste o aprobaste tú. Un cambio por fuera nunca se pisa: queda marcado hasta que tú decides. En `GEMINI.md` solo agrega una línea, `@tisty-rules.md`; el resto del archivo es de Gemini.
 - **La memoria que escribe el propio asistente** se trae y se muestra, pero Tisty nunca la sobrescribe.
 
-**Lo que AGENTS nunca trae**
+**Lo que Agentes nunca trae**
 
-- `settings.json` y los demás archivos de ajustes de tus asistentes (`config.toml`, `hooks.json`, `mcp.json`…), salvo el que trae una skill dentro de su carpeta, y ningún archivo de credenciales (`.credentials.json`, `auth.json`, `.env`, llaves `.pem`, `.key` o `id_rsa`…). Los salta por su nombre, sin abrirlos. Y un documento de AGENTS solo se escribe donde van las reglas, las skills y la memoria de cada asistente, nunca en sus archivos de ajustes o de credenciales.
+- `settings.json` y los demás archivos de ajustes de tus asistentes (`config.toml`, `hooks.json`, `mcp.json`…), salvo el que trae una skill dentro de su carpeta, y ningún archivo de credenciales (`.credentials.json`, `auth.json`, `.env`, llaves `.pem`, `.key` o `id_rsa`…). Los salta por su nombre, sin abrirlos. Y un documento de Agentes solo se escribe donde van las reglas, las skills y la memoria de cada asistente, nunca en sus archivos de ajustes o de credenciales.
 - Un archivo que parece tener un token, una contraseña o una llave privada se revisa en este equipo y queda fuera, con un aviso. La revisión busca formas conocidas y puede no reconocerlas todas: deja los secretos fuera de las reglas de tus asistentes.
 - Tampoco sigue enlaces simbólicos ni trae archivos de más de 512 kB.
 
 **Qué viaja y qué se queda**
 
-- **Tus documentos de AGENTS viajan como los demás**: con tu sincronización, tu nube (cifrada, si la cifraste), tus respaldos y un paquete `.tistyx` que lo lleva todo. Un asistente que dejas entrar por MCP los lee como cualquier documento, pero no los cambia, no los mueve ni crea uno: solo puede proponerte un cambio, que espera aparte hasta que lo apruebas en la ficha ([cómo](Carpeta-AGENTS#una-propuesta-de-tu-agente)). La propuesta viaja con tus documentos, y nada de ella llega a tus asistentes antes de tu aprobación.
-- **Lo que escribes en AGENTS llega a tus asistentes**: cada uno lee su archivo y lo envía al servicio con que trabaja, aunque nunca lo conectes a Tisty.
-- **Se queda en este equipo**, en `data/agents/` dentro de la carpeta de Tisty: tu sí, qué asistentes pausaste, qué documentos aplicaste o dejaste fuera en este equipo, una huella de cada archivo que escribió y los respaldos. Nada de eso viaja con la sincronización, los respaldos ni los paquetes.
+- **Tus documentos de Agentes viajan como los demás**: con tu sincronización, tu nube (cifrada, si la cifraste), tus respaldos y un paquete `.tistyx` que lo lleva todo. Un asistente que dejas entrar por MCP los lee como cualquier documento, pero no los cambia, no los mueve ni crea uno: solo puede proponerte un cambio, que espera aparte hasta que lo apruebas en la ficha ([cómo](Carpeta-AGENTS#una-propuesta-de-tu-agente)). La propuesta viaja con tus documentos, y nada de ella llega a tus asistentes antes de tu aprobación.
+- **Sincronizando, lo que escribes en Agentes llega a tus asistentes**: cada uno lee su archivo y lo envía al servicio con que trabaja, aunque nunca lo conectes a Tisty. Que sincronice o no es de cada equipo, y no viaja.
+- **Se queda en este equipo**, en `data/agents/` dentro de la carpeta de Tisty: el permiso de este equipo, si sincroniza, qué asistentes pausaste, qué documentos aplicaste o dejaste fuera en este equipo, una huella de cada archivo que escribió y los respaldos. Nada de eso viaja con la sincronización, los respaldos ni los paquetes.
 - **Antes de sobrescribir** un archivo de tus asistentes, Tisty guarda la versión anterior. Conserva las últimas 20 de cada archivo y no deja copias en las carpetas de tus asistentes.
 
-**Apagarlo sin perder nada**
+**Dejar de sincronizar sin perder nada**
 
-Después de tu sí, la sincronización queda encendida, y puedes pausarla para un asistente o apagar toda la carpeta, con **Apagar AGENTS** en su botón derecho. Apagada u oculta de la barra, AGENTS no escribe ningún archivo de tus asistentes. En pausa, Tisty no abre ni escribe esos archivos por su cuenta: quedan como los dejó la última escritura, y tus documentos siguen en Tisty. La pausa es de este equipo. Si sacas una regla de AGENTS, Tisty te pregunta si quitas también su archivo: solo lo borra si dices que sí, y antes guarda un respaldo en este equipo. Si sacas todos los documentos, primero te pregunta lo mismo por cada archivo, y después la carpeta desaparece de Tisty y AGENTS vuelve a la barra apagada; lo que elegiste dejar queda como estaba. Tisty nunca vacía un archivo de un asistente, y nunca borra uno sin preguntarte.
+Con **Traer y sincronizar** o **Sincronizar**, la sincronización queda activa en este equipo, y puedes pausarla para un asistente o dejar de sincronizar toda la carpeta, con **Dejar de sincronizar** en su botón derecho o en Configuración › Asistentes: ningún archivo de tus asistentes se toca y ningún documento se borra. Sin sincronizar u oculta de la barra, Agentes no escribe ningún archivo de tus asistentes. En pausa, Tisty no abre ni escribe esos archivos por su cuenta: quedan como los dejó la última escritura, y tus documentos siguen en Tisty. La pausa es de este equipo. Si sacas una regla de Agentes mientras sincroniza, Tisty te pregunta si quitas también su archivo: solo lo borra si dices que sí, y antes guarda un respaldo en este equipo. Si sacas todos los documentos, primero te pregunta lo mismo por cada archivo, y después la carpeta desaparece de Tisty y Agentes vuelve a la barra en gris, sin traer; lo que elegiste dejar queda como estaba. Tisty nunca vacía un archivo de un asistente, y nunca borra uno sin preguntarte.
 
 ## Sin IA
 

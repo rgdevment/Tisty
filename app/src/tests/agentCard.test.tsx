@@ -253,7 +253,7 @@ describe("an agent document's card", () => {
 
   it("offers no resume while the whole folder is off, nor a pause without consent", () => {
     shown(card([place({ state: "off" })], { folderOff: true }));
-    expect(screen.getByText(/Sync is off for the whole AGENTS folder/)).toBeTruthy();
+    expect(screen.getByText(/The Agents folder does not sync with your agents/)).toBeTruthy();
     expect(screen.queryByRole("button", { name: /Resume sync/ })).toBeNull();
   });
 
@@ -280,10 +280,12 @@ describe("an agent document's card", () => {
     window.removeEventListener(AGENTS_CHANGED, changed);
   });
 
-  it("sends the person to Configuración when the whole folder is off", () => {
+  it("sends the person to Sincronizar when the whole folder does not sync", () => {
     adopt("es");
     shown(card([place({ state: "off" })], { folderOff: true }));
-    expect(screen.getByText(/Vuelve a encenderla en Configuración › Asistentes\./)).toBeTruthy();
+    expect(
+      screen.getByText(/Elige Sincronizar en la barra o en Configuración › Asistentes\./),
+    ).toBeTruthy();
     adopt("en");
   });
 
@@ -321,7 +323,7 @@ describe("an agent document's card", () => {
 
   it("says why a document is written nowhere", () => {
     shown(card([], { twin: true }));
-    expect(screen.getByText(/Another document in AGENTS already writes this file/)).toBeTruthy();
+    expect(screen.getByText(/Another document in Agents already writes this file/)).toBeTruthy();
   });
 
   it("says when no assistant reads it yet, and draws code as is", () => {
@@ -390,7 +392,7 @@ describe("an agent document's card", () => {
   it("says a file is on hold and names the document that holds it", () => {
     shown(card([place({ state: "held" }, { heldBy: ["claude · tone.md"] })]));
     expect(screen.getByText("On hold")).toBeTruthy();
-    expect(screen.getByText(/claude · tone.md changed or left AGENTS/)).toBeTruthy();
+    expect(screen.getByText(/claude · tone.md changed or left Agents/)).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Overwrite with Tisty" })).toBeNull();
   });
 

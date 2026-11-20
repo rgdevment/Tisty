@@ -1026,11 +1026,13 @@ describe("duplicating a document", () => {
 });
 
 describe("nothing filed yet", () => {
-  it("has nowhere to file anything yet, and shows only AGENTS, off, and the unfiled shelf", () => {
+  it("has nowhere to file anything yet, and shows only Agents, unbrought, and the unfiled shelf", () => {
     render(<Tree papers={{ folders: [], docs: [] }} onOpen={vi.fn()} onFile={vi.fn()} />);
 
     expect(screen.getByRole("button", { name: t("unfiled") })).toBeTruthy();
-    expect(screen.getByRole("button", { name: `AGENTS — ${t("agentsPaused")}` })).toBeTruthy();
+    expect(
+      screen.getByRole("button", { name: `${t("agentsName")} — ${t("agentsUnbroughtSaid")}` }),
+    ).toBeTruthy();
     expect(screen.getAllByRole("button")).toHaveLength(3);
     expect(screen.getByText(t("noDocsYet"))).toBeTruthy();
   });

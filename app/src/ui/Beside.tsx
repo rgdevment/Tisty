@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { type Facts, fields, type Head, type Leaf, overgrown, type Panel } from "tisty-editor/read";
 import type { AgentDoc } from "../agentDocs";
+import { folderShown } from "../agentsSync";
 import type { Citing } from "../citing";
 import { asLink } from "../copying";
 import type { Filed, Folded } from "../core";
@@ -202,7 +203,7 @@ export default function Beside(props: Props) {
         { key: "all", label: t("everyPaper"), onPick: () => latest.current.onFolder?.(null) },
         ...trail.map((one) => ({
           key: one.id,
-          label: one.name,
+          label: folderShown(one),
           onPick: () => latest.current.onFolder?.(one.id),
         })),
       ],

@@ -1,86 +1,111 @@
-import { act, render, renderHook, screen, waitFor } from "@testing-library/react";
+import { act, renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { Glance } from "../agentDocs";
+import type { AgentsState } from "../agentsSync";
+import type { Folded, Papers } from "../core";
 import { AGENTS_CHANGED } from "../ui/AgentsKeeper";
-import { AgentsWord, useAgentsGlance } from "../ui/AgentsMark";
-import { AGENT_DOC_STOOD } from "../ui/useAgentDoc";
+import { useAgentsStage, useAgentsState } from "../ui/AgentsMark";
 
 const ipc = vi.hoisted(() => ({
-  looks: 0,
+  asks: 0,
   answer: (): Promise<unknown> => Promise.resolve(null),
 }));
 
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: () => {
-    ipc.looks += 1;
+    ipc.asks += 1;
     return ipc.answer();
   },
 }));
 
-const glance = (more: Partial<Glance> = {}): Glance => ({
-  folder: "a",
-  docs: 3,
-  changes: 0,
-  waiting: 0,
-  unagreed: 0,
-  proposed: 0,
+const state = (more: Partial<AgentsState> = {}): AgentsState => ({
+  folder: "A",
+  held: 0,
   consented: true,
   allOn: true,
+  assistants: [],
   ...more,
 });
 
-beforeEach(() => {
-  ipc.looks = 0;
-  ipc.answer = () => Promise.resolve(glance());
+const folder = (id: string, name: string, more: Partial<Folded> = {}): Folded => ({
+  id,
+  name,
+  parent: null,
+  icon: null,
+  holds: 1,
+  archived: false,
+  away: false,
+  ...more,
 });
 
-describe("the AGENTS word in the sidebar", () => {
-  it("looks only once AGENTS exists", () => {
-    const { result } = renderHook(() => useAgentsGlance(null));
+const withAgents = (docs = 1): Papers => ({
+  folders: [folder("A", "AGENTS", { icon: "robot" })],
+  docs: Array.from({ length: docs }, (_, at) => ({
+    id: `D${at}`,
+    file: `f${at}`,
+    title: `Regla ${at}`,
+    folder: "A",
+    archived: false,
+    away: false,
+  })),
+});
+
+beforeEach(() => {
+  ipc.asks = 0;
+  ipc.answer = () => Promise.resolve(state());
+});
+
+describe("what this computer says about Agents", () => {
+  it("asks nothing while there is no folder", () => {
+    const { result } = renderHook(() => useAgentsState(null));
     expect(result.current).toBeNull();
-    expect(ipc.looks).toBe(0);
+    expect(ipc.asks).toBe(0);
   });
 
-  it("looks again after a round, a card's news and the window's return", async () => {
-    const { result } = renderHook(() => useAgentsGlance("a"));
-    await waitFor(() => expect(result.current?.docs).toBe(3));
-    ipc.answer = () => Promise.resolve(glance({ changes: 2 }));
-    act(() => window.dispatchEvent(new Event(AGENTS_CHANGED)));
-    await waitFor(() => expect(result.current?.changes).toBe(2));
-    act(() => window.dispatchEvent(new Event(AGENT_DOC_STOOD)));
-    act(() => window.dispatchEvent(new Event("focus")));
-    await waitFor(() => expect(ipc.looks).toBe(4));
-  });
-
-  it("keeps only the latest answer and forgets a failed look", async () => {
-    const slow: { give?: (one: Glance) => void } = {};
+  it("asks again after a round, and keeps only the latest answer", async () => {
+    const slow: { give?: (one: AgentsState) => void } = {};
     ipc.answer = () => new Promise((give) => (slow.give = give));
-    const { result } = renderHook(() => useAgentsGlance("a"));
+    const { result } = renderHook(() => useAgentsState("A"));
     const first = slow.give;
-    ipc.answer = () => Promise.resolve(glance({ changes: 1 }));
+    ipc.answer = () => Promise.resolve(state({ allOn: false }));
     act(() => window.dispatchEvent(new Event(AGENTS_CHANGED)));
-    await waitFor(() => expect(result.current?.changes).toBe(1));
-    await act(async () => first?.(glance({ changes: 9 })));
-    expect(result.current?.changes).toBe(1);
+    await waitFor(() => expect(result.current?.allOn).toBe(false));
+    await act(async () => first?.(state()));
+    expect(result.current?.allOn).toBe(false);
+  });
+
+  it("forgets a failed answer", async () => {
+    const { result } = renderHook(() => useAgentsState("A"));
+    await waitFor(() => expect(result.current).not.toBeNull());
     ipc.answer = () => Promise.reject(new Error("gone"));
-    act(() => window.dispatchEvent(new Event("focus")));
+    act(() => window.dispatchEvent(new Event(AGENTS_CHANGED)));
     await waitFor(() => expect(result.current).toBeNull());
   });
+});
 
-  it("says empty, in sync, how many changed, or off", () => {
-    const { rerender } = render(<AgentsWord glance={glance({ docs: 0 })} />);
-    expect(screen.getByText("empty")).toBeTruthy();
-    rerender(<AgentsWord glance={glance()} />);
-    expect(screen.getByText("in sync")).toBeTruthy();
-    rerender(<AgentsWord glance={glance({ changes: 2 })} />);
-    expect(screen.getByText("2 changed")).toBeTruthy();
-    rerender(<AgentsWord glance={glance({ waiting: 3, unagreed: 1 })} />);
-    expect(screen.getByText("3 waiting")).toBeTruthy();
-    rerender(<AgentsWord glance={glance({ unagreed: 1 })} />);
-    expect(screen.getByText("1 to approve")).toBeTruthy();
-    rerender(<AgentsWord glance={glance({ proposed: 2 })} />);
-    expect(screen.getByText("2 with a proposal")).toBeTruthy();
-    rerender(<AgentsWord glance={glance({ allOn: false })} />);
-    expect(screen.getByText("off")).toBeTruthy();
+describe("the stage the sidebar draws", () => {
+  it("is unbrought with no folder, without asking", () => {
+    const { result } = renderHook(() => useAgentsStage({ folders: [], docs: [] }));
+    expect(result.current).toEqual({ root: null, stance: null, stage: "unbrought" });
+    expect(ipc.asks).toBe(0);
+  });
+
+  it("is unknown until the answer comes, then syncs", async () => {
+    const { result } = renderHook(() => useAgentsStage(withAgents()));
+    expect(result.current.stage).toBeNull();
+    await waitFor(() => expect(result.current.stage).toBe("syncs"));
+    expect(result.current.root).toBe("A");
+  });
+
+  it("is brought when the folder holds documents and does not sync", async () => {
+    ipc.answer = () => Promise.resolve(state({ consented: false, allOn: false, held: 2 }));
+    const { result } = renderHook(() => useAgentsStage(withAgents(2)));
+    await waitFor(() => expect(result.current.stage).toBe("brought"));
+  });
+
+  it("is unbrought when the empty folder was never allowed", async () => {
+    ipc.answer = () => Promise.resolve(state({ consented: false }));
+    const { result } = renderHook(() => useAgentsStage(withAgents(0)));
+    await waitFor(() => expect(result.current.stance).not.toBeNull());
+    expect(result.current.stage).toBe("unbrought");
   });
 });

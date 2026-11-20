@@ -30,6 +30,7 @@ interface Props {
   onPage?: (doc: string, pageOf: string) => void;
   onDiary?: () => void;
   onDiaryMenu?: (at: { x: number; y: number }) => void;
+  onAgentsMenu?: (at: { x: number; y: number }) => void;
   onFolderMenu: (folder: Folded, at: { x: number; y: number }) => void;
   onDocMenu: (doc: Filed, at: { x: number; y: number }) => void;
   onDocsMenu: (at: { x: number; y: number }) => void;
@@ -86,6 +87,7 @@ function Wide({
   onPage,
   onDiary,
   onDiaryMenu,
+  onAgentsMenu,
   onFolderMenu,
   onDocMenu,
   onDocsMenu,
@@ -174,6 +176,7 @@ function Wide({
               onPage={onPage}
               onDiary={onDiary}
               onDiaryMenu={onDiaryMenu}
+              onAgentsMenu={onAgentsMenu}
               onFolderMenu={onFolderMenu}
               onHereMenu={onHereMenu}
               onDocMenu={onDocMenu}

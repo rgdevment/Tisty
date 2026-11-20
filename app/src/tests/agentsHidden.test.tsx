@@ -59,7 +59,7 @@ const look = (more: Partial<AgentsLook>): AgentsLook => ({
   ...more,
 });
 
-const lit: AgentsState = { folder: "A", consented: true, allOn: true, assistants: [] };
+const lit: AgentsState = { folder: "A", held: 0, consented: true, allOn: true, assistants: [] };
 
 const settle = () => act(() => new Promise((ready) => setTimeout(ready, 0)));
 const listed = () => within(screen.getByRole("list", { name: "Hidden folders" }));
@@ -118,33 +118,33 @@ describe("the hidden folders in Settings", () => {
     expect(hiddenRows(["gone", "O"], papers)).toEqual([]);
   });
 
-  it("lists AGENTS once, whether hidden by its own key, its folder's or both", () => {
+  it("lists Agents once, whether hidden by its own key, its folder's or both", () => {
     expect(hiddenRows([AGENTS], papers)).toEqual([
-      { keys: [AGENTS, "A"], name: "AGENTS", agents: true },
+      { keys: [AGENTS, "A"], name: "Agents", agents: true },
     ]);
     expect(hiddenRows(["A", AGENTS], papers)).toHaveLength(1);
     expect(hiddenRows([AGENTS], { folders: [], docs: [] })).toEqual([
-      { keys: [AGENTS], name: "AGENTS", agents: true },
+      { keys: [AGENTS], name: "Agents", agents: true },
     ]);
   });
 
-  it("shows AGENTS again under every key it was hidden by", async () => {
+  it("shows Agents again under every key it was hidden by", async () => {
     hide("A");
     hide(AGENTS);
     render(<HiddenFolders papers={papers} />);
     await userEvent.click(
-      listed().getByRole("button", { name: "Show AGENTS in the sidebar again" }),
+      listed().getByRole("button", { name: "Show Agents in the sidebar again" }),
     );
     expect(isHidden("A")).toBe(false);
     expect(isHidden(AGENTS)).toBe(false);
   });
 
-  it("names a hidden AGENTS and nothing more, since hidden it is off", async () => {
+  it("names a hidden Agents and nothing more, since hidden it does not sync", async () => {
     hide(AGENTS);
     seen.look = look({ changes: 1 });
     render(<HiddenFolders papers={papers} />);
     await settle();
-    expect(listed().getByText("AGENTS")).toBeTruthy();
+    expect(listed().getByText("Agents")).toBeTruthy();
     expect(listed().queryByText("1 changed")).toBeNull();
     expect(seen.asked.filter((cmd) => cmd.startsWith("agents_"))).toEqual([]);
   });

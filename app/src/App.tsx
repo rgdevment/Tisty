@@ -51,6 +51,7 @@ export default function App() {
     docMenu,
     hereMenu,
     diaryMenu,
+    agentsMenu,
     listMenu,
     papered,
     lane,
@@ -114,6 +115,7 @@ export default function App() {
           onDiary={toDiary}
           onBrainsty={openNetwork}
           onDiaryMenu={diaryMenu}
+          onAgentsMenu={agentsMenu}
           onFolderMenu={folderMenu}
           onDocMenu={docMenu}
           onHereMenu={hereMenu}

@@ -1,8 +1,15 @@
 import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { type AgentsLook, bringMoreAgents } from "../agentsSync";
+import {
+  type AgentsLook,
+  type AgentsState,
+  bringMoreAgents,
+  type Rounded,
+  syncAgents,
+} from "../agentsSync";
 import type { Filed, Folded, Papers } from "../core";
+import { AGENTS, hide, isHidden, showAll } from "../hiding";
 import { adopt } from "../locales";
 import AgentsKeeper, { AGENTS_CHANGED, askAgents } from "../ui/AgentsKeeper";
 
@@ -233,10 +240,137 @@ describe("the keeper of AGENTS", () => {
     window.addEventListener(AGENTS_CHANGED, heard);
     render(<AgentsKeeper />);
     act(() => askAgents());
-    await userEvent.click(await screen.findByRole("button", { name: "Ahora no" }));
+    await userEvent.click(await screen.findByRole("button", { name: "Cerrar" }));
     expect(heard).toHaveBeenCalled();
     expect(screen.queryByText("Tus agentes, en un solo lugar")).toBeNull();
+    expect(sent("agents_bring")).toHaveLength(0);
     window.removeEventListener(AGENTS_CHANGED, heard);
+  });
+});
+
+describe("«Sync» from the folder's line, its menu or Settings", () => {
+  const state = (more: Partial<AgentsState> = {}): AgentsState => ({
+    folder: "a",
+    held: 1,
+    consented: true,
+    allOn: false,
+    assistants: [],
+    ...more,
+  });
+  const syncing = (
+    now: AgentsState,
+    round: Rounded = { told: [], both: [], loose: [], unled: [] },
+  ) =>
+    (ipc.answer = (cmd) => {
+      if (cmd === "agents_state") return Promise.resolve(now);
+      if (cmd === "agents_turn") return Promise.resolve(round);
+      if (cmd === "agents_look")
+        return Promise.resolve(look({ consented: now.consented, allOn: now.allOn }));
+      return Promise.resolve(false);
+    });
+  const settle = () => act(() => new Promise((ready) => setTimeout(ready, 0)));
+
+  beforeEach(() => showAll());
+
+  it("does nothing when Agents already syncs", async () => {
+    syncing(state({ allOn: true }));
+    render(<AgentsKeeper />);
+    act(() => syncAgents());
+    await waitFor(() => expect(sent("agents_state").length).toBeGreaterThan(0));
+    await settle();
+    expect(sent("agents_turn")).toHaveLength(0);
+    expect(screen.queryByRole("dialog")).toBeNull();
+  });
+
+  it("opens the first time on a computer that never said yes", async () => {
+    syncing(state({ consented: false }));
+    render(<AgentsKeeper />);
+    act(() => syncAgents());
+    expect(await screen.findByText("Tus agentes, en un solo lugar")).toBeTruthy();
+    expect(sent("agents_turn")).toHaveLength(0);
+  });
+
+  it("opens the first time while there is no folder", async () => {
+    syncing(state({ folder: null }));
+    render(<AgentsKeeper />);
+    act(() => syncAgents());
+    expect(await screen.findByText("Tus agentes, en un solo lugar")).toBeTruthy();
+    expect(sent("agents_turn")).toHaveLength(0);
+  });
+
+  it("syncs at once where this computer said yes, shows it again and asks nothing more", async () => {
+    syncing(state());
+    hide(AGENTS);
+    hide("a");
+    const told = vi.fn();
+    window.addEventListener(AGENTS_CHANGED, told);
+    render(<AgentsKeeper />);
+    act(() => syncAgents());
+    await waitFor(() => expect(sent("agents_turn")).toHaveLength(1));
+    expect(sent("agents_turn")[0].args).toEqual({ assistant: null, on: true });
+    expect(isHidden(AGENTS)).toBe(false);
+    expect(isHidden("a")).toBe(false);
+    await waitFor(() => expect(told).toHaveBeenCalled());
+    expect(desk.papersChanged).toHaveBeenCalled();
+    window.removeEventListener(AGENTS_CHANGED, told);
+    await settle();
+    expect(screen.queryByRole("dialog")).toBeNull();
+  });
+
+  it("asks about a file on both sides as soon as syncing finds one", async () => {
+    const both = {
+      at: "/h/.claude/CLAUDE.md",
+      assistant: "claude",
+      composed: false,
+      lines: [],
+    };
+    const round = { told: [], both: [both], loose: [], unled: [] };
+    syncing(state(), round);
+    const answer = ipc.answer;
+    ipc.answer = (cmd, args) =>
+      cmd === "agents_look"
+        ? Promise.resolve(look({ consented: true, allOn: true, both: [both] }))
+        : answer(cmd, args);
+    render(<AgentsKeeper />);
+    act(() => syncAgents());
+    await waitFor(() => expect(sent("agents_turn")).toHaveLength(1));
+    expect(await screen.findByRole("dialog", { name: "Existe en los dos lados" })).toBeTruthy();
+  });
+
+  it("opens no review when syncing finds nothing waiting", async () => {
+    syncing(state());
+    render(<AgentsKeeper />);
+    act(() => syncAgents());
+    await waitFor(() => expect(sent("agents_turn")).toHaveLength(1));
+    await settle();
+    expect(sent("agents_look")).toHaveLength(0);
+  });
+
+  it("says why syncing failed", async () => {
+    ipc.answer = () => Promise.reject({ code: "internal" });
+    render(<AgentsKeeper />);
+    act(() => syncAgents());
+    await waitFor(() => expect(desk.setError).toHaveBeenCalled());
+  });
+
+  it("shows again an Agents hidden while it syncs, and leaves the sync on", async () => {
+    syncing(state({ allOn: true }));
+    desk.papers = { folders: agents, docs: [doc("x", "claude")] };
+    hide("a");
+    render(<AgentsKeeper />);
+    await waitFor(() => expect(isHidden("a")).toBe(false));
+    expect(sent("agents_turn")).toHaveLength(0);
+  });
+
+  it("leaves an Agents hidden while it does not sync where it is", async () => {
+    syncing(state());
+    desk.papers = { folders: agents, docs: [doc("x", "claude")] };
+    hide(AGENTS);
+    render(<AgentsKeeper />);
+    await waitFor(() => expect(sent("agents_state").length).toBeGreaterThan(0));
+    await settle();
+    expect(isHidden(AGENTS)).toBe(true);
+    expect(sent("agents_turn")).toHaveLength(0);
   });
 });
 

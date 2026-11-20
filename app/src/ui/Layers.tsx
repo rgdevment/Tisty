@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { folderShown } from "../agentsSync";
 import {
   FOLDER_NAME_AT_MOST,
   folderAdd,
@@ -220,7 +221,10 @@ export default function Layers({ parcels }: { parcels: ReactNode }) {
         <Naming
           title={
             roomBelow
-              ? fill("newFolderIn", papers.folders.find((one) => one.id === here)?.name ?? "")
+              ? fill(
+                  "newFolderIn",
+                  papers.folders.filter((one) => one.id === here).map(folderShown)[0] ?? "",
+                )
               : t("newFolder")
           }
           invite={t("folderName")}

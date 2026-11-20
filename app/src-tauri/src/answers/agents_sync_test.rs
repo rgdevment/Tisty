@@ -8,8 +8,9 @@ fn bring_chosen(
     homes: &Homes,
     here: &str,
     chosen: &[String],
+    sync: Option<bool>,
 ) -> Answer<Brought> {
-    let (ledger, held, writes) = consented_here(session, homes, here)?;
+    let (ledger, held, writes) = consented_here(session, homes, here, sync)?;
     let chosen: BTreeSet<String> = chosen.iter().cloned().collect();
     let (read, refused) = read_chosen(&ledger, &found_here(homes), &chosen, &held, &writes);
     brought_home(session, homes, ledger, &read, refused)
@@ -66,9 +67,14 @@ impl Room {
         )
     }
 
+    /// «Bring and sync», as the first time offered before «Bring» alone existed.
     fn bring(&mut self, chosen: &[&str]) -> Brought {
+        self.bring_as(chosen, Some(true))
+    }
+
+    fn bring_as(&mut self, chosen: &[&str], sync: Option<bool>) -> Brought {
         let chosen: Vec<String> = chosen.iter().map(|one| self.at(one)).collect();
-        bring_chosen(&mut self.session, &self.homes, HERE, &chosen).unwrap()
+        bring_chosen(&mut self.session, &self.homes, HERE, &chosen, sync).unwrap()
     }
 
     fn folders(&self) -> Vec<String> {
@@ -96,7 +102,10 @@ impl Room {
 fn looking_lists_names_only_and_says_yes_was_never_given() {
     let room = room();
     let look = room.look();
-    assert!(look.asks);
+    assert!(
+        !look.asks,
+        "the first time opens from the sidebar, never by itself"
+    );
     assert!(!look.consented);
     assert_eq!(look.folder, None);
     let ids: Vec<&str> = look.assistants.iter().map(|one| one.id.as_str()).collect();
@@ -213,8 +222,8 @@ fn on_a_computer_that_has_not_said_yes_a_file_that_differs_is_put_to_the_person(
     second_computer(&mut room);
     let look = room.look();
     assert!(
-        look.asks,
-        "documents are here but this computer never said yes"
+        !look.asks,
+        "documents are here but this computer never said yes: it opens like any folder"
     );
     let brought = room.bring(&[]);
     let [both] = brought.round.both.as_slice() else {
@@ -354,7 +363,10 @@ fn emptying_agents_takes_it_out_of_tisty_and_touches_no_agent_file() {
     assert_eq!(room.read(".codex/AGENTS.md"), "Codex rules.\n");
 
     let look = room.look();
-    assert!(look.asks);
+    assert!(
+        !look.asks,
+        "with Agents gone, the first time opens from the sidebar"
+    );
     assert!(
         look.loose.is_empty(),
         "with AGENTS gone nothing is taken away"
@@ -1728,4 +1740,166 @@ fn another_computer_has_not_said_yes_for_this_one() {
     let there = stance(&room.session, &room.homes, "another-computer");
     assert!(there.folder.is_some());
     assert!(!there.consented);
+    assert_eq!(there.held, 1, "brought there, so brought here too");
+}
+
+fn snapshot(at: &Path, into: &mut BTreeMap<PathBuf, Vec<u8>>) {
+    for one in std::fs::read_dir(at).unwrap().flatten() {
+        let path = one.path();
+        if path.is_dir() {
+            snapshot(&path, into);
+        } else {
+            into.insert(path.clone(), std::fs::read(&path).unwrap());
+        }
+    }
+}
+
+fn every_agent_file(room: &Room) -> BTreeMap<PathBuf, Vec<u8>> {
+    let mut all = BTreeMap::new();
+    snapshot(&room.home, &mut all);
+    all
+}
+
+const MAIN_FILES: [&str; 4] = [
+    ".claude/CLAUDE.md",
+    ".codex/AGENTS.md",
+    ".copilot/copilot-instructions.md",
+    ".gemini/GEMINI.md",
+];
+
+#[test]
+fn bringing_alone_writes_no_agent_file_and_leaves_nothing_that_writes_later() {
+    let mut room = room();
+    put(Path::new(&room.at(".gemini/GEMINI.md")), "- remembered\n");
+    let before = every_agent_file(&room);
+
+    let brought = room.bring_as(&[".claude/CLAUDE.md", ".claude/rules/tone.md"], Some(false));
+    assert_eq!(brought.made, 2);
+    assert!(!brought.syncs);
+    assert!(brought.round.both.is_empty() && brought.round.loose.is_empty());
+    // A Global rule is what would reach every assistant at once if the folder synced.
+    global_doc(&mut room, "Spanish.\n");
+
+    let data = room.session.paths.data().to_path_buf();
+    let mut ledger = Ledger::open(&data, HERE);
+    assert!(ledger.consented() && !ledger.syncs(""));
+    let round = round_now(&room.session, &room.homes, &mut ledger);
+    assert!(
+        round.told.iter().all(|one| one.standing == "off"),
+        "{round:?}"
+    );
+    assert!(round.unled.is_empty() && round.loose.is_empty() && round.both.is_empty());
+    led_again(&room.session, &room.homes, HERE).unwrap();
+    let claude = room.at(".claude/CLAUDE.md");
+    let _ = kept_side(&mut room.session, &room.homes, HERE, &claude, true);
+    let codex = room.at(".codex/AGENTS.md");
+    let _ = loosened(&room.session, &room.homes, HERE, &codex, true);
+    let gate = gated(&room.session, &ledger);
+    for one in places::targets(&room.homes, &gate, &ledger) {
+        assert!(agents::overwrite(&data, &mut ledger, &one.target).is_err());
+        if let Some(lead) = &one.lead_in {
+            assert!(agents::lead_in(&data, &ledger, lead, &places::lead_in_line()).is_err());
+        }
+    }
+
+    assert_eq!(every_agent_file(&room), before);
+    for name in MAIN_FILES {
+        assert_eq!(room.kept(name), 0, "{name}");
+    }
+    let look = room.look();
+    assert!(
+        !look.asks,
+        "a folder brought but not synced opens like any other"
+    );
+    assert_eq!(look.docs, 3);
+    let state = stance(&room.session, &room.homes, HERE);
+    assert!(state.folder.is_some() && state.consented && !state.all_on);
+
+    // «Sync» afterwards is the same switch as before, and only then is anything written.
+    turned(&room.session, &room.homes, HERE, None, true).unwrap();
+    assert_eq!(
+        room.read(".gemini/GEMINI.md"),
+        "- remembered\n@tisty-rules.md\n"
+    );
+    assert_eq!(room.read(".gemini/tisty-rules.md"), "Spanish.\n");
+}
+
+#[test]
+fn bringing_another_file_keeps_the_switch_as_it_was() {
+    let mut room = room();
+    room.bring_as(&[".claude/CLAUDE.md"], Some(false));
+    let more = room.bring_as(&[".codex/AGENTS.md"], None);
+    assert_eq!(more.made, 1);
+    assert!(!more.syncs, "bringing one more file never starts syncing");
+    assert!(!stance(&room.session, &room.homes, HERE).all_on);
+
+    let mut synced = self::room();
+    synced.bring_as(&[".claude/CLAUDE.md"], Some(true));
+    let more = synced.bring_as(&[".codex/AGENTS.md"], None);
+    assert!(more.syncs, "nor stops it");
+    assert!(stance(&synced.session, &synced.homes, HERE).all_on);
+}
+
+#[test]
+fn a_first_yes_without_the_word_sync_never_syncs() {
+    let mut room = room();
+    let brought = room.bring_as(&[".claude/CLAUDE.md"], None);
+    assert!(!brought.syncs);
+    assert!(!Ledger::open(room.session.paths.data(), HERE).syncs(""));
+}
+
+#[test]
+fn bring_and_sync_turns_back_on_a_folder_that_was_brought_alone() {
+    let mut room = room();
+    room.bring_as(&[".claude/CLAUDE.md"], Some(false));
+    let brought = room.bring_as(&[], Some(true));
+    assert!(brought.syncs);
+    assert!(stance(&room.session, &room.homes, HERE).all_on);
+}
+
+// What #882 left on disk: the same ledger, with the folder switched off or on.
+fn ledger_of_882(room: &Room, all_off: bool) {
+    let at = agents::folder(room.session.paths.data()).join("ledger.json");
+    let said = serde_json::json!({ "machine": HERE, "consented": true, "all_off": all_off });
+    std::fs::write(at, serde_json::to_vec(&said).unwrap()).unwrap();
+}
+
+#[test]
+fn an_agents_882_left_off_with_documents_stays_brought_and_never_syncs() {
+    let mut room = room();
+    room.bring(&[".claude/CLAUDE.md"]);
+    ledger_of_882(&room, true);
+    let before = every_agent_file(&room);
+
+    let state = stance(&room.session, &room.homes, HERE);
+    assert!(state.folder.is_some() && state.consented && !state.all_on);
+    assert_eq!(state.held, 1);
+    let look = room.look();
+    assert_eq!(look.docs, 1);
+    assert!(!look.asks);
+    let more = room.bring_as(&[".codex/AGENTS.md"], None);
+    assert!(!more.syncs);
+    assert_eq!(every_agent_file(&room), before);
+}
+
+#[test]
+fn an_agents_882_left_on_keeps_syncing() {
+    let mut room = room();
+    room.bring(&[".claude/CLAUDE.md"]);
+    ledger_of_882(&room, false);
+
+    let state = stance(&room.session, &room.homes, HERE);
+    assert!(state.folder.is_some() && state.consented && state.all_on);
+    let more = room.bring_as(&[".codex/AGENTS.md"], None);
+    assert!(more.syncs);
+}
+
+#[test]
+fn a_document_put_away_does_not_count_as_brought() {
+    let mut room = room();
+    room.bring_as(&[".claude/CLAUDE.md"], Some(false));
+    assert_eq!(stance(&room.session, &room.homes, HERE).held, 1);
+    let id = room.session.state.docs.values().next().unwrap().id;
+    room.session.commit(Op::DocArchive { id }).unwrap();
+    assert_eq!(stance(&room.session, &room.homes, HERE).held, 0);
 }

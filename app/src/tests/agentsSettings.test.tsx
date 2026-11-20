@@ -1,20 +1,30 @@
 import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { AGENTS_LIGHT, type AgentsLook, type AgentsState } from "../agentsSync";
+import {
+  AGENTS_FIRST,
+  AGENTS_MORE,
+  AGENTS_SYNC,
+  type AgentsLook,
+  type AgentsState,
+} from "../agentsSync";
 import { AGENTS, hide, isHidden, showAll } from "../hiding";
 import { adopt } from "../locales";
 import AgentsSettings from "../ui/AgentsSettings";
 
 const ipc = vi.hoisted(() => ({
   asked: [] as string[],
+  calls: [] as { cmd: string; args: unknown }[],
+  refuses: "",
   state: null as unknown,
   look: null as unknown,
 }));
 
 vi.mock("@tauri-apps/api/core", () => ({
-  invoke: (cmd: string) => {
+  invoke: (cmd: string, args?: unknown) => {
     ipc.asked.push(cmd);
+    ipc.calls.push({ cmd, args });
+    if (cmd === ipc.refuses) return Promise.reject(new Error("It failed"));
     if (cmd === "agents_state") return Promise.resolve(ipc.state);
     if (cmd === "agents_look") return Promise.resolve(ipc.look);
     return Promise.resolve({ told: [], both: [], loose: [], unled: [] });
@@ -23,6 +33,7 @@ vi.mock("@tauri-apps/api/core", () => ({
 
 const state = (more: Partial<AgentsState> = {}): AgentsState => ({
   folder: null,
+  held: 0,
   consented: false,
   allOn: true,
   assistants: [{ id: "claude", name: "Claude" }],
@@ -48,25 +59,35 @@ const look = (more: Partial<AgentsLook> = {}): AgentsLook => ({
 
 const settle = () => act(() => new Promise((ready) => setTimeout(ready, 0)));
 
+const heard = (event: string) => {
+  const one = vi.fn();
+  window.addEventListener(event, one);
+  return { one, off: () => window.removeEventListener(event, one) };
+};
+
 beforeEach(() => {
   adopt("en");
   showAll();
   ipc.asked = [];
+  ipc.calls = [];
+  ipc.refuses = "";
   ipc.state = state();
   ipc.look = look();
 });
 
-describe("the AGENTS card in Settings", () => {
-  it("says what it found and offers the notice's own actions while off", async () => {
-    const lit = vi.fn();
-    window.addEventListener(AGENTS_LIGHT, lit);
+describe("the Agents card in Settings", () => {
+  it("says what it found with nothing brought, and both buttons open the first time", async () => {
+    const first = heard(AGENTS_FIRST);
     render(<AgentsSettings busy={null} />);
     expect(await screen.findByText("I found Claude on this computer.")).toBeTruthy();
-    await userEvent.click(screen.getByRole("button", { name: "Turn on" }));
-    expect(lit).toHaveBeenCalledTimes(1);
+    await userEvent.click(screen.getByRole("button", { name: "Bring" }));
+    await userEvent.click(screen.getByRole("button", { name: "Bring and sync" }));
+    expect(first.one).toHaveBeenCalledTimes(2);
+    expect(screen.queryByRole("button", { name: "Sync" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Stop syncing" })).toBeNull();
     await userEvent.click(screen.getByRole("button", { name: "Hide" }));
     expect(isHidden(AGENTS)).toBe(true);
-    window.removeEventListener(AGENTS_LIGHT, lit);
+    first.off();
   });
 
   it("reads nothing of an agent's before this computer's yes", async () => {
@@ -77,50 +98,126 @@ describe("the AGENTS card in Settings", () => {
     expect(screen.queryByRole("switch")).toBeNull();
   });
 
-  it("keeps the switch and the found line together while switched off", async () => {
-    ipc.state = state({ folder: "A", consented: true, allOn: false });
+  it("says a brought folder does not sync, and offers Sync, another file and Hide", async () => {
+    ipc.state = state({ folder: "A", consented: true, allOn: false, held: 2 });
     ipc.look = look({ allOn: false });
+    const sync = heard(AGENTS_SYNC);
+    const more = heard(AGENTS_MORE);
     render(<AgentsSettings busy={null} />);
-    expect(await screen.findByText("I found Claude on this computer.")).toBeTruthy();
-    expect(await screen.findByRole("switch", { name: "Sync the AGENTS folder" })).toBeTruthy();
-  });
-
-  it("drops the found line once on", async () => {
-    ipc.state = state({ folder: "A", consented: true });
-    render(<AgentsSettings busy={null} />);
-    await screen.findByRole("switch", { name: "Sync the AGENTS folder" });
+    expect(await screen.findByText("Not synced with your agents")).toBeTruthy();
     expect(screen.queryByText("I found Claude on this computer.")).toBeNull();
-    expect(screen.queryByRole("button", { name: "Turn on" })).toBeNull();
+    expect(screen.queryByRole("switch")).toBeNull();
+    await userEvent.click(screen.getByRole("button", { name: "Sync" }));
+    await userEvent.click(screen.getByRole("button", { name: "Bring another file" }));
+    expect(sync.one).toHaveBeenCalledTimes(1);
+    expect(more.one).toHaveBeenCalledTimes(1);
+    await userEvent.click(screen.getByRole("button", { name: "Hide" }));
+    expect(isHidden(AGENTS)).toBe(true);
+    sync.off();
+    more.off();
   });
 
-  it("says when no assistant is found while on", async () => {
+  it("offers no other file on a folder brought from another computer that never said yes", async () => {
+    ipc.state = state({ folder: "A", consented: false, held: 1 });
+    render(<AgentsSettings busy={null} />);
+    expect(await screen.findByText("Not synced with your agents")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Sync" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Bring another file" })).toBeNull();
+  });
+
+  it("shows the knobs while it syncs, and stops syncing on a click", async () => {
+    ipc.state = state({ folder: "A", consented: true });
+    const more = heard(AGENTS_MORE);
+    render(<AgentsSettings busy={null} />);
+    expect(await screen.findByRole("switch", { name: "Sync Claude" })).toBeTruthy();
+    expect(screen.queryByText("I found Claude on this computer.")).toBeNull();
+    expect(screen.queryByText("Not synced with your agents")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Hide" })).toBeNull();
+    await userEvent.click(screen.getByRole("button", { name: "Bring another file" }));
+    expect(more.one).toHaveBeenCalledTimes(1);
+    more.off();
+    ipc.calls = [];
+    await userEvent.click(screen.getByRole("button", { name: "Stop syncing" }));
+    await waitFor(() =>
+      expect(ipc.calls).toContainEqual({
+        cmd: "agents_turn",
+        args: { assistant: null, on: false },
+      }),
+    );
+  });
+
+  it("turns one assistant back on and says why it does not sync", async () => {
+    ipc.state = state({ folder: "A", consented: true });
+    ipc.look = look({ assistants: [{ id: "claude", name: "Claude", on: false, files: [] }] });
+    render(<AgentsSettings busy={null} />);
+    const knob = await screen.findByRole("switch", { name: "Sync Claude" });
+    expect(screen.getByText(/Not synced: its files stay as they are/)).toBeTruthy();
+    ipc.calls = [];
+    await userEvent.click(knob);
+    await waitFor(() =>
+      expect(ipc.calls).toContainEqual({
+        cmd: "agents_turn",
+        args: { assistant: "claude", on: true },
+      }),
+    );
+  });
+
+  it("asks for a review of what waits while it syncs", async () => {
+    ipc.state = state({ folder: "A", consented: true });
+    ipc.look = look({
+      both: [{ assistant: "claude", at: "/c/CLAUDE.md" }] as unknown as AgentsLook["both"],
+      loose: [
+        { assistant: "claude", at: "/c/a.md" },
+        { assistant: "claude", at: "/c/b.md" },
+      ] as unknown as AgentsLook["loose"],
+      unled: ["claude"],
+    });
+    const first = heard(AGENTS_FIRST);
+    render(<AgentsSettings busy={null} />);
+    expect(await screen.findByText("2 files no longer belong to any rule in Agents.")).toBeTruthy();
+    const reviews = screen.getAllByRole("button", { name: "Review" });
+    expect(reviews).toHaveLength(2);
+    for (const one of reviews) await userEvent.click(one);
+    expect(first.one).toHaveBeenCalledTimes(2);
+    first.off();
+    ipc.calls = [];
+    await userEvent.click(screen.getByRole("button", { name: "Put the line back" }));
+    await waitFor(() => expect(ipc.calls.map((one) => one.cmd)).toContain("agents_lead"));
+  });
+
+  it("says why stopping failed", async () => {
+    ipc.state = state({ folder: "A", consented: true });
+    ipc.refuses = "agents_turn";
+    render(<AgentsSettings busy={null} />);
+    await userEvent.click(await screen.findByRole("button", { name: "Stop syncing" }));
+    await waitFor(() => expect(ipc.asked.filter((one) => one === "agents_turn")).toHaveLength(1));
+    await settle();
+    expect(document.body.textContent).toMatch(/fail/i);
+  });
+
+  it("says when no assistant is found while it syncs", async () => {
     ipc.state = state({ folder: "A", consented: true, assistants: [] });
     ipc.look = look({ assistants: [] });
     render(<AgentsSettings busy={null} />);
     expect(await screen.findByText("No agents found on this computer.")).toBeTruthy();
   });
 
-  it("says a hidden AGENTS is off and shows it again", async () => {
-    ipc.state = state({ folder: "A", consented: true, allOn: false });
+  it("says a hidden Agents does not sync and shows it again", async () => {
+    ipc.state = state({ folder: "A", consented: true, allOn: false, held: 1 });
     ipc.look = look({ allOn: false });
     hide("A");
     render(<AgentsSettings busy={null} />);
-    expect(
-      await screen.findByText(
-        "Hidden from the sidebar on this computer, and off: it writes no agent file.",
-      ),
-    ).toBeTruthy();
+    const said =
+      "Hidden from the sidebar on this computer, and not synced: it writes no agent file.";
+    expect(await screen.findByText(said)).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Hide" })).toBeNull();
     await userEvent.click(screen.getByRole("button", { name: "Show again" }));
     expect(isHidden("A")).toBe(false);
     await settle();
-    expect(
-      screen.queryByText(
-        "Hidden from the sidebar on this computer, and off: it writes no agent file.",
-      ),
-    ).toBeNull();
+    expect(screen.queryByText(said)).toBeNull();
   });
 
-  it("offers no Hide for an AGENTS already hidden", async () => {
+  it("offers no Hide for an Agents already hidden", async () => {
     hide(AGENTS);
     render(<AgentsSettings busy={null} />);
     await screen.findByText("I found Claude on this computer.");

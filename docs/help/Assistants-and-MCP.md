@@ -118,7 +118,7 @@ When it tells you what it did, it names a task or a document the way you would: 
 
 It can **never** close or delete a task, delete a document, or move a day you set. A document that had its day it marks: you delete it, put it away or take the mark off. An idea leaves Ideas only when it files the idea in a document or turns it into a task, as you would; an old one it marks the same way. Your [Diary](Documents#diary) is out of its sight until you open it from the Diary itself, and even then it only adds to the end of today, signed, when you ask. On a task you wrote it works as in a document — the description, the page, the open steps, the title and the list — and a step or the whole task done is only its word, which you take or not.
 
-The full rules are in [[What an assistant may do|MCP-Permissions]], and every tool is in the [[tools reference|MCP-Tools]]. The rules, skills and memory each assistant reads, even one you never connect, you keep in the [[AGENTS|AGENTS-Folder]] folder.
+The full rules are in [[What an assistant may do|MCP-Permissions]], and every tool is in the [[tools reference|MCP-Tools]]. The rules, skills and memory each assistant reads, even one you never connect, you keep in the [[Agents|AGENTS-Folder]] folder.
 
 ## Ready-made requests and @-mentions
 
@@ -151,7 +151,7 @@ And it answers, for example:
 >
 > Which ones shall I do?
 
-Mario answers "1 and 2". The assistant does only that (`sum_up` and `edit_doc`) and ends by saying what changed, what is waiting and how to undo it. The copy in point 3 stays as it was. Had Mario said yes, the copy would have been marked (`flag_doc`), not deleted: you delete it in one click, keep it or unmark it. A document you wrote is asked about on its own, and in the AGENTS folder the assistant only tells you what it would change.
+Mario answers "1 and 2". The assistant does only that (`sum_up` and `edit_doc`) and ends by saying what changed, what is waiting and how to undo it. The copy in point 3 stays as it was. Had Mario said yes, the copy would have been marked (`flag_doc`), not deleted: you delete it in one click, keep it or unmark it. A document you wrote is asked about on its own, and in the Agents folder the assistant only tells you what it would change.
 
 **Documents to mention.** Your documents that are not put away are offered too — your Diary only while it is open to agents — so you can hand one to the assistant by name: in Claude Code, type `@` and pick it by its title and folder. A document of up to about 12,000 characters arrives whole; a longer one arrives as its outline, its headings and their lines, and the assistant asks for the part it needs.
 

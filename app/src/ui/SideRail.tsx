@@ -1,12 +1,12 @@
 import { useRef } from "react";
-import { agentsLit, agentsRoot, askToLight } from "../agentsSync";
+import { type AgentsStage, agentsPaint, askAgents, folderShown } from "../agentsSync";
 import { fold } from "../breadth";
 import type { List, Papers } from "../core";
 import { capped } from "../format";
 import { AGENTS, agentsHidden, useHidden } from "../hiding";
 import { fill, t } from "../locales";
 import type { Chosen, Named } from "../views";
-import { useAgentsState } from "./AgentsMark";
+import { useAgentsStage } from "./AgentsMark";
 import Glyph from "./Glyph";
 import { painted } from "./Hue";
 import { fitting, useRoom } from "./room";
@@ -31,10 +31,9 @@ interface Shelved {
   name: string;
   icon?: string | null;
   color?: string | null;
-  dim: boolean;
+  /// Set on Agents alone, which draws its state instead of a stored colour.
+  stage?: AgentsStage | null;
 }
-
-const UNBORN: Shelved = { id: AGENTS, name: "AGENTS", icon: "robot", color: "purple", dim: true };
 
 interface Props {
   lists: List[];
@@ -46,6 +45,11 @@ interface Props {
   onReveal: (folder?: string) => void;
   onBrainsty?: () => void;
 }
+
+const railSaid = (folder: Shelved): string => {
+  if (folder.stage === "unbrought") return `${folder.name} — ${t("agentsUnbroughtSaid")}`;
+  return folder.stage === "brought" ? `${folder.name} — ${t("agentsNotSynced")}` : folder.name;
+};
 
 export default function SideRail({
   lists,
@@ -60,15 +64,14 @@ export default function SideRail({
   const shelf = useRef<HTMLDivElement>(null);
   const room = useRoom(shelf, "height");
   const veiled = useHidden();
-  const root = agentsRoot(papers.folders)?.id ?? null;
-  const stance = useAgentsState(root);
-  const asleep = stance !== null && !agentsLit(stance);
+  const { root, stage } = useAgentsStage(papers);
   const agentsAway = agentsHidden(veiled, root);
   const top: Shelved[] = papers.folders
     .filter((one) => one.parent === null && !one.away && !veiled.includes(one.id))
     .filter((one) => one.id !== root || !agentsAway)
-    .map((one) => ({ ...one, dim: one.id === root && asleep }));
-  if (!root && !agentsAway) top.push(UNBORN);
+    .map((one) => ({ ...one, name: folderShown(one), stage: one.id === root ? stage : undefined }));
+  if (!root && !agentsAway)
+    top.push({ id: AGENTS, name: t("agentsName"), icon: "robot", stage: "unbrought" });
   const fits = fitting(top.length, room, STEP);
   const hidden = top.length - fits;
   const plain = !chosen.list && !chosen.tags?.length;
@@ -127,15 +130,15 @@ export default function SideRail({
           <button
             key={folder.id}
             type="button"
-            onClick={() => (folder.dim ? askToLight() : unfoldTo(folder.id))}
-            aria-label={folder.dim ? `${folder.name} — ${t("agentsPaused")}` : folder.name}
+            onClick={() => (folder.stage === "unbrought" ? askAgents() : unfoldTo(folder.id))}
+            aria-label={railSaid(folder)}
             title={folder.name}
             className={`grid size-9 shrink-0 place-items-center rounded-[10px] hover:bg-hover ${
               here === folder.id && chosen.named === "docs" ? "bg-active" : ""
             }`}
           >
             <span
-              className={`grid size-6 place-items-center rounded-md bg-current/10 ${painted(folder.color)}${folder.dim ? " opacity-50" : ""}`}
+              className={`grid size-6 place-items-center rounded-md bg-current/10 ${folder.stage === undefined ? painted(folder.color) : agentsPaint(folder.stage)}`}
             >
               <Glyph name={folder.icon ?? "folder"} className="h-[13px] w-[13px]" />
             </span>
