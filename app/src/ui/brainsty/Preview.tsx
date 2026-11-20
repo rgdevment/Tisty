@@ -11,6 +11,7 @@ import { copied, docAddress } from "../../core";
 import { numbered } from "../../format";
 import { fill, t } from "../../locales";
 import { CARDED, factsOf } from "./cardFacts";
+import { FileActions, FileLooks, fileFactsOf, useFileFacts } from "./FileCard";
 import { type Alike, wordsSaid } from "./guessing";
 
 export interface Guessed extends Alike {
@@ -23,6 +24,7 @@ interface Props {
   readonly tied: readonly [Tie, number][];
   readonly zone?: string;
   readonly alike?: readonly Guessed[];
+  readonly users?: readonly Neuron[];
   readonly nodeOf?: (id: string) => number | undefined;
   readonly onOpen: () => void;
   readonly onClose: () => void;
@@ -40,6 +42,7 @@ export default function Preview({
   tied,
   zone,
   alike = [],
+  users = [],
   nodeOf,
   onOpen,
   onClose,
@@ -61,7 +64,9 @@ export default function Preview({
     };
   }, [neuron.id, neuron.kind]);
 
-  const facts = card ? factsOf(neuron, card) : [];
+  const file = useFileFacts(neuron);
+  const isFile = neuron.kind === "file";
+  const facts = card ? factsOf(neuron, card) : file ? fileFactsOf(neuron.id, file) : [];
   const pointing = [...(card?.cited_by ?? []), ...(card?.mentioned_by ?? [])];
   return (
     <aside
@@ -90,6 +95,7 @@ export default function Preview({
         </p>
       </div>
       <div className="scroller flex min-h-0 flex-col gap-3">
+        {file && <FileLooks id={neuron.id} />}
         {facts.length > 0 && (
           <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-[12px]">
             {facts.map(([label, value]) => (
@@ -114,7 +120,12 @@ export default function Preview({
             </p>
           </Part>
         )}
-        {tied.length > 0 && (
+        {isFile && users.length > 0 && (
+          <Part title={t("brainstyUsedIn")}>
+            <Pointing all={users} nodeOf={nodeOf} onPick={onPick} />
+          </Part>
+        )}
+        {!isFile && tied.length > 0 && (
           <Part title={t("brainstyTiesTitle")}>
             <p className="flex flex-wrap gap-x-3 gap-y-1 text-[12px] text-soft">
               {tied.map(([tie, many]) => (
@@ -134,7 +145,8 @@ export default function Preview({
         {alike.length > 0 && <Guesses alike={alike} onPick={onPick} />}
         <Address neuron={neuron} />
       </div>
-      {neuron.kind !== "file" && (
+      {file && <FileActions id={neuron.id} />}
+      {!isFile && (
         <button
           type="button"
           onClick={onOpen}
@@ -147,10 +159,21 @@ export default function Preview({
   );
 }
 
-function Part({ title, children }: { readonly title: string; readonly children: React.ReactNode }) {
+function Part({
+  title,
+  beside,
+  children,
+}: {
+  readonly title: string;
+  readonly beside?: React.ReactNode;
+  readonly children: React.ReactNode;
+}) {
   return (
     <section aria-label={title} className="flex flex-col gap-1">
-      <h3 className="text-[11px] font-semibold tracking-wide text-faint uppercase">{title}</h3>
+      <div className="flex items-center gap-1.5">
+        <h3 className="text-[11px] font-semibold tracking-wide text-faint uppercase">{title}</h3>
+        {beside}
+      </div>
       {children}
     </section>
   );
@@ -165,11 +188,13 @@ const addressOf = (neuron: Neuron): Promise<string | null> => {
 function Address({ neuron }: { readonly neuron: Neuron }) {
   const [address, setAddress] = useState<string | null>(null);
   const [taken, setTaken] = useState(false);
+  const [told, setTold] = useState(false);
 
   useEffect(() => {
     let live = true;
     setAddress(null);
     setTaken(false);
+    setTold(false);
     addressOf(neuron).then(
       (said) => live && setAddress(said),
       () => undefined,
@@ -181,7 +206,23 @@ function Address({ neuron }: { readonly neuron: Neuron }) {
 
   if (!address) return null;
   return (
-    <Part title={t("brainstyFactLink")}>
+    <Part
+      title={t("brainstyFactLink")}
+      beside={
+        // The pointer reads it on hovering; a press shows it for the keys and for a screen reader.
+        <button
+          type="button"
+          aria-label={t("brainstyLinkAsk")}
+          aria-expanded={told}
+          title={t("brainstyLinkWhat")}
+          onClick={() => setTold(!told)}
+          className="grid size-4 place-items-center rounded-full border border-hair text-[10px] leading-none text-faint hover:bg-hover hover:text-ink"
+        >
+          ?
+        </button>
+      }
+    >
+      {told && <p className="text-[11.5px] text-soft">{t("brainstyLinkWhat")}</p>}
       <p className="flex min-w-0 items-center gap-2">
         <code className="min-w-0 flex-1 truncate text-[11.5px] text-soft" title={address}>
           {address}

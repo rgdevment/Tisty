@@ -378,6 +378,15 @@ pub async fn opened(
     Ok(())
 }
 
+#[tauri::command]
+pub async fn shown_in_folder(
+    session: tauri::State<'_, Mutex<Session>>,
+    reference: String,
+) -> Answer<()> {
+    let at = finding::fetched(&session, reference.clone(), looked_up).await?;
+    show(&at, &reference)
+}
+
 fn handed(at: &std::path::Path) -> Result<(), Box<dyn std::error::Error>> {
     tauri_plugin_opener::open_path(at, None::<&str>)?;
     Ok(())

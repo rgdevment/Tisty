@@ -2,7 +2,7 @@ use jiff::Timestamp;
 
 use super::super::tests::{World, doc, task};
 use super::{
-    CAPS, Caps, Held, LeftOut, Network, Neuron, TIES, card_of, dates, kept_out, network,
+    CAPS, Caps, Held, LeftOut, Network, Neuron, TIES, card_of, dates, file_seen, kept_out, network,
     touched_last, woven,
 };
 
@@ -572,4 +572,30 @@ fn the_diary_and_its_pages_leave_the_network() {
     let (_, notes) = doc(&world, &mut store, &citing, None, None);
 
     kept_whole_out(&world, &[&book, &month], &notes);
+}
+
+#[test]
+fn a_file_is_in_sight_only_while_something_in_sight_uses_it() {
+    let world = World::new();
+    let mut brain = world.brain();
+    world.refreshed(&mut brain, &world.state());
+    for (source, target) in [
+        ("notes.md", "attachments/map.png"),
+        ("secret.md", "attachments/map.png"),
+        ("secret.md", "attachments/plan.pdf"),
+    ] {
+        brain
+            .db
+            .execute(
+                "INSERT INTO edge(source, target, kind) VALUES (?1, ?2, 'uses')",
+                [source, target],
+            )
+            .unwrap();
+    }
+    let shown = |id: &str| id != "secret.md";
+
+    assert!(brain.file_seen("attachments/map.png", shown).unwrap());
+    assert!(!brain.file_seen("attachments/plan.pdf", shown).unwrap());
+    assert!(!brain.file_seen("attachments/none.png", shown).unwrap());
+    assert!(!file_seen(&world.paths, "attachments/plan.pdf", shown));
 }
