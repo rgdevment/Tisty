@@ -51,6 +51,19 @@ export function factsOf(neuron: Neuron, card: Card): Fact[] {
   return facts.filter((one): one is Fact => one !== null);
 }
 
+const USES = TIES.indexOf("uses");
+
+export function usersOf(
+  network: { nodes: readonly Neuron[]; edges: readonly (readonly number[])[] },
+  file: number,
+  hidden: readonly boolean[],
+): Neuron[] {
+  const users = network.edges.flatMap(([from, to, code]) =>
+    code === USES && to === file && !hidden[from] ? [network.nodes[from]] : [],
+  );
+  return users.sort((one, other) => one.title.localeCompare(other.title));
+}
+
 export function tiesAt(edges: readonly (readonly number[])[], node: number): [Tie, number][] {
   const counts = new Map<Tie, number>();
   for (const [from, to, code] of edges) {

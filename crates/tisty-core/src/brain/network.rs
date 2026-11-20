@@ -160,6 +160,28 @@ pub fn card_of(
         .flatten()
 }
 
+impl Brain {
+    fn file_seen(&self, file: &str, shown: impl Fn(&str) -> bool) -> rusqlite::Result<bool> {
+        let mut asked = self
+            .db
+            .prepare("SELECT source FROM edge WHERE target = ?1 AND kind = 'uses'")?;
+        let users = asked.query_map([file], |row| row.get::<_, String>(0))?;
+        for user in users {
+            if shown(&user?) {
+                return Ok(true);
+            }
+        }
+        Ok(false)
+    }
+}
+
+// A file is in sight only while something in sight uses it, as in the network.
+pub fn file_seen(paths: &Paths, file: &str, shown: impl Fn(&str) -> bool) -> bool {
+    Brain::looked_at(paths.cache())
+        .and_then(|brain| brain.file_seen(file, shown).ok())
+        .unwrap_or(false)
+}
+
 // The person's network leaves out what they hid or let go and, unlike an agent's view, the diary even when open.
 pub fn kept_out(root: &std::path::Path, state: &State) -> HashSet<String> {
     let tasks = state

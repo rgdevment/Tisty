@@ -5,7 +5,7 @@ import { serve } from "../inUse";
 import { t } from "../locales";
 import { pictured } from "../previews";
 import Corner from "./brainsty/Corner";
-import { tiesAt } from "./brainsty/cardFacts";
+import { tiesAt, usersOf } from "./brainsty/cardFacts";
 import { type Curves, curvesOn } from "./brainsty/curves";
 import { type Drawing, drawNetwork, type HueOf } from "./brainsty/drawing";
 import { groupsKey } from "./brainsty/grouping";
@@ -87,6 +87,13 @@ export default function Brainsty({ network, groups, onOpen, escaping }: Props) {
   const tied = useMemo(
     () => (picked === null ? [] : tiesAt(network.edges, picked)),
     [network, picked],
+  );
+  const users = useMemo(
+    () =>
+      picked !== null && network.nodes[picked]?.kind === "file"
+        ? usersOf(network, picked, hidden)
+        : [],
+    [network, picked, hidden],
   );
   const indexOf = useMemo(
     () => new Map(network.nodes.map((one, node) => [one.id, node])),
@@ -301,6 +308,7 @@ export default function Brainsty({ network, groups, onOpen, escaping }: Props) {
           nodeOf={(id) => indexOf.get(id)}
           zone={shown.group ? named.get(shown.group) : undefined}
           alike={alike.map((one) => ({ ...one, neuron: network.nodes[one.node] }))}
+          users={users}
           onPick={choose}
           onOpen={() => onOpen(shown)}
           onClose={() => setPicked(null)}
