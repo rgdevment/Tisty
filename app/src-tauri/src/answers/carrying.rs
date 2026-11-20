@@ -48,8 +48,11 @@ pub fn doc_export(
         &keyed,
         &pages,
         std::path::Path::new(&into),
-        None,
-        beside.as_deref(),
+        &tisty_core::docs::TakenOut {
+            called: None,
+            also: beside.as_deref(),
+            shown: &|_| None,
+        },
     )
     .map_err(|e| {
         witness::warn(

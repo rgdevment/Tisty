@@ -204,17 +204,20 @@ fn a_documents_newest_line_is_its_last_standing_one_saying_the_most() {
     let terms: Vec<String> = vec!["cache".into(), "disk".into()];
 
     assert_eq!(
-        newest_paper_line(&paths, "dev_person-0001", &terms).as_deref(),
+        newest_paper_line(&paths, &State::default(), "dev_person-0001", &terms, None).as_deref(),
         Some("The cache moved to disk again.")
     );
 
     let struck = "# Cache\n\nThe cache sits on disk.\n\n~~The cache left the disk.~~\n";
     tisty_core::docs::write(&paths.docs(), "dev_person-0002", struck).unwrap();
     assert_eq!(
-        newest_paper_line(&paths, "dev_person-0002", &terms).as_deref(),
+        newest_paper_line(&paths, &State::default(), "dev_person-0002", &terms, None).as_deref(),
         Some("The cache sits on disk.")
     );
-    assert_eq!(newest_paper_line(&paths, "dev_person-0404", &terms), None);
+    assert_eq!(
+        newest_paper_line(&paths, &State::default(), "dev_person-0404", &terms, None),
+        None
+    );
 }
 
 #[test]
@@ -225,7 +228,7 @@ fn a_documents_line_is_prose_never_its_front_matter_headings_or_code() {
     let terms: Vec<String> = vec!["sync".into(), "cache".into()];
 
     assert_eq!(
-        newest_paper_line(&paths, "dev_person-0003", &terms).as_deref(),
+        newest_paper_line(&paths, &State::default(), "dev_person-0003", &terms, None).as_deref(),
         Some("The sync keeps a cache.")
     );
 }

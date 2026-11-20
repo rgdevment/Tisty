@@ -168,8 +168,14 @@ pub(in crate::mcp) fn found(paths: &Paths, args: &Value) -> Result<Value, Refuse
         .map(|mut one| {
             let shown = match with_lines && !said(&one, "line").is_empty() {
                 true => {
-                    let line = newest_paper_line(paths, said(&one, "doc"), &terms)
-                        .unwrap_or_else(|| said(&one, "line").to_string());
+                    let line = newest_paper_line(
+                        paths,
+                        &state,
+                        said(&one, "doc"),
+                        &terms,
+                        Some(said(&one, "line")),
+                    )
+                    .unwrap_or_default();
                     let (shown, unpathed) = quoted(&line, kept_here(&line), &terms);
                     hid |= unpathed;
                     shown
