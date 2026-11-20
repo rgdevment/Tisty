@@ -37,6 +37,7 @@ export interface Legend {
   standings: StandingKey[];
   lines: LineKey[];
   alike: { color: string; size: number } | null;
+  outside: { color: string; count: number } | null;
 }
 
 const STATES: Record<Standing, string | undefined> = {
@@ -58,6 +59,7 @@ export function legendOf(network: Network, groups: readonly Group[], palette: Pa
     if (one.group) counted.set(one.group, (counted.get(one.group) ?? 0) + 1);
   const tinted = groups.flatMap((group) => {
     const count = counted.get(group.id);
+    if (group.agents) return [];
     const color = group.color ? palette.hues[group.color] : undefined;
     return count && color ? [{ id: group.id, name: group.name, color, count }] : [];
   });
@@ -82,5 +84,17 @@ export function legendOf(network: Network, groups: readonly Group[], palette: Pa
     ? { color: rgba(palette.hues.amber, alphaOf(1)), size: WIDTH }
     : null;
 
-  return { kinds, groups: tinted, standings, lines, alike };
+  const theirs = groups.reduce(
+    (sum, group) => sum + (group.agents ? (counted.get(group.id) ?? 0) : 0),
+    0,
+  );
+  const outside =
+    theirs > 0
+      ? {
+          color: nodeLook({ id: "", kind: "doc", title: "" }, undefined, palette, 0, true).color,
+          count: theirs,
+        }
+      : null;
+
+  return { kinds, groups: tinted, standings, lines, alike, outside };
 }

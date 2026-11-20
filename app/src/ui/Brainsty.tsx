@@ -51,6 +51,8 @@ export default function Brainsty({ network, groups, onOpen, escaping }: Props) {
   const [motions, setMotions] = useState(motionsAtFirst);
   const [costShown, setCostShown] = useState(false);
   const hues = useRef<HueOf>(() => undefined);
+  const outside = useRef(new Set<string>());
+  outside.current = new Set(groups.flatMap((one) => (one.agents ? [one.id] : [])));
   const tinted = new Map<string, string>();
   const named = new Map<string, string>();
   for (const one of groups) {
@@ -99,6 +101,7 @@ export default function Brainsty({ network, groups, onOpen, escaping }: Props) {
     const spots = seeded(network.nodes);
     const shaped = brainShaped(amidMembers(spots, network));
     const hueOf: HueOf = (group) => hues.current(group);
+    const outsideOf = (group?: string) => (group ? outside.current.has(group) : false);
     const palette = paletteNow();
     const drawn = drawNetwork(
       container,
@@ -107,6 +110,7 @@ export default function Brainsty({ network, groups, onOpen, escaping }: Props) {
       hueOf,
       palette,
       getComputedStyle(container).fontFamily,
+      outsideOf,
     );
     const curves = curvesOn(container, drawn, network, palette);
     curves.show(live.current.guessing);
@@ -116,7 +120,7 @@ export default function Brainsty({ network, groups, onOpen, escaping }: Props) {
     let colours = palette;
     const colourOf = (node: number) => {
       const one = network.nodes[node];
-      return nodeLook(one, hueOf(one.group), colours).color;
+      return nodeLook(one, hueOf(one.group), colours, 0, outsideOf(one.group)).color;
     };
     const icons = iconsOn(container, drawn, network, colourOf, PICTURES.shows);
     const living = livingOn(container, drawn, network, colourOf);
