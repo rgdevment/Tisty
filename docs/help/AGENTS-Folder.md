@@ -30,7 +30,7 @@ They are two different steps, and you can stay on the first one as long as you l
 | :-- | :-- | :-- |
 | What it does | Copies the files you tick into Tisty, as documents | From then on, what you change in Tisty reaches your agents' files |
 | Your agents' files | Stay as they are: Tisty writes nothing into them | Tisty writes them with what your documents say, with a backup before each overwrite |
-| A change made outside | Tisty does not look at it | Tisty warns you on the document's card and waits for you to choose |
+| A change made outside | Stays in the file alone: Tisty asks you to decide nothing | Tisty warns you on the document's card and waits for you to choose |
 | Your documents | Stay in Agents, and you edit them like any document | The same |
 | What it needs | That this computer lets you read the files you tick | The same, once per computer |
 | How it is undone | You delete or move the documents, like any other | **Stop syncing**: no agent file is touched and no document is deleted |
@@ -160,7 +160,7 @@ After bringing, a ticked file may stay out:
 
 ### If you have no agent files yet
 
-The box says «I found no agent files on this computer. You can still sync: Agents fills up as you write your rules.». **Bring** stays greyed out, since there is nothing to bring, and **Bring and sync** is still there: pressing it lets this computer sync and still creates the **Agents** folder, with its **Global** subfolder. The box says «Nothing new came in. This computer now keeps Agents in sync.», and in the sidebar Agents is left with its coral robot and **0** documents. Going into it does not open the box again.
+The box says «I found no agent files on this computer. You can still sync: Agents fills up as you write your rules.». **Bring** stays greyed out, since there is nothing to bring, and **Bring and sync** is still there: pressing it lets this computer sync and still creates the **Agents** folder, with its **Global** subfolder. The box says «Nothing new came in. This computer now keeps Agents in sync.», and in the sidebar Agents is left with its coral robot. Going into it does not open the box again.
 
 From there you have two ways:
 
@@ -426,7 +426,7 @@ And if the document is not applied on this computer yet, an amber notice says wh
 
 ## A change made outside: bring it in or overwrite
 
-You can keep editing your agents' files in your editor, or let the agent change them. Tisty never writes over those changes. This happens while syncing: brought but not synced, Tisty does not even look at those files, and what you change there stays there.
+You can keep editing your agents' files in your editor, or let the agent change them. Tisty never writes over those changes. This happens while syncing: brought but not synced, Tisty neither writes those files nor asks you to decide anything, and what you change there stays there.
 
 **An example.** You open `~/.claude/CLAUDE.md` in your editor and add «- Run the tests before every commit.». If Agents syncs, the next time Tisty looks (on start, when you come back to the window, or when you open the document), the card of **How I work**, the document of that `CLAUDE.md`, says **Changed outside**, with a notice:
 
@@ -475,7 +475,7 @@ The **document's** earlier versions, on the other hand, are those of any documen
 
 **Stopping sync for the whole folder.** Right-click **Agents** and choose **Stop syncing**, or the **Stop syncing** button on its card in **Settings › Assistants**. This happens, and nothing more:
 
-- **No agent file is touched.** Your agents keep reading their files just as Tisty left them, and Tisty stops writing them and checking whether they change.
+- **No agent file is touched.** Your agents keep reading their files just as Tisty left them, and Tisty stops writing them and asking you to decide when they change outside.
 - **No document is deleted.** They stay in Agents, and you read and edit them as always; what you change stays in Tisty.
 - **Agents goes to state 2.** Its robot turns grey again and, when you open it, «Not synced with your agents · Sync» shows at the top. Each document's card says «The Agents folder does not sync with your agents. Choose Sync in the sidebar or in Settings › Assistants.», and the **Agent file** panel, under **Syncs on this computer**, «No, Agents does not sync».
 
@@ -805,7 +805,7 @@ And editing the file on disk does not help either: that change stands as **Chang
 
 **Can I ask my agent to change my rules?** Yes, and it proposes it: its change stays apart, on the document's card, until you press **Approve the change** or **Discard**. Nothing reaches your agents before. See [A proposal from your agent](#a-proposal-from-your-agent).
 
-**I use Tisty on two computers. Do my rules reach the other one by themselves?** They arrive as documents, with your sync, but on the other computer they wait for your **Apply here** the first time. After that they update by themselves. See [On several computers](#on-several-computers).
+**I use Tisty on two computers. Do my rules reach the other one by themselves?** They arrive as documents, with your sync, and there Agents shows brought but not synced. For them to reach that computer's agents, press **Sync** there, and then **Apply here** on each document, the first time. After that they update by themselves. See [On several computers](#on-several-computers).
 
 **Can I keep a rule on one computer only?** Yes: on the computer where you do not want it, press **Not on this computer** on its card. What each computer chooses is its own.
 
@@ -848,7 +848,7 @@ And editing the file on disk does not help either: that change stands as **Chang
 
 **My rule does not reach my other computer.** On that computer, check that Agents has its coral robot (if it is grey, press **Sync**) and open the document: if it says «This document comes from another computer», press **Apply here**; if it says «You chose not to apply it on this computer.», that too. If the card says «No assistant on this computer reads this document yet.», that computer does not have the rule's assistant.
 
-**The sidebar says to approve and I changed nothing.** A document's text changed without going through Tisty's window, for example through an imported parcel or a direct edit in the data folder. Open it, read it, and if it is right, **Approve this text**.
+**A card says To approve and I changed nothing.** A document's text changed without going through Tisty's window, for example through an imported parcel or a direct edit in the data folder. Open it, read it, and if it is right, **Approve this text**.
 
 **I wrote a Global rule and a file stands Changed on both sides.** That file already existed and you did not bring it in, so Tisty cannot tell which part is yours. Do not overwrite it: in **Settings › Assistants**, press **Review** and, in **It exists on both sides**, **Bring it into Agents**. The file ends up with Global in front of your part, and the original as backup #1. See [A file you never brought](#a-file-you-never-brought).
 

@@ -22,7 +22,7 @@ It does not handle each repository's rules: only the files in your user folder, 
 
 ## Bring or sync
 
-- **Bring** copies the files you tick into Tisty, as documents. Your agents' files stay as they are: Tisty writes nothing into them and does not check whether they change. What you edit in those documents stays in Tisty.
+- **Bring** copies the files you tick into Tisty, as documents. Your agents' files stay as they are: Tisty writes nothing into them and asks you to decide nothing when they change. What you edit in those documents stays in Tisty.
 - **Sync** makes what you change in Agents reach your agents' files from then on, with a backup before each overwrite, and has Tisty warn you on a document's card if its file changed outside.
 - **Stop syncing** stops it: no agent file is touched and no document is deleted.
 
@@ -179,7 +179,7 @@ Beside it, the **Agent file** panel takes the place of the paper size and the ou
 
 ## A change made outside: bring it in or overwrite
 
-You can keep editing your agents' files in your editor, or let the agent change them. While syncing, Tisty never writes over those changes; brought but not synced, it does not even look at them.
+You can keep editing your agents' files in your editor, or let the agent change them. While syncing, Tisty never writes over those changes; brought but not synced, it neither writes those files nor asks you to decide anything.
 
 **An example.** You open `~/.claude/CLAUDE.md` in your editor and add «- Run the tests before every commit.». The next time Tisty looks, the card of **How I work** says **Changed outside**:
 

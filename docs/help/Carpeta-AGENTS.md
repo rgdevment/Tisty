@@ -30,7 +30,7 @@ Son dos pasos distintos, y puedes quedarte en el primero todo lo que quieras.
 | :-- | :-- | :-- |
 | Qué hace | Copia los archivos que marcas a Tisty, como documentos | Desde ese momento, lo que cambias en Tisty llega a los archivos de tus agentes |
 | Los archivos de tus agentes | Quedan como están: Tisty no escribe nada en ellos | Tisty los escribe con lo que dicen tus documentos, con un respaldo antes de cada sobrescritura |
-| Un cambio hecho por fuera | Tisty no lo mira | Tisty te avisa en la ficha del documento y espera que elijas |
+| Un cambio hecho por fuera | Queda solo en el archivo: Tisty no te pide decidir nada | Tisty te avisa en la ficha del documento y espera que elijas |
 | Tus documentos | Quedan en Agentes, y los editas como cualquier documento | Lo mismo |
 | Qué pide | Que este equipo te deje leer los archivos que marcas | Lo mismo, una vez por equipo |
 | Cómo se deshace | Borras o mueves los documentos, como cualquier otro | **Dejar de sincronizar**: ningún archivo de tus agentes se toca y ningún documento se borra |
@@ -160,7 +160,7 @@ Después de traer, un archivo marcado puede quedar fuera:
 
 ### Si todavía no tienes archivos de agentes
 
-El aviso dice «No encontré archivos de agentes en este equipo. Igual puedes sincronizar: Agentes se llena a medida que escribes tus reglas.». **Traer** queda desactivado, porque no hay nada que traer, y **Traer y sincronizar** sigue disponible: pulsarlo deja que este equipo sincronice y crea igual la carpeta **Agentes**, con su subcarpeta **Global**. El aviso dice «No entró nada nuevo. Desde ahora este equipo mantiene Agentes al día.», y en la barra Agentes queda con su robot coral y **0** documentos. Entrar en ella no vuelve a abrir el aviso.
+El aviso dice «No encontré archivos de agentes en este equipo. Igual puedes sincronizar: Agentes se llena a medida que escribes tus reglas.». **Traer** queda desactivado, porque no hay nada que traer, y **Traer y sincronizar** sigue disponible: pulsarlo deja que este equipo sincronice y crea igual la carpeta **Agentes**, con su subcarpeta **Global**. El aviso dice «No entró nada nuevo. Desde ahora este equipo mantiene Agentes al día.», y en la barra Agentes queda con su robot coral. Entrar en ella no vuelve a abrir el aviso.
 
 Desde ahí tienes dos caminos:
 
@@ -426,7 +426,7 @@ Y si el documento todavía no se aplica en este equipo, un aviso ámbar dice por
 
 ## Un cambio por fuera: traer o sobrescribir
 
-Puedes seguir editando los archivos de tus agentes con tu editor, o dejar que el agente los cambie. Tisty nunca pisa esos cambios. Esto pasa sincronizando: traída sin sincronizar, Tisty ni mira esos archivos, y lo que cambies ahí queda solo ahí.
+Puedes seguir editando los archivos de tus agentes con tu editor, o dejar que el agente los cambie. Tisty nunca pisa esos cambios. Esto pasa sincronizando: traída sin sincronizar, Tisty no escribe esos archivos ni te pide decidir nada, y lo que cambies ahí queda solo ahí.
 
 **Un ejemplo.** Abres `~/.claude/CLAUDE.md` en tu editor y agregas «- Corre los tests antes de cada commit.». Si Agentes sincroniza, la próxima vez que Tisty mira (al iniciar, al volver a la ventana o al abrir el documento), la ficha de **Cómo trabajo**, el documento de ese `CLAUDE.md`, dice **Cambiado por fuera**, con un aviso:
 
@@ -475,7 +475,7 @@ Las versiones anteriores del **documento**, en cambio, son las de cualquier docu
 
 **Dejar de sincronizar toda la carpeta.** Botón derecho sobre **Agentes** y **Dejar de sincronizar**, o el botón **Dejar de sincronizar** en su tarjeta de **Configuración › Asistentes**. Pasa esto, y nada más:
 
-- **Ningún archivo de tus agentes se toca.** Tus agentes siguen leyendo sus archivos tal como Tisty los dejó, y Tisty deja de escribirlos y de mirar si cambian.
+- **Ningún archivo de tus agentes se toca.** Tus agentes siguen leyendo sus archivos tal como Tisty los dejó, y Tisty deja de escribirlos y de pedirte que decidas cuando cambian por fuera.
 - **Ningún documento se borra.** Siguen en Agentes, y los lees y los editas como siempre; lo que cambias queda en Tisty.
 - **Agentes pasa al estado 2.** Su robot vuelve al gris y, al abrirla, arriba aparece «No se sincroniza con tus agentes · Sincronizar». La ficha de cada documento dice «La carpeta Agentes no se sincroniza con tus agentes. Elige Sincronizar en la barra o en Configuración › Asistentes.», y el panel **Archivo del agente**, en **Sincroniza en este equipo**, «No, Agentes no se sincroniza».
 
@@ -805,7 +805,7 @@ Y editar el archivo en disco tampoco sirve: ese cambio queda como **Cambiado por
 
 **¿Puedo pedirle a mi agente que cambie mis reglas?** Sí, y te lo propone: su cambio queda aparte, en la ficha del documento, hasta que pulsas **Aprobar el cambio** o **Descartar**. Nada llega a tus agentes antes. Mira [Una propuesta de tu agente](#una-propuesta-de-tu-agente).
 
-**Uso Tisty en dos equipos. ¿Mis reglas llegan solas al otro?** Llegan como documentos, con tu sincronización, pero en el otro equipo esperan tu **Aplicar aquí** la primera vez. Después se ponen al día solas. Mira [En varios equipos](#en-varios-equipos).
+**Uso Tisty en dos equipos. ¿Mis reglas llegan solas al otro?** Llegan como documentos, con tu sincronización, y ahí Agentes aparece traída sin sincronizar. Para que lleguen a los agentes de ese equipo, pulsa **Sincronizar** allá, y después **Aplicar aquí** en cada documento, la primera vez. Después se ponen al día solas. Mira [En varios equipos](#en-varios-equipos).
 
 **¿Puedo tener una regla solo en un equipo?** Sí: en el equipo donde no la quieres, pulsa **No en este equipo** en su ficha. Lo que elige cada equipo es solo suyo.
 
@@ -848,7 +848,7 @@ Y editar el archivo en disco tampoco sirve: ese cambio queda como **Cambiado por
 
 **Mi regla no llega a mi otro equipo.** En ese equipo, revisa que Agentes tenga su robot coral (si está gris, pulsa **Sincronizar**) y abre el documento: si dice «Este documento viene de otro equipo», pulsa **Aplicar aquí**; si dice «Elegiste no aplicarlo en este equipo.», también. Si la ficha dice «Ningún asistente de este equipo lee este documento todavía.», ese equipo no tiene el asistente de la regla.
 
-**La barra dice por aprobar y yo no cambié nada.** El texto de un documento cambió sin pasar por la ventana de Tisty, por ejemplo con un paquete importado o una edición directa en la carpeta de datos. Ábrelo, léelo, y si está bien, **Aprobar este texto**.
+**Una ficha dice Por aprobar y yo no cambié nada.** El texto de un documento cambió sin pasar por la ventana de Tisty, por ejemplo con un paquete importado o una edición directa en la carpeta de datos. Ábrelo, léelo, y si está bien, **Aprobar este texto**.
 
 **Escribí una regla de Global y un archivo quedó en Cambiado en los dos lados.** Ese archivo ya existía y no lo trajiste, así que Tisty no sabe qué parte es tuya. No lo sobrescribas: en **Configuración › Asistentes**, pulsa **Revisar** y, en **Existe en los dos lados**, **Traer a Agentes**. El archivo queda con Global delante de lo tuyo, y el original, como respaldo n.º 1. Mira [Un archivo que nunca trajiste](#un-archivo-que-nunca-trajiste).
 

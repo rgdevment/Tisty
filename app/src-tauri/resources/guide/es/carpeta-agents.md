@@ -22,7 +22,7 @@ No maneja las reglas de cada repositorio: solo los archivos de tu carpeta de usu
 
 ## Traer o sincronizar
 
-- **Traer** copia a Tisty los archivos que marcas, como documentos. Los archivos de tus agentes quedan como están: Tisty no escribe nada en ellos ni mira si cambian. Lo que editas en esos documentos queda en Tisty.
+- **Traer** copia a Tisty los archivos que marcas, como documentos. Los archivos de tus agentes quedan como están: Tisty no escribe nada en ellos ni te pide decidir nada cuando cambian. Lo que editas en esos documentos queda en Tisty.
 - **Sincronizar** hace que, desde ese momento, lo que cambias en Agentes llegue a los archivos de tus agentes, con un respaldo antes de cada sobrescritura, y que Tisty te avise en la ficha de un documento si su archivo cambió por fuera.
 - **Dejar de sincronizar** lo detiene: ningún archivo de tus agentes se toca y ningún documento se borra.
 
@@ -179,7 +179,7 @@ Al lado, el panel **Archivo del agente** ocupa el lugar del tamaño de hoja y de
 
 ## Un cambio por fuera: traer o sobrescribir
 
-Puedes seguir editando los archivos de tus agentes con tu editor, o dejar que el agente los cambie. Sincronizando, Tisty nunca pisa esos cambios; traída sin sincronizar, ni siquiera los mira.
+Puedes seguir editando los archivos de tus agentes con tu editor, o dejar que el agente los cambie. Sincronizando, Tisty nunca pisa esos cambios; traída sin sincronizar, no escribe esos archivos ni te pide decidir nada.
 
 **Un ejemplo.** Abres `~/.claude/CLAUDE.md` en tu editor y agregas «- Corre los tests antes de cada commit.». La próxima vez que Tisty mira, la ficha de **Cómo trabajo** dice **Cambiado por fuera**:
 
