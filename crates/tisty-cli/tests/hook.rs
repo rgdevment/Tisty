@@ -282,3 +282,41 @@ fn anything_unexpected_exits_quietly() {
         assert!(said.stdout.is_empty(), "{args:?}: {said:?}");
     }
 }
+
+#[test]
+fn a_start_heard_twice_in_one_session_speaks_once_and_another_session_still_hears_it() {
+    let home = Home::new();
+    home.person().lets_the_agent_in();
+    let heard = json!({ "session_id": "s-twice", "source": "startup" });
+
+    let first = context(&home.hook("claude-code", "start", &heard));
+    let again = home.hook("claude-code", "start", &heard);
+    let other = home.hook(
+        "claude-code",
+        "start",
+        &json!({ "session_id": "s-other", "source": "startup" }),
+    );
+
+    assert!(first.starts_with("Tisty holds"), "{first}");
+    assert!(again.status.success());
+    assert!(again.stdout.is_empty(), "{again:?}");
+    assert_eq!(context(&other), first);
+}
+
+#[test]
+fn the_switch_turned_off_in_the_settings_silences_a_start_through_the_binary() {
+    let home = Home::new();
+    home.person().lets_the_agent_in();
+    let config = home.home.path().join("config").join("config.toml");
+    let kept = std::fs::read_to_string(&config).unwrap();
+    std::fs::write(&config, format!("turn_hooks = false\n{kept}")).unwrap();
+
+    let said = home.hook(
+        "claude-code",
+        "start",
+        &json!({ "session_id": "s-off", "source": "startup" }),
+    );
+
+    assert!(said.status.success());
+    assert!(said.stdout.is_empty(), "{said:?}");
+}
