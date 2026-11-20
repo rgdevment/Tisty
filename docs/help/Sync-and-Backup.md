@@ -45,7 +45,7 @@ You do it once on each of your other machines. Until then nothing that machine w
 
 Tisty merges **block by block**: you edit the introduction on one machine, someone edits the closing paragraph on the other, and both land with nothing to answer. Only a real overlap becomes a question: the window shows the two side by side and you keep **This one**, **The other** or **Both**.
 
-A document's [earlier versions](Documents#earlier-versions) do not travel: each machine keeps what was replaced on it, what a change from another machine replaced included, and prunes them on its own. A new machine starts without them, even once it holds all your documents. For example, you wrote «Rina's walks» on Marisol's laptop in the morning and corrected it in the afternoon, with your desktop off. The morning's text never reached the desktop, so there the list shows it as **Not on this computer; Marisol's laptop keeps it**: it is read and gone back to on the laptop.
+A document's [earlier versions](Documents#earlier-versions) do not travel: each machine keeps what was replaced on it, what a change from another machine replaced included, and prunes them on its own. A new machine starts without them, even once it holds all your documents. For example, you wrote «Rina's walks» on Mario's laptop in the morning and corrected it in the afternoon, with your desktop off. The morning's text never reached the desktop, so there the list shows it as **Not on this computer; Mario's laptop keeps it**: it is read and gone back to on the laptop.
 
 ## Large attachments
 

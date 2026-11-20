@@ -55,6 +55,11 @@ Conecta Tisty por MCP, como muestra [[Asistentes y MCP|Asistentes-y-MCP]]: GitHu
 **¿Reemplaza a CLAUDE.md, AGENTS.md o una carpeta memory-bank?**
 Para lo que cambia, sí; para lo que no, no. Las instrucciones que casi no se mueven (cómo compilar, las convenciones) van en los archivos que tu repositorio ya le entrega al asistente. Lo que se mueve (el avance, las decisiones, lo descartado, lo que falta) va en Tisty, donde queda fechado, buscable, se lee una sección a la vez y no se pierde entre ramas, equipos ni proyectos.
 
+Y los archivos de tu carpeta personal, como `~/.claude/CLAUDE.md` o `~/.codex/AGENTS.md`, la carpeta [[Agentes|Carpeta-AGENTS]] los trae a Tisty como documentos, si se lo pides. **Traer** solo los copia; **Sincronizar** además escribe en ellos lo que cambias en Tisty, con un respaldo antes. Los archivos de tu repositorio no los toca.
+
+**¿Mi agente puede cambiar mis reglas en la carpeta Agentes?**
+No por su cuenta. Las lee como cualquier documento, pero un cambio suyo queda como propuesta: en la ficha ves lo **Aprobado** y lo **Propuesto**, y solo con **Aprobar el cambio** llega a los archivos de tus agentes, en cada equipo donde Agentes sincroniza y lo aplicaste. Mira [[Una propuesta de tu agente|Carpeta-AGENTS#una-propuesta-de-tu-agente]].
+
 **¿Tisty usa IA?**
 No, y no la va a usar. El lenguaje natural son reglas en tu equipo. Si usas un asistente propio, Tisty deja una [[puerta MCP|Asistentes-y-MCP]]: viene abierta y un clic la cierra.
 
@@ -85,16 +90,16 @@ No. Los dos se dibujan con código que va dentro de Tisty: no se descarga nada, 
 En lo larga que se dibuja la raya bajo el encabezado. Mira [tablas](https://markdown.tisty.app/es/tablas) en la guía de Markdown de Tisty.
 
 **¿Puedo volver a lo que decía un documento hace unos días?**
-Sí, en el equipo donde se cambió: **Ver el historial**, en la fila **Historial** del panel junto al documento, lista sus versiones anteriores, **Qué cambió** te muestra en rojo y verde qué es distinto de lo de ahora, y **Volver a esta versión** la recupera. Se guardan 30 días por defecto y no se sincronizan. Mira [Documentos](Documentos#versiones-anteriores).
+Sí, en el equipo donde se cambió: **Ver el historial**, en la fila **Historial** del panel junto al documento, lista sus versiones anteriores, **Qué cambió** te muestra en rojo y verde qué es distinto de lo de ahora, y **Volver a esta versión** la recupera. Tisty guarda una cuando alguien escribe después de 30 minutos sin cambios o cuando cambia quien escribe, tú o un asistente, así que lo que reemplazó tu agente siempre queda aparte. Se guardan 30 días por defecto, no se sincronizan y **Vaciar el historial** las borra de ese equipo. Mira [Documentos](Documentos#versiones-anteriores).
 
 **¿En qué se diferencia la red de Brainsty del grafo de Obsidian?**
-El grafo de Obsidian muestra enlaces entre notas. Brainsty une documentos y tareas, con el estado de cada tarea y su historia, y la misma red le sirve a tu agente como índice para buscar sin leerlo todo. Dibuja con líneas lo que está escrito (enlaces, tarjetas, páginas, partes, de dónde nació una tarea y etiquetas) y, con una curva ámbar aparte, lo que Tisty cree que se parece: porque comparte palabras, porque una tiene un error de tipeo o porque una es la traducción de la otra, y siempre dice por qué. Se abre en el panel de contenido, junto a la barra lateral, con una leyenda de sus colores, y no gasta nada cuando pasas a otra vista. Mira [[La red de Brainsty|Red-de-Brainsty]].
+El grafo de Obsidian muestra enlaces entre notas. Brainsty une documentos y tareas, con el estado de cada tarea y su historia, y la misma red le sirve a tu agente como índice para buscar sin leerlo todo. Dibuja con líneas lo que está escrito (enlaces, tarjetas, páginas, partes, de dónde nació una tarea y etiquetas), y lo escrito pesa más que una etiqueta al acomodarse; las carpetas y las listas dan el color, no son puntos. Con una curva ámbar aparte, lo que Tisty cree que se parece: porque comparte palabras, porque una tiene un error de tipeo o porque una es la traducción de la otra, y siempre dice por qué. Se abre en el panel de contenido, junto a la barra lateral, con una leyenda de sus colores, y no gasta nada cuando pasas a otra vista. Mira [[La red de Brainsty|Red-de-Brainsty]].
 
 **¿Brainsty usa IA para saber qué se parece?**
-No. Usa reglas fijas y una lista de palabras: dos palabras poco comunes en común, una palabra a un solo cambio de otra, como *imrpesora* e *impresora*, o una pareja de un diccionario español–inglés hecho por lingüistas, como *pagar ≈ pay*. No entiende ni aprende de lo que escribes, y todo corre en tu equipo. Mira [Sin IA](Privacidad#sin-ia).
+No. Usa reglas fijas y una lista de palabras: dos palabras poco comunes en común, una palabra a un solo cambio de otra, como *imrpesora* e *impresora*, o una pareja de un diccionario español–inglés hecho por lingüistas, como *pagar ≈ pay*. No entiende ni aprende de lo que escribes, solo lee la prosa (nunca el código, las rutas ni los archivos de tus agentes), y todo corre en tu equipo. Mira [Sin IA](Privacidad#sin-ia).
 
 **¿Brainsty sube algo a la nube?**
-No. La red se calcula en cada equipo y se rehace sola: no se sincroniza, ni va a Folio, a un `.tistyx` o a una exportación. Lo que viaja son tus documentos y tareas, como siempre. Lo mismo vale para lo que Brainsty anota como parecido: mira [La red de Brainsty](Red-de-Brainsty#parecidos).
+No. La red se calcula en cada equipo y se rehace sola: no se sincroniza, ni va a Folio, a un `.tistyx`, a una exportación o a un respaldo. Lo que viaja son tus documentos y tareas, como siempre. Lo mismo vale para lo que Brainsty anota como parecido: mira [La red de Brainsty](Red-de-Brainsty#parecidos).
 
 ## Sincronización
 
