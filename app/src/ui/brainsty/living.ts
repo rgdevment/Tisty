@@ -19,7 +19,6 @@ export const HOP_SECONDS = 5;
 const TURN_SECONDS = 60;
 const FLASH_SECONDS = 0.6;
 const LONGEST_STEP = 0.1;
-const ZOOM_REST_MS = 800;
 const SHAPE_REACH_PX = 32;
 const MEASURED_EVERY = 30;
 
@@ -107,7 +106,6 @@ export function livingOn(
   let rendering = 0;
   let held = false;
   let pointer: [number, number] | null = null;
-  let zoomedAt = Number.NEGATIVE_INFINITY;
   let travelling = true;
   let spinning = true;
   let counted = 0;
@@ -204,13 +202,10 @@ export function livingOn(
     }
     return false;
   };
-  const zoom = () => {
-    zoomedAt = clock.now();
-  };
   container.addEventListener("pointermove", moved);
   container.addEventListener("pointerleave", leave);
-  container.addEventListener("wheel", zoom, { passive: true });
-  const still = () => held || clock.now() - zoomedAt < ZOOM_REST_MS || onShape();
+  // Brought close, the globe stays put until the view is back on the whole network.
+  const still = () => held || drawing.zoom() > 0 || onShape();
 
   const tick = (at: number) => {
     const started = clock.now();
@@ -297,7 +292,6 @@ export function livingOn(
       container.ownerDocument.removeEventListener("visibilitychange", seen);
       container.removeEventListener("pointermove", moved);
       container.removeEventListener("pointerleave", leave);
-      container.removeEventListener("wheel", zoom);
       unheard();
       unhook();
       canvas.remove();
