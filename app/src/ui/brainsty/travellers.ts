@@ -9,6 +9,7 @@ const OFFSCREEN = 0.15;
 
 export interface World {
   neighbours: (node: number) => readonly number[];
+  pull: (from: number, to: number) => number;
   kindOf: (node: number) => NeuronKind;
   big: (node: number) => boolean;
   flashy: (node: number) => boolean;
@@ -47,7 +48,7 @@ export const setOut = (at: number): Traveller => ({
 const WEIGHT: Partial<Record<NeuronKind, number>> = { doc: 4, page: 4, task: 1.2, tag: 0.7 };
 
 function weightOf(world: World, one: Traveller, node: number): number {
-  let weight = WEIGHT[world.kindOf(node)] ?? 0.6;
+  let weight = (WEIGHT[world.kindOf(node)] ?? 0.6) * world.pull(one.to, node);
   if (world.big(node)) weight *= 0.6;
   if (one.recent.includes(node)) weight *= 0.03;
   if (!world.seen(node)) weight *= OFFSCREEN;

@@ -10,6 +10,7 @@ import {
   seeded,
   settle,
   spotsOf,
+  weightsOf,
 } from "../ui/brainsty/settling";
 
 const neuron = (id: string, group?: string): Neuron => ({ id, kind: "task", title: id, group });
@@ -58,6 +59,29 @@ describe("where the network starts and how it settles", () => {
     expect(graph.order).toBe(3);
     expect(graph.size).toBe(1);
     expect([...spotsOf(graph).x]).toEqual([0, 1, 2]);
+  });
+
+  it("pulls hardest along what was written, barely along a tag, and keeps the strongest of two lines", () => {
+    const ties: [number, number, number][] = [
+      [0, 1, 3],
+      [1, 0, 0],
+      [1, 2, 4],
+      [0, 2, 3],
+    ];
+    const weights = weightsOf(ties);
+    expect([...weights].map((one) => Math.round(one * 10) / 10)).toEqual([0.3, 3, 1.5, 0.3]);
+
+    const graph = graphOf({
+      x: Float32Array.of(0, 1, 2),
+      y: Float32Array.of(0, 1, 2),
+      edges: edgesOf(ties),
+      weights,
+    });
+
+    expect(graph.size).toBe(3);
+    expect(graph.getEdgeAttribute(graph.edge("0", "1"), "weight")).toBe(3);
+    expect(graph.getEdgeAttribute(graph.edge("1", "2"), "weight")).toBe(1.5);
+    expect(Math.round(graph.getEdgeAttribute(graph.edge("0", "2"), "weight") * 10) / 10).toBe(0.3);
   });
 
   it("measures a batch's movement against the network's width", () => {

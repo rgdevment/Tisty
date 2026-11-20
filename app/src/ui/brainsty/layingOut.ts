@@ -14,6 +14,11 @@ export function layOut(asked: Asked, onStep: Laying, worker: Worker = startWorke
     worker.terminate();
     onStep({ x: new Float32Array(), y: new Float32Array(), done: true, iterations: 0, ms: 0 });
   };
-  worker.postMessage(asked, [asked.x.buffer, asked.y.buffer, asked.edges.buffer]);
+  worker.postMessage(asked, [
+    asked.x.buffer,
+    asked.y.buffer,
+    asked.edges.buffer,
+    ...(asked.weights ? [asked.weights.buffer] : []),
+  ]);
   return () => worker.terminate();
 }
