@@ -481,7 +481,18 @@ pub fn lead_in(data: &Path, ledger: &Ledger, target: &Target, line: &str) -> Res
     if linked(target) {
         return Err(Refused::Linked);
     }
-    let was = on_disk(&target.at)?.unwrap_or_default();
+    led_over(data, target, line, on_disk(&target.at)?)
+}
+
+// The agent may write its memory between the read and the write, so the write checks it still reads the same.
+fn led_over(
+    data: &Path,
+    target: &Target,
+    line: &str,
+    read: Option<Vec<u8>>,
+) -> Result<bool, Refused> {
+    let seen = read.as_deref().map(printed);
+    let was = read.unwrap_or_default();
     let text = std::str::from_utf8(&was).map_err(|_| Refused::NotText)?;
     if text.lines().any(|one| one.trim() == line) {
         return Ok(false);
@@ -493,7 +504,7 @@ pub fn lead_in(data: &Path, ledger: &Ledger, target: &Target, line: &str) -> Res
     }
     now.extend_from_slice(line.as_bytes());
     now.extend_from_slice(newline);
-    written_over(data, &target.at, &now, None)?;
+    written_over(data, &target.at, &now, Some(&seen))?;
     Ok(true)
 }
 
@@ -527,6 +538,10 @@ pub fn lead_out(
     let Some(was) = on_disk(&target.at)? else {
         return Ok(false);
     };
+    unled_over(data, target, line, was)
+}
+
+fn unled_over(data: &Path, target: &Target, line: &str, was: Vec<u8>) -> Result<bool, Refused> {
     let text = std::str::from_utf8(&was).map_err(|_| Refused::NotText)?;
     let left: String = text
         .split_inclusive('\n')
@@ -535,7 +550,12 @@ pub fn lead_out(
     if left.len() == text.len() {
         return Ok(false);
     }
-    written_over(data, &target.at, left.as_bytes(), None)?;
+    written_over(
+        data,
+        &target.at,
+        left.as_bytes(),
+        Some(&Some(printed(&was))),
+    )?;
     Ok(true)
 }
 

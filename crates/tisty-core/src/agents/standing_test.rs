@@ -992,3 +992,82 @@ fn only_tistys_import_line_leaves_the_agents_own_file() {
         Err(Refused::NoConsent)
     );
 }
+
+fn gemini(room: &Room) -> Target {
+    let mut target = room.target(".gemini/GEMINI.md", Vec::new());
+    target.assistant = "gemini".into();
+    target
+}
+
+#[test]
+fn geminis_file_changed_between_reading_and_adding_the_line_is_left_as_gemini_wrote_it() {
+    let room = room();
+    let target = gemini(&room);
+    std::fs::create_dir_all(target.at.parent().unwrap()).unwrap();
+    std::fs::write(&target.at, "- remembered just now\n").unwrap();
+
+    let read_before = Some(b"- older memory\n".to_vec());
+    assert_eq!(
+        led_over(room.data.path(), &target, "@tisty-rules.md", read_before),
+        Err(Refused::Changed)
+    );
+    assert_eq!(read(&target), "- remembered just now\n");
+    assert!(backups(room.data.path(), &target.at).is_empty());
+
+    assert_eq!(
+        led_over(room.data.path(), &target, "@tisty-rules.md", None),
+        Err(Refused::Changed),
+        "a file that appeared since it was read missing is not written over either"
+    );
+}
+
+#[test]
+fn geminis_file_changed_between_reading_and_taking_the_line_out_is_left_as_gemini_wrote_it() {
+    let room = room();
+    let target = gemini(&room);
+    std::fs::create_dir_all(target.at.parent().unwrap()).unwrap();
+    std::fs::write(&target.at, "@tisty-rules.md\n- remembered just now\n").unwrap();
+
+    let read_before = b"@tisty-rules.md\n".to_vec();
+    assert_eq!(
+        unled_over(room.data.path(), &target, "@tisty-rules.md", read_before),
+        Err(Refused::Changed)
+    );
+    assert_eq!(read(&target), "@tisty-rules.md\n- remembered just now\n");
+
+    let now = std::fs::read(&target.at).unwrap();
+    assert_eq!(
+        unled_over(room.data.path(), &target, "@tisty-rules.md", now),
+        Ok(true)
+    );
+    assert_eq!(read(&target), "- remembered just now\n");
+    assert_eq!(backups(room.data.path(), &target.at).len(), 1);
+}
+
+#[cfg(windows)]
+#[test]
+fn a_locked_file_tried_again_and_again_keeps_one_backup_of_what_it_held() {
+    use std::os::windows::fs::OpenOptionsExt;
+    let mut room = room();
+    let target = room.target(
+        ".codex/AGENTS.md",
+        vec![rule("codex", "AGENTS.md", "New.\n")],
+    );
+    std::fs::create_dir_all(target.at.parent().unwrap()).unwrap();
+    std::fs::write(&target.at, "Written by hand.\n").unwrap();
+    let locked = std::fs::OpenOptions::new()
+        .read(true)
+        .share_mode(1)
+        .open(&target.at)
+        .unwrap();
+
+    for _ in 0..3 {
+        assert!(overwrite(room.data.path(), &mut room.ledger, &target).is_err());
+    }
+    assert_eq!(backups(room.data.path(), &target.at).len(), 1);
+
+    drop(locked);
+    overwrite(room.data.path(), &mut room.ledger, &target).unwrap();
+    assert_eq!(read(&target), "New.\n");
+    assert_eq!(backups(room.data.path(), &target.at).len(), 1);
+}
