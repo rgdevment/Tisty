@@ -554,7 +554,8 @@ export default function Docs({
   // An agent's file is kept byte for byte, so the paper it is shown on stays on this computer.
   const laidHere = bolted || agent.held || agent.doc !== null;
   // An agent's file has its own card and no column: what the column told is on the card.
-  const inAgents = agentsTree(folders).has(own?.folder ?? "");
+  const agentsHold = useMemo(() => agentsTree(folders), [folders]);
+  const inAgents = agentsHold.has(own?.folder ?? "");
   const agentShown = agent.doc !== null || (agent.held && inAgents);
   const shelf = useAgentShelf(open?.file ?? null);
   const shownTitle = agent.doc?.label || called;
