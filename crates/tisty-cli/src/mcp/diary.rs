@@ -19,8 +19,22 @@ pub(super) fn may_start(body: &str) -> Result<(), Refused> {
 }
 
 pub(super) fn body_kept(before: &str, after: &str) -> Result<(), Refused> {
-    match !says_diary(before) && says_diary(after) {
-        true => Err(started_by_the_person()),
+    if !says_diary(before) && says_diary(after) {
+        return Err(started_by_the_person());
+    }
+    agent_line_kept(before, after)
+}
+
+// An `agent:` line added or changed anywhere would make an assistant's file, which only the person makes in AGENTS.
+fn agent_line_kept(before: &str, after: &str) -> Result<(), Refused> {
+    let address = |body: &str| tisty_core::agents::Card::of(body).map(|card| card.address());
+    let after_card = address(after);
+    match after_card.is_some() && after_card != address(before) {
+        true => Err(Refused::Tool(
+            "an `agent:` line makes an assistant's own file, which only the person makes, in \
+             AGENTS. Leave that line as it was. Nothing was written."
+                .into(),
+        )),
         false => Ok(()),
     }
 }

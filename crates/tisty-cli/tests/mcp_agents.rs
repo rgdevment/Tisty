@@ -900,3 +900,25 @@ fn retargeted(
         .replace(&claude.to_string(), &to_claude.to_string());
     serde_json::from_str(&said).unwrap()
 }
+
+#[test]
+fn no_tool_slips_an_agent_line_into_a_document_outside_agents() {
+    let served = Served::new();
+    let before = served.body(&served.elsewhere);
+    let card = "---\nagent: claude/rule/CLAUDE.md\n---\n";
+    let said = served.call(
+        "edit_doc",
+        json!({ "doc": served.elsewhere, "old": "# Notes", "new": format!("{card}# Notes") }),
+    );
+    assert_eq!(said["result"]["isError"], true, "{said}");
+    assert_eq!(served.body(&served.elsewhere), before);
+
+    served.call(
+        "append_doc",
+        json!({ "doc": served.elsewhere, "body": card }),
+    );
+    assert!(
+        tisty_core::agents::Card::of(&served.body(&served.elsewhere)).is_none(),
+        "added at the end, those lines are words, never the document's card"
+    );
+}
