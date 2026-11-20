@@ -597,7 +597,7 @@
     "name": "guide-agents-en",
     "file": "app/src-tauri/resources/guide/en/agents-folder.md",
     "falls_short": "drops the final newline",
-    "title": "AGENTS: your agents' rules",
+    "title": "Agents: your agents' rules",
     "tags": [],
     "refs": [
       "Link:agents-sidebar.png",
@@ -749,7 +749,7 @@
     "name": "guide-agents-es",
     "file": "app/src-tauri/resources/guide/es/carpeta-agents.md",
     "falls_short": "drops the final newline",
-    "title": "AGENTS: las reglas de tus agentes",
+    "title": "Agentes: las reglas de tus agentes",
     "tags": [],
     "refs": [
       "Link:agents-barra.png",

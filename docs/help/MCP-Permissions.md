@@ -24,7 +24,7 @@ What an assistant may do is deliberately small. Finishing, dropping and deleting
 - **Add to today in your Diary**, once you open it to agents and only when you ask: its words go at the end of today, under a line with the minute and its name.
 - **Read and search** what is already there, including the archive.
 - **See and go back to a document's [earlier versions](Documents#earlier-versions)** this computer keeps: list them, read one and go back to it, and undo that go-back.
-- **Propose a change to your [AGENTS](AGENTS-Folder#a-proposal-from-your-agent) rules and skills**: it stays apart, on the document's card, until you approve or discard it.
+- **Propose a change to your rules and skills in [Agents](AGENTS-Folder#a-proposal-from-your-agent)**: it stays apart, on the document's card, until you approve or discard it.
 
 ## Never
 
@@ -35,7 +35,7 @@ What an assistant may do is deliberately small. Finishing, dropping and deleting
 - Tick a step of yours, or finish a task of yours: it can only say they are done.
 - Move a day **you** set.
 - Delete a document, or rename or delete a folder.
-- Write in [AGENTS](AGENTS-Folder#a-proposal-from-your-agent): a change to a rule or a skill stays as a proposal, apart, until you approve it on the card. Nor does it move, archive or mark those documents, change their `agent:` line, propose on a memory, put a document or make a folder there, or write in any folder a document with an `agent:` line.
+- Write in [Agents](AGENTS-Folder#a-proposal-from-your-agent): a change to a rule or a skill stays as a proposal, apart, until you approve it on the card. Nor does it move, archive or mark those documents, change their `agent:` line, propose on a memory, put a document or make a folder there, or write in any folder a document with an `agent:` line.
 - Empty a document's history, or read or go back to a version another of your computers keeps.
 - Take an idea out of Ideas any other way, mark the whole sheet, put it away or move it into a folder.
 - Reach a task you folded away.

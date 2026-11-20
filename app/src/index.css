@@ -17,6 +17,8 @@
   --tisty-mark-repeat: rgb(214 51 160 / 0.15);
   --tisty-mark-step: rgb(0 150 190 / 0.16);
   --tisty-veil: rgb(0 0 0 / 0.28);
+  /* The Agents folder's own hue, the ideas' coral deep enough to read as an icon on white. */
+  --tisty-hue-coral: #c4543a;
   --tisty-docs-head: 30px;
   --tisty-lift: 0 4px 14px rgb(0 0 0 / 0.1), 0 1px 3px rgb(0 0 0 / 0.06);
   --tisty-lift-tall: 0 16px 44px rgb(0 0 0 / 0.16), 0 2px 8px rgb(0 0 0 / 0.08);
@@ -56,6 +58,7 @@
   --tisty-mark-repeat: rgb(240 110 205 / 0.2);
   --tisty-mark-step: rgb(70 205 240 / 0.2);
   --tisty-veil: rgb(0 0 0 / 0.55);
+  --tisty-hue-coral: #ff8f73;
   --tisty-lift: 0 4px 14px rgb(0 0 0 / 0.5), 0 1px 3px rgb(0 0 0 / 0.4);
   --tisty-lift-tall: 0 16px 44px rgb(0 0 0 / 0.62), 0 2px 8px rgb(0 0 0 / 0.45);
   --tisty-note-0: var(--tisty-idea-pink);
@@ -116,6 +119,7 @@
   --color-hue-pink: var(--tisty-hue-pink);
   --color-hue-brown: var(--tisty-hue-brown);
   --color-hue-gray: var(--tisty-hue-gray);
+  --color-hue-coral: var(--tisty-hue-coral);
   --color-urgent: var(--tisty-urgent);
   --color-high: var(--tisty-high);
   --color-veil: var(--tisty-veil);

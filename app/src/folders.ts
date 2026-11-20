@@ -1,3 +1,4 @@
+import { folderShown } from "./agentsSync";
 import { DEEPEST, type Folded } from "./core";
 import { t } from "./locales";
 import type { Choice } from "./ui/Menu";
@@ -20,7 +21,7 @@ export function trail(folders: Folded[], at: string): string {
     seen.add(up);
     const one = folders.find((each) => each.id === up);
     if (!one) break;
-    names.unshift(one.name);
+    names.unshift(folderShown(one));
     up = one.parent;
   }
   return names.join(" / ");

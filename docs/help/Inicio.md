@@ -65,7 +65,7 @@ Tisty no tiene IA dentro, y no la va a tener. Pero habla [MCP](https://modelcont
 - [[Asistentes y MCP|Asistentes-y-MCP]]: cómo conectar uno, dejarlo entrar, un día con tu agente y lo que cuesta.
 - [[Qué puede hacer un asistente|Qué-puede-hacer-un-asistente]]: los límites, su palabra sobre tus tareas y **Por confirmar**.
 - [[Herramientas MCP|Herramientas-MCP]]: cada herramienta que ofrece el servidor.
-- [[AGENTS: las reglas, skills y memoria de tus agentes|Carpeta-AGENTS]]: una carpeta para los archivos que leen Claude Code, Codex, Copilot, Gemini y Cursor, escritos por Tisty y con respaldos.
+- [[Agentes: las reglas, skills y memoria de tus agentes|Carpeta-AGENTS]]: una carpeta para los archivos que leen Claude Code, Codex, Copilot, Gemini y Cursor. Traer los copia para leerlos y ordenarlos; Sincronizar hace que Tisty los escriba, con respaldos.
 
 ## Documentos
 

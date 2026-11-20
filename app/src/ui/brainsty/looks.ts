@@ -29,6 +29,8 @@ export interface LineLook {
   alpha: number;
 }
 
+export const AGENTS_HUE = "coral";
+
 export const HUE_KEYS = [
   "red",
   "orange",
@@ -105,6 +107,8 @@ export function rgba(colour: string, alpha: number): string {
 export function paletteFrom(read: (name: string) => string): Palette {
   const hues: Record<string, string> = {};
   for (const key of HUE_KEYS) hues[key] = read(`--tisty-hue-${key}`);
+  // Agents' own hue, never one a folder can pick, so zones and choices keep the eleven.
+  hues[AGENTS_HUE] = read(`--tisty-hue-${AGENTS_HUE}`);
   return {
     bg: read("--tisty-bg"),
     ink: read("--tisty-ink"),

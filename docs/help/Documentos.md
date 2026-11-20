@@ -120,7 +120,7 @@ Te sirve cuando:
 
 Si no ocultaste ninguna, la sección dice «No hay carpetas ocultas.».
 
-![La sección Carpetas ocultas de Configuración › General en español: el título Carpetas ocultas, la línea Las carpetas que ocultaste de la barra en este equipo. Conservan todo lo que tienen, y la búsqueda, la paleta y «Mover a» las siguen encontrando., y tres filas, AGENTS, Casa y Trabajo / Clientes, cada una con el botón Volver a mostrar a la derecha](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/agents/es-15-carpetas-ocultas.png)
+![La sección Carpetas ocultas de Configuración › General en español: el título Carpetas ocultas, la línea Las carpetas que ocultaste de la barra en este equipo. Conservan todo lo que tienen, y la búsqueda, la paleta y «Mover a» las siguen encontrando., y tres filas, Agentes con su robot gris, Casa y Trabajo / Clientes, cada una con el botón Volver a mostrar a la derecha](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/agents/es-15-carpetas-ocultas.png)
 
 **Un ejemplo.** En el computador del trabajo, botón derecho sobre **Casa** y **Ocultar de la barra**: **Casa** y todo lo que tiene adentro, como **Casa / Rina**, salen de la barra. Una tarde Marisol te pide el carnet de vacunas de Rina. Lo escribes en el buscador de arriba de la barra y aparece, aunque **Casa** esté oculta, y lo abres desde ahí. En el computador de la casa, **Casa** sigue en la barra como siempre.
 
@@ -132,7 +132,7 @@ Lo que conviene saber:
 - **Una subcarpeta sola.** Puedes ocultar **Trabajo / Clientes** y dejar **Trabajo** a la vista. Su fila en Carpetas ocultas nombra el camino entero, para que sepas cuál es.
 - **El Diario e Ideas también.** Botón derecho sobre **Diario** o sobre **Ideas** y **Ocultar de la barra**. En Carpetas ocultas aparecen con su nombre, y **Volver a mostrar** los devuelve arriba de la Biblioteca.
 - **Una carpeta archivada no se oculta.** En el estante de **Archivados** la opción aparece apagada: ya está fuera de tu camino.
-- **AGENTS se oculta solo apagada.** Encendida, su botón derecho ofrece **Apagar AGENTS** en vez de ocultarla; apagada, su aviso ofrece **Ocultar**. Oculta, AGENTS sigue apagada: no escribe ningún archivo de tus agentes, y una propuesta de tu agente solo se guarda hasta que vuelves a mostrarla y la enciendes. Lo cuenta [Ocultarla de la barra](Carpeta-AGENTS#ocultarla-de-la-barra).
+- **Agentes se oculta solo mientras no sincroniza.** Todavía sin traer o traída sin sincronizar, su botón derecho ofrece **Ocultar de la barra**; sincronizando, no la ofrece, y primero eliges **Dejar de sincronizar**. Oculta, Agentes no sincroniza: no escribe ningún archivo de tus agentes. Lo cuenta [Ocultarla de la barra](Carpeta-AGENTS#ocultarla-de-la-barra).
 
 ## Etiquetas
 

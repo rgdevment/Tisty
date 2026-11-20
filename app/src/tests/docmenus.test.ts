@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Filed, Folded, Papers } from "../core";
-import { docChoices, folderChoices, type Hands, hereChoices, litFor } from "../docMenus";
+import { docChoices, folderChoices, type Hands, hereChoices, stageFor } from "../docMenus";
 import { AGENTS, isHidden, showAll } from "../hiding";
 import { t } from "../locales";
 import type { Choice } from "../ui/Menu";
@@ -26,7 +26,7 @@ vi.mock("@tauri-apps/plugin-dialog", () => ({
 const agentsAnswer = vi.hoisted(() => ({
   refuses: false,
   now: (): Promise<unknown> =>
-    Promise.resolve({ folder: "a1", consented: true, allOn: true, assistants: [] }),
+    Promise.resolve({ folder: "a1", held: 0, consented: true, allOn: true, assistants: [] }),
 }));
 
 const linking = vi.hoisted(() => ({ files: [] as string[], refuses: false }));
@@ -170,18 +170,36 @@ describe("the menu inside AGENTS", () => {
     expect(pick(folderChoices({ ...agentsClaude, away: true }, h), "agentsMore").off).toBe(true);
   });
 
-  it("turns AGENTS off from its own folder while it is on, and nowhere else", async () => {
-    const h = hands();
+  const withRoot = (h: ReturnType<typeof hands>) => {
     h.papers = { folders: [folder, agentsRoot, agentsClaude], docs: [] } as unknown as Papers;
-    const has = (choices: Choice[]) => choices.some((one) => one.key === "agentsOff");
-    expect(has(folderChoices(agentsRoot, h, false))).toBe(false);
-    expect(has(folderChoices(agentsClaude, h, true))).toBe(false);
-    expect(has(folderChoices(folder, h, true))).toBe(false);
+    return h;
+  };
+  const keys = (choices: Choice[]) => choices.map((one) => one.key);
+
+  it("offers only Sync and Hide on a brought Agents", () => {
+    const h = withRoot(hands());
+    const choices = folderChoices(agentsRoot, h, "brought");
+    expect(keys(choices)).toEqual(["agentsSync", "hide"]);
+    const sync = pick(choices, "agentsSync");
+    expect(sync.label).toBe("Sync");
+    const heard = vi.fn();
+    window.addEventListener("tisty:agents-sync", heard);
+    sync.onPick?.();
+    window.removeEventListener("tisty:agents-sync", heard);
+    expect(heard).toHaveBeenCalledTimes(1);
+    expect(sent()).toEqual([]);
+  });
+
+  it("offers only Stop syncing on an Agents that syncs, and on one whose stage is unknown", async () => {
+    const h = withRoot(hands());
+    const choices = folderChoices(agentsRoot, h, "syncs");
+    expect(keys(choices)).toEqual(["agentsUnsync"]);
+    expect(keys(folderChoices(agentsRoot, h))).toEqual(["agentsUnsync"]);
     const heard = vi.fn();
     window.addEventListener("tisty:agents-changed", heard);
-    const off = pick(folderChoices(agentsRoot, h, true), "agentsOff");
-    expect(off.label).toBe("Turn AGENTS off");
-    off.onPick?.();
+    const stop = pick(choices, "agentsUnsync");
+    expect(stop.label).toBe("Stop syncing");
+    stop.onPick?.();
     await flush();
     window.removeEventListener("tisty:agents-changed", heard);
     expect(calls).toEqual([{ cmd: "agents_turn", args: { assistant: null, on: false } }]);
@@ -189,49 +207,83 @@ describe("the menu inside AGENTS", () => {
     expect(heard).toHaveBeenCalled();
   });
 
-  it("asks whether AGENTS is on only for its own folder's menu", async () => {
-    const folders = [folder, agentsRoot, agentsClaude];
-    const then = vi.fn();
-    litFor(folder, folders, then);
-    expect(then).toHaveBeenLastCalledWith(false);
-    expect(sent()).toEqual([]);
-    litFor(agentsRoot, folders, then);
-    await flush();
-    expect(then).toHaveBeenLastCalledWith(true);
-    agentsAnswer.now = () => Promise.reject({ code: "x" });
-    litFor(agentsRoot, folders, then);
-    await flush();
-    expect(then).toHaveBeenLastCalledWith(true);
+  it("offers only Hide on an Agents with nothing brought", () => {
+    const h = withRoot(hands());
+    expect(keys(folderChoices(agentsRoot, h, "unbrought"))).toEqual(["hide"]);
   });
 
-  it("says so when turning AGENTS off fails", async () => {
+  it("offers no folder action on Agents itself, whatever its stage, and every one below it", () => {
+    const h = withRoot(hands());
+    for (const stage of ["unbrought", "brought", "syncs", null] as const) {
+      const choices = keys(folderChoices(agentsRoot, h, stage));
+      for (const one of ["newDoc", "newFolder", "rename", "move", "agentsMore", "away", "drop"])
+        expect(choices).not.toContain(one);
+    }
+    const below = keys(folderChoices(agentsClaude, h));
+    expect(below).toEqual(expect.arrayContaining(["rename", "agentsMore", "drop"]));
+    expect(pick(folderChoices(agentsClaude, h), "rename").off).toBe(false);
+  });
+
+  it("offers no sync choice on any other folder, whatever stage it is given", () => {
+    const h = withRoot(hands());
+    for (const stage of ["brought", "syncs"] as const) {
+      for (const one of [folder, agentsClaude]) {
+        const choices = keys(folderChoices(one, h, stage));
+        expect(choices).not.toContain("agentsSync");
+        expect(choices).not.toContain("agentsUnsync");
+        expect(choices).toContain("hide");
+      }
+    }
+  });
+
+  it("asks for the stage only on Agents' own menu, and counts unknown as syncing", async () => {
+    const at = { folders: [folder, agentsRoot, agentsClaude], docs: [] } as unknown as Papers;
+    const then = vi.fn();
+    stageFor(folder, at, then);
+    expect(then).toHaveBeenLastCalledWith(null);
+    stageFor(agentsClaude, at, then);
+    expect(then).toHaveBeenLastCalledWith(null);
+    expect(sent()).toEqual([]);
+    stageFor(agentsRoot, at, then);
+    await flush();
+    expect(then).toHaveBeenLastCalledWith("syncs");
+    agentsAnswer.now = () =>
+      Promise.resolve({ folder: "a1", held: 0, consented: false, allOn: true, assistants: [] });
+    stageFor(agentsRoot, at, then);
+    await flush();
+    expect(then).toHaveBeenLastCalledWith("unbrought");
+    agentsAnswer.now = () =>
+      Promise.resolve({ folder: "a1", held: 1, consented: false, allOn: true, assistants: [] });
+    stageFor(agentsRoot, at, then);
+    await flush();
+    expect(then).toHaveBeenLastCalledWith("brought");
+    agentsAnswer.now = () => Promise.reject({ code: "x" });
+    stageFor(agentsRoot, at, then);
+    await flush();
+    expect(then).toHaveBeenLastCalledWith("syncs");
+    agentsAnswer.now = () =>
+      Promise.resolve({ folder: "a1", held: 0, consented: true, allOn: true, assistants: [] });
+  });
+
+  it("says so when stopping the sync fails", async () => {
     agentsAnswer.refuses = true;
     const h = hands();
     h.papers = { folders: [agentsRoot], docs: [] } as unknown as Papers;
-    pick(folderChoices(agentsRoot, h, true), "agentsOff").onPick?.();
+    pick(folderChoices(agentsRoot, h, "syncs"), "agentsUnsync").onPick?.();
     await flush();
     agentsAnswer.refuses = false;
     expect(h.fail).toHaveBeenCalled();
     expect(h.changed).not.toHaveBeenCalled();
   });
 
-  it("offers no Hide on AGENTS while it is on, only Turn AGENTS off", () => {
-    const h = hands();
-    h.papers = { folders: [folder, agentsRoot], docs: [] } as unknown as Papers;
-    const keys = folderChoices(agentsRoot, h, true).map((one) => one.key);
-    expect(keys).toContain("agentsOff");
-    expect(keys).not.toContain("hide");
-    expect(folderChoices(folder, h, true).map((one) => one.key)).toContain("hide");
-  });
-
   it("hides AGENTS under its own key, so the row stays hidden once its folder is made again", () => {
     showAll();
     const h = hands();
     h.papers = { folders: [folder, agentsRoot], docs: [] } as unknown as Papers;
-    pick(folderChoices(agentsRoot, h), "hide").onPick?.();
+    pick(folderChoices(agentsRoot, h, "brought"), "hide").onPick?.();
     expect(isHidden(AGENTS)).toBe(true);
     expect(isHidden("a1")).toBe(false);
-    pick(folderChoices(agentsRoot, h), "hide").onPick?.();
+    pick(folderChoices(agentsRoot, h, "brought"), "hide").onPick?.();
     expect(isHidden(AGENTS)).toBe(false);
   });
 });

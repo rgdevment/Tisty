@@ -118,7 +118,7 @@ Cuando te cuenta lo que hizo, nombra una tarea o un documento como lo harías t�
 
 **Nunca** puede cerrar ni borrar una tarea, borrar un documento ni mover un día que pusiste tú. Un documento que ya cumplió su vida lo marca: tú lo borras, lo archivas o le quitas la marca. Una idea sale de Ideas solo cuando la anexa a un documento o la convierte en tarea, como lo harías tú; a una vieja la marca igual. Tu [Diario](Documentos#diario) queda fuera de su vista hasta que lo abres desde el propio Diario, y aun así solo añade al final de hoy, con su firma, cuando se lo pides. En una tarea que escribiste tú trabaja como en un documento (la descripción, la página, los pasos abiertos, el título y la lista), y que un paso o la tarea entera están hechos es solo su palabra, que tú tomas o no.
 
-Las reglas completas están en [[Qué puede hacer un asistente|Qué-puede-hacer-un-asistente]], y cada herramienta en la [[referencia de herramientas|Herramientas-MCP]]. Las reglas, skills y memoria que lee cada asistente, aunque no lo conectes, las guardas en la carpeta [[AGENTS|Carpeta-AGENTS]].
+Las reglas completas están en [[Qué puede hacer un asistente|Qué-puede-hacer-un-asistente]], y cada herramienta en la [[referencia de herramientas|Herramientas-MCP]]. Las reglas, skills y memoria que lee cada asistente, aunque no lo conectes, las guardas en la carpeta [[Agentes|Carpeta-AGENTS]].
 
 ## Pedidos listos y menciones con @
 
@@ -151,7 +151,7 @@ Y responde, por ejemplo:
 >
 > ¿Cuáles hago?
 
-Mario contesta «1 y 2». El asistente hace solo eso (`sum_up` y `edit_doc`) y termina diciendo qué cambió, qué queda esperando y cómo deshacerlo. La copia del punto 3 sigue como estaba. Si hubiera dicho que sí, la copia habría quedado marcada (`flag_doc`), no borrada: la borras tú con un clic, la guardas o le quitas la marca. Un documento que escribiste tú se pregunta por separado, y en la carpeta AGENTS el asistente solo te dice qué cambiaría.
+Mario contesta «1 y 2». El asistente hace solo eso (`sum_up` y `edit_doc`) y termina diciendo qué cambió, qué queda esperando y cómo deshacerlo. La copia del punto 3 sigue como estaba. Si hubiera dicho que sí, la copia habría quedado marcada (`flag_doc`), no borrada: la borras tú con un clic, la guardas o le quitas la marca. Un documento que escribiste tú se pregunta por separado, y en la carpeta Agentes el asistente solo te dice qué cambiaría.
 
 **Documentos para mencionar.** Tus documentos que no están guardados en el archivo también se ofrecen (tu Diario, solo mientras está abierto a los agentes), así que puedes pasarle uno al asistente por su nombre: en Claude Code, escribe `@` y elígelo por su título y su carpeta. Un documento de hasta unos 12 000 caracteres llega entero; uno más largo llega como su índice, sus títulos y sus líneas, y el asistente pide la parte que necesita.
 

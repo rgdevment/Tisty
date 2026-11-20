@@ -132,7 +132,7 @@ describe("what the agent file panel says", () => {
     );
     expect(
       rows(agent([place({ state: "off" })], { folderOff: true })).get("Syncs on this computer"),
-    ).toBe("No, AGENTS is off");
+    ).toBe("No, Agents does not sync");
     expect(
       rows(agent([place({ state: "synced" })], { kind: "memory" })).get("Syncs on this computer"),
     ).toBe("Tisty only reads it");

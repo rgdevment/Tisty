@@ -108,10 +108,10 @@ const rowSaid = (row: Offered): string => {
   return `${t(kindWord("skill"))} · ${filesSaid(ready.length)}`;
 };
 
-const broughtSaid = (made: number): string => {
-  if (made === 0) return t("agentsBroughtNone");
-  if (made === 1) return t("agentsBroughtOne");
-  return fill("agentsBroughtMany", String(made));
+const broughtSaid = (made: number, syncs: boolean): string => {
+  if (made === 0) return t(syncs ? "agentsBroughtNone" : "agentsBroughtNoneAlone");
+  if (made === 1) return t(syncs ? "agentsBroughtOne" : "agentsBroughtOneAlone");
+  return fill(syncs ? "agentsBroughtMany" : "agentsBroughtManyAlone", String(made));
 };
 
 const pickSaid = (assistants: AssistantSeen[], found: boolean, more: boolean): string => {
@@ -121,11 +121,8 @@ const pickSaid = (assistants: AssistantSeen[], found: boolean, more: boolean): s
   return t("agentsFirstNone");
 };
 
-const bringSaid = (busy: boolean, chosen: number, more: boolean): string => {
-  if (busy) return t("agentsBringing");
-  if (more) return t("agentsBring");
-  return chosen > 0 ? t("agentsBringSync") : t("agentsAllow");
-};
+/// Which button brought, so only that one says it is bringing: null is «Bring another file».
+type Going = boolean | null;
 
 function Assistant({
   one,
@@ -192,6 +189,7 @@ export default function AgentsFirst({ more = false, onClose, onChanged }: Readon
   const [look, setLook] = useState<AgentsLook>();
   const [chosen, setChosen] = useState<Set<string>>(new Set());
   const [busy, setBusy] = useState(false);
+  const [going, setGoing] = useState<Going>();
   const [trouble, setTrouble] = useState<string>();
   const [brought, setBrought] = useState<Brought>();
   const [waiting, setWaiting] = useState<Waiting[]>([]);
@@ -201,9 +199,10 @@ export default function AgentsFirst({ more = false, onClose, onChanged }: Readon
     agentsLook()
       .then((seen) => {
         setLook(seen);
-        const picking = more || !seen.consented;
+        // A folder that already syncs has nothing to pick: only what waits for the person, if anything.
+        const synced = !more && seen.consented && seen.allOn && !!seen.folder;
         const queue = waitingOf(seen);
-        if (!picking && queue.length > 0) {
+        if (synced) {
           setWaiting(queue);
           setReviewing(true);
         }
@@ -243,15 +242,16 @@ export default function AgentsFirst({ more = false, onClose, onChanged }: Readon
 
   // A file the bring turned away stays asked about, with the reason in the person's words.
   const bringOne = (at: string) =>
-    agentsBring([at]).then((done) => {
+    agentsBring([at], null).then((done) => {
       if (done.refused.length > 0) throw reasonSaid(done.refused[0]);
       return done;
     });
 
-  const bring = () => {
+  const bring = (sync: Going) => {
     setBusy(true);
+    setGoing(sync);
     setTrouble(undefined);
-    agentsBring([...chosen])
+    agentsBring([...chosen], sync)
       .then((done) => {
         setBrought(done);
         setWaiting(waitingOf(done.round));
@@ -317,7 +317,9 @@ export default function AgentsFirst({ more = false, onClose, onChanged }: Readon
   if (brought) {
     return (
       <Modal title={t(more ? "agentsMoreTitle" : "agentsFirstTitle")} wide onClose={onClose}>
-        <p className="text-[13px] leading-relaxed text-soft">{broughtSaid(brought.made)}</p>
+        <p className="text-[13px] leading-relaxed text-soft">
+          {broughtSaid(brought.made, brought.syncs)}
+        </p>
         {brought.refused.length > 0 && (
           <>
             <p className="mt-3 text-[12.5px] text-soft">{t("agentsRefused")}</p>
@@ -344,7 +346,12 @@ export default function AgentsFirst({ more = false, onClose, onChanged }: Readon
   const found = assistants.some((one) => one.files.some(takeable));
   const adding = more && !!look?.consented;
   return (
-    <Modal title={t(adding ? "agentsMoreTitle" : "agentsFirstTitle")} wide onClose={onClose}>
+    <Modal
+      title={t(adding ? "agentsMoreTitle" : "agentsFirstTitle")}
+      wide
+      closable={!adding}
+      onClose={onClose}
+    >
       {!adding && (
         <>
           <p className="text-[13px] leading-relaxed text-soft">{t("agentsFirstLead")}</p>
@@ -374,19 +381,41 @@ export default function AgentsFirst({ more = false, onClose, onChanged }: Readon
         </>
       )}
       {trouble && <p className="mt-2.5 text-[11.5px] text-urgent">{trouble}</p>}
-      <div className="mt-5 flex justify-end gap-2 text-[12.5px]">
-        <button type="button" onClick={onClose} className={button}>
-          {t("agentsNotNow")}
-        </button>
-        <button
-          type="button"
-          disabled={!look || busy || (adding && chosen.size === 0)}
-          onClick={bring}
-          className={primary}
-        >
-          {bringSaid(busy, chosen.size, adding)}
-        </button>
-      </div>
+      {adding ? (
+        <div className="mt-5 flex justify-end gap-2 text-[12.5px]">
+          <button type="button" onClick={onClose} className={button}>
+            {t("agentsNotNow")}
+          </button>
+          <button
+            type="button"
+            disabled={!look || busy || chosen.size === 0}
+            onClick={() => bring(null)}
+            className={primary}
+          >
+            {busy ? t("agentsBringing") : t("agentsBring")}
+          </button>
+        </div>
+      ) : (
+        // No «Not now»: the X or Esc leaves without doing anything, and the folder asks again later; hiding is on its menu.
+        <div className="mt-5 flex items-center justify-end gap-2 text-[12.5px]">
+          <button
+            type="button"
+            disabled={!look || busy || chosen.size === 0}
+            onClick={() => bring(false)}
+            className={button}
+          >
+            {busy && going === false ? t("agentsBringing") : t("agentsBring")}
+          </button>
+          <button
+            type="button"
+            disabled={!look || busy}
+            onClick={() => bring(true)}
+            className={primary}
+          >
+            {busy && going === true ? t("agentsBringing") : t("agentsBringSync")}
+          </button>
+        </div>
+      )}
     </Modal>
   );
 }
