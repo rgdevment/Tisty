@@ -67,7 +67,7 @@ No, y no la va a usar. El lenguaje natural son reglas en tu equipo. Si usas un a
 No. Nada de lo que hace un asistente cierra una tarea. La marca, con su cuenta en la bitácora, y la tarea espera en **Por confirmar** hasta que decidas. Mira [[Qué puede hacer un asistente|Qué-puede-hacer-un-asistente]].
 
 **¿Un asistente puede escribir encima de un documento que estoy editando?**
-Solo encima de la versión que leyó. Para reemplazar un documento entero tiene que devolver la huella del texto que leyó; si escribiste entretanto, no se escribe nada y tiene que volver a leer. Lo que reemplazó queda guardado, y la ventana te ofrece volver atrás, solo cuando esa copia está exactamente una escritura atrás, que es la única vez en que puede hacer lo que dice. Si intentas guardar encima de un cambio que no habías visto, te pregunta cuál se queda.
+Solo encima de la versión que leyó. Para reemplazar un documento entero tiene que devolver la huella del texto que leyó; si escribiste entretanto, no se escribe nada y tiene que volver a leer. Lo que reemplazó queda guardado como una versión en su historial, y desde **Ver el historial** vuelves a ella cuando quieras ([Versiones anteriores](Documentos#versiones-anteriores)). Además, la ventana te ofrece volver atrás de inmediato, solo cuando esa copia está exactamente una escritura atrás, que es la única vez en que puede hacer lo que dice. Si intentas guardar encima de un cambio que no habías visto, te pregunta cuál se queda.
 
 ## Documentos
 

@@ -67,7 +67,7 @@ No, and none is coming. The natural language is rules on your machine. If you us
 No. Nothing an assistant does closes a task. It marks it, with its account in the journal, and the task waits under **To confirm** until you decide. See [[What an assistant may do|MCP-Permissions]].
 
 **Can an assistant write over a document I am working on?**
-Only over the version it read. To replace a whole document it must send back the print of the text it read; if you wrote in between, nothing is written and it has to read again. What it replaced is kept, and the window offers to put the document back — only when that copy is exactly one write back, the only time it can do what it says. If you try to save over a change you had not seen, it asks which one stands.
+Only over the version it read. To replace a whole document it must send back the print of the text it read; if you wrote in between, nothing is written and it has to read again. What it replaced is kept as a version in its history, and from **See the history** you go back to it whenever you want ([Earlier versions](Documents#earlier-versions)). The window also offers to put the document back at once — only when that copy is exactly one write back, the only time it can do what it says. If you try to save over a change you had not seen, it asks which one stands.
 
 ## Documents
 

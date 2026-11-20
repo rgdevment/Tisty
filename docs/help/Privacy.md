@@ -115,6 +115,11 @@ In the **Agents** folder you keep your assistants' rules, skills and memory as d
 
 With **Bring and sync** or **Sync**, sync stays on for this computer, and you can pause it for one assistant or stop syncing the whole folder, with **Stop syncing** on its right-click or in Settings › Assistants: no agent file is touched and no document is deleted. Not synced or hidden from the sidebar, Agents writes none of your assistants' files. Paused, Tisty neither opens nor writes those files on its own: they stay as the last write left them, and your documents stay in Tisty. A pause belongs to this computer. If you take a rule out of Agents while it syncs, Tisty asks whether to take its file away too: it deletes it only if you say yes, and keeps a backup on this computer first. If you take every document out, it first asks the same about each file, and then the folder leaves Tisty and Agents goes back to the sidebar in grey, nothing brought; what you chose to leave stays as it was. Tisty never empties an assistant's file, and never deletes one without asking you.
 
+**Your assistants' hooks**
+
+- Agents never touches your assistants' settings files. Hooks do, and only when you ask: in **Settings › Assistants**, **Add** tells you which file it will write and, with your yes, puts Tisty's hooks there, leaving the rest of that file as it is. **Remove** takes them out.
+- With the hooks in place, when a session starts the assistant gets the tasks it left open and what moved. After each edit and each call to Tisty a mark is left in this computer's cache, without reading the conversation, to know whether a turn edited files without writing anything in Tisty. Those marks are not synced and never leave the computer.
+
 ## No AI
 
 Tisty does not use AI or machine learning on your data, and sends nothing to any model. The natural language is deterministic rules on your machine.

@@ -128,6 +128,7 @@ Worth knowing:
 
 - **It belongs to this computer.** What you hide does not travel with your sync: on your other computers the folder stays in view, and each computer hides its own.
 - **Nothing is deleted or moved.** The folder keeps its documents and subfolders, and search, the palette and **Move to** still find it: you can move a document into a hidden folder, and it goes in all the same.
+- **It hides from your view, not from your agent.** Your AI agent still reads and writes in a hidden folder, and Brainsty still draws it. What your agent never reaches is something else: a task you hid or dropped, your Diary until you open it, and the documents in Agents, which it only proposes on.
 - **The sidebar filter shows it.** While you type in the Library's filter, hidden folders show too, so a match never stays hidden. When you close the filter with `Esc`, they hide again.
 - **A subfolder on its own.** You can hide **Work / Clients** and leave **Work** in view. Its row in Hidden folders names the whole path, so you know which one it is.
 - **The Diary and Ideas too.** Right-click **Diary** or **Ideas** and choose **Hide from the sidebar**. In Hidden folders they show by name, and **Show again** puts them back at the top of the Library.

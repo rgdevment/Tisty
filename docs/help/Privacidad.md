@@ -115,6 +115,11 @@ En la carpeta **Agentes** guardas como documentos las reglas, las skills y la me
 
 Con **Traer y sincronizar** o **Sincronizar**, la sincronización queda activa en este equipo, y puedes pausarla para un asistente o dejar de sincronizar toda la carpeta, con **Dejar de sincronizar** en su botón derecho o en Configuración › Asistentes: ningún archivo de tus asistentes se toca y ningún documento se borra. Sin sincronizar u oculta de la barra, Agentes no escribe ningún archivo de tus asistentes. En pausa, Tisty no abre ni escribe esos archivos por su cuenta: quedan como los dejó la última escritura, y tus documentos siguen en Tisty. La pausa es de este equipo. Si sacas una regla de Agentes mientras sincroniza, Tisty te pregunta si quitas también su archivo: solo lo borra si dices que sí, y antes guarda un respaldo en este equipo. Si sacas todos los documentos, primero te pregunta lo mismo por cada archivo, y después la carpeta desaparece de Tisty y Agentes vuelve a la barra en gris, sin traer; lo que elegiste dejar queda como estaba. Tisty nunca vacía un archivo de un asistente, y nunca borra uno sin preguntarte.
 
+**Los hooks de tus asistentes**
+
+- Agentes nunca toca los archivos de ajustes de tus asistentes. Los hooks sí, y solo cuando tú los pides: en **Configuración › Asistentes**, **Agregar** te dice qué archivo va a escribir y, con tu sí, pone ahí los hooks de Tisty, sin tocar el resto de ese archivo. **Quitar** los saca.
+- Con los hooks puestos, al empezar una sesión el asistente recibe las tareas que dejó abiertas y lo que cambió. Después de cada edición y de cada llamada a Tisty queda una marca en la caché de este equipo, sin leer la conversación, para saber si un turno editó archivos sin escribir nada en Tisty. Esas marcas no se sincronizan ni salen del equipo.
+
 ## Sin IA
 
 Tisty no usa IA ni aprendizaje automático sobre tus datos, y no le envía nada a ningún modelo. El lenguaje natural son reglas fijas en tu equipo.

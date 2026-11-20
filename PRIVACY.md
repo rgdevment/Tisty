@@ -738,6 +738,12 @@ happens on its own:
   replace a whole document it has to send back the print it read that document
   at, so what you wrote while it was thinking cannot be taken. What it reads
   comes back without the paths of your disk.
+- **Its hooks, if you add them.** Settings › Assistants can add Tisty's hooks
+  to an assistant's own settings file; it names the file and asks first, and
+  leaves the rest of that file as it is. With them, a session starts with the
+  tasks it left open, and after each edit and each call to Tisty a mark is
+  kept in Tisty's cache on this computer, without reading the conversation.
+  The marks never leave it, and **Remove** takes the hooks out.
 - **What it keeps for itself.** Where each assistant last caught up is kept
   in Tisty's private data, so the next session hears only what moved, and
   never leaves this computer. A summary it leaves on a long document is an
