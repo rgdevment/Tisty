@@ -11,10 +11,12 @@ pub async fn brain_network(
 ) -> Answer<Option<Network>> {
     let (paths, hidden, touched, dates) = {
         let session = held(&session);
+        let hidden = brain::kept_out(&session.paths.docs(), &session.state);
+        let touched = brain::touched_last(&session.state, &hidden);
         (
             session.paths.clone(),
-            brain::kept_out(&session.state),
-            brain::touched_last(&session.state),
+            hidden,
+            touched,
             brain::dates(&session.state),
         )
     };
@@ -35,7 +37,10 @@ pub async fn brain_card(
 ) -> Answer<Option<Card>> {
     let (paths, hidden) = {
         let session = held(&session);
-        (session.paths.clone(), brain::kept_out(&session.state))
+        (
+            session.paths.clone(),
+            brain::kept_out(&session.paths.docs(), &session.state),
+        )
     };
     let today = jiff::Zoned::now().date();
     elsewhere(move || brain::card_of(&paths, &id, today, |one| !hidden.contains(one))).await

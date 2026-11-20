@@ -227,19 +227,19 @@ fn a_tag_left_without_its_lines_by_the_cap_goes_with_them() {
 }
 
 #[test]
-fn only_the_tasks_the_person_hid_are_kept_out() {
+fn the_tasks_the_person_hid_or_let_go_are_kept_out() {
     let world = World::new();
     let mut store = world.store();
     let hidden = task(&mut store, "kept out", &[]);
+    let dropped = task(&mut store, "let go", &[]);
     let shown = task(&mut store, "in sight", &[]);
-    let mut state = world.state();
-    if let Some(one) = state.tasks.get_mut(&hidden) {
-        one.hidden = true;
-    }
+    store.append(crate::Op::TaskHide { id: hidden }).unwrap();
+    store.append(crate::Op::TaskDrop { id: dropped }).unwrap();
 
-    let out = kept_out(&state);
+    let out = kept_out(&world.paths.docs(), &world.state());
 
     assert!(out.contains(&hidden.to_string()));
+    assert!(out.contains(&dropped.to_string()));
     assert!(!out.contains(&shown.to_string()));
 }
 
@@ -255,13 +255,18 @@ fn what_was_touched_last_is_the_newest_writing_in_sight() {
     state.docs.get_mut(&notes_id).unwrap().wrote = Some(at(4_000_000_000));
     state.tasks.get_mut(&busy).unwrap().completed_at = Some(at(4_100_000_000));
     state.tasks.get_mut(&quiet).unwrap().grown_at = Some(at(3_900_000_000));
-    assert_eq!(touched_last(&state), Some(busy.to_string()));
+    let out = |state: &crate::State| kept_out(&world.paths.docs(), state);
+    assert_eq!(touched_last(&state, &out(&state)), Some(busy.to_string()));
 
     state.tasks.get_mut(&busy).unwrap().hidden = true;
-    assert_eq!(touched_last(&state), Some(notes));
+    assert_eq!(touched_last(&state, &out(&state)), Some(notes.clone()));
+
+    state.tasks.get_mut(&busy).unwrap().hidden = false;
+    state.tasks.get_mut(&busy).unwrap().status = crate::Status::Dropped;
+    assert_eq!(touched_last(&state, &out(&state)), Some(notes));
 
     state.docs.clear();
-    assert_eq!(touched_last(&state), Some(quiet.to_string()));
+    assert_eq!(touched_last(&state, &out(&state)), Some(quiet.to_string()));
 }
 
 #[test]
@@ -434,4 +439,137 @@ fn a_network_with_no_guess_says_nothing_of_them() {
     assert!(network.alike.is_empty());
     let said = serde_json::to_value(&network).unwrap();
     assert!(said.get("alike").is_none(), "{said}");
+}
+
+fn a_task_with_a_hung_page(
+    world: &World,
+    store: &mut crate::Store,
+    title: &str,
+) -> (ulid::Ulid, String) {
+    let first = task(store, title, &[]);
+    let (book, _) = doc(
+        world,
+        store,
+        &format!("# {title}\n\nIts page.\n"),
+        None,
+        Some(first),
+    );
+    let (_, hung) = doc(
+        world,
+        store,
+        "# Secret hung page\n\nWords.\n",
+        Some(book),
+        None,
+    );
+    (first, hung)
+}
+
+#[test]
+fn a_page_hung_under_a_hidden_task_s_page_is_neither_a_node_nor_a_card() {
+    let world = World::new();
+    let mut store = world.store();
+    let (secret, hung) = a_task_with_a_hung_page(&world, &mut store, "secret plan");
+    let citing = format!("# Notes\n\nSee [the page](tisty:doc/{hung}).\n");
+    let (_, notes) = doc(&world, &mut store, &citing, None, None);
+    store.append(crate::Op::TaskHide { id: secret }).unwrap();
+    let out = kept_out(&world.paths.docs(), &world.state());
+    let today = jiff::civil::date(2026, 11, 20);
+
+    let network = whole(&world, |id| !out.contains(id), &[]);
+
+    assert!(out.contains(&hung), "{out:?}");
+    assert!(named(&network).contains(&notes.as_str()));
+    assert!(
+        lines(&network)
+            .iter()
+            .all(|(from, to, _)| *from != hung && *to != hung),
+        "{:?}",
+        lines(&network)
+    );
+    let card = card_of(&world.paths, &notes, today, |id| !out.contains(id)).unwrap();
+    let told = serde_json::to_string(&card).unwrap();
+    assert!(
+        !told.contains(&hung) && !told.contains("Secret hung page"),
+        "{told}"
+    );
+    assert!(
+        !named(&network).contains(&hung.as_str()),
+        "{:?}",
+        named(&network)
+    );
+    assert!(
+        network
+            .nodes
+            .iter()
+            .all(|one| one.title != "Secret hung page")
+    );
+    assert_eq!(
+        card_of(&world.paths, &hung, today, |id| !out.contains(id)),
+        None
+    );
+}
+
+// Neither the task nor a page that names it by its place, nor a line or a card around them.
+fn kept_whole_out(world: &World, gone: &[&str], citing: &str) {
+    let out = kept_out(&world.paths.docs(), &world.state());
+    let today = jiff::civil::date(2026, 11, 20);
+    let network = whole(world, |id| !out.contains(id), &[]);
+    for one in gone {
+        assert!(out.contains(*one), "{one} not kept out: {out:?}");
+        assert!(!named(&network).contains(one), "{:?}", named(&network));
+        assert!(
+            lines(&network)
+                .iter()
+                .all(|(from, to, _)| from != one && to != one),
+            "{:?}",
+            lines(&network)
+        );
+        assert_eq!(
+            card_of(&world.paths, one, today, |id| !out.contains(id)),
+            None
+        );
+    }
+    assert!(named(&network).contains(&citing));
+    let card = card_of(&world.paths, citing, today, |id| !out.contains(id)).unwrap();
+    let told = serde_json::to_string(&card).unwrap();
+    for one in gone {
+        assert!(!told.contains(one), "{told}");
+    }
+}
+
+#[test]
+fn a_task_the_person_let_go_and_what_hangs_from_it_leave_their_network() {
+    let world = World::new();
+    let mut store = world.store();
+    let (dropped, hung) = a_task_with_a_hung_page(&world, &mut store, "old plan");
+    let citing =
+        format!("# Notes\n\nSee [it](tisty:task/{dropped}) and [the page](tisty:doc/{hung}).\n");
+    let (_, notes) = doc(&world, &mut store, &citing, None, None);
+    store.append(crate::Op::TaskDrop { id: dropped }).unwrap();
+
+    kept_whole_out(&world, &[&dropped.to_string(), &hung], &notes);
+}
+
+#[test]
+fn the_diary_and_its_pages_leave_the_network() {
+    let world = World::new();
+    let mut store = world.store();
+    let (book_id, book) = doc(
+        &world,
+        &mut store,
+        "---\ndiary: on\n---\n\n# Diario 2026\n\nPaseo por el cerro.\n",
+        None,
+        None,
+    );
+    let (_, month) = doc(
+        &world,
+        &mut store,
+        "# Noviembre\n\nAlgo mío.\n",
+        Some(book_id),
+        None,
+    );
+    let citing = format!("# Notes\n\nSee [the diary](tisty:doc/{book}).\n");
+    let (_, notes) = doc(&world, &mut store, &citing, None, None);
+
+    kept_whole_out(&world, &[&book, &month], &notes);
 }
