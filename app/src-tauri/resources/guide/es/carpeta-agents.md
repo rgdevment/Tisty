@@ -286,6 +286,10 @@ Tus documentos de Agentes viajan con tu sincronización a tus otros equipos, per
 
 Desde ahí, lo que ya aplicas se pone al día solo cuando lo cambias en el otro equipo. Lo que escribes o traes en un equipo que sincroniza se aplica en ese mismo equipo sin ningún clic. Y la memoria de un agente es del equipo que la trajo: en los demás solo se lee.
 
+**Aprobar no es aplicar.** Si en el equipo del trabajo apruebas una propuesta, pulsas **Aprobar este texto** o vuelves a una versión anterior de un documento que espera, cambias su texto en todos tus equipos, pero ahí sigue esperando. La ficha dice «Aprobaste su texto en este equipo, pero aplicarlo aquí es aparte. ¿Lo aplicas a los agentes de este?», con los mismos dos botones. Solo **Aplicar aquí** escribe sus archivos en ese equipo.
+
+**Dos carpetas Agentes.** Si la casa y el trabajo crearon Agentes antes de sincronizarse, al encontrarse aparecen dos por un momento. Tisty las une solo, en la más antigua: junta sus subcarpetas por nombre (Global, Claude…), pasa los documentos y borra la que quedó vacía. No toca ningún archivo de tus agentes ni pierde una aprobación, y los documentos del otro equipo esperan su **Aplicar aquí** como cualquiera.
+
 ![La ficha de Para todos mis agentes en el equipo del trabajo, con las etiquetas Regla y Global, sin filas de archivos, y el aviso ámbar Este documento viene de otro equipo. ¿Lo aplicas a los agentes de este? con los botones Aplicar aquí y No en este equipo; en la barra, Agentes con su robot coral, sin ninguna palabra al lado](agents-otro-equipo.png)
 
 Dos avisos más que puedes ver en una ficha:

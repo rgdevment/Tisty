@@ -631,6 +631,37 @@ What you choose holds for that document on that computer, and it stays:
 - **Only what this computer would read waits.** A Codex document asks nothing on a computer without Codex.
 - **Once applied, the card offers no way back.** For one assistant on this computer to stop receiving it, pause that assistant here, or stop syncing Agents on this computer; for no computer to receive it, take it out of Agents.
 
+### Approving on another computer is not applying
+
+Approving changes the words; **Apply here** decides whether a computer writes the file. They are two separate things, and on a computer where a document waits, only the second writes it.
+
+**An example.** At work, «For all my agents» still waits for your **Apply here**. Meanwhile Claude Code proposes a change to it, and since you are at work, you approve it right there:
+
+1. **Approve the change** asks «Approve this change? It is written to the document, and to your agents' files on every computer that applies it.». With your yes, the document says the new words on all your computers.
+2. At home, which already applied it, Tisty writes the change to its files as always, with its backup first.
+3. At work nothing is written yet. The card's amber notice turns into «You approved its words on this computer, but applying it here is a separate choice. Apply it to the agents on this one?», and **Apply here** and **Not on this computer** stay. The facts box still says «No: it waits for «Apply here»».
+4. Press **Apply here** when you want work to receive it.
+
+The same goes for **Approve this text** and for going back to an earlier version from the document's history: the words change on all your computers, and a computer where the document waited keeps waiting. What you wrote or brought in on one computer is applied on that computer with no click, as always.
+
+### Two Agents folders that join by themselves
+
+If two computers made Agents before they synced with each other, for instance because you installed Tisty at work without connecting sync yet and chose **Bring and sync** on both, **two Agents folders** show in the sidebar for a moment once they meet.
+
+Tisty joins them by itself, without asking:
+
+- **The oldest stays.** The same one on all your computers, even if both join at once.
+- **Subfolders come together by name.** What was in the other computer's **Global** goes into your **Global**, what was in **Claude** into your **Claude**, and so on. A subfolder only the other had, such as **Gemini**, moves over whole.
+- **Documents move into the folder that stays,** with their words, their approval and their history. The folder left empty is deleted.
+- **None of your agents' files changes** because of the join, and none is offered for taking away. What already applied on a computer keeps applying there.
+- **What comes from the other computer waits** for its **Apply here**, like any document from another computer. If both brought their `CLAUDE.md`, you see both documents in **Claude**: yours keeps being written and the other waits; choose which one you keep and take the other out.
+- **An archived folder moves over whole** and stays archived: what it held is not written again.
+
+Two rare cases are left as they are:
+
+- If the folder that would go holds something an agent put there, Tisty does not join them, because moving it would make it look placed by you. Move that document to a folder of yours yourself and the join happens by itself on the next round.
+- If, right while they join, you write a new document into the other computer's folder that was already deleted, that document lands outside Agents. Move it into Agents and it applies as always.
+
 ### Memory belongs to the computer that brought it
 
 An agent's memory speaks of what happened on that computer, so it is never written on another. On your other computers, its card says «Another computer's agent memory: on this one it is only read.», with no buttons. Each computer can bring its own memory of the same project: it shows unticked in the first-run box, even if another computer already brought its own.
@@ -639,7 +670,7 @@ An agent's memory speaks of what happened on that computer, so it is never writt
 
 **Only words you wrote or approved reach an agent's file.** What you write in Tisty's window, what you bring in the first time and what you bring with **Bring the change in** already counts as approved. A text that changed without going through your hands does not: for example, if someone edited the document's file inside Tisty's data folder, or an imported parcel brought it.
 
-Then the document's card warns «Its text does not have your approval yet, so it reaches no agent until you approve it.», with **Approve this text**. Read it first: the button asks «Approve what this document says now? Read it first: it is written to your agents' files.», and if the document changed between your reading and your yes, Tisty approves nothing and asks you to read it again.
+Then the document's card warns «Its text does not have your approval yet, so it reaches no agent until you approve it.», with **Approve this text**. Read it first: the button asks «Approve what this document says now? Read it first: it is written to your agents' files on every computer that applies it.», and if the document changed between your reading and your yes, Tisty approves nothing and asks you to read it again.
 
 If that document was already written to a file, the file does not change meanwhile: its card says **On hold** and names the document holding it, for example «This file stays as it was: claude · rules/style.md changed or left Agents without your approval. Approve it, or put it back and take it out yourself.».
 
@@ -748,7 +779,7 @@ If Tisty is open while the agent proposes, the proposal shows by itself within a
 
 **3. You approve or discard.**
 
-- **Approve the change** asks «Approve this change? It is written to the document and to your agents' files.». With your yes, the document says what was proposed, with your approval, and on each computer where that document applies, Tisty writes it to `~/.claude/CLAUDE.md` like any change of yours, with its backup first. What it said before stays in its history.
+- **Approve the change** asks «Approve this change? It is written to the document, and to your agents' files on every computer that applies it.». With your yes, the document says what was proposed, with your approval, and on each computer where that document applies, Tisty writes it to `~/.claude/CLAUDE.md` like any change of yours, with its backup first. What it said before stays in its history.
 - **Discard** asks «Discard this proposal? The document stays as you approved it.». The proposal goes and nothing else changes.
 
 Each button acts only on what the card showed you. If the agent wrote again while you were looking, Tisty does not choose for you: «The proposal changed since the card showed it. Look at it again before choosing.». While you edit the document, **Approve the change** does not show: press **Done** first.

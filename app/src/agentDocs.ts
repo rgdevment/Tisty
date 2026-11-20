@@ -40,6 +40,7 @@ export interface Place {
 export type Here =
   | "applied"
   | "waiting"
+  | "approvedWaiting"
   | "declined"
   | "notAgreed"
   | "placedByAgent"

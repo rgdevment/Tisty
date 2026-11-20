@@ -52,6 +52,7 @@ export function Action({
 
 const HERE_SAID = {
   waiting: "agentHereWaiting",
+  approvedWaiting: "agentHereApprovedWaiting",
   declined: "agentHereDeclined",
   notAgreed: "agentHereNotAgreed",
   placedByAgent: "agentHerePlacedByAgent",
@@ -69,6 +70,7 @@ export function HereNote({
   onAgree: () => void;
 }) {
   if (here === "applied" || here === "away") return null;
+  const waits = here === "waiting" || here === "approvedWaiting";
   return (
     <div
       role="status"
@@ -78,10 +80,10 @@ export function HereNote({
       <div className="min-w-0">
         <p className="font-medium">{t(HERE_SAID[here])}</p>
         <div className="mt-2 flex flex-wrap gap-2">
-          {(here === "waiting" || here === "declined") && (
+          {(waits || here === "declined") && (
             <Action glyph="done" label={t("agentApplyHere")} onClick={() => onTake(true)} />
           )}
-          {here === "waiting" && (
+          {waits && (
             <Action glyph="close" label={t("agentNotHere")} onClick={() => onTake(false)} />
           )}
           {here === "notAgreed" && (

@@ -286,6 +286,10 @@ Your documents in Agents travel with your sync to your other computers, but **ea
 
 From then on, what you already apply updates by itself when you change it on the other computer. What you write or bring in on a computer that syncs is applied on that same computer with no click. And an agent's memory belongs to the computer that brought it: on the others it is only read.
 
+**Approving is not applying.** If on the work computer you approve a proposal, press **Approve this text** or go back to an earlier version of a document that waits, you change its words on all your computers, but there it keeps waiting. The card says «You approved its words on this computer, but applying it here is a separate choice. Apply it to the agents on this one?», with the same two buttons. Only **Apply here** writes its files on that computer.
+
+**Two Agents folders.** If home and work both made Agents before they synced, two show up for a moment once they meet. Tisty joins them by itself, into the oldest: it puts their subfolders together by name (Global, Claude…), moves the documents over and deletes the one left empty. It touches none of your agents' files and loses no approval, and the other computer's documents wait for their **Apply here** like any other.
+
 ![The card of For all my agents on the work computer, with the labels Rule and Global, no file rows, and the amber notice This document comes from another computer. Apply it to the agents on this one? with the buttons Apply here and Not on this computer; in the sidebar, Agents with its coral robot, with no word beside it](agents-other-computer.png)
 
 Two more notices you may see on a card:

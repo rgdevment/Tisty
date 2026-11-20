@@ -395,6 +395,16 @@ describe("an agent document's card", () => {
     expect(screen.getByText("Last written")).toBeTruthy();
   });
 
+  it("says words approved here still wait to be applied here, and offers both choices", async () => {
+    shown(card([], { here: "approvedWaiting" }));
+    expect(screen.getByRole("status").textContent).toMatch(
+      /approved its words on this computer, but applying it here is a separate choice/,
+    );
+    expect(screen.getByRole("button", { name: "Apply here" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Not on this computer" })).toBeTruthy();
+    expect(screen.getByText("No: it waits for «Apply here»")).toBeTruthy();
+  });
+
   it("asks another computer's document to be applied here or not, and keeps the answer", async () => {
     const changed = vi.fn();
     window.addEventListener(AGENTS_CHANGED, changed);

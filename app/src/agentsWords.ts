@@ -281,6 +281,10 @@ const words = {
     "This document comes from another computer. Apply it to the agents on this one?",
     "Este documento viene de otro equipo. ¿Lo aplicas a los agentes de este?",
   ],
+  agentHereApprovedWaiting: [
+    "You approved its words on this computer, but applying it here is a separate choice. Apply it to the agents on this one?",
+    "Aprobaste su texto en este equipo, pero aplicarlo aquí es aparte. ¿Lo aplicas a los agentes de este?",
+  ],
   agentHereDeclined: [
     "You chose not to apply it on this computer.",
     "Elegiste no aplicarlo en este equipo.",
@@ -314,8 +318,8 @@ const words = {
   agentApproveChange: ["Approve the change", "Aprobar el cambio"],
   agentDiscardChange: ["Discard", "Descartar"],
   agentApproveSure: [
-    "Approve this change? It is written to the document and to your agents' files.",
-    "¿Apruebas este cambio? Se escribe en el documento y en los archivos de tus agentes.",
+    "Approve this change? It is written to the document, and to your agents' files on every computer that applies it.",
+    "¿Apruebas este cambio? Se escribe en el documento, y en los archivos de tus agentes en cada equipo que lo aplica.",
   ],
   agentDiscardSure: [
     "Discard this proposal? The document stays as you approved it.",
@@ -325,8 +329,8 @@ const words = {
   agentNotHere: ["Not on this computer", "No en este equipo"],
   agentAgree: ["Approve this text", "Aprobar este texto"],
   agentAgreeSure: [
-    "Approve what this document says now? Read it first: it is written to your agents' files.",
-    "¿Apruebas lo que dice ahora este documento? Léelo antes: se escribe en los archivos de tus agentes.",
+    "Approve what this document says now? Read it first: it is written to your agents' files on every computer that applies it.",
+    "¿Apruebas lo que dice ahora este documento? Léelo antes: se escribe en los archivos de tus agentes en cada equipo que lo aplica.",
   ],
   agentMemoryOwn: [
     "The agent writes this file itself: Tisty shows it and brings it in, and never writes over it.",

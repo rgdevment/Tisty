@@ -34,6 +34,7 @@ export const formatOf = (doc: AgentDoc, body: string): string => {
 
 const NOT_HERE = {
   waiting: "agentFileSyncsWaiting",
+  approvedWaiting: "agentFileSyncsWaiting",
   declined: "agentFileSyncsDeclined",
   notAgreed: "agentFileSyncsNotAgreed",
   placedByAgent: "agentFileSyncsPlacedByAgent",

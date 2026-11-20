@@ -1920,6 +1920,13 @@ fn still_waits_then_applies(room: &mut Room, file: &str, said: &str) {
     round_now(&room.session, &room.homes, &mut ledger);
     assert_eq!(room.read(".claude/CLAUDE.md"), "# Claude\nTests first.\n");
     assert_eq!(room.look().waiting, 1, "the card still offers «apply here»");
+    let card = crate::answers::agent_docs::card_of(&room.session, Some(&room.homes), HERE, file)
+        .unwrap()
+        .unwrap();
+    assert_eq!(
+        serde_json::to_value(card).unwrap()["here"],
+        "approvedWaiting"
+    );
 
     crate::answers::agent_docs::take_here(&room.session, Some(&room.homes), HERE, file, true)
         .unwrap();

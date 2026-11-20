@@ -631,6 +631,37 @@ Lo que eliges vale para ese documento en ese equipo, y queda:
 - **Solo espera lo que este equipo leería.** Un documento de Codex no pregunta nada en un equipo sin Codex.
 - **Una vez aplicado, la ficha no ofrece deshacerlo.** Para que un asistente de este equipo deje de recibirlo, pausa ese asistente aquí, o deja de sincronizar Agentes en este equipo; para que ningún equipo lo reciba, sácalo de Agentes.
 
+### Aprobar en otro equipo no es aplicar
+
+Aprobar cambia el texto; **Aplicar aquí** decide si un equipo escribe el archivo. Son dos cosas aparte, y en un equipo donde un documento espera, solo la segunda lo escribe.
+
+**Un ejemplo.** En el trabajo, «Para todos mis agentes» todavía espera tu **Aplicar aquí**. Mientras tanto, Claude Code propone cambiarlo, y como estás en el trabajo, lo apruebas ahí mismo:
+
+1. **Aprobar el cambio** pregunta «¿Apruebas este cambio? Se escribe en el documento, y en los archivos de tus agentes en cada equipo que lo aplica.». Con tu sí, el documento dice lo nuevo en todos tus equipos.
+2. En la casa, que ya lo aplicaba, Tisty escribe el cambio en sus archivos como siempre, con su respaldo antes.
+3. En el trabajo no se escribe nada todavía. La ficha cambia su aviso ámbar a «Aprobaste su texto en este equipo, pero aplicarlo aquí es aparte. ¿Lo aplicas a los agentes de este?», y siguen **Aplicar aquí** y **No en este equipo**. El cuadro de datos sigue diciendo «No: espera «Aplicar aquí»».
+4. Pulsa **Aplicar aquí** cuando quieras que el trabajo lo reciba.
+
+Pasa lo mismo con **Aprobar este texto** y con volver a una versión anterior desde el historial del documento: el texto cambia en todos tus equipos, y un equipo donde el documento esperaba sigue esperando. Lo que tú escribiste o trajiste en un equipo se aplica en ese equipo sin ningún clic, como siempre.
+
+### Dos carpetas Agentes que se unen solas
+
+Si dos equipos crearon Agentes antes de sincronizarse entre sí, por ejemplo porque instalaste Tisty en el trabajo sin conectar todavía la sincronización y elegiste **Traer y sincronizar** en los dos, al encontrarse aparecen **dos carpetas Agentes** en la barra por un momento.
+
+Tisty las une solo, sin preguntar:
+
+- **Queda la más antigua.** La misma en todos tus equipos, aunque los dos unan a la vez.
+- **Las subcarpetas se juntan por nombre.** Lo que estaba en **Global** del otro equipo pasa a tu **Global**, lo de **Claude** a tu **Claude**, y así. Una subcarpeta que solo tenía el otro, como **Gemini**, pasa entera.
+- **Los documentos pasan a la carpeta que queda,** con su texto, su aprobación y su historial. La carpeta que quedó vacía se borra.
+- **Ningún archivo de tus agentes cambia** por la unión, y ninguno se ofrece para quitar. Lo que ya se aplicaba en un equipo sigue aplicándose ahí.
+- **Lo que llega del otro equipo espera** su **Aplicar aquí**, como cualquier documento de otro equipo. Si los dos trajeron su `CLAUDE.md`, ves los dos documentos en **Claude**: el tuyo se sigue escribiendo y el otro espera; elige con cuál te quedas y saca el otro.
+- **Una carpeta archivada pasa entera** y sigue archivada: lo que guardaba no vuelve a escribirse.
+
+Dos casos raros que quedan como están:
+
+- Si en la carpeta que se iría hay algo que puso un agente, Tisty no las une, porque al moverlo parecería puesto por ti. Mueve tú ese documento a una carpeta tuya y la unión se hace sola en la siguiente vuelta.
+- Si, justo mientras se unen, escribes un documento nuevo en la carpeta del otro equipo que ya se borró, ese documento queda fuera de Agentes. Muévelo a Agentes y se aplica como siempre.
+
 ### La memoria es del equipo que la trajo
 
 La memoria de un agente habla de lo que pasó en ese equipo, así que nunca se escribe en otro. En los demás equipos, su ficha dice «Memoria del agente de otro equipo: en este solo se lee.», sin botones. Cada equipo puede traer su propia memoria del mismo proyecto: aparece sin marcar en el aviso de la primera vez, aunque otro equipo ya haya traído la suya.
@@ -639,7 +670,7 @@ La memoria de un agente habla de lo que pasó en ese equipo, así que nunca se e
 
 **Solo las palabras que tú escribiste o aprobaste llegan al archivo de un agente.** Lo que escribes en la ventana de Tisty, lo que traes la primera vez y lo que traes con **Traer el cambio** ya cuenta como aprobado. Un texto que cambió sin pasar por tus manos no: por ejemplo, si alguien editó el archivo del documento dentro de la carpeta de datos de Tisty, o lo trajo un paquete importado.
 
-Entonces la ficha del documento avisa «Su texto aún no tiene tu aprobación, así que no llega a ningún agente hasta que lo apruebes.», con **Aprobar este texto**. Léelo antes: el botón pregunta «¿Apruebas lo que dice ahora este documento? Léelo antes: se escribe en los archivos de tus agentes.», y si el documento cambió entre que lo leíste y tu sí, Tisty no aprueba nada y te pide leerlo de nuevo.
+Entonces la ficha del documento avisa «Su texto aún no tiene tu aprobación, así que no llega a ningún agente hasta que lo apruebes.», con **Aprobar este texto**. Léelo antes: el botón pregunta «¿Apruebas lo que dice ahora este documento? Léelo antes: se escribe en los archivos de tus agentes en cada equipo que lo aplica.», y si el documento cambió entre que lo leíste y tu sí, Tisty no aprueba nada y te pide leerlo de nuevo.
 
 Si ese documento ya se escribía en un archivo, el archivo no cambia mientras tanto: su ficha dice **En espera** y nombra el documento que lo detiene, por ejemplo «Este archivo queda como estaba: claude · rules/estilo.md cambió o salió de Agentes sin tu aprobación. Apruébalo, o vuelve a ponerlo y sácalo tú.».
 
@@ -748,7 +779,7 @@ Si Tisty está abierto mientras el agente propone, la propuesta aparece sola en 
 
 **3. Apruebas o descartas.**
 
-- **Aprobar el cambio** pregunta «¿Apruebas este cambio? Se escribe en el documento y en los archivos de tus agentes.». Con tu sí, el documento pasa a decir lo propuesto, con tu aprobación, y en cada equipo donde ese documento se aplica, Tisty lo escribe en `~/.claude/CLAUDE.md` como cualquier cambio tuyo, con su respaldo antes. Lo que decía antes queda en su historial.
+- **Aprobar el cambio** pregunta «¿Apruebas este cambio? Se escribe en el documento, y en los archivos de tus agentes en cada equipo que lo aplica.». Con tu sí, el documento pasa a decir lo propuesto, con tu aprobación, y en cada equipo donde ese documento se aplica, Tisty lo escribe en `~/.claude/CLAUDE.md` como cualquier cambio tuyo, con su respaldo antes. Lo que decía antes queda en su historial.
 - **Descartar** pregunta «¿Descartas esta propuesta? El documento queda como lo aprobaste.». La propuesta se va y nada más cambia.
 
 Cada botón actúa solo sobre lo que la ficha te mostró. Si el agente volvió a escribir mientras mirabas, Tisty no elige por ti: «La propuesta cambió desde que la ficha la mostró. Revísala de nuevo antes de elegir.». Mientras editas el documento, **Aprobar el cambio** no aparece: pulsa **Listo** primero.

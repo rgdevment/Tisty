@@ -160,9 +160,11 @@ struct Opened {
     places: Vec<(Target, usize)>,
 }
 
-fn here_word(seen: Seen) -> &'static str {
+// Words approved here that still wait say so, or approving would read as applying.
+fn here_word(seen: Seen, agreed_here: bool) -> &'static str {
     match seen {
         Seen::Admitted => "applied",
+        Seen::WaitingHere if agreed_here => "approvedWaiting",
         Seen::WaitingHere => "waiting",
         Seen::DeclinedHere => "declined",
         Seen::NotAgreed => "notAgreed",
@@ -170,6 +172,15 @@ fn here_word(seen: Seen) -> &'static str {
         Seen::OtherComputersMemory => "otherMemory",
         Seen::Away | Seen::Plain | Seen::Unread => "away",
     }
+}
+
+fn agreed_here(session: &Session, file: &str) -> bool {
+    session
+        .state
+        .docs
+        .values()
+        .find(|one| one.file == file)
+        .is_some_and(|kept| kept.agreed_by.as_ref() == Some(session.store.device()))
 }
 
 // Only a document in AGENTS is written anywhere; elsewhere its card is a property like any other.
@@ -386,7 +397,7 @@ pub(crate) fn card_of(
         code: card.code(),
         folder_off: ledger.consented() && !ledger.syncs(""),
         twin: opened.twin,
-        here: here_word(opened.here),
+        here: here_word(opened.here, agreed_here(session, file)),
         print: opened.print,
         places: opened
             .places
