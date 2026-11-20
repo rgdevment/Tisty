@@ -517,21 +517,26 @@ describe("Brainsty in the content panel", () => {
     expect(localStorage.getItem("tisty.brainstyTravellers")).toBeNull();
   });
 
-  it("is drawn and laid out once while the folders and lists it shows stay the same", async () => {
-    const folder: Group = { ...PROJECTS, kind: "folder" };
+  it("is drawn and laid out once while the folders and lists change, and takes a new colour as it is", async () => {
     const view = (groups: Group[]) => (
       <BrainstyView near="01A" groups={groups} onOpen={() => {}} onLeave={() => {}} />
     );
-    const { rerender } = render(view([folder]));
+    const { rerender } = render(view([PROJECTS]));
     await waitFor(() => expect(sigma.hands).not.toBeNull());
+    const rethemed = sigma.rethemed;
 
-    rerender(view([{ ...folder, color: "teal" }]));
-    rerender(view([{ ...folder }]));
+    rerender(view([{ ...PROJECTS }]));
+    expect(sigma.rethemed).toBe(rethemed);
+    rerender(
+      view([
+        { ...PROJECTS, color: "amber" },
+        { id: "l1", name: "Casa" },
+      ]),
+    );
+
+    expect(sigma.rethemed).toBe(rethemed + 1);
     expect(sigma.killed).toBe(0);
     expect(sigma.stopped).toBe(0);
-
-    rerender(view([{ ...folder, color: "amber" }]));
-    await waitFor(() => expect(sigma.killed).toBe(1));
   });
 
   it("keeps the travellers and the turning off when the view is drawn anew", async () => {
@@ -539,14 +544,14 @@ describe("Brainsty in the content panel", () => {
     localStorage.setItem("tisty.brainstyTravellers", "off");
     localStorage.setItem("tisty.brainstySpin", "off");
     sigma.zoom = 0;
-    const folder: Group = { ...PROJECTS, kind: "folder" };
-    const view = (groups: Group[]) => (
-      <BrainstyView near="01A" groups={groups} onOpen={() => {}} onLeave={() => {}} />
+    ipc.network = () => Promise.resolve({ ...small });
+    const view = (near: string) => (
+      <BrainstyView near={near} groups={[PROJECTS]} onOpen={() => {}} onLeave={() => {}} />
     );
     const laid = () =>
       sigma.step?.({
-        x: new Float32Array(4),
-        y: new Float32Array(4),
+        x: new Float32Array(3),
+        y: new Float32Array(3),
         done: true,
         iterations: 20,
         ms: 12,
@@ -554,17 +559,51 @@ describe("Brainsty in the content panel", () => {
     const frames = async () => {
       for (let n = 0; n < 5; n++) await new Promise((frame) => requestAnimationFrame(frame));
     };
-    const { rerender } = render(view([folder]));
+    const { rerender } = render(view("01A"));
     await waitFor(() => expect(sigma.hands).not.toBeNull());
     laid();
     await frames();
 
-    rerender(view([{ ...folder, color: "amber" }]));
+    rerender(view("notes.md"));
     await waitFor(() => expect(sigma.killed).toBe(1));
     laid();
     await frames();
 
     expect(sigma.turns.filter((one) => one !== null)).toEqual([]);
+  });
+
+  it("leaves the agents' files out until asked, and remembers it on this computer", async () => {
+    onTestFinished(() => localStorage.clear());
+    ipc.network = () =>
+      Promise.resolve({
+        ...small,
+        nodes: [...small.nodes, { id: "CLAUDE.md", kind: "doc", title: "CLAUDE", group: "a1" }],
+      });
+    const theirs: Group[] = [PROJECTS, { id: "a1", name: "AGENTS", agents: true }];
+    const user = userEvent.setup();
+    const view = <BrainstyView near="01A" groups={theirs} onOpen={() => {}} onLeave={() => {}} />;
+    const shown = render(view);
+    await waitFor(() => expect(sigma.hands).not.toBeNull());
+
+    expect(last(sigma.hidden)).toEqual([false, false, false, true]);
+    await user.click(screen.getByRole("button", { name: t("brainstyFilters") }));
+    const agents = screen.getByRole("button", { name: t("brainstyShowAgents") });
+    expect(agents.getAttribute("aria-pressed")).toBe("false");
+    await user.click(agents);
+    expect(last(sigma.hidden)).toEqual([false, false, false, false]);
+    expect(localStorage.getItem("tisty.brainstyAgents")).toBe("shown");
+    shown.unmount();
+
+    sigma.hidden = [];
+    render(view);
+    await waitFor(() => expect(sigma.hidden.length).toBeGreaterThan(0));
+    expect(last(sigma.hidden)).toEqual([false, false, false, false]);
+  });
+
+  it("offers no AGENTS filter when the network holds none of their files", async () => {
+    const { user } = await drawnNetwork();
+    await user.click(screen.getByRole("button", { name: t("brainstyFilters") }));
+    expect(screen.queryByRole("button", { name: t("brainstyShowAgents") })).toBeNull();
   });
 
   it("starts with travellers and turning on, even when the computer asks for less motion", async () => {

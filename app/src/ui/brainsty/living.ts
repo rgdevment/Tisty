@@ -1,7 +1,6 @@
 import { type Network, TIES } from "../../brainsty";
 import type { Drawing } from "./drawing";
 import { PITCH_AT_MOST, type Turn } from "./globe";
-import { isGroup, laidEdges } from "./grouping";
 import type { Motions } from "./Legend";
 import { bigOnes, degreesOf, rgba } from "./looks";
 import { fitted, LAID } from "./overlays";
@@ -58,7 +57,7 @@ const CLOCK: Clock = {
 function neighboursOf(network: Network): { near: number[][]; pull: Map<number, number>[] } {
   const near = network.nodes.map((): number[] => []);
   const pull = network.nodes.map(() => new Map<number, number>());
-  for (const [from, to, code] of laidEdges(network)) {
+  for (const [from, to, code] of network.edges) {
     const weight = PULL[TIES[code] ?? "tag"];
     for (const [one, other] of [
       [from, to],
@@ -82,7 +81,7 @@ export function livingOn(
   Object.assign(canvas.style, LAID);
   container.append(canvas);
   const { near, pull } = neighboursOf(network);
-  const big = bigOnes(degreesOf(network.nodes.length, laidEdges(network)));
+  const big = bigOnes(degreesOf(network.nodes.length, network.edges));
   let hidden: readonly boolean[] = [];
   const onScreen = (node: number): boolean => {
     const at = drawing.nodeOnScreen(node);
@@ -132,7 +131,7 @@ export function livingOn(
   let counted = 0;
   let countedFrom = 0;
   let fps = 0;
-  const pace = paceFor(network.nodes.filter((one) => !isGroup(one.kind)).length);
+  const pace = paceFor(network.nodes.length);
 
   const painted = () => {
     const brush = canvas.getContext("2d");

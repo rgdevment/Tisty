@@ -17,8 +17,6 @@ const GLYPH: Record<NeuronKind, string> = {
   task: "checkbox",
   tag: "hash",
   file: "clip",
-  folder: "folder",
-  list: "list",
 };
 
 const DONE = "check-mark";

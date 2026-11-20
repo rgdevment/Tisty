@@ -235,7 +235,6 @@ function Dot({
         width: across,
         height: across,
         background: color,
-        transform: shape === "diamond" ? "rotate(45deg) scale(0.8)" : undefined,
       }}
     />
   );

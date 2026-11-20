@@ -160,7 +160,6 @@ const opened = async () => {
 const neuron = (kind: Neuron["kind"], id = "x", title = "x"): Neuron => ({ id, kind, title });
 
 const hands = () => ({
-  setHere: vi.fn(),
   setChosen: vi.fn(),
   choose: vi.fn(),
   opening: vi.fn(),
@@ -302,17 +301,6 @@ describe("what the network asks the main window to open", () => {
     openedHere(neuron("task", "01Z"), gone);
     await waitFor(() => expect(gone.setError).toHaveBeenCalled());
     expect(gone.opening).not.toHaveBeenCalled();
-  });
-
-  it("opens a folder among the documents and a list among the lists", () => {
-    const folder = hands();
-    openedHere({ id: "folder:f1", kind: "folder", title: "Proyectos", group: "f1" }, folder);
-    const list = hands();
-    openedHere({ id: "list:l1", kind: "list", title: "Casa", group: "l1" }, list);
-
-    expect(folder.setHere).toHaveBeenCalledWith("f1");
-    expect(folder.setChosen).toHaveBeenCalledWith({ named: "docs" });
-    expect(list.setChosen).toHaveBeenCalledWith({ named: "lists", list: "l1" });
   });
 
   it("leaves a file where it is", () => {

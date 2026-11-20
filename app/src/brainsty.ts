@@ -1,13 +1,11 @@
 import { invoke } from "@tauri-apps/api/core";
 
-// The core sends each line's kind as its place in this list; «member», last, is the view's own, from a folder or list to what it holds.
-export const TIES = ["cite", "mention", "structure", "tag", "uses", "member"] as const;
+// The core sends each line's kind as its place in this list.
+export const TIES = ["cite", "mention", "structure", "tag", "uses"] as const;
 
 export type Tie = (typeof TIES)[number];
 
-export type NeuronKind = "doc" | "page" | "task" | "tag" | "file" | GroupKind;
-
-export type GroupKind = "folder" | "list";
+export type NeuronKind = "doc" | "page" | "task" | "tag" | "file";
 
 export interface Neuron {
   id: string;
@@ -38,7 +36,6 @@ export interface Group {
   id: string;
   name: string;
   color?: string | null;
-  kind?: GroupKind;
   agents?: boolean;
 }
 
