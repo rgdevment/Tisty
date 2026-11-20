@@ -212,7 +212,7 @@ fn proposed_in(state: &tisty_core::State, gate: &Gate) -> usize {
         .count()
 }
 
-// A body read without its card cannot show the proposal again; one not read yet keeps it for later.
+// Only the body the log names, read without its card, lets a proposal go: one behind the log may still get it back.
 fn uncarded_let_go(session: &mut Session) -> Answer<()> {
     let (state, docs) = (&session.state, session.paths.docs());
     let ops: Vec<Op> = state
@@ -224,7 +224,9 @@ fn uncarded_let_go(session: &mut Session) -> Answer<()> {
                 return None;
             }
             let body = tisty_core::docs::read(&docs, &kept.file).ok()?;
-            Card::of(&body).is_none().then(|| Op::DocProposal {
+            let as_logged =
+                kept.print.as_deref() == Some(tisty_core::docs::print_of_text(&body).as_str());
+            (as_logged && Card::of(&body).is_none()).then(|| Op::DocProposal {
                 id: *id,
                 d: tisty_core::event::Proposal {
                     body: None,
@@ -1128,7 +1130,9 @@ pub fn agents_keep(
     tisty: bool,
 ) -> Answer<Rounded> {
     let homes = homes()?;
-    kept_side(&mut held(&session), &homes, &here(), &at, tisty)
+    let mut session = held(&session);
+    joined_here(&mut session)?;
+    kept_side(&mut session, &homes, &here(), &at, tisty)
 }
 
 #[tauri::command(async)]
@@ -1138,7 +1142,9 @@ pub fn agents_turn(
     on: bool,
 ) -> Answer<Rounded> {
     let homes = homes()?;
-    turned(&held(&session), &homes, &here(), assistant.as_deref(), on)
+    let mut session = held(&session);
+    joined_here(&mut session)?;
+    turned(&session, &homes, &here(), assistant.as_deref(), on)
 }
 
 #[tauri::command(async)]
@@ -1164,7 +1170,9 @@ pub fn agents_loose(
     away: bool,
 ) -> Answer<Rounded> {
     let homes = homes()?;
-    loosened(&held(&session), &homes, &here(), &at, away)
+    let mut session = held(&session);
+    joined_here(&mut session)?;
+    loosened(&session, &homes, &here(), &at, away)
 }
 
 #[tauri::command]
@@ -1176,7 +1184,9 @@ pub fn agents_empty(session: tauri::State<'_, Mutex<Session>>) -> Answer<bool> {
 #[tauri::command(async)]
 pub fn agents_lead(session: tauri::State<'_, Mutex<Session>>) -> Answer<Rounded> {
     let homes = homes()?;
-    led_again(&held(&session), &homes, &here())
+    let mut session = held(&session);
+    joined_here(&mut session)?;
+    led_again(&session, &homes, &here())
 }
 
 #[cfg(test)]

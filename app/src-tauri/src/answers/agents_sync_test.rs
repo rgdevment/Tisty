@@ -2140,3 +2140,24 @@ fn a_proposal_whose_document_cannot_be_read_is_kept_for_later() {
     round_here(&mut room.session, &room.homes, HERE).unwrap();
     assert_eq!(room.session.state.proposals.len(), 1);
 }
+
+#[test]
+fn a_body_on_disk_behind_the_log_never_lets_a_proposal_go() {
+    let mut room = room();
+    room.bring(&[".claude/CLAUDE.md"]);
+    let (file, body) = bodies(&room.session)[0].clone();
+    proposed(
+        &mut room,
+        &file,
+        &body.replace("Tests first.", "Tests always."),
+    );
+    tisty_core::docs::write(
+        &room.session.paths.docs(),
+        &file,
+        "# Claude\nAn older copy.\n",
+    )
+    .unwrap();
+
+    round_here(&mut room.session, &room.homes, HERE).unwrap();
+    assert_eq!(room.session.state.proposals.len(), 1);
+}

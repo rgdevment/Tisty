@@ -262,6 +262,7 @@ pub fn agent_doc(
     at: Option<String>,
     asked: Option<Asked>,
 ) -> Answer<Told> {
+    super::agents_sync::joined_here(&mut held(&session))?;
     match (at, asked) {
         (_, Some(Asked::Take { here })) => taken_here(&session, &file, here).map(carded),
         (_, Some(Asked::Agree { print })) => agreed(&session, &file, &print).map(carded),
