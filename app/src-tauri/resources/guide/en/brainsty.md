@@ -44,13 +44,13 @@ On a task's page, **A new task** creates a part of that task, in its same list.
 
 **Brainsty**, in the sidebar under the task views, opens everything you keep as one network. It opens in the content panel, like any other view, with the sidebar in sight and **Brainsty** marked in it. It opens with the whole network in sight; the document or the task you were on stays as the starting point for the arrows.
 
-![Tisty's window with the sidebar on the left and Brainsty marked in it; in the content panel, the network zoomed out: at the top the count, «589 nodes · 1252 connections», each folder and each list in its colour, documents as squares, folders as big squares, lists as diamonds, tasks as circles and tags as purple dots, folders, lists and tags fainter than documents and tasks, citations and mentions stronger than the other lines, the network turned a little like a globe and its fourteen travellers with their trail on the lines, and at the bottom left the Legend, folded](network.png)
+![Tisty's window with the sidebar on the left and Brainsty marked in it; in the content panel, the network zoomed out: at the top the count, «589 nodes · 1252 connections», each document and each task in the colour of its folder or its list, documents as squares, tasks as circles and tags as purple dots, fainter, citations and mentions stronger than the other lines, the network turned a little like a globe and its fourteen travellers with their trail on the lines, and at the bottom left the Legend, folded](network.png)
 
 - **It costs something only while you look at it.** When you move to another view, everything the network ran stops: the drawing, the settling of the dots and its work in the background.
-- **It is read again each time you come in**, so what you wrote meanwhile is already there. It starts clean: without the dot you had picked or the filters from last time.
+- **It is read again each time you come in**, so what you wrote meanwhile is already there. It starts clean: without the dot you had picked or the filters from last time. What each computer does remember is how you left the legend, **Travellers**, **Turning** and **Show AGENTS**. If something new arrives while you look at it, like a step your agent ticks or a sync round, the network stays as it was: the same view, the same layout and your **Travellers** and **Turning** as you left them.
 - **Legend**, at the bottom left, says what everything you see means. It comes folded and a click opens it. Each computer remembers whether you left it open.
 
-**The network is alive.** It turns by itself like a globe, once a minute, and what is behind looks smaller and fainter. **Travellers** walk its lines: dots of light with a short trail, which flash as they cross a tag or a node with many ties. They prefer what someone wrote: to choose their way on, a citation, a mention or a part weighs twice a line to a file and ten times a tag. How many there are, and how often they go from one node to the next, depends on the nodes in your network, not counting folders or lists:
+**The network is alive.** It turns by itself like a globe, once a minute, and what is behind looks smaller and fainter. **Travellers** walk its lines: dots of light with a short trail, which flash as they cross a tag or a node with many ties. They prefer what someone wrote: to choose their way on, a citation, a mention or a part weighs twice a line to a file and ten times a tag. How many there are, and how often they go from one node to the next, depends on how many nodes your network has, counting the ones a filter hides too:
 
 | Nodes | Travellers | One node every |
 | --- | --- | --- |
@@ -64,14 +64,12 @@ On a task's page, **A new task** creates a part of that task, in its same list.
 
 At the top, inside the open **Legend**, there are two switches, **Travellers** and **Turning**, each with a dot that lights up. They come on, even if your system asks for reduced motion. With no turning, the network lies flat; with both off, it stays still. Each computer remembers how you left them.
 
-The **Legend** also has four parts. **What it is** shows the shape of each kind there is in your network. **Colour: its folder or list** shows the coloured folders and lists, the fullest first; past six, **N more** shows the rest, and what has no colour takes its kind's tone. If you have the **Agents** folder, **AGENTS** shows right there, apart from your colours; with the pointer on it, it tells you they are your agents' files that Tisty keeps in step. **State** shows how a task under way, a done one and an archived one look. **Lines, up close** shows each kind of line in your network, with **In its folder or list** last, and **Alike** too when Tisty thinks something is alike. This table says the same:
+The **Legend** also has four parts. **What it is** shows the shape of each kind there is in your network. **Colour: its folder or list** shows the coloured folders and lists, the fullest first; past six, **N more** shows the rest, and what has no colour takes its kind's tone. If you turned **Show AGENTS** on in the filters, **AGENTS** shows right there, apart from your colours; with the pointer on it, it tells you they are your agents' files that Tisty keeps in step. **State** shows how what is still under way, a done task and an archived document look. **Lines, up close** shows each kind of line in your network, and **Alike** too when Tisty thinks something is alike. This table says the same:
 
 | In the network | It is |
 | --- | --- |
 | Square | a document or a page, in its folder's colour |
-| Small square, faint coral | a document in **Agents**: your agents' files, which do not crowd yours |
-| Big square, faint | a folder, amid its documents |
-| Diamond, faint | a list, amid its tasks |
+| Small square, faint coral | a document in **Agents**, only with **Show AGENTS**: your agents' files, which do not crowd yours |
 | Circle | a task, in its list's colour: bright while under way, faint once done |
 | Purple dot, faint | a tag |
 | Grey dot | a picture or a file |
@@ -79,21 +77,20 @@ The **Legend** also has four parts. **What it is** shows the shape of each kind 
 | Dashed line | a mention, a link in a sentence |
 | Solid line | **Part of**: a page and its book, a part and its task, the document a task was born in |
 | Thin, faint line | a tag, or what uses a file |
-| Thin line, the faintest | **In its folder or list**: a folder or a list and what it holds |
 | Amber curve | an alike pair: two things Tisty thinks are alike because they share uncommon words, one with a typo or a translation, and that nobody tied |
 
-Each folder and each list that holds something in the network is a node, tied to what it holds and amid it, and it also tints its zone with its colour.
+Folders and lists are not dots in the network: they give their things their colour, tint their zone, have their place in the legend, and the card of each document or task says which one it is in. **Agents** comes hidden: its files are not drawn, do not show in the search or the legend, and the travellers do not go through them, until you turn **Show AGENTS** on in the filters. That button shows only if you have files there, each computer remembers how you left it and **Show everything** does not touch it. What that folder is, [Agents: your agents' rules](tisty:agents) tells.
 
-**What you wrote leads.** As it settles, the network draws together what cites, mentions or is part of the same thing; a line to a file pulls half as much, and a shared tag, barely. Folders, lists and alike pairs move nobody. That is why tags, folders and lists look faint: they say where something is, not what you wrote. If you cite the task «Rina's yearly vaccine» on Rina's sheet, the two sit together, even though the task lives in the **Home** list and the sheet in the **Pets** folder.
+**What you wrote leads.** As it settles, the network draws together what cites, mentions or is part of the same thing; a line to a file pulls half as much, and a shared tag, barely. Alike pairs move nobody. That is why tags look faint: they say what something is about, not what you wrote. If you cite the task «Rina's yearly vaccine» on Rina's sheet, the two sit together, even though the task lives in the **Home** list and the sheet in the **Pets** folder.
 
-The network changes with the distance. From afar, as it opens or with the wheel backwards, its dots make a brain seen from the side, with no titles, and each kind has the shape in the table. At middle distance the coloured zones show. Up close every title shows, each kind of line, the tags and each picture's thumbnail, and each node becomes its icon, in its folder or list colour: a sheet for a document, a few lines of text for a page, a box for a task and a tick once it is done, a `#` for a tag, a clip for a file, a folder and a list. With the network turned, the zones hide and fewer titles show.
+The network changes with the distance. From afar, as it opens or with the wheel backwards, its dots make a brain seen from the side, with no titles, and each kind has the shape in the table. At middle distance the coloured zones show. Up close every title shows, each kind of line, the tags and each picture's thumbnail, and each node becomes its icon, in its folder or list colour: a sheet for a document, a few lines of text for a page, a box for a task and a tick once it is done, a `#` for a tag and a clip for a file. With the network turned, the zones hide and fewer titles show.
 
-![«Rina» picked up close in Brainsty, in the content panel beside the sidebar: her neighbours with titles, each drawn as its icon in its folder or list colour (a document's sheet, a task's box, the photo's clip), the rest dimmed and, on the right, her card: «Document · Pets · 6 connections», the rows Last written, Created, Size with its words and Language EN, the rina tag, Connections by kind with «1 in folder or list», Pointing here with what cites her, Alike with «Saturday walks» and «Tisty thinks they are alike: they share rina and park», the Link with Copy link and the Open button; in the network, an amber curve joins Rina to «Saturday walks»](network-near.png)
+![«Rina» picked up close in Brainsty, in the content panel beside the sidebar: her neighbours with titles, each drawn as its icon in its folder or list colour (a document's sheet, a task's box, the photo's clip), the rest dimmed and, on the right, her card: «Document · Pets · 6 connections», the rows Last written, Created, Size with its words and Language EN, the rina tag, Connections by kind, Pointing here with what cites her, Alike with «Saturday walks» and «Tisty thinks they are alike: they share rina and park», the Link with Copy link and the Open button; in the network, an amber curve joins Rina to «Saturday walks»](network-near.png)
 
 - **A click** on a dot lights it up with its neighbours and opens its card, on the right. The card does not show the document's text: it shows its facts, so you know what it is before you open it.
-- **Open**, `Enter` or a double click opens the document, the task or the tag in this same window, in the network's place; a folder opens in **Documents** and a list in **Lists**. To come back to the network, another click on **Brainsty**. A picture or a file does not open from the network: open it from what uses it.
+- **Open**, `Enter` or a double click opens the document, the task or the tag in this same window, in the network's place. To come back to the network, another click on **Brainsty**. A picture or a file opens with your system's program, and **Show in folder** takes you to it.
 - **Search the network**, at the top, or `/`: type part of a title and `Enter` centres the network on it.
-- **Filters**, the funnel beside the search box: which kinds to show, **Folders** and **Lists** too, **Alike** for the amber curves, the state of tasks, a tag and **Touched**, to see only what changed in the last days. A folder or a list hides when the filters hide everything it holds.
+- **Filters**, the funnel beside the search box: which kinds to show, **Alike** for the amber curves, **Show AGENTS** if you have files of your agents, the state (**Under way**, **Done** and **Archived**, which holds for tasks, documents and pages), a tag and **Touched**, to see only what changed in the last days.
 - **With the keyboard**: `Tab` goes round the search box, the filters and the network; the arrows walk from a dot to its neighbour, and the first one sets out from the document or the task you were on; `Enter` opens and `Esc` lets go in layers: first the search, then the dot, and the last one takes you back to where you were. An `Esc` you type in a field of the sidebar stays in that field. `Ctrl` + `Shift` + `M` shows, beside the legend, what drawing each frame costs.
 
 The card changes with what you pick:
@@ -102,9 +99,10 @@ The card changes with what you pick:
 | --- | --- |
 | A document or a page | **Page of**, if it is a page of a book; **Last written**, **Created**, **Size** with its words and **Language** |
 | A task | **State**, like «Under way · Due soon»; **Day**, **Deadline**, **Part of**, **Parts**, **Steps**, like «1 of 3 done», and **Source** |
-| A tag or a file | what it is and how many connections it has |
+| A tag | what it is and how many connections it has |
+| A picture or a file | its thumbnail, or the icon of its type; **Type**, **Size** and **Modified**; **Used in**, with each document or task that uses it, a click away, and the buttons **Open** and **Show in folder** |
 
-Below come its **Tags**; its **Connections** by kind, like «2 cites 3 mentions 1 in folder or list»; **Pointing here**, with what cites or mentions what you picked, and a click on one picks it in the network; its **Alike**, each with its why, and, on a document, a page or a task, its **Link**, with **Copy link**. A document's is the same one you copy from its panel, to paste in a chat or hand to your agent:
+Below come its **Tags**; its **Connections** by kind, like «2 cites 3 mentions»; **Pointing here**, with what cites or mentions what you picked, and a click on one picks it in the network; its **Alike**, each with its why, and, on a document, a page or a task, its **Link**, with **Copy link** and a **?** that says what it is for: pasting it into a document to get there with a click, or handing it to your agent so it reads that very thing, always inside Tisty. A document's is the same one you copy from its panel with **Copy link**, to paste in a chat or hand to your agent; [this guide's cover](tisty:guide) tells it, under **Its link**:
 
 ```text
 tisty://doc/pets/rina?id=…
@@ -114,12 +112,12 @@ tisty://doc/pets/rina?id=…
 
 ## What your agent reads
 
-Your agent reads the same network, but as an index. With a single tool, `brain`, it finds tasks and documents by their words, the Archive beside the rest; it brings a document's card, with its sections, who cites it and its decisions in force first, without reading it whole; and it sees a project grouped as blocked, under way, waiting for you and not started. On the card, what Tisty thinks is alike comes apart, under `guessed`, with the shared words or the pair of words that ties them, like `pagar≈pay`, so it is never mistaken for what someone wrote. When it names a task or a document by its exact title between quotes, Tisty links it when saving, as when you do. [Your agent's page](tisty:agent) tells it step by step.
+Your agent reads the same network, but as an index. With a single tool, `brain`, it finds tasks and documents by their words, the Archive beside the rest; it brings a document's card, with its sections, who cites it and its decisions in force first, without reading it whole; and it sees a project grouped as blocked, under way, waiting for you and not started. On the card, what Tisty thinks is alike comes apart, under `guessed`, with the shared words or the pair of words that ties them, like `pagar≈pay`, and with how it tied them: by words, by a letter of difference or by translation. That way it is never mistaken for what someone wrote. A task you hid or dropped never reaches it: if you linked it in a document, there it reads only «a task out of sight», and when it rewrites that document your link comes back intact. When it names a task or a document by its exact title between quotes, Tisty links it when saving, as when you do. [Your agent's page](tisty:agent) tells it step by step.
 
 ## Good to know
 
 - **Everything stays on this computer.** The network is worked out here and rebuilds itself: it is not synced and does not leave with what you share or export. Each computer draws it again from your documents and tasks.
-- **What you hide does not show** in the network, nor does it reach your agent.
+- **What you put away does not show.** A hidden or dropped task, the pages hung under it and your Diary with its pages are not dots in the network: nothing points at them, not a line, an alike pair, a traveller or **Pointing here**, and they do not reach your agent either. **Archived** still shows the documents you archived.
 - **Outside Tisty**, a link to another document and a task's card stay only as their words: in standard Markdown, in Word, in the PDF and in Folio.
 - **Up to 12,000 dots.** Past that, the network keeps what you touched last, its neighbours, your documents and the tasks under way, and tells you at the top how much was left out.
 - **You wrote every straight line; not the amber curve.** Tisty ties as alike what nobody tied, with three clues and in this order:
@@ -127,6 +125,6 @@ Your agent reads the same network, but as an index. With a single tool, `brain`,
   - **A typo:** «La imrpesora nueva no imprime en color» with «Instalar la impresora nueva».
   - **A translation:** a task in Spanish and its twin in English, like «Pagar la cuenta del agua» with «Pay the water bill».
 
-  The curve shows up close or around the dot you pick, and the card says why, with what each side wrote: «Tisty thinks they are alike: they share *pagar ≈ pay* and *agua ≈ water*». There is no AI in this: the translation comes from a fixed list of Spanish–English words, made by linguists, and all of it runs on your computer. Hidden tasks and your Diary never go through it. [The Brainsty network](https://www.tisty.app/docs/brainsty-network/), in the help, tells it.
+  The curve shows up close or around the dot you pick, and the card says why, with what each side wrote: «Tisty thinks they are alike: they share *pagar ≈ pay* and *agua ≈ water*». There is no AI in this: the translation comes from a fixed list of Spanish–English words, made by linguists, and all of it runs on your computer. It reads only the prose you wrote: code, HTML, addresses, paths and file names do not count, nor a task's progress notes, nor the words that only say how a text is built, like *bold*, *table* or *link*. The files in **Agents**, hidden or dropped tasks and your Diary never go through it. [The Brainsty network](https://www.tisty.app/docs/brainsty-network/), in the help, tells it.
 
 Every detail, with an example from start to end, is in the help: [linking documents](https://www.tisty.app/docs/linking-documents/), [tasks in documents](https://www.tisty.app/docs/tasks-in-documents/) and [the Brainsty network](https://www.tisty.app/docs/brainsty-network/).
