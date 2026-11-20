@@ -33,10 +33,10 @@ It does not handle each repository's rules: only the files in your user folder, 
 Agents carries no word beside it: its colour tells you how it stands.
 
 1. **Nothing brought yet**: the robot and the name in grey. A click opens the first-time box. Its right-click offers **Hide from the sidebar**.
-2. **Brought, not synced**: the grey robot and the name like any folder; when you hover over it, how many documents it holds, like any folder. It opens like any folder, and at the top it shows one quiet line: «Not synced with your agents · Sync», where **Sync** is a link. Its right-click offers **Sync**, **Bring another file** and **Hide from the sidebar**.
-3. **Syncing**: the **coral** robot and the name like any folder; when you hover over it, how many documents it holds. It opens like any folder. Its right-click offers **Bring another file** and **Stop syncing**.
+2. **Brought, not synced**: the grey robot and the name like any folder; when you hover over it, how many documents it holds, like any folder. It opens like any folder, and at the top it shows one quiet line: «Not synced with your agents · Sync», where **Sync** is a link. Its right-click offers **Sync** and **Hide from the sidebar**, nothing else.
+3. **Syncing**: the **coral** robot and the name like any folder; when you hover over it, how many documents it holds. It opens like any folder. Its right-click offers only **Stop syncing**: to hide it, stop syncing first.
 
-Coral is Agents' own: purple belongs to diagrams. What waits for your decision, such as a file changed outside or a proposal from your agent, does not show in the sidebar: you see it on each document's card and in **Settings → Assistants**. **Rename** is greyed out on Agents: inside it is kept as `AGENTS`, and that is how earlier versions of Tisty and your assistants through MCP find it.
+Coral is Agents' own: purple belongs to diagrams. What waits for your decision, such as a file changed outside or a proposal from your agent, does not show in the sidebar: you see it on each document's card and in **Settings → Assistants**. The right-click on Agents itself has no other folder action; its subfolders, such as **Agents › Claude**, keep the usual menu, with **Bring another file**. Its name does not change either: inside it is kept as `AGENTS`, and that is how earlier versions of Tisty and your assistants through MCP find it.
 
 ## Getting started
 
@@ -239,7 +239,7 @@ The first time does not have to be the only one. If you install a new assistant 
 - Run the tests before every commit.
 ```
 
-1. In the sidebar, right-click **Agents › Claude**, or any folder in Agents, and choose **Bring another file**. It is also in **Settings → Assistants**, on the **Agents** card. It does not change whether Agents syncs: brought but not synced, your agent's file stays as it is.
+1. In the sidebar, right-click a subfolder of Agents, such as **Agents › Claude**, and choose **Bring another file**; the right-click on Agents itself does not offer it. It is also in **Settings → Assistants**, on the **Agents** card. It does not change whether Agents syncs: brought but not synced, your agent's file stays as it is.
 2. The box says «These are the agent files on this computer that are not in Agents yet. Choose what to bring:». This time **nothing comes ticked**, and what already has a document says **already in Agents**. **Not now** closes it without bringing anything.
 3. Tick `rules/tests.md` and press **Bring**. **Tests** shows up in **Agents › Claude**, and from then on you read it and change it in Tisty.
 

@@ -33,10 +33,10 @@ No maneja las reglas de cada repositorio: solo los archivos de tu carpeta de usu
 Agentes no lleva ninguna palabra al lado: su color te dice cómo está.
 
 1. **Todavía sin traer**: el robot y el nombre en gris. Un clic abre el aviso de la primera vez. Su botón derecho ofrece **Ocultar de la barra**.
-2. **Traída, sin sincronizar**: el robot gris y el nombre como cualquier carpeta; al pasar el puntero, cuántos documentos tiene, como cualquier carpeta. Se abre como cualquier carpeta, y arriba muestra una línea discreta: «No se sincroniza con tus agentes · Sincronizar», donde **Sincronizar** es un enlace. Su botón derecho ofrece **Sincronizar**, **Traer otro archivo** y **Ocultar de la barra**.
-3. **Sincronizando**: el robot **coral** y el nombre como cualquier carpeta; al pasar el puntero, cuántos documentos tiene. Se abre como cualquier carpeta. Su botón derecho ofrece **Traer otro archivo** y **Dejar de sincronizar**.
+2. **Traída, sin sincronizar**: el robot gris y el nombre como cualquier carpeta; al pasar el puntero, cuántos documentos tiene, como cualquier carpeta. Se abre como cualquier carpeta, y arriba muestra una línea discreta: «No se sincroniza con tus agentes · Sincronizar», donde **Sincronizar** es un enlace. Su botón derecho ofrece **Sincronizar** y **Ocultar de la barra**, nada más.
+3. **Sincronizando**: el robot **coral** y el nombre como cualquier carpeta; al pasar el puntero, cuántos documentos tiene. Se abre como cualquier carpeta. Su botón derecho ofrece solo **Dejar de sincronizar**: para ocultarla, primero deja de sincronizar.
 
-El coral es solo de Agentes: el morado es de los diagramas. Lo que espera tu decisión, como un archivo cambiado por fuera o una propuesta de tu agente, no aparece en la barra: lo ves en la ficha de cada documento y en **Configuración → Asistentes**. **Renombrar** aparece desactivado en Agentes: por dentro se guarda como `AGENTS`, y así la encuentran las versiones anteriores de Tisty y tus asistentes por MCP.
+El coral es solo de Agentes: el morado es de los diagramas. Lo que espera tu decisión, como un archivo cambiado por fuera o una propuesta de tu agente, no aparece en la barra: lo ves en la ficha de cada documento y en **Configuración → Asistentes**. El botón derecho de Agentes misma no tiene ninguna otra acción de carpeta; sus subcarpetas, como **Agentes › Claude**, tienen el menú de siempre, con **Traer otro archivo**. Su nombre tampoco cambia: por dentro se guarda como `AGENTS`, y así la encuentran las versiones anteriores de Tisty y tus asistentes por MCP.
 
 ## Empezar
 
@@ -239,7 +239,7 @@ La primera vez no tiene que ser la única. Si instalas un asistente nuevo o escr
 - Corre los tests antes de cada commit.
 ```
 
-1. En la barra, botón derecho sobre **Agentes › Claude**, o sobre cualquier carpeta de Agentes, y **Traer otro archivo**. También está en **Configuración → Asistentes**, en la tarjeta **Agentes**. No cambia si Agentes sincroniza: traída sin sincronizar, el archivo de tu agente sigue como está.
+1. En la barra, botón derecho sobre una subcarpeta de Agentes, como **Agentes › Claude**, y **Traer otro archivo**; el botón derecho de Agentes misma no lo ofrece. También está en **Configuración → Asistentes**, en la tarjeta **Agentes**. No cambia si Agentes sincroniza: traída sin sincronizar, el archivo de tu agente sigue como está.
 2. El aviso dice «Estos son los archivos de agentes de este equipo que todavía no están en Agentes. Elige qué traer:». Esta vez **no viene nada marcado**, y lo que ya tiene documento dice **ya está en Agentes**. **Ahora no** lo cierra sin traer nada.
 3. Marca `rules/pruebas.md` y pulsa **Traer**. En **Agentes › Claude** aparece **Pruebas**, y desde ahí la lees y la cambias en Tisty.
 

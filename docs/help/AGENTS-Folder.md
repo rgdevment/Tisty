@@ -49,8 +49,8 @@ The sidebar tells you how Agents stands by its colour, and no word appears besid
 | State | How it looks | One click | Its right-click |
 | :-- | :-- | :-- | :-- |
 | **1. Nothing brought yet** | The robot and the name **Agents** in grey | Opens the first-time notice, [Your agents, in one place](#the-first-time) | **Hide from the sidebar** |
-| **2. Brought, not synced** | The robot in grey and the name like any folder; when you hover over it, how many documents it holds, like any folder | Opens it like any folder; at the top, one quiet line: «Not synced with your agents · Sync» | **Sync**, **Bring another file** and **Hide from the sidebar**, among the options of any folder |
-| **3. Syncing** | The robot in **coral** and the name like any folder; when you hover over it, how many documents it holds, like any folder | Opens it like any folder | **Bring another file** and **Stop syncing**, among the options of any folder |
+| **2. Brought, not synced** | The robot in grey and the name like any folder; when you hover over it, how many documents it holds, like any folder | Opens it like any folder; at the top, one quiet line: «Not synced with your agents · Sync» | **Sync** and **Hide from the sidebar**, nothing else |
+| **3. Syncing** | The robot in **coral** and the name like any folder; when you hover over it, how many documents it holds, like any folder | Opens it like any folder | **Stop syncing**, nothing else: to hide it, stop syncing first |
 
 ![The sidebar in English with Agents, nothing brought yet: at the top of the Library, the robot icon in grey and the name Agents in grey too, with no word on the right; below it, the folders Home and Work in their usual colours, so the difference shows](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/agents/en-12-nothing-brought-in-the-sidebar.png)
 
@@ -60,7 +60,7 @@ The sidebar tells you how Agents stands by its colour, and no word appears besid
 - **The state 2 line** shows only on Agents, never on its subfolders. Its **Sync** link does the same as the one on the right-click.
 - **With the sidebar folded**, Agents' robot has the same colour. Open or folded, a screen reader says the state in words: «Agents — nothing brought yet» or «Agents — Not synced with your agents».
 - **The right-click** also opens with the menu key or with `Shift` + `F10`, with Agents selected.
-- **Rename** is greyed out on Agents: see [What stops it being Agents](#what-stops-it-being-agents).
+- **The right-click on Agents itself** offers only syncing and hiding, by state: no other folder action. Its subfolders, such as **Agents › Claude**, keep the usual menu, with **Bring another file**. Why its name does not change is in [What stops it being Agents](#what-stops-it-being-agents).
 
 ## The first time
 
@@ -171,7 +171,7 @@ From there you have two ways:
 
 The first time does not have to be the only one. If you install a new assistant, make a rules file that did not exist before, or left something unticked, you bring it later:
 
-- **From the sidebar:** right-click Agents, or any folder inside it, and choose **Bring another file**. It is there in states 2 and 3; in state 1 nothing is brought yet, and a click on Agents opens the first time.
+- **From the sidebar:** right-click a subfolder of Agents, such as **Agents › Claude**, and choose **Bring another file**. The right-click on Agents itself does not offer it: it only syncs and hides. In state 1 nothing is brought yet, and a click on Agents opens the first time.
 - **From Settings › Assistants:** on the **Agents** card, the **Bring another file** button.
 
 **Bring another file does not change whether Agents syncs.** Brought but not synced, the new file comes in as a document and your agent's file stays as it is; while syncing, Tisty also keeps it up to date from then on.
@@ -479,13 +479,13 @@ The **document's** earlier versions, on the other hand, are those of any documen
 - **No document is deleted.** They stay in Agents, and you read and edit them as always; what you change stays in Tisty.
 - **Agents goes to state 2.** Its robot turns grey again and, when you open it, «Not synced with your agents · Sync» shows at the top. Each document's card says «The Agents folder does not sync with your agents. Choose Sync in the sidebar or in Settings › Assistants.», and the **Agent file** panel, under **Syncs on this computer**, «No, Agents does not sync».
 
-![The right-click menu on Agents in English, with Agents syncing and its coral robot in the sidebar: among the options of any folder, Bring another file and Stop syncing; Rename is greyed out, and Sync and Hide from the sidebar are not there](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/agents/en-14-menu-while-syncing.png)
+![The right-click menu on Agents in English, with Agents syncing and its coral robot in the sidebar: one single option, Stop syncing, and nothing else; no Hide from the sidebar, no Bring another file, no folder action](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/agents/en-14-menu-while-syncing.png)
 
 **Syncing again.** With Agents in state 2, any of these three does the same: the **Sync** link in the line at the top, **Sync** on its right-click, or **Sync** on its card in Settings › Assistants. If this computer had already let you read your agents' files, for example because you chose **Bring** or **Stop syncing** right here, it syncs at once, without the first-time box. If it never did, like a [second computer](#a-second-computer-step-by-step), the first-time box opens first.
 
 When it syncs, Tisty writes what you changed in your documents in the meantime, with its backup first, except a file that changed outside, which stays marked for you to decide. What it finds different on both sides, or no longer belonging to any rule, it asks about right then.
 
-![The right-click menu on Agents in English, with Agents brought but not synced and its grey robot in the sidebar: among the options of any folder, Sync, Bring another file and Hide from the sidebar; Rename is greyed out and Stop syncing is not there](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/agents/en-16-menu-not-synced.png)
+![The right-click menu on Agents in English, with Agents brought but not synced and its grey robot in the sidebar: only two options, Sync and Hide from the sidebar, and nothing else; no Bring another file, no folder action](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/agents/en-16-menu-not-synced.png)
 
 **An example.** Lucas wants to try some new rules by hand in his `CLAUDE.md` for a week, without Tisty touching them. He chooses **Stop syncing**. He edits the file in his editor and, meanwhile, keeps arranging his documents in Agents. At the end of the week he presses **Sync**: the card of **How I work** says **Changed outside**, and Lucas chooses **Bring the change in** to keep what he tried, or **Overwrite with Tisty** to go back to what his documents say.
 
@@ -558,7 +558,7 @@ Agents leaves the sidebar on this computer without a trace, and sits in **Settin
 
 ### What stops it being Agents
 
-Tisty knows the folder because it sits at the top, carries its robot icon and keeps the name `AGENTS`. In the window you see it as **Agents**, or **Agentes** with Tisty in Spanish, but inside it is still called `AGENTS`: that way earlier versions of Tisty on your other computers and the assistants that read it through MCP find it. That is why **Rename** is greyed out on its right-click.
+Tisty knows the folder because it sits at the top, carries its robot icon and keeps the name `AGENTS`. In the window you see it as **Agents**, or **Agentes** with Tisty in Spanish, but inside it is still called `AGENTS`: that way earlier versions of Tisty on your other computers and the assistants that read it through MCP find it. That is why its right-click only offers syncing and hiding, and never renaming it.
 
 If you change its icon, move it inside another folder or archive it, Tisty stops treating it as Agents: it writes those files no more, and leaves them as they were, without asking about them.
 
@@ -811,7 +811,7 @@ And editing the file on disk does not help either: that change stands as **Chang
 
 **I deleted a rule. What happens to its file?** Tisty asks «Take the file away too?»: **Take the file away** deletes it and keeps a backup, and **Leave it** leaves it where it is, without Tisty writing it again. See [Taking a rule and its file out](#taking-a-rule-and-its-file-out).
 
-**The first time I left a file unticked. Can I bring it now?** Yes, with **Bring another file**, by right-clicking Agents or from Settings › Assistants. See [Bring another file](#bring-another-file).
+**The first time I left a file unticked. Can I bring it now?** Yes, with **Bring another file**, by right-clicking a subfolder of Agents, such as Claude, or from Settings › Assistants. See [Bring another file](#bring-another-file).
 
 **Why do I have Agents in the sidebar if I never used it?** It is there, in grey, so you know it exists. Like that it reads nothing: it only checks whether each assistant's folder exists, such as `~/.claude`, and the list of names and sizes only shows when you click it. If you would rather not see it, right-click it and **Hide from the sidebar**; it comes back with **Show again**, in Settings › General › Hidden folders.
 
@@ -860,7 +860,7 @@ And editing the file on disk does not help either: that change stands as **Chang
 
 **I cannot find Hide.** Agents syncs, and while syncing it does not hide. Right-click, **Stop syncing**, and then **Hide from the sidebar**.
 
-**I cannot rename Agents.** That is on purpose: inside it is kept as `AGENTS`, and under another name Tisty and your assistants would stop finding it. See [What stops it being Agents](#what-stops-it-being-agents).
+**The right-click on Agents only offers syncing or hiding.** That is on purpose. To bring another file, use the right-click of a subfolder, such as Claude, or Settings › Assistants. And its name does not change because inside it is kept as `AGENTS`, and under another name Tisty and your assistants would stop finding it. See [What stops it being Agents](#what-stops-it-being-agents).
 
 **The whole folder stopped writing.** Check that Agents has its coral robot, still sits at the top of the Library, with its robot icon, and is not archived.
 

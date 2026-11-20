@@ -49,8 +49,8 @@ La barra te dice cómo está Agentes con su color, y al lado no aparece ninguna 
 | Estado | Cómo se ve | Un clic | Su botón derecho |
 | :-- | :-- | :-- | :-- |
 | **1. Todavía sin traer** | El robot y el nombre **Agentes** en gris | Abre el aviso de la primera vez, [Tus agentes, en un solo lugar](#la-primera-vez) | **Ocultar de la barra** |
-| **2. Traída, sin sincronizar** | El robot en gris y el nombre como cualquier carpeta; al pasar el puntero, cuántos documentos tiene, como cualquier carpeta | La abre como cualquier carpeta; arriba, una línea discreta: «No se sincroniza con tus agentes · Sincronizar» | **Sincronizar**, **Traer otro archivo** y **Ocultar de la barra**, entre las opciones de cualquier carpeta |
-| **3. Sincronizando** | El robot **coral** y el nombre como cualquier carpeta; al pasar el puntero, cuántos documentos tiene, como cualquier carpeta | La abre como cualquier carpeta | **Traer otro archivo** y **Dejar de sincronizar**, entre las opciones de cualquier carpeta |
+| **2. Traída, sin sincronizar** | El robot en gris y el nombre como cualquier carpeta; al pasar el puntero, cuántos documentos tiene, como cualquier carpeta | La abre como cualquier carpeta; arriba, una línea discreta: «No se sincroniza con tus agentes · Sincronizar» | **Sincronizar** y **Ocultar de la barra**, nada más |
+| **3. Sincronizando** | El robot **coral** y el nombre como cualquier carpeta; al pasar el puntero, cuántos documentos tiene, como cualquier carpeta | La abre como cualquier carpeta | **Dejar de sincronizar**, nada más: para ocultarla, primero deja de sincronizar |
 
 ![La barra lateral en español con Agentes todavía sin traer: arriba de la Biblioteca, el icono del robot en gris y el nombre Agentes también en gris, sin ninguna palabra a la derecha; debajo, las carpetas Casa y Trabajo con sus colores de siempre, para que se note la diferencia](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/agents/es-12-sin-traer-en-la-barra.png)
 
@@ -60,7 +60,7 @@ La barra te dice cómo está Agentes con su color, y al lado no aparece ninguna 
 - **La línea del estado 2** solo aparece en Agentes, nunca en sus subcarpetas. Su enlace **Sincronizar** hace lo mismo que el del botón derecho.
 - **Con la barra plegada**, el robot de Agentes tiene el mismo color. Abierta o plegada, un lector de pantalla dice el estado en palabras: «Agentes — todavía sin traer» o «Agentes — No se sincroniza con tus agentes».
 - **El botón derecho** también se abre con la tecla de menú o con `Shift` + `F10`, con Agentes seleccionada.
-- **Renombrar** aparece desactivado en Agentes: mira [Lo que la deja de convertir en Agentes](#lo-que-la-deja-de-convertir-en-agentes).
+- **El botón derecho de Agentes misma** solo ofrece sincronizar y ocultar, según su estado: ninguna otra acción de carpeta. Sus subcarpetas, como **Agentes › Claude**, tienen el menú de siempre, con **Traer otro archivo**. Por qué su nombre no cambia lo cuenta [Lo que la deja de convertir en Agentes](#lo-que-la-deja-de-convertir-en-agentes).
 
 ## La primera vez
 
@@ -171,7 +171,7 @@ Desde ahí tienes dos caminos:
 
 La primera vez no tiene que ser la única. Si instalas un asistente nuevo, si creas un archivo de reglas que antes no existía o si dejaste algo sin marcar, lo traes después:
 
-- **Desde la barra lateral:** botón derecho sobre Agentes, o sobre cualquier carpeta dentro de ella, y **Traer otro archivo**. Está en los estados 2 y 3; en el 1 todavía no hay nada traído, y un clic en Agentes abre la primera vez.
+- **Desde la barra lateral:** botón derecho sobre una subcarpeta de Agentes, como **Agentes › Claude**, y **Traer otro archivo**. El botón derecho de Agentes misma no lo ofrece: solo sincroniza y oculta. En el estado 1 todavía no hay nada traído, y un clic en Agentes abre la primera vez.
 - **Desde Configuración › Asistentes:** en la tarjeta **Agentes**, el botón **Traer otro archivo**.
 
 **Traer otro archivo no cambia si Agentes sincroniza.** Traída sin sincronizar, el archivo nuevo entra como documento y el archivo de tu agente queda como está; sincronizando, desde ese momento Tisty también lo mantiene al día.
@@ -479,13 +479,13 @@ Las versiones anteriores del **documento**, en cambio, son las de cualquier docu
 - **Ningún documento se borra.** Siguen en Agentes, y los lees y los editas como siempre; lo que cambias queda en Tisty.
 - **Agentes pasa al estado 2.** Su robot vuelve al gris y, al abrirla, arriba aparece «No se sincroniza con tus agentes · Sincronizar». La ficha de cada documento dice «La carpeta Agentes no se sincroniza con tus agentes. Elige Sincronizar en la barra o en Configuración › Asistentes.», y el panel **Archivo del agente**, en **Sincroniza en este equipo**, «No, Agentes no se sincroniza».
 
-![El menú del botón derecho sobre Agentes en español, con Agentes sincronizando y su robot coral en la barra: entre las opciones de cualquier carpeta, Traer otro archivo y Dejar de sincronizar; Renombrar aparece desactivado, y no están Sincronizar ni Ocultar de la barra](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/agents/es-14-menu-sincronizando.png)
+![El menú del botón derecho sobre Agentes en español, con Agentes sincronizando y su robot coral en la barra: una sola opción, Dejar de sincronizar, y nada más; ni Ocultar de la barra, ni Traer otro archivo, ni ninguna acción de carpeta](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/agents/es-14-menu-sincronizando.png)
 
 **Sincronizar otra vez.** Con Agentes en el estado 2, cualquiera de estos tres hace lo mismo: el enlace **Sincronizar** de la línea de arriba, **Sincronizar** en su botón derecho, o **Sincronizar** en su tarjeta de Configuración › Asistentes. Si este equipo ya te había dejado leer los archivos de tus agentes, por ejemplo porque elegiste **Traer** o **Dejar de sincronizar** aquí mismo, sincroniza de una vez, sin el aviso de la primera vez. Si nunca lo hizo, como un [segundo equipo](#un-segundo-equipo-paso-a-paso), abre antes el aviso de la primera vez.
 
 Al sincronizar, Tisty escribe lo que cambiaste en tus documentos mientras tanto, con su respaldo antes, salvo un archivo que cambió por fuera, que queda marcado para que decidas. Lo que encuentra distinto en los dos lados, o que ya no es de ninguna regla, te lo pregunta en ese mismo momento.
 
-![El menú del botón derecho sobre Agentes en español, con Agentes traída sin sincronizar y su robot gris en la barra: entre las opciones de cualquier carpeta, Sincronizar, Traer otro archivo y Ocultar de la barra; Renombrar aparece desactivado y no está Dejar de sincronizar](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/agents/es-16-menu-sin-sincronizar.png)
+![El menú del botón derecho sobre Agentes en español, con Agentes traída sin sincronizar y su robot gris en la barra: solo dos opciones, Sincronizar y Ocultar de la barra, y nada más; ni Traer otro archivo, ni ninguna acción de carpeta](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/agents/es-16-menu-sin-sincronizar.png)
 
 **Un ejemplo.** Lucas quiere probar a mano unas reglas nuevas en su `CLAUDE.md` durante una semana, sin que Tisty las toque. Elige **Dejar de sincronizar**. Edita el archivo con su editor y, en paralelo, sigue ordenando sus documentos en Agentes. Al final de la semana pulsa **Sincronizar**: la ficha de **Cómo trabajo** dice **Cambiado por fuera**, y Lucas elige **Traer el cambio** para quedarse con lo que probó, o **Sobrescribir con Tisty** para volver a lo de sus documentos.
 
@@ -558,7 +558,7 @@ Agentes sale de la barra lateral en este equipo sin dejar rastro, y queda en **C
 
 ### Lo que la deja de convertir en Agentes
 
-Tisty reconoce la carpeta porque está arriba de todo, lleva su icono de robot y guarda el nombre `AGENTS`. En la ventana la ves como **Agentes**, o **Agents** con Tisty en inglés, pero por dentro sigue llamándose `AGENTS`: así la encuentran las versiones anteriores de Tisty en tus otros equipos y los asistentes que la leen por MCP. Por eso **Renombrar** aparece desactivado en su botón derecho.
+Tisty reconoce la carpeta porque está arriba de todo, lleva su icono de robot y guarda el nombre `AGENTS`. En la ventana la ves como **Agentes**, o **Agents** con Tisty en inglés, pero por dentro sigue llamándose `AGENTS`: así la encuentran las versiones anteriores de Tisty en tus otros equipos y los asistentes que la leen por MCP. Por eso su botón derecho solo ofrece sincronizar y ocultar, y nunca cambiarle el nombre.
 
 Si le cambias el icono, la mueves dentro de otra carpeta o la archivas, Tisty deja de tratarla como Agentes: no escribe más esos archivos, y los deja como estaban, sin preguntar por ellos.
 
@@ -811,7 +811,7 @@ Y editar el archivo en disco tampoco sirve: ese cambio queda como **Cambiado por
 
 **Borré una regla. ¿Qué pasa con su archivo?** Tisty te pregunta «¿Quitar también el archivo?»: **Quitar el archivo** lo borra y guarda un respaldo, y **Dejarlo** lo deja donde está, sin que Tisty vuelva a escribirlo. Mira [Sacar una regla y su archivo](#sacar-una-regla-y-su-archivo).
 
-**La primera vez dejé un archivo sin marcar. ¿Lo puedo traer ahora?** Sí, con **Traer otro archivo**, desde el botón derecho sobre Agentes o desde Configuración › Asistentes. Mira [Traer otro archivo](#traer-otro-archivo).
+**La primera vez dejé un archivo sin marcar. ¿Lo puedo traer ahora?** Sí, con **Traer otro archivo**, desde el botón derecho sobre una subcarpeta de Agentes, como Claude, o desde Configuración › Asistentes. Mira [Traer otro archivo](#traer-otro-archivo).
 
 **¿Por qué tengo Agentes en la barra si nunca la usé?** Está ahí, en gris, para que sepas que existe. Así no lee nada: solo mira si existe la carpeta de cada asistente, como `~/.claude`, y la lista de nombres y tamaños aparece recién cuando haces clic en ella. Si no la quieres ver, botón derecho y **Ocultar de la barra**; vuelve con **Volver a mostrar**, en Configuración › General › Carpetas ocultas.
 
@@ -860,7 +860,7 @@ Y editar el archivo en disco tampoco sirve: ese cambio queda como **Cambiado por
 
 **No encuentro Ocultar.** Agentes sincroniza, y sincronizando no se oculta. Botón derecho, **Dejar de sincronizar**, y después **Ocultar de la barra**.
 
-**No puedo renombrar Agentes.** Es a propósito: por dentro se guarda como `AGENTS`, y con otro nombre Tisty y tus asistentes dejarían de encontrarla. Mira [Lo que la deja de convertir en Agentes](#lo-que-la-deja-de-convertir-en-agentes).
+**El botón derecho de Agentes solo ofrece sincronizar u ocultar.** Es a propósito. Para traer otro archivo, usa el botón derecho de una subcarpeta, como Claude, o Configuración › Asistentes. Y su nombre no cambia porque por dentro se guarda como `AGENTS`, y con otro nombre Tisty y tus asistentes dejarían de encontrarla. Mira [Lo que la deja de convertir en Agentes](#lo-que-la-deja-de-convertir-en-agentes).
 
 **Toda la carpeta dejó de escribir.** Revisa que Agentes tenga su robot coral, siga arriba de todo en la Biblioteca, con su icono de robot, y sin archivar.
 
