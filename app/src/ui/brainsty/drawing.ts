@@ -24,7 +24,16 @@ import {
 } from "./looks";
 import type { Spots } from "./settling";
 import type { Point } from "./zones";
-import { allTitles, bigTitles, lerp, lineDetail, quantized, roomFor, zoomOf } from "./zoom";
+import {
+  allTitles,
+  bigTitles,
+  iconsShown,
+  lerp,
+  lineDetail,
+  quantized,
+  roomFor,
+  zoomOf,
+} from "./zoom";
 
 export type HueOf = (group?: string) => string | undefined;
 
@@ -157,8 +166,13 @@ export function drawNetwork(
           labelFont: font,
           // sigma backs a hovered or picked node and its title in white, where a light title vanishes.
           backdropColor: () => seen.palette.bg,
+          // Up close the node is its icon alone, drawn over it in the same colour, so its plain shape fades away.
           color: (at, state: Lit, shared: Seen) =>
-            shared.hasHighlighted && !state.isHighlighted ? rgba(String(at.color), DIM) : at.color,
+            rgba(
+              String(at.color),
+              (shared.hasHighlighted && !state.isHighlighted ? DIM : 1) *
+                (1 - iconsShown(shared.zoom)),
+            ),
           labelVisibility: (at, state: Lit, shared: Seen) => {
             if (state.isHovered || state.isPicked) return "visible";
             // Forced titles skip sigma's grid, so a crowd of neighbours would print over each other.

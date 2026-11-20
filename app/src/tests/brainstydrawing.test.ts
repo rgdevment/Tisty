@@ -359,7 +359,10 @@ describe("the drawing of the network", () => {
     expect(drawn.shared.slice(1)).toEqual([{ hasHighlighted: true }, { hasHighlighted: false }]);
     const lit = { zoom: 0, hasHighlighted: true };
     expect(colour({ color: "#102030" }, {}, lit)).toBe("rgba(16, 32, 48, 0.12)");
-    expect(colour({ color: "#102030" }, { isHighlighted: true }, lit)).toBe("#102030");
+    expect(colour({ color: "#102030" }, { isHighlighted: true }, lit)).toBe("rgba(16, 32, 48, 1)");
+    expect(colour({ color: "#102030" }, {}, { zoom: 1, hasHighlighted: false } as never)).toBe(
+      "rgba(16, 32, 48, 0)",
+    );
     expect(shown({ big: true }, {}, { zoom: 1, hasHighlighted: true } as never)).toBe("hidden");
     expect(shown({ big: false }, { isPicked: true }, lit)).toBe("visible");
     expect(shown({ big: false }, { isHighlighted: true }, lit)).toBe("auto");

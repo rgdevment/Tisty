@@ -113,12 +113,13 @@ export default function Brainsty({ network, groups, onOpen, escaping }: Props) {
     curves.reshape(shaped);
     const overlays = overlaysOn(container, drawn, network, hueOf, palette, PICTURES);
     overlays.reshape(shaped);
-    const icons = iconsOn(container, drawn, network, palette, PICTURES.shows);
     let colours = palette;
-    const living = livingOn(container, drawn, network, (node) => {
+    const colourOf = (node: number) => {
       const one = network.nodes[node];
       return nodeLook(one, hueOf(one.group), colours).color;
-    });
+    };
+    const icons = iconsOn(container, drawn, network, colourOf, PICTURES.shows);
+    const living = livingOn(container, drawn, network, colourOf);
     const unturned = turnedByHand(container, living.turnBy);
     const near = network.near;
     const pick = (node: number) => {
@@ -154,8 +155,8 @@ export default function Brainsty({ network, groups, onOpen, escaping }: Props) {
       drawn.retheme(next);
       overlays.retheme(next);
       curves.retheme(next);
-      icons.retheme(next);
       colours = next;
+      icons.retheme();
     });
     drawing.current = { drawn, overlays, curves, icons, living };
     setReady(true);
