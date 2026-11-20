@@ -592,12 +592,14 @@ pub(crate) fn round_now(session: &Session, homes: &Homes, ledger: &mut Ledger) -
     round_after(session, homes, ledger, &[])
 }
 
-// An earlier build marked no line; it settled the agent's own file only once it had put its line in, unless that file is a memory document here.
+// An earlier build marked no line: a file it wrote nothing but its line into, or one still holding it, had it put there.
 fn marked_led(data: &Path, ledger: &mut Ledger, placed: &[Placed]) {
     let mut marked = false;
     for lead in placed.iter().filter_map(|one| one.lead_in.as_ref()) {
         let remembered = placed.iter().any(|one| one.target.at == lead.at);
-        if !ledger.led(&lead.at) && !remembered && ledger.written(&lead.at).is_some() {
+        let only_its_line = ledger.applied_at(&lead.at).next().is_none();
+        let put = only_its_line || !agents::lacks(lead, &places::lead_in_line());
+        if !ledger.led(&lead.at) && !remembered && put && ledger.written(&lead.at).is_some() {
             ledger.lead(&lead.at);
             marked = true;
         }

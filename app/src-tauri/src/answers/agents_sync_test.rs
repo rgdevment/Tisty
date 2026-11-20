@@ -2180,3 +2180,20 @@ fn a_file_only_brought_is_never_recorded_as_written_nor_offered_to_take_away() {
     );
     assert_eq!(room.read(".claude/CLAUDE.md"), "# Claude\nTests first.\n");
 }
+
+#[test]
+fn geminis_memory_taken_out_never_reads_as_a_line_the_person_took_away() {
+    let mut room = room();
+    put(Path::new(&room.at(".gemini/GEMINI.md")), "- remembered\n");
+    room.bring(&[".claude/CLAUDE.md", ".gemini/GEMINI.md"]);
+    let memory = file_brought_from(&room, "GEMINI.md");
+    moved_out(&mut room, &memory);
+    global_doc(&mut room, "Spanish.\n");
+
+    let round = round_here(&mut room.session, &room.homes, HERE).unwrap();
+
+    assert!(round.unled.is_empty(), "{round:?}");
+    assert!(room.look().unled.is_empty());
+    assert!(room.read(".gemini/GEMINI.md").contains("@tisty-rules.md"));
+    assert!(room.read(".gemini/GEMINI.md").starts_with("- remembered\n"));
+}
