@@ -209,7 +209,7 @@ Escribes rápido y anotas «La imrpesora nueva no imprime en color». Una semana
 
 Anotas «Pagar la cuenta del agua» y, otro día, tu agente anota en inglés «Pay the water bill». Hablan de lo mismo y no comparten ni una palabra. Tisty las une con un diccionario español–inglés: «Tisty lo adivina: comparten *pagar ≈ pay* y *agua ≈ water*». Lo mismo pasa con «Arreglar la gotera del techo» y «Fix the roof leak»: *gotera ≈ leak* y *techo ≈ roof*.
 
-- **No es IA.** Es una lista fija de 41.140 parejas de palabras, hecha por lingüistas: sale del [Open Multilingual Wordnet 2.0](https://github.com/omwn/omw-data), con el Multilingual Central Repository 3.0 en español y Princeton WordNet 3.0 en inglés. Viene dentro del instalador, suma unos 0,3 MB y nunca se busca en internet. Mira [Sin IA](Privacidad#sin-ia).
+- **No es IA.** Es una lista fija de 41.140 parejas de palabras, hecha por lingüistas: sale del [Open Multilingual Wordnet 2.0](https://github.com/omwn/omw-data), con el Multilingual Central Repository 3.0 en español y Princeton WordNet 3.0 en inglés. Es un archivo de unos 760 KB (777.917 bytes) que viene dentro del instalador; comprimido ahí, suma unos 0,3 MB a la descarga. Nunca se busca en internet. Mira [Sin IA](Privacidad#sin-ia).
 - **Una sola pareja por palabra**, la de su sentido más usado. Por eso a veces no es la que esperas: *cuenta* da *tally*, no *bill*. En el ejemplo de arriba, lo que une es *pagar* y *agua*.
 - **Una palabra que se escribe igual en los dos idiomas**, como *hotel*, no está en la lista: ya se une como palabra en común.
 - **Solo une dos idiomas distintos:** nunca dos cosas en español ni dos en inglés, aunque digan lo mismo con otras palabras.
@@ -219,7 +219,7 @@ Anotas «Pagar la cuenta del agua» y, otro día, tu agente anota en inglés «P
 
 ### Lo que vale para las tres
 
-Un tipeo o una traducción cuenta como una palabra en común: dos cosas se parecen solo si comparten al menos dos palabras de peso, y al menos una escrita distinta en cada lado.
+Un tipeo o una traducción cuenta como una palabra en común: dos cosas se parecen solo si comparten al menos dos palabras de peso, y al menos una escrita distinta en cada lado. En la traducción, una palabra que cada lado escribió distinto, como *tarjeta* y *card*, cuenta aunque aparezca en hasta el 25 % de lo que guardas, no solo en el 5 %.
 
 - **Como mucho tres parecidos por cosa**, y cada punta tiene que estar entre las tres más cercanas de la otra.
 - **El umbral sale de lo que guardas**, no de una cifra fija: el parecido tiene que superar lo que alcanza un par de cada mil en tu base.

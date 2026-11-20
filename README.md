@@ -160,10 +160,10 @@ productivity tool** that lives on your machine and nowhere else.
 - **Fast and native** — a Rust core inside a Tauri window: it starts quickly,
   stays small, and looks like it belongs on both systems.
 
-**What comes next.** I am working on Brainsty, Tisty's brain: everything you
-keep, with what joins it, drawn as one network — a map from afar for you, and up
-close, for your agent, an index that tells it where to look without reading
-everything. It has no date yet.
+**Brainsty, Tisty's brain.** Everything you keep, with what joins it, drawn as
+one network: a map from afar for you, and, for your agent, an index that tells
+it where to look without reading everything. It also shows, apart, what Tisty
+guesses is alike, with no AI. [More below](#brainsty-everything-joined).
 
 > I use Tisty every day on macOS and Windows. If something feels off,
 > [open an issue](https://github.com/rgdevment/Tisty/issues) — this project
@@ -228,7 +228,7 @@ and what happens instead when the memory lives in Tisty.
 Tisty keeps two kinds of things, and the same two serve you and your agent.
 Something you will do is a task. Something you will come back to is a document.
 An idea, a thought caught on the fly before you know which of the two it is,
-waits in Brainstorm.
+waits in Ideas.
 
 ### Documents: what you know, one per subject
 
@@ -248,8 +248,8 @@ waits in Brainstorm.
   to today's diary with `Tab`, and ideas have a shortcut of their own: up to 140
   characters each, dated, without opening the window.
 - **Sticky notes that stay Markdown** — they wait as coloured notes in
-  Brainstorm, a document pinned atop the Library, and you reorder them by
-  dragging.
+  Ideas, a document pinned atop the Library with a light bulb, and you
+  reorder them by dragging.
 - **Sorted out later** — each idea becomes a task or goes into the document it
   belongs to, and the Library counts the ones still waiting.
 - **An idea in any document** — the same sticky note, with its date and colour,
@@ -259,7 +259,7 @@ waits in Brainstorm.
   ideas you keep; ask it to sort them and it groups them, turns one into a task
   or files it in its document, and only marks the old ones, for you to delete.
 
-![A quick thought, so you don't lose it: ideas of the moment as sticky notes in colours in Brainstorm, dated and written by hand, to sort out later into a task or a document](assets/screens/readme/en-03-brainstorm.webp)
+![A quick thought, so you don't lose it: ideas of the moment as sticky notes in colours in Ideas, dated and written by hand, to sort out later into a task or a document](assets/screens/readme/en-03-brainstorm.webp)
 
 ### Diary: what happened today
 
@@ -267,7 +267,7 @@ waits in Brainstorm.
   in the app's language; a day you did not write never appears.
 - **Written from anywhere** — the box on top, «What happened today?», or the
   quick capture's third mode, **Diary**, two `Tab`s from a task, without
-  opening the window; filing an idea from Brainstorm offers **Today's diary**
+  opening the window; filing an idea from Ideas offers **Today's diary**
   first.
 - **Only yours** — no agent sees it until you press **Only you** and it reads
   **Open to agents**; open, an agent reads it and only adds to the end of today,
@@ -305,6 +305,37 @@ waits in Brainstorm.
   we solve this?» with the line that says it.
 
 ![Urgent is not always important: each task in its quadrant of the Eisenhower matrix, do, schedule, delegate or minor, and above them how many are left to sort](assets/screens/readme/en-04-priorities.webp)
+
+### Brainsty: everything joined
+
+What you keep was already joined: a document cites another, a task was born in
+some minutes, a book has pages. **Brainsty**, under the task views in the
+sidebar, draws all of it as one network, in the content panel beside your lists.
+
+- **Joined as you write** — `[[` links a document to another, the `/` menu
+  cites a task as a live card, and the panel beside a document lists who links
+  to it.
+- **A map from afar, the detail up close** — documents as squares, tasks as
+  circles in their list's colour, folders and lists as nodes amid what they
+  hold, tags and files; up close, every title, each kind of line and the icon of
+  what each node is. A folded legend says what each shape, colour and line
+  means.
+- **A card, not the text** — click a node and its card says what it is, its
+  dates, its state, what points at it and its link to copy; **Open** takes you
+  there.
+- **Alike, with no AI** — an amber curve joins what nobody tied but Tisty
+  guesses is alike, and says why: two uncommon words in common, a typo
+  (*impresora ≈ imrpesora*), or a task in Spanish and its twin in English
+  (*pagar ≈ pay*), from a fixed list of words made by linguists. It all runs
+  on your computer.
+- **Alive, if you want it** — the network turns slowly like a globe while
+  travellers walk its lines; two switches in the legend make it still.
+- **The same network for your agent** — with one tool, `brain`, it searches the
+  archive with the rest, reads a document's card without reading it whole, and
+  gets the guesses apart, so it never takes them for links someone wrote.
+
+[The Brainsty network](https://www.tisty.app/docs/brainsty-network/), in the
+help, tells all of it.
 
 ## A Day With Your Agent
 
@@ -513,7 +544,7 @@ why a task has a page: it is also a document, one with an end.
 
 **And an idea?** An idea is a thought caught on the fly, before you know whether
 it is something to do or something to keep: a few words, 140 at most, dated, on
-the Brainstorm sheet. It waits for you to sort it out: it becomes a task, goes
+the Ideas sheet. It waits for you to sort it out: it becomes a task, goes
 into the document on its subject, or is set aside. A note is something else: the
 dated line in a task's journal.
 
@@ -522,7 +553,7 @@ flowchart TD
   A[Something comes up] --> B{Will you do it,<br/>or come back to read it?}
   B -->|Do it| T[A task]
   B -->|Read it again| D[A document]
-  B -->|Not sure yet| I[An idea in<br/>Brainstorm]
+  B -->|Not sure yet| I[An idea in<br/>Ideas]
   I -->|Turn into a task| T
   I -->|File in a document| D
   T --> P[Its page: notes, steps,<br/>files, recordings]
@@ -1000,7 +1031,7 @@ compiled into the copy you already have. There are a few more, listed in
 **Folio by Tisty** is a separate service for sharing a document by a link with
 no account, end-to-end encrypted, with its own terms and policies in
 [its own repository](https://github.com/rgdevment/Folio-by-Tisty). A document's
-panel shows a **Shared** row — Brainstorm and your Diary are never shared — and
+panel shows a **Shared** row — Ideas and your Diary are never shared — and
 pressing **Share** reads a small signed file to learn
 whether Folio has opened and, while it has not, tells you so, with a link to
 [tisty.cl](https://tisty.cl). Nothing of your document leaves until
@@ -1212,7 +1243,7 @@ make one document a page of another and say the order its pages are read in,
 which writes and moves the lines naming them in your document's text and nothing
 else, mark a document that had its day, for you to delete, put away or unmark,
 keep a copy of a file you point it at — on a task or inside a document alike —
-jot ideas on your Brainstorm and sort them with you, and read what is already
+jot ideas on your Ideas sheet and sort them with you, and read what is already
 there. Your Diary is the exception: no assistant sees it until you open it to
 agents from the Diary itself, and open it only adds to the end of today, signed,
 when you ask. What it may
@@ -1306,7 +1337,9 @@ the format is for.
 
 No, and none is coming. The natural language that turns "call the bank at 3"
 into a task is rules running on your machine: no model, no request, no cloud.
-If you already use an assistant of your own, Tisty leaves an
+What Brainsty guesses is alike comes from shared words, a typo or a fixed
+Spanish–English word list, never from a model. If you already use an assistant
+of your own, Tisty leaves an
 [MCP](https://modelcontextprotocol.io) door — it comes open, one click closes
 it, and while it is closed everything it tries is refused.
 
