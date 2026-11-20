@@ -11,6 +11,7 @@ mod rooted;
 mod shown;
 mod standing;
 mod subs;
+mod twins;
 
 pub use agreeing::{Agreeing, Approved, Hand, agreeing};
 pub use card::{Card, Endings, GLOBAL, KEY, Kind, brought, doc_of, rendered};
@@ -30,6 +31,7 @@ pub use standing::{
     standing, wanted,
 };
 pub use subs::{sub_folders, sub_id};
+pub use twins::renamed_twins;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Refused {

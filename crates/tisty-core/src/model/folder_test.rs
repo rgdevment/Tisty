@@ -42,6 +42,7 @@ fn a_document_with_no_folder_is_unfiled_rather_than_absent() {
         diary: false,
         compacted: None,
         folder_was: None,
+        lifted_from: None,
         task_of: None,
         told: Default::default(),
         print: None,

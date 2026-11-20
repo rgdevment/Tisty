@@ -1366,9 +1366,9 @@ html.lively:not(.sheeted) .page {
 .page > .front.agent-own {
   margin: 0 0 1.2em;
 }
-/* An agent's file lies inside its card: no paper, no title of Tisty's, read at about 62 characters. */
+/* An agent's file lies inside its card: no paper, no title of Tisty's, as wide as the card, inset like its facts box. */
 html.agent .page {
-  max-width: 62ch;
+  max-width: none;
   margin: 0;
   padding: 6px 16px 24px;
   background: none;
@@ -1377,7 +1377,6 @@ html.agent .page {
 }
 /* Written, the page keeps a normal page's margin, where the editor's folded bar waits beside the line. */
 html.agent .page[contenteditable="true"] {
-  max-width: calc(62ch + 40px);
   padding-left: 56px;
 }
 html.agent .page:not([contenteditable="true"]) > .front.agent-own {

@@ -70,7 +70,7 @@ export function usePapers({
   const [papers, setPapers] = useState<Papers>({ folders: [], docs: [] });
 
   const newDoc = (folder?: string, pageOf?: string) =>
-    docNew(folder, pageOf)
+    docNew(folder, pageOf, true)
       .then((made) => {
         papersChanged();
         setChosen({ named: "docs", doc: made.id });

@@ -58,6 +58,11 @@ pub fn assistant(id: &str) -> Option<&'static Assistant> {
     ASSISTANTS.iter().find(|one| one.id == id)
 }
 
+/// The one rules file an assistant reads, when it reads no folder of rules beside it.
+pub fn single_rule(id: &str) -> Option<&'static str> {
+    assistant(id).filter(|one| one.rule_dir.is_none())?.main
+}
+
 /// The first name a new rule of `level` can take that no document holds yet: the main file while it is free, then one in its rules folder.
 pub fn fresh_rule(level: &str, taken: impl Fn(&str) -> bool) -> Option<String> {
     let numbered = |stem: &str, ext: &str| {

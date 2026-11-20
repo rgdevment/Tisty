@@ -153,3 +153,20 @@ describe("the page's looks, kept cheap to restyle while it is written on", () =>
     }
   });
 });
+
+describe("an agent's file on its card", () => {
+  const agentRules = (looks: string) =>
+    looks
+      .split("}")
+      .filter((block) => /html\.agent \.page(\[contenteditable="true"\])?\s*\{/.test(block));
+
+  it("reads across the whole card, read or written, with no column of its own", () => {
+    const rules = agentRules(LOOKS);
+    expect(rules.length).toBe(2);
+    for (const rule of rules) {
+      const width = rule.match(/max-width:\s*([^;]+);/)?.[1].trim();
+      expect(width === undefined || width === "none", rule).toBe(true);
+    }
+    expect(rules.some((rule) => /padding-left:\s*56px/.test(rule))).toBe(true);
+  });
+});

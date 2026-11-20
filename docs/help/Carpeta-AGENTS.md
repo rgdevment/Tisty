@@ -378,7 +378,9 @@ No tienes que escribir la línea `agent:` a mano. Un documento que creas con **D
 | **Gemini** | `agent: gemini/rule/tisty-rules.md` mientras ningún documento lo tenga |
 | **Cursor**, Agentes misma o una carpeta tuya dentro de Agentes | Ninguna: es un documento común |
 
-**Codex y Gemini leen un solo archivo de reglas.** Cuando un documento ya lo tiene, el siguiente **Documento nuevo** en su carpeta empieza como un documento común, sin línea `agent:`, que no llega a ningún agente: escribe lo nuevo en ese mismo documento, o en **Global** si es para todos. **Cursor** no tiene un archivo de reglas propio, así que un documento nuevo en su carpeta también empieza común; sus skills las traes con **Traer otro archivo**.
+**Codex y Gemini leen un solo archivo de reglas.** Cuando un documento ya lo tiene, **Documento nuevo** en su carpeta no crea otro: abre ese mismo documento, para que sumes ahí lo nuevo. Lo que es para todos va en **Global**.
+
+**Dos reglas Global con el mismo nombre.** Si en la casa y en el trabajo creaste una regla en **Global** antes de que los dos equipos se sincronizaran, las dos nacieron como `rule.md`. Al encontrarse, Tisty le deja el nombre a la más antigua y le da a la otra el siguiente libre, `rule-2.md`, sin tocar su texto: las dos llegan a tus agentes. En el equipo donde la otra llegó de afuera, espera su **Aplicar aquí** como cualquier documento de otro equipo. **Cursor** no tiene un archivo de reglas propio, así que un documento nuevo en su carpeta también empieza común; sus skills las traes con **Traer otro archivo**.
 
 **Un ejemplo.** Marisol tiene Agentes sincronizando y acaba de instalar Gemini CLI. En la barra aparece **Agentes › Gemini**, con su brújula verde, vacía.
 
@@ -396,7 +398,7 @@ title: gemini · tisty-rules.md
 Responde en español.
 ```
 
-Si después crea otro **Documento nuevo** en **Gemini**, ese empieza común: Marisol suma la regla nueva al mismo documento.
+Si después pulsa otra vez **Documento nuevo** en **Gemini**, se abre ese mismo documento, y Marisol suma ahí la regla nueva.
 
 ![PROVISORIA — Un documento nuevo en Agentes › Gemini, en español: arriba el camino Agentes / Gemini; las etiquetas Regla, Gemini y Al día; el nombre tisty-rules.md; el cuadro de datos con Lo lee Gemini y Se escribe en ~/.gemini/tisty-rules.md con su botón de copiar; debajo, el texto Responde en español.; en la barra lateral, la subcarpeta Gemini con su brújula verde y dentro el documento tisty-rules.md con el icono de un libro](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/agents/es-18-documento-nuevo-gemini.png)
 
@@ -733,10 +735,9 @@ Tisty las une solo, sin preguntar:
 - **Lo que llega del otro equipo espera** su **Aplicar aquí**, como cualquier documento de otro equipo. Si los dos trajeron su `CLAUDE.md`, ves los dos documentos en **Claude**: el tuyo se sigue escribiendo y el otro espera; elige con cuál te quedas y saca el otro.
 - **Una carpeta archivada pasa entera** y sigue archivada: lo que guardaba no vuelve a escribirse.
 
-Dos casos raros que quedan como están:
+- **Lo que llega tarde también entra.** Si en el otro equipo escribiste un documento en su **Global** justo antes de que se uniera, cuando ese documento llega Tisty lo pasa solo a tu **Global**, sin preguntar, y su archivo nunca se ofrece para quitar por esa causa.
 
-- Si en la carpeta que se iría hay algo que puso un agente, Tisty no las une, porque al moverlo parecería puesto por ti. Mueve tú ese documento a una carpeta tuya y la unión se hace sola en la siguiente vuelta.
-- Si, justo mientras se unen, escribes un documento nuevo en la carpeta del otro equipo que ya se borró, ese documento queda fuera de Agentes. Muévelo a Agentes y se aplica como siempre.
+Un caso raro que queda como está: si en la carpeta que se iría hay algo que puso un agente, Tisty no las une, porque al moverlo parecería puesto por ti. Mueve tú ese documento a una carpeta tuya y la unión se hace sola en la siguiente vuelta.
 
 ### La memoria es del equipo que la trajo
 

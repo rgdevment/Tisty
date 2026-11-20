@@ -2445,3 +2445,79 @@ fn a_global_rule_emptied_leaves_every_file_and_asks_about_one_it_alone_wrote() {
         "the file the rule alone made is asked about, never left saying the old words in silence"
     );
 }
+
+#[test]
+fn a_new_document_in_codex_or_gemini_opens_its_one_rules_file_once_there_is_one() {
+    use crate::answers::papers::doc_made;
+    let mut room = room();
+    std::fs::create_dir_all(room.home.join(".gemini")).unwrap();
+    room.bring(&[".codex/AGENTS.md"]);
+    let codex_rule = file_brought_from(&room, "AGENTS.md");
+    let count = room.session.state.docs.len();
+
+    let codex = sub_of(&room, "Codex");
+    let opened = doc_made(&mut room.session, Some(codex), None, true).unwrap();
+    assert_eq!(opened.id, codex_rule);
+    assert_eq!(room.session.state.docs.len(), count, "nothing new is made");
+
+    let gemini = sub_of(&room, "Gemini");
+    let first = doc_made(&mut room.session, Some(gemini), None, true).unwrap();
+    let body = tisty_core::docs::read(&room.session.paths.docs(), &first.id).unwrap();
+    assert_eq!(
+        Card::of(&body).unwrap().address(),
+        "gemini/rule/tisty-rules.md"
+    );
+    let again = doc_made(&mut room.session, Some(gemini), None, true).unwrap();
+    assert_eq!(again.id, first.id);
+
+    let claude = sub_of(&room, "Claude");
+    let one = doc_made(&mut room.session, Some(claude), None, true).unwrap();
+    let two = doc_made(&mut room.session, Some(claude), None, true).unwrap();
+    assert_ne!(one.id, two.id, "Claude reads a whole folder of rules");
+
+    let written_over = doc_made(&mut room.session, Some(gemini), None, false).unwrap();
+    assert_ne!(
+        written_over.id, first.id,
+        "a caller that writes its own words gets a new one"
+    );
+}
+
+#[test]
+fn two_global_rules_named_alike_on_two_computers_both_reach_the_agents() {
+    let mut room = room();
+    room.bring(&[".claude/CLAUDE.md"]);
+    global_doc(&mut room, "Spanish.\n");
+    let theirs = from_another_computer_for(
+        &mut room,
+        agents::GLOBAL,
+        agents::Kind::Rule,
+        "style.md",
+        "Short answers.\n",
+    );
+
+    round_here(&mut room.session, &room.homes, HERE).unwrap();
+
+    let addresses: BTreeSet<String> = bodies(&room.session)
+        .iter()
+        .filter_map(|(_, body)| Card::of(body).map(|card| card.address()))
+        .filter(|address| address.starts_with("global/"))
+        .collect();
+    assert_eq!(
+        addresses,
+        ["global/rule/style-2.md", "global/rule/style.md"]
+            .map(String::from)
+            .into()
+    );
+    assert_eq!(
+        room.look().waiting,
+        1,
+        "renaming the other computer's rule never applies it here"
+    );
+    crate::answers::agent_docs::take_here(&room.session, Some(&room.homes), HERE, &theirs, true)
+        .unwrap();
+    let claude = room.read(".claude/CLAUDE.md");
+    assert!(
+        claude.contains("Spanish.") && claude.contains("Short answers."),
+        "{claude}"
+    );
+}
