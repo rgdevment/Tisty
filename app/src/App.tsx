@@ -51,6 +51,7 @@ export default function App() {
     docMenu,
     hereMenu,
     diaryMenu,
+    ideasMenu,
     agentsMenu,
     listMenu,
     papered,
@@ -61,6 +62,7 @@ export default function App() {
     setQuery,
     choose,
     toDiary,
+    toIdeas,
   } = desk;
   const side = chosenWidth(railed(kept, chosen.named === "keeping"));
   const openNetwork = () => {
@@ -113,8 +115,10 @@ export default function App() {
           }
           onPage={(doc, pageOf) => hangIt(doc, pageOf)}
           onDiary={toDiary}
+          onIdeas={toIdeas}
           onBrainsty={openNetwork}
           onDiaryMenu={diaryMenu}
+          onIdeasMenu={ideasMenu}
           onAgentsMenu={agentsMenu}
           onFolderMenu={folderMenu}
           onDocMenu={docMenu}

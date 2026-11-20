@@ -26,6 +26,24 @@ pub fn jot(
     )
 }
 
+// Ideas stands in the library before any idea is written, so opening it is what makes the sheet.
+#[tauri::command(async)]
+pub fn brainstorm_begun(
+    session: tauri::State<'_, Mutex<Session>>,
+    title: String,
+) -> Answer<String> {
+    beginning(&mut held(&session), &title)
+}
+
+pub fn beginning(session: &mut Session, title: &str) -> Answer<String> {
+    if let Some((file, _)) = found(session) {
+        return Ok(file);
+    }
+    let file = made_anew(session, title)?;
+    session.brainstorm = Some(file.clone());
+    Ok(file)
+}
+
 #[derive(Debug, serde::Serialize)]
 pub struct Pinned {
     pub file: String,

@@ -214,3 +214,20 @@ fn the_person_takes_an_agents_mark_off_one_idea_and_leaves_the_rest() {
     assert_eq!(left.len(), 1);
     assert_eq!(left[0].idea, on[1]);
 }
+
+#[test]
+fn opening_ideas_before_any_idea_makes_the_sheet_once_and_the_first_idea_lands_in_it() {
+    let (_tmp, mut session) = session();
+
+    let made = beginning(&mut session, "Ideas").unwrap();
+    let again = beginning(&mut session, "Ideas").unwrap();
+    let jotted = jotting(&mut session, "llamar al vet", "Ideas", at(7), 0).unwrap();
+
+    assert_eq!(made, again);
+    assert_eq!(jotted.file, made);
+    assert!(!jotted.made);
+    assert_eq!(session.state.docs.len(), 1, "one sheet, never one per ask");
+    let kept = session.state.docs.values().next().unwrap();
+    assert_eq!(kept.title.as_deref(), Some("Ideas"));
+    assert!(body(&session, &made).contains("> llamar al vet"));
+}
