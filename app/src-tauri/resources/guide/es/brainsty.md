@@ -42,38 +42,44 @@ En la página de una tarea, **Una tarea nueva** crea una parte de esa tarea, en 
 
 ## La red
 
-**Brainsty**, en la barra lateral bajo las vistas de tareas, abre todo lo que guardas como una sola red. Se abre en el panel de contenido, como una vista más, con la barra lateral a la vista y **Brainsty** marcado en ella. Arranca cerca del documento o la tarea en que estabas; si no estabas en ninguno, en lo último que escribiste.
+**Brainsty**, en la barra lateral bajo las vistas de tareas, abre todo lo que guardas como una sola red. Se abre en el panel de contenido, como una vista más, con la barra lateral a la vista y **Brainsty** marcado en ella. Abre con la red entera a la vista; el documento o la tarea en que estabas queda como punto de partida de las flechas.
 
-![La ventana de Tisty con la barra lateral a la izquierda y Brainsty marcado en ella; en el panel de contenido, la red alejada: arriba la cuenta, «589 nodos · 1252 conexiones», cada carpeta y cada lista de su color, los documentos como cuadrados, las tareas como círculos y las etiquetas como puntos morados, y abajo a la izquierda la Leyenda, plegada](red.png)
+![La ventana de Tisty con la barra lateral a la izquierda y Brainsty marcado en ella; en el panel de contenido, la red alejada: arriba la cuenta, «589 nodos · 1252 conexiones», cada carpeta y cada lista de su color, los documentos como cuadrados, las carpetas como cuadrados grandes, las listas como rombos, las tareas como círculos y las etiquetas como puntos morados, la red un poco girada como un globo y dos o tres viajeros con su estela sobre las líneas, y abajo a la izquierda la Leyenda, plegada](red.png)
 
 - **Gasta solo mientras la miras.** Cuando pasas a otra vista, se detiene todo lo que la red corría: el dibujo, el acomodo de los puntos y su trabajo en segundo plano.
 - **Se lee de nuevo cada vez que entras**, así que lo que escribiste entretanto ya está. Arranca limpia: sin el punto que habías elegido ni los filtros de la vez anterior.
 - **Leyenda**, abajo a la izquierda, dice qué significa cada cosa que ves. Viene plegada y un clic la abre. Cada equipo recuerda si la dejaste abierta.
 
-En la **Leyenda** hay cuatro partes. **Qué es** muestra la forma de cada clase que hay en tu red. **Color: su carpeta o lista** muestra las carpetas y listas de color, primero las más llenas; si son más de seis, **N más** muestra el resto, y lo que no tiene color toma el tono de su clase. **Estado** muestra cómo se ve una tarea en curso, una terminada y una archivada. **Líneas, de cerca** muestra cada tipo de línea, y también **Parecidos** cuando Tisty adivinó alguno. Esta tabla dice lo mismo:
+**La red está viva.** Gira sola como un globo, una vuelta por minuto, y lo que queda atrás se ve más chico y tenue. Por sus líneas caminan **viajeros**: puntos de luz que pasan de un nodo a otro cada cinco segundos, con una estela corta y un destello al cruzar una etiqueta o un nodo muy conectado. Son dos en una red de menos de 60 nodos y suben de a dos hasta diez, desde 250. El globo se queda quieto mientras el puntero está sobre la red, un momento después de acercarte o alejarte y mientras tienes un nodo elegido; en el espacio vacío sigue girando. Para girarlo tú, arrastra con el botón derecho o con `Shift`; el arrastre normal sigue moviendo la vista.
+
+Arriba, dentro de la **Leyenda** abierta, hay dos interruptores, **Viajeros** y **Girar**, cada uno con un punto que se enciende. Sin giro, la red queda plana; con los dos apagados, queda quieta. Cada equipo recuerda cómo los dejaste, y arrancan apagados si tu sistema pide reducir el movimiento.
+
+En la **Leyenda** hay además cuatro partes. **Qué es** muestra la forma de cada clase que hay en tu red. **Color: su carpeta o lista** muestra las carpetas y listas de color, primero las más llenas; si son más de seis, **N más** muestra el resto, y lo que no tiene color toma el tono de su clase. **Estado** muestra cómo se ve una tarea en curso, una terminada y una archivada. **Líneas, de cerca** muestra cada tipo de línea, y también **Parecidos** cuando Tisty adivinó alguno. Esta tabla dice lo mismo:
 
 | En la red | Es |
 | --- | --- |
 | Cuadrado | un documento o una página, del color de su carpeta |
+| Cuadrado grande | una carpeta, en medio de sus documentos |
+| Rombo | una lista, en medio de sus tareas |
 | Círculo | una tarea, del color de su lista: viva si sigue en curso, tenue si se terminó |
 | Punto morado | una etiqueta |
 | Punto gris | una imagen o un archivo |
 | Línea sólida | una cita, una tarjeta |
 | Línea punteada | una mención, un enlace en una frase |
-| Línea fina | una página y su libro, una parte y su tarea, el documento donde nació una tarea |
+| Línea fina | una página y su libro, una parte y su tarea, el documento donde nació una tarea, una carpeta o una lista y lo suyo |
 | Curva ámbar | un parecido: lo que Tisty adivina porque comparten palabras poco comunes, una con un error de tipeo o una traducción, y nadie los unió |
 
-Las listas y las carpetas no son puntos: son el color y la zona donde se junta lo suyo.
+Cada carpeta y cada lista que tiene algo en la red es un nodo, unido a lo suyo y en medio de ello, y además tiñe su zona con su color.
 
-La red cambia con la distancia. De lejos, con la rueda hacia atrás, sus puntos forman un cerebro visto de lado, sin títulos. A media distancia aparecen las zonas de color. De cerca, todos los títulos, cada tipo de línea, las etiquetas y la miniatura de cada imagen.
+La red cambia con la distancia. De lejos, con la rueda hacia atrás, sus puntos forman un cerebro visto de lado, sin títulos. A media distancia aparecen las zonas de color. De cerca, todos los títulos, cada tipo de línea, las etiquetas, la miniatura de cada imagen y, dentro de cada nodo, el ícono de lo que es: documento, página, tarea, con un tic si está hecha, etiqueta, archivo, carpeta o lista. Con la red girada, las zonas se ocultan y se ven menos títulos.
 
 ![«Rina» elegida de cerca en Brainsty, en el panel de contenido junto a la barra lateral: sus vecinos con título, el resto atenuado y, a la derecha, su ficha: «Documento · Mascotas · 6 conexiones», las filas Escrito por última vez, Creado, Tamaño con sus palabras e Idioma ES, la etiqueta rina, Conexiones por tipo, Apuntan aquí con lo que la cita, Parecidos con «Paseos del sábado» y «Tisty lo adivina: comparten rina y parque», el Enlace con Copiar enlace y el botón Abrir; en la red, una curva ámbar une a Rina con «Paseos del sábado»](red-cerca.png)
 
 - **Un clic** en un punto lo resalta con sus vecinos y abre su ficha, a la derecha. La ficha no muestra el texto del documento: muestra sus datos, para que sepas qué es antes de abrirlo.
-- **Abrir**, `Enter` o un doble clic abre el documento, la tarea o la etiqueta en esta misma ventana, en el lugar de la red. Para volver a ella, otro clic en **Brainsty**. Una imagen o un archivo no se abre desde la red: ábrelo desde lo que lo usa.
+- **Abrir**, `Enter` o un doble clic abre el documento, la tarea o la etiqueta en esta misma ventana, en el lugar de la red; una carpeta se abre en **Documentos** y una lista en **Listas**. Para volver a la red, otro clic en **Brainsty**. Una imagen o un archivo no se abre desde la red: ábrelo desde lo que lo usa.
 - **Buscar en la red**, arriba, o `/`: escribe parte de un título y `Enter` centra la red en él.
-- **Filtros**, el embudo junto al buscador: qué tipos mostrar, **Parecidos** para las curvas ámbar, el estado de las tareas, una etiqueta y **Tocado**, para ver solo lo que cambió en los últimos días.
-- **Con el teclado**: `Tab` recorre el buscador, los filtros y la red; las flechas caminan de un punto a su vecino, `Enter` abre y `Esc` suelta por capas: primero la búsqueda, después el punto, y el último te devuelve a donde estabas. Un `Esc` que escribes en un campo de la barra lateral se queda en ese campo.
+- **Filtros**, el embudo junto al buscador: qué tipos mostrar, también **Carpetas** y **Listas**, **Parecidos** para las curvas ámbar, el estado de las tareas, una etiqueta y **Tocado**, para ver solo lo que cambió en los últimos días. Una carpeta o una lista se esconde cuando los filtros esconden todo lo suyo.
+- **Con el teclado**: `Tab` recorre el buscador, los filtros y la red; las flechas caminan de un punto a su vecino, y la primera sale del documento o la tarea en que estabas; `Enter` abre y `Esc` suelta por capas: primero la búsqueda, después el punto, y el último te devuelve a donde estabas. Un `Esc` que escribes en un campo de la barra lateral se queda en ese campo. `Ctrl` + `Shift` + `M` muestra, junto a la leyenda, cuánto cuesta dibujar cada cuadro.
 
 La ficha cambia según lo que eliges:
 
@@ -89,7 +95,7 @@ Debajo vienen sus **Etiquetas**; sus **Conexiones** por tipo, como «2 citas 3 m
 tisty://doc/mascotas/rina?id=…
 ```
 
-**Pruébalo:** abre **Brainsty** ahora. La red arranca en esta hoja, con sus vecinos alrededor: la portada de la guía, de la que es página, y lo que la nombra o ella nombra. Haz un clic en esta hoja y mira su ficha: en **Apuntan aquí** está la portada de la guía, que la cita con su tarjeta. Después busca `uno de cada`, `Enter`, y **Abrir**: **Uno de cada cosa** se abre en el lugar de la red. Vuelve con otro clic en **Brainsty** y, esta vez, sal con `Esc`: el último te devuelve a **Uno de cada cosa**, donde estabas.
+**Pruébalo:** abre **Brainsty** ahora. La red abre entera, girando despacio, con sus viajeros caminando. Deja el puntero sobre ella y el globo se detiene. Busca `brainsty`, `Enter`: la red elige esta hoja, con sus vecinos alrededor, y abre su ficha; en **Apuntan aquí** está la portada de la guía, que la cita con su tarjeta. Abre la **Leyenda** y apaga **Girar**: la red queda plana. Después busca `uno de cada`, `Enter`, y **Abrir**: **Uno de cada cosa** se abre en el lugar de la red. Vuelve con otro clic en **Brainsty** y, esta vez, sal con `Esc`: el último te devuelve a **Uno de cada cosa**, donde estabas.
 
 ## Lo que lee tu agente
 
