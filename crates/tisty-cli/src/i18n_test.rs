@@ -98,3 +98,16 @@ fn arguments_are_substituted() {
     assert!(out.contains("abc"), "{out}");
     assert!(!out.contains('{'), "{out}");
 }
+
+#[test]
+fn the_notice_over_a_credential_opens_as_the_brain_leaves_it_out() {
+    for lang in Lang::every() {
+        let said = lang.get("secret-warning");
+        assert!(
+            tisty_core::brain::TISTY_NOTICES
+                .iter()
+                .any(|one| said.starts_with(one)),
+            "{said}"
+        );
+    }
+}

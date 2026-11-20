@@ -87,3 +87,62 @@ fn among_words_said_as_often_the_longer_ones_outlast_the_cut() {
     let text = format!("{} veterinaria", short.join(" "));
     assert!(words(&text).contains(&"veterinaria".to_string()));
 }
+
+fn kept(text: &str) -> Vec<String> {
+    let mut all = words(text);
+    all.sort();
+    all
+}
+
+#[test]
+fn a_link_or_an_address_says_nothing() {
+    assert_eq!(kept("Ver https://tisty.app/guia/roger hoy"), ["hoy", "ver"]);
+    assert_eq!(kept("Ver www.tisty.app hoy"), ["hoy", "ver"]);
+    assert_eq!(kept("Escribe a (roger@rina.cl) hoy"), ["escribe", "hoy"]);
+}
+
+#[test]
+fn a_path_or_a_file_says_nothing() {
+    assert_eq!(kept("Abre wizard/template.sh ahora"), ["abre", "ahora"]);
+    assert_eq!(kept("Abre src/brain/alike ahora"), ["abre", "ahora"]);
+    assert_eq!(kept("Abre C:\\Users\\rina ahora"), ["abre", "ahora"]);
+    assert_eq!(kept("Abre ~/notas ahora"), ["abre", "ahora"]);
+    assert_eq!(kept("Abre /etc ahora"), ["abre", "ahora"]);
+    assert_eq!(kept("Abre openai.yaml ahora."), ["abre", "ahora"]);
+}
+
+#[test]
+fn a_word_beside_a_slash_is_still_a_word() {
+    assert_eq!(kept("entrada/salida"), ["entrada", "salida"]);
+    assert_eq!(kept("Fin del paseo."), ["fin", "paseo"]);
+    assert_eq!(kept("¿Paseo, correa?"), ["correa", "paseo"]);
+}
+
+#[test]
+fn a_tag_an_emoji_or_an_entity_says_nothing() {
+    assert_eq!(
+        kept("Paseo #roger :dog: &nbsp; diario"),
+        ["diario", "paseo"]
+    );
+}
+
+#[test]
+fn a_name_or_a_mark_from_code_says_nothing() {
+    for code in [
+        "kept_up",
+        "TISTY_PROFILE",
+        "--force",
+        "a=b",
+        "<div>",
+        "{money}",
+        "`span`",
+        "$HOME",
+        "a|b",
+    ] {
+        assert_eq!(
+            kept(&format!("Usa {code} siempre")),
+            ["siempre", "usa"],
+            "{code}"
+        );
+    }
+}

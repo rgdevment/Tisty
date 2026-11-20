@@ -585,7 +585,7 @@ describe("Brainsty in the content panel", () => {
     const shown = render(view);
     await waitFor(() => expect(sigma.hands).not.toBeNull());
 
-    expect(last(sigma.hidden)).toEqual([false, false, false, true]);
+    await waitFor(() => expect(last(sigma.hidden)).toEqual([false, false, false, true]));
     await user.click(screen.getByRole("button", { name: t("brainstyFilters") }));
     const agents = screen.getByRole("button", { name: t("brainstyShowAgents") });
     expect(agents.getAttribute("aria-pressed")).toBe("false");
