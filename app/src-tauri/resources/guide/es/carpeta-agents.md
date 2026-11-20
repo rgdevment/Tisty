@@ -33,8 +33,8 @@ No maneja las reglas de cada repositorio: solo los archivos de tu carpeta de usu
 Agentes no lleva ninguna palabra al lado: su color te dice cómo está.
 
 1. **Todavía sin traer**: el robot y el nombre en gris. Un clic abre el aviso de la primera vez. Su botón derecho ofrece **Ocultar de la barra**.
-2. **Traída, sin sincronizar**: el robot gris, el nombre como cualquier carpeta y cuántos documentos tiene. Se abre como cualquier carpeta, y arriba muestra una línea discreta: «No se sincroniza con tus agentes · Sincronizar», donde **Sincronizar** es un enlace. Su botón derecho ofrece **Sincronizar**, **Traer otro archivo** y **Ocultar de la barra**.
-3. **Sincronizando**: el robot **coral**, el nombre como cualquier carpeta y cuántos documentos tiene. Se abre como cualquier carpeta. Su botón derecho ofrece **Traer otro archivo** y **Dejar de sincronizar**.
+2. **Traída, sin sincronizar**: el robot gris y el nombre como cualquier carpeta; al pasar el puntero, cuántos documentos tiene, como cualquier carpeta. Se abre como cualquier carpeta, y arriba muestra una línea discreta: «No se sincroniza con tus agentes · Sincronizar», donde **Sincronizar** es un enlace. Su botón derecho ofrece **Sincronizar**, **Traer otro archivo** y **Ocultar de la barra**.
+3. **Sincronizando**: el robot **coral** y el nombre como cualquier carpeta; al pasar el puntero, cuántos documentos tiene. Se abre como cualquier carpeta. Su botón derecho ofrece **Traer otro archivo** y **Dejar de sincronizar**.
 
 El coral es solo de Agentes: el morado es de los diagramas. Lo que espera tu decisión, como un archivo cambiado por fuera o una propuesta de tu agente, no aparece en la barra: lo ves en la ficha de cada documento y en **Configuración → Asistentes**. **Renombrar** aparece desactivado en Agentes: por dentro se guarda como `AGENTS`, y así la encuentran las versiones anteriores de Tisty y tus asistentes por MCP.
 
@@ -57,7 +57,7 @@ Si todavía no tienes archivos de agentes, el aviso dice «No encontré archivos
 
 Después, en la barra lateral, cada documento se ve con su nombre y un icono: un libro para una regla, una pieza para una skill y un cerebro para la memoria. Pasa el puntero sobre uno y ves de qué archivo es.
 
-![La barra lateral con la carpeta Agentes abierta y sincronizando: el robot en coral, el nombre Agentes y a la derecha solo su número de documentos, sin ninguna palabra; en Claude, la regla Cómo trabajo con el icono de un libro, la skill pr con el icono de una pieza y 3 archivos, y la memoria MEMORY.md con el icono de un cerebro; el puntero sobre Cómo trabajo muestra claude · CLAUDE.md](agents-barra.png)
+![La barra lateral con la carpeta Agentes abierta y sincronizando: el robot en coral y el nombre Agentes, sin ninguna palabra a la derecha; en Claude, la regla Cómo trabajo con el icono de un libro, la skill pr con el icono de una pieza y 3 archivos, y la memoria MEMORY.md con el icono de un cerebro; el puntero sobre Cómo trabajo muestra claude · CLAUDE.md](agents-barra.png)
 
 ## Una regla: en Tisty y en `CLAUDE.md`
 
@@ -207,7 +207,7 @@ Así nunca pierdes ninguno de los dos lados.
 Si un día quieres que Tisty no toque los archivos de Claude, por ejemplo mientras pruebas otras reglas a mano:
 
 - en la ficha, **Pausar la sincronización con Claude**; en un documento de Global, el enlace **Pausar Claude** de su fila;
-- o en **Configuración → Asistentes**, en la tarjeta **Agentes**, apaga **Sincronizar Claude**. Para detener todos a la vez, **Dejar de sincronizar**, como cuenta la sección siguiente.
+- o en **Configuración → Asistentes**, en la tarjeta **Agentes**, desactiva **Sincronizar Claude**. Para detener todos a la vez, **Dejar de sincronizar**, como cuenta la sección siguiente.
 
 En pausa, Tisty no abre ni escribe esos archivos, y tú sigues editando tus documentos. **Reanudar la sincronización con Claude** escribe lo que cambiaste, salvo un archivo que cambió por fuera mientras tanto, que queda marcado para que decidas. La pausa es solo de este equipo.
 
@@ -223,7 +223,7 @@ En pausa, Tisty no abre ni escribe esos archivos, y tú sigues editando tus docu
 
 Oculta, Agentes no sincroniza: no escribe ningún archivo de tus agentes, y nada de esos archivos espera tu decisión. Tus documentos siguen ahí, y si un agente te propone un cambio, la propuesta queda en la ficha de su documento.
 
-**Si venías de la versión anterior**, donde la carpeta se llamaba AGENTS y se encendía o se apagaba, no tienes que hacer nada: si estaba encendida, la encuentras sincronizando, con su robot coral; si estaba apagada y tenía documentos, traída sin sincronizar. **Encender** es ahora **Traer y sincronizar** o **Sincronizar**, y **Apagar AGENTS**, **Dejar de sincronizar**. Si la habías ocultado encendida, ahora la encuentras otra vez en la barra, sincronizando: desde ahí puedes dejar de sincronizarla y ocultarla.
+**Si venías de la versión anterior**, donde la carpeta se veía en mayúsculas y, mientras no escribía los archivos de tus agentes, atenuada, en gris, con una palabra al lado, no tienes que hacer nada. Si se veía con su color y escribía esos archivos, la encuentras sincronizando, con su robot coral; si se veía atenuada y tenía documentos, traída sin sincronizar. Si la habías ocultado mientras escribía archivos, ahora la encuentras otra vez en la barra, sincronizando: desde ahí puedes dejar de sincronizarla y ocultarla.
 
 Nada de lo que llega por MCP trae, sincroniza, deja de sincronizar, oculta o muestra Agentes: eso lo haces tú, en la ventana de Tisty.
 
@@ -285,7 +285,7 @@ Tus documentos de Agentes viajan con tu sincronización a tus otros equipos, per
 
 Desde ahí, lo que ya aplicas se pone al día solo cuando lo cambias en el otro equipo. Lo que escribes o traes en un equipo que sincroniza se aplica en ese mismo equipo sin ningún clic. Y la memoria de un agente es del equipo que la trajo: en los demás solo se lee.
 
-![La ficha de Para todos mis agentes en el equipo del trabajo, con las etiquetas Regla y Global, sin filas de archivos, y el aviso ámbar Este documento viene de otro equipo. ¿Lo aplicas a los agentes de este? con los botones Aplicar aquí y No en este equipo; en la barra, Agentes con su robot coral y su número de documentos, sin ninguna palabra al lado](agents-otro-equipo.png)
+![La ficha de Para todos mis agentes en el equipo del trabajo, con las etiquetas Regla y Global, sin filas de archivos, y el aviso ámbar Este documento viene de otro equipo. ¿Lo aplicas a los agentes de este? con los botones Aplicar aquí y No en este equipo; en la barra, Agentes con su robot coral, sin ninguna palabra al lado](agents-otro-equipo.png)
 
 Dos avisos más que puedes ver en una ficha:
 

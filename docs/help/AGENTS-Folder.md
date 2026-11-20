@@ -44,17 +44,17 @@ If one day Jaime wants his changes to reach Claude Code, he presses **Sync** and
 
 ## Three states in the sidebar
 
-The sidebar tells you how Agents stands by its colour, with no word beside it: no «off», no «in sync», no «changed». What waits for your decision you see on each document's card and in **Settings › Assistants**.
+The sidebar tells you how Agents stands by its colour, and no word appears beside it. What waits for your decision you see on each document's card and in **Settings › Assistants**.
 
 | State | How it looks | One click | Its right-click |
 | :-- | :-- | :-- | :-- |
-| **1. Nothing brought yet** | The robot and the name **Agents** in grey, with no count | Opens the first-time notice, [Your agents, in one place](#the-first-time) | **Hide from the sidebar** |
-| **2. Brought, not synced** | The robot in grey, the name like any folder and how many documents it holds | Opens it like any folder; at the top, one quiet line: «Not synced with your agents · Sync» | **Sync**, **Bring another file** and **Hide from the sidebar**, among the options of any folder |
-| **3. Syncing** | The robot in **coral**, the name like any folder and how many documents it holds | Opens it like any folder | **Bring another file** and **Stop syncing**, among the options of any folder |
+| **1. Nothing brought yet** | The robot and the name **Agents** in grey | Opens the first-time notice, [Your agents, in one place](#the-first-time) | **Hide from the sidebar** |
+| **2. Brought, not synced** | The robot in grey and the name like any folder; when you hover over it, how many documents it holds, like any folder | Opens it like any folder; at the top, one quiet line: «Not synced with your agents · Sync» | **Sync**, **Bring another file** and **Hide from the sidebar**, among the options of any folder |
+| **3. Syncing** | The robot in **coral** and the name like any folder; when you hover over it, how many documents it holds, like any folder | Opens it like any folder | **Bring another file** and **Stop syncing**, among the options of any folder |
 
-![The sidebar in English with Agents, nothing brought yet: at the top of the Library, the robot icon in grey and the name Agents in grey too, with no count or word on the right; below it, the folders Home and Work in their usual colours, so the difference shows](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/agents/en-12-nothing-brought-in-the-sidebar.png)
+![The sidebar in English with Agents, nothing brought yet: at the top of the Library, the robot icon in grey and the name Agents in grey too, with no word on the right; below it, the folders Home and Work in their usual colours, so the difference shows](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/agents/en-12-nothing-brought-in-the-sidebar.png)
 
-![The Agents folder open in the content panel in English, brought but not synced: in the sidebar, the grey robot, the name Agents in its normal colour and 7 on the right; in the panel, the title Agents with the grey robot and, just below, the quiet line Not synced with your agents · Sync, with Sync as a link; further down, the subfolders Global, Claude and Codex with their documents](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/agents/en-13-brought-not-synced.png)
+![The Agents folder open in the content panel in English, brought but not synced: in the sidebar, the grey robot and the name Agents in its normal colour, with no word on the right; in the panel, the title Agents with the grey robot and, just below, the quiet line Not synced with your agents · Sync, with Sync as a link; further down, the subfolders Global, Claude and Codex with their documents](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/agents/en-13-brought-not-synced.png)
 
 - **Coral is Agents' own**, and only while it syncs: purple belongs to diagrams, and no folder of yours can pick coral. In the Brainsty network, Agents and its documents are always drawn in coral, whether it syncs or not.
 - **The state 2 line** shows only on Agents, never on its subfolders. Its **Sync** link does the same as the one on the right-click.
@@ -247,7 +247,7 @@ Agents
 
 The subfolders are there so you find things: **what decides where a document goes is its `agent:` line**, not the folder it sits in. You can move a document between subfolders or make your own inside Agents, and it keeps being written to the same file.
 
-**The sidebar says nothing beside Agents**: no «in sync», and no count of what waits. What waits for your decision is in three places:
+**The sidebar says nothing beside Agents**: no word, and no count of what waits. What waits for your decision is in three places:
 
 | Where | What you see |
 | :-- | :-- |
@@ -255,7 +255,7 @@ The subfolders are there so you find things: **what decides where a document goe
 | **Settings › Assistants**, on the **Agents** card | The files that ask for your decision: «1 file says something different in Tisty and in the agent.», or «1 file no longer belongs to any rule in Agents.», each with **Review**; and under **Sync Gemini**, if [its line](#gemini-paused) is missing |
 | **When you go into Agents** | If Agents syncs and a file exists on both sides, no longer belongs to any rule or lost Gemini's line, Tisty asks about it as soon as you go in, one at a time |
 
-![The sidebar in English with the Agents folder open and syncing: its robot icon in coral, the name Agents in its normal colour and on the right only the number of documents, with no word; inside, the subfolders Global, Claude, Codex and Gemini. In Claude, the rule How I work with a book icon, the rule Code style, the skill pr with a puzzle-piece icon and 3 files on the right, open, showing SKILL.md, scripts/open-pr.sh and template.md, and the memory MEMORY.md with a brain icon; the pointer over How I work shows claude · CLAUDE.md](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/agents/en-02-sidebar.png)
+![The sidebar in English with the Agents folder open and syncing: its robot icon in coral and the name Agents in its normal colour, with no word on the right; inside, the subfolders Global, Claude, Codex and Gemini. In Claude, the rule How I work with a book icon, the rule Code style, the skill pr with a puzzle-piece icon and 3 files on the right, open, showing SKILL.md, scripts/open-pr.sh and template.md, and the memory MEMORY.md with a brain icon; the pointer over How I work shows claude · CLAUDE.md](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/agents/en-02-sidebar.png)
 
 ### The `agent:` line
 
@@ -554,7 +554,7 @@ Agents leaves the sidebar on this computer without a trace, and sits in **Settin
 
 **Hidden, Agents does not sync.** It writes none of your agents' files, and nothing from those files waits for your decision. Your documents are still there: search and **Move to** find them, and if an agent proposes a change, the proposal stays on its document's card until you approve or discard it.
 
-**If in an earlier version you had hidden it while on**, you now find it in the sidebar again, syncing. From there, if you would rather not see it, **Stop syncing** and **Hide from the sidebar**.
+**If in the earlier version you had hidden it while it wrote your agents' files**, you now find it in the sidebar again, syncing. From there, if you would rather not see it, **Stop syncing** and **Hide from the sidebar**.
 
 ### What stops it being Agents
 
@@ -572,23 +572,23 @@ The **Agents** card uses the same words and does the same as the sidebar. At the
 | **2. Brought, not synced** | «Not synced with your agents» | **Sync**; **Bring another file**, once this computer has let you read your agents' files; and **Hide** |
 | **3. Syncing** | What waits for your decision, such as «1 file says something different in Tisty and in the agent.», with **Review** | **Bring another file** and **Stop syncing**, and below them one switch per assistant: **Sync Claude**, **Sync Codex**… |
 
-With Agents syncing and one assistant switched off, its switch says «Not synced: its files stay as they are, and nothing in Tisty is deleted.». If Tisty finds no assistant on this computer, the card says «No agents found on this computer.». **Hide** shows only while Agents does not sync and is not hidden already.
+With Agents syncing and one assistant not synced, its switch says «Not synced: its files stay as they are, and nothing in Tisty is deleted.». If Tisty finds no assistant on this computer, the card says «No agents found on this computer.». **Hide** shows only while Agents does not sync and is not hidden already.
 
-![The Agents card in Settings › Assistants, in English, with Agents syncing: at the top the line Your agents' rules, skills and memory as Tisty documents. Bring copies them here; Sync also writes what you change to the file each agent reads., the buttons Bring another file and Stop syncing, and below them the switches Sync Claude and Sync Gemini on and Sync Codex off, with the note Not synced: its files stay as they are, and nothing in Tisty is deleted.](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/agents/en-06-settings.png)
+![The Agents card in Settings › Assistants, in English, with Agents syncing: at the top the line Your agents' rules, skills and memory as Tisty documents. Bring copies them here; Sync also writes what you change to the file each agent reads., the buttons Bring another file and Stop syncing, and below them the switches Sync Claude and Sync Gemini enabled and Sync Codex disabled, with the note Not synced: its files stay as they are, and nothing in Tisty is deleted.](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/agents/en-06-settings.png)
 
 ## If you come from the earlier version
 
-Up to the earlier version, the folder was called **AGENTS** in the sidebar, showed dim with the word **off** until you pressed **Turn on**, and its right-click offered **Turn AGENTS off**. When you update you have nothing to do:
+In the earlier version, the folder showed in capitals in the sidebar and, while it did not write your agents' files, looked dimmed, in grey, with a word beside it. When you update you have nothing to do:
 
-| How you had it | How you find it |
+| How you saw it | How you find it |
 | :-- | :-- |
-| On | In state 3, **syncing**, with its coral robot. It keeps writing the same files |
-| Off, with documents | In state 2, **brought, not synced**. None of your agents' files changed |
-| Off, with no folder | In state 1, **nothing brought yet**, in grey |
-| Hidden and off | Still hidden, in Settings › General › Hidden folders |
-| Hidden and on | Back in the sidebar, syncing |
+| In its colour, writing your agents' files | In state 3, **syncing**, with its coral robot. It keeps writing the same files |
+| Dimmed, with documents | In state 2, **brought, not synced**. None of your agents' files changed |
+| Dimmed, with no documents and no folder | In state 1, **nothing brought yet**, in grey |
+| Hidden, writing no files | Still hidden, in Settings › General › Hidden folders |
+| Hidden while it wrote files | Back in the sidebar, syncing |
 
-The words changed like this: **Turn on** is now **Bring and sync**, the first time, or **Sync**, once it is brought; **Turn AGENTS off** and the switch **Sync the AGENTS folder** are now **Stop syncing**; and **Allow and sync** is **Bring and sync** with nothing ticked. Your documents, their earlier versions and each file's backups stay as they were.
+From now on, the first step is **Bring** or **Bring and sync**, even when you tick nothing; with the folder already brought, **Sync**; and to stop it, **Stop syncing**, on its right-click or on its card. Your documents, their earlier versions and each file's backups stay as they were.
 
 ## On several computers
 
@@ -606,7 +606,7 @@ If you use Tisty on more than one computer, say the one at home and the one at w
    - **Not on this computer** leaves it out here. The card says «You chose not to apply it on this computer.», and **Apply here** stays at hand in case you change your mind.
 5. Do the same with **How I work**, your `CLAUDE.md`. The **Agent file** panel of each one says, under **Syncs on this computer**, «No: it waits for «Apply here»» until you choose, and «Yes» after.
 
-![The card in English of For all my agents on the work computer: the labels Rule and Global, the name For all my agents with the path for-all.md under it, no file rows, and the amber notice This document comes from another computer. Apply it to the agents on this one? with the buttons Apply here and Not on this computer; in the sidebar, Agents with its coral robot and only its document count, with no word beside it](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/agents/en-08-another-computer.png)
+![The card in English of For all my agents on the work computer: the labels Rule and Global, the name For all my agents with the path for-all.md under it, no file rows, and the amber notice This document comes from another computer. Apply it to the agents on this one? with the buttons Apply here and Not on this computer; in the sidebar, Agents with its coral robot, with no word beside it](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/agents/en-08-another-computer.png)
 
 What you choose holds for that document on that computer, and it stays:
 

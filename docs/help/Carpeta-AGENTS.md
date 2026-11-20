@@ -44,17 +44,17 @@ Si un día Jaime quiere que sus cambios lleguen a Claude Code, pulsa **Sincroniz
 
 ## Tres estados en la barra
 
-La barra te dice cómo está Agentes con su color, sin ninguna palabra al lado: ni «apagada», ni «al día», ni «con cambios». Lo que espera tu decisión lo ves en la ficha de cada documento y en **Configuración › Asistentes**.
+La barra te dice cómo está Agentes con su color, y al lado no aparece ninguna palabra. Lo que espera tu decisión lo ves en la ficha de cada documento y en **Configuración › Asistentes**.
 
 | Estado | Cómo se ve | Un clic | Su botón derecho |
 | :-- | :-- | :-- | :-- |
-| **1. Todavía sin traer** | El robot y el nombre **Agentes** en gris, sin número | Abre el aviso de la primera vez, [Tus agentes, en un solo lugar](#la-primera-vez) | **Ocultar de la barra** |
-| **2. Traída, sin sincronizar** | El robot en gris, el nombre como cualquier carpeta y cuántos documentos tiene | La abre como cualquier carpeta; arriba, una línea discreta: «No se sincroniza con tus agentes · Sincronizar» | **Sincronizar**, **Traer otro archivo** y **Ocultar de la barra**, entre las opciones de cualquier carpeta |
-| **3. Sincronizando** | El robot **coral**, el nombre como cualquier carpeta y cuántos documentos tiene | La abre como cualquier carpeta | **Traer otro archivo** y **Dejar de sincronizar**, entre las opciones de cualquier carpeta |
+| **1. Todavía sin traer** | El robot y el nombre **Agentes** en gris | Abre el aviso de la primera vez, [Tus agentes, en un solo lugar](#la-primera-vez) | **Ocultar de la barra** |
+| **2. Traída, sin sincronizar** | El robot en gris y el nombre como cualquier carpeta; al pasar el puntero, cuántos documentos tiene, como cualquier carpeta | La abre como cualquier carpeta; arriba, una línea discreta: «No se sincroniza con tus agentes · Sincronizar» | **Sincronizar**, **Traer otro archivo** y **Ocultar de la barra**, entre las opciones de cualquier carpeta |
+| **3. Sincronizando** | El robot **coral** y el nombre como cualquier carpeta; al pasar el puntero, cuántos documentos tiene, como cualquier carpeta | La abre como cualquier carpeta | **Traer otro archivo** y **Dejar de sincronizar**, entre las opciones de cualquier carpeta |
 
-![La barra lateral en español con Agentes todavía sin traer: arriba de la Biblioteca, el icono del robot en gris y el nombre Agentes también en gris, sin número ni palabra a la derecha; debajo, las carpetas Casa y Trabajo con sus colores de siempre, para que se note la diferencia](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/agents/es-12-sin-traer-en-la-barra.png)
+![La barra lateral en español con Agentes todavía sin traer: arriba de la Biblioteca, el icono del robot en gris y el nombre Agentes también en gris, sin ninguna palabra a la derecha; debajo, las carpetas Casa y Trabajo con sus colores de siempre, para que se note la diferencia](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/agents/es-12-sin-traer-en-la-barra.png)
 
-![La carpeta Agentes abierta en el panel de contenido en español, traída pero sin sincronizar: en la barra, el robot gris, el nombre Agentes en su color normal y 7 a la derecha; en el panel, el título Agentes con el robot gris y, justo debajo, la línea discreta No se sincroniza con tus agentes · Sincronizar, con Sincronizar como enlace; más abajo, las subcarpetas Global, Claude y Codex con sus documentos](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/agents/es-13-traida-sin-sincronizar.png)
+![La carpeta Agentes abierta en el panel de contenido en español, traída pero sin sincronizar: en la barra, el robot gris y el nombre Agentes en su color normal, sin ninguna palabra a la derecha; en el panel, el título Agentes con el robot gris y, justo debajo, la línea discreta No se sincroniza con tus agentes · Sincronizar, con Sincronizar como enlace; más abajo, las subcarpetas Global, Claude y Codex con sus documentos](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/agents/es-13-traida-sin-sincronizar.png)
 
 - **El coral es solo de Agentes**, y solo mientras sincroniza: el morado es de los diagramas, y ninguna carpeta tuya puede elegir el coral. En la red de Brainsty, Agentes y sus documentos se dibujan siempre en coral, sincronice o no.
 - **La línea del estado 2** solo aparece en Agentes, nunca en sus subcarpetas. Su enlace **Sincronizar** hace lo mismo que el del botón derecho.
@@ -247,7 +247,7 @@ Agentes
 
 Las subcarpetas son para que encuentres las cosas: **lo que decide adónde va un documento es su línea `agent:`**, no la carpeta en que está. Puedes mover un documento entre subcarpetas o crear las tuyas dentro de Agentes, y se sigue escribiendo en el mismo archivo.
 
-**La barra no dice nada junto a Agentes**: ni «al día», ni cuántos archivos esperan. Lo que espera tu decisión está en tres lugares:
+**La barra no dice nada junto a Agentes**: ninguna palabra, ni cuántos archivos esperan. Lo que espera tu decisión está en tres lugares:
 
 | Dónde | Qué ves |
 | :-- | :-- |
@@ -255,7 +255,7 @@ Las subcarpetas son para que encuentres las cosas: **lo que decide adónde va un
 | **Configuración › Asistentes**, en la tarjeta **Agentes** | Los archivos que piden tu decisión: «1 archivo dice algo distinto en Tisty y en el agente.», o «1 archivo ya no es de ninguna regla de Agentes.», cada uno con **Revisar**; y bajo **Sincronizar Gemini**, si falta [su línea](#gemini-en-pausa) |
 | **Al entrar en Agentes** | Si Agentes sincroniza y un archivo existe en los dos lados, ya no es de ninguna regla o perdió la línea de Gemini, Tisty te pregunta por él apenas entras, uno por uno |
 
-![La barra lateral en español con la carpeta Agentes abierta y sincronizando: su icono de robot en coral, el nombre Agentes en su color normal y a la derecha solo el número de documentos, sin ninguna palabra; dentro, las subcarpetas Global, Claude, Codex y Gemini. En Claude, la regla Cómo trabajo con el icono de un libro, la regla Estilo de código, la skill pr con el icono de una pieza y 3 archivos a la derecha, abierta, mostrando SKILL.md, scripts/abrir-pr.sh y plantilla.md, y la memoria MEMORY.md con el icono de un cerebro; el puntero sobre Cómo trabajo muestra claude · CLAUDE.md](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/agents/es-02-barra.png)
+![La barra lateral en español con la carpeta Agentes abierta y sincronizando: su icono de robot en coral y el nombre Agentes en su color normal, sin ninguna palabra a la derecha; dentro, las subcarpetas Global, Claude, Codex y Gemini. En Claude, la regla Cómo trabajo con el icono de un libro, la regla Estilo de código, la skill pr con el icono de una pieza y 3 archivos a la derecha, abierta, mostrando SKILL.md, scripts/abrir-pr.sh y plantilla.md, y la memoria MEMORY.md con el icono de un cerebro; el puntero sobre Cómo trabajo muestra claude · CLAUDE.md](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/agents/es-02-barra.png)
 
 ### La línea `agent:`
 
@@ -554,7 +554,7 @@ Agentes sale de la barra lateral en este equipo sin dejar rastro, y queda en **C
 
 **Oculta, Agentes no sincroniza.** No escribe ningún archivo de tus agentes, y nada de esos archivos espera tu decisión. Tus documentos siguen ahí: la búsqueda y **Mover a** los encuentran, y si un agente te propone un cambio, la propuesta queda en la ficha de su documento hasta que la apruebas o la descartas.
 
-**Si en una versión anterior la habías ocultado encendida**, ahora la encuentras otra vez en la barra, sincronizando. Desde ahí, si no la quieres ver, **Dejar de sincronizar** y **Ocultar de la barra**.
+**Si en la versión anterior la habías ocultado mientras escribía los archivos de tus agentes**, ahora la encuentras otra vez en la barra, sincronizando. Desde ahí, si no la quieres ver, **Dejar de sincronizar** y **Ocultar de la barra**.
 
 ### Lo que la deja de convertir en Agentes
 
@@ -572,23 +572,23 @@ La tarjeta **Agentes** usa las mismas palabras y hace lo mismo que la barra. Arr
 | **2. Traída, sin sincronizar** | «No se sincroniza con tus agentes» | **Sincronizar**; **Traer otro archivo**, cuando este equipo ya te dejó leer los archivos de tus agentes; y **Ocultar** |
 | **3. Sincronizando** | Lo que espera tu decisión, como «1 archivo dice algo distinto en Tisty y en el agente.», con **Revisar** | **Traer otro archivo** y **Dejar de sincronizar**, y debajo un interruptor por asistente: **Sincronizar Claude**, **Sincronizar Codex**… |
 
-Con Agentes sincronizando y un asistente apagado, su interruptor dice «Sin sincronizar: sus archivos quedan como están y no se borra nada en Tisty.». Si Tisty no encuentra ningún asistente en este equipo, la tarjeta dice «No encontré agentes en este equipo.». **Ocultar** solo aparece mientras Agentes no sincroniza y no está oculta ya.
+Con Agentes sincronizando y un asistente sin sincronizar, su interruptor dice «Sin sincronizar: sus archivos quedan como están y no se borra nada en Tisty.». Si Tisty no encuentra ningún asistente en este equipo, la tarjeta dice «No encontré agentes en este equipo.». **Ocultar** solo aparece mientras Agentes no sincroniza y no está oculta ya.
 
-![La tarjeta Agentes de Configuración › Asistentes en español, con Agentes sincronizando: arriba la línea Las reglas, skills y memoria de tus agentes como documentos de Tisty. Traer las copia aquí; Sincronizar además escribe lo que cambies en el archivo que lee cada agente., los botones Traer otro archivo y Dejar de sincronizar, y debajo los interruptores Sincronizar Claude y Sincronizar Gemini encendidos y Sincronizar Codex apagado, con la nota Sin sincronizar: sus archivos quedan como están y no se borra nada en Tisty.](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/agents/es-06-configuracion.png)
+![La tarjeta Agentes de Configuración › Asistentes en español, con Agentes sincronizando: arriba la línea Las reglas, skills y memoria de tus agentes como documentos de Tisty. Traer las copia aquí; Sincronizar además escribe lo que cambies en el archivo que lee cada agente., los botones Traer otro archivo y Dejar de sincronizar, y debajo los interruptores Sincronizar Claude y Sincronizar Gemini activados y Sincronizar Codex desactivado, con la nota Sin sincronizar: sus archivos quedan como están y no se borra nada en Tisty.](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/agents/es-06-configuracion.png)
 
 ## Si venías de la versión anterior
 
-Hasta la versión anterior, la carpeta se llamaba **AGENTS** en la barra, se veía atenuada con la palabra **apagada** hasta que pulsabas **Encender**, y su botón derecho ofrecía **Apagar AGENTS**. Al actualizar no tienes que hacer nada:
+En la versión anterior, la carpeta se veía en mayúsculas en la barra y, mientras no escribía los archivos de tus agentes, atenuada, en gris, con una palabra al lado. Al actualizar no tienes que hacer nada:
 
-| Cómo la tenías | Cómo la encuentras |
+| Cómo la veías | Cómo la encuentras |
 | :-- | :-- |
-| Encendida | En el estado 3, **sincronizando**, con su robot coral. Sigue escribiendo los mismos archivos |
-| Apagada, con documentos | En el estado 2, **traída, sin sincronizar**. Ningún archivo de tus agentes cambió |
-| Apagada, sin carpeta | En el estado 1, **todavía sin traer**, en gris |
-| Oculta y apagada | Sigue oculta, en Configuración › General › Carpetas ocultas |
-| Oculta y encendida | De vuelta en la barra, sincronizando |
+| Con su color, escribiendo los archivos de tus agentes | En el estado 3, **sincronizando**, con su robot coral. Sigue escribiendo los mismos archivos |
+| Atenuada, con documentos | En el estado 2, **traída, sin sincronizar**. Ningún archivo de tus agentes cambió |
+| Atenuada, sin documentos ni carpeta | En el estado 1, **todavía sin traer**, en gris |
+| Oculta, sin escribir archivos | Sigue oculta, en Configuración › General › Carpetas ocultas |
+| Oculta mientras escribía archivos | De vuelta en la barra, sincronizando |
 
-Las palabras cambiaron así: **Encender** es ahora **Traer y sincronizar**, la primera vez, o **Sincronizar**, cuando ya está traída; **Apagar AGENTS** y el interruptor **Sincronizar la carpeta AGENTS** son ahora **Dejar de sincronizar**; y **Autorizar y sincronizar** es **Traer y sincronizar** sin nada marcado. Tus documentos, sus versiones anteriores y los respaldos de cada archivo quedan como estaban.
+Desde ahora, el primer paso es **Traer** o **Traer y sincronizar**, también cuando no marcas nada; con la carpeta ya traída, **Sincronizar**; y para detenerla, **Dejar de sincronizar**, en su botón derecho o en su tarjeta. Tus documentos, sus versiones anteriores y los respaldos de cada archivo quedan como estaban.
 
 ## En varios equipos
 
@@ -606,7 +606,7 @@ Si usas Tisty en más de un equipo, por ejemplo el computador de la casa y el de
    - **No en este equipo** lo deja fuera aquí. La ficha dice «Elegiste no aplicarlo en este equipo.», y **Aplicar aquí** sigue a mano por si cambias de idea.
 5. Haz lo mismo con **Cómo trabajo**, tu `CLAUDE.md`. El panel **Archivo del agente** de cada uno dice, en **Sincroniza en este equipo**, «No: espera «Aplicar aquí»» mientras no eliges, y «Sí» después.
 
-![La ficha en español de Para todos mis agentes en el equipo del trabajo: las etiquetas Regla y Global, el nombre Para todos mis agentes con la ruta para-todos.md debajo, ninguna fila de archivos, y el aviso ámbar Este documento viene de otro equipo. ¿Lo aplicas a los agentes de este? con los botones Aplicar aquí y No en este equipo; en la barra lateral, Agentes con su robot coral y solo su número de documentos, sin ninguna palabra al lado](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/agents/es-08-otro-equipo.png)
+![La ficha en español de Para todos mis agentes en el equipo del trabajo: las etiquetas Regla y Global, el nombre Para todos mis agentes con la ruta para-todos.md debajo, ninguna fila de archivos, y el aviso ámbar Este documento viene de otro equipo. ¿Lo aplicas a los agentes de este? con los botones Aplicar aquí y No en este equipo; en la barra lateral, Agentes con su robot coral, sin ninguna palabra al lado](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/agents/es-08-otro-equipo.png)
 
 Lo que eliges vale para ese documento en ese equipo, y queda:
 

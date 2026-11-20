@@ -33,8 +33,8 @@ It does not handle each repository's rules: only the files in your user folder, 
 Agents carries no word beside it: its colour tells you how it stands.
 
 1. **Nothing brought yet**: the robot and the name in grey. A click opens the first-time box. Its right-click offers **Hide from the sidebar**.
-2. **Brought, not synced**: the grey robot, the name like any folder and how many documents it holds. It opens like any folder, and at the top it shows one quiet line: «Not synced with your agents · Sync», where **Sync** is a link. Its right-click offers **Sync**, **Bring another file** and **Hide from the sidebar**.
-3. **Syncing**: the **coral** robot, the name like any folder and how many documents it holds. It opens like any folder. Its right-click offers **Bring another file** and **Stop syncing**.
+2. **Brought, not synced**: the grey robot and the name like any folder; when you hover over it, how many documents it holds, like any folder. It opens like any folder, and at the top it shows one quiet line: «Not synced with your agents · Sync», where **Sync** is a link. Its right-click offers **Sync**, **Bring another file** and **Hide from the sidebar**.
+3. **Syncing**: the **coral** robot and the name like any folder; when you hover over it, how many documents it holds. It opens like any folder. Its right-click offers **Bring another file** and **Stop syncing**.
 
 Coral is Agents' own: purple belongs to diagrams. What waits for your decision, such as a file changed outside or a proposal from your agent, does not show in the sidebar: you see it on each document's card and in **Settings → Assistants**. **Rename** is greyed out on Agents: inside it is kept as `AGENTS`, and that is how earlier versions of Tisty and your assistants through MCP find it.
 
@@ -57,7 +57,7 @@ If you have no agent files yet, the box says «I found no agent files on this co
 
 Afterwards, in the sidebar, each document shows with its name and an icon: a book for a rule, a piece for a skill and a brain for memory. Hover over one and you see which file it is.
 
-![The sidebar with the Agents folder open and syncing: the robot in coral, the name Agents and on the right only its document count, with no word; in Claude, the rule How I work with a book icon, the skill pr with a puzzle-piece icon and 3 files, and the memory MEMORY.md with a brain icon; the pointer over How I work shows claude · CLAUDE.md](agents-sidebar.png)
+![The sidebar with the Agents folder open and syncing: the robot in coral and the name Agents, with no word on the right; in Claude, the rule How I work with a book icon, the skill pr with a puzzle-piece icon and 3 files, and the memory MEMORY.md with a brain icon; the pointer over How I work shows claude · CLAUDE.md](agents-sidebar.png)
 
 ## A rule: in Tisty and in `CLAUDE.md`
 
@@ -207,7 +207,7 @@ That way you never lose either side.
 If one day you want Tisty to leave Claude's files alone, for example while you try other rules by hand:
 
 - on the card, **Pause sync with Claude**; in a Global document, its row's **Pause Claude** link;
-- or in **Settings → Assistants**, on the **Agents** card, turn off **Sync Claude**. To stop them all at once, **Stop syncing**, as the next section tells.
+- or in **Settings → Assistants**, on the **Agents** card, clear the **Sync Claude** switch. To stop them all at once, **Stop syncing**, as the next section tells.
 
 Paused, Tisty neither opens nor writes those files, and you keep editing your documents. **Resume sync with Claude** writes what you changed, except a file that changed outside meanwhile, which stays marked for you to decide. A pause belongs to this computer only.
 
@@ -223,7 +223,7 @@ Paused, Tisty neither opens nor writes those files, and you keep editing your do
 
 Hidden, Agents does not sync: it writes none of your agents' files, and nothing from those files waits for your decision. Your documents are still there, and if an agent proposes a change, the proposal stays on its document's card.
 
-**If you come from the earlier version**, where the folder was called AGENTS and was turned on or off, you have nothing to do: if it was on, you find it syncing, with its coral robot; if it was off and held documents, brought but not synced. **Turn on** is now **Bring and sync** or **Sync**, and **Turn AGENTS off**, **Stop syncing**. If you had hidden it while on, you now find it in the sidebar again, syncing: from there you can stop syncing it and hide it.
+**If you come from the earlier version**, where the folder showed in capitals and, while it did not write your agents' files, looked dimmed, in grey, with a word beside it, you have nothing to do. If it showed in its colour and wrote those files, you find it syncing, with its coral robot; if it looked dimmed and held documents, brought but not synced. If you had hidden it while it wrote files, you now find it in the sidebar again, syncing: from there you can stop syncing it and hide it.
 
 Nothing that comes through MCP brings, syncs, stops syncing, hides or shows Agents: you do that, in Tisty's window.
 
@@ -285,7 +285,7 @@ Your documents in Agents travel with your sync to your other computers, but **ea
 
 From then on, what you already apply updates by itself when you change it on the other computer. What you write or bring in on a computer that syncs is applied on that same computer with no click. And an agent's memory belongs to the computer that brought it: on the others it is only read.
 
-![The card of For all my agents on the work computer, with the labels Rule and Global, no file rows, and the amber notice This document comes from another computer. Apply it to the agents on this one? with the buttons Apply here and Not on this computer; in the sidebar, Agents with its coral robot and its document count, with no word beside it](agents-other-computer.png)
+![The card of For all my agents on the work computer, with the labels Rule and Global, no file rows, and the amber notice This document comes from another computer. Apply it to the agents on this one? with the buttons Apply here and Not on this computer; in the sidebar, Agents with its coral robot, with no word beside it](agents-other-computer.png)
 
 Two more notices you may see on a card:
 
