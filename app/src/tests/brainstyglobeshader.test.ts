@@ -1,9 +1,10 @@
 import { readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
+import { createRequire } from "node:module";
+import { dirname, join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { GLOBE_READ_NODE_DATA, globed, globeShaders } from "../ui/brainsty/globeShader";
 
-const sigma = join(__dirname, "../../../node_modules/sigma");
+const sigma = dirname(createRequire(import.meta.url).resolve("sigma/package.json"));
 const factory = readdirSync(join(sigma, "dist")).filter((one) =>
   /^factory-[0-9a-f]+\.esm\.js$/.test(one),
 );
