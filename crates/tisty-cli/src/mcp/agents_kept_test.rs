@@ -204,3 +204,130 @@ fn the_folder_tool_is_judged_by_the_place_it_reads_from_its_name() {
     assert!(!makes_agents("folder", &json!({ "name": "Agent" })));
     assert!(!makes_agents("write_doc", &json!({ "name": "AGENTS" })));
 }
+
+struct Home {
+    _room: tempfile::TempDir,
+    paths: tisty_core::Paths,
+    rule: String,
+    other: String,
+    picture: String,
+}
+
+fn written(paths: &tisty_core::Paths, body: &str, folder: Option<FolderId>) -> String {
+    let config = tisty_core::Config::load_or_init(paths).unwrap();
+    let made = tisty_core::docs::create(&paths.docs(), &config.device_id, body).unwrap();
+    persons(
+        paths,
+        vec![tisty_core::Op::DocAdd {
+            id: Ulid::generate(),
+            d: tisty_core::event::DocAdd {
+                file: made.id.clone(),
+                order: "a0".into(),
+                said: Some(tisty_core::event::Said::of(body).agreed()),
+                folder,
+                ..Default::default()
+            },
+        }],
+    );
+    made.id
+}
+
+fn persons(paths: &tisty_core::Paths, ops: Vec<tisty_core::Op>) {
+    let config = tisty_core::Config::load_or_init(paths).unwrap();
+    tisty_core::Store::open(paths.store(), config.device_id.clone())
+        .unwrap()
+        .signing_with(tisty_core::signing::mine(paths, &config.device_id))
+        .append_batch_tagged(ops, false, false)
+        .unwrap();
+}
+
+fn home() -> Home {
+    let room = tempfile::tempdir().unwrap();
+    let paths = tisty_core::Paths::new(room.path().join("data"), room.path().join("config"));
+    persons(&paths, tisty_core::model::sown("en"));
+    tisty_core::agent::register(&paths).unwrap();
+    let (root, claude, notes) = (Ulid::generate(), Ulid::generate(), Ulid::generate());
+    let made = |id, name: &str, parent, icon: Option<&str>| tisty_core::Op::FolderAdd {
+        id,
+        d: tisty_core::event::FolderAdd {
+            name: name.into(),
+            order: "a0".into(),
+            parent,
+            icon: icon.map(str::to_string),
+            color: None,
+        },
+    };
+    persons(
+        &paths,
+        vec![
+            made(
+                root,
+                tisty_core::agents::FOLDER,
+                None,
+                Some(tisty_core::agents::ICON),
+            ),
+            made(claude, "Claude", Some(root), None),
+            made(notes, "Notes", None, None),
+        ],
+    );
+    let rule = written(
+        &paths,
+        "---\nagent: claude/rule/CLAUDE.md\ntitle: claude · CLAUDE.md\n---\n# Claude\nTests first.\n",
+        Some(claude),
+    );
+    let other = written(&paths, "# Notes\n\nMine.\n", Some(notes));
+    let picture = room.path().join("foto.txt");
+    std::fs::write(&picture, "una foto").unwrap();
+    Home {
+        picture: picture.to_string_lossy().into_owned(),
+        _room: room,
+        paths,
+        rule,
+        other,
+    }
+}
+
+#[test]
+fn a_tool_past_the_door_still_leaves_an_agents_document_alone() {
+    let home = home();
+    let before = tisty_core::docs::read(&home.paths.docs(), &home.rule).unwrap();
+    let ops = |paths: &tisty_core::Paths| tisty_core::store::read_all(paths.store()).unwrap().len();
+    let at_first = ops(&home.paths);
+
+    for (name, args) in [
+        ("archive_doc", json!({ "doc": home.rule, "archived": true })),
+        ("file_doc", json!({ "doc": home.rule, "folder": "Notes" })),
+        (
+            "flag_doc",
+            json!({ "doc": home.rule, "reason": "obsolete", "body": "viejo" }),
+        ),
+        (
+            "page_doc",
+            json!({ "doc": home.rule, "page_of": home.other }),
+        ),
+        (
+            "page_doc",
+            json!({ "doc": home.other, "page_of": home.rule }),
+        ),
+        ("tongue_doc", json!({ "doc": home.rule, "of": home.other })),
+        ("tongue_doc", json!({ "doc": home.other, "of": home.rule })),
+        ("attach", json!({ "doc": home.rule, "path": home.picture })),
+    ] {
+        let said = super::super::answered(&home.paths, name, args.clone(), None);
+        match said {
+            Err(super::super::Refused::Tool(why)) => {
+                assert!(
+                    why.contains("only the person changes"),
+                    "{name} {args}: {why}"
+                )
+            }
+            Err(_) => panic!("{name} {args}: refused for another reason"),
+            Ok(said) => panic!("{name} {args} went through: {said}"),
+        }
+    }
+    assert_eq!(
+        tisty_core::docs::read(&home.paths.docs(), &home.rule).unwrap(),
+        before
+    );
+    assert_eq!(ops(&home.paths), at_first, "a tool wrote past the door");
+}

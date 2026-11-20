@@ -50,6 +50,7 @@ fn beside(state: &State, args: &Value) -> Result<Beside, Refused> {
                     None => Refused::Tool(no_document_called(state, &which)),
                 });
             };
+            super::agents_kept::left_out(state, kept)?;
             super::papers::compacting::awaiting(state, kept)?;
             if state.shut(kept.id) {
                 return Err(Refused::Tool(format!(

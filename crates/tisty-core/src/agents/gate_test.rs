@@ -595,3 +595,23 @@ fn a_proposal_for_a_document_this_log_does_not_hold_is_dropped() {
     );
     assert!(world.state.proposals.is_empty());
 }
+
+// `propose` jots ideas on any sheet, one the person moved into AGENTS too, without naming it.
+#[test]
+fn ideas_an_agent_jots_on_a_sheet_in_agents_are_held_like_any_other_write() {
+    let mut world = world();
+    let sheet = rule("Ideas.\n").replacen("---\n", "---\nbrainstorm: on\n", 1);
+    assert!(tisty_markdown::front::brainstorm(&sheet), "{sheet}");
+    let (id, file) = world.made(HERE, &sheet, true);
+    assert_eq!(world.gate().seen(&file), Some(Seen::Admitted));
+
+    world.written(
+        AGENT,
+        id,
+        &file,
+        &format!("{sheet}\n- An idea the agent jotted\n"),
+        false,
+    );
+
+    assert_eq!(world.gate().seen(&file), Some(Seen::NotAgreed));
+}

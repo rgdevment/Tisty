@@ -64,6 +64,7 @@ pub(in crate::mcp) fn flag_doc(paths: &tisty_core::Paths, args: &Value) -> Resul
                 ),
             }));
         };
+        super::super::agents_kept::left_out(&state, kept)?;
         if state.held_away(kept) {
             return Err(Refused::Tool(format!(
                 "{} is already in the archive, so it is out of the way. Nothing was marked.",
