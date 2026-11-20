@@ -1759,8 +1759,8 @@
         "said": "una tarea oculta o descartada y tu diario no aparecen en la red ni le llegan a tu agente de IA, ni siquiera nombrados dentro de lo que escribiste."
       },
       {
-        "title": "Ideas, a mano desde el primer día",
-        "said": "la Lluvia de ideas ahora se llama Ideas, lleva una ampolleta y está en la Biblioteca desde que instalas Tisty. Una carpeta, el Diario o Ideas se pueden ocultar de la barra en este equipo."
+        "title": "Ideas, con su ampolleta",
+        "said": "la Lluvia de ideas ahora se llama Ideas y lleva una ampolleta. Una carpeta, el Diario o Ideas se pueden ocultar de la barra en este equipo."
       }
     ],
     "en": [
@@ -1813,8 +1813,8 @@
         "said": "a hidden or dropped task and your diary do not show in the network or reach your AI agent, not even when named inside what you wrote."
       },
       {
-        "title": "Ideas, at hand from day one",
-        "said": "Brainstorm is now called Ideas, wears a light bulb and sits in the Library from the moment you install Tisty. A folder, the Diary or Ideas can be hidden from the sidebar on this computer."
+        "title": "Ideas, with its light bulb",
+        "said": "Brainstorm is now called Ideas and wears a light bulb. A folder, the Diary or Ideas can be hidden from the sidebar on this computer."
       }
     ]
   }
