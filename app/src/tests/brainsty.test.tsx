@@ -32,7 +32,6 @@ const ways = vi.hoisted(() => ({ opened: [] as unknown[], left: 0 }));
 
 const sigma = vi.hoisted(() => ({
   turns: [] as unknown[],
-  centred: [] as number[],
   placed: 0,
   rethemed: 0,
   killed: 0,
@@ -60,7 +59,6 @@ vi.mock("../ui/brainsty/drawing", () => ({
   drawNetwork: () => ({
     place: () => sigma.placed++,
     retheme: () => sigma.rethemed++,
-    centre: (on: number) => sigma.centred.push(on),
     zoom: () => 0.5,
     toScreen: (point: [number, number]) => point,
     toGraph: (point: [number, number]) => point,
@@ -176,7 +174,6 @@ beforeEach(() => {
   ways.opened = [];
   ways.left = 0;
   Object.assign(sigma, {
-    centred: [],
     placed: 0,
     rethemed: 0,
     killed: 0,
@@ -282,17 +279,15 @@ describe("Brainsty in the content panel", () => {
     expect(alert.textContent).not.toBe("");
   });
 
-  it("draws the network centred on where it opens, following the layout until the person moves it", async () => {
+  it("opens on the whole network, following the layout without bringing the camera close", async () => {
     const { network } = await drawnNetwork();
     const spots = { x: new Float32Array(3), y: new Float32Array(3) };
 
     sigma.step?.({ ...spots, done: false, iterations: 10, ms: 5 });
-    await waitFor(() => expect(sigma.centred).toEqual([1, 1]));
-    network.dispatchEvent(new Event("pointerdown"));
     sigma.step?.({ ...spots, done: true, iterations: 20, ms: 12.4 });
     await new Promise((frame) => requestAnimationFrame(frame));
 
-    expect(sigma.centred).toEqual([1, 1]);
+    expect(sigma.focused).toEqual([]);
     expect(sigma.placed).toBe(2);
     expect(network.dataset.laidMs).toBe("12");
     expect(network.dataset.iterations).toBe("20");

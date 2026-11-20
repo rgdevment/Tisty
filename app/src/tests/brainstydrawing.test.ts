@@ -307,17 +307,6 @@ describe("the drawing of the network", () => {
     expect(drawn.events.afterRender).toHaveLength(0);
   });
 
-  it("centres the camera on a node it can see, and leaves it be otherwise", () => {
-    const drawing = drawNetwork(document.body, network, spots, () => undefined, light, "Inter");
-    rendered();
-
-    drawing.centre(1);
-    drawn.shown = false;
-    drawing.centre(5);
-
-    expect(drawn.camera.set).toEqual([expect.objectContaining({ x: 0.25, y: 0.75 })]);
-  });
-
   it("lights a node with its neighbours and dims the rest", () => {
     const drawing = drawNetwork(document.body, network, spots, () => undefined, light, "Inter");
     const colour = nodeStyle("color");
@@ -393,20 +382,11 @@ describe("the drawing of the network", () => {
     const drawing = drawNetwork(document.body, network, spots, () => undefined, light, "Inter");
     expect(drawn.scheduled).toBe(1);
 
-    drawing.centre(1);
-    expect(drawn.camera.set).toEqual([]);
-    drawn.raw = false;
-    rendered();
-    expect(drawn.camera.set).toEqual([{ x: 0.25, y: 0.75, ratio: expect.any(Number) }]);
-
-    drawn.camera.set = [];
     drawing.place({ x: Float32Array.of(500, 600, 700), y: Float32Array.of(7, 8, 9) });
     drawn.raw = true;
     drawing.focus(1);
-    drawing.centre(2);
     expect(drawn.camera.set).toEqual([]);
     drawn.raw = false;
-    rendered();
     rendered();
     expect(drawn.camera.set).toEqual([{ x: 0.25, y: 0.75, ratio: expect.any(Number) }]);
 

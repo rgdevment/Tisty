@@ -115,49 +115,19 @@ export default function Brainsty({ network, groups, onOpen, escaping }: Props) {
     overlays.reshape(shaped);
     const icons = iconsOn(container, drawn, network, palette, PICTURES.shows);
     let colours = palette;
-    const living = livingOn(
-      container,
-      drawn,
-      network,
-      (node) => {
-        const one = network.nodes[node];
-        return nodeLook(one, hueOf(one.group), colours).color;
-      },
-      { afterTurn: () => keepNear() },
-    );
+    const living = livingOn(container, drawn, network, (node) => {
+      const one = network.nodes[node];
+      return nodeLook(one, hueOf(one.group), colours).color;
+    });
     const unturned = turnedByHand(container, living.turnBy);
     const near = network.near;
-    let following = near !== undefined;
-    let frame = 0;
-    const follow = () => {
-      if (following && near !== undefined) drawn.centre(near);
-    };
-    // sigma takes the new places on its next frame, so the camera follows after it.
-    const followSoon = () => {
-      cancelAnimationFrame(frame);
-      frame = requestAnimationFrame(follow);
-    };
-    const letGo = () => {
-      following = false;
-    };
-    // Opened on what was last touched, the camera stays on it while the globe turns, until the person takes over.
-    function keepNear() {
-      if (following) follow();
-    }
     const pick = (node: number) => {
-      letGo();
       setPicked(node);
       drawn.focus(node);
     };
-    follow();
     container.dataset.drawnMs = String(Math.round(sinceOpened()));
-    container.addEventListener("pointerdown", letGo);
-    container.addEventListener("wheel", letGo, { passive: true });
     const unheed = drawn.heed({
-      pick: (node) => {
-        letGo();
-        setPicked(node);
-      },
+      pick: (node) => setPicked(node),
       open: (node) => live.current.onOpen(network.nodes[node]),
       clear: () => setPicked(null),
     });
@@ -174,7 +144,6 @@ export default function Brainsty({ network, groups, onOpen, escaping }: Props) {
       drawn.place(placed);
       overlays.reshape(placed);
       curves.reshape(placed);
-      followSoon();
       if (!step.done) return;
       living.ready();
       container.dataset.laidMs = String(Math.round(step.ms));
@@ -191,13 +160,10 @@ export default function Brainsty({ network, groups, onOpen, escaping }: Props) {
     drawing.current = { drawn, overlays, curves, icons, living };
     setReady(true);
     return () => {
-      cancelAnimationFrame(frame);
       stop();
       unfollow();
       unheed();
       window.removeEventListener("keydown", keyed);
-      container.removeEventListener("pointerdown", letGo);
-      container.removeEventListener("wheel", letGo);
       overlays.stop();
       curves.stop();
       icons.stop();

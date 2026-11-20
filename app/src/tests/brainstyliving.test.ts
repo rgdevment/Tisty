@@ -171,9 +171,9 @@ describe("a traveller", () => {
   });
 
   it("sets out again after a few hops out of sight", () => {
-    const { one } = walked(worldOf(false, 3), 0, 12);
-    expect(one.trail.length).toBeLessThanOrEqual(4);
-    expect(one.away).toBeLessThan(4);
+    const { one } = walked(worldOf(false, 3), 0, 60);
+    expect(one.trail.length).toBeLessThanOrEqual(6);
+    expect(one.away).toBeLessThan(12);
   });
 });
 
@@ -248,10 +248,10 @@ describe("the living network", () => {
     expect(turns).toHaveLength(2);
     expect(turns[1].yaw).toBeGreaterThan(turns[0].yaw);
     expect(box.dataset.livingMs).toMatch(/^\d+\.\d\d$/);
-    expect(HOP_SECONDS).toBe(4);
+    expect(HOP_SECONDS).toBe(5);
   });
 
-  it("holds the turn while a node is picked, the pointer is over it or it is zoomed, and walks on", () => {
+  it("holds the turn while a node is picked, the pointer is on the network or it is zoomed, and walks on", () => {
     const { clock, tick } = fakeClock();
     const { drawing, turns } = drawingOf();
     const box = boxed();
@@ -262,7 +262,7 @@ describe("the living network", () => {
     living.hold(true);
     tick(50);
     living.hold(false);
-    box.dispatchEvent(new PointerEvent("pointerenter"));
+    box.dispatchEvent(new PointerEvent("pointermove", { clientX: 42, clientY: 30 }));
     tick(50);
     box.dispatchEvent(new PointerEvent("pointerleave"));
     box.dispatchEvent(new WheelEvent("wheel"));
@@ -270,6 +270,9 @@ describe("the living network", () => {
     expect(yaws()).toEqual([0, 0, 0]);
     tick(800);
     expect(yaws()[3]).toBeGreaterThan(0);
+    box.dispatchEvent(new PointerEvent("pointermove", { clientX: 380, clientY: 280 }));
+    tick(50);
+    expect(yaws()[4]).toBeGreaterThan(yaws()[3]);
   });
 
   it("sends out more travellers as the network grows, two to ten", () => {
@@ -281,16 +284,11 @@ describe("the living network", () => {
   it("lays the globe flat without turning, walks on alone, and stops with neither, saying what a frame costs", () => {
     const { clock, frames, tick } = fakeClock();
     const { drawing, render, turns } = drawingOf();
-    const followed = vi.fn();
-    const living = livingOn(boxed(), drawing, chain, () => "#2266ff", {
-      clock,
-      afterTurn: followed,
-    });
+    const living = livingOn(boxed(), drawing, chain, () => "#2266ff", { clock });
     living.ready();
     tick(16);
     render();
     expect(living.measured().ms).toBeGreaterThanOrEqual(0);
-    expect(followed).toHaveBeenCalledTimes(1);
 
     living.spin(false);
     expect(turns[turns.length - 1]).toBeNull();

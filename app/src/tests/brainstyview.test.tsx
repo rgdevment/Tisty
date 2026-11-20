@@ -66,7 +66,6 @@ vi.mock("../ui/brainsty/drawing", () => ({
   drawNetwork: () => ({
     place: () => {},
     retheme: () => {},
-    centre: () => {},
     zoom: () => 0.5,
     toScreen: (point: [number, number]) => point,
     nodeOnScreen: () => undefined,

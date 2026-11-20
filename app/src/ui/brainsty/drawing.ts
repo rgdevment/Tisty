@@ -31,7 +31,6 @@ export type HueOf = (group?: string) => string | undefined;
 export interface Drawing {
   place: (spots: Spots) => void;
   retheme: (palette: Palette) => void;
-  centre: (on: number) => void;
   zoom: () => number;
   toScreen: (point: Point) => Point;
   toGraph: (point: Point) => Point;
@@ -73,7 +72,6 @@ interface Line {
 }
 
 const CLEAR = "rgba(0, 0, 0, 0)";
-const NEAR_RATIO = 0.35;
 const FOCUS_RATIO = 0.12;
 const FAR_SHARE = 0.35;
 const DIM = 0.12;
@@ -248,11 +246,6 @@ export function drawNetwork(
       }));
       sigma.refresh();
     },
-    centre: (on) =>
-      onceFramed(() => {
-        const shown = spin.framed(String(on));
-        if (shown) camera.setState({ x: shown.x, y: shown.y, ratio: NEAR_RATIO });
-      }),
     zoom: () => zoom,
     toScreen: ([x, y]) => {
       const at = sigma.graphToViewport({ x, y });

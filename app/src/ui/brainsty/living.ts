@@ -15,11 +15,12 @@ const STEPS: readonly [below: number, travellers: number][] = [
 
 export const travellersFor = (nodes: number): number =>
   STEPS.find(([below]) => nodes < below)?.[1] ?? 10;
-export const HOP_SECONDS = 4;
+export const HOP_SECONDS = 5;
 const TURN_SECONDS = 60;
 const FLASH_SECONDS = 0.6;
 const LONGEST_STEP = 0.1;
 const ZOOM_REST_MS = 800;
+const SHAPE_REACH_PX = 32;
 const MEASURED_EVERY = 30;
 
 export interface Living {
@@ -59,7 +60,7 @@ export function livingOn(
   drawing: Drawing,
   network: Network,
   colourOf: (node: number) => string,
-  { clock = CLOCK, afterTurn = () => undefined }: { clock?: Clock; afterTurn?: () => void } = {},
+  { clock = CLOCK }: { clock?: Clock } = {},
 ): Living {
   const canvas = container.ownerDocument.createElement("canvas");
   Object.assign(canvas.style, LAID);
@@ -105,7 +106,7 @@ export function livingOn(
   let ticked = 0;
   let rendering = 0;
   let held = false;
-  let over = false;
+  let pointer: [number, number] | null = null;
   let zoomedAt = Number.NEGATIVE_INFINITY;
   let travelling = true;
   let spinning = true;
@@ -184,19 +185,32 @@ export function livingOn(
   const unheard = drawing.beforeFrame(() => {
     if (frame !== 0) rendering = clock.now();
   });
-  const enter = () => {
-    over = true;
+  const moved = (event: PointerEvent) => {
+    const box = container.getBoundingClientRect();
+    pointer = [event.clientX - box.left, event.clientY - box.top];
   };
   const leave = () => {
-    over = false;
+    pointer = null;
+  };
+  // The globe rests only under the pointer on the network itself, so the empty corners of the panel let it turn.
+  const onShape = (): boolean => {
+    if (!pointer) return false;
+    const [px, py] = pointer;
+    for (let node = 0; node < network.nodes.length; node++) {
+      if (hidden[node]) continue;
+      const at = drawing.nodeOnScreen(node);
+      if (at && Math.abs(at[0] - px) < SHAPE_REACH_PX && Math.abs(at[1] - py) < SHAPE_REACH_PX)
+        return true;
+    }
+    return false;
   };
   const zoom = () => {
     zoomedAt = clock.now();
   };
-  container.addEventListener("pointerenter", enter);
+  container.addEventListener("pointermove", moved);
   container.addEventListener("pointerleave", leave);
   container.addEventListener("wheel", zoom, { passive: true });
-  const still = () => held || over || clock.now() - zoomedAt < ZOOM_REST_MS;
+  const still = () => held || clock.now() - zoomedAt < ZOOM_REST_MS || onShape();
 
   const tick = (at: number) => {
     const started = clock.now();
@@ -217,7 +231,6 @@ export function livingOn(
     ];
     if (spinning) {
       drawing.turn(turn);
-      afterTurn();
       ticked = clock.now() - started;
     } else {
       painted();
@@ -282,7 +295,7 @@ export function livingOn(
     stop: () => {
       halt();
       container.ownerDocument.removeEventListener("visibilitychange", seen);
-      container.removeEventListener("pointerenter", enter);
+      container.removeEventListener("pointermove", moved);
       container.removeEventListener("pointerleave", leave);
       container.removeEventListener("wheel", zoom);
       unheard();

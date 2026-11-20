@@ -1,10 +1,10 @@
 import type { NeuronKind } from "../../brainsty";
 
 const MEMORY = 30;
-const TRAIL_NODES = 4;
+const TRAIL_NODES = 6;
 const REST = 0.6;
 const FLASH_REST = 1.1;
-const AWAY_HOPS = 4;
+const AWAY_HOPS = 12;
 const OFFSCREEN = 0.15;
 
 export interface World {
