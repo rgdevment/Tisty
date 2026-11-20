@@ -1,6 +1,6 @@
 import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, onTestFinished, vi } from "vitest";
 import type { Group, Network, Neuron } from "../brainsty";
 import { adopt, t } from "../locales";
 import BrainstyView from "../ui/BrainstyView";
@@ -31,6 +31,7 @@ vi.mock("@tauri-apps/plugin-clipboard-manager", () => ({
 const ways = vi.hoisted(() => ({ opened: [] as unknown[], left: 0 }));
 
 const sigma = vi.hoisted(() => ({
+  zoom: 0.5,
   turns: [] as unknown[],
   placed: 0,
   rethemed: 0,
@@ -59,7 +60,7 @@ vi.mock("../ui/brainsty/drawing", () => ({
   drawNetwork: () => ({
     place: () => sigma.placed++,
     retheme: () => sigma.rethemed++,
-    zoom: () => 0.5,
+    zoom: () => sigma.zoom,
     toScreen: (point: [number, number]) => point,
     toGraph: (point: [number, number]) => point,
     nodeOnScreen: () => undefined,
@@ -174,6 +175,7 @@ beforeEach(() => {
   ways.opened = [];
   ways.left = 0;
   Object.assign(sigma, {
+    zoom: 0.5,
     placed: 0,
     rethemed: 0,
     killed: 0,
@@ -513,6 +515,56 @@ describe("Brainsty in the content panel", () => {
     await user.click(screen.getByRole("switch", { name: t("brainstyTravellers") }));
     expect(localStorage.getItem("tisty.brainstySpin")).toBeNull();
     expect(localStorage.getItem("tisty.brainstyTravellers")).toBeNull();
+  });
+
+  it("is drawn and laid out once while the folders and lists it shows stay the same", async () => {
+    const folder: Group = { ...PROJECTS, kind: "folder" };
+    const view = (groups: Group[]) => (
+      <BrainstyView near="01A" groups={groups} onOpen={() => {}} onLeave={() => {}} />
+    );
+    const { rerender } = render(view([folder]));
+    await waitFor(() => expect(sigma.hands).not.toBeNull());
+
+    rerender(view([{ ...folder, color: "teal" }]));
+    rerender(view([{ ...folder }]));
+    expect(sigma.killed).toBe(0);
+    expect(sigma.stopped).toBe(0);
+
+    rerender(view([{ ...folder, color: "amber" }]));
+    await waitFor(() => expect(sigma.killed).toBe(1));
+  });
+
+  it("keeps the travellers and the turning off when the view is drawn anew", async () => {
+    onTestFinished(() => localStorage.clear());
+    localStorage.setItem("tisty.brainstyTravellers", "off");
+    localStorage.setItem("tisty.brainstySpin", "off");
+    sigma.zoom = 0;
+    const folder: Group = { ...PROJECTS, kind: "folder" };
+    const view = (groups: Group[]) => (
+      <BrainstyView near="01A" groups={groups} onOpen={() => {}} onLeave={() => {}} />
+    );
+    const laid = () =>
+      sigma.step?.({
+        x: new Float32Array(4),
+        y: new Float32Array(4),
+        done: true,
+        iterations: 20,
+        ms: 12,
+      });
+    const frames = async () => {
+      for (let n = 0; n < 5; n++) await new Promise((frame) => requestAnimationFrame(frame));
+    };
+    const { rerender } = render(view([folder]));
+    await waitFor(() => expect(sigma.hands).not.toBeNull());
+    laid();
+    await frames();
+
+    rerender(view([{ ...folder, color: "amber" }]));
+    await waitFor(() => expect(sigma.killed).toBe(1));
+    laid();
+    await frames();
+
+    expect(sigma.turns.filter((one) => one !== null)).toEqual([]);
   });
 
   it("starts with travellers and turning on, even when the computer asks for less motion", async () => {

@@ -3,6 +3,19 @@ import type { Network } from "../brainsty";
 import type { Drawing } from "../ui/brainsty/drawing";
 import { glyphOf, iconSource, iconsOn } from "../ui/brainsty/icons";
 
+const drawings = vi.hoisted(() => ({ missing: "", asked: [] as string[] }));
+
+vi.mock("tisty-editor/read", async (real) => {
+  const read = await real<typeof import("tisty-editor/read")>();
+  return {
+    ...read,
+    markup: (name: string) => {
+      drawings.asked.push(name);
+      return name === drawings.missing ? null : read.markup(name);
+    },
+  };
+});
+
 const network: Network = {
   nodes: [
     { id: "a.md", kind: "doc", title: "A" },
@@ -40,6 +53,8 @@ describe("the icon layer", () => {
   };
 
   afterEach(() => {
+    drawings.missing = "";
+    drawings.asked.length = 0;
     tint.of = () => "#2266ff";
     vi.restoreAllMocks();
     painted.length = 0;
@@ -77,6 +92,17 @@ describe("the icon layer", () => {
       },
     };
   };
+
+  it("asks once for a glyph that has no drawing, and paints the rest", () => {
+    drawings.missing = "list";
+    const { frame } = drawn(1);
+    frame();
+    frame();
+    frame();
+
+    expect(drawings.asked.filter((one) => one === "list")).toHaveLength(1);
+    expect(painted).toHaveLength(3 * 3);
+  });
 
   it("paints nothing from afar", () => {
     const { frame } = drawn(0.3);

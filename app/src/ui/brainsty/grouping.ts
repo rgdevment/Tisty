@@ -31,6 +31,12 @@ export function withGroupsAfter(network: Network, groups: readonly Group[]): Net
   return nodes.length === network.nodes.length ? network : { ...network, nodes, edges };
 }
 
+// Only what the network draws of a group: a folder's other fields change with each write and would lay it out anew.
+export const groupsKey = (groups: readonly Group[]): string =>
+  JSON.stringify(
+    groups.map((one) => [one.id, one.name, one.color ?? null, one.kind ?? null, !!one.agents]),
+  );
+
 // A folder or a list would pull its members into a star, so the layout leaves it out and it sits amid them.
 export function laidEdges(network: Network): Network["edges"] {
   const { nodes } = network;

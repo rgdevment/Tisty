@@ -6,7 +6,7 @@ import { numbered } from "../format";
 import { fill, t } from "../locales";
 import { saidPlainly } from "../refusal";
 import type { Escaping } from "./Brainsty";
-import { withGroupsAfter } from "./brainsty/grouping";
+import { groupsKey, withGroupsAfter } from "./brainsty/grouping";
 import { brainstyLoaded, type LoadedBrainsty } from "./brainstyLoaded";
 import Glyph from "./Glyph";
 
@@ -74,9 +74,13 @@ export default function BrainstyView({ near, groups, onOpen, onLeave }: Props) {
   }, []);
 
   const network = read && "network" in read ? read.network : null;
+  const key = groupsKey(groups);
+  const kept = useRef({ key, groups });
+  if (kept.current.key !== key) kept.current = { key, groups };
+  const steadyGroups = kept.current.groups;
   const grown = useMemo(
-    () => (network ? withGroupsAfter(network, groups) : null),
-    [network, groups],
+    () => (network ? withGroupsAfter(network, steadyGroups) : null),
+    [network, steadyGroups],
   );
   const drawn = network !== null && network.nodes.length > 0 && Drawn !== null;
   useEffect(() => {
@@ -119,7 +123,7 @@ export default function BrainstyView({ near, groups, onOpen, onLeave }: Props) {
           read={read}
           grown={grown}
           Drawn={Drawn}
-          groups={groups}
+          groups={steadyGroups}
           onOpen={onOpen}
           escaping={escaping}
         />

@@ -336,7 +336,7 @@ fn guessed_told(said: &Map<String, Value>) -> String {
                 .map(|all| all.iter().filter_map(Value::as_str).collect())
                 .unwrap_or_default();
             let how = match one["method"].as_str() {
-                Some("typo") => "alike by a typo:",
+                Some("typo") => "spelled almost the same:",
                 Some("dictionary") => "alike by translation:",
                 _ => "shares",
             };

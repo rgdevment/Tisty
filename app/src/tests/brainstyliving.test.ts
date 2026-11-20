@@ -284,13 +284,92 @@ describe("the living network", () => {
     camera.zoom = 0.3;
     tick(50);
     tick(5000);
-    expect(yaws()).toEqual([0, 0, 0, 0]);
+    expect(yaws()).toEqual([0]);
     camera.zoom = 0;
     tick(50);
-    expect(yaws()[4]).toBeGreaterThan(0);
+    expect(yaws()[1]).toBeGreaterThan(0);
     box.dispatchEvent(new PointerEvent("pointermove", { clientX: 380, clientY: 280 }));
     tick(50);
-    expect(yaws()[5]).toBeGreaterThan(yaws()[4]);
+    expect(yaws()[2]).toBeGreaterThan(yaws()[1]);
+  });
+
+  it("leaves a globe at rest as drawn, painting nothing while nothing travels", () => {
+    const { clock, tick } = fakeClock();
+    const { drawing, turns } = drawingOf();
+    const painting = vi.spyOn(HTMLCanvasElement.prototype, "getContext");
+    const living = livingOn(boxed(), drawing, chain, () => "#2266ff", {
+      clock,
+      motions: { travel: false, spin: true },
+    });
+    living.ready();
+    living.hold(true);
+    for (let n = 0; n < 20; n++) tick(16);
+
+    expect(turns).toHaveLength(1);
+    expect(painting).not.toHaveBeenCalled();
+    living.hold(false);
+    tick(16);
+    expect(turns).toHaveLength(2);
+  });
+
+  it("asks every node where it sits now and then, a little more often while the pointer moves", () => {
+    const { clock, tick } = fakeClock();
+    const { drawing } = drawingOf();
+    const asked = vi.spyOn(drawing, "nodeOnScreen");
+    const box = boxed();
+    const living = livingOn(box, drawing, chain, () => "#2266ff", {
+      clock,
+      motions: { travel: false, spin: true },
+    });
+    living.ready();
+    box.dispatchEvent(new PointerEvent("pointermove", { clientX: 380, clientY: 280 }));
+    for (let n = 0; n < 10; n++) tick(16);
+    expect(asked).toHaveBeenCalledTimes(chain.nodes.length);
+
+    tick(250);
+    expect(asked).toHaveBeenCalledTimes(2 * chain.nodes.length);
+    for (let n = 0; n < 6; n++) {
+      box.dispatchEvent(new PointerEvent("pointermove", { clientX: 390 - n, clientY: 280 }));
+      tick(16);
+    }
+    expect(asked).toHaveBeenCalledTimes(3 * chain.nodes.length);
+    tick(60);
+    expect(asked).toHaveBeenCalledTimes(4 * chain.nodes.length);
+    tick(16);
+    expect(asked).toHaveBeenCalledTimes(4 * chain.nodes.length);
+  });
+
+  it("sends no traveller out when no line is left to walk, and stops if nothing else moves", () => {
+    const { clock, frames, tick } = fakeClock();
+    const { drawing, render } = drawingOf();
+    const brush = {
+      clearRect: vi.fn(),
+      beginPath: vi.fn(),
+      moveTo: vi.fn(),
+      lineTo: vi.fn(),
+      stroke: vi.fn(),
+      arc: vi.fn(),
+      fill: vi.fn(),
+    };
+    vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(
+      brush as unknown as CanvasRenderingContext2D,
+    );
+    const living = livingOn(boxed(), drawing, chain, () => "#2266ff", {
+      clock,
+      motions: { travel: true, spin: false },
+    });
+    living.sift([false, true, true, false, false]);
+    living.ready();
+    expect(frames).toHaveLength(0);
+
+    living.spin(true);
+    for (let n = 0; n < 5; n++) tick(16);
+    render();
+    expect(brush.arc).not.toHaveBeenCalled();
+    living.sift([false, false, false, false, false]);
+    tick(16);
+    render();
+    expect(brush.arc).toHaveBeenCalled();
   });
 
   it("sends out more travellers, each slower, as the network grows", () => {
@@ -401,7 +480,9 @@ describe("turning by hand", () => {
     inside.dispatchEvent(
       new PointerEvent("pointerdown", { bubbles: true, button: 2, clientX: 10, clientY: 10 }),
     );
-    document.dispatchEvent(new PointerEvent("pointermove", { clientX: 20, clientY: 5 }));
+    document.dispatchEvent(
+      new PointerEvent("pointermove", { clientX: 20, clientY: 5, buttons: 2 }),
+    );
     document.dispatchEvent(new PointerEvent("pointerup"));
     document.dispatchEvent(new PointerEvent("pointermove", { clientX: 90, clientY: 90 }));
 
@@ -412,6 +493,30 @@ describe("turning by hand", () => {
     const menu = new MouseEvent("contextmenu", { bubbles: true, cancelable: true });
     inside.dispatchEvent(menu);
     expect(menu.defaultPrevented).toBe(true);
+    stop();
+  });
+
+  it("stops turning once the button is let go outside the window, or the press is cut short", () => {
+    const box = boxed();
+    const turnBy = vi.fn();
+    const stop = turnedByHand(box, turnBy);
+    const press = () =>
+      box.dispatchEvent(
+        new PointerEvent("pointerdown", { bubbles: true, button: 2, clientX: 10, clientY: 10 }),
+      );
+    const move = (buttons: number) =>
+      document.dispatchEvent(
+        new PointerEvent("pointermove", { clientX: 30, clientY: 10, buttons }),
+      );
+
+    press();
+    move(0);
+    move(2);
+    press();
+    document.dispatchEvent(new PointerEvent("pointercancel"));
+    move(2);
+
+    expect(turnBy).not.toHaveBeenCalled();
     stop();
   });
 });

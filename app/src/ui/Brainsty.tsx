@@ -82,8 +82,8 @@ export default function Brainsty({ network, groups, onOpen, escaping }: Props) {
         .sort((one, other) => degrees[other] - degrees[one]),
     [network, degrees],
   );
-  const live = useRef({ picked, hidden, onOpen, guessing: sift.alike });
-  live.current = { picked, hidden, onOpen, guessing: sift.alike };
+  const live = useRef({ picked, hidden, onOpen, guessing: sift.alike, motions });
+  live.current = { picked, hidden, onOpen, guessing: sift.alike, motions };
   // The keys walk the network from the network itself, so the search hands the focus back once it is done.
   const backToNetwork = () => host.current?.focus();
   escaping.current = () => {
@@ -123,7 +123,9 @@ export default function Brainsty({ network, groups, onOpen, escaping }: Props) {
       return nodeLook(one, hueOf(one.group), colours, 0, outsideOf(one.group)).color;
     };
     const icons = iconsOn(container, drawn, network, colourOf, PICTURES.shows);
-    const living = livingOn(container, drawn, network, colourOf);
+    const living = livingOn(container, drawn, network, colourOf, {
+      motions: live.current.motions,
+    });
     const unturned = turnedByHand(container, living.turnBy);
     const near = network.near;
     const pick = (node: number) => {

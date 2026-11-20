@@ -31,9 +31,9 @@ const lightViewer: Plugin = {
   },
 };
 
-export default defineConfig(async () => ({
-  plugins: [react(), tailwindcss(), lightViewer, globeShaders],
-  optimizeDeps: { rolldownOptions: { plugins: [globeShaders] } },
+export default defineConfig(async ({ command }) => ({
+  plugins: [react(), tailwindcss(), lightViewer, globeShaders({ mustSew: command === "build" })],
+  optimizeDeps: { rolldownOptions: { plugins: [globeShaders()] } },
 
   test: {
     environment: "jsdom",
