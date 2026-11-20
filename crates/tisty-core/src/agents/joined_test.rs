@@ -355,3 +355,14 @@ fn every_agents_counts_as_agents_for_what_it_holds() {
         [two.desk, two.desk_global].into()
     );
 }
+
+#[test]
+fn an_older_agents_an_agent_made_never_takes_in_the_persons() {
+    let mut log = Log::new();
+    let made_by_agent = log.folder(AGENT, FOLDER, None);
+    std::thread::sleep(std::time::Duration::from_millis(2));
+    let mine = log.folder(DESK, FOLDER, None);
+    log.doc(DESK, "mine", Some(mine));
+    assert!(made_by_agent < mine);
+    assert!(joined(&log.state()).is_empty());
+}

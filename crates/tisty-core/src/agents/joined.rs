@@ -12,6 +12,9 @@ pub fn joined(state: &State) -> Vec<Op> {
     let Some((&keep, others)) = all.split_first() else {
         return Vec::new();
     };
+    if !placed_by_person(state, keep) {
+        return Vec::new();
+    }
     let mut ops = Vec::new();
     for &other in others {
         if !all_by_person(state, other) {
@@ -44,6 +47,14 @@ fn all_by_person(state: &State, root: FolderId) -> bool {
             .values()
             .filter(|one| one.folder.is_some_and(|at| held.contains(&at)))
             .all(|one| person(one.placed_by.as_ref()))
+}
+
+fn placed_by_person(state: &State, folder: FolderId) -> bool {
+    state
+        .folders
+        .get(&folder)
+        .and_then(|one| one.placed_by.as_ref())
+        .is_some_and(|who| !state.assistants.contains(who))
 }
 
 fn moved_to(into: FolderId) -> Filed {

@@ -1,6 +1,7 @@
 use std::collections::BTreeSet;
 
 use crate::State;
+use crate::event::Op;
 use crate::model::{FolderId, Kept};
 
 pub const FOLDER: &str = "AGENTS";
@@ -58,3 +59,30 @@ pub fn holds(state: &State, kept: &Kept) -> bool {
         .flatten()
         .any(|one| one.folder.is_some_and(|at| holds_folder(state, at)))
 }
+
+// Off the top, renamed, re-iconed, archived, made again or deleted while it holds anything, AGENTS would stop guarding what it holds.
+pub fn unhooks(state: &State, op: &Op) -> bool {
+    let root = |id: &FolderId| roots(state).contains(id);
+    match op {
+        Op::FolderAdd { id, .. } | Op::FolderArchive { id } => root(id),
+        Op::FolderMove { id, d } => root(id) && matches!(d.folder, Some(Some(_))),
+        Op::FolderRename { id, d } => root(id) && crate::text::plainly(&d.name) != FOLDER,
+        Op::FolderLook { id, d } => {
+            root(id)
+                && d.icon
+                    .as_ref()
+                    .is_some_and(|icon| icon.as_deref() != Some(ICON))
+        }
+        Op::FolderDelete { id } => root(id) && holds_anything(state, *id),
+        _ => false,
+    }
+}
+
+fn holds_anything(state: &State, folder: FolderId) -> bool {
+    state.folders.values().any(|one| one.parent == Some(folder))
+        || state.docs.values().any(|one| one.folder == Some(folder))
+}
+
+#[cfg(test)]
+#[path = "rooted_test.rs"]
+mod tests;
