@@ -4,7 +4,7 @@ Llevaba años guardando cosas en Tisty y no tenía forma de verlas juntas. Sabí
 
 Esta página cuenta cómo abrirla, qué significa cada forma y cada línea, cómo moverte por ella y cómo filtrarla. Las uniones que dibuja las haces tú al escribir: [[Enlazar documentos|Enlazar-documentos]] y [[Tareas en documentos|Tareas-en-documentos]]. Tu agente lee la misma red como un índice: [[Cómo trabaja un agente|Cómo-trabaja-un-agente]].
 
-![La ventana de Tisty con la barra lateral a la izquierda y Brainsty marcado en ella; en el panel de contenido, la red alejada: arriba la cuenta, «589 nodos · 1252 conexiones», cada carpeta y cada lista de su color, los documentos como cuadrados, las tareas como círculos y las etiquetas como puntos morados, y abajo a la izquierda la Leyenda, plegada](https://raw.githubusercontent.com/rgdevment/Tisty/main/app/src-tauri/resources/guide/es/red.png)
+![La ventana de Tisty con la barra lateral a la izquierda y Brainsty marcado en ella; en el panel de contenido, la red alejada: arriba la cuenta, «589 nodos · 1252 conexiones», cada carpeta y cada lista de su color, los documentos como cuadrados, las carpetas como cuadrados grandes, las listas como rombos, las tareas como círculos y las etiquetas como puntos morados; las carpetas, las listas y las etiquetas más tenues que los documentos y las tareas, las citas y las menciones más marcadas que las demás líneas, la red un poco girada como un globo y sus catorce viajeros con su estela, y abajo a la izquierda la Leyenda, plegada](https://raw.githubusercontent.com/rgdevment/Tisty/main/app/src-tauri/resources/guide/es/red.png)
 
 ## Cuándo te sirve
 
@@ -28,27 +28,44 @@ La red se abre en el panel de contenido de la ventana principal, como cualquier 
 
 ## Qué es cada cosa
 
+La tabla dice cómo se ve cada clase de lejos y a media distancia. De cerca, cada nodo pasa a ser su ícono: lo cuenta [De lejos y de cerca](#de-lejos-y-de-cerca).
+
 | En la red | Es | Cómo se ve |
 | :-- | :-- | :-- |
 | Cuadrado | un documento o una página de un libro | del color de su carpeta; una página, más pequeña junto a su documento |
-| Cuadrado grande | una carpeta | en medio de sus documentos, unida a cada uno |
-| Rombo | una lista | en medio de sus tareas, unida a cada una |
+| Cuadrado grande | una carpeta | en medio de sus documentos, unida a cada uno, tenue |
+| Rombo | una lista | en medio de sus tareas, unida a cada una, tenue |
 | Círculo | una tarea | del color de su lista; en curso, viva; terminada, más tenue; descartada o archivada, tenue y pequeña |
-| Punto morado | una etiqueta | unido a todo lo que la lleva |
+| Punto morado | una etiqueta | unido a todo lo que la lleva, tenue |
 | Punto gris | una imagen o un archivo | unido a lo que lo usa; de cerca, con su miniatura |
 
-Cada carpeta y cada lista que tiene algo en la red es un nodo, en medio de lo suyo. No empuja a nadie: la red se acomoda por sus otras líneas y la carpeta o la lista se pone donde quedó lo suyo, así que la red conserva su forma. Además, cada una tiñe su zona con su color. Solo existen en la vista: tu agente no las ve como nodos en su índice. La carpeta [[Agentes|Carpeta-AGENTS]] tiene un color propio, el coral, que ninguna otra carpeta puede elegir: su zona se tiñe de coral.
+Cada carpeta y cada lista que tiene algo en la red es un nodo, en medio de lo suyo. No empuja a nadie: la red se acomoda por sus otras líneas y la carpeta o la lista se pone donde quedó lo suyo, así que la red conserva su forma. Además, cada una tiñe su zona con su color. Solo existen en la vista: tu agente no las ve como nodos en su índice.
 
-| Línea | Une | Cuándo existe |
-| :-- | :-- | :-- |
-| Sólida | una cita | una tarjeta de otro documento o de una tarea, sola en su párrafo |
-| Punteada | una mención | un enlace dentro de una frase a otro documento o a una tarea |
-| Fina | la estructura | una página y su libro, una parte y su tarea, una tarea y el documento donde nació, una idea y su documento, una carpeta y sus documentos, una lista y sus tareas |
-| Fina y tenue | una etiqueta | lo que lleva `#etiqueta` y su punto |
-| Fina, hacia un archivo | un uso | lo que muestra una imagen o adjunta un archivo |
-| Curva ámbar | un parecido | dos cosas que comparten palabras poco comunes, una palabra con un error de tipeo o una traducción, y que nadie unió; más opaca cuanto más se parecen |
+Las carpetas, las listas y las etiquetas se ven tenues a propósito: dicen dónde está algo, no qué escribiste. Lo que manda en la red es lo que alguien escribió, tú o tu agente (mira [Lo que escribiste pesa más](#lo-que-escribiste-pesa-más)).
 
-Cada línea recta está escrita en alguna parte, y se puede explicar. La curva ámbar no: es lo que Tisty adivina, nunca es recta, sólida ni punteada, para no confundirse con nada escrito, y la ficha del nodo dice por qué. Lo cuenta [Parecidos](#parecidos).
+**Los documentos de [[Agentes|Carpeta-AGENTS]]**, las reglas, skills y memorias que Tisty mantiene al día con los archivos de tus agentes, se dibujan más chicos y en un coral tenue, el color propio de esa carpeta, y sus líneas también van más tenues. Así no compiten con tus carpetas: en una red con veinte reglas de Claude y Codex, lo que salta a la vista sigue siendo lo tuyo. Su zona se tiñe de coral, como la de cualquier carpeta con su color.
+
+| Línea | Une | Cuándo existe | Cómo se ve |
+| :-- | :-- | :-- | :-- |
+| Sólida | una cita | una tarjeta de otro documento o de una tarea, sola en su párrafo | la más gruesa y marcada |
+| Punteada | una mención | un enlace dentro de una frase a otro documento o a una tarea | marcada |
+| Sólida, algo más fina | la estructura | una página y su libro, una parte y su tarea, una tarea y el documento donde nació, una idea y su documento | marcada |
+| Fina, hacia un archivo | un uso | lo que muestra una imagen o adjunta un archivo | tenue |
+| Fina | una etiqueta | lo que lleva `#etiqueta` y su punto | más tenue |
+| Fina, hacia una carpeta o una lista | la pertenencia | una carpeta y sus documentos, una lista y sus tareas | la más tenue de todas |
+| Curva ámbar | un parecido | dos cosas que comparten palabras poco comunes, una palabra con un error de tipeo o una traducción, y que nadie unió | más opaca cuanto más se parecen |
+
+Cada línea recta está escrita en alguna parte, y se puede explicar. La curva ámbar no: es lo que Tisty cree que se parece, nunca es recta, sólida ni punteada, para no confundirse con nada escrito, y la ficha del nodo dice por qué. Lo cuenta [Parecidos](#parecidos).
+
+### Lo que escribiste pesa más
+
+Una cita, una mención o una parte las escribió alguien a propósito; una etiqueta o una carpeta solo dicen dónde guardaste algo. Por eso la red no las trata igual:
+
+- **Al acomodarse**, una cita, una mención o una parte tiran con fuerza 3; una línea a un archivo, con 1,5, y una etiqueta, con 0,3. Las carpetas, las listas y los parecidos no tiran: no mueven a nadie.
+- **Al dibujarse**, las citas, las menciones y las partes van más gruesas y marcadas; las etiquetas y los archivos, más tenues, y la línea a la carpeta o la lista, la más tenue de todas.
+- **Los viajeros** también prefieren lo escrito (mira [La red viva](#la-red-viva)).
+
+Por ejemplo, Yisset cita la tarea «Vacuna anual de Rina» en la ficha de Rina. La tarea vive en la lista **Casa** y la ficha en la carpeta **Mascotas**, pero en la red quedan juntas, unidas por una línea sólida bien visible. Las dos llevan `#rina`, y esa etiqueta casi no las acerca: lo que las junta es la cita.
 
 ## La leyenda
 
@@ -59,49 +76,64 @@ Abierta, arriba lleva dos interruptores, **Viajeros** y **Girar**, que cuenta [L
 | Parte | Qué muestra |
 | :-- | :-- |
 | **Qué es** | la forma y el tono de cada clase que hay en tu red: **Documento**, **Página**, **Tarea**, **Etiqueta**, **Archivo**, **Carpeta** y **Lista**. Una clase que no tienes no aparece |
-| **Color: su carpeta o lista** | las carpetas y listas con color que tienen algo en la red, primero las más llenas. Muestra seis; **N más** abre el resto y **Menos** las vuelve a esconder. Al pie: «Sin color, toma el tono de su clase.» |
+| **Color: su carpeta o lista** | las carpetas y listas con color que tienen algo en la red, primero las más llenas. Muestra seis; **N más** abre el resto y **Menos** las vuelve a esconder. Si tienes documentos en la carpeta Agentes, debajo va **AGENTS**, con su cuadrado chico en coral tenue; con el puntero encima dice «Los archivos de los agentes que Tisty mantiene al día, chicos y tenues para no tapar los tuyos». Al pie: «Sin color, toma el tono de su clase.» |
 | **Estado** | cómo se ve una tarea **En curso**, una de las **Terminadas** y una de las **Archivadas** |
-| **Líneas, de cerca** | **Cita**, **Menciona**, **Parte de (página, parte, carpeta o lista)**, **Etiquetada** y **Usa un archivo**, solo las que hay en tu red; y **Parecidos**, la curva ámbar, si Tisty adivinó alguno. Con el puntero sobre **Parecidos**, te dice qué son |
+| **Líneas, de cerca** | **Cita**, **Menciona**, **Parte de (página, parte)**, **Etiquetada**, **Usa un archivo** y **En su carpeta o lista**, solo las que hay en tu red; y **Parecidos**, la curva ámbar, si Tisty cree que algo se parece. Con el puntero sobre **Parecidos**, te dice qué son: «Curvas ámbar: lo que Tisty cree que se parece, de cerca o junto al nodo que eliges. Nadie las escribió.» |
 
-Por ejemplo, Marisol tiene once carpetas y listas con color. Su leyenda muestra las seis más llenas, **Casa**, **Trabajo**, **Mascotas**, **Viajes**, **Compras** y **Salud**, y debajo **5 más**. Una carpeta sin color, como **Recetas**, no está en la lista: sus documentos se ven con el tono de los documentos.
+Por ejemplo, Marisol tiene once carpetas y listas con color, y la carpeta Agentes con sus reglas de Claude. Su leyenda muestra las seis más llenas, **Casa**, **Trabajo**, **Mascotas**, **Viajes**, **Compras** y **Salud**, debajo **5 más** y, aparte, **AGENTS**: la carpeta Agentes no compite por un lugar entre sus colores. Una carpeta sin color, como **Recetas**, no está en la lista: sus documentos se ven con el tono de los documentos.
 
-![La Leyenda abierta en la esquina inferior izquierda de la red: arriba los interruptores Viajeros y Girar, con su punto encendido; Qué es con Documento, Página, Tarea, Etiqueta, Archivo, Carpeta y Lista; Color: su carpeta o lista con Casa, Trabajo, Mascotas, Viajes, Compras y Salud, «5 más» y «Sin color, toma el tono de su clase.»; Estado con En curso, Terminadas y Archivadas; Líneas, de cerca con Cita, Menciona, Parte de (página, parte, carpeta o lista), Etiquetada, Usa un archivo y Parecidos en ámbar](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/help/es-leyenda.png)
+![La Leyenda abierta en la esquina inferior izquierda de la red: arriba los interruptores Viajeros y Girar, con su punto encendido; Qué es con Documento, Página, Tarea, Etiqueta, Archivo, Carpeta y Lista; Color: su carpeta o lista con Casa, Trabajo, Mascotas, Viajes, Compras y Salud, «5 más», AGENTS con su cuadrado chico en coral tenue y «Sin color, toma el tono de su clase.»; Estado con En curso, Terminadas y Archivadas; Líneas, de cerca con Cita, Menciona, Parte de (página, parte), Etiquetada, Usa un archivo, En su carpeta o lista, la más tenue, y Parecidos en ámbar](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/help/es-leyenda.png)
 
 ## La red viva
 
-Mientras la miras, la red se mueve: gira y la recorren viajeros por sus líneas. Si la prefieres quieta, la apagas desde la leyenda.
+Mientras la miras, la red se mueve: gira y la recorren viajeros por sus líneas. Viene así de fábrica; si la prefieres quieta, la apagas desde la leyenda.
 
 - **Gira como un globo**, sola, una vuelta por minuto. Lo que queda atrás se ve más chico y más tenue, y con la red girada las zonas de color se ocultan y se ven menos títulos.
-- **Se detiene cuando la necesitas quieta:** mientras el puntero está sobre la forma de la red, un momento después de acercarte o alejarte con la rueda y mientras tienes un nodo elegido. En el espacio vacío alrededor sigue girando.
+- **De cerca, se queda quieta.** Apenas acercas la vista, con la rueda, al elegir un resultado de la búsqueda o al caminar con las flechas, el globo deja de girar, y no vuelve a hacerlo hasta que ves otra vez la red entera. Así el nodo que miras no se te va de lado. Alejarte más allá de la red entera no lo detiene.
+- **También descansa** mientras el puntero está sobre la forma de la red y mientras tienes un nodo elegido. En el espacio vacío alrededor sigue girando.
+- **Un doble clic en un espacio vacío** te devuelve a la red entera, y el globo vuelve a girar. Un doble clic sobre un nodo, en cambio, lo abre.
 - **La giras tú** arrastrando con el botón derecho, o con `Shift` y el izquierdo. El arrastre normal sigue moviendo la vista, como siempre.
-- **Los viajeros** son puntos de luz que recorren las conexiones en viajes largos: pasan de un nodo al siguiente cada cinco segundos, dejan una estela corta y destellan al pasar por una etiqueta o por un nodo muy conectado. Prefieren los documentos y las páginas, y nunca pasan por lo que los filtros esconden.
-- **Cuántos viajeros** depende del tamaño de la red:
+- **Los viajeros** son puntos de luz que recorren las conexiones en viajes largos: dejan una estela corta y destellan al pasar por una etiqueta o por un nodo muy conectado. Siguen caminando aunque el globo descanse, y nunca pasan por lo que los filtros esconden ni por las carpetas y las listas.
+- **Prefieren lo escrito.** Al elegir por dónde seguir, miran dos cosas: adónde van, con los documentos y las páginas primero, y por qué línea. Una cita, una mención o una parte les pesa el doble que una línea a un archivo y diez veces más que una etiqueta.
+- **Cuántos viajeros, y a qué paso**, depende del tamaño de la red, contando sus nodos sin las carpetas ni las listas. En una red chica van pocos y rápidos; en una grande, más y con calma, para que se puedan seguir con la vista:
 
-| Nodos en la red | Viajeros |
-| :-- | :-- |
-| menos de 60 | 2 |
-| de 60 a 99 | 4 |
-| de 100 a 149 | 6 |
-| de 150 a 249 | 8 |
-| 250 o más | 10 |
+| Nodos en la red | Viajeros | Pasan de un nodo al siguiente cada |
+| :-- | :-- | :-- |
+| menos de 60 | 4 | 3 segundos |
+| de 60 a 99 | 8 | 4 segundos |
+| de 100 a 149 | 10 | 5 segundos |
+| de 150 a 349 | 12 | 6 segundos |
+| 350 o más | 14 | 7 segundos |
 
-- **Dos interruptores**, arriba en la [leyenda](#la-leyenda) abierta: **Viajeros** y **Girar**, cada uno con un punto que se enciende. Sin **Girar**, la red queda plana; con los dos apagados, queda como una red quieta. Cada equipo recuerda cómo los dejaste. Si tu sistema pide reducir el movimiento, arrancan apagados.
+- **Dos interruptores**, arriba en la [leyenda](#la-leyenda) abierta: **Viajeros** y **Girar**, cada uno con un punto que se enciende. Vienen encendidos, también si tu sistema pide reducir el movimiento: la decisión es tuya. Sin **Girar**, la red queda plana; con los dos apagados, queda como una red quieta. Cada equipo recuerda cómo los dejaste.
 - **Solo corre mientras la ves.** Al pasar a otra vista se detiene, igual que el resto de la red.
 - **Lo que cuesta**, si te interesa: `Ctrl` + `Shift` + `M` muestra junto a la leyenda cuántos milisegundos toma cada cuadro y cuántos cuadros por segundo dibuja, por ejemplo «2.10 ms por cuadro · 60 cuadros por segundo». Otro `Ctrl` + `Shift` + `M` lo esconde.
 
-Por ejemplo, Lucas abre Brainsty con 180 nodos: ve ocho viajeros cruzando la red mientras gira. Deja el puntero sobre la zona de **Trabajo** para leer un título y el globo se detiene; lo saca al espacio vacío y vuelve a girar. Para presentar su pantalla prefiere la red quieta: abre la **Leyenda** y apaga **Viajeros** y **Girar**, y la próxima vez en ese equipo abre igual.
+Por ejemplo, Lucas abre Brainsty con 180 nodos: ve doce viajeros cruzando la red mientras gira, cada uno pasando de un nodo al siguiente cada seis segundos. Deja el puntero sobre la zona de **Trabajo** para leer un título y el globo se detiene; lo saca al espacio vacío y vuelve a girar. Se acerca con la rueda a «Presupuesto 2027» y el globo se queda quieto mientras lo lee, aunque mueva el puntero; los viajeros siguen pasando. Un doble clic en un espacio vacío y está otra vez frente a la red entera, girando. Para presentar su pantalla prefiere la red quieta: abre la **Leyenda** y apaga **Viajeros** y **Girar**, y la próxima vez en ese equipo abre igual.
 
 ## De lejos y de cerca
 
 La red cambia lo que muestra según la distancia, y cada detalle aparece de a poco al acercarte:
 
-- **De lejos**, con la rueda hacia atrás: los nodos y sus uniones forman la silueta de un cerebro visto de lado, sin títulos y con líneas tenues. Sirve para ver dónde hay mucho y dónde hay poco.
-- **A media distancia**, como se abre: cada carpeta y cada lista tiñen su zona, y llevan título solo los nodos más conectados.
-- **De cerca**: todos los títulos, cada tipo de línea, las etiquetas como `#etiqueta`, junto a cada imagen su miniatura y, dentro de cada nodo, el ícono de lo que es: documento, página, tarea (con un tic si está hecha), etiqueta, archivo, carpeta o lista. El ícono se atenúa con lo que no está elegido y no cuesta nada de lejos. Las curvas ámbar aparecen aquí, de a poco, entre dos nodos que están a la vista; junto al nodo que eliges se ven desde cualquier distancia.
+- **De lejos**, como se abre, con la red entera a la vista, o con la rueda hacia atrás: los nodos y sus uniones forman la silueta de un cerebro visto de lado, sin títulos y con líneas tenues. Sirve para ver dónde hay mucho y dónde hay poco.
+- **A media distancia**, en cuanto te acercas un poco: cada carpeta y cada lista tiñen su zona, y llevan título solo los nodos más conectados.
+- **De cerca**: todos los títulos, cada tipo de línea, las etiquetas como `#etiqueta` y junto a cada imagen su miniatura. Y cada nodo deja de ser un cuadrado o un círculo para ser su ícono, del color de su carpeta o lista y con su estado: la forma simple se desvanece al acercarte y el ícono toma su lugar. Las curvas ámbar aparecen aquí, de a poco, entre dos nodos que están a la vista; junto al nodo que eliges se ven desde cualquier distancia.
+
+| Nodo | Su ícono, de cerca |
+| :-- | :-- |
+| Documento | una hoja |
+| Página de un libro | unas líneas de texto |
+| Tarea | una casilla; una terminada, un tic |
+| Etiqueta | un `#` |
+| Imagen o archivo | un clip |
+| Carpeta | una carpeta |
+| Lista | una lista |
+
+Así, de cerca, la tarea «Vacuna anual de Rina» es una casilla del color de la lista **Casa**, y «Comprar el antiparasitario de Rina», que terminaste la semana pasada, un tic del mismo color. El ícono se atenúa con lo que no está elegido, como el resto, y un clic sobre él elige el nodo igual que antes. De lejos no cuesta nada: ahí vuelven las formas simples, que se dibujan de a miles.
 
 ![Brainsty en el panel de contenido, junto a la barra lateral, con la misma red de lejos: los nodos forman la silueta de un cerebro visto de lado, sin títulos y con líneas tenues, y la Leyenda plegada abajo a la izquierda](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/help/es-red-lejos.png)
 
-Con la rueda acercas y alejas; arrastrando te mueves, y arrastrando con el botón derecho, o con `Shift`, giras el globo. Al primer toque la red deja de seguir el punto donde arrancó.
+Con la rueda acercas y alejas; arrastrando te mueves, y arrastrando con el botón derecho, o con `Shift`, giras el globo. Al primer toque la red deja de seguir el punto donde arrancó. Un doble clic en un espacio vacío te devuelve de un salto a la red entera, desde cualquier distancia.
 
 ## Elegir, ver y abrir
 
@@ -121,9 +153,9 @@ El estado de una tarea suma, después de un punto, cómo va su fecha: **Por veni
 Después, en este orden, lo que hay:
 
 - **Etiquetas**, cada una como `#rina`.
-- **Conexiones**, contadas por tipo: «2 citas 3 menciones».
+- **Conexiones**, contadas por tipo: «2 citas 3 menciones 1 en carpeta o lista». Los tipos van en este orden: **citas**, **menciones**, **partes**, **etiquetas**, **archivos** y **en carpeta o lista**, solo los que tiene.
 - **Apuntan aquí**: los documentos y las tareas que lo citan o lo mencionan, hasta seis, y «N más» si hay otros. Un clic en uno lo elige en la red y abre su ficha; uno que no está en la red, como lo que quedó fuera del tope de nodos, se lee, pero no se elige.
-- **Parecidos**, en ámbar, si Tisty le adivina alguno: cada uno con su título y su porqué, «Tisty lo adivina: comparten *presupuesto* y *techo*». Un clic en el título lo elige en la red. Lo cuenta [Parecidos](#parecidos).
+- **Parecidos**, en ámbar, si Tisty cree que algo se le parece: cada uno con su título y su porqué, «Tisty cree que se parecen: comparten *presupuesto* y *techo*». Un clic en el título lo elige en la red. Lo cuenta [Parecidos](#parecidos).
 - **Enlace**, en un documento, una página o una tarea: su dirección y **Copiar enlace**, que pasa a decir «Enlace copiado». Es el mismo enlace que copias desde el panel de un documento, y sirve para pegarlo en un chat, en tu navegador o dárselo a tu agente. El de un documento y el de una tarea se ven así:
 
 ```text
@@ -131,12 +163,12 @@ tisty://doc/mascotas/rina?id=…
 tisty://task?id=…
 ```
 
-Al pie, **Abrir**. La cruz de arriba, **Cerrar la vista previa**, o `Esc`, suelta el nodo y la red vuelve a verse entera.
+Al pie, **Abrir**. La cruz de arriba, **Cerrar la vista previa**, `Esc` o un clic en un espacio vacío sueltan el nodo: nada queda atenuado, y la vista se queda donde estaba. Para volver a la red entera, un doble clic en un espacio vacío.
 
 - **Abrir**, `Enter` o **un doble clic** en el nodo lo abre en la misma ventana, en el lugar de la red: un documento en la Biblioteca, una tarea junto a su lista, una etiqueta en su vista, una carpeta en **Documentos** y una lista en **Listas**. Para volver a la red, otro clic en **Brainsty**; abre de nuevo entera, y lo que abriste queda como punto de partida de las flechas.
 - **Una imagen o un archivo** tienen ficha, pero no **Abrir** ni **Enlace**: se abren desde el documento o la tarea que los usa, su vecino en la red.
 
-![«Rina» elegida de cerca en Brainsty, en el panel de contenido junto a la barra lateral: sus vecinos con título, el resto atenuado y, a la derecha, su ficha: «Documento · Mascotas · 6 conexiones», las filas Escrito por última vez, Creado, Tamaño con sus palabras e Idioma ES, la etiqueta #rina, Conexiones por tipo, Apuntan aquí con lo que la cita, Parecidos con «Paseos del sábado» y «Tisty lo adivina: comparten rina y parque», el Enlace con Copiar enlace y el botón Abrir; en la red, una curva ámbar une a Rina con «Paseos del sábado»](https://raw.githubusercontent.com/rgdevment/Tisty/main/app/src-tauri/resources/guide/es/red-cerca.png)
+![«Rina» elegida de cerca en Brainsty, en el panel de contenido junto a la barra lateral: sus vecinos con título, cada uno dibujado como su ícono del color de su carpeta o lista (la hoja de un documento, la casilla de una tarea, el clip de la foto), el resto atenuado y, a la derecha, su ficha: «Documento · Mascotas · 6 conexiones», las filas Escrito por última vez, Creado, Tamaño con sus palabras e Idioma ES, la etiqueta #rina, Conexiones por tipo con «1 en carpeta o lista», Apuntan aquí con lo que la cita, Parecidos con «Paseos del sábado» y «Tisty cree que se parecen: comparten rina y parque», el Enlace con Copiar enlace y el botón Abrir; en la red, una curva ámbar une a Rina con «Paseos del sábado»](https://raw.githubusercontent.com/rgdevment/Tisty/main/app/src-tauri/resources/guide/es/red-cerca.png)
 
 ## Buscar
 
@@ -177,10 +209,10 @@ Un `Esc` que escribes en un campo de la barra lateral, como su buscador, es de e
 Hace un mes que no tocas nada de Rina y quieres saber cómo va. Estás en el acta del condominio.
 
 1. **Brainsty** en la barra lateral. La red se abre en el panel, en lugar del acta, entera y girando, con sus viajeros.
-2. `/`, `rina`, `Enter`. El globo se detiene, la red se centra en «Rina», el documento de la carpeta **Mascotas**, y abre su ficha: «Documento · Mascotas · 6 conexiones», escrito por última vez hace un mes, en español.
-3. Te acercas con la rueda: aparecen sus vecinos con título, «Veterinaria» unida por una línea punteada (la mencionas en una frase), la tarjeta sólida de «Vacuna anual de Rina», la foto del paseo con su miniatura, el cuadrado grande de **Mascotas**, en medio de sus documentos, y una curva ámbar hacia «Paseos del sábado», que nadie enlazó. La ficha de Rina dice por qué, en **Parecidos**: «Tisty lo adivina: comparten *rina* y *parque*».
+2. `/`, `rina`, `Enter`. La red se acerca y se centra en «Rina», el documento de la carpeta **Mascotas**, y el globo se queda quieto mientras la miras de cerca. Abre su ficha: «Documento · Mascotas · 6 conexiones», escrito por última vez hace un mes, en español. Una de esas seis conexiones es su carpeta: **Conexiones** la cuenta como «en carpeta o lista».
+3. Te acercas un poco más con la rueda: cada vecino pasa a ser su ícono, con su título. La hoja de «Veterinaria», unida por una línea punteada (la mencionas en una frase); la casilla de «Vacuna anual de Rina», del color de la lista **Casa**, unida por la línea sólida y marcada de su tarjeta; el clip de la foto del paseo, con su miniatura; la carpeta **Mascotas**, tenue, unida por la línea más tenue, y una curva ámbar hacia «Paseos del sábado», que nadie enlazó. La ficha de Rina dice por qué, en **Parecidos**: «Tisty cree que se parecen: comparten *rina* y *parque*».
 4. Un clic en «Vacuna anual de Rina»: su ficha dice «En curso · Por vencer», **Plazo** el viernes y **Pasos** «1 de 3 hechos», y en **Apuntan aquí** está «Rina», que la cita. **Copiar enlace** te deja su enlace para pasárselo a Yisset, que la va a llevar.
-5. **Abrir**: la tarea se abre junto a su lista, en el lugar de la red, y ahí marcas «Pedir hora».
+5. Quieres ver qué más hay antes de seguir: un doble clic en un espacio vacío y vuelves a la red entera, girando. `/`, `vacuna`, `Enter` te lleva de vuelta a la tarea. **Abrir**: la tarea se abre junto a su lista, en el lugar de la red, y ahí marcas «Pedir hora».
 6. Otro clic en **Brainsty**: la red abre de nuevo, entera; la tarea queda como punto de partida de las flechas. **Filtros**, **Etiqueta** `rina` y **Tocado** **Últimos 30 días**: quedan sus dos documentos y las tareas en curso que se movieron este mes.
 7. `Esc` hasta volver: primero suelta lo que elegiste y el último te devuelve a la tarea. Los filtros no se guardan: la próxima vez la red arranca entera.
 
@@ -198,7 +230,7 @@ Sirve también entre idiomas cuando lo que comparten son nombres: una tarea en i
 
 ### Un error de tipeo
 
-Escribes rápido y anotas «La imrpesora nueva no imprime en color». Una semana después, Jaime te pide «Instalar la impresora nueva». Solo comparten *nueva*, pero *imrpesora* está a un cambio de *impresora*, y Tisty las une: «Tisty lo adivina: comparten *impresora ≈ imrpesora* y *nueva*». En inglés funciona igual, con palabras de seis letras o más.
+Escribes rápido y anotas «La imrpesora nueva no imprime en color». Una semana después, Jaime te pide «Instalar la impresora nueva». Solo comparten *nueva*, pero *imrpesora* está a un cambio de *impresora*, y Tisty las une: «Tisty cree que se parecen: comparten *impresora ≈ imrpesora* y *nueva*». En inglés funciona igual, con palabras de seis letras o más.
 
 - **Un cambio** es una letra de más, una de menos, una distinta o dos letras vecinas que cambiaron de lugar, como *rp* por *pr*.
 - **Solo palabras de seis letras o más.** *Casa* y *cosa* son dos palabras, no un error.
@@ -207,14 +239,14 @@ Escribes rápido y anotas «La imrpesora nueva no imprime en color». Una semana
 
 ### Una traducción
 
-Anotas «Pagar la cuenta del agua» y, otro día, tu agente anota en inglés «Pay the water bill». Hablan de lo mismo y no comparten ni una palabra. Tisty las une con un diccionario español–inglés: «Tisty lo adivina: comparten *pagar ≈ pay* y *agua ≈ water*». Lo mismo pasa con «Arreglar la gotera del techo» y «Fix the roof leak»: *gotera ≈ leak* y *techo ≈ roof*.
+Anotas «Pagar la cuenta del agua» y, otro día, tu agente anota en inglés «Pay the water bill». Hablan de lo mismo y no comparten ni una palabra. Tisty las une con un diccionario español–inglés: «Tisty cree que se parecen: comparten *pagar ≈ pay* y *agua ≈ water*». Lo mismo pasa con «Arreglar la gotera del techo» y «Fix the roof leak»: *gotera ≈ leak* y *techo ≈ roof*.
 
 - **No es IA.** Es una lista fija de 41.140 parejas de palabras, hecha por lingüistas: sale del [Open Multilingual Wordnet 2.0](https://github.com/omwn/omw-data), con el Multilingual Central Repository 3.0 en español y Princeton WordNet 3.0 en inglés. Es un archivo de unos 760 KB (777.917 bytes) que viene dentro del instalador; comprimido ahí, suma unos 0,3 MB a la descarga. Nunca se busca en internet. Mira [Sin IA](Privacidad#sin-ia).
 - **Una sola pareja por palabra**, la de su sentido más usado. Por eso a veces no es la que esperas: *cuenta* da *tally*, no *bill*. En el ejemplo de arriba, lo que une es *pagar* y *agua*.
 - **Una palabra que se escribe igual en los dos idiomas**, como *hotel*, no está en la lista: ya se une como palabra en común.
 - **Solo une dos idiomas distintos:** nunca dos cosas en español ni dos en inglés, aunque digan lo mismo con otras palabras.
-- **El idioma de cada cosa** es el que declara el documento, si lo dice. Si no, Tisty lo adivina por palabras como «el», «la», «de» o «the», «of», «to», y por las tildes y la ñ. Una cosa en inglés nunca se lee como español.
-- **Si no sabe adivinarlo, no la une por diccionario.** Una tarea que solo dice «Router», o «Rina's yearly vaccine», no trae ninguna de esas palabras. Las palabras en común y el tipeo sí la siguen uniendo.
+- **El idioma de cada cosa** es el que declara el documento, si lo dice. Si no, Tisty lo deduce de palabras como «el», «la», «de» o «the», «of», «to», y por las tildes y la ñ. Una cosa en inglés nunca se lee como español.
+- **Si no puede deducirlo, no la une por diccionario.** Una tarea que solo dice «Router», o «Rina's yearly vaccine», no trae ninguna de esas palabras. Las palabras en común y el tipeo sí la siguen uniendo.
 - **Solo la app lee el diccionario**, en su pasada de baja prioridad. La puerta de tu agente no lo carga: tu agente ve en la ficha los parecidos que la app ya guardó.
 
 ### Lo que vale para las tres
@@ -223,7 +255,7 @@ Un tipeo o una traducción cuenta como una palabra en común: dos cosas se parec
 
 - **Como mucho tres parecidos por cosa**, y cada punta tiene que estar entre las tres más cercanas de la otra.
 - **El umbral sale de lo que guardas**, no de una cifra fija: el parecido tiene que superar lo que alcanza un par de cada mil en tu base.
-- **Lo que ya está unido no se adivina**: si una línea de la red ya los une (una cita, una mención, una parte y su tarea, el documento donde nació una tarea), o si son una página y su libro, un documento y su versión en otro idioma, o una tarea y su página.
+- **Lo que ya está unido no se marca como parecido**: si una línea de la red ya los une (una cita, una mención, una parte y su tarea, el documento donde nació una tarea), o si son una página y su libro, un documento y su versión en otro idioma, o una tarea y su página.
 - **Un documento en otro idioma** tiene su propio lugar entre los tres, para que lo que comparte con otro idioma no quede tapado por parientes del mismo.
 - **De cada cosa se guardan hasta 256 palabras**, las más dichas. Los números solos y las cadenas largas de letras y números, como un identificador o un hash, no cuentan.
 
@@ -249,7 +281,7 @@ Un tipeo o una traducción cuenta como una palabra en común: dos cosas se parec
 "Guessed alike by Tisty, linked by no one: \"Pay the water bill\" […] (shares pagar≈pay, agua≈water)."
 ```
 
-![La ficha de «Pagar la cuenta del agua» de cerca en Brainsty: «Tarea · Casa» con sus conexiones, Estado «En curso · Para hoy», y en Parecidos «Pay the water bill» con «Tisty lo adivina: comparten pagar ≈ pay y agua ≈ water»; en la red, una curva ámbar une las dos tareas](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/help/es-gemela.png)
+![La ficha de «Pagar la cuenta del agua» de cerca en Brainsty: «Tarea · Casa» con sus conexiones, Estado «En curso · Para hoy», y en Parecidos «Pay the water bill» con «Tisty cree que se parecen: comparten pagar ≈ pay y agua ≈ water»; en la red, una curva ámbar une las dos tareas](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/help/es-gemela.png)
 
 Un parecido aparece solo cuando sus dos puntas están a la vista: en la red, las dos tienen que estar dibujadas; para un agente, las dos tienen que pasar su puerta, así que una tarea oculta nunca se nombra a través de un parecido. Un parecido no suma conexiones a la cuenta de arriba ni cuenta para el tope de 12.000 nodos.
 
