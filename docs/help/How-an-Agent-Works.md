@@ -105,6 +105,14 @@ A document's or a task's card also brings what Tisty guesses is alike, apart, un
 "Guessed alike by Tisty, linked by no one: \"House repairs\" […] (shares quote, roof)."
 ```
 
+In `shared`, a word alone is one both of them wrote. An `a≈b` pair is what each side wrote: a typo, like `impresora≈imrpesora`, or a translation from Tisty's Spanish–English dictionary, like `pagar≈pay`. That way the agent knows «Pay the water bill» and «Pagar la cuenta del agua» are alike by language, not because someone tied them, and reads both before deciding whether they are the same task:
+
+```json
+> brain {"task": "…Pay the water bill…"}
+{ "guessed": [ { "kind": "task", "title": "Pagar la cuenta del agua", "score": 0.61, "shared": ["pagar≈pay", "agua≈water"] } ] }
+"Guessed alike by Tisty, linked by no one: \"Pagar la cuenta del agua\" […] (shares pagar≈pay, agua≈water)."
+```
+
 With each section's lines, the agent reads only the one it needs, with the same tool that reads a task: `read` with `doc` brings the whole document, one section (`section`), some lines (`from`, `to`) or a piece at a time (`chars`). With `marks`, it brings only what the document highlights or sets in bold, grouped by section: on a 24 KB document, about 2,300 bytes. With `versions`, in place of the text, it lists its earlier versions on this computer, and `version` reads one, under a notice that it is not what it says now.
 
 **Reading again costs almost nothing.** Every read comes with a `print`. If the agent reads again with that `print` and nothing changed, Tisty answers only that, with the time of its earlier read. The answer takes this shape (this excerpt does not come from the session above, but from Tisty's code):

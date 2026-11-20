@@ -108,6 +108,14 @@ La ficha de un documento o de una tarea trae también lo que Tisty adivina que s
 "Guessed alike by Tisty, linked by no one: \"Arreglos de la casa\" […] (shares presupuesto, techo)."
 ```
 
+En `shared`, una palabra sola la escribieron los dos. Una pareja `a≈b` es lo que escribió cada lado: un error de tipeo, como `impresora≈imrpesora`, o una traducción del diccionario español–inglés de Tisty, como `pagar≈pay`. Así el agente sabe que «Pagar la cuenta del agua» y «Pay the water bill» se parecen por el idioma, no porque alguien las haya unido, y las lee antes de decidir si son la misma tarea:
+
+```json
+> brain {"task": "…Pagar la cuenta del agua…"}
+{ "guessed": [ { "kind": "task", "title": "Pay the water bill", "score": 0.61, "shared": ["pagar≈pay", "agua≈water"] } ] }
+"Guessed alike by Tisty, linked by no one: \"Pay the water bill\" […] (shares pagar≈pay, agua≈water)."
+```
+
 Con la línea de cada sección, el agente lee solo la que necesita, con la misma herramienta que lee una tarea: `read` con `doc` trae el documento entero, una sección (`section`), unas líneas (`from`, `to`) o un trozo a la vez (`chars`). Con `marks`, trae solo lo que el documento resalta o pone en negrita, agrupado por sección: en un documento de 24 KB, unos 2.300 bytes. Con `versions`, en vez del texto, lista sus versiones anteriores en este equipo, y `version` lee una, bajo un aviso de que no es lo que dice ahora.
 
 **Releer cuesta casi nada.** Cada lectura trae un `print`. Si el agente vuelve a leer con ese `print` y nada cambió, Tisty le responde solo eso, con la hora de su lectura anterior. La respuesta tiene esta forma (este extracto no viene de la sesión de arriba, sino del código de Tisty):

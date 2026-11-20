@@ -59,7 +59,7 @@ Configuración ocupa la barra lateral con sus secciones:
 - **Tus datos**: dónde viven, los respaldos, los documentos de otro Tisty y cómo irte.
 - **Asistentes**: la [[puerta MCP|Asistentes-y-MCP]].
 - **Mantenimiento**: la revisión del almacén, los adjuntos sueltos, liberar espacio y reportar un problema.
-- **Acerca de**: la versión, las actualizaciones y las versiones candidatas.
+- **Acerca de**: la versión, las actualizaciones y las versiones candidatas. Al pie, **Avisos de terceros** nombra cada pieza que Tisty lleva dentro, con su versión y su licencia; ahí están también los datos del diccionario español–inglés de Brainsty, con sus autores y la licencia de WordNet completa. **Textos de las licencias** trae el texto completo de cada licencia del núcleo.
 
 ## Actualizaciones
 
