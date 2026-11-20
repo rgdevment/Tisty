@@ -11,6 +11,7 @@ import { type Drawing, drawNetwork, type HueOf } from "./brainsty/drawing";
 import { amidMembers, laidEdges } from "./brainsty/grouping";
 import { alikeOf } from "./brainsty/guessing";
 import { type Icons, iconsOn } from "./brainsty/icons";
+import type { Motions } from "./brainsty/Legend";
 import { layOut } from "./brainsty/layingOut";
 import { type Living, livingOn } from "./brainsty/living";
 import { degreesOf, nodeLook, paletteNow } from "./brainsty/looks";
@@ -47,7 +48,7 @@ export default function Brainsty({ network, groups, onOpen, escaping }: Props) {
   const [picked, setPicked] = useState<number | null>(null);
   const [query, setQuery] = useState("");
   const [sift, setSift] = useState<Sift>(EVERYTHING);
-  const [lively, setLively] = useState(livelyAtFirst);
+  const [motions, setMotions] = useState(motionsAtFirst);
   const [costShown, setCostShown] = useState(false);
   const hues = useRef<HueOf>(() => undefined);
   const tinted = new Map<string, string>();
@@ -237,8 +238,9 @@ export default function Brainsty({ network, groups, onOpen, escaping }: Props) {
   useEffect(() => {
     const living = drawing.current?.living;
     if (!ready || !living) return;
-    living.effects(lively);
-  }, [ready, lively]);
+    living.travel(motions.travel);
+    living.spin(motions.spin);
+  }, [ready, motions]);
 
   useEffect(() => {
     const shown = (e: KeyboardEvent) => {
@@ -295,10 +297,11 @@ export default function Brainsty({ network, groups, onOpen, escaping }: Props) {
       <Corner
         network={network}
         groups={groups}
-        lively={lively}
-        onLively={(next) => {
-          keep(QUIET, next ? null : "off");
-          setLively(next);
+        motions={motions}
+        onMotions={(next) => {
+          keep(TRAVEL, next.travel ? null : "off");
+          keep(SPIN, next.spin ? null : "off");
+          setMotions(next);
         }}
         costShown={costShown}
         cost={cost}
@@ -310,7 +313,8 @@ export default function Brainsty({ network, groups, onOpen, escaping }: Props) {
   );
 }
 
-const QUIET = "tisty.brainstyEffects";
+const TRAVEL = "tisty.brainstyTravellers";
+const SPIN = "tisty.brainstySpin";
 
 const kept = (key: string): string | null => {
   try {
@@ -329,8 +333,10 @@ const keep = (key: string, value: string | null) => {
   }
 };
 
-const livelyAtFirst = (): boolean =>
-  !window.matchMedia?.("(prefers-reduced-motion: reduce)").matches && kept(QUIET) !== "off";
+const motionsAtFirst = (): Motions => {
+  const calm = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
+  return { travel: !calm && kept(TRAVEL) !== "off", spin: !calm && kept(SPIN) !== "off" };
+};
 
 const PICTURES = {
   shows: pictured,

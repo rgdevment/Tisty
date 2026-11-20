@@ -1,22 +1,22 @@
 import { useEffect, useState } from "react";
 import type { Group, Network } from "../../brainsty";
 import { fill } from "../../locales";
-import Legend from "./Legend";
+import Legend, { type Motions } from "./Legend";
 
 interface Props {
   readonly network: Network;
   readonly groups: readonly Group[];
-  readonly lively: boolean;
-  readonly onLively: (lively: boolean) => void;
+  readonly motions: Motions;
+  readonly onMotions: (motions: Motions) => void;
   readonly costShown: boolean;
   readonly cost: () => { ms: number; fps: number };
 }
 
-export default function Corner({ network, groups, lively, onLively, costShown, cost }: Props) {
+export default function Corner({ network, groups, motions, onMotions, costShown, cost }: Props) {
   return (
     <div className="pointer-events-none absolute bottom-9 left-3 z-[5] flex max-w-[calc(100%-24px)] items-end gap-1.5">
       <div className="pointer-events-auto min-w-0">
-        <Legend network={network} groups={groups} lively={lively} onLively={onLively} />
+        <Legend network={network} groups={groups} motions={motions} onMotions={onMotions} />
       </div>
       {costShown && <Cost cost={cost} />}
     </div>

@@ -278,7 +278,7 @@ describe("the living network", () => {
     ]);
   });
 
-  it("clears its travellers and stops when its effects are turned off, and says what a frame costs", () => {
+  it("lays the globe flat without turning, walks on alone, and stops with neither, saying what a frame costs", () => {
     const { clock, frames, tick } = fakeClock();
     const { drawing, render, turns } = drawingOf();
     const followed = vi.fn();
@@ -292,15 +292,22 @@ describe("the living network", () => {
     expect(living.measured().ms).toBeGreaterThanOrEqual(0);
     expect(followed).toHaveBeenCalledTimes(1);
 
-    living.effects(false);
+    living.spin(false);
     expect(turns[turns.length - 1]).toBeNull();
     living.turnBy(1, 0);
     expect(turns[turns.length - 1]).toBeNull();
+    const flat = turns.length;
+    tick(16);
+    expect(turns).toHaveLength(flat);
+    expect(frames).toHaveLength(1);
+    expect(living.measured().fps).toBeGreaterThanOrEqual(0);
+
+    living.travel(false);
     frames.length = 0;
     tick(16);
     expect(frames).toHaveLength(0);
     expect(living.measured()).toEqual({ ms: 0, fps: 0 });
-    living.effects(true);
+    living.travel(true);
     expect(frames).toHaveLength(1);
   });
 
@@ -321,7 +328,7 @@ describe("the living network", () => {
   });
 
   it("turns by hand within its tilt, paints over its frames, and leaves nothing once stopped", () => {
-    const { clock } = fakeClock();
+    const { clock, tick } = fakeClock();
     const { drawing, turns, frames } = drawingOf();
     const box = boxed();
     const brush = {
@@ -343,6 +350,7 @@ describe("the living network", () => {
     living.ready();
     living.turnBy(0.5, 5);
     expect(turns[0]).toEqual({ yaw: 0.5, pitch: PITCH_AT_MOST });
+    tick(16);
     living.sift([true, false, false, false, false]);
     for (const one of frames) one();
     expect(brush.arc).toHaveBeenCalled();

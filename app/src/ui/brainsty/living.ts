@@ -24,7 +24,8 @@ const MEASURED_EVERY = 30;
 
 export interface Living {
   ready: () => void;
-  effects: (on: boolean) => void;
+  travel: (on: boolean) => void;
+  spin: (on: boolean) => void;
   measured: () => { ms: number; fps: number };
   turnBy: (yaw: number, pitch: number) => void;
   hold: (held: boolean) => void;
@@ -106,7 +107,8 @@ export function livingOn(
   let held = false;
   let over = false;
   let zoomedAt = Number.NEGATIVE_INFINITY;
-  let lively = true;
+  let travelling = true;
+  let spinning = true;
   let counted = 0;
   let countedFrom = 0;
   let fps = 0;
@@ -161,9 +163,7 @@ export function livingOn(
       brush.stroke();
     }
   };
-  const measured = () => {
-    painted();
-    if (rendering === 0) return;
+  const noted = (ms: number) => {
     counted++;
     const now = clock.now();
     if (now - countedFrom >= 1000) {
@@ -171,9 +171,14 @@ export function livingOn(
       counted = 0;
       countedFrom = now;
     }
-    spent = spent * 0.9 + (ticked + clock.now() - rendering) * 0.1;
-    rendering = 0;
+    spent = spent * 0.9 + ms * 0.1;
     if (frames++ % MEASURED_EVERY === 0) container.dataset.livingMs = spent.toFixed(2);
+  };
+  const measured = () => {
+    painted();
+    if (rendering === 0) return;
+    noted(ticked + clock.now() - rendering);
+    rendering = 0;
   };
   const unhook = drawing.onFrame(measured);
   const unheard = drawing.beforeFrame(() => {
@@ -197,25 +202,33 @@ export function livingOn(
     const started = clock.now();
     const seconds = Math.min(LONGEST_STEP, Math.max(0, (at - last) / 1000));
     last = at;
-    if (!still()) turn = { ...turn, yaw: turn.yaw + (seconds * 2 * Math.PI) / TURN_SECONDS };
+    if (spinning && !still())
+      turn = { ...turn, yaw: turn.yaw + (seconds * 2 * Math.PI) / TURN_SECONDS };
     const fresh: Flash[] = [];
-    travellers = travellers.map((one) => stepped(world, one, seconds, HOP_SECONDS, fresh));
+    if (travelling && travellers.length === 0)
+      travellers = Array.from({ length: many }, () => setOut(world.start()));
+    if (travelling)
+      travellers = travellers.map((one) => stepped(world, one, seconds, HOP_SECONDS, fresh));
     flashes = [
       ...flashes
         .map((one) => ({ ...one, age: one.age + seconds }))
         .filter((one) => one.age < FLASH_SECONDS),
       ...fresh,
     ];
-    drawing.turn(turn);
-    afterTurn();
-    ticked = clock.now() - started;
+    if (spinning) {
+      drawing.turn(turn);
+      afterTurn();
+      ticked = clock.now() - started;
+    } else {
+      painted();
+      noted(clock.now() - started);
+    }
     frame = clock.frame(tick);
   };
-  const running = () => laid && lively && container.ownerDocument.visibilityState !== "hidden";
+  const running = () =>
+    laid && (travelling || spinning) && container.ownerDocument.visibilityState !== "hidden";
   const run = () => {
     if (frame !== 0 || !running()) return;
-    if (travellers.length === 0)
-      travellers = Array.from({ length: many }, () => setOut(world.start()));
     last = clock.now();
     countedFrom = last;
     counted = 0;
@@ -233,21 +246,26 @@ export function livingOn(
       laid = true;
       seen();
     },
-    effects: (on) => {
-      lively = on;
+    travel: (on) => {
+      travelling = on;
       if (!on) {
         travellers = [];
         flashes = [];
-        fps = 0;
+        painted();
+      }
+      seen();
+    },
+    spin: (on) => {
+      spinning = on;
+      if (!on) {
         turn = { yaw: 0, pitch: 0 };
         drawing.turn(null);
-        painted();
       }
       seen();
     },
     measured: () => ({ ms: frame === 0 ? 0 : spent, fps: frame === 0 ? 0 : fps }),
     turnBy: (yaw, pitch) => {
-      if (!laid || !lively) return;
+      if (!laid || !spinning) return;
       turn = {
         yaw: turn.yaw + yaw,
         pitch: Math.max(-PITCH_AT_MOST, Math.min(PITCH_AT_MOST, turn.pitch + pitch)),
