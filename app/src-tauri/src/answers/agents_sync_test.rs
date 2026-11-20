@@ -2414,3 +2414,34 @@ fn a_new_global_rule_still_empty_touches_no_agent_file() {
     assert_eq!(room.read(".claude/CLAUDE.md"), "# Claude\nTests first.\n");
     assert_eq!(room.kept(".claude/CLAUDE.md"), backups);
 }
+
+#[test]
+fn a_global_rule_emptied_leaves_every_file_and_asks_about_one_it_alone_wrote() {
+    let mut room = room();
+    room.bring(&[".claude/CLAUDE.md"]);
+    global_doc(&mut room, "Spanish.\n");
+    let mut ledger = Ledger::open(room.session.paths.data(), HERE);
+    round_now(&room.session, &room.homes, &mut ledger);
+    assert_eq!(
+        room.read(".claude/CLAUDE.md"),
+        "Spanish.\n\n# Claude\nTests first.\n"
+    );
+    let gemini = room.home.join(".gemini");
+    std::fs::create_dir_all(&gemini).unwrap();
+    round_here(&mut room.session, &room.homes, HERE).unwrap();
+    assert_eq!(room.read(".gemini/tisty-rules.md"), "Spanish.\n");
+
+    let (file, body) = bodies(&room.session)
+        .into_iter()
+        .find(|(_, body)| body.contains("Spanish."))
+        .unwrap();
+    let emptied = body.replace("Spanish.\n", "");
+    crate::answers::papers::written_by_hand(&mut room.session, file, emptied, None, None).unwrap();
+    round_here(&mut room.session, &room.homes, HERE).unwrap();
+
+    assert_eq!(room.read(".claude/CLAUDE.md"), "# Claude\nTests first.\n");
+    assert!(
+        loose(&room).contains(&room.at(".gemini/tisty-rules.md")),
+        "the file the rule alone made is asked about, never left saying the old words in silence"
+    );
+}

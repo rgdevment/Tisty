@@ -271,6 +271,12 @@ pub struct Placed {
     pub lead_in: Option<Target>,
 }
 
+// A Global rule with no words, just made or emptied, would only add a blank line to every file.
+pub fn wordless(piece: &Admitted) -> bool {
+    agents::rendered(piece.body())
+        .is_ok_and(|bytes| String::from_utf8_lossy(&bytes).trim().is_empty())
+}
+
 pub fn targets(homes: &Homes, gate: &Gate, ledger: &Ledger) -> Vec<Placed> {
     let detected = homes.detected();
     let mut pieces: Vec<&Admitted> = gate.admitted().iter().collect();
@@ -307,10 +313,7 @@ pub fn targets(homes: &Homes, gate: &Gate, ledger: &Ledger) -> Vec<Placed> {
             }
             continue;
         }
-        // A Global rule with no words yet, such as one just made, would only add a blank line to every file.
-        let blank = agents::rendered(piece.body())
-            .is_ok_and(|bytes| String::from_utf8_lossy(&bytes).trim().is_empty());
-        if blank {
+        if wordless(piece) {
             continue;
         }
         for one in &detected {

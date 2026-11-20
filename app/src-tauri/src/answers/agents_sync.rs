@@ -377,14 +377,11 @@ fn frees(homes: &Homes, gate: &Gate, at: &Path, file: &str) -> Option<bool> {
     match gate.seen(file) {
         None | Some(Seen::Plain | Seen::DeclinedHere) => Some(true),
         Some(Seen::Admitted) => {
-            let card = gate
-                .admitted()
-                .iter()
-                .find(|one| one.file() == file)?
-                .card();
+            let piece = gate.admitted().iter().find(|one| one.file() == file)?;
+            let card = piece.card();
             let elsewhere = card.level != GLOBAL
                 && places::target_of(homes, card).map(|(_, there)| there) != Some(at.to_path_buf());
-            Some(elsewhere)
+            Some(elsewhere || (card.level == GLOBAL && places::wordless(piece)))
         }
         Some(_) => None,
     }
