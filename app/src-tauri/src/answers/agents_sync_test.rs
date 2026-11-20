@@ -2456,24 +2456,30 @@ fn a_new_document_in_codex_or_gemini_opens_its_one_rules_file_once_there_is_one(
     let count = room.session.state.docs.len();
 
     let codex = sub_of(&room, "Codex");
-    let opened = doc_made(&mut room.session, Some(codex), None).unwrap();
+    let opened = doc_made(&mut room.session, Some(codex), None, true).unwrap();
     assert_eq!(opened.id, codex_rule);
     assert_eq!(room.session.state.docs.len(), count, "nothing new is made");
 
     let gemini = sub_of(&room, "Gemini");
-    let first = doc_made(&mut room.session, Some(gemini), None).unwrap();
+    let first = doc_made(&mut room.session, Some(gemini), None, true).unwrap();
     let body = tisty_core::docs::read(&room.session.paths.docs(), &first.id).unwrap();
     assert_eq!(
         Card::of(&body).unwrap().address(),
         "gemini/rule/tisty-rules.md"
     );
-    let again = doc_made(&mut room.session, Some(gemini), None).unwrap();
+    let again = doc_made(&mut room.session, Some(gemini), None, true).unwrap();
     assert_eq!(again.id, first.id);
 
     let claude = sub_of(&room, "Claude");
-    let one = doc_made(&mut room.session, Some(claude), None).unwrap();
-    let two = doc_made(&mut room.session, Some(claude), None).unwrap();
+    let one = doc_made(&mut room.session, Some(claude), None, true).unwrap();
+    let two = doc_made(&mut room.session, Some(claude), None, true).unwrap();
     assert_ne!(one.id, two.id, "Claude reads a whole folder of rules");
+
+    let written_over = doc_made(&mut room.session, Some(gemini), None, false).unwrap();
+    assert_ne!(
+        written_over.id, first.id,
+        "a caller that writes its own words gets a new one"
+    );
 }
 
 #[test]

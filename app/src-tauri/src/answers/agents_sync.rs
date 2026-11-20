@@ -279,13 +279,13 @@ fn proposed_in(state: &tisty_core::State, gate: &Gate) -> usize {
 
 // Global rules that took one name on two computers before they synced each get one, so both reach the agents.
 fn twins_named(session: &mut Session, here: &str) -> Answer<()> {
-    let docs: Vec<(tisty_core::model::DocId, String, String)> = bodies(session)
+    let docs: Vec<(tisty_core::model::DocId, String, String, bool)> = bodies(session)
         .into_iter()
         .filter_map(|(file, body)| {
             let kept = session.state.docs.values().find(|one| one.file == file)?;
             let agreed =
                 kept.agreed.as_deref() == Some(tisty_core::docs::print_of_text(&body).as_str());
-            agreed.then_some((kept.id, file, body))
+            Some((kept.id, file, body, agreed))
         })
         .collect();
     for (file, body) in agents::renamed_twins(&docs) {

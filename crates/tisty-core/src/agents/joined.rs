@@ -51,6 +51,7 @@ fn all_by_person(state: &State, root: FolderId) -> bool {
 
 // What a join lifted out, or what landed in a folder a join had already taken, goes to the folder of its name that stayed.
 fn gathered(state: &State, keep: FolderId) -> Vec<Op> {
+    let twins = derived_twins(state, keep);
     let mut late: Vec<_> = state
         .docs
         .values()
@@ -60,7 +61,7 @@ fn gathered(state: &State, keep: FolderId) -> Vec<Op> {
                 .as_ref()
                 .is_some_and(|who| !state.assistants.contains(who))
         })
-        .filter_map(|one| left_behind(state, keep, one).map(|into| (one.id, into)))
+        .filter_map(|one| left_behind(state, keep, &twins, one).map(|into| (one.id, into)))
         .collect();
     late.sort_unstable();
     late.into_iter()
@@ -71,7 +72,44 @@ fn gathered(state: &State, keep: FolderId) -> Vec<Op> {
         .collect()
 }
 
-fn left_behind(state: &State, keep: FolderId, kept: &crate::model::Kept) -> Option<FolderId> {
+fn dangling(state: &State, at: Option<FolderId>) -> Option<FolderId> {
+    at.filter(|at| !state.folders.contains_key(at) && state.tombstones.contains(at))
+}
+
+// Worked out once a pass, and only while some document points at a folder that is gone.
+fn derived_twins(state: &State, keep: FolderId) -> BTreeMap<FolderId, FolderId> {
+    if !state
+        .docs
+        .values()
+        .any(|one| dangling(state, one.folder).is_some())
+    {
+        return BTreeMap::new();
+    }
+    let children: Vec<_> = state
+        .folders
+        .values()
+        .filter(|one| one.parent == Some(keep) && !one.archived)
+        .collect();
+    state
+        .tombstones
+        .iter()
+        .flat_map(|gone| {
+            children
+                .iter()
+                .map(move |one| (super::subs::sub_id(*gone, &one.name), one.id))
+        })
+        .collect()
+}
+
+fn left_behind(
+    state: &State,
+    keep: FolderId,
+    twins: &BTreeMap<FolderId, FolderId>,
+    kept: &crate::model::Kept,
+) -> Option<FolderId> {
+    if let Some(at) = dangling(state, kept.folder) {
+        return twins.get(&at).copied();
+    }
     match (kept.folder, &kept.lifted_from) {
         (None, Some((root, names))) if *root != keep && state.tombstones.contains(root) => {
             let name = names.get(1);
@@ -79,19 +117,6 @@ fn left_behind(state: &State, keep: FolderId, kept: &crate::model::Kept) -> Opti
                 name.and_then(|name| live_child(state, keep, name))
                     .unwrap_or(keep),
             )
-        }
-        (Some(at), _) if !state.folders.contains_key(&at) && state.tombstones.contains(&at) => {
-            state
-                .folders
-                .values()
-                .filter(|one| one.parent == Some(keep) && !one.archived)
-                .find(|one| {
-                    state
-                        .tombstones
-                        .iter()
-                        .any(|gone| super::subs::sub_id(*gone, &one.name) == at)
-                })
-                .map(|one| one.id)
         }
         _ => None,
     }
