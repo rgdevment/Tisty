@@ -130,13 +130,27 @@ describe("the legend over the network", () => {
     expect(button().getAttribute("aria-expanded")).toBe("false");
   });
 
-  it("names the amber curve and what it means", () => {
+  it("names the amber curve and the agents' files, and says what they mean to the pointer and to a screen reader", () => {
     localStorage.setItem("tisty.brainstyLegend", "open");
-    render(<Legend network={{ ...network, alike: [[0, 2, 700, "bread"]] }} groups={groups} />);
-
-    expect(screen.getByText(t("brainstyAlike")).closest("p")?.getAttribute("title")).toBe(
-      t("brainstyAlikeWhat"),
+    render(
+      <Legend
+        network={{
+          ...network,
+          nodes: [...network.nodes, { id: "CLAUDE.md", kind: "doc", title: "CLAUDE", group: "a1" }],
+          alike: [[0, 2, 700, "bread"]],
+        }}
+        groups={[...groups, { id: "a1", name: "AGENTS", agents: true }]}
+      />,
     );
+
+    for (const [label, what] of [
+      [t("brainstyAlike"), t("brainstyAlikeWhat")],
+      [t("brainstyLegendAgents"), t("brainstyLegendAgentsWhat")],
+    ]) {
+      const row = screen.getByText(label).closest("p");
+      expect(row?.getAttribute("title")).toBe(what);
+      expect(row?.textContent).toContain(what);
+    }
   });
 
   it("shows the first colours and the rest on asking", async () => {

@@ -82,9 +82,19 @@ export function globed(source: string): string {
     .join("v_opacity = a_opacity * globeFade();");
 }
 
-export const globeShaders = {
-  name: "tisty-globe-shaders",
-  transform(code: string, id: string) {
-    return SIGMA_FACTORY.test(id.split("?")[0]) ? { code: globed(code), map: null } : null;
-  },
-};
+// A build that never met sigma's factory would ship a flat network without a word, so it fails instead.
+export function globeShaders({ mustSew = false }: { mustSew?: boolean } = {}) {
+  let sewn = false;
+  return {
+    name: "tisty-globe-shaders",
+    transform(code: string, id: string) {
+      if (!SIGMA_FACTORY.test(id.split("?")[0])) return null;
+      sewn = true;
+      return { code: globed(code), map: null };
+    },
+    buildEnd(error?: Error) {
+      if (mustSew && !sewn && !error)
+        throw new Error("sigma's factory never reached the bundle to be sewn: see globeShader.ts");
+    },
+  };
+}

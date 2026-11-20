@@ -3,20 +3,33 @@ import type { Network } from "../brainsty";
 import type { Drawing } from "../ui/brainsty/drawing";
 import { glyphOf, iconSource, iconsOn } from "../ui/brainsty/icons";
 
+const drawings = vi.hoisted(() => ({ missing: "", asked: [] as string[] }));
+
+vi.mock("tisty-editor/read", async (real) => {
+  const read = await real<typeof import("tisty-editor/read")>();
+  return {
+    ...read,
+    markup: (name: string) => {
+      drawings.asked.push(name);
+      return name === drawings.missing ? null : read.markup(name);
+    },
+  };
+});
+
 const network: Network = {
   nodes: [
     { id: "a.md", kind: "doc", title: "A" },
     { id: "01A", kind: "task", title: "bread", state: "open" },
     { id: "01B", kind: "task", title: "milk", state: "done" },
     { id: "rina.jpg", kind: "file", title: "rina" },
-    { id: "list:l1", kind: "list", title: "Casa", group: "l1" },
+    { id: "#casa", kind: "tag", title: "casa" },
   ],
   edges: [],
 };
 
 describe("the icon of each node up close", () => {
   it("says what the node is, with a done task ticked", () => {
-    expect(network.nodes.map(glyphOf)).toEqual(["page", "checkbox", "check-mark", "clip", "list"]);
+    expect(network.nodes.map(glyphOf)).toEqual(["page", "checkbox", "check-mark", "clip", "hash"]);
   });
 
   it("is drawn from Tisty's own glyphs in the colour asked", () => {
@@ -40,6 +53,8 @@ describe("the icon layer", () => {
   };
 
   afterEach(() => {
+    drawings.missing = "";
+    drawings.asked.length = 0;
     tint.of = () => "#2266ff";
     vi.restoreAllMocks();
     painted.length = 0;
@@ -77,6 +92,17 @@ describe("the icon layer", () => {
       },
     };
   };
+
+  it("asks once for a glyph that has no drawing, and paints the rest", () => {
+    drawings.missing = "hash";
+    const { frame } = drawn(1);
+    frame();
+    frame();
+    frame();
+
+    expect(drawings.asked.filter((one) => one === "hash")).toHaveLength(1);
+    expect(painted).toHaveLength(3 * 3);
+  });
 
   it("paints nothing from afar", () => {
     const { frame } = drawn(0.3);

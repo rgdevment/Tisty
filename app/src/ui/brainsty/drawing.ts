@@ -6,7 +6,6 @@ import {
   layerPlain,
   pathLine,
   sdfCircle,
-  sdfDiamond,
   sdfSquare,
 } from "sigma/rendering";
 import { type Network, TIES } from "../../brainsty";
@@ -152,7 +151,7 @@ export function drawNetwork(
     customGraphState: { zoom: 0 },
     customNodeState: { isPicked: false },
     primitives: {
-      nodes: { shapes: [sdfCircle(), sdfSquare(), sdfDiamond()], layers: [layerFill()] },
+      nodes: { shapes: [sdfCircle(), sdfSquare()], layers: [layerFill()] },
       edges: {
         paths: [pathLine()],
         variables: {

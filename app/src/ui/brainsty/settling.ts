@@ -12,14 +12,13 @@ export interface Asked extends Spots {
   weights?: Float32Array;
 }
 
-// What a person or an agent wrote pulls hardest; a tag barely, and folders, lists and guesses stay out of the layout.
+// What a person or an agent wrote pulls hardest; a tag barely, and guesses stay out of the layout.
 export const PULL: Readonly<Record<Tie, number>> = {
   cite: 3,
   mention: 3,
   structure: 3,
   uses: 1.5,
   tag: 0.3,
-  member: 0,
 };
 
 export function weightsOf(edges: readonly [number, number, number][]): Float32Array {

@@ -1,7 +1,7 @@
 import { type Network, TIES } from "../../brainsty";
 import type { Drawing } from "./drawing";
 import { PITCH_AT_MOST, type Turn } from "./globe";
-import { isGroup, laidEdges } from "./grouping";
+import type { Motions } from "./Legend";
 import { bigOnes, degreesOf, rgba } from "./looks";
 import { fitted, LAID } from "./overlays";
 import { PULL } from "./settling";
@@ -25,6 +25,8 @@ const TURN_SECONDS = 60;
 const FLASH_SECONDS = 0.6;
 const LONGEST_STEP = 0.1;
 const SHAPE_REACH_PX = 32;
+const SHAPE_EVERY_MS = 250;
+const SHAPE_MOVED_MS = 60;
 const MEASURED_EVERY = 30;
 
 export interface Living {
@@ -37,6 +39,8 @@ export interface Living {
   sift: (hidden: readonly boolean[]) => void;
   stop: () => void;
 }
+
+const BOTH: Motions = { travel: true, spin: true };
 
 export interface Clock {
   now: () => number;
@@ -53,7 +57,7 @@ const CLOCK: Clock = {
 function neighboursOf(network: Network): { near: number[][]; pull: Map<number, number>[] } {
   const near = network.nodes.map((): number[] => []);
   const pull = network.nodes.map(() => new Map<number, number>());
-  for (const [from, to, code] of laidEdges(network)) {
+  for (const [from, to, code] of network.edges) {
     const weight = PULL[TIES[code] ?? "tag"];
     for (const [one, other] of [
       [from, to],
@@ -71,13 +75,13 @@ export function livingOn(
   drawing: Drawing,
   network: Network,
   colourOf: (node: number) => string,
-  { clock = CLOCK }: { clock?: Clock } = {},
+  { clock = CLOCK, motions = BOTH }: { clock?: Clock; motions?: Motions } = {},
 ): Living {
   const canvas = container.ownerDocument.createElement("canvas");
   Object.assign(canvas.style, LAID);
   container.append(canvas);
   const { near, pull } = neighboursOf(network);
-  const big = bigOnes(degreesOf(network.nodes.length, laidEdges(network)));
+  const big = bigOnes(degreesOf(network.nodes.length, network.edges));
   let hidden: readonly boolean[] = [];
   const onScreen = (node: number): boolean => {
     const at = drawing.nodeOnScreen(node);
@@ -89,7 +93,8 @@ export function livingOn(
       at[1] <= container.clientHeight
     );
   };
-  const walkable = (node: number) => !hidden[node] && near[node].length > 0;
+  const walkable = (node: number) => !hidden[node] && near[node].some((one) => !hidden[one]);
+  let canWalk = network.nodes.some((_, node) => walkable(node));
   const world: World = {
     neighbours: (node) => near[node].filter((one) => !hidden[one]),
     pull: (from, to) => pull[from].get(to) ?? 1,
@@ -119,12 +124,14 @@ export function livingOn(
   let rendering = 0;
   let held = false;
   let pointer: [number, number] | null = null;
-  let travelling = true;
-  let spinning = true;
+  let travelling = motions.travel;
+  let spinning = motions.spin;
+  let unshown = spinning;
+  let busy = false;
   let counted = 0;
   let countedFrom = 0;
   let fps = 0;
-  const pace = paceFor(network.nodes.filter((one) => !isGroup(one.kind)).length);
+  const pace = paceFor(network.nodes.length);
 
   const painted = () => {
     const brush = canvas.getContext("2d");
@@ -196,17 +203,19 @@ export function livingOn(
   const unheard = drawing.beforeFrame(() => {
     if (frame !== 0) rendering = clock.now();
   });
+  let shape = false;
+  let shapeStale = true;
+  let shapeAt = Number.NEGATIVE_INFINITY;
   const moved = (event: PointerEvent) => {
     const box = container.getBoundingClientRect();
     pointer = [event.clientX - box.left, event.clientY - box.top];
+    shapeStale = true;
   };
   const leave = () => {
     pointer = null;
   };
   // The globe rests only under the pointer on the network itself, so the empty corners of the panel let it turn.
-  const onShape = (): boolean => {
-    if (!pointer) return false;
-    const [px, py] = pointer;
+  const underPointer = ([px, py]: [number, number]): boolean => {
     for (let node = 0; node < network.nodes.length; node++) {
       if (hidden[node]) continue;
       const at = drawing.nodeOnScreen(node);
@@ -215,19 +224,32 @@ export function livingOn(
     }
     return false;
   };
+  // Every node is asked, so the pointer asks again only now and then, moving or not, as the shape turns under it.
+  const onShape = (now: number): boolean => {
+    if (!pointer) return false;
+    const since = now - shapeAt;
+    if ((shapeStale && since >= SHAPE_MOVED_MS) || since >= SHAPE_EVERY_MS) {
+      shape = underPointer(pointer);
+      shapeStale = false;
+      shapeAt = now;
+    }
+    return shape;
+  };
   container.addEventListener("pointermove", moved);
   container.addEventListener("pointerleave", leave);
   // Brought close, the globe stays put until the view is back on the whole network.
-  const still = () => held || drawing.zoom() > 0 || onShape();
+  const still = (now: number) => held || drawing.zoom() > 0 || onShape(now);
 
   const tick = (at: number) => {
     const started = clock.now();
     const seconds = Math.min(LONGEST_STEP, Math.max(0, (at - last) / 1000));
     last = at;
-    if (spinning && !still())
+    if (spinning && !still(started)) {
       turn = { ...turn, yaw: turn.yaw + (seconds * 2 * Math.PI) / TURN_SECONDS };
+      unshown = true;
+    }
     const fresh: Flash[] = [];
-    if (travelling && travellers.length === 0)
+    if (travelling && canWalk && travellers.length === 0)
       travellers = Array.from({ length: pace.travellers }, () => setOut(world.start()));
     if (travelling)
       travellers = travellers.map((one) => stepped(world, one, seconds, pace.hop, fresh));
@@ -237,17 +259,23 @@ export function livingOn(
         .filter((one) => one.age < FLASH_SECONDS),
       ...fresh,
     ];
-    if (spinning) {
+    const moving = travellers.length > 0 || flashes.length > 0;
+    // A globe at rest is left as drawn: only what travels is painted again, and nothing when nothing does.
+    if (spinning && unshown) {
+      unshown = false;
       drawing.turn(turn);
       ticked = clock.now() - started;
-    } else {
+    } else if (moving || busy) {
       painted();
       noted(clock.now() - started);
     }
+    busy = moving;
     frame = clock.frame(tick);
   };
   const running = () =>
-    laid && (travelling || spinning) && container.ownerDocument.visibilityState !== "hidden";
+    laid &&
+    ((travelling && canWalk) || spinning) &&
+    container.ownerDocument.visibilityState !== "hidden";
   const run = () => {
     if (frame !== 0 || !running()) return;
     last = clock.now();
@@ -265,6 +293,7 @@ export function livingOn(
   return {
     ready: () => {
       laid = true;
+      unshown = spinning;
       seen();
     },
     travel: (on) => {
@@ -278,6 +307,7 @@ export function livingOn(
     },
     spin: (on) => {
       spinning = on;
+      unshown = on;
       if (!on) {
         turn = { yaw: 0, pitch: 0 };
         drawing.turn(null);
@@ -298,7 +328,16 @@ export function livingOn(
     },
     sift: (next) => {
       hidden = next;
-      travellers = travellers.map((one) => (hidden[one.to] ? setOut(world.start()) : one));
+      canWalk = network.nodes.some((_, node) => walkable(node));
+      shapeStale = true;
+      if (canWalk)
+        travellers = travellers.map((one) => (hidden[one.to] ? setOut(world.start()) : one));
+      else {
+        travellers = [];
+        flashes = [];
+        painted();
+      }
+      seen();
     },
     stop: () => {
       halt();

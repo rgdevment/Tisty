@@ -1,6 +1,6 @@
 import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, onTestFinished, vi } from "vitest";
 import type { Group, Network, Neuron } from "../brainsty";
 import { adopt, t } from "../locales";
 import BrainstyView from "../ui/BrainstyView";
@@ -31,6 +31,7 @@ vi.mock("@tauri-apps/plugin-clipboard-manager", () => ({
 const ways = vi.hoisted(() => ({ opened: [] as unknown[], left: 0 }));
 
 const sigma = vi.hoisted(() => ({
+  zoom: 0.5,
   turns: [] as unknown[],
   placed: 0,
   rethemed: 0,
@@ -59,7 +60,7 @@ vi.mock("../ui/brainsty/drawing", () => ({
   drawNetwork: () => ({
     place: () => sigma.placed++,
     retheme: () => sigma.rethemed++,
-    zoom: () => 0.5,
+    zoom: () => sigma.zoom,
     toScreen: (point: [number, number]) => point,
     toGraph: (point: [number, number]) => point,
     nodeOnScreen: () => undefined,
@@ -174,6 +175,7 @@ beforeEach(() => {
   ways.opened = [];
   ways.left = 0;
   Object.assign(sigma, {
+    zoom: 0.5,
     placed: 0,
     rethemed: 0,
     killed: 0,
@@ -513,6 +515,95 @@ describe("Brainsty in the content panel", () => {
     await user.click(screen.getByRole("switch", { name: t("brainstyTravellers") }));
     expect(localStorage.getItem("tisty.brainstySpin")).toBeNull();
     expect(localStorage.getItem("tisty.brainstyTravellers")).toBeNull();
+  });
+
+  it("is drawn and laid out once while the folders and lists change, and takes a new colour as it is", async () => {
+    const view = (groups: Group[]) => (
+      <BrainstyView near="01A" groups={groups} onOpen={() => {}} onLeave={() => {}} />
+    );
+    const { rerender } = render(view([PROJECTS]));
+    await waitFor(() => expect(sigma.hands).not.toBeNull());
+    const rethemed = sigma.rethemed;
+
+    rerender(view([{ ...PROJECTS }]));
+    expect(sigma.rethemed).toBe(rethemed);
+    rerender(
+      view([
+        { ...PROJECTS, color: "amber" },
+        { id: "l1", name: "Casa" },
+      ]),
+    );
+
+    expect(sigma.rethemed).toBe(rethemed + 1);
+    expect(sigma.killed).toBe(0);
+    expect(sigma.stopped).toBe(0);
+  });
+
+  it("keeps the travellers and the turning off when the view is drawn anew", async () => {
+    onTestFinished(() => localStorage.clear());
+    localStorage.setItem("tisty.brainstyTravellers", "off");
+    localStorage.setItem("tisty.brainstySpin", "off");
+    sigma.zoom = 0;
+    ipc.network = () => Promise.resolve({ ...small });
+    const view = (near: string) => (
+      <BrainstyView near={near} groups={[PROJECTS]} onOpen={() => {}} onLeave={() => {}} />
+    );
+    const laid = () =>
+      sigma.step?.({
+        x: new Float32Array(3),
+        y: new Float32Array(3),
+        done: true,
+        iterations: 20,
+        ms: 12,
+      });
+    const frames = async () => {
+      for (let n = 0; n < 5; n++) await new Promise((frame) => requestAnimationFrame(frame));
+    };
+    const { rerender } = render(view("01A"));
+    await waitFor(() => expect(sigma.hands).not.toBeNull());
+    laid();
+    await frames();
+
+    rerender(view("notes.md"));
+    await waitFor(() => expect(sigma.killed).toBe(1));
+    laid();
+    await frames();
+
+    expect(sigma.turns.filter((one) => one !== null)).toEqual([]);
+  });
+
+  it("leaves the agents' files out until asked, and remembers it on this computer", async () => {
+    onTestFinished(() => localStorage.clear());
+    ipc.network = () =>
+      Promise.resolve({
+        ...small,
+        nodes: [...small.nodes, { id: "CLAUDE.md", kind: "doc", title: "CLAUDE", group: "a1" }],
+      });
+    const theirs: Group[] = [PROJECTS, { id: "a1", name: "AGENTS", agents: true }];
+    const user = userEvent.setup();
+    const view = <BrainstyView near="01A" groups={theirs} onOpen={() => {}} onLeave={() => {}} />;
+    const shown = render(view);
+    await waitFor(() => expect(sigma.hands).not.toBeNull());
+
+    expect(last(sigma.hidden)).toEqual([false, false, false, true]);
+    await user.click(screen.getByRole("button", { name: t("brainstyFilters") }));
+    const agents = screen.getByRole("button", { name: t("brainstyShowAgents") });
+    expect(agents.getAttribute("aria-pressed")).toBe("false");
+    await user.click(agents);
+    expect(last(sigma.hidden)).toEqual([false, false, false, false]);
+    expect(localStorage.getItem("tisty.brainstyAgents")).toBe("shown");
+    shown.unmount();
+
+    sigma.hidden = [];
+    render(view);
+    await waitFor(() => expect(sigma.hidden.length).toBeGreaterThan(0));
+    expect(last(sigma.hidden)).toEqual([false, false, false, false]);
+  });
+
+  it("offers no AGENTS filter when the network holds none of their files", async () => {
+    const { user } = await drawnNetwork();
+    await user.click(screen.getByRole("button", { name: t("brainstyFilters") }));
+    expect(screen.queryByRole("button", { name: t("brainstyShowAgents") })).toBeNull();
   });
 
   it("starts with travellers and turning on, even when the computer asks for less motion", async () => {

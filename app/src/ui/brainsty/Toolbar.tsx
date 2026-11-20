@@ -15,6 +15,12 @@ interface Props {
   readonly onSift: (sift: Sift) => void;
   readonly tags: readonly number[];
   readonly finder?: Ref<HTMLInputElement>;
+  readonly agents?: Agents;
+}
+
+export interface Agents {
+  readonly shown: boolean;
+  readonly onShow: (shown: boolean) => void;
 }
 
 const chip = (on: boolean) =>
@@ -39,6 +45,7 @@ export default function Toolbar({
   onSift,
   tags,
   finder,
+  agents,
 }: Props) {
   const [open, setOpen] = useState(false);
   const asked = query.trim() !== "";
@@ -97,7 +104,9 @@ export default function Toolbar({
           })}
         </ul>
       )}
-      {open && <Filters network={network} sift={sift} onSift={onSift} tags={tags} />}
+      {open && (
+        <Filters network={network} sift={sift} onSift={onSift} tags={tags} agents={agents} />
+      )}
     </div>
   );
 }
@@ -107,7 +116,8 @@ function Filters({
   sift,
   onSift,
   tags,
-}: Pick<Props, "network" | "sift" | "onSift" | "tags">) {
+  agents,
+}: Pick<Props, "network" | "sift" | "onSift" | "tags" | "agents">) {
   return (
     <fieldset className="pointer-events-auto flex flex-col gap-2.5 rounded-[10px] border border-hair bg-bg p-3 shadow-lift">
       <legend className="sr-only">{t("brainstyFilters")}</legend>
@@ -132,6 +142,17 @@ function Filters({
         >
           {t("brainstyAlike")}
         </button>
+        {agents && (
+          <button
+            type="button"
+            aria-pressed={agents.shown}
+            title={t("brainstyLegendAgentsWhat")}
+            onClick={() => agents.onShow(!agents.shown)}
+            className={chip(agents.shown)}
+          >
+            {t("brainstyShowAgents")}
+          </button>
+        )}
       </Row>
       <Row>
         {STANDINGS.map((standing: Standing) => (
