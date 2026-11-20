@@ -2,7 +2,6 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import type { Network } from "../brainsty";
 import type { Drawing } from "../ui/brainsty/drawing";
 import { glyphOf, iconSource, iconsOn } from "../ui/brainsty/icons";
-import { paletteFrom } from "../ui/brainsty/looks";
 
 const network: Network = {
   nodes: [
@@ -14,8 +13,6 @@ const network: Network = {
   ],
   edges: [],
 };
-
-const palette = paletteFrom((name) => (name === "--tisty-bg" ? "#ffffff" : "#000000"));
 
 describe("the icon of each node up close", () => {
   it("says what the node is, with a done task ticked", () => {
@@ -30,6 +27,8 @@ describe("the icon of each node up close", () => {
   });
 });
 
+const tint = { of: (_: number): string => "#2266ff" };
+
 describe("the icon layer", () => {
   const painted: { image: string; x: number; y: number; alpha: number }[] = [];
   const brush = {
@@ -41,6 +40,7 @@ describe("the icon layer", () => {
   };
 
   afterEach(() => {
+    tint.of = () => "#2266ff";
     vi.restoreAllMocks();
     painted.length = 0;
   });
@@ -62,7 +62,13 @@ describe("the icon layer", () => {
     const box = document.createElement("div");
     Object.defineProperty(box, "clientWidth", { value: 400 });
     Object.defineProperty(box, "clientHeight", { value: 300 });
-    const icons = iconsOn(box, drawing, network, palette, (id) => id === "rina.jpg");
+    const icons = iconsOn(
+      box,
+      drawing,
+      network,
+      (node) => tint.of(node),
+      (id) => id === "rina.jpg",
+    );
     return {
       box,
       icons,
@@ -95,10 +101,19 @@ describe("the icon layer", () => {
     expect(box.querySelector("canvas")).toBeNull();
   });
 
-  it("draws again in the new theme's colour", () => {
+  it("draws each node as its icon in the node's own colour, and again in a new theme's", () => {
+    tint.of = (node) => (node === 0 ? "#11aa99" : "#2266ff");
     const { icons } = drawn(1);
-    icons.retheme(paletteFrom((name) => (name === "--tisty-bg" ? "#101010" : "#000000")));
     icons.light(null);
-    expect(painted.some((one) => decodeURIComponent(one.image).includes("#101010"))).toBe(true);
+    const colours = painted.map(
+      (one) => /stroke="([^"]+)"/.exec(decodeURIComponent(one.image))?.[1],
+    );
+    expect(colours[0]).toBe("#11aa99");
+    expect(colours[1]).toBe("#2266ff");
+
+    tint.of = () => "#101010";
+    painted.length = 0;
+    icons.retheme();
+    expect(painted.every((one) => decodeURIComponent(one.image).includes("#101010"))).toBe(true);
   });
 });

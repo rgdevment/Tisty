@@ -1,14 +1,13 @@
 import { markup } from "tisty-editor/read";
 import type { Network, Neuron, NeuronKind } from "../../brainsty";
 import type { Drawing } from "./drawing";
-import type { Palette } from "./looks";
 import { fitted, LAID } from "./overlays";
 import { ICON_ROOM, iconsShown, thumbsShown } from "./zoom";
 
 export interface Icons {
   sift: (hidden: readonly boolean[]) => void;
   light: (nodes: ReadonlySet<number> | null) => void;
-  retheme: (palette: Palette) => void;
+  retheme: () => void;
   stop: () => void;
 }
 
@@ -40,14 +39,14 @@ export function iconsOn(
   container: HTMLElement,
   drawing: Drawing,
   network: Network,
-  palette: Palette,
+  colourOf: (node: number) => string,
   shows: (id: string) => boolean,
 ): Icons {
   const canvas = container.ownerDocument.createElement("canvas");
   Object.assign(canvas.style, LAID);
   container.append(canvas);
   const glyphs = network.nodes.map(glyphOf);
-  let images = new Map<string, HTMLImageElement>();
+  let images = new Map<string, HTMLImageElement | undefined>();
   let hidden: readonly boolean[] = [];
   let lit: ReadonlySet<number> | null = null;
 
@@ -59,11 +58,11 @@ export function iconsOn(
     const shown = iconsShown(drawing.zoom());
     if (shown === 0) return;
     const ratio = canvas.width / Math.max(container.clientWidth, 1);
-    const side = ICON_ROOM * 1.25 * ratio;
+    const side = ICON_ROOM * 2 * ratio;
     const pictures = thumbsShown(drawing.zoom());
     network.nodes.forEach((one, node) => {
       if (hidden[node] || (pictures && one.kind === "file" && shows(one.id))) return;
-      const image = images.get(glyphs[node]);
+      const image = imageOf(glyphs[node], colourOf(node));
       const at = drawing.nodeOnScreen(node);
       if (!image?.complete || !at) return;
       const [x, y] = [at[0] * ratio, at[1] * ratio];
@@ -74,18 +73,19 @@ export function iconsOn(
     brush.globalAlpha = 1;
   };
 
-  const drawnIn = (colour: string) => {
-    images = new Map();
-    for (const name of new Set(glyphs)) {
-      const source = iconSource(name, colour);
-      if (!source) continue;
-      const image = new Image();
-      image.onload = painted;
-      image.src = source;
-      images.set(name, image);
-    }
-  };
-  drawnIn(palette.bg);
+  // Each glyph in each colour is drawn once and kept, so a frame only stamps images.
+  function imageOf(glyph: string, colour: string): HTMLImageElement | undefined {
+    const key = `${glyph}|${colour}`;
+    const kept = images.get(key);
+    if (kept) return kept;
+    const source = iconSource(glyph, colour);
+    if (!source) return undefined;
+    const image = new Image();
+    image.onload = painted;
+    image.src = source;
+    images.set(key, image);
+    return image;
+  }
   const unhook = drawing.onFrame(painted);
 
   return {
@@ -97,7 +97,10 @@ export function iconsOn(
       lit = nodes;
       painted();
     },
-    retheme: (next) => drawnIn(next.bg),
+    retheme: () => {
+      images = new Map();
+      painted();
+    },
     stop: () => {
       unhook();
       canvas.remove();
