@@ -165,10 +165,10 @@ parte.
 - **Rápido y nativo** — un núcleo en Rust dentro de una ventana Tauri: arranca
   rápido, ocupa poco y parece parte de los dos sistemas.
 
-**Lo que viene.** Estoy trabajando en Brainsty, el cerebro de Tisty: todo lo que
-guardas, con lo que lo une, dibujado como una sola red — un mapa de lejos para
-ti, y de cerca, para tu agente, un índice que le dice dónde mirar sin leerlo
-todo. Todavía no tiene fecha.
+**Brainsty, el cerebro de Tisty.** Todo lo que guardas, con lo que lo une,
+dibujado como una sola red: un mapa de lejos para ti y, para tu agente, un
+índice que le dice dónde mirar sin leerlo todo. Además muestra, aparte, lo que
+Tisty adivina que se parece, sin IA. [Más abajo](#brainsty-todo-unido).
 
 > Uso Tisty todos los días en macOS y en Windows. Si algo no encaja,
 > [abre un issue](https://github.com/rgdevment/Tisty/issues) — este proyecto
@@ -234,7 +234,7 @@ pasa en cambio cuando la memoria vive en Tisty.
 Tisty guarda dos clases de cosas, y las mismas dos te sirven a ti y a tu agente.
 Lo que vas a hacer es una tarea. Lo que vas a volver a leer es un documento.
 Una idea, un pensamiento atrapado al vuelo antes de saber cuál de las dos es,
-espera en la Lluvia de ideas.
+espera en Ideas.
 
 ### Documentos: lo que sabes, uno por tema
 
@@ -254,8 +254,8 @@ espera en la Lluvia de ideas.
   en el Diario con `Tab`, y las ideas tienen su propio atajo: hasta 140
   caracteres cada una, con fecha, sin abrir la ventana.
 - **Notas adhesivas que siguen siendo Markdown** — esperan como notas de
-  colores en la Lluvia de ideas, un documento fijo arriba de la biblioteca, y
-  las reordenas arrastrándolas.
+  colores en Ideas, un documento fijo arriba de la biblioteca, con una
+  ampolleta, y las reordenas arrastrándolas.
 - **Las ordenas después** — cada idea se convierte en tarea o va al documento
   que le corresponde, y la biblioteca cuenta las que siguen esperando.
 - **Una idea en cualquier documento** — la misma nota adhesiva, con su fecha y
@@ -265,7 +265,7 @@ espera en la Lluvia de ideas.
   te quedas; pídele que las ordene y las agrupa, convierte una en tarea o la
   anexa a su documento, y a las viejas solo las marca, para que tú las borres.
 
-![Un pensamiento rápido, para no olvidarlo: las ideas del momento como notas adhesivas de colores en la Lluvia de ideas, con fecha y escritas a mano, para ordenarlas después en una tarea o un documento](assets/screens/readme/es-03-ideas.webp)
+![Un pensamiento rápido, para no olvidarlo: las ideas del momento como notas adhesivas de colores en Ideas, con fecha y escritas a mano, para ordenarlas después en una tarea o un documento](assets/screens/readme/es-03-ideas.webp)
 
 ### Diario: lo que pasó hoy
 
@@ -273,7 +273,7 @@ espera en la Lluvia de ideas.
   día, en el idioma de la app; un día en el que no escribiste nunca aparece.
 - **Se escribe desde cualquier parte** — el cuadro de arriba, «¿Qué pasó hoy?»,
   o el tercer modo de la captura rápida, **Diario**, a dos `Tab` de una tarea,
-  sin abrir la ventana; al anexar una idea de la Lluvia de ideas, **Diario de
+  sin abrir la ventana; al anexar una idea desde Ideas, **Diario de
   hoy** es la primera opción.
 - **Solo tuyo** — ningún agente lo ve hasta que pulsas **Solo tú** y dice
   **Abierto a los agentes**; abierto, un agente lo lee y solo añade al final de
@@ -314,6 +314,40 @@ espera en la Lluvia de ideas.
   «¿cómo resolvimos esto?» con la línea que lo dice.
 
 ![Urgente no siempre es importante: cada tarea en su cuadrante de la matriz de Eisenhower, hacer, planificar, delegar o prescindible, y arriba cuántas faltan por clasificar](assets/screens/readme/es-04-prioridades.webp)
+
+### Brainsty: todo unido
+
+Lo que guardas ya estaba unido: un documento cita otro, una tarea nació de un
+acta, un libro tiene páginas. **Brainsty**, bajo las vistas de tareas en la
+barra lateral, lo dibuja todo como una sola red, en el panel de contenido,
+junto a tus listas.
+
+- **Unido mientras escribes** — `[[` enlaza un documento con otro, el menú `/`
+  cita una tarea como una tarjeta viva, y el panel junto a un documento dice
+  quién lo enlaza.
+- **Un mapa de lejos, el detalle de cerca** — los documentos como cuadrados, las
+  tareas como círculos del color de su lista, las carpetas y las listas como
+  nodos en medio de lo suyo, las etiquetas y los archivos; de cerca, cada
+  título, cada tipo de línea y el ícono de lo que es cada nodo. Una leyenda
+  plegada dice qué significa cada forma, cada color y cada línea.
+- **Una ficha, no el texto** — un clic en un nodo y su ficha dice qué es, sus
+  fechas, su estado, lo que apunta a él y su enlace para copiar; **Abrir** te
+  lleva ahí.
+- **Parecidos, sin IA** — una curva ámbar une lo que nadie unió pero Tisty
+  adivina que se parece, y dice por qué: dos palabras poco comunes en común, un
+  error de tipeo (*impresora ≈ imrpesora*), o una tarea en español y su gemela
+  en inglés (*pagar ≈ pay*), con una lista fija de palabras hecha por
+  lingüistas. Todo corre en tu equipo.
+- **Viva, si la quieres** — la red gira despacio como un globo mientras unos
+  viajeros recorren sus líneas; dos interruptores en la leyenda la dejan
+  quieta.
+- **La misma red para tu agente** — con una sola herramienta, `brain`, busca en
+  el archivo junto a lo demás, lee la ficha de un documento sin leerlo entero y
+  recibe los parecidos aparte, así que nunca los confunde con enlaces que
+  alguien escribió.
+
+[La red de Brainsty](https://www.tisty.app/es/ayuda/red-de-brainsty/), en la
+ayuda, lo cuenta todo.
 
 ## Un día con tu agente
 
@@ -531,7 +565,7 @@ documento, uno que termina.
 
 **¿Y una idea?** Una idea es un pensamiento atrapado al vuelo, antes de saber si
 es algo que hacer o algo que guardar: pocas palabras, 140 como máximo, con
-fecha, en la hoja Lluvia de ideas. Espera a que la ordenes: se vuelve tarea, va
+fecha, en la hoja Ideas. Espera a que la ordenes: se vuelve tarea, va
 al documento de su tema o se aparta. Una nota es otra cosa: la línea fechada en
 la bitácora de una tarea.
 
@@ -540,7 +574,7 @@ flowchart TD
   A[Aparece algo] --> B{¿Lo vas a hacer,<br/>o a volver a leer?}
   B -->|Hacerlo| T[Una tarea]
   B -->|Volver a leerlo| D[Un documento]
-  B -->|Todavía no lo sé| I[Una idea en la<br/>Lluvia de ideas]
+  B -->|Todavía no lo sé| I[Una idea en<br/>Ideas]
   I -->|Convertir en tarea| T
   I -->|Anexar a un documento| D
   T --> P[Su página: notas, pasos,<br/>archivos, grabaciones]
@@ -1031,7 +1065,7 @@ Hay unas pocas más, listadas en [PRIVACY.md](PRIVACY.md).
 enlace sin cuenta y cifrado de punta a punta, con sus propios términos y
 políticas en
 [su propio repositorio](https://github.com/rgdevment/Folio-by-Tisty). El panel
-de un documento muestra una fila **Compartido** —la Lluvia de ideas y tu Diario
+de un documento muestra una fila **Compartido** —Ideas y tu Diario
 nunca se comparten—, y al presionar **Compartir** Tisty lee
 un archivo pequeño y firmado para saber si Folio ya abrió y, mientras no abra,
 te lo dice, con un enlace a [tisty.cl](https://tisty.cl). Nada de
@@ -1248,7 +1282,7 @@ decir en qué orden se leen sus páginas, lo que escribe y mueve en el texto de 
 documento las líneas que las nombran y nada más, marcar un documento que ya
 cumplió su vida, para que lo borres, lo archives o le quites la marca, guardar
 una copia de un archivo que le señales —en una tarea o dentro de un documento,
-igual—, anotar ideas en tu Lluvia de ideas y ordenarlas contigo, y leer lo que
+igual—, anotar ideas en tu hoja Ideas y ordenarlas contigo, y leer lo que
 ya está. Tu Diario es la excepción: ningún asistente lo ve hasta que lo abres a
 los agentes desde el propio Diario, y abierto solo añade al final de hoy, con su
 firma, cuando se lo pides. Lo que no
@@ -1346,7 +1380,9 @@ formato.
 
 No, y no va a usarla. El lenguaje natural que convierte «llamar al banco a las
 3» en una tarea son reglas corriendo en tu equipo: sin modelo, sin petición,
-sin nube. Si ya usas un asistente tuyo, Tisty deja una puerta
+sin nube. Lo que Brainsty adivina que se parece sale de palabras en común, de
+un error de tipeo o de una lista fija de palabras español–inglés, nunca de un
+modelo. Si ya usas un asistente tuyo, Tisty deja una puerta
 [MCP](https://modelcontextprotocol.io): viene abierta, un clic la cierra, y
 mientras está cerrada todo lo que intente se rechaza.
 
