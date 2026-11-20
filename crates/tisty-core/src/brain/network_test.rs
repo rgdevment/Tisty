@@ -435,3 +435,84 @@ fn a_network_with_no_guess_says_nothing_of_them() {
     let said = serde_json::to_value(&network).unwrap();
     assert!(said.get("alike").is_none(), "{said}");
 }
+
+fn a_task_with_a_hung_page(
+    world: &World,
+    store: &mut crate::Store,
+    title: &str,
+) -> (ulid::Ulid, String) {
+    let first = task(store, title, &[]);
+    let (book, _) = doc(
+        world,
+        store,
+        &format!("# {title}\n\nIts page.\n"),
+        None,
+        Some(first),
+    );
+    let (_, hung) = doc(
+        world,
+        store,
+        "# Secret hung page\n\nWords.\n",
+        Some(book),
+        None,
+    );
+    (first, hung)
+}
+
+#[test]
+fn a_page_hung_under_a_hidden_task_s_page_is_neither_a_node_nor_a_card() {
+    let world = World::new();
+    let mut store = world.store();
+    let (secret, hung) = a_task_with_a_hung_page(&world, &mut store, "secret plan");
+    let citing = format!("# Notes\n\nSee [the page](tisty:doc/{hung}).\n");
+    let (_, notes) = doc(&world, &mut store, &citing, None, None);
+    store.append(crate::Op::TaskHide { id: secret }).unwrap();
+    let out = kept_out(&world.state());
+    let today = jiff::civil::date(2026, 11, 20);
+
+    let network = whole(&world, |id| !out.contains(id), &[]);
+
+    assert!(out.contains(&hung), "{out:?}");
+    assert!(named(&network).contains(&notes.as_str()));
+    assert!(
+        lines(&network)
+            .iter()
+            .all(|(from, to, _)| *from != hung && *to != hung),
+        "{:?}",
+        lines(&network)
+    );
+    let card = card_of(&world.paths, &notes, today, |id| !out.contains(id)).unwrap();
+    let told = serde_json::to_string(&card).unwrap();
+    assert!(
+        !told.contains(&hung) && !told.contains("Secret hung page"),
+        "{told}"
+    );
+    assert!(
+        !named(&network).contains(&hung.as_str()),
+        "{:?}",
+        named(&network)
+    );
+    assert!(
+        network
+            .nodes
+            .iter()
+            .all(|one| one.title != "Secret hung page")
+    );
+    assert_eq!(
+        card_of(&world.paths, &hung, today, |id| !out.contains(id)),
+        None
+    );
+}
+
+#[test]
+fn a_page_hung_under_a_task_the_person_let_go_stays_in_their_network() {
+    let world = World::new();
+    let mut store = world.store();
+    let (dropped, hung) = a_task_with_a_hung_page(&world, &mut store, "old plan");
+    store.append(crate::Op::TaskDrop { id: dropped }).unwrap();
+
+    let out = kept_out(&world.state());
+
+    assert!(!out.contains(&hung), "{out:?}");
+    assert!(named(&whole(&world, |id| !out.contains(id), &[])).contains(&hung.as_str()));
+}

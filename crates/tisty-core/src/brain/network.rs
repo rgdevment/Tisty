@@ -161,12 +161,17 @@ pub fn card_of(
 }
 
 pub fn kept_out(state: &State) -> HashSet<String> {
-    state
+    let tasks = state
         .tasks
         .values()
         .filter(|task| task.hidden)
-        .map(|task| task.id.to_string())
-        .collect()
+        .map(|task| task.id.to_string());
+    let words = state
+        .docs
+        .values()
+        .filter(|kept| !state.doc_shown(kept))
+        .map(|kept| kept.file.clone());
+    tasks.chain(words).collect()
 }
 
 impl Network {

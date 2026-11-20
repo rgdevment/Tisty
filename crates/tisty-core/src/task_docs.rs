@@ -489,15 +489,27 @@ impl State {
 
     /// A task's words, and any page hung under them, are seen while one of its turns is in sight.
     pub fn doc_in_sight(&self, kept: &crate::model::Kept) -> bool {
-        let words_in_sight = |kept: &crate::model::Kept| {
-            kept.task_of
-                .is_none_or(|first| self.some_turn(first, |task| !task.folded()))
+        self.words_seen(kept, |task| !task.folded())
+    }
+
+    // The person's own views still show what they let go; only what they hid leaves them.
+    pub fn doc_shown(&self, kept: &crate::model::Kept) -> bool {
+        self.words_seen(kept, |task| !task.hidden)
+    }
+
+    fn words_seen(
+        &self,
+        kept: &crate::model::Kept,
+        seen: impl Fn(&crate::model::Task) -> bool + Copy,
+    ) -> bool {
+        let own = |kept: &crate::model::Kept| {
+            kept.task_of.is_none_or(|first| self.some_turn(first, seen))
         };
-        words_in_sight(kept)
+        own(kept)
             && kept
                 .page_of
                 .and_then(|up| self.docs.get(&up))
-                .is_none_or(words_in_sight)
+                .is_none_or(own)
     }
 
     // Such a page would name its task to an agent through its place, as the shut diary would.
