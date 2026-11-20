@@ -209,7 +209,7 @@ You type fast and jot «La imrpesora nueva no imprime en color» (the new printe
 
 You jot «Pagar la cuenta del agua» and, another day, your agent jots in English «Pay the water bill». They are about the same thing and share not one word. Tisty ties them with a Spanish–English dictionary: «Tisty guesses: they share *pagar ≈ pay* and *agua ≈ water*». The same goes for «Arreglar la gotera del techo» and «Fix the roof leak»: *gotera ≈ leak* and *techo ≈ roof*.
 
-- **It is not AI.** It is a fixed list of 41,140 pairs of words, made by linguists: it comes from the [Open Multilingual Wordnet 2.0](https://github.com/omwn/omw-data), with the Multilingual Central Repository 3.0 for Spanish and Princeton WordNet 3.0 for English. It comes inside the installer, adds about 0.3 MB and is never looked up online. See [No AI](Privacy#no-ai).
+- **It is not AI.** It is a fixed list of 41,140 pairs of words, made by linguists: it comes from the [Open Multilingual Wordnet 2.0](https://github.com/omwn/omw-data), with the Multilingual Central Repository 3.0 for Spanish and Princeton WordNet 3.0 for English. It is a file of about 760 KB (777,917 bytes) that comes inside the installer; compressed there, it adds about 0.3 MB to the download. It is never looked up online. See [No AI](Privacy#no-ai).
 - **One pair per word**, the one of its most used sense. So sometimes it is not the one you expect: *cuenta* gives *tally*, not *bill*. In the example above, what ties them is *pagar* and *agua*.
 - **A word written the same in both languages**, like *hotel*, is not on the list: it already ties as a shared word.
 - **It only ties two different languages:** never two things in Spanish nor two in English, even when they say the same with other words.
@@ -219,7 +219,7 @@ You jot «Pagar la cuenta del agua» and, another day, your agent jots in Englis
 
 ### What holds for all three
 
-A typo or a translation counts like a shared word: two things are alike only when they share at least two weighty words, and at least one of them written differently on each side.
+A typo or a translation counts like a shared word: two things are alike only when they share at least two weighty words, and at least one of them written differently on each side. In a translation, a word each side wrote differently, like *tarjeta* and *card*, counts even when it shows up in as much as 25 % of what you keep, not only 5 %.
 
 - **Three alike at most for each thing**, and each end must be among the other's three closest.
 - **The bar comes from what you keep**, not from a fixed figure: a guess must beat what one pair in a thousand reaches in your base.
