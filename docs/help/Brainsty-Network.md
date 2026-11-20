@@ -115,8 +115,8 @@ For instance, Lucas opens Brainsty with 180 nodes: he sees twelve travellers cro
 
 The network changes what it shows with the distance, and each detail fades in as you come closer:
 
-- **From afar**, with the wheel backwards: the nodes and their ties make the outline of a brain seen from the side, with no titles and faint lines. It shows where there is a lot and where there is little.
-- **At middle distance**, as it opens: each folder and each list tints its zone, and only the most connected nodes carry a title.
+- **From afar**, as it opens, with the whole network in sight, or with the wheel backwards: the nodes and their ties make the outline of a brain seen from the side, with no titles and faint lines. It shows where there is a lot and where there is little.
+- **At middle distance**, as soon as you come a little closer: each folder and each list tints its zone, and only the most connected nodes carry a title.
 - **Up close**: every title, each kind of line, tags as `#tag` and beside each picture its thumbnail. And each node stops being a square or a circle to become its icon, in its folder or list colour and with its state: the plain shape fades as you come closer and the icon takes its place. The amber curves show here, little by little, between two nodes in view; around the node you pick they show from any distance.
 
 | Node | Its icon, up close |
@@ -129,7 +129,7 @@ The network changes what it shows with the distance, and each detail fades in as
 | Folder | a folder |
 | List | a list |
 
-So, up close, the task «Rina's yearly vaccine» is a box in the colour of the **Home** list, and «Book a slot», already done, a tick in the same colour. The icon dims with what is not picked, like the rest, and a click on it picks the node as before. From afar it costs nothing: there the plain shapes come back, drawn by the thousand.
+So, up close, the task «Rina's yearly vaccine» is a box in the colour of the **Home** list, and «Buy Rina's flea treatment», which you finished last week, a tick in the same colour. The icon dims with what is not picked, like the rest, and a click on it picks the node as before. From afar it costs nothing: there the plain shapes come back, drawn by the thousand.
 
 ![Brainsty in the content panel, beside the sidebar, with the same network from afar: the nodes make the outline of a brain seen from the side, with no titles and faint lines, and the Legend folded at the bottom left](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/help/en-network-far.png)
 
@@ -153,7 +153,7 @@ A task's state adds, after a dot, how its date is going: **Ahead**, **For today*
 Then, in this order, what there is:
 
 - **Tags**, each like `#rina`.
-- **Connections**, counted by kind: «2 cites 3 mentions 1 in folder or list». The kinds are **cites**, **mentions**, **parts**, **in folder or list**, **tags** and **files**, only the ones it has.
+- **Connections**, counted by kind: «2 cites 3 mentions 1 in folder or list». The kinds go in this order: **cites**, **mentions**, **parts**, **tags**, **files** and **in folder or list**, only the ones it has.
 - **Pointing here**: the documents and tasks that cite it or mention it, up to six, and «N more» when there are others. A click on one picks it in the network and opens its card; one that is not in the network, like what was left out past the node cap, is read but cannot be picked.
 - **Alike**, in amber, when Tisty thinks something is alike: each with its title and its why, «Tisty thinks they are alike: they share *quote* and *roof*». A click on the title picks it in the network. [Alike](#alike) tells it.
 - **Link**, on a document, a page or a task: its address and **Copy link**, which then says «Link copied». It is the same link you copy from a document's panel, to paste in a chat, in your browser or hand to your agent. A document's and a task's look like this:

@@ -66,7 +66,7 @@ At the top, inside the open **Legend**, there are two switches, **Travellers** a
 
 The **Legend** also has four parts. **What it is** shows the shape of each kind there is in your network. **Colour: its folder or list** shows the coloured folders and lists, the fullest first; past six, **N more** shows the rest, and what has no colour takes its kind's tone. If you have the **Agents** folder, **AGENTS** shows right there, apart from your colours; with the pointer on it, it tells you they are your agents' files that Tisty keeps in step. **State** shows how a task under way, a done one and an archived one look. **Lines, up close** shows each kind of line in your network, with **In its folder or list** last, and **Alike** too when Tisty thinks something is alike. This table says the same:
 
-| In the network, from afar | It is |
+| In the network | It is |
 | --- | --- |
 | Square | a document or a page, in its folder's colour |
 | Small square, faint coral | a document in **Agents**: your agents' files, which do not crowd yours |
@@ -86,7 +86,7 @@ Each folder and each list that holds something in the network is a node, tied to
 
 **What you wrote leads.** As it settles, the network draws together what cites, mentions or is part of the same thing; a line to a file pulls half as much, and a shared tag, barely. Folders, lists and alike pairs move nobody. That is why tags, folders and lists look faint: they say where something is, not what you wrote. If you cite the task «Rina's yearly vaccine» on Rina's sheet, the two sit together, even though the task lives in the **Home** list and the sheet in the **Pets** folder.
 
-The network changes with the distance. From afar, with the wheel backwards, its dots make a brain seen from the side, with no titles, and each kind has the shape in the table. At middle distance the coloured zones show. Up close every title shows, each kind of line, the tags and each picture's thumbnail, and each node becomes its icon, in its folder or list colour: a sheet for a document, a few lines of text for a page, a box for a task and a tick once it is done, a `#` for a tag, a clip for a file, a folder and a list. With the network turned, the zones hide and fewer titles show.
+The network changes with the distance. From afar, as it opens or with the wheel backwards, its dots make a brain seen from the side, with no titles, and each kind has the shape in the table. At middle distance the coloured zones show. Up close every title shows, each kind of line, the tags and each picture's thumbnail, and each node becomes its icon, in its folder or list colour: a sheet for a document, a few lines of text for a page, a box for a task and a tick once it is done, a `#` for a tag, a clip for a file, a folder and a list. With the network turned, the zones hide and fewer titles show.
 
 ![«Rina» picked up close in Brainsty, in the content panel beside the sidebar: her neighbours with titles, each drawn as its icon in its folder or list colour (a document's sheet, a task's box, the photo's clip), the rest dimmed and, on the right, her card: «Document · Pets · 6 connections», the rows Last written, Created, Size with its words and Language EN, the rina tag, Connections by kind with «1 in folder or list», Pointing here with what cites her, Alike with «Saturday walks» and «Tisty thinks they are alike: they share rina and park», the Link with Copy link and the Open button; in the network, an amber curve joins Rina to «Saturday walks»](network-near.png)
 

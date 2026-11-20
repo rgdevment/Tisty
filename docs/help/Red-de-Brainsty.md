@@ -115,8 +115,8 @@ Por ejemplo, Lucas abre Brainsty con 180 nodos: ve doce viajeros cruzando la red
 
 La red cambia lo que muestra según la distancia, y cada detalle aparece de a poco al acercarte:
 
-- **De lejos**, con la rueda hacia atrás: los nodos y sus uniones forman la silueta de un cerebro visto de lado, sin títulos y con líneas tenues. Sirve para ver dónde hay mucho y dónde hay poco.
-- **A media distancia**, como se abre: cada carpeta y cada lista tiñen su zona, y llevan título solo los nodos más conectados.
+- **De lejos**, como se abre, con la red entera a la vista, o con la rueda hacia atrás: los nodos y sus uniones forman la silueta de un cerebro visto de lado, sin títulos y con líneas tenues. Sirve para ver dónde hay mucho y dónde hay poco.
+- **A media distancia**, en cuanto te acercas un poco: cada carpeta y cada lista tiñen su zona, y llevan título solo los nodos más conectados.
 - **De cerca**: todos los títulos, cada tipo de línea, las etiquetas como `#etiqueta` y junto a cada imagen su miniatura. Y cada nodo deja de ser un cuadrado o un círculo para ser su ícono, del color de su carpeta o lista y con su estado: la forma simple se desvanece al acercarte y el ícono toma su lugar. Las curvas ámbar aparecen aquí, de a poco, entre dos nodos que están a la vista; junto al nodo que eliges se ven desde cualquier distancia.
 
 | Nodo | Su ícono, de cerca |
@@ -129,7 +129,7 @@ La red cambia lo que muestra según la distancia, y cada detalle aparece de a po
 | Carpeta | una carpeta |
 | Lista | una lista |
 
-Así, de cerca, la tarea «Vacuna anual de Rina» es una casilla del color de la lista **Casa**, y «Pedir hora», ya hecha, un tic del mismo color. El ícono se atenúa con lo que no está elegido, como el resto, y un clic sobre él elige el nodo igual que antes. De lejos no cuesta nada: ahí vuelven las formas simples, que se dibujan de a miles.
+Así, de cerca, la tarea «Vacuna anual de Rina» es una casilla del color de la lista **Casa**, y «Comprar el antiparasitario de Rina», que terminaste la semana pasada, un tic del mismo color. El ícono se atenúa con lo que no está elegido, como el resto, y un clic sobre él elige el nodo igual que antes. De lejos no cuesta nada: ahí vuelven las formas simples, que se dibujan de a miles.
 
 ![Brainsty en el panel de contenido, junto a la barra lateral, con la misma red de lejos: los nodos forman la silueta de un cerebro visto de lado, sin títulos y con líneas tenues, y la Leyenda plegada abajo a la izquierda](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/help/es-red-lejos.png)
 
@@ -153,7 +153,7 @@ El estado de una tarea suma, después de un punto, cómo va su fecha: **Por veni
 Después, en este orden, lo que hay:
 
 - **Etiquetas**, cada una como `#rina`.
-- **Conexiones**, contadas por tipo: «2 citas 3 menciones 1 en carpeta o lista». Los tipos son **citas**, **menciones**, **partes**, **en carpeta o lista**, **etiquetas** y **archivos**, solo los que tiene.
+- **Conexiones**, contadas por tipo: «2 citas 3 menciones 1 en carpeta o lista». Los tipos van en este orden: **citas**, **menciones**, **partes**, **etiquetas**, **archivos** y **en carpeta o lista**, solo los que tiene.
 - **Apuntan aquí**: los documentos y las tareas que lo citan o lo mencionan, hasta seis, y «N más» si hay otros. Un clic en uno lo elige en la red y abre su ficha; uno que no está en la red, como lo que quedó fuera del tope de nodos, se lee, pero no se elige.
 - **Parecidos**, en ámbar, si Tisty cree que algo se le parece: cada uno con su título y su porqué, «Tisty cree que se parecen: comparten *presupuesto* y *techo*». Un clic en el título lo elige en la red. Lo cuenta [Parecidos](#parecidos).
 - **Enlace**, en un documento, una página o una tarea: su dirección y **Copiar enlace**, que pasa a decir «Enlace copiado». Es el mismo enlace que copias desde el panel de un documento, y sirve para pegarlo en un chat, en tu navegador o dárselo a tu agente. El de un documento y el de una tarea se ven así:
