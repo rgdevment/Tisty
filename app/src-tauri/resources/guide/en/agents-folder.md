@@ -322,7 +322,7 @@ Two more notices you may see on a card:
 
 ## What your agent can and cannot do
 
-In the [Brainsty](tisty:brainsty) network, your Agents documents come hidden, so they do not cover what is yours: they show, small and in a faint coral, when you turn **Show AGENTS** on in its filters, and Tisty never marks them as alike to anything.
+In the Brainsty network, which the page **Brainsty: everything joined** of this guide tells, your Agents documents come hidden, so they do not cover what is yours: they show, small and in a faint coral, when you turn **Show AGENTS** on in its filters, and Tisty never marks them as alike to anything.
 
 Your agent **reads** your documents in Agents like any other, whether it syncs or not: you ask «which of my rules do you read?» and it answers with their titles. But it **does not write them on its own**: when it changes one, its change stays apart, as a proposal, and reaches your agents only if you approve it. While syncing, a rule in Agents reaches all your agents, on each computer where Agents syncs and you applied it, and nobody but you should decide what it says.
 

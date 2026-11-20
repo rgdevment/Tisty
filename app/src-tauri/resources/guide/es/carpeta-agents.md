@@ -322,7 +322,7 @@ Dos avisos más que puedes ver en una ficha:
 
 ## Lo que tu agente puede y no puede
 
-En la red de [Brainsty](tisty:brainsty), tus documentos de Agentes vienen ocultos, para que no tapen lo tuyo: aparecen, chicos y en coral tenue, cuando enciendes **Mostrar AGENTS** en sus filtros, y Tisty nunca los marca como parecidos de nada.
+En la red de Brainsty, que cuenta la página **Brainsty: todo unido** de esta guía, tus documentos de Agentes vienen ocultos, para que no tapen lo tuyo: aparecen, chicos y en coral tenue, cuando enciendes **Mostrar AGENTS** en sus filtros, y Tisty nunca los marca como parecidos de nada.
 
 Tu agente **lee** tus documentos de Agentes, como cualquier otro, sincronice o no: le pides «¿qué reglas mías lees?» y te responde con sus títulos. Pero **no los escribe por su cuenta**: cuando cambia uno, su cambio queda aparte, como una propuesta, y solo llega a tus agentes si lo apruebas. Sincronizando, una regla de Agentes llega a todos tus agentes, en cada equipo donde Agentes sincroniza y la aplicaste, y nadie más que tú debería decidir qué dice.
 
