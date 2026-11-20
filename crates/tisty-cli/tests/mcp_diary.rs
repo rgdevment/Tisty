@@ -212,6 +212,12 @@ fn a_shut_diary_answers_every_tool_as_a_document_that_is_not_there() {
             |doc| json!({ "doc": doc, "path": picture.to_string_lossy() }),
             file,
         );
+        answered_as_missing(
+            &served,
+            "sum_up",
+            |doc| json!({ "doc": doc, "summary": "Paseos." }),
+            file,
+        );
         let read = served.ask(
             "resources/read",
             json!({ "uri": format!("tisty:doc/{file}") }),
@@ -228,6 +234,7 @@ fn a_shut_diary_answers_every_tool_as_a_document_that_is_not_there() {
     }
     assert!(served.body(&page).contains("Paseo con Rina por el cerro."));
     assert!(!served.body(&page).contains("Hola."));
+    assert!(served.person().state().agent_notes.is_empty());
 }
 
 #[test]
@@ -422,6 +429,8 @@ fn every_other_change_to_an_open_diary_is_refused() {
             "attach",
             json!({ "doc": page, "path": picture.to_string_lossy() }),
         ),
+        ("sum_up", json!({ "doc": book, "summary": "Paseos." })),
+        ("sum_up", json!({ "doc": page, "notes": "Leer antes." })),
     ] {
         let answer = served.call(name, args);
         assert!(refused(&answer), "{name}: {answer}");
@@ -439,6 +448,10 @@ fn every_other_change_to_an_open_diary_is_refused() {
             .all(|one| !one.archived && one.flagged.is_none())
     );
     assert_eq!(state.docs.len(), 3, "no page was hung under the diary");
+    assert!(
+        state.agent_notes.is_empty(),
+        "a note only agents read reached the diary"
+    );
 }
 
 #[test]
