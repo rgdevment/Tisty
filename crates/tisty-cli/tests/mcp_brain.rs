@@ -1006,3 +1006,61 @@ fn a_card_lists_what_tisty_guesses_apart_and_never_names_a_hidden_task() {
         "a guess is no link: {links}"
     );
 }
+
+#[test]
+fn what_tisty_guesses_alike_stays_off_an_export_and_off_the_markdown_read_hands_a_tool() {
+    let served = Served::new();
+    let spanish = served
+        .person()
+        .writes_doc("# Pagar la cuenta del agua\n\nPagar la cuenta del agua de la casa.\n");
+    let english = served
+        .person()
+        .writes_doc("# Pay the water bill\n\nPay the water bill of the house.\n");
+    let mut talk = served.connect();
+    talk.brain(json!({ "doc": spanish }));
+    guessed_between(
+        &served,
+        &[(
+            spanish.clone(),
+            english.clone(),
+            0.48,
+            "dictionary",
+            "agua≈water pagar≈pay casa≈house",
+        )],
+    );
+    let card = talk.brain(json!({ "doc": spanish }));
+    assert_eq!(card["guessed"][0]["id"], json!(english), "{card}");
+    let out = tempfile::Builder::new()
+        .tempdir_in(std::env::temp_dir())
+        .unwrap();
+
+    talk.call(
+        "export_doc",
+        json!({ "doc": spanish, "into": out.path().to_str().unwrap() }),
+    );
+    let markdown = talk.call("read", json!({ "doc": spanish, "as": "markdown" }));
+
+    let mut told = vec![markdown.to_string()];
+    let mut walk = vec![out.path().to_path_buf()];
+    while let Some(at) = walk.pop() {
+        for entry in std::fs::read_dir(&at).unwrap().flatten() {
+            let path = entry.path();
+            match path.is_dir() {
+                true => walk.push(path),
+                false => told.push(std::fs::read_to_string(&path).unwrap()),
+            }
+        }
+    }
+    assert!(told.len() > 1, "the export left no file");
+    assert!(
+        told.iter()
+            .all(|one| one.contains("Pagar la cuenta del agua")),
+        "{told:?}"
+    );
+    for gone in ["≈", "water bill", english.as_str()] {
+        assert!(
+            told.iter().all(|one| !one.contains(gone)),
+            "{gone} went out: {told:?}"
+        );
+    }
+}

@@ -1055,6 +1055,11 @@ jobs:
           test "$(cat msix/Tisty.exe msix/cli/tisty.exe | sha256sum | cut -d' ' -f1)" \
             = "${{ needs.bundle-windows.outputs.stage }}"
           test "$(./msix/cli/tisty.exe --version)" = "tisty $v"
+          # The app reads the dictionary beside its exe; without it the package would ship with no alike by translation.
+          if ! test -s msix/resources/brain/dictionary.tsv; then
+            echo "::error::resources/brain/dictionary.tsv did not reach the package"
+            exit 1
+          fi
           mkdir -p msix/Assets
           cp app/src-tauri/icons/msix/*.png msix/Assets/
 

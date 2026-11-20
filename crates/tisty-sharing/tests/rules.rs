@@ -2182,3 +2182,57 @@ fn the_diary_stays_here() {
     let book = home.wrote("---\ndiary: on\n---\n\n# Diario 2026\n", None);
     assert!(matches!(refused(&home, book), Some(Unshared::Diary)));
 }
+
+// Built by the real round and pass, with a dictionary of four words, so the guess exists before anything is sealed.
+fn guessed_alike_by_translation(home: &Home, file: &str) {
+    use tisty_core::brain::{Brain, Passed, Round, Weighing, kept_up};
+    kept_up(&home.paths, Round::Starting).expect("the base is built");
+    let at = home.paths.cache().join("dictionary.tsv");
+    std::fs::write(&at, "agua\twater\ncasa\thouse\ncuenta\tbill\npagar\tpay\n").unwrap();
+    let mut weighing = Weighing::default();
+    let ran = (0..20)
+        .map(|_| weighing.kept(&home.paths, Some(&at)))
+        .find(|passed| !matches!(passed, Some(Passed::Settling)));
+    assert!(
+        matches!(ran, Some(Some(Passed::Ran { translated: 1, .. }))),
+        "{ran:?}"
+    );
+    let guessed = Brain::open(home.paths.cache())
+        .unwrap()
+        .alike(file, |_| true)
+        .unwrap();
+    assert_eq!(guessed.len(), 1, "{guessed:?}");
+    assert_eq!(guessed[0].method, "dictionary");
+}
+
+#[test]
+fn what_tisty_guesses_alike_never_goes_out_with_a_shared_document() {
+    let (_tmp, mut home) = home();
+    let spanish = home.wrote(
+        "# Pagar la cuenta del agua\n\nPagar la cuenta del agua de la casa.\n",
+        None,
+    );
+    let english = home.wrote(
+        "# Pay the water bill\n\nPay the water bill of the house.\n",
+        None,
+    );
+    for title in [
+        "Regar las plantas",
+        "Llamar al gasfíter",
+        "Pedir hora al dentista",
+        "Planchar camisas",
+    ] {
+        home.wrote(&format!("# {title}\n"), None);
+    }
+    let file = home.state.docs[&spanish].file.clone();
+    let twin = home.state.docs[&english].file.clone();
+    guessed_alike_by_translation(&home, &file);
+
+    let read = &every_reader_opens(&sealed(&home, &asked(spanish)))[0];
+
+    let text = all_text(read);
+    assert!(text.contains("Pagar la cuenta del agua"), "{text}");
+    for gone in ["≈", "water bill", twin.as_str(), &english.to_string()] {
+        assert!(!text.contains(gone), "{gone} went out: {text}");
+    }
+}
