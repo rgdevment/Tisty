@@ -37,7 +37,7 @@ La red se abre en el panel de contenido de la ventana principal, como cualquier 
 | Punto morado | una etiqueta | unido a todo lo que la lleva |
 | Punto gris | una imagen o un archivo | unido a lo que lo usa; de cerca, con su miniatura |
 
-Cada carpeta y cada lista que tiene algo en la red es un nodo, en medio de lo suyo. No empuja a nadie: la red se acomoda por sus otras líneas y la carpeta o la lista se pone donde quedó lo suyo, así que la red conserva su forma. Además, cada una tiñe su zona con su color. Solo existen en la vista: tu agente no las ve como nodos en su índice.
+Cada carpeta y cada lista que tiene algo en la red es un nodo, en medio de lo suyo. No empuja a nadie: la red se acomoda por sus otras líneas y la carpeta o la lista se pone donde quedó lo suyo, así que la red conserva su forma. Además, cada una tiñe su zona con su color. Solo existen en la vista: tu agente no las ve como nodos en su índice. La carpeta [[Agentes|Carpeta-AGENTS]] tiene un color propio, el coral, que ninguna otra carpeta puede elegir: su zona se tiñe de coral.
 
 | Línea | Une | Cuándo existe |
 | :-- | :-- | :-- |

@@ -37,7 +37,7 @@ The network opens in the content panel of the main window, like any other view, 
 | Purple dot | a tag | tied to everything that carries it |
 | Grey dot | a picture or a file | tied to what uses it; up close, with its thumbnail |
 
-Each folder and each list that holds something in the network is a node, amid what it holds. It pushes nobody: the network settles by its other lines and the folder or the list sits where its things ended up, so the network keeps its shape. Each one also tints its zone with its colour. They exist in the view alone: your agent does not see them as nodes in its index.
+Each folder and each list that holds something in the network is a node, amid what it holds. It pushes nobody: the network settles by its other lines and the folder or the list sits where its things ended up, so the network keeps its shape. Each one also tints its zone with its colour. They exist in the view alone: your agent does not see them as nodes in its index. The [[Agents|AGENTS-Folder]] folder has a colour of its own, coral, which no other folder can pick: its zone is tinted coral.
 
 | Line | Ties | When it exists |
 | :-- | :-- | :-- |

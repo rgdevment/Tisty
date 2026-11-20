@@ -17,7 +17,7 @@
 - [[Assistants and MCP|Assistants-and-MCP]]
 - [[What an assistant may do|MCP-Permissions]]
 - [[Tools reference|MCP-Tools]]
-- [[AGENTS: rules, skills and memory|AGENTS-Folder]]
+- [[Agents: rules, skills and memory|AGENTS-Folder]]
 
 **Documents**
 - [[Documents]]
@@ -59,7 +59,7 @@
 - [[Asistentes y MCP|Asistentes-y-MCP]]
 - [[Qué puede hacer un asistente|Qué-puede-hacer-un-asistente]]
 - [[Herramientas MCP|Herramientas-MCP]]
-- [[AGENTS: reglas, skills y memoria|Carpeta-AGENTS]]
+- [[Agentes: reglas, skills y memoria|Carpeta-AGENTS]]
 
 **Documentos**
 - [[Documentos]]
