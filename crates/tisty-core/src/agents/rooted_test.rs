@@ -142,3 +142,57 @@ fn an_agents_left_empty_still_goes_and_any_other_folder_moves_freely() {
     world.apply(Op::FolderDelete { id: root });
     assert_eq!(root_of(&world.state), None);
 }
+
+#[test]
+fn an_agents_not_yet_joined_still_holds_its_documents_and_their_pages() {
+    let mut world = world();
+    let second = Ulid::from_parts((1 << 48) - 1, 0);
+    world.apply(Op::FolderAdd {
+        id: second,
+        d: FolderAdd {
+            name: FOLDER.into(),
+            order: "b0".into(),
+            parent: None,
+            icon: Some(ICON.into()),
+            color: None,
+        },
+    });
+    assert_eq!(roots(&world.state), vec![world.root, second]);
+    let claude = Ulid::generate();
+    world.apply(Op::FolderAdd {
+        id: claude,
+        d: FolderAdd {
+            name: "Claude".into(),
+            order: "a0".into(),
+            parent: Some(second),
+            icon: None,
+            color: None,
+        },
+    });
+    let rule = Ulid::generate();
+    world.apply(Op::DocAdd {
+        id: rule,
+        d: DocAdd {
+            file: "second-rule".into(),
+            order: "a0".into(),
+            folder: Some(claude),
+            ..Default::default()
+        },
+    });
+    let page = Ulid::generate();
+    world.apply(Op::DocAdd {
+        id: page,
+        d: DocAdd {
+            file: "second-page".into(),
+            order: "a0".into(),
+            page_of: Some(rule),
+            ..Default::default()
+        },
+    });
+    let state = &world.state;
+    assert!(holds_folder(state, claude));
+    assert!(holds(state, &state.docs[&rule]));
+    assert!(holds(state, &state.docs[&page]));
+    let held = holding(state);
+    assert!(held(&state.docs[&rule]) && held(&state.docs[&page]));
+}

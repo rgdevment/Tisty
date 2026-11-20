@@ -103,11 +103,8 @@ fn meant_document(said: &str) -> String {
 }
 
 fn meant_in_agents(state: &State, said: &str) -> bool {
-    let Some(root) = agents::root_of(state) else {
-        return false;
-    };
     let meant = loosely(said);
-    agents::tree(state, root).into_iter().any(|at| {
+    agents::trees(state).into_iter().any(|at| {
         state.folders.get(&at).is_some_and(|one| {
             [
                 one.id.to_string(),

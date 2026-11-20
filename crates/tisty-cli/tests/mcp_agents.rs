@@ -922,3 +922,55 @@ fn no_tool_slips_an_agent_line_into_a_document_outside_agents() {
         "added at the end, those lines are words, never the document's card"
     );
 }
+
+#[test]
+fn a_second_agents_not_yet_joined_keeps_its_documents_from_a_plain_edit() {
+    let served = Served::new();
+    let person = person::Person::at(served.home.path());
+    let second = ulid::Ulid::from_parts((1 << 48) - 1, 0);
+    person.does(tisty_core::Op::FolderAdd {
+        id: second,
+        d: tisty_core::event::FolderAdd {
+            name: tisty_core::agents::FOLDER.into(),
+            order: "b0".into(),
+            parent: None,
+            icon: Some(tisty_core::agents::ICON.into()),
+            color: None,
+        },
+    });
+    let codex = person.makes_folder("Codex", Some(second), None);
+    let rule = person.writes_doc_in(RULE, codex);
+    assert_eq!(
+        tisty_core::agents::roots(&served.state()),
+        vec![served.root, second]
+    );
+    let before = served.body(&rule);
+    let said = served.call(
+        "edit_doc",
+        json!({ "doc": rule, "old": "Tests first.", "new": "Skip the tests." }),
+    );
+    assert_eq!(served.body(&rule), before, "{said}");
+    let state = served.state();
+    let kept = state.docs.values().find(|one| one.file == rule).unwrap();
+    match said["result"]["isError"] == true {
+        true => assert!(!state.proposals.contains_key(&kept.id), "{said}"),
+        false => {
+            let waiting = state.proposals.get(&kept.id).map(|one| one.body.as_str());
+            assert_eq!(
+                waiting,
+                Some(RULE.replace("Tests first.", "Skip the tests.").as_str()),
+                "{said}"
+            );
+        }
+    }
+    for name in ["Codex", "CO\u{200b}DEX ", "agents / codex"] {
+        let looked = served.call("folder", json!({ "name": name, "icon": "folder" }));
+        let text = looked["result"]["content"][0]["text"].as_str().unwrap();
+        assert!(text.contains(REFUSED), "{name:?}: {looked}");
+        assert_eq!(
+            served.state().folders[&codex].icon,
+            None,
+            "{name:?}: {looked}"
+        );
+    }
+}
