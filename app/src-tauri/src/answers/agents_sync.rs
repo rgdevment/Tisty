@@ -114,6 +114,27 @@ pub(crate) fn subfolders_made(session: &mut Session, homes: &Homes, ledger: &Led
         .map_err(|e| Refusal::about("cannotWrite", e.to_string()))
 }
 
+// Codex and Gemini read one rules file: a new document in their folder opens the one that holds it.
+pub(crate) fn one_rules_file(
+    session: &Session,
+    folder: Option<FolderId>,
+) -> Option<tisty_core::docs::Doc> {
+    let root = root_of(&session.state)?;
+    let at = session.state.folders.get(&folder?)?;
+    let known = ASSISTANTS.iter().find(|known| known.name == at.name);
+    let main = known
+        .filter(|_| at.parent == Some(root))
+        .and_then(|one| places::single_rule(one.id))?;
+    let address = format!("{}/{}/{main}", known?.id, Kind::Rule.word());
+    let (file, body) = bodies(session)
+        .into_iter()
+        .find(|(_, body)| Card::of(body).is_some_and(|card| card.address() == address))?;
+    Some(tisty_core::docs::Doc {
+        title: tisty_core::docs::titled(&body),
+        id: file,
+    })
+}
+
 /// What a new document made in Global or in an assistant's folder of AGENTS starts with, so its words reach that assistant.
 pub(crate) fn seeded(session: &Session, folder: Option<FolderId>) -> String {
     let Some(root) = root_of(&session.state) else {

@@ -2445,3 +2445,33 @@ fn a_global_rule_emptied_leaves_every_file_and_asks_about_one_it_alone_wrote() {
         "the file the rule alone made is asked about, never left saying the old words in silence"
     );
 }
+
+#[test]
+fn a_new_document_in_codex_or_gemini_opens_its_one_rules_file_once_there_is_one() {
+    use crate::answers::papers::doc_made;
+    let mut room = room();
+    std::fs::create_dir_all(room.home.join(".gemini")).unwrap();
+    room.bring(&[".codex/AGENTS.md"]);
+    let codex_rule = file_brought_from(&room, "AGENTS.md");
+    let count = room.session.state.docs.len();
+
+    let codex = sub_of(&room, "Codex");
+    let opened = doc_made(&mut room.session, Some(codex), None).unwrap();
+    assert_eq!(opened.id, codex_rule);
+    assert_eq!(room.session.state.docs.len(), count, "nothing new is made");
+
+    let gemini = sub_of(&room, "Gemini");
+    let first = doc_made(&mut room.session, Some(gemini), None).unwrap();
+    let body = tisty_core::docs::read(&room.session.paths.docs(), &first.id).unwrap();
+    assert_eq!(
+        Card::of(&body).unwrap().address(),
+        "gemini/rule/tisty-rules.md"
+    );
+    let again = doc_made(&mut room.session, Some(gemini), None).unwrap();
+    assert_eq!(again.id, first.id);
+
+    let claude = sub_of(&room, "Claude");
+    let one = doc_made(&mut room.session, Some(claude), None).unwrap();
+    let two = doc_made(&mut room.session, Some(claude), None).unwrap();
+    assert_ne!(one.id, two.id, "Claude reads a whole folder of rules");
+}
