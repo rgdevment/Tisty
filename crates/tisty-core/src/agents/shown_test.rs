@@ -181,3 +181,35 @@ fn an_empty_description_is_no_description() {
         None
     );
 }
+
+fn about(words: &str) -> Option<String> {
+    own_front(&doc("claude/skill/ask/SKILL.md", words)).about
+}
+
+#[test]
+fn a_description_written_over_several_lines_reads_as_one() {
+    let folded = "---\nname: ask\ndescription: >\n  Ask which skill\n  fits your situation.\n---\n";
+    assert_eq!(
+        about(folded).as_deref(),
+        Some("Ask which skill fits your situation.")
+    );
+    let kept = "---\nname: ask\ndescription: |-\n  First line.\n  Second line.\n---\n";
+    assert_eq!(about(kept).as_deref(), Some("First line.\nSecond line."));
+    let wrapped = "---\nname: ask\ndescription: Ask which skill\n  fits your situation.\n---\n";
+    assert_eq!(
+        about(wrapped).as_deref(),
+        Some("Ask which skill fits your situation.")
+    );
+}
+
+#[test]
+fn a_property_written_twice_is_listed_once_with_both_values() {
+    let words = "---\nname: ask\nmetadata: one\nmetadata: two\nallowed-tools: [Read, Grep]\n---\n";
+    assert_eq!(
+        own_front(&doc("claude/skill/ask/SKILL.md", words)).fields,
+        vec![
+            ["metadata".to_string(), "one, two".to_string()],
+            ["allowed-tools".to_string(), "Read, Grep".to_string()],
+        ]
+    );
+}

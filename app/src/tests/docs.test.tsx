@@ -1108,6 +1108,24 @@ describe("an agent's document", () => {
     expect(document.querySelector("[data-beside]")).toBeNull();
     expect(screen.queryByRole("button", { name: t("beside") })).toBeNull();
   });
+
+  it("draws a document with an agent line outside Agents as any other, even while it is asked about", async () => {
+    store.agent = null;
+    const outside: Filed[] = [{ ...agentKnown[0], folder: null }];
+    render(
+      <Docs
+        open="a3f1-0009"
+        known={outside}
+        folders={folders as never}
+        onKept={vi.fn()}
+        onError={vi.fn()}
+      />,
+    );
+    const sheet = await screen.findByTestId("sheet");
+    expect(sheet.hasAttribute("data-agent")).toBe(false);
+    await new Promise((done) => setTimeout(done, 50));
+    expect(screen.getByTestId("sheet").hasAttribute("data-agent")).toBe(false);
+  });
 });
 
 describe("the sheet a document opens on", () => {

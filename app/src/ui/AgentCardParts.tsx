@@ -170,6 +170,13 @@ function Fact({
   );
 }
 
+const keyOf = (row: FactRow): string => {
+  if (row.kind === "raw") return "raw";
+  if (row.kind === "path") return `path:${row.at}`;
+  if (row.kind === "backups") return `backups:${row.place.at}`;
+  return `${row.kind}:${row.label}`;
+};
+
 interface Facts {
   readonly doc: AgentDoc;
   readonly body: string;
@@ -185,12 +192,7 @@ export function AgentFacts({ doc, body, onBackups, onError }: Facts) {
       className="mt-3 rounded-[10px] bg-desk px-3.5 py-1 text-[12.5px]"
     >
       {agentRows(doc, body).map((row) => (
-        <Fact
-          key={`${row.kind}:${row.kind === "raw" ? "" : row.label}`}
-          row={row}
-          onBackups={onBackups}
-          onError={onError}
-        />
+        <Fact key={keyOf(row)} row={row} onBackups={onBackups} onError={onError} />
       ))}
     </dl>
   );

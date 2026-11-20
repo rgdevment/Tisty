@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { freshFence } from "tisty-diagrams/read";
 import type { Asking } from "tisty-editor/edit";
 import { acrossOf, type Head, laidIn, PAPER, sheetFor, writtenAcrossOf } from "tisty-editor/read";
+import { agentsTree } from "../agentsSync";
 import { fold, RAIL, sideWidth, useBreadth, WIDE_WINDOW } from "../breadth";
 import type { Citing } from "../citing";
 import { asPlain } from "../copying";
@@ -553,7 +554,8 @@ export default function Docs({
   // An agent's file is kept byte for byte, so the paper it is shown on stays on this computer.
   const laidHere = bolted || agent.held || agent.doc !== null;
   // An agent's file has its own card and no column: what the column told is on the card.
-  const agentShown = agent.held || agent.doc !== null;
+  const inAgents = agentsTree(folders).has(own?.folder ?? "");
+  const agentShown = agent.doc !== null || (agent.held && inAgents);
   const shelf = useAgentShelf(open?.file ?? null);
   const shownTitle = agent.doc?.label || called;
 

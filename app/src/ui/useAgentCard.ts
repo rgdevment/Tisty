@@ -69,6 +69,10 @@ type Kept<T> = { file: string; one: T } | null;
 export function useAgentShelf(file: string | null) {
   const [shown, setShown] = useState<Kept<Shown>>(null);
   const [kept, setKept] = useState<Kept<Place>>(null);
+  useEffect(() => {
+    setShown(null);
+    setKept(null);
+  }, [file]);
   const ours = <T>(held: Kept<T>) => (held && held.file === file ? held.one : null);
   return {
     shown: ours(shown),

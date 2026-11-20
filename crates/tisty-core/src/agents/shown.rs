@@ -80,14 +80,35 @@ pub fn own_front(body: &str) -> OwnFront {
     let titled = card.kind == Kind::Skill && leaf.eq_ignore_ascii_case(SKILL_FILE);
     let mut out = OwnFront::default();
     for field in fields {
-        let value = field.values.join(", ");
-        if field.key.eq_ignore_ascii_case(SKILL_ABOUT) && out.about.is_none() {
+        let about = field.key.eq_ignore_ascii_case(SKILL_ABOUT);
+        let value = joined(&field.values, about);
+        if about && out.about.is_none() {
             out.about = Some(value.trim().to_string()).filter(|said| !said.is_empty());
-        } else if !(titled && field.key.eq_ignore_ascii_case(SKILL_NAME)) {
+        } else if titled && field.key.eq_ignore_ascii_case(SKILL_NAME) {
+            continue;
+        } else if let Some(seen) = out.fields.iter_mut().find(|one| one[0] == field.key) {
+            seen[1] = format!("{}, {value}", seen[1]);
+        } else {
             out.fields.push([field.key, value]);
         }
     }
     out
+}
+
+// A YAML block scalar keeps its lines under a `>` or `|` mark; prose wraps onto lines of its own.
+fn joined(values: &[String], prose: bool) -> String {
+    let block = |mark: &str| {
+        let style = mark
+            .trim_end_matches(['+', '-'])
+            .trim_end_matches(|one: char| one.is_ascii_digit());
+        style == ">" || style == "|"
+    };
+    match values.split_first() {
+        Some((mark, rest)) if block(mark) && mark.starts_with('|') => rest.join("\n"),
+        Some((mark, rest)) if block(mark) => rest.join(" "),
+        _ if prose => values.join(" "),
+        _ => values.join(", "),
+    }
 }
 
 fn as_written(front_matter: &str) -> Option<String> {
