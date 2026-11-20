@@ -26,6 +26,11 @@ const drawn = vi.hoisted(() => ({
     setState(state: unknown) {
       this.set.push(state);
     },
+    resets: 0,
+    reset() {
+      this.resets++;
+      return Promise.resolve();
+    },
     animate(state: unknown) {
       this.set.push(state);
       return Promise.resolve();
@@ -157,6 +162,7 @@ beforeEach(() => {
   drawn.camera.ratio = 1;
   drawn.camera.heard = [];
   drawn.camera.set = [];
+  drawn.camera.resets = 0;
 });
 
 describe("the drawing of the network", () => {
@@ -391,6 +397,16 @@ describe("the drawing of the network", () => {
     expect(prevent).toHaveBeenCalled();
     expect(hands.clear).toHaveBeenCalled();
     expect(drawn.events.clickNode).toHaveLength(0);
+  });
+
+  it("goes back to the whole network on a double click on nothing, instead of zooming in", () => {
+    drawNetwork(document.body, network, spots, () => undefined, light, "Inter");
+    const prevent = vi.fn();
+
+    for (const one of drawn.events.doubleClickStage) one({ preventSigmaDefault: prevent } as never);
+
+    expect(prevent).toHaveBeenCalled();
+    expect(drawn.camera.resets).toBe(1);
   });
 
   it("on a turned globe, gives a click to the node in front among those under the pointer", () => {

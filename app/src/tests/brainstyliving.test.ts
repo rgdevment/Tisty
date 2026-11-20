@@ -197,10 +197,12 @@ const fakeClock = () => {
 
 const drawingOf = () => {
   const turns: { yaw: number; pitch: number }[] = [];
+  const camera = { zoom: 0 };
   const frames: (() => void)[] = [];
   const before: (() => void)[] = [];
   const drawing = {
     nodeOnScreen: (node: number) => [10 + node * 30, 20] as [number, number],
+    zoom: () => camera.zoom,
     onFrame: (listener: () => void) => {
       frames.push(listener);
       return () => frames.splice(frames.indexOf(listener), 1);
@@ -215,7 +217,7 @@ const drawingOf = () => {
     for (const one of before) one();
     for (const one of frames) one();
   };
-  return { drawing, turns, frames, render };
+  return { drawing, turns, frames, render, camera };
 };
 
 const boxed = () => {
@@ -251,9 +253,9 @@ describe("the living network", () => {
     expect(HOP_SECONDS).toBe(5);
   });
 
-  it("holds the turn while a node is picked, the pointer is on the network or it is zoomed, and walks on", () => {
+  it("holds the turn while a node is picked, the pointer is on the network or the view is close, and walks on", () => {
     const { clock, tick } = fakeClock();
-    const { drawing, turns } = drawingOf();
+    const { drawing, turns, camera } = drawingOf();
     const box = boxed();
     const living = livingOn(box, drawing, chain, () => "#2266ff", { clock });
     living.ready();
@@ -265,14 +267,16 @@ describe("the living network", () => {
     box.dispatchEvent(new PointerEvent("pointermove", { clientX: 42, clientY: 30 }));
     tick(50);
     box.dispatchEvent(new PointerEvent("pointerleave"));
-    box.dispatchEvent(new WheelEvent("wheel"));
+    camera.zoom = 0.3;
     tick(50);
-    expect(yaws()).toEqual([0, 0, 0]);
-    tick(800);
-    expect(yaws()[3]).toBeGreaterThan(0);
+    tick(5000);
+    expect(yaws()).toEqual([0, 0, 0, 0]);
+    camera.zoom = 0;
+    tick(50);
+    expect(yaws()[4]).toBeGreaterThan(0);
     box.dispatchEvent(new PointerEvent("pointermove", { clientX: 380, clientY: 280 }));
     tick(50);
-    expect(yaws()[4]).toBeGreaterThan(yaws()[3]);
+    expect(yaws()[5]).toBeGreaterThan(yaws()[4]);
   });
 
   it("sends out more travellers as the network grows, two to ten", () => {

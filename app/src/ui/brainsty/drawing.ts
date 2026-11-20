@@ -220,6 +220,11 @@ export function drawNetwork(
     else waiting = look;
   };
   sigma.on("afterRender", drew);
+  const whole = (said: { preventSigmaDefault: () => void }) => {
+    said.preventSigmaDefault();
+    void camera.reset({ duration: 400 });
+  };
+  sigma.on("doubleClickStage", whole);
   sigma.scheduleRender();
   const lit: { nodes: string[]; edges: string[]; picked: string[] } = {
     nodes: [],
@@ -357,6 +362,7 @@ export function drawNetwork(
     kill: () => {
       waiting = null;
       sigma.off("afterRender", drew);
+      sigma.off("doubleClickStage", whole);
       camera.off("updated", zoomed);
       sigma.kill();
     },
