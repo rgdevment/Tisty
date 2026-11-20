@@ -81,8 +81,8 @@ const en = {
   brainstyClosePreview: "Close the preview",
   brainstyAlike: "Alike",
   brainstyAlikeWhat:
-    "Amber curves: what Tisty guesses is alike, near up or around the node you pick. Nobody wrote them.",
-  brainstyAlikeWords: "Tisty guesses: they share {name}",
+    "Amber curves: what Tisty thinks is alike, near up or around the node you pick. Nobody wrote them.",
+  brainstyAlikeWords: "Tisty thinks they are alike: they share {name}",
   brainstyAnd: "and",
   brainstyAndBeforeI: "and",
   brainstyKeys:
@@ -122,6 +122,9 @@ const en = {
   brainstyLegendPlain: "Without a colour, it takes its kind's tone.",
   brainstyLegendMore: "{name} more",
   brainstyLegendFewer: "Fewer",
+  brainstyLegendAgents: "AGENTS",
+  brainstyLegendAgentsWhat:
+    "The agents' own files that Tisty keeps in step, small and quiet so they do not crowd yours",
   brainstyLegendStandings: "State",
   brainstyLegendLines: "Lines, up close",
   brainstyTie_cite: "Cites",
@@ -3526,8 +3529,8 @@ const es: Catalog = {
   brainstyClosePreview: "Cerrar la vista previa",
   brainstyAlike: "Parecidos",
   brainstyAlikeWhat:
-    "Curvas ámbar: lo que Tisty adivina que se parece, de cerca o junto al nodo que eliges. Nadie las escribió.",
-  brainstyAlikeWords: "Tisty lo adivina: comparten {name}",
+    "Curvas ámbar: lo que Tisty cree que se parece, de cerca o junto al nodo que eliges. Nadie las escribió.",
+  brainstyAlikeWords: "Tisty cree que se parecen: comparten {name}",
   brainstyAnd: "y",
   brainstyAndBeforeI: "e",
   brainstyKeys:
@@ -3567,6 +3570,9 @@ const es: Catalog = {
   brainstyLegendPlain: "Sin color, toma el tono de su clase.",
   brainstyLegendMore: "{name} más",
   brainstyLegendFewer: "Menos",
+  brainstyLegendAgents: "AGENTS",
+  brainstyLegendAgentsWhat:
+    "Los archivos de los agentes que Tisty mantiene al día, chicos y tenues para no tapar los tuyos",
   brainstyLegendStandings: "Estado",
   brainstyLegendLines: "Líneas, de cerca",
   brainstyTie_cite: "Cita",

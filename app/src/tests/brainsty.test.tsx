@@ -515,7 +515,7 @@ describe("Brainsty in the content panel", () => {
     expect(localStorage.getItem("tisty.brainstyTravellers")).toBeNull();
   });
 
-  it("keeps travellers and turning off when the computer asks for less motion", async () => {
+  it("starts with travellers and turning on, even when the computer asks for less motion", async () => {
     localStorage.clear();
     const asked = vi.spyOn(window, "matchMedia").mockReturnValue({
       matches: true,
@@ -524,7 +524,7 @@ describe("Brainsty in the content panel", () => {
 
     await userEvent.setup().click(screen.getByRole("button", { name: t("brainstyLegend") }));
     for (const name of [t("brainstyTravellers"), t("brainstyTurning")])
-      expect(screen.getByRole("switch", { name }).getAttribute("aria-checked")).toBe("false");
+      expect(screen.getByRole("switch", { name }).getAttribute("aria-checked")).toBe("true");
     asked.mockRestore();
   });
 
@@ -580,8 +580,10 @@ describe("Brainsty in the content panel", () => {
       .getAllByRole("button")
       .map((one) => one.textContent);
     expect(named).toEqual(["Plans", "buy milk"]);
-    expect(alike.textContent).toContain("Tisty guesses: they share plans and bread");
-    expect(alike.textContent).toContain("Tisty guesses: they share buy and groceries");
+    expect(alike.textContent).toContain("Tisty thinks they are alike: they share plans and bread");
+    expect(alike.textContent).toContain(
+      "Tisty thinks they are alike: they share buy and groceries",
+    );
     expect([...alike.querySelectorAll("em")].map((one) => one.textContent)).toEqual([
       "plans",
       "bread",
@@ -612,7 +614,7 @@ describe("Brainsty in the content panel", () => {
       act(() => sigma.hands?.pick(4));
 
       const alike = await screen.findByRole("region", { name: "Parecidos" });
-      expect(alike.textContent).toContain("Tisty lo adivina: comparten buy y groceries");
+      expect(alike.textContent).toContain("Tisty cree que se parecen: comparten buy y groceries");
     } finally {
       adopt("en");
     }

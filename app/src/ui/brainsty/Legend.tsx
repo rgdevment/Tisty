@@ -93,7 +93,7 @@ export default function Legend({ network, groups, motions, onMotions }: Props) {
               </Row>
             ))}
           </Part>
-          {legend.groups.length > 0 && (
+          {(legend.groups.length > 0 || legend.outside) && (
             <Part title={t("brainstyLegendColours")}>
               {shown.map((one) => (
                 <Row key={one.id} label={one.name}>
@@ -108,6 +108,11 @@ export default function Legend({ network, groups, motions, onMotions }: Props) {
                 >
                   {all ? t("brainstyLegendFewer") : fill("brainstyLegendMore", String(more))}
                 </button>
+              )}
+              {legend.outside && (
+                <Row label={t("brainstyLegendAgents")} title={t("brainstyLegendAgentsWhat")}>
+                  <Dot shape="square" size={4} color={legend.outside.color} />
+                </Row>
               )}
               <p className="text-faint">{t("brainstyLegendPlain")}</p>
             </Part>

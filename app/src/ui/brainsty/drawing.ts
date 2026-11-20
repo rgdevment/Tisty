@@ -19,6 +19,7 @@ import {
   type LineLook,
   lineLook,
   nodeLook,
+  OUTSIDE,
   type Palette,
   rgba,
 } from "./looks";
@@ -86,9 +87,9 @@ const PICK_PX = 10;
 const FAR_SHARE = 0.35;
 const DIM = 0.12;
 
-const lineAttributes = (look: LineLook): Line => ({
+const lineAttributes = (look: LineLook, quiet = false): Line => ({
   tone: look.tone,
-  alpha: look.alpha,
+  alpha: quiet ? look.alpha * OUTSIDE.lines : look.alpha,
   size: look.size,
   gap: look.gap,
 });
@@ -115,15 +116,18 @@ export function drawNetwork(
   hueOf: HueOf,
   palette: Palette,
   font: string,
+  outside: (group?: string) => boolean = () => false,
 ): Drawing {
   const graph = new Graph({ type: "directed", multi: true });
   const seen = { palette };
   const degrees = degreesOf(network.nodes.length, network.edges);
   const big = bigOnes(degrees);
   const shrink = crowding(network.nodes.length);
+  const quiet = (from: number, to: number): boolean =>
+    outside(network.nodes[from]?.group) || outside(network.nodes[to]?.group);
   const looked = (n: number, colours: Palette) => {
     const one = network.nodes[n];
-    const look = nodeLook(one, hueOf(one.group), colours, degrees[n]);
+    const look = nodeLook(one, hueOf(one.group), colours, degrees[n], outside(one.group));
     return { ...look, size: look.size * shrink };
   };
   network.nodes.forEach((one, n) => {
@@ -138,7 +142,11 @@ export function drawNetwork(
   for (const [from, to, code] of network.edges) {
     const tie = TIES[code];
     if (tie)
-      graph.addEdge(String(from), String(to), { tie, ...lineAttributes(lineLook(tie, palette)) });
+      graph.addEdge(String(from), String(to), {
+        tie,
+        quiet: quiet(from, to),
+        ...lineAttributes(lineLook(tie, palette), quiet(from, to)),
+      });
   }
   const sigma = new Sigma(graph, container, {
     customGraphState: { zoom: 0 },
@@ -263,7 +271,7 @@ export function drawNetwork(
       graph.updateEachNodeAttributes((key, at) => ({ ...at, ...looked(Number(key), next) }));
       graph.updateEachEdgeAttributes((_, at) => ({
         ...at,
-        ...lineAttributes(lineLook(at.tie, next)),
+        ...lineAttributes(lineLook(at.tie, next), Boolean(at.quiet)),
       }));
       sigma.refresh();
     },

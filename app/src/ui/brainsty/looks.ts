@@ -146,17 +146,30 @@ const ROOMY = 6000;
 export const crowding = (count: number): number =>
   Math.min(1, Math.sqrt(ROOMY / Math.max(count, 1)));
 
+// What Tisty keeps in step with the agents' own files is theirs, so it stays small and quiet beside the person's.
+export const OUTSIDE = { scale: 0.6, alpha: 0.5, lines: 0.4 } as const;
+
+export const outsideTone = (palette: Palette): string => palette.hues[AGENTS_HUE] || palette.faint;
+
 export function nodeLook(
   neuron: Neuron,
   hue: string | undefined,
   palette: Palette,
   degree = 0,
+  outside = false,
 ): NodeLook {
   const standing = STANDING[standingOf(neuron)];
   const tinted = hue ? palette.hues[hue] : undefined;
+  const size = SIZE[neuron.kind] * standing.scale * weightOf(degree);
+  if (outside)
+    return {
+      shape: shapeOf(neuron.kind),
+      size: size * OUTSIDE.scale,
+      color: rgba(outsideTone(palette), standing.alpha * OUTSIDE.alpha),
+    };
   return {
     shape: shapeOf(neuron.kind),
-    size: SIZE[neuron.kind] * standing.scale * weightOf(degree),
+    size,
     color: rgba(tinted ?? baseOf(neuron.kind, palette), standing.alpha),
   };
 }

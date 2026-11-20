@@ -39,6 +39,7 @@ export interface Group {
   name: string;
   color?: string | null;
   kind?: GroupKind;
+  agents?: boolean;
 }
 
 export interface Near {

@@ -71,6 +71,24 @@ describe("what the legend says", () => {
   });
 });
 
+describe("the agents' documents in the legend", () => {
+  it("are named apart, in their own quiet tone, and left out of the folder colours", () => {
+    const theirs: Group[] = [...groups, { id: "a1", name: "AGENTS", color: "teal", agents: true }];
+    const legend = legendOf(
+      {
+        ...network,
+        nodes: [...network.nodes, { id: "CLAUDE.md", kind: "doc", title: "CLAUDE", group: "a1" }],
+      },
+      theirs,
+      palette,
+    );
+
+    expect(legend.outside).toEqual({ color: "rgba(153, 153, 153, 0.5)", count: 1 });
+    expect(legend.groups.map((one) => one.id)).not.toContain("a1");
+    expect(legendOf(network, groups, palette).outside).toBeNull();
+  });
+});
+
 describe("the alike curve in the legend", () => {
   it("is named, amber, when the network carries guesses", () => {
     const guessed = legendOf({ ...network, alike: [[0, 2, 700, "bread"]] }, groups, palette);
