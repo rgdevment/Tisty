@@ -18,7 +18,7 @@ Esta página cuenta cómo abrirla, qué significa cada forma y cada línea, cóm
 La red se abre en el panel de contenido de la ventana principal, como cualquier otra vista, con la barra lateral a la vista. Así la miras sin perder de vista tus listas, y sales de ella con un clic en otra vista.
 
 - **Brainsty**, en la barra lateral bajo las vistas de tareas, la abre, y queda marcado mientras la miras. Con la barra plegada, es el icono de la red en el riel.
-- Arranca cerca del documento o la tarea en que estabas; si no estabas en ninguno, en lo último que escribiste. Arriba, la cuenta: «589 nodos · 1252 conexiones».
+- Abre con la red entera a la vista, girando como un globo (mira [La red viva](#la-red-viva)). El documento o la tarea en que estabas queda como punto de partida de las flechas; si no estabas en ninguno, lo último que escribiste. Arriba, la cuenta: «589 nodos · 1252 conexiones».
 - La primera vez los nodos se acomodan unos segundos, como si se soltaran, y se detienen solos en cuatro segundos como mucho; una red de unos 5600 nodos queda quieta en dos o tres.
 - **El teclado ya es suyo** apenas se dibuja: las flechas, `/` y `Enter` funcionan sin hacer clic antes en la red.
 - **Se ajusta al panel.** Si el panel cambia de ancho, por ejemplo al plegar la barra lateral, la red se vuelve a dibujar a su medida.
@@ -31,17 +31,19 @@ La red se abre en el panel de contenido de la ventana principal, como cualquier 
 | En la red | Es | Cómo se ve |
 | :-- | :-- | :-- |
 | Cuadrado | un documento o una página de un libro | del color de su carpeta; una página, más pequeña junto a su documento |
+| Cuadrado grande | una carpeta | en medio de sus documentos, unida a cada uno |
+| Rombo | una lista | en medio de sus tareas, unida a cada una |
 | Círculo | una tarea | del color de su lista; en curso, viva; terminada, más tenue; descartada o archivada, tenue y pequeña |
 | Punto morado | una etiqueta | unido a todo lo que la lleva |
 | Punto gris | una imagen o un archivo | unido a lo que lo usa; de cerca, con su miniatura |
 
-Las listas y las carpetas no son nodos: son el color y la zona donde se juntan sus cosas. Si fueran nodos, todo quedaría unido a «Casa» o a la bandeja y la red no diría nada.
+Cada carpeta y cada lista que tiene algo en la red es un nodo, en medio de lo suyo. No empuja a nadie: la red se acomoda por sus otras líneas y la carpeta o la lista se pone donde quedó lo suyo, así que la red conserva su forma. Además, cada una tiñe su zona con su color. Solo existen en la vista: tu agente no las ve como nodos en su índice.
 
 | Línea | Une | Cuándo existe |
 | :-- | :-- | :-- |
 | Sólida | una cita | una tarjeta de otro documento o de una tarea, sola en su párrafo |
 | Punteada | una mención | un enlace dentro de una frase a otro documento o a una tarea |
-| Fina | la estructura | una página y su libro, una parte y su tarea, una tarea y el documento donde nació, una idea y su documento |
+| Fina | la estructura | una página y su libro, una parte y su tarea, una tarea y el documento donde nació, una idea y su documento, una carpeta y sus documentos, una lista y sus tareas |
 | Fina y tenue | una etiqueta | lo que lleva `#etiqueta` y su punto |
 | Fina, hacia un archivo | un uso | lo que muestra una imagen o adjunta un archivo |
 | Curva ámbar | un parecido | dos cosas que comparten palabras poco comunes, una palabra con un error de tipeo o una traducción, y que nadie unió; más opaca cuanto más se parecen |
@@ -52,18 +54,42 @@ Cada línea recta está escrita en alguna parte, y se puede explicar. La curva �
 
 No hace falta aprenderse estas tablas: **Leyenda**, abajo a la izquierda de la red, dice qué significa cada forma, cada color y cada línea de tu red. Viene plegada, para no tapar la red; un clic en su título la abre y otro la pliega. Cada equipo recuerda cómo la dejaste.
 
-Abierta, tiene cuatro partes. Cada muestra se dibuja con el mismo pincel que la red, así que lo que ves en la leyenda es exactamente lo que ves en la red, también en tema oscuro:
+Abierta, arriba lleva dos interruptores, **Viajeros** y **Girar**, que cuenta [La red viva](#la-red-viva). Debajo tiene cuatro partes. Cada muestra se dibuja con el mismo pincel que la red, así que lo que ves en la leyenda es exactamente lo que ves en la red, también en tema oscuro:
 
 | Parte | Qué muestra |
 | :-- | :-- |
-| **Qué es** | la forma y el tono de cada clase que hay en tu red: **Documento**, **Página**, **Tarea**, **Etiqueta** y **Archivo**. Una clase que no tienes no aparece |
+| **Qué es** | la forma y el tono de cada clase que hay en tu red: **Documento**, **Página**, **Tarea**, **Etiqueta**, **Archivo**, **Carpeta** y **Lista**. Una clase que no tienes no aparece |
 | **Color: su carpeta o lista** | las carpetas y listas con color que tienen algo en la red, primero las más llenas. Muestra seis; **N más** abre el resto y **Menos** las vuelve a esconder. Al pie: «Sin color, toma el tono de su clase.» |
 | **Estado** | cómo se ve una tarea **En curso**, una de las **Terminadas** y una de las **Archivadas** |
-| **Líneas, de cerca** | **Cita**, **Menciona**, **Parte de (página, parte)**, **Etiquetada** y **Usa un archivo**, solo las que hay en tu red; y **Parecidos**, la curva ámbar, si Tisty adivinó alguno. Con el puntero sobre **Parecidos**, te dice qué son |
+| **Líneas, de cerca** | **Cita**, **Menciona**, **Parte de (página, parte, carpeta o lista)**, **Etiquetada** y **Usa un archivo**, solo las que hay en tu red; y **Parecidos**, la curva ámbar, si Tisty adivinó alguno. Con el puntero sobre **Parecidos**, te dice qué son |
 
 Por ejemplo, Marisol tiene once carpetas y listas con color. Su leyenda muestra las seis más llenas, **Casa**, **Trabajo**, **Mascotas**, **Viajes**, **Compras** y **Salud**, y debajo **5 más**. Una carpeta sin color, como **Recetas**, no está en la lista: sus documentos se ven con el tono de los documentos.
 
-![La Leyenda abierta en la esquina inferior izquierda de la red: Qué es con Documento, Página, Tarea, Etiqueta y Archivo; Color: su carpeta o lista con Casa, Trabajo, Mascotas, Viajes, Compras y Salud, «5 más» y «Sin color, toma el tono de su clase.»; Estado con En curso, Terminadas y Archivadas; Líneas, de cerca con Cita, Menciona, Parte de (página, parte), Etiquetada, Usa un archivo y Parecidos en ámbar](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/help/es-leyenda.png)
+![La Leyenda abierta en la esquina inferior izquierda de la red: arriba los interruptores Viajeros y Girar, con su punto encendido; Qué es con Documento, Página, Tarea, Etiqueta, Archivo, Carpeta y Lista; Color: su carpeta o lista con Casa, Trabajo, Mascotas, Viajes, Compras y Salud, «5 más» y «Sin color, toma el tono de su clase.»; Estado con En curso, Terminadas y Archivadas; Líneas, de cerca con Cita, Menciona, Parte de (página, parte, carpeta o lista), Etiquetada, Usa un archivo y Parecidos en ámbar](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/help/es-leyenda.png)
+
+## La red viva
+
+Mientras la miras, la red se mueve: gira y la recorren viajeros por sus líneas. Si la prefieres quieta, la apagas desde la leyenda.
+
+- **Gira como un globo**, sola, una vuelta por minuto. Lo que queda atrás se ve más chico y más tenue, y con la red girada las zonas de color se ocultan y se ven menos títulos.
+- **Se detiene cuando la necesitas quieta:** mientras el puntero está sobre la forma de la red, un momento después de acercarte o alejarte con la rueda y mientras tienes un nodo elegido. En el espacio vacío alrededor sigue girando.
+- **La giras tú** arrastrando con el botón derecho, o con `Shift` y el izquierdo. El arrastre normal sigue moviendo la vista, como siempre.
+- **Los viajeros** son puntos de luz que recorren las conexiones en viajes largos: pasan de un nodo al siguiente cada cinco segundos, dejan una estela corta y destellan al pasar por una etiqueta o por un nodo muy conectado. Prefieren los documentos y las páginas, y nunca pasan por lo que los filtros esconden.
+- **Cuántos viajeros** depende del tamaño de la red:
+
+| Nodos en la red | Viajeros |
+| :-- | :-- |
+| menos de 60 | 2 |
+| de 60 a 99 | 4 |
+| de 100 a 149 | 6 |
+| de 150 a 249 | 8 |
+| 250 o más | 10 |
+
+- **Dos interruptores**, arriba en la [leyenda](#la-leyenda) abierta: **Viajeros** y **Girar**, cada uno con un punto que se enciende. Sin **Girar**, la red queda plana; con los dos apagados, queda como una red quieta. Cada equipo recuerda cómo los dejaste. Si tu sistema pide reducir el movimiento, arrancan apagados.
+- **Solo corre mientras la ves.** Al pasar a otra vista se detiene, igual que el resto de la red.
+- **Lo que cuesta**, si te interesa: `Ctrl` + `Shift` + `M` muestra junto a la leyenda cuántos milisegundos toma cada cuadro y cuántos cuadros por segundo dibuja, por ejemplo «2.10 ms por cuadro · 60 cuadros por segundo». Otro `Ctrl` + `Shift` + `M` lo esconde.
+
+Por ejemplo, Lucas abre Brainsty con 180 nodos: ve ocho viajeros cruzando la red mientras gira. Deja el puntero sobre la zona de **Trabajo** para leer un título y el globo se detiene; lo saca al espacio vacío y vuelve a girar. Para presentar su pantalla prefiere la red quieta: abre la **Leyenda** y apaga **Viajeros** y **Girar**, y la próxima vez en ese equipo abre igual.
 
 ## De lejos y de cerca
 
@@ -71,11 +97,11 @@ La red cambia lo que muestra según la distancia, y cada detalle aparece de a po
 
 - **De lejos**, con la rueda hacia atrás: los nodos y sus uniones forman la silueta de un cerebro visto de lado, sin títulos y con líneas tenues. Sirve para ver dónde hay mucho y dónde hay poco.
 - **A media distancia**, como se abre: cada carpeta y cada lista tiñen su zona, y llevan título solo los nodos más conectados.
-- **De cerca**: todos los títulos, cada tipo de línea, las etiquetas como `#etiqueta` y, junto a cada imagen, su miniatura. Las curvas ámbar aparecen aquí, de a poco, entre dos nodos que están a la vista; junto al nodo que eliges se ven desde cualquier distancia.
+- **De cerca**: todos los títulos, cada tipo de línea, las etiquetas como `#etiqueta`, junto a cada imagen su miniatura y, dentro de cada nodo, el ícono de lo que es: documento, página, tarea (con un tic si está hecha), etiqueta, archivo, carpeta o lista. El ícono se atenúa con lo que no está elegido y no cuesta nada de lejos. Las curvas ámbar aparecen aquí, de a poco, entre dos nodos que están a la vista; junto al nodo que eliges se ven desde cualquier distancia.
 
 ![Brainsty en el panel de contenido, junto a la barra lateral, con la misma red de lejos: los nodos forman la silueta de un cerebro visto de lado, sin títulos y con líneas tenues, y la Leyenda plegada abajo a la izquierda](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/help/es-red-lejos.png)
 
-Con la rueda acercas y alejas; arrastrando te mueves. Al primer toque la red deja de seguir el punto donde arrancó.
+Con la rueda acercas y alejas; arrastrando te mueves, y arrastrando con el botón derecho, o con `Shift`, giras el globo. Al primer toque la red deja de seguir el punto donde arrancó.
 
 ## Elegir, ver y abrir
 
@@ -88,7 +114,7 @@ Debajo vienen sus datos, según lo que elegiste:
 | Un documento | **Escrito por última vez**, **Creado**, **Tamaño**, con su peso y cuántas palabras tiene, e **Idioma**, como «ES» |
 | Una página de un libro | lo mismo, y primero **Página de**, con el título de su libro |
 | Una tarea | **Estado**, como «En curso · Por vencer»; **Día**, **Plazo**, **Parte de**, con su tarea madre, **Partes**, con cuántas tiene, **Pasos**, como «1 de 3 hechos», y **Origen**, si llegó con uno |
-| Una etiqueta o un archivo | solo la línea de arriba y sus conexiones |
+| Una etiqueta, un archivo, una carpeta o una lista | solo la línea de arriba y sus conexiones |
 
 El estado de una tarea suma, después de un punto, cómo va su fecha: **Por venir**, **Para hoy**, **Atrasada**, **En curso**, **Por vencer** o **Vencida**. Una fila sin dato no aparece: una tarea sin plazo no muestra **Plazo**.
 
@@ -107,7 +133,7 @@ tisty://task?id=…
 
 Al pie, **Abrir**. La cruz de arriba, **Cerrar la vista previa**, o `Esc`, suelta el nodo y la red vuelve a verse entera.
 
-- **Abrir**, `Enter` o **un doble clic** en el nodo lo abre en la misma ventana, en el lugar de la red: un documento en la Biblioteca, una tarea junto a su lista, una etiqueta en su vista. Para volver a la red, otro clic en **Brainsty**; arranca de nuevo, cerca del documento o la tarea que abriste.
+- **Abrir**, `Enter` o **un doble clic** en el nodo lo abre en la misma ventana, en el lugar de la red: un documento en la Biblioteca, una tarea junto a su lista, una etiqueta en su vista, una carpeta en **Documentos** y una lista en **Listas**. Para volver a la red, otro clic en **Brainsty**; abre de nuevo entera, y lo que abriste queda como punto de partida de las flechas.
 - **Una imagen o un archivo** tienen ficha, pero no **Abrir** ni **Enlace**: se abren desde el documento o la tarea que los usa, su vecino en la red.
 
 ![«Rina» elegida de cerca en Brainsty, en el panel de contenido junto a la barra lateral: sus vecinos con título, el resto atenuado y, a la derecha, su ficha: «Documento · Mascotas · 6 conexiones», las filas Escrito por última vez, Creado, Tamaño con sus palabras e Idioma ES, la etiqueta #rina, Conexiones por tipo, Apuntan aquí con lo que la cita, Parecidos con «Paseos del sábado» y «Tisty lo adivina: comparten rina y parque», el Enlace con Copiar enlace y el botón Abrir; en la red, una curva ámbar une a Rina con «Paseos del sábado»](https://raw.githubusercontent.com/rgdevment/Tisty/main/app/src-tauri/resources/guide/es/red-cerca.png)
@@ -120,7 +146,7 @@ El buscador está arriba a la izquierda, **Buscar en la red**; `/` lo enfoca des
 
 El embudo junto al buscador, **Filtros**, abre lo que se puede dejar fuera. Cada opción es un botón que se enciende y se apaga, y la red se redibuja con lo que queda:
 
-- **Mostrar**: **Documentos**, **Páginas**, **Tareas**, **Etiquetas**, **Archivos** y **Parecidos**. **Parecidos** viene encendido; apagado, la red no dibuja ninguna curva ámbar y la ficha no los lista.
+- **Mostrar**: **Documentos**, **Páginas**, **Tareas**, **Etiquetas**, **Archivos**, **Carpetas**, **Listas** y **Parecidos**. **Parecidos** viene encendido; apagado, la red no dibuja ninguna curva ámbar y la ficha no los lista. Una carpeta o una lista se esconde sola cuando los filtros esconden todo lo suyo: con solo **Tareas**, las carpetas se van y las listas quedan.
 - El estado de las tareas: **En curso**, **Terminadas** y **Archivadas**.
 - **Tocado**: **Cuando sea**, **Últimos 7 días**, **Últimos 30 días** o **Último año**, según el último día en que cambió cada cosa.
 - **Etiqueta**: elige una de la lista y deja solo lo que la lleva; **Cualquier etiqueta** la quita.
@@ -134,10 +160,13 @@ Con algún filtro puesto, el embudo se tiñe y aparece **Mostrar todo**, que dev
 | Tecla | Qué hace |
 | :-- | :-- |
 | `Tab` | recorrer el buscador, **Filtros**, la ficha y la red |
-| Flechas | elegir un nodo y caminar: primero a un vecino en esa dirección, si no, al más cercano; una curva ámbar no es un camino |
+| Flechas | elegir un nodo y caminar: primero a un vecino en esa dirección, si no, al más cercano; una curva ámbar no es un camino. Sin nodo elegido, la primera sale del documento o la tarea en que estabas |
 | `Enter` | abrir el nodo elegido, en el lugar de la red |
 | `/` | buscar |
 | `Esc` | soltar por capas: primero la búsqueda, aunque esté vacía; después el nodo; y el último te devuelve a la vista donde estabas |
+| `Ctrl` + `Shift` + `M` | mostrar o esconder lo que cuesta cada cuadro |
+
+La línea de teclas al pie de la red lo resume: «Flechas para moverte entre nodos, Enter abre, / busca, Esc suelta, arrastre derecho o Shift gira».
 
 Después de elegir un resultado de la búsqueda, o de dejarla con `Esc`, las flechas y `Enter` vuelven a caminar por la red, sin tocar el mouse. Así, `/`, `rina`, `Enter` y otra vez `Enter` abren el documento de Rina sin soltar el teclado.
 
@@ -147,12 +176,12 @@ Un `Esc` que escribes en un campo de la barra lateral, como su buscador, es de e
 
 Hace un mes que no tocas nada de Rina y quieres saber cómo va. Estás en el acta del condominio.
 
-1. **Brainsty** en la barra lateral. La red se abre en el panel, en lugar del acta, y arranca cerca de ella.
-2. `/`, `rina`, `Enter`. La red se centra en «Rina», el documento de la carpeta **Mascotas**, y abre su ficha: «Documento · Mascotas · 6 conexiones», escrito por última vez hace un mes, en español.
-3. Te acercas con la rueda: aparecen sus vecinos con título, «Veterinaria» unida por una línea punteada (la mencionas en una frase), la tarjeta sólida de «Vacuna anual de Rina», la foto del paseo con su miniatura y una curva ámbar hacia «Paseos del sábado», que nadie enlazó. La ficha de Rina dice por qué, en **Parecidos**: «Tisty lo adivina: comparten *rina* y *parque*».
+1. **Brainsty** en la barra lateral. La red se abre en el panel, en lugar del acta, entera y girando, con sus viajeros.
+2. `/`, `rina`, `Enter`. El globo se detiene, la red se centra en «Rina», el documento de la carpeta **Mascotas**, y abre su ficha: «Documento · Mascotas · 6 conexiones», escrito por última vez hace un mes, en español.
+3. Te acercas con la rueda: aparecen sus vecinos con título, «Veterinaria» unida por una línea punteada (la mencionas en una frase), la tarjeta sólida de «Vacuna anual de Rina», la foto del paseo con su miniatura, el cuadrado grande de **Mascotas**, en medio de sus documentos, y una curva ámbar hacia «Paseos del sábado», que nadie enlazó. La ficha de Rina dice por qué, en **Parecidos**: «Tisty lo adivina: comparten *rina* y *parque*».
 4. Un clic en «Vacuna anual de Rina»: su ficha dice «En curso · Por vencer», **Plazo** el viernes y **Pasos** «1 de 3 hechos», y en **Apuntan aquí** está «Rina», que la cita. **Copiar enlace** te deja su enlace para pasárselo a Yisset, que la va a llevar.
 5. **Abrir**: la tarea se abre junto a su lista, en el lugar de la red, y ahí marcas «Pedir hora».
-6. Otro clic en **Brainsty**: la red arranca de nuevo, cerca de la tarea. **Filtros**, **Etiqueta** `rina` y **Tocado** **Últimos 30 días**: quedan sus dos documentos y las tareas en curso que se movieron este mes.
+6. Otro clic en **Brainsty**: la red abre de nuevo, entera; la tarea queda como punto de partida de las flechas. **Filtros**, **Etiqueta** `rina` y **Tocado** **Últimos 30 días**: quedan sus dos documentos y las tareas en curso que se movieron este mes.
 7. `Esc` hasta volver: primero suelta lo que elegiste y el último te devuelve a la tarea. Los filtros no se guardan: la próxima vez la red arranca entera.
 
 ## Parecidos
