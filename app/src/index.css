@@ -510,10 +510,12 @@ label[for] {
   width: round(down, 85%, 1px);
   max-width: 1100px;
 }
-/* An agent's card is as wide as its words, and the folders above it line up with it. */
-.lively-room > .ribbon.agent-ribbon {
+/* An agent's ribbon is the top of its card: as wide, framed the same, and its folders always shown. */
+.ribbon.agent-ribbon {
   max-width: 760px;
-  padding-inline: 4px;
+  padding-inline: 16px;
+  border: 1px solid var(--tisty-line);
+  border-bottom: 0;
 }
 .ribbon-more {
   display: grid;

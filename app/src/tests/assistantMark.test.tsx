@@ -1,6 +1,6 @@
 import { render } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import { AssistantMark, FolderMark, levelOf } from "../ui/AssistantMark";
+import { AssistantMark, assistantPill, FolderMark, levelOf } from "../ui/AssistantMark";
 import Glyph from "../ui/Glyph";
 
 const folder = (name: string, parent: string | null, icon: string | null = null) => ({
@@ -60,15 +60,32 @@ describe("an assistant's mark", () => {
     }
   });
 
-  it("draws every assistant in the sidebar's secondary grey, and only Global as a blue globe", () => {
-    for (const id of ASSISTANTS) {
+  it("tints each assistant in a hue of its own, Global in blue, none of Agents' coral, the diagrams' purple or Ideas' pink", () => {
+    const inks = [...ASSISTANTS, "global"].map((id) => {
       const { container, unmount } = render(<AssistantMark id={id} />);
-      expect(container.querySelector(`[data-mark="${id}"]`)?.className).toContain("text-soft");
+      const ink = container
+        .querySelector(`[data-mark="${id}"]`)
+        ?.className.match(/text-hue-\w+/)?.[0];
       unmount();
-    }
+      return ink;
+    });
+    expect(inks).toEqual([
+      "text-hue-orange",
+      "text-hue-teal",
+      "text-hue-indigo",
+      "text-hue-green",
+      "text-hue-brown",
+      "text-hue-blue",
+    ]);
     const { container } = render(<AssistantMark id="global" />);
-    expect(container.querySelector('[data-mark="global"]')?.className).toContain("text-hue-blue");
     expect(container.querySelector("svg.glyph")?.innerHTML).toBe(glyphOf("globe-earth"));
+  });
+
+  it("gives a card's assistant label the same hue as its folder", () => {
+    expect(assistantPill("claude")).toBe("text-hue-orange bg-hue-orange/10");
+    expect(assistantPill("codex")).toBe("text-hue-teal bg-hue-teal/10");
+    expect(assistantPill("global")).toBe("text-hue-blue bg-hue-blue/10");
+    expect(assistantPill("windsurf")).toBe("text-soft bg-hover");
   });
 
   it("falls back to the terminal for an assistant it does not know yet", () => {

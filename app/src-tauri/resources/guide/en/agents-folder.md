@@ -55,7 +55,7 @@ If you have no agent files yet, the box says «I found no agent files on this co
 
 **Try it:** click **Agents**, in grey in your sidebar, to see which assistants it finds on this computer. If you only wanted to look, the X leaves it as it was. The same is in **Settings → Assistants**, on the **Agents** card: before anything is brought it says which assistants it found and offers **Bring**, **Bring and sync** and **Hide**; brought, **Sync**, **Bring another file** and **Hide**; while syncing, **Bring another file**, **Stop syncing** and one switch per assistant, such as **Sync Claude**.
 
-Afterwards, in the sidebar, **Global** has a blue globe and each assistant a symbol of its own in grey: a chat bubble for Claude, a terminal for Codex, braces for Copilot, a compass for Gemini and a pointer for Cursor. Each document shows with its name and an icon: a book for a rule, a piece for a skill and a brain for memory. Hover over one and you see which file it is.
+Afterwards, in the sidebar, **Global** has a blue globe and each assistant a symbol of its own in its label's colour: an orange chat bubble for Claude, a teal terminal for Codex, indigo braces for Copilot, a green compass for Gemini and a brown pointer for Cursor. Each document shows with its name and an icon: a book for a rule, a piece for a skill and a brain for memory. Hover over one and you see which file it is.
 
 ![The sidebar with the Agents folder open and syncing: the robot in coral and the name Agents, with no word on the right; in Claude, the rule How I work with a book icon, the skill pr with a puzzle-piece icon and 3 files, and the memory MEMORY.md with a brain icon; the pointer over How I work shows claude · CLAUDE.md](agents-sidebar.png)
 
@@ -172,7 +172,7 @@ A document in Agents does not look like one more document: it opens for reading,
 - **the name**, **How I work**; on a skill, its `description` sits under it, in grey;
 - **the file's facts box**: **Read by**, **Written to** with its button to copy the path, **Size**, **Backups** with **See**, **Format**, **Last written**, **Original kept**, **Syncs on this computer**, **Shared** when the document has a live shared link and, in small rows, the file's other properties, such as `disable-model-invocation`;
 - **the agent's text**, just as you wrote it, with compact headings and no separate sheet. Tisty imposes no sections on it and never turns its first line into a title, and the file stays the same, byte for byte;
-- **at the foot, the buttons**: **Edit**, **Backups**, **History**, **Copy link** and **Pause sync with Claude**.
+- **at the foot, the buttons**, held at the bottom while the whole card scrolls: **Edit**, **Backups**, **History**, **Copy link** and **Pause sync with Claude**. While you edit, the text moves right to leave room for the editor's bar, as in any document.
 
 Codex reads its `AGENTS.md` only up to 32 KiB. When the file nears that cap, **Size** says so in amber, «close to the 32 KiB Codex reads», and past it, in red: time to move the long part into a skill.
 

@@ -1105,6 +1105,9 @@ describe("an agent's document", () => {
     expect(screen.getByTestId("sheet").hasAttribute("data-agent")).toBe(true);
     expect(screen.getByRole("navigation", { name: "What you can do with this file" })).toBeTruthy();
     expect(screen.getByRole("navigation", { name: "Folders" }).textContent).toBe("Agents/Claude");
+    const trail = screen.getByRole("navigation", { name: "Folders" });
+    expect(trail.closest(".ribbon")?.classList.contains("agent-ribbon")).toBe(true);
+    expect(trail.closest(".ribbon-title")).toBeNull();
     expect(document.querySelector("[data-beside]")).toBeNull();
     expect(screen.queryByRole("button", { name: t("beside") })).toBeNull();
   });
