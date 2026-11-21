@@ -12,6 +12,7 @@ fn alone(
 ) -> String {
     let drawing = Drawing {
         anchors,
+        signers: &HashMap::new(),
         aligned: false,
         placed: true,
         title,

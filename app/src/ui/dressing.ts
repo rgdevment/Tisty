@@ -11,6 +11,7 @@ import {
 } from "tisty-editor/read";
 import { widgetsDrawn } from "tisty-sheet";
 import { openLink } from "../core";
+import type { Signing } from "../crediting";
 import type { DayAt } from "../diary";
 import { askAgain, serve, showing } from "../inUse";
 import { locale, t } from "../locales";
@@ -24,6 +25,7 @@ import { placeCopied, placedAt, placeOf, placeSaid, placeWritten, samePlace } fr
 import { type Shot, shotsOf, type TableWent, type Went, went, widgetsIn } from "./paging";
 import { type Bar, type Formatting, type Menued, quickly } from "./quickly";
 import { SAY } from "./saying";
+import { signers } from "./signers";
 import { offeredAsParts } from "./staging";
 import { stickable, sticking } from "./sticking";
 import { dragging, tabled } from "./tabled";
@@ -65,6 +67,7 @@ export type Reaching = {
   readonly onPart?: (at: [number, number]) => void;
   readonly onCut?: (at: [number, number]) => void;
   readonly stepDates?: Readonly<Record<string, string>>;
+  readonly signing?: Signing;
   readonly onWiden?: (at: [number, number], widths: Widths) => void;
   readonly bar?: Bar;
   readonly onFormat?: (asked: Formatting) => void;
@@ -263,6 +266,7 @@ export const worn = (page: Document, live: () => boolean, reach?: Reaching): Wor
   if (reach && writes && page.documentElement.classList.contains("untitled"))
     hinted(page, reach.body);
   datedSteps(page, reach?.stepDates);
+  signers(page, reach?.signing);
   page.documentElement.classList.toggle("ticking", !!reach?.onTick);
   if (reach?.onStick) stickable(page);
   if (reach?.onWiden) gripped(page);

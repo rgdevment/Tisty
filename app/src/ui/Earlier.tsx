@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useId, useRef, useState } from "react";
+import { type Signing, useSigning } from "../crediting";
 import {
   awayOf,
   docHistoryEmpty,
@@ -42,14 +43,16 @@ function Listed({
   against,
   onPick,
   onAgainst,
+  signing,
 }: Readonly<{
   one: Version;
   chosen: boolean;
   against: boolean;
   onPick: () => void;
   onAgainst?: () => void;
+  signing?: Signing;
 }>) {
-  const facts = [writerOf(one), weigh(one.bytes)].filter(Boolean).join(" · ");
+  const facts = [writerOf(one, signing), weigh(one.bytes)].filter(Boolean).join(" · ");
   if (!one.here)
     return (
       <div aria-disabled="true" className={`${ROW} text-faint`}>
@@ -92,12 +95,14 @@ function Shown({
   one,
   label,
   cardsShown,
+  signing,
   onError,
 }: Readonly<{
   doc: string;
   one: Version;
   label: string;
   cardsShown?: CardsShown;
+  signing?: Signing;
   onError: (problem: unknown) => void;
 }>) {
   const [read, setRead] = useState<{ print: string; body: string } | null>(null);
@@ -119,6 +124,7 @@ function Shown({
       body={read.body}
       label={label}
       cardsShown={cardsShown}
+      signing={signing}
       onDoc={() => undefined}
     />
   );
@@ -140,6 +146,8 @@ export default function Earlier({
   const comparing = useRef<HTMLButtonElement>(null);
   const heading = useId();
   const { wrapped, held } = useHeldFocus(box);
+  const credited = useSigning("inside");
+  const signing = page ? credited : undefined;
   const [shelf, setShelf] = useState<Shelf | null>(null);
   const [chosen, setChosen] = useState<string | null>(null);
   const [against, setAgainst] = useState<string | null>(null);
@@ -264,6 +272,7 @@ export default function Earlier({
                   against={row.print === against}
                   onPick={() => pick(row.print)}
                   onAgainst={row.print === chosen ? undefined : () => turnAgainst(row.print)}
+                  signing={signing}
                 />
               </li>
             ))}
@@ -285,7 +294,7 @@ export default function Earlier({
         <section className="flex min-w-0 flex-1 flex-col bg-desk">
           <div className="flex min-h-[46px] items-center gap-3 border-b border-hair bg-bg px-5 py-2">
             <span className="min-w-0 flex-1 truncate text-[12.5px] text-soft">
-              {one ? saidOf(one) : ""}
+              {one ? saidOf(one, signing) : ""}
             </span>
             {one && (
               <button
@@ -313,6 +322,7 @@ export default function Earlier({
                 between={between ?? ""}
                 label={title}
                 cardsShown={cardsShown}
+                signing={signing}
                 ready={ready}
                 onWhole={() => {
                   setAgainst(null);
@@ -321,7 +331,14 @@ export default function Earlier({
                 onError={onError}
               />
             ) : one ? (
-              <Shown doc={doc} one={one} label={title} cardsShown={cardsShown} onError={onError} />
+              <Shown
+                doc={doc}
+                one={one}
+                label={title}
+                cardsShown={cardsShown}
+                signing={signing}
+                onError={onError}
+              />
             ) : (
               rows !== null &&
               rows.length > 0 &&
