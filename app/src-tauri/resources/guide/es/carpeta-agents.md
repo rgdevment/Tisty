@@ -38,7 +38,7 @@ Agentes no lleva ninguna palabra al lado: su color te dice cómo está.
 
 El coral es solo de Agentes: el morado es de los diagramas. Lo que espera tu decisión, como un archivo cambiado por fuera o una propuesta de tu agente, no aparece en la barra: lo ves en la ficha de cada documento y en **Configuración → Asistentes**. El botón derecho de Agentes misma no tiene ninguna otra acción de carpeta; sus subcarpetas, como **Agentes › Claude**, tienen el menú de siempre, con **Documento nuevo** y **Traer otro archivo**.
 
-**Agentes se queda arriba**, con su nombre y su robot: no se puede meter dentro de otra carpeta, cambiarle el nombre, darle otro icono ni archivarla, y mientras tenga algo adentro, tampoco borrarla, ni desde la ventana, ni por un agente, ni desde otro equipo. Por dentro se guarda como `AGENTS`, y así la encuentran las versiones anteriores de Tisty y tus asistentes por MCP. Si lo intentas, por ejemplo arrastrándola dentro de otra carpeta, Tisty te dice «Agentes se queda arriba, con su nombre y su robot, para seguir cuidando las reglas de tus agentes. Su color y su lugar entre tus carpetas sí los cambias».
+**Agentes se queda en el primer nivel**, con su nombre y su robot: no se puede meter dentro de otra carpeta, cambiarle el nombre, darle otro icono ni archivarla, y mientras tenga algo adentro, tampoco borrarla, ni desde la ventana, ni por un agente, ni desde otro equipo. Por dentro se guarda como `AGENTS`, y así la encuentran las versiones anteriores de Tisty y tus asistentes por MCP. Si lo intentas, por ejemplo arrastrándola dentro de otra carpeta, Tisty te dice «Agentes se queda arriba, con su nombre y su robot, para seguir cuidando las reglas de tus agentes. Su color y su lugar entre tus carpetas sí los cambias».
 
 ## Empezar
 
@@ -124,7 +124,8 @@ Botón derecho sobre **Global** o sobre la carpeta de un asistente, y **Document
 - En **Global**, `agent: global/rule/rule.md`; el siguiente, `rule-2.md`.
 - En la carpeta de un asistente, su archivo principal mientras ningún documento lo tenga: `CLAUDE.md`, `AGENTS.md`, `copilot-instructions.md` o, en Gemini, `tisty-rules.md`. Después, un archivo de su carpeta de reglas: `rules/rule.md` en Claude, `instructions/rule.instructions.md` en Copilot.
 - Codex y Gemini leen un solo archivo de reglas: cuando un documento ya lo tiene, **Documento nuevo** en su carpeta abre ese mismo, para que sumes ahí lo nuevo, o lo escribas en **Global**.
-- Dos reglas Global que nacieron con el mismo nombre en dos equipos antes de sincronizarse quedan con uno cada una: la más antigua sigue como `rule.md` y la otra pasa a `rule-2.md`, y las dos llegan a tus agentes. En **Cursor**, que no tiene archivo de reglas, también empieza común.
+- Dos reglas Global que nacieron con el mismo nombre en dos equipos antes de sincronizarse quedan con uno cada una: la más antigua sigue como `rule.md` y la otra pasa a `rule-2.md`, y las dos llegan a tus agentes una vez que su texto tiene tu aprobación.
+- En **Cursor**, que no tiene archivo de reglas, en Agentes misma y en una subcarpeta tuya, **Documento nuevo** crea un documento común, sin línea `agent:`.
 
 **Un ejemplo.** Marisol instala Gemini CLI, y en su barra aparece **Agentes › Gemini**, vacía. Botón derecho sobre **Gemini** y **Documento nuevo**; en su ficha pulsa **Editar**, escribe «Responde en español.» y pulsa **Listo**. Como Agentes sincroniza, Tisty lo escribe en `~/.gemini/tisty-rules.md` y agrega la línea `@tisty-rules.md` a su `GEMINI.md`, para que Gemini lo lea.
 
@@ -186,7 +187,7 @@ Un documento de Agentes no se ve como un documento más: se abre para leer, en u
 - **el cuadro de datos del archivo**: **Lo lee**, **Se escribe en** con su botón para copiar la ruta, una fila por archivo en un documento de Global, **Tamaño**, **Respaldos** con **Ver**, **Formato**, **Última escritura**, **Original guardado**, **Sincroniza en este equipo**, **Compartido** cuando el documento tiene un enlace compartido activo y, en filas chicas, las demás propiedades del archivo, como `disable-model-invocation`;
 - **el texto del agente**, tal como lo escribiste, con encabezados compactos y sin hoja aparte. Tisty no le impone secciones ni convierte su primera línea en un título, y el archivo sigue siendo el mismo, byte a byte;
 - **los avisos y las propuestas**, dentro de la misma ficha, bajo el cuadro de datos: un archivo cambiado por fuera, un documento que viene de otro equipo, un texto que espera tu aprobación o el cambio que te propone un agente;
-- **al pie, los botones**, fijos abajo mientras toda la ficha se desplaza: **Editar**, **Respaldos**, **Historial**, **Copiar enlace** y **Pausar la sincronización con Claude**; en un documento de Global, un botón por asistente, como **Pausar Claude**. Al editar, el texto se corre a la derecha para dejar sitio a la barra del editor, como en cualquier documento.
+- **al pie, los botones**, fijos abajo mientras toda la ficha se desplaza: **Editar**, **Respaldos**, **Historial**, **Copiar enlace** y **Pausar la sincronización con Claude**; en un documento de Global, un botón por asistente, como **Pausar Claude**, y sus respaldos se abren con **Ver**, en la fila de cada archivo. Al editar, el texto se corre a la derecha para dejar sitio a la barra del editor, como en cualquier documento.
 
 Codex lee su `AGENTS.md` solo hasta 32 KiB. Cuando el archivo se acerca a ese tope, **Tamaño** lo dice en ámbar, «cerca de los 32 KiB que lee Codex», y si lo pasa, en rojo: es el momento de pasar lo largo a una skill.
 
@@ -199,7 +200,7 @@ Puedes seguir editando los archivos de tus agentes con tu editor, o dejar que el
 **Un ejemplo.** Abres `~/.claude/CLAUDE.md` en tu editor y agregas «- Corre los tests antes de cada commit.». La próxima vez que Tisty mira, la ficha de **Cómo trabajo** dice **Cambiado por fuera**:
 
 - **Ver el archivo** muestra lo que tiene ahora.
-- **Traer el cambio** lo escribe en el documento. Lo que decía antes queda en su historial.
+- **Traer el cambio** lo escribe en el documento. Lo que decía antes queda en su historial: **Historial**, al pie de la ficha, lo muestra y te deja volver.
 - **Sobrescribir con Tisty** pregunta antes y vuelve a escribir el archivo desde el documento. Lo que tenía el archivo queda en un respaldo.
 
 Mientras no eliges, Tisty no escribe ese archivo. Si cambiaste el archivo y también el documento, la ficha dice **Cambiado en los dos lados**, y eliges cuál conservar.
@@ -209,6 +210,8 @@ Mientras no eliges, Tisty no escribe ese archivo. Si cambiaste el archivo y tamb
 ## Recuperar un respaldo
 
 Antes de sobrescribir un archivo, Tisty guarda lo que tenía. El **respaldo n.º 1** es el original, el de antes de que Tisty lo tocara, y nunca se borra; además guarda los últimos 20, así que un archivo puede tener hasta 21. Viven en este equipo y no viajan con la sincronización.
+
+**Respaldos** e **Historial** guardan cosas distintas. Un respaldo es el *archivo* de tu agente, como estaba en el disco antes de que Tisty lo sobrescribiera. El historial son las versiones anteriores del *documento* en Tisty, como las de cualquier otro, y lo cuenta [la portada de esta guía](tisty:guide), en **Volver a lo que decía antes**. La comparación con lo **Aprobado** lee de ese historial: si lo vacías, la ficha te pide leer el texto entero antes de aprobarlo.
 
 1. Al pie de la ficha, pulsa **Respaldos**, o **Ver** en la fila **Respaldos** de su cuadro de datos, junto a «3 respaldos».
 2. Elige uno, como **Respaldo n.º 2 · 1,1 kB**. **Ver** lo muestra entero.
@@ -318,6 +321,8 @@ Dos avisos más que puedes ver en una ficha:
 - **Escrito por un Tisty anterior**: una versión anterior de Tisty escribió el archivo y hoy no dice lo mismo que tus documentos. **Ver el archivo** y, si te quedas con el documento, **Sobrescribir con Tisty**.
 
 ## Lo que tu agente puede y no puede
+
+En la red de Brainsty, que cuenta la página **Brainsty: todo unido** de esta guía, tus documentos de Agentes vienen ocultos, para que no tapen lo tuyo: aparecen, chicos y en coral tenue, cuando enciendes **Mostrar AGENTS** en sus filtros, y Tisty nunca los marca como parecidos de nada.
 
 Tu agente **lee** tus documentos de Agentes, como cualquier otro, sincronice o no: le pides «¿qué reglas mías lees?» y te responde con sus títulos. Pero **no los escribe por su cuenta**: cuando cambia uno, su cambio queda aparte, como una propuesta, y solo llega a tus agentes si lo apruebas. Sincronizando, una regla de Agentes llega a todos tus agentes, en cada equipo donde Agentes sincroniza y la aplicaste, y nadie más que tú debería decidir qué dice.
 

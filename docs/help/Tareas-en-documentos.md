@@ -76,7 +76,7 @@ Es martes y escribes el acta de la reunión del condominio, con Jaime y Yisset.
 ## Lo que conviene saber
 
 - **Fuera de Tisty queda solo la frase.** Folio, el PDF, Word, la página web y el Markdown estándar dejan de la tarjeta solo las palabras con que la citaste: nada de la tarea sale con el documento. El visor liviano, el que abre un `.md` sin traerlo, muestra la tarea como esas palabras y los documentos como tarjetas.
-- **Lo oculto queda fuera de la red.** Una tarea que ocultaste no aparece en la red de Brainsty ni llega a tus agentes, aunque un documento la cite; en el documento, su tarjeta sigue ahí para ti.
+- **Lo oculto queda fuera de la red.** Una tarea que ocultaste o descartaste no aparece en la red de Brainsty, con las páginas que cuelgan de ella, ni llega a tus agentes, aunque un documento la cite; en el documento, su tarjeta sigue ahí para ti. Tu agente, donde la citaste, lee solo «a task out of sight», y si reescribe el documento tu cita vuelve intacta. Mira [[Lo que conviene saber|Red-de-Brainsty#lo-que-conviene-saber]] y [[Cómo trabaja un agente|Cómo-trabaja-un-agente]].
 - **Dos tareas de la misma sección** nacen las dos ahí, y las dos lo dicen en **Nació en**.
 - **Una tarjeta en otro equipo** muestra la tarea en cuanto la tarea llega a ese equipo; antes dice que no está en esta máquina.
 - **Tu agente también cita.** Cuando un agente escribe el id de una tarea solo en su párrafo, Tisty lo vuelve la tarjeta de esa tarea. Mira [[Cómo trabaja un agente|Cómo-trabaja-un-agente]].

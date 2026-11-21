@@ -1702,5 +1702,120 @@
         "said": "writing on a very long page answers much faster than before."
       }
     ]
+  },
+  {
+    "version": "1.49.0",
+    "headline": {
+      "es": "Todo lo que guardas, unido en una red, y las reglas de tus agentes en un solo lugar",
+      "en": "Everything you keep, joined in one network, and your agents' rules in one place"
+    },
+    "es": [
+      {
+        "title": "Enlaza un documento con otro",
+        "said": "escribe [[ y unas palabras de su título, y queda un enlace que sigue llegando aunque lo renombres. Junto a cada documento, Enlazado desde te dice quién lo nombra."
+      },
+      {
+        "title": "Tus tareas, dentro de tus documentos",
+        "said": "en el menú /, Una tarea cita cualquier tarea como una tarjeta viva que marcas ahí mismo, y Una tarea nueva la escribe en el documento como en la captura rápida."
+      },
+      {
+        "title": "Todo unido en Brainsty",
+        "said": "Brainsty, en la barra lateral, dibuja tus documentos, tareas, etiquetas y archivos como una sola red. De lejos es un mapa de tus proyectos; de cerca, cada cosa con sus vecinos, su ficha y un clic para abrirla."
+      },
+      {
+        "title": "Lo que se parece, sin IA",
+        "said": "una curva ámbar une lo que nadie unió pero habla de lo mismo: dos palabras poco comunes, un error de tipeo o una tarea en español y su gemela en inglés. Siempre dice por qué, y sale de reglas y una lista fija de palabras, nunca de un modelo."
+      },
+      {
+        "title": "Una red viva",
+        "said": "la red gira despacio como un globo mientras unos viajeros recorren sus líneas, y se queda quieta cuando la miras de cerca. Dos interruptores en la leyenda la dejan quieta del todo."
+      },
+      {
+        "title": "Vuelve a lo que decía antes",
+        "said": "cada documento guarda en este equipo sus versiones anteriores. Ver el historial muestra quién cambió qué, Qué cambió lo marca en rojo y verde, y Volver a esta versión lo trae de vuelta."
+      },
+      {
+        "title": "Cada documento tiene su enlace",
+        "said": "Copiar enlace te da una dirección para llegar a un documento desde un chat, el navegador o tu agente de IA, aunque lo renombres o lo cambies de carpeta."
+      },
+      {
+        "title": "Las reglas de tus agentes, juntas",
+        "said": "la carpeta Agentes trae a Tisty los archivos que leen Claude Code, Codex, Copilot, Gemini y Cursor. Traer los copia; Traer y sincronizar además escribe en ellos lo que cambias, con un respaldo antes."
+      },
+      {
+        "title": "Tu agente propone, tú apruebas",
+        "said": "tu agente de IA lee tus reglas como cualquier documento, pero un cambio suyo espera en la ficha hasta que lo apruebas, y cada equipo decide qué aplica."
+      },
+      {
+        "title": "Tu agente encuentra más, gastando menos",
+        "said": "con una sola búsqueda llega a todo, el Archivo incluido, lee la ficha de un documento sin leerlo entero y deja el estado de su tarea en un solo paso."
+      },
+      {
+        "title": "Tu agente no se olvida de Tisty",
+        "said": "Configuración › Asistentes agrega unos recordatorios a Claude Code, Cursor, Gemini y Copilot: cada sesión empieza con sus tareas abiertas, y un turno que no anotó nada en Tisty se le devuelve una vez."
+      },
+      {
+        "title": "Lo que apartas queda aparte",
+        "said": "una tarea oculta o descartada y tu diario no aparecen en la red ni le llegan a tu agente de IA, ni siquiera nombrados dentro de lo que escribiste."
+      },
+      {
+        "title": "Ideas, con su ampolleta",
+        "said": "la Lluvia de ideas ahora se llama Ideas y lleva una ampolleta. Una carpeta, el Diario o Ideas se pueden ocultar de la barra en este equipo."
+      }
+    ],
+    "en": [
+      {
+        "title": "Link a document to another",
+        "said": "type [[ and a few words of its title, and a link stays that still gets there after you rename it. Beside each document, Linked from tells you who names it."
+      },
+      {
+        "title": "Your tasks, inside your documents",
+        "said": "in the / menu, A task cites any task as a live card you tick right there, and A new task writes one into the document as the quick capture does."
+      },
+      {
+        "title": "Everything joined in Brainsty",
+        "said": "Brainsty, in the sidebar, draws your documents, tasks, tags and files as one network. From afar it is a map of your projects; up close, each thing with its neighbours, its card and a click to open it."
+      },
+      {
+        "title": "What is alike, with no AI",
+        "said": "an amber curve joins what nobody tied but is about the same thing: two uncommon words, a typo, or a task in Spanish and its twin in English. It always says why, and it comes from rules and a fixed word list, never from a model."
+      },
+      {
+        "title": "A living network",
+        "said": "the network turns slowly like a globe while travellers walk its lines, and holds still when you look up close. Two switches in the legend make it still for good."
+      },
+      {
+        "title": "Go back to what it said",
+        "said": "each document keeps its earlier versions on this computer. See the history shows who changed what, What changed marks it in red and green, and Go back to this version brings it back."
+      },
+      {
+        "title": "Every document has a link",
+        "said": "Copy link gives you an address to reach a document from a chat, your browser or your AI agent, even after you rename it or move it to another folder."
+      },
+      {
+        "title": "Your agents' rules, together",
+        "said": "the Agents folder brings into Tisty the files Claude Code, Codex, Copilot, Gemini and Cursor read. Bring copies them; Bring and sync also writes what you change into them, with a backup first."
+      },
+      {
+        "title": "Your agent proposes, you approve",
+        "said": "your AI agent reads your rules like any document, but a change of its own waits on the card until you approve it, and each computer decides what it applies."
+      },
+      {
+        "title": "Your AI agent finds more, for less",
+        "said": "with a single search it reaches everything, the Archive included, reads a document's card without reading it whole and leaves its task's state in one step."
+      },
+      {
+        "title": "Your agent does not forget Tisty",
+        "said": "Settings › Assistants adds a few reminders to Claude Code, Cursor, Gemini and Copilot: each session starts with its open tasks, and a turn that noted nothing in Tisty is handed back once."
+      },
+      {
+        "title": "What you put away stays away",
+        "said": "a hidden or dropped task and your diary do not show in the network or reach your AI agent, not even when named inside what you wrote."
+      },
+      {
+        "title": "Ideas, with its light bulb",
+        "said": "Brainstorm is now called Ideas and wears a light bulb. A folder, the Diary or Ideas can be hidden from the sidebar on this computer."
+      }
+    ]
   }
 ]

@@ -14,7 +14,7 @@ See [[What an assistant may do|MCP-Permissions]] for the rules behind them.
 | `language` | The Tisty language, so what it writes is something Tisty knows |
 | `help` | How Tisty itself works, from these same help pages, so it answers instead of guessing |
 | `catch_up` | Where things stand, with the lists, folders and most used tags; the open tasks that press, by title and list, for it to tell you and `read` — overdue, then due soon, for today and late, five at most, the rest counted — leaving out what an assistant already said is done or not to be done, which waits for you, and what you hid; what others moved since its last `catch_up`, twenty of each kind at a time, the next bringing the rest; and the open task it was on, with how far it got — not started, under way with how many steps are ticked, blocked, or with a state older than its work — or, if it no longer is, why: it said it is done or should not be done, or you closed, dropped or hid it. It names **Ideas**, and says how many ideas wait and how many are marked. On the day your [Weekly review](Tasks#weekly-review) is due, it says how much waits at each stop and how to help you |
-| `brain` | Find things and see how they connect, without opening them. Tasks and documents by their words, the archive beside the rest, ten of each at a time: first what holds the words in its title, then what moved most recently, each with the newest line that says them and never a note a later one replaced; when nothing holds every word, what holds the most, saying so. The card of one document — its headings, pages, what cites it and the signs it wants tidying — or of one task — its state, steps and parts — and its neighbours of one kind when asked. The open parts of a project, grouped as blocked, under way, waiting for you and not started. With nothing asked, your lists, folders and tags with their counts. What you hid stays out, even as a neighbour |
+| `brain` | Find things and see how they connect, without opening them. Tasks and documents by their words, the archive beside the rest, ten of each at a time: first what holds the words in its title, then what moved most recently, each with the newest line that says them and never a note a later one replaced; when nothing holds every word, what holds the most, saying so. The card of one document — its headings, pages, what cites it and the signs it wants tidying — or of one task — its state, steps and parts — and its neighbours of one kind when asked. The open parts of a project, grouped as blocked, under way, waiting for you and not started. With nothing asked, your lists, folders and tags with their counts. On the card, apart and under `guessed`, what Tisty thinks is alike and nobody linked, with what they share and `method` (`words`, `typo` or `dictionary`): see [[Alike|Brainsty-Network#alike]]. What you hid or dropped stays out, even as a neighbour or an alike pair |
 | `read` | Read a task: its state first, then its page, its steps and the notes written after that state, with who wrote each. A task with no state yet comes with one built from it: how many steps are done and the note that said it done. A page past about 4,000 characters comes as its sections, with the digest and the latest of the assistant's notes; the journal brings up to about 3,000 characters of notes, and the whole log when asked. Or read a document, or one part of it — or, with `as`, the whole of it in standard Markdown, to take to Confluence, Jira, Notion, Linear or GitHub through their own tools (see below); with `marks`, only what you highlighted or set in bold, under each section. **Ideas** comes in parts, idea by idea, never as a list of times. Read again with the `print` the last read gave, and if nothing changed it says only that. With `versions`, in place of the text, it lists its [earlier versions](Documents#earlier-versions), newest first: when each was written, by whom and its size; a task's id lists its page's. With `version` it reads one, under a notice that it is not what it says now. A version another of your computers replaced comes as `elsewhere`, with that computer's name, and is neither read nor gone back to |
 
 `find`, `docs`, `outline_doc`, `lists` and `tags` moved into `brain`, and `read_doc` into `read`. An assistant that still calls one of them by name is told where it went, and nothing else happens. When every row of a list in an answer shares a field, it comes once, beside the rows. How an agent uses them in a real session is in [[How an agent works|How-an-Agent-Works]].
@@ -43,7 +43,7 @@ See [[What an assistant may do|MCP-Permissions]] for the rules behind them.
 
 | Tool | What it does |
 | :-- | :-- |
-| `sum_up` | Leave a short summary of what a document is about, for the next reader |
+| `sum_up` | Leave a short summary of what a document is about, for the next reader. It replaces the one before, travels to your other computers with sync and goes into your backups; it never leaves through Folio or in a `.tistyx`, and the window does not show it |
 | `write_doc` | Write a new document, or write one again whole — or, with `compact`, put one that grew by sessions back in order (see below); with `translation_of`, write it as another language of one of your own documents (one someone else wrote is refused) |
 | `append_doc` | Add to a document, at the end or under a heading; on a task's page, add under the assistant's notes, or with `replace` fold every assistant's notes into one dated digest of at most 6,000 characters that keeps any line you wrote and `restore_doc` can undo. In **Ideas**, each paragraph or list item becomes an idea of its own, dated and coloured, of at most 140 characters; the idea itself, its `> [!IDEA]` line and its words as the sheet has them, added to another document takes it off the sheet, as filing it from the window does, and an `[!IDEA]` note that names no idea there stays a sticky note of its own. In the **Diary**, once you open it to agents, it only adds to the end of today, under a line with the minute and the agent's name |
 | `edit_doc` | Change one passage of a document, or of a task's page |
@@ -68,7 +68,18 @@ Bringing a Markdown file in copies what its text points at, but only what sits i
 
 ## The Diary
 
-Your [Diary](Documents#diary) is outside every tool until you open it to agents from the Diary itself: `brain`, `catch_up` and the documents offered for `@` leave it out, and a tool given one of its pages answers as for a document that does not exist. Open, the reading tools read it and `append_doc` adds to the end of today; every tool that would change, move, mark or put away what you wrote there is refused, and none can start a diary.
+Your [Diary](Documents#diary) is outside every tool until you open it to agents from the Diary itself: `brain`, `catch_up` and the documents offered for `@` leave it out, and a tool given one of its pages answers as for a document that does not exist. Open, the reading tools read it and `append_doc` adds to the end of today; every tool that would change, move, mark or put away what you wrote there is refused, and none can start a diary. Its earlier versions are never read, not even with the Diary open.
+
+## The Agents folder
+
+The documents in the [[Agents|AGENTS-Folder]] folder are your assistants' rules, skills and memories. Through MCP the folder is called `AGENTS`, in any language. An assistant reads them like any document, with `brain`, `read` and `export_doc`, but does not change them on its own:
+
+- **`write_doc`, `edit_doc` and `append_doc`** on one of them do not write it: they keep the change apart, as a proposal, and the answer says so. You approve or discard it on its card ([[A proposal from your agent|AGENTS-Folder#a-proposal-from-your-agent]]). On a memory, not even that: it is refused.
+- **`read`** of a document with a proposal brings `proposal`, with `approved: false`, so the assistant knows what it reads is not what reaches your agents.
+- **Every other tool that names them is refused**, touching nothing: `page_doc`, `tongue_doc`, `attach`, `flag_doc`, `archive_doc`, `file_doc`, `sum_up`, `restore_doc`, an `edit_table` that changes, and `folder` inside `AGENTS` or with that name. It holds the same when the document comes through `doc`, `page_of`, `translation_of`, `of`, `after`, `before`, `order`, `instead`, `folder` or `inside`.
+- **The `agent:` line**, the one that says which file a rule goes to, is never set or changed by an assistant, in any document of any folder.
+
+The refusal tells it what it can do instead: propose the change or tell you what it would change.
 
 ## A document's earlier versions
 
@@ -133,11 +144,11 @@ The document goes back to saying what that version said, over everything written
   "by": "the person",
   "until": "2026-11-16 21:15",
   "bytes": 2950,
-  "elsewhere": "Marisol's laptop"
+  "elsewhere": "Mario's laptop"
 }
 ```
 
-Reading it or going back to it is refused and changes nothing: «that version … was written over on Marisol's laptop, not on this machine». The assistant tells you which computer has it, so you open it there.
+Reading it or going back to it is refused and changes nothing: «that version … was written over on Mario's laptop, not on this machine». The assistant tells you which computer has it, so you open it there.
 
 ## Taking a document to another tool
 

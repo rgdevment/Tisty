@@ -38,7 +38,7 @@ Agents carries no word beside it: its colour tells you how it stands.
 
 Coral is Agents' own: purple belongs to diagrams. What waits for your decision, such as a file changed outside or a proposal from your agent, does not show in the sidebar: you see it on each document's card and in **Settings → Assistants**. The right-click on Agents itself has no other folder action; its subfolders, such as **Agents › Claude**, keep the usual menu, with **New document** and **Bring another file**.
 
-**Agents stays at the top**, with its name and its robot: it cannot be put inside another folder, renamed, given another icon or archived, and while it holds anything, it cannot be deleted either, not from the window, not by an agent, not from another computer. Inside it is kept as `AGENTS`, and that is how earlier versions of Tisty and your assistants through MCP find it. If you try, for example by dragging it into another folder, Tisty tells you «Agents stays at the top, with its name and its robot, so it keeps guarding your agents' rules. Its color and its place among your folders are yours to change».
+**Agents stays on the first level**, with its name and its robot: it cannot be put inside another folder, renamed, given another icon or archived, and while it holds anything, it cannot be deleted either, not from the window, not by an agent, not from another computer. Inside it is kept as `AGENTS`, and that is how earlier versions of Tisty and your assistants through MCP find it. If you try, for example by dragging it into another folder, Tisty tells you «Agents stays at the top, with its name and its robot, so it keeps guarding your agents' rules. Its color and its place among your folders are yours to change».
 
 ## Getting started
 
@@ -124,7 +124,8 @@ Right-click **Global** or an assistant's folder, and **New document**: the docum
 - In **Global**, `agent: global/rule/rule.md`; the next one, `rule-2.md`.
 - In an assistant's folder, its main file while no document has it: `CLAUDE.md`, `AGENTS.md`, `copilot-instructions.md` or, for Gemini, `tisty-rules.md`. Then a file in its rules folder: `rules/rule.md` for Claude, `instructions/rule.instructions.md` for Copilot.
 - Codex and Gemini read a single rules file: once a document holds it, **New document** in their folder opens that same one, so you add what is new there, or in **Global**.
-- Two Global rules born with the same name on two computers before they synced each keep one: the older stays `rule.md` and the other becomes `rule-2.md`, and both reach your agents. In **Cursor**, which has no rules file, it starts plain too.
+- Two Global rules born with the same name on two computers before they synced each keep one: the older stays `rule.md` and the other becomes `rule-2.md`, and both reach your agents once their text has your approval.
+- In **Cursor**, which has no rules file, in Agents itself and in a subfolder of yours, **New document** makes a plain document, with no `agent:` line.
 
 **An example.** Marisol installs Gemini CLI, and **Agents › Gemini** shows up in her sidebar, empty. Right-click **Gemini** and **New document**; on its card she presses **Edit**, writes «Answer in Spanish.» and presses **Done**. Since Agents syncs, Tisty writes it to `~/.gemini/tisty-rules.md` and adds the line `@tisty-rules.md` to her `GEMINI.md`, so Gemini reads it.
 
@@ -186,7 +187,7 @@ A document in Agents does not look like one more document: it opens for reading,
 - **the file's facts box**: **Read by**, **Written to** with its button to copy the path, one row per file on a Global document, **Size**, **Backups** with **See**, **Format**, **Last written**, **Original kept**, **Syncs on this computer**, **Shared** when the document has a live shared link and, in small rows, the file's other properties, such as `disable-model-invocation`;
 - **the agent's text**, just as you wrote it, with compact headings and no separate sheet. Tisty imposes no sections on it and never turns its first line into a title, and the file stays the same, byte for byte;
 - **the notices and proposals**, inside the same card, under the facts box: a file changed outside, a document that comes from another computer, words waiting for your approval or the change an agent proposes to you;
-- **at the foot, the buttons**, held at the bottom while the whole card scrolls: **Edit**, **Backups**, **History**, **Copy link** and **Pause sync with Claude**; on a Global document, one button per assistant, such as **Pause Claude**. While you edit, the text moves right to leave room for the editor's bar, as in any document.
+- **at the foot, the buttons**, held at the bottom while the whole card scrolls: **Edit**, **Backups**, **History**, **Copy link** and **Pause sync with Claude**; on a Global document, one button per assistant, such as **Pause Claude**, and its backups open with **See**, on each file's row. While you edit, the text moves right to leave room for the editor's bar, as in any document.
 
 Codex reads its `AGENTS.md` only up to 32 KiB. When the file nears that cap, **Size** says so in amber, «close to the 32 KiB Codex reads», and past it, in red: time to move the long part into a skill.
 
@@ -199,7 +200,7 @@ You can keep editing your agents' files in your editor, or let the agent change 
 **An example.** You open `~/.claude/CLAUDE.md` in your editor and add «- Run the tests before every commit.». The next time Tisty looks, the card of **How I work** says **Changed outside**:
 
 - **See the file** shows what it holds now.
-- **Bring the change in** writes it into the document. What it said before stays in its history.
+- **Bring the change in** writes it into the document. What it said before stays in its history: **History**, at the foot of the card, shows it and lets you go back.
 - **Overwrite with Tisty** asks first and writes the file again from the document. What the file held is kept as a backup.
 
 Until you choose, Tisty does not write that file. If you changed both the file and the document, the card says **Changed on both sides**, and you choose which to keep.
@@ -209,6 +210,8 @@ Until you choose, Tisty does not write that file. If you changed both the file a
 ## Restoring a backup
 
 Before writing over a file, Tisty keeps what it held. **Backup #1** is the original, the file as it was before Tisty touched it, and it is never removed; it also keeps the last 20, so a file can have up to 21. They live on this computer and do not travel with sync.
+
+**Backups** and **History** keep different things. A backup is your agent's *file*, as it was on disk before Tisty wrote over it. The history is the earlier versions of the *document* in Tisty, like any other's, and [this guide's cover](tisty:guide) tells it, under **Going back to what it said before**. The comparison with what is **Approved** reads from that history: if you empty it, the card asks you to read the whole text before approving it.
 
 1. At the card's foot, press **Backups**, or **See** on the **Backups** row of its facts box, beside «3 backups».
 2. Pick one, such as **Backup #2 · 1.1 kB**. **See** shows it whole.
@@ -318,6 +321,8 @@ Two more notices you may see on a card:
 - **Written by an earlier Tisty**: an earlier version of Tisty wrote the file and today it does not say what your documents say. **See the file** and, if you keep the document, **Overwrite with Tisty**.
 
 ## What your agent can and cannot do
+
+In the Brainsty network, which the page **Brainsty: everything joined** of this guide tells, your Agents documents come hidden, so they do not cover what is yours: they show, small and in a faint coral, when you turn **Show AGENTS** on in its filters, and Tisty never marks them as alike to anything.
 
 Your agent **reads** your documents in Agents like any other, whether it syncs or not: you ask «which of my rules do you read?» and it answers with their titles. But it **does not write them on its own**: when it changes one, its change stays apart, as a proposal, and reaches your agents only if you approve it. While syncing, a rule in Agents reaches all your agents, on each computer where Agents syncs and you applied it, and nobody but you should decide what it says.
 

@@ -55,6 +55,11 @@ Connect Tisty over MCP, as [[Assistants and MCP|Assistants-and-MCP]] shows — G
 **Does it replace CLAUDE.md, AGENTS.md or a memory-bank folder?**
 For what changes, yes; for what does not, no. Instructions that rarely move — how to build, the conventions — belong in the files your repository already hands the assistant. What moves — progress, decisions, what was ruled out, what is left — belongs in Tisty, where it is dated, searchable, read a section at a time, and never lost between branches, machines or projects.
 
+And the files in your home folder, like `~/.claude/CLAUDE.md` or `~/.codex/AGENTS.md`, the [[Agents|AGENTS-Folder]] folder brings into Tisty as documents, if you ask it to. **Bring** only copies them; **Sync** also writes into them what you change in Tisty, with a backup first. Your repository's files it does not touch.
+
+**Can my agent change my rules in the Agents folder?**
+Not on its own. It reads them like any document, but a change of its own stays as a proposal: on the card you see what is **Approved** and what is **Proposed**, and only **Approve the change** carries it to your agents' files, on every computer where Agents syncs and you applied it. See [[A proposal from your agent|AGENTS-Folder#a-proposal-from-your-agent]].
+
 **Does Tisty use AI?**
 No, and none is coming. The natural language is rules on your machine. If you use an assistant of your own, Tisty leaves an [[MCP door|Assistants-and-MCP]] — it comes open, and one click closes it.
 
@@ -62,7 +67,7 @@ No, and none is coming. The natural language is rules on your machine. If you us
 No. Nothing an assistant does closes a task. It marks it, with its account in the journal, and the task waits under **To confirm** until you decide. See [[What an assistant may do|MCP-Permissions]].
 
 **Can an assistant write over a document I am working on?**
-Only over the version it read. To replace a whole document it must send back the print of the text it read; if you wrote in between, nothing is written and it has to read again. What it replaced is kept, and the window offers to put the document back — only when that copy is exactly one write back, the only time it can do what it says. If you try to save over a change you had not seen, it asks which one stands.
+Only over the version it read. To replace a whole document it must send back the print of the text it read; if you wrote in between, nothing is written and it has to read again. What it replaced is kept as a version in its history, and from **See the history** you go back to it whenever you want ([Earlier versions](Documents#earlier-versions)). The window also offers to put the document back at once — only when that copy is exactly one write back, the only time it can do what it says. If you try to save over a change you had not seen, it asks which one stands.
 
 ## Documents
 
@@ -85,16 +90,16 @@ No. Both are drawn by code inside Tisty: nothing is fetched, no font is loaded f
 In how long the rule under the header is drawn. See [tables](https://markdown.tisty.app/tables) in the Tisty Markdown guide.
 
 **Can I go back to what a document said a few days ago?**
-Yes, on the computer where it changed: **See the history**, on the **History** row of the panel beside the document, lists its earlier versions, **What changed** shows in red and green what differs from now, and **Go back to this version** brings one back. They are kept 30 days by default and are not synced. See [Documents](Documents#earlier-versions).
+Yes, on the computer where it changed: **See the history**, on the **History** row of the panel beside the document, lists its earlier versions, **What changed** shows in red and green what differs from now, and **Go back to this version** brings one back. Tisty keeps one when someone writes after 30 minutes without changes or when the one writing changes, you or an assistant, so what your agent replaced always stays apart. They are kept 30 days by default, are not synced and **Empty the history** deletes them from that computer. See [Documents](Documents#earlier-versions).
 
 **How is the Brainsty network different from Obsidian's graph?**
-Obsidian's graph shows links between notes. Brainsty joins documents and tasks, with each task's state and its history, and the same network serves your agent as an index to search without reading everything. It draws with lines what is written (links, cards, pages, parts, where a task was born and tags) and, with an amber curve apart, what Tisty thinks is alike: because they share words, because one has a typo or because one is the other's translation, and it always says why. It opens in the content panel, beside the sidebar, with a legend of its colours, and costs nothing once you move to another view. See [[The Brainsty network|Brainsty-Network]].
+Obsidian's graph shows links between notes. Brainsty joins documents and tasks, with each task's state and its history, and the same network serves your agent as an index to search without reading everything. It draws with lines what is written (links, cards, pages, parts, where a task was born and tags), and what is written weighs more than a tag as it settles; folders and lists give the colour, they are not dots. With an amber curve apart, what Tisty thinks is alike: because they share words, because one has a typo or because one is the other's translation, and it always says why. It opens in the content panel, beside the sidebar, with a legend of its colours, and costs nothing once you move to another view. See [[The Brainsty network|Brainsty-Network]].
 
 **Does Brainsty use AI to tell what is alike?**
-No. It uses fixed rules and a list of words: two uncommon words in common, a word a single change away from another, like *imrpesora* and *impresora*, or a pair from a Spanish–English dictionary made by linguists, like *pagar ≈ pay*. It neither understands nor learns from what you write, and all of it runs on your computer. See [No AI](Privacy#no-ai).
+No. It uses fixed rules and a list of words: two uncommon words in common, a word a single change away from another, like *imrpesora* and *impresora*, or a pair from a Spanish–English dictionary made by linguists, like *pagar ≈ pay*. It neither understands nor learns from what you write, it reads only the prose (never code, paths or your agents' files), and all of it runs on your computer. See [No AI](Privacy#no-ai).
 
 **Does Brainsty upload anything?**
-No. The network is worked out on each computer and rebuilds itself: it is not synced, and it does not go to Folio, a `.tistyx` or an export. What travels is your documents and tasks, as always. The same holds for what Brainsty notes as alike: see [The Brainsty network](Brainsty-Network#alike).
+No. The network is worked out on each computer and rebuilds itself: it is not synced, and it does not go to Folio, a `.tistyx`, an export or a backup. What travels is your documents and tasks, as always. The same holds for what Brainsty notes as alike: see [The Brainsty network](Brainsty-Network#alike).
 
 ## Sync
 
