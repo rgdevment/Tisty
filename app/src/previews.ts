@@ -1,6 +1,7 @@
 import { ending, hosting, kept } from "tisty-editor/read";
 import { playedAs, SEEABLE } from "tisty-sheet";
 import { DOC, docOf } from "./markdown";
+import { onMac } from "./ui/macKeys";
 
 export type Preview =
   | { as: "video"; at: string }
@@ -12,7 +13,7 @@ export type Preview =
 export { named, SEEABLE } from "tisty-sheet";
 
 // WebKit draws HEIC itself and a Windows with the HEIF decoder draws it for Tisty; elsewhere it stays a file.
-let heicDrawn = navigator.userAgent.includes("Macintosh");
+let heicDrawn = onMac;
 
 export const drawsHeic = (yes: boolean): void => {
   heicDrawn = yes;

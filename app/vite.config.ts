@@ -10,6 +10,7 @@ const host = process.env.TAURI_DEV_HOST;
 
 const app = dirname(fileURLToPath(import.meta.url));
 const repository = dirname(app);
+const EDITOR_PAGE = /[\\/]src[\\/]ui[\\/]Page\.tsx$/;
 
 // The viewer builds apart so no React meets its Solid; in development its own server answers under the same address.
 const lightViewer: Plugin = {
@@ -34,6 +35,14 @@ const lightViewer: Plugin = {
 export default defineConfig(async ({ command }) => ({
   plugins: [react(), tailwindcss(), lightViewer, globeShaders({ mustSew: command === "build" })],
   optimizeDeps: { rolldownOptions: { plugins: [globeShaders()] } },
+  build: {
+    rolldownOptions: {
+      output: {
+        chunkFileNames: (chunk: { moduleIds: readonly string[] }) =>
+          `assets/${chunk.moduleIds.some((id) => EDITOR_PAGE.test(id)) ? "Page" : "[name]"}-[hash].js`,
+      },
+    },
+  },
 
   test: {
     environment: "jsdom",

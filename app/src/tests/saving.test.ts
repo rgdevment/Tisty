@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import {
   allUnanswered,
+  busy,
   cut,
   forgotten,
   holds,
@@ -155,6 +156,34 @@ describe("words a save left behind", () => {
       return "tres";
     });
     expect([...sent]).toEqual(["uno", "tres"]);
+  });
+
+  it("leave nothing of a document behind once its saves land, yet one asked for before a cut never goes", async () => {
+    const sent: string[] = [];
+    let first = (_: string) => {};
+    void kept("vaciado", "uno", () => {
+      sent.push("uno");
+      return new Promise<string>((done) => (first = done));
+    });
+    const second = kept("vaciado", "dos", async () => {
+      sent.push("dos");
+      return "dos";
+    });
+    await vi.advanceTimersByTimeAsync(0);
+
+    cut("vaciado");
+    first("uno");
+
+    await expect(second).rejects.toEqual({ code: "saveLate" });
+    await vi.advanceTimersByTimeAsync(0);
+    expect(busy("vaciado")).toBeUndefined();
+    await kept("vaciado", "tres", async () => {
+      sent.push("tres");
+      return "tres";
+    });
+    expect(sent).toEqual(["uno", "tres"]);
+    await vi.advanceTimersByTimeAsync(0);
+    expect(busy("vaciado")).toBeUndefined();
   });
 
   it("say a save that was let go was set aside, however it fails after", async () => {

@@ -215,18 +215,37 @@ fn a_page_that_breaks_while_drawn_is_refused_and_the_next_key_sends_the_whole_bo
     );
 }
 
-#[test]
-fn every_order_that_draws_answers_even_when_its_drawing_breaks() {
-    let said = std::fs::read_to_string("src/answers/paging.rs").expect("the orders that draw");
+fn orders_in(file: &str) -> (usize, Vec<String>) {
+    let said = std::fs::read_to_string(file).expect("the orders that draw");
     let orders: Vec<&str> = said.split("#[tauri::command(async)]").skip(1).collect();
-    let loose: Vec<&str> = orders
+    let loose = orders
         .iter()
         .map(|order| order.split("\n}\n").next().unwrap_or_default())
         .filter(|order| !order.contains("caught(") && !order.contains("tabled("))
         .filter_map(|order| order.lines().find(|line| line.starts_with("pub fn ")))
+        .map(|line| format!("{file}: {line}"))
         .collect();
+    (orders.len(), loose)
+}
 
-    assert!(orders.len() > 10, "the orders that draw moved elsewhere");
+#[test]
+fn every_order_that_draws_answers_even_when_its_drawing_breaks() {
+    let (pages, mut loose) = orders_in("src/answers/paging.rs");
+    let (cards, loose_cards) = orders_in("src/answers/cards.rs");
+    loose.extend(loose_cards);
+
+    let viewer = std::fs::read_to_string("src/light_view.rs").expect("the viewer's orders");
+    let viewer_cards = viewer
+        .split("pub fn view_cards(")
+        .nth(1)
+        .and_then(|order| order.split("\n}\n").next())
+        .expect("the viewer's order that draws cards");
+    if !viewer_cards.contains("caught(") {
+        loose.push("src/light_view.rs: pub fn view_cards(".to_string());
+    }
+
+    assert!(pages > 10, "the orders that draw moved elsewhere");
+    assert!(cards > 0, "the order that draws cards moved elsewhere");
     assert!(
         loose.is_empty(),
         "an order that draws leaves the page waiting forever if it breaks: {loose:?}"

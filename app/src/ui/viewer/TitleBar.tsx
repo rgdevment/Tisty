@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
-import { clearOfChrome, onMac } from "../WindowChrome";
+import { onMac } from "../macKeys";
+import { clearOfChrome } from "../WindowChrome";
 
 export default function TitleBar({
   title,

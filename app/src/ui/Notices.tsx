@@ -3,7 +3,8 @@ import { type CalendarChoice, keepCalendar, offered } from "../calendaring";
 import { type Settings, shortcut } from "../core";
 import { fill, t } from "../locales";
 import type { Run, Which, Word } from "./Card";
-import { Band, Knob, Line, ON_MAC, off } from "./Rows";
+import { onMac } from "./macKeys";
+import { Band, Knob, Line, off } from "./Rows";
 import ShortcutLine from "./ShortcutLine";
 import UrgentLine from "./UrgentLine";
 import { held, type Working } from "./working";
@@ -108,7 +109,7 @@ export default function Notices({ kept, amend, keys, setKeys, busy, run, tell, r
               className={`rounded-[10px] border border-line bg-bg px-2 py-1 text-[12.5px] ${off}`}
             >
               <option value="">{t("calendarAsk")}</option>
-              {offered(ON_MAC).map((one) => (
+              {offered(onMac).map((one) => (
                 <option key={one.choice} value={one.choice} disabled={one.away}>
                   {t(one.label)}
                 </option>

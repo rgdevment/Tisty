@@ -2,6 +2,8 @@ type Held = { readonly ctrlKey: boolean; readonly metaKey: boolean };
 type Moving = Held & { readonly altKey: boolean; readonly shiftKey: boolean };
 
 export const onMac = typeof navigator !== "undefined" && navigator.userAgent.includes("Macintosh");
+export const onWindows =
+  typeof navigator !== "undefined" && navigator.userAgent.includes("Windows");
 
 export const modKey = (event: Held): boolean =>
   onMac ? event.metaKey : event.ctrlKey || event.metaKey;

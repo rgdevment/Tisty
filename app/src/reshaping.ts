@@ -2,6 +2,7 @@ import { message } from "@tauri-apps/plugin-dialog";
 import { attach } from "./core";
 import { fill, t } from "./locales";
 import { heicReadable } from "./previews";
+import { onMac, onWindows } from "./ui/macKeys";
 
 export type Shape = "full" | "light";
 /** What the person chose: a shape, keeping it as it came, or null when they backed out. */
@@ -11,7 +12,7 @@ type Asking = (said: string) => Promise<ShapeChoice>;
 // Photos a window on another computer may not draw; only these for now, as a scan's pages would be lost.
 const NOT_EVERYWHERE = ["heic", "heif"];
 // Only Windows and macOS carry what turns them; elsewhere they are kept as they came.
-const CAN_TURN = ["Macintosh", "Windows"].some((one) => navigator.userAgent.includes(one));
+const CAN_TURN = onMac || onWindows;
 
 let asking: Asking | null = null;
 

@@ -7,8 +7,8 @@ import { cadence, clockOf, whenLabel } from "../format";
 import { t } from "../locales";
 import { placed, QUADRANTS, said } from "../quadrants";
 import { useEdge } from "./edge";
+import { onMac } from "./macKeys";
 import Recall from "./Recall";
-import { ON_MAC } from "./Rows";
 import When from "./When";
 
 interface Props {
@@ -236,7 +236,7 @@ function Saving({ task, onError }: { task: string; onError?: (problem: unknown) 
       {asking && (
         <Sheet onClose={() => setAsking(false)}>
           <p className="px-2.5 pt-1.5 pb-1 text-[11.5px] text-faint">{t("calendarWhich")}</p>
-          {offered(ON_MAC)
+          {offered(onMac)
             .filter((one) => !one.away)
             .map((one) => (
               <Row

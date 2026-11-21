@@ -4,9 +4,9 @@ import { waysOut } from "./leaving";
 import { t } from "./locales";
 import { FIND_KEY } from "./ui/finding";
 import type { Choice } from "./ui/Menu";
+import { onMac } from "./ui/macKeys";
 import type { Pickable } from "./ui/Picker";
 import { FOLD_KEY } from "./ui/SideEdge";
-import { onMac } from "./ui/WindowChrome";
 import { WHOLE_ASKED } from "./ui/wholeKeys";
 import type { Chosen } from "./views";
 

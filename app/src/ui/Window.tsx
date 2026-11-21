@@ -12,8 +12,9 @@ import { adopt, t } from "../locales";
 import { saidPlainly } from "../refusal";
 import { QUIET, switched, tell as tellBeaver } from "./Beaver";
 import type { Run, Which, Word } from "./Card";
+import { onMac } from "./macKeys";
 import { Note, NoteButton } from "./RowNotes";
-import { Band, Knob, Line, ON_MAC, off } from "./Rows";
+import { Band, Knob, Line, off } from "./Rows";
 import { held, type Working } from "./working";
 
 const STARTUP_APPS = "ms-settings:startupapps";
@@ -131,7 +132,7 @@ export default function Window({
               className={`rounded-[10px] border border-line bg-bg px-2 py-1 text-[12.5px] ${off}`}
             >
               <option value="ask">{t("closingAsk")}</option>
-              <option value="hide">{t(ON_MAC ? "closingHideBar" : "closingHide")}</option>
+              <option value="hide">{t(onMac ? "closingHideBar" : "closingHide")}</option>
               <option value="quit">{t("closingQuit")}</option>
             </select>
           </Line>
@@ -147,7 +148,7 @@ export default function Window({
                 <Note
                   kind="sys"
                   act={
-                    !ON_MAC && (
+                    !onMac && (
                       <NoteButton
                         label={t("wakeOpenWindows")}
                         onPress={() =>

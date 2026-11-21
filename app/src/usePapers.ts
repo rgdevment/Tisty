@@ -135,7 +135,7 @@ export function usePapers({
       .catch((e) => setError(saidPlainly(e)));
 
   const kinOf = (doc: Filed) =>
-    tonguesOf(papers.docs, doc).filter((one) => one.folder === doc.folder && one.away === doc.away);
+    tonguesOf(papers.docs, doc).filter((one) => one.folder === doc.folder);
 
   const goneWith = (doc: Filed, pages: Filed[]) => {
     const kin = kinOf(doc);

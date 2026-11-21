@@ -1228,6 +1228,7 @@ fn a_save_the_window_stopped_waiting_for_is_written_down() {
 fn only_a_code_we_ship_is_written_down() {
     assert_eq!(refusal_code("pastDeadline"), Some("pastDeadline"));
     assert_eq!(refusal_code("internalNamed"), Some("internalNamed"));
+    assert_eq!(refusal_code("goneDoc"), Some("goneDoc"));
     assert_eq!(refusal_code("comprar pan"), None);
 }
 

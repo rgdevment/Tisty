@@ -1,4 +1,5 @@
 import { getCurrentWebview } from "@tauri-apps/api/webview";
+import { onMac } from "./ui/macKeys";
 
 export const CATCHES = "data-catches-files";
 
@@ -31,12 +32,7 @@ export const asCss = (x: number, y: number, mac: boolean, scale: number): [numbe
 export const CALENDAR = /\.(ics|ical)$/i;
 
 const caughtAt = (x: number, y: number): Element | null => {
-  const [left, top] = asCss(
-    x,
-    y,
-    navigator.userAgent.includes("Macintosh"),
-    window.devicePixelRatio,
-  );
+  const [left, top] = asCss(x, y, onMac, window.devicePixelRatio);
   return document.elementFromPoint(left, top)?.closest(`[${CATCHES}]`) ?? null;
 };
 
@@ -65,8 +61,7 @@ export function whenFilesLand(onCaught: Caught, onLoose?: (paths: string[]) => v
   let stop: (() => void) | undefined;
   let live = true;
 
-  const here = (x: number, y: number) =>
-    asCss(x, y, navigator.userAgent.includes("Macintosh"), window.devicePixelRatio);
+  const here = (x: number, y: number) => asCss(x, y, onMac, window.devicePixelRatio);
 
   const under = (x: number, y: number): Element | null => {
     const [left, top] = here(x, y);

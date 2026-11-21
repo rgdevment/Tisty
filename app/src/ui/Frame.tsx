@@ -4,6 +4,7 @@ import { caught } from "../broke";
 import { unnavigated } from "../unnavigated";
 import { fitted, type Reaching, type Worn, wired, worn } from "./dressing";
 import { dressedAsWindow, framed } from "./framed";
+import { onWindows } from "./macKeys";
 import { wornLaid } from "./pageDressing";
 import { followTheme } from "./theming";
 
@@ -28,7 +29,7 @@ type Props = {
 };
 
 // Windows keeps arrows on even the thin bar, so the viewer draws its own there.
-const ARROWED = typeof navigator !== "undefined" && navigator.userAgent.includes("Windows");
+const ARROWED = onWindows;
 
 // The words change in place, and what the last ones left on the sheet itself goes with them.
 const freshen = (sheet: Element, html: string) => {

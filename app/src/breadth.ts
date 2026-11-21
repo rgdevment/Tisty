@@ -1,13 +1,12 @@
 import { useLayoutEffect, useSyncExternalStore } from "react";
 import { stored } from "./stored";
+import { onMac } from "./ui/macKeys";
 
 export type Breadth = { width: number | null; folded: boolean };
 
 type Sway = "free" | "giving" | "held";
 
-const ON_MAC = navigator.userAgent.includes("Macintosh");
-
-export const RAIL = ON_MAC ? 76 : 56;
+export const RAIL = onMac ? 76 : 56;
 export const NARROWEST = 294;
 export const WIDEST = 480;
 export const FOLDS_UNDER = NARROWEST;

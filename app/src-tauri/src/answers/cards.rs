@@ -6,7 +6,7 @@ use tisty_core::State;
 use tisty_core::model::{DateSpec, Status, Task, TaskId};
 use tisty_markdown::cards::{self, DocCard, Paper, Standing, Step, TaskCard, When, Words};
 
-use crate::{Session, held};
+use crate::{Answer, Session, caught, held};
 
 #[derive(serde::Deserialize, Debug, Clone, Copy, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
@@ -79,8 +79,8 @@ pub fn cards_drawn(
     glimpses: tauri::State<'_, Glimpses>,
     asked: Vec<Asked>,
     seen: Seen,
-) -> Vec<String> {
-    drawn(&session, &glimpses, &asked, &seen)
+) -> Answer<Vec<String>> {
+    caught("cards_drawn", || drawn(&session, &glimpses, &asked, &seen))
 }
 
 // The store is read under the lock and the documents' words after it, so a long page holds nobody up.

@@ -6,9 +6,10 @@ type Left = { n: number; words: string; stuck: boolean };
 
 type Holder = { flush: () => void; resend?: () => void; holding?: () => boolean };
 
-const queues = new Map<string, Promise<unknown>>();
+type Line = { last: Promise<unknown>; era: number };
+
+const lines = new Map<string, Line>();
 const unanswered = new Map<string, Left[]>();
-const cuts = new Map<string, number>();
 const holders = new Set<Holder>();
 let pending = 0;
 
@@ -22,19 +23,23 @@ export const turned = (): SaveTurn => {
   return { hand, n: turns };
 };
 
+const lineOf = (id: string): Line => {
+  const line = lines.get(id) ?? { last: Promise.resolve(), era: 0 };
+  lines.set(id, line);
+  return line;
+};
+
 export const queued = <T>(id: string, run: () => Promise<T>): Promise<T> => {
-  const before = queues.get(id) ?? Promise.resolve();
+  const line = lineOf(id);
   pending += 1;
-  const mine = before
-    .catch(() => {})
-    .then(run)
-    .finally(() => {
-      pending -= 1;
-    });
-  queues.set(
-    id,
-    mine.catch(() => {}),
-  );
+  const mine = line.last.then(run).finally(() => {
+    pending -= 1;
+  });
+  const last = mine.catch(() => {});
+  line.last = last;
+  void last.then(() => {
+    if (lines.get(id) === line && line.last === last) lines.delete(id);
+  });
   return mine;
 };
 
@@ -57,8 +62,9 @@ export const kept = <T>(
   words: string,
   run: (turn: SaveTurn) => Promise<T>,
 ): Promise<T> => {
-  const era = cuts.get(id);
-  const uncut = () => cuts.get(id) === era;
+  const line = lineOf(id);
+  const era = line.era;
+  const uncut = () => line.era === era;
   return queued(id, () => {
     if (!uncut()) return Promise.reject({ code: "saveLate" });
     const turn = turned();
@@ -95,11 +101,12 @@ export const forgotten = (id: string): void => {
 };
 
 export const cut = (id: string): void => {
-  cuts.set(id, (cuts.get(id) ?? 0) + 1);
+  const line = lines.get(id);
+  if (line) line.era += 1;
   unanswered.delete(id);
 };
 
-export const busy = (id: string): Promise<unknown> | undefined => queues.get(id);
+export const busy = (id: string): Promise<unknown> | undefined => lines.get(id)?.last;
 
 export const holds = (flush: () => void, also: Omit<Holder, "flush"> = {}): (() => void) => {
   const holder = { flush, ...also };
@@ -111,9 +118,11 @@ export const holds = (flush: () => void, also: Omit<Holder, "flush"> = {}): (() 
 
 const holding = () => [...holders].some((one) => one.holding?.() ?? false);
 
+const lasts = () => [...lines.values()].map((one) => one.last);
+
 const landed = async (): Promise<void> => {
-  await Promise.allSettled([...queues.values()]);
-  await Promise.allSettled([...queues.values()]);
+  await Promise.allSettled(lasts());
+  await Promise.allSettled(lasts());
 };
 
 export const settled = async (): Promise<void> => {

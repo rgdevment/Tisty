@@ -3,7 +3,7 @@ import { useAttended } from "../attended";
 import { closeWindow } from "../core";
 import { t } from "../locales";
 import Modal from "./Modal";
-import { ON_MAC } from "./Rows";
+import { onMac } from "./macKeys";
 
 interface Props {
   onDismiss: () => void;
@@ -30,7 +30,7 @@ export default function Closing({ onDismiss, onError }: Props) {
           className="rounded-[10px] border border-line px-3.5 py-2.5 text-left hover:bg-hover"
         >
           <span className="block text-[13px] font-medium">
-            {t(ON_MAC ? "closingHideBar" : "closingHide")}
+            {t(onMac ? "closingHideBar" : "closingHide")}
           </span>
           <span className="block text-[11.5px] text-faint">{t("closingHideWhy")}</span>
         </button>

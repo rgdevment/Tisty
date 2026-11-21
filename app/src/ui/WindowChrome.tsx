@@ -3,8 +3,6 @@ import { useEffect, useRef, useState } from "react";
 import { t } from "../locales";
 import { onMac } from "./macKeys";
 
-export { onMac };
-
 // Keeps a top strip clear of the window buttons Windows puts at the top right.
 export const clearOfChrome = onMac ? "pr-2.5" : "pr-[7.5rem]";
 

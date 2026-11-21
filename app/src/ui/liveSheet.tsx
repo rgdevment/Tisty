@@ -1,7 +1,7 @@
 import { type ReactNode, type RefObject, useEffect, useState } from "react";
 import { t } from "../locales";
 import Menu from "./Menu";
-import { onMac } from "./WindowChrome";
+import { onMac } from "./macKeys";
 
 type Framing = {
   readonly lively: boolean;

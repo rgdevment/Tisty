@@ -229,9 +229,9 @@ pub fn view_cards(
     };
     let session = app.state::<Mutex<Session>>();
     let glimpses = app.state::<Glimpses>();
-    Ok(crate::answers::cards::drawn(
-        &session, &glimpses, &asked, &seen,
-    ))
+    crate::caught("view_cards", || {
+        crate::answers::cards::drawn(&session, &glimpses, &asked, &seen)
+    })
 }
 
 const PICTURES: [(&str, &str); 9] = [

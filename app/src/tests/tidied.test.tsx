@@ -7,6 +7,7 @@ import { fill, t } from "../locales";
 import { forgotten, kept, unansweredWords } from "../saving";
 import { asksSure } from "../sure";
 import { alike, dropWord } from "../tidying";
+import { tongueName } from "../tongues";
 import Docs from "../ui/Docs";
 import Tree from "../ui/Tree";
 import { usePapers } from "../usePapers";
@@ -346,6 +347,31 @@ describe("deleting a set", () => {
     ]);
 
     expect(asked).toEqual([fill("flagDropAllSure", "2", "· Draft A\n· Draft C")]);
+  });
+
+  it("names and lets go of every language the store deletes with a document, the archived one too", async () => {
+    const asked: string[] = [];
+    asksSure((said) => {
+      asked.push(said);
+      return Promise.resolve(true);
+    });
+    ipc.docs = [
+      doc({ id: "D1", file: "d-1", lang: "en", tongue: ["D1", 0] }),
+      doc({ id: "D2", file: "d-2", lang: "es", tongue: ["D1", 1], archived: true, away: true }),
+    ];
+    await kept("d-2", "palabras de d-2", () => Promise.reject({ code: "documentMoved" })).catch(
+      () => {},
+    );
+    const { result } = renderHook(() => usePapers(hands()));
+    await waitFor(() => expect(result.current.papers.docs).toHaveLength(2));
+
+    await result.current.dropDoc(ipc.docs[0] as Filed);
+
+    expect(asked).toEqual([
+      fill("dropTonguesSure", "Notes", [tongueName("en"), tongueName("es")].join(", ")),
+    ]);
+    expect(called("doc_drop").map((one) => one.args.id)).toEqual(["D1"]);
+    expect(unansweredWords("d-2")).toBeUndefined();
   });
 
   it("deletes nothing when the person says no", async () => {

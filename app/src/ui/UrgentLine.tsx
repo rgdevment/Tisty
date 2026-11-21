@@ -3,8 +3,9 @@ import type { Settings } from "../core";
 import { t } from "../locales";
 import { openNoticeSettings, urgentOffered } from "../reminding";
 import type { Which } from "./Card";
+import { onMac } from "./macKeys";
 import { Note, NoteButton } from "./RowNotes";
-import { Knob, Line, ON_MAC } from "./Rows";
+import { Knob, Line } from "./Rows";
 
 interface Props {
   kept: Settings;
@@ -50,7 +51,7 @@ export default function UrgentLine({ kept, held, remember }: Props) {
                 />
               }
             >
-              {t(ON_MAC ? "noticeUrgentMac" : "noticeUrgentWindows")}
+              {t(onMac ? "noticeUrgentMac" : "noticeUrgentWindows")}
             </Note>
           )
         )

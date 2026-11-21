@@ -234,6 +234,7 @@ const REFUSALS: &[&str] = &[
     "stillCarrying",
     "sandboxCannotMerge",
     "noSuchDoc",
+    "goneDoc",
     "folderAway",
     "folderAwayHolds",
     "folderIsAway",

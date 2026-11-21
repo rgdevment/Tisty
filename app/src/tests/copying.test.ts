@@ -1,5 +1,4 @@
-import { readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
+import { readFileSync } from "node:fs";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const disk = vi.hoisted(() => ({ body: "lo viejo", pending: "" }));
@@ -26,6 +25,7 @@ vi.mock("../saving", () => ({
 
 import { asLink, asPlain } from "../copying";
 import { saidPlainly } from "../refusal";
+import { windowFiles } from "./repo";
 
 beforeEach(() => {
   disk.body = "lo viejo";
@@ -76,14 +76,7 @@ describe("copying a document as markdown", () => {
   });
 
   it("never reaches for the browser clipboard, which the packaged app does not have", () => {
-    const walk = (at: string): string[] =>
-      readdirSync(at, { withFileTypes: true }).flatMap((one) => {
-        const here = join(at, one.name);
-        if (one.isDirectory()) return one.name === "tests" ? [] : walk(here);
-        return /\.tsx?$/.test(one.name) ? [here] : [];
-      });
-
-    const guilty = walk("src").filter((one) =>
+    const guilty = windowFiles().filter((one) =>
       /navigator\s*\.\s*clipboard/.test(readFileSync(one, "utf8")),
     );
 
