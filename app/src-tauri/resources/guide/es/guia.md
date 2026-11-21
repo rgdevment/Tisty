@@ -11,7 +11,7 @@ Tisty es una memoria de trabajo que compartes con tu agente de IA, para que ning
 
 Tu agente pregunta qué cambió desde la última vez, abre la tarea en la que estaba y lee solo la sección que necesita. Trabaja, anota lo que hizo y te dice cuando algo está listo; tú lo revisas y lo cierras. Nada se cierra sin ti.
 
-Lo que guardan los dos es de dos tipos: lo que hay que hacer son **tareas**, y lo que vale la pena volver a leer son **documentos**. Y terminar no borra nada: una tarea terminada se archiva con todo lo que se escribió en ella, y meses después una búsqueda cuenta cómo se resolvió. Todo esto te sirve igual si todavía no trabajas con un agente.
+Lo que guardan los dos es de dos tipos: lo que hay que hacer son **tareas**, y lo que vale la pena volver a leer son **documentos**. Y terminar no borra nada: una tarea terminada se archiva con todo lo que se escribió en ella, y meses después una búsqueda cuenta cómo se resolvió. Y si prefieres trabajar de una forma más personal, sin agente, Tisty está igual de completo para ti: tus tareas, tus documentos, tus ideas y tu diario, a la vista y unidos en Brainsty. El agente es una forma de usarlo, no una condición, y lo conectas el día que quieras.
 
 Todo queda en este equipo, como texto que cualquier programa abre. No pide cuenta, no cobra suscripción y no envía nada sobre cómo lo usas. Es de código abierto: cualquiera puede auditarlo. Detrás no hay una empresa: lo hago yo, porque lo necesitaba, y lo comparto.
 
@@ -19,7 +19,7 @@ Lee esta guía a tu ritmo: cada sección se entiende sola, y lo que hoy no uses 
 
 ## Tú y tu agente
 
-Trabajar con un agente es repartirse el trabajo: tú decides hacia dónde va y él se encarga del detalle. Tisty está hecho para que esas dos mitades se entiendan.
+Trabajar con un agente es repartirse el trabajo: tú decides hacia dónde va y él se encarga del detalle. Tisty está hecho para que esas dos mitades se entiendan. Y si trabajas solo, cada sección de aquí vale igual para ti: lo que lee tu agente, lo lees tú.
 
 ### Lo lees tú, lo lee él
 
@@ -39,7 +39,7 @@ Brainsty es el cerebro de Tisty: todo lo que guardas, con lo que lo une, dibujad
 
 ## ¿Cómo funciona?
 
-Todo empieza con una pregunta, y tu agente se hace la misma: ¿lo vas a hacer, o lo vas a volver a leer? Si lo vas a hacer, es una tarea: se acaba, a veces el mismo día, y queda en el Archivo como conocimiento con fecha. Si lo vas a volver a leer, es un documento: un manual, una receta, las actas de un año, que corriges y amplías durante años. Y si todavía no lo sabes, es una idea: espera en Ideas hasta que la ordenes. Lo que solo pasó, y quieres recordar, va al Diario. Este dibujo cuenta el resto:
+Todo empieza con una pregunta, la misma para ti y, si trabajas con uno, para tu agente: ¿lo vas a hacer, o lo vas a volver a leer? Si lo vas a hacer, es una tarea: se acaba, a veces el mismo día, y queda en el Archivo como conocimiento con fecha. Si lo vas a volver a leer, es un documento: un manual, una receta, las actas de un año, que corriges y amplías durante años. Y si todavía no lo sabes, es una idea: espera en Ideas hasta que la ordenes. Lo que solo pasó, y quieres recordar, va al Diario. Este dibujo cuenta el resto:
 
 ```mermaid
 flowchart TD
@@ -75,7 +75,7 @@ Y si una tarea te enseña algo que vas a necesitar de nuevo, como el arreglo de 
 
 ## Tu agente de IA
 
-Tu agente de IA, sea GitHub Copilot, Claude Code, Codex u otro, entra a Tisty por MCP, con un programa que corre en este equipo, sin cuenta y sin pasar nada por la red. Lo que escribe va firmado con su nombre: «por Claude Code», «por Codex».
+Conectar un agente es opcional: todo lo de arriba funciona sin él, y lo conectas cuando quieras. Tu agente de IA, sea GitHub Copilot, Claude Code, Codex u otro, entra a Tisty por MCP, con un programa que corre en este equipo, sin cuenta y sin pasar nada por la red. Lo que escribe va firmado con su nombre: «por Claude Code», «por Codex».
 
 Desde ahí, Tisty es su memoria entre sesiones. De un documento lee primero el índice y después solo la sección que necesita; de la tarea en la que está, marca los pasos y anota en su bitácora lo que probó y descartó. La próxima sesión parte de ahí, y cuesta una fracción de releer tus archivos Markdown.
 

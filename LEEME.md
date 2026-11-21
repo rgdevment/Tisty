@@ -130,6 +130,10 @@ revisas y lo cierras: nada se cierra sin ti. Todo en tu propio disco, visual y
 fácil de leer para ti, y para tu agente un **servidor MCP local** que le da
 primero el índice y después solo la sección que necesita.
 
+Y si prefieres trabajar de una forma más personal, sin agente, Tisty te sirve
+igual: tus tareas, tus documentos, tus ideas y tu diario, a la vista y unidos
+en Brainsty. El agente es una forma de usarlo, no una condición.
+
 Es de código abierto: puedes leerlo, compilarlo, probarlo o descargar las
 versiones firmadas que ya están publicadas. No hay nada oculto: todo es
 auditable.

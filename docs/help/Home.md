@@ -16,6 +16,8 @@ I started building Tisty to solve a problem of my own, and little by little I sa
 
 Tisty is a working memory you share with your agent: you see the whole, and your agent every detail. When you finish a task it moves to the archive with everything it gathered — the description, the journal, the steps, the files, the documents you leaned on — and search reaches all of it years later. *How did I solve that last time?* Tisty has it. Beside the tasks, **documents** keep what you know, one per subject, as plain Markdown any other editor reads.
 
+And if you would rather work in a more personal way, with no agent, Tisty serves you just the same: your tasks, your documents, your ideas and your diary, in sight and joined in [Brainsty](Brainsty-Network). The agent is one way to use it, not a condition.
+
 And it is the memory of the AI agent you already use. Through a local **MCP server** — on your machine, with no account and no network — GitHub Copilot, Claude Code, Codex, Cursor or any MCP client asks what moved since last time, reads a document's outline and then only the section it needs, and writes down what it learned for the next session. It works and tells you when something is done; you review it and close it, because nothing closes without you. You decide what it may do.
 
 ## Real problems, real fixes

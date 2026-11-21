@@ -128,6 +128,10 @@ review it and close it: nothing closes without you. All of it on your own disk,
 visual and easy for you to read, and for your agent a **local MCP server** that
 hands it an outline first, then only the section it needs.
 
+And if you would rather work in a more personal way, with no agent, Tisty serves
+you just the same: your tasks, your documents, your ideas and your diary, in
+sight and joined in Brainsty. The agent is one way to use it, not a condition.
+
 It is open source: read it, build it, run it, or take one of the signed
 releases already out there. Nothing is hidden and all of it can be audited.
 

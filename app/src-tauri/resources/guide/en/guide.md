@@ -11,7 +11,7 @@ Tisty is a working memory you share with your AI agent, so neither of you starts
 
 Your agent asks what moved since last time, opens the task it was on and reads only the section it needs. It works, notes what it did and tells you when something is done; you review it and close it. Nothing closes without you.
 
-What you both keep comes in two kinds: what has to be done is a **task**, and what is worth reading again is a **document**. And finishing erases nothing: a finished task is archived with everything written in it, and months later a search tells how it was solved. All of this works just as well if you do not work with an agent yet.
+What you both keep comes in two kinds: what has to be done is a **task**, and what is worth reading again is a **document**. And finishing erases nothing: a finished task is archived with everything written in it, and months later a search tells how it was solved. And if you would rather work in a more personal way, with no agent, Tisty is just as complete for you: your tasks, your documents, your ideas and your diary, in sight and joined in Brainsty. The agent is one way to use it, not a condition, and you connect one whenever you like.
 
 Everything stays on this computer, as text any program opens. It asks for no account, charges no subscription and sends nothing about how you use it. It is open source: anyone can audit it. There is no company behind it: I make it because I needed it, and I share it.
 
@@ -19,7 +19,7 @@ Read this guide at your own pace: each section stands on its own, and whatever y
 
 ## You and your agent
 
-Working with an agent means splitting the work: you decide where it goes and it takes care of the details. Tisty is made so those two halves understand each other.
+Working with an agent means splitting the work: you decide where it goes and it takes care of the details. Tisty is made so those two halves understand each other. And if you work alone, each section here holds just the same for you: what your agent reads, you read.
 
 ### You read it, it reads it
 
@@ -39,7 +39,7 @@ Brainsty is Tisty's brain: everything you keep, with what joins it, drawn as one
 
 ## How does it work?
 
-It all starts with one question, and your agent asks it too: will you do it, or read it again? If you will do it, it is a task: it ends, sometimes the same day, and stays in the Archive as knowledge with a date. If you will read it again, it is a document: a manual, a recipe, a year of minutes, which you correct and add to for years. And if you do not know yet, it is an idea: it waits in Ideas until you sort it out. What simply happened, and you want to remember, goes in the Diary. This drawing tells the rest:
+It all starts with one question, the same for you and, if you work with one, for your agent: will you do it, or read it again? If you will do it, it is a task: it ends, sometimes the same day, and stays in the Archive as knowledge with a date. If you will read it again, it is a document: a manual, a recipe, a year of minutes, which you correct and add to for years. And if you do not know yet, it is an idea: it waits in Ideas until you sort it out. What simply happened, and you want to remember, goes in the Diary. This drawing tells the rest:
 
 ```mermaid
 flowchart TD
@@ -75,7 +75,7 @@ And if a task teaches you something you will need again, like the fix for a faul
 
 ## Your AI agent
 
-Your AI agent, whether GitHub Copilot, Claude Code, Codex or another, comes into Tisty through MCP, with a program that runs on this computer, with no account and nothing going over the network. What it writes is signed with its name: "by Claude Code", "by Codex".
+Connecting an agent is optional: everything above works without one, and you connect it whenever you like. Your AI agent, whether GitHub Copilot, Claude Code, Codex or another, comes into Tisty through MCP, with a program that runs on this computer, with no account and nothing going over the network. What it writes is signed with its name: "by Claude Code", "by Codex".
 
 From then on Tisty is its memory between sessions. Of a document it reads the outline first and then only the section it needs; on the task it is on, it ticks the steps and notes in its journal what it tried and ruled out. The next session starts there, and costs a fraction of rereading your Markdown files.
 

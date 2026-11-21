@@ -16,6 +16,8 @@ Comencé a desarrollar Tisty para resolver un problema personal, y fui viendo qu
 
 Tisty es una memoria de trabajo que compartes con tu agente: tú ves el conjunto, y tu agente cada detalle. Cuando terminas una tarea, pasa al archivo con todo lo que juntó: la descripción, la bitácora, los pasos, los archivos y los documentos en que te apoyaste. Y el buscador lo encuentra años después. *¿Cómo resolví eso la última vez?* Tisty lo tiene. Junto a las tareas, los **documentos** guardan lo que sabes, uno por tema, como Markdown normal que cualquier otro editor lee.
 
+Y si prefieres trabajar de una forma más personal, sin agente, Tisty te sirve igual: tus tareas, tus documentos, tus ideas y tu diario, a la vista y unidos en [Brainsty](Red-de-Brainsty). El agente es una forma de usarlo, no una condición.
+
 Y es la memoria del agente de IA que ya usas. Por un **servidor MCP** local, en tu equipo, sin cuenta y sin red, GitHub Copilot, Claude Code, Codex, Cursor o cualquier cliente MCP pregunta qué cambió desde la última vez, lee el índice de un documento y después solo la sección que necesita, y deja escrito lo que aprendió para la próxima sesión. Trabaja y te dice cuando algo está listo; tú lo revisas y lo cierras, porque nada se cierra sin ti. Tú decides qué puede hacer.
 
 ## Problemas reales, soluciones reales
