@@ -163,7 +163,7 @@ Un recordatorio es una hora que eliges en la tarea: suena como una notificación
 
 Dos preguntas, cuatro casillas: si corre prisa y si importa.
 
-![Los cuatro cuadrantes —hacer, planificar, delegar y prescindible— y la bandeja de lo que no clasificaste](prioridades.png)
+![Los cuatro cuadrantes, Hacer, Planificar, Delegar y Prescindible, cada uno con su cuenta, y junto al título cuántas tareas faltan por clasificar](prioridades.png)
 
 - **Hacer** — urgente e importante. Hoy.
 - **Planificar** — importante, sin prisa. Ponle fecha antes de que se vuelva urgente.
@@ -517,7 +517,7 @@ Tisty trabaja siempre en este equipo. Para tener lo mismo en otro, dile dónde d
 - **Directo a una nube**: tu Google Drive, tu OneDrive o tu propio servidor WebDAV (Nextcloud, ownCloud, Synology y otros), sin instalar nada más.
 - **Una carpeta**: Google Drive, OneDrive, iCloud o Dropbox si están instalados, o cualquier carpeta que vean los dos equipos. Ahí quien sube y baja es el programa de tu proveedor, no Tisty.
 
-> No hay servidor nuestro por medio. Sincronizar te da otra copia, no un viaje al pasado: si borras una tarea, el borrado también viaja.
+> No hay ningún servidor por medio. Sincronizar te da otra copia, no un viaje al pasado: si borras una tarea, el borrado también viaja.
 
 Cuando dos equipos escribieron la misma parte de un documento, Tisty no elige: te muestra las dos versiones y te quedas con **Esta**, **La otra** o **Las dos**.
 
@@ -546,7 +546,7 @@ La primera vez, Compartir te pide crear tu identidad: la llave con que firmas lo
 
 Una tarea terminada no se acaba: se archiva. Deja de ser algo por hacer y se vuelve el registro de cómo resolviste algo, con su página, sus pasos, sus archivos y sus partes, tal como quedaron. Se lee pero ya no se escribe, y vuelve si la reabres.
 
-![El Archivo con sus rutinas: cuántas vueltas se cumplieron, la racha y la hora a la que se suelen cerrar](archivo.png)
+![El Archivo: su buscador, las tareas cerradas mes a mes, sus cifras con las cerradas, las historias, las vueltas de las rutinas y la racha más larga, las capas Historias, Rutinas, Rastro y Ocultas, y las historias agrupadas por mes](archivo.png)
 
 Lo abre el icono de la caja, junto a las vistas de la barra lateral, y se lee en tres capas:
 

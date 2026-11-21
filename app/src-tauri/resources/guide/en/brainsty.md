@@ -8,8 +8,6 @@ What you keep was already joined: a document cites another, a task was born in s
 
 Type `[[` where you want the link and go on with a few words of the title. Tisty offers up to eight documents that match, ignoring accents and capitals, those that start that way first. Pick one with `Enter` and a link with its title stays, pointing at the document and not at its name: if you rename it, the link still gets there.
 
-![The menu two brackets open in Rina's record, before anything else is typed: the documents you can link, one per line](linking.png)
-
 **Try it:** at the end of this paragraph type `[[rina` and pick **Rina**, this guide's sample page. You get a link like this one: [Rina](tisty:page).
 
 To land on a section, follow the title with `#`: `[[what is#tasks` offers the sections of this guide's cover that hold that word, and the link opens the guide right at **Tasks**. If that section stops existing, the link opens the document at the top.

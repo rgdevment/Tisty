@@ -4,8 +4,6 @@ For years I kept what I knew in loose notes, and the hard part was never writing
 
 This page covers linking a document to another one or to a section of another, seeing where a link goes without leaving your place, and knowing who links to a document. Citing a task inside a document, and creating one from there, is in [[Tasks in documents|Tasks-in-Documents]]. Everything you link shows up in [[the Brainsty network|Brainsty-Network]].
 
-![The menu two brackets open in a document: the titles that match what was typed, those that start that way first](https://raw.githubusercontent.com/rgdevment/Tisty/main/app/src-tauri/resources/guide/en/linking.png)
-
 ## When it helps
 
 - **A subject that leans on another.** «Rina» names «Vet» where it tells about the yearly vaccine; whoever reads Rina's note is one click away from Marisol's opening hours.

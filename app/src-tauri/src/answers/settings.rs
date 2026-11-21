@@ -27,7 +27,6 @@ pub const ATTACHED: &[&str] = &[
     "archivo.png",
     "archive.png",
     "enlazar.png",
-    "linking.png",
     "tarjeta.png",
     "card.png",
     "red.png",

@@ -59,7 +59,7 @@ Si todavía no tienes archivos de agentes, el aviso dice «No encontré archivos
 
 Después, en la barra lateral, cada asistente que Tisty encontró en este equipo tiene su subcarpeta, aunque esté vacía. **Global** lleva un globo azul y cada asistente un símbolo propio en el color de su etiqueta: un globo de conversación naranja para Claude, una terminal verde azulado para Codex, unas llaves índigo para Copilot, una brújula verde para Gemini y un puntero café para Cursor. Una subcarpeta que borras no vuelve a aparecer. Cada documento se ve con su nombre y un icono: un libro para una regla, una pieza para una skill y un cerebro para la memoria. Pasa el puntero sobre uno y ves de qué archivo es.
 
-![La barra lateral con la carpeta Agentes abierta y sincronizando, con el robot en coral: dentro, Global con su globo azul y Claude con su globo de conversación naranja; en Claude, la regla Reglas, elegida, con el icono de una hoja, y debajo las skills, cada una con el icono de una pieza y cuántos archivos lleva](agents-barra.png)
+![La barra lateral con la carpeta Agentes abierta y sincronizando, con el robot en coral: dentro, Global con su globo azul y Claude con su globo de conversación naranja; en Claude, la regla Reglas, elegida, con el icono de un libro, y debajo las skills, cada una con el icono de una pieza y cuántos archivos lleva](agents-barra.png)
 
 ## Una regla: en Tisty y en `CLAUDE.md`
 
@@ -281,7 +281,7 @@ Lo mismo pasa con `AGENTS.override.md`, el archivo que Codex lee en vez de `AGEN
 
 ## Sacar una regla y su archivo
 
-Cuando borras una regla, la mueves fuera de Agentes o vuelves a una versión sin ficha, Tisty deja de escribirla. Si era la única que armaba su archivo, ese archivo sigue en el disco y tu agente lo sigue leyendo, así que alrededor de un segundo después Tisty te pregunta:
+Cuando borras una regla, la mueves fuera de Agentes o vuelves a una versión sin ficha, Tisty deja de escribirla. Si era la única que armaba su archivo, ese archivo sigue en el disco y tu agente lo sigue leyendo, así que alrededor de un segundo después Tisty te pregunta **¿Quitar también el archivo?**, con la ruta del archivo, por ejemplo `~/.claude/rules/pruebas.md`, y «Si lo quitas, queda un respaldo en este equipo.»:
 
 - **Quitar el archivo** guarda un respaldo en este equipo y lo borra: Claude deja de leer esa regla.
 - **Dejarlo** lo deja donde está, y Tisty no lo vuelve a escribir ni a preguntar. Si un día lo quieres de vuelta, aparece en **Traer otro archivo**.

@@ -59,7 +59,7 @@ If you have no agent files yet, the box says «I found no agent files on this co
 
 Afterwards, in the sidebar, each assistant Tisty found on this computer has its subfolder, even an empty one. **Global** has a blue globe and each assistant a symbol of its own in its label's colour: an orange chat bubble for Claude, a teal terminal for Codex, indigo braces for Copilot, a green compass for Gemini and a brown pointer for Cursor. A subfolder you delete does not come back. Each document shows with its name and an icon: a book for a rule, a piece for a skill and a brain for memory. Hover over one and you see which file it is.
 
-![The sidebar with the Agents folder open and syncing, with the robot in coral: inside, Global with its blue globe and Claude with its orange chat bubble; in Claude, the rule Rules, picked, with a sheet icon, and below it the skills, each with a puzzle-piece icon and how many files it holds](agents-sidebar.png)
+![The sidebar with the Agents folder open and syncing, with the robot in coral: inside, Global with its blue globe and Claude with its orange chat bubble; in Claude, the rule Rules, picked, with a book icon, and below it the skills, each with a puzzle-piece icon and how many files it holds](agents-sidebar.png)
 
 ## A rule: in Tisty and in `CLAUDE.md`
 
@@ -281,7 +281,7 @@ The same goes for `AGENTS.override.md`, the file Codex reads instead of `AGENTS.
 
 ## Taking a rule and its file out
 
-When you delete a rule, move it out of Agents or go back to a version without its card, Tisty stops writing it. If it was the only one making up its file, that file is still on disk and your agent keeps reading it, so about a second later Tisty asks:
+When you delete a rule, move it out of Agents or go back to a version without its card, Tisty stops writing it. If it was the only one making up its file, that file is still on disk and your agent keeps reading it, so about a second later Tisty asks **Take the file away too?**, with the file's path, for example `~/.claude/rules/tests.md`, and «If you take it away, a backup stays on this computer.»:
 
 - **Take the file away** keeps a backup on this computer and deletes it: Claude stops reading that rule.
 - **Leave it** leaves it where it is, and Tisty neither writes it nor asks again. If one day you want it back, it shows in **Bring another file**.
