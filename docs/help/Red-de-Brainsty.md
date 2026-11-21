@@ -88,7 +88,7 @@ Por ejemplo, Marisol tiene once carpetas y listas con color, y la carpeta Agente
 
 Mientras la miras, la red se mueve: gira y la recorren viajeros por sus líneas. Viene así de fábrica; si la prefieres quieta, la apagas desde la leyenda.
 
-![La red viva en el tema oscuro, en la app en inglés: 1.931 nodos y 2.811 conexiones girando despacio como un globo en el panel de contenido, junto a la barra lateral, con la Leyenda plegada abajo a la izquierda](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/app/en-brainsty-living-dark.webp)
+![La red viva en el tema oscuro: 1.931 nodos girando despacio como un globo, los documentos como cuadrados y las tareas como círculos del color de su carpeta o su lista, con viajeros de luz que recorren sus líneas](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/app/brainsty-living-dark.webp)
 
 - **Gira como un globo**, sola, una vuelta por minuto. Lo que queda atrás se ve más chico y más tenue, y con la red girada las zonas de color se ocultan y se ven menos títulos.
 - **De cerca, se queda quieta.** Apenas acercas la vista, con la rueda, al elegir un resultado de la búsqueda o al caminar con las flechas, el globo deja de girar, y no vuelve a hacerlo hasta que ves otra vez la red entera. Así el nodo que miras no se te va de lado. Alejarte más allá de la red entera no lo detiene.

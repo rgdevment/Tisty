@@ -459,10 +459,10 @@ sidebar, draws all of it as one network, in the content panel beside your lists.
   gets the alike pairs apart, so it never takes them for links someone wrote.
 
 <img
-  src="assets/screens/app/en-brainsty-living-dark.webp"
-  alt="Brainsty, alive: 1,931 nodes and 2,811 connections turning slowly like a
-  globe in the content panel, beside the sidebar, with the Legend folded at the
-  bottom left"/>
+  src="assets/screens/app/brainsty-living-dark.webp"
+  alt="Brainsty, alive: a network of 1,931 nodes turning slowly like a globe,
+  documents as squares and tasks as circles in their folder's or list's colour,
+  with travellers of light walking its lines"/>
 
 [The Brainsty network](https://www.tisty.app/docs/brainsty-network/), in the
 help, tells all of it.
