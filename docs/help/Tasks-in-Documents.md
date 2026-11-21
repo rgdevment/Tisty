@@ -76,7 +76,7 @@ It is Tuesday and you are writing the minutes of the building meeting, with Jaim
 ## Good to know
 
 - **Outside Tisty only the sentence stays.** Folio, the PDF, Word, the web page and standard Markdown keep only the words you cited the card with: nothing of the task leaves with the document. The light viewer, the one that opens an `.md` without bringing it in, shows the task as those words and documents as cards.
-- **What is hidden stays out of the network.** A task you hid does not show in the Brainsty network and never reaches your agents, even if a document cites it; in the document, its card is still there for you.
+- **What is hidden stays out of the network.** A task you hid or dropped does not show in the Brainsty network, with the pages hung under it, and never reaches your agents, even if a document cites it; in the document, its card is still there for you. Your agent, where you cited it, reads only «a task out of sight», and if it rewrites the document your citation comes back intact. See [[Good to know|Brainsty-Network#good-to-know]] and [[How an agent works|How-an-Agent-Works]].
 - **Two tasks from the same section** are both born there, and both say so in **Born in**.
 - **A card on another computer** shows the task as soon as the task reaches that computer; before that it says it is not on this machine.
 - **Your agent cites too.** When an agent writes a task's id alone in its paragraph, Tisty turns it into that task's card. See [[How an agent works|How-an-Agent-Works]].

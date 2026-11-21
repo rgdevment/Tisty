@@ -74,6 +74,8 @@ Documents are a Markdown notebook beside the tasks: callouts, tables, diagrams, 
 - [[Documents]] — folders, tags, several languages, attachments, import and export, and reading a Markdown file from outside.
 - [Ideas](Documents#ideas) — ideas of the moment as sticky notes, sorted out later into a task or a document.
 - [Diary](Documents#diary) — what happened today, a book a year, kept from your agent until you open it.
+- [Earlier versions](Documents#earlier-versions) — what a document said before a change, yours or your agent's, what changed and going back to it, on each computer.
+- [A document's link](Documents#a-documents-link) — reaching it from a chat, your browser or your agent.
 - [[The editor|Markdown-Editor]] — writing where you read, the bar, the `/` menu, tables and shortcuts.
 - [[Pages and PDF|Pages-and-PDF]] — a document in chapters, page breaks, and Tisty's own PDF.
 - [[Diagrams]] — the diagram window: a mind map, a schema, a freeform diagram or a class diagram drawn by hand, and exported as an image.

@@ -163,7 +163,7 @@ productivity tool** that lives on your machine and nowhere else.
 **Brainsty, Tisty's brain.** Everything you keep, with what joins it, drawn as
 one network: a map from afar for you, and, for your agent, an index that tells
 it where to look without reading everything. It also shows, apart, what Tisty
-guesses is alike, with no AI. [More below](#brainsty-everything-joined).
+thinks is alike, with no AI. [More below](#brainsty-everything-joined).
 
 > I use Tisty every day on macOS and Windows. If something feels off,
 > [open an issue](https://github.com/rgdevment/Tisty/issues) — this project
@@ -239,6 +239,11 @@ waits in Ideas.
   copy is piled beside the first.
 - **Pages for what is long** — a runbook, an annex, a book in chapters — with
   folders, languages, tables, diagrams, formulas and a PDF of its own.
+- **Earlier versions, on each computer** — when your agent rewrites a document,
+  or you delete a paragraph you need a week later, **See the history** shows
+  what it said before, **What changed** marks it in red and green, and **Go back
+  to this version** brings it back. Each computer keeps its own, 30 days by
+  default.
 
 ![Diagrams that stay text: you draw the diagram and Tisty keeps it as Mermaid, inside Markdown that any editor opens and any agent reads, offline](assets/screens/readme/en-02-diagrams.webp)
 
@@ -312,30 +317,59 @@ What you keep was already joined: a document cites another, a task was born in
 some minutes, a book has pages. **Brainsty**, under the task views in the
 sidebar, draws all of it as one network, in the content panel beside your lists.
 
-- **Joined as you write** — `[[` links a document to another, the `/` menu
-  cites a task as a live card, and the panel beside a document lists who links
-  to it.
+- **Joined as you write** — `[[` links a document to another, the `/` menu cites
+  a task as a live card, and the panel beside a document lists who links to it.
 - **A map from afar, the detail up close** — documents as squares, tasks as
-  circles in their list's colour, folders and lists as nodes amid what they
-  hold, tags and files; up close, every title, each kind of line and the icon of
-  what each node is. A folded legend says what each shape, colour and line
-  means.
+  circles in their list's colour, tags and files; folders and lists give the
+  colour and tint their zone. What someone wrote — a citation, a mention, a part
+  — pulls hardest and shows most. Up close, every title, each kind of line, and
+  each node drawn as its own icon. A folded legend says what each shape, colour
+  and line means.
 - **A card, not the text** — click a node and its card says what it is, its
   dates, its state, what points at it and its link to copy; **Open** takes you
-  there.
-- **Alike, with no AI** — an amber curve joins what nobody tied but Tisty
-  guesses is alike, and says why: two uncommon words in common, a typo
-  (*impresora ≈ imrpesora*), or a task in Spanish and its twin in English
-  (*pagar ≈ pay*), from a fixed list of words made by linguists. It all runs
-  on your computer.
+  there, and a file opens with your system's program.
+- **Alike, with no AI** — an amber curve joins what nobody tied but Tisty thinks
+  is alike, and says why: two uncommon words in common, a typo (*impresora ≈
+  imrpesora*), or a task in Spanish and its twin in English (*pagar ≈ pay*),
+  from a fixed list of words made by linguists. It reads only the prose you
+  wrote, never code or your agents' files, and it all runs on your computer.
+- **What you put away stays away** — a hidden or dropped task, its pages and
+  your Diary are not in the network, and your agents' files wait behind **Show
+  AGENTS**.
 - **Alive, if you want it** — the network turns slowly like a globe while
-  travellers walk its lines; two switches in the legend make it still.
+  travellers walk its lines, and holds still while you look up close; two
+  switches in the legend make it still for good.
 - **The same network for your agent** — with one tool, `brain`, it searches the
   archive with the rest, reads a document's card without reading it whole, and
-  gets the guesses apart, so it never takes them for links someone wrote.
+  gets the alike pairs apart, so it never takes them for links someone wrote.
 
 [The Brainsty network](https://www.tisty.app/docs/brainsty-network/), in the
 help, tells all of it.
+
+### Agents: your agents' rules, in one place
+
+Each agent reads its rules from a file of its own: Claude Code from `CLAUDE.md`,
+Codex from `AGENTS.md`, Gemini from `GEMINI.md`, Copilot from
+`copilot-instructions.md`. The **Agents** folder, at the top of the Library,
+gathers them in Tisty as documents, with their skills and memory.
+
+- **Bring or sync** — **Bring** copies the files you tick, to read and arrange
+  them, and writes nothing back; **Bring and sync** also writes a rule you
+  change once into each agent's file, with a backup before every overwrite.
+- **One rule for all of them** — a document in **Global** reaches every
+  assistant on the computer; one in **Claude** only Claude.
+- **Your agent proposes, you approve** — an agent reads your rules like any
+  document, but a change of its own waits on the card, beside what you approved,
+  until you say yes.
+- **Each computer decides** — a rule written on another computer waits for
+  **Apply here**, and a change made outside Tisty is never written over: you
+  bring it in or keep Tisty's.
+- **Nothing it should not touch** — settings, credentials, links and anything
+  shaped like a secret are never brought in, and nothing is read until you click
+  the folder.
+
+[The Agents folder](https://www.tisty.app/docs/agents-folder/), in the help,
+tells each step.
 
 ## A Day With Your Agent
 
@@ -1337,7 +1371,7 @@ the format is for.
 
 No, and none is coming. The natural language that turns "call the bank at 3"
 into a task is rules running on your machine: no model, no request, no cloud.
-What Brainsty guesses is alike comes from shared words, a typo or a fixed
+What Brainsty thinks is alike comes from shared words, a typo or a fixed
 Spanish–English word list, never from a model. If you already use an assistant
 of your own, Tisty leaves an
 [MCP](https://modelcontextprotocol.io) door — it comes open, one click closes
@@ -1359,6 +1393,11 @@ how to build, the conventions — belong in the files your repository already
 hands the assistant. What moves — progress, decisions, what was ruled out, what
 is left — belongs in Tisty, where it is dated, searchable, read a section at a
 time, and never lost between branches, machines or projects.
+
+The files in your home folder, like `~/.claude/CLAUDE.md` or
+`~/.codex/AGENTS.md`, are another matter: the **Agents** folder brings them into
+Tisty as documents and, if you sync it, writes your changes back, with a backup
+first. [Agents](#agents-your-agents-rules-in-one-place) tells how.
 
 ### Can I use it on two computers?
 

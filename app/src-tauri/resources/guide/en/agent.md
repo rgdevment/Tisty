@@ -34,7 +34,7 @@ An agent deep in code forgets about Tisty. Two things help, and you can turn bot
 
 ## What it reads: Brainsty
 
-Your agent does not read everything you keep: it walks it. With a single tool, `brain`, it finds tasks and documents by their words, the Archive beside the rest and first what holds those words in its title. It asks for a document's card (its sections with their lines, who cites it and its decisions in force first) and then, with `read`, reads only the section it needs, or only what you highlighted or set in bold. If it reads again something that did not change, Tisty tells it only that, without sending the text again. And it sees a whole project grouped as blocked, under way, waiting for you and not started: a part whose state starts with «Blocked:» counts as blocked.
+Your agent does not read everything you keep: it walks it. With a single tool, `brain`, it finds tasks and documents by their words, the Archive beside the rest and first what holds those words in its title. It asks for a document's card (its sections with their lines, who cites it and its decisions in force first) and then, with `read`, reads only the section it needs, or only what you highlighted or set in bold. If it reads again something that did not change, Tisty tells it only that, without sending the text again. And it sees a whole project grouped as blocked, under way, waiting for you and not started: a part whose state starts with «Blocked:» counts as blocked. On the card it gets apart, under `guessed`, what Tisty thinks is alike and nobody linked, with the words that say so: it reads both before joining anything. It is the same network you see drawn in **Brainsty: everything joined**, a page of this guide.
 
 ![The page of «Confirmation webhook» with its State section, signed by Claude Code: what is done, what is left, the decisions in force and what was ruled out](state.png)
 
@@ -60,7 +60,9 @@ Everything it writes is signed with the name of the program it spoke through: "b
 - Close, reopen or delete a task, or delete a document or an idea.
 - Tick a step of yours or finish a task of yours: it only says they are done, and you take its word or not.
 - Move a day you set.
-- Write on its own in the Agents folder: a change to your rules or skills stays as a proposal, and reaches your agents only if you approve it on the card.
+- Write on its own in the Agents folder: a change to your rules or skills stays as a proposal, and reaches your agents only if you approve it on the card. **Agents: your agents' rules**, a page of this guide, tells it.
+- Empty a document's history or read the earlier versions of your diary. It can list a document's versions, read one and go back to it, as you do from **See the history**; [this guide's cover](tisty:guide) tells it, under **Going back to what it said before**.
+- Read a task you hid or dropped: where you linked it, it reads only «a task out of sight».
 - Create lists or set routines: without one of your lists, what it files lands in the inbox.
 - Write over what you changed while it was thinking: it is asked to read again.
 - See your Diary while it reads **Only you**, or change what you wrote in it once you open it.

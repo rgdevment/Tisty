@@ -33,7 +33,7 @@ How far it reaches: each person has their own Tisty and their own agents. It doe
 
 ### Everything joined: Brainsty
 
-Brainsty is Tisty's brain: everything you keep, with what joins it, drawn as one network. You see it from afar, as a map of all your projects, and up close, each document with its tasks. Your agent reads it as an index that tells it where to look without reading everything. You make the ties as you write: `[[` links a document to another, and `/` cites a task or creates a new one right there, in the document.
+Brainsty is Tisty's brain: everything you keep, with what joins it, drawn as one network. You see it from afar, as a map of all your projects, and up close, each document with its tasks. Your agent reads it as an index that tells it where to look without reading everything. You make the ties as you write: `[[` links a document to another, and `/` cites a task or creates a new one right there, in the document. What nobody tied and is about the same thing, Tisty marks apart as alike, with rules and word lists, with no AI.
 
 ![Brainsty: everything joined, the page of this guide that tells it and lets you try it](tisty:brainsty)
 
@@ -84,7 +84,7 @@ From then on Tisty is its memory between sessions. Of a document it reads the ou
 - **It cannot** close or delete a task, delete a document or an idea, tick a step of yours or move a day you set. On a task you wrote it may change the description, the page and the open steps, as in a document.
 - **It does not see your diary** until you open it yourself. Open, it reads it and only adds to the end of today.
 
-If you wrote in a document while it was reading it, it does not write over you: it is asked to read it again. And when something writes in the document you have open, the window tells you and offers to go back to what it said before.
+If you wrote in a document while it was reading it, it does not write over you: it is asked to read it again. And when something writes in the document you have open, the window tells you and offers to go back to what it said before; what your agent replaced is also kept as a version in its history, which **Going back to what it said before** tells, further down.
 
 How to connect it, how to let it in or keep it out, and how to ask it for things, step by step, is on this page:
 
@@ -92,7 +92,7 @@ How to connect it, how to let it in or keep it out, and how to ask it for things
 
 ### Your agents' rules, in one place
 
-Each agent reads its rules from its own file: Claude Code from `CLAUDE.md`, Codex from `AGENTS.md`, Gemini from `GEMINI.md`. The **Agents** folder, at the top of the Library, gathers them in Tisty as documents. **Bring** copies them, to read and arrange them, writing nothing into them; **Sync** also lets you write a rule once and have Tisty write it to each one's file, with a backup before touching it. A change you make outside is never written over, each computer chooses whether it syncs and what it applies, and your agent does not write your rules: it proposes the change, and only you approve it. It sits in your sidebar from the start, in grey, and reads nothing of your agents' until you say so: you start by clicking it.
+Each agent reads its rules from its own file: Claude Code from `CLAUDE.md`, Codex from `AGENTS.md`, Gemini from `GEMINI.md`. The **Agents** folder, at the top of the Library, gathers them in Tisty as documents. **Bring** copies them, to read and arrange them, writing nothing into them; **Sync** also lets you write a rule once and have Tisty write it to each one's file, with a backup before touching it. A change you make outside is never written over, each computer chooses whether it syncs and what it applies, and your agent does not write your rules: it proposes the change, and only you approve it. It sits in your sidebar from the start, in grey, and reads nothing of your agents' until you say so: you start by clicking it. In the [Brainsty](tisty:brainsty) network its files come hidden, so they do not cover what is yours, until you turn **Show AGENTS** on.
 
 ![Agents: your agents' rules, the page of this guide that tells it with examples](tisty:agents)
 
@@ -464,12 +464,19 @@ There is more to say about code, and it fits on a page of its own:
 Each document keeps, on this computer, what it said before, for the day a change takes away something you still need. Say you ask your agent to tidy «Rina's walks» and it leaves out the times:
 
 1. In the panel beside the document, the **History** row has **See the history**.
-2. Its versions sit on the left, newest first, with the time, who wrote each and its size. Click the one from before your agent's change and read it on the right. **What changed**, above it, shows in red what your agent took out and in green what it put in.
+2. Its versions sit on the left, newest first, with the time, who wrote each (**you**, **an assistant** or its program's name, like **Claude Code**) and its size. Click the one from before your agent's change and read it on the right. **What changed**, above it, shows in red what your agent took out and in green what it put in; **Compare**, on another row, compares two versions with each other.
 3. **Go back to this version** brings it back. What it said is kept, and **Put back what it said before**, on the document's bar, undoes the go-back.
 
-Tisty keeps a version when 30 minutes go by without changes or when the one writing changes, you or an assistant. On a task's page the same is under **Versions of this page**, and the words come back without removing any step.
+Tisty does not keep a version at every key. What was there is kept as a version when someone writes after 30 minutes without changes, or when the one writing changes: you after an assistant, an assistant after you, or two different assistants. That way, what your agent left and what you wrote never mix in a single version.
 
-The history belongs to this computer: it is not synced, and a new computer starts without it. It is kept 30 days, or 1, 5 or 15 if you choose so in Settings → Your data, and the last version always stays. So that a text you deleted on purpose is not kept, **Empty the history**, at the foot of the list, deletes it from this computer. More in [documents](https://www.tisty.app/docs/documents/).
+- **A task's page** has the same under **Versions of this page**, and the words come back without removing any step.
+- **Each page of a book and your Ideas sheet** carry a history of their own.
+- **An Agents document** opens it with **History**, at the foot of its card. There, **Backups** are something else: what your agent's file held before Tisty wrote in it. [Agents: your agents' rules](tisty:agents) tells it.
+- **An archived document** shows its history but does not offer to go back: unarchive it first.
+- **A greyed row** is a version another of your computers keeps, «Not on this computer; … keeps it». It is read there.
+- **Your agent** can also list the versions, read one and go back to it, and never empty the history or see your diary's. [Your agent's page](tisty:agent) tells it.
+
+The history belongs to this computer: it is not synced and does not leave when you share or export, and a new computer starts without it, unless you restore a full backup there, which does carry it. It is kept 30 days, or 1, 5 or 15 if you choose so in Settings › Your data › **Document history**, and the last version always stays. So that a text you deleted on purpose is not kept, **Empty the history**, at the foot of the list, deletes it from this computer, with no way back; your other computers and the backups you already made keep theirs, so empty it there too. Deleting a document deletes its history. More in [earlier versions](https://www.tisty.app/docs/documents/#earlier-versions), in the help.
 
 ### Its link
 
@@ -479,8 +486,9 @@ Every document has a link to reach it from outside: a chat, your browser, a task
 - It still gets there after you rename it or move it to another folder: what counts is the `id` at the end.
 - Inside a task or another document, write it as a link, `[Walks](the link)`, and open it with Ctrl+click.
 - Paste it to your agent and it reads or changes that very document without searching for it.
+- In [Brainsty](tisty:brainsty), the card of each document, page or task brings its **Link** with **Copy link**.
 
-It opens only on your computers, where your store is; to give it to someone else, share it. More in [documents](https://www.tisty.app/docs/documents/).
+It opens only on your computers, where your store is; to give it to someone else, share it. More in [a document's link](https://www.tisty.app/docs/documents/#a-documents-link), in the help.
 
 ### What comes from elsewhere
 

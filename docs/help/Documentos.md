@@ -128,6 +128,7 @@ Lo que conviene saber:
 
 - **Es de este equipo.** Lo que ocultas no viaja con tu sincronización: en tus otros equipos la carpeta sigue a la vista, y cada equipo oculta lo suyo.
 - **No se borra ni se mueve nada.** La carpeta conserva sus documentos y sus subcarpetas, y la búsqueda, la paleta y **Mover a** la siguen encontrando: puedes mover un documento a una carpeta oculta, y entra igual.
+- **Se oculta de tu vista, no de tu agente.** Tu agente de IA sigue leyendo y escribiendo en una carpeta oculta, y Brainsty la sigue dibujando. Lo que tu agente nunca alcanza es otra cosa: una tarea que ocultaste o descartaste, tu Diario mientras no lo abras, y los documentos de Agentes, donde solo propone.
 - **El filtro de la barra la muestra.** Mientras escribes en el filtro de la Biblioteca, las carpetas ocultas aparecen también, para que un resultado nunca quede escondido. Al cerrar el filtro con `Esc`, vuelven a ocultarse.
 - **Una subcarpeta sola.** Puedes ocultar **Trabajo / Clientes** y dejar **Trabajo** a la vista. Su fila en Carpetas ocultas nombra el camino entero, para que sepas cuál es.
 - **El Diario e Ideas también.** Botón derecho sobre **Diario** o sobre **Ideas** y **Ocultar de la barra**. En Carpetas ocultas aparecen con su nombre, y **Volver a mostrar** los devuelve arriba de la Biblioteca.
@@ -327,7 +328,7 @@ Sirve para un texto que borraste a propósito: pegaste en «Datos del seguro» u
 
 **Las versiones no se sincronizan.** Cada equipo guarda lo que se reemplazó en él, también lo que reemplazó un cambio llegado de otro equipo, y las poda con su propio plazo.
 
-- **Una versión que guarda otro equipo** aparece en la lista mientras dura el plazo, como **No está en este equipo; lo guarda** y el nombre de ese equipo, por ejemplo «No está en este equipo; lo guarda Portátil de Marisol». Su texto está solo allá, así que aquí no se lee ni se recupera: ábrela en ese equipo.
+- **Una versión que guarda otro equipo** aparece en la lista mientras dura el plazo, como **No está en este equipo; lo guarda** y el nombre de ese equipo, por ejemplo «No está en este equipo; lo guarda Portátil de Mario». Su texto está solo allá, así que aquí no se lee ni se recupera: ábrela en ese equipo.
 - **Un equipo nuevo empieza sin versiones anteriores,** aunque reciba todos tus documentos. Lo que ese equipo cambie desde ahí, lo guarda.
 - **Para llevarlas a otra máquina,** usa un [respaldo](Sincronizar-y-respaldar#respaldos): el zip las lleva, y restaurarlo cambia las de ese equipo por las que trae.
 
@@ -338,6 +339,10 @@ Sirve para un texto que borraste a propósito: pegaste en «Datos del seguro» u
 - **El [Diario](#diario)** también guarda versiones en este equipo, que cuentan para lo que guarda tu equipo y tus respaldos, pero su vista no tiene la fila **Historial**: no se listan desde la ventana.
 - **Un documento archivado o bloqueado, y la página de una tarea cerrada,** muestran sus versiones pero no ofrecen **Volver a esta versión**. Desarchívalo o desbloquéalo (o su carpeta archivada, o el documento bloqueado del que es página), o reabre la tarea con **Reabrir**, para volver a una.
 - **Restaurar un respaldo** cambia las versiones de este equipo por las del zip, y su plazo vuelve a contar desde ese día.
+- **Tu asistente nunca lee las versiones del Diario**, ni con el Diario abierto a los agentes. Las de cualquier otro documento sí puede listarlas, leerlas y volver a ellas, pero no vaciar el historial: mira [[Herramientas MCP|Herramientas-MCP#versiones-anteriores-de-un-documento]].
+- **Cada página de un libro y tu hoja de [Ideas](#ideas)** guardan sus propias versiones, como cualquier documento. La fila de una página dice **Historial**; **Versiones de esta página** es solo de la página de una tarea.
+- **Un documento de la carpeta [[Agentes|Carpeta-AGENTS]]** guarda sus versiones igual, y su ficha las abre con **Historial**. No son sus **Respaldos**, que guardan el archivo de tu agente como estaba en el disco. Su comparación con lo **Aprobado** lee de este historial: si lo vacías, o la versión aprobada pasa el plazo, la ficha te pide leer el texto entero antes de aprobar.
+- **Compartir o exportar** un documento nunca lleva sus versiones: ni un enlace de Folio, ni un `.tistyx`, ni una exportación. Solo un respaldo completo las lleva.
 - **Al actualizar desde un Tisty sin historial,** la copia que cada documento guardaba de su texto anterior pasó sola a ser su primera versión.
 
 ### Con tu asistente

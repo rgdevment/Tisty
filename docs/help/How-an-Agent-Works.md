@@ -101,19 +101,21 @@ A document's or a task's card also brings what Tisty thinks is alike, apart, und
 
 ```json
 > brain {"task": "…Ask for a quote on the roof…"}
-{ "guessed": [ { "kind": "doc", "title": "House repairs", "score": 0.42, "shared": ["quote", "roof"] } ] }
-"Guessed alike by Tisty, linked by no one: \"House repairs\" […] (shares quote, roof)."
+{ "guessed": [ { "id": "…", "kind": "doc", "title": "House repairs", "state": "open", "score": 0.42, "shared": ["quote", "roof"], "method": "words" } ] }
+"Guessed alike by Tisty, linked by no one: \"House repairs\" […] (open) (shares quote, roof)."
 ```
 
-In `shared`, a word alone is one both of them wrote. An `a≈b` pair is what each side wrote: a typo, like `impresora≈imrpesora`, or a translation from Tisty's Spanish–English dictionary, like `pagar≈pay`. That way the agent knows «Pay the water bill» and «Pagar la cuenta del agua» are alike by language, not because someone tied them, and reads both before deciding whether they are the same task:
+In `shared`, a word alone is one both of them wrote. An `a≈b` pair is a word each side wrote differently, and `method` says which of the three clues tied them: `words`, shared words; `typo`, a typo or a plural, like `impresora≈imrpesora` or `vacuna≈vacunas`, and `dictionary`, a translation from Tisty's Spanish–English dictionary, like `pagar≈pay`. The sentence below says the same in words: «shares», «spelled almost the same:» or «alike by translation:». That way the agent knows «Pay the water bill» and «Pagar la cuenta del agua» are alike by language, not because someone tied them, and reads both before deciding whether they are the same task:
 
 ```json
 > brain {"task": "…Pay the water bill…"}
-{ "guessed": [ { "kind": "task", "title": "Pagar la cuenta del agua", "score": 0.61, "shared": ["pagar≈pay", "agua≈water"] } ] }
-"Guessed alike by Tisty, linked by no one: \"Pagar la cuenta del agua\" […] (shares pagar≈pay, agua≈water)."
+{ "guessed": [ { "id": "…", "kind": "task", "title": "Pagar la cuenta del agua", "state": "open", "score": 0.61, "shared": ["pagar≈pay", "agua≈water"], "method": "dictionary" } ] }
+"Guessed alike by Tisty, linked by no one: \"Pagar la cuenta del agua\" […] (open) (alike by translation: pagar≈pay, agua≈water)."
 ```
 
-With each section's lines, the agent reads only the one it needs, with the same tool that reads a task: `read` with `doc` brings the whole document, one section (`section`), some lines (`from`, `to`) or a piece at a time (`chars`). With `marks`, it brings only what the document highlights or sets in bold, grouped by section: on a 24 KB document, about 2,300 bytes. With `versions`, in place of the text, it lists its earlier versions on this computer, and `version` reads one, under a notice that it is not what it says now.
+Alike pairs come from prose only: code, HTML, paths, a task's progress notes and the documents in Agents do not count. [[Alike|Brainsty-Network#alike]] tells it.
+
+With each section's lines, the agent reads only the one it needs, with the same tool that reads a task: `read` with `doc` brings the whole document, one section (`section`), some lines (`from`, `to`) or a piece at a time (`chars`). With `marks`, it brings only what the document highlights or sets in bold, grouped by section: on a 24 KB document, about 2,300 bytes. With `versions`, in place of the text, it lists its earlier versions on this computer, and `version` reads one, under a notice that it is not what it says now; `restore_doc` with that `version` goes back to it. It never empties the history or reads your Diary's versions. [[Earlier versions|Documents#earlier-versions]] and [[MCP tools|MCP-Tools]] tell it.
 
 **Reading again costs almost nothing.** Every read comes with a `print`. If the agent reads again with that `print` and nothing changed, Tisty answers only that, with the time of its earlier read. The answer takes this shape (this excerpt does not come from the session above, but from Tisty's code):
 
@@ -224,7 +226,9 @@ An assistant that still calls one of them is told where it went («`find` moved 
 - **GitHub Copilot** may spend a premium request on the turn that is handed back.
 - **Cursor** also runs Claude Code's hooks; even if both fire, the turn goes back only once.
 - **Gemini CLI** runs hooks only in the folders you trusted.
-- **What is hidden stays out.** A task you hid is never named: not in a search, not as a neighbour on a card, not at the start of a session. Your Diary, while you do not open it to agents, neither.
+- **What is hidden stays out.** A task you hid or dropped is never named: not in a search, not as a neighbour on a card, not as an alike pair, not at the start of a session. Your Diary, while you do not open it to agents, neither.
+- **Where you linked it, it reads «a task out of sight».** If a document cites or mentions one of those tasks, the agent reads it with those words in place of the link, with no title or id. If it later rewrites the document, Tisty puts your link back as it was, byte for byte: what is hidden is not lost because the agent did not see it.
+- **In the Agents folder it only proposes.** It reads your rules and skills like any document, but a change of its own stays as a proposal until you approve it on the card. [[A proposal from your agent|AGENTS-Folder#a-proposal-from-your-agent]] tells it.
 - **With the door closed**, the tools refuse everything and the hooks stay quiet.
 - **What it costs.** A note has room for 4,000 characters and the state for about 3,000; if the links would push it past that, it stays unlinked instead of being refused. The start with hooks weighs about 2,000 characters.
 

@@ -14,7 +14,7 @@ Las reglas detrás están en [[Qué puede hacer un asistente|Qué-puede-hacer-un
 | `language` | El lenguaje de Tisty, para que lo que escribe sea algo que Tisty conoce |
 | `help` | Cómo funciona Tisty, desde estas mismas páginas de ayuda, para que responda en vez de suponer |
 | `catch_up` | Cómo están las cosas, con las listas, las carpetas y las etiquetas más usadas; las tareas abiertas que apremian, por título y lista, para que te las cuente y las lea con `read`: las vencidas, después las por vencer, las de hoy y las atrasadas, cinco como máximo y el resto contado, sin las que un asistente ya dijo que están hechas o que no deben hacerse, que te esperan a ti, ni las que ocultaste; lo que otros cambiaron desde su último `catch_up`, veinte de cada tipo a la vez, y el siguiente trae el resto; y la tarea abierta en la que estaba, con cuánto avanzó (sin empezar, en curso con cuántos pasos marcados, bloqueada o con un estado más viejo que su trabajo) o, si ya no lo está, por qué: dijo que estaba hecha o que no debía hacerse, o la cerraste, la descartaste o la ocultaste. Nombra **Ideas** y dice cuántas ideas esperan y cuántas están marcadas. El día que toca tu [Revisión semanal](Tareas#revisión-semanal), dice cuánto espera en cada parada y cómo ayudarte |
-| `brain` | Encontrar cosas y ver cómo se conectan, sin abrirlas. Tareas y documentos por sus palabras, el archivo junto a lo demás, diez de cada uno por vez: primero lo que tiene las palabras en su título, después lo que se movió hace menos, cada uno con la línea más nueva que las dice y nunca una nota que otra posterior reemplazó; cuando nada tiene todas las palabras, lo que tiene más, y lo dice. La ficha de un documento —sus títulos, páginas, lo que lo cita y las señales de que pide orden— o de una tarea —su estado, pasos y partes—, y sus vecinos de un tipo cuando los pide. Las partes abiertas de un proyecto, agrupadas en bloqueadas, en curso, esperándote y sin empezar. Sin pedir nada, tus listas, carpetas y etiquetas con sus cuentas. Lo que ocultaste queda fuera, ni siquiera como vecino |
+| `brain` | Encontrar cosas y ver cómo se conectan, sin abrirlas. Tareas y documentos por sus palabras, el archivo junto a lo demás, diez de cada uno por vez: primero lo que tiene las palabras en su título, después lo que se movió hace menos, cada uno con la línea más nueva que las dice y nunca una nota que otra posterior reemplazó; cuando nada tiene todas las palabras, lo que tiene más, y lo dice. La ficha de un documento —sus títulos, páginas, lo que lo cita y las señales de que pide orden— o de una tarea —su estado, pasos y partes—, y sus vecinos de un tipo cuando los pide. Las partes abiertas de un proyecto, agrupadas en bloqueadas, en curso, esperándote y sin empezar. Sin pedir nada, tus listas, carpetas y etiquetas con sus cuentas. En la ficha, aparte y en `guessed`, lo que Tisty cree que se parece y nadie enlazó, con lo que comparten y `method` (`words`, `typo` o `dictionary`): mira [[Parecidos|Red-de-Brainsty#parecidos]]. Lo que ocultaste o descartaste queda fuera, ni siquiera como vecino o parecido |
 | `read` | Leer una tarea: primero su estado, después su página, sus pasos y las notas escritas después de ese estado, con quién escribió cada una. Una tarea sin estado todavía llega con uno armado a partir de ella: cuántos pasos están hechos y la nota que la dio por hecha. Una página de más de unos 4000 caracteres llega como sus secciones, con el resumen y la última de las notas del asistente; la bitácora trae hasta unos 3000 caracteres de notas, y entera si la pide. O leer un documento, o una parte; o, con `as`, el documento completo en Markdown estándar, para llevarlo a Confluence, Jira, Notion, Linear o GitHub con sus propias herramientas (mira más abajo); con `marks`, solo lo que resaltaste o pusiste en negrita, bajo cada sección. **Ideas** llega por partes, idea por idea, nunca como una lista de horas. Si relee con el `print` que le dio la lectura anterior y nada cambió, solo dice eso. Con `versions`, en vez del texto, lista sus [versiones anteriores](Documentos#versiones-anteriores), la más nueva primero: cuándo se escribió cada una, quién y cuánto pesa; el id de una tarea lista las de su página. Con `version` lee una, bajo un aviso de que no es lo que dice ahora. Una versión que reemplazó otro de tus equipos sale como `elsewhere`, con el nombre de ese equipo, y no se lee ni se recupera |
 
 `find`, `docs`, `outline_doc`, `lists` y `tags` pasaron a `brain`, y `read_doc` a `read`. Un asistente que todavía llama a una de ellas por su nombre recibe dónde quedó, y no pasa nada más. Cuando todas las filas de una lista de una respuesta comparten un campo, llega una sola vez, junto a las filas. Cómo las usa un agente en una sesión real está en [[Cómo trabaja un agente|Cómo-trabaja-un-agente]].
@@ -43,7 +43,7 @@ Las reglas detrás están en [[Qué puede hacer un asistente|Qué-puede-hacer-un
 
 | Herramienta | Qué hace |
 | :-- | :-- |
-| `sum_up` | Dejar un resumen corto de qué trata un documento, para el siguiente que lo lea |
+| `sum_up` | Dejar un resumen corto de qué trata un documento, para el siguiente que lo lea. Reemplaza el anterior, viaja a tus otros equipos con la sincronización y entra en tus respaldos; nunca sale por Folio ni en un `.tistyx`, y la ventana no lo muestra |
 | `write_doc` | Escribir un documento nuevo, o reescribir uno entero; con `compact`, poner en orden uno que creció por sesiones (ver abajo); con `translation_of`, escribirlo como otro idioma de un documento tuyo (uno que escribió otra persona se rechaza) |
 | `append_doc` | Añadir a un documento, al final o bajo un título; en la página de una tarea, añadir bajo las notas del asistente o, con `replace`, juntar las notas de todos los asistentes en un resumen fechado de hasta 6000 caracteres, que conserva las líneas que escribiste y que `restore_doc` puede deshacer. En **Ideas**, cada párrafo o elemento de una lista se vuelve una idea propia, con su fecha y su color, de hasta 140 caracteres; la idea misma, con su línea `> [!IDEA]` y sus palabras tal como están en la hoja, añadida a otro documento sale de la hoja, como cuando la anexas desde la ventana; una nota `[!IDEA]` que no nombra ninguna idea de ahí queda como nota adhesiva propia. En el **Diario**, cuando lo abres a los agentes, solo añade al final de hoy, bajo una línea con el minuto y el nombre del agente |
 | `edit_doc` | Cambiar un pasaje de un documento o de la página de una tarea |
@@ -68,7 +68,18 @@ Al traer un archivo Markdown se copia lo que su texto señala, pero solo lo que 
 
 ## El Diario
 
-Tu [Diario](Documentos#diario) queda fuera de todas las herramientas hasta que lo abres a los agentes desde el propio Diario: `brain`, `catch_up` y los documentos que se ofrecen con `@` lo dejan fuera, y una herramienta que recibe una de sus páginas responde como ante un documento que no existe. Abierto, las herramientas de lectura lo leen y `append_doc` añade al final de hoy; toda herramienta que cambiaría, movería, marcaría o archivaría lo que escribiste ahí se rechaza, y ninguna puede empezar un diario.
+Tu [Diario](Documentos#diario) queda fuera de todas las herramientas hasta que lo abres a los agentes desde el propio Diario: `brain`, `catch_up` y los documentos que se ofrecen con `@` lo dejan fuera, y una herramienta que recibe una de sus páginas responde como ante un documento que no existe. Abierto, las herramientas de lectura lo leen y `append_doc` añade al final de hoy; toda herramienta que cambiaría, movería, marcaría o archivaría lo que escribiste ahí se rechaza, y ninguna puede empezar un diario. Sus versiones anteriores no se leen nunca, ni con el Diario abierto.
+
+## La carpeta Agentes
+
+Los documentos de la carpeta [[Agentes|Carpeta-AGENTS]] son las reglas, skills y memorias de tus asistentes. Por MCP la carpeta se llama `AGENTS`, en cualquier idioma. Un asistente los lee como cualquier documento, con `brain`, `read` y `export_doc`, pero no los cambia por su cuenta:
+
+- **`write_doc`, `edit_doc` y `append_doc`** sobre uno de ellos no lo escriben: guardan el cambio aparte, como una propuesta, y la respuesta lo dice. Tú la apruebas o la descartas en su ficha ([[Una propuesta de tu agente|Carpeta-AGENTS#una-propuesta-de-tu-agente]]). Sobre una memoria, ni eso: se rechaza.
+- **`read`** de un documento con una propuesta trae `proposal`, con `approved: false`, para que el asistente sepa que lo que lee no es lo que llega a tus agentes.
+- **Toda otra herramienta que los nombre se rechaza**, sin tocar nada: `page_doc`, `tongue_doc`, `attach`, `flag_doc`, `archive_doc`, `file_doc`, `sum_up`, `restore_doc`, un `edit_table` que cambia, y `folder` dentro de `AGENTS` o con ese nombre. Vale igual cuando el documento llega por `doc`, `page_of`, `translation_of`, `of`, `after`, `before`, `order`, `instead`, `folder` o `inside`.
+- **La línea `agent:`**, la que dice a qué archivo va una regla, no la pone ni la cambia ningún asistente, en ningún documento de ninguna carpeta.
+
+El rechazo le dice qué puede hacer en su lugar: proponer el cambio o contarte qué cambiaría.
 
 ## Versiones anteriores de un documento
 
@@ -133,11 +144,11 @@ El documento vuelve a decir lo de esa versión, por encima de todo lo escrito de
   "by": "the person",
   "until": "2026-11-16 21:15",
   "bytes": 2950,
-  "elsewhere": "Portátil de Marisol"
+  "elsewhere": "Portátil de Mario"
 }
 ```
 
-Leerla o volver a ella se rechaza sin cambiar nada: «that version … was written over on Portátil de Marisol, not on this machine». El asistente te dice en qué equipo está, para que la abras allá.
+Leerla o volver a ella se rechaza sin cambiar nada: «that version … was written over on Portátil de Mario, not on this machine». El asistente te dice en qué equipo está, para que la abras allá.
 
 ## Llevar un documento a otra herramienta
 

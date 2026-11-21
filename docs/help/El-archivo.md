@@ -11,6 +11,8 @@ Deja de ser un recordatorio de lo que hay que hacer y se vuelve el registro de c
 - **Terminar** una tarea la marca hecha y la manda al archivo, con sus pasos, notas, adjuntos y documentos intactos.
 - **Descartar** la aparta sin hacerla: también llega al archivo.
 - Lo del archivo sigue ahí por si lo buscas. No estorba.
+- **En la red de [[Brainsty|Red-de-Brainsty]]**, una tarea terminada sigue dibujada, más tenue. Una descartada sale de la red, con las páginas que cuelgan de ella, y tu agente no la ve ni como parecido; el buscador sí la alcanza.
+- **Un documento archivado** sigue en la red, tenue y pequeño, y guarda sus [versiones anteriores](Documentos#versiones-anteriores), pero no deja volver a una: desarchívalo primero.
 
 ## Tres capas
 

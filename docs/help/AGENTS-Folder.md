@@ -56,7 +56,7 @@ The sidebar tells you how Agents stands by its colour, and no word appears besid
 
 ![The Agents folder open in the content panel in English, brought but not synced: in the sidebar, the grey robot and the name Agents in its normal colour, with no word on the right; in the panel, the title Agents with the grey robot and, just below, the quiet line Not synced with your agents · Sync, with Sync as a link; further down, the subfolders with their symbol and colour, Global with a blue globe, Claude with an orange chat bubble and Codex with a teal terminal, with their documents](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/agents/en-13-brought-not-synced.png)
 
-- **Coral is Agents' own**, and only while it syncs: purple belongs to diagrams, and no folder of yours can pick coral. In the Brainsty network, Agents and its documents are always drawn in a faint coral, whether it syncs or not, smaller than yours and with fainter lines, so they do not cover what you write; the legend names them **AGENTS**. See [[The Brainsty network|Brainsty-Network#what-each-thing-is]].
+- **Coral is Agents' own**, and only while it syncs: purple belongs to diagrams, and no folder of yours can pick coral. In the Brainsty network, the documents in Agents come hidden, whether it syncs or not, so they do not cover what you write. They show when you turn **Show AGENTS** on in the filters: smaller than yours, in a faint coral and with fainter lines, and the legend names them **AGENTS**. They are never alike to anything. See [[Filtering|Brainsty-Network#filtering]].
 - **The state 2 line** shows only on Agents, never on its subfolders. Its **Sync** link does the same as the one on the right-click.
 - **With the sidebar folded**, Agents' robot has the same colour. Open or folded, a screen reader says the state in words: «Agents — nothing brought yet» or «Agents — Not synced with your agents».
 - **The right-click** also opens with the menu key or with `Shift` + `F10`, with Agents selected.
@@ -471,12 +471,13 @@ A document in Agents does not look like one more document. It opens **for readin
 
 **Codex's cap.** Codex reads its `AGENTS.md` up to 32 KiB and leaves the rest unread. When the file nears that cap, the **Size** row says so in amber: «29 kB · close to the 32 KiB Codex reads». Past it, it says so in red: «33.8 kB · past the 32 KiB Codex reads: it leaves the rest unread». It is a good moment to move long rules into a skill.
 
-**The agent's text**, inside the same card, with no separate sheet. It is what you wrote, as is, with no sections or template imposed: Tisty draws it with compact headings, at reading width, and never turns its first line into a title. The file's heading is not repeated there, since the facts box already has it. What your agent reads does not change: the file stays the same, byte for byte.
+**The agent's text**, inside the same card, with no separate sheet. It is what you wrote, as is, with no sections or template imposed: Tisty draws it with compact headings, across the whole width of the card, and never turns its first line into a title. The file's heading is not repeated there, since the facts box already has it. What your agent reads does not change: the file stays the same, byte for byte.
 
 **The buttons, at the foot**, held at the bottom while the whole card scrolls with its text:
 
 - **Edit** opens Tisty's editor on the text, heading included, with the editor's usual bar for headings and lists, and **Done** closes it again.
-- **Backups**, when the file has any. It opens the same list as **See** in the facts box.
+- **Backups**, when the document is written to a single file and that file has any. It opens the same list as **See** in the facts box. A **Global** document, written to several files, does not have it at the foot: each file's backups open with **See**, on its row.
+- **History**: the document's earlier versions, not the file's. [[Earlier versions|Documents#earlier-versions]] tells it. The comparison with what is **Approved** reads from there: if you empty the history, or the approved version passes the limit, the card asks you to read the whole text before approving.
 - **History** opens the document's [earlier versions](Documents#earlier-versions).
 - **Copy link** copies its [link](Documents#a-documents-link).
 - **Pause sync with Claude**, when the document is written to a single file. A Global one has a button per assistant: **Pause Claude**, **Pause Codex**…
@@ -734,10 +735,9 @@ Tisty joins them by itself, without asking:
 - **None of your agents' files changes** because of the join, and Tisty asks «Take the file away too?» about none of them. What already applied on a computer keeps applying there.
 - **What comes from the other computer waits** for its **Apply here**, like any document from another computer. If both brought their `CLAUDE.md`, you see both documents in **Claude**: yours keeps being written and the other waits; choose which one you keep and take the other out.
 - **An archived folder moves over whole** and stays archived: what it held is not written again.
-
 - **What arrives late comes in too.** If on the other computer you wrote a document in its **Global** right before it was joined, once that document arrives Tisty moves it into your **Global** by itself, without asking, and its file is never offered for taking away because of it.
 
-One rare case is left as it is: if the folder that would go holds something an agent put there, Tisty does not join them, because moving it would make it look placed by you. Move that document to a folder of yours yourself and the join happens by itself on the next round.
+One rare case is left as it is: if the folder that would go holds something an agent put there, Tisty does not join them, because moving it would make it look placed by you. Move that document to a folder of yours yourself and the join happens by itself on the next round. While there are two Agents folders not yet joined, both stay guarded: your agent can only propose in either of them.
 
 ### Memory belongs to the computer that brought it
 
@@ -898,7 +898,7 @@ Each button acts only on what the card showed you. If the agent wrote again whil
 changes, so nothing was proposed. Tell the person what you would change and why.
 ```
 
-**Any other tool** that names a document in Agents or the folder `AGENTS` is refused: moving, archiving, marking or summing up a document, attaching a file to it or going back to an earlier version, and also moving, renaming or archiving the folder itself. Tisty tells it how to propose:
+**Any other tool** that names a document in Agents or the folder `AGENTS` is refused: moving, archiving, marking or summing up a document, making it a page of another, joining it to another language, attaching a file to it or going back to an earlier version, and also moving, renaming or archiving the folder itself. The whole list is in [[MCP tools|MCP-Tools#the-agents-folder]]. Tisty tells it how to propose:
 
 ```text
 the document "claude · CLAUDE.md" holds an assistant's own files in AGENTS, which only the person

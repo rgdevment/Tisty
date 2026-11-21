@@ -56,7 +56,7 @@ La barra te dice cómo está Agentes con su color, y al lado no aparece ninguna 
 
 ![La carpeta Agentes abierta en el panel de contenido en español, traída pero sin sincronizar: en la barra, el robot gris y el nombre Agentes en su color normal, sin ninguna palabra a la derecha; en el panel, el título Agentes con el robot gris y, justo debajo, la línea discreta No se sincroniza con tus agentes · Sincronizar, con Sincronizar como enlace; más abajo, las subcarpetas con su símbolo y su color, Global con un globo azul, Claude con un globo de conversación naranja y Codex con una terminal verde azulado, con sus documentos](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/agents/es-13-traida-sin-sincronizar.png)
 
-- **El coral es solo de Agentes**, y solo mientras sincroniza: el morado es de los diagramas, y ninguna carpeta tuya puede elegir el coral. En la red de Brainsty, Agentes y sus documentos se dibujan siempre en un coral tenue, sincronice o no, más chicos que los tuyos y con sus líneas más tenues, para no tapar lo que escribes tú; la leyenda los nombra **AGENTS**. Mira [[La red de Brainsty|Red-de-Brainsty#qué-es-cada-cosa]].
+- **El coral es solo de Agentes**, y solo mientras sincroniza: el morado es de los diagramas, y ninguna carpeta tuya puede elegir el coral. En la red de Brainsty, los documentos de Agentes vienen ocultos, sincronice o no, para no tapar lo que escribes tú. Aparecen cuando enciendes **Mostrar AGENTS** en los filtros: más chicos que los tuyos, en un coral tenue y con sus líneas más tenues, y la leyenda los nombra **AGENTS**. Nunca son parecidos de nada. Mira [[Filtrar|Red-de-Brainsty#filtrar]].
 - **La línea del estado 2** solo aparece en Agentes, nunca en sus subcarpetas. Su enlace **Sincronizar** hace lo mismo que el del botón derecho.
 - **Con la barra plegada**, el robot de Agentes tiene el mismo color. Abierta o plegada, un lector de pantalla dice el estado en palabras: «Agentes — todavía sin traer» o «Agentes — No se sincroniza con tus agentes».
 - **El botón derecho** también se abre con la tecla de menú o con `Shift` + `F10`, con Agentes seleccionada.
@@ -471,12 +471,13 @@ Un documento de Agentes no se ve como un documento más. Se abre **para leer**, 
 
 **El tope de Codex.** Codex lee su `AGENTS.md` hasta 32 KiB y deja sin leer lo que sigue. Cuando el archivo se acerca a ese tope, la fila **Tamaño** lo dice en ámbar: «29 kB · cerca de los 32 KiB que lee Codex». Si lo pasa, lo dice en rojo: «33,8 kB · pasa los 32 KiB que lee Codex: lo demás no lo lee». Es buen momento para pasar las reglas largas a una skill.
 
-**El texto del agente**, dentro de la misma ficha y sin hoja aparte. Es lo que escribiste, tal cual, sin secciones ni plantilla impuestas: Tisty lo dibuja con encabezados compactos, al ancho de lectura, y sin convertir su primera línea en un título. El encabezado del archivo no se repite ahí, porque ya está en el cuadro de datos. Lo que lee tu agente no cambia: el archivo sigue siendo el mismo, byte a byte.
+**El texto del agente**, dentro de la misma ficha y sin hoja aparte. Es lo que escribiste, tal cual, sin secciones ni plantilla impuestas: Tisty lo dibuja con encabezados compactos, a todo el ancho de la ficha, y sin convertir su primera línea en un título. El encabezado del archivo no se repite ahí, porque ya está en el cuadro de datos. Lo que lee tu agente no cambia: el archivo sigue siendo el mismo, byte a byte.
 
 **Los botones, al pie**, fijos abajo mientras la ficha entera se desplaza junto con el texto:
 
 - **Editar** abre el editor de Tisty sobre el texto, con su encabezado y la barra del editor de siempre para títulos y listas, y **Listo** lo vuelve a cerrar.
-- **Respaldos**, cuando el archivo tiene alguno. Abre la misma lista que **Ver** en el cuadro de datos.
+- **Respaldos**, cuando el documento se escribe en un solo archivo y ese archivo tiene alguno. Abre la misma lista que **Ver** en el cuadro de datos. Un documento de **Global**, que se escribe en varios archivos, no lo tiene al pie: los respaldos de cada archivo se abren con **Ver**, en su fila.
+- **Historial**: las versiones anteriores del documento, no del archivo. Lo cuenta [[Versiones anteriores|Documentos#versiones-anteriores]]. La comparación con lo **Aprobado** lee de ahí: si vacías el historial, o la versión aprobada pasa el plazo, la ficha te pide leer el texto entero antes de aprobar.
 - **Historial** abre las [versiones anteriores](Documentos#versiones-anteriores) del documento.
 - **Copiar enlace** copia su [enlace](Documentos#el-enlace-de-un-documento).
 - **Pausar la sincronización con Claude**, cuando el documento se escribe en un solo archivo. Uno de Global tiene un botón por asistente: **Pausar Claude**, **Pausar Codex**…
@@ -734,10 +735,9 @@ Tisty las une solo, sin preguntar:
 - **Ningún archivo de tus agentes cambia** por la unión, y por ninguno te pregunta «¿Quitar también el archivo?». Lo que ya se aplicaba en un equipo sigue aplicándose ahí.
 - **Lo que llega del otro equipo espera** su **Aplicar aquí**, como cualquier documento de otro equipo. Si los dos trajeron su `CLAUDE.md`, ves los dos documentos en **Claude**: el tuyo se sigue escribiendo y el otro espera; elige con cuál te quedas y saca el otro.
 - **Una carpeta archivada pasa entera** y sigue archivada: lo que guardaba no vuelve a escribirse.
-
 - **Lo que llega tarde también entra.** Si en el otro equipo escribiste un documento en su **Global** justo antes de que se uniera, cuando ese documento llega Tisty lo pasa solo a tu **Global**, sin preguntar, y su archivo nunca se ofrece para quitar por esa causa.
 
-Un caso raro que queda como está: si en la carpeta que se iría hay algo que puso un agente, Tisty no las une, porque al moverlo parecería puesto por ti. Mueve tú ese documento a una carpeta tuya y la unión se hace sola en la siguiente vuelta.
+Un caso raro que queda como está: si en la carpeta que se iría hay algo que puso un agente, Tisty no las une, porque al moverlo parecería puesto por ti. Mueve tú ese documento a una carpeta tuya y la unión se hace sola en la siguiente vuelta. Mientras haya dos carpetas Agentes sin unir, las dos quedan protegidas: tu agente solo puede proponer en cualquiera de ellas.
 
 ### La memoria es del equipo que la trajo
 
@@ -898,7 +898,7 @@ Cada botón actúa solo sobre lo que la ficha te mostró. Si el agente volvió a
 changes, so nothing was proposed. Tell the person what you would change and why.
 ```
 
-**Cualquier otra herramienta** que nombre un documento de Agentes o la carpeta `AGENTS` se rechaza: mover, archivar, marcar o resumir un documento, adjuntarle un archivo o volver a una versión anterior, y también mover, renombrar o archivar la carpeta misma. Tisty le dice cómo proponer:
+**Cualquier otra herramienta** que nombre un documento de Agentes o la carpeta `AGENTS` se rechaza: mover, archivar, marcar o resumir un documento, hacerlo página de otro, unirlo a otro idioma, adjuntarle un archivo o volver a una versión anterior, y también mover, renombrar o archivar la carpeta misma. La lista completa está en [[Herramientas MCP|Herramientas-MCP#la-carpeta-agentes]]. Tisty le dice cómo proponer:
 
 ```text
 the document "claude · CLAUDE.md" holds an assistant's own files in AGENTS, which only the person

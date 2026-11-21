@@ -33,7 +33,7 @@ Hasta dónde llega: cada persona tiene su propio Tisty y sus propios agentes. No
 
 ### Todo unido: Brainsty
 
-Brainsty es el cerebro de Tisty: todo lo que guardas, con lo que lo une, dibujado como una sola red. Tú la ves de lejos, como un mapa de todos tus proyectos, y de cerca, cada documento con sus tareas. Tu agente la lee como un índice que le dice dónde mirar sin leerlo todo. Las uniones las haces tú al escribir: `[[` enlaza un documento con otro, y `/` cita una tarea o crea una nueva ahí mismo, en el documento.
+Brainsty es el cerebro de Tisty: todo lo que guardas, con lo que lo une, dibujado como una sola red. Tú la ves de lejos, como un mapa de todos tus proyectos, y de cerca, cada documento con sus tareas. Tu agente la lee como un índice que le dice dónde mirar sin leerlo todo. Las uniones las haces tú al escribir: `[[` enlaza un documento con otro, y `/` cita una tarea o crea una nueva ahí mismo, en el documento. Lo que nadie unió y habla de lo mismo, Tisty lo marca aparte como parecido, con reglas y listas de palabras, sin IA.
 
 ![Brainsty: todo unido, la página de esta guía que lo cuenta y lo deja probar](tisty:brainsty)
 
@@ -84,7 +84,7 @@ Desde ahí, Tisty es su memoria entre sesiones. De un documento lee primero el �
 - **No puede** cerrar ni borrar una tarea, borrar un documento o una idea, marcar un paso tuyo ni mover un día que pusiste tú. En una tarea que escribiste tú puede cambiar la descripción, la página y los pasos abiertos, como en un documento.
 - **No ve tu diario** mientras no lo abras tú. Abierto, lo lee y solo añade al final de hoy.
 
-Si escribiste en un documento mientras él lo leía, no escribe encima: se le pide que vuelva a leerlo. Y cuando algo escribe en el documento que tienes abierto, la ventana te avisa y te ofrece volver a lo que decía antes.
+Si escribiste en un documento mientras él lo leía, no escribe encima: se le pide que vuelva a leerlo. Y cuando algo escribe en el documento que tienes abierto, la ventana te avisa y te ofrece volver a lo que decía antes; lo que tu agente reemplazó queda además como una versión en su historial, que cuenta **Volver a lo que decía antes**, más abajo.
 
 Cómo conectarlo, cómo darle o quitarle la entrada y cómo pedirle las cosas, paso a paso, está en esta página:
 
@@ -92,7 +92,7 @@ Cómo conectarlo, cómo darle o quitarle la entrada y cómo pedirle las cosas, p
 
 ### Las reglas de tus agentes, en un solo lugar
 
-Cada agente lee sus reglas de su propio archivo: Claude Code de `CLAUDE.md`, Codex de `AGENTS.md`, Gemini de `GEMINI.md`. La carpeta **Agentes**, arriba de todo en la Biblioteca, los junta en Tisty como documentos. **Traer** los copia, para leerlos y ordenarlos, sin escribir nada en ellos; **Sincronizar** hace además que escribas una regla una vez y Tisty la escriba en el archivo de cada uno, con un respaldo antes de tocarlo. Un cambio que haces por fuera nunca se pisa, cada equipo elige si sincroniza y qué aplica, y tu agente no escribe tus reglas: te propone el cambio, y solo tú lo apruebas. Está en tu barra lateral desde el principio, en gris, y no lee nada de tus agentes hasta que tú lo dices: se empieza con un clic en ella.
+Cada agente lee sus reglas de su propio archivo: Claude Code de `CLAUDE.md`, Codex de `AGENTS.md`, Gemini de `GEMINI.md`. La carpeta **Agentes**, arriba de todo en la Biblioteca, los junta en Tisty como documentos. **Traer** los copia, para leerlos y ordenarlos, sin escribir nada en ellos; **Sincronizar** hace además que escribas una regla una vez y Tisty la escriba en el archivo de cada uno, con un respaldo antes de tocarlo. Un cambio que haces por fuera nunca se pisa, cada equipo elige si sincroniza y qué aplica, y tu agente no escribe tus reglas: te propone el cambio, y solo tú lo apruebas. Está en tu barra lateral desde el principio, en gris, y no lee nada de tus agentes hasta que tú lo dices: se empieza con un clic en ella. En la red de [Brainsty](tisty:brainsty) sus archivos vienen ocultos, para que no tapen lo tuyo, hasta que enciendes **Mostrar AGENTS**.
 
 ![Agentes: las reglas de tus agentes, la página de esta guía que lo cuenta con ejemplos](tisty:agents)
 
@@ -464,12 +464,19 @@ Del código hay más que decir, y cabe en su propia página:
 Cada documento guarda en este equipo lo que decía antes, para el día en que un cambio se lleva algo que todavía necesitas. Por ejemplo, le pides a tu agente que ordene «Paseos de Rina» y lo deja sin los horarios:
 
 1. En el panel junto al documento, la fila **Historial** tiene **Ver el historial**.
-2. A la izquierda están sus versiones, la más nueva primero, con la hora, quién la escribió y cuánto pesa. Haz clic en la de antes del cambio de tu agente y léela a la derecha. **Qué cambió**, arriba, te muestra en rojo lo que tu agente quitó y en verde lo que puso.
+2. A la izquierda están sus versiones, la más nueva primero, con la hora, quién la escribió (**tú**, **un asistente** o el nombre de su programa, como **Claude Code**) y cuánto pesa. Haz clic en la de antes del cambio de tu agente y léela a la derecha. **Qué cambió**, arriba, te muestra en rojo lo que tu agente quitó y en verde lo que puso; **Comparar**, en otra fila, compara dos versiones entre sí.
 3. **Volver a esta versión** la trae de vuelta. Lo que decía queda guardado, y **Volver a lo que decía antes**, en la barra del documento, deshace la vuelta.
 
-Tisty guarda una versión cuando pasan 30 minutos sin cambios o cuando cambia quien escribe, tú o un asistente. En la página de una tarea, lo mismo está en **Versiones de esta página**, y vuelven las palabras sin quitar ningún paso.
+Tisty no guarda una versión en cada tecla. Lo que había queda como versión cuando alguien escribe después de 30 minutos sin cambios, o cuando cambia quien escribe: tú después de un asistente, un asistente después de ti, o dos asistentes distintos. Así, lo que dejó tu agente y lo que escribiste tú nunca se mezclan en una sola versión.
 
-El historial es de este equipo: no se sincroniza, y un equipo nuevo empieza sin él. Se guarda 30 días, o 1, 5 o 15 si lo eliges en Configuración → Tus datos, y la última versión queda siempre. Para que un texto que borraste a propósito no quede guardado, **Vaciar el historial**, al pie de la lista, lo borra de este equipo. Más en [documentos](https://www.tisty.app/es/ayuda/documentos/).
+- **La página de una tarea** tiene lo mismo en **Versiones de esta página**, y vuelven las palabras sin quitar ningún paso.
+- **Cada página de un libro y tu hoja de Ideas** llevan su propio historial.
+- **Un documento de Agentes** lo abre con **Historial**, al pie de su ficha. Ahí los **Respaldos** son otra cosa: lo que tenía el archivo de tu agente antes de que Tisty escribiera en él. Lo cuenta [Agentes: las reglas de tus agentes](tisty:agents).
+- **Un documento archivado** muestra su historial, pero no ofrece volver: desarchívalo primero.
+- **Una fila en gris** es una versión que guarda otro de tus equipos, «No está en este equipo; lo guarda…». Se lee allá.
+- **Tu agente** también puede listar las versiones, leer una y volver a ella, y nunca vaciar el historial ni ver el de tu diario. Lo cuenta [la página de tu agente](tisty:agent).
+
+El historial es de este equipo: no se sincroniza ni sale al compartir o exportar, y un equipo nuevo empieza sin él, salvo que restaures ahí un respaldo completo, que sí lo lleva. Se guarda 30 días, o 1, 5 o 15 si lo eliges en Configuración › Tus datos › **Historial de documentos**, y la última versión queda siempre. Para que un texto que borraste a propósito no quede guardado, **Vaciar el historial**, al pie de la lista, lo borra de este equipo, sin vuelta atrás; tus otros equipos y los respaldos que ya hiciste conservan el suyo, así que vacíalo también allá. Borrar un documento borra su historial. Más en [versiones anteriores](https://www.tisty.app/es/ayuda/documentos/#versiones-anteriores), en la ayuda.
 
 ### Su enlace
 
@@ -479,8 +486,9 @@ Cada documento tiene un enlace para llegar a él desde afuera: un chat, el naveg
 - Sigue llegando aunque lo renombres o lo cambies de carpeta: lo que cuenta es el `id` del final.
 - Dentro de una tarea o de otro documento, escríbelo como enlace, `[Paseos](el enlace)`, y ábrelo con Ctrl+clic.
 - Pégaselo a tu agente y lee o cambia ese mismo documento sin buscarlo.
+- En [Brainsty](tisty:brainsty), la ficha de cada documento, página o tarea trae su **Enlace** con **Copiar enlace**.
 
-Abre solo en tus equipos, donde está tu almacén; para dárselo a otra persona, compártelo. Más en [documentos](https://www.tisty.app/es/ayuda/documentos/).
+Abre solo en tus equipos, donde está tu almacén; para dárselo a otra persona, compártelo. Más en [el enlace de un documento](https://www.tisty.app/es/ayuda/documentos/#el-enlace-de-un-documento), en la ayuda.
 
 ### Lo que viene de afuera
 

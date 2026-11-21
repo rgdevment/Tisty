@@ -11,6 +11,8 @@ It stops being a reminder of what to do and becomes the record of how something 
 - **Completing** a task marks it done and sends it to the archive, with its steps, notes, attachments and documents intact.
 - **Dropping** puts it aside without doing it: it lands in the archive too.
 - What is in the archive stays there in case you look for it. It is out of your way.
+- **In the [[Brainsty|Brainsty-Network]] network**, a done task is still drawn, fainter. A dropped one leaves the network, with the pages hung under it, and your agent does not see it even as an alike pair; the search still reaches it.
+- **An archived document** stays in the network, faint and small, and keeps its [earlier versions](Documents#earlier-versions), but does not let you go back to one: unarchive it first.
 
 ## Three layers
 

@@ -586,11 +586,12 @@ kept in the document's earlier versions on this computer either way.
 **It can take one step back, and only when that step is the whole distance.**
 That kept body is not only held, it is reachable: `restore_doc` puts it back,
 and what it replaces is kept in turn, so going back destroys nothing and going
-back twice leaves the document where it started. But not every write keeps a
-body — adding to the end does not, and your own saves from the window do not —
-so what is kept is not always one step behind. Kept alongside it is the print
-the document read at when it was set aside, and going back is refused unless
-the document still reads exactly that way. An assistant that wrote this
+back twice leaves the document where it started. But not every write leaves that
+step — adding to the end does not, and your own saves from the window do not,
+though they still keep earlier versions when the history cuts one — so what
+`restore_doc` puts back is not always one step behind. Kept alongside it is the
+print the document read at when it was set aside, and going back is refused
+unless the document still reads exactly that way. An assistant that wrote this
 morning does not undo an afternoon of yours by reaching for the wrong tool.
 
 It can still do it on purpose: `even_if_more` goes back over writing done
@@ -606,6 +607,33 @@ an assistant sees what it said before without guessing. `restore_doc` with
 kept in turn, and the same call without `version` undoes it. A version kept
 only on another of your computers is listed, never read or put back from here.
 **Empty the history** in the window is yours alone: no tool deletes versions.
+The diary's earlier versions are refused to every assistant, even while the
+diary is open to agents.
+
+**It cannot write your agents' rules.** The Agents folder holds the files
+every assistant on this computer reads before it starts — a page an assistant
+read somewhere could otherwise plant an instruction for all of them. So an
+assistant reads those documents but never writes them: `write_doc`,
+`edit_doc` and `append_doc` on one of them keep the change apart as a
+proposal, and nothing reaches a document or a file until you approve it on
+its card; on an assistant's memory it is refused outright. Every other tool
+that names an Agents document or the folder, by any argument that can carry
+one, is refused before it touches anything. No assistant may add or change an
+`agent:` line, in any document of any folder, which is what decides the file
+a document is written to. Names are matched loosely — case, accents, spaces
+and invisible characters do not count — so a folder dressed up as `AGENTS`
+is still refused. While two Agents folders are not yet joined, both are
+guarded the same way. `read` of a document with a proposal says so, with
+`approved: false`, so an assistant never mistakes what it proposed for what
+your agents read.
+
+**It does not see what you put away.** A task you hid or dropped, the pages
+hung under it and your diary, until you open it, are refused like documents
+that do not exist, and they never show as a neighbour or as something alike.
+Where your writing links to one of those tasks, the assistant reads «a task
+out of sight», with no title or id; if it writes that document back, Tisty
+restores your link byte for byte, so the hidden task cannot be lost through a
+write that never saw it.
 
 **Attachments are the one thing that leaves the machine.** They reach the shared
 folder, and from there whatever cloud client you run. So the file an assistant

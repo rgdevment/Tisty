@@ -34,7 +34,7 @@ Un agente concentrado en el código se olvida de Tisty. Hay dos ayudas, y las do
 
 ## Lo que lee: Brainsty
 
-Tu agente no lee todo lo que guardas: lo recorre. Con una sola herramienta, `brain`, busca tareas y documentos por sus palabras, con el Archivo junto a lo demás y primero lo que tiene esas palabras en su título. Pide la ficha de un documento (sus secciones con sus líneas, quién lo cita y sus decisiones vigentes primero) y después, con `read`, lee solo la sección que necesita, o solo lo que resaltaste o pusiste en negrita. Si vuelve a leer algo que no cambió, Tisty le dice solo eso, sin mandarle el texto otra vez. Y mira un proyecto entero agrupado en bloqueado, en curso, esperándote y sin empezar: una parte cuyo estado empieza con «Bloqueada:» cuenta como bloqueada.
+Tu agente no lee todo lo que guardas: lo recorre. Con una sola herramienta, `brain`, busca tareas y documentos por sus palabras, con el Archivo junto a lo demás y primero lo que tiene esas palabras en su título. Pide la ficha de un documento (sus secciones con sus líneas, quién lo cita y sus decisiones vigentes primero) y después, con `read`, lee solo la sección que necesita, o solo lo que resaltaste o pusiste en negrita. Si vuelve a leer algo que no cambió, Tisty le dice solo eso, sin mandarle el texto otra vez. Y mira un proyecto entero agrupado en bloqueado, en curso, esperándote y sin empezar: una parte cuyo estado empieza con «Bloqueada:» cuenta como bloqueada. En la ficha le llega aparte, en `guessed`, lo que Tisty cree que se parece y nadie enlazó, con las palabras que lo dicen: lee los dos antes de unir nada. Es la misma red que tú ves dibujada en **Brainsty: todo unido**, una página de esta guía.
 
 ![La página de «Webhook de confirmación» con su sección Estado, firmada por Claude Code: lo hecho, lo que falta, las decisiones vigentes y lo descartado](estado.png)
 
@@ -60,7 +60,9 @@ Todo lo que escribe va firmado con el nombre del programa por el que habló: «p
 - Cerrar, reabrir ni borrar una tarea, ni borrar un documento o una idea.
 - Marcar un paso tuyo o terminar una tarea tuya: solo dice que están listos, y tú tomas su palabra o no.
 - Mover un día que pusiste tú.
-- Escribir por su cuenta en la carpeta Agentes: un cambio a tus reglas o skills queda como propuesta, y solo llega a tus agentes si lo apruebas en la ficha.
+- Escribir por su cuenta en la carpeta Agentes: un cambio a tus reglas o skills queda como propuesta, y solo llega a tus agentes si lo apruebas en la ficha. Lo cuenta **Agentes: las reglas de tus agentes**, una página de esta guía.
+- Vaciar el historial de un documento ni leer las versiones anteriores de tu diario. Sí puede listar las versiones de un documento, leer una y volver a ella, como tú desde **Ver el historial**; lo cuenta [la portada de esta guía](tisty:guide), en **Volver a lo que decía antes**.
+- Leer una tarea que ocultaste o descartaste: donde la enlazaste lee solo «a task out of sight».
 - Crear listas ni poner rutinas: sin una de tus listas, lo que anota entra en la bandeja.
 - Escribir encima de lo que cambiaste mientras él pensaba: se le pide que vuelva a leer.
 - Ver tu Diario mientras dice **Solo tú**, ni cambiar lo que escribiste en él cuando lo abres.

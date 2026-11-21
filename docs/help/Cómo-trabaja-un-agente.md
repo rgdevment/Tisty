@@ -104,19 +104,21 @@ La ficha de un documento o de una tarea trae también lo que Tisty cree que se p
 
 ```json
 > brain {"task": "…Pedir presupuesto del techo…"}
-{ "guessed": [ { "kind": "doc", "title": "Arreglos de la casa", "score": 0.42, "shared": ["presupuesto", "techo"] } ] }
-"Guessed alike by Tisty, linked by no one: \"Arreglos de la casa\" […] (shares presupuesto, techo)."
+{ "guessed": [ { "id": "…", "kind": "doc", "title": "Arreglos de la casa", "state": "open", "score": 0.42, "shared": ["presupuesto", "techo"], "method": "words" } ] }
+"Guessed alike by Tisty, linked by no one: \"Arreglos de la casa\" […] (open) (shares presupuesto, techo)."
 ```
 
-En `shared`, una palabra sola la escribieron los dos. Una pareja `a≈b` es lo que escribió cada lado: un error de tipeo, como `impresora≈imrpesora`, o una traducción del diccionario español–inglés de Tisty, como `pagar≈pay`. Así el agente sabe que «Pagar la cuenta del agua» y «Pay the water bill» se parecen por el idioma, no porque alguien las haya unido, y las lee antes de decidir si son la misma tarea:
+En `shared`, una palabra sola la escribieron los dos. Una pareja `a≈b` es una palabra que cada lado escribió distinto, y `method` dice cuál de las tres pistas los unió: `words`, palabras en común; `typo`, un error de tipeo o un plural, como `impresora≈imrpesora` o `vacuna≈vacunas`, y `dictionary`, una traducción del diccionario español–inglés de Tisty, como `pagar≈pay`. La frase de abajo dice lo mismo con palabras: «shares», «spelled almost the same:» o «alike by translation:». Así el agente sabe que «Pagar la cuenta del agua» y «Pay the water bill» se parecen por el idioma, no porque alguien las haya unido, y las lee antes de decidir si son la misma tarea:
 
 ```json
 > brain {"task": "…Pagar la cuenta del agua…"}
-{ "guessed": [ { "kind": "task", "title": "Pay the water bill", "score": 0.61, "shared": ["pagar≈pay", "agua≈water"] } ] }
-"Guessed alike by Tisty, linked by no one: \"Pay the water bill\" […] (shares pagar≈pay, agua≈water)."
+{ "guessed": [ { "id": "…", "kind": "task", "title": "Pay the water bill", "state": "open", "score": 0.61, "shared": ["pagar≈pay", "agua≈water"], "method": "dictionary" } ] }
+"Guessed alike by Tisty, linked by no one: \"Pay the water bill\" […] (open) (alike by translation: pagar≈pay, agua≈water)."
 ```
 
-Con la línea de cada sección, el agente lee solo la que necesita, con la misma herramienta que lee una tarea: `read` con `doc` trae el documento entero, una sección (`section`), unas líneas (`from`, `to`) o un trozo a la vez (`chars`). Con `marks`, trae solo lo que el documento resalta o pone en negrita, agrupado por sección: en un documento de 24 KB, unos 2.300 bytes. Con `versions`, en vez del texto, lista sus versiones anteriores en este equipo, y `version` lee una, bajo un aviso de que no es lo que dice ahora.
+Los parecidos salen solo de la prosa: el código, el HTML, las rutas, las notas de avance de una tarea y los documentos de Agentes no cuentan. Lo cuenta [[Parecidos|Red-de-Brainsty#parecidos]].
+
+Con la línea de cada sección, el agente lee solo la que necesita, con la misma herramienta que lee una tarea: `read` con `doc` trae el documento entero, una sección (`section`), unas líneas (`from`, `to`) o un trozo a la vez (`chars`). Con `marks`, trae solo lo que el documento resalta o pone en negrita, agrupado por sección: en un documento de 24 KB, unos 2.300 bytes. Con `versions`, en vez del texto, lista sus versiones anteriores en este equipo, y `version` lee una, bajo un aviso de que no es lo que dice ahora; `restore_doc` con esa `version` vuelve a ella. Nunca vacía el historial ni lee las versiones de tu Diario. Lo cuentan [[Versiones anteriores|Documentos#versiones-anteriores]] y [[Herramientas MCP|Herramientas-MCP]].
 
 **Releer cuesta casi nada.** Cada lectura trae un `print`. Si el agente vuelve a leer con ese `print` y nada cambió, Tisty le responde solo eso, con la hora de su lectura anterior. La respuesta tiene esta forma (este extracto no viene de la sesión de arriba, sino del código de Tisty):
 
@@ -227,7 +229,9 @@ Un asistente que todavía llama a una de ellas recibe dónde quedó («`find` mo
 - **GitHub Copilot** puede gastar una solicitud premium en el turno que se le devuelve.
 - **Cursor** también corre los hooks de Claude Code; aunque se disparen los dos, el turno vuelve una sola vez.
 - **Gemini CLI** corre los hooks solo en las carpetas en que confiaste.
-- **Lo oculto queda fuera.** Una tarea que ocultaste nunca se nombra: ni en una búsqueda, ni como vecina en una ficha, ni en el inicio de una sesión. Tu Diario, mientras no lo abras a los agentes, tampoco.
+- **Lo oculto queda fuera.** Una tarea que ocultaste o descartaste nunca se nombra: ni en una búsqueda, ni como vecina en una ficha, ni como parecido, ni en el inicio de una sesión. Tu Diario, mientras no lo abras a los agentes, tampoco.
+- **Donde la enlazaste, lee «a task out of sight».** Si un documento cita o menciona una de esas tareas, el agente lo lee con esas palabras en lugar del enlace, sin título ni id. Si después reescribe el documento, Tisty pone de vuelta tu enlace tal como estaba, byte a byte: lo oculto no se pierde porque el agente no lo vio.
+- **En la carpeta Agentes solo propone.** Lee tus reglas y skills como cualquier documento, pero un cambio suyo queda como propuesta hasta que lo apruebas en la ficha. Lo cuenta [[Una propuesta de tu agente|Carpeta-AGENTS#una-propuesta-de-tu-agente]].
 - **Con la puerta cerrada**, las herramientas rechazan todo y los hooks callan.
 - **Lo que cuesta.** Una nota tiene lugar para 4.000 caracteres y el estado para unos 3.000; si los enlaces la pasan de ese largo, queda sin enlazar en vez de rechazarse. El inicio con hooks pesa unos 2.000 caracteres.
 

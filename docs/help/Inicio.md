@@ -74,6 +74,8 @@ Los documentos son un cuaderno Markdown junto a las tareas: avisos, tablas, diag
 - [[Documentos]]: carpetas, etiquetas, varios idiomas, adjuntos, importar y exportar, y leer un archivo Markdown de afuera.
 - [Ideas](Documentos#ideas): las ideas del momento como notas adhesivas, que después pasas a una tarea o a un documento.
 - [Diario](Documentos#diario): lo que pasó hoy, un libro por año, fuera de la vista de tu agente hasta que lo abres.
+- [Versiones anteriores](Documentos#versiones-anteriores): lo que decía un documento antes de un cambio, tuyo o de tu agente, qué cambió y volver a eso, en cada equipo.
+- [El enlace de un documento](Documentos#el-enlace-de-un-documento): llegar a él desde un chat, el navegador o tu agente.
 - [[El editor|Editor-Markdown]]: escribir donde lees, la barra, el menú `/`, las tablas y los atajos.
 - [[Páginas y PDF|Páginas-y-PDF]]: un documento por capítulos, saltos de página y el PDF propio de Tisty.
 - [[Diagramas]]: la ventana de diagramas: un mapa mental, un esquema, un diagrama libre o un diagrama de clases dibujados a mano, y exportados como imagen.

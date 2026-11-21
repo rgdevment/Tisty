@@ -128,6 +128,7 @@ Worth knowing:
 
 - **It belongs to this computer.** What you hide does not travel with your sync: on your other computers the folder stays in view, and each computer hides its own.
 - **Nothing is deleted or moved.** The folder keeps its documents and subfolders, and search, the palette and **Move to** still find it: you can move a document into a hidden folder, and it goes in all the same.
+- **It hides from your view, not from your agent.** Your AI agent still reads and writes in a hidden folder, and Brainsty still draws it. What your agent never reaches is something else: a task you hid or dropped, your Diary until you open it, and the documents in Agents, which it only proposes on.
 - **The sidebar filter shows it.** While you type in the Library's filter, hidden folders show too, so a match never stays hidden. When you close the filter with `Esc`, they hide again.
 - **A subfolder on its own.** You can hide **Work / Clients** and leave **Work** in view. Its row in Hidden folders names the whole path, so you know which one it is.
 - **The Diary and Ideas too.** Right-click **Diary** or **Ideas** and choose **Hide from the sidebar**. In Hidden folders they show by name, and **Show again** puts them back at the top of the Library.
@@ -327,7 +328,7 @@ It is there for a text you deleted on purpose: you pasted a number into «Insura
 
 **Versions are not synced.** Each computer keeps what was replaced on it, what a change from another computer replaced included, and prunes them with its own limit.
 
-- **A version another computer keeps** shows in the list while the limit lasts, as **Not on this computer; … keeps it**, with that computer's name, for instance «Not on this computer; Marisol's laptop keeps it». Its text is only there, so here it can be neither read nor gone back to: open it on that computer.
+- **A version another computer keeps** shows in the list while the limit lasts, as **Not on this computer; … keeps it**, with that computer's name, for instance «Not on this computer; Mario's laptop keeps it». Its text is only there, so here it can be neither read nor gone back to: open it on that computer.
 - **A new computer starts with no earlier versions,** even once it holds all your documents. What that computer changes from then on, it keeps.
 - **To take them to another machine,** use a [backup](Sync-and-Backup#backups): the zip carries them, and restoring it swaps that computer's for the ones it brings.
 
@@ -338,6 +339,10 @@ It is there for a text you deleted on purpose: you pasted a number into «Insura
 - **The [Diary](#diary)** keeps versions on this computer too, which count toward what your computer and your backups hold, but its view has no **History** row: they are not listed from the window.
 - **An archived or locked document, and a closed task's page,** show their versions but do not offer **Go back to this version**. Unarchive or unlock it (or its archived folder, or the locked document it is a page of), or reopen the task with **Reopen**, to go back to one.
 - **Restoring a backup** swaps this computer's versions for the zip's, and their limit counts again from that day.
+- **Your assistant never reads the Diary's versions**, not even with the Diary open to agents. Those of any other document it can list, read and go back to, but never empty the history: see [[MCP tools|MCP-Tools#a-documents-earlier-versions]].
+- **Each page of a book and your [Ideas](#ideas) sheet** keep versions of their own, like any document. A page's row says **History**; **Versions of this page** is only a task page's.
+- **A document in the [[Agents|AGENTS-Folder]] folder** keeps its versions the same way, and its card opens them with **History**. They are not its **Backups**, which keep your agent's file as it was on disk. Its comparison with what is **Approved** reads from this history: if you empty it, or the approved version passes the limit, the card asks you to read the whole text before approving.
+- **Sharing or exporting** a document never carries its versions: not a Folio link, not a `.tistyx`, not an export. Only a full backup carries them.
 - **On updating from a Tisty without the history,** the copy each document used to keep of what it said before became its first version on its own.
 
 ### With your assistant
