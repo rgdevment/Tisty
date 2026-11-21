@@ -28,6 +28,7 @@ import {
 import type { Head, Sheet as SheetSize } from "tisty-editor/read";
 import { bytesAt, charsAt, heads, stepLine, steppedTitle } from "tisty-editor/read";
 import { copied, copyAttached, type Mend, opened } from "../core";
+import type { Signing } from "../crediting";
 import { viewDiagram } from "../drawing";
 import { CATCHES, takesFiles } from "../dropped";
 import { t } from "../locales";
@@ -110,6 +111,7 @@ type Props = {
   readonly onOrder?: (move: ((file: string, before: string | null) => Moved) | null) => void;
   readonly asking?: Asking;
   readonly stepDates?: Readonly<Record<string, string>>;
+  readonly signing?: Signing;
   readonly kept?: boolean;
   readonly inline?: boolean;
   readonly shaping?: boolean;
@@ -1297,6 +1299,7 @@ export default function Sheet(props: Readonly<Props>) {
               : undefined
           }
           stepDates={props.stepDates}
+          signing={props.signing}
           onTick={reading || fixed ? undefined : ticked}
           onStick={reading || fixed ? undefined : restuck}
           onPart={reading || fixed || !props.onPart ? undefined : parted}

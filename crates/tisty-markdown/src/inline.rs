@@ -63,6 +63,16 @@ fn tellable(mark: &Mark) -> bool {
 
 // Each piece of words says where it is written, so an editor on the page changes the Markdown and never the html.
 pub(crate) fn sourced(spans: &[Span], text: &str, placed: bool, told: Told, out: &mut String) {
+    signed_sourced(spans, text, (placed, told), None, out);
+}
+
+pub(crate) fn signed_sourced(
+    spans: &[Span],
+    text: &str,
+    (placed, told): (bool, Told),
+    signer: Option<&Range<usize>>,
+    out: &mut String,
+) {
     debug_assert!(spans.is_sorted_by_key(|one| one.at.start));
     let atoms: Vec<&Span> = spans.iter().filter(|one| atom(&one.mark)).collect();
     let mut items: Vec<(usize, Item)> = atoms
@@ -82,7 +92,15 @@ pub(crate) fn sourced(spans: &[Span], text: &str, placed: bool, told: Told, out:
     let containers: Vec<&Span> = spans.iter().filter(|one| holds(&one.mark)).collect();
     let mut open: Vec<&Span> = Vec::new();
     let mut next = 0;
+    let mut signed = false;
     for (at, item) in items {
+        let reach = match &item {
+            Item::Words(piece) => piece.clone(),
+            Item::Atom(one) => one.at.clone(),
+        };
+        if signed && signer.is_some_and(|name| name.start <= reach.start && reach.end <= name.end) {
+            continue;
+        }
         while open.last().is_some_and(|one| one.at.end <= at) {
             shut(open.pop().map(|one| &one.mark), out);
         }
@@ -93,20 +111,35 @@ pub(crate) fn sourced(spans: &[Span], text: &str, placed: bool, told: Told, out:
             }
             next += 1;
         }
-        match item {
-            Item::Words(piece) if placed => placed_words(piece, text, out),
-            Item::Words(piece) if entity(&text[piece.clone()]) => {
-                told.marked(told.touches(&piece), out, |out| out.push_str(&text[piece]));
+        let name = signer.filter(|name| crosses(&reach, name));
+        match (item, name) {
+            (Item::Words(piece), Some(name)) => {
+                for (part, signs) in cut_at(piece, name) {
+                    match signs {
+                        true if signed => {}
+                        true => {
+                            signed = true;
+                            told.marked(told.touches(name), out, |out| {
+                                signed_words(name.clone(), text, placed, out);
+                            });
+                        }
+                        false => words_of(part, text, placed, told, out),
+                    }
+                }
             }
-            Item::Words(piece) => told.parted(piece, |part, tells| {
-                told.marked(tells, out, |out| out.push_str(&escaped(&text[part])));
-            }),
-            Item::Atom(one) if placed => {
+            (Item::Atom(_), Some(name)) if !signed => {
+                signed = true;
+                told.marked(told.touches(name), out, |out| {
+                    signed_words(name.clone(), text, placed, out);
+                });
+            }
+            (Item::Words(piece), _) => words_of(piece, text, placed, told, out),
+            (Item::Atom(one), _) if placed => {
                 let mut drawn = String::new();
                 atomic(one, spans, text, &kept, &mut drawn);
                 placed_atom(&drawn, &one.at, out);
             }
-            Item::Atom(one) => {
+            (Item::Atom(one), _) => {
                 let tells = tellable(&one.mark) && told.touches(&one.at);
                 told.marked(tells, out, |out| atomic(one, spans, text, &kept, out));
             }
@@ -115,6 +148,48 @@ pub(crate) fn sourced(spans: &[Span], text: &str, placed: bool, told: Told, out:
     while let Some(one) = open.pop() {
         shut(Some(&one.mark), out);
     }
+}
+
+fn words_of(piece: Range<usize>, text: &str, placed: bool, told: Told, out: &mut String) {
+    if placed {
+        return placed_words(piece, text, out);
+    }
+    if entity(&text[piece.clone()]) {
+        return told.marked(told.touches(&piece), out, |out| out.push_str(&text[piece]));
+    }
+    told.parted(piece, |part, tells| {
+        told.marked(tells, out, |out| out.push_str(&escaped(&text[part])));
+    });
+}
+
+fn crosses(piece: &Range<usize>, name: &Range<usize>) -> bool {
+    piece.start < name.end && name.start < piece.end
+}
+
+fn cut_at(piece: Range<usize>, name: &Range<usize>) -> Vec<(Range<usize>, bool)> {
+    let (start, end) = (name.start.max(piece.start), name.end.min(piece.end));
+    [
+        (piece.start..start, false),
+        (start..end, true),
+        (end..piece.end, false),
+    ]
+    .into_iter()
+    .filter(|(part, _)| !part.is_empty())
+    .collect()
+}
+
+// The window shows the signer as the person chose, so the name is moved whole like an entity.
+fn signed_words(part: Range<usize>, text: &str, placed: bool, out: &mut String) {
+    let name = escaped(&text[part.clone()]);
+    let _ = write!(out, "<span class=\"signer\" data-by=\"{name}\"");
+    if placed {
+        let _ = write!(
+            out,
+            " data-src=\"{}-{}\" contenteditable=\"false\"",
+            part.start, part.end
+        );
+    }
+    let _ = write!(out, ">{name}</span>");
 }
 
 enum Item<'a> {

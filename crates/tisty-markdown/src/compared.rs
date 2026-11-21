@@ -34,10 +34,12 @@ fn spending(was: &str, now: &str, cells: usize) -> Option<Compared> {
     };
     let steps = told(was.blocks(), now.blocks(), bodies)?;
     let (unnamed, named) = (HashMap::new(), page::anchors(&now));
-    let side = |text, anchors, title, named| Side {
+    let signed = (crate::signed::signers(&was), crate::signed::signers(&now));
+    let side = |text, anchors, signers, title, named| Side {
         text,
         drawing: Drawing {
             anchors,
+            signers,
             aligned: false,
             placed: false,
             title,
@@ -46,8 +48,20 @@ fn spending(was: &str, now: &str, cells: usize) -> Option<Compared> {
         },
     };
     let sides = Sides {
-        was: side(bodies.was, &unnamed, page::titled(was.blocks()), false),
-        now: side(bodies.now, &named, page::titled(now.blocks()), true),
+        was: side(
+            bodies.was,
+            &unnamed,
+            &signed.0,
+            page::titled(was.blocks()),
+            false,
+        ),
+        now: side(
+            bodies.now,
+            &named,
+            &signed.1,
+            page::titled(now.blocks()),
+            true,
+        ),
     };
     let mut out = Compared::default();
     drawn(&steps, &sides, None, &mut out);

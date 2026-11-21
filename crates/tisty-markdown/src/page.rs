@@ -1,12 +1,13 @@
 use std::collections::HashMap;
 use std::fmt::Write as _;
 
-use crate::inline::{Told, escaped, sourced};
+use crate::inline::{Told, escaped, signed_sourced, sourced};
 use crate::{Block, Callout, Column, Doc, Holds, Kind, Lean, values};
 
 #[derive(Clone, Copy)]
 pub(crate) struct Drawing<'a> {
     pub(crate) anchors: &'a HashMap<usize, String>,
+    pub(crate) signers: &'a HashMap<usize, std::ops::Range<usize>>,
     pub(crate) aligned: bool,
     pub(crate) placed: bool,
     pub(crate) title: Option<usize>,
@@ -44,8 +45,10 @@ pub fn html_placed(doc: &Doc) -> String {
 
 fn page_of(doc: &Doc, placed: bool) -> String {
     let anchors = anchors(doc);
+    let signers = crate::signed::signers(doc);
     let drawing = Drawing {
         anchors: &anchors,
+        signers: &signers,
         aligned: false,
         placed,
         title: titled(doc.blocks()),
@@ -121,8 +124,10 @@ pub fn placed_near(doc: &Doc, from: usize, to: usize, shown: Option<[u32; 2]>) -
     } else {
         (HashMap::new(), None)
     };
+    let signers = crate::signed::signers(doc);
     let drawing = Drawing {
         anchors: &anchors,
+        signers: &signers,
         aligned: false,
         placed: true,
         title: titled(blocks),
@@ -147,8 +152,10 @@ pub fn placed_near(doc: &Doc, from: usize, to: usize, shown: Option<[u32; 2]>) -
 // Cut only between top-level blocks, so each piece is whole HTML that can be laid after the last.
 pub fn pieces(doc: &Doc, about: usize) -> Vec<String> {
     let anchors = anchors(doc);
+    let signers = crate::signed::signers(doc);
     let drawing = Drawing {
         anchors: &anchors,
+        signers: &signers,
         aligned: true,
         placed: false,
         title: titled(doc.blocks()),
@@ -315,7 +322,9 @@ pub(crate) fn draw_as(block: &Block, text: &str, drawing: &Drawing, at: &str, ou
         }
         Kind::Paragraph => {
             let _ = write!(out, "<p{} {at}>", title_class(block, drawing));
-            sourced(&block.spans, text, drawing.placed, drawing.told, out);
+            let signer = drawing.signers.get(&block.at.start);
+            let how = (drawing.placed, drawing.told);
+            signed_sourced(&block.spans, text, how, signer, out);
             out.push_str("</p>");
         }
         Kind::Item { done } => {

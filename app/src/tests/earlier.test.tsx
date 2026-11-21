@@ -319,6 +319,13 @@ describe("the history of a document", () => {
     expect(writerOf({ ...yours, by: undefined })).toBeUndefined();
   });
 
+  it("names the assistant behind a task page's version only as the person chose", () => {
+    expect(writerOf(claudes, "named")).toBe(writerOf(claudes));
+    expect(writerOf(claudes, "agent")).toBe(t("anAgent"));
+    expect(writerOf(claudes, "mark")).toBe(t("anAgent"));
+    expect(writerOf(yours, "agent")).toBe(t("earlierByYou"));
+  });
+
   it("says when there is nothing kept yet", async () => {
     ipc.rows = [];
     view();

@@ -12,6 +12,7 @@ import {
 } from "./dressing";
 import { keptInPlace, takenOver } from "./pagePatching";
 import { SAY } from "./saying";
+import { signers } from "./signers";
 import { tabled } from "./tabled";
 import { GLIMPSES } from "./webcarding";
 import { gripped } from "./widening";
@@ -80,5 +81,6 @@ export const wornLaid = (
   if (reach.onLanguage) languaged(page);
   staged(page);
   datedSteps(page, reach.stepDates);
+  signers(page, reach.signing);
   return [...held, ...read.kept];
 };

@@ -1,5 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import type { Doc } from "./core";
+import type { Signing } from "./crediting";
 import { stamped, weigh } from "./format";
 import { fill, t } from "./locales";
 import { agentNamed, clientNamed, machineOf } from "./who";
@@ -43,9 +44,9 @@ export const docCompared = (id: string, was: string, now: string | null): Promis
 export const whenOf = (one: Earlier): string => stamped(one.wrote ?? one.replaced);
 
 // A version the log never named has nobody to say wrote it, which is not the same as the person.
-export const writerOf = (one: Earlier): string | undefined => {
+export const writerOf = (one: Earlier, signing: Signing = "named"): string | undefined => {
   if (!one.by) return undefined;
-  if (one.via) return clientNamed(one.via);
+  if (one.via) return signing === "named" ? clientNamed(one.via) : t("anAgent");
   return agentNamed(one.by) ? t("anAssistant") : t("earlierByYou");
 };
 
@@ -54,5 +55,5 @@ export const awayOf = (one: Earlier): string => {
   return machine ? fill("earlierAwayOn", machine) : t("earlierAway");
 };
 
-export const saidOf = (one: Earlier): string =>
-  [whenOf(one), writerOf(one), weigh(one.bytes)].filter(Boolean).join(" · ");
+export const saidOf = (one: Earlier, signing?: Signing): string =>
+  [whenOf(one), writerOf(one, signing), weigh(one.bytes)].filter(Boolean).join(" · ");
