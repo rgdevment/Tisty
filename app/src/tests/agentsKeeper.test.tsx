@@ -374,6 +374,27 @@ describe("«Sync» from the folder's line, its menu or Settings", () => {
     expect(sent("agents_turn")).toHaveLength(0);
   });
 
+  it("shows again a folder inside Agents hidden while it syncs", async () => {
+    syncing(state({ allOn: true }));
+    desk.papers = { folders: agents, docs: [doc("x", "claude")] };
+    hide("claude");
+    render(<AgentsKeeper />);
+    await waitFor(() => expect(isHidden("claude")).toBe(false));
+  });
+
+  it("keeps Agents hidden once hiding stopped its sync, though the state it held still synced", async () => {
+    syncing(state({ allOn: true }));
+    desk.papers = { folders: agents, docs: [doc("x", "claude")] };
+    render(<AgentsKeeper />);
+    await waitFor(() => expect(sent("agents_state").length).toBeGreaterThan(0));
+    await settle();
+    syncing(state({ allOn: false }));
+    act(() => hide(AGENTS));
+    await waitFor(() => expect(sent("agents_state").length).toBeGreaterThan(1));
+    await settle();
+    expect(isHidden(AGENTS)).toBe(true);
+  });
+
   it("leaves an Agents hidden while it does not sync where it is", async () => {
     syncing(state());
     desk.papers = { folders: agents, docs: [doc("x", "claude")] };

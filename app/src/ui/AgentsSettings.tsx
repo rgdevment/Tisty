@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useState } from "react";
+import { type ReactNode, useCallback, useEffect, useState } from "react";
+import { hideAgents } from "../agentsHiding";
 import {
   AGENTS_CHANGED,
   type AgentsLook,
@@ -13,7 +14,7 @@ import {
   bringMoreAgents,
   syncAgents,
 } from "../agentsSync";
-import { AGENTS, agentsHidden, agentsKeys, hide, show, useHidden } from "../hiding";
+import { agentsHidden, agentsKeys, show, useHidden } from "../hiding";
 import { fill, t } from "../locales";
 import { saidPlainly } from "../refusal";
 import { AgentsFound } from "./AgentsFound";
@@ -65,7 +66,15 @@ export default function AgentsSettings({
     });
 
   const hideButton = !hidden && (
-    <button type="button" onClick={() => hide(AGENTS)} className={small}>
+    <button
+      type="button"
+      onClick={() =>
+        hideAgents(agentsKeys(state?.folder), stage)
+          .then((hidden) => hidden && answered(Promise.resolve()))
+          .catch((e) => setTrouble({ card: "wiring", text: saidPlainly(e) }))
+      }
+      className={small}
+    >
       {t("agentsHide")}
     </button>
   );
@@ -116,7 +125,9 @@ export default function AgentsSettings({
           </button>
         </>
       )}
-      {stage === "syncs" && look && <Syncing look={look} answered={answered} />}
+      {stage === "syncs" && look && (
+        <Syncing look={look} answered={answered} hideButton={hideButton} />
+      )}
     </Card>
   );
 }
@@ -124,7 +135,12 @@ export default function AgentsSettings({
 function Syncing({
   look,
   answered,
-}: Readonly<{ look: AgentsLook; answered: (step: Promise<unknown>) => void }>) {
+  hideButton,
+}: Readonly<{
+  look: AgentsLook;
+  answered: (step: Promise<unknown>) => void;
+  hideButton: ReactNode;
+}>) {
   return (
     <>
       {look.both.length > 0 && (
@@ -158,6 +174,7 @@ function Syncing({
         <button type="button" onClick={() => answered(agentsTurn(null, false))} className={small}>
           {t("agentsUnsync")}
         </button>
+        {hideButton}
       </div>
       {look.assistants.length === 0 && (
         <p className="mt-2 text-[12.5px] text-faint">{t("agentsSettingsNone")}</p>

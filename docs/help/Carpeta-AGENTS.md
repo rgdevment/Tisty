@@ -50,13 +50,13 @@ La barra te dice cómo está Agentes con su color, y al lado no aparece ninguna 
 | :-- | :-- | :-- | :-- |
 | **1. Todavía sin traer** | El robot y el nombre **Agentes** en gris | Abre el aviso de la primera vez, [Tus agentes, en un solo lugar](#la-primera-vez) | **Ocultar de la barra** |
 | **2. Traída, sin sincronizar** | El robot en gris y el nombre como cualquier carpeta; al pasar el puntero, cuántos documentos tiene, como cualquier carpeta | La abre como cualquier carpeta; arriba, una línea discreta: «No se sincroniza con tus agentes · Sincronizar» | **Sincronizar**, [**Buscar de nuevo**](#buscar-de-nuevo) y **Ocultar de la barra**, nada más |
-| **3. Sincronizando** | El robot **coral** y el nombre como cualquier carpeta; al pasar el puntero, cuántos documentos tiene, como cualquier carpeta | La abre como cualquier carpeta | **Dejar de sincronizar** y [**Buscar de nuevo**](#buscar-de-nuevo), nada más: para ocultarla, primero deja de sincronizar |
+| **3. Sincronizando** | El robot **coral** y el nombre como cualquier carpeta; al pasar el puntero, cuántos documentos tiene, como cualquier carpeta | La abre como cualquier carpeta | **Dejar de sincronizar**, [**Buscar de nuevo**](#buscar-de-nuevo) y **Ocultar de la barra**, que antes te pide dejar de sincronizar |
 
 - **El coral es solo de Agentes**, y solo mientras sincroniza: el morado es de los diagramas, y ninguna carpeta tuya puede elegir el coral. En la red de Brainsty, los documentos de Agentes vienen ocultos, sincronice o no, para no tapar lo que escribes tú. Aparecen cuando enciendes **Mostrar AGENTS** en los filtros: más chicos que los tuyos, en un coral tenue y con sus líneas más tenues, y la leyenda los nombra **AGENTS**. Nunca son parecidos de nada. Mira [[Filtrar|Red-de-Brainsty#filtrar]].
 - **La línea del estado 2** solo aparece en Agentes, nunca en sus subcarpetas. Su enlace **Sincronizar** hace lo mismo que el del botón derecho.
 - **Con la barra plegada**, el robot de Agentes tiene el mismo color. Abierta o plegada, un lector de pantalla dice el estado en palabras: «Agentes — todavía sin traer» o «Agentes — No se sincroniza con tus agentes».
 - **El botón derecho** también se abre con la tecla de menú o con `Shift` + `F10`, con Agentes seleccionada.
-- **El botón derecho de Agentes misma** solo ofrece sincronizar, buscar de nuevo y ocultar, según su estado: ninguna otra acción de carpeta. Sus subcarpetas, como **Agentes › Claude**, tienen el menú de siempre, con **Documento nuevo** y **Traer otro archivo**. Por qué Agentes no se mueve ni cambia de nombre lo cuenta [Agentes se queda arriba](#agentes-se-queda-arriba).
+- **El botón derecho de Agentes misma** solo ofrece sincronizar, buscar de nuevo y ocultar, según su estado: ninguna otra acción de carpeta. Sus subcarpetas, como **Agentes › Claude**, tienen un menú solo de agentes, que cuenta [El botón derecho de una subcarpeta](#el-botón-derecho-de-una-subcarpeta). Por qué Agentes no se mueve ni cambia de nombre lo cuenta [Agentes se queda arriba](#agentes-se-queda-arriba).
 
 ## La primera vez
 
@@ -283,6 +283,26 @@ Las subcarpetas son para que encuentres las cosas: **lo que decide adónde va un
 | **Al entrar en Agentes** | Si Agentes sincroniza y un archivo existe en los dos lados, ya no es de ninguna regla o perdió la línea de Gemini, Tisty te pregunta por él apenas entras, uno por uno |
 
 ![La barra lateral con la carpeta Agentes abierta y sincronizando, con el robot en coral: dentro, Global con su globo azul y Claude con su globo de conversación naranja; en Claude, la regla Reglas, elegida, con el icono de un libro, y debajo las skills, cada una con el icono de una pieza y cuántos archivos lleva](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/agents/es-02-barra.png)
+
+### El botón derecho de una subcarpeta
+
+**Global**, **Claude**, **Codex** y cualquier carpeta dentro de Agentes tienen un menú solo de agentes. Sobre **Agentes › Claude**, mientras Agentes sincroniza, ofrece esto, y nada más:
+
+| Opción | Qué hace |
+| :-- | :-- |
+| **Documento nuevo** | Crea un documento en esa carpeta que ya nace con su línea `agent:`: en **Claude**, una regla de Claude; en **Global**, una regla de Global. Mira [Un documento nuevo ya es una regla](#un-documento-nuevo-ya-es-una-regla) |
+| **Traer otro archivo** | Abre la lista de los archivos de tus agentes que todavía no están en Agentes. Mira [Traer otro archivo](#traer-otro-archivo) |
+| **Pausar la sincronización con Claude** | Deja de escribir los archivos de Claude en este equipo, como el botón del mismo nombre en la ficha. En pausa, dice **Reanudar la sincronización con Claude**. Mira [Pausar, dejar de sincronizar y vaciar](#pausar-dejar-de-sincronizar-y-vaciar) |
+| **Ocultar de la barra** | La saca de la barra en este equipo. Si Agentes sincroniza, antes te pide dejar de sincronizar. Mira [Ocultarla de la barra](#ocultarla-de-la-barra) |
+| **Eliminar** | Pregunta antes; sus documentos pasan a **Sin carpeta**, y Tisty te pregunta por los archivos que armaban, con su respaldo. Mira [Eliminar una subcarpeta](#eliminar-una-subcarpeta) |
+
+- **Global no tiene pausa**: no es de un asistente, y lo que tiene llega a todos. Para pausar uno, usa la subcarpeta de ese asistente.
+- **La pausa solo aparece mientras Agentes sincroniza.** Traída sin sincronizar, Tisty no escribe ningún archivo, y no hay nada que pausar. Tampoco aparece para un asistente que no está instalado en este equipo, aunque su carpeta haya llegado desde otro.
+- **Una carpeta dentro de una subcarpeta**, como **Agentes › Claude › Pruebas**, tiene el mismo menú que **Claude**, con la pausa de Claude.
+- **No hay Diagrama nuevo, Carpeta nueva, Cambiar nombre, Mover a, Importar ni Desempaquetar.** Esas son acciones de tus carpetas; dentro de Agentes, cada carpeta es de un asistente, y su nombre es el que Tisty usa para saber a quién le escribe.
+- **Una subcarpeta archivada** muestra además **Desarchivar**, para que vuelva.
+
+**Un ejemplo.** Jaime prueba a mano unas reglas nuevas de Claude esta tarde, pero quiere que Codex siga recibiendo lo de Global. Botón derecho sobre **Agentes › Claude** y **Pausar la sincronización con Claude**. Codex sigue sincronizando; Claude queda como lo dejó la última escritura. Al terminar, botón derecho otra vez y **Reanudar la sincronización con Claude**.
 
 ### La línea `agent:`
 
@@ -545,7 +565,7 @@ Las versiones anteriores del **documento**, en cambio, son las de cualquier docu
 
 ## Pausar, dejar de sincronizar y vaciar
 
-**Pausar un asistente.** Mientras Agentes sincroniza, el lugar de siempre es **Configuración › Asistentes › Carpeta Agentes**: en la tarjeta **Agentes**, apaga el interruptor **Sincronizar Claude**, que aparece solo mientras la carpeta sincroniza. También desde la ficha de un documento, con los botones del pie: **Pausar la sincronización con Claude**, en un documento que se escribe en un solo archivo, o un botón por asistente, **Pausar Claude**, **Pausar Codex**…, en uno de Global. En pausa, Tisty no abre ni escribe los archivos de ese asistente: quedan como los dejó la última escritura, y tú sigues editando tus documentos. **Reanudar la sincronización con Claude** escribe lo que cambiaste, salvo un archivo que cambió por fuera mientras tanto, que queda marcado para que decidas.
+**Pausar un asistente.** Mientras Agentes sincroniza, el lugar de siempre es **Configuración › Asistentes › Carpeta Agentes**: en la tarjeta **Agentes**, apaga el interruptor **Sincronizar Claude**, que aparece solo mientras la carpeta sincroniza. También en la barra: botón derecho sobre **Agentes › Claude** y **Pausar la sincronización con Claude**; en pausa, el mismo menú dice **Reanudar la sincronización con Claude**. También desde la ficha de un documento, con los botones del pie: **Pausar la sincronización con Claude**, en un documento que se escribe en un solo archivo, o un botón por asistente, **Pausar Claude**, **Pausar Codex**…, en uno de Global. En pausa, Tisty no abre ni escribe los archivos de ese asistente: quedan como los dejó la última escritura, y tú sigues editando tus documentos. **Reanudar la sincronización con Claude** escribe lo que cambiaste, salvo un archivo que cambió por fuera mientras tanto, que queda marcado para que decidas.
 
 **Dejar de sincronizar toda la carpeta.** Botón derecho sobre **Agentes** y **Dejar de sincronizar**, o el botón **Dejar de sincronizar** en su tarjeta de **Configuración › Asistentes › Carpeta Agentes**. Pasa esto, y nada más:
 
@@ -601,6 +621,19 @@ Tisty no pregunta, y deja el archivo como está:
 
 En tus otros equipos pasa lo mismo: cuando la regla borrada les llega con la sincronización, cada uno te pregunta por su propio archivo la próxima vez que Tisty lo mira, y el respaldo queda en ese equipo.
 
+### Eliminar una subcarpeta
+
+Botón derecho sobre una subcarpeta de Agentes, como **Agentes › Claude › Pruebas**, y **Eliminar**. Tisty pregunta antes «¿Borrar «Pruebas»? Sus documentos pasan a Sin clasificar y sus subcarpetas suben un nivel. No se pierde nada, pero no se puede deshacer.». Con tu sí:
+
+1. Sus documentos pasan a **Sin carpeta**. Como salen de Agentes, Tisty deja de escribirlos.
+2. Alrededor de un segundo después, Tisty te pregunta por cada archivo que armaban, igual que en [Sacar una regla y su archivo](#sacar-una-regla-y-su-archivo): **Quitar el archivo** guarda un respaldo en este equipo y lo borra; **Dejarlo** lo deja donde está.
+3. Un archivo que también arma una regla de Global, como `CLAUDE.md`, no se pregunta: Tisty lo vuelve a escribir sin esa parte, con su respaldo antes.
+4. La carpeta no vuelve sola: Tisty no rehace una carpeta de Agentes que borraste.
+
+Como al borrar una regla, no pregunta por un asistente en pausa ni mientras Agentes no sincroniza: entonces Tisty no escribía ningún archivo.
+
+**Un ejemplo.** Marisol guardaba sus reglas de pruebas en una carpeta suya, **Agentes › Claude › Pruebas**, y ya no las quiere. Botón derecho sobre **Pruebas** y **Eliminar**; un segundo después, Tisty le pregunta **¿Quitar también el archivo?** por `~/.claude/rules/pruebas.md`. Elige **Quitar el archivo**: el respaldo queda en este equipo, Claude deja de leer esas reglas y sus documentos siguen en **Sin carpeta**, por si un día los quiere de vuelta.
+
 ### Vaciar Agentes
 
 Si sacas todos los documentos de Agentes mientras Tisty está abierto y la carpeta sincroniza, primero te pregunta por los archivos que escribían sus últimas reglas, uno por uno, como en [Sacar una regla y su archivo](#sacar-una-regla-y-su-archivo). Cuando respondiste el último, la carpeta Agentes y sus subcarpetas desaparecen de Tisty, y los archivos que elegiste dejar quedan como estaban. Traída sin sincronizar, no hay nada que preguntar: Tisty no escribía ningún archivo, y la carpeta se va apenas sale el último documento.
@@ -611,10 +644,11 @@ Vaciada, Agentes vuelve a la barra como al principio, en el estado 1: el robot y
 
 ### Ocultarla de la barra
 
-Si no usas Agentes y no quieres verla en la barra, ni siquiera en gris, ocúltala. **Solo se oculta mientras no sincroniza**: sincronizando, su botón derecho no ofrece ocultarla, para que nunca quede escribiendo archivos que no ves.
+Si no usas Agentes y no quieres verla en la barra, ni siquiera en gris, ocúltala. **Nunca queda oculta y sincronizando**, para que no escriba archivos que no ves.
 
-1. Si sincroniza, botón derecho sobre Agentes y **Dejar de sincronizar**. Queda en el estado 2.
-2. Botón derecho sobre Agentes y **Ocultar de la barra**. Está en el estado 1, el de antes de traer nada, y en el 2. También sirve **Ocultar** en la tarjeta **Agentes** de Configuración › Asistentes › Carpeta Agentes.
+1. Botón derecho sobre Agentes y **Ocultar de la barra**, en cualquiera de sus tres estados. También sirve **Ocultar** en la tarjeta **Agentes** de Configuración › Asistentes › Carpeta Agentes.
+2. Si Agentes sincroniza, antes te avisa: «Para ocultar Agentes, primero deja de sincronizar. Tus archivos de agente no se tocan.», con **Dejar de sincronizar y ocultar** y **Cancelar**.
+3. **Dejar de sincronizar y ocultar** hace las dos cosas, en ese orden: Agentes pasa al estado 2 y sale de la barra. **Cancelar** la deja como estaba, a la vista y sincronizando. Si Tisty no logra saber si Agentes sincroniza, te avisa igual.
 
 Agentes sale de la barra lateral en este equipo sin dejar rastro, y queda en **Configuración › Aspecto y ventana › Carpetas ocultas**, junto a cualquier otra carpeta que hayas ocultado: mira [Ocultar una carpeta de la barra](Documentos#ocultar-una-carpeta-de-la-barra). Su tarjeta en Configuración › Asistentes › Carpeta Agentes dice «Oculta de la barra en este equipo y sin sincronizar: no escribe ningún archivo de agente.», con **Volver a mostrar**.
 
@@ -625,7 +659,7 @@ Agentes sale de la barra lateral en este equipo sin dejar rastro, y queda en **C
 
 **Si en la versión anterior la habías ocultado mientras escribía los archivos de tus agentes**, ahora la encuentras otra vez en la barra, sincronizando. Desde ahí, si no la quieres ver, **Dejar de sincronizar** y **Ocultar de la barra**.
 
-**Las subcarpetas siguen la misma regla.** Mientras Agentes sincroniza, el botón derecho de **Global**, **Claude** o cualquier carpeta dentro de Agentes tampoco ofrece **Ocultar de la barra**: lo que tiene se sigue escribiendo, y no debe quedar escribiendo sin que lo veas. Para ocultar una, primero **Dejar de sincronizar** en Agentes.
+**Las subcarpetas siguen la misma regla.** **Ocultar de la barra** está siempre en el botón derecho de **Global**, **Claude** o cualquier carpeta dentro de Agentes. Mientras Agentes sincroniza, pasa por el mismo aviso, y **Dejar de sincronizar y ocultar** deja de sincronizar Agentes entera antes de ocultar esa subcarpeta: lo que tiene no debe quedar escribiendo sin que lo veas. Y si una subcarpeta oculta vuelve a sincronizar, por ejemplo con **Sincronizar** en la tarjeta, vuelve sola a la barra.
 
 ### Agentes se queda arriba
 
@@ -643,9 +677,9 @@ La tarjeta **Agentes** usa las mismas palabras y hace lo mismo que la barra. Arr
 | :-- | :-- | :-- |
 | **1. Todavía sin traer** | Qué asistentes vio Tisty, como «Encontré Claude y Codex en este equipo.», o «No encontré ningún asistente en este equipo.», y «Solo miré si existen sus carpetas; no leí nada de adentro.» | **Traer** y **Traer y sincronizar**, que abren los dos el aviso de la primera vez, y **Ocultar** |
 | **2. Traída, sin sincronizar** | «No se sincroniza con tus agentes» | **Sincronizar**; **Traer otro archivo**, cuando este equipo ya te dejó leer los archivos de tus agentes; y **Ocultar** |
-| **3. Sincronizando** | Lo que espera tu decisión, como «1 archivo dice algo distinto en Tisty y en el agente.», con **Revisar** | **Traer otro archivo** y **Dejar de sincronizar**, y debajo un interruptor por asistente: **Sincronizar Claude**, **Sincronizar Codex**… |
+| **3. Sincronizando** | Lo que espera tu decisión, como «1 archivo dice algo distinto en Tisty y en el agente.», con **Revisar** | **Traer otro archivo**, **Dejar de sincronizar** y **Ocultar**, y debajo un interruptor por asistente: **Sincronizar Claude**, **Sincronizar Codex**… |
 
-Con Agentes sincronizando y un asistente sin sincronizar, su interruptor dice «Sin sincronizar: sus archivos quedan como están y no se borra nada en Tisty.». Un asistente que sincroniza pero todavía no tiene ningún archivo lo dice bajo su interruptor: «Gemini: todavía sin reglas, skills ni memoria. Recibe lo que escribas en Global o en su carpeta.». Si Tisty no encuentra ningún asistente en este equipo, la tarjeta dice «No encontré agentes en este equipo.». **Ocultar** solo aparece mientras Agentes no sincroniza y no está oculta ya.
+Con Agentes sincronizando y un asistente sin sincronizar, su interruptor dice «Sin sincronizar: sus archivos quedan como están y no se borra nada en Tisty.». Un asistente que sincroniza pero todavía no tiene ningún archivo lo dice bajo su interruptor: «Gemini: todavía sin reglas, skills ni memoria. Recibe lo que escribas en Global o en su carpeta.». Si Tisty no encuentra ningún asistente en este equipo, la tarjeta dice «No encontré agentes en este equipo.». **Ocultar** aparece en los tres estados mientras no está oculta ya; sincronizando, antes te pide dejar de sincronizar, con el mismo aviso de la barra.
 
 ## Si venías de la versión anterior
 
@@ -985,7 +1019,9 @@ Y editar el archivo en disco tampoco sirve: ese cambio queda como **Cambiado por
 
 **El robot de Agentes está gris.** No sincroniza en este equipo. Si el nombre también está gris, todavía no traes nada: haz clic en ella. Si el nombre se ve normal, está traída: pulsa **Sincronizar**. Mira [Tres estados en la barra](#tres-estados-en-la-barra).
 
-**No encuentro Ocultar.** Agentes sincroniza, y sincronizando no se oculta, ni Agentes ni sus subcarpetas, como **Global**. Botón derecho sobre Agentes, **Dejar de sincronizar**, y después **Ocultar de la barra**.
+**Ocultar me pide dejar de sincronizar.** Agentes sincroniza, y nunca queda oculta y sincronizando, ni Agentes ni sus subcarpetas, como **Global**. **Dejar de sincronizar y ocultar** hace las dos cosas; tus archivos de agente no se tocan. Si prefieres que siga sincronizando, **Cancelar**.
+
+**Una subcarpeta de Agentes no tiene Cambiar nombre ni Diagrama nuevo.** Es a propósito: dentro de Agentes, cada carpeta es de un asistente, y Tisty sabe a quién le escribe por su nombre. Su botón derecho ofrece solo **Documento nuevo**, **Traer otro archivo**, la pausa de su asistente, **Ocultar de la barra** y **Eliminar**. Mira [El botón derecho de una subcarpeta](#el-botón-derecho-de-una-subcarpeta).
 
 **El botón derecho de Agentes solo ofrece sincronizar, buscar de nuevo u ocultar.** Es a propósito. **Buscar de nuevo** trae lo nuevo de tus asistentes; para elegir tú cada archivo, usa **Traer otro archivo** en el botón derecho de una subcarpeta, como Claude, o en Configuración › Asistentes › Carpeta Agentes. Y no se mueve ni cambia de nombre porque por dentro se guarda como `AGENTS`, y con otro nombre o en otro lugar Tisty y tus asistentes dejarían de encontrarla. Mira [Agentes se queda arriba](#agentes-se-queda-arriba).
 

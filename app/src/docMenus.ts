@@ -1,7 +1,9 @@
 import { open as pick } from "@tauri-apps/plugin-dialog";
+import { agentsHideChoice } from "./agentsHiding";
 import {
   AGENTS_CHANGED,
   type AgentsStage,
+  type AgentsState,
   agentsRoot,
   agentsStage,
   agentsState,
@@ -92,13 +94,15 @@ const agentsChoices = (h: Hands, folder: string | undefined, off = false): Choic
     : [];
 
 // Only the switch moves: no agent file is touched and no document goes.
-export const stopSyncing = (h: Hands) =>
-  agentsTurn(null, false)
+const turnSync = (h: Hands, assistant: string | null, on: boolean) =>
+  agentsTurn(assistant, on)
     .then(() => {
       h.changed();
       window.dispatchEvent(new Event(AGENTS_CHANGED));
     })
     .catch(h.fail);
+
+export const stopSyncing = (h: Hands) => turnSync(h, null, false);
 
 const syncChoice = (): Choice => ({
   key: "agentsSync",
@@ -125,34 +129,107 @@ const unsyncChoice = (h: Hands): Choice => ({
 export const stageFor = (
   folder: Folded,
   papers: Papers,
-  then: (stage: AgentsStage | null) => void,
+  then: (stage: AgentsStage | null, state: AgentsState | null) => void,
 ) => {
   const root = agentsRoot(papers.folders)?.id ?? null;
-  if (root !== folder.id && !inAgents(folder.id, papers.folders)) return then(null);
+  if (root !== folder.id && !inAgents(folder.id, papers.folders)) return then(null, null);
   // Unknown counts as syncing: stopping twice is harmless, hiding a folder that writes is not.
   agentsState()
-    .then((state) => then(agentsStage(root, state)))
-    .catch(() => then("syncs"));
+    .then((state) => then(agentsStage(root, state), state))
+    .catch(() => then("syncs", null));
 };
 
-// Hiding needs the folder unsynced first, so a hidden Agents never writes a file nobody sees.
 const agentsRootChoices = (folder: Folded, h: Hands, stage: AgentsStage | null): Choice[] => {
-  const hiding = { ...hideChoice(agentsKeys(folder.id)), apart: false };
+  const hiding = { ...agentsHideChoice(agentsKeys(folder.id), stage, h), apart: false };
   if (stage === "unbrought") return [hiding];
   if (stage === "brought") return [syncChoice(), rescanChoice(), hiding];
-  return [unsyncChoice(h), rescanChoice()];
+  return [unsyncChoice(h), rescanChoice(), hiding];
 };
 
-/// On Agents itself only syncing and hiding: an unknown stage counts as syncing.
+const underRoot = (folder: Folded, folders: readonly Folded[], root: string | undefined) => {
+  let at: Folded | undefined = folder;
+  while (at && at.parent !== root) {
+    const parent: string | null = at.parent;
+    at = folders.find((one) => one.id === parent);
+  }
+  return at;
+};
+
+type Assistant = AgentsState["assistants"][number];
+
+// Global and a folder of the person's own are no assistant's; pausing one only means something while Agents syncs.
+const assistantOf = (
+  folder: Folded,
+  h: Hands,
+  stage: AgentsStage | null,
+  state: AgentsState | null,
+): Assistant | undefined => {
+  if (stage !== "syncs" || !state) return undefined;
+  const top = underRoot(folder, h.papers.folders, agentsRoot(h.papers.folders)?.id);
+  return top && state.assistants.find((one) => one.name === top.name);
+};
+
+const turnChoice = (h: Hands, assistant: Assistant, off: boolean): Choice => ({
+  key: "agentsTurn",
+  icon: assistant.on ? "⏸" : "↻",
+  label: fill(assistant.on ? "agentPauseSync" : "agentResumeSync", assistant.name),
+  off,
+  onPick: () => turnSync(h, assistant.id, !assistant.on),
+});
+
+const awayChoice = (folder: Folded, h: Hands): Choice => ({
+  // Only the folder that was shelved answers for itself; one below it comes back with it.
+  key: "away",
+  icon: folder.archived ? "▢" : "▣",
+  label: folder.archived ? t("bringBack") : t("putAway"),
+  off: folder.away && !folder.archived,
+  apart: true,
+  onPick: () => folderAway(folder.id, !folder.archived).then(h.changed).catch(h.fail),
+});
+
+const dropChoice = (folder: Folded, h: Hands): Choice => ({
+  key: "drop",
+  icon: "✕",
+  label: t("deleteIt"),
+  off: folder.away,
+  danger: true,
+  apart: true,
+  onPick: () => h.dropFolder(folder),
+});
+
+// Inside Agents a folder's name says which assistant it writes to, so nothing there renames, moves or adds folders.
+const agentsFolderChoices = (
+  folder: Folded,
+  h: Hands,
+  stage: AgentsStage | null,
+  state: AgentsState | null,
+): Choice[] => {
+  const assistant = assistantOf(folder, h, stage, state);
+  return [
+    {
+      key: "newDoc",
+      icon: "+",
+      label: t("newDoc"),
+      off: folder.away,
+      onPick: () => h.newDoc(folder.id),
+    },
+    ...agentsChoices(h, folder.id, folder.away),
+    ...(assistant ? [turnChoice(h, assistant, folder.away)] : []),
+    agentsHideChoice([folder.id], stage, h, folder.away),
+    ...(folder.archived ? [awayChoice(folder, h)] : []),
+    dropChoice(folder, h),
+  ];
+};
+
+/// On Agents itself only syncing and hiding; an unknown stage counts as syncing.
 export const folderChoices = (
   folder: Folded,
   h: Hands,
   stage: AgentsStage | null = null,
+  state: AgentsState | null = null,
 ): Choice[] => {
   if (agentsRoot(h.papers.folders)?.id === folder.id) return agentsRootChoices(folder, h, stage);
-  // Like Agents itself, a folder inside it hides only once nothing there writes a file nobody sees.
-  const hides =
-    !inAgents(folder.id, h.papers.folders) || stage === "brought" || stage === "unbrought";
+  if (inAgents(folder.id, h.papers.folders)) return agentsFolderChoices(folder, h, stage, state);
   return [
     {
       key: "newDoc",
@@ -205,7 +282,6 @@ export const folderChoices = (
       off: folder.away,
       onPick: () => h.bringIn(folder.id),
     },
-    ...agentsChoices(h, folder.id, folder.away),
     {
       key: "unpack",
       icon: "↧",
@@ -219,25 +295,9 @@ export const folderChoices = (
       label: t("packAll"),
       onPick: () => h.parcels.packUp([], "tisty"),
     },
-    ...(hides ? [hideChoice(folder.id, folder.away)] : []),
-    {
-      // Only the folder that was shelved answers for itself; one below it comes back with it.
-      key: "away",
-      icon: folder.archived ? "▢" : "▣",
-      label: folder.archived ? t("bringBack") : t("putAway"),
-      off: folder.away && !folder.archived,
-      apart: true,
-      onPick: () => folderAway(folder.id, !folder.archived).then(h.changed).catch(h.fail),
-    },
-    {
-      key: "drop",
-      icon: "✕",
-      label: t("deleteIt"),
-      off: folder.away,
-      danger: true,
-      apart: true,
-      onPick: () => h.dropFolder(folder),
-    },
+    hideChoice(folder.id, folder.away),
+    awayChoice(folder, h),
+    dropChoice(folder, h),
   ];
 };
 

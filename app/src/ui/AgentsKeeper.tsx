@@ -20,7 +20,7 @@ import {
   onlySwitchedOff,
 } from "../agentsSync";
 import { useDesk } from "../desk";
-import { agentsHidden, agentsKeys, show, useHidden } from "../hiding";
+import { agentsKeys, show, useHidden } from "../hiding";
 import { saidPlainly } from "../refusal";
 import AgentsFirst from "./AgentsFirst";
 import { useAgentsState } from "./AgentsMark";
@@ -100,13 +100,21 @@ export default function AgentsKeeper() {
   }, [inside, papers.folders]);
 
   const root = agentsRoot(papers.folders)?.id;
+  const tree = agentsTree(papers.folders);
   // A hidden folder that syncs came from before hiding needed it unsynced; it shows again rather than write unseen.
   const stance = useAgentsState(root ?? null);
-  const veiled = agentsHidden(useHidden(), root);
+  const hidden = useHidden();
+  const veiled = JSON.stringify(
+    [...agentsKeys(root), ...tree].filter((key) => hidden.includes(key)),
+  );
   useEffect(() => {
-    if (veiled && stance && agentsLit(stance)) show(...agentsKeys(stance.folder));
+    const keys: string[] = JSON.parse(veiled);
+    if (keys.length === 0 || !stance || !agentsLit(stance)) return;
+    // The state held may be from before hiding stopped the sync, so it is asked again.
+    agentsState()
+      .then((now) => agentsLit(now) && show(...keys))
+      .catch(() => undefined);
   }, [veiled, stance]);
-  const tree = agentsTree(papers.folders);
   const holds = papers.docs.some((one) => one.folder && tree.has(one.folder));
   // Only an AGENTS emptied while the window watched goes; one made or found empty stays.
   const held = useRef<string | null>(null);

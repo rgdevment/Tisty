@@ -133,7 +133,7 @@ Lo que conviene saber:
 - **Una subcarpeta sola.** Puedes ocultar **Trabajo / Clientes** y dejar **Trabajo** a la vista. Su fila en Carpetas ocultas nombra el camino entero, para que sepas cuál es.
 - **El Diario e Ideas también.** Botón derecho sobre **Diario** o sobre **Ideas** y **Ocultar de la barra**. En Carpetas ocultas aparecen con su nombre, y **Volver a mostrar** los devuelve arriba de la Biblioteca.
 - **Una carpeta archivada no se oculta.** En el estante de **Archivados** la opción aparece apagada: ya está fuera de tu camino.
-- **Agentes se oculta solo mientras no sincroniza.** Todavía sin traer o traída sin sincronizar, su botón derecho ofrece **Ocultar de la barra**; sincronizando, no la ofrece, y primero eliges **Dejar de sincronizar**. Oculta, Agentes no sincroniza: no escribe ningún archivo de tus agentes. Lo cuenta [Ocultarla de la barra](Carpeta-AGENTS#ocultarla-de-la-barra).
+- **Agentes nunca queda oculta y sincronizando.** Su botón derecho siempre ofrece **Ocultar de la barra**, y el de sus subcarpetas también; si Agentes sincroniza, antes te pide dejar de sincronizar, con **Dejar de sincronizar y ocultar** y **Cancelar**. Oculta, Agentes no sincroniza: no escribe ningún archivo de tus agentes. Lo cuenta [Ocultarla de la barra](Carpeta-AGENTS#ocultarla-de-la-barra).
 
 ## Etiquetas
 

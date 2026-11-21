@@ -10,6 +10,7 @@ import {
 } from "../agentsSync";
 import { AGENTS, hide, isHidden, showAll } from "../hiding";
 import { adopt } from "../locales";
+import { asksSure, type Buttons } from "../sure";
 import AgentsSettings from "../ui/AgentsSettings";
 import { LiveRows } from "./rowsShell";
 
@@ -37,7 +38,7 @@ const state = (more: Partial<AgentsState> = {}): AgentsState => ({
   held: 0,
   consented: false,
   allOn: true,
-  assistants: [{ id: "claude", name: "Claude" }],
+  assistants: [{ id: "claude", name: "Claude", on: true }],
   ...more,
 });
 
@@ -154,7 +155,7 @@ describe("the Agents card in Settings", () => {
     expect(document.querySelector('[data-mark="claude"]')).toBeTruthy();
     expect(screen.queryByText("I found Claude on this computer.")).toBeNull();
     expect(screen.queryByText("Not synced with your agents")).toBeNull();
-    expect(screen.queryByRole("button", { name: "Hide" })).toBeNull();
+    expect(screen.getByRole("button", { name: "Hide" })).toBeTruthy();
     await userEvent.click(screen.getByRole("button", { name: "Bring another file" }));
     expect(more.one).toHaveBeenCalledTimes(1);
     more.off();
@@ -166,6 +167,38 @@ describe("the Agents card in Settings", () => {
         args: { assistant: null, on: false },
       }),
     );
+  });
+
+  it("hides a syncing Agents only once the person agrees to stop syncing first", async () => {
+    showAll();
+    ipc.state = state({ folder: "A", consented: true });
+    const asked: { said: string; buttons?: Buttons }[] = [];
+    let yes = false;
+    asksSure((said, buttons) => {
+      asked.push({ said, buttons });
+      return Promise.resolve(yes);
+    });
+    render(
+      <LiveRows>
+        {(cards) => <AgentsSettings fail={cards.fail} quietly={cards.quietly} />}
+      </LiveRows>,
+    );
+    const hiding = await screen.findByRole("button", { name: "Hide" });
+    ipc.calls = [];
+    await userEvent.click(hiding);
+    await waitFor(() => expect(asked).toHaveLength(1));
+    expect(asked[0]).toEqual({
+      said: "To hide Agents, first stop syncing. Your agent files are not touched.",
+      buttons: { yes: "Stop syncing and hide", no: "Cancel" },
+    });
+    expect(ipc.calls.some((one) => one.cmd === "agents_turn")).toBe(false);
+    expect(isHidden(AGENTS)).toBe(false);
+    yes = true;
+    await userEvent.click(hiding);
+    await waitFor(() => expect(isHidden(AGENTS)).toBe(true));
+    expect(ipc.calls).toContainEqual({ cmd: "agents_turn", args: { assistant: null, on: false } });
+    asksSure(null);
+    showAll();
   });
 
   it("turns one assistant back on and says why it does not sync", async () => {

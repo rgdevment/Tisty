@@ -101,7 +101,7 @@ export interface AgentsState {
   held: number;
   consented: boolean;
   allOn: boolean;
-  assistants: { id: string; name: string }[];
+  assistants: { id: string; name: string; on: boolean }[];
 }
 
 export const agentsState = (): Promise<AgentsState> => invoke("agents_state");

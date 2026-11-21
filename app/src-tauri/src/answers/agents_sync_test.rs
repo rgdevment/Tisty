@@ -1739,6 +1739,23 @@ fn the_state_follows_the_first_time_and_the_switch_without_touching_a_file() {
 }
 
 #[test]
+fn the_state_says_which_assistant_is_paused_here() {
+    let mut room = room();
+    room.bring(&[".claude/CLAUDE.md"]);
+    turned(&room.session, &room.homes, HERE, Some("claude"), false).unwrap();
+    let on = |id: &str| {
+        stance(&room.session, &room.homes, HERE)
+            .assistants
+            .iter()
+            .find(|one| one.id == id)
+            .map(|one| one.on)
+    };
+    assert_eq!((on("claude"), on("codex")), (Some(false), Some(true)));
+    turned(&room.session, &room.homes, HERE, Some("claude"), true).unwrap();
+    assert_eq!(on("claude"), Some(true));
+}
+
+#[test]
 fn another_computer_has_not_said_yes_for_this_one() {
     let mut room = room();
     room.bring(&[".claude/CLAUDE.md"]);
@@ -2369,6 +2386,26 @@ fn a_folder_of_agents_the_person_deleted_is_never_made_again() {
     room.session.commit(Op::FolderDelete { id: codex }).unwrap();
     round_here(&mut room.session, &room.homes, HERE).unwrap();
     assert!(!room.folders().contains(&"Codex".to_string()));
+}
+
+#[test]
+fn deleting_an_assistants_folder_asks_about_the_files_its_rules_wrote() {
+    let mut room = room();
+    room.bring(&[".claude/CLAUDE.md", ".claude/rules/tone.md"]);
+    let claude = sub_of(&room, "Claude");
+    room.session
+        .commit(Op::FolderDelete { id: claude })
+        .unwrap();
+    let told = round_here(&mut room.session, &room.homes, HERE).unwrap();
+    assert!(
+        told.loose
+            .iter()
+            .any(|one| one.at == room.at(".claude/rules/tone.md")),
+        "{told:?}"
+    );
+    assert!(!room.folders().contains(&"Claude".to_string()));
+    answered(&mut room, ".claude/rules/tone.md", true);
+    assert_eq!(room.kept(".claude/rules/tone.md"), 1);
 }
 
 #[test]

@@ -138,12 +138,12 @@ export function deskOf(state: State, data: Snapshot) {
     setMenu({ at, label: t("docsActions"), choices: hereChoices(hands) });
 
   const folderMenu = (folder: Folded, at: { x: number; y: number }) =>
-    stageFor(folder, papers, (stage) =>
+    stageFor(folder, papers, (stage, state) =>
       setMenu({
         at,
         on: folder.id,
         label: t("folderActions"),
-        choices: folderChoices(folder, hands, stage),
+        choices: folderChoices(folder, hands, stage, state),
       }),
     );
 

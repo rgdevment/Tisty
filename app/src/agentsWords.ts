@@ -427,6 +427,11 @@ const words = {
   ],
   agentsAnd: ["and", "y"],
   agentsHide: ["Hide", "Ocultar"],
+  agentsHideFirst: [
+    "To hide Agents, first stop syncing. Your agent files are not touched.",
+    "Para ocultar Agentes, primero deja de sincronizar. Tus archivos de agente no se tocan.",
+  ],
+  agentsHideStop: ["Stop syncing and hide", "Dejar de sincronizar y ocultar"],
   agentsName: ["Agents", "Agentes"],
   agentsSync: ["Sync", "Sincronizar"],
   agentsUnsync: ["Stop syncing", "Dejar de sincronizar"],

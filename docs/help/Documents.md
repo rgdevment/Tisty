@@ -133,7 +133,7 @@ Worth knowing:
 - **A subfolder on its own.** You can hide **Work / Clients** and leave **Work** in view. Its row in Hidden folders names the whole path, so you know which one it is.
 - **The Diary and Ideas too.** Right-click **Diary** or **Ideas** and choose **Hide from the sidebar**. In Hidden folders they show by name, and **Show again** puts them back at the top of the Library.
 - **An archived folder does not hide.** On the **Archived** shelf the choice shows greyed out: it is already out of your way.
-- **Agents hides only while it does not sync.** With nothing brought yet or brought but not synced, its right-click offers **Hide from the sidebar**; while syncing it does not, and you choose **Stop syncing** first. Hidden, Agents does not sync: it writes none of your agents' files. [Hiding it from the sidebar](AGENTS-Folder#hiding-it-from-the-sidebar) tells it.
+- **Agents is never hidden and syncing.** Its right-click always offers **Hide from the sidebar**, and so does its subfolders'; if Agents syncs, it first asks you to stop syncing, with **Stop syncing and hide** and **Cancel**. Hidden, Agents does not sync: it writes none of your agents' files. [Hiding it from the sidebar](AGENTS-Folder#hiding-it-from-the-sidebar) tells it.
 
 ## Tags
 

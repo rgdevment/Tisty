@@ -1157,6 +1157,7 @@ pub fn led_again(session: &Session, homes: &Homes, here: &str) -> Answer<Rounded
 pub struct Present {
     pub id: String,
     pub name: String,
+    pub on: bool,
 }
 
 #[derive(Debug, PartialEq, Eq, serde::Serialize)]
@@ -1190,6 +1191,7 @@ pub fn stance(session: &Session, homes: &Homes, here: &str) -> Stance {
             .map(|one| Present {
                 id: one.id.to_string(),
                 name: one.name.to_string(),
+                on: ledger.syncs(one.id),
             })
             .collect(),
     }

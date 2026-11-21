@@ -178,7 +178,7 @@ describe("the words Agents speaks with", () => {
 
   it("names the assistants found here, one, two or more", () => {
     const named = (...names: string[]) =>
-      foundSaid(state({ assistants: names.map((name) => ({ id: name, name })) }));
+      foundSaid(state({ assistants: names.map((name) => ({ id: name, name, on: true })) }));
     expect(named()).toBe("I found no assistant on this computer.");
     expect(named("Claude")).toBe("I found Claude on this computer.");
     expect(named("Claude", "Codex")).toBe("I found Claude and Codex on this computer.");
