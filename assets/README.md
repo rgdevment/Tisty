@@ -71,16 +71,17 @@ with the same order in both, `.png` in `store/` and `web/` and `.webp` in
 `readme/`. They present what Tisty is, not what a version
 brings. The order is the one the Store shows, and the READMEs and the help
 follow it for the first ones: memory, diagrams, brainstorm, priorities, agent,
-documents, day, Folio, data, close. `store/` and `web/` also keep the three
-Store promotional images: `store-box-1x1.png`, `store-hero-16x9.png` and
+documents, day, Folio, data, close. `store/` also keeps the three Store
+promotional images: `store-box-1x1.png`, `store-hero-16x9.png` and
 `store-poster-9x16.png`.
 
 | Folder | Size | Where it goes |
 | --- | --- | --- |
 | `store/` | 1920×1080 | The Microsoft Store listing, and the picture tisty.app shows and shares |
-| `web/` | 1280×720, lighter | The help, and the three screens the READMEs have no capture of yet: agent, data and close |
+| `web/` | 1280×720, lighter | The four screens the READMEs and the help have no capture of yet: agent, Folio, data and close |
 | `readme/` | 1336 wide, WebP | The 1.45 captures still in use: Folio's share screen in the READMEs, and the day and the archive that `docs/posts.json` posts |
 | `app/` | 1562×822, lossless WebP; Brainsty alive 900 wide, animated | Real captures of the app since 1.49, for the READMEs and the help |
+| `help/` | PNG | Pictures only one help page shows, and `help/agents/` for the Agents folder's; a blank one is a capture still to take |
 
 `app/` is named `<language>-<subject>-<theme>.webp`: `en-` or `es-`, a subject
 such as `archive` or `revision-semanal`, and `light` or `dark`. The READMEs show
