@@ -42,7 +42,7 @@ The card reads the task every time it is drawn, so it never goes stale:
 2. The quick capture's own field opens in that place. Write the task the way you would say it: `Get a quote for the gate on Monday #building !plan @Home`. The marks are painted as you type, and `/` inside the field offers what it offers in the quick capture: a date, a list, a priority.
 3. `Enter` creates the task, with its date, its list, its tags and its priority, and leaves its card in that place of the document.
 
-![The «A new task» field open in the building minutes, with the date, the tag and the priority painted](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/help/en-new-task.png)
+![The «A new task» field open in the building minutes, with the date, the tag and the priority painted](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/en-new-task.png)
 
 - **`Esc` lets it go** without creating anything. `Enter` on an empty line creates nothing: the field says «A title is required» and stays open.
 - **A second `Enter`** while it is being made does not make another.
@@ -53,7 +53,7 @@ The card reads the task every time it is drawn, so it never goes stale:
 
 A task created from a document remembers the document and the section you wrote it in. Beside its page, the **Born in** row names them, and a click opens that document. A task that came from an idea in Ideas shows the same.
 
-![Beside the page of «Check the gate hinges», Born in names the November minutes and their section, and Linked from, the same minutes](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/help/en-born-in.png)
+![Beside the page of «Check the gate hinges», Born in names the November minutes and their section, and Linked from, the same minutes](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/en-born-in.png)
 
 The same row holds **Linked from**: the documents and tasks that cite or mention this one, with the section they do it in. When there are many, you see twelve and **See all…** brings the rest. [[Linking documents|Linking-Documents#who-links-to-it-linked-from]] tells it.
 

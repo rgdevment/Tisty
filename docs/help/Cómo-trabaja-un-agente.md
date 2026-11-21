@@ -24,7 +24,7 @@ En **Configuración › Asistentes**:
    - **Pedirle que deje su tarea al día**: la pregunta en las respuestas.
    - **Recordarle al empezar y al terminar cada turno**: los hooks, sin quitarlos del archivo.
 
-![Configuración › Asistentes con Claude Code conectado: Agregar dice en qué archivo pondrá Tisty sus hooks antes de Agregarlos](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/help/es-hooks.png)
+![Configuración › Asistentes con Claude Code conectado: Agregar dice en qué archivo pondrá Tisty sus hooks antes de Agregarlos](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/es-hooks.png)
 
 ## Una sesión, paso a paso
 

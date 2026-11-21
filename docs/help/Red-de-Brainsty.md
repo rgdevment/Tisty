@@ -82,7 +82,7 @@ Abierta, arriba lleva dos interruptores, **Viajeros** y **Girar**, que cuenta [L
 
 Por ejemplo, Marisol tiene once carpetas y listas con color, y la carpeta Agentes con sus reglas de Claude. Su leyenda muestra las seis más llenas, **Casa**, **Trabajo**, **Mascotas**, **Viajes**, **Compras** y **Salud**, y debajo **5 más**. Un día quiere ver dónde quedaron sus reglas: enciende **Mostrar AGENTS** en los filtros y la leyenda suma, aparte, **AGENTS**; la carpeta Agentes no compite por un lugar entre sus colores. Una carpeta sin color, como **Recetas**, no está en la lista: sus documentos se ven con el tono de los documentos.
 
-![La Leyenda abierta en la esquina inferior izquierda de la red: arriba los interruptores Viajeros y Girar, con su punto encendido; Qué es con Documento, Página, Tarea, Etiqueta y Archivo; Color: su carpeta o lista con Casa, Trabajo, Mascotas, Viajes, Compras y Salud, «5 más», AGENTS con su cuadrado chico en coral tenue, porque Mostrar AGENTS está encendido, y «Sin color, toma el tono de su clase.»; Estado con En curso, Terminadas y Archivadas; Líneas, de cerca con Cita, Menciona, Parte de (página, parte), Etiquetada, Usa un archivo y Parecidos en ámbar](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/help/es-leyenda.png)
+![La Leyenda abierta en la esquina inferior izquierda de la red: arriba los interruptores Viajeros y Girar, con su punto encendido; Qué es con Documento, Página, Tarea, Etiqueta y Archivo; Color: su carpeta o lista con Casa, Trabajo, Mascotas, Viajes, Compras y Salud, «5 más», AGENTS con su cuadrado chico en coral tenue, porque Mostrar AGENTS está encendido, y «Sin color, toma el tono de su clase.»; Estado con En curso, Terminadas y Archivadas; Líneas, de cerca con Cita, Menciona, Parte de (página, parte), Etiquetada, Usa un archivo y Parecidos en ámbar](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/es-leyenda.png)
 
 ## La red viva
 
@@ -129,7 +129,7 @@ La red cambia lo que muestra según la distancia, y cada detalle aparece de a po
 
 Así, de cerca, la tarea «Vacuna anual de Rina» es una casilla del color de la lista **Casa**, y «Comprar el antiparasitario de Rina», que terminaste la semana pasada, un tic del mismo color. El ícono se atenúa con lo que no está elegido, como el resto, y un clic sobre él elige el nodo igual que antes. De lejos no cuesta nada: ahí vuelven las formas simples, que se dibujan de a miles.
 
-![Brainsty en el panel de contenido, junto a la barra lateral, con la misma red de lejos: los nodos forman la silueta de un cerebro visto de lado, sin títulos y con líneas tenues, y la Leyenda plegada abajo a la izquierda](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/help/es-red-lejos.png)
+![Brainsty en el panel de contenido, junto a la barra lateral, con la misma red de lejos: los nodos forman la silueta de un cerebro visto de lado, sin títulos y con líneas tenues, y la Leyenda plegada abajo a la izquierda](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/es-red-lejos.png)
 
 Con la rueda acercas y alejas; arrastrando te mueves, y arrastrando con el botón derecho, o con `Shift`, giras el globo. Al primer toque la red deja de seguir el punto donde arrancó. Un doble clic en un espacio vacío te devuelve de un salto a la red entera, desde cualquier distancia.
 
@@ -185,7 +185,7 @@ El embudo junto al buscador, **Filtros**, abre lo que se puede dejar fuera. Cada
 
 Con algún filtro puesto, el embudo se tiñe y aparece **Mostrar todo**, que devuelve la red entera. **Mostrar AGENTS** queda aparte: ni tiñe el embudo ni se apaga con **Mostrar todo**.
 
-![Brainsty en el panel de contenido con Filtros abierto: Documentos, Tareas y Parecidos encendidos, En curso, Últimos 30 días y la etiqueta rina, el embudo teñido, Mostrar todo a la vista y la red con lo que queda](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/help/es-filtros.png)
+![Brainsty en el panel de contenido con Filtros abierto: Documentos, Tareas y Parecidos encendidos, En curso, Últimos 30 días y la etiqueta rina, el embudo teñido, Mostrar todo a la vista y la red con lo que queda](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/es-filtros.png)
 
 ## Con el teclado
 
@@ -287,7 +287,7 @@ Un tipeo o una traducción cuenta como una palabra en común: dos cosas se parec
 "Guessed alike by Tisty, linked by no one: \"Pay the water bill\" […] (open) (alike by translation: pagar≈pay, agua≈water)."
 ```
 
-![La ficha de «Pagar la cuenta del agua» de cerca en Brainsty: «Tarea · Casa» con sus conexiones, Estado «En curso · Para hoy», y en Parecidos «Pay the water bill» con «Tisty cree que se parecen: comparten pagar ≈ pay y agua ≈ water»; en la red, una curva ámbar une las dos tareas](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/help/es-gemela.png)
+![La ficha de «Pagar la cuenta del agua» de cerca en Brainsty: «Tarea · Casa» con sus conexiones, Estado «En curso · Para hoy», y en Parecidos «Pay the water bill» con «Tisty cree que se parecen: comparten pagar ≈ pay y agua ≈ water»; en la red, una curva ámbar une las dos tareas](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/es-gemela.png)
 
 Un parecido aparece solo cuando sus dos puntas están a la vista: en la red, las dos tienen que estar dibujadas; para un agente, las dos tienen que pasar su puerta, así que una tarea oculta o descartada nunca se nombra a través de un parecido. Un parecido no suma conexiones a la cuenta de arriba ni cuenta para el tope de 12.000 nodos. Y `read`, que trae el texto, no trae parecidos: van solo en la ficha de `brain`.
 

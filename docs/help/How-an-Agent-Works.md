@@ -24,7 +24,7 @@ In **Settings › Assistants**:
    - **Ask it to keep its task up to date**: the question in the answers.
    - **Remind it when a turn starts and ends**: the hooks, without taking them out of the file.
 
-![Settings › Assistants with Claude Code connected: Add tells which file Tisty will put its hooks in before Add them](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/help/en-hooks.png)
+![Settings › Assistants with Claude Code connected: Add tells which file Tisty will put its hooks in before Add them](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/en-hooks.png)
 
 ## A session, step by step
 
