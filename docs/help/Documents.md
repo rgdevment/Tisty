@@ -4,8 +4,6 @@ Documents live beside the tasks, for reference material that has no date and nev
 
 For writing in one, see [[The Markdown editor|Markdown-Editor]]; for everything it can hold — callouts, tables, diagrams, math, widgets, code — see the [Tisty Markdown guide](https://markdown.tisty.app).
 
-![The guide page What is Tisty? open in Tisty: its text in the middle, and on the right its Outline, Linked from with the four guide pages that link to it, Details, History and Shared](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/app/en-what-is-tisty-light.webp)
-
 ## A task or a document?
 
 Tisty keeps two kinds of things, and telling them apart is most of using it well.

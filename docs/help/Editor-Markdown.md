@@ -2,8 +2,6 @@
 
 Un documento en Tisty es texto tuyo, guardado como un archivo `.md` normal, que escribes aquí y puedes leer con cualquier otro programa. Si mañana borras Tisty, tus documentos siguen abriéndose en cualquier editor de texto, en GitHub o en otra app de notas.
 
-![La página ¿Qué es Tisty? de la guía abierta en Tisty: su texto al centro y, a la derecha, su Índice, Enlazado desde con las cuatro páginas de la guía que la enlazan, Detalles, Historial y Compartido](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/app/es-que-es-tisty-light.webp)
-
 ## Escribir donde lees
 
 Se escribe sobre la misma página que lees, la que dibuja Tisty. No hay un modo de edición aparte ni bloques que se abren: haces clic y escribes.

@@ -2,8 +2,6 @@
 
 A document in Tisty is text of yours, kept as a plain `.md` file, that you write here and can read with anything else. Delete Tisty tomorrow and your documents still open in any text editor, on GitHub, or in another notes app.
 
-![The guide page What is Tisty? open in Tisty: its text in the middle, and on the right its Outline, Linked from with the four guide pages that link to it, Details, History and Shared](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/app/en-what-is-tisty-light.webp)
-
 ## Writing where you read
 
 You write on the same page you read, the one Tisty draws. There is no separate editing mode and no block to open: you click and type.

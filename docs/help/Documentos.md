@@ -4,8 +4,6 @@ Los documentos viven junto a las tareas, para el material de consulta que no tie
 
 Cómo se escribe en uno está en [[El editor Markdown|Editor-Markdown]]; todo lo que puede llevar (avisos, tablas, diagramas, fórmulas, widgets, código) está en la [guía de Markdown de Tisty](https://markdown.tisty.app/es/).
 
-![La página ¿Qué es Tisty? de la guía abierta en Tisty: su texto al centro y, a la derecha, su Índice, Enlazado desde con las cuatro páginas de la guía que la enlazan, Detalles, Historial y Compartido](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/app/es-que-es-tisty-light.webp)
-
 ## ¿Tarea o documento?
 
 Tisty guarda dos tipos de cosas, y distinguirlas es buena parte de usarlo bien.
