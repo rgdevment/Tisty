@@ -257,8 +257,15 @@ espera en Ideas.
   suyas, 30 días por defecto.
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="assets/screens/app/es-diagrama-dark.webp"/>
-  <img src="assets/screens/app/es-diagrama-light.webp" alt="Diagramas que siguen siendo texto: la ventana de diagramas sobre la guía, con las formas a la izquierda, el diagrama de flujo ¿Lo vas a hacer, o a volver a leer? al centro y, a la derecha, el texto Mermaid que se escribe en el documento, en vivo"/>
+  <source
+    media="(prefers-color-scheme: dark)"
+    srcset="assets/screens/app/es-diagrama-dark.webp"/>
+  <img
+    src="assets/screens/app/es-diagrama-light.webp"
+    alt="Diagramas que siguen siendo texto: la ventana de diagramas sobre la
+    guía, con las formas a la izquierda, el diagrama de flujo ¿Lo vas a hacer, o
+    a volver a leer? al centro y, a la derecha, el texto Mermaid que se escribe
+    en el documento, en vivo"/>
 </picture>
 
 ### Ideas: una lluvia de ideas a mano
@@ -279,8 +286,15 @@ espera en Ideas.
   anexa a su documento, y a las viejas solo las marca, para que tú las borres.
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="assets/screens/app/es-ideas-dark.webp"/>
-  <img src="assets/screens/app/es-ideas-light.webp" alt="Un pensamiento rápido, para no olvidarlo: Ideas como notas adhesivas de colores, cada una con su fecha y su minuto, escritas a mano, como Fotos del viaje a la Patagonia en el diario o Medir el costo de cada herramienta del MCP en tokens, para ordenarlas después en una tarea o un documento"/>
+  <source
+    media="(prefers-color-scheme: dark)"
+    srcset="assets/screens/app/es-ideas-dark.webp"/>
+  <img
+    src="assets/screens/app/es-ideas-light.webp"
+    alt="Un pensamiento rápido, para no olvidarlo: Ideas como notas adhesivas de
+    colores, cada una con su fecha y su minuto, escritas a mano, como Fotos del
+    viaje a la Patagonia en el diario o Medir el costo de cada herramienta del
+    MCP en tokens, para ordenarlas después en una tarea o un documento"/>
 </picture>
 
 ### Diario: lo que pasó hoy
@@ -300,8 +314,15 @@ espera en Ideas.
   páginas son los meses.
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="assets/screens/app/es-diario-dark.webp"/>
-  <img src="assets/screens/app/es-diario-light.webp" alt="El Diario el viernes 20: arriba el recuadro ¿Qué pasó hoy? y, debajo, la línea de días, cada uno con lo escrito y las tareas cerradas ese día plegadas, como 2 tareas cerradas; en la barra, Diario 2026 con una página por mes"/>
+  <source
+    media="(prefers-color-scheme: dark)"
+    srcset="assets/screens/app/es-diario-dark.webp"/>
+  <img
+    src="assets/screens/app/es-diario-light.webp"
+    alt="El Diario el viernes 20: arriba el recuadro ¿Qué pasó hoy? y, debajo,
+    la línea de días, cada uno con lo escrito y las tareas cerradas ese día
+    plegadas, como 2 tareas cerradas; en la barra, Diario 2026 con una página
+    por mes"/>
 </picture>
 
 ### Tareas: qué hacer, quién lo hace y cómo se resolvió
@@ -335,13 +356,27 @@ espera en Ideas.
   «¿cómo resolvimos esto?» con la línea que lo dice.
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="assets/screens/app/es-pagina-de-tarea-dark.webp"/>
-  <img src="assets/screens/app/es-pagina-de-tarea-light.webp" alt="Una página por tarea: Instalador: probar la actualización desde la versión anterior, con su lista, fecha, fecha límite, prioridad y etiquetas arriba; Description, Done when y Steps con tres de siete marcados; y a la derecha Partes, Lo que lleva y El trayecto, desde Nace hasta cada paso hecho"/>
+  <source
+    media="(prefers-color-scheme: dark)"
+    srcset="assets/screens/app/es-pagina-de-tarea-dark.webp"/>
+  <img
+    src="assets/screens/app/es-pagina-de-tarea-light.webp"
+    alt="Una página por tarea: Instalador: probar la actualización desde la
+    versión anterior, con su lista, fecha, fecha límite, prioridad y etiquetas
+    arriba; Description, Done when y Steps con tres de siete marcados; y a la
+    derecha Partes, Lo que lleva y El trayecto, desde Nace hasta cada paso
+    hecho"/>
 </picture>
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="assets/screens/app/es-prioridades-dark.webp"/>
-  <img src="assets/screens/app/es-prioridades-light.webp" alt="Urgente no siempre es importante: cada tarea en su cuadrante de la matriz de Eisenhower, Hacer, Planificar, Delegar o Prescindible, cada uno con su cuenta, y junto al título cuántas faltan por clasificar"/>
+  <source
+    media="(prefers-color-scheme: dark)"
+    srcset="assets/screens/app/es-prioridades-dark.webp"/>
+  <img
+    src="assets/screens/app/es-prioridades-light.webp"
+    alt="Urgente no siempre es importante: cada tarea en su cuadrante de la
+    matriz de Eisenhower, Hacer, Planificar, Delegar o Prescindible, cada uno
+    con su cuenta, y junto al título cuántas faltan por clasificar"/>
 </picture>
 
 ### Revisión semanal: la semana en orden
@@ -363,8 +398,14 @@ una muestra ✓ cuando ya no espera nada.
   por su cuenta.
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="assets/screens/app/es-revision-semanal-dark.webp"/>
-  <img src="assets/screens/app/es-revision-semanal-light.webp" alt="La Revisión semanal y sus tres paradas: Por decidir, 38, con Abrir Ideas, 38 por ordenar; Marcados como pasados, con su marca y Aquí no espera nada; y Hace tiempo que no abres, 17 documentos, cada uno con Archivar"/>
+  <source
+    media="(prefers-color-scheme: dark)"
+    srcset="assets/screens/app/es-revision-semanal-dark.webp"/>
+  <img
+    src="assets/screens/app/es-revision-semanal-light.webp"
+    alt="La Revisión semanal y sus tres paradas: Por decidir, 38, con Abrir
+    Ideas, 38 por ordenar; Marcados como pasados, con su marca y Aquí no espera
+    nada; y Hace tiempo que no abres, 17 documentos, cada uno con Archivar"/>
 </picture>
 
 ### El archivo: cómo se resolvió
@@ -384,8 +425,16 @@ mismo una que descartaste.
   mismo trabajo y parte de cómo salió la vez anterior.
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="assets/screens/app/es-archivo-dark.webp"/>
-  <img src="assets/screens/app/es-archivo-light.webp" alt="El Archivo desde febrero de 2026: las barras de cada mes, las cuentas de tareas cerradas, historias, vueltas de rutinas, rastro y racha más larga, y las historias por mes, como Revisar los logs del incidente buscando datos personales, cerrada por un agente, y Probar la captura rápida con 30 frases reales"/>
+  <source
+    media="(prefers-color-scheme: dark)"
+    srcset="assets/screens/app/es-archivo-dark.webp"/>
+  <img
+    src="assets/screens/app/es-archivo-light.webp"
+    alt="El Archivo desde febrero de 2026: las barras de cada mes, las cuentas
+    de tareas cerradas, historias, vueltas de rutinas, rastro y racha más larga,
+    y las historias por mes, como Revisar los logs del incidente buscando datos
+    personales, cerrada por un agente, y Probar la captura rápida con 30 frases
+    reales"/>
 </picture>
 
 ### Brainsty: todo unido
@@ -424,7 +473,11 @@ junto a tus listas.
   recibe los parecidos aparte, así que nunca los confunde con enlaces que
   alguien escribió.
 
-<img src="assets/screens/app/en-brainsty-living-dark.webp" alt="Brainsty, viva, en la app en inglés: 1.931 nodos y 2.811 conexiones girando despacio como un globo en el panel de contenido, junto a la barra lateral, con la Leyenda plegada abajo a la izquierda"/>
+<img
+  src="assets/screens/app/en-brainsty-living-dark.webp"
+  alt="Brainsty, viva, en la app en inglés: 1.931 nodos y 2.811 conexiones
+  girando despacio como un globo en el panel de contenido, junto a la barra
+  lateral, con la Leyenda plegada abajo a la izquierda"/>
 
 [La red de Brainsty](https://www.tisty.app/es/ayuda/red-de-brainsty/), en la
 ayuda, lo cuenta todo.
@@ -437,8 +490,15 @@ Codex de `AGENTS.md`, Gemini de `GEMINI.md`, Copilot de
 junta en Tisty como documentos, con sus skills y su memoria.
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="assets/screens/app/es-agentes-primera-vez-dark.webp"/>
-  <img src="assets/screens/app/es-agentes-primera-vez-light.webp" alt="Agentes la primera vez: el aviso Tus agentes, en un solo lugar, con lo que Tisty encontró en este equipo, Claude con 2 reglas, 29 skills y 49 memorias, Codex con 1 regla y 4 skills, Copilot con 1 regla y Gemini todavía sin nada, y los dos botones Traer y Traer y sincronizar"/>
+  <source
+    media="(prefers-color-scheme: dark)"
+    srcset="assets/screens/app/es-agentes-primera-vez-dark.webp"/>
+  <img
+    src="assets/screens/app/es-agentes-primera-vez-light.webp"
+    alt="Agentes la primera vez: el aviso Tus agentes, en un solo lugar, con lo
+    que Tisty encontró en este equipo, Claude con 2 reglas, 29 skills y 49
+    memorias, Codex con 1 regla y 4 skills, Copilot con 1 regla y Gemini todavía
+    sin nada, y los dos botones Traer y Traer y sincronizar"/>
 </picture>
 
 - **Traer o sincronizar** — **Traer** copia los archivos que marcas, para
@@ -457,8 +517,16 @@ junta en Tisty como documentos, con sus skills y su memoria.
   secreto nunca entran, y no se lee nada hasta que haces clic en la carpeta.
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="assets/screens/app/es-agentes-regla-dark.webp"/>
-  <img src="assets/screens/app/es-agentes-regla-light.webp" alt="La ficha de una regla en Agentes / Claude, Al día: quién la lee, el archivo donde se escribe, su tamaño, sus respaldos, su formato, cuándo se escribió por última vez, que se guardó el original y que sincroniza en este equipo; debajo, el texto de la regla, y al pie Editar, Respaldos, Historial, Copiar enlace y Pausar la sincronización con Claude"/>
+  <source
+    media="(prefers-color-scheme: dark)"
+    srcset="assets/screens/app/es-agentes-regla-dark.webp"/>
+  <img
+    src="assets/screens/app/es-agentes-regla-light.webp"
+    alt="La ficha de una regla en Agentes / Claude, Al día: quién la lee, el
+    archivo donde se escribe, su tamaño, sus respaldos, su formato, cuándo se
+    escribió por última vez, que se guardó el original y que sincroniza en este
+    equipo; debajo, el texto de la regla, y al pie Editar, Respaldos, Historial,
+    Copiar enlace y Pausar la sincronización con Claude"/>
 </picture>
 
 [La carpeta Agentes](https://www.tisty.app/es/ayuda/carpeta-agents/), en la
@@ -1051,7 +1119,13 @@ aparta: una tarea siempre le gana el sitio.
 frase legible, y te muestra qué entendió *antes* de guardar nada — como fichas
 que corriges con un clic.
 
-<img src="assets/screens/app/es-tareas-hoy-dark.webp" alt="Atrasada no es vencida: las tareas de hoy, primero las vencidas, luego las por vencer y las atrasadas, cada una con su fecha, prioridad, lista y etiquetas; la barra Añadir una tarea con las pistas de lo que entiende, y en la barra lateral los contadores de vencidas, atrasadas, para hoy y por venir"/>
+<img
+  src="assets/screens/app/es-tareas-hoy-dark.webp"
+  alt="Atrasada no es vencida: las tareas de hoy, primero las vencidas, luego
+  las por vencer y las atrasadas, cada una con su fecha, prioridad, lista y
+  etiquetas; la barra Añadir una tarea con las pistas de lo que entiende, y en
+  la barra lateral los contadores de vencidas, atrasadas, para hoy y por
+  venir"/>
 
 ```text
 "desplegar mañana a las 10"             →  mañana 10:00

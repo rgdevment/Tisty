@@ -251,8 +251,15 @@ waits in Ideas.
   default.
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="assets/screens/app/en-diagram-dark.webp"/>
-  <img src="assets/screens/app/en-diagram-light.webp" alt="Diagrams that stay text: the diagram window over the guide, with the shapes on the left, the flowchart Will you do it, or read it again? in the middle, and on the right the Mermaid text that goes into the document, live"/>
+  <source
+    media="(prefers-color-scheme: dark)"
+    srcset="assets/screens/app/en-diagram-dark.webp"/>
+  <img
+    src="assets/screens/app/en-diagram-light.webp"
+    alt="Diagrams that stay text: the diagram window over the guide, with the
+    shapes on the left, the flowchart Will you do it, or read it again? in the
+    middle, and on the right the Mermaid text that goes into the document,
+    live"/>
 </picture>
 
 ### Ideas: a brainstorm at hand
@@ -273,8 +280,15 @@ waits in Ideas.
   or files it in its document, and only marks the old ones, for you to delete.
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="assets/screens/app/en-ideas-dark.webp"/>
-  <img src="assets/screens/app/en-ideas-light.webp" alt="A quick thought, so you don't lose it: Ideas as sticky notes in colours, each with its date and minute, written by hand, such as Photos of the Patagonia trip in the diary or Measure the token cost of each MCP tool, to sort out later into a task or a document"/>
+  <source
+    media="(prefers-color-scheme: dark)"
+    srcset="assets/screens/app/en-ideas-dark.webp"/>
+  <img
+    src="assets/screens/app/en-ideas-light.webp"
+    alt="A quick thought, so you don't lose it: Ideas as sticky notes in
+    colours, each with its date and minute, written by hand, such as Photos of
+    the Patagonia trip in the diary or Measure the token cost of each MCP tool,
+    to sort out later into a task or a document"/>
 </picture>
 
 ### Diary: what happened today
@@ -294,8 +308,15 @@ waits in Ideas.
   are the months.
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="assets/screens/app/en-diary-dark.webp"/>
-  <img src="assets/screens/app/en-diary-light.webp" alt="The Diary on Friday 20: the box What happened today? on top and, below it, the line of days, each with what was written and the tasks closed that day folded, such as 2 tasks closed; in the sidebar, Diary 2026 with a page a month"/>
+  <source
+    media="(prefers-color-scheme: dark)"
+    srcset="assets/screens/app/en-diary-dark.webp"/>
+  <img
+    src="assets/screens/app/en-diary-light.webp"
+    alt="The Diary on Friday 20: the box What happened today? on top and, below
+    it, the line of days, each with what was written and the tasks closed that
+    day folded, such as 2 tasks closed; in the sidebar, Diary 2026 with a page a
+    month"/>
 </picture>
 
 ### Tasks: what to do, who does it, how it was solved
@@ -326,13 +347,26 @@ waits in Ideas.
   we solve this?» with the line that says it.
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="assets/screens/app/en-task-page-dark.webp"/>
-  <img src="assets/screens/app/en-task-page-light.webp" alt="A page per task: Installer: test the update from the previous version, with its list, date, deadline, priority and tags on top; Description, Done when and Steps with three of seven ticked; and on the right Parts, What it carries and The trail, from Born to each step done"/>
+  <source
+    media="(prefers-color-scheme: dark)"
+    srcset="assets/screens/app/en-task-page-dark.webp"/>
+  <img
+    src="assets/screens/app/en-task-page-light.webp"
+    alt="A page per task: Installer: test the update from the previous version,
+    with its list, date, deadline, priority and tags on top; Description, Done
+    when and Steps with three of seven ticked; and on the right Parts, What it
+    carries and The trail, from Born to each step done"/>
 </picture>
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="assets/screens/app/en-priorities-dark.webp"/>
-  <img src="assets/screens/app/en-priorities-light.webp" alt="Urgent is not always important: each task in its quadrant of the Eisenhower matrix, Do, Schedule, Delegate or Minor, each with its count, and beside the title how many are left to classify"/>
+  <source
+    media="(prefers-color-scheme: dark)"
+    srcset="assets/screens/app/en-priorities-dark.webp"/>
+  <img
+    src="assets/screens/app/en-priorities-light.webp"
+    alt="Urgent is not always important: each task in its quadrant of the
+    Eisenhower matrix, Do, Schedule, Delegate or Minor, each with its count, and
+    beside the title how many are left to classify"/>
 </picture>
 
 ### Weekly review: the week in order
@@ -354,8 +388,14 @@ waits in it.
   on its own.
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="assets/screens/app/en-weekly-review-dark.webp"/>
-  <img src="assets/screens/app/en-weekly-review-light.webp" alt="Weekly review and its three stops: To decide, 38, with Open Ideas, 38 waiting; Marked as past, with its check and Nothing waits here; and Not opened in a while, 14 documents, each with Archive"/>
+  <source
+    media="(prefers-color-scheme: dark)"
+    srcset="assets/screens/app/en-weekly-review-dark.webp"/>
+  <img
+    src="assets/screens/app/en-weekly-review-light.webp"
+    alt="Weekly review and its three stops: To decide, 38, with Open Ideas, 38
+    waiting; Marked as past, with its check and Nothing waits here; and Not
+    opened in a while, 14 documents, each with Archive"/>
 </picture>
 
 ### The archive: how it was solved
@@ -375,8 +415,15 @@ so does one you dropped.
   archive for the same work, and starts from how it went last time.
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="assets/screens/app/en-archive-dark.webp"/>
-  <img src="assets/screens/app/en-archive-light.webp" alt="The Archive since February 2026: the bars of each month, the counts of closed tasks, stories, routine turns, trace and longest run, and the stories by month, such as Compare supermarket spending against the budget and Review the incident logs looking for personal data, closed by an agent"/>
+  <source
+    media="(prefers-color-scheme: dark)"
+    srcset="assets/screens/app/en-archive-dark.webp"/>
+  <img
+    src="assets/screens/app/en-archive-light.webp"
+    alt="The Archive since February 2026: the bars of each month, the counts of
+    closed tasks, stories, routine turns, trace and longest run, and the stories
+    by month, such as Compare supermarket spending against the budget and Review
+    the incident logs looking for personal data, closed by an agent"/>
 </picture>
 
 ### Brainsty: everything joined
@@ -411,7 +458,11 @@ sidebar, draws all of it as one network, in the content panel beside your lists.
   archive with the rest, reads a document's card without reading it whole, and
   gets the alike pairs apart, so it never takes them for links someone wrote.
 
-<img src="assets/screens/app/en-brainsty-living-dark.webp" alt="Brainsty, alive: 1,931 nodes and 2,811 connections turning slowly like a globe in the content panel, beside the sidebar, with the Legend folded at the bottom left"/>
+<img
+  src="assets/screens/app/en-brainsty-living-dark.webp"
+  alt="Brainsty, alive: 1,931 nodes and 2,811 connections turning slowly like a
+  globe in the content panel, beside the sidebar, with the Legend folded at the
+  bottom left"/>
 
 [The Brainsty network](https://www.tisty.app/docs/brainsty-network/), in the
 help, tells all of it.
@@ -424,8 +475,15 @@ Codex from `AGENTS.md`, Gemini from `GEMINI.md`, Copilot from
 gathers them in Tisty as documents, with their skills and memory.
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="assets/screens/app/en-agents-first-time-dark.webp"/>
-  <img src="assets/screens/app/en-agents-first-time-light.webp" alt="Agents the first time: the box Your agents, in one place, with what Tisty found on this computer, Claude with 2 rules, 29 skills and 49 memories, Codex with 1 rule and 4 skills, Copilot with 1 rule, and Gemini with nothing yet, and the two buttons Bring and Bring and sync"/>
+  <source
+    media="(prefers-color-scheme: dark)"
+    srcset="assets/screens/app/en-agents-first-time-dark.webp"/>
+  <img
+    src="assets/screens/app/en-agents-first-time-light.webp"
+    alt="Agents the first time: the box Your agents, in one place, with what
+    Tisty found on this computer, Claude with 2 rules, 29 skills and 49
+    memories, Codex with 1 rule and 4 skills, Copilot with 1 rule, and Gemini
+    with nothing yet, and the two buttons Bring and Bring and sync"/>
 </picture>
 
 - **Bring or sync** — **Bring** copies the files you tick, to read and arrange
@@ -444,8 +502,16 @@ gathers them in Tisty as documents, with their skills and memory.
   the folder.
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="assets/screens/app/en-agents-rule-dark.webp"/>
-  <img src="assets/screens/app/en-agents-rule-light.webp" alt="A rule's card in Agents / Claude, In sync: who reads it, the file it is written to, its size, its backups, its format, when it was last written, that the original was kept and that it syncs on this computer; the rule's text below, and at the foot Edit, Backups, History, Copy link and Pause sync with Claude"/>
+  <source
+    media="(prefers-color-scheme: dark)"
+    srcset="assets/screens/app/en-agents-rule-dark.webp"/>
+  <img
+    src="assets/screens/app/en-agents-rule-light.webp"
+    alt="A rule's card in Agents / Claude, In sync: who reads it, the file it is
+    written to, its size, its backups, its format, when it was last written,
+    that the original was kept and that it syncs on this computer; the rule's
+    text below, and at the foot Edit, Backups, History, Copy link and Pause sync
+    with Claude"/>
 </picture>
 
 [The Agents folder](https://www.tisty.app/docs/agents-folder/), in the help,
@@ -1019,7 +1085,12 @@ Narrow the window and it steps aside; a task always wins the room over it.
 it, leaves the sentence readable, and shows you what it understood *before*
 anything is saved — as chips you can correct with one click.
 
-<img src="assets/screens/app/en-tasks-today-dark.webp" alt="Late is not overdue: today's tasks, overdue first, then due soon and late, each with its date, priority, list and tags; the Add a task bar with the hints of what it reads, and the counts of overdue, late, for today and ahead in the sidebar"/>
+<img
+  src="assets/screens/app/en-tasks-today-dark.webp"
+  alt="Late is not overdue: today's tasks, overdue first, then due soon and
+  late, each with its date, priority, list and tags; the Add a task bar with the
+  hints of what it reads, and the counts of overdue, late, for today and ahead
+  in the sidebar"/>
 
 ```text
 "ship the release tomorrow at 10"   →  tomorrow 10:00
