@@ -221,7 +221,7 @@ The memory Marisol left out is still there: the next time she looks again, `GEMI
 
 **Not now** closes it.
 
-![PROVISIONAL — The Bring another file box in English opened by Look again, with nothing to bring: at the top the line Nothing new found. This is what each assistant has:, and below three lines, each with its assistant's icon: the orange chat bubble with Claude · already in Agents, the teal terminal with Codex · already in Agents, and the brown pointer with Cursor: no rules, skills or memory yet. It gets what you write in Global or in its folder.; no boxes to tick; at the bottom right, Not now and a greyed-out Bring](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/agents/en-17-look-again.png)
+![The Bring another file box opened by Look again, with nothing to bring: at the top the line Nothing new found. This is what each assistant has:, and below three lines, each with its assistant's icon: the orange chat bubble with Claude · already in Agents, the teal terminal with Codex · already in Agents and the green compass with Gemini · already in Agents; no boxes to tick; at the bottom right, Not now and Bring](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/agents/en-17-look-again.png)
 
 **On a computer that has not given permission yet**, such as a second computer where Agents came in brought, **Look again** opens the first-time box instead, with its names and sizes and its two buttons. It opens no file and makes no subfolder before your **Bring** or your **Bring and sync**.
 

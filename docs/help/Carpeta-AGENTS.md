@@ -221,7 +221,7 @@ La memoria que Marisol dejó fuera sigue ahí: la próxima vez que busque de nue
 
 **Ahora no** lo cierra.
 
-![PROVISORIA — El aviso Traer otro archivo en español abierto con Buscar de nuevo, sin nada que traer: arriba la línea No encontré nada nuevo. Esto es lo que hay en cada asistente:, y debajo tres líneas, cada una con el icono de su asistente: el globo de conversación naranja con Claude · ya está en Agentes, la terminal verde azulado con Codex · ya está en Agentes, y el puntero café con Cursor: todavía sin reglas, skills ni memoria. Recibe lo que escribas en Global o en su carpeta.; ninguna casilla; abajo a la derecha, Ahora no y Traer desactivado](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/agents/es-17-buscar-de-nuevo.png)
+![El aviso Traer otro archivo abierto con Buscar de nuevo, sin nada que traer: arriba la línea No encontré nada nuevo. Esto es lo que hay en cada asistente:, y debajo tres líneas, cada una con el icono de su asistente: el globo de conversación naranja con Claude · ya está en Agentes, la terminal verde azulado con Codex · ya está en Agentes y la brújula verde con Gemini · ya está en Agentes; ninguna casilla; abajo a la derecha, Ahora no y Traer](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/agents/es-17-buscar-de-nuevo.png)
 
 **En un equipo que todavía no te dio permiso**, como un segundo equipo donde Agentes llegó traída, **Buscar de nuevo** abre en cambio el aviso de la primera vez, con sus nombres y tamaños y sus dos botones. No abre ningún archivo ni crea ninguna subcarpeta antes de tu **Traer** o tu **Traer y sincronizar**.
 

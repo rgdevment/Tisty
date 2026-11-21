@@ -82,7 +82,7 @@ Open, it carries two switches at the top, **Travellers** and **Turning**, which 
 
 For instance, Marisol has eleven coloured folders and lists, and the Agents folder with her Claude rules. Her legend shows the six fullest, **Home**, **Work**, **Pets**, **Trips**, **Shopping** and **Health**, and below them **5 more**. One day she wants to see where her rules ended up: she turns **Show AGENTS** on in the filters and the legend adds, apart, **AGENTS**; the Agents folder does not compete for a place among her colours. A folder with no colour, like **Recipes**, is not on the list: its documents show in the documents' tone.
 
-![The Legend open in the bottom left corner of the network: at the top the Travellers and Turning switches, with their dot lit; What it is with Document, Page, Task, Tag and File; Colour: its folder or list with Home, Work, Pets, Trips, Shopping and Health, «5 more», AGENTS with its small square in faint coral, because Show AGENTS is on, and «Without a colour, it takes its kind's tone.»; State with Under way, Done and Archived; Lines, up close with Cites, Mentions, Part of (a page, a part), Tagged, Uses a file and Alike in amber](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/en-legend.png)
+![The Legend open in the bottom left corner of the network: at the top the Travellers and Turning switches, with their dot lit; What it is with Document, Page, Task, Tag and File; Colour: its folder or list with Work, Home, Finance, Tisty Project, Health and Family, «35 more» and «Without a colour, it takes its kind's tone.»; State with Under way, Done and Archived; Lines, up close with Cites, Mentions, Part of (a page, a part), Tagged and Uses a file](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/en-legend.png)
 
 ## The living network
 
@@ -187,7 +187,7 @@ The funnel beside the search box, **Filters**, opens what can be left out. Each 
 
 With any filter set, the funnel is tinted and **Show everything** appears, which brings the whole network back. **Show AGENTS** stands apart: it neither tints the funnel nor goes off with **Show everything**.
 
-![Brainsty in the content panel with Filters open: Documents, Tasks and Alike on, Under way, Last 30 days and the rina tag, the funnel tinted, Show everything in sight and the network with what remains](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/en-filters.png)
+![Brainsty in the content panel with Filters open: under Show, everything on, from Documents to Archived; under Touched, Last 30 days; under Tag, Any tag; the funnel tinted and Show everything; below, the Legend open, with Alike in amber, and beside it the network with what remains](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/en-filters.png)
 
 ## With the keyboard
 

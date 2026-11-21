@@ -45,7 +45,7 @@ Un clic en ese enlace abre el documento en esa sección. Si la sección ya no ex
 
 Deja el puntero sobre un enlace a otro documento y aparece su vista previa: las primeras líneas del documento o, si el enlace apunta a una sección, esa sección. Sirve para confirmar que es el que buscabas, o para leer un dato rápido sin perder el lugar donde estabas escribiendo.
 
-![La vista previa de un enlace a la sección «Horarios» de «Veterinaria», abierta sobre la ficha de Rina](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/es-vista-previa.png)
+![La vista previa del enlace a «Veterinaria», abierta sobre la ficha de Rina: sus secciones Vacunas, Horarios y Contacto](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/es-vista-previa.png)
 
 Para abrirlo: en un documento que puedes escribir, un clic deja el cursor en el enlace, para que lo corrijas, y `Ctrl` + clic (`⌘` + clic en un Mac) lo abre; en uno que solo se lee, como una tarea cerrada o un documento archivado, basta un clic.
 
@@ -53,7 +53,7 @@ Para abrirlo: en un documento que puedes escribir, un clic deja el cursor en el 
 
 El panel junto al documento tiene la fila **Enlazado desde**: cada documento y cada tarea que lo cita o lo menciona y, en un documento, bajo qué sección lo hace («En: Vacunas»). Un clic abre ese documento en esa sección.
 
-![El panel junto a «Veterinaria»: Enlazado desde nombra «Rina» y la sección donde la enlaza, «En: Vacunas»](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/es-enlazado-desde.png)
+![El panel junto a «Veterinaria»: Enlazado desde nombra la «Ficha de Rina» y la sección donde la enlaza, «En: Vacunas»](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/es-enlazado-desde.png)
 
 - **Cuenta las dos formas.** Un enlace dentro de una frase es una mención; una tarjeta, sola en su párrafo, es una cita. Las dos aparecen aquí, y la página de una tarea tiene la misma fila.
 - **Se arma en segundo plano.** Tisty lee cómo se enlazan tus documentos sin frenar lo que haces, así que un enlace recién escrito aparece a los pocos segundos. Mientras lee la primera vez, la fila dice «Tisty todavía está leyendo cómo se enlazan tus documentos»; cuando nadie enlaza ese documento, «Todavía ningún documento ni tarea enlaza aquí».

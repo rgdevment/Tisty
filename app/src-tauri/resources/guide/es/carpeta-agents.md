@@ -191,7 +191,7 @@ Un documento de Agentes no se ve como un documento más: se abre para leer, en u
 
 Codex lee su `AGENTS.md` solo hasta 32 KiB. Cuando el archivo se acerca a ese tope, **Tamaño** lo dice en ámbar, «cerca de los 32 KiB que lee Codex», y si lo pasa, en rojo: es el momento de pasar lo largo a una skill.
 
-![PROVISORIA — La ficha de Cómo trabajo sin columna al lado: arriba el camino Agentes / Claude; las etiquetas Regla, Claude y Al día; el nombre en grande; el cuadro de datos con Lo lee Claude, Se escribe en ~/.claude/CLAUDE.md con su botón de copiar, Tamaño 3,2 kB, Respaldos 3 respaldos · Ver, Formato Markdown · LF y Sincroniza en este equipo Sí; debajo, el texto de la regla con encabezados compactos y sin hoja aparte; al pie, los botones Editar, Respaldos, Historial, Copiar enlace y Pausar la sincronización con Claude](agents-ficha.png)
+![La ficha de la regla Reglas sin columna al lado: arriba el camino Agentes / Claude; las etiquetas Regla, Claude y Al día; el nombre en grande; el cuadro de datos con Lo lee Claude, Se escribe en con la ruta de CLAUDE.md y su botón de copiar, Tamaño, Respaldos con Ver, Formato Markdown · LF, Última escritura, Original guardado y Sincroniza en este equipo Sí; debajo, el texto de la regla con encabezados compactos y sin hoja aparte; al pie, los botones Editar, Respaldos, Historial, Copiar enlace y Pausar la sincronización con Claude; en la barra lateral, Agentes abierta, con Global, Claude, la regla y sus skills](agents-ficha.png)
 
 ## Un cambio por fuera: traer o sobrescribir
 

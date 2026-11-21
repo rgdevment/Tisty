@@ -191,7 +191,7 @@ A document in Agents does not look like one more document: it opens for reading,
 
 Codex reads its `AGENTS.md` only up to 32 KiB. When the file nears that cap, **Size** says so in amber, «close to the 32 KiB Codex reads», and past it, in red: time to move the long part into a skill.
 
-![PLACEHOLDER — The card of How I work with no column beside it: at the top the path Agents / Claude; the labels Rule, Claude and In sync; the name in large type; the facts box with Read by Claude, Written to ~/.claude/CLAUDE.md with its copy button, Size 3.2 kB, Backups 3 backups · See, Format Markdown · LF and Syncs on this computer Yes; below, the rule's text with compact headings and no separate sheet; at the foot, the buttons Edit, Backups, History, Copy link and Pause sync with Claude](agents-card.png)
+![The card of the rule Rules with no column beside it: at the top the path Agents / Claude; the labels Rule, Claude and In sync; the name in large type; the facts box with Read by Claude, Written to with the path of CLAUDE.md and its copy button, Size, Backups with See, Format Markdown · LF, Last written, Original kept and Syncs on this computer Yes; below, the rule's text with compact headings and no separate sheet; at the foot, the buttons Edit, Backups, History, Copy link and Pause sync with Claude; in the sidebar, Agents open, with Global, Claude, the rule and its skills](agents-card.png)
 
 ## A change made outside: bring it in or overwrite
 

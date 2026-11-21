@@ -42,7 +42,7 @@ La tarjeta lee la tarea cada vez que se dibuja, así que nunca se queda vieja:
 2. Se abre el mismo campo de la captura rápida, en ese lugar. Escribe la tarea como la dirías: `Pedir presupuesto de la reja el lunes #condominio !planificar @Casa`. Las marcas se pintan mientras escribes, y `/` dentro del campo ofrece lo mismo que en la captura: una fecha, una lista, una prioridad.
 3. `Enter` crea la tarea, con su fecha, su lista, sus etiquetas y su prioridad, y deja su tarjeta en ese lugar del documento.
 
-![El campo de «Una tarea nueva» abierto en el acta del condominio, con la fecha, la etiqueta y la prioridad pintadas](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/es-tarea-nueva.png)
+![El campo de «Una tarea nueva» abierto en el Acta de noviembre del condominio: «Llamar al administrador mañana 10:00 #condominio !», con la etiqueta y la fecha ya pintadas debajo](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/es-tarea-nueva.png)
 
 - **`Esc` la deja ir** sin crear nada. `Enter` en una línea vacía no crea nada: el campo dice «Hace falta un título» y sigue abierto.
 - **Un segundo `Enter`** mientras se está creando no crea otra.
@@ -53,7 +53,7 @@ La tarjeta lee la tarea cada vez que se dibuja, así que nunca se queda vieja:
 
 Una tarea creada desde un documento recuerda el documento y la sección donde la escribiste. Junto a su página, la fila **Nació en** los nombra, y un clic abre ese documento. Una tarea que salió de una idea de Ideas muestra lo mismo.
 
-![Junto a la página de «Revisar las bisagras de la reja», Nació en nombra el acta de noviembre y su sección, y Enlazado desde, la misma acta](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/es-nacio-en.png)
+![La página de «Revisar las bisagras de la reja», ya hecha: su descripción con el enlace al Acta de noviembre, su historial y Nació en, que nombra el Acta de noviembre](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/es-nacio-en.png)
 
 En la misma fila está **Enlazado desde**: los documentos y las tareas que citan o mencionan esta, con la sección donde lo hacen. Si son muchos, ves doce y **Ver las…** trae el resto. Lo cuenta [[Enlazar documentos|Enlazar-documentos#quién-lo-enlaza-enlazado-desde]].
 
