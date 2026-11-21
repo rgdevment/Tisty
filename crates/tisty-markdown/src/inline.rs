@@ -92,7 +92,15 @@ pub(crate) fn signed_sourced(
     let containers: Vec<&Span> = spans.iter().filter(|one| holds(&one.mark)).collect();
     let mut open: Vec<&Span> = Vec::new();
     let mut next = 0;
+    let mut signed = false;
     for (at, item) in items {
+        let reach = match &item {
+            Item::Words(piece) => piece.clone(),
+            Item::Atom(one) => one.at.clone(),
+        };
+        if signed && signer.is_some_and(|name| name.start <= reach.start && reach.end <= name.end) {
+            continue;
+        }
         while open.last().is_some_and(|one| one.at.end <= at) {
             shut(open.pop().map(|one| &one.mark), out);
         }
@@ -103,26 +111,35 @@ pub(crate) fn signed_sourced(
             }
             next += 1;
         }
-        match item {
-            Item::Words(piece) => match signer.filter(|name| crosses(&piece, name)) {
-                Some(name) => {
-                    for (part, signs) in cut_at(piece, name) {
-                        match signs {
-                            true => told.marked(told.touches(&part), out, |out| {
-                                signed_words(part, text, placed, out);
-                            }),
-                            false => words_of(part, text, placed, told, out),
+        let name = signer.filter(|name| crosses(&reach, name));
+        match (item, name) {
+            (Item::Words(piece), Some(name)) => {
+                for (part, signs) in cut_at(piece, name) {
+                    match signs {
+                        true if signed => {}
+                        true => {
+                            signed = true;
+                            told.marked(told.touches(name), out, |out| {
+                                signed_words(name.clone(), text, placed, out);
+                            });
                         }
+                        false => words_of(part, text, placed, told, out),
                     }
                 }
-                None => words_of(piece, text, placed, told, out),
-            },
-            Item::Atom(one) if placed => {
+            }
+            (Item::Atom(_), Some(name)) if !signed => {
+                signed = true;
+                told.marked(told.touches(name), out, |out| {
+                    signed_words(name.clone(), text, placed, out);
+                });
+            }
+            (Item::Words(piece), _) => words_of(piece, text, placed, told, out),
+            (Item::Atom(one), _) if placed => {
                 let mut drawn = String::new();
                 atomic(one, spans, text, &kept, &mut drawn);
                 placed_atom(&drawn, &one.at, out);
             }
-            Item::Atom(one) => {
+            (Item::Atom(one), _) => {
                 let tells = tellable(&one.mark) && told.touches(&one.at);
                 told.marked(tells, out, |out| atomic(one, spans, text, &kept, out));
             }

@@ -67,6 +67,22 @@ fn keeps_the_words_around_the_signer_where_they_are_written() {
 }
 
 #[test]
+fn draws_a_name_written_in_pieces_as_one_signer() {
+    for name in ["Codex *beta*", "A&B :dog:", "Kiro_2"] {
+        let page = format!("## Assistant notes\n\n**2026-10-29 12:04** · {name}\nDone.\n");
+        let drawn = html_placed(&read(&page));
+        let at = page.find(name).unwrap();
+        assert_eq!(drawn.matches("class=\"signer\"").count(), 1, "{drawn}");
+        assert!(
+            drawn.contains(&format!("data-src=\"{at}-{}\"", at + name.len())),
+            "{drawn}"
+        );
+        assert!(!drawn.contains("<em>"), "{drawn}");
+        assert!(drawn.contains("Done."), "{drawn}");
+    }
+}
+
+#[test]
 fn marks_the_signer_on_a_page_only_read() {
     let drawn = html(&read(PAGE));
     assert!(drawn.contains("<span class=\"signer\" data-by=\"Copilot Cli\">Copilot Cli</span>"));

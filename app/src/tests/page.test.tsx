@@ -124,6 +124,19 @@ describe("a drawn page in the viewer", () => {
     expect(page.documentElement.style.getPropertyValue("zoom")).toBe("1.5");
   });
 
+  it("shows an assistant's signature as the person chooses, and again when the choice changes", async () => {
+    ipc.drawn =
+      '<h2 data-at="0-23">Notas del asistente</h2><p data-at="24-60"><strong>2026-10-29 12:04</strong> · <span class="signer" data-by="Claude Code">Claude Code</span></p>';
+    const { frame, view } = await drawn({ signing: "agent" });
+    const page = await loaded(frame);
+    const signer = () => page.querySelector(".signer")?.textContent;
+    expect(signer()).toBe("an agent");
+    view.rerender(<Page body={BODY} label="Notas" signing="named" onDoc={() => {}} />);
+    expect(signer()).toBe("Claude Code");
+    view.rerender(<Page body={BODY} label="Notas" signing="mark" onDoc={() => {}} />);
+    expect(signer()).toBe("◆");
+  });
+
   it("follows the window when its theme changes", async () => {
     const { frame } = await drawn();
     const page = await loaded(frame);
