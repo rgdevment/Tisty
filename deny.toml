@@ -44,12 +44,7 @@ deny = [
 
 [advisories]
 yanked = "deny"
-ignore = [
-  # The updater unzips only on Windows, only an update whose signature it has already checked against our key.
-  { id = "RUSTSEC-2026-0367", reason = "zip 4 via tauri-plugin-updater: SUID bits do not exist on Windows" },
-  { id = "RUSTSEC-2026-0368", reason = "zip 4 via tauri-plugin-updater: only our own signed update is ever extracted" },
-  { id = "RUSTSEC-2026-0369", reason = "zip 4 via tauri-plugin-updater: only our own signed update is ever extracted" },
-]
+unused-ignored-advisory = "deny"
 
 [sources]
 unknown-registry = "deny"
