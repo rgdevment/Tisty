@@ -36,9 +36,7 @@ Un agente concentrado en el código se olvida de Tisty. Hay dos ayudas, y las do
 
 Tu agente no lee todo lo que guardas: lo recorre. Con una sola herramienta, `brain`, busca tareas y documentos por sus palabras, con el Archivo junto a lo demás y primero lo que tiene esas palabras en su título. Pide la ficha de un documento (sus secciones con sus líneas, quién lo cita y sus decisiones vigentes primero) y después, con `read`, lee solo la sección que necesita, o solo lo que resaltaste o pusiste en negrita. Si vuelve a leer algo que no cambió, Tisty le dice solo eso, sin mandarle el texto otra vez. Y mira un proyecto entero agrupado en bloqueado, en curso, esperándote y sin empezar: una parte cuyo estado empieza con «Bloqueada:» cuenta como bloqueada. En la ficha le llega aparte, en `guessed`, lo que Tisty cree que se parece y nadie enlazó, con las palabras que lo dicen: lee los dos antes de unir nada. Es la misma red que tú ves dibujada en **Brainsty: todo unido**, una página de esta guía.
 
-![La página de «Webhook de confirmación» con su sección Estado, firmada por Claude Code: lo hecho, lo que falta, las decisiones vigentes y lo descartado](estado.png)
-
-Al retomar una tarea, lo primero que le llega es su **Estado**, el que ves arriba, y solo las notas escritas después. Si los pasos cambiaron o llegaron notas después del estado, Tisty le avisa que quedó viejo. Cada llamada, con un extracto de lo que Tisty responde, está en [cómo trabaja un agente](https://www.tisty.app/es/ayuda/como-trabaja-un-agente/).
+Al retomar una tarea, lo primero que le llega es su **Estado**, el que ves en su página, y solo las notas escritas después. Si los pasos cambiaron o llegaron notas después del estado, Tisty le avisa que quedó viejo. Cada llamada, con un extracto de lo que Tisty responde, está en [cómo trabaja un agente](https://www.tisty.app/es/ayuda/como-trabaja-un-agente/).
 
 ## Lo que puede hacer
 

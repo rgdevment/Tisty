@@ -5,7 +5,7 @@ Uso más de un agente de IA, y cada uno lee sus reglas de un archivo distinto, e
 > [!TIP]
 > **En corto:** la carpeta **Agentes** guarda como documentos las reglas, las skills y la memoria de Claude Code, Codex, GitHub Copilot CLI, Gemini CLI y Cursor. Hay dos palabras, y cada una significa una sola cosa. **Traer** copia los archivos de tus agentes a Tisty, para leerlos y ordenarlos, y no escribe nada en ellos. **Sincronizar** hace que, desde ese momento, lo que cambias en Tisty llegue a esos archivos, y que Tisty te avise si alguien los cambia por fuera. Sincronizando, lo que escribes en **Global** llega a todos y lo que escribes en la carpeta de un asistente, solo a él; antes de sobrescribir un archivo Tisty guarda lo que tenía, y un cambio hecho por fuera nunca se pisa. Y un agente no escribe tus reglas: te propone el cambio, y solo tú lo apruebas.
 
-![La primera vez de Agentes en español: el aviso Tus agentes, en un solo lugar, con la X para cerrar arriba a la derecha, la línea Tisty busca las reglas, skills y memoria de tus agentes y las trae aquí como documentos, para leerlas y ordenarlas. Traer solo las copia; Traer y sincronizar además hace que lo que cambies en Agentes llegue solo a tus agentes., sus tres líneas con candado, flechas y copias (Queda en tu Tisty…, Si sincronizas, llega solo a Claude, Codex, Gemini., Antes de cambiar un archivo de un agente, Tisty guarda un respaldo en este equipo.), y debajo la lista Encontré esto. Elige qué traer:, con la fila Claude · 2 reglas · 1 skill · 1 memoria abierta: CLAUDE.md y rules/estilo.md marcados como Regla, la skill pr en una sola fila, pr · Skill · 3 archivos, marcada con una sola casilla, y una memoria de proyecto MEMORY.md sin marcar como Memoria del agente; más abajo las filas de Codex y Gemini plegadas; abajo a la derecha, solo dos botones, Traer y Traer y sincronizar, este destacado; ningún botón Ocultar ni Ahora no](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/agents/es-01-primera-vez.png)
+![La primera vez de Agentes en español: el aviso Tus agentes, en un solo lugar, con la X para cerrar arriba a la derecha, la línea Tisty busca las reglas, skills y memoria de tus agentes y las trae aquí como documentos, para leerlas y ordenarlas. Traer solo las copia; Traer y sincronizar además hace que lo que cambies en Agentes llegue solo a tus agentes., sus tres líneas con candado, flechas y copias (Queda en tu Tisty…, Si sincronizas, llega solo a Claude, Codex, Copilot, Gemini., Antes de cambiar un archivo de un agente, Tisty guarda un respaldo en este equipo.), y debajo Encontré esto. Elige qué traer:, la línea Gemini: todavía sin reglas, skills ni memoria. Recibe lo que escribas en Global o en su carpeta., y tres filas plegadas, Claude · 2 reglas · 29 skills · 49 memorias, Codex · 1 regla · 4 skills y Copilot · 1 regla; abajo a la derecha, solo dos botones, Traer y Traer y sincronizar, este destacado](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/agents/es-01-primera-vez.png)
 
 ## Qué es y cuándo te sirve
 
@@ -51,10 +51,6 @@ La barra te dice cómo está Agentes con su color, y al lado no aparece ninguna 
 | **1. Todavía sin traer** | El robot y el nombre **Agentes** en gris | Abre el aviso de la primera vez, [Tus agentes, en un solo lugar](#la-primera-vez) | **Ocultar de la barra** |
 | **2. Traída, sin sincronizar** | El robot en gris y el nombre como cualquier carpeta; al pasar el puntero, cuántos documentos tiene, como cualquier carpeta | La abre como cualquier carpeta; arriba, una línea discreta: «No se sincroniza con tus agentes · Sincronizar» | **Sincronizar**, [**Buscar de nuevo**](#buscar-de-nuevo) y **Ocultar de la barra**, nada más |
 | **3. Sincronizando** | El robot **coral** y el nombre como cualquier carpeta; al pasar el puntero, cuántos documentos tiene, como cualquier carpeta | La abre como cualquier carpeta | **Dejar de sincronizar** y [**Buscar de nuevo**](#buscar-de-nuevo), nada más: para ocultarla, primero deja de sincronizar |
-
-![La barra lateral en español con Agentes todavía sin traer: arriba de la Biblioteca, el icono del robot en gris y el nombre Agentes también en gris, sin ninguna palabra a la derecha; debajo, las carpetas Casa y Trabajo con sus colores de siempre, para que se note la diferencia](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/agents/es-12-sin-traer-en-la-barra.png)
-
-![La carpeta Agentes abierta en el panel de contenido en español, traída pero sin sincronizar: en la barra, el robot gris y el nombre Agentes en su color normal, sin ninguna palabra a la derecha; en el panel, el título Agentes con el robot gris y, justo debajo, la línea discreta No se sincroniza con tus agentes · Sincronizar, con Sincronizar como enlace; más abajo, las subcarpetas con su símbolo y su color, Global con un globo azul, Claude con un globo de conversación naranja y Codex con una terminal verde azulado, con sus documentos](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/agents/es-13-traida-sin-sincronizar.png)
 
 - **El coral es solo de Agentes**, y solo mientras sincroniza: el morado es de los diagramas, y ninguna carpeta tuya puede elegir el coral. En la red de Brainsty, los documentos de Agentes vienen ocultos, sincronice o no, para no tapar lo que escribes tú. Aparecen cuando enciendes **Mostrar AGENTS** en los filtros: más chicos que los tuyos, en un coral tenue y con sus líneas más tenues, y la leyenda los nombra **AGENTS**. Nunca son parecidos de nada. Mira [[Filtrar|Red-de-Brainsty#filtrar]].
 - **La línea del estado 2** solo aparece en Agentes, nunca en sus subcarpetas. Su enlace **Sincronizar** hace lo mismo que el del botón derecho.
@@ -195,8 +191,6 @@ Se abre **Traer otro archivo**, con «Estos son los archivos de agentes de este 
 3. Márcalo y pulsa **Traer**. Si Agentes sincroniza, el aviso dice «Entró 1 documento a Agentes, y desde ahora Tisty lo mantiene al día.»; si está traída sin sincronizar, «Entró 1 documento a Agentes. Los archivos de tus agentes quedan como están hasta que elijas Sincronizar.». **Listo** lo cierra.
 4. En **Agentes › Claude** aparece **Pruebas**, con el icono de un libro. Desde ahora lo lees y lo cambias en Tisty, como cualquier regla.
 
-![El aviso Traer otro archivo en español, sin las tres líneas de la primera vez: arriba Estos son los archivos de agentes de este equipo que todavía no están en Agentes. Elige qué traer:, y debajo la fila de Claude abierta, con CLAUDE.md atenuado y ya está en Agentes, y rules/pruebas.md marcado como Regla; abajo, los botones Ahora no y Traer](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/agents/es-10-traer-otro.png)
-
 Si este equipo todavía no te dejó leer los archivos de tus agentes, por ejemplo porque Agentes llegó traída desde [otro equipo](#en-varios-equipos), **Traer otro archivo** abre el aviso de la primera vez, con sus tres líneas, lo que encontró ya marcado y sus dos botones, **Traer** y **Traer y sincronizar**.
 
 **Traer no toca nada.** Ni los archivos de tus agentes ni la cuenta que Tisty lleva de lo que escribió: un archivo que solo trajiste nunca queda anotado como escrito por Tisty, así que, si después sacas su documento de Agentes, Tisty no te ofrece quitarlo con [¿Quitar también el archivo?](#sacar-una-regla-y-su-archivo). Si más adelante eliges **Sincronizar**, un archivo que sigue tal cual lo trajiste se toma como está, y lo que se le suma, como una regla de Global, se escribe encima con su respaldo antes.
@@ -221,7 +215,7 @@ La memoria que Marisol dejó fuera sigue ahí: la próxima vez que busque de nue
 
 **Ahora no** lo cierra.
 
-![PROVISORIA — El aviso Traer otro archivo en español abierto con Buscar de nuevo, sin nada que traer: arriba la línea No encontré nada nuevo. Esto es lo que hay en cada asistente:, y debajo tres líneas, cada una con el icono de su asistente: el globo de conversación naranja con Claude · ya está en Agentes, la terminal verde azulado con Codex · ya está en Agentes, y el puntero café con Cursor: todavía sin reglas, skills ni memoria. Recibe lo que escribas en Global o en su carpeta.; ninguna casilla; abajo a la derecha, Ahora no y Traer desactivado](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/agents/es-17-buscar-de-nuevo.png)
+![El aviso Traer otro archivo abierto con Buscar de nuevo, sin nada que traer: arriba la línea No encontré nada nuevo. Esto es lo que hay en cada asistente:, y debajo tres líneas, cada una con el icono de su asistente: el globo de conversación naranja con Claude · ya está en Agentes, la terminal verde azulado con Codex · ya está en Agentes y la brújula verde con Gemini · ya está en Agentes; ninguna casilla; abajo a la derecha, Ahora no y Traer](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/agents/es-17-buscar-de-nuevo.png)
 
 **En un equipo que todavía no te dio permiso**, como un segundo equipo donde Agentes llegó traída, **Buscar de nuevo** abre en cambio el aviso de la primera vez, con sus nombres y tamaños y sus dos botones. No abre ningún archivo ni crea ninguna subcarpeta antes de tu **Traer** o tu **Traer y sincronizar**.
 
@@ -288,7 +282,7 @@ Las subcarpetas son para que encuentres las cosas: **lo que decide adónde va un
 | **Configuración › Asistentes**, en la tarjeta **Agentes** | Los archivos que piden tu decisión: «1 archivo dice algo distinto en Tisty y en el agente.», o «1 archivo ya no es de ninguna regla de Agentes.», cada uno con **Revisar**; y bajo **Sincronizar Gemini**, si falta [su línea](#gemini-en-pausa) |
 | **Al entrar en Agentes** | Si Agentes sincroniza y un archivo existe en los dos lados, ya no es de ninguna regla o perdió la línea de Gemini, Tisty te pregunta por él apenas entras, uno por uno |
 
-![La barra lateral en español con la carpeta Agentes abierta y sincronizando: su icono de robot en coral y el nombre Agentes en su color normal, sin ninguna palabra a la derecha; dentro, las subcarpetas, cada una con su símbolo y su color: Global con un globo azul, Claude con un globo de conversación naranja, Codex con una terminal verde azulado y Gemini con una brújula verde, esta última vacía. En Claude, la regla Cómo trabajo con el icono de un libro, la regla Estilo de código, la skill pr con el icono de una pieza y 3 archivos a la derecha, abierta, mostrando SKILL.md, scripts/abrir-pr.sh y plantilla.md, y la memoria MEMORY.md con el icono de un cerebro; el puntero sobre Cómo trabajo muestra claude · CLAUDE.md](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/agents/es-02-barra.png)
+![La barra lateral con la carpeta Agentes abierta y sincronizando, con el robot en coral: dentro, Global con su globo azul y Claude con su globo de conversación naranja; en Claude, la regla Reglas, elegida, con el icono de un libro, y debajo las skills, cada una con el icono de una pieza y cuántos archivos lleva](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/agents/es-02-barra.png)
 
 ### La línea `agent:`
 
@@ -400,8 +394,6 @@ Responde en español.
 
 Si después pulsa otra vez **Documento nuevo** en **Gemini**, se abre ese mismo documento, y Marisol suma ahí la regla nueva.
 
-![PROVISORIA — Un documento nuevo en Agentes › Gemini, en español: arriba el camino Agentes / Gemini; las etiquetas Regla, Gemini y Al día; el nombre tisty-rules.md; el cuadro de datos con Lo lee Gemini y Se escribe en ~/.gemini/tisty-rules.md con su botón de copiar; debajo, el texto Responde en español.; en la barra lateral, la subcarpeta Gemini con su brújula verde y dentro el documento tisty-rules.md con el icono de un libro](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/agents/es-18-documento-nuevo-gemini.png)
-
 ### Una skill en Global
 
 Una skill es una carpeta con un `SKILL.md` y, a veces, scripts. Cada archivo es un documento, con el mismo nivel y la misma carpeta de skill:
@@ -445,7 +437,7 @@ Lo que hace Tisty con cada uno:
 
 Un documento de Agentes no se ve como un documento más. Se abre **para leer**, en una sola ficha: arriba, qué es y dónde va; en el medio, el texto del agente; abajo, lo que puedes hacer. No hay columna al lado: todo lo útil está en la ficha.
 
-![PROVISORIA — Un documento de agente abierto en español, sin columna a la derecha. Arriba, el camino Agentes / Claude. Debajo, la ficha de la skill ask: las etiquetas Skill, Claude y Al día en verde; el nombre ask en grande y, en una línea gris, Ask which skill fits your situation. Luego el cuadro de datos: Lo lee Claude; Se escribe en ~/.claude/skills/ask/SKILL.md con el botón de copiar; Tamaño 12,7 kB; Respaldos 3 respaldos · Ver; Formato Markdown · LF; Última escritura hoy 19:37; Original guardado Sí; Sincroniza en este equipo Sí; y en letra chica disable-model-invocation true. Debajo, el texto de la skill con encabezados compactos y sin hoja aparte, y al pie los botones Editar, Respaldos, Historial, Copiar enlace y Pausar la sincronización con Claude](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/agents/es-03-ficha.png)
+![La ficha de la regla Reglas en Agentes / Claude: las etiquetas Regla, Claude y Al día; el cuadro de datos con Lo lee Claude, Se escribe en con su botón de copiar, Tamaño, Respaldos con Ver, Formato Markdown · LF, Última escritura, Original guardado y Sincroniza en este equipo Sí; debajo, el texto de la regla, y al pie Editar, Respaldos, Historial, Copiar enlace y Pausar la sincronización con Claude](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/app/es-agentes-regla-light.webp)
 
 **Arriba de todo, el camino de carpetas**: «Agentes / Claude». Un clic en una carpeta la abre.
 
@@ -516,8 +508,6 @@ Puedes seguir editando los archivos de tus agentes con tu editor, o dejar que el
 
 **Un ejemplo.** Abres `~/.claude/CLAUDE.md` en tu editor y agregas «- Corre los tests antes de cada commit.». Si Agentes sincroniza, la próxima vez que Tisty mira (al iniciar, al volver a la ventana o al abrir el documento), la ficha de **Cómo trabajo**, el documento de ese `CLAUDE.md`, dice **Cambiado por fuera**, con un aviso:
 
-![La ficha en español de Cómo trabajo: arriba el camino Agentes / Claude; las etiquetas Regla, Claude y Cambiado por fuera en ámbar; el nombre Cómo trabajo; el cuadro de datos con Lo lee Claude y Se escribe en ~/.claude/CLAUDE.md; debajo, dentro de la misma ficha, el aviso El archivo cambió por fuera de Tisty, con la línea ~/.claude/CLAUDE.md ya no dice lo mismo que este documento. Elige cuál conservar: lo que dejes queda en los respaldos., y los botones Traer el cambio, Sobrescribir con Tisty y Ver el archivo](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/agents/es-04-por-fuera.png)
-
 - **Ver el archivo** muestra lo que el archivo tiene ahora.
 - **Traer el cambio** escribe en el documento lo que dice el archivo. Lo que decía antes el documento queda en sus [versiones anteriores](Documentos#versiones-anteriores). Si alguien cambió el documento después de que se dibujó la ficha, Tisty no lo pisa: te pide leerlo de nuevo y volver a elegir.
 - **Sobrescribir con Tisty** pregunta «¿Escribir este documento sobre `~/.claude/CLAUDE.md`? Lo que tiene ahora el archivo queda en un respaldo.» y, si dices que sí, vuelve a escribir el archivo desde el documento.
@@ -534,8 +524,6 @@ Si cambiaron el archivo y también el documento, la ficha dice **Cambiado en los
 
 Lo mismo puede pasar la primera vez que sincronizas, cuando ya tenías en Agentes un documento de un archivo que entretanto cambió. Entonces aparece **Existe en los dos lados**, con las líneas que difieren: en rojo, con `−`, lo que hay **En Tisty**; en verde, con `+`, lo que hay **En el archivo**. Eliges **Conservar el de Tisty**, **Conservar el archivo** o **Decidir después**, y lo que no conservas queda guardado: el archivo en sus [respaldos](#respaldos), el documento en sus versiones anteriores. Si el archivo se arma con varios documentos, solo puedes conservar el de Tisty o decidir después. Si Tisty nunca trajo ese archivo, el aviso suma **Traer a Agentes**, como cuenta [Un archivo que nunca trajiste](#un-archivo-que-nunca-trajiste). Desde **Configuración › Asistentes**, «1 archivo dice algo distinto en Tisty y en el agente.» y **Revisar** te traen de vuelta a ese aviso.
 
-![El aviso en español Existe en los dos lados para ~/.codex/AGENTS.md: arriba la ruta, debajo las líneas comparadas, en rojo con un signo menos la que solo está En Tisty y en verde con un signo más la que solo está En el archivo, y los botones Decidir después, Conservar el archivo y Conservar el de Tisty](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/agents/es-07-dos-lados.png)
-
 ## Respaldos
 
 **Antes de sobrescribir un archivo de un agente, Tisty guarda lo que tenía.** Los respaldos viven en este equipo, en `data/agents/` dentro de la carpeta de Tisty, nunca en las carpetas de tus agentes, y no viajan con la sincronización ni con los paquetes.
@@ -547,8 +535,6 @@ Lo mismo puede pasar la primera vez que sincronizas, cuando ya tenías en Agente
 Así, un archivo que Tisty sobrescribió muchas veces guarda hasta 21: el original y los últimos 20. El cuadro dice «Se guardan los últimos 20.», y el n.º 1 se queda además de ellos.
 
 Para verlos, pulsa **Respaldos** al pie de la ficha, o **Ver** en la fila **Respaldos** del cuadro de datos, junto a «3 respaldos»:
-
-![El cuadro Respaldos en español para ~/.claude/CLAUDE.md, con la línea Lo que tenía ~/.claude/CLAUDE.md antes de que Tisty lo sobrescribiera. Se guardan los últimos 20., y tres filas, Respaldo n.º 3 · 1,2 kB, Respaldo n.º 2 · 1,1 kB y Respaldo n.º 1 · 0,9 kB, cada una con Ver y Recuperar](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/agents/es-05-respaldos.png)
 
 - **Ver** muestra el respaldo completo.
 - **Recuperar** pregunta «¿Devolver este respaldo a …? Lo que tiene ahora el archivo queda en un respaldo.» y lo escribe en el archivo.
@@ -567,15 +553,11 @@ Las versiones anteriores del **documento**, en cambio, son las de cualquier docu
 - **Ningún documento se borra.** Siguen en Agentes, y los lees y los editas como siempre; lo que cambias queda en Tisty.
 - **Agentes pasa al estado 2.** Su robot vuelve al gris y, al abrirla, arriba aparece «No se sincroniza con tus agentes · Sincronizar». La ficha de cada documento dice «La carpeta Agentes no se sincroniza con tus agentes. Elige Sincronizar en la barra o en Configuración › Asistentes.», y su cuadro de datos, en **Sincroniza en este equipo**, «No, Agentes no se sincroniza».
 
-![El menú del botón derecho sobre Agentes en español, con Agentes sincronizando y su robot coral en la barra: solo dos opciones, Dejar de sincronizar y Buscar de nuevo, y nada más; ni Ocultar de la barra, ni Traer otro archivo, ni ninguna acción de carpeta](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/agents/es-14-menu-sincronizando.png)
-
 **Sincronizar otra vez.** Con Agentes en el estado 2, cualquiera de estos tres hace lo mismo: el enlace **Sincronizar** de la línea de arriba, **Sincronizar** en su botón derecho, o **Sincronizar** en su tarjeta de Configuración › Asistentes. Si este equipo ya te había dejado leer los archivos de tus agentes, por ejemplo porque elegiste **Traer** o **Dejar de sincronizar** aquí mismo, sincroniza de una vez, sin el aviso de la primera vez. Si nunca lo hizo, como un [segundo equipo](#un-segundo-equipo-paso-a-paso), abre antes el aviso de la primera vez.
 
 Al sincronizar, Tisty escribe lo que cambiaste en tus documentos mientras tanto, con su respaldo antes, salvo un archivo que cambió por fuera, que queda marcado para que decidas. Lo que encuentra distinto en los dos lados, o que ya no es de ninguna regla, te lo pregunta en ese mismo momento.
 
 **La primera vez que sincronizas algo que solo habías traído**, un archivo que sigue tal cual lo trajiste se toma como está: no se pregunta nada por él. Si algo se le suma, como una regla de Global que va al principio de tu `CLAUDE.md`, Tisty lo escribe encima, con su respaldo antes. Un archivo que cambió desde que lo trajiste, en cambio, no se pisa: aparece **Existe en los dos lados** y eliges.
-
-![El menú del botón derecho sobre Agentes en español, con Agentes traída sin sincronizar y su robot gris en la barra: solo tres opciones, Sincronizar, Buscar de nuevo y Ocultar de la barra, y nada más; ni Traer otro archivo, ni ninguna acción de carpeta](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/agents/es-16-menu-sin-sincronizar.png)
 
 **Un ejemplo.** Lucas quiere probar a mano unas reglas nuevas en su `CLAUDE.md` durante una semana, sin que Tisty las toque. Elige **Dejar de sincronizar**. Edita el archivo con su editor y, en paralelo, sigue ordenando sus documentos en Agentes. Al final de la semana pulsa **Sincronizar**: la ficha de **Cómo trabajo** dice **Cambiado por fuera**, y Lucas elige **Traer el cambio** para quedarse con lo que probó, o **Sobrescribir con Tisty** para volver a lo de sus documentos.
 
@@ -599,8 +581,6 @@ Sincronizando, Tisty deja de escribir un documento cuando lo sacas de Agentes: c
 - **Si era el único**, ninguna regla escribe ya ese archivo, pero sigue en el disco y tu agente lo sigue leyendo. Por eso, alrededor de un segundo después, Tisty te pregunta qué hacer con él.
 
 **Un ejemplo.** Tenías la regla **Pruebas**, de `~/.claude/rules/pruebas.md`, y ya no la quieres. La borras, y se abre **¿Quitar también el archivo?**: «Ninguna regla de Agentes escribe ya este archivo de Claude, pero sigue en el disco y Claude lo sigue leyendo.», con la ruta debajo y «Si lo quitas, queda un respaldo en este equipo.».
-
-![El aviso en español ¿Quitar también el archivo?, con la línea Ninguna regla de Agentes escribe ya este archivo de Claude, pero sigue en el disco y Claude lo sigue leyendo., la ruta ~/.claude/rules/pruebas.md en gris, la línea Si lo quitas, queda un respaldo en este equipo., y los botones Dejarlo y Quitar el archivo](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/agents/es-11-quitar-archivo.png)
 
 - **Quitar el archivo** guarda un respaldo y lo borra: Claude deja de leer esa regla. Si era el último archivo de la carpeta de una skill, esa carpeta se va con él; las carpetas propias del asistente, como `rules`, quedan.
 - **Dejarlo** lo deja donde está, y Tisty deja de responder por él: no lo escribe ni te vuelve a preguntar. Si un día lo quieres de vuelta en Agentes, aparece en [Traer otro archivo](#traer-otro-archivo).
@@ -638,8 +618,6 @@ Si no usas Agentes y no quieres verla en la barra, ni siquiera en gris, ocúltal
 
 Agentes sale de la barra lateral en este equipo sin dejar rastro, y queda en **Configuración › General › Carpetas ocultas**, junto a cualquier otra carpeta que hayas ocultado: mira [Ocultar una carpeta de la barra](Documentos#ocultar-una-carpeta-de-la-barra). Su tarjeta en Configuración › Asistentes dice «Oculta de la barra en este equipo y sin sincronizar: no escribe ningún archivo de agente.», con **Volver a mostrar**.
 
-![La sección Carpetas ocultas de Configuración › General en español, con la fila Agentes y su robot gris arriba de todo, y debajo Casa y Trabajo / Clientes, cada una con el botón Volver a mostrar a la derecha](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/agents/es-15-carpetas-ocultas.png)
-
 - **Volver a mostrar**, en Carpetas ocultas o en la tarjeta, la devuelve a la barra en el estado que tenía: en gris, sin traer o traída sin sincronizar.
 - **Sincronizar**, en la tarjeta de una Agentes traída y oculta, la sincroniza y también la vuelve a mostrar: sincronizando, Agentes siempre se ve.
 
@@ -668,8 +646,6 @@ La tarjeta **Agentes** usa las mismas palabras y hace lo mismo que la barra. Arr
 | **3. Sincronizando** | Lo que espera tu decisión, como «1 archivo dice algo distinto en Tisty y en el agente.», con **Revisar** | **Traer otro archivo** y **Dejar de sincronizar**, y debajo un interruptor por asistente: **Sincronizar Claude**, **Sincronizar Codex**… |
 
 Con Agentes sincronizando y un asistente sin sincronizar, su interruptor dice «Sin sincronizar: sus archivos quedan como están y no se borra nada en Tisty.». Un asistente que sincroniza pero todavía no tiene ningún archivo lo dice bajo su interruptor: «Gemini: todavía sin reglas, skills ni memoria. Recibe lo que escribas en Global o en su carpeta.». Si Tisty no encuentra ningún asistente en este equipo, la tarjeta dice «No encontré agentes en este equipo.». **Ocultar** solo aparece mientras Agentes no sincroniza y no está oculta ya.
-
-![La tarjeta Agentes de Configuración › Asistentes en español, con Agentes sincronizando: arriba la línea Las reglas, skills y memoria de tus agentes como documentos de Tisty. Traer las copia aquí; Sincronizar además escribe lo que cambies en el archivo que lee cada agente., los botones Traer otro archivo y Dejar de sincronizar, y debajo los interruptores Sincronizar Claude y Sincronizar Gemini activados y Sincronizar Codex desactivado, con la nota Sin sincronizar: sus archivos quedan como están y no se borra nada en Tisty.](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/agents/es-06-configuracion.png)
 
 ## Si venías de la versión anterior
 
@@ -700,8 +676,6 @@ Si usas Tisty en más de un equipo, por ejemplo el computador de la casa y el de
    - **Aplicar aquí** lo escribe en los archivos de los asistentes de este equipo, con su respaldo antes, como siempre. Si un archivo de este equipo ya decía otra cosa, Tisty no lo pisa: la ficha queda en **Cambiado en los dos lados** y eliges.
    - **No en este equipo** lo deja fuera aquí. La ficha dice «Elegiste no aplicarlo en este equipo.», y **Aplicar aquí** sigue a mano por si cambias de idea.
 5. Haz lo mismo con **Cómo trabajo**, tu `CLAUDE.md`. El cuadro de datos de cada uno dice, en **Sincroniza en este equipo**, «No: espera «Aplicar aquí»» mientras no eliges, y «Sí» después.
-
-![La ficha en español de Para todos mis agentes en el equipo del trabajo: arriba el camino Agentes / Global; las etiquetas Regla y Global; el nombre Para todos mis agentes; el cuadro de datos sin ninguna fila Se escribe en, con Lo lee Ningún asistente aquí y Sincroniza en este equipo No: espera «Aplicar aquí»; debajo, dentro de la ficha, el aviso ámbar Este documento viene de otro equipo. ¿Lo aplicas a los agentes de este? con los botones Aplicar aquí y No en este equipo; en la barra lateral, Agentes con su robot coral, sin ninguna palabra al lado](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/agents/es-08-otro-equipo.png)
 
 Lo que eliges vale para ese documento en ese equipo, y queda:
 
@@ -759,8 +733,6 @@ Entonces, dentro de la ficha del documento, un aviso ámbar dice «Su texto aún
 **Aprobar este texto** pregunta «¿Apruebas lo que dice ahora este documento? Léelo antes: llega a los archivos de tus agentes en cada equipo donde Agentes sincroniza y lo aplicaste.». Si el documento cambió entre que se mostró y tu clic, Tisty no aprueba nada: «Este documento cambió desde que se mostró su ficha. Léelo de nuevo y vuelve a intentarlo.».
 
 **Un ejemplo.** Un programa de Jaime que ordena archivos tocó, sin que él lo supiera, el archivo de la regla **Cómo trabajo** dentro de la carpeta de datos de Tisty, y le sumó una línea. Su ficha muestra el aviso ámbar, «Cambió fuera de Tisty.», y las líneas comparadas: `+ - Usa siempre la rama main.` en verde, bajo **Ahora**. Jaime no escribió eso: no lo aprueba, pulsa **Editar**, borra la línea y pulsa **Listo**. Lo que escribe en la ventana ya cuenta como aprobado, y su `CLAUDE.md` vuelve a recibirlo.
-
-![PROVISORIA — La ficha en español de Cómo trabajo con su texto sin aprobar: las etiquetas Regla y Claude; el nombre Cómo trabajo; el cuadro de datos con Sincroniza en este equipo No: su texto espera tu aprobación; debajo, dentro de la ficha, el aviso ámbar Su texto aún no tiene tu aprobación, así que no llega a ningún agente hasta que lo apruebes., la línea Cambió fuera de Tisty., las líneas comparadas con la cabecera − Aprobado y + Ahora, la línea + - Usa siempre la rama main. en verde, y el botón Aprobar este texto](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/agents/es-19-aprobar-este-texto.png)
 
 Si ese documento ya se escribía en un archivo, el archivo no cambia mientras tanto: su ficha dice **En espera** y nombra el documento que lo detiene, por ejemplo «Este archivo queda como estaba: claude · rules/estilo.md cambió o salió de Agentes sin tu aprobación. Apruébalo, o vuelve a ponerlo y sácalo tú.».
 
@@ -865,8 +837,6 @@ Su guía le pide decírtelo así, «te lo propuse», y nunca darlo por hecho.
 - «Nada de esto llega a los archivos de tus agentes hasta que lo apruebes. Lo que cambia en el texto aprobado:»;
 - las líneas comparadas: en rojo, con `−`, lo **Aprobado** que se va; en verde, con `+`, lo **Propuesto** que llega;
 - los botones **Aprobar el cambio** y **Descartar**.
-
-![La ficha en español de Cómo trabajo con las etiquetas Regla, Claude, Al día y Propuesta, y debajo el recuadro morado Un agente (Claude Code) propone un cambio · hace 2 minutos, la línea Nada de esto llega a los archivos de tus agentes hasta que lo apruebes, las líneas comparadas con la cabecera − Aprobado y + Propuesto, la línea nueva + - Corre los tests antes de cada commit. en verde, y los botones Aprobar el cambio y Descartar](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/agents/es-09-propuesta.png)
 
 Si Tisty está abierto mientras el agente propone, la propuesta aparece sola en uno o dos segundos, aunque la ventana no esté al frente.
 

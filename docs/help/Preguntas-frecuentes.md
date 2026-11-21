@@ -8,6 +8,9 @@ Sí, Tisty es gratis y lo seguirá siendo, bajo la licencia AGPL-3.0. Sin cuenta
 **¿Necesita cuenta o conexión?**
 Ninguna de las dos. Por su cuenta, Tisty solo pregunta si hay una versión más nueva, y no envía nada para hacerlo. Cuando sincronizas con una nube o compartes un documento, además lee los pocos archivos pequeños que lista [[Privacidad]]. Desconecta el equipo de la red y todo lo demás funciona igual. Mira [[Privacidad]].
 
+**¿Necesito un agente de IA?**
+No. Tisty es una memoria de trabajo compartida para ti y tu agente, y también sirve solo para ti, si prefieres trabajar de una forma más personal: tus tareas, tus documentos, tus ideas y tu diario funcionan igual sin agente. Lo conectas el día que quieras, como cuenta [[Asistentes y MCP|Asistentes-y-MCP]].
+
 **¿Dónde se guardan mis datos?**
 En una carpeta de tu propio disco. **Configuración › Tus datos** muestra la ruta, y *Mostrar carpeta* la abre. Mira [Instalación](Instalación#dónde-viven-tus-datos).
 

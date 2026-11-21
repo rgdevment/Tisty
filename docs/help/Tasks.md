@@ -44,7 +44,7 @@ What a closed task keeps, and how search finds it, is in [[The archive|Archive]]
 
 There is no form to fill in. Type the whole sentence in the bar at the top, and Tisty pulls the day, the list and the priority out of it as you go — and shows you what it understood **before** anything is saved, as chips you can correct with one click.
 
-![Late is not overdue: a task is late when its planned day slips by and overdue only when its deadline passes, with the counts of overdue, late, for today and ahead](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/web/en-07-day.png)
+![Tasks for today, in the dark theme: the Add a task bar with its hints, tag, list, priority, dates as you say them, every tuesday and / to pick; Overdue, Due soon and Late, each task with its date, priority, list and tags; and Installer: test the update from the previous version open beside the list](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/app/en-tasks-today-dark.webp)
 
 | You write | It understands |
 | :-- | :-- |
@@ -83,7 +83,7 @@ The window has three columns at most: what you are looking at, the list, and the
 
 Two questions, four boxes: whether it is pressing, and whether it matters.
 
-![Urgent is not always important: each task in its quadrant, do, schedule, delegate or minor, and what is left to classify waiting on the side](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/web/en-04-priorities.png)
+![Priorities: Do, Schedule, Delegate and Minor, with Urgent and Not urgent across the top and Important and Not important down the side, each box with its count and its tasks, and What is left to classify · 61 beside the title](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/app/en-priorities-light.webp)
 
 | Quadrant | Meaning | Type |
 | :-- | :-- | :-- |
@@ -110,6 +110,8 @@ Tags are shared with [[documents|Documents]]: the Tags screen shows the tasks un
 ## What a task keeps
 
 A task opens beside the list, not on top of it: its dates, list, tags and priority at the top, and below them **its page**, a Markdown document like any other. The page starts with sections to fill in, each with a grey hint that goes away as you write: **Description**, **Done when**, **Steps**, **Notes** and **When it closes**. It is written like any document ([[The Markdown editor|Markdown-Editor]]). To add, rename or take off sections, press **Sections**: the titles can be written, **Add a section** adds one at the end and the button beside each title takes it off without erasing what is written in it; **Done** goes back to the page. Outside that, titles are not written: the `/` menu offers no headings and a typed `#` stays as text. **Show Markdown**, in the task's column, shows the text with its marks, and **Show rich text** goes back. The trail tells each change. The row at the top also sets a reminder — **⏰ reminder**, choose when, then **Remind me then** — and, on a task with a date or a deadline, has **Save to my calendar**: see [The spread and reminders](Spread-and-Reminders#reminders).
+
+![The page of Installer: test the update from the previous version: its list, date, deadline, priority and tags on top; Description, Done when and Steps with three of seven ticked; and on the right Parts, What it carries and The trail, from Born to each step done](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/app/en-task-page-light.webp)
 
 Under the page, **History** folds away: what the task had written from before, and what an assistant notes on it. Opened to the whole page, the task gains a column with its own trail — how long it has been open, how much is done, and every change it has been through.
 
@@ -156,6 +158,8 @@ Without a look back now and then, what you capture piles up undecided. **Weekly 
 - **Remind me every week** files an ordinary task, **Weekly review**, in the list you pick, that repeats every week and rings on the day and hour you say: Friday at 17:00 unless you change it. It rings even with Tisty closed, like any reminder. Tisty knows it by its **#weekly-review** tag, so you can rename it.
 - **Finish the review** completes this week's round, and the next one is born with its reminder.
 - **With your agent**: on the day it is due, your agent learns of it when it catches up and can offer to walk it with you. It only counts what waits at each stop and helps with what you ask; it never archives, deletes or closes anything on its own.
+
+![Weekly review and its three stops: To decide, 38, with Open Ideas, 38 waiting; Marked as past, with its ✓ and Nothing waits here; and Not opened in a while, 14 documents not opened nor written in 60 days, each with Archive](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/app/en-weekly-review-light.webp)
 
 ## Completing and dropping
 

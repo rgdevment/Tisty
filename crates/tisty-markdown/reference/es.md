@@ -51,6 +51,7 @@ fuente: la libreta de la veterinaria
 - Se guarda tal como está escrito. La página no lo muestra: las propiedades aparecen en el panel de al lado, bajo **Detalles**, donde **Editar** lo abre en su propia ventana, tal como está escrito.
 - `title:` es el [título](#el-título) del documento.
 - `tags:` (o `tag:`) guarda el documento bajo cada una, igual que escribir `#rina` en una frase: es la misma etiqueta de las dos maneras. Sirve una lista entre corchetes, palabras separadas por comas o un `- elemento` por línea, con `#` o sin él.
+- `fuente:`, en el ejemplo de arriba, es una propiedad tuya, como cualquier otra que escribas: Tisty la guarda y la muestra en **Detalles**, pero no lee nada de ella. Dónde nació una tarea no es una propiedad. Cuando creas una tarea con **Una tarea nueva** en «Veterinaria», o conviertes en tarea una idea de Ideas, Tisty guarda en la tarea el documento y la sección de donde salió, como `archivo#sección`. Ese origen es lo que nombra la fila **Nació en** de la tarea, y lo que la dibuja junto a ese documento en Brainsty. El origen que da un agente al anotar una tarea, el id de un mensaje o el enlace de un hilo, solo dice dónde lo leyó: no nombra ningún documento y no dibuja nada.
 - El bloque solo cuenta al principio: la primera línea es `---`, la de abajo tiene palabras, y lo cierra un `---` o `...`. En cualquier otra parte, `---` es un [salto de página](#saltos-de-página).
 - `paper:` es la hoja en que se imprime el documento: `letter` (Carta), `folio` (Oficio, 216 × 330 mm) o `tabloid` (Tabloide), y A4 cuando no está. `sheets: on` dibuja la página en esas hojas, y `orientation: landscape` las pone en horizontal. **Papel** y **Hojas** en el panel las escriben, y al quitarlas no queda nada escrito.
 - `lang:` es el idioma en que está escrito el documento, con una etiqueta como `es`, `en` o `pt-BR`. Un documento en varios idiomas es un documento por idioma, que Tisty muestra como uno solo con un selector entre ellos: **Traducir a…** escribe la copia para traducir con su `lang:`, y **Unir con su otro idioma…** pregunta el que le falte a cada documento, nombrándolo. `translationKey:` es lo que un idioma lleva fuera de Tisty para encontrar a los demás cuando vuelve; Tisty lo escribe al salir y lo lee al entrar.
@@ -190,6 +191,7 @@ https://github.com/rgdevment/Tisty
 - Solo se siguen las direcciones web, `mailto:` y el `tisty:` propio. Cualquier otro esquema se lee como texto.
 - Una dirección con espacios va entre ángulos: `[clip](<C:/Users/yo/un clip.mkv>)`.
 - Un enlace abre tu navegador solo cuando haces clic en él.
+- En [Brainsty](https://www.tisty.app/es/ayuda/red-de-brainsty/) una dirección web no dibuja ninguna línea: la red tiene solo lo que está dentro de Tisty.
 
 ## Listas
 
@@ -266,6 +268,7 @@ Un sexto tipo, `[!IDEA]`, es una nota pegada en la hoja. Su primera línea, desp
 - Las partes van en cualquier orden, separadas por ` · `, y ninguna es obligatoria. El color es uno de `pink`, `coral`, `orange`, `yellow`, `lime`, `green`, `teal`, `cyan`, `blue`, `lavender`, `violet` o `magenta`; sin color, la nota lleva el color de la hoja dentro de una línea punteada.
 - `right` o `left` la deja al costado de los párrafos que siguen, con el texto rodeándola; sin lado, va entre los bloques que la rodean.
 - Dentro caben imágenes y todo lo que cabe en un aviso, siempre que cada línea lleve su `>`.
+- En Brainsty un `[!IDEA]` en cualquier documento une ese documento a Ideas, como estructura: «Rina», con una nota adhesiva sobre su camita nueva, cuelga de la hoja.
 - La hoja Ideas escribe así cada una de sus ideas, y anexar una a un documento la lleva entera, a la derecha.
 - Obsidian la muestra como un aviso de tipo idea, y GitHub como una cita. Exportada como Markdown estándar sale como un `[!NOTE]`, sin su primera línea.
 
@@ -308,6 +311,7 @@ Refuerzo en marzo #rina #veterinario
 - Un documento guarda sus primeras 64 etiquetas.
 - Al copiar como Markdown estándar, todas las etiquetas del documento, las de `tags:` y las escritas con `#`, quedan en el front matter.
 - Mientras escribes, al teclear `#` se te ofrecen las etiquetas que ya usas, para que una etiqueta nunca se escriba de dos maneras.
+- En Brainsty cada etiqueta es un nodo propio, y cada documento o tarea que la lleva, escrita con `#` o en `tags:`, se une a él con una línea de etiqueta: `#vet` junta a «Rina» y a «Veterinaria» alrededor de un mismo punto.
 
 ## Iconos
 
@@ -351,6 +355,21 @@ Los [paseos de octubre](tisty:doc/01JC4M9F2W7DQ1E3S8RB6PKMHT) fueron mejor.
 - Un `[`, `]` o `\` en un título se escribe con una barra invertida delante.
 - Una tarea se nombra igual, por su identificador después de `tisty:task/`, y el menú `/` la escribe por ti (**Una tarea**), abierta o archivada, o la crea ahí mismo con las reglas de la captura rápida (**Una tarea nueva**). Como tarjeta, en cualquier documento, muestra su título de ahora, su lista, sus fechas y cuántos pasos y partes lleva hechos, y la abre; mientras sigue abierta, la marca hecha y tacha sus pasos. Si la tarea no está en esta máquina, quedan sus palabras y un aviso. Otros lectores reciben solo sus palabras.
 
+**Lo que Brainsty dibuja con estas marcas.** [Brainsty](https://www.tisty.app/es/ayuda/red-de-brainsty/) dibuja cada documento, página, tarea, etiqueta y adjunto como un nodo, y lee sus líneas de lo escrito, así que nada se une a mano:
+
+| Lo que escribes | La línea en Brainsty |
+| :-- | :-- |
+| Una tarjeta, `![Veterinaria](tisty:doc/…)` o `![…](tisty:task/…)` | **cita**, la más fuerte: «Rina» cita a «Veterinaria» |
+| Un enlace en una frase, `[Veterinaria](tisty:doc/…)`, un `[[Veterinaria]]`, o el id de una tarea escrito tal cual | **mención** |
+| `#vet`, o `tags: [vet]` | **etiqueta**, al nodo de la etiqueta |
+| Un [adjunto](#adjuntos), `![La cartilla de Rina](cartilla-9d02e4b7c1f3a85e.pdf)` | **usa**, al archivo (en la Leyenda, *Usa un archivo*) |
+| Una página en su libro, una parte en su tarea, una tarea y el documento donde [nació](#propiedades), un `[!IDEA]` e Ideas | **estructura** (en la Leyenda, *Parte de*) |
+
+- Las líneas de una tarea salen de su descripción, su bitácora, sus pasos y su página. Las de un documento, de su texto y sus etiquetas.
+- Un enlace a sí mismo no dibuja nada, y la tarjeta de un libro hacia una de sus propias páginas la ubica en vez de citarla.
+- Lo que queda fuera: las tareas ocultas y las descartadas, con sus páginas, y tu Diario, aunque esté abierto a los agentes. Los documentos de Agentes están, pero llegan ocultos hasta **Mostrar AGENTS**.
+- Las curvas ámbar de **Parecidos** no son una marca. Tisty las encuentra en la prosa que escribiste, con reglas, por palabras poco comunes que dos cosas comparten, errores de tipeo y una lista fija de palabras en español e inglés, nunca con IA. Para eso nunca lee código, tu Diario, tareas ocultas o descartadas ni los archivos de tus agentes.
+
 ## Adjuntos
 
 Un archivo que arrastras queda guardado dentro de Tisty y se nombra con un sello de sus bytes. Se escribe como una imagen, con la etiqueta que ves:
@@ -365,6 +384,7 @@ Un archivo que arrastras queda guardado dentro de Tisty y se nombra con un sello
 - El sello son de 8 a 16 caracteres hexadecimales en minúscula después del último guion, y el nombre entero va en minúsculas.
 - Los documentos escritos por un Tisty anterior que dicen `attachments/ab/nombre` se siguen leyendo; cuando el documento se reescribe, queda solo el nombre.
 - Cuando un documento se escribe en una carpeta, sus adjuntos van al lado y los enlaces apuntan a ellos.
+- En Brainsty cada adjunto es un nodo de archivo, y el documento o la tarea que lo tiene se une a él con una línea **usa**.
 
 ## Referencias
 
@@ -378,6 +398,7 @@ Mira [[La cartilla de Rina]] y el paso [[#2]].
 - En la descripción o el diario de una tarea, `[[#2]]` muestra las palabras del segundo paso de esa tarea.
 - En un documento, `[[#2]]` muestra las palabras de la segunda [etapa](#listas) del documento, contadas en el orden en que se leen, y un clic te lleva a ella.
 - Un nombre vacío, o con un `[` o un salto de línea, no es referencia.
+- En Brainsty un `[[nombre]]` es una **mención** del documento con ese título, encontrado por su título, así que lo alcanza aunque se haya escrito antes. `[[#2]]` no dibuja nada.
 
 ## Notas al pie
 

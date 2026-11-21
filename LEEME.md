@@ -58,13 +58,18 @@
 [![M8ven Score](https://m8ven.ai/badge/mcp/rgdevment-tisty-15kwqt?v=aae81c3714d58416bc4db879fcf2f629&variant=verified)](https://m8ven.ai/mcp/rgdevment-tisty-15kwqt?s=readme)
 
   <p>
-    <img
-      src="assets/screens/readme/es-01-archivo.webp"
-      width="92%"
-      alt="Tisty, la memoria de trabajo que compartes con tu agente de IA: el archivo
-      guarda cada tarea terminada con sus pasos y su bitácora, y tú o tu
-      agente pueden comprobar ¿cómo lo resolvimos la otra vez? para traer
-      una tal como quedó"/>
+    <picture>
+      <source
+        media="(prefers-color-scheme: dark)"
+        srcset="assets/screens/app/es-que-es-tisty-dark.webp"/>
+      <img
+        src="assets/screens/app/es-que-es-tisty-light.webp"
+        width="92%"
+        alt="Tisty, la memoria de trabajo que compartes con tu agente de IA: la
+        página ¿Qué es Tisty? de la guía abierta en Tisty, con tus tareas de hoy
+        y la Biblioteca a la izquierda, y a la derecha su índice, las cuatro
+        páginas que la enlazan y su historial en este equipo"/>
+    </picture>
   </p>
 
   <h4>Descargar Tisty</h4>
@@ -125,6 +130,10 @@ revisas y lo cierras: nada se cierra sin ti. Todo en tu propio disco, visual y
 fácil de leer para ti, y para tu agente un **servidor MCP local** que le da
 primero el índice y después solo la sección que necesita.
 
+Y si prefieres trabajar de una forma más personal, sin agente, Tisty te sirve
+igual: tus tareas, tus documentos, tus ideas y tu diario, a la vista y unidos
+en Brainsty. El agente es una forma de usarlo, no una condición.
+
 Es de código abierto: puedes leerlo, compilarlo, probarlo o descargar las
 versiones firmadas que ya están publicadas. No hay nada oculto: todo es
 auditable.
@@ -151,7 +160,7 @@ parte.
 - **Terminar lo conserva todo** — una tarea cerrada va entera al archivo, y la
   búsqueda responde «¿cómo resolvimos esto?» con la línea que lo dice.
 - **100% local** — tus tareas, tu bitácora y tus documentos viven en tu equipo
-  y solo van adonde tú los mandes. Sin servidor nuestro, sin cuenta. Si
+  y solo van adonde tú los mandes. Sin servidor mío, sin cuenta. Si
   sincronizas dos equipos, puedes pedirle a Tisty que deje los adjuntos más
   grandes en esa carpeta compartida en vez de llevarlos a cada disco; nunca lo
   hace si tú no lo eliges.
@@ -251,7 +260,17 @@ espera en Ideas.
   verde, y **Volver a esta versión** lo trae de vuelta. Cada equipo guarda las
   suyas, 30 días por defecto.
 
-![Diagramas que siguen siendo texto: dibujas el diagrama y Tisty lo guarda como Mermaid, dentro de un Markdown que abre cualquier editor y lee cualquier agente, sin conexión](assets/screens/readme/es-02-diagramas.webp)
+<picture>
+  <source
+    media="(prefers-color-scheme: dark)"
+    srcset="assets/screens/app/es-diagrama-dark.webp"/>
+  <img
+    src="assets/screens/app/es-diagrama-light.webp"
+    alt="Diagramas que siguen siendo texto: la ventana de diagramas sobre la
+    guía, con las formas a la izquierda, el diagrama de flujo ¿Lo vas a hacer, o
+    a volver a leer? al centro y, a la derecha, el texto Mermaid que se escribe
+    en el documento, en vivo"/>
+</picture>
 
 ### Ideas: una lluvia de ideas a mano
 
@@ -270,7 +289,17 @@ espera en Ideas.
   te quedas; pídele que las ordene y las agrupa, convierte una en tarea o la
   anexa a su documento, y a las viejas solo las marca, para que tú las borres.
 
-![Un pensamiento rápido, para no olvidarlo: las ideas del momento como notas adhesivas de colores en Ideas, con fecha y escritas a mano, para ordenarlas después en una tarea o un documento](assets/screens/readme/es-03-ideas.webp)
+<picture>
+  <source
+    media="(prefers-color-scheme: dark)"
+    srcset="assets/screens/app/es-ideas-dark.webp"/>
+  <img
+    src="assets/screens/app/es-ideas-light.webp"
+    alt="Un pensamiento rápido, para no olvidarlo: Ideas como notas adhesivas de
+    colores, cada una con su fecha y su minuto, escritas a mano, como Fotos del
+    viaje a la Patagonia en el diario o Medir el costo de cada herramienta del
+    MCP en tokens, para ordenarlas después en una tarea o un documento"/>
+</picture>
 
 ### Diario: lo que pasó hoy
 
@@ -287,6 +316,18 @@ espera en Ideas.
   de sincronizar antes de recibirlo. Nunca se comparte por Folio.
 - **Sigue siendo Markdown** — un libro con `diary: on` en sus propiedades, cuyas
   páginas son los meses.
+
+<picture>
+  <source
+    media="(prefers-color-scheme: dark)"
+    srcset="assets/screens/app/es-diario-dark.webp"/>
+  <img
+    src="assets/screens/app/es-diario-light.webp"
+    alt="El Diario el viernes 20: arriba el recuadro ¿Qué pasó hoy? y, debajo,
+    la línea de días, cada uno con lo escrito y las tareas cerradas ese día
+    plegadas, como 2 tareas cerradas; en la barra, Diario 2026 con una página
+    por mes"/>
+</picture>
 
 ### Tareas: qué hacer, quién lo hace y cómo se resolvió
 
@@ -318,7 +359,87 @@ espera en Ideas.
 - **El archivo** — una tarea cerrada se guarda entera, y la búsqueda responde
   «¿cómo resolvimos esto?» con la línea que lo dice.
 
-![Urgente no siempre es importante: cada tarea en su cuadrante de la matriz de Eisenhower, hacer, planificar, delegar o prescindible, y arriba cuántas faltan por clasificar](assets/screens/readme/es-04-prioridades.webp)
+<picture>
+  <source
+    media="(prefers-color-scheme: dark)"
+    srcset="assets/screens/app/es-pagina-de-tarea-dark.webp"/>
+  <img
+    src="assets/screens/app/es-pagina-de-tarea-light.webp"
+    alt="Una página por tarea: Instalador: probar la actualización desde la
+    versión anterior, con su lista, fecha, fecha límite, prioridad y etiquetas
+    arriba; Description, Done when y Steps con tres de siete marcados; y a la
+    derecha Partes, Lo que lleva y El trayecto, desde Nace hasta cada paso
+    hecho"/>
+</picture>
+
+<picture>
+  <source
+    media="(prefers-color-scheme: dark)"
+    srcset="assets/screens/app/es-prioridades-dark.webp"/>
+  <img
+    src="assets/screens/app/es-prioridades-light.webp"
+    alt="Urgente no siempre es importante: cada tarea en su cuadrante de la
+    matriz de Eisenhower, Hacer, Planificar, Delegar o Prescindible, cada uno
+    con su cuenta, y junto al título cuántas faltan por clasificar"/>
+</picture>
+
+### Revisión semanal: la semana en orden
+
+Lo que capturas se acumula sin decidir si no miras atrás de vez en cuando. La
+**Revisión semanal**, en la fila de vistas de la barra lateral, junta en una
+página lo que vale la pena mirar una vez por semana, en tres paradas, y cada
+una muestra ✓ cuando ya no espera nada.
+
+- **Por decidir** — las tareas sin lista, para darles una lista o un día,
+  terminarlas o descartarlas, y las ideas que siguen esperando en Ideas.
+- **Marcados como pasados** — los documentos que un agente marcó como viejos,
+  con su razón, para que los archives, los borres o les quites la marca.
+- **Hace tiempo que no abres** — lo que no abriste en este equipo ni escribiste
+  en 60 días, para abrirlo o archivarlo.
+- **Cada semana, si quieres** — **Avisarme cada semana** anota una tarea
+  común que se repite y suena a la hora que eliges, aunque Tisty esté cerrado.
+  Tu agente puede recorrerla contigo, pero nunca archiva, borra ni cierra nada
+  por su cuenta.
+
+<picture>
+  <source
+    media="(prefers-color-scheme: dark)"
+    srcset="assets/screens/app/es-revision-semanal-dark.webp"/>
+  <img
+    src="assets/screens/app/es-revision-semanal-light.webp"
+    alt="La Revisión semanal y sus tres paradas: Por decidir, 38, con Abrir
+    Ideas, 38 por ordenar; Marcados como pasados, con su marca y Aquí no espera
+    nada; y Hace tiempo que no abres, 17 documentos, cada uno con Archivar"/>
+</picture>
+
+### El archivo: cómo se resolvió
+
+Una tarea terminada no se tira. Va al archivo entera —su página con lo que
+leíste, probaste y descartaste, sus pasos, su bitácora y sus archivos—, y lo
+mismo una que descartaste.
+
+- **El buscador es la entrada** — una palabra que recuerdes la trae de vuelta,
+  aunque hayan pasado dos años: «¿cómo resolvimos las subidas a OneDrive?»
+  encuentra el spike y la línea que lo dice.
+- **Tres capas** — *Historias*, las tareas que enseñaron algo, con todo su
+  trayecto; *Rutinas*, con sus cuentas, sus rachas y la hora a la que sueles
+  hacerlas; y *Rastro*, lo que se cerró sin dejar casi nada escrito, aparte
+  pero al alcance del buscador.
+- **Tu agente también lo lee** — antes de proponer nada, busca en el archivo el
+  mismo trabajo y parte de cómo salió la vez anterior.
+
+<picture>
+  <source
+    media="(prefers-color-scheme: dark)"
+    srcset="assets/screens/app/es-archivo-dark.webp"/>
+  <img
+    src="assets/screens/app/es-archivo-light.webp"
+    alt="El Archivo desde febrero de 2026: las barras de cada mes, las cuentas
+    de tareas cerradas, historias, vueltas de rutinas, rastro y racha más larga,
+    y las historias por mes, como Revisar los logs del incidente buscando datos
+    personales, cerrada por un agente, y Probar la captura rápida con 30 frases
+    reales"/>
+</picture>
 
 ### Brainsty: todo unido
 
@@ -356,6 +477,14 @@ junto a tus listas.
   recibe los parecidos aparte, así que nunca los confunde con enlaces que
   alguien escribió.
 
+<img
+  src="assets/screens/app/en-brainsty-living-dark.webp"
+  alt="La ventana de Tisty con Brainsty abierto, en el tema oscuro y en inglés:
+  la barra lateral con las tareas de hoy y la Biblioteca y, al lado, la red,
+  1.931 nodos y 2.811 conexiones, girando despacio como un globo mientras
+  viajeros de luz recorren sus líneas, con la Leyenda plegada abajo a la
+  izquierda"/>
+
 [La red de Brainsty](https://www.tisty.app/es/ayuda/red-de-brainsty/), en la
 ayuda, lo cuenta todo.
 
@@ -365,6 +494,18 @@ Cada agente lee sus reglas de un archivo propio: Claude Code de `CLAUDE.md`,
 Codex de `AGENTS.md`, Gemini de `GEMINI.md`, Copilot de
 `copilot-instructions.md`. La carpeta **Agentes**, arriba en la Biblioteca, los
 junta en Tisty como documentos, con sus skills y su memoria.
+
+<picture>
+  <source
+    media="(prefers-color-scheme: dark)"
+    srcset="assets/screens/app/es-agentes-primera-vez-dark.webp"/>
+  <img
+    src="assets/screens/app/es-agentes-primera-vez-light.webp"
+    alt="Agentes la primera vez: el aviso Tus agentes, en un solo lugar, con lo
+    que Tisty encontró en este equipo, Claude con 2 reglas, 29 skills y 49
+    memorias, Codex con 1 regla y 4 skills, Copilot con 1 regla y Gemini todavía
+    sin nada, y los dos botones Traer y Traer y sincronizar"/>
+</picture>
 
 - **Traer o sincronizar** — **Traer** copia los archivos que marcas, para
   leerlos y ordenarlos, sin escribir nada en ellos; **Traer y sincronizar**
@@ -380,6 +521,19 @@ junta en Tisty como documentos, con sus skills y su memoria.
   quedas con el de Tisty.
 - **Nada que no deba tocar** — ajustes, credenciales, enlaces y lo que parece un
   secreto nunca entran, y no se lee nada hasta que haces clic en la carpeta.
+
+<picture>
+  <source
+    media="(prefers-color-scheme: dark)"
+    srcset="assets/screens/app/es-agentes-regla-dark.webp"/>
+  <img
+    src="assets/screens/app/es-agentes-regla-light.webp"
+    alt="La ficha de una regla en Agentes / Claude, Al día: quién la lee, el
+    archivo donde se escribe, su tamaño, sus respaldos, su formato, cuándo se
+    escribió por última vez, que se guardó el original y que sincroniza en este
+    equipo; debajo, el texto de la regla, y al pie Editar, Respaldos, Historial,
+    Copiar enlace y Pausar la sincronización con Claude"/>
+</picture>
 
 [La carpeta Agentes](https://www.tisty.app/es/ayuda/carpeta-agents/), en la
 ayuda, cuenta cada paso.
@@ -662,7 +816,7 @@ dentro — y una memoria que tu propio agente de IA lee por MCP**, esto es Tisty
 | Cualquier archivo `.md` | se abre para leer en un visor propio, hasta 1 MB, sin entrar a tu almacén |
 | Adjuntos | se guardan con la tarea, tal como son |
 | Lo terminado | un **archivo que conserva lo que cada tarea te enseñó** |
-| Dos equipos | tu Google Drive, OneDrive o servidor WebDAV, directo, o una carpeta que ya sincronizas. Sin servidor nuestro |
+| Dos equipos | tu Google Drive, OneDrive o servidor WebDAV, directo, o una carpeta que ya sincronizas. Sin servidor mío |
 | Tu nube, cifrada | si quieres, con una frase de 24 palabras que solo tú conoces |
 | Lenguaje natural | fechas, límites y repeticiones, interpretados en tu equipo |
 | Cuándo hacerlo | un reparto de días donde repartes el trabajo, y un mes para mirar |
@@ -690,7 +844,7 @@ escribiste—, las rutinas vienen con sus cuentas y sus rachas, y el resto es el
 rastro. La búsqueda alcanza todo, documentos incluidos. Al año, ese archivo es
 la parte que echarías de menos.
 
-**Tu asistente, no uno nuestro.** Tisty no lleva IA dentro. El lenguaje natural
+**Tu asistente, no uno mío.** Tisty no lleva IA dentro. El lenguaje natural
 que convierte "llamar al banco a las 3" en una tarea son reglas corriendo en tu
 equipo, sin modelo y sin nube. Pero habla [MCP](https://modelcontextprotocol.io),
 así que un asistente que ya uses puede anotar trabajo aquí — con sus pasos, su
@@ -699,7 +853,7 @@ Esa puerta viene abierta, y un clic la cierra.
 
 **Dos equipos, sin intermediario.** Tisty habla directo con tu propio Google
 Drive, OneDrive o servidor WebDAV, o viaja por una carpeta que ya sincronizas.
-No hay servidor nuestro en medio, no hay que registrarse, y no hay nada que deje
+No hay servidor mío en medio, no hay que registrarse, y no hay nada que deje
 de funcionar el día que una empresa cambie de idea. Y lo que guarda en esa nube
 se puede cifrar con una frase que solo tú conoces.
 
@@ -750,8 +904,6 @@ editor— y en Tisty lleva bastante más que texto:
   o un diagrama lo abre en grande, para acercarte y pasar al siguiente.
 - **Un PDF propio**, A4, Carta u Oficio, con sus imágenes dentro, que te
   enseña antes de exportarlo.
-
-![Lo que sabes, en un documento por tema: un documento corregido en su lugar con su índice al lado, así tu agente de IA lee primero el índice y después solo la sección que necesita](assets/screens/readme/es-06-documentos.webp)
 
 La guía que Tisty escribe la primera vez que se abre trae una página con uno de
 cada cosa, para que lo veas todo antes de escribir una línea.
@@ -973,7 +1125,13 @@ aparta: una tarea siempre le gana el sitio.
 frase legible, y te muestra qué entendió *antes* de guardar nada — como fichas
 que corriges con un clic.
 
-![Atrasada no es vencida: las tareas de hoy con las vencidas primero, los contadores de vencidas, atrasadas, para hoy y por venir, y al lado lo que viene](assets/screens/readme/es-07-dia.webp)
+<img
+  src="assets/screens/app/es-tareas-hoy-dark.webp"
+  alt="Atrasada no es vencida: las tareas de hoy, primero las vencidas, luego
+  las por vencer y las atrasadas, cada una con su fecha, prioridad, lista y
+  etiquetas; la barra Añadir una tarea con las pistas de lo que entiende, y en
+  la barra lateral los contadores de vencidas, atrasadas, para hoy y por
+  venir"/>
 
 ```text
 "desplegar mañana a las 10"             →  mañana 10:00

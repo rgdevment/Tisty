@@ -4,8 +4,6 @@ For years I kept what I knew in loose notes, and the hard part was never writing
 
 This page covers linking a document to another one or to a section of another, seeing where a link goes without leaving your place, and knowing who links to a document. Citing a task inside a document, and creating one from there, is in [[Tasks in documents|Tasks-in-Documents]]. Everything you link shows up in [[the Brainsty network|Brainsty-Network]].
 
-![The menu two brackets open in a document: the titles that match what was typed, those that start that way first](https://raw.githubusercontent.com/rgdevment/Tisty/main/app/src-tauri/resources/guide/en/linking.png)
-
 ## When it helps
 
 - **A subject that leans on another.** «Rina» names «Vet» where it tells about the yearly vaccine; whoever reads Rina's note is one click away from Marisol's opening hours.
@@ -45,7 +43,7 @@ A click on that link opens the document at that section. If the section is gone 
 
 Rest the pointer on a link to another document and its preview appears: the first lines of the document or, if the link points at a section, that section. It confirms it is the one you meant, or lets you read a quick fact without losing the place you were writing in.
 
-![The preview of a link to the «Opening hours» section of «Vet», open over Rina's note](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/help/en-preview.png)
+![The preview of the link to «Vet», open over Rina's record: its sections Vaccines, Opening hours and Contact](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/en-preview.png)
 
 To open it: in a document you can write in, a click puts the caret in the link, so you can fix it, and `Ctrl` + click (`⌘` + click on a Mac) opens it; in one that is only read, like a closed task or an archived document, a click is enough.
 
@@ -53,7 +51,7 @@ To open it: in a document you can write in, a click puts the caret in the link, 
 
 The panel beside the document has a **Linked from** row: every document and every task that cites or mentions it and, in a document, under which section it does («In: Vaccines»). A click opens that document at that section.
 
-![The panel beside «Vet»: Linked from names «Rina» and the section that links it, «In: Vaccines»](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/help/en-linked-from.png)
+![The panel beside «What is Tisty?»: its outline at the top and, below it, Linked from with 4 documents, each with the section that links it, such as «Brainsty: everything joined», «In: The network»](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/en-linked-from.png)
 
 - **Both kinds count.** A link inside a sentence is a mention; a card, alone in its paragraph, is a citation. Both show here, and a task's page has the same row.
 - **It is built in the background.** Tisty reads how your documents link without slowing what you do, so a link you just wrote shows up a few seconds later. While it reads for the first time, the row says «Tisty is still reading how your documents link to each other»; when nothing links that document, «No document or task links here yet».

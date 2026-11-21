@@ -584,7 +584,6 @@
     "title": "Brainsty: everything joined",
     "tags": [],
     "refs": [
-      "Link:linking.png",
       "Link:tisty:page",
       "Link:card.png",
       "Link:network.png",
@@ -606,12 +605,7 @@
     "refs": [
       "Link:agents-sidebar.png",
       "Link:agents-card.png",
-      "Link:agents-outside.png",
       "Link:tisty:guide",
-      "Link:agents-bring-another.png",
-      "Link:agents-take-away.png",
-      "Link:agents-other-computer.png",
-      "Link:agents-proposal.png",
       "Link:https://www.tisty.app/docs/agents-folder/",
       "Link:https://www.tisty.app/docs/privacy/",
       "Link:tisty:agent"
@@ -626,7 +620,6 @@
     "refs": [
       "Link:https://www.tisty.app/docs/assistants-and-mcp/",
       "Link:https://www.tisty.app/docs/privacy/",
-      "Link:state.png",
       "Link:https://www.tisty.app/docs/how-an-agent-works/",
       "Link:tisty:guide",
       "Link:https://www.tisty.app/docs/mcp-permissions/",
@@ -764,12 +757,7 @@
     "refs": [
       "Link:agents-barra.png",
       "Link:agents-ficha.png",
-      "Link:agents-por-fuera.png",
       "Link:tisty:guide",
-      "Link:agents-traer-otro.png",
-      "Link:agents-quitar.png",
-      "Link:agents-otro-equipo.png",
-      "Link:agents-propuesta.png",
       "Link:https://www.tisty.app/es/ayuda/carpeta-agents/",
       "Link:https://www.tisty.app/es/ayuda/privacidad/",
       "Link:tisty:agent"
@@ -784,7 +772,6 @@
     "refs": [
       "Link:https://www.tisty.app/es/ayuda/asistentes-y-mcp/",
       "Link:https://www.tisty.app/es/ayuda/privacidad/",
-      "Link:estado.png",
       "Link:https://www.tisty.app/es/ayuda/como-trabaja-un-agente/",
       "Link:tisty:guide",
       "Link:https://www.tisty.app/es/ayuda/que-puede-hacer-un-asistente/",

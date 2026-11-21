@@ -8,6 +8,9 @@ Yes, Tisty is free and will stay free, under the AGPL-3.0 licence. No accounts, 
 **Does it need an account or a connection?**
 Neither. On its own, Tisty only asks whether a newer version exists, and it sends nothing to ask. Once you sync with a cloud or share a document, it also reads the few small files [[Privacy]] lists. Take the machine off the network and everything else works the same. See [[Privacy]].
 
+**Do I need an AI agent?**
+No. Tisty is a shared working memory for you and your agent, and it also works for you alone, if you would rather work in a more personal way: your tasks, your documents, your ideas and your diary work just the same with no agent. You connect one whenever you like, as [[Assistants and MCP|Assistants-and-MCP]] tells.
+
 **Where is my data kept?**
 In one folder on your own disk. **Settings › Your data** prints the path and *Show folder* opens it. See [Installation](Installation#where-your-data-lives).
 

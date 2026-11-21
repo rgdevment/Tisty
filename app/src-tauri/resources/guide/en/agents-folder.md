@@ -59,7 +59,7 @@ If you have no agent files yet, the box says «I found no agent files on this co
 
 Afterwards, in the sidebar, each assistant Tisty found on this computer has its subfolder, even an empty one. **Global** has a blue globe and each assistant a symbol of its own in its label's colour: an orange chat bubble for Claude, a teal terminal for Codex, indigo braces for Copilot, a green compass for Gemini and a brown pointer for Cursor. A subfolder you delete does not come back. Each document shows with its name and an icon: a book for a rule, a piece for a skill and a brain for memory. Hover over one and you see which file it is.
 
-![The sidebar with the Agents folder open and syncing: the robot in coral and the name Agents, with no word on the right; inside, the subfolders with their symbol and colour: Global with a blue globe, Claude with an orange chat bubble, Codex with a teal terminal and Gemini with a green compass; in Claude, the rule How I work with a book icon, the skill pr with a puzzle-piece icon and 3 files, and the memory MEMORY.md with a brain icon; the pointer over How I work shows claude · CLAUDE.md](agents-sidebar.png)
+![The sidebar with the Agents folder open and syncing, with the robot in coral: inside, Global with its blue globe and Claude with its orange chat bubble; in Claude, the rule Rules, picked, with a book icon, and below it the skills, each with a puzzle-piece icon and how many files it holds](agents-sidebar.png)
 
 ## A rule: in Tisty and in `CLAUDE.md`
 
@@ -191,7 +191,7 @@ A document in Agents does not look like one more document: it opens for reading,
 
 Codex reads its `AGENTS.md` only up to 32 KiB. When the file nears that cap, **Size** says so in amber, «close to the 32 KiB Codex reads», and past it, in red: time to move the long part into a skill.
 
-![PLACEHOLDER — The card of How I work with no column beside it: at the top the path Agents / Claude; the labels Rule, Claude and In sync; the name in large type; the facts box with Read by Claude, Written to ~/.claude/CLAUDE.md with its copy button, Size 3.2 kB, Backups 3 backups · See, Format Markdown · LF and Syncs on this computer Yes; below, the rule's text with compact headings and no separate sheet; at the foot, the buttons Edit, Backups, History, Copy link and Pause sync with Claude](agents-card.png)
+![The card of the rule Rules with no column beside it: at the top the path Agents / Claude; the labels Rule, Claude and In sync; the name in large type; the facts box with Read by Claude, Written to with the path of CLAUDE.md and its copy button, Size, Backups with See, Format Markdown · LF, Last written, Original kept and Syncs on this computer Yes; below, the rule's text with compact headings and no separate sheet; at the foot, the buttons Edit, Backups, History, Copy link and Pause sync with Claude; in the sidebar, Agents open, with Global, Claude, the rule and its skills](agents-card.png)
 
 ## A change made outside: bring it in or overwrite
 
@@ -204,8 +204,6 @@ You can keep editing your agents' files in your editor, or let the agent change 
 - **Overwrite with Tisty** asks first and writes the file again from the document. What the file held is kept as a backup.
 
 Until you choose, Tisty does not write that file. If you changed both the file and the document, the card says **Changed on both sides**, and you choose which to keep.
-
-![The card of How I work with the labels Rule, Claude and Changed outside in amber, the facts box with Written to ~/.claude/CLAUDE.md, and below it, inside the same card, the notice The file changed outside Tisty, and the buttons Bring the change in, Overwrite with Tisty and See the file](agents-outside.png)
 
 ## Restoring a backup
 
@@ -263,8 +261,6 @@ The first time does not have to be the only one. If you install a new assistant 
 2. The box says «These are the agent files on this computer that are not in Agents yet. Choose what to bring:». This time **nothing comes ticked**, and what already has a document says **already in Agents**. **Not now** closes it without bringing anything.
 3. Tick `rules/tests.md` and press **Bring**. **Tests** shows up in **Agents › Claude**, and from then on you read it and change it in Tisty.
 
-![The Bring another file box, with the line These are the agent files on this computer that are not in Agents yet. Choose what to bring:, Claude's row open with CLAUDE.md dimmed and already in Agents, and rules/tests.md ticked as a Rule; at the bottom, the buttons Not now and Bring](agents-bring-another.png)
-
 **Look again.** If you installed an assistant or your agent made new files, right-click **Agents** itself, brought or syncing, and choose **Look again**. Tisty looks for your assistants on this computer again, makes the subfolder of any that is missing and opens **Bring another file** with **only what is new already ticked**; memory, as always, unticked. If nothing is left to bring, not even an unticked memory, it says «Nothing new found. This is what each assistant has:» and one line per assistant, such as «Claude · already in Agents». On a computer that has not given permission yet, it opens the first-time box instead, with its names and sizes, and opens no file and makes no folder before your yes.
 
 **Bring touches nothing**, not even the record of what Tisty wrote: a file you only brought is never offered for taking away, even if you later take its document out of Agents.
@@ -285,9 +281,7 @@ The same goes for `AGENTS.override.md`, the file Codex reads instead of `AGENTS.
 
 ## Taking a rule and its file out
 
-When you delete a rule, move it out of Agents or go back to a version without its card, Tisty stops writing it. If it was the only one making up its file, that file is still on disk and your agent keeps reading it, so about a second later Tisty asks:
-
-![The box Take the file away too?, with the line No rule in Agents writes this Claude file any more, but it is still on disk and Claude keeps reading it., the path ~/.claude/rules/tests.md in grey, the line If you take it away, a backup stays on this computer., and the buttons Leave it and Take the file away](agents-take-away.png)
+When you delete a rule, move it out of Agents or go back to a version without its card, Tisty stops writing it. If it was the only one making up its file, that file is still on disk and your agent keeps reading it, so about a second later Tisty asks **Take the file away too?**, with the file's path, for example `~/.claude/rules/tests.md`, and «If you take it away, a backup stays on this computer.»:
 
 - **Take the file away** keeps a backup on this computer and deletes it: Claude stops reading that rule.
 - **Leave it** leaves it where it is, and Tisty neither writes it nor asks again. If one day you want it back, it shows in **Bring another file**.
@@ -313,8 +307,6 @@ From then on, what you already apply updates by itself when you change it on the
 
 **Two Agents folders.** If home and work both made Agents before they synced, two show up for a moment once they meet. Tisty joins them by itself, into the oldest: it puts their subfolders together by name (Global, Claude…), moves the documents over and deletes the one left empty. It touches none of your agents' files, offers none for taking away and loses no approval, and the other computer's documents wait for their **Apply here** like any other. A document the other computer wrote right before the join goes into the subfolder of the same name by itself once it arrives. If the second Agents holds something an agent put there, Tisty leaves it as it is until you move that document to a folder of yours yourself.
 
-![The card of For all my agents on the work computer, with the labels Rule and Global, the facts box with no Written to row and with Syncs on this computer No: it waits for «Apply here», and below it, inside the same card, the amber notice This document comes from another computer. Apply it to the agents on this one? with the buttons Apply here and Not on this computer; in the sidebar, Agents with its coral robot, with no word beside it](agents-other-computer.png)
-
 Two more notices you may see on a card:
 
 - **«Its text does not have your approval yet, so it reaches no agent until you approve it.»**: an amber notice, not a label. The document's text changed without going through your hands, for example through an imported parcel. Before the **Approve this text** button, the notice tells you whose hand wrote it, such as «Written on another computer.» or «Changed outside Tisty.», and what changed: the compared lines, in red with `−` what was **Approved** and in green with `+` what it says **Now**. If it was never approved, it says «Never approved: read all of it before approving it.»; if the words last approved are not on this computer, that there is nothing to compare them with and that you should read all of it. The button asks «Approve what this document says now? Read it first: it reaches your agents' files on each computer where Agents syncs and you applied it.», and if the text changed between being shown and your click, it approves nothing. If that document was already written to a file, the file stays **On hold**, as it was.
@@ -336,8 +328,6 @@ Any other tool that names those documents or the folder `AGENTS` is refused: it 
 2. Open **How I work**. If Tisty was open, the proposal shows by itself within a second or two, even when the window is not in front.
 3. The card gains the label **Proposal** and a purple box: «An agent (Claude Code) proposes a change», and the compared lines, in red with `−` what is **Approved** and in green with `+` what is **Proposed**.
 4. **Approve the change** asks «Approve this change? It is written to the document, and reaches your agents' files on each computer where Agents syncs and you applied it.». With your yes, the document says what was proposed and Tisty writes it to `CLAUDE.md`, with its backup first. **Discard** removes it and the document stays as you approved it.
-
-![The card of How I work with the labels Rule, Claude, In sync and Proposal, and the purple box An agent (Claude Code) proposes a change, with the compared lines − Approved and + Proposed, the new line + - Run the tests before every commit. in green, and the buttons Approve the change and Discard](agents-proposal.png)
 
 Each button acts only on what the card showed you: if the agent wrote again while you were looking, Tisty asks you to look at it again. If it writes again, its change goes on top of its own proposal, so there is one per document. And while a proposal waits, what you already approved keeps reaching your agents.
 

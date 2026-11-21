@@ -4,7 +4,7 @@ Llevaba años guardando cosas en Tisty y no tenía forma de verlas juntas. Sabí
 
 Esta página cuenta cómo abrirla, qué significa cada forma y cada línea, cómo moverte por ella y cómo filtrarla. Las uniones que dibuja las haces tú al escribir: [[Enlazar documentos|Enlazar-documentos]] y [[Tareas en documentos|Tareas-en-documentos]]. Tu agente lee la misma red como un índice: [[Cómo trabaja un agente|Cómo-trabaja-un-agente]].
 
-![La ventana de Tisty con la barra lateral a la izquierda y Brainsty marcado en ella; en el panel de contenido, la red alejada: arriba la cuenta, «589 nodos · 1252 conexiones», cada documento y cada tarea del color de su carpeta o su lista, los documentos como cuadrados, las tareas como círculos y las etiquetas como puntos morados, más tenues; ninguna carpeta ni lista como nodo y ningún archivo de Agentes, las citas y las menciones más marcadas que las demás líneas, la red un poco girada como un globo y sus catorce viajeros con su estela, y abajo a la izquierda la Leyenda, plegada](https://raw.githubusercontent.com/rgdevment/Tisty/main/app/src-tauri/resources/guide/es/red.png)
+![La ventana de Tisty con la barra lateral a la izquierda y Brainsty marcado en ella; en el panel de contenido, la red alejada: arriba la cuenta, «1940 nodos · 2847 conexiones», cada documento y cada tarea del color de su carpeta o su lista, los documentos como cuadrados, las tareas como círculos y las etiquetas como puntos morados, más tenues, la red un poco girada como un globo, con sus viajeros como puntos de luz sobre las líneas, y abajo a la izquierda la Leyenda, plegada](https://raw.githubusercontent.com/rgdevment/Tisty/main/app/src-tauri/resources/guide/es/red.png)
 
 ## Cuándo te sirve
 
@@ -82,11 +82,13 @@ Abierta, arriba lleva dos interruptores, **Viajeros** y **Girar**, que cuenta [L
 
 Por ejemplo, Marisol tiene once carpetas y listas con color, y la carpeta Agentes con sus reglas de Claude. Su leyenda muestra las seis más llenas, **Casa**, **Trabajo**, **Mascotas**, **Viajes**, **Compras** y **Salud**, y debajo **5 más**. Un día quiere ver dónde quedaron sus reglas: enciende **Mostrar AGENTS** en los filtros y la leyenda suma, aparte, **AGENTS**; la carpeta Agentes no compite por un lugar entre sus colores. Una carpeta sin color, como **Recetas**, no está en la lista: sus documentos se ven con el tono de los documentos.
 
-![La Leyenda abierta en la esquina inferior izquierda de la red: arriba los interruptores Viajeros y Girar, con su punto encendido; Qué es con Documento, Página, Tarea, Etiqueta y Archivo; Color: su carpeta o lista con Casa, Trabajo, Mascotas, Viajes, Compras y Salud, «5 más», AGENTS con su cuadrado chico en coral tenue, porque Mostrar AGENTS está encendido, y «Sin color, toma el tono de su clase.»; Estado con En curso, Terminadas y Archivadas; Líneas, de cerca con Cita, Menciona, Parte de (página, parte), Etiquetada, Usa un archivo y Parecidos en ámbar](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/help/es-leyenda.png)
+![La Leyenda abierta en la esquina inferior izquierda de la red: arriba los interruptores Viajeros y Girar, con su punto encendido; Qué es con Documento, Página, Tarea, Etiqueta y Archivo; Color: su carpeta o lista con Trabajo, Casa, Finanzas, Proyecto Tisty, Salud y Familia, «35 más» y «Sin color, toma el tono de su clase.»; Estado con En curso, Terminadas y Archivadas; Líneas, de cerca con Cita, Menciona, Parte de (página, parte), Etiquetada y Usa un archivo](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/es-leyenda.png)
 
 ## La red viva
 
 Mientras la miras, la red se mueve: gira y la recorren viajeros por sus líneas. Viene así de fábrica; si la prefieres quieta, la apagas desde la leyenda.
+
+![La ventana de Tisty con Brainsty abierto, en el tema oscuro y en inglés: la barra lateral con las tareas de hoy y la Biblioteca y, al lado, la red viva, 1.931 nodos y 2.811 conexiones, girando despacio como un globo mientras viajeros de luz recorren sus líneas, con la Leyenda plegada abajo a la izquierda](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/app/en-brainsty-living-dark.webp)
 
 - **Gira como un globo**, sola, una vuelta por minuto. Lo que queda atrás se ve más chico y más tenue, y con la red girada las zonas de color se ocultan y se ven menos títulos.
 - **De cerca, se queda quieta.** Apenas acercas la vista, con la rueda, al elegir un resultado de la búsqueda o al caminar con las flechas, el globo deja de girar, y no vuelve a hacerlo hasta que ves otra vez la red entera. Así el nodo que miras no se te va de lado. Alejarte más allá de la red entera no lo detiene.
@@ -129,8 +131,6 @@ La red cambia lo que muestra según la distancia, y cada detalle aparece de a po
 
 Así, de cerca, la tarea «Vacuna anual de Rina» es una casilla del color de la lista **Casa**, y «Comprar el antiparasitario de Rina», que terminaste la semana pasada, un tic del mismo color. El ícono se atenúa con lo que no está elegido, como el resto, y un clic sobre él elige el nodo igual que antes. De lejos no cuesta nada: ahí vuelven las formas simples, que se dibujan de a miles.
 
-![Brainsty en el panel de contenido, junto a la barra lateral, con la misma red de lejos: los nodos forman la silueta de un cerebro visto de lado, sin títulos y con líneas tenues, y la Leyenda plegada abajo a la izquierda](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/help/es-red-lejos.png)
-
 Con la rueda acercas y alejas; arrastrando te mueves, y arrastrando con el botón derecho, o con `Shift`, giras el globo. Al primer toque la red deja de seguir el punto donde arrancó. Un doble clic en un espacio vacío te devuelve de un salto a la red entera, desde cualquier distancia.
 
 ## Elegir, ver y abrir
@@ -167,7 +167,7 @@ Al pie, **Abrir**. La cruz de arriba, **Cerrar la vista previa**, `Esc` o un cli
 - **Abrir**, `Enter` o **un doble clic** en el nodo lo abre en la misma ventana, en el lugar de la red: un documento en la Biblioteca, una tarea junto a su lista y una etiqueta en su vista. Para volver a la red, otro clic en **Brainsty**; abre de nuevo entera, y lo que abriste queda como punto de partida de las flechas.
 - **Una imagen o un archivo** no tienen **Enlace**. Su **Abrir** lo abre con el programa de tu sistema, fuera de Tisty, y **Mostrar en la carpeta** te lleva a él en el explorador de archivos. Por ejemplo, eliges el clip de «presupuesto-techo.pdf»: su ficha dice **Tipo** PDF, **Tamaño** 240 kB, **Modificado** el martes, y en **Se usa en**, la tarea «Pedir presupuesto del techo» y el documento «Arreglos de la casa».
 
-![«Rina» elegida de cerca en Brainsty, en el panel de contenido junto a la barra lateral: sus vecinos con título, cada uno dibujado como su ícono del color de su carpeta o lista (la hoja de un documento, la casilla de una tarea, el clip de la foto), el resto atenuado y, a la derecha, su ficha: «Documento · Mascotas · 6 conexiones», las filas Escrito por última vez, Creado, Tamaño con sus palabras e Idioma ES, la etiqueta #rina, Conexiones por tipo, Apuntan aquí con lo que la cita, Parecidos con «Paseos del sábado» y «Tisty cree que se parecen: comparten rina y parque», el Enlace con su signo ? y Copiar enlace, y el botón Abrir; en la red, una curva ámbar une a Rina con «Paseos del sábado»](https://raw.githubusercontent.com/rgdevment/Tisty/main/app/src-tauri/resources/guide/es/red-cerca.png)
+![«Ficha de Rina» elegida de cerca en Brainsty, en el panel de contenido junto a la barra lateral: a su alrededor, cada nodo dibujado como su ícono del color de su carpeta o lista (la hoja de un documento, la casilla de una tarea, el clip de un archivo) y la foto de Rina en miniatura; abajo a la izquierda, la Leyenda abierta; a la derecha, su ficha: «Documento · Salud · 7 conexiones», las filas Escrito por última vez, Creado y Tamaño con sus palabras, la etiqueta rina, Conexiones con 6 menciones y 1 etiqueta, Apuntan aquí con «Ir a la veterinaria por la vacuna de Rina» y «Paseos del sábado», el Enlace con Copiar enlace y el botón Abrir](https://raw.githubusercontent.com/rgdevment/Tisty/main/app/src-tauri/resources/guide/es/red-cerca.png)
 
 ## Buscar
 
@@ -185,7 +185,7 @@ El embudo junto al buscador, **Filtros**, abre lo que se puede dejar fuera. Cada
 
 Con algún filtro puesto, el embudo se tiñe y aparece **Mostrar todo**, que devuelve la red entera. **Mostrar AGENTS** queda aparte: ni tiñe el embudo ni se apaga con **Mostrar todo**.
 
-![Brainsty en el panel de contenido con Filtros abierto: Documentos, Tareas y Parecidos encendidos, En curso, Últimos 30 días y la etiqueta rina, el embudo teñido, Mostrar todo a la vista y la red con lo que queda](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/help/es-filtros.png)
+![Brainsty en el panel de contenido con Filtros abierto: en Mostrar, todo encendido, de Documentos a Archivadas; en Tocado, Últimos 30 días; en Etiqueta, Cualquier etiqueta; el embudo teñido y Mostrar todo; debajo, la Leyenda abierta, con Parecidos en ámbar, y al lado la red con lo que queda](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/es-filtros.png)
 
 ## Con el teclado
 
@@ -286,8 +286,6 @@ Un tipeo o una traducción cuenta como una palabra en común: dos cosas se parec
     { "id": "…", "kind": "task", "title": "Pay the water bill", "state": "open", "score": 0.61, "shared": ["pagar≈pay", "agua≈water"], "method": "dictionary" } ] }
 "Guessed alike by Tisty, linked by no one: \"Pay the water bill\" […] (open) (alike by translation: pagar≈pay, agua≈water)."
 ```
-
-![La ficha de «Pagar la cuenta del agua» de cerca en Brainsty: «Tarea · Casa» con sus conexiones, Estado «En curso · Para hoy», y en Parecidos «Pay the water bill» con «Tisty cree que se parecen: comparten pagar ≈ pay y agua ≈ water»; en la red, una curva ámbar une las dos tareas](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/help/es-gemela.png)
 
 Un parecido aparece solo cuando sus dos puntas están a la vista: en la red, las dos tienen que estar dibujadas; para un agente, las dos tienen que pasar su puerta, así que una tarea oculta o descartada nunca se nombra a través de un parecido. Un parecido no suma conexiones a la cuenta de arriba ni cuenta para el tope de 12.000 nodos. Y `read`, que trae el texto, no trae parecidos: van solo en la ficha de `brain`.
 

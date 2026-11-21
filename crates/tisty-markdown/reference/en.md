@@ -51,6 +51,7 @@ source: the vet's card
 - It is kept exactly as written. The page leaves it out and shows the properties in the panel beside it, under **Details**, where **Edit** opens it in a window of its own, as it is written.
 - `title:` is the document's [title](#the-title).
 - `tags:` (or `tag:`) files the document under each one, the same as writing `#rina` in a sentence: one tag either way. A list in brackets, words split by commas, or one `- item` per line all work, with or without the `#`.
+- `source:`, in the example above, is a property of your own, like any other you write: Tisty keeps it and shows it under **Details**, but reads nothing from it. Where a task was born is not a property. When you make a task with **A new task** in «Vet», or turn an idea from Ideas into a task, Tisty keeps on the task the document and the section it came from, as `file#section`. That origin is what the task's **Born in** row names, and it draws the task beside that document in Brainsty. A source an agent gives when it files a task, a message id or a thread's link, only says where it read it: it names no document and draws nothing.
 - The block only counts at the very top: the first line is `---`, the line under it has words, and a `---` or `...` closes it. Anywhere else, `---` is a [page break](#page-breaks).
 - `paper:` is the sheet the document is printed on: `letter`, `folio` (8.5 × 13 in) or `tabloid`, and A4 when it is left out. `sheets: on` draws the page on those sheets, and `orientation: landscape` lays them across. **Paper** and **Sheets** in the panel write them, and taking them back leaves nothing written.
 - `lang:` is the language the document is written in, as a tag like `es`, `en` or `pt-BR`. A document in several languages is one document per language, which Tisty shows as one with a switch between them: **Translate into…** writes the copy to translate with its `lang:`, and **Join with its other language…** asks for the one each document lacks, by its name. `translationKey:` is what a language carries out of Tisty to find the others when it comes back; Tisty writes it on the way out and reads it on the way in.
@@ -190,6 +191,7 @@ https://github.com/rgdevment/Tisty
 - Only web addresses, `mailto:` and Tisty's own `tisty:` are followed. Any other scheme reads as plain words.
 - An address with spaces goes between angle brackets: `[clip](<C:/Users/me/a clip.mkv>)`.
 - A link opens your browser only when you click it.
+- In [Brainsty](https://www.tisty.app/docs/brainsty-network/) a web address draws no line: the network holds only what is inside Tisty.
 
 ## Lists
 
@@ -266,6 +268,7 @@ A sixth kind, `[!IDEA]`, is a note stuck on the sheet. Its first line, past the 
 - The parts go in any order, split by ` · `, and none is required. The colour is one of `pink`, `coral`, `orange`, `yellow`, `lime`, `green`, `teal`, `cyan`, `blue`, `lavender`, `violet` or `magenta`; without one, the note keeps the sheet's colour inside a dashed line.
 - `right` or `left` sets it beside the paragraphs that follow, the words flowing round it; without a side it stands between the blocks around it.
 - Pictures and anything else a callout holds fit inside, as long as every line carries its `>`.
+- In Brainsty an `[!IDEA]` in any document ties that document to Ideas, as structure: «Rina» with a sticky note about her new bed hangs from the sheet.
 - The Ideas sheet writes each of its ideas this way, and filing one in a document keeps it whole, set to the right.
 - Obsidian shows it as a callout of kind idea, and GitHub as a quote. Exported as standard Markdown it leaves as a `[!NOTE]`, without its first line.
 
@@ -308,6 +311,7 @@ Booster due in March #rina #vet
 - A document keeps its first 64 tags.
 - On copying as standard Markdown, all the document's tags, those in `tags:` and those written with `#`, go into the front matter.
 - While you write, typing `#` offers the tags you already use, so one tag is never spelled two ways.
+- In Brainsty each tag is a node of its own, and every document or task that carries it, written with `#` or in `tags:`, joins it with a tag line: `#vet` gathers «Rina» and «Vet» around one point.
 
 ## Icons
 
@@ -351,6 +355,21 @@ The [walks of October](tisty:doc/01JC4M9F2W7DQ1E3S8RB6PKMHT) went better.
 - A `[`, `]` or `\` in a title is written with a backslash before it.
 - A task is named the same way, by its id after `tisty:task/`, and the `/` menu writes it for you (**A task**), open or archived, or makes it right there with the quick capture's rules (**A new task**). As a card, in any document, it shows its current title, its list, its dates and how many of its steps and parts are done, and opens it; while it is still open, it marks it done and ticks its steps. If the task is not on this machine, its words stay with a notice. Other readers get only its words.
 
+**What Brainsty draws from these marks.** [Brainsty](https://www.tisty.app/docs/brainsty-network/) draws each document, page, task, tag and attachment as a node, and reads its lines from what is written, so nothing has to be joined by hand:
+
+| You write | The line in Brainsty |
+| :-- | :-- |
+| A card, `![Vet](tisty:doc/…)` or `![…](tisty:task/…)` | **cite**, the strongest: «Rina» cites «Vet» |
+| A link in a sentence, `[Vet](tisty:doc/…)`, a `[[Vet]]`, or a task's id written as it is | **mention** |
+| `#vet`, or `tags: [vet]` | **tag**, to the tag's own node |
+| An [attachment](#attachments), `![Rina's vet card](vet-card-9d02e4b7c1f3a85e.pdf)` | **uses**, to the file (in the Legend, *Uses a file*) |
+| A page in its book, a part in its task, a task and the document it was [born in](#properties), an `[!IDEA]` and Ideas | **structure** (in the Legend, *Part of*) |
+
+- A task's lines come from its description, its journal, its steps and its page. A document's, from its text and its tags.
+- A link to itself draws nothing, and a book's card for one of its own pages places the page rather than citing it.
+- What stays out: hidden and dropped tasks with their pages, and your Diary, even when it is open to agents. The documents in Agents are in it but come hidden, until **Show AGENTS**.
+- The amber **Alike** curves are not a mark. Tisty finds them in the prose you wrote, with rules, from uncommon words two things share, typos and a fixed word list in Spanish and English, never with AI. It never reads code, your Diary, hidden or dropped tasks or your agents' files for them.
+
 ## Attachments
 
 A file you drag in is kept inside Tisty and named by a stamp of its bytes. It is written like a picture, with the label you see:
@@ -365,6 +384,7 @@ A file you drag in is kept inside Tisty and named by a stamp of its bytes. It is
 - The stamp is 8 to 16 lowercase hexadecimal characters after the last dash, and the whole name is lowercase.
 - Documents written by an older Tisty that say `attachments/ab/name` still read; when the document is rewritten, only the name is kept.
 - When a document is written out to a folder, its attachments go beside it and the links point at them.
+- In Brainsty each attachment is a file node, and the document or task that holds it joins it with a **uses** line.
 
 ## References
 
@@ -378,6 +398,7 @@ See [[Rina's record]] and step [[#2]].
 - In a task's description or journal, `[[#2]]` shows the words of that task's second step.
 - In a document, `[[#2]]` shows the words of the document's second [stage](#lists), counted as they are read, and a click takes you to it.
 - An empty name, or one with a `[` or a line break in it, is not a reference.
+- In Brainsty a `[[name]]` is a **mention** of the document with that title, found by its title, so it meets the document even if it was written first. `[[#2]]` draws nothing.
 
 ## Footnotes
 

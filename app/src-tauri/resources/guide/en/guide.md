@@ -11,7 +11,7 @@ Tisty is a working memory you share with your AI agent, so neither of you starts
 
 Your agent asks what moved since last time, opens the task it was on and reads only the section it needs. It works, notes what it did and tells you when something is done; you review it and close it. Nothing closes without you.
 
-What you both keep comes in two kinds: what has to be done is a **task**, and what is worth reading again is a **document**. And finishing erases nothing: a finished task is archived with everything written in it, and months later a search tells how it was solved. All of this works just as well if you do not work with an agent yet.
+What you both keep comes in two kinds: what has to be done is a **task**, and what is worth reading again is a **document**. And finishing erases nothing: a finished task is archived with everything written in it, and months later a search tells how it was solved. And if you would rather work in a more personal way, with no agent, Tisty is just as complete for you: your tasks, your documents, your ideas and your diary, in sight and joined in Brainsty. The agent is one way to use it, not a condition, and you connect one whenever you like.
 
 Everything stays on this computer, as text any program opens. It asks for no account, charges no subscription and sends nothing about how you use it. It is open source: anyone can audit it. There is no company behind it: I make it because I needed it, and I share it.
 
@@ -75,7 +75,7 @@ And if a task teaches you something you will need again, like the fix for a faul
 
 ## Your AI agent
 
-Your AI agent, whether GitHub Copilot, Claude Code, Codex or another, comes into Tisty through MCP, with a program that runs on this computer, with no account and nothing going over the network. What it writes is signed with its name: "by Claude Code", "by Codex".
+Connecting an agent is optional: everything above works without one, and you connect it whenever you like. Your AI agent, whether GitHub Copilot, Claude Code, Codex or another, comes into Tisty through MCP, with a program that runs on this computer, with no account and nothing going over the network. What it writes is signed with its name: "by Claude Code", "by Codex".
 
 From then on Tisty is its memory between sessions. Of a document it reads the outline first and then only the section it needs; on the task it is on, it ticks the steps and notes in its journal what it tried and ruled out. The next session starts there, and costs a fraction of rereading your Markdown files.
 
@@ -163,7 +163,7 @@ A reminder is a time you choose on the task: it rings as a system notification o
 
 Two questions, four boxes: whether it is pressing and whether it matters.
 
-![The four quadrants (do, schedule, delegate and minor) and the tray of what you have not sorted](priorities.png)
+![The four quadrants, Do, Schedule, Delegate and Minor, each with its count, and beside the title how many tasks are left to sort](priorities.png)
 
 - **Do** — urgent and important. Today.
 - **Schedule** — important, no rush. Give it a date before it turns urgent.
@@ -517,7 +517,7 @@ Tisty always works on this computer. To have the same on another one, tell it wh
 - **Straight to a cloud**: your Google Drive, your OneDrive or your own WebDAV server (Nextcloud, ownCloud, Synology and others), with nothing else installed.
 - **A folder**: Google Drive, OneDrive, iCloud or Dropbox if they are installed, or any folder both computers can see. There, whoever uploads and downloads is your provider's program, not Tisty.
 
-> There is no server of ours in between. Syncing gives you another copy, not time travel: if you delete a task, the deletion travels too.
+> There is no server in between. Syncing gives you another copy, not time travel: if you delete a task, the deletion travels too.
 
 When two computers wrote the same part of a document, Tisty does not choose: it shows you both versions and you keep **This one**, **The other** or **Both**.
 
@@ -546,7 +546,7 @@ The first time, Share asks you to create your identity: the key you sign what yo
 
 A finished task does not end: it is archived. It stops being something to do and becomes the record of how you solved something, with its page, its steps, its files and its parts, as they were left. It can be read but no longer written, and it comes back if you reopen it.
 
-![The Archive with its routines: how many rounds were kept, the run and the hour they usually close at](archive.png)
+![The Archive: its search box, the closed tasks month by month, its figures with the closed ones, the stories, the routines' turns and the longest run, the layers Stories, Routines, Trace and Hidden, and the stories grouped by month](archive.png)
 
 The box icon, beside the views in the sidebar, opens it, and it reads in three layers:
 

@@ -8,7 +8,7 @@ Lo que guardas ya estaba unido: un documento cita otro, una tarea nació de un a
 
 Escribe `[[` donde quieras el enlace y sigue con unas palabras del título. Tisty te ofrece hasta ocho documentos que calzan, sin mirar acentos ni mayúsculas, primero los que empiezan así. Elige uno con `Enter` y queda un enlace con su título, que apunta al documento y no a su nombre: si lo renombras, el enlace sigue llegando.
 
-![El menú que abren dos corchetes en la ficha de Rina: los documentos que calzan con lo escrito, cada uno con su carpeta](enlazar.png)
+![El menú que abren dos corchetes en la ficha de Rina, antes de escribir nada más: los documentos que puedes enlazar, uno por línea](enlazar.png)
 
 **Pruébalo:** al final de este párrafo escribe `[[rina` y elige **Rina**, la página de ejemplo de esta guía. Queda un enlace igual a este: [Rina](tisty:page).
 
@@ -26,7 +26,7 @@ El panel junto a un documento tiene la fila **Enlazado desde**: cada documento y
 
 Lo que sabes de un tema vive en su documento, y el trabajo que hiciste sobre él, en sus tareas. Cita la tarea en el documento y la encuentras donde la vas a buscar. En el menú `/`, **Una tarea** busca entre las abiertas y las archivadas, y deja su tarjeta sola en su párrafo.
 
-![La tarjeta de «Renovar el seguro del auto» en el documento «Auto», con sus pasos desplegados, y la de «Cambiar los neumáticos», cerrada](tarjeta.png)
+![Las tarjetas de «Renovar el seguro del auto» y «Cambiar los neumáticos del auto» en el documento «Auto», cada una con su lista, Finanzas, y «1 de 3 pasos»; la segunda, además, con su fecha](tarjeta.png)
 
 La tarjeta lee la tarea cada vez que se dibuja: su lista, sus fechas, cuántos pasos lleva hechos y, si se cerró, el día. Un clic la abre; su círculo la marca hecha; su contador despliega los pasos para marcarlos ahí mismo. Una tarea cerrada se lee, pero ya no cambia desde el documento.
 
@@ -44,7 +44,7 @@ En la página de una tarea, **Una tarea nueva** crea una parte de esa tarea, en 
 
 **Brainsty**, en la barra lateral bajo las vistas de tareas, abre todo lo que guardas como una sola red. Se abre en el panel de contenido, como una vista más, con la barra lateral a la vista y **Brainsty** marcado en ella. Abre con la red entera a la vista; el documento o la tarea en que estabas queda como punto de partida de las flechas.
 
-![La ventana de Tisty con la barra lateral a la izquierda y Brainsty marcado en ella; en el panel de contenido, la red alejada: arriba la cuenta, «589 nodos · 1252 conexiones», cada documento y cada tarea del color de su carpeta o su lista, los documentos como cuadrados, las tareas como círculos y las etiquetas como puntos morados, más tenues, las citas y las menciones más marcadas que las demás líneas, la red un poco girada como un globo y sus catorce viajeros con su estela sobre las líneas, y abajo a la izquierda la Leyenda, plegada](red.png)
+![La ventana de Tisty con la barra lateral a la izquierda y Brainsty marcado en ella; en el panel de contenido, la red alejada: arriba la cuenta, «1940 nodos · 2847 conexiones», cada documento y cada tarea del color de su carpeta o su lista, los documentos como cuadrados, las tareas como círculos y las etiquetas como puntos morados, más tenues, la red un poco girada como un globo, con sus viajeros como puntos de luz sobre las líneas, y abajo a la izquierda la Leyenda, plegada](red.png)
 
 - **Gasta solo mientras la miras.** Cuando pasas a otra vista, se detiene todo lo que la red corría: el dibujo, el acomodo de los puntos y su trabajo en segundo plano.
 - **Se lee de nuevo cada vez que entras**, así que lo que escribiste entretanto ya está. Arranca limpia: sin el punto que habías elegido ni los filtros de la vez anterior. Lo que cada equipo sí recuerda es cómo dejaste la leyenda, **Viajeros**, **Girar** y **Mostrar AGENTS**. Si mientras la miras llega algo nuevo, como un paso que marca tu agente o una ronda de sincronización, la red se queda como estaba: la misma vista, el mismo acomodo y tus **Viajeros** y **Girar** como los dejaste.
@@ -85,7 +85,7 @@ Las carpetas y las listas no son puntos de la red: dan el color a lo suyo, tiñe
 
 La red cambia con la distancia. De lejos, como abre o con la rueda hacia atrás, sus puntos forman un cerebro visto de lado, sin títulos, y cada clase tiene la forma de la tabla. A media distancia aparecen las zonas de color. De cerca aparecen todos los títulos, cada tipo de línea, las etiquetas y la miniatura de cada imagen, y cada nodo pasa a ser su ícono, del color de su carpeta o lista: una hoja para un documento, unas líneas de texto para una página, una casilla para una tarea y un tic cuando está hecha, un `#` para una etiqueta y un clip para un archivo. Con la red girada, las zonas se ocultan y se ven menos títulos.
 
-![«Rina» elegida de cerca en Brainsty, en el panel de contenido junto a la barra lateral: sus vecinos con título, cada uno dibujado como su ícono del color de su carpeta o lista (la hoja de un documento, la casilla de una tarea, el clip de la foto), el resto atenuado y, a la derecha, su ficha: «Documento · Mascotas · 6 conexiones», las filas Escrito por última vez, Creado, Tamaño con sus palabras e Idioma ES, la etiqueta rina, Conexiones por tipo, Apuntan aquí con lo que la cita, Parecidos con «Paseos del sábado» y «Tisty cree que se parecen: comparten rina y parque», el Enlace con Copiar enlace y el botón Abrir; en la red, una curva ámbar une a Rina con «Paseos del sábado»](red-cerca.png)
+![«Ficha de Rina» elegida de cerca en Brainsty, en el panel de contenido junto a la barra lateral: a su alrededor, cada nodo dibujado como su ícono del color de su carpeta o lista (la hoja de un documento, la casilla de una tarea, el clip de un archivo) y la foto de Rina en miniatura; abajo a la izquierda, la Leyenda abierta; a la derecha, su ficha: «Documento · Salud · 7 conexiones», las filas Escrito por última vez, Creado y Tamaño con sus palabras, la etiqueta rina, Conexiones con 6 menciones y 1 etiqueta, Apuntan aquí con «Ir a la veterinaria por la vacuna de Rina» y «Paseos del sábado», el Enlace con Copiar enlace y el botón Abrir](red-cerca.png)
 
 - **Un clic** en un punto lo resalta con sus vecinos y abre su ficha, a la derecha. La ficha no muestra el texto del documento: muestra sus datos, para que sepas qué es antes de abrirlo.
 - **Abrir**, `Enter` o un doble clic abre el documento, la tarea o la etiqueta en esta misma ventana, en el lugar de la red. Para volver a la red, otro clic en **Brainsty**. Una imagen o un archivo se abre con el programa de tu sistema, y **Mostrar en la carpeta** te lleva a él.

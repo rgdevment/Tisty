@@ -6,7 +6,7 @@ It is **rules running on your machine**: no model, no request, no cloud. It read
 
 The examples below come from the parser's own test cases, which define exactly how far it goes. They assume today is **Wednesday 5 August 2026, 09:00**.
 
-![Late is not overdue: today's tasks with the overdue ones first, and the date typed the way you say it](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/web/en-07-day.png)
+![Tasks for today, in the dark theme: the Add a task bar with its hints, tag, list, priority, dates as you say them, every tuesday and / to pick; Overdue, Due soon and Late, each task with its date, priority, list and tags; and Installer: test the update from the previous version open beside the list](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/app/en-tasks-today-dark.webp)
 
 ## Days
 

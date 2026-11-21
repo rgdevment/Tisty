@@ -6,7 +6,7 @@ Son **reglas que corren en tu equipo**: sin modelo, sin petición y sin nube. Le
 
 Los ejemplos salen de las pruebas del propio parser, que definen exactamente hasta dónde llega. Suponen que hoy es **miércoles 5 de agosto de 2026, 09:00**.
 
-![Atrasada no es vencida: las tareas de hoy con las vencidas primero, y la fecha escrita como la dices](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/web/es-07-dia.png)
+![Las tareas de hoy, en el tema oscuro: la barra Añadir una tarea con sus pistas, etiqueta, lista, prioridad, fechas tal como se dicen, cada martes y / para elegir; Vencidas, Por vencer y Atrasadas, cada tarea con su fecha, prioridad, lista y etiquetas; e Instalador: probar la actualización desde la versión anterior abierta al lado de la lista](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/app/es-tareas-hoy-dark.webp)
 
 ## Días
 
@@ -142,3 +142,7 @@ Encierra la frase entera entre comillas y no se interpreta nada:
 ```
 
 También sirve para un trozo: en `llamar sobre "el informe de mañana" el viernes`, solo se lee el viernes.
+
+## En inglés
+
+Las mismas reglas, en inglés: `tomorrow at 10`, `on friday`, `the day after tomorrow`, `in 3 days`, `by friday`, `every tuesday`, `every monday at 9`, `every 3 days`, `daily`. Las prioridades en inglés están en la tabla de [Marcadores](#marcadores).

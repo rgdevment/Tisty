@@ -59,7 +59,7 @@ Si todavía no tienes archivos de agentes, el aviso dice «No encontré archivos
 
 Después, en la barra lateral, cada asistente que Tisty encontró en este equipo tiene su subcarpeta, aunque esté vacía. **Global** lleva un globo azul y cada asistente un símbolo propio en el color de su etiqueta: un globo de conversación naranja para Claude, una terminal verde azulado para Codex, unas llaves índigo para Copilot, una brújula verde para Gemini y un puntero café para Cursor. Una subcarpeta que borras no vuelve a aparecer. Cada documento se ve con su nombre y un icono: un libro para una regla, una pieza para una skill y un cerebro para la memoria. Pasa el puntero sobre uno y ves de qué archivo es.
 
-![La barra lateral con la carpeta Agentes abierta y sincronizando: el robot en coral y el nombre Agentes, sin ninguna palabra a la derecha; dentro, las subcarpetas con su símbolo y su color: Global con un globo azul, Claude con un globo de conversación naranja, Codex con una terminal verde azulado y Gemini con una brújula verde; en Claude, la regla Cómo trabajo con el icono de un libro, la skill pr con el icono de una pieza y 3 archivos, y la memoria MEMORY.md con el icono de un cerebro; el puntero sobre Cómo trabajo muestra claude · CLAUDE.md](agents-barra.png)
+![La barra lateral con la carpeta Agentes abierta y sincronizando, con el robot en coral: dentro, Global con su globo azul y Claude con su globo de conversación naranja; en Claude, la regla Reglas, elegida, con el icono de un libro, y debajo las skills, cada una con el icono de una pieza y cuántos archivos lleva](agents-barra.png)
 
 ## Una regla: en Tisty y en `CLAUDE.md`
 
@@ -191,7 +191,7 @@ Un documento de Agentes no se ve como un documento más: se abre para leer, en u
 
 Codex lee su `AGENTS.md` solo hasta 32 KiB. Cuando el archivo se acerca a ese tope, **Tamaño** lo dice en ámbar, «cerca de los 32 KiB que lee Codex», y si lo pasa, en rojo: es el momento de pasar lo largo a una skill.
 
-![PROVISORIA — La ficha de Cómo trabajo sin columna al lado: arriba el camino Agentes / Claude; las etiquetas Regla, Claude y Al día; el nombre en grande; el cuadro de datos con Lo lee Claude, Se escribe en ~/.claude/CLAUDE.md con su botón de copiar, Tamaño 3,2 kB, Respaldos 3 respaldos · Ver, Formato Markdown · LF y Sincroniza en este equipo Sí; debajo, el texto de la regla con encabezados compactos y sin hoja aparte; al pie, los botones Editar, Respaldos, Historial, Copiar enlace y Pausar la sincronización con Claude](agents-ficha.png)
+![La ficha de la regla Reglas sin columna al lado: arriba el camino Agentes / Claude; las etiquetas Regla, Claude y Al día; el nombre en grande; el cuadro de datos con Lo lee Claude, Se escribe en con la ruta de CLAUDE.md y su botón de copiar, Tamaño, Respaldos con Ver, Formato Markdown · LF, Última escritura, Original guardado y Sincroniza en este equipo Sí; debajo, el texto de la regla con encabezados compactos y sin hoja aparte; al pie, los botones Editar, Respaldos, Historial, Copiar enlace y Pausar la sincronización con Claude; en la barra lateral, Agentes abierta, con Global, Claude, la regla y sus skills](agents-ficha.png)
 
 ## Un cambio por fuera: traer o sobrescribir
 
@@ -204,8 +204,6 @@ Puedes seguir editando los archivos de tus agentes con tu editor, o dejar que el
 - **Sobrescribir con Tisty** pregunta antes y vuelve a escribir el archivo desde el documento. Lo que tenía el archivo queda en un respaldo.
 
 Mientras no eliges, Tisty no escribe ese archivo. Si cambiaste el archivo y también el documento, la ficha dice **Cambiado en los dos lados**, y eliges cuál conservar.
-
-![La ficha de Cómo trabajo con las etiquetas Regla, Claude y Cambiado por fuera en ámbar, el cuadro de datos con Se escribe en ~/.claude/CLAUDE.md, y debajo, dentro de la misma ficha, el aviso El archivo cambió por fuera de Tisty, y los botones Traer el cambio, Sobrescribir con Tisty y Ver el archivo](agents-por-fuera.png)
 
 ## Recuperar un respaldo
 
@@ -263,8 +261,6 @@ La primera vez no tiene que ser la única. Si instalas un asistente nuevo o escr
 2. El aviso dice «Estos son los archivos de agentes de este equipo que todavía no están en Agentes. Elige qué traer:». Esta vez **no viene nada marcado**, y lo que ya tiene documento dice **ya está en Agentes**. **Ahora no** lo cierra sin traer nada.
 3. Marca `rules/pruebas.md` y pulsa **Traer**. En **Agentes › Claude** aparece **Pruebas**, y desde ahí la lees y la cambias en Tisty.
 
-![El aviso Traer otro archivo, con la línea Estos son los archivos de agentes de este equipo que todavía no están en Agentes. Elige qué traer:, la fila de Claude abierta con CLAUDE.md atenuado y ya está en Agentes, y rules/pruebas.md marcado como Regla; abajo, los botones Ahora no y Traer](agents-traer-otro.png)
-
 **Buscar de nuevo.** Si instalaste un asistente o tu agente creó archivos nuevos, botón derecho sobre **Agentes** misma, traída o sincronizando, y **Buscar de nuevo**. Tisty vuelve a buscar tus asistentes en este equipo, crea la subcarpeta del que falte y abre **Traer otro archivo** con **solo lo nuevo ya marcado**; la memoria, como siempre, sin marcar. Si no queda nada por traer, ni siquiera una memoria sin marcar, dice «No encontré nada nuevo. Esto es lo que hay en cada asistente:» y una línea por asistente, como «Claude · ya está en Agentes». En un equipo que todavía no te dio permiso, abre en cambio el aviso de la primera vez, con sus nombres y tamaños, y no abre ningún archivo ni crea ninguna carpeta antes de tu sí.
 
 **Traer no toca nada**, ni siquiera la cuenta de lo que Tisty escribió: un archivo que solo trajiste nunca se ofrece para quitar, aunque después saques su documento de Agentes.
@@ -285,9 +281,7 @@ Lo mismo pasa con `AGENTS.override.md`, el archivo que Codex lee en vez de `AGEN
 
 ## Sacar una regla y su archivo
 
-Cuando borras una regla, la mueves fuera de Agentes o vuelves a una versión sin ficha, Tisty deja de escribirla. Si era la única que armaba su archivo, ese archivo sigue en el disco y tu agente lo sigue leyendo, así que alrededor de un segundo después Tisty te pregunta:
-
-![El aviso ¿Quitar también el archivo?, con la línea Ninguna regla de Agentes escribe ya este archivo de Claude, pero sigue en el disco y Claude lo sigue leyendo., la ruta ~/.claude/rules/pruebas.md en gris, la línea Si lo quitas, queda un respaldo en este equipo., y los botones Dejarlo y Quitar el archivo](agents-quitar.png)
+Cuando borras una regla, la mueves fuera de Agentes o vuelves a una versión sin ficha, Tisty deja de escribirla. Si era la única que armaba su archivo, ese archivo sigue en el disco y tu agente lo sigue leyendo, así que alrededor de un segundo después Tisty te pregunta **¿Quitar también el archivo?**, con la ruta del archivo, por ejemplo `~/.claude/rules/pruebas.md`, y «Si lo quitas, queda un respaldo en este equipo.»:
 
 - **Quitar el archivo** guarda un respaldo en este equipo y lo borra: Claude deja de leer esa regla.
 - **Dejarlo** lo deja donde está, y Tisty no lo vuelve a escribir ni a preguntar. Si un día lo quieres de vuelta, aparece en **Traer otro archivo**.
@@ -313,8 +307,6 @@ Desde ahí, lo que ya aplicas se pone al día solo cuando lo cambias en el otro 
 
 **Dos carpetas Agentes.** Si la casa y el trabajo crearon Agentes antes de sincronizarse, al encontrarse aparecen dos por un momento. Tisty las une solo, en la más antigua: junta sus subcarpetas por nombre (Global, Claude…), pasa los documentos y borra la que quedó vacía. No toca ningún archivo de tus agentes, no te ofrece quitar ninguno ni pierde una aprobación, y los documentos del otro equipo esperan su **Aplicar aquí** como cualquiera. Un documento que el otro equipo escribió justo antes de unirse entra solo en la subcarpeta del mismo nombre cuando llega. Si la segunda Agentes tiene algo que puso un agente, Tisty la deja como está hasta que muevas tú ese documento a una carpeta tuya.
 
-![La ficha de Para todos mis agentes en el equipo del trabajo, con las etiquetas Regla y Global, el cuadro de datos sin ninguna fila Se escribe en y con Sincroniza en este equipo No: espera «Aplicar aquí», y debajo, dentro de la misma ficha, el aviso ámbar Este documento viene de otro equipo. ¿Lo aplicas a los agentes de este? con los botones Aplicar aquí y No en este equipo; en la barra, Agentes con su robot coral, sin ninguna palabra al lado](agents-otro-equipo.png)
-
 Dos avisos más que puedes ver en una ficha:
 
 - **«Su texto aún no tiene tu aprobación, así que no llega a ningún agente hasta que lo apruebes.»**: un aviso ámbar, no una etiqueta. El texto del documento cambió sin pasar por tus manos, por ejemplo con un paquete importado. Antes del botón **Aprobar este texto**, el aviso te dice quién lo escribió, como «Se escribió en otro equipo.» o «Cambió fuera de Tisty.», y qué cambió: las líneas comparadas, en rojo con `−` lo **Aprobado** y en verde con `+` lo de **Ahora**. Si nunca se aprobó, dice «Nunca se aprobó: léelo entero antes de aprobarlo.»; si lo último aprobado no está en este equipo, que no hay con qué compararlo y que lo leas entero. El botón pregunta «¿Apruebas lo que dice ahora este documento? Léelo antes: llega a los archivos de tus agentes en cada equipo donde Agentes sincroniza y lo aplicaste.», y si el texto cambió entre que se mostró y tu clic, no aprueba nada. Si ese documento ya se escribía en un archivo, el archivo queda **En espera**, como estaba.
@@ -336,8 +328,6 @@ Cualquier otra herramienta que nombre esos documentos o la carpeta `AGENTS` se r
 2. Abre **Cómo trabajo**. Si Tisty estaba abierto, la propuesta aparece sola en uno o dos segundos, aunque la ventana no esté al frente.
 3. La ficha suma la etiqueta **Propuesta** y un recuadro morado: «Un agente (Claude Code) propone un cambio», y las líneas comparadas, en rojo con `−` lo **Aprobado** y en verde con `+` lo **Propuesto**.
 4. **Aprobar el cambio** pregunta «¿Apruebas este cambio? Se escribe en el documento, y llega a los archivos de tus agentes en cada equipo donde Agentes sincroniza y lo aplicaste.». Con tu sí, el documento pasa a decir lo propuesto y Tisty lo escribe en `CLAUDE.md`, con su respaldo antes. **Descartar** la quita y el documento queda como lo aprobaste.
-
-![La ficha de Cómo trabajo con las etiquetas Regla, Claude, Al día y Propuesta, y el recuadro morado Un agente (Claude Code) propone un cambio, con las líneas comparadas − Aprobado y + Propuesto, la línea nueva + - Corre los tests antes de cada commit. en verde, y los botones Aprobar el cambio y Descartar](agents-propuesta.png)
 
 Cada botón actúa solo sobre lo que la ficha te mostró: si el agente volvió a escribir mientras mirabas, Tisty te pide revisarla de nuevo. Si vuelve a escribir, su cambio va encima de su propia propuesta, así que hay una sola por documento. Y mientras una propuesta espera, lo que ya aprobaste sigue llegando a tus agentes.
 
