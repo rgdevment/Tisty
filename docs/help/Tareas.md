@@ -44,7 +44,7 @@ Lo que guarda una tarea cerrada, y cómo la encuentra el buscador, está en [[El
 
 No hay formulario que rellenar. Escribe la frase entera en la barra de arriba y Tisty va separando el día, la lista y la prioridad mientras escribes, y te muestra lo que entendió **antes** de guardar nada, como etiquetas que corriges con un clic.
 
-![Atrasada no es vencida: se atrasa lo que no hiciste el día que planeaste y vence solo lo que pasó su límite, con los contadores de vencidas, atrasadas, para hoy y por venir](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/web/es-07-dia.png)
+![Las tareas de hoy, en el tema oscuro: la barra Añadir una tarea con sus pistas, etiqueta, lista, prioridad, fechas tal como se dicen, cada martes y / para elegir; Vencidas, Por vencer y Atrasadas, cada tarea con su fecha, prioridad, lista y etiquetas; e Instalador: probar la actualización desde la versión anterior abierta al lado de la lista](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/app/es-tareas-hoy-dark.webp)
 
 | Escribes | Entiende |
 | :-- | :-- |
@@ -83,7 +83,7 @@ La ventana tiene tres columnas como máximo: lo que estás mirando, la lista y l
 
 Dos preguntas, cuatro casillas: si corre prisa y si importa.
 
-![Urgente no siempre es importante: cada tarea en su cuadrante, hacer, planificar, delegar o prescindible, y lo que falta por clasificar esperando a un lado](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/web/es-04-prioridades.png)
+![Prioridades: Hacer, Planificar, Delegar y Prescindible, con Urgente y No urgente arriba e Importante y No importante al costado, cada cuadro con su cuenta y sus tareas, y Lo que falta por clasificar · 61 junto al título](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/app/es-prioridades-light.webp)
 
 | Cuadrante | Qué significa | Se escribe |
 | :-- | :-- | :-- |
@@ -110,6 +110,8 @@ Las etiquetas se comparten con los [[documentos|Documentos]]: la pantalla de Eti
 ## Lo que guarda una tarea
 
 Una tarea se abre al lado de la lista, no encima: arriba sus fechas, lista, etiquetas y prioridad, y debajo **su página**, un documento en Markdown como cualquier otro. La página nace con secciones para llenar, cada una con una pista en gris que se va al escribir: **Descripción**, **Para estar lista**, **Pasos**, **Notas** y **Al cerrarla**. Se escribe como cualquier documento ([[El editor Markdown|Editor-Markdown]]). Para agregar, renombrar o quitar secciones, pulsa **Secciones**: los títulos se pueden escribir, **Agregar una sección** suma una al final y el botón junto a cada título la quita sin borrar lo escrito en ella; **Listo** vuelve a la página. Fuera de ahí los títulos no se escriben: el menú `/` no ofrece títulos y un `#` escrito queda como texto. **Ver Markdown**, en la columna de la tarea, muestra el texto con sus marcas, y **Ver enriquecido** vuelve. El trayecto cuenta cada cambio. En la fila de arriba también se pone un recordatorio —**⏰ recordatorio**, eliges cuándo y **Recuérdamelo**— y, en una tarea con fecha o fecha límite, está **Guardar en mi calendario**: mira [Reparto y recordatorios](Reparto-y-recordatorios#recordatorios).
+
+![La página de Instalador: probar la actualización desde la versión anterior: su lista, fecha, fecha límite, prioridad y etiquetas arriba; Description, Done when y Steps con tres de siete marcados; y a la derecha Partes, Lo que lleva y El trayecto, desde Nace hasta cada paso hecho](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/app/es-pagina-de-tarea-light.webp)
 
 Debajo de la página se pliega el **Historial**: lo que la tarea traía escrito de antes y lo que un asistente anota en ella. Abierta a página completa, la tarea gana una columna con su propio trayecto: cuánto lleva abierta, cuánto está hecho y cada cambio por el que pasó.
 
@@ -156,6 +158,8 @@ Sin un repaso cada tanto, lo capturado se acumula sin decidir. **Revisión seman
 - **Avisarme cada semana** crea una tarea normal, **Revisión semanal**, en la lista que elijas, que se repite cada semana y suena el día y la hora que digas: el viernes a las 17:00 si no cambias nada. Suena aunque Tisty esté cerrado, como cualquier recordatorio. Tisty la reconoce por su etiqueta **#revisión-semanal**, así que puedes cambiarle el nombre.
 - **Terminar la revisión** completa la vuelta de esta semana, y la siguiente nace con su aviso.
 - **Con tu agente**: el día que toca, tu agente se entera al ponerse al día y puede ofrecerte recorrerla contigo. Solo cuenta lo que espera en cada parada y ayuda en lo que le pidas; no archiva, borra ni cierra nada por su cuenta.
+
+![La Revisión semanal y sus tres paradas: Por decidir, 38, con Abrir Ideas, 38 por ordenar; Marcados como pasados, con su ✓ y Aquí no espera nada; y Hace tiempo que no abres, 17 documentos sin abrir ni escribir en 60 días, cada uno con Archivar](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/app/es-revision-semanal-light.webp)
 
 ## Terminar y descartar
 

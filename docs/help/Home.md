@@ -37,13 +37,13 @@ An idea is a thought caught on the fly, before you know whether it is something 
 
 A task is also a document, one with an end: that is why it has a page of its own, where a spike gathers what you read, tried and ruled out, the recording of the meeting and the vendor's PDF, before it is split into parts and done. [[The whole idea, with an example|Tasks#a-task-or-a-document]].
 
-![Tisty, the working memory for you and your AI agent: what you solved stays in the archive with its steps and its journal, and your agent brings it back when the same work returns](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/web/en-01-memory.png)
+![The Archive since February 2026: the bars of each month, the counts of closed tasks, stories, routine turns, trace and longest run, and the stories grouped by month, such as Compare supermarket spending against the budget and Review the incident logs looking for personal data, closed by an agent](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/app/en-archive-light.webp)
 
-![Diagrams that stay text: you draw the diagram and Tisty keeps it as Mermaid, inside Markdown that any editor opens and any agent reads, offline](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/web/en-02-diagrams.png)
+![The diagram window over the guide: the shapes on the left, the flowchart Will you do it, or read it again? in the middle, and on the right the Mermaid text that goes into the document, live](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/app/en-diagram-light.webp)
 
-![A quick thought, so you don't lose it: ideas of the moment as sticky notes in colours in Ideas, dated and written by hand, to sort out later into a task or a document](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/web/en-03-brainstorm.png)
+![Ideas as sticky notes in colours, each with its date and minute, written by hand: Photos of the Patagonia trip in the diary, Rina's calendar with colors by type of visit, Measure the token cost of each MCP tool](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/app/en-ideas-light.webp)
 
-![Urgent is not always important: each task in its quadrant of the Eisenhower matrix, do, schedule, delegate or minor, and what is left to classify waiting on the side](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/web/en-04-priorities.png)
+![Priorities: Do, Schedule, Delegate and Minor, with Urgent and Not urgent across the top and Important and Not important down the side, each box with its count and its tasks, and What is left to classify · 61 beside the title](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/app/en-priorities-light.webp)
 
 ## Start here
 
