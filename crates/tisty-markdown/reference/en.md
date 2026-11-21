@@ -362,8 +362,8 @@ The [walks of October](tisty:doc/01JC4M9F2W7DQ1E3S8RB6PKMHT) went better.
 | A card, `![Vet](tisty:doc/…)` or `![…](tisty:task/…)` | **cite**, the strongest: «Rina» cites «Vet» |
 | A link in a sentence, `[Vet](tisty:doc/…)`, a `[[Vet]]`, or a task's id written as it is | **mention** |
 | `#vet`, or `tags: [vet]` | **tag**, to the tag's own node |
-| An [attachment](#attachments), `![Rina's vet card](vet-card-9d02e4b7c1f3a85e.pdf)` | **uses**, to the file |
-| A page in its book, a part in its task, a task and the document it was [born in](#properties), an `[!IDEA]` and Ideas | **structure** |
+| An [attachment](#attachments), `![Rina's vet card](vet-card-9d02e4b7c1f3a85e.pdf)` | **uses**, to the file (in the Legend, *Uses a file*) |
+| A page in its book, a part in its task, a task and the document it was [born in](#properties), an `[!IDEA]` and Ideas | **structure** (in the Legend, *Part of*) |
 
 - A task's lines come from its description, its journal, its steps and its page. A document's, from its text and its tags.
 - A link to itself draws nothing, and a book's card for one of its own pages places the page rather than citing it.

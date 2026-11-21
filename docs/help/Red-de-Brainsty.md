@@ -4,7 +4,7 @@ Llevaba años guardando cosas en Tisty y no tenía forma de verlas juntas. Sabí
 
 Esta página cuenta cómo abrirla, qué significa cada forma y cada línea, cómo moverte por ella y cómo filtrarla. Las uniones que dibuja las haces tú al escribir: [[Enlazar documentos|Enlazar-documentos]] y [[Tareas en documentos|Tareas-en-documentos]]. Tu agente lee la misma red como un índice: [[Cómo trabaja un agente|Cómo-trabaja-un-agente]].
 
-![La ventana de Tisty con la barra lateral a la izquierda y Brainsty marcado en ella; en el panel de contenido, la red alejada: arriba la cuenta, «589 nodos · 1252 conexiones», cada documento y cada tarea del color de su carpeta o su lista, los documentos como cuadrados, las tareas como círculos y las etiquetas como puntos morados, más tenues; ninguna carpeta ni lista como nodo y ningún archivo de Agentes, las citas y las menciones más marcadas que las demás líneas, la red un poco girada como un globo y sus catorce viajeros con su estela, y abajo a la izquierda la Leyenda, plegada](https://raw.githubusercontent.com/rgdevment/Tisty/main/app/src-tauri/resources/guide/es/red.png)
+![La ventana de Tisty con la barra lateral a la izquierda y Brainsty marcado en ella; en el panel de contenido, la red alejada: arriba la cuenta, «1940 nodos · 2847 conexiones», cada documento y cada tarea del color de su carpeta o su lista, los documentos como cuadrados, las tareas como círculos y las etiquetas como puntos morados, más tenues, la red un poco girada como un globo, con sus viajeros como puntos de luz sobre las líneas, y abajo a la izquierda la Leyenda, plegada](https://raw.githubusercontent.com/rgdevment/Tisty/main/app/src-tauri/resources/guide/es/red.png)
 
 ## Cuándo te sirve
 
@@ -131,8 +131,6 @@ La red cambia lo que muestra según la distancia, y cada detalle aparece de a po
 
 Así, de cerca, la tarea «Vacuna anual de Rina» es una casilla del color de la lista **Casa**, y «Comprar el antiparasitario de Rina», que terminaste la semana pasada, un tic del mismo color. El ícono se atenúa con lo que no está elegido, como el resto, y un clic sobre él elige el nodo igual que antes. De lejos no cuesta nada: ahí vuelven las formas simples, que se dibujan de a miles.
 
-![Brainsty en el panel de contenido, junto a la barra lateral, con la misma red de lejos: los nodos sin títulos, las líneas tenues y la Leyenda plegada abajo a la izquierda](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/es-red-lejos.png)
-
 Con la rueda acercas y alejas; arrastrando te mueves, y arrastrando con el botón derecho, o con `Shift`, giras el globo. Al primer toque la red deja de seguir el punto donde arrancó. Un doble clic en un espacio vacío te devuelve de un salto a la red entera, desde cualquier distancia.
 
 ## Elegir, ver y abrir
@@ -169,7 +167,7 @@ Al pie, **Abrir**. La cruz de arriba, **Cerrar la vista previa**, `Esc` o un cli
 - **Abrir**, `Enter` o **un doble clic** en el nodo lo abre en la misma ventana, en el lugar de la red: un documento en la Biblioteca, una tarea junto a su lista y una etiqueta en su vista. Para volver a la red, otro clic en **Brainsty**; abre de nuevo entera, y lo que abriste queda como punto de partida de las flechas.
 - **Una imagen o un archivo** no tienen **Enlace**. Su **Abrir** lo abre con el programa de tu sistema, fuera de Tisty, y **Mostrar en la carpeta** te lleva a él en el explorador de archivos. Por ejemplo, eliges el clip de «presupuesto-techo.pdf»: su ficha dice **Tipo** PDF, **Tamaño** 240 kB, **Modificado** el martes, y en **Se usa en**, la tarea «Pedir presupuesto del techo» y el documento «Arreglos de la casa».
 
-![«Rina» elegida de cerca en Brainsty, en el panel de contenido junto a la barra lateral: sus vecinos con título, cada uno dibujado como su ícono del color de su carpeta o lista (la hoja de un documento, la casilla de una tarea, el clip de la foto), el resto atenuado y, a la derecha, su ficha: «Documento · Mascotas · 6 conexiones», las filas Escrito por última vez, Creado, Tamaño con sus palabras e Idioma ES, la etiqueta #rina, Conexiones por tipo, Apuntan aquí con lo que la cita, Parecidos con «Paseos del sábado» y «Tisty cree que se parecen: comparten rina y parque», el Enlace con su signo ? y Copiar enlace, y el botón Abrir; en la red, una curva ámbar une a Rina con «Paseos del sábado»](https://raw.githubusercontent.com/rgdevment/Tisty/main/app/src-tauri/resources/guide/es/red-cerca.png)
+![«Ficha de Rina» elegida de cerca en Brainsty, en el panel de contenido junto a la barra lateral: a su alrededor, cada nodo dibujado como su ícono del color de su carpeta o lista (la hoja de un documento, la casilla de una tarea, el clip de un archivo) y la foto de Rina en miniatura; abajo a la izquierda, la Leyenda abierta; a la derecha, su ficha: «Documento · Salud · 7 conexiones», las filas Escrito por última vez, Creado y Tamaño con sus palabras, la etiqueta rina, Conexiones con 6 menciones y 1 etiqueta, Apuntan aquí con «Ir a la veterinaria por la vacuna de Rina» y «Paseos del sábado», el Enlace con Copiar enlace y el botón Abrir](https://raw.githubusercontent.com/rgdevment/Tisty/main/app/src-tauri/resources/guide/es/red-cerca.png)
 
 ## Buscar
 

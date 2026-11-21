@@ -142,3 +142,7 @@ Encierra la frase entera entre comillas y no se interpreta nada:
 ```
 
 También sirve para un trozo: en `llamar sobre "el informe de mañana" el viernes`, solo se lee el viernes.
+
+## En inglés
+
+Las mismas reglas, en inglés: `tomorrow at 10`, `on friday`, `the day after tomorrow`, `in 3 days`, `by friday`, `every tuesday`, `every monday at 9`, `every 3 days`, `daily`. Las prioridades en inglés están en la tabla de [Marcadores](#marcadores).

@@ -4,7 +4,7 @@ Durante años guardé lo que sabía en notas sueltas, y lo que más me costaba n
 
 Esta página cuenta cómo enlazar un documento con otro o con una sección de otro, cómo ver adónde lleva un enlace sin salir de donde estás, y cómo saber quién enlaza a un documento. Citar una tarea dentro de un documento, y crear una desde ahí, está en [[Tareas en documentos|Tareas-en-documentos]]. Todo lo que enlazas entra en [[la red de Brainsty|Red-de-Brainsty]].
 
-![El menú que abren dos corchetes en un documento: los títulos que calzan con lo escrito, primero los que empiezan así](https://raw.githubusercontent.com/rgdevment/Tisty/main/app/src-tauri/resources/guide/es/enlazar.png)
+![El menú que abren dos corchetes en la ficha de Rina, antes de escribir nada más: los documentos que puedes enlazar, uno por línea](https://raw.githubusercontent.com/rgdevment/Tisty/main/app/src-tauri/resources/guide/es/enlazar.png)
 
 ## Cuándo te sirve
 

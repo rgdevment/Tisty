@@ -4,7 +4,7 @@ I had kept things in Tisty for years and had no way to see them together. I knew
 
 This page covers opening it, what each shape and each line means, moving through it and filtering it. The ties it draws are the ones you make as you write: [[Linking documents|Linking-Documents]] and [[Tasks in documents|Tasks-in-Documents]]. Your agent reads the same network as an index: [[How an agent works|How-an-Agent-Works]].
 
-![Tisty's window with the sidebar on the left and Brainsty marked in it; in the content panel, the network zoomed out: at the top the count, «589 nodes · 1252 connections», each document and each task in the colour of its folder or its list, documents as squares, tasks as circles and tags as purple dots, fainter; no folder or list as a node and no Agents file, citations and mentions stronger than the other lines, the network turned a little like a globe and its fourteen travellers with their trail, and at the bottom left the Legend, folded](https://raw.githubusercontent.com/rgdevment/Tisty/main/app/src-tauri/resources/guide/en/network.png)
+![Tisty's window with the sidebar on the left, Brainsty marked in it and the Diary open below; in the content panel, the network zoomed out: at the top the count, «1,931 nodes · 2,811 connections», each document and each task in the colour of its folder or its list, documents as squares and tasks as circles, the network turned a little like a globe, and at the bottom left the Legend, folded](https://raw.githubusercontent.com/rgdevment/Tisty/main/app/src-tauri/resources/guide/en/network.png)
 
 ## When it helps
 
@@ -131,8 +131,6 @@ The network changes what it shows with the distance, and each detail fades in as
 
 So, up close, the task «Rina's yearly vaccine» is a box in the colour of the **Home** list, and «Buy Rina's flea treatment», which you finished last week, a tick in the same colour. The icon dims with what is not picked, like the rest, and a click on it picks the node as before. From afar it costs nothing: there the plain shapes come back, drawn by the thousand.
 
-![Brainsty in the content panel, beside the sidebar, with the same network from afar: «1,931 nodes · 2,811 connections», the nodes with no titles and faint lines, and the Legend folded at the bottom left](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/en-network-far.png)
-
 The wheel zooms in and out; dragging moves you around, and dragging with the right button, or with `Shift`, turns the globe. At the first touch the network stops following the point it started on. A double click on an empty spot takes you back in one jump to the whole network, from any distance.
 
 ## Picking, looking and opening
@@ -169,7 +167,7 @@ At the foot, **Open**. The cross at the top, **Close the preview**, `Esc` or a c
 - **Open**, `Enter` or **a double click** on the node opens it in the same window, in the network's place: a document in the Library, a task beside its list and a tag in its view. To come back to the network, another click on **Brainsty**; it opens whole again, and what you opened stays as the starting point for the arrows.
 - **A picture or a file** has no **Link**. Its **Open** opens it with your system's program, outside Tisty, and **Show in folder** takes you to it in the file explorer. For instance, you pick the clip of «roof-quote.pdf»: its card says **Type** PDF, **Size** 240 kB, **Modified** on Tuesday, and under **Used in**, the task «Ask for the roof quote» and the document «House repairs».
 
-![«Rina» picked up close in Brainsty, in the content panel beside the sidebar: her neighbours with titles, each drawn as its icon in its folder or list colour (a document's sheet, a task's box, the photo's clip), the rest dimmed and, on the right, her card: «Document · Pets · 6 connections», the rows Last written, Created, Size with its words and Language EN, the tag #rina, Connections by kind, Pointing here with what cites her, Alike with «Saturday walks» and «Tisty thinks they are alike: they share rina and park», the Link with its ? sign and Copy link, and the Open button; in the network, an amber curve joins Rina to «Saturday walks»](https://raw.githubusercontent.com/rgdevment/Tisty/main/app/src-tauri/resources/guide/en/network-near.png)
+![«Rina's record» picked up close in Brainsty, in the content panel beside the sidebar: around it, each node drawn as its icon in its folder or list colour (a document's sheet, a task's box, a file's clip) and Rina's photo as a thumbnail; at the bottom left, the Legend open; on the right, its card: «Document · Health · 7 connections», the rows Last written, Created and Size with its words, the rina tag, Connections with 6 mentions and 1 tag, Pointing here with «Go to the vet for Rina's vaccine» and «Saturday walks», the Link with Copy link and the Open button](https://raw.githubusercontent.com/rgdevment/Tisty/main/app/src-tauri/resources/guide/en/network-near.png)
 
 ## Searching
 

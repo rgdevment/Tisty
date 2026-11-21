@@ -282,7 +282,7 @@ The subfolders are there so you find things: **what decides where a document goe
 | **Settings › Assistants**, on the **Agents** card | The files that ask for your decision: «1 file says something different in Tisty and in the agent.», or «1 file no longer belongs to any rule in Agents.», each with **Review**; and under **Sync Gemini**, if [its line](#gemini-paused) is missing |
 | **When you go into Agents** | If Agents syncs and a file exists on both sides, no longer belongs to any rule or lost Gemini's line, Tisty asks about it as soon as you go in, one at a time |
 
-![The sidebar with the Agents folder open and syncing, with the robot in coral: inside, Global with its blue globe and Claude with its orange chat bubble; in Claude, the rule Rules, picked, with a sheet icon, and below it the skills, each with a puzzle-piece icon and how many files it holds](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/agents/en-02-sidebar.png)
+![The sidebar with the Agents folder open and syncing, with the robot in coral: inside, Global with its blue globe and Claude with its orange chat bubble; in Claude, the rule Rules, picked, with a book icon, and below it the skills, each with a puzzle-piece icon and how many files it holds](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/agents/en-02-sidebar.png)
 
 ### The `agent:` line
 

@@ -156,7 +156,7 @@ productivity tool** that lives on your machine and nowhere else.
 - **Finishing keeps everything** — a closed task goes to the archive whole, and
   a search answers «how did we solve this?» with the line that says it.
 - **100% local** — your tasks, your journal and your documents live on your
-  computer and go only where you send them. No server of ours, no account. If
+  computer and go only where you send them. No server of mine, no account. If
   you sync two machines, you can ask Tisty to leave the largest attachments in
   that shared folder instead of carrying them onto every disk; it never does
   that unless you choose it.
@@ -791,7 +791,7 @@ your own AI agent reads over MCP**, this is what Tisty is:
 | Any `.md` file | opens to read in a viewer of its own, up to 1 MB, without coming into your store |
 | Attachments | kept with the task, as themselves |
 | Finished work | an **archive that keeps what each task taught you** |
-| Two machines | your Google Drive, OneDrive or WebDAV server, reached directly, or a folder you already sync. No server of ours |
+| Two machines | your Google Drive, OneDrive or WebDAV server, reached directly, or a folder you already sync. No server of mine |
 | Your cloud, encrypted | if you want it, with a 24-word phrase only you know |
 | Natural language | dates, deadlines and repeats, parsed on your machine |
 | When to do it | a spread of days you deal work onto, and a month for looking |
@@ -818,7 +818,7 @@ wrote — the routines come with their tallies and their streaks, and the rest i
 the trace. Search reaches all of it, documents included. A year in, that archive
 is the part you would miss.
 
-**Your assistant, not one of ours.** Tisty has no AI in it. The natural language
+**Your assistant, not one of mine.** Tisty has no AI in it. The natural language
 that turns "call the bank at 3" into a task is rules running on your machine, no
 model and no cloud. But it speaks [MCP](https://modelcontextprotocol.io), so an
 assistant you already use can file work into it — with its steps, its date and
@@ -827,7 +827,7 @@ network. That door comes open, and one click closes it.
 
 **Two machines, no middleman.** Tisty talks straight to your own Google Drive,
 OneDrive or WebDAV server, or travels through a folder you already sync. There
-is no server of ours in between, nothing to sign up for, and nothing that stops
+is no server of mine in between, nothing to sign up for, and nothing that stops
 working the day a company changes its mind. And what it keeps in that cloud can
 be encrypted with a phrase only you know.
 

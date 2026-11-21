@@ -160,7 +160,7 @@ parte.
 - **Terminar lo conserva todo** — una tarea cerrada va entera al archivo, y la
   búsqueda responde «¿cómo resolvimos esto?» con la línea que lo dice.
 - **100% local** — tus tareas, tu bitácora y tus documentos viven en tu equipo
-  y solo van adonde tú los mandes. Sin servidor nuestro, sin cuenta. Si
+  y solo van adonde tú los mandes. Sin servidor mío, sin cuenta. Si
   sincronizas dos equipos, puedes pedirle a Tisty que deje los adjuntos más
   grandes en esa carpeta compartida en vez de llevarlos a cada disco; nunca lo
   hace si tú no lo eliges.
@@ -816,7 +816,7 @@ dentro — y una memoria que tu propio agente de IA lee por MCP**, esto es Tisty
 | Cualquier archivo `.md` | se abre para leer en un visor propio, hasta 1 MB, sin entrar a tu almacén |
 | Adjuntos | se guardan con la tarea, tal como son |
 | Lo terminado | un **archivo que conserva lo que cada tarea te enseñó** |
-| Dos equipos | tu Google Drive, OneDrive o servidor WebDAV, directo, o una carpeta que ya sincronizas. Sin servidor nuestro |
+| Dos equipos | tu Google Drive, OneDrive o servidor WebDAV, directo, o una carpeta que ya sincronizas. Sin servidor mío |
 | Tu nube, cifrada | si quieres, con una frase de 24 palabras que solo tú conoces |
 | Lenguaje natural | fechas, límites y repeticiones, interpretados en tu equipo |
 | Cuándo hacerlo | un reparto de días donde repartes el trabajo, y un mes para mirar |
@@ -844,7 +844,7 @@ escribiste—, las rutinas vienen con sus cuentas y sus rachas, y el resto es el
 rastro. La búsqueda alcanza todo, documentos incluidos. Al año, ese archivo es
 la parte que echarías de menos.
 
-**Tu asistente, no uno nuestro.** Tisty no lleva IA dentro. El lenguaje natural
+**Tu asistente, no uno mío.** Tisty no lleva IA dentro. El lenguaje natural
 que convierte "llamar al banco a las 3" en una tarea son reglas corriendo en tu
 equipo, sin modelo y sin nube. Pero habla [MCP](https://modelcontextprotocol.io),
 así que un asistente que ya uses puede anotar trabajo aquí — con sus pasos, su
@@ -853,7 +853,7 @@ Esa puerta viene abierta, y un clic la cierra.
 
 **Dos equipos, sin intermediario.** Tisty habla directo con tu propio Google
 Drive, OneDrive o servidor WebDAV, o viaja por una carpeta que ya sincronizas.
-No hay servidor nuestro en medio, no hay que registrarse, y no hay nada que deje
+No hay servidor mío en medio, no hay que registrarse, y no hay nada que deje
 de funcionar el día que una empresa cambie de idea. Y lo que guarda en esa nube
 se puede cifrar con una frase que solo tú conoces.
 

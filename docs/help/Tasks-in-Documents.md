@@ -4,7 +4,7 @@ What I know about a subject lives in its document; the work I did on it, in its 
 
 This page covers three things: citing a task in a document as a card that keeps itself up to date, creating a new task without leaving the document you are writing, and getting from the task back to the place it was born. Linking one document to another is in [[Linking documents|Linking-Documents]].
 
-![Inside «Car», the card of «Change the tyres», closed, and the one of «Renew the car insurance», open with its steps unfolded](https://raw.githubusercontent.com/rgdevment/Tisty/main/app/src-tauri/resources/guide/en/card.png)
+![The cards of «Renew the car insurance» and «Change the car tyres» in the «Car» document, each with its list, Finance, and «1 of 3 steps»; the second one also with its date](https://raw.githubusercontent.com/rgdevment/Tisty/main/app/src-tauri/resources/guide/en/card.png)
 
 ## When it helps
 

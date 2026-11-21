@@ -4,7 +4,7 @@ Lo que sé de un tema vive en su documento; el trabajo que hice sobre ese tema, 
 
 Esta página cuenta tres cosas: citar una tarea en un documento como una tarjeta que se mantiene al día sola, crear una tarea nueva sin salir del documento que estás escribiendo, y volver desde la tarea al lugar donde nació. Enlazar un documento con otro está en [[Enlazar documentos|Enlazar-documentos]].
 
-![Dentro de «Auto», la tarjeta de «Cambiar los neumáticos», cerrada, y la de «Renovar el seguro del auto», abierta y con sus pasos desplegados](https://raw.githubusercontent.com/rgdevment/Tisty/main/app/src-tauri/resources/guide/es/tarjeta.png)
+![Las tarjetas de «Renovar el seguro del auto» y «Cambiar los neumáticos del auto» en el documento «Auto», cada una con su lista, Finanzas, y «1 de 3 pasos»; la segunda, además, con su fecha](https://raw.githubusercontent.com/rgdevment/Tisty/main/app/src-tauri/resources/guide/es/tarjeta.png)
 
 ## Cuándo te sirve
 
