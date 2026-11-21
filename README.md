@@ -57,18 +57,13 @@
 [![M8ven Score](https://m8ven.ai/badge/mcp/rgdevment-tisty-15kwqt?v=aae81c3714d58416bc4db879fcf2f629&variant=verified)](https://m8ven.ai/mcp/rgdevment-tisty-15kwqt?s=readme)
 
   <p>
-    <picture>
-      <source
-        media="(prefers-color-scheme: dark)"
-        srcset="assets/screens/app/en-what-is-tisty-dark.webp"/>
-      <img
-        src="assets/screens/app/en-what-is-tisty-light.webp"
-        width="92%"
-        alt="Tisty, the working memory you share with your AI agent: the
-        guide's page What is Tisty? open in Tisty, with your tasks for today
-        and the Library on the left, and on the right its outline, the four
-        pages that link to it and its history on this computer"/>
-    </picture>
+    <img
+      src="assets/screens/app/en-brainsty-living-dark.webp"
+      width="92%"
+      alt="The Tisty window with Brainsty open, in the dark theme: the sidebar with
+      the tasks for today and the Library, and beside it the network, 1,931 nodes
+      and 2,811 connections, turning slowly like a globe while travellers of light
+      walk its lines, with the Legend folded at the bottom left"/>
   </p>
 
   <h4>Download Tisty</h4>
@@ -187,6 +182,7 @@ thinks is alike, with no AI. [More below](#brainsty-everything-joined).
 
 ## Table of Contents
 
+- [Brainsty: everything joined](#brainsty-everything-joined)
 - [Real Problems, Real Fixes](#real-problems-real-fixes)
 - [Tasks and Documents, for You and Your Agent](#tasks-and-documents-for-you-and-your-agent)
 - [A Day With Your Agent](#a-day-with-your-agent)
@@ -215,6 +211,41 @@ thinks is alike, with no AI. [More below](#brainsty-everything-joined).
 - [Contributing](#contributing)
 - [Licence](#licence)
 - [Project health](#project-health)
+
+## Brainsty: everything joined
+
+What you keep was already joined: a document cites another, a task was born in
+some minutes, a book has pages. **Brainsty**, under the task views in the
+sidebar, draws all of it as one network, in the content panel beside your lists.
+
+- **Joined as you write** — `[[` links a document to another, the `/` menu cites
+  a task as a live card, and the panel beside a document lists who links to it.
+- **A map from afar, the detail up close** — documents as squares, tasks as
+  circles in their list's colour, tags and files; folders and lists give the
+  colour and tint their zone. What someone wrote — a citation, a mention, a part
+  — pulls hardest and shows most. Up close, every title, each kind of line, and
+  each node drawn as its own icon. A folded legend says what each shape, colour
+  and line means.
+- **A card, not the text** — click a node and its card says what it is, its
+  dates, its state, what points at it and its link to copy; **Open** takes you
+  there, and a file opens with your system's program.
+- **Alike, with no AI** — an amber curve joins what nobody tied but Tisty thinks
+  is alike, and says why: two uncommon words in common, a typo (*impresora ≈
+  imrpesora*), or a task in Spanish and its twin in English (*pagar ≈ pay*),
+  from a fixed list of words made by linguists. It reads only the prose you
+  wrote, never code or your agents' files, and it all runs on your computer.
+- **What you put away stays away** — a hidden or dropped task, its pages and
+  your Diary are not in the network, and your agents' files wait behind **Show
+  AGENTS**.
+- **Alive, if you want it** — the network turns slowly like a globe while
+  travellers walk its lines, and holds still while you look up close; two
+  switches in the legend make it still for good.
+- **The same network for your agent** — with one tool, `brain`, it searches the
+  archive with the rest, reads a document's card without reading it whole, and
+  gets the alike pairs apart, so it never takes them for links someone wrote.
+
+[The Brainsty network](https://www.tisty.app/docs/brainsty-network/), in the
+help, tells all of it.
 
 ## Real Problems, Real Fixes
 
@@ -430,48 +461,6 @@ so does one you dropped.
     the incident logs looking for personal data, closed by an agent"/>
 </picture>
 
-### Brainsty: everything joined
-
-What you keep was already joined: a document cites another, a task was born in
-some minutes, a book has pages. **Brainsty**, under the task views in the
-sidebar, draws all of it as one network, in the content panel beside your lists.
-
-- **Joined as you write** — `[[` links a document to another, the `/` menu cites
-  a task as a live card, and the panel beside a document lists who links to it.
-- **A map from afar, the detail up close** — documents as squares, tasks as
-  circles in their list's colour, tags and files; folders and lists give the
-  colour and tint their zone. What someone wrote — a citation, a mention, a part
-  — pulls hardest and shows most. Up close, every title, each kind of line, and
-  each node drawn as its own icon. A folded legend says what each shape, colour
-  and line means.
-- **A card, not the text** — click a node and its card says what it is, its
-  dates, its state, what points at it and its link to copy; **Open** takes you
-  there, and a file opens with your system's program.
-- **Alike, with no AI** — an amber curve joins what nobody tied but Tisty thinks
-  is alike, and says why: two uncommon words in common, a typo (*impresora ≈
-  imrpesora*), or a task in Spanish and its twin in English (*pagar ≈ pay*),
-  from a fixed list of words made by linguists. It reads only the prose you
-  wrote, never code or your agents' files, and it all runs on your computer.
-- **What you put away stays away** — a hidden or dropped task, its pages and
-  your Diary are not in the network, and your agents' files wait behind **Show
-  AGENTS**.
-- **Alive, if you want it** — the network turns slowly like a globe while
-  travellers walk its lines, and holds still while you look up close; two
-  switches in the legend make it still for good.
-- **The same network for your agent** — with one tool, `brain`, it searches the
-  archive with the rest, reads a document's card without reading it whole, and
-  gets the alike pairs apart, so it never takes them for links someone wrote.
-
-<img
-  src="assets/screens/app/en-brainsty-living-dark.webp"
-  alt="The Tisty window with Brainsty open, in the dark theme: the sidebar with
-  the tasks for today and the Library, and beside it the network, 1,931 nodes
-  and 2,811 connections, turning slowly like a globe while travellers of light
-  walk its lines, with the Legend folded at the bottom left"/>
-
-[The Brainsty network](https://www.tisty.app/docs/brainsty-network/), in the
-help, tells all of it.
-
 ### Agents: your agents' rules, in one place
 
 Each agent reads its rules from a file of its own: Claude Code from `CLAUDE.md`,
@@ -603,8 +592,6 @@ sees it, every version is signed by you, and the link stops working on its own
 after the days without use you choose. They read it in any browser with no
 account, or edit it in their own Tisty. Your memory stays on your disk; Folio
 only carries a copy. More in [Your Data and Privacy](#your-data-and-privacy).
-
-![Share what you know, encrypted: a document handed over through Folio with its link to read, encrypted on your computer and signed by you, which the other person's agent reads decision by decision](assets/screens/readme/en-08-share.webp)
 
 ## MCP Server
 
@@ -1094,13 +1081,6 @@ Narrow the window and it steps aside; a task always wins the room over it.
 it, leaves the sentence readable, and shows you what it understood *before*
 anything is saved — as chips you can correct with one click.
 
-<img
-  src="assets/screens/app/en-tasks-today-dark.webp"
-  alt="Late is not overdue: today's tasks, overdue first, then due soon and
-  late, each with its date, priority, list and tags; the Add a task bar with the
-  hints of what it reads, and the counts of overdue, late, for today and ahead
-  in the sidebar"/>
-
 ```text
 "ship the release tomorrow at 10"   →  tomorrow 10:00
 "file the report before friday"     →  due fri
@@ -1197,8 +1177,6 @@ that can be erased, and both erasing and hiding are one task at a time; a story
 is only ever hidden.
 
 ## Your Data and Privacy
-
-![Software out of conviction, not subscription: Tisto, Tisty's beaver, beside what Tisty is, a friend to your AI agents with no account, no subscription and no telemetry, and your files stay on your computer](assets/screens/web/en-10-close.png)
 
 Everything lives in one folder on your disk: an append-only log of what
 happened, your documents as `.md` files, and your attachments as themselves.
@@ -1319,8 +1297,6 @@ the code it signs with, you compare it with the one that machine shows for
 itself, and confirm it. Until then nothing it writes comes in; from then on,
 whatever does not answer to that key is turned away, and Tisty says so.
 
-![On your disk, and in your cloud encrypted if you want: 24 words only you keep encrypt what Tisty leaves in Google Drive, OneDrive or WebDAV, and off your computers nobody reads it](assets/screens/web/en-09-data.png)
-
 **Your cloud, encrypted, if you want it.** In Settings › *Security*, **Encrypt
 my cloud…** encrypts what Tisty keeps in your Google Drive, your OneDrive or
 your WebDAV server with a key that comes from a 24-word phrase only you know.
@@ -1380,8 +1356,6 @@ Drive means, from *Reconnect* to a full Drive or
 [something blocking the way](https://www.tisty.app/docs/sync-and-backup/#when-something-stands-in-the-way-of-google).
 
 ## Your AI Agent
-
-![No more blank chats, open the MCP door: Settings › Assistants says Tisty has no AI inside and connects the assistants on this computer, so your agent asks where were we? and opens the task it was on](assets/screens/web/en-05-agent.png)
 
 **Tisty is not AI and has none inside.** The natural language that turns "call
 the bank at 3" into a task is rules running on your machine: no model, no

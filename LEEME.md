@@ -58,18 +58,14 @@
 [![M8ven Score](https://m8ven.ai/badge/mcp/rgdevment-tisty-15kwqt?v=aae81c3714d58416bc4db879fcf2f629&variant=verified)](https://m8ven.ai/mcp/rgdevment-tisty-15kwqt?s=readme)
 
   <p>
-    <picture>
-      <source
-        media="(prefers-color-scheme: dark)"
-        srcset="assets/screens/app/es-que-es-tisty-dark.webp"/>
-      <img
-        src="assets/screens/app/es-que-es-tisty-light.webp"
-        width="92%"
-        alt="Tisty, la memoria de trabajo que compartes con tu agente de IA: la
-        página ¿Qué es Tisty? de la guía abierta en Tisty, con tus tareas de hoy
-        y la Biblioteca a la izquierda, y a la derecha su índice, las cuatro
-        páginas que la enlazan y su historial en este equipo"/>
-    </picture>
+    <img
+      src="assets/screens/app/en-brainsty-living-dark.webp"
+      width="92%"
+      alt="La ventana de Tisty con Brainsty abierto, en el tema oscuro y en inglés:
+      la barra lateral con las tareas de hoy y la Biblioteca y, al lado, la red,
+      1.931 nodos y 2.811 conexiones, girando despacio como un globo mientras
+      viajeros de luz recorren sus líneas, con la Leyenda plegada abajo a la
+      izquierda"/>
   </p>
 
   <h4>Descargar Tisty</h4>
@@ -193,6 +189,7 @@ Tisty cree que se parece, sin IA. [Más abajo](#brainsty-todo-unido).
 
 ## Contenido
 
+- [Brainsty: todo unido](#brainsty-todo-unido)
 - [Problemas reales, soluciones reales](#problemas-reales-soluciones-reales)
 - [Tareas y documentos, para ti y tu agente](#tareas-y-documentos-para-ti-y-tu-agente)
 - [Un día con tu agente](#un-día-con-tu-agente)
@@ -221,6 +218,45 @@ Tisty cree que se parece, sin IA. [Más abajo](#brainsty-todo-unido).
 - [Contribuir](#contribuir)
 - [Licencia](#licencia)
 - [Salud del proyecto](#salud-del-proyecto)
+
+## Brainsty: todo unido
+
+Lo que guardas ya estaba unido: un documento cita otro, una tarea nació de un
+acta, un libro tiene páginas. **Brainsty**, bajo las vistas de tareas en la
+barra lateral, lo dibuja todo como una sola red, en el panel de contenido,
+junto a tus listas.
+
+- **Unido mientras escribes** — `[[` enlaza un documento con otro, el menú `/`
+  cita una tarea como una tarjeta viva, y el panel junto a un documento dice
+  quién lo enlaza.
+- **Un mapa de lejos, el detalle de cerca** — los documentos como cuadrados, las
+  tareas como círculos del color de su lista, las etiquetas y los archivos; las
+  carpetas y las listas dan el color y tiñen su zona. Lo que alguien escribió —
+  una cita, una mención, una parte — es lo que más acerca y más se ve. De cerca,
+  cada título, cada tipo de línea y cada nodo dibujado como su propio ícono. Una
+  leyenda plegada dice qué significa cada forma, cada color y cada línea.
+- **Una ficha, no el texto** — un clic en un nodo y su ficha dice qué es, sus
+  fechas, su estado, lo que apunta a él y su enlace para copiar; **Abrir** te
+  lleva ahí, y un archivo se abre con el programa de tu sistema.
+- **Parecidos, sin IA** — una curva ámbar une lo que nadie unió pero Tisty cree
+  que se parece, y dice por qué: dos palabras poco comunes en común, un error de
+  tipeo (*impresora ≈ imrpesora*), o una tarea en español y su gemela en inglés
+  (*pagar ≈ pay*), con una lista fija de palabras hecha por lingüistas. Solo lee
+  la prosa que escribiste, nunca el código ni los archivos de tus agentes, y
+  todo corre en tu equipo.
+- **Lo que apartas queda aparte** — una tarea oculta o descartada, sus páginas y
+  tu Diario no están en la red, y los archivos de tus agentes esperan tras
+  **Mostrar AGENTS**.
+- **Viva, si la quieres** — la red gira despacio como un globo mientras unos
+  viajeros recorren sus líneas, y se queda quieta mientras miras de cerca; dos
+  interruptores en la leyenda la dejan quieta del todo.
+- **La misma red para tu agente** — con una sola herramienta, `brain`, busca en
+  el archivo junto a lo demás, lee la ficha de un documento sin leerlo entero y
+  recibe los parecidos aparte, así que nunca los confunde con enlaces que
+  alguien escribió.
+
+[La red de Brainsty](https://www.tisty.app/es/ayuda/red-de-brainsty/), en la
+ayuda, lo cuenta todo.
 
 ## Problemas reales, soluciones reales
 
@@ -441,53 +477,6 @@ mismo una que descartaste.
     reales"/>
 </picture>
 
-### Brainsty: todo unido
-
-Lo que guardas ya estaba unido: un documento cita otro, una tarea nació de un
-acta, un libro tiene páginas. **Brainsty**, bajo las vistas de tareas en la
-barra lateral, lo dibuja todo como una sola red, en el panel de contenido,
-junto a tus listas.
-
-- **Unido mientras escribes** — `[[` enlaza un documento con otro, el menú `/`
-  cita una tarea como una tarjeta viva, y el panel junto a un documento dice
-  quién lo enlaza.
-- **Un mapa de lejos, el detalle de cerca** — los documentos como cuadrados, las
-  tareas como círculos del color de su lista, las etiquetas y los archivos; las
-  carpetas y las listas dan el color y tiñen su zona. Lo que alguien escribió —
-  una cita, una mención, una parte — es lo que más acerca y más se ve. De cerca,
-  cada título, cada tipo de línea y cada nodo dibujado como su propio ícono. Una
-  leyenda plegada dice qué significa cada forma, cada color y cada línea.
-- **Una ficha, no el texto** — un clic en un nodo y su ficha dice qué es, sus
-  fechas, su estado, lo que apunta a él y su enlace para copiar; **Abrir** te
-  lleva ahí, y un archivo se abre con el programa de tu sistema.
-- **Parecidos, sin IA** — una curva ámbar une lo que nadie unió pero Tisty cree
-  que se parece, y dice por qué: dos palabras poco comunes en común, un error de
-  tipeo (*impresora ≈ imrpesora*), o una tarea en español y su gemela en inglés
-  (*pagar ≈ pay*), con una lista fija de palabras hecha por lingüistas. Solo lee
-  la prosa que escribiste, nunca el código ni los archivos de tus agentes, y
-  todo corre en tu equipo.
-- **Lo que apartas queda aparte** — una tarea oculta o descartada, sus páginas y
-  tu Diario no están en la red, y los archivos de tus agentes esperan tras
-  **Mostrar AGENTS**.
-- **Viva, si la quieres** — la red gira despacio como un globo mientras unos
-  viajeros recorren sus líneas, y se queda quieta mientras miras de cerca; dos
-  interruptores en la leyenda la dejan quieta del todo.
-- **La misma red para tu agente** — con una sola herramienta, `brain`, busca en
-  el archivo junto a lo demás, lee la ficha de un documento sin leerlo entero y
-  recibe los parecidos aparte, así que nunca los confunde con enlaces que
-  alguien escribió.
-
-<img
-  src="assets/screens/app/en-brainsty-living-dark.webp"
-  alt="La ventana de Tisty con Brainsty abierto, en el tema oscuro y en inglés:
-  la barra lateral con las tareas de hoy y la Biblioteca y, al lado, la red,
-  1.931 nodos y 2.811 conexiones, girando despacio como un globo mientras
-  viajeros de luz recorren sus líneas, con la Leyenda plegada abajo a la
-  izquierda"/>
-
-[La red de Brainsty](https://www.tisty.app/es/ayuda/red-de-brainsty/), en la
-ayuda, lo cuenta todo.
-
 ### Agentes: las reglas de tus agentes, en un solo lugar
 
 Cada agente lee sus reglas de un archivo propio: Claude Code de `CLAUDE.md`,
@@ -622,8 +611,6 @@ cada versión va firmada por ti, y el enlace deja de funcionar solo después de
 los días sin uso que elijas. Se lee en cualquier navegador y sin cuenta, o se
 edita en su propio Tisty. Tu memoria se queda en tu disco; Folio solo lleva una
 copia. Más en [Tus datos y tu privacidad](#tus-datos-y-tu-privacidad).
-
-![Comparte lo que sabes, cifrado: un documento entregado por Folio con su link para leer, cifrado en tu equipo y firmado por ti, que el agente de la otra persona lee decisión por decisión](assets/screens/readme/es-08-compartir.webp)
 
 ## Servidor MCP
 
@@ -1131,14 +1118,6 @@ aparta: una tarea siempre le gana el sitio.
 frase legible, y te muestra qué entendió *antes* de guardar nada — como fichas
 que corriges con un clic.
 
-<img
-  src="assets/screens/app/es-tareas-hoy-dark.webp"
-  alt="Atrasada no es vencida: las tareas de hoy, primero las vencidas, luego
-  las por vencer y las atrasadas, cada una con su fecha, prioridad, lista y
-  etiquetas; la barra Añadir una tarea con las pistas de lo que entiende, y en
-  la barra lateral los contadores de vencidas, atrasadas, para hoy y por
-  venir"/>
-
 ```text
 "desplegar mañana a las 10"             →  mañana 10:00
 "entregar el informe antes del viernes" →  límite vie
@@ -1238,8 +1217,6 @@ se puede borrar, y tanto borrar como ocultar van de una en una; una historia sol
 se oculta.
 
 ## Tus datos y tu privacidad
-
-![Software por convicción, no por suscripción: Tisto, el castor de Tisty, junto a lo que Tisty es, amigo de tus agentes de IA, sin cuenta, sin suscripción y sin telemetría, y tus archivos se quedan en tu equipo](assets/screens/web/es-10-cierre.png)
 
 Todo vive en una carpeta de tu disco: un registro de lo que pasó al que solo se
 le agrega, tus documentos como archivos `.md`, y tus adjuntos tal como son. Nada
@@ -1364,8 +1341,6 @@ muestra de sí mismo, y lo confirmas. Hasta entonces no entra nada de lo que
 escribe; desde ese momento, lo que no responda a esa clave se rechaza, y Tisty
 te lo dice.
 
-![En tu disco, y en tu nube cifrado si quieres: 24 palabras que solo tú guardas cifran lo que Tisty deja en Google Drive, OneDrive o WebDAV, y fuera de tus equipos nadie lo lee](assets/screens/web/es-09-datos.png)
-
 **Tu nube, cifrada, si quieres.** En Configuración › *Seguridad*, **Cifrar mi
 nube…** cifra lo que Tisty guarda en tu Google Drive, tu OneDrive o tu servidor
 WebDAV con una llave que sale de una frase de 24 palabras que solo tú conoces.
@@ -1425,8 +1400,6 @@ aviso de Google Drive, de *Reconectar* a un Drive lleno o
 [algo que bloquea el camino](https://www.tisty.app/es/ayuda/sincronizar-y-respaldar/#cuando-algo-se-interpone-con-google).
 
 ## Tu agente de IA
-
-![No más chats en blanco, abre la puerta MCP: Configuración › Asistentes dice que Tisty no lleva IA dentro y conecta los asistentes de este equipo, así tu agente pregunta ¿en qué íbamos? y abre la tarea en la que estaba](assets/screens/web/es-05-agente.png)
 
 **Tisty no es inteligencia artificial ni la lleva dentro.** El lenguaje natural
 que convierte "llamar al banco a las 3" en una tarea es un puñado de reglas

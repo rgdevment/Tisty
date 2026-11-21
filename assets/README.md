@@ -78,9 +78,9 @@ promotional images: `store-box-1x1.png`, `store-hero-16x9.png` and
 | Folder | Size | Where it goes |
 | --- | --- | --- |
 | `store/` | 1920×1080 | The Microsoft Store listing, and the picture tisty.app shows and shares |
-| `web/` | 1280×720, lighter | The four screens the READMEs and the help have no capture of yet: agent, Folio, data and close |
-| `readme/` | 1336 wide, WebP | The 1.45 captures still in use: Folio's share screen in the READMEs, and the day and the archive that `docs/posts.json` posts |
-| `app/` | 1562×822, lossless WebP; Brainsty alive 960 wide, animated | Real captures of the app since 1.49, for the READMEs and the help |
+| `web/` | 1280×720, lighter | The four screens the help has no capture of yet: agent, Folio, data and close |
+| `readme/` | 1336 wide, WebP | The 1.45 captures still in use: the day and the archive that `docs/posts.json` posts |
+| `app/` | 1558×818, lossless WebP with rounded, transparent corners; Brainsty alive 960 wide, animated | Real captures of the app since 1.49, for the READMEs and the help |
 | `help/` | PNG | Pictures only one help page shows, `help/agents/` for the Agents folder's and `help/settings/` for Settings' |
 
 `app/` is named `<language>-<subject>-<theme>.webp`: `en-` or `es-`, a subject
