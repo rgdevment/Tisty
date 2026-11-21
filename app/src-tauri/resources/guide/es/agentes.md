@@ -4,7 +4,7 @@ Esta hoja es una página de la guía. Cuenta cómo trabajar con un agente de IA 
 
 ## Conectarlo
 
-**Configuración → Asistentes** encuentra los asistentes que tienes instalados, como Claude Code, Codex, GitHub Copilot, Cursor o Gemini CLI, y dice cómo está cada uno:
+**Configuración › Asistentes › Conectados** encuentra los asistentes que tienes instalados, como Claude Code, Codex, GitHub Copilot, Cursor o Gemini CLI, y dice cómo está cada uno:
 
 - **Conectado**: ya abre este Tisty.
 - **Sin conectar**: **Conectar** escribe Tisty en la configuración de ese asistente, y solo toca su propia línea.
@@ -18,7 +18,7 @@ Después, cierra el asistente del todo y ábrelo de nuevo: lee su configuración
 
 ## Darle o quitarle la voz
 
-Tisty le deja una puerta a tu agente, y la manejas tú. Viene abierta al instalar, y en **Configuración → Asistentes** la cierras con **Quitarle la voz**: mientras está cerrada, todo lo que intente un asistente se rechaza y no lee ni escribe nada. **Dejar que un asistente anote** la abre otra vez. Si uno intenta entrar con la puerta cerrada, la ventana te avisa («Claude Code intentó entrar») y **Dejarlo entrar** la abre ahí mismo.
+Tisty le deja una puerta a tu agente, y la manejas tú. Viene abierta al instalar, y en **Configuración › Asistentes › Puerta** la cierras con **Quitarle la voz**: mientras está cerrada, todo lo que intente un asistente se rechaza y no lee ni escribe nada. **Dejar que un asistente anote** la abre otra vez. Si uno intenta entrar con la puerta cerrada, la ventana te avisa («Claude Code intentó entrar») y **Dejarlo entrar** la abre ahí mismo.
 
 Nada escucha hasta que conectas uno: el asistente arranca Tisty cuando lo necesita, en este equipo, sin puerto ni cuenta.
 
@@ -27,7 +27,7 @@ Nada escucha hasta que conectas uno: el asistente arranca Tisty cuando lo necesi
 
 ## Que no se le olvide anotar
 
-Un agente concentrado en el código se olvida de Tisty. Hay dos ayudas, y las dos se apagan en **Configuración → Asistentes**:
+Un agente concentrado en el código se olvida de Tisty. Hay dos ayudas, y las dos se apagan en **Configuración › Asistentes › Puerta**:
 
 - **Pedirle que deje su tarea al día**: si sigue trabajando y la tarea que abrió lleva diez minutos sin una palabra suya, o mientras escribe otras tres cosas, la siguiente respuesta de Tisty le pide una vez que marque lo que hizo y, si terminó, que lo diga con la prueba. Llega a todos los asistentes, aunque solo cuando llaman a Tisty.
 - **Los hooks**: en Claude Code, Cursor, Gemini CLI y GitHub Copilot, **Agregar**, bajo la fila del asistente conectado, te dice qué archivo va a escribir y pone ahí los hooks de Tisty. Desde su próxima sesión, y mientras la puerta esté abierta, cada una empieza con las últimas tareas abiertas en que escribieron tus agentes, lo que se movió y lo que apremia, aunque el agente no llame a Tisty; y si un turno editó archivos sin escribir nada en Tisty, se lo devuelve una vez para que marque lo terminado. **Quitar**, junto a los hooks, los saca, y **Recordarle al empezar y al terminar cada turno** los apaga sin quitarlos.
@@ -51,7 +51,7 @@ Al retomar una tarea, lo primero que le llega es su **Estado**, el que ves en su
 - Buscar y leer lo que hay, incluido el Archivo.
 - Leer tu Diario y añadir al final de hoy, con su firma, solo si lo abres a los agentes desde el propio Diario y se lo pides.
 
-Todo lo que escribe va firmado con el nombre del programa por el que habló: «por Claude Code», «por Codex». En **Configuración → Asistentes** eliges dónde se ve ese nombre, o si solo queda un pequeño ◆.
+Todo lo que escribe va firmado con el nombre del programa por el que habló: «por Claude Code», «por Codex». En **Configuración › Asistentes › Cómo se ve su firma** eliges dónde se ve ese nombre, o si solo queda un pequeño ◆.
 
 ## Lo que no puede
 

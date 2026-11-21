@@ -3,6 +3,7 @@ import type { Axis } from "./archive";
 import type { List, Reading, View } from "./core";
 import { ahead, every, repeating, turnOf, unlisted } from "./examples";
 import { fill, t } from "./locales";
+import type { RowId, Shelf } from "./settingsRows";
 
 export type Named =
   | "search"
@@ -18,7 +19,18 @@ export type Named =
   | "help"
   | "brainsty";
 
-export type Tab = "general" | "sync" | "security" | "data" | "agents" | "upkeep" | "about";
+export type Tab =
+  | "summary"
+  | "window"
+  | "notices"
+  | "writing"
+  | "sync"
+  | "security"
+  | "copies"
+  | "storage"
+  | "agents"
+  | "health"
+  | "about";
 
 export type Heading = "pick" | "cloud" | "folder";
 
@@ -60,6 +72,9 @@ export interface Chosen {
   doc?: string;
   near?: string;
   tab?: Tab;
+  shelf?: Shelf;
+  row?: RowId;
+  landedAt?: number;
   move?: Heading;
   movedAt?: number;
   list?: string;
@@ -70,6 +85,8 @@ export interface Chosen {
   layer?: Reading;
   axis?: Axis;
   topic?: string;
+  article?: string;
+  heading?: string;
   from?: string;
 }
 

@@ -633,6 +633,13 @@ export interface About {
   candidatesApply: boolean;
   keptByTheStore: boolean;
   notSold?: boolean;
+  standing?: Standing;
+}
+
+export interface Standing {
+  phrase: "none" | "loose" | "ok" | "elsewhere";
+  door: string | null;
+  looked: string | null;
 }
 
 export type Holds = "everywhere" | "mine" | "shared";

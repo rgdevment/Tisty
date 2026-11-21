@@ -19,6 +19,7 @@ const KNOWN = [
   "updateStopped",
   "updateFailed",
   "updateUnanswered",
+  "updateNoAnswer",
   "untitled",
   "ideaTooLong",
   "noSuchList",

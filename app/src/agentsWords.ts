@@ -370,8 +370,8 @@ const words = {
   agentComposed: ["together with {name} other documents", "junto con otros {name} documentos"],
   agentComposedOne: ["together with one other document", "junto con otro documento"],
   agentFolderOff: [
-    "The Agents folder does not sync with your agents. Choose Sync in the sidebar or in Settings › Assistants.",
-    "La carpeta Agentes no se sincroniza con tus agentes. Elige Sincronizar en la barra o en Configuración › Asistentes.",
+    "The Agents folder does not sync with your agents. Choose Sync in the sidebar or in Settings › Assistants › Agents folder.",
+    "La carpeta Agentes no se sincroniza con tus agentes. Elige Sincronizar en la barra o en Configuración › Asistentes › Carpeta Agentes.",
   ],
   agentBackups: ["{name} backups", "{name} respaldos"],
   agentBackupsOne: ["1 backup", "1 respaldo"],

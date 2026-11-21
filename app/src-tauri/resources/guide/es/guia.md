@@ -15,7 +15,7 @@ Lo que guardan los dos es de dos tipos: lo que hay que hacer son **tareas**, y l
 
 Todo queda en este equipo, como texto que cualquier programa abre. No pide cuenta, no cobra suscripción y no envía nada sobre cómo lo usas. Es de código abierto: cualquiera puede auditarlo. Detrás no hay una empresa: lo hago yo, porque lo necesitaba, y lo comparto.
 
-Lee esta guía a tu ritmo: cada sección se entiende sola, y lo que hoy no uses puede esperar. Es un documento como cualquier otro, así que puedes tocarlo todo: hacer clic, escribir, probar. Si en algún momento te pierdes, el `?` al pie de la barra lateral abre la ayuda completa, también sin conexión, y a esta guía vuelves desde Configuración → General.
+Lee esta guía a tu ritmo: cada sección se entiende sola, y lo que hoy no uses puede esperar. Es un documento como cualquier otro, así que puedes tocarlo todo: hacer clic, escribir, probar. Si en algún momento te pierdes, el `?` al pie de la barra lateral abre la ayuda completa, también sin conexión. El engranaje, en ese mismo pie, abre Configuración en un **Resumen** que dice qué pide algo de ti, y **Buscar un ajuste** encuentra cualquier ajuste por su nombre. A esta guía vuelves desde **Configuración › Ayuda y acerca de**, con **Abrir la guía**.
 
 ## Tú y tu agente
 
@@ -134,7 +134,7 @@ Se te ocurre algo en medio de otra cosa: presiona `Ctrl` + `Shift` + `Space` des
 
 **Pruébalo:** sin salir de esta guía, presiona `Ctrl` + `Shift` + `Space`, escribe lo primero que tengas pendiente y `Enter`. Esa es tu primera tarea: con un día en la frase te espera en **Hoy** o en **Próximo**; sin día, en **Todas**.
 
-Si ese atajo ya lo usa otro programa, Tisty toma otro y te dice cuál quedó en Configuración. Y si lo que se te ocurrió todavía no es una tarea, `Tab` en esa misma ventanita lo vuelve una idea, y otro `Tab`, una línea en el diario de hoy: los dos están más abajo, en **Las ideas** y **El diario**.
+Si ese atajo ya lo usa otro programa, Tisty toma otro y te dice cuál quedó en **Configuración › Tareas y avisos**. Y si lo que se te ocurrió todavía no es una tarea, `Tab` en esa misma ventanita lo vuelve una idea, y otro `Tab`, una línea en el diario de hoy: los dos están más abajo, en **Las ideas** y **El diario**.
 
 ### Hoy, Próximo, Se repiten y Todas
 
@@ -207,7 +207,7 @@ Lo que guarda el Archivo y cómo encontrarlo después está más abajo, en **El 
 
 > **Antes de borrar de verdad.** Borrar solo se permite con lo que ya está cerrado **y** quedó como rastro. Desaparece de este equipo y, en la siguiente sincronización, de los demás; no se puede deshacer.
 
-Y si quieres saber qué sobra o qué falta en todo lo que guardas, Configuración → Mantenimiento lo cuenta sin cambiar nada.
+Y si quieres saber qué falta en todo lo que guardas, **Configuración › Salud** lo revisa, y qué sobra, **Configuración › Almacenamiento**, en **Liberar espacio**, los dos sin cambiar nada.
 
 ---
 
@@ -476,7 +476,7 @@ Tisty no guarda una versión en cada tecla. Lo que había queda como versión cu
 - **Una fila en gris** es una versión que guarda otro de tus equipos, «No está en este equipo; lo guarda…». Se lee allá.
 - **Tu agente** también puede listar las versiones, leer una y volver a ella, y nunca vaciar el historial ni ver el de tu diario. Lo cuenta [la página de tu agente](tisty:agent).
 
-El historial es de este equipo: no se sincroniza ni sale al compartir o exportar, y un equipo nuevo empieza sin él, salvo que restaures ahí un respaldo completo, que sí lo lleva. Se guarda 30 días, o 1, 5 o 15 si lo eliges en Configuración › Tus datos › **Historial de documentos**, y la última versión queda siempre. Para que un texto que borraste a propósito no quede guardado, **Vaciar el historial**, al pie de la lista, lo borra de este equipo, sin vuelta atrás; tus otros equipos y los respaldos que ya hiciste conservan el suyo, así que vacíalo también allá. Borrar un documento borra su historial. Más en [versiones anteriores](https://www.tisty.app/es/ayuda/documentos/#versiones-anteriores), en la ayuda.
+El historial es de este equipo: no se sincroniza ni sale al compartir o exportar, y un equipo nuevo empieza sin él, salvo que restaures ahí un respaldo completo, que sí lo lleva. Se guarda 30 días, o 1, 5 o 15 si lo eliges en Configuración › Documentos y firma › **Guardar las versiones anteriores**, y la última versión queda siempre. Para que un texto que borraste a propósito no quede guardado, **Vaciar el historial**, al pie de la lista, lo borra de este equipo, sin vuelta atrás; tus otros equipos y los respaldos que ya hiciste conservan el suyo, así que vacíalo también allá. Borrar un documento borra su historial. Más en [versiones anteriores](https://www.tisty.app/es/ayuda/documentos/#versiones-anteriores), en la ayuda.
 
 ### Su enlace
 
@@ -512,7 +512,7 @@ Lo que escribes es tuyo, y aquí está cómo cuidarlo: llevarlo a otro equipo, c
 
 ### Tus copias en la nube y sincronizar
 
-Tisty trabaja siempre en este equipo. Para tener lo mismo en otro, dile dónde dejar las copias, en Configuración → Sincronizar:
+Tisty trabaja siempre en este equipo. Para tener lo mismo en otro, dile dónde dejar las copias, en **Configuración › Sincronización**:
 
 - **Directo a una nube**: tu Google Drive, tu OneDrive o tu propio servidor WebDAV (Nextcloud, ownCloud, Synology y otros), sin instalar nada más.
 - **Una carpeta**: Google Drive, OneDrive, iCloud o Dropbox si están instalados, o cualquier carpeta que vean los dos equipos. Ahí quien sube y baja es el programa de tu proveedor, no Tisty.
@@ -521,17 +521,17 @@ Tisty trabaja siempre en este equipo. Para tener lo mismo en otro, dile dónde d
 
 Cuando dos equipos escribieron la misma parte de un documento, Tisty no elige: te muestra las dos versiones y te quedas con **Esta**, **La otra** o **Las dos**.
 
-Una carpeta compartida no es un respaldo. En Configuración → Tus datos guardas un respaldo completo cuando quieras. Desinstalar Tisty deja tus tareas y documentos donde están; dónde viven y cómo borrarlos del todo está en [sincronizar y respaldar](https://www.tisty.app/es/ayuda/sincronizar-y-respaldar/).
+Una carpeta compartida no es un respaldo. En **Configuración › Copias**, **Crear respaldo…** guarda un respaldo completo cuando quieras. Desinstalar Tisty deja tus tareas y documentos donde están; dónde viven y cómo borrarlos del todo está en [sincronizar y respaldar](https://www.tisty.app/es/ayuda/sincronizar-y-respaldar/).
 
 ### Cifrado y equipos que firman
 
-Una copia directa a una nube se puede cifrar en Configuración → Seguridad con una frase de 24 palabras, y entonces ni tu proveedor puede leerla. Guárdala en papel o en la hoja PDF que te ofrece Tisty. La copia en una carpeta no se cifra.
+Una copia directa a una nube se puede cifrar en **Configuración › Seguridad** con una frase de 24 palabras, y entonces ni tu proveedor puede leerla. Guárdala en papel o en la hoja PDF que te ofrece Tisty. La copia en una carpeta no se cifra.
 
 Para que nadie cuele un equipo ajeno en tu sincronización, cada equipo firma lo que escribe, y uno nuevo espera a que confirmes que es tuyo:
 
 1. Aparece un aviso en la barra lateral con el nombre de ese equipo.
 2. **Confirmar…** te muestra su código de veinte dígitos.
-3. En el equipo nuevo, en Configuración → Sincronizar, **Mostrar en grande** muestra el suyo.
+3. En el equipo nuevo, en **Configuración › Seguridad**, bajo **Tus equipos**, **Mostrar en grande** muestra el suyo.
 4. Si los dos códigos coinciden, **Sí, es el mismo** lo deja pasar; si no, **No coincide** lo deja fuera.
 
 ### Compartir un documento

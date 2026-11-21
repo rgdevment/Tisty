@@ -1,5 +1,13 @@
 import { listen } from "@tauri-apps/api/event";
-import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
+import {
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useMemo,
+  useReducer,
+  useRef,
+  useState,
+} from "react";
 import {
   type About,
   about,
@@ -7,8 +15,8 @@ import {
   cloudForget,
   cloudStatus,
   type Freeing,
-  keepSettings,
   type Reach,
+  type Ready,
   type Reviewed,
   reachable,
   settings as readSettings,
@@ -21,30 +29,40 @@ import {
 import { fill, t } from "../locales";
 import { saidPlainly } from "../refusal";
 import { afterMove } from "../relocation";
+import type { SettingsDesk } from "../settingsDesk";
+import { type Article, pageOf } from "../settingsPages";
+import type { RowId, Shelf, Spot } from "../settingsRows";
 import { refresh, useSyncSeen } from "../syncSeen";
 import type { Heading, Tab } from "../views";
-import Agents, { useAgents } from "./Agents";
-import { NAMED, type Which } from "./Card";
+import { useAgents } from "./Agents";
 import Choosing from "./Choosing";
-import General from "./General";
-import Identity from "./Identity";
+import Found from "./Found";
+import KeepingPage from "./KeepingPages";
+import { useLanding } from "./landing";
 import Modal from "./Modal";
 import Relocating from "./Relocating";
+import { HeedContext, RowsContext } from "./RowNotes";
 import { strong } from "./Rows";
-import Sealing from "./Sealing";
-import { SECTIONS } from "./SettingsNav";
+import { useRemember } from "./remembering";
 import { useSigning } from "./Signing";
-import Sync from "./Sync";
-import Upkeep, { type Seen } from "./Upkeep";
+import Summary from "./Summary";
+import { PANEL } from "./settingsPanel";
+import type { Seen } from "./Upkeep";
 import { useCards } from "./useCards";
 import { useCarry } from "./useCarry";
-import Yours from "./Yours";
+import { useOverview } from "./useOverview";
+import { held } from "./working";
+import { PageHead } from "./Zone";
+
+const KEPT = 1;
+const KEYS = 2;
+const BUILD = 4;
+const ALL_READ = KEPT | KEYS | BUILD;
 
 interface Props {
   onPack: () => void;
   onUnpack: () => void;
   onChanged: () => void;
-  onGreet: () => void;
   onDoc: (paper: string) => void;
   greeted?: number;
   tab: Tab;
@@ -53,13 +71,19 @@ interface Props {
   movedAt?: number;
   about?: ReactNode;
   hidden?: ReactNode;
+  onHelp?: (article?: Article) => void;
+  ready?: Ready | null;
+  desk?: SettingsDesk;
+  onLand?: (spot: Spot) => void;
+  shelf?: Shelf;
+  row?: RowId;
+  landedAt?: number;
 }
 
 export default function Keeping({
   onPack,
   onUnpack,
   onChanged,
-  onGreet,
   onDoc,
   greeted,
   tab,
@@ -68,6 +92,13 @@ export default function Keeping({
   movedAt,
   about,
   hidden,
+  onHelp,
+  ready = null,
+  desk,
+  onLand,
+  shelf,
+  row,
+  landedAt,
 }: Props) {
   const shared = useSyncSeen();
   const [read, setRead] = useState(false);
@@ -78,17 +109,16 @@ export default function Keeping({
   const [freeing, setFreeing] = useFreeing();
   const [freeDays, setFreeDays] = useState(90);
   const [seen, setSeen] = useState<Seen | null>(null);
-  const [phrased, setPhrased] = useState(0);
-  const phrasedAgain = useCallback(() => setPhrased((was) => was + 1), []);
-  const { busy, busySince, setBusy, said, setSaid, trouble, setTrouble, run, quietly } = useCards(
-    () => {
-      look();
-      onChanged();
-    },
-  );
+  const cards = useCards(() => {
+    look();
+    onChanged();
+  });
+  const { busy, said, trouble, run, quietly, tell, fail } = cards;
+  const setTrouble = fail;
   const signs = useSigning();
   const { lookSigned } = signs;
   const known = useAgents(tab === "agents", setTrouble);
+  const [answered, answer] = useReducer((was: number, read: number) => was | read, 0);
 
   const look = useCallback(() => {
     lookSigned();
@@ -97,11 +127,54 @@ export default function Keeping({
       .catch((e) => setTrouble({ card: "sync", text: saidPlainly(e) }));
     readSettings()
       .then(setKept)
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => answer(KEPT));
   }, [lookSigned, setTrouble]);
+  const reread = useCallback(() => {
+    readSettings()
+      .then(setKept)
+      .catch(() => {});
+  }, []);
+  const remember = useRemember({ setKept, quietly, tell, reread, onChanged });
+  const amend = useCallback(
+    (edit: (was: Settings) => Settings) => setKept((was) => (was ? edit(was) : was)),
+    [],
+  );
 
   useEffect(look, [look]);
-  const { reach, wake, setWake, keys, setKeys, build } = useAbout(greeted, look);
+  const { reach, wake, setWake, keys, keysKnown, setKeys, build, lookAbout } = useAbout(
+    greeted,
+    look,
+    answer,
+  );
+  const overview = useOverview({
+    state,
+    status: shared.status,
+    build,
+    kept,
+    keys: keysKnown ? keys : undefined,
+    alias: signs.signedAlias,
+    ready,
+    audit,
+    seen,
+    wired: known.agents,
+    waiting: answered !== ALL_READ,
+    desk,
+  });
+  useLanding(row, landedAt);
+  // What another page changed since opening, a phrase made or a door turned, is read again on coming back.
+  const summarized = useRef(false);
+  useEffect(() => {
+    if (tab !== "summary") return;
+    if (summarized.current) lookAbout();
+    summarized.current = true;
+  }, [tab, lookAbout]);
+  const land = (spot: Spot) => {
+    desk?.setFinding("");
+    if (onLand) onLand(spot);
+    else onTab(spot.page);
+  };
+  const finding = desk?.finding.trim() ?? "";
 
   const [picking, setPicking] = useState(false);
   const [moving, setMoving] = useState<{ heading?: Heading; resume?: Toward } | null>(null);
@@ -111,14 +184,14 @@ export default function Keeping({
     setMoving({ heading: move });
   }, [move, movedAt]);
   const [was, setWas] = useState<string>();
-  const held = busy !== null;
-
   const carrying = useCarry({
-    held,
+    held: held(busy, "sync"),
     cloud: state?.mode === "cloud" ? t("cloudChosen") : undefined,
-    setBusy,
-    tell: setSaid,
-    fail: setTrouble,
+    start: cards.start,
+    stop: cards.stop,
+    clear: cards.clear,
+    tell,
+    fail,
     look,
     onChanged,
   });
@@ -130,35 +203,37 @@ export default function Keeping({
   };
   useEffect(() => afterMove(() => landed.current()), []);
 
-  if (tab === "about" && about) {
+  const rows = useMemo(() => ({ busy, said, trouble }), [busy, said, trouble]);
+  const shownItems = overview.items ?? desk?.attention ?? null;
+
+  if (tab === "about" && about && !finding) {
     return (
-      <>
-        {carrying.shown}
-        {about}
-      </>
+      <RowsContext.Provider value={rows}>
+        <HeedContext.Provider value={shownItems}>
+          {carrying.shown}
+          <div id={PANEL} role="tabpanel" aria-label={t(pageOf(tab).label)} className="contents">
+            {about}
+          </div>
+        </HeedContext.Provider>
+      </RowsContext.Provider>
     );
   }
 
   if (!state) {
     return (
       <Unread
-        trouble={trouble?.text}
+        tab={tab}
+        trouble={trouble.sync?.text}
         retry={() => {
-          setTrouble(undefined);
+          cards.clear("sync");
           look();
         }}
       />
     );
   }
 
-  const remember = (next: Settings, card: Which) =>
-    run(card, keepSettings(next), (now) => {
-      setKept(now);
-      setSaid({ card, text: t("settingsKept") });
-    });
-
   const pickFolder = () => {
-    if (held) return;
+    if (held(busy, "sync")) return;
     setWas(state?.chosen);
     setPicking(true);
   };
@@ -189,14 +264,14 @@ export default function Keeping({
       {picking && (
         <Modal title={t("welcomeCopies")} wide onClose={() => setPicking(false)}>
           <Choosing
-            busy={held}
+            busy={held(busy, "sync")}
             offered={state.cloudOffered && state.mode !== "folder"}
-            onTrouble={(text) => setTrouble(text ? { card: "sync", text } : undefined)}
+            onTrouble={(text) => (text ? fail({ card: "sync", text }) : cards.clear("sync"))}
             onDone={picked}
           />
-          {trouble?.card === "sync" && (
+          {trouble.sync && (
             <p role="alert" className="mt-3 text-[11.5px] text-urgent">
-              {trouble.text}
+              {trouble.sync.text}
             </p>
           )}
         </Modal>
@@ -215,154 +290,93 @@ export default function Keeping({
       {carrying.shown}
       <div data-tauri-drag-region className="h-9 shrink-0" />
       {/* The whole width scrolls, so the wheel moves the page wherever the pointer is. */}
-      <div className="scroller min-h-0 flex-1">
-        <div className="mx-auto w-full max-w-[560px] px-6 pb-12">
-          <h2 className="mb-3.5 text-[21px] font-semibold">
-            {t(SECTIONS.find((one) => one.key === tab)?.label ?? "keeping")}
-          </h2>
+      <div
+        id={PANEL}
+        role="tabpanel"
+        aria-label={finding ? t("findSetting") : t(pageOf(tab).label)}
+        className="scroller min-h-0 flex-1"
+      >
+        <RowsContext.Provider value={rows}>
+          <HeedContext.Provider value={shownItems}>
+            <div className="mx-auto w-full max-w-[560px] px-6 pb-12">
+              {finding ? (
+                <Found asked={finding} onLand={land} />
+              ) : (
+                <PageHead tab={tab} onHelp={tab === "summary" ? undefined : onHelp} />
+              )}
 
-          {busy !== null &&
-            (tab === "general" || tab === "sync" || tab === "security" || tab === "data") && (
-              <p className="text-[11.5px] text-faint">{fill("waitFor", t(NAMED[busy]))}</p>
-            )}
+              {!finding && tab === "summary" && (
+                <Summary
+                  items={overview.items}
+                  whole={overview.whole}
+                  steps={overview.steps}
+                  tiles={overview.tiles}
+                  onLand={land}
+                />
+              )}
 
-          {tab === "general" && (
-            <General
-              kept={kept}
-              setKept={setKept}
-              wake={wake}
-              setWake={setWake}
-              keys={keys}
-              setKeys={setKeys}
-              busy={busy}
-              said={said}
-              trouble={trouble}
-              run={run}
-              tell={setSaid}
-              remember={remember}
-              signs={signs}
-              onChanged={onChanged}
-              onGreet={onGreet}
-              onDoc={onDoc}
-              hidden={hidden}
-            />
-          )}
-
-          {tab === "sync" && (
-            <Sync
-              state={state}
-              kept={kept}
-              audit={audit}
-              setAudit={setAudit}
-              freeing={freeing}
-              setFreeing={setFreeing}
-              busy={busy}
-              busySince={busySince}
-              said={said}
-              trouble={trouble}
-              run={run}
-              tell={setSaid}
-              fail={setTrouble}
-              carry={(way) => void carryNow(way)}
-              pickFolder={pickFolder}
-              onMove={(resume) => setMoving({ resume })}
-              remember={remember}
-            />
-          )}
-
-          {tab === "security" && (
-            <Identity
-              round={state.last}
-              busy={busy}
-              said={said}
-              trouble={trouble}
-              tell={setSaid}
-              fail={setTrouble}
-              phrased={phrased}
-              onPhrased={phrasedAgain}
-              onSync={() => onTab("sync")}
-            />
-          )}
-          {tab === "security" && (
-            <Sealing
-              round={state.last}
-              phrased={phrased}
-              onPhrased={phrasedAgain}
-              busy={busy}
-              said={said}
-              trouble={trouble}
-              tell={setSaid}
-              fail={setTrouble}
-              onChanged={onChanged}
-            />
-          )}
-
-          {tab === "data" && (
-            <Yours
-              state={state}
-              holds={holds}
-              build={build}
-              kept={kept}
-              setKept={setKept}
-              busy={busy}
-              said={said}
-              trouble={trouble}
-              run={run}
-              fail={setTrouble}
-              onPack={onPack}
-              onUnpack={onUnpack}
-              tell={setSaid}
-            />
-          )}
-
-          {tab === "agents" && (
-            <Agents
-              busy={busy}
-              said={said}
-              trouble={trouble}
-              quietly={quietly}
-              tell={setSaid}
-              fail={setTrouble}
-              binary={reach?.binary}
-              known={known}
-            />
-          )}
-
-          {tab === "upkeep" && (
-            <Upkeep
-              audit={audit}
-              setAudit={setAudit}
-              build={build}
-              state={state}
-              freeing={freeing}
-              setFreeing={setFreeing}
-              freeDays={freeDays}
-              setFreeDays={setFreeDays}
-              busy={busy}
-              busySince={busySince}
-              said={said}
-              trouble={trouble}
-              run={run}
-              quietly={quietly}
-              tell={setSaid}
-              fail={setTrouble}
-              onSync={() => onTab("sync")}
-              onDoc={onDoc}
-              seen={seen}
-              setSeen={setSeen}
-            />
-          )}
-        </div>
+              {!finding && (
+                <KeepingPage
+                  shelf={shelf}
+                  landedAt={landedAt}
+                  onStanding={lookAbout}
+                  tab={tab}
+                  onTab={onTab}
+                  state={state}
+                  kept={kept}
+                  amend={amend}
+                  build={build}
+                  reach={reach}
+                  wake={wake}
+                  setWake={setWake}
+                  keys={keys}
+                  setKeys={setKeys}
+                  audit={audit}
+                  setAudit={setAudit}
+                  freeing={freeing}
+                  setFreeing={setFreeing}
+                  freeDays={freeDays}
+                  setFreeDays={setFreeDays}
+                  seen={seen}
+                  setSeen={setSeen}
+                  holds={holds}
+                  signs={signs}
+                  known={known}
+                  busy={busy}
+                  run={run}
+                  quietly={quietly}
+                  tell={tell}
+                  fail={fail}
+                  clear={cards.clear}
+                  carry={(way) => void carryNow(way)}
+                  remember={remember}
+                  pickFolder={pickFolder}
+                  onMove={(resume) => setMoving({ resume })}
+                  onPack={onPack}
+                  onUnpack={onUnpack}
+                  onChanged={onChanged}
+                  onDoc={onDoc}
+                  hidden={hidden}
+                />
+              )}
+            </div>
+          </HeedContext.Provider>
+        </RowsContext.Provider>
       </div>
     </main>
   );
 }
 
-function Unread({ trouble, retry }: { trouble?: string; retry: () => void }) {
+function Unread({ tab, trouble, retry }: { tab: Tab; trouble?: string; retry: () => void }) {
   return (
     <main className="flex flex-col overflow-hidden">
       <div data-tauri-drag-region className="h-9 shrink-0" />
-      <div className="mx-auto w-full max-w-[560px] px-6">
+      <div
+        id={PANEL}
+        role="tabpanel"
+        aria-label={t(pageOf(tab).label)}
+        className="mx-auto w-full max-w-[560px] px-6"
+      >
         <h2 className="mb-3.5 text-[21px] font-semibold">{t("keeping")}</h2>
         {trouble && (
           <div className="rounded-[10px] border border-hair bg-panel p-4">
@@ -390,10 +404,11 @@ function useFreeing() {
   return [freeing, setFreeing] as const;
 }
 
-function useAbout(greeted: number | undefined, look: () => void) {
+function useAbout(greeted: number | undefined, look: () => void, answer: (read: number) => void) {
   const [reach, setReach] = useState<Reach | null>(null);
   const [wake, setWake] = useState<Waking | null>(null);
   const [keys, setKeys] = useState<string | null>(null);
+  const [keysKnown, setKeysKnown] = useState(false);
   const [build, setBuild] = useState<About | null>(null);
   useEffect(() => {
     reachable()
@@ -403,12 +418,26 @@ function useAbout(greeted: number | undefined, look: () => void) {
       .then(setWake)
       .catch(() => {});
     shortcut()
-      .then(setKeys)
-      .catch(() => {});
+      .then((now) => {
+        setKeys(now);
+        setKeysKnown(true);
+      })
+      .catch(() => {})
+      .finally(() => answer(KEYS));
+    about()
+      .then(setBuild)
+      .catch(() => {})
+      .finally(() => answer(BUILD));
+    look();
+  }, [greeted, look, answer]);
+  const lookAbout = useCallback(() => {
     about()
       .then(setBuild)
       .catch(() => {});
-    look();
-  }, [greeted, look]);
-  return { reach, wake, setWake, keys, setKeys, build };
+  }, []);
+  const keysSet = useCallback((now: string | null) => {
+    setKeys(now);
+    setKeysKnown(true);
+  }, []);
+  return { reach, wake, setWake, keys, keysKnown, setKeys: keysSet, build, lookAbout };
 }

@@ -23,10 +23,14 @@ import { saidPlainly } from "../refusal";
 import { sure } from "../sure";
 import { cameWords } from "./arrived";
 import { type Run, type Which, type Word, working } from "./Card";
+import { useCareful } from "./Careful";
+import { DANGERS } from "./dangers";
 import FreeSpace from "./FreeSpace";
 import { hushed } from "./Keys";
 import { Band, dated, Line, mild, risky } from "./Rows";
 import Twins from "./Twins";
+import { useSince } from "./useSince";
+import { held as isHeld, type Working } from "./working";
 
 // A file whose arrival is known shows that day; its date on this disk only when nothing else says.
 function LooseRow({
@@ -66,13 +70,11 @@ interface Props {
   setFreeing: (freeing: Freeing | null) => void;
   days: number;
   setDays: (days: number) => void;
-  busy: Which | null;
-  secs: number;
-  said?: Word;
-  trouble?: Word;
+  busy: Working;
   run: Run;
   tell: (word?: Word) => void;
   fail: (word?: Word) => void;
+  clear: (card: Which) => void;
   onDoc?: (paper: string) => void;
 }
 
@@ -86,15 +88,16 @@ export default function FreeUp({
   days,
   setDays,
   busy,
-  secs,
-  said,
-  trouble,
   run,
   tell,
   fail,
+  clear,
   onDoc,
 }: Props) {
-  const held = busy !== null;
+  const held = isHeld(busy, "loose");
+  const careful = useCareful();
+  const twinsHeld = isHeld(busy, "twins");
+  const secs = useSince(busy.has("twins"), busy.get("twins"));
   const [alike, setAlike] = useState<Pair[] | null>(null);
 
   const [unused, setUnused] = useState<Unused | null>(null);
@@ -164,9 +167,10 @@ export default function FreeUp({
 
   const letGoOfAll = (astray: Astray[]) => {
     if (held || astray.length === 0) return;
-    sure(fill("upkeepSafeAllSure", String(astray.length)))
-      .then((sure) => {
-        if (!sure) return;
+    careful
+      .ask(DANGERS.loose(astray.length))
+      .then((yes) => {
+        if (!yes) return;
         run("loose", retireAttachments(astray.map((one) => one.at)).then(checked), (now) => {
           setAudit(now);
           tell({ card: "loose", text: t("looseDropped") });
@@ -177,6 +181,7 @@ export default function FreeUp({
 
   return (
     <>
+      {careful.shown}
       <Band label={t("freeTitle")} />
       {audit && (
         <p className="mb-1.5 text-[12.5px] tabular-nums text-soft">
@@ -185,7 +190,7 @@ export default function FreeUp({
       )}
       <div className="border-t border-hair">
         <Line
-          title={t("looseAre")}
+          row="loose"
           why={
             <>
               <span className="block">{t("looseWhat")}</span>
@@ -193,8 +198,6 @@ export default function FreeUp({
             </>
           }
           which="loose"
-          said={said}
-          trouble={trouble}
           more={
             audit &&
             loose > 0 && (
@@ -241,11 +244,9 @@ export default function FreeUp({
           }
         />
         <Line
-          title={t("twinsAre")}
+          row="twins"
           why={t("twinsWhat")}
           which="twins"
-          said={said}
-          trouble={trouble}
           more={
             alike && (
               <>
@@ -260,7 +261,7 @@ export default function FreeUp({
                       <Twins
                         key={`${looks}:${keyOf(one)}`}
                         pair={one}
-                        busy={held}
+                        busy={twinsHeld}
                         onJoin={join}
                         onLater={() => setAside((was) => [...was, keyOf(one)])}
                         onDoc={onDoc}
@@ -274,9 +275,9 @@ export default function FreeUp({
         >
           <button
             type="button"
-            disabled={held}
+            disabled={twinsHeld}
             onClick={() =>
-              run("twins", twinned(), (found: Pair[]) => {
+              run("twins", twinned, (found: Pair[]) => {
                 setAside([]);
                 setLooks((was) => was + 1);
                 setAlike(found);
@@ -284,7 +285,7 @@ export default function FreeUp({
             }
             className={mild}
           >
-            {busy === "twins" && !joining
+            {busy.has("twins") && !joining
               ? working("twinsLooking", secs)
               : t(alike ? "twinsAgain" : "twinsRun")}
           </button>
@@ -296,8 +297,7 @@ export default function FreeUp({
             setFreeing={setFreeing}
             days={days}
             setDays={setDays}
-            said={said}
-            trouble={trouble}
+            clear={clear}
             fail={fail}
             onFound={setUnused}
           />

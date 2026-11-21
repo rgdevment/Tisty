@@ -1,11 +1,12 @@
-import { act, render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { useState } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { SealShown, SealTold } from "../core";
+import { t } from "../locales";
 import { asksSure } from "../sure";
-import type { Word } from "../ui/Card";
+import { RowsContext } from "../ui/RowNotes";
 import Sealing from "../ui/Sealing";
+import { useCards } from "../ui/useCards";
 
 const WORDS = Array.from({ length: 24 }, (_, at) => `word${at + 1}`).join(" ");
 
@@ -74,19 +75,19 @@ const copying: SealTold = {
 const sent = (cmd: string) => ipc.calls.filter((one) => one.cmd === cmd);
 
 function Shell({ round, onPhrased }: { round?: string; onPhrased?: () => void }) {
-  const [said, setSaid] = useState<Word>();
-  const [trouble, setTrouble] = useState<Word>();
+  const cards = useCards(() => {});
   return (
-    <Sealing
-      round={round}
-      onPhrased={onPhrased}
-      busy={null}
-      said={said}
-      trouble={trouble}
-      tell={setSaid}
-      fail={setTrouble}
-      onChanged={() => {}}
-    />
+    <RowsContext.Provider value={cards}>
+      <Sealing
+        round={round}
+        onPhrased={onPhrased}
+        busy={cards.busy}
+        run={cards.run}
+        tell={cards.tell}
+        fail={cards.fail}
+        onChanged={() => {}}
+      />
+    </RowsContext.Provider>
   );
 }
 
@@ -307,7 +308,7 @@ describe("an encrypted cloud", () => {
   it("offers to delete the old copy only while one is left, and says how far a cloud brought here came", async () => {
     ipc.shown = { ...plain, state: "sealed" };
     const { unmount } = render(<Shell />);
-    expect(await screen.findByText("Decrypt my cloud")).toBeTruthy();
+    expect(await screen.findByRole("button", { name: "Decrypt my cloud" })).toBeTruthy();
     expect(screen.queryByText(/old unencrypted copy stays in OneDrive/)).toBeNull();
     expect(screen.queryByRole("button", { name: "Delete the unencrypted copy" })).toBeNull();
     unmount();
@@ -324,15 +325,34 @@ describe("an encrypted cloud", () => {
     ).toBeTruthy();
   });
 
-  it("deletes the old copy and can be decrypted", async () => {
+  it("deletes the old copy and can be decrypted, both from the careful zone below the card", async () => {
     ipc.shown = { ...plain, state: "sealed", plainLeft: true };
     render(<Shell />);
     expect(await screen.findByText(/old unencrypted copy stays in OneDrive/)).toBeTruthy();
+    const careful = screen.getByRole("region", { name: "Handle with care" });
+    expect(
+      within(careful).getByRole("button", { name: "Delete the unencrypted copy" }),
+    ).toBeTruthy();
+    expect(within(careful).getByRole("button", { name: "Decrypt my cloud" })).toBeTruthy();
+    expect(within(careful).queryByRole("button", { name: /authorize/i })).toBeNull();
 
     await userEvent.click(screen.getByRole("button", { name: "Delete the unencrypted copy" }));
+    const wiping = within(await screen.findByRole("dialog"));
+    expect(wiping.getByText(t("carefulWipeTwo"))).toBeTruthy();
+    await userEvent.click(wiping.getByLabelText(t("carefulUndone")));
+    await userEvent.click(wiping.getByRole("button", { name: t("carefulWipeGo") }));
     expect(await screen.findByText("12 old files deleted.")).toBeTruthy();
+    expect(
+      screen
+        .getByText("12 old files deleted.")
+        .closest("[data-setting]")
+        ?.getAttribute("data-setting"),
+    ).toBe("sealing");
 
     await userEvent.click(screen.getByRole("button", { name: "Decrypt my cloud" }));
+    const unsealing = within(await screen.findByRole("dialog"));
+    expect(unsealing.getByText(t("carefulUnsealOne"))).toBeTruthy();
+    await userEvent.click(unsealing.getByRole("button", { name: t("carefulUnsealGo") }));
     await waitFor(() => expect(sent("sealing_begin")[0]?.args.on).toBe(false));
   });
 

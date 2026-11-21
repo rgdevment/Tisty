@@ -4,7 +4,7 @@ This sheet is a page of the guide. It tells you how to work with an AI agent in 
 
 ## Connecting it
 
-**Settings → Assistants** finds the assistants you have installed, such as Claude Code, Codex, GitHub Copilot, Cursor or Gemini CLI, and says how each one stands:
+**Settings › Assistants › Connected** finds the assistants you have installed, such as Claude Code, Codex, GitHub Copilot, Cursor or Gemini CLI, and says how each one stands:
 
 - **Connected**: it already opens this Tisty.
 - **Not connected**: **Connect** writes Tisty into that assistant's settings, and touches only its own line.
@@ -18,7 +18,7 @@ Then quit the assistant completely and open it again: it reads its settings when
 
 ## Letting it file work or stopping it
 
-Tisty leaves your agent a door, and you hold it. It comes open when you install, and in **Settings → Assistants** you close it with **Stop it**: while it is closed, everything an assistant tries is refused, and it reads and writes nothing. **Let an assistant file here** opens it again. If one tries to come in while the door is closed, the window tells you ("Claude Code tried to come in") and **Let it in** opens it right there.
+Tisty leaves your agent a door, and you hold it. It comes open when you install, and in **Settings › Assistants › Door** you close it with **Stop it**: while it is closed, everything an assistant tries is refused, and it reads and writes nothing. **Let an assistant file here** opens it again. If one tries to come in while the door is closed, the window tells you ("Claude Code tried to come in") and **Let it in** opens it right there.
 
 Nothing listens until you connect one: the assistant starts Tisty when it needs it, on this computer, with no port and no account.
 
@@ -27,7 +27,7 @@ Nothing listens until you connect one: the assistant starts Tisty when it needs 
 
 ## So it does not forget to write things down
 
-An agent deep in code forgets about Tisty. Two things help, and you can turn both off in **Settings → Assistants**:
+An agent deep in code forgets about Tisty. Two things help, and you can turn both off in **Settings › Assistants › Door**:
 
 - **Ask it to keep its task up to date**: if it keeps working and the task it opened has gone ten minutes without a word from it, or while it writes three other things, Tisty's next answer asks it once to tick what it did and, if it finished, to say so with the proof. It reaches every assistant, though only when it calls Tisty.
 - **The hooks**: in Claude Code, Cursor, Gemini CLI and GitHub Copilot, **Add**, under the row of the connected assistant, tells you which file it will write and puts Tisty's hooks there. From its next session on, and while the door is open, every session starts with the last open tasks your agents wrote in, what moved and what is pressing, even if the agent never calls Tisty; and if a turn edited files without writing anything in Tisty, it hands the turn back once so it ticks what it finished. **Remove**, beside the hooks, takes them out, and **Remind it when a turn starts and ends** turns them off without taking them out.
@@ -51,7 +51,7 @@ When it picks a task up, the first thing it gets is its **State**, the one you s
 - Search and read what is there, the Archive included.
 - Read your Diary and add to the end of today, signed, only if you open it to agents from the Diary itself and ask it to.
 
-Everything it writes is signed with the name of the program it spoke through: "by Claude Code", "by Codex". In **Settings → Assistants** you choose where that name shows, or whether only a small ◆ is left.
+Everything it writes is signed with the name of the program it spoke through: "by Claude Code", "by Codex". In **Settings › Assistants › How its signature looks** you choose where that name shows, or whether only a small ◆ is left.
 
 ## What it cannot do
 

@@ -12,27 +12,26 @@ import {
 import { weigh } from "../format";
 import { fill, t } from "../locales";
 import { saidPlainly } from "../refusal";
-import { sure } from "../sure";
 import Card, { type Run, type Which, type Word } from "./Card";
+import { useCareful } from "./Careful";
+import { DANGERS } from "./dangers";
 import { astrayKey, hushedName, named } from "./Keys";
-import { Band, dated, mild, risky, strong } from "./Rows";
+import { useRows } from "./RowNotes";
+import { Band, dated, mild, risky } from "./Rows";
 import Tidying from "./Tidying";
-import { rebuildNow } from "./Tools";
+import { held as isHeld, type Working } from "./working";
 
 interface Props {
   audit: Reviewed;
   twice: Repeated[];
   unproven: Unvouching | null;
-  busy: Which | null;
-  secs: number;
-  said?: Word;
-  trouble?: Word;
+  busy: Working;
   run: Run;
   tell: (word?: Word) => void;
   fail: (word?: Word) => void;
   setAudit: (audit: Reviewed) => void;
   relook: () => void;
-  onSync: () => void;
+  onSecurity: () => void;
 }
 
 export const lookAt = (audit: Reviewed, twice: Repeated[], unproven: Unvouching | null) => ({
@@ -50,20 +49,19 @@ export default function Leftovers({
   twice,
   unproven,
   busy,
-  secs,
-  said,
-  trouble,
   run,
   tell,
   fail,
   setAudit,
   relook,
-  onSync,
+  onSecurity,
 }: Props) {
-  const held = busy !== null;
-  const shown = { busy, said, trouble };
+  const { said, trouble } = useRows();
+  const careful = useCareful();
+  const recovering = isHeld(busy, "recover");
+  const forgetting = isHeld(busy, "missing");
   const found = lookAt(audit, twice, unproven);
-  const spoke = (card: Which) => said?.card === card || trouble?.card === card;
+  const spoke = (card: Which) => Boolean(said[card] || trouble[card]);
   const open = (card: keyof typeof found) => found[card] || spoke(card);
   if (!(Object.keys(found) as (keyof typeof found)[]).some(open)) return null;
   const quiet = hushedName(audit.machines);
@@ -88,11 +86,12 @@ export default function Leftovers({
     );
 
   const letGoOfPaper = (one: Stray) => {
-    if (held) return;
-    sure(fill("upkeepDropSure", one.title || one.file))
+    if (recovering) return;
+    careful
+      .ask(DANGERS.stranded(one.title || one.file))
       .then(
-        (sure) =>
-          sure &&
+        (yes) =>
+          yes &&
           run("recover", docLetGo(one.file).then(checked), (now) => {
             setAudit(now);
             tell({ card: "recover", text: t("upkeepDropped") });
@@ -102,11 +101,12 @@ export default function Leftovers({
   };
 
   const forgetMissing = (one: Gone) => {
-    if (held) return;
-    sure(fill("dropDocSure", one.title || one.file))
+    if (forgetting) return;
+    careful
+      .ask(DANGERS.missing(one.title || one.file))
       .then(
-        (sure) =>
-          sure &&
+        (yes) =>
+          yes &&
           run("missing", docDrop(one.id).then(checked), (now) => {
             setAudit(now);
             tell({ card: "missing", text: t("upkeepForgotten") });
@@ -117,28 +117,17 @@ export default function Leftovers({
 
   return (
     <>
+      {careful.shown}
       <Band label={t("toLookAt")} />
 
       {open("rebuild") && (
-        <Card title={t("cacheOffTitle")} which="rebuild" {...shown}>
+        <Card item title={t("cacheOffTitle")} which="rebuild">
           <p className="text-[12.5px] leading-relaxed text-soft">{t("cacheOffWhat")}</p>
-          {found.rebuild && (
-            <div className="mt-2.5">
-              <button
-                type="button"
-                disabled={held}
-                onClick={() => rebuildNow("rebuild", run, setAudit, tell)}
-                className={strong}
-              >
-                {t("reviewRedo")}
-              </button>
-            </div>
-          )}
         </Card>
       )}
 
       {open("recover") && (
-        <Card title={t("upkeepLook")} which="recover" {...shown}>
+        <Card item title={t("upkeepLook")} which="recover">
           <p className="text-[12.5px] leading-relaxed text-soft">{t("upkeepLookWhat")}</p>
           {found.recover && (
             <>
@@ -154,7 +143,7 @@ export default function Leftovers({
                     <span className="flex shrink-0 items-baseline gap-2.5">
                       <button
                         type="button"
-                        disabled={held}
+                        disabled={recovering}
                         onClick={() => takeIn(one.file)}
                         className={mild}
                       >
@@ -162,7 +151,7 @@ export default function Leftovers({
                       </button>
                       <button
                         type="button"
-                        disabled={held}
+                        disabled={recovering}
                         onClick={() => letGoOfPaper(one)}
                         className={risky}
                       >
@@ -175,7 +164,7 @@ export default function Leftovers({
               <div className="mt-2.5">
                 <button
                   type="button"
-                  disabled={held}
+                  disabled={recovering}
                   onClick={() => takeInAll(audit.stranded)}
                   className={mild}
                 >
@@ -188,7 +177,7 @@ export default function Leftovers({
       )}
 
       {open("missing") && (
-        <Card title={t("missingTitle")} which="missing" {...shown}>
+        <Card item title={t("missingTitle")} which="missing">
           <p className="text-[12.5px] leading-relaxed text-soft">{t("upkeepWaitingWhat")}</p>
           {found.missing && (
             <ul className="scroller mt-2 flex max-h-[22rem] flex-col gap-1 overflow-y-auto text-[12.5px]">
@@ -206,7 +195,7 @@ export default function Leftovers({
                     ) : (
                       <button
                         type="button"
-                        disabled={held}
+                        disabled={forgetting}
                         onClick={() => forgetMissing(one)}
                         className={risky}
                       >
@@ -226,16 +215,13 @@ export default function Leftovers({
         unproven={unproven}
         open={open}
         busy={busy}
-        secs={secs}
-        said={said}
-        trouble={trouble}
         run={run}
         tell={tell}
         relook={relook}
       />
 
       {open("unread") && (
-        <Card title={t("unreadTitle")} which="unread" {...shown}>
+        <Card item title={t("unreadTitle")} which="unread">
           {audit.unread != null && (
             <p className="text-[12.5px] leading-relaxed text-soft">
               {fill("looseUnread", audit.unread || t("untitledDoc"))}
@@ -250,7 +236,7 @@ export default function Leftovers({
       )}
 
       {open("keys") && (
-        <Card title={t("keysTitle")} which="keys" {...shown}>
+        <Card item title={t("keysTitle")} which="keys">
           <p className="text-[12.5px] leading-relaxed text-soft">
             {fill(
               "keysWhat",
@@ -261,7 +247,7 @@ export default function Leftovers({
             )}
           </p>
           <div className="mt-2.5">
-            <button type="button" onClick={onSync} className={mild}>
+            <button type="button" onClick={onSecurity} className={mild}>
               {t("keysSee")}
             </button>
           </div>

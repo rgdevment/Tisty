@@ -4,6 +4,7 @@ import type { Counted, Filed, Folded, List, Papers } from "../core";
 import { cameFrom } from "../guide/help";
 import { useKnocking } from "../knocking";
 import { t } from "../locales";
+import { landedOn } from "../settingsRows";
 import type { Chosen, Lean } from "../views";
 import Coming from "./Coming";
 import { findNow, useFindKey } from "./finding";
@@ -11,7 +12,7 @@ import Knocking, { KnockDot } from "./Knocking";
 import Mode from "./Mode";
 import MoveNotice from "./MoveNotice";
 import RailNotices from "./RailNotices";
-import SettingsNav from "./SettingsNav";
+import SettingsNav, { type Finding } from "./SettingsNav";
 import SideBrainsty from "./SideBrainsty";
 import SideEdge, { FoldButton, useFoldKey } from "./SideEdge";
 import SideLibrary, { type Revealed } from "./SideLibrary";
@@ -51,6 +52,7 @@ interface Props {
   room?: number;
   onSync?: () => Promise<unknown> | undefined;
   onTrouble?: (text: string) => void;
+  finder?: Finding;
 }
 
 export default function Sidebar({
@@ -84,6 +86,7 @@ export default function Sidebar({
   room = 0,
   onSync,
   onTrouble,
+  finder,
 }: Props) {
   useRoomFor(room);
   const knocked = useKnocking().waiting.length > 0;
@@ -115,10 +118,11 @@ export default function Sidebar({
       {keeping ? (
         <div className="scroller flex-1 px-2.5 pb-4">
           <SettingsNav
-            tab={chosen.tab ?? "general"}
+            tab={chosen.tab ?? "summary"}
             waiting={waiting}
             onTab={(tab) => onChoose({ named: "keeping", tab })}
             onBack={() => onChoose(away.current)}
+            keeping={finder}
           />
         </div>
       ) : folded ? (
@@ -222,7 +226,7 @@ export default function Sidebar({
             narrow={folded}
             onSync={onSync}
             onTrouble={onTrouble}
-            onOpen={() => onChoose({ named: "keeping", tab: "sync", movedAt: Date.now() })}
+            onOpen={(spot) => onChoose(landedOn(spot))}
             fallback={
               folded ? null : (
                 <Mode

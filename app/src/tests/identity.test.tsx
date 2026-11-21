@@ -1,11 +1,11 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { useState } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Identity as Shown } from "../identity";
-import type { Word } from "../ui/Card";
 import Identity from "../ui/Identity";
+import { RowsContext } from "../ui/RowNotes";
 import SettingsNav from "../ui/SettingsNav";
+import { useCards } from "../ui/useCards";
 
 const WORDS = Array.from({ length: 24 }, (_, at) => `word${at + 1}`);
 
@@ -50,19 +50,18 @@ const held: Shown = {
 
 const sent = (cmd: string) => ipc.calls.filter((one) => one.cmd === cmd);
 
-function Shell({ onSync = () => {}, phrased }: { onSync?: () => void; phrased?: number }) {
-  const [said, setSaid] = useState<Word>();
-  const [trouble, setTrouble] = useState<Word>();
+function Shell({ onShown, phrased }: { onShown?: (shown: unknown) => void; phrased?: number }) {
+  const cards = useCards(() => {});
   return (
-    <Identity
-      phrased={phrased}
-      busy={null}
-      said={said}
-      trouble={trouble}
-      tell={setSaid}
-      fail={setTrouble}
-      onSync={onSync}
-    />
+    <RowsContext.Provider value={cards}>
+      <Identity
+        phrased={phrased}
+        busy={cards.busy}
+        tell={cards.tell}
+        fail={cards.fail}
+        onShown={onShown}
+      />
+    </RowsContext.Provider>
   );
 }
 
@@ -118,19 +117,16 @@ describe("your identity", () => {
     );
   });
 
-  it("shows the fingerprint, the name, the phrase's standing and whose computers they are", async () => {
-    const onSync = vi.fn();
-    render(<Shell onSync={onSync} />);
+  it("shows the fingerprint, the name and the phrase's standing, and leaves the computers to their own list", async () => {
+    const onShown = vi.fn();
+    render(<Shell onShown={onShown} />);
 
     expect(await screen.findByText("48210 93755 12880 63349")).toBeTruthy();
     expect(screen.getByText("Mario · k7qp")).toBeTruthy();
     expect(screen.getByText("not confirmed")).toBeTruthy();
-    expect(screen.getByText("This computer")).toBeTruthy();
-    expect(screen.getByText("Office PC")).toBeTruthy();
-    expect(screen.getAllByText("yours")).toHaveLength(1);
-
-    await userEvent.click(screen.getByRole("button", { name: "Remove a computer" }));
-    expect(onSync).toHaveBeenCalled();
+    expect(screen.queryByText("Office PC")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Remove a computer" })).toBeNull();
+    expect(onShown).toHaveBeenCalledWith(held);
   });
 
   it("says when the phrase was confirmed", async () => {
@@ -351,15 +347,17 @@ describe("the settings sidebar", () => {
     dialog.remove();
   });
 
-  it("marks About while a newer version waits, and opens each section", async () => {
+  it("marks Help and about while a newer version waits, and opens each section", async () => {
     const { onTab } = nav("1.36.0");
 
-    expect(screen.getByRole("tab", { name: /About · a newer version exists/ })).toBeTruthy();
+    expect(
+      screen.getByRole("tab", { name: /Help and about · a newer version exists/ }),
+    ).toBeTruthy();
     expect(screen.getByRole("tab", { name: "Security" }).getAttribute("aria-selected")).toBe(
       "true",
     );
 
-    await userEvent.click(screen.getByRole("tab", { name: /About/ }));
+    await userEvent.click(screen.getByRole("tab", { name: /Help and about/ }));
     expect(onTab).toHaveBeenCalledWith("about");
   });
 });

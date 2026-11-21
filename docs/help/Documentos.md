@@ -54,7 +54,7 @@ La primera línea del documento es su título: no hay que ponerle nombre.
 
 ## Ideas
 
-Una idea que llega en medio de otra cosa todavía no tiene dónde ir. Pulsa `Ctrl` + `Shift` + `Space` y después `Tab` para cambiar de **Tarea** a **Idea** (o el atajo propio de la idea, cuando lo elijas en **Configuración**), escríbela, hasta 140 caracteres, y pulsa `Enter`: cae en **Ideas**, con su fecha, sin abrir la ventana ni elegir una carpeta. En **Configuración** eliges los dos atajos; el de la idea queda apagado hasta que lo elijas, porque `Ctrl` + `Alt` es AltGr en muchos teclados. Sin teclado, el **+** al final de la fila de vistas abre la misma captura.
+Una idea que llega en medio de otra cosa todavía no tiene dónde ir. Pulsa `Ctrl` + `Shift` + `Space` y después `Tab` para cambiar de **Tarea** a **Idea** (o el atajo propio de la idea, cuando lo elijas en **Configuración › Tareas y avisos**), escríbela, hasta 140 caracteres, y pulsa `Enter`: cae en **Ideas**, con su fecha, sin abrir la ventana ni elegir una carpeta. En **Configuración › Tareas y avisos** eliges los dos atajos; el de la idea queda apagado hasta que lo elijas, porque `Ctrl` + `Alt` es AltGr en muchos teclados. Sin teclado, el **+** al final de la fila de vistas abre la misma captura.
 
 ![Ideas como notas adhesivas de colores, cada una con su fecha y su minuto, escritas a mano: Fotos del viaje a la Patagonia en el diario, Calendario de Rina con colores por tipo de visita, Medir el costo de cada herramienta del MCP en tokens](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/app/es-ideas-light.webp)
 
@@ -117,7 +117,7 @@ Te sirve cuando:
 
 **Volver a verla:**
 
-1. Abre **Configuración › General** y baja hasta **Carpetas ocultas**: «Las carpetas que ocultaste de la barra en este equipo. Conservan todo lo que tienen, y la búsqueda, la paleta y «Mover a» las siguen encontrando.».
+1. Abre **Configuración › Aspecto y ventana** y baja hasta **Carpetas ocultas**, marcada **Solo este equipo**: «Las carpetas que ocultaste de la barra en este equipo. Conservan todo lo que tienen, y la búsqueda, la paleta y «Mover a» las siguen encontrando.».
 2. Cada carpeta oculta es una fila con su camino entero, como **Trabajo / Clientes**, y el botón **Volver a mostrar**. Púlsalo y vuelve a la barra, en su lugar.
 
 Si no ocultaste ninguna, la sección dice «No hay carpetas ocultas.».
@@ -311,7 +311,7 @@ Una versión es el texto entero del documento tal como estaba, en un archivo Mar
 
 **30 días** por defecto, contados desde que la versión fue reemplazada y no desde que la escribiste, así que siempre puedes volver a como estaba el documento al comienzo del plazo.
 
-Para cambiarlo, en **Configuración › Tus datos › Historial de documentos**, **Guardar las versiones anteriores** ofrece **1 día**, **5 días**, **15 días** o **30 días**. Cada equipo tiene el suyo. Al abrir Tisty, como mucho una vez al día, se van las versiones que pasaron el plazo, así que un plazo más corto se aplica en esa revisión. Si pasas de 30 a 5 días, en la siguiente revisión se borran las versiones reemplazadas hace más de 5 días; las de los últimos 5 se quedan.
+Para cambiarlo, en **Configuración › Documentos y firma › Historial de documentos**, **Guardar las versiones anteriores** ofrece **1 día**, **5 días**, **15 días** o **30 días**. Cada equipo tiene el suyo. Al abrir Tisty, como mucho una vez al día, se van las versiones que pasaron el plazo, así que un plazo más corto se aplica en esa revisión. Si pasas de 30 a 5 días, en la siguiente revisión se borran las versiones reemplazadas hace más de 5 días; las de los últimos 5 se quedan.
 
 Dos se quedan siempre, tengan la edad que tengan:
 
@@ -396,4 +396,4 @@ Cada idioma de un documento compartido para editar tiene su propio link de edita
 
 ## Tu alias
 
-Escribe un alias en Configuración (opcional, y lo eliges tú) y cada documento queda firmado con él, mientras lo que llega de otra persona conserva el suyo. Viaja con tu sincronización y dentro de cualquier paquete, así que elige un nombre que no te moleste que otros lean. Nunca se te pide tu nombre real.
+Escribe un alias en **Configuración › Documentos y firma** (opcional, y lo eliges tú) y cada documento queda firmado con él, mientras lo que llega de otra persona conserva el suyo. Viaja con tu sincronización y dentro de cualquier paquete, así que elige un nombre que no te moleste que otros lean. Nunca se te pide tu nombre real.

@@ -10,37 +10,31 @@ import {
 import { synced } from "../footing";
 import { fill, t } from "../locales";
 import { saidPlainly } from "../refusal";
-import { sure } from "../sure";
-import type { Run, Which, Word } from "./Card";
+import { settingAt } from "../settingsRows";
+import type { Run, Word } from "./Card";
+import { useCareful } from "./Careful";
+import { DANGERS } from "./dangers";
 import Here from "./Here";
 import { Asked, MachineList } from "./Keys";
 import { ConfirmHere } from "./Knocking";
+import { Feedback, Heeded } from "./RowNotes";
 import { Band, dated } from "./Rows";
+import { held as isHeld, type Working } from "./working";
 
 interface Props {
   state: Carrying;
   audit: Reviewed | null;
   setAudit: (audit: Reviewed) => void;
-  busy: Which | null;
-  said?: Word;
-  trouble?: Word;
+  busy: Working;
   run: Run;
   tell: (word?: Word) => void;
   fail: (word?: Word) => void;
+  ours?: ReadonlySet<string>;
 }
 
-export default function Computers({
-  state,
-  audit,
-  setAudit,
-  busy,
-  said,
-  trouble,
-  run,
-  tell,
-  fail,
-}: Props) {
-  const held = busy !== null;
+export default function Computers({ state, audit, setAudit, busy, run, tell, fail, ours }: Props) {
+  const held = isHeld(busy, "machines");
+  const careful = useCareful();
   const [keyOf, setKeyOf] = useState<Machine | null>(null);
   const [astray, setAstray] = useState<Machine | null>(null);
   const shared = synced(state);
@@ -76,14 +70,12 @@ export default function Computers({
 
   const dropMachine = (one: Machine) => {
     if (held) return;
-    const said = `${fill("machineDropSure", one.called)}\n\n${fill(
-      "machineDropWhen",
-      one.when === 0 ? t("machineNever") : dated(one.when),
-    )}`;
-    sure(said)
+    const last = fill("machineDropWhen", one.when === 0 ? t("machineNever") : dated(one.when));
+    careful
+      .ask(DANGERS.drop(one.called, last))
       .then(
-        (sure) =>
-          sure &&
+        (yes) =>
+          yes &&
           run("machines", removeMachine(one.id).then(checked), (now) => {
             setAudit(now);
             tell({ card: "machines", text: t("machineDropped") });
@@ -94,6 +86,7 @@ export default function Computers({
 
   return (
     <>
+      {careful.shown}
       <Asked
         keyOf={keyOf}
         astray={astray}
@@ -104,23 +97,24 @@ export default function Computers({
           setAstray(null);
         }}
       />
-      <Band label={t("theMachines")} />
-      <section className="rounded-[10px] border border-hair px-4 py-3.5">
-        <p className="text-[12.5px] leading-relaxed text-soft">{t("machinesWhat")}</p>
-        {shared && <ConfirmHere />}
-        <MachineList
-          all={audit?.machines ?? null}
-          busy={held}
-          onKey={setKeyOf}
-          onAstray={setAstray}
-          onDrop={dropMachine}
-        />
-        {shared && <Here held={held} />}
-        {trouble?.card === "machines" && (
-          <p className="mt-2 text-[11.5px] text-urgent">{trouble.text}</p>
-        )}
-        {said?.card === "machines" && <p className="mt-2 text-[11.5px] text-faint">{said.text}</p>}
-      </section>
+      <div {...settingAt("machines")}>
+        <Band label={t("theMachines")} />
+        <section className="rounded-[10px] border border-hair px-4 py-3.5">
+          <p className="text-[12.5px] leading-relaxed text-soft">{t("machinesWhat")}</p>
+          {shared && <ConfirmHere />}
+          <MachineList
+            all={audit?.machines ?? null}
+            ours={ours}
+            busy={held}
+            onKey={setKeyOf}
+            onAstray={setAstray}
+            onDrop={dropMachine}
+          />
+          {shared && <Here held={held} />}
+          <Heeded row="machines" />
+          <Feedback which="machines" quiet />
+        </section>
+      </div>
     </>
   );
 }

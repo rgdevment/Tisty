@@ -5,6 +5,7 @@
 
 **Getting started**
 - [[Installation]]
+- [[Settings]]
 - [[Keyboard shortcuts|Keyboard-Shortcuts]]
 
 **Tasks**
@@ -47,6 +48,7 @@
 
 **Para empezar**
 - [[Instalación]]
+- [[Configuración]]
 - [[Atajos de teclado|Atajos-de-teclado]]
 
 **Tareas**

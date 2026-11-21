@@ -51,6 +51,7 @@ A task is also a document, one with an end: that is why it has a page of its own
 
 - [[Installation]] — Microsoft Store, winget, Homebrew or a direct download.
 - [First steps](Installation#the-first-time-it-opens) — what Tisty asks the first time, and the guide it writes for you.
+- [[Settings]] — the Overview, the settings search and what each page holds.
 - [[Keyboard shortcuts|Keyboard-Shortcuts]]
 
 ## Tasks and the archive

@@ -117,12 +117,12 @@ visible instead of making it for you.
   list that ships with Tisty; nothing is learned from what you write.
 - **Earlier versions of your documents** — plain Markdown files, one per
   version, in a `history` folder beside the documents, with a small marker per
-  document saying who wrote last and which version undoes the last change.
-  Each is kept 30 days from when it was replaced, or the 1, 5 or 15 you choose
-  in Settings › Your data; the latest of each document, and the one that undoes
-  the last change, never run out. They stay on this computer: they are never
-  synced, shared by link or put in a parcel, but a backup zip carries them,
-  including the ones Tisty writes on its own before a change. Deleting a
+  document saying who wrote last and which version undoes the last change. Each
+  is kept 30 days from when it was replaced, or the 1, 5 or 15 you choose in
+  Settings › Documents and signature; the latest of each document, and the one
+  that undoes the last change, never run out. They stay on this computer: they
+  are never synced, shared by link or put in a parcel, but a backup zip carries
+  them, including the ones Tisty writes on its own before a change. Deleting a
   document deletes its versions; **Empty the history** deletes them without
   deleting the document.
 - **Attachments** — the files themselves, unmodified. The log keeps a note of
@@ -142,7 +142,7 @@ visible instead of making it for you.
   and the task's identifier. The system's own notification service keeps them
   on this computer until the hour comes, or until Tisty takes them back: when
   the reminder changes, when you turn the system notification off in Settings,
-  when you leave from Settings › Your data, or when the Windows installer
+  when you leave from Settings › Copies, or when the Windows installer
   removes Tisty. Nothing goes over the network.
 - **Local configuration** — including the device identifier. The *file* never
   leaves this machine on its own: it lives outside the roaming `%APPDATA%`, and
@@ -338,8 +338,8 @@ nothing that arrives from it can send you anywhere. It sits in a branch of its
 own that holds those files and nothing else, which is why the address above
 stays the same however many versions come out.
 
-If you turn on release candidates in *About*, this same request is what carries
-them: nothing else changes, and nothing more is sent.
+If you turn on release candidates in *Help and about*, this same request is what
+carries them: nothing else changes, and nothing more is sent.
 
 ## If Tisty came from the Microsoft Store
 
@@ -359,25 +359,25 @@ does Tisty read the file described above instead, with the same headers.
 | **Why** | To tell you a newer Tisty exists, and to install it if you say so |
 | **What it asks** | Windows, through `StoreContext`, and `https://displaycatalog.mp.microsoft.com/v7.0/products/9PGVWXD8X93N?market=US&languages=en-US`. If that does not answer, GitHub for the file above. No server of ours is involved |
 | **What it sends** | To Windows, nothing of Tisty's: what travels is what the Store already sends for any app installed from it. To the catalog, the headers a request cannot avoid, and a user agent that says `tisty/<version>`. The market and language in the address are fixed, not yours |
-| **How often** | When Tisty opens, every six hours for as long as it keeps running, and whenever you ask *About* to look |
+| **How often** | When Tisty opens, every six hours for as long as it keeps running, and whenever you ask *Help and about* to look |
 | **Timeout** | 10 seconds to ask Windows, 5 seconds for the catalog |
-| **If it fails** | Nothing is said, and *About* falls back to sending you to the Store yourself |
+| **If it fails** | Nothing is said, and *Help and about* falls back to sending you to the Store yourself |
 
 Pressing **Update** there downloads nothing through Tisty: the Store fetches and
 installs the package, and Windows closes Tisty to put it in place.
 
 ## The requests only you can start
 
-On every copy but the Store's, pressing **Update** in *About* makes Tisty fetch
-a second file, which does name an address, and then the installer at that
-address. They go to `raw.githubusercontent.com` and to `github.com`, which
-hands the download on to `objects.githubusercontent.com`, all over HTTPS,
-and both carry what any download carries: an address to send the bytes back to,
-and a user agent — here `tauri-plugin-updater/<version>`, the library doing the
-fetching. On a Mac the installer asked for is the one built for its chip, so
-the name of that download says whether the machine is Apple Silicon or Intel —
-as a download made by hand from the releases page would. Nothing about you,
-nothing about what you have written.
+On every copy but the Store's, pressing **Update** in *Help and about* makes
+Tisty fetch a second file, which does name an address, and then the installer at
+that address. They go to `raw.githubusercontent.com` and to `github.com`, which
+hands the download on to `objects.githubusercontent.com`, all over HTTPS, and
+both carry what any download carries: an address to send the bytes back to, and
+a user agent — here `tauri-plugin-updater/<version>`, the library doing the
+fetching. On a Mac the installer asked for is the one built for its chip, so the
+name of that download says whether the machine is Apple Silicon or Intel — as a
+download made by hand from the releases page would. Nothing about you, nothing
+about what you have written.
 
 This is the one place where an address that arrived over the network is opened,
 which is why it is fenced twice. The address has to be where this project's
@@ -469,7 +469,7 @@ be, and nothing is asked for.
 
 **Nothing is downloaded or installed unless you ask for it.** What the daily
 check brings back is a line of text you can ignore. If a newer version exists, a
-line appears in *About*, and what it offers depends on how this copy was
+line appears in *Help and about*, and what it offers depends on how this copy was
 installed: the Microsoft Store updates itself and Tisty leaves it alone, and a
 copy that owns the folder it lives in gets a button.
 
@@ -480,10 +480,11 @@ sits there.
 ## Saving a task to your calendar
 
 **Save to my calendar**, on a task with a date, hands that one task to a
-calendar: the one you chose under *Settings › General › Your calendar* or, while
-that says **Ask every time**, the one you pick when the button asks, used for
-that event only. Tisty keeps in its local settings only a calendar chosen in
-Settings, and nothing else: no account, no key, no connection to your calendar.
+calendar: the one you chose under *Settings › Tasks and reminders › Your
+calendar* or, while that says **Ask every time**, the one you pick when the
+button asks, used for that event only. Tisty keeps in its local settings only a
+calendar chosen in Settings, and nothing else: no account, no key, no connection
+to your calendar.
 
 With Google Calendar or Outlook, Tisty opens your browser on that provider's
 page for a new event, with the task's title, its day and hour, and its link in
@@ -708,12 +709,12 @@ happens on its own:
   with no port, no account and no token. It is not a server and nothing can
   reach it from the network.
 - **You hold the door.** It comes open on its own until you choose — on a new
-  install, and on an update if you never closed it — and Settings › Assistants
-  closes it with one click; while it is closed, everything an assistant tries is
-  refused. Letting an assistant in and throwing it out are events in your log,
-  not lines in a settings file, so an assistant cannot let itself in by editing
-  a file it can reach. That you chose to keep the door closed is kept in this
-  computer's settings.
+  install, and on an update if you never closed it — and Settings › Assistants ›
+  Door closes it with **Stop it**; while it is closed, everything an assistant
+  tries is refused. Letting an assistant in and throwing it out are events in
+  your log, not lines in a settings file, so an assistant cannot let itself in
+  by editing a file it can reach. That you chose to keep the door closed is kept
+  in this computer's settings.
 - **What it may do is bounded.** File a task, add to the journal, say a task is
   done, yours too — which marks it for you and closes nothing — work any task
   the way it works a document, write a
@@ -742,11 +743,11 @@ happens on its own:
   replace a whole document it has to send back the print it read that document
   at, so what you wrote while it was thinking cannot be taken. What it reads
   comes back without the paths of your disk.
-- **Its hooks, if you add them.** Settings › Assistants can add Tisty's hooks
-  to an assistant's own settings file; it names the file and asks first, and
-  leaves the rest of that file as it is. With them, a session starts with the
-  tasks it left open, and after each edit and each call to Tisty a mark is
-  kept in Tisty's cache on this computer, without reading the conversation.
+- **Its hooks, if you add them.** Settings › Assistants › Connected can add
+  Tisty's hooks to an assistant's own settings file; it names the file and asks
+  first, and leaves the rest of that file as it is. With them, a session starts
+  with the tasks it left open, and after each edit and each call to Tisty a mark
+  is kept in Tisty's cache on this computer, without reading the conversation.
   The marks never leave it, and **Remove** takes the hooks out.
 - **What it keeps for itself.** Where each assistant last caught up is kept
   in Tisty's private data, so the next session hears only what moved, and
@@ -761,7 +762,7 @@ look, what it looks at is on its way to that service. Tisty still sends nothing
 — but this door is real, and besides syncing, sharing a document by link and the
 files Agents writes for your assistants while it syncs, it is the only thing
 here that can carry your data off this machine. It comes open on a new install,
-which is why closing it is one click.
+and **Stop it** closes it whenever you like.
 
 ## Children's privacy
 

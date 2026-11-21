@@ -120,7 +120,7 @@ Everything a document holds, from bold and lists to callouts, pens, icons, table
 
 ## Markup Tisty has no words for
 
-Some Markdown from elsewhere — HTML tags — has no word in Tisty. A document that holds it still opens, edits and saves whole: nothing is cut out. Under that block the page says which part is not in the Tisty language, with **Fix** to change it in one click. **Settings › Maintenance** goes through every document and lists the ones that hold some. The full list is in the Tisty Markdown guide, under [what is outside the language](https://markdown.tisty.app/what-is-outside-the-language).
+Some Markdown from elsewhere — HTML tags — has no word in Tisty. A document that holds it still opens, edits and saves whole: nothing is cut out. Under that block the page says which part is not in the Tisty language, with **Fix** to change it in one click. The full list is in the Tisty Markdown guide, under [what is outside the language](https://markdown.tisty.app/what-is-outside-the-language).
 
 ## When a document opens read-only
 

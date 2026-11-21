@@ -11,7 +11,7 @@ Tisty te ofrece **Google Drive, OneDrive, iCloud y Dropbox** (los que encuentre 
 > [!IMPORTANT]
 > Quien sube y baja esa carpeta es **el programa de tu proveedor**, no Tisty. Si no está en marcha, tu trabajo espera en la carpeta hasta que lo esté. Sincronizar te da redundancia, no vuelta atrás en el tiempo: si borras una tarea, el borrado también viaja.
 
-En Configuración › **Sincronizar** está **Sincronizar ahora**, que dice a qué hora corrió y si llegó algo o quedó escrito en la carpeta.
+En **Configuración › Sincronización** está **Sincronizar ahora**, que dice a qué hora corrió y si llegó algo o quedó escrito en la carpeta.
 
 Google Drive, desde la 1.31 OneDrive y desde la 1.32 un servidor WebDAV tuyo también se pueden conectar directo, sin ningún programa suyo en el equipo: mira [Sincronizar con Google Drive directamente](#sincronizar-con-google-drive-directamente), [Sincronizar con OneDrive directamente](#sincronizar-con-onedrive-directamente) y [Sincronizar con tu propio servidor WebDAV](#sincronizar-con-tu-propio-servidor-webdav). Lo que Tisty guarda en cualquiera de esos tres también se puede cifrar: mira [Cifrar tu nube](#cifrar-tu-nube).
 
@@ -34,7 +34,7 @@ Si tu nube está cifrada, antes hay que autorizar al equipo nuevo: mira [Tus otr
 **Cada equipo firma lo que escribe.** Uno que ya conocías se reconoce solo cuando se actualiza. Uno nuevo (recién instalado o reinstalado) espera a que confirmes que es tuyo:
 
 1. Aparece un aviso en la barra lateral con el nombre de ese equipo, y **Confirmar…** te muestra su código de veinte números.
-2. En ese equipo, abre Configuración › **Sincronizar**, en **Tus equipos**. **Mostrar en grande** deja el código fácil de leer desde lejos.
+2. En ese equipo, abre **Configuración › Seguridad**, en **Tus equipos**. **Mostrar en grande** deja el código fácil de leer desde lejos.
 3. Si los códigos coinciden, **Sí, es el mismo** lo deja pasar y trae lo que escribió. Si no, **No coincide** lo deja fuera.
 
 Se hace una vez en cada uno de tus otros equipos. Hasta entonces no entra nada de lo que ese equipo escribe, y desde entonces lo que no responda a su clave se rechaza, y Tisty te lo dice.
@@ -49,7 +49,7 @@ Las [versiones anteriores](Documentos#versiones-anteriores) de un documento no v
 
 ## Adjuntos grandes
 
-Por defecto cada equipo lleva todos los adjuntos, así que cualquiera abre cualquier cosa sin red. Para archivos de más de **25 MB**, Configuración ofrece otras dos formas:
+Por defecto cada equipo lleva todos los adjuntos, así que cualquiera abre cualquier cosa sin red. Para archivos de más de **25 MB**, **Configuración › Almacenamiento › Dónde se quedan los adjuntos grandes** ofrece otras dos formas:
 
 - guardar solo lo que adjuntó este equipo y traer el resto cuando lo abres;
 - dejarlos en la carpeta compartida y en ningún otro lugar.
@@ -58,17 +58,17 @@ Una copia local solo se suelta después de comprobar que la de la carpeta compar
 
 ## Respaldos
 
-**Respalda a mano, sincronices o no**: una carpeta compartida no es un respaldo. En **Configuración › Tus datos**, **Crear respaldo…** escribe un zip con toda tu historia, que guardas donde quieras, y desde ahí mismo se restaura.
+**Respalda a mano, sincronices o no**: una carpeta compartida no es un respaldo. En **Configuración › Copias**, **Crear respaldo…** escribe un zip con toda tu historia, que guardas donde quieras, y en la **Zona delicada** de esa misma página, **Restaurar desde un archivo…** lo devuelve. Antes de restaurar te muestra lo que se pierde, y no sigue hasta que marcas **Entiendo que no se puede deshacer**.
 
 El zip lleva también las [versiones anteriores](Documentos#versiones-anteriores) de tus documentos que guarda este equipo, y es la única forma de llevarlas a otra máquina. Restaurarlo cambia las de este equipo por las que trae, y su plazo de días vuelve a contar desde ese día.
 
 ## Sincronizar con Google Drive directamente
 
-Desde la 1.30, Tisty puede sincronizar con tu propio Google Drive sin el programa de escritorio de Google. Aquí es Tisty quien habla con Drive, así que, a diferencia de una carpeta, sabe cuándo algo anda mal y lo dice en la tarjeta de Google Drive, en **Configuración › Sincronizar**. Diga lo que diga la tarjeta, lo que escribes está a salvo en este equipo y sube en cuanto desaparece la causa.
+Desde la 1.30, Tisty puede sincronizar con tu propio Google Drive sin el programa de escritorio de Google. Aquí es Tisty quien habla con Drive, así que, a diferencia de una carpeta, sabe cuándo algo anda mal y lo dice en la tarjeta de Google Drive, en **Configuración › Sincronización**. Diga lo que diga la tarjeta, lo que escribes está a salvo en este equipo y sube en cuanto desaparece la causa.
 
 ### Conectarlo
 
-**Configuración › Sincronizar › Tu servicio de nube › Google Drive › Conectar.** Tu navegador se abre en la página de Google; entra en tu cuenta y permite que Tisty guarde ahí sus copias. Tisty pide solo un espacio oculto propio en tu Drive, así que no puede ver nada más ahí, y sus copias no aparecen entre tus archivos. Después, **Empezar a subir**: la primera vez sube todo lo que tienes, y si cierras Tisty o se corta la red, sigue donde quedó. Haz lo mismo en tu otro equipo, con la misma cuenta de Google.
+**Configuración › Sincronización › Activar… › Tu servicio de nube › Google Drive › Conectar.** Tu navegador se abre en la página de Google; entra en tu cuenta y permite que Tisty guarde ahí sus copias. Tisty pide solo un espacio oculto propio en tu Drive, así que no puede ver nada más ahí, y sus copias no aparecen entre tus archivos. Después, **Empezar a subir**: la primera vez sube todo lo que tienes, y si cierras Tisty o se corta la red, sigue donde quedó. Haz lo mismo en tu otro equipo, con la misma cuenta de Google.
 
 En un equipo que todavía no guarda nada tuyo, si tu Drive ya tiene tu Tisty, la tarjeta dice **«Tu Google Drive ya tiene tu Tisty»** y el botón dice **Sincronizar**: no hay nada que subir primero, y Tisty trae a este equipo lo que hay ahí. Un equipo que ya guarda trabajo propio primero te pregunta (mira [Un lugar que ya guarda un Tisty](#un-lugar-que-ya-guarda-un-tisty)).
 
@@ -80,14 +80,14 @@ Antes de que entres en tu cuenta, y antes de que empiece un movimiento a Drive, 
 
 ### Lo que viaja y lo que se queda
 
-Suben tu historia, tus documentos y su configuración. Los adjuntos se quedan en el equipo donde se agregaron; en otro, cada uno baja la primera vez que lo abres ahí. **Liberar espacio**, en Configuración › Mantenimiento, suelta los adjuntos que no abres hace tiempo; la próxima vez que abras uno, vuelve a bajar. Los adjuntos tienen un tope de 650 MB, en una tarea o en un documento, igual que con una carpeta, y nada de más de 750 MB se trae desde la nube.
+Suben tu historia, tus documentos y su configuración. Los adjuntos se quedan en el equipo donde se agregaron; en otro, cada uno baja la primera vez que lo abres ahí. **Liberar espacio**, en Configuración › Almacenamiento, suelta los adjuntos que no abres hace tiempo; la próxima vez que abras uno, vuelve a bajar. Los adjuntos tienen un tope de 650 MB, en una tarea o en un documento, igual que con una carpeta, y nada de más de 750 MB se trae desde la nube.
 
 ### Lo que dice la tarjeta
 
 - **«Google ya no deja entrar a Tisty»**: se quitó el permiso, desde tu cuenta de Google o con **Quitar el acceso de Tisty en todos tus equipos**, o venció. Pulsa **Reconectar** y vuelve a entrar. Quitar el acceso en un equipo lo quita en todos, así que cada uno te lo va a pedir.
 - **«Esta copia es de otra cuenta»**: entraste con una cuenta de Google distinta de la que esta copia ya usa para sincronizar. Tisty se detiene antes que mezclar dos cuentas. Pulsa **Cambiar cuenta** y entra con la que usaste antes. Si de verdad quieres sincronizar con otra cuenta, múdate a ella (más abajo).
 - **«Tu Google Drive está lleno»**: tu Drive no tiene más espacio. Tisty manda primero tus tareas; el resto, incluido lo que mandan tus otros equipos, espera hasta que liberes espacio en Drive o consigas más. **Ver espacio** abre la página de Google para eso.
-- **«Tu nube llegó a su límite de hoy»**: cada equipo tiene su propia cuota diaria, el equivalente a 2.000.000 de peticiones y 50 GB descargados, para que ninguna copia pueda gastarse la cuota que Google le da al proyecto. Es por equipo, no por persona. Cuando se agota, la sincronización sigue sola al día siguiente. **Uso de hoy en la nube**, en **Liberar espacio** de Configuración › Mantenimiento, muestra cuánto queda.
+- **«Tu nube llegó a su límite de hoy»**: cada equipo tiene su propia cuota diaria, el equivalente a 2.000.000 de peticiones y 50 GB descargados, para que ninguna copia pueda gastarse la cuota que Google le da al proyecto. Es por equipo, no por persona. Cuando se agota, la sincronización sigue sola al día siguiente. **Uso de hoy en la nube**, en **Liberar espacio** de Configuración › Almacenamiento, muestra cuánto queda.
 - **«Google pidió esperar un poco»**: Google está frenando a todos por un momento. Tisty espera lo que Google pide y sigue solo. No hay nada que hacer.
 - **«La nube está en pausa por ahora»**: el proyecto puede pausar la sincronización en todas las copias por un tiempo, si su cuota compartida con Google corre riesgo; el aviso va firmado, así que nadie más puede mandarlo. Se levanta solo. **Apagar**, en la tarjeta, hace lo mismo solo en este equipo, hasta que lo vuelvas a encender.
 - **«Google tiene problemas»**: el problema está del lado de Google. Tisty vuelve a intentarlo solo; no hay nada que hacer.
@@ -113,24 +113,24 @@ En un espacio oculto de tu Drive que es de Tisty: no aparecen entre tus archivos
 
 ## Sincronizar con OneDrive directamente
 
-Desde la 1.31, Tisty puede sincronizar de la misma forma con tu propio OneDrive personal, sin el programa de escritorio de Microsoft. Funciona como Google Drive, más arriba: la misma primera ronda, la misma tarjeta en **Configuración › Sincronizar**, la misma revisión del camino antes de que inicies sesión y la misma mudanza para dejarlo.
+Desde la 1.31, Tisty puede sincronizar de la misma forma con tu propio OneDrive personal, sin el programa de escritorio de Microsoft. Funciona como Google Drive, más arriba: la misma primera ronda, la misma tarjeta en **Configuración › Sincronización**, la misma revisión del camino antes de que inicies sesión y la misma mudanza para dejarlo.
 
-- **Conectarlo:** **Configuración › Sincronizar › Tu servicio de nube › OneDrive › Conectar**. Tu navegador se abre en la página de Microsoft; entra en tu cuenta y permite que Tisty guarde ahí sus copias. Tisty nunca ve tu contraseña.
+- **Conectarlo:** **Configuración › Sincronización › Activar… › Tu servicio de nube › OneDrive › Conectar**. Tu navegador se abre en la página de Microsoft; entra en tu cuenta y permite que Tisty guarde ahí sus copias. Tisty nunca ve tu contraseña.
 - **Dónde quedan las copias:** en *Aplicaciones › Tisty* de tu OneDrive. A diferencia del espacio oculto de Google, es una carpeta que puedes ver. Déjasela a Tisty: lo que cambies ahí a mano se lee como un cambio de otro equipo. Borrarla manda tus copias a la papelera de reciclaje de OneDrive, desde donde se pueden restaurar.
 - **Las subidas largas** siguen donde se cortaron, y una escritura que falla a medias se vuelve a intentar.
-- **Soltarlo:** **Desconectar este equipo** olvida el acceso solo en ese equipo. **Quitar el acceso de Tisty en todos tus equipos** lo olvida aquí y abre tu cuenta de Microsoft en el navegador, donde quitas a Tisty de todos tus equipos a la vez. Tus copias quedan en tu OneDrive.
+- **Soltarlo:** en la **Zona delicada** de **Configuración › Sincronización**, **Desconectar este equipo** olvida el acceso solo en ese equipo. **Quitar el acceso de Tisty en todos tus equipos** lo olvida aquí y abre tu cuenta de Microsoft en el navegador, donde quitas a Tisty de todos tus equipos a la vez. Tus copias quedan en tu OneDrive.
 
 Antes de que inicies sesión, Tisty revisa que Microsoft responda, con una petición a `graph.microsoft.com` que no lleva nada tuyo. Igual que Drive, solo se puede conectar desde la ventana.
 
 ## Sincronizar con tu propio servidor WebDAV
 
-Desde la 1.32, Tisty puede guardar sus copias en un servidor tuyo (Nextcloud, ownCloud, Synology y otros) hablando con él por WebDAV, sin ningún programa por medio y sin iniciar sesión en el navegador. Funciona como Google Drive, más arriba: la misma primera ronda, la misma tarjeta en **Configuración › Sincronizar** y la misma mudanza para dejarlo.
+Desde la 1.32, Tisty puede guardar sus copias en un servidor tuyo (Nextcloud, ownCloud, Synology y otros) hablando con él por WebDAV, sin ningún programa por medio y sin iniciar sesión en el navegador. Funciona como Google Drive, más arriba: la misma primera ronda, la misma tarjeta en **Configuración › Sincronización** y la misma mudanza para dejarlo.
 
-- **Conectarlo:** **Configuración › Sincronizar › Tu servicio de nube › WebDAV**. Escribe la **Dirección del servidor**, tu **Usuario** y una **Contraseña**, y pulsa **Conectar**. Antes de guardar nada, Tisty revisa el servidor: entra con lo que escribiste y comprueba que el servidor no deje que dos equipos escriban uno encima del otro; si lo deja, no se conecta nada. Solo se aceptan direcciones `https://`, porque la contraseña viaja en cada petición; `http://` a secas se rechaza, salvo hacia este mismo equipo.
+- **Conectarlo:** **Configuración › Sincronización › Activar… › Tu servicio de nube › WebDAV**. Escribe la **Dirección del servidor**, tu **Usuario** y una **Contraseña**, y pulsa **Conectar**. Antes de guardar nada, Tisty revisa el servidor: entra con lo que escribiste y comprueba que el servidor no deje que dos equipos escriban uno encima del otro; si lo deja, no se conecta nada. Solo se aceptan direcciones `https://`, porque la contraseña viaja en cada petición; `http://` a secas se rechaza, salvo hacia este mismo equipo.
 - **La contraseña** queda en este equipo, guardada por el sistema: en el llavero en macOS, en un archivo sellado para tu usuario en Windows. Nunca llega al registro, a un respaldo ni a un paquete. Mejor una contraseña de aplicación de tu servidor que la principal, porque ahí la puedes quitar cuando quieras. Si el servidor vuelve a pedirla, Tisty solo te pide la contraseña.
 - **Dónde quedan las copias:** en una carpeta *Tisty* dentro de la carpeta a la que apunta tu dirección; Tisty no toca nada fuera de ella. Ahí la puedes ver. Déjasela a Tisty: lo que cambies ahí a mano se lee como un cambio de otro equipo.
 - **Tu servidor pone el límite y el ritmo:** lo que tenga libre es tu techo, y Tisty busca cambios cada dos minutos. Los adjuntos también quedan siempre en este equipo, así que no se ofrece **Liberar espacio**.
-- **Soltarlo:** **Desconectar este equipo** olvida la contraseña solo en ese equipo y conserva tus copias, aquí y en el servidor. Para quitar el acceso en todos tus equipos, borra la contraseña de aplicación, o cambia la contraseña, en tu servidor. **Borrar para siempre mis copias en WebDAV** las borra del servidor, que las manda a su papelera si tiene una.
+- **Soltarlo:** en la **Zona delicada** de **Configuración › Sincronización**, **Desconectar este equipo** olvida la contraseña solo en ese equipo y conserva tus copias, aquí y en el servidor. Para quitar el acceso en todos tus equipos, borra la contraseña de aplicación, o cambia la contraseña, en tu servidor. **Borrar para siempre mis copias en WebDAV** las borra del servidor, que las manda a su papelera si tiene una.
 
 ## Cifrar tu nube
 
@@ -148,7 +148,7 @@ En **Configuración › Seguridad**, pulsa **Cifrar mi nube…**. Antes de empez
 
 Después, **Cifrar mi nube** te muestra el avance. Puedes seguir trabajando, o cerrar Tisty y que siga donde quedó. Hasta el último paso, cancelar no pierde nada: lo de antes queda intacto.
 
-Cuando dice **«Tu nube está cifrada»**, la copia antigua sin cifrar sigue en la nube hasta que pulses **Borrar la copia sin cifrar**, que borra solo los archivos cuya copia cifrada ya está ahí. Un archivo demasiado grande para que el proveedor lo acepte cifrado queda fuera y sigue como estaba.
+Cuando dice **«Tu nube está cifrada»**, la copia antigua sin cifrar sigue en la nube hasta que pulses **Borrar la copia sin cifrar**, que borra solo los archivos cuya copia cifrada ya está ahí. Como no se deshace, te pide marcar **Entiendo que no se puede deshacer** antes. Un archivo demasiado grande para que el proveedor lo acepte cifrado queda fuera y sigue como estaba.
 
 ### Tus otros equipos
 
@@ -178,7 +178,7 @@ La frase se guarda solo en el equipo donde la creaste, y **Ver la frase**, en Co
 
 ## Mudarte a otro lugar
 
-Cambiar dónde sincroniza Tisty es una mudanza, no un interruptor: todo lo que ya tienes tiene que viajar. **Configuración › Sincronizar › Mudarme a otro lugar…** lleva tus copias entre solo este equipo, una carpeta, Google Drive, OneDrive y tu servidor WebDAV.
+Cambiar dónde sincroniza Tisty es una mudanza, no un interruptor: todo lo que ya tienes tiene que viajar. **Configuración › Sincronización › Mudarme a otro lugar…** lleva tus copias entre solo este equipo, una carpeta, Google Drive, OneDrive y tu servidor WebDAV.
 
 - Antes de empezar, la ventana te dice lo que va a pasar: qué baja, qué sube, si a tu Drive le cabe, y cuáles de tus otros equipos te van a seguir. Marca **Entiendo que la mudanza tarda y que no se puede dejar a medias.** y pulsa **Mover mis copias**.
 - Va en dos pasos. Primero llega a este equipo todo lo que solo vive en el lugar que dejas, **Trayendo desde tu nube** o **Trayendo desde la carpeta**, porque después de la mudanza Tisty ya no lo lee. Después todo va al nuevo lugar, **Subiendo a Google Drive** o **Copiando a la carpeta**, con su barra y lo que queda, **faltan 12 archivos**. Cuando hacen falta los dos, la ventana muestra **Paso 1 de 2** y **Paso 2 de 2**.
@@ -204,10 +204,10 @@ Revisa en este orden; los tres primeros cubren casi todos los casos.
 2. **¿Está en pausa o con la sesión cerrada?** Un cliente abierto no siempre está sincronizando: revisa en su propio panel que no diga en pausa, que la cuenta siga con la sesión iniciada y que no te hayas quedado sin espacio.
 3. **¿Esa carpeta está entre las que sincroniza?** Muchos clientes te dejan elegir carpetas. Si la que le diste a Tisty quedó fuera de esa selección, todo funciona menos lo único que importa.
 4. **¿El otro equipo está encendido?** Tiene que abrir Tisty para recoger los cambios. Mientras está apagado, tu trabajo espera en la carpeta.
-5. **¿El otro equipo te está esperando?** En **Configuración › Sincronizar › Tus equipos** aparece como **Esperando**: confírmalo (arriba), revisando que la clave sea la misma carácter por carácter. Lo que escribió entretanto se queda en la carpeta y llega entero.
-6. **Revísalo con tus propios ojos.** Configuración › Sincronizar muestra dos fechas: **mi última ronda** (cuándo Tisty leyó y escribió en la carpeta; *no* significa que algo se haya subido) y **lo último que llegó de otro equipo**. Si la segunda lleva días quieta y tus equipos están encendidos, el problema está ahí. **Abrir la carpeta** te la muestra: busca ahí tus archivos recientes y revisa con tu proveedor, desde su web por ejemplo, si también están allá arriba.
+5. **¿El otro equipo te está esperando?** En **Configuración › Seguridad › Tus equipos** aparece como **Esperando**: confírmalo (arriba), revisando que la clave sea la misma carácter por carácter. Lo que escribió entretanto se queda en la carpeta y llega entero.
+6. **Revísalo con tus propios ojos.** Configuración › Sincronización muestra dos fechas: **mi última ronda** (cuándo Tisty leyó y escribió en la carpeta; *no* significa que algo se haya subido) y **lo último que llegó de otro equipo**. Si la segunda lleva días quieta y tus equipos están encendidos, el problema está ahí. **Abrir la carpeta** te la muestra: busca ahí tus archivos recientes y revisa con tu proveedor, desde su web por ejemplo, si también están allá arriba.
 
-Si todo eso está bien, **Configuración › Sincronizar › Volver a enviar todo** copia de nuevo a la carpeta todo lo de este equipo sin preguntar si ya está ahí, que es justo lo que necesitas cuando un cliente de nube se saltó un archivo.
+Si todo eso está bien, **Configuración › Sincronización › Más opciones › Volver a enviar todo** copia de nuevo a la carpeta todo lo de este equipo sin preguntar si ya está ahí, que es justo lo que necesitas cuando un cliente de nube se saltó un archivo.
 
 ### ¿Por qué Tisty no me avisa solo?
 

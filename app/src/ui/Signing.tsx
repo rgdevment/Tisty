@@ -9,14 +9,14 @@ import {
   signTheRest,
 } from "../core";
 import { fill, t } from "../locales";
-import type { Run, Which, Word } from "./Card";
+import type { Run, Word } from "./Card";
 import Modal from "./Modal";
-import { Ask, Band, Line, off } from "./Rows";
+import { Band, Line, off } from "./Rows";
+import { held, type Working } from "./working";
+import { More, Scope } from "./Zone";
 
 interface Props {
-  busy: Which | null;
-  said?: Word;
-  trouble?: Word;
+  busy: Working;
   run: Run;
   tell: (word?: Word) => void;
   signs: Signs;
@@ -31,14 +31,18 @@ export function useSigning() {
   const [mine, setMine] = useState(0);
   const [asking, setAsking] = useState<string | null>(null);
   const [imitates, setImitates] = useState({ alias: false, name: false });
+  const [signedAlias, setSignedAlias] = useState<string | null>();
 
   const took = useCallback((now: Signed) => {
     const fresh = now.alias ?? "";
-    // A name still being typed is the person's until they leave the field.
-    setAlias((typed) => (typed === signedAs.current ? fresh : typed));
+    // A name still being typed is the person's until they leave the field; React may run the updater later.
+    const wasAlias = signedAs.current;
+    setAlias((typed) => (typed === wasAlias ? fresh : typed));
     signedAs.current = fresh;
+    setSignedAlias(now.alias ?? null);
     const named = now.name ?? "";
-    setName((typed) => (typed === namedAs.current ? named : typed));
+    const wasName = namedAs.current;
+    setName((typed) => (typed === wasName ? named : typed));
     namedAs.current = named;
     setAliases(now.before);
     setMine(now.mine);
@@ -64,6 +68,7 @@ export function useSigning() {
     asking,
     setAsking,
     imitates,
+    signedAlias,
     took,
     lookSigned,
   };
@@ -74,8 +79,9 @@ const imitating = (shown: boolean) =>
 
 export type Signs = ReturnType<typeof useSigning>;
 
-export default function Signing({ busy, said, trouble, run, tell, signs }: Props) {
-  const held = busy !== null;
+export default function Signing({ busy, run, tell, signs }: Props) {
+  const signing = held(busy, "signing");
+  const naming = held(busy, "naming");
   const { alias, setAlias, signedAs, name, setName, namedAs } = signs;
   const { aliases, mine, setMine, asking, setAsking, imitates, took } = signs;
   const before = aliases.filter((one) => one !== alias);
@@ -98,7 +104,7 @@ export default function Signing({ busy, said, trouble, run, tell, signs }: Props
             </button>
             <button
               type="button"
-              disabled={held}
+              disabled={signing}
               onClick={() => {
                 setAsking(null);
                 run("signing", signTheRest(), (many) => {
@@ -119,23 +125,27 @@ export default function Signing({ busy, said, trouble, run, tell, signs }: Props
       <Band label={t("bandSigning")} />
       <div className="border-t border-hair">
         <Line
+          row="alias"
           title={
-            <span className="flex items-center gap-1.5">
+            <span className="flex flex-wrap items-center gap-1.5">
               {t("alias")}
-              <Ask said={t("aliasWhy")} />
+              <Scope />
             </span>
           }
           why={t("aliasShort")}
           which="signing"
-          said={said}
-          trouble={trouble}
-          more={imitating(imitates.alias)}
+          more={
+            <>
+              {imitating(imitates.alias)}
+              <More>{t("aliasWhy")}</More>
+            </>
+          }
         >
           <input
             type="text"
             aria-label={t("alias")}
             value={alias}
-            disabled={held}
+            disabled={signing}
             maxLength={ALIAS_AT_MOST}
             placeholder={t("aliasNone")}
             onChange={(e) => setAlias(e.target.value)}
@@ -166,7 +176,7 @@ export default function Signing({ busy, said, trouble, run, tell, signs }: Props
           {mine > 0 && (
             <button
               type="button"
-              disabled={held}
+              disabled={signing}
               onClick={() => setAsking(alias)}
               className="rounded-[10px] border border-line px-2 py-1 text-[12.5px] hover:bg-hover disabled:opacity-60"
             >
@@ -182,23 +192,21 @@ export default function Signing({ busy, said, trouble, run, tell, signs }: Props
           )}
         </Line>
         <Line
-          title={
-            <span className="flex items-center gap-1.5">
-              {t("signName")}
-              <Ask said={t("signNameWhy")} />
-            </span>
-          }
+          row="signName"
           why={t("signNameShort")}
           which="naming"
-          said={said}
-          trouble={trouble}
-          more={imitating(imitates.name)}
+          more={
+            <>
+              {imitating(imitates.name)}
+              <More>{t("signNameWhy")}</More>
+            </>
+          }
         >
           <input
             type="text"
             aria-label={t("signName")}
             value={name}
-            disabled={held}
+            disabled={naming}
             maxLength={NAME_AT_MOST}
             placeholder={alias || t("signNameNone")}
             onChange={(e) => setName(e.target.value)}

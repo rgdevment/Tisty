@@ -453,6 +453,17 @@ label[for] {
   background: var(--tisty-accent-soft);
 }
 
+[data-setting] {
+  scroll-margin: 90px;
+}
+
+[data-landed] {
+  background: var(--tisty-accent-soft);
+  box-shadow:
+    -10px 0 0 var(--tisty-accent-soft),
+    10px 0 0 var(--tisty-accent-soft);
+}
+
 .quick,
 .quick body,
 .quick #root {

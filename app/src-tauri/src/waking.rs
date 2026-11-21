@@ -274,11 +274,15 @@ mod there {
         let Ok(exe) = std::env::current_exe() else {
             return Waking::none();
         };
-        let wakes = value().is_some_and(|one| ours(&one, &exe));
+        shelved_as(value().is_some_and(|one| ours(&one, &exe)), approved())
+    }
+
+    // An entry the Task Manager turned off stays in Run, so it only wakes while Windows approves it.
+    pub fn shelved_as(written: bool, approved: bool) -> Waking {
         Waking {
             offered: true,
-            wakes,
-            theirs: wakes && !approved(),
+            wakes: written && approved,
+            theirs: written && !approved,
         }
     }
 
@@ -420,7 +424,7 @@ mod tests {
 #[cfg(all(test, windows))]
 mod tests {
     use super::HUSHED;
-    use super::there::{approves, ours};
+    use super::there::{approves, ours, shelved_as};
     use crate::desktop::reopens_with;
     use std::path::Path;
 
@@ -469,6 +473,21 @@ mod tests {
     #[test]
     fn an_empty_entry_claims_nothing() {
         assert!(!ours("   ", Path::new(EXE)));
+    }
+
+    #[test]
+    fn an_entry_the_task_manager_turned_off_is_held_by_windows_and_does_not_wake() {
+        let held = shelved_as(true, false);
+        assert!(!held.wakes);
+        assert!(held.theirs);
+
+        let free = shelved_as(true, true);
+        assert!(free.wakes);
+        assert!(!free.theirs);
+
+        let none = shelved_as(false, false);
+        assert!(!none.wakes);
+        assert!(!none.theirs);
     }
 
     #[test]

@@ -12,7 +12,7 @@ Ninguna de las dos. Por su cuenta, Tisty solo pregunta si hay una versión más 
 No. Tisty es una memoria de trabajo compartida para ti y tu agente, y también sirve solo para ti, si prefieres trabajar de una forma más personal: tus tareas, tus documentos, tus ideas y tu diario funcionan igual sin agente. Lo conectas el día que quieras, como cuenta [[Asistentes y MCP|Asistentes-y-MCP]].
 
 **¿Dónde se guardan mis datos?**
-En una carpeta de tu propio disco. **Configuración › Tus datos** muestra la ruta, y *Mostrar carpeta* la abre. Mira [Instalación](Instalación#dónde-viven-tus-datos).
+En una carpeta de tu propio disco. **Configuración › Almacenamiento** muestra la ruta, y **Mostrar carpeta** la abre. Mira [Instalación](Instalación#dónde-viven-tus-datos).
 
 **¿Qué pasa con mis notas si Tisty desaparece?**
 Se quedan donde están: Markdown y texto plano, que se leen con `cat`, se buscan con `grep` y se abren con cualquier editor.
@@ -24,7 +24,7 @@ No hay un botón de exportar porque no hay nada que convertir: ya son archivos a
 cat store/*/*.tisty | jq -c 'select(.op == "task.add") | {id, title: .d.title}'
 ```
 
-Eso es el historial, no el estado de hoy: un evento posterior renombra, termina o mueve una tarea. Para ver las tareas como están ahora, pídeselas a tu asistente por [[MCP|Asistentes-y-MCP]], o **Configuración › Tus datos** escribe un zip con todo. Si necesitas un formato concreto para llevarte Tisty a otro lado, dilo en un issue.
+Eso es el historial, no el estado de hoy: un evento posterior renombra, termina o mueve una tarea. Para ver las tareas como están ahora, pídeselas a tu asistente por [[MCP|Asistentes-y-MCP]], o **Crear respaldo…**, en **Configuración › Copias**, escribe un zip con todo. Si necesitas un formato concreto para llevarte Tisty a otro lado, dilo en un issue.
 
 **¿Mis datos están cifrados?**
 En tu disco no, por decisión: la protección son los permisos de tu sistema operativo, y los archivos se pueden leer con herramientas que ya tienes. En una nube con la que Tisty habla directo, sí pueden estarlo: mira [Cifrar tu nube](Sincronizar-y-respaldar#cifrar-tu-nube). [PRIVACY.md](https://github.com/rgdevment/Tisty/blob/main/PRIVACY.md) explica por qué.
@@ -33,7 +33,7 @@ En tu disco no, por decisión: la protección son los permisos de tu sistema ope
 No como un tablero compartido. Tisty es de una persona por diseño: sin asignaciones, sin permisos, sin una base de datos compartida. Cada persona guarda sus propias tareas, documentos y agente, y cuando alguien necesita lo que sabes, le entregas el documento con Folio, cifrado y firmado. Mira [Compartir](Documentos#compartir).
 
 **¿Hay app móvil? ¿Linux?**
-No hay app móvil: Tisty es un programa de escritorio para Windows y macOS. Tus documentos son Markdown en una carpeta, así que un teléfono que llegue a esa carpeta puede leerlos y editarlos con cualquier app. Tampoco hay versión para Linux; un asistente que corre en Linux dentro de Windows, con WSL, llega a Tisty igual desde Configuración › Asistentes.
+No hay app móvil: Tisty es un programa de escritorio para Windows y macOS. Tus documentos son Markdown en una carpeta, así que un teléfono que llegue a esa carpeta puede leerlos y editarlos con cualquier app. Tampoco hay versión para Linux; un asistente que corre en Linux dentro de Windows, con WSL, llega a Tisty igual desde Configuración › Asistentes › Conectados.
 
 **¿Los recordatorios suenan con Tisty cerrado?**
 Sí, desde la 1.48, mientras el equipo esté encendido: Tisty los agenda en Windows o macOS, y un clic en el aviso abre la tarea. Mira [Recordatorios](Reparto-y-recordatorios#recordatorios).
@@ -64,7 +64,7 @@ Y los archivos de tu carpeta personal, como `~/.claude/CLAUDE.md` o `~/.codex/AG
 No por su cuenta. Las lee como cualquier documento, pero un cambio suyo queda como propuesta: en la ficha ves lo **Aprobado** y lo **Propuesto**, y solo con **Aprobar el cambio** llega a los archivos de tus agentes, en cada equipo donde Agentes sincroniza y lo aplicaste. Mira [[Una propuesta de tu agente|Carpeta-AGENTS#una-propuesta-de-tu-agente]].
 
 **¿Tisty usa IA?**
-No, y no la va a usar. El lenguaje natural son reglas en tu equipo. Si usas un asistente propio, Tisty deja una [[puerta MCP|Asistentes-y-MCP]]: viene abierta y un clic la cierra.
+No, y no la va a usar. El lenguaje natural son reglas en tu equipo. Si usas un asistente propio, Tisty deja una [[puerta MCP|Asistentes-y-MCP]]: viene abierta y la cierras cuando quieras.
 
 **Un asistente dice que una de sus tareas está hecha. ¿La cerró?**
 No. Nada de lo que hace un asistente cierra una tarea. La marca, con su cuenta en la bitácora, y la tarea espera en **Por confirmar** hasta que decidas. Mira [[Qué puede hacer un asistente|Qué-puede-hacer-un-asistente]].
@@ -113,16 +113,16 @@ Sí, a través de una carpeta que ya sincronizas o directamente con tu Google Dr
 Casi siempre el programa de la nube no está corriendo, está en pausa o no sincroniza esa carpeta. La lista completa está en [Sincronizar y respaldar](Sincronizar-y-respaldar#cambié-algo-en-un-equipo-y-no-aparece-en-el-otro).
 
 **¿Puedo sincronizar con Google Drive sin el programa de Google?**
-Sí, desde la 1.30: **Configuración › Sincronizar › Tu servicio de nube › Google Drive › Conectar**. Tisty pide solo un espacio oculto propio en tu Drive, no ve nada más ahí y te dice en su tarjeta cuando algo anda mal. Qué significa cada aviso está en [Sincronizar y respaldar](Sincronizar-y-respaldar#sincronizar-con-google-drive-directamente).
+Sí, desde la 1.30: **Configuración › Sincronización › Activar… › Tu servicio de nube › Google Drive › Conectar**. Tisty pide solo un espacio oculto propio en tu Drive, no ve nada más ahí y te dice en su tarjeta cuando algo anda mal. Qué significa cada aviso está en [Sincronizar y respaldar](Sincronizar-y-respaldar#sincronizar-con-google-drive-directamente).
 
 **¿Dónde están mis copias en Google Drive, y cómo las borro?**
 En un espacio oculto de tu Drive que solo abre Tisty. Desconectar las conserva, y también *Desconectar de Drive* en **Google Drive › Configuración › Administrar apps**, que solo retira el acceso de Tisty. Solo **«Eliminar datos ocultos de la app»** ahí, o **Borrar para siempre mis copias en Google Drive** en Tisty, las borra, y ese espacio no tiene papelera.
 
 **¿Puedo sincronizar con OneDrive sin el programa de Microsoft?**
-Sí, desde la 1.31: **Configuración › Sincronizar › Tu servicio de nube › OneDrive › Conectar**. Tisty guarda sus copias en *Aplicaciones › Tisty*, una carpeta que puedes ver en tu OneDrive; déjasela a Tisty. Mira [Sincronizar y respaldar](Sincronizar-y-respaldar#sincronizar-con-onedrive-directamente).
+Sí, desde la 1.31: **Configuración › Sincronización › Activar… › Tu servicio de nube › OneDrive › Conectar**. Tisty guarda sus copias en *Aplicaciones › Tisty*, una carpeta que puedes ver en tu OneDrive; déjasela a Tisty. Mira [Sincronizar y respaldar](Sincronizar-y-respaldar#sincronizar-con-onedrive-directamente).
 
 **¿Puedo sincronizar con mi propio servidor?**
-Sí, desde la 1.32, por WebDAV: Nextcloud, ownCloud, Synology y otros. En **Configuración › Sincronizar › Tu servicio de nube › WebDAV** escribes la dirección del servidor, tu usuario y una contraseña, y Tisty revisa el servidor antes de conectarse; no se abre ningún navegador. La contraseña queda en este equipo, guardada por el sistema, y las copias van a una carpeta *Tisty* del servidor. Solo se acepta `https://`, salvo hacia este mismo equipo. Mira [Sincronizar y respaldar](Sincronizar-y-respaldar#sincronizar-con-tu-propio-servidor-webdav).
+Sí, desde la 1.32, por WebDAV: Nextcloud, ownCloud, Synology y otros. En **Configuración › Sincronización › Activar… › Tu servicio de nube › WebDAV** escribes la dirección del servidor, tu usuario y una contraseña, y Tisty revisa el servidor antes de conectarse; no se abre ningún navegador. La contraseña queda en este equipo, guardada por el sistema, y las copias van a una carpeta *Tisty* del servidor. Solo se acepta `https://`, salvo hacia este mismo equipo. Mira [Sincronizar y respaldar](Sincronizar-y-respaldar#sincronizar-con-tu-propio-servidor-webdav).
 
 **¿Puedo cifrar mi nube?**
 Sí, desde la 1.36, con Google Drive, OneDrive o WebDAV: **Configuración › Seguridad › Cifrar mi nube…** cifra lo que Tisty guarda ahí con una frase de 24 palabras que solo tú conoces, así que el proveedor ya no puede leer tus tareas ni tus documentos. Una carpeta que otro programa mantiene al día no se cifra. Tus otros equipos reciben la llave solos; uno nuevo se autoriza con veinte dígitos que escribes en un equipo que ya tiene la llave, o con tu frase. El proveedor sigue viendo los nombres y tamaños de los archivos, cuántos equipos tienes y, por un tiempo, versiones anteriores sin cifrar. Sin la frase o sin uno de tus equipos, nadie puede abrirla, ni siquiera Tisty. Mira [Cifrar tu nube](Sincronizar-y-respaldar#cifrar-tu-nube).

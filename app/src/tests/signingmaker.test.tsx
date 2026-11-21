@@ -3,6 +3,7 @@ import { useEffect } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { adopt, t } from "../locales";
 import Signing, { useSigning } from "../ui/Signing";
+import { IDLE } from "../ui/working";
 
 const invoked = vi.hoisted(() => vi.fn());
 vi.mock("@tauri-apps/api/core", () => ({ invoke: invoked }));
@@ -20,7 +21,7 @@ function Held() {
   const signs = useSigning();
   const { lookSigned } = signs;
   useEffect(() => lookSigned(), [lookSigned]);
-  return <Signing busy={null} run={vi.fn()} tell={vi.fn()} signs={signs} />;
+  return <Signing busy={IDLE} run={vi.fn()} tell={vi.fn()} signs={signs} />;
 }
 
 beforeEach(() => {

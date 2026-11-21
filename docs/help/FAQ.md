@@ -12,7 +12,7 @@ Neither. On its own, Tisty only asks whether a newer version exists, and it send
 No. Tisty is a shared working memory for you and your agent, and it also works for you alone, if you would rather work in a more personal way: your tasks, your documents, your ideas and your diary work just the same with no agent. You connect one whenever you like, as [[Assistants and MCP|Assistants-and-MCP]] tells.
 
 **Where is my data kept?**
-In one folder on your own disk. **Settings › Your data** prints the path and *Show folder* opens it. See [Installation](Installation#where-your-data-lives).
+In one folder on your own disk. **Settings › Storage** prints the path and **Show folder** opens it. See [Installation](Installation#where-your-data-lives).
 
 **What happens to my notes if Tisty disappears?**
 They stay where they are: Markdown and plain text, readable with `cat`, searchable with `grep`, openable in any editor.
@@ -24,7 +24,7 @@ There is no export button, because there is nothing to convert: they are already
 cat store/*/*.tisty | jq -c 'select(.op == "task.add") | {id, title: .d.title}'
 ```
 
-That is the history, not today's state: a later event renames, finishes or moves a task. For the tasks as they stand now, ask your assistant through [[MCP|Assistants-and-MCP]] to list them, or **Settings › Your data** writes a zip with everything. If you need a specific format to take Tisty elsewhere, say which in an issue.
+That is the history, not today's state: a later event renames, finishes or moves a task. For the tasks as they stand now, ask your assistant through [[MCP|Assistants-and-MCP]] to list them, or **Create backup…**, in **Settings › Copies**, writes a zip with everything. If you need a specific format to take Tisty elsewhere, say which in an issue.
 
 **Is my data encrypted?**
 On your disk, no, by decision: your operating system's permissions are the protection, and the files stay readable with tools you already have. In a cloud Tisty reaches directly, it can be: see [Encrypting your cloud](Sync-and-Backup#encrypting-your-cloud). [PRIVACY.md](https://github.com/rgdevment/Tisty/blob/main/PRIVACY.md) explains why.
@@ -33,7 +33,7 @@ On your disk, no, by decision: your operating system's permissions are the prote
 Not as a shared board. Tisty is one person's by design — no assignees, no permissions, no shared database. Each person keeps their own tasks, documents and agent, and when somebody needs what you know, you hand them the document through Folio, encrypted and signed. See [Sharing](Documents#sharing).
 
 **Is there a mobile app? Linux?**
-No mobile app: Tisty is a desktop program for Windows and macOS. Your documents are Markdown in a folder, so a phone that reaches that folder can read and edit them with any app. There is no Linux version either; an assistant that runs on Linux inside Windows, under WSL, reaches Tisty all the same from Settings › Assistants.
+No mobile app: Tisty is a desktop program for Windows and macOS. Your documents are Markdown in a folder, so a phone that reaches that folder can read and edit them with any app. There is no Linux version either; an assistant that runs on Linux inside Windows, under WSL, reaches Tisty all the same from Settings › Assistants › Connected.
 
 **Do reminders ring with Tisty closed?**
 Yes, since 1.48, while the computer is on: Tisty books them with Windows or macOS, and a click on the notice opens the task. See [Reminders](Spread-and-Reminders#reminders).
@@ -64,7 +64,7 @@ And the files in your home folder, like `~/.claude/CLAUDE.md` or `~/.codex/AGENT
 Not on its own. It reads them like any document, but a change of its own stays as a proposal: on the card you see what is **Approved** and what is **Proposed**, and only **Approve the change** carries it to your agents' files, on every computer where Agents syncs and you applied it. See [[A proposal from your agent|AGENTS-Folder#a-proposal-from-your-agent]].
 
 **Does Tisty use AI?**
-No, and none is coming. The natural language is rules on your machine. If you use an assistant of your own, Tisty leaves an [[MCP door|Assistants-and-MCP]] — it comes open, and one click closes it.
+No, and none is coming. The natural language is rules on your machine. If you use an assistant of your own, Tisty leaves an [[MCP door|Assistants-and-MCP]] — it comes open, and you close it whenever you like.
 
 **An assistant says one of its tasks is done. Did it close it?**
 No. Nothing an assistant does closes a task. It marks it, with its account in the journal, and the task waits under **To confirm** until you decide. See [[What an assistant may do|MCP-Permissions]].
@@ -113,16 +113,16 @@ Yes, through a folder you already sync or through your Google Drive, OneDrive or
 Almost always the cloud program is not running, is paused, or does not sync that folder. The full checklist is in [Sync and backup](Sync-and-Backup#something-changed-on-one-machine-and-is-not-on-the-other).
 
 **Can I sync through Google Drive without Google's program?**
-Yes, since 1.30: **Settings › Sync › Your cloud service › Google Drive › Connect**. Tisty asks only for a hidden space of its own in your Drive, sees nothing else there, and tells you on its card when something is wrong. What each message means is in [Sync and backup](Sync-and-Backup#syncing-through-google-drive-directly).
+Yes, since 1.30: **Settings › Sync › Turn on… › Your cloud service › Google Drive › Connect**. Tisty asks only for a hidden space of its own in your Drive, sees nothing else there, and tells you on its card when something is wrong. What each message means is in [Sync and backup](Sync-and-Backup#syncing-through-google-drive-directly).
 
 **Where are my copies in Google Drive, and how do I delete them?**
 In a hidden space of your Drive that only Tisty opens. Disconnecting keeps them, and so does *Disconnect from Drive* in **Google Drive › Settings › Manage apps**, which only withdraws Tisty's access. Only **Delete hidden app data** there, or **Delete my copies in Google Drive for good** in Tisty, deletes them — and that space has no bin.
 
 **Can I sync through OneDrive without Microsoft's program?**
-Yes, since 1.31: **Settings › Sync › Your cloud service › OneDrive › Connect**. Tisty keeps its copies in *Apps › Tisty*, a folder you can see in your OneDrive; leave it to Tisty. See [Sync and backup](Sync-and-Backup#syncing-through-onedrive-directly).
+Yes, since 1.31: **Settings › Sync › Turn on… › Your cloud service › OneDrive › Connect**. Tisty keeps its copies in *Apps › Tisty*, a folder you can see in your OneDrive; leave it to Tisty. See [Sync and backup](Sync-and-Backup#syncing-through-onedrive-directly).
 
 **Can I sync through my own server?**
-Yes, since 1.32, over WebDAV: Nextcloud, ownCloud, Synology and others. In **Settings › Sync › Your cloud service › WebDAV** you type the server's address, your user and a password, and Tisty checks the server before connecting; no browser opens. The password stays on this computer, kept by the system, and the copies go in a *Tisty* folder on the server. Only `https://` is accepted, except to this very computer. See [Sync and backup](Sync-and-Backup#syncing-through-your-own-webdav-server).
+Yes, since 1.32, over WebDAV: Nextcloud, ownCloud, Synology and others. In **Settings › Sync › Turn on… › Your cloud service › WebDAV** you type the server's address, your user and a password, and Tisty checks the server before connecting; no browser opens. The password stays on this computer, kept by the system, and the copies go in a *Tisty* folder on the server. Only `https://` is accepted, except to this very computer. See [Sync and backup](Sync-and-Backup#syncing-through-your-own-webdav-server).
 
 **Can I encrypt my cloud?**
 Yes, since 1.36, for Google Drive, OneDrive or WebDAV: **Settings › Security › Encrypt my cloud…** encrypts what Tisty keeps there with a 24-word phrase only you know, so the provider can no longer read your tasks or documents. A folder kept in step by another program is not encrypted. Your other computers get the key on their own; a new one is let in with twenty digits typed on a computer that already has the key, or with your phrase. The provider still sees file names and sizes, how many computers you have, and earlier unencrypted versions for a while. Without the phrase or one of your computers, nobody can open it, not even Tisty. See [Encrypting your cloud](Sync-and-Backup#encrypting-your-cloud).

@@ -11,7 +11,7 @@ Tisty offers **Google Drive, OneDrive, iCloud and Dropbox** — whichever it fin
 > [!IMPORTANT]
 > Whoever moves that folder up and down is **your provider's program**, not Tisty. If it is not running, your work waits in the folder until it is. Syncing gives you redundancy, not time travel: if you delete a task, the deletion travels too.
 
-Settings › **Sync** has **Sync now**, which says when it ran and whether something came back or was written to the folder.
+**Settings › Sync** has **Sync now**, which says when it ran and whether something came back or was written to the folder.
 
 Google Drive, since 1.31 OneDrive, and since 1.32 a WebDAV server of your own can also be connected directly, with no program of theirs on the computer: see [Syncing through Google Drive directly](#syncing-through-google-drive-directly), [Syncing through OneDrive directly](#syncing-through-onedrive-directly) and [Syncing through your own WebDAV server](#syncing-through-your-own-webdav-server). What Tisty keeps in any of those three can also be encrypted: see [Encrypting your cloud](#encrypting-your-cloud).
 
@@ -34,7 +34,7 @@ If your cloud is encrypted, a new computer is let in first: see [Your other comp
 **Each machine signs what it writes.** One you already knew is recognised on its own when it updates. A new one — just installed or reinstalled — waits until you confirm it is yours:
 
 1. A notice in the sidebar names that computer, and **Confirm…** shows its twenty-digit code.
-2. On that machine, open Settings › **Sync**, under **Your computers**. **Show large** makes the code easy to read from across the desk.
+2. On that machine, open **Settings › Security**, under **Your computers**. **Show large** makes the code easy to read from across the desk.
 3. If the codes match, **Yes, it is the same** lets it through and brings in what it wrote. If not, **It doesn't match** keeps it out.
 
 You do it once on each of your other machines. Until then nothing that machine writes comes in, and from then on whatever does not answer to its key is turned away — and Tisty says so.
@@ -49,7 +49,7 @@ A document's [earlier versions](Documents#earlier-versions) do not travel: each 
 
 ## Large attachments
 
-By default every machine carries every attachment, so any of them opens anything with the network off. For files above **25 MB**, Settings offers two other ways:
+By default every machine carries every attachment, so any of them opens anything with the network off. For files above **25 MB**, **Settings › Storage › Where large attachments stay** offers two other ways:
 
 - keep only what this machine attached, and fetch the rest when you open it;
 - leave them in the shared folder and nowhere else.
@@ -58,7 +58,7 @@ A local copy is only let go of after the one in the shared folder is found to ha
 
 ## Backups
 
-**Back up by hand, shared folder or not** — a shared folder is not a backup. In **Settings › Your data**, **Create backup…** writes one zip with your whole history, kept wherever you like, and restores from the same place.
+**Back up by hand, shared folder or not** — a shared folder is not a backup. In **Settings › Copies**, **Create backup…** writes one zip with your whole history, kept wherever you like, and in the **Handle with care** zone of that same page, **Restore from a file…** brings it back. Before restoring it shows you what is lost, and it goes no further until you tick **I understand this can't be undone**.
 
 The zip also carries the [earlier versions](Documents#earlier-versions) of your documents this machine keeps, and it is the only way to take them to another machine. Restoring it swaps this machine's for the ones it brings, and their limit in days counts again from that day.
 
@@ -68,7 +68,7 @@ Since 1.30, Tisty can sync through your own Google Drive without Google's deskto
 
 ### Connecting it
 
-**Settings › Sync › Your cloud service › Google Drive › Connect.** Your browser opens on Google's own page; sign in and allow Tisty to keep its copies there. Tisty asks only for a hidden space of its own in your Drive, so it cannot see anything else there, and its copies do not show up among your files. Then **Start uploading**: the first time everything you have goes up, and if you close Tisty or lose the network it carries on where it left off. Do the same on your other computer, with the same Google account.
+**Settings › Sync › Turn on… › Your cloud service › Google Drive › Connect.** Your browser opens on Google's own page; sign in and allow Tisty to keep its copies there. Tisty asks only for a hidden space of its own in your Drive, so it cannot see anything else there, and its copies do not show up among your files. Then **Start uploading**: the first time everything you have goes up, and if you close Tisty or lose the network it carries on where it left off. Do the same on your other computer, with the same Google account.
 
 On a computer that holds nothing of yours yet, if your Drive already holds your Tisty, the card says **«Your Google Drive already holds your Tisty»** and the button reads **Sync** instead: nothing has to go up first, and Tisty brings what is there to this computer. A computer that already holds work of its own asks first (see [A place that already holds a Tisty](#a-place-that-already-holds-a-tisty)).
 
@@ -80,14 +80,14 @@ Before you sign in, and before a move to Drive starts, Tisty checks that Google 
 
 ### What travels, and what stays
 
-Your history, your documents and their settings go up. Attachments stay on the computer they were added on; on another one each comes down the first time you open it there. **Free up space**, in Settings › Maintenance, lets go of the attachments you have not opened in a while; the next time you open one, it comes down again. Attachments are capped at 650 MB, on a task or in a document, as with a folder, and nothing over 750 MB is taken in from the cloud.
+Your history, your documents and their settings go up. Attachments stay on the computer they were added on; on another one each comes down the first time you open it there. **Free up space**, in Settings › Storage, lets go of the attachments you have not opened in a while; the next time you open one, it comes down again. Attachments are capped at 650 MB, on a task or in a document, as with a folder, and nothing over 750 MB is taken in from the cloud.
 
 ### What the card says
 
 - **«Google no longer lets Tisty in»** — the permission was removed, from your Google account or with **Remove Tisty's access on every computer**, or it expired. Press **Reconnect** and sign in again. Removing access on one machine removes it on all of them, so each one will ask.
 - **«This copy belongs to another account»** — you signed in with a different Google account from the one this copy already syncs with. Tisty stops rather than mix two accounts. Press **Change account** and sign in with the one you used before. If you really mean to sync with a different account, move there instead (below).
 - **«Your Google Drive is full»** — your Drive has no room left. Tisty sends your tasks first; the rest, including what your other computers send, waits until you free up space in Drive or get more. **See storage** opens Google's page for it.
-- **«Your cloud reached today's limit»** — every computer has its own daily allowance, 2,000,000 requests' worth and 50 GB downloaded, so no single copy can spend the quota Google grants the project. It is per computer, not per person. When it runs out, syncing carries on the next day by itself. **Cloud use today**, under **Free up space** in Settings › Maintenance, shows how much is left.
+- **«Your cloud reached today's limit»** — every computer has its own daily allowance, 2,000,000 requests' worth and 50 GB downloaded, so no single copy can spend the quota Google grants the project. It is per computer, not per person. When it runs out, syncing carries on the next day by itself. **Cloud use today**, under **Free up space** in Settings › Storage, shows how much is left.
 - **«Google asked to wait a little»** — Google is slowing everyone down for a moment. Tisty waits as long as Google says and carries on by itself. There is nothing to do.
 - **«The cloud is paused for now»** — the project can pause syncing on every copy for a while, should its shared quota with Google be at risk; the notice is signed, so nobody else can send it. It lifts by itself. **Turn off** on the card does the same on this computer only, until you turn it on again.
 - **«Google is having trouble»** — the trouble is on Google's side. Tisty tries again by itself; there is nothing to do.
@@ -115,10 +115,10 @@ In a hidden space of your Drive that belongs to Tisty: they do not show up among
 
 Since 1.31, Tisty can sync the same way through your own personal OneDrive, without Microsoft's desktop program. It works like Google Drive above: the same first round, the same card in **Settings › Sync**, the same check of the way before you sign in, and the same move to leave it.
 
-- **Connecting it:** **Settings › Sync › Your cloud service › OneDrive › Connect**. Your browser opens on Microsoft's own page; sign in and allow Tisty to keep its copies there. Tisty never sees your password.
+- **Connecting it:** **Settings › Sync › Turn on… › Your cloud service › OneDrive › Connect**. Your browser opens on Microsoft's own page; sign in and allow Tisty to keep its copies there. Tisty never sees your password.
 - **Where the copies are:** in *Apps › Tisty* in your OneDrive. Unlike Google's hidden space, it is a folder you can see. Leave it to Tisty: what you change there by hand is read as a change from another computer. Deleting it sends your copies to OneDrive's recycle bin, where they can be restored.
 - **Long uploads** carry on where they were cut, and a write that fails halfway is tried again.
-- **Letting go:** **Disconnect this computer** forgets the access on that machine only. **Remove Tisty's access on every computer** forgets it here and opens your Microsoft account in the browser, where you remove Tisty for every machine at once. Your copies stay in your OneDrive.
+- **Letting go:** in the **Handle with care** zone of **Settings › Sync**, **Disconnect this computer** forgets the access on that machine only. **Remove Tisty's access on every computer** forgets it here and opens your Microsoft account in the browser, where you remove Tisty for every machine at once. Your copies stay in your OneDrive.
 
 Before you sign in, Tisty checks that Microsoft answers, with one request to `graph.microsoft.com` that carries nothing of yours. Like Drive, it can only be connected from the window.
 
@@ -126,11 +126,11 @@ Before you sign in, Tisty checks that Microsoft answers, with one request to `gr
 
 Since 1.32, Tisty can keep its copies on a server of your own — Nextcloud, ownCloud, Synology and others — talking to it over WebDAV, with no program in between and no browser sign-in. It works like Google Drive above: the same first round, the same card in **Settings › Sync** and the same move to leave it.
 
-- **Connecting it:** **Settings › Sync › Your cloud service › WebDAV**. Type the **Server address**, your **User** and a **Password**, and press **Connect**. Before anything is kept, Tisty checks the server: it signs in with what you typed and makes sure the server will not let two computers write over each other; if it would, nothing is connected. Only `https://` addresses are taken, since the password travels with every request; plain `http://` is refused, except to this very computer.
+- **Connecting it:** **Settings › Sync › Turn on… › Your cloud service › WebDAV**. Type the **Server address**, your **User** and a **Password**, and press **Connect**. Before anything is kept, Tisty checks the server: it signs in with what you typed and makes sure the server will not let two computers write over each other; if it would, nothing is connected. Only `https://` addresses are taken, since the password travels with every request; plain `http://` is refused, except to this very computer.
 - **The password** stays on this computer, kept by the system: the keychain on macOS, a file sealed for your user on Windows. It never reaches the log, a backup or a parcel. An app password from your server is better than your main one, since you can remove it there whenever you like. If the server asks again, Tisty only asks you for the password.
 - **Where the copies are:** in a *Tisty* folder inside the folder your address points at; Tisty touches nothing beside it. You can see it on your server. Leave it to Tisty: what you change there by hand is read as a change from another computer.
 - **Your server sets the limit and the pace:** what it has free is your ceiling, and Tisty looks for changes every two minutes. Attachments always stay on this computer as well, so **Free up space** is not offered.
-- **Letting go:** **Disconnect this computer** forgets the password on that machine only and keeps your copies, here and on the server. To withdraw access on every computer, remove the app password, or change the password, on your server. **Delete my copies in WebDAV for good** deletes them from the server, which sends them to its bin if it keeps one.
+- **Letting go:** in the **Handle with care** zone of **Settings › Sync**, **Disconnect this computer** forgets the password on that machine only and keeps your copies, here and on the server. To withdraw access on every computer, remove the app password, or change the password, on your server. **Delete my copies in WebDAV for good** deletes them from the server, which sends them to its bin if it keeps one.
 
 ## Encrypting your cloud
 
@@ -148,7 +148,7 @@ In **Settings › Security**, press **Encrypt my cloud…**. Before it starts, T
 
 Then **Encrypt my cloud** shows the progress. You can keep working, or close Tisty and it carries on where it was. Until the last step, cancelling loses nothing: what was there stays as it was.
 
-Once it says **«Your cloud is encrypted»**, the old unencrypted copy stays in the cloud until you press **Delete the unencrypted copy**, which deletes only the files whose encrypted copy is already there. A file too big for the provider to take encrypted is left out and stays as it is.
+Once it says **«Your cloud is encrypted»**, the old unencrypted copy stays in the cloud until you press **Delete the unencrypted copy**, which deletes only the files whose encrypted copy is already there. Since it can't be undone, it asks you to tick **I understand this can't be undone** first. A file too big for the provider to take encrypted is left out and stays as it is.
 
 ### Your other computers
 
@@ -204,10 +204,10 @@ Go through this in order; the first three cover almost every case.
 2. **Is it paused or signed out?** An open client is not always syncing: check in its own panel that it is not paused, that the account is still signed in, and that you have not run out of space.
 3. **Is that folder among the ones it syncs?** Many clients let you choose folders. If the one you gave Tisty fell outside that selection, everything works except the one thing that matters.
 4. **Is the other machine on?** It has to open Tisty to pick changes up. While it is off, your work waits in the folder.
-5. **Is the other machine waiting on you?** In **Settings › Sync › Your computers** it shows as **Waiting** — confirm it (see above), checking the key is the same character by character. What it wrote meanwhile stays in the folder and arrives whole.
+5. **Is the other machine waiting on you?** In **Settings › Security › Your computers** it shows as **Waiting** — confirm it (see above), checking the key is the same character by character. What it wrote meanwhile stays in the folder and arrives whole.
 6. **Check with your own eyes.** Settings › Sync shows two dates: **my last round** (when Tisty read and wrote in the folder — it does *not* mean anything was uploaded) and **something last arrived from another computer**. If the second has been still for days and your machines are on, the problem is there. **Open the folder**, look for your recent files, and check with your provider — from its website, say — whether they are up there too.
 
-If all of that is fine, **Settings › Sync › Send everything again** copies everything of this machine's to the folder again without asking whether it is already there, which is what you want when a cloud client skipped a file.
+If all of that is fine, **Settings › Sync › More options › Send everything again** copies everything of this machine's to the folder again without asking whether it is already there, which is what you want when a cloud client skipped a file.
 
 ### Why does Tisty not warn me on its own?
 

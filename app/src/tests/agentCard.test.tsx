@@ -337,7 +337,9 @@ describe("an agent document's card", () => {
     adopt("es");
     shown(card([place({ state: "off" })], { folderOff: true }));
     expect(
-      screen.getByText(/Elige Sincronizar en la barra o en Configuración › Asistentes\./),
+      screen.getByText(
+        /Elige Sincronizar en la barra o en Configuración › Asistentes › Carpeta Agentes\./,
+      ),
     ).toBeTruthy();
     adopt("en");
   });

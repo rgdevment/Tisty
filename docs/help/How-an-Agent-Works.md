@@ -16,9 +16,9 @@ This page follows a real agent session, step by step, with the calls it makes an
 
 In **Settings › Assistants**:
 
-1. **Connect** puts Tisty in the assistant's settings. See [[Assistants and MCP|Assistants-and-MCP]].
-2. Under a connected assistant (Claude Code, Cursor, Gemini CLI or GitHub Copilot), the **Hooks: when a turn starts and ends** row says **Not added**. **Add** tells you which file it will write; **Add them** puts them there. From its next session, the assistant uses them.
-3. Two switches, on from the start:
+1. On the **Connected** tab, **Connect** puts Tisty in the assistant's settings. See [[Assistants and MCP|Assistants-and-MCP]].
+2. Right there, under a connected assistant (Claude Code, Cursor, Gemini CLI or GitHub Copilot), the **Hooks: when a turn starts and ends** row says **Not added**. **Add** tells you which file it will write; **Add them** puts them there. From its next session, the assistant uses them.
+3. On the **Door** tab, two switches, on from the start:
    - **Ask it to keep its task up to date**: the question in the answers.
    - **Remind it when a turn starts and ends**: the hooks, without taking them out of the file.
 

@@ -1,25 +1,23 @@
 import { open } from "@tauri-apps/plugin-dialog";
 import { useState } from "react";
 import { typed } from "../clouds";
-import { type About, backUp, type Carrying, restore, revealed, type Settings } from "../core";
+import { type About, backUp, type Carrying, restore } from "../core";
 import { fill, t } from "../locales";
 import { saidPlainly } from "../refusal";
-import { sure } from "../sure";
 import Backup, { backupMadeSaid, whereToBackUp } from "./Backup";
-import type { Run, Which, Word } from "./Card";
-import EarlierLimit from "./EarlierLimit";
+import type { Run, Word } from "./Card";
+import { useCareful } from "./Careful";
+import { DANGERS } from "./dangers";
 import Leave from "./Leave";
-import { Band, Line, mild, risky } from "./Rows";
+import { Line, mild, risky } from "./Rows";
+import { held, type Working } from "./working";
+import { Zone } from "./Zone";
 
 interface Props {
   state: Carrying;
   holds: string;
   build: About | null;
-  kept: Settings | null;
-  setKept: (kept: Settings) => void;
-  busy: Which | null;
-  said?: Word;
-  trouble?: Word;
+  busy: Working;
   run: Run;
   fail: (word?: Word) => void;
   onPack: () => void;
@@ -31,39 +29,41 @@ export default function Yours({
   state,
   holds,
   build,
-  kept,
-  setKept,
   busy,
-  said,
-  trouble,
   run,
   fail,
   onPack,
   onUnpack,
   tell,
 }: Props) {
-  const held = busy !== null;
   const [leaving, setLeaving] = useState(false);
+  const careful = useCareful();
 
   const makeBackup = () => {
-    if (held) return;
+    if (held(busy, "backup")) return;
     whereToBackUp()
       .then(
         (at) =>
           typeof at === "string" &&
-          run("backup", backUp(at), (made) => tell({ card: "backup", text: backupMadeSaid(made) })),
+          run(
+            "backup",
+            () => backUp(at),
+            (made) => tell({ card: "backup", text: backupMadeSaid(made) }),
+          ),
       )
       .catch((e) => fail({ card: "backup", text: saidPlainly(e) }));
   };
 
   const takeBackup = () => {
-    if (held) return;
+    if (held(busy, "restore")) return;
     open({ filters: [{ name: "Tisty", extensions: ["zip"] }] })
       .then(async (at) => {
         if (typeof at !== "string") return;
-        if (!(await sure(t("restoreSure")))) return;
-        run("restore", restore(at), (files) =>
-          tell({ card: "restore", text: fill("restored", String(files)) }),
+        if (!(await careful.ask(DANGERS.restore()))) return;
+        run(
+          "restore",
+          () => restore(at),
+          (files) => tell({ card: "restore", text: fill("restored", String(files)) }),
         );
       })
       .catch((e) => fail({ card: "restore", text: saidPlainly(e) }));
@@ -71,74 +71,42 @@ export default function Yours({
 
   return (
     <>
-      <Backup
-        state={state}
-        holds={holds}
-        held={held}
-        said={said}
-        trouble={trouble}
-        onMake={makeBackup}
-        onTake={takeBackup}
-      >
-        <Line
-          title={t("parcelsTitle")}
-          why={t("parcelsWhy")}
-          which="parcel"
-          said={said}
-          trouble={trouble}
-        >
-          <button type="button" disabled={held} onClick={onPack} className={mild}>
+      {careful.shown}
+      <Backup state={state} holds={holds} held={held(busy, "backup")} onMake={makeBackup}>
+        <Line row="parcels" why={t("parcelsWhy")} which="parcel">
+          <button type="button" disabled={held(busy, "parcel")} onClick={onPack} className={mild}>
             {t("packAllDo")}
           </button>
-          <button type="button" disabled={held} onClick={onUnpack} className={mild}>
+          <button type="button" disabled={held(busy, "parcel")} onClick={onUnpack} className={mild}>
             {t("unpackDo")}
           </button>
         </Line>
       </Backup>
 
-      {kept && (
-        <EarlierLimit
-          kept={kept}
-          setKept={setKept}
-          held={held}
-          said={said}
-          trouble={trouble}
-          run={run}
-        />
-      )}
-
-      <Band label={t("whereItLives")} />
-      <div className="border-t border-hair">
-        <Line
-          title={t("aboutStore")}
-          why={
-            <>
-              <span className="block font-mono text-[11.5px] break-all">{build?.store ?? "…"}</span>
-              <span className="mt-0.5 block">{t("storeFixed")}</span>
-            </>
-          }
-          which="store"
-          said={said}
-          trouble={trouble}
-        >
+      <Zone>
+        {!state.freesSpace && (
+          <Line row="restore" why={t("restoreWhat")} which="restore">
+            <button
+              type="button"
+              disabled={held(busy, "restore")}
+              onClick={takeBackup}
+              className={risky}
+            >
+              {t("restoreFrom")}
+            </button>
+          </Line>
+        )}
+        <Line row="leave" why={t("leaveWhy")} which="store">
           <button
             type="button"
-            disabled={!build}
-            onClick={() =>
-              build &&
-              revealed(build.store).catch((e) => fail({ card: "store", text: saidPlainly(e) }))
-            }
-            className={mild}
+            disabled={held(busy, "store")}
+            onClick={() => setLeaving(true)}
+            className={risky}
           >
-            {t("aboutReveal")}
-          </button>
-        </Line>
-        <Line title={t("leaveTitle")} why={t("leaveWhy")} which="store">
-          <button type="button" disabled={held} onClick={() => setLeaving(true)} className={risky}>
             {t("leaveOpen")}
           </button>
         </Line>
-      </div>
+      </Zone>
       {leaving && (
         <Leave
           cloud={state.mode === "cloud"}

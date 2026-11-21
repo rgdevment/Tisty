@@ -15,7 +15,7 @@ What you both keep comes in two kinds: what has to be done is a **task**, and wh
 
 Everything stays on this computer, as text any program opens. It asks for no account, charges no subscription and sends nothing about how you use it. It is open source: anyone can audit it. There is no company behind it: I make it because I needed it, and I share it.
 
-Read this guide at your own pace: each section stands on its own, and whatever you do not need today can wait. It is a document like any other, so you can touch all of it: click, write, try things. If you ever get lost, the `?` at the foot of the sidebar opens the full help, offline too, and you come back to this guide from Settings → General.
+Read this guide at your own pace: each section stands on its own, and whatever you do not need today can wait. It is a document like any other, so you can touch all of it: click, write, try things. If you ever get lost, the `?` at the foot of the sidebar opens the full help, offline too. The gear, on that same foot, opens Settings on an **Overview** that tells you what needs something from you, and **Search a setting** finds any setting by its name. You come back to this guide from **Settings › Help and about**, with **Open the guide**.
 
 ## You and your agent
 
@@ -134,7 +134,7 @@ Something comes to mind in the middle of something else: press `Ctrl` + `Shift` 
 
 **Try it:** without leaving this guide, press `Ctrl` + `Shift` + `Space`, write the first thing you have pending and press `Enter`. That is your first task: with a day in the sentence it waits in **Today** or **Upcoming**; with none, in **All**.
 
-If another program already uses that shortcut, Tisty takes another one and tells you which in Settings. And if what came to mind is not a task yet, `Tab` in that same small window makes it an idea, and another `Tab`, a line in today's diary: both are further down, in **Ideas** and **The diary**.
+If another program already uses that shortcut, Tisty takes another one and tells you which in **Settings › Tasks and reminders**. And if what came to mind is not a task yet, `Tab` in that same small window makes it an idea, and another `Tab`, a line in today's diary: both are further down, in **Ideas** and **The diary**.
 
 ### Today, Upcoming, Repeating and All
 
@@ -207,7 +207,7 @@ What the Archive keeps, and how to find it again, is further down, in **The Arch
 
 > **Before erasing for good.** Erasing is only allowed for what is already closed **and** was left as a trace. It disappears from this computer and, at the next sync, from the others; it cannot be undone.
 
-And if you want to know what is spare or missing in everything you keep, Settings → Maintenance counts it without changing anything.
+And if you want to know what is missing in everything you keep, **Settings › Health** checks it, and what is spare, **Settings › Storage**, under **Free up space**, both without changing anything.
 
 ---
 
@@ -476,7 +476,7 @@ Tisty does not keep a version at every key. What was there is kept as a version 
 - **A greyed row** is a version another of your computers keeps, «Not on this computer; … keeps it». It is read there.
 - **Your agent** can also list the versions, read one and go back to it, and never empty the history or see your diary's. [Your agent's page](tisty:agent) tells it.
 
-The history belongs to this computer: it is not synced and does not leave when you share or export, and a new computer starts without it, unless you restore a full backup there, which does carry it. It is kept 30 days, or 1, 5 or 15 if you choose so in Settings › Your data › **Document history**, and the last version always stays. So that a text you deleted on purpose is not kept, **Empty the history**, at the foot of the list, deletes it from this computer, with no way back; your other computers and the backups you already made keep theirs, so empty it there too. Deleting a document deletes its history. More in [earlier versions](https://www.tisty.app/docs/documents/#earlier-versions), in the help.
+The history belongs to this computer: it is not synced and does not leave when you share or export, and a new computer starts without it, unless you restore a full backup there, which does carry it. It is kept 30 days, or 1, 5 or 15 if you choose so in Settings › Documents and signature › **Keep earlier versions for**, and the last version always stays. So that a text you deleted on purpose is not kept, **Empty the history**, at the foot of the list, deletes it from this computer, with no way back; your other computers and the backups you already made keep theirs, so empty it there too. Deleting a document deletes its history. More in [earlier versions](https://www.tisty.app/docs/documents/#earlier-versions), in the help.
 
 ### Its link
 
@@ -512,7 +512,7 @@ What you write is yours, and this is how to look after it: take it to another co
 
 ### Your copies in the cloud and syncing
 
-Tisty always works on this computer. To have the same on another one, tell it where to leave the copies, in Settings → Sync:
+Tisty always works on this computer. To have the same on another one, tell it where to leave the copies, in **Settings › Sync**:
 
 - **Straight to a cloud**: your Google Drive, your OneDrive or your own WebDAV server (Nextcloud, ownCloud, Synology and others), with nothing else installed.
 - **A folder**: Google Drive, OneDrive, iCloud or Dropbox if they are installed, or any folder both computers can see. There, whoever uploads and downloads is your provider's program, not Tisty.
@@ -521,17 +521,17 @@ Tisty always works on this computer. To have the same on another one, tell it wh
 
 When two computers wrote the same part of a document, Tisty does not choose: it shows you both versions and you keep **This one**, **The other** or **Both**.
 
-A shared folder is not a backup. In Settings → Your data you save a full backup whenever you want. Uninstalling Tisty leaves your tasks and documents where they are; where they live and how to delete them for good is in [sync and backup](https://www.tisty.app/docs/sync-and-backup/).
+A shared folder is not a backup. In **Settings › Copies**, **Create backup…** saves a full backup whenever you want. Uninstalling Tisty leaves your tasks and documents where they are; where they live and how to delete them for good is in [sync and backup](https://www.tisty.app/docs/sync-and-backup/).
 
 ### Encryption and computers that sign
 
-A copy straight to a cloud can be encrypted in Settings → Security with a 24-word phrase, and then not even your provider can read it. Keep it on paper or on the PDF sheet Tisty offers you. A copy in a folder is not encrypted.
+A copy straight to a cloud can be encrypted in **Settings › Security** with a 24-word phrase, and then not even your provider can read it. Keep it on paper or on the PDF sheet Tisty offers you. A copy in a folder is not encrypted.
 
 So that nobody slips a stranger's computer into your sync, every computer signs what it writes, and a new one waits until you confirm it is yours:
 
 1. A notice appears in the sidebar with that computer's name.
 2. **Confirm…** shows you its twenty-digit code.
-3. On the new computer, in Settings → Sync, **Show large** shows its own.
+3. On the new computer, in **Settings › Security**, under **Your computers**, **Show large** shows its own.
 4. If the two codes match, **Yes, it is the same** lets it through; if not, **It doesn't match** keeps it out.
 
 ### Sharing a document

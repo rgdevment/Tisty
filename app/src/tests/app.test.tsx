@@ -405,6 +405,7 @@ describe("what the computers list writes", () => {
             heldFiles: 0,
           });
         case "remove_machine":
+        case "identity_shown":
           return Promise.resolve(null);
         default:
           return plain(cmd, args);
@@ -420,10 +421,11 @@ describe("what the computers list writes", () => {
     await started();
 
     await user.click(screen.getByRole("button", { name: /settings/i }));
-    await user.click(await screen.findByRole("tab", { name: /^sync$/i }));
+    await user.click(await screen.findByRole("tab", { name: /^security$/i }));
     await screen.findByText("win1-0002");
     await user.click(screen.getByRole("button", { name: /^remove$/i }));
-    await user.click(await screen.findByRole("button", { name: /^go on$/i }));
+    await user.click(await screen.findByLabelText(/can't be undone/i));
+    await user.click(await screen.findByRole("button", { name: /^remove the computer$/i }));
     await waitFor(() =>
       expect(ipc.calls.filter((one) => one.cmd === "remove_machine")).toHaveLength(1),
     );

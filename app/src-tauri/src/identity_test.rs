@@ -501,3 +501,32 @@ fn an_identity_begun_before_any_round_signs_at_once() {
     assert!(session.state.devices.contains(&here));
     assert!(tisty_sharing::signer(&session.paths, &session.state, &here).is_some());
 }
+
+#[test]
+fn the_phrase_standing_reads_the_log_and_never_the_keychain() {
+    let kept = tempfile::tempdir().unwrap();
+    let session = opened(&kept);
+    assert_eq!(phrase_standing(&held(&session)), "none");
+
+    keep(&held(&session).paths, &seed(7)).unwrap();
+    begun(&mut held(&session), &seed(7)).unwrap();
+    let asked = scope(&held(&session).paths).unwrap();
+    let before = crate::reaching::reads_of(&asked);
+    assert_eq!(phrase_standing(&held(&session)), "loose");
+
+    held(&session).config.phrase_confirmed = Some(seed(7).root().person().fingerprint());
+    assert_eq!(phrase_standing(&held(&session)), "ok");
+    assert_eq!(crate::reaching::reads_of(&asked), before);
+}
+
+#[test]
+fn a_phrase_named_in_the_log_for_other_computers_stands_elsewhere() {
+    let kept = tempfile::tempdir().unwrap();
+    let session = opened(&kept);
+    keep(&held(&session).paths, &seed(7)).unwrap();
+    begun(&mut held(&session), &seed(7)).unwrap();
+    let mut session = held(&session);
+    session.config.device_id = tisty_core::DeviceId("dev_another0".into());
+
+    assert_eq!(phrase_standing(&session), "elsewhere");
+}

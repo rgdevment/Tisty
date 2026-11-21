@@ -65,7 +65,7 @@ Try:
 
 ## Quick capture from anywhere
 
-Press `Ctrl` + `Shift` + `Space` wherever you are, and a small window opens for one task. `Enter` files it, `Esc` closes it, and you carry on with what you were doing. `Tab` turns it to an **Idea** for [Ideas](Documents#ideas) or to **Diary**, which writes in today's [Diary](Documents#diary). If another program already holds that shortcut, Tisty takes another one and tells you which in Settings.
+Press `Ctrl` + `Shift` + `Space` wherever you are, and a small window opens for one task. `Enter` files it, `Esc` closes it, and you carry on with what you were doing. `Tab` turns it to an **Idea** for [Ideas](Documents#ideas) or to **Diary**, which writes in today's [Diary](Documents#diary). If another program already holds that shortcut, Tisty takes another one and tells you which in **Settings › Tasks and reminders**.
 
 ## The views
 
@@ -185,6 +185,6 @@ More in [A day with your agent](Assistants-and-MCP#a-day-with-your-agent).
 
 ## Tisto
 
-Tisto is Tisty's beaver, the one with a pencil behind its ear. Once you have typed a few characters in the bar to write a task, it peeks over it and looks at what you write. It never covers anything, and it leaves on its own. To work without it, turn off **Let Tisto peek in** in Settings → General.
+Tisto is Tisty's beaver, the one with a pencil behind its ear. Once you have typed a few characters in the bar to write a task, it peeks over it and looks at what you write. It never covers anything, and it leaves on its own. To work without it, turn off **Let Tisto peek in** in **Settings › Look and window**.
 
 When you finish a task, a notice says it is kept in the archive and offers **Undo**, which reopens it. It shows for whole tasks you finish yourself, not for parts or tasks that repeat, only for the last one you finished, and whether Tisto peeks in or not.

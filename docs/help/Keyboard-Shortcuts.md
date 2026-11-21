@@ -6,7 +6,7 @@ The whole window works from the keyboard.
 | :-- | :-- |
 | `Ctrl` + `Shift` + `Space` | Capture a task from anywhere, without opening the window |
 | `Enter` (in the quick capture) | File the task |
-| `Ctrl` + `Alt` + `I` (once picked in Settings) | Jot an idea for [Ideas](Documents#ideas) from anywhere |
+| `Ctrl` + `Alt` + `I` (once picked in **Settings › Tasks and reminders**) | Jot an idea for [Ideas](Documents#ideas) from anywhere |
 | `Tab` (in the quick capture) | Switch between a task, an idea for [Ideas](Documents#ideas) and today in the [Diary](Documents#diary); `Shift` + `Tab` goes back |
 | `Ctrl`/`⌘` + `Enter` | On a task's row in the list, complete it; while writing in a document or on a task's page, a page break |
 | `Ctrl`/`⌘` + `Enter` (in the Diary's box) | Keep what you wrote in today |
@@ -39,7 +39,19 @@ The whole window works from the keyboard.
 | `Alt` + arrow (in a table: ↑ ↓ with a cell open, and all four in the Markdown view) | Move the row or the column the caret is on; `Ctrl` + `Alt` + ← → on a Mac |
 | `Esc` | Close whatever is open; while writing a document, choose the block |
 
-If another program already holds the capture shortcut, Tisty takes another one and tells you which in Settings.
+If another program already holds the capture shortcut, Tisty takes another one and tells you which in **Settings › Tasks and reminders**.
+
+## In Settings
+
+| Shortcut | What it does |
+| :-- | :-- |
+| `↑` `↓` (in the column) | Move the focus between pages, without opening them |
+| `Enter` (in the column) | Open the marked page |
+| `←` `→` (in the **Assistants** tabs) | Change tab |
+| `Home` / `End` (in the column or in the tabs) | Go to the first or the last |
+| `Esc` | Leave Settings; in **Search a setting**, it first clears what you typed |
+
+More in [Settings](Settings#opening-settings).
 
 ## The palette
 

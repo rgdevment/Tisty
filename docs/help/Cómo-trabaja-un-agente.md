@@ -16,9 +16,9 @@ Esta página sigue una sesión real de un agente, paso a paso, con las llamadas 
 
 En **Configuración › Asistentes**:
 
-1. **Conectar** pone Tisty en la configuración del asistente. Mira [[Asistentes y MCP|Asistentes-y-MCP]].
-2. Bajo un asistente conectado (Claude Code, Cursor, Gemini CLI o GitHub Copilot), la fila **Hooks: al empezar y al terminar cada turno** dice **Sin agregar**. **Agregar** te dice qué archivo va a escribir; **Agregarlos** los pone. Desde su próxima sesión, el asistente los usa.
-3. Dos interruptores, encendidos de entrada:
+1. En la pestaña **Conectados**, **Conectar** pone Tisty en la configuración del asistente. Mira [[Asistentes y MCP|Asistentes-y-MCP]].
+2. Ahí mismo, bajo un asistente conectado (Claude Code, Cursor, Gemini CLI o GitHub Copilot), la fila **Hooks: al empezar y al terminar cada turno** dice **Sin agregar**. **Agregar** te dice qué archivo va a escribir; **Agregarlos** los pone. Desde su próxima sesión, el asistente los usa.
+3. En la pestaña **Puerta**, dos interruptores, encendidos de entrada:
    - **Pedirle que deje su tarea al día**: la pregunta en las respuestas.
    - **Recordarle al empezar y al terminar cada turno**: los hooks, sin quitarlos del archivo.
 

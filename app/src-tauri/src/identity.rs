@@ -687,6 +687,18 @@ pub(crate) fn seed_said(said: &str) -> Answer<Seed> {
     })
 }
 
+/// Read from the log and the config alone, so the overview never asks the keychain.
+pub(crate) fn phrase_standing(session: &Session) -> &'static str {
+    if !session.state.persons.names_a_person() {
+        return "none";
+    }
+    match person::person_of(&session.state, &session.config.device_id) {
+        None => "elsewhere",
+        Some(one) if session.config.phrase_confirmed == Some(one.fingerprint()) => "ok",
+        Some(_) => "loose",
+    }
+}
+
 pub(crate) fn begun(session: &mut Session, seed: &Seed) -> Answer<()> {
     // A machine seats itself at the end of a round, and one made before its first round would answer to nobody.
     session

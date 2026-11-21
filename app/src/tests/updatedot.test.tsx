@@ -133,7 +133,10 @@ describe("what About suggests", () => {
 
     await userEvent.click(await screen.findByRole("button", { name: "Update" }));
 
-    await waitFor(() => expect(onError).toHaveBeenCalled());
+    await waitFor(() =>
+      expect(document.querySelector("[data-setting=update] [data-note=err]")).toBeTruthy(),
+    );
+    expect(onError).not.toHaveBeenCalled();
     expect(onGaveUp).toHaveBeenCalled();
     expect(screen.getByRole("button", { name: "Update" })).toHaveProperty("disabled", false);
   });

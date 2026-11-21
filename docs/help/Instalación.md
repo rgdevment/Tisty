@@ -4,7 +4,7 @@ Tisty funciona en **Windows** y **macOS**. Hoy no hay versión para Linux ni app
 
 ## Windows
 
-**Microsoft Store**: [Tisty en la Microsoft Store](https://apps.microsoft.com/detail/9PGVWXD8X93N). La Store lo mantiene actualizado, y desde *Acerca de* puedes pedirle una actualización en el momento.
+**Microsoft Store**: [Tisty en la Microsoft Store](https://apps.microsoft.com/detail/9PGVWXD8X93N). La Store lo mantiene actualizado, y desde **Configuración › Ayuda y acerca de** puedes pedirle una actualización en el momento.
 
 **winget**: el gestor de paquetes de Windows toma el instalador firmado de GitHub Releases y después se aparta, porque Tisty se actualiza solo:
 
@@ -41,34 +41,33 @@ Sí. Las imágenes de macOS están firmadas y notarizadas por Apple, y el instal
 
 Tisty te pregunta hasta tres cosas:
 
-1. **En qué idioma**: inglés o español. La ventana, la guía y el lenguaje natural lo siguen, y puedes cambiarlo cuando quieras en Configuración.
+1. **En qué idioma**: inglés o español. La ventana, la guía y el lenguaje natural lo siguen, y puedes cambiarlo cuando quieras en **Configuración › Aspecto y ventana**.
 2. **Dónde dejar tus copias**: una carpeta para [[sincronizar|Sincronizar-y-respaldar]], o ninguna si usas un solo equipo.
 3. **¿Cómo quieres que Tisty te llame?**: un alias opcional para firmar lo que compartes; **Ahora no** lo salta, y no se pregunta cuando el Tisty al que te unes ya tiene uno.
 
-Después **te escribe una guía y la abre**. La guía es un documento normal en tu propio almacén, en una carpeta propia (tuya para leerla, editarla o tirarla), y te muestra desde dentro lo que cabe en un documento. Puedes volver a ella desde Configuración.
+Después **te escribe una guía y la abre**. La guía es un documento normal en tu propio almacén, en una carpeta propia (tuya para leerla, editarla o tirarla), y te muestra desde dentro lo que cabe en un documento. Puedes volver a ella desde **Configuración › Ayuda y acerca de**, con **Abrir la guía**.
 
 Todo lo demás tiene una respuesta obvia que puedes cambiar después: Tisty arranca con el equipo y espera sin estorbar.
 
 ## Configuración
 
-Configuración ocupa la barra lateral con sus secciones:
+El engranaje al pie de la barra lateral abre Configuración en **Resumen**, que dice cómo está todo y qué pide algo de ti. **Buscar un ajuste** encuentra cualquier ajuste por su nombre, y las once páginas van en cuatro grupos:
 
-- **General**: cómo se comporta Tisty contigo: idioma, aspecto, arranque, la captura rápida, quién escribe aquí, avisos, tu calendario y la bienvenida.
-- **Sincronizar**: dónde van tus copias, tus equipos y dónde se quedan los adjuntos grandes.
-- **Seguridad**: tu frase de 24 palabras y [cifrar tu nube](Sincronizar-y-respaldar#cifrar-tu-nube).
-- **Tus datos**: dónde viven, los respaldos, los documentos de otro Tisty y cómo irte.
-- **Asistentes**: la [[puerta MCP|Asistentes-y-MCP]].
-- **Mantenimiento**: la revisión del almacén, los adjuntos sueltos, liberar espacio y reportar un problema.
-- **Acerca de**: la versión, las actualizaciones y las versiones candidatas. Al pie, **Avisos de terceros** nombra cada pieza que Tisty lleva dentro, con su versión y su licencia; ahí están también los datos del diccionario español–inglés de Brainsty, con sus autores y la licencia de WordNet completa. **Textos de las licencias** trae el texto completo de cada licencia del núcleo.
+- **Este equipo**: **Aspecto y ventana** (idioma, aspecto, arranque, qué hace al cerrar la ventana y las carpetas ocultas), **Tareas y avisos** (los atajos de captura, los avisos y tu calendario) y **Documentos y firma** (tu alias, tu nombre en los PDF y cuánto guarda el historial de cada documento).
+- **Tus datos**: **Sincronización** (dónde van tus copias), **Seguridad** (tu frase de 24 palabras, tus equipos y [cifrar tu nube](Sincronizar-y-respaldar#cifrar-tu-nube)), **Copias** (los respaldos, los documentos de otro Tisty, restaurar y cómo irte) y **Almacenamiento** (dónde viven tus archivos, cuánto ocupan, los adjuntos grandes y liberar espacio).
+- **Conexiones**: **Asistentes**, la [[puerta MCP|Asistentes-y-MCP]].
+- **Tisty**: **Salud** (la revisión del almacén, el índice rápido y reportar un problema) y **Ayuda y acerca de**: la versión, las actualizaciones y las versiones candidatas. Al pie, **Avisos de terceros** nombra cada pieza que Tisty lleva dentro, con su versión y su licencia; ahí están también los datos del diccionario español–inglés de Brainsty, con sus autores y la licencia de WordNet completa. **Textos de las licencias** trae el texto completo de cada licencia del núcleo.
+
+Todo, página por página y con ejemplos, en [[Configuración]].
 
 ## Actualizaciones
 
-Tisty revisa al abrirse, y una vez al día después, si hay una versión más nueva; no envía nada para preguntar. Una copia de la Microsoft Store le pregunta a la Store al abrirse y cada seis horas. Si la hay, aparece una línea en *Acerca de*:
+Tisty revisa al abrirse, y una vez al día después, si hay una versión más nueva; no envía nada para preguntar. Una copia de la Microsoft Store le pregunta a la Store al abrirse y cada seis horas. Si la hay, aparece una línea en **Configuración › Ayuda y acerca de**, y **Resumen** la pone en **Por atender**:
 
 - una copia de la Microsoft Store la actualiza la Store, y la línea trae un botón **Actualizar** cuando la Store se la ofrece a este equipo;
 - una copia dueña de su propia carpeta recibe un botón.
 
-Tisty no descarga nada hasta que lo pulsas. Las versiones candidatas se activan en *Acerca de*. Más detalle en [[Privacidad]].
+Tisty no descarga nada hasta que lo pulsas. Las versiones candidatas se activan con **Recibir versiones candidatas**, en **Ayuda y acerca de**; en la copia de la Microsoft Store esa fila dice **No aplica aquí**, porque la Store mantiene esa copia al día y no ofrece candidatas. Si buscar o instalar una versión falla, el error sale en esa misma fila. Más detalle en [[Privacidad]].
 
 En Windows, cuando la Store o un instalador cierra Tisty para reemplazarlo, Windows lo vuelve a abrir solo: una ventana a la vista vuelve a la vista, y una oculta en la bandeja vuelve oculta. Lo que acababas de escribir en un documento o en la página de una tarea se conserva, y lo mismo cuando Windows se apaga. Un fallo o un reinicio no lo reabren, ni tampoco una copia que llevaba menos de un minuto abierta.
 
@@ -77,7 +76,7 @@ En Windows, cuando la Store o un instalador cierra Tisty para reemplazarlo, Wind
 - **Windows:** `.tisty` en tu carpeta de usuario, oculta y cerrada para las demás cuentas del equipo. Activa **Elementos ocultos** en el menú **Ver** del Explorador de archivos para verla.
 - **macOS:** `Library/Application Support/tisty` y `Library/Caches/tisty`, en tu carpeta personal.
 
-**Configuración › Tus datos** muestra la ruta, y *Mostrar carpeta* la abre.
+**Configuración › Almacenamiento** muestra la ruta, y **Mostrar carpeta** la abre.
 
 ## Desinstalar
 

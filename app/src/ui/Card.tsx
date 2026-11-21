@@ -1,5 +1,7 @@
 import type { ReactNode } from "react";
 import { fill, t } from "../locales";
+import { ROWS, type RowId, settingAt } from "../settingsRows";
+import { Feedback, Heeded } from "./RowNotes";
 
 export type Which =
   | "sync"
@@ -21,6 +23,7 @@ export type Which =
   | "report"
   | "store"
   | "greet"
+  | "site"
   | "signing"
   | "naming"
   | "parcel"
@@ -40,11 +43,31 @@ export type Which =
   | "index"
   | "identity"
   | "sealing"
-  | "earlier";
+  | "earlier"
+  | "syncOff"
+  | "screen"
+  | "chime"
+  | "urgent"
+  | "door"
+  | "asks"
+  | "hooks"
+  | "cloudForget"
+  | "cloudRevoke"
+  | "cloudAbandon"
+  | "sealWipe"
+  | "sealOff"
+  | "update"
+  | "candidates";
 /** `busy` marks a round turned away by another, whatever its words say. */
-export type Word = { card: Which; text: string; busy?: boolean };
+export type Word = { card: Which; text: string; busy?: boolean; again?: () => void };
 
-export type Run = <T>(card: Which, work: Promise<T>, then: (answer: T) => void) => void;
+export type Heard = Partial<Record<Which, Word>>;
+
+export type Run = <T>(
+  card: Which,
+  work: Promise<T> | (() => Promise<T>),
+  then: (answer: T) => void,
+) => void;
 
 export const NAMED: Record<Which, Parameters<typeof t>[0]> = {
   sync: "syncing",
@@ -60,6 +83,7 @@ export const NAMED: Record<Which, Parameters<typeof t>[0]> = {
   jot: "quickIdea",
   waking: "wake",
   greet: "greetAgain",
+  site: "helpOnSite",
   tongue: "tongue",
   closing: "closingSetting",
   calendar: "calendarSetting",
@@ -86,6 +110,20 @@ export const NAMED: Record<Which, Parameters<typeof t>[0]> = {
   index: "quickIndex",
   identity: "tabIdentity",
   sealing: "sealTitle",
+  syncOff: "syncOffTitle",
+  screen: "noticeScreen",
+  chime: "noticeChime",
+  urgent: "noticeUrgent",
+  door: "agentsTitle",
+  asks: "agentsAsk",
+  hooks: "agentsHooks",
+  cloudForget: "cloudForgetHere",
+  cloudRevoke: "cloudRevokeAll",
+  cloudAbandon: "cloudAbandon",
+  sealWipe: "sealWipe",
+  sealOff: "sealOff",
+  update: "lookNow",
+  candidates: "betaTake",
 };
 
 const TAKING_LONG = 60;
@@ -94,25 +132,27 @@ export const working = (key: Parameters<typeof t>[0], secs: number): string =>
   secs >= TAKING_LONG ? fill("workingFor", t(key), String(Math.floor(secs / 60))) : t(key);
 
 interface CardProps {
-  title: string;
+  row?: RowId;
+  item?: boolean;
+  title?: string;
   which: Which;
-  busy: Which | null;
-  said?: Word;
-  trouble?: Word;
+  note?: ReactNode;
   children: ReactNode;
 }
 
-export default function Card({ title, which, busy, said, trouble, children }: CardProps) {
-  const waiting = busy !== null && busy !== which;
+export default function Card({ row, item, title, which, note, children }: CardProps) {
   return (
-    <section className="mb-3 rounded-[10px] border border-hair px-4 py-3.5">
-      <h3 className="mb-0.5 text-[13px] font-semibold">{title}</h3>
+    <section
+      data-card=""
+      data-item={item ? "" : undefined}
+      {...(row && settingAt(row))}
+      className="mb-3 rounded-[10px] border border-hair px-4 py-3.5"
+    >
+      <h3 className="mb-0.5 text-[13px] font-semibold">{title ?? (row && t(ROWS[row].title))}</h3>
       {children}
-      {waiting && (
-        <p className="mt-2 text-[11.5px] text-faint">{fill("waitFor", t(NAMED[busy]))}</p>
-      )}
-      {trouble?.card === which && <p className="mt-2 text-[11.5px] text-urgent">{trouble.text}</p>}
-      {said?.card === which && <p className="mt-2 text-[11.5px] text-faint">{said.text}</p>}
+      {note}
+      {row && <Heeded row={row} />}
+      <Feedback which={which} />
     </section>
   );
 }

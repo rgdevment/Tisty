@@ -8,6 +8,7 @@ import { adopt } from "../locales";
 import AgentsFirst from "../ui/AgentsFirst";
 import { AGENTS_CHANGED } from "../ui/AgentsKeeper";
 import AgentsSettings from "../ui/AgentsSettings";
+import { LiveRows } from "./rowsShell";
 
 const ipc = vi.hoisted(() => ({
   calls: [] as { cmd: string; args: Record<string, unknown> }[],
@@ -761,7 +762,11 @@ describe("what Settings offers once this computer said yes", () => {
       cmd === "agents_look" ? Promise.resolve(said({})) : Promise.resolve(null);
     const asked = vi.fn();
     window.addEventListener(AGENTS_MORE, asked);
-    render(<AgentsSettings busy={null} />);
+    render(
+      <LiveRows>
+        {(cards) => <AgentsSettings fail={cards.fail} quietly={cards.quietly} />}
+      </LiveRows>,
+    );
     await userEvent.click(await screen.findByRole("button", { name: "Traer otro archivo" }));
     expect(asked).toHaveBeenCalled();
     window.removeEventListener(AGENTS_MORE, asked);
@@ -773,7 +778,11 @@ describe("what Settings offers once this computer said yes", () => {
       cmd === "agents_look"
         ? Promise.resolve(said({ assistants: [...look.assistants, gemini] }))
         : Promise.resolve(null);
-    render(<AgentsSettings busy={null} />);
+    render(
+      <LiveRows>
+        {(cards) => <AgentsSettings fail={cards.fail} quietly={cards.quietly} />}
+      </LiveRows>,
+    );
     expect(
       await screen.findByText(
         "Gemini: todavía sin reglas, skills ni memoria. Recibe lo que escribas en Global o en su carpeta.",
@@ -787,7 +796,11 @@ describe("what Settings offers once this computer said yes", () => {
       cmd === "agents_look"
         ? Promise.resolve(said({ loose: [loose, { ...loose, at: "/h/b.md" }] }))
         : Promise.resolve(null);
-    render(<AgentsSettings busy={null} />);
+    render(
+      <LiveRows>
+        {(cards) => <AgentsSettings fail={cards.fail} quietly={cards.quietly} />}
+      </LiveRows>,
+    );
     await screen.findByText("2 archivos ya no son de ninguna regla de Agentes.");
     ipc.answer = (cmd) =>
       cmd === "agents_look" ? Promise.resolve(said({ loose: [loose] })) : Promise.resolve(null);
@@ -805,7 +818,11 @@ describe("what Settings offers once this computer said yes", () => {
             }),
           )
         : Promise.resolve({ told: [], both: [], loose: [], unled: [] });
-    render(<AgentsSettings busy={null} />);
+    render(
+      <LiveRows>
+        {(cards) => <AgentsSettings fail={cards.fail} quietly={cards.quietly} />}
+      </LiveRows>,
+    );
     await screen.findByText("En pausa: falta la línea @tisty-rules.md en GEMINI.md.");
     await userEvent.click(screen.getByRole("button", { name: "Volver a ponerla" }));
     await waitFor(() => expect(sent("agents_lead")).toHaveLength(1));
@@ -822,7 +839,11 @@ describe("what Settings offers once this computer said yes", () => {
         );
       return Promise.reject({ code: "agentLinked" });
     };
-    render(<AgentsSettings busy={null} />);
+    render(
+      <LiveRows>
+        {(cards) => <AgentsSettings fail={cards.fail} quietly={cards.quietly} />}
+      </LiveRows>,
+    );
     await userEvent.click(await screen.findByRole("button", { name: "Volver a ponerla" }));
     await waitFor(() => expect(sent("agents_lead")).toHaveLength(1));
   });
@@ -837,7 +858,11 @@ describe("the switches in Settings", () => {
     };
     const heard = vi.fn();
     window.addEventListener(AGENTS_CHANGED, heard);
-    render(<AgentsSettings busy={null} />);
+    render(
+      <LiveRows>
+        {(cards) => <AgentsSettings fail={cards.fail} quietly={cards.quietly} />}
+      </LiveRows>,
+    );
     await userEvent.click(await screen.findByRole("switch", { name: "Sincronizar Claude" }));
     await waitFor(() => expect(sent("agents_turn")).toHaveLength(1));
     expect(sent("agents_turn")[0].args).toEqual({ assistant: "claude", on: false });

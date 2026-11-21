@@ -1,9 +1,7 @@
 import { useEffect, useRef, useState } from "react";
+import type { Checked } from "../attention";
 import {
-  type About,
-  type Carrying,
   checked,
-  type Freeing,
   type Repeated,
   type Reviewed,
   repeatedLists,
@@ -13,33 +11,26 @@ import {
 import { stamped } from "../format";
 import { fill, t } from "../locales";
 import { saidPlainly } from "../refusal";
-import { type Run, type Which, type Word, working } from "./Card";
-import FreeUp from "./FreeUp";
+import { settingAt } from "../settingsRows";
+import { type Run, type Word, working } from "./Card";
+import { waiting } from "./Keys";
 import Leftovers, { lookAt } from "./Leftovers";
 import { ReportOpen } from "./Reporting";
-import { Line, mild } from "./Rows";
+import { Feedback, Heeded, Note, useRows } from "./RowNotes";
+import { Band, Line, mild } from "./Rows";
 import Tools from "./Tools";
 import { useSince } from "./useSince";
+import { held as isHeld, type Working } from "./working";
 
 interface Props {
   audit: Reviewed | null;
   setAudit: (audit: Reviewed) => void;
-  build: About | null;
-  state: Carrying;
-  freeing: Freeing | null;
-  setFreeing: (freeing: Freeing | null) => void;
-  freeDays: number;
-  setFreeDays: (days: number) => void;
-  busy: Which | null;
-  busySince?: number;
-  said?: Word;
-  trouble?: Word;
+  busy: Working;
   run: Run;
   quietly: Run;
   tell: (word?: Word) => void;
   fail: (word?: Word) => void;
-  onSync: () => void;
-  onDoc?: (paper: string) => void;
+  onSecurity: () => void;
   seen: Seen | null;
   setSeen: (seen: Seen) => void;
 }
@@ -50,6 +41,16 @@ export interface Seen {
   at: string;
   missed?: string;
 }
+
+export const waitingIn = (audit: Reviewed): string[] =>
+  audit.machines.filter(waiting).map((one) => one.name ?? one.called);
+
+export const checkedOf = (audit: Reviewed, seen: Seen): Checked => ({
+  many: Object.values(lookAt(audit, seen.twice, seen.unproven)).filter(Boolean).length,
+  at: seen.at,
+  missed: seen.missed,
+  waiting: waitingIn(audit),
+});
 
 type Found = [Reviewed, Repeated[] | null, Unvouching | null, string | undefined];
 
@@ -72,27 +73,18 @@ const looked = async (): Promise<Found> => {
 export default function Upkeep({
   audit,
   setAudit,
-  build,
-  state,
-  freeing,
-  setFreeing,
-  freeDays,
-  setFreeDays,
   busy,
-  busySince,
-  said,
-  trouble,
   run,
   quietly,
   tell,
   fail,
-  onSync,
-  onDoc,
+  onSecurity,
   seen,
   setSeen,
 }: Props) {
-  const held = busy !== null;
-  const secs = useSince(held, busySince);
+  const held = busy.size > 0;
+  const secs = useSince(busy.has("review"), busy.get("review"));
+  const { trouble } = useRows();
   const [reporting, setReporting] = useState(false);
   const twice = seen?.twice ?? [];
   const unproven = seen?.unproven ?? null;
@@ -103,7 +95,7 @@ export default function Upkeep({
     setSeen({ twice: lists ?? [], unproven: unvouched, at: new Date().toISOString(), missed });
   };
 
-  const review = () => quietly("review", looked(), took);
+  const review = () => quietly("review", looked, took);
   const relook = () => {
     looked()
       .then(took)
@@ -120,8 +112,7 @@ export default function Upkeep({
     first.current();
   }, [held]);
 
-  const many =
-    audit && at ? Object.values(lookAt(audit, twice, unproven)).filter(Boolean).length : -1;
+  const many = audit && seen ? checkedOf(audit, seen).many : -1;
   const missed = seen?.missed;
   const health =
     !audit || !at
@@ -139,25 +130,27 @@ export default function Upkeep({
       : many === 0 && !missed
         ? ["bg-hue-green", "text-hue-green"]
         : ["bg-hue-amber", "text-hue-amber"];
-  const shown = { busy, secs, said, trouble, run, tell, fail };
+  const shown = { busy, run, tell, fail };
 
   return (
     <>
-      <section className="flex flex-wrap items-center gap-2.5 rounded-[10px] border border-hair px-4 py-3">
+      <section
+        {...settingAt("review")}
+        className="flex flex-wrap items-center gap-2.5 rounded-[10px] border border-hair px-4 py-3"
+      >
         <span aria-hidden="true" className={`h-2 w-2 shrink-0 rounded-full ${dot}`} />
         <span role="status" className={`min-w-0 flex-1 text-[12.5px] font-medium ${ink}`}>
           {health}
         </span>
-        <button type="button" disabled={held} onClick={review} className={mild}>
-          {busy === "review" ? working("reviewing", secs) : t("reviewAgain")}
+        <button type="button" disabled={isHeld(busy, "review")} onClick={review} className={mild}>
+          {busy.has("review") ? working("reviewing", secs) : t("reviewAgain")}
         </button>
+        <span className="w-full">
+          <Heeded row="review" />
+          {missed && !trouble.review && <Note kind="warn">{missed}</Note>}
+          <Feedback which="review" quiet hideWorking />
+        </span>
       </section>
-      {trouble?.card === "review" && (
-        <p className="mt-2 text-[11.5px] text-urgent">{trouble.text}</p>
-      )}
-      {missed && trouble?.card !== "review" && (
-        <p className="mt-2 text-[11.5px] text-urgent">{missed}</p>
-      )}
 
       {audit && at && (
         <Leftovers
@@ -167,33 +160,15 @@ export default function Upkeep({
           {...shown}
           setAudit={setAudit}
           relook={relook}
-          onSync={onSync}
+          onSecurity={onSecurity}
         />
       )}
 
-      <FreeUp
-        audit={audit}
-        setAudit={setAudit}
-        build={build}
-        state={state}
-        freeing={freeing}
-        setFreeing={setFreeing}
-        days={freeDays}
-        setDays={setFreeDays}
-        onDoc={onDoc}
-        {...shown}
-      />
-
       <Tools audit={audit} setAudit={setAudit} {...shown} />
 
-      <div className="mt-5 border-t border-hair">
-        <Line
-          title={t("reportTitle")}
-          why={t("reportLine")}
-          which="report"
-          said={reporting ? undefined : said}
-          trouble={reporting ? undefined : trouble}
-        >
+      <Band label={t("bandTrouble")} />
+      <div className="border-t border-hair">
+        <Line row="report" why={t("reportLine")} which="report" hushed={reporting}>
           <button type="button" onClick={() => setReporting(true)} className={mild}>
             {t("reportPrepare")}
           </button>
@@ -203,8 +178,6 @@ export default function Upkeep({
       {reporting && (
         <ReportOpen
           busy={busy}
-          said={said}
-          trouble={trouble}
           tell={tell}
           fail={fail}
           quietly={quietly}

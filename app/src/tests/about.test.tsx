@@ -1,9 +1,9 @@
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { saidPlainly } from "../refusal";
+import { t } from "../locales";
 import About from "../ui/About";
 
 const opened = vi.hoisted(() => ({ urls: [] as string[] }));
@@ -108,15 +108,20 @@ describe("the other tools", () => {
     expect(opened.urls).toEqual(["https://www.tisty.app/"]);
   });
 
-  it("prepares a report from the end of the page too", async () => {
-    render(<About ready={null} onError={() => {}} />);
+  it("leaves reporting a problem to Health, and carries the page head and the help it is given", async () => {
+    render(
+      <About
+        ready={null}
+        onError={() => {}}
+        head={<h2>Help and about</h2>}
+        help={<p>the help band</p>}
+      />,
+    );
     await screen.findByText("0.1.0");
 
-    await userEvent.click(screen.getByRole("button", { name: "Prepare…" }));
-
-    expect(await screen.findByRole("dialog", { name: "Report a problem" })).toBeTruthy();
-    await userEvent.click(screen.getByRole("button", { name: "Close" }));
-    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Prepare…" })).toBeNull();
+    expect(screen.getByRole("heading", { name: "Help and about" })).toBeTruthy();
+    expect(screen.getByText("the help band")).toBeTruthy();
   });
 });
 
@@ -233,7 +238,12 @@ describe("a newer version the Store itself offers", () => {
     render(<About ready={null} onError={() => {}} />);
 
     await screen.findByText("0.1.0");
-    expect(screen.getByText(/Microsoft Store keeps this copy up to date/i)).toBeTruthy();
+    const update = document.querySelector("[data-setting=update]") as HTMLElement;
+    expect(within(update).getByText(/Microsoft Store keeps this copy up to date/i)).toBeTruthy();
+    const candidates = document.querySelector("[data-setting=candidates]") as HTMLElement;
+    expect(within(candidates).getByText(t("betaStore"))).toBeTruthy();
+    expect(candidates.querySelector("[data-note=na]")).toBeTruthy();
+    expect(screen.queryByRole("checkbox", { name: /release candidates/i })).toBeNull();
     expect(screen.queryByText(/nothing newer/i)).toBeNull();
     expect(screen.queryByText(/newest version/i)).toBeNull();
   });
@@ -293,8 +303,13 @@ describe("a newer version the Store itself offers", () => {
     await screen.findByText("0.1.0");
     await userEvent.click(screen.getByRole("button", { name: /check for updates/i }));
 
-    await waitFor(() => expect(problems.length).toBe(1));
-    expect(saidPlainly(problems[0])).toMatch(/did not answer/i);
+    const note = await waitFor(() => {
+      const found = document.querySelector("[data-setting=update] [data-note=err]");
+      expect(found).toBeTruthy();
+      return found as HTMLElement;
+    });
+    expect(note.textContent).toMatch(/did not answer/i);
+    expect(problems).toEqual([]);
   });
 
   const waiting = { version: "1.15.0", route: "store" as const, installs: true };
@@ -391,12 +406,13 @@ describe("a newer version the Store itself offers", () => {
     expect(screen.getByText(/1\.15\.1/)).toBeTruthy();
     await userEvent.click(screen.getByRole("button", { name: /update/i }));
 
-    await screen.findByText(/1\.17\.0/);
+    await screen.findByText(/^Tisty 1\.17\.0/);
     expect(screen.queryByText(/1\.15\.1/)).toBeNull();
     expect(seen.filter((cmd) => cmd === "update_ready")).toEqual(["update_ready"]);
-    expect(problems.map((one) => saidPlainly(one))).toEqual([
+    expect(problems).toEqual([]);
+    expect(document.querySelector("[data-setting=update] [data-note=err]")?.textContent).toContain(
       "That version is no longer offered; 1.17.0 is.",
-    ]);
+    );
   });
 
   it("is taken with the one button, and never through a door to the Store", async () => {
@@ -432,5 +448,66 @@ describe("a copy the Store keeps", () => {
 
     expect(screen.queryByRole("button", { name: /rate it in the store/i })).toBeNull();
     expect(screen.getByRole("button", { name: /star on github/i })).toBeTruthy();
+  });
+});
+
+// A copy that updates itself says it is on the newest one only after a look that got an answer today.
+describe("whether this copy is on the newest version", () => {
+  const update = () => document.querySelector("[data-setting=update]") as HTMLElement;
+  const days = (ago: number) => new Date(Date.now() - ago * 86_400_000).toISOString();
+
+  it("claims nothing before any look got an answer", async () => {
+    render(<About ready={null} onError={() => {}} />);
+
+    await screen.findByText("0.1.0");
+    expect(within(update()).getByText(t("lookNotHeard"))).toBeTruthy();
+    expect(within(update()).queryByText(t("lookNowNone"))).toBeNull();
+  });
+
+  it("says it is on the newest one after an answer from today", async () => {
+    ipc.answer = () => Promise.resolve({ ...build, standing: { phrase: "none", looked: days(0) } });
+    render(<About ready={null} onError={() => {}} />);
+
+    expect(await screen.findByText(t("lookNowNone"))).toBeTruthy();
+  });
+
+  it("names the day of an older answer instead of saying it is up to date", async () => {
+    ipc.answer = () => Promise.resolve({ ...build, standing: { phrase: "none", looked: days(3) } });
+    render(<About ready={null} onError={() => {}} />);
+
+    await screen.findByText("0.1.0");
+    expect(within(update()).getByText(/^Last answered /)).toBeTruthy();
+    expect(within(update()).queryByText(t("lookNowNone"))).toBeNull();
+  });
+
+  it("says it is on the newest one when a press gets an answer, and reads the answer's day again", async () => {
+    ipc.answer = (cmd) => Promise.resolve(cmd === "update_ready" ? null : build);
+    render(<About ready={null} onError={() => {}} />);
+    await screen.findByText("0.1.0");
+    const before = ipc.tries;
+
+    await userEvent.click(screen.getByRole("button", { name: /check for updates/i }));
+
+    expect(await within(update()).findByText(t("lookNowNone"))).toBeTruthy();
+    await waitFor(() => expect(ipc.tries).toBe(before + 1));
+  });
+
+  it("shows a press nobody answered as an error in its row", async () => {
+    const problems: unknown[] = [];
+    ipc.answer = (cmd) =>
+      cmd === "update_ready" ? Promise.reject({ code: "updateNoAnswer" }) : Promise.resolve(build);
+    render(<About ready={null} onError={(problem) => problems.push(problem)} />);
+
+    await screen.findByText("0.1.0");
+    await userEvent.click(screen.getByRole("button", { name: /check for updates/i }));
+
+    const note = await waitFor(() => {
+      const found = update().querySelector("[data-note=err]");
+      expect(found).toBeTruthy();
+      return found as HTMLElement;
+    });
+    expect(note.textContent).toContain(t("updateNoAnswer"));
+    expect(within(update()).queryByText(t("lookNowNone"))).toBeNull();
+    expect(problems).toEqual([]);
   });
 });

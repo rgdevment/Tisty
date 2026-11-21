@@ -4,7 +4,9 @@ import type { Keeper } from "../core";
 import { stamped } from "../format";
 import { warningOf } from "../keepers";
 import { t } from "../locales";
-import type { Which, Word } from "./Card";
+import { ROWS, type RowId, settingAt } from "../settingsRows";
+import type { Which } from "./Card";
+import { Feedback, Heeded } from "./RowNotes";
 
 export const dated = (when: number): string => {
   const at = new Date(when * 1000);
@@ -18,10 +20,11 @@ export const mild = `rounded-[10px] border border-line px-2.5 py-1 text-[12.5px]
 export const strong = `rounded-[10px] bg-accent px-2.5 py-1 text-[12.5px] text-bg ${off}`;
 export const risky = `rounded-[10px] border border-urgent/40 px-2.5 py-1 text-[12.5px] text-urgent hover:bg-urgent/10 ${off}`;
 
-export function Band({ label }: { label: string }) {
+export function Band({ label, tag }: { label: string; tag?: React.ReactNode }) {
   return (
-    <div className="mt-5 mb-1.5 text-[11.5px] font-semibold tracking-[0.06em] text-faint uppercase">
+    <div className="mt-5 mb-1.5 flex items-center gap-2 text-[11.5px] font-semibold tracking-[0.06em] text-faint uppercase">
       {label}
+      {tag && <span className="tracking-normal normal-case">{tag}</span>}
     </div>
   );
 }
@@ -86,27 +89,40 @@ export function Ask({ said, end }: { said: string; end?: boolean }) {
 }
 
 export function Line({
+  row,
+  item,
   title,
   why,
   which,
-  said,
-  trouble,
   children,
   more,
+  note,
+  quiet,
+  hushed,
 }: {
-  title: React.ReactNode;
+  row?: RowId;
+  item?: boolean;
+  title?: React.ReactNode;
   why?: React.ReactNode;
   which: Which;
-  said?: Word;
-  trouble?: Word;
   children?: React.ReactNode;
   more?: React.ReactNode;
+  note?: React.ReactNode;
+  quiet?: boolean;
+  hushed?: boolean;
 }) {
   return (
-    <div className="border-b border-hair py-2.5">
+    <div
+      data-line=""
+      data-item={item ? "" : undefined}
+      {...(row && settingAt(row))}
+      className="border-b border-hair py-2.5"
+    >
       <div className="flex items-center gap-4">
         <span className="min-w-0 flex-1">
-          <span className="block text-[13px] font-medium">{title}</span>
+          <span className="block text-[13px] font-medium">
+            {title ?? (row && t(ROWS[row].title))}
+          </span>
           {why && <span className="mt-px block text-[12.5px] leading-snug text-faint">{why}</span>}
         </span>
         {children && (
@@ -114,10 +130,15 @@ export function Line({
         )}
       </div>
       {more}
-      {trouble?.card === which && (
-        <p className="mt-1.5 text-[11.5px] text-urgent">{trouble.text}</p>
-      )}
-      {said?.card === which && <p className="mt-1.5 text-[11.5px] text-faint">{said.text}</p>}
+      {note}
+      {row && <Heeded row={row} />}
+      <Feedback
+        which={which}
+        quiet={quiet}
+        hideWorking={hushed}
+        hideTrouble={hushed}
+        hideSaid={hushed}
+      />
     </div>
   );
 }

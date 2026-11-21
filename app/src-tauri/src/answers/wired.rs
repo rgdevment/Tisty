@@ -88,6 +88,7 @@ pub fn wake_offer(
     }
     let now = looked();
     match (now.offered, now.wakes) {
+        (true, false) if now.theirs => WakeOffer::Not,
         (true, false) => WakeOffer::Ask(now),
         (true, true) => WakeOffer::Settled,
         (false, _) => WakeOffer::Not,

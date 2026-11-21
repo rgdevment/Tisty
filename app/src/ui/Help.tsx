@@ -26,12 +26,23 @@ type View =
   | { kind: "home" }
   | { kind: "page"; slug: string; heading?: string; anchor?: string | null };
 
-const viewOf = (topic?: string): View =>
-  topic ? { kind: "page", slug: `${MARKS}${topic}` } : { kind: "home" };
+interface Asked {
+  readonly topic?: string;
+  readonly article?: string;
+  readonly heading?: string;
+  readonly from?: string;
+}
 
-export default function Help({ topic, from }: { readonly topic?: string; readonly from?: string }) {
+const viewOf = ({ topic, article, heading }: Asked): View =>
+  topic
+    ? { kind: "page", slug: `${MARKS}${topic}` }
+    : article
+      ? { kind: "page", slug: article, heading }
+      : { kind: "home" };
+
+export default function Help({ topic, article, heading, from }: Asked) {
   const spanish = locale().toLowerCase().startsWith("es");
-  const [view, setView] = useState<View>(viewOf(topic));
+  const [view, setView] = useState<View>(viewOf({ topic, article, heading }));
   const [entries, setEntries] = useState<HelpEntry[]>([]);
   const [bodies, setBodies] = useState<Record<string, string>>({});
   const [topics, setTopics] = useState<Topic[]>([]);
@@ -44,8 +55,8 @@ export default function Help({ topic, from }: { readonly topic?: string; readonl
   const fresh = useRef(false);
 
   useEffect(() => {
-    if (topic) setView(viewOf(topic));
-  }, [topic]);
+    if (topic || article) setView(viewOf({ topic, article, heading }));
+  }, [topic, article, heading]);
 
   useEffect(() => {
     let live = true;

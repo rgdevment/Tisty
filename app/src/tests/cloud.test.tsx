@@ -5,12 +5,13 @@ import { cloudStanding, storageOf } from "../cloudState";
 import { ended, unstuck } from "../coming";
 import type { Carrying, CloudStatus } from "../core";
 import { adopt, fill, t } from "../locales";
-import { asksSure } from "../sure";
+
 import Choosing from "../ui/Choosing";
 import Clouded from "../ui/Clouded";
 import Coming from "../ui/Coming";
 import FreeSpace from "../ui/FreeSpace";
 import Raised from "../ui/Raised";
+import { IDLE } from "../ui/working";
 
 const ipc = vi.hoisted(() => ({
   calls: [] as { cmd: string; args: Record<string, unknown> }[],
@@ -299,6 +300,13 @@ describe("choosing where the copies go", () => {
   });
 });
 
+const answer = async (go: string) => {
+  const dialog = within(await screen.findByRole("dialog"));
+  const box = dialog.queryByLabelText(t("carefulUndone"));
+  if (box && go !== t("cancel")) await userEvent.click(box);
+  await userEvent.click(dialog.getByRole("button", { name: go }));
+};
+
 const card = (
   over: Partial<CloudStatus> = {},
   answer: () => Promise<unknown> = () => Promise.resolve(status(over)),
@@ -306,13 +314,19 @@ const card = (
   ipc.answers.cloud_status = answer;
   const carry = vi.fn();
   const failed: unknown[] = [];
-  const run = vi.fn((_card: string, work: Promise<unknown>, then: (answer: unknown) => void) => {
-    work.then(then).catch((e) => failed.push(e));
-  });
+  const run = vi.fn(
+    (
+      _card: string,
+      work: Promise<unknown> | (() => Promise<unknown>),
+      then: (answer: unknown) => void,
+    ) => {
+      (typeof work === "function" ? work() : work).then(then).catch((e) => failed.push(e));
+    },
+  );
   render(
     <Clouded
       state={carrying({ last: "2026-10-12T10:00:00Z" })}
-      busy={null}
+      busy={IDLE}
       run={run as never}
       fail={() => {}}
       carry={carry}
@@ -388,24 +402,31 @@ describe("the cloud in Settings", () => {
     expect(screen.getByText("plano.pdf")).toBeTruthy();
   });
 
-  it("disconnects this machine only once the person is sure", async () => {
+  it("disconnects this machine from the careful zone only once the person is sure", async () => {
     card();
-    opened.sure = false;
-    await userEvent.click(await screen.findByRole("button", { name: t("cloudForgetHere") }));
+    const zone = within(await screen.findByRole("region", { name: t("delicateZone") }));
+    await userEvent.click(zone.getByRole("button", { name: t("cloudForgetHere") }));
+    await answer(t("cancel"));
     expect(sent("cloud_forget")).toHaveLength(0);
-    opened.sure = true;
-    await userEvent.click(screen.getByRole("button", { name: t("cloudForgetHere") }));
+    await userEvent.click(zone.getByRole("button", { name: t("cloudForgetHere") }));
+    const dialog = within(await screen.findByRole("dialog"));
+    expect(dialog.getByText(t("carefulForgetOne"))).toBeTruthy();
+    await answer(t("carefulForgetGo"));
     await waitFor(() => expect(sent("cloud_forget")).toHaveLength(1));
+    expect(document.querySelector("[data-setting=cloudForget]")).toBeTruthy();
   });
 
-  it("folds sending everything again and the access on every computer, and asks before sending", async () => {
+  it("folds sending everything again, keeps the access on every computer in the careful zone, and asks before sending", async () => {
     const { carry } = card();
     const fold = (await screen.findByText(t("moreOptions"))).closest("details");
     expect(fold?.open).toBe(false);
     const inside = within(fold as HTMLElement);
-    expect(inside.getByRole("button", { name: t("cloudRevokeAll") })).toBeTruthy();
+    expect(inside.queryByRole("button", { name: t("cloudRevokeAll") })).toBeNull();
+    const careful = within(screen.getByRole("region", { name: t("delicateZone") }));
+    expect(careful.getByRole("button", { name: t("cloudRevokeAll") })).toBeTruthy();
+    expect(careful.getByRole("button", { name: t("cloudForgetHere") })).toBeTruthy();
     expect(inside.queryByRole("button", { name: t("cloudForgetHere") })).toBeNull();
-    expect(screen.getByRole("button", { name: t("cloudForgetHere") })).toBeTruthy();
+    expect(document.querySelector("[data-setting=cloudRevoke]")).toBeTruthy();
 
     opened.sure = false;
     await userEvent.click(inside.getByRole("button", { name: t("syncAgain") }));
@@ -415,15 +436,18 @@ describe("the cloud in Settings", () => {
     await waitFor(() => expect(carry).toHaveBeenCalledWith("again"));
   });
 
-  it("keeps leaving without the cloud out of the fold when it is the only way on", async () => {
+  it("keeps leaving without the cloud out of the fold, in the careful zone, when it is the only way on", async () => {
     card({ lost: true, last: round("cloudLost") });
     const leave = await screen.findByRole("button", { name: t("cloudAbandon") });
     expect(leave.closest("details")).toBeNull();
+    expect(leave.closest("section")?.getAttribute("aria-label")).toBe(t("delicateZone"));
   });
 
   it("removes the access on every machine only once the person is sure", async () => {
     card();
     await userEvent.click(await screen.findByRole("button", { name: t("cloudRevokeAll") }));
+    expect(within(await screen.findByRole("dialog")).getByText(t("carefulRevokeTwo"))).toBeTruthy();
+    await answer(t("carefulRevokeGo"));
     await waitFor(() => expect(sent("cloud_revoke")).toHaveLength(1));
   });
 });
@@ -526,11 +550,12 @@ describe("around the cloud", () => {
     ipc.answers.unused_attachments = () => Promise.resolve({ files: 0, bytes: 0 });
     render(
       <FreeSpace
-        busy={null}
+        busy={IDLE}
         freeing={null}
         setFreeing={() => {}}
         days={30}
         setDays={() => {}}
+        clear={() => {}}
         fail={() => {}}
       />,
     );
@@ -565,54 +590,44 @@ describe("around the cloud", () => {
 
 describe("a cloud Google will never open again", () => {
   it("is left for this computer alone only after saying what stays in Drive", async () => {
-    const asked: string[] = [];
-    asksSure((said) => {
-      asked.push(said);
-      return Promise.resolve(asked.length > 1);
-    });
     ipc.answers.cloud_stranded = () => Promise.resolve({ files: 3, bytes: 900 });
     card({ lost: true, last: round("cloudLost") });
     const leave = await screen.findByRole("button", { name: t("cloudAbandon") });
 
     await userEvent.click(leave);
-    await waitFor(() => expect(asked).toHaveLength(1));
+    expect(
+      within(await screen.findByRole("dialog")).getByText(fill("cloudAbandonSure", "3")),
+    ).toBeTruthy();
+    await answer(t("cancel"));
     expect(sent("cloud_abandon")).toHaveLength(0);
     await userEvent.click(leave);
+    await answer(t("cloudAbandon"));
 
     await waitFor(() => expect(sent("cloud_abandon")).toHaveLength(1));
-    expect(asked[0]).toBe(fill("cloudAbandonSure", "3"));
-    asksSure(null);
+    expect(document.querySelector("[data-setting=cloudAbandon]")).toBeTruthy();
   });
 
   it("says nothing stays behind when every attachment is already here", async () => {
-    const asked: string[] = [];
-    asksSure((said) => {
-      asked.push(said);
-      return Promise.resolve(false);
-    });
     ipc.answers.cloud_stranded = () => Promise.resolve({ files: 0, bytes: 0 });
     card({ lost: true });
 
     await userEvent.click(await screen.findByRole("button", { name: t("cloudAbandon") }));
 
-    await waitFor(() => expect(asked).toEqual([t("cloudAbandonSureNone")]));
+    expect(
+      within(await screen.findByRole("dialog")).getByText(t("cloudAbandonSureNone")),
+    ).toBeTruthy();
     expect(sent("cloud_abandon")).toHaveLength(0);
-    asksSure(null);
   });
 
   it("speaks of a single attachment left in Drive as one", async () => {
-    const asked: string[] = [];
-    asksSure((said) => {
-      asked.push(said);
-      return Promise.resolve(false);
-    });
     ipc.answers.cloud_stranded = () => Promise.resolve({ files: 1, bytes: 10 });
     card({ lost: true });
 
     await userEvent.click(await screen.findByRole("button", { name: t("cloudAbandon") }));
 
-    await waitFor(() => expect(asked).toEqual([t("cloudAbandonSureOne")]));
-    asksSure(null);
+    expect(
+      within(await screen.findByRole("dialog")).getByText(t("cloudAbandonSureOne")),
+    ).toBeTruthy();
   });
 
   it("offers no way out without the move while Google still lets Tisty in", async () => {

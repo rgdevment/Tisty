@@ -18,7 +18,7 @@ import { fill, t } from "../locales";
 import { saidPlainly } from "../refusal";
 import { AgentsFound } from "./AgentsFound";
 import { AssistantMark } from "./AssistantMark";
-import Card, { type Which, type Word } from "./Card";
+import Card, { type Run, type Word } from "./Card";
 import { Knob, Line } from "./Rows";
 
 const small =
@@ -31,10 +31,13 @@ const whyOf = (look: AgentsLook, one: AssistantSeen): string | undefined => {
 };
 
 /// The same words and the same acts as the sidebar: Bring, Bring and sync, Sync, Stop syncing and Hide.
-export default function AgentsSettings({ busy }: Readonly<{ busy: Which | null }>) {
+export default function AgentsSettings({
+  fail,
+  quietly,
+}: Readonly<{ fail: (word?: Word) => void; quietly: Run }>) {
   const [state, setState] = useState<AgentsState>();
   const [look, setLook] = useState<AgentsLook>();
-  const [trouble, setTrouble] = useState<Word>();
+  const setTrouble = fail;
   const hidden = agentsHidden(useHidden(), state?.folder);
   const stage = state ? agentsStage(state.folder, state) : null;
 
@@ -47,7 +50,7 @@ export default function AgentsSettings({ busy }: Readonly<{ busy: Which | null }
         return agentsLook().then(setLook);
       })
       .catch((e) => setTrouble({ card: "wiring", text: saidPlainly(e) }));
-  }, []);
+  }, [setTrouble]);
 
   useEffect(() => {
     looked();
@@ -55,15 +58,11 @@ export default function AgentsSettings({ busy }: Readonly<{ busy: Which | null }
     return () => window.removeEventListener(AGENTS_CHANGED, looked);
   }, [looked]);
 
-  const answered = (step: Promise<unknown>) => {
-    setTrouble(undefined);
-    step
-      .then(() => {
-        looked();
-        window.dispatchEvent(new Event(AGENTS_CHANGED));
-      })
-      .catch((e) => setTrouble({ card: "wiring", text: saidPlainly(e) }));
-  };
+  const answered = (step: Promise<unknown>) =>
+    quietly("wiring", step, () => {
+      looked();
+      window.dispatchEvent(new Event(AGENTS_CHANGED));
+    });
 
   const hideButton = !hidden && (
     <button type="button" onClick={() => hide(AGENTS)} className={small}>
@@ -72,7 +71,7 @@ export default function AgentsSettings({ busy }: Readonly<{ busy: Which | null }
   );
 
   return (
-    <Card title={t("agentsSettingsTitle")} which="wiring" busy={busy} trouble={trouble}>
+    <Card row="agentsFolder" which="wiring">
       <p className="text-[12.5px] leading-relaxed text-soft">{t("agentsSettingsLine")}</p>
       {state && stage === "unbrought" && (
         <div className="mt-3">
@@ -166,6 +165,7 @@ function Syncing({
       <div className="mt-2">
         {look.assistants.map((one) => (
           <Line
+            item
             key={one.id}
             title={
               <span className="flex items-center gap-2">

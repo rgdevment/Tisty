@@ -13,17 +13,17 @@ import { fill, t } from "../locales";
 import { saidPlainly } from "../refusal";
 import type { Which, Word } from "./Card";
 import { Line, mild, off } from "./Rows";
+import { held as isHeld, type Working } from "./working";
 
 const DAYS = [30, 60, 90];
 
 interface Props {
-  busy: Which | null;
+  busy: Working;
   freeing: Freeing | null;
   setFreeing: (freeing: Freeing | null) => void;
   days: number;
   setDays: (days: number) => void;
-  said?: Word;
-  trouble?: Word;
+  clear: (card: Which) => void;
   fail: (word?: Word) => void;
   onFound?: (found: Unused | null) => void;
 }
@@ -34,14 +34,13 @@ export default function FreeSpace({
   setFreeing,
   days,
   setDays,
-  said,
-  trouble,
+  clear,
   fail,
   onFound,
 }: Props) {
   const [found, setFound] = useState<Unused | null>(null);
   const [spent, setSpent] = useState<CloudStatus | null>(null);
-  const held = busy !== null;
+  const held = isHeld(busy, "free");
   const running = freeing !== null && !freeing.done;
 
   useEffect(() => onFound?.(found), [found, onFound]);
@@ -66,7 +65,7 @@ export default function FreeSpace({
   }, [running]);
 
   const letGo = () => {
-    fail(undefined);
+    clear("free");
     setFreeing({ gone: 0, freed: 0, done: false });
     freeSpace(days).catch((e) => {
       setFreeing(null);
@@ -76,7 +75,7 @@ export default function FreeSpace({
 
   return (
     <Line
-      title={t("freeUnusedTitle")}
+      row="unused"
       why={
         <>
           <span className="block">{t("freeWhy")}</span>
@@ -103,8 +102,6 @@ export default function FreeSpace({
         </>
       }
       which="free"
-      said={said}
-      trouble={trouble}
       more={
         <>
           <div className="mt-2 flex flex-wrap items-center gap-2.5">

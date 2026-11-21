@@ -745,11 +745,11 @@ describe("the limit of the history in the settings", () => {
   const ran: string[] = [];
   const run: Run = (card, work, then) => {
     ran.push(card);
-    void work.then(then);
+    void (typeof work === "function" ? work() : work).then(then);
   };
 
   it("offers 1, 5, 15 and 30 days and shows the one kept", () => {
-    render(<EarlierLimit kept={kept} setKept={vi.fn()} held={false} run={run} />);
+    render(<EarlierLimit kept={kept} amend={vi.fn()} held={false} run={run} tell={vi.fn()} />);
 
     const limit = screen.getByRole("combobox", { name: t("earlierLimit") }) as HTMLSelectElement;
 
@@ -761,18 +761,19 @@ describe("the limit of the history in the settings", () => {
   });
 
   it("keeps the limit chosen and shows what the settings answered", async () => {
-    const setKept = vi.fn();
-    render(<EarlierLimit kept={kept} setKept={setKept} held={false} run={run} />);
+    const amend = vi.fn();
+    render(<EarlierLimit kept={kept} amend={amend} held={false} run={run} tell={vi.fn()} />);
 
     await userEvent.selectOptions(screen.getByRole("combobox", { name: t("earlierLimit") }), "5");
 
-    await waitFor(() => expect(setKept).toHaveBeenCalledWith({ ...kept, historyDays: 5 }));
+    await waitFor(() => expect(amend).toHaveBeenCalled());
+    expect(amend.mock.calls[0][0](kept)).toEqual({ ...kept, historyDays: 5 });
     expect(called("keep_history_days")[0].args).toEqual({ days: 5 });
     expect(ran).toEqual(["earlier"]);
   });
 
   it("waits while another setting is being kept", () => {
-    render(<EarlierLimit kept={kept} setKept={vi.fn()} held run={run} />);
+    render(<EarlierLimit kept={kept} amend={vi.fn()} held run={run} tell={vi.fn()} />);
 
     expect(
       (screen.getByRole("combobox", { name: t("earlierLimit") }) as HTMLSelectElement).disabled,

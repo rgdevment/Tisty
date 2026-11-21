@@ -778,7 +778,7 @@ your own AI agent reads over MCP**, this is what Tisty is:
 | Subscription | none. There is no paid tier and no upgrade |
 | Offline | always. Only what you send out needs a connection: a document shared by link, your own cloud, a task saved to an online calendar |
 | AI inside | **none**, and none is coming |
-| Your own assistant | yes, over **MCP**, through a door one click closes |
+| Your own assistant | yes, over **MCP**, through a door you close whenever you like |
 | Memory for your agent | what moved since last time, outlines first and one section at a time |
 | Priorities | the **Eisenhower matrix**, by its name |
 | Sorting | lists, tags, steps and a journal on every task |
@@ -823,7 +823,7 @@ that turns "call the bank at 3" into a task is rules running on your machine, no
 model and no cloud. But it speaks [MCP](https://modelcontextprotocol.io), so an
 assistant you already use can file work into it — with its steps, its date and
 the list it belongs in, on this machine, with no account and nothing over the
-network. That door comes open, and one click closes it.
+network. That door comes open, and **Stop it** closes it whenever you like.
 
 **Two machines, no middleman.** Tisty talks straight to your own Google Drive,
 OneDrive or WebDAV server, or travels through a folder you already sync. There
@@ -1064,16 +1064,20 @@ and waits out of the way, because those were questions with an obvious answer.
 The guide is a document in your own store, in a folder of its own: yours to
 read, edit, or throw away like anything else you wrote.
 
-**Settings takes over the sidebar with its sections.** *General* is how Tisty
-behaves towards you — language, light or dark, start-up, the quick capture,
-notices, your calendar, and the one thing that happens outside the window: the
-welcome. *Sync*
-is where your copies go, which computers are yours and where the big
-attachments live. *Security* holds your 24-word phrase and the encrypted cloud.
-*Your data* is your folder, backups, what you take out or bring in, and a guide
-that leaves a computer clean if you want Tisty off it. *Assistants* and
-*Maintenance* are what they say, and *About* comes last: the notice of an update
-shows only when there is one, and takes you straight there.
+**Settings opens on an Overview.** It says how your Tisty is doing at a glance:
+what needs something from you comes first, under *To attend to*, and six tiles
+with a coloured dot tell you how sync, copies, security, assistants, health and
+the version stand. Right after you install, it offers five steps to make Tisty
+yours. *Search a setting* finds any setting by its name, and the eleven pages
+come in four groups. *This computer*: *Look and window*, *Tasks and reminders*
+and *Documents and signature*. *Your data*: *Sync*, *Security* (your 24-word
+phrase, your computers and the encrypted cloud), *Copies* (backups, documents
+from another Tisty, and a guide that leaves a computer clean if you want Tisty
+off it) and *Storage*. *Connections*: *Assistants*. *Tisty*: *Health* and *Help
+and about*. What cannot be undone waits in a red *Handle with care* box at the
+end of its page, and a label says whether a setting stays on this computer or
+travels to your others. The whole tour is in the
+[Settings help](https://www.tisty.app/docs/settings/).
 
 **Three columns at most:** what you are looking at, the list, and the task you
 opened. Nothing else on screen.
@@ -1146,8 +1150,8 @@ so a square with nothing written on it is only a square with nothing written on
 it — never a promise that the day is yours.
 
 **Tisto keeps you company.** Tisty's beaver peeks over the bar while you write a
-task. It never covers anything, and Settings turns it off. Finishing a task
-shows a notice with **Undo**, in case it was a mistake.
+task. It never covers anything, and Settings › *Look and window* turns it off.
+Finishing a task shows a notice with **Undo**, in case it was a mistake.
 
 **A global shortcut** opens a small field over whatever you are doing, so a task
 that occurs to you mid-something does not cost you the something.
@@ -1162,13 +1166,13 @@ Tisty: it shows each event and to-do with when, where, how it repeats and its
 reminder, and makes the ones you pick into tasks — time zones, Outlook's
 included, and simple repeats kept, and a file opened twice brings nothing twice.
 
-**And a task goes out to your calendar.** **Save to my calendar**, on a task with
-a date, opens the event already filled in — title, day and hour, and the task's
-link — in Google Calendar or Outlook in your browser, or in Apple Calendar on a
-Mac, and you press **Save** there; from then on your calendar reminds you, on
-your phone too. Tisty asks which calendar every time unless you choose one under
-Settings › General › *Your calendar*, connects to none of them, and the event
-does not follow the task if its date changes later.
+**And a task goes out to your calendar.** **Save to my calendar**, on a task
+with a date, opens the event already filled in — title, day and hour, and the
+task's link — in Google Calendar or Outlook in your browser, or in Apple
+Calendar on a Mac, and you press **Save** there; from then on your calendar
+reminds you, on your phone too. Tisty asks which calendar every time unless you
+choose one under Settings › *Tasks and reminders* › *Your calendar*, connects to
+none of them, and the event does not follow the task if its date changes later.
 
 **Repeating tasks** come back one occurrence at a time, so the archive shows you
 did it twelve times — and it counts what was owed rather than only what you
@@ -1255,10 +1259,10 @@ Microsoft's page and Tisty keeps its copies in *Apps › Tisty* in your OneDrive
 That folder is one you can see there; leave it to Tisty, since what you change
 by hand reads as a change from another computer.
 
-**Your own server, over WebDAV.** Nextcloud, ownCloud, Synology and others:
-you type the server's address, your user and a password in Settings, and Tisty
-checks the server before connecting — no browser opens. The password stays on
-this computer, kept by the system; an app password from your server is better
+**Your own server, over WebDAV.** Nextcloud, ownCloud, Synology and others: you
+type the server's address, your user and a password in Settings › *Sync*, and
+Tisty checks the server before connecting — no browser opens. The password stays
+on this computer, kept by the system; an app password from your server is better
 than your main one, since you can remove it there whenever you like. Tisty keeps
 its copies in a *Tisty* folder on the server and touches nothing beside it;
 leave that folder to Tisty too. Your server sets the limit and the pace, and
@@ -1310,7 +1314,7 @@ nothing is lost: what it holds stays where it was and catches up once it is
 updated.
 
 **Each machine signs what it writes**, and one nobody here has answered for
-waits at the door: its card in Settings › *Sync*, under *Your computers*, shows
+waits at the door: its card in Settings › *Security*, under *Your computers*, shows
 the code it signs with, you compare it with the one that machine shows for
 itself, and confirm it. Until then nothing it writes comes in; from then on,
 whatever does not answer to that key is turned away, and Tisty says so.
@@ -1356,16 +1360,17 @@ anybody's hands, so nobody can give it back to you: without it or one of your
 computers, nobody can open your cloud, not even Tisty.
 
 **And back up by hand, shared folder or not.** One zip with your whole history,
-kept wherever you like, and restored from the same place in *Your data*.
+kept wherever you like, and restored from the same place in Settings ›
+*Copies*.
 
 **Where the big ones live is yours to say.** By default every machine carries
 every attachment, which is why any of them can open anything with the network
-off. For anything above 25 MB, Settings offers two other ways: keep only what
-this machine attached and fetch the rest when you open it, or leave them in the
-shared folder and nowhere else. That last one trades the copy on your disk for the
-space it took: the file is there when your provider or your NAS is, and Tisty
-says so plainly when it is not. A copy is only ever let go of after the one in
-the shared folder is found to hash the same.
+off. For anything above 25 MB, Settings › *Storage* offers two other ways: keep
+only what this machine attached and fetch the rest when you open it, or leave
+them in the shared folder and nowhere else. That last one trades the copy on
+your disk for the space it took: the file is there when your provider or your
+NAS is, and Tisty says so plainly when it is not. A copy is only ever let go of
+after the one in the shared folder is found to hash the same.
 
 And because what uploads a folder is your provider's program and not Tisty, if
 you ever change something on one machine and it does not turn up on the other,
@@ -1393,11 +1398,12 @@ it goes. Nothing stays buried in a chat: every stage lands in Tisty, on your
 computer, where you can follow it as it happens and audit it later. When it says
 a task is done, you are the one who closes it.
 
-Settings › Assistants lists the assistants already installed on this computer and
-connects the one you pick: it writes a single line into that assistant's own
-settings, leaves the rest of that file where it was, and keeps a copy of it as
-it was before. For one it does not know, a line does it, and the tab shows it
-with where the `tisty` that came with the app sits on this computer:
+Settings › Assistants › *Connected* lists the assistants already installed on
+this computer and connects the one you pick: it writes a single line into that
+assistant's own settings, leaves the rest of that file where it was, and keeps a
+copy of it as it was before. For one it does not know, a line does it, and the
+tab shows it with where the `tisty` that came with the app sits on this
+computer:
 
 ```console
 $ <your-assistant> mcp add tisty -- <path-to-tisty> mcp
@@ -1405,15 +1411,15 @@ $ <your-assistant> mcp add tisty -- <path-to-tisty> mcp
 
 Where `<your-assistant>` is whatever yours is called. That `tisty` is not a
 command line any more: it opens only the assistant's door. It speaks
-[MCP](https://modelcontextprotocol.io) on the same machine: no
-account, no token, nothing over the network. **You hold the door.** It comes
-open on its own until you choose — on a new install, and on an update if you
-never closed it — so an assistant you connect can work right away, and Settings
-› Assistants closes it with one click. While it is closed, everything an
-assistant tries is refused, and the window says who knocked — «Claude Code
-tried to come in» — with **Let it in** right there. Letting an assistant in and
-throwing it out are events in your log; that you chose to keep the door closed
-is kept in this computer's settings.
+[MCP](https://modelcontextprotocol.io) on the same machine: no account, no
+token, nothing over the network. **You hold the door.** It comes open on its own
+until you choose — on a new install, and on an update if you never closed it —
+so an assistant you connect can work right away, and Settings › Assistants ›
+*Door* closes it with **Stop it**. While it is closed, everything an assistant
+tries is refused, and the window says who knocked — «Claude Code tried to come
+in» — with **Let it in** right there. Letting an assistant in and throwing it
+out are events in your log; that you chose to keep the door closed is kept in
+this computer's settings.
 
 While assistants have a voice, a stable Tisty also answers to the name `tisty`
 on your PATH — the Store and Homebrew put it there, and the installer's copy
@@ -1452,8 +1458,8 @@ move, and a step you ticked is never its to reword or take off. What an
 assistant writes is signed with the name of the program it spoke through: a row
 says «by an agent» and names it on hover, while the side panel, the full page
 and the journal say «by Claude Code», «by Codex». Settings › Assistants counts
-what each one wrote and lets you choose where the name shows, or keep only a
-small ◆.
+what each one wrote, and its *How its signature looks* tab lets you choose where
+the name shows, or keep only a small ◆.
 
 It also reads sparingly, which is your business as much as its own. Tisty keeps
 a small card for each document — its headings, how long it is, what it leans
@@ -1474,8 +1480,9 @@ can still read, and it is told that you archived it; it cannot write in it
 until you bring it back, or ask it to.
 
 Whatever it reads travels wherever that assistant travels. That is between you
-and it — which is precisely why the door, open on a new install, closes with
-one click, and why opening or closing it is written into your log.
+and it — which is precisely why the door, open on a new install, closes
+whenever you like with **Stop it**, and why opening or closing it is written
+into your log.
 
 ## What It Does Not Do
 
@@ -1511,8 +1518,8 @@ lists. Take the machine off the network and everything else works the same.
 ### Where is my data kept?
 
 In one folder on your own disk: an append-only log of what happened, your
-documents as `.md` files, and your attachments as themselves. Settings › *Your
-data* prints the path and *Show folder* opens it. Nothing is obfuscated and
+documents as `.md` files, and your attachments as themselves. Settings › *Storage*
+prints the path and *Show folder* opens it. Nothing is obfuscated and
 nothing is in a format only Tisty can read.
 
 ### What happens to my notes if Tisty disappears?
@@ -1528,8 +1535,8 @@ into a task is rules running on your machine: no model, no request, no cloud.
 What Brainsty thinks is alike comes from shared words, a typo or a fixed
 Spanish–English word list, never from a model. If you already use an assistant
 of your own, Tisty leaves an
-[MCP](https://modelcontextprotocol.io) door — it comes open, one click closes
-it, and while it is closed everything it tries is refused.
+[MCP](https://modelcontextprotocol.io) door — it comes open, you close it
+whenever you like, and while it is closed everything it tries is refused.
 
 ### How do I give my AI agent a memory between sessions?
 
@@ -1574,7 +1581,7 @@ desktop's.
 
 No. Tisty is a desktop program for Windows and macOS. An assistant that runs
 on Linux inside Windows, under WSL, reaches it all the same: Settings ›
-Assistants connects it.
+Assistants › *Connected* connects it.
 
 ### Is my data encrypted?
 
@@ -1664,8 +1671,8 @@ more than an archive.
 ## Localization
 
 The window, the guide, the welcome and the natural language all speak the
-language you chose the first time Tisty opened, and Settings changes it
-whenever you like.
+language you chose the first time Tisty opened, and Settings › *Look and
+window* changes it whenever you like.
 
 | Language | Tag | Status |
 | :-- | :-: | :-: |

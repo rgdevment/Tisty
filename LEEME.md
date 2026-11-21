@@ -803,7 +803,7 @@ dentro — y una memoria que tu propio agente de IA lee por MCP**, esto es Tisty
 | Suscripción | ninguna. No hay plan de pago ni mejora |
 | Sin conexión | siempre. Solo lo que mandas afuera necesita conexión: un documento compartido por link, tu propia nube, una tarea guardada en un calendario en línea |
 | Con IA dentro | **ninguna**, y no la va a llevar |
-| Tu propio asistente | sí, por **MCP**, por una puerta que se cierra con un clic |
+| Tu propio asistente | sí, por **MCP**, por una puerta que cierras cuando quieras |
 | Memoria para tu agente | lo que cambió desde la última vez, primero el índice y una sección a la vez |
 | Prioridades | la **matriz de Eisenhower**, con su nombre |
 | Clasificación | listas, etiquetas, pasos y bitácora en cada tarea |
@@ -849,7 +849,7 @@ que convierte "llamar al banco a las 3" en una tarea son reglas corriendo en tu
 equipo, sin modelo y sin nube. Pero habla [MCP](https://modelcontextprotocol.io),
 así que un asistente que ya uses puede anotar trabajo aquí — con sus pasos, su
 fecha y la lista que le toca, en este equipo, sin cuenta y sin nada por la red.
-Esa puerta viene abierta, y un clic la cierra.
+Esa puerta viene abierta, y la cierras cuando quieras con **Quitarle la voz**.
 
 **Dos equipos, sin intermediario.** Tisty habla directo con tu propio Google
 Drive, OneDrive o servidor WebDAV, o viaja por una carpeta que ya sincronizas.
@@ -1100,15 +1100,21 @@ apartado, porque eran preguntas con una respuesta evidente. La guía es un
 documento en tu propio almacén, en una carpeta suya: tuya para leerla, editarla
 o tirarla como cualquier otra cosa que escribas.
 
-**La configuración ocupa la barra lateral con sus secciones.** *General* es
-cómo se porta Tisty contigo: idioma, claro u oscuro, arranque, captura rápida,
-avisos, tu calendario, y lo único que ocurre fuera de la ventana: la bienvenida.
-*Sincronizar* es dónde van tus copias, qué equipos son tuyos y dónde se quedan
-los adjuntos grandes. *Seguridad* guarda tu frase de 24 palabras y la nube
-cifrada. *Tus datos* es tu carpeta, los respaldos, lo que sacas o traes, y una
-guía que deja limpio un equipo si quieres sacar Tisty de él. *Asistentes* y
-*Mantenimiento* son lo que dicen, y *Acerca de* va al final: el aviso de una
-actualización aparece solo cuando hay una, y te lleva directo ahí.
+**La configuración abre en un Resumen.** Dice cómo está tu Tisty de un
+vistazo: lo que pide algo de ti va primero, en *Por atender*, y seis mosaicos con
+un punto de color dicen cómo están la sincronización, las copias, la seguridad,
+los asistentes, la salud y la versión. Recién instalado, te propone cinco pasos
+para dejar Tisty a tu medida. *Buscar un ajuste* encuentra cualquier ajuste por
+su nombre, y las once páginas van en cuatro grupos. *Este equipo*: *Aspecto y
+ventana*, *Tareas y avisos* y *Documentos y firma*. *Tus datos*:
+*Sincronización*, *Seguridad* (tu frase de 24 palabras, tus equipos y la nube
+cifrada), *Copias* (los respaldos, los documentos de otro Tisty y una guía que
+deja limpio un equipo si quieres sacar Tisty de él) y *Almacenamiento*.
+*Conexiones*: *Asistentes*. *Tisty*: *Salud* y *Ayuda y acerca de*. Lo que no se
+deshace espera en un recuadro rojo, *Zona delicada*, al final de su página, y una
+etiqueta dice si un ajuste se queda en este equipo o viaja a los demás. El
+recorrido completo está en la
+[ayuda de Configuración](https://www.tisty.app/es/ayuda/configuracion/).
 
 **Tres columnas como máximo:** qué estás mirando, la lista, y la tarea que
 abriste. Nada más en pantalla.
@@ -1183,8 +1189,9 @@ así que una casilla sin nada escrito es solo una casilla sin nada escrito, nunc
 la promesa de que ese día es tuyo.
 
 **Tisto te acompaña.** El castor de Tisty se asoma sobre la barra mientras
-escribes una tarea. Nunca tapa nada, y se apaga desde Configuración. Al terminar
-una tarea, un aviso ofrece **Deshacer**, por si fue un error.
+escribes una tarea. Nunca tapa nada, y se apaga desde Configuración › *Aspecto y
+ventana*. Al terminar una tarea, un aviso ofrece **Deshacer**, por si fue un
+error.
 
 **Un atajo global** abre un campo pequeño encima de lo que estés haciendo, así
 una tarea que se te ocurre a mitad de algo no te cuesta ese algo.
@@ -1205,8 +1212,8 @@ con fecha, abre el evento ya lleno —título, día y hora, y el enlace de la ta
 en Google Calendar u Outlook en tu navegador, o en el Calendario de Apple en un
 Mac, y ahí pulsas **Guardar**; desde entonces te avisa tu calendario, también en
 el teléfono. Tisty pregunta cada vez qué calendario usar, salvo que elijas uno
-en Configuración › General › *Tu calendario*, no se conecta a ninguno, y el
-evento no sigue a la tarea si después cambias su fecha.
+en Configuración › *Tareas y avisos* › *Tu calendario*, no se conecta a ninguno,
+y el evento no sigue a la tarea si después cambias su fecha.
 
 **Las tareas que se repiten** vuelven de una en una, así el archivo te muestra
 que la hiciste doce veces —y cuenta lo que tocaba, no solo lo que cerraste, de
@@ -1268,7 +1275,7 @@ confirmes.
 
 ## Dos equipos, si tienes dos
 
-Dile a Tisty dónde dejar las copias, en Configuración › *Sincronizar*. Hay dos
+Dile a Tisty dónde dejar las copias, en Configuración › *Sincronización*. Hay dos
 formas —una nube con la que Tisty habla directo, o una carpeta que otro programa
 mantiene al día— y el resto lo hace solo.
 
@@ -1295,12 +1302,12 @@ Esa carpeta sí la ves ahí; déjasela a Tisty, porque lo que cambies a mano se 
 como un cambio de otro equipo.
 
 **Tu propio servidor, por WebDAV.** Nextcloud, ownCloud, Synology y otros:
-escribes la dirección del servidor, tu usuario y una contraseña en
-Configuración, y Tisty revisa el servidor antes de conectarse; no se abre ningún
-navegador. La contraseña queda en este equipo, guardada por el sistema; mejor
-una contraseña de aplicación de tu servidor que la principal, porque ahí la
-puedes quitar cuando quieras. Tisty guarda sus copias en una carpeta *Tisty* del
-servidor y no toca nada fuera de ella; déjasela a Tisty también. Tu servidor
+escribes la dirección del servidor, tu usuario y una contraseña en Configuración
+› *Sincronización*, y Tisty revisa el servidor antes de conectarse; no se abre
+ningún navegador. La contraseña queda en este equipo, guardada por el sistema;
+mejor una contraseña de aplicación de tu servidor que la principal, porque ahí
+la puedes quitar cuando quieras. Tisty guarda sus copias en una carpeta *Tisty*
+del servidor y no toca nada fuera de ella; déjasela a Tisty también. Tu servidor
 pone el límite y el ritmo, y los adjuntos también quedan siempre en este equipo.
 
 Antes de que te conectes, y antes de una mudanza a la nube, Tisty revisa que el
@@ -1351,7 +1358,7 @@ sincroniza, pero no pierdes nada: lo que tiene se queda donde estaba y se pone
 al día en cuanto lo actualices.
 
 **Cada equipo firma lo que escribe**, y uno por el que aquí nadie ha respondido
-espera en la puerta: su ficha en Configuración › *Sincronizar*, en *Tus
+espera en la puerta: su ficha en Configuración › *Seguridad*, en *Tus
 equipos*, muestra el código con el que firma, lo comparas con el que ese equipo
 muestra de sí mismo, y lo confirmas. Hasta entonces no entra nada de lo que
 escribe; desde ese momento, lo que no responda a esa clave se rechaza, y Tisty
@@ -1398,18 +1405,18 @@ nadie, así que nadie te la puede devolver: sin ella o sin uno de tus equipos,
 nadie puede abrir tu nube, ni siquiera Tisty.
 
 **Y respalda a mano, con carpeta compartida o sin ella.** Un zip con todo tu
-historial, guardado donde quieras, y restaurado desde el mismo sitio en *Tus
-datos*.
+historial, guardado donde quieras, y restaurado desde el mismo sitio en
+Configuración › *Copias*.
 
 **Dónde viven los grandes lo dices tú.** Por defecto cada equipo carga con todos
 los adjuntos, que es por lo que cualquiera de ellos abre lo que sea con la red
-apagada. Para lo que pase de 25 MB, Configuración ofrece otras dos formas:
-quedarte solo con lo que adjuntaste en este equipo y traer el resto cuando lo
-abras, o dejarlos en la carpeta compartida y en ningún otro sitio. Esa última
-cambia la copia de tu disco por el espacio que ocupaba: el archivo está cuando
-está tu nube o tu NAS, y
-Tisty te lo dice con todas las letras cuando no. Una copia solo se suelta después
-de comprobar que la de la carpeta compartida tiene el mismo sha.
+apagada. Para lo que pase de 25 MB, Configuración › *Almacenamiento* ofrece
+otras dos formas: quedarte solo con lo que adjuntaste en este equipo y traer el
+resto cuando lo abras, o dejarlos en la carpeta compartida y en ningún otro
+sitio. Esa última cambia la copia de tu disco por el espacio que ocupaba: el
+archivo está cuando está tu nube o tu NAS, y Tisty te lo dice con todas las
+letras cuando no. Una copia solo se suelta después de comprobar que la de la
+carpeta compartida tiene el mismo sha.
 
 Y como quien sube una carpeta es el programa de tu proveedor y no Tisty, si algún
 día cambias algo en un equipo y no aparece en el otro, [la ayuda](https://www.tisty.app/es/ayuda/sincronizar-y-respaldar/#cambié-algo-en-un-equipo-y-no-aparece-en-el-otro)
@@ -1436,11 +1443,12 @@ que avanza. Nada queda enterrado en un chat: cada etapa queda en Tisty, en tu
 equipo, donde puedes seguirla mientras ocurre y auditarla después. Cuando dice
 que una tarea está lista, eres tú quien la cierra.
 
-Configuración › Asistentes enumera los asistentes que ya tienes instalados en
-este equipo y conecta el que elijas: escribe una sola línea en la configuración
-de ese asistente, deja el resto de ese archivo donde estaba y guarda al lado una
-copia de cómo era. Para uno que no conozca, basta una línea, y la pestaña te la
-muestra con la ruta del `tisty` que vino con la app en este equipo:
+Configuración › Asistentes › *Conectados* enumera los asistentes que ya tienes
+instalados en este equipo y conecta el que elijas: escribe una sola línea en la
+configuración de ese asistente, deja el resto de ese archivo donde estaba y
+guarda al lado una copia de cómo era. Para uno que no conozca, basta una línea,
+y la pestaña te la muestra con la ruta del `tisty` que vino con la app en este
+equipo:
 
 ```console
 $ <tu-asistente> mcp add tisty -- <ruta-de-tisty> mcp
@@ -1448,15 +1456,15 @@ $ <tu-asistente> mcp add tisty -- <ruta-de-tisty> mcp
 
 Donde `<tu-asistente>` es como se llame el tuyo. Ese `tisty` ya no es una línea
 de comandos: solo abre la puerta del asistente. Habla
-[MCP](https://modelcontextprotocol.io) dentro del mismo equipo: sin
-cuenta, sin token, nada por la red. **Tú manejas la puerta.** Viene abierta
-sola hasta que elijas —en una instalación nueva, y al actualizar si nunca la
-cerraste—, así que un asistente que conectes puede trabajar de inmediato, y
-Configuración › Asistentes la cierra con un clic. Mientras está cerrada, todo lo
-que intente un asistente se rechaza, y la ventana te dice quién tocó —«Claude
-Code intentó entrar»— con **Dejarlo entrar** ahí mismo. Dejar entrar a un
-asistente y echarlo son eventos de tu registro; que elegiste mantener la puerta
-cerrada queda en la configuración de este equipo.
+[MCP](https://modelcontextprotocol.io) dentro del mismo equipo: sin cuenta, sin
+token, nada por la red. **Tú manejas la puerta.** Viene abierta sola hasta que
+elijas —en una instalación nueva, y al actualizar si nunca la cerraste—, así que
+un asistente que conectes puede trabajar de inmediato, y Configuración ›
+Asistentes › *Puerta* la cierra con **Quitarle la voz**. Mientras está cerrada,
+todo lo que intente un asistente se rechaza, y la ventana te dice quién tocó
+—«Claude Code intentó entrar»— con **Dejarlo entrar** ahí mismo. Dejar entrar a
+un asistente y echarlo son eventos de tu registro; que elegiste mantener la
+puerta cerrada queda en la configuración de este equipo.
 
 Mientras los asistentes tengan voz, un Tisty estable también responde al nombre
 `tisty` en tu PATH —la Store y Homebrew lo dejan ahí, y la copia del instalador
@@ -1498,8 +1506,8 @@ quitarlo.
 Lo que escribe un asistente va firmado con el nombre del programa por el que
 habló: la fila dice «por un agente» y lo nombra al pasar el puntero, y el panel
 lateral, la página completa y la bitácora dicen «por Claude Code», «por Codex».
-Configuración › Asistentes cuenta lo que anotó cada uno y deja elegir dónde se
-ve el nombre, o dejar solo un pequeño ◆.
+Configuración › Asistentes cuenta lo que anotó cada uno, y su pestaña *Cómo se
+ve su firma* deja elegir dónde se ve el nombre, o dejar solo un pequeño ◆.
 
 También lee con mesura, que es asunto tuyo tanto como suyo. Tisty guarda una
 ficha de cada documento —sus títulos, cuánto ocupa, las palabras en que se
@@ -1520,8 +1528,9 @@ sí lo puede leer, y se le dice que lo archivaste; no puede escribir en él hast
 que lo desarchives o se lo pidas.
 
 Lo que lea viaja adonde viaje ese asistente. Eso queda entre él y tú — que es
-justamente por lo que la puerta, abierta en una instalación nueva, se cierra con
-un clic, y abrirla o cerrarla queda escrito en tu registro.
+justamente por lo que la puerta, abierta en una instalación nueva, se cierra
+cuando quieras con **Quitarle la voz**, y abrirla o cerrarla queda escrito en
+tu registro.
 
 ## Qué no hace
 
@@ -1560,8 +1569,8 @@ Desconecta el equipo de la red y todo lo demás sigue igual.
 
 En una carpeta de tu propio disco: un registro que solo crece con lo que pasó,
 tus documentos como archivos `.md` y tus adjuntos tal cual son. Configuración ›
-*Tus datos* escribe la ruta y *Mostrar carpeta* la abre. Nada está ofuscado y
-nada queda en un formato que solo Tisty sepa leer.
+*Almacenamiento* escribe la ruta y *Mostrar carpeta* la abre. Nada está ofuscado
+y nada queda en un formato que solo Tisty sepa leer.
 
 ### ¿Qué pasa con mis notas si Tisty desaparece?
 
@@ -1576,8 +1585,8 @@ No, y no va a usarla. El lenguaje natural que convierte «llamar al banco a las
 nube. Lo que Brainsty cree que se parece sale de palabras en común, de un error
 de tipeo o de una lista fija de palabras español–inglés, nunca de un modelo. Si
 ya usas un asistente tuyo, Tisty deja una puerta
-[MCP](https://modelcontextprotocol.io): viene abierta, un clic la cierra, y
-mientras está cerrada todo lo que intente se rechaza.
+[MCP](https://modelcontextprotocol.io): viene abierta, la cierras cuando
+quieras, y mientras está cerrada todo lo que intente se rechaza.
 
 ### ¿Cómo le doy a mi agente de IA una memoria entre sesiones?
 
@@ -1624,7 +1633,7 @@ archivo son del escritorio.
 
 No. Tisty es un programa de escritorio para Windows y macOS. Un asistente que
 corre en Linux dentro de Windows, con WSL, llega a él igual: Configuración ›
-Asistentes lo conecta.
+Asistentes › *Conectados* lo conecta.
 
 ### ¿Mis datos están cifrados?
 
@@ -1715,8 +1724,8 @@ tu tiempo si el teléfono te importa más que el archivo.
 ## Idiomas
 
 La ventana, la guía, la bienvenida y el lenguaje natural hablan el idioma que
-elegiste la primera vez que abriste Tisty, y Configuración lo cambia cuando
-quieras.
+elegiste la primera vez que abriste Tisty, y Configuración › *Aspecto y
+ventana* lo cambia cuando quieras.
 
 | Idioma | Etiqueta | Estado |
 | :-- | :-: | :-: |

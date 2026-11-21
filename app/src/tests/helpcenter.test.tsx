@@ -14,6 +14,7 @@ import {
   sectionsOf,
   suggestedFor,
 } from "../guide/help";
+import { articleOf, TABS } from "../settingsPages";
 import { inTheRepo } from "./repo";
 
 const ENTRIES: HelpEntry[] = [
@@ -95,23 +96,14 @@ const fileOf = (slug: string) => pages.find((one) => slugOf(one.replace(/\.md$/,
 describe("what the help offers for where you were", () => {
   it("names the screen the help was asked from", () => {
     expect(cameFrom({ named: "keeping", tab: "security" })).toBe("keeping:security");
-    expect(cameFrom({ named: "keeping" })).toBe("keeping:general");
+    expect(cameFrom({ named: "keeping" })).toBe("keeping:summary");
     expect(cameFrom({ named: "docs" })).toBe("docs");
     expect(cameFrom({})).toBe("tasks");
     expect(cameFrom({ named: "help", from: "keeping:security" })).toBe("keeping:security");
   });
 
   it("points only at pages and sections the help really has, in both languages", () => {
-    for (const from of [
-      "keeping:sync",
-      "keeping:security",
-      "keeping:data",
-      "keeping:agents",
-      "keeping:general",
-      "docs",
-      "tasks",
-      "archive",
-    ]) {
+    for (const from of [...TABS.map((tab) => `keeping:${tab}`), "docs", "tasks", "archive"]) {
       for (const spanish of [false, true]) {
         for (const one of suggestedFor(from, spanish)) {
           const file = fileOf(one.slug);
@@ -122,6 +114,22 @@ describe("what the help offers for where you were", () => {
             new RegExp(`^#{2,4} ${one.heading}$`, "m"),
           );
         }
+      }
+    }
+  });
+
+  it("links every settings page to an article and section the help really has", () => {
+    for (const tab of TABS) {
+      for (const spanish of [false, true]) {
+        const one = articleOf(tab, spanish);
+        if (!one) continue;
+        const file = fileOf(one.slug);
+        expect(file, `${tab} → ${one.slug}`).toBeTruthy();
+        if (!one.heading || !file) continue;
+        const text = readFileSync(`${help}/${file}`, "utf8");
+        expect(text, `${one.slug} has no «${one.heading}»`).toMatch(
+          new RegExp(`^#{2,4} ${one.heading}$`, "m"),
+        );
       }
     }
   });

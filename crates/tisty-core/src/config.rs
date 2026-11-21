@@ -424,6 +424,9 @@ pub struct Config {
     pub found_version: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub found_in_the_shop: Option<bool>,
+    /// The last look that got an answer; `checked_at` also marks a look nobody answered.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub update_heard_at: Option<jiff::Timestamp>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub attach_up_to: Option<u64>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -511,6 +514,7 @@ impl Config {
             checked_at: None,
             found_version: None,
             found_in_the_shop: None,
+            update_heard_at: None,
             attach_up_to: None,
             holds: None,
             opened_by: None,

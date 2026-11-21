@@ -6,7 +6,7 @@ Toda la ventana funciona con el teclado.
 | :-- | :-- |
 | `Ctrl` + `Shift` + `Space` | Capturar una tarea desde cualquier parte, sin abrir la ventana |
 | `Enter` (en la captura rápida) | Guardar la tarea |
-| `Ctrl` + `Alt` + `I` (si lo eliges en Configuración) | Anotar una idea para [Ideas](Documentos#ideas) desde cualquier parte |
+| `Ctrl` + `Alt` + `I` (si lo eliges en **Configuración › Tareas y avisos**) | Anotar una idea para [Ideas](Documentos#ideas) desde cualquier parte |
 | `Tab` (en la captura rápida) | Cambiar entre una tarea, una idea para [Ideas](Documentos#ideas) y hoy en el [Diario](Documentos#diario); `Shift` + `Tab` vuelve atrás |
 | `Ctrl`/`⌘` + `Enter` | Sobre la fila de una tarea en la lista, terminarla; escribiendo en un documento o en la página de una tarea, un salto de página |
 | `Ctrl`/`⌘` + `Enter` (en el cuadro del Diario) | Guardar lo que escribiste en hoy |
@@ -39,7 +39,19 @@ Toda la ventana funciona con el teclado.
 | `Alt` + flecha (en una tabla: ↑ ↓ con una celda abierta, y las cuatro en la vista Markdown) | Mover la fila o la columna donde está el cursor; `Ctrl` + `Alt` + ← → en un Mac |
 | `Esc` | Cerrar lo que esté abierto; escribiendo un documento, elegir el bloque |
 
-Si otro programa ya usa el atajo de captura, Tisty toma otro y te dice cuál en Configuración.
+Si otro programa ya usa el atajo de captura, Tisty toma otro y te dice cuál en **Configuración › Tareas y avisos**.
+
+## En Configuración
+
+| Atajo | Qué hace |
+| :-- | :-- |
+| `↑` `↓` (en la columna) | Mover el foco entre las páginas, sin abrirlas |
+| `Enter` (en la columna) | Abrir la página marcada |
+| `←` `→` (en las pestañas de **Asistentes**) | Cambiar de pestaña |
+| `Inicio` / `Fin` (en la columna o en las pestañas) | Ir a la primera o a la última |
+| `Esc` | Salir de Configuración; en **Buscar un ajuste**, primero borra lo que escribiste |
+
+Más en [Configuración](Configuración#abrir-la-configuración).
 
 ## La paleta
 

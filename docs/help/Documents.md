@@ -54,7 +54,7 @@ The first line of the document is its title — there is no name to fill in.
 
 ## Ideas
 
-An idea that comes in the middle of something else has nowhere to go yet. Press `Ctrl` + `Shift` + `Space` and then `Tab` to switch from **Task** to **Idea** (or the idea's own shortcut, once you pick one in **Settings**), type it, up to 140 characters, and press `Enter`: it lands in **Ideas**, dated, without opening the window or choosing a folder. **Settings** lets you pick both shortcuts; the idea's stays off until you choose it, since `Ctrl` + `Alt` is AltGr on many keyboards. Without the keyboard, the **+** at the end of the row of views opens the same capture.
+An idea that comes in the middle of something else has nowhere to go yet. Press `Ctrl` + `Shift` + `Space` and then `Tab` to switch from **Task** to **Idea** (or the idea's own shortcut, once you pick one in **Settings › Tasks and reminders**), type it, up to 140 characters, and press `Enter`: it lands in **Ideas**, dated, without opening the window or choosing a folder. **Settings › Tasks and reminders** lets you pick both shortcuts; the idea's stays off until you choose it, since `Ctrl` + `Alt` is AltGr on many keyboards. Without the keyboard, the **+** at the end of the row of views opens the same capture.
 
 ![Ideas as sticky notes in colours, each with its date and minute, written by hand: Photos of the Patagonia trip in the diary, Rina's calendar with colors by type of visit, Measure the token cost of each MCP tool](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/app/en-ideas-light.webp)
 
@@ -117,7 +117,7 @@ It helps when:
 
 **Seeing it again:**
 
-1. Open **Settings › General** and scroll down to **Hidden folders**: «Folders hidden from the sidebar on this computer. They keep everything they hold, and search, the palette and Move to still find them.».
+1. Open **Settings › Look and window** and scroll down to **Hidden folders**, marked **This computer only**: «Folders hidden from the sidebar on this computer. They keep everything they hold, and search, the palette and Move to still find them.».
 2. Each hidden folder is a row with its whole path, such as **Work / Clients**, and the button **Show again**. Press it and it goes back to the sidebar, in its place.
 
 If you hid none, the section says «No folder is hidden.».
@@ -311,7 +311,7 @@ A version is the document's whole text as it stood, in a Markdown file inside th
 
 **30 days** by default, counted from when the version was replaced and not from when you wrote it, so you can always go back to how the document stood when the limit began.
 
-To change it, in **Settings › Your data › Document history**, **Keep earlier versions for** offers **1 day**, **5 days**, **15 days** or **30 days**. Each computer has its own. On opening Tisty, once a day at most, the versions past the limit go, so a shorter limit takes effect at that tidy. Go from 30 to 5 days and the next tidy deletes the versions replaced more than 5 days ago; those of the last 5 stay.
+To change it, in **Settings › Documents and signature › Document history**, **Keep earlier versions for** offers **1 day**, **5 days**, **15 days** or **30 days**. Each computer has its own. On opening Tisty, once a day at most, the versions past the limit go, so a shorter limit takes effect at that tidy. Go from 30 to 5 days and the next tidy deletes the versions replaced more than 5 days ago; those of the last 5 stay.
 
 Two always stay, whatever their age:
 
@@ -396,4 +396,4 @@ Each language of a document shared to edit has its own edit link, and the one yo
 
 ## Your alias
 
-Write an alias in Settings — optional, and yours to choose — and every document is signed with it, while whatever arrives from somebody else keeps theirs. It travels with your sync and inside any parcel, so pick a name you are content for others to read. Your real name is never asked for.
+Write an alias in **Settings › Documents and signature** — optional, and yours to choose — and every document is signed with it, while whatever arrives from somebody else keeps theirs. It travels with your sync and inside any parcel, so pick a name you are content for others to read. Your real name is never asked for.

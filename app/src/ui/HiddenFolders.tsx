@@ -3,8 +3,10 @@ import type { Papers } from "../core";
 import { trail } from "../folders";
 import { agentsHidden, agentsKeys, BRAINSTORM, DIARY, show, useHidden } from "../hiding";
 import { fill, t } from "../locales";
+import { settingAt } from "../settingsRows";
 import { usePinned } from "../usePinned";
 import { Band, Line, mild } from "./Rows";
+import { Scope } from "./Zone";
 
 interface Row {
   keys: string[];
@@ -40,8 +42,8 @@ export default function HiddenFolders({ papers }: Readonly<Props>) {
   // The sheet goes by its own title in the sidebar, so it does here too.
   const rows = hiddenRows(useHidden(), papers, usePinned(papers)?.file);
   return (
-    <>
-      <Band label={t("hiddenTitle")} />
+    <div {...settingAt("hidden")}>
+      <Band label={t("hiddenTitle")} tag={<Scope here />} />
       <p className="mb-1.5 text-[12.5px] leading-relaxed text-faint">{t("hiddenLead")}</p>
       <ul className="border-t border-hair" aria-label={t("hiddenTitle")}>
         {rows.length === 0 && (
@@ -51,7 +53,7 @@ export default function HiddenFolders({ papers }: Readonly<Props>) {
         )}
         {rows.map((one) => (
           <li key={one.keys[0]}>
-            <Line title={one.name} which="hidden">
+            <Line item title={one.name} which="hidden">
               <button
                 type="button"
                 onClick={() => show(...one.keys)}
@@ -64,6 +66,6 @@ export default function HiddenFolders({ papers }: Readonly<Props>) {
           </li>
         ))}
       </ul>
-    </>
+    </div>
   );
 }

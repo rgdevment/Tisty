@@ -1,15 +1,15 @@
 import { useEffect, useState } from "react";
-import { useComing, useStuck } from "../coming";
+import { spotOf } from "../attention";
 import { type Carrying, cloudPause } from "../core";
-import { decideAll, leftForLater, settledElsewhere, useLeftForLater } from "../deciding";
-import { type Footing, footing, offered } from "../footing";
+import { decideAll, leftForLater, settledElsewhere } from "../deciding";
+import { type Footing, offered } from "../footing";
 import { budgetResets, stamped } from "../format";
-import { useKnocking } from "../knocking";
 import { cloudNamed, fill, t } from "../locales";
 import { saidPlainly } from "../refusal";
-import { offlineNow } from "../syncSaid";
+import type { Spot } from "../settingsRows";
 import { lookAgain, useSyncSeen } from "../syncSeen";
 import { leaf } from "./Mode";
+import { useFoot } from "./useFoot";
 
 const A_WHILE = 60_000;
 const SOON = 10_000;
@@ -18,7 +18,7 @@ const DONE_SHOWN = 2_000;
 
 interface Props {
   onSync: () => Promise<unknown> | undefined;
-  onOpen: () => void;
+  onOpen: (spot: Spot) => void;
   onTrouble?: (text: string) => void;
   fallback?: React.ReactNode;
   narrow?: boolean;
@@ -40,7 +40,11 @@ const DOT: Record<Footing["kind"], string> = {
 
 const until = (secs: number): string => stamped(new Date(secs * 1000).toISOString());
 
-function told(foot: Footing, state: Carrying, cloud: string): { line: string; why?: string } {
+export function told(
+  foot: Footing,
+  state: Carrying,
+  cloud: string,
+): { line: string; why?: string } {
   switch (foot.kind) {
     case "syncing":
       return {
@@ -83,14 +87,9 @@ export default function SyncFoot({ onSync, onOpen, onTrouble, fallback, narrow }
   const { state, status } = useSyncSeen();
   const [mine, setMine] = useState(false);
   const [finished, setFinished] = useState(false);
-  const [offline, setOffline] = useState(offlineNow);
   const [, tick] = useState(0);
-  const coming = useComing();
-  const stuck = useStuck();
-  const knocked = useKnocking().waiting.length > 0;
-  const putOff = useLeftForLater();
+  const { foot, coming, stuck } = useFoot(state, status, mine);
   const idle = coming === null;
-  const foot = footing({ state, status, coming, mine, offline, knocked, putOff, stuck });
   // Google and Microsoft can ask to wait, and let go again, in the middle of one long round.
   const often =
     !idle ||
@@ -123,15 +122,8 @@ export default function SyncFoot({ onSync, onOpen, onTrouble, fallback, narrow }
   // A look on focus catches what was written beside the rounds.
   useEffect(() => {
     const look = () => void lookAgain();
-    const online = () => setOffline(offlineNow());
     window.addEventListener("focus", look);
-    window.addEventListener("online", online);
-    window.addEventListener("offline", online);
-    return () => {
-      window.removeEventListener("focus", look);
-      window.removeEventListener("online", online);
-      window.removeEventListener("offline", online);
-    };
+    return () => window.removeEventListener("focus", look);
   }, []);
 
   if (!foot || !state) return fallback ?? null;
@@ -158,7 +150,7 @@ export default function SyncFoot({ onSync, onOpen, onTrouble, fallback, narrow }
   const press = () => {
     // Just done, another press would only start the same round again.
     if (finished && foot.kind === "ok") return;
-    if (!offered(foot)) return onOpen();
+    if (!offered(foot)) return onOpen(spotOf(foot));
     if (foot.kind === "ok" || foot.kind === "first") return syncNow();
     if (foot.kind === "paused")
       return void cloudPause(false)
@@ -178,7 +170,7 @@ export default function SyncFoot({ onSync, onOpen, onTrouble, fallback, narrow }
           syncNow();
         })
         .catch(failed);
-    onOpen();
+    onOpen(spotOf(foot));
   };
 
   return (

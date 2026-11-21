@@ -16,7 +16,7 @@ Tisty speaks [MCP](https://modelcontextprotocol.io) through `tisty mcp`, over it
 
 - **On this machine only.** No port, no account, no token. It is not a server, and nothing can reach it from the network.
 - **Nothing listens until you connect it.** The assistant starts `tisty mcp` when it needs it.
-- **You hold the door.** It comes open on its own until you choose — on a new install, and on an update if you never closed it — and **Settings › Assistants** closes it with one click. While it is closed, everything an assistant tries is refused. Letting an assistant in and throwing it out are events in your log; that you chose to keep the door closed is kept in this computer's settings.
+- **You hold the door.** It comes open on its own until you choose — on a new install, and on an update if you never closed it — and in **Settings › Assistants › Door** you close it with **Stop it**, which first tells you what happens: «No assistant will be able to file in Tisty.», what it wrote stays where it is and connected assistants stay connected. While it is closed, everything an assistant tries is refused, and **Connected** reminds you: «Even so, they file nothing until you open the door.», with **Go to Door**. Letting an assistant in and throwing it out are events in your log; that you chose to keep the door closed is kept in this computer's settings.
 
 Since 1.32.1 a stable Tisty also answers to plain `tisty` from any terminal, so a plugin can start it by name. The Microsoft Store and Homebrew put that name there themselves; the installer's copy on Windows adds its own folder to your PATH while the door is open and takes it off again when you close it. If you have the Microsoft Store copy and the installer's at once, the newest answers. An assistant that was already open needs a restart to notice.
 
@@ -24,7 +24,7 @@ Since 1.32.1 a stable Tisty also answers to plain `tisty` from any terminal, so 
 
 ### From Settings (the easy way)
 
-**Settings › Assistants** finds the assistants installed on this computer among the ones Tisty knows (Claude Code, Claude Desktop, Codex, GitHub Copilot CLI, VS Code, Cursor, Devin Desktop and Windsurf, Antigravity, Gemini CLI, Qwen Code, OpenCode, Kilo Code, Zed, Junie, Kiro, Warp, LM Studio, Amp, Augment, Factory Droid, Trae, Cline, Roo Code, BoltAI, Goose and Continue) and says how each one stands:
+**Settings › Assistants › Connected** finds the assistants installed on this computer among the ones Tisty knows (Claude Code, Claude Desktop, Codex, GitHub Copilot CLI, VS Code, Cursor, Devin Desktop and Windsurf, Antigravity, Gemini CLI, Qwen Code, OpenCode, Kilo Code, Zed, Junie, Kiro, Warp, LM Studio, Amp, Augment, Factory Droid, Trae, Cline, Roo Code, BoltAI, Goose and Continue) and says how each one stands:
 
 - **Connected** — it starts this Tisty.
 - **Not connected** — **Connect** writes Tisty into its settings, in the shape that assistant reads.
@@ -74,7 +74,7 @@ Tisty is also listed where assistants look for servers: the official MCP Registr
 
 ### Assistants inside WSL
 
-On Windows, an assistant that runs in a Linux distro under WSL reads its settings in Linux, where a `C:\...` path does not exist. **Settings › Assistants** lists your distros; **Look in Ubuntu** reads that distro's files (starting it if it was stopped) and connects its assistants to the same Tisty, through its Linux path:
+On Windows, an assistant that runs in a Linux distro under WSL reads its settings in Linux, where a `C:\...` path does not exist. **Settings › Assistants › Connected** lists your distros; **Look in Ubuntu** reads that distro's files (starting it if it was stopped) and connects its assistants to the same Tisty, through its Linux path:
 
 ```console
 $ claude mcp add --scope user tisty -- /mnt/c/Users/<you>/AppData/Local/Programs/Tisty/tisty.exe mcp
@@ -84,7 +84,7 @@ It is the same Tisty and the same tasks and documents as on Windows. If a distro
 
 ### By hand
 
-For an assistant Tisty does not know, one line does it, with the full path to the `tisty` that came with the app. **Settings › Assistants › How to connect one** shows both forms below with that path already filled in for this computer, ready to copy, so nothing needs to be on your PATH:
+For an assistant Tisty does not know, one line does it, with the full path to the `tisty` that came with the app. **Settings › Assistants › Connected › How to connect one** shows both forms below with that path already filled in for this computer, ready to copy, so nothing needs to be on your PATH:
 
 ```console
 $ <your-assistant> mcp add tisty -- <path-to-tisty> mcp
@@ -106,7 +106,7 @@ Clients configured with a JSON file take the usual shape:
 }
 ```
 
-Restart the assistant. If you closed the door, open it again in **Settings › Assistants**.
+Restart the assistant. If you closed the door, open it again in **Settings › Assistants › Door**.
 
 You do not have to remember this step. When an assistant tries to work with Tisty while the door is closed, the window tells you — «Claude Code tried to come in» — and **Let it in** opens the door right there. It also tells you when your assistants are connected but cannot do anything yet because the door is closed.
 
@@ -170,9 +170,9 @@ What an agent connected to Tisty does on a real piece of work:
 7. **It ends by saying what it did and how it knows it holds.** You review it and close it.
 8. **After reading a long document, it leaves a summary** for the next agent to choose by. When the document changes, the summary is marked stale.
 
-**If it forgets, Tisty asks.** When the agent keeps calling Tisty while the task it opened goes ten minutes without a word from it, or while it writes three other things, the next answer asks it once whether that task is up to date. It names the task and what is missing — the steps still unticked, or that every step is ticked and the task is not said done — and asks it to leave it in one call: the steps it finished and the task's state, or, if the work is done, to say so with the proof. It never asks for a note of progress, and it asks again only after the agent writes on that task. It reaches every assistant, though only when the assistant calls Tisty. You turn it off in **Settings › Assistants**.
+**If it forgets, Tisty asks.** When the agent keeps calling Tisty while the task it opened goes ten minutes without a word from it, or while it writes three other things, the next answer asks it once whether that task is up to date. It names the task and what is missing — the steps still unticked, or that every step is ticked and the task is not said done — and asks it to leave it in one call: the steps it finished and the task's state, or, if the work is done, to say so with the proof. It never asks for a note of progress, and it asks again only after the agent writes on that task. It reaches every assistant, though only when the assistant calls Tisty. You turn it off in **Settings › Assistants › Door**, with **Ask it to keep its task up to date**.
 
-**With Tisty's hooks, it also asks when a turn ends.** In the assistants you gave them, a session starts with the last three open tasks your agents wrote on this computer, newest first, with how many steps are ticked and the next one, what moved since and what is pressing, in about 2,000 characters, so the agent does not have to remember to ask. After each edit and each call to Tisty, the hook leaves a mark for that session, without reading the conversation. While you let an assistant file here, when a turn edited files and wrote nothing in Tisty, it hands the turn back once: if that was work on a task, tick what was finished and, if it is done, say so with the proof. If the agent lets it pass, it stays quiet until the agent calls Tisty again, so work outside any task costs one extra turn at most; in GitHub Copilot that turn can spend a premium request. Work that edits no file, like planning or research, it does not see: there only the question in the answers reaches the agent. Codex and Claude Desktop have no hooks. **Remind it when a turn starts and ends**, in **Settings › Assistants**, turns the hooks off without taking them out.
+**With Tisty's hooks, it also asks when a turn ends.** In the assistants you gave them, a session starts with the last three open tasks your agents wrote on this computer, newest first, with how many steps are ticked and the next one, what moved since and what is pressing, in about 2,000 characters, so the agent does not have to remember to ask. After each edit and each call to Tisty, the hook leaves a mark for that session, without reading the conversation. While you let an assistant file here, when a turn edited files and wrote nothing in Tisty, it hands the turn back once: if that was work on a task, tick what was finished and, if it is done, say so with the proof. If the agent lets it pass, it stays quiet until the agent calls Tisty again, so work outside any task costs one extra turn at most; in GitHub Copilot that turn can spend a premium request. Work that edits no file, like planning or research, it does not see: there only the question in the answers reaches the agent. Codex and Claude Desktop have no hooks. **Remind it when a turn starts and ends**, in **Settings › Assistants › Door**, turns the hooks off without taking them out.
 
 **What it names, Tisty links.** When the agent names a task or a document in what it writes — a note, a description, a document — by its id, or by its exact title between quotes, Tisty turns it into a link as it lands, the same link you make with `[[` or a task's card, and tells the agent what it linked. What it is not sure of, like a title two things share, it leaves as written and hands back to the agent to judge. A name in double brackets stays the chip it was written as. It never touches headings, tables or lines that were already there, and a task you put out of sight is never named. A picture written or attached without saying what it shows — its file name does not count — gets a question in the answer, since the words in its brackets are all an agent or a screen reader will know of it. And in a section of decisions, one struck through reads as replaced: the card an agent reads puts the decisions in force first.
 
@@ -180,7 +180,7 @@ Who owns what stays clear. What your agent files is its own to keep true: it des
 
 ## Signed by name
 
-What an assistant writes is signed with the name of the program it spoke through. In a row it reads «by an agent», and the name shows when you hover over it; inside a task — the side panel, the whole page and the journal — it names the program: «by Claude Code», «by Codex». Settings › Assistants counts what each one wrote, and there you choose where the name shows: in the task list, inside a task, both or neither — wherever it does not, it reads «by an agent» and the name waits on hover. «Only a diamond» goes further: no words anywhere, just a small ◆ in the assistants' colour, with who wrote it on hover. What was written before programs said their name reads «by an assistant».
+What an assistant writes is signed with the name of the program it spoke through. In a row it reads «by an agent», and the name shows when you hover over it; inside a task — the side panel, the whole page and the journal — it names the program: «by Claude Code», «by Codex». **Settings › Assistants › Connected** counts what each one wrote, and in **How its signature looks** you choose where the name shows: in the task list, inside a task, both or neither — wherever it does not, it reads «by an agent» and the name waits on hover. «Only a diamond» goes further: no words anywhere, just a small ◆ in the assistants' colour, with who wrote it on hover; while it is on, the two name switches stay grey. What was written before programs said their name reads «by an assistant».
 
 ## It reads sparingly
 
@@ -204,4 +204,4 @@ Connecting costs something too: the description of Tisty's tools weighs about a 
 ## The one thing worth knowing before you connect one
 
 > [!WARNING]
-> Whatever an assistant reads travels wherever that assistant travels. If it runs against a cloud service, what it looks at is on its way to that service. Tisty still sends nothing and has no server — but this door is real: with sync, a Folio link and the files the [[Agents|AGENTS-Folder]] folder writes while it syncs, which any assistant reads, it is what can carry your data off the machine. With Tisty's hooks added and the door open, every session starts with the titles of a few tasks even if the agent never calls Tisty, and those travel too. That is why, open as it comes, closing it is one click in **Settings › Assistants**.
+> Whatever an assistant reads travels wherever that assistant travels. If it runs against a cloud service, what it looks at is on its way to that service. Tisty still sends nothing and has no server — but this door is real: with sync, a Folio link and the files the [[Agents|AGENTS-Folder]] folder writes while it syncs, which any assistant reads, it is what can carry your data off the machine. With Tisty's hooks added and the door open, every session starts with the titles of a few tasks even if the agent never calls Tisty, and those travel too. That is why, open as it comes, you close it whenever you like with **Stop it** in **Settings › Assistants › Door**.

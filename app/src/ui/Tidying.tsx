@@ -6,19 +6,18 @@ import {
   vouchAttachments,
 } from "../core";
 import { fill, t } from "../locales";
-import Card, { type Run, type Which, type Word, working } from "./Card";
+import Card, { type Run, type Word, working } from "./Card";
 import Repeated from "./Repeated";
 import { mild } from "./Rows";
 import Unvouched from "./Unvouched";
+import { useSince } from "./useSince";
+import { held as isHeld, type Working } from "./working";
 
 interface Props {
   twice: Group[];
   unproven: Unvouching | null;
   open: (card: "repeated" | "unvouched") => boolean;
-  busy: Which | null;
-  secs: number;
-  said?: Word;
-  trouble?: Word;
+  busy: Working;
   run: Run;
   tell: (word: Word) => void;
   relook: () => void;
@@ -33,27 +32,15 @@ export const vouchedSaid = (told: Vouched): string =>
     .filter(Boolean)
     .join(" ");
 
-export default function Tidying({
-  twice,
-  unproven,
-  open,
-  busy,
-  secs,
-  said,
-  trouble,
-  run,
-  tell,
-  relook,
-}: Props) {
-  const held = busy !== null;
-  const shown = { busy, said, trouble };
+export default function Tidying({ twice, unproven, open, busy, run, tell, relook }: Props) {
+  const secs = useSince(busy.has("unvouched"), busy.get("unvouched"));
   return (
     <>
       {open("repeated") && (
-        <Card title={t("repeatedLists")} which="repeated" {...shown}>
+        <Card title={t("repeatedLists")} which="repeated">
           <Repeated
             seen={twice}
-            held={held}
+            held={isHeld(busy, "repeated")}
             className={mild}
             join={() =>
               run("repeated", tidyMerged(), () => {
@@ -65,12 +52,12 @@ export default function Tidying({
         </Card>
       )}
       {open("unvouched") && (
-        <Card title={t("unvouchedTitle")} which="unvouched" {...shown}>
+        <Card title={t("unvouchedTitle")} which="unvouched">
           <Unvouched
             seen={unproven?.found ?? []}
-            held={held}
+            held={isHeld(busy, "unvouched")}
             className={mild}
-            label={busy === "unvouched" ? working("unvouchedWorking", secs) : t("unvouchedDo")}
+            label={busy.has("unvouched") ? working("unvouchedWorking", secs) : t("unvouchedDo")}
             vouch={() =>
               run("unvouched", vouchAttachments(), (told) => {
                 tell({ card: "unvouched", text: vouchedSaid(told) });

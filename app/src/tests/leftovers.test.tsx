@@ -5,6 +5,8 @@ import type { Machine, Reviewed, Unvouching } from "../core";
 import { fill, t } from "../locales";
 import type { Word } from "../ui/Card";
 import Leftovers, { lookAt } from "../ui/Leftovers";
+import { IDLE } from "../ui/working";
+import { Rows } from "./rowsShell";
 
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: () => Promise.resolve(null),
@@ -45,23 +47,23 @@ const astray: Machine = {
 
 const shown = (
   reviewed: Reviewed,
-  more: { unproven?: Unvouching | null; said?: Word; onSync?: () => void } = {},
+  more: { unproven?: Unvouching | null; said?: Word; onSecurity?: () => void } = {},
 ) =>
   render(
-    <Leftovers
-      audit={reviewed}
-      twice={[]}
-      unproven={more.unproven ?? null}
-      busy={null}
-      secs={0}
-      said={more.said}
-      run={() => {}}
-      tell={() => {}}
-      fail={() => {}}
-      setAudit={() => {}}
-      relook={() => {}}
-      onSync={more.onSync ?? (() => {})}
-    />,
+    <Rows said={more.said}>
+      <Leftovers
+        audit={reviewed}
+        twice={[]}
+        unproven={more.unproven ?? null}
+        busy={IDLE}
+        run={() => {}}
+        tell={() => {}}
+        fail={() => {}}
+        setAudit={() => {}}
+        relook={() => {}}
+        onSecurity={more.onSecurity ?? (() => {})}
+      />
+    </Rows>,
   );
 
 describe("what Maintenance asks you to look at", () => {
@@ -125,20 +127,20 @@ describe("what Maintenance asks you to look at", () => {
     expect(screen.queryByRole("button", { name: t("upkeepTakeInAll") })).toBeNull();
   });
 
-  it("offers to rebuild the quick index when it does not match the history", () => {
+  it("says the quick index does not match the history, and leaves the rebuild to Tools", () => {
     shown({ ...audit, agrees: false });
 
     expect(screen.getByText(t("cacheOffTitle"))).toBeTruthy();
-    expect(screen.getByRole("button", { name: t("reviewRedo") })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: t("reviewRedo") })).toBeNull();
   });
 
-  it("sends a computer that signs with another key to Your computers", async () => {
-    const onSync = vi.fn();
-    shown({ ...audit, machines: [astray] }, { onSync });
+  it("sends a computer that signs with another key to Your computers, in Security", async () => {
+    const onSecurity = vi.fn();
+    shown({ ...audit, machines: [astray] }, { onSecurity });
 
     expect(screen.getByText(t("keysTitle"))).toBeTruthy();
     await userEvent.click(screen.getByRole("button", { name: t("keysSee") }));
-    expect(onSync).toHaveBeenCalledTimes(1);
+    expect(onSecurity).toHaveBeenCalledTimes(1);
   });
 
   it("counts one thing to look at per card that has something", () => {

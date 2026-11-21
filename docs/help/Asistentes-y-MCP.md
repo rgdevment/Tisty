@@ -16,7 +16,7 @@ Tisty habla [MCP](https://modelcontextprotocol.io) a través de `tisty mcp`, por
 
 - **Solo en este equipo.** Sin puerto, sin cuenta y sin token. No es un servidor, y nada puede alcanzarlo desde la red.
 - **Nada escucha hasta que lo conectas.** El asistente arranca `tisty mcp` cuando lo necesita.
-- **Tú manejas la puerta.** Viene abierta sola hasta que elijas —en una instalación nueva, y al actualizar si nunca la cerraste— y **Configuración › Asistentes** la cierra con un clic. Mientras está cerrada, todo lo que intente un asistente se rechaza. Dejar entrar a un asistente y echarlo son eventos de tu registro; que elegiste mantener la puerta cerrada queda en la configuración de este equipo.
+- **Tú manejas la puerta.** Viene abierta sola hasta que elijas —en una instalación nueva, y al actualizar si nunca la cerraste— y en **Configuración › Asistentes › Puerta** la cierras con **Quitarle la voz**, que antes te dice lo que pasa: «Ningún asistente podrá anotar en Tisty.», lo que escribió se queda en su sitio y los asistentes conectados siguen conectados. Mientras está cerrada, todo lo que intente un asistente se rechaza, y **Conectados** te lo recuerda: «Aun así no anotarán nada hasta que abras la puerta.», con **Ir a Puerta**. Dejar entrar a un asistente y echarlo son eventos de tu registro; que elegiste mantener la puerta cerrada queda en la configuración de este equipo.
 
 Desde la 1.32.1, un Tisty estable también responde a `tisty` a secas desde cualquier terminal, así un plugin puede arrancarlo por su nombre. Microsoft Store y Homebrew dejan ese nombre ahí por su cuenta; la copia del instalador en Windows agrega su propia carpeta a tu PATH mientras la puerta está abierta y la saca cuando la cierras. Si tienes a la vez la copia de Microsoft Store y la del instalador, responde la más nueva. Un asistente que ya estaba abierto necesita reiniciarse para notarlo.
 
@@ -24,7 +24,7 @@ Desde la 1.32.1, un Tisty estable también responde a `tisty` a secas desde cual
 
 ### Desde Configuración (lo más fácil)
 
-**Configuración › Asistentes** busca los asistentes instalados en este equipo entre los que Tisty conoce (Claude Code, Claude Desktop, Codex, GitHub Copilot CLI, VS Code, Cursor, Devin Desktop y Windsurf, Antigravity, Gemini CLI, Qwen Code, OpenCode, Kilo Code, Zed, Junie, Kiro, Warp, LM Studio, Amp, Augment, Factory Droid, Trae, Cline, Roo Code, BoltAI, Goose y Continue) y dice cómo está cada uno:
+**Configuración › Asistentes › Conectados** busca los asistentes instalados en este equipo entre los que Tisty conoce (Claude Code, Claude Desktop, Codex, GitHub Copilot CLI, VS Code, Cursor, Devin Desktop y Windsurf, Antigravity, Gemini CLI, Qwen Code, OpenCode, Kilo Code, Zed, Junie, Kiro, Warp, LM Studio, Amp, Augment, Factory Droid, Trae, Cline, Roo Code, BoltAI, Goose y Continue) y dice cómo está cada uno:
 
 - **Conectado**: abre este Tisty.
 - **Sin conectar**: **Conectar** escribe Tisty en su configuración, con la forma que ese asistente lee.
@@ -74,7 +74,7 @@ Tisty también está en los directorios donde los asistentes buscan servidores: 
 
 ### Asistentes dentro de WSL
 
-En Windows, un asistente que corre en una distro de Linux bajo WSL lee su configuración en Linux, donde una ruta `C:\...` no existe. **Configuración › Asistentes** muestra tus distros; **Buscar en Ubuntu** lee los archivos de esa distro (y la enciende si estaba apagada) y conecta sus asistentes al mismo Tisty, con su ruta de Linux:
+En Windows, un asistente que corre en una distro de Linux bajo WSL lee su configuración en Linux, donde una ruta `C:\...` no existe. **Configuración › Asistentes › Conectados** muestra tus distros; **Buscar en Ubuntu** lee los archivos de esa distro (y la enciende si estaba apagada) y conecta sus asistentes al mismo Tisty, con su ruta de Linux:
 
 ```console
 $ claude mcp add --scope user tisty -- /mnt/c/Users/<tú>/AppData/Local/Programs/Tisty/tisty.exe mcp
@@ -84,7 +84,7 @@ Es el mismo Tisty y las mismas tareas y documentos que en Windows. Si una distro
 
 ### A mano
 
-Para un asistente que Tisty no conoce, basta una línea, con la ruta completa del `tisty` que viene con la app. **Configuración › Asistentes › Cómo conectar uno** muestra las dos formas de abajo con esa ruta ya puesta para este equipo, listas para copiar, así que no hace falta tener nada en el PATH:
+Para un asistente que Tisty no conoce, basta una línea, con la ruta completa del `tisty` que viene con la app. **Configuración › Asistentes › Conectados › Cómo conectar uno** muestra las dos formas de abajo con esa ruta ya puesta para este equipo, listas para copiar, así que no hace falta tener nada en el PATH:
 
 ```console
 $ <tu-asistente> mcp add tisty -- <ruta-a-tisty> mcp
@@ -106,7 +106,7 @@ Los clientes que se configuran con un archivo JSON usan la forma de siempre:
 }
 ```
 
-Reinicia el asistente. Si cerraste la puerta, vuelve a abrirla en **Configuración › Asistentes**.
+Reinicia el asistente. Si cerraste la puerta, vuelve a abrirla en **Configuración › Asistentes › Puerta**.
 
 No tienes que acordarte de este paso. Cuando un asistente intenta trabajar con Tisty con la puerta cerrada, la ventana te avisa («Claude Code intentó entrar») y **Dejarlo entrar** abre la puerta ahí mismo. También te avisa cuando tus asistentes están conectados pero todavía no pueden hacer nada porque la puerta está cerrada.
 
@@ -170,9 +170,9 @@ Lo que hace un agente conectado a Tisty en un trabajo real:
 7. **Termina diciendo qué hizo y cómo sabe que se sostiene.** Tú lo revisas y la cierras.
 8. **Después de leer un documento largo, deja un resumen** para que el próximo agente elija con él. Si el documento cambia, el resumen queda marcado como desactualizado.
 
-**Si se le olvida, Tisty le pregunta.** Cuando el agente sigue llamando a Tisty y la tarea que abrió lleva diez minutos sin una palabra suya, o mientras escribe otras tres cosas, la siguiente respuesta le pregunta una vez si esa tarea quedó al día. Le nombra la tarea y lo que falta (los pasos sin marcar, o que todos están marcados y no dijo que terminó) y le pide dejarla al día en una sola llamada: los pasos que terminó y el estado de la tarea, o, si el trabajo está hecho, decirlo con la prueba. Nunca le pide anotar su avance, y vuelve a preguntar solo después de que el agente escribe en esa tarea. Llega a todos los asistentes, aunque solo cuando llaman a Tisty. Lo apagas en **Configuración › Asistentes**.
+**Si se le olvida, Tisty le pregunta.** Cuando el agente sigue llamando a Tisty y la tarea que abrió lleva diez minutos sin una palabra suya, o mientras escribe otras tres cosas, la siguiente respuesta le pregunta una vez si esa tarea quedó al día. Le nombra la tarea y lo que falta (los pasos sin marcar, o que todos están marcados y no dijo que terminó) y le pide dejarla al día en una sola llamada: los pasos que terminó y el estado de la tarea, o, si el trabajo está hecho, decirlo con la prueba. Nunca le pide anotar su avance, y vuelve a preguntar solo después de que el agente escribe en esa tarea. Llega a todos los asistentes, aunque solo cuando llaman a Tisty. Lo apagas en **Configuración › Asistentes › Puerta**, con **Pedirle que deje su tarea al día**.
 
-**Con los hooks de Tisty, también pregunta al terminar un turno.** En los asistentes a los que se los agregaste, cada sesión empieza con las tres últimas tareas abiertas en que escribieron tus agentes en este equipo, la más nueva primero, con cuántos pasos lleva y el siguiente, lo que se movió desde entonces y lo que apremia, en unos 2.000 caracteres, para que el agente no dependa de acordarse de pedirlo. Después de cada edición y de cada llamada a Tisty, el hook deja una marca de esa sesión, sin leer la conversación. Mientras dejas que un asistente anote, cuando un turno editó archivos y no escribió nada en Tisty, le devuelve el turno una vez: si eso era trabajo de una tarea, que marque lo terminado y, si está hecha, que lo diga con la prueba. Si el agente lo deja pasar, calla hasta que vuelva a llamar a Tisty, así que el trabajo fuera de una tarea cuesta como mucho un turno extra; en GitHub Copilot ese turno puede gastar una solicitud premium. El trabajo que no edita archivos, como planificar o investigar, no lo ve: ahí solo le llega la pregunta en las respuestas. Codex y Claude Desktop no tienen hooks. **Recordarle al empezar y al terminar cada turno**, en **Configuración › Asistentes**, apaga los hooks sin quitarlos.
+**Con los hooks de Tisty, también pregunta al terminar un turno.** En los asistentes a los que se los agregaste, cada sesión empieza con las tres últimas tareas abiertas en que escribieron tus agentes en este equipo, la más nueva primero, con cuántos pasos lleva y el siguiente, lo que se movió desde entonces y lo que apremia, en unos 2.000 caracteres, para que el agente no dependa de acordarse de pedirlo. Después de cada edición y de cada llamada a Tisty, el hook deja una marca de esa sesión, sin leer la conversación. Mientras dejas que un asistente anote, cuando un turno editó archivos y no escribió nada en Tisty, le devuelve el turno una vez: si eso era trabajo de una tarea, que marque lo terminado y, si está hecha, que lo diga con la prueba. Si el agente lo deja pasar, calla hasta que vuelva a llamar a Tisty, así que el trabajo fuera de una tarea cuesta como mucho un turno extra; en GitHub Copilot ese turno puede gastar una solicitud premium. El trabajo que no edita archivos, como planificar o investigar, no lo ve: ahí solo le llega la pregunta en las respuestas. Codex y Claude Desktop no tienen hooks. **Recordarle al empezar y al terminar cada turno**, en **Configuración › Asistentes › Puerta**, apaga los hooks sin quitarlos.
 
 **Lo que nombra, Tisty lo enlaza.** Cuando el agente nombra una tarea o un documento en lo que escribe —una nota, una descripción, un documento— por su id, o por su título exacto entre comillas, Tisty lo convierte en un enlace al guardarlo, el mismo que haces tú con `[[` o con la tarjeta de una tarea, y le dice al agente qué enlazó. Lo que no tiene claro, como un título que llevan dos cosas, lo deja como estaba y se lo devuelve al agente para que decida. Un nombre entre corchetes dobles queda como la ficha que se escribió. Nunca toca encabezados, tablas ni líneas que ya estaban, y una tarea que ocultaste nunca se nombra. Una imagen escrita o adjuntada sin decir qué muestra —el nombre del archivo no cuenta— recibe una pregunta en la respuesta, porque las palabras entre sus corchetes son todo lo que un agente o un lector de pantalla sabrá de ella. Y en una sección de decisiones, la tachada se lee como reemplazada: la ficha que lee el agente pone primero las vigentes.
 
@@ -180,7 +180,7 @@ Quién es dueño de qué queda claro. Lo que anota tu agente es suyo para manten
 
 ## Firmado con su nombre
 
-Lo que escribe un asistente va firmado con el nombre del programa por el que habló. En la fila dice «por un agente», y el nombre aparece al pasar el puntero; dentro de una tarea (el panel lateral, la página completa y la bitácora) se nombra el programa: «por Claude Code», «por Codex». Configuración › Asistentes cuenta lo que escribió cada uno, y ahí eliges dónde se ve el nombre: en la lista de tareas, dentro de una tarea, en ambas o en ninguna; donde no se ve, dice «por un agente» y el nombre aparece al pasar el puntero. «Solo un rombo» va más allá: ningún texto, solo un pequeño ◆ del color de los asistentes, y quién lo escribió al pasar el puntero. Lo que se escribió antes de que los programas dijeran su nombre se lee «por un asistente».
+Lo que escribe un asistente va firmado con el nombre del programa por el que habló. En la fila dice «por un agente», y el nombre aparece al pasar el puntero; dentro de una tarea (el panel lateral, la página completa y la bitácora) se nombra el programa: «por Claude Code», «por Codex». **Configuración › Asistentes › Conectados** cuenta lo que escribió cada uno, y en **Cómo se ve su firma** eliges dónde se ve el nombre: en la lista de tareas, dentro de una tarea, en ambas o en ninguna; donde no se ve, dice «por un agente» y el nombre aparece al pasar el puntero. «Solo un rombo» va más allá: ningún texto, solo un pequeño ◆ del color de los asistentes, y quién lo escribió al pasar el puntero; mientras está encendido, los dos interruptores de nombre quedan en gris. Lo que se escribió antes de que los programas dijeran su nombre se lee «por un asistente».
 
 ## Lee con mesura
 
@@ -204,4 +204,4 @@ Conectarse también cuesta: la descripción de las herramientas de Tisty pesa ce
 ## Lo que conviene saber antes de conectar uno
 
 > [!WARNING]
-> Lo que un asistente lee viaja adonde viaja ese asistente. Si funciona contra un servicio en la nube, lo que mira va camino a ese servicio. Tisty sigue sin enviar nada y sin servidor propio, pero esta puerta es real: junto con la sincronización, un enlace de Folio y los archivos que escribe la carpeta [[Agentes|Carpeta-AGENTS]] mientras sincroniza, que cualquier asistente lee, es lo que puede sacar tus datos del equipo. Con los hooks de Tisty agregados y la puerta abierta, cada sesión empieza con los títulos de algunas tareas aunque el agente no llame a Tisty, y también viajan. Por eso, aunque viene abierta, cerrarla es un clic en **Configuración › Asistentes**.
+> Lo que un asistente lee viaja adonde viaja ese asistente. Si funciona contra un servicio en la nube, lo que mira va camino a ese servicio. Tisty sigue sin enviar nada y sin servidor propio, pero esta puerta es real: junto con la sincronización, un enlace de Folio y los archivos que escribe la carpeta [[Agentes|Carpeta-AGENTS]] mientras sincroniza, que cualquier asistente lee, es lo que puede sacar tus datos del equipo. Con los hooks de Tisty agregados y la puerta abierta, cada sesión empieza con los títulos de algunas tareas aunque el agente no llame a Tisty, y también viajan. Por eso, aunque viene abierta, la cierras cuando quieras con **Quitarle la voz** en **Configuración › Asistentes › Puerta**.

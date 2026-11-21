@@ -37,14 +37,14 @@ El archivo es historia que se consulta. Una tarea cerrada vuelve entera: su pág
 
 Borrar y ocultar se hace de una tarea a la vez, desde su detalle o su fila.
 
-Los archivos que habías adjuntado no se van con ella, porque otro documento podría estar usándolos. Quedan sueltos, y **Configuración › Mantenimiento** te los lista para soltarlos cuando quieras.
+Los archivos que habías adjuntado no se van con ella, porque otro documento podría estar usándolos. Quedan sueltos, y **Configuración › Almacenamiento**, en **Adjuntos que nada usa**, te los lista para soltarlos cuando quieras.
 
 > [!NOTE]
 > El registro de Tisty solo crece. Borrar una tarea la quita de lo que ves, no de la historia que hay debajo. No guardes contraseñas ni secretos en las tareas: mira [[Privacidad]].
 
 ## Mantener el almacén ordenado
 
-**Configuración › Mantenimiento** revisa el almacén apenas lo abres, y **Revisar de nuevo** vuelve a mirar. Cuenta lo que sobra, lo que falta y lo que puedes recuperar, y no cambia nada por su cuenta:
+**Configuración › Salud** revisa el almacén apenas lo abres, y **Revisar de nuevo** vuelve a mirar: cuenta lo que falta y lo que puedes recuperar. Lo que sobra está en **Configuración › Almacenamiento**, en **Liberar espacio**. Ninguna de las dos cambia nada por su cuenta:
 
-- Los adjuntos que ya nadie nombra van a la papelera, con treinta días para arrepentirte. Desde la 1.33, cada uno dice al lado cómo llegó (agregado en la ventana, traído por un asistente, con un documento importado, en un paquete o como parte de la guía), en qué equipo y cuándo, para que sepas qué estás soltando; lo mismo vale para las copias de un archivo guardado dos veces. Uno guardado antes de la 1.33 dice solo el equipo y el día.
+- Los adjuntos que ya nadie nombra, en **Adjuntos que nada usa**, van a la papelera, con treinta días para arrepentirte. Desde la 1.33, cada uno dice al lado cómo llegó (agregado en la ventana, traído por un asistente, con un documento importado, en un paquete o como parte de la guía), en qué equipo y cuándo, para que sepas qué estás soltando; lo mismo vale para las copias de un archivo guardado dos veces. Uno guardado antes de la 1.33 dice solo el equipo y el día.
 - Los documentos que están en el disco pero el registro no nombra se apartan para que los mires primero, porque pueden ser la única copia de algo. Recogerlos nunca puede estar mal.

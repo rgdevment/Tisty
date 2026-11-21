@@ -6,6 +6,8 @@ import type { Carrying, CloudStatus } from "../core";
 import { adopt, fill, t } from "../locales";
 import Clouded from "../ui/Clouded";
 import Coming from "../ui/Coming";
+import { IDLE } from "../ui/working";
+import { Rows } from "./rowsShell";
 
 const ipc = vi.hoisted(() => ({
   calls: [] as { cmd: string; args: Record<string, unknown> }[],
@@ -97,20 +99,27 @@ const LOST = t("cloudLost");
 const shown = (trouble?: string, code = "cloudLost") => {
   ipc.answers.cloud_status = () => Promise.resolve(status({ last: round(code) }));
   const carry = vi.fn();
-  const run = vi.fn((_card: string, work: Promise<unknown>, then: (answer: unknown) => void) => {
-    work.then(then).catch(() => undefined);
-  });
+  const run = vi.fn(
+    (
+      _card: string,
+      work: Promise<unknown> | (() => Promise<unknown>),
+      then: (answer: unknown) => void,
+    ) => {
+      (typeof work === "function" ? work() : work).then(then).catch(() => undefined);
+    },
+  );
   act(() => ended({ code }));
   const settings = render(
-    <Clouded
-      state={carrying({ last: "2026-10-12T10:00:00Z" })}
-      busy={null}
-      trouble={trouble ? { card: "sync", text: trouble } : undefined}
-      run={run as never}
-      fail={() => {}}
-      carry={carry}
-      onMove={() => {}}
-    />,
+    <Rows trouble={trouble ? { card: "sync", text: trouble } : undefined}>
+      <Clouded
+        state={carrying({ last: "2026-10-12T10:00:00Z" })}
+        busy={IDLE}
+        run={run as never}
+        fail={() => {}}
+        carry={carry}
+        onMove={() => {}}
+      />
+    </Rows>,
   );
   render(<Coming />);
   return { carry, settings };
@@ -182,15 +191,16 @@ describe("a cloud that already holds another Tisty", () => {
     ipc.answers.cloud_status = () => Promise.resolve(status({ last: round("wouldReset") }));
     act(() => ended({ code: "wouldReset" }));
     render(
-      <Clouded
-        state={carrying()}
-        busy={null}
-        said={{ card: "sync", text: t("syncBusy"), busy: true }}
-        run={vi.fn() as never}
-        fail={() => {}}
-        carry={vi.fn()}
-        onMove={() => {}}
-      />,
+      <Rows said={{ card: "sync", text: t("syncBusy"), busy: true }}>
+        <Clouded
+          state={carrying()}
+          busy={IDLE}
+          run={vi.fn() as never}
+          fail={() => {}}
+          carry={vi.fn()}
+          onMove={() => {}}
+        />
+      </Rows>,
     );
 
     expect(await screen.findByText(t("syncChoosing"))).toBeTruthy();
@@ -201,15 +211,16 @@ describe("a cloud that already holds another Tisty", () => {
     ipc.answers.cloud_status = () => Promise.resolve(status({ last: round("wouldReset") }));
     act(() => ended({ code: "wouldReset" }));
     render(
-      <Clouded
-        state={carrying()}
-        busy={null}
-        said={{ card: "sync", text: fill("syncingFor", "3"), busy: true }}
-        run={vi.fn() as never}
-        fail={() => {}}
-        carry={vi.fn()}
-        onMove={() => {}}
-      />,
+      <Rows said={{ card: "sync", text: fill("syncingFor", "3"), busy: true }}>
+        <Clouded
+          state={carrying()}
+          busy={IDLE}
+          run={vi.fn() as never}
+          fail={() => {}}
+          carry={vi.fn()}
+          onMove={() => {}}
+        />
+      </Rows>,
     );
 
     expect(await screen.findByText(t("syncChoosing"))).toBeTruthy();
@@ -222,7 +233,7 @@ describe("a cloud that already holds another Tisty", () => {
     render(
       <Clouded
         state={carrying({ last: "2026-10-12T10:00:00Z" })}
-        busy={null}
+        busy={IDLE}
         run={vi.fn() as never}
         fail={() => {}}
         carry={vi.fn()}

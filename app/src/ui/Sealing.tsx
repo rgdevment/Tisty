@@ -20,22 +20,28 @@ import { plainly, saidPlainly } from "../refusal";
 import { sure } from "../sure";
 import { causeSaid, waitSaid } from "../syncSaid";
 import { LetMeIn, LetThemIn } from "./Admitting";
-import Card, { type Which, type Word } from "./Card";
+import Card, { type Run, type Word } from "./Card";
+import { useCareful } from "./Careful";
+import { DANGERS, type Danger } from "./dangers";
 import Entering from "./Entering";
 import Modal from "./Modal";
 import Phrasing from "./Phrasing";
+import { Note, NoteButton } from "./RowNotes";
 import { mild, risky, strong } from "./Rows";
+import { held as isHeld, type Working } from "./working";
+import { ZoneButtons } from "./Zone";
 
 interface Props {
   round?: string | null;
   phrased?: number;
   onPhrased?: () => void;
-  busy: Which | null;
-  said?: Word;
-  trouble?: Word;
+  busy: Working;
+  run: Run;
   tell: (word?: Word) => void;
   fail: (word?: Word) => void;
   onChanged: () => void;
+  onSync?: () => void;
+  clear?: (card: "sealing") => void;
 }
 
 type Phrase = { words: string[]; fingerprint: string };
@@ -47,12 +53,14 @@ export default function Sealing({
   phrased,
   onPhrased,
   busy,
-  said,
-  trouble,
+  run,
   tell,
   fail,
   onChanged,
+  onSync,
+  clear,
 }: Props) {
+  const careful = useCareful();
   const [shown, setShown] = useState<SealShown | null>(null);
   const [asking, setAsking] = useState(false);
   const [starting, setStarting] = useState(false);
@@ -68,9 +76,16 @@ export default function Sealing({
       .then(setShown)
       .catch((e) => {
         setUnread(true);
-        failed(e);
+        fail({
+          card,
+          text: saidPlainly(e),
+          again: () => {
+            clear?.(card);
+            look();
+          },
+        });
       });
-  }, [failed]);
+  }, [fail, clear]);
   useEffect(look, [look, round, phrased]);
   const bringing = Boolean(shown?.reading);
   const unsettled = shown?.state === "locked";
@@ -115,32 +130,26 @@ export default function Sealing({
 
   const begin = (on: boolean) => {
     setAsking(false);
-    setStarting(true);
-    sealingBegin(on)
-      .then(() => sealingShown())
-      .then(setShown)
-      .catch((e) => {
-        failed(e);
-        look();
-      })
-      .finally(() => setStarting(false));
+    run(
+      card,
+      () => {
+        setStarting(true);
+        return sealingBegin(on)
+          .then(() => sealingShown())
+          .catch((e) => {
+            look();
+            throw e;
+          })
+          .finally(() => setStarting(false));
+      },
+      setShown,
+    );
   };
 
   if (!shown)
     return (
-      <Card title={t("sealTitle")} which={card} busy={busy} said={said} trouble={trouble}>
-        {unread ? (
-          <button
-            type="button"
-            onClick={() => {
-              if (trouble?.card === card) fail(undefined);
-              look();
-            }}
-            className={mild}
-          >
-            {t("tryAgain")}
-          </button>
-        ) : (
+      <Card row="sealing" which={card}>
+        {!unread && (
           <p role="status" className="text-[12.5px] text-faint motion-safe:animate-pulse">
             {t("checkingNow")}
           </p>
@@ -148,174 +157,241 @@ export default function Sealing({
       </Card>
     );
   const provider = cloudNamed(shown.cloud);
-  const held = busy !== null;
+  const held = isHeld(busy, card);
 
+  const sealedNow = shown.state === "sealed" && !starting;
+  const wipingNow = wiping || Boolean(shown.wiping);
   return (
-    <Card title={t("sealTitle")} which={card} busy={busy} said={said} trouble={trouble}>
-      {asking && (
-        <Before
-          shown={shown}
-          provider={provider}
-          onCreate={() => phraseFor(identityBegin())}
-          onConfirm={() => phraseFor(identityPhrase())}
-          onClose={() => setAsking(false)}
-          onGo={() => begin(true)}
-        />
-      )}
-      {phrase && (
-        <Phrasing
-          words={phrase.words}
-          fingerprint={phrase.fingerprint}
-          onClose={phrasedHere}
-          onConfirmed={phrasedHere}
-        />
-      )}
-      {letting === "me" && (
-        <LetMeIn
-          onClose={() => setLetting(null)}
-          onIn={() => {
-            unstuck();
-            look();
-            onChanged();
-          }}
-        />
-      )}
-      {letting === "them" && <LetThemIn onClose={() => setLetting(null)} />}
-      {letting === "phrase" && (
-        <Entering
-          onClose={() => setLetting(null)}
-          onIn={() => {
-            unstuck();
-            look();
-            onChanged();
-          }}
-        />
-      )}
-      {shown.state === "locked" && (
-        <>
-          <p className="text-[13px] font-semibold">{t("sealLocked")}</p>
-          <p className="mt-0.5 text-[12.5px] leading-relaxed text-soft">
-            {t(shown.joined ? "sealLockedJoined" : "sealLockedNew")}
-          </p>
-          {shown.joined && (
-            <p role="status" className="mt-2 text-[12.5px] text-faint motion-safe:animate-pulse">
-              {t("sealAskingKey")}
+    <>
+      {careful.shown}
+      <Card row="sealing" which={card}>
+        {asking && (
+          <Before
+            shown={shown}
+            provider={provider}
+            onCreate={() => phraseFor(identityBegin())}
+            onConfirm={() => phraseFor(identityPhrase())}
+            onClose={() => setAsking(false)}
+            onGo={() => begin(true)}
+          />
+        )}
+        {phrase && (
+          <Phrasing
+            words={phrase.words}
+            fingerprint={phrase.fingerprint}
+            onClose={phrasedHere}
+            onConfirmed={phrasedHere}
+          />
+        )}
+        {letting === "me" && (
+          <LetMeIn
+            onClose={() => setLetting(null)}
+            onIn={() => {
+              unstuck();
+              look();
+              onChanged();
+            }}
+          />
+        )}
+        {letting === "them" && <LetThemIn onClose={() => setLetting(null)} />}
+        {letting === "phrase" && (
+          <Entering
+            onClose={() => setLetting(null)}
+            onIn={() => {
+              unstuck();
+              look();
+              onChanged();
+            }}
+          />
+        )}
+        {shown.state === "locked" && (
+          <>
+            <p className="text-[13px] font-semibold">{t("sealLocked")}</p>
+            <p className="mt-0.5 text-[12.5px] leading-relaxed text-soft">
+              {t(shown.joined ? "sealLockedJoined" : "sealLockedNew")}
             </p>
-          )}
-          <div className="mt-3 flex flex-wrap justify-end gap-2">
-            <button
-              type="button"
-              className={mild}
-              disabled={held}
-              onClick={() => setLetting("phrase")}
-            >
-              {t("enterButton")}
-            </button>
-            {!shown.joined && (
+            {shown.joined && (
+              <p role="status" className="mt-2 text-[12.5px] text-faint motion-safe:animate-pulse">
+                {t("sealAskingKey")}
+              </p>
+            )}
+            <div className="mt-3 flex flex-wrap justify-end gap-2">
+              <button
+                type="button"
+                className={mild}
+                disabled={held}
+                onClick={() => setLetting("phrase")}
+              >
+                {t("enterButton")}
+              </button>
+              {!shown.joined && (
+                <button
+                  type="button"
+                  className={strong}
+                  disabled={held}
+                  onClick={() => setLetting("me")}
+                >
+                  {t("admitAskButton")}
+                </button>
+              )}
+            </div>
+          </>
+        )}
+        {shown.state === "none" && (
+          <Note kind="dep" act={onSync && <NoteButton label={t("goToSync")} onPress={onSync} />}>
+            {t("sealNoCloud")}
+          </Note>
+        )}
+        {starting && shown.state !== "turning" && (
+          <p
+            role="status"
+            className="text-[12.5px] leading-relaxed text-soft motion-safe:animate-pulse"
+          >
+            {t("sealStarting")}
+          </p>
+        )}
+        {shown.state === "plain" && !starting && (
+          <>
+            <p className="text-[12.5px] leading-relaxed text-soft">{fill("sealWhat", provider)}</p>
+            <div className="mt-3 flex justify-end">
               <button
                 type="button"
                 className={strong}
                 disabled={held}
-                onClick={() => setLetting("me")}
+                onClick={() => setAsking(true)}
               >
-                {t("admitAskButton")}
+                {t("sealStart")}
               </button>
+            </div>
+          </>
+        )}
+        {shown.state === "turning" && shown.turning && (
+          <Progress
+            told={shown.turning}
+            provider={provider}
+            onAgain={() => sealingResume().catch(failed)}
+            onCancel={() =>
+              sure(t("sealCancelSure"))
+                .then((yes) => (yes ? sealingCancel().then(look) : undefined))
+                .catch(failed)
+            }
+          />
+        )}
+        {sealedNow && (
+          <Sealed
+            provider={provider}
+            held={held}
+            wiping={wipingNow}
+            plainLeft={Boolean(shown.plainLeft)}
+            reading={shown.reading ?? null}
+            onLetIn={() => setLetting("them")}
+          />
+        )}
+        {shown.state === "elsewhere" && (
+          <>
+            <p className="text-[12.5px] leading-relaxed text-soft">{t("sealElsewhere")}</p>
+            {shown.orphan && (
+              <>
+                <p className="mt-1 text-[12.5px] text-urgent">{t("sealOrphan")}</p>
+                <div className="mt-3 flex justify-end">
+                  <button
+                    type="button"
+                    className={risky}
+                    disabled={held}
+                    onClick={() =>
+                      sure(t("sealCancelSure"))
+                        .then((yes) => (yes ? sealingCancel().then(look) : undefined))
+                        .catch(failed)
+                    }
+                  >
+                    {t("sealOrphanCancel")}
+                  </button>
+                </div>
+              </>
             )}
-          </div>
-        </>
-      )}
-      {shown.state === "none" && (
-        <p className="text-[12.5px] leading-relaxed text-soft">{t("sealNoCloud")}</p>
-      )}
-      {starting && shown.state !== "turning" && (
-        <p
-          role="status"
-          className="text-[12.5px] leading-relaxed text-soft motion-safe:animate-pulse"
-        >
-          {t("sealStarting")}
-        </p>
-      )}
-      {shown.state === "plain" && !starting && (
-        <>
-          <p className="text-[12.5px] leading-relaxed text-soft">{fill("sealWhat", provider)}</p>
-          <div className="mt-3 flex justify-end">
-            <button
-              type="button"
-              className={strong}
-              disabled={held}
-              onClick={() => setAsking(true)}
-            >
-              {t("sealStart")}
-            </button>
-          </div>
-        </>
-      )}
-      {shown.state === "turning" && shown.turning && (
-        <Progress
-          told={shown.turning}
-          provider={provider}
-          onAgain={() => sealingResume().catch(failed)}
-          onCancel={() =>
-            sure(t("sealCancelSure"))
-              .then((yes) => (yes ? sealingCancel().then(look) : undefined))
-              .catch(failed)
-          }
-        />
-      )}
-      {shown.state === "sealed" && !starting && (
-        <Sealed
+          </>
+        )}
+      </Card>
+      {sealedNow && (
+        <SealedExits
           provider={provider}
           held={held}
-          wiping={wiping || Boolean(shown.wiping)}
+          wiping={wipingNow}
           plainLeft={Boolean(shown.plainLeft)}
-          reading={shown.reading ?? null}
-          onWipe={() =>
-            sure(fill("sealWipeSure", provider))
-              .then((yes) => {
-                if (!yes) return;
-                setWiping(true);
-                return sealingWipe()
-                  .then((gone) => tell({ card, text: fill("sealWiped", String(gone)) }))
-                  .finally(() => {
-                    setWiping(false);
-                    look();
-                  });
-              })
-              .catch(failed)
-          }
-          onLetIn={() => setLetting("them")}
-          onOff={() =>
-            sure(fill("sealOffSure", provider))
-              .then((yes) => (yes ? begin(false) : undefined))
-              .catch(failed)
-          }
+          setWiping={setWiping}
+          run={run}
+          tell={tell}
+          look={look}
+          begin={begin}
+          ask={careful.ask}
         />
       )}
-      {shown.state === "elsewhere" && (
-        <>
-          <p className="text-[12.5px] leading-relaxed text-soft">{t("sealElsewhere")}</p>
-          {shown.orphan && (
-            <>
-              <p className="mt-1 text-[12.5px] text-urgent">{t("sealOrphan")}</p>
-              <div className="mt-3 flex justify-end">
-                <button
-                  type="button"
-                  className={risky}
-                  disabled={held}
-                  onClick={() =>
-                    sure(t("sealCancelSure"))
-                      .then((yes) => (yes ? sealingCancel().then(look) : undefined))
-                      .catch(failed)
-                  }
-                >
-                  {t("sealOrphanCancel")}
-                </button>
-              </div>
-            </>
-          )}
-        </>
-      )}
-    </Card>
+    </>
+  );
+}
+
+function SealedExits({
+  provider,
+  held,
+  wiping,
+  plainLeft,
+  setWiping,
+  run,
+  tell,
+  look,
+  begin,
+  ask,
+}: {
+  provider: string;
+  held: boolean;
+  wiping: boolean;
+  plainLeft: boolean;
+  setWiping: (wiping: boolean) => void;
+  run: Run;
+  tell: (word?: Word) => void;
+  look: () => void;
+  begin: (on: boolean) => void;
+  ask: (danger: Danger) => Promise<boolean>;
+}) {
+  const wipe = async () => {
+    if (!(await ask(DANGERS.wipe(provider)))) return;
+    run(
+      "sealWipe",
+      () => {
+        setWiping(true);
+        return sealingWipe().finally(() => {
+          setWiping(false);
+          look();
+        });
+      },
+      (gone) => tell({ card, text: fill("sealWiped", String(gone)) }),
+    );
+  };
+  const unseal = async () => {
+    if (await ask(DANGERS.unseal(provider))) begin(false);
+  };
+
+  return (
+    <ZoneButtons
+      exits={[
+        (plainLeft || wiping) && {
+          row: "sealWipe",
+          which: "sealWipe",
+          why: t("sealWipeWhy"),
+          label: t("sealWipe"),
+          onPress: () => void wipe(),
+          disabled: held || wiping,
+        },
+        {
+          row: "sealOff",
+          which: "sealOff",
+          why: t("sealOffWhy"),
+          label: t("sealOff"),
+          onPress: () => void unseal(),
+          disabled: held || wiping,
+        },
+      ]}
+    />
   );
 }
 
@@ -528,18 +604,14 @@ function Sealed({
   wiping,
   plainLeft,
   reading,
-  onWipe,
   onLetIn,
-  onOff,
 }: {
   provider: string;
   held: boolean;
   wiping: boolean;
   plainLeft: boolean;
   reading: ReadSoFar | null;
-  onWipe: () => void;
   onLetIn: () => void;
-  onOff: () => void;
 }) {
   return (
     <>
@@ -560,17 +632,9 @@ function Sealed({
         </p>
       )}
       <div className="mt-3 flex flex-wrap justify-end gap-2">
-        <button type="button" className={mild} disabled={held || wiping} onClick={onOff}>
-          {t("sealOff")}
-        </button>
         <button type="button" className={mild} disabled={held || wiping} onClick={onLetIn}>
           {t("admitLetInButton")}
         </button>
-        {(plainLeft || wiping) && (
-          <button type="button" className={strong} disabled={held || wiping} onClick={onWipe}>
-            {t("sealWipe")}
-          </button>
-        )}
       </div>
     </>
   );

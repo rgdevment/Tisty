@@ -120,7 +120,7 @@ Todo lo que lleva un documento, desde la negrita y las listas hasta los avisos, 
 
 ## Lo que Tisty no sabe decir
 
-Algunas cosas de Markdown que vienen de otra parte (las etiquetas HTML) no tienen palabra en Tisty. Un documento que las lleva se abre, se edita y se guarda entero: no se corta nada. Bajo ese bloque, la página dice qué parte no está en el lenguaje Tisty, con **Corregir** para cambiarla de un clic. **Configuración › Mantenimiento** recorre todos los documentos y te lista los que llevan algo de eso. La lista completa está en la guía de Markdown de Tisty, en [lo que queda fuera del lenguaje](https://markdown.tisty.app/es/lo-que-queda-fuera-del-lenguaje).
+Algunas cosas de Markdown que vienen de otra parte (las etiquetas HTML) no tienen palabra en Tisty. Un documento que las lleva se abre, se edita y se guarda entero: no se corta nada. Bajo ese bloque, la página dice qué parte no está en el lenguaje Tisty, con **Corregir** para cambiarla de un clic. La lista completa está en la guía de Markdown de Tisty, en [lo que queda fuera del lenguaje](https://markdown.tisty.app/es/lo-que-queda-fuera-del-lenguaje).
 
 ## Cuando un documento se abre solo para leer
 

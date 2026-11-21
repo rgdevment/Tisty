@@ -13,14 +13,16 @@ import type { Which, Word } from "./Card";
 interface Hands {
   held: boolean;
   cloud?: string;
-  setBusy: (which: Which | null) => void;
+  start: (which: Which) => void;
+  stop: (which: Which) => void;
+  clear: (which: Which) => void;
   tell: (word?: Word) => void;
   fail: (word?: Word) => void;
   look: () => void;
   onChanged: () => void;
 }
 
-export function useCarry({ held, cloud, setBusy, tell, fail, look, onChanged }: Hands) {
+export function useCarry({ held, cloud, start, stop, clear, tell, fail, look, onChanged }: Hands) {
   const [apart, setApart] = useState<((door: Door | "else" | null) => void) | null>(null);
   const [kin, setKin] = useState<Kin>("unsure");
   const forget = useRef<() => void>(undefined);
@@ -46,10 +48,9 @@ export function useCarry({ held, cloud, setBusy, tell, fail, look, onChanged }: 
 
   const carryNow = async (way?: "again"): Promise<"done" | "declined" | "failed"> => {
     if (held) return "failed";
-    setBusy("sync");
+    start("sync");
     forget.current?.();
-    tell(undefined);
-    fail(undefined);
+    clear("sync");
     try {
       const answer = await syncNow(way).catch(async (problem) => {
         if (!stillApart(problem)) throw problem;
@@ -95,7 +96,7 @@ export function useCarry({ held, cloud, setBusy, tell, fail, look, onChanged }: 
       } else if (answer.carried === "busy") {
         tell({ card: "sync", text: syncSaid(answer), busy: true });
         // Whoever held the turn says how long it ran; once it ends, that says nothing true.
-        forget.current = onEnded(() => tell(undefined));
+        forget.current = onEnded(() => clear("sync"));
       } else {
         tell({ card: "sync", text: syncSaid(answer) });
       }
@@ -106,7 +107,7 @@ export function useCarry({ held, cloud, setBusy, tell, fail, look, onChanged }: 
       fail({ card: "sync", text: saidPlainly(e) });
       return "failed";
     } finally {
-      setBusy(null);
+      stop("sync");
     }
   };
 

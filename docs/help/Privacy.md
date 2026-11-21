@@ -13,7 +13,7 @@ Everything lives in one folder on your disk:
 - **Tasks and events** — plain-text JSONL, an append-only log. Readable with `cat`, searchable with `grep`, parseable with `jq`.
 - **Documents** — plain Markdown files.
 - **Agents, if you use it** — your assistants' rules, skills and memory, as documents. If you sync it, Tisty also writes, outside this folder, the files each assistant reads ([what it reads and when](#your-assistants-in-agents)).
-- **Earlier versions of your documents** — Markdown like the documents, in the `history` folder. Each is kept 30 days from when it was replaced, or what you choose in **Settings › Your data**; the latest of each document, and what **Put back what it said before** would bring back, never run out. They stay on this computer: never synced or put in a parcel, but carried by your backups. [How they work](Documents#earlier-versions).
+- **Earlier versions of your documents** — Markdown like the documents, in the `history` folder. Each is kept 30 days from when it was replaced, or what you choose in **Settings › Documents and signature › Keep earlier versions for**; the latest of each document, and what **Put back what it said before** would bring back, never run out. They stay on this computer: never synced or put in a parcel, but carried by your backups. [How they work](Documents#earlier-versions).
 - **Your diary** — Markdown like any document, a book a year. No agent sees it until you open it from the Diary itself, on Tisty 1.48 or later; it is never shared by link, and it travels with your sync and your backups like the rest, and inside a `.tistyx` parcel when you export everything.
 - **Attachments** — the files themselves, unmodified.
 - **Brainsty's base** — how your things are tied, the weighty words of each document and task and which things are alike, in this computer's cache. It rebuilds itself from what you keep, so it is not synced and does not go in a parcel, to Folio or to an export. It does not go in your backups either. Hidden and dropped tasks, your diary and the documents in Agents leave no words there, and of the rest only the prose counts: not code, not paths, not a task's progress notes. [How it works](Brainsty-Network#alike).
@@ -58,7 +58,7 @@ Nothing is obfuscated, and nothing is in a format only Tisty can read.
 
 **Only when you ask:**
 
-- **Update** in *About* downloads the release file and the installer, and Tisty refuses anything not signed with the key built into your copy.
+- **Update** in **Settings › Help and about** downloads the release file and the installer, and Tisty refuses anything not signed with the key built into your copy.
 - **Bring the preview** on a [link card](https://markdown.tisty.app/links) asks that page once for its title and picture.
 - **The help** inside Tisty (the `?` at the foot of the sidebar) comes with your version and asks nothing. Its **Tisty's Markdown** guide (also `F1` while you write) reads it from [markdown.tisty.app](https://markdown.tisty.app), so it is always the latest; offline, it shows the copy that came with your version. Its pictures are downloaded from GitHub only when you press **Download** above the help.
 - **Show them**, on the line above a Markdown file opened from outside, asks each address the file names for its picture, one request per picture. Nothing is fetched until you press it, it asks again each time you open the file, and it refuses an address on this computer or your own network. This is the viewer's alone: a document in your store draws no picture from the internet.
@@ -82,7 +82,7 @@ A [widget](Widgets) runs nothing and names nothing outside itself. An attached `
 
 **Your 24-word phrase.** It is your identity's backup: with it, your other computers sign as you. Keep it outside Tisty, on paper or in a PDF apart. If you lose the phrase and all your computers, the identity cannot be recovered. Nobody from Tisty or Folio will ever ask you for it.
 
-**If you lose a computer.** Remove it in Settings › Security, under **Your identity**. Its key stops counting, and Folio tells whoever reads what it signed after that.
+**If you lose a computer.** Remove it in **Settings › Security**, under **Your computers**, with **Remove**. Its key stops counting, and Folio tells whoever reads what it signed after that.
 
 ## Your assistants in Agents
 
@@ -90,7 +90,7 @@ In the **Agents** folder you keep your assistants' rules, skills and memory as d
 
 **What it reads, and when**
 
-- **Agents in grey in the sidebar, and its card in Settings › Assistants** before anything is brought, only check whether each assistant's folder exists, such as `~/.claude` or `~/.codex`, to tell you which ones it found. They look at nothing inside.
+- **Agents in grey in the sidebar, and its card in Settings › Assistants › Agents folder** before anything is brought, only check whether each assistant's folder exists, such as `~/.claude` or `~/.codex`, to tell you which ones it found. They look at nothing inside.
 - **When you click Agents and the first-time notice opens**, Tisty only looks at which files are in your assistants' folders, with their names and sizes, to show you the list. It opens none of them, and those starting with a dot it does not even list. Closing the notice with the X or `Esc` reads nothing more.
 - **When you go into Agents, also on a computer that has not given permission yet**, for example one where Agents came in brought from another computer, Tisty makes that same list, to know whether there is anything to ask you: names and sizes only, opening no file. **Look again** on that computer makes the same list to show you the first-time notice, and opens nothing before your **Bring** or your **Bring and sync** either.
 - **With Bring or Bring and sync**, it opens only the files you ticked in that list and brings them in as documents. That permission is this computer's: each of your computers asks for its own.
@@ -113,17 +113,17 @@ In the **Agents** folder you keep your assistants' rules, skills and memory as d
 
 **Stopping sync without losing anything**
 
-With **Bring and sync** or **Sync**, sync stays on for this computer, and you can pause it for one assistant or stop syncing the whole folder, with **Stop syncing** on its right-click or in Settings › Assistants: no agent file is touched and no document is deleted. Not synced or hidden from the sidebar, Agents writes none of your assistants' files. Paused, Tisty neither opens nor writes those files on its own: they stay as the last write left them, and your documents stay in Tisty. A pause belongs to this computer. If you take a rule out of Agents while it syncs, Tisty asks whether to take its file away too: it deletes it only if you say yes, and keeps a backup on this computer first. If you take every document out, it first asks the same about each file, and then the folder leaves Tisty and Agents goes back to the sidebar in grey, nothing brought; what you chose to leave stays as it was. Tisty never empties an assistant's file, and never deletes one without asking you.
+With **Bring and sync** or **Sync**, sync stays on for this computer, and you can pause it for one assistant or stop syncing the whole folder, with **Stop syncing** on its right-click or in Settings › Assistants › Agents folder: no agent file is touched and no document is deleted. Not synced or hidden from the sidebar, Agents writes none of your assistants' files. Paused, Tisty neither opens nor writes those files on its own: they stay as the last write left them, and your documents stay in Tisty. A pause belongs to this computer. If you take a rule out of Agents while it syncs, Tisty asks whether to take its file away too: it deletes it only if you say yes, and keeps a backup on this computer first. If you take every document out, it first asks the same about each file, and then the folder leaves Tisty and Agents goes back to the sidebar in grey, nothing brought; what you chose to leave stays as it was. Tisty never empties an assistant's file, and never deletes one without asking you.
 
 **Your assistants' hooks**
 
-- Agents never touches your assistants' settings files. Hooks do, and only when you ask: in **Settings › Assistants**, **Add** tells you which file it will write and, with your yes, puts Tisty's hooks there, leaving the rest of that file as it is. **Remove** takes them out.
+- Agents never touches your assistants' settings files. Hooks do, and only when you ask: in **Settings › Assistants › Connected**, **Add** tells you which file it will write and, with your yes, puts Tisty's hooks there, leaving the rest of that file as it is. **Remove** takes them out.
 - With the hooks in place, when a session starts the assistant gets the tasks it left open and what moved. After each edit and each call to Tisty a mark is left in this computer's cache, without reading the conversation, to know whether a turn edited files without writing anything in Tisty. Those marks are not synced and never leave the computer.
 
 ## No AI
 
 Tisty does not use AI or machine learning on your data, and sends nothing to any model. The natural language is deterministic rules on your machine.
 
-The same holds for what [Brainsty](Brainsty-Network#alike) thinks is alike. When it ties «Pagar la cuenta del agua» to «Pay the water bill», it understands and translates nothing: it looks each word up in a fixed list of Spanish–English pairs, *pagar ≈ pay*, *agua ≈ water*, and counts the ones that match. That list comes from the [Open Multilingual Wordnet 2.0](https://github.com/omwn/omw-data), made by linguists, comes inside the installer and never leaves your computer or is looked up online. It learns nothing from what you write: it is the same for everyone and changes only with a new version of Tisty. Its authors and its licence are under **Settings › About › Third-party notices**.
+The same holds for what [Brainsty](Brainsty-Network#alike) thinks is alike. When it ties «Pagar la cuenta del agua» to «Pay the water bill», it understands and translates nothing: it looks each word up in a fixed list of Spanish–English pairs, *pagar ≈ pay*, *agua ≈ water*, and counts the ones that match. That list comes from the [Open Multilingual Wordnet 2.0](https://github.com/omwn/omw-data), made by linguists, comes inside the installer and never leaves your computer or is looked up online. It learns nothing from what you write: it is the same for everyone and changes only with a new version of Tisty. Its authors and its licence are under **Settings › Help and about › Third-party notices**.
 
-If you connect an assistant of your own through [[MCP|Assistants-and-MCP]], whatever it reads goes wherever that assistant goes. That door comes open on a new install, and one click in Settings › Assistants closes it.
+If you connect an assistant of your own through [[MCP|Assistants-and-MCP]], whatever it reads goes wherever that assistant goes. That door comes open on a new install, and **Stop it**, in Settings › Assistants › Door, closes it.

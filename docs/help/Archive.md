@@ -37,14 +37,14 @@ The archive is history you consult. A closed task comes back whole: its page wit
 
 Erasing and hiding are one task at a time, from its detail or its row.
 
-Files you had attached do not go with it, because another document might still use them. They stay behind as loose files, and **Settings › Maintenance** lists them for you to let go of when you want.
+Files you had attached do not go with it, because another document might still use them. They stay behind as loose files, and **Settings › Storage**, under **Attachments nothing uses**, lists them for you to let go of when you want.
 
 > [!NOTE]
 > Tisty's log only ever grows. Erasing a task removes it from what you see, not from the history underneath. Keep passwords and secrets out of tasks — see [[Privacy]].
 
 ## Keeping the store tidy
 
-**Settings › Maintenance** looks over the store as soon as you open it, and **Check again** looks once more. It counts what is spare, what is missing and what you can get back, and changes nothing on its own:
+**Settings › Health** looks over the store as soon as you open it, and **Check again** looks once more: it counts what is missing and what you can get back. What is spare is in **Settings › Storage**, under **Free up space**. Neither changes anything on its own:
 
-- Attachments nothing names any more go to the bin, with thirty days to change your mind. Since 1.33, each one says beside it how it came — added in the window, brought by an assistant, with an imported document, in a parcel or as part of the guide — on which computer and when, so you know what you are letting go of; the same goes for the copies of a file saved twice. One kept before 1.33 says only the computer and the day.
+- Attachments nothing names any more, under **Attachments nothing uses**, go to the bin, with thirty days to change your mind. Since 1.33, each one says beside it how it came — added in the window, brought by an assistant, with an imported document, in a parcel or as part of the guide — on which computer and when, so you know what you are letting go of; the same goes for the copies of a file saved twice. One kept before 1.33 says only the computer and the day.
 - Documents on disk that the log does not name are set apart for you to look at first, because they may be the only copy of something — taking one in can never be wrong.

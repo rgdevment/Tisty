@@ -173,12 +173,14 @@ export function KeyAstray({
 
 export function MachineList({
   all,
+  ours,
   busy,
   onKey,
   onAstray,
   onDrop,
 }: {
   all: Machine[] | null;
+  ours?: ReadonlySet<string>;
   busy: boolean;
   onKey: (one: Machine) => void;
   onAstray: (one: Machine) => void;
@@ -197,6 +199,7 @@ export function MachineList({
           <MachineRow
             key={one.id}
             one={one}
+            ours={ours?.has(one.id) ?? false}
             busy={busy}
             quiet={hushed(one)}
             wrote={
@@ -222,6 +225,7 @@ export function MachineList({
 
 function MachineRow({
   one,
+  ours,
   busy,
   quiet,
   wrote,
@@ -231,6 +235,7 @@ function MachineRow({
   onDrop,
 }: {
   one: Machine;
+  ours: boolean;
   busy: boolean;
   quiet: boolean;
   wrote: string;
@@ -255,6 +260,11 @@ function MachineRow({
           {one.mine && (
             <span className="ml-2 rounded-full border border-accent px-1.5 py-px align-[1px] text-[10.5px] font-semibold tracking-wide text-accent uppercase">
               {t("machineHere")}
+            </span>
+          )}
+          {ours && (
+            <span className="ml-2 rounded-full border border-accent px-1.5 py-px align-[1px] text-[10.5px] font-semibold tracking-wide text-accent uppercase">
+              {t("identityOurs")}
             </span>
           )}
           {waiting(one) && (

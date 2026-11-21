@@ -20,6 +20,7 @@ import { useOnly, useOnlyAlive } from "./only";
 import { saidPlainly } from "./refusal";
 import { useCalledTasks, useWakeOffer } from "./reminding";
 import { asksShape, type ShapeChoice } from "./reshaping";
+import { useSettingsDesk } from "./settingsDesk";
 import { useSnapshot } from "./snapshotting";
 import { asksSure } from "./sure";
 import type { Asked, MenuOpen, Shaping, Torn } from "./ui/Layers";
@@ -68,6 +69,7 @@ export function useWindow() {
   }));
   const [found, setFound] = useState<Found | null>(null);
   const [query, setQuery] = useState("");
+  const settingsDesk = useSettingsDesk();
   /// Where a tag was pressed, so leaving it goes back there rather than to a fixed screen.
   const [cameFrom, setCameFrom] = useState<Chosen | null>(null);
   const [seen, byList] = useOnly(chosen);
@@ -227,6 +229,7 @@ export function useWindow() {
     setFound,
     query,
     setQuery,
+    settingsDesk,
     cameFrom,
     setCameFrom,
     seen,

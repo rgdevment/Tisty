@@ -42,6 +42,16 @@ fn a_copy_that_already_starts_with_the_machine_settles_the_question() {
 }
 
 #[test]
+fn a_startup_windows_holds_is_not_offered_from_the_window() {
+    let held = Waking {
+        offered: true,
+        wakes: false,
+        theirs: true,
+    };
+    assert_eq!(wake_offer(false, true, || held), WakeOffer::Not);
+}
+
+#[test]
 fn a_copy_that_cannot_start_with_the_machine_is_not_asked() {
     assert_eq!(
         wake_offer(false, true, || standing(false, false)),

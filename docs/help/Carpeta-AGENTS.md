@@ -44,7 +44,7 @@ Si un día Jaime quiere que sus cambios lleguen a Claude Code, pulsa **Sincroniz
 
 ## Tres estados en la barra
 
-La barra te dice cómo está Agentes con su color, y al lado no aparece ninguna palabra. Lo que espera tu decisión lo ves en la ficha de cada documento y en **Configuración › Asistentes**.
+La barra te dice cómo está Agentes con su color, y al lado no aparece ninguna palabra. Lo que espera tu decisión lo ves en la ficha de cada documento y en **Configuración › Asistentes › Carpeta Agentes**.
 
 | Estado | Cómo se ve | Un clic | Su botón derecho |
 | :-- | :-- | :-- | :-- |
@@ -74,7 +74,7 @@ Agentes está en tu barra lateral aunque nunca la hayas usado, en gris. Así sab
    - **Traer y sincronizar**, el destacado, copia lo que marcaste y además sincroniza: desde ahora, lo que cambias en Agentes llega a los archivos de tus agentes. Agentes queda en el estado 3, con su robot coral, y el aviso dice «Entraron 7 documentos a Agentes, y desde ahora Tisty los mantiene al día.».
 6. Tisty abre solo los archivos que marcaste y los guarda como documentos. Lo que no pudo entrar aparece bajo **Esto no entró:**, con el motivo. **Listo** cierra el aviso.
 
-**Cerrar sin elegir.** La X o `Esc` cierran el aviso sin leer ni traer nada, y Agentes sigue en gris en la barra. Vuelves cuando quieras con otro clic en ella, o desde la tarjeta **Agentes** de **Configuración › Asistentes**, donde **Traer** y **Traer y sincronizar** abren este mismo aviso. Lo que entra en la lista, y lo que no, lo cuenta [Qué entra en la lista](#qué-entra-en-la-lista).
+**Cerrar sin elegir.** La X o `Esc` cierran el aviso sin leer ni traer nada, y Agentes sigue en gris en la barra. Vuelves cuando quieras con otro clic en ella, o desde la tarjeta **Agentes** de **Configuración › Asistentes › Carpeta Agentes**, donde **Traer** y **Traer y sincronizar** abren este mismo aviso. Lo que entra en la lista, y lo que no, lo cuenta [Qué entra en la lista](#qué-entra-en-la-lista).
 
 **Si no la quieres ver.** El aviso no tiene un botón para ocultarla: botón derecho sobre **Agentes**, en gris, y **Ocultar de la barra**. Lo cuenta [Ocultarla de la barra](#ocultarla-de-la-barra).
 
@@ -132,7 +132,7 @@ La fila de Claude dice **Claude · 2 reglas · 1 skill**: `CLAUDE.md` y `rules/e
 
 **La fila de cada asistente** cuenta reglas, skills y memorias, no archivos: una skill de diez archivos suma una, como en **Claude · 2 reglas · 3 skills · 1 memoria**. Si no queda nada que traer, dice **Claude · nada para traer**, y si todo ya está en Agentes, **Claude · ya está en Agentes**.
 
-**Un asistente sin archivos todavía** no queda fuera, como si no estuviera: Tisty lo nombra en su propia línea, sobre la lista. Si instalaste Gemini ayer y aún no le pediste que recuerde nada, ves «Gemini: todavía sin reglas, skills ni memoria. Recibe lo que escribas en Global o en su carpeta.». Lo mismo dicen **Traer otro archivo**, [Buscar de nuevo](#buscar-de-nuevo) y su interruptor en **Configuración › Asistentes**.
+**Un asistente sin archivos todavía** no queda fuera, como si no estuviera: Tisty lo nombra en su propia línea, sobre la lista. Si instalaste Gemini ayer y aún no le pediste que recuerde nada, ves «Gemini: todavía sin reglas, skills ni memoria. Recibe lo que escribas en Global o en su carpeta.». Lo mismo dicen **Traer otro archivo**, [Buscar de nuevo](#buscar-de-nuevo) y su interruptor en **Configuración › Asistentes › Carpeta Agentes**.
 
 ### Lo que dice la lista junto a un archivo
 
@@ -172,7 +172,7 @@ La primera vez no tiene que ser la única. Si instalas un asistente nuevo, si cr
 - **Desde la barra lateral:** botón derecho sobre una subcarpeta de Agentes, como **Agentes › Claude**, y **Traer otro archivo**. El botón derecho de Agentes misma no lo ofrece: ahí está [Buscar de nuevo](#buscar-de-nuevo), que hace lo mismo y además marca lo nuevo por ti. En el estado 1 todavía no hay nada traído, y un clic en Agentes abre la primera vez.
 - **Desde el menú de la Biblioteca:** con Agentes o una de sus subcarpetas abierta, el botón **+** junto al título **Biblioteca** ofrece **Traer otro archivo**, entre las opciones para crear e importar.
 - **Desde la paleta de comandos:** con Agentes o una de sus subcarpetas abierta, escribe «traer» y elige **Traer otro archivo**, en el grupo **Crear**.
-- **Desde Configuración › Asistentes:** en la tarjeta **Agentes**, el botón **Traer otro archivo**.
+- **Desde Configuración › Asistentes › Carpeta Agentes:** en la tarjeta **Agentes**, el botón **Traer otro archivo**.
 
 **Traer otro archivo no cambia si Agentes sincroniza.** Traída sin sincronizar, el archivo nuevo entra como documento y el archivo de tu agente queda como está; sincronizando, desde ese momento Tisty también lo mantiene al día.
 
@@ -223,7 +223,7 @@ La memoria que Marisol dejó fuera sigue ahí: la próxima vez que busque de nue
 
 Esto pasa sincronizando: traída sin sincronizar, Tisty no escribe ningún archivo y no tiene nada que preguntar.
 
-**Un ejemplo.** Tienes `~/.codex/AGENTS.md` con tus reglas de Codex, y la primera vez lo dejaste sin marcar. Después escribes una regla en **Global**, que también va a ese archivo. Tisty no sabe qué parte es tuya, así que no lo pisa: te pregunta **Existe en los dos lados**, al entrar en Agentes o con **Revisar** en Configuración › Asistentes. Como nunca trajo ese archivo, el aviso suma «Tisty nunca trajo este archivo. Si lo traes a Agentes, queda con lo que dice y con lo de Tisty agregado arriba.» y el botón **Traer a Agentes**.
+**Un ejemplo.** Tienes `~/.codex/AGENTS.md` con tus reglas de Codex, y la primera vez lo dejaste sin marcar. Después escribes una regla en **Global**, que también va a ese archivo. Tisty no sabe qué parte es tuya, así que no lo pisa: te pregunta **Existe en los dos lados**, al entrar en Agentes o con **Revisar** en Configuración › Asistentes › Carpeta Agentes. Como nunca trajo ese archivo, el aviso suma «Tisty nunca trajo este archivo. Si lo traes a Agentes, queda con lo que dice y con lo de Tisty agregado arriba.» y el botón **Traer a Agentes**.
 
 Con **Traer a Agentes**, el archivo entra como un documento en **Agentes › Codex**, con sus palabras, y Tisty lo vuelve a escribir con tu regla de Global arriba. Lo que tenía antes queda en sus [respaldos](#respaldos):
 
@@ -264,7 +264,7 @@ Agentes
     └── [cerebro]  GEMINI.md
 ```
 
-- **El icono de cada subcarpeta**: **Global** lleva un globo azul, y cada asistente un símbolo propio, que no imita su logo, en el mismo color de su etiqueta en la ficha: un globo de conversación naranja para Claude, una terminal verde azulado para Codex, unas llaves de código índigo para Copilot, una brújula verde para Gemini y un puntero café para Cursor. Los mismos iconos aparecen en la lista de la primera vez y en **Configuración › Asistentes**. Una subcarpeta a la que le pusiste un icono tuyo lo conserva.
+- **El icono de cada subcarpeta**: **Global** lleva un globo azul, y cada asistente un símbolo propio, que no imita su logo, en el mismo color de su etiqueta en la ficha: un globo de conversación naranja para Claude, una terminal verde azulado para Codex, unas llaves de código índigo para Copilot, una brújula verde para Gemini y un puntero café para Cursor. Los mismos iconos aparecen en la lista de la primera vez y en **Configuración › Asistentes › Carpeta Agentes**. Una subcarpeta a la que le pusiste un icono tuyo lo conserva.
 - **El icono de cada documento**: un libro para una **regla**, una pieza de rompecabezas para una **skill** y un cerebro para la **memoria del agente**.
 - **El nombre**: el primer título del documento, como «Cómo trabajo» en un `CLAUDE.md` que empieza con `# Cómo trabajo`. Una skill toma el `name` de su `SKILL.md`. Un script, o un archivo sin títulos, se llama como el archivo: `MEMORY.md`, `extraer.py`.
 - **La ruta**: pasa el puntero sobre una fila y aparece, con el asistente delante: `claude · CLAUDE.md`, `claude · rules/estilo.md`.
@@ -279,7 +279,7 @@ Las subcarpetas son para que encuentres las cosas: **lo que decide adónde va un
 | Dónde | Qué ves |
 | :-- | :-- |
 | **La ficha de cada documento** | Su estado, siempre, en la etiqueta de color: **Cambiado por fuera**, **Cambiado en los dos lados**, **Escrito por un Tisty anterior** o **En espera**; la etiqueta **Propuesta**, si un agente te propone un cambio; o un aviso ámbar dentro de la ficha, cuando el documento [viene de otro equipo](#en-varios-equipos) o su texto [espera tu aprobación](#por-aprobar). La tabla de [cada estado](#cada-estado) dice qué hacer con cada uno |
-| **Configuración › Asistentes**, en la tarjeta **Agentes** | Los archivos que piden tu decisión: «1 archivo dice algo distinto en Tisty y en el agente.», o «1 archivo ya no es de ninguna regla de Agentes.», cada uno con **Revisar**; y bajo **Sincronizar Gemini**, si falta [su línea](#gemini-en-pausa) |
+| **Configuración › Asistentes › Carpeta Agentes**, en la tarjeta **Agentes** | Los archivos que piden tu decisión: «1 archivo dice algo distinto en Tisty y en el agente.», o «1 archivo ya no es de ninguna regla de Agentes.», cada uno con **Revisar**; y bajo **Sincronizar Gemini**, si falta [su línea](#gemini-en-pausa) |
 | **Al entrar en Agentes** | Si Agentes sincroniza y un archivo existe en los dos lados, ya no es de ninguna regla o perdió la línea de Gemini, Tisty te pregunta por él apenas entras, uno por uno |
 
 ![La barra lateral con la carpeta Agentes abierta y sincronizando, con el robot en coral: dentro, Global con su globo azul y Claude con su globo de conversación naranja; en Claude, la regla Reglas, elegida, con el icono de un libro, y debajo las skills, cada una con el icono de una pieza y cuántos archivos lleva](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/agents/es-02-barra.png)
@@ -489,7 +489,7 @@ Un documento de memoria no tiene **Editar**: lo escribe el agente, y la ficha di
 | **Escrito por un Tisty anterior** | Una versión anterior de Tisty escribió el archivo sin anotar de qué documentos venía, y hoy no dice lo mismo que ellos | **Ver el archivo**, y después **Sobrescribir con Tisty** si te quedas con el documento |
 | **En espera** | Uno de los documentos que arman este archivo [cambió sin tu aprobación](#por-aprobar), o salió de Agentes por mano de un agente, así que el archivo queda como estaba. La ficha nombra ese documento | Aprobar ese documento, o volver a ponerlo y sacarlo tú |
 | **En pausa** | Pausaste la sincronización de ese asistente, o Agentes no sincroniza en este equipo; entonces la ficha suma «La carpeta Agentes no se sincroniza con tus agentes. Elige Sincronizar en la barra o en Configuración › Asistentes.». En Gemini, también cuando falta en `GEMINI.md` la línea `@tisty-rules.md` que Tisty había puesto | **Reanudar** cuando quieras, o **Sincronizar** la carpeta; en Gemini, [**Volver a ponerla**](#gemini-en-pausa) |
-| **Sin permiso en este equipo** | Este equipo todavía no te dejó leer los archivos de tus agentes, por ejemplo porque Agentes llegó traída desde otro equipo | **Sincronizar**, en la barra o en Configuración › Asistentes, y elegir en el aviso de la primera vez |
+| **Sin permiso en este equipo** | Este equipo todavía no te dejó leer los archivos de tus agentes, por ejemplo porque Agentes llegó traída desde otro equipo | **Sincronizar**, en la barra o en Configuración › Asistentes › Carpeta Agentes, y elegir en el aviso de la primera vez |
 | **Nada que escribir** | El documento quedó vacío, y Tisty nunca vacía un archivo de un agente | Escribir algo, o sacar el documento de Agentes |
 | **El archivo es un enlace** | El archivo, o una carpeta en su camino, es un enlace simbólico; escribirlo reemplazaría el enlace | Cambiar el enlace por el archivo real |
 | **El bloque de código está roto** | El bloque que guarda un script ya no está entero | Arreglar el bloque en el documento |
@@ -522,7 +522,7 @@ Mientras no eliges, Tisty no escribe ese archivo, aunque cambies el documento.
 
 Si cambiaron el archivo y también el documento, la ficha dice **Cambiado en los dos lados**. Cuando el documento es el único que arma ese archivo, aparece **Quedarse con el archivo**, que pregunta «¿Dejar este documento como está ahora …? Lo que dice ahora queda en su historial.»; si no, solo **Sobrescribir con Tisty**.
 
-Lo mismo puede pasar la primera vez que sincronizas, cuando ya tenías en Agentes un documento de un archivo que entretanto cambió. Entonces aparece **Existe en los dos lados**, con las líneas que difieren: en rojo, con `−`, lo que hay **En Tisty**; en verde, con `+`, lo que hay **En el archivo**. Eliges **Conservar el de Tisty**, **Conservar el archivo** o **Decidir después**, y lo que no conservas queda guardado: el archivo en sus [respaldos](#respaldos), el documento en sus versiones anteriores. Si el archivo se arma con varios documentos, solo puedes conservar el de Tisty o decidir después. Si Tisty nunca trajo ese archivo, el aviso suma **Traer a Agentes**, como cuenta [Un archivo que nunca trajiste](#un-archivo-que-nunca-trajiste). Desde **Configuración › Asistentes**, «1 archivo dice algo distinto en Tisty y en el agente.» y **Revisar** te traen de vuelta a ese aviso.
+Lo mismo puede pasar la primera vez que sincronizas, cuando ya tenías en Agentes un documento de un archivo que entretanto cambió. Entonces aparece **Existe en los dos lados**, con las líneas que difieren: en rojo, con `−`, lo que hay **En Tisty**; en verde, con `+`, lo que hay **En el archivo**. Eliges **Conservar el de Tisty**, **Conservar el archivo** o **Decidir después**, y lo que no conservas queda guardado: el archivo en sus [respaldos](#respaldos), el documento en sus versiones anteriores. Si el archivo se arma con varios documentos, solo puedes conservar el de Tisty o decidir después. Si Tisty nunca trajo ese archivo, el aviso suma **Traer a Agentes**, como cuenta [Un archivo que nunca trajiste](#un-archivo-que-nunca-trajiste). Desde **Configuración › Asistentes › Carpeta Agentes**, «1 archivo dice algo distinto en Tisty y en el agente.» y **Revisar** te traen de vuelta a ese aviso.
 
 ## Respaldos
 
@@ -545,15 +545,15 @@ Las versiones anteriores del **documento**, en cambio, son las de cualquier docu
 
 ## Pausar, dejar de sincronizar y vaciar
 
-**Pausar un asistente.** Mientras Agentes sincroniza, el lugar de siempre es **Configuración › Asistentes**: en la tarjeta **Agentes**, apaga el interruptor **Sincronizar Claude**, que aparece solo mientras la carpeta sincroniza. También desde la ficha de un documento, con los botones del pie: **Pausar la sincronización con Claude**, en un documento que se escribe en un solo archivo, o un botón por asistente, **Pausar Claude**, **Pausar Codex**…, en uno de Global. En pausa, Tisty no abre ni escribe los archivos de ese asistente: quedan como los dejó la última escritura, y tú sigues editando tus documentos. **Reanudar la sincronización con Claude** escribe lo que cambiaste, salvo un archivo que cambió por fuera mientras tanto, que queda marcado para que decidas.
+**Pausar un asistente.** Mientras Agentes sincroniza, el lugar de siempre es **Configuración › Asistentes › Carpeta Agentes**: en la tarjeta **Agentes**, apaga el interruptor **Sincronizar Claude**, que aparece solo mientras la carpeta sincroniza. También desde la ficha de un documento, con los botones del pie: **Pausar la sincronización con Claude**, en un documento que se escribe en un solo archivo, o un botón por asistente, **Pausar Claude**, **Pausar Codex**…, en uno de Global. En pausa, Tisty no abre ni escribe los archivos de ese asistente: quedan como los dejó la última escritura, y tú sigues editando tus documentos. **Reanudar la sincronización con Claude** escribe lo que cambiaste, salvo un archivo que cambió por fuera mientras tanto, que queda marcado para que decidas.
 
-**Dejar de sincronizar toda la carpeta.** Botón derecho sobre **Agentes** y **Dejar de sincronizar**, o el botón **Dejar de sincronizar** en su tarjeta de **Configuración › Asistentes**. Pasa esto, y nada más:
+**Dejar de sincronizar toda la carpeta.** Botón derecho sobre **Agentes** y **Dejar de sincronizar**, o el botón **Dejar de sincronizar** en su tarjeta de **Configuración › Asistentes › Carpeta Agentes**. Pasa esto, y nada más:
 
 - **Ningún archivo de tus agentes se toca.** Tus agentes siguen leyendo sus archivos tal como Tisty los dejó, y Tisty deja de escribirlos y de pedirte que decidas cuando cambian por fuera.
 - **Ningún documento se borra.** Siguen en Agentes, y los lees y los editas como siempre; lo que cambias queda en Tisty.
 - **Agentes pasa al estado 2.** Su robot vuelve al gris y, al abrirla, arriba aparece «No se sincroniza con tus agentes · Sincronizar». La ficha de cada documento dice «La carpeta Agentes no se sincroniza con tus agentes. Elige Sincronizar en la barra o en Configuración › Asistentes.», y su cuadro de datos, en **Sincroniza en este equipo**, «No, Agentes no se sincroniza».
 
-**Sincronizar otra vez.** Con Agentes en el estado 2, cualquiera de estos tres hace lo mismo: el enlace **Sincronizar** de la línea de arriba, **Sincronizar** en su botón derecho, o **Sincronizar** en su tarjeta de Configuración › Asistentes. Si este equipo ya te había dejado leer los archivos de tus agentes, por ejemplo porque elegiste **Traer** o **Dejar de sincronizar** aquí mismo, sincroniza de una vez, sin el aviso de la primera vez. Si nunca lo hizo, como un [segundo equipo](#un-segundo-equipo-paso-a-paso), abre antes el aviso de la primera vez.
+**Sincronizar otra vez.** Con Agentes en el estado 2, cualquiera de estos tres hace lo mismo: el enlace **Sincronizar** de la línea de arriba, **Sincronizar** en su botón derecho, o **Sincronizar** en su tarjeta de Configuración › Asistentes › Carpeta Agentes. Si este equipo ya te había dejado leer los archivos de tus agentes, por ejemplo porque elegiste **Traer** o **Dejar de sincronizar** aquí mismo, sincroniza de una vez, sin el aviso de la primera vez. Si nunca lo hizo, como un [segundo equipo](#un-segundo-equipo-paso-a-paso), abre antes el aviso de la primera vez.
 
 Al sincronizar, Tisty escribe lo que cambiaste en tus documentos mientras tanto, con su respaldo antes, salvo un archivo que cambió por fuera, que queda marcado para que decidas. Lo que encuentra distinto en los dos lados, o que ya no es de ninguna regla, te lo pregunta en ese mismo momento.
 
@@ -568,7 +568,7 @@ La pausa, la sincronización y el permiso son de este equipo: dejar de sincroniz
 Sincronizando, Tisty pone la línea `@tisty-rules.md` en tu `GEMINI.md` una vez. Si después la borras, o borras `GEMINI.md` entero, Tisty lo toma como tu decisión y no la vuelve a poner: Gemini queda **En pausa**, deja de recibir tus reglas, y Tisty deja de escribir `tisty-rules.md`. Solo cuenta una línea que puso Tisty: si nunca la puso ahí, por ejemplo porque todavía no tenías reglas para Gemini, que falte no deja a Gemini en pausa. Lo ves en tres lugares:
 
 - **En la ficha** de cada regla que Gemini lee: la etiqueta **En pausa** y «Gemini no lee esta regla: falta la línea @tisty-rules.md en GEMINI.md, y Tisty no la vuelve a poner sola.», con el botón **Volver a ponerla**.
-- **En Configuración › Asistentes**, bajo **Sincronizar Gemini**: «En pausa: falta la línea @tisty-rules.md en GEMINI.md.», con **Volver a ponerla**.
+- **En Configuración › Asistentes › Carpeta Agentes**, bajo **Sincronizar Gemini**: «En pausa: falta la línea @tisty-rules.md en GEMINI.md.», con **Volver a ponerla**.
 - **Al entrar en Agentes**, el aviso **Falta la línea de Tisty**: «La línea @tisty-rules.md ya no está en GEMINI.md, así que Gemini no lee tus reglas. Tisty no la vuelve a poner sola: Gemini queda en pausa hasta que tú lo hagas.», con **Dejarlo en pausa** y **Volver a ponerla**.
 
 **Volver a ponerla** agrega otra vez la línea al final de `GEMINI.md`, sin tocar lo demás, y Tisty vuelve a escribir tus reglas en `tisty-rules.md`. Mientras no lo haces, la ficha y la tarjeta lo siguen diciendo.
@@ -589,7 +589,7 @@ Si el archivo cambió después de que Tisty lo escribió, por ejemplo porque lo 
 
 Si quitas `tisty-rules.md`, el archivo de reglas de Gemini, Tisty también saca la línea `@tisty-rules.md` de `GEMINI.md`, y nada más.
 
-Mientras no respondes, la tarjeta **Agentes** de **Configuración › Asistentes** dice «1 archivo ya no es de ninguna regla de Agentes.», con **Revisar** para volver a la pregunta.
+Mientras no respondes, la tarjeta **Agentes** de **Configuración › Asistentes › Carpeta Agentes** dice «1 archivo ya no es de ninguna regla de Agentes.», con **Revisar** para volver a la pregunta.
 
 Tisty no pregunta, y deja el archivo como está:
 
@@ -614,9 +614,9 @@ Vaciada, Agentes vuelve a la barra como al principio, en el estado 1: el robot y
 Si no usas Agentes y no quieres verla en la barra, ni siquiera en gris, ocúltala. **Solo se oculta mientras no sincroniza**: sincronizando, su botón derecho no ofrece ocultarla, para que nunca quede escribiendo archivos que no ves.
 
 1. Si sincroniza, botón derecho sobre Agentes y **Dejar de sincronizar**. Queda en el estado 2.
-2. Botón derecho sobre Agentes y **Ocultar de la barra**. Está en el estado 1, el de antes de traer nada, y en el 2. También sirve **Ocultar** en la tarjeta **Agentes** de Configuración › Asistentes.
+2. Botón derecho sobre Agentes y **Ocultar de la barra**. Está en el estado 1, el de antes de traer nada, y en el 2. También sirve **Ocultar** en la tarjeta **Agentes** de Configuración › Asistentes › Carpeta Agentes.
 
-Agentes sale de la barra lateral en este equipo sin dejar rastro, y queda en **Configuración › General › Carpetas ocultas**, junto a cualquier otra carpeta que hayas ocultado: mira [Ocultar una carpeta de la barra](Documentos#ocultar-una-carpeta-de-la-barra). Su tarjeta en Configuración › Asistentes dice «Oculta de la barra en este equipo y sin sincronizar: no escribe ningún archivo de agente.», con **Volver a mostrar**.
+Agentes sale de la barra lateral en este equipo sin dejar rastro, y queda en **Configuración › Aspecto y ventana › Carpetas ocultas**, junto a cualquier otra carpeta que hayas ocultado: mira [Ocultar una carpeta de la barra](Documentos#ocultar-una-carpeta-de-la-barra). Su tarjeta en Configuración › Asistentes › Carpeta Agentes dice «Oculta de la barra en este equipo y sin sincronizar: no escribe ningún archivo de agente.», con **Volver a mostrar**.
 
 - **Volver a mostrar**, en Carpetas ocultas o en la tarjeta, la devuelve a la barra en el estado que tenía: en gris, sin traer o traída sin sincronizar.
 - **Sincronizar**, en la tarjeta de una Agentes traída y oculta, la sincroniza y también la vuelve a mostrar: sincronizando, Agentes siempre se ve.
@@ -635,7 +635,7 @@ Por eso Agentes no se puede meter dentro de otra carpeta, cambiarle el nombre, d
 
 Lo que sí es tuyo: su color y su orden entre tus carpetas. Para que deje de escribir los archivos de tus agentes, la forma es **Dejar de sincronizar**; para no verla, **Ocultar de la barra**; y para que desaparezca, [vaciarla](#vaciar-agentes).
 
-## La tarjeta Agentes en Configuración › Asistentes
+## La tarjeta Agentes en Configuración › Asistentes › Carpeta Agentes
 
 La tarjeta **Agentes** usa las mismas palabras y hace lo mismo que la barra. Arriba, siempre, «Las reglas, skills y memoria de tus agentes como documentos de Tisty. Traer las copia aquí; Sincronizar además escribe lo que cambies en el archivo que lee cada agente.». Debajo, según el estado:
 
@@ -656,7 +656,7 @@ En la versión anterior, la carpeta se veía en mayúsculas en la barra y, mient
 | Con su color, escribiendo los archivos de tus agentes | En el estado 3, **sincronizando**, con su robot coral. Sigue escribiendo los mismos archivos |
 | Atenuada, con documentos | En el estado 2, **traída, sin sincronizar**. Ningún archivo de tus agentes cambió |
 | Atenuada, sin documentos ni carpeta | En el estado 1, **todavía sin traer**, en gris |
-| Oculta, sin escribir archivos | Sigue oculta, en Configuración › General › Carpetas ocultas |
+| Oculta, sin escribir archivos | Sigue oculta, en Configuración › Aspecto y ventana › Carpetas ocultas |
 | Oculta mientras escribía archivos | De vuelta en la barra, sincronizando |
 
 Desde ahora, el primer paso es **Traer** o **Traer y sincronizar**, también cuando no marcas nada; con la carpeta ya traída, **Sincronizar**; y para detenerla, **Dejar de sincronizar**, en su botón derecho o en su tarjeta. Tus documentos, sus versiones anteriores y los respaldos de cada archivo quedan como estaban.
@@ -670,7 +670,7 @@ Si usas Tisty en más de un equipo, por ejemplo el computador de la casa y el de
 **Un ejemplo.** En el equipo de la casa elegiste **Traer y sincronizar**, trajiste tu `CLAUDE.md` y escribiste en **Agentes › Global** la regla «Para todos mis agentes». Ahí se aplicaron solas: las trajiste y las escribiste tú, en ese equipo. Ahora instalas Tisty en el equipo del trabajo y sincronizas:
 
 1. En la barra, Agentes llega en el **estado 2**, traída sin sincronizar: el robot gris, el nombre como cualquier carpeta y sus documentos. Tus documentos ya viajaron, pero este equipo todavía no sincroniza ni leyó nada de sus agentes. Ábrela y léelos desde ya; arriba dice «No se sincroniza con tus agentes · Sincronizar».
-2. Pulsa **Sincronizar**, en esa línea, en el botón derecho o en la tarjeta **Agentes** de **Configuración › Asistentes**. Como este equipo nunca te dejó leer los archivos de sus agentes, primero se abre el aviso de la primera vez, con los archivos de este equipo. Los que ya tienen documento dicen **ya está en Agentes**, y si todo lo que encontró ya está, el aviso dice «Todo lo que encontré ya está en Agentes. Sincroniza este equipo para mantenerlo al día:».
+2. Pulsa **Sincronizar**, en esa línea, en el botón derecho o en la tarjeta **Agentes** de **Configuración › Asistentes › Carpeta Agentes**. Como este equipo nunca te dejó leer los archivos de sus agentes, primero se abre el aviso de la primera vez, con los archivos de este equipo. Los que ya tienen documento dicen **ya está en Agentes**, y si todo lo que encontró ya está, el aviso dice «Todo lo que encontré ya está en Agentes. Sincroniza este equipo para mantenerlo al día:».
 3. Marca lo que quieras traer de este equipo, como la memoria de sus proyectos, y pulsa **Traer y sincronizar**. Agentes pasa al estado 3, con su robot coral. Si en cambio eliges **Traer**, entra lo que marcaste y este equipo sigue sin sincronizar.
 4. Abre **Para todos mis agentes**. Su cuadro de datos todavía no tiene ninguna fila **Se escribe en**, y debajo, dentro de la ficha, un aviso ámbar dice «Este documento viene de otro equipo. ¿Lo aplicas a los agentes de este?», con dos botones:
    - **Aplicar aquí** lo escribe en los archivos de los asistentes de este equipo, con su respaldo antes, como siempre. Si un archivo de este equipo ya decía otra cosa, Tisty no lo pisa: la ficha queda en **Cambiado en los dos lados** y eliges.
@@ -938,9 +938,9 @@ Y editar el archivo en disco tampoco sirve: ese cambio queda como **Cambiado por
 
 **Borré una regla. ¿Qué pasa con su archivo?** Tisty te pregunta «¿Quitar también el archivo?»: **Quitar el archivo** lo borra y guarda un respaldo, y **Dejarlo** lo deja donde está, sin que Tisty vuelva a escribirlo. Mira [Sacar una regla y su archivo](#sacar-una-regla-y-su-archivo).
 
-**La primera vez dejé un archivo sin marcar. ¿Lo puedo traer ahora?** Sí, con **Traer otro archivo**: desde el botón derecho sobre una subcarpeta de Agentes, como Claude; con Agentes abierta, desde el botón **+** de la Biblioteca o la paleta de comandos; o desde Configuración › Asistentes. Mira [Traer otro archivo](#traer-otro-archivo).
+**La primera vez dejé un archivo sin marcar. ¿Lo puedo traer ahora?** Sí, con **Traer otro archivo**: desde el botón derecho sobre una subcarpeta de Agentes, como Claude; con Agentes abierta, desde el botón **+** de la Biblioteca o la paleta de comandos; o desde Configuración › Asistentes › Carpeta Agentes. Mira [Traer otro archivo](#traer-otro-archivo).
 
-**¿Por qué tengo Agentes en la barra si nunca la usé?** Está ahí, en gris, para que sepas que existe. Así no lee nada: solo mira si existe la carpeta de cada asistente, como `~/.claude`, y la lista de nombres y tamaños aparece recién cuando haces clic en ella. Si no la quieres ver, botón derecho y **Ocultar de la barra**; vuelve con **Volver a mostrar**, en Configuración › General › Carpetas ocultas.
+**¿Por qué tengo Agentes en la barra si nunca la usé?** Está ahí, en gris, para que sepas que existe. Así no lee nada: solo mira si existe la carpeta de cada asistente, como `~/.claude`, y la lista de nombres y tamaños aparece recién cuando haces clic en ella. Si no la quieres ver, botón derecho y **Ocultar de la barra**; vuelve con **Volver a mostrar**, en Configuración › Aspecto y ventana › Carpetas ocultas.
 
 **¿Cuál es la diferencia entre Traer y Sincronizar?** **Traer** copia los archivos a Tisty y no escribe nada en ellos; **Sincronizar** hace que lo que cambias en Tisty llegue a esos archivos. Mira [Traer o sincronizar](#traer-o-sincronizar).
 
@@ -950,7 +950,7 @@ Y editar el archivo en disco tampoco sirve: ese cambio queda como **Cambiado por
 
 **¿Mi agente puede proponerme un cambio con Agentes oculta o sin sincronizar?** Sí: la propuesta queda en la ficha de su documento, y la apruebas o la descartas ahí. Aprobada, cambia el documento; llega a los archivos de tus agentes cuando Agentes sincroniza.
 
-**¿Por qué la barra no me dice si algo espera?** Porque Agentes se ve como cualquier carpeta: solo su color dice si sincroniza. Lo que espera tu decisión está en la ficha de cada documento y en la tarjeta **Agentes** de Configuración › Asistentes, y sincronizando, Tisty te pregunta por los archivos pendientes apenas entras en ella. Mira [Cómo queda la carpeta](#cómo-queda-la-carpeta).
+**¿Por qué la barra no me dice si algo espera?** Porque Agentes se ve como cualquier carpeta: solo su color dice si sincroniza. Lo que espera tu decisión está en la ficha de cada documento y en la tarjeta **Agentes** de Configuración › Asistentes › Carpeta Agentes, y sincronizando, Tisty te pregunta por los archivos pendientes apenas entras en ella. Mira [Cómo queda la carpeta](#cómo-queda-la-carpeta).
 
 **¿Por qué Agentes no tiene documentos?** La creaste con **Traer y sincronizar** sin que Tisty encontrara archivos, o sus documentos salieron mientras Tisty estaba cerrado, por ejemplo al sincronizar con otro equipo. Escribe una regla con **Documento nuevo** en **Global** o en la carpeta de un asistente, o trae un archivo con **Buscar de nuevo** o **Traer otro archivo**.
 
@@ -962,7 +962,7 @@ Y editar el archivo en disco tampoco sirve: ese cambio queda como **Cambiado por
 
 **Mi cambio en Tisty no llega al archivo.** Mira el estado en la ficha del documento:
 
-- **En pausa**: reanuda ese asistente, o la carpeta, en la ficha o en Configuración › Asistentes.
+- **En pausa**: reanuda ese asistente, o la carpeta, en la ficha o en Configuración › Asistentes › Carpeta Agentes.
 - **Sin permiso en este equipo**: este equipo todavía no te dejó leer los archivos de tus agentes. Pulsa **Sincronizar** y elige en el aviso de la primera vez.
 - **La ficha dice «La carpeta Agentes no se sincroniza con tus agentes.»**: Agentes está traída sin sincronizar, con su robot gris. Pulsa **Sincronizar**.
 - **Cambiado por fuera** o **Cambiado en los dos lados**: Tisty espera tu decisión antes de escribir.
@@ -977,25 +977,25 @@ Y editar el archivo en disco tampoco sirve: ese cambio queda como **Cambiado por
 
 **Una ficha dice «Su texto aún no tiene tu aprobación» y yo no cambié nada.** El texto de un documento cambió sin pasar por la ventana de Tisty, por ejemplo con un paquete importado o una edición directa en la carpeta de datos. El aviso te dice quién lo escribió y qué cambió desde lo último que aprobaste: léelo, y si está bien, **Aprobar este texto**. Mira [Por aprobar](#por-aprobar).
 
-**Escribí una regla de Global y un archivo quedó en Cambiado en los dos lados.** Ese archivo ya existía y no lo trajiste, así que Tisty no sabe qué parte es tuya. No lo sobrescribas: en **Configuración › Asistentes**, pulsa **Revisar** y, en **Existe en los dos lados**, **Traer a Agentes**. El archivo queda con Global delante de lo tuyo, y el original, como respaldo n.º 1. Mira [Un archivo que nunca trajiste](#un-archivo-que-nunca-trajiste).
+**Escribí una regla de Global y un archivo quedó en Cambiado en los dos lados.** Ese archivo ya existía y no lo trajiste, así que Tisty no sabe qué parte es tuya. No lo sobrescribas: en **Configuración › Asistentes › Carpeta Agentes**, pulsa **Revisar** y, en **Existe en los dos lados**, **Traer a Agentes**. El archivo queda con Global delante de lo tuyo, y el original, como respaldo n.º 1. Mira [Un archivo que nunca trajiste](#un-archivo-que-nunca-trajiste).
 
 **Me pregunta «¿Quitar también el archivo?» y no borré nada.** También cuenta como sacar una regla cambiar su línea `agent:` por la de otro archivo, o volver a una versión anterior que no tenía ficha. Si no quieres tocar nada, **Dejarlo** lo deja donde está.
 
-**Agentes no está en la barra.** La ocultaste, en este equipo: está en **Configuración › General › Carpetas ocultas**, y **Volver a mostrar** la devuelve. Si la vaciaste con Tisty abierto, no se oculta: vuelve sola a la barra, en gris, y un clic en ella trae otra vez lo que encuentre.
+**Agentes no está en la barra.** La ocultaste, en este equipo: está en **Configuración › Aspecto y ventana › Carpetas ocultas**, y **Volver a mostrar** la devuelve. Si la vaciaste con Tisty abierto, no se oculta: vuelve sola a la barra, en gris, y un clic en ella trae otra vez lo que encuentre.
 
 **El robot de Agentes está gris.** No sincroniza en este equipo. Si el nombre también está gris, todavía no traes nada: haz clic en ella. Si el nombre se ve normal, está traída: pulsa **Sincronizar**. Mira [Tres estados en la barra](#tres-estados-en-la-barra).
 
 **No encuentro Ocultar.** Agentes sincroniza, y sincronizando no se oculta, ni Agentes ni sus subcarpetas, como **Global**. Botón derecho sobre Agentes, **Dejar de sincronizar**, y después **Ocultar de la barra**.
 
-**El botón derecho de Agentes solo ofrece sincronizar, buscar de nuevo u ocultar.** Es a propósito. **Buscar de nuevo** trae lo nuevo de tus asistentes; para elegir tú cada archivo, usa **Traer otro archivo** en el botón derecho de una subcarpeta, como Claude, o en Configuración › Asistentes. Y no se mueve ni cambia de nombre porque por dentro se guarda como `AGENTS`, y con otro nombre o en otro lugar Tisty y tus asistentes dejarían de encontrarla. Mira [Agentes se queda arriba](#agentes-se-queda-arriba).
+**El botón derecho de Agentes solo ofrece sincronizar, buscar de nuevo u ocultar.** Es a propósito. **Buscar de nuevo** trae lo nuevo de tus asistentes; para elegir tú cada archivo, usa **Traer otro archivo** en el botón derecho de una subcarpeta, como Claude, o en Configuración › Asistentes › Carpeta Agentes. Y no se mueve ni cambia de nombre porque por dentro se guarda como `AGENTS`, y con otro nombre o en otro lugar Tisty y tus asistentes dejarían de encontrarla. Mira [Agentes se queda arriba](#agentes-se-queda-arriba).
 
 **Quise mover o renombrar Agentes y no me dejó.** Tisty te dijo «Agentes se queda arriba, con su nombre y su robot, para seguir cuidando las reglas de tus agentes. Su color y su lugar entre tus carpetas sí los cambias». Es a propósito: mira [Agentes se queda arriba](#agentes-se-queda-arriba).
 
-**Toda la carpeta dejó de escribir.** Revisa que Agentes tenga su robot coral: si está gris, no sincroniza en este equipo, y **Sincronizar** la pone otra vez al día. Si un asistente no recibe nada, mira su interruptor en Configuración › Asistentes.
+**Toda la carpeta dejó de escribir.** Revisa que Agentes tenga su robot coral: si está gris, no sincroniza en este equipo, y **Sincronizar** la pone otra vez al día. Si un asistente no recibe nada, mira su interruptor en Configuración › Asistentes › Carpeta Agentes.
 
 **Codex no lee mis reglas.** Si tienes `~/.codex/AGENTS.override.md`, Codex lee solo ese archivo. Tus reglas de Global van ahí, pero un documento con `agent: codex/rule/AGENTS.md` se escribe en `AGENTS.md`, que Codex no lee mientras exista el otro. Si creaste el override después de la primera vez, [tráelo a Agentes](#el-agentsoverridemd-de-codex).
 
-**Gemini no lee mis reglas.** Si su ficha dice **En pausa**, falta en `~/.gemini/GEMINI.md` la línea `@tisty-rules.md` que Tisty había puesto: pulsa **Volver a ponerla**, en la ficha o en Configuración › Asistentes. Tisty no la vuelve a poner por su cuenta, porque borrarla es tu decisión. Mira [Gemini en pausa](#gemini-en-pausa).
+**Gemini no lee mis reglas.** Si su ficha dice **En pausa**, falta en `~/.gemini/GEMINI.md` la línea `@tisty-rules.md` que Tisty había puesto: pulsa **Volver a ponerla**, en la ficha o en Configuración › Asistentes › Carpeta Agentes. Tisty no la vuelve a poner por su cuenta, porque borrarla es tu decisión. Mira [Gemini en pausa](#gemini-en-pausa).
 
 **No aparece Traer el cambio.** El documento es de Global, el cambio cae en la parte de otro documento del mismo archivo, o lo estás editando: pulsa **Listo** y vuelve a mirar.
 

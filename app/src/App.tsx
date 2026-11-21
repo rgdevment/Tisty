@@ -136,6 +136,7 @@ export default function App() {
           }}
           onSync={() => held.carries.current?.now()}
           onTrouble={setError}
+          finder={desk.settingsDesk}
         />
 
         <div

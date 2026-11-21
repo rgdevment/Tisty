@@ -8,20 +8,20 @@ import {
 } from "../identity";
 import { t } from "../locales";
 import { saidPlainly } from "../refusal";
-import Card, { type Which, type Word } from "./Card";
+import Card, { type Word } from "./Card";
 import Phrasing from "./Phrasing";
 import { mild, strong } from "./Rows";
+import { held as isHeld, type Working } from "./working";
 
 interface Props {
   round?: string | null;
   phrased?: number;
   onPhrased?: () => void;
-  busy: Which | null;
-  said?: Word;
-  trouble?: Word;
+  busy: Working;
   tell: (word?: Word) => void;
   fail: (word?: Word) => void;
-  onSync: () => void;
+  clear?: (card: "identity") => void;
+  onShown?: (shown: Shown) => void;
 }
 
 export default function Identity({
@@ -29,13 +29,12 @@ export default function Identity({
   phrased,
   onPhrased,
   busy,
-  said,
-  trouble,
   tell,
   fail,
-  onSync,
+  clear,
+  onShown,
 }: Props) {
-  const held = busy !== null;
+  const held = isHeld(busy, "identity");
   const [shown, setShown] = useState<Shown | null>(null);
   const [words, setWords] = useState<string[] | null>(null);
 
@@ -43,12 +42,22 @@ export default function Identity({
   const look = useCallback(() => {
     setUnread(false);
     identityShown()
-      .then(setShown)
+      .then((now) => {
+        setShown(now);
+        if (now) onShown?.(now);
+      })
       .catch((e) => {
         setUnread(true);
-        fail({ card: "identity", text: saidPlainly(e) });
+        fail({
+          card: "identity",
+          text: saidPlainly(e),
+          again: () => {
+            clear?.("identity");
+            look();
+          },
+        });
       });
-  }, [fail]);
+  }, [fail, clear, onShown]);
   // A finished round may certify a computer, and the encryption card may confirm the phrase.
   useEffect(look, [look, round, phrased]);
 
@@ -95,19 +104,7 @@ export default function Identity({
           }}
         />
       )}
-      <Card title={t("tabIdentity")} which="identity" busy={busy} said={said} trouble={trouble}>
-        {!shown && unread && (
-          <button
-            type="button"
-            onClick={() => {
-              if (trouble?.card === "identity") fail(undefined);
-              look();
-            }}
-            className={mild}
-          >
-            {t("tryAgain")}
-          </button>
-        )}
+      <Card row="identity" which="identity">
         {!shown && !unread && (
           <p role="status" className="text-[12.5px] text-faint motion-safe:animate-pulse">
             {t("identityLooking")}
@@ -127,7 +124,7 @@ export default function Identity({
             <PhraseTyped held={held} onTyped={typed} onFail={failed} />
           </>
         )}
-        {shown && born && <Born shown={shown} held={held} onSee={see} onSync={onSync} />}
+        {shown && born && <Born shown={shown} held={held} onSee={see} />}
         {shown?.elsewhere && <PhraseTyped held={held} onTyped={typed} onFail={failed} />}
       </Card>
     </>
@@ -204,18 +201,7 @@ export function PhraseTyped({
   );
 }
 
-function Born({
-  shown,
-  held,
-  onSee,
-  onSync,
-}: {
-  shown: Shown;
-  held: boolean;
-  onSee: () => void;
-  onSync: () => void;
-}) {
-  const machines = shown.machines;
+function Born({ shown, held, onSee }: { shown: Shown; held: boolean; onSee: () => void }) {
   const called = [shown.alias, shown.suffix].filter(Boolean).join(" · ");
   return (
     <>
@@ -253,41 +239,13 @@ function Born({
       {shown.elsewhere && (
         <p className="mt-3 text-[12.5px] leading-relaxed text-soft">{t("identityAway")}</p>
       )}
-      {machines.length > 0 && (
-        <>
-          <p className="mt-3 text-[11.5px] font-semibold text-faint">{t("theMachines")}</p>
-          <ul className="mt-1 flex flex-col gap-1 text-[12.5px]">
-            {machines.map((one) => (
-              <li
-                key={one.id}
-                className={`flex items-center justify-between gap-3 rounded-[10px] px-2.5 py-2 ${
-                  one.here ? "bg-accent-soft" : ""
-                }`}
-              >
-                <span className="min-w-0">
-                  <span className="block text-[13px] font-semibold">{one.name}</span>
-                  {one.here && <span className="block text-soft">{t("identityHere")}</span>}
-                </span>
-                {one.ours && (
-                  <span className="rounded-full border border-accent px-1.5 py-px text-[10.5px] font-semibold tracking-wide text-accent uppercase">
-                    {t("identityOurs")}
-                  </span>
-                )}
-              </li>
-            ))}
-          </ul>
-        </>
-      )}
-      <div className="mt-3 flex flex-wrap justify-end gap-2">
-        <button type="button" className={mild} disabled={held} onClick={onSync}>
-          {t("identityDrop")}
-        </button>
-        {shown.held && (
+      {shown.held && (
+        <div className="mt-3 flex flex-wrap justify-end gap-2">
           <button type="button" className={strong} disabled={held} onClick={onSee}>
             {t("identitySee")}
           </button>
-        )}
-      </div>
+        </div>
+      )}
     </>
   );
 }

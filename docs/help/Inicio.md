@@ -51,6 +51,7 @@ Una tarea también es un documento, uno que termina: por eso tiene una página p
 
 - [[Instalación]]: Microsoft Store, winget, Homebrew o descarga directa.
 - [Primeros pasos](Instalación#la-primera-vez-que-se-abre): lo que Tisty pregunta la primera vez y la guía que te escribe.
+- [[Configuración]]: el Resumen, la búsqueda de ajustes y lo que guarda cada página.
 - [[Atajos de teclado|Atajos-de-teclado]]
 
 ## Tareas y archivo

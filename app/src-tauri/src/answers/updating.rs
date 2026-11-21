@@ -73,9 +73,13 @@ pub async fn update_ready(
                 (shelf, ahead)
             }
         };
+        let heard = answered(&shelf, &ahead);
         let verdict = shop::verdict(shelf, ahead, HERE, was);
         held(&session).keep(|c| {
             c.checked_at = Some(now);
+            if heard {
+                c.update_heard_at = Some(now);
+            }
             c.found_version = verdict.memory.version.clone();
             c.found_in_the_shop = verdict.memory.offered;
         })?;
@@ -108,6 +112,9 @@ pub async fn update_ready(
             return Ok(update::remembered(HERE, ahead.as_deref(), kept, wants));
         }
         update::Heard::Nothing => {
+            if pressed {
+                return Err(Refusal::of("updateNoAnswer"));
+            }
             return Ok(update::remembered(HERE, found.as_deref(), kept, wants));
         }
     };
@@ -116,10 +123,15 @@ pub async fn update_ready(
     let version = seen.as_ref().map(|one| one.version.clone());
     held(&session).keep(|c| {
         c.checked_at = Some(now);
+        c.update_heard_at = Some(now);
         c.found_version = version;
         c.found_in_the_shop = None;
     })?;
     Ok(seen)
+}
+
+fn answered(shelf: &shop::Shelf, ahead: &update::Ahead) -> bool {
+    !matches!(shelf, shop::Shelf::Silent) || !matches!(ahead, update::Ahead::Unheard)
 }
 
 #[derive(Clone, serde::Serialize)]
@@ -331,8 +343,13 @@ pub fn update_candidates(session: tauri::State<'_, Mutex<Session>>, wants: bool)
         c.candidates = Some(wants);
         // What was found under the old answer says nothing about the new one.
         c.checked_at = None;
+        c.update_heard_at = None;
         c.found_version = None;
         c.found_in_the_shop = None;
     })?;
     Ok(())
 }
+
+#[cfg(test)]
+#[path = "updating_test.rs"]
+mod tests;

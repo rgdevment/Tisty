@@ -4,7 +4,7 @@ Tisty runs on **Windows** and **macOS**. There is no Linux build today and no mo
 
 ## Windows
 
-**Microsoft Store** — [Tisty in the Microsoft Store](https://apps.microsoft.com/detail/9PGVWXD8X93N). The Store keeps it updated; *About* can ask the Store for an update on the spot.
+**Microsoft Store** — [Tisty in the Microsoft Store](https://apps.microsoft.com/detail/9PGVWXD8X93N). The Store keeps it updated; **Settings › Help and about** can ask the Store for an update on the spot.
 
 **winget** — the Windows Package Manager takes the signed installer from GitHub Releases and then stands aside, because Tisty keeps itself up to date:
 
@@ -41,34 +41,33 @@ Yes. The macOS disk images are signed and notarised by Apple, and the Windows in
 
 Tisty asks up to three things:
 
-1. **Which language** — English or Spanish. The window, the guide and the natural language all follow it, and Settings changes it whenever you like.
+1. **Which language** — English or Spanish. The window, the guide and the natural language all follow it, and **Settings › Look and window** changes it whenever you like.
 2. **Where your copies should go** — a folder for [[syncing|Sync-and-Backup]], or nowhere if you only use one machine.
 3. **What should Tisty call you?** — an optional alias to sign what you share; **Not now** skips it, and it is not asked when the Tisty you join already has one.
 
-Then it **writes you a guide and opens it**. The guide is an ordinary document in your own store, in a folder of its own — yours to read, edit or throw away — and it shows from the inside what a document can hold. You can come back to it from Settings.
+Then it **writes you a guide and opens it**. The guide is an ordinary document in your own store, in a folder of its own — yours to read, edit or throw away — and it shows from the inside what a document can hold. You can come back to it from **Settings › Help and about**, with **Open the guide**.
 
 Everything else has an obvious default you can change later: Tisty starts with the computer and waits out of the way.
 
 ## Settings
 
-Settings takes over the sidebar with its sections:
+The gear at the foot of the sidebar opens Settings on **Overview**, which tells you how everything stands and what needs something from you. **Search a setting** finds any setting by its name, and the eleven pages come in four groups:
 
-- **General** — how Tisty behaves towards you: language, look, start-up, the quick capture, who writes here, notices, your calendar and the welcome.
-- **Sync** — where your copies go, your computers, and where large attachments stay.
-- **Security** — your 24-word phrase and [encrypting your cloud](Sync-and-Backup#encrypting-your-cloud).
-- **Your data** — where it lives, backups, documents from another Tisty, and leaving.
-- **Assistants** — the [[MCP door|Assistants-and-MCP]].
-- **Maintenance** — the store review, loose attachments, freeing up space and reporting a problem.
-- **About** — the version, updates and release candidates. At its foot, **Third-party notices** names each piece Tisty carries inside, with its version and its licence; the data of Brainsty's Spanish–English dictionary is there too, with its authors and WordNet's licence in full. **Licence texts** brings the full text of each licence in the core.
+- **This computer** — **Look and window** (language, look, start-up, what closing the window does and the hidden folders), **Tasks and reminders** (the capture shortcuts, the notices and your calendar) and **Documents and signature** (your alias, your name on PDFs and how much each document's history keeps).
+- **Your data** — **Sync** (where your copies go), **Security** (your 24-word phrase, your computers and [encrypting your cloud](Sync-and-Backup#encrypting-your-cloud)), **Copies** (backups, documents from another Tisty, restoring and leaving) and **Storage** (where your files live, how much room they take, large attachments and freeing up space).
+- **Connections** — **Assistants**, the [[MCP door|Assistants-and-MCP]].
+- **Tisty** — **Health** (the store review, the quick index and reporting a problem) and **Help and about**: the version, updates and release candidates. At its foot, **Third-party notices** names each piece Tisty carries inside, with its version and its licence; the data of Brainsty's Spanish–English dictionary is there too, with its authors and WordNet's licence in full. **Licence texts** brings the full text of each licence in the core.
+
+All of it, page by page and with examples, in [[Settings]].
 
 ## Updates
 
-Tisty checks once when it opens, and once a day after that, whether a newer version exists — it sends nothing to ask. A Microsoft Store copy asks the Store when it opens and every six hours. If one exists, a line appears in *About*:
+Tisty checks once when it opens, and once a day after that, whether a newer version exists — it sends nothing to ask. A Microsoft Store copy asks the Store when it opens and every six hours. If one exists, a line appears in **Settings › Help and about**, and **Overview** puts it under **To attend to**:
 
 - a Microsoft Store copy is updated by the Store, and the line has an **Update** button once the Store offers it to this computer;
 - a copy that owns its own folder gets a button.
 
-Tisty downloads nothing unless you press it. Release candidates can be turned on in *About*. Details in [[Privacy]].
+Tisty downloads nothing unless you press it. Release candidates are turned on with **Take release candidates**, in **Help and about**; on the Microsoft Store copy that row says **Doesn't apply here**, because the Store keeps that copy up to date and offers no release candidates. If checking for or installing a version fails, the error shows on that same row. Details in [[Privacy]].
 
 On Windows, when the Store or an installer closes Tisty to replace it, Windows opens it again by itself: a window in view comes back in view, and one hidden in the tray comes back hidden. What you had just typed on a document or a task's page is kept, and the same goes when Windows shuts down. A crash or a restart does not reopen it, and neither does a copy that ran for less than a minute.
 
@@ -77,7 +76,7 @@ On Windows, when the Store or an installer closes Tisty to replace it, Windows o
 - **Windows:** `.tisty` in your user folder — hidden, and closed to the other accounts on the computer. Turn on **Hidden items** in File Explorer's **View** menu to see it.
 - **macOS:** `Library/Application Support/tisty` and `Library/Caches/tisty` in your home folder.
 
-**Settings › Your data** prints the path, and *Show folder* opens it.
+**Settings › Storage** prints the path, and **Show folder** opens it.
 
 ## Uninstalling
 

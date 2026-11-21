@@ -44,7 +44,7 @@ If one day Jaime wants his changes to reach Claude Code, he presses **Sync** and
 
 ## Three states in the sidebar
 
-The sidebar tells you how Agents stands by its colour, and no word appears beside it. What waits for your decision you see on each document's card and in **Settings › Assistants**.
+The sidebar tells you how Agents stands by its colour, and no word appears beside it. What waits for your decision you see on each document's card and in **Settings › Assistants › Agents folder**.
 
 | State | How it looks | One click | Its right-click |
 | :-- | :-- | :-- | :-- |
@@ -74,7 +74,7 @@ Agents is in your sidebar even if you never used it, in grey. That way you know 
    - **Bring and sync**, the highlighted one, copies what you ticked and also syncs: from now on, what you change in Agents reaches your agents' files. Agents is left in state 3, with its coral robot, and the box says «7 documents came into Agents, and Tisty keeps them in sync from now on.».
 6. Tisty opens only the files you ticked and keeps them as documents. Whatever could not come in shows under **These did not come in:**, with the reason. **Done** closes the box.
 
-**Closing without choosing.** The X or `Esc` close the box without reading or bringing anything, and Agents stays grey in the sidebar. Come back whenever you like with another click on it, or from the **Agents** card in **Settings › Assistants**, where **Bring** and **Bring and sync** open this same box. What comes into the list, and what does not, is in [What comes into the list](#what-comes-into-the-list).
+**Closing without choosing.** The X or `Esc` close the box without reading or bringing anything, and Agents stays grey in the sidebar. Come back whenever you like with another click on it, or from the **Agents** card in **Settings › Assistants › Agents folder**, where **Bring** and **Bring and sync** open this same box. What comes into the list, and what does not, is in [What comes into the list](#what-comes-into-the-list).
 
 **If you do not want to see it.** The box has no button to hide it: right-click **Agents**, in grey, and **Hide from the sidebar**. [Hiding it from the sidebar](#hiding-it-from-the-sidebar) tells it.
 
@@ -132,7 +132,7 @@ Claude's row reads **Claude · 2 rules · 1 skill**: `CLAUDE.md` and `rules/styl
 
 **Each assistant's row** counts rules, skills and memories, not files: a ten-file skill adds one, as in **Claude · 2 rules · 3 skills · 1 memory**. With nothing left to bring it says **Claude · nothing to bring**, and if everything is already in Agents, **Claude · already in Agents**.
 
-**An assistant with no files yet** is not left out as if it were not there: Tisty names it on a line of its own, above the list. If you installed Gemini yesterday and have not asked it to remember anything yet, you see «Gemini: no rules, skills or memory yet. It gets what you write in Global or in its folder.». **Bring another file**, [Look again](#look-again) and its switch in **Settings › Assistants** say the same.
+**An assistant with no files yet** is not left out as if it were not there: Tisty names it on a line of its own, above the list. If you installed Gemini yesterday and have not asked it to remember anything yet, you see «Gemini: no rules, skills or memory yet. It gets what you write in Global or in its folder.». **Bring another file**, [Look again](#look-again) and its switch in **Settings › Assistants › Agents folder** say the same.
 
 ### What the list says beside a file
 
@@ -172,7 +172,7 @@ The first time does not have to be the only one. If you install a new assistant,
 - **From the sidebar:** right-click a subfolder of Agents, such as **Agents › Claude**, and choose **Bring another file**. The right-click on Agents itself does not offer it: [Look again](#look-again) is there instead, which does the same and also ticks what is new for you. In state 1 nothing is brought yet, and a click on Agents opens the first time.
 - **From the Library menu:** with Agents or one of its subfolders open, the **+** button beside the **Library** heading offers **Bring another file**, among the options to create and import.
 - **From the command palette:** with Agents or one of its subfolders open, type «bring» and choose **Bring another file**, in the **Create** group.
-- **From Settings › Assistants:** on the **Agents** card, the **Bring another file** button.
+- **From Settings › Assistants › Agents folder:** on the **Agents** card, the **Bring another file** button.
 
 **Bring another file does not change whether Agents syncs.** Brought but not synced, the new file comes in as a document and your agent's file stays as it is; while syncing, Tisty also keeps it up to date from then on.
 
@@ -223,7 +223,7 @@ The memory Marisol left out is still there: the next time she looks again, `GEMI
 
 This happens while syncing: brought but not synced, Tisty writes no file and has nothing to ask.
 
-**An example.** You have `~/.codex/AGENTS.md` with your Codex rules, and the first time you left it unticked. Later you write a rule in **Global**, which also goes to that file. Tisty cannot tell which part is yours, so it does not write over it: it asks **It exists on both sides**, when you go into Agents or through **Review** in Settings › Assistants. Since it never brought that file, the box adds «Tisty has never brought this file. Bring it into Agents and it keeps what it says, with Tisty's part added on top.» and the button **Bring it into Agents**.
+**An example.** You have `~/.codex/AGENTS.md` with your Codex rules, and the first time you left it unticked. Later you write a rule in **Global**, which also goes to that file. Tisty cannot tell which part is yours, so it does not write over it: it asks **It exists on both sides**, when you go into Agents or through **Review** in Settings › Assistants › Agents folder. Since it never brought that file, the box adds «Tisty has never brought this file. Bring it into Agents and it keeps what it says, with Tisty's part added on top.» and the button **Bring it into Agents**.
 
 With **Bring it into Agents**, the file comes in as a document in **Agents › Codex**, with its own words, and Tisty writes it again with your Global rule on top. What it held before stays in its [backups](#backups):
 
@@ -264,7 +264,7 @@ Agents
     └── [brain]    GEMINI.md
 ```
 
-- **Each subfolder's icon**: **Global** has a blue globe, and each assistant a symbol of its own, which does not copy its logo, in the same colour as its label on the card: an orange chat bubble for Claude, a teal terminal for Codex, indigo code braces for Copilot, a green compass for Gemini and a brown pointer for Cursor. The same icons show in the first-time list and in **Settings › Assistants**. A subfolder you gave an icon of your own keeps it.
+- **Each subfolder's icon**: **Global** has a blue globe, and each assistant a symbol of its own, which does not copy its logo, in the same colour as its label on the card: an orange chat bubble for Claude, a teal terminal for Codex, indigo code braces for Copilot, a green compass for Gemini and a brown pointer for Cursor. The same icons show in the first-time list and in **Settings › Assistants › Agents folder**. A subfolder you gave an icon of your own keeps it.
 - **Each document's icon**: a book for a **rule**, a puzzle piece for a **skill** and a brain for **agent memory**.
 - **The name**: the document's first heading, such as «How I work» in a `CLAUDE.md` that starts with `# How I work`. A skill takes the `name` in its `SKILL.md`. A script, or a file with no headings, is named after the file: `MEMORY.md`, `extract.py`.
 - **The path**: hover over a row and it shows, with the assistant in front: `claude · CLAUDE.md`, `claude · rules/style.md`.
@@ -279,7 +279,7 @@ The subfolders are there so you find things: **what decides where a document goe
 | Where | What you see |
 | :-- | :-- |
 | **Each document's card** | Its standing, always, on the coloured label: **Changed outside**, **Changed on both sides**, **Written by an earlier Tisty** or **On hold**; the **Proposal** label, if an agent proposes a change to you; or an amber notice inside the card, when the document [comes from another computer](#on-several-computers) or its text [waits for your approval](#to-approve). The table of [each standing](#each-standing) says what to do with each one |
-| **Settings › Assistants**, on the **Agents** card | The files that ask for your decision: «1 file says something different in Tisty and in the agent.», or «1 file no longer belongs to any rule in Agents.», each with **Review**; and under **Sync Gemini**, if [its line](#gemini-paused) is missing |
+| **Settings › Assistants › Agents folder**, on the **Agents** card | The files that ask for your decision: «1 file says something different in Tisty and in the agent.», or «1 file no longer belongs to any rule in Agents.», each with **Review**; and under **Sync Gemini**, if [its line](#gemini-paused) is missing |
 | **When you go into Agents** | If Agents syncs and a file exists on both sides, no longer belongs to any rule or lost Gemini's line, Tisty asks about it as soon as you go in, one at a time |
 
 ![The sidebar with the Agents folder open and syncing, with the robot in coral: inside, Global with its blue globe and Claude with its orange chat bubble; in Claude, the rule Rules, picked, with a book icon, and below it the skills, each with a puzzle-piece icon and how many files it holds](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/agents/en-02-sidebar.png)
@@ -489,7 +489,7 @@ A memory document has no **Edit**: the agent writes it, and the card says «The 
 | **Written by an earlier Tisty** | An earlier version of Tisty wrote the file without noting which documents it came from, and today it does not say what they say | **See the file**, then **Overwrite with Tisty** if you keep the document |
 | **On hold** | One of the documents that make up this file [changed without your approval](#to-approve), or left Agents by an agent's hand, so the file stays as it was. The card names that document | Approve that document, or put it back and take it out yourself |
 | **Paused** | You paused sync for that assistant, or Agents does not sync on this computer; then the card adds «The Agents folder does not sync with your agents. Choose Sync in the sidebar or in Settings › Assistants.». For Gemini, also when the line `@tisty-rules.md` that Tisty had put in `GEMINI.md` is missing | **Resume** whenever you like, or **Sync** the folder; for Gemini, [**Put the line back**](#gemini-paused) |
-| **Not allowed on this computer** | This computer has not let you read your agents' files yet, for example because Agents came in brought from another computer | **Sync**, in the sidebar or in Settings › Assistants, and choose in the first-time box |
+| **Not allowed on this computer** | This computer has not let you read your agents' files yet, for example because Agents came in brought from another computer | **Sync**, in the sidebar or in Settings › Assistants › Agents folder, and choose in the first-time box |
 | **Nothing to write** | The document is empty, and Tisty never empties an agent's file | Write something, or take the document out of Agents |
 | **The file is a link** | The file, or a folder on its way, is a symbolic link; writing it would replace the link | Swap the link for the real file |
 | **The code block is broken** | The block that holds a script is no longer whole | Mend the block in the document |
@@ -522,7 +522,7 @@ Until you choose, Tisty does not write that file, even if you change the documen
 
 If both the file and the document changed, the card says **Changed on both sides**. When the document is the only one that makes up that file, **Keep the file's version** shows, which asks «Make this document read as … does now? What it says now stays in its history.»; otherwise only **Overwrite with Tisty**.
 
-The same can happen the first time you sync, when you already had a document in Agents for a file that changed in between. Then **It exists on both sides** opens, with the lines that differ: in red, with `−`, what is **In Tisty**; in green, with `+`, what is **In the file**. You choose **Keep Tisty's**, **Keep the file** or **Decide later**, and what you do not keep is still kept: the file in its [backups](#backups), the document in its earlier versions. If the file is made of several documents, you can only keep Tisty's or decide later. If Tisty never brought that file, the box adds **Bring it into Agents**, as [A file you never brought](#a-file-you-never-brought) tells. From **Settings › Assistants**, «1 file says something different in Tisty and in the agent.» and **Review** bring you back to that box.
+The same can happen the first time you sync, when you already had a document in Agents for a file that changed in between. Then **It exists on both sides** opens, with the lines that differ: in red, with `−`, what is **In Tisty**; in green, with `+`, what is **In the file**. You choose **Keep Tisty's**, **Keep the file** or **Decide later**, and what you do not keep is still kept: the file in its [backups](#backups), the document in its earlier versions. If the file is made of several documents, you can only keep Tisty's or decide later. If Tisty never brought that file, the box adds **Bring it into Agents**, as [A file you never brought](#a-file-you-never-brought) tells. From **Settings › Assistants › Agents folder**, «1 file says something different in Tisty and in the agent.» and **Review** bring you back to that box.
 
 ## Backups
 
@@ -545,15 +545,15 @@ The **document's** earlier versions, on the other hand, are those of any documen
 
 ## Pausing, stopping sync and emptying
 
-**Pausing one assistant.** While Agents syncs, the usual place is **Settings › Assistants**: on the **Agents** card, turn off the **Sync Claude** switch, which shows only while the folder syncs. Also from a document's card, with the buttons at its foot: **Pause sync with Claude**, on a document written to a single file, or one button per assistant, **Pause Claude**, **Pause Codex**…, on a Global one. Paused, Tisty neither opens nor writes that assistant's files: they stay as the last write left them, and you keep editing your documents. **Resume sync with Claude** writes what you changed, except a file that changed outside in the meantime, which stays marked for you to decide.
+**Pausing one assistant.** While Agents syncs, the usual place is **Settings › Assistants › Agents folder**: on the **Agents** card, turn off the **Sync Claude** switch, which shows only while the folder syncs. Also from a document's card, with the buttons at its foot: **Pause sync with Claude**, on a document written to a single file, or one button per assistant, **Pause Claude**, **Pause Codex**…, on a Global one. Paused, Tisty neither opens nor writes that assistant's files: they stay as the last write left them, and you keep editing your documents. **Resume sync with Claude** writes what you changed, except a file that changed outside in the meantime, which stays marked for you to decide.
 
-**Stopping sync for the whole folder.** Right-click **Agents** and choose **Stop syncing**, or the **Stop syncing** button on its card in **Settings › Assistants**. This happens, and nothing more:
+**Stopping sync for the whole folder.** Right-click **Agents** and choose **Stop syncing**, or the **Stop syncing** button on its card in **Settings › Assistants › Agents folder**. This happens, and nothing more:
 
 - **No agent file is touched.** Your agents keep reading their files just as Tisty left them, and Tisty stops writing them and asking you to decide when they change outside.
 - **No document is deleted.** They stay in Agents, and you read and edit them as always; what you change stays in Tisty.
 - **Agents goes to state 2.** Its robot turns grey again and, when you open it, «Not synced with your agents · Sync» shows at the top. Each document's card says «The Agents folder does not sync with your agents. Choose Sync in the sidebar or in Settings › Assistants.», and its facts box, under **Syncs on this computer**, «No, Agents does not sync».
 
-**Syncing again.** With Agents in state 2, any of these three does the same: the **Sync** link in the line at the top, **Sync** on its right-click, or **Sync** on its card in Settings › Assistants. If this computer had already let you read your agents' files, for example because you chose **Bring** or **Stop syncing** right here, it syncs at once, without the first-time box. If it never did, like a [second computer](#a-second-computer-step-by-step), the first-time box opens first.
+**Syncing again.** With Agents in state 2, any of these three does the same: the **Sync** link in the line at the top, **Sync** on its right-click, or **Sync** on its card in Settings › Assistants › Agents folder. If this computer had already let you read your agents' files, for example because you chose **Bring** or **Stop syncing** right here, it syncs at once, without the first-time box. If it never did, like a [second computer](#a-second-computer-step-by-step), the first-time box opens first.
 
 When it syncs, Tisty writes what you changed in your documents in the meantime, with its backup first, except a file that changed outside, which stays marked for you to decide. What it finds different on both sides, or no longer belonging to any rule, it asks about right then.
 
@@ -568,7 +568,7 @@ Pausing, syncing and the permission belong to this computer: stopping sync here 
 While syncing, Tisty puts the line `@tisty-rules.md` in your `GEMINI.md` once. If you later delete it, or delete `GEMINI.md` altogether, Tisty takes that as your decision and does not put it back: Gemini stays **Paused**, stops getting your rules, and Tisty stops writing `tisty-rules.md`. Only a line Tisty put there counts: if it never put it there, for example because you had no rules for Gemini yet, its absence does not pause Gemini. You see it in three places:
 
 - **On the card** of each rule Gemini reads: the **Paused** label and «Gemini does not read this rule: the line @tisty-rules.md is missing from GEMINI.md, and Tisty does not put it back by itself.», with the **Put the line back** button.
-- **In Settings › Assistants**, under **Sync Gemini**: «Paused: the line @tisty-rules.md is missing from GEMINI.md.», with **Put the line back**.
+- **In Settings › Assistants › Agents folder**, under **Sync Gemini**: «Paused: the line @tisty-rules.md is missing from GEMINI.md.», with **Put the line back**.
 - **When you go into Agents**, the box **Tisty's line is missing**: «The line @tisty-rules.md is no longer in GEMINI.md, so Gemini does not read your rules. Tisty does not put it back by itself: Gemini stays paused until you do.», with **Leave it paused** and **Put the line back**.
 
 **Put the line back** adds the line again at the end of `GEMINI.md`, touching nothing else, and Tisty writes your rules to `tisty-rules.md` again. Until you do, the card and the Settings card keep saying so.
@@ -589,7 +589,7 @@ If the file changed after Tisty wrote it, for example because you edited it by h
 
 If you take away `tisty-rules.md`, Gemini's rules file, Tisty also takes the line `@tisty-rules.md` out of `GEMINI.md`, and nothing else.
 
-Until you answer, the **Agents** card in **Settings › Assistants** says «1 file no longer belongs to any rule in Agents.», with **Review** to come back to the question.
+Until you answer, the **Agents** card in **Settings › Assistants › Agents folder** says «1 file no longer belongs to any rule in Agents.», with **Review** to come back to the question.
 
 Tisty does not ask, and leaves the file as it is:
 
@@ -614,9 +614,9 @@ Emptied, Agents goes back to the sidebar as at the start, in state 1: the robot 
 If you do not use Agents and do not want to see it in the sidebar, not even in grey, hide it. **It hides only while it does not sync**: while syncing, its right-click offers no hiding, so it never keeps writing files you do not see.
 
 1. If it syncs, right-click Agents and choose **Stop syncing**. It goes to state 2.
-2. Right-click Agents and choose **Hide from the sidebar**. It is there in state 1, before anything is brought, and in state 2. **Hide** on the **Agents** card in Settings › Assistants works too.
+2. Right-click Agents and choose **Hide from the sidebar**. It is there in state 1, before anything is brought, and in state 2. **Hide** on the **Agents** card in Settings › Assistants › Agents folder works too.
 
-Agents leaves the sidebar on this computer without a trace, and sits in **Settings › General › Hidden folders**, beside any other folder you hid: see [Hiding a folder from the sidebar](Documents#hiding-a-folder-from-the-sidebar). Its card in Settings › Assistants says «Hidden from the sidebar on this computer, and not synced: it writes no agent file.», with **Show again**.
+Agents leaves the sidebar on this computer without a trace, and sits in **Settings › Look and window › Hidden folders**, beside any other folder you hid: see [Hiding a folder from the sidebar](Documents#hiding-a-folder-from-the-sidebar). Its card in Settings › Assistants › Agents folder says «Hidden from the sidebar on this computer, and not synced: it writes no agent file.», with **Show again**.
 
 - **Show again**, in Hidden folders or on the card, puts it back in the sidebar in the state it had: in grey, nothing brought or brought but not synced.
 - **Sync**, on the card of a brought and hidden Agents, syncs it and shows it again too: while syncing, Agents always shows.
@@ -635,7 +635,7 @@ That is why Agents cannot be put inside another folder, renamed, given another i
 
 What is yours: its colour and its order among your folders. To make it stop writing your agents' files, the way is **Stop syncing**; to stop seeing it, **Hide from the sidebar**; and to make it go, [empty it](#emptying-agents).
 
-## The Agents card in Settings › Assistants
+## The Agents card in Settings › Assistants › Agents folder
 
 The **Agents** card uses the same words and does the same as the sidebar. At the top, always, «Your agents' rules, skills and memory as Tisty documents. Bring copies them here; Sync also writes what you change to the file each agent reads.». Below, by state:
 
@@ -656,7 +656,7 @@ In the earlier version, the folder showed in capitals in the sidebar and, while 
 | In its colour, writing your agents' files | In state 3, **syncing**, with its coral robot. It keeps writing the same files |
 | Dimmed, with documents | In state 2, **brought, not synced**. None of your agents' files changed |
 | Dimmed, with no documents and no folder | In state 1, **nothing brought yet**, in grey |
-| Hidden, writing no files | Still hidden, in Settings › General › Hidden folders |
+| Hidden, writing no files | Still hidden, in Settings › Look and window › Hidden folders |
 | Hidden while it wrote files | Back in the sidebar, syncing |
 
 From now on, the first step is **Bring** or **Bring and sync**, even when you tick nothing; with the folder already brought, **Sync**; and to stop it, **Stop syncing**, on its right-click or on its card. Your documents, their earlier versions and each file's backups stay as they were.
@@ -670,7 +670,7 @@ If you use Tisty on more than one computer, say the one at home and the one at w
 **An example.** On the home computer you chose **Bring and sync**, brought in your `CLAUDE.md` and wrote the rule «For all my agents» in **Agents › Global**. There they applied by themselves: you brought them and wrote them, on that computer. Now you install Tisty on the work computer and sync:
 
 1. In the sidebar, Agents arrives in **state 2**, brought but not synced: the grey robot, the name like any folder and its documents. Your documents already travelled, but this computer does not sync yet and has read nothing of its agents'. Open it and read them right away; at the top it says «Not synced with your agents · Sync».
-2. Press **Sync**, in that line, on the right-click or on the **Agents** card in **Settings › Assistants**. Since this computer never let you read its agents' files, the first-time box opens first, with this computer's files. Those that already have a document say **already in Agents**, and if everything it found is already there, the box says «Everything I found is already in Agents. Sync this computer to keep it up to date:».
+2. Press **Sync**, in that line, on the right-click or on the **Agents** card in **Settings › Assistants › Agents folder**. Since this computer never let you read its agents' files, the first-time box opens first, with this computer's files. Those that already have a document say **already in Agents**, and if everything it found is already there, the box says «Everything I found is already in Agents. Sync this computer to keep it up to date:».
 3. Tick what you want to bring from this computer, such as its projects' memory, and press **Bring and sync**. Agents goes to state 3, with its coral robot. If you choose **Bring** instead, what you ticked comes in and this computer still does not sync.
 4. Open **For all my agents**. Its facts box has no **Written to** row yet, and below it, inside the card, an amber notice says «This document comes from another computer. Apply it to the agents on this one?», with two buttons:
    - **Apply here** writes it to the files of this computer's assistants, with its backup first, as always. If a file on this computer already said something else, Tisty does not write over it: the card stays at **Changed on both sides** and you choose.
@@ -938,9 +938,9 @@ And editing the file on disk does not help either: that change stands as **Chang
 
 **I deleted a rule. What happens to its file?** Tisty asks «Take the file away too?»: **Take the file away** deletes it and keeps a backup, and **Leave it** leaves it where it is, without Tisty writing it again. See [Taking a rule and its file out](#taking-a-rule-and-its-file-out).
 
-**The first time I left a file unticked. Can I bring it now?** Yes, with **Bring another file**: by right-clicking a subfolder of Agents, such as Claude; with Agents open, from the Library's **+** button or the command palette; or from Settings › Assistants. See [Bring another file](#bring-another-file).
+**The first time I left a file unticked. Can I bring it now?** Yes, with **Bring another file**: by right-clicking a subfolder of Agents, such as Claude; with Agents open, from the Library's **+** button or the command palette; or from Settings › Assistants › Agents folder. See [Bring another file](#bring-another-file).
 
-**Why do I have Agents in the sidebar if I never used it?** It is there, in grey, so you know it exists. Like that it reads nothing: it only checks whether each assistant's folder exists, such as `~/.claude`, and the list of names and sizes only shows when you click it. If you would rather not see it, right-click it and **Hide from the sidebar**; it comes back with **Show again**, in Settings › General › Hidden folders.
+**Why do I have Agents in the sidebar if I never used it?** It is there, in grey, so you know it exists. Like that it reads nothing: it only checks whether each assistant's folder exists, such as `~/.claude`, and the list of names and sizes only shows when you click it. If you would rather not see it, right-click it and **Hide from the sidebar**; it comes back with **Show again**, in Settings › Look and window › Hidden folders.
 
 **What is the difference between Bring and Sync?** **Bring** copies the files into Tisty and writes nothing into them; **Sync** makes what you change in Tisty reach those files. See [Bring or sync](#bring-or-sync).
 
@@ -950,7 +950,7 @@ And editing the file on disk does not help either: that change stands as **Chang
 
 **Can my agent propose a change while Agents is hidden or not synced?** Yes: the proposal stays on its document's card, and you approve or discard it there. Approved, it changes the document; it reaches your agents' files when Agents syncs.
 
-**Why does the sidebar not tell me if something waits?** Because Agents looks like any folder: only its colour says whether it syncs. What waits for your decision is on each document's card and on the **Agents** card in Settings › Assistants, and while syncing, Tisty asks about pending files as soon as you go into it. See [How the folder looks](#how-the-folder-looks).
+**Why does the sidebar not tell me if something waits?** Because Agents looks like any folder: only its colour says whether it syncs. What waits for your decision is on each document's card and on the **Agents** card in Settings › Assistants › Agents folder, and while syncing, Tisty asks about pending files as soon as you go into it. See [How the folder looks](#how-the-folder-looks).
 
 **Why does Agents hold no documents?** You made it with **Bring and sync** without Tisty finding any files, or its documents left while Tisty was closed, for example when syncing with another computer. Write a rule with **New document** in **Global** or in an assistant's folder, or bring a file with **Look again** or **Bring another file**.
 
@@ -962,7 +962,7 @@ And editing the file on disk does not help either: that change stands as **Chang
 
 **My change in Tisty does not reach the file.** Look at the standing on the document's card:
 
-- **Paused**: resume that assistant, or the folder, on the card or in Settings › Assistants.
+- **Paused**: resume that assistant, or the folder, on the card or in Settings › Assistants › Agents folder.
 - **Not allowed on this computer**: this computer has not let you read your agents' files yet. Press **Sync** and choose in the first-time box.
 - **The card says «The Agents folder does not sync with your agents.»**: Agents is brought but not synced, with its grey robot. Press **Sync**.
 - **Changed outside** or **Changed on both sides**: Tisty waits for your decision before writing.
@@ -977,25 +977,25 @@ And editing the file on disk does not help either: that change stands as **Chang
 
 **A card says «Its text does not have your approval yet» and I changed nothing.** A document's text changed without going through Tisty's window, for example through an imported parcel or a direct edit in the data folder. The notice tells you whose hand wrote it and what changed since what you last approved: read it, and if it is right, **Approve this text**. See [To approve](#to-approve).
 
-**I wrote a Global rule and a file stands Changed on both sides.** That file already existed and you did not bring it in, so Tisty cannot tell which part is yours. Do not overwrite it: in **Settings › Assistants**, press **Review** and, in **It exists on both sides**, **Bring it into Agents**. The file ends up with Global in front of your part, and the original as backup #1. See [A file you never brought](#a-file-you-never-brought).
+**I wrote a Global rule and a file stands Changed on both sides.** That file already existed and you did not bring it in, so Tisty cannot tell which part is yours. Do not overwrite it: in **Settings › Assistants › Agents folder**, press **Review** and, in **It exists on both sides**, **Bring it into Agents**. The file ends up with Global in front of your part, and the original as backup #1. See [A file you never brought](#a-file-you-never-brought).
 
 **It asks «Take the file away too?» and I deleted nothing.** Changing a rule's `agent:` line to another file's, or going back to an earlier version that had no card, also counts as taking a rule out. If you would rather touch nothing, **Leave it** leaves it where it is.
 
-**Agents is not in the sidebar.** You hid it, on this computer: it is in **Settings › General › Hidden folders**, and **Show again** brings it back. If you emptied it with Tisty open, it does not hide: it comes back to the sidebar by itself, in grey, and a click on it brings in what it finds again.
+**Agents is not in the sidebar.** You hid it, on this computer: it is in **Settings › Look and window › Hidden folders**, and **Show again** brings it back. If you emptied it with Tisty open, it does not hide: it comes back to the sidebar by itself, in grey, and a click on it brings in what it finds again.
 
 **Agents' robot is grey.** It does not sync on this computer. If the name is grey too, nothing is brought yet: click it. If the name looks normal, it is brought: press **Sync**. See [Three states in the sidebar](#three-states-in-the-sidebar).
 
 **I cannot find Hide.** Agents syncs, and while syncing it does not hide, neither Agents nor its subfolders, such as **Global**. Right-click Agents, **Stop syncing**, and then **Hide from the sidebar**.
 
-**The right-click on Agents only offers syncing, looking again or hiding.** That is on purpose. **Look again** brings what is new from your assistants; to choose each file yourself, use **Bring another file** on the right-click of a subfolder, such as Claude, or in Settings › Assistants. And it does not move or change its name because inside it is kept as `AGENTS`, and under another name or in another place Tisty and your assistants would stop finding it. See [Agents stays at the top](#agents-stays-at-the-top).
+**The right-click on Agents only offers syncing, looking again or hiding.** That is on purpose. **Look again** brings what is new from your assistants; to choose each file yourself, use **Bring another file** on the right-click of a subfolder, such as Claude, or in Settings › Assistants › Agents folder. And it does not move or change its name because inside it is kept as `AGENTS`, and under another name or in another place Tisty and your assistants would stop finding it. See [Agents stays at the top](#agents-stays-at-the-top).
 
 **I tried to move or rename Agents and it would not let me.** Tisty told you «Agents stays at the top, with its name and its robot, so it keeps guarding your agents' rules. Its color and its place among your folders are yours to change». That is on purpose: see [Agents stays at the top](#agents-stays-at-the-top).
 
-**The whole folder stopped writing.** Check that Agents has its coral robot: if it is grey, it does not sync on this computer, and **Sync** brings it up to date again. If one assistant gets nothing, look at its switch in Settings › Assistants.
+**The whole folder stopped writing.** Check that Agents has its coral robot: if it is grey, it does not sync on this computer, and **Sync** brings it up to date again. If one assistant gets nothing, look at its switch in Settings › Assistants › Agents folder.
 
 **Codex does not read my rules.** If you have `~/.codex/AGENTS.override.md`, Codex reads only that file. Your Global rules go there, but a document with `agent: codex/rule/AGENTS.md` is written to `AGENTS.md`, which Codex does not read while the other one exists. If you made the override after the first time, [bring it into Agents](#codexs-agentsoverridemd).
 
-**Gemini does not read my rules.** If its card says **Paused**, the line `@tisty-rules.md` that Tisty had put in `~/.gemini/GEMINI.md` is missing: press **Put the line back**, on the card or in Settings › Assistants. Tisty does not put it back on its own, because deleting it is your decision. See [Gemini paused](#gemini-paused).
+**Gemini does not read my rules.** If its card says **Paused**, the line `@tisty-rules.md` that Tisty had put in `~/.gemini/GEMINI.md` is missing: press **Put the line back**, on the card or in Settings › Assistants › Agents folder. Tisty does not put it back on its own, because deleting it is your decision. See [Gemini paused](#gemini-paused).
 
 **Bring the change in does not show.** The document is a Global one, the change falls in another document's part of the same file, or you are editing it: press **Done** and look again.
 

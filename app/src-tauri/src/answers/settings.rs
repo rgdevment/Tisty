@@ -121,6 +121,25 @@ pub struct About {
     kept_by_the_store: bool,
     /// Installed where the Store installs, by other means: nobody brings this copy updates.
     not_sold: bool,
+    standing: Standing,
+}
+
+#[derive(serde::Serialize, Debug, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct Standing {
+    phrase: &'static str,
+    door: Option<String>,
+    looked: Option<String>,
+}
+
+fn standing(session: &Session) -> Standing {
+    Standing {
+        phrase: crate::identity::phrase_standing(session),
+        door: session
+            .seated_agent()
+            .map(|one| tisty_core::config::nicknamed(&one.0)),
+        looked: session.config.update_heard_at.map(|at| at.to_string()),
+    }
 }
 
 #[derive(serde::Serialize, serde::Deserialize)]
@@ -326,6 +345,7 @@ pub fn about(session: tauri::State<'_, Mutex<Session>>) -> Answer<About> {
         candidates_apply: update::self_installs(update::route().route),
         kept_by_the_store: update::route().route == update::Route::Store,
         not_sold: update::route().route == update::Route::Store && !crate::shop::sold(),
+        standing: standing(&session),
     })
 }
 

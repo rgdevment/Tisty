@@ -3,9 +3,12 @@ import { agentsTree, folderShown, isAgentsFolder } from "../agentsSync";
 import { taskStepMarked } from "../citing";
 import { discard, patch, sow } from "../core";
 import { seeing, useDesk } from "../desk";
+import { cameFrom as helpFrom } from "../guide/help";
 import { fill } from "../locales";
 import { saidPlainly } from "../refusal";
 import { afterMove } from "../relocation";
+import type { Article } from "../settingsPages";
+import { landedOn } from "../settingsRows";
 import { sure } from "../sure";
 import { shown } from "../tongues";
 import { title } from "../views";
@@ -17,12 +20,14 @@ import Detail from "./Detail";
 import Docs from "./Docs";
 import Folder from "./Folder";
 import Help from "./Help";
+import HelpBand from "./HelpBand";
 import HiddenFolders from "./HiddenFolders";
 import Keeping from "./Keeping";
 import Lists from "./Lists";
 import Matrix from "./Matrix";
 import Review from "./Review";
 import Spread from "./Spread";
+import { PageHead } from "./Zone";
 
 export default function Stage() {
   const desk = useDesk();
@@ -65,6 +70,7 @@ export default function Stage() {
     setSelected,
     setShowing,
     setUnderway,
+    settingsDesk,
     sheet,
     shut,
     standing,
@@ -101,11 +107,24 @@ export default function Stage() {
       opening(one);
       return at;
     });
+  const helped = (article?: Article) =>
+    setChosen({
+      named: "help",
+      article: article?.slug,
+      heading: article?.heading,
+      from: helpFrom(chosen),
+    });
+
   const fresh = useRef(refreshed);
   fresh.current = refreshed;
   useEffect(() => afterMove(() => fresh.current()), []);
   return chosen.named === "help" ? (
-    <Help topic={chosen.topic} from={chosen.from} />
+    <Help
+      topic={chosen.topic}
+      article={chosen.article}
+      heading={chosen.heading}
+      from={chosen.from}
+    />
   ) : chosen.named === "brainsty" ? (
     <BrainstyView
       near={chosen.near}
@@ -221,21 +240,29 @@ export default function Stage() {
   ) : chosen.named === "keeping" ? (
     <Keeping
       greeted={greeted}
-      tab={chosen.tab ?? "general"}
+      tab={chosen.tab ?? "summary"}
       onTab={(tab) => setChosen({ named: "keeping", tab })}
+      onHelp={helped}
+      ready={ready}
+      desk={settingsDesk}
+      onLand={(spot) => setChosen(landedOn(spot))}
+      shelf={chosen.shelf}
+      row={chosen.row}
+      landedAt={chosen.landedAt}
       about={
         <About
           ready={ready}
           step={underway}
           onGaveUp={() => setUnderway(null)}
           onError={(e) => setError(saidPlainly(e))}
+          head={<PageHead tab="about" onHelp={helped} />}
+          help={<HelpBand onGreet={() => setGreet(true)} onDoc={openDoc} onChanged={refreshed} />}
         />
       }
       move={chosen.move}
       movedAt={chosen.movedAt}
       onPack={() => parcels.packUp([], "tisty")}
       onUnpack={parcels.takeParcel}
-      onGreet={() => setGreet(true)}
       onDoc={openDoc}
       onChanged={refreshed}
       hidden={<HiddenFolders papers={papers} />}

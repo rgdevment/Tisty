@@ -65,7 +65,7 @@ Prueba con:
 
 ## Captura rápida desde cualquier parte
 
-Presiona `Ctrl` + `Shift` + `Space` desde donde estés y se abre una ventanita para una tarea. `Enter` la guarda, `Esc` la cierra y sigues con lo tuyo. `Tab` la cambia a **Idea**, para la [Ideas](Documentos#ideas), o a **Diario**, que escribe en hoy en el [Diario](Documentos#diario). Si ese atajo ya lo usa otro programa, Tisty toma otro y te dice cuál en Configuración.
+Presiona `Ctrl` + `Shift` + `Space` desde donde estés y se abre una ventanita para una tarea. `Enter` la guarda, `Esc` la cierra y sigues con lo tuyo. `Tab` la cambia a **Idea**, para la [Ideas](Documentos#ideas), o a **Diario**, que escribe en hoy en el [Diario](Documentos#diario). Si ese atajo ya lo usa otro programa, Tisty toma otro y te dice cuál en **Configuración › Tareas y avisos**.
 
 ## Las vistas
 
@@ -185,6 +185,6 @@ Más en [Un día con tu agente](Asistentes-y-MCP#un-día-con-tu-agente).
 
 ## Tisto
 
-Tisto es el castor de Tisty, el del lápiz detrás de la oreja. Cuando llevas unos cuantos caracteres en la barra para escribir una tarea, se asoma sobre ella y mira lo que escribes. Nunca tapa nada y se va solo. Para trabajar sin él, apaga **Que Tisto se asome** en Configuración → General.
+Tisto es el castor de Tisty, el del lápiz detrás de la oreja. Cuando llevas unos cuantos caracteres en la barra para escribir una tarea, se asoma sobre ella y mira lo que escribes. Nunca tapa nada y se va solo. Para trabajar sin él, apaga **Que Tisto se asome** en **Configuración › Aspecto y ventana**.
 
 Al terminar una tarea, un aviso dice que queda en el archivo y ofrece **Deshacer**, que la reabre. Sale con las tareas principales que terminas tú, no con sus partes ni con las que se repiten, solo para la última que terminaste, y aunque Tisto no se asome.

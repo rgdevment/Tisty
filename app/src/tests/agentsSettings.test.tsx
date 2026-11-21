@@ -11,6 +11,7 @@ import {
 import { AGENTS, hide, isHidden, showAll } from "../hiding";
 import { adopt } from "../locales";
 import AgentsSettings from "../ui/AgentsSettings";
+import { LiveRows } from "./rowsShell";
 
 const ipc = vi.hoisted(() => ({
   asked: [] as string[],
@@ -78,7 +79,11 @@ beforeEach(() => {
 describe("the Agents card in Settings", () => {
   it("says what it found with nothing brought, and both buttons open the first time", async () => {
     const first = heard(AGENTS_FIRST);
-    render(<AgentsSettings busy={null} />);
+    render(
+      <LiveRows>
+        {(cards) => <AgentsSettings fail={cards.fail} quietly={cards.quietly} />}
+      </LiveRows>,
+    );
     expect(await screen.findByText("I found Claude on this computer.")).toBeTruthy();
     await userEvent.click(screen.getByRole("button", { name: "Bring" }));
     await userEvent.click(screen.getByRole("button", { name: "Bring and sync" }));
@@ -92,7 +97,11 @@ describe("the Agents card in Settings", () => {
 
   it("reads nothing of an agent's before this computer's yes", async () => {
     ipc.state = state({ folder: "A" });
-    render(<AgentsSettings busy={null} />);
+    render(
+      <LiveRows>
+        {(cards) => <AgentsSettings fail={cards.fail} quietly={cards.quietly} />}
+      </LiveRows>,
+    );
     await screen.findByText("I found Claude on this computer.");
     expect(ipc.asked).not.toContain("agents_look");
     expect(screen.queryByRole("switch")).toBeNull();
@@ -103,7 +112,11 @@ describe("the Agents card in Settings", () => {
     ipc.look = look({ allOn: false });
     const sync = heard(AGENTS_SYNC);
     const more = heard(AGENTS_MORE);
-    render(<AgentsSettings busy={null} />);
+    render(
+      <LiveRows>
+        {(cards) => <AgentsSettings fail={cards.fail} quietly={cards.quietly} />}
+      </LiveRows>,
+    );
     expect(await screen.findByText("Not synced with your agents")).toBeTruthy();
     expect(screen.queryByText("I found Claude on this computer.")).toBeNull();
     expect(screen.queryByRole("switch")).toBeNull();
@@ -119,7 +132,11 @@ describe("the Agents card in Settings", () => {
 
   it("offers no other file on a folder brought from another computer that never said yes", async () => {
     ipc.state = state({ folder: "A", consented: false, held: 1 });
-    render(<AgentsSettings busy={null} />);
+    render(
+      <LiveRows>
+        {(cards) => <AgentsSettings fail={cards.fail} quietly={cards.quietly} />}
+      </LiveRows>,
+    );
     expect(await screen.findByText("Not synced with your agents")).toBeTruthy();
     expect(screen.getByRole("button", { name: "Sync" })).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Bring another file" })).toBeNull();
@@ -128,7 +145,11 @@ describe("the Agents card in Settings", () => {
   it("shows the knobs while it syncs, and stops syncing on a click", async () => {
     ipc.state = state({ folder: "A", consented: true });
     const more = heard(AGENTS_MORE);
-    render(<AgentsSettings busy={null} />);
+    render(
+      <LiveRows>
+        {(cards) => <AgentsSettings fail={cards.fail} quietly={cards.quietly} />}
+      </LiveRows>,
+    );
     expect(await screen.findByRole("switch", { name: "Sync Claude" })).toBeTruthy();
     expect(document.querySelector('[data-mark="claude"]')).toBeTruthy();
     expect(screen.queryByText("I found Claude on this computer.")).toBeNull();
@@ -150,7 +171,11 @@ describe("the Agents card in Settings", () => {
   it("turns one assistant back on and says why it does not sync", async () => {
     ipc.state = state({ folder: "A", consented: true });
     ipc.look = look({ assistants: [{ id: "claude", name: "Claude", on: false, files: [] }] });
-    render(<AgentsSettings busy={null} />);
+    render(
+      <LiveRows>
+        {(cards) => <AgentsSettings fail={cards.fail} quietly={cards.quietly} />}
+      </LiveRows>,
+    );
     const knob = await screen.findByRole("switch", { name: "Sync Claude" });
     expect(screen.getByText(/Not synced: its files stay as they are/)).toBeTruthy();
     ipc.calls = [];
@@ -174,7 +199,11 @@ describe("the Agents card in Settings", () => {
       unled: ["claude"],
     });
     const first = heard(AGENTS_FIRST);
-    render(<AgentsSettings busy={null} />);
+    render(
+      <LiveRows>
+        {(cards) => <AgentsSettings fail={cards.fail} quietly={cards.quietly} />}
+      </LiveRows>,
+    );
     expect(await screen.findByText("2 files no longer belong to any rule in Agents.")).toBeTruthy();
     const reviews = screen.getAllByRole("button", { name: "Review" });
     expect(reviews).toHaveLength(2);
@@ -189,7 +218,11 @@ describe("the Agents card in Settings", () => {
   it("says why stopping failed", async () => {
     ipc.state = state({ folder: "A", consented: true });
     ipc.refuses = "agents_turn";
-    render(<AgentsSettings busy={null} />);
+    render(
+      <LiveRows>
+        {(cards) => <AgentsSettings fail={cards.fail} quietly={cards.quietly} />}
+      </LiveRows>,
+    );
     await userEvent.click(await screen.findByRole("button", { name: "Stop syncing" }));
     await waitFor(() => expect(ipc.asked.filter((one) => one === "agents_turn")).toHaveLength(1));
     await settle();
@@ -199,7 +232,11 @@ describe("the Agents card in Settings", () => {
   it("says when no assistant is found while it syncs", async () => {
     ipc.state = state({ folder: "A", consented: true, assistants: [] });
     ipc.look = look({ assistants: [] });
-    render(<AgentsSettings busy={null} />);
+    render(
+      <LiveRows>
+        {(cards) => <AgentsSettings fail={cards.fail} quietly={cards.quietly} />}
+      </LiveRows>,
+    );
     expect(await screen.findByText("No agents found on this computer.")).toBeTruthy();
   });
 
@@ -207,7 +244,11 @@ describe("the Agents card in Settings", () => {
     ipc.state = state({ folder: "A", consented: true, allOn: false, held: 1 });
     ipc.look = look({ allOn: false });
     hide("A");
-    render(<AgentsSettings busy={null} />);
+    render(
+      <LiveRows>
+        {(cards) => <AgentsSettings fail={cards.fail} quietly={cards.quietly} />}
+      </LiveRows>,
+    );
     const said =
       "Hidden from the sidebar on this computer, and not synced: it writes no agent file.";
     expect(await screen.findByText(said)).toBeTruthy();
@@ -220,7 +261,11 @@ describe("the Agents card in Settings", () => {
 
   it("offers no Hide for an Agents already hidden", async () => {
     hide(AGENTS);
-    render(<AgentsSettings busy={null} />);
+    render(
+      <LiveRows>
+        {(cards) => <AgentsSettings fail={cards.fail} quietly={cards.quietly} />}
+      </LiveRows>,
+    );
     await screen.findByText("I found Claude on this computer.");
     expect(screen.queryByRole("button", { name: "Hide" })).toBeNull();
     await userEvent.click(screen.getByRole("button", { name: "Show again" }));

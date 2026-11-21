@@ -10,6 +10,7 @@ import { causeSaid, lastingCause, syncingSaid, syncSaid } from "../syncSaid";
 import Clouded from "../ui/Clouded";
 import { pauseSaid, waitingSaid } from "../ui/RelocatingSteps";
 import { useCarry } from "../ui/useCarry";
+import { IDLE } from "../ui/working";
 
 const ipc = vi.hoisted(() => ({
   answers: {} as Record<string, () => Promise<unknown>>,
@@ -108,7 +109,7 @@ describe("what stands in the way of the cloud, once it lasts", () => {
     render(
       <Clouded
         state={{ mode: "cloud", cloud: "ana@example.com" } as Carrying}
-        busy={null}
+        busy={IDLE}
         run={vi.fn() as never}
         fail={() => {}}
         carry={() => {}}
@@ -143,7 +144,7 @@ describe("a round that runs long", () => {
     render(
       <Clouded
         state={{ mode: "cloud", cloud: "ana@example.com" } as Carrying}
-        busy="sync"
+        busy={new Map([["sync", Date.now()]])}
         run={vi.fn() as never}
         fail={() => {}}
         carry={() => {}}
@@ -165,8 +166,7 @@ describe("a round that runs long", () => {
     render(
       <Clouded
         state={{ mode: "cloud", cloud: "ana@example.com" } as Carrying}
-        busy="sync"
-        busySince={Date.now() - 125_000}
+        busy={new Map([["sync", Date.now() - 125_000]])}
         run={vi.fn() as never}
         fail={() => {}}
         carry={() => {}}
@@ -181,10 +181,13 @@ describe("a round that runs long", () => {
     ipc.answers.sync_now = () =>
       Promise.resolve({ carried: "busy", undecided: [], joined: [], running: 130 });
     const tell = vi.fn();
+    const clear = vi.fn();
     const { result } = renderHook(() =>
       useCarry({
         held: false,
-        setBusy: () => {},
+        start: () => {},
+        stop: () => {},
+        clear,
         tell,
         fail: () => {},
         look: () => {},
@@ -199,8 +202,9 @@ describe("a round that runs long", () => {
       text: fill("syncingFor", "2"),
       busy: true,
     });
+    clear.mockClear();
     act(() => ended(null));
-    expect(tell).toHaveBeenLastCalledWith(undefined);
+    expect(clear).toHaveBeenLastCalledWith("sync");
   });
 });
 

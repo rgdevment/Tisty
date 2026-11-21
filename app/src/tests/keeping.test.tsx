@@ -3,8 +3,13 @@ import userEvent from "@testing-library/user-event";
 import { useState } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { heard, toldAside } from "../coming";
+import { credit } from "../crediting";
 import { adopt, fill, t } from "../locales";
+import { ROW_IDS, ROWS, type Row, type RowId, type Shelf } from "../settingsRows";
+import About from "../ui/About";
 import Coming from "../ui/Coming";
+import HelpBand from "../ui/HelpBand";
+import HiddenFolders from "../ui/HiddenFolders";
 import Settings from "../ui/Keeping";
 import SettingsNav from "../ui/SettingsNav";
 import Welcome from "../ui/Welcome";
@@ -49,6 +54,21 @@ const signing = vi.hoisted(() => ({
   before: [] as string[],
   mine: 0,
 }));
+
+const careful = async (go: string) => {
+  const dialog = await screen.findByRole("dialog");
+  const box = within(dialog).queryByLabelText(t("carefulUndone"));
+  if (box && go !== t("cancel")) await userEvent.click(box);
+  await userEvent.click(within(dialog).getByRole("button", { name: go }));
+};
+
+const DRAWN_BY_THEIR_OWN_TESTS = [
+  "cloudForget",
+  "cloudRevoke",
+  "cloudAbandon",
+  "sealWipe",
+  "sealOff",
+];
 
 const asked = vi.hoisted(() => ({
   folder: null as string | null,
@@ -415,7 +435,7 @@ type Shown = Omit<Parameters<typeof Settings>[0], "tab" | "onTab"> & { start?: T
 
 // The sections are listed in the window's own sidebar, so the settings are tried with that list beside them.
 function Keeping({ start, ...props }: Shown) {
-  const [tab, setTab] = useState<Tab>(start ?? "general");
+  const [tab, setTab] = useState<Tab>(start ?? "summary");
   return (
     <>
       <SettingsNav tab={tab} onTab={setTab} onBack={() => {}} />
@@ -424,10 +444,26 @@ function Keeping({ start, ...props }: Shown) {
   );
 }
 
-const ready = () => screen.findByRole("tab", { name: /general/i });
+const ready = () => screen.findByRole("tab", { name: /^overview$/i });
 
 const data = async () => {
-  await userEvent.click(await screen.findByRole("tab", { name: /your data/i }));
+  await userEvent.click(await screen.findByRole("tab", { name: /^copies$/i }));
+};
+
+const notices = async () => {
+  await userEvent.click(await screen.findByRole("tab", { name: /^tasks and reminders$/i }));
+};
+
+const writing = async () => {
+  await userEvent.click(await screen.findByRole("tab", { name: /^documents and signature$/i }));
+};
+
+const storage = async () => {
+  await userEvent.click(await screen.findByRole("tab", { name: /^storage$/i }));
+};
+
+const security = async () => {
+  await userEvent.click(await screen.findByRole("tab", { name: /^security$/i }));
 };
 
 const sync = async () => {
@@ -435,7 +471,7 @@ const sync = async () => {
 };
 
 const upkeep = async () => {
-  await userEvent.click(await screen.findByRole("tab", { name: /maintenance/i }));
+  await userEvent.click(await screen.findByRole("tab", { name: /^health$/i }));
   await screen.findByRole("button", { name: /^check again$/i });
 };
 
@@ -452,15 +488,7 @@ const turnedOn = async () => {
 
 describe("the maintenance panel", () => {
   it("offers to turn syncing on when there is no folder", async () => {
-    render(
-      <Keeping
-        onPack={() => {}}
-        onUnpack={() => {}}
-        onGreet={() => {}}
-        onChanged={() => {}}
-        onDoc={() => {}}
-      />,
-    );
+    render(<Keeping onPack={() => {}} onUnpack={() => {}} onChanged={() => {}} onDoc={() => {}} />);
 
     await sync();
 
@@ -470,15 +498,7 @@ describe("the maintenance panel", () => {
   });
 
   it("offers the same list here as on the first run, never a bare file dialog", async () => {
-    render(
-      <Keeping
-        onPack={() => {}}
-        onUnpack={() => {}}
-        onGreet={() => {}}
-        onChanged={() => {}}
-        onDoc={() => {}}
-      />,
-    );
+    render(<Keeping onPack={() => {}} onUnpack={() => {}} onChanged={() => {}} onDoc={() => {}} />);
     await sync();
 
     await userEvent.click(screen.getByRole("button", { name: /turn on/i }));
@@ -490,15 +510,7 @@ describe("the maintenance panel", () => {
 
   it("remembers the folder that was picked", async () => {
     asked.folder = "G:/My Drive/tisty";
-    render(
-      <Keeping
-        onPack={() => {}}
-        onUnpack={() => {}}
-        onGreet={() => {}}
-        onChanged={() => {}}
-        onDoc={() => {}}
-      />,
-    );
+    render(<Keeping onPack={() => {}} onUnpack={() => {}} onChanged={() => {}} onDoc={() => {}} />);
     await sync();
 
     await turnedOn();
@@ -509,15 +521,7 @@ describe("the maintenance panel", () => {
 
   it("keeps backing up on offer once a shared folder holds every machine", async () => {
     carrying.chosen = "G:/My Drive/tisty";
-    render(
-      <Keeping
-        onPack={() => {}}
-        onUnpack={() => {}}
-        onGreet={() => {}}
-        onChanged={() => {}}
-        onDoc={() => {}}
-      />,
-    );
+    render(<Keeping onPack={() => {}} onUnpack={() => {}} onChanged={() => {}} onDoc={() => {}} />);
 
     await sync();
 
@@ -534,15 +538,7 @@ describe("the maintenance panel", () => {
       cmd === "back_up"
         ? Promise.resolve({ bytes: 4096, leftOut: 3, leftOutBytes: 3 * 1024 * 1024 })
         : otherwise(cmd, args);
-    render(
-      <Keeping
-        onPack={() => {}}
-        onUnpack={() => {}}
-        onGreet={() => {}}
-        onChanged={() => {}}
-        onDoc={() => {}}
-      />,
-    );
+    render(<Keeping onPack={() => {}} onUnpack={() => {}} onChanged={() => {}} onDoc={() => {}} />);
     await data();
 
     await userEvent.click(screen.getByRole("button", { name: /create backup/i }));
@@ -553,37 +549,26 @@ describe("the maintenance panel", () => {
 
   it("never restores without asking first", async () => {
     asked.file = "C:/keep/tisty-backup.zip";
-    render(
-      <Keeping
-        onPack={() => {}}
-        onUnpack={() => {}}
-        onGreet={() => {}}
-        onChanged={() => {}}
-        onDoc={() => {}}
-      />,
-    );
+    render(<Keeping onPack={() => {}} onUnpack={() => {}} onChanged={() => {}} onDoc={() => {}} />);
     await data();
 
-    await userEvent.click(screen.getByRole("button", { name: /restore/i }));
+    const careful = screen.getByRole("region", { name: t("delicateZone") });
+    expect(within(careful).getByRole("button", { name: t("leaveOpen") })).toBeTruthy();
+    await userEvent.click(within(careful).getByRole("button", { name: /restore/i }));
 
     await waitFor(() => expect(sent("back_up").length + sent("restore").length).toBe(0));
   });
 
-  it("restores once the warning is accepted", async () => {
+  it("restores once the consequences are read and accepted", async () => {
     asked.file = "C:/keep/tisty-backup.zip";
-    asked.sure = true;
-    render(
-      <Keeping
-        onPack={() => {}}
-        onUnpack={() => {}}
-        onGreet={() => {}}
-        onChanged={() => {}}
-        onDoc={() => {}}
-      />,
-    );
+    render(<Keeping onPack={() => {}} onUnpack={() => {}} onChanged={() => {}} onDoc={() => {}} />);
     await data();
 
-    await userEvent.click(screen.getByRole("button", { name: /restore/i }));
+    await userEvent.click(screen.getByRole("button", { name: /restore from a file/i }));
+    const dialog = await screen.findByRole("dialog");
+    expect(within(dialog).getByText(t("carefulRestoreLead"))).toBeTruthy();
+    expect(within(dialog).getByText(t("carefulRestoreTwo"))).toBeTruthy();
+    await careful(t("carefulRestoreGo"));
 
     await waitFor(() => expect(sent("restore").length).toBe(1));
     expect(sent("restore")[0].args.from).toBe("C:/keep/tisty-backup.zip");
@@ -593,15 +578,7 @@ describe("the maintenance panel", () => {
     carrying.chosen = "G:/My Drive/tisty";
     const otherwise = ipc.answer;
     ipc.answer = (cmd, args) => (cmd === "sync_now" ? new Promise(() => {}) : otherwise(cmd, args));
-    render(
-      <Keeping
-        onPack={() => {}}
-        onUnpack={() => {}}
-        onGreet={() => {}}
-        onChanged={() => {}}
-        onDoc={() => {}}
-      />,
-    );
+    render(<Keeping onPack={() => {}} onUnpack={() => {}} onChanged={() => {}} onDoc={() => {}} />);
     await sync();
 
     await userEvent.click(screen.getByRole("button", { name: /sync now/i }));
@@ -626,37 +603,23 @@ describe("the maintenance panel", () => {
         : cmd === "keep_settings"
           ? new Promise(() => {})
           : otherwise(cmd, args);
-    render(
-      <Keeping
-        onPack={() => {}}
-        onUnpack={() => {}}
-        onGreet={() => {}}
-        onChanged={() => {}}
-        onDoc={() => {}}
-      />,
-    );
-    await ready();
+    render(<Keeping onPack={() => {}} onUnpack={() => {}} onChanged={() => {}} onDoc={() => {}} />);
+    await notices();
 
     await userEvent.click(await screen.findByRole("switch", { name: /a short tone/i }));
-    await sync();
+    await storage();
 
     const where = await screen.findByRole("combobox", { name: /where large attachments/i });
+    expect(where.hasAttribute("disabled")).toBe(false);
+    await userEvent.selectOptions(where, "mine");
     await waitFor(() => expect(where.hasAttribute("disabled")).toBe(true));
     expect(where.className).toContain("disabled:text-soft");
     expect(where.className).not.toContain("opacity-50");
   });
 
   it("offers where the big attachments live, and says when the choice is idle", async () => {
-    render(
-      <Keeping
-        onPack={() => {}}
-        onUnpack={() => {}}
-        onGreet={() => {}}
-        onChanged={() => {}}
-        onDoc={() => {}}
-      />,
-    );
-    await sync();
+    render(<Keeping onPack={() => {}} onUnpack={() => {}} onChanged={() => {}} onDoc={() => {}} />);
+    await storage();
 
     const where = await screen.findByRole("combobox", { name: /where large attachments/i });
     expect((where as HTMLSelectElement).value).toBe("everywhere");
@@ -667,7 +630,7 @@ describe("the maintenance panel", () => {
     expect(asked.holds).toBe("shared");
   });
 
-  it("frees the choice the moment a shared folder exists, without reopening", async () => {
+  it("frees the choice the moment a shared folder exists, without leaving Settings", async () => {
     asked.folder = "G:/My Drive/tisty";
     let sharing = false;
     ipc.answer = (
@@ -682,37 +645,24 @@ describe("the maintenance panel", () => {
             })
           : was(cmd, args)
     )(ipc.answer);
-    render(
-      <Keeping
-        onPack={() => {}}
-        onUnpack={() => {}}
-        onGreet={() => {}}
-        onChanged={() => {}}
-        onDoc={() => {}}
-      />,
-    );
-    await sync();
+    render(<Keeping onPack={() => {}} onUnpack={() => {}} onChanged={() => {}} onDoc={() => {}} />);
+    await storage();
 
     const where = await screen.findByRole("combobox", { name: /where large attachments/i });
     expect(where.hasAttribute("disabled")).toBe(true);
 
     sharing = true;
+    await sync();
     await turnedOn();
+    await storage();
 
-    await waitFor(() => expect(where.hasAttribute("disabled")).toBe(false));
+    const now = await screen.findByRole("combobox", { name: /where large attachments/i });
+    await waitFor(() => expect(now.hasAttribute("disabled")).toBe(false));
   });
 
   it("frees the disk when told the big ones live in the shared folder, and can be stopped", async () => {
-    render(
-      <Keeping
-        onPack={() => {}}
-        onUnpack={() => {}}
-        onGreet={() => {}}
-        onChanged={() => {}}
-        onDoc={() => {}}
-      />,
-    );
-    await sync();
+    render(<Keeping onPack={() => {}} onUnpack={() => {}} onChanged={() => {}} onDoc={() => {}} />);
+    await storage();
 
     const where = await screen.findByRole("combobox", { name: /where large attachments/i });
     await userEvent.selectOptions(where, "shared");
@@ -727,18 +677,10 @@ describe("the maintenance panel", () => {
     carrying.freesSpace = true;
     try {
       render(
-        <Keeping
-          onPack={() => {}}
-          onUnpack={() => {}}
-          onGreet={() => {}}
-          onChanged={() => {}}
-          onDoc={() => {}}
-        />,
+        <Keeping onPack={() => {}} onUnpack={() => {}} onChanged={() => {}} onDoc={() => {}} />,
       );
-      await sync();
+      await storage();
       expect(screen.queryByRole("combobox", { name: /where large attachments/i })).toBeNull();
-      expect(screen.queryByRole("combobox", { name: /unused for/i })).toBeNull();
-      await upkeep();
 
       const unused = await screen.findByRole("combobox", { name: /unused for/i });
       await screen.findByText(/set by your cloud provider, not by Tisty/i);
@@ -768,15 +710,9 @@ describe("the maintenance panel", () => {
     })(ipc.answer);
     try {
       render(
-        <Keeping
-          onPack={() => {}}
-          onUnpack={() => {}}
-          onGreet={() => {}}
-          onChanged={() => {}}
-          onDoc={() => {}}
-        />,
+        <Keeping onPack={() => {}} onUnpack={() => {}} onChanged={() => {}} onDoc={() => {}} />,
       );
-      await upkeep();
+      await storage();
 
       await screen.findByText(/nothing unused that long/i);
       expect(screen.getByRole("button", { name: /^free$/i }).hasAttribute("disabled")).toBe(true);
@@ -799,19 +735,10 @@ describe("the maintenance panel", () => {
   });
 
   it("never offers to free space when a folder is the place", async () => {
-    render(
-      <Keeping
-        onPack={() => {}}
-        onUnpack={() => {}}
-        onGreet={() => {}}
-        onChanged={() => {}}
-        onDoc={() => {}}
-      />,
-    );
-    await sync();
+    render(<Keeping onPack={() => {}} onUnpack={() => {}} onChanged={() => {}} onDoc={() => {}} />);
+    await storage();
 
     await screen.findByRole("combobox", { name: /where large attachments/i });
-    await upkeep();
     expect(screen.queryByRole("combobox", { name: /unused for/i })).toBeNull();
     expect(sent("unused_attachments")).toHaveLength(0);
   });
@@ -821,13 +748,7 @@ describe("the maintenance panel", () => {
     asked.file = "C:/keep/tisty-backup.zip";
     try {
       render(
-        <Keeping
-          onPack={() => {}}
-          onUnpack={() => {}}
-          onGreet={() => {}}
-          onChanged={() => {}}
-          onDoc={() => {}}
-        />,
+        <Keeping onPack={() => {}} onUnpack={() => {}} onChanged={() => {}} onDoc={() => {}} />,
       );
       await data();
 
@@ -843,56 +764,68 @@ describe("the maintenance panel", () => {
 
   it("keeps where it syncs, the computers and the backup on tabs of their own", async () => {
     carrying.chosen = "G:/My Drive/tisty";
-    render(
-      <Keeping
-        onPack={() => {}}
-        onUnpack={() => {}}
-        onGreet={() => {}}
-        onChanged={() => {}}
-        onDoc={() => {}}
-      />,
-    );
+    render(<Keeping onPack={() => {}} onUnpack={() => {}} onChanged={() => {}} onDoc={() => {}} />);
 
     await sync();
     expect(screen.getByText(t("whereItSyncs"))).toBeTruthy();
-    expect(await screen.findByText("salvia 07")).toBeTruthy();
+    expect(screen.queryByText("salvia 07")).toBeNull();
     expect(screen.queryByRole("button", { name: /create backup/i })).toBeNull();
+    await userEvent.click(screen.getByRole("button", { name: t("seeInSecurity") }));
+    expect(await screen.findByText("salvia 07")).toBeTruthy();
+    expect(screen.getByRole("tab", { name: /^security$/i }).getAttribute("aria-selected")).toBe(
+      "true",
+    );
 
     await data();
     expect(screen.getByRole("button", { name: /create backup/i })).toBeTruthy();
     expect(screen.getByText(t("parcelsTitle"))).toBeTruthy();
-    expect(screen.getByText(t("whereItLives"))).toBeTruthy();
+    expect(screen.queryByText(t("whereItLives"))).toBeNull();
     expect(screen.queryByText(t("whereItSyncs"))).toBeNull();
+
+    await storage();
+    expect(screen.getByText(t("whereItLives"))).toBeTruthy();
   });
 
   it("lists the computers as soon as the tab opens, without a review first", async () => {
-    render(
-      <Keeping
-        onPack={() => {}}
-        onUnpack={() => {}}
-        onGreet={() => {}}
-        onChanged={() => {}}
-        onDoc={() => {}}
-      />,
-    );
+    render(<Keeping onPack={() => {}} onUnpack={() => {}} onChanged={() => {}} onDoc={() => {}} />);
 
-    await sync();
+    await security();
 
     expect(await screen.findByText("cedro 14")).toBeTruthy();
     expect(sent("checked")).toHaveLength(1);
   });
 
+  it("keeps one list of your computers in Security, saying which ones your identity calls yours", async () => {
+    const otherwise = ipc.answer;
+    ipc.answer = (cmd, args) =>
+      cmd === "identity_shown"
+        ? Promise.resolve({
+            held: true,
+            elsewhere: false,
+            fingerprint: "48210 93755 12880 63349",
+            suffix: "k7qp",
+            confirmed: true,
+            alias: "Mario",
+            machines: [
+              { id: "mac0-0001", name: "cedro 14", here: true, ours: true },
+              { id: "win1-0002", name: "salvia 07", here: false, ours: false },
+            ],
+          })
+        : otherwise(cmd, args);
+    render(<Keeping onPack={() => {}} onUnpack={() => {}} onChanged={() => {}} onDoc={() => {}} />);
+    await security();
+
+    expect(await screen.findByText("48210 93755 12880 63349")).toBeTruthy();
+    const page = within(screen.getByRole("main"));
+    await waitFor(() => expect(page.getAllByText(t("identityOurs"))).toHaveLength(1));
+    expect(page.getAllByText("cedro 14")).toHaveLength(1);
+    expect(page.getAllByText("salvia 07")).toHaveLength(1);
+    expect(page.queryByRole("button", { name: "Remove a computer" })).toBeNull();
+  });
+
   it("folds the exits nobody takes every day, and keeps moving and changing folder in sight", async () => {
     carrying.chosen = "G:/My Drive/tisty";
-    render(
-      <Keeping
-        onPack={() => {}}
-        onUnpack={() => {}}
-        onGreet={() => {}}
-        onChanged={() => {}}
-        onDoc={() => {}}
-      />,
-    );
+    render(<Keeping onPack={() => {}} onUnpack={() => {}} onChanged={() => {}} onDoc={() => {}} />);
 
     await sync();
 
@@ -901,24 +834,26 @@ describe("the maintenance panel", () => {
     expect(fold?.open).toBe(false);
     const inside = within(fold as HTMLElement);
     expect(inside.getByRole("button", { name: t("syncAgain") })).toBeTruthy();
-    expect(inside.getByRole("button", { name: t("syncOffNow") })).toBeTruthy();
+    expect(inside.queryByRole("button", { name: t("syncOffNow") })).toBeNull();
+    const careful = screen.getByRole("region", { name: t("delicateZone") });
+    expect(within(careful).getByRole("button", { name: t("syncOffNow") })).toBeTruthy();
+    expect(within(careful).getByText(t("syncOffTitle"))).toBeTruthy();
     expect(inside.queryByRole("button", { name: t("changeFolder") })).toBeNull();
     expect(screen.getByRole("button", { name: t("changeFolder") })).toBeTruthy();
   });
 
-  it("opens on the Sync tab when asked to move, and still on Your data by its old name", async () => {
+  it("opens on the Sync tab when asked to move, and on Copies when asked for it", async () => {
     const { unmount } = render(
       <Keeping
         onPack={() => {}}
         onUnpack={() => {}}
-        onGreet={() => {}}
         onChanged={() => {}}
         onDoc={() => {}}
-        start="data"
+        start="copies"
       />,
     );
     expect(
-      (await screen.findByRole("tab", { name: /your data/i })).getAttribute("aria-selected"),
+      (await screen.findByRole("tab", { name: /^copies$/i })).getAttribute("aria-selected"),
     ).toBe("true");
     unmount();
 
@@ -926,7 +861,6 @@ describe("the maintenance panel", () => {
       <Keeping
         onPack={() => {}}
         onUnpack={() => {}}
-        onGreet={() => {}}
         onChanged={() => {}}
         onDoc={() => {}}
         start="sync"
@@ -938,16 +872,8 @@ describe("the maintenance panel", () => {
   });
 
   it("fetches the ones that are not here when told to hold them all", async () => {
-    render(
-      <Keeping
-        onPack={() => {}}
-        onUnpack={() => {}}
-        onGreet={() => {}}
-        onChanged={() => {}}
-        onDoc={() => {}}
-      />,
-    );
-    await sync();
+    render(<Keeping onPack={() => {}} onUnpack={() => {}} onChanged={() => {}} onDoc={() => {}} />);
+    await storage();
     const where = await screen.findByRole("combobox", { name: /where large attachments/i });
     await userEvent.selectOptions(where, "shared");
     await waitFor(() => expect(sent("free_up")).toHaveLength(1));
@@ -959,103 +885,57 @@ describe("the maintenance panel", () => {
   });
 
   it("says which loose files are up in the shared folder", async () => {
-    render(
-      <Keeping
-        onPack={() => {}}
-        onUnpack={() => {}}
-        onGreet={() => {}}
-        onChanged={() => {}}
-        onDoc={() => {}}
-      />,
-    );
-    await upkeep();
+    render(<Keeping onPack={() => {}} onUnpack={() => {}} onChanged={() => {}} onDoc={() => {}} />);
+    await storage();
 
-    await screen.findByText("lejos-c3d4.mp4");
-    expect(screen.getByText(/in the shared folder/)).toBeTruthy();
+    const row = (await screen.findByText("lejos-c3d4.mp4")).closest("li") as HTMLElement;
+    expect(within(row).getByText(/in the shared folder/)).toBeTruthy();
   });
 
   it("names every machine and when each last wrote", async () => {
-    render(
-      <Keeping
-        onPack={() => {}}
-        onUnpack={() => {}}
-        onGreet={() => {}}
-        onChanged={() => {}}
-        onDoc={() => {}}
-      />,
-    );
-    await sync();
+    render(<Keeping onPack={() => {}} onUnpack={() => {}} onChanged={() => {}} onDoc={() => {}} />);
+    await security();
 
     expect(await screen.findByText(/mac0-0001/)).toBeTruthy();
     expect(screen.getByText(/win1-0002/)).toBeTruthy();
-    expect(screen.getByText("This computer")).toBeTruthy();
+    expect(within(screen.getByRole("main")).getByText("This computer")).toBeTruthy();
   });
 
   it("calls every machine something a person can read out loud", async () => {
-    render(
-      <Keeping
-        onPack={() => {}}
-        onUnpack={() => {}}
-        onGreet={() => {}}
-        onChanged={() => {}}
-        onDoc={() => {}}
-      />,
-    );
-    await sync();
+    render(<Keeping onPack={() => {}} onUnpack={() => {}} onChanged={() => {}} onDoc={() => {}} />);
+    await security();
 
     expect(await screen.findByText("cedro 14")).toBeTruthy();
     expect(screen.getByText("salvia 07")).toBeTruthy();
   });
 
   it("never offers to remove the machine you are on", async () => {
-    render(
-      <Keeping
-        onPack={() => {}}
-        onUnpack={() => {}}
-        onGreet={() => {}}
-        onChanged={() => {}}
-        onDoc={() => {}}
-      />,
-    );
-    await sync();
+    render(<Keeping onPack={() => {}} onUnpack={() => {}} onChanged={() => {}} onDoc={() => {}} />);
+    await security();
 
-    await screen.findByText("This computer");
+    await within(screen.getByRole("main")).findByText("This computer");
     expect(screen.getAllByRole("button", { name: /^remove$/i })).toHaveLength(1);
     expect(screen.getByText(/not removable/i)).toBeTruthy();
   });
 
   it("names the machine and when it last wrote before removing it", async () => {
-    asked.sure = false;
-    render(
-      <Keeping
-        onPack={() => {}}
-        onUnpack={() => {}}
-        onGreet={() => {}}
-        onChanged={() => {}}
-        onDoc={() => {}}
-      />,
-    );
-    await sync();
+    render(<Keeping onPack={() => {}} onUnpack={() => {}} onChanged={() => {}} onDoc={() => {}} />);
+    await security();
     await screen.findByText("salvia 07");
 
     await userEvent.click(screen.getByRole("button", { name: /^remove$/i }));
 
-    await waitFor(() => expect(asked.said).toMatch(/salvia 07/));
-    expect(asked.said).toMatch(/last wrote/i);
-    expect(asked.said).not.toMatch(/win1-0002/);
+    const said = (await screen.findByRole("dialog")).textContent ?? "";
+    expect(said).toMatch(/salvia 07/);
+    expect(said).toMatch(/last wrote/i);
+    expect(said).not.toMatch(/win1-0002/);
+    await careful(t("cancel"));
+    expect(sent("remove_machine")).toHaveLength(0);
   });
 
   it("says out loud that a machine has been away, so nothing is judged on stale news", async () => {
-    render(
-      <Keeping
-        onPack={() => {}}
-        onUnpack={() => {}}
-        onGreet={() => {}}
-        onChanged={() => {}}
-        onDoc={() => {}}
-      />,
-    );
-    await sync();
+    render(<Keeping onPack={() => {}} onUnpack={() => {}} onChanged={() => {}} onDoc={() => {}} />);
+    await security();
 
     const said = await screen.findByText(/may still be using attachments that look unused/i);
 
@@ -1079,16 +959,8 @@ describe("the maintenance panel", () => {
   };
 
   const reviewed = async () => {
-    render(
-      <Keeping
-        onPack={() => {}}
-        onUnpack={() => {}}
-        onGreet={() => {}}
-        onChanged={() => {}}
-        onDoc={() => {}}
-      />,
-    );
-    await sync();
+    render(<Keeping onPack={() => {}} onUnpack={() => {}} onChanged={() => {}} onDoc={() => {}} />);
+    await security();
   };
 
   const aMachine = (more: Record<string, unknown>) => ({
@@ -1322,16 +1194,8 @@ describe("the maintenance panel", () => {
             machines: [{ id: "mac0-0001", when: Math.floor(Date.now() / 1000), mine: true }],
           }))
         : otherwise(cmd, args);
-    render(
-      <Keeping
-        onPack={() => {}}
-        onUnpack={() => {}}
-        onGreet={() => {}}
-        onChanged={() => {}}
-        onDoc={() => {}}
-      />,
-    );
-    await sync();
+    render(<Keeping onPack={() => {}} onUnpack={() => {}} onChanged={() => {}} onDoc={() => {}} />);
+    await security();
 
     await screen.findByText(/mac0-0001/);
     expect(screen.queryByText(/have not synced in a while/i)).toBeNull();
@@ -1339,16 +1203,8 @@ describe("the maintenance panel", () => {
 
   it("never lets go of an attachment without being told twice", async () => {
     asked.sure = false;
-    render(
-      <Keeping
-        onPack={() => {}}
-        onUnpack={() => {}}
-        onGreet={() => {}}
-        onChanged={() => {}}
-        onDoc={() => {}}
-      />,
-    );
-    await upkeep();
+    render(<Keeping onPack={() => {}} onUnpack={() => {}} onChanged={() => {}} onDoc={() => {}} />);
+    await storage();
     await screen.findByText("charla-a3f9.mp4");
 
     await userEvent.click(screen.getAllByRole("button", { name: /^move to the bin$/i })[0]);
@@ -1358,16 +1214,8 @@ describe("the maintenance panel", () => {
 
   it("lets go of the one it was pointed at, and looks again afterwards", async () => {
     asked.sure = true;
-    render(
-      <Keeping
-        onPack={() => {}}
-        onUnpack={() => {}}
-        onGreet={() => {}}
-        onChanged={() => {}}
-        onDoc={() => {}}
-      />,
-    );
-    await upkeep();
+    render(<Keeping onPack={() => {}} onUnpack={() => {}} onChanged={() => {}} onDoc={() => {}} />);
+    await storage();
     await screen.findByText("charla-a3f9.mp4");
     const looks = sent("checked").length;
 
@@ -1387,16 +1235,8 @@ describe("the maintenance panel", () => {
       said.push(text);
       return was(text);
     });
-    render(
-      <Keeping
-        onPack={() => {}}
-        onUnpack={() => {}}
-        onGreet={() => {}}
-        onChanged={() => {}}
-        onDoc={() => {}}
-      />,
-    );
-    await upkeep();
+    render(<Keeping onPack={() => {}} onUnpack={() => {}} onChanged={() => {}} onDoc={() => {}} />);
+    await storage();
     await screen.findByText("charla-a3f9.mp4");
 
     await userEvent.click(screen.getAllByRole("button", { name: /^move to the bin$/i })[0]);
@@ -1413,16 +1253,8 @@ describe("the maintenance panel", () => {
       cmd === "retire_attachment"
         ? Promise.reject({ code: "stillReferenced", name: "charla-a3f9.mp4" })
         : otherwise(cmd, args);
-    render(
-      <Keeping
-        onPack={() => {}}
-        onUnpack={() => {}}
-        onGreet={() => {}}
-        onChanged={() => {}}
-        onDoc={() => {}}
-      />,
-    );
-    await upkeep();
+    render(<Keeping onPack={() => {}} onUnpack={() => {}} onChanged={() => {}} onDoc={() => {}} />);
+    await storage();
     await screen.findByText("charla-a3f9.mp4");
 
     await userEvent.click(screen.getAllByRole("button", { name: /^move to the bin$/i })[0]);
@@ -1433,16 +1265,8 @@ describe("the maintenance panel", () => {
   });
 
   it("offers to remove another machine, never this one", async () => {
-    render(
-      <Keeping
-        onPack={() => {}}
-        onUnpack={() => {}}
-        onGreet={() => {}}
-        onChanged={() => {}}
-        onDoc={() => {}}
-      />,
-    );
-    await sync();
+    render(<Keeping onPack={() => {}} onUnpack={() => {}} onChanged={() => {}} onDoc={() => {}} />);
+    await security();
 
     await screen.findByText("win1-0002");
     expect(screen.getAllByRole("button", { name: /^remove$/i })).toHaveLength(1);
@@ -1450,39 +1274,24 @@ describe("the maintenance panel", () => {
 
   it("never removes a machine without being told twice", async () => {
     asked.sure = false;
-    render(
-      <Keeping
-        onPack={() => {}}
-        onUnpack={() => {}}
-        onGreet={() => {}}
-        onChanged={() => {}}
-        onDoc={() => {}}
-      />,
-    );
-    await sync();
+    render(<Keeping onPack={() => {}} onUnpack={() => {}} onChanged={() => {}} onDoc={() => {}} />);
+    await security();
     await screen.findByText("win1-0002");
 
     await userEvent.click(screen.getByRole("button", { name: /^remove$/i }));
+    await careful(t("cancel"));
 
     await waitFor(() => expect(sent("remove_machine")).toHaveLength(0));
   });
 
   it("removes the machine it was pointed at, and looks again afterwards", async () => {
-    asked.sure = true;
-    render(
-      <Keeping
-        onPack={() => {}}
-        onUnpack={() => {}}
-        onGreet={() => {}}
-        onChanged={() => {}}
-        onDoc={() => {}}
-      />,
-    );
-    await sync();
+    render(<Keeping onPack={() => {}} onUnpack={() => {}} onChanged={() => {}} onDoc={() => {}} />);
+    await security();
     await screen.findByText("win1-0002");
     const looks = sent("checked").length;
 
     await userEvent.click(screen.getByRole("button", { name: /^remove$/i }));
+    await careful(t("carefulDropGo"));
 
     await waitFor(() => expect(sent("remove_machine")).toHaveLength(1));
     expect(sent("remove_machine")[0].args.id).toBe("win1-0002");
@@ -1490,16 +1299,8 @@ describe("the maintenance panel", () => {
   });
 
   it("tells you to settle the machines before judging what is left over", async () => {
-    render(
-      <Keeping
-        onPack={() => {}}
-        onUnpack={() => {}}
-        onGreet={() => {}}
-        onChanged={() => {}}
-        onDoc={() => {}}
-      />,
-    );
-    await upkeep();
+    render(<Keeping onPack={() => {}} onUnpack={() => {}} onChanged={() => {}} onDoc={() => {}} />);
+    await storage();
 
     expect(await screen.findByText(/before deciding what is left over/i)).toBeTruthy();
   });
@@ -1513,32 +1314,16 @@ describe("the maintenance panel", () => {
             machines: [{ id: "mac0-0001", when: Math.floor(Date.now() / 1000), mine: true }],
           }))
         : otherwise(cmd, args);
-    render(
-      <Keeping
-        onPack={() => {}}
-        onUnpack={() => {}}
-        onGreet={() => {}}
-        onChanged={() => {}}
-        onDoc={() => {}}
-      />,
-    );
-    await upkeep();
+    render(<Keeping onPack={() => {}} onUnpack={() => {}} onChanged={() => {}} onDoc={() => {}} />);
+    await storage();
 
     await screen.findByText("charla-a3f9.mp4");
     expect(screen.queryByText(/before deciding what is left over/i)).toBeNull();
   });
 
   it("shows each loose attachment by name, weight and date", async () => {
-    render(
-      <Keeping
-        onPack={() => {}}
-        onUnpack={() => {}}
-        onGreet={() => {}}
-        onChanged={() => {}}
-        onDoc={() => {}}
-      />,
-    );
-    await upkeep();
+    render(<Keeping onPack={() => {}} onUnpack={() => {}} onChanged={() => {}} onDoc={() => {}} />);
+    await storage();
 
     expect(await screen.findByText("charla-a3f9.mp4")).toBeTruthy();
     expect(screen.getByText("notas-b1c2.pdf")).toBeTruthy();
@@ -1562,16 +1347,8 @@ describe("the maintenance panel", () => {
             },
           ])
         : otherwise(cmd, args);
-    render(
-      <Keeping
-        onPack={() => {}}
-        onUnpack={() => {}}
-        onGreet={() => {}}
-        onChanged={() => {}}
-        onDoc={() => {}}
-      />,
-    );
-    await upkeep();
+    render(<Keeping onPack={() => {}} onUnpack={() => {}} onChanged={() => {}} onDoc={() => {}} />);
+    await storage();
 
     expect(sent("twinned")).toHaveLength(0);
 
@@ -1600,16 +1377,8 @@ describe("the maintenance panel", () => {
       if (cmd === "twins_join") return Promise.resolve({ freed: 300_000, relinked: 2, left: [] });
       return otherwise(cmd, args);
     };
-    render(
-      <Keeping
-        onPack={() => {}}
-        onUnpack={() => {}}
-        onGreet={() => {}}
-        onChanged={() => {}}
-        onDoc={() => {}}
-      />,
-    );
-    await upkeep();
+    render(<Keeping onPack={() => {}} onUnpack={() => {}} onChanged={() => {}} onDoc={() => {}} />);
+    await storage();
     await userEvent.click(screen.getByRole("button", { name: /^see which$/i }));
 
     await userEvent.click(await screen.findByRole("button", { name: "Keep this one" }));
@@ -1625,16 +1394,8 @@ describe("the maintenance panel", () => {
   it("says nothing is kept twice when nothing is", async () => {
     const otherwise = ipc.answer;
     ipc.answer = (cmd, args) => (cmd === "twinned" ? Promise.resolve([]) : otherwise(cmd, args));
-    render(
-      <Keeping
-        onPack={() => {}}
-        onUnpack={() => {}}
-        onGreet={() => {}}
-        onChanged={() => {}}
-        onDoc={() => {}}
-      />,
-    );
-    await upkeep();
+    render(<Keeping onPack={() => {}} onUnpack={() => {}} onChanged={() => {}} onDoc={() => {}} />);
+    await storage();
 
     await userEvent.click(screen.getByRole("button", { name: /^see which$/i }));
 
@@ -1642,31 +1403,15 @@ describe("the maintenance panel", () => {
   });
 
   it("says plainly where taken-out files go, the shared folder's too", async () => {
-    render(
-      <Keeping
-        onPack={() => {}}
-        onUnpack={() => {}}
-        onGreet={() => {}}
-        onChanged={() => {}}
-        onDoc={() => {}}
-      />,
-    );
-    await upkeep();
+    render(<Keeping onPack={() => {}} onUnpack={() => {}} onChanged={() => {}} onDoc={() => {}} />);
+    await storage();
 
     expect(await screen.findByText(/your cloud keeps it in its own bin/i)).toBeTruthy();
   });
 
   it("breaks the weight down, so the size has somewhere to come from", async () => {
-    render(
-      <Keeping
-        onPack={() => {}}
-        onUnpack={() => {}}
-        onGreet={() => {}}
-        onChanged={() => {}}
-        onDoc={() => {}}
-      />,
-    );
-    await upkeep();
+    render(<Keeping onPack={() => {}} onUnpack={() => {}} onChanged={() => {}} onDoc={() => {}} />);
+    await storage();
 
     expect(await screen.findByText(/the history weighs/i)).toBeTruthy();
     expect(screen.getByText(/the documents weigh/i)).toBeTruthy();
@@ -1676,19 +1421,13 @@ describe("the maintenance panel", () => {
   it("asks after days of hearing nothing, and blames neither side", async () => {
     carrying.chosen = "G:/My Drive/tisty";
     carrying.heard = new Date(Date.now() - 5 * 86_400_000).toISOString();
-    render(
-      <Keeping
-        onPack={() => {}}
-        onUnpack={() => {}}
-        onGreet={() => {}}
-        onChanged={() => {}}
-        onDoc={() => {}}
-      />,
-    );
+    render(<Keeping onPack={() => {}} onUnpack={() => {}} onChanged={() => {}} onDoc={() => {}} />);
     await sync();
 
-    const said = await screen.findByText(/without anything arriving/i);
+    const title = await screen.findByText(t("attSyncQuiet"));
+    const said = title.closest("[data-note]") as HTMLElement;
 
+    expect(said.closest("[data-setting]")?.getAttribute("data-setting")).toBe("syncing");
     expect(said.textContent).toMatch(/may be off/i);
     expect(said.textContent).toMatch(/may not be running/i);
   });
@@ -1696,15 +1435,7 @@ describe("the maintenance panel", () => {
   it("stays quiet while the other machines are still turning up", async () => {
     carrying.chosen = "G:/My Drive/tisty";
     carrying.heard = new Date(Date.now() - 3_600_000).toISOString();
-    render(
-      <Keeping
-        onPack={() => {}}
-        onUnpack={() => {}}
-        onGreet={() => {}}
-        onChanged={() => {}}
-        onDoc={() => {}}
-      />,
-    );
+    render(<Keeping onPack={() => {}} onUnpack={() => {}} onChanged={() => {}} onDoc={() => {}} />);
     await sync();
 
     expect(screen.queryByText(/without anything arriving/i)).toBeNull();
@@ -1717,15 +1448,7 @@ describe("the maintenance panel", () => {
         ? Promise.resolve({ carried: "sent", undecided: [], unreadable: [] })
         : otherwise(cmd, args);
     carrying.chosen = "G:/My Drive/tisty";
-    render(
-      <Keeping
-        onPack={() => {}}
-        onUnpack={() => {}}
-        onGreet={() => {}}
-        onChanged={() => {}}
-        onDoc={() => {}}
-      />,
-    );
+    render(<Keeping onPack={() => {}} onUnpack={() => {}} onChanged={() => {}} onDoc={() => {}} />);
     await sync();
 
     await userEvent.click(screen.getByRole("button", { name: /sync now/i }));
@@ -1748,15 +1471,7 @@ describe("the maintenance panel", () => {
       return Promise.resolve(true);
     });
     carrying.chosen = "G:/My Drive/tisty";
-    render(
-      <Keeping
-        onPack={() => {}}
-        onUnpack={() => {}}
-        onGreet={() => {}}
-        onChanged={() => {}}
-        onDoc={() => {}}
-      />,
-    );
+    render(<Keeping onPack={() => {}} onUnpack={() => {}} onChanged={() => {}} onDoc={() => {}} />);
     await sync();
 
     await userEvent.click(screen.getByRole("button", { name: /sync now/i }));
@@ -1776,15 +1491,7 @@ describe("the maintenance panel", () => {
     let asked = 0;
     vi.spyOn(dialog, "ask").mockImplementation(() => Promise.resolve(++asked > 1));
     carrying.chosen = "G:/My Drive/tisty";
-    render(
-      <Keeping
-        onPack={() => {}}
-        onUnpack={() => {}}
-        onGreet={() => {}}
-        onChanged={() => {}}
-        onDoc={() => {}}
-      />,
-    );
+    render(<Keeping onPack={() => {}} onUnpack={() => {}} onChanged={() => {}} onDoc={() => {}} />);
     await sync();
 
     await userEvent.click(screen.getByRole("button", { name: /sync now/i }));
@@ -1798,15 +1505,7 @@ describe("the maintenance panel", () => {
     const dialog = await import("@tauri-apps/plugin-dialog");
     const spy = vi.spyOn(dialog, "ask");
     carrying.chosen = "G:/My Drive/tisty";
-    render(
-      <Keeping
-        onPack={() => {}}
-        onUnpack={() => {}}
-        onGreet={() => {}}
-        onChanged={() => {}}
-        onDoc={() => {}}
-      />,
-    );
+    render(<Keeping onPack={() => {}} onUnpack={() => {}} onChanged={() => {}} onDoc={() => {}} />);
     await sync();
 
     await userEvent.click(screen.getByRole("button", { name: /sync now/i }));
@@ -1837,30 +1536,14 @@ describe("the maintenance panel", () => {
 
   const carried = async () => {
     carrying.chosen = "G:/My Drive/tisty";
-    render(
-      <Keeping
-        onPack={() => {}}
-        onUnpack={() => {}}
-        onGreet={() => {}}
-        onChanged={() => {}}
-        onDoc={() => {}}
-      />,
-    );
+    render(<Keeping onPack={() => {}} onUnpack={() => {}} onChanged={() => {}} onDoc={() => {}} />);
     await sync();
     await userEvent.click(screen.getByRole("button", { name: /sync now/i }));
   };
 
   it("carries as soon as a folder is picked, so the doors open there and not later", async () => {
     asked.folder = "G:/My Drive/tisty";
-    render(
-      <Keeping
-        onPack={() => {}}
-        onUnpack={() => {}}
-        onGreet={() => {}}
-        onChanged={() => {}}
-        onDoc={() => {}}
-      />,
-    );
+    render(<Keeping onPack={() => {}} onUnpack={() => {}} onChanged={() => {}} onDoc={() => {}} />);
     await sync();
 
     await turnedOn();
@@ -1894,15 +1577,7 @@ describe("the maintenance panel", () => {
   it("opens the doors on picking a folder that already holds another history", async () => {
     apart();
     asked.folder = "G:/My Drive/tisty";
-    render(
-      <Keeping
-        onPack={() => {}}
-        onUnpack={() => {}}
-        onGreet={() => {}}
-        onChanged={() => {}}
-        onDoc={() => {}}
-      />,
-    );
+    render(<Keeping onPack={() => {}} onUnpack={() => {}} onChanged={() => {}} onDoc={() => {}} />);
     await sync();
 
     await turnedOn();
@@ -1913,15 +1588,7 @@ describe("the maintenance panel", () => {
   it("does not leave you pointing at a folder you walked away from", async () => {
     apart();
     asked.folder = "G:/My Drive/tisty";
-    render(
-      <Keeping
-        onPack={() => {}}
-        onUnpack={() => {}}
-        onGreet={() => {}}
-        onChanged={() => {}}
-        onDoc={() => {}}
-      />,
-    );
+    render(<Keeping onPack={() => {}} onUnpack={() => {}} onChanged={() => {}} onDoc={() => {}} />);
     await sync();
     await turnedOn();
 
@@ -1936,15 +1603,7 @@ describe("the maintenance panel", () => {
     onceApart();
     asked.folder = "G:/My Drive/tisty";
     asked.file = "C:/keep/tisty-folder-before.zip";
-    render(
-      <Keeping
-        onPack={() => {}}
-        onUnpack={() => {}}
-        onGreet={() => {}}
-        onChanged={() => {}}
-        onDoc={() => {}}
-      />,
-    );
+    render(<Keeping onPack={() => {}} onUnpack={() => {}} onChanged={() => {}} onDoc={() => {}} />);
     await sync();
     await turnedOn();
 
@@ -2009,15 +1668,7 @@ describe("the maintenance panel", () => {
           })
         : otherwise(cmd, args);
     carrying.chosen = "G:/My Drive/tisty";
-    render(
-      <Keeping
-        onPack={() => {}}
-        onUnpack={() => {}}
-        onGreet={() => {}}
-        onChanged={() => {}}
-        onDoc={() => {}}
-      />,
-    );
+    render(<Keeping onPack={() => {}} onUnpack={() => {}} onChanged={() => {}} onDoc={() => {}} />);
     await sync();
 
     await userEvent.click(screen.getByRole("button", { name: /sync now/i }));
@@ -2160,16 +1811,9 @@ describe("the maintenance panel", () => {
   });
 
   it("says what the review found", async () => {
-    render(
-      <Keeping
-        onPack={() => {}}
-        onUnpack={() => {}}
-        onGreet={() => {}}
-        onChanged={() => {}}
-        onDoc={() => {}}
-      />,
-    );
+    render(<Keeping onPack={() => {}} onUnpack={() => {}} onChanged={() => {}} onDoc={() => {}} />);
     await upkeep();
+    await storage();
 
     expect(await screen.findByText(/7 tasks · 2 lists/i)).toBeTruthy();
     expect(screen.getByText(/you can free up to 311.0 kB/i)).toBeTruthy();
@@ -2181,7 +1825,6 @@ describe("the maintenance panel", () => {
         onPack={() => {}}
         onUnpack={() => {}}
         greeted={0}
-        onGreet={() => {}}
         onChanged={() => {}}
         onDoc={() => {}}
       />,
@@ -2194,7 +1837,6 @@ describe("the maintenance panel", () => {
         onPack={() => {}}
         onUnpack={() => {}}
         greeted={1}
-        onGreet={() => {}}
         onChanged={() => {}}
         onDoc={() => {}}
       />,
@@ -2206,9 +1848,9 @@ describe("the maintenance panel", () => {
   it("holds a language of its own when one is picked", async () => {
     render(
       <Keeping
+        start="window"
         onPack={() => {}}
         onUnpack={() => {}}
-        onGreet={() => {}}
         onChanged={() => {}}
         onDoc={() => {}}
       />,
@@ -2224,9 +1866,9 @@ describe("the maintenance panel", () => {
   it("shows the close choice the person once remembered, and lets it be asked again", async () => {
     render(
       <Keeping
+        start="window"
         onPack={() => {}}
         onUnpack={() => {}}
-        onGreet={() => {}}
         onChanged={() => {}}
         onDoc={() => {}}
       />,
@@ -2246,9 +1888,9 @@ describe("the maintenance panel", () => {
   it("holds a look of its own, and lets it go back to the computer's", async () => {
     render(
       <Keeping
+        start="window"
         onPack={() => {}}
         onUnpack={() => {}}
-        onGreet={() => {}}
         onChanged={() => {}}
         onDoc={() => {}}
       />,
@@ -2264,44 +1906,6 @@ describe("the maintenance panel", () => {
     await userEvent.selectOptions(look, "");
     await waitFor(() => expect(sent("keep_theme").length).toBe(2));
     expect(sent("keep_theme")[1].args.theme).toBeUndefined();
-  });
-
-  it("offers the welcome again, without touching what is written", async () => {
-    const greet = vi.fn();
-    render(
-      <Keeping
-        onPack={() => {}}
-        onUnpack={() => {}}
-        onGreet={greet}
-        onChanged={() => {}}
-        onDoc={() => {}}
-      />,
-    );
-    await ready();
-
-    await userEvent.click(await screen.findByRole("button", { name: /show it again/i }));
-
-    expect(greet).toHaveBeenCalled();
-    expect(sent("choose_sync").length).toBe(0);
-  });
-
-  it("opens the guide instead of only saying where it went", async () => {
-    const opened = vi.fn();
-    render(
-      <Keeping
-        onPack={() => {}}
-        onUnpack={() => {}}
-        onGreet={() => {}}
-        onChanged={() => {}}
-        onDoc={opened}
-      />,
-    );
-    await ready();
-
-    await userEvent.click(await screen.findByRole("button", { name: /open the guide/i }));
-
-    await waitFor(() => expect(sent("guide")).toHaveLength(1));
-    expect(opened).toHaveBeenCalledWith("guide-0001");
   });
 });
 
@@ -3046,16 +2650,8 @@ describe("the first-run assistant", () => {
   });
 
   it("keeps the alias the person signs with, and shows it again on the next look", async () => {
-    render(
-      <Keeping
-        onPack={() => {}}
-        onUnpack={() => {}}
-        onGreet={() => {}}
-        onChanged={() => {}}
-        onDoc={() => {}}
-      />,
-    );
-    await ready();
+    render(<Keeping onPack={() => {}} onUnpack={() => {}} onChanged={() => {}} onDoc={() => {}} />);
+    await writing();
 
     const field = await screen.findByRole("textbox", { name: /^alias$/i });
     expect((field as HTMLInputElement).value).toBe("");
@@ -3070,16 +2666,8 @@ describe("the first-run assistant", () => {
   it("offers the aliases this store signed with before, and not the one in use", async () => {
     signing.alias = "rgdevment";
     signing.before = ["rgdevment", "mario"];
-    render(
-      <Keeping
-        onPack={() => {}}
-        onUnpack={() => {}}
-        onGreet={() => {}}
-        onChanged={() => {}}
-        onDoc={() => {}}
-      />,
-    );
-    await ready();
+    render(<Keeping onPack={() => {}} onUnpack={() => {}} onChanged={() => {}} onDoc={() => {}} />);
+    await writing();
 
     const field = await screen.findByRole("combobox", { name: /^alias$/i });
     expect((field as HTMLInputElement).value).toBe("rgdevment");
@@ -3092,16 +2680,8 @@ describe("the first-run assistant", () => {
   it("asks in plain words when the alias changes, and only then signs the older ones", async () => {
     signing.alias = null;
     signing.mine = 243;
-    render(
-      <Keeping
-        onPack={() => {}}
-        onUnpack={() => {}}
-        onGreet={() => {}}
-        onChanged={() => {}}
-        onDoc={() => {}}
-      />,
-    );
-    await ready();
+    render(<Keeping onPack={() => {}} onUnpack={() => {}} onChanged={() => {}} onDoc={() => {}} />);
+    await writing();
 
     const field = await screen.findByRole("textbox", { name: /^alias$/i });
     await userEvent.type(field, "rgdevment");
@@ -3126,16 +2706,8 @@ describe("the first-run assistant", () => {
   it("says nothing about signing the rest while there is nothing to sign", async () => {
     signing.alias = "rgdevment";
     signing.mine = 0;
-    render(
-      <Keeping
-        onPack={() => {}}
-        onUnpack={() => {}}
-        onGreet={() => {}}
-        onChanged={() => {}}
-        onDoc={() => {}}
-      />,
-    );
-    await ready();
+    render(<Keeping onPack={() => {}} onUnpack={() => {}} onChanged={() => {}} onDoc={() => {}} />);
+    await writing();
     await screen.findByRole("textbox", { name: /^alias$/i });
 
     expect(screen.queryByRole("button", { name: /sign the older ones/i })).toBeNull();
@@ -3143,16 +2715,8 @@ describe("the first-run assistant", () => {
 
   it("takes an emptied alias as leaving it unsigned", async () => {
     signing.alias = "rgdevment";
-    render(
-      <Keeping
-        onPack={() => {}}
-        onUnpack={() => {}}
-        onGreet={() => {}}
-        onChanged={() => {}}
-        onDoc={() => {}}
-      />,
-    );
-    await ready();
+    render(<Keeping onPack={() => {}} onUnpack={() => {}} onChanged={() => {}} onDoc={() => {}} />);
+    await writing();
 
     const field = await screen.findByRole("textbox", { name: /^alias$/i });
     await waitFor(() => expect((field as HTMLInputElement).value).toBe("rgdevment"));
@@ -3164,16 +2728,8 @@ describe("the first-run assistant", () => {
   });
 
   const keeping = async () => {
-    render(
-      <Keeping
-        onPack={() => {}}
-        onUnpack={() => {}}
-        onGreet={() => {}}
-        onChanged={() => {}}
-        onDoc={() => {}}
-      />,
-    );
-    await ready();
+    render(<Keeping onPack={() => {}} onUnpack={() => {}} onChanged={() => {}} onDoc={() => {}} />);
+    await writing();
     const field = await screen.findByRole("textbox", { name: t("signName") });
     return field as HTMLInputElement;
   };
@@ -3237,9 +2793,9 @@ describe("the quick capture shortcut", () => {
       <Keeping
         onPack={() => {}}
         onUnpack={() => {}}
-        onGreet={() => {}}
         onChanged={() => {}}
         onDoc={() => {}}
+        start="notices"
       />,
     );
   };
@@ -3281,15 +2837,7 @@ describe("the quick capture shortcut", () => {
 
 describe("the report a bug gets attached to", () => {
   const report = async () => {
-    render(
-      <Keeping
-        onPack={() => {}}
-        onUnpack={() => {}}
-        onGreet={() => {}}
-        onChanged={() => {}}
-        onDoc={() => {}}
-      />,
-    );
+    render(<Keeping onPack={() => {}} onUnpack={() => {}} onChanged={() => {}} onDoc={() => {}} />);
     await upkeep();
     await userEvent.click(screen.getByRole("button", { name: /prepare/i }));
   };
@@ -3342,19 +2890,11 @@ describe("the report a bug gets attached to", () => {
 
 describe("Maintenance looking by itself", () => {
   const shown = () =>
-    render(
-      <Keeping
-        onPack={() => {}}
-        onUnpack={() => {}}
-        onGreet={() => {}}
-        onChanged={() => {}}
-        onDoc={() => {}}
-      />,
-    );
+    render(<Keeping onPack={() => {}} onUnpack={() => {}} onChanged={() => {}} onDoc={() => {}} />);
 
   it("reviews as soon as the tab opens, and says when everything is in order", async () => {
     shown();
-    await userEvent.click(await screen.findByRole("tab", { name: /maintenance/i }));
+    await userEvent.click(await screen.findByRole("tab", { name: /^health$/i }));
 
     expect(await screen.findByText(/everything in order · checked/i)).toBeTruthy();
     expect(sent("checked")).toHaveLength(1);
@@ -3365,10 +2905,10 @@ describe("Maintenance looking by itself", () => {
 
   it("does not check again when the tab is opened a second time", async () => {
     shown();
-    await userEvent.click(await screen.findByRole("tab", { name: /maintenance/i }));
+    await userEvent.click(await screen.findByRole("tab", { name: /^health$/i }));
     await screen.findByText(/everything in order · checked/i);
-    await userEvent.click(screen.getByRole("tab", { name: /general/i }));
-    await userEvent.click(screen.getByRole("tab", { name: /maintenance/i }));
+    await userEvent.click(screen.getByRole("tab", { name: /^overview$/i }));
+    await userEvent.click(screen.getByRole("tab", { name: /^health$/i }));
 
     expect(await screen.findByText(/everything in order · checked/i)).toBeTruthy();
     expect(sent("repeated_lists")).toHaveLength(1);
@@ -3379,7 +2919,7 @@ describe("Maintenance looking by itself", () => {
     ipc.answer = (cmd, args) =>
       cmd === "unvouched_attachments" ? Promise.reject({ code: "internal" }) : otherwise(cmd, args);
     shown();
-    await userEvent.click(await screen.findByRole("tab", { name: /maintenance/i }));
+    await userEvent.click(await screen.findByRole("tab", { name: /^health$/i }));
 
     expect(await screen.findByText(t("reviewPartly"))).toBeTruthy();
     expect(screen.queryByText(/everything in order · checked/i)).toBeNull();
@@ -3389,7 +2929,7 @@ describe("Maintenance looking by itself", () => {
     const otherwise = ipc.answer;
     ipc.answer = (cmd, args) => (cmd === "checked" ? new Promise(() => {}) : otherwise(cmd, args));
     shown();
-    await userEvent.click(await screen.findByRole("tab", { name: /maintenance/i }));
+    await userEvent.click(await screen.findByRole("tab", { name: /^health$/i }));
 
     const button = await screen.findByRole("button", { name: t("reviewing") });
     expect((button as HTMLButtonElement).disabled).toBe(true);
@@ -3425,15 +2965,17 @@ describe("Maintenance looking by itself", () => {
     await waitFor(() => expect(sent("checked")).toHaveLength(2));
   });
 
-  it("keeps the tools folded until asked", async () => {
+  it("rebuilds the quick index from one place, and says beside it whether it agrees", async () => {
     shown();
     await upkeep();
 
-    const tools = screen.getByText(t("tools")).closest("details");
-    expect(tools?.open).toBe(false);
-    expect(
-      within(tools as HTMLElement).getByRole("button", { name: t("reviewRedo") }),
-    ).toBeTruthy();
+    expect(screen.getAllByRole("button", { name: t("reviewRedo") })).toHaveLength(1);
+    expect(screen.getByText(t("tools"))).toBeTruthy();
+    expect(await screen.findByText(t("cacheAgrees"))).toBeTruthy();
+
+    await userEvent.click(screen.getByRole("button", { name: t("reviewRedo") }));
+    await waitFor(() => expect(sent("rebuild")).toHaveLength(1));
+    expect(await screen.findByText(t("reviewRebuilt"))).toBeTruthy();
   });
 
   it("says the report in one line, and opens it only when asked", async () => {
@@ -3451,9 +2993,9 @@ describe("opening with the machine", () => {
   const notices = async () => {
     render(
       <Keeping
+        start="window"
         onPack={() => {}}
         onUnpack={() => {}}
-        onGreet={() => {}}
         onChanged={() => {}}
         onDoc={() => {}}
       />,
@@ -3494,15 +3036,18 @@ describe("opening with the machine", () => {
     expect(await screen.findByText(/Settings → Apps → Startup/i)).toBeTruthy();
   });
 
-  it("announces nothing when the system refused to hand the switch back", async () => {
+  it("holds the switch while the system has it, and offers the system's own page", async () => {
     rousing.theirs = true;
     await notices();
 
-    await userEvent.click(screen.getByRole("switch", { name: /open it at sign-in/i }));
-
-    await waitFor(() => expect(sent("wake_for").length).toBe(1));
-    expect(screen.queryByText(/next time you sign in/i)).toBeNull();
-    expect(screen.getByText(/Settings → Apps → Startup/i)).toBeTruthy();
+    const knob = screen.getByRole("switch", { name: /open it at sign-in/i }) as HTMLButtonElement;
+    expect(knob.disabled).toBe(true);
+    const note = screen
+      .getByText(/Settings → Apps → Startup/i)
+      .closest("[data-note]") as HTMLElement;
+    expect(note.getAttribute("data-note")).toBe("sys");
+    expect(within(note).getByRole("button", { name: t("wakeOpenWindows") })).toBeTruthy();
+    expect(sent("wake_for")).toHaveLength(0);
   });
 
   it("offers nothing where nothing can be offered", async () => {
@@ -3526,15 +3071,7 @@ describe("documents on disk the log does not name", () => {
   };
 
   const opened = async () => {
-    render(
-      <Keeping
-        onPack={() => {}}
-        onUnpack={() => {}}
-        onGreet={() => {}}
-        onChanged={() => {}}
-        onDoc={() => {}}
-      />,
-    );
+    render(<Keeping onPack={() => {}} onUnpack={() => {}} onChanged={() => {}} onDoc={() => {}} />);
     await upkeep();
   };
 
@@ -3561,9 +3098,11 @@ describe("documents on disk the log does not name", () => {
     strayed();
     await opened();
 
-    asked.sure = false;
     await userEvent.click(await screen.findByRole("button", { name: /delete for good/i }));
-    await waitFor(() => expect(asked.said).toMatch(/for good/i));
+    const dialog = await screen.findByRole("dialog");
+    expect(dialog.textContent).toMatch(/for good/i);
+    expect(within(dialog).getByText(t("carefulDocLead"))).toBeTruthy();
+    await careful(t("cancel"));
     expect(sent("doc_let_go")).toHaveLength(0);
   });
 
@@ -3575,18 +3114,19 @@ describe("documents on disk the log does not name", () => {
 });
 
 describe("letting an assistant file work here", () => {
-  const openTab = async () => {
+  const openTab = async (shelf?: RegExp, onHelp?: () => void) => {
     render(
       <Keeping
         onPack={() => {}}
         onUnpack={() => {}}
-        onGreet={() => {}}
         onChanged={() => {}}
         onDoc={() => {}}
+        onHelp={onHelp}
       />,
     );
     await sync();
-    await userEvent.click(screen.getByRole("tab", { name: /assistants/i }));
+    await userEvent.click(screen.getByRole("tab", { name: /^assistants$/i }));
+    if (shelf) await userEvent.click(await screen.findByRole("tab", { name: shelf }));
   };
 
   it("says nothing can file here until the person turns one on", async () => {
@@ -3596,16 +3136,14 @@ describe("letting an assistant file work here", () => {
     expect(screen.getByRole("button", { name: /Let an assistant file here/i })).toBeTruthy();
   });
 
-  it("points to how assistants work with Tisty, on the site", async () => {
-    await openTab();
+  it("leaves how assistants work to the page's own link to the help", async () => {
+    const onHelp = vi.fn();
+    await openTab(undefined, onHelp);
 
-    await userEvent.click(
-      await screen.findByRole("button", { name: /How assistants work with Tisty/i }),
-    );
+    expect(screen.queryByRole("button", { name: /How assistants work with Tisty/i })).toBeNull();
+    await userEvent.click(screen.getByRole("button", { name: /^How it works/ }));
 
-    await waitFor(() =>
-      expect(sent("open_link")[0]?.args.url).toBe("https://www.tisty.app/docs/assistants-and-mcp/"),
-    );
+    expect(onHelp).toHaveBeenCalledWith({ slug: "assistants-and-mcp" });
   });
 
   it("registering is a click of the person's, never something that arrives over the wire", async () => {
@@ -3620,6 +3158,7 @@ describe("letting an assistant file work here", () => {
   });
 
   it("asks the assistant to keep its task up to date unless the person turns it off", async () => {
+    Object.assign(serving, { on: true, called: "espino 3" });
     await openTab();
 
     const asking = await screen.findByRole("switch", { name: /keep its task up to date/i });
@@ -3633,6 +3172,7 @@ describe("letting an assistant file work here", () => {
   });
 
   it("reminds the assistant when a turn starts and ends unless the person turns it off", async () => {
+    Object.assign(serving, { on: true, called: "espino 3" });
     await openTab();
 
     const reminding = await screen.findByRole("switch", { name: /when a turn starts and ends/i });
@@ -3646,16 +3186,18 @@ describe("letting an assistant file work here", () => {
   });
 
   it("lists the assistants on this computer, with the file each one reads", async () => {
-    await openTab();
+    await openTab(/^connected$/i);
 
     expect(await screen.findByText("Claude Code")).toBeTruthy();
     expect(screen.getByText("C:/Users/someone/.claude.json")).toBeTruthy();
-    expect(screen.getByText(/^Connected$/)).toBeTruthy();
+    expect(
+      within(document.getElementById("agents-shelf") as HTMLElement).getByText(/^Connected$/),
+    ).toBeTruthy();
     expect(screen.getByRole("button", { name: /^Connect$/ })).toBeTruthy();
   });
 
   it("connecting one writes into that assistant's own settings and asks for a restart", async () => {
-    await openTab();
+    await openTab(/^connected$/i);
 
     await userEvent.click(await screen.findByRole("button", { name: /^Connect$/ }));
 
@@ -3665,7 +3207,7 @@ describe("letting an assistant file work here", () => {
   });
 
   it("one already connected is taken back out rather than written twice", async () => {
-    await openTab();
+    await openTab(/^connected$/i);
 
     await userEvent.click(await screen.findByRole("button", { name: /^Remove$/ }));
 
@@ -3686,7 +3228,7 @@ describe("letting an assistant file work here", () => {
       },
     ];
 
-    await openTab();
+    await openTab(/^connected$/i);
 
     expect(await screen.findByText(/Points at another Tisty/i)).toBeTruthy();
     await userEvent.click(screen.getByRole("button", { name: /^Fix$/ }));
@@ -3710,7 +3252,7 @@ describe("letting an assistant file work here", () => {
       { via: null, named: "", wired: null, filed: 132, wrote: 570, last: "2026-09-10T10:00:00Z" },
     ];
     try {
-      await openTab();
+      await openTab(/^connected$/i);
 
       const claude = await screen.findByText("Claude Code");
       expect(claude.parentElement?.textContent).toContain("27 filed");
@@ -3729,7 +3271,7 @@ describe("letting an assistant file work here", () => {
   it("with none of them installed it says so instead of showing an empty list", async () => {
     installed.seen = [];
 
-    await openTab();
+    await openTab(/^connected$/i);
 
     expect(await screen.findByText(/knows its way around/i)).toBeTruthy();
   });
@@ -3750,7 +3292,7 @@ describe("letting an assistant file work here", () => {
       { via: null, named: "", wired: null, filed: 132, wrote: 570, last: "2026-09-10T10:00:00Z" },
     ];
     try {
-      await openTab();
+      await openTab(/^connected$/i);
 
       const codex = await screen.findByText("Codex");
       expect(codex.parentElement?.textContent).toContain("40 filed");
@@ -3769,10 +3311,60 @@ describe("letting an assistant file work here", () => {
     await openTab();
 
     expect(await screen.findByText(/An assistant can file work here/i)).toBeTruthy();
-    expect(screen.getByText(/Complete, reopen, drop or delete a task/i)).toBeTruthy();
     expect(screen.getByText(/your undo never reaches what it filed/i)).toBeTruthy();
+
+    await userEvent.click(screen.getByRole("tab", { name: /^what it can and cannot do$/i }));
+    const never = screen.getByRole("region", { name: t("agentsCannotTitle") });
+    expect(within(never).getByText("Complete, reopen, drop or delete a task")).toBeTruthy();
+    expect(within(never).getAllByRole("listitem")).toHaveLength(
+      t("agentsCannot").split(" · ").length,
+    );
+
+    await userEvent.click(screen.getByRole("tab", { name: /^connected$/i }));
     expect(screen.getByText(/"mcpServers"/)).toBeTruthy();
     expect(screen.getByText(/mcp add tisty/)).toBeTruthy();
+  });
+
+  it("keeps the assistants on five shelves, and opens on the door", async () => {
+    await openTab();
+
+    const shelves = screen.getByRole("tablist", { name: /^assistants$/i });
+    expect(
+      within(shelves)
+        .getAllByRole("tab")
+        .map((one) => one.textContent),
+    ).toEqual([
+      "Door",
+      "Connected",
+      "Agents folder",
+      "How its signature looks",
+      "What it can and cannot do",
+    ]);
+    expect(within(shelves).getByRole("tab", { name: "Door" }).getAttribute("aria-selected")).toBe(
+      "true",
+    );
+    expect(screen.queryByText(t("wiringTitle"))).toBeNull();
+  });
+
+  it("previews how a row names the assistant as the switches change", async () => {
+    credit("rows", false);
+    credit("mark", false);
+    await openTab(/^how its signature looks$/i);
+
+    const preview = screen.getByTestId("credit-preview");
+    expect(screen.getByText(t("creditPreviewTask"))).toBeTruthy();
+    expect(preview.textContent).toBe("by an agent");
+
+    await userEvent.click(screen.getByRole("switch", { name: t("creditRows") }));
+    expect(preview.textContent).toBe("by Claude Code");
+
+    await userEvent.click(screen.getByRole("switch", { name: t("creditMark") }));
+    expect(preview.textContent).toBe("◆");
+    expect(screen.getByRole("switch", { name: t("creditRows") }).hasAttribute("disabled")).toBe(
+      true,
+    );
+    credit("rows", false);
+    credit("mark", false);
   });
 });
 
@@ -3803,15 +3395,7 @@ describe("documents the log names with no file", () => {
   };
 
   const opened = async () => {
-    render(
-      <Keeping
-        onPack={() => {}}
-        onUnpack={() => {}}
-        onGreet={() => {}}
-        onChanged={() => {}}
-        onDoc={() => {}}
-      />,
-    );
+    render(<Keeping onPack={() => {}} onUnpack={() => {}} onChanged={() => {}} onDoc={() => {}} />);
     await upkeep();
   };
 
@@ -3828,13 +3412,13 @@ describe("documents the log names with no file", () => {
     gone(false);
     await opened();
 
-    asked.sure = false;
     await userEvent.click(await screen.findByRole("button", { name: /delete on every computer/i }));
-    await waitFor(() => expect(asked.said).toMatch(/for good/i));
+    expect((await screen.findByRole("dialog")).textContent).toMatch(/for good/i);
+    await careful(t("cancel"));
     expect(sent("doc_drop")).toHaveLength(0);
 
-    asked.sure = true;
     await userEvent.click(screen.getByRole("button", { name: /delete on every computer/i }));
+    await careful(t("carefulDocGo"));
     await waitFor(() => expect(sent("doc_drop")).toHaveLength(1));
     expect(sent("doc_drop")[0]?.args.id).toBe("01M1ER4WK1E6BZJF2S9H9V0KYB");
   });
@@ -3842,32 +3426,27 @@ describe("documents the log names with no file", () => {
 
 describe("taking every loose attachment out at once", () => {
   const opened = async () => {
-    render(
-      <Keeping
-        onPack={() => {}}
-        onUnpack={() => {}}
-        onGreet={() => {}}
-        onChanged={() => {}}
-        onDoc={() => {}}
-      />,
-    );
-    await upkeep();
+    render(<Keeping onPack={() => {}} onUnpack={() => {}} onChanged={() => {}} onDoc={() => {}} />);
+    await storage();
   };
 
-  it("says how many before it takes any, and takes none when told no", async () => {
+  it("says how many and where they go before it takes any, and takes none when told no", async () => {
     await opened();
 
-    asked.sure = false;
     await userEvent.click(await screen.findByRole("button", { name: /move 3 to the bin/i }));
-    await waitFor(() => expect(asked.said).toMatch(/3/));
+    const asking = await screen.findByRole("dialog");
+    expect(asking.textContent).toContain(fill("carefulLooseTitle", "3"));
+    expect(asking.textContent).toContain(t("carefulLooseLead"));
+    expect(asking.textContent).toContain(t("carefulLooseOne"));
+    await careful(t("cancel"));
     expect(sent("retire_attachments")).toHaveLength(0);
   });
 
   it("takes each one out and looks again afterwards", async () => {
     await opened();
 
-    asked.sure = true;
     await userEvent.click(await screen.findByRole("button", { name: /move 3 to the bin/i }));
+    await careful(t("carefulLooseGo"));
     await waitFor(() => expect(sent("retire_attachments")).toHaveLength(1));
     const references = sent("retire_attachments")[0]?.args.references as string[];
     expect(references).toHaveLength(3);
@@ -3876,15 +3455,7 @@ describe("taking every loose attachment out at once", () => {
 
   it("will not offer a copy that is past what one file holds", async () => {
     carrying.weight = 9 * 1024 * 1024 * 1024;
-    render(
-      <Keeping
-        onPack={() => {}}
-        onUnpack={() => {}}
-        onGreet={() => {}}
-        onChanged={() => {}}
-        onDoc={() => {}}
-      />,
-    );
+    render(<Keeping onPack={() => {}} onUnpack={() => {}} onChanged={() => {}} onDoc={() => {}} />);
 
     await data();
 
@@ -3896,15 +3467,7 @@ describe("taking every loose attachment out at once", () => {
 
   it("says which folder it stopped sharing with when a restore let one go", async () => {
     carrying.sharedWas = "G:/My Drive/tisty";
-    render(
-      <Keeping
-        onPack={() => {}}
-        onUnpack={() => {}}
-        onGreet={() => {}}
-        onChanged={() => {}}
-        onDoc={() => {}}
-      />,
-    );
+    render(<Keeping onPack={() => {}} onUnpack={() => {}} onChanged={() => {}} onDoc={() => {}} />);
 
     await sync();
 
@@ -3914,15 +3477,7 @@ describe("taking every loose attachment out at once", () => {
 
   it("says what a restore let go was a way it cannot name, without naming a folder", async () => {
     carrying.sharedWasLater = true;
-    render(
-      <Keeping
-        onPack={() => {}}
-        onUnpack={() => {}}
-        onGreet={() => {}}
-        onChanged={() => {}}
-        onDoc={() => {}}
-      />,
-    );
+    render(<Keeping onPack={() => {}} onUnpack={() => {}} onChanged={() => {}} onDoc={() => {}} />);
 
     await sync();
 
@@ -3933,15 +3488,7 @@ describe("taking every loose attachment out at once", () => {
   it("says a way a newer version chose is not known here, and offers no way to replace it", async () => {
     carrying.later = true;
     carrying.sharedWas = "G:/My Drive/tisty";
-    render(
-      <Keeping
-        onPack={() => {}}
-        onUnpack={() => {}}
-        onGreet={() => {}}
-        onChanged={() => {}}
-        onDoc={() => {}}
-      />,
-    );
+    render(<Keeping onPack={() => {}} onUnpack={() => {}} onChanged={() => {}} onDoc={() => {}} />);
 
     await sync();
 
@@ -3949,5 +3496,115 @@ describe("taking every loose attachment out at once", () => {
     expect(screen.queryByText(/not sharing since you restored/i)).toBeNull();
     expect(screen.queryByRole("button", { name: t("turnSyncOn") })).toBeNull();
     expect(screen.queryByText(t("noDestination"))).toBeNull();
+  });
+});
+
+describe("the settings search index", () => {
+  const SHELVES = [
+    ["door", /^door$/i],
+    ["wired", /^connected$/i],
+    ["folder", /^agents folder$/i],
+    ["credit", /^how its signature looks$/i],
+    ["can", /^what it can and cannot do$/i],
+  ] as const;
+  const PAGES: Tab[] = [
+    "window",
+    "notices",
+    "writing",
+    "sync",
+    "security",
+    "copies",
+    "storage",
+    "agents",
+    "health",
+  ];
+
+  const drawn = (tab: Tab, shelf?: Shelf): string[] => {
+    const rows = [...document.querySelectorAll<HTMLElement>("[data-line], [data-card]")].filter(
+      (one) => !one.hasAttribute("data-item"),
+    );
+    for (const one of rows)
+      expect(one.dataset.setting, `${tab}: «${one.textContent?.slice(0, 50)}»`).toBeTruthy();
+    return [...document.querySelectorAll<HTMLElement>("[data-setting]")].map((one) => {
+      const id = one.dataset.setting as RowId;
+      const row: Row | undefined = ROWS[id];
+      expect(row, id).toBeTruthy();
+      expect(row.page, id).toBe(tab);
+      if (shelf) expect(row.shelf, id).toBe(shelf);
+      const said = `${one.textContent ?? ""} ${one.getAttribute("aria-label") ?? ""}`;
+      const named = [row.title, ...(row.words ?? [])].some((key) => said.includes(t(key)));
+      expect(named, `${id} shows its title`).toBe(true);
+      return id;
+    });
+  };
+
+  const settle = () => new Promise((done) => setTimeout(done, 40));
+
+  const visit = async (pages = PAGES): Promise<string[]> => {
+    const seen: string[] = [];
+    for (const tab of pages) {
+      const { unmount } = render(
+        <Keeping
+          start={tab}
+          onPack={() => {}}
+          onUnpack={() => {}}
+          onChanged={() => {}}
+          onDoc={() => {}}
+          hidden={<HiddenFolders papers={{ folders: [], docs: [] }} />}
+        />,
+      );
+      await ready();
+      await waitFor(() => expect(document.querySelector("[data-setting]")).toBeTruthy());
+      await settle();
+      if (tab !== "agents") seen.push(...drawn(tab));
+      else
+        for (const [shelf, name] of SHELVES) {
+          await userEvent.click(screen.getByRole("tab", { name }));
+          await settle();
+          seen.push(...drawn(tab, shelf));
+        }
+      unmount();
+    }
+    return seen;
+  };
+
+  it("holds every row a page draws, alone and synced, the door shut and open", async () => {
+    const alone = await visit();
+    carrying.chosen = "C:/Users/someone/OneDrive/Tisty";
+    Object.assign(serving, { on: true, called: "espino 3" });
+    const synced = await visit();
+    carrying.freesSpace = true;
+    const clouded = await visit(["storage"]);
+
+    const seen = new Set([...alone, ...synced, ...clouded, ...DRAWN_BY_THEIR_OWN_TESTS]);
+    const unseen = ROW_IDS.filter((id) => ROWS[id].page !== "about" && !seen.has(id));
+    expect(unseen).toEqual([]);
+  });
+
+  it("holds every row the about page draws", async () => {
+    const before = ipc.answer;
+    ipc.answer = (cmd, args) =>
+      cmd === "about"
+        ? Promise.resolve({
+            version: "1.49.0",
+            sandbox: null,
+            repository: "",
+            license: "AGPL-3.0-only",
+            store: "",
+            candidates: false,
+            candidatesApply: true,
+            keptByTheStore: false,
+          })
+        : before(cmd, args);
+    render(
+      <About
+        ready={{ version: "1.50.0", route: "download", installs: true }}
+        onError={() => {}}
+        help={<HelpBand onGreet={() => {}} onDoc={() => {}} onChanged={() => {}} />}
+      />,
+    );
+    await waitFor(() => expect(document.querySelector('[data-setting="candidates"]')).toBeTruthy());
+    const seen = new Set(drawn("about"));
+    expect(ROW_IDS.filter((id) => ROWS[id].page === "about" && !seen.has(id))).toEqual([]);
   });
 });

@@ -1,22 +1,22 @@
 import { useEffect, useState } from "react";
 import { type Door, keepShortcut, shortcut, shortcutsOffered } from "../core";
 import { t } from "../locales";
+import type { RowId } from "../settingsRows";
 import type { Run, Which, Word } from "./Card";
 import { Line, off } from "./Rows";
 
 interface Props {
   door: Door;
   which: Which;
-  title: string;
+  row: RowId;
   why: string;
   label: string;
   ready: boolean;
   keys: string | null;
   chosen?: string;
   held: boolean;
-  said?: Word;
-  trouble?: Word;
   run: Run;
+  tell: (word?: Word) => void;
   onKeys: (keys: string | null) => void;
   onChosen: (wanted: string) => void;
 }
@@ -24,16 +24,15 @@ interface Props {
 export default function ShortcutLine({
   door,
   which,
-  title,
+  row,
   why,
   label,
   ready,
   keys,
   chosen,
   held,
-  said,
-  trouble,
   run,
+  tell,
   onKeys,
   onChosen,
 }: Props) {
@@ -46,7 +45,7 @@ export default function ShortcutLine({
   const chosenOff = chosen === "off";
 
   return (
-    <Line title={title} why={why} which={which} said={said} trouble={trouble}>
+    <Line row={row} why={why} which={which}>
       {ready && (
         <select
           aria-label={label}
@@ -61,7 +60,10 @@ export default function ShortcutLine({
                   .then(onKeys)
                   .catch(() => {});
               }),
-              () => onChosen(wanted),
+              () => {
+                onChosen(wanted);
+                tell({ card: which, text: t("settingsKept") });
+              },
             );
           }}
           className={`rounded-[10px] border border-line bg-bg px-2 py-1 text-[12.5px] ${off}`}

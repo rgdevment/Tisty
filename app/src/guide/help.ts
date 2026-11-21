@@ -1,5 +1,5 @@
 import { folded } from "../folding";
-import type { Chosen } from "../views";
+import type { Chosen, Tab } from "../views";
 import type { HelpEntry, HelpPictures } from "./calls";
 import type { Topic } from "./reference";
 
@@ -29,28 +29,43 @@ const twice = (en: string, es: string, enHead?: string, esHead?: string): Twice 
 
 const SYNC = ["sync-and-backup", "sincronizar-y-respaldar"] as const;
 
-const SUGGESTED: Record<string, Twice[]> = {
-  "keeping:sync": [
+const SHORTCUTS = twice("keyboard-shortcuts", "atajos-de-teclado");
+const FAQ = twice("faq", "preguntas-frecuentes");
+const SETTINGS = ["settings", "configuracion"] as const;
+
+const KEEPING: Record<Tab, Twice[]> = {
+  summary: [
+    twice(...SETTINGS, "Overview", "Resumen"),
+    twice(...SETTINGS, "Search a setting", "Buscar un ajuste"),
+    FAQ,
+  ],
+  window: [twice(...SETTINGS, "Look and window", "Aspecto y ventana"), SHORTCUTS],
+  notices: [SHORTCUTS, twice("spread-and-reminders", "reparto-y-recordatorios")],
+  writing: [twice("documents", "documentos"), twice("privacy", "privacidad")],
+  sync: [
     twice(...SYNC, "A place that already holds a Tisty", "Un lugar que ya guarda un Tisty"),
     twice(...SYNC, "Confirming your machines", "Confirmar tus equipos"),
     twice(...SYNC),
   ],
-  "keeping:security": [
+  security: [
     twice(...SYNC, "Encrypting your cloud", "Cifrar tu nube"),
     twice(...SYNC, "Your other computers", "Tus otros equipos"),
     twice(...SYNC, "Keep the phrase safe", "Guarda bien la frase"),
   ],
-  "keeping:data": [twice(...SYNC, "Backups", "Respaldos"), twice("privacy", "privacidad")],
-  "keeping:agents": [
+  copies: [twice(...SYNC, "Backups", "Respaldos"), twice("privacy", "privacidad")],
+  storage: [twice("privacy", "privacidad"), FAQ],
+  agents: [
     twice("assistants-and-mcp", "asistentes-y-mcp"),
     twice("mcp-permissions", "que-puede-hacer-un-asistente"),
     twice("mcp-tools", "herramientas-mcp"),
     twice("agents-folder", "carpeta-agents"),
   ],
-  "keeping:general": [
-    twice("keyboard-shortcuts", "atajos-de-teclado"),
-    twice("faq", "preguntas-frecuentes"),
-  ],
+  health: [twice(...SETTINGS, "Health", "Salud"), FAQ],
+  about: [twice(...SETTINGS), FAQ, twice("privacy", "privacidad")],
+};
+
+const SUGGESTED: Record<string, Twice[]> = {
+  ...Object.fromEntries(Object.entries(KEEPING).map(([tab, all]) => [`keeping:${tab}`, all])),
   docs: [
     twice("documents", "documentos"),
     twice("markdown-editor", "editor-markdown"),
@@ -69,7 +84,7 @@ export const cameFrom = (chosen: Chosen): string =>
   chosen.named === "help"
     ? (chosen.from ?? "tasks")
     : chosen.named === "keeping"
-      ? `keeping:${chosen.tab ?? "general"}`
+      ? `keeping:${chosen.tab ?? "summary"}`
       : (chosen.named ?? "tasks");
 
 export const suggestedFor = (from: string | undefined, spanish: boolean): Suggested[] =>

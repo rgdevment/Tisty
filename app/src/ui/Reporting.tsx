@@ -4,24 +4,24 @@ import { copied, facts, keepReport, logs } from "../core";
 import { fill, t } from "../locales";
 import { saidPlainly } from "../refusal";
 import { written } from "../report";
-import type { Run, Which, Word } from "./Card";
+import type { Run, Word } from "./Card";
 import Modal from "./Modal";
+import { Feedback } from "./RowNotes";
 import { mild, strong } from "./Rows";
+import { held as isHeld, type Working } from "./working";
 
 const TAIL = 300;
 const LOGS = "\n--- tisty.log ---";
 
 interface Props {
-  busy: Which | null;
-  said?: Word;
-  trouble?: Word;
+  busy: Working;
   tell: (word?: Word) => void;
   fail: (word?: Word) => void;
   quietly: Run;
 }
 
-export default function Reporting({ busy, said, trouble, tell, fail, quietly }: Props) {
-  const held = busy !== null;
+export default function Reporting({ busy, tell, fail, quietly }: Props) {
+  const held = isHeld(busy, "report");
   const [told, setTold] = useState({ names: false, paths: false, logs: true });
   const [paper, setPaper] = useState<string | null>(null);
 
@@ -45,8 +45,6 @@ export default function Reporting({ busy, said, trouble, tell, fail, quietly }: 
 
   const saveReport = () => {
     if (held) return;
-    tell(undefined);
-    fail(undefined);
     Promise.all([
       save({ defaultPath: "tisty-report.zip", filters: [{ name: "Tisty", extensions: ["zip"] }] }),
       paper !== null ? Promise.resolve(paper) : compose(),
@@ -54,8 +52,10 @@ export default function Reporting({ busy, said, trouble, tell, fail, quietly }: 
       .then(([at, text]) => {
         setPaper(text);
         if (typeof at !== "string") return;
-        quietly("report", keepReport(at, text, told.logs), () =>
-          tell({ card: "report", text: fill("reportKept", at) }),
+        quietly(
+          "report",
+          () => keepReport(at, text, told.logs),
+          () => tell({ card: "report", text: fill("reportKept", at) }),
         );
       })
       .catch((e) => fail({ card: "report", text: saidPlainly(e) }));
@@ -138,10 +138,7 @@ export default function Reporting({ busy, said, trouble, tell, fail, quietly }: 
           {t("reportCopy")}
         </button>
       </div>
-      {trouble?.card === "report" && (
-        <p className="mt-2 text-[11.5px] text-urgent">{trouble.text}</p>
-      )}
-      {said?.card === "report" && <p className="mt-2 text-[11.5px] text-faint">{said.text}</p>}
+      <Feedback which="report" />
     </>
   );
 }

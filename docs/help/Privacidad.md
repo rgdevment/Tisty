@@ -13,7 +13,7 @@ Todo vive en una carpeta de tu disco:
 - **Tareas y eventos**: JSONL en texto plano, un registro que solo crece. Se lee con `cat`, se busca con `grep` y se procesa con `jq`.
 - **Documentos**: archivos Markdown normales.
 - **Agentes, si la usas**: las reglas, skills y memoria de tus asistentes, como documentos. Si la sincronizas, Tisty escribe además, fuera de esta carpeta, los archivos que lee cada asistente ([qué lee y cuándo](#tus-asistentes-en-agentes)).
-- **Versiones anteriores de tus documentos**: Markdown como los documentos, en la carpeta `history`. Cada una se guarda 30 días desde que fue reemplazada, o lo que elijas en **Configuración › Tus datos**; la más reciente de cada documento, y lo que te devolvería **Volver a lo que decía antes**, no vencen. Se quedan en este equipo: nunca se sincronizan ni van en un paquete, pero sí en tus respaldos. [Cómo funcionan](Documentos#versiones-anteriores).
+- **Versiones anteriores de tus documentos**: Markdown como los documentos, en la carpeta `history`. Cada una se guarda 30 días desde que fue reemplazada, o lo que elijas en **Configuración › Documentos y firma › Guardar las versiones anteriores**; la más reciente de cada documento, y lo que te devolvería **Volver a lo que decía antes**, no vencen. Se quedan en este equipo: nunca se sincronizan ni van en un paquete, pero sí en tus respaldos. [Cómo funcionan](Documentos#versiones-anteriores).
 - **Tu diario**: Markdown como cualquier documento, un libro por año. Ningún agente lo ve hasta que lo abres desde el propio Diario, en Tisty 1.48 o más nuevo; nunca se comparte por link, y viaja con tu sincronización y tus respaldos como lo demás, y dentro de un paquete `.tistyx` cuando exportas todo.
 - **Adjuntos**: los archivos tal cual, sin modificar.
 - **La base de Brainsty**: cómo se unen tus cosas, las palabras de peso de cada documento y tarea y qué cosas se parecen, en la caché de este equipo. Se rehace sola con lo que guardas, así que no se sincroniza ni va en un paquete, a Folio o a una exportación. Tampoco va en tus respaldos. Las tareas ocultas y las descartadas, tu Diario y los documentos de Agentes no dejan ahí palabras, y de lo demás solo cuenta la prosa: ni el código, ni las rutas, ni las notas de avance de una tarea. [Cómo funciona](Red-de-Brainsty#parecidos).
@@ -58,7 +58,7 @@ Nada está ofuscado, y nada está en un formato que solo Tisty sepa leer.
 
 **Solo cuando tú lo pides:**
 
-- **Actualizar**, en *Acerca de*, descarga el archivo de la versión y el instalador, y Tisty rechaza cualquier cosa que no esté firmada con la clave que lleva tu copia.
+- **Actualizar**, en **Configuración › Ayuda y acerca de**, descarga el archivo de la versión y el instalador, y Tisty rechaza cualquier cosa que no esté firmada con la clave que lleva tu copia.
 - **Traer la vista previa** en una [tarjeta de enlace](https://markdown.tisty.app/es/enlaces) le pregunta a esa página una vez por su título y su imagen.
 - **La ayuda** dentro de Tisty (el `?` al pie de la barra lateral) viene con tu versión y no pide nada. Su guía **Markdown de Tisty** (también `F1` mientras escribes) la lee desde [markdown.tisty.app](https://markdown.tisty.app/es/), así que siempre es la última; sin conexión, muestra la copia que trae tu versión. Sus imágenes se descargan desde GitHub solo cuando pulsas **Descargar** sobre la ayuda.
 - **Mostrarlas**, en la línea sobre un archivo Markdown abierto desde afuera, le pide a cada dirección que nombra el archivo su imagen, una petición por imagen. No se trae nada hasta que lo pulsas, vuelve a preguntar cada vez que abres el archivo y rechaza una dirección de este equipo o de tu propia red. Es solo del visor: un documento de tu almacén no dibuja imágenes de internet.
@@ -82,7 +82,7 @@ Un [widget](Widgets-en-documentos) no ejecuta nada ni nombra nada fuera de sí m
 
 **Tu frase de 24 palabras.** Es el respaldo de tu identidad: con ella, tus otros computadores firman como tú. Guárdala fuera de Tisty, en papel o en un PDF aparte. Si pierdes la frase y todos tus computadores, la identidad no se puede recuperar. Nadie de Tisty ni de Folio te la pedirá nunca.
 
-**Si pierdes un computador.** Quítalo en Configuración › Seguridad, en **Tu identidad**. Su llave deja de valer, y Folio avisa a quien lea lo que firmó después de eso.
+**Si pierdes un computador.** Quítalo en **Configuración › Seguridad**, en **Tus equipos**, con **Quitar**. Su llave deja de valer, y Folio avisa a quien lea lo que firmó después de eso.
 
 ## Tus asistentes en Agentes
 
@@ -90,7 +90,7 @@ En la carpeta **Agentes** guardas como documentos las reglas, las skills y la me
 
 **Qué lee y cuándo**
 
-- **Agentes en gris en la barra, y su tarjeta en Configuración › Asistentes** antes de traer nada, solo miran si existe la carpeta de cada asistente, como `~/.claude` o `~/.codex`, para decirte cuáles encontró. No miran nada de adentro.
+- **Agentes en gris en la barra, y su tarjeta en Configuración › Asistentes › Carpeta Agentes** antes de traer nada, solo miran si existe la carpeta de cada asistente, como `~/.claude` o `~/.codex`, para decirte cuáles encontró. No miran nada de adentro.
 - **Cuando haces clic en Agentes y se abre el aviso de la primera vez**, Tisty solo mira qué archivos hay en las carpetas de tus asistentes, con su nombre y su tamaño, para mostrarte la lista. No abre ninguno, y los que empiezan con un punto ni siquiera los lista. Cerrar el aviso con la X o `Esc` no lee nada más.
 - **Al entrar en Agentes, también en un equipo que todavía no te dio permiso**, por ejemplo uno al que Agentes llegó traída desde otro equipo, Tisty hace esa misma lista, para saber si hay algo que preguntarte: solo nombres y tamaños, sin abrir ningún archivo. **Buscar de nuevo** en ese equipo hace la misma lista para mostrarte el aviso de la primera vez, y tampoco abre nada antes de tu **Traer** o tu **Traer y sincronizar**.
 - **Con Traer o Traer y sincronizar**, abre solo los archivos que marcaste en esa lista y los trae como documentos. Ese permiso vale para este equipo: cada equipo tuyo pide el suyo.
@@ -113,17 +113,17 @@ En la carpeta **Agentes** guardas como documentos las reglas, las skills y la me
 
 **Dejar de sincronizar sin perder nada**
 
-Con **Traer y sincronizar** o **Sincronizar**, la sincronización queda activa en este equipo, y puedes pausarla para un asistente o dejar de sincronizar toda la carpeta, con **Dejar de sincronizar** en su botón derecho o en Configuración › Asistentes: ningún archivo de tus asistentes se toca y ningún documento se borra. Sin sincronizar u oculta de la barra, Agentes no escribe ningún archivo de tus asistentes. En pausa, Tisty no abre ni escribe esos archivos por su cuenta: quedan como los dejó la última escritura, y tus documentos siguen en Tisty. La pausa es de este equipo. Si sacas una regla de Agentes mientras sincroniza, Tisty te pregunta si quitas también su archivo: solo lo borra si dices que sí, y antes guarda un respaldo en este equipo. Si sacas todos los documentos, primero te pregunta lo mismo por cada archivo, y después la carpeta desaparece de Tisty y Agentes vuelve a la barra en gris, sin traer; lo que elegiste dejar queda como estaba. Tisty nunca vacía un archivo de un asistente, y nunca borra uno sin preguntarte.
+Con **Traer y sincronizar** o **Sincronizar**, la sincronización queda activa en este equipo, y puedes pausarla para un asistente o dejar de sincronizar toda la carpeta, con **Dejar de sincronizar** en su botón derecho o en Configuración › Asistentes › Carpeta Agentes: ningún archivo de tus asistentes se toca y ningún documento se borra. Sin sincronizar u oculta de la barra, Agentes no escribe ningún archivo de tus asistentes. En pausa, Tisty no abre ni escribe esos archivos por su cuenta: quedan como los dejó la última escritura, y tus documentos siguen en Tisty. La pausa es de este equipo. Si sacas una regla de Agentes mientras sincroniza, Tisty te pregunta si quitas también su archivo: solo lo borra si dices que sí, y antes guarda un respaldo en este equipo. Si sacas todos los documentos, primero te pregunta lo mismo por cada archivo, y después la carpeta desaparece de Tisty y Agentes vuelve a la barra en gris, sin traer; lo que elegiste dejar queda como estaba. Tisty nunca vacía un archivo de un asistente, y nunca borra uno sin preguntarte.
 
 **Los hooks de tus asistentes**
 
-- Agentes nunca toca los archivos de ajustes de tus asistentes. Los hooks sí, y solo cuando tú los pides: en **Configuración › Asistentes**, **Agregar** te dice qué archivo va a escribir y, con tu sí, pone ahí los hooks de Tisty, sin tocar el resto de ese archivo. **Quitar** los saca.
+- Agentes nunca toca los archivos de ajustes de tus asistentes. Los hooks sí, y solo cuando tú los pides: en **Configuración › Asistentes › Conectados**, **Agregar** te dice qué archivo va a escribir y, con tu sí, pone ahí los hooks de Tisty, sin tocar el resto de ese archivo. **Quitar** los saca.
 - Con los hooks puestos, al empezar una sesión el asistente recibe las tareas que dejó abiertas y lo que cambió. Después de cada edición y de cada llamada a Tisty queda una marca en la caché de este equipo, sin leer la conversación, para saber si un turno editó archivos sin escribir nada en Tisty. Esas marcas no se sincronizan ni salen del equipo.
 
 ## Sin IA
 
 Tisty no usa IA ni aprendizaje automático sobre tus datos, y no le envía nada a ningún modelo. El lenguaje natural son reglas fijas en tu equipo.
 
-Lo mismo vale para los parecidos de [Brainsty](Red-de-Brainsty#parecidos). Cuando une «Pagar la cuenta del agua» con «Pay the water bill», no entiende ni traduce nada: busca cada palabra en una lista fija de parejas español–inglés, *pagar ≈ pay*, *agua ≈ water*, y cuenta las que coinciden. Esa lista sale del [Open Multilingual Wordnet 2.0](https://github.com/omwn/omw-data), hecho por lingüistas, viene dentro del instalador y nunca sale de tu equipo ni se busca en internet. No aprende de lo que escribes: es la misma para todos y solo cambia con una versión nueva de Tisty. Sus autores y su licencia están en **Configuración › Acerca de › Avisos de terceros**.
+Lo mismo vale para los parecidos de [Brainsty](Red-de-Brainsty#parecidos). Cuando une «Pagar la cuenta del agua» con «Pay the water bill», no entiende ni traduce nada: busca cada palabra en una lista fija de parejas español–inglés, *pagar ≈ pay*, *agua ≈ water*, y cuenta las que coinciden. Esa lista sale del [Open Multilingual Wordnet 2.0](https://github.com/omwn/omw-data), hecho por lingüistas, viene dentro del instalador y nunca sale de tu equipo ni se busca en internet. No aprende de lo que escribes: es la misma para todos y solo cambia con una versión nueva de Tisty. Sus autores y su licencia están en **Configuración › Ayuda y acerca de › Avisos de terceros**.
 
-Si conectas un asistente tuyo por [[MCP|Asistentes-y-MCP]], lo que lea se va adonde vaya ese asistente. Esa puerta viene abierta en una instalación nueva, y un clic en Configuración › Asistentes la cierra.
+Si conectas un asistente tuyo por [[MCP|Asistentes-y-MCP]], lo que lea se va adonde vaya ese asistente. Esa puerta viene abierta en una instalación nueva, y **Quitarle la voz**, en Configuración › Asistentes › Puerta, la cierra.
