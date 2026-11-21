@@ -142,8 +142,13 @@ vi.mock("../ui/Sheet", () => ({
     asking?: Asking;
   }) => {
     store.asking = asking ?? null;
-    if (!store.mute)
-      onShaped?.(store.shape ?? value.replace(/<[^>]+>/g, "").replace(/\n{3,}/g, "\n\n"));
+    // Stripped until nothing changes, so a tag rebuilt by the first pass is stripped too.
+    let untagged = value;
+    for (let was = ""; was !== untagged; ) {
+      was = untagged;
+      untagged = untagged.replace(/<[^>]+>/g, "");
+    }
+    if (!store.mute) onShaped?.(store.shape ?? untagged.replace(/\n{3,}/g, "\n\n"));
     return (
       <>
         {agent && above}
