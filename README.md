@@ -57,13 +57,18 @@
 [![M8ven Score](https://m8ven.ai/badge/mcp/rgdevment-tisty-15kwqt?v=aae81c3714d58416bc4db879fcf2f629&variant=verified)](https://m8ven.ai/mcp/rgdevment-tisty-15kwqt?s=readme)
 
   <p>
-    <img
-      src="assets/screens/readme/en-01-archive.webp"
-      width="92%"
-      alt="Tisty, the working memory you share with your AI agent: the archive
-      keeps every finished task with its steps and its journal, and you or
-      your agent can ask how did we solve this last time? to bring one back
-      as it was"/>
+    <picture>
+      <source
+        media="(prefers-color-scheme: dark)"
+        srcset="assets/screens/app/en-what-is-tisty-dark.webp"/>
+      <img
+        src="assets/screens/app/en-what-is-tisty-light.webp"
+        width="92%"
+        alt="Tisty, the working memory you share with your AI agent: the
+        guide's page What is Tisty? open in Tisty, with your tasks for today
+        and the Library on the left, and on the right its outline, the four
+        pages that link to it and its history on this computer"/>
+    </picture>
   </p>
 
   <h4>Download Tisty</h4>
@@ -123,6 +128,10 @@ review it and close it: nothing closes without you. All of it on your own disk,
 visual and easy for you to read, and for your agent a **local MCP server** that
 hands it an outline first, then only the section it needs.
 
+And if you would rather work in a more personal way, with no agent, Tisty serves
+you just the same: your tasks, your documents, your ideas and your diary, in
+sight and joined in Brainsty. The agent is one way to use it, not a condition.
+
 It is open source: read it, build it, run it, or take one of the signed
 releases already out there. Nothing is hidden and all of it can be audited.
 
@@ -147,7 +156,7 @@ productivity tool** that lives on your machine and nowhere else.
 - **Finishing keeps everything** — a closed task goes to the archive whole, and
   a search answers «how did we solve this?» with the line that says it.
 - **100% local** — your tasks, your journal and your documents live on your
-  computer and go only where you send them. No server of ours, no account. If
+  computer and go only where you send them. No server of mine, no account. If
   you sync two machines, you can ask Tisty to leave the largest attachments in
   that shared folder instead of carrying them onto every disk; it never does
   that unless you choose it.
@@ -245,7 +254,17 @@ waits in Ideas.
   to this version** brings it back. Each computer keeps its own, 30 days by
   default.
 
-![Diagrams that stay text: you draw the diagram and Tisty keeps it as Mermaid, inside Markdown that any editor opens and any agent reads, offline](assets/screens/readme/en-02-diagrams.webp)
+<picture>
+  <source
+    media="(prefers-color-scheme: dark)"
+    srcset="assets/screens/app/en-diagram-dark.webp"/>
+  <img
+    src="assets/screens/app/en-diagram-light.webp"
+    alt="Diagrams that stay text: the diagram window over the guide, with the
+    shapes on the left, the flowchart Will you do it, or read it again? in the
+    middle, and on the right the Mermaid text that goes into the document,
+    live"/>
+</picture>
 
 ### Ideas: a brainstorm at hand
 
@@ -264,7 +283,17 @@ waits in Ideas.
   ideas you keep; ask it to sort them and it groups them, turns one into a task
   or files it in its document, and only marks the old ones, for you to delete.
 
-![A quick thought, so you don't lose it: ideas of the moment as sticky notes in colours in Ideas, dated and written by hand, to sort out later into a task or a document](assets/screens/readme/en-03-brainstorm.webp)
+<picture>
+  <source
+    media="(prefers-color-scheme: dark)"
+    srcset="assets/screens/app/en-ideas-dark.webp"/>
+  <img
+    src="assets/screens/app/en-ideas-light.webp"
+    alt="A quick thought, so you don't lose it: Ideas as sticky notes in
+    colours, each with its date and minute, written by hand, such as Photos of
+    the Patagonia trip in the diary or Measure the token cost of each MCP tool,
+    to sort out later into a task or a document"/>
+</picture>
 
 ### Diary: what happened today
 
@@ -281,6 +310,18 @@ waits in Ideas.
   it. It is never shared through Folio.
 - **Still Markdown** — a book with `diary: on` in its properties, whose pages
   are the months.
+
+<picture>
+  <source
+    media="(prefers-color-scheme: dark)"
+    srcset="assets/screens/app/en-diary-dark.webp"/>
+  <img
+    src="assets/screens/app/en-diary-light.webp"
+    alt="The Diary on Friday 20: the box What happened today? on top and, below
+    it, the line of days, each with what was written and the tasks closed that
+    day folded, such as 2 tasks closed; in the sidebar, Diary 2026 with a page a
+    month"/>
+</picture>
 
 ### Tasks: what to do, who does it, how it was solved
 
@@ -309,7 +350,85 @@ waits in Ideas.
 - **The archive** — a closed task is kept whole, and a search answers «how did
   we solve this?» with the line that says it.
 
-![Urgent is not always important: each task in its quadrant of the Eisenhower matrix, do, schedule, delegate or minor, and above them how many are left to sort](assets/screens/readme/en-04-priorities.webp)
+<picture>
+  <source
+    media="(prefers-color-scheme: dark)"
+    srcset="assets/screens/app/en-task-page-dark.webp"/>
+  <img
+    src="assets/screens/app/en-task-page-light.webp"
+    alt="A page per task: Installer: test the update from the previous version,
+    with its list, date, deadline, priority and tags on top; Description, Done
+    when and Steps with three of seven ticked; and on the right Parts, What it
+    carries and The trail, from Born to each step done"/>
+</picture>
+
+<picture>
+  <source
+    media="(prefers-color-scheme: dark)"
+    srcset="assets/screens/app/en-priorities-dark.webp"/>
+  <img
+    src="assets/screens/app/en-priorities-light.webp"
+    alt="Urgent is not always important: each task in its quadrant of the
+    Eisenhower matrix, Do, Schedule, Delegate or Minor, each with its count, and
+    beside the title how many are left to classify"/>
+</picture>
+
+### Weekly review: the week in order
+
+What you capture piles up undecided unless you look back now and then.
+**Weekly review**, in the sidebar's row of views, gathers on one page what is
+worth a look once a week, in three stops, and each one shows ✓ once nothing
+waits in it.
+
+- **To decide** — tasks with no list, to give them a list or a day, complete
+  them or drop them, and the ideas still waiting in Ideas.
+- **Marked as past** — documents an agent marked as old, with its reason, for
+  you to archive, delete or unmark.
+- **Not opened in a while** — what you have not opened on this computer nor
+  written in 60 days, to open or archive.
+- **Every week, if you want** — **Remind me every week** files an ordinary task
+  that repeats and rings at the hour you choose, even with Tisty closed. Your
+  agent can walk it with you, but it never archives, deletes or closes anything
+  on its own.
+
+<picture>
+  <source
+    media="(prefers-color-scheme: dark)"
+    srcset="assets/screens/app/en-weekly-review-dark.webp"/>
+  <img
+    src="assets/screens/app/en-weekly-review-light.webp"
+    alt="Weekly review and its three stops: To decide, 38, with Open Ideas, 38
+    waiting; Marked as past, with its check and Nothing waits here; and Not
+    opened in a while, 14 documents, each with Archive"/>
+</picture>
+
+### The archive: how it was solved
+
+A finished task is not thrown away. It goes to the archive whole — its page with
+what you read, tried and ruled out, its steps, its journal and its files — and
+so does one you dropped.
+
+- **Search is the way in** — a word you remember brings it back, even two years
+  later: «how did we solve the OneDrive uploads?» finds the spike and the line
+  that says it.
+- **Three layers** — *Stories*, the tasks that taught something, with their
+  whole trail; *Routines*, with their tallies, their streaks and the hour you
+  usually keep them; and *Trace*, what closed leaving next to nothing written,
+  out of the way but still found by search.
+- **Your agent reads it too** — before proposing anything, it searches the
+  archive for the same work, and starts from how it went last time.
+
+<picture>
+  <source
+    media="(prefers-color-scheme: dark)"
+    srcset="assets/screens/app/en-archive-dark.webp"/>
+  <img
+    src="assets/screens/app/en-archive-light.webp"
+    alt="The Archive since February 2026: the bars of each month, the counts of
+    closed tasks, stories, routine turns, trace and longest run, and the stories
+    by month, such as Compare supermarket spending against the budget and Review
+    the incident logs looking for personal data, closed by an agent"/>
+</picture>
 
 ### Brainsty: everything joined
 
@@ -343,6 +462,13 @@ sidebar, draws all of it as one network, in the content panel beside your lists.
   archive with the rest, reads a document's card without reading it whole, and
   gets the alike pairs apart, so it never takes them for links someone wrote.
 
+<img
+  src="assets/screens/app/en-brainsty-living-dark.webp"
+  alt="The Tisty window with Brainsty open, in the dark theme: the sidebar with
+  the tasks for today and the Library, and beside it the network, 1,931 nodes
+  and 2,811 connections, turning slowly like a globe while travellers of light
+  walk its lines, with the Legend folded at the bottom left"/>
+
 [The Brainsty network](https://www.tisty.app/docs/brainsty-network/), in the
 help, tells all of it.
 
@@ -352,6 +478,18 @@ Each agent reads its rules from a file of its own: Claude Code from `CLAUDE.md`,
 Codex from `AGENTS.md`, Gemini from `GEMINI.md`, Copilot from
 `copilot-instructions.md`. The **Agents** folder, at the top of the Library,
 gathers them in Tisty as documents, with their skills and memory.
+
+<picture>
+  <source
+    media="(prefers-color-scheme: dark)"
+    srcset="assets/screens/app/en-agents-first-time-dark.webp"/>
+  <img
+    src="assets/screens/app/en-agents-first-time-light.webp"
+    alt="Agents the first time: the box Your agents, in one place, with what
+    Tisty found on this computer, Claude with 2 rules, 29 skills and 49
+    memories, Codex with 1 rule and 4 skills, Copilot with 1 rule, and Gemini
+    with nothing yet, and the two buttons Bring and Bring and sync"/>
+</picture>
 
 - **Bring or sync** — **Bring** copies the files you tick, to read and arrange
   them, and writes nothing back; **Bring and sync** also writes a rule you
@@ -367,6 +505,19 @@ gathers them in Tisty as documents, with their skills and memory.
 - **Nothing it should not touch** — settings, credentials, links and anything
   shaped like a secret are never brought in, and nothing is read until you click
   the folder.
+
+<picture>
+  <source
+    media="(prefers-color-scheme: dark)"
+    srcset="assets/screens/app/en-agents-rule-dark.webp"/>
+  <img
+    src="assets/screens/app/en-agents-rule-light.webp"
+    alt="A rule's card in Agents / Claude, In sync: who reads it, the file it is
+    written to, its size, its backups, its format, when it was last written,
+    that the original was kept and that it syncs on this computer; the rule's
+    text below, and at the foot Edit, Backups, History, Copy link and Pause sync
+    with Claude"/>
+</picture>
 
 [The Agents folder](https://www.tisty.app/docs/agents-folder/), in the help,
 tells each step.
@@ -640,7 +791,7 @@ your own AI agent reads over MCP**, this is what Tisty is:
 | Any `.md` file | opens to read in a viewer of its own, up to 1 MB, without coming into your store |
 | Attachments | kept with the task, as themselves |
 | Finished work | an **archive that keeps what each task taught you** |
-| Two machines | your Google Drive, OneDrive or WebDAV server, reached directly, or a folder you already sync. No server of ours |
+| Two machines | your Google Drive, OneDrive or WebDAV server, reached directly, or a folder you already sync. No server of mine |
 | Your cloud, encrypted | if you want it, with a 24-word phrase only you know |
 | Natural language | dates, deadlines and repeats, parsed on your machine |
 | When to do it | a spread of days you deal work onto, and a month for looking |
@@ -667,7 +818,7 @@ wrote — the routines come with their tallies and their streaks, and the rest i
 the trace. Search reaches all of it, documents included. A year in, that archive
 is the part you would miss.
 
-**Your assistant, not one of ours.** Tisty has no AI in it. The natural language
+**Your assistant, not one of mine.** Tisty has no AI in it. The natural language
 that turns "call the bank at 3" into a task is rules running on your machine, no
 model and no cloud. But it speaks [MCP](https://modelcontextprotocol.io), so an
 assistant you already use can file work into it — with its steps, its date and
@@ -676,7 +827,7 @@ network. That door comes open, and one click closes it.
 
 **Two machines, no middleman.** Tisty talks straight to your own Google Drive,
 OneDrive or WebDAV server, or travels through a folder you already sync. There
-is no server of ours in between, nothing to sign up for, and nothing that stops
+is no server of mine in between, nothing to sign up for, and nothing that stops
 working the day a company changes its mind. And what it keeps in that cloud can
 be encrypted with a phrase only you know.
 
@@ -724,8 +875,6 @@ Tisty it holds a good deal more than text:
   or a diagram opens it large, to zoom in and go to the next one.
 - **A PDF of its own**, A4, Letter or Folio, with its pictures inside,
   shown to you before you export it.
-
-![What you know, one document per subject: a document corrected in place with its outline beside it, so your AI agent reads the outline first and then only the section it needs](assets/screens/readme/en-06-documents.webp)
 
 The guide Tisty writes the first time it opens carries a page with one of each,
 so you can see all of it before you write a line.
@@ -941,7 +1090,12 @@ Narrow the window and it steps aside; a task always wins the room over it.
 it, leaves the sentence readable, and shows you what it understood *before*
 anything is saved — as chips you can correct with one click.
 
-![Late is not overdue: today's tasks with the overdue ones first, the counts of overdue, late, for today and ahead, and what comes next beside them](assets/screens/readme/en-07-day.webp)
+<img
+  src="assets/screens/app/en-tasks-today-dark.webp"
+  alt="Late is not overdue: today's tasks, overdue first, then due soon and
+  late, each with its date, priority, list and tags; the Add a task bar with the
+  hints of what it reads, and the counts of overdue, late, for today and ahead
+  in the sidebar"/>
 
 ```text
 "ship the release tomorrow at 10"   →  tomorrow 10:00

@@ -8,8 +8,6 @@ What you keep was already joined: a document cites another, a task was born in s
 
 Type `[[` where you want the link and go on with a few words of the title. Tisty offers up to eight documents that match, ignoring accents and capitals, those that start that way first. Pick one with `Enter` and a link with its title stays, pointing at the document and not at its name: if you rename it, the link still gets there.
 
-![The menu two brackets open in Rina's note: the documents that match what was typed, each with its folder](linking.png)
-
 **Try it:** at the end of this paragraph type `[[rina` and pick **Rina**, this guide's sample page. You get a link like this one: [Rina](tisty:page).
 
 To land on a section, follow the title with `#`: `[[what is#tasks` offers the sections of this guide's cover that hold that word, and the link opens the guide right at **Tasks**. If that section stops existing, the link opens the document at the top.
@@ -26,7 +24,7 @@ The panel beside a document has a **Linked from** row: every document and every 
 
 What you know about a subject lives in its document, and the work you did on it, in its tasks. Cite the task in the document and you find it where you will look for it. In the `/` menu, **A task** searches the open and the archived ones, and leaves its card alone in its paragraph.
 
-![The card of «Renew the car insurance» in the «Car» document, with its steps unfolded, and the one of «Change the tyres», closed](card.png)
+![The cards of «Renew the car insurance» and «Change the car tyres» in the «Car» document, each with its list, Finance, and «1 of 3 steps»; the second one also with its date](card.png)
 
 The card reads the task every time it is drawn: its list, its dates, how many steps are done and, if it closed, the day. A click opens it; its circle marks it done; its count unfolds the steps to tick them right there. A closed task is read, but no longer changes from the document.
 
@@ -44,7 +42,7 @@ On a task's page, **A new task** creates a part of that task, in its same list.
 
 **Brainsty**, in the sidebar under the task views, opens everything you keep as one network. It opens in the content panel, like any other view, with the sidebar in sight and **Brainsty** marked in it. It opens with the whole network in sight; the document or the task you were on stays as the starting point for the arrows.
 
-![Tisty's window with the sidebar on the left and Brainsty marked in it; in the content panel, the network zoomed out: at the top the count, «589 nodes · 1252 connections», each document and each task in the colour of its folder or its list, documents as squares, tasks as circles and tags as purple dots, fainter, citations and mentions stronger than the other lines, the network turned a little like a globe and its fourteen travellers with their trail on the lines, and at the bottom left the Legend, folded](network.png)
+![Tisty's window with the sidebar on the left, Brainsty marked in it and the Diary open below; in the content panel, the network zoomed out: at the top the count, «1,931 nodes · 2,811 connections», each document and each task in the colour of its folder or its list, documents as squares and tasks as circles, the network turned a little like a globe, and at the bottom left the Legend, folded](network.png)
 
 - **It costs something only while you look at it.** When you move to another view, everything the network ran stops: the drawing, the settling of the dots and its work in the background.
 - **It is read again each time you come in**, so what you wrote meanwhile is already there. It starts clean: without the dot you had picked or the filters from last time. What each computer does remember is how you left the legend, **Travellers**, **Turning** and **Show AGENTS**. If something new arrives while you look at it, like a step your agent ticks or a sync round, the network stays as it was: the same view, the same layout and your **Travellers** and **Turning** as you left them.
@@ -85,7 +83,7 @@ Folders and lists are not dots in the network: they give their things their colo
 
 The network changes with the distance. From afar, as it opens or with the wheel backwards, its dots make a brain seen from the side, with no titles, and each kind has the shape in the table. At middle distance the coloured zones show. Up close every title shows, each kind of line, the tags and each picture's thumbnail, and each node becomes its icon, in its folder or list colour: a sheet for a document, a few lines of text for a page, a box for a task and a tick once it is done, a `#` for a tag and a clip for a file. With the network turned, the zones hide and fewer titles show.
 
-![«Rina» picked up close in Brainsty, in the content panel beside the sidebar: her neighbours with titles, each drawn as its icon in its folder or list colour (a document's sheet, a task's box, the photo's clip), the rest dimmed and, on the right, her card: «Document · Pets · 6 connections», the rows Last written, Created, Size with its words and Language EN, the rina tag, Connections by kind, Pointing here with what cites her, Alike with «Saturday walks» and «Tisty thinks they are alike: they share rina and park», the Link with Copy link and the Open button; in the network, an amber curve joins Rina to «Saturday walks»](network-near.png)
+![«Rina's record» picked up close in Brainsty, in the content panel beside the sidebar: around it, each node drawn as its icon in its folder or list colour (a document's sheet, a task's box, a file's clip) and Rina's photo as a thumbnail; at the bottom left, the Legend open; on the right, its card: «Document · Health · 7 connections», the rows Last written, Created and Size with its words, the rina tag, Connections with 6 mentions and 1 tag, Pointing here with «Go to the vet for Rina's vaccine» and «Saturday walks», the Link with Copy link and the Open button](network-near.png)
 
 - **A click** on a dot lights it up with its neighbours and opens its card, on the right. The card does not show the document's text: it shows its facts, so you know what it is before you open it.
 - **Open**, `Enter` or a double click opens the document, the task or the tag in this same window, in the network's place. To come back to the network, another click on **Brainsty**. A picture or a file opens with your system's program, and **Show in folder** takes you to it.

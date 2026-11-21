@@ -4,8 +4,6 @@ What tired me most about working with agents was not explaining the problem: it 
 
 This page follows a real agent session, step by step, with the calls it makes and an excerpt of what Tisty answers. Connecting one is in [[Assistants and MCP|Assistants-and-MCP]]; every tool, in [[Tools reference|MCP-Tools]]; what it may and may not do, in [[What an assistant may do|MCP-Permissions]].
 
-![The page of «Confirmation webhook» with the State section the agent left: what is done, what is left, the decisions in force and what was ruled out](https://raw.githubusercontent.com/rgdevment/Tisty/main/app/src-tauri/resources/guide/en/state.png)
-
 ## What changed with Brainsty
 
 - **It finds and walks with a single tool, `brain`.** It finds tasks and documents by their words, with the archive beside the rest; brings a document's or a task's card with its neighbours; and shows a whole project grouped as blocked, under way, waiting for you and not started.
@@ -23,8 +21,6 @@ In **Settings › Assistants**:
 3. Two switches, on from the start:
    - **Ask it to keep its task up to date**: the question in the answers.
    - **Remind it when a turn starts and ends**: the hooks, without taking them out of the file.
-
-![Settings › Assistants with Claude Code connected: Add tells which file Tisty will put its hooks in before Add them](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/help/en-hooks.png)
 
 ## A session, step by step
 

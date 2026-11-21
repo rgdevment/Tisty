@@ -71,19 +71,26 @@ with the same order in both, `.png` in `store/` and `web/` and `.webp` in
 `readme/`. They present what Tisty is, not what a version
 brings. The order is the one the Store shows, and the READMEs and the help
 follow it for the first ones: memory, diagrams, brainstorm, priorities, agent,
-documents, day, Folio, data, close. `store/` and `web/` also keep the three
-Store promotional images: `store-box-1x1.png`, `store-hero-16x9.png` and
+documents, day, Folio, data, close. `store/` also keeps the three Store
+promotional images: `store-box-1x1.png`, `store-hero-16x9.png` and
 `store-poster-9x16.png`.
 
 | Folder | Size | Where it goes |
 | --- | --- | --- |
 | `store/` | 1920×1080 | The Microsoft Store listing, and the picture tisty.app shows and shares |
-| `web/` | 1280×720, lighter | The help, and the three screens the READMEs have no capture of yet: agent, data and close |
-| `readme/` | 1336 wide, WebP | The READMEs: real captures of the app, rounded, edged and shadowed |
+| `web/` | 1280×720, lighter | The four screens the READMEs and the help have no capture of yet: agent, Folio, data and close |
+| `readme/` | 1336 wide, WebP | The 1.45 captures still in use: Folio's share screen in the READMEs, and the day and the archive that `docs/posts.json` posts |
+| `app/` | 1562×822, lossless WebP; Brainsty alive 960 wide, animated | Real captures of the app since 1.49, for the READMEs and the help |
+| `help/` | PNG | Pictures only one help page shows, and `help/agents/` for the Agents folder's |
 
-The help links to `web/` on `main`, so renaming a screen means updating the
-help in the same change, and tisty.app reads its picture from `store/` through
-`scripts/apps.mjs` in its own repository. The READMEs show the app itself, not
-the Store's presentation: `readme/` holds real captures in the same order, with
-subjects of their own where the screen differs (archive, share), a few tens of
-kilobytes each.
+`app/` is named `<language>-<subject>-<theme>.webp`: `en-` or `es-`, a subject
+such as `archive` or `revision-semanal`, and `light` or `dark`. The READMEs show
+each pair in a `<picture>`, so a reader sees the theme GitHub is in; the help
+shows the light one. Two subjects come only in the dark theme: the tasks of today
+(`tasks-today`, `tareas-hoy`) and Brainsty alive (`en-brainsty-living-dark`,
+animated, the whole window in English), which both READMEs and the help show.
+
+The help links to `web/` and `app/` on `main`, so renaming a screen means
+updating the help in the same change, and tisty.app reads its picture from
+`store/` through `scripts/apps.mjs` in its own repository. The READMEs show the
+app itself, not the Store's presentation.

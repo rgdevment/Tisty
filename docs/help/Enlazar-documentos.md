@@ -4,7 +4,7 @@ Durante años guardé lo que sabía en notas sueltas, y lo que más me costaba n
 
 Esta página cuenta cómo enlazar un documento con otro o con una sección de otro, cómo ver adónde lleva un enlace sin salir de donde estás, y cómo saber quién enlaza a un documento. Citar una tarea dentro de un documento, y crear una desde ahí, está en [[Tareas en documentos|Tareas-en-documentos]]. Todo lo que enlazas entra en [[la red de Brainsty|Red-de-Brainsty]].
 
-![El menú que abren dos corchetes en un documento: los títulos que calzan con lo escrito, primero los que empiezan así](https://raw.githubusercontent.com/rgdevment/Tisty/main/app/src-tauri/resources/guide/es/enlazar.png)
+![El menú que abren dos corchetes en la ficha de Rina, antes de escribir nada más: los documentos que puedes enlazar, uno por línea](https://raw.githubusercontent.com/rgdevment/Tisty/main/app/src-tauri/resources/guide/es/enlazar.png)
 
 ## Cuándo te sirve
 
@@ -45,7 +45,7 @@ Un clic en ese enlace abre el documento en esa sección. Si la sección ya no ex
 
 Deja el puntero sobre un enlace a otro documento y aparece su vista previa: las primeras líneas del documento o, si el enlace apunta a una sección, esa sección. Sirve para confirmar que es el que buscabas, o para leer un dato rápido sin perder el lugar donde estabas escribiendo.
 
-![La vista previa de un enlace a la sección «Horarios» de «Veterinaria», abierta sobre la ficha de Rina](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/help/es-vista-previa.png)
+![La vista previa del enlace a «Veterinaria», abierta sobre la ficha de Rina: sus secciones Vacunas, Horarios y Contacto](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/es-vista-previa.png)
 
 Para abrirlo: en un documento que puedes escribir, un clic deja el cursor en el enlace, para que lo corrijas, y `Ctrl` + clic (`⌘` + clic en un Mac) lo abre; en uno que solo se lee, como una tarea cerrada o un documento archivado, basta un clic.
 
@@ -53,7 +53,7 @@ Para abrirlo: en un documento que puedes escribir, un clic deja el cursor en el 
 
 El panel junto al documento tiene la fila **Enlazado desde**: cada documento y cada tarea que lo cita o lo menciona y, en un documento, bajo qué sección lo hace («En: Vacunas»). Un clic abre ese documento en esa sección.
 
-![El panel junto a «Veterinaria»: Enlazado desde nombra «Rina» y la sección donde la enlaza, «En: Vacunas»](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/help/es-enlazado-desde.png)
+![El panel junto a «¿Qué es Tisty?»: arriba su índice y, debajo, Enlazado desde con 4 documentos, cada uno con la sección donde lo enlaza, como «Brainsty: todo unido», «En: La red»](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/es-enlazado-desde.png)
 
 - **Cuenta las dos formas.** Un enlace dentro de una frase es una mención; una tarjeta, sola en su párrafo, es una cita. Las dos aparecen aquí, y la página de una tarea tiene la misma fila.
 - **Se arma en segundo plano.** Tisty lee cómo se enlazan tus documentos sin frenar lo que haces, así que un enlace recién escrito aparece a los pocos segundos. Mientras lee la primera vez, la fila dice «Tisty todavía está leyendo cómo se enlazan tus documentos»; cuando nadie enlaza ese documento, «Todavía ningún documento ni tarea enlaza aquí».

@@ -4,7 +4,7 @@ I had kept things in Tisty for years and had no way to see them together. I knew
 
 This page covers opening it, what each shape and each line means, moving through it and filtering it. The ties it draws are the ones you make as you write: [[Linking documents|Linking-Documents]] and [[Tasks in documents|Tasks-in-Documents]]. Your agent reads the same network as an index: [[How an agent works|How-an-Agent-Works]].
 
-![Tisty's window with the sidebar on the left and Brainsty marked in it; in the content panel, the network zoomed out: at the top the count, «589 nodes · 1252 connections», each document and each task in the colour of its folder or its list, documents as squares, tasks as circles and tags as purple dots, fainter; no folder or list as a node and no Agents file, citations and mentions stronger than the other lines, the network turned a little like a globe and its fourteen travellers with their trail, and at the bottom left the Legend, folded](https://raw.githubusercontent.com/rgdevment/Tisty/main/app/src-tauri/resources/guide/en/network.png)
+![Tisty's window with the sidebar on the left, Brainsty marked in it and the Diary open below; in the content panel, the network zoomed out: at the top the count, «1,931 nodes · 2,811 connections», each document and each task in the colour of its folder or its list, documents as squares and tasks as circles, the network turned a little like a globe, and at the bottom left the Legend, folded](https://raw.githubusercontent.com/rgdevment/Tisty/main/app/src-tauri/resources/guide/en/network.png)
 
 ## When it helps
 
@@ -82,11 +82,13 @@ Open, it carries two switches at the top, **Travellers** and **Turning**, which 
 
 For instance, Marisol has eleven coloured folders and lists, and the Agents folder with her Claude rules. Her legend shows the six fullest, **Home**, **Work**, **Pets**, **Trips**, **Shopping** and **Health**, and below them **5 more**. One day she wants to see where her rules ended up: she turns **Show AGENTS** on in the filters and the legend adds, apart, **AGENTS**; the Agents folder does not compete for a place among her colours. A folder with no colour, like **Recipes**, is not on the list: its documents show in the documents' tone.
 
-![The Legend open in the bottom left corner of the network: at the top the Travellers and Turning switches, with their dot lit; What it is with Document, Page, Task, Tag and File; Colour: its folder or list with Home, Work, Pets, Trips, Shopping and Health, «5 more», AGENTS with its small square in faint coral, because Show AGENTS is on, and «Without a colour, it takes its kind's tone.»; State with Under way, Done and Archived; Lines, up close with Cites, Mentions, Part of (a page, a part), Tagged, Uses a file and Alike in amber](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/help/en-legend.png)
+![The Legend open in the bottom left corner of the network: at the top the Travellers and Turning switches, with their dot lit; What it is with Document, Page, Task, Tag and File; Colour: its folder or list with Work, Home, Finance, Tisty Project, Health and Family, «35 more» and «Without a colour, it takes its kind's tone.»; State with Under way, Done and Archived; Lines, up close with Cites, Mentions, Part of (a page, a part), Tagged and Uses a file](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/en-legend.png)
 
 ## The living network
 
 While you look at it, the network moves: it turns, and travellers walk its lines. It comes that way; if you would rather have it still, you turn that off from the legend.
+
+![The Tisty window with Brainsty open, in the dark theme: the sidebar with the tasks for today and the Library, and beside it the living network, 1,931 nodes and 2,811 connections, turning slowly like a globe while travellers of light walk its lines, with the Legend folded at the bottom left](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/app/en-brainsty-living-dark.webp)
 
 - **It turns like a globe**, by itself, once a minute. What is behind looks smaller and fainter, and with the network turned the coloured zones hide and fewer titles show.
 - **Up close, it holds still.** As soon as you bring the view closer, with the wheel, by picking a search result or by walking with the arrows, the globe stops turning, and it does not turn again until you see the whole network once more. That way the node you are looking at does not drift away. Zooming out past the whole network does not stop it.
@@ -129,8 +131,6 @@ The network changes what it shows with the distance, and each detail fades in as
 
 So, up close, the task «Rina's yearly vaccine» is a box in the colour of the **Home** list, and «Buy Rina's flea treatment», which you finished last week, a tick in the same colour. The icon dims with what is not picked, like the rest, and a click on it picks the node as before. From afar it costs nothing: there the plain shapes come back, drawn by the thousand.
 
-![Brainsty in the content panel, beside the sidebar, with the same network from afar: the nodes make the outline of a brain seen from the side, with no titles and faint lines, and the Legend folded at the bottom left](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/help/en-network-far.png)
-
 The wheel zooms in and out; dragging moves you around, and dragging with the right button, or with `Shift`, turns the globe. At the first touch the network stops following the point it started on. A double click on an empty spot takes you back in one jump to the whole network, from any distance.
 
 ## Picking, looking and opening
@@ -167,7 +167,7 @@ At the foot, **Open**. The cross at the top, **Close the preview**, `Esc` or a c
 - **Open**, `Enter` or **a double click** on the node opens it in the same window, in the network's place: a document in the Library, a task beside its list and a tag in its view. To come back to the network, another click on **Brainsty**; it opens whole again, and what you opened stays as the starting point for the arrows.
 - **A picture or a file** has no **Link**. Its **Open** opens it with your system's program, outside Tisty, and **Show in folder** takes you to it in the file explorer. For instance, you pick the clip of «roof-quote.pdf»: its card says **Type** PDF, **Size** 240 kB, **Modified** on Tuesday, and under **Used in**, the task «Ask for the roof quote» and the document «House repairs».
 
-![«Rina» picked up close in Brainsty, in the content panel beside the sidebar: her neighbours with titles, each drawn as its icon in its folder or list colour (a document's sheet, a task's box, the photo's clip), the rest dimmed and, on the right, her card: «Document · Pets · 6 connections», the rows Last written, Created, Size with its words and Language EN, the tag #rina, Connections by kind, Pointing here with what cites her, Alike with «Saturday walks» and «Tisty thinks they are alike: they share rina and park», the Link with its ? sign and Copy link, and the Open button; in the network, an amber curve joins Rina to «Saturday walks»](https://raw.githubusercontent.com/rgdevment/Tisty/main/app/src-tauri/resources/guide/en/network-near.png)
+![«Rina's record» picked up close in Brainsty, in the content panel beside the sidebar: around it, each node drawn as its icon in its folder or list colour (a document's sheet, a task's box, a file's clip) and Rina's photo as a thumbnail; at the bottom left, the Legend open; on the right, its card: «Document · Health · 7 connections», the rows Last written, Created and Size with its words, the rina tag, Connections with 6 mentions and 1 tag, Pointing here with «Go to the vet for Rina's vaccine» and «Saturday walks», the Link with Copy link and the Open button](https://raw.githubusercontent.com/rgdevment/Tisty/main/app/src-tauri/resources/guide/en/network-near.png)
 
 ## Searching
 
@@ -185,7 +185,7 @@ The funnel beside the search box, **Filters**, opens what can be left out. Each 
 
 With any filter set, the funnel is tinted and **Show everything** appears, which brings the whole network back. **Show AGENTS** stands apart: it neither tints the funnel nor goes off with **Show everything**.
 
-![Brainsty in the content panel with Filters open: Documents, Tasks and Alike on, Under way, Last 30 days and the rina tag, the funnel tinted, Show everything in sight and the network with what remains](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/help/en-filters.png)
+![Brainsty in the content panel with Filters open: under Show, everything on, from Documents to Archived; under Touched, Last 30 days; under Tag, Any tag; the funnel tinted and Show everything; below, the Legend open, with Alike in amber, and beside it the network with what remains](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/en-filters.png)
 
 ## With the keyboard
 
@@ -286,8 +286,6 @@ A typo or a translation counts like a shared word: two things are alike only whe
     { "id": "…", "kind": "task", "title": "Pagar la cuenta del agua", "state": "open", "score": 0.61, "shared": ["pagar≈pay", "agua≈water"], "method": "dictionary" } ] }
 "Guessed alike by Tisty, linked by no one: \"Pagar la cuenta del agua\" […] (open) (alike by translation: pagar≈pay, agua≈water)."
 ```
-
-![The card of «Pay the water bill» up close in Brainsty: «Task · Home» with its connections, State «Under way · For today», and under Alike «Pagar la cuenta del agua» with «Tisty thinks they are alike: they share pagar ≈ pay and agua ≈ water»; in the network, an amber curve joins the two tasks](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/help/en-twin.png)
 
 An alike pair shows only when both its ends are in sight: in the network, both must be drawn; for an agent, both must pass its gate, so a hidden or dropped task is never named through an alike pair. An alike pair adds no connection to the count at the top and does not count towards the 12,000-node cap. And `read`, which brings the text, brings no alike pairs: they go only on `brain`'s card.
 

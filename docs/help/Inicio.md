@@ -16,6 +16,8 @@ Comencé a desarrollar Tisty para resolver un problema personal, y fui viendo qu
 
 Tisty es una memoria de trabajo que compartes con tu agente: tú ves el conjunto, y tu agente cada detalle. Cuando terminas una tarea, pasa al archivo con todo lo que juntó: la descripción, la bitácora, los pasos, los archivos y los documentos en que te apoyaste. Y el buscador lo encuentra años después. *¿Cómo resolví eso la última vez?* Tisty lo tiene. Junto a las tareas, los **documentos** guardan lo que sabes, uno por tema, como Markdown normal que cualquier otro editor lee.
 
+Y si prefieres trabajar de una forma más personal, sin agente, Tisty te sirve igual: tus tareas, tus documentos, tus ideas y tu diario, a la vista y unidos en [Brainsty](Red-de-Brainsty). El agente es una forma de usarlo, no una condición.
+
 Y es la memoria del agente de IA que ya usas. Por un **servidor MCP** local, en tu equipo, sin cuenta y sin red, GitHub Copilot, Claude Code, Codex, Cursor o cualquier cliente MCP pregunta qué cambió desde la última vez, lee el índice de un documento y después solo la sección que necesita, y deja escrito lo que aprendió para la próxima sesión. Trabaja y te dice cuando algo está listo; tú lo revisas y lo cierras, porque nada se cierra sin ti. Tú decides qué puede hacer.
 
 ## Problemas reales, soluciones reales
@@ -37,13 +39,13 @@ Una idea es un pensamiento atrapado al vuelo, antes de saber si es algo que hace
 
 Una tarea también es un documento, uno que termina: por eso tiene una página propia, donde un spike reúne lo que leíste, probaste y descartaste, la grabación de la reunión y el PDF del proveedor, antes de dividirse en partes y completarse. [[La idea completa, con un ejemplo|Tareas#tarea-o-documento]].
 
-![Tisty, la memoria de trabajo tuya y de tu agente de IA: lo que resolviste se queda en el archivo con sus pasos y su bitácora, y tu agente lo trae de vuelta cuando el mismo trabajo regresa](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/web/es-01-memoria.png)
+![El Archivo desde febrero de 2026: las barras de cada mes, las cuentas de tareas cerradas, historias, vueltas de rutinas, rastro y racha más larga, y las historias agrupadas por mes, como Revisar los logs del incidente buscando datos personales, cerrada por un agente, y Probar la captura rápida con 30 frases reales](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/app/es-archivo-light.webp)
 
-![Diagramas que siguen siendo texto: dibujas el diagrama y Tisty lo guarda como Mermaid, dentro de un Markdown que abre cualquier editor y lee cualquier agente, sin conexión](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/web/es-02-diagramas.png)
+![La ventana de diagramas sobre la guía: las formas a la izquierda, el diagrama de flujo ¿Lo vas a hacer, o a volver a leer? al centro y, a la derecha, el texto Mermaid que se escribe en el documento, en vivo](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/app/es-diagrama-light.webp)
 
-![Un pensamiento rápido, para no olvidarlo: las ideas del momento como notas adhesivas de colores en Ideas, con fecha y escritas a mano, para ordenarlas después en una tarea o un documento](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/web/es-03-ideas.png)
+![Ideas como notas adhesivas de colores, cada una con su fecha y su minuto, escritas a mano: Fotos del viaje a la Patagonia en el diario, Calendario de Rina con colores por tipo de visita, Medir el costo de cada herramienta del MCP en tokens](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/app/es-ideas-light.webp)
 
-![Urgente no siempre es importante: cada tarea en su cuadrante de la matriz de Eisenhower, hacer, planificar, delegar o prescindible, y lo que falta por clasificar esperando a un lado](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/web/es-04-prioridades.png)
+![Prioridades: Hacer, Planificar, Delegar y Prescindible, con Urgente y No urgente arriba e Importante y No importante al costado, cada cuadro con su cuenta y sus tareas, y Lo que falta por clasificar · 61 junto al título](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/app/es-prioridades-light.webp)
 
 ## Para empezar
 

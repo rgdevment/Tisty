@@ -4,7 +4,7 @@ Documents live beside the tasks, for reference material that has no date and nev
 
 For writing in one, see [[The Markdown editor|Markdown-Editor]]; for everything it can hold — callouts, tables, diagrams, math, widgets, code — see the [Tisty Markdown guide](https://markdown.tisty.app).
 
-![What you know, one document per subject: corrected in place instead of piling up, with its outline beside it, so your AI agent reads the outline first and then only the section it needs](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/web/en-06-documents.png)
+![The guide page What is Tisty? open in Tisty: its text in the middle, and on the right its Outline, Linked from with the four guide pages that link to it, Details, History and Shared](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/app/en-what-is-tisty-light.webp)
 
 ## A task or a document?
 
@@ -56,7 +56,7 @@ The first line of the document is its title — there is no name to fill in.
 
 An idea that comes in the middle of something else has nowhere to go yet. Press `Ctrl` + `Shift` + `Space` and then `Tab` to switch from **Task** to **Idea** (or the idea's own shortcut, once you pick one in **Settings**), type it, up to 140 characters, and press `Enter`: it lands in **Ideas**, dated, without opening the window or choosing a folder. **Settings** lets you pick both shortcuts; the idea's stays off until you choose it, since `Ctrl` + `Alt` is AltGr on many keyboards. Without the keyboard, the **+** at the end of the row of views opens the same capture.
 
-![A quick thought, so you don't lose it: ideas of the moment as sticky notes in colours in Ideas, dated and written by hand, to sort out later into a task or a document](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/web/en-03-brainstorm.png)
+![Ideas as sticky notes in colours, each with its date and minute, written by hand: Photos of the Patagonia trip in the diary, Rina's calendar with colors by type of visit, Measure the token cost of each MCP tool](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/app/en-ideas-light.webp)
 
 - **Ideas is an ordinary document**, pinned at the top of the Library, and it is there from the first time you open Tisty, even before you have any idea. Opening it makes it, and so does jotting your first idea from quick capture. If you do not use it, hide it from its menu (right click or Shift+F10), just like **Diary**. In the sidebar it is always called **Ideas** and wears a light bulb, whatever its title says, so you never mistake it for **Brainsty**, just above. If you made it back when it was called «Brainstorm», its title stays the same inside; only the way the sidebar names it changes. You can open it, change its notes, duplicate it, archive it or delete it; its menu does not offer moving or exporting it. Each idea is written in it as a `[!IDEA]` sticky note, with its date and colour, the same note any document can hold.
 - **It shows as notes stuck on a sheet**, a little crooked and in different colours, written by hand: they are ideas of the moment. The newest comes first. Click one to change it, **New idea** adds one, and the **×** takes it off. Drag a note by its edge onto another to put it in that place, or press `Alt` and an arrow on it; it stays as crooked as it was.
@@ -67,6 +67,8 @@ An idea that comes in the middle of something else has nowhere to go yet. Press 
 ## Diary
 
 What happened today, at home or at work, has one place: **Diary**, near the top of the Library. It is not a note a day, which would be 365 documents a year: it is one book a year, **Diary 2026**, with a page a month, **November**, and a section a day, **Sunday 15**, in the app's language. Today is on top, and a day you did not write never appears.
+
+![The Diary on Friday 20: the box What happened today? on top and, below it, the line of days, 19, 17, 15, 12, 8 and 3, each with what was written and the tasks closed that day folded, such as 2 tasks closed; in the sidebar, Diary 2026 with a page a month](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/app/en-diary-light.webp)
 
 - **Diary in the Library opens today.** The first time in a year it makes that year's book and the month's page; the day itself is born when you write in it. Under the row, the years and their months open like any book.
 - **It reads as a line of days, not as a page.** Today's date heads it, and each day shows its number and weekday beside what you wrote, newest on top.
@@ -119,8 +121,6 @@ It helps when:
 2. Each hidden folder is a row with its whole path, such as **Work / Clients**, and the button **Show again**. Press it and it goes back to the sidebar, in its place.
 
 If you hid none, the section says «No folder is hidden.».
-
-![The Hidden folders section of Settings › General in English: the title Hidden folders, the line Folders hidden from the sidebar on this computer. They keep everything they hold, and search, the palette and Move to still find them., and three rows, Agents with its grey robot, Home and Work / Clients, each with the button Show again on the right](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/agents/en-15-hidden-folders.png)
 
 **An example.** On the work computer, right-click **Home** and choose **Hide from the sidebar**: **Home** and everything inside it, such as **Home / Rina**, leave the sidebar. One afternoon Marisol asks you for Rina's vaccination card. You type it in the search at the top of the sidebar and it shows up, even though **Home** is hidden, and you open it from there. On the home computer, **Home** is still in the sidebar as always.
 

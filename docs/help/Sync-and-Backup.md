@@ -2,7 +2,7 @@
 
 Tisty always works on this computer. To reach your work from another one, tell it where to leave the copies — and the rest it does on its own.
 
-There is nothing in the middle: no account, no server, no daemon of ours. If you sync nothing, syncing opens no connection at all; the few other requests Tisty makes are in [[Privacy]].
+There is nothing in the middle: no account, no server, no one else's daemon. If you sync nothing, syncing opens no connection at all; the few other requests Tisty makes are in [[Privacy]].
 
 ## Choosing the folder
 

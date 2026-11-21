@@ -4,7 +4,7 @@ Los documentos viven junto a las tareas, para el material de consulta que no tie
 
 Cómo se escribe en uno está en [[El editor Markdown|Editor-Markdown]]; todo lo que puede llevar (avisos, tablas, diagramas, fórmulas, widgets, código) está en la [guía de Markdown de Tisty](https://markdown.tisty.app/es/).
 
-![Lo que sabes, en un documento por tema: se corrige en su lugar en vez de apilarse, con su índice al lado, así tu agente de IA lee primero el índice y después solo la sección que necesita](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/web/es-06-documentos.png)
+![La página ¿Qué es Tisty? de la guía abierta en Tisty: su texto al centro y, a la derecha, su Índice, Enlazado desde con las cuatro páginas de la guía que la enlazan, Detalles, Historial y Compartido](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/app/es-que-es-tisty-light.webp)
 
 ## ¿Tarea o documento?
 
@@ -56,7 +56,7 @@ La primera línea del documento es su título: no hay que ponerle nombre.
 
 Una idea que llega en medio de otra cosa todavía no tiene dónde ir. Pulsa `Ctrl` + `Shift` + `Space` y después `Tab` para cambiar de **Tarea** a **Idea** (o el atajo propio de la idea, cuando lo elijas en **Configuración**), escríbela, hasta 140 caracteres, y pulsa `Enter`: cae en **Ideas**, con su fecha, sin abrir la ventana ni elegir una carpeta. En **Configuración** eliges los dos atajos; el de la idea queda apagado hasta que lo elijas, porque `Ctrl` + `Alt` es AltGr en muchos teclados. Sin teclado, el **+** al final de la fila de vistas abre la misma captura.
 
-![Un pensamiento rápido, para no olvidarlo: las ideas del momento como notas adhesivas de colores en Ideas, con fecha y escritas a mano, para ordenarlas después en una tarea o un documento](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/web/es-03-ideas.png)
+![Ideas como notas adhesivas de colores, cada una con su fecha y su minuto, escritas a mano: Fotos del viaje a la Patagonia en el diario, Calendario de Rina con colores por tipo de visita, Medir el costo de cada herramienta del MCP en tokens](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/app/es-ideas-light.webp)
 
 - **Ideas es un documento normal**, anclado arriba en la Biblioteca, y está ahí desde la primera vez que abres Tisty, aunque todavía no tengas ninguna idea. Lo crea abrirlo o anotar tu primera idea desde la captura rápida. Si no lo usas, ocúltalo desde su menú (clic derecho o Shift+F10), igual que **Diario**. En la barra lateral se llama siempre **Ideas** y lleva una ampolleta, diga lo que diga su título, para que no lo confundas con **Brainsty**, justo arriba. Si lo creaste cuando se llamaba «Lluvia de ideas», su título sigue igual por dentro; solo cambia cómo lo nombra la barra. Puedes abrirlo, cambiar sus notas, duplicarlo, archivarlo o eliminarlo; su menú no ofrece moverlo ni exportarlo. Cada idea queda escrita en él como una nota adhesiva `[!IDEA]`, con su fecha y su color, la misma que puede llevar cualquier documento.
 - **Se ve como notas pegadas en una hoja**, un poco torcidas, de distintos colores y con letra de mano: son ideas del momento. La más nueva va primero. Pulsa una para cambiarla, **Nueva idea** agrega otra y la **×** la quita. Arrastra una nota por su borde sobre otra para dejarla en ese lugar, o pulsa `Alt` y una flecha sobre ella; sigue tan torcida como estaba.
@@ -67,6 +67,8 @@ Una idea que llega en medio de otra cosa todavía no tiene dónde ir. Pulsa `Ctr
 ## Diario
 
 Lo que pasó hoy, en la casa o en el trabajo, tiene un solo lugar: **Diario**, casi al principio de la Biblioteca. No es una nota por día, que serían 365 documentos al año: es un libro por año, **Diario 2026**, con una página por mes, **Noviembre**, y una sección por día, **Domingo 15**, en el idioma de la app. Hoy va arriba, y un día en el que no escribiste nunca aparece.
+
+![El Diario el viernes 20: arriba el recuadro ¿Qué pasó hoy? y, debajo, la línea de días, 19, 17, 15, 12, 8 y 3, cada uno con lo escrito y las tareas cerradas ese día plegadas, como 2 tareas cerradas; en la barra, Diario 2026 con una página por mes](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/app/es-diario-light.webp)
 
 - **Diario en la Biblioteca abre hoy.** La primera vez en el año crea el libro de ese año y la página del mes; el día nace cuando escribes en él. Bajo la fila, los años y sus meses se abren como cualquier libro.
 - **Se lee como una línea de días, no como una página.** Lo encabeza la fecha de hoy, y cada día muestra su número y su día de la semana junto a lo que escribiste, el más nuevo arriba.
@@ -119,8 +121,6 @@ Te sirve cuando:
 2. Cada carpeta oculta es una fila con su camino entero, como **Trabajo / Clientes**, y el botón **Volver a mostrar**. Púlsalo y vuelve a la barra, en su lugar.
 
 Si no ocultaste ninguna, la sección dice «No hay carpetas ocultas.».
-
-![La sección Carpetas ocultas de Configuración › General en español: el título Carpetas ocultas, la línea Las carpetas que ocultaste de la barra en este equipo. Conservan todo lo que tienen, y la búsqueda, la paleta y «Mover a» las siguen encontrando., y tres filas, Agentes con su robot gris, Casa y Trabajo / Clientes, cada una con el botón Volver a mostrar a la derecha](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/agents/es-15-carpetas-ocultas.png)
 
 **Un ejemplo.** En el computador del trabajo, botón derecho sobre **Casa** y **Ocultar de la barra**: **Casa** y todo lo que tiene adentro, como **Casa / Rina**, salen de la barra. Una tarde Marisol te pide el carnet de vacunas de Rina. Lo escribes en el buscador de arriba de la barra y aparece, aunque **Casa** esté oculta, y lo abres desde ahí. En el computador de la casa, **Casa** sigue en la barra como siempre.
 
