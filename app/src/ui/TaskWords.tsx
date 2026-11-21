@@ -12,6 +12,7 @@ import {
   taskDocMerge,
   taskDocOpen,
 } from "../core";
+import { useSigning } from "../crediting";
 import { WROTE } from "../detailing";
 import { stamped } from "../format";
 import { fill, t } from "../locales";
@@ -273,6 +274,7 @@ function Written({
 }) {
   // A task's page keeps its template's sections, so it is written by block alone.
   const { allAsked } = useWholeKeys(true, false);
+  const signing = useSigning("inside");
   const [text, setText] = useState(doc.body);
   const waiting = useRef<string | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -464,6 +466,7 @@ function Written({
         onDoc={onDoc}
         asking={asking}
         stepDates={dates}
+        signing={signing}
         cardsShown={cardsShown}
         again={onPart ? "parts" : ""}
         onTask={onTask}

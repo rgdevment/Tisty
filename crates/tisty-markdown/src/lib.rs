@@ -39,6 +39,7 @@ pub mod refs;
 mod rereading;
 mod shared;
 mod short;
+mod signed;
 mod standard;
 #[cfg(feature = "tables")]
 mod tables;
@@ -62,6 +63,7 @@ pub use reading::read;
 #[doc(hidden)]
 pub use reading::read_old;
 pub use rereading::{reread, reread_edit};
+pub use signed::{ASSISTANT_NOTES, signer};
 pub use standard::{Toward, to_standard};
 pub use transform::to_tisty;
 pub use writing::on_disk;

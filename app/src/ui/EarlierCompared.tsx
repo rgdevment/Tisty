@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import type { Signing } from "../crediting";
 import { type Compared, docCompared } from "../earlier";
 import { fill, t } from "../locales";
 import type { CardsShown } from "./liveCards";
@@ -12,6 +13,7 @@ interface Props {
   between: string;
   label: string;
   cardsShown?: CardsShown;
+  signing?: Signing;
   ready: () => Promise<unknown>;
   onWhole: () => void;
   onError: (problem: unknown) => void;
@@ -46,6 +48,7 @@ export default function EarlierCompared({
   between,
   label,
   cardsShown,
+  signing,
   ready,
   onWhole,
   onError,
@@ -89,6 +92,7 @@ export default function EarlierCompared({
           draw={AS_DRAWN}
           label={label}
           cardsShown={cardsShown}
+          signing={signing}
           onDoc={() => undefined}
           onShown={toFirstChange}
         />

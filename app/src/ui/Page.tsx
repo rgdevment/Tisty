@@ -16,6 +16,7 @@ import { datedSteps, type Reaching } from "./dressing";
 import Frame from "./Frame";
 import { type CardsShown, cardDays, drawnFor } from "./liveCards";
 import { mendable } from "./mending";
+import { signers } from "./signers";
 
 type Props = Reaching & {
   readonly label: string;
@@ -72,6 +73,11 @@ export default function Page(props: Readonly<Props>) {
     const page = held.current?.contentDocument;
     if (page) datedSteps(page, dates);
   }, [dates]);
+  const signing = props.signing;
+  useEffect(() => {
+    const page = held.current?.contentDocument;
+    if (page) signers(page, signing);
+  }, [signing]);
   const cards = useRef<DrawnCards>(new Map());
   const seenAs = useRef("");
   // Cards come back after the page is laid, so only those whose drawing changed are laid again.

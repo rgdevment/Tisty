@@ -1,4 +1,4 @@
-pub const ASSISTANT_NOTES: [&str; 2] = ["## Assistant notes", "## Notas del asistente"];
+pub use tisty_markdown::ASSISTANT_NOTES;
 
 // An assistant's words go under their own heading, so they never mix with what the person wrote.
 pub fn noted(body: &str, note: &str, spanish: bool) -> String {
@@ -64,7 +64,7 @@ pub fn swapped(body: &str, heading: &str, put: &str) -> Option<String> {
 pub fn signed(words: &str) -> Vec<String> {
     words
         .lines()
-        .filter_map(signature)
+        .filter_map(tisty_markdown::signer)
         .map(str::to_string)
         .collect()
 }
@@ -79,7 +79,7 @@ pub fn foreign(words: &str, left: Option<&str>) -> Vec<String> {
     let mut new_entry = false;
     for line in words.lines() {
         let said = line.trim();
-        if signature(line).is_some() {
+        if tisty_markdown::signer(line).is_some() {
             signed_yet = true;
             new_entry = !known.contains(said);
             continue;
@@ -99,7 +99,7 @@ pub fn latest(words: &str) -> Option<&str> {
     let mut start = None;
     let mut offset = 0;
     for line in words.split_inclusive('\n') {
-        if signature(line).is_some() {
+        if tisty_markdown::signer(line).is_some() {
             start = Some(offset);
         }
         offset += line.len();
@@ -118,16 +118,6 @@ pub fn kept_by_assistants(was: Option<&str>, now: &str, left: Option<&str>) -> S
         .filter(|line| !theirs.iter().any(|one| one == line.trim()))
         .collect::<Vec<_>>()
         .join("\n")
-}
-
-fn signature(line: &str) -> Option<&str> {
-    let rest = line.trim().strip_prefix("**")?;
-    let (day, by) = rest.split_once("** · ")?;
-    let stamped = day.len() == 16
-        && day.as_bytes()[4] == b'-'
-        && day.as_bytes()[10] == b' '
-        && day.as_bytes()[13] == b':';
-    (stamped && !by.trim().is_empty()).then_some(by.trim())
 }
 
 pub fn outside(body: &str) -> String {
