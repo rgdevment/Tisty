@@ -122,8 +122,6 @@ Te sirve cuando:
 
 Si no ocultaste ninguna, la sección dice «No hay carpetas ocultas.».
 
-![La sección Carpetas ocultas de Configuración › General en español: el título Carpetas ocultas, la línea Las carpetas que ocultaste de la barra en este equipo. Conservan todo lo que tienen, y la búsqueda, la paleta y «Mover a» las siguen encontrando., y tres filas, Agentes con su robot gris, Casa y Trabajo / Clientes, cada una con el botón Volver a mostrar a la derecha](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/agents/es-15-carpetas-ocultas.png)
-
 **Un ejemplo.** En el computador del trabajo, botón derecho sobre **Casa** y **Ocultar de la barra**: **Casa** y todo lo que tiene adentro, como **Casa / Rina**, salen de la barra. Una tarde Marisol te pide el carnet de vacunas de Rina. Lo escribes en el buscador de arriba de la barra y aparece, aunque **Casa** esté oculta, y lo abres desde ahí. En el computador de la casa, **Casa** sigue en la barra como siempre.
 
 Lo que conviene saber:

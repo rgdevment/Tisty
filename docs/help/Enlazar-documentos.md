@@ -53,7 +53,7 @@ Para abrirlo: en un documento que puedes escribir, un clic deja el cursor en el 
 
 El panel junto al documento tiene la fila **Enlazado desde**: cada documento y cada tarea que lo cita o lo menciona y, en un documento, bajo qué sección lo hace («En: Vacunas»). Un clic abre ese documento en esa sección.
 
-![El panel junto a «Veterinaria»: Enlazado desde nombra la «Ficha de Rina» y la sección donde la enlaza, «En: Vacunas»](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/es-enlazado-desde.png)
+![El panel junto a «¿Qué es Tisty?»: arriba su índice y, debajo, Enlazado desde con 4 documentos, cada uno con la sección donde lo enlaza, como «Brainsty: todo unido», «En: La red»](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/es-enlazado-desde.png)
 
 - **Cuenta las dos formas.** Un enlace dentro de una frase es una mención; una tarjeta, sola en su párrafo, es una cita. Las dos aparecen aquí, y la página de una tarea tiene la misma fila.
 - **Se arma en segundo plano.** Tisty lee cómo se enlazan tus documentos sin frenar lo que haces, así que un enlace recién escrito aparece a los pocos segundos. Mientras lee la primera vez, la fila dice «Tisty todavía está leyendo cómo se enlazan tus documentos»; cuando nadie enlaza ese documento, «Todavía ningún documento ni tarea enlaza aquí».

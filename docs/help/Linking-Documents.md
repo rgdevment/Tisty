@@ -53,7 +53,7 @@ To open it: in a document you can write in, a click puts the caret in the link, 
 
 The panel beside the document has a **Linked from** row: every document and every task that cites or mentions it and, in a document, under which section it does («In: Vaccines»). A click opens that document at that section.
 
-![The panel beside «Vet»: Linked from names «Rina's record» and the section that links it, «In: Vaccines»](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/en-linked-from.png)
+![The panel beside «What is Tisty?»: its outline at the top and, below it, Linked from with 4 documents, each with the section that links it, such as «Brainsty: everything joined», «In: The network»](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/en-linked-from.png)
 
 - **Both kinds count.** A link inside a sentence is a mention; a card, alone in its paragraph, is a citation. Both show here, and a task's page has the same row.
 - **It is built in the background.** Tisty reads how your documents link without slowing what you do, so a link you just wrote shows up a few seconds later. While it reads for the first time, the row says «Tisty is still reading how your documents link to each other»; when nothing links that document, «No document or task links here yet».

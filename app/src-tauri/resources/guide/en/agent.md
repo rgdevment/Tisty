@@ -36,9 +36,7 @@ An agent deep in code forgets about Tisty. Two things help, and you can turn bot
 
 Your agent does not read everything you keep: it walks it. With a single tool, `brain`, it finds tasks and documents by their words, the Archive beside the rest and first what holds those words in its title. It asks for a document's card (its sections with their lines, who cites it and its decisions in force first) and then, with `read`, reads only the section it needs, or only what you highlighted or set in bold. If it reads again something that did not change, Tisty tells it only that, without sending the text again. And it sees a whole project grouped as blocked, under way, waiting for you and not started: a part whose state starts with «Blocked:» counts as blocked. On the card it gets apart, under `guessed`, what Tisty thinks is alike and nobody linked, with the words that say so: it reads both before joining anything. It is the same network you see drawn in **Brainsty: everything joined**, a page of this guide.
 
-![The page of «Confirmation webhook» with its State section, signed by Claude Code: what is done, what is left, the decisions in force and what was ruled out](state.png)
-
-When it picks a task up, the first thing it gets is its **State**, the one you see above, and only the notes written after it. If the steps changed or notes arrived after the state, Tisty tells it the state is old. Every call, with an excerpt of what Tisty answers, is in [how an agent works](https://www.tisty.app/docs/how-an-agent-works/).
+When it picks a task up, the first thing it gets is its **State**, the one you see on its page, and only the notes written after it. If the steps changed or notes arrived after the state, Tisty tells it the state is old. Every call, with an excerpt of what Tisty answers, is in [how an agent works](https://www.tisty.app/docs/how-an-agent-works/).
 
 ## What it can do
 

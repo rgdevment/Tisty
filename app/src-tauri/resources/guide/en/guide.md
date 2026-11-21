@@ -19,7 +19,7 @@ Read this guide at your own pace: each section stands on its own, and whatever y
 
 ## You and your agent
 
-Working with an agent means splitting the work: you decide where it goes and it takes care of the details. Tisty is made so those two halves understand each other. And if you work alone, each section here holds just the same for you: what your agent reads, you read.
+Working with an agent means splitting the work: you decide where it goes and it takes care of the details. Tisty is made so those two halves understand each other.
 
 ### You read it, it reads it
 
@@ -39,7 +39,7 @@ Brainsty is Tisty's brain: everything you keep, with what joins it, drawn as one
 
 ## How does it work?
 
-It all starts with one question, the same for you and, if you work with one, for your agent: will you do it, or read it again? If you will do it, it is a task: it ends, sometimes the same day, and stays in the Archive as knowledge with a date. If you will read it again, it is a document: a manual, a recipe, a year of minutes, which you correct and add to for years. And if you do not know yet, it is an idea: it waits in Ideas until you sort it out. What simply happened, and you want to remember, goes in the Diary. This drawing tells the rest:
+It all starts with one question, and your agent asks it too: will you do it, or read it again? If you will do it, it is a task: it ends, sometimes the same day, and stays in the Archive as knowledge with a date. If you will read it again, it is a document: a manual, a recipe, a year of minutes, which you correct and add to for years. And if you do not know yet, it is an idea: it waits in Ideas until you sort it out. What simply happened, and you want to remember, goes in the Diary. This drawing tells the rest:
 
 ```mermaid
 flowchart TD

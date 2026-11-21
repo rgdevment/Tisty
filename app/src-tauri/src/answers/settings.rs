@@ -34,22 +34,10 @@ pub const ATTACHED: &[&str] = &[
     "network.png",
     "red-cerca.png",
     "network-near.png",
-    "estado.png",
-    "state.png",
     "agents-barra.png",
     "agents-sidebar.png",
     "agents-ficha.png",
     "agents-card.png",
-    "agents-por-fuera.png",
-    "agents-outside.png",
-    "agents-otro-equipo.png",
-    "agents-other-computer.png",
-    "agents-propuesta.png",
-    "agents-proposal.png",
-    "agents-traer-otro.png",
-    "agents-bring-another.png",
-    "agents-quitar.png",
-    "agents-take-away.png",
 ];
 
 pub const GUIDE_COVER: &str = "tisty:guide";

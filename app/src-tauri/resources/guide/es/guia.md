@@ -19,7 +19,7 @@ Lee esta guía a tu ritmo: cada sección se entiende sola, y lo que hoy no uses 
 
 ## Tú y tu agente
 
-Trabajar con un agente es repartirse el trabajo: tú decides hacia dónde va y él se encarga del detalle. Tisty está hecho para que esas dos mitades se entiendan. Y si trabajas solo, cada sección de aquí vale igual para ti: lo que lee tu agente, lo lees tú.
+Trabajar con un agente es repartirse el trabajo: tú decides hacia dónde va y él se encarga del detalle. Tisty está hecho para que esas dos mitades se entiendan.
 
 ### Lo lees tú, lo lee él
 
@@ -39,7 +39,7 @@ Brainsty es el cerebro de Tisty: todo lo que guardas, con lo que lo une, dibujad
 
 ## ¿Cómo funciona?
 
-Todo empieza con una pregunta, la misma para ti y, si trabajas con uno, para tu agente: ¿lo vas a hacer, o lo vas a volver a leer? Si lo vas a hacer, es una tarea: se acaba, a veces el mismo día, y queda en el Archivo como conocimiento con fecha. Si lo vas a volver a leer, es un documento: un manual, una receta, las actas de un año, que corriges y amplías durante años. Y si todavía no lo sabes, es una idea: espera en Ideas hasta que la ordenes. Lo que solo pasó, y quieres recordar, va al Diario. Este dibujo cuenta el resto:
+Todo empieza con una pregunta, y tu agente se hace la misma: ¿lo vas a hacer, o lo vas a volver a leer? Si lo vas a hacer, es una tarea: se acaba, a veces el mismo día, y queda en el Archivo como conocimiento con fecha. Si lo vas a volver a leer, es un documento: un manual, una receta, las actas de un año, que corriges y amplías durante años. Y si todavía no lo sabes, es una idea: espera en Ideas hasta que la ordenes. Lo que solo pasó, y quieres recordar, va al Diario. Este dibujo cuenta el resto:
 
 ```mermaid
 flowchart TD

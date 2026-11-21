@@ -131,7 +131,7 @@ The network changes what it shows with the distance, and each detail fades in as
 
 So, up close, the task «Rina's yearly vaccine» is a box in the colour of the **Home** list, and «Buy Rina's flea treatment», which you finished last week, a tick in the same colour. The icon dims with what is not picked, like the rest, and a click on it picks the node as before. From afar it costs nothing: there the plain shapes come back, drawn by the thousand.
 
-![Brainsty in the content panel, beside the sidebar, with the same network from afar: the nodes make the outline of a brain seen from the side, with no titles and faint lines, and the Legend folded at the bottom left](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/en-network-far.png)
+![Brainsty in the content panel, beside the sidebar, with the same network from afar: «1,931 nodes · 2,811 connections», the nodes with no titles and faint lines, and the Legend folded at the bottom left](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/en-network-far.png)
 
 The wheel zooms in and out; dragging moves you around, and dragging with the right button, or with `Shift`, turns the globe. At the first touch the network stops following the point it started on. A double click on an empty spot takes you back in one jump to the whole network, from any distance.
 
@@ -288,8 +288,6 @@ A typo or a translation counts like a shared word: two things are alike only whe
     { "id": "…", "kind": "task", "title": "Pagar la cuenta del agua", "state": "open", "score": 0.61, "shared": ["pagar≈pay", "agua≈water"], "method": "dictionary" } ] }
 "Guessed alike by Tisty, linked by no one: \"Pagar la cuenta del agua\" […] (open) (alike by translation: pagar≈pay, agua≈water)."
 ```
-
-![The card of «Pay the water bill» up close in Brainsty: «Task · Home» with its connections, State «Under way · For today», and under Alike «Pagar la cuenta del agua» with «Tisty thinks they are alike: they share pagar ≈ pay and agua ≈ water»; in the network, an amber curve joins the two tasks](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/en-twin.png)
 
 An alike pair shows only when both its ends are in sight: in the network, both must be drawn; for an agent, both must pass its gate, so a hidden or dropped task is never named through an alike pair. An alike pair adds no connection to the count at the top and does not count towards the 12,000-node cap. And `read`, which brings the text, brings no alike pairs: they go only on `brain`'s card.
 

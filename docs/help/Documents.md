@@ -122,8 +122,6 @@ It helps when:
 
 If you hid none, the section says «No folder is hidden.».
 
-![The Hidden folders section of Settings › General in English: the title Hidden folders, the line Folders hidden from the sidebar on this computer. They keep everything they hold, and search, the palette and Move to still find them., and three rows, Agents with its grey robot, Home and Work / Clients, each with the button Show again on the right](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/agents/en-15-hidden-folders.png)
-
 **An example.** On the work computer, right-click **Home** and choose **Hide from the sidebar**: **Home** and everything inside it, such as **Home / Rina**, leave the sidebar. One afternoon Marisol asks you for Rina's vaccination card. You type it in the search at the top of the sidebar and it shows up, even though **Home** is hidden, and you open it from there. On the home computer, **Home** is still in the sidebar as always.
 
 Worth knowing:

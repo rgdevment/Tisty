@@ -289,8 +289,6 @@ Un tipeo o una traducción cuenta como una palabra en común: dos cosas se parec
 "Guessed alike by Tisty, linked by no one: \"Pay the water bill\" […] (open) (alike by translation: pagar≈pay, agua≈water)."
 ```
 
-![La ficha de «Pagar la cuenta del agua» de cerca en Brainsty: «Tarea · Casa» con sus conexiones, Estado «En curso · Para hoy», y en Parecidos «Pay the water bill» con «Tisty cree que se parecen: comparten pagar ≈ pay y agua ≈ water»; en la red, una curva ámbar une las dos tareas](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/es-gemela.png)
-
 Un parecido aparece solo cuando sus dos puntas están a la vista: en la red, las dos tienen que estar dibujadas; para un agente, las dos tienen que pasar su puerta, así que una tarea oculta o descartada nunca se nombra a través de un parecido. Un parecido no suma conexiones a la cuenta de arriba ni cuenta para el tope de 12.000 nodos. Y `read`, que trae el texto, no trae parecidos: van solo en la ficha de `brain`.
 
 ## Lo que conviene saber
