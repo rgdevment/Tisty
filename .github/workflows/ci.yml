@@ -223,6 +223,26 @@ jobs:
       - run: cargo build -q -p tisty-markdown --example placing
       - run: node app/scripts/engines.mjs
 
+  engines-edge:
+    name: the page writes as it should in Edge on Windows
+    needs: changes
+    if: needs.changes.outputs.window == 'true'
+    runs-on: windows-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/toolchain
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - run: npm ci
+      - run: cargo build -q -p tisty-markdown --example placing
+      - run: node app/scripts/engines.mjs edge
+
   guide:
     name: the Markdown guide draws
     needs: changes

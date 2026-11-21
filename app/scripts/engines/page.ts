@@ -7,10 +7,17 @@ window.addEventListener("error", noted("window"));
 window.addEventListener("unhandledrejection", noted("window"));
 
 const DRAWN = new Set(["doc_placed", "doc_drawn"]);
+const PICTURE =
+  "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAgCAIAAADbtmxLAAAAMklEQVR42u3OQQ0AAAgEoOsfwBCGMJstnA82ApDqeSVCQkJCQkJCQkJCQkJCQkJCQpcWu0j0ppZpK1kAAAAASUVORK5CYII=";
 
 Object.assign(window, {
   __TAURI_INTERNALS__: {
     invoke: async (cmd: string, args: unknown) => {
+      if (cmd === "served") {
+        if (String((args as { reference?: string }).reference).includes("missing"))
+          throw new Error("the harness keeps no picture by that name");
+        return PICTURE;
+      }
       const answer = await fetch("/bridge", { method: "POST", body: JSON.stringify({ cmd, args }) });
       const said = await answer.json();
       if (said && typeof said === "object" && "refused" in said)

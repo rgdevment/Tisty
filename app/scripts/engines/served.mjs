@@ -1,36 +1,51 @@
 import { spawn } from "node:child_process";
-import { dirname, join, resolve } from "node:path";
+import { dirname, join, relative, resolve } from "node:path";
 import { createInterface } from "node:readline";
 import { fileURLToPath } from "node:url";
-import { createServer } from "vite";
+import { createServer, normalizePath } from "vite";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const app = resolve(here, "..", "..");
 const repository = dirname(app);
 
+const BRIDGE = ["run", "-q", "-p", "tisty-markdown", "--example", "placing"];
+
 const core = () => {
-  const bridge = spawn("cargo", ["run", "-q", "-p", "tisty-markdown", "--example", "placing"], {
-    cwd: repository,
-    stdio: ["pipe", "pipe", "inherit"],
-  });
+  const bridge = spawn("cargo", BRIDGE, { cwd: repository, stdio: ["pipe", "pipe", "inherit"] });
   const waiting = [];
-  createInterface({ input: bridge.stdout }).on("line", (line) => waiting.shift()?.(line));
+  let stopping = false;
+  let broken = null;
+  const ended = (why) => {
+    if (stopping || broken) return;
+    broken = new Error(`the Markdown core (cargo ${BRIDGE.join(" ")}) ${why}`);
+    for (const one of waiting.splice(0)) one.failed(broken);
+  };
+  bridge.on("error", (error) => ended(`could not start: ${error.message}`));
+  bridge.on("close", (code, signal) => ended(`stopped with ${signal ?? `exit code ${code}`}`));
+  bridge.stdin.on("error", (error) => ended(`stopped listening: ${error.message}`));
+  createInterface({ input: bridge.stdout }).on("line", (line) => waiting.shift()?.done(line));
   let queue = Promise.resolve();
   const asked = (question) => {
     const answer = queue.then(
       () =>
-        new Promise((done) => {
-          waiting.splice(waiting.length, 0, done);
+        new Promise((done, failed) => {
+          if (broken) return failed(broken);
+          waiting.push({ done, failed });
           bridge.stdin.write(`${question.replace(/\n/g, "")}\n`);
         }),
     );
     queue = answer.catch(() => {});
     return answer;
   };
-  return { asked, stop: () => bridge.kill() };
+  const stop = () => {
+    stopping = true;
+    bridge.stdin.end();
+    bridge.kill();
+  };
+  return { asked, stop };
 };
 
-const shell = `<!doctype html><html><head><meta charset="utf-8"></head><body style="margin:0;background:#fff"><div id="root"></div><script type="module" src="/@fs${here}/page.ts"></script></body></html>`;
+const shell = `<!doctype html><html><head><meta charset="utf-8"></head><body style="margin:0;background:#fff"><div id="root"></div><script type="module" src="/${normalizePath(relative(app, join(here, "page.ts")))}"></script></body></html>`;
 
 export const served = async () => {
   const bridge = core();
@@ -41,7 +56,7 @@ export const served = async () => {
         if (request.url === "/bridge" && request.method === "POST") {
           let question = "";
           for await (const chunk of request) question += chunk;
-          const said = await bridge.asked(question);
+          const said = await bridge.asked(question).catch((error) => JSON.stringify({ refused: error.message }));
           response.writeHead(200, { "content-type": "application/json" }).end(said);
           return;
         }

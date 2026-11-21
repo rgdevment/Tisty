@@ -32,6 +32,8 @@ export const PIECES = [
 
 export const LONG = `# Largo\n\n${Array.from({ length: 120 }, (_, n) => `Párrafo número ${n} con algo de texto para rellenar.`).join("\n\n")}\n`;
 
+const NO_LINE_DELETE_ON_WINDOWS = "Windows has no key that deletes back to the start of a line";
+
 export const CASES = [
   {
     name: "newPageTitleTyped",
@@ -67,7 +69,7 @@ export const CASES = [
   {
     name: "typeThenWordBack",
     doc: WRITING,
-    run: async ({ clickAt, typed, press, page, frame }) => { await clickAt("algunas"); await typed(" uno dos"); await press("Alt+Backspace"); },
+    run: async ({ clickAt, typed, press, wordBack, page, frame }) => { await clickAt("algunas"); await typed(" uno dos"); await wordBack(); },
     was: "",
     now: "uno  ",
   },
@@ -214,12 +216,13 @@ export const CASES = [
   {
     name: "wordBackspace",
     doc: WRITING,
-    run: async ({ clickAt, typed, press, page, frame }) => { await clickAt("palabras"); await press("Alt+Backspace"); },
+    run: async ({ clickAt, typed, press, wordBack, page, frame }) => { await clickAt("palabras"); await wordBack(); },
     was: "palabras",
     now: "",
   },
   {
     name: "lineBackspace",
+    macOnly: NO_LINE_DELETE_ON_WINDOWS,
     doc: WRITING,
     run: async ({ clickAt, typed, press, page, frame }) => { await clickAt("palabras"); await press("Meta+Backspace"); },
     was: "Primer párrafo con algunas palabras",
@@ -242,7 +245,7 @@ export const CASES = [
   {
     name: "selectAllType",
     doc: WRITING,
-    run: async ({ clickAt, typed, press, page, frame }) => { await clickAt("Primer"); await press("Meta+a"); await typed("Todo"); },
+    run: async ({ clickAt, typed, press, command, page, frame }) => { await clickAt("Primer"); await command("a"); await typed("Todo"); },
     was: "ítulo del documento\n\nPrimer párrafo con algunas palabras y **negrita** en medio.\n\n## Sección\n\n- uno\n- dos\n- tres\n\n- [ ] tarea pendiente\n- [x] tarea hecha\n\n1. primero\n2. segundo\n\n> una cita\n\nÚltimo párrafo.",
     now: "odo",
   },
@@ -270,14 +273,14 @@ export const CASES = [
   {
     name: "boldKeys",
     doc: WRITING,
-    run: async ({ clickAt, typed, press, page, frame }) => { await clickAt("párrafo"); await press("Meta+b"); await typed("fuerte"); await press("Meta+b"); await typed(" normal"); },
+    run: async ({ clickAt, typed, press, command, page, frame }) => { await clickAt("párrafo"); await command("b"); await typed("fuerte"); await command("b"); await typed(" normal"); },
     was: "",
     now: "**fuerte** normal",
   },
   {
     name: "undoRedo",
     doc: WRITING,
-    run: async ({ clickAt, typed, press, page, frame }) => { await clickAt("algunas"); await typed(" uno"); await page.waitForTimeout(1100); await typed(" dos"); await press("Meta+z"); await press("Meta+Shift+z"); },
+    run: async ({ clickAt, typed, press, command, page, frame }) => { await clickAt("algunas"); await typed(" uno"); await page.waitForTimeout(1100); await typed(" dos"); await command("z"); await command("Shift+z"); },
     was: "",
     now: "uno dos ",
   },
@@ -361,12 +364,13 @@ export const CASES = [
   {
     name: "wordBackStartAfterCode",
     doc: PIECES,
-    run: async ({ clickAt, typed, press, page, frame }) => { await clickAt("Tras el código", true); await press("Alt+Backspace"); },
+    run: async ({ clickAt, typed, press, wordBack, page, frame }) => { await clickAt("Tras el código", true); await wordBack(); },
     was: "",
     now: "",
   },
   {
     name: "lineBackStartAfterCode",
+    macOnly: NO_LINE_DELETE_ON_WINDOWS,
     doc: PIECES,
     run: async ({ clickAt, typed, press, page, frame }) => { await clickAt("Tras el código", true); await press("Meta+Backspace"); },
     was: "",
@@ -381,6 +385,7 @@ export const CASES = [
   },
   {
     name: "lineBackStartAfterDiagram",
+    macOnly: NO_LINE_DELETE_ON_WINDOWS,
     doc: PIECES,
     run: async ({ clickAt, typed, press, page, frame }) => { await clickAt("Tras el diagrama", true); await press("Meta+Backspace"); },
     was: "",
@@ -402,6 +407,7 @@ export const CASES = [
   },
   {
     name: "lineBackStartAfterTable",
+    macOnly: NO_LINE_DELETE_ON_WINDOWS,
     doc: PIECES,
     run: async ({ clickAt, typed, press, page, frame }) => { await clickAt("Tras la tabla", true); await press("Meta+Backspace"); },
     was: "",
@@ -410,7 +416,7 @@ export const CASES = [
   {
     name: "wordBackStartAfterTable",
     doc: PIECES,
-    run: async ({ clickAt, typed, press, page, frame }) => { await clickAt("Tras la tabla", true); await press("Alt+Backspace"); },
+    run: async ({ clickAt, typed, press, wordBack, page, frame }) => { await clickAt("Tras la tabla", true); await wordBack(); },
     was: "",
     now: "",
   },
@@ -430,6 +436,7 @@ export const CASES = [
   },
   {
     name: "lineBackStartAfterCard",
+    macOnly: NO_LINE_DELETE_ON_WINDOWS,
     doc: PIECES,
     run: async ({ clickAt, typed, press, page, frame }) => { await clickAt("Tras la tarjeta", true); await press("Meta+Backspace"); },
     was: "",
@@ -445,8 +452,8 @@ export const CASES = [
   {
     name: "deleteBeforeInlinePicture",
     doc: PIECES,
-    run: async ({ clickAt, typed, press, page, frame }) => { await clickAt("Una imagen "); await press("Delete"); },
-    was: "",
+    run: async ({ clickAt, typed, press, page, frame }) => { await clickAt("Una imagen"); await press("ArrowRight"); await press("Delete"); },
+    was: "![mini](mini.png)",
     now: "",
   },
   {
@@ -476,9 +483,9 @@ export const CASES = [
   {
     name: "chooseAllLongType",
     doc: LONG,
-    run: async ({ clickAt, typed, press }) => {
+    run: async ({ clickAt, typed, command }) => {
       await clickAt("número 60 con");
-      await press("Meta+a");
+      await command("a");
       await typed("todo");
     },
     was: LONG.slice(2, LONG.length - 1),
