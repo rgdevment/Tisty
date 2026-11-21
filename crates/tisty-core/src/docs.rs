@@ -374,8 +374,16 @@ fn outside_within(at: &Path, ceiling: u64) -> Result<String> {
 }
 
 pub fn read(root: &Path, id: &str) -> Result<String> {
+    read_waiting(root, id, |_| false)
+}
+
+pub fn read_patiently(root: &Path, id: &str) -> Result<String> {
+    read_waiting(root, id, crate::store::for_a_moment)
+}
+
+fn read_waiting(root: &Path, id: &str, passing: fn(&std::io::Error) -> bool) -> Result<String> {
     let at = resolve(root, id)?;
-    let file = std::fs::File::open(&at)?;
+    let file = crate::store::again(|| std::fs::File::open(&at), passing)?;
     crate::counting::opened();
     if !file.metadata()?.is_file() {
         return Err(Error::OutsideTheStore(id.to_string()));

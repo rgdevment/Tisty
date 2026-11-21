@@ -1220,3 +1220,20 @@ fn only_an_agent_card_lets_a_second_block_of_properties_through() {
     let flagged = "---\nagent: [claude/skill/pdf/SKILL.md, crlf, bom]\n---\n---\nname: y\n---\n";
     assert_eq!(fronts(flagged), 2);
 }
+
+#[test]
+fn marks_written_inside_an_address_and_again_past_it_still_draw_the_page() {
+    for said in [
+        "Join https://zoom.us/j/123?pwd=dGVzdA==&uname=x then check a == b",
+        "https://example.com/?a=b==c and x == y",
+        "Docs https://en.cppreference.com/c++17/x then i ++ j",
+        "http://a==b ==",
+        "http://a++b ++",
+        "see https://x.com/a==b and ==yellow== here",
+    ] {
+        let drawn = html(&read(said));
+        assert!(drawn.contains("<p"), "{said:?} gave {drawn:?}");
+    }
+    let marked = html(&read("see https://x.com/a==b and ==yellow== here"));
+    assert!(marked.contains("<mark"), "{marked:?}");
+}

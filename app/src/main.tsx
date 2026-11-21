@@ -7,6 +7,7 @@ import { drawsHeicHere } from "./core";
 import { locale } from "./locales";
 import { drawsHeic } from "./previews";
 import Standing, { fell } from "./Standing";
+import { unnavigated } from "./unnavigated";
 import "tisty-editor/tokens.css";
 import "tisty-editor/side.css";
 import "./index.css";
@@ -26,6 +27,7 @@ document.documentElement.lang = locale();
   dark.addEventListener("change", paint);
 }
 
+window.addEventListener("keydown", unnavigated);
 window.addEventListener("error", thrown);
 window.addEventListener("unhandledrejection", rejected);
 

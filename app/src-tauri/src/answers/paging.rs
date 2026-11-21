@@ -3,14 +3,19 @@ use std::sync::Mutex;
 
 use tisty_core::witness::{self, Fact, channel};
 
-use crate::{Session, held};
+use crate::{Answer, Session, caught, held};
 
 const DRAWN_BY: &str = env!("CARGO_PKG_VERSION");
 const KEPT_AT_MOST: usize = 256;
 #[tauri::command(async)]
-pub fn doc_drawn(session: tauri::State<'_, Mutex<Session>>, body: String) -> tauri::ipc::Response {
+pub fn doc_drawn(
+    session: tauri::State<'_, Mutex<Session>>,
+    body: String,
+) -> Answer<tauri::ipc::Response> {
     let shelf = held(&session).paths.cache().join("pages");
-    tauri::ipc::Response::new(paged(&shelf, &body).into_bytes())
+    caught("doc_drawn", || {
+        tauri::ipc::Response::new(paged(&shelf, &body).into_bytes())
+    })
 }
 
 // The page reckons its text, so a key names the text it was typed on without sending it.
@@ -117,11 +122,12 @@ pub fn doc_placed(
     placing: tauri::State<'_, Placing>,
     body: String,
     check: Check,
-) -> tauri::ipc::Response {
-    let html = placing.read(window.label(), &body, check, false, |doc, _| {
-        tisty_markdown::html_placed(doc)
-    });
-    tauri::ipc::Response::new(html.into_bytes())
+) -> Answer<tauri::ipc::Response> {
+    let drawn = |doc: &tisty_markdown::Doc, _| tisty_markdown::html_placed(doc);
+    let html = caught("doc_placed", || {
+        placing.read(window.label(), &body, check, false, drawn)
+    })?;
+    Ok(tauri::ipc::Response::new(html.into_bytes()))
 }
 
 #[derive(serde::Serialize, Debug, PartialEq, Eq)]
@@ -162,23 +168,25 @@ pub fn doc_placed_near(
     now: Check,
     from: usize,
     to: usize,
-) -> Option<PlacedNear> {
+) -> Answer<Option<PlacedNear>> {
     let drawn = |doc: &tisty_markdown::Doc, shown| placed_near(doc, from, to, shown);
-    match sent {
+    caught("doc_placed_near", || match sent {
         Sent::Body(body) => Some(placing.read(window.label(), &body, now, true, drawn)),
         Sent::Edit(edit) => placing.edited(window.label(), &edit, now, drawn),
-    }
+    })
 }
 
 // A journal is never rewritten, so what it said before Tisty had its own words is turned as drawn.
 #[tauri::command(async)]
-pub fn note_drawn(body: String) -> String {
-    tisty_markdown::html(&tisty_markdown::read(&tisty_markdown::to_tisty(&body)))
+pub fn note_drawn(body: String) -> Answer<String> {
+    caught("note_drawn", || {
+        tisty_markdown::html(&tisty_markdown::read(&tisty_markdown::to_tisty(&body)))
+    })
 }
 
 #[tauri::command(async)]
-pub fn mends_in(body: String) -> Vec<tisty_core::mending::Mend> {
-    tisty_core::mending::mends(&body)
+pub fn mends_in(body: String) -> Answer<Vec<tisty_core::mending::Mend>> {
+    caught("mends_in", || tisty_core::mending::mends(&body))
 }
 
 const GUIDE: [&str; 2] = [
@@ -220,26 +228,32 @@ pub(crate) fn published(at: &str) -> Option<String> {
 
 // The guide is drawn past the page cache, which holds the person's own documents and would lose them to it.
 #[tauri::command(async)]
-pub fn help_drawn(body: String) -> String {
-    tisty_markdown::html(&tisty_markdown::read(&body))
+pub fn help_drawn(body: String) -> Answer<String> {
+    caught("help_drawn", || {
+        tisty_markdown::html(&tisty_markdown::read(&body))
+    })
 }
 
 #[tauri::command(async)]
-pub fn help_anchors(bodies: Vec<String>) -> Vec<Vec<String>> {
-    bodies
-        .iter()
-        .map(|body| {
-            tisty_markdown::outline(&tisty_markdown::read(body))
-                .into_iter()
-                .map(|head| head.id)
-                .collect()
-        })
-        .collect()
+pub fn help_anchors(bodies: Vec<String>) -> Answer<Vec<Vec<String>>> {
+    caught("help_anchors", || {
+        bodies
+            .iter()
+            .map(|body| {
+                tisty_markdown::outline(&tisty_markdown::read(body))
+                    .into_iter()
+                    .map(|head| head.id)
+                    .collect()
+            })
+            .collect()
+    })
 }
 
 #[tauri::command(async)]
-pub fn doc_plain(body: String) -> String {
-    tisty_markdown::to_standard(&body, &|_| None)
+pub fn doc_plain(body: String) -> Answer<String> {
+    caught("doc_plain", || {
+        tisty_markdown::to_standard(&body, &|_| None)
+    })
 }
 
 // The body comes back changed only if the table still sits where the page drew it; the window saves it.
@@ -249,7 +263,9 @@ pub fn table_edit(
     at: (usize, usize),
     edits: Vec<tisty_markdown::grid::Edit>,
 ) -> Result<String, String> {
-    tisty_markdown::grid::edits(&body, at.0..at.1, &edits).map_err(|why| why.word().to_string())
+    tabled("table_edit", || {
+        tisty_markdown::grid::edits(&body, at.0..at.1, &edits).map_err(|why| why.word())
+    })
 }
 
 // A date may be typed as it is said, «el viernes», and lands in the file as its day.
@@ -259,9 +275,11 @@ pub fn table_canon(
     words: String,
     typed: String,
     locale: String,
-) -> String {
+) -> Answer<String> {
     let spoken = held(&session).locale.clone().unwrap_or(locale);
-    canon(&words, &typed, &jiff::Zoned::now(), &spoken)
+    caught("table_canon", || {
+        canon(&words, &typed, &jiff::Zoned::now(), &spoken)
+    })
 }
 
 pub fn canon(words: &str, typed: &str, now: &jiff::Zoned, spoken: &str) -> String {
@@ -280,7 +298,9 @@ pub fn table_edit_near(
     at: usize,
     edits: Vec<tisty_markdown::grid::Edit>,
 ) -> Result<String, String> {
-    tisty_markdown::grid::edits_near(&body, at, &edits).map_err(|why| why.word().to_string())
+    tabled("table_edit_near", || {
+        tisty_markdown::grid::edits_near(&body, at, &edits).map_err(|why| why.word())
+    })
 }
 
 #[tauri::command(async)]
@@ -290,8 +310,9 @@ pub fn table_order(
     column: usize,
     down: bool,
 ) -> Result<Vec<usize>, String> {
-    tisty_markdown::grid::order(&body, at.0..at.1, column, down)
-        .map_err(|why| why.word().to_string())
+    tabled("table_order", || {
+        tisty_markdown::grid::order(&body, at.0..at.1, column, down).map_err(|why| why.word())
+    })
 }
 
 #[tauri::command(async)]
@@ -299,7 +320,18 @@ pub fn table_written(
     body: String,
     at: (usize, usize),
 ) -> Result<tisty_markdown::grid::Written, String> {
-    tisty_markdown::grid::written(&body, at.0..at.1).map_err(|why| why.word().to_string())
+    tabled("table_written", || {
+        tisty_markdown::grid::written(&body, at.0..at.1).map_err(|why| why.word())
+    })
+}
+
+fn tabled<T>(
+    command: &'static str,
+    work: impl FnOnce() -> Result<T, &'static str>,
+) -> Result<T, String> {
+    caught(command, work)
+        .unwrap_or_else(|refusal| Err(refusal.code))
+        .map_err(str::to_string)
 }
 
 pub fn paged(shelf: &Path, body: &str) -> String {

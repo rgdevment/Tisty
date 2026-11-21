@@ -1,4 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
+import { invokedText } from "./unpacked";
 
 type Hash = readonly [number, number];
 
@@ -81,9 +82,7 @@ export const checkAfter = (was: Check, edit: Typed): Check => ({
 });
 
 export const docPlaced = (body: string): Promise<string> =>
-  invoke<ArrayBuffer>("doc_placed", { body, check: checkOf(body) }).then((bytes) =>
-    new TextDecoder().decode(bytes),
-  );
+  invokedText("doc_placed", { body, check: checkOf(body) });
 
 export type PlacedNear = {
   readonly count: number;

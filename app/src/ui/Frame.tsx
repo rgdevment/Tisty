@@ -1,5 +1,7 @@
 import { useEffect, useLayoutEffect, useRef } from "react";
 import { diagrams, type Sheet, sheeting } from "tisty-editor/read";
+import { caught } from "../broke";
+import { unnavigated } from "../unnavigated";
 import { fitted, type Reaching, type Worn, wired, worn } from "./dressing";
 import { dressedAsWindow, framed } from "./framed";
 import { wornLaid } from "./pageDressing";
@@ -33,6 +35,14 @@ const freshen = (sheet: Element, html: string) => {
   for (const name of sheet.getAttributeNames()) if (name !== "class") sheet.removeAttribute(name);
   sheet.className = "page";
   sheet.innerHTML = html;
+};
+
+const steady = (step: () => void) => {
+  try {
+    step();
+  } catch (why) {
+    caught(why);
+  }
 };
 
 const grows = (held: HTMLIFrameElement, page: Document): (() => void) => {
@@ -85,9 +95,10 @@ export default function Frame(props: Readonly<Props>) {
     let drawing = 0;
     const first = said.current.html;
     const undressed = () => {
-      for (const one of dressedUp.lent) one.drop();
-      for (const one of dressedUp.kept) one();
+      const was = dressedUp;
       dressedUp = { lent: [], kept: [] };
+      for (const one of was.lent) steady(() => one.drop());
+      for (const one of was.kept) steady(one);
     };
     const dress = (page: Document) => {
       drawing += 1;
@@ -112,31 +123,41 @@ export default function Frame(props: Readonly<Props>) {
       // A document already wired keeps its listeners, and wiring it twice would answer every click twice.
       if (!page || !sheet || page.documentElement.hasAttribute("data-wired")) return;
       page.documentElement.setAttribute("data-wired", "");
+      page.addEventListener("keydown", unnavigated);
       undressed();
-      stopGrowing();
-      stopSheeting();
+      steady(stopGrowing);
+      steady(stopSheeting);
+      stopGrowing = () => {};
+      stopSheeting = () => {};
+      laid.current = () => {};
       if (said.current.html !== first) freshen(sheet, said.current.html);
-      wired(page, () => said.current.reach());
       sheet.removeAttribute("inert");
       page.documentElement.classList.toggle("tall", tall);
       page.documentElement.classList.toggle("untitled", untitled);
       page.documentElement.classList.toggle("own-bar", viewing && ARROWED);
       page.documentElement.classList.toggle("shaping", shaped.current);
       page.documentElement.classList.toggle("agent", carded.current);
-      dressedAsWindow(page);
-      fitted(page, said.current.wide, said.current.zoom);
-      dress(page);
-      if (tall) stopGrowing = grows(held, page);
-      const sheets = sheeting(page, () => said.current.sheet);
-      stopSheeting = sheets.stop;
-      laid.current = sheets.lay;
-      said.current.onDresser?.((blocks) => {
-        const mine = drawing;
-        const kept = wornLaid(page, blocks, () => live && drawing === mine, said.current.reach());
-        dressedUp.kept.push(...kept);
-        laid.current();
+      steady(() => wired(page, () => said.current.reach()));
+      steady(() => dressedAsWindow(page));
+      steady(() => fitted(page, said.current.wide, said.current.zoom));
+      steady(() => dress(page));
+      steady(() => {
+        if (tall) stopGrowing = grows(held, page);
       });
-      said.current.onReady(held);
+      steady(() => {
+        const sheets = sheeting(page, () => said.current.sheet);
+        stopSheeting = sheets.stop;
+        laid.current = sheets.lay;
+      });
+      steady(() =>
+        said.current.onDresser?.((blocks) => {
+          const mine = drawing;
+          const kept = wornLaid(page, blocks, () => live && drawing === mine, said.current.reach());
+          dressedUp.kept.push(...kept);
+          laid.current();
+        }),
+      );
+      steady(() => said.current.onReady(held));
     };
     swap.current = (next) => {
       const page = held.contentDocument;
@@ -145,11 +166,11 @@ export default function Frame(props: Readonly<Props>) {
       undressed();
       // The document is built once, so the language and look it was built with are brought up to date.
       page.documentElement.lang = document.documentElement.lang;
-      dressedAsWindow(page);
+      steady(() => dressedAsWindow(page));
       freshen(sheet, next);
-      dress(page);
-      laid.current();
-      said.current.onReady(held);
+      steady(() => dress(page));
+      steady(() => laid.current());
+      steady(() => said.current.onReady(held));
     };
     const unfollow = followTheme(retheme);
     held.addEventListener("load", loaded);
@@ -157,8 +178,8 @@ export default function Frame(props: Readonly<Props>) {
     return () => {
       live = false;
       swap.current = () => {};
-      stopGrowing();
-      stopSheeting();
+      steady(stopGrowing);
+      steady(stopSheeting);
       laid.current = () => {};
       unfollow();
       held.removeEventListener("load", loaded);

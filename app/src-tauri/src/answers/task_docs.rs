@@ -5,7 +5,7 @@ use tisty_core::{Op, Task, TaskId};
 
 use super::papers::writable;
 use super::parts::{answered, task_id};
-use crate::{Answer, Refusal, Session, blamed, held, signing};
+use crate::{Answer, Refusal, Session, blamed, caught, held, signing};
 
 #[derive(serde::Serialize)]
 pub struct Opened {
@@ -39,9 +39,13 @@ pub fn task_doc_open(
     session: tauri::State<'_, Mutex<Session>>,
     id: String,
 ) -> Answer<Option<Opened>> {
+    caught("task_doc_open", || opening(&session, id))?
+}
+
+fn opening(session: &tauri::State<'_, Mutex<Session>>, id: String) -> Answer<Option<Opened>> {
     let id = task_id(&id)?;
     let file = {
-        let session = held(&session);
+        let session = held(session);
         let task = answered(&session, id)?;
         match file_of(&session, id) {
             Some(file) => file,
@@ -62,7 +66,7 @@ pub fn task_doc_open(
         }
     };
     let body = super::papers::doc_read(session.clone(), file.clone())?;
-    let session = held(&session);
+    let session = held(session);
     let task = answered(&session, id)?;
     Ok(Some(Opened {
         body: tisty_core::stages::ticked(&task, &body),
@@ -125,8 +129,20 @@ pub fn task_doc_settled(
     now: String,
     renamed: Option<Vec<(String, String)>>,
 ) -> Answer<Option<Task>> {
+    caught("task_doc_settled", || {
+        settling(&session, id, before, now, renamed)
+    })?
+}
+
+fn settling(
+    session: &Mutex<Session>,
+    id: String,
+    before: Option<String>,
+    now: String,
+    renamed: Option<Vec<(String, String)>>,
+) -> Answer<Option<Task>> {
     let id = task_id(&id)?;
-    let mut session = held(&session);
+    let mut session = held(session);
     // Steps an assistant added from another process count before the text is weighed against them.
     session.reload()?;
     let task = answered(&session, id)?;
@@ -163,8 +179,12 @@ pub fn task_doc_merge(
     base: String,
     mine: String,
 ) -> Answer<bool> {
+    caught("task_doc_merge", || merging(&session, id, base, mine))?
+}
+
+fn merging(session: &Mutex<Session>, id: String, base: String, mine: String) -> Answer<bool> {
     let id = task_id(&id)?;
-    let mut session = held(&session);
+    let mut session = held(session);
     session.reload()?;
     let task = open_task(&session, id)?;
     let file = file_of(&session, id).ok_or_else(|| Refusal::of("noSuchDoc"))?;

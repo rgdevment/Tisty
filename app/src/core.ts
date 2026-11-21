@@ -3,8 +3,9 @@ import { writeText } from "@tauri-apps/plugin-clipboard-manager";
 import type { Dated } from "./deadlines";
 import { speakOf } from "./locales";
 import type { PieceShowing } from "./pieceWindow";
-import { settled } from "./saving";
+import { type SaveTurn, settled } from "./saving";
 import type { Named } from "./sharing";
+import { invokedText } from "./unpacked";
 
 export type Status = "open" | "done" | "dropped";
 
@@ -1218,8 +1219,7 @@ export const folderDrop = (id: string): Promise<void> => invoke("folder_drop", {
 export const docFile = (id: string, folder?: string, before?: string): Promise<void> =>
   invoke("doc_file", { id, folder, before });
 export const docRead = (id: string): Promise<string> => invoke("doc_read", { id });
-export const docDrawn = (body: string): Promise<string> =>
-  invoke<ArrayBuffer>("doc_drawn", { body }).then((bytes) => new TextDecoder().decode(bytes));
+export const docDrawn = (body: string): Promise<string> => invokedText("doc_drawn", { body });
 export const docPlain = (body: string): Promise<string> => invoke("doc_plain", { body });
 export const noteDrawn = (body: string): Promise<string> => invoke("note_drawn", { body });
 
@@ -1237,19 +1237,23 @@ export interface Opened {
   body: string;
   print: string;
 }
-export const docOpened = (id: string): Promise<Opened> => invoke("doc_opened", { id });
+export const docOpened = (id: string, turn?: SaveTurn): Promise<Opened> =>
+  invoke("doc_opened", { id, turn });
 export const docWrite = (
   id: string,
   body: string,
   anyway?: boolean,
   since?: string,
-): Promise<Doc & { print: string }> => invoke("doc_write", { id, body, anyway, since });
+  turn?: SaveTurn,
+): Promise<Doc & { print: string }> => invoke("doc_write", { id, body, anyway, since, turn });
 export const docMerge = (
   id: string,
   base: string,
   mine: string,
-): Promise<(Opened & { title: string }) | null> => invoke("doc_merge", { id, base, mine });
-export const docBack = (id: string): Promise<Doc> => invoke("doc_back", { id });
+  turn?: SaveTurn,
+): Promise<(Opened & { title: string }) | null> => invoke("doc_merge", { id, base, mine, turn });
+export const docBack = (id: string, turn?: SaveTurn): Promise<Doc> =>
+  invoke("doc_back", { id, turn });
 export const docBackable = (id: string): Promise<boolean> => invoke("doc_backable", { id });
 export const folderFile = (id: string, parent?: string, before?: string): Promise<void> =>
   invoke("folder_file", { id, parent, before });
@@ -1335,6 +1339,8 @@ export const docWord = (bodies: string[], at: string): Promise<void> =>
   invoke("doc_word", { bodies, at });
 
 export const parted = (): Promise<void> => invoke("parted");
+export const partingWaits = (shown: boolean): Promise<void> => invoke("parting_waits", { shown });
+export const partingStays = (): Promise<void> => invoke("parting_stays");
 export const keptForTheEnd = (round: number): Promise<void> =>
   invoke("kept_for_the_end", { round });
 export const sow = (priority?: Priority): Promise<void> => invoke("sow", { priority });

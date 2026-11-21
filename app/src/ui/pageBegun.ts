@@ -1,11 +1,12 @@
 import { charsAt } from "tisty-editor/read";
 import { t } from "../locales";
 import type { Caret } from "./pageCaret";
-import type { Span } from "./pageEdits";
+import { reachIn, type Span } from "./pageEdits";
 import { fieldAsked } from "./pageFields";
 import type { Laying } from "./pageLaying";
 import { closing, joinedAt, opening } from "./pageLists";
 import { closeOf, openOf } from "./pageMarks";
+import { caretLaidOn } from "./pageNodes";
 import { placeOf } from "./pagePlaces";
 import { GHOST, titledAfterFront } from "./pageSpots";
 import type { Kept, Writer } from "./pageWriter";
@@ -36,9 +37,7 @@ export const begunOn = (writer: Writer, caret: Caret, laying: Laying) => {
       while (from > 0 && /[\r\n]/.test(text[from - 1] ?? "")) from--;
       return { from, to: at };
     }
-    if (kind.startsWith("deleteContentBackward") || kind.startsWith("deleteWordBackward"))
-      return { from: Math.max(0, at - 1), to: at };
-    if (kind.startsWith("delete")) return { from: at, to: Math.min(hands.text().length, at + 1) };
+    if (kind.startsWith("delete")) return reachIn(text, at, kind);
     return { from: at, to: at };
   };
 
@@ -93,7 +92,7 @@ export const begunOn = (writer: Writer, caret: Caret, laying: Laying) => {
     }
     writer.kept = { node: ghost, offset: 0, at, lead, tail };
     page.querySelector<HTMLElement>(".page")?.focus();
-    page.getSelection()?.collapse(ghost, 0);
+    caretLaidOn(page, ghost, 0);
     caret.inSight(ghost);
   };
 

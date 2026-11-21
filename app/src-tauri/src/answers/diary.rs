@@ -6,7 +6,7 @@ use tisty_core::diary::{self, Words};
 use tisty_core::diary_day::{self, DayAt};
 use tisty_core::witness::channel;
 
-use crate::{Answer, Refusal, Session, blamed, held, signing};
+use crate::{Answer, Refusal, Session, blamed, caught, held, signing};
 
 #[derive(Debug, serde::Serialize)]
 pub struct Kept {
@@ -203,11 +203,23 @@ pub fn diary_laid(
     body: String,
     said: Labels,
     open: Option<Opened>,
-) -> tauri::ipc::Response {
-    let days = tisty_core::diary_page::days(&body);
+) -> Answer<tauri::ipc::Response> {
+    caught("diary_laid", || {
+        tauri::ipc::Response::new(laid_page(&session, &file, &body, &said, open).into_bytes())
+    })
+}
+
+fn laid_page(
+    session: &Mutex<Session>,
+    file: &str,
+    body: &str,
+    said: &Labels,
+    open: Option<Opened>,
+) -> String {
+    let days = tisty_core::diary_page::days(body);
     let (strips, words) = {
-        let session = held(&session);
-        let strips = seen(&session, &file, |page| {
+        let session = held(session);
+        let strips = seen(&session, file, |page| {
             tisty_core::diary_page::strips(&days, page)
         });
         (strips.unwrap_or_default(), words(&session))
@@ -220,13 +232,12 @@ pub fn diary_laid(
         keep: &said.keep,
         cancel: &said.cancel,
     };
-    let laid = tisty_core::diary_page::laid(&days, &strips, words, &said, open.map(DayAt::from));
-    tauri::ipc::Response::new(laid.into_bytes())
+    tisty_core::diary_page::laid(&days, &strips, words, &said, open.map(DayAt::from))
 }
 
 #[tauri::command(async)]
-pub fn diary_day_words(body: String, at: Opened) -> Option<String> {
-    diary_day::words(&body, at.into())
+pub fn diary_day_words(body: String, at: Opened) -> Answer<Option<String>> {
+    caught("diary_day_words", || diary_day::words(&body, at.into()))
 }
 
 #[tauri::command(async)]
@@ -237,7 +248,9 @@ pub fn diary_rewrite(
     was: String,
     words: String,
 ) -> Answer<Today> {
-    rewriting(&mut held(&session), &file, at.into(), &was, &words)
+    caught("diary_rewrite", || {
+        rewriting(&mut held(&session), &file, at.into(), &was, &words)
+    })?
 }
 
 pub fn rewriting(
@@ -260,7 +273,9 @@ pub fn diary_unstick(
     note: usize,
     shown: String,
 ) -> Answer<Today> {
-    unsticking(&mut held(&session), &file, at.into(), note, &shown)
+    caught("diary_unstick", || {
+        unsticking(&mut held(&session), &file, at.into(), note, &shown)
+    })?
 }
 
 pub fn unsticking(

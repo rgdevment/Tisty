@@ -53,10 +53,10 @@ Type `/` at the start of a line, on a blank line or after a space, and the menu 
 
 ## Moving blocks
 
-- **The handle.** With the pointer beside a block, a handle shows to its left. Drag it to take the block somewhere else; a heading takes its whole section with it. Near the top or the bottom edge, the page scrolls by itself. On a sheet too narrow to leave a margin, the handle and the **+** do not show; `Ctrl`/`⌘` + `/` and `Alt` + ↑ ↓ still work.
+- **The handle.** With the pointer beside a block, a handle shows to its left. Drag it to take the block somewhere else; a heading takes its whole section with it. Near the top or the bottom edge, the page scrolls by itself. On a sheet too narrow to leave a margin, the handle and the **+** do not show; `Ctrl`/`⌘` + `/` and `Alt` + ↑ ↓ (`Ctrl` + `Alt` on a Mac) still work.
 - **Its menu.** A click on the handle offers **Move block up**, **Move block down**, **Duplicate block** and **Delete block**. On a heading, all four act on its whole section, as dragging does: **Delete block** takes everything under it up to the next heading of its level or higher. To remove the heading alone, choose it with `Esc` and press `Delete`.
-- **The keyboard.** `Alt` + ↑ ↓ moves the block the caret is in up or down, or the list item it is in.
-- **Choosing whole blocks.** `Esc` chooses the block the caret is in, and `Shift` + ↑ ↓ takes in the ones above or below. Once chosen, `Delete` or `Backspace` removes them, `Alt` + ↑ ↓ moves them together and `Ctrl`/`⌘` + `C` or `X` copies or cuts them. `Esc` again, a click or any other key lets them go.
+- **The keyboard.** `Alt` + ↑ ↓ (`Ctrl` + `Alt` on a Mac) moves the block the caret is in up or down, or the list item it is in.
+- **Choosing whole blocks.** `Esc` chooses the block the caret is in, and `Shift` + ↑ ↓ takes in the ones above or below. Once chosen, `Delete` or `Backspace` removes them, `Alt` + ↑ ↓ (`Ctrl` + `Alt` on a Mac) moves them together and `Ctrl`/`⌘` + `C` or `X` copies or cuts them. `Esc` again, a click or any other key lets them go.
 
 ## Rich text and Markdown
 
@@ -69,7 +69,7 @@ The **⋯** on the ribbon at the top of the document switches between them, and 
 
 In the Markdown view:
 
-- **The `/` menu, the shortcuts and the tags** work as they do on the page. The bar also holds the kind of line, **Table** and **Diagram**, and the right-click offers **Choose block**, **Duplicate block**, moving it up or down and deleting it.
+- **The `/` menu, the shortcuts and the tags** work as they do on the page, except that a block moves with `Alt` + ↑ ↓ on a Mac too, as a line does in a code editor. The bar also holds the kind of line, **Table** and **Diagram**, and the right-click offers **Choose block**, **Duplicate block**, moving it up or down and deleting it.
 - **An empty item ends a list.** Enter on an empty bullet, number or box leaves the list with a blank line.
 - **Backspace right after a line's mark** (a heading's `#`, a bullet, a quote's `>`) turns the line back into words.
 
@@ -87,7 +87,7 @@ In the Markdown view:
 | `Ctrl`/`⌘` + `Z` · `Ctrl`/`⌘` + `Shift` + `Z` or `Ctrl`/`⌘` + `Y` | Undo · redo |
 | `Enter` · `Shift` + `Enter` | New paragraph · line break |
 | `Ctrl`/`⌘` + `/` | Open the blocks menu where the caret is |
-| `Alt` + ↑ ↓ | Move the block or the item the caret is in up or down |
+| `Alt` + ↑ ↓ (`Ctrl` + `Alt` on a Mac) | Move the block or the item the caret is in up or down |
 | `Esc` · `Shift` + ↑ ↓ | Choose the whole block · take in the ones beside it |
 | `Tab` · `Shift` + `Tab` | Put a list item in or take it out |
 | `Ctrl`/`⌘` + `E` | Switch between Rich text and Markdown |
@@ -108,7 +108,7 @@ A table is written on the page itself:
 - **A value not written as its type asks**, like «soon» in a date column, keeps what you wrote and shows a wavy line under it.
 - **Tab and Shift + Tab walk a table's cells**, and Tab past the last one starts a new row.
 - **Drag the edge of a table's column** on the page to make it wider or narrower. The width is written as the dashes of its rule, ten pixels each.
-- **`Alt` + ↑ ↓ with a cell open** moves its row up or down.
+- **`Alt` + ↑ ↓ with a cell open** (`Ctrl` + `Alt` on a Mac) moves its row up or down.
 - **In the Markdown view**, `Alt` + ↑ ↓ moves the row the caret is on and `Alt` + ← → its column (`Ctrl` + `Alt` on a Mac), and the bar's **Table** menu sorts it and gives a column its type.
 - **Rows copied from Excel, Numbers or Google Sheets** — or a CSV — come in as a table when you paste them.
 

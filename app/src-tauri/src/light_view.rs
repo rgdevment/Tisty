@@ -11,7 +11,7 @@ use tisty_core::witness::{self, channel};
 
 use crate::answers::cards::{Asked, Glimpses, Named, Seen};
 use crate::viewing::{Paper, Shown, Views, named, place_of, shown_in};
-use crate::{Answer, Refusal, Session};
+use crate::{Answer, Refusal, Session, caught};
 
 const PIECE_ABOUT: usize = 64 * 1024;
 
@@ -143,7 +143,18 @@ pub fn view_read(app: AppHandle, window: tauri::WebviewWindow) -> Answer<Reading
             });
         }
     };
-    let (mut pieces, heads) = drawn_from(&body, own);
+    let (mut pieces, heads) = match caught("view_read", || drawn_from(&body, own)) {
+        Ok(drawn) => drawn,
+        Err(refusal) => {
+            return Ok(Reading::Missed {
+                name,
+                place,
+                path,
+                own,
+                refusal,
+            });
+        }
+    };
     let first = if pieces.is_empty() {
         String::new()
     } else {
@@ -184,7 +195,7 @@ pub fn view_source(app: AppHandle, window: tauri::WebviewWindow) -> Answer<Strin
 pub fn view_plain(app: AppHandle, window: tauri::WebviewWindow) -> Answer<String> {
     let source = source_of(&app, window.label())?;
     let body = source.body(&app)?;
-    Ok(match source {
+    caught("view_plain", || match source {
         Source::Outside(_) => body,
         Source::Own(_) => tisty_markdown::to_standard(&body, &|_| None),
     })

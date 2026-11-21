@@ -305,6 +305,8 @@ const KNOWN = [
   "versionSame",
   "unsavedStays",
   "unsavedUncompared",
+  "saveStuck",
+  "saveLate",
   "notAHistoryLimit",
   "comingDown",
   "cloudLater",

@@ -82,6 +82,20 @@ export type Hands = {
 };
 
 export type Pending = { readonly at: number; readonly marks: Marks };
+export type Composing = { readonly over: Promise<void>; readonly end: () => void };
+
+export const compositionOpened = (): Composing => {
+  let end = () => {};
+  const over = new Promise<void>((done) => {
+    end = done;
+  });
+  return { over, end };
+};
+
+export type Chosen = {
+  readonly from: readonly [Node, number];
+  readonly to: readonly [Node, number];
+};
 export type Carried = { readonly from: number; readonly close: string; readonly caret: number };
 
 export type Writer = {
@@ -94,6 +108,8 @@ export type Writer = {
   typing: boolean;
   whole: boolean;
   lastChosen: Span | null;
+  leftChosen: Chosen | null;
+  composing: Composing | null;
   leftFrom: string | null | undefined;
   reckoned: Reckoned | null;
 };
@@ -108,6 +124,8 @@ export const writerOf = (page: Document, hands: Hands): Writer => ({
   typing: false,
   whole: false,
   lastChosen: null,
+  leftChosen: null,
+  composing: null,
   leftFrom: undefined,
   reckoned: null,
 });

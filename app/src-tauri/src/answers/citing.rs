@@ -4,7 +4,8 @@ use tisty_core::brain::Citing;
 use tisty_core::model::DocId;
 use tisty_markdown::Kind;
 
-use crate::{Answer, Refusal, Session, elsewhere, held};
+use super::papers::{cannot_read, unreadable};
+use crate::{Answer, Refusal, Session, caught, elsewhere, held};
 
 const GLANCE_AT_MOST: usize = 1200;
 
@@ -44,14 +45,16 @@ pub async fn doc_cited_by(
 #[tauri::command(async)]
 pub fn doc_heads(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<Vec<Heading>> {
     let body = body_of(&session, id)?;
-    Ok(tisty_markdown::sections(&tisty_markdown::read(&body))
-        .into_iter()
-        .map(|head| Heading {
-            id: head.id,
-            title: head.said,
-            level: head.level,
-        })
-        .collect())
+    caught("doc_heads", || {
+        tisty_markdown::sections(&tisty_markdown::read(&body))
+            .into_iter()
+            .map(|head| Heading {
+                id: head.id,
+                title: head.said,
+                level: head.level,
+            })
+            .collect()
+    })
 }
 
 #[tauri::command(async)]
@@ -61,7 +64,7 @@ pub fn doc_glance(
     at: Option<String>,
 ) -> Answer<Glance> {
     let body = body_of(&session, id)?;
-    Ok(glanced(&body, at.as_deref()))
+    caught("doc_glance", || glanced(&body, at.as_deref()))
 }
 
 fn body_of(session: &tauri::State<'_, Mutex<Session>>, id: String) -> Answer<String> {
@@ -73,7 +76,10 @@ fn body_of(session: &tauri::State<'_, Mutex<Session>>, id: String) -> Answer<Str
             .map_or_else(|| id.clone(), |kept| kept.file.clone());
         (session.paths.docs(), file)
     };
-    tisty_core::docs::read(&root, &file).map_err(|_| Refusal::about("noSuchDoc", id))
+    tisty_core::docs::read_patiently(&root, &file).map_err(|e| match unreadable(&e) {
+        true => cannot_read(&e, id),
+        false => Refusal::about("noSuchDoc", id),
+    })
 }
 
 // A heading nobody wrote any more opens on the document's first words, as following the link does.

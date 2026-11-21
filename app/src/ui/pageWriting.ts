@@ -167,6 +167,7 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
   page.addEventListener("keydown", named, true);
   page.addEventListener("keydown", chooser);
   page.addEventListener("keydown", keys.keyed);
+  page.addEventListener("keydown", input.firstMarkHeld);
   page.addEventListener("mousedown", unchosen);
   page.addEventListener("paste", input.pastedFiles);
   page.addEventListener("copy", clipped);
@@ -211,12 +212,15 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
     stop: () => {
       clearTimeout(settling);
       writer.turns.left = hands.text();
+      writer.composing?.end();
+      writer.composing = null;
       const unlaid = laying.stop();
       hands.settle?.();
       page.defaultView?.removeEventListener("blur", away);
       watching?.disconnect();
       page.removeEventListener("selectionchange", keys.noted);
       page.removeEventListener("keydown", keys.keyed);
+      page.removeEventListener("keydown", input.firstMarkHeld);
       page.removeEventListener("keydown", chooser);
       page.removeEventListener("mousedown", unchosen);
       page.removeEventListener("keydown", named, true);

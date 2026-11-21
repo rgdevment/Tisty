@@ -265,7 +265,7 @@ To write:
 
 - Click wherever you like and type: the page you read is the page you write.
 - Select a few words and a small bar offers bold, italic, underline, strikethrough, code, a link or the highlighter; right-click also cuts or copies them as Markdown.
-- The `/` key at the start of a line, or the **+** in the margin, inserts anything a document can hold. The handle that shows to the left of a block drags it elsewhere, and its menu moves it up or down, duplicates it or deletes it; `Alt` + ↑ ↓ moves it too.
+- The `/` key at the start of a line, or the **+** in the margin, inserts anything a document can hold. The handle that shows to the left of a block drags it elsewhere, and its menu moves it up or down, duplicates it or deletes it; `Alt` + ↑ ↓ (`Ctrl` + `Alt` on a Mac) moves it too.
 - The **⋯** at the top of the document turns it to **Markdown**, the text with all its marks in view; so does `Ctrl`/`⌘` + `E`, and **Rich text** takes you back to the page.
 - Drag a file in to attach it: Rina's vaccination card, the insurance PDF.
 - Insert **another document**: in a paragraph of its own it shows as a card; inside a sentence, as a link with its title. Either way, a click opens it.
@@ -575,7 +575,7 @@ None of this is needed to get started. It is here for when you need it.
 | `Ctrl`/`⌘` + `Enter` | Complete the task you are on; in a document, a page break |
 | `/` | Insert something inside a document; `Ctrl`/`⌘` + `/` opens that menu anywhere |
 | `Shift` + `Enter` | Break the line without starting a paragraph |
-| `Alt` + ↑ ↓ | Move the block or the item the caret is in |
+| `Alt` + ↑ ↓ (`Ctrl` + `Alt` on a Mac) | Move the block or the item the caret is in |
 | `Esc` · `Shift` + ↑ ↓ (writing a document) | Choose the whole block · add the ones beside it, to move, copy or delete them together |
 | `Ctrl`/`⌘` + `Z` | Undo what you typed in a row, only in the document in front of you |
 | `Ctrl`/`⌘` + `E` | Switch the document between Rich text and Markdown |

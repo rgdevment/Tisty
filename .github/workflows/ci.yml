@@ -201,6 +201,28 @@ jobs:
       - name: The light viewer stays light, with no React, and the app has no Solid
         run: node scripts/light-viewer.mjs
 
+  engines:
+    name: the page writes the same in WebKit and Chromium
+    needs: changes
+    if: needs.changes.outputs.window == 'true'
+    runs-on: macos-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/toolchain
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - run: npm ci
+      - run: npx playwright install webkit chromium
+        working-directory: app
+      - run: cargo build -q -p tisty-markdown --example placing
+      - run: node app/scripts/engines.mjs
+
   guide:
     name: the Markdown guide draws
     needs: changes

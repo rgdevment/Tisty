@@ -28,6 +28,7 @@ import { Left } from "./Field";
 import FileIdea from "./FileIdea";
 import Glyph from "./Glyph";
 import { IdeaMarkBar, IdeaMarkStrip, markedBy, markOf } from "./IdeaMark";
+import { MOVE_SHORTCUTS, moveKey } from "./macKeys";
 
 interface Props {
   title: string;
@@ -422,7 +423,7 @@ function Sticky({
         onLift(e.clientX, e.clientY);
       }}
       onKeyDown={(e) => {
-        if (reading || !e.altKey) return;
+        if (reading || !moveKey(e)) return;
         const by = EARLIER.has(e.key) ? -1 : LATER.has(e.key) ? 1 : 0;
         if (!by) return;
         e.preventDefault();
@@ -452,7 +453,7 @@ function Sticky({
         <textarea
           ref={words}
           aria-label={t("notesWords")}
-          aria-keyshortcuts="Alt+ArrowUp Alt+ArrowDown"
+          aria-keyshortcuts={MOVE_SHORTCUTS}
           defaultValue={note.text}
           maxLength={IDEA_AT_MOST}
           onChange={(e) => setUsed(e.currentTarget.value.length)}

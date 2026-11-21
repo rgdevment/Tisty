@@ -16,6 +16,7 @@ import {
 import { fill, locale, t, type Word } from "../../locales";
 import { saidPlainly } from "../../refusal";
 import Menu from "../Menu";
+import { modKey } from "../macKeys";
 import { darkNow, followTheme } from "../theming";
 import { button, tinted } from "../viewer/Glyphs";
 import TitleBar from "../viewer/TitleBar";
@@ -109,7 +110,7 @@ export default function Diagramming({
 
   useEffect(() => {
     const heard = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") {
+      if (modKey(e) && e.key.toLowerCase() === "s") {
         e.preventDefault();
         latest.current.save();
       }

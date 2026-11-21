@@ -121,6 +121,22 @@ fn a_file_from_outside_that_went_away_is_said_missing_by_its_path() {
     );
 }
 
+#[test]
+fn a_document_that_is_there_and_will_not_read_is_never_said_to_be_gone() {
+    let (_tmp, mut session) = session();
+    let id = filed(&mut session, "# Idea\n");
+    let at = tisty_core::docs::resolve(&session.paths.docs(), &id).unwrap();
+    std::fs::write(&at, b"# Idea \xff\xfe\n").unwrap();
+    let session = Mutex::new(session);
+
+    let refused = read_minded(&session, id.clone()).unwrap_err();
+
+    assert_eq!(refused.code, "cannotRead");
+    assert_eq!(refused.name.as_deref(), Some(id.as_str()));
+    std::fs::remove_file(&at).unwrap();
+    assert_eq!(read_minded(&session, id).unwrap_err().code, "noSuchDoc");
+}
+
 fn arrived(session: &mut Session, by: &str, guest: bool) -> tisty_core::model::Kept {
     let made = tisty_core::docs::create(
         &session.paths.docs(),

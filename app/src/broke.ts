@@ -44,6 +44,11 @@ const described = (value: unknown): Described => {
 // Chromium tells of a resize it settles on the next frame as an error, though nothing broke.
 const SETTLES_NEXT_FRAME = /^ResizeObserver loop/;
 
+export const caught = (why: unknown) => {
+  const fault = described(why);
+  noted(false, fault.kind ?? "Error", fault.said, fault.stack);
+};
+
 export const thrown = (event: ErrorEvent) => {
   const message = event.message ?? "";
   if (SETTLES_NEXT_FRAME.test(message)) return;

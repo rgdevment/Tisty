@@ -11,7 +11,10 @@ fn doubled(spans: &mut Vec<Span>, text: &str) {
     let mut at = 0;
     while at + 1 < walls.len() {
         let ((open, held), (shut, kept)) = (walls[at].clone(), walls[at + 1].clone());
-        let inside = &text[open + 2..shut];
+        let Some(inside) = text.get(open + 2..shut) else {
+            at += 1;
+            continue;
+        };
         // Both walls inside the same mark, or the pen would cut across a word in bold or a link.
         if held != kept
             || inside.is_empty()

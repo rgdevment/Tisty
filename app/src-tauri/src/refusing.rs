@@ -14,6 +14,7 @@ const TELLS_OF_TROUBLE: &[&str] = &[
     "wouldReset",
     "syncLater",
     "settingsUnreadable",
+    "saveLate",
 ];
 
 pub const RELEASES: &str = "https://github.com/rgdevment/Tisty/releases/latest";
@@ -30,6 +31,8 @@ pub struct Refusal {
     pub name: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub print: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub landed: Option<u64>,
 }
 
 pub fn where_it_comes_from() -> &'static str {
@@ -176,6 +179,7 @@ impl Refusal {
             code,
             name,
             print: None,
+            landed: None,
         }
     }
 
@@ -184,6 +188,10 @@ impl Refusal {
             print: Some(print),
             ..self
         }
+    }
+
+    pub fn with_landed(self, landed: Option<u64>) -> Self {
+        Self { landed, ..self }
     }
 }
 
@@ -248,6 +256,7 @@ const REFUSALS: &[&str] = &[
     "manyLists",
     "internal",
     "internalNamed",
+    "saveStuck",
 ];
 
 pub(crate) fn refusal_code(said: &str) -> Option<&'static str> {

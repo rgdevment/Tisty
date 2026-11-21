@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { fold } from "../breadth";
-import { onMac } from "./WindowChrome";
+import { modKey, onMac } from "./macKeys";
 
 export const FINDER = "side-finder";
 export const FIND_KEY = onMac ? "⌘K" : "Ctrl+K";
@@ -10,7 +10,7 @@ export function useFindKey(shown: boolean, onFind: () => void) {
     if (!shown) return;
     const pressed = (event: KeyboardEvent) => {
       if (event.defaultPrevented || event.repeat || event.altKey || event.shiftKey) return;
-      if (!(event.ctrlKey || event.metaKey) || event.key.toLowerCase() !== "k") return;
+      if (!modKey(event) || event.key.toLowerCase() !== "k") return;
       if (covered()) return;
       event.preventDefault();
       onFind();

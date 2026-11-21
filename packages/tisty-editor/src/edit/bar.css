@@ -208,6 +208,7 @@
   border-radius: 10px;
   border: 1px solid color-mix(in srgb, var(--tisty-ink) 10%, transparent);
   background: color-mix(in srgb, var(--tisty-rail) 94%, transparent);
+  -webkit-backdrop-filter: blur(8px);
   backdrop-filter: blur(8px);
   box-shadow:
     0 12px 32px -10px var(--tisty-cast),
@@ -246,6 +247,7 @@
   border-radius: 999px;
   background: transparent;
   box-shadow: none;
+  -webkit-backdrop-filter: none;
   backdrop-filter: none;
 }
 .cm-bar.live.folded .cm-bar-fold {
@@ -269,6 +271,7 @@
   height: 28px;
   color: var(--tisty-faint);
   cursor: grab;
+  -webkit-user-select: none;
   user-select: none;
 }
 .cm-bar.live .cm-bar-fold {

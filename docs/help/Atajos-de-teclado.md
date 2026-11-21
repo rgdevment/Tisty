@@ -13,7 +13,7 @@ Toda la ventana funciona con el teclado.
 | `/` | Insertar algo dentro de un documento |
 | `Shift` + `Enter` (escribiendo un documento) | Saltar de línea sin empezar un párrafo |
 | `Ctrl`/`⌘` + `/` (escribiendo un documento) | Abrir el menú de bloques donde está el cursor |
-| `Alt` + ↑ ↓ (escribiendo un documento) | Subir o bajar el bloque o el elemento donde está el cursor; en una tarea, sin salir de su sección |
+| `Alt` + ↑ ↓ (escribiendo un documento; `Ctrl` + `Alt` en un Mac) | Subir o bajar el bloque o el elemento donde está el cursor; en una tarea, sin salir de su sección |
 | `Esc` · `Shift` + ↑ ↓ (escribiendo un documento) | Elegir el bloque entero, o en una lista el elemento y con otro `Esc` la lista entera · sumar los de al lado |
 | `Ctrl`/`⌘` + `B` · `I` · `U` (escribiendo un documento) | Negrita · cursiva · subrayado |
 | `Ctrl`/`⌘` + `Shift` + `X` · `Shift` + `C` (escribiendo un documento) | Tachado · código |
@@ -36,7 +36,7 @@ Toda la ventana funciona con el teclado.
 | `Ctrl`/`⌘` + clic · `Shift` + arrastrar (en la ventana de diagramas) | Elegir varias formas, clases o tablas |
 | `Ctrl`/`⌘` + `X` · `V` (sobre un documento en la Biblioteca) | Mover un documento entre carpetas |
 | `Alt` + flecha (sobre la fila de una página) | Subir o bajar una página dentro de su documento |
-| `Alt` + flecha (en una tabla: ↑ ↓ con una celda abierta, y las cuatro en la vista Markdown) | Mover la fila o la columna donde está el cursor; `Ctrl` + `Alt` + ← → en un Mac |
+| `Alt` + flecha (en una tabla: ↑ ↓ con una celda abierta, y las cuatro en la vista Markdown) | Mover la fila o la columna donde está el cursor; en un Mac, `Ctrl` + `Alt` + ↑ ↓ con una celda abierta y `Ctrl` + `Alt` + ← → en la vista Markdown |
 | `Esc` | Cerrar lo que esté abierto; escribiendo un documento, elegir el bloque |
 
 Si otro programa ya usa el atajo de captura, Tisty toma otro y te dice cuál en **Configuración › Tareas y avisos**.

@@ -183,6 +183,79 @@ fn a_whole_body_that_defines_a_link_asks_for_the_whole_page() {
     assert!(!placing.read("main", &typed, check(&typed, 3), true, laid));
 }
 
+fn falls_over(_: &tisty_markdown::Doc, _: Option<[u32; 2]>) -> String {
+    panic!("the drawing fell over")
+}
+
+#[test]
+fn a_page_that_breaks_while_drawn_is_refused_and_the_next_key_sends_the_whole_body() {
+    let placing = Placing::default();
+    let text = "Uno.\n";
+    let was = check(text, 1);
+    placing.read("main", text, was, false, |_, _| ());
+    let next = "Unos.\n";
+    let now = check(next, 2);
+    let keyed = crate::caught("doc_placed_near", || {
+        placing.edited("main", &key(was, 3, 3, "s"), now, falls_over)
+    });
+    assert!(keyed.is_err_and(|refused| refused.code == "internal"));
+    let said = |doc: &tisty_markdown::Doc, _| doc.text().to_string();
+    let typed = key(now, 4, 4, "!");
+    let after = check("Unos!.\n", 3);
+    assert_eq!(placing.edited("main", &typed, after, said), None);
+    let whole = crate::caught("doc_placed_near", || {
+        placing.read("main", next, now, true, falls_over)
+    });
+    assert!(whole.is_err_and(|refused| refused.code == "internal"));
+    assert_eq!(placing.edited("main", &typed, after, said), None);
+    assert_eq!(placing.read("main", next, now, true, said), next);
+    assert_eq!(
+        placing.edited("main", &typed, after, said),
+        Some("Unos!.\n".to_string())
+    );
+}
+
+#[test]
+fn every_order_that_draws_answers_even_when_its_drawing_breaks() {
+    let said = std::fs::read_to_string("src/answers/paging.rs").expect("the orders that draw");
+    let orders: Vec<&str> = said.split("#[tauri::command(async)]").skip(1).collect();
+    let loose: Vec<&str> = orders
+        .iter()
+        .map(|order| order.split("\n}\n").next().unwrap_or_default())
+        .filter(|order| !order.contains("caught(") && !order.contains("tabled("))
+        .filter_map(|order| order.lines().find(|line| line.starts_with("pub fn ")))
+        .collect();
+
+    assert!(orders.len() > 10, "the orders that draw moved elsewhere");
+    assert!(
+        loose.is_empty(),
+        "an order that draws leaves the page waiting forever if it breaks: {loose:?}"
+    );
+}
+
+#[test]
+fn no_order_anywhere_hands_back_a_drawing_that_cannot_say_it_broke() {
+    let mut bare = Vec::new();
+    for entry in std::fs::read_dir("src/answers").expect("the answers") {
+        let path = entry.expect("an answer").path();
+        if path.extension().is_none_or(|one| one != "rs") {
+            continue;
+        }
+        let said = std::fs::read_to_string(&path).expect("an answer's orders");
+        for order in said.split("#[tauri::command(async)]").skip(1) {
+            let head = order.split('{').next().unwrap_or_default();
+            if head.contains("-> tauri::ipc::Response") {
+                let name = head.lines().find(|line| line.starts_with("pub fn "));
+                bare.push(format!("{}: {}", path.display(), name.unwrap_or_default()));
+            }
+        }
+    }
+    assert!(
+        bare.is_empty(),
+        "an order that draws leaves the page waiting forever if it breaks: {bare:?}"
+    );
+}
+
 #[test]
 fn a_date_typed_as_it_is_said_lands_as_its_day() {
     let now: jiff::Zoned = "2026-10-28T10:00:00[America/Santiago]".parse().unwrap();

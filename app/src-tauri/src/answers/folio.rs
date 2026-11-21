@@ -23,7 +23,7 @@ use tisty_sharing::{Carrying, Desk, Remembered, Told, Under, Unshared};
 
 use super::folio_editing::{Named, SignsAs, said_after_sending, signs_as, who_of};
 use super::sharing::{doc_id, refused, sealed_by, the_maker_among, the_maker_here, turned};
-use crate::{Answer, Refusal, Session, held};
+use crate::{Answer, Refusal, Session, caught, held};
 
 const TAKEN_BACK_TOLD: &str = "folio-taken-back-told";
 const PATIENCE: Duration = Duration::from_secs(120);
@@ -426,12 +426,14 @@ pub async fn folio_terms_standing(session: tauri::State<'_, Mutex<Session>>) -> 
 
 // Folio writes them for any Markdown reader, cut at a column, and Tisty's own reading would keep each cut as a break.
 #[tauri::command(async)]
-pub fn folio_terms_drawn(text: String) -> String {
+pub fn folio_terms_drawn(text: String) -> Answer<String> {
     let shown: Vec<&str> = text
         .lines()
         .filter(|line| !names_the_other_language(line))
         .collect();
-    tisty_markdown::html(&tisty_markdown::read_file(&shown.join("\n")))
+    caught("folio_terms_drawn", || {
+        tisty_markdown::html(&tisty_markdown::read_file(&shown.join("\n")))
+    })
 }
 
 #[tauri::command]

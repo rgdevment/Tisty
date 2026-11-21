@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Filed, Settings, Task } from "../core";
 import { awayOf, saidOf, type Earlier as Version, whenOf, writerOf } from "../earlier";
 import { fill, t } from "../locales";
+import { forgotten, unsettled } from "../saving";
 import { asksSure } from "../sure";
 import Beside from "../ui/Beside";
 import type { Run } from "../ui/Card";
@@ -25,6 +26,8 @@ const ipc = vi.hoisted(() => ({
   moved: false,
   full: false,
   compared: null as unknown,
+  writing: null as Promise<void> | null,
+  backFails: false,
 }));
 
 vi.mock("@tauri-apps/api/core", async () => ({
@@ -36,6 +39,9 @@ vi.mock("@tauri-apps/api/core", async () => ({
         return Promise.resolve({ versions: ipc.rows, kept: ipc.kept ?? here });
       }
       case "doc_write":
+        if (ipc.writing) {
+          return ipc.writing.then(() => ({ id: args.id, title: "Acta", print: "p" }));
+        }
         if (ipc.full) return Promise.reject({ code: "documentTooLong", name: "500 kB" });
         return ipc.moved
           ? Promise.reject({ code: "documentMoved" })
@@ -51,6 +57,7 @@ vi.mock("@tauri-apps/api/core", async () => ({
         ipc.body = ipc.bodies[String(args.print)];
         return Promise.resolve({ id: args.id, title: "Acta" });
       case "doc_back":
+        if (ipc.backFails) return Promise.reject({ code: "nothingKeptBeside" });
         ipc.body = ipc.before ?? ipc.body;
         return Promise.resolve({ id: args.id, title: "Acta" });
       case "doc_history_empty":
@@ -150,6 +157,7 @@ const view = (more: Partial<Parameters<typeof Earlier>[0]> = {}) => {
 const list = () => screen.getByRole("list", { name: t("earlierList") });
 
 beforeEach(() => {
+  forgotten("d-1");
   ipc.calls = [];
   ipc.rows = [claudes, elsewhere, yours];
   ipc.bodies = { [A]: "# Acta\n\nlo primero", [B]: "# Acta\n\nlo del asistente" };
@@ -160,6 +168,8 @@ beforeEach(() => {
   ipc.moved = false;
   ipc.full = false;
   ipc.compared = null;
+  ipc.writing = null;
+  ipc.backFails = false;
   asksSure(null);
   knowAgents(
     { "agent-1": "agent" },
@@ -600,7 +610,11 @@ describe("going back from the document's window", () => {
     await userEvent.click(await screen.findByRole("button", { name: t("earlierBack") }));
 
     await screen.findByDisplayValue(/lo del asistente/);
-    expect(called("doc_back_to")[0].args).toEqual({ id: "d-1", print: B });
+    expect(called("doc_back_to")[0].args).toEqual({
+      id: "d-1",
+      print: B,
+      turn: expect.objectContaining({ n: expect.any(Number) }),
+    });
     expect(screen.queryByRole("dialog")).toBeNull();
     expect(screen.getByText(fill("earlierWentBack", whenOf(claudes)))).toBeTruthy();
     expect(onKept).toHaveBeenCalledWith({ id: "d-1", title: "Acta" });
@@ -610,6 +624,44 @@ describe("going back from the document's window", () => {
     await screen.findByDisplayValue(/lo de ahora/);
     expect(called("doc_back")).toHaveLength(1);
     expect(screen.queryByText(fill("earlierWentBack", whenOf(claudes)))).toBeNull();
+  });
+
+  it("undoes going back at once, newer than the save on its way, and drops the one waiting behind it", async () => {
+    asksSure(() => Promise.resolve(true));
+    await opened();
+    await userEvent.click(await screen.findByRole("button", { name: t("earlierBack") }));
+    const editor = await screen.findByDisplayValue(/lo del asistente/);
+    let answer = () => {};
+    ipc.writing = new Promise<void>((done) => {
+      answer = done;
+    });
+    fireEvent.change(editor, { target: { value: "# Acta\n\nlo que tecleo" } });
+    await waitFor(() => expect(called("doc_write")).toHaveLength(1));
+    fireEvent.change(editor, { target: { value: "# Acta\n\nlo que tecleo y más" } });
+    await act(() => vi.advanceTimersByTimeAsync(2000));
+
+    await userEvent.click(screen.getByRole("button", { name: t("docStirredBack") }));
+
+    await waitFor(() => expect(called("doc_back")).toHaveLength(1));
+    const turnOf = (cmd: string) => (called(cmd)[0].args.turn as { n: number }).n;
+    expect(turnOf("doc_back")).toBeGreaterThan(turnOf("doc_write"));
+    answer();
+    await act(() => vi.advanceTimersByTimeAsync(2000));
+    expect(called("doc_write")).toHaveLength(1);
+  });
+
+  it("keeps the words on screen to save when undoing going back fails", async () => {
+    asksSure(() => Promise.resolve(true));
+    await opened();
+    await userEvent.click(await screen.findByRole("button", { name: t("earlierBack") }));
+    const editor = await screen.findByDisplayValue(/lo del asistente/);
+    fireEvent.change(editor, { target: { value: "# Acta\n\nlo que tecleo" } });
+    ipc.backFails = true;
+
+    await userEvent.click(screen.getByRole("button", { name: t("docStirredBack") }));
+
+    await waitFor(() => expect(called("doc_back")).toHaveLength(1));
+    await waitFor(() => expect(unsettled()).toBe(true));
   });
 
   it("goes back to nothing while words typed could not be saved", async () => {
@@ -659,6 +711,7 @@ describe("the versions of a task's page", () => {
 
     await screen.findByDisplayValue(/lo del asistente/);
     expect(called("doc_back_to")[0].args).toEqual({ id: "t_one-0001", print: B });
+    expect(called("doc_back_to")[0].args.turn).toBeUndefined();
     expect(onWentBack).toHaveBeenCalledTimes(1);
     expect(screen.getByText(fill("earlierWentBack", whenOf(claudes)))).toBeTruthy();
 

@@ -71,7 +71,10 @@ fn underlined(spans: &[Span], text: &str) -> Vec<Span> {
     let mut at = 0;
     while at + 1 < walls.len() {
         let ((open, held), (shut, kept)) = (walls[at].clone(), walls[at + 1].clone());
-        let inside = &text[open + 2..shut];
+        let Some(inside) = text.get(open + 2..shut) else {
+            at += 1;
+            continue;
+        };
         let fits = held == kept
             && !inside.is_empty()
             && !inside.starts_with(char::is_whitespace)

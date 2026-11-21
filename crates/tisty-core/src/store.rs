@@ -1122,10 +1122,10 @@ fn renamed(tmp: &Path, path: &Path) -> std::io::Result<()> {
     again(|| std::fs::rename(tmp, path), for_a_moment)
 }
 
-fn again(
-    mut act: impl FnMut() -> std::io::Result<()>,
+pub(crate) fn again<T>(
+    mut act: impl FnMut() -> std::io::Result<T>,
     passing: fn(&std::io::Error) -> bool,
-) -> std::io::Result<()> {
+) -> std::io::Result<T> {
     let mut wait = 10;
     for _ in 0..6 {
         match act() {
@@ -1138,7 +1138,7 @@ fn again(
 }
 
 /// The two Windows raises for a file somebody else has open; every other refusal is final.
-fn for_a_moment(e: &std::io::Error) -> bool {
+pub(crate) fn for_a_moment(e: &std::io::Error) -> bool {
     cfg!(windows) && matches!(e.raw_os_error(), Some(5) | Some(32))
 }
 

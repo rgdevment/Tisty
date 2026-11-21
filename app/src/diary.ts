@@ -1,5 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import { t } from "./locales";
+import { invokedText } from "./unpacked";
 
 declare module "./core" {
   interface Filed {
@@ -44,7 +45,7 @@ export interface DayAt {
 }
 
 export const diaryLaid = (file: string, body: string, open?: DayAt | null): Promise<string> =>
-  invoke<ArrayBuffer>("diary_laid", {
+  invokedText("diary_laid", {
     file,
     body,
     said: {
@@ -56,7 +57,7 @@ export const diaryLaid = (file: string, body: string, open?: DayAt | null): Prom
       cancel: t("cancel"),
     },
     open: open ?? null,
-  }).then((bytes) => new TextDecoder().decode(bytes));
+  });
 
 export const diaryDayWords = (body: string, at: DayAt): Promise<string | null> =>
   invoke("diary_day_words", { body, at });

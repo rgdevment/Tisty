@@ -12,10 +12,13 @@ import {
   type Sheet,
 } from "tisty-editor/read";
 import { docDrawn, type Mend, mendsIn } from "../core";
+import { t } from "../locales";
+import { plainly } from "../refusal";
 import { datedSteps, type Reaching } from "./dressing";
 import Frame from "./Frame";
 import { type CardsShown, cardDays, drawnFor } from "./liveCards";
 import { mendable } from "./mending";
+import Stumbled, { Trouble } from "./Stumbled";
 import { signers } from "./signers";
 
 type Props = Reaching & {
@@ -28,7 +31,7 @@ type Props = Reaching & {
   readonly wide?: number;
   readonly zoom?: number;
   readonly onOutline?: (heads: Head[]) => void;
-  readonly onShown?: (page: Window | null, body?: string) => void;
+  readonly onShown?: (page: Window | null, body?: string, undrawn?: boolean) => void;
   readonly sheet?: Sheet;
   readonly again?: string;
   readonly cardsShown?: CardsShown;
@@ -38,7 +41,14 @@ type Props = Reaching & {
   readonly onMend?: (one: Mend, body: string) => void;
 };
 
-type Drawn = { html: string; turn: number; body: string; mends: Promise<readonly Mend[]> };
+type Drawn = {
+  html: string;
+  turn: number;
+  body: string;
+  mends: Promise<readonly Mend[]>;
+  tried: number;
+  why: string | null;
+};
 
 const drawnBy = (props: Readonly<Props>, asked: readonly CardAsked[]) =>
   drawnFor(asked, props.cardsShown, {
@@ -48,13 +58,40 @@ const drawnBy = (props: Readonly<Props>, asked: readonly CardAsked[]) =>
     examples: Boolean(props.cardsShown?.examples),
   }).catch(() => new Map<string, string>());
 
-// One page is kept and its words change in place, so a redraw never blinks, jumps or builds a new document.
+const Undrawn = ({
+  why,
+  trying,
+  onAgain,
+}: {
+  readonly why: string;
+  readonly trying: boolean;
+  readonly onAgain: () => void;
+}) =>
+  trying ? (
+    <p role="status" className="px-4 py-2 text-[11.5px] text-faint motion-safe:animate-pulse">
+      {t("pageDrawingAgain")}
+    </p>
+  ) : (
+    <Trouble said={t("pageUndrawn")} why={why} onAgain={onAgain} />
+  );
+
 export default function Page(props: Readonly<Props>) {
+  return (
+    <Stumbled label={props.label} body={props.body}>
+      <Drawing {...props} />
+    </Stumbled>
+  );
+}
+
+// One page is kept and its words change in place, so a redraw never blinks, jumps or builds a new document.
+function Drawing(props: Readonly<Props>) {
   const { body, label, wide, zoom, tall = false, again } = props;
   const reach = useRef(props);
   reach.current = props;
   const [drawing, setDrawing] = useState<Drawn | null>(null);
   const [seen, setSeen] = useState(false);
+  const [tried, setTried] = useState(0);
+  const undrawn = useRef(false);
   const showing = useRef(0);
   const held = useRef<HTMLIFrameElement | null>(null);
   const turns = useRef(0);
@@ -110,14 +147,15 @@ export default function Page(props: Readonly<Props>) {
   useEffect(() => {
     let live = true;
     // The page written on in place already shows these words, so only what the handlers read moves on.
-    if (reach.current.already === body && turns.current > 0) {
+    if (reach.current.already === body && turns.current > 0 && !undrawn.current) {
       setDrawing((was) => was && { ...was, body });
       return;
     }
-    const drawn = (html: string) => {
+    const drawn = (html: string, why: string | null) => {
       if (!live) return;
       turns.current += 1;
-      setDrawing({ html, turn: turns.current, body, mends });
+      undrawn.current = why !== null;
+      setDrawing({ html, turn: turns.current, body, mends, tried, why });
     };
     const mends: Promise<readonly Mend[]> = reach.current.onMend
       ? mendsIn(body)
@@ -125,24 +163,27 @@ export default function Page(props: Readonly<Props>) {
           .catch(() => [])
       : Promise.resolve([]);
     void (draw ?? docDrawn)(body)
-      .catch(() => `<pre>${escaped(body)}</pre>`)
-      .then((html) => {
+      .then(
+        (html) => ({ html, why: null }),
+        (why: unknown) => ({ html: `<pre>${escaped(body)}</pre>`, why: plainly(why) }),
+      )
+      .then(({ html, why }) => {
         const askedAs = seenAs.current;
         const missing = cardsIn(html).filter((one) => !cards.current.has(cardKey(one)));
         return drawnBy(reach.current, missing).then((fresh) => {
           if (!live) return;
           if (seenAs.current === askedAs) cards.current = new Map([...cards.current, ...fresh]);
-          drawn(html);
+          drawn(html, why);
         });
       });
     return () => {
       live = false;
     };
-  }, [body, again, draw]);
+  }, [body, again, draw, tried]);
 
   useEffect(() => () => reach.current.onShown?.(null), []);
 
-  const ready = ({ turn, body: said, mends }: Drawn, frame: HTMLIFrameElement) => {
+  const ready = ({ turn, body: said, mends, why }: Drawn, frame: HTMLIFrameElement) => {
     held.current = frame;
     showing.current = turn;
     setSeen(true);
@@ -154,16 +195,25 @@ export default function Page(props: Readonly<Props>) {
         if (showing.current === turn) lay();
       })
       .catch(() => {});
-    reach.current.onShown?.(frame.contentWindow, said);
+    reach.current.onShown?.(frame.contentWindow, said, why !== null);
   };
 
   const current = <K extends keyof Reaching>(asked: K): Reaching[K] | undefined =>
-    drawing && drawing.turn === turns.current ? reach.current[asked] : undefined;
+    drawing && drawing.turn === turns.current && drawing.why === null
+      ? reach.current[asked]
+      : undefined;
   return (
     // Hidden until the first drawing is ready, then shown at once: a fade on every task opened is a wait.
     <div
       className={`${tall ? "relative" : "relative flex min-h-0 flex-1 flex-col"} ${seen ? "opacity-100" : "opacity-0"}`}
     >
+      {drawing?.why != null && (
+        <Undrawn
+          why={drawing.why}
+          trying={drawing.tried !== tried || drawing.body !== body}
+          onAgain={() => setTried((many) => many + 1)}
+        />
+      )}
       {drawing && (
         <Frame
           html={drawing.html}

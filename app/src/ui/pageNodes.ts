@@ -10,7 +10,23 @@ export const WRITABLE =
 export const elementOf = (node: Node | null | undefined) =>
   node?.nodeType === Node.ELEMENT_NODE ? (node as Element) : node?.parentElement;
 
+export const caretLaidOn = (page: Document, node: Node, offset: number) => {
+  elementOf(node)?.getBoundingClientRect();
+  page.getSelection()?.collapse(node, offset);
+};
+
 export const ghostly = (node: Node) => Boolean(elementOf(node)?.closest(GHOST));
+
+const isGhost = (node: Node | null | undefined) =>
+  node?.nodeType === Node.ELEMENT_NODE && (node as Element).matches(GHOST);
+
+export const atGhost = (node: Node, offset: number) => {
+  if (ghostly(node)) return true;
+  if (node.nodeType === Node.ELEMENT_NODE && (node as Element).matches(".page"))
+    return isGhost(node.childNodes[offset - 1]) || isGhost(node.childNodes[offset]);
+  if (!node.parentElement?.matches(".page")) return false;
+  return isGhost(node.previousSibling) || isGhost(node.nextSibling);
+};
 
 export const unwritable = (node: Node) =>
   Boolean(elementOf(node)?.closest('.page > [contenteditable="false"]'));

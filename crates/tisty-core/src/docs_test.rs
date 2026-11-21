@@ -2045,6 +2045,50 @@ fn a_body_that_cannot_be_read_is_never_mistaken_for_one_that_is_not_there() {
     );
 }
 
+#[cfg(windows)]
+#[test]
+fn a_document_held_open_for_a_moment_is_waited_out_rather_than_refused() {
+    let room = tempfile::tempdir().unwrap();
+    let at = room.path().join("a3f1-0001.md");
+    std::fs::write(&at, b"# Minuta").unwrap();
+    let held = shut(&at);
+
+    std::thread::scope(|threads| {
+        threads.spawn(move || {
+            std::thread::sleep(std::time::Duration::from_millis(40));
+            drop(held);
+        });
+        assert_eq!(
+            read_patiently(room.path(), "a3f1-0001").unwrap(),
+            "# Minuta"
+        );
+    });
+}
+
+#[cfg(unix)]
+#[test]
+fn a_document_shut_for_a_moment_is_waited_out_only_by_a_read_that_may_wait() {
+    use std::os::unix::fs::PermissionsExt;
+
+    let room = tempfile::tempdir().unwrap();
+    let at = room.path().join("a3f1-0001.md");
+    std::fs::write(&at, b"# Minuta").unwrap();
+    shut(&at);
+    let refused = |e: &std::io::Error| e.kind() == std::io::ErrorKind::PermissionDenied;
+
+    assert!(read(room.path(), "a3f1-0001").is_err());
+    std::thread::scope(|threads| {
+        threads.spawn(|| {
+            std::thread::sleep(std::time::Duration::from_millis(40));
+            std::fs::set_permissions(&at, std::fs::Permissions::from_mode(0o644)).unwrap();
+        });
+        assert_eq!(
+            read_waiting(room.path(), "a3f1-0001", refused).unwrap(),
+            "# Minuta"
+        );
+    });
+}
+
 #[test]
 fn two_bodies_that_differ_by_one_letter_do_not_share_a_print() {
     let room = tempfile::tempdir().unwrap();

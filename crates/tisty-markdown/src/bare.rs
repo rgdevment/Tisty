@@ -30,10 +30,11 @@ pub fn fold(spans: &mut Vec<Span>, text: &str) {
             let end = one.end.min(span.at.end);
             (start < end).then_some(start..end)
         });
-        let pieces: Vec<Range<usize>> = outside(span.at.clone(), around)
+        let mut pieces: Vec<Range<usize>> = outside(span.at.clone(), around)
             .into_iter()
             .chain(inside)
             .collect();
+        pieces.sort_by_key(|one| one.start);
         kept.extend(pieces.into_iter().map(|at| Span {
             mark: Mark::Text,
             at,

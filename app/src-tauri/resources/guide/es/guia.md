@@ -265,7 +265,7 @@ Para escribir:
 
 - Haz clic donde quieras y escribe: la página que lees es la que escribes.
 - Elige unas palabras y una barra pequeña te ofrece negrita, cursiva, subrayado, tachado, código, un enlace o el resaltador; el botón derecho, además, las corta o las copia como Markdown.
-- La tecla `/` al empezar una línea, o el **+** del margen, inserta lo que cabe en un documento. El asa que aparece a la izquierda de un bloque lo arrastra a otro lugar, y su menú lo sube, lo baja, lo duplica o lo borra; `Alt` + ↑ ↓ también lo mueve.
+- La tecla `/` al empezar una línea, o el **+** del margen, inserta lo que cabe en un documento. El asa que aparece a la izquierda de un bloque lo arrastra a otro lugar, y su menú lo sube, lo baja, lo duplica o lo borra; `Alt` + ↑ ↓ (`Ctrl` + `Alt` en un Mac) también lo mueve.
 - El **⋯** de arriba del documento lo pasa a **Markdown**, el texto con todas sus marcas a la vista; `Ctrl`/`⌘` + `E` también, y **Enriquecido** te devuelve a la página.
 - Arrastra un archivo dentro para adjuntarlo: la cartilla de vacunas de Rina, el PDF del seguro.
 - Inserta **otro documento**: en un párrafo propio aparece como tarjeta; dentro de una frase, como enlace con su título. En los dos casos, un clic lo abre.
@@ -575,7 +575,7 @@ Nada de esto hace falta para empezar. Está aquí para cuando lo necesites.
 | `Ctrl`/`⌘` + `Enter` | Terminar la tarea señalada; en un documento, un salto de página |
 | `/` | Insertar algo dentro de un documento; `Ctrl`/`⌘` + `/` abre ese menú en cualquier punto |
 | `Shift` + `Enter` | Saltar de línea sin empezar un párrafo |
-| `Alt` + ↑ ↓ | Mover el bloque o el elemento donde está el cursor |
+| `Alt` + ↑ ↓ (`Ctrl` + `Alt` en un Mac) | Mover el bloque o el elemento donde está el cursor |
 | `Esc` · `Shift` + ↑ ↓ (escribiendo un documento) | Elegir el bloque entero · sumar los de al lado, para moverlos, copiarlos o borrarlos juntos |
 | `Ctrl`/`⌘` + `Z` | Deshacer lo que escribiste seguido, solo en el documento que tienes delante |
 | `Ctrl`/`⌘` + `E` | Cambiar el documento entre Enriquecido y Markdown |

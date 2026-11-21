@@ -3,6 +3,7 @@ import type { Doc } from "./core";
 import type { Signing } from "./crediting";
 import { stamped, weigh } from "./format";
 import { fill, t } from "./locales";
+import type { SaveTurn } from "./saving";
 import { agentNamed, clientNamed, machineOf } from "./who";
 
 export interface Earlier {
@@ -27,8 +28,8 @@ export const HISTORY_DAYS = [1, 5, 15, 30] as const;
 export const docVersions = (id: string): Promise<Shelf> => invoke("doc_versions", { id });
 export const docVersion = (id: string, print: string): Promise<string> =>
   invoke("doc_version", { id, print });
-export const docBackTo = (id: string, print: string): Promise<Doc> =>
-  invoke("doc_back_to", { id, print });
+export const docBackTo = (id: string, print: string, turn?: SaveTurn): Promise<Doc> =>
+  invoke("doc_back_to", { id, print, turn });
 export const docHistoryEmpty = (id: string): Promise<number> => invoke("doc_history_empty", { id });
 export const keepHistoryDays = (days: number): Promise<number> =>
   invoke("keep_history_days", { days });

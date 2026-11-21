@@ -53,10 +53,10 @@ Escribe `/` al empezar una línea, en una línea en blanco o después de un espa
 
 ## Mover bloques
 
-- **El asa.** Al pasar el puntero junto a un bloque aparece un asa a su izquierda. Arrástrala para llevar el bloque a otro lugar; un título se lleva su sección entera. Cerca del borde de arriba o de abajo, la página se desplaza sola. En una hoja demasiado angosta para dejar margen, el asa y el **+** no aparecen; `Ctrl`/`⌘` + `/` y `Alt` + ↑ ↓ siguen sirviendo.
+- **El asa.** Al pasar el puntero junto a un bloque aparece un asa a su izquierda. Arrástrala para llevar el bloque a otro lugar; un título se lleva su sección entera. Cerca del borde de arriba o de abajo, la página se desplaza sola. En una hoja demasiado angosta para dejar margen, el asa y el **+** no aparecen; `Ctrl`/`⌘` + `/` y `Alt` + ↑ ↓ (`Ctrl` + `Alt` en un Mac) siguen sirviendo.
 - **Su menú.** Un clic en el asa ofrece **Subir bloque**, **Bajar bloque**, **Duplicar bloque** y **Borrar bloque**. En un título, las cuatro actúan sobre su sección entera, como al arrastrarlo: **Borrar bloque** se lleva todo lo que hay bajo él hasta el próximo título de su nivel o de uno más alto. Para quitar solo el título, elígelo con `Esc` y pulsa `Supr`.
-- **El teclado.** `Alt` + ↑ ↓ sube o baja el bloque donde está el cursor, o el elemento de la lista donde está.
-- **Elegir bloques enteros.** `Esc` elige el bloque donde está el cursor, y `Shift` + ↑ ↓ suma los de arriba o de abajo. Elegidos, `Supr` o `Retroceso` los borran, `Alt` + ↑ ↓ los mueve juntos y `Ctrl`/`⌘` + `C` o `X` los copia o los corta. `Esc` otra vez, un clic o cualquier otra tecla los sueltan.
+- **El teclado.** `Alt` + ↑ ↓ (`Ctrl` + `Alt` en un Mac) sube o baja el bloque donde está el cursor, o el elemento de la lista donde está.
+- **Elegir bloques enteros.** `Esc` elige el bloque donde está el cursor, y `Shift` + ↑ ↓ suma los de arriba o de abajo. Elegidos, `Supr` o `Retroceso` los borran, `Alt` + ↑ ↓ (`Ctrl` + `Alt` en un Mac) los mueve juntos y `Ctrl`/`⌘` + `C` o `X` los copia o los corta. `Esc` otra vez, un clic o cualquier otra tecla los sueltan.
 
 ## Enriquecido y Markdown
 
@@ -69,7 +69,7 @@ El **⋯** de la cinta, arriba del documento, cambia entre las dos, y `Ctrl`/`�
 
 En la vista Markdown:
 
-- **El menú `/`, los atajos y las etiquetas** funcionan igual que en la página. La barra trae además el tipo de línea, **Tabla** y **Diagrama**, y el botón derecho ofrece **Elegir bloque**, **Duplicar bloque**, subirlo, bajarlo y borrarlo.
+- **El menú `/`, los atajos y las etiquetas** funcionan igual que en la página, salvo que un bloque se mueve con `Alt` + ↑ ↓ también en un Mac, como una línea en un editor de código. La barra trae además el tipo de línea, **Tabla** y **Diagrama**, y el botón derecho ofrece **Elegir bloque**, **Duplicar bloque**, subirlo, bajarlo y borrarlo.
 - **Un elemento vacío termina la lista.** Enter en una viñeta, un número o una casilla vacíos sale de la lista con una línea en blanco.
 - **Retroceso justo después de la marca de una línea** (el `#` de un título, una viñeta, el `>` de una cita) vuelve la línea a texto.
 
@@ -87,7 +87,7 @@ En la vista Markdown:
 | `Ctrl`/`⌘` + `Z` · `Ctrl`/`⌘` + `Shift` + `Z` o `Ctrl`/`⌘` + `Y` | Deshacer · rehacer |
 | `Enter` · `Shift` + `Enter` | Párrafo nuevo · salto de línea |
 | `Ctrl`/`⌘` + `/` | Abrir el menú de bloques donde está el cursor |
-| `Alt` + ↑ ↓ | Subir o bajar el bloque o el elemento donde está el cursor |
+| `Alt` + ↑ ↓ (`Ctrl` + `Alt` en un Mac) | Subir o bajar el bloque o el elemento donde está el cursor |
 | `Esc` · `Shift` + ↑ ↓ | Elegir el bloque entero · sumar los de al lado |
 | `Tab` · `Shift` + `Tab` | Meter o sacar un elemento de la lista |
 | `Ctrl`/`⌘` + `E` | Cambiar entre Enriquecido y Markdown |
@@ -108,7 +108,7 @@ Una tabla se escribe en la misma página:
 - **Un valor que no está escrito como pide su tipo**, como «pronto» en una columna de fechas, conserva lo que escribiste y se muestra con una línea ondulada debajo.
 - **Tab y Shift + Tab recorren las celdas de una tabla**, y Tab pasada la última empieza una fila nueva.
 - **Arrastra el borde de una columna** de la tabla en la página para ensancharla o angostarla. El ancho se escribe como los guiones de su raya, diez píxeles cada uno.
-- **`Alt` + ↑ ↓ con una celda abierta** sube o baja su fila.
+- **`Alt` + ↑ ↓ con una celda abierta** (`Ctrl` + `Alt` en un Mac) sube o baja su fila.
 - **En la vista Markdown**, `Alt` + ↑ ↓ mueve la fila donde está el cursor y `Alt` + ← → su columna (`Ctrl` + `Alt` en un Mac), y el menú **Tabla** de la barra la ordena y le da un tipo a una columna.
 - **Las filas copiadas de Excel, Numbers o Google Sheets**, o un CSV, entran como tabla al pegarlas.
 

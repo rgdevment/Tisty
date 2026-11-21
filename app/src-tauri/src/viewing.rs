@@ -9,6 +9,7 @@ use tisty_core::witness::{self, Fact, channel};
 use tisty_markdown::diagrams::Held;
 
 use crate::answers::carrying::Left;
+use crate::answers::papers::{cannot_read, unreadable};
 use crate::{Answer, Refusal, Session, held};
 
 const OPENS: [&str; 5] = ["md", "markdown", "txt", "ics", "ical"];
@@ -601,7 +602,7 @@ pub fn heard_links(app: &AppHandle, links: &[url::Url]) {
 
 fn spanish(app: &AppHandle) -> bool {
     app.try_state::<Mutex<Session>>()
-        .and_then(|session| session.lock().ok().map(|one| one.locale.clone()))
+        .map(|session| held(&session).locale.clone())
         .map(|locale| {
             tisty_core::model::spoken(locale.as_deref())
                 .to_lowercase()
@@ -792,10 +793,11 @@ pub(crate) fn doc_body(app: &AppHandle, file: &str) -> Answer<String> {
 
 pub(crate) fn body_or(app: &AppHandle, file: &str, unread: &'static str) -> Answer<String> {
     let root = held(&*session_of(app)?).paths.docs();
-    tisty_core::docs::read(&root, file).map_err(|e| match e {
+    tisty_core::docs::read_patiently(&root, file).map_err(|e| match e {
         tisty_core::Error::DocumentTooBig { limit, .. } => {
             Refusal::about("documentTooBig", crate::weighed(limit))
         }
+        e if unreadable(&e) => cannot_read(&e, file),
         _ => Refusal::about(unread, file.to_string()),
     })
 }

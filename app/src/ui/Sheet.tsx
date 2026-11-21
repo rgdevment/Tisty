@@ -48,9 +48,10 @@ import { FrameThumb } from "./frameThumb";
 import { useKeptHeight } from "./heights";
 import { edited, HOST } from "./hosting";
 import type { CardsShown } from "./liveCards";
-import { ALT, livelyChoices } from "./livelyMenu";
+import { livelyChoices } from "./livelyMenu";
 import { LivelyBelow, useFrameScroll, type Viewing } from "./liveSheet";
 import Menu, { type Choice } from "./Menu";
+import { MOVE_KEYS } from "./macKeys";
 import { mended as mendedText } from "./mending";
 import Page from "./Page";
 import type { Act } from "./pageMoving";
@@ -264,6 +265,7 @@ export default function Sheet(props: Readonly<Props>) {
   );
   const onPage = writable && !markdown;
   const pageWriter = useRef<{ page: Document; file?: string; hands: PageWriting } | null>(null);
+  const undrawn = useRef(false);
   const turnsOn = useRef<{ file?: string; turns: Turns }>({ turns: turnsAnew() });
   const alreadyShown = useRef<string | null>(null);
   const shownBody = useRef<string | null>(null);
@@ -747,8 +749,8 @@ export default function Sheet(props: Readonly<Props>) {
         }),
       label: t("blocksOf"),
       choices: [
-        { key: "up", label: t("blockUp"), keys: `${ALT} ↑`, onPick: act("up") },
-        { key: "down", label: t("blockDown"), keys: `${ALT} ↓`, onPick: act("down") },
+        { key: "up", label: t("blockUp"), keys: `${MOVE_KEYS} ↑`, onPick: act("up") },
+        { key: "down", label: t("blockDown"), keys: `${MOVE_KEYS} ↓`, onPick: act("down") },
         { key: "double", label: t("blockDouble"), onPick: act("double") },
         { key: "drop", label: t("blockDrop"), danger: true, apart: true, onPick: act("drop") },
       ],
@@ -1009,7 +1011,8 @@ export default function Sheet(props: Readonly<Props>) {
       html ? HOST.fromHtml(html) : HOST.fromText(plain).then((said) => said ?? plain),
   };
   // The page is drawn anew after every key, so its listeners stay and only the caret is laid again.
-  const pageWritten = (page: Document | null) => {
+  const pageWritten = (shownPage: Document | null) => {
+    const page = undrawn.current ? null : shownPage;
     const was = pageWriter.current;
     if (was && (was.page !== page || was.file !== file)) {
       was.hands.stop();
@@ -1321,9 +1324,10 @@ export default function Sheet(props: Readonly<Props>) {
           onDiagramExport={fixed ? undefined : diagramOut}
           onPiece={piece}
           onOutline={(heads) => said.current.onOutline?.(heads)}
-          onShown={(page, body) => {
+          onShown={(page, body, failed) => {
             shown.current = page;
             shownBody.current = body ?? null;
+            undrawn.current = Boolean(failed);
             pageWritten(page?.document ?? null);
             said.current.onPage?.(page);
             if (page) setReady(true);

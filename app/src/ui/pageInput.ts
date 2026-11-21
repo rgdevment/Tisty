@@ -18,9 +18,9 @@ import {
   unmarked,
 } from "./pageLists";
 import { closedRun, unpaired } from "./pageMarks";
-import { elementOf, ghostly, inCode, onSheet, sectioned, unwritable } from "./pageNodes";
+import { atGhost, elementOf, inCode, onSheet, sectioned, unwritable } from "./pageNodes";
 import { placeOf } from "./pagePlaces";
-import type { Writer } from "./pageWriter";
+import { compositionOpened, type Writer } from "./pageWriter";
 
 const PAIRS: Record<string, string> = {
   formatBold: "**",
@@ -34,6 +34,9 @@ const SOLID_BLOCK =
   ".table, figure, details, hr, blockquote[data-callout], .front, [contenteditable='false']";
 
 const ATOMS = "[contenteditable='false'], img, button";
+
+const backward = (kind: string) => kind.startsWith("delete") && kind.endsWith("Backward");
+const forward = (kind: string) => kind.startsWith("delete") && kind.endsWith("Forward");
 
 // A press on a page break leaves the caret on the sheet beside it, or on its label, never in words.
 const breakAt = (range: AbstractRange): Element | null => {
@@ -75,7 +78,7 @@ export const inputOn = (
 ) => {
   const { page, hands } = writer;
   const { put } = laying;
-  let composing: Span | null = null;
+  let composing: { readonly one: Span; readonly range: Range } | null = null;
 
   const pasted = (one: Span, data: DataTransfer | null) => {
     const html = data?.getData("text/html") || null;
@@ -94,8 +97,8 @@ export const inputOn = (
 
   // A page break holds no words, so the key that would join a block to it takes the break away instead.
   const pastBreak = (kind: string): Span | null => {
-    const back = kind === "deleteContentBackward";
-    if (!back && kind !== "deleteContentForward") return null;
+    const back = backward(kind);
+    if (!back && !forward(kind)) return null;
     const range = caret.chosen();
     if (!range?.collapsed) return null;
     const top = elementOf(range.startContainer)?.closest(".page > [data-at]");
@@ -117,8 +120,8 @@ export const inputOn = (
 
   // A picture or a file among words is drawn whole, so the browser's reach misses it; the key beside it takes it away.
   const pastPicture = (kind: string): Span | null => {
-    const back = kind === "deleteContentBackward";
-    if (!back && kind !== "deleteContentForward") return null;
+    const back = backward(kind);
+    if (!back && !forward(kind)) return null;
     const range = caret.chosen();
     const at = range?.collapsed ? caret.caretSpan()?.from : undefined;
     if (at === undefined) return null;
@@ -132,8 +135,8 @@ export const inputOn = (
 
   // At a block's edge the key takes nothing when this block or the one beside it is drawn whole, or would leave a fold or a note.
   const edgeHeld = (kind: string) => {
-    const back = kind === "deleteContentBackward";
-    if (!back && kind !== "deleteContentForward") return false;
+    const back = backward(kind);
+    if (!back && !forward(kind)) return false;
     const range = caret.chosen();
     if (!range?.collapsed) return false;
     const inner = elementOf(range.startContainer)?.closest(".page [data-at]");
@@ -157,12 +160,49 @@ export const inputOn = (
     return false;
   };
 
+  const leftOver = (picked: AbstractRange | null) => {
+    const left = writer.leftChosen;
+    const unlaid = writer.kept !== null && writer.kept.offset < 0 && writer.kept.lead === undefined;
+    return (
+      unlaid &&
+      left !== null &&
+      picked !== null &&
+      picked.startContainer === left.from[0] &&
+      picked.startOffset === left.from[1] &&
+      picked.endContainer === left.to[0] &&
+      picked.endOffset === left.to[1]
+    );
+  };
+
   const caretFreed = () => {
     const range = caret.chosen();
     const at = caret.caretSpan()?.from;
     if (!range?.collapsed || at === undefined || !elementOf(range.startContainer)?.closest("li"))
       return null;
     return unmarked(hands.text(), at);
+  };
+
+  const typedIn = (one: Span, range: AbstractRange, typed: string) => {
+    const text = hands.text();
+    if (typed === "/" && slashes(text, one, range)) return hands.blocks(caret.caretPoint(), true);
+    if (one.from === one.to) {
+      const fence = !inCode(range.startContainer) && fenceOpened(text, one.from, typed);
+      if (fence) return put(fence.edit, fence.caret);
+      if (writer.pending?.at === one.from) return formats.pendingKey(one.from, typed);
+      const opened = text.slice(text.lastIndexOf("\n", one.from - 1) + 1, one.from);
+      if (typed === " " && /^\s*(?:>\s?)*\[ ?\]$/.test(opened)) {
+        const box = `${opened.replace(/\[ ?\]$/, "")}- [ ] `;
+        return put({ from: one.from - opened.length, to: one.from, insert: box });
+      }
+      // On a task's page a heading is a section of its own, so marks typed for one stay words.
+      if (typed === " " && /^#{1,6}$/.test(opened) && sectioned(page)) {
+        const from = one.from - opened.length;
+        return put({ from, to: one.from, insert: `\\${opened} ` }, one.from + 2);
+      }
+      if (formats.carriedKey(text, one, typed)) return;
+    }
+    writer.carried = null;
+    put({ ...one, insert: typed });
   };
 
   const asked = (event: InputEvent) => {
@@ -178,15 +218,15 @@ export const inputOn = (
     if (kind === "historyRedo") return history.redo();
     const broken = pastBreak(kind) ?? pastPicture(kind);
     if (broken) {
-      const stays =
-        kind === "deleteContentForward" ? (caret.caretSpan()?.from ?? broken.from) : broken.from;
+      const stays = forward(kind) ? (caret.caretSpan()?.from ?? broken.from) : broken.from;
       return put({ ...broken, insert: "" }, Math.min(stays, broken.from));
     }
     if (edgeHeld(kind)) return;
-    const [target] = event.getTargetRanges?.() ?? [];
-    const range = target ?? caret.chosen();
+    const [named] = event.getTargetRanges?.() ?? [];
     const picked = caret.chosen();
-    const spread = Boolean(picked && !picked.collapsed);
+    const target = named && !(named.collapsed && picked?.collapsed) ? named : undefined;
+    const range = target ?? picked;
+    const spread = !leftOver(picked) && Boolean(picked && !picked.collapsed);
     const bare = kind === "deleteContentBackward" && !spread ? caretFreed() : null;
     if (bare) return put(bare.edit, bare.caret);
     const shelf = range && !spread ? breakAt(range) : null;
@@ -204,7 +244,7 @@ export const inputOn = (
     const held = picked ?? range;
     const begunNow =
       writer.kept?.lead !== undefined &&
-      (writer.kept.offset < 0 || Boolean(held && ghostly(held.startContainer)));
+      (writer.kept.offset < 0 || Boolean(held && atGhost(held.startContainer, held.startOffset)));
     if (begunNow && kind.startsWith("delete")) return begun.dropBegun();
     const one =
       (!spread && begun.waited(kind)) ||
@@ -219,27 +259,9 @@ export const inputOn = (
     if (line && kind === "insertText" && typed === "/")
       return hands.blocks(caret.caretPoint(), true);
     if (line) return begun.firstKey(line, typed);
-    if (kind === "insertText" && typed === "/" && slashes(text, one, range))
-      return hands.blocks(caret.caretPoint(), true);
-    if (kind === "insertText" && one.from === one.to) {
-      const fence = !inCode(range.startContainer) && fenceOpened(text, one.from, typed);
-      if (fence) return put(fence.edit, fence.caret);
-      if (writer.pending?.at === one.from) return formats.pendingKey(one.from, typed);
-      const opened = text.slice(text.lastIndexOf("\n", one.from - 1) + 1, one.from);
-      if (typed === " " && /^\s*(?:>\s?)*\[ ?\]$/.test(opened)) {
-        const box = `${opened.replace(/\[ ?\]$/, "")}- [ ] `;
-        return put({ from: one.from - opened.length, to: one.from, insert: box });
-      }
-      // On a task's page a heading is a section of its own, so marks typed for one stay words.
-      if (typed === " " && /^#{1,6}$/.test(opened) && sectioned(page)) {
-        const from = one.from - opened.length;
-        return put({ from, to: one.from, insert: `\\${opened} ` }, one.from + 2);
-      }
-      if (formats.carriedKey(text, one, typed)) return;
-    }
+    if (kind === "insertText") return typedIn(one, range, typed);
     writer.carried = null;
-    if (kind === "insertText" || kind === "insertReplacementText")
-      return put({ ...one, insert: typed });
+    if (kind === "insertReplacementText") return put({ ...one, insert: typed });
     const blankLine =
       text[one.from - 1] === "\n" &&
       /\r?\n$/.test(text.slice(0, one.from - 1)) &&
@@ -292,20 +314,28 @@ export const inputOn = (
 
   const started = (event: CompositionEvent) => {
     if (!onSheet(page, event)) return;
-    const range = caret.chosen();
-    composing = range && caret.spanOfRange(range);
+    writer.composing ??= compositionOpened();
+    const held = page.getSelection();
+    const range = held?.rangeCount ? held.getRangeAt(0).cloneRange() : null;
+    const spread = Boolean(range && !range.collapsed && !leftOver(range));
+    const one = range && ((!spread && begun.waited("insertText")) || caret.spanOfRange(range));
+    composing = range && one ? { one, range } : null;
   };
 
   const ended = (event: CompositionEvent) => {
-    if (!onSheet(page, event)) return;
-    const one = composing;
+    writer.composing?.end();
+    writer.composing = null;
+    const held = composing;
     composing = null;
+    if (!onSheet(page, event)) return;
     writer.typing = true;
-    if (writer.kept?.lead !== undefined && one?.from === writer.kept.at)
-      return begun.firstKey(writer.kept, event.data ?? "");
-    if (one && one.from === one.to && writer.pending?.at === one.from)
-      return formats.pendingKey(one.from, event.data ?? "");
-    if (one) put({ ...one, insert: event.data ?? "" });
+    const typed = event.data ?? "";
+    if (!held || !typed) return;
+    const kept = writer.kept;
+    const { startContainer, startOffset } = held.range;
+    if (kept?.lead !== undefined && (kept.offset < 0 || atGhost(startContainer, startOffset)))
+      return typed === "/" ? hands.blocks(caret.caretPoint(), true) : begun.firstKey(kept, typed);
+    typedIn(held.one, held.range, typed);
   };
 
   const pastedFiles = (event: ClipboardEvent) => {
@@ -343,5 +373,16 @@ export const inputOn = (
       .catch(() => {});
   };
 
-  return { asked, started, ended, pastedFiles };
+  const firstMarkHeld = (event: KeyboardEvent) => {
+    if (event.key !== "Backspace" || event.defaultPrevented || !onSheet(page, event)) return;
+    if (event.ctrlKey || event.metaKey || event.altKey || event.shiftKey) return;
+    const at = caret.caretSpan()?.from;
+    if (at === undefined || hands.text().lastIndexOf("\n", at - 1) >= 0) return;
+    const freed = caretFreed();
+    if (!freed) return;
+    event.preventDefault();
+    put(freed.edit, freed.caret);
+  };
+
+  return { asked, started, ended, pastedFiles, firstMarkHeld };
 };

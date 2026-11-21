@@ -358,13 +358,56 @@ pub(crate) fn parting<R: tauri::Runtime>(app: &tauri::AppHandle<R>) {
     {
         return;
     }
+    let round = app.state::<Parting>().asked_again();
     let _ = app.emit("parting", ());
 
     let handle = app.clone();
     std::thread::spawn(move || {
         std::thread::sleep(WINDOW_ANSWERS_WITHIN);
-        leave(&handle);
+        if handle.state::<Parting>().leaves_alone(round) {
+            leave(&handle);
+        }
     });
+}
+
+#[derive(Default)]
+pub(crate) struct Parting {
+    asked: std::sync::atomic::AtomicU64,
+    held: std::sync::atomic::AtomicU64,
+}
+
+impl Parting {
+    fn asked_again(&self) -> u64 {
+        self.asked.fetch_add(1, std::sync::atomic::Ordering::SeqCst) + 1
+    }
+
+    fn hold(&self) {
+        let round = self.asked.load(std::sync::atomic::Ordering::SeqCst);
+        self.held.store(round, std::sync::atomic::Ordering::SeqCst);
+    }
+
+    fn leaves_alone(&self, round: u64) -> bool {
+        self.held.load(std::sync::atomic::Ordering::SeqCst) != round
+    }
+}
+
+#[tauri::command]
+pub fn parting_waits(app: tauri::AppHandle, shown: Option<bool>) {
+    use tauri::Manager;
+
+    app.state::<Parting>().hold();
+    if shown.unwrap_or(false) {
+        crate::tray::surface(&app);
+    }
+}
+
+#[tauri::command]
+pub fn parting_stays(app: tauri::AppHandle) {
+    use tauri::Manager;
+
+    app.state::<Leaving>()
+        .0
+        .store(false, std::sync::atomic::Ordering::SeqCst);
 }
 
 /// The window answers in milliseconds and the timer above is only there for the window that
@@ -841,3 +884,7 @@ mod warned_tests {
         }
     }
 }
+
+#[cfg(test)]
+#[path = "desktop_test.rs"]
+mod tests;

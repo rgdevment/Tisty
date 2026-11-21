@@ -207,9 +207,15 @@ pub fn went_back(session: &mut Session, id: &str) -> Answer<tisty_core::docs::Do
 pub fn doc_back(
     session: tauri::State<'_, Mutex<Session>>,
     id: String,
+    turn: Option<super::turns::Turn>,
 ) -> Answer<tisty_core::docs::Doc> {
-    let mut session = held(&session);
-    went_back(&mut session, &id)
+    super::turns::in_turn(
+        &mut held(&session),
+        &id,
+        turn,
+        |session| went_back(session, &id),
+        |_| true,
+    )
 }
 
 pub fn went_back_to(session: &mut Session, id: &str, print: &str) -> Answer<tisty_core::docs::Doc> {
@@ -222,9 +228,15 @@ pub fn doc_back_to(
     session: tauri::State<'_, Mutex<Session>>,
     id: String,
     print: String,
+    turn: Option<super::turns::Turn>,
 ) -> Answer<tisty_core::docs::Doc> {
-    let mut session = held(&session);
-    went_back_to(&mut session, &id, &print)
+    super::turns::in_turn(
+        &mut held(&session),
+        &id,
+        turn,
+        |session| went_back_to(session, &id, &print),
+        |_| true,
+    )
 }
 
 pub fn emptied(session: &Session, id: &str) -> Answer<usize> {

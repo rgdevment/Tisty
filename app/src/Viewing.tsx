@@ -6,6 +6,7 @@ import { pieceSave } from "./pieceWindow";
 import { saidPlainly } from "./refusal";
 import Diagramming from "./ui/drawing/Diagramming";
 import Menu from "./ui/Menu";
+import { modKey } from "./ui/macKeys";
 import Quill from "./ui/Quill";
 import { darkNow } from "./ui/theming";
 import { type Acts, choicesFor, keysFor } from "./ui/viewer/acting";
@@ -121,7 +122,7 @@ function Piece({ shown, trouble }: { shown: Showing | null; trouble: string | nu
   useEffect(() => {
     const heard = (e: KeyboardEvent) => {
       if (e.key === "Escape") return escaping.current();
-      if (!(e.ctrlKey || e.metaKey)) return;
+      if (!modKey(e)) return;
       const act = keysFor(keys.current, e);
       if (!act) return;
       e.preventDefault();

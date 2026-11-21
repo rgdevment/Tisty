@@ -21,6 +21,7 @@ import { plainly } from "../refusal";
 import { type Attaching, attachedAs, pressed } from "./attached";
 import { boxKey, NOTE } from "./diaryPaging";
 import { glancing } from "./glancing";
+import { modKey } from "./macKeys";
 import { placeCopied, placedAt, placeOf, placeSaid, placeWritten, samePlace } from "./pagePlaces";
 import { type Shot, shotsOf, type TableWent, type Went, went, widgetsIn } from "./paging";
 import { type Bar, type Formatting, type Menued, quickly } from "./quickly";
@@ -546,7 +547,7 @@ export const wired = (page: Document, reach: () => Reaching) => {
       !link.getAttribute("href")?.startsWith("#");
     const shaping = page.documentElement.classList.contains("shaping");
     const asked =
-      amongWords && !(event.ctrlKey || event.metaKey)
+      amongWords && !modKey(event)
         ? null
         : (went(target, selecting) ??
           (!shaping && below(page, target, event) ? { kind: "end" } : null));
@@ -632,7 +633,7 @@ export const wired = (page: Document, reach: () => Reaching) => {
   page.addEventListener("keydown", (event) => {
     const target = event.target as Element | null;
     const writing = target?.closest?.(".editing");
-    const asked = event.ctrlKey || event.metaKey || event.key === "F1";
+    const asked = modKey(event) || event.key === "F1";
     if (writing && (event.defaultPrevented || !asked)) return;
     if (asked && WRITTEN_KEYS.has(event.key.toLowerCase()) && target?.closest?.(WRITTEN_ON)) return;
     const passed = new KeyboardEvent("keydown", event);

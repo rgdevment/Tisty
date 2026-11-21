@@ -41,3 +41,92 @@ export const inWholeChars = (was: string, one: Edit): Edit => {
   const to = one.to + after;
   return { from, to, insert: `${was.slice(from, one.from)}${one.insert}${was.slice(one.to, to)}` };
 };
+
+export const unsplitPairs = (text: string, one: Edit): Edit => {
+  const splits = (at: number) =>
+    at > 0 && at < text.length && leading(text.charCodeAt(at - 1)) && trailing(text.charCodeAt(at));
+  const from = splits(one.from) ? one.from - 1 : one.from;
+  const to = one.to === one.from ? from : splits(one.to) ? one.to + 1 : one.to;
+  return from === one.from && to === one.to ? one : { ...one, from, to };
+};
+
+export const landedAfter = (wanted: Edit, asked: Edit, at: number) => {
+  if (at < wanted.from) return at;
+  const before = wanted.from - asked.from;
+  if (at <= wanted.from + wanted.insert.length) return at - before;
+  return at - before - (asked.to - wanted.to);
+};
+
+const segmenter = (granularity: "grapheme" | "word") =>
+  typeof Intl !== "undefined" && "Segmenter" in Intl
+    ? new Intl.Segmenter(undefined, { granularity })
+    : null;
+
+const GRAPHEMES = segmenter("grapheme");
+const WORDS = segmenter("word");
+
+const lineStart = (text: string, at: number) => text.lastIndexOf("\n", at - 1) + 1;
+
+const lineEnd = (text: string, at: number) => {
+  const end = text.indexOf("\n", at);
+  return end < 0 ? text.length : end;
+};
+
+const charBefore = (text: string, at: number) => {
+  if (at <= 0) return 0;
+  const start = lineStart(text, at);
+  if (start === at) return text[at - 2] === "\r" ? at - 2 : at - 1;
+  if (!GRAPHEMES) return at - (trailing(text.charCodeAt(at - 1)) && at - 2 >= start ? 2 : 1);
+  let from = start;
+  for (const one of GRAPHEMES.segment(text.slice(start, at))) from = start + one.index;
+  return from;
+};
+
+const charAfter = (text: string, at: number) => {
+  if (at >= text.length) return text.length;
+  const end = lineEnd(text, at);
+  if (end === at || (text[at] === "\r" && end === at + 1)) return end + 1;
+  if (!GRAPHEMES) return at + (leading(text.charCodeAt(at)) ? 2 : 1);
+  const [first] = GRAPHEMES.segment(text.slice(at, end));
+  return at + (first?.segment.length ?? 1);
+};
+
+const CLOSE_WRITTEN =
+  /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}\p{Script=Thai}\p{Script=Lao}\p{Script=Khmer}\p{Script=Myanmar}]/u;
+
+const wordBefore = (text: string, at: number) => {
+  const run = /\S*\s*$/.exec(text.slice(lineStart(text, at), at))?.[0] ?? "";
+  const chunk = run.trimEnd();
+  if (!WORDS || !CLOSE_WRITTEN.test(chunk)) return at - run.length;
+  const last = WORDS.segment(chunk).containing(chunk.length - 1);
+  return at - (run.length - chunk.length) - (chunk.length - (last?.index ?? 0));
+};
+
+const wordAfter = (text: string, at: number) => {
+  const run = /^\s*\S*/.exec(text.slice(at, lineEnd(text, at)))?.[0] ?? "";
+  const chunk = run.trimStart();
+  if (!WORDS || !CLOSE_WRITTEN.test(chunk)) return at + run.length;
+  const [first] = WORDS.segment(chunk);
+  return at + (run.length - chunk.length) + (first?.segment.length ?? chunk.length);
+};
+
+export const reachIn = (text: string, at: number, kind: string): Span => {
+  const back = kind.endsWith("Backward");
+  if (kind.includes("Line")) {
+    if (back) {
+      const start = lineStart(text, at);
+      return { from: start < at ? start : charBefore(text, at), to: at };
+    }
+    const end = lineEnd(text, at);
+    return { from: at, to: end > at ? end : charAfter(text, at) };
+  }
+  if (kind.includes("Word")) {
+    if (back) {
+      const from = wordBefore(text, at);
+      return { from: from < at ? from : charBefore(text, at), to: at };
+    }
+    const to = wordAfter(text, at);
+    return { from: at, to: to > at ? to : charAfter(text, at) };
+  }
+  return back ? { from: charBefore(text, at), to: at } : { from: at, to: charAfter(text, at) };
+};

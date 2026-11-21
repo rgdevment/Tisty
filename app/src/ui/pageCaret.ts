@@ -1,7 +1,7 @@
 import { byteFrom, unitFrom } from "../placing";
 import type { Span } from "./pageEdits";
 import { closing, opening } from "./pageLists";
-import { elementOf, ghostly, lineOfCaret, scrolledAround } from "./pageNodes";
+import { atGhost, caretLaidOn, elementOf, lineOfCaret, scrolledAround } from "./pageNodes";
 import { placeOf, placeSaid } from "./pagePlaces";
 import { endOf, GHOST, ghostAt, sourceAt, spotOf, topsAt } from "./pageSpots";
 import type { Point, Writer } from "./pageWriter";
@@ -34,7 +34,8 @@ export const caretOn = (writer: Writer) => {
   // Out of a paragraph not yet written, going back leaves it and joins the block before.
   const unbegun = (kind: string, range: AbstractRange): Span | null => {
     const unlaid = writer.kept?.lead !== undefined && writer.kept.offset < 0;
-    if (!writer.kept || !range.collapsed || !(unlaid || ghostly(range.startContainer))) return null;
+    const begun = unlaid || atGhost(range.startContainer, range.startOffset);
+    if (!writer.kept || !range.collapsed || !begun) return null;
     const { at } = writer.kept;
     if (!kind.startsWith("delete") || kind.includes("Forward")) return { from: at, to: at };
     const text = hands.text();
@@ -175,8 +176,7 @@ export const caretOn = (writer: Writer) => {
       bare.append(page.createElement("br"));
     else if (bare?.matches("li") && elementOf(bare.childNodes[spot[1]])?.matches("ul, ol"))
       bare.insertBefore(page.createElement("br"), bare.childNodes[spot[1]] ?? null);
-    const held = page.getSelection();
-    held?.collapse(spot[0], spot[1]);
+    caretLaidOn(page, spot[0], spot[1]);
     writer.kept = { ...writer.kept, node: spot[0], offset: spot[1] };
     inSight(holder);
   };
@@ -196,7 +196,7 @@ export const caretOn = (writer: Writer) => {
   };
 
   const laidAt = (spot: [Node, number]) => {
-    page.getSelection()?.collapse(spot[0], spot[1]);
+    caretLaidOn(page, spot[0], spot[1]);
     inSight(spot[0]);
   };
 
@@ -243,7 +243,7 @@ export const caretOn = (writer: Writer) => {
     const early = node.nodeType === Node.TEXT_NODE && range.startOffset * 2 < (node as Text).length;
     const at = Array.prototype.indexOf.call(atom.parentElement.childNodes, atom);
     const [holder, offset] = early ? [atom.parentElement, at] : endOf(atom);
-    page.getSelection()?.collapse(holder, offset);
+    caretLaidOn(page, holder, offset);
   };
 
   return {

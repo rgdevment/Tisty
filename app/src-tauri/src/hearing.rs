@@ -3,7 +3,7 @@ use std::time::{Duration, Instant};
 
 use tauri::{AppHandle, Emitter, Manager};
 
-use crate::Session;
+use crate::{Session, held};
 
 const LISTENS: Duration = Duration::from_secs(60);
 const AGAIN: Duration = Duration::from_secs(60);
@@ -44,15 +44,23 @@ type Chosen = Option<tisty_core::config::Sync>;
 
 fn chosen_now(app: &AppHandle) -> Chosen {
     app.try_state::<Mutex<Session>>()
-        .and_then(|session| session.lock().ok().and_then(|one| one.config.sync.clone()))
+        .and_then(|session| chosen_in(&session))
+}
+
+fn chosen_in(session: &Mutex<Session>) -> Chosen {
+    held(session).config.sync.clone()
 }
 
 // Heard together with the way it was chosen, so a listen ends the moment the person picks another.
 fn heard_from(app: &AppHandle) -> Option<(Box<dyn tisty_carrier::Watch>, Chosen)> {
     let (carrier, chosen) = {
         let session = app.try_state::<Mutex<Session>>()?;
-        let session = session.lock().ok()?;
+        let session = held(&session);
         (session.carrier()?, session.config.sync.clone())
     };
     Some((carrier.hears()?, chosen))
 }
+
+#[cfg(test)]
+#[path = "hearing_test.rs"]
+mod tests;

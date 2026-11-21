@@ -1496,6 +1496,11 @@ const en = {
     "What you typed could not be saved yet, so nothing went back. Settle that first, then go back.",
   unsavedUncompared:
     "What you typed could not be saved yet, so nothing was compared with it. Settle that first, then compare again.",
+  saveStuck:
+    "Saving this document got no answer for half a minute, so Tisty stopped waiting. Your words are still here and go again with your next change.",
+  saveLate: "A save arrived after a newer one, so it was set aside and wrote nothing",
+  partingUnsaved:
+    "What you wrote last could not be saved yet, so closing now would leave it behind. Close Tisty anyway?",
   notAHistoryLimit: "The history is kept for 1, 5, 15 or 30 days",
   backSure:
     "Going back leaves this document as it read before the write that stirred it. What it says now is kept in its place, so you can come back to it.",
@@ -3025,6 +3030,10 @@ const en = {
   windowFellWhy:
     "Nothing you wrote is lost: it is kept as it was, and opening the window again picks it up where it stands. What went wrong is written in the log",
   windowFellAgain: "Draw it again",
+  pageUndrawn:
+    "This page could not be drawn, so its words are shown as written and it takes no typing until it is drawn.",
+  pageDrawingAgain: "Drawing the page again…",
+  pageFell: "This page stopped drawing.",
   updateComing: "The Store is bringing a new version",
   updateOffered: "The Store has a new version",
   updateOpenShop: "Open the Store",
@@ -5155,6 +5164,12 @@ const es: Catalog = {
     "Lo que escribiste todavía no se pudo guardar, así que no se volvió a nada. Resuelve eso primero y vuelve después.",
   unsavedUncompared:
     "Lo que escribiste todavía no se pudo guardar, así que no se comparó con eso. Resuelve eso primero y vuelve a comparar.",
+  saveStuck:
+    "Guardar este documento no tuvo respuesta en medio minuto, así que Tisty dejó de esperar. Tu texto sigue aquí y se vuelve a enviar con tu próximo cambio.",
+  saveLate:
+    "Un guardado llegó después de uno más nuevo, así que quedó a un lado y no escribió nada",
+  partingUnsaved:
+    "Lo último que escribiste todavía no se pudo guardar, así que cerrar ahora lo dejaría atrás. ¿Cerrar Tisty de todos modos?",
   notAHistoryLimit: "El historial se guarda 1, 5, 15 o 30 días",
   backSure:
     "Volver atrás deja este documento como se leía antes de la escritura que lo movió. Lo que dice ahora queda guardado en su lugar, así que puedes regresar a ello.",
@@ -6690,6 +6705,10 @@ const es: Catalog = {
   windowFellWhy:
     "No se perdió nada de lo que escribiste: queda tal como estaba, y al volver a abrir la ventana sigue donde lo dejaste. Lo que falló quedó escrito en el registro",
   windowFellAgain: "Volver a dibujarla",
+  pageUndrawn:
+    "Esta página no se pudo dibujar, así que su texto se muestra tal cual y no admite escritura hasta que se dibuje.",
+  pageDrawingAgain: "Dibujando la página de nuevo…",
+  pageFell: "Esta página dejó de dibujarse.",
   updateComing: "La Store está trayendo una versión nueva",
   updateOffered: "La Store tiene una versión nueva",
   updateOpenShop: "Abrir la Store",

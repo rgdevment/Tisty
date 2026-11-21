@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Filed, Marked, Task } from "../core";
 import { dayOf } from "../format";
 import { fill, t } from "../locales";
+import { forgotten, kept, unansweredWords } from "../saving";
 import { asksSure } from "../sure";
 import { alike, dropWord } from "../tidying";
 import Docs from "../ui/Docs";
@@ -292,6 +293,26 @@ describe("deleting a set", () => {
     ]);
     expect(called("doc_drop").map((one) => one.args.id)).toEqual(["D1", "D3"]);
     expect(given.setChosen).toHaveBeenCalledWith({ named: "docs" });
+  });
+
+  it("lets go of the words a save left behind for each document and page that went", async () => {
+    asksSure(() => Promise.resolve(true));
+    for (const file of ["d-1", "d-2", "d-9"]) {
+      await kept(file, `palabras de ${file}`, () =>
+        Promise.reject({ code: "documentMoved" }),
+      ).catch(() => {});
+    }
+    const { result } = renderHook(() => usePapers(hands()));
+
+    await result.current.dropDocs([
+      doc({ id: "D1", file: "d-1", title: "Draft A" }),
+      doc({ id: "D2", file: "d-2", title: "Draft B", pageOf: "D1" }),
+    ]);
+
+    expect(unansweredWords("d-1")).toBeUndefined();
+    expect(unansweredWords("d-2")).toBeUndefined();
+    expect(unansweredWords("d-9")).toBe("palabras de d-9");
+    forgotten("d-9");
   });
 
   it("says this document and the page it holds when there is one of each", async () => {

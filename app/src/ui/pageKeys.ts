@@ -1,5 +1,6 @@
 import { SLASHED } from "tisty-editor/edit";
 import { bytesAt, charsAt } from "tisty-editor/read";
+import { caretWalk, modKey, moveKey } from "./macKeys";
 import type { Beside } from "./pageBeside";
 import type { Caret } from "./pageCaret";
 import type { Choosing } from "./pageChoosing";
@@ -100,9 +101,9 @@ export const keysOn = (
     if (event.key === "End" && !event.shiftKey && !event.altKey) return toEnd(event);
     if (event.key === "Tab" && !event.ctrlKey && !event.metaKey && !event.altKey)
       return tabbed(event);
-    if (event.altKey && (event.key === "ArrowUp" || event.key === "ArrowDown"))
+    if (moveKey(event) && (event.key === "ArrowUp" || event.key === "ArrowDown"))
       return stepped(event);
-    if (!(event.ctrlKey || event.metaKey) || event.altKey) return;
+    if (!modKey(event) || event.altKey) return;
     if (event.key === "Enter") return broke(event);
     const named = `${event.shiftKey ? "shift " : ""}${event.key.toLowerCase()}`;
     if (named === "z" || named === "shift z" || named === "y") {
@@ -172,11 +173,13 @@ export const keysOn = (
   // The page's events come from its own window, so a key is told by what it carries, not by its class.
   const moved = (event: Event) => {
     const key = "key" in event ? String(event.key) : null;
-    if (key !== null && !key.startsWith("Arrow") && !/^(Home|End|Page)/.test(key)) return;
-    if ((event.target as Element | null)?.closest?.(".tag-list")) return;
     const held = event as KeyboardEvent;
-    const across = key !== null && Boolean(held.ctrlKey || held.metaKey);
-    if (key === null || /^(ArrowUp|ArrowDown|Page)/.test(key) || across)
+    const walked = key === null ? null : caretWalk(held);
+    if (key !== null && !walked && !key.startsWith("Arrow") && !/^(Home|End|Page)/.test(key))
+      return;
+    if ((event.target as Element | null)?.closest?.(".tag-list")) return;
+    const across = key !== null && !walked && Boolean(held.ctrlKey || held.metaKey);
+    if (key === null || /^(ArrowUp|ArrowDown|Page)/.test(key) || across || walked === "line")
       writer.leftFrom = caret.blockStart();
     writer.kept = null;
     writer.pending = null;

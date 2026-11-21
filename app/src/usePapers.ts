@@ -23,6 +23,7 @@ import { leftBehind } from "./leftBehind";
 import { fill, t } from "./locales";
 import { drafted, placeOf } from "./making";
 import { saidPlainly } from "./refusal";
+import { cut } from "./saving";
 import { sure } from "./sure";
 import { dropAllAsked, goingWith } from "./tidying";
 import { tongueName, tonguesOf } from "./tongues";
@@ -52,6 +53,11 @@ interface Hands {
   carries: MutableRefObject<ReturnType<typeof carrying> | null>;
   paging: MutableRefObject<((page: Filed) => boolean) | null>;
 }
+
+const filesOf = (doc: Filed, pages: Filed[]) => [
+  doc.file,
+  ...pages.filter((page) => page.pageOf === doc.id).map((page) => page.file),
+];
 
 export function usePapers({
   chosen,
@@ -128,11 +134,17 @@ export function usePapers({
       })
       .catch((e) => setError(saidPlainly(e)));
 
+  const kinOf = (doc: Filed) =>
+    tonguesOf(papers.docs, doc).filter((one) => one.folder === doc.folder && one.away === doc.away);
+
+  const goneWith = (doc: Filed, pages: Filed[]) => {
+    const kin = kinOf(doc);
+    return (kin.length > 1 ? kin : [doc]).flatMap((one) => filesOf(one, pages));
+  };
+
   const dropDoc = (doc: Filed) => {
     // The languages beside it are the same row, so they go with it, and the question says so.
-    const kin = tonguesOf(papers.docs, doc).filter(
-      (one) => one.folder === doc.folder && one.away === doc.away,
-    );
+    const kin = kinOf(doc);
     const asked =
       kin.length > 1
         ? fill(
@@ -147,14 +159,13 @@ export function usePapers({
     return sure(asked)
       .then((yes) => {
         if (!yes) return;
-        const all = kin.length > 1 ? kin : [doc];
-        const going = all.flatMap((one) => [
-          one.file,
-          ...papers.docs.filter((page) => page.pageOf === one.id).map((page) => page.file),
-        ]);
+        const going = goneWith(doc, papers.docs);
         if (chosen.doc && going.includes(chosen.doc)) setChosen({ named: "docs" });
         setReturning(doc.pageOf ?? doc.folder ?? "unfiled");
-        return docDrop(doc.id).then(papersChanged);
+        return docDrop(doc.id).then(() => {
+          for (const file of going) cut(file);
+          papersChanged();
+        });
       })
       .catch((e) => setError(saidPlainly(e)));
   };
@@ -162,12 +173,15 @@ export function usePapers({
   const dropDocs = async (all: Filed[]) => {
     const { going, pages } = goingWith(all, papers.docs);
     if (!(await sure(dropAllAsked(going, pages)))) return;
-    const files = new Set([...all.map((one) => one.file), ...pages.map((one) => one.file)]);
+    const files = new Set(going.flatMap((one) => goneWith(one, [...papers.docs, ...pages])));
     if (chosen.doc && files.has(chosen.doc)) setChosen({ named: "docs" });
     const first = going[0];
     if (first) setReturning(first.pageOf ?? first.folder ?? "unfiled");
     try {
-      for (const one of going) await docDrop(one.id);
+      for (const one of going) {
+        await docDrop(one.id);
+        for (const file of goneWith(one, [...papers.docs, ...pages])) cut(file);
+      }
     } catch (e) {
       setError(saidPlainly(e));
     }

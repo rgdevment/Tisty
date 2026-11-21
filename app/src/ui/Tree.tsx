@@ -25,7 +25,7 @@ import {
 } from "./dragging";
 import Glyph from "./Glyph";
 import { painted } from "./Hue";
-import { onMac } from "./WindowChrome";
+import { modKey, onMac } from "./macKeys";
 
 const STIRS = 4;
 
@@ -344,7 +344,7 @@ export default function Tree({
       return setLifted(null);
     }
     if (
-      (e.ctrlKey || e.metaKey) &&
+      modKey(e) &&
       (e.key === "x" || e.key === "X") &&
       row.id !== "unfiled" &&
       !papers.docs.some((one) => one.id === row.id && (one.pageOf || (one.away && !one.archived)))
@@ -352,7 +352,7 @@ export default function Tree({
       e.preventDefault();
       return setLifted(row);
     }
-    if ((e.ctrlKey || e.metaKey) && (e.key === "v" || e.key === "V") && row.kind === "folder") {
+    if (modKey(e) && (e.key === "v" || e.key === "V") && row.kind === "folder") {
       e.preventDefault();
       return land(place);
     }

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import type { Doc } from "../core";
 import { docBackTo, type Earlier as Version, whenOf } from "../earlier";
-import { settled } from "../saving";
+import { cut, settled, turned } from "../saving";
 import Earlier from "./Earlier";
 import type { CardsShown } from "./liveCards";
 
@@ -9,6 +9,7 @@ interface Asked {
   file?: string;
   title: string;
   page?: boolean;
+  fenced?: boolean;
   writable: boolean;
   cardsShown?: CardsShown;
   /** What is typed reaches the disk first, so it is what going back keeps to come back to; refused, nothing goes back. */
@@ -34,7 +35,8 @@ export const useEarlier = (asked: Asked) => {
     if (!file) return;
     await asked.before();
     await settled();
-    const said = await docBackTo(file, one.print);
+    if (asked.fenced) cut(file);
+    const said = await docBackTo(file, one.print, asked.fenced ? turned() : undefined);
     setShown(null);
     await asked.onWentBack(said, whenOf(one));
   };

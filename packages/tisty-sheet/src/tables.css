@@ -34,6 +34,8 @@ tr {
 }
 /* The file wins: a value not written as its type asks is drawn as written, only marked. */
 td[data-amiss] {
+  -webkit-text-decoration: underline wavy
+    color-mix(in srgb, var(--tisty-hue-amber) 70%, transparent);
   text-decoration: underline wavy color-mix(in srgb, var(--tisty-hue-amber) 70%, transparent);
   text-underline-offset: 3px;
 }
@@ -71,6 +73,7 @@ th:last-child > .col-grip {
 html.widening,
 html.widening * {
   cursor: col-resize;
+  -webkit-user-select: none;
   user-select: none;
 }
 /* The grips sit in the margin, inside the box that scrolls, so scrolling never cuts them off. */
@@ -113,6 +116,7 @@ html.widening * {
 .row-moving,
 .row-moving * {
   cursor: grabbing;
+  -webkit-user-select: none;
   user-select: none;
 }
 .row-dragged > td {

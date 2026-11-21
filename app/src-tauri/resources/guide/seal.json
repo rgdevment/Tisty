@@ -13,7 +13,7 @@
     "en/card.png": "65e096a3246e72ad7add18270a860ddc145385d492faf0132e20790167ab1087",
     "en/code.md": "730a0f3bb6ef3c728f26dd6819728134abbc63e1334c056d95605d3df66f8f41",
     "en/diagrams.png": "bea8968b3015e570d6334bcfcc977e050b2f92323e16fc0440f33d615d7cb5d0",
-    "en/guide.md": "9ae34410e5900b0b03ce6370f0e0f7c0dc9d4d85e7f50a66e29d3db8520ca1ff",
+    "en/guide.md": "335a015a737c777f91355f1567633f2f38908f9a5d1f2b7a73c6bb69b61e13ce",
     "en/hill.jpg": "c20714d2eec225eb61b9f56f0bf1e3b0cb72c486514ea73d418a8e2d32851417",
     "en/languages.png": "fa03a73d5bb1ad7b6d4b8dbfda66d8b329bf72fc2d734a8c37235ed0d9fbed24",
     "en/network-near.png": "f8e7a4c4e35dbe78d1a62bd306888090710f45e24e638ab3780abe6630786505",
@@ -39,7 +39,7 @@
     "es/codigo.md": "1711dcc10d1f5a5346d8b345295b06d8ce111e5b402a8c8e1bcb08c5d14de5b4",
     "es/diagramas.png": "84846168283d57087a4eca4b141bfc87351e2dc5dc7db779a895ee9ac228beeb",
     "es/enlazar.png": "478097af63a0f4bdac5e518f418db18c9002aac51594480817ee2ebfce918f16",
-    "es/guia.md": "ad18dd3483197939469c5dbc87d7fc17e275deebfb5bb858f7d647cef272a3f1",
+    "es/guia.md": "19dca6a75cd1bdb7e09b7431a70dbe03290ef80388eea51f5f1ad8218b076c7e",
     "es/hill.jpg": "c20714d2eec225eb61b9f56f0bf1e3b0cb72c486514ea73d418a8e2d32851417",
     "es/ideas.png": "a15785d11ea2336c296e1900bc66feed9378797a815f68d2f9591ab1e8e07c19",
     "es/idiomas.png": "f6fab049744a51a6055b5dd092f7a2bbede6b26f58537ecacf5806d8533b7702",
@@ -62,6 +62,6 @@
       "since": "2026-11-10T00:52:29Z",
       "sig": "HdUTmQ2TmV6_6AMUyB3IHv_ryzoPlDnBc7AFW1OnuKvbZ4cwp3pOe0WRwnII-W-kDgVSYOWKgiVKxEyrl2R8Bg"
     },
-    "sig": "adAGJm8A3HWBcbVrL71bGgjKITCYVlEyWYq6rxOVrjL1D2JkpkdnbCrZjLmBqXt6e81P2SiZ3ca3w3GOgkjYCQ"
+    "sig": "w_x84t0nzDaavPREYty7PkX16hLyJI7ze6o-VtpnqNYH2OS4frIIdEpT9TgWR9XGY0SyCtdvIO43wXhCX_MWAQ"
   }
 }

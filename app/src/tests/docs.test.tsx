@@ -6,7 +6,14 @@ import { MARKED_FOR } from "tisty-editor/edit";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Filed } from "../core";
 import { t } from "../locales";
-import { settled } from "../saving";
+import {
+  forgotten,
+  leftUnsaved,
+  PATIENCE,
+  type SaveTurn,
+  settled,
+  unansweredWords,
+} from "../saving";
 import Docs from "../ui/Docs";
 
 // The studio says its own words; these tests read them as it does, in English.
@@ -14,8 +21,12 @@ const say = sayIn("en");
 
 const store = vi.hoisted(() => ({
   bodies: {} as Record<string, string>,
-  writes: [] as { id: string; body: string; anyway: boolean; since?: unknown }[],
+  writes: [] as { id: string; body: string; anyway: boolean; since?: unknown; turn?: unknown }[],
   clash: false,
+  hang: null as "lost" | "lands" | null,
+  moved: null as { code: string; landed?: number } | null,
+  merges: [] as { base: string; mine: string; turn?: unknown }[],
+  troubles: [] as string[],
   woven: null as string | null,
   delays: [] as number[],
   reads: 0,
@@ -82,8 +93,15 @@ vi.mock("@tauri-apps/api/core", async () => ({
           const id = String(args?.id);
           const body = String(args?.body);
           const anyway = args?.anyway === true;
-          store.writes.push({ id, body, anyway, since: args?.since });
+          store.writes.push({ id, body, anyway, since: args?.since, turn: args?.turn });
+          const moved = store.moved;
+          store.moved = null;
+          if (moved && !anyway) return Promise.reject(moved);
           if (store.clash && !anyway) return Promise.reject({ code: "documentMoved" });
+          if (store.hang) {
+            if (store.hang === "lands") store.bodies[id] = body;
+            return new Promise(() => {});
+          }
           const title = body
             .split("\n")[0]
             .replace(/^#+\s*/, "")
@@ -109,7 +127,15 @@ vi.mock("@tauri-apps/api/core", async () => ({
         case "agent_doc":
           return Promise.resolve(store.agent);
         case "doc_merge":
+          store.merges.push({
+            base: String(args?.base),
+            mine: String(args?.mine),
+            turn: args?.turn,
+          });
           return Promise.resolve(store.woven && { body: store.woven, print: "woven" });
+        case "note_trouble":
+          store.troubles.push(String(args?.code));
+          return Promise.resolve(null);
         default:
           return Promise.resolve(null);
       }
@@ -169,6 +195,10 @@ vi.mock("../ui/Sheet", () => ({
     );
   },
 }));
+
+beforeEach(() => {
+  for (const file of ["a3f1-0001", "a3f1-0002", "a3f1-0003"]) forgotten(file);
+});
 
 const known: Filed[] = [
   { id: "01F", file: "a3f1-0001", title: "Compras", folder: null, archived: false, away: false },
@@ -311,6 +341,52 @@ describe("the document being written", () => {
 
     await waitFor(() => screen.getByLabelText("editor"));
     expect(screen.queryByText(/bringing this document from the shared folder/i)).toBeNull();
+  });
+
+  it("reads a document again when it is chosen again after it could not be opened", async () => {
+    store.refuse = { code: "documentGone", name: "" };
+    const onError = vi.fn();
+    const props = { open: "a3f1-0001", known, onKept: vi.fn(), onError };
+    const { rerender } = render(<Docs {...props} visit={{}} />);
+    await waitFor(() => expect(onError).toHaveBeenCalled());
+    expect(screen.queryByLabelText("editor")).toBeNull();
+
+    store.refuse = null;
+    rerender(<Docs {...props} visit={{}} />);
+
+    await waitFor(() =>
+      expect(screen.getByLabelText("editor")).toHaveProperty("value", "# Compras\n\nleche"),
+    );
+  });
+
+  it("asks for a document still on its way again when it is chosen again", async () => {
+    store.coming = true;
+    const props = { open: "a3f1-0001", known, onKept: vi.fn(), onError: vi.fn() };
+    const { rerender } = render(<Docs {...props} visit={{}} />);
+    await screen.findByText(/bringing this document from the shared folder/i);
+
+    store.coming = false;
+    rerender(<Docs {...props} visit={{}} />);
+
+    await waitFor(() => screen.getByLabelText("editor"));
+    expect(screen.queryByText(/bringing this document from the shared folder/i)).toBeNull();
+  });
+
+  it("opens the document chosen again after typing in the last one called its opening off", async () => {
+    const props = { known, onKept: vi.fn(), onError: vi.fn() };
+    const { rerender } = render(<Docs {...props} open="a3f1-0001" visit={{}} />);
+    await waitFor(() =>
+      expect(screen.getByLabelText("editor")).toHaveProperty("value", "# Compras\n\nleche"),
+    );
+
+    rerender(<Docs {...props} open="a3f1-0002" visit={{}} />);
+    fireEvent.change(screen.getByLabelText("editor"), { target: { value: "# Compras\n\nleches" } });
+    await act(() => settled());
+    expect(screen.getByLabelText("editor")).toHaveProperty("value", "# Compras\n\nleches");
+
+    rerender(<Docs {...props} open="a3f1-0002" visit={{}} />);
+
+    await waitFor(() => expect(screen.getByLabelText("editor")).toHaveProperty("value", "# Notas"));
   });
 
   it("says so when something wrote in the document while it was open", async () => {
@@ -696,6 +772,152 @@ describe("the document being written", () => {
     view.rerender(<Docs open="a3f1-0002" known={known} onKept={vi.fn()} onError={vi.fn()} />);
 
     await waitFor(() => expect(store.bodies["a3f1-0001"]).toBe("a medias"), { timeout: 3000 });
+  });
+});
+
+describe("a save that never answers", () => {
+  beforeEach(() => {
+    store.woven = null;
+    store.bodies = { "a3f1-0001": "# Compras\n\nleche", "a3f1-0002": "# Notas" };
+    store.writes = [];
+    store.merges = [];
+    store.troubles = [];
+    store.reads = 0;
+    store.delays = [];
+    store.mute = false;
+    store.shape = null;
+    store.clash = false;
+    store.agrees = true;
+    store.coming = false;
+    store.refuse = null;
+    store.hang = null;
+    store.moved = null;
+  });
+
+  const props = { known, onKept: vi.fn(), onError: vi.fn() };
+  const turnOf = (at: number) => store.writes[at]?.turn as SaveTurn;
+  const shown = () => (screen.getByLabelText("editor") as HTMLTextAreaElement).value;
+
+  it("says it stopped, keeps the words, and sends them again with a newer turn", async () => {
+    render(<Docs {...props} open="a3f1-0001" />);
+    const editor = await screen.findByLabelText("editor");
+    store.hang = "lost";
+    fireEvent.change(editor, { target: { value: "# Compras\n\nleche y pan" } });
+    await act(() => vi.advanceTimersByTimeAsync(800));
+    expect(store.writes).toHaveLength(1);
+    expect(screen.queryByText(t("saveStuck"))).toBeNull();
+
+    await act(() => vi.advanceTimersByTimeAsync(PATIENCE));
+    expect(await screen.findByText(t("saveStuck"))).toBeTruthy();
+    expect(store.troubles).toContain("saveStuck");
+
+    store.hang = null;
+    await userEvent.click(screen.getByRole("button", { name: t("tryAgain") }));
+
+    await waitFor(() => expect(store.bodies["a3f1-0001"]).toBe("# Compras\n\nleche y pan"));
+    expect(turnOf(1).hand).toBe(turnOf(0).hand);
+    expect(turnOf(1).n).toBeGreaterThan(turnOf(0).n);
+    await waitFor(() => expect(screen.queryByText(t("saveStuck"))).toBeNull());
+  });
+
+  it("opens the document again with the words still to save, and sends them", async () => {
+    const { rerender } = render(<Docs {...props} open="a3f1-0001" />);
+    const editor = await screen.findByLabelText("editor");
+    store.hang = "lost";
+    fireEvent.change(editor, { target: { value: "# Compras\n\nleche y pan" } });
+    rerender(<Docs {...props} open="a3f1-0002" />);
+    await waitFor(() => expect(shown()).toBe("# Notas"));
+    store.hang = null;
+    fireEvent.change(screen.getByLabelText("editor"), { target: { value: "# Notas\n\nuna" } });
+    await act(() => vi.advanceTimersByTimeAsync(PATIENCE));
+
+    rerender(<Docs {...props} open="a3f1-0001" />);
+
+    await waitFor(() => expect(shown()).toBe("# Compras\n\nleche y pan"));
+    await waitFor(() => expect(store.bodies["a3f1-0001"]).toBe("# Compras\n\nleche y pan"));
+    expect(store.bodies["a3f1-0002"]).toBe("# Notas\n\nuna");
+  });
+
+  it("weaves from the words that landed when their answer never came back", async () => {
+    render(<Docs {...props} open="a3f1-0001" />);
+    const editor = await screen.findByLabelText("editor");
+    store.hang = "lands";
+    fireEvent.change(editor, { target: { value: "# Compras\n\nleche y pan" } });
+    await act(() => vi.advanceTimersByTimeAsync(800));
+    await act(() => vi.advanceTimersByTimeAsync(PATIENCE));
+    await screen.findByText(t("saveStuck"));
+
+    store.hang = null;
+    store.moved = { code: "documentMoved", landed: turnOf(0).n };
+    store.woven = "# Compras\n\nleche";
+    fireEvent.change(screen.getByLabelText("editor"), { target: { value: "# Compras\n\nleche" } });
+    await act(() => vi.advanceTimersByTimeAsync(800));
+
+    await waitFor(() => expect(store.merges).toHaveLength(1));
+    expect(store.merges[0]).toMatchObject({
+      base: "# Compras\n\nleche y pan",
+      mine: "# Compras\n\nleche",
+      turn: turnOf(1),
+    });
+    await act(() => vi.advanceTimersByTimeAsync(0));
+    expect(screen.queryByRole("button", { name: t("docStirredGone") })).toBeNull();
+  });
+
+  it("keeps the words of a document left behind whose save was refused, and shows them again", async () => {
+    const { rerender } = render(<Docs {...props} open="a3f1-0001" />);
+    const editor = await screen.findByLabelText("editor");
+    store.clash = true;
+    fireEvent.change(editor, { target: { value: "# Compras\n\nleche y pan" } });
+    rerender(<Docs {...props} open="a3f1-0002" />);
+    await waitFor(() => expect(shown()).toBe("# Notas"));
+    await waitFor(() => expect(store.writes.map((one) => one.id)).toContain("a3f1-0001"));
+    store.clash = false;
+    fireEvent.change(screen.getByLabelText("editor"), { target: { value: "# Notas\n\nuna" } });
+    await act(() => vi.advanceTimersByTimeAsync(800));
+
+    rerender(<Docs {...props} open="a3f1-0001" />);
+
+    await waitFor(() => expect(shown()).toBe("# Compras\n\nleche y pan"));
+    expect(screen.queryByText(t("saveStuck"))).toBeNull();
+    await act(() => vi.advanceTimersByTimeAsync(800));
+    await waitFor(() => expect(store.bodies["a3f1-0001"]).toBe("# Compras\n\nleche y pan"));
+  });
+
+  it("lets go of refused words once the person types back what was read", async () => {
+    render(<Docs {...props} open="a3f1-0001" />);
+    const editor = await screen.findByLabelText("editor");
+    store.clash = true;
+    fireEvent.change(editor, { target: { value: "# Compras\n\nleche y pan" } });
+    await screen.findByText(t("documentMoved"));
+    expect(unansweredWords("a3f1-0001")).toBe("# Compras\n\nleche y pan");
+
+    fireEvent.change(screen.getByLabelText("editor"), { target: { value: "# Compras\n\nleche" } });
+
+    expect(unansweredWords("a3f1-0001")).toBeUndefined();
+    expect(await leftUnsaved()).toBe(false);
+  });
+
+  it("tells closing its words are not saved while a refused save still holds them", async () => {
+    render(<Docs {...props} open="a3f1-0001" />);
+    const editor = await screen.findByLabelText("editor");
+    store.clash = true;
+    fireEvent.change(editor, { target: { value: "# Compras\n\nleche y pan" } });
+    await screen.findByText(t("documentMoved"));
+
+    expect(await leftUnsaved()).toBe(true);
+    store.clash = false;
+    expect(await leftUnsaved()).toBe(false);
+  });
+
+  it("weaves from what it read when the save that landed is one that answered", async () => {
+    render(<Docs {...props} open="a3f1-0001" />);
+    const editor = await screen.findByLabelText("editor");
+    store.moved = { code: "documentMoved", landed: 1 };
+    fireEvent.change(editor, { target: { value: "# Compras\n\nleche y pan" } });
+    await act(() => vi.advanceTimersByTimeAsync(800));
+
+    await waitFor(() => expect(store.merges).toHaveLength(1));
+    expect(store.merges[0].base).toBe("# Compras\n\nleche");
   });
 });
 

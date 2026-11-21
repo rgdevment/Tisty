@@ -1203,6 +1203,28 @@ fn a_refusal_the_window_showed_says_what_it_was_about() {
 }
 
 #[test]
+fn a_save_the_window_stopped_waiting_for_is_written_down() {
+    use crate::answers::tasks::note_trouble;
+
+    let _alone = ALONE.lock().unwrap_or_else(|e| e.into_inner());
+
+    let kept = tempfile::tempdir().unwrap();
+    let paths = tisty_core::paths::Paths::new(kept.path().join("data"), kept.path().join("config"));
+    tisty_core::witness::keeps(tisty_core::witness::file(&paths), false);
+
+    note_trouble("saveStuck".into(), Some("ycqcwz50-0009".into()));
+
+    let seen = tisty_core::witness::recent(&paths, 1000);
+    let shown = seen
+        .iter()
+        .find(|line| line.contains("the window showed a refusal"));
+    assert!(
+        shown.is_some_and(|line| line.contains("saveStuck") && line.contains("ycqcwz50-0009")),
+        "{seen:?}"
+    );
+}
+
+#[test]
 fn only_a_code_we_ship_is_written_down() {
     assert_eq!(refusal_code("pastDeadline"), Some("pastDeadline"));
     assert_eq!(refusal_code("internalNamed"), Some("internalNamed"));

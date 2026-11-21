@@ -1,5 +1,6 @@
 import { docked, FORMATS, formatButtons, PENS } from "tisty-editor/edit";
 import { t } from "../locales";
+import { modKey } from "./macKeys";
 import { holds, type Mark } from "./peeled";
 
 /** The bar over a table while one of its cells is written: each press puts a mark on the whole cell or takes it off. */
@@ -38,7 +39,7 @@ export const cellBar = (
   lit();
   // The field keeps the editor's own keys for the marks the bar shows.
   input.addEventListener("keydown", (event) => {
-    if (!(event.ctrlKey || event.metaKey)) return;
+    if (!modKey(event)) return;
     const said = `${event.shiftKey ? "Shift " : ""}${event.key.toUpperCase()}`;
     const found = FORMATS.find(([, keys, open]) => keys === said && open !== "[");
     if (!found) return;

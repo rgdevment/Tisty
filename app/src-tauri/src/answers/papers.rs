@@ -4,7 +4,7 @@ use tisty_core::witness::{self, Fact, channel};
 use tisty_core::{Op, Reading, State};
 
 use crate::{
-    Answer, Refusal, Session, Task, blamed, doc_out, elsewhere, folder_open, held, placed,
+    Answer, Refusal, Session, Task, blamed, caught, doc_out, elsewhere, folder_open, held, placed,
     reading_as, said, signing, stop, weighed,
 };
 
@@ -92,7 +92,7 @@ pub fn beside_docs(
 
 #[tauri::command(async)]
 pub fn doc_read(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<String> {
-    read_minded(&session, id)
+    caught("doc_read", || read_minded(&session, id))?
 }
 
 #[derive(serde::Serialize)]
@@ -104,17 +104,24 @@ pub struct Opened {
 
 /// The print rides back with the save, so only the words the window actually holds are written over.
 #[tauri::command(async)]
-pub fn doc_opened(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<Opened> {
-    let body = read_minded(&session, id.clone())?;
+pub fn doc_opened(
+    session: tauri::State<'_, Mutex<Session>>,
+    id: String,
+    turn: Option<super::turns::Turn>,
+) -> Answer<Opened> {
+    if let Some(turn) = &turn {
+        held(&session).turns.opened(&id, turn);
+    }
+    let body = caught("doc_opened", || read_minded(&session, id.clone()))??;
     let opened_file = held(&session).paths.opened_file();
     tisty_core::forgotten::opened(&opened_file, &id);
     let print = tisty_core::docs::print_of_text(&body);
     Ok(Opened { body, print })
 }
 
-fn read_minded(session: &tauri::State<'_, Mutex<Session>>, id: String) -> Answer<String> {
+fn read_minded(session: &Mutex<Session>, id: String) -> Answer<String> {
     let root = held(session).paths.docs();
-    let read = tisty_core::docs::read(&root, &id);
+    let read = tisty_core::docs::read_patiently(&root, &id);
     if let Ok(body) = &read {
         let mut session = held(session);
         session.mind_body(&id, body);
@@ -132,6 +139,7 @@ fn read_minded(session: &tauri::State<'_, Mutex<Session>>, id: String) -> Answer
             );
             Refusal::about("documentTooBig", weighed(limit))
         }
+        e if unreadable(&e) => cannot_read(&e, id),
         _ if !root.join(format!("{id}.md")).exists() && still_coming(session, &id) => {
             Refusal::about("docComing", id)
         }
@@ -139,9 +147,22 @@ fn read_minded(session: &tauri::State<'_, Mutex<Session>>, id: String) -> Answer
     })
 }
 
-fn still_coming(session: &tauri::State<'_, Mutex<Session>>, id: &str) -> bool {
+fn still_coming(session: &Mutex<Session>, id: &str) -> bool {
     let carrier = held(session).carrier();
     carrier.is_some_and(|carrier| carrier.paper_waiting(id))
+}
+
+pub(crate) fn unreadable(e: &tisty_core::Error) -> bool {
+    matches!(e, tisty_core::Error::Io(why) if why.kind() != std::io::ErrorKind::NotFound)
+}
+
+pub(crate) fn cannot_read(e: &tisty_core::Error, id: impl Into<String>) -> Refusal {
+    witness::warn(
+        channel::WINDOW,
+        "a document is there and could not be read",
+        &e.told(),
+    );
+    Refusal::about("cannotRead", id)
 }
 
 #[derive(serde::Serialize)]
@@ -1174,8 +1195,16 @@ pub fn doc_write(
     body: String,
     anyway: Option<bool>,
     since: Option<String>,
+    turn: Option<super::turns::Turn>,
 ) -> Answer<Kept> {
-    written_by_hand(&mut held(&session), id, body, anyway, since)
+    let file = id.clone();
+    super::turns::in_turn(
+        &mut held(&session),
+        &file,
+        turn,
+        |session| written_by_hand(session, id, body, anyway, since),
+        |_| true,
+    )
 }
 
 pub(crate) fn written_by_hand(
@@ -1266,13 +1295,29 @@ pub fn doc_merge(
     id: String,
     base: String,
     mine: String,
+    turn: Option<super::turns::Turn>,
 ) -> Answer<Option<Woven>> {
-    let mut session = held(&session);
+    let file = id.clone();
+    super::turns::in_turn(
+        &mut held(&session),
+        &file,
+        turn,
+        |session| merged(session, id, &base, &mine),
+        Option::is_some,
+    )
+}
+
+pub(crate) fn merged(
+    session: &mut Session,
+    id: String,
+    base: &str,
+    mine: &str,
+) -> Answer<Option<Woven>> {
     writable(&session.state, &id)?;
     let root = session.paths.docs();
     let theirs = tisty_core::docs::read(&root, &id)
         .map_err(|e| blamed(channel::WINDOW, "a document could not be read", e))?;
-    let Some(whole) = tisty_core::merge::merged(&base, &mine, &theirs) else {
+    let Some(whole) = tisty_core::merge::merged(base, mine, &theirs) else {
         return Ok(None);
     };
     // The merge joins lines with `\n`; a body kept with `\r\n` stays so, or every line would read as changed.
@@ -1290,10 +1335,10 @@ pub fn doc_merge(
     session.mind_body(&id, &body);
     session.corpus.forget(&id);
     let title = tisty_core::docs::titled(&body);
-    let book = book_of(&session, &id, &title);
+    let book = book_of(session, &id, &title);
     let hand = signing(&session.state);
     session.retell_over(&id, &body, hand, Some(&seen));
-    named_anew(&mut session, book, &id, &title);
+    named_anew(session, book, &id, &title);
     let print = tisty_core::docs::print_of_text(&body);
     Ok(Some(Woven { body, print, title }))
 }

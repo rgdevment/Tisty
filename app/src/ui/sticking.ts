@@ -1,4 +1,5 @@
 import { carrying } from "./carrying";
+import { moveKey } from "./macKeys";
 import { placeOf } from "./pagePlaces";
 
 const NOTE = '.page > blockquote[data-callout="idea"][data-at]';
@@ -72,7 +73,7 @@ export const sticking = (page: Document, moving: () => Moved | undefined) => {
     });
   });
   page.addEventListener("keydown", (event) => {
-    if (!event.altKey || (event.key !== "ArrowUp" && event.key !== "ArrowDown")) return;
+    if (!moveKey(event) || (event.key !== "ArrowUp" && event.key !== "ArrowDown")) return;
     const note = (event.target as Element | null)?.closest?.<HTMLElement>(NOTE);
     const at = placeOf(note);
     const moved = moving();

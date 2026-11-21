@@ -13,7 +13,7 @@ The whole window works from the keyboard.
 | `/` | Insert something inside a document |
 | `Shift` + `Enter` (writing a document) | Break the line without starting a paragraph |
 | `Ctrl`/`⌘` + `/` (writing a document) | Open the blocks menu where the caret is |
-| `Alt` + ↑ ↓ (writing a document) | Move the block or the item the caret is in up or down; on a task, within its section |
+| `Alt` + ↑ ↓ (writing a document; `Ctrl` + `Alt` on a Mac) | Move the block or the item the caret is in up or down; on a task, within its section |
 | `Esc` · `Shift` + ↑ ↓ (writing a document) | Choose the whole block, or in a list the item and with another `Esc` the whole list · take in the ones beside it |
 | `Ctrl`/`⌘` + `B` · `I` · `U` (writing a document) | Bold · italic · underline |
 | `Ctrl`/`⌘` + `Shift` + `X` · `Shift` + `C` (writing a document) | Strikethrough · code |
@@ -36,7 +36,7 @@ The whole window works from the keyboard.
 | `Ctrl`/`⌘` + click · `Shift` + drag (in the diagram window) | Choose several shapes, classes or tables |
 | `Ctrl`/`⌘` + `X` · `V` (on a document in the Library) | Move a document between folders |
 | `Alt` + arrow (on a page's row) | Move a page up or down in its document |
-| `Alt` + arrow (in a table: ↑ ↓ with a cell open, and all four in the Markdown view) | Move the row or the column the caret is on; `Ctrl` + `Alt` + ← → on a Mac |
+| `Alt` + arrow (in a table: ↑ ↓ with a cell open, and all four in the Markdown view) | Move the row or the column the caret is on; on a Mac, `Ctrl` + `Alt` + ↑ ↓ with a cell open and `Ctrl` + `Alt` + ← → in the Markdown view |
 | `Esc` | Close whatever is open; while writing a document, choose the block |
 
 If another program already holds the capture shortcut, Tisty takes another one and tells you which in **Settings › Tasks and reminders**.

@@ -126,6 +126,17 @@ async fn elsewhere<T: Send + 'static>(work: impl FnOnce() -> T + Send + 'static)
         })
 }
 
+fn caught<T>(command: &'static str, work: impl FnOnce() -> T) -> Answer<T> {
+    std::panic::catch_unwind(std::panic::AssertUnwindSafe(work)).map_err(|_| {
+        witness::error(
+            channel::WINDOW,
+            "a command broke and was answered with a refusal",
+            &[("command", Fact::Word(command))],
+        );
+        Refusal::of("internal")
+    })
+}
+
 fn today() -> jiff::civil::Date {
     jiff::Zoned::now().date()
 }
@@ -1332,6 +1343,8 @@ fn commands() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool + Send + Sync +
         answers::shelves::folder_away,
         answers::papers::doc_lock,
         desktop::parted,
+        desktop::parting_waits,
+        desktop::parting_stays,
         desktop::kept_for_the_end,
         viewing::link_question_standing,
         viewing::link_question_answered,
@@ -1390,6 +1403,7 @@ pub fn run() {
         .manage(Erasing::default())
         .manage(Updating::default())
         .manage(desktop::Leaving::default())
+        .manage(desktop::Parting::default())
         .manage(desktop::Departed::default())
         .manage(desktop::Ending::default())
         .manage(sealing::Turns::default())

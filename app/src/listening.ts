@@ -3,14 +3,15 @@ import { type MutableRefObject, useEffect, useRef } from "react";
 import { cameBack } from "./back";
 import { carrying } from "./carrying";
 import { heard, play } from "./chime";
-import { type Afoot, type DoorDue, doorDue, keptForTheEnd, parted, syncState } from "./core";
+import { type Afoot, type DoorDue, doorDue, keptForTheEnd, syncState } from "./core";
 import { decideAll, putOffSaid } from "./deciding";
+import { departing } from "./departing";
 import { CALENDAR, handTo, whenFilesLand } from "./dropped";
 import { keptAll } from "./kept";
 import { t } from "./locales";
 import { saidPlainly } from "./refusal";
 import { attachedAll } from "./reshaping";
-import { settledThen } from "./saving";
+import { resentThen } from "./saving";
 import { lookAgain } from "./syncSeen";
 import { CALENDAR_DROPPED } from "./ui/Calendars";
 import type { Chosen } from "./views";
@@ -123,8 +124,8 @@ export function useListening({
 
   useEffect(() => {
     const off = [
-      listen("parting", settledThen(parted)),
-      listen<number>("ending", ({ payload }) => settledThen(() => keptForTheEnd(payload))()),
+      listen("parting", () => void departing()),
+      listen<number>("ending", ({ payload }) => resentThen(() => keptForTheEnd(payload))()),
     ];
     return () => {
       for (const one of off) void one.then((stop) => stop());

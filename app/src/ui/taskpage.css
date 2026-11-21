@@ -255,6 +255,7 @@ div.math:has(> .math-bar) {
   transform: translateY(-50%);
   opacity: 0;
   pointer-events: none;
+  -webkit-user-select: none;
   user-select: none;
   transition: opacity 0.12s;
 }

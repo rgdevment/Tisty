@@ -7,9 +7,9 @@ import { jumps } from "../jumping";
 import { t } from "../locales";
 import { covered, findNow } from "./finding";
 import { useHeldFocus } from "./heldFocus";
+import { modKey, onMac } from "./macKeys";
 import { optionOf, PickList, usePicker } from "./Picker";
 import { useSearch } from "./Search";
-import { onMac } from "./WindowChrome";
 
 export const PALETTE_KEY = onMac ? "⌘P" : "Ctrl+P";
 export const ACTIONS_KEY = onMac ? "⇧⌘P" : "Ctrl+Shift+P";
@@ -19,7 +19,7 @@ export function usePaletteKey(open: boolean, onOpen: (asked: string) => void) {
   now.current = onOpen;
   useEffect(() => {
     const keyed = (event: KeyboardEvent) => {
-      if (event.repeat || event.altKey || !(event.ctrlKey || event.metaKey)) return;
+      if (event.repeat || event.altKey || !modKey(event)) return;
       if (event.key.toLowerCase() !== "p") return;
       event.preventDefault();
       if (!open && covered()) return;

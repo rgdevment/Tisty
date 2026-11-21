@@ -17,6 +17,7 @@ pub struct Session {
     pub minded: std::collections::HashMap<String, String>,
     /// Each document put to the person, with how the other side and this one printed when asked.
     pub asked: std::collections::HashMap<String, (String, Option<String>)>,
+    pub turns: crate::answers::turns::Turns,
     pub written: tisty_core::paged::Told,
     pub locale: Option<String>,
     pub brainstorm: Option<String>,
@@ -126,6 +127,7 @@ impl Session {
             print,
             minded: std::collections::HashMap::new(),
             asked: std::collections::HashMap::new(),
+            turns: crate::answers::turns::Turns::default(),
             written: std::collections::HashMap::new(),
             writes: 0,
             behind: false,

@@ -1,8 +1,9 @@
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { useEffect, useRef, useState } from "react";
 import { t } from "../locales";
+import { onMac } from "./macKeys";
 
-export const onMac = navigator.userAgent.includes("Macintosh");
+export { onMac };
 
 // Keeps a top strip clear of the window buttons Windows puts at the top right.
 export const clearOfChrome = onMac ? "pr-2.5" : "pr-[7.5rem]";

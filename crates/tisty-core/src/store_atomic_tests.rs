@@ -282,15 +282,15 @@ fn a_moment_s_refusal_is_tried_again_and_a_lasting_one_is_not() {
     let done = again(
         || {
             tries += 1;
-            if tries < 3 { Err(busy()) } else { Ok(()) }
+            if tries < 3 { Err(busy()) } else { Ok(tries) }
         },
         |_| true,
     );
-    assert!(done.is_ok());
+    assert_eq!(done.ok(), Some(3));
     assert_eq!(tries, 3);
 
     let mut tries = 0;
-    let done = again(
+    let done = again::<()>(
         || {
             tries += 1;
             Err(busy())
@@ -301,7 +301,7 @@ fn a_moment_s_refusal_is_tried_again_and_a_lasting_one_is_not() {
     assert_eq!(tries, 1);
 
     let mut tries = 0;
-    let done = again(
+    let done = again::<()>(
         || {
             tries += 1;
             Err(busy())

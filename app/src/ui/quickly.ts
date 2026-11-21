@@ -1,6 +1,7 @@
 import type { formatButtons } from "tisty-editor/edit";
 import { t } from "../locales";
 import { EMBED } from "./embeds";
+import { onMac } from "./macKeys";
 import { placeOf } from "./pagePlaces";
 import { shotAt } from "./paging";
 
@@ -35,6 +36,9 @@ const blockOf = (node: Node | null): HTMLElement | null => {
   const element = node?.nodeType === 1 ? (node as Element) : (node?.parentElement ?? null);
   return element?.closest<HTMLElement>(".page > [data-at]") ?? null;
 };
+
+const askedOnMac = (event: MouseEvent) =>
+  onMac && (event.button === 2 || (event.button === 0 && event.ctrlKey));
 
 const inCode = (node: Node | null | undefined) =>
   Boolean(
@@ -125,8 +129,29 @@ export const quickly = (page: Document, reach: () => Quick) => {
     if (page.getSelection()?.isCollapsed) hide();
     else if (bar && !bar.hidden) show();
   });
+  let caretStood: Range | null | undefined;
+  page.addEventListener(
+    "mousedown",
+    (event) => {
+      caretStood = undefined;
+      if (!askedOnMac(event)) return;
+      const selection = page.getSelection();
+      const range = selection?.rangeCount ? selection.getRangeAt(0) : null;
+      if (!range || range.collapsed) caretStood = range?.cloneRange() ?? null;
+    },
+    true,
+  );
+  const caretBack = () => {
+    const stood = caretStood;
+    caretStood = undefined;
+    if (stood === undefined) return;
+    const selection = page.getSelection();
+    selection?.removeAllRanges();
+    if (stood) selection?.addRange(stood);
+  };
   page.addEventListener("contextmenu", (event) => {
     event.preventDefault();
+    caretBack();
     const onMenu = reach().onMenu;
     if (!onMenu) return;
     const target = event.target as Element | null;

@@ -1144,7 +1144,7 @@ fn only_an_open_folio_lets_a_new_share_start() {
 fn terms_cut_at_a_column_read_as_paragraphs_under_their_headings() {
     let terms = "## En corto\n\nFolio convierte un documento de Tisty en un link para compartirlo.\nNo tiene cuentas: el link es el permiso. Lo que compartes va cifrado, y el\nservicio lo guarda sin la llave para leerlo.\n\n- **Uno.** Algo.\n\nDenuncias: <abuso@tisty.app>.\n\n[English](TERMS.md)\n";
 
-    let drawn = folio_terms_drawn(terms.to_owned());
+    let drawn = folio_terms_drawn(terms.to_owned()).unwrap_or_default();
 
     assert!(drawn.contains("<h2"), "{drawn}");
     assert!(drawn.contains("<ul"), "{drawn}");
