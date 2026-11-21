@@ -3,7 +3,7 @@ import type { Span } from "./pageEdits";
 import { closing, opening } from "./pageLists";
 import { atGhost, caretLaidOn, elementOf, lineOfCaret, scrolledAround } from "./pageNodes";
 import { placeOf, placeSaid } from "./pagePlaces";
-import { endOf, GHOST, ghostAt, sourceAt, spotOf, topsAt } from "./pageSpots";
+import { endOf, GHOST, ghostAt, sourceAt, spotOf, startOf, topsAt } from "./pageSpots";
 import type { Point, Writer } from "./pageWriter";
 
 export type Caret = ReturnType<typeof caretOn>;
@@ -241,8 +241,7 @@ export const caretOn = (writer: Writer) => {
     const atom = elementOf(node)?.closest('.page [data-src][contenteditable="false"]');
     if (!atom?.parentElement || atom.parentElement.closest('[contenteditable="false"]')) return;
     const early = node.nodeType === Node.TEXT_NODE && range.startOffset * 2 < (node as Text).length;
-    const at = Array.prototype.indexOf.call(atom.parentElement.childNodes, atom);
-    const [holder, offset] = early ? [atom.parentElement, at] : endOf(atom);
+    const [holder, offset] = early ? startOf(atom) : endOf(atom);
     caretLaidOn(page, holder, offset);
   };
 

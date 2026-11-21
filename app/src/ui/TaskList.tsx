@@ -11,9 +11,12 @@ import { fill, t } from "../locales";
 import { edge, placed, said, tint } from "../quadrants";
 import { agentNamed, agentTag } from "../who";
 import Grouping from "./Axis";
+import { modKey, onMac } from "./macKeys";
 import PaceBar, { PaceTally, paceSaid } from "./PaceBar";
 import Signature from "./Signature";
 import { Lozenge, Pip, saidWhen, spokenLabel } from "./Spoke";
+
+const KEEP_SHORTCUT = onMac ? "Meta+Enter" : "Control+Enter";
 
 interface Props {
   tasks: Task[];
@@ -200,7 +203,7 @@ export default function TaskList({
   };
 
   const typed = (event: React.KeyboardEvent, task: Task, at: string) => {
-    if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {
+    if (modKey(event) && event.key === "Enter") {
       event.preventDefault();
       if (onComplete && task.status === "open") {
         if (task.resolved?.drop) {
@@ -304,7 +307,7 @@ export default function TaskList({
           }
           aria-keyshortcuts={
             [
-              (onComplete && task.status === "open") || onFold ? "Control+Enter" : "",
+              (onComplete && task.status === "open") || onFold ? KEEP_SHORTCUT : "",
               !nested && folds(task.id) ? "ArrowRight ArrowLeft" : "",
             ]
               .filter(Boolean)

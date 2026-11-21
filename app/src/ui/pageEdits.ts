@@ -94,20 +94,29 @@ const charAfter = (text: string, at: number) => {
 const CLOSE_WRITTEN =
   /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}\p{Script=Thai}\p{Script=Lao}\p{Script=Khmer}\p{Script=Myanmar}]/u;
 
+const STOPS = /^\p{P}+$/u;
+
 const wordBefore = (text: string, at: number) => {
   const run = /\S*\s*$/.exec(text.slice(lineStart(text, at), at))?.[0] ?? "";
   const chunk = run.trimEnd();
   if (!WORDS || !CLOSE_WRITTEN.test(chunk)) return at - run.length;
-  const last = WORDS.segment(chunk).containing(chunk.length - 1);
-  return at - (run.length - chunk.length) - (chunk.length - (last?.index ?? 0));
+  const pieces = WORDS.segment(chunk);
+  let last = pieces.containing(chunk.length - 1);
+  while (last && last.index > 0 && STOPS.test(last.segment))
+    last = pieces.containing(last.index - 1);
+  return at - run.length + (last?.index ?? 0);
 };
 
 const wordAfter = (text: string, at: number) => {
   const run = /^\s*\S*/.exec(text.slice(at, lineEnd(text, at)))?.[0] ?? "";
   const chunk = run.trimStart();
   if (!WORDS || !CLOSE_WRITTEN.test(chunk)) return at + run.length;
-  const [first] = WORDS.segment(chunk);
-  return at + (run.length - chunk.length) + (first?.segment.length ?? chunk.length);
+  let reach = chunk.length;
+  for (const piece of WORDS.segment(chunk)) {
+    reach = piece.index + piece.segment.length;
+    if (!STOPS.test(piece.segment)) break;
+  }
+  return at + run.length - chunk.length + reach;
 };
 
 export const reachIn = (text: string, at: number, kind: string): Span => {

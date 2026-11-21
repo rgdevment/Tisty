@@ -1,4 +1,5 @@
 import type { DayAt } from "../diary";
+import { modKey } from "./macKeys";
 
 export type DayWent =
   | { kind: "day"; at: DayAt }
@@ -38,7 +39,7 @@ export const dayPressed = (asked: HTMLElement): DayWent | null | undefined => {
 
 export const boxKey = (event: KeyboardEvent): DayWent | null => {
   if (!(event.target as Element | null)?.closest?.(".diary-box")) return null;
-  const keeping = event.key === "Enter" && (event.ctrlKey || event.metaKey);
+  const keeping = event.key === "Enter" && modKey(event);
   if (event.key !== "Escape" && !keeping) return null;
   event.preventDefault();
   return { kind: keeping ? "dayKeep" : "dayCancel" };

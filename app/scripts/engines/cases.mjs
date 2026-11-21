@@ -9,6 +9,8 @@ export const WRITING = [
   "Último párrafo.", "",
 ].join("\n");
 
+const LINE_WALKS_ONLY_ON_A_MAC = "Control+A and Control+E walk to a line's edges only on a Mac";
+
 export const PIECES = [
   "# Objetos", "",
   "Antes de la imagen.", "",
@@ -518,5 +520,80 @@ export const CASES = [
     },
     was: "",
     now: "",
+  },
+  {
+    name: "controlEPastTagAtLineEnd",
+    macOnly: LINE_WALKS_ONLY_ON_A_MAC,
+    doc: "# Etiquetas\n\nAntes del final #etiqueta\n\nSiguiente línea.\n",
+    run: async ({ clickAt, typed, press }) => {
+      await clickAt("Antes", true);
+      await press("Control+e");
+      await typed("X");
+      await clickAt("Antes", true);
+      await typed("Y");
+    },
+    was: "Antes del final #etiqueta",
+    now: "YAntes del final #etiquetaX",
+  },
+  {
+    name: "controlEPastCodeAtLineEnd",
+    macOnly: LINE_WALKS_ONLY_ON_A_MAC,
+    doc: "# Código\n\nAntes del final `cod`\n\nSiguiente línea.\n",
+    run: async ({ clickAt, typed, press }) => {
+      await clickAt("Antes", true);
+      await press("Control+e");
+      await typed("X");
+      await clickAt("Antes", true);
+      await typed("Y");
+    },
+    was: "Antes del final `cod`",
+    now: "YAntes del final `cod`X",
+  },
+  {
+    name: "controlEPastFormulaAtLineEnd",
+    macOnly: LINE_WALKS_ONLY_ON_A_MAC,
+    doc: "# Fórmula\n\nAntes del final $x^2$\n\nSiguiente línea.\n",
+    run: async ({ clickAt, typed, press }) => {
+      await clickAt("Antes", true);
+      await press("Control+e");
+      await typed("X");
+      await clickAt("Antes", true);
+      await typed("Y");
+    },
+    was: "Antes del final $x^2$",
+    now: "YAntes del final $x^2$X",
+  },
+  {
+    name: "controlABeforeTagAtLineStart",
+    macOnly: LINE_WALKS_ONLY_ON_A_MAC,
+    doc: "# Etiquetas\n\n#etiqueta al inicio\n\nSiguiente línea.\n",
+    run: async ({ clickAt, typed, press }) => {
+      await clickAt("al inicio");
+      await press("Control+a");
+      await typed("X");
+      await clickAt("al inicio");
+      await typed("Y");
+    },
+    was: "#etiqueta al inicio",
+    now: "X#etiqueta al inicioY",
+  },
+  {
+    name: "footnoteMarkKeepsTheCaret",
+    doc: "# Notas\n\nTexto con nota[^1] y más palabras.\n\n[^1]: La nota al pie.\n",
+    run: async ({ clickAt, typed, page, frame }) => {
+      await clickAt("palabras");
+      const mark = await frame.evaluate(() => {
+        const box = document.querySelector(".page sup a").getBoundingClientRect();
+        return { x: box.left + box.width / 2, y: box.top + box.height / 2 };
+      });
+      const sheet = await (await frame.frameElement()).boundingBox();
+      await page.mouse.click(sheet.x + mark.x, sheet.y + mark.y);
+      await page.waitForTimeout(150);
+      await typed("X");
+      await clickAt("La nota", true);
+      await typed("Y");
+    },
+    was: ".\n\n[^1]: ",
+    now: "X.\n\n[^1]: Y",
   },
 ];

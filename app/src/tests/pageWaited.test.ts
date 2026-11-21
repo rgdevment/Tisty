@@ -72,6 +72,14 @@ describe("how far a word's delete reaches in the text", () => {
     expect(reachIn("uno dos", 3, "deleteWordForward")).toEqual({ from: 3, to: 7 });
   });
 
+  it("takes a word of Chinese with the stop after it, as a Latin word goes with its full stop", () => {
+    expect(reachIn("我们今天去公园。", 8, "deleteWordBackward")).toEqual({ from: 5, to: 8 });
+    expect(reachIn("我们今天去公园。」 ", 10, "deleteWordBackward")).toEqual({ from: 5, to: 10 });
+    expect(reachIn("Vamos al parque.", 16, "deleteWordBackward")).toEqual({ from: 9, to: 16 });
+    expect(reachIn("。我们今天", 0, "deleteWordForward")).toEqual({ from: 0, to: 3 });
+    expect(reachIn("公园👍", 4, "deleteWordBackward")).toEqual({ from: 2, to: 4 });
+  });
+
   it("takes an emoji, a link or marks whole, never half their writing nor the word before", () => {
     expect(reachIn("tres 👍🏽", 9, "deleteWordBackward")).toEqual({ from: 5, to: 9 });
     expect(reachIn("ver [docs](https://x.com/a)", 27, "deleteWordBackward")).toEqual({

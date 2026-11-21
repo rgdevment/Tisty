@@ -3,6 +3,7 @@ import { diaryStick, diaryWrite, type Today } from "../diary";
 import { fill, t } from "../locales";
 import { IDEA_AT_MOST } from "../notes";
 import Glyph from "./Glyph";
+import { modKey } from "./macKeys";
 
 interface Props {
   onBefore: () => Promise<unknown>;
@@ -33,7 +34,7 @@ export default function DiaryComposer({ onBefore, onWritten, onError }: Props) {
 
   const keys = (e: React.KeyboardEvent) => {
     if (e.key === "Escape" && noting) setNoting(false);
-    if (e.key === "Enter" && (e.ctrlKey || e.metaKey || noting)) {
+    if (e.key === "Enter" && (modKey(e) || noting)) {
       e.preventDefault();
       keep();
     }

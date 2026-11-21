@@ -199,13 +199,49 @@ export const endOf = (one: Element): [Node, number] =>
     ? [one.parentNode, indexOf(one) + 1]
     : textAt(one, Number.MAX_SAFE_INTEGER);
 
+export const startOf = (one: Element): [Node, number] =>
+  solid(one) && one.parentNode ? [one.parentNode, indexOf(one)] : textAt(one, 0);
+
+const shut = (node: Node | undefined) =>
+  node?.nodeType === Node.ELEMENT_NODE &&
+  solid(node as Element) &&
+  !(node as Element).matches("br");
+
+const caretStands = ([node, offset]: [Node, number], toStart: boolean) =>
+  node.nodeType === Node.TEXT_NODE || !shut(node.childNodes[toStart ? offset - 1 : offset]);
+
+const ownOf = (block: Element, selector: string) =>
+  Array.from(block.querySelectorAll(selector)).filter((one) => one.closest(BLOCK) === block);
+
 // Where a block's own words end, past a piece drawn whole, as a tag at the end of its line.
 export const endIn = (block: Element): [Node, number] => {
-  const own = Array.from(block.querySelectorAll(PLACED)).filter(
-    (one) => one.closest(BLOCK) === block,
-  );
-  const last = own.pop();
+  const last = ownOf(block, PLACED).pop();
   return last ? endOf(last) : [block, block.childNodes.length];
+};
+
+export const lineEdge = (
+  block: Element,
+  node: Node,
+  offset: number,
+  toStart: boolean,
+): [Node, number] | null => {
+  const pieces = ownOf(block, `${PLACED}, br`);
+  let edge: [Node, number] | null = null;
+  for (const one of toStart ? pieces.reverse() : pieces) {
+    const reach = block.ownerDocument.createRange();
+    reach.selectNodeContents(one);
+    const side = reach.comparePoint(node, offset);
+    if (side === (toStart ? -1 : 1)) continue;
+    if (one.matches("br")) break;
+    if (side === 0 && toStart) reach.setEnd(node, offset);
+    else if (side === 0) reach.setStart(node, offset);
+    const words = reach.toString();
+    if (words.includes("\n")) break;
+    if (!solid(one) && words.trim()) return null;
+    const spot = toStart ? startOf(one) : endOf(one);
+    if (caretStands(spot, toStart)) edge = spot;
+  }
+  return edge;
 };
 
 export const GHOST = "[data-ghost]";

@@ -11,19 +11,30 @@ export const modKey = (event: Held): boolean =>
 export const moveKey = (event: Moving): boolean =>
   onMac ? event.ctrlKey && event.altKey && !event.metaKey && !event.shiftKey : event.altKey;
 
-const WALKS: Readonly<Record<string, "line" | "letter">> = {
+type Walk = "line" | "letter" | "start" | "end";
+
+const WALKS: Readonly<Record<string, Walk>> = {
   n: "line",
   p: "line",
   f: "letter",
   b: "letter",
-  a: "letter",
-  e: "letter",
+  a: "start",
+  e: "end",
   v: "line",
 };
 
-export const caretWalk = (event: Moving & { readonly key: string }): "line" | "letter" | null =>
+const letterOf = (event: { readonly key: string; readonly code: string }) => {
+  if (/^[a-z]$/i.test(event.key)) return event.key.toLowerCase();
+  return /^\p{L}$/u.test(event.key) && !/\p{Script=Latin}/u.test(event.key)
+    ? event.code.replace(/^Key/, "").toLowerCase()
+    : "";
+};
+
+export const caretWalk = (
+  event: Moving & { readonly key: string; readonly code: string },
+): Walk | null =>
   onMac && event.ctrlKey && !event.metaKey && !event.altKey
-    ? (WALKS[event.key.toLowerCase()] ?? null)
+    ? (WALKS[letterOf(event)] ?? null)
     : null;
 
 export const MOVE_KEYS = onMac ? "⌃⌥" : "Alt";

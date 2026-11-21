@@ -109,7 +109,7 @@ Mientras la miras, la red se mueve: gira y la recorren viajeros por sus líneas.
 
 - **Dos interruptores**, arriba en la [leyenda](#la-leyenda) abierta: **Viajeros** y **Girar**, cada uno con un punto que se enciende. Vienen encendidos, también si tu sistema pide reducir el movimiento: la decisión es tuya. Sin **Girar**, la red queda plana; con los dos apagados, queda como una red quieta. Cada equipo recuerda cómo los dejaste.
 - **Solo corre mientras la ves.** Al pasar a otra vista se detiene, igual que el resto de la red.
-- **Lo que cuesta**, si te interesa: `Ctrl` + `Shift` + `M` muestra junto a la leyenda cuántos milisegundos toma cada cuadro y cuántos cuadros por segundo dibuja, por ejemplo «2.10 ms por cuadro · 60 cuadros por segundo». Otro `Ctrl` + `Shift` + `M` lo esconde.
+- **Lo que cuesta**, si te interesa: `Ctrl`/`⌘` + `Shift` + `M` muestra junto a la leyenda cuántos milisegundos toma cada cuadro y cuántos cuadros por segundo dibuja, por ejemplo «2.10 ms por cuadro · 60 cuadros por segundo». Otro `Ctrl`/`⌘` + `Shift` + `M` lo esconde.
 
 Por ejemplo, Lucas abre Brainsty con 180 nodos: ve doce viajeros cruzando la red mientras gira, cada uno pasando de un nodo al siguiente cada seis segundos. Deja el puntero sobre la zona de **Trabajo** para leer un título y el globo se detiene; lo saca al espacio vacío y vuelve a girar. Se acerca con la rueda a «Presupuesto 2027» y el globo se queda quieto mientras lo lee, aunque mueva el puntero; los viajeros siguen pasando. Un doble clic en un espacio vacío y está otra vez frente a la red entera, girando. Para presentar su pantalla prefiere la red quieta: abre la **Leyenda** y apaga **Viajeros** y **Girar**, y la próxima vez en ese equipo abre igual.
 
@@ -196,7 +196,7 @@ Con algún filtro puesto, el embudo se tiñe y aparece **Mostrar todo**, que dev
 | `Enter` | abrir el nodo elegido, en el lugar de la red |
 | `/` | buscar |
 | `Esc` | soltar por capas: primero la búsqueda, aunque esté vacía; después el nodo; y el último te devuelve a la vista donde estabas |
-| `Ctrl` + `Shift` + `M` | mostrar o esconder lo que cuesta cada cuadro |
+| `Ctrl`/`⌘` + `Shift` + `M` | mostrar o esconder lo que cuesta cada cuadro |
 
 La línea de teclas al pie de la red lo resume: «Flechas para moverte entre nodos, Enter abre, / busca, Esc suelta, arrastre derecho o Shift gira».
 

@@ -91,7 +91,7 @@ La red cambia con la distancia. De lejos, como abre o con la rueda hacia atrás,
 - **Abrir**, `Enter` o un doble clic abre el documento, la tarea o la etiqueta en esta misma ventana, en el lugar de la red. Para volver a la red, otro clic en **Brainsty**. Una imagen o un archivo se abre con el programa de tu sistema, y **Mostrar en la carpeta** te lleva a él.
 - **Buscar en la red**, arriba, o `/`: escribe parte de un título y `Enter` centra la red en él.
 - **Filtros**, el embudo junto al buscador: qué tipos mostrar, **Parecidos** para las curvas ámbar, **Mostrar AGENTS** si tienes archivos de tus agentes, el estado (**En curso**, **Terminadas** y **Archivadas**, que vale para tareas, documentos y páginas), una etiqueta y **Tocado**, para ver solo lo que cambió en los últimos días.
-- **Con el teclado**: `Tab` recorre el buscador, los filtros y la red; las flechas caminan de un punto a su vecino, y la primera sale del documento o la tarea en que estabas; `Enter` abre y `Esc` suelta por capas: primero la búsqueda, después el punto, y el último te devuelve a donde estabas. Un `Esc` que escribes en un campo de la barra lateral se queda en ese campo. `Ctrl` + `Shift` + `M` muestra, junto a la leyenda, cuánto cuesta dibujar cada cuadro.
+- **Con el teclado**: `Tab` recorre el buscador, los filtros y la red; las flechas caminan de un punto a su vecino, y la primera sale del documento o la tarea en que estabas; `Enter` abre y `Esc` suelta por capas: primero la búsqueda, después el punto, y el último te devuelve a donde estabas. Un `Esc` que escribes en un campo de la barra lateral se queda en ese campo. `Ctrl`/`⌘` + `Shift` + `M` muestra, junto a la leyenda, cuánto cuesta dibujar cada cuadro.
 
 La ficha cambia según lo que eliges:
 

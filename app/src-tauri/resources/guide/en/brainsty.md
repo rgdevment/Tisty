@@ -89,7 +89,7 @@ The network changes with the distance. From afar, as it opens or with the wheel 
 - **Open**, `Enter` or a double click opens the document, the task or the tag in this same window, in the network's place. To come back to the network, another click on **Brainsty**. A picture or a file opens with your system's program, and **Show in folder** takes you to it.
 - **Search the network**, at the top, or `/`: type part of a title and `Enter` centres the network on it.
 - **Filters**, the funnel beside the search box: which kinds to show, **Alike** for the amber curves, **Show AGENTS** if you have files of your agents, the state (**Under way**, **Done** and **Archived**, which holds for tasks, documents and pages), a tag and **Touched**, to see only what changed in the last days.
-- **With the keyboard**: `Tab` goes round the search box, the filters and the network; the arrows walk from a dot to its neighbour, and the first one sets out from the document or the task you were on; `Enter` opens and `Esc` lets go in layers: first the search, then the dot, and the last one takes you back to where you were. An `Esc` you type in a field of the sidebar stays in that field. `Ctrl` + `Shift` + `M` shows, beside the legend, what drawing each frame costs.
+- **With the keyboard**: `Tab` goes round the search box, the filters and the network; the arrows walk from a dot to its neighbour, and the first one sets out from the document or the task you were on; `Enter` opens and `Esc` lets go in layers: first the search, then the dot, and the last one takes you back to where you were. An `Esc` you type in a field of the sidebar stays in that field. `Ctrl`/`⌘` + `Shift` + `M` shows, beside the legend, what drawing each frame costs.
 
 The card changes with what you pick:
 

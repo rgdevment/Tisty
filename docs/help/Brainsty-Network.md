@@ -109,7 +109,7 @@ While you look at it, the network moves: it turns, and travellers walk its lines
 
 - **Two switches**, at the top of the open [legend](#the-legend): **Travellers** and **Turning**, each with a dot that lights up. They come on, even if your system asks for reduced motion: the choice is yours. Without **Turning**, the network lies flat; with both off, it is a still network. Each computer remembers how you left them.
 - **It runs only while you see it.** Moving to another view stops it, like the rest of the network.
-- **What it costs**, if you are curious: `Ctrl` + `Shift` + `M` shows beside the legend how many milliseconds each frame takes and how many frames a second it draws, for instance «2.10 ms a frame · 60 frames a second». Another `Ctrl` + `Shift` + `M` hides it.
+- **What it costs**, if you are curious: `Ctrl`/`⌘` + `Shift` + `M` shows beside the legend how many milliseconds each frame takes and how many frames a second it draws, for instance «2.10 ms a frame · 60 frames a second». Another `Ctrl`/`⌘` + `Shift` + `M` hides it.
 
 For instance, Lucas opens Brainsty with 180 nodes: he sees twelve travellers crossing the network as it turns, each going from one node to the next every six seconds. He rests the pointer on the **Work** zone to read a title and the globe stops; he moves it to the empty space and it turns again. He comes close with the wheel to «Budget 2027» and the globe holds still while he reads, even when he moves the pointer; the travellers keep passing. A double click on an empty spot and he is facing the whole network again, turning. To share his screen he prefers the network still: he opens the **Legend** and turns **Travellers** and **Turning** off, and next time on that computer it opens the same way.
 
@@ -196,7 +196,7 @@ With any filter set, the funnel is tinted and **Show everything** appears, which
 | `Enter` | open the picked node, in the network's place |
 | `/` | search |
 | `Esc` | let go in layers: first the search, even when it is empty; then the node; and the last one takes you back to the view you were on |
-| `Ctrl` + `Shift` + `M` | show or hide what each frame costs |
+| `Ctrl`/`⌘` + `Shift` + `M` | show or hide what each frame costs |
 
 The line of keys at the foot of the network sums it up: «Arrows move between nodes, Enter opens, / searches, Esc lets go, right drag or Shift turns».
 

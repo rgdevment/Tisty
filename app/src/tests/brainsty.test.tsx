@@ -151,10 +151,10 @@ const last = <T,>(all: T[]): T | undefined => all[all.length - 1];
 
 const asked = (cmd: string) => ipc.calls.filter((one) => one.cmd === cmd);
 
-const opened = async (near: string | null = "01A") => {
+const opened = async (near: string | null = "01A", View = BrainstyView) => {
   const user = userEvent.setup();
   const shown = render(
-    <BrainstyView
+    <View
       near={near ?? undefined}
       groups={[PROJECTS]}
       onOpen={(one: Neuron) => ways.opened.push(one)}
@@ -164,8 +164,8 @@ const opened = async (near: string | null = "01A") => {
   return { user, shown };
 };
 
-const drawnNetwork = async () => {
-  const { user, shown } = await opened();
+const drawnNetwork = async (View = BrainstyView) => {
+  const { user, shown } = await opened("01A", View);
   const network = await screen.findByRole("figure", { name: t("brainstyNetwork") });
   await waitFor(() => expect(sigma.hands).not.toBeNull());
   return { user, shown, network };
@@ -813,5 +813,24 @@ describe("Brainsty in the content panel", () => {
         .getAllByRole("button")
         .map((one) => one.textContent),
     ).toEqual(["buy milk"]);
+  });
+});
+
+describe("Brainsty on a Mac, last as it loads its modules afresh", () => {
+  it("shows what it costs a frame with Cmd+Shift+M, leaving Control's to the text", async () => {
+    vi.resetModules();
+    const agent = vi
+      .spyOn(navigator, "userAgent", "get")
+      .mockReturnValue("Mozilla/5.0 (Macintosh)");
+    onTestFinished(() => {
+      agent.mockRestore();
+    });
+    const { default: View } = await import("../ui/BrainstyView");
+    const { user } = await drawnNetwork(View);
+
+    await user.keyboard("{Control>}{Shift>}M{/Shift}{/Control}");
+    expect(screen.queryByText(/ms a frame/)).toBeNull();
+    await user.keyboard("{Meta>}{Shift>}M{/Shift}{/Meta}");
+    expect(screen.getByText(/ms a frame/)).toBeTruthy();
   });
 });

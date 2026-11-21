@@ -10,7 +10,7 @@ export default function Owed({ days, onConfirm }: Props) {
   const [taken, setTaken] = useState<string[]>([]);
   const first = useRef<HTMLButtonElement>(null);
 
-  // Ctrl+Enter walks the focus to the next row, so without this the strip opens behind the reader.
+  // Ctrl/Cmd+Enter walks the focus to the next row, so without this the strip opens behind the reader.
   useEffect(() => first.current?.focus(), []);
 
   const flip = (day: string) =>

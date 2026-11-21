@@ -1,5 +1,6 @@
-import { act, render, renderHook, screen } from "@testing-library/react";
+import { act, fireEvent, render, renderHook, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import type { Task } from "../core";
 import type { PageWriting } from "../ui/pageWriting";
 
 vi.mock("@tauri-apps/api/core", () => ({
@@ -47,11 +48,11 @@ const PLACED =
   '<ul data-at="9-29"><li data-at="9-18"><span data-src="11-18">primero</span></li>' +
   '<li data-at="19-28"><span data-src="21-28">segundo</span></li></ul>';
 
-const written = async () => {
+const written = async (body = BODY, placed = PLACED) => {
   const { writtenOn } = await import("../ui/pageWriting");
-  document.body.innerHTML = `<article class="page">${PLACED}</article>`;
+  document.body.innerHTML = `<article class="page">${placed}</article>`;
   const said: string[] = [];
-  let text = BODY;
+  let text = body;
   writing = writtenOn(document, {
     text: () => text,
     write: (next) => {
@@ -70,12 +71,11 @@ const written = async () => {
   return said;
 };
 
-const caretIn = (said: string, at: number) => {
-  const piece = Array.from(document.querySelectorAll("[data-src]")).find(
-    (one) => one.textContent === said,
-  )?.firstChild as Text;
-  document.getSelection()?.collapse(piece, at);
-};
+const piece = (said: string) =>
+  Array.from(document.querySelectorAll("[data-src]")).find((one) => one.textContent === said)
+    ?.firstChild as Text;
+
+const caretIn = (said: string, at: number) => document.getSelection()?.collapse(piece(said), at);
 
 const typed = (data: string) =>
   document.querySelector(".page")?.dispatchEvent(
@@ -241,8 +241,171 @@ describe("Control moving the caret on a Mac", () => {
     on(WINDOWS);
     const { caretWalk } = await import("../ui/macKeys");
     expect(
-      caretWalk({ key: "n", ctrlKey: true, metaKey: false, altKey: false, shiftKey: false }),
+      caretWalk({
+        key: "n",
+        code: "KeyN",
+        ctrlKey: true,
+        metaKey: false,
+        altKey: false,
+        shiftKey: false,
+      }),
     ).toBeNull();
+  });
+
+  it("is told by the letter written, or by the key pressed when the layout writes no Latin letter", async () => {
+    on(MAC);
+    const { caretWalk } = await import("../ui/macKeys");
+    const held = { ctrlKey: true, metaKey: false, altKey: false, shiftKey: false };
+    expect(caretWalk({ ...held, key: "т", code: "KeyN" })).toBe("line");
+    expect(caretWalk({ ...held, key: "у", code: "KeyE" })).toBe("end");
+    expect(caretWalk({ ...held, key: "a", code: "KeyQ" })).toBe("start");
+    expect(caretWalk({ ...held, key: "1", code: "Digit1" })).toBeNull();
+    expect(caretWalk({ ...held, key: ".", code: "KeyE" })).toBeNull();
+    expect(caretWalk({ ...held, key: "Process", code: "KeyA" })).toBeNull();
+    expect(caretWalk({ ...held, key: "ğ", code: "KeyE" })).toBeNull();
+  });
+
+  it("takes an empty step away when Control and N leave it on a Russian layout", async () => {
+    on(MAC);
+    const said = await written(
+      "- [ ] uno\n- [ ] \n\nFin\n",
+      '<ul data-at="0-17"><li class="task" data-at="0-10"><span data-src="6-9">uno</span></li>' +
+        '<li class="task" data-at="10-17"></li></ul><p data-at="18-21"><span data-src="18-21">Fin</span></p>',
+    );
+    writing?.drawn();
+    document.getSelection()?.collapse(document.querySelectorAll("li")[1] as Element, 0);
+    keyOn(sheet(), "т", { ctrlKey: true, code: "KeyN" });
+    caretIn("Fin", 1);
+    document.dispatchEvent(new Event("selectionchange"));
+    expect(said[said.length - 1]).toBe("- [ ] uno\n\nFin\n");
+  });
+});
+
+describe("Control with A and E on a Mac", () => {
+  const drawn = async (body: string, placed: string) => {
+    await written(body, placed);
+    writing?.drawn();
+  };
+  const walked = async (letter: string, from: [Node, number], more: KeyboardEventInit = {}) => {
+    document.getSelection()?.collapse(from[0], from[1]);
+    keyOn(sheet(), letter, { ctrlKey: true, code: `Key${letter.toUpperCase()}`, ...more });
+    await new Promise((done) => setTimeout(done, 0));
+    const held = document.getSelection();
+    return [held?.anchorNode, held?.anchorOffset];
+  };
+
+  it("ends the line past a tag that closes it and the space before it, as End does", async () => {
+    on(MAC);
+    await drawn(
+      "Uno #eti\n",
+      '<p data-at="0-8"><span data-src="0-4">Uno </span><span class="tag" data-src="4-8" contenteditable="false">#eti</span></p>',
+    );
+    const line = document.querySelector("p") as Element;
+    expect(await walked("e", [piece("Uno "), 4])).toEqual([line, 2]);
+    expect(await walked("e", [piece("Uno "), 3])).toEqual([line, 2]);
+    expect(await walked("e", [piece("Uno "), 1])).toEqual([piece("Uno "), 1]);
+    expect(await walked("e", [piece("Uno "), 4], { isComposing: true })).toEqual([
+      piece("Uno "),
+      4,
+    ]);
+  });
+
+  it("ends the line at its break, never past it", async () => {
+    on(MAC);
+    await drawn(
+      "uno #eti\\\ndos\n",
+      '<p data-at="0-14"><span data-src="0-4">uno </span><span class="tag" data-src="4-8" contenteditable="false">#eti</span>' +
+        '<br data-src="8-10" contenteditable="false"><span data-src="10-13">dos</span></p>',
+    );
+    expect(await walked("e", [piece("uno "), 4])).toEqual([document.querySelector("p"), 2]);
+  });
+
+  it("leaves a line of code where it ends, never past the code's last line break", async () => {
+    on(MAC);
+    await drawn(
+      "```\nfoo()\n```\n",
+      '<figure class="code" data-at="0-14"><pre><code data-src="4-10">foo()\n</code></pre></figure>',
+    );
+    const code = document.querySelector("code")?.firstChild as Text;
+    expect(await walked("e", [code, 5])).toEqual([code, 5]);
+  });
+
+  it("starts the line before a tag that opens it, but never between a step's box and its tag", async () => {
+    on(MAC);
+    await drawn(
+      "#eti uno\n\n- [ ] #eti dos\n",
+      '<p data-at="0-8"><span class="tag" data-src="0-4" contenteditable="false">#eti</span><span data-src="4-8"> uno</span></p>' +
+        '<ul data-at="10-25"><li class="task" data-at="10-25"><span class="check" contenteditable="false"></span>' +
+        '<span class="tag" data-src="16-20" contenteditable="false">#eti</span><span data-src="20-24"> dos</span></li></ul>',
+    );
+    expect(await walked("a", [piece(" uno"), 0])).toEqual([document.querySelector("p"), 0]);
+    expect(await walked("a", [piece(" dos"), 0])).toEqual([piece(" dos"), 0]);
+  });
+});
+
+describe("Cmd as the command key on a Mac, where Control is the text's", () => {
+  it("keeps today's words with Cmd and Enter, not with Control and Enter", async () => {
+    on(MAC);
+    const { default: DiaryComposer } = await import("../ui/DiaryComposer");
+    const before = vi.fn(() => Promise.resolve());
+    render(<DiaryComposer onBefore={before} onWritten={() => {}} onError={() => {}} />);
+    const box = screen.getByRole("textbox");
+    fireEvent.change(box, { target: { value: "Paseo" } });
+    keyOn(box, "Enter", { ctrlKey: true });
+    expect(before).not.toHaveBeenCalled();
+    keyOn(box, "Enter", { metaKey: true });
+    expect(before).toHaveBeenCalledOnce();
+  });
+
+  it("completes the focused task with Cmd and Enter, and says so", async () => {
+    on(MAC);
+    const { default: TaskList } = await import("../ui/TaskList");
+    const completed = vi.fn();
+    const one = {
+      id: "1",
+      title: "pagar la luz",
+      status: "open",
+      priority: "unset",
+      order: "a0",
+      tags: [],
+      reminders: [],
+    } as unknown as Task;
+    render(
+      <TaskList tasks={[one]} lists={[]} title="Open" onSelect={() => {}} onComplete={completed} />,
+    );
+    const row = screen.getByRole("listitem");
+    expect(row.getAttribute("aria-keyshortcuts")).toBe("Meta+Enter");
+    keyOn(row, "Enter", { ctrlKey: true });
+    expect(completed).not.toHaveBeenCalled();
+    keyOn(row, "Enter", { metaKey: true });
+    expect(completed).toHaveBeenCalledWith("1", "pagar la luz");
+  });
+
+  it("keeps a day being written with Cmd and Enter, not with Control and Enter", async () => {
+    on(MAC);
+    const { boxKey } = await import("../ui/diaryPaging");
+    document.body.innerHTML = '<div class="diary-box"><textarea></textarea></div>';
+    const box = document.querySelector("textarea") as HTMLTextAreaElement;
+    const went: unknown[] = [];
+    box.addEventListener("keydown", (event) => went.push(boxKey(event)));
+    keyOn(box, "Enter", { ctrlKey: true });
+    keyOn(box, "Enter", { metaKey: true });
+    expect(went).toEqual([null, { kind: "dayKeep" }]);
+  });
+
+  it("takes Cmd with End to the end of the last block, leaving Control with End alone", async () => {
+    on(MAC);
+    await written();
+    caretIn("Uno dos", 0);
+    expect(keyOn(sheet(), "End", { ctrlKey: true }).defaultPrevented).toBe(false);
+    caretIn("segundo", 2);
+    await new Promise((done) => setTimeout(done, 0));
+    expect(document.getSelection()?.anchorNode?.textContent).toBe("segundo");
+    expect(document.getSelection()?.anchorOffset).toBe(2);
+    expect(keyOn(sheet(), "End", { metaKey: true }).defaultPrevented).toBe(true);
+    const held = document.getSelection();
+    expect(held?.anchorNode?.textContent).toBe("segundo");
+    expect(held?.anchorOffset).toBe(7);
   });
 });
 

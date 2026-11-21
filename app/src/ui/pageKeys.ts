@@ -10,7 +10,7 @@ import type { Laying } from "./pageLaying";
 import { nested } from "./pageLists";
 import { swappedItem } from "./pageMoving";
 import { elementOf, inCode, onSheet, WRITABLE } from "./pageNodes";
-import { endIn } from "./pageSpots";
+import { endIn, lineEdge } from "./pageSpots";
 import type { Writer } from "./pageWriter";
 
 const KEYED: Record<string, readonly [string, string]> = {
@@ -23,6 +23,9 @@ const KEYED: Record<string, readonly [string, string]> = {
 };
 
 const EMPTY_STEP = /^[ \t]*(?:>[ \t]?)*[-*+][ \t]+\[ \][ \t]*\r?$/;
+
+const FOCUS_KEPT =
+  ".page .check, .page input[type=checkbox], .page [contenteditable='false'] a[href^='#']";
 
 export const keysOn = (
   writer: Writer,
@@ -73,9 +76,20 @@ export const keysOn = (
     if (moved) put(moved.edit, moved.caret);
   };
 
+  const landed = (spotIn: (from: Element) => [Node, number] | null) => {
+    const from = caret.blockOfCaret();
+    if (!from) return;
+    setTimeout(() => {
+      const spot = from.isConnected ? spotIn(from) : null;
+      const held = caret.chosen();
+      if (spot && (held?.startContainer !== spot[0] || held.startOffset !== spot[1]))
+        caret.laidAt(spot);
+    });
+  };
+
   // A tag or other piece drawn whole at a line's end leaves the browser no place after it, so End is placed here.
   const toEnd = (event: KeyboardEvent) => {
-    if (event.ctrlKey || event.metaKey) {
+    if (modKey(event)) {
       const last = Array.from(page.querySelectorAll(".page [data-at]"))
         .filter((one) => one.closest(WRITABLE) && !one.closest('[contenteditable="false"]'))
         .pop();
@@ -84,12 +98,16 @@ export const keysOn = (
       caret.laidAt(endIn(last));
       return;
     }
-    const from = caret.blockOfCaret();
-    if (!from) return;
-    setTimeout(() => {
-      if (caret.blockOfCaret() !== from && from.isConnected) caret.laidAt(endIn(from));
-    });
+    if (event.ctrlKey || event.metaKey) return;
+    landed((from) => (caret.blockOfCaret() !== from ? endIn(from) : null));
   };
+
+  const toEdge = (toStart: boolean) =>
+    landed((from) => {
+      const range = caret.chosen();
+      if (caret.blockOfCaret() !== from) return toStart ? null : endIn(from);
+      return range ? lineEdge(from, range.startContainer, range.startOffset, toStart) : null;
+    });
 
   const keyed = (event: KeyboardEvent) => {
     if (!onSheet(page, event)) return;
@@ -99,6 +117,8 @@ export const keysOn = (
       return;
     }
     if (event.key === "End" && !event.shiftKey && !event.altKey) return toEnd(event);
+    const walked = event.shiftKey || event.isComposing ? null : caretWalk(event);
+    if (walked === "start" || walked === "end") return toEdge(walked === "start");
     if (event.key === "Tab" && !event.ctrlKey && !event.metaKey && !event.altKey)
       return tabbed(event);
     if (moveKey(event) && (event.key === "ArrowUp" || event.key === "ArrowDown"))
@@ -166,8 +186,7 @@ export const keysOn = (
   };
 
   const ticking = (event: MouseEvent) => {
-    if ((event.target as Element | null)?.closest?.(".page .check, .page input[type=checkbox]"))
-      event.preventDefault();
+    if ((event.target as Element | null)?.closest?.(FOCUS_KEPT)) event.preventDefault();
   };
 
   // The page's events come from its own window, so a key is told by what it carries, not by its class.
