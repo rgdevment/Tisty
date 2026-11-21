@@ -77,11 +77,11 @@ Presiona `Ctrl` + `Shift` + `Space` desde donde estés y se abre una ventanita p
 
 No hay premios por vaciar la lista.
 
-La ventana tiene tres columnas como máximo: lo que estás mirando, la lista y la tarea que abriste. Cuando la ventana es lo bastante ancha, una columna te cuenta el resto del día (lo que viene en la semana, los cuatro cuadrantes con sus cuentas, las listas en uso), contando todo tu almacén, y cada cifra es una entrada. Las cuatro cuentas del día quedan arriba en la barra lateral.
+La ventana tiene tres columnas como máximo: lo que estás mirando, la lista y la tarea que abriste. La lista se queda donde está: no se corre al centro del espacio que sobra, así que abrir una tarea no mueve nada. Cuando la ventana es lo bastante ancha, una columna te cuenta el resto del día (lo que viene en la semana, los cuatro cuadrantes con sus cuentas, las listas en uso), contando todo tu almacén, y cada cifra es una entrada. Si estrechas la ventana, esa columna se aparta: una tarea siempre le gana el espacio. Las cuatro cuentas del día quedan arriba en la barra lateral.
 
 ## Prioridades: la matriz de Eisenhower
 
-Dos preguntas, cuatro casillas: si corre prisa y si importa.
+Dos preguntas, cuatro casillas: si corre prisa y si importa. Es el método que se atribuye al presidente Dwight D. Eisenhower y que Stephen Covey popularizó en *Los 7 hábitos de la gente altamente efectiva*: ordenas lo que tienes por urgente frente a importante, y cada cuadrante te dice qué hacer con ello.
 
 ![Prioridades: Hacer, Planificar, Delegar y Prescindible, con Urgente y No urgente arriba e Importante y No importante al costado, cada cuadro con su cuenta y sus tareas, y Lo que falta por clasificar · 61 junto al título](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/app/es-prioridades-light.webp)
 
@@ -92,7 +92,7 @@ Dos preguntas, cuatro casillas: si corre prisa y si importa.
 | **Delegar** | corre, pero no es tuyo | `!delegar` |
 | **Prescindible** | ni corre ni importa; su botón «No haré ninguna» las descarta todas cuando estés seguro | `!prescindible` |
 
-Arrastra una tarea a su cuadrante, o escríbelo. Cada cuadrante tiene un **+** que abre la captura rápida con ese cuadrante ya puesto. Lo que nadie ha clasificado espera en la bandeja de al lado, sin regañarte.
+Arrastra una tarea a su cuadrante, o escríbelo. Cada cuadrante tiene un **+** que abre la captura rápida con ese cuadrante ya puesto. Lo que nadie ha clasificado espera en la bandeja de al lado, sin regañarte, y la bandeja se abre como la dejaste.
 
 Los cuadrantes no son una escala, así que `!1` no significa nada y se queda en el título. `!urgente` solo tampoco es un cuadrante: sirve tanto para *hacer* como para *delegar*.
 

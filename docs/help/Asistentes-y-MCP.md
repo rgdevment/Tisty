@@ -24,7 +24,7 @@ Desde la 1.32.1, un Tisty estable también responde a `tisty` a secas desde cual
 
 ### Desde Configuración (lo más fácil)
 
-**Configuración › Asistentes › Conectados** busca los asistentes instalados en este equipo entre los que Tisty conoce (Claude Code, Claude Desktop, Codex, GitHub Copilot CLI, VS Code, Cursor, Devin Desktop y Windsurf, Antigravity, Gemini CLI, Qwen Code, OpenCode, Kilo Code, Zed, Junie, Kiro, Warp, LM Studio, Amp, Augment, Factory Droid, Trae, Cline, Roo Code, BoltAI, Goose y Continue) y dice cómo está cada uno:
+**Configuración › Asistentes › Conectados** busca los asistentes instalados en este equipo entre los que Tisty conoce (Claude Code, Claude Desktop, Codex, GitHub Copilot CLI, Visual Studio Code, Cursor, Devin Desktop, Windsurf, Antigravity, Gemini CLI, Qwen Code, OpenCode, Kilo Code, Zed, Junie, Kiro, Warp, LM Studio, Amp, Augment, Factory Droid, Trae, Cline, Roo Code, BoltAI, Goose y Continue) y dice cómo está cada uno:
 
 - **Conectado**: abre este Tisty.
 - **Sin conectar**: **Conectar** escribe Tisty en su configuración, con la forma que ese asistente lee.

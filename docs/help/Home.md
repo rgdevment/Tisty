@@ -4,7 +4,7 @@
 
 <h1 align="center">Tisty's help</h1>
 
-<p align="center"><strong>Shared working memory for you and your AI agent: tasks, documents and notes in Markdown, on your own disk.</strong><br/>You see the whole. Your agent, every detail. One shared memory.<br/>No accounts. No subscriptions. No telemetry. No server.</p>
+<p align="center"><strong>Shared working memory for you and your AI agent: tasks, documents and notes in Markdown, on your own disk.</strong><br/>You see the whole. Your agent, every detail. One shared memory.<br/>With your agent, it is the memory you share. On your own, it is your place for notes, documents and tasks.<br/>No accounts. No subscriptions. No telemetry. No server.</p>
 
 <p align="center"><strong>English</strong> · <a href="Inicio">Español</a></p>
 
@@ -63,7 +63,7 @@ A task is also a document, one with an end: that is why it has a page of its own
 
 ## Memory for your AI agent, through MCP
 
-Tisty has no AI inside, and none is coming. But it speaks [MCP](https://modelcontextprotocol.io), so the agent you already use — GitHub Copilot, Claude Code, Codex, Cursor, any MCP client — keeps its memory here: it files tasks with steps and a journal, writes documents, and picks up where it left off, on this machine, with no account and nothing over the network.
+Tisty is not AI and has none inside, and that is not going to change. But it speaks [MCP](https://modelcontextprotocol.io), so the agent you already use — GitHub Copilot, Claude Code, Codex, Cursor, any MCP client — keeps its memory here: it files tasks with steps and a journal, writes documents, and picks up where it left off, on this machine, with no account and nothing over the network.
 
 - [[Assistants and MCP|Assistants-and-MCP]] — connecting one, letting it in, a day with your agent and what it costs.
 - [[What an assistant may do|MCP-Permissions]] — the limits, its word on your own tasks, and **To confirm**.

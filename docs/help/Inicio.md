@@ -4,7 +4,7 @@
 
 <h1 align="center">La ayuda de Tisty</h1>
 
-<p align="center"><strong>Memoria de trabajo compartida para ti y tu agente de IA: tareas, documentos y notas en Markdown, en tu propio disco.</strong><br/>Tú ves el conjunto. Tu agente, cada detalle. Una sola memoria.<br/>Sin cuentas. Sin suscripciones. Sin telemetría. Sin servidor.</p>
+<p align="center"><strong>Memoria de trabajo compartida para ti y tu agente de IA: tareas, documentos y notas en Markdown, en tu propio disco.</strong><br/>Tú ves el conjunto. Tu agente, cada detalle. Una sola memoria.<br/>Con tu agente, es la memoria que comparten. Solo para ti, es tu lugar para notas, documentos y tareas.<br/>Sin cuentas. Sin suscripciones. Sin telemetría. Sin servidor.</p>
 
 <p align="center"><a href="Home">English</a> · <strong>Español</strong></p>
 
@@ -63,7 +63,7 @@ Una tarea también es un documento, uno que termina: por eso tiene una página p
 
 ## Memoria para tu agente de IA, por MCP
 
-Tisty no tiene IA dentro, y no la va a tener. Pero habla [MCP](https://modelcontextprotocol.io), así que el agente que ya usas (GitHub Copilot, Claude Code, Codex, Cursor o cualquier cliente MCP) guarda aquí su memoria: anota tareas con pasos y bitácora, escribe documentos y retoma donde quedó, en este equipo, sin cuenta y sin pasar nada por la red.
+Tisty no es IA ni la lleva dentro. Eso no va a cambiar. Pero habla [MCP](https://modelcontextprotocol.io), así que el agente que ya usas (GitHub Copilot, Claude Code, Codex, Cursor o cualquier cliente MCP) guarda aquí su memoria: anota tareas con pasos y bitácora, escribe documentos y retoma donde quedó, en este equipo, sin cuenta y sin pasar nada por la red.
 
 - [[Asistentes y MCP|Asistentes-y-MCP]]: cómo conectar uno, dejarlo entrar, un día con tu agente y lo que cuesta.
 - [[Qué puede hacer un asistente|Qué-puede-hacer-un-asistente]]: los límites, su palabra sobre tus tareas y **Por confirmar**.

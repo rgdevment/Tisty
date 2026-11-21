@@ -86,7 +86,7 @@
     "copyright": "Copyright © 2026 rgdevment",
     "category": "Productivity",
     "shortDescription": "Shared working memory for you and your AI agent, in Markdown on disk",
-    "longDescription": "Tisty is the working memory you share with your AI agent: you see the whole, your agent every detail. Notes, documents and tasks stay on your own machine, in plain Markdown files you can read without it. Everything you do is written to an append-only log, so nothing is lost by accident and a change can be walked back; erasing something for good is the one step that cannot. No account, no subscription, no telemetry, no server. Sync, if you want it, goes through a folder both your machines already reach, and your agent reads and adds to it through a local door that opens and closes with one click.",
+    "longDescription": "Tisty is shared working memory for you and your AI agent: you see the whole, your agent every detail. Notes, documents and tasks stay on your own machine, in plain Markdown files you can read without it. Everything you do is written to an append-only log, so nothing is lost by accident and a change can be walked back; erasing something for good is the one step that cannot. No account, no subscription, no telemetry, no server. Sync, if you want it, goes straight to your own Google Drive, OneDrive or WebDAV server, or through a folder both your machines already reach, and your agent reads and adds to it through a local door that opens and closes with one click.",
     "licenseFile": "../../LICENSE",
     "windows": {
       "minimumWebview2Version": "111.0.0.0",

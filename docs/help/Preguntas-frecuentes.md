@@ -9,7 +9,7 @@ Sí, Tisty es gratis y lo seguirá siendo, bajo la licencia AGPL-3.0. Sin cuenta
 Ninguna de las dos. Por su cuenta, Tisty solo pregunta si hay una versión más nueva, y no envía nada para hacerlo. Cuando sincronizas con una nube o compartes un documento, además lee los pocos archivos pequeños que lista [[Privacidad]]. Desconecta el equipo de la red y todo lo demás funciona igual. Mira [[Privacidad]].
 
 **¿Necesito un agente de IA?**
-No. Tisty es una memoria de trabajo compartida para ti y tu agente, y también sirve solo para ti, si prefieres trabajar de una forma más personal: tus tareas, tus documentos, tus ideas y tu diario funcionan igual sin agente. Lo conectas el día que quieras, como cuenta [[Asistentes y MCP|Asistentes-y-MCP]].
+No. Tisty está completo sin uno: las notas, los documentos y las tareas, la revisión semanal, el diario y [[Brainsty|Red-de-Brainsty]] funcionan igual. Con tu agente, es la memoria que comparten. Solo para ti, es tu lugar para notas, documentos y tareas. Por ejemplo, guardas las visitas de Rina al veterinario en un documento y su próxima vacuna como una tarea que suena la tarde anterior: ningún agente ve nada de eso hasta que conectes uno, el día que quieras, como cuenta [[Asistentes y MCP|Asistentes-y-MCP]].
 
 **¿Dónde se guardan mis datos?**
 En una carpeta de tu propio disco. **Configuración › Almacenamiento** muestra la ruta, y **Mostrar carpeta** la abre. Mira [Instalación](Instalación#dónde-viven-tus-datos).
@@ -53,7 +53,7 @@ Que se sepa, no. Toda la ventana funciona con el teclado y ese camino está prob
 ## IA y asistentes
 
 **¿Cómo le doy a mi agente de IA una memoria entre sesiones?**
-Conecta Tisty por MCP, como muestra [[Asistentes y MCP|Asistentes-y-MCP]]: GitHub Copilot en VS Code, Claude Code, Codex, Cursor y Gemini CLI lo hacen con una línea. Desde ahí, el agente empieza cada sesión preguntando qué cambió desde la anterior, anota su trabajo como tareas con pasos y bitácora, y guarda lo que aprende en documentos. La próxima sesión, en cualquier proyecto, parte de ahí. Mira [Un día con tu agente](Asistentes-y-MCP#un-día-con-tu-agente).
+Conecta Tisty por MCP, como muestra [[Asistentes y MCP|Asistentes-y-MCP]]: Configuración › Asistentes conecta GitHub Copilot, Claude Code, Codex, Cursor… y [[cada uno de los otros que conoce|Asistentes-y-MCP#conectar-un-asistente]]. Desde ahí, el agente empieza cada sesión preguntando qué cambió desde la anterior, anota su trabajo como tareas con pasos y bitácora, y guarda lo que aprende en documentos. La próxima sesión, en cualquier proyecto, parte de ahí. Mira [Un día con tu agente](Asistentes-y-MCP#un-día-con-tu-agente).
 
 **¿Reemplaza a CLAUDE.md, AGENTS.md o una carpeta memory-bank?**
 Para lo que cambia, sí; para lo que no, no. Las instrucciones que casi no se mueven (cómo compilar, las convenciones) van en los archivos que tu repositorio ya le entrega al asistente. Lo que se mueve (el avance, las decisiones, lo descartado, lo que falta) va en Tisty, donde queda fechado, buscable, se lee una sección a la vez y no se pierde entre ramas, equipos ni proyectos.
@@ -64,7 +64,7 @@ Y los archivos de tu carpeta personal, como `~/.claude/CLAUDE.md` o `~/.codex/AG
 No por su cuenta. Las lee como cualquier documento, pero un cambio suyo queda como propuesta: en la ficha ves lo **Aprobado** y lo **Propuesto**, y solo con **Aprobar el cambio** llega a los archivos de tus agentes, en cada equipo donde Agentes sincroniza y lo aplicaste. Mira [[Una propuesta de tu agente|Carpeta-AGENTS#una-propuesta-de-tu-agente]].
 
 **¿Tisty usa IA?**
-No, y no la va a usar. El lenguaje natural son reglas en tu equipo. Si usas un asistente propio, Tisty deja una [[puerta MCP|Asistentes-y-MCP]]: viene abierta y la cierras cuando quieras.
+No. Tisty no es IA ni la lleva dentro. Eso no va a cambiar. El lenguaje natural son reglas en tu equipo. Si usas un asistente propio, Tisty deja una [[puerta MCP|Asistentes-y-MCP]]: viene abierta y la cierras cuando quieras.
 
 **Un asistente dice que una de sus tareas está hecha. ¿La cerró?**
 No. Nada de lo que hace un asistente cierra una tarea. La marca, con su cuenta en la bitácora, y la tarea espera en **Por confirmar** hasta que decidas. Mira [[Qué puede hacer un asistente|Qué-puede-hacer-un-asistente]].

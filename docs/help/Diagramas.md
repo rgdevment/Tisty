@@ -1,6 +1,6 @@
 # Diagramas
 
-Un diagrama en Tisty es un bloque `mermaid` dentro de un documento: unas pocas líneas de texto que Tisty dibuja, y que GitHub, Notion, Obsidian o un asistente leen igual. Puedes escribirlas tú, pero no hace falta: la ventana de diagramas lo dibuja contigo y guarda el resultado como ese mismo texto.
+Un diagrama en Tisty es un bloque `mermaid` dentro de un documento: unas pocas líneas de texto que Tisty dibuja, y que GitHub, Notion, Obsidian o un asistente leen igual. Puedes escribirlas tú, pero no hace falta: la ventana de diagramas lo dibuja contigo y guarda el resultado como ese mismo texto. En la página se dibuja claro u oscuro con la ventana, se redibuja cuando cambias la luz, y se lee a cualquier ancho.
 
 ![La ventana de diagramas sobre la guía: las formas a la izquierda, el diagrama de flujo ¿Lo vas a hacer, o a volver a leer? al centro y, a la derecha, el texto Mermaid que se escribe en el documento, en vivo](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/app/es-diagrama-light.webp)
 

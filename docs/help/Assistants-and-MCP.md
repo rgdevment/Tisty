@@ -24,7 +24,7 @@ Since 1.32.1 a stable Tisty also answers to plain `tisty` from any terminal, so 
 
 ### From Settings (the easy way)
 
-**Settings › Assistants › Connected** finds the assistants installed on this computer among the ones Tisty knows (Claude Code, Claude Desktop, Codex, GitHub Copilot CLI, VS Code, Cursor, Devin Desktop and Windsurf, Antigravity, Gemini CLI, Qwen Code, OpenCode, Kilo Code, Zed, Junie, Kiro, Warp, LM Studio, Amp, Augment, Factory Droid, Trae, Cline, Roo Code, BoltAI, Goose and Continue) and says how each one stands:
+**Settings › Assistants › Connected** finds the assistants installed on this computer among the ones Tisty knows (Claude Code, Claude Desktop, Codex, GitHub Copilot CLI, Visual Studio Code, Cursor, Devin Desktop, Windsurf, Antigravity, Gemini CLI, Qwen Code, OpenCode, Kilo Code, Zed, Junie, Kiro, Warp, LM Studio, Amp, Augment, Factory Droid, Trae, Cline, Roo Code, BoltAI, Goose and Continue) and says how each one stands:
 
 - **Connected** — it starts this Tisty.
 - **Not connected** — **Connect** writes Tisty into its settings, in the shape that assistant reads.

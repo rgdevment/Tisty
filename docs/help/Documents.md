@@ -1,6 +1,6 @@
 # Documents
 
-Documents live beside the tasks, for reference material that has no date and never gets ticked. They are plain Markdown files, and search reads them too. A task can point at a document; a document never creates tasks.
+Documents live beside the tasks, for reference material that has no date and never gets ticked. They are plain Markdown files, and search reads them too. A task can point at a document; a document never creates tasks on its own, only when you make one from it. The guide Tisty writes the first time it opens carries a page with one of each thing a document can hold, so you can see all of it before you write a line.
 
 For writing in one, see [[The Markdown editor|Markdown-Editor]]; for everything it can hold — callouts, tables, diagrams, math, widgets, code — see the [Tisty Markdown guide](https://markdown.tisty.app).
 
@@ -357,7 +357,7 @@ A document leaves whole — every conversion is in [Convert to and from Markdown
 - **Export as Markdown…**, in the document's menu, writes it out to the folder you pick, as standard Markdown files with its pages and attachments beside it; a link to one of its pages points at that page's file.
 - **Markdown to HTML** — **Export as HTML…**, in the document's menu, makes one web page that travels alone.
 - **Markdown to Word** — **Export as Word…** makes a `.docx` with its headings, lists, tables and pictures.
-- **Export for Tisty…** into a `.tistyx` file, which also carries what Markdown cannot say: folders with their order, icon and colour, which document each page hangs from, what is archived, and the alias it was signed with. It includes a `README.txt`, so whoever receives it can read the documents without Tisty.
+- **Export for Tisty…** into a `.tistyx` file, which also carries what Markdown cannot say: folders with their order, icon and colour, which document each page hangs from, what is archived, and the alias it was signed with. It includes a `README.txt`, so whoever receives it can read the documents without Tisty and knows where to find Tisty if they want the rest.
 - **Markdown to PDF** — see [Pages and PDF](Pages-and-PDF#tistys-own-pdf).
 
 Exporting all of them asks who they are for: **To hand to somebody**, which goes out open for anyone holding the file to read, or **For another machine of mine**, locked with six digits so nobody else can read it. A single document or a folder goes out open without asking.

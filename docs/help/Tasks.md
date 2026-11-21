@@ -77,11 +77,11 @@ Press `Ctrl` + `Shift` + `Space` wherever you are, and a small window opens for 
 
 There is no prize for emptying the list.
 
-The window has three columns at most: what you are looking at, the list, and the task you opened. Where the window is wide enough, a column tells you the rest of the day — what is coming this week, the four quadrants with their counts, the lists in use — counting your whole store, and every figure is a way in. The day's four counts stay at the top of the sidebar.
+The window has three columns at most: what you are looking at, the list, and the task you opened. The list stands where it stands: it does not drift to the middle of whatever room is left, so opening a task moves nothing. Where the window is wide enough, a column tells you the rest of the day — what is coming this week, the four quadrants with their counts, the lists in use — counting your whole store, and every figure is a way in. Narrow the window and that column steps aside: a task always wins the room over it. The day's four counts stay at the top of the sidebar.
 
 ## Priorities: the Eisenhower matrix
 
-Two questions, four boxes: whether it is pressing, and whether it matters.
+Two questions, four boxes: whether it is pressing, and whether it matters. It is the method President Dwight D. Eisenhower is credited with, popularised by Stephen Covey in *The 7 Habits of Highly Effective People*: sort what you have by urgent against important, and each quadrant tells you what to do with it.
 
 ![Priorities: Do, Schedule, Delegate and Minor, with Urgent and Not urgent across the top and Important and Not important down the side, each box with its count and its tasks, and What is left to classify · 61 beside the title](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/app/en-priorities-light.webp)
 
@@ -92,7 +92,7 @@ Two questions, four boxes: whether it is pressing, and whether it matters.
 | **Delegate** | pressing, but not yours to carry | `!delegate` |
 | **Minor** | neither — its «I won't do any of them» button drops them all when you are sure | `!minor` |
 
-Drag a task into its quadrant, or type it. Each quadrant has a **+** that opens the quick capture with that quadrant already set. Whatever nobody has placed waits in a tray beside them, without nagging.
+Drag a task into its quadrant, or type it. Each quadrant has a **+** that opens the quick capture with that quadrant already set. Whatever nobody has placed waits in a tray beside them, without nagging, and the tray opens the way you left it.
 
 The quadrants are not a scale, so `!1` means nothing and stays in the title. `!urgent` alone is not a quadrant either — it fits both *do* and *delegate*.
 

@@ -1,6 +1,6 @@
 # Documentos
 
-Los documentos viven junto a las tareas, para el material de consulta que no tiene fecha ni se marca como hecho. Son archivos Markdown normales, y el buscador también los lee. Una tarea puede apuntar a un documento; un documento nunca crea tareas.
+Los documentos viven junto a las tareas, para el material de consulta que no tiene fecha ni se marca como hecho. Son archivos Markdown normales, y el buscador también los lee. Una tarea puede apuntar a un documento; un documento nunca crea tareas por su cuenta, solo cuando tú haces una desde él. La guía que Tisty escribe la primera vez que se abre trae una página con una de cada cosa que cabe en un documento, para que lo veas todo antes de escribir una línea.
 
 Cómo se escribe en uno está en [[El editor Markdown|Editor-Markdown]]; todo lo que puede llevar (avisos, tablas, diagramas, fórmulas, widgets, código) está en la [guía de Markdown de Tisty](https://markdown.tisty.app/es/).
 
@@ -357,7 +357,7 @@ Un documento sale entero; cada conversión está en [Convertir a y desde Markdow
 - **Exportar como Markdown…**, en el menú del documento, lo escribe en la carpeta que elijas, como archivos de Markdown estándar con sus páginas y adjuntos al lado; un enlace a una de sus páginas apunta al archivo de esa página.
 - **De Markdown a HTML**: **Exportar como HTML…**, en el menú del documento, hace una sola página web que viaja sola.
 - **De Markdown a Word**: **Exportar como Word…** hace un `.docx` con sus títulos, listas, tablas e imágenes.
-- **Exportar para Tisty…** en un archivo `.tistyx`, que además lleva lo que Markdown no sabe decir: las carpetas con su orden, icono y color, de qué documento cuelga cada página, qué está archivado y el alias con que se firmó. Incluye un `README.txt`, para que quien lo reciba pueda leer los documentos sin Tisty.
+- **Exportar para Tisty…** en un archivo `.tistyx`, que además lleva lo que Markdown no sabe decir: las carpetas con su orden, icono y color, de qué documento cuelga cada página, qué está archivado y el alias con que se firmó. Incluye un `README.txt`, para que quien lo reciba pueda leer los documentos sin Tisty y sepa dónde encontrar Tisty si quiere lo demás.
 - **De Markdown a PDF**: mira [Páginas y PDF](Páginas-y-PDF#el-pdf-propio-de-tisty).
 
 Exportarlos todos pregunta para quién son: **Para dárselo a alguien**, que sale abierto y lo lee quien tenga el archivo, o **Para otro equipo mío**, que sale cerrado con seis dígitos para que nadie más lo lea. Un documento o una carpeta salen abiertos sin preguntar.

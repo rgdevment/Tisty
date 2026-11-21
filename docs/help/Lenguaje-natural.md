@@ -68,7 +68,7 @@ Un número suelto solo es hora detrás de «a las»: `subir el volumen a 12` se 
 
 ## Fecha o fecha límite
 
-Una **fecha** es cuándo piensas hacerlo. Una **fecha límite** es cuándo deja de ser posible.
+Una **fecha** es cuándo piensas hacerlo. Una **fecha límite** es cuándo deja de ser posible. Tres palabras abren un límite: **antes de**, **hasta** y **vence**.
 
 Con las dos, la fecha es desde cuándo y el límite hasta cuándo: entre ambas la tarea está **en curso**, y solo **vence** cuando pasa el límite. Una fecha sola que ya pasó deja la tarea **atrasada**, nunca vencida.
 

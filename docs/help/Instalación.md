@@ -45,7 +45,7 @@ Tisty te pregunta hasta tres cosas:
 2. **Dónde dejar tus copias**: una carpeta para [[sincronizar|Sincronizar-y-respaldar]], o ninguna si usas un solo equipo.
 3. **¿Cómo quieres que Tisty te llame?**: un alias opcional para firmar lo que compartes; **Ahora no** lo salta, y no se pregunta cuando el Tisty al que te unes ya tiene uno.
 
-Después **te escribe una guía y la abre**. La guía es un documento normal en tu propio almacén, en una carpeta propia (tuya para leerla, editarla o tirarla), y te muestra desde dentro lo que cabe en un documento. Puedes volver a ella desde **Configuración › Ayuda y acerca de**, con **Abrir la guía**.
+Después **te escribe una guía y la abre**, salvo que el lugar que elegiste ya guarde tu Tisty: entonces trae eso en su lugar. La guía es un documento normal en tu propio almacén, en una carpeta propia (tuya para leerla, editarla o tirarla), y te muestra desde dentro lo que cabe en un documento. Puedes volver a ella desde **Configuración › Ayuda y acerca de**, con **Abrir la guía**.
 
 Todo lo demás tiene una respuesta obvia que puedes cambiar después: Tisty arranca con el equipo y espera sin estorbar.
 
@@ -69,7 +69,7 @@ Tisty revisa al abrirse, y una vez al día después, si hay una versión más nu
 
 Tisty no descarga nada hasta que lo pulsas. Las versiones candidatas se activan con **Recibir versiones candidatas**, en **Ayuda y acerca de**; en la copia de la Microsoft Store esa fila dice **No aplica aquí**, porque la Store mantiene esa copia al día y no ofrece candidatas. Si buscar o instalar una versión falla, el error sale en esa misma fila. Más detalle en [[Privacidad]].
 
-En Windows, cuando la Store o un instalador cierra Tisty para reemplazarlo, Windows lo vuelve a abrir solo: una ventana a la vista vuelve a la vista, y una oculta en la bandeja vuelve oculta. Lo que acababas de escribir en un documento o en la página de una tarea se conserva, y lo mismo cuando Windows se apaga. Un fallo o un reinicio no lo reabren, ni tampoco una copia que llevaba menos de un minuto abierta.
+En Windows, cuando la Store o un instalador cierra Tisty para reemplazarlo, Windows lo vuelve a abrir solo: una ventana a la vista vuelve a la vista, y una oculta en la bandeja vuelve oculta. Lo que acababas de escribir en un documento o en la página de una tarea se conserva, y lo mismo cuando Windows se apaga. Un fallo, un cuelgue o un reinicio no lo reabren, ni tampoco una copia que llevaba menos de un minuto abierta.
 
 ## Dónde viven tus datos
 

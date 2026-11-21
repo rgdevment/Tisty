@@ -126,7 +126,7 @@ Before you sign in, Tisty checks that Microsoft answers, with one request to `gr
 
 Since 1.32, Tisty can keep its copies on a server of your own — Nextcloud, ownCloud, Synology and others — talking to it over WebDAV, with no program in between and no browser sign-in. It works like Google Drive above: the same first round, the same card in **Settings › Sync** and the same move to leave it.
 
-- **Connecting it:** **Settings › Sync › Turn on… › Your cloud service › WebDAV**. Type the **Server address**, your **User** and a **Password**, and press **Connect**. Before anything is kept, Tisty checks the server: it signs in with what you typed and makes sure the server will not let two computers write over each other; if it would, nothing is connected. Only `https://` addresses are taken, since the password travels with every request; plain `http://` is refused, except to this very computer.
+- **Connecting it:** **Settings › Sync › Turn on… › Your cloud service › WebDAV**. Type the **Server address**, your **User** and a **Password**, and press **Connect**. Before anything is kept, Tisty checks the server: it signs in with what you typed and makes sure the server will not let two computers write over each other; if it would, nothing is connected. Only `https://` addresses are taken, since the password travels with every request; plain `http://` is refused, except to this very computer. As with Drive and OneDrive, if a proxy, a filter at work or an antivirus stands in the way, Tisty says so in plain words, there and on the card.
 - **The password** stays on this computer, kept by the system: the keychain on macOS, a file sealed for your user on Windows. It never reaches the log, a backup or a parcel. An app password from your server is better than your main one, since you can remove it there whenever you like. If the server asks again, Tisty only asks you for the password.
 - **Where the copies are:** in a *Tisty* folder inside the folder your address points at; Tisty touches nothing beside it. You can see it on your server. Leave it to Tisty: what you change there by hand is read as a change from another computer.
 - **Your server sets the limit and the pace:** what it has free is your ceiling, and Tisty looks for changes every two minutes. Attachments always stay on this computer as well, so **Free up space** is not offered.
@@ -162,7 +162,7 @@ Once it says **«Your cloud is encrypted»**, the old unencrypted copy stays in 
 
 If you type nothing, nothing is handed over. Or, on the new computer, **Type my phrase** takes your 24 words: only the cloud's key stays there, never the phrase. Type them only there, in your own Tisty: nobody from Tisty or Folio will ever ask you for them, and anyone who does is trying to trick you.
 
-If the new computer then keeps your cloud's history, it does not ask you about your other computers, and the one that took its digits does not ask for it again; each of your other computers asks you to confirm its code once, as with any new computer. Choose it within a week of typing the digits: after that, the one that took them asks once more.
+If the new computer then keeps your cloud's history, it does not ask you about your other computers, and the one that took its digits does not ask for it again; each of your other computers asks you to confirm its code once, as with any new computer, since the key alone does not say which computer is yours. Choose it within a week of typing the digits: after that, the one that took them asks once more.
 
 ### What it does not hide
 

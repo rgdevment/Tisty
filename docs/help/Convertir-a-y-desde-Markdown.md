@@ -30,7 +30,7 @@ Importa la nota. Sus formas propias pasan a las estándar: sus avisos al más ce
 
 Las imágenes y archivos que el documento nombra a su lado (en su misma carpeta o en una de más adentro) entran con él y quedan guardados en Tisty, y el texto apunta a esas copias. Uno que no está, o que queda fuera de esa carpeta, se queda como texto, y Tisty te dice cuántos no se pudieron traer. Otra nota que enlaza no se copia como archivo: queda enlazada si un documento de aquí ya lleva su título, y si no, su nombre queda como referencia y Tisty te recuerda importarla por separado. Un enlace a una página web, un correo u otra app (`tel:`, `obsidian://`…) sigue siendo enlace.
 
-Lo que no tiene palabra en Markdown de Tisty se convierte al entrar; la [guía](https://markdown.tisty.app/es/lo-que-queda-fuera-del-lenguaje) lo detalla.
+Lo que no tiene palabra en Markdown de Tisty se convierte al entrar, venga de un archivo tuyo más antiguo, de una importación o de un asistente que escribe en Markdown corriente; la [guía](https://markdown.tisty.app/es/lo-que-queda-fuera-del-lenguaje) lo detalla.
 
 ## De Markdown a Word (`.md` a `.docx`)
 

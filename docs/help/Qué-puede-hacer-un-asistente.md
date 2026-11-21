@@ -12,7 +12,7 @@ Lo que un asistente puede hacer es pequeño a propósito. Terminar, descartar y 
 - **Añadir a la bitácora** de una tarea.
 - **Trabajar cualquier tarea como trabaja un documento**, también las tuyas: describirla, renombrarla, llevarla a otra lista o bajo otra tarea, planear, reescribir o quitar sus pasos abiertos, corregir una nota y escribir su página con los mismos resguardos que un documento.
 - **Escribir un documento**, añadir a uno que ya existe (al final o bajo un título), corregir un pasaje, cambiar una de sus tablas por sus filas y columnas o reescribirlo entero.
-- **Ordenar documentos en carpetas**, hacer de un documento una página de otro y fijar el orden en que se leen sus páginas.
+- **Ordenar documentos en carpetas**, hacer de un documento una página de otro y fijar el orden en que se leen sus páginas. Hacer una página y ordenarlas escribe y mueve las líneas que nombran las páginas en el texto de tu documento, y nada más.
 - **Marcar un documento que ya cumplió su vida**: una propuesta, no un borrado (más abajo).
 - **Archivar un documento, o desarchivarlo**, cuando se lo pides.
 - **Anotar ideas en Ideas** cuando se lo pides, y ordenarlas contigo: una idea que anexa a un documento o convierte en tarea sale de la hoja, como cuando lo haces tú.

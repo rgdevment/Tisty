@@ -12,7 +12,7 @@ What an assistant may do is deliberately small. Finishing, dropping and deleting
 - **Add to a task's journal.**
 - **Work any task the way it works a document**, yours too: describe it, rename it, move it to another list or under another task, plan, reword or take off its open steps, correct a note, and write its page with the same guards a document has.
 - **Write a document**, add to one already there (at the end or under a heading), correct a passage of one, change one of its tables by its rows and columns, or write one again whole.
-- **File documents into folders**, make one document a page of another, and set the order its pages are read in.
+- **File documents into folders**, make one document a page of another, and set the order its pages are read in. Making a page and ordering them writes and moves the lines that name the pages in your document's text, and nothing else.
 - **Mark a document as having had its day** — a proposal, not a deletion (see below).
 - **Put a document away, or bring it back**, when you ask.
 - **Jot ideas in Ideas** when you ask, and sort them out with you: an idea it files in a document or turns into a task leaves the sheet, as it does when you do it.

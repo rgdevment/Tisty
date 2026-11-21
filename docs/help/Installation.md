@@ -45,7 +45,7 @@ Tisty asks up to three things:
 2. **Where your copies should go** — a folder for [[syncing|Sync-and-Backup]], or nowhere if you only use one machine.
 3. **What should Tisty call you?** — an optional alias to sign what you share; **Not now** skips it, and it is not asked when the Tisty you join already has one.
 
-Then it **writes you a guide and opens it**. The guide is an ordinary document in your own store, in a folder of its own — yours to read, edit or throw away — and it shows from the inside what a document can hold. You can come back to it from **Settings › Help and about**, with **Open the guide**.
+Then it **writes you a guide and opens it**, unless the place you chose already holds your Tisty: then it brings that instead. The guide is an ordinary document in your own store, in a folder of its own — yours to read, edit or throw away — and it shows from the inside what a document can hold. You can come back to it from **Settings › Help and about**, with **Open the guide**.
 
 Everything else has an obvious default you can change later: Tisty starts with the computer and waits out of the way.
 
@@ -69,7 +69,7 @@ Tisty checks once when it opens, and once a day after that, whether a newer vers
 
 Tisty downloads nothing unless you press it. Release candidates are turned on with **Take release candidates**, in **Help and about**; on the Microsoft Store copy that row says **Doesn't apply here**, because the Store keeps that copy up to date and offers no release candidates. If checking for or installing a version fails, the error shows on that same row. Details in [[Privacy]].
 
-On Windows, when the Store or an installer closes Tisty to replace it, Windows opens it again by itself: a window in view comes back in view, and one hidden in the tray comes back hidden. What you had just typed on a document or a task's page is kept, and the same goes when Windows shuts down. A crash or a restart does not reopen it, and neither does a copy that ran for less than a minute.
+On Windows, when the Store or an installer closes Tisty to replace it, Windows opens it again by itself: a window in view comes back in view, and one hidden in the tray comes back hidden. What you had just typed on a document or a task's page is kept, and the same goes when Windows shuts down. A crash, a hang or a restart does not reopen it, and neither does a copy that ran for less than a minute.
 
 ## Where your data lives
 

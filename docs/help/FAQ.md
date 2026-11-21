@@ -9,7 +9,7 @@ Yes, Tisty is free and will stay free, under the AGPL-3.0 licence. No accounts, 
 Neither. On its own, Tisty only asks whether a newer version exists, and it sends nothing to ask. Once you sync with a cloud or share a document, it also reads the few small files [[Privacy]] lists. Take the machine off the network and everything else works the same. See [[Privacy]].
 
 **Do I need an AI agent?**
-No. Tisty is a shared working memory for you and your agent, and it also works for you alone, if you would rather work in a more personal way: your tasks, your documents, your ideas and your diary work just the same with no agent. You connect one whenever you like, as [[Assistants and MCP|Assistants-and-MCP]] tells.
+No. Tisty is complete without one: notes, documents and tasks, the weekly review, the diary and [[Brainsty|Brainsty-Network]] all work the same. With your agent, it is the memory you share. On your own, it is your place for notes, documents and tasks. Say you keep Rina's vet visits in a document and her next vaccine as a task that rings the evening before: no agent sees any of it until you connect one, whenever you like, as [[Assistants and MCP|Assistants-and-MCP]] tells.
 
 **Where is my data kept?**
 In one folder on your own disk. **Settings › Storage** prints the path and **Show folder** opens it. See [Installation](Installation#where-your-data-lives).
@@ -53,7 +53,7 @@ Not as far as anybody knows. The whole window works from the keyboard and that p
 ## AI and assistants
 
 **How do I give my AI agent a memory between sessions?**
-Connect Tisty over MCP, as [[Assistants and MCP|Assistants-and-MCP]] shows — GitHub Copilot in VS Code, Claude Code, Codex, Cursor and Gemini CLI take one line. From then on the agent starts a session by asking what moved since the last one, files its work as tasks with steps and a journal, and keeps what it learns in documents. The next session, on any project, starts from there. See [A day with your agent](Assistants-and-MCP#a-day-with-your-agent).
+Connect Tisty over MCP, as [[Assistants and MCP|Assistants-and-MCP]] shows: Settings › Assistants connects GitHub Copilot, Claude Code, Codex, Cursor… and [[every other one it knows|Assistants-and-MCP#connecting-an-assistant]]. From then on the agent starts a session by asking what moved since the last one, files its work as tasks with steps and a journal, and keeps what it learns in documents. The next session, on any project, starts from there. See [A day with your agent](Assistants-and-MCP#a-day-with-your-agent).
 
 **Does it replace CLAUDE.md, AGENTS.md or a memory-bank folder?**
 For what changes, yes; for what does not, no. Instructions that rarely move — how to build, the conventions — belong in the files your repository already hands the assistant. What moves — progress, decisions, what was ruled out, what is left — belongs in Tisty, where it is dated, searchable, read a section at a time, and never lost between branches, machines or projects.
@@ -64,7 +64,7 @@ And the files in your home folder, like `~/.claude/CLAUDE.md` or `~/.codex/AGENT
 Not on its own. It reads them like any document, but a change of its own stays as a proposal: on the card you see what is **Approved** and what is **Proposed**, and only **Approve the change** carries it to your agents' files, on every computer where Agents syncs and you applied it. See [[A proposal from your agent|AGENTS-Folder#a-proposal-from-your-agent]].
 
 **Does Tisty use AI?**
-No, and none is coming. The natural language is rules on your machine. If you use an assistant of your own, Tisty leaves an [[MCP door|Assistants-and-MCP]] — it comes open, and you close it whenever you like.
+No. Tisty is not AI and has none inside, and that is not going to change. The natural language is rules on your machine. If you use an assistant of your own, Tisty leaves an [[MCP door|Assistants-and-MCP]] — it comes open, and you close it whenever you like.
 
 **An assistant says one of its tasks is done. Did it close it?**
 No. Nothing an assistant does closes a task. It marks it, with its account in the journal, and the task waits under **To confirm** until you decide. See [[What an assistant may do|MCP-Permissions]].
