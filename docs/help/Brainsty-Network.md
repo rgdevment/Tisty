@@ -88,7 +88,7 @@ For instance, Marisol has eleven coloured folders and lists, and the Agents fold
 
 While you look at it, the network moves: it turns, and travellers walk its lines. It comes that way; if you would rather have it still, you turn that off from the legend.
 
-![The living network in the dark theme: 1,931 nodes turning slowly like a globe, documents as squares and tasks as circles in their folder's or list's colour, with travellers of light walking its lines](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/app/brainsty-living-dark.webp)
+![The Tisty window with Brainsty open, in the dark theme: the sidebar with the tasks for today and the Library, and beside it the living network, 1,931 nodes and 2,811 connections, turning slowly like a globe while travellers of light walk its lines, with the Legend folded at the bottom left](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/app/en-brainsty-living-dark.webp)
 
 - **It turns like a globe**, by itself, once a minute. What is behind looks smaller and fainter, and with the network turned the coloured zones hide and fewer titles show.
 - **Up close, it holds still.** As soon as you bring the view closer, with the wheel, by picking a search result or by walking with the arrows, the globe stops turning, and it does not turn again until you see the whole network once more. That way the node you are looking at does not drift away. Zooming out past the whole network does not stop it.

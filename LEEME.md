@@ -474,10 +474,12 @@ junto a tus listas.
   alguien escribió.
 
 <img
-  src="assets/screens/app/brainsty-living-dark.webp"
-  alt="Brainsty, viva: una red de 1.931 nodos que gira despacio como un globo,
-  los documentos como cuadrados y las tareas como círculos del color de su
-  carpeta o su lista, con viajeros de luz que recorren sus líneas"/>
+  src="assets/screens/app/en-brainsty-living-dark.webp"
+  alt="La ventana de Tisty con Brainsty abierto, en el tema oscuro y en inglés:
+  la barra lateral con las tareas de hoy y la Biblioteca y, al lado, la red,
+  1.931 nodos y 2.811 conexiones, girando despacio como un globo mientras
+  viajeros de luz recorren sus líneas, con la Leyenda plegada abajo a la
+  izquierda"/>
 
 [La red de Brainsty](https://www.tisty.app/es/ayuda/red-de-brainsty/), en la
 ayuda, lo cuenta todo.
