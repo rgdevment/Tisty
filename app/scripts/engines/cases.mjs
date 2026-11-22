@@ -36,6 +36,22 @@ export const LONG = `# Largo\n\n${Array.from({ length: 120 }, (_, n) => `Párraf
 
 const NO_LINE_DELETE_ON_WINDOWS = "Windows has no key that deletes back to the start of a line";
 
+const MISSING_PICTURE = PIECES.replace("](mini.png)", "](missing.png)");
+
+const caretInWords = (frame, words, offset) =>
+  frame.evaluate(
+    ([said, at]) => {
+      const walk = document.createTreeWalker(document.querySelector(".page"), NodeFilter.SHOW_TEXT);
+      for (let node = walk.nextNode(); node; node = walk.nextNode()) {
+        if (node.data !== said) continue;
+        getSelection().collapse(node, at);
+        return;
+      }
+      throw new Error(`no "${said}" alone in a text on the page`);
+    },
+    [words, offset],
+  );
+
 export const CASES = [
   {
     name: "newPageTitleTyped",
@@ -448,7 +464,7 @@ export const CASES = [
     name: "backAfterInlinePicture",
     doc: PIECES,
     run: async ({ clickAt, typed, press, page, frame }) => { await clickAt(" entre palabras", true); await press("Backspace"); },
-    was: "",
+    was: "![mini](mini.png)",
     now: "",
   },
   {
@@ -595,5 +611,33 @@ export const CASES = [
     },
     was: ".\n\n[^1]: ",
     now: "X.\n\n[^1]: Y",
+  },
+  {
+    name: "deleteSpaceBeforeInlinePicture",
+    doc: PIECES,
+    run: async ({ clickAt, press }) => { await clickAt("Una imagen"); await press("Delete"); },
+    was: " ",
+    now: "",
+  },
+  {
+    name: "deleteBeforeMissingPicture",
+    doc: MISSING_PICTURE,
+    run: async ({ clickAt, press, frame }) => {
+      await clickAt("Una");
+      await caretInWords(frame, "Una imagen ", "Una imagen ".length);
+      await press("Delete");
+    },
+    was: "![mini](missing.png)",
+    now: "",
+  },
+  {
+    name: "backAfterMissingPicture",
+    doc: MISSING_PICTURE,
+    run: async ({ clickAt, press }) => {
+      await clickAt(" entre palabras", true);
+      await press("Backspace");
+    },
+    was: "![mini](missing.png)",
+    now: "",
   },
 ];

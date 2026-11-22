@@ -96,6 +96,26 @@ export const rejoined = (text: string, at: number, marks: Marks): [number, Marks
   }
 };
 
+const ESCAPABLE = /[!-/:-@[-`{-~]/;
+
+export const escapeTaken = (text: string, one: Span): Span => {
+  if (one.from >= one.to || !ESCAPABLE.test(text[one.from] ?? "")) return one;
+  let slashes = 0;
+  while (text[one.from - 1 - slashes] === "\\") slashes++;
+  return slashes % 2 === 1 ? { from: one.from - 1, to: one.to } : one;
+};
+
+const RUN_CLOSING = /[*_~+=`]+$/;
+const RUN_OPENING = /^[*_~+=`]+/;
+
+export const pairsMet = (text: string, one: Span): Span => {
+  const line = text.lastIndexOf("\n", one.from - 1) + 1;
+  const closing = RUN_CLOSING.exec(text.slice(line, one.from))?.[0];
+  const opening = RUN_OPENING.exec(text.slice(one.to))?.[0];
+  if (!closing || closing !== opening) return one;
+  return { from: one.from - closing.length, to: one.to + opening.length };
+};
+
 export const unpaired = (text: string, one: Span) => {
   let { from, to } = one;
   if (from === to) return one;
@@ -180,7 +200,18 @@ export const worn = (text: string, one: Span, open: string, close: string): Edit
 };
 
 const LINE_MARKS =
-  /^[ \t]*(?:>[ \t]?)*[ \t]*(?:#{1,6}[ \t]+|[-*+][ \t]+(?:\[[ xX]\][ \t]+)?|\d+[.)][ \t]+)?/;
+  /^[ \t]*(?:>[ \t]?)*[ \t]*(?:#{1,6}[ \t]+|[-*+][ \t]+(?:\[[ xX]\][ \t]+)?|\d+[.)][ \t]+(?:\[[ xX]\][ \t]+)?|\[\^[^\]\s]+\]:[ \t]*)?/;
+
+const CLOSINGS = /^(?:[*_~+=`>]|\]\([^)\n]*\)|\]\[[^\]\n]*\])*\r?$/;
+
+export const closingOnly = (said: string) => CLOSINGS.test(said);
+
+export const wordsFrom = (text: string, at: number) => {
+  const start = text.lastIndexOf("\n", at - 1) + 1;
+  const ends = text.indexOf("\n", start);
+  const line = text.slice(start, ends < 0 ? text.length : ends);
+  return Math.min(at, start + (LINE_MARKS.exec(line)?.[0].length ?? 0));
+};
 
 // A mark never crosses a line, so words chosen over several blocks take a pair in each, past each line's own marks.
 export const wornEach = (text: string, one: Span, open: string, close: string): Edit => {

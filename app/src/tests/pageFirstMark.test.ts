@@ -49,6 +49,28 @@ describe("Backspace at the very start of a document that opens with a list", () 
     expect(text()).toBe("uno\n\nFin.\n");
   });
 
+  it("takes a task's box away by itself between the box and a chip, as WebKit sends no key there either", () => {
+    const text = opened(
+      "- [ ] uno\n- [ ] #tag dos\n",
+      '<ul data-at="0-25"><li class="task" data-at="0-10"><span class="check" data-done="false" contenteditable="false"></span><span data-src="6-9">uno</span></li>' +
+        '<li class="task" data-at="10-25"><span class="check" data-done="false" contenteditable="false"></span><span class="tag" data-tag="tag" data-src="16-20" contenteditable="false">#tag</span><span data-src="20-24"> dos</span></li></ul>',
+    );
+    document.getSelection()?.collapse(document.querySelectorAll("li")[1] as HTMLLIElement, 1);
+    expect(backspace().defaultPrevented).toBe(true);
+    expect(text()).toBe("- [ ] uno\n- #tag dos\n");
+  });
+
+  it("takes away a picture that opens an item when Backspace comes after it, not the item's mark", () => {
+    const text = opened(
+      "- uno\n- ![p](p.png) dos\n",
+      '<ul data-at="0-24"><li data-at="0-6"><span data-src="2-5">uno</span></li>' +
+        '<li data-at="6-24"><img src="p.png" alt="p" data-src="8-19" contenteditable="false"><span data-src="19-23"> dos</span></li></ul>',
+    );
+    document.getSelection()?.collapse(document.querySelectorAll("li")[1] as HTMLLIElement, 1);
+    expect(backspace().defaultPrevented).toBe(true);
+    expect(text()).toBe("- uno\n- dos\n");
+  });
+
   it("leaves Backspace to the browser anywhere past the first line", () => {
     const text = opened(
       "Antes\n\n- uno\n",
