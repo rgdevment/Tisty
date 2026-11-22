@@ -1,4 +1,5 @@
-import { type ReactNode, type RefObject, useEffect, useState } from "react";
+import { type ReactNode, type RefObject, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { t } from "../locales";
 import Menu from "./Menu";
 import { onMac } from "./macKeys";
@@ -81,19 +82,67 @@ export type Viewing = {
   readonly onTurn: (markdown: boolean) => void;
 };
 
+type Row = {
+  readonly frame: () => Window | null;
+  readonly children: ReactNode;
+};
+
+const KEPT_FROM_PAGE = ["mousedown", "pointerdown", "mouseup", "click", "dblclick", "keyup"];
+const OWN_KEYS = new Set(["Enter", " "]);
+
+export function TitleRow({ frame, children }: Row) {
+  const [row, setRow] = useState<HTMLElement | null>(null);
+  const page = frame()?.document;
+  useEffect(() => {
+    if (!page?.body) return;
+    const made = page.createElement("div");
+    made.className = "page-more-row";
+    for (const kind of KEPT_FROM_PAGE)
+      made.addEventListener(kind, (event) => event.stopPropagation());
+    made.addEventListener("keydown", (event) => {
+      if (OWN_KEYS.has(event.key)) event.stopPropagation();
+    });
+    made.addEventListener("contextmenu", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+    });
+    page.body.prepend(made);
+    setRow(made);
+    return () => made.remove();
+  }, [page]);
+  return row && row.ownerDocument === page ? createPortal(children, row) : null;
+}
+
 // The page's own choices wait behind one quiet button on the ribbon, first how its words are seen.
 export function PageMore({ markdown, onTurn }: Viewing) {
-  const [at, setAt] = useState<{ x: number; y: number } | null>(null);
+  const trigger = useRef<HTMLButtonElement>(null);
+  const [at, setAt] = useState<{ x: number; y: number; within: Window | null } | null>(null);
   const toggled = (button: HTMLElement) => {
     const box = button.getBoundingClientRect();
-    setAt(at ? null : { x: box.right - 210, y: box.bottom + 6 });
+    const within = button.ownerDocument.defaultView;
+    const frame = within?.frameElement?.getBoundingClientRect();
+    const x = (frame?.left ?? 0) + box.right - 210;
+    setAt(at ? null : { x, y: (frame?.top ?? 0) + box.bottom + 6, within: frame ? within : null });
   };
+  const rolling = at?.within;
+  useEffect(() => {
+    if (!rolling) return;
+    const shut = () => setAt(null);
+    rolling.addEventListener("scroll", shut, { passive: true });
+    return () => {
+      rolling.removeEventListener("scroll", shut);
+      const inner = rolling.document;
+      const lost = !inner.activeElement || inner.activeElement === inner.body;
+      if (lost && document.hasFocus()) trigger.current?.focus({ preventScroll: true });
+    };
+  }, [rolling]);
   const seen = (asMarkdown: boolean) => () => {
     if (asMarkdown !== markdown) onTurn(asMarkdown);
   };
   return (
     <>
       <button
+        ref={trigger}
         type="button"
         aria-haspopup="menu"
         aria-expanded={at !== null}

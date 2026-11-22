@@ -16,7 +16,8 @@
     "./callouts.css": "./src/callouts.css",
     "./code.css": "./src/code.css",
     "./diagrams.css": "./src/diagrams.css",
-    "./tables.css": "./src/tables.css"
+    "./tables.css": "./src/tables.css",
+    "./lively": "./src/lively.ts"
   },
   "dependencies": {
     "@tisty/contracts": "file:../../contracts/dist/typescript",

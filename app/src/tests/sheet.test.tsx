@@ -1,4 +1,5 @@
 import { render, waitFor } from "@testing-library/react";
+import { sheetFor } from "tisty-editor/read";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { handTo } from "../dropped";
 import { closed, laid, parting } from "../ui/parting";
@@ -588,6 +589,42 @@ describe("the whole-document sheet", () => {
     expect(view.queryByText("under the sheet")).toBeNull();
     view.getByRole("button", { name: "Pages" }).click();
     await waitFor(() => expect(view.getByText("under the sheet")).toBeTruthy());
+  });
+
+  it("lays the page's own menu on its title's row, inside the frame", async () => {
+    const view = render(
+      <Sheet
+        value={BODY}
+        label="Compras"
+        onWrite={() => {}}
+        wholeable
+        more={<button type="button">More for this page</button>}
+      />,
+    );
+    const page = await loaded(await shown(view.container));
+    await waitFor(() =>
+      expect(page.querySelector(".page-more-row > button")?.textContent).toBe("More for this page"),
+    );
+    expect(view.container.querySelector(".lively-room")).not.toBeNull();
+    expect(view.queryByText("More for this page")).toBeNull();
+  });
+
+  it("leaves a sized sheet as it was, its menu kept out of the frame", async () => {
+    const view = render(
+      <Sheet
+        value={BODY}
+        label="Compras"
+        onWrite={() => {}}
+        wholeable
+        sheet={sheetFor("a4", false, "—")}
+        more={<button type="button">More for this page</button>}
+      />,
+    );
+    const page = await loaded(await shown(view.container));
+    await waitFor(() => expect(page.documentElement.classList.contains("lively")).toBe(true));
+    expect(page.querySelector(".page-more-row")).toBeNull();
+    expect(view.container.querySelector(".lively-room")).toBeNull();
+    expect(view.container.querySelector(".on-sheets")).not.toBeNull();
   });
 
   it("shows the link to the next page as it is, folding nothing on a page", async () => {

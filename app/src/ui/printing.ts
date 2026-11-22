@@ -82,6 +82,21 @@ const narrowest = (table: HTMLElement): number => {
   return needs;
 };
 
+const onPaper = <T>(page: Document | Element | null | undefined, measure: () => T): T => {
+  const shown = page && ("documentElement" in page ? page : page.ownerDocument);
+  const root = shown?.documentElement;
+  if (!shown || !root?.classList.contains("lively")) return measure();
+  const sheet = shown.scrollingElement;
+  const top = sheet?.scrollTop ?? 0;
+  root.classList.remove("lively");
+  try {
+    return measure();
+  } finally {
+    root.classList.add("lively");
+    if (sheet) sheet.scrollTop = top;
+  }
+};
+
 const blocksOf = (page: Document | Element | null | undefined, kind: string): HTMLElement[] => {
   if (!page) return [];
   const scope = page.nodeType === 1 ? ":scope" : ".page";
@@ -95,11 +110,13 @@ export const seenIn = (
 ): Seen => ({
   turns: placed(blocksOf(page, ".sheet-turn").map((one) => one.nextElementSibling)),
   opened: placed(blocksOf(page, "details[open]")),
-  wide: placed(
-    blocksOf(page, ".table").filter((one) => {
-      const table = one.querySelector<HTMLElement>(":scope > table");
-      return table !== null && narrowest(table) > across;
-    }),
+  wide: onPaper(page, () =>
+    placed(
+      blocksOf(page, ".table").filter((one) => {
+        const table = one.querySelector<HTMLElement>(":scope > table");
+        return table !== null && narrowest(table) > across;
+      }),
+    ),
   ),
 });
 

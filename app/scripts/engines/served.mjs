@@ -51,9 +51,10 @@ export const questionOf = async (request) => {
   return Buffer.concat(parts).toString("utf8");
 };
 
-const shell = `<!doctype html><html><head><meta charset="utf-8"></head><body style="margin:0;background:#fff"><div id="root"></div><script type="module" src="/${normalizePath(relative(app, join(here, "page.ts")))}"></script></body></html>`;
+const shell = (entry) =>
+  `<!doctype html><html><head><meta charset="utf-8"></head><body style="margin:0;background:#fff"><div id="root"></div><script type="module" src="/${normalizePath(relative(app, join(here, entry)))}"></script></body></html>`;
 
-export const served = async () => {
+export const served = async (entry = "page.ts") => {
   const bridge = core();
   const answering = {
     name: "engines",
@@ -66,7 +67,7 @@ export const served = async () => {
           return;
         }
         if (request.url === "/engines.html") {
-          const html = await server.transformIndexHtml(request.url, shell);
+          const html = await server.transformIndexHtml(request.url, shell(entry));
           response.writeHead(200, { "content-type": "text/html" }).end(html);
           return;
         }

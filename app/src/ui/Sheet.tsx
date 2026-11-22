@@ -49,7 +49,7 @@ import { useKeptHeight } from "./heights";
 import { edited, HOST } from "./hosting";
 import type { CardsShown } from "./liveCards";
 import { livelyChoices } from "./livelyMenu";
-import { LivelyBelow, useFrameScroll, type Viewing } from "./liveSheet";
+import { LivelyBelow, TitleRow, useFrameScroll, type Viewing } from "./liveSheet";
 import Menu, { type Choice } from "./Menu";
 import { MOVE_KEYS } from "./macKeys";
 import { mended as mendedText } from "./mending";
@@ -120,6 +120,7 @@ type Props = {
   readonly agent?: boolean;
   // Whoever holds the page turns its view; left out, only Ctrl+E turns it.
   readonly view?: Viewing;
+  readonly more?: ReactNode;
   readonly sheet?: SheetSize;
   /** The page as it is drawn, for whoever prints it the way it is seen. */
   readonly onPage?: (page: Window | null) => void;
@@ -1275,6 +1276,9 @@ export default function Sheet(props: Readonly<Props>) {
       >
         {!ready && <Skeleton inset={props.inline ? "46px 32px" : undefined} />}
         {lively && ready && <FrameThumb frame={framed} ready={ready} turned={turned} />}
+        {lively && ready && !props.sheet && props.more && (
+          <TitleRow frame={framed}>{props.more}</TitleRow>
+        )}
         <Page
           bar={BAR}
           sheet={props.sheet}

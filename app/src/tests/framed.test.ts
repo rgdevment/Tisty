@@ -6,6 +6,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { MARK_FADES } from "../ui/anchoring";
 import { dressedAsWindow, framed } from "../ui/framed";
 import task from "../ui/taskpage.css?raw";
+import { inTheRepo } from "./repo";
 
 const page = (html: string): Document => new DOMParser().parseFromString(html, "text/html");
 
@@ -43,7 +44,7 @@ describe("the mark an agent's words leave", () => {
 
 describe("what only reads", () => {
   const SRC = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-  const PACKAGES = resolve(SRC, "..", "..", "packages");
+  const PACKAGES = inTheRepo("packages");
   const IMPORTS =
     /^(?:import\s+(?!type\b)[^;"]*?from\s+|import\s+|export\s+(?:\*|\{)[^;"]*?from\s+)"([^"]+)"/gm;
 
@@ -109,7 +110,6 @@ const compoundsOf = (selector: string) => {
 
 const ABOVE_EVERY_BLOCK = /^(html|:root|body)(?![\w-])|\.page(?![\w-])/;
 
-const here = dirname(fileURLToPath(import.meta.url));
 const LOOKS = [
   ...[
     "page.css",
@@ -120,8 +120,8 @@ const LOOKS = [
     "tables.css",
     "diary.css",
     "taskCards.css",
-  ].map((one) => join(here, "../../../packages/tisty-sheet/src", one)),
-  join(here, "../ui/taskpage.css"),
+  ].map((one) => inTheRepo("packages", "tisty-sheet", "src", one)),
+  inTheRepo("app", "src", "ui", "taskpage.css"),
 ]
   .map((one) => readFileSync(one, "utf8"))
   .join("\n");

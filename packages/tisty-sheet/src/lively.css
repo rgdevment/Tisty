@@ -1,0 +1,173 @@
+.page-more-row {
+  display: none;
+}
+@media screen {
+  html.lively:not(.tall):not(.sheeted) {
+    --measure: 68ch;
+    --column: var(--wide, calc(var(--measure) + 112px));
+  }
+  html.lively:not(.tall):not(.sheeted) body {
+    font-size: 16px;
+    line-height: 1.7;
+  }
+  html.lively:not(.tall):not(.sheeted) .page {
+    max-width: var(--column);
+    padding: 40px 56px 64px;
+  }
+  html.lively:not(.tall):not(.sheeted) .page > :is(hr, .sheet-turn) {
+    margin-inline: calc(50% - 50vw);
+  }
+  html.dark.lively:not(.tall):not(.sheeted) .page {
+    color: #d4d4da;
+  }
+  html.dark.lively:not(.tall):not(.sheeted) .page > :is(h1, h2, h4, h5, h6),
+  html.dark.lively:not(.tall):not(.sheeted) .page strong {
+    color: var(--tisty-ink);
+  }
+  html.dark.lively:not(.tall):not(.sheeted) .page > h3,
+  html.dark.lively:not(.tall):not(.sheeted) .page .cm-h3 {
+    color: #ececf1;
+  }
+  html.dark.lively:not(.tall):not(.sheeted) .page blockquote[data-callout="idea"] strong {
+    color: inherit;
+  }
+  html.lively:not(.tall):not(.sheeted)
+    .page:where(:not(.as-written))
+    > :is(:is(h1, h2, h3, p):first-child, .title) {
+    margin: 0 0 0.9em;
+    padding: 0 0 16px;
+    font-size: 1.75em;
+    font-weight: 650;
+    line-height: 1.2;
+    letter-spacing: -0.018em;
+    color: var(--tisty-ink);
+  }
+  html.lively:not(.tall):not(.sheeted)
+    .page:where(:not(.as-written))
+    > :is(h1, h2, h3, p):first-child:only-child {
+    margin-bottom: 0;
+    padding-bottom: 0;
+  }
+  html.lively:not(.tall):not(.sheeted) .page > h2 {
+    margin: 1.55em 0 0.35em;
+    font-size: 1.3em;
+    font-weight: 650;
+    line-height: 1.3;
+    letter-spacing: -0.01em;
+  }
+  html.lively:not(.tall):not(.sheeted) .page > h3 {
+    margin: 1.25em 0 0.25em;
+    font-size: 1.1em;
+    font-weight: 650;
+    line-height: 1.35;
+  }
+  html.lively:not(.tall):not(.sheeted) .page > :is(h4, h5, h6) {
+    margin: 1.2em 0 0.25em;
+    font-weight: 650;
+  }
+  html.lively:not(.tall):not(.sheeted) .page strong {
+    font-weight: 650;
+  }
+  html.lively:not(.tall):not(.sheeted) .page > p {
+    margin: 0.72em 0;
+  }
+  html.lively:not(.tall):not(.sheeted) .page > :is(ul, ol) {
+    margin: 0.72em 0;
+    padding-left: 1.45em;
+  }
+  html.lively:not(.tall):not(.sheeted) .page li.task > .check {
+    top: calc(0.5lh - 7.5px);
+  }
+  html.lively:not(.tall):not(.sheeted) .page > blockquote:not([data-callout="idea"]) {
+    margin: 1em 0;
+  }
+  html.lively:not(.tall):not(.sheeted) .page > blockquote.callout:not([data-callout="idea"]) {
+    margin: 1.1em 0;
+    padding: 12px 16px;
+    color: inherit;
+  }
+  html.lively:not(.tall):not(.sheeted) .page > :is(figure, div.table, details, div.math) {
+    margin-block: 1.1em;
+  }
+  html.lively:not(.tall):not(.sheeted) .page > :is(h2, h3) + :is(figure, div.table, details) {
+    margin-top: 0.6em;
+  }
+  html.lively:not(.tall):not(.sheeted)
+    body:has(> .page-more-row)
+    .page:where(:not(.as-written))
+    > :is(:is(h1, h2, h3, p):first-child, .title) {
+    padding-right: 44px;
+  }
+  html.lively:not(.tall):not(.sheeted)
+    body:has(> .page-more-row)
+    .page
+    > :is(
+      :first-child:not(.front, .title, h1, h2, h3, p),
+      .front:first-child + :not(.title, h1, h2, h3, p)
+    ),
+  html.lively:not(.tall):not(.sheeted)
+    body:has(> .page-more-row)
+    .page.as-written
+    > :is(:first-child:not(.front), .front:first-child + *) {
+    margin-top: 40px;
+  }
+  html.lively:not(.tall):not(.sheeted) body:has(> .page-more-row) .page.whole {
+    padding-top: calc(48px + 1.75em * 1.2);
+  }
+  html.lively:not(.tall):not(.sheeted) .page .cm-h1 {
+    font-size: 1.75em;
+    font-weight: 650;
+    line-height: 1.2;
+  }
+  html.lively:not(.tall):not(.sheeted) .page .cm-h2 {
+    font-size: 1.3em;
+    font-weight: 650;
+  }
+  html.lively:not(.tall):not(.sheeted) .page .cm-h3 {
+    font-size: 1.1em;
+    font-weight: 650;
+  }
+  html.lively:not(.tall):not(.sheeted) .page-more-row {
+    position: absolute;
+    z-index: 1;
+    top: 0;
+    right: 0;
+    left: 0;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    box-sizing: border-box;
+    max-width: var(--column);
+    height: calc(40px + 1.75em * 1.2);
+    margin-inline: auto;
+    padding: 40px 56px 0 0;
+    pointer-events: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  html.lively:not(.tall):not(.sheeted) .page-more-row > button {
+    display: grid;
+    place-items: center;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border: 0;
+    border-radius: 8px;
+    background: none;
+    color: var(--tisty-faint);
+    font: inherit;
+    font-size: 18px;
+    line-height: 1;
+    cursor: pointer;
+    pointer-events: auto;
+  }
+  html.lively:not(.tall):not(.sheeted) .page-more-row > button:hover,
+  html.lively:not(.tall):not(.sheeted) .page-more-row > button[aria-expanded="true"] {
+    background: var(--tisty-hover);
+    color: var(--tisty-ink);
+  }
+  html.lively:not(.tall):not(.sheeted) .page-more-row > button:focus-visible {
+    outline: 2px solid var(--tisty-accent);
+    outline-offset: 1px;
+  }
+}

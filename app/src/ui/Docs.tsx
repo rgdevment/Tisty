@@ -820,6 +820,7 @@ export default function Docs({
     onTurn: (markdown) => setMarkdownOf(markdown ? (open?.file ?? null) : null),
   };
   const pageMore = bolted ? null : <PageMore {...viewing} />;
+  const ribboned = sheets || agentShown;
   const placed = above ? (
     <Ribbon
       of={above}
@@ -827,12 +828,12 @@ export default function Docs({
       told={aboveTold}
       here={open?.file ?? ""}
       onOpen={(doc) => onDoc?.(doc.file)}
-      view={pageMore}
+      view={ribboned && pageMore}
     >
       {!beside && spoken}
     </Ribbon>
   ) : (
-    ((spoken && !beside) || own?.tongueApart || pageMore || agentShown) && (
+    ((spoken && !beside) || own?.tongueApart || (ribboned && pageMore) || agentShown) && (
       <div className={agentShown ? "ribbon agent-ribbon" : "ribbon"}>
         {agentShown ? (
           <AgentTrail trail={trailed(folders, own?.folder ?? null)} onFolder={onFolder} />
@@ -841,7 +842,7 @@ export default function Docs({
         )}
         {own?.tongueApart && <p role="note">{t("tongueApart")}</p>}
         {!beside && spoken}
-        {pageMore}
+        {ribboned && pageMore}
       </div>
     )
   );
@@ -1118,6 +1119,7 @@ export default function Docs({
                   place={place}
                   wholeable
                   view={viewing}
+                  more={!ribboned && pageMore}
                   wholeAsked={wholeAsked}
                   allAsked={allAsked}
                   lately={stirred ? lately : null}
