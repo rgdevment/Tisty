@@ -191,7 +191,7 @@ Con los hooks, cuando un turno editó archivos y no escribió nada en Tisty, el 
 
 ```json
 { "decision": "block",
-  "reason": "You edited files this turn and wrote nothing in Tisty. If this was work on a Tisty task, tick the steps you finished; if the work is done, `say_done` with the proof. A decision, something ruled out or a block goes in `note`. If it was not work on a task, end your turn without writing anything." }
+  "reason": "You edited files this turn and wrote nothing in Tisty. If this was work on a Tisty task, leave it in one `tick`: the steps you finished, if any, and `state` with what is done, what is left and the decisions in force. If it was not work on a task, end your turn without writing anything." }
 ```
 
 Si el agente lo deja pasar, el hook calla hasta que vuelva a llamar a Tisty: un turno fuera de una tarea cuesta como mucho un turno extra.

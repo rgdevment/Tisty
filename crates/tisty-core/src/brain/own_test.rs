@@ -63,3 +63,39 @@ fn a_section_s_bytes_cut_the_same_text_as_its_lines() {
         "the last section runs to the end"
     );
 }
+
+#[test]
+fn a_task_card_counts_the_steps_ticked_and_those_an_agent_said_done() {
+    use crate::Task;
+    use crate::model::Step;
+
+    let mut task = Task::new(ulid::Ulid::generate(), "Renew the certificate", "a0");
+    task.steps = [(true, false), (false, true), (false, false)]
+        .iter()
+        .enumerate()
+        .map(|(n, (done, said))| Step {
+            id: ulid::Ulid::generate(),
+            text: format!("step {n}"),
+            done: *done,
+            order: format!("a{n}"),
+            by_agent: false,
+            said: *said,
+        })
+        .collect();
+    task.retally();
+
+    let own = super::of_task(&task, Vec::new());
+
+    assert_eq!(task.steps_done(), (1, 3), "the person ticked one");
+    assert_eq!(
+        own.facts.steps,
+        Some([2, 3]),
+        "the card counts the agent's word too"
+    );
+    assert_eq!(
+        super::of_task(&Task::new(ulid::Ulid::generate(), "Bare", "a0"), Vec::new())
+            .facts
+            .steps,
+        None
+    );
+}

@@ -269,6 +269,23 @@ fn a_task_card_says_its_state_stage_and_neighbours() {
 }
 
 #[test]
+fn a_task_card_counts_a_step_the_agent_said_done_as_its_project_view_does() {
+    let served = Served::new();
+    served.person().lets_the_agent_in();
+    let task = served.person().captures("Renew the certificate");
+    served.person().adds_step(task, "Pay");
+    served.person().adds_step(task, "Install");
+    let mut talk = served.connect();
+    talk.call("tick", json!({ "task": task.to_string(), "step": "Pay" }));
+    assert!(served.person().state().tasks[&task].steps[0].said);
+
+    let card = talk.brain(json!({ "task": task.to_string() }));
+
+    assert_eq!(card["steps"], json!([1, 2]), "{card}");
+    assert_eq!(card["stage"], "under_way");
+}
+
+#[test]
 fn a_project_groups_its_open_parts_by_how_far_each_got() {
     let served = Served::new();
     let mut talk = served.connect();

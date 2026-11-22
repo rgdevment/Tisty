@@ -94,7 +94,7 @@ fn of_doc(state: &State, ground: &Ground, kept: &Kept, read: &Read) -> Own<DocFa
 }
 
 fn of_task(task: &Task, away: Vec<String>) -> Own<TaskFacts> {
-    let (done, all) = task.steps_done();
+    let (done, all) = task.steps_done_or_said();
     Own {
         facts: TaskFacts {
             priority: task.priority.set().then_some(task.priority),

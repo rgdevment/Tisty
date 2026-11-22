@@ -155,7 +155,13 @@ fn read_task(paths: &Paths, args: &Value, said: String) -> Result<Value, Refused
         whole["parts"] = json!(
             parts
                 .iter()
-                .map(|one| json!({ "id": one.id.to_string(), "title": one.title, "status": one.status }))
+                .map(|one| {
+                    let mut part = json!({ "id": one.id.to_string(), "title": one.title, "status": one.status });
+                    if waiting_word(one).is_some() {
+                        part["stage"] = json!("waiting");
+                    }
+                    part
+                })
                 .collect::<Vec<_>>()
         );
     }
@@ -215,11 +221,14 @@ fn read_task(paths: &Paths, args: &Value, said: String) -> Result<Value, Refused
     }
     if wants("parts") {
         for one in &parts {
+            let (mark, waiting) = match (one.is_open(), waiting_word(one)) {
+                (false, _) => ('x', String::new()),
+                (true, Some(word)) => ('~', format!(" ({word}, waiting on the person)")),
+                (true, None) => (' ', String::new()),
+            };
             plainly.push_str(&format!(
-                "\npart [{}] {} — {}",
-                if one.is_open() { ' ' } else { 'x' },
-                one.id,
-                one.title
+                "\npart [{mark}] {} — {}{waiting}",
+                one.id, one.title
             ));
         }
     }
@@ -568,6 +577,16 @@ pub(super) fn gone(state: &State, said: &str) -> Refused {
             "no task here has the id {said}. It may have been deleted."
         )),
     }
+}
+
+// An agent's word leaves a part open until the person decides, as `brain`'s project view says.
+fn waiting_word(part: &Task) -> Option<&'static str> {
+    let word = part.resolved.as_ref().filter(|_| part.is_open())?;
+    Some(if word.drop {
+        "said not doing"
+    } else {
+        "said done"
+    })
 }
 
 pub(super) fn standing(task: &Task) -> String {

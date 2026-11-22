@@ -34,6 +34,17 @@ fn due(task: TaskId) -> Due {
 }
 
 #[test]
+fn a_turn_left_unwritten_asks_for_one_tick_with_its_state_and_nothing_else() {
+    let asked = TURN_LEFT_UNWRITTEN;
+
+    assert!(asked.contains("one `tick`") && asked.contains("`state`"));
+    for never in ["`note`", "`say_done`", "progress"] {
+        assert!(!asked.contains(never), "{never} in {asked}");
+    }
+    assert!(asked.contains("end your turn without writing anything"));
+}
+
+#[test]
 fn a_task_read_and_left_unwritten_is_asked_about_once_after_a_quiet_stretch() {
     let task = Ulid::generate();
     let mut open = OpenTask::default();

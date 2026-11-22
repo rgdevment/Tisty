@@ -188,7 +188,7 @@ With the hooks, when a turn edited files and wrote nothing in Tisty, the turn go
 
 ```json
 { "decision": "block",
-  "reason": "You edited files this turn and wrote nothing in Tisty. If this was work on a Tisty task, tick the steps you finished; if the work is done, `say_done` with the proof. A decision, something ruled out or a block goes in `note`. If it was not work on a task, end your turn without writing anything." }
+  "reason": "You edited files this turn and wrote nothing in Tisty. If this was work on a Tisty task, leave it in one `tick`: the steps you finished, if any, and `state` with what is done, what is left and the decisions in force. If it was not work on a task, end your turn without writing anything." }
 ```
 
 If the agent lets it pass, the hook stays quiet until it calls Tisty again: a turn outside a task costs one extra turn at most.

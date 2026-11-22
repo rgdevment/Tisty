@@ -6722,6 +6722,102 @@ fn content(said: &serde_json::Value) -> &serde_json::Value {
 }
 
 #[test]
+fn read_tells_a_part_an_agent_said_done_as_waiting_on_the_person() {
+    let served = Served::new();
+    served.person().lets_the_agent_in();
+    let made = served.call(
+        "propose",
+        serde_json::json!({ "title": "Ship the brain", "parts": [
+            { "title": "Rank" },
+            { "title": "Gates" },
+            { "title": "Docs" },
+            { "title": "Tests" }
+        ]}),
+    );
+    let whole = content(&made)["id"].as_str().unwrap().to_string();
+    let part = |title: &str| served.person().id_of(title).to_string();
+    served.call(
+        "say_done",
+        serde_json::json!({ "task": part("Gates"), "body": "Gates hold on both ends." }),
+    );
+    served.call(
+        "say_not_doing",
+        serde_json::json!({ "task": part("Tests"), "body": "The engine tests already cover it." }),
+    );
+    served.person().closes(served.person().id_of("Docs"));
+
+    let read = served.call(
+        "read",
+        serde_json::json!({ "task": &whole, "fields": ["parts"] }),
+    );
+
+    let mut stages: Vec<(&str, &serde_json::Value)> = content(&read)["parts"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|one| (one["title"].as_str().unwrap(), &one["stage"]))
+        .collect();
+    stages.sort_by_key(|(title, _)| *title);
+    let waiting = serde_json::json!("waiting");
+    assert_eq!(
+        stages,
+        [
+            ("Docs", &serde_json::Value::Null),
+            ("Gates", &waiting),
+            ("Rank", &serde_json::Value::Null),
+            ("Tests", &waiting),
+        ],
+        "{read}"
+    );
+    let text = read["result"]["content"][0]["text"].as_str().unwrap();
+    let lines: Vec<&str> = text.lines().collect();
+    for line in [
+        format!("part [ ] {} — Rank", part("Rank")),
+        format!(
+            "part [~] {} — Gates (said done, waiting on the person)",
+            part("Gates")
+        ),
+        format!("part [x] {} — Docs", part("Docs")),
+        format!(
+            "part [~] {} — Tests (said not doing, waiting on the person)",
+            part("Tests")
+        ),
+    ] {
+        assert!(lines.contains(&line.as_str()), "{line} in {text}");
+    }
+}
+
+#[test]
+fn read_says_every_part_waits_once_when_all_of_them_do() {
+    let served = Served::new();
+    served.person().lets_the_agent_in();
+    let made = served.call(
+        "propose",
+        serde_json::json!({ "title": "Ship the cards", "parts": [
+            { "title": "Draw" },
+            { "title": "Gate" }
+        ]}),
+    );
+    let whole = content(&made)["id"].as_str().unwrap().to_string();
+    for title in ["Draw", "Gate"] {
+        let id = served.person().id_of(title).to_string();
+        served.call(
+            "say_done",
+            serde_json::json!({ "task": id, "body": "Done and tested." }),
+        );
+    }
+
+    let read = served.call(
+        "read",
+        serde_json::json!({ "task": &whole, "fields": ["parts"] }),
+    );
+
+    let said = content(&read);
+    assert_eq!(said["each"]["parts"]["stage"], "waiting", "{said}");
+    assert!(said["parts"][0]["stage"].is_null(), "{said}");
+}
+
+#[test]
 fn a_whole_and_its_parts_are_written_in_one_call() {
     let served = Served::new();
     served.person().lets_the_agent_in();

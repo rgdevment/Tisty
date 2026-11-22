@@ -333,6 +333,15 @@ impl Task {
         (self.volume.steps_done, self.volume.steps)
     }
 
+    pub fn steps_done_or_said(&self) -> (usize, usize) {
+        let done = self
+            .steps
+            .iter()
+            .filter(|step| step.done || step.said)
+            .count();
+        (done, self.steps.len())
+    }
+
     pub fn journal_count(&self) -> usize {
         self.volume.journal
     }
