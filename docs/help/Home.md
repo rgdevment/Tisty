@@ -4,48 +4,44 @@
 
 <h1 align="center">Tisty's help</h1>
 
-<p align="center"><strong>Shared working memory for you and your AI agent: notes, documents and tasks in local Markdown.</strong><br/>You see the whole. Your agent, every detail. One shared memory.<br/>It works without an agent too, the traditional way: your notes, documents and tasks, by hand and at your own pace.<br/>No accounts. No subscriptions. No telemetry. No server.</p>
+<p align="center"><strong>How to use each thing, step by step and with examples.</strong></p>
 
 <p align="center"><strong>English</strong> · <a href="Inicio">Español</a></p>
 
 ---
 
-I started building Tisty to solve a problem of my own, and little by little I saw it was not only mine: everyone ran into it, and each solved it their own way.
+This is the help for Tisty: how to use each thing, with examples, whether you work with an AI agent or on your own. What Tisty is and why it exists is on [tisty.app](https://www.tisty.app/); here you go straight to what you want to do.
 
-**You stop explaining. It stops starting over.** Your AI agent knows the details better than anyone, and forgets them the moment the session ends. So everybody patches it: a `NOTES.md` behind `.gitignore`, a Markdown file per session, a `TASKS.md` nobody keeps up to date, an `AGENTS.md` that only grows. They go stale, they get lost between branches, machines and projects, and the agent rereads all of it every session.
+## Start with what you want to do
 
-Tisty is a desktop app where you plan your tasks in natural language and keep what you know: steps, linked documents, ideas and a diary. Brainsty draws it all joined, as one network. You and your AI agent read and write in that same memory, on your disk, in Markdown. When you finish a task it moves to the archive with everything it gathered — the description, the journal, the steps, the files, the documents you leaned on — and search reaches all of it years later. *How did I solve that last time?* Tisty has it. Beside the tasks, **documents** keep what you know, one per subject, as plain Markdown any other editor reads.
+### On your own
 
-And if you would rather work in a more personal way, with no agent, Tisty serves you just the same: your tasks, your documents, your ideas and your diary, in sight and joined in [Brainsty](Brainsty-Network). The agent is one way to use it, not a condition.
+- **Install it and take the first steps:** [[Installation]].
+- **Write a task down the way you would say it:** [[Natural language|Natural-Language]].
+- **Put the day and the week in order:** [[Tasks]] and [[The spread and reminders|Spread-and-Reminders]].
+- **Keep what you know in a document:** [[Documents]] and [[The editor|Markdown-Editor]].
+- **Catch an idea before it goes:** [Ideas](Documents#ideas).
+- **Write what happened today:** [Diary](Documents#diary).
+- **See everything you keep, joined:** [[The Brainsty network|Brainsty-Network]].
+- **Find how you solved it last time:** [[The archive|Archive]].
 
-And it is the memory of the AI agent you already use. Through a local **MCP server** — on your machine, with no account and no network — GitHub Copilot, Claude Code, Codex, Cursor or any MCP client asks what moved since last time, reads a document's outline and then only the section it needs, and writes down what it learned for the next session. It works and tells you when something is done; you review it and close it, because nothing closes without you. You decide what it may do.
+### With your AI agent
 
-## Real problems, real fixes
+- **Connect it:** [[Assistants and MCP|Assistants-and-MCP]].
+- **Know what it may do and what it never does:** [[What an assistant may do|MCP-Permissions]].
+- **See how it works in a real session:** [[How an agent works|How-an-Agent-Works]].
+- **Keep the rules of all your agents in one place:** [[Agents|AGENTS-Folder]].
+- **Go back to what a document said before a change:** [Earlier versions](Documents#earlier-versions).
 
-- **A developer** explains the project to the agent again every session. **With Tisty:** the agent asks what moved, opens the task it was on with its ticked steps, and reads what it noted yesterday — *the webhook fails on old signatures; retrying ruled out* — and carries on from there.
-- **A `NOTES.md` that grew to 256 KB** is reread whole every time. **With Tisty:** it lives as documents split by subject, in pages, and the agent reads the outline and one section: about 97% less.
-- **A PM** is asked, a month later, «why did we decide this?». **With Tisty:** one living document per subject keeps each decision dated with its why, and the agent finds it and quotes it.
-- **A QA** sees the same screen break again, and nobody remembers last time's cases. **With Tisty:** the archived regression task keeps them as steps, with what was seen in each.
-- **A handover** to a PO or to the QA joining the project ends up pasted into a chat. **With Tisty:** it goes through Folio, the document encrypted on your machine, signed by you, gone on its own when unused. See [Sharing](Documents#sharing).
-- **At home**, the bank paperwork comes back every year. **With Tisty:** the archived task says how you did it last time.
+### Your files and your privacy
 
-How an agent works with all of it, and what it saves, is in [A day with your agent](Assistants-and-MCP#a-day-with-your-agent).
+- **Have the same on two computers:** [[Sync and backup|Sync-and-Backup]].
+- **Share a document with someone:** [Sharing](Documents#sharing).
+- **Know what is stored and what leaves your computer:** [[Privacy]].
 
 ## A task or a document?
 
-**Something you will do is a task. Something you will come back to is a document.** A task ends, often soon, and then stays in the archive as knowledge with a date: months later a search tells you how you solved it. A document — a manual, a recipe, the notes on a client or a machine, a year of minutes — is read again, corrected and added to for years.
-
-An idea is a thought caught on the fly, before you know whether it is something to do or something to keep: a few words, 140 at most, dated, on the Ideas sheet. It waits for you to sort it out: it becomes a task, goes into the document on its subject, or is set aside. A note is something else: the dated line in a task's journal.
-
-A task is also a document, one with an end: that is why it has a page of its own, where a spike gathers what you read, tried and ruled out, the recording of the meeting and the vendor's PDF, before it is split into parts and done. [[The whole idea, with an example|Tasks#a-task-or-a-document]].
-
-![The Archive since February 2026: the bars of each month, the counts of closed tasks, stories, routine turns, trace and longest run, and the stories grouped by month, such as Compare supermarket spending against the budget and Review the incident logs looking for personal data, closed by an agent](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/app/en-archive-light.webp)
-
-![The diagram window over the guide: the shapes on the left, the flowchart Will you do it, or read it again? in the middle, and on the right the Mermaid text that goes into the document, live](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/app/en-diagram-light.webp)
-
-![Ideas as sticky notes in colours, each with its date and minute, written by hand: Photos of the Patagonia trip in the diary, Rina's calendar with colors by type of visit, Measure the token cost of each MCP tool](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/app/en-ideas-light.webp)
-
-![Priorities: Do, Schedule, Delegate and Minor, with Urgent and Not urgent across the top and Important and Not important down the side, each box with its count and its tasks, and What is left to classify · 61 beside the title](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/app/en-priorities-light.webp)
+**Something you will do is a task. Something you will come back to is a document.** A task ends and stays in the archive, where a search tells you months later how you solved it. A document is read again, corrected and extended for years. And an idea is a thought caught on the fly, which later becomes a task, goes into a document or is set aside. [[The whole idea, with an example|Tasks#a-task-or-a-document]].
 
 ## Start here
 

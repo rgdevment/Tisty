@@ -4,48 +4,44 @@
 
 <h1 align="center">La ayuda de Tisty</h1>
 
-<p align="center"><strong>Memoria de trabajo compartida para ti y tu agente de IA: notas, documentos y tareas en Markdown local.</strong><br/>Tú ves el conjunto. Tu agente, cada detalle. Una sola memoria.<br/>También funciona sin agente, a la manera tradicional: tus notas, documentos y tareas, a mano y a tu ritmo.<br/>Sin cuentas. Sin suscripciones. Sin telemetría. Sin servidor.</p>
+<p align="center"><strong>Cómo se usa cada cosa, paso a paso y con ejemplos.</strong></p>
 
 <p align="center"><a href="Home">English</a> · <strong>Español</strong></p>
 
 ---
 
-Comencé a desarrollar Tisty para resolver un problema personal, y fui viendo que ese problema no era solo mío: a todos les pasaba, y cada uno lo resolvía a su manera.
+Esta es la ayuda de Tisty: cómo se usa cada cosa, con ejemplos, trabajes con un agente de IA o por tu cuenta. Qué es Tisty y por qué existe está en [tisty.app](https://www.tisty.app/es/); aquí vas directo a lo que quieres hacer.
 
-**Ni tú vuelves a explicar, ni él vuelve a empezar.** Tu agente de IA conoce el detalle mejor que nadie, y lo olvida en cuanto termina la sesión. Por eso cada quien lo parcha: un `NOTES.md` detrás de `.gitignore`, un Markdown por sesión, un `TASKS.md` que nadie mantiene al día, un `AGENTS.md` que solo crece. Se desactualizan, se pierden entre ramas, equipos y proyectos, y el agente los relee enteros en cada sesión.
+## Empieza por lo que quieres hacer
 
-Tisty es una app de escritorio donde planificas tus tareas en lenguaje natural y guardas lo que sabes: pasos, documentos enlazados, ideas y un diario. Brainsty lo dibuja todo unido, como una sola red. Tú y tu agente de IA leen y escriben en esa misma memoria, en tu disco, en Markdown. Cuando terminas una tarea, pasa al archivo con todo lo que juntó: la descripción, la bitácora, los pasos, los archivos y los documentos en que te apoyaste. Y el buscador lo encuentra años después. *¿Cómo resolví eso la última vez?* Tisty lo tiene. Junto a las tareas, los **documentos** guardan lo que sabes, uno por tema, como Markdown normal que cualquier otro editor lee.
+### Por tu cuenta
 
-Y si prefieres trabajar de una forma más personal, sin agente, Tisty te sirve igual: tus tareas, tus documentos, tus ideas y tu diario, a la vista y unidos en [Brainsty](Red-de-Brainsty). El agente es una forma de usarlo, no una condición.
+- **Instalarlo y dar los primeros pasos:** [[Instalación]].
+- **Anotar una tarea como la dirías:** [[Lenguaje natural|Lenguaje-natural]].
+- **Ordenar el día y la semana:** [[Tareas]] y [[Reparto y recordatorios|Reparto-y-recordatorios]].
+- **Guardar lo que sabes en un documento:** [[Documentos]] y [[El editor|Editor-Markdown]].
+- **Atrapar una idea antes de que se vaya:** [Ideas](Documentos#ideas).
+- **Escribir lo que pasó hoy:** [Diario](Documentos#diario).
+- **Ver todo lo que guardas, unido:** [[La red de Brainsty|Red-de-Brainsty]].
+- **Encontrar cómo lo resolviste la otra vez:** [[El archivo|El-archivo]].
 
-Y es la memoria del agente de IA que ya usas. Por un **servidor MCP** local, en tu equipo, sin cuenta y sin red, GitHub Copilot, Claude Code, Codex, Cursor o cualquier cliente MCP pregunta qué cambió desde la última vez, lee el índice de un documento y después solo la sección que necesita, y deja escrito lo que aprendió para la próxima sesión. Trabaja y te dice cuando algo está listo; tú lo revisas y lo cierras, porque nada se cierra sin ti. Tú decides qué puede hacer.
+### Con tu agente de IA
 
-## Problemas reales, soluciones reales
+- **Conectarlo:** [[Asistentes y MCP|Asistentes-y-MCP]].
+- **Saber qué puede hacer y qué nunca hace:** [[Qué puede hacer un asistente|Qué-puede-hacer-un-asistente]].
+- **Ver cómo trabaja en una sesión real:** [[Cómo trabaja un agente|Cómo-trabaja-un-agente]].
+- **Tener las reglas de todos tus agentes en un solo lugar:** [[Agentes|Carpeta-AGENTS]].
+- **Volver a lo que decía un documento antes de un cambio:** [Versiones anteriores](Documentos#versiones-anteriores).
 
-- **Quien desarrolla** le vuelve a explicar el proyecto al agente en cada sesión. **Con Tisty:** el agente pregunta qué cambió, abre la tarea en la que estaba con sus pasos marcados y lee lo que anotó ayer (*el webhook falla con firmas viejas; reintentar, descartado*), y sigue desde ahí.
-- **Un `NOTES.md` que llegó a 256 KB** se relee entero cada vez. **Con Tisty:** vive como documentos separados por tema, en páginas, y el agente lee el índice y una sección: cerca de un 97 % menos.
-- **A una PM** le preguntan, un mes después, «¿por qué decidimos esto?». **Con Tisty:** un documento vivo por tema guarda cada decisión fechada con su porqué, y el agente lo encuentra y lo cita.
-- **Un QA** ve fallar otra vez la misma pantalla, y nadie recuerda los casos de la vez anterior. **Con Tisty:** la tarea de regresión archivada los guarda como pasos, con lo que se vio en cada uno.
-- **Un traspaso** a un PO o al QA que llega al proyecto termina pegado en un chat. **Con Tisty:** va por Folio, el documento cifrado en tu equipo, firmado por ti, y se va solo cuando nadie lo usa. Mira [Compartir](Documentos#compartir).
-- **En casa**, el trámite del banco vuelve cada año. **Con Tisty:** la tarea archivada dice cómo lo hiciste la vez anterior.
+### Tus archivos y tu privacidad
 
-Cómo trabaja un agente con todo esto, y cuánto ahorra, está en [Un día con tu agente](Asistentes-y-MCP#un-día-con-tu-agente).
+- **Tener lo mismo en dos equipos:** [[Sincronizar y respaldar|Sincronizar-y-respaldar]].
+- **Compartir un documento con alguien:** [Compartir](Documentos#compartir).
+- **Saber qué se guarda y qué sale de tu equipo:** [[Privacidad]].
 
 ## ¿Tarea o documento?
 
-**Lo que vas a hacer es una tarea. Lo que vas a volver a consultar es un documento.** Una tarea termina, muchas veces pronto, y después se queda en el archivo como conocimiento con fecha: meses más tarde una búsqueda te cuenta cómo lo resolviste. Un documento —un manual, una receta, las notas de un cliente o de una máquina, las actas de un año— se vuelve a leer, se corrige y se amplía durante años.
-
-Una idea es un pensamiento atrapado al vuelo, antes de saber si es algo que hacer o algo que guardar: pocas palabras, 140 como máximo, con fecha, en la hoja Ideas. Espera a que la ordenes: se vuelve tarea, va al documento de su tema o se aparta. Una nota es otra cosa: la línea fechada en la bitácora de una tarea.
-
-Una tarea también es un documento, uno que termina: por eso tiene una página propia, donde un spike reúne lo que leíste, probaste y descartaste, la grabación de la reunión y el PDF del proveedor, antes de dividirse en partes y completarse. [[La idea completa, con un ejemplo|Tareas#tarea-o-documento]].
-
-![El Archivo desde febrero de 2026: las barras de cada mes, las cuentas de tareas cerradas, historias, vueltas de rutinas, rastro y racha más larga, y las historias agrupadas por mes, como Revisar los logs del incidente buscando datos personales, cerrada por un agente, y Probar la captura rápida con 30 frases reales](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/app/es-archivo-light.webp)
-
-![La ventana de diagramas sobre la guía: las formas a la izquierda, el diagrama de flujo ¿Lo vas a hacer, o a volver a leer? al centro y, a la derecha, el texto Mermaid que se escribe en el documento, en vivo](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/app/es-diagrama-light.webp)
-
-![Ideas como notas adhesivas de colores, cada una con su fecha y su minuto, escritas a mano: Fotos del viaje a la Patagonia en el diario, Calendario de Rina con colores por tipo de visita, Medir el costo de cada herramienta del MCP en tokens](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/app/es-ideas-light.webp)
-
-![Prioridades: Hacer, Planificar, Delegar y Prescindible, con Urgente y No urgente arriba e Importante y No importante al costado, cada cuadro con su cuenta y sus tareas, y Lo que falta por clasificar · 61 junto al título](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/app/es-prioridades-light.webp)
+**Lo que vas a hacer es una tarea. Lo que vas a volver a consultar es un documento.** Una tarea termina y se queda en el archivo, donde una búsqueda te cuenta meses después cómo lo resolviste. Un documento se vuelve a leer, se corrige y se amplía durante años. Y una idea es un pensamiento atrapado al vuelo, que después se vuelve tarea, va a un documento o se aparta. [[La idea completa, con un ejemplo|Tareas#tarea-o-documento]].
 
 ## Para empezar
 
