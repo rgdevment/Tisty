@@ -843,4 +843,166 @@ export const CASES = [
     was: "Hola m",
     now: " mX",
   },
+  {
+    name: "deleteSpaceBeforeMissingPicture",
+    doc: MISSING_PICTURE,
+    run: async ({ clickAt, press, frame }) => {
+      await clickAt("Una");
+      await caretInWords(frame, "Una imagen ", "Una imagen ".length - 1);
+      await press("Delete");
+    },
+    was: " ",
+    now: "",
+  },
+  {
+    name: "wordBackTakesAStopAloneAfterBold",
+    doc: "# Marcas\n\n我们**公园**。\n",
+    run: async ({ clickAt, wordBack, frame }) => {
+      await clickAt("我们");
+      await caretInWords(frame, "。", 1);
+      await wordBack();
+    },
+    was: "。",
+    now: "",
+  },
+  {
+    name: "wordForwardTakesAStopAloneBeforeBold",
+    doc: "# Marcas\n\n。**公园**我们\n",
+    run: async ({ clickAt, press, frame }) => {
+      await clickAt("我们");
+      await caretInWords(frame, "。", 0);
+      await press((await macIn(frame)) ? "Alt+Delete" : "Control+Delete");
+    },
+    was: "。",
+    now: "",
+  },
+  {
+    name: "deleteChosenAcrossBoldEnd",
+    doc: "# Marcas\n\nAntes **negrita** después\n",
+    run: async ({ clickAt, press, frame }) => {
+      await clickAt("Antes");
+      await chosenIn(frame, ["negrita", 3], [" después", 3]);
+      await press("Backspace");
+    },
+    was: "rita** de",
+    now: "**",
+  },
+  {
+    name: "typeOverChosenAcrossBoldEnd",
+    doc: "# Marcas\n\nAntes **negrita** después\n",
+    run: async ({ clickAt, typed, frame }) => {
+      await clickAt("Antes");
+      await chosenIn(frame, ["negrita", 3], [" después", 3]);
+      await typed("X");
+    },
+    was: "rita** de",
+    now: "X**",
+  },
+  {
+    name: "lineBackInsideBold",
+    macOnly: NO_LINE_DELETE_ON_WINDOWS,
+    doc: "# Marcas\n\nAntes **negrita** después\n",
+    run: async ({ clickAt, press, frame }) => {
+      await clickAt("Antes");
+      await caretInWords(frame, "negrita", 3);
+      await press("Meta+Backspace");
+    },
+    was: "Antes **neg",
+    now: "**",
+  },
+  {
+    name: "backBetweenTagAndFootnote",
+    doc: "# Marcas\n\nTexto #tag[^1] fin.\n\n[^1]: Nota.\n",
+    run: async ({ clickAt, press, frame }) => {
+      await clickAt("Texto");
+      await caretAfterPiece(frame, ".page p .tag");
+      await press("Backspace");
+    },
+    was: "#tag",
+    now: "",
+  },
+  {
+    name: "backBetweenPictureAndTagInLaterItem",
+    doc: "# Marcas\n\n- uno\n- ![p](mini.png)#tag dos\n",
+    run: async ({ clickAt, press, frame }) => {
+      await clickAt("uno");
+      await caretAfterPiece(frame, ".page li img");
+      await press("Backspace");
+    },
+    was: "![p](mini.png)",
+    now: "",
+  },
+  {
+    name: "deleteBeforeTaskBoxTakesTheBox",
+    doc: "# Marcas\n\n- [ ] uno\n",
+    run: async ({ clickAt, press, frame }) => {
+      await clickAt("uno");
+      await frame.evaluate(() => getSelection().collapse(document.querySelector(".page li"), 0));
+      await press("Delete");
+    },
+    was: "[ ]",
+    now: "",
+  },
+  {
+    name: "backAfterAnUnderscoreLeftOpen",
+    doc: "# Marcas\n\n*a _b* c_\n",
+    run: async ({ clickAt, press, frame }) => {
+      await clickAt("Marcas");
+      await caretAtEndOf(frame, ".page p");
+      await press("Backspace");
+    },
+    was: "_",
+    now: "",
+  },
+  {
+    name: "boldWaitsPastABackspaceHeldAfterCode",
+    doc: "# Marcas\n\n```js\nx\n```\n\nHola\n",
+    run: async ({ clickAt, press, typed, command, frame }) => {
+      await clickAt("Hola");
+      await caretInWords(frame, "Hola", 0);
+      await command("b");
+      await press("Backspace");
+      await typed("X");
+    },
+    was: "",
+    now: "**X**",
+  },
 ];
+
+const macIn = (frame) => frame.evaluate(() => navigator.userAgent.includes("Macintosh"));
+
+const chosenIn = (frame, from, to) =>
+  frame.evaluate(
+    ([start, end]) => {
+      const textOf = (said) => {
+        const walk = document.createTreeWalker(document.querySelector(".page"), NodeFilter.SHOW_TEXT);
+        for (let node = walk.nextNode(); node; node = walk.nextNode()) if (node.data === said) return node;
+        throw new Error(`no "${said}" alone in a text on the page`);
+      };
+      const range = document.createRange();
+      range.setStart(textOf(start[0]), start[1]);
+      range.setEnd(textOf(end[0]), end[1]);
+      getSelection().removeAllRanges();
+      getSelection().addRange(range);
+    },
+    [from, to],
+  );
+
+const caretAfterPiece = (frame, selector) =>
+  frame.evaluate((said) => {
+    const piece = document.querySelector(said);
+    if (!piece) throw new Error(`no ${said} on the page`);
+    const holder = piece.parentNode;
+    getSelection().collapse(holder, [...holder.childNodes].indexOf(piece) + 1);
+  }, selector);
+
+const caretAtEndOf = (frame, selector) =>
+  frame.evaluate((said) => {
+    const holder = document.querySelector(said);
+    if (!holder) throw new Error(`no ${said} on the page`);
+    const walk = document.createTreeWalker(holder, NodeFilter.SHOW_TEXT);
+    let last = null;
+    for (let node = walk.nextNode(); node; node = walk.nextNode()) last = node;
+    if (!last) throw new Error(`no words in ${said}`);
+    getSelection().collapse(last, last.length);
+  }, selector);

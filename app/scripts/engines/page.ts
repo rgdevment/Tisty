@@ -36,6 +36,7 @@ const { docPlaced, docPlacedNear } = await import("/src/placing.ts");
 const { wired, worn, fitted } = await import("/src/ui/dressing.ts");
 const { diagrams, sheeting } = await import("tisty-editor/read");
 const { unnavigated } = await import("/src/unnavigated.ts");
+const { sourceAt } = await import("/src/ui/pageSpots.ts");
 window.addEventListener("keydown", unnavigated);
 
 const freshen = (sheet: Element, html: string) => {
@@ -47,6 +48,40 @@ const freshen = (sheet: Element, html: string) => {
 let text = "";
 let writer: ReturnType<typeof writtenOn> | null = null;
 let frame: HTMLIFrameElement | null = null;
+const heard: unknown[] = [];
+let listening = false;
+
+const named = (node: Node | null) => {
+  if (!node) return "nothing";
+  if (node.nodeType === Node.TEXT_NODE) return `text ${JSON.stringify((node as Text).data.slice(0, 40))}`;
+  const element = node as Element;
+  const marks = ["class", "data-src", "data-at", "contenteditable", "hidden"]
+    .filter((name) => element.hasAttribute?.(name))
+    .map((name) => `${name}=${JSON.stringify(element.getAttribute(name))}`);
+  return [element.nodeName.toLowerCase(), ...marks].join(" ");
+};
+
+const pointSaid = (node: Node | null, offset: number) => ({
+  node: named(node),
+  offset,
+  source: node ? sourceAt(text, node, offset) : null,
+});
+
+const rangeSaid = (range: AbstractRange) => ({
+  from: pointSaid(range.startContainer, range.startOffset),
+  to: pointSaid(range.endContainer, range.endOffset),
+});
+
+const hearing = (page: Document) => (event: InputEvent) => {
+  const held = page.getSelection();
+  heard.push({
+    inputType: event.inputType,
+    data: event.data,
+    targets: (event.getTargetRanges?.() ?? []).map(rangeSaid),
+    chosen: held?.rangeCount ? rangeSaid(held.getRangeAt(0)) : null,
+    caretAt: writer?.caretAt() ?? null,
+  });
+};
 
 const dressedUp = (page: Document) => {
   const reach = () => ({
@@ -96,6 +131,7 @@ const open = async (body: string) => {
   writer?.stop();
   frame?.remove();
   errors.length = 0;
+  heard.length = 0;
   text = body;
   const held = document.createElement("iframe");
   held.style.cssText = "display:block;width:900px;height:760px;border:0";
@@ -112,6 +148,7 @@ const open = async (body: string) => {
       page.defaultView?.addEventListener("unhandledrejection", noted("page"));
       sheet.removeAttribute("inert");
       page.addEventListener("keydown", unnavigated);
+      if (listening) page.addEventListener("beforeinput", hearing(page), true);
       dressedUp(page);
       writtenIn(page);
       ready();
@@ -143,6 +180,10 @@ Object.assign(window, {
     consistent,
     text: () => text,
     errors: () => [...errors],
+    heard: () => [...heard],
+    hear: () => {
+      listening = true;
+    },
   },
   enginesReady: true,
 });

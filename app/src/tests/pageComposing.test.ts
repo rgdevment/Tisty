@@ -202,3 +202,38 @@ describe("a composition whose end never comes", () => {
     expect(line().data).toBe("Ques tal");
   });
 });
+
+describe("a composition given up before it writes anything", () => {
+  it("takes away the words it was begun over, as the page no longer shows them", () => {
+    const text = opened();
+    const range = document.createRange();
+    range.setStart(words(), words().data.indexOf("tal"));
+    range.setEnd(words(), words().data.length);
+    document.getSelection()?.removeAllRanges();
+    document.getSelection()?.addRange(range);
+    composing("compositionstart", "");
+    composing("compositionend", "");
+    expect(text()).toBe("# Hola\n\nQu \n");
+  });
+
+  it("leaves the text alone when it changed while the composition was open", () => {
+    const text = opened();
+    const range = document.createRange();
+    range.setStart(words(), words().data.indexOf("tal"));
+    range.setEnd(words(), words().data.length);
+    document.getSelection()?.removeAllRanges();
+    document.getSelection()?.addRange(range);
+    composing("compositionstart", "");
+    asked("insertText", "Z");
+    composing("compositionend", "");
+    expect(text()).toBe("# Hola\n\nQu Z\n");
+  });
+
+  it("changes nothing when it was begun at a caret", () => {
+    const text = opened();
+    caretAfter("Qu");
+    composing("compositionstart", "");
+    composing("compositionend", "");
+    expect(text()).toBe("# Hola\n\nQu tal\n");
+  });
+});

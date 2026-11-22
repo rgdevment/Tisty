@@ -65,9 +65,9 @@ const segmenter = (granularity: "grapheme" | "word") =>
 const GRAPHEMES = segmenter("grapheme");
 const WORDS = segmenter("word");
 
-const lineStart = (text: string, at: number) => text.lastIndexOf("\n", at - 1) + 1;
+export const lineStart = (text: string, at: number) => text.lastIndexOf("\n", at - 1) + 1;
 
-const lineEnd = (text: string, at: number) => {
+export const lineEnd = (text: string, at: number) => {
   const end = text.indexOf("\n", at);
   return end < 0 ? text.length : end;
 };

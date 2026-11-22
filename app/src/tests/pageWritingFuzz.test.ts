@@ -279,9 +279,10 @@ const staysAfterCaret: Check = (trace, actions) => {
     if (action === "bs") back++;
     const text = trace.texts[index] ?? "";
     const kept = prefixLength(text, trace.start);
-    const marks =
-      /[*_+~=`]*$/.exec(trace.start.slice(0, Math.max(0, trace.caret - back)))?.[0].length ?? 0;
-    const reach = Math.max(0, trace.caret - back - marks);
+    const marks = (at: number) =>
+      /[*_+~=`]*$/.exec(trace.start.slice(0, Math.max(0, at)))?.[0].length ?? 0;
+    let reach = trace.caret - marks(trace.caret);
+    for (let step = 0; step < back; step++) reach = Math.max(0, reach - 1 - marks(reach - 1));
     // Enter or Backspace that reaches a line's marks opens a line above it or takes the marks away.
     const floor = reach <= lead ? Math.max(0, line - back) : reach;
     if (kept < Math.min(floor, trace.start.length))

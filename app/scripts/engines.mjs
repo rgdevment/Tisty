@@ -19,13 +19,24 @@ if (unknown.length > 0) {
 }
 const chosen = (asked.length > 0 ? asked : ["webkit", "chromium"]).map((one) => ENGINES[one]);
 
+const listening = (page) => page.evaluate(() => window.engines.hear());
+
+const heardSaid = (heard) =>
+  heard.map(({ inputType, targets, chosen, caretAt }) => {
+    const point = ({ node, offset, source }) => `${node}@${offset}=${source}`;
+    const range = (one) => (one ? `${point(one.from)} .. ${point(one.to)}` : "none");
+    return `${inputType}: targets [${targets.map(range).join("; ")}], chosen ${range(chosen)}, caret at ${caretAt}`;
+  });
+
 const ranIn = async (engine, url) => {
   const { browser, page } = await launched(engine.type, url, engine.launch);
   try {
     const mac = await macIn(page);
+    const agent = await page.evaluate(() => navigator.userAgent);
     await page.evaluate((doc) => window.engines.open(doc), PIECES);
     await page.waitForTimeout(3000);
     await opened(page, url);
+    await listening(page);
     const results = new Map();
     for (const one of CASES) {
       if (one.macOnly && !mac) continue;
@@ -39,28 +50,33 @@ const ranIn = async (engine, url) => {
       }
       await page.waitForTimeout(SETTLED_MS);
       if (!(await page.evaluate(() => Boolean(window.engines)).catch(() => false))) {
-        results.set(one.name, { was: null, now: null, errors: [], fits: "ok", threw: "the window walked back to another page" });
+        results.set(one.name, { was: null, now: null, errors: [], fits: "ok", heard: [], threw: "the window walked back to another page" });
         await opened(page, url);
+        await listening(page);
         continue;
       }
       const text = await page.evaluate(() => window.engines.text());
       const errors = (await page.evaluate(() => window.engines.errors())).filter((said) => !NOISE.test(said));
       const fits = await page.evaluate(() => window.engines.consistent());
-      results.set(one.name, { ...changeOf(one.doc, text), errors, fits, threw });
+      const heard = await page.evaluate(() => window.engines.heard());
+      results.set(one.name, { ...changeOf(one.doc, text), errors, fits, heard, threw });
     }
-    return { engine, mac, results };
+    return { engine, mac, agent, results };
   } finally {
     await browser.close();
   }
 };
 
-const faultsOf = (one, name, result) => {
+const faultsOf = (one, name, result, agent) => {
   const faults = [];
   if (result.threw) faults.push(`${name} could not run the case: ${result.threw}`);
-  if (result.was !== one.was || result.now !== one.now)
+  if (result.was !== one.was || result.now !== one.now) {
     faults.push(
       `${name} took ${JSON.stringify(result.was)} and wrote ${JSON.stringify(result.now)}, not ${JSON.stringify(one.was)} and ${JSON.stringify(one.now)}`,
     );
+    faults.push(`${name} runs as ${agent}`);
+    for (const said of heardSaid(result.heard)) faults.push(`${name} heard ${said}`);
+  }
   if (result.fits !== "ok") faults.push(`${name}: ${result.fits}`);
   for (const error of result.errors) faults.push(`${name} met an error: ${error.slice(0, 300)}`);
   return faults;
@@ -78,8 +94,8 @@ const judged = (runs, stopped) => {
   const names = runs.map(({ engine }) => engine.name);
   let failed = 0;
   for (const one of CASES) {
-    const faults = runs.flatMap(({ engine, results }) =>
-      results.has(one.name) ? faultsOf(one, engine.name, results.get(one.name)) : [],
+    const faults = runs.flatMap(({ engine, agent, results }) =>
+      results.has(one.name) ? faultsOf(one, engine.name, results.get(one.name), agent) : [],
     );
     if (faults.length === 0) continue;
     failed++;

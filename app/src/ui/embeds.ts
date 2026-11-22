@@ -33,7 +33,10 @@ export const embedGone = (text: string, shown: Element): Gone | null => {
     if (next === undefined) while (text[from - 1] === "\n" && text[from - 2] === "\n") from--;
     return { from, to: charsAt(text, next ?? line[1]) };
   }
-  const from = charsAt(text, own[0]);
-  const to = charsAt(text, own[1]);
-  return { from, to: text[from - 1] === " " && text[to] === " " ? to + 1 : to };
+  return spacedOut(text, charsAt(text, own[0]), charsAt(text, own[1]));
 };
+
+export const spacedOut = (text: string, from: number, to: number): Gone => ({
+  from,
+  to: text[from - 1] === " " && text[to] === " " ? to + 1 : to,
+});

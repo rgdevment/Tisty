@@ -1,4 +1,4 @@
-import type { Edit, Span } from "./pageEdits";
+import { type Edit, lineEnd, lineStart, type Span } from "./pageEdits";
 
 export type Marks = readonly (readonly [string, string])[];
 
@@ -105,29 +105,297 @@ export const escapeTaken = (text: string, one: Span): Span => {
   return slashes % 2 === 1 ? { from: one.from - 1, to: one.to } : one;
 };
 
-const RUN_CLOSING = /[*_~+=`]+$/;
-const RUN_OPENING = /^[*_~+=`]+/;
+type Mark = { readonly from: number; readonly to: number; readonly mate: Span };
+type Marking = (one: Span) => Mark[];
+type Reach = (at: number) => Span;
+type Laid = { readonly edit: Edit; readonly caret: number };
 
-export const pairsMet = (text: string, one: Span): Span => {
-  const line = text.lastIndexOf("\n", one.from - 1) + 1;
-  const closing = RUN_CLOSING.exec(text.slice(line, one.from))?.[0];
-  const opening = RUN_OPENING.exec(text.slice(one.to))?.[0];
-  if (!closing || closing !== opening) return one;
-  return { from: one.from - closing.length, to: one.to + opening.length };
+const RUNS =
+  /\\[!-/:-@[-`{-~]|<[A-Za-z][A-Za-z\d+.-]{1,31}:[^\s<>]*>|\$[^\s$](?:[^$\n]*[^\s$])?\$|`+|\*+|_+|~+|=+|\++|!?\[|\]/g;
+const MARKISH = /[*_~=+`[]/;
+const LINKED = /\]\([^)\s]*(?:\s+"[^"]*")?\)|\]\[[^\]]*\]/y;
+const PEN = /\{[a-z]+\}/y;
+const SPACE = /\s/;
+const PUNCT = /[\p{P}\p{S}]/u;
+const WORDY = /[\p{L}\p{N}]/u;
+
+const flanking = (before: string, after: string) => {
+  const outer = (one: string) => SPACE.test(one) || PUNCT.test(one);
+  const left = !SPACE.test(after) && (!PUNCT.test(after) || outer(before));
+  const right = !SPACE.test(before) && (!PUNCT.test(before) || outer(after));
+  return [left, right] as const;
 };
 
-export const unpaired = (text: string, one: Span) => {
-  let { from, to } = one;
-  if (from === to) return one;
-  for (;;) {
-    const mark = PAIRED.find(
-      (one) => text.slice(from - one.length, from) === one && text.startsWith(one, to),
-    );
-    if (!mark) return { from, to };
-    const close = mark === "==" ? (/^==(?:\{[a-z]+\})?/.exec(text.slice(to))?.[0] ?? mark) : mark;
-    from -= mark.length;
-    to += close.length;
+const sidesOf = (run: string, before: string, after: string): readonly [boolean, boolean] => {
+  if (run === "++")
+    return [!WORDY.test(before) && !SPACE.test(after), !WORDY.test(after) && !SPACE.test(before)];
+  if (run === "==") return [!SPACE.test(after), !SPACE.test(before)];
+  const [left, right] = flanking(before, after);
+  if (run[0] !== "_") return [left, right];
+  return [left && (!right || PUNCT.test(before)), right && (!left || PUNCT.test(after))];
+};
+
+type Opener = {
+  readonly mark: string;
+  readonly from: number;
+  to: number;
+  readonly size: number;
+  readonly both: boolean;
+};
+
+const blocked = (open: Opener, size: number, both: boolean) =>
+  (both || open.both) && (open.size + size) % 3 === 0 && (open.size % 3 !== 0 || size % 3 !== 0);
+
+const emphasis = (
+  stack: Opener[],
+  [mark, run]: readonly [string, Span],
+  [opens, closes]: readonly [boolean, boolean],
+  pair: (open: Span, close: Span) => void,
+) => {
+  const size = run.to - run.from;
+  let at = run.from;
+  for (let nth = closes ? stack.length - 1 : -1; nth >= 0 && at < run.to; ) {
+    const open = stack[nth];
+    if (!open) break;
+    if (open.mark !== mark || blocked(open, size, opens)) {
+      nth--;
+      continue;
+    }
+    stack.length = nth + 1;
+    const many = open.to - open.from >= 2 && run.to - at >= 2 ? 2 : 1;
+    pair({ from: open.to - many, to: open.to }, { from: at, to: at + many });
+    open.to -= many;
+    at += many;
+    if (open.to > open.from) continue;
+    stack.length = nth;
+    nth--;
   }
+  if (opens && at < run.to) stack.push({ mark, from: at, to: run.to, size, both: closes });
+};
+
+const ticksAfter = (line: string, from: number, many: number) => {
+  for (let at = line.indexOf("`", from); at >= 0; ) {
+    let end = at;
+    while (line[end] === "`") end++;
+    if (end - at === many) return at;
+    at = line.indexOf("`", end);
+  }
+  return -1;
+};
+
+type Token = { readonly from: number; readonly to: number; mate: Token | null };
+
+const marksOn = (text: string, start: number, end: number): Mark[] => {
+  const line = text.slice(start, end);
+  if (!MARKISH.test(line)) return [];
+  const tokens: Token[] = [];
+  const token = (from: number, to: number) => {
+    const one: Token = { from: start + from, to: start + to, mate: null };
+    tokens.push(one);
+    return one;
+  };
+  const paired = (open: Token, close: Token) => {
+    open.mate = close;
+    close.mate = open;
+  };
+  const waiting = new Map<string, Token[]>();
+  const emphases: Opener[] = [];
+  const brackets: Token[] = [];
+  RUNS.lastIndex = LINE_MARKS.exec(line)?.[0].length ?? 0;
+  for (let found = RUNS.exec(line); found; found = RUNS.exec(line)) {
+    const [run] = found;
+    const at = found.index;
+    const past = at + run.length;
+    if (run[0] === "\\" || run[0] === "<" || run[0] === "$") continue;
+    if (run[0] === "`") {
+      const shut = ticksAfter(line, past, run.length);
+      if (shut < 0) continue;
+      paired(token(at, past), token(shut, shut + run.length));
+      RUNS.lastIndex = shut + run.length;
+    } else if (run.endsWith("[")) brackets.push(token(at, past));
+    else if (run === "]") {
+      LINKED.lastIndex = at;
+      const link = LINKED.exec(line)?.[0];
+      const open = brackets.pop();
+      if (!link || !open) continue;
+      paired(open, token(at, at + link.length));
+      RUNS.lastIndex = at + link.length;
+    } else if (run[0] === "*" || run[0] === "_") {
+      const sides = sidesOf(run, line[at - 1] ?? " ", line[past] ?? " ");
+      emphasis(emphases, [run[0], { from: at, to: past }], sides, (open, close) =>
+        paired(token(open.from, open.to), token(close.from, close.to)),
+      );
+    } else if (run.length === 2) {
+      const [opens, closes] = sidesOf(run, line[at - 1] ?? " ", line[past] ?? " ");
+      const stack = waiting.get(run) ?? [];
+      waiting.set(run, stack);
+      const open = closes ? stack.pop() : undefined;
+      PEN.lastIndex = past;
+      const pen = run === "==" && open ? (PEN.exec(line)?.[0].length ?? 0) : 0;
+      if (open) paired(open, token(at, past + pen));
+      else if (opens) stack.push(token(at, past));
+    }
+  }
+  return tokens
+    .filter((one): one is Token & { mate: Token } => one.mate !== null)
+    .sort((one, other) => one.from - other.from);
+};
+
+const QUIET = /^[^*_~=+`[\](){}]*$/;
+
+const markingOf = (text: string): Marking => {
+  const lines: { start: number; end: number; known: Mark[] }[] = [];
+  const lineAt = (at: number) => {
+    const held = lines.find((one) => one.start <= at && at <= one.end);
+    if (held) return held;
+    const start = lineStart(text, at);
+    const end = lineEnd(text, at);
+    const line = { start, end, known: marksOn(text, start, end) };
+    lines.push(line);
+    return line;
+  };
+  return (one) => {
+    if (QUIET.test(text.slice(Math.max(0, one.from - 1), one.to + 1))) return [];
+    const first = lineAt(one.from);
+    return first.end < one.to ? [...first.known, ...lineAt(one.to).known] : first.known;
+  };
+};
+
+const leftAlone = (marks: Mark[], one: Span) => {
+  const within = (mark: Span) => mark.from >= one.from && mark.to <= one.to;
+  return marks.filter(
+    (mark) => mark.from < one.to && mark.to > one.from && !(within(mark) && within(mark.mate)),
+  );
+};
+
+const reachKept = (text: string, one: Span, back: boolean, reach: Reach, marking: Marking) => {
+  let span = one;
+  for (;;) {
+    const orphans = leftAlone(marking(span), span);
+    const near = orphans[back ? orphans.length - 1 : 0];
+    if (!near) return span;
+    if (back && near.to < span.to) span = { from: near.to, to: span.to };
+    else if (!back && near.from > span.from) span = { from: span.from, to: near.from };
+    else if (near.mate.to === near.from || near.to === near.mate.from)
+      return { from: Math.min(near.from, near.mate.from), to: Math.max(near.to, near.mate.to) };
+    else {
+      const at = back ? near.from : near.to;
+      const left = back ? { from: span.from, to: at } : { from: at, to: span.to };
+      if (left.from < left.to) span = left;
+      else {
+        span = reach(at);
+        const edge = back ? wordsFrom(text, at) : lineEnd(text, at);
+        if (back ? span.from < edge : span.to > edge) return { from: at, to: at };
+      }
+    }
+  }
+};
+
+const said = (text: string, marks: Mark[]) =>
+  marks.map((mark) => text.slice(mark.from, mark.to)).join("");
+
+const LINKS = /^!?\[|^\]/;
+
+const emptiedOrMet = (text: string, marks: Mark[], kept: Mark[], one: Span) => {
+  let { from, to } = one;
+  const closers = kept.filter((mark) => mark.mate.to <= from);
+  const openers = kept.filter((mark) => mark.mate.from >= to);
+  while (closers[0] && closers[0].mate.to === from) {
+    from = closers[0].mate.from;
+    closers.shift();
+  }
+  while (openers[openers.length - 1]?.mate.from === to) {
+    to = openers[openers.length - 1]?.mate.to ?? to;
+    openers.pop();
+  }
+  const around = () =>
+    one.from < one.to && !closers.length && !openers.length
+      ? marks.find(
+          (mark) =>
+            mark.to === from &&
+            mark.mate.from === to &&
+            !LINKS.test(text.slice(mark.from, mark.to)),
+        )
+      : undefined;
+  for (let format = around(); format; format = around()) {
+    from = format.from;
+    to = format.mate.to;
+  }
+  const shutAt = (at: number) => marks.find((mark) => mark.to === at && mark.mate.to <= mark.from);
+  const openAt = (at: number) =>
+    marks.find((mark) => mark.from === at && mark.mate.from >= mark.to);
+  for (;;) {
+    const shut = closers.length ? closers[closers.length - 1] : shutAt(from);
+    const open = openers.length ? openers[0] : openAt(to);
+    if (!shut || !open || said(text, [shut]) !== said(text, [open])) break;
+    if (closers.length) closers.pop();
+    else from = shut.from;
+    if (openers.length) openers.shift();
+    else to = open.to;
+  }
+  return { from, to, closers, openers };
+};
+
+const FLANKED = /^[*_~=+]/;
+
+const openedPast = (text: string, at: number, openers: Mark[]) => {
+  const marks = said(text, openers);
+  const flanked = openers.every((mark) => FLANKED.test(text.slice(mark.from, mark.to)));
+  const spaces = flanked && marks ? (/^[ \t]+/.exec(text.slice(at))?.[0] ?? "") : "";
+  return { to: at + spaces.length, insert: spaces + marks };
+};
+
+export const replaced = (
+  text: string,
+  one: Span,
+  insert: string,
+  marking = markingOf(text),
+): Laid => {
+  let { from, to } = one;
+  const marks = from < to ? marking(one) : [];
+  const orphans = leftAlone(marks, one);
+  for (const mark of orphans) {
+    if (mark.from < from) from = Math.min(mark.to, to);
+    if (mark.to > to) to = Math.max(mark.from, from);
+  }
+  const kept = orphans.filter((mark) => mark.from >= from && mark.to <= to);
+  if (!insert) {
+    const left = emptiedOrMet(text, marks, kept, { from, to });
+    const opened = openedPast(text, left.to, left.openers);
+    const marksLeft = said(text, left.closers) + opened.insert;
+    return { edit: { from: left.from, to: opened.to, insert: marksLeft }, caret: left.from };
+  }
+  const closers = kept.filter((mark) => mark.mate.to <= from);
+  const openers = kept.filter((mark) => mark.mate.from >= to);
+  while (openers[openers.length - 1]?.mate.from === to) to = openers.pop()?.mate.to ?? to;
+  while (closers.length && said(text, closers.slice(-1)) === said(text, openers.slice(0, 1))) {
+    closers.pop();
+    openers.shift();
+  }
+  const opened = openedPast(text, to, openers);
+  const broken = insert.search(/\r?\n/);
+  const head = broken < 0 ? insert : insert.slice(0, broken);
+  const shut = said(text, closers);
+  const placed = `${head}${shut}${insert.slice(head.length)}${opened.insert}`;
+  const caret = from + insert.length + (broken < 0 ? 0 : shut.length);
+  return { edit: { from, to: opened.to, insert: placed }, caret };
+};
+
+type KeyReach = { readonly back: boolean; readonly reach: Reach };
+
+const escapedWhole = (text: string, one: Span): Span => {
+  const start = escapeTaken(text, one);
+  let slashes = 0;
+  while (text[start.to - 1 - slashes] === "\\") slashes++;
+  const cut = slashes % 2 === 1 && ESCAPABLE.test(text[start.to] ?? "");
+  return cut ? { from: start.from, to: start.to + 1 } : start;
+};
+
+export const keptGone = (text: string, one: Span, key: KeyReach | null): Edit => {
+  const marking = markingOf(text);
+  const reach = (at: number) => escapedWhole(text, key?.reach(at) ?? { from: at, to: at });
+  const span = key ? reachKept(text, escapedWhole(text, one), key.back, reach, marking) : one;
+  return replaced(text, span, "", marking).edit;
 };
 
 export const trimmed = (text: string, one: Span | null) => {
