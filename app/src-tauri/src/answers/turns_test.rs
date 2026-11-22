@@ -362,3 +362,33 @@ fn a_step_back_shuts_out_a_save_older_than_it_even_with_nothing_to_go_back_to() 
     assert_eq!(late.unwrap_err().code, "saveLate");
     assert_eq!(on_disk(&session, &id), then);
 }
+
+#[test]
+fn a_save_that_reaches_a_deleted_document_never_writes_it_back() {
+    let (_tmp, mut session) = session();
+    let opened = "# Compras\n\nleche\n";
+    let file = filed(&mut session, opened);
+    let id = session
+        .state
+        .docs
+        .values()
+        .find(|one| one.file == file)
+        .unwrap()
+        .id;
+    session.drop_doc(&id.to_string()).unwrap();
+
+    let late = saved(
+        &mut session,
+        &file,
+        "# Compras\n\nleche y pan\n",
+        &print(opened),
+        false,
+        turn("a", 1),
+    );
+
+    assert_eq!(late.unwrap_err().code, "noSuchDoc");
+    assert!(
+        tisty_core::docs::read(&session.paths.docs(), &file).is_err(),
+        "the deleted document came back on the disk"
+    );
+}

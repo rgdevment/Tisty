@@ -4,13 +4,8 @@ import type { Asking } from "tisty-editor/edit";
 import type { Filed } from "../core";
 import { keptAll } from "../kept";
 import { t } from "../locales";
-import { attachedAll } from "../reshaping";
+import { attachedPicked } from "../reshaping";
 import Picking, { type Picked } from "./Picking";
-
-const listed = (chosen: string | string[] | null): string[] => {
-  if (Array.isArray(chosen)) return chosen;
-  return chosen ? [chosen] : [];
-};
 
 // A task's page offers what a document's does, save its own pages and a new document.
 export function useTaskAsks(
@@ -29,7 +24,7 @@ export function useTaskAsks(
           const said = (text: string) => failed.current?.(text);
           if (kind !== "file") return setPicked({ kind, at, put, whole });
           pick({ multiple: true })
-            .then((chosen) => attachedAll(listed(chosen)))
+            .then(attachedPicked)
             .then((all) => keptAll(all, said))
             .then((text) => {
               if (text && !put(text)) said(t("attachmentLost"));

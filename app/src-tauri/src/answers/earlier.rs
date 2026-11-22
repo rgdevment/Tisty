@@ -6,7 +6,7 @@ use tisty_core::witness::channel;
 use tisty_core::{Event, Op, Task, history};
 
 use super::papers::{book_of, named_anew, one_step_back, writable};
-use crate::{Answer, Refusal, Session, blamed, held, signing};
+use crate::{Answer, Refusal, Session, blamed, caught, held, signing};
 
 #[derive(serde::Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -209,13 +209,15 @@ pub fn doc_back(
     id: String,
     turn: Option<super::turns::Turn>,
 ) -> Answer<tisty_core::docs::Doc> {
-    super::turns::in_turn(
-        &mut held(&session),
-        &id,
-        turn,
-        |session| went_back(session, &id),
-        |_| true,
-    )
+    caught("doc_back", || {
+        super::turns::in_turn(
+            &mut held(&session),
+            &id,
+            turn,
+            |session| went_back(session, &id),
+            |_| true,
+        )
+    })?
 }
 
 pub fn went_back_to(session: &mut Session, id: &str, print: &str) -> Answer<tisty_core::docs::Doc> {
@@ -230,13 +232,15 @@ pub fn doc_back_to(
     print: String,
     turn: Option<super::turns::Turn>,
 ) -> Answer<tisty_core::docs::Doc> {
-    super::turns::in_turn(
-        &mut held(&session),
-        &id,
-        turn,
-        |session| went_back_to(session, &id, &print),
-        |_| true,
-    )
+    caught("doc_back_to", || {
+        super::turns::in_turn(
+            &mut held(&session),
+            &id,
+            turn,
+            |session| went_back_to(session, &id, &print),
+            |_| true,
+        )
+    })?
 }
 
 pub fn emptied(session: &Session, id: &str) -> Answer<usize> {

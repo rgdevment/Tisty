@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Filed, Settings, Task } from "../core";
 import { awayOf, saidOf, type Earlier as Version, whenOf, writerOf } from "../earlier";
 import { fill, t } from "../locales";
-import { forgotten, unsettled } from "../saving";
+import { cut, unsettled } from "../saving";
 import { asksSure } from "../sure";
 import Beside from "../ui/Beside";
 import type { Run } from "../ui/Card";
@@ -157,7 +157,7 @@ const view = (more: Partial<Parameters<typeof Earlier>[0]> = {}) => {
 const list = () => screen.getByRole("list", { name: t("earlierList") });
 
 beforeEach(() => {
-  forgotten("d-1");
+  cut("d-1");
   ipc.calls = [];
   ipc.rows = [claudes, elsewhere, yours];
   ipc.bodies = { [A]: "# Acta\n\nlo primero", [B]: "# Acta\n\nlo del asistente" };

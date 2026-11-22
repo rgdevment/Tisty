@@ -1499,6 +1499,16 @@ const en = {
   saveStuck:
     "Saving this document got no answer for half a minute, so Tisty stopped waiting. Your words are still here and go again with your next change.",
   saveLate: "A save arrived after a newer one, so it was set aside and wrote nothing",
+  asideKept:
+    "What you wrote here could not be saved, so Tisty kept it aside on this computer. It stays until you recover or discard it.",
+  asideRecover: "Recover what you wrote",
+  asideDiscard: "Discard it",
+  asideDiscardSure: "Discard what you wrote here? It goes for good. This cannot be undone.",
+  asideTitle: "What you wrote",
+  asideWhy: "Copy it, or put it back in the document in place of what it says now.",
+  asideOnlyCopy: "The document cannot be written in right now, so this can only be copied.",
+  asidePutBack: "Put it back",
+  asideCopied: "Copied",
   partingUnsaved:
     "What you wrote last could not be saved yet, so closing now would leave it behind. Close Tisty anyway?",
   notAHistoryLimit: "The history is kept for 1, 5, 15 or 30 days",
@@ -5168,6 +5178,16 @@ const es: Catalog = {
     "Guardar este documento no tuvo respuesta en medio minuto, así que Tisty dejó de esperar. Tu texto sigue aquí y se vuelve a enviar con tu próximo cambio.",
   saveLate:
     "Un guardado llegó después de uno más nuevo, así que quedó a un lado y no escribió nada",
+  asideKept:
+    "Lo que escribiste aquí no se pudo guardar, así que Tisty lo guardó aparte en este equipo. Se queda hasta que lo recuperes o lo descartes.",
+  asideRecover: "Recuperar lo que escribiste",
+  asideDiscard: "Descartarlo",
+  asideDiscardSure: "¿Descartar lo que escribiste aquí? Se va para siempre. No se puede deshacer.",
+  asideTitle: "Lo que escribiste",
+  asideWhy: "Cópialo, o vuelve a ponerlo en el documento en lugar de lo que dice ahora.",
+  asideOnlyCopy: "Ahora no se puede escribir en el documento, así que solo se puede copiar.",
+  asidePutBack: "Volver a ponerlo",
+  asideCopied: "Copiado",
   partingUnsaved:
     "Lo último que escribiste todavía no se pudo guardar, así que cerrar ahora lo dejaría atrás. ¿Cerrar Tisty de todos modos?",
   notAHistoryLimit: "El historial se guarda 1, 5, 15 o 30 días",

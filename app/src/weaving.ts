@@ -1,5 +1,5 @@
 import { docMerge, docOpened, docWrite, type Opened } from "./core";
-import { kept, landedWords, turned, unansweredWords } from "./saving";
+import { kept, landedWords, lostTrack, readAgain, turned, unansweredWords } from "./saving";
 
 const REMEMBERS = 12;
 
@@ -17,8 +17,9 @@ export const remembered = (held: Map<string, Read>, file: string, read: Read) =>
 
 export const opening = (file: string): Promise<Opened & { left?: boolean }> => {
   const left = unansweredWords(file);
-  if (left === undefined) return docOpened(file, turned());
-  return Promise.resolve({ body: left, print: "", left: true });
+  if (left !== undefined) return Promise.resolve({ body: left, print: "", left: true });
+  readAgain(file);
+  return docOpened(file, turned());
 };
 
 export const savedOnce = (
@@ -35,6 +36,7 @@ export const savedOnce = (
       const refused = e as { code?: string; landed?: number } | null;
       const base = landedWords(id, refused?.landed) ?? read()?.text;
       if (refused?.code !== "documentMoved" || base === undefined) throw e;
+      if (lostTrack(id, refused.landed)) throw e;
       const woven = await docMerge(id, base, text, turn);
       if (!woven) throw e;
       return { fresh: null, woven };

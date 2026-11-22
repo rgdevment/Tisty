@@ -1,15 +1,20 @@
+import { setAside } from "./keptAside";
+
 export const PATIENCE = 30_000;
 
 export type SaveTurn = { hand: string; n: number };
 
-type Left = { n: number; words: string; stuck: boolean };
+type Sent = { n: number; words: string };
+
+type Left = Sent & { stuck: boolean };
 
 type Holder = { flush: () => void; resend?: () => void; holding?: () => boolean };
 
 type Line = { last: Promise<unknown>; era: number };
 
 const lines = new Map<string, Line>();
-const unanswered = new Map<string, Left[]>();
+const unanswered = new Map<string, Left>();
+const mayLand = new Map<string, Sent[]>();
 const holders = new Set<Holder>();
 let pending = 0;
 
@@ -48,14 +53,30 @@ export const codeOf = (problem: unknown): string | undefined =>
 
 export const stuck = (problem: unknown): boolean => codeOf(problem) === "saveStuck";
 
+const mayHaveWritten = (problem: unknown): boolean =>
+  stuck(problem) || codeOf(problem) === "internal";
+
+const SET_ASIDE = new Set(["documentTooLong", "documentLocked"]);
+
+const FOR_GOOD = new Set([...SET_ASIDE, "noSuchDoc"]);
+
+export const refusedForGood = (problem: unknown): boolean => FOR_GOOD.has(codeOf(problem) ?? "");
+
 const within = <T>(work: Promise<T>): Promise<T> =>
   new Promise<T>((done, failed) => {
     const late = setTimeout(() => failed({ code: "saveStuck" }), PATIENCE);
     work.then(done, failed).finally(() => clearTimeout(late));
   });
 
-const left = (id: string, one: Left) =>
-  unanswered.set(id, [...(unanswered.get(id) ?? []).filter((was) => was.stuck), one]);
+const stopped = (id: string, one: Sent) => {
+  const first = mayLand.get(id)?.[0];
+  mayLand.set(id, first ? [first, one] : [one]);
+};
+
+const forget = (id: string) => {
+  unanswered.delete(id);
+  mayLand.delete(id);
+};
 
 export const kept = <T>(
   id: string,
@@ -70,12 +91,16 @@ export const kept = <T>(
     const turn = turned();
     return within(run(turn)).then(
       (done) => {
-        unanswered.delete(id);
+        forget(id);
         return done;
       },
       (problem: unknown) => {
         if (!uncut()) throw { code: "saveLate" };
-        if (codeOf(problem) !== "saveLate") left(id, { n: turn.n, words, stuck: stuck(problem) });
+        if (mayHaveWritten(problem)) stopped(id, { n: turn.n, words });
+        if (SET_ASIDE.has(codeOf(problem) ?? "")) setAside(id, words);
+        if (refusedForGood(problem)) unanswered.delete(id);
+        else if (codeOf(problem) !== "saveLate")
+          unanswered.set(id, { n: turn.n, words, stuck: stuck(problem) });
         throw problem;
       },
     );
@@ -83,27 +108,26 @@ export const kept = <T>(
 };
 
 export const landedWords = (id: string, n?: number): string | undefined =>
-  unanswered.get(id)?.find((one) => one.n === n)?.words;
+  mayLand.get(id)?.find((one) => one.n === n)?.words;
 
-const latest = (id: string): Left | undefined => unanswered.get(id)?.slice(-1)[0];
+export const readAgain = (id: string): void => {
+  mayLand.delete(id);
+};
 
-export const unansweredWords = (id: string): string | undefined => latest(id)?.words;
+export const lostTrack = (id: string, n?: number): boolean =>
+  mayLand.has(id) && landedWords(id, n) === undefined;
 
-export const stalledOn = (id: string): boolean => latest(id)?.stuck ?? false;
+export const unansweredWords = (id: string): string | undefined => unanswered.get(id)?.words;
+
+export const stalledOn = (id: string): boolean => unanswered.get(id)?.stuck ?? false;
 
 export const allUnanswered = (): [string, string][] =>
-  [...unanswered].flatMap(([id, left]) =>
-    left.slice(-1).map((one): [string, string] => [id, one.words]),
-  );
-
-export const forgotten = (id: string): void => {
-  unanswered.delete(id);
-};
+  [...unanswered].map(([id, one]) => [id, one.words]);
 
 export const cut = (id: string): void => {
   const line = lines.get(id);
   if (line) line.era += 1;
-  unanswered.delete(id);
+  forget(id);
 };
 
 export const busy = (id: string): Promise<unknown> | undefined => lines.get(id)?.last;

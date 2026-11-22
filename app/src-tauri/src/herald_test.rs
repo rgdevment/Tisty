@@ -333,7 +333,14 @@ fn a_round_that_panics_does_not_take_the_watch_with_it() {
     let paths = tisty_core::Paths::new(tmp.path().join("data"), tmp.path().join("config"));
     witness::keeps(witness::file(&paths), false);
 
-    let broke = quietly(|| survived(|| panic!("the store went sideways"), "the watch broke"));
+    let broke = quietly(|| {
+        survived(
+            || panic!("the store went sideways"),
+            channel::HERALD,
+            "the watch broke",
+            &[],
+        )
+    });
 
     assert!(broke.is_none());
     let seen = witness::recent(&paths, 10);
@@ -349,7 +356,10 @@ fn a_round_that_panics_does_not_take_the_watch_with_it() {
 
 #[test]
 fn a_round_that_finishes_hands_back_what_it_found() {
-    assert_eq!(survived(|| 41 + 1, "unused"), Some(42));
+    assert_eq!(
+        survived(|| 41 + 1, channel::HERALD, "unused", &[]),
+        Some(42)
+    );
 }
 
 #[test]

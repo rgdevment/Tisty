@@ -2,6 +2,8 @@ use tauri::{Emitter, Manager};
 use tisty_core::herald::{Channel, Due, Happening, Heralds, Told, Trouble};
 use tisty_core::witness::{self, Fact, channel};
 
+use crate::surviving::survived;
+
 pub struct Screen {
     app: tauri::AppHandle,
     words: Words,
@@ -204,14 +206,18 @@ pub fn watch(app: tauri::AppHandle, paths: tisty_core::Paths, nudge: Nudge, move
 
             let Some((owed, read, stirred)) = survived(
                 || watching.owed(&paths, since, now),
+                channel::HERALD,
                 "the watch could not read what was owed",
+                &[],
             ) else {
                 continue;
             };
             if read && watching.known {
                 survived(
                     || booked(&app, &watching.state, now),
+                    channel::HERALD,
                     "the watch could not book the coming reminders",
+                    &[],
                 );
             }
             if stirred {
@@ -241,18 +247,10 @@ fn rebooked(app: &tauri::AppHandle, watching: &mut Watching, paths: &tisty_core:
                 booked(app, &watching.state, jiff::Timestamp::now());
             }
         },
+        channel::HERALD,
         "the watch could not book the reminders it read",
+        &[],
     );
-}
-
-fn survived<T>(work: impl FnOnce() -> T, said: &'static str) -> Option<T> {
-    match std::panic::catch_unwind(std::panic::AssertUnwindSafe(work)) {
-        Ok(done) => Some(done),
-        Err(_) => {
-            witness::error(channel::HERALD, said, &[]);
-            None
-        }
-    }
 }
 
 #[derive(Default)]
@@ -376,7 +374,9 @@ pub fn book_before_leaving<R: tauri::Runtime>(app: &tauri::AppHandle<R>) {
                     booking.keep(&wanted, now);
                 }
             },
+            channel::HERALD,
             "the reminders could not be booked on the way out",
+            &[],
         );
         let _ = done.send(());
     });

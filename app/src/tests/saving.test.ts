@@ -1,9 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
+import { letAsideGo } from "../keptAside";
 import {
   allUnanswered,
   busy,
   cut,
-  forgotten,
   holds,
   kept,
   landedWords,
@@ -98,38 +98,77 @@ describe("the saves of one document", () => {
 
     expect(unansweredWords("rechazado")).toBe("leche y pan");
     expect(stalledOn("rechazado")).toBe(false);
-    forgotten("rechazado");
+    cut("rechazado");
   });
 
-  it("keep every one that stopped, since it may still land, but only the last refused one", async () => {
+  it("keep the first and the newest that stopped, either of which may land, never each one between", async () => {
+    const turns: SaveTurn[] = [];
+    for (const words of ["uno", "dos", "tres"]) {
+      void kept("varios", words, (turn) => {
+        turns.push(turn);
+        return never();
+      }).catch(() => {});
+      await vi.advanceTimersByTimeAsync(PATIENCE);
+    }
+    expect(landedWords("varios", turns[1].n)).toBeUndefined();
+    expect(unansweredWords("varios")).toBe("tres");
+
+    await kept("varios", "cuatro", () => Promise.reject({ code: "documentMoved" })).catch(() => {});
+    await kept("varios", "cinco", () => Promise.reject({ code: "documentMoved" })).catch(() => {});
+
+    expect(landedWords("varios", turns[0].n)).toBe("uno");
+    expect(landedWords("varios", turns[2].n)).toBe("tres");
+    expect(unansweredWords("varios")).toBe("cinco");
+    expect(allUnanswered()).toContainEqual(["varios", "cinco"]);
+    cut("varios");
+  });
+
+  it("let go of the words of one refused for good, yet still weave from one that stopped before it", async () => {
     let first: SaveTurn | undefined;
-    void kept("varios", "uno", (turn) => {
+    void kept("para siempre", "uno", (turn) => {
       first = turn;
       return never();
     }).catch(() => {});
     await vi.advanceTimersByTimeAsync(PATIENCE);
-    await kept("varios", "dos", () => Promise.reject({ code: "documentTooLong" })).catch(() => {});
-    await kept("varios", "tres", () => Promise.reject({ code: "documentTooLong" })).catch(() => {});
+    for (const code of ["documentTooLong", "documentLocked", "noSuchDoc"]) {
+      await kept("para siempre", "dos", () => Promise.reject({ code })).catch(() => {});
 
-    expect(landedWords("varios", first?.n)).toBe("uno");
-    expect(unansweredWords("varios")).toBe("tres");
-    expect(allUnanswered()).toContainEqual(["varios", "tres"]);
-    forgotten("varios");
+      expect(unansweredWords("para siempre"), code).toBeUndefined();
+    }
+    expect(allUnanswered().map(([id]) => id)).not.toContain("para siempre");
+    expect(unsettled()).toBe(false);
+    expect(landedWords("para siempre", first?.n)).toBe("uno");
+    cut("para siempre");
+    letAsideGo("para siempre");
+  });
+
+  it("remember one that broke as one that may have landed, without saying it stopped", async () => {
+    let broke: SaveTurn | undefined;
+    await kept("roto", "leche y pan", (turn) => {
+      broke = turn;
+      return Promise.reject({ code: "internal" });
+    }).catch(() => {});
+
+    expect(landedWords("roto", broke?.n)).toBe("leche y pan");
+    expect(unansweredWords("roto")).toBe("leche y pan");
+    expect(stalledOn("roto")).toBe(false);
+    cut("roto");
+  });
+
+  it("keep the words of one refused while its document is away, since it may come back", async () => {
+    await kept("lejos", "leche y pan", () => Promise.reject({ code: "documentAway" })).catch(
+      () => {},
+    );
+
+    expect(unansweredWords("lejos")).toBe("leche y pan");
+    expect(stalledOn("lejos")).toBe(false);
+    cut("lejos");
   });
 
   it("leave nothing behind for one set aside because a newer one went first", async () => {
     await kept("apartado", "leche", () => Promise.reject({ code: "saveLate" })).catch(() => {});
 
     expect(unansweredWords("apartado")).toBeUndefined();
-  });
-
-  it("forget the words that did not answer once the person lets them go", async () => {
-    void kept("soltadas", "huevos", never).catch(() => {});
-    await vi.advanceTimersByTimeAsync(PATIENCE);
-
-    forgotten("soltadas");
-
-    expect(unansweredWords("soltadas")).toBeUndefined();
   });
 });
 
@@ -283,7 +322,7 @@ describe("what closing learns from the saves", () => {
     await vi.advanceTimersByTimeAsync(PATIENCE);
 
     expect(await left).toBe(true);
-    forgotten("cierre colgado");
+    cut("cierre colgado");
   });
 
   it("that words are left when work that must never overlap is still waiting", async () => {

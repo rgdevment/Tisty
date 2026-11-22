@@ -109,14 +109,16 @@ pub fn doc_opened(
     id: String,
     turn: Option<super::turns::Turn>,
 ) -> Answer<Opened> {
-    if let Some(turn) = &turn {
-        held(&session).turns.opened(&id, turn);
-    }
-    let body = caught("doc_opened", || read_minded(&session, id.clone()))??;
-    let opened_file = held(&session).paths.opened_file();
-    tisty_core::forgotten::opened(&opened_file, &id);
-    let print = tisty_core::docs::print_of_text(&body);
-    Ok(Opened { body, print })
+    caught("doc_opened", || {
+        if let Some(turn) = &turn {
+            held(&session).turns.opened(&id, turn);
+        }
+        let body = read_minded(&session, id.clone())?;
+        let opened_file = held(&session).paths.opened_file();
+        tisty_core::forgotten::opened(&opened_file, &id);
+        let print = tisty_core::docs::print_of_text(&body);
+        Ok(Opened { body, print })
+    })?
 }
 
 fn read_minded(session: &Mutex<Session>, id: String) -> Answer<String> {
@@ -1167,6 +1169,9 @@ pub fn one_step_back(session: &Session, id: &str) -> Option<String> {
 }
 
 pub(crate) fn writable(state: &State, id: &str) -> Result<(), Refusal> {
+    if state.shed.contains(id) && !state.docs.values().any(|one| one.file == id) {
+        return Err(Refusal::of("noSuchDoc"));
+    }
     match (state.bolted(id), state.away(id)) {
         (false, _) => Ok(()),
         (true, true) => Err(Refusal::of("documentAway")),
@@ -1198,13 +1203,15 @@ pub fn doc_write(
     turn: Option<super::turns::Turn>,
 ) -> Answer<Kept> {
     let file = id.clone();
-    super::turns::in_turn(
-        &mut held(&session),
-        &file,
-        turn,
-        |session| written_by_hand(session, id, body, anyway, since),
-        |_| true,
-    )
+    caught("doc_write", || {
+        super::turns::in_turn(
+            &mut held(&session),
+            &file,
+            turn,
+            |session| written_by_hand(session, id, body, anyway, since),
+            |_| true,
+        )
+    })?
 }
 
 pub(crate) fn written_by_hand(
@@ -1298,13 +1305,15 @@ pub fn doc_merge(
     turn: Option<super::turns::Turn>,
 ) -> Answer<Option<Woven>> {
     let file = id.clone();
-    super::turns::in_turn(
-        &mut held(&session),
-        &file,
-        turn,
-        |session| merged(session, id, &base, &mine),
-        Option::is_some,
-    )
+    caught("doc_merge", || {
+        super::turns::in_turn(
+            &mut held(&session),
+            &file,
+            turn,
+            |session| merged(session, id, &base, &mine),
+            Option::is_some,
+        )
+    })?
 }
 
 pub(crate) fn merged(

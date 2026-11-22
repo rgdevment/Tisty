@@ -36,6 +36,7 @@ mod session;
 mod shop;
 mod starting;
 mod summing;
+mod surviving;
 mod tray;
 mod unsealing;
 mod update;
@@ -52,6 +53,7 @@ pub(crate) use refusing::{Refusal, blamed, refusal_code};
 pub(crate) use refusing::{behind_here, where_it_comes_from};
 pub(crate) use session::Session;
 pub(crate) use summing::{Coming, Counted, Habit, coming, recurring, tags_in_use, tally};
+use surviving::caught;
 pub(crate) use weighing::weighed;
 
 use tisty_core::{
@@ -124,17 +126,6 @@ async fn elsewhere<T: Send + 'static>(work: impl FnOnce() -> T + Send + 'static)
             );
             Refusal::of("internal")
         })
-}
-
-fn caught<T>(command: &'static str, work: impl FnOnce() -> T) -> Answer<T> {
-    std::panic::catch_unwind(std::panic::AssertUnwindSafe(work)).map_err(|_| {
-        witness::error(
-            channel::WINDOW,
-            "a command broke and was answered with a refusal",
-            &[("command", Fact::Word(command))],
-        );
-        Refusal::of("internal")
-    })
 }
 
 fn today() -> jiff::civil::Date {

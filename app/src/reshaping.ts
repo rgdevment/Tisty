@@ -50,6 +50,9 @@ const askedPlainly: Asking = async (said) => {
   return chosen === full ? "full" : chosen === keep ? "keep" : null;
 };
 
+export const attachedPicked = (chosen: string | string[] | null): Promise<Promise<string>[]> =>
+  attachedAll(Array.isArray(chosen) ? chosen : chosen ? [chosen] : []);
+
 /** Asked once for every photo dropped together; the core keeps them one at a time while they turn at once. */
 export async function attachedAll(paths: string[]): Promise<Promise<string>[]> {
   const asked = paths.filter(turnable);

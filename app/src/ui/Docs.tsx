@@ -2,7 +2,7 @@ import { save as intoFile, open as pick } from "@tauri-apps/plugin-dialog";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { freshFence } from "tisty-diagrams/read";
 import type { Asking } from "tisty-editor/edit";
-import { acrossOf, type Head, laidIn, PAPER, sheetFor, writtenAcrossOf } from "tisty-editor/read";
+import { acrossOf, type Head, laidIn, sheetFor, writtenAcrossOf } from "tisty-editor/read";
 import { agentsTree } from "../agentsSync";
 import { fold, RAIL, sideWidth, useBreadth, WIDE_WINDOW } from "../breadth";
 import type { Citing } from "../citing";
@@ -41,8 +41,19 @@ import { fill, t } from "../locales";
 import { filed, inTextOrder, type Moved, namesIn, pagesOf, under } from "../paging";
 import { crowd, MANY, weighed } from "../previews";
 import { saidPlainly } from "../refusal";
-import { attachedAll } from "../reshaping";
-import { allUnanswered, busy, codeOf, cut, holds, stalledOn, stuck, turned } from "../saving";
+import { attachedPicked } from "../reshaping";
+import {
+  allUnanswered,
+  busy,
+  codeOf,
+  cut,
+  holds,
+  refusedForGood,
+  stalledOn,
+  stuck,
+  turned,
+  unansweredWords,
+} from "../saving";
 import { sure } from "../sure";
 import { chooseTongue, docDress, tonguesOf, twinOf } from "../tongues";
 import { opening, type Read, remembered, savedOnce } from "../weaving";
@@ -51,6 +62,7 @@ import { changedIn, MARK_FADES } from "./anchoring";
 import Beside, { trailed } from "./Beside";
 import Contents from "./Contents";
 import { diaryLoaded, type LoadedDiary } from "./diaryLoaded";
+import KeptAside from "./KeptAside";
 import { PageMore, type Viewing } from "./liveSheet";
 import Modal from "./Modal";
 import Notes from "./Notes";
@@ -62,6 +74,7 @@ import Ribbon, { Onward } from "./Ribbon";
 import { ClashBar, SaveLine, StuckBar } from "./SaveBars";
 import { type LoadedSheet, sheetLoaded } from "./sheetLoaded";
 import { pageFor } from "./sheets";
+import { sizedPapers } from "./sizedPapers";
 import { CompactBar, MarkBar, StirredBar } from "./Tidied";
 import Tongues, { standingHead } from "./Tongues";
 import { cardFor, useAgentShelf } from "./useAgentCard";
@@ -69,24 +82,13 @@ import { useAgentDoc } from "./useAgentDoc";
 import { useEarlier } from "./useEarlier";
 import { useLeaving } from "./useLeaving";
 import { useLinkable } from "./useLinkable";
+import { useToldAbove } from "./useToldAbove";
 import { clearOfChrome } from "./WindowChrome";
 import { useWholeKeys } from "./wholeKeys";
 
 const SETTLES = 700;
 
 const GUTTER = 8;
-
-const leaves = (): Record<string, Paper> => {
-  try {
-    const said: unknown = JSON.parse(localStorage.getItem("tisty.paper") ?? "{}");
-    if (!said || typeof said !== "object") return {};
-    return Object.fromEntries(
-      Object.entries(said as Record<string, string>).filter(([, leaf]) => leaf in PAPER),
-    ) as Record<string, Paper>;
-  } catch {
-    return {};
-  }
-};
 
 const ASIDE = 344;
 const READABLE = 520;
@@ -124,11 +126,6 @@ interface Props {
 const tailless = (said: string): string => said.replace(/\r\n/g, "\n").replace(/\n+$/, "");
 
 const NO_TAGS: readonly string[] = [];
-
-const listed = (chosen: string | string[] | null): string[] => {
-  if (Array.isArray(chosen)) return chosen;
-  return chosen ? [chosen] : [];
-};
 
 const LANDING_MS = 3000;
 
@@ -212,7 +209,7 @@ export default function Docs({
   // A round that came while a save was in flight is read once the save lands, not dropped.
   const missed = useRef(false);
   const [behind, setBehind] = useState(0);
-  const [sized, setSized] = useState<Record<string, Paper>>(leaves);
+  const sized = sizedPapers.use();
   const [making, setMaking] = useState(false);
   const [seeing, setSeeing] = useState<string | null>(null);
   const [pdfAsked, setPdfAsked] = useState(false);
@@ -272,6 +269,8 @@ export default function Docs({
         .catch((e) => {
           const code = codeOf(e);
           if (code === "saveLate") return;
+          if (refusedForGood(e) && held.current?.id === id && held.current.body === text)
+            held.current = null;
           if (stuck(e)) stalled(id);
           else if (code === "documentMoved" && onScreen.current === id) setClashed(true);
           else onError(saidPlainly(e));
@@ -373,7 +372,9 @@ export default function Docs({
 
   const wentBack = useCallback(async () => {
     if (!open) return;
-    if (!(await sure(t("backSure")))) return;
+    const unsaved = () => unansweredWords(open.file) !== undefined;
+    if (!unsaved() && !(await sure(t("backSure")))) return;
+    if (unsaved()) return onError(t("unsavedStays"));
     drop();
     cut(open.file);
     try {
@@ -544,7 +545,7 @@ export default function Docs({
     setCompacted(false);
     setBody(text);
     shaped.current = text;
-    const last = lastRead.current.get(open.file);
+    const last = busy(open.file) ? undefined : lastRead.current.get(open.file);
     const back = last !== undefined && !last.unwoven && tailless(last.text) === tailless(text);
     if (back) {
       // A chapter moved and moved back inside the beat would otherwise be written in the order it passed through.
@@ -658,7 +659,7 @@ export default function Docs({
                 // An attachment as a document's first words would become its title.
                 if (first) return onError(t("fileNeedsTitle"));
                 pick({ multiple: true })
-                  .then((chosen) => attachedAll(listed(chosen)))
+                  .then(attachedPicked)
                   .then((all) => keptAll(all, onError))
                   .then((text) => {
                     if (text && !put(text)) onError(t("attachmentLost"));
@@ -773,20 +774,7 @@ export default function Docs({
     onError: (e) => onError(saidPlainly(e)),
   });
 
-  const [aboveTold, setAboveTold] = useState<string[]>();
-  const upstairs = above?.file;
-  useEffect(() => {
-    if (!upstairs) return setAboveTold(undefined);
-    let gone = false;
-    docRead(upstairs)
-      .then((text) => {
-        if (!gone) setAboveTold(namesIn(text));
-      })
-      .catch(() => {});
-    return () => {
-      gone = true;
-    };
-  }, [upstairs, fresh]);
+  const aboveTold = useToldAbove(above?.file, fresh);
 
   const inOrder = aboveTold
     ? aboveTold
@@ -1010,8 +998,7 @@ export default function Docs({
     if (sheets) keptBeside(paper, landscape);
     const { [open.file]: _, ...others } = sized;
     const now = laidHere ? { ...others, [open.file]: paper } : others;
-    setSized(now);
-    window.localStorage.setItem("tisty.paper", JSON.stringify(now));
+    sizedPapers.put(now);
     if (laidHere) return;
     const latest = held.current?.id === open.file ? held.current.body : body;
     const laid = withPaper(latest, paper);
@@ -1252,6 +1239,16 @@ export default function Docs({
         />
         {open && !saving && !clashed && stalledOn(open.file) && (
           <StuckBar style={wall} onAgain={again} />
+        )}
+        {open && (
+          <KeptAside
+            key={open.file}
+            file={open.file}
+            style={wall}
+            writable={!bolted}
+            onPutBack={wrote}
+            onError={onError}
+          />
         )}
         {stirred && !clashed && !compacted && open && (
           <StirredBar

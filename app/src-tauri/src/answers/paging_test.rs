@@ -253,6 +253,39 @@ fn every_order_that_draws_answers_even_when_its_drawing_breaks() {
 }
 
 #[test]
+fn every_order_that_writes_in_turn_answers_even_when_it_breaks() {
+    let mut fenced = 0;
+    let mut loose = Vec::new();
+    for entry in std::fs::read_dir("src/answers").expect("the answers") {
+        let path = entry.expect("an answer").path();
+        let name = path.file_name().unwrap_or_default().to_string_lossy();
+        if !name.ends_with(".rs") || name.ends_with("_test.rs") {
+            continue;
+        }
+        let said = std::fs::read_to_string(&path).expect("an answer's orders");
+        for order in said.split("#[tauri::command").skip(1) {
+            let body = order.split("\n}\n").next().unwrap_or_default();
+            if !body.contains("in_turn(") && !body.contains("turns::Turn") {
+                continue;
+            }
+            fenced += 1;
+            let work = body.split(") -> ").nth(1).unwrap_or_default();
+            let turned = [work.find("in_turn("), work.find(".turns.")];
+            let first_turned = turned.into_iter().flatten().min().unwrap_or(work.len());
+            if work.find("caught(").is_none_or(|at| at > first_turned) {
+                let name = body.lines().find(|line| line.contains("fn "));
+                loose.push(format!("{}: {}", path.display(), name.unwrap_or_default()));
+            }
+        }
+    }
+    assert!(fenced >= 5, "the orders that write in turn moved elsewhere");
+    assert!(
+        loose.is_empty(),
+        "an order that writes leaves the window waiting until it calls the save stuck if it breaks: {loose:?}"
+    );
+}
+
+#[test]
 fn no_order_anywhere_hands_back_a_drawing_that_cannot_say_it_broke() {
     let mut bare = Vec::new();
     for entry in std::fs::read_dir("src/answers").expect("the answers") {

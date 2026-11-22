@@ -3,8 +3,9 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Filed, Marked, Task } from "../core";
 import { dayOf } from "../format";
+import { asideWords, letAsideGo, setAside } from "../keptAside";
 import { fill, t } from "../locales";
-import { forgotten, kept, unansweredWords } from "../saving";
+import { cut, kept, unansweredWords } from "../saving";
 import { asksSure } from "../sure";
 import { alike, dropWord } from "../tidying";
 import { tongueName } from "../tongues";
@@ -17,6 +18,7 @@ const ipc = vi.hoisted(() => ({
   calls: [] as { cmd: string; args: Record<string, unknown> }[],
   tasks: {} as Record<string, unknown>,
   docs: [] as unknown[],
+  gone: [] as string[],
   last: true,
 }));
 
@@ -34,6 +36,17 @@ vi.mock("@tauri-apps/api/core", async () => ({
         return Promise.resolve({ id: args.id, title: "Notes" });
       case "docs":
         return Promise.resolve({ folders: [], docs: ipc.docs });
+      case "doc_drop": {
+        const id = String(args.id);
+        if (ipc.gone.includes(id)) return Promise.reject({ code: "noSuchDoc" });
+        const one = (ipc.docs as Filed[]).find((kept) => kept.id === id);
+        const anchor = one?.tongue?.[0];
+        const kin = (ipc.docs as Filed[]).filter(
+          (kept) => anchor && kept.tongue?.[0] === anchor && kept.folder === one?.folder,
+        );
+        ipc.gone.push(id, ...kin.map((kept) => kept.id));
+        return Promise.resolve(null);
+      }
       case "task_of": {
         const one = ipc.tasks[String(args.id)];
         return one ? Promise.resolve(one) : Promise.reject({ code: "noSuchTask" });
@@ -97,6 +110,7 @@ beforeEach(() => {
   ipc.last = true;
   ipc.tasks = {};
   ipc.docs = [];
+  ipc.gone = [];
   asksSure(null);
   knowAgents({}, { clients: { "claude-code": "Claude Code" } });
 });
@@ -313,7 +327,7 @@ describe("deleting a set", () => {
     expect(unansweredWords("d-1")).toBeUndefined();
     expect(unansweredWords("d-2")).toBeUndefined();
     expect(unansweredWords("d-9")).toBe("palabras de d-9");
-    forgotten("d-9");
+    cut("d-9");
   });
 
   it("says this document and the page it holds when there is one of each", async () => {
@@ -372,6 +386,79 @@ describe("deleting a set", () => {
     ]);
     expect(called("doc_drop").map((one) => one.args.id)).toEqual(["D1"]);
     expect(unansweredWords("d-2")).toBeUndefined();
+  });
+
+  it("deletes the languages of one document once, names them, and still deletes the rest", async () => {
+    const asked: string[] = [];
+    asksSure((said) => {
+      asked.push(said);
+      return Promise.resolve(true);
+    });
+    ipc.docs = [
+      doc({ id: "D1", file: "d-1", title: "Notes", lang: "en", tongue: ["D1", 0] }),
+      doc({ id: "D2", file: "d-2", title: "Notas", lang: "es", tongue: ["D1", 1] }),
+      doc({ id: "D3", file: "d-3", title: "Draft C" }),
+    ];
+    const given = hands();
+    const { result } = renderHook(() => usePapers(given));
+    await waitFor(() => expect(result.current.papers.docs).toHaveLength(3));
+
+    await result.current.dropDocs(ipc.docs as Filed[]);
+
+    const both = [tongueName("en"), tongueName("es")].join(", ");
+    expect(asked).toEqual([fill("flagDropAllSure", "2", `· Notes (${both})\n· Draft C`)]);
+    expect(called("doc_drop").map((one) => one.args.id)).toEqual(["D1", "D3"]);
+    expect(given.setError).not.toHaveBeenCalled();
+  });
+
+  it("takes a page of another language with its document, whichever comes first in the set", async () => {
+    const asked: string[] = [];
+    asksSure((said) => {
+      asked.push(said);
+      return Promise.resolve(true);
+    });
+    ipc.docs = [
+      doc({ id: "D1", file: "d-1", title: "Notes", lang: "en", tongue: ["D1", 0] }),
+      doc({ id: "D2", file: "d-2", title: "Notas", lang: "es", tongue: ["D1", 1] }),
+      doc({ id: "P2", file: "p-2", title: "Anexo", pageOf: "D2" }),
+    ];
+    const { result } = renderHook(() => usePapers(hands()));
+    await waitFor(() => expect(result.current.papers.docs).toHaveLength(3));
+
+    const [first, , page] = ipc.docs as Filed[];
+    await result.current.dropDocs([page, first]);
+
+    const both = [tongueName("en"), tongueName("es")].join(", ");
+    expect(asked).toEqual([`${t("flagDropOnePageSure")}\n\n· Notes (${both})\n    · Anexo`]);
+    expect(called("doc_drop").map((one) => one.args.id)).toEqual(["D1"]);
+  });
+
+  it("goes on with the rest of the set when one of it is refused, and says why", async () => {
+    asksSure(() => Promise.resolve(true));
+    ipc.gone = ["D1"];
+    const given = hands();
+    const { result } = renderHook(() => usePapers(given));
+
+    await result.current.dropDocs([
+      doc({ id: "D1", file: "d-1", title: "Draft A" }),
+      doc({ id: "D3", file: "d-3", title: "Draft C" }),
+    ]);
+
+    expect(called("doc_drop").map((one) => one.args.id)).toEqual(["D1", "D3"]);
+    expect(given.setError).toHaveBeenCalledTimes(1);
+  });
+
+  it("lets go of the words kept aside for each document that went, and only those", async () => {
+    asksSure(() => Promise.resolve(true));
+    setAside("d-1", "palabras de d-1");
+    setAside("d-9", "palabras de d-9");
+    const { result } = renderHook(() => usePapers(hands()));
+
+    await result.current.dropDoc(doc({ id: "D1", file: "d-1", title: "Draft A" }));
+
+    expect(asideWords("d-1")).toBeUndefined();
+    expect(asideWords("d-9")).toBe("palabras de d-9");
+    letAsideGo("d-9");
   });
 
   it("deletes nothing when the person says no", async () => {

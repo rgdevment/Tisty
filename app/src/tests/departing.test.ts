@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { departing } from "../departing";
 import { t } from "../locales";
-import { forgotten, kept, PATIENCE } from "../saving";
+import { cut, kept, PATIENCE } from "../saving";
 import { asksSure } from "../sure";
 
 const ipc = vi.hoisted(() => ({ calls: [] as string[] }));
@@ -50,7 +50,7 @@ describe("closing Tisty", () => {
 
     expect(asked).toEqual([t("partingUnsaved")]);
     expect(ipc.calls).toEqual(["parting_waits", "parting_waits", "parting_waits", "parting_stays"]);
-    forgotten("cuelga");
+    cut("cuelga");
   });
 
   it("shows the window within a second while it waits, never a quiet wait from the tray", async () => {
@@ -62,7 +62,7 @@ describe("closing Tisty", () => {
     expect(ipc.calls).toEqual(["parting_waits", "parting_waits"]);
     await vi.advanceTimersByTimeAsync(PATIENCE);
     await going;
-    forgotten("bandeja");
+    cut("bandeja");
   });
 
   it("can always be closed again when asking the person breaks", async () => {
@@ -74,7 +74,7 @@ describe("closing Tisty", () => {
     await going;
 
     expect(ipc.calls.slice(-1)).toEqual(["parting_stays"]);
-    forgotten("rompe");
+    cut("rompe");
   });
 
   it("leaves without the words only once the person chose to, and writes that down", async () => {
@@ -88,6 +88,6 @@ describe("closing Tisty", () => {
     expect(asked).toEqual([t("partingUnsaved")]);
     expect(ipc.calls.slice(-2)).toEqual(["note_trouble", "parted"]);
     expect(ipc.calls).not.toContain("parting_stays");
-    forgotten("cuelga otra vez");
+    cut("cuelga otra vez");
   });
 });

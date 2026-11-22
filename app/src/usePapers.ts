@@ -19,14 +19,15 @@ import {
   taskPageImport,
 } from "./core";
 import { viewDiagram } from "./drawing";
+import { letAsideGo } from "./keptAside";
 import { leftBehind } from "./leftBehind";
 import { fill, t } from "./locales";
 import { drafted, placeOf } from "./making";
 import { saidPlainly } from "./refusal";
 import { cut } from "./saving";
 import { sure } from "./sure";
-import { dropAllAsked, goingWith } from "./tidying";
-import { tongueName, tonguesOf } from "./tongues";
+import { dropAllAsked, filesGoing, goingWith } from "./tidying";
+import { tonguesNamed } from "./tongues";
 import type { Chosen } from "./views";
 
 // An old copy of a task's page would take away what the task holds now, so the person says so first.
@@ -35,6 +36,11 @@ export const pageHome = (at: string): Promise<string | null | undefined> =>
     if ((e as { code?: string } | null)?.code !== "taskPageBehind") throw e;
     return (await sure(t("taskPageBehindSure"))) ? taskPageImport(at, true) : undefined;
   });
+
+const gone = (file: string) => {
+  cut(file);
+  letAsideGo(file);
+};
 
 export const steady = <T>(was: T, found: T): T =>
   JSON.stringify(was) === JSON.stringify(found) ? was : found;
@@ -53,11 +59,6 @@ interface Hands {
   carries: MutableRefObject<ReturnType<typeof carrying> | null>;
   paging: MutableRefObject<((page: Filed) => boolean) | null>;
 }
-
-const filesOf = (doc: Filed, pages: Filed[]) => [
-  doc.file,
-  ...pages.filter((page) => page.pageOf === doc.id).map((page) => page.file),
-];
 
 export function usePapers({
   chosen,
@@ -134,36 +135,22 @@ export function usePapers({
       })
       .catch((e) => setError(saidPlainly(e)));
 
-  const kinOf = (doc: Filed) =>
-    tonguesOf(papers.docs, doc).filter((one) => one.folder === doc.folder);
-
-  const goneWith = (doc: Filed, pages: Filed[]) => {
-    const kin = kinOf(doc);
-    return (kin.length > 1 ? kin : [doc]).flatMap((one) => filesOf(one, pages));
-  };
-
   const dropDoc = (doc: Filed) => {
     // The languages beside it are the same row, so they go with it, and the question says so.
-    const kin = kinOf(doc);
+    const going = goingWith([doc], papers.docs);
+    const [{ tongues, pages }] = going;
     const asked =
-      kin.length > 1
-        ? fill(
-            "dropTonguesSure",
-            doc.title || t("untitledDoc"),
-            kin.map((one) => tongueName(one.lang ?? "")).join(", "),
-          )
-        : fill(
-            papers.docs.some((one) => one.pageOf === doc.id) ? "dropPagesSure" : "dropDocSure",
-            doc.title || t("untitledDoc"),
-          );
+      tongues.length > 1
+        ? fill("dropTonguesSure", doc.title || t("untitledDoc"), tonguesNamed(tongues))
+        : fill(pages.length ? "dropPagesSure" : "dropDocSure", doc.title || t("untitledDoc"));
     return sure(asked)
       .then((yes) => {
         if (!yes) return;
-        const going = goneWith(doc, papers.docs);
-        if (chosen.doc && going.includes(chosen.doc)) setChosen({ named: "docs" });
+        const files = filesGoing(going);
+        if (chosen.doc && files.includes(chosen.doc)) setChosen({ named: "docs" });
         setReturning(doc.pageOf ?? doc.folder ?? "unfiled");
         return docDrop(doc.id).then(() => {
-          for (const file of going) cut(file);
+          for (const file of files) gone(file);
           papersChanged();
         });
       })
@@ -171,20 +158,23 @@ export function usePapers({
   };
 
   const dropDocs = async (all: Filed[]) => {
-    const { going, pages } = goingWith(all, papers.docs);
-    if (!(await sure(dropAllAsked(going, pages)))) return;
-    const files = new Set(going.flatMap((one) => goneWith(one, [...papers.docs, ...pages])));
-    if (chosen.doc && files.has(chosen.doc)) setChosen({ named: "docs" });
-    const first = going[0];
+    const going = goingWith(all, papers.docs);
+    if (!(await sure(dropAllAsked(going)))) return;
+    const files = filesGoing(going);
+    if (chosen.doc && files.includes(chosen.doc)) setChosen({ named: "docs" });
+    const first = going[0]?.doc;
     if (first) setReturning(first.pageOf ?? first.folder ?? "unfiled");
-    try {
-      for (const one of going) {
-        await docDrop(one.id);
-        for (const file of goneWith(one, [...papers.docs, ...pages])) cut(file);
-      }
-    } catch (e) {
-      setError(saidPlainly(e));
+    let refused: unknown;
+    for (const one of going) {
+      await docDrop(one.doc.id)
+        .then(() => {
+          for (const file of filesGoing([one])) gone(file);
+        })
+        .catch((e: unknown) => {
+          refused ??= e;
+        });
     }
+    if (refused !== undefined) setError(saidPlainly(refused));
     papersChanged();
   };
 

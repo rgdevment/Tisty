@@ -52,6 +52,14 @@ export const tonguesOf = (docs: readonly Filed[], doc: Filed | undefined): Filed
     .sort((a, b) => (a.tongue?.[1] ?? 0) - (b.tongue?.[1] ?? 0));
 };
 
+export const droppedTogether = (docs: readonly Filed[], doc: Filed): Filed[] => {
+  const kin = tonguesOf(docs, doc).filter((one) => one.folder === doc.folder);
+  return kin.length > 1 ? kin : [doc];
+};
+
+export const tonguesNamed = (tongues: readonly Filed[]): string =>
+  tongues.map((one) => tongueName(one.lang ?? "")).join(", ");
+
 /// The one a group opens in: the one open now, the reader's choice, the app's language, the first.
 export const preferred = (members: readonly Filed[], open?: string | null): Filed | undefined => {
   const here = members.find((one) => one.file === open);

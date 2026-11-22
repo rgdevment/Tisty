@@ -2,7 +2,8 @@ import type { CSSProperties } from "react";
 import { t } from "../locales";
 import { MILD } from "./Tidied";
 
-const BAR = "mx-auto mb-2 flex w-full flex-wrap items-center gap-x-3 gap-y-1 px-10 text-[11.5px]";
+export const BAR =
+  "mx-auto mb-2 flex w-full flex-wrap items-center gap-x-3 gap-y-1 px-10 text-[11.5px]";
 
 export function SaveLine({
   style,

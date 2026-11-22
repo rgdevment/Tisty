@@ -1,6 +1,7 @@
 import type { Filed, Marked } from "./core";
 import { dayOf } from "./format";
 import { fill, t, type Word } from "./locales";
+import { droppedTogether, tonguesNamed } from "./tongues";
 import { clientNamed } from "./who";
 
 const POINTING: Record<string, Word> = {
@@ -43,13 +44,26 @@ export const alike = (known: Filed[], own: Filed): Filed[] => {
 export const listOf = (docs: Filed[]): string =>
   docs.map((one) => `· ${one.title || t("untitledDoc")}`).join("\n");
 
+export type Going = { doc: Filed; tongues: Filed[]; pages: Filed[] };
+
 // A page goes with the document that holds it, so asking for it again would find nothing.
-export const goingWith = (all: Filed[], docs: Filed[]) => {
-  const going = all.filter((one) => !all.some((up) => up.id === one.pageOf));
-  const known = new Map([...docs, ...all].map((one) => [one.id, one]));
-  const pages = [...known.values()].filter((one) => going.some((doc) => doc.id === one.pageOf));
-  return { going, pages };
+export const goingWith = (all: Filed[], docs: Filed[]): Going[] => {
+  const known = [...new Map([...docs, ...all].map((one) => [one.id, one])).values()];
+  const loose = all.filter((one) => !all.some((up) => up.id === one.pageOf));
+  const taken = new Set<string>();
+  const going: Going[] = [];
+  for (const doc of [...loose.filter((one) => !one.pageOf), ...loose.filter((one) => one.pageOf)]) {
+    if (taken.has(doc.id)) continue;
+    const tongues = droppedTogether(known, doc);
+    const pages = known.filter((one) => tongues.some((tongue) => tongue.id === one.pageOf));
+    going.push({ doc, tongues, pages });
+    for (const one of [...tongues, ...pages]) taken.add(one.id);
+  }
+  return going;
 };
+
+export const filesGoing = (going: Going[]): string[] =>
+  going.flatMap(({ tongues, pages }) => [...tongues, ...pages].map((one) => one.file));
 
 const withPages = (docs: number, pages: number): Word =>
   docs === 1
@@ -60,17 +74,17 @@ const withPages = (docs: number, pages: number): Word =>
       ? "flagDropAllPageSure"
       : "flagDropAllPagesSure";
 
-export const dropAllAsked = (going: Filed[], pages: Filed[]): string => {
+const namedGoing = ({ doc, tongues }: Going): string =>
+  tongues.length > 1 ? `${listOf([doc])} (${tonguesNamed(tongues)})` : listOf([doc]);
+
+export const dropAllAsked = (going: Going[]): string => {
   const named = going
-    .map((doc) =>
-      [doc, ...pages.filter((one) => one.pageOf === doc.id)]
-        .map((one) => `${one === doc ? "" : "    "}${listOf([one])}`)
-        .join("\n"),
-    )
+    .map((one) => [namedGoing(one), ...one.pages.map((page) => `    ${listOf([page])}`)].join("\n"))
     .join("\n");
   const many = String(going.length);
-  return pages.length
-    ? `${fill(withPages(going.length, pages.length), many, String(pages.length))}\n\n${named}`
+  const pages = going.reduce((all, one) => all + one.pages.length, 0);
+  return pages
+    ? `${fill(withPages(going.length, pages), many, String(pages))}\n\n${named}`
     : fill("flagDropAllSure", many, named);
 };
 
