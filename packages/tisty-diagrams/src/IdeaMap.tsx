@@ -9,6 +9,7 @@ import {
 import Board from "./Board";
 import { useSay } from "./handing";
 import { MindSketch } from "./MindSketch";
+import { modKey } from "./macKeys";
 import {
   type Changed,
   moved,
@@ -106,7 +107,7 @@ export default function IdeaMap({
 
   const keyed = (e: KeyboardEvent) => {
     if (renaming) return;
-    const mod = e.ctrlKey || e.metaKey;
+    const mod = modKey(e);
     const key = e.key.toLowerCase();
     if (mod && (key === "z" || key === "y")) {
       e.preventDefault();

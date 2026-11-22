@@ -1,5 +1,6 @@
 import { useReactFlow } from "@xyflow/react";
 import { type KeyboardEvent, useRef } from "react";
+import { modKey } from "./macKeys";
 
 type Point = { readonly x: number; readonly y: number };
 type Act = (() => void) | null | undefined;
@@ -31,7 +32,7 @@ export const useCanvasHands = (acts: {
     pane.current?.contains(document.elementFromPoint(at.x, at.y)) ? screenToFlowPosition(at) : null;
   const keyed = (e: KeyboardEvent) => {
     if (elsewhere(e)) return;
-    const mod = e.ctrlKey || e.metaKey;
+    const mod = modKey(e);
     const key = e.key.toLowerCase();
     const act = (did: Act) => {
       e.preventDefault();

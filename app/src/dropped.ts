@@ -31,8 +31,10 @@ export const asCss = (x: number, y: number, mac: boolean, scale: number): [numbe
 
 export const CALENDAR = /\.(ics|ical)$/i;
 
+const inCss = (x: number, y: number) => asCss(x, y, onMac, window.devicePixelRatio);
+
 const caughtAt = (x: number, y: number): Element | null => {
-  const [left, top] = asCss(x, y, onMac, window.devicePixelRatio);
+  const [left, top] = inCss(x, y);
   return document.elementFromPoint(left, top)?.closest(`[${CATCHES}]`) ?? null;
 };
 
@@ -61,13 +63,6 @@ export function whenFilesLand(onCaught: Caught, onLoose?: (paths: string[]) => v
   let stop: (() => void) | undefined;
   let live = true;
 
-  const here = (x: number, y: number) => asCss(x, y, onMac, window.devicePixelRatio);
-
-  const under = (x: number, y: number): Element | null => {
-    const [left, top] = here(x, y);
-    return document.elementFromPoint(left, top)?.closest(`[${CATCHES}]`) ?? null;
-  };
-
   const paint = (target: Element | null) => {
     document.querySelectorAll(`[${CATCHES}].catching`).forEach((one) => {
       if (one !== target) one.classList.remove("catching");
@@ -78,15 +73,15 @@ export function whenFilesLand(onCaught: Caught, onLoose?: (paths: string[]) => v
   getCurrentWebview()
     .onDragDropEvent(({ payload }) => {
       if (payload.type === "enter" || payload.type === "over") {
-        paint(under(payload.position.x, payload.position.y));
+        paint(caughtAt(payload.position.x, payload.position.y));
         return;
       }
       if (payload.type !== "drop") {
         paint(null);
         return;
       }
-      const target = under(payload.position.x, payload.position.y);
-      const [left, top] = here(payload.position.x, payload.position.y);
+      const target = caughtAt(payload.position.x, payload.position.y);
+      const [left, top] = inCss(payload.position.x, payload.position.y);
       paint(null);
       if (target && payload.paths.length) onCaught(target, payload.paths, { left, top });
       else if (payload.paths.length) onLoose?.(payload.paths);

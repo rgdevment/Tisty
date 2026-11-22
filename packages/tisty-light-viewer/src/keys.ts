@@ -1,3 +1,5 @@
+import { modKey, onMac } from "tisty-sheet";
+
 export type Keyed = {
   readonly find: () => void;
   readonly side: () => void;
@@ -11,7 +13,9 @@ export type Keyed = {
   readonly escape: () => void;
 };
 
-const withControl = (keyed: Keyed, e: KeyboardEvent): (() => void) | undefined => {
+export const shortcut = (key: string): string => `${onMac ? "⌘" : "Ctrl+"}${key}`;
+
+const withCommand = (keyed: Keyed, e: KeyboardEvent): (() => void) | undefined => {
   const key = e.key.toLowerCase();
   if (e.shiftKey) {
     if (key === "m") return keyed.source;
@@ -36,7 +40,7 @@ export const keyHeard =
   (e: KeyboardEvent): void => {
     let act: (() => void) | undefined;
     if (e.key === "Escape") act = keyed.escape;
-    else if (e.ctrlKey || e.metaKey) act = withControl(keyed, e);
+    else if (modKey(e)) act = withCommand(keyed, e);
     else if (e.altKey && e.key === "ArrowDown") act = () => keyed.head(1);
     else if (e.altKey && e.key === "ArrowUp") act = () => keyed.head(-1);
     else if (e.altKey && e.key === "ArrowLeft") act = keyed.back;

@@ -10,7 +10,7 @@ import {
 } from "@codemirror/autocomplete";
 import { type EditorState, Prec, StateEffect, StateField } from "@codemirror/state";
 import { EditorView, type KeyBinding, keymap, tooltips } from "@codemirror/view";
-import { IDEA_HUES, ideaParts, ideaStamp } from "tisty-sheet";
+import { IDEA_HUES, ideaParts, ideaStamp, onMac } from "tisty-sheet";
 import { markup } from "tisty-sheet/glyphs";
 import { matched } from "../finding";
 import { anchored, coded, linking, TAG_EDGE, TAG_TAIL, TAG_WORD, wrapped } from "./formatting";
@@ -412,8 +412,7 @@ export const putTable = (view: EditorView, asking?: Asking) => {
   if (table) put(view, table, at, at, asking);
 };
 
-const mac = typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform);
-export const pressed = (keys: string): string => `${mac ? "⌘" : "Ctrl"} ${keys}`;
+export const pressed = (keys: string): string => `${onMac ? "⌘" : "Ctrl"} ${keys}`;
 
 const ASKED = /(?:^|\s)\/[\p{L}\p{N}_-]*$/u;
 const WORD = /^[\p{L}\p{N}_-]*$/u;

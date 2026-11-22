@@ -1,3 +1,4 @@
+export { modKey, onMac } from "tisty-diagrams/macKeys";
 export { type Attaching, attachedAs, pressed } from "./attaching";
 export { celled, celledBox, hueOf, sayingDays, today } from "./cells";
 export { colored, coloredAll } from "./coloring";

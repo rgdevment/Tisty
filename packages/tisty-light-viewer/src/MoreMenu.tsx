@@ -1,5 +1,6 @@
 import { For, onCleanup, Show } from "solid-js";
 import { address, copied, plain, reveal } from "./host";
+import { shortcut } from "./keys";
 import type { Words } from "./words";
 
 type Choice = { label: string; hint?: string; pick: () => void };
@@ -21,15 +22,15 @@ export default function MoreMenu(props: {
     label,
     pick: () => void said().then(copied).catch(props.fail),
   });
-  const find: Choice = { label: say("find"), hint: "Ctrl+F", pick: props.onFind };
+  const find: Choice = { label: say("find"), hint: shortcut("F"), pick: props.onFind };
   const choices: Choice[] = [
     ...(props.searchable ? [find] : []),
-    { label: say("bigger"), hint: "Ctrl+=", pick: () => props.onZoom(1) },
-    { label: say("smaller"), hint: "Ctrl+−", pick: () => props.onZoom(-1) },
-    { label: say("plain"), hint: "Ctrl+0", pick: () => props.onZoom(0) },
+    { label: say("bigger"), hint: shortcut("="), pick: () => props.onZoom(1) },
+    { label: say("smaller"), hint: shortcut("−"), pick: () => props.onZoom(-1) },
+    { label: say("plain"), hint: shortcut("0"), pick: () => props.onZoom(0) },
     ...(props.drawn ? [copying(say("copy"), plain)] : []),
     ...(props.drawn && props.own ? [copying(say("copyLink"), address)] : []),
-    { label: say("print"), hint: "Ctrl+P", pick: props.onPrint },
+    { label: say("print"), hint: shortcut("P"), pick: props.onPrint },
   ];
   const path = props.revealed;
   if (path !== null) {

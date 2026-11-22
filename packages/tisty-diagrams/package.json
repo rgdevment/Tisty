@@ -6,6 +6,7 @@
   "license": "AGPL-3.0-only",
   "type": "module",
   "exports": {
+    "./macKeys": "./src/macKeys.ts",
     "./read": "./src/read.ts",
     "./studio": "./src/studio.ts"
   },
