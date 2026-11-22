@@ -222,6 +222,7 @@ jobs:
         working-directory: app
       - run: cargo build -q -p tisty-markdown --example placing
       - run: node app/scripts/engines.mjs
+      - run: node app/scripts/engines-pace.mjs
 
   engines-edge:
     name: the page writes as it should in Edge on Windows
