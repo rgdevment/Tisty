@@ -133,7 +133,10 @@ export default function Stage() {
         setCameFrom(null);
         openedHere(one, desk);
       }}
-      onLeave={() => setChosen(cameFrom ?? { named: "tasks" })}
+      onLeave={() => {
+        setChosen(cameFrom ?? { named: "tasks" });
+        if (chosen.besideTask) setSelected(chosen.besideTask);
+      }}
     />
   ) : chosen.named === "docs" && !chosen.doc && here !== undefined ? (
     <Folder

@@ -111,14 +111,14 @@ While you look at it, the network moves: it turns, and travellers walk its lines
 - **It runs only while you see it.** Moving to another view stops it, like the rest of the network.
 - **What it costs**, if you are curious: `Ctrl`/`⌘` + `Shift` + `M` shows beside the legend how many milliseconds each frame takes and how many frames a second it draws, for instance «2.10 ms a frame · 60 frames a second». Another `Ctrl`/`⌘` + `Shift` + `M` hides it.
 
-For instance, Lucas opens Brainsty with 180 nodes: he sees twelve travellers crossing the network as it turns, each going from one node to the next every six seconds. He rests the pointer on the **Work** zone to read a title and the globe stops; he moves it to the empty space and it turns again. He comes close with the wheel to «Budget 2027» and the globe holds still while he reads, even when he moves the pointer; the travellers keep passing. A double click on an empty spot and he is facing the whole network again, turning. To share his screen he prefers the network still: he opens the **Legend** and turns **Travellers** and **Turning** off, and next time on that computer it opens the same way.
+For instance, Lucas opens Brainsty with 180 nodes: he sees twelve travellers crossing the network as it turns, each going from one node to the next every six seconds. He rests the pointer on a node of his **Work** folder to read its title and the globe stops; he moves it to the empty space and it turns again. He comes close with the wheel to «Budget 2027» and the globe holds still while he reads, even when he moves the pointer; the travellers keep passing. A double click on an empty spot and he is facing the whole network again, turning. To share his screen he prefers the network still: he opens the **Legend** and turns **Travellers** and **Turning** off, and next time on that computer it opens the same way.
 
 ## From afar and up close
 
 The network changes what it shows with the distance, and each detail fades in as you come closer:
 
 - **From afar**, as it opens, with the whole network in sight, or with the wheel backwards: the nodes and their ties make the outline of a brain seen from the side, with no titles and faint lines. It shows where there is a lot and where there is little.
-- **At middle distance**, as soon as you come a little closer: each folder and each list tints its zone, and only the most connected nodes carry a title.
+- **At middle distance**, as soon as you come a little closer: only the most connected nodes carry a title and, with **Turning** off in the [legend](#the-legend), each folder and each list tints its zone. With **Turning** on, as it comes, the zones stay hidden, even while the globe rests.
 - **Up close**: every title, each kind of line, tags as `#tag` and beside each picture its thumbnail. And each node stops being a square or a circle to become its icon, in its folder or list colour and with its state: the plain shape fades as you come closer and the icon takes its place. The amber curves show here, little by little, between two nodes in view; around the node you pick they show from any distance.
 
 | Node | Its icon, up close |

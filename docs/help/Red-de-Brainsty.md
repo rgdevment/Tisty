@@ -111,14 +111,14 @@ Mientras la miras, la red se mueve: gira y la recorren viajeros por sus líneas.
 - **Solo corre mientras la ves.** Al pasar a otra vista se detiene, igual que el resto de la red.
 - **Lo que cuesta**, si te interesa: `Ctrl`/`⌘` + `Shift` + `M` muestra junto a la leyenda cuántos milisegundos toma cada cuadro y cuántos cuadros por segundo dibuja, por ejemplo «2.10 ms por cuadro · 60 cuadros por segundo». Otro `Ctrl`/`⌘` + `Shift` + `M` lo esconde.
 
-Por ejemplo, Lucas abre Brainsty con 180 nodos: ve doce viajeros cruzando la red mientras gira, cada uno pasando de un nodo al siguiente cada seis segundos. Deja el puntero sobre la zona de **Trabajo** para leer un título y el globo se detiene; lo saca al espacio vacío y vuelve a girar. Se acerca con la rueda a «Presupuesto 2027» y el globo se queda quieto mientras lo lee, aunque mueva el puntero; los viajeros siguen pasando. Un doble clic en un espacio vacío y está otra vez frente a la red entera, girando. Para presentar su pantalla prefiere la red quieta: abre la **Leyenda** y apaga **Viajeros** y **Girar**, y la próxima vez en ese equipo abre igual.
+Por ejemplo, Lucas abre Brainsty con 180 nodos: ve doce viajeros cruzando la red mientras gira, cada uno pasando de un nodo al siguiente cada seis segundos. Deja el puntero sobre un nodo de su carpeta **Trabajo** para leer su título y el globo se detiene; lo saca al espacio vacío y vuelve a girar. Se acerca con la rueda a «Presupuesto 2027» y el globo se queda quieto mientras lo lee, aunque mueva el puntero; los viajeros siguen pasando. Un doble clic en un espacio vacío y está otra vez frente a la red entera, girando. Para presentar su pantalla prefiere la red quieta: abre la **Leyenda** y apaga **Viajeros** y **Girar**, y la próxima vez en ese equipo abre igual.
 
 ## De lejos y de cerca
 
 La red cambia lo que muestra según la distancia, y cada detalle aparece de a poco al acercarte:
 
 - **De lejos**, como se abre, con la red entera a la vista, o con la rueda hacia atrás: los nodos y sus uniones forman la silueta de un cerebro visto de lado, sin títulos y con líneas tenues. Sirve para ver dónde hay mucho y dónde hay poco.
-- **A media distancia**, en cuanto te acercas un poco: cada carpeta y cada lista tiñen su zona, y llevan título solo los nodos más conectados.
+- **A media distancia**, en cuanto te acercas un poco: llevan título solo los nodos más conectados y, con **Girar** apagado en la [leyenda](#la-leyenda), cada carpeta y cada lista tiñen su zona. Con **Girar** encendido, como viene, las zonas no se ven, ni siquiera mientras el globo está quieto.
 - **De cerca**: todos los títulos, cada tipo de línea, las etiquetas como `#etiqueta` y junto a cada imagen su miniatura. Y cada nodo deja de ser un cuadrado o un círculo para ser su ícono, del color de su carpeta o lista y con su estado: la forma simple se desvanece al acercarte y el ícono toma su lugar. Las curvas ámbar aparecen aquí, de a poco, entre dos nodos que están a la vista; junto al nodo que eliges se ven desde cualquier distancia.
 
 | Nodo | Su ícono, de cerca |

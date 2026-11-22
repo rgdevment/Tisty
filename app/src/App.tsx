@@ -70,6 +70,7 @@ export default function App() {
     choose({
       named: "brainsty",
       near: desk.selected ?? (chosen.named === "docs" ? chosen.doc : undefined),
+      besideTask: desk.selected,
     });
     desk.setCameFrom(chosen);
   };

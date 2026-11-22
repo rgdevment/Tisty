@@ -71,6 +71,7 @@ export interface Chosen {
   named?: Named;
   doc?: string;
   near?: string;
+  besideTask?: string;
   tab?: Tab;
   shelf?: Shelf;
   row?: RowId;

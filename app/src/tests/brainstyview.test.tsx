@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import App from "../App";
 import type { Neuron } from "../brainsty";
 import type { Snapshot, Task } from "../core";
-import { t } from "../locales";
+import { adopt, t } from "../locales";
 import { openedHere } from "../ui/BrainstyView";
 import SideBrainsty from "../ui/SideBrainsty";
 
@@ -234,6 +234,46 @@ describe("Brainsty from the main window", () => {
     expect(await screen.findByText("buy bread")).toBeTruthy();
     expect(sigma.killed).toBe(1);
     expect(sigma.stopped).toBe(1);
+  });
+
+  it("brings back the task that was open beside the list with Escape", async () => {
+    const user = await opened();
+    await user.click(screen.getByText("buy bread"));
+    await screen.findByRole("button", { name: t("expand") });
+    await user.click(screen.getByRole("button", { name: t("brainsty") }));
+    await waitFor(() => expect(sigma.hands).not.toBeNull());
+
+    await user.keyboard("{Escape}");
+
+    expect(panel()).toBeNull();
+    expect(await screen.findByRole("button", { name: t("expand") })).toBeTruthy();
+    await act(() => new Promise((done) => setTimeout(done, 50)));
+    expect(screen.getByRole("button", { name: t("expand") })).toBeTruthy();
+  });
+
+  it("opens no task on Escape when none was open beside the list", async () => {
+    const user = await opened();
+    await user.click(screen.getByRole("button", { name: t("brainsty") }));
+    await waitFor(() => expect(sigma.hands).not.toBeNull());
+
+    await user.keyboard("{Escape}");
+
+    expect(await screen.findByText("buy bread")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: t("expand") })).toBeNull();
+  });
+
+  it("names only what the network draws, in English and in Spanish", () => {
+    try {
+      for (const tongue of ["en", "es"]) {
+        adopt(tongue);
+        expect(t("brainstyNetwork")).not.toMatch(/folder|list|carpeta|lista/i);
+      }
+      expect(t("brainstyNetwork")).toBe(
+        "Red de tus documentos, páginas, tareas, etiquetas y archivos",
+      );
+    } finally {
+      adopt();
+    }
   });
 
   it("leaves Escape typed in the sidebar to the sidebar", async () => {
