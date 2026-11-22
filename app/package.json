@@ -67,6 +67,6 @@
     "vite": "^8.3.5",
     "vitest": "^4.1.12"
   },
-  "description": "Shared working memory for you and your AI agent, in Markdown on disk",
+  "description": "Shared working memory for you and your AI agent: notes, documents and tasks in local Markdown",
   "license": "AGPL-3.0-only"
 }

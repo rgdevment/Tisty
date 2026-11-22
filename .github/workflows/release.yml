@@ -1934,7 +1934,7 @@ jobs:
 
           	  url "https://github.com/${{ github.repository }}/releases/download/v#{version}/tisty-installer-#{version}-macos-#{arch}.dmg"
           	  name "Tisty"
-          	  desc "Shared working memory for you and your AI agent, in Markdown on disk${SUFFIX}"
+          	  desc "Shared working memory for you and your AI agent, in local Markdown${SUFFIX}"
           	  homepage "https://www.tisty.app/"
 
           	  auto_updates true

@@ -4,7 +4,7 @@
 
 <h1 align="center">La ayuda de Tisty</h1>
 
-<p align="center"><strong>Memoria de trabajo compartida para ti y tu agente de IA: tareas, documentos y notas en Markdown, en tu propio disco.</strong><br/>Tú ves el conjunto. Tu agente, cada detalle. Una sola memoria.<br/>Con tu agente, es la memoria que comparten. Solo para ti, es tu lugar para notas, documentos y tareas.<br/>Sin cuentas. Sin suscripciones. Sin telemetría. Sin servidor.</p>
+<p align="center"><strong>Memoria de trabajo compartida para ti y tu agente de IA: notas, documentos y tareas en Markdown local.</strong><br/>Tú ves el conjunto. Tu agente, cada detalle. Una sola memoria.<br/>También funciona sin agente, a la manera tradicional: tus notas, documentos y tareas, a mano y a tu ritmo.<br/>Sin cuentas. Sin suscripciones. Sin telemetría. Sin servidor.</p>
 
 <p align="center"><a href="Home">English</a> · <strong>Español</strong></p>
 
@@ -14,7 +14,7 @@ Comencé a desarrollar Tisty para resolver un problema personal, y fui viendo qu
 
 **Ni tú vuelves a explicar, ni él vuelve a empezar.** Tu agente de IA conoce el detalle mejor que nadie, y lo olvida en cuanto termina la sesión. Por eso cada quien lo parcha: un `NOTES.md` detrás de `.gitignore`, un Markdown por sesión, un `TASKS.md` que nadie mantiene al día, un `AGENTS.md` que solo crece. Se desactualizan, se pierden entre ramas, equipos y proyectos, y el agente los relee enteros en cada sesión.
 
-Tisty es una memoria de trabajo que compartes con tu agente: tú ves el conjunto, y tu agente cada detalle. Cuando terminas una tarea, pasa al archivo con todo lo que juntó: la descripción, la bitácora, los pasos, los archivos y los documentos en que te apoyaste. Y el buscador lo encuentra años después. *¿Cómo resolví eso la última vez?* Tisty lo tiene. Junto a las tareas, los **documentos** guardan lo que sabes, uno por tema, como Markdown normal que cualquier otro editor lee.
+Tisty es una app de escritorio donde planificas tus tareas en lenguaje natural y guardas lo que sabes: pasos, documentos enlazados, ideas y un diario. Brainsty lo dibuja todo unido, como una sola red. Tú y tu agente de IA leen y escriben en esa misma memoria, en tu disco, en Markdown. Cuando terminas una tarea, pasa al archivo con todo lo que juntó: la descripción, la bitácora, los pasos, los archivos y los documentos en que te apoyaste. Y el buscador lo encuentra años después. *¿Cómo resolví eso la última vez?* Tisty lo tiene. Junto a las tareas, los **documentos** guardan lo que sabes, uno por tema, como Markdown normal que cualquier otro editor lee.
 
 Y si prefieres trabajar de una forma más personal, sin agente, Tisty te sirve igual: tus tareas, tus documentos, tus ideas y tu diario, a la vista y unidos en [Brainsty](Red-de-Brainsty). El agente es una forma de usarlo, no una condición.
 

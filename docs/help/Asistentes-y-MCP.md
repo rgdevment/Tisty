@@ -122,7 +122,7 @@ Las reglas completas están en [[Qué puede hacer un asistente|Qué-puede-hacer-
 
 ## Pedidos listos y menciones con @
 
-La memoria y el contexto que Tisty guarda para tu agente están a un comando o a una `@`, sin aprender nombres de herramientas.
+La memoria que Tisty guarda para tu agente está a un comando o a una `@`, sin aprender nombres de herramientas.
 
 **Ocho pedidos listos.** Tisty le entrega a tu asistente ocho pedidos que muestra como comandos. En Claude Code están en el menú de `/`, y `/mcp__tisty__pick_up` y los demás los ejecutan; otros asistentes que toman pedidos de un servidor los muestran en su propio menú.
 

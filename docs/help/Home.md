@@ -4,7 +4,7 @@
 
 <h1 align="center">Tisty's help</h1>
 
-<p align="center"><strong>Shared working memory for you and your AI agent: tasks, documents and notes in Markdown, on your own disk.</strong><br/>You see the whole. Your agent, every detail. One shared memory.<br/>With your agent, it is the memory you share. On your own, it is your place for notes, documents and tasks.<br/>No accounts. No subscriptions. No telemetry. No server.</p>
+<p align="center"><strong>Shared working memory for you and your AI agent: notes, documents and tasks in local Markdown.</strong><br/>You see the whole. Your agent, every detail. One shared memory.<br/>It works without an agent too, the traditional way: your notes, documents and tasks, by hand and at your own pace.<br/>No accounts. No subscriptions. No telemetry. No server.</p>
 
 <p align="center"><strong>English</strong> · <a href="Inicio">Español</a></p>
 
@@ -14,7 +14,7 @@ I started building Tisty to solve a problem of my own, and little by little I sa
 
 **You stop explaining. It stops starting over.** Your AI agent knows the details better than anyone, and forgets them the moment the session ends. So everybody patches it: a `NOTES.md` behind `.gitignore`, a Markdown file per session, a `TASKS.md` nobody keeps up to date, an `AGENTS.md` that only grows. They go stale, they get lost between branches, machines and projects, and the agent rereads all of it every session.
 
-Tisty is a working memory you share with your agent: you see the whole, and your agent every detail. When you finish a task it moves to the archive with everything it gathered — the description, the journal, the steps, the files, the documents you leaned on — and search reaches all of it years later. *How did I solve that last time?* Tisty has it. Beside the tasks, **documents** keep what you know, one per subject, as plain Markdown any other editor reads.
+Tisty is a desktop app where you plan your tasks in natural language and keep what you know: steps, linked documents, ideas and a diary. Brainsty draws it all joined, as one network. You and your AI agent read and write in that same memory, on your disk, in Markdown. When you finish a task it moves to the archive with everything it gathered — the description, the journal, the steps, the files, the documents you leaned on — and search reaches all of it years later. *How did I solve that last time?* Tisty has it. Beside the tasks, **documents** keep what you know, one per subject, as plain Markdown any other editor reads.
 
 And if you would rather work in a more personal way, with no agent, Tisty serves you just the same: your tasks, your documents, your ideas and your diary, in sight and joined in [Brainsty](Brainsty-Network). The agent is one way to use it, not a condition.
 

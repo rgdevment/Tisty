@@ -9,7 +9,7 @@ Yes, Tisty is free and will stay free, under the AGPL-3.0 licence. No accounts, 
 Neither. On its own, Tisty only asks whether a newer version exists, and it sends nothing to ask. Once you sync with a cloud or share a document, it also reads the few small files [[Privacy]] lists. Take the machine off the network and everything else works the same. See [[Privacy]].
 
 **Do I need an AI agent?**
-No. Tisty is complete without one: notes, documents and tasks, the weekly review, the diary and [[Brainsty|Brainsty-Network]] all work the same. With your agent, it is the memory you share. On your own, it is your place for notes, documents and tasks. Say you keep Rina's vet visits in a document and her next vaccine as a task that rings the evening before: no agent sees any of it until you connect one, whenever you like, as [[Assistants and MCP|Assistants-and-MCP]] tells.
+No. Everything Tisty brings is there from the start: tasks in natural language with their steps, linked documents, Ideas, the Diary and [[Brainsty|Brainsty-Network]]. It works without an agent too, the traditional way: your notes, documents and tasks, by hand and at your own pace. Say you keep Rina's vet visits in a document and her next vaccine as a task that rings the evening before: no agent sees any of it until you connect one, whenever you like, as [[Assistants and MCP|Assistants-and-MCP]] tells.
 
 **Where is my data kept?**
 In one folder on your own disk. **Settings › Storage** prints the path and **Show folder** opens it. See [Installation](Installation#where-your-data-lives).

@@ -9,7 +9,7 @@ Sí, Tisty es gratis y lo seguirá siendo, bajo la licencia AGPL-3.0. Sin cuenta
 Ninguna de las dos. Por su cuenta, Tisty solo pregunta si hay una versión más nueva, y no envía nada para hacerlo. Cuando sincronizas con una nube o compartes un documento, además lee los pocos archivos pequeños que lista [[Privacidad]]. Desconecta el equipo de la red y todo lo demás funciona igual. Mira [[Privacidad]].
 
 **¿Necesito un agente de IA?**
-No. Tisty está completo sin uno: las notas, los documentos y las tareas, la revisión semanal, el diario y [[Brainsty|Red-de-Brainsty]] funcionan igual. Con tu agente, es la memoria que comparten. Solo para ti, es tu lugar para notas, documentos y tareas. Por ejemplo, guardas las visitas de Rina al veterinario en un documento y su próxima vacuna como una tarea que suena la tarde anterior: ningún agente ve nada de eso hasta que conectes uno, el día que quieras, como cuenta [[Asistentes y MCP|Asistentes-y-MCP]].
+No. Todo lo que trae Tisty está desde el principio: tareas en lenguaje natural con sus pasos, documentos enlazados, Ideas, el Diario y [[Brainsty|Red-de-Brainsty]]. También funciona sin agente, a la manera tradicional: tus notas, documentos y tareas, a mano y a tu ritmo. Por ejemplo, guardas las visitas de Rina al veterinario en un documento y su próxima vacuna como una tarea que suena la tarde anterior: ningún agente ve nada de eso hasta que conectes uno, el día que quieras, como cuenta [[Asistentes y MCP|Asistentes-y-MCP]].
 
 **¿Dónde se guardan mis datos?**
 En una carpeta de tu propio disco. **Configuración › Almacenamiento** muestra la ruta, y **Mostrar carpeta** la abre. Mira [Instalación](Instalación#dónde-viven-tus-datos).

@@ -1759,6 +1759,10 @@
         "said": "una tarea oculta o descartada y tu diario no aparecen en la red ni le llegan a tu agente de IA, ni siquiera nombrados dentro de lo que escribiste."
       },
       {
+        "title": "Configuración, en orden",
+        "said": "once páginas en cuatro grupos, un Resumen que pone primero lo que pide algo de ti y un buscador para cualquier ajuste. Cada fila te avisa justo debajo, y lo que no se deshace queda en la Zona delicada."
+      },
+      {
         "title": "Ideas, con su ampolleta",
         "said": "la Lluvia de ideas ahora se llama Ideas y lleva una ampolleta. Una carpeta, el Diario o Ideas se pueden ocultar de la barra en este equipo."
       }
@@ -1811,6 +1815,10 @@
       {
         "title": "What you put away stays away",
         "said": "a hidden or dropped task and your diary do not show in the network or reach your AI agent, not even when named inside what you wrote."
+      },
+      {
+        "title": "Settings, in order",
+        "said": "eleven pages in four groups, an Overview that puts first what needs something from you and a search for any setting. Each row tells you right below it, and what cannot be undone sits in Handle with care."
       },
       {
         "title": "Ideas, with its light bulb",
