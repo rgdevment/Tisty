@@ -21,6 +21,7 @@
       "allowed_elements": [
         "a",
         "br",
+        "details",
         "div",
         "h1",
         "h4",
@@ -32,6 +33,7 @@
         "source",
         "strong",
         "sub",
+        "summary",
         "table",
         "td",
         "tr"

@@ -3,21 +3,27 @@
     src="assets/icons/tisty-256.png"
     width="140"
     height="140"
-    alt="Tisty — memoria de trabajo compartida para ti y tu agente de IA, y tu
-    propio lugar para notas, documentos y tareas: una app local, gratis y de
-    código abierto, en Markdown, para Windows y macOS, con un servidor MCP"/>
+    alt="Tisty — memoria de trabajo compartida para ti y tu agente de IA: notas,
+    documentos y tareas en Markdown local. Una app de escritorio gratis y de
+    código abierto para Windows y macOS, con un servidor MCP local"/>
 
   <h1>Tisty — Memoria de trabajo compartida para ti y tu agente de IA</h1>
 
-  <p><strong>Tú ves el conjunto. Tu agente, cada detalle. Una sola memoria.<br/>
-  Con tu agente, es la memoria que comparten. Solo para ti, es tu lugar para
-  notas, documentos y tareas.<br/>
-  Una app gratis y de código abierto: tareas que guardan cómo se resolvió cada
-  cosa y documentos que guardan lo que sabes, en Markdown, en tu disco, para
-  Windows y macOS — y un servidor MCP local para que GitHub Copilot, Claude Code,
-  Codex, Cursor o cualquier asistente retome donde quedó, una sección a la
-  vez.<br/>Sin cuentas. Sin suscripciones. Sin telemetría. Sin
-  servidor.</strong></p>
+  <p><strong>Tú ves el conjunto. Tu agente, cada detalle. Una sola
+  memoria.</strong></p>
+
+  <p>Tisty es una app de escritorio donde planificas tus tareas en lenguaje
+  natural y guardas lo que sabes: pasos, documentos enlazados, ideas y un diario.
+  Brainsty lo dibuja todo unido, como una sola red.</p>
+
+  <p>Tú y tu agente de IA leen y escriben en esa misma memoria, en tu disco, en
+  Markdown. También funciona sin agente, a la manera tradicional: tus notas,
+  documentos y tareas, a mano y a tu ritmo.</p>
+
+  <p>Gratis y de código abierto, para Windows y macOS, con un servidor MCP local
+  para que GitHub Copilot, Claude Code, Codex, Cursor o cualquier asistente
+  retome donde quedó, una sección a la vez.<br/><strong>Sin cuentas. Sin
+  suscripciones. Sin telemetría. Sin servidor.</strong></p>
 
   <p>Software por convicción, no por suscripción.</p>
 
@@ -128,8 +134,8 @@ revisas y lo cierras: nada se cierra sin ti. Todo en tu propio disco, visual y
 fácil de leer para ti, y para tu agente un **servidor MCP local** que le da
 primero el índice y después solo la sección que necesita.
 
-Y si prefieres trabajar de una forma más personal, sin agente, Tisty te sirve
-igual: tus tareas, tus documentos, tus ideas y tu diario, a la vista y unidos
+También funciona sin agente, a la manera tradicional: tus notas, documentos y
+tareas, a mano y a tu ritmo. Tus ideas y tu diario también, a la vista y unidos
 en Brainsty. El agente es una forma de usarlo, no una condición.
 
 Es de código abierto: puedes leerlo, compilarlo, probarlo o descargar las
@@ -262,15 +268,16 @@ ayuda, lo cuenta todo.
 
 ## Problemas reales, soluciones reales
 
-Lo que de verdad le pasa a quien trabaja meses con un asistente de IA, y lo que
-pasa en cambio cuando la memoria vive en Tisty.
+Lo que de verdad le pasa a quien trabaja meses con un asistente de IA, o lleva
+lo suyo a mano durante años, y lo que pasa en cambio cuando la memoria vive en
+Tisty.
 
 | El problema | Con Tisty |
 | --- | --- |
 | **Desarrollo:** en cada sesión nueva le vuelves a explicar el proyecto a tu agente | Pregunta qué cambió desde la última vez, abre la tarea *Migrar pagos a v2* con sus pasos marcados y lee lo que anotó ayer: *el webhook falla con firmas viejas; reintentar, descartado*. Sigue desde ahí. |
 | **Desarrollo:** tu `NOTES.md` llegó a 256 KB y el agente lo relee cada vez | Vive como documentos separados por tema, en páginas. El agente lee el índice y la única sección que necesita: cerca de un 97 % menos que el archivo entero. |
 | **Cualquiera:** resolviste esto hace ocho meses y no recuerdas cómo | Buscar *timeouts al guardar* trae la tarea archivada tal como quedó: sus pasos, su bitácora y la línea que dice que la causa era un índice que faltaba. |
-| **PM:** un mes después alguien pregunta «¿por qué decidimos esto?» | Un documento vivo por tema, *Decisiones de checkout*, con cada decisión fechada y su porqué. El agente lo encuentra y lo cita en vez de reabrir el debate. |
+| **PM:** un mes después alguien pregunta «¿por qué decidimos esto?» | Un documento vivo por tema, *Decisiones de checkout*, con cada decisión fechada y su porqué. Tú o tu agente lo encuentran y lo citan en vez de reabrir el debate. |
 | **QA:** la misma pantalla vuelve a fallar y nadie recuerda los casos de la vez anterior | La tarea de regresión archivada guarda los casos como pasos, con lo que se vio en cada uno. |
 | **Traspaso** entre PM y PO, o entre desarrollo y QA, pegado en un chat | Entregas el documento con Folio: se cifra en tu equipo antes de salir, va firmado por ti y se va solo tras los días sin uso. |
 | **Reglas de negocio** que no pueden terminar en la base de datos de otro | Tisty las guarda en tu disco y no las manda a ninguna parte. Lo que lee tu agente va adonde va ese agente, así que úsalo con uno que tu empresa permita. |
@@ -285,6 +292,12 @@ espera en Ideas.
 
 ### Documentos: lo que sabes, uno por tema
 
+Un documento vivo por tema, que se corrige en su lugar, con páginas para lo
+largo y sus versiones anteriores guardadas en cada equipo.
+
+<details>
+<summary>Lo que guarda un documento por tema</summary>
+
 - **Un documento vivo por tema** — abre con lo que rige hoy, después el tema, lo
   que queda fuera de alcance, las decisiones fechadas con su porqué (la
   reemplazada queda tachada, no borrada) y su historia.
@@ -297,6 +310,8 @@ espera en Ideas.
   historial** muestra lo que decía antes, **Qué cambió** lo marca en rojo y
   verde, y **Volver a esta versión** lo trae de vuelta. Cada equipo guarda las
   suyas, 30 días por defecto.
+
+</details>
 
 <picture>
   <source
@@ -311,6 +326,12 @@ espera en Ideas.
 </picture>
 
 ### Ideas: una lluvia de ideas a mano
+
+Un pensamiento anotado en cuanto llega, que espera como nota adhesiva hasta que
+tú o tu agente lo convierten en tarea o lo llevan a su documento.
+
+<details>
+<summary>Cómo se anotan y se ordenan las ideas</summary>
 
 - **Anotada en cuanto llega** — la captura rápida pasa de tarea a idea y a hoy
   en el Diario con `Tab`, y las ideas tienen su propio atajo: hasta 140
@@ -327,6 +348,8 @@ espera en Ideas.
   te quedas; pídele que las ordene y las agrupa, convierte una en tarea o la
   anexa a su documento, y a las viejas solo las marca, para que tú las borres.
 
+</details>
+
 <picture>
   <source
     media="(prefers-color-scheme: dark)"
@@ -342,6 +365,12 @@ espera en Ideas.
 
 ### Diario: lo que pasó hoy
 
+Un libro por año con una sección por día, que se escribe desde cualquier parte y
+es solo tuyo hasta que lo abres a los agentes.
+
+<details>
+<summary>Cómo funciona el diario</summary>
+
 - **Un libro por año** — *Diario 2026*, con una página por mes y una sección por
   día, en el idioma de la app; un día en el que no escribiste nunca aparece.
 - **Se escribe desde cualquier parte** — el cuadro de arriba, «¿Qué pasó hoy?»,
@@ -356,6 +385,8 @@ espera en Ideas.
 - **Sigue siendo Markdown** — un libro con `diary: on` en sus propiedades, cuyas
   páginas son los meses.
 
+</details>
+
 <picture>
   <source
     media="(prefers-color-scheme: dark)"
@@ -369,6 +400,13 @@ espera en Ideas.
 </picture>
 
 ### Tareas: qué hacer, quién lo hace y cómo se resolvió
+
+Prioridad por su nombre, pasos y partes, una bitácora y una página por tarea.
+Tu agente también puede trabajarla, y cada entrada dice quién la escribió;
+terminada, queda entera en el archivo.
+
+<details>
+<summary>Lo que lleva una tarea</summary>
 
 - **Prioridad, por su nombre** — la matriz de Eisenhower: *hacer*,
   *planificar*, *delegar*, *prescindible*. La fecha y el plazo van por
@@ -397,6 +435,8 @@ espera en Ideas.
   mismo trabajo nunca se anota dos veces.
 - **El archivo** — una tarea cerrada se guarda entera, y la búsqueda responde
   «¿cómo resolvimos esto?» con la línea que lo dice.
+
+</details>
 
 <picture>
   <source
@@ -430,6 +470,9 @@ Lo que capturas se acumula sin decidir si no miras atrás de vez en cuando. La
 página lo que vale la pena mirar una vez por semana, en tres paradas, y cada
 una muestra ✓ cuando ya no espera nada.
 
+<details>
+<summary>Las tres paradas, y el aviso semanal</summary>
+
 - **Por decidir** — las tareas sin lista, para darles una lista o un día,
   terminarlas o descartarlas, y las ideas que siguen esperando en Ideas.
 - **Marcados como pasados** — los documentos que un agente marcó como viejos,
@@ -440,6 +483,8 @@ una muestra ✓ cuando ya no espera nada.
   común que se repite y suena a la hora que eliges, aunque Tisty esté cerrado.
   Tu agente puede recorrerla contigo, pero nunca archiva, borra ni cierra nada
   por su cuenta.
+
+</details>
 
 <picture>
   <source
@@ -459,6 +504,9 @@ Una tarea terminada no se tira. Va al archivo entera —su página con lo que
 leíste, probaste y descartaste, sus pasos, su bitácora y sus archivos—, y lo
 mismo una que descartaste.
 
+<details>
+<summary>Cómo se lee el archivo</summary>
+
 - **El buscador es la entrada** — una palabra que recuerdes la trae de vuelta,
   aunque hayan pasado dos años: «¿cómo resolvimos las subidas a OneDrive?»
   encuentra el spike y la línea que lo dice.
@@ -468,6 +516,8 @@ mismo una que descartaste.
   pero al alcance del buscador.
 - **Tu agente también lo lee** — antes de proponer nada, busca en el archivo el
   mismo trabajo y parte de cómo salió la vez anterior.
+
+</details>
 
 <picture>
   <source
@@ -501,6 +551,9 @@ junta en Tisty como documentos, con sus skills y su memoria.
     sin nada, y los dos botones Traer y Traer y sincronizar"/>
 </picture>
 
+<details>
+<summary>Traer, sincronizar y aprobar tus reglas</summary>
+
 - **Traer o sincronizar** — **Traer** copia los archivos que marcas, para
   leerlos y ordenarlos, sin escribir nada en ellos; **Traer y sincronizar**
   además escribe la regla que cambias una vez en el archivo de cada agente, con
@@ -515,6 +568,8 @@ junta en Tisty como documentos, con sus skills y su memoria.
   quedas con el de Tisty.
 - **Nada que no deba tocar** — ajustes, credenciales, enlaces y lo que parece un
   secreto nunca entran, y no se lee nada hasta que haces clic en la carpeta.
+
+</details>
 
 <picture>
   <source
@@ -882,6 +937,166 @@ encuentra los dos.
 - [La guía de Markdown de Tisty](https://markdown.tisty.app/es/): cómo se
   escribe cada marca
 
+<details>
+<summary>Todo lo que puede llevar un documento</summary>
+
+En Tisty, un documento lleva bastante más que texto:
+
+- **Se escribe donde se lee.** Sin modo de edición ni vista previa: haces clic y
+  escribes sobre la página misma. Al elegir unas palabras aparece una barra
+  pequeña —negrita, cursiva, subrayado, tachado, código, enlace y cuatro
+  marcadores—, `/` abre el menú de bloques, un asa junto a cada bloque lo
+  arrastra, lo duplica o lo borra, y `Ctrl`/`⌘` + `Z` deshace lo que escribiste
+  seguido, no tecla por tecla.
+- **Un libro en páginas.** Un año de actas, un manual por capítulos, la vida de
+  un perro contada año a año: un documento con sus páginas, en el orden en que
+  el texto las nombra, con un índice al final y flechas de una a la siguiente.
+- **Un documento en varios idiomas.** Cada idioma es un archivo propio, y Tisty
+  los muestra como una sola fila, abierta en el idioma de la app, con un
+  selector que te lleva a otro idioma en la misma sección. Mover, archivar y
+  borrar actúan sobre todos los idiomas a la vez.
+- **Diagramas con unas pocas líneas.** Un bloque que dice `mermaid` dibuja
+  flujos, secuencias, tortas, líneas de tiempo, mapas mentales, cartas Gantt y
+  más con el Mermaid oficial, claros u oscuros según la ventana y legibles a
+  cualquier ancho. Un doble clic lo abre en su propia ventana, donde un mapa
+  mental, un esquema de base de datos, un diagrama libre o un diagrama de clases
+  también se dibujan a mano, con una paleta de todas las formas de Mermaid, se
+  guardan como Mermaid, se ven en la página como en la ventana y se exportan como
+  PNG, JPG o SVG.
+- **Fórmulas** compuestas desde un bloque `math`, **código** coloreado por su
+  lenguaje y con el nombre de su archivo, y **tablas** que conservan hacia dónde
+  se inclinan sus columnas y con qué ancho las dibujaste, cuyas columnas pueden
+  decir qué guardan —dinero, fechas, opciones, valoraciones, sí o no— y sumarse
+  al pie, escritas en la página celda por celda.
+- **Widgets**: una vista fija de HTML y CSS con los colores de Tisty, que no
+  ejecuta nada ni nombra nada fuera de sí misma.
+- **Avisos, marcadores e iconos** —los avisos que GitHub lee, marcadores de
+  varios colores, un icono que se busca por lo que dibuja— y casillas que se
+  marcan.
+- **Adjuntos que viajan con él**: fotos, PDF, sonido y video, guardados dentro
+  de Tisty en vez de enlazados a una carpeta que se mueve. Un clic en una foto
+  o un diagrama lo abre en grande, para acercarte y pasar al siguiente.
+- **Un PDF propio**, A4, Carta u Oficio, con sus imágenes dentro, que te
+  enseña antes de exportarlo.
+
+La guía que Tisty escribe la primera vez que se abre trae una página con uno de
+cada cosa, para que lo veas todo antes de escribir una línea.
+
+**Los documentos** viven junto a las tareas, para el material de consulta que no
+tiene fecha y nunca se tacha. Son archivos Markdown que editas como documentos
+—tablas, listas de control, código, imágenes— y la búsqueda también los lee. Una
+tarea puede apuntar a un documento; un documento nunca crea tareas por su cuenta,
+solo cuando tú haces una desde él.
+
+**El árbol abre en silencio y se guarda entero.** Cada carpeta nace plegada, así
+que un almacén con cientos de documentos es un puñado de filas hasta que vas a
+buscar, y el filtro de la Biblioteca deja solo lo que coincide, con las carpetas
+de arriba abiertas. Cuando un trabajo termina archivas la carpeta, no sus
+documentos uno a uno: baja al estante del final del árbol con su icono, sus
+subcarpetas y sus páginas tal como las dejaste, cerrada a escribir y a que entre
+nada nuevo. Desarchívala y vuelve igual —incluidos los documentos que hubieras
+archivado a mano ahí dentro, que siguen archivados porque nadie dijo lo
+contrario.
+
+**Una página se archiva sola sin salir de su documento.** Algo largo por partes
+—un año de actas, un libro por capítulos— es un documento con páginas, y el
+capítulo que ya no aplica se va al archivo donde vive: atenuado, con el icono
+del archivo, se lee pero no se escribe. Archiva el documento entero y se guardan
+todas con él; desarchívalo y cada una vuelve como estaba, y la que habías
+apartado sigue apartada.
+
+**Un documento se etiqueta como una tarea**: escribes `#contrato` en mitad de
+una frase y el documento queda bajo esa etiqueta. La etiqueta vive en la
+frase, no en una cabecera oculta, así que llevarte el archivo a otro editor se
+lleva la etiqueta contigo. Etiquetas es donde se encuentran: una pantalla, las
+tareas de una etiqueta y debajo los documentos, y presionar una etiqueta
+dentro de un documento abre justo eso. Los acentos se pliegan y las mayúsculas también,
+así que `#camion` y `#camión` son una sola palabra la escribas como la
+escribas. Un número suelto no es una etiqueta —`#1234` es el ticket que
+alguien anotó, no un tema— y una sola letra tampoco: hacen falta dos
+caracteres y que alguno sea una letra.
+
+El texto se puede resaltar en unos cuantos colores y apartar como un aviso: una
+cita normal, o un callout que GitHub también lee, escrito `> [!WARNING]`. Las
+tablas conservan hacia dónde se inclinan sus columnas y con qué ancho las
+dibujaste, y una columna puede llevar su tipo entre llaves al final de su
+título, `Precio {money CLP sum}`: Tisty muestra, ordena y suma sus celdas como
+eso, mientras el archivo sigue siendo una tabla que cualquier lector abre. Un
+bloque de código dice de qué lenguaje es y se colorea para él, con sus líneas
+numeradas al lado del texto y no dentro, así copiar se lleva el código y nada
+más. Un bloque puede llevar nombre; el que dice `mermaid` dibuja
+debajo el diagrama que describe —y lo redibuja al cambiar de luz—, y el que dice
+`math` compone la fórmula que guarda. El que dice `widget` se dibuja como una
+vista fija, HTML y CSS y nada más, igual donde se lea el documento. Un archivo
+`.html` adjunto a un documento es solo un archivo: Tisty nunca lo ejecuta.
+
+**Un enlace solo en su línea se dibuja como tarjeta**, hecha con la dirección
+misma: el nombre del sitio y las palabras que escribiste. No se descarga nada
+para dibujarla. Presiona **Traer la vista previa** y Tisty le pide a esa
+página una sola vez su título, su descripción y la imagen que ofrezca, guarda
+la respuesta
+aquí para no volver a preguntar, y no lee más de lo que necesita: una página no
+decide cuánto de tu equipo ocupa.
+
+**Sigue siendo Markdown**, y eso es lo importante, no un detalle: todo lo de
+arriba es sintaxis que otro lector ya entiende, así que el archivo sobrevive sin
+Tisty —el nombre de un bloque es lo que Markdown guarda tras el lenguaje, y el
+ancho de una columna viaja en lo largo que se dibuje su raya, que cualquier otro
+lector ignora y pinta igual—. Donde Markdown no tiene palabra para algo, Tisty
+suma unas pocas y cortas, nunca HTML: `==texto==` es un resaltado y
+`==texto=={green}` uno de otro color, `++texto++` va subrayado, `::star::` es un
+icono, y un adjunto se nombra por su propio nombre, `![plano](plano-0006bf09.png)`.
+Escribes sobre la página misma, la que dibuja el núcleo, con las marcas fuera de
+la vista, y el menú **⋯** o `Ctrl`/`⌘` + `E` la pasa a Markdown, con todas las
+marcas a la vista, así que lo que hay en el disco siempre es tuyo para leerlo.
+**Copiar como Markdown** y sacar
+un documento dicen esas pocas palabras como las entiende cualquier otro lector,
+y un archivo antiguo, una importación o un asistente que escriba en Markdown
+corriente se traduce a ellas al entrar.
+
+Se escribe sobre una hoja iluminada, y su primera línea con palabras es a la vez
+el nombre del documento y su título —pasando por encima de una valla o de la
+marca de un aviso para encontrarla—. Cuando la ventana da para ello, al lado se
+abre una columna con de qué va el documento, sus idiomas, su papel
+y su índice. **Tisty genera su propio PDF** —A4, Carta u Oficio,
+con sus propios márgenes y sus imágenes dentro— y te lo enseña antes
+de exportarlo.
+
+**Un archivo Markdown de cualquier parte se abre para leer.** Elige Tisty en
+*Abrir con* para un archivo `.md`, o sigue un enlace `tisty://open?path=…`, y se
+abre en solo lectura en un visor liviano propio, hasta 1 MB, sin entrar a tu
+almacén y sin configurar nada antes: su índice al costado, qué es el archivo,
+una búsqueda y su Markdown a un clic. Lee el archivo como lo quiso quien lo
+escribió: un párrafo cortado a 80 columnas es un solo párrafo, y `#ff0000` es un
+color y no una etiqueta. Las imágenes de al lado entran directo, y las de
+internet esperan a que las pidas. **Editar** crea una copia en tu almacén y deja
+el original donde estaba. Un documento tuyo se abre desde su panel, *Abrir en
+una ventana aparte*, o desde su enlace, `tisty://doc/…?id=…`, en ese mismo visor
+y en solo lectura, y **Editar** te lleva a él en la ventana principal. Un widget
+también se abre aparte, al ancho de un móvil, una tablet o un escritorio.
+Más en [la ayuda](https://www.tisty.app/es/ayuda/documentos/#abrir-un-archivo-markdown-de-afuera).
+
+**Y salen enteros.** Un documento se copia como Markdown estándar, como lo
+leen GitHub y CommonMark, se escribe en una carpeta con sus páginas y sus
+adjuntos al lado, sale como una página web o un archivo de Word con sus
+imágenes dentro (de Markdown a HTML, de Markdown a Word), o se exporta para
+Tisty en un
+archivo `.tistyx` que además guarda lo que el Markdown no sabe decir: las
+carpetas con su orden, su icono y su color, de qué documento cuelga cada
+página, qué está archivado y con qué alias se firmó. Lleva también un
+`README.txt`, para que quien lo reciba pueda leer los documentos sin Tisty y
+sepa dónde encontrarlo si quiere lo demás. Al exportarlos todos te
+pregunta para quién son: abiertos, para dárselos a alguien, o cerrados con seis
+dígitos para otro equipo tuyo, para que nadie más los lea. Cuando ya tienes tu
+identidad, el paquete sale firmado con tu llave: otro Tisty tuyo lo toma como
+tuyo, el de otra persona como escrito por ti con tu huella, y uno que cambiaron
+en el camino entra como de un desconocido. En cualquiera de los dos casos,
+dentro no viaja ni una línea del historial. Si escribes un alias —opcional, y
+solo tú decides cuál—, cada documento queda firmado con él, y lo que te llegue
+de otra persona conserva el suyo.
+
+</details>
+
 ## Para quién es
 
 Para cualquiera que trabaja con un agente de IA y quiere que los dos recuerden:
@@ -891,6 +1106,9 @@ porqué. El QA que guarda los casos que fallaron la vez anterior. El líder
 técnico que guarda los runbooks. Administradores de sistemas, independientes,
 gente que investiga, quien estudia — cualquiera que haya resuelto dos veces el
 mismo problema y lo haya sabido la segunda vez.
+
+Sin agente vale lo mismo: lo que anotas a mano queda entero en el archivo, y una
+búsqueda encuentra cómo lo resolviste.
 
 Cada quien tiene su propio Tisty: lo que aprende una persona no es lo que
 necesita otra, y sus agentes trabajan con memorias distintas.
@@ -980,6 +1198,140 @@ Toda la ventana funciona con el teclado.
 - [El reparto y los recordatorios](https://www.tisty.app/es/ayuda/reparto-y-recordatorios/)
 - [El archivo](https://www.tisty.app/es/ayuda/el-archivo/)
 
+<details>
+<summary>Todo lo que hace, en detalle</summary>
+
+**La primera vez que se abre**, Tisty pregunta hasta tres cosas —en qué idioma,
+dónde quieres tus copias y, si quieres, cómo llamarte— y después te escribe una
+guía y te la abre, salvo que el
+lugar que elegiste ya tenga tu Tisty: entonces lo trae en su lugar. Lo demás lo
+decide por ti y lo puedes cambiar luego: arranca con el equipo y espera
+apartado, porque eran preguntas con una respuesta evidente. La guía es un
+documento en tu propio almacén, en una carpeta suya: tuya para leerla, editarla
+o tirarla como cualquier otra cosa que escribas.
+
+**La configuración abre en un Resumen.** Dice cómo está tu Tisty de un
+vistazo: lo que pide algo de ti va primero, en *Por atender*, y seis mosaicos con
+un punto de color dicen cómo están la sincronización, las copias, la seguridad,
+los asistentes, la salud y la versión. Recién instalado, te propone cinco pasos
+para dejar Tisty a tu medida. *Buscar un ajuste* encuentra cualquier ajuste por
+su nombre, y las once páginas van en cuatro grupos. *Este equipo*: *Aspecto y
+ventana*, *Tareas y avisos* y *Documentos y firma*. *Tus datos*:
+*Sincronización*, *Seguridad* (tu frase de 24 palabras, tus equipos y la nube
+cifrada), *Copias* (los respaldos, los documentos de otro Tisty y una guía que
+deja limpio un equipo si quieres sacar Tisty de él) y *Almacenamiento*.
+*Conexiones*: *Asistentes*. *Tisty*: *Salud* y *Ayuda y acerca de*. Lo que no se
+deshace espera en un recuadro rojo, *Zona delicada*, al final de su página, y una
+etiqueta dice si un ajuste se queda en este equipo o viaja a los demás. El
+recorrido completo está en la
+[ayuda de Configuración](https://www.tisty.app/es/ayuda/configuracion/).
+
+**Tres columnas como máximo:** qué estás mirando, la lista, y la tarea que
+abriste. Nada más en pantalla.
+
+**La lista se queda donde está.** No se va al centro de lo que sobra, así que
+abrir una tarea no mueve nada. Cuando la ventana da de sí, el sitio que se abre
+no se queda en blanco: una columna te cuenta el día —lo vencido, lo atrasado,
+lo de hoy, lo que viene, los cuatro cuadrantes con sus cuentas y las listas con
+algo abierto—. Todo eso cuenta tu almacén entero, no lo
+que hay en pantalla, y cada cifra es una puerta. Estrecha la ventana y se
+aparta: una tarea siempre le gana el sitio.
+
+**Lo que lee.** Un día, una hora, o las dos. Nombres, distancias, fechas
+sueltas. Lo que no puede leer lo deja tal cual en vez de adivinar. Un límite no
+es lo mismo que un plan, y lo abren tres palabras: **antes de**, **hasta** y
+**vence**.
+
+**La tarea se abre al lado de la lista**, no encima: fechas, lista, etiquetas y
+prioridad arriba, y debajo su propia página, un documento Markdown como
+cualquier otro, con secciones para llenar y una pista en gris en cada una. Cada
+casilla de esa página es uno de sus pasos; con **↗** uno se vuelve parte de la
+tarea y su tarjeta queda donde estaba el paso. Completarla guarda su página con
+ella, para leer y sin tocar, y reabrirla la trae de vuelta. Abierta a toda la
+página gana una columna con su propio trayecto: cuántos días lleva abierta,
+cuánto va hecho y cada cambio por el que ha pasado.
+
+**Las prioridades son una matriz, no una escalera.** Tisty toma los cuatro
+cuadrantes de la matriz de Eisenhower — el método que se atribuye al presidente
+Dwight D. Eisenhower y que Stephen Covey popularizó en *Los 7 hábitos de la gente
+altamente efectiva*: ordena lo que tienes entre urgente e importante, y cada
+cuadrante te dice qué hacer con ello. **Hacer** lo urgente e importante,
+**Planificar** lo que importa y no corre prisa, **Delegar** lo urgente que no te
+toca, y dejar en **Prescindible** aquello de lo que podrías prescindir — cuando
+lo tengas claro, un botón lo descarta todo de una vez.
+
+Arrastra una tarea a su cuadrante, o tecléalo: `!hacer`, `!planificar`,
+`!delegar`. `!decidir` sigue funcionando, porque así se llamaba antes.
+Cada cuadrante lleva un **+** que abre la captura rápida con ese cuadrante ya
+puesto, y lo que nadie ha colocado espera en una bandeja que se abre como la
+dejaste.
+
+**El reparto reparte tus días, una fila cada vez.** Las prioridades ordenan lo
+que importa; el reparto decide cuándo. Es un río de días por el que bajas, no
+una semana que pasas de página: cada día es una fila, y la fila crece con lo que
+lleva, así que un viernes cargado es alto y un martes libre es una línea. Lo que
+escribiste sin día espera en una bandeja a la izquierda, y lo arrastras hasta un
+día —o lo devuelves a la bandeja para quitarle el día otra vez—. Si lo sueltas
+en un día que ya lleva dos, Tisty te lo dice y te ofrece el siguiente que está
+libre; nunca insiste.
+
+Un botón de **mes** está para mirar, no para repartir: lo pulsas y esos mismos
+días se ordenan en cuadrícula, pulsas un día y caes en él dentro del río. Ahí no
+se suelta nada, a propósito. Tisty no ve el calendario que llevas en otro sitio,
+así que una casilla sin nada escrito es solo una casilla sin nada escrito, nunca
+la promesa de que ese día es tuyo.
+
+**Tisto te acompaña.** El castor de Tisty se asoma sobre la barra mientras
+escribes una tarea. Nunca tapa nada, y se apaga desde Configuración › *Aspecto y
+ventana*. Al terminar una tarea, un aviso ofrece **Deshacer**, por si fue un
+error.
+
+**Un atajo global** abre un campo pequeño encima de lo que estés haciendo, así
+una tarea que se te ocurre a mitad de algo no te cuesta ese algo.
+
+**Cuando Windows cierra Tisty para actualizarlo**, primero se guarda lo que
+acabas de escribir, y Tisty vuelve solo: a la vista si estaba a la vista, oculto
+si estaba oculto. Un apagado también conserva lo que escribiste. Un fallo o un
+cuelgue no lo traen de vuelta.
+
+**Un calendario entra como tareas.** Suelta un `.ics` en la ventana, o ábrelo
+con Tisty: muestra cada cita y pendiente con cuándo, dónde, cómo se repite y su
+recordatorio, y convierte en tareas las que elijas, con sus zonas horarias,
+también las de Outlook, y sus repeticiones simples. Abrir dos veces el mismo
+archivo no duplica nada.
+
+**Y una tarea sale a tu calendario.** **Guardar en mi calendario**, en una tarea
+con fecha, abre el evento ya lleno —título, día y hora, y el enlace de la tarea—
+en Google Calendar u Outlook en tu navegador, o en el Calendario de Apple en un
+Mac, y ahí pulsas **Guardar**; desde entonces te avisa tu calendario, también en
+el teléfono. Tisty pregunta cada vez qué calendario usar, salvo que elijas uno
+en Configuración › *Tareas y avisos* › *Tu calendario*, no se conecta a ninguno,
+y el evento no sigue a la tarea si después cambias su fecha.
+
+**Las tareas que se repiten** vuelven de una en una, así el archivo te muestra
+que la hiciste doce veces —y cuenta lo que tocaba, no solo lo que cerraste, de
+modo que una rutina se lee 26 de 30 con cuatro fechas sin registro. Si la
+marcas días tarde te ofrece esas fechas en vez de darlas por olvidadas: marcas
+las que sí hiciste y el hueco se cierra. **Los recordatorios** llegan como
+notificación del sistema y un sonido corto que puedes apagar, aunque Tisty esté
+cerrado: los deja agendados en Windows o macOS, así que suenan mientras el
+equipo esté encendido, y un clic en el aviso abre su tarea. **Recordatorios
+importantes**, apagado hasta que lo enciendes, deja que uno atraviese «No
+molestar» donde el sistema lo permite. Toda la ventana funciona con el teclado.
+
+**El archivo se lee en tres capas.** Las que enseñaron algo, las tareas a las que
+volviste a sumarles más de tres veces, vienen con todo su trayecto: qué cambió,
+cuándo, y lo que fuiste escribiendo por el camino. Las
+rutinas vienen con sus cuentas, sus rachas y la hora a la que sueles cumplirlas.
+El resto es el rastro: lo que no dejó nada escrito, o casi nada, en una lista
+densa y apartada, porque pasó igual y la búsqueda sigue alcanzándolo. Tú decides
+en qué capa se lee cada una: una historia que era ruido pasa al rastro, y un
+rastro que vale la pena se guarda como historia. El rastro es la única capa que
+se puede borrar, y tanto borrar como ocultar van de una en una; una historia solo
+se oculta.
+
+</details>
+
 ## Tus datos y tu privacidad
 
 Todo vive en una carpeta de tu disco: un registro de lo que pasó al que solo se
@@ -1037,6 +1389,154 @@ está, y también la tarea que te dejó.
 - [Cifrar tu nube](https://www.tisty.app/es/ayuda/sincronizar-y-respaldar/#cifrar-tu-nube)
 - [Cambié algo en un equipo y no aparece en el otro](https://www.tisty.app/es/ayuda/sincronizar-y-respaldar/#cambié-algo-en-un-equipo-y-no-aparece-en-el-otro)
 
+<details>
+<summary>Cómo se sincroniza, en detalle</summary>
+
+**Tu Google Drive, directo.** Elige *Tu servicio de nube* y **Conectar**: se
+abre tu navegador, entras a Google y Google te pregunta si Tisty puede guardar
+sus copias ahí. Viven en un espacio oculto de tu Drive que solo abre Tisty
+—no ve nada más de tu Drive, y no aparecen entre tus archivos— y no necesitas el
+programa de escritorio de Google instalado ni abierto. Desconectar las conserva
+ahí, tanto en Tisty como en Drive; para sacarlas, múdate a una carpeta desde
+Tisty. En Google Drive › Configuración › Administrar apps, solo «Eliminar datos
+ocultos de la app» las borra.
+La primera vez sube todo lo que ya tienes —o, si tu Drive ya tiene tu Tisty, lo
+trae—; después solo viaja lo nuevo, y si se
+corta la conexión sigue donde quedó. Los adjuntos se quedan en el equipo donde
+se agregaron y bajan en otro cuando los abres ahí; *Liberar espacio* suelta los
+que no abres hace tiempo. Cada equipo tiene un cupo diario, para que ninguna
+copia gaste la cuota que Google le da al proyecto: si se acaba, lo que escribas
+queda a salvo aquí y la sincronización sigue al día siguiente. Conectar se hace
+solo desde la ventana.
+
+**Tu OneDrive, directo.** Lo mismo, con Microsoft: entras en la página de
+Microsoft y Tisty guarda sus copias en *Aplicaciones › Tisty* de tu OneDrive.
+Esa carpeta sí la ves ahí; déjasela a Tisty, porque lo que cambies a mano se lee
+como un cambio de otro equipo.
+
+**Tu propio servidor, por WebDAV.** Nextcloud, ownCloud, Synology y otros:
+escribes la dirección del servidor, tu usuario y una contraseña en Configuración
+› *Sincronización*, y Tisty revisa el servidor antes de conectarse; no se abre
+ningún navegador. La contraseña queda en este equipo, guardada por el sistema;
+mejor una contraseña de aplicación de tu servidor que la principal, porque ahí
+la puedes quitar cuando quieras. Tisty guarda sus copias en una carpeta *Tisty*
+del servidor y no toca nada fuera de ella; déjasela a Tisty también. Tu servidor
+pone el límite y el ritmo, y los adjuntos también quedan siempre en este equipo.
+
+Antes de que te conectes, y antes de una mudanza a la nube, Tisty revisa que el
+proveedor responda, con una sola petición que no lleva nada tuyo. Si un proxy,
+un filtro de tu trabajo o un antivirus se interpone, te lo dice con palabras
+simples —ahí, y en la tarjeta cuando la sincronización sigue fallando: una
+segunda ronda seguida, o dos minutos después de la primera—. Una ronda fallida
+suelta, o una conexión que se corta a medio camino, solo se reintenta. Nunca
+rodea lo que se interpone: lo que escribas queda aquí y sube en cuanto el camino
+se despeja. Una ronda larga dice cuánto lleva, para que nunca parezca
+congelada.
+
+**Una carpeta.** Las carpetas de Google Drive, OneDrive, iCloud y Dropbox —las
+que encuentre instaladas, ya resueltas— o cualquier otra que tus dos
+equipos alcancen: un NAS, un disco que enchufas los viernes. Dropbox viaja por
+aquí, con su propio programa.
+
+No hay nada mío en el medio: ni cuenta, ni servidor, ni proceso residente. Quién
+mantenga esa carpeta o esa nube es asunto tuyo, no de Tisty. Si no sincronizas
+nada, no abre una conexión para eso en su vida. Cambiar de idea después es una
+mudanza, no un interruptor: *Mudarme a otro lugar…* lleva tus copias entre este
+equipo, una carpeta y tu nube en dos pasos —primero trae a casa lo que vivía
+solo en el lugar que dejas, después lleva todo al nuevo—, cuenta los archivos
+que faltan, te dice cuándo el proveedor pide una pausa, te deja ocultarla y
+seguir trabajando, y les avisa a tus otros equipos adónde te fuiste para que
+cada uno te siga.
+
+**Un equipo nuevo se une solo.** Si todavía no guarda nada tuyo, toma lo que
+ya guarda la carpeta o tu Drive, después de dejar un respaldo; al conectar Drive
+ahí, dice *Tu Google Drive ya tiene tu Tisty* y ofrece **Sincronizar** en vez de
+una primera subida. Lo trae con una barra en movimiento y los conteos a medida
+que llega, y **Seguir trabajando mientras llega** te deja entrar a la app
+mientras la ronda sigue; el pie de la barra lateral sigue contando y avisa si no
+pudo terminar. Uno que sí guarda tu trabajo pregunta antes, nombrando el lugar:
+fusionar las dos, conservar esta máquina o quedarte con lo del lugar. Si tu
+nube está cifrada, antes hay que autorizar al equipo nuevo, como se cuenta más
+abajo.
+
+Dos equipos sí pueden escribir el mismo documento a la vez, y ahí Tisty los junta
+**bloque a bloque**: editas la introducción en uno, alguien edita el cierre en el
+otro, y las dos cosas llegan sin que tengas que responder nada. Solo cuando los
+cambios se pisan de verdad hay una pregunta.
+
+**Un Tisty anterior no escribe encima de uno más nuevo.** Un equipo que sigue
+con Tisty 1.30 a 1.33 y llega a tu nube o a tu carpeta se detiene y te pide
+actualizarlo en vez de seguir escribiendo. Mientras no lo hagas, ese equipo no
+sincroniza, pero no pierdes nada: lo que tiene se queda donde estaba y se pone
+al día en cuanto lo actualices.
+
+**Cada equipo firma lo que escribe**, y uno por el que aquí nadie ha respondido
+espera en la puerta: su ficha en Configuración › *Seguridad*, en *Tus
+equipos*, muestra el código con el que firma, lo comparas con el que ese equipo
+muestra de sí mismo, y lo confirmas. Hasta entonces no entra nada de lo que
+escribe; desde ese momento, lo que no responda a esa clave se rechaza, y Tisty
+te lo dice.
+
+**Tu nube, cifrada, si quieres.** En Configuración › *Seguridad*, **Cifrar mi
+nube…** cifra lo que Tisty guarda en tu Google Drive, tu OneDrive o tu servidor
+WebDAV con una llave que sale de una frase de 24 palabras que solo tú conoces.
+Quien vea esos archivos, tu proveedor incluido, ya no puede leer tus tareas ni
+tus documentos, y lo que tienes en tus equipos no cambia. Es para una nube con
+la que Tisty habla directo; una carpeta que otro programa mantiene al día se
+queda como está.
+
+Antes de empezar revisa tres cosas: que tu frase esté anotada —**Guardar como
+PDF** te da una hoja para guardarla, y tres de sus palabras confirman que la
+anotaste—, que haya espacio en la nube, porque ocupa el doble hasta que se va la
+copia antigua, y que cada uno de tus equipos tenga un Tisty que conozca la nube
+cifrada. Después te muestra el avance. Puedes seguir trabajando, cerrar Tisty y
+que siga donde quedó, o cancelar: hasta el último paso, lo de antes queda
+intacto. Al terminar, la copia antigua sin cifrar sigue en la nube hasta que
+pulses **Borrar la copia sin cifrar**, y **Descifrar mi nube**, en el mismo
+lugar, la deja otra vez sin cifrar; tus otros equipos se dan cuenta y siguen
+sincronizando sin que hagas nada en cada uno.
+
+**Tus equipos reciben la llave solos.** Uno que ya sincronizaba contigo espera
+un momento y la toma de otro de los tuyos que tenga Tisty abierto, y mientras
+tanto no escribe nada sin cifrar. Un equipo nuevo se autoriza desde uno que ya
+lee la nube cifrada: en el nuevo, **Autorizar desde otro equipo** muestra veinte
+dígitos, y los escribes en el otro, en Configuración › *Seguridad* ›
+**Autorizar un equipo nuevo**; luego **Ya los aceptó** en el nuevo confirma
+que lo hiciste. O escribe tus 24 palabras en el nuevo con
+**Escribir mi frase**: ahí solo queda la llave de la nube, nunca la frase.
+Te quedes luego con el historial que te quedes, el equipo que recibió los veinte
+dígitos no vuelve a pedirlo; cada uno de tus otros equipos te pide confirmar su
+código una vez, como con cualquier equipo nuevo, porque la llave sola no dice
+qué equipo es tuyo.
+
+**Lo que no oculta.** Tu proveedor guarda un tiempo versiones anteriores sin
+cifrar, en su historial y su papelera, y los nombres y tamaños de los archivos y
+cuántos equipos tienes siguen a la vista. La frase nunca pasa por las manos de
+nadie, así que nadie te la puede devolver: sin ella o sin uno de tus equipos,
+nadie puede abrir tu nube, ni siquiera Tisty.
+
+**Y respalda a mano, con carpeta compartida o sin ella.** Un zip con todo tu
+historial, guardado donde quieras, y restaurado desde el mismo sitio en
+Configuración › *Copias*.
+
+**Dónde viven los grandes lo dices tú.** Por defecto cada equipo carga con todos
+los adjuntos, que es por lo que cualquiera de ellos abre lo que sea con la red
+apagada. Para lo que pase de 25 MB, Configuración › *Almacenamiento* ofrece
+otras dos formas: quedarte solo con lo que adjuntaste en este equipo y traer el
+resto cuando lo abras, o dejarlos en la carpeta compartida y en ningún otro
+sitio. Esa última cambia la copia de tu disco por el espacio que ocupaba: el
+archivo está cuando está tu nube o tu NAS, y Tisty te lo dice con todas las
+letras cuando no. Una copia solo se suelta después de comprobar que la de la
+carpeta compartida tiene el mismo sha.
+
+Y como quien sube una carpeta es el programa de tu proveedor y no Tisty, si algún
+día cambias algo en un equipo y no aparece en el otro, [la ayuda](https://www.tisty.app/es/ayuda/sincronizar-y-respaldar/#cambié-algo-en-un-equipo-y-no-aparece-en-el-otro)
+enumera las causas en el orden en que conviene revisarlas, y qué significa cada
+aviso de Google Drive, de *Reconectar* a un Drive lleno o
+[algo que bloquea el camino](https://www.tisty.app/es/ayuda/sincronizar-y-respaldar/#cuando-algo-se-interpone-con-google).
+
+</details>
+
 ## Tu agente de IA
 
 **Tisty no es inteligencia artificial ni la lleva dentro.** El lenguaje natural
@@ -1065,6 +1565,107 @@ pregunta qué cambió, abre esa tarea y lee lo que anotó ayer.
 - [Cómo trabaja un agente](https://www.tisty.app/es/ayuda/como-trabaja-un-agente/)
 - [Herramientas MCP](https://www.tisty.app/es/ayuda/herramientas-mcp/)
 
+<details>
+<summary>Lo que puede hacer tu agente, en detalle</summary>
+
+**El trabajo de tus agentes, a la vista.** Con Tisty, un agente planifica en
+documentos y trabaja en tareas: escribe en Markdown el plan, lo que encontró y lo
+que decidió, divide el trabajo en tareas con pasos y los va marcando a medida
+que avanza. Nada queda enterrado en un chat: cada etapa queda en Tisty, en tu
+equipo, donde puedes seguirla mientras ocurre y auditarla después. Cuando dice
+que una tarea está lista, eres tú quien la cierra.
+
+Configuración › Asistentes › *Conectados* enumera los asistentes que ya tienes
+instalados en este equipo y conecta el que elijas: escribe una sola línea en la
+configuración de ese asistente, deja el resto de ese archivo donde estaba y
+guarda al lado una copia de cómo era. Para uno que no conozca, basta una línea,
+y la pestaña te la muestra con la ruta del `tisty` que vino con la app en este
+equipo:
+
+```console
+$ <tu-asistente> mcp add tisty -- <ruta-de-tisty> mcp
+```
+
+Donde `<tu-asistente>` es como se llame el tuyo. Ese `tisty` ya no es una línea
+de comandos: solo abre la puerta del asistente. Habla
+[MCP](https://modelcontextprotocol.io) dentro del mismo equipo: sin cuenta, sin
+token, nada por la red. **Tú manejas la puerta.** Viene abierta sola hasta que
+elijas —en una instalación nueva, y al actualizar si nunca la cerraste—, así que
+un asistente que conectes puede trabajar de inmediato, y Configuración ›
+Asistentes › *Puerta* la cierra con **Quitarle la voz**. Mientras está cerrada,
+todo lo que intente un asistente se rechaza, y la ventana te dice quién tocó
+—«Claude Code intentó entrar»— con **Dejarlo entrar** ahí mismo. Dejar entrar a
+un asistente y echarlo son eventos de tu registro; que elegiste mantener la
+puerta cerrada queda en la configuración de este equipo.
+
+Mientras los asistentes tengan voz, un Tisty estable también responde al nombre
+`tisty` en tu PATH —la Store y Homebrew lo dejan ahí, y la copia del instalador
+agrega su propia carpeta—, así un plugin puede arrancarlo por su nombre.
+Quitarles la voz saca esa carpeta del PATH otra vez. Reinicia un asistente que
+ya estaba abierto para que vea el cambio.
+
+Lo que puede hacer es deliberadamente poco: anotar una tarea con sus pasos y su
+fecha, ponerle una hora a la que sonar, mover el día de una tarea que anotó un
+agente, dar por hecha una tarea, también una tuya —que la marca para que la
+confirmes y no cierra nada—, agregar a la bitácora, trabajar cualquier tarea
+como trabaja un documento, escribir un documento, agregar a uno que ya está ahí
+—al final o bajo un título—, corregir un pasaje de uno, escribir uno entero de
+nuevo, ordenar documentos en carpetas, volver un documento página de otro y
+decir en qué orden se leen sus páginas, lo que escribe y mueve en el texto de tu
+documento las líneas que las nombran y nada más, marcar un documento que ya
+cumplió su vida, para que lo borres, lo archives o le quites la marca, guardar
+una copia de un archivo que le señales —en una tarea o dentro de un documento,
+igual—, anotar ideas en tu hoja Ideas y ordenarlas contigo, y leer lo que
+ya está. Tu Diario es la excepción: ningún asistente lo ve hasta que lo abres a
+los agentes desde el propio Diario, y abierto solo añade al final de hoy, con su
+firma, cuando se lo pides. Lo que no
+puede: cerrar una tarea ni borrarla, marcar un paso tuyo o terminar una tarea
+tuya, mover un día que pusiste tú, borrar un documento, renombrar ni borrar una
+carpeta, alcanzar una tarea que plegaste, tomar archivos de cualquier sitio que
+no sea Descargas, Documentos, Imágenes, el escritorio o la carpeta temporal, ni
+anotar dos veces lo mismo. Una tarea que cerraste es histórico para él: le llega
+con un aviso que lo dice, se lee como terminó, no admite bitácora, ni un día
+nuevo, ni una alarma, ni un archivo, y si el mismo trabajo vuelve, el asistente
+propone una nueva que dice cómo terminó la anterior.
+
+En una tarea que escribiste tú se escribe como en un documento: un asistente
+puede describirla, renombrarla, llevarla a otra lista o bajo otra tarea, planear,
+reescribir o quitar sus pasos abiertos, corregir una nota y escribir su página.
+Lo que la resuelve sigue siendo tuyo: puede decir que está hecha, que no debería
+hacerse o que uno de sus pasos está hecho, y cada cosa espera a que la confirmes;
+su día lo mueves tú, y un paso que marcaste nunca es suyo para reescribirlo ni
+quitarlo.
+Lo que escribe un asistente va firmado con el nombre del programa por el que
+habló: la fila dice «por un agente» y lo nombra al pasar el puntero, y el panel
+lateral, la página completa y la bitácora dicen «por Claude Code», «por Codex».
+Configuración › Asistentes cuenta lo que anotó cada uno, y su pestaña *Cómo se
+ve su firma* deja elegir dónde se ve el nombre, o dejar solo un pequeño ◆.
+
+También lee con mesura, que es asunto tuyo tanto como suyo. Tisty guarda una
+ficha de cada documento —sus títulos, cuánto ocupa, las palabras en que se
+apoya— sacada del propio texto, en este equipo, y que no viaja a ninguna parte.
+El asistente lee eso para saber qué documento le sirve, y después pide la parte
+que quiere, o corrige esa parte sin haber leído el resto. Un documento largo no
+termina volcado en el modelo de nadie porque un asistente quería un párrafo.
+Cuando ya leyó uno, puede dejar un resumen para el siguiente. Llega también a tus
+otros equipos, pero tú no lo ves, nunca sale a Folio y no forma parte de lo que
+tú escribiste.
+Para corregir un pasaje tiene que nombrarlo tal como lo escribiste, y si ese
+texto no está o está dos
+veces, no se escribe nada. Para escribir un cuerpo entero de nuevo tiene que
+devolver la huella con la que leyó el documento la última vez: si escribiste en
+él desde entonces, la escritura se rechaza y tiene que volver a leer, así que lo
+que tecleaste mientras pensaba no se puede perder. Un documento que archivaste
+sí lo puede leer, y se le dice que lo archivaste; no puede escribir en él hasta
+que lo desarchives o se lo pidas.
+
+Lo que lea viaja adonde viaje ese asistente. Eso queda entre él y tú — que es
+justamente por lo que la puerta, abierta en una instalación nueva, se cierra
+cuando quieras con **Quitarle la voz**, y abrirla o cerrarla queda escrito en
+tu registro.
+
+</details>
+
 ## Qué no hace
 
 Tan importante como lo que hace. Fuera de alcance por ahora: trabajo
@@ -1089,9 +1690,9 @@ ni telemetría, y en constante desarrollo y mejora.
 
 ### ¿Necesito un agente de IA?
 
-No. Tisty está completo sin uno: las notas, los documentos y las tareas, la
-revisión semanal, el diario y Brainsty funcionan igual. Con tu agente, es la
-memoria que comparten. Por ejemplo, guardas las visitas de Rina al veterinario
+No. También funciona sin agente, a la manera tradicional: tus notas, documentos
+y tareas, a mano y a tu ritmo. La revisión semanal, el diario y Brainsty
+funcionan igual sin agente. Por ejemplo, guardas las visitas de Rina al veterinario
 en un documento y su próxima vacuna como una tarea que suena la tarde anterior:
 ningún agente ve nada de eso hasta que conectes uno, el día que quieras.
 
