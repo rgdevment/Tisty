@@ -136,6 +136,11 @@ export const keysOn = (
       toLineEdge({ toStart: false, visual: true }, true);
   };
 
+  const outOfSolids = (event: KeyboardEvent) => {
+    if (event.isComposing || !onSheet(page, event)) return;
+    if (event.key === "Backspace" || event.key === "Delete") caret.solidsLeft();
+  };
+
   const keyed = (event: KeyboardEvent) => {
     if (!onSheet(page, event)) return;
     if (event.key === "Escape") {
@@ -238,5 +243,5 @@ export const keysOn = (
     tags.hide();
   };
 
-  return { keyed, noted, ticking, moved };
+  return { keyed, noted, ticking, moved, outOfSolids };
 };

@@ -720,4 +720,127 @@ export const CASES = [
     was: ".\n\n| a | b |\n|---|---|\n| 1 | 2 |\n",
     now: "",
   },
+  {
+    name: "leftTypesBeforeATagThatOpensAStep",
+    doc: "# Pasos\n\n- [ ] uno\n- [ ] #etiqueta dos\n\nFin.\n",
+    run: async ({ clickAt, typed, press, frame }) => {
+      await clickAt("dos");
+      await caretInWords(frame, " dos", 0);
+      await press("ArrowLeft");
+      await typed("X");
+      await caretInWords(frame, "uno", 0);
+      await typed("Y");
+    },
+    was: "uno\n- [ ] ",
+    now: "Yuno\n- [ ] X",
+  },
+  {
+    name: "rightFromTheStepAboveTypesBeforeATagThatOpensAStep",
+    doc: "# Pasos\n\n- [ ] uno\n- [ ] #etiqueta dos\n\nFin.\n",
+    run: async ({ clickAt, typed, press, frame }) => {
+      await clickAt("dos");
+      await caretInWords(frame, "uno", 3);
+      await press("ArrowRight");
+      await typed("X");
+      await caretInWords(frame, "uno", 0);
+      await typed("Y");
+    },
+    was: "uno\n- [ ] ",
+    now: "Yuno\n- [ ] X",
+  },
+  {
+    name: "backspaceAfterATagThatOpensAStepTakesTheTag",
+    doc: "# Pasos\n\n- [ ] uno\n- [ ] #etiqueta dos\n\nFin.\n",
+    run: async ({ clickAt, press, frame }) => {
+      await clickAt("dos");
+      await caretInWords(frame, " dos", 0);
+      await press("Backspace");
+    },
+    was: "#etiqueta",
+    now: "",
+  },
+  {
+    name: "leftTypesBeforeCodeThatOpensAStep",
+    doc: "# Pasos\n\n- [ ] uno\n- [ ] `cod` dos\n\nFin.\n",
+    run: async ({ clickAt, typed, press, frame }) => {
+      await clickAt("dos");
+      await caretInWords(frame, " dos", 0);
+      await press("ArrowLeft");
+      await typed("X");
+      await caretInWords(frame, "uno", 0);
+      await typed("Y");
+    },
+    was: "uno\n- [ ] ",
+    now: "Yuno\n- [ ] X",
+  },
+  {
+    name: "backspaceAfterCodeThatOpensAStepTakesTheCode",
+    doc: "# Pasos\n\n- [ ] uno\n- [ ] `cod` dos\n\nFin.\n",
+    run: async ({ clickAt, press, frame }) => {
+      await clickAt("dos");
+      await caretInWords(frame, " dos", 0);
+      await press("Backspace");
+    },
+    was: "`cod`",
+    now: "",
+  },
+  {
+    name: "commandLeftStandsBeforeATagThatOpensAStep",
+    macOnly: COMMAND_WALKS_ONLY_ON_A_MAC,
+    doc: "# Pasos\n\n- [ ] uno\n- [ ] #etiqueta dos\n\nFin.\n",
+    run: async ({ clickAt, typed, press, frame }) => {
+      await clickAt("dos");
+      await caretInWords(frame, " dos", 2);
+      await press("Meta+ArrowLeft");
+      await typed("X");
+      await caretInWords(frame, "uno", 0);
+      await typed("Y");
+    },
+    was: "uno\n- [ ] ",
+    now: "Yuno\n- [ ] X",
+  },
+  {
+    name: "controlAStandsBeforeATagThatOpensAStep",
+    macOnly: LINE_WALKS_ONLY_ON_A_MAC,
+    doc: "# Pasos\n\n- [ ] uno\n- [ ] #etiqueta dos\n\nFin.\n",
+    run: async ({ clickAt, typed, press, frame }) => {
+      await clickAt("dos");
+      await caretInWords(frame, " dos", 2);
+      await press("Control+a");
+      await typed("X");
+      await caretInWords(frame, "uno", 0);
+      await typed("Y");
+    },
+    was: "uno\n- [ ] ",
+    now: "Yuno\n- [ ] X",
+  },
+  {
+    name: "backspaceOnWordsChosenInsideATagTakesTheTag",
+    doc: "# Etiquetas\n\nHola #etiqueta mundo\n\nFin.\n",
+    run: async ({ clickAt, press, frame }) => {
+      await clickAt("mundo");
+      await frame.evaluate(() => {
+        const tag = document.querySelector(".page .tag")?.firstChild;
+        if (!tag) throw new Error("no tag on the page");
+        getSelection().setBaseAndExtent(tag, 1, tag, 5);
+      });
+      await press("Backspace");
+    },
+    was: "#etiqueta",
+    now: "",
+  },
+  {
+    name: "deletingAParagraphsFirstWordLeavesTheCaretOnItsWords",
+    doc: "# Palabras\n\nAntes.\n\nHola mundo\n\nFin.\n",
+    run: async ({ clickAt, typed, press, wordBack, page, frame }) => {
+      await clickAt("mundo");
+      await caretInWords(frame, "Hola mundo", 4);
+      await wordBack();
+      await page.waitForTimeout(400);
+      await press("ArrowRight");
+      await typed("X");
+    },
+    was: "Hola m",
+    now: " mX",
+  },
 ];

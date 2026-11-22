@@ -166,3 +166,39 @@ describe("a composition that ends away from the page", () => {
     expect(before.isConnected).toBe(false);
   });
 });
+
+describe("a composition whose end never comes", () => {
+  it("holds the drawing of the key after it once, never every key after", async () => {
+    const answers: ((one: PlacedNear) => void)[] = [];
+    const near = vi.fn(
+      () =>
+        new Promise<PlacedNear>((done) => {
+          answers.push(done);
+        }),
+    );
+    opened(near as unknown as Hands["near"]);
+    caretAfter("Qu");
+    composing("compositionstart", "");
+    const drawn = (words: string, end: number): PlacedNear => ({
+      count: 2,
+      sum: summed([0, 6]),
+      from: 1,
+      to: 2,
+      html: `<p data-at="8-${end}"><span data-src="8-${end}">${words}</span></p>`,
+      heads: null,
+      whole: false,
+    });
+    const line = () => document.querySelector(".page > p span")?.firstChild as Text;
+    asked("insertText", "e");
+    await vi.waitFor(() => expect(near).toHaveBeenCalledTimes(1));
+    answers[0](drawn("Que tal", 15));
+    await vi.advanceTimersByTimeAsync(10_000);
+    await vi.waitFor(() => expect(line().data).toBe("Que tal"));
+    document.getSelection()?.collapse(line(), 3);
+    asked("insertText", "s");
+    await vi.waitFor(() => expect(near).toHaveBeenCalledTimes(2));
+    answers[1](drawn("Ques tal", 16));
+    await vi.advanceTimersByTimeAsync(50);
+    expect(line().data).toBe("Ques tal");
+  });
+});

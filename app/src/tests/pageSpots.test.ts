@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { checkOf } from "../placing";
+import { opened } from "../ui/pageNodes";
 import { ghostAt, lineEdge, sourceAt, spotOf, topsAt } from "../ui/pageSpots";
 
 const BODY = "Uno :dog: **dos**\n\n- \n\nFin";
@@ -67,6 +68,20 @@ describe("the places of a page written in place", () => {
     expect(spotOf(document, steps, 20)).toEqual([empty, 1]);
   });
 
+  it("writes before a tag that opens a step from the room the page leaves beside the step's box", () => {
+    const steps = "- [ ] uno\n- [ ] #eti dos\n";
+    sheetOf(
+      '<ul data-at="0-25"><li class="task" data-at="0-10"><span class="check"></span><span data-src="6-9">uno</span></li>' +
+        '<li class="task" data-at="10-25"><span class="check"></span><span class="tag" data-src="16-20" contenteditable="false">#eti</span><span data-src="20-24"> dos</span></li></ul>',
+    );
+    opened(document);
+    const room = document.querySelector("wbr") as Element;
+    const step = room.parentElement as Element;
+    expect(sourceAt(steps, room, 0)).toBe(16);
+    expect(spotOf(document, steps, 16)).toEqual([step, 2]);
+    expect(step.childNodes[1]).toBe(room);
+  });
+
   it("writes in a step just begun before the line break that ends it, not as a paragraph after", () => {
     const steps = "- [ ] un paso\n- [ ] \nFin";
     sheetOf(
@@ -76,6 +91,22 @@ describe("the places of a page written in place", () => {
     );
     const empty = document.querySelectorAll("li")[1] as Element;
     expect(sourceAt(steps, empty, 1)).toBe(20);
+  });
+
+  it("lays the caret where a paragraph's words start when its first word went and left a space before them", () => {
+    const body = "Antes.\n\n mundo\n";
+    sheetOf(
+      '<p data-at="0-7"><span data-src="0-6">Antes.</span></p><p data-at="9-15"><span data-src="9-14">mundo</span></p>',
+    );
+    expect(spotOf(document, body, 8)).toEqual([placed("mundo").firstChild, 0]);
+  });
+
+  it("still finds no place in spaces on a line of their own, as a paragraph begun there", () => {
+    const body = "Antes.\n\n \t\n\nmundo\n";
+    sheetOf(
+      '<p data-at="0-7"><span data-src="0-6">Antes.</span></p><p data-at="12-18"><span data-src="12-17">mundo</span></p>',
+    );
+    expect(spotOf(document, body, 8)).toBeNull();
   });
 
   it("finds no place outside every block", () => {

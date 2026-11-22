@@ -397,7 +397,7 @@ describe("Control with A and E on a Mac", () => {
     expect(await walked("e", [code, 5])).toEqual([code, 5]);
   });
 
-  it("starts the line before a tag that opens it, but never between a step's box and its tag", async () => {
+  it("starts the line before a tag that opens it, in a step too, past the step's box", async () => {
     on(MAC);
     await drawn(
       "#eti uno\n\n- [ ] #eti dos\n",
@@ -406,7 +406,9 @@ describe("Control with A and E on a Mac", () => {
         '<span class="tag" data-src="16-20" contenteditable="false">#eti</span><span data-src="20-24"> dos</span></li></ul>',
     );
     expect(await walked("a", [piece(" uno"), 0])).toEqual([document.querySelector("p"), 0]);
-    expect(await walked("a", [piece(" dos"), 0])).toEqual([piece(" dos"), 0]);
+    const step = document.querySelector("li") as Element;
+    expect(await walked("a", [piece(" dos"), 0])).toEqual([step, 2]);
+    expect(step.childNodes[1]?.nodeName).toBe("WBR");
   });
 });
 
@@ -440,6 +442,10 @@ describe("a key to a line's edge on a Mac, after the system has moved the caret"
     '<li class="task" data-at="10-21"><span class="check" contenteditable="false"></span>' +
     '<span class="tag" data-src="16-20" contenteditable="false">#eti</span><span data-src="20-24"> dos</span></li></ul>';
   const step = () => document.querySelectorAll("li")[1] as Element;
+  const beforeTag = () => {
+    const tag = step().querySelector(".tag");
+    return [step(), Array.prototype.indexOf.call(step().childNodes, tag)];
+  };
 
   it("brings Control+E back to the end of its own line when the move ran past the line's break", async () => {
     on(MAC);
@@ -493,7 +499,7 @@ describe("a key to a line's edge on a Mac, after the system has moved the caret"
     expect(spot).toEqual([document.querySelector("p"), 2]);
   });
 
-  it("keeps Cmd+Left in a step opened by a tag, after the tag, when the move went to the step above", async () => {
+  it("keeps Cmd+Left in a step opened by a tag, before the tag, when the move went to the step above", async () => {
     on(MAC);
     const spot = await pressed(
       "- [ ] uno\n- [ ] #eti dos\n",
@@ -502,10 +508,10 @@ describe("a key to a line's edge on a Mac, after the system has moved the caret"
       () => [piece(" dos"), 2],
       () => [piece("uno"), 3],
     );
-    expect(spot).toEqual([piece(" dos"), 0]);
+    expect(spot).toEqual(beforeTag());
   });
 
-  it("takes Cmd+Left on from between a step's box and its tag, where WebKit holds no caret", async () => {
+  it("takes Cmd+Left on from beside a step's box to just before its tag", async () => {
     on(MAC);
     const spot = await pressed(
       "- [ ] uno\n- [ ] #eti dos\n",
@@ -514,7 +520,7 @@ describe("a key to a line's edge on a Mac, after the system has moved the caret"
       () => [piece(" dos"), 2],
       () => [step(), 1],
     );
-    expect(spot).toEqual([piece(" dos"), 0]);
+    expect(spot).toEqual(beforeTag());
   });
 
   it("keeps a second Cmd+Right at the line's end past its tag when the move went to the next paragraph", async () => {

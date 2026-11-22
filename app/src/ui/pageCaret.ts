@@ -1,12 +1,21 @@
 import { byteFrom, unitFrom } from "../placing";
 import type { Span } from "./pageEdits";
 import { closing, opening } from "./pageLists";
-import { atGhost, caretLaidOn, elementOf, lineOfCaret, scrolledAround } from "./pageNodes";
+import {
+  atGhost,
+  caretLaidOn,
+  elementOf,
+  lineOfCaret,
+  SOLID_PIECE,
+  scrolledAround,
+} from "./pageNodes";
 import { placeOf, placeSaid } from "./pagePlaces";
 import { endOf, GHOST, ghostAt, sourceAt, spotOf, startOf, topsAt } from "./pageSpots";
 import type { Point, Writer } from "./pageWriter";
 
 export type Caret = ReturnType<typeof caretOn>;
+
+type Spot = [Node, number];
 
 const WHOLE = '.page > [data-at][contenteditable="false"]:not(h1, h2, h3, h4, h5, h6, .front)';
 
@@ -242,14 +251,58 @@ export const caretOn = (writer: Writer) => {
   // A block is told apart by where it starts, since each key draws it again as another element.
   const blockStart = () => placeSaid(blockOfCaret())?.split("-")[0] ?? null;
 
+  const writtenSolid = (node: Node) => {
+    const atom = elementOf(node)?.closest(`.page ${SOLID_PIECE}`);
+    const free = atom?.parentElement && !atom.parentElement.closest('[contenteditable="false"]');
+    return free ? atom : null;
+  };
+
   // A piece drawn whole, as code or a tag, takes no keys, so a caret dropped inside it stands right after it.
   const outOfSolid = (range: AbstractRange) => {
     const node = range.startContainer;
-    const atom = elementOf(node)?.closest('.page [data-src][contenteditable="false"]');
-    if (!atom?.parentElement || atom.parentElement.closest('[contenteditable="false"]')) return;
+    const atom = writtenSolid(node);
+    if (!atom) return;
     const early = node.nodeType === Node.TEXT_NODE && range.startOffset * 2 < (node as Text).length;
     const [holder, offset] = early ? startOf(atom) : endOf(atom);
     caretLaidOn(page, holder, offset);
+  };
+
+  const wordsOf = (atom: Element, node: Node, offset: number, before: boolean) => {
+    const part = page.createRange();
+    part.selectNodeContents(atom);
+    if (before) part.setEnd(node, offset);
+    else part.setStart(node, offset);
+    return part.toString() !== "";
+  };
+
+  const opensIn = (atom: Element, node: Node, offset: number) =>
+    wordsOf(atom, node, offset, false) ? startOf(atom) : endOf(atom);
+
+  const endsIn = (atom: Element, node: Node, offset: number) =>
+    wordsOf(atom, node, offset, true) ? endOf(atom) : startOf(atom);
+
+  const madeBackward = (held: Selection) => {
+    if (!held.anchorNode || !held.focusNode) return false;
+    const anchor = page.createRange();
+    anchor.setStart(held.anchorNode, held.anchorOffset);
+    return anchor.comparePoint(held.focusNode, held.focusOffset) < 0;
+  };
+
+  const solidsLeft = () => {
+    const held = page.getSelection();
+    const range = chosen();
+    if (!held || !range) return;
+    if (range.collapsed) return outOfSolid(range);
+    const { startContainer, startOffset, endContainer, endOffset } = range;
+    const first = writtenSolid(startContainer);
+    const last = writtenSolid(endContainer);
+    if (!first && !last) return;
+    const from: Spot = first
+      ? opensIn(first, startContainer, startOffset)
+      : [startContainer, startOffset];
+    const to: Spot = last ? endsIn(last, endContainer, endOffset) : [endContainer, endOffset];
+    if (madeBackward(held)) held.setBaseAndExtent(...to, ...from);
+    else held.setBaseAndExtent(...from, ...to);
   };
 
   return {
@@ -269,6 +322,7 @@ export const caretOn = (writer: Writer) => {
     blockOfCaret,
     blockStart,
     outOfSolid,
+    solidsLeft,
     inSight,
   };
 };

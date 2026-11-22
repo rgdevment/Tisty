@@ -4,6 +4,17 @@ export const FIELDS = "input, textarea, select";
 
 const LITERAL = "pre, code, kbd, figure.code > figcaption";
 
+export const SOLID_PIECE = '[data-src][contenteditable="false"]';
+
+const solidAfter = (box: Element) => {
+  const next = box.nextSibling;
+  return next?.nodeType === Node.ELEMENT_NODE && (next as Element).matches(SOLID_PIECE);
+};
+
+const roomBeside = (box: Element) => {
+  if (solidAfter(box)) box.after(box.ownerDocument.createElement("wbr"));
+};
+
 export const WRITABLE =
   ".page > :is(p, h1, h2, h3, h4, h5, h6, ul, ol, blockquote, figure.code, .footnote, details)";
 
@@ -105,6 +116,7 @@ export const opened = (page: Document, laid?: readonly Element[]) => {
   // A step's box and its ↗ are no place for the caret, so ↑ and ↓ go from step to step.
   for (const one of within(".drop-section, .doc-card, .check, .to-part"))
     said(one, "contenteditable", "false");
+  for (const box of within("li.task > .check")) roomBeside(box);
   // Code is spelled as the language wants it, so the system's speller has nothing to say there.
   for (const one of within(LITERAL)) said(one, "spellcheck", "false");
 };

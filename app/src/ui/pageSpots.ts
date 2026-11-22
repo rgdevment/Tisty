@@ -156,15 +156,30 @@ const innermost = (page: Document, byte: number): Element | null => {
   return found;
 };
 
+const blankAfter = (body: string, chars: number) => {
+  let end = chars;
+  while (body[end] === " " || body[end] === "\t") end++;
+  return end - chars;
+};
+
+const wordsAhead = (page: Document, body: string, chars: number, known: Reckoned | null) => {
+  const byte = byteFrom(known, body, chars);
+  const block = innermost(page, byte);
+  const blank = block ? 0 : blankAfter(body, chars);
+  const ahead = blank ? innermost(page, byte + blank) : null;
+  return ahead
+    ? { chars: chars + blank, byte: byte + blank, block: ahead }
+    : { chars, byte, block };
+};
+
 // Where the caret goes for a place in the words: inside the piece that holds it, or beside the nearest one.
 export const spotOf = (
   page: Document,
   body: string,
-  chars: number,
+  asked: number,
   known: Reckoned | null = null,
 ): [Node, number] | null => {
-  const byte = byteFrom(known, body, chars);
-  const block = innermost(page, byte);
+  const { chars, byte, block } = wordsAhead(page, body, asked, known);
   if (!block) return null;
   let before: Element | null = null;
   // An item's own line is its own; the words of the list nested in it belong to their items.

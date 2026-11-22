@@ -87,8 +87,15 @@ export const layingOn = (
     resting = setTimeout(told, RESTED_MS);
   };
 
-  const composed = () =>
-    writer.composing ? answered(writer.composing.over, COMPOSING_PATIENCE_MS) : null;
+  const composed = async () => {
+    const open = writer.composing;
+    if (!open) return;
+    const ended = await answered(
+      open.over.then(() => true),
+      COMPOSING_PATIENCE_MS,
+    );
+    if (!ended && writer.composing === open) writer.composing = null;
+  };
 
   const layOne = async (was: string, now: string, asked: Edit) => {
     if (over) return;

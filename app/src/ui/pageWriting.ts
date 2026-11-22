@@ -165,6 +165,7 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
     if (event.type === "cut") cut();
   };
   page.addEventListener("keydown", named, true);
+  page.addEventListener("keydown", keys.outOfSolids, true);
   page.addEventListener("keydown", chooser);
   page.addEventListener("keydown", keys.keyed);
   page.addEventListener("keydown", input.markHeld);
@@ -224,6 +225,7 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
       page.removeEventListener("keydown", chooser);
       page.removeEventListener("mousedown", unchosen);
       page.removeEventListener("keydown", named, true);
+      page.removeEventListener("keydown", keys.outOfSolids, true);
       page.removeEventListener("paste", input.pastedFiles);
       page.removeEventListener("copy", clipped);
       page.removeEventListener("cut", clipped);
