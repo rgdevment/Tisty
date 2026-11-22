@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use super::{Drawing, anchors, draw, placed_near, titled};
+use super::{Drawing, anchors, draw, placed_near, reaches_heading, titled};
 use crate::read;
 use crate::rereading::tests::{PIECES, SAMPLES, Steps, boundary, plain};
 
@@ -81,7 +81,13 @@ fn a_block_beside_an_edit_whose_place_holds_is_drawn_as_before() {
             let now = read(&next);
             if was.labels() == now.labels() {
                 let by = insert.len() as isize - (to - from) as isize;
-                let near = placed_near(&now, from, from + insert.len(), None);
+                let near = placed_near(
+                    &now,
+                    from,
+                    from + insert.len(),
+                    None,
+                    reaches_heading(&was, from..to),
+                );
                 let (named, renamed) = (anchors(&was), anchors(&now));
                 let held = sorted(&named) == sorted(&renamed) && near.heads.is_none();
                 let (was_titled, now_titled) = (titled(was.blocks()), titled(now.blocks()));

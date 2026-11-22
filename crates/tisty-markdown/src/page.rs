@@ -104,21 +104,34 @@ fn touched_heading(blocks: &[Block], from: usize, to: usize) -> bool {
     })
 }
 
-pub fn placed_near(doc: &Doc, from: usize, to: usize, shown: Option<[u32; 2]>) -> Near {
-    let blocks = doc.blocks();
+fn reach(blocks: &[Block], from: usize, to: usize) -> (usize, usize) {
     let first = blocks.partition_point(|one| one.at.end < from);
-    let last = blocks.partition_point(|one| one.at.start <= to);
-    let to = match blocks.get(last) {
-        Some(next) if last == 0 || blocks[last - 1].at.end < to => next.at.start,
-        _ => to,
-    };
+    (first, blocks.partition_point(|one| one.at.start <= to))
+}
+
+pub fn reaches_heading(was: &Doc, at: std::ops::Range<usize>) -> bool {
+    let blocks = was.blocks();
+    let (first, last) = reach(blocks, at.start, at.end);
+    let near = blocks.get(first..last).unwrap_or_default();
+    touched_heading(near, at.start, at.end)
+}
+
+pub fn placed_near(
+    doc: &Doc,
+    from: usize,
+    to: usize,
+    shown: Option<[u32; 2]>,
+    reached: bool,
+) -> Near {
+    let blocks = doc.blocks();
+    let (first, last) = reach(blocks, from, to);
     let start = first.saturating_sub(1);
     let end = last + 1;
     // The title past the properties is marked by where it stands, so a key at the top draws it too.
     let end = if start == 0 { end.max(2) } else { end }.min(blocks.len());
     let drawn = start..end;
     let again = blocks.get(drawn.clone()).unwrap_or_default();
-    let (anchors, heads) = if touched_heading(again, from, to) {
+    let (anchors, heads) = if reached || touched_heading(again, from, to) {
         let names = names(doc);
         let around = again.first().zip(again.last());
         let around = around.map_or(0..0, |(first, last)| first.at.start..last.at.end);

@@ -219,6 +219,16 @@ describe("the diagram window", () => {
     expect(screen.getByText(`${say("diagramSchema")} · Proyectos`)).toBeTruthy();
   });
 
+  it("saves with Ctrl+S pressed on a layout that writes no Latin letters", async () => {
+    render(<Viewing />);
+    const text = await written();
+
+    fireEvent.change(text, { target: { value: "erDiagram" } });
+    fireEvent.keyDown(window, { key: "ы", code: "KeyS", ctrlKey: true });
+
+    await waitFor(() => expect(asked("diagram_save")).toHaveLength(1));
+  });
+
   it("says plainly when the diagram changed in the document meanwhile, and keeps what was typed", async () => {
     ipc.refusal = { code: "diagramMoved", name: "Tisty Notes" };
     render(<Viewing />);

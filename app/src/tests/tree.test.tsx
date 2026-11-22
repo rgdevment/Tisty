@@ -1147,6 +1147,18 @@ describe("putting folders and documents in the order you want", () => {
     expect(screen.queryByRole("status")).toBeNull();
   });
 
+  it("lifts a row with Ctrl+X pressed on a layout that writes no Latin letters", () => {
+    render(
+      <Tree papers={papers} onOpen={vi.fn()} onFile={vi.fn()} onHere={vi.fn()} onMove={vi.fn()} />,
+    );
+    unfoldAll();
+    const loose = screen.getByRole("button", { name: "Suelto" });
+    loose.focus();
+    fireEvent.keyDown(loose, { key: "ч", code: "KeyX", ctrlKey: true });
+
+    expect(screen.getByRole("status").textContent).toContain("Suelto");
+  });
+
   it("does not take a document dropped among the archived", () => {
     const { container } = shown();
     const row = container.querySelector<HTMLElement>('[data-drop="01E"]');

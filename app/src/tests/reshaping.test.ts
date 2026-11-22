@@ -21,16 +21,11 @@ vi.mock("@tauri-apps/plugin-dialog", () => ({
   },
 }));
 
-// Only Windows and macOS turn a photo, and the module reads which one it runs on when it loads.
-const onWindows = async (readsHeic = true) => {
-  Object.defineProperty(window.navigator, "userAgent", {
-    value: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-    configurable: true,
-  });
+const shaping = async (readsHeic = true) => {
   vi.resetModules();
-  const shaping = await import("../reshaping");
+  const loaded = await import("../reshaping");
   (await import("../previews")).drawsHeic(readsHeic);
-  return shaping;
+  return loaded;
 };
 
 beforeEach(() => {
@@ -42,7 +37,7 @@ beforeEach(() => {
 
 describe("a photo not every computer shows", () => {
   it("is asked about once for all dropped together, and the choice reaches each one", async () => {
-    const { attachedAll } = await onWindows();
+    const { attachedAll } = await shaping();
     ipc.chosen = "Same size and quality";
 
     await Promise.all(await attachedAll(["C:/a/uno.HEIC", "C:/#viaje/dos.heif", "C:/a/tres.png"]));
@@ -57,7 +52,7 @@ describe("a photo not every computer shows", () => {
   });
 
   it("is kept as it came when the person says so, and not at all when they close the question", async () => {
-    const { attachedAll } = await onWindows();
+    const { attachedAll } = await shaping();
     ipc.chosen = "Keep as it is";
     await Promise.all(await attachedAll(["C:/a/uno.heic"]));
     expect(ipc.calls[0].args.shape).toBeUndefined();
@@ -69,7 +64,7 @@ describe("a photo not every computer shows", () => {
   });
 
   it("asks in the window's own dress when the window is there to ask", async () => {
-    const { asksShape, attachedAll } = await onWindows();
+    const { asksShape, attachedAll } = await shaping();
     asksShape(() => Promise.resolve("full"));
 
     await Promise.all(await attachedAll(["C:/a/uno.heic"]));
@@ -80,7 +75,7 @@ describe("a photo not every computer shows", () => {
   });
 
   it("attaches nothing when the person backs out of the question", async () => {
-    const { asksShape, attachedAll } = await onWindows();
+    const { asksShape, attachedAll } = await shaping();
     asksShape(() => Promise.resolve(null));
 
     const all = await attachedAll(["C:/a/uno.heic", "C:/a/acta.pdf"]);
@@ -91,7 +86,7 @@ describe("a photo not every computer shows", () => {
   });
 
   it("does not offer to turn a HEIC on a Windows that cannot read one", async () => {
-    const { attachedAll } = await onWindows(false);
+    const { attachedAll } = await shaping(false);
 
     await Promise.all(await attachedAll(["C:/a/uno.heic"]));
 
@@ -100,7 +95,7 @@ describe("a photo not every computer shows", () => {
   });
 
   it("asks nothing when every file shows everywhere", async () => {
-    const { attachedAll } = await onWindows();
+    const { attachedAll } = await shaping();
 
     await Promise.all(await attachedAll(["C:/a/foto.jpg", "C:/a/acta.pdf"]));
 

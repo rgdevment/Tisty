@@ -1,4 +1,4 @@
-import { act, render, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, onTestFinished, vi } from "vitest";
 import type { Group, Network, Neuron } from "../brainsty";
@@ -713,6 +713,14 @@ describe("Brainsty in the content panel", () => {
     expect(screen.getByText(/ms a frame/)).toBeTruthy();
     await user.keyboard("{Control>}{Shift>}M{/Shift}{/Control}");
     expect(screen.queryByText(/ms a frame/)).toBeNull();
+  });
+
+  it("shows what it costs a frame with Ctrl+Shift+M pressed on a Russian layout", async () => {
+    await drawnNetwork();
+
+    fireEvent.keyDown(window, { key: "Ь", code: "KeyM", ctrlKey: true, shiftKey: true });
+
+    expect(screen.getByText(/ms a frame/)).toBeTruthy();
   });
 
   it("jumps to the search with /", async () => {

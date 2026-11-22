@@ -21,7 +21,7 @@ import { plainly } from "../refusal";
 import { type Attaching, attachedAs, pressed } from "./attached";
 import { boxKey, NOTE } from "./diaryPaging";
 import { glancing } from "./glancing";
-import { modKey } from "./macKeys";
+import { letterOf, modKey } from "./macKeys";
 import { placeCopied, placedAt, placeOf, placeSaid, placeWritten, samePlace } from "./pagePlaces";
 import { type Shot, shotsOf, type TableWent, type Went, went, widgetsIn } from "./paging";
 import { type Bar, type Formatting, type Menued, quickly } from "./quickly";
@@ -635,7 +635,7 @@ export const wired = (page: Document, reach: () => Reaching) => {
     const writing = target?.closest?.(".editing");
     const asked = modKey(event) || event.key === "F1";
     if (writing && (event.defaultPrevented || !asked)) return;
-    if (asked && WRITTEN_KEYS.has(event.key.toLowerCase()) && target?.closest?.(WRITTEN_ON)) return;
+    if (asked && WRITTEN_KEYS.has(letterOf(event)) && target?.closest?.(WRITTEN_ON)) return;
     const passed = new KeyboardEvent("keydown", event);
     window.dispatchEvent(passed);
     if (passed.defaultPrevented) event.preventDefault();

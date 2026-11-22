@@ -373,7 +373,7 @@ export default function Docs({
   const wentBack = useCallback(async () => {
     if (!open) return;
     const unsaved = () => unansweredWords(open.file) !== undefined;
-    if (!unsaved() && !(await sure(t("backSure")))) return;
+    if (!unsaved() && !(await sure(`${t("backSure")} ${t("typedSinceGoes")}`))) return;
     if (unsaved()) return onError(t("unsavedStays"));
     drop();
     cut(open.file);

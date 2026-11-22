@@ -551,6 +551,27 @@ describe("a drawn page wired to the window", () => {
     expect(heard).toEqual(["e"]);
     expect(pressed).toEqual([false, false, false, true]);
   });
+
+  it("keeps bold and the rest to the page by the key pressed when the layout writes no Latin letters", () => {
+    const drawn = page('<div class="page" contenteditable="true"><p>x</p></div>');
+    const { reach } = reaching();
+    wired(drawn, () => reach);
+    const heard: string[] = [];
+    const listen = (e: KeyboardEvent) => heard.push(e.key);
+    window.addEventListener("keydown", listen);
+    const inside = drawn.querySelector(".page p") as HTMLElement;
+    for (const [key, code] of [
+      ["и", "KeyB"],
+      ["ิ", "KeyB"],
+      ["я", "KeyZ"],
+      ["у", "KeyE"],
+    ])
+      inside.dispatchEvent(
+        new KeyboardEvent("keydown", { key, code, ctrlKey: true, bubbles: true, cancelable: true }),
+      );
+    window.removeEventListener("keydown", listen);
+    expect(heard).toEqual(["у"]);
+  });
 });
 
 const writer = (body = "") => {

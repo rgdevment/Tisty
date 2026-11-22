@@ -260,6 +260,92 @@ describe("Control moving the caret on a Mac", () => {
     document.dispatchEvent(new Event("selectionchange"));
     expect(said[said.length - 1]).toBe("- [ ] uno\n\nFin\n");
   });
+
+  it("is told by the key pressed when the layout writes a vowel sign, as Devanagari and Thai do", async () => {
+    on(MAC);
+    const { caretWalk } = await import("../ui/macKeys");
+    const held = { ctrlKey: true, metaKey: false, altKey: false, shiftKey: false };
+    expect(caretWalk({ ...held, key: "ा", code: "KeyE" })).toBe("end");
+    expect(caretWalk({ ...held, key: "ो", code: "KeyA" })).toBe("start");
+    expect(caretWalk({ ...held, key: "ि", code: "KeyF" })).toBe("letter");
+    expect(caretWalk({ ...held, key: "ื", code: "KeyN" })).toBe("line");
+    expect(caretWalk({ ...held, key: "ิ", code: "KeyB" })).toBe("letter");
+    expect(caretWalk({ ...held, key: "้", code: "KeyH" })).toBeNull();
+  });
+});
+
+describe("letter shortcuts on a layout that writes no Latin letters", () => {
+  it("name no letter for a key that holds none, as a Thai digit or a Hindi nukta", async () => {
+    const { letterOf } = await import("../ui/macKeys");
+    expect(letterOf({ key: "ภ", code: "Digit4" })).toBe("");
+    expect(letterOf({ key: "़", code: "BracketRight" })).toBe("");
+    expect(letterOf({ key: "ว", code: "Semicolon" })).toBe("");
+    expect(letterOf({ key: "ф", code: "KeyA" })).toBe("a");
+    expect(letterOf({ key: "ิ", code: "KeyB" })).toBe("b");
+  });
+
+  it("formats and undoes by the key pressed, and by the letter written on a Latin layout", async () => {
+    on(WINDOWS);
+    const said = await written();
+    caretIn("Uno dos", 3);
+    expect(keyOn(sheet(), "ิ", { ctrlKey: true, code: "KeyB" }).defaultPrevented).toBe(true);
+    typed("x");
+    expect(said[said.length - 1]?.startsWith("Uno**x** dos")).toBe(true);
+    expect(keyOn(sheet(), "w", { ctrlKey: true, code: "KeyZ" }).defaultPrevented).toBe(false);
+    expect(keyOn(sheet(), "я", { ctrlKey: true, code: "KeyZ" }).defaultPrevented).toBe(true);
+  });
+
+  it("keeps chosen blocks through a copy pressed on a Russian layout", async () => {
+    on(WINDOWS);
+    await written();
+    caretIn("Uno dos", 1);
+    keyOn(sheet(), "Escape");
+    keyOn(sheet(), "с", { ctrlKey: true, code: "KeyC" });
+    expect(document.querySelectorAll(".chosen-block")).toHaveLength(1);
+  });
+
+  it("switches the whole document and chooses every word", async () => {
+    on(WINDOWS);
+    const { useWholeKeys } = await import("../ui/wholeKeys");
+    const keys = renderHook(() => useWholeKeys(true, true));
+    expect(keyOn(document.body, "у", { ctrlKey: true, code: "KeyE" }).defaultPrevented).toBe(true);
+    expect(keyOn(document.body, "ф", { ctrlKey: true, code: "KeyA" }).defaultPrevented).toBe(true);
+    expect(keys.result.current.wholeAsked).toBe(1);
+    expect(keys.result.current.allAsked).toBe(1);
+  });
+
+  it("closes a table's cell", async () => {
+    on(WINDOWS);
+    const { typing } = await import("../ui/tabled");
+    const cell = document.createElement("td");
+    document.body.append(cell);
+    const done = vi.fn();
+    const input = typing(cell, "Spotify", "Cell", done);
+    keyOn(input, "у", { ctrlKey: true, code: "KeyE" });
+    expect(done).toHaveBeenCalledWith("Spotify", "blur");
+  });
+
+  it("opens the palette, folds the side and finds", async () => {
+    on(WINDOWS);
+    const { usePaletteKey } = await import("../ui/Palette");
+    const { useFoldKey } = await import("../ui/SideEdge");
+    const { useFindKey } = await import("../ui/finding");
+    const opened = vi.fn();
+    const found = vi.fn();
+    renderHook(() => {
+      usePaletteKey(false, opened);
+      useFoldKey(true);
+      useFindKey(true, found);
+    });
+    for (const [key, code] of [
+      ["з", "KeyP"],
+      ["и", "KeyB"],
+      ["л", "KeyK"],
+    ])
+      expect(keyOn(document.body, key, { ctrlKey: true, code }).defaultPrevented, key).toBe(true);
+    expect(opened).toHaveBeenCalledTimes(1);
+    expect(found).toHaveBeenCalledTimes(1);
+  });
 });
 
 describe("Control with A and E on a Mac", () => {

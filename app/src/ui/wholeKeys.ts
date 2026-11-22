@@ -1,6 +1,6 @@
 import { listen } from "@tauri-apps/api/event";
 import { useEffect, useState } from "react";
-import { modKey, onMac } from "./macKeys";
+import { letterOf, modKey, onMac } from "./macKeys";
 
 export const WHOLE_ASKED = "tisty:whole";
 
@@ -13,7 +13,7 @@ export function useWholeKeys(shown: boolean, wholeable: boolean) {
     // The page hears every Ctrl key the block left alone, so the keys work from inside a block too.
     const pressed = (event: KeyboardEvent) => {
       if (!modKey(event) || event.shiftKey || event.altKey) return;
-      const key = event.key.toLowerCase();
+      const key = letterOf(event);
       // A field of the window's own, the search or a title, keeps its keys.
       const field = (event.target as Element | null)?.closest?.(
         "input, textarea, [contenteditable]",

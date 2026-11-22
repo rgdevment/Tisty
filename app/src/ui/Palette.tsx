@@ -7,7 +7,7 @@ import { jumps } from "../jumping";
 import { t } from "../locales";
 import { covered, findNow } from "./finding";
 import { useHeldFocus } from "./heldFocus";
-import { modKey, onMac } from "./macKeys";
+import { letterOf, modKey, onMac } from "./macKeys";
 import { optionOf, PickList, usePicker } from "./Picker";
 import { useSearch } from "./Search";
 
@@ -20,7 +20,7 @@ export function usePaletteKey(open: boolean, onOpen: (asked: string) => void) {
   useEffect(() => {
     const keyed = (event: KeyboardEvent) => {
       if (event.repeat || event.altKey || !modKey(event)) return;
-      if (event.key.toLowerCase() !== "p") return;
+      if (letterOf(event) !== "p") return;
       event.preventDefault();
       if (!open && covered()) return;
       now.current(event.shiftKey ? ACTIONS : "");

@@ -23,7 +23,7 @@ import { EVERYTHING, found, hiddenBy, type Sift } from "./brainsty/sifting";
 import Toolbar from "./brainsty/Toolbar";
 import { turnedByHand } from "./brainsty/turning";
 import { walker } from "./brainsty/walking";
-import { modKey } from "./macKeys";
+import { letterOf, modKey } from "./macKeys";
 import { followTheme } from "./theming";
 
 export type Escaping = RefObject<(() => boolean) | null>;
@@ -253,7 +253,7 @@ export default function Brainsty({ network, groups, onOpen, escaping }: Props) {
 
   useEffect(() => {
     const shown = (e: KeyboardEvent) => {
-      if (!(modKey(e) && e.shiftKey && e.key.toLowerCase() === "m")) return;
+      if (!(modKey(e) && e.shiftKey && letterOf(e) === "m")) return;
       e.preventDefault();
       setCostShown((was) => !was);
     };

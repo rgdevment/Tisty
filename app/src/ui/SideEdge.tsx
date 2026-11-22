@@ -12,7 +12,7 @@ import {
 } from "../breadth";
 import { t } from "../locales";
 import { covered } from "./finding";
-import { modKey, onMac } from "./macKeys";
+import { letterOf, modKey, onMac } from "./macKeys";
 
 const STEP = 16;
 const STILL = 3;
@@ -28,7 +28,7 @@ export function useFoldKey(shown: boolean) {
     if (!shown) return;
     const keyed = (event: KeyboardEvent) => {
       if (event.defaultPrevented || event.repeat || event.altKey || event.shiftKey) return;
-      if (!modKey(event) || event.key.toLowerCase() !== "b") return;
+      if (!modKey(event) || letterOf(event) !== "b") return;
       if (writable(event.target) || covered()) return;
       event.preventDefault();
       flipFold();

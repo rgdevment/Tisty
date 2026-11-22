@@ -1,5 +1,5 @@
 import { charsAt } from "tisty-editor/read";
-import { modKey, moveKey } from "./macKeys";
+import { letterOf, modKey, moveKey } from "./macKeys";
 import type { Beside } from "./pageBeside";
 import type { Caret } from "./pageCaret";
 import type { Span } from "./pageEdits";
@@ -154,7 +154,7 @@ export const choosingOn = (writer: Writer, caret: Caret, laying: Laying, beside:
     if (!chosen && !item) return false;
     const arrow = event.key === "ArrowUp" ? -1 : event.key === "ArrowDown" ? 1 : 0;
     const held = ["Shift", "Control", "Alt", "Meta"].includes(event.key);
-    const clipped = modKey(event) && ["c", "x"].includes(event.key.toLowerCase());
+    const clipped = modKey(event) && ["c", "x"].includes(letterOf(event));
     if (held || clipped) return true;
     const acted =
       event.key === "Escape" ||

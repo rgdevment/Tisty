@@ -23,10 +23,11 @@ const WALKS: Readonly<Record<string, Walk>> = {
   v: "line",
 };
 
-const letterOf = (event: { readonly key: string; readonly code: string }) => {
+export const letterOf = (event: { readonly key: string; readonly code: string }) => {
   if (/^[a-z]$/i.test(event.key)) return event.key.toLowerCase();
-  return /^\p{L}$/u.test(event.key) && !/\p{Script=Latin}/u.test(event.key)
-    ? event.code.replace(/^Key/, "").toLowerCase()
+  const pressed = /^Key([A-Z])$/.exec(event.code)?.[1] ?? "";
+  return /^[\p{L}\p{M}]$/u.test(event.key) && !/\p{Script=Latin}/u.test(event.key)
+    ? pressed.toLowerCase()
     : "";
 };
 

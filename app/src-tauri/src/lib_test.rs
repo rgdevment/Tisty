@@ -1203,6 +1203,30 @@ fn a_refusal_the_window_showed_says_what_it_was_about() {
 }
 
 #[test]
+fn work_that_breaks_on_its_own_thread_is_refused_and_its_panic_stays_out_of_the_log() {
+    let _alone = ALONE.lock().unwrap_or_else(|e| e.into_inner());
+
+    let kept = tempfile::tempdir().unwrap();
+    let paths = tisty_core::paths::Paths::new(kept.path().join("data"), kept.path().join("config"));
+    tisty_core::witness::keeps(tisty_core::witness::file(&paths), false);
+
+    let broke = tauri::async_runtime::block_on(crate::elsewhere(|| -> u8 {
+        panic!("comprar pan en la esquina")
+    }));
+
+    assert!(broke.is_err_and(|refused| refused.code == "internal"));
+    let seen = tisty_core::witness::recent(&paths, 50);
+    let said = |line: &String| line.contains("a command broke") && line.contains("=elsewhere");
+    assert!(seen.iter().any(said), "{seen:?}");
+    assert!(
+        !seen.iter().any(|line| line.contains("comprar pan")),
+        "the panic message reached the file: {seen:?}"
+    );
+    let done = tauri::async_runtime::block_on(crate::elsewhere(|| 41 + 1));
+    assert!(done.is_ok_and(|said| said == 42));
+}
+
+#[test]
 fn a_save_the_window_stopped_waiting_for_is_written_down() {
     use crate::answers::tasks::note_trouble;
 

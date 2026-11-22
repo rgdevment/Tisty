@@ -2,7 +2,6 @@ import { message } from "@tauri-apps/plugin-dialog";
 import { attach } from "./core";
 import { fill, t } from "./locales";
 import { heicReadable } from "./previews";
-import { onMac, onWindows } from "./ui/macKeys";
 
 export type Shape = "full" | "light";
 /** What the person chose: a shape, keeping it as it came, or null when they backed out. */
@@ -11,8 +10,6 @@ type Asking = (said: string) => Promise<ShapeChoice>;
 
 // Photos a window on another computer may not draw; only these for now, as a scan's pages would be lost.
 const NOT_EVERYWHERE = ["heic", "heif"];
-// Only Windows and macOS carry what turns them; elsewhere they are kept as they came.
-const CAN_TURN = onMac || onWindows;
 
 let asking: Asking | null = null;
 
@@ -36,7 +33,7 @@ const kindOf = (path: string): string => {
 
 // A Windows that cannot read HEIC cannot turn it either, so it is not offered there.
 export const turnable = (path: string): boolean =>
-  CAN_TURN && NOT_EVERYWHERE.includes(kindOf(path)) && heicReadable();
+  NOT_EVERYWHERE.includes(kindOf(path)) && heicReadable();
 
 // The system's dialog holds three buttons, so it offers no lighter copy; closing it backs out as Tisty's does.
 const askedPlainly: Asking = async (said) => {

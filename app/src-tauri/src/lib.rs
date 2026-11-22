@@ -116,15 +116,15 @@ fn held(session: &Mutex<Session>) -> std::sync::MutexGuard<'_, Session> {
 /// Disk work that grows with the store belongs on a thread of its own: a command that is an
 /// `async fn` runs on the executor, and the window stops drawing until it returns.
 async fn elsewhere<T: Send + 'static>(work: impl FnOnce() -> T + Send + 'static) -> Answer<T> {
-    tauri::async_runtime::spawn_blocking(work)
+    tauri::async_runtime::spawn_blocking(move || caught("elsewhere", work))
         .await
-        .map_err(|e| {
+        .unwrap_or_else(|e| {
             witness::error(
                 channel::WINDOW,
                 "a piece of work never came back",
                 &[("why", Fact::Why(e.to_string()))],
             );
-            Refusal::of("internal")
+            Err(Refusal::of("internal"))
         })
 }
 

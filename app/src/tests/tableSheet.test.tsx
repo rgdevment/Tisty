@@ -158,6 +158,23 @@ describe("a table written in place", () => {
     expect(page.querySelector(".cell-bar")).toBeNull();
   });
 
+  it("takes a mark off the whole cell by its key pressed on a layout that writes no Latin letters", async () => {
+    const { page, seen } = made();
+    seen.onTable(asked("cell", 1, 1));
+    await settle();
+    const input = page.querySelector<HTMLInputElement>(".table-input") as HTMLInputElement;
+    const bold = { key: "и", code: "KeyB", ctrlKey: true, bubbles: true, cancelable: true };
+    input.dispatchEvent(new KeyboardEvent("keydown", bold));
+    press(input, "Enter");
+    await settle();
+    expect(core.edit).toHaveBeenCalledWith(BODY, [0, 80], {
+      kind: "cell",
+      row: 1,
+      column: 1,
+      said: "9990",
+    });
+  });
+
   it("opens the first title of a table just made once the page draws it, and only then", async () => {
     const { page, seen, turn } = made();
     seen.freshAt(40);

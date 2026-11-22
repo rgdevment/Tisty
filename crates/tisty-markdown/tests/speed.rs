@@ -34,27 +34,26 @@ fn a_key_on_a_page_of_500_kb() {
     timed("read", 10, || tisty_markdown::read(&text));
     let doc = tisty_markdown::read(&text);
     timed("tags_in", 10, || tisty_markdown::tags::tags_in(&text));
-    timed("placed_near", 10, || {
-        tisty_markdown::placed_near(&doc, middle, middle + 1, Some(doc.labels()))
-    });
+    let keyed = |doc: &tisty_markdown::Doc, at: usize, typed: usize| {
+        let reached = tisty_markdown::reaches_heading(doc, at..at);
+        tisty_markdown::placed_near(doc, at, at + typed, Some(doc.labels()), reached)
+    };
+    timed("placed_near", 10, || keyed(&doc, middle, 1));
     let heading = text[middle..]
         .find("\n# ")
         .map_or(middle, |at| middle + at + 3);
-    timed("placed_near in a heading", 10, || {
-        tisty_markdown::placed_near(&doc, heading, heading + 1, Some(doc.labels()))
-    });
+    timed("placed_near in a heading", 10, || keyed(&doc, heading, 1));
     let below = heading + text[heading..].find("\n\n").unwrap_or_default() + 2;
-    timed("placed_near beside a heading", 10, || {
-        tisty_markdown::placed_near(&doc, below, below + 1, Some(doc.labels()))
+    timed("placed_near beside a heading", 10, || keyed(&doc, below, 1));
+    let above = text[middle..]
+        .find("\n\n# ")
+        .map_or(middle, |at| middle + at + 1);
+    timed("placed_near on a blank line above a heading", 10, || {
+        keyed(&doc, above, 0)
     });
     timed("outline", 10, || tisty_markdown::outline(&doc));
     timed("read + placed_near", 10, || {
-        tisty_markdown::placed_near(
-            &tisty_markdown::read(&text),
-            middle,
-            middle + 1,
-            Some(doc.labels()),
-        )
+        keyed(&tisty_markdown::read(&text), middle, 1)
     });
     let at = (0..=middle)
         .rev()

@@ -993,6 +993,7 @@ const en = {
     "Delete «{name}»? The document, its pages and what they hold go for good. This cannot be undone.",
   dropTonguesSure:
     "Delete «{name}» in all its languages ({other})? Each one, its pages and what they hold go for good. This cannot be undone. To keep the others, take this one out of its languages first.",
+  dropRefused: "«{name}» was not deleted: {other}",
   pageOfSure:
     "Make «{name}» a page of «{other}»? If that document is the one open in the editor, a line naming the page goes at the end of its text, which is where it will sit; if it is not, the page waits in the index until you put it in. It leaves its folder and goes wherever «{other}» goes. Making it a document of its own again will not bring the folder back.",
   newPage: "New page",
@@ -1514,6 +1515,7 @@ const en = {
   notAHistoryLimit: "The history is kept for 1, 5, 15 or 30 days",
   backSure:
     "Going back leaves this document as it read before the write that stirred it. What it says now is kept in its place, so you can come back to it.",
+  typedSinceGoes: "Anything you typed since then that is not saved yet is lost.",
   comingDown: "{name} is in iCloud and is being brought back. Try again in a moment",
   cannotDraw:
     "{name} couldn't be drawn on this Windows. HEIC pictures usually need «HEIF Image Extensions» and «HEVC Video Extensions» from the Microsoft Store; meanwhile, open it with another program",
@@ -4663,6 +4665,7 @@ const es: Catalog = {
     "¿Borrar «{name}»? El documento, sus páginas y lo que guardan se van para siempre. Esto no se puede deshacer.",
   dropTonguesSure:
     "¿Borrar «{name}» en todos sus idiomas ({other})? Cada uno, sus páginas y lo que contienen se van para siempre. No se puede deshacer. Para conservar los demás, sepáralo primero de sus idiomas.",
+  dropRefused: "«{name}» no se borró: {other}",
   pageOfSure:
     "¿Hacer que «{name}» sea página de «{other}»? Si ese documento es el que tienes abierto en el editor, al final de su texto va una línea que la nombra, que es donde quedará; si no lo es, la página espera en el índice hasta que la pongas. Sale de su carpeta y va donde vaya «{other}». Volver a convertirla en documento propio no devuelve la carpeta.",
   newPage: "Nueva página",
@@ -5194,6 +5197,7 @@ const es: Catalog = {
   notAHistoryLimit: "El historial se guarda 1, 5, 15 o 30 días",
   backSure:
     "Volver atrás deja este documento como se leía antes de la escritura que lo movió. Lo que dice ahora queda guardado en su lugar, así que puedes regresar a ello.",
+  typedSinceGoes: "Lo que escribiste desde entonces y aún no se guardó se pierde.",
   comingDown: "{name} está en iCloud y se está trayendo. Inténtalo de nuevo en un momento",
   cannotDraw:
     "{name} no se pudo dibujar en este Windows. Las imágenes HEIC suelen necesitar «Extensiones de imagen HEIF» y «Extensiones de vídeo HEVC» de Microsoft Store; mientras tanto, ábrela con otro programa",

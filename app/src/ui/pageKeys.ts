@@ -1,6 +1,6 @@
 import { SLASHED } from "tisty-editor/edit";
 import { bytesAt, charsAt } from "tisty-editor/read";
-import { caretWalk, type Edge, edgeWalk, modKey, moveKey } from "./macKeys";
+import { caretWalk, type Edge, edgeWalk, letterOf, modKey, moveKey } from "./macKeys";
 import type { Beside } from "./pageBeside";
 import type { Caret } from "./pageCaret";
 import type { Choosing } from "./pageChoosing";
@@ -152,7 +152,7 @@ export const keysOn = (
       return stepped(event);
     if (!modKey(event) || event.altKey) return;
     if (event.key === "Enter") return broke(event);
-    const named = `${event.shiftKey ? "shift " : ""}${event.key.toLowerCase()}`;
+    const named = `${event.shiftKey ? "shift " : ""}${letterOf(event)}`;
     if (named === "z" || named === "shift z" || named === "y") {
       event.preventDefault();
       writer.pending = null;

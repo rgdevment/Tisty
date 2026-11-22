@@ -5,6 +5,7 @@ import type { Filed, Marked, Task } from "../core";
 import { dayOf } from "../format";
 import { asideWords, letAsideGo, setAside } from "../keptAside";
 import { fill, t } from "../locales";
+import { saidPlainly } from "../refusal";
 import { cut, kept, unansweredWords } from "../saving";
 import { asksSure } from "../sure";
 import { alike, dropWord } from "../tidying";
@@ -20,6 +21,7 @@ const ipc = vi.hoisted(() => ({
   docs: [] as unknown[],
   gone: [] as string[],
   last: true,
+  dropping: null as ((id: string) => void) | null,
 }));
 
 vi.mock("@tauri-apps/api/core", async () => ({
@@ -38,6 +40,7 @@ vi.mock("@tauri-apps/api/core", async () => ({
         return Promise.resolve({ folders: [], docs: ipc.docs });
       case "doc_drop": {
         const id = String(args.id);
+        ipc.dropping?.(id);
         if (ipc.gone.includes(id)) return Promise.reject({ code: "noSuchDoc" });
         const one = (ipc.docs as Filed[]).find((kept) => kept.id === id);
         const anchor = one?.tongue?.[0];
@@ -111,6 +114,7 @@ beforeEach(() => {
   ipc.tasks = {};
   ipc.docs = [];
   ipc.gone = [];
+  ipc.dropping = null;
   asksSure(null);
   knowAgents({}, { clients: { "claude-code": "Claude Code" } });
 });
@@ -448,6 +452,79 @@ describe("deleting a set", () => {
     expect(given.setError).toHaveBeenCalledTimes(1);
   });
 
+  it("stays on the document whose delete is refused, and names every refusal", async () => {
+    asksSure(() => Promise.resolve(true));
+    ipc.gone = ["D1", "D2"];
+    const given = hands();
+    const { result } = renderHook(() => usePapers(given));
+
+    await result.current.dropDocs([
+      doc({ id: "D1", file: "d-1", title: "Draft A" }),
+      doc({ id: "D2", file: "d-2", title: "Draft B" }),
+      doc({ id: "D3", file: "d-3", title: "Draft C", folder: "F1" }),
+    ]);
+
+    expect(called("doc_drop").map((one) => one.args.id)).toEqual(["D1", "D2", "D3"]);
+    expect(given.setChosen).not.toHaveBeenCalled();
+    expect(given.setReturning).toHaveBeenCalledWith("F1");
+    const why = saidPlainly({ code: "noSuchDoc" });
+    expect(given.setError).toHaveBeenCalledWith(
+      `${fill("dropRefused", "Draft A", why)} · ${fill("dropRefused", "Draft B", why)}`,
+    );
+  });
+
+  it("leaves the open document once its own delete is answered, never before", async () => {
+    asksSure(() => Promise.resolve(true));
+    const given = { ...hands(), chosen: { named: "docs" as const, doc: "d-1" } };
+    const answered: string[] = [];
+    const drops = () => called("doc_drop").length;
+    given.setChosen.mockImplementation(() => answered.push(`left after ${drops()}`));
+    given.setReturning.mockImplementation(() => answered.push(`focus after ${drops()}`));
+    const { result } = renderHook(() => usePapers(given));
+
+    await result.current.dropDocs([
+      doc({ id: "D1", file: "d-1", title: "Draft A" }),
+      doc({ id: "D2", file: "d-2", title: "Draft B" }),
+    ]);
+
+    expect(answered).toEqual(["left after 1", "focus after 2"]);
+    expect(given.setChosen).toHaveBeenCalledWith({ named: "docs" });
+  });
+
+  it("leaves the document open when its own delete is answered, though another was open at first", async () => {
+    asksSure(() => Promise.resolve(true));
+    const given = { ...hands(), chosen: { named: "docs" as const, doc: "d-1" } };
+    const answered: number[] = [];
+    given.setChosen.mockImplementation(() => answered.push(called("doc_drop").length));
+    const { result, rerender } = renderHook((chosen) => usePapers({ ...given, chosen }), {
+      initialProps: given.chosen,
+    });
+    ipc.dropping = (id) => {
+      if (id === "D1") rerender({ named: "docs", doc: "d-2" });
+    };
+
+    await result.current.dropDocs([
+      doc({ id: "D1", file: "d-1", title: "Draft A" }),
+      doc({ id: "D2", file: "d-2", title: "Draft B" }),
+    ]);
+
+    expect(answered).toEqual([2]);
+  });
+
+  it("stays on a document deleted alone when its delete is refused", async () => {
+    asksSure(() => Promise.resolve(true));
+    ipc.gone = ["D2"];
+    const given = hands();
+    const { result } = renderHook(() => usePapers(given));
+
+    await result.current.dropDoc(doc({ id: "D2", file: "d-2", title: "Draft B" }));
+
+    expect(called("doc_drop").map((one) => one.args.id)).toEqual(["D2"]);
+    expect(given.setChosen).not.toHaveBeenCalled();
+    expect(given.setReturning).not.toHaveBeenCalled();
+    expect(given.setError).toHaveBeenCalledWith(saidPlainly({ code: "noSuchDoc" }));
+  });
+
   it("lets go of the words kept aside for each document that went, and only those", async () => {
     asksSure(() => Promise.resolve(true));
     setAside("d-1", "palabras de d-1");
@@ -503,7 +580,7 @@ describe("a document an assistant compacted", () => {
     await userEvent.click(await screen.findByRole("button", { name: t("compactUndo") }));
     await waitFor(() => expect(onKept).toHaveBeenCalled());
     expect(called("doc_back").map((one) => one.args.id)).toEqual(["d-1"]);
-    expect(asked).toEqual([t("backSure")]);
+    expect(asked).toEqual([`${t("backSure")} ${t("typedSinceGoes")}`]);
   });
 
   it("offers no undo once something was written after it", async () => {

@@ -581,7 +581,7 @@ fn an_edit_draws_again_only_the_blocks_around_it() {
     let text = "# One\n\nTwo words.\n\nThree.\n\nFour.\n\nFive.";
     let at = text.find("words").unwrap_or(0);
     let doc = read(text);
-    let near = placed_near(&doc, at, at + 5, Some(doc.labels()));
+    let near = placed_near(&doc, at, at + 5, Some(doc.labels()), true);
     assert_eq!(near.count, 5);
     assert_eq!(near.drawn, 0..3);
     let spans = doc.blocks().iter().map(|one| [one.at.start, one.at.end]);
@@ -605,7 +605,7 @@ fn a_heading_drawn_again_keeps_the_name_the_whole_page_gives_it() {
     let text = "# Uno\n\nA.\n\n# Uno\n\nB.\n\nC.\n\nD.\n";
     let doc = read(text);
     let at = text.rfind("# Uno").unwrap_or_default();
-    let near = placed_near(&doc, at + 2, at + 3, Some(doc.labels()));
+    let near = placed_near(&doc, at + 2, at + 3, Some(doc.labels()), true);
     let second = &crate::outline(&doc)[1].id;
     assert!(
         near.html.contains(&format!("id=\"{second}\"")),
@@ -613,7 +613,13 @@ fn a_heading_drawn_again_keeps_the_name_the_whole_page_gives_it() {
         near.html
     );
     assert!(html_placed(&doc).contains(&format!("id=\"{second}\"")));
-    let words = placed_near(&doc, text.len() - 2, text.len() - 1, Some(doc.labels()));
+    let words = placed_near(
+        &doc,
+        text.len() - 2,
+        text.len() - 1,
+        Some(doc.labels()),
+        true,
+    );
     assert!(!words.html.contains("<h1"));
 }
 
@@ -681,9 +687,16 @@ fn marked(one: &Block, title: Option<usize>) -> bool {
 
 // What the page shows after a key, as `patched` lays it, or nothing when it draws the whole page.
 fn shown_after(was: &Doc, at: Range<usize>, insert: &str) -> Option<Shown> {
+    let reached = crate::reaches_heading(was, at.clone());
     let doc = crate::reread_edit(was.clone(), at.clone(), insert).ok()?;
     let by = insert.len() as isize - at.len() as isize;
-    let near = placed_near(&doc, at.start, at.start + insert.len(), Some(was.labels()));
+    let near = placed_near(
+        &doc,
+        at.start,
+        at.start + insert.len(),
+        Some(was.labels()),
+        reached,
+    );
     if near.whole {
         return None;
     }
@@ -901,7 +914,8 @@ fn a_key_beside_a_heading_keeps_the_name_the_page_shows_without_the_outline() {
     let was = read("# Uno\n\nA.\n\n# Uno\n\nB.\n");
     let at = was.text().find("B.").unwrap_or_default();
     let doc = crate::reread_edit(was.clone(), at..at, "x").unwrap_or_else(|doc| doc);
-    let near = placed_near(&doc, at, at + 1, Some(was.labels()));
+    let reached = reaches_heading(&was, at..at);
+    let near = placed_near(&doc, at, at + 1, Some(was.labels()), reached);
     assert!(near.html.contains("<h1 data-at"));
     assert_eq!(near.heads, None);
     let shown = shown_after(&was, at..at, "x");
@@ -1150,14 +1164,14 @@ fn every_key_near_the_properties_leaves_the_title_the_whole_page_draws() {
 fn an_edit_past_the_last_block_draws_the_last_one() {
     let text = "One.\n\nTwo.\n\n";
     let doc = read(text);
-    let near = placed_near(&doc, text.len(), text.len(), Some(doc.labels()));
+    let near = placed_near(&doc, text.len(), text.len(), Some(doc.labels()), true);
     assert_eq!(near.drawn, 1..2);
     assert!(near.html.contains("Two."));
-    assert_eq!(placed_near(&read(""), 0, 0, None).drawn, 0..0);
+    assert_eq!(placed_near(&read(""), 0, 0, None, true).drawn, 0..0);
 }
 
 fn drawn_at(text: &str, from: usize, to: usize) -> Range<usize> {
-    placed_near(&read(text), from, to, None).drawn
+    placed_near(&read(text), from, to, None, true).drawn
 }
 
 fn spans_of(text: &str) -> Vec<Range<usize>> {
@@ -1199,8 +1213,11 @@ fn a_key_draws_the_block_it_touches_whichever_side_of_the_key_the_block_lies() {
     assert_eq!(drawn_at(blank, 13, 13), 1..3);
     assert_eq!(drawn_at(blank, 15, 15), 1..3);
     let headed = "Uno.\n\nDos.\n\n Tres\n===\n";
-    assert!(placed_near(&read(headed), 12, 12, None).heads.is_some());
-    assert_eq!(placed_near(&read(headed), 6, 7, None).heads, None);
+    let heads = |from, to, reached| placed_near(&read(headed), from, to, None, reached).heads;
+    assert!(heads(12, 12, true).is_some());
+    assert_eq!(heads(12, 12, false), None);
+    assert_eq!(heads(6, 7, false), None);
+    assert!(heads(14, 15, false).is_some());
 }
 
 #[test]
@@ -1242,8 +1259,60 @@ fn a_paste_that_leaves_a_heading_starting_with_a_space_keeps_its_name_without_th
     );
     assert!(reads_as_whole(&shown) && titled_as_whole(&shown));
     assert_eq!(shown.names, names_of(&shown.doc));
-    let headed = "Uno.\n\nDos.\n\n Tres\n===\n";
-    assert_eq!(placed_near(&read(headed), 11, 11, None).heads, None);
+}
+
+#[test]
+fn a_key_on_a_blank_line_above_a_heading_reads_no_outline_and_the_heading_keeps_its_name() {
+    let atx = "Uno.\n\nDos.\n\n\n# Tres\n\nCuatro.\n";
+    let spaced = "Uno.\n\nDos.\n\n \n# Tres\n\nCuatro.\n";
+    let setext = "Uno.\n\n\nTres\n===\n\nCuatro.\n";
+    let keys: [(&str, Range<usize>, &str); 5] = [
+        (atx, 12..12, "\n"),
+        (atx, 12..12, " "),
+        (spaced, 12..13, ""),
+        (setext, 6..6, "\n"),
+        (setext, 6..6, " "),
+    ];
+    for (text, at, insert) in keys {
+        let key = format!("{at:?} → {insert:?} in {text:?}");
+        let was = read(text);
+        let doc = crate::reread_edit(was.clone(), at.clone(), insert).unwrap_or_else(|doc| doc);
+        let reached = reaches_heading(&was, at.clone());
+        assert!(!reached, "{key}");
+        let to = at.start + insert.len();
+        let near = placed_near(&doc, at.start, to, Some(was.labels()), reached);
+        assert_eq!(near.heads, None, "{key}");
+        let shown = shown_after(&was, at, insert);
+        let shown = shown.unwrap_or_else(|| panic!("drawn whole instead of laid: {key}"));
+        assert_eq!(shown.names, names_of(&shown.doc), "{key}");
+    }
+}
+
+#[test]
+fn a_key_reaches_a_heading_from_its_first_byte_to_the_line_break_after_it() {
+    let text = "Uno.\n\n# Dos\n\nTres.\n";
+    assert_eq!(spans_of(text), [0..5, 6..12, 13..19]);
+    let was = read(text);
+    assert!(!reaches_heading(&was, 5..5));
+    assert!(reaches_heading(&was, 5..6));
+    assert!(reaches_heading(&was, 12..12));
+    assert!(!reaches_heading(&was, 13..13));
+    assert!(reaches_heading(&was, 0..19));
+    let lines = "Uno.\n\nDos\npalabras\n===\n\nTres.\n";
+    let at = lines.find("Dos").unwrap_or_default();
+    assert!(reaches_heading(&read(lines), at..at + 3));
+    let shown = shown_after(&read(lines), at..at + 3, "");
+    let shown = shown.unwrap_or_else(|| panic!("drawn whole instead of laid"));
+    assert_eq!(shown.names, names_of(&shown.doc));
+}
+
+#[test]
+fn a_heading_taken_out_whole_is_laid_when_no_other_heading_shares_its_name() {
+    let text = "Uno.\n\n# Dos\n\nTres.\n\nCuatro.\n\n# Cinco\n";
+    let at = text.find("# Dos").unwrap_or_default();
+    let shown = shown_after(&read(text), at..at + 7, "");
+    let shown = shown.unwrap_or_else(|| panic!("drawn whole instead of laid"));
+    assert_eq!(shown.names, names_of(&shown.doc));
 }
 
 const SKILL: &str = "---\nagent: claude/skill/pdf/SKILL.md\ntitle: claude · pdf/SKILL.md\n---\n---\nname: pdf\ndescription: Fill PDF forms.\n---\n\n# PDF\n";

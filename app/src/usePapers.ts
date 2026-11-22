@@ -26,7 +26,7 @@ import { drafted, placeOf } from "./making";
 import { saidPlainly } from "./refusal";
 import { cut } from "./saving";
 import { sure } from "./sure";
-import { dropAllAsked, filesGoing, goingWith } from "./tidying";
+import { dropAllAsked, filesGoing, type Going, goingWith } from "./tidying";
 import { tonguesNamed } from "./tongues";
 import type { Chosen } from "./views";
 
@@ -75,6 +75,8 @@ export function usePapers({
   paging,
 }: Hands) {
   const [papers, setPapers] = useState<Papers>({ folders: [], docs: [] });
+  const chosenNow = useRef(chosen);
+  chosenNow.current = chosen;
 
   const newDoc = (folder?: string, pageOf?: string) =>
     docNew(folder, pageOf, true)
@@ -135,6 +137,15 @@ export function usePapers({
       })
       .catch((e) => setError(saidPlainly(e)));
 
+  const wentAway = (one: Going) => {
+    const files = filesGoing([one]);
+    for (const file of files) gone(file);
+    const open = chosenNow.current.doc;
+    if (open && files.includes(open)) setChosen({ named: "docs" });
+  };
+
+  const returnTo = (doc: Filed) => setReturning(doc.pageOf ?? doc.folder ?? "unfiled");
+
   const dropDoc = (doc: Filed) => {
     // The languages beside it are the same row, so they go with it, and the question says so.
     const going = goingWith([doc], papers.docs);
@@ -146,11 +157,9 @@ export function usePapers({
     return sure(asked)
       .then((yes) => {
         if (!yes) return;
-        const files = filesGoing(going);
-        if (chosen.doc && files.includes(chosen.doc)) setChosen({ named: "docs" });
-        setReturning(doc.pageOf ?? doc.folder ?? "unfiled");
         return docDrop(doc.id).then(() => {
-          for (const file of files) gone(file);
+          wentAway(going[0]);
+          returnTo(doc);
           papersChanged();
         });
       })
@@ -160,21 +169,20 @@ export function usePapers({
   const dropDocs = async (all: Filed[]) => {
     const going = goingWith(all, papers.docs);
     if (!(await sure(dropAllAsked(going)))) return;
-    const files = filesGoing(going);
-    if (chosen.doc && files.includes(chosen.doc)) setChosen({ named: "docs" });
-    const first = going[0]?.doc;
-    if (first) setReturning(first.pageOf ?? first.folder ?? "unfiled");
-    let refused: unknown;
+    const went: Filed[] = [];
+    const refused: string[] = [];
     for (const one of going) {
       await docDrop(one.doc.id)
         .then(() => {
-          for (const file of filesGoing([one])) gone(file);
+          wentAway(one);
+          went.push(one.doc);
         })
         .catch((e: unknown) => {
-          refused ??= e;
+          refused.push(fill("dropRefused", one.doc.title || t("untitledDoc"), saidPlainly(e)));
         });
     }
-    if (refused !== undefined) setError(saidPlainly(refused));
+    if (went[0]) returnTo(went[0]);
+    if (refused.length > 0) setError(refused.join(" · "));
     papersChanged();
   };
 

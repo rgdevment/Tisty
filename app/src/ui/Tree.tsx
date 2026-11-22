@@ -25,7 +25,7 @@ import {
 } from "./dragging";
 import Glyph from "./Glyph";
 import { painted } from "./Hue";
-import { modKey, onMac } from "./macKeys";
+import { letterOf, modKey, onMac } from "./macKeys";
 
 const STIRS = 4;
 
@@ -345,14 +345,14 @@ export default function Tree({
     }
     if (
       modKey(e) &&
-      (e.key === "x" || e.key === "X") &&
+      letterOf(e) === "x" &&
       row.id !== "unfiled" &&
       !papers.docs.some((one) => one.id === row.id && (one.pageOf || (one.away && !one.archived)))
     ) {
       e.preventDefault();
       return setLifted(row);
     }
-    if (modKey(e) && (e.key === "v" || e.key === "V") && row.kind === "folder") {
+    if (modKey(e) && letterOf(e) === "v" && row.kind === "folder") {
       e.preventDefault();
       return land(place);
     }

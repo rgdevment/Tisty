@@ -93,6 +93,15 @@ describe("the viewer's keys", () => {
     expect(keysFor(a, key("f"))).toBeUndefined();
   });
 
+  it("closes and reads again by the key pressed when the layout writes no Latin letters", () => {
+    const a = acts(widget);
+    keysFor(a, new KeyboardEvent("keydown", { key: "ц", code: "KeyW" }))?.();
+    keysFor(a, new KeyboardEvent("keydown", { key: "к", code: "KeyR" }))?.();
+
+    expect(a.close).toHaveBeenCalled();
+    expect(a.again).toHaveBeenCalled();
+  });
+
   it("offers a formula, a table or the properties only their code and their document", () => {
     const formula: Showing = { ...widget, held: "formula" };
     const a = acts(formula);

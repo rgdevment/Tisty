@@ -1,7 +1,7 @@
 import { asking, BOXES, type TableAct, tablesIn } from "tisty-editor/read";
 import { fill, t } from "../locales";
 import { carrying } from "./carrying";
-import { modKey, moveKey } from "./macKeys";
+import { letterOf, modKey, moveKey } from "./macKeys";
 import { placeOf, samePlace } from "./pagePlaces";
 
 export type Sorting = { readonly column: number; readonly down: boolean; readonly order: number[] };
@@ -197,7 +197,7 @@ export const typing = (
   // What is typed here is the cell's, never a shortcut of the page around it.
   input.addEventListener("keydown", (event) => {
     // The view's own switch closes the cell and goes on to the page, which turns once its words are saved.
-    if (modKey(event) && event.key.toLowerCase() === "e") return end("blur");
+    if (modKey(event) && letterOf(event) === "e") return end("blur");
     event.stopPropagation();
     const ways: Record<string, Leaving | undefined> = {
       Enter: "enter",

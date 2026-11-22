@@ -1,6 +1,7 @@
 import { type Showing, viewGo } from "../../core";
 import { t } from "../../locales";
 import type { Choice } from "../Menu";
+import { letterOf } from "../macKeys";
 import { darkNow } from "../theming";
 import { PRESETS, type Preset } from "./Stage";
 
@@ -50,7 +51,7 @@ export const choicesFor = (a: Acts): Choice[] => {
 };
 
 export const keysFor = (a: Acts, e: KeyboardEvent): (() => void) | undefined => {
-  const key = e.key.toLowerCase();
+  const key = letterOf(e) || e.key.toLowerCase();
   const doing: Record<string, () => void> = { w: a.close, r: a.again };
   const shown = a.shown;
   if (shown?.kind === "piece" && shown.held === "widget") {

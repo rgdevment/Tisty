@@ -45,8 +45,14 @@ struct Held {
     check: Check,
 }
 
-fn near(doc: &tisty_markdown::Doc, from: usize, to: usize, shown: Option<[u32; 2]>) -> Value {
-    let near = tisty_markdown::placed_near(doc, from, to, shown);
+fn near(
+    doc: &tisty_markdown::Doc,
+    from: usize,
+    to: usize,
+    shown: Option<[u32; 2]>,
+    reached: bool,
+) -> Value {
+    let near = tisty_markdown::placed_near(doc, from, to, shown, reached);
     json!({
         "count": near.count,
         "sum": near.sum,
@@ -66,7 +72,7 @@ fn reread(held: &mut Option<Held>, body: &str, now: Check, from: usize, to: usiz
         }
         None => (tisty_markdown::read(body), None),
     };
-    let said = near(&doc, from, to, shown);
+    let said = near(&doc, from, to, shown, true);
     *held = Some(Held { doc, check: now });
     said
 }
@@ -86,9 +92,10 @@ fn edited(held: &mut Option<Held>, edit: &Edit, now: Check, from: usize, to: usi
         return Value::Null;
     };
     let shown = one.doc.labels();
+    let reached = tisty_markdown::reaches_heading(&one.doc, edit.from..edit.to);
     match tisty_markdown::reread_edit(one.doc, edit.from..edit.to, &edit.insert) {
         Ok(doc) => {
-            let said = near(&doc, from, to, Some(shown));
+            let said = near(&doc, from, to, Some(shown), reached);
             *held = Some(Held { doc, check: now });
             said
         }
