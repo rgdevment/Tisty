@@ -10,6 +10,7 @@ export const WRITING = [
 ].join("\n");
 
 const LINE_WALKS_ONLY_ON_A_MAC = "Control+A and Control+E walk to a line's edges only on a Mac";
+const COMMAND_WALKS_ONLY_ON_A_MAC = "Cmd with a side arrow walks to a line's edge only on a Mac";
 
 export const PIECES = [
   "# Objetos", "",
@@ -638,6 +639,85 @@ export const CASES = [
       await press("Backspace");
     },
     was: "![mini](missing.png)",
+    now: "",
+  },
+  {
+    name: "commandRightPastTagAtLineEnd",
+    macOnly: COMMAND_WALKS_ONLY_ON_A_MAC,
+    doc: "# Etiquetas\n\nAntes del final #etiqueta\n\nSiguiente línea.\n",
+    run: async ({ clickAt, typed, press }) => {
+      await clickAt("Antes", true);
+      await press("Meta+ArrowRight");
+      await typed("X");
+      await clickAt("Antes", true);
+      await typed("Y");
+    },
+    was: "Antes del final #etiqueta",
+    now: "YAntes del final #etiquetaX",
+  },
+  {
+    name: "commandLeftKeepsAStepOpenedByATag",
+    macOnly: COMMAND_WALKS_ONLY_ON_A_MAC,
+    doc: "# Pasos\n\n- [ ] uno\n- [ ] #etiqueta dos\n\nFin.\n",
+    run: async ({ clickAt, typed, press }) => {
+      await clickAt("dos");
+      await press("Meta+ArrowLeft");
+      await press("Meta+ArrowRight");
+      await typed("X");
+      await clickAt("uno", true);
+      await typed("Y");
+    },
+    was: "uno\n- [ ] #etiqueta dos",
+    now: "Yuno\n- [ ] #etiqueta dosX",
+  },
+  {
+    name: "controlEStopsAtTheLineBreakAfterATag",
+    macOnly: LINE_WALKS_ONLY_ON_A_MAC,
+    doc: "# Saltos\n\nuno #etiqueta\\\ndos tres\n\nFin.\n",
+    run: async ({ clickAt, typed, press }) => {
+      await clickAt("uno", true);
+      await press("Control+e");
+      await typed("X");
+      await clickAt("uno", true);
+      await typed("Y");
+    },
+    was: "uno #etiqueta",
+    now: "Yuno #etiquetaX",
+  },
+  {
+    name: "controlAStartsTheLineAfterABreak",
+    macOnly: LINE_WALKS_ONLY_ON_A_MAC,
+    doc: "# Saltos\n\nuno\\\n#etiqueta tres\n\nFin.\n",
+    run: async ({ clickAt, typed, press }) => {
+      await clickAt("tres");
+      await press("Control+a");
+      await typed("X");
+      await clickAt("tres");
+      await typed("Y");
+    },
+    was: "#etiqueta tres",
+    now: "X#etiqueta tresY",
+  },
+  {
+    name: "commandShiftEndChoosesToTheLastWords",
+    doc: LONG,
+    run: async ({ clickAt, typed, command }) => {
+      await clickAt("Largo");
+      await command("Shift+End");
+      await typed("X");
+    },
+    was: LONG.slice(7, LONG.length - 1),
+    now: "X",
+  },
+  {
+    name: "commandShiftEndCutsThroughATableAtTheEnd",
+    doc: "# Tabla\n\nAntes.\n\n| a | b |\n|---|---|\n| 1 | 2 |\n",
+    run: async ({ clickAt, command }) => {
+      await clickAt("Antes");
+      await command("Shift+End");
+      await command("x");
+    },
+    was: ".\n\n| a | b |\n|---|---|\n| 1 | 2 |\n",
     now: "",
   },
 ];

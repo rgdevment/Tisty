@@ -200,6 +200,13 @@ export const caretOn = (writer: Writer) => {
     inSight(spot[0]);
   };
 
+  const reachedTo = (spot: [Node, number]) => {
+    const held = page.getSelection();
+    if (!held?.rangeCount) return laidAt(spot);
+    held.extend(spot[0], spot[1]);
+    inSight(spot[0]);
+  };
+
   // Where the menu of blocks opens: under the caret, on the window's own screen.
   const caretPoint = (): Point => {
     const held = page.getSelection();
@@ -255,6 +262,7 @@ export const caretOn = (writer: Writer) => {
     caretLaid,
     placeAt,
     laidAt,
+    reachedTo,
     caretPoint,
     blockEnd,
     paragraphStart,

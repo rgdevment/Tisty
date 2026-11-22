@@ -1,6 +1,6 @@
 import { SLASHED } from "tisty-editor/edit";
 import { bytesAt, charsAt } from "tisty-editor/read";
-import { caretWalk, modKey, moveKey } from "./macKeys";
+import { caretWalk, type Edge, edgeWalk, modKey, moveKey } from "./macKeys";
 import type { Beside } from "./pageBeside";
 import type { Caret } from "./pageCaret";
 import type { Choosing } from "./pageChoosing";
@@ -10,7 +10,7 @@ import type { Laying } from "./pageLaying";
 import { nested } from "./pageLists";
 import { swappedItem } from "./pageMoving";
 import { elementOf, inCode, onSheet, WRITABLE } from "./pageNodes";
-import { endIn, lineEdge } from "./pageSpots";
+import { endIn, lineEdge, spotOf } from "./pageSpots";
 import type { Writer } from "./pageWriter";
 
 const KEYED: Record<string, readonly [string, string]> = {
@@ -76,38 +76,65 @@ export const keysOn = (
     if (moved) put(moved.edit, moved.caret);
   };
 
-  const landed = (spotIn: (from: Element) => [Node, number] | null) => {
-    const from = caret.blockOfCaret();
-    if (!from) return;
-    setTimeout(() => {
-      const spot = from.isConnected ? spotIn(from) : null;
+  const toLineEdge = ({ toStart, visual }: Edge, outOnly = false) => {
+    const range = caret.chosen();
+    if (!range) return;
+    const from: [Node, number] = toStart
+      ? [range.startContainer, range.startOffset]
+      : [range.endContainer, range.endOffset];
+    const block = elementOf(from[0])?.closest(".page [data-at]");
+    if (!block) return;
+    const span = caret.spanOfRange(range);
+    const at = toStart ? span?.from : span?.to;
+    const left = caret.blockStart();
+    writer.leftFrom = undefined;
+    const lineNow = (): [Element, [Node, number]] | null => {
+      if (block.isConnected) return [block, from];
+      const spot = at === undefined ? null : spotOf(page, hands.text(), at, writer.reckoned);
+      const again = spot && elementOf(spot[0])?.closest(".page [data-at]");
+      return spot && again ? [again, spot] : null;
+    };
+    const corrected = () => {
       const held = caret.chosen();
-      if (spot && (held?.startContainer !== spot[0] || held.startOffset !== spot[1]))
+      const line = lineNow();
+      if (!held || !line || (outOnly && caret.blockOfCaret() === line[0])) return;
+      const landed: [Node, number] = [held.startContainer, held.startOffset];
+      const spot = lineEdge(...line, landed, toStart, visual) ?? (outOnly ? endIn(line[0]) : null);
+      if (spot && (held.startContainer !== spot[0] || held.startOffset !== spot[1]))
         caret.laidAt(spot);
+    };
+    setTimeout(() => {
+      corrected();
+      leftBehind(left);
     });
+  };
+
+  const lastBlock = () =>
+    Array.from(page.querySelectorAll(".page [data-at]"))
+      .filter((one) => one.closest(WRITABLE) && !one.closest('[contenteditable="false"]'))
+      .pop();
+
+  const pageEnd = (last: Element): [Node, number] => {
+    const sheet = page.querySelector(".page");
+    const tops = sheet?.querySelectorAll(":scope > [data-at]");
+    const top = tops?.[tops.length - 1];
+    if (!sheet || !top || top.contains(last)) return endIn(last);
+    return [sheet, Array.prototype.indexOf.call(sheet.childNodes, top) + 1];
   };
 
   // A tag or other piece drawn whole at a line's end leaves the browser no place after it, so End is placed here.
   const toEnd = (event: KeyboardEvent) => {
     if (modKey(event)) {
-      const last = Array.from(page.querySelectorAll(".page [data-at]"))
-        .filter((one) => one.closest(WRITABLE) && !one.closest('[contenteditable="false"]'))
-        .pop();
+      const last = lastBlock();
       if (!last) return;
       event.preventDefault();
-      caret.laidAt(endIn(last));
+      if (event.shiftKey) caret.reachedTo(pageEnd(last));
+      else caret.laidAt(endIn(last));
       return;
     }
-    if (event.ctrlKey || event.metaKey) return;
-    landed((from) => (caret.blockOfCaret() !== from ? endIn(from) : null));
+    if (!event.shiftKey && !event.ctrlKey && !event.metaKey)
+      toLineEdge({ toStart: false, visual: true }, true);
   };
-
-  const toEdge = (toStart: boolean) =>
-    landed((from) => {
-      const range = caret.chosen();
-      if (caret.blockOfCaret() !== from) return toStart ? null : endIn(from);
-      return range ? lineEdge(from, range.startContainer, range.startOffset, toStart) : null;
-    });
 
   const keyed = (event: KeyboardEvent) => {
     if (!onSheet(page, event)) return;
@@ -116,9 +143,9 @@ export const keysOn = (
         choosing.choose(event);
       return;
     }
-    if (event.key === "End" && !event.shiftKey && !event.altKey) return toEnd(event);
-    const walked = event.shiftKey || event.isComposing ? null : caretWalk(event);
-    if (walked === "start" || walked === "end") return toEdge(walked === "start");
+    if (event.key === "End" && !event.altKey) return toEnd(event);
+    const edge = edgeWalk(event);
+    if (edge) return toLineEdge(edge);
     if (event.key === "Tab" && !event.ctrlKey && !event.metaKey && !event.altKey)
       return tabbed(event);
     if (moveKey(event) && (event.key === "ArrowUp" || event.key === "ArrowDown"))
@@ -159,6 +186,12 @@ export const keysOn = (
     return true;
   };
 
+  const leftBehind = (from: string | null) => {
+    if (caret.blockStart() === from) return;
+    leftEmpty(from);
+    hands.settle?.();
+  };
+
   // A step left empty with Escape goes, as it goes when the caret leaves its line.
   const leftHere = () => {
     const at = caret.caretSpan()?.from;
@@ -180,9 +213,7 @@ export const keysOn = (
     if (writer.leftFrom === undefined) return;
     const from = writer.leftFrom;
     writer.leftFrom = undefined;
-    if (caret.blockStart() === from) return;
-    leftEmpty(from);
-    hands.settle?.();
+    leftBehind(from);
   };
 
   const ticking = (event: MouseEvent) => {
@@ -193,7 +224,7 @@ export const keysOn = (
   const moved = (event: Event) => {
     const key = "key" in event ? String(event.key) : null;
     const held = event as KeyboardEvent;
-    const walked = key === null ? null : caretWalk(held);
+    const walked = key === null || held.isComposing ? null : caretWalk(held);
     if (key !== null && !walked && !key.startsWith("Arrow") && !/^(Home|End|Page)/.test(key))
       return;
     if ((event.target as Element | null)?.closest?.(".tag-list")) return;

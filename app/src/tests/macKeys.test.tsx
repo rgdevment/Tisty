@@ -89,6 +89,11 @@ const typed = (data: string) =>
 
 const sheet = () => document.querySelector(".page") as HTMLElement;
 
+const EMPTY_STEP = "- [ ] uno\n- [ ] \n\nFin\n";
+const EMPTY_STEP_PLACED =
+  '<ul data-at="0-17"><li class="task" data-at="0-10"><span data-src="6-9">uno</span></li>' +
+  '<li class="task" data-at="10-17"></li></ul><p data-at="18-21"><span data-src="18-21">Fin</span></p>';
+
 describe("the chord a shortcut is pressed with", () => {
   it("is Cmd alone on a Mac, where Control moves through the text", async () => {
     on(MAC);
@@ -208,28 +213,8 @@ describe("the page written in place on a Mac", () => {
 describe("Control moving the caret on a Mac", () => {
   it("takes an empty step away when Control and N leave it, as the down arrow does", async () => {
     on(MAC);
-    const { writtenOn } = await import("../ui/pageWriting");
-    document.body.innerHTML =
-      '<article class="page"><ul data-at="0-17"><li class="task" data-at="0-10"><span data-src="6-9">uno</span></li>' +
-      '<li class="task" data-at="10-17"></li></ul><p data-at="18-21"><span data-src="18-21">Fin</span></p></article>';
-    const said: string[] = [];
-    let text = "- [ ] uno\n- [ ] \n\nFin\n";
-    writing = writtenOn(document, {
-      text: () => text,
-      write: (next) => {
-        text = next;
-        said.push(next);
-      },
-      shown: () => {},
-      redraw: () => {},
-      near: () => Promise.reject(new Error("no core here")),
-      dressed: () => {},
-      translated: (_, plain) => Promise.resolve(plain),
-      ask: () => {},
-      blocks: () => {},
-      acts: () => {},
-    });
-    writing.drawn();
+    const said = await written(EMPTY_STEP, EMPTY_STEP_PLACED);
+    writing?.drawn();
     document.getSelection()?.collapse(document.querySelectorAll("li")[1] as Element, 0);
     expect(keyOn(sheet(), "n", { ctrlKey: true }).defaultPrevented).toBe(false);
     caretIn("Fin", 1);
@@ -267,11 +252,7 @@ describe("Control moving the caret on a Mac", () => {
 
   it("takes an empty step away when Control and N leave it on a Russian layout", async () => {
     on(MAC);
-    const said = await written(
-      "- [ ] uno\n- [ ] \n\nFin\n",
-      '<ul data-at="0-17"><li class="task" data-at="0-10"><span data-src="6-9">uno</span></li>' +
-        '<li class="task" data-at="10-17"></li></ul><p data-at="18-21"><span data-src="18-21">Fin</span></p>',
-    );
+    const said = await written(EMPTY_STEP, EMPTY_STEP_PLACED);
     writing?.drawn();
     document.getSelection()?.collapse(document.querySelectorAll("li")[1] as Element, 0);
     keyOn(sheet(), "т", { ctrlKey: true, code: "KeyN" });
@@ -343,6 +324,312 @@ describe("Control with A and E on a Mac", () => {
   });
 });
 
+describe("a key to a line's edge on a Mac, after the system has moved the caret", () => {
+  const pressed = async (
+    body: string,
+    placed: string,
+    key: KeyboardEventInit & { key: string },
+    from: () => [Node, number],
+    system: () => [Node, number],
+  ) => {
+    await written(body, placed);
+    writing?.drawn();
+    const [node, offset] = from();
+    document.getSelection()?.collapse(node, offset);
+    keyOn(sheet(), key.key, key);
+    document.getSelection()?.collapse(...system());
+    await new Promise((done) => setTimeout(done, 0));
+    const held = document.getSelection();
+    return [held?.anchorNode, held?.anchorOffset];
+  };
+  const controlE = { key: "e", code: "KeyE", ctrlKey: true };
+  const controlA = { key: "a", code: "KeyA", ctrlKey: true };
+  const cmdLeft = { key: "ArrowLeft", metaKey: true };
+  const cmdRight = { key: "ArrowRight", metaKey: true };
+  const BROKEN =
+    '<p data-at="0-19"><span data-src="0-4">uno </span><span class="tag" data-src="4-8" contenteditable="false">#eti</span>' +
+    '<br data-src="8-10" contenteditable="false"><span data-src="10-18">dos tres</span></p>';
+  const STEPS =
+    '<ul data-at="0-21"><li class="task" data-at="0-10"><span class="check" contenteditable="false"></span><span data-src="6-9">uno</span></li>' +
+    '<li class="task" data-at="10-21"><span class="check" contenteditable="false"></span>' +
+    '<span class="tag" data-src="16-20" contenteditable="false">#eti</span><span data-src="20-24"> dos</span></li></ul>';
+  const step = () => document.querySelectorAll("li")[1] as Element;
+
+  it("brings Control+E back to the end of its own line when the move ran past the line's break", async () => {
+    on(MAC);
+    const spot = await pressed(
+      "uno #eti\\\ndos tres\n",
+      BROKEN,
+      controlE,
+      () => [piece("uno "), 1],
+      () => [piece("dos tres"), 8],
+    );
+    expect(spot).toEqual([document.querySelector("p"), 2]);
+  });
+
+  it("brings Control+A back to the start of its own line, after the break, not the block's first line", async () => {
+    on(MAC);
+    const spot = await pressed(
+      "uno #eti\\\n#dos tres\n",
+      '<p data-at="0-19"><span data-src="0-4">uno </span><span class="tag" data-src="4-8" contenteditable="false">#eti</span>' +
+        '<br data-src="8-10" contenteditable="false"><span class="tag" data-src="10-14" contenteditable="false">#dos</span>' +
+        '<span data-src="14-19"> tres</span></p>',
+      controlA,
+      () => [piece(" tres"), 2],
+      () => [piece("uno "), 0],
+    );
+    expect(spot).toEqual([document.querySelector("p"), 3]);
+  });
+
+  it("keeps Control+A in its block when the move went to the block above", async () => {
+    on(MAC);
+    const spot = await pressed(
+      "Uno.\n\n#eti dos\n",
+      '<p data-at="0-4"><span data-src="0-4">Uno.</span></p>' +
+        '<p data-at="6-14"><span class="tag" data-src="6-10" contenteditable="false">#eti</span><span data-src="10-14"> dos</span></p>',
+      controlA,
+      () => [piece(" dos"), 2],
+      () => [piece("Uno."), 4],
+    );
+    expect(spot).toEqual([document.querySelectorAll("p")[1], 0]);
+  });
+
+  it("ends the line past a tag with Cmd+Right when the move went on to the next paragraph", async () => {
+    on(MAC);
+    const spot = await pressed(
+      "Antes #eti\n\nOtra.\n",
+      '<p data-at="0-10"><span data-src="0-6">Antes </span><span class="tag" data-src="6-10" contenteditable="false">#eti</span></p>' +
+        '<p data-at="12-17"><span data-src="12-17">Otra.</span></p>',
+      cmdRight,
+      () => [piece("Antes "), 1],
+      () => [piece("Otra."), 0],
+    );
+    expect(spot).toEqual([document.querySelector("p"), 2]);
+  });
+
+  it("keeps Cmd+Left in a step opened by a tag, after the tag, when the move went to the step above", async () => {
+    on(MAC);
+    const spot = await pressed(
+      "- [ ] uno\n- [ ] #eti dos\n",
+      STEPS,
+      cmdLeft,
+      () => [piece(" dos"), 2],
+      () => [piece("uno"), 3],
+    );
+    expect(spot).toEqual([piece(" dos"), 0]);
+  });
+
+  it("takes Cmd+Left on from between a step's box and its tag, where WebKit holds no caret", async () => {
+    on(MAC);
+    const spot = await pressed(
+      "- [ ] uno\n- [ ] #eti dos\n",
+      STEPS,
+      cmdLeft,
+      () => [piece(" dos"), 2],
+      () => [step(), 1],
+    );
+    expect(spot).toEqual([piece(" dos"), 0]);
+  });
+
+  it("keeps a second Cmd+Right at the line's end past its tag when the move went to the next paragraph", async () => {
+    on(MAC);
+    const spot = await pressed(
+      "Antes #eti\n\nOtra.\n",
+      '<p data-at="0-10"><span data-src="0-6">Antes </span><span class="tag" data-src="6-10" contenteditable="false">#eti</span></p>' +
+        '<p data-at="12-17"><span data-src="12-17">Otra.</span></p>',
+      cmdRight,
+      () => [document.querySelector("p") as Element, 2],
+      () => [piece("Otra."), 0],
+    );
+    expect(spot).toEqual([document.querySelector("p"), 2]);
+  });
+
+  it("ends the line of the chosen words' end with Cmd+Right, though they begin in the block above", async () => {
+    on(MAC);
+    await written(
+      "Uno.\n\nAntes #eti\n\nOtra.\n",
+      '<p data-at="0-4"><span data-src="0-4">Uno.</span></p>' +
+        '<p data-at="6-16"><span data-src="6-12">Antes </span><span class="tag" data-src="12-16" contenteditable="false">#eti</span></p>' +
+        '<p data-at="18-23"><span data-src="18-23">Otra.</span></p>',
+    );
+    writing?.drawn();
+    document.getSelection()?.setBaseAndExtent(piece("Uno."), 1, piece("Antes "), 2);
+    keyOn(sheet(), "ArrowRight", { metaKey: true });
+    document.getSelection()?.collapse(piece("Otra."), 0);
+    await new Promise((done) => setTimeout(done, 0));
+    const held = document.getSelection();
+    expect([held?.anchorNode, held?.anchorOffset]).toEqual([document.querySelectorAll("p")[1], 2]);
+  });
+
+  it("ends a parent step's line before the list nested in it", async () => {
+    on(MAC);
+    const spot = await pressed(
+      "- [ ] uno #eti\n  - [ ] hijo\n",
+      '<ul data-at="0-27"><li class="task" data-at="0-27"><span class="check" contenteditable="false"></span>' +
+        '<span data-src="6-10">uno </span><span class="tag" data-src="10-14" contenteditable="false">#eti</span>' +
+        '<ul data-at="15-27"><li class="task" data-at="15-27"><span class="check" contenteditable="false"></span>' +
+        '<span data-src="23-27">hijo</span></li></ul></li></ul>',
+      controlE,
+      () => [piece("uno "), 1],
+      () => [document.querySelector("li") as Element, 4],
+    );
+    expect(spot).toEqual([document.querySelector("li"), 3]);
+  });
+
+  it("keeps an empty step when Cmd+Left first lands in the step above", async () => {
+    on(MAC);
+    const said = await written(EMPTY_STEP, EMPTY_STEP_PLACED);
+    writing?.drawn();
+    const step = document.querySelectorAll("li")[1] as Element;
+    document.getSelection()?.collapse(step, 0);
+    keyOn(sheet(), "ArrowLeft", { metaKey: true });
+    caretIn("uno", 3);
+    document.dispatchEvent(new Event("selectionchange"));
+    await new Promise((done) => setTimeout(done, 0));
+    const held = document.getSelection();
+    expect(said).toEqual([]);
+    expect([held?.anchorNode, held?.anchorOffset]).toEqual([step, 0]);
+  });
+
+  it("keeps Cmd+Right on its own wrapped line when the next one holds only a tag, where Control+E goes past it", async () => {
+    on(MAC);
+    await written(
+      "Uno dos #eti\n\nOtra.\n",
+      '<p data-at="0-12"><span data-src="0-8">Uno dos </span><span class="tag" data-src="8-12" contenteditable="false">#eti</span></p>' +
+        '<p data-at="14-19"><span data-src="14-19">Otra.</span></p>',
+    );
+    writing?.drawn();
+    const line = { top: 0, bottom: 20, height: 20 } as DOMRect;
+    const below = { top: 30, bottom: 50, height: 20 } as DOMRect;
+    Object.assign(Range.prototype, { getBoundingClientRect: () => line });
+    vi.spyOn(document.querySelector(".tag") as Element, "getBoundingClientRect").mockReturnValue(
+      below,
+    );
+    const pressedTo = async (key: KeyboardEventInit & { key: string }) => {
+      caretIn("Uno dos ", 1);
+      keyOn(sheet(), key.key, key);
+      caretIn("Uno dos ", 8);
+      await new Promise((done) => setTimeout(done, 0));
+      const held = document.getSelection();
+      return [held?.anchorNode, held?.anchorOffset];
+    };
+    const wrapped = await pressedTo({ key: "ArrowRight", metaKey: true });
+    const paragraph = await pressedTo({ key: "e", code: "KeyE", ctrlKey: true });
+    delete (Range.prototype as { getBoundingClientRect?: unknown }).getBoundingClientRect;
+    expect(wrapped).toEqual([piece("Uno dos "), 8]);
+    expect(paragraph).toEqual([document.querySelector("p"), 2]);
+  });
+
+  it("ends the line past its tag with Cmd+Right though the page was drawn again before the move settled", async () => {
+    on(MAC);
+    const placed =
+      '<p data-at="0-10"><span data-src="0-6">Antes </span><span class="tag" data-src="6-10" contenteditable="false">#eti</span></p>' +
+      '<p data-at="12-17"><span data-src="12-17">Otra.</span></p>';
+    await written("Antes #eti\n\nOtra.\n", placed);
+    writing?.drawn();
+    caretIn("Antes ", 1);
+    keyOn(sheet(), "ArrowRight", { metaKey: true });
+    sheet().innerHTML = placed;
+    caretIn("Otra.", 0);
+    await new Promise((done) => setTimeout(done, 0));
+    const held = document.getSelection();
+    expect([held?.anchorNode, held?.anchorOffset]).toEqual([document.querySelector("p"), 2]);
+  });
+
+  it("takes an empty step away when Cmd+Right left it and its line can no longer be found", async () => {
+    on(MAC);
+    const said = await written(EMPTY_STEP, EMPTY_STEP_PLACED);
+    writing?.drawn();
+    document.getSelection()?.collapse(document.querySelectorAll("li")[1] as Element, 0);
+    keyOn(sheet(), "ArrowRight", { metaKey: true });
+    sheet().innerHTML = '<p data-at="18-21"><span data-src="18-21">Fin</span></p>';
+    caretIn("Fin", 0);
+    document.dispatchEvent(new Event("selectionchange"));
+    await new Promise((done) => setTimeout(done, 0));
+    expect(said[said.length - 1]).toBe("- [ ] uno\n\nFin\n");
+  });
+
+  it("lets a line's edge go when its words changed before the system's move settled", async () => {
+    on(MAC);
+    await written();
+    caretIn("Uno dos", 6);
+    vi.useFakeTimers();
+    keyOn(sheet(), "e", { ctrlKey: true, code: "KeyE" });
+    piece("Uno dos").data = "Uno";
+    expect(() => vi.runOnlyPendingTimers()).not.toThrow();
+    vi.useRealTimers();
+  });
+
+  it("reads Cmd with the side arrows as the line's edges, and nothing with Shift, a composition or off a Mac", async () => {
+    on(MAC);
+    const { edgeWalk } = await import("../ui/macKeys");
+    const held = {
+      ctrlKey: false,
+      metaKey: true,
+      altKey: false,
+      shiftKey: false,
+      isComposing: false,
+    };
+    expect(edgeWalk({ ...held, key: "ArrowLeft", code: "ArrowLeft" })).toEqual({
+      toStart: true,
+      visual: true,
+    });
+    expect(edgeWalk({ ...held, key: "ArrowRight", code: "ArrowRight" })).toEqual({
+      toStart: false,
+      visual: true,
+    });
+    expect(edgeWalk({ ...held, key: "ArrowRight", code: "ArrowRight", shiftKey: true })).toBeNull();
+    expect(edgeWalk({ ...held, key: "ArrowUp", code: "ArrowUp" })).toBeNull();
+    expect(edgeWalk({ ...held, metaKey: false, ctrlKey: true, key: "e", code: "KeyE" })).toEqual({
+      toStart: false,
+      visual: false,
+    });
+    expect(
+      edgeWalk({
+        ...held,
+        metaKey: false,
+        ctrlKey: true,
+        key: "e",
+        code: "KeyE",
+        isComposing: true,
+      }),
+    ).toBeNull();
+    on(WINDOWS);
+    const windows = await import("../ui/macKeys");
+    expect(windows.edgeWalk({ ...held, key: "ArrowLeft", code: "ArrowLeft" })).toBeNull();
+  });
+
+  it("reads Cmd with a side arrow as a line's edge once per key", async () => {
+    on(MAC);
+    const edges = vi.fn();
+    vi.doMock("../ui/macKeys", async (real: () => Promise<typeof import("../ui/macKeys")>) => {
+      const keys = await real();
+      return {
+        ...keys,
+        edgeWalk: (event: Parameters<typeof keys.edgeWalk>[0]) => {
+          edges();
+          return keys.edgeWalk(event);
+        },
+      };
+    });
+    await written();
+    caretIn("Uno dos", 3);
+    keyOn(sheet(), "ArrowLeft", { metaKey: true });
+    vi.doUnmock("../ui/macKeys");
+    expect(edges).toHaveBeenCalledOnce();
+  });
+
+  it("keeps a format waiting for the next letter through a Control key the input method takes", async () => {
+    on(MAC);
+    const said = await written();
+    caretIn("Uno dos", 3);
+    keyOn(sheet(), "b", { metaKey: true });
+    keyOn(sheet(), "a", { ctrlKey: true, code: "KeyA", isComposing: true });
+    typed("x");
+    expect(said[said.length - 1]?.startsWith("Uno**x** dos")).toBe(true);
+  });
+});
+
 describe("Cmd as the command key on a Mac, where Control is the text's", () => {
   it("keeps today's words with Cmd and Enter, not with Control and Enter", async () => {
     on(MAC);
@@ -406,6 +693,60 @@ describe("Cmd as the command key on a Mac, where Control is the text's", () => {
     const held = document.getSelection();
     expect(held?.anchorNode?.textContent).toBe("segundo");
     expect(held?.anchorOffset).toBe(7);
+  });
+
+  it("brings End back to an empty step when the system moved the caret out of it", async () => {
+    on(WINDOWS);
+    await written(EMPTY_STEP, EMPTY_STEP_PLACED);
+    writing?.drawn();
+    const step = document.querySelectorAll("li")[1] as Element;
+    step.innerHTML = '<span class="check" contenteditable="false"></span>';
+    document.getSelection()?.collapse(step, 1);
+    keyOn(sheet(), "End");
+    caretIn("Fin", 0);
+    await new Promise((done) => setTimeout(done, 0));
+    const held = document.getSelection();
+    expect([held?.anchorNode, held?.anchorOffset]).toEqual([step, 1]);
+  });
+
+  it("brings End back into its block of code when the system moved the caret out of it", async () => {
+    on(WINDOWS);
+    await written(
+      "```\nfoo()\nbar()\n```\n\nFin\n",
+      '<figure class="code" data-at="0-20"><pre><code data-src="4-16">foo()\nbar()\n</code></pre></figure>' +
+        '<p data-at="21-24"><span data-src="21-24">Fin</span></p>',
+    );
+    writing?.drawn();
+    const code = document.querySelector("code")?.firstChild as Text;
+    document.getSelection()?.collapse(code, 2);
+    keyOn(sheet(), "End");
+    caretIn("Fin", 0);
+    await new Promise((done) => setTimeout(done, 0));
+    const held = document.getSelection();
+    expect([held?.anchorNode, held?.anchorOffset]).toEqual([code, 12]);
+  });
+
+  it("chooses past a table that ends the page with Ctrl, Shift and End", async () => {
+    on(WINDOWS);
+    await written(
+      "Uno dos\n\n| a |\n|---|\n| 1 |\n",
+      '<p data-at="0-7"><span data-src="0-7">Uno dos</span></p>' +
+        '<div class="table" data-at="9-26" contenteditable="false"><table><tr><td>1</td></tr></table></div>',
+    );
+    caretIn("Uno dos", 1);
+    keyOn(sheet(), "End", { ctrlKey: true, shiftKey: true });
+    const held = document.getSelection();
+    expect([held?.focusNode, held?.focusOffset]).toEqual([sheet(), 2]);
+  });
+
+  it("chooses up to the end of the last block with Ctrl, Shift and End off a Mac", async () => {
+    on(WINDOWS);
+    await written();
+    caretIn("Uno dos", 1);
+    expect(keyOn(sheet(), "End", { ctrlKey: true, shiftKey: true }).defaultPrevented).toBe(true);
+    const held = document.getSelection();
+    expect([held?.anchorNode, held?.anchorOffset]).toEqual([piece("Uno dos"), 1]);
+    expect([held?.focusNode, held?.focusOffset]).toEqual([piece("segundo"), 7]);
   });
 });
 

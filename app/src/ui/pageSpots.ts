@@ -219,29 +219,142 @@ export const endIn = (block: Element): [Node, number] => {
   return last ? endOf(last) : [block, block.childNodes.length];
 };
 
+type Spot = [Node, number];
+
+const STOP = `${PLACED}, br`;
+
+const deepest = (node: Node) => {
+  let one = node;
+  while (one.lastChild) one = one.lastChild;
+  return one;
+};
+
+const stopOf = (node: Node | null | undefined) =>
+  node?.nodeType === Node.ELEMENT_NODE && (node as Element).matches(`${STOP}, ${BLOCK}`)
+    ? (node as Element)
+    : null;
+
+const wordsOf = (one: Element, cut: Spot | null, toStart: boolean) => {
+  if (!cut) return one.textContent ?? "";
+  const part = one.ownerDocument.createRange();
+  part.selectNodeContents(one);
+  if (toStart) part.setEnd(...cut);
+  else part.setStart(...cut);
+  return part.toString();
+};
+
+const walkStart = (node: Node, offset: number, toStart: boolean): [Element | null, Node] => {
+  if (node.nodeType !== Node.ELEMENT_NODE) return [null, node];
+  const beside = node.childNodes[toStart ? offset - 1 : offset];
+  if (!beside) return [null, toStart ? node : deepest(node)];
+  const near = toStart ? deepest(beside) : beside;
+  const first = stopOf(beside) ?? (toStart ? stopOf(near) : null);
+  if (!first) return [null, near];
+  return [first, toStart ? first : deepest(first)];
+};
+
+function* stopsFrom(block: Element, from: Spot, toStart: boolean) {
+  const walk = block.ownerDocument.createTreeWalker(block, NodeFilter.SHOW_ELEMENT, {
+    acceptNode: (one) =>
+      one !== block && stopOf(one) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_SKIP,
+  });
+  const [node, offset] = from;
+  const element = node.nodeType === Node.ELEMENT_NODE ? (node as Element) : node.parentElement;
+  const holder = element?.closest(STOP);
+  if (holder && block.contains(holder)) {
+    yield [holder, from] as const;
+    walk.currentNode = toStart ? holder : deepest(holder);
+  } else {
+    const [first, start] = walkStart(node, offset, toStart);
+    walk.currentNode = start;
+    if (first) yield [first, null] as const;
+  }
+  const step = () => (toStart ? walk.previousNode() : walk.nextNode()) as Element | null;
+  for (let one = step(); one; one = step()) yield [one, null] as const;
+}
+
+function* ownStops(block: Element, from: Spot, toStart: boolean) {
+  for (const [one, cut] of stopsFrom(block, from, toStart)) {
+    if (one.matches("br") || one.closest(BLOCK) !== block) return;
+    yield [one, () => wordsOf(one, cut, toStart)] as const;
+  }
+}
+
+const lineOf = (block: Element, from: Spot, toStart: boolean) => {
+  let last: Element | null = null;
+  let trail: Element[] = [];
+  for (const [one, words] of ownStops(block, from, toStart)) {
+    if (words().includes("\n")) return null;
+    last = one;
+    if (solid(one)) trail.push(one);
+    else trail = [one];
+  }
+  const spots = trail.map((one) => (toStart ? startOf(one) : endOf(one)));
+  const edge = spots.reverse().find((spot) => caretStands(spot, toStart)) ?? from;
+  return { last, edge };
+};
+
+const letterBox = ([node, offset]: Spot, toStart: boolean) => {
+  const at = toStart ? offset : offset - 1;
+  if (node.nodeType !== Node.TEXT_NODE || at < 0 || at >= (node as Text).length) return null;
+  const letter = (node.ownerDocument ?? document).createRange();
+  letter.setStart(node, at);
+  letter.setEnd(node, at + 1);
+  const box =
+    typeof letter.getBoundingClientRect === "function" ? letter.getBoundingClientRect() : null;
+  return box?.height ? box : null;
+};
+
+const otherLine = (landed: Spot, toStart: boolean) => {
+  const line = letterBox(landed, toStart);
+  return (one: Element) => {
+    if (!line) return false;
+    const box = one.getBoundingClientRect();
+    const middle = (box.top + box.bottom) / 2;
+    return toStart ? middle < line.top : middle > line.bottom;
+  };
+};
+
+const wordsUntil = (
+  block: Element,
+  from: Spot,
+  last: Element,
+  toStart: boolean,
+  apart: (one: Element) => boolean,
+) => {
+  for (const [one, words] of ownStops(block, from, toStart)) {
+    if (solid(one) ? apart(one) : words().trim()) return true;
+    if (one === last) return false;
+  }
+  return false;
+};
+
 export const lineEdge = (
   block: Element,
-  node: Node,
-  offset: number,
+  from: Spot,
+  landed: Spot,
   toStart: boolean,
-): [Node, number] | null => {
-  const pieces = ownOf(block, `${PLACED}, br`);
-  let edge: [Node, number] | null = null;
-  for (const one of toStart ? pieces.reverse() : pieces) {
-    const reach = block.ownerDocument.createRange();
-    reach.selectNodeContents(one);
-    const side = reach.comparePoint(node, offset);
-    if (side === (toStart ? -1 : 1)) continue;
-    if (one.matches("br")) break;
-    if (side === 0 && toStart) reach.setEnd(node, offset);
-    else if (side === 0) reach.setStart(node, offset);
-    const words = reach.toString();
-    if (words.includes("\n")) break;
-    if (!solid(one) && words.trim()) return null;
-    const spot = toStart ? startOf(one) : endOf(one);
-    if (caretStands(spot, toStart)) edge = spot;
-  }
-  return edge;
+  visual = false,
+): Spot | null => {
+  const [node, offset] = from;
+  const room = node.nodeType === Node.TEXT_NODE ? (node as Text).length : node.childNodes.length;
+  if (!block.contains(node) || offset > room) return null;
+  const line = lineOf(block, from, toStart);
+  if (!line) return null;
+  const page = block.ownerDocument;
+  const { last } = line;
+  const bound = !last ? from : toStart ? startOf(last) : endOf(last);
+  const within = page.createRange();
+  within.setStart(...(toStart ? bound : from));
+  within.setEnd(...(toStart ? from : bound));
+  if (!block.contains(landed[0]) || !within.isPointInRange(...landed)) return line.edge;
+  const apart = visual ? otherLine(landed, toStart) : () => false;
+  if (last && wordsUntil(block, landed, last, toStart, apart)) return null;
+  const edge = page.createRange();
+  edge.setStart(...line.edge);
+  const side = edge.comparePoint(...landed);
+  const outer = toStart ? side <= 0 : side >= 0;
+  return outer && caretStands(landed, toStart) ? null : line.edge;
 };
 
 export const GHOST = "[data-ghost]";

@@ -1,6 +1,6 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { checkOf } from "../placing";
-import { ghostAt, sourceAt, spotOf, topsAt } from "../ui/pageSpots";
+import { ghostAt, lineEdge, sourceAt, spotOf, topsAt } from "../ui/pageSpots";
 
 const BODY = "Uno :dog: **dos**\n\n- \n\nFin";
 const PAGE =
@@ -176,5 +176,37 @@ describe("the blocks of a long page, found by halving", () => {
     expect(spotOf(document, text, 203, known)).toEqual(spotOf(document, text, 203));
     const ghost = ghostAt(document, text, 209, known);
     expect(ghost?.previousElementSibling?.getAttribute("data-at")).toBe("200-208");
+  });
+});
+
+describe("a line's edge on a long paragraph", () => {
+  it("is found walking from the caret, not by measuring every piece of the paragraph", () => {
+    const pieces = Array.from(
+      { length: 400 },
+      (_, n) =>
+        `<span data-src="${n * 10}-${n * 10 + 5}">pala </span><span class="tag" data-src="${n * 10 + 5}-${n * 10 + 10}" contenteditable="false">#eti</span>`,
+    ).join("");
+    sheetOf(`<p data-at="0-4000">${pieces}</p>`);
+    const block = document.querySelector("p") as Element;
+    const near = block.children[block.children.length - 2].firstChild as Text;
+    const made = vi.spyOn(document, "createRange");
+    expect(lineEdge(block, [near, 5], [near, 5], false)).toEqual([block, block.childNodes.length]);
+    expect(made.mock.calls.length).toBeLessThan(8);
+    made.mockRestore();
+  });
+
+  it("measures only the pieces at the line's end once it has walked there", () => {
+    const pieces = Array.from(
+      { length: 400 },
+      (_, n) =>
+        `<span data-src="${n * 10}-${n * 10 + 5}">pala </span><span class="tag" data-src="${n * 10 + 5}-${n * 10 + 10}" contenteditable="false">#eti</span>`,
+    ).join("");
+    sheetOf(`<p data-at="0-4000">${pieces}</p>`);
+    const block = document.querySelector("p") as Element;
+    const first = block.firstElementChild?.firstChild as Text;
+    const walks = vi.spyOn(document, "createTreeWalker");
+    expect(lineEdge(block, [first, 1], [first, 1], false)).toBeNull();
+    expect(walks.mock.calls.length).toBeLessThan(8);
+    walks.mockRestore();
   });
 });
