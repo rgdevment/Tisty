@@ -45,6 +45,12 @@ const core = () => {
   return { asked, stop };
 };
 
+export const questionOf = async (request) => {
+  const parts = [];
+  for await (const part of request) parts.push(part);
+  return Buffer.concat(parts).toString("utf8");
+};
+
 const shell = `<!doctype html><html><head><meta charset="utf-8"></head><body style="margin:0;background:#fff"><div id="root"></div><script type="module" src="/${normalizePath(relative(app, join(here, "page.ts")))}"></script></body></html>`;
 
 export const served = async () => {
@@ -54,8 +60,7 @@ export const served = async () => {
     configureServer(server) {
       server.middlewares.use(async (request, response, next) => {
         if (request.url === "/bridge" && request.method === "POST") {
-          let question = "";
-          for await (const chunk of request) question += chunk;
+          const question = await questionOf(request);
           const said = await bridge.asked(question).catch((error) => JSON.stringify({ refused: error.message }));
           response.writeHead(200, { "content-type": "application/json" }).end(said);
           return;

@@ -108,11 +108,15 @@ pub fn placed_near(doc: &Doc, from: usize, to: usize, shown: Option<[u32; 2]>) -
     let blocks = doc.blocks();
     let first = blocks.partition_point(|one| one.at.end < from);
     let last = blocks.partition_point(|one| one.at.start <= to);
+    let to = match blocks.get(last) {
+        Some(next) if last == 0 || blocks[last - 1].at.end < to => next.at.start,
+        _ => to,
+    };
     let start = first.saturating_sub(1);
-    let end = if last > first { last + 1 } else { start + 1 };
+    let end = last + 1;
     // The title past the properties is marked by where it stands, so a key at the top draws it too.
     let end = if start == 0 { end.max(2) } else { end }.min(blocks.len());
-    let drawn = start.min(end)..end;
+    let drawn = start..end;
     let again = blocks.get(drawn.clone()).unwrap_or_default();
     let (anchors, heads) = if touched_heading(again, from, to) {
         let names = names(doc);

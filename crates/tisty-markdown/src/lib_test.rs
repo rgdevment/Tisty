@@ -1156,6 +1156,96 @@ fn an_edit_past_the_last_block_draws_the_last_one() {
     assert_eq!(placed_near(&read(""), 0, 0, None).drawn, 0..0);
 }
 
+fn drawn_at(text: &str, from: usize, to: usize) -> Range<usize> {
+    placed_near(&read(text), from, to, None).drawn
+}
+
+fn spans_of(text: &str) -> Vec<Range<usize>> {
+    read(text)
+        .blocks()
+        .iter()
+        .map(|one| one.at.clone())
+        .collect()
+}
+
+#[test]
+fn a_key_draws_the_block_it_touches_whichever_side_of_the_key_the_block_lies() {
+    let middle = "One.\n\nTwo.\n\nThree.\n\n four.\n\nFive.\n\nSix.\n";
+    assert_eq!(
+        spans_of(middle),
+        [0..5, 6..11, 12..19, 21..27, 28..34, 35..40]
+    );
+    assert_eq!(drawn_at(middle, 20, 20), 2..4);
+    assert_eq!(drawn_at(middle, 19, 19), 1..4);
+    assert_eq!(drawn_at(middle, 21, 21), 2..5);
+    assert_eq!(drawn_at(middle, 20, 21), 2..5);
+    assert_eq!(drawn_at(middle, 27, 27), 2..5);
+    assert_eq!(drawn_at(middle, 28, 28), 3..6);
+    let first = " One.\n\nTwo.\n\nThree.\n\nFour.\n";
+    assert_eq!(spans_of(first)[0], 1..6);
+    assert_eq!(drawn_at(first, 0, 0), 0..2);
+    assert_eq!(drawn_at(first, 1, 1), 0..2);
+    let last = "One.\n\nTwo.\n\nThree.\n\n four.\n";
+    assert_eq!(spans_of(last)[3], 21..27);
+    assert_eq!(drawn_at(last, 20, 20), 2..4);
+    assert_eq!(drawn_at(last, 27, 27), 2..4);
+    assert_eq!(drawn_at(&last[..20], 20, 20), 2..3);
+    let titled = "---\ntitle: x\n---\n\n Hola.\n\n más.\n\nY más.\n";
+    assert_eq!(spans_of(titled), [0..17, 19..25, 27..33, 34..42]);
+    assert_eq!(drawn_at(titled, 18, 18), 0..2);
+    assert_eq!(drawn_at(titled, 26, 26), 1..3);
+    let blank = "One.\n\nTwo.\n\n  \n\nThree.\n\nFour.\n";
+    assert_eq!(spans_of(blank), [0..5, 6..11, 16..23, 24..30]);
+    assert_eq!(drawn_at(blank, 13, 13), 1..3);
+    assert_eq!(drawn_at(blank, 15, 15), 1..3);
+    let headed = "Uno.\n\nDos.\n\n Tres\n===\n";
+    assert!(placed_near(&read(headed), 12, 12, None).heads.is_some());
+    assert_eq!(placed_near(&read(headed), 6, 7, None).heads, None);
+}
+
+#[test]
+fn a_block_left_starting_with_a_space_is_laid_without_the_whole_page() {
+    let keys = [
+        ("# Uno\n\nA.\n\nDos palabras.\n\nTres.\n", "Dos"),
+        ("Uno.\n\nA palabras.\n\nTres.\n", "A"),
+        ("Dos palabras.\n\nTres.\n\nCuatro.\n", "Dos"),
+        ("Uno.\n\nTres.\n\nDos palabras.\n", "Dos"),
+        ("---\ntitle: x\n---\n\nDos palabras.\n\nTres.\n", "Dos"),
+        ("# Uno\n\nA.\n\nDos palabras\n===\n\nTres.\n", "Dos"),
+        ("# Uno\n\nA.\n\nDos\npalabras.\n\nTres.\n", "Dos"),
+        ("# Uno\n\nA.\n\nDos \npalabras.\n\nTres.\n", "Dos"),
+    ];
+    for (text, word) in keys {
+        let key = format!("{word:?} taken out of {text:?}");
+        let at = text.find(word).unwrap_or_else(|| panic!("no {key}"));
+        let shown = shown_after(&read(text), at..at + word.len(), "");
+        let shown = shown.unwrap_or_else(|| panic!("drawn whole instead of laid: {key}"));
+        assert!(reads_as_whole(&shown) && titled_as_whole(&shown), "{key}");
+        assert_eq!(shown.names, names_of(&shown.doc), "{key}");
+    }
+}
+
+#[test]
+fn a_paste_that_leaves_a_heading_starting_with_a_space_keeps_its_name_without_the_whole_page() {
+    let text = "# Uno\n\nA.\n\nUno.\n\nDos palabras\n===\n\nTres.\n";
+    let from = text
+        .find("no.")
+        .unwrap_or_else(|| panic!("no \"no.\" in {text:?}"));
+    let to = text
+        .find(" palabras")
+        .unwrap_or_else(|| panic!("no palabras in {text:?}"));
+    let shown = shown_after(&read(text), from..to, "X.\n\n");
+    let shown = shown.unwrap_or_else(|| panic!("drawn whole instead of laid"));
+    assert_eq!(
+        shown.doc.text(),
+        "# Uno\n\nA.\n\nUX.\n\n palabras\n===\n\nTres.\n"
+    );
+    assert!(reads_as_whole(&shown) && titled_as_whole(&shown));
+    assert_eq!(shown.names, names_of(&shown.doc));
+    let headed = "Uno.\n\nDos.\n\n Tres\n===\n";
+    assert_eq!(placed_near(&read(headed), 11, 11, None).heads, None);
+}
+
 const SKILL: &str = "---\nagent: claude/skill/pdf/SKILL.md\ntitle: claude · pdf/SKILL.md\n---\n---\nname: pdf\ndescription: Fill PDF forms.\n---\n\n# PDF\n";
 
 #[test]

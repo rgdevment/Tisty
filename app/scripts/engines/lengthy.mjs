@@ -11,13 +11,14 @@ const MIDDLE = "marcamedia";
 const END = "marcafinal";
 
 const sentence = (at) => SENTENCES[at % SENTENCES.length];
+const leadOf = (marker) => `la ${marker}.`;
 
 const paragraph = (chapter, at, marker) => {
   const said = [
     sentence(chapter + at),
     `Ese día **${chapter}.${at}** quedó anotado en el [registro ${chapter}](https://example.com/${chapter}/${at}) con la etiqueta #tema${chapter % 7}.`,
     sentence(chapter * 3 + at + 1),
-    marker ? `Aquí escribe la ${marker}.` : sentence(chapter + at * 5 + 2),
+    marker ? `Aquí escribe ${leadOf(marker)}` : sentence(chapter + at * 5 + 2),
   ];
   return said.join(" ");
 };
@@ -73,4 +74,6 @@ export const pageOf = (chapters) => {
   return ["# Un documento largo", "", ...body, ...notes].join("\n");
 };
 
-export const SPOTS = { middle: `${MIDDLE}.`, end: `${END}.` };
+const spotOf = (marker) => ({ words: `${marker}.`, lead: leadOf(marker) });
+
+export const SPOTS = { middle: spotOf(MIDDLE), end: spotOf(END) };

@@ -23,7 +23,8 @@ const STEPS = [
   ...[1, 2, 3, 4].flatMap(() => [["enter", "Enter"], ...letters("nuevo")]),
   ...many(12, "backspace", "Backspace"),
 ];
-const KINDS = ["letter", "enter", "backspace", "word"];
+const FIRST_WORD = [["split", "Enter"], ...many(2, "move", "ArrowRight"), ["first word", WORD]];
+const KINDS = ["letter", "enter", "backspace", "word", "split", "first word"];
 
 const median = (keys, measure) => {
   const sorted = keys.map((one) => one[measure]).sort((a, b) => a - b);
@@ -31,7 +32,7 @@ const median = (keys, measure) => {
 };
 const most = (keys, measure) => Math.max(...keys.map((one) => one[measure]));
 
-const PAGE_BLOCKS = { letter: 1, enter: 2, backspace: 1, word: 1 };
+const PAGE_BLOCKS = { letter: 1, enter: 2, backspace: 1, word: 1, split: 2, "first word": 1 };
 const BUDGETS = [
   {
     what: "ms of work on the long page (median)",
@@ -90,21 +91,39 @@ const apart = (fits) => {
   return `block ${at} is out of place (${was.length} on the page, ${now.length} in the text): the page shows ${near(was)} where the text draws ${near(now)}`;
 };
 
-const typedAt = async (page, name, doc, words) => {
+const typedAt = async (page, name, doc, spot) => {
   const restless = [];
   const still = async (ms, when) => {
     if (!(await calmed(page, ms))) restless.push(`the ${name} page never stayed still for ${ms} ms ${when}`);
   };
   const frame = await sheetOf(page, doc);
+  const hands = handsOn(page, frame);
+  const keys = [];
+  const typed = async (steps) => {
+    for (const [kind, step] of steps) {
+      if (kind === "move") {
+        await page.keyboard.press(step);
+        await still(CLICKED_CALM_MS, `once ${step} moved the caret`);
+        continue;
+      }
+      const one = { doc: name, kind, step, ...(await keyed(page, step)) };
+      keys.push(one);
+      if (one.unsettled) return false;
+    }
+    return true;
+  };
   await watched(page);
   await still(OPENED_CALM_MS, "once opened");
-  await handsOn(page, frame).clickAt(words);
+  await hands.clickAt(spot.words);
   await still(CLICKED_CALM_MS, "once clicked");
-  const keys = [];
-  for (const [kind, step] of STEPS) {
-    const one = { doc: name, kind, step, ...(await keyed(page, step)) };
-    keys.push(one);
-    if (one.unsettled) break;
+  const unopened = [];
+  if (await typed(STEPS)) {
+    await hands.clickAt(spot.lead, true);
+    await still(CLICKED_CALM_MS, "once clicked before the words that will open a paragraph");
+    const deleted = await typed(FIRST_WORD);
+    const text = await page.evaluate(() => window.engines.text());
+    if (deleted && !text.includes(`\n ${spot.words}`))
+      unopened.push(`the first word deleted on the ${name} page left no paragraph opening with " ${spot.words}"`);
   }
   await still(CLICKED_CALM_MS, "once the keys rested");
   const fits = await page.evaluate(() => window.engines.consistent());
@@ -113,12 +132,13 @@ const typedAt = async (page, name, doc, words) => {
     keys: keys.filter((one) => !one.unsettled),
     faults: [
       ...restless,
+      ...unopened,
       ...errors.map((said) => `the ${name} page met an error: ${said.slice(0, 300)}`),
       ...keys
         .filter((one) => one.unsettled)
         .map((one) => `a ${one.kind} key (${one.step}) on the ${name} page never settled, so its spot stopped there`),
+      ...(fits === "ok" ? [] : [`once the keys rested the ${name} page did not match its text: ${apart(fits)}`]),
     ],
-    notes: fits === "ok" ? [] : [`once the keys rested the ${name} page did not match its text: ${apart(fits)}`],
   };
 };
 
@@ -127,12 +147,12 @@ const ranIn = async (engine, url) => {
   await page.evaluate((doc) => window.engines.open(doc), PIECES);
   await page.waitForTimeout(WARMED_MS);
   await opened(page, url);
-  const ran = { keys: [], faults: [], notes: [] };
+  const ran = { keys: [], faults: [] };
   try {
     for (let round = 0; round < ROUNDS; round++) {
       for (const [name, doc] of Object.entries(DOCS)) {
-        for (const words of Object.values(SPOTS)) {
-          const typed = await typedAt(page, name, doc, words);
+        for (const spot of Object.values(SPOTS)) {
+          const typed = await typedAt(page, name, doc, spot);
           for (const part of Object.keys(ran)) ran[part].push(...typed[part]);
         }
       }
@@ -195,7 +215,6 @@ try {
   ]) {
     const ran = await ranIn(engine, server.url);
     printed(name, ran.keys);
-    for (const note of ran.notes) console.log(`note ${name}: ${note}`);
     faults.push(...ran.faults.map((one) => `${name}: ${one}`), ...overBudget(name, ran.keys));
   }
   if (faults.length > 0) {
