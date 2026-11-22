@@ -257,11 +257,11 @@ and Tisty answers with that very document, `"doc": "k7tq2mzw-0012"`, `"title": "
 
 ## Earlier versions
 
-Each document keeps, on this computer, what it said before it changed, as a history of versions: you open the list, read how it stood and, if it helps, go back to it. Task pages too. I made it for the day a change, yours or an assistant's, took away something you still needed.
+Each document keeps, on this computer, what it said before it changed, as a history of versions: you open the list, read how it stood and, if it helps, go back to it. Task pages too. I made it for the day a change, yours or an agent's, took away something you still needed.
 
 ### When they help
 
-- **An assistant rewrote too much.** You asked your agent to tidy «Rina's walks» and it left out the times. The version from before its write is in the list: see what changed and go back to it.
+- **An agent rewrote too much.** You asked your agent to tidy «Rina's walks» and it left out the times. The version from before its write is in the list: see what changed and go back to it.
 - **You deleted a paragraph and need it a week later.** You took the guest list out of «Lucas's birthday» because it was settled, and now Marisol asks who was coming. A version from before that change still has it, even after the document kept changing.
 - **You want to see how something stood on a given day.** Each version carries its date, so you read the plan as it was on Tuesday without touching today's.
 - **You wrote something that should not stay kept.** Delete the text, then empty that document's history (below).
@@ -269,7 +269,7 @@ Each document keeps, on this computer, what it said before it changed, as a hist
 ### Seeing a version and going back to it
 
 1. Open the document. In the panel beside it, the **History** row says **on this computer** and has **See the history**. On a task's page the button is **Versions of this page**.
-2. The list sits on the left, newest first. Each row says when that version was written (only the time if it was today), who wrote it (**you**, **an assistant** or its program's name, such as **Claude Code**) and its size.
+2. The list sits on the left, newest first. Each row says when that version was written (only the time if it was today), who wrote it (**you**, **an agent** or its program's name, such as **Claude Code**) and its size.
 3. Click one to read it on the right, as it looked.
 4. **Go back to this version**, above what you read, asks first: the document goes back to saying what it said in it, and what it says now is kept.
 5. The document shows **It went back to the version from** and the date, with **Put back what it said before**: that button undoes the go-back if you picked the wrong one.
@@ -299,7 +299,7 @@ For example: Claude Code rewrote the times paragraph of «Rina's walks» and you
 Not at every key or every save. What was there becomes a version when someone writes in the document:
 
 - **after 30 minutes without changes**, or
-- **being someone other than whoever wrote last**: you after an assistant, an assistant after you, or two different assistants.
+- **being someone other than whoever wrote last**: you after an agent, an agent after you, or two different agents.
 
 For example: at 9:00 Mario opens yesterday's meeting minutes and corrects them for twenty minutes, with no long pauses. A single version is kept, yesterday's: the saves of those twenty minutes are one write. At 11:00 he corrects them again, and what they said at 9:20 becomes a version. At 11:05 Claude Code adds a summary, and what Mario had left becomes another version, because the one writing changed.
 
@@ -337,15 +337,15 @@ It is there for a text you deleted on purpose: you pasted a number into «Insura
 - **The [Diary](#diary)** keeps versions on this computer too, which count toward what your computer and your backups hold, but its view has no **History** row: they are not listed from the window.
 - **An archived or locked document, and a closed task's page,** show their versions but do not offer **Go back to this version**. Unarchive or unlock it (or its archived folder, or the locked document it is a page of), or reopen the task with **Reopen**, to go back to one.
 - **Restoring a backup** swaps this computer's versions for the zip's, and their limit counts again from that day.
-- **Your assistant never reads the Diary's versions**, not even with the Diary open to agents. Those of any other document it can list, read and go back to, but never empty the history: see [[MCP tools|MCP-Tools#a-documents-earlier-versions]].
+- **Your agent never reads the Diary's versions**, not even with the Diary open to agents. Those of any other document it can list, read and go back to, but never empty the history: see [[MCP tools|MCP-Tools#a-documents-earlier-versions]].
 - **Each page of a book and your [Ideas](#ideas) sheet** keep versions of their own, like any document. A page's row says **History**; **Versions of this page** is only a task page's.
 - **A document in the [[Agents|AGENTS-Folder]] folder** keeps its versions the same way, and its card opens them with **History**. They are not its **Backups**, which keep your agent's file as it was on disk. Its comparison with what is **Approved** reads from this history: if you empty it, or the approved version passes the limit, the card asks you to read the whole text before approving.
 - **Sharing or exporting** a document never carries its versions: not a Folio link, not a `.tistyx`, not an export. Only a full backup carries them.
 - **On updating from a Tisty without the history,** the copy each document used to keep of what it said before became its first version on its own.
 
-### With your assistant
+### With your agent
 
-You also go back without opening the list: when something writes in the document you have open, the bar offers **Put back what it said before**. An assistant lists, reads and goes back to the same versions with `read` and `restore_doc`, and can never empty them: that is yours. You can ask in your own words: «put "Rina's walks" back the way it was before your change yesterday». How it does it, with examples, is in [MCP tools](MCP-Tools#a-documents-earlier-versions).
+You also go back without opening the list: when something writes in the document you have open, the bar offers **Put back what it said before**. An agent lists, reads and goes back to the same versions with `read` and `restore_doc`, and can never empty them: that is yours. You can ask in your own words: «put "Rina's walks" back the way it was before your change yesterday». How it does it, with examples, is in [MCP tools](MCP-Tools#a-documents-earlier-versions).
 
 ## Taking documents out
 
@@ -368,7 +368,7 @@ A signed parcel also carries who edited each document you shared through Folio. 
 
 ## With your agent
 
-Documents are where the AI agent you connect through [[MCP|Assistants-and-MCP]] keeps what it knows, and how it reads them is what keeps it cheap.
+Documents are where the AI agent you connect through [[MCP|Agents-and-MCP]] keeps what it knows, and how it reads them is what keeps it cheap.
 
 - **One living document per subject.** It opens with what holds today, then the subject, what is out of scope, the decisions dated with their why — a replaced one struck through, not erased — and its history. The agent keeps to the decisions instead of reopening them.
 - **Corrected in place.** The agent rewrites the passage that changed instead of piling a second copy beside the first, and it cannot write over a version you changed after it read.
@@ -376,7 +376,7 @@ Documents are where the AI agent you connect through [[MCP|Assistants-and-MCP]] 
 - **Pages for what is long.** No single write carries more than 64,000 characters, so a long log is kept as subjects in pages rather than one wall of text.
 - **A summary for the next one.** After reading a long document the agent can leave a summary that the next agent chooses by; when the document changes, it is marked stale.
 
-More in [A day with your agent](Assistants-and-MCP#a-day-with-your-agent).
+More in [A day with your agent](Agents-and-MCP#a-day-with-your-agent).
 
 ## Sharing
 

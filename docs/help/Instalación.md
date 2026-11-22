@@ -55,7 +55,7 @@ El engranaje al pie de la barra lateral abre Configuración en **Resumen**, que 
 
 - **Este equipo**: **Aspecto y ventana** (idioma, aspecto, arranque, qué hace al cerrar la ventana y las carpetas ocultas), **Tareas y avisos** (los atajos de captura, los avisos y tu calendario) y **Documentos y firma** (tu alias, tu nombre en los PDF y cuánto guarda el historial de cada documento).
 - **Tus datos**: **Sincronización** (dónde van tus copias), **Seguridad** (tu frase de 24 palabras, tus equipos y [cifrar tu nube](Sincronizar-y-respaldar#cifrar-tu-nube)), **Copias** (los respaldos, los documentos de otro Tisty, restaurar y cómo irte) y **Almacenamiento** (dónde viven tus archivos, cuánto ocupan, los adjuntos grandes y liberar espacio).
-- **Conexiones**: **Asistentes**, la [[puerta MCP|Asistentes-y-MCP]].
+- **Conexiones**: **Agentes**, la [[puerta MCP|Agentes-y-MCP]].
 - **Tisty**: **Salud** (la revisión del almacén, el índice rápido y reportar un problema) y **Ayuda y acerca de**: la versión, las actualizaciones y las versiones candidatas. Al pie, **Avisos de terceros** nombra cada pieza que Tisty lleva dentro, con su versión y su licencia; ahí están también los datos del diccionario español–inglés de Brainsty, con sus autores y la licencia de WordNet completa. **Textos de las licencias** trae el texto completo de cada licencia del núcleo.
 
 Todo, página por página y con ejemplos, en [[Configuración]].

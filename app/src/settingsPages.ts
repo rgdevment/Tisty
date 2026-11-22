@@ -84,7 +84,7 @@ const PAGES: Record<Tab, Page> = {
     label: "tabAgents",
     icon: "wand",
     lead: "leadAgents",
-    help: { en: { slug: "assistants-and-mcp" }, es: { slug: "asistentes-y-mcp" } },
+    help: { en: { slug: "agents-and-mcp" }, es: { slug: "agentes-y-mcp" } },
   },
   health: {
     key: "health",

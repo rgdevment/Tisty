@@ -2,22 +2,22 @@
 
 What tired me most about working with agents was not explaining the problem: it was reminding them, answer after answer, to tick what they did and note what they ruled out. Instructions alone were not enough. So now Tisty asks the agent when it forgets, gives it a cheap way to leave the task up to date, links what it names and serves it everything you keep as an index it can walk without reading it whole.
 
-This page follows a real agent session, step by step, with the calls it makes and an excerpt of what Tisty answers. Connecting one is in [[Assistants and MCP|Assistants-and-MCP]]; every tool, in [[Tools reference|MCP-Tools]]; what it may and may not do, in [[What an assistant may do|MCP-Permissions]].
+This page follows a real agent session, step by step, with the calls it makes and an excerpt of what Tisty answers. Connecting one is in [[Agents and MCP|Agents-and-MCP]]; every tool, in [[Tools reference|MCP-Tools]]; what it may and may not do, in [[What an agent may do|MCP-Permissions]].
 
 ## What changed with Brainsty
 
 - **It finds and walks with a single tool, `brain`.** It finds tasks and documents by their words, with the archive beside the rest; brings a document's or a task's card with its neighbours; and shows a whole project grouped as blocked, under way, waiting for you and not started.
 - **It reads with a single tool, `read`.** A task or a document, whole or in parts, only what is highlighted, or an earlier version; and if nothing changed since its last read, only that.
 - **It leaves the task up to date in one call.** `tick` ticks the steps and writes the task's state, a «State» section of its page that is replaced whole each time. When it picks the task up, `read` brings that state first.
-- **Tisty asks it when it forgets.** In its answers, to any assistant; and with the hooks, when each turn starts and ends.
+- **Tisty asks it when it forgets.** In its answers, to any agent; and with the hooks, when each turn starts and ends.
 - **What it names gets linked.** A task or a document named by its id or by its exact title between quotes becomes a link when saved, just as if you had made it.
 
 ## Before you start
 
-In **Settings › Assistants**:
+In **Settings › Agents**:
 
-1. On the **Connected** tab, **Connect** puts Tisty in the assistant's settings. See [[Assistants and MCP|Assistants-and-MCP]].
-2. Right there, under a connected assistant (Claude Code, Cursor, Gemini CLI or GitHub Copilot), the **Hooks: when a turn starts and ends** row says **Not added**. **Add** tells you which file it will write; **Add them** puts them there. From its next session, the assistant uses them.
+1. On the **Connected** tab, **Connect** puts Tisty in the agent's settings. See [[Agents and MCP|Agents-and-MCP]].
+2. Right there, under a connected agent (Claude Code, Cursor, Gemini CLI or GitHub Copilot), the **Hooks: when a turn starts and ends** row says **Not added**. **Add** tells you which file it will write; **Add them** puts them there. From its next session, the agent uses them.
 3. On the **Door** tab, two switches, on from the start:
    - **Ask it to keep its task up to date**: the question in the answers.
    - **Remind it when a turn starts and ends**: the hooks, without taking them out of the file.
@@ -213,11 +213,11 @@ At the end of the session, `brain` with `part_of` already shows «Confirmation w
 | `lists`, `tags` | `brain` with nothing |
 | `read_doc` | `read` with `doc`, with the same parts (`section`, lines, `chars`, `as`) plus `marks`, `versions` and `version` |
 
-An assistant that still calls one of them is told where it went («`find` moved into `brain`», «`read_doc` moved into `read`») and nothing else happens. When every row of a list shares a field, like the list or the task they are parts of, it comes once, in `each`.
+An agent that still calls one of them is told where it went («`find` moved into `brain`», «`read_doc` moved into `read`») and nothing else happens. When every row of a list shares a field, like the list or the task they are parts of, it comes once, in `each`.
 
 ## Good to know
 
-- **Assistants without hooks.** Codex and Claude Desktop run no hooks: they get only the question in the answers, and only when they call Tisty.
+- **Agents without hooks.** Codex and Claude Desktop run no hooks: they get only the question in the answers, and only when they call Tisty.
 - **Work that edits no files**, like planning or researching, is not seen by the end-of-turn hook: there the question in the answers remains.
 - **GitHub Copilot** may spend a premium request on the turn that is handed back.
 - **Cursor** also runs Claude Code's hooks; even if both fire, the turn goes back only once.
@@ -230,7 +230,7 @@ An assistant that still calls one of them is told where it went («`find` moved 
 
 ## Where next
 
-- [[Assistants and MCP|Assistants-and-MCP]]: connecting an assistant, the ready-made requests and what it costs.
+- [[Agents and MCP|Agents-and-MCP]]: connecting an agent, the ready-made requests and what it costs.
 - [[Tools reference|MCP-Tools]]: the full list.
 - [[The Brainsty network|Brainsty-Network]]: the same network, drawn for you.
 - [[Tasks in documents|Tasks-in-Documents]]: the cards your agent leaves too.

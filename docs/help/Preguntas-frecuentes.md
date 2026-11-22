@@ -9,7 +9,7 @@ Sí, Tisty es gratis y lo seguirá siendo, bajo la licencia AGPL-3.0. Sin cuenta
 Ninguna de las dos. Por su cuenta, Tisty solo pregunta si hay una versión más nueva, y no envía nada para hacerlo. Cuando sincronizas con una nube o compartes un documento, además lee los pocos archivos pequeños que lista [[Privacidad]]. Desconecta el equipo de la red y todo lo demás funciona igual. Mira [[Privacidad]].
 
 **¿Necesito un agente de IA?**
-No. Todo lo que trae Tisty está desde el principio: tareas en lenguaje natural con sus pasos, documentos enlazados, Ideas, el Diario y [[Brainsty|Red-de-Brainsty]]. También funciona sin agente, a la manera tradicional: tus notas, documentos y tareas, a mano y a tu ritmo. Por ejemplo, guardas las visitas de Rina al veterinario en un documento y su próxima vacuna como una tarea que suena la tarde anterior: ningún agente ve nada de eso hasta que conectes uno, el día que quieras, como cuenta [[Asistentes y MCP|Asistentes-y-MCP]].
+No. Todo lo que trae Tisty está desde el principio: tareas en lenguaje natural con sus pasos, documentos enlazados, Ideas, el Diario y [[Brainsty|Red-de-Brainsty]]. También funciona sin agente, a la manera tradicional: tus notas, documentos y tareas, a mano y a tu ritmo. Por ejemplo, guardas las visitas de Rina al veterinario en un documento y su próxima vacuna como una tarea que suena la tarde anterior: ningún agente ve nada de eso hasta que conectes uno, el día que quieras, como cuenta [[Agentes y MCP|Agentes-y-MCP]].
 
 **¿Dónde se guardan mis datos?**
 En una carpeta de tu propio disco. **Configuración › Almacenamiento** muestra la ruta, y **Mostrar carpeta** la abre. Mira [Instalación](Instalación#dónde-viven-tus-datos).
@@ -24,7 +24,7 @@ No hay un botón de exportar porque no hay nada que convertir: ya son archivos a
 cat store/*/*.tisty | jq -c 'select(.op == "task.add") | {id, title: .d.title}'
 ```
 
-Eso es el historial, no el estado de hoy: un evento posterior renombra, termina o mueve una tarea. Para ver las tareas como están ahora, pídeselas a tu asistente por [[MCP|Asistentes-y-MCP]], o **Crear respaldo…**, en **Configuración › Copias**, escribe un zip con todo. Si necesitas un formato concreto para llevarte Tisty a otro lado, dilo en un issue.
+Eso es el historial, no el estado de hoy: un evento posterior renombra, termina o mueve una tarea. Para ver las tareas como están ahora, pídeselas a tu agente por [[MCP|Agentes-y-MCP]], o **Crear respaldo…**, en **Configuración › Copias**, escribe un zip con todo. Si necesitas un formato concreto para llevarte Tisty a otro lado, dilo en un issue.
 
 **¿Mis datos están cifrados?**
 En tu disco no, por decisión: la protección son los permisos de tu sistema operativo, y los archivos se pueden leer con herramientas que ya tienes. En una nube con la que Tisty habla directo, sí pueden estarlo: mira [Cifrar tu nube](Sincronizar-y-respaldar#cifrar-tu-nube). [PRIVACY.md](https://github.com/rgdevment/Tisty/blob/main/PRIVACY.md) explica por qué.
@@ -33,7 +33,7 @@ En tu disco no, por decisión: la protección son los permisos de tu sistema ope
 No como un tablero compartido. Tisty es de una persona por diseño: sin asignaciones, sin permisos, sin una base de datos compartida. Cada persona guarda sus propias tareas, documentos y agente, y cuando alguien necesita lo que sabes, le entregas el documento con Folio, cifrado y firmado. Mira [Compartir](Documentos#compartir).
 
 **¿Hay app móvil? ¿Linux?**
-No hay app móvil: Tisty es un programa de escritorio para Windows y macOS. Tus documentos son Markdown en una carpeta, así que un teléfono que llegue a esa carpeta puede leerlos y editarlos con cualquier app. Tampoco hay versión para Linux; un asistente que corre en Linux dentro de Windows, con WSL, llega a Tisty igual desde Configuración › Asistentes › Conectados.
+No hay app móvil: Tisty es un programa de escritorio para Windows y macOS. Tus documentos son Markdown en una carpeta, así que un teléfono que llegue a esa carpeta puede leerlos y editarlos con cualquier app. Tampoco hay versión para Linux; un agente que corre en Linux dentro de Windows, con WSL, llega a Tisty igual desde Configuración › Agentes › Conectados.
 
 **¿Los recordatorios suenan con Tisty cerrado?**
 Sí, desde la 1.48, mientras el equipo esté encendido: Tisty los agenda en Windows o macOS, y un clic en el aviso abre la tarea. Mira [Recordatorios](Reparto-y-recordatorios#recordatorios).
@@ -44,19 +44,19 @@ Por sí solo, no. **Guardar en mi calendario**, en una tarea con fecha, la deja 
 **¿Hay un diario, o notas diarias?**
 Sí, desde la 1.48: **Diario** en la Biblioteca, un libro por año con una página por mes y una sección por día. Mira [Diario](Documentos#diario).
 
-**¿Mi asistente puede leer mi diario?**
+**¿Mi agente puede leer mi diario?**
 No, hasta que pulsas **Solo tú** arriba en el Diario y dice **Abierto a los agentes**; aun así solo añade al final de hoy, cuando se lo pides. **Diario** no empieza tu diario mientras alguno de tus equipos use un Tisty anterior a la 1.48, y desde que existe, un equipo con una versión anterior deja de sincronizar antes de recibirlo.
 
 **¿Funciona con un lector de pantalla?**
 Que se sepa, no. Toda la ventana funciona con el teclado y ese camino está probado, pero nunca se ha probado con un lector de pantalla real. Si usas uno, un [reporte](https://github.com/rgdevment/Tisty/issues) que diga dónde falla sería de lo más útil.
 
-## IA y asistentes
+## IA y agentes
 
 **¿Cómo le doy a mi agente de IA una memoria entre sesiones?**
-Conecta Tisty por MCP, como muestra [[Asistentes y MCP|Asistentes-y-MCP]]: Configuración › Asistentes conecta GitHub Copilot, Claude Code, Codex, Cursor… y [[cada uno de los otros que conoce|Asistentes-y-MCP#conectar-un-asistente]]. Desde ahí, el agente empieza cada sesión preguntando qué cambió desde la anterior, anota su trabajo como tareas con pasos y bitácora, y guarda lo que aprende en documentos. La próxima sesión, en cualquier proyecto, parte de ahí. Mira [Un día con tu agente](Asistentes-y-MCP#un-día-con-tu-agente).
+Conecta Tisty por MCP, como muestra [[Agentes y MCP|Agentes-y-MCP]]: Configuración › Agentes conecta GitHub Copilot, Claude Code, Codex, Cursor… y [[cada uno de los otros que conoce|Agentes-y-MCP#conectar-un-agente]]. Desde ahí, el agente empieza cada sesión preguntando qué cambió desde la anterior, anota su trabajo como tareas con pasos y bitácora, y guarda lo que aprende en documentos. La próxima sesión, en cualquier proyecto, parte de ahí. Mira [Un día con tu agente](Agentes-y-MCP#un-día-con-tu-agente).
 
 **¿Reemplaza a CLAUDE.md, AGENTS.md o una carpeta memory-bank?**
-Para lo que cambia, sí; para lo que no, no. Las instrucciones que casi no se mueven (cómo compilar, las convenciones) van en los archivos que tu repositorio ya le entrega al asistente. Lo que se mueve (el avance, las decisiones, lo descartado, lo que falta) va en Tisty, donde queda fechado, buscable, se lee una sección a la vez y no se pierde entre ramas, equipos ni proyectos.
+Para lo que cambia, sí; para lo que no, no. Las instrucciones que casi no se mueven (cómo compilar, las convenciones) van en los archivos que tu repositorio ya le entrega al agente. Lo que se mueve (el avance, las decisiones, lo descartado, lo que falta) va en Tisty, donde queda fechado, buscable, se lee una sección a la vez y no se pierde entre ramas, equipos ni proyectos.
 
 Y los archivos de tu carpeta personal, como `~/.claude/CLAUDE.md` o `~/.codex/AGENTS.md`, la carpeta [[Agentes|Carpeta-AGENTS]] los trae a Tisty como documentos, si se lo pides. **Traer** solo los copia; **Sincronizar** además escribe en ellos lo que cambias en Tisty, con un respaldo antes. Los archivos de tu repositorio no los toca.
 
@@ -64,12 +64,12 @@ Y los archivos de tu carpeta personal, como `~/.claude/CLAUDE.md` o `~/.codex/AG
 No por su cuenta. Las lee como cualquier documento, pero un cambio suyo queda como propuesta: en la ficha ves lo **Aprobado** y lo **Propuesto**, y solo con **Aprobar el cambio** llega a los archivos de tus agentes, en cada equipo donde Agentes sincroniza y lo aplicaste. Mira [[Una propuesta de tu agente|Carpeta-AGENTS#una-propuesta-de-tu-agente]].
 
 **¿Tisty usa IA?**
-No. Tisty no es IA ni la lleva dentro. Eso no va a cambiar. El lenguaje natural son reglas en tu equipo. Si usas un asistente propio, Tisty deja una [[puerta MCP|Asistentes-y-MCP]]: viene abierta y la cierras cuando quieras.
+No. Tisty no es IA ni la lleva dentro. Eso no va a cambiar. El lenguaje natural son reglas en tu equipo. Si usas un agente propio, Tisty deja una [[puerta MCP|Agentes-y-MCP]]: viene abierta y la cierras cuando quieras.
 
-**Un asistente dice que una de sus tareas está hecha. ¿La cerró?**
-No. Nada de lo que hace un asistente cierra una tarea. La marca, con su cuenta en la bitácora, y la tarea espera en **Por confirmar** hasta que decidas. Mira [[Qué puede hacer un asistente|Qué-puede-hacer-un-asistente]].
+**Un agente dice que una de sus tareas está hecha. ¿La cerró?**
+No. Nada de lo que hace un agente cierra una tarea. La marca, con su cuenta en la bitácora, y la tarea espera en **Por confirmar** hasta que decidas. Mira [[Qué puede hacer un agente|Qué-puede-hacer-un-agente]].
 
-**¿Un asistente puede escribir encima de un documento que estoy editando?**
+**¿Un agente puede escribir encima de un documento que estoy editando?**
 Solo encima de la versión que leyó. Para reemplazar un documento entero tiene que devolver la huella del texto que leyó; si escribiste entretanto, no se escribe nada y tiene que volver a leer. Lo que reemplazó queda guardado como una versión en su historial, y desde **Ver el historial** vuelves a ella cuando quieras ([Versiones anteriores](Documentos#versiones-anteriores)). Además, la ventana te ofrece volver atrás de inmediato, solo cuando esa copia está exactamente una escritura atrás, que es la única vez en que puede hacer lo que dice. Si intentas guardar encima de un cambio que no habías visto, te pregunta cuál se queda.
 
 ## Documentos
@@ -93,7 +93,7 @@ No. Los dos se dibujan con código que va dentro de Tisty: no se descarga nada, 
 En lo larga que se dibuja la raya bajo el encabezado. Mira [tablas](https://markdown.tisty.app/es/tablas) en la guía de Markdown de Tisty.
 
 **¿Puedo volver a lo que decía un documento hace unos días?**
-Sí, en el equipo donde se cambió: **Ver el historial**, en la fila **Historial** del panel junto al documento, lista sus versiones anteriores, **Qué cambió** te muestra en rojo y verde qué es distinto de lo de ahora, y **Volver a esta versión** la recupera. Tisty guarda una cuando alguien escribe después de 30 minutos sin cambios o cuando cambia quien escribe, tú o un asistente, así que lo que reemplazó tu agente siempre queda aparte. Se guardan 30 días por defecto, no se sincronizan y **Vaciar el historial** las borra de ese equipo. Mira [Documentos](Documentos#versiones-anteriores).
+Sí, en el equipo donde se cambió: **Ver el historial**, en la fila **Historial** del panel junto al documento, lista sus versiones anteriores, **Qué cambió** te muestra en rojo y verde qué es distinto de lo de ahora, y **Volver a esta versión** la recupera. Tisty guarda una cuando alguien escribe después de 30 minutos sin cambios o cuando cambia quien escribe, tú o un agente, así que lo que reemplazó tu agente siempre queda aparte. Se guardan 30 días por defecto, no se sincronizan y **Vaciar el historial** las borra de ese equipo. Mira [Documentos](Documentos#versiones-anteriores).
 
 **¿En qué se diferencia la red de Brainsty del grafo de Obsidian?**
 El grafo de Obsidian muestra enlaces entre notas. Brainsty une documentos y tareas, con el estado de cada tarea y su historia, y la misma red le sirve a tu agente como índice para buscar sin leerlo todo. Dibuja con líneas lo que está escrito (enlaces, tarjetas, páginas, partes, de dónde nació una tarea y etiquetas), y lo escrito pesa más que una etiqueta al acomodarse; las carpetas y las listas dan el color, no son puntos. Con una curva ámbar aparte, lo que Tisty cree que se parece: porque comparte palabras, porque una tiene un error de tipeo o porque una es la traducción de la otra, y siempre dice por qué. Se abre en el panel de contenido, junto a la barra lateral, con una leyenda de sus colores, y no gasta nada cuando pasas a otra vista. Mira [[La red de Brainsty|Red-de-Brainsty]].

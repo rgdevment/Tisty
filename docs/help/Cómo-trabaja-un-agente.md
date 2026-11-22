@@ -2,22 +2,22 @@
 
 Lo que más me cansaba de trabajar con agentes no era explicarles el problema: era recordarles, respuesta tras respuesta, que marcaran lo que hicieron y anotaran lo que descartaron. Las instrucciones solas no alcanzaban. Así que Tisty ahora le pregunta al agente cuando se olvida, le da una forma barata de dejar la tarea al día, enlaza lo que nombra y le sirve todo lo que guardas como un índice que puede recorrer sin leerlo entero.
 
-Esta página sigue una sesión real de un agente, paso a paso, con las llamadas que hace y un extracto de lo que Tisty le responde. Cómo conectar uno está en [[Asistentes y MCP|Asistentes-y-MCP]]; cada herramienta, en [[Herramientas MCP|Herramientas-MCP]]; lo que puede y no puede hacer, en [[Qué puede hacer un asistente|Qué-puede-hacer-un-asistente]].
+Esta página sigue una sesión real de un agente, paso a paso, con las llamadas que hace y un extracto de lo que Tisty le responde. Cómo conectar uno está en [[Agentes y MCP|Agentes-y-MCP]]; cada herramienta, en [[Herramientas MCP|Herramientas-MCP]]; lo que puede y no puede hacer, en [[Qué puede hacer un agente|Qué-puede-hacer-un-agente]].
 
 ## Lo que cambió con Brainsty
 
 - **Busca y navega con una sola herramienta, `brain`.** Encuentra tareas y documentos por sus palabras, con el archivo junto a lo demás; trae la ficha de un documento o una tarea con sus vecinos; y muestra un proyecto entero agrupado en bloqueado, en curso, esperándote y sin empezar.
 - **Lee con una sola herramienta, `read`.** Una tarea o un documento, entero o por partes, solo lo resaltado, o una versión anterior; y si nada cambió desde su última lectura, solo eso.
 - **Deja la tarea al día en una llamada.** `tick` marca los pasos y escribe el estado de la tarea, una sección «Estado» de su página que se reemplaza entera cada vez. Al retomar, `read` le trae ese estado primero.
-- **Tisty le pregunta si se olvida.** En sus respuestas, a cualquier asistente; y con los hooks, al empezar y al terminar cada turno.
+- **Tisty le pregunta si se olvida.** En sus respuestas, a cualquier agente; y con los hooks, al empezar y al terminar cada turno.
 - **Lo que nombra queda enlazado.** Una tarea o un documento nombrado por su id o por su título exacto entre comillas se vuelve un enlace al guardar, igual que si lo hubieras hecho tú.
 
 ## Antes de empezar
 
-En **Configuración › Asistentes**:
+En **Configuración › Agentes**:
 
-1. En la pestaña **Conectados**, **Conectar** pone Tisty en la configuración del asistente. Mira [[Asistentes y MCP|Asistentes-y-MCP]].
-2. Ahí mismo, bajo un asistente conectado (Claude Code, Cursor, Gemini CLI o GitHub Copilot), la fila **Hooks: al empezar y al terminar cada turno** dice **Sin agregar**. **Agregar** te dice qué archivo va a escribir; **Agregarlos** los pone. Desde su próxima sesión, el asistente los usa.
+1. En la pestaña **Conectados**, **Conectar** pone Tisty en la configuración del agente. Mira [[Agentes y MCP|Agentes-y-MCP]].
+2. Ahí mismo, bajo un agente conectado (Claude Code, Cursor, Gemini CLI o GitHub Copilot), la fila **Hooks: al empezar y al terminar cada turno** dice **Sin agregar**. **Agregar** te dice qué archivo va a escribir; **Agregarlos** los pone. Desde su próxima sesión, el agente los usa.
 3. En la pestaña **Puerta**, dos interruptores, encendidos de entrada:
    - **Pedirle que deje su tarea al día**: la pregunta en las respuestas.
    - **Recordarle al empezar y al terminar cada turno**: los hooks, sin quitarlos del archivo.
@@ -216,11 +216,11 @@ Al final de la sesión, `brain` con `part_of` ya muestra «Webhook de confirmaci
 | `lists`, `tags` | `brain` sin nada |
 | `read_doc` | `read` con `doc`, con las mismas partes (`section`, líneas, `chars`, `as`) y además `marks`, `versions` y `version` |
 
-Un asistente que todavía llama a una de ellas recibe dónde quedó («`find` moved into `brain`», «`read_doc` moved into `read`») y no pasa nada más. Cuando todas las filas de una lista comparten un campo, como la lista o la tarea de la que son partes, llega una sola vez, en `each`.
+Un agente que todavía llama a una de ellas recibe dónde quedó («`find` moved into `brain`», «`read_doc` moved into `read`») y no pasa nada más. Cuando todas las filas de una lista comparten un campo, como la lista o la tarea de la que son partes, llega una sola vez, en `each`.
 
 ## Lo que conviene saber
 
-- **Asistentes sin hooks.** Codex y Claude Desktop no corren hooks: les llega solo la pregunta en las respuestas, y solo cuando llaman a Tisty.
+- **Agentes sin hooks.** Codex y Claude Desktop no corren hooks: les llega solo la pregunta en las respuestas, y solo cuando llaman a Tisty.
 - **Trabajo que no edita archivos**, como planificar o investigar, no lo ve el hook del final del turno: ahí queda la pregunta en las respuestas.
 - **GitHub Copilot** puede gastar una solicitud premium en el turno que se le devuelve.
 - **Cursor** también corre los hooks de Claude Code; aunque se disparen los dos, el turno vuelve una sola vez.
@@ -233,7 +233,7 @@ Un asistente que todavía llama a una de ellas recibe dónde quedó («`find` mo
 
 ## Para seguir
 
-- [[Asistentes y MCP|Asistentes-y-MCP]]: conectar un asistente, los pedidos listos y lo que cuesta.
+- [[Agentes y MCP|Agentes-y-MCP]]: conectar un agente, los pedidos listos y lo que cuesta.
 - [[Herramientas MCP|Herramientas-MCP]]: la lista completa.
 - [[La red de Brainsty|Red-de-Brainsty]]: la misma red, dibujada para ti.
 - [[Tareas en documentos|Tareas-en-documentos]]: las tarjetas que también deja tu agente.

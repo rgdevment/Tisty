@@ -139,8 +139,8 @@ describe("the report a bug gets attached to", () => {
   it("says how this copy was installed and whether an assistant can file", () => {
     expect(written(seen, at)).toMatch(/installed from\s+a download/);
     expect(written({ ...seen, installed: "disk" }, at)).toContain("the disk image");
-    expect(written(seen, at)).toMatch(/assistants\s+cannot file here/);
-    expect(written({ ...seen, assistant: true }, at)).toMatch(/assistants\s+can file here/);
+    expect(written(seen, at)).toMatch(/agents\s+cannot file here/);
+    expect(written({ ...seen, assistant: true }, at)).toMatch(/agents\s+can file here/);
   });
 
   it("leaves out how large an attachment may be, which never changes", () => {

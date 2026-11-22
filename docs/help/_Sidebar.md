@@ -14,9 +14,9 @@
 - [[Spread and reminders|Spread-and-Reminders]]
 - [[The archive|Archive]]
 
-**Assistants (MCP)**
-- [[Assistants and MCP|Assistants-and-MCP]]
-- [[What an assistant may do|MCP-Permissions]]
+**Agents (MCP)**
+- [[Agents and MCP|Agents-and-MCP]]
+- [[What an agent may do|MCP-Permissions]]
 - [[Tools reference|MCP-Tools]]
 - [[Agents: rules, skills and memory|AGENTS-Folder]]
 
@@ -57,9 +57,9 @@
 - [[Reparto y recordatorios|Reparto-y-recordatorios]]
 - [[El archivo|El-archivo]]
 
-**Asistentes (MCP)**
-- [[Asistentes y MCP|Asistentes-y-MCP]]
-- [[Qué puede hacer un asistente|Qué-puede-hacer-un-asistente]]
+**Agentes (MCP)**
+- [[Agentes y MCP|Agentes-y-MCP]]
+- [[Qué puede hacer un agente|Qué-puede-hacer-un-agente]]
 - [[Herramientas MCP|Herramientas-MCP]]
 - [[Agentes: reglas, skills y memoria|Carpeta-AGENTS]]
 

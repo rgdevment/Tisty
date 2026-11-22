@@ -47,7 +47,7 @@ If another program already holds the capture shortcut, Tisty takes another one a
 | :-- | :-- |
 | `↑` `↓` (in the column) | Move the focus between pages, without opening them |
 | `Enter` (in the column) | Open the marked page |
-| `←` `→` (in the **Assistants** tabs) | Change tab |
+| `←` `→` (in the **Agents** tabs) | Change tab |
 | `Home` / `End` (in the column or in the tabs) | Go to the first or the last |
 | `Esc` | Leave Settings; in **Search a setting**, it first clears what you typed |
 

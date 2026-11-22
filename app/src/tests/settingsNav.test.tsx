@@ -22,7 +22,7 @@ describe("the settings bar", () => {
       "Security",
       "Copies",
       "Storage",
-      "Assistants",
+      "Agents",
       "Health",
       "Help and about",
     ]);
@@ -45,7 +45,7 @@ describe("the settings bar", () => {
       "Seguridad",
       "Copias",
       "Almacenamiento",
-      "Asistentes",
+      "Agentes",
       "Salud",
       "Ayuda y acerca de",
     ]);
@@ -110,7 +110,7 @@ describe("the settings pages", () => {
       slug: "sincronizar-y-respaldar",
       heading: "Cifrar tu nube",
     });
-    expect(articleOf("agents", false)).toEqual({ slug: "assistants-and-mcp" });
+    expect(articleOf("agents", false)).toEqual({ slug: "agents-and-mcp" });
     expect(articleOf("about", false)).toBeUndefined();
   });
 });

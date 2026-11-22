@@ -74,7 +74,7 @@ On a computer that holds nothing of yours yet, if your Drive already holds your 
 
 A round of syncing that runs past a minute says for how long on the **Sync now** button, **Syncing for 3 min…**, so a long first round never looks frozen.
 
-It can only be connected from the window. Assistants never reach the network, and a copy of Tisty built without the project's Google credentials does not offer the cloud at all.
+It can only be connected from the window. Agents never reach the network, and a copy of Tisty built without the project's Google credentials does not offer the cloud at all.
 
 Before you sign in, and before a move to Drive starts, Tisty checks that Google answers: one request to `www.googleapis.com` with nothing of yours in it, given up after 10 seconds. If a proxy, a filter at work or an antivirus is in the way, or if it inspects secure connections, or if Google is having trouble, Tisty says so in red there, in plain words, with **Check again**; if Google was only slow to answer, it says so in grey, and that you can connect anyway. It never stops you from connecting, never goes around a proxy, and never runs on a round of syncing.
 

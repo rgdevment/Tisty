@@ -338,7 +338,7 @@ describe("an agent document's card", () => {
     shown(card([place({ state: "off" })], { folderOff: true }));
     expect(
       screen.getByText(
-        /Elige Sincronizar en la barra o en Configuración › Asistentes › Carpeta Agentes\./,
+        /Elige Sincronizar en la barra o en Configuración › Agentes › Carpeta Agentes\./,
       ),
     ).toBeTruthy();
     adopt("en");
@@ -383,7 +383,7 @@ describe("an agent document's card", () => {
 
   it("says when no assistant reads it yet, and draws code as is", () => {
     shown(card([], { code: true }));
-    expect(screen.getByText(/No assistant on this computer reads this document yet/)).toBeTruthy();
+    expect(screen.getByText(/No agent on this computer reads this document yet/)).toBeTruthy();
   });
 
   it("shows the worst of its places' states and when the file changed", () => {
@@ -445,7 +445,7 @@ describe("an agent document's card", () => {
     window.addEventListener(AGENTS_CHANGED, changed);
     shown(card([], { here: "waiting" }));
     expect(screen.getByRole("status").textContent).toMatch(/comes from another computer/);
-    expect(screen.queryByText(/No assistant on this computer/)).toBeNull();
+    expect(screen.queryByText(/No agent on this computer/)).toBeNull();
     await userEvent.click(screen.getByRole("button", { name: "Not on this computer" }));
     await waitFor(() => expect(changed).toHaveBeenCalled());
     expect(sent("agent_doc")[0].args).toEqual({

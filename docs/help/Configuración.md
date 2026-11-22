@@ -1,6 +1,6 @@
 # Configuración
 
-Configuración es donde Tisty se acomoda a ti: cómo se ve, cómo te avisa, dónde deja tus copias, quién escribe en él y cómo está todo. La ordené para que lo que pide algo de ti salga primero, en **Resumen**, y para que cualquier ajuste se encuentre escribiendo su nombre, sin recorrer página por página. Sirve igual si trabajas con tu agente o solo: nada de lo que hay aquí exige conectar un asistente.
+Configuración es donde Tisty se acomoda a ti: cómo se ve, cómo te avisa, dónde deja tus copias, quién escribe en él y cómo está todo. La ordené para que lo que pide algo de ti salga primero, en **Resumen**, y para que cualquier ajuste se encuentre escribiendo su nombre, sin recorrer página por página. Sirve igual si trabajas con tu agente o solo: nada de lo que hay aquí exige conectar un agente.
 
 ## Abrir la Configuración
 
@@ -14,7 +14,7 @@ El engranaje y la paleta abren siempre en **Resumen**. A la izquierda tienes, en
 |---|---|---|
 | **Este equipo** | [Aspecto y ventana](#aspecto-y-ventana), [Tareas y avisos](#tareas-y-avisos), [Documentos y firma](#documentos-y-firma) | Cómo se ve y se porta Tisty en este equipo, cómo anotas y te avisa, y con qué nombre firmas |
 | **Tus datos** | [Sincronización](#sincronización), [Seguridad](#seguridad), [Copias](#copias), [Almacenamiento](#almacenamiento) | Dónde viajan tus copias, quién eres en tus equipos, tus respaldos y cuánto ocupa todo |
-| **Conexiones** | [Asistentes](#asistentes) | La puerta para tu agente y los asistentes conectados en este equipo |
+| **Conexiones** | [Agentes](#agentes) | La puerta para tu agente y los agentes conectados en este equipo |
 | **Tisty** | [Salud](#salud), [Ayuda y acerca de](#ayuda-y-acerca-de) | La revisión de tu historial, la versión que tienes y dónde pedir ayuda |
 
 Una página que tiene algo por atender lleva un número a la derecha de su nombre, el mismo que cuenta **Resumen**: con **Seguridad 1** y **Copias 1** sabes, sin abrir nada, que hay una cosa en cada una.
@@ -35,11 +35,11 @@ Después de instalar, **Resumen** te propone cinco pasos, cada uno con **Ir ›*
 2. **Crea tu frase de 24 palabras** — tu identidad en todos tus equipos. Te lleva a **Tu identidad**, en [Seguridad](#seguridad).
 3. **Haz tu primer respaldo** — un archivo tuyo, fuera de Tisty. Te lleva a **Guardar una copia**, en [Copias](#copias).
 4. **Ponle tu alias a lo que escribes** — con lo que firmas tus documentos. Te lleva a **Alias**, en [Documentos y firma](#documentos-y-firma).
-5. **Conecta un asistente** — opcional. Te lleva a la pestaña **Conectados** de [Asistentes](#asistentes).
+5. **Conecta un agente** — opcional. Te lleva a la pestaña **Conectados** de [Agentes](#agentes).
 
 El título cuenta lo hecho, **Deja Tisty a tu medida · 1 de 5**, y cada paso hecho queda tachado con un ✓. Cuando terminas los cuatro primeros, la lista se va sola: el quinto es opcional y no la retiene.
 
-**Ejemplo.** Marisol instala Tisty en su portátil nuevo y, en la bienvenida, elige **Solo en este equipo**. Al abrir Configuración ve **Deja Tisty a tu medida · 1 de 5**: el paso 1 ya está tachado, porque quedarse en este equipo también es elegir. Pulsa **Ir ›** en el paso 2, crea su frase en **Seguridad** y vuelve: ahora dice **2 de 5**. Hace su respaldo, escribe «Marisol» como alias y la lista desaparece, aunque todavía no conecta ningún asistente.
+**Ejemplo.** Marisol instala Tisty en su portátil nuevo y, en la bienvenida, elige **Solo en este equipo**. Al abrir Configuración ve **Deja Tisty a tu medida · 1 de 5**: el paso 1 ya está tachado, porque quedarse en este equipo también es elegir. Pulsa **Ir ›** en el paso 2, crea su frase en **Seguridad** y vuelve: ahora dice **2 de 5**. Hace su respaldo, escribe «Marisol» como alias y la lista desaparece, aunque todavía no conecta ningún agente.
 
 ### Por atender
 
@@ -57,7 +57,7 @@ Debajo, **Por atender · 2** junta lo que pide algo de ti, cada cosa con un punt
 | **Tu último respaldo es de lun, 5 oct 11:47** (30 días o más) | **Crear respaldo** | Copias › Guardar una copia |
 | **3 cosas por revisar en tu historial** | **Revisar** | Salud |
 | **La captura rápida se quedó sin atajo** | **Elegir otro** | Tareas y avisos › Captura rápida |
-| **Claude Code apunta a un Tisty que ya no existe** | **Corregir** | Asistentes › Conectados |
+| **Claude Code apunta a un Tisty que ya no existe** | **Corregir** | Agentes › Conectados |
 
 Cuando no queda nada, dice **Nada pide tu atención.** con un punto verde. Esa frase solo aparece si Tisty pudo leer todo lo que revisa al abrir: si una lectura falló o sigue en camino, no la dice, porque no puede prometerlo. Mientras están los pasos de **Deja Tisty a tu medida**, tampoco.
 
@@ -65,11 +65,11 @@ Cuando no queda nada, dice **Nada pide tu atención.** con un punto verde. Esa f
 
 Cada una de estas cosas sale también en su fila, como nota ámbar **Atención**: es la misma, no otra, y al resolverla se va de las dos partes y del número de la columna a la vez. Más en [Atención, en su fila](#atención-en-su-fila).
 
-Algunas cosas solo se saben después de mirar: los equipos que esperan tu confirmación salen cuando ya abriste **Seguridad** o **Salud**, lo que hay que revisar en tu historial, cuando ya abriste **Salud**, y un asistente que apunta a otro Tisty, cuando ya abriste **Asistentes**. **Resumen** no lanza esas revisiones por su cuenta.
+Algunas cosas solo se saben después de mirar: los equipos que esperan tu confirmación salen cuando ya abriste **Seguridad** o **Salud**, lo que hay que revisar en tu historial, cuando ya abriste **Salud**, y un agente que apunta a otro Tisty, cuando ya abriste **Agentes**. **Resumen** no lanza esas revisiones por su cuenta.
 
 ### Estado
 
-**Estado** tiene seis mosaicos, uno por página: **Sincronización**, **Copias**, **Seguridad**, **Asistentes**, **Salud** y **Ayuda y acerca de**. Cada uno dice lo esencial con un punto de color, y al pulsarlo abre su página.
+**Estado** tiene seis mosaicos, uno por página: **Sincronización**, **Copias**, **Seguridad**, **Agentes**, **Salud** y **Ayuda y acerca de**. Cada uno dice lo esencial con un punto de color, y al pulsarlo abre su página.
 
 - **Punto verde**: está bien y Tisty lo sabe de primera mano.
 - **Punto ámbar**: algo sigue funcionando, pero conviene mirarlo.
@@ -81,13 +81,13 @@ Algunas cosas solo se saben después de mirar: los equipos que esperan tu confir
 | **Sincronización** | **En Google Drive** (o tu carpeta, tu OneDrive, tu WebDAV) con una ronda que terminó bien o en curso | Algo te pide a ti, **sin noticias desde …** (tres días sin nada de tus otros equipos) o **La eligió un Tisty más nuevo** | **Desactivada** · solo en este equipo; sin conexión, con el límite de hoy o esperando; o **todavía no se pudo leer el estado de la nube** |
 | **Copias** | **Último respaldo** con su fecha | El último respaldo tiene 30 días o más | **Sin respaldo** · ninguna todavía |
 | **Seguridad** | **Frase confirmada** | **Frase sin confirmar**, **Frase en otro equipo**, o un equipo que espera tu confirmación | **Sin frase todavía** · tu identidad nace con ella |
-| **Asistentes** | **Puerta abierta** · firma como «palmera 95» | Un asistente apunta a un Tisty que ya no existe | **Puerta cerrada** · se le niega lo que pida un asistente |
+| **Agentes** | **Puerta abierta** · firma como «palmera 95» | Un agente apunta a un Tisty que ya no existe | **Puerta cerrada** · se le niega lo que pida un agente |
 | **Salud** | **Todo en orden** · revisado 10:42 | **3 cosas por revisar**, o **Algunas revisiones no se pudieron hacer** | **Sin revisar todavía** · se revisa al abrir Salud |
 | **Ayuda y acerca de** | **Tisty 1.49.0** · estás al día, si Tisty buscó versiones hoy y le respondieron | **Hay una 1.50.0** · tienes la 1.49.0 | **aún no busca versiones nuevas**, o **buscó por última vez …** si la última respuesta no es de hoy |
 
 **Salud** es el único que no se revisa al abrir Configuración: muestra la última revisión que hiciste en esta ventana, con su hora, así que ves cuánto tiene.
 
-**En otro equipo**, **Resumen** habla de ese equipo: cada uno guarda sus respaldos, su revisión de **Salud** y sus asistentes, así que en tu escritorio puede decir **Sin respaldo** aunque el portátil tenga uno de ayer. La frase, en cambio, es tuya en todos: en un equipo donde todavía no la escribiste, **Seguridad** dice **Frase en otro equipo** · escríbela aquí para reconocer este.
+**En otro equipo**, **Resumen** habla de ese equipo: cada uno guarda sus respaldos, su revisión de **Salud** y sus agentes, así que en tu escritorio puede decir **Sin respaldo** aunque el portátil tenga uno de ayer. La frase, en cambio, es tuya en todos: en un equipo donde todavía no la escribiste, **Seguridad** dice **Frase en otro equipo** · escríbela aquí para reconocer este.
 
 ## Buscar un ajuste
 
@@ -192,23 +192,23 @@ Más en [Adjuntos grandes](Sincronizar-y-respaldar#adjuntos-grandes) y [Privacid
 
 ## Conexiones
 
-### Asistentes
+### Agentes
 
-«Tisty no lleva IA dentro. La pone tu asistente; Tisty es la memoria que comparten.» La página tiene cinco pestañas:
+«Tisty no lleva IA dentro. La pone tu agente; Tisty es la memoria que comparten.» La página tiene cinco pestañas:
 
-- **Puerta**: **Un asistente puede anotar aquí**, con **Quitarle la voz** para cerrarla (y **Dejar que un asistente anote** para abrirla otra vez), **Pedirle que deje su tarea al día** y **Recordarle al empezar y al terminar cada turno**.
-- **Conectados**: **Asistentes en este equipo**, con **Buscar de nuevo**, un buscador para los que Tisty conoce y no encontró, **Escribieron en Tisty desde otros lugares** y **Cómo conectar uno**, plegado, para conectarlo a mano.
+- **Puerta**: **Un agente puede anotar aquí**, con **Quitarle la voz** para cerrarla (y **Dejar que un agente anote** para abrirla otra vez), **Pedirle que deje su tarea al día** y **Recordarle al empezar y al terminar cada turno**.
+- **Conectados**: **Agentes en este equipo**, con **Buscar de nuevo**, un buscador para los que Tisty conoce y no encontró, **Escribieron en Tisty desde otros lugares** y **Cómo conectar uno**, plegado, para conectarlo a mano.
 - **Carpeta Agentes**: la tarjeta **Agentes**, para traer y sincronizar las reglas, skills y memoria de tus agentes. Más en [Agentes: reglas, skills y memoria](Carpeta-AGENTS).
-- **Cómo se ve su firma**: **Quién firma lo que escribe un asistente**, con una **Vista previa de una fila** que cambia al momento, **Solo un rombo**, **Nombrar al asistente en la lista de tareas** y **Nombrar al asistente dentro de una tarea**.
+- **Cómo se ve su firma**: **Quién firma lo que escribe un agente**, con una **Vista previa de una fila** que cambia al momento, **Solo un rombo**, **Nombrar al agente en la lista de tareas** y **Nombrar al agente dentro de una tarea**.
 - **Qué puede y qué no**: **Lo que puede hacer** y **Lo que no podrá hacer nunca**, lado a lado.
 
 Con el teclado, `←` y `→` cambian de pestaña, e `Inicio` y `Fin` saltan a la primera y a la última.
 
-Con la puerta cerrada, la página te lo recuerda donde importa. En **Puerta**, **Pedirle que deje su tarea al día** y **Recordarle al empezar y al terminar cada turno** quedan en gris con la nota **Falta algo**: «Estos dos ajustes actúan cuando la puerta está abierta.». En **Conectados**, si tienes asistentes conectados, **Asistentes en este equipo** dice «Aun así no anotarán nada hasta que abras la puerta.», con **Ir a Puerta**. Y en **Cómo se ve su firma**, con **Solo un rombo** encendido, los dos interruptores de nombre quedan en gris: «Los dos de arriba quedan apagados mientras «Solo un rombo» esté encendido.».
+Con la puerta cerrada, la página te lo recuerda donde importa. En **Puerta**, **Pedirle que deje su tarea al día** y **Recordarle al empezar y al terminar cada turno** quedan en gris con la nota **Falta algo**: «Estos dos ajustes actúan cuando la puerta está abierta.». En **Conectados**, si tienes agentes conectados, **Agentes en este equipo** dice «Aun así no anotarán nada hasta que abras la puerta.», con **Ir a Puerta**. Y en **Cómo se ve su firma**, con **Solo un rombo** encendido, los dos interruptores de nombre quedan en gris: «Los dos de arriba quedan apagados mientras «Solo un rombo» esté encendido.».
 
-**Quitarle la voz** te pregunta antes de cerrar: «Ningún asistente podrá anotar en Tisty.», todo lo que escribió se queda en su sitio, y los asistentes conectados siguen conectados, pero se les niega lo que pidan. No pide casilla, porque **Dejar que un asistente anote** la abre otra vez.
+**Quitarle la voz** te pregunta antes de cerrar: «Ningún agente podrá anotar en Tisty.», todo lo que escribió se queda en su sitio, y los agentes conectados siguen conectados, pero se les niega lo que pidan. No pide casilla, porque **Dejar que un agente anote** la abre otra vez.
 
-Si trabajas sin agente, esta página puede esperar: la puerta abierta no hace nada mientras ningún asistente llame. Todo lo demás en [Asistentes y MCP](Asistentes-y-MCP).
+Si trabajas sin agente, esta página puede esperar: la puerta abierta no hace nada mientras ningún agente llame. Todo lo demás en [Agentes y MCP](Agentes-y-MCP).
 
 ## Tisty
 
@@ -264,11 +264,11 @@ Ningún botón rojo hace nada al primer clic. Abre una ventana con su nombre, lo
 Cuatro botones fuera de la zona preguntan igual, en su propia fila:
 
 - **Quitar**, en un equipo de **Seguridad › Tus equipos**: **¿Quitar este equipo?** Por ejemplo, «Portátil de Jaime deja de poder escribir en la carpeta compartida.»; lo que ya escribió se queda ahí y todos los equipos lo siguen viendo; si vuelve, entra como equipo nuevo, respaldado y vaciado antes; y cuándo escribió por última vez. Botón **Quitar el equipo**, con casilla.
-- **Quitarle la voz**, en **Asistentes › Puerta**: lo ves en [Asistentes](#asistentes). Sin casilla.
+- **Quitarle la voz**, en **Agentes › Puerta**: lo ves en [Agentes](#agentes). Sin casilla.
 - **Mover 5 a la papelera · 41 MB**, en **Almacenamiento › Adjuntos que nada usa**: **¿Mover a la papelera 5 adjuntos que nada usa?**, con «Los de este equipo quedan ahí por 30 días.» y el aviso de que los que están solo en la carpeta compartida se borran de ella y tu nube los guarda en su propia papelera. Sin casilla.
 - **Borrar para siempre**, en **Salud › Por revisar**: **¿Borrar «Recetas» para siempre?**, con «Aquí no queda copia.» para un documento suelto, o «El documento y lo que tiene se van para siempre, en todos tus equipos.» para uno que falta. Con casilla.
 
-Lo que se puede deshacer, o es un paso dentro de un asistente, sigue con una pregunta simple: volver a enviar todo, cancelar un cifrado a medias, mover un solo adjunto a la papelera y borrar las copias de la nube vieja al mudarte.
+Lo que se puede deshacer, o es un paso dentro de un agente, sigue con una pregunta simple: volver a enviar todo, cancelar un cifrado a medias, mover un solo adjunto a la papelera y borrar las copias de la nube vieja al mudarte.
 
 ![La ventana Restaurar desde un archivo, con sus tres frases, la casilla Entiendo que no se puede deshacer sin marcar y el botón Restaurar todavía en gris](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/settings/es-02-restaurar.png)
 
@@ -301,9 +301,9 @@ Un interruptor en gris nunca está roto: siempre lleva debajo la nota que dice p
 | Tareas y avisos › **Recordatorios importantes** | **Lo tiene el sistema** | Está encendido y falta permitirlo en el sistema | En Windows: «En Configuración → Sistema → Notificaciones → Tisty, permite las notificaciones importantes. Windows también puede preguntártelo en un aviso la primera vez: permítelo ahí también.» En un Mac, el paso de Ajustes del Sistema y Concentración | **Abrir la configuración del sistema** |
 | Seguridad › **Cifrar mis datos en la nube** | **Falta algo** | No hay una nube directa | «Conecta una nube en Sincronización para cifrar lo que Tisty guarda ahí.» | **Ir a Sincronización** |
 | Almacenamiento › **Dónde se quedan los adjuntos grandes** | **Falta algo** | No hay carpeta compartida | «Todavía no hay carpeta compartida, así que todo se queda en este equipo.» | **Ir a Sincronización** |
-| Asistentes › Puerta › **Recordarle al empezar y al terminar cada turno** | **Falta algo** | La puerta está cerrada | «Estos dos ajustes actúan cuando la puerta está abierta.» | — |
-| Asistentes › Conectados › **Asistentes en este equipo** | **Falta algo** | Hay asistentes conectados y la puerta está cerrada | «Aun así no anotarán nada hasta que abras la puerta.» | **Ir a Puerta** |
-| Asistentes › Cómo se ve su firma › **Nombrar al asistente dentro de una tarea** | **Falta algo** | **Solo un rombo** está encendido | «Los dos de arriba quedan apagados mientras «Solo un rombo» esté encendido.» | — |
+| Agentes › Puerta › **Recordarle al empezar y al terminar cada turno** | **Falta algo** | La puerta está cerrada | «Estos dos ajustes actúan cuando la puerta está abierta.» | — |
+| Agentes › Conectados › **Agentes en este equipo** | **Falta algo** | Hay agentes conectados y la puerta está cerrada | «Aun así no anotarán nada hasta que abras la puerta.» | **Ir a Puerta** |
+| Agentes › Cómo se ve su firma › **Nombrar al agente dentro de una tarea** | **Falta algo** | **Solo un rombo** está encendido | «Los dos de arriba quedan apagados mientras «Solo un rombo» esté encendido.» | — |
 | Ayuda y acerca de › **Recibir versiones candidatas** | **No aplica aquí** | La copia de la Microsoft Store | «La Microsoft Store mantiene esta copia al día y no ofrece candidatas.» | — |
 | Ayuda y acerca de › la actualización | **Dato** | Hay una versión nueva | «Este aviso también sale en el Resumen y como punto en la barra, no solo aquí.» | — |
 
@@ -311,7 +311,7 @@ Un interruptor en gris nunca está roto: siempre lleva debajo la nota que dice p
 
 Todo lo que lee o reescribe tu historial, la carpeta compartida o tu nube va de una cosa por vez: sincronizar, respaldar y restaurar, cifrar y descifrar, tu frase y tus equipos, llevar y traer documentos, la revisión de **Salud**, rehacer el índice rápido, liberar espacio, los adjuntos grandes, los botones de la **Zona delicada** y **Salir de Tisty**. Mientras una trabaja, las demás dicen **Esperando a que termine «…»** con el nombre de la que trabaja, y sus botones esperan en gris.
 
-Lo de todos los días sigue libre: idioma, aspecto, Tisto, qué hace al cerrar la ventana, iniciar con el equipo, los atajos, los avisos, tu calendario, tu alias, tu nombre para firmar, el historial de documentos, la puerta y la firma de tu asistente, la guía y la ayuda.
+Lo de todos los días sigue libre: idioma, aspecto, Tisto, qué hace al cerrar la ventana, iniciar con el equipo, los atajos, los avisos, tu calendario, tu alias, tu nombre para firmar, el historial de documentos, la puerta y la firma de tu agente, la guía y la ayuda.
 
 **Ejemplo.** Jaime pulsa **Crear respaldo…** y elige su disco externo. Al rato, bajo **Guardar una copia** aparece **Guardando el respaldo… 4 s**, y en la **Zona delicada** **Restaurar** dice «Esperando a que termine «Respaldo».», con el botón en gris. Mientras tanto va a **Aspecto y ventana** y elige **Oscuro**: sale **Guardado** al momento, porque el aspecto no toca sus datos. Si el disco se desconecta a mitad de camino, la fila del respaldo muestra **Error** con la causa y **Reintentar**; lo conecta otra vez y reintenta desde ahí.
 
@@ -327,7 +327,7 @@ Lo que **Por atender** junta en **Resumen** sale también en la fila donde se re
 | Tareas y avisos › **Captura rápida** | **La captura rápida se quedó sin atajo** | «Otra aplicación ya los usa. Elige otra combinación.» |
 | Copias › **Guardar una copia** | **Tu último respaldo es de lun, 5 oct 11:47** | — |
 | **Salud**, arriba | **3 cosas por revisar en tu historial** | — |
-| Asistentes › Conectados › **Asistentes en este equipo** | **Claude Code apunta a un Tisty que ya no existe** | — |
+| Agentes › Conectados › **Agentes en este equipo** | **Claude Code apunta a un Tisty que ya no existe** | — |
 
 Con una carpeta, **Dónde se sincroniza** también muestra ahí si tu nube pide iniciar sesión, si hay algo que revisar o si la sincronización está en pausa; con una nube directa, eso lo dice la tarjeta de tu nube, con su botón. La actualización no repite su aviso: su fila ya es la oferta, con la nota **Dato**.
 
@@ -370,7 +370,7 @@ Si venías de una versión anterior, cuando Configuración tenía las páginas G
 | Mantenimiento › la revisión, Por revisar, el índice rápido, Reportar un problema | Salud |
 | Mantenimiento › Liberar espacio y las cifras | Almacenamiento › Liberar espacio y Cuánto ocupa |
 | Acerca de | Ayuda y acerca de |
-| Asistentes, en una sola página | Asistentes, en cinco pestañas |
+| Agentes, en una sola página | Agentes, en cinco pestañas |
 
 ## Cuando algo no se ve como aquí
 
@@ -379,4 +379,4 @@ Si venías de una versión anterior, cuando Configuración tenía las páginas G
 - **Una lectura que falla**: el mosaico se queda en «…» o en gris, y **Resumen** no dice **Nada pide tu atención.** hasta poder leerlo todo. Volver a **Resumen** lo lee otra vez.
 - **Otro equipo**: cada equipo tiene su **Resumen**, sus respaldos y su revisión; lo que lleva **Viaja a tus equipos** llega al sincronizar.
 - **La copia de la Microsoft Store**: las actualizaciones las trae la Store. Si todavía no dice qué número trae, **Resumen** dice **La Store tiene una versión nueva**.
-- **Un asistente**: ningún asistente puede tocar la Configuración. Lo dice **Qué puede y qué no**: «Tocar la sincronización, los ajustes ni las máquinas» está entre lo que no podrá hacer nunca.
+- **Un agente**: ningún agente puede tocar la Configuración. Lo dice **Qué puede y qué no**: «Tocar la sincronización, los ajustes ni las máquinas» está entre lo que no podrá hacer nunca.

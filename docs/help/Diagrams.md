@@ -1,6 +1,6 @@
 # Diagrams
 
-A diagram in Tisty is a `mermaid` block inside a document: a few lines of text that Tisty draws, and that GitHub, Notion, Obsidian or an assistant read just the same. You can write them yourself, but you don't have to: the diagram window draws it with you and saves the result as that same text. On the page it is drawn light or dark with the window, redrawn when you switch, and legible at any width.
+A diagram in Tisty is a `mermaid` block inside a document: a few lines of text that Tisty draws, and that GitHub, Notion, Obsidian or an agent read just the same. You can write them yourself, but you don't have to: the diagram window draws it with you and saves the result as that same text. On the page it is drawn light or dark with the window, redrawn when you switch, and legible at any width.
 
 ![The diagram window over the guide: the shapes on the left, the flowchart Will you do it, or read it again? in the middle, and on the right the Mermaid text that goes into the document, live](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/app/en-diagram-light.webp)
 
@@ -49,6 +49,6 @@ A diagram the window cannot keep without changing it, such as a mind map with tw
 
 Images come out at twice their size so they stay sharp (a very large one somewhat less, as far as the system can paint it), and the file is named after the document, with "-2", "-3"… from its second diagram on. Mind maps, schemas, freeform and class diagrams come out just as you see them in the window, with your tables and shapes where you left them (a freeform one with icons or images comes out as Mermaid draws it); other kinds, as Mermaid draws them.
 
-## With an assistant
+## With an agent
 
-An assistant connected through [[MCP|Assistants-and-MCP]] writes diagrams like any other text in the document: a `mermaid` block. The `language` tool tells it which kinds the window opens and that `%% tisty:` lines are kept as they are, so it does not undo what you laid out.
+An agent connected through [[MCP|Agents-and-MCP]] writes diagrams like any other text in the document: a `mermaid` block. The `language` tool tells it which kinds the window opens and that `%% tisty:` lines are kept as they are, so it does not undo what you laid out.

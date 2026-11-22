@@ -126,9 +126,9 @@ Algunas cosas de Markdown que vienen de otra parte (las etiquetas HTML) no tiene
 
 La barra al pie del documento dice por qué.
 
-**Está en el archivo.** Archivar un documento, o la carpeta en que está, lo cierra a la escritura, tanto desde la ventana como desde un asistente. Desarchívalo y se vuelve a escribir.
+**Está en el archivo.** Archivar un documento, o la carpeta en que está, lo cierra a la escritura, tanto desde la ventana como desde un agente. Desarchívalo y se vuelve a escribir.
 
-**Lo bloqueaste.** **Bloquear**, en el menú del documento, lo cierra a la escritura, también a un asistente; **Desbloquear**, en ese menú o en la barra al pie, lo abre de nuevo.
+**Lo bloqueaste.** **Bloquear**, en el menú del documento, lo cierra a la escritura, también a un agente; **Desbloquear**, en ese menú o en la barra al pie, lo abre de nuevo.
 
 **Una página suya está archivada, o lo está el documento que la contiene.** Mira [Páginas y PDF](Páginas-y-PDF).
 

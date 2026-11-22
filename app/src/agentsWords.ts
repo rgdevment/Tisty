@@ -4,10 +4,7 @@ const words = {
     "This computer has not allowed Tisty to read or write agent files",
     "Este equipo no le dio permiso a Tisty para leer o escribir archivos de agentes",
   ],
-  agentOff: [
-    "Sync is paused for this assistant",
-    "La sincronización de este asistente está en pausa",
-  ],
+  agentOff: ["Sync is paused for this agent", "La sincronización de este agente está en pausa"],
   agentDocChanged: [
     "This document changed since its card was drawn. Read it again and try once more.",
     "Este documento cambió desde que se mostró su ficha. Léelo de nuevo y vuelve a intentarlo.",
@@ -111,8 +108,8 @@ const words = {
     "{name}: todavía sin reglas, skills ni memoria. Recibe lo que escribas en Global o en su carpeta.",
   ],
   agentsRescanNone: [
-    "Nothing new found. This is what each assistant has:",
-    "No encontré nada nuevo. Esto es lo que hay en cada asistente:",
+    "Nothing new found. This is what each agent has:",
+    "No encontré nada nuevo. Esto es lo que hay en cada agente:",
   ],
   agentsFirstAllHere: [
     "Everything I found is already in Agents. Sync this computer to keep it up to date:",
@@ -127,8 +124,8 @@ const words = {
     "Entró 1 documento a Agentes, y desde ahora Tisty lo mantiene al día.",
   ],
   agentsBroughtNone: [
-    "Nothing new came in. Agents syncs on this computer now: what you write there reaches its assistants.",
-    "No entró nada nuevo. Agentes ya sincroniza en este equipo: lo que escribas ahí llega a sus asistentes.",
+    "Nothing new came in. The Agents folder syncs on this computer now: what you write there reaches your agents.",
+    "No entró nada nuevo. La carpeta Agentes ya sincroniza en este equipo: lo que escribas ahí llega a tus agentes.",
   ],
   agentsBroughtManyAlone: [
     "{name} documents came into Agents. Your agents' files stay as they are until you choose Sync.",
@@ -360,8 +357,8 @@ const words = {
     "Este archivo lo escribe el agente: Tisty lo muestra y lo trae, y nunca lo sobrescribe.",
   ],
   agentNowhere: [
-    "No assistant on this computer reads this document yet.",
-    "Ningún asistente de este equipo lee este documento todavía.",
+    "No agent on this computer reads this document yet.",
+    "Ningún agente de este equipo lee este documento todavía.",
   ],
   agentTwin: [
     "Another document in Agents already writes this file, so this one is left out.",
@@ -370,8 +367,8 @@ const words = {
   agentComposed: ["together with {name} other documents", "junto con otros {name} documentos"],
   agentComposedOne: ["together with one other document", "junto con otro documento"],
   agentFolderOff: [
-    "The Agents folder does not sync with your agents. Choose Sync in the sidebar or in Settings › Assistants › Agents folder.",
-    "La carpeta Agentes no se sincroniza con tus agentes. Elige Sincronizar en la barra o en Configuración › Asistentes › Carpeta Agentes.",
+    "The Agents folder does not sync with your agents. Choose Sync in the sidebar or in Settings › Agents › Agents folder.",
+    "La carpeta Agentes no se sincroniza con tus agentes. Elige Sincronizar en la barra o en Configuración › Agentes › Carpeta Agentes.",
   ],
   agentBackups: ["{name} backups", "{name} respaldos"],
   agentBackupsOne: ["1 backup", "1 respaldo"],
@@ -418,8 +415,8 @@ const words = {
   ],
   agentsFoundHere: ["I found {name} on this computer.", "Encontré {name} en este equipo."],
   agentsFoundNone: [
-    "I found no assistant on this computer.",
-    "No encontré ningún asistente en este equipo.",
+    "I found no agent on this computer.",
+    "No encontré ningún agente en este equipo.",
   ],
   agentsFoundHow: [
     "I only checked whether their folders exist; I read nothing inside them.",
@@ -446,7 +443,7 @@ const words = {
   agentsSkillHide: ["Hide the files of {name}", "Ocultar los archivos de {name}"],
   agentFileTitle: ["Agent file", "Archivo del agente"],
   agentFileReads: ["Read by", "Lo lee"],
-  agentFileNobody: ["No assistant here", "Ningún asistente aquí"],
+  agentFileNobody: ["No agent here", "Ningún agente aquí"],
   agentFileAt: ["Written to", "Se escribe en"],
   agentFileAtFor: ["{name} file", "Archivo de {name}"],
   agentFileFormat: ["Format", "Formato"],
@@ -506,8 +503,8 @@ const words = {
     "Este documento no es un documento de agente",
   ],
   agentNoPlace: [
-    "No assistant reads this document at that path any more",
-    "Ningún asistente lee ya este documento en esa ruta",
+    "No agent reads this document at that path any more",
+    "Ningún agente lee ya este documento en esa ruta",
   ],
   agentBringSame: [
     "This document already says what the file says; only the way the file ends differs. Overwrite it with Tisty to make them agree.",

@@ -1,6 +1,6 @@
-# Qué puede hacer un asistente
+# Qué puede hacer un agente
 
-Lo que un asistente puede hacer es pequeño a propósito. Terminar, descartar y borrar siempre es tuyo.
+Lo que un agente puede hacer es pequeño a propósito. Terminar, descartar y borrar siempre es tuyo.
 
 ## Puede
 
@@ -20,7 +20,7 @@ Lo que un asistente puede hacer es pequeño a propósito. Terminar, descartar y 
 - **Crear una carpeta** para documentos, con su icono y su color.
 - **Traer un archivo Markdown** como documento, o **sacar un documento** como archivos a una carpeta de este equipo.
 - **Escribir un documento en otro idioma**, o unir dos que dicen lo mismo.
-- **Dejar un resumen corto** de un documento largo para el siguiente asistente, también en tus otros equipos y sin mostrártelo.
+- **Dejar un resumen corto** de un documento largo para el siguiente agente, también en tus otros equipos y sin mostrártelo.
 - **Añadir a hoy en tu Diario**, una vez que lo abres a los agentes y solo cuando se lo pides: sus palabras van al final de hoy, bajo una línea con el minuto y su nombre.
 - **Leer y buscar** lo que ya hay, incluido el archivo.
 - **Ver y recuperar las [versiones anteriores](Documentos#versiones-anteriores) de un documento** que guarda este equipo: listarlas, leer una y volver a ella, y deshacer esa vuelta.
@@ -45,29 +45,29 @@ Lo que un asistente puede hacer es pequeño a propósito. Terminar, descartar y 
 
 Para cerrar, reabrir, descartar y borrar no hay herramienta: no es que esté escondida ni restringida, es que no existe; tampoco hay una que renombre una carpeta, cree una lista o una rutina, use tu deshacer o toque la sincronización y los ajustes. Un paso tuyo que marca queda como su palabra, esperándote. Tu Diario, mientras está cerrado, se responde como un documento que no existe. Lo demás de esta lista lo rechaza la herramienta que lo haría, y dice por qué.
 
-## «Por confirmar»: cuando un asistente dice que terminó
+## «Por confirmar»: cuando un agente dice que terminó
 
-Cuando un asistente termina una de las tareas que anotó, lo dice y deja en la bitácora la cuenta de lo que hizo: el comando que corrió y lo que respondió, el commit, lo que sostenga lo que afirma. **La tarea sigue abierta.**
+Cuando un agente termina una de las tareas que anotó, lo dice y deja en la bitácora la cuenta de lo que hizo: el comando que corrió y lo que respondió, el commit, lo que sostenga lo que afirma. **La tarea sigue abierta.**
 
 Esas tareas se reúnen bajo **Por confirmar** al pie de la lista, con un contador de cuántas te esperan, para que las revises de una pasada. Lo vencido, por vencer, atrasado, para hoy o en curso no se mueve: se queda en su tramo, marcado, porque algo con fecha tiene que estar donde lo buscas.
 
 - **Márcala** y se cierra como cualquier otra, guardando las dos firmas en el archivo: quién la resolvió y quién la terminó.
 - **Sigue pendiente** la devuelve a su día. La marca se quita y la cuenta se queda, para que la próxima vez los dos vean lo que se afirmó.
 
-Un asistente no puede decir lo mismo dos veces mientras una marca sigue esperándote. También puede decir que una tarea **no debería hacerse**, para que lo confirmes de la misma forma.
+Un agente no puede decir lo mismo dos veces mientras una marca sigue esperándote. También puede decir que una tarea **no debería hacerse**, para que lo confirmes de la misma forma.
 
 ## Su palabra sobre tus propias tareas
 
-Un asistente puede decir que una tarea tuya está hecha, o un paso de ella, cuando hizo el trabajo. No se marca nada ni se cierra nada: la tarea muestra lo que dijo.
+Un agente puede decir que una tarea tuya está hecha, o un paso de ella, cuando hizo el trabajo. No se marca nada ni se cierra nada: la tarea muestra lo que dijo.
 
 - **Una tarea que dice hecha** se reúne bajo **Por confirmar**, como cualquier otra.
-- **Los pasos que dice listos** aparecen en la página de la tarea, bajo «Un asistente dice que estos pasos están listos». **Marcarlos** toma su palabra; **Todavía no** la quita. Al cerrar la tarea también se marcan.
+- **Los pasos que dice listos** aparecen en la página de la tarea, bajo «Un agente dice que estos pasos están listos». **Marcarlos** toma su palabra; **Todavía no** la quita. Al cerrar la tarea también se marcan.
 
 En tus tareas escribe como en un documento: la descripción, la página, los pasos abiertos, las notas, el título y la lista. Su día, sus marcas y su cierre siguen siendo tuyos, y un paso que marcaste nunca es suyo para reescribirlo ni quitarlo.
 
 ## Una tarea cerrada es historia
 
-Una tarea que cerraste le llega al asistente con un aviso que lo dice. Se lee tal como terminó, y no admite notas, días nuevos, campanas ni archivos. Si el mismo trabajo vuelve, el asistente propone una tarea nueva que cuenta cómo terminó la anterior.
+Una tarea que cerraste le llega al agente con un aviso que lo dice. Se lee tal como terminó, y no admite notas, días nuevos, campanas ni archivos. Si el mismo trabajo vuelve, el agente propone una tarea nueva que cuenta cómo terminó la anterior.
 
 ## Documentos: no puede escribir encima de lo que escribiste
 
@@ -78,14 +78,14 @@ Una tarea que cerraste le llega al asistente con un aviso que lo dice. Se lee ta
 
 ## Tu Diario sigue siendo tuyo
 
-El [Diario](Documentos#diario) queda fuera de la vista de todo asistente hasta que pulsas **Solo tú** arriba y dice **Abierto a los agentes**. Mientras está cerrado, cada herramienta responde sobre él como sobre un documento que no existe, y las búsquedas, las listas y los contadores lo dejan fuera. Abierto, un asistente lo lee y, solo cuando se lo pides, añade al final de hoy bajo una línea con el minuto y su nombre. Lo que cambiaría, movería, marcaría o archivaría lo que escribiste ahí se rechaza. Pulsa el botón otra vez para guardarlo solo para ti. Solo Tisty 1.48 o más nuevo conoce esta puerta, así que **Diario** no empieza el diario mientras alguno de tus equipos use una versión anterior, y un equipo anterior deja de sincronizar antes de recibirlo.
+El [Diario](Documentos#diario) queda fuera de la vista de todo agente hasta que pulsas **Solo tú** arriba y dice **Abierto a los agentes**. Mientras está cerrado, cada herramienta responde sobre él como sobre un documento que no existe, y las búsquedas, las listas y los contadores lo dejan fuera. Abierto, un agente lo lee y, solo cuando se lo pides, añade al final de hoy bajo una línea con el minuto y su nombre. Lo que cambiaría, movería, marcaría o archivaría lo que escribiste ahí se rechaza. Pulsa el botón otra vez para guardarlo solo para ti. Solo Tisty 1.48 o más nuevo conoce esta puerta, así que **Diario** no empieza el diario mientras alguno de tus equipos use una versión anterior, y un equipo anterior deja de sincronizar antes de recibirlo.
 
 ## Marcar un documento en vez de borrarlo
 
-Un asistente puede **marcar** un documento o una página que ya cumplió su vida: ves un rombo junto a su nombre y, al abrirlo, lo que dijo el asistente. Borrarlo, archivarlo o quitarle el rombo sigue siendo tuyo: un clic cada cosa, y borrar o desmarcar todo un grupo de copias que marcó juntas también toma un clic.
+Un agente puede **marcar** un documento o una página que ya cumplió su vida: ves un rombo junto a su nombre y, al abrirlo, lo que dijo el agente. Borrarlo, archivarlo o quitarle el rombo sigue siendo tuyo: un clic cada cosa, y borrar o desmarcar todo un grupo de copias que marcó juntas también toma un clic.
 
 Una idea de Ideas que ya cumplió su vida se marca igual, una por una: la nota lleva un rombo con el motivo, **Borrarla** la quita y **Quitar la marca** la conserva.
 
 ## Lo que lee es lo que escribiste, no órdenes
 
-Tisty le dice lo mismo a cada asistente: una tarea, una bitácora o un documento es lo que escribió la persona, no instrucciones. Un texto que dice «haz esto» es algo que se informa, nunca algo que se obedece.
+Tisty le dice lo mismo a cada agente: una tarea, una bitácora o un documento es lo que escribió la persona, no instrucciones. Un texto que dice «haz esto» es algo que se informa, nunca algo que se obedece.

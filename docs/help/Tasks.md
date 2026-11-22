@@ -166,13 +166,13 @@ Without a look back now and then, what you capture piles up undecided. **Weekly 
 - `Ctrl`/`⌘` + `Enter`, on the task's row in the list, completes it. It goes to the [[archive|Archive]] with everything it holds. While you write on its page, those keys put a page break.
 - **Close with a summary** asks for two lines on how it went before completing it. They go first under **When it closes**; in a routine, they stay with its round.
 - **Not doing it** drops it: it is put aside without being done, and it lands in the archive too.
-- Once it closes, its page is put away with it: it reads but takes no more writing, from you or an assistant. Reopen it and it comes back.
+- Once it closes, its page is put away with it: it reads but takes no more writing, from you or an agent. Reopen it and it comes back.
 
-Tasks an assistant claims are done wait under **To confirm** — see [[What an assistant may do|MCP-Permissions]].
+Tasks an agent claims are done wait under **To confirm** — see [[What an agent may do|MCP-Permissions]].
 
 ## With your agent
 
-The same task that keeps your work is the memory of the AI agent you connect through [[MCP|Assistants-and-MCP]].
+The same task that keeps your work is the memory of the AI agent you connect through [[MCP|Agents-and-MCP]].
 
 - **What it files is its own to keep true.** It describes the task, plans the steps, ticks each one when it is done, notes what it learns in the journal, and splits a big job into parts.
 - **What settles it stays yours.** On a task you wrote, the agent works as in a document — the description, the page, the open steps, the title and the list — but a step it calls done waits for you to tick it, the day stays yours and closing is always yours.
@@ -181,7 +181,7 @@ The same task that keeps your work is the memory of the AI agent you connect thr
 - **One ticket, one task.** Filed with its source — a ticket, a thread — the same work is never filed twice.
 - **The archive answers first.** Before proposing anything, the agent searches the closed tasks, and «how did we solve this?» comes back with the line that says it.
 
-More in [A day with your agent](Assistants-and-MCP#a-day-with-your-agent).
+More in [A day with your agent](Agents-and-MCP#a-day-with-your-agent).
 
 ## Tisto
 

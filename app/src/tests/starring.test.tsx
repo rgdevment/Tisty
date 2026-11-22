@@ -124,7 +124,7 @@ const complete = async () =>
 
 const card = () => screen.queryByRole("status", { name: /support tisty/i });
 
-const door = () => screen.queryByRole("status", { name: /your assistants/i });
+const door = () => screen.queryByRole("status", { name: /your agents/i });
 
 describe("when the card is allowed on screen", () => {
   it("stays away while the door is shut, and is asked about all the same", async () => {
@@ -212,8 +212,8 @@ describe("the card that offers the assistant a door", () => {
 
     await userEvent.click(screen.getByRole("button", { name: /open settings/i }));
 
-    await waitFor(() => expect(screen.getByRole("tab", { name: /assistants/i })).toBeTruthy());
-    expect(screen.getByRole("tab", { name: /assistants/i }).getAttribute("aria-selected")).toBe(
+    await waitFor(() => expect(screen.getByRole("tab", { name: /^agents$/i })).toBeTruthy());
+    expect(screen.getByRole("tab", { name: /^agents$/i }).getAttribute("aria-selected")).toBe(
       "true",
     );
   });
@@ -256,7 +256,7 @@ describe("the card for an assistant turned away at the door", () => {
 
     await waitFor(() => expect(screen.getByText(/codex can work with you now/i)).toBeTruthy());
     expect(ipc.calls.some((one) => one.cmd === "agent_turn" && one.args.on === true)).toBe(true);
-    expect(screen.queryByRole("tab", { name: /assistants/i })).toBeNull();
+    expect(screen.queryByRole("tab", { name: /^agents$/i })).toBeNull();
   });
 
   it("stays when the person moves to another screen", async () => {
@@ -267,6 +267,6 @@ describe("the card for an assistant turned away at the door", () => {
     await userEvent.click(screen.getByRole("button", { name: /^archive$/i }));
 
     expect(door()).toBeTruthy();
-    expect(screen.getByText("An assistant tried to come in.")).toBeTruthy();
+    expect(screen.getByText("An agent tried to come in.")).toBeTruthy();
   });
 });

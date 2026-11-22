@@ -104,7 +104,7 @@ describe("the card for assistants wired to a closed door", () => {
     expect(screen.getByText(/connected, but the door is closed/i)).toBeTruthy();
     await userEvent.click(screen.getByRole("button", { name: /let it in/i }));
 
-    await screen.findByText("Your assistant can work with you now.");
+    await screen.findByText("Your agent can work with you now.");
     expect(said.opened).toBe(0);
     expect(ipc.sent).toEqual(["agent_turn", "door_done"]);
     expect(said.settled).toBe(0);
@@ -155,7 +155,7 @@ describe("the card for an assistant turned away at the door", () => {
   it("speaks of an assistant when it gave no name", () => {
     shown({ why: "knocked", by: null });
 
-    expect(screen.getByText("An assistant tried to come in.")).toBeTruthy();
+    expect(screen.getByText("An agent tried to come in.")).toBeTruthy();
   });
 
   it("opens the door right there, names who came in and counts the knock as heard", async () => {

@@ -9,7 +9,7 @@ Yes, Tisty is free and will stay free, under the AGPL-3.0 licence. No accounts, 
 Neither. On its own, Tisty only asks whether a newer version exists, and it sends nothing to ask. Once you sync with a cloud or share a document, it also reads the few small files [[Privacy]] lists. Take the machine off the network and everything else works the same. See [[Privacy]].
 
 **Do I need an AI agent?**
-No. Everything Tisty brings is there from the start: tasks in natural language with their steps, linked documents, Ideas, the Diary and [[Brainsty|Brainsty-Network]]. It works without an agent too, the traditional way: your notes, documents and tasks, by hand and at your own pace. Say you keep Rina's vet visits in a document and her next vaccine as a task that rings the evening before: no agent sees any of it until you connect one, whenever you like, as [[Assistants and MCP|Assistants-and-MCP]] tells.
+No. Everything Tisty brings is there from the start: tasks in natural language with their steps, linked documents, Ideas, the Diary and [[Brainsty|Brainsty-Network]]. It works without an agent too, the traditional way: your notes, documents and tasks, by hand and at your own pace. Say you keep Rina's vet visits in a document and her next vaccine as a task that rings the evening before: no agent sees any of it until you connect one, whenever you like, as [[Agents and MCP|Agents-and-MCP]] tells.
 
 **Where is my data kept?**
 In one folder on your own disk. **Settings › Storage** prints the path and **Show folder** opens it. See [Installation](Installation#where-your-data-lives).
@@ -24,7 +24,7 @@ There is no export button, because there is nothing to convert: they are already
 cat store/*/*.tisty | jq -c 'select(.op == "task.add") | {id, title: .d.title}'
 ```
 
-That is the history, not today's state: a later event renames, finishes or moves a task. For the tasks as they stand now, ask your assistant through [[MCP|Assistants-and-MCP]] to list them, or **Create backup…**, in **Settings › Copies**, writes a zip with everything. If you need a specific format to take Tisty elsewhere, say which in an issue.
+That is the history, not today's state: a later event renames, finishes or moves a task. For the tasks as they stand now, ask your agent through [[MCP|Agents-and-MCP]] to list them, or **Create backup…**, in **Settings › Copies**, writes a zip with everything. If you need a specific format to take Tisty elsewhere, say which in an issue.
 
 **Is my data encrypted?**
 On your disk, no, by decision: your operating system's permissions are the protection, and the files stay readable with tools you already have. In a cloud Tisty reaches directly, it can be: see [Encrypting your cloud](Sync-and-Backup#encrypting-your-cloud). [PRIVACY.md](https://github.com/rgdevment/Tisty/blob/main/PRIVACY.md) explains why.
@@ -33,7 +33,7 @@ On your disk, no, by decision: your operating system's permissions are the prote
 Not as a shared board. Tisty is one person's by design — no assignees, no permissions, no shared database. Each person keeps their own tasks, documents and agent, and when somebody needs what you know, you hand them the document through Folio, encrypted and signed. See [Sharing](Documents#sharing).
 
 **Is there a mobile app? Linux?**
-No mobile app: Tisty is a desktop program for Windows and macOS. Your documents are Markdown in a folder, so a phone that reaches that folder can read and edit them with any app. There is no Linux version either; an assistant that runs on Linux inside Windows, under WSL, reaches Tisty all the same from Settings › Assistants › Connected.
+No mobile app: Tisty is a desktop program for Windows and macOS. Your documents are Markdown in a folder, so a phone that reaches that folder can read and edit them with any app. There is no Linux version either; an agent that runs on Linux inside Windows, under WSL, reaches Tisty all the same from Settings › Agents › Connected.
 
 **Do reminders ring with Tisty closed?**
 Yes, since 1.48, while the computer is on: Tisty books them with Windows or macOS, and a click on the notice opens the task. See [Reminders](Spread-and-Reminders#reminders).
@@ -44,19 +44,19 @@ Not by itself. **Save to my calendar**, on a task with a date, puts it in Google
 **Is there a diary, or daily notes?**
 Yes, since 1.48: **Diary** in the Library, a book a year with a page a month and a section a day. See [Diary](Documents#diary).
 
-**Can my assistant read my diary?**
+**Can my agent read my diary?**
 Not until you press **Only you** at the top of the Diary and it reads **Open to agents**; even then it only adds to the end of today, when you ask. **Diary** does not start your diary while any computer of yours runs a Tisty older than 1.48, and once it exists, a computer on an older version stops syncing before it receives it.
 
 **Does it work with a screen reader?**
 Not as far as anybody knows. The whole window works from the keyboard and that path is tested, but it has never been tried with a real screen reader. If you use one, an [issue](https://github.com/rgdevment/Tisty/issues) saying where it falls apart would be very welcome.
 
-## AI and assistants
+## AI and agents
 
 **How do I give my AI agent a memory between sessions?**
-Connect Tisty over MCP, as [[Assistants and MCP|Assistants-and-MCP]] shows: Settings › Assistants connects GitHub Copilot, Claude Code, Codex, Cursor… and [[every other one it knows|Assistants-and-MCP#connecting-an-assistant]]. From then on the agent starts a session by asking what moved since the last one, files its work as tasks with steps and a journal, and keeps what it learns in documents. The next session, on any project, starts from there. See [A day with your agent](Assistants-and-MCP#a-day-with-your-agent).
+Connect Tisty over MCP, as [[Agents and MCP|Agents-and-MCP]] shows: Settings › Agents connects GitHub Copilot, Claude Code, Codex, Cursor… and [[every other one it knows|Agents-and-MCP#connecting-an-agent]]. From then on the agent starts a session by asking what moved since the last one, files its work as tasks with steps and a journal, and keeps what it learns in documents. The next session, on any project, starts from there. See [A day with your agent](Agents-and-MCP#a-day-with-your-agent).
 
 **Does it replace CLAUDE.md, AGENTS.md or a memory-bank folder?**
-For what changes, yes; for what does not, no. Instructions that rarely move — how to build, the conventions — belong in the files your repository already hands the assistant. What moves — progress, decisions, what was ruled out, what is left — belongs in Tisty, where it is dated, searchable, read a section at a time, and never lost between branches, machines or projects.
+For what changes, yes; for what does not, no. Instructions that rarely move — how to build, the conventions — belong in the files your repository already hands the agent. What moves — progress, decisions, what was ruled out, what is left — belongs in Tisty, where it is dated, searchable, read a section at a time, and never lost between branches, machines or projects.
 
 And the files in your home folder, like `~/.claude/CLAUDE.md` or `~/.codex/AGENTS.md`, the [[Agents|AGENTS-Folder]] folder brings into Tisty as documents, if you ask it to. **Bring** only copies them; **Sync** also writes into them what you change in Tisty, with a backup first. Your repository's files it does not touch.
 
@@ -64,12 +64,12 @@ And the files in your home folder, like `~/.claude/CLAUDE.md` or `~/.codex/AGENT
 Not on its own. It reads them like any document, but a change of its own stays as a proposal: on the card you see what is **Approved** and what is **Proposed**, and only **Approve the change** carries it to your agents' files, on every computer where Agents syncs and you applied it. See [[A proposal from your agent|AGENTS-Folder#a-proposal-from-your-agent]].
 
 **Does Tisty use AI?**
-No. Tisty is not AI and has none inside, and that is not going to change. The natural language is rules on your machine. If you use an assistant of your own, Tisty leaves an [[MCP door|Assistants-and-MCP]] — it comes open, and you close it whenever you like.
+No. Tisty is not AI and has none inside, and that is not going to change. The natural language is rules on your machine. If you use an agent of your own, Tisty leaves an [[MCP door|Agents-and-MCP]] — it comes open, and you close it whenever you like.
 
-**An assistant says one of its tasks is done. Did it close it?**
-No. Nothing an assistant does closes a task. It marks it, with its account in the journal, and the task waits under **To confirm** until you decide. See [[What an assistant may do|MCP-Permissions]].
+**An agent says one of its tasks is done. Did it close it?**
+No. Nothing an agent does closes a task. It marks it, with its account in the journal, and the task waits under **To confirm** until you decide. See [[What an agent may do|MCP-Permissions]].
 
-**Can an assistant write over a document I am working on?**
+**Can an agent write over a document I am working on?**
 Only over the version it read. To replace a whole document it must send back the print of the text it read; if you wrote in between, nothing is written and it has to read again. What it replaced is kept as a version in its history, and from **See the history** you go back to it whenever you want ([Earlier versions](Documents#earlier-versions)). The window also offers to put the document back at once — only when that copy is exactly one write back, the only time it can do what it says. If you try to save over a change you had not seen, it asks which one stands.
 
 ## Documents
@@ -93,7 +93,7 @@ No. Both are drawn by code inside Tisty: nothing is fetched, no font is loaded f
 In how long the rule under the header is drawn. See [tables](https://markdown.tisty.app/tables) in the Tisty Markdown guide.
 
 **Can I go back to what a document said a few days ago?**
-Yes, on the computer where it changed: **See the history**, on the **History** row of the panel beside the document, lists its earlier versions, **What changed** shows in red and green what differs from now, and **Go back to this version** brings one back. Tisty keeps one when someone writes after 30 minutes without changes or when the one writing changes, you or an assistant, so what your agent replaced always stays apart. They are kept 30 days by default, are not synced and **Empty the history** deletes them from that computer. See [Documents](Documents#earlier-versions).
+Yes, on the computer where it changed: **See the history**, on the **History** row of the panel beside the document, lists its earlier versions, **What changed** shows in red and green what differs from now, and **Go back to this version** brings one back. Tisty keeps one when someone writes after 30 minutes without changes or when the one writing changes, you or an agent, so what your agent replaced always stays apart. They are kept 30 days by default, are not synced and **Empty the history** deletes them from that computer. See [Documents](Documents#earlier-versions).
 
 **How is the Brainsty network different from Obsidian's graph?**
 Obsidian's graph shows links between notes. Brainsty joins documents and tasks, with each task's state and its history, and the same network serves your agent as an index to search without reading everything. It draws with lines what is written (links, cards, pages, parts, where a task was born and tags), and what is written weighs more than a tag as it settles; folders and lists give the colour, they are not dots. With an amber curve apart, what Tisty thinks is alike: because they share words, because one has a typo or because one is the other's translation, and it always says why. It opens in the content panel, beside the sidebar, with a legend of its colours, and costs nothing once you move to another view. See [[The Brainsty network|Brainsty-Network]].

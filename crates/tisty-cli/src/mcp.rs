@@ -455,7 +455,7 @@ fn turned_away(paths: &Paths) -> Refused {
     let _ = tisty_core::agent::knock(paths, speaking_through().as_deref());
     Refused::Unable(
         "no agent is registered on this machine. The person turns one on in Tisty's settings, \
-         under Assistants."
+         under Agents."
             .into(),
     )
 }

@@ -21,7 +21,7 @@ const row = (page: Tab, title: Word, why?: Word, words?: Word[]): Row => ({
   words,
 });
 const agents = (shelf: Shelf, title: Word, why?: Word, words?: Word[]): Row => ({
-  ...row("agents", title, why, words),
+  ...row("agents", title, why, [...(words ?? []), "agentsOldName"]),
   shelf,
 });
 
@@ -73,7 +73,7 @@ export const ROWS = {
   asks: agents("door", "agentsAsk", "agentsAskWhy"),
   hooks: agents("door", "agentsHooks", "agentsHooksWhy"),
   wired: agents("wired", "wiringTitle"),
-  agentsFolder: agents("folder", "agentsSettingsTitle"),
+  agentsFolder: agents("folder", "agentsTabFolder", undefined, ["agentsSettingsTitle"]),
   credit: agents("credit", "creditTitle"),
   creditMark: agents("credit", "creditMark", "creditMarkWhy"),
   creditRows: agents("credit", "creditRows", "creditRowsWhy"),

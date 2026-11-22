@@ -257,11 +257,11 @@ y Tisty le contesta con ese mismo documento, `"doc": "k7tq2mzw-0012"`, `"title":
 
 ## Versiones anteriores
 
-Cada documento guarda en este equipo lo que decía antes de cambiar, como un historial de versiones: abres la lista, lees cómo estaba y, si te sirve, vuelves a eso. Vale también para las páginas de tus tareas. Lo hice para el día en que un cambio, tuyo o de un asistente, se llevó algo que todavía necesitabas.
+Cada documento guarda en este equipo lo que decía antes de cambiar, como un historial de versiones: abres la lista, lees cómo estaba y, si te sirve, vuelves a eso. Vale también para las páginas de tus tareas. Lo hice para el día en que un cambio, tuyo o de un agente, se llevó algo que todavía necesitabas.
 
 ### Cuándo te sirven
 
-- **Un asistente reescribió de más.** Le pediste a tu agente que ordenara «Paseos de Rina» y lo dejó sin los horarios. La versión de antes de su escritura está en la lista: ves qué cambió y vuelves a ella.
+- **Un agente reescribió de más.** Le pediste a tu agente que ordenara «Paseos de Rina» y lo dejó sin los horarios. La versión de antes de su escritura está en la lista: ves qué cambió y vuelves a ella.
 - **Borraste un párrafo y a la semana lo necesitas.** Quitaste de «Cumpleaños de Lucas» la lista de invitados porque ya estaba cerrada, y ahora Marisol pregunta quién venía. Una versión de antes de ese cambio todavía la tiene, aunque el documento haya seguido cambiando.
 - **Quieres ver cómo estaba algo un día concreto.** Cada versión lleva su fecha, así que lees el plan como estaba el martes sin tocar el de hoy.
 - **Escribiste algo que no debía quedar guardado.** Borras el texto y después vacías el historial de ese documento (más abajo).
@@ -269,7 +269,7 @@ Cada documento guarda en este equipo lo que decía antes de cambiar, como un his
 ### Ver una versión y volver a ella
 
 1. Abre el documento. En el panel junto a él, la fila **Historial** dice **en este equipo** y tiene **Ver el historial**. En la página de una tarea, el botón es **Versiones de esta página**.
-2. A la izquierda queda la lista, la más nueva primero. Cada fila dice cuándo se escribió esa versión (solo la hora si fue hoy), quién la escribió (**tú**, **un asistente** o el nombre de su programa, como **Claude Code**) y cuánto pesa.
+2. A la izquierda queda la lista, la más nueva primero. Cada fila dice cuándo se escribió esa versión (solo la hora si fue hoy), quién la escribió (**tú**, **un agente** o el nombre de su programa, como **Claude Code**) y cuánto pesa.
 3. Haz clic en una para leerla a la derecha, tal como se veía.
 4. **Volver a esta versión**, arriba de lo que lees, te pregunta antes: el documento vuelve a decir lo que decía en ella, y lo que dice ahora queda guardado.
 5. El documento muestra **Volvió a la versión de** y la fecha, con **Volver a lo que decía antes**: ese botón deshace la vuelta si elegiste la equivocada.
@@ -299,7 +299,7 @@ Por ejemplo: Claude Code reescribió el párrafo de horarios de «Paseos de Rina
 No en cada tecla ni en cada guardado. Lo que había queda como versión cuando alguien escribe en el documento:
 
 - **después de 30 minutos sin cambios**, o
-- **siendo otro que quien escribió la última vez**: tú después de un asistente, un asistente después de ti, o dos asistentes distintos.
+- **siendo otro que quien escribió la última vez**: tú después de un agente, un agente después de ti, o dos agentes distintos.
 
 Por ejemplo: a las 9:00 Mario abre el acta de la reunión de ayer y la corrige durante veinte minutos, sin pausas largas. Queda una sola versión, la de ayer: los guardados de esos veinte minutos son una misma escritura. A las 11:00 vuelve a corregirla, y lo que decía a las 9:20 queda como versión. A las 11:05 Claude Code agrega un resumen, y lo que Mario había dejado queda como otra versión, porque cambió quien escribe.
 
@@ -337,15 +337,15 @@ Sirve para un texto que borraste a propósito: pegaste en «Datos del seguro» u
 - **El [Diario](#diario)** también guarda versiones en este equipo, que cuentan para lo que guarda tu equipo y tus respaldos, pero su vista no tiene la fila **Historial**: no se listan desde la ventana.
 - **Un documento archivado o bloqueado, y la página de una tarea cerrada,** muestran sus versiones pero no ofrecen **Volver a esta versión**. Desarchívalo o desbloquéalo (o su carpeta archivada, o el documento bloqueado del que es página), o reabre la tarea con **Reabrir**, para volver a una.
 - **Restaurar un respaldo** cambia las versiones de este equipo por las del zip, y su plazo vuelve a contar desde ese día.
-- **Tu asistente nunca lee las versiones del Diario**, ni con el Diario abierto a los agentes. Las de cualquier otro documento sí puede listarlas, leerlas y volver a ellas, pero no vaciar el historial: mira [[Herramientas MCP|Herramientas-MCP#versiones-anteriores-de-un-documento]].
+- **Tu agente nunca lee las versiones del Diario**, ni con el Diario abierto a los agentes. Las de cualquier otro documento sí puede listarlas, leerlas y volver a ellas, pero no vaciar el historial: mira [[Herramientas MCP|Herramientas-MCP#versiones-anteriores-de-un-documento]].
 - **Cada página de un libro y tu hoja de [Ideas](#ideas)** guardan sus propias versiones, como cualquier documento. La fila de una página dice **Historial**; **Versiones de esta página** es solo de la página de una tarea.
 - **Un documento de la carpeta [[Agentes|Carpeta-AGENTS]]** guarda sus versiones igual, y su ficha las abre con **Historial**. No son sus **Respaldos**, que guardan el archivo de tu agente como estaba en el disco. Su comparación con lo **Aprobado** lee de este historial: si lo vacías, o la versión aprobada pasa el plazo, la ficha te pide leer el texto entero antes de aprobar.
 - **Compartir o exportar** un documento nunca lleva sus versiones: ni un enlace de Folio, ni un `.tistyx`, ni una exportación. Solo un respaldo completo las lleva.
 - **Al actualizar desde un Tisty sin historial,** la copia que cada documento guardaba de su texto anterior pasó sola a ser su primera versión.
 
-### Con tu asistente
+### Con tu agente
 
-También vuelves atrás sin abrir la lista: cuando algo escribe en el documento que tienes abierto, la barra te ofrece **Volver a lo que decía antes**. Un asistente lista, lee y recupera las mismas versiones con `read` y `restore_doc`, y nunca puede vaciarlas: eso es tuyo. Puedes pedírselo en tus palabras: «vuelve “Paseos de Rina” a como estaba antes de tu cambio de ayer». Cómo lo hace, con ejemplos, está en [Herramientas MCP](Herramientas-MCP#versiones-anteriores-de-un-documento).
+También vuelves atrás sin abrir la lista: cuando algo escribe en el documento que tienes abierto, la barra te ofrece **Volver a lo que decía antes**. Un agente lista, lee y recupera las mismas versiones con `read` y `restore_doc`, y nunca puede vaciarlas: eso es tuyo. Puedes pedírselo en tus palabras: «vuelve “Paseos de Rina” a como estaba antes de tu cambio de ayer». Cómo lo hace, con ejemplos, está en [Herramientas MCP](Herramientas-MCP#versiones-anteriores-de-un-documento).
 
 ## Sacar documentos
 
@@ -368,7 +368,7 @@ Un paquete firmado lleva además quién editó cada documento que compartiste po
 
 ## Con tu agente
 
-Los documentos son donde el agente de IA que conectas por [[MCP|Asistentes-y-MCP]] guarda lo que sabe, y cómo los lee es lo que lo mantiene barato.
+Los documentos son donde el agente de IA que conectas por [[MCP|Agentes-y-MCP]] guarda lo que sabe, y cómo los lee es lo que lo mantiene barato.
 
 - **Un documento vivo por tema.** Abre con lo que rige hoy, después el tema, lo que queda fuera de alcance, las decisiones fechadas con su porqué (la reemplazada queda tachada, no borrada) y su historia. El agente respeta las decisiones en vez de reabrirlas.
 - **Se corrige en su lugar.** El agente reescribe el pasaje que cambió en vez de apilar una segunda copia junto a la primera, y no puede escribir encima de una versión que cambiaste después de que la leyó.
@@ -376,7 +376,7 @@ Los documentos son donde el agente de IA que conectas por [[MCP|Asistentes-y-MCP
 - **Páginas para lo largo.** Ninguna escritura lleva más de 64 000 caracteres, así que una bitácora larga queda en temas y páginas, no como un muro de texto.
 - **Un resumen para el siguiente.** Después de leer un documento largo, el agente puede dejar un resumen con el que elige el próximo agente; si el documento cambia, queda marcado como desactualizado.
 
-Más en [Un día con tu agente](Asistentes-y-MCP#un-día-con-tu-agente).
+Más en [Un día con tu agente](Agentes-y-MCP#un-día-con-tu-agente).
 
 ## Compartir
 

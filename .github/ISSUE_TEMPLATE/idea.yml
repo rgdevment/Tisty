@@ -34,7 +34,7 @@ body:
         - Documents, pages or the editor
         - The Tisty Markdown language
         - Syncing or backups
-        - Assistants through MCP
+        - Agents through MCP
         - Somewhere else
     validations:
       required: true

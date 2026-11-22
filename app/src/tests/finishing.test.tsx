@@ -185,7 +185,7 @@ describe("what an agent says is done", () => {
     );
 
     expect(screen.getByText("by Codex")).toBeTruthy();
-    expect(screen.getByText("by an assistant")).toBeTruthy();
+    expect(screen.getByText("by an agent")).toBeTruthy();
     expect(screen.queryByText("by dev_laptop")).toBeNull();
     expect(screen.queryByText(/peral 76/)).toBeNull();
   });

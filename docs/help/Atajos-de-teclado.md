@@ -47,7 +47,7 @@ Si otro programa ya usa el atajo de captura, Tisty toma otro y te dice cuál en 
 | :-- | :-- |
 | `↑` `↓` (en la columna) | Mover el foco entre las páginas, sin abrirlas |
 | `Enter` (en la columna) | Abrir la página marcada |
-| `←` `→` (en las pestañas de **Asistentes**) | Cambiar de pestaña |
+| `←` `→` (en las pestañas de **Agentes**) | Cambiar de pestaña |
 | `Inicio` / `Fin` (en la columna o en las pestañas) | Ir a la primera o a la última |
 | `Esc` | Salir de Configuración; en **Buscar un ajuste**, primero borra lo que escribiste |
 

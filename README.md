@@ -21,7 +21,7 @@
   documents and tasks, by hand and at your own pace.</p>
 
   <p>Free and open source, for Windows and macOS, with a local MCP server that
-  lets GitHub Copilot, Claude Code, Codex, Cursor or any assistant pick up where
+  lets GitHub Copilot, Claude Code, Codex, Cursor or any agent pick up where
   it left off, a section at a time.<br/><strong>No accounts. No subscriptions.
   No telemetry. No server.</strong></p>
 
@@ -259,7 +259,7 @@ help, tells all of it.
 
 ## Real Problems, Real Fixes
 
-What people actually run into when they work with an AI assistant for months,
+What people actually run into when they work with an AI agent for months,
 or keep their own work by hand for years, and what happens instead when the
 memory lives in Tisty.
 
@@ -543,7 +543,7 @@ gathers them in Tisty as documents, with their skills and memory.
   them, and writes nothing back; **Bring and sync** also writes a rule you
   change once into each agent's file, with a backup before every overwrite.
 - **One rule for all of them** — a document in **Global** reaches every
-  assistant on the computer; one in **Claude** only Claude.
+  agent on the computer; one in **Claude** only Claude.
 - **Your agent proposes, you approve** — an agent reads your rules like any
   document, but a change of its own waits on the card, beside what you approved,
   until you say yes.
@@ -589,7 +589,7 @@ What an agent connected to Tisty does with all that, on a real piece of work:
 5. **It ticks each step when it is done and leaves the task's state in the
    same call**, and notes what it decided or ruled out, so the next session, or
    another agent, does not repeat the failed attempt.
-6. **When a task's page grows long, it compacts the assistants' notes on it**
+6. **When a task's page grows long, it compacts the agents' notes on it**
    into one dated digest of what still holds, keeping any line you wrote. The
    journal stays whole, and asking it to put the notes back brings them as
    they were, even after later ticks.
@@ -638,7 +638,7 @@ Where the saving comes from:
 
 Connecting costs something too: the description of Tisty's tools weighs about a
 sixth of that log, a third less than it did, and a test keeps it from growing.
-An assistant that loads tools only as it uses them does not pay it whole; one
+An agent that loads tools only as it uses them does not pay it whole; one
 that loads every tool each session saves 72–83%, and below some 50 KB of notes
 a plain file is cheaper. The counts are characters, with the JSON each answer
 carries included, and tokens follow them closely.
@@ -657,14 +657,14 @@ only carries a copy. More in [Your Data and Privacy](#your-data-and-privacy).
 ## MCP Server
 
 Tisty is also a **local MCP server for tasks, todos and notes**. Through it an
-assistant files tasks with steps, dates and reminders, writes and edits
+agent files tasks with steps, dates and reminders, writes and edits
 Markdown documents, and searches open and archived work — on your own disk,
 with no account, no API key and nothing sent over the network. It needs the
 Tisty app, from [Getting Started](#getting-started), and Node.js 18 or later
 for the launcher.
 
-The easiest way is **Settings › Assistants** in Tisty: it finds the assistants
-on this computer and connects the one you pick. By hand, any assistant that
+The easiest way is **Settings › Agents** in Tisty: it finds the agents
+on this computer and connects the one you pick. By hand, any agent that
 starts a server by command takes the `tisty-mcp` launcher from npm, which finds
 the Tisty installed here and starts its own server:
 
@@ -679,7 +679,7 @@ the Tisty installed here and starts its own server:
 }
 ```
 
-| Assistant | Add Tisty |
+| Agent | Add Tisty |
 | --- | --- |
 | Claude Code | `/plugin install tisty --marketplace rgdevment/mcp-plugins` |
 | Claude Desktop | Settings › Developer › Edit Config, and add the JSON above |
@@ -688,9 +688,9 @@ the Tisty installed here and starts its own server:
 | Gemini CLI | `gemini extensions install https://github.com/rgdevment/mcp-plugins` |
 | Codex | `codex mcp add tisty -- npx -y tisty-mcp` |
 
-Connect it one way, not both, so the assistant does not start Tisty twice, and
-restart the assistant afterwards. More in
-[Assistants and MCP](https://www.tisty.app/docs/assistants-and-mcp/).
+Connect it one way, not both, so the agent does not start Tisty twice, and
+restart the agent afterwards. More in
+[Agents and MCP](https://www.tisty.app/docs/agents-and-mcp/).
 
 Things to ask once it is connected:
 
@@ -703,7 +703,7 @@ Things to ask once it is connected:
 
 ## Tools
 
-What `tisty mcp` offers an assistant, by what it works on. It never closes or
+What `tisty mcp` offers an agent, by what it works on. It never closes or
 deletes: `say_done` leaves a task for you to confirm, and `flag_doc` marks a
 document for you to delete, put away or keep. Each tool is described in
 [MCP tools](https://www.tisty.app/docs/mcp-tools/).
@@ -723,7 +723,7 @@ document for you to delete, put away or keep. Each tool is described in
   parts, lists, folders and tags: `brain`, `catch_up`
 - **How to work here** — `rules`, `language`, `help`
 
-Beside the tools, it offers eight ready-made requests your assistant shows as
+Beside the tools, it offers eight ready-made requests your agent shows as
 commands (`pick_up`, `leave_off`, `plan_task`, `solved_before`,
 `keep_decision`, `brainstorm`, `sort_ideas`, `consolidate`), and your
 documents to mention with `@`, a long one as its outline.
@@ -826,7 +826,7 @@ your own AI agent reads over MCP**, this is what Tisty is:
 | Subscription | none. There is no paid tier and no upgrade |
 | Offline | always. Only what you send out needs a connection: a document shared by link, your own cloud, a task saved to an online calendar |
 | AI inside | **none**, and that is not going to change |
-| Your own assistant | yes, over **MCP**, through a door you close whenever you like |
+| Your own agent | yes, over **MCP**, through a door you close whenever you like |
 | Memory for your agent | what moved since last time, outlines first and one section at a time |
 | Priorities | the **Eisenhower matrix**, by its name |
 | Sorting | lists, tags, steps and a journal on every task |
@@ -866,10 +866,10 @@ wrote — the routines come with their tallies and their streaks, and the rest i
 the trace. Search reaches all of it, documents included. A year in, that archive
 is the part you would miss.
 
-**Your assistant, not one of mine.** Tisty has no AI in it. The natural language
+**Your agent, not one of mine.** Tisty has no AI in it. The natural language
 that turns "call the bank at 3" into a task is rules running on your machine, no
 model and no cloud. But it speaks [MCP](https://modelcontextprotocol.io), so an
-assistant you already use can file work into it — with its steps, its date and
+agent you already use can file work into it — with its steps, its date and
 the list it belongs in, on this machine, with no account and nothing over the
 network. That door comes open, and **Stop it** closes it whenever you like.
 
@@ -1016,7 +1016,7 @@ the page itself, the one the core draws, with the marks out of sight, and the
 **⋯** menu or `Ctrl`/`⌘` + `E` turns it to Markdown, every mark in view, so what
 is on disk is always yours to read. **Copy as Markdown** and taking a document
 out say those few words the way any other reader understands them, and an older
-file, an import or an assistant writing in plain Markdown is turned into them on
+file, an import or an agent writing in plain Markdown is turned into them on
 the way in.
 
 The writing sits on a lit page, and the first line with words in it is both the
@@ -1174,14 +1174,14 @@ read, edit, or throw away like anything else you wrote.
 
 **Settings opens on an Overview.** It says how your Tisty is doing at a glance:
 what needs something from you comes first, under *To attend to*, and six tiles
-with a coloured dot tell you how sync, copies, security, assistants, health and
+with a coloured dot tell you how sync, copies, security, agents, health and
 the version stand. Right after you install, it offers five steps to make Tisty
 yours. *Search a setting* finds any setting by its name, and the eleven pages
 come in four groups. *This computer*: *Look and window*, *Tasks and reminders*
 and *Documents and signature*. *Your data*: *Sync*, *Security* (your 24-word
 phrase, your computers and the encrypted cloud), *Copies* (backups, documents
 from another Tisty, and a guide that leaves a computer clean if you want Tisty
-off it) and *Storage*. *Connections*: *Assistants*. *Tisty*: *Health* and *Help
+off it) and *Storage*. *Connections*: *Agents*. *Tisty*: *Health* and *Help
 and about*. What cannot be undone waits in a red *Handle with care* box at the
 end of its page, and a label says whether a setting stays on this computer or
 travels to your others. The whole tour is in the
@@ -1496,15 +1496,15 @@ Drive means, from *Reconnect* to a full Drive or
 the bank at 3" into a task is rules running on your machine: no model, no
 request, no cloud. That is not going to change.
 
-But the assistant you work with is where the detail happens, and it forgets
+But the agent you work with is where the detail happens, and it forgets
 when the session ends. So Tisty leaves it a door, and you decide whether to open
 it. Through it, an agent plans in documents and works in tasks: it writes what
 it found and decided, ticks each step as it goes and says when it is done. You
 are the one who closes.
 
-**Settings › Assistants** connects the one you pick, as
+**Settings › Agents** connects the one you pick, as
 [MCP Server](#mcp-server) shows. The door comes open on a new install; **Stop
-it** closes it, and while it is closed everything an assistant tries is refused
+it** closes it, and while it is closed everything an agent tries is refused
 and the window says who knocked. What it may do is deliberately small: it never
 closes or deletes a task, never deletes a document, never moves a day you set,
 and sees your Diary only once you open it to agents. What it writes is signed
@@ -1512,9 +1512,9 @@ with its name, and it reads a document's card first, then only the part it
 needs. Say it picks up *Move payments to v2*: it asks what moved, opens that
 task and reads what it noted yesterday.
 
-- [Assistants and MCP](https://www.tisty.app/docs/assistants-and-mcp/) — the
-  door, the signature and every assistant Tisty knows
-- [What an assistant may do](https://www.tisty.app/docs/mcp-permissions/)
+- [Agents and MCP](https://www.tisty.app/docs/agents-and-mcp/) — the
+  door, the signature and every agent Tisty knows
+- [What an agent may do](https://www.tisty.app/docs/mcp-permissions/)
 - [How an agent works](https://www.tisty.app/docs/how-an-agent-works/)
 - [MCP tools](https://www.tisty.app/docs/mcp-tools/)
 
@@ -1528,33 +1528,33 @@ it goes. Nothing stays buried in a chat: every stage lands in Tisty, on your
 computer, where you can follow it as it happens and audit it later. When it says
 a task is done, you are the one who closes it.
 
-Settings › Assistants › *Connected* lists the assistants already installed on
+Settings › Agents › *Connected* lists the agents already installed on
 this computer and connects the one you pick: it writes a single line into that
-assistant's own settings, leaves the rest of that file where it was, and keeps a
+agent's own settings, leaves the rest of that file where it was, and keeps a
 copy of it as it was before. For one it does not know, a line does it, and the
 tab shows it with where the `tisty` that came with the app sits on this
 computer:
 
 ```console
-$ <your-assistant> mcp add tisty -- <path-to-tisty> mcp
+$ <your-agent> mcp add tisty -- <path-to-tisty> mcp
 ```
 
-Where `<your-assistant>` is whatever yours is called. That `tisty` is not a
-command line any more: it opens only the assistant's door. It speaks
+Where `<your-agent>` is whatever yours is called. That `tisty` is not a
+command line any more: it opens only the agent's door. It speaks
 [MCP](https://modelcontextprotocol.io) on the same machine: no account, no
 token, nothing over the network. **You hold the door.** It comes open on its own
 until you choose — on a new install, and on an update if you never closed it —
-so an assistant you connect can work right away, and Settings › Assistants ›
-*Door* closes it with **Stop it**. While it is closed, everything an assistant
+so an agent you connect can work right away, and Settings › Agents ›
+*Door* closes it with **Stop it**. While it is closed, everything an agent
 tries is refused, and the window says who knocked — «Claude Code tried to come
-in» — with **Let it in** right there. Letting an assistant in and throwing it
+in» — with **Let it in** right there. Letting an agent in and throwing it
 out are events in your log; that you chose to keep the door closed is kept in
 this computer's settings.
 
-While assistants have a voice, a stable Tisty also answers to the name `tisty`
+While agents have a voice, a stable Tisty also answers to the name `tisty`
 on your PATH — the Store and Homebrew put it there, and the installer's copy
 adds its own folder — so a plugin can start it by name. Taking the voice away
-takes that folder off the PATH again. Restart an assistant that was already
+takes that folder off the PATH again. Restart an agent that was already
 open so it sees the change.
 
 What it may do is deliberately small: file a task with its steps and its date,
@@ -1568,7 +1568,7 @@ which writes and moves the lines naming them in your document's text and nothing
 else, mark a document that had its day, for you to delete, put away or unmark,
 keep a copy of a file you point it at — on a task or inside a document alike —
 jot ideas on your Ideas sheet and sort them with you, and read what is already
-there. Your Diary is the exception: no assistant sees it until you open it to
+there. Your Diary is the exception: no agent sees it until you open it to
 agents from the Diary itself, and open it only adds to the end of today, signed,
 when you ask. What it may
 not do: close a task or delete one, tick a step of yours or finish a task of
@@ -1577,17 +1577,17 @@ task you folded away, take files from anywhere but Downloads, Documents,
 Pictures, the desktop and the temporary folder, or file the same thing twice. A
 task you closed is history to it: it comes with a notice saying so, reads as it
 ended, takes no note, no new day, no bell and no file, and if the same work
-comes back the assistant proposes a new one that says how the last one ended.
+comes back the agent proposes a new one that says how the last one ended.
 
-A task you wrote is written on the way a document is: an assistant may describe
+A task you wrote is written on the way a document is: an agent may describe
 it, rename it, move it to another list or under another task, plan, reword or
 take off its open steps, correct a note and write its page. What settles it
 stays yours: it may say it is done, or that it should not be done, or that a
 step of it is done, and each waits for you to confirm it; its day is yours to
 move, and a step you ticked is never its to reword or take off. What an
-assistant writes is signed with the name of the program it spoke through: a row
+agent writes is signed with the name of the program it spoke through: a row
 says «by an agent» and names it on hover, while the side panel, the full page
-and the journal say «by Claude Code», «by Codex». Settings › Assistants counts
+and the journal say «by Claude Code», «by Codex». Settings › Agents counts
 what each one wrote, and its *How its signature looks* tab lets you choose where
 the name shows, or keep only a small ◆.
 
@@ -1595,9 +1595,9 @@ It also reads sparingly, which is your business as much as its own. Tisty keeps
 a small card for each document — its headings, how long it is, what it leans
 on — worked out from the text itself, on this machine, and never sent anywhere.
 An
-assistant reads that to pick which document it needs, then asks for the part it
+agent reads that to pick which document it needs, then asks for the part it
 wants, or changes that part without having read the rest. A long document is not
-poured into somebody's model because an assistant wanted one paragraph of it.
+poured into somebody's model because an agent wanted one paragraph of it.
 Having read one, it can leave a summary for the next one. It reaches your other
 computers too, but you never see it, it never goes to Folio, and it is not part
 of what you wrote.
@@ -1609,7 +1609,7 @@ what you typed while it was thinking cannot be lost. A document you archived it
 can still read, and it is told that you archived it; it cannot write in it
 until you bring it back, or ask it to.
 
-Whatever it reads travels wherever that assistant travels. That is between you
+Whatever it reads travels wherever that agent travels. That is between you
 and it — which is precisely why the door, open on a new install, closes
 whenever you like with **Stop it**, and why opening or closing it is written
 into your log.
@@ -1626,9 +1626,9 @@ what they hold and add themselves up, but each table lives in its own document.
 AI is not on that list, because it is not a matter of time: Tisty is not AI and
 has none inside, the natural language stays deterministic and local, and
 **Tisty never sends anything to a model** — not a task, not a word. While the
-door in [Your AI Agent](#your-ai-agent) is open, whatever your assistant reads
-travels wherever that assistant travels: Tisty still sends nothing, the
-assistant is the one carrying, and the door is yours to close.
+door in [Your AI Agent](#your-ai-agent) is open, whatever your agent reads
+travels wherever that agent travels: Tisty still sends nothing, the
+agent is the one carrying, and the door is yours to close.
 
 ## FAQ
 
@@ -1674,7 +1674,7 @@ No. Tisty is not AI and has none inside, and that is not going to change. The
 natural language that turns "call the bank at 3"
 into a task is rules running on your machine: no model, no request, no cloud.
 What Brainsty thinks is alike comes from shared words, a typo or a fixed
-Spanish–English word list, never from a model. If you already use an assistant
+Spanish–English word list, never from a model. If you already use an agent
 of your own, Tisty leaves an
 [MCP](https://modelcontextprotocol.io) door — it comes open, you close it
 whenever you like, and while it is closed everything it tries is refused.
@@ -1682,8 +1682,8 @@ whenever you like, and while it is closed everything it tries is refused.
 ### How do I give my AI agent a memory between sessions?
 
 Connect Tisty over MCP, as [MCP Server](#mcp-server) shows: Settings ›
-Assistants connects GitHub Copilot, Claude Code, Codex, Cursor… and
-[every other one it knows](https://www.tisty.app/docs/assistants-and-mcp/#connecting-an-assistant).
+Agents connects GitHub Copilot, Claude Code, Codex, Cursor… and
+[every other one it knows](https://www.tisty.app/docs/agents-and-mcp/#connecting-an-agent).
 From then
 on the agent starts a session by asking what moved since the last one, files
 its work as tasks with steps and a journal, and keeps what it learns in
@@ -1694,7 +1694,7 @@ a blank chat.
 
 For what changes, yes; for what does not, no. Instructions that rarely move —
 how to build, the conventions — belong in the files your repository already
-hands the assistant. What moves — progress, decisions, what was ruled out, what
+hands the agent. What moves — progress, decisions, what was ruled out, what
 is left — belongs in Tisty, where it is dated, searchable, read a section at a
 time, and never lost between branches, machines or projects.
 
@@ -1722,9 +1722,9 @@ desktop's.
 
 ### Does it run on Linux?
 
-No. Tisty is a desktop program for Windows and macOS. An assistant that runs
+No. Tisty is a desktop program for Windows and macOS. An agent that runs
 on Linux inside Windows, under WSL, reaches it all the same: Settings ›
-Assistants › *Connected* connects it.
+Agents › *Connected* connects it.
 
 ### Is my data encrypted?
 
@@ -1799,7 +1799,7 @@ everything else changes, so go and look.
 What Tisty does that most of these do not: tasks and documents in one store and
 one search, an archive that keeps a finished task whole instead of hiding it,
 the Eisenhower matrix by its name rather than a number from one to four, and a
-door for the assistant you already use with no AI inside the program itself.
+door for the agent you already use with no AI inside the program itself.
 
 Each of them is better than Tisty at something. Obsidian and Logseq are
 notebooks with a decade of plugins, and tasks are one of those plugins' job.

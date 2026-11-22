@@ -236,7 +236,7 @@ describe("the first time AGENTS opens", () => {
     await said(
       0,
       true,
-      "No entró nada nuevo. Agentes ya sincroniza en este equipo: lo que escribas ahí llega a sus asistentes.",
+      "No entró nada nuevo. La carpeta Agentes ya sincroniza en este equipo: lo que escribas ahí llega a tus agentes.",
     );
     await said(
       1,
@@ -920,7 +920,7 @@ describe("looking again, and an assistant with no files yet", () => {
       );
     render(<AgentsFirst more rescan onClose={() => {}} onChanged={() => {}} />);
     expect(
-      await screen.findByText("No encontré nada nuevo. Esto es lo que hay en cada asistente:"),
+      await screen.findByText("No encontré nada nuevo. Esto es lo que hay en cada agente:"),
     ).toBeTruthy();
     expect(screen.getByText("Codex · ya está en Agentes")).toBeTruthy();
     expect(

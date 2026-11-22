@@ -3125,36 +3125,36 @@ describe("letting an assistant file work here", () => {
       />,
     );
     await sync();
-    await userEvent.click(screen.getByRole("tab", { name: /^assistants$/i }));
+    await userEvent.click(screen.getByRole("tab", { name: /^agents$/i }));
     if (shelf) await userEvent.click(await screen.findByRole("tab", { name: shelf }));
   };
 
   it("says nothing can file here until the person turns one on", async () => {
     await openTab();
 
-    expect(await screen.findByText(/No assistant can file work here/i)).toBeTruthy();
-    expect(screen.getByRole("button", { name: /Let an assistant file here/i })).toBeTruthy();
+    expect(await screen.findByText(/No agent can file work here/i)).toBeTruthy();
+    expect(screen.getByRole("button", { name: /Let an agent file here/i })).toBeTruthy();
   });
 
   it("leaves how assistants work to the page's own link to the help", async () => {
     const onHelp = vi.fn();
     await openTab(undefined, onHelp);
 
-    expect(screen.queryByRole("button", { name: /How assistants work with Tisty/i })).toBeNull();
+    expect(screen.queryByRole("button", { name: /How agents work with Tisty/i })).toBeNull();
     await userEvent.click(screen.getByRole("button", { name: /^How it works/ }));
 
-    expect(onHelp).toHaveBeenCalledWith({ slug: "assistants-and-mcp" });
+    expect(onHelp).toHaveBeenCalledWith({ slug: "agents-and-mcp" });
   });
 
   it("registering is a click of the person's, never something that arrives over the wire", async () => {
     await openTab();
 
-    await userEvent.click(screen.getByRole("button", { name: /Let an assistant file here/i }));
+    await userEvent.click(screen.getByRole("button", { name: /Let an agent file here/i }));
 
     await waitFor(() => expect(sent("agent_turn").length).toBe(1));
     expect(sent("agent_turn")[0].args.on).toBe(true);
-    expect(await screen.findByText(/An assistant can file work here/i)).toBeTruthy();
-    expect(screen.getByText(/signs the log as «espino 3»/i)).toBeTruthy();
+    expect(await screen.findByText(/An agent can file work here/i)).toBeTruthy();
+    expect(screen.getByText(/sign the log as «espino 3»/i)).toBeTruthy();
   });
 
   it("asks the assistant to keep its task up to date unless the person turns it off", async () => {
@@ -3257,7 +3257,7 @@ describe("letting an assistant file work here", () => {
       const claude = await screen.findByText("Claude Code");
       expect(claude.parentElement?.textContent).toContain("27 filed");
       expect(claude.parentElement?.textContent).toContain("the last");
-      const unnamed = screen.getByText("An assistant with no name");
+      const unnamed = screen.getByText("An agent with no name");
       expect(unnamed.parentElement?.textContent).toContain("132 filed");
       expect(screen.getByText("Antigravity").parentElement?.textContent).toContain(
         "nothing written yet",
@@ -3296,7 +3296,7 @@ describe("letting an assistant file work here", () => {
 
       const codex = await screen.findByText("Codex");
       expect(codex.parentElement?.textContent).toContain("40 filed");
-      expect(screen.getByText("An assistant with no name").parentElement?.textContent).toContain(
+      expect(screen.getByText("An agent with no name").parentElement?.textContent).toContain(
         "132 filed",
       );
       expect(screen.getByText(/knows its way around/i)).toBeTruthy();
@@ -3310,7 +3310,7 @@ describe("letting an assistant file work here", () => {
 
     await openTab();
 
-    expect(await screen.findByText(/An assistant can file work here/i)).toBeTruthy();
+    expect(await screen.findByText(/An agent can file work here/i)).toBeTruthy();
     expect(screen.getByText(/your undo never reaches what it filed/i)).toBeTruthy();
 
     await userEvent.click(screen.getByRole("tab", { name: /^what it can and cannot do$/i }));
@@ -3328,7 +3328,7 @@ describe("letting an assistant file work here", () => {
   it("keeps the assistants on five shelves, and opens on the door", async () => {
     await openTab();
 
-    const shelves = screen.getByRole("tablist", { name: /^assistants$/i });
+    const shelves = screen.getByRole("tablist", { name: /^agents$/i });
     expect(
       within(shelves)
         .getAllByRole("tab")

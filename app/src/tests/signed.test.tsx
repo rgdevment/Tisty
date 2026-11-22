@@ -83,7 +83,7 @@ describe("a task an agent filed carries its signature", () => {
       />,
     );
 
-    expect(screen.getByText("by an agent").getAttribute("title")).toBe("An assistant wrote it");
+    expect(screen.getByText("by an agent").getAttribute("title")).toBe("An agent wrote it");
   });
 
   it("keeps the tag, and signs nothing, when the writer is not a known agent", () => {

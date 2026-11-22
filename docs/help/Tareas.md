@@ -113,7 +113,7 @@ Una tarea se abre al lado de la lista, no encima: arriba sus fechas, lista, etiq
 
 ![La página de Instalador: probar la actualización desde la versión anterior: su lista, fecha, fecha límite, prioridad y etiquetas arriba; Description, Done when y Steps con tres de siete marcados; y a la derecha Partes, Lo que lleva y El trayecto, desde Nace hasta cada paso hecho](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/app/es-pagina-de-tarea-light.webp)
 
-Debajo de la página se pliega el **Historial**: lo que la tarea traía escrito de antes y lo que un asistente anota en ella. Abierta a página completa, la tarea gana una columna con su propio trayecto: cuánto lleva abierta, cuánto está hecho y cada cambio por el que pasó.
+Debajo de la página se pliega el **Historial**: lo que la tarea traía escrito de antes y lo que un agente anota en ella. Abierta a página completa, la tarea gana una columna con su propio trayecto: cuánto lleva abierta, cuánto está hecho y cada cambio por el que pasó.
 
 Una **fecha límite** no es lo mismo que un plan: `antes de` y `hasta` abren una. Mira [Lenguaje natural](Lenguaje-natural#fecha-o-fecha-límite).
 
@@ -166,13 +166,13 @@ Sin un repaso cada tanto, lo capturado se acumula sin decidir. **Revisión seman
 - `Ctrl`/`⌘` + `Enter`, sobre la fila de la tarea en la lista, la termina. Se va al [[archivo|El-archivo]] con todo lo que tiene. Mientras escribes en su página, esas teclas ponen un salto de página.
 - **Cerrar con resumen** te pide dos líneas de cómo salió antes de terminarla. Van primero en **Al cerrarla**; en una rutina, quedan con su vuelta.
 - **No lo haré** la descarta: la aparta sin hacerla, y también llega al archivo.
-- Al cerrarla, su página se guarda con ella: se lee pero ya no se escribe, ni tú ni un asistente. Si la reabres, vuelve.
+- Al cerrarla, su página se guarda con ella: se lee pero ya no se escribe, ni tú ni un agente. Si la reabres, vuelve.
 
-Las tareas que un asistente da por hechas esperan en **Por confirmar**: mira [[Qué puede hacer un asistente|Qué-puede-hacer-un-asistente]].
+Las tareas que un agente da por hechas esperan en **Por confirmar**: mira [[Qué puede hacer un agente|Qué-puede-hacer-un-agente]].
 
 ## Con tu agente
 
-La misma tarea que guarda tu trabajo es la memoria del agente de IA que conectas por [[MCP|Asistentes-y-MCP]].
+La misma tarea que guarda tu trabajo es la memoria del agente de IA que conectas por [[MCP|Agentes-y-MCP]].
 
 - **Lo que anota es suyo para mantenerlo al día.** Describe la tarea, planifica los pasos, marca cada uno al terminarlo, anota en la bitácora lo que aprende y reparte un trabajo grande en partes.
 - **Lo que la cierra sigue siendo tuyo.** En una tarea que escribiste tú, el agente trabaja como en un documento (la descripción, la página, los pasos abiertos, el título y la lista), pero un paso que da por listo espera a que lo marques, el día sigue siendo tuyo y cerrar siempre es tuyo.
@@ -181,7 +181,7 @@ La misma tarea que guarda tu trabajo es la memoria del agente de IA que conectas
 - **Un ticket, una tarea.** Anotada con su origen (un ticket, un hilo), el mismo trabajo nunca se anota dos veces.
 - **El archivo responde primero.** Antes de proponer nada, el agente busca en las tareas cerradas, y «¿cómo resolvimos esto?» vuelve con la línea que lo dice.
 
-Más en [Un día con tu agente](Asistentes-y-MCP#un-día-con-tu-agente).
+Más en [Un día con tu agente](Agentes-y-MCP#un-día-con-tu-agente).
 
 ## Tisto
 

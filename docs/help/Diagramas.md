@@ -1,6 +1,6 @@
 # Diagramas
 
-Un diagrama en Tisty es un bloque `mermaid` dentro de un documento: unas pocas líneas de texto que Tisty dibuja, y que GitHub, Notion, Obsidian o un asistente leen igual. Puedes escribirlas tú, pero no hace falta: la ventana de diagramas lo dibuja contigo y guarda el resultado como ese mismo texto. En la página se dibuja claro u oscuro con la ventana, se redibuja cuando cambias la luz, y se lee a cualquier ancho.
+Un diagrama en Tisty es un bloque `mermaid` dentro de un documento: unas pocas líneas de texto que Tisty dibuja, y que GitHub, Notion, Obsidian o un agente leen igual. Puedes escribirlas tú, pero no hace falta: la ventana de diagramas lo dibuja contigo y guarda el resultado como ese mismo texto. En la página se dibuja claro u oscuro con la ventana, se redibuja cuando cambias la luz, y se lee a cualquier ancho.
 
 ![La ventana de diagramas sobre la guía: las formas a la izquierda, el diagrama de flujo ¿Lo vas a hacer, o a volver a leer? al centro y, a la derecha, el texto Mermaid que se escribe en el documento, en vivo](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/app/es-diagrama-light.webp)
 
@@ -49,6 +49,6 @@ Un diagrama que la ventana no puede conservar sin cambiarlo, como un mapa mental
 
 Las imágenes salen al doble de su tamaño para que se vean nítidas (una muy grande, algo menos, hasta donde el sistema puede pintarla), y el archivo se llama como el documento, con «-2», «-3»… desde su segundo diagrama. El mapa mental, el esquema, el diagrama libre y las clases salen tal como los ves en la ventana, con tus tablas y tus formas donde las dejaste (uno libre con iconos o imágenes sale como lo dibuja Mermaid); los demás tipos, como los dibuja Mermaid.
 
-## Con un asistente
+## Con un agente
 
-Un asistente conectado por [[MCP|Asistentes-y-MCP]] escribe diagramas como cualquier otro texto del documento: un bloque `mermaid`. La herramienta `language` le explica qué tipos abre la ventana y que las líneas `%% tisty:` se conservan tal cual, así no deshace lo que acomodaste.
+Un agente conectado por [[MCP|Agentes-y-MCP]] escribe diagramas como cualquier otro texto del documento: un bloque `mermaid`. La herramienta `language` le explica qué tipos abre la ventana y que las líneas `%% tisty:` se conservan tal cual, así no deshace lo que acomodaste.

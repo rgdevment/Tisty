@@ -126,9 +126,9 @@ Some Markdown from elsewhere — HTML tags — has no word in Tisty. A document 
 
 The bar at the foot of the document says why.
 
-**It is in the archive.** Archiving a document, or the folder it sits in, closes it to writing — from the window and from an assistant alike. Bring it back and it writes again.
+**It is in the archive.** Archiving a document, or the folder it sits in, closes it to writing — from the window and from an agent alike. Bring it back and it writes again.
 
-**You locked it.** **Lock it**, in the document's menu, closes it to writing, an assistant's too; **Unlock it**, in that menu or on the bar at the foot, opens it again.
+**You locked it.** **Lock it**, in the document's menu, closes it to writing, an agent's too; **Unlock it**, in that menu or on the bar at the foot, opens it again.
 
 **A page of it is archived, or the document that holds it is.** See [Pages and PDF](Pages-and-PDF).
 

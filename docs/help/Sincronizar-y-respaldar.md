@@ -74,7 +74,7 @@ En un equipo que todavía no guarda nada tuyo, si tu Drive ya tiene tu Tisty, la
 
 Una ronda de sincronización que pasa del minuto dice en el botón **Sincronizar ahora** cuánto lleva, **Sincronizando desde hace 3 min…**, para que una primera vuelta larga nunca parezca congelada.
 
-Solo se puede conectar desde la ventana. Los asistentes nunca tocan la red, y una copia de Tisty compilada sin las credenciales de Google del proyecto no ofrece la nube.
+Solo se puede conectar desde la ventana. Los agentes nunca tocan la red, y una copia de Tisty compilada sin las credenciales de Google del proyecto no ofrece la nube.
 
 Antes de que entres en tu cuenta, y antes de que empiece un movimiento a Drive, Tisty revisa que Google responda: una petición a `www.googleapis.com` sin nada tuyo, que se abandona a los 10 segundos. Si un proxy, un filtro de tu trabajo o un antivirus se interpone, si revisa las conexiones seguras, o si Google tiene problemas, Tisty te lo dice ahí en rojo, con palabras simples y con **Revisar de nuevo**; si Google solo tardó en responder, te lo dice en gris, y que puedes conectarte igual. Nunca te impide conectar, nunca rodea un proxy y nunca corre en una ronda de sincronización.
 

@@ -30,7 +30,7 @@ Import the note. Its own forms become standard ones: its callouts become the nea
 
 Pictures and files the document names beside it — in its own folder or one below — come in with it and are kept inside Tisty, and the text points at the copies. One that is not there, or sits outside that folder, is left as its plain words, and Tisty says how many could not come in. Another note it links to is not copied in as a file: it is linked if a document here already bears its title, and otherwise its name stays as a reference and Tisty reminds you to import that note on its own. A link to a web page, an email address or another app (`tel:`, `obsidian://`…) stays a link.
 
-What has no word in Tisty Markdown is turned into one on the way in, whether it comes from an older file of yours, an import or an assistant writing in plain Markdown; the [guide](https://markdown.tisty.app/what-is-outside-the-language) lists it.
+What has no word in Tisty Markdown is turned into one on the way in, whether it comes from an older file of yours, an import or an agent writing in plain Markdown; the [guide](https://markdown.tisty.app/what-is-outside-the-language) lists it.
 
 ## Markdown to Word (`.md` to `.docx`)
 

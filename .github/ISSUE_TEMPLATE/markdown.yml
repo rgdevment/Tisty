@@ -39,7 +39,7 @@ body:
         - Exporting as Word or a web page
         - Copying as Markdown
         - Importing or pasting from elsewhere
-        - Written by an assistant through MCP
+        - Written by an agent through MCP
     validations:
       required: true
   - type: input

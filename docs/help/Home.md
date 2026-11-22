@@ -27,8 +27,8 @@ This is the help for Tisty: how to use each thing, with examples, whether you wo
 
 ### With your AI agent
 
-- **Connect it:** [[Assistants and MCP|Assistants-and-MCP]].
-- **Know what it may do and what it never does:** [[What an assistant may do|MCP-Permissions]].
+- **Connect it:** [[Agents and MCP|Agents-and-MCP]].
+- **Know what it may do and what it never does:** [[What an agent may do|MCP-Permissions]].
 - **See how it works in a real session:** [[How an agent works|How-an-Agent-Works]].
 - **Keep the rules of all your agents in one place:** [[Agents|AGENTS-Folder]].
 - **Go back to what a document said before a change:** [Earlier versions](Documents#earlier-versions).
@@ -61,8 +61,8 @@ This is the help for Tisty: how to use each thing, with examples, whether you wo
 
 Tisty is not AI and has none inside, and that is not going to change. But it speaks [MCP](https://modelcontextprotocol.io), so the agent you already use — GitHub Copilot, Claude Code, Codex, Cursor, any MCP client — keeps its memory here: it files tasks with steps and a journal, writes documents, and picks up where it left off, on this machine, with no account and nothing over the network.
 
-- [[Assistants and MCP|Assistants-and-MCP]] — connecting one, letting it in, a day with your agent and what it costs.
-- [[What an assistant may do|MCP-Permissions]] — the limits, its word on your own tasks, and **To confirm**.
+- [[Agents and MCP|Agents-and-MCP]] — connecting one, letting it in, a day with your agent and what it costs.
+- [[What an agent may do|MCP-Permissions]] — the limits, its word on your own tasks, and **To confirm**.
 - [[MCP tools reference|MCP-Tools]] — every tool the server offers.
 - [[Agents: your agents' rules, skills and memory|AGENTS-Folder]] — one folder for the files Claude Code, Codex, Copilot, Gemini and Cursor read. Bring copies them to read and arrange; Sync has Tisty write them, with backups.
 
@@ -94,7 +94,7 @@ What you keep was already joined: a document cites another, a task was born in s
 
 - [[Sync and backup|Sync-and-Backup]] — two machines through a folder you already sync, or your Google Drive, OneDrive or WebDAV server directly, with what you keep there encrypted if you want.
 - [[Privacy]] — what is stored, and the few requests Tisty ever makes.
-- [[Command line|Command-Line]] — retired in 1.31; only what assistants use remains: `tisty mcp`, their door, and `tisty hook`.
+- [[Command line|Command-Line]] — retired in 1.31; only what agents use remains: `tisty mcp`, their door, and `tisty hook`.
 - [[FAQ]]
 
 ---

@@ -1,6 +1,6 @@
 # Settings
 
-Settings is where Tisty fits itself to you: how it looks, how it tells you things, where it leaves your copies, who writes in it and how everything stands. I laid it out so that what needs something from you comes first, in **Overview**, and so that any setting turns up when you type its name, without going page by page. It works the same whether you work with your agent or on your own: nothing here asks you to connect an assistant.
+Settings is where Tisty fits itself to you: how it looks, how it tells you things, where it leaves your copies, who writes in it and how everything stands. I laid it out so that what needs something from you comes first, in **Overview**, and so that any setting turns up when you type its name, without going page by page. It works the same whether you work with your agent or on your own: nothing here asks you to connect an agent.
 
 ## Opening Settings
 
@@ -14,7 +14,7 @@ The gear and the palette always open it on **Overview**. On the left you have, i
 |---|---|---|
 | **This computer** | [Look and window](#look-and-window), [Tasks and reminders](#tasks-and-reminders), [Documents and signature](#documents-and-signature) | How Tisty looks and behaves on this computer, how you jot things down and how it tells you, and the name you sign with |
 | **Your data** | [Sync](#sync), [Security](#security), [Copies](#copies), [Storage](#storage) | Where your copies travel, who you are on your computers, your backups and how much room it all takes |
-| **Connections** | [Assistants](#assistants) | The door for your agent and the assistants connected on this computer |
+| **Connections** | [Agents](#agents) | The door for your agent and the agents connected on this computer |
 | **Tisty** | [Health](#health), [Help and about](#help-and-about) | The check of your history, the version you have and where to ask for help |
 
 A page with something to attend to carries a number to the right of its name, the same one **Overview** counts: with **Security 1** and **Copies 1** you know, without opening anything, that there is one thing in each.
@@ -35,11 +35,11 @@ After you install, **Overview** offers five steps, each with **Go ›**, which t
 2. **Create your 24-word phrase** — your identity on all your computers. Takes you to **Your identity**, in [Security](#security).
 3. **Make your first backup** — a file of yours, outside Tisty. Takes you to **Save a copy**, in [Copies](#copies).
 4. **Put your alias on what you write** — what you sign your documents with. Takes you to **Alias**, in [Documents and signature](#documents-and-signature).
-5. **Connect an assistant** — optional. Takes you to the **Connected** tab of [Assistants](#assistants).
+5. **Connect an agent** — optional. Takes you to the **Connected** tab of [Agents](#agents).
 
 The title counts what is done, **Make Tisty yours · 1 of 5**, and each finished step is struck through with a ✓. Once the first four are done, the list goes by itself: the fifth is optional and does not hold it back.
 
-**Example.** Marisol installs Tisty on a new laptop and, in the welcome, chooses **Only on this machine**. Settings opens on **Make Tisty yours · 1 of 5**: step 1 is already struck through, because staying on this computer is a choice too. **Go ›** on step 2 leads to **Security**, where Marisol creates the phrase and comes back: now it says **2 of 5**. A backup and the alias «Marisol» later, the list goes away, even with no assistant connected yet.
+**Example.** Marisol installs Tisty on a new laptop and, in the welcome, chooses **Only on this machine**. Settings opens on **Make Tisty yours · 1 of 5**: step 1 is already struck through, because staying on this computer is a choice too. **Go ›** on step 2 leads to **Security**, where Marisol creates the phrase and comes back: now it says **2 of 5**. A backup and the alias «Marisol» later, the list goes away, even with no agent connected yet.
 
 ### To attend to
 
@@ -57,7 +57,7 @@ Below, **To attend to · 2** gathers what needs something from you, each with an
 | **Your last backup is from Mon, Oct 5 11:47** (30 days or more) | **Create backup** | Copies › Save a copy |
 | **3 things to look at in your history** | **Review** | Health |
 | **Quick capture was left without a shortcut** | **Choose another** | Tasks and reminders › Quick capture |
-| **Claude Code points to a Tisty that no longer exists** | **Fix** | Assistants › Connected |
+| **Claude Code points to a Tisty that no longer exists** | **Fix** | Agents › Connected |
 
 When nothing is left, it says **Nothing needs your attention.** with a green dot. That line only shows if Tisty could read everything it checks on opening: if a read failed or is still on its way, it does not say it, because it cannot promise it. While the steps of **Make Tisty yours** are showing, it does not either.
 
@@ -65,11 +65,11 @@ When nothing is left, it says **Nothing needs your attention.** with a green dot
 
 Each of these also shows on its row, as an amber **Attention** note: it is the same one, not another, and sorting it out clears it from both places and from the column's number at once. More in [Attention, on its row](#attention-on-its-row).
 
-Some things are only known after a look: the computers waiting for your confirmation show once you have opened **Security** or **Health**, what to look at in your history once you have opened **Health**, and an assistant pointing to another Tisty once you have opened **Assistants**. **Overview** does not start those checks on its own.
+Some things are only known after a look: the computers waiting for your confirmation show once you have opened **Security** or **Health**, what to look at in your history once you have opened **Health**, and an agent pointing to another Tisty once you have opened **Agents**. **Overview** does not start those checks on its own.
 
 ### Status
 
-**Status** has six tiles, one per page: **Sync**, **Copies**, **Security**, **Assistants**, **Health** and **Help and about**. Each one says what matters with a coloured dot, and pressing it opens its page.
+**Status** has six tiles, one per page: **Sync**, **Copies**, **Security**, **Agents**, **Health** and **Help and about**. Each one says what matters with a coloured dot, and pressing it opens its page.
 
 - **Green dot**: it is fine and Tisty knows it first-hand.
 - **Amber dot**: something still works, but it is worth a look.
@@ -81,13 +81,13 @@ Some things are only known after a look: the computers waiting for your confirma
 | **Sync** | **In Google Drive** (or your folder, your OneDrive, your WebDAV) with a round that ended well or is under way | Something asks for you, **nothing new since …** (three days with nothing from your other computers) or **Chosen by a newer Tisty** | **Off** · only on this computer; offline, at today's limit or waiting; or **the cloud's state could not be read yet** |
 | **Copies** | **Last backup** with its date | The last backup is 30 days old or more | **No backup** · none yet |
 | **Security** | **Phrase confirmed** | **Phrase not confirmed**, **Phrase on another computer**, or a computer waiting for your confirmation | **No phrase yet** · your identity is born with it |
-| **Assistants** | **Door open** · signs as «palmera 95» | An assistant points to a Tisty that no longer exists | **Door closed** · what an assistant asks is turned down |
+| **Agents** | **Door open** · signs as «palmera 95» | An agent points to a Tisty that no longer exists | **Door closed** · what an agent asks is turned down |
 | **Health** | **Everything in order** · checked 10:42 | **3 things to look at**, or **Some checks could not run** | **Not checked yet** · checked when you open Health |
 | **Help and about** | **Tisty 1.49.0** · up to date, if Tisty checked for versions today and got an answer | **1.50.0 is out** · you have 1.49.0 | **no check for updates yet**, or **last checked …** when the last answer is not from today |
 
 **Health** is the only one not checked when Settings opens: it shows the last check you made in this window, with its time, so you see how old it is.
 
-**On another computer**, **Overview** speaks for that computer: each one keeps its own backups, its **Health** check and its assistants, so on your desktop it may say **No backup** even though the laptop made one yesterday. Your phrase, though, is yours on all of them: on a computer where you have not typed it yet, **Security** says **Phrase on another computer** · type it here to recognise this one.
+**On another computer**, **Overview** speaks for that computer: each one keeps its own backups, its **Health** check and its agents, so on your desktop it may say **No backup** even though the laptop made one yesterday. Your phrase, though, is yours on all of them: on a computer where you have not typed it yet, **Security** says **Phrase on another computer** · type it here to recognise this one.
 
 ## Search a setting
 
@@ -192,23 +192,23 @@ More in [Large attachments](Sync-and-Backup#large-attachments) and [Privacy](Pri
 
 ## Connections
 
-### Assistants
+### Agents
 
-«Tisty has no AI inside. Your assistant brings it; Tisty is the memory you share.» The page has five tabs:
+«Tisty has no AI inside. Your agent brings it; Tisty is the memory you share.» The page has five tabs:
 
-- **Door**: **An assistant can file work here**, with **Stop it** to close it (and **Let an assistant file here** to open it again), **Ask it to keep its task up to date** and **Remind it when a turn starts and ends**.
-- **Connected**: **Assistants on this computer**, with **Look again**, a search box for the ones Tisty knows and did not find, **Wrote in Tisty from elsewhere** and **How to connect one**, folded, to connect it by hand.
+- **Door**: **An agent can file work here**, with **Stop it** to close it (and **Let an agent file here** to open it again), **Ask it to keep its task up to date** and **Remind it when a turn starts and ends**.
+- **Connected**: **Agents on this computer**, with **Look again**, a search box for the ones Tisty knows and did not find, **Wrote in Tisty from elsewhere** and **How to connect one**, folded, to connect it by hand.
 - **Agents folder**: the **Agents** card, to bring and sync your agents' rules, skills and memory. More in [Agents: rules, skills and memory](AGENTS-Folder).
-- **How its signature looks**: **Who signs what an assistant writes**, with a **Preview of a row** that changes at once, **Only a diamond**, **Name the assistant in the task list** and **Name the assistant inside a task**.
+- **How its signature looks**: **Who signs what an agent writes**, with a **Preview of a row** that changes at once, **Only a diamond**, **Name the agent in the task list** and **Name the agent inside a task**.
 - **What it can and cannot do**: **What it can do** and **What it can never do**, side by side.
 
 With the keyboard, `←` and `→` change tabs, and `Home` and `End` jump to the first and the last.
 
-With the door closed, the page reminds you where it matters. In **Door**, **Ask it to keep its task up to date** and **Remind it when a turn starts and ends** turn grey with the **Missing** note: «These two settings act while the door is open.». In **Connected**, if you have assistants connected, **Assistants on this computer** says «Even so, they file nothing until you open the door.», with **Go to Door**. And in **How its signature looks**, with **Only a diamond** on, the two name switches turn grey: «The two above stay off while «Only a diamond» is on.».
+With the door closed, the page reminds you where it matters. In **Door**, **Ask it to keep its task up to date** and **Remind it when a turn starts and ends** turn grey with the **Missing** note: «These two settings act while the door is open.». In **Connected**, if you have agents connected, **Agents on this computer** says «Even so, they file nothing until you open the door.», with **Go to Door**. And in **How its signature looks**, with **Only a diamond** on, the two name switches turn grey: «The two above stay off while «Only a diamond» is on.».
 
-**Stop it** asks you before closing: «No assistant will be able to file in Tisty.», everything it wrote stays where it is, and connected assistants stay connected, but whatever they ask is refused. It needs no tick, because **Let an assistant file here** opens it again.
+**Stop it** asks you before closing: «No agent will be able to file in Tisty.», everything it wrote stays where it is, and connected agents stay connected, but whatever they ask is refused. It needs no tick, because **Let an agent file here** opens it again.
 
-If you work without an agent, this page can wait: the open door does nothing while no assistant calls. Everything else in [Assistants and MCP](Assistants-and-MCP).
+If you work without an agent, this page can wait: the open door does nothing while no agent calls. Everything else in [Agents and MCP](Agents-and-MCP).
 
 ## Tisty
 
@@ -264,7 +264,7 @@ No red button does anything on the first click. It opens a window with its name,
 Four buttons outside the zone ask the same way, on their own row:
 
 - **Remove**, on a computer in **Security › Your computers**: **Remove this computer?** For example, «Jaime's laptop can no longer write in the shared folder.»; what it already wrote stays there and every computer still sees it; if it comes back, it joins as a new computer, backed up and emptied first; and when it last wrote. Button **Remove the computer**, with a tick.
-- **Stop it**, in **Assistants › Door**: see [Assistants](#assistants). No tick.
+- **Stop it**, in **Agents › Door**: see [Agents](#agents). No tick.
 - **Move 5 to the bin · 41 MB**, in **Storage › Attachments nothing uses**: **Move 5 attachments nothing uses to the bin?**, with «Those on this computer stay there for 30 days.» and the note that those kept only in the folder you share are deleted from it, and your cloud keeps them in its own bin. No tick.
 - **Delete for good**, in **Health › To look at**: **Delete «Recipes» for good?**, with «No copy is left here.» for a loose document, or «The document and what it holds go for good, on every computer.» for a missing one. With a tick.
 
@@ -301,9 +301,9 @@ A grey switch is never broken: it always has the note below that says why and, w
 | Tasks and reminders › **Important reminders** | **Held by the system** | It is on and still needs allowing in the system | On Windows: «Under Settings → System → Notifications → Tisty, allow important notifications. Windows may also ask you in a notice the first time: allow it there too.» On a Mac, the step in System Settings and Focus | **Open the system settings** |
 | Security › **Encrypt my data in the cloud** | **Missing** | There is no direct cloud | «Connect a cloud in Sync to encrypt what Tisty keeps there.» | **Go to Sync** |
 | Storage › **Where large attachments stay** | **Missing** | There is no shared folder | «There is no shared folder yet, so everything stays on this computer.» | **Go to Sync** |
-| Assistants › Door › **Remind it when a turn starts and ends** | **Missing** | The door is closed | «These two settings act while the door is open.» | — |
-| Assistants › Connected › **Assistants on this computer** | **Missing** | There are assistants connected and the door is closed | «Even so, they file nothing until you open the door.» | **Go to Door** |
-| Assistants › How its signature looks › **Name the assistant inside a task** | **Missing** | **Only a diamond** is on | «The two above stay off while «Only a diamond» is on.» | — |
+| Agents › Door › **Remind it when a turn starts and ends** | **Missing** | The door is closed | «These two settings act while the door is open.» | — |
+| Agents › Connected › **Agents on this computer** | **Missing** | There are agents connected and the door is closed | «Even so, they file nothing until you open the door.» | **Go to Door** |
+| Agents › How its signature looks › **Name the agent inside a task** | **Missing** | **Only a diamond** is on | «The two above stay off while «Only a diamond» is on.» | — |
 | Help and about › **Take release candidates** | **Doesn't apply here** | The Microsoft Store copy | «The Microsoft Store keeps this copy up to date and offers no release candidates.» | — |
 | Help and about › the update | **Note** | There is a new version | «This notice also shows in the Overview and as a dot in the bar, not only here.» | — |
 
@@ -311,7 +311,7 @@ A grey switch is never broken: it always has the note below that says why and, w
 
 Everything that reads or rewrites your history, the shared folder or your cloud goes one thing at a time: syncing, backing up and restoring, encrypting and decrypting, your phrase and your computers, taking and bringing documents, the **Health** review, rebuilding the quick index, freeing space, large attachments, the **Handle with care** buttons and **Leave Tisty**. While one works, the others say **Waiting for «…» to finish.** with the name of the one at work, and their buttons wait in grey.
 
-The everyday things stay free: language, look, Tisto, what closing the window does, starting with the computer, the shortcuts, the notices, your calendar, your alias, your name for signing, document history, the door and your assistant's signature, the guide and the help.
+The everyday things stay free: language, look, Tisto, what closing the window does, starting with the computer, the shortcuts, the notices, your calendar, your alias, your name for signing, document history, the door and your agent's signature, the guide and the help.
 
 **Example.** Jaime presses **Create backup…** and picks an external drive. After a moment, **Saving the backup… 4 s** shows under **Save a copy**, and in **Handle with care** **Restore** says «Waiting for «Backup» to finish.», with its button grey. Meanwhile Jaime goes to **Look and window** and picks **Dark**: **Saved** shows at once, because the look does not touch the data. If the drive comes loose halfway, the backup row shows **Error** with the cause and **Try again**; with the drive plugged back in, Jaime tries again from there.
 
@@ -327,7 +327,7 @@ What **To attend to** gathers in **Overview** also shows on the row where it is 
 | Tasks and reminders › **Quick capture** | **Quick capture was left without a shortcut** | «Another app already uses them. Choose another combination.» |
 | Copies › **Save a copy** | **Your last backup is from Mon, Oct 5 11:47** | — |
 | **Health**, at the top | **3 things to look at in your history** | — |
-| Assistants › Connected › **Assistants on this computer** | **Claude Code points to a Tisty that no longer exists** | — |
+| Agents › Connected › **Agents on this computer** | **Claude Code points to a Tisty that no longer exists** | — |
 
 With a folder, **Where it syncs** also shows there whether your cloud asks you to sign in, whether there is something to look at or whether syncing is paused; with a direct cloud, your cloud's card says so, with its button. The update does not repeat its notice: its row already is the offer, with the **Note**.
 
@@ -370,7 +370,7 @@ If you came from an earlier version, when Settings had the pages General, Sync, 
 | Maintenance › the check, To look at, the quick index, Report a problem | Health |
 | Maintenance › Free up space and the figures | Storage › Free up space and How much room it takes |
 | About | Help and about |
-| Assistants, on a single page | Assistants, in five tabs |
+| Agents, on a single page | Agents, in five tabs |
 
 ## When something does not look like this
 
@@ -379,4 +379,4 @@ If you came from an earlier version, when Settings had the pages General, Sync, 
 - **A read that fails**: the tile stays on «…» or grey, and **Overview** does not say **Nothing needs your attention.** until it can read everything. Going back to **Overview** reads it again.
 - **Another computer**: each computer has its own **Overview**, backups and check; what carries **Travels to your computers** arrives when you sync.
 - **The Microsoft Store copy**: updates come from the Store. While it has not said which number it brings, **Overview** says **The Store has a new version**.
-- **An assistant**: no assistant can touch Settings. **What it can and cannot do** says so: «Touch syncing, settings or machines» is among what it can never do.
+- **An agent**: no agent can touch Settings. **What it can and cannot do** says so: «Touch syncing, settings or machines» is among what it can never do.

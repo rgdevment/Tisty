@@ -55,8 +55,8 @@ const KEEPING: Record<Tab, Twice[]> = {
   copies: [twice(...SYNC, "Backups", "Respaldos"), twice("privacy", "privacidad")],
   storage: [twice("privacy", "privacidad"), FAQ],
   agents: [
-    twice("assistants-and-mcp", "asistentes-y-mcp"),
-    twice("mcp-permissions", "que-puede-hacer-un-asistente"),
+    twice("agents-and-mcp", "agentes-y-mcp"),
+    twice("mcp-permissions", "que-puede-hacer-un-agente"),
     twice("mcp-tools", "herramientas-mcp"),
     twice("agents-folder", "carpeta-agents"),
   ],

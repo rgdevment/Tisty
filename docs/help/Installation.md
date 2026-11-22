@@ -55,7 +55,7 @@ The gear at the foot of the sidebar opens Settings on **Overview**, which tells 
 
 - **This computer** — **Look and window** (language, look, start-up, what closing the window does and the hidden folders), **Tasks and reminders** (the capture shortcuts, the notices and your calendar) and **Documents and signature** (your alias, your name on PDFs and how much each document's history keeps).
 - **Your data** — **Sync** (where your copies go), **Security** (your 24-word phrase, your computers and [encrypting your cloud](Sync-and-Backup#encrypting-your-cloud)), **Copies** (backups, documents from another Tisty, restoring and leaving) and **Storage** (where your files live, how much room they take, large attachments and freeing up space).
-- **Connections** — **Assistants**, the [[MCP door|Assistants-and-MCP]].
+- **Connections** — **Agents**, the [[MCP door|Agents-and-MCP]].
 - **Tisty** — **Health** (the store review, the quick index and reporting a problem) and **Help and about**: the version, updates and release candidates. At its foot, **Third-party notices** names each piece Tisty carries inside, with its version and its licence; the data of Brainsty's Spanish–English dictionary is there too, with its authors and WordNet's licence in full. **Licence texts** brings the full text of each licence in the core.
 
 All of it, page by page and with examples, in [[Settings]].

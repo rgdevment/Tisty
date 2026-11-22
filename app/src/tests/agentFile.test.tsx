@@ -128,7 +128,7 @@ describe("what the agent file panel says", () => {
   });
 
   it("says when nothing is written, nothing is kept yet and why it does not sync", () => {
-    expect(rows(agent([])).get("Read by")).toBe("No assistant here");
+    expect(rows(agent([])).get("Read by")).toBe("No agent here");
     expect(rows(agent([])).get("Syncs on this computer")).toBe("No");
     expect(rows(agent([])).has("Backups")).toBe(false);
     expect(rows(agent([])).has("Last written")).toBe(false);

@@ -2,24 +2,24 @@
 
 Since 1.31, Tisty has no command line. The window is the way in, for your tasks and your documents alike.
 
-What remains of the `tisty` program is what your assistant uses: **`tisty mcp`**, the door it comes through, and **`tisty hook`**, which the hooks Tisty adds to it call when a session starts, after a tool runs and when a turn ends (see [[Assistants and MCP|Assistants-and-MCP]]). `tisty hook` reads what the assistant sends, answers in that assistant's own shape and always ends without an error, so it never stops a turn. Any other command only prints a notice that the command line was retired and sends you to the window.
+What remains of the `tisty` program is what your agent uses: **`tisty mcp`**, the door it comes through, and **`tisty hook`**, which the hooks Tisty adds to it call when a session starts, after a tool runs and when a turn ends (see [[Agents and MCP|Agents-and-MCP]]). `tisty hook` reads what the agent sends, answers in that agent's own shape and always ends without an error, so it never stops a turn. Any other command only prints a notice that the command line was retired and sends you to the window.
 
 ## Where it lives
 
-It comes inside the app: you do not install it on its own, and it does not need to be on your PATH. Since 1.32.1 it also answers to plain `tisty` while the door for assistants is open (see [[Assistants and MCP|Assistants-and-MCP]]). **Settings › Assistants › Connected** shows where it sits on this computer, and connects the assistants it finds installed.
+It comes inside the app: you do not install it on its own, and it does not need to be on your PATH. Since 1.32.1 it also answers to plain `tisty` while the door for agents is open (see [[Agents and MCP|Agents-and-MCP]]). **Settings › Agents › Connected** shows where it sits on this computer, and connects the agents it finds installed.
 
-## Connecting an assistant with it
+## Connecting an agent with it
 
-For an assistant Tisty does not know, one line does it, with the full path that **Settings › Assistants › Connected › How to connect one** shows, ready to copy:
+For an agent Tisty does not know, one line does it, with the full path that **Settings › Agents › Connected › How to connect one** shows, ready to copy:
 
 ```console
-$ <your-assistant> mcp add tisty -- <path-to-tisty> mcp
+$ <your-agent> mcp add tisty -- <path-to-tisty> mcp
 ```
 
-Where `<your-assistant>` is whatever yours is called. If you closed the door, open it again in **Settings › Assistants › Door**. The rest is in [[Assistants and MCP|Assistants-and-MCP]].
+Where `<your-agent>` is whatever yours is called. If you closed the door, open it again in **Settings › Agents › Door**. The rest is in [[Agents and MCP|Agents-and-MCP]].
 
 ## If you used the command line
 
 - What it did for maintenance lives in the window: **Sync now** and **Send everything again** in **Settings › Sync**, confirming another machine on its notice or under **Settings › Security › Your computers**, the store review in **Settings › Health**, and the backup zip in **Settings › Copies**.
-- Scripts that called `tisty add` or `tisty ls --json` stop working. The [[MCP door|Assistants-and-MCP]] is how a program reaches Tisty now.
+- Scripts that called `tisty add` or `tisty ls --json` stop working. The [[MCP door|Agents-and-MCP]] is how a program reaches Tisty now.
 - The Homebrew formula `tisty-cli` and the loose zips of the command line are no longer published. If that is all you installed, it stays on 1.30: install the app instead ([[Installation]]), and it finds your tasks and documents where they are.

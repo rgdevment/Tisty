@@ -211,7 +211,7 @@ describe("the overview", () => {
       "Crea tu frase de 24 palabras",
       "Haz tu primer respaldo",
       "Ponle tu alias a lo que escribes",
-      "Conecta un asistente",
+      "Conecta un agente",
     ])
       expect(screen.getByText(step)).toBeTruthy();
     expect(screen.queryByText("Nada pide tu atención.")).toBeNull();
@@ -277,11 +277,11 @@ describe("searching a setting", () => {
     await screen.findByRole("heading", { name: "Resumen" });
     const box = bar().getByRole("searchbox", { name: "Buscar un ajuste" });
 
-    await userEvent.type(box, "asistentes en este");
+    await userEvent.type(box, "agentes en este");
 
-    expect(await screen.findByRole("heading", { name: "«asistentes en este»" })).toBeTruthy();
+    expect(await screen.findByRole("heading", { name: "«agentes en este»" })).toBeTruthy();
     expect(screen.getByText("1 ajuste")).toBeTruthy();
-    await userEvent.click(screen.getByRole("button", { name: /Asistentes en este equipo/ }));
+    await userEvent.click(screen.getByRole("button", { name: /Agentes en este equipo/ }));
 
     expect(await screen.findByRole("tab", { name: "Conectados", selected: true })).toBeTruthy();
     expect((box as HTMLInputElement).value).toBe("");

@@ -32,8 +32,8 @@ fn every_page_says_something_under_its_own_title() {
 fn a_page_is_named_as_tisty_app_names_it() {
     assert_eq!(slugify("Instalación"), "instalacion");
     assert_eq!(
-        slugify("Qué-puede-hacer-un-asistente"),
-        "que-puede-hacer-un-asistente"
+        slugify("Qué-puede-hacer-un-agente"),
+        "que-puede-hacer-un-agente"
     );
     assert_eq!(slugify("Keyboard-Shortcuts"), "keyboard-shortcuts");
     assert_eq!(slugify("Páginas-y-PDF"), "paginas-y-pdf");
