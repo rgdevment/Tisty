@@ -42,6 +42,8 @@ export type PageWriting = {
 
 const SETTLED_MS = 300;
 
+const EDGE_FIRST = ["keydown", "beforeinput", "compositionstart"] as const;
+
 export const writtenOn = (page: Document, hands: Hands): PageWriting => {
   const writer = writerOf(page, hands);
   const caret = caretOn(writer);
@@ -123,6 +125,8 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
   const unchosen = () => choosing.letGo(false);
   const dragging = draggingOn(writer, caret, laying);
 
+  for (const first of EDGE_FIRST) page.addEventListener(first, keys.edgeLaid, true);
+  page.addEventListener("mousedown", keys.edgeClicked, true);
   page.addEventListener("beforeinput", input.asked);
   page.addEventListener("compositionstart", input.started);
   page.addEventListener("compositionend", input.ended);
@@ -237,6 +241,9 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
       page.removeEventListener("mousedown", keys.ticking);
       page.removeEventListener("keydown", keys.moved);
       page.removeEventListener("beforeinput", input.asked);
+      for (const first of EDGE_FIRST) page.removeEventListener(first, keys.edgeLaid, true);
+      page.removeEventListener("mousedown", keys.edgeClicked, true);
+      keys.edgeLetGo();
       page.removeEventListener("compositionstart", input.started);
       page.removeEventListener("compositionend", input.ended);
       page.querySelector<HTMLElement>(".page")?.removeAttribute("contenteditable");

@@ -1,4 +1,5 @@
 export const KEY_MS = 80;
+const BUSY_MS = 250;
 
 export const changeOf = (was, now) => {
   let from = 0;
@@ -16,6 +17,12 @@ const macOnlyKey = (key) => {
   const parts = key.split("+");
   return parts.includes("Meta") || (parts.includes("Alt") && OPTION_WORD_KEYS.has(parts.at(-1)));
 };
+
+const busy = (page, held) =>
+  page.evaluate(([on, ms]) => {
+    window.unbusied ??= window.setTimeout;
+    window.setTimeout = on ? (job, wait, ...rest) => window.unbusied(job, wait || ms, ...rest) : window.unbusied;
+  }, [held, BUSY_MS]);
 
 export const handsOn = (page, frame) => {
   let mac;
@@ -52,17 +59,33 @@ export const handsOn = (page, frame) => {
       await page.waitForTimeout(KEY_MS);
     }
   };
-  const press = async (key, many = 1) => {
+  const pressable = async (key) => {
     if (macOnlyKey(key) && !(await onMac()))
       throw new Error(`${key} is a Mac key: off a Mac a case presses command() or wordBack(), or is macOnly`);
+  };
+  const press = async (key, many = 1) => {
+    await pressable(key);
     for (let time = 0; time < many; time++) {
       await page.keyboard.press(key);
       await page.waitForTimeout(KEY_MS);
     }
   };
+  const busyTyped = async (keys, said) => {
+    for (const key of keys) await pressable(key);
+    await busy(page, true);
+    let lastKey = Date.now();
+    try {
+      for (const key of keys) await page.keyboard.press(key);
+      for (const letter of said) await page.keyboard.type(letter);
+      lastKey = Date.now();
+    } finally {
+      await busy(page, false);
+    }
+    await page.waitForTimeout(Math.max(KEY_MS, BUSY_MS - (Date.now() - lastKey)));
+  };
   const command = async (key) => press(`${(await onMac()) ? "Meta" : "Control"}+${key}`);
   const wordBack = async () => press((await onMac()) ? "Alt+Backspace" : "Control+Backspace");
-  return { clickAt, typed, press, command, wordBack, page, frame };
+  return { clickAt, typed, press, busyTyped, command, wordBack, page, frame };
 };
 
 export const opened = async (page, url) => {

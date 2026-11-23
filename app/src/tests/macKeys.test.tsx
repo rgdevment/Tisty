@@ -643,6 +643,81 @@ describe("a key to a line's edge on a Mac, after the system has moved the caret"
     vi.useRealTimers();
   });
 
+  const unsettledPastTag = async () => {
+    const said = await written(
+      "Antes #eti\n\nOtra.\n",
+      '<p data-at="0-10"><span data-src="0-6">Antes </span><span class="tag" data-src="6-10" contenteditable="false">#eti</span></p>' +
+        '<p data-at="12-17"><span data-src="12-17">Otra.</span></p>',
+    );
+    writing?.drawn();
+    const pressedNow = () => {
+      caretIn("Antes ", 1);
+      keyOn(sheet(), "ArrowRight", { metaKey: true });
+      caretIn("Otra.", 0);
+    };
+    const held = () => {
+      const now = document.getSelection();
+      return [now?.anchorNode, now?.anchorOffset];
+    };
+    return { said, pressedNow, held, lineEnd: [document.querySelector("p"), 2] };
+  };
+
+  it("types past the tag that ends the line when the letter comes before Cmd+Right's move settled", async () => {
+    on(MAC);
+    const { said, pressedNow } = await unsettledPastTag();
+    pressedNow();
+    typed("X");
+    expect(said[said.length - 1]).toBe("Antes #etiX\n\nOtra.\n");
+  });
+
+  it("lays Cmd+Right's line end before the next key, a click or a composition reads the caret", async () => {
+    on(MAC);
+    const { pressedNow, held, lineEnd } = await unsettledPastTag();
+    const next = [
+      new KeyboardEvent("keydown", { key: "Backspace", bubbles: true, cancelable: true }),
+      new MouseEvent("mousedown", { bubbles: true, cancelable: true }),
+      new CompositionEvent("compositionstart", { bubbles: true }),
+    ];
+    for (const one of next) {
+      pressedNow();
+      sheet().dispatchEvent(one);
+      expect(held(), one.type).toEqual(lineEnd);
+    }
+  });
+
+  it("leaves the caret where a click put it right after Cmd+Right", async () => {
+    on(MAC);
+    const { pressedNow, held } = await unsettledPastTag();
+    pressedNow();
+    sheet().dispatchEvent(new MouseEvent("mousedown", { bubbles: true, cancelable: true }));
+    caretIn("Otra.", 3);
+    await new Promise((done) => setTimeout(done, 0));
+    expect(held()).toEqual([piece("Otra."), 3]);
+  });
+
+  it("takes an empty step away when a click comes right after Cmd+Right left it", async () => {
+    on(MAC);
+    const said = await written(EMPTY_STEP, EMPTY_STEP_PLACED);
+    writing?.drawn();
+    document.getSelection()?.collapse(document.querySelectorAll("li")[1] as Element, 0);
+    keyOn(sheet(), "ArrowRight", { metaKey: true });
+    caretIn("Fin", 0);
+    sheet().dispatchEvent(new MouseEvent("mousedown", { bubbles: true, cancelable: true }));
+    caretIn("Fin", 2);
+    document.dispatchEvent(new Event("selectionchange"));
+    expect(said[said.length - 1]).toBe("- [ ] uno\n\nFin\n");
+  });
+
+  it("lets a line's edge still waiting go when the page stops", async () => {
+    on(MAC);
+    const { pressedNow, held } = await unsettledPastTag();
+    pressedNow();
+    writing?.stop();
+    writing = null;
+    await new Promise((done) => setTimeout(done, 0));
+    expect(held()).toEqual([piece("Otra."), 0]);
+  });
+
   it("reads Cmd with the side arrows as the line's edges, and nothing with Shift, a composition or off a Mac", async () => {
     on(MAC);
     const { edgeWalk } = await import("../ui/macKeys");

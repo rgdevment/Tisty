@@ -9,7 +9,7 @@ import type { PageHistory } from "./pageHistory";
 import type { Laying } from "./pageLaying";
 import { nested } from "./pageLists";
 import { swappedItem } from "./pageMoving";
-import { elementOf, inCode, onSheet, WRITABLE } from "./pageNodes";
+import { caretLaidOn, elementOf, inCode, onSheet, WRITABLE } from "./pageNodes";
 import { endIn, lineEdge, spotOf } from "./pageSpots";
 import type { Writer } from "./pageWriter";
 
@@ -23,6 +23,11 @@ const KEYED: Record<string, readonly [string, string]> = {
 };
 
 const EMPTY_STEP = /^[ \t]*(?:>[ \t]?)*[-*+][ \t]+\[ \][ \t]*\r?$/;
+
+type EdgeAwaited = {
+  readonly laid: (inView: boolean) => void;
+  readonly timer: ReturnType<typeof setTimeout>;
+};
 
 const FOCUS_KEPT =
   ".page .check, .page input[type=checkbox], .page [contenteditable='false'] a[href^='#']";
@@ -76,7 +81,21 @@ export const keysOn = (
     if (moved) put(moved.edit, moved.caret);
   };
 
+  let edgeAwaited: EdgeAwaited | null = null;
+
+  const edgeLetGo = () => {
+    const awaited = edgeAwaited;
+    edgeAwaited = null;
+    if (awaited) clearTimeout(awaited.timer);
+    return awaited;
+  };
+
+  const edgeLaid = () => edgeLetGo()?.laid(true);
+
+  const edgeClicked = () => edgeLetGo()?.laid(false);
+
   const toLineEdge = ({ toStart, visual }: Edge, outOnly = false) => {
+    edgeLaid();
     const range = caret.chosen();
     if (!range) return;
     const from: [Node, number] = toStart
@@ -94,19 +113,23 @@ export const keysOn = (
       const again = spot && elementOf(spot[0])?.closest(".page [data-at]");
       return spot && again ? [again, spot] : null;
     };
-    const corrected = () => {
+    const corrected = (inView: boolean) => {
       const held = caret.chosen();
       const line = lineNow();
       if (!held || !line || (outOnly && caret.blockOfCaret() === line[0])) return;
       const landed: [Node, number] = [held.startContainer, held.startOffset];
       const spot = lineEdge(...line, landed, toStart, visual) ?? (outOnly ? endIn(line[0]) : null);
-      if (spot && (held.startContainer !== spot[0] || held.startOffset !== spot[1]))
-        caret.laidAt(spot);
+      if (!spot || (held.startContainer === spot[0] && held.startOffset === spot[1])) return;
+      if (inView) caret.laidAt(spot);
+      else caretLaidOn(page, ...spot);
     };
-    setTimeout(() => {
-      corrected();
-      leftBehind(left);
-    });
+    edgeAwaited = {
+      laid: (inView) => {
+        corrected(inView);
+        leftBehind(left);
+      },
+      timer: setTimeout(edgeLaid),
+    };
   };
 
   const lastBlock = () =>
@@ -243,5 +266,5 @@ export const keysOn = (
     tags.hide();
   };
 
-  return { keyed, noted, ticking, moved, outOfSolids };
+  return { keyed, noted, ticking, moved, outOfSolids, edgeLaid, edgeClicked, edgeLetGo };
 };

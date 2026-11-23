@@ -1,3 +1,4 @@
+
 export const WRITING = [
   "# Título del documento", "",
   "Primer párrafo con algunas palabras y **negrita** en medio.", "",
@@ -544,10 +545,9 @@ export const CASES = [
     name: "controlEPastTagAtLineEnd",
     macOnly: LINE_WALKS_ONLY_ON_A_MAC,
     doc: "# Etiquetas\n\nAntes del final #etiqueta\n\nSiguiente línea.\n",
-    run: async ({ clickAt, typed, press }) => {
+    run: async ({ clickAt, typed, busyTyped }) => {
       await clickAt("Antes", true);
-      await press("Control+e");
-      await typed("X");
+      await busyTyped(["Control+e"], "X");
       await clickAt("Antes", true);
       await typed("Y");
     },
@@ -558,10 +558,9 @@ export const CASES = [
     name: "controlEPastCodeAtLineEnd",
     macOnly: LINE_WALKS_ONLY_ON_A_MAC,
     doc: "# Código\n\nAntes del final `cod`\n\nSiguiente línea.\n",
-    run: async ({ clickAt, typed, press }) => {
+    run: async ({ clickAt, typed, busyTyped }) => {
       await clickAt("Antes", true);
-      await press("Control+e");
-      await typed("X");
+      await busyTyped(["Control+e"], "X");
       await clickAt("Antes", true);
       await typed("Y");
     },
@@ -572,10 +571,9 @@ export const CASES = [
     name: "controlEPastFormulaAtLineEnd",
     macOnly: LINE_WALKS_ONLY_ON_A_MAC,
     doc: "# Fórmula\n\nAntes del final $x^2$\n\nSiguiente línea.\n",
-    run: async ({ clickAt, typed, press }) => {
+    run: async ({ clickAt, typed, busyTyped }) => {
       await clickAt("Antes", true);
-      await press("Control+e");
-      await typed("X");
+      await busyTyped(["Control+e"], "X");
       await clickAt("Antes", true);
       await typed("Y");
     },
@@ -586,10 +584,9 @@ export const CASES = [
     name: "controlABeforeTagAtLineStart",
     macOnly: LINE_WALKS_ONLY_ON_A_MAC,
     doc: "# Etiquetas\n\n#etiqueta al inicio\n\nSiguiente línea.\n",
-    run: async ({ clickAt, typed, press }) => {
+    run: async ({ clickAt, typed, busyTyped }) => {
       await clickAt("al inicio");
-      await press("Control+a");
-      await typed("X");
+      await busyTyped(["Control+a"], "X");
       await clickAt("al inicio");
       await typed("Y");
     },
@@ -647,10 +644,9 @@ export const CASES = [
     name: "commandRightPastTagAtLineEnd",
     macOnly: COMMAND_WALKS_ONLY_ON_A_MAC,
     doc: "# Etiquetas\n\nAntes del final #etiqueta\n\nSiguiente línea.\n",
-    run: async ({ clickAt, typed, press }) => {
+    run: async ({ clickAt, typed, busyTyped }) => {
       await clickAt("Antes", true);
-      await press("Meta+ArrowRight");
-      await typed("X");
+      await busyTyped(["Meta+ArrowRight"], "X");
       await clickAt("Antes", true);
       await typed("Y");
     },
@@ -661,11 +657,9 @@ export const CASES = [
     name: "commandLeftKeepsAStepOpenedByATag",
     macOnly: COMMAND_WALKS_ONLY_ON_A_MAC,
     doc: "# Pasos\n\n- [ ] uno\n- [ ] #etiqueta dos\n\nFin.\n",
-    run: async ({ clickAt, typed, press }) => {
+    run: async ({ clickAt, typed, busyTyped }) => {
       await clickAt("dos");
-      await press("Meta+ArrowLeft");
-      await press("Meta+ArrowRight");
-      await typed("X");
+      await busyTyped(["Meta+ArrowLeft", "Meta+ArrowRight"], "X");
       await clickAt("uno", true);
       await typed("Y");
     },
@@ -676,10 +670,9 @@ export const CASES = [
     name: "controlEStopsAtTheLineBreakAfterATag",
     macOnly: LINE_WALKS_ONLY_ON_A_MAC,
     doc: "# Saltos\n\nuno #etiqueta\\\ndos tres\n\nFin.\n",
-    run: async ({ clickAt, typed, press }) => {
+    run: async ({ clickAt, typed, busyTyped }) => {
       await clickAt("uno", true);
-      await press("Control+e");
-      await typed("X");
+      await busyTyped(["Control+e"], "X");
       await clickAt("uno", true);
       await typed("Y");
     },
@@ -690,10 +683,9 @@ export const CASES = [
     name: "controlAStartsTheLineAfterABreak",
     macOnly: LINE_WALKS_ONLY_ON_A_MAC,
     doc: "# Saltos\n\nuno\\\n#etiqueta tres\n\nFin.\n",
-    run: async ({ clickAt, typed, press }) => {
+    run: async ({ clickAt, typed, busyTyped }) => {
       await clickAt("tres");
-      await press("Control+a");
-      await typed("X");
+      await busyTyped(["Control+a"], "X");
       await clickAt("tres");
       await typed("Y");
     },
@@ -805,11 +797,10 @@ export const CASES = [
     name: "controlAStandsBeforeATagThatOpensAStep",
     macOnly: LINE_WALKS_ONLY_ON_A_MAC,
     doc: "# Pasos\n\n- [ ] uno\n- [ ] #etiqueta dos\n\nFin.\n",
-    run: async ({ clickAt, typed, press, frame }) => {
+    run: async ({ clickAt, typed, busyTyped, frame }) => {
       await clickAt("dos");
       await caretInWords(frame, " dos", 2);
-      await press("Control+a");
-      await typed("X");
+      await busyTyped(["Control+a"], "X");
       await caretInWords(frame, "uno", 0);
       await typed("Y");
     },
