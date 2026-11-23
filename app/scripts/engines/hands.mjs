@@ -13,6 +13,7 @@ export const changeOf = (was, now) => {
 export const macIn = (page) => page.evaluate(() => navigator.userAgent.includes("Macintosh"));
 
 const OPTION_WORD_KEYS = new Set(["Backspace", "Delete", "ArrowLeft", "ArrowRight"]);
+const CLIPBOARD_KEY = /(?:^|\+)(?:Meta|Control)\+(?:Shift\+)?[cvx]$/i;
 
 const macOnlyKey = (key) => {
   const parts = key.split("+");
@@ -61,6 +62,8 @@ export const handsOn = (page, frame) => {
     }
   };
   const pressable = async (key) => {
+    if (CLIPBOARD_KEY.test(key))
+      throw new Error(`${key} would reach the system's clipboard: a case calls cut() or copied()`);
     if (macOnlyKey(key) && !(await onMac()))
       throw new Error(`${key} is a Mac key: off a Mac a case presses command() or wordBack(), or is macOnly`);
   };
@@ -110,6 +113,18 @@ export const handsOn = (page, frame) => {
     );
   };
   const command = async (key) => press(`${(await onMac()) ? "Meta" : "Control"}+${key}`);
+  const clipped = async (kind) => {
+    const carried = await frame.evaluate((type) => {
+      const held = new DataTransfer();
+      const sheet = document.querySelector(".page");
+      sheet.dispatchEvent(new ClipboardEvent(type, { clipboardData: held, bubbles: true, cancelable: true }));
+      return held.getData("text/plain");
+    }, kind);
+    await page.waitForTimeout(KEY_MS);
+    return carried;
+  };
+  const cut = () => clipped("cut");
+  const copied = () => clipped("copy");
   const wordBack = async () => press((await onMac()) ? "Alt+Backspace" : "Control+Backspace");
   const wordForward = async () => press((await onMac()) ? "Alt+Delete" : "Control+Delete");
   return {
@@ -120,6 +135,8 @@ export const handsOn = (page, frame) => {
     drawingsHeld,
     oneDrawingLet,
     command,
+    cut,
+    copied,
     wordBack,
     wordForward,
     page,

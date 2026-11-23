@@ -22,6 +22,14 @@ describe("a stage named in a document", () => {
     expect(went(named, false)).toBeNull();
   });
 
+  it("shows a stage's words without the letter that shows nothing beside its pieces", () => {
+    const drawn = page(
+      '<ul data-at="0-40"><li class="task" data-at="0-40"><span class="check"></span>Weigh <span class="tag" data-src="8-12">#her</span>\u200B<ul data-at="13-40"><li data-at="13-40">twice</li></ul></li></ul><p data-at="41-50"><span class="ref" data-ref="#1">#1</span></p>',
+    );
+    staged(drawn);
+    expect(drawn.querySelector(".ref")?.textContent).toBe("Weigh #hertwice");
+  });
+
   it("cuts a long stage short in the chip", () => {
     const long = "a".repeat(80);
     const drawn = page(

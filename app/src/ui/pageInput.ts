@@ -38,9 +38,18 @@ import {
   replaced,
   wordsFrom,
 } from "./pageMarks";
-import { atGhost, elementOf, inCode, onSheet, sectioned, unwritable } from "./pageNodes";
+import {
+  atGhost,
+  elementOf,
+  inCode,
+  onSheet,
+  sectioned,
+  shownWords,
+  unseenLetter,
+  unwritable,
+} from "./pageNodes";
 import { placeOf } from "./pagePlaces";
-import { endIn, startOf } from "./pageSpots";
+import { endIn, startIn, startOf } from "./pageSpots";
 import { choiceKept, composingKey, compositionOpened, keptUnlaid, type Writer } from "./pageWriter";
 
 const PAIRS: Record<string, string> = {
@@ -100,7 +109,7 @@ const sideOf = (holder: Element, node: Node, offset: number, back: boolean) => {
 
 const emptyOfWords = (range: Range) => {
   const between = undressed(range);
-  return between.textContent === "" && !between.querySelector(ATOMS);
+  return shownWords(between.textContent ?? "") === "" && !between.querySelector(ATOMS);
 };
 
 const wordsStartAt = (holder: Element, node: Node, offset: number) =>
@@ -110,7 +119,7 @@ const wordsEndAt = (holder: Element, node: Node, offset: number) =>
   emptyOfWords(sideOf(holder, node, offset, false));
 
 const nothingPast = (edge: Range, back: boolean) => {
-  const rest = undressed(edge).textContent;
+  const rest = shownWords(undressed(edge).textContent ?? "");
   return rest === "" || (!back && rest === "\n" && inCode(edge.startContainer));
 };
 
@@ -193,7 +202,7 @@ const drawnWhole = (one: Element) => {
   const atoms = copy.querySelectorAll(ATOMS);
   if (!atoms.length) return false;
   for (const atom of atoms) atom.remove();
-  return copy.textContent?.trim() === "";
+  return shownWords(copy.textContent ?? "").trim() === "";
 };
 
 const beforeFeeds = (text: string, one: Span): Span => {
@@ -251,7 +260,7 @@ export const inputOn = (
     edge.selectNodeContents(top);
     if (back) edge.setEnd(range.startContainer, range.startOffset);
     else edge.setStart(range.startContainer, range.startOffset);
-    if (edge.toString() !== "") return null;
+    if (shownWords(edge.toString()) !== "") return null;
     const beside = back ? top.previousElementSibling : top.nextElementSibling;
     const shown = beside && aloneOnLine(beside) ? beside.querySelector(EMBED) : null;
     if (shown) return embedGone(hands.text(), shown);
@@ -342,14 +351,34 @@ export const inputOn = (
   const besideGone = (kind: string, range: AbstractRange | null) =>
     pastBreak(kind, range) ?? pastPicture(kind, range);
 
-  const pieceBeside = (range: AbstractRange, back: boolean) => {
+  const besideCaret = (range: AbstractRange, back: boolean) => {
     const holder = range.collapsed ? elementOf(range.startContainer) : null;
     if (holder !== range.startContainer || !holder?.closest(".page [data-at]")) return null;
     const step = back ? -1 : 1;
     let at = range.startOffset - (back ? 1 : 0);
-    while (elementIn(holder.childNodes[at])?.matches("button")) at += step;
-    const piece = elementIn(holder.childNodes[at]);
-    return piece?.matches(PIECES) ? piece : null;
+    while (
+      elementIn(holder.childNodes[at])?.matches("button") ||
+      unseenLetter(holder.childNodes[at])
+    )
+      at += step;
+    return elementIn(holder.childNodes[at]);
+  };
+
+  const listJoined = (range: AbstractRange, beside: Element | null) => {
+    if (!beside?.matches("ul[data-at], ol[data-at]")) return null;
+    if (!unseenLetter(range.startContainer.childNodes[range.startOffset])) return null;
+    const [endContainer, endOffset] = startIn(beside);
+    const { startContainer, startOffset } = range;
+    return new StaticRange({ startContainer, startOffset, endContainer, endOffset });
+  };
+
+  const blankPastPiece = (piece: Element, at: number, back: boolean): Span | null => {
+    const own = piece.matches("br") ? null : placeOf(piece, "data-src");
+    if (!own) return null;
+    const text = hands.text();
+    const edge = unitFrom(writer.reckoned, text, back ? own[1] : own[0]);
+    if (!/^[ \t]+$/.test(back ? text.slice(edge, at) : text.slice(at, edge))) return null;
+    return back ? { from: at - 1, to: at } : { from: at, to: at + 1 };
   };
 
   const pieceGone = (piece: Element): Span | null => {
@@ -650,8 +679,17 @@ export const inputOn = (
     }
     const amongWords = range.startContainer.nodeType === Node.TEXT_NODE;
     if (amongWords && (!back || hands.text().lastIndexOf("\n", at - 1) >= 0)) return;
-    const piece = pieceBeside(range, back);
-    const gone = besideGone(kind, range) ?? (piece && pieceGone(piece));
+    const beside = besideCaret(range, back);
+    const joining = back ? null : listJoined(range, beside);
+    if (joining) {
+      event.preventDefault();
+      return inputTaken(kind, joining, null, null);
+    }
+    const piece = beside?.matches(PIECES) ? beside : null;
+    const gone =
+      (piece && blankPastPiece(piece, at, back)) ??
+      besideGone(kind, range) ??
+      (piece && pieceGone(piece));
     const held = !gone && edgeHeld(kind, range);
     const boxed = !back && Boolean(piece?.matches(".check"));
     const freed = gone || held || (!back && !boxed) ? null : caretFreed(range);

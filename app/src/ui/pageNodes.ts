@@ -20,6 +20,8 @@ const roomBeside = (box: Element) => {
 
 const LINE_PIECE = `${SOLID_PIECE}:not(br)`;
 
+const BREAKS = "br, ul, ol";
+
 const UNSEEN_LETTER = "\u200B";
 
 export const unseenLetter = (node: Node | null | undefined) =>
@@ -27,19 +29,32 @@ export const unseenLetter = (node: Node | null | undefined) =>
 
 export const shownWords = (said: string) => said.split(UNSEEN_LETTER).join("");
 
-const lastOnLine = (piece: Element): Element | null => {
-  const block = piece.parentElement?.closest("[data-at]");
-  let one = piece;
-  while (block && one.parentElement !== block && !one.nextSibling && one.parentElement)
-    one = one.parentElement;
-  return block && one.parentElement === block && !one.nextSibling ? one : null;
+export const undressed = (page: Document) => {
+  const sheet = page.querySelector(".page");
+  if (!sheet) return;
+  const walk = page.createTreeWalker(sheet, NodeFilter.SHOW_TEXT);
+  const letters: Node[] = [];
+  for (let one = walk.nextNode(); one; one = walk.nextNode())
+    if (unseenLetter(one)) letters.push(one);
+  for (const one of letters) one.parentNode?.removeChild(one);
+};
+
+const breaking = (node: Node | null | undefined) =>
+  node?.nodeType === Node.ELEMENT_NODE && (node as Element).matches(BREAKS)
+    ? (node as Element)
+    : null;
+
+export const brokenBy = (piece: Element): Element | null => {
+  const letter = piece.nextSibling;
+  return unseenLetter(letter) ? breaking(letter?.nextSibling) : null;
 };
 
 const roomAfter = (piece: Element) => {
-  const end = lastOnLine(piece);
-  if (!end) return;
   const page = piece.ownerDocument;
-  end.after(page.createTextNode(""));
+  if (!piece.parentElement?.matches("[data-at]") || unwritable(piece)) return;
+  if (breaking(piece.nextSibling)) return piece.after(page.createTextNode(UNSEEN_LETTER));
+  if (piece.nextSibling) return;
+  piece.after(page.createTextNode(""));
   if (piece.querySelector("math") && !unseenLetter(piece.lastChild))
     piece.append(page.createTextNode(UNSEEN_LETTER));
 };

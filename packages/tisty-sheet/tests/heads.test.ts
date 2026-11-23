@@ -5,6 +5,11 @@ const page = (html: string): Document =>
   new DOMParser().parseFromString(`<article class="page">${html}</article>`, "text/html");
 
 describe("the headings of a page", () => {
+  it("leaves out the letter that shows nothing, which the editor puts beside a piece", () => {
+    const found = heads(page('<h2 id="a">Uno <span data-src="0-3">$x$</span>\u200B<br>dos</h2>'));
+    expect(found.map(({ text }) => text)).toEqual(["Uno $x$dos"]);
+  });
+
   it("lists each heading with its level and words, leaving the title out", () => {
     const found = heads(
       page(

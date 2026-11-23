@@ -717,10 +717,10 @@ export const CASES = [
   {
     name: "commandShiftEndCutsThroughATableAtTheEnd",
     doc: "# Tabla\n\nAntes.\n\n| a | b |\n|---|---|\n| 1 | 2 |\n",
-    run: async ({ clickAt, command }) => {
+    run: async ({ clickAt, command, cut }) => {
       await clickAt("Antes");
       await command("Shift+End");
-      await command("x");
+      await cut();
     },
     was: ".\n\n| a | b |\n|---|---|\n| 1 | 2 |\n",
     now: "",
@@ -1384,10 +1384,10 @@ export const CASES = [
   {
     name: "commandACutsAPageOpeningWithATable",
     doc: "| a | b |\n|---|---|\n| 1 | 2 |\n\nDespués y más\n",
-    run: async ({ clickAt, command }) => {
+    run: async ({ clickAt, command, cut }) => {
       await clickAt("Después");
       await command("a");
-      await command("x");
+      await cut();
     },
     was: "| a | b |\n|---|---|\n| 1 | 2 |\n\nDespués y más",
     now: "",
@@ -1563,6 +1563,201 @@ export const CASES = [
     },
     was: "\n- [ ] ",
     now: "",
+  },
+  {
+    name: "rightPastATagBeforeALineBreakReachesTheNextLine",
+    doc: "# Saltos\n\nuno #etiqueta\\\ndos tres\n\nFin.\n",
+    run: async ({ clickAt, press, frame }) => {
+      await clickAt("dos");
+      await caretInWords(frame, "uno ", 4);
+      await press("ArrowRight", 2);
+      await press("Backspace");
+    },
+    was: "\\\n",
+    now: "",
+  },
+  {
+    name: "leftPastATagBeforeALineBreakReachesItsStart",
+    doc: "# Saltos\n\nuno #etiqueta\\\ndos tres\n\nFin.\n",
+    run: async ({ clickAt, press, frame }) => {
+      await clickAt("dos");
+      await caretInWords(frame, "dos tres", 0);
+      await press("ArrowLeft", 2);
+      await press("Delete");
+    },
+    was: "#etiqueta",
+    now: "",
+  },
+  {
+    name: "rightStopsAfterATagBeforeANestedList",
+    doc: "# Listas\n\n- uno #etiqueta\n  - dentro\n\nFin.\n",
+    run: async ({ clickAt, press, frame }) => {
+      await clickAt("dentro");
+      await caretInWords(frame, "uno ", 4);
+      await press("ArrowRight");
+      await press("Backspace");
+    },
+    was: "#etiqueta",
+    now: "",
+  },
+  {
+    name: "leftFromANestedListStopsAfterTheTag",
+    doc: "# Listas\n\n- uno #etiqueta\n  - dentro\n\nFin.\n",
+    run: async ({ clickAt, press, frame }) => {
+      await clickAt("dentro");
+      await caretInWords(frame, "dentro", 0);
+      await press("ArrowLeft");
+      await press("Backspace");
+    },
+    was: "#etiqueta",
+    now: "",
+  },
+  {
+    name: "leftFromANestedStepStopsAfterTheTag",
+    doc: "# Pasos\n\n- [ ] uno #etiqueta\n  - [ ] dentro\n\nFin.\n",
+    run: async ({ clickAt, press, frame }) => {
+      await clickAt("dentro");
+      await caretInWords(frame, "dentro", 0);
+      await press("ArrowLeft");
+      await press("Backspace");
+    },
+    was: "#etiqueta",
+    now: "",
+  },
+  {
+    name: "twoBackspacesAfterTypingPastALineEndTagKeepTheTag",
+    doc: "# Etiquetas\n\nAntes del final #etiqueta\n\nSiguiente línea.\n",
+    run: async ({ clickAt, press, typed, frame }) => {
+      await clickAt("Antes");
+      await caretInWords(frame, "Antes del final ", 16);
+      await press("ArrowRight");
+      await typed(" y");
+      await pressedOnceDrawn(frame, press, "Backspace", 2);
+    },
+    was: "",
+    now: "",
+  },
+  {
+    name: "backspacePastTheLetterAfterATagBeforeALineBreakTakesTheTag",
+    doc: "# Saltos\n\nuno #etiqueta\\\ndos tres\n\nFin.\n",
+    run: async ({ clickAt, press, frame }) => {
+      await clickAt("dos");
+      await drawnFirst(frame);
+      await frame.evaluate(() => {
+        const letter = document.querySelector(".page .tag")?.nextSibling;
+        if (!letter?.parentNode) throw new Error("no letter after the tag");
+        getSelection().collapse(letter.parentNode, [...letter.parentNode.childNodes].indexOf(letter) + 1);
+      });
+      await press("Backspace");
+    },
+    was: "#etiqueta",
+    now: "",
+  },
+  {
+    name: "backspaceOnAnIndentedLineAfterATagTakesTheBreak",
+    doc: "# Saltos\n\n- dos #etiqueta\\\n  más\n\nFin.\n",
+    run: async ({ clickAt, press, frame }) => {
+      await clickAt("más");
+      await caretInWords(frame, "dos ", 4);
+      await press("ArrowRight", 2);
+      await press("Backspace");
+    },
+    was: "\\\n",
+    now: "",
+  },
+  {
+    name: "deleteAfterCodeThatEndsAnItemJoinsItsNestedItem",
+    doc: "# Listas\n\n- tres `c`\n  - dentro\n\nFin.\n",
+    run: async ({ clickAt, press, frame }) => {
+      await clickAt("dentro");
+      await caretInWords(frame, "tres ", 5);
+      await press("ArrowRight");
+      await press("Delete");
+    },
+    was: "\n  - ",
+    now: "",
+  },
+  {
+    name: "shiftRightAfterATagBeforeALineBreakChoosesTheBreak",
+    doc: "# Saltos\n\nuno #etiqueta\\\ndos tres\n\nFin.\n",
+    run: async ({ clickAt, press, typed, frame }) => {
+      await clickAt("dos");
+      await caretInWords(frame, "uno ", 4);
+      await press("ArrowRight");
+      await press("Shift+ArrowRight");
+      await typed("X");
+    },
+    was: "\\\n",
+    now: "X",
+  },
+  {
+    name: "rightAfterATagGoesIntoAnEmptyNestedStep",
+    doc: "# Pasos\n\n- uno #etiqueta\n  - [ ] \n  - [ ] dos\n\nFin.\n",
+    run: async ({ clickAt, press, typed, frame }) => {
+      await clickAt("dos");
+      await caretInWords(frame, "uno ", 4);
+      await press("ArrowRight", 2);
+      await typed("X");
+      await caretInWords(frame, "Pasos", 0);
+      await typed("Y");
+    },
+    was: "Pasos\n\n- uno #etiqueta\n  - [ ] ",
+    now: "YPasos\n\n- uno #etiqueta\n  - [ ] X",
+  },
+  {
+    name: "backspaceAfterTwoFormulasSplitByABreakLeavesThemWhole",
+    doc: "# Fórmulas\n\n$x$\\\n$y$\n\nDespués\n",
+    run: async ({ clickAt, press, frame }) => {
+      await clickAt("Después");
+      await caretInWords(frame, "Después", 0);
+      await press("Backspace");
+    },
+    was: "",
+    now: "",
+  },
+  {
+    name: "rightOnAChoiceBeforeATagThatEndsABrokenLineEndsAtTheChoice",
+    doc: "# Saltos\n\nuno #etiqueta\\\ndos tres\n\nFin.\n",
+    run: async ({ clickAt, press, typed, frame }) => {
+      await clickAt("dos");
+      await drawnFirst(frame);
+      await chosenIn(frame, ["uno ", 0], ["uno ", 4]);
+      await press("ArrowRight");
+      await typed("X");
+      await caretInWords(frame, "Saltos", 0);
+      await typed("Y");
+    },
+    was: "Saltos\n\nuno ",
+    now: "YSaltos\n\nuno X",
+  },
+  {
+    name: "controlFWalksPastATagBeforeALineBreak",
+    macOnly: LINE_WALKS_ONLY_ON_A_MAC,
+    doc: "# Saltos\n\nuno #etiqueta\\\ndos tres\n\nFin.\n",
+    run: async ({ clickAt, press, typed, frame }) => {
+      await clickAt("dos");
+      await caretInWords(frame, "uno ", 4);
+      await press("Control+f", 2);
+      await typed("X");
+      await caretInWords(frame, "Saltos", 0);
+      await typed("Y");
+    },
+    was: "Saltos\n\nuno #etiqueta\\\n",
+    now: "YSaltos\n\nuno #etiqueta\\\nX",
+  },
+  {
+    name: "rightAfterATagGoesIntoAnEmptyStepWithSubSteps",
+    doc: "# Pasos\n\n- uno #etiqueta\n  - [ ] \n    - [ ] hijo\n\nFin.\n",
+    run: async ({ clickAt, press, typed, frame }) => {
+      await clickAt("hijo");
+      await caretInWords(frame, "uno ", 4);
+      await press("ArrowRight", 2);
+      await typed("X");
+      await caretInWords(frame, "Pasos", 0);
+      await typed("Y");
+    },
+    was: "Pasos\n\n- uno #etiqueta\n  - [ ] ",
+    now: "YPasos\n\n- uno #etiqueta\n  - [ ] X",
   },
 ];
 

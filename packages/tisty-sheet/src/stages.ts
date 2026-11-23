@@ -1,3 +1,5 @@
+import { shownText } from "./shown";
+
 const SHOWN_AT_MOST = 60;
 const STAGE = /^stage--\d+$/;
 
@@ -13,7 +15,9 @@ export const staged = (page: Document) => {
     const asked = Number(/^#(\d{1,3})$/.exec(ref.dataset.ref ?? "")?.[1] ?? 0);
     const stage = asked > 0 ? stages[asked - 1] : undefined;
     if (!stage) continue;
-    const words = (stage.textContent ?? "").replace(/\s+/g, " ").trim();
+    const words = shownText(stage.textContent ?? "")
+      .replace(/\s+/g, " ")
+      .trim();
     const shown = words.length > SHOWN_AT_MOST ? `${words.slice(0, SHOWN_AT_MOST - 1)}…` : words;
     if (ref.textContent !== shown) ref.textContent = shown;
     if (ref.title !== `#${asked}`) ref.title = `#${asked}`;

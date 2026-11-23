@@ -1,5 +1,6 @@
 import { SLASHED } from "tisty-editor/edit";
 import { bytesAt, charsAt } from "tisty-editor/read";
+import { unitFrom } from "../placing";
 import {
   caretWalk,
   type Edge,
@@ -19,9 +20,31 @@ import type { Laying } from "./pageLaying";
 import { nested } from "./pageLists";
 import { balanced } from "./pageMarks";
 import { swappedItem } from "./pageMoving";
-import { besideBox, caretLaidOn, elementOf, inCode, onSheet, WHOLE, WRITABLE } from "./pageNodes";
-import { endIn, indexOf, lineEdge, spotOf, startIn } from "./pageSpots";
-import type { Writer } from "./pageWriter";
+import {
+  besideBox,
+  brokenBy,
+  caretLaidOn,
+  elementOf,
+  inCode,
+  onSheet,
+  unseenLetter,
+  WHOLE,
+  WRITABLE,
+} from "./pageNodes";
+import { placeOf } from "./pagePlaces";
+import {
+  endIn,
+  endOf,
+  indexOf,
+  lineEdge,
+  ownsWords,
+  type Spot,
+  sourceAt,
+  spotOf,
+  startIn,
+  startOf,
+} from "./pageSpots";
+import { keptUnlaid, type Writer } from "./pageWriter";
 
 const KEYED: Record<string, readonly [string, string]> = {
   b: ["**", "**"],
@@ -30,6 +53,16 @@ const KEYED: Record<string, readonly [string, string]> = {
   "shift x": ["~~", "~~"],
   "shift c": ["`", "`"],
   k: ["[", "]()"],
+};
+
+type Way = "ArrowLeft" | "ArrowRight" | "forward" | "backward";
+
+const AHEAD = /^(ArrowRight|ArrowDown|End|PageDown)$/;
+const BACK = /^(ArrowLeft|ArrowUp|Home|PageUp)$/;
+
+const wayOf = (key: string, walk: string | null) => {
+  if (walk !== null) return "fnev".includes(walk) ? 1 : -1;
+  return AHEAD.test(key) ? 1 : BACK.test(key) ? -1 : 0;
 };
 
 const EMPTY_STEP = /^[ \t]*(?:>[ \t]?)*[-*+][ \t]+\[ \][ \t]*\r?$/;
@@ -155,6 +188,62 @@ export const keysOn = (
     return range?.collapsed ? besideBox(range.startContainer, range.startOffset) : null;
   };
 
+  let keptBehind = false;
+  let lastWay = 0;
+
+  const outOfLetter = (range: AbstractRange) => {
+    const letter = range.startContainer;
+    const piece = letter.previousSibling;
+    if (!unseenLetter(letter) || piece?.nodeType !== Node.ELEMENT_NODE || !letter.parentNode)
+      return false;
+    const beyond = brokenBy(piece as Element);
+    const onward = beyond && range.startOffset > 0 && lastWay > 0;
+    caretLaidOn(page, ...(onward ? lineAfter(beyond) : endOf(piece as Element)));
+    return true;
+  };
+
+  const brokenNear = (node: Node) => {
+    const block = elementOf(node)?.closest("[data-at]");
+    const outer = block?.parentElement?.closest("li[data-at]");
+    return [block, outer].flatMap((one) =>
+      one ? Array.from(one.children).filter((piece) => brokenBy(piece)) : [],
+    );
+  };
+
+  const lineAfter = (beyond: Element): Spot =>
+    beyond.matches("br") ? endOf(beyond) : startIn(beyond);
+
+  const aheadOf = (way: Way, holder: Element) => {
+    if (way === "forward" || way === "backward") return way === "forward";
+    const rtl = page.defaultView?.getComputedStyle(holder).direction === "rtl";
+    return (way === "ArrowRight") !== rtl;
+  };
+
+  const acrossBreak = (way: Way, reaching: boolean): Spot | null => {
+    const held = page.getSelection();
+    const focus = held?.focusNode;
+    if (keptBehind || !focus || !held || (!reaching && !held.isCollapsed)) return null;
+    const pieces = brokenNear(focus);
+    const holder = elementOf(focus);
+    if (!pieces.length || !holder) return null;
+    const text = hands.text();
+    const known = writer.reckoned;
+    const at = sourceAt(text, focus, held.focusOffset, known);
+    const ahead = aheadOf(way, holder);
+    for (const piece of pieces) {
+      const beyond = brokenBy(piece);
+      const own = placeOf(piece, "data-src");
+      if (!beyond || !own) continue;
+      const next = lineAfter(beyond);
+      const end = unitFrom(known, text, own[1]);
+      if (ahead && at === unitFrom(known, text, own[0])) return endOf(piece);
+      if (ahead && at === end) return next;
+      if (!ahead && at === sourceAt(text, ...next, known)) return endOf(piece);
+      if (!ahead && at === end) return startOf(piece);
+    }
+    return null;
+  };
+
   const pastBox = (key: string) => {
     const held = caret.chosen();
     if (!held?.collapsed || !page.querySelector(".page li.task")) return;
@@ -221,12 +310,21 @@ export const keysOn = (
     page.getSelection()?.setBaseAndExtent(...pageStart(first), ...pageEnd(last));
   };
 
+  const sideReach = (event: KeyboardEvent) =>
+    (event.key === "ArrowLeft" || event.key === "ArrowRight") &&
+    event.shiftKey &&
+    !event.ctrlKey &&
+    !event.metaKey &&
+    !event.altKey &&
+    !event.isComposing;
+
   const sideArrow = (event: KeyboardEvent) =>
     (event.key === "ArrowLeft" || event.key === "ArrowRight") &&
     !event.shiftKey &&
     !event.ctrlKey &&
     !event.metaKey &&
-    !event.altKey;
+    !event.altKey &&
+    !event.isComposing;
 
   const takenOut = () => {
     const picked = caret.chosenNow();
@@ -273,7 +371,19 @@ export const keysOn = (
       return tabbed(event);
     if (moveKey(event) && (event.key === "ArrowUp" || event.key === "ArrowDown"))
       return stepped(event);
-    if (sideArrow(event)) return pastBox(event.key);
+    const walked = caretWalk(event) === "letter" && !event.shiftKey;
+    if (walked || sideArrow(event) || sideReach(event)) {
+      const arrow = event.key === "ArrowRight" ? "ArrowRight" : "ArrowLeft";
+      const way: Way = walked ? (letterOf(event) === "f" ? "forward" : "backward") : arrow;
+      const across = acrossBreak(way, event.shiftKey);
+      if (!across) return walked || event.shiftKey ? undefined : pastBox(event.key);
+      event.preventDefault();
+      if (event.shiftKey) return caret.reachedTo(across);
+      const line = elementOf(across[0])?.closest("[data-at]");
+      const empty = line && !ownsWords(line);
+      const at = empty ? sourceAt(hands.text(), ...across, writer.reckoned) : null;
+      return at === null ? caret.laidAt(across) : caret.placeAt(at);
+    }
     if (!modKey(event) || event.altKey) return;
     if (event.key === "Enter") return broke(event);
     const named = `${event.shiftKey ? "shift " : ""}${letterOf(event)}`;
@@ -333,7 +443,7 @@ export const keysOn = (
       writer.lastChosen = caret.spanOfRange(range);
     else if (range?.collapsed) {
       writer.lastChosen = null;
-      caret.outOfSolid(range);
+      if (!outOfLetter(range)) caret.outOfSolid(range);
     }
     if (writer.leftFrom === undefined) return;
     const from = writer.leftFrom;
@@ -347,9 +457,11 @@ export const keysOn = (
 
   // The page's events come from its own window, so a key is told by what it carries, not by its class.
   const moved = (event: Event) => {
+    keptBehind = keptUnlaid(writer.kept);
     const key = "key" in event ? String(event.key) : null;
     const held = event as KeyboardEvent;
     const walked = key === null || held.isComposing ? null : caretWalk(held);
+    lastWay = key === null ? 0 : wayOf(key, walked ? letterOf(held) : null);
     if (key !== null && !walked && !key.startsWith("Arrow") && !/^(Home|End|Page)/.test(key))
       return;
     if ((event.target as Element | null)?.closest?.(".tag-list")) return;

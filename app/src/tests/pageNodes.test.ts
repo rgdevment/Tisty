@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { besideBox, opened } from "../ui/pageNodes";
+import { besideBox, brokenBy, opened } from "../ui/pageNodes";
 import { writtenOn } from "../ui/pageWriting";
 
 const PAGE =
@@ -110,16 +110,18 @@ const ENDS =
 const nextOf = (selector: string) => document.querySelector(selector)?.nextSibling;
 
 describe("a piece drawn whole at the end of its line", () => {
-  it("leaves the caret an empty place after it, past the marks around it, once", () => {
+  it("leaves the caret an empty place after it, once, and none to a piece inside marks", () => {
     document.body.innerHTML = `<article class="page">${ENDS}</article>`;
     opened(document);
-    for (const one of ['[data-src="6-10"]', '[data-src="27-32"]', "strong", '[data-src="67-72"]']) {
+    for (const one of ['[data-src="6-10"]', '[data-src="27-32"]', '[data-src="67-72"]']) {
       expect(nextOf(one)?.nodeType).toBe(Node.TEXT_NODE);
       expect(nextOf(one)?.textContent).toBe("");
     }
+    expect(nextOf("strong")).toBeNull();
     expect(nextOf('[data-src="49-53"]')).toBeNull();
     expect(nextOf('[data-src="81-86"]')?.textContent).toBe(" medio");
-    expect(nextOf('[data-src="100-104"]')?.nodeName).toBe("BR");
+    expect(nextOf('[data-src="100-104"]')?.textContent).toBe("\u200B");
+    expect(nextOf('[data-src="100-104"]')?.nextSibling?.nodeName).toBe("BR");
     const watching = new MutationObserver(() => {});
     watching.observe(document.body, { childList: true, subtree: true, characterData: true });
     opened(document);
@@ -153,7 +155,7 @@ describe("a piece drawn whole at the end of its line", () => {
     expect(document.querySelector('[data-src="81-86"]')?.lastChild?.nodeName).toBe("math");
     expect(document.querySelector('[data-src="6-10"]')?.textContent).toBe("#eti");
     expect(document.querySelector(".page")?.textContent).toBe(
-      "Antes #etiuno codAntes #etiAntes x\u200By medio#etidos",
+      "Antes #etiuno codAntes #etiAntes x\u200By medio#eti\u200Bdos",
     );
   });
 
@@ -183,8 +185,8 @@ describe("a piece drawn whole at the end of its line", () => {
       value: { setData: (_: string, said: string) => put.push(said) },
     });
     document.querySelector(".page")?.dispatchEvent(copying);
-    writing.stop();
     expect(document.querySelector('[data-src="6-9"]')?.lastChild?.textContent).toBe("\u200B");
+    writing.stop();
     expect(put).toEqual(["Antes $x$\n\nFin"]);
   });
 });
@@ -201,5 +203,165 @@ describe("a caret beside a step's box", () => {
     expect(besideBox(step, 2)).toBeNull();
     expect(besideBox(words, 0)).toBeNull();
     expect(besideBox(document.querySelector("p") as Element, 0)).toBeNull();
+  });
+});
+
+const BROKEN_BODY = "uno #eti\\\ndos\n\n- tres `c`\n  - dentro\n";
+const BROKEN =
+  '<p data-at="0-14"><span data-src="0-4">uno </span><span class="tag" data-src="4-8" contenteditable="false">#eti</span><br data-src="8-10" contenteditable="false"><span data-src="10-13">dos</span></p>' +
+  '<ul data-at="15-38"><li data-at="15-38"><span data-src="17-22">tres </span><code data-src="22-25" contenteditable="false">c</code>' +
+  '<ul data-at="28-38"><li data-at="28-38"><span data-src="30-36">dentro</span></li></ul></li></ul>';
+
+describe("a piece that ends a line broken by a break or a nested list", () => {
+  it("gets a letter that shows nothing after it, once, and tells what breaks the line", () => {
+    document.body.innerHTML = `<article class="page">${BROKEN}</article>`;
+    opened(document);
+    const tag = document.querySelector('[data-src="4-8"]') as Element;
+    const code = document.querySelector('[data-src="22-25"]') as Element;
+    expect(tag.nextSibling?.textContent).toBe("\u200B");
+    expect(code.nextSibling?.textContent).toBe("\u200B");
+    expect(brokenBy(tag)?.nodeName).toBe("BR");
+    expect(brokenBy(code)?.nodeName).toBe("UL");
+    const watching = new MutationObserver(() => {});
+    watching.observe(document.body, { childList: true, subtree: true, characterData: true });
+    opened(document);
+    expect(watching.takeRecords()).toEqual([]);
+  });
+
+  it("is walked past with ← and →, one stop after it and one on each side of the break", () => {
+    document.body.innerHTML = `<article class="page">${BROKEN}</article>`;
+    const writing = writtenOn(document, {
+      text: () => BROKEN_BODY,
+      write: () => {},
+      shown: () => {},
+      redraw: () => {},
+      near: () => Promise.reject(new Error("no core here")),
+      dressed: () => {},
+      translated: (_, plain) => Promise.resolve(plain),
+      ask: () => {},
+      blocks: () => {},
+      acts: () => {},
+    });
+    const sheet = document.querySelector(".page") as Element;
+    const words = (src: string) =>
+      document.querySelector(`[data-src="${src}"]`)?.firstChild as Text;
+    const arrow = (key: string) => {
+      const event = new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true });
+      sheet.dispatchEvent(event);
+      const held = document.getSelection();
+      return [event.defaultPrevented, held?.anchorNode, held?.anchorOffset];
+    };
+    const line = document.querySelector("p") as Element;
+    const item = document.querySelector("li") as Element;
+    document.getSelection()?.collapse(words("0-4"), 4);
+    expect(arrow("ArrowRight")).toEqual([true, line, 2]);
+    expect(arrow("ArrowRight")).toEqual([true, line, 4]);
+    expect(arrow("ArrowLeft")).toEqual([true, line, 2]);
+    expect(arrow("ArrowLeft")).toEqual([true, line, 1]);
+    document.getSelection()?.collapse(words("17-22"), 5);
+    expect(arrow("ArrowRight")).toEqual([true, item, 2]);
+    expect(arrow("ArrowRight")).toEqual([true, words("30-36"), 0]);
+    expect(arrow("ArrowLeft")).toEqual([true, item, 2]);
+    writing.stop();
+  });
+});
+
+const DRAWN_WHOLE =
+  '<div class="table" data-at="0-30" contenteditable="false"><table><tr>' +
+  '<td><span class="tag" data-src="2-6" contenteditable="false">#eti</span><br data-src="6-10" contenteditable="false">b</td>' +
+  '<td><span data-src="12-15" contenteditable="false"><math><mi>x</mi></math></span></td></tr></table></div>' +
+  '<p data-at="31-50"><span data-src="31-37">Antes </span><strong><span class="tag" data-src="39-43" contenteditable="false">#eti</span></strong>' +
+  '<br data-src="45-47" contenteditable="false"><span data-src="47-50">dos</span></p>';
+
+describe("a piece the caret never stands beside", () => {
+  it("is left undressed inside a block drawn whole or inside marks", () => {
+    document.body.innerHTML = `<article class="page">${DRAWN_WHOLE}</article>`;
+    opened(document);
+    expect(document.querySelector(".table")?.textContent).toBe("#etibx");
+    expect(document.querySelector(".page")?.textContent).not.toContain("\u200B");
+    expect(nextOf("strong")?.nodeName).toBe("BR");
+  });
+});
+
+const EVERY_BODY =
+  "uno #eti\\\ndos $x$\n\n- tres `c`\n  - dentro\n\n**#b**\\\n[enlace](u)\n\n| #t |\n|---|\n| x |\n";
+const EVERY_PIECE =
+  '<p data-at="0-17"><span data-src="0-4">uno </span><span class="tag" data-src="4-8" contenteditable="false">#eti</span>' +
+  '<br data-src="8-10" contenteditable="false"><span data-src="10-14">dos </span>' +
+  '<span data-src="14-17" contenteditable="false"><math><mi>x</mi></math></span></p>' +
+  '<ul data-at="19-41"><li data-at="19-41"><span data-src="21-26">tres </span><code data-src="26-29" contenteditable="false">c</code>' +
+  '<ul data-at="30-41"><li data-at="30-41"><span data-src="34-40">dentro</span></li></ul></li></ul>' +
+  '<p data-at="42-61"><strong><span class="tag" data-src="44-46" contenteditable="false">#b</span></strong>' +
+  '<br data-src="48-50" contenteditable="false"><a href="u"><span data-src="51-57">enlace</span></a></p>' +
+  '<div class="table" data-at="63-82" contenteditable="false"><table><tr><td>' +
+  '<span class="tag" data-src="65-67" contenteditable="false">#t</span><br data-src="67-67" contenteditable="false">x' +
+  "</td></tr></table></div>";
+
+describe("the letter that shows nothing", () => {
+  it("never leaves the page through a copy or a cut, whatever pieces it stands beside", () => {
+    document.body.innerHTML = `<article class="page">${EVERY_PIECE}</article>`;
+    let text = EVERY_BODY;
+    const written: string[] = [];
+    const writing = writtenOn(document, {
+      text: () => text,
+      write: (next) => {
+        text = next;
+        written.push(next);
+      },
+      shown: () => {},
+      redraw: () => {},
+      near: () => Promise.reject(new Error("no core here")),
+      dressed: () => {},
+      translated: (_, plain) => Promise.resolve(plain),
+      ask: () => {},
+      blocks: () => {},
+      acts: () => {},
+    });
+    const sheet = document.querySelector(".page") as Element;
+    expect(sheet.textContent?.split("\u200B")).toHaveLength(4);
+    const words = (src: string) =>
+      document.querySelector(`[data-src="${src}"]`)?.firstChild as Text;
+    document.getSelection()?.setBaseAndExtent(words("0-4"), 0, words("51-57"), 6);
+    const clipped: string[] = [];
+    for (const type of ["copy", "cut"]) {
+      const asked = new Event(type, { bubbles: true, cancelable: true });
+      Object.defineProperty(asked, "clipboardData", {
+        value: { setData: (_: string, said: string) => clipped.push(said) },
+      });
+      sheet.dispatchEvent(asked);
+    }
+    writing.stop();
+    expect(clipped).toHaveLength(2);
+    expect(written.length).toBeGreaterThan(0);
+    for (const said of [...clipped, ...written]) expect(said).not.toContain("\u200B");
+  });
+
+  it("copies nothing for a choice of the letter alone, and leaves the page with writing", () => {
+    document.body.innerHTML = `<article class="page">${EVERY_PIECE}</article>`;
+    const writing = writtenOn(document, {
+      text: () => EVERY_BODY,
+      write: () => {},
+      shown: () => {},
+      redraw: () => {},
+      near: () => Promise.reject(new Error("no core here")),
+      dressed: () => {},
+      translated: (_, plain) => Promise.resolve(plain),
+      ask: () => {},
+      blocks: () => {},
+      acts: () => {},
+    });
+    const sheet = document.querySelector(".page") as Element;
+    const letter = document.querySelector('[data-src="4-8"]')?.nextSibling as Text;
+    document.getSelection()?.setBaseAndExtent(letter, 0, letter, 1);
+    const clipped: string[] = [];
+    const asked = new Event("copy", { bubbles: true, cancelable: true });
+    Object.defineProperty(asked, "clipboardData", {
+      value: { setData: (_: string, said: string) => clipped.push(said) },
+    });
+    sheet.dispatchEvent(asked);
+    expect(asked.defaultPrevented).toBe(true);
+    expect(clipped).toEqual([""]);
+    writing.stop();
+    expect(sheet.textContent).not.toContain("\u200B");
   });
 });

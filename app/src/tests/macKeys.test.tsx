@@ -461,7 +461,11 @@ describe("a key to a line's edge on a Mac, after the system has moved the caret"
       () => [piece(" tres"), 2],
       () => [piece("uno "), 0],
     );
-    expect(spot).toEqual([document.querySelector("p"), 3]);
+    const line = document.querySelector("p") as Element;
+    expect(spot).toEqual([
+      line,
+      Array.from(line.childNodes).indexOf(line.querySelector("br") as Element) + 1,
+    ]);
   });
 
   it("keeps Control+A in its block when the move went to the block above", async () => {

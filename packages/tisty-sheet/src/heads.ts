@@ -1,3 +1,5 @@
+import { shownText } from "./shown";
+
 export interface Head {
   key: string;
   id?: string;
@@ -22,6 +24,6 @@ const listedHeads = (page: Document): Head[] =>
     key: `${at}:${one.id}`,
     id: one.id,
     level: Number(one.tagName.slice(1)),
-    text: one.textContent ?? "",
+    text: shownText(one.textContent ?? ""),
     go: () => one.scrollIntoView({ block: "start" }),
   }));

@@ -73,6 +73,15 @@ const between = (
   return end > 0 ? unitFrom(known, body, end) : 0;
 };
 
+const ownLineEnd = (body: string, block: Element, known: Reckoned | null) => {
+  const at = placeOf(block);
+  if (!at) return null;
+  const start = unitFrom(known, body, at[0]);
+  const end = body.indexOf("\n", start);
+  const line = end < 0 ? body.length : end;
+  return body[line - 1] === "\r" ? line - 1 : line;
+};
+
 const nearest = (
   body: string,
   node: Node,
@@ -89,8 +98,11 @@ const nearest = (
     const start = page.createRange();
     start.setStartBefore(one);
     if (start.comparePoint(node, offset) <= 0) {
-      const at = spanOf(one);
-      return at ? unitFrom(known, body, at[0]) : null;
+      const nested = block.matches("li") && one.closest(BLOCK) !== block;
+      if (nested && !before) return ownLineEnd(body, block, known);
+      const lineEnds = nested && before?.closest(BLOCK) === block;
+      const at = spanOf(lineEnds && before ? before : one);
+      return at ? unitFrom(known, body, lineEnds ? at[1] : at[0]) : null;
     }
     before = one;
   }
@@ -235,12 +247,21 @@ export const endIn = (block: Element): [Node, number] => {
   return last ? endOf(last) : [block, block.childNodes.length];
 };
 
+export const ownsWords = (block: Element) => ownOf(block, PLACED).length > 0;
+
 export const startIn = (block: Element): [Node, number] => {
-  const first = block.querySelector(PLACED);
-  return first ? startOf(first) : [block, 0];
+  let line = block;
+  while (!ownsWords(line) && !line.matches("li.task")) {
+    const inner = line.querySelector(":scope > [data-at]");
+    if (!inner) break;
+    line = inner;
+  }
+  const first = ownOf(line, PLACED)[0];
+  if (first) return startOf(first);
+  return [line, line.matches("li") ? boxEnd(line) : 0];
 };
 
-type Spot = [Node, number];
+export type Spot = [Node, number];
 
 const STOP = `${PLACED}, br`;
 

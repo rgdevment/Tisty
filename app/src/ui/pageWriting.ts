@@ -12,7 +12,7 @@ import { keysOn } from "./pageKeys";
 import { layingOn } from "./pageLaying";
 import { balanced } from "./pageMarks";
 import type { Act } from "./pageMoving";
-import { elementOf, inCode, onSheet, opened } from "./pageNodes";
+import { elementOf, inCode, onSheet, opened, shownWords, undressed } from "./pageNodes";
 import { linkList, linkMatch, tagList, tagMatch } from "./pageTags";
 import { composingKey, type Hands, writerOf } from "./pageWriter";
 import { unformattable } from "./quickly";
@@ -158,10 +158,15 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
     if (choosing.choosing()) return choosing.dropped();
     keys.takenOut();
   };
+  const unseenChosen = () => {
+    const said = page.getSelection()?.toString() ?? "";
+    const shown = shownWords(said);
+    return shown === said ? null : shown;
+  };
   // Ctrl+C and Ctrl+X carry the Tisty Markdown of the words chosen, as the right-click does, never the drawn page.
   const clipped = (event: ClipboardEvent) => {
-    const words = onSheet(page, event) ? chosen() : null;
-    if (!words || !event.clipboardData) return;
+    const words = onSheet(page, event) ? (chosen() ?? unseenChosen()) : null;
+    if (words === null || !event.clipboardData) return;
     event.preventDefault();
     event.clipboardData.setData("text/plain", words);
     if (event.type === "cut") cut();
@@ -247,6 +252,7 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
       page.removeEventListener("compositionstart", input.started);
       page.removeEventListener("compositionend", input.ended);
       page.querySelector<HTMLElement>(".page")?.removeAttribute("contenteditable");
+      undressed(page);
       return unlaid;
     },
   };

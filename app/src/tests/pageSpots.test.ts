@@ -24,6 +24,15 @@ const placed = (said: string) =>
   ) as Element;
 
 describe("the places of a page written in place", () => {
+  it("takes a place after an item's own words as their end, not as the start of the list nested in it", () => {
+    sheetOf(
+      '<ul data-at="0-23"><li data-at="0-23"><span data-src="2-6">uno </span><span class="tag" data-src="6-10" contenteditable="false">#eti</span>' +
+        '<ul data-at="13-23"><li data-at="13-23"><span data-src="15-21">dentro</span></li></ul></li></ul>',
+    );
+    const item = document.querySelector("li") as Element;
+    expect(sourceAt("- uno #eti\n  - dentro\n", item, 2)).toBe(10);
+  });
+
   it("takes the end of a piece that cannot be written in, as an icon", () => {
     sheetOf();
     expect(sourceAt(BODY, placed("🐶"), 0)).toBe(9);
