@@ -1,39 +1,10 @@
 import { useState } from "react";
 import { createPortal } from "react-dom";
+import { SKILLED } from "../agentsOffered";
 import type { Wired } from "../core";
 import { fill, t } from "../locales";
 import Hooking from "./Hooking";
 import { TistySkillsCard, useTistySkills } from "./TistySkills";
-
-const OFFERED = "tisty.wiring.offered";
-
-// The connection's client and the agent whose folders take Tisty's skills.
-const SKILLED: Record<string, string> = {
-  "claude-code": "claude",
-  cursor: "cursor",
-  codex: "codex",
-  "gemini-cli": "gemini",
-  copilot: "copilot",
-};
-
-export const offered = (): string[] => {
-  try {
-    const all = JSON.parse(window.localStorage.getItem(OFFERED) ?? "[]");
-    return Array.isArray(all) ? all : [];
-  } catch {
-    return [];
-  }
-};
-
-export const markOffered = (ids: readonly string[]) => {
-  try {
-    window.localStorage.setItem(OFFERED, JSON.stringify([...new Set([...offered(), ...ids])]));
-  } catch {
-    // A private window keeps nothing, so the offer may come once more there.
-  }
-};
-
-export const offers = (one: Wired): boolean => !!one.hooks || one.id in SKILLED;
 
 const small =
   "shrink-0 rounded-md border border-line px-2.5 py-0.5 text-[12.5px] text-soft hover:border-accent hover:text-accent";
@@ -87,7 +58,11 @@ export default function ConnectOffer({
           {fill(hooks.plugged && !hooks.on ? "connectOfferPlugged" : "connectOfferHooks", one.name)}
         </p>
       )}
-      <Hooking one={one} held={held} onHook={onHook} />
+      {hooks && (
+        <div className="mt-2 rounded-[10px] border border-hair">
+          <Hooking one={one} held={held} onHook={onHook} />
+        </div>
+      )}
       <SkillsLine one={one} />
       <div className="mt-2.5 flex justify-end">
         <button type="button" onClick={onDone} className={small}>

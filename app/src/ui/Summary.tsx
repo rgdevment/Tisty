@@ -1,3 +1,4 @@
+import type { Extras } from "../agentsAmiss";
 import { type Dot, type Item, type Step, stepsShown, TILE_PAGES, type Tile } from "../attention";
 import { fill, t } from "../locales";
 import { pageOf } from "../settingsPages";
@@ -11,6 +12,8 @@ interface Props {
   steps: Step[] | null;
   tiles: Record<string, Tile | null>;
   onLand: (spot: Spot) => void;
+  extras?: Extras | null;
+  onDeclined?: () => void;
 }
 
 const DOT: Record<Dot, string> = {
@@ -23,7 +26,7 @@ const box = "mt-2.5 overflow-hidden rounded-[10px] border border-hair";
 const line =
   "flex w-full items-center gap-2.5 border-t border-hair px-3 py-2 text-left first:border-t-0 hover:bg-hover";
 
-export default function Summary({ items, whole, steps, tiles, onLand }: Props) {
+export default function Summary({ items, whole, steps, tiles, onLand, extras, onDeclined }: Props) {
   const first = stepsShown(steps);
   return (
     <>
@@ -56,6 +59,7 @@ export default function Summary({ items, whole, steps, tiles, onLand }: Props) {
           </p>
         </>
       )}
+      {extras && <Offered extras={extras} onLand={onLand} onDeclined={onDeclined} />}
       <Band label={t("standingBand")} />
       <div className="mt-2.5 grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-2.5">
         {TILE_PAGES.map((page) => (
@@ -63,6 +67,39 @@ export default function Summary({ items, whole, steps, tiles, onLand }: Props) {
         ))}
       </div>
     </>
+  );
+}
+
+const extrasSaid = ({ hooks, skills }: Extras) =>
+  hooks.length > 0 && skills.length > 0
+    ? t("attExtras")
+    : t(hooks.length > 0 ? "attExtrasHooks" : "attExtrasSkills");
+
+function Offered({
+  extras,
+  onLand,
+  onDeclined,
+}: {
+  extras: Extras;
+  onLand: (spot: Spot) => void;
+  onDeclined?: () => void;
+}) {
+  return (
+    <div className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-1 text-[12.5px]">
+      <span className="min-w-0 flex-1 text-soft">
+        {extrasSaid(extras)} <span className="text-faint">· {t("attExtrasWhy")}</span>
+      </span>
+      <button
+        type="button"
+        onClick={() => onLand({ page: "agents", shelf: "wired" })}
+        className="shrink-0 text-accent hover:underline"
+      >
+        {t("attSee")}
+      </button>
+      <button type="button" onClick={onDeclined} className="shrink-0 text-faint hover:text-ink">
+        {t("agentsNotNow")}
+      </button>
+    </div>
   );
 }
 

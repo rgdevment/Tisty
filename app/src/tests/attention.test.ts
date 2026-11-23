@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
+import type { TistySkills } from "../agentsSync";
 import {
   attention,
   counted,
@@ -10,8 +11,9 @@ import {
   tiles,
   whole,
 } from "../attention";
-import type { About, Carrying, Settings, Standing } from "../core";
+import type { About, Carrying, Settings, Standing, Wired } from "../core";
 import { adopt } from "../locales";
+import { lostOne, skillsFor, wiredOne } from "./knownFor";
 
 const NOW = new Date(2026, 10, 21, 10, 0, 0);
 const daysAgo = (days: number) => new Date(NOW.getTime() - days * 86_400_000).toISOString();
@@ -156,12 +158,49 @@ describe("what asks for the person's attention", () => {
         "Elegir otro",
       ],
       [
-        "astray-cursor",
-        { page: "agents", shelf: "wired", row: "wired" },
-        "Cursor apunta a un Tisty que ya no existe",
+        "agents-elsewhere",
+        { page: "agents", shelf: "wired" },
+        "Cursor apunta a otro Tisty",
         "Corregir",
       ],
     ]);
+  });
+
+  it("says in one line each what is lost, what points elsewhere and what skills were left behind", () => {
+    const said = (wired: Wired[], skills: TistySkills | null = null) =>
+      attention(known({ wired, skills }), NOW)?.map((one) => one.said);
+    const hooks = { on: true, at: "", astray: true, gone: true, points: "/old/tisty" };
+
+    expect(said([lostOne("Cursor")])).toEqual(["Cursor apunta a un Tisty que ya no existe"]);
+    expect(said([wiredOne("Cursor", { wired: true, hooks })])).toEqual([
+      "Los hooks de Cursor apuntan a un Tisty que ya no existe",
+    ]);
+    expect(said([wiredOne("Cursor", { wired: true, hooks: { ...hooks, gone: false } })])).toEqual([
+      "Los hooks de Cursor apuntan a otro Tisty",
+    ]);
+    expect(
+      said([
+        lostOne("Cursor"),
+        lostOne("Codex"),
+        lostOne("Zed", { gone: false }),
+        lostOne("Kiro", { gone: false }),
+      ]),
+    ).toEqual(["2 agentes apuntan a un Tisty que ya no existe", "2 agentes apuntan a otro Tisty"]);
+    const behind = skillsFor({
+      on: true,
+      landing: [{ assistant: "claude", at: "/a/skills/tisty/SKILL.md", standing: "write" }],
+    });
+    expect(said([], behind)).toEqual(["Las skills de Tisty están sin actualizar en tus agentes"]);
+    expect(said([], { ...behind, on: false })).toEqual([]);
+  });
+
+  it("counts on the agents' tile what there is to fix", () => {
+    const shown = tiles(
+      known({ build: build({ door: "espino 3" }), wired: [lostOne("Cursor"), lostOne("Codex")] }),
+      { named: "" },
+      NOW,
+    );
+    expect(shown.agents).toMatchObject({ dot: "warn", detail: "2 por corregir" });
   });
 
   it("names a waiting computer from Security's read alone, before Health was checked", () => {

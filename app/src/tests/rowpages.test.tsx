@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Carrying, Settings } from "../core";
@@ -15,6 +15,7 @@ import { PANEL } from "../ui/settingsPanel";
 import Window from "../ui/Window";
 import { IDLE } from "../ui/working";
 import Yours from "../ui/Yours";
+import { knownFor } from "./knownFor";
 import { LiveRows, Rows } from "./rowsShell";
 
 const ipc = vi.hoisted(() => ({
@@ -23,6 +24,7 @@ const ipc = vi.hoisted(() => ({
   sealed: { state: "none", cloud: "google" } as unknown,
   sealedFails: 0,
   urls: [] as string[],
+  distros: [] as string[],
 }));
 
 vi.mock("@tauri-apps/api/core", () => ({
@@ -32,6 +34,8 @@ vi.mock("@tauri-apps/api/core", () => ({
     if (cmd === "shortcuts_offered") return Promise.resolve(["Ctrl+Alt+T"]);
     if (cmd === "sealing_shown")
       return ipc.sealedFails-- > 0 ? Promise.reject({ code: "x" }) : Promise.resolve(ipc.sealed);
+    if (cmd === "wsl_distros") return Promise.resolve(ipc.distros);
+    if (cmd === "wsl_seen") return Promise.resolve({ distro: { shut: false }, seen: [] });
     if (cmd === "move_pending") return Promise.resolve(null);
     if (cmd === "checked") return new Promise(() => {});
     return Promise.resolve(null);
@@ -49,6 +53,7 @@ beforeEach(() => {
   ipc.calls.length = 0;
   ipc.urls.length = 0;
   ipc.urgent = true;
+  ipc.distros = [];
   localStorage.clear();
 });
 
@@ -186,13 +191,11 @@ describe("important reminders", () => {
 });
 
 describe("the assistants' page", () => {
-  const known = (on: boolean) => ({
-    agent: { on, called: on ? "espino 3" : undefined, asks: true, hooks: true },
-    setAgent: vi.fn(),
-    agents: [{ id: "claude", name: "Claude Code", wired: true }] as never,
-    setAgents: () => {},
-    hands: [],
-  });
+  const known = (on: boolean) =>
+    knownFor({
+      agent: { on, called: on ? "espino 3" : undefined, asks: true, hooks: true },
+      agents: [{ id: "claude", name: "Claude Code", wired: true }] as never,
+    });
   const shown = (on: boolean, sent?: "credit" | "wired") =>
     render(
       <Rows>
@@ -216,14 +219,35 @@ describe("the assistants' page", () => {
     expect(within(rowOf("hooks")).getByText(t("doorNeeded"))).toBeTruthy();
   });
 
-  it("frees them once the door is open", () => {
+  it("opens on the door while it is shut and on Connected once it is open", () => {
+    shown(false);
+    expect(screen.getByRole("tab", { name: "Door" }).getAttribute("aria-selected")).toBe("true");
+    cleanup();
     shown(true);
+    const connected = screen.getByRole("tab", { name: "Connected" });
+    expect(connected.getAttribute("aria-selected")).toBe("true");
+  });
+
+  it("looks into remembered WSL distros only once the tab itself is pressed", async () => {
+    window.localStorage.setItem("tisty.wsl.looked", '["Ubuntu"]');
+    ipc.distros = ["Ubuntu"];
+    shown(true, "wired");
+    expect(await screen.findByRole("button", { name: fill("wslLook", "Ubuntu") })).toBeTruthy();
+    expect(sent("wsl_seen")).toHaveLength(0);
+    await userEvent.click(screen.getByRole("tab", { name: "Connected" }));
+    await waitFor(() => expect(sent("wsl_seen")).toHaveLength(1));
+  });
+
+  it("frees them once the door is open", async () => {
+    shown(true);
+    await userEvent.click(screen.getByRole("tab", { name: "Door" }));
     expect((within(rowOf("asks")).getByRole("switch") as HTMLButtonElement).disabled).toBe(false);
     expect(screen.queryByText(t("doorNeeded"))).toBeNull();
   });
 
   it("asks before taking the voice away, and keeps it when told no", async () => {
     shown(true);
+    await userEvent.click(screen.getByRole("tab", { name: "Door" }));
     await userEvent.click(screen.getByRole("button", { name: t("agentsTurnOff") }));
     const dialog = within(await screen.findByRole("dialog"));
     expect(dialog.getByText(t("carefulDoorTwo"))).toBeTruthy();
@@ -262,7 +286,7 @@ describe("the assistants' page", () => {
   });
 
   it("moves through its tabs with the arrows, each one tied to the panel", () => {
-    shown(true);
+    shown(false);
     const door = screen.getByRole("tab", { name: t("agentsTabDoor") });
     expect(door.getAttribute("aria-controls")).toBe("agents-shelf");
     expect(door.tabIndex).toBe(0);

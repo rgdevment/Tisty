@@ -973,7 +973,14 @@ export interface Wired {
   maybe: boolean;
   byHand: boolean;
   manual: { file: string; snippet: string; cli?: string | null };
-  hooks?: { on: boolean; at: string; plugged?: boolean } | null;
+  hooks?: {
+    on: boolean;
+    at: string;
+    plugged?: boolean;
+    astray?: boolean;
+    gone?: boolean;
+    points?: string | null;
+  } | null;
 }
 
 export interface InDistro {

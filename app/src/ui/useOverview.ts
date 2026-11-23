@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import type { TistySkills } from "../agentsSync";
 import { attention, firstSteps, type Item, type Known, tiles, whole } from "../attention";
 import type { About, Carrying, CloudStatus, Ready, Reviewed, Settings, Wired } from "../core";
 import { cloudNamed } from "../locales";
@@ -19,6 +20,7 @@ interface Read {
   audit: Reviewed | null;
   seen: Seen | null;
   wired: Wired[] | null;
+  skills: TistySkills | null;
   waiting: boolean;
   desk?: SettingsDesk;
 }

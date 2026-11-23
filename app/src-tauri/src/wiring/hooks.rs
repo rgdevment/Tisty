@@ -6,6 +6,7 @@ use super::json;
 use super::places::{Os, Place};
 
 const HOOKS: &str = "hooks";
+const COMMANDS: [&str; 4] = ["command", "exec", "bash", "powershell"];
 const START_SECONDS: u64 = 15;
 const TURN_SECONDS: u64 = 5;
 
@@ -17,13 +18,16 @@ pub enum Kind {
     Copilot,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Hooks {
     pub on: bool,
     pub at: String,
     /// The Tisty plugin brings its own hooks, which live in the plugin and never in this file.
     pub plugged: bool,
+    pub astray: bool,
+    pub gone: bool,
+    pub points: Option<String>,
 }
 
 pub fn kind(client: &str) -> Option<Kind> {
@@ -150,19 +154,87 @@ fn spoken(place: &Place, args: &[&str]) -> String {
 pub fn seen(kind: Kind, place: &Place) -> Option<Hooks> {
     let at = kind.file(place)?;
     let text = std::fs::read_to_string(&at).unwrap_or_default();
+    let stray: Vec<String> = programs(kind, &text)
+        .into_iter()
+        .filter(|one| !super::this_tisty(place, one))
+        .collect();
+    let gone = stray.iter().find(|one| super::lost(place, one));
     Some(Hooks {
         on: hooked(kind, &text),
         at: at.display().to_string(),
         plugged: false,
+        astray: !stray.is_empty(),
+        gone: gone.is_some(),
+        points: gone.or(stray.first()).cloned(),
     })
 }
 
 pub fn hooked(kind: Kind, text: &str) -> bool {
-    kind.events().iter().any(|event| {
+    !runs(kind, text).is_empty()
+}
+
+fn runs(kind: Kind, text: &str) -> Vec<Value> {
+    let spans = |event: &&str| {
         list(text, event)
             .and_then(|at| json::elements(text.as_bytes(), at))
-            .is_some_and(|all| all.iter().any(|span| ours(kind, &text[span.0..span.1])))
-    })
+            .unwrap_or_default()
+    };
+    kind.events()
+        .iter()
+        .flat_map(spans)
+        .flat_map(|span| ours(kind, &text[span.0..span.1]))
+        .collect()
+}
+
+// What cannot be read for certain is left out, so a wrapper or a bare name is never said to be broken.
+fn programs(kind: Kind, text: &str) -> Vec<String> {
+    runs(kind, text)
+        .iter()
+        .filter_map(|run| program(kind, run))
+        .filter(|one| rooted(one) && named_tisty(one))
+        .collect()
+}
+
+fn program(kind: Kind, run: &Value) -> Option<String> {
+    let said = COMMANDS
+        .iter()
+        .find_map(|field| run.get(*field)?.as_str())?;
+    if run.get("args").is_some_and(Value::is_array) {
+        return Some(said.to_string());
+    }
+    let cut = said.find(&format!(" {}", marked(kind)))?;
+    Some(unquoted(said[..cut].trim()))
+}
+
+fn unquoted(said: &str) -> String {
+    let said = said.strip_prefix("& ").unwrap_or(said).trim();
+    for (quote, escapes) in [("'", ["'\\''", "''"]), ("\"", ["\\\"", "\"\""])] {
+        let inside = said
+            .strip_prefix(quote)
+            .and_then(|it| it.strip_suffix(quote));
+        if let Some(inside) = inside {
+            return escapes
+                .iter()
+                .fold(inside.to_string(), |it, escape| it.replace(escape, quote));
+        }
+    }
+    said.to_string()
+}
+
+fn rooted(said: &str) -> bool {
+    let drive = said.as_bytes();
+    let on_a_drive = drive.len() > 2
+        && drive[0].is_ascii_alphabetic()
+        && drive[1] == b':'
+        && matches!(drive[2], b'\\' | b'/');
+    said.starts_with(['/', '\\']) || on_a_drive
+}
+
+fn named_tisty(said: &str) -> bool {
+    let name = said.rsplit(['/', '\\']).next().unwrap_or(said);
+    ["tisty", "tisty.exe"]
+        .iter()
+        .any(|one| name.eq_ignore_ascii_case(one))
 }
 
 fn list(text: &str, event: &str) -> Option<usize> {
@@ -172,26 +244,31 @@ fn list(text: &str, event: &str) -> Option<usize> {
     (raw.get(at) == Some(&b'[')).then_some(at)
 }
 
-fn ours(kind: Kind, element: &str) -> bool {
+fn marked(kind: Kind) -> String {
+    format!("hook {}", kind.client())
+}
+
+fn ours(kind: Kind, element: &str) -> Vec<Value> {
     let Ok(read) = serde_json::from_str::<Value>(element) else {
-        return false;
+        return Vec::new();
     };
-    let mut runs = vec![&read];
-    if let Some(inner) = read.get(HOOKS).and_then(Value::as_array) {
-        runs.extend(inner);
+    let inner = read.get(HOOKS).and_then(Value::as_array).cloned();
+    std::iter::once(read)
+        .chain(inner.unwrap_or_default())
+        .filter(|run| is_ours(kind, run))
+        .collect()
+}
+
+fn is_ours(kind: Kind, run: &Value) -> bool {
+    let mut said: Vec<&str> = COMMANDS
+        .iter()
+        .filter_map(|field| run.get(*field)?.as_str())
+        .collect();
+    if let Some(args) = run.get("args").and_then(Value::as_array) {
+        said.extend(args.iter().filter_map(Value::as_str));
     }
-    let marked = format!("hook {}", kind.client());
-    runs.iter().any(|run| {
-        let mut said: Vec<&str> = ["command", "exec", "bash", "powershell"]
-            .iter()
-            .filter_map(|field| run.get(*field)?.as_str())
-            .collect();
-        if let Some(args) = run.get("args").and_then(Value::as_array) {
-            said.extend(args.iter().filter_map(Value::as_str));
-        }
-        let said = said.join(" ");
-        said.to_lowercase().contains("tisty") && said.contains(&marked)
-    })
+    let said = said.join(" ");
+    said.to_lowercase().contains("tisty") && said.contains(&marked(kind))
 }
 
 pub fn without(kind: Kind, text: &str) -> Option<String> {
@@ -199,7 +276,10 @@ pub fn without(kind: Kind, text: &str) -> Option<String> {
     for event in kind.events() {
         while let Some(at) = list(&now, event) {
             let all = json::elements(now.as_bytes(), at)?;
-            let Some(&span) = all.iter().find(|span| ours(kind, &now[span.0..span.1])) else {
+            let Some(&span) = all
+                .iter()
+                .find(|span| !ours(kind, &now[span.0..span.1]).is_empty())
+            else {
                 break;
             };
             now = json::cut(&now, span);

@@ -108,7 +108,7 @@ fn row(id: &str, place: Option<&str>, hooked: bool) -> Seen {
         hooks: hooked.then(|| Hooks {
             on: false,
             at: "~/.claude/settings.json".into(),
-            plugged: false,
+            ..Hooks::default()
         }),
     }
 }

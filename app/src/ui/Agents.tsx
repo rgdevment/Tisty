@@ -1,21 +1,12 @@
 import { useEffect, useState } from "react";
-import {
-  type Agent,
-  type Assistant,
-  agentAsks,
-  agentHooks,
-  agentState,
-  agentTurn,
-  assistants,
-  copied,
-  seenAgents,
-  type Wired,
-} from "../core";
+import { type Agent, type Assistant, agentAsks, agentHooks, agentTurn, copied } from "../core";
 import { type Credit, credit, useCredit } from "../crediting";
 import { stamped } from "../format";
+import type { KnownAgents } from "../knownAgents";
 import { fill, t } from "../locales";
 import { saidPlainly } from "../refusal";
 import { type Shelf, settingAt } from "../settingsRows";
+import AgentsMending from "./AgentsMending";
 import AgentsSettings from "./AgentsSettings";
 import Card, { type Run, type Word } from "./Card";
 import { useCareful } from "./Careful";
@@ -34,31 +25,24 @@ interface Props {
   tell: (word?: Word) => void;
   fail: (word?: Word) => void;
   binary?: string;
-  known: Known;
+  known: KnownAgents;
 }
 
-export function useAgents(shown: boolean, fail: (word?: Word) => void) {
-  const [agent, setAgent] = useState<Agent | null>(null);
-  const [agents, setAgents] = useState<Wired[] | null>(null);
-  const [hands, setHands] = useState<Assistant[] | null>(null);
-
+export function useAgentsLook(known: KnownAgents, shown: boolean, fail: (word?: Word) => void) {
+  const { lookIfOpen, lookDoor, lookAgents, lookHands, lookSkills } = known;
   useEffect(() => {
-    if (!shown) return;
-    agentState()
-      .then((fresh) => setAgent(fresh))
-      .catch((e) => fail({ card: "settings", text: saidPlainly(e) }));
-    seenAgents()
-      .then(setAgents)
-      .catch((e) => fail({ card: "wiring", text: saidPlainly(e) }));
-    assistants()
-      .then(setHands)
-      .catch((e) => fail({ card: "wiring", text: saidPlainly(e) }));
-  }, [shown, fail]);
-
-  return { agent, setAgent, agents, setAgents, hands };
+    if (!shown) {
+      lookIfOpen().catch(() => undefined);
+      return;
+    }
+    const wrong = (card: "settings" | "wiring") => (e: unknown) =>
+      fail({ card, text: saidPlainly(e) });
+    lookDoor().catch(wrong("settings"));
+    lookAgents().catch(wrong("wiring"));
+    lookHands().catch(wrong("wiring"));
+    lookSkills();
+  }, [shown, fail, lookIfOpen, lookDoor, lookAgents, lookHands, lookSkills]);
 }
-
-export type Known = ReturnType<typeof useAgents>;
 
 const SHELF_PANEL = "agents-shelf";
 const shelfTab = (shelf: Shelf) => `agents-tab-${shelf}`;
@@ -78,13 +62,30 @@ export default function Agents({
   sentAt,
   ...props
 }: Props & { sent?: Shelf; sentAt?: number }) {
-  const [shelf, setShelf] = useState<Shelf>(sent ?? "door");
+  const [picked, setPicked] = useState<Shelf | undefined>(sent);
+  const [entered, setEntered] = useState<Shelf>();
+  const [pressed, setPressed] = useState(false);
+  const pick = (one: Shelf) => {
+    setPicked(one);
+    setPressed(true);
+  };
   useEffect(() => {
-    if (sent) setShelf(sent);
+    if (sent) setPicked(sent);
   }, [sent, sentAt]);
-  const moved = tabKeys(SHELF_KEYS, false, shelfTab, setShelf);
+  const open = props.known.agent?.on;
+  useEffect(() => {
+    if (open !== undefined) setEntered((was) => was ?? (open ? "wired" : "door"));
+  }, [open]);
+  const shelf = picked ?? entered ?? "door";
+  const moved = tabKeys(SHELF_KEYS, false, shelfTab, pick);
   return (
     <>
+      <AgentsMending
+        known={props.known}
+        busy={props.busy}
+        quietly={props.quietly}
+        sentAt={sent === "wired" ? sentAt : undefined}
+      />
       <div
         role="tablist"
         aria-label={t("tabAgents")}
@@ -99,7 +100,7 @@ export default function Agents({
             aria-selected={shelf === key}
             aria-controls={SHELF_PANEL}
             tabIndex={shelf === key ? 0 : -1}
-            onClick={() => setShelf(key)}
+            onClick={() => pick(key)}
             onKeyDown={(event) => moved(event, key)}
             className={`-mb-px border-b-2 px-2.5 py-1.5 text-[12.5px] whitespace-nowrap ${
               shelf === key
@@ -113,7 +114,9 @@ export default function Agents({
       </div>
       <div id={SHELF_PANEL} role="tabpanel" aria-labelledby={shelfTab(shelf)}>
         {shelf === "door" && <Door {...props} />}
-        {shelf === "wired" && <Connected {...props} onDoor={() => setShelf("door")} />}
+        {shelf === "wired" && (
+          <Connected {...props} chosen={pressed} onDoor={() => setPicked("door")} />
+        )}
         {shelf === "folder" && <AgentsSettings fail={props.fail} quietly={props.quietly} />}
         {shelf === "credit" && <Crediting />}
         {shelf === "can" && <Can />}
@@ -202,9 +205,10 @@ function Connected({
   binary,
   known,
   onDoor,
-}: Props & { onDoor: () => void }) {
+  chosen,
+}: Props & { onDoor: () => void; chosen: boolean }) {
   const held = isHeld(busy, "wiring");
-  const { agent, agents, setAgents, hands } = known;
+  const { agent, agents, setAgents, hands, skills, setSkills } = known;
   return (
     <Card row="wired" which="wiring">
       {agent?.on === false && agents && agents.length > 0 && (
@@ -216,6 +220,9 @@ function Connected({
         agents={agents}
         setAgents={setAgents}
         hands={hands}
+        skills={skills}
+        setSkills={setSkills}
+        wakes={chosen}
         held={held}
         quietly={quietly}
         tell={tell}

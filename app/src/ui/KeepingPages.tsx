@@ -1,8 +1,9 @@
 import type { ReactNode } from "react";
 import type { About, Carrying, Freeing, Reach, Reviewed, Settings, Toward, Waking } from "../core";
+import type { KnownAgents } from "../knownAgents";
 import type { Shelf } from "../settingsRows";
 import type { Tab } from "../views";
-import Agents, { type Known } from "./Agents";
+import Agents from "./Agents";
 import type { Run, Which, Word } from "./Card";
 import Notices from "./Notices";
 import Security from "./Security";
@@ -37,7 +38,7 @@ export interface Shared {
   setSeen: (seen: Seen) => void;
   holds: string;
   signs: Signs;
-  known: Known;
+  known: KnownAgents;
   busy: Working;
   run: Run;
   quietly: Run;

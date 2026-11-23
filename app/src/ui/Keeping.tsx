@@ -26,6 +26,7 @@ import {
   type Waking,
   waking,
 } from "../core";
+import { useKnownAgents } from "../knownAgents";
 import { fill, t } from "../locales";
 import { saidPlainly } from "../refusal";
 import { afterMove } from "../relocation";
@@ -34,7 +35,7 @@ import { type Article, pageOf } from "../settingsPages";
 import type { RowId, Shelf, Spot } from "../settingsRows";
 import { refresh, useSyncSeen } from "../syncSeen";
 import type { Heading, Tab } from "../views";
-import { useAgents } from "./Agents";
+import { useAgentsLook } from "./Agents";
 import Choosing from "./Choosing";
 import Found from "./Found";
 import KeepingPage from "./KeepingPages";
@@ -50,6 +51,7 @@ import { PANEL } from "./settingsPanel";
 import type { Seen } from "./Upkeep";
 import { useCards } from "./useCards";
 import { useCarry } from "./useCarry";
+import { useExtras } from "./useExtras";
 import { useOverview } from "./useOverview";
 import { held } from "./working";
 import { PageHead } from "./Zone";
@@ -117,7 +119,10 @@ export default function Keeping({
   const setTrouble = fail;
   const signs = useSigning();
   const { lookSigned } = signs;
-  const known = useAgents(tab === "agents", setTrouble);
+  const own = useKnownAgents(Boolean(desk));
+  const known = desk?.agents ?? own;
+  useAgentsLook(known, tab === "agents", setTrouble);
+  const offering = useExtras(known);
   const [answered, answer] = useReducer((was: number, read: number) => was | read, 0);
 
   const look = useCallback(() => {
@@ -158,6 +163,7 @@ export default function Keeping({
     audit,
     seen,
     wired: known.agents,
+    skills: known.skills,
     waiting: answered !== ALL_READ,
     desk,
   });
@@ -312,6 +318,8 @@ export default function Keeping({
                   steps={overview.steps}
                   tiles={overview.tiles}
                   onLand={land}
+                  extras={offering.extras}
+                  onDeclined={offering.decline}
                 />
               )}
 

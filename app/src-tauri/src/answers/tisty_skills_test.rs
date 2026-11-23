@@ -587,3 +587,63 @@ fn with_the_ledger_begun_anew_their_own_copies_are_claimed_back_and_turned_off_a
         "Mine, named alike.\n"
     );
 }
+
+#[test]
+fn a_new_release_reaches_the_copies_it_knows_on_opening_and_leaves_the_rest_said_not_written() {
+    let room = room();
+    room.skills_yes();
+    let tisty = room.at(".claude/skills/tisty/SKILL.md");
+    let theirs = room.at(".cursor/skills/consolidate/SKILL.md");
+    put(&theirs, "Mine, named alike.\n");
+    let newer: Vec<Bundled> = shipped()
+        .into_iter()
+        .map(|one| Bundled {
+            body: doc_of(
+                GLOBAL,
+                Kind::Skill,
+                &one.name,
+                format!("---\nname: {}\n---\n\nNewer words.\n", one.skill).as_bytes(),
+            )
+            .unwrap(),
+            ..one
+        })
+        .collect();
+
+    let mut ledger = room.ledger();
+    let before = summed_from(&room.session, &room.homes, &ledger, &newer);
+    assert!(landed(&before).contains(&("claude".into(), "write")));
+
+    shipped_round(&room.session, &room.homes, &mut ledger, &newer);
+
+    assert!(
+        std::fs::read_to_string(&tisty)
+            .unwrap()
+            .contains("Newer words.")
+    );
+    let after = summed_from(&room.session, &room.homes, &room.ledger(), &newer);
+    assert!(
+        landed(&after)
+            .iter()
+            .all(|(_, standing)| *standing != "write"),
+        "only what a round writes is ever left to write: {:?}",
+        landed(&after)
+    );
+}
+
+#[test]
+fn copies_of_an_earlier_release_the_ledger_lost_are_left_as_they_are_and_the_card_says_so() {
+    let room = room();
+    put(
+        &room.at(".claude/skills/tisty/SKILL.md"),
+        "---\nname: tisty\n---\n\nAn earlier release.\n",
+    );
+    let said = room.skills_yes();
+
+    assert!(
+        landed(&said)
+            .iter()
+            .any(|(one, standing)| one == "claude" && *standing == "foreign"),
+        "{:?}",
+        landed(&said)
+    );
+}

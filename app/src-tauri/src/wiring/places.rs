@@ -118,15 +118,30 @@ impl Place {
     }
 
     pub fn runs(&self, name: &str) -> bool {
+        self.on_path(name).is_some()
+    }
+
+    fn on_path(&self, name: &str) -> Option<PathBuf> {
         let named: &[&str] = match self.os {
             Os::Windows => &[".exe", ".cmd", ".bat", ""],
             _ => &[""],
         };
-        self.bins.iter().any(|dir| {
-            named
-                .iter()
-                .any(|end| dir.join(format!("{name}{end}")).is_file())
-        })
+        self.bins
+            .iter()
+            .flat_map(|dir| {
+                named
+                    .iter()
+                    .map(move |end| dir.join(format!("{name}{end}")))
+            })
+            .find(|at| at.is_file())
+    }
+
+    pub fn led(&self, said: &str) -> Option<PathBuf> {
+        let said = said.trim();
+        match said.contains(['/', '\\']) {
+            true => self.reached(said),
+            false => self.on_path(said),
+        }
     }
 }
 

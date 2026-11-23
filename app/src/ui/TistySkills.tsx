@@ -1,5 +1,7 @@
 import { type ReactNode, useCallback, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
+import { landingSaid, leftAsIs } from "../agentsAmiss";
+import { markOffered, SKILLS_DECLINED } from "../agentsOffered";
 import {
   AGENTS_CHANGED,
   type TistySkills,
@@ -31,12 +33,6 @@ const skillSaid = (name: string, about: string | null): string => {
   return said === key ? (about ?? "") : said;
 };
 
-const landingSaid = (standing: string): string => {
-  const key = `tistyLanding_${standing}` as Word;
-  const said = t(key);
-  return said === key ? standing : said;
-};
-
 // Each skill's own lines to say to the agent, numbered from 1 in the words.
 export const sayings = (name: string): string[] => {
   const all: string[] = [];
@@ -54,6 +50,10 @@ const folderOf = (at: string): string => {
   const cut = at.replace(/\\/g, "/").lastIndexOf(SKILLS_DIR);
   return cut < 0 ? at : at.slice(0, cut + SKILLS_DIR.length - 1);
 };
+
+export const skillFolders = (skills: TistySkills): string[] => [
+  ...new Set(skills.landing.map((one) => folderOf(one.at))),
+];
 
 export function useTistySkills() {
   const [held, setHeld] = useState<TistySkills>();
@@ -117,7 +117,10 @@ export function TistySkillsCard({
   const [busy, setBusy] = useState(false);
   const [trouble, setTrouble] = useState<string>();
   const none = skills.skills.length === 0;
-  const take = (on: boolean) => done(tistySkillsTake(on));
+  const take = (on: boolean) => {
+    if (!on) markOffered([SKILLS_DECLINED]);
+    done(tistySkillsTake(on));
+  };
   const away = (at: string) => done(tistySkillsLeftover(at));
   const done = (work: Promise<TistySkills>) => {
     setBusy(true);
@@ -234,11 +237,13 @@ function Opener({
   skills,
   onTaken,
   className,
+  label,
   children,
 }: Readonly<{
   skills: TistySkills;
   onTaken: (now: TistySkills) => void;
   className: string;
+  label?: string;
   children: ReactNode;
 }>) {
   const [open, setOpen] = useState(false);
@@ -247,6 +252,7 @@ function Opener({
       <button
         type="button"
         data-row="tisty-skills"
+        aria-label={label}
         onClick={() => setOpen(true)}
         className={className}
       >
@@ -265,6 +271,59 @@ const standingOf = (skills: TistySkills) => t(skills.on ? "tistySkillsOn" : "tis
 
 // Hiding is a way of looking, kept on this computer alone, and turns nothing off.
 export const TISTY_SKILLS_ROW = "tisty-skills";
+
+export function TistySkillsAgentLine({
+  agent,
+  skills,
+  onTaken,
+}: Readonly<{ agent: string; skills: TistySkills; onTaken: (now: TistySkills) => void }>) {
+  const said = lineSaid(agent, skills);
+  const off = said === "tistySkillsOff";
+  const act = t(off ? "extrasAddSkills" : "agentSee");
+  const left = said === "tistySkillsRowPartly" ? leftAsIs(skills, landsFor(agent)) : undefined;
+  return (
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 px-3 py-2">
+      <span className="min-w-[9rem] flex-1 text-[12.5px] text-soft">{t("tistySkills")}</span>
+      <span
+        className={`shrink-0 rounded-full border px-2 py-0.5 text-[11.5px] whitespace-nowrap ${LINE[said]}`}
+      >
+        {t(said)}
+      </span>
+      <Opener
+        skills={skills}
+        onTaken={onTaken}
+        label={off ? act : `${act} · ${t("tistySkills")}`}
+        className={`shrink-0 rounded-md border px-2.5 py-1 text-[12.5px] hover:border-accent hover:text-accent ${
+          off ? "border-accent text-accent" : "border-line text-soft"
+        }`}
+      >
+        {act}
+      </Opener>
+      {left && <p className="w-full text-[12.5px] text-soft">{landingSaid(left)}</p>}
+    </div>
+  );
+}
+
+const LINE = {
+  tistySkillsOn: "border-hue-green/40 text-hue-green",
+  tistySkillsRowPlugged: "border-hue-green/40 text-hue-green",
+  tistySkillsRowBehind: "border-hue-amber/40 text-hue-amber",
+  tistySkillsRowPartly: "border-line text-soft",
+  tistySkillsOff: "border-line text-soft",
+} as const;
+
+const landsFor = (agent: string) => (assistant: string) =>
+  SHARED.has(agent) ? SHARED.has(assistant) : assistant === agent;
+
+function lineSaid(agent: string, skills: TistySkills): keyof typeof LINE {
+  if (skills.plugged.includes(agent)) return "tistySkillsRowPlugged";
+  if (!skills.on) return "tistySkillsOff";
+  const behind = skills.landing.some(
+    (one) => landsFor(agent)(one.assistant) && one.standing === "write",
+  );
+  if (behind) return "tistySkillsRowBehind";
+  return leftAsIs(skills, landsFor(agent)) ? "tistySkillsRowPartly" : "tistySkillsOn";
+}
 
 function HideRow() {
   return (

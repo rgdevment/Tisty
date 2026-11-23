@@ -180,3 +180,137 @@ fn a_file_tisty_cannot_read_is_left_alone() {
     assert_eq!(with(Kind::Claude, "[1, 2]", &here), None);
     assert_eq!(with(Kind::Claude, "{ \"hooks\": [] }", &here), None);
 }
+
+const ALL: [Kind; 4] = [Kind::Claude, Kind::Cursor, Kind::Gemini, Kind::Copilot];
+
+fn written(kind: Kind, home: &Path, text: &str) {
+    let at = kind.file(&place(home, Os::Linux, "")).unwrap();
+    std::fs::create_dir_all(at.parent().unwrap()).unwrap();
+    std::fs::write(at, text).unwrap();
+}
+
+#[test]
+fn what_tisty_writes_is_read_back_as_this_tisty_whatever_its_path() {
+    for command in [
+        WINDOWS,
+        "C:\\Users\\O'Neil & Co\\tisty.exe",
+        "/Applications/Tisty.app/Contents/MacOS/tisty",
+        "/Apps/It's Tisty/tisty",
+        "/mnt/c/Program Files/Tisty/tisty.exe",
+        "tisty",
+    ] {
+        for os in [Os::Windows, Os::Macos, Os::Linux] {
+            for kind in ALL {
+                let tmp = tempfile::tempdir().unwrap();
+                let here = place(tmp.path(), os, command);
+                written(kind, tmp.path(), &with(kind, "", &here).unwrap());
+
+                let seen = seen(kind, &here).unwrap();
+
+                assert!(seen.on, "{kind:?} {os:?} {command}");
+                assert!(
+                    !seen.astray && !seen.gone && seen.points.is_none(),
+                    "{kind:?} {os:?} {command}: {seen:?}"
+                );
+            }
+        }
+    }
+}
+
+#[test]
+fn hooks_of_a_tisty_that_is_no_longer_there_are_told_apart_from_another_one() {
+    for kind in ALL {
+        let tmp = tempfile::tempdir().unwrap();
+        let os = match cfg!(windows) {
+            true => Os::Windows,
+            false => Os::Linux,
+        };
+        let there = tmp.path().join("other's").join("tisty.exe");
+        std::fs::create_dir_all(there.parent().unwrap()).unwrap();
+        std::fs::write(&there, b"").unwrap();
+        let there = there.display().to_string();
+        let gone = tmp.path().join("no such").join("tisty.exe");
+        let gone = gone.display().to_string();
+        let here = place(tmp.path(), os, "/opt/new/tisty");
+
+        let another = with(kind, "", &place(tmp.path(), os, &there)).unwrap();
+        written(kind, tmp.path(), &another);
+        let found = seen(kind, &here).unwrap();
+        assert!(
+            found.on && found.astray && !found.gone,
+            "{kind:?} {found:?}"
+        );
+        assert_eq!(found.points.as_deref(), Some(there.as_str()), "{kind:?}");
+
+        let left = with(kind, "", &place(tmp.path(), os, &gone)).unwrap();
+        written(kind, tmp.path(), &left);
+        let found = seen(kind, &here).unwrap();
+        assert!(found.astray && found.gone, "{kind:?} {found:?}");
+        assert_eq!(found.points.as_deref(), Some(gone.as_str()), "{kind:?}");
+    }
+}
+
+#[test]
+fn one_hook_left_behind_is_enough_to_say_so() {
+    let tmp = tempfile::tempdir().unwrap();
+    let here = place(tmp.path(), Os::Linux, "/opt/new/tisty");
+    let mixed =
+        with(Kind::Claude, "", &here)
+            .unwrap()
+            .replacen("/opt/new/tisty", "/opt/old/tisty", 1);
+    written(Kind::Claude, tmp.path(), &mixed);
+
+    let found = seen(Kind::Claude, &here).unwrap();
+
+    assert!(found.astray);
+    assert_eq!(found.points.as_deref(), Some("/opt/old/tisty"));
+}
+
+#[test]
+fn what_cannot_be_read_for_certain_is_never_called_broken() {
+    let tmp = tempfile::tempdir().unwrap();
+    let here = place(tmp.path(), Os::Linux, "/opt/new/tisty");
+    for said in [
+        r#"{ "command": "tisty hook claude-code start" }"#,
+        r#"{ "command": "tisty", "args": ["hook", "claude-code", "start"] }"#,
+        r#"{ "command": "/bin/sh", "args": ["-c", "/old/tisty hook claude-code start"] }"#,
+        r#"{ "command": "/usr/local/bin/my-tisty-wrapper.sh hook claude-code start" }"#,
+        r#"{ "command": "TISTY=1 /old/tisty hook claude-code start" }"#,
+    ] {
+        written(
+            Kind::Claude,
+            tmp.path(),
+            &format!(r#"{{ "hooks": {{ "SessionStart": [ {{ "hooks": [ {said} ] }} ] }} }}"#),
+        );
+
+        let found = seen(Kind::Claude, &here).unwrap();
+
+        assert!(found.on, "{said}");
+        assert!(!found.astray && !found.gone, "{said}: {found:?}");
+    }
+}
+
+#[test]
+fn a_path_written_by_hand_is_read_with_and_without_quotes() {
+    let tmp = tempfile::tempdir().unwrap();
+    let here = place(tmp.path(), Os::Windows, "C:\\New\\tisty.exe");
+    for said in [
+        "C:\\\\Old Tisty\\\\tisty.exe hook cursor stop",
+        "\\\"C:\\\\Old Tisty\\\\tisty.exe\\\" hook cursor stop",
+        "& \\\"C:\\\\Old Tisty\\\\tisty.exe\\\" hook cursor stop",
+    ] {
+        written(
+            Kind::Cursor,
+            tmp.path(),
+            &format!(r#"{{ "hooks": {{ "stop": [ {{ "command": "{said}" }} ] }} }}"#),
+        );
+
+        let found = seen(Kind::Cursor, &here).unwrap();
+
+        assert_eq!(
+            found.points.as_deref(),
+            Some("C:\\Old Tisty\\tisty.exe"),
+            "{said}"
+        );
+    }
+}

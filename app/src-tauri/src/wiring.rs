@@ -131,9 +131,7 @@ fn told(client: &Client, place: &Place, found: Option<Found>) -> Option<Seen> {
         Shape::Manual => None,
         _ => json::reads(&text, &client.key, NAME),
     };
-    let wired = points
-        .as_deref()
-        .is_some_and(|one| same(one, &place.command));
+    let wired = points.as_deref().is_some_and(|one| this_tisty(place, one));
     let id = match &place.distro {
         Some(named) => format!("{WSL}{named}:{}", client.id),
         None => client.id.clone(),
@@ -146,11 +144,7 @@ fn told(client: &Client, place: &Place, found: Option<Found>) -> Option<Seen> {
         at: at.display().to_string(),
         wired,
         astray: points.is_some() && !wired,
-        gone: !wired
-            && points
-                .as_deref()
-                .and_then(|one| place.reached(one))
-                .is_some_and(|at| !at.exists()),
+        gone: !wired && points.as_deref().is_some_and(|one| lost(place, one)),
         points,
         maybe: found == Some(Found::Maybe),
         by_hand: client.shape == Shape::Manual,
@@ -177,6 +171,27 @@ fn shown(command: &str) -> String {
 fn same(one: &str, other: &str) -> bool {
     let tidy = |it: &str| it.trim().replace('\\', "/").to_lowercase();
     tidy(one) == tidy(other)
+}
+
+// A link to this Tisty, or a bare name the PATH leads here, is this Tisty said another way.
+fn this_tisty(place: &Place, said: &str) -> bool {
+    same(said, &place.command)
+        || place
+            .led(said)
+            .zip(place.led(&place.command))
+            .is_some_and(|(one, other)| one_file(&one, &other))
+}
+
+fn one_file(one: &Path, other: &Path) -> bool {
+    same(&one.display().to_string(), &other.display().to_string())
+        || matches!((one.canonicalize(), other.canonicalize()), (Ok(one), Ok(other)) if one == other)
+}
+
+// A folder Windows keeps to itself cannot be looked into, and that is not the same as being gone.
+fn lost(place: &Place, said: &str) -> bool {
+    place
+        .reached(said)
+        .is_some_and(|at| matches!(at.try_exists(), Ok(false)))
 }
 
 pub fn wire(id: &str) -> Result<Vec<Seen>, Stuck> {
@@ -206,8 +221,7 @@ fn wire_at(client: &Client, place: &Place, at: &Path) -> Result<(), Stuck> {
         return Err(Stuck::Unborn(at.display().to_string()));
     }
     let hooked = hooks_on(client, place);
-    kept(at, &was)?;
-    laid(at, &now, aside)?;
+    changed(at, &was, &now, aside)?;
     // A repointed connection carries its hooks along, so they never run an old Tisty.
     match hooked {
         true => hook_at(client, place),
@@ -262,8 +276,7 @@ fn hook_at(client: &Client, place: &Place) -> Result<(), Stuck> {
     };
     let now =
         hooks::with(kind, &was, place).ok_or_else(|| Stuck::Puzzling(at.display().to_string()))?;
-    kept(&at, &was)?;
-    laid(&at, &now, place.moved_aside(&at))
+    changed(&at, &was, &now, place.moved_aside(&at))
 }
 
 pub fn unhook(id: &str) -> Result<Vec<Seen>, Stuck> {
@@ -314,6 +327,14 @@ fn kept(at: &Path, was: &str) -> Result<(), Stuck> {
         std::fs::write(&first, was).map_err(sour)?;
     }
     std::fs::write(at.with_file_name(format!("{named}.{LAST}")), was).map_err(sour)
+}
+
+fn changed(at: &Path, was: &str, now: &str, aside: bool) -> Result<(), Stuck> {
+    if now == was {
+        return Ok(());
+    }
+    kept(at, was)?;
+    laid(at, now, aside)
 }
 
 fn laid(at: &Path, text: &str, aside: bool) -> Result<(), Stuck> {

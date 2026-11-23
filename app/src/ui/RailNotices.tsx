@@ -5,7 +5,7 @@ import { t } from "../locales";
 import { useMove } from "../relocation";
 import Knocking from "./Knocking";
 
-export default function RailNotices() {
+export default function RailNotices({ agents = false }: { agents?: boolean }) {
   const knocking = useKnocking();
   const move = useMove();
   const coming = useComing();
@@ -16,7 +16,8 @@ export default function RailNotices() {
     (move !== null && !move.watched) ||
     coming !== null ||
     Boolean(stuck) ||
-    aside !== null;
+    aside !== null ||
+    agents;
 
   return (
     <>

@@ -3159,7 +3159,7 @@ describe("letting an assistant file work here", () => {
 
   it("asks the assistant to keep its task up to date unless the person turns it off", async () => {
     Object.assign(serving, { on: true, called: "espino 3" });
-    await openTab();
+    await openTab(/^door$/i);
 
     const asking = await screen.findByRole("switch", { name: /keep its task up to date/i });
     expect(asking.getAttribute("aria-checked")).toBe("true");
@@ -3173,7 +3173,7 @@ describe("letting an assistant file work here", () => {
 
   it("reminds the assistant when a turn starts and ends unless the person turns it off", async () => {
     Object.assign(serving, { on: true, called: "espino 3" });
-    await openTab();
+    await openTab(/^door$/i);
 
     const reminding = await screen.findByRole("switch", { name: /when a turn starts and ends/i });
     expect(reminding.getAttribute("aria-checked")).toBe("true");
@@ -3231,10 +3231,42 @@ describe("letting an assistant file work here", () => {
     await openTab(/^connected$/i);
 
     expect(await screen.findByText(/Points at another Tisty/i)).toBeTruthy();
-    await userEvent.click(screen.getByRole("button", { name: /^Fix$/ }));
+    expect(screen.getByRole("region", { name: "1 agent to fix" })).toBeTruthy();
+    await userEvent.click(screen.getAllByRole("button", { name: /^Fix$/ })[0]);
 
     await waitFor(() => expect(sent("wire").length).toBe(1));
     expect(sent("wire")[0].args.id).toBe("codex");
+  });
+
+  it("looks at the agents with the door open before anyone opens their page, never with it shut", async () => {
+    installed.seen = [
+      {
+        id: "codex",
+        name: "Codex",
+        at: "C:/Users/someone/.codex/config.toml",
+        wired: false,
+        astray: true,
+        points: "C:/Programs/Gone/tisty.exe",
+      },
+    ];
+    const opened = () =>
+      render(
+        <Keeping onPack={() => {}} onUnpack={() => {}} onChanged={() => {}} onDoc={() => {}} />,
+      );
+
+    const shut = opened();
+    await sync();
+    expect(sent("wiring")).toHaveLength(0);
+    shut.unmount();
+
+    Object.assign(serving, { on: true, called: "espino 3" });
+    opened();
+    await sync();
+
+    await waitFor(() => expect(sent("wiring").length).toBeGreaterThan(0));
+    expect(sent("wsl_seen")).toHaveLength(0);
+    await userEvent.click(screen.getByRole("tab", { name: /^overview/i }));
+    expect(await screen.findByText("Codex points to another Tisty")).toBeTruthy();
   });
 
   // The list is one row per assistant, by the name it gives itself, and says what each wrote;
@@ -3308,7 +3340,7 @@ describe("letting an assistant file work here", () => {
   it("spells out what it can never do, where the person decides", async () => {
     Object.assign(serving, { on: true, called: "espino 3" });
 
-    await openTab();
+    await openTab(/^door$/i);
 
     expect(await screen.findByText(/An agent can file work here/i)).toBeTruthy();
     expect(screen.getByText(/your undo never reaches what it filed/i)).toBeTruthy();
@@ -3325,7 +3357,7 @@ describe("letting an assistant file work here", () => {
     expect(screen.getByText(/mcp add tisty/)).toBeTruthy();
   });
 
-  it("keeps the assistants on five shelves, and opens on the door", async () => {
+  it("keeps the assistants on five shelves, and opens on the door while it is shut", async () => {
     await openTab();
 
     const shelves = screen.getByRole("tablist", { name: /^agents$/i });

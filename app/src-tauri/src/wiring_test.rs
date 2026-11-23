@@ -390,3 +390,103 @@ fn connecting_an_assistant_never_adds_hooks_the_person_did_not_ask_for() {
 
     assert!(!told(&client, &here, None).unwrap().hooks.unwrap().on);
 }
+
+fn hooked_here(id: &str, home: &Path, command: &str) {
+    hook_at(&client(id), &place(home, command)).unwrap();
+}
+
+fn looked(id: &str, home: &Path, command: &str) -> Seen {
+    told(&client(id), &place(home, command), None).unwrap()
+}
+
+#[test]
+fn hooks_left_behind_are_seen_with_the_connection_already_right_and_adding_them_again_mends_them() {
+    for id in ["claude-code", "cursor", "gemini-cli", "copilot"] {
+        let tmp = tempfile::tempdir().unwrap();
+        hooked_here(id, tmp.path(), "/old/tisty");
+        wired_here(id, tmp.path(), "/opt/tisty");
+        hooked_here(id, tmp.path(), "/old/tisty");
+
+        let before = looked(id, tmp.path(), "/opt/tisty");
+        let hooks = before.hooks.unwrap();
+        assert!(before.wired && !before.astray, "{id}");
+        assert!(hooks.on && hooks.astray, "{id}");
+        assert_eq!(hooks.points.as_deref(), Some("/old/tisty"), "{id}");
+
+        hooked_here(id, tmp.path(), "/opt/tisty");
+
+        let hooks = looked(id, tmp.path(), "/opt/tisty").hooks.unwrap();
+        assert!(hooks.on && !hooks.astray && hooks.points.is_none(), "{id}");
+    }
+}
+
+#[test]
+fn fixing_the_connection_carries_its_old_hooks_along() {
+    for id in ["claude-code", "cursor", "gemini-cli", "copilot"] {
+        let tmp = tempfile::tempdir().unwrap();
+        wired_here(id, tmp.path(), "/old/tisty");
+        hooked_here(id, tmp.path(), "/old/tisty");
+        assert!(looked(id, tmp.path(), "/opt/tisty").hooks.unwrap().astray);
+
+        let (seen, _) = wired_here(id, tmp.path(), "/opt/tisty");
+
+        let hooks = seen.hooks.unwrap();
+        assert!(seen.wired && hooks.on && !hooks.astray, "{id}");
+    }
+}
+
+#[test]
+fn a_file_that_already_says_it_is_not_written_again() {
+    let tmp = tempfile::tempdir().unwrap();
+    let at = tmp.path().join(".claude.json");
+    std::fs::write(&at, "{\n  \"numStartups\": 53\n}\n").unwrap();
+    wired_here("claude-code", tmp.path(), "/opt/tisty");
+    let last = at.with_file_name(format!(".claude.json.{LAST}"));
+    let kept = std::fs::read_to_string(&last).unwrap();
+
+    wired_here("claude-code", tmp.path(), "/opt/tisty");
+
+    assert_eq!(std::fs::read_to_string(&last).unwrap(), kept);
+    assert!(!kept.contains("tisty"), "{kept}");
+}
+
+#[test]
+fn a_bare_name_the_path_leads_here_is_this_tisty_and_any_other_is_not() {
+    let tmp = tempfile::tempdir().unwrap();
+    let (mine, other) = (tmp.path().join("mine"), tmp.path().join("other"));
+    for dir in [&mine, &other] {
+        std::fs::create_dir_all(dir).unwrap();
+        std::fs::write(dir.join("tisty"), dir.display().to_string()).unwrap();
+    }
+    let command = mine.join("tisty").display().to_string();
+    wired_here("cursor", tmp.path(), "tisty");
+    let with_path = |bins: Vec<PathBuf>| {
+        let place = Place {
+            bins,
+            ..place(tmp.path(), &command)
+        };
+        told(&client("cursor"), &place, None).unwrap()
+    };
+
+    let here = with_path(vec![mine.clone(), other.clone()]);
+    assert!(here.wired && !here.astray);
+    let first_is_another = with_path(vec![other, mine]);
+    assert!(first_is_another.astray && !first_is_another.gone);
+    let nowhere = with_path(Vec::new());
+    assert!(nowhere.astray && !nowhere.gone);
+}
+
+#[cfg(unix)]
+#[test]
+fn a_link_to_this_tisty_is_this_tisty() {
+    let tmp = tempfile::tempdir().unwrap();
+    let real = tmp.path().join("real-tisty");
+    let link = tmp.path().join("tisty");
+    std::fs::write(&real, b"").unwrap();
+    std::os::unix::fs::symlink(&real, &link).unwrap();
+    wired_here("cursor", tmp.path(), &link.display().to_string());
+
+    let seen = looked("cursor", tmp.path(), &real.display().to_string());
+
+    assert!(seen.wired && !seen.astray);
+}

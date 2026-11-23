@@ -549,6 +549,9 @@ const words = {
   tistySkills: ["Tisty's skills", "Skills de Tisty"],
   tistySkillsOff: ["Off", "Apagadas"],
   tistySkillsOn: ["On this computer", "En este equipo"],
+  tistySkillsRowBehind: ["Out of date", "Sin actualizar"],
+  tistySkillsRowPartly: ["Not all up to date", "No todas al día"],
+  tistySkillsRowPlugged: ["The Tisty plugin brings them", "Las trae el plugin de Tisty"],
   tistySkillsLead: [
     "Tisty comes with three skills that teach your agents to work with it. They ship inside the app: no agent writes them, and nothing can change them through the MCP.",
     "Tisty trae tres skills que les enseñan a tus agentes a trabajar con él. Vienen dentro de la app: no las escribe ningún agente y nadie puede cambiarlas por el MCP.",
@@ -600,7 +603,7 @@ const words = {
   ],
   tistySkillsYours: [
     "You already have a skill named {name} in Agents, so Tisty's is left out.",
-    "Ya tienes en Agentes una skill llamada {name}, así que la de Tisty no se agrega.",
+    "Ya tienes en Agentes una skill llamada {name}, así que la de Tisty queda fuera.",
   ],
   tistySkillsNone: [
     "This build of Tisty carries no skills: only installed versions do.",

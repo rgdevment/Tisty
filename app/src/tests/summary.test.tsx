@@ -2,6 +2,7 @@ import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useState } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { offeredHere } from "../agentsOffered";
 import type { Ready } from "../core";
 import { adopt } from "../locales";
 import { useSettingsDesk } from "../settingsDesk";
@@ -9,6 +10,7 @@ import { landedOn } from "../settingsRows";
 import Settings from "../ui/Keeping";
 import SettingsNav from "../ui/SettingsNav";
 import type { Chosen } from "../views";
+import { lostOne, wiredOne } from "./knownFor";
 
 const ipc = vi.hoisted(() => ({
   calls: [] as string[],
@@ -18,6 +20,8 @@ const ipc = vi.hoisted(() => ({
   keys: "Ctrl+Alt+T" as string | null,
   held: new Set<string>(),
   failing: new Set<string>(),
+  door: false,
+  wired: [] as unknown[],
 }));
 
 vi.mock("@tauri-apps/api/core", () => ({
@@ -74,8 +78,9 @@ vi.mock("@tauri-apps/api/core", () => ({
           machines: [],
         });
       case "agent":
-        return Promise.resolve({ on: false });
+        return Promise.resolve({ on: ipc.door });
       case "wiring":
+        return Promise.resolve(ipc.wired);
       case "assistants":
         return Promise.resolve([]);
       default:
@@ -96,6 +101,9 @@ beforeEach(() => {
   ipc.calls = [];
   ipc.held = new Set();
   ipc.failing = new Set();
+  ipc.door = false;
+  ipc.wired = [];
+  offeredHere.put([]);
   ipc.alias = "Mario";
   ipc.keys = "Ctrl+Alt+T";
   ipc.state = {
@@ -156,12 +164,13 @@ function Window({
 const bar = () => within(screen.getByRole("navigation"));
 
 describe("opening the settings", () => {
-  it("lands on the overview and asks the backend nothing part 1 did not", async () => {
+  it("lands on the overview and asks of the agents only whether their door is open", async () => {
     render(<Window />);
     expect(await screen.findByRole("heading", { name: "Resumen" })).toBeTruthy();
     expect(await screen.findByText("Nada pide tu atención.")).toBeTruthy();
     expect([...new Set(ipc.calls)].sort()).toEqual([
       "about",
+      "agent",
       "reachable",
       "settings",
       "shortcut",
@@ -181,6 +190,46 @@ describe("opening the settings", () => {
     expect(screen.getByRole("button", { name: /^Seguridad/ }).getAttribute("aria-busy")).toBe(
       "true",
     );
+  });
+});
+
+describe("the agents on the overview", () => {
+  it("counts in the bar and leads in one click to the one button that fixes them", async () => {
+    ipc.door = true;
+    ipc.wired = [lostOne("Codex"), lostOne("Cursor")];
+    render(<Window />);
+
+    const todo = await screen.findByRole("button", {
+      name: /2 agentes apuntan a un Tisty que ya no existe/,
+    });
+    expect(await bar().findByRole("tab", { name: "Agentes · 1" })).toBeTruthy();
+    await userEvent.click(todo);
+
+    const fix = within(await screen.findByRole("region", { name: "2 agentes por corregir" }));
+    expect(fix.getByRole("button", { name: "Corregir todo" })).toBeTruthy();
+  });
+
+  it("offers what is optional apart, uncounted, until told not now", async () => {
+    ipc.door = true;
+    ipc.wired = [wiredOne("cursor", { wired: true, hooks: { on: false, at: "/hooks.json" } })];
+    render(<Window />);
+
+    expect(await screen.findByText(/Tus agentes pueden usar los hooks de Tisty/)).toBeTruthy();
+    expect(screen.getByText("Nada pide tu atención.")).toBeTruthy();
+    expect(bar().getByRole("tab", { name: "Agentes" })).toBeTruthy();
+    await userEvent.click(screen.getByRole("button", { name: "Ahora no" }));
+    expect(screen.queryByText(/Tus agentes pueden usar/)).toBeNull();
+  });
+
+  it("opens the agents' page from what is optional", async () => {
+    ipc.door = true;
+    ipc.wired = [wiredOne("cursor", { wired: true, hooks: { on: false, at: "/hooks.json" } })];
+    render(<Window />);
+    await screen.findByText(/Tus agentes pueden usar los hooks de Tisty/);
+    await userEvent.click(screen.getByRole("button", { name: "Ver" }));
+    expect(
+      await screen.findByRole("region", { name: "Hooks y skills para tus agentes" }),
+    ).toBeTruthy();
   });
 });
 

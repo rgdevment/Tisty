@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -6,8 +6,12 @@ const asked: string[] = [];
 const refuse: { next: unknown } = { next: null };
 
 import type { Ready } from "../core";
+import type { KnownAgents } from "../knownAgents";
+import { t } from "../locales";
 import About from "../ui/About";
+import RailNotices from "../ui/RailNotices";
 import Sidebar from "../ui/Sidebar";
+import { knownFor, lostOne } from "./knownFor";
 
 vi.mock("@tauri-apps/plugin-opener", () => ({ openUrl: () => Promise.resolve() }));
 
@@ -29,7 +33,7 @@ vi.mock("@tauri-apps/api/core", () => ({
 
 const chosen = { named: "tasks" } as Parameters<typeof Sidebar>[0]["chosen"];
 
-function bar(waiting?: string) {
+function bar(waiting?: string, more: Partial<Parameters<typeof Sidebar>[0]> = {}) {
   render(
     <Sidebar
       lists={[]}
@@ -45,9 +49,48 @@ function bar(waiting?: string) {
       onDocMenu={vi.fn()}
       onDocsMenu={vi.fn()}
       onHereMenu={vi.fn()}
+      {...more}
     />,
   );
 }
+
+const finder = (agents: KnownAgents) => ({
+  attention: null,
+  finding: "",
+  setFinding: () => {},
+  agents,
+});
+
+describe("the agents that can no longer find Tisty", () => {
+  const lost = () => finder(knownFor({ agent: { on: true }, agents: [lostOne("Codex")] }));
+
+  it("are said in the sidebar and on the gear, and lead to their page", () => {
+    const onChoose = vi.fn();
+    bar(undefined, { finder: lost(), onChoose });
+
+    expect(screen.getByText("Codex can no longer find Tisty")).toBeTruthy();
+    expect(screen.getByRole("button", { name: /Some agents need fixing/ })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "See and fix" }));
+    expect(onChoose.mock.calls[0][0]).toMatchObject({
+      named: "keeping",
+      tab: "agents",
+      shelf: "wired",
+    });
+  });
+
+  it("are not said twice inside Settings, nor at all when nothing is lost", () => {
+    bar(undefined, { finder: lost(), chosen: { named: "keeping" } as typeof chosen });
+    expect(screen.queryByText("Codex can no longer find Tisty")).toBeNull();
+    cleanup();
+    bar(undefined, { finder: finder(knownFor({ agent: { on: true } })) });
+    expect(screen.queryByRole("button", { name: /Some agents need fixing/ })).toBeNull();
+  });
+
+  it("light the folded bar's notice", () => {
+    render(<RailNotices agents />);
+    expect(screen.getByRole("button", { name: t("sideNotices") })).toBeTruthy();
+  });
+});
 
 describe("the update dot", () => {
   it("names itself for a reader that cannot see it", () => {

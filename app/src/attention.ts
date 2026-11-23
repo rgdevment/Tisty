@@ -1,3 +1,5 @@
+import { amiss, lost, onlyHooks, skillsBehind } from "./agentsAmiss";
+import type { TistySkills } from "./agentsSync";
 import type { About, Carrying, CloudStatus, Ready, Settings, Wired } from "./core";
 import { type Footing, synced } from "./footing";
 import { daysFrom, stamped } from "./format";
@@ -30,6 +32,7 @@ export interface Known {
   ready: Ready | null;
   checked: Checked | null;
   wired: Wired[] | null;
+  skills?: TistySkills | null;
   waiting?: boolean;
   machines?: string[] | null;
   status?: CloudStatus | null;
@@ -124,14 +127,33 @@ export function attention(known: Known, now = new Date()): Item[] | null {
       act: t("attKeysAct"),
       why: t("attKeysWhy"),
     });
-  for (const one of known.wired?.filter((wired) => wired.astray) ?? [])
-    items.push({
-      key: `astray-${one.id}`,
-      spot: { page: "agents", shelf: "wired", row: "wired" },
-      said: fill("attAstray", one.name),
-      act: t("attAstrayAct"),
-    });
-  return items;
+  return [...items, ...agentItems(known)];
+}
+
+const MENDING: Spot = { page: "agents", shelf: "wired" };
+
+const amissSaid = (all: Wired[], gone: boolean): string => {
+  const [one] = all;
+  if (all.length > 1) return fill(gone ? "attAstrayMany" : "attElsewhereMany", String(all.length));
+  if (onlyHooks(one)) return fill(gone ? "attAstrayHooks" : "attElsewhereHooks", one.name);
+  return fill(gone ? "attAstray" : "attElsewhere", one.name);
+};
+
+function agentItems({ wired, skills }: Known): Item[] {
+  const all = wired?.filter(amiss) ?? [];
+  const item = (key: string, said: string): Item => ({
+    key,
+    spot: MENDING,
+    said,
+    act: t("attAstrayAct"),
+  });
+  const items = [true, false].flatMap((gone) => {
+    const group = all.filter((one) => lost(one) === gone);
+    return group.length > 0
+      ? [item(gone ? "agents-lost" : "agents-elsewhere", amissSaid(group, gone))]
+      : [];
+  });
+  return skillsBehind(skills) ? [...items, item("agents-skills", t("attSkillsBehind"))] : items;
 }
 
 // «Nothing asks for you» is said only when every source answered.
@@ -266,17 +288,14 @@ function securityTile(known: Known): Tile | null {
   return tile("security", waitingOf(known).length ? "warn" : dot, t(head), t(why));
 }
 
-function agentsTile({ build, wired }: Known): Tile | null {
+function agentsTile({ build, wired, skills }: Known): Tile | null {
   const standing = build?.standing;
   if (!standing) return null;
   if (!standing.door) return tile("agents", "off", t("tileDoorShut"), t("tileDoorShutWhy"));
-  const astray = wired?.some((one) => one.astray);
-  return tile(
-    "agents",
-    astray ? "warn" : "ok",
-    t("tileDoorOpen"),
-    fill("tileDoorAs", standing.door),
-  );
+  const many = (wired?.filter(amiss).length ?? 0) + (skillsBehind(skills) ? 1 : 0);
+  if (many > 0)
+    return tile("agents", "warn", t("tileDoorOpen"), fill("tileAgentsFix", String(many)));
+  return tile("agents", "ok", t("tileDoorOpen"), fill("tileDoorAs", standing.door));
 }
 
 function healthTile({ checked }: Known, now: Date): Tile {

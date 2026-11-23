@@ -3,12 +3,13 @@ import { describe, expect, it, vi } from "vitest";
 import { t } from "../locales";
 import Agents from "../ui/Agents";
 import { IDLE } from "../ui/working";
+import { knownFor } from "./knownFor";
 
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: () => Promise.resolve(null),
 }));
 
-const known = { agent: null, setAgent: () => {}, agents: [], setAgents: () => {}, hands: [] };
+const known = knownFor();
 
 const shown = (binary?: string) =>
   render(

@@ -3,9 +3,11 @@ import { railed, sideWidth, useBreadth, useRoomFor, WIDE_WINDOW } from "../bread
 import type { Counted, Filed, Folded, List, Papers } from "../core";
 import { cameFrom } from "../guide/help";
 import { useKnocking } from "../knocking";
+import type { KnownAgents } from "../knownAgents";
 import { t } from "../locales";
 import { landedOn } from "../settingsRows";
 import type { Chosen, Lean } from "../views";
+import AgentsAmiss, { useUnheeded } from "./AgentsAmiss";
 import Coming from "./Coming";
 import { findNow, useFindKey } from "./finding";
 import Knocking, { KnockDot } from "./Knocking";
@@ -52,7 +54,7 @@ interface Props {
   room?: number;
   onSync?: () => Promise<unknown> | undefined;
   onTrouble?: (text: string) => void;
-  finder?: Finding;
+  finder?: Finding & { agents?: KnownAgents };
 }
 
 export default function Sidebar({
@@ -90,8 +92,14 @@ export default function Sidebar({
 }: Props) {
   useRoomFor(room);
   const knocked = useKnocking().waiting.length > 0;
-  const told = knocked ? t("knockDot") : tried ? t("doorKnockedUnnamed") : undefined;
   const keeping = chosen.named === "keeping";
+  const amiss = useUnheeded(finder?.agents);
+  const told = [
+    knocked ? t("knockDot") : tried ? t("doorKnockedUnnamed") : undefined,
+    amiss.length > 0 ? t("amissDot") : undefined,
+  ]
+    .filter(Boolean)
+    .join(" · ");
   const away = useRef<Chosen>({ named: "tasks" });
   if (!keeping) away.current = chosen;
   const breadth = railed(useBreadth(), keeping);
@@ -181,6 +189,12 @@ export default function Sidebar({
       {!folded && (
         <>
           <Knocking />
+          {!keeping && (
+            <AgentsAmiss
+              amiss={amiss}
+              onOpen={() => onChoose(landedOn({ page: "agents", shelf: "wired" }))}
+            />
+          )}
           <MoveNotice
             onOpen={() =>
               onChoose({ named: "keeping", tab: "sync", move: "pick", movedAt: Date.now() })
@@ -198,7 +212,7 @@ export default function Sidebar({
           folded ? "flex-col items-center gap-1" : "items-center px-2.5"
         }`}
       >
-        {folded && <RailNotices />}
+        {folded && <RailNotices agents={amiss.length > 0} />}
         <button
           type="button"
           aria-label={told ? `${t("keeping")} · ${told}` : t("keeping")}
@@ -213,7 +227,13 @@ export default function Sidebar({
             <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9c.2.62.77 1.05 1.42 1.06H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z" />
           </Drawn>
           <KnockDot />
-          {tried && !knocked && (
+          {amiss.length > 0 && !knocked && (
+            <span
+              aria-hidden="true"
+              className="absolute top-1 right-1 h-[7px] w-[7px] rounded-full bg-hue-amber"
+            />
+          )}
+          {tried && !knocked && amiss.length === 0 && (
             <span
               role="img"
               aria-label={t("doorKnockedUnnamed")}
