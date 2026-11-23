@@ -17,6 +17,9 @@ interface Props {
   round?: string | null;
   phrased?: number;
   onPhrased?: () => void;
+  onTyped?: () => void;
+  /** The cloud waits for its key below, where the same words open it without being kept. */
+  opensCloud?: boolean;
   busy: Working;
   tell: (word?: Word) => void;
   fail: (word?: Word) => void;
@@ -28,6 +31,8 @@ export default function Identity({
   round,
   phrased,
   onPhrased,
+  onTyped,
+  opensCloud,
   busy,
   tell,
   fail,
@@ -84,6 +89,7 @@ export default function Identity({
   const typed = () => {
     look();
     onPhrased?.();
+    onTyped?.();
     tell({ card: "identity", text: t("phraseTyped") });
   };
 
@@ -121,11 +127,20 @@ export default function Identity({
             >
               {t("identityCreate")}
             </button>
-            <PhraseTyped held={held} onTyped={typed} onFail={failed} />
           </>
         )}
         {shown && born && <Born shown={shown} held={held} onSee={see} />}
-        {shown?.elsewhere && <PhraseTyped held={held} onTyped={typed} onFail={failed} />}
+        {shown && !shown.held && (
+          <div className="mt-3 border-t border-hair pt-3">
+            <p className="text-[12.5px] leading-relaxed text-soft">{t("phraseTypeWhat")}</p>
+            {opensCloud && (
+              <p className="mt-1 text-[11.5px] leading-relaxed text-faint">
+                {t("phraseTypeOther")}
+              </p>
+            )}
+            <PhraseTyped held={held} onTyped={typed} onFail={failed} />
+          </div>
+        )}
       </Card>
     </>
   );
@@ -152,7 +167,7 @@ export function PhraseTyped({
         type="button"
         disabled={held}
         onClick={() => setOpen(true)}
-        className={`mt-3 ml-2 ${mild}`}
+        className={`mt-3 ${mild}`}
       >
         {t("phraseTypeOpen")}
       </button>

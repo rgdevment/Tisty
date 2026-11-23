@@ -1,22 +1,20 @@
 import { openUrl } from "@tauri-apps/plugin-opener";
-import { type ReactNode, useCallback, useEffect, useState } from "react";
-import { cloudStanding, type Exit, storageOf } from "../cloudState";
+import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
+import { accessGone, cloudStanding, type Exit, SEALED, storageOf } from "../cloudState";
 import { typed } from "../clouds";
 import { carding, unstuck, useAwaitsChoice } from "../coming";
 import {
   type Carrying,
   type CloudStatus,
-  type Connected,
   chooseSync,
   cloudAbandon,
-  cloudChoose,
-  cloudConnect,
-  cloudConnectCancel,
   cloudForget,
   cloudPause,
   cloudRevoke,
   cloudStatus,
   cloudStranded,
+  type SealShown,
+  sealingShown,
 } from "../core";
 import { stamped } from "../format";
 import { fill, t } from "../locales";
@@ -24,13 +22,17 @@ import { named } from "../previews";
 import { plainly, saidPlainly } from "../refusal";
 import { sure } from "../sure";
 import { syncingSaid } from "../syncSaid";
+import BackSteps from "./BackSteps";
 import type { Run, Word } from "./Card";
 import { useCareful } from "./Careful";
 import CloudMark from "./CloudMark";
-import DavForm from "./DavForm";
 import { DANGERS, type Danger } from "./dangers";
+import Entering from "./Entering";
 import { Feedback, Heeded, useRows } from "./RowNotes";
 import { Fold, mild, strong } from "./Rows";
+import { useAtLeast } from "./useAtLeast";
+import { useCarryOn } from "./useCarryOn";
+import { useReconnect } from "./useReconnect";
 import { useSince } from "./useSince";
 import { held as isHeld, type Working } from "./working";
 import { ZoneButtons } from "./Zone";
@@ -49,32 +51,56 @@ interface Props {
 const SIGNED = new Set(["cloudLost", "cloudElsewhere"]);
 
 const LOOK_AGAIN = 10_000;
+// A round refused at once would otherwise come and go before the eye reads it.
+const SYNCING_SHOWN = 600;
 
 export default function Clouded({ state, busy, run, fail, carry, onMove, lead, children }: Props) {
   const [status, setStatus] = useState<CloudStatus | null>(null);
   const [which, setWhich] = useState(false);
   const [signedAt, setSignedAt] = useState<number>();
-  const [askingPassword, setAskingPassword] = useState(false);
+  const [seal, setSeal] = useState<SealShown | null>(null);
+  const [lostSaid, setLostSaid] = useState(false);
+  const [entering, setEntering] = useState(false);
+  const [readFor, setReadFor] = useState<string>();
   const [unread, setUnread] = useState<string>();
-  const [signing, setSigning] = useState(false);
   const { said, trouble } = useRows();
   const held = isHeld(busy, "sync");
   const syncing = busy.has("sync");
-  const waiting = useAwaitsChoice();
+  const choosing = useAwaitsChoice();
   const running = useSince(syncing, busy.get("sync"));
+  const carrying = useAtLeast(syncing, SYNCING_SHOWN);
   const careful = useCareful();
+  const carryOn = useCarryOn(() => carry());
 
+  const round = useRef(0);
+  round.current = busy.get("sync") ?? round.current;
+  const turn = `${round.current}|${syncing}`;
+  const looks = useRef(0);
+  // A look answered after a later one began says what was, so only the latest counts.
   const look = useCallback(() => {
+    const mine = ++looks.current;
+    const latest = () => mine === looks.current;
     setUnread(undefined);
     cloudStatus()
-      .then(setStatus)
-      .catch((e) => setUnread(saidPlainly(e)));
-  }, []);
+      .then((now) => latest() && setStatus(now))
+      .catch((e) => latest() && setUnread(saidPlainly(e)))
+      .finally(() => latest() && setReadFor(turn));
+  }, [turn]);
 
   useEffect(look, [look, state.last, held]);
 
+  const gone = (lostSaid && status?.last?.code !== "ok") || accessGone(status, state.clouds);
+  const locked = seal?.state === "locked";
+  const asksSeal = gone || locked || status?.last?.code === "cloudSealed";
+  useEffect(() => {
+    if (!asksSeal || !status) return;
+    sealingShown()
+      .then(setSeal)
+      .catch(() => setSeal(null));
+  }, [asksSeal, status]);
+
   const unsettled = Boolean(
-    status?.running || status?.sealingElsewhere || (status && !status.joined),
+    locked || status?.running || status?.sealingElsewhere || (status && !status.joined),
   );
   useEffect(() => {
     if (!unsettled) return;
@@ -86,13 +112,27 @@ export default function Clouded({ state, busy, run, fail, carry, onMove, lead, c
   // A sign-in that went through answers the round that found the door shut, before the next round ends.
   const answered =
     last !== undefined && last !== null && last.at === signedAt && SIGNED.has(last.code);
-  const standing = status && !answered ? cloudStanding(status) : null;
-  const awaits = waiting || standing?.exit === "choose";
-  const carded = standing?.exit && last ? last.code : null;
+  // The key may come between two rounds, and what the last one said is old by then.
+  const keyed = last?.code === "cloudSealed" && seal?.state === "sealed";
+  const told =
+    status && !answered && (gone || !keyed)
+      ? cloudStanding({ ...status, lost: gone || status.lost }, undefined, state.clouds)
+      : null;
+  const standing = locked && (!told || told.said === "stateFirst") ? SEALED : told;
+  const steps =
+    standing?.exit === "reconnect"
+      ? gone && (locked || seal?.state === "sealed")
+      : standing?.said === SEALED.said && locked;
+  const awaits = choosing || standing?.exit === "choose";
+  const carded = (standing?.exit || steps) && last ? last.code : null;
   const wrong = trouble.sync?.text;
   const repeats =
-    (carded !== null && wrong === plainly({ code: carded, name: last?.name ?? undefined })) ||
-    (standing?.urgent === true && wrong === standing.told);
+    wrong !== undefined &&
+    standing !== null &&
+    (wrong === standing.told ||
+      (last ? wrong === plainly({ code: last.code, name: last.name ?? undefined }) : false));
+  // Until the look after a round answers, whether its refusal repeats the card is not known.
+  const settled = !carrying && (!status || readFor === turn);
 
   useEffect(() => {
     carding(carded);
@@ -105,43 +145,20 @@ export default function Clouded({ state, busy, run, fail, carry, onMove, lead, c
 
   const provider = status?.provider ?? state.cloudProvider ?? "google";
 
-  // A copy this machine already carried stays with its account; one never carried may change it.
-  const reconnected = async (account: Connected) => {
-    const was = status?.account;
-    if (was && was !== account.account && status?.joined) {
-      await cloudForget(account.account, account.provider).catch(() => undefined);
-      throw { code: "cloudElsewhere", name: account.email };
-    }
-    await cloudChoose(account.account, account.email, account.provider);
-    if (was && was !== account.account)
-      await cloudForget(was, status?.provider).catch(() => undefined);
-    setSignedAt(status?.last?.at);
-    unstuck();
-  };
-
-  const reconnect = () => {
-    if (typed(provider)) return setAskingPassword(true);
-    setSigning(true);
-    run(
-      "sync",
-      cloudConnect(provider)
-        .then(reconnected)
-        .then(
-          () => true,
-          (e) => {
-            if (e?.code === "cloudDropped") return false;
-            throw e;
-          },
-        )
-        .finally(() => setSigning(false)),
-      (went) => went && carry(),
-    );
-  };
-
-  const passwordGiven = (account: Connected) => {
-    setAskingPassword(false);
-    run("sync", reconnected(account), () => carry());
-  };
+  const { signing, reconnect, form, waiting } = useReconnect({
+    card: "sync",
+    status,
+    provider,
+    held,
+    run,
+    fail,
+    carry: carryOn,
+    onSigned: () => {
+      setSignedAt(status?.last?.at);
+      setLostSaid(false);
+      setStatus((was) => was && { ...was, lost: false });
+    },
+  });
 
   const stop = () => {
     const was = status?.account;
@@ -176,6 +193,20 @@ export default function Clouded({ state, busy, run, fail, carry, onMove, lead, c
   return (
     <>
       {careful.shown}
+      {entering && (
+        <Entering
+          onClose={() => setEntering(false)}
+          onIn={() => {
+            unstuck();
+            carryOn();
+          }}
+          onReconnect={() => {
+            setEntering(false);
+            setLostSaid(true);
+            reconnect();
+          }}
+        />
+      )}
       <section className="rounded-[10px] border border-hair px-4 py-3.5">
         {lead}
         <div className="flex items-center gap-2.5 rounded-[10px] border border-hair px-3 py-2">
@@ -237,8 +268,18 @@ export default function Clouded({ state, busy, run, fail, carry, onMove, lead, c
               ) : (
                 standing.told
               )}
+              {steps && (
+                <BackSteps
+                  gone={gone}
+                  locked={locked}
+                  joined={seal?.joined ?? false}
+                  held={held}
+                  onReconnect={reconnect}
+                  onPhrase={() => setEntering(true)}
+                />
+              )}
             </span>
-            {standing.exit && standing.exitSaid && (
+            {!steps && standing.exit && standing.exitSaid && (
               <button
                 type="button"
                 disabled={held}
@@ -251,25 +292,16 @@ export default function Clouded({ state, busy, run, fail, carry, onMove, lead, c
           </div>
         )}
 
-        {askingPassword && status && standing?.exit === "reconnect" && (
-          <div className="mt-2.5 rounded-[10px] border border-hair px-3 py-2">
-            <DavForm
-              account={status.account}
-              busy={held}
-              onConnected={passwordGiven}
-              onTrouble={(text) => text && fail({ card: "sync", text })}
-            />
-          </div>
-        )}
+        {form}
 
         <div className="mt-2.5 flex flex-wrap items-center gap-2.5">
           <button
             type="button"
             disabled={held || paused}
             onClick={() => carry()}
-            className={strong}
+            className={standing?.exit || steps ? mild : strong}
           >
-            {syncing && !signing ? syncingSaid(running) : t("syncNow")}
+            {carrying && !signing ? syncingSaid(running) : t("syncNow")}
           </button>
           {standing?.exit !== "turnOn" && (
             <button type="button" disabled={held} onClick={() => switched(paused)} className={mild}>
@@ -283,22 +315,7 @@ export default function Clouded({ state, busy, run, fail, carry, onMove, lead, c
           </span>
         </div>
 
-        {signing && (
-          <p
-            role="status"
-            aria-live="polite"
-            className="mt-2 text-[11.5px] text-faint motion-safe:animate-pulse"
-          >
-            {t("cloudWaiting")}{" "}
-            <button
-              type="button"
-              onClick={() => void cloudConnectCancel().catch(() => undefined)}
-              className="text-accent hover:underline"
-            >
-              {t("cancel")}
-            </button>
-          </p>
-        )}
+        {waiting}
 
         {left > 0 && (
           <p className="mt-2 text-[12.5px] text-soft">
@@ -357,9 +374,14 @@ export default function Clouded({ state, busy, run, fail, carry, onMove, lead, c
           which="sync"
           quiet
           hideWorking
-          hideTrouble={repeats}
-          hideSaid={awaits && said.sync?.busy === true}
+          hideTrouble={repeats || !settled}
+          hideSaid={carrying || (awaits && said.sync?.busy === true)}
         />
+        {repeats && settled && (
+          <p role="status" className="mt-1.5 text-[11.5px] text-faint">
+            {t("syncStill")}
+          </p>
+        )}
       </section>
       {children}
       <CloudExits

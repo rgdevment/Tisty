@@ -1,10 +1,12 @@
 import { useCallback, useState } from "react";
+import { unstuck } from "../coming";
 import type { Carrying, Reviewed } from "../core";
 import type { Identity as Shown } from "../identity";
 import type { Run, Which, Word } from "./Card";
 import Computers from "./Computers";
 import Identity from "./Identity";
 import Sealing from "./Sealing";
+import { useCarryOn } from "./useCarryOn";
 import type { Working } from "./working";
 
 interface Props {
@@ -18,6 +20,7 @@ interface Props {
   onChanged: () => void;
   onIdentity?: () => void;
   onSync?: () => void;
+  carry?: () => void;
   clear?: (card: Which) => void;
 }
 
@@ -32,6 +35,7 @@ export default function Security({
   onChanged,
   onIdentity,
   onSync,
+  carry,
   clear,
 }: Props) {
   const [phrased, setPhrased] = useState(0);
@@ -44,6 +48,13 @@ export default function Security({
     },
     [onIdentity],
   );
+  const [locked, setLocked] = useState(false);
+  const carryOn = useCarryOn(() => carry?.());
+  const typed = () => {
+    if (state.mode !== "cloud") return;
+    unstuck();
+    carryOn();
+  };
   const cards = { busy, tell, fail, clear };
   return (
     <>
@@ -51,6 +62,8 @@ export default function Security({
         round={state.last}
         phrased={phrased}
         onPhrased={phrasedAgain}
+        onTyped={typed}
+        opensCloud={locked}
         onShown={known}
         {...cards}
       />
@@ -62,6 +75,8 @@ export default function Security({
           onPhrased={phrasedAgain}
           onChanged={onChanged}
           onSync={onSync}
+          onLocked={setLocked}
+          carry={carryOn}
           run={run}
           {...cards}
         />

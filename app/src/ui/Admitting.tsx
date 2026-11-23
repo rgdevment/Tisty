@@ -12,7 +12,7 @@ import {
   type Newcomer,
 } from "../core";
 import { fill, t } from "../locales";
-import { saidPlainly } from "../refusal";
+import { doorShut, saidPlainly } from "../refusal";
 import Modal from "./Modal";
 import { mild, strong } from "./Rows";
 
@@ -46,26 +46,43 @@ function Trouble({ text }: { text: string | null }) {
   );
 }
 
-export function LetMeIn({ onClose, onIn }: { onClose: () => void; onIn: () => void }) {
+export function LetMeIn({
+  onClose,
+  onIn,
+  onReconnect,
+}: {
+  onClose: () => void;
+  onIn: () => void;
+  onReconnect: () => void;
+}) {
   const [now, setNow] = useState<Admitted | null>(null);
   const [trouble, setTrouble] = useState<string | null>(null);
   const [mismatch, setMismatch] = useState(false);
+  const [shut, setShut] = useState(false);
 
   useEffect(() => {
     let live = true;
+    // Asking on at a door shut for good would only promise a wait that never ends.
+    let closed = false;
+    const failed = (e: unknown) => {
+      if (!live) return;
+      setTrouble(saidPlainly(e));
+      closed = doorShut(e);
+      setShut(closed);
+    };
     let next: ReturnType<typeof setTimeout> | undefined;
     const began = Date.now();
     const look = () =>
       admittingShown()
         .then((said) => live && setNow(said))
-        .catch((e) => live && setTrouble(saidPlainly(e)))
+        .catch(failed)
         .finally(() => {
-          if (!live) return;
+          if (!live || closed) return;
           next = setTimeout(look, Date.now() - began < BRISK_FOR ? LOOKED_FIRST : LOOKED_LATER);
         });
     admittingAsk()
-      .catch((e) => live && setTrouble(saidPlainly(e)))
-      .finally(() => live && look());
+      .catch(failed)
+      .finally(() => live && !closed && look());
     return () => {
       live = false;
       clearTimeout(next);
@@ -86,6 +103,7 @@ export function LetMeIn({ onClose, onIn }: { onClose: () => void; onIn: () => vo
   };
 
   const body = () => {
+    if (shut) return null;
     if (mismatch) return <p className="text-[12.5px] leading-relaxed">{t("admitMismatch")}</p>;
     switch (now?.step) {
       case "compare":
@@ -129,7 +147,12 @@ export function LetMeIn({ onClose, onIn }: { onClose: () => void; onIn: () => vo
     <Modal title={t("admitAsk")} wide onClose={close}>
       {body()}
       <Trouble text={trouble} />
-      <div className="mt-4 flex justify-end">
+      <div className="mt-4 flex flex-wrap justify-end gap-2">
+        {shut && (
+          <button type="button" className={strong} onClick={onReconnect}>
+            {t("stateReconnectDo")}
+          </button>
+        )}
         <button type="button" className={mild} onClick={close}>
           {t(now?.step === "done" ? "close" : "cancel")}
         </button>

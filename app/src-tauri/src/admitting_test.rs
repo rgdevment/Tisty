@@ -1,5 +1,5 @@
 use super::*;
-use crate::handed::tests::{Two, key, knows, sealed_with, two};
+use crate::handed::tests::{Shut, Two, key, knows, sealed_with, syncing_with_onedrive, two};
 use tisty_share_proto::handing::{OneUse, SigningKey, handed};
 
 fn knocking_of(two: &Two) -> Knocking {
@@ -336,4 +336,40 @@ fn an_ask_past_its_hour_that_a_computer_took_is_not_made_again() {
         knock::ask_of(&*two.plain, &two.asking.home, newcomer(&two)).unwrap(),
         Some(old)
     );
+}
+
+fn asked_of(hitch: fn() -> tisty_carrier::Hitch) -> Refusal {
+    let mut two = two();
+    held(&two.asker).state.devices.clear();
+    syncing_with_onedrive(&two.asker);
+    two.asking.plain = std::sync::Arc::new(Shut(hitch));
+    let refused = ask(&two.asker, &Knocking::default(), &two.asking, None).expect_err("shut");
+    named(&two.asker, refused)
+}
+
+#[test]
+fn asking_to_be_let_in_with_the_access_lost_says_who_no_longer_lets_tisty_in() {
+    let refused = asked_of(|| tisty_carrier::Hitch::Lost);
+
+    assert_eq!(refused.code, "cloudLost");
+    assert_eq!(refused.name.as_deref(), Some("OneDrive"));
+}
+
+#[test]
+fn asking_to_be_let_in_while_the_cloud_is_out_of_reach_is_still_one_to_try_later() {
+    let refused = asked_of(|| tisty_carrier::Hitch::Unreachable(None, "no answer".into()));
+
+    assert_eq!(refused.code, "admitNotNow");
+    assert_eq!(refused.name, None);
+}
+
+#[test]
+fn a_refusal_that_already_names_who_or_has_no_cloud_to_name_stays_as_it_was() {
+    let two = two();
+    let lost = named(&two.asker, Refusal::of("cloudLost"));
+    assert_eq!((lost.code, lost.name), ("cloudLost", None));
+
+    syncing_with_onedrive(&two.asker);
+    let lost = named(&two.asker, Refusal::about("cloudLost", "Google Drive"));
+    assert_eq!(lost.name.as_deref(), Some("Google Drive"));
 }

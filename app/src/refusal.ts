@@ -355,6 +355,10 @@ export const folderAhead = (problem: unknown): { name?: string } | null => {
 export const offerMoved = (problem: unknown): boolean =>
   ["updateGone", "updateMoved"].includes((problem as Refusal | undefined)?.code ?? "");
 
+/** The cloud's door is shut, and only signing in again opens it. */
+export const doorShut = (problem: unknown): boolean =>
+  ["cloudLost", "cloudElsewhere"].includes((problem as Refusal | undefined)?.code ?? "");
+
 /** The others moved away, so the way out is choosing again in Settings. */
 export const leftBehind = (problem: unknown): boolean =>
   ["movedAway", "movedAlone", "movedToCloud"].includes(

@@ -2,14 +2,23 @@ import { useEffect, useId, useState } from "react";
 import { type Heard, sealingHeard, sealingPhrase } from "../core";
 import { stamped } from "../format";
 import { fill, t } from "../locales";
-import { saidPlainly } from "../refusal";
+import { doorShut, saidPlainly } from "../refusal";
 import Modal from "./Modal";
 import { mild, strong } from "./Rows";
 
-export default function Entering({ onClose, onIn }: { onClose: () => void; onIn: () => void }) {
+export default function Entering({
+  onClose,
+  onIn,
+  onReconnect,
+}: {
+  onClose: () => void;
+  onIn: () => void;
+  onReconnect: () => void;
+}) {
   const [said, setSaid] = useState("");
   const [heard, setHeard] = useState<Heard[]>([]);
   const [trouble, setTrouble] = useState<string | null>(null);
+  const [shut, setShut] = useState(false);
   const onlyHere = useId();
   const [busy, setBusy] = useState(false);
 
@@ -22,20 +31,25 @@ export default function Entering({ onClose, onIn }: { onClose: () => void; onIn:
   const enter = () => {
     setBusy(true);
     setTrouble(null);
+    setShut(false);
     sealingPhrase(said.trim())
       .then(() => {
         setSaid("");
         onIn();
         onClose();
       })
-      .catch((e) => setTrouble(saidPlainly(e)))
+      .catch((e) => {
+        setTrouble(saidPlainly(e));
+        setShut(doorShut(e));
+      })
       .finally(() => setBusy(false));
   };
 
   return (
     <Modal title={t("enterTitle")} wide onClose={() => !busy && onClose()}>
       <p className="text-[12.5px] leading-relaxed text-soft">{t("enterWhat")}</p>
-      {heard.length > 0 && (
+      <p className="mt-2 text-[11.5px] leading-relaxed text-faint">{t("enterOther")}</p>
+      {heard.length > 0 && !shut && (
         <>
           <p className="mt-3 text-[12.5px] leading-relaxed">{t("enterOthers")}</p>
           <ul className="mt-1.5 flex flex-col gap-1 text-[12.5px]">
@@ -74,9 +88,14 @@ export default function Entering({ onClose, onIn }: { onClose: () => void; onIn:
         <button type="button" className={mild} disabled={busy} onClick={onClose}>
           {t("cancel")}
         </button>
+        {shut && (
+          <button type="button" className={strong} disabled={busy} onClick={onReconnect}>
+            {t("stateReconnectDo")}
+          </button>
+        )}
         <button
           type="button"
-          className={strong}
+          className={shut ? mild : strong}
           disabled={busy || said.trim().length === 0}
           onClick={enter}
         >

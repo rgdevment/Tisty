@@ -1,6 +1,7 @@
 import { listen } from "@tauri-apps/api/event";
-import { useCallback, useEffect, useState } from "react";
-import { unstuck } from "../coming";
+import { type ReactNode, useCallback, useEffect, useState } from "react";
+import { accessGone, notOffered } from "../cloudState";
+import { carding, unstuck } from "../coming";
 import {
   type ReadSoFar,
   type SealRoom,
@@ -19,7 +20,9 @@ import { cloudNamed, fill, t } from "../locales";
 import { plainly, saidPlainly } from "../refusal";
 import { sure } from "../sure";
 import { causeSaid, waitSaid } from "../syncSaid";
+import { lookAgain, useSyncSeen } from "../syncSeen";
 import { LetMeIn, LetThemIn } from "./Admitting";
+import BackSteps from "./BackSteps";
 import Card, { type Run, type Word } from "./Card";
 import { useCareful } from "./Careful";
 import { DANGERS, type Danger } from "./dangers";
@@ -28,6 +31,7 @@ import Modal from "./Modal";
 import Phrasing from "./Phrasing";
 import { Note, NoteButton } from "./RowNotes";
 import { mild, risky, strong } from "./Rows";
+import { useReconnect } from "./useReconnect";
 import { held as isHeld, type Working } from "./working";
 import { ZoneButtons } from "./Zone";
 
@@ -41,6 +45,8 @@ interface Props {
   fail: (word?: Word) => void;
   onChanged: () => void;
   onSync?: () => void;
+  onLocked?: (locked: boolean) => void;
+  carry?: () => void;
   clear?: (card: "sealing") => void;
 }
 
@@ -58,8 +64,13 @@ export default function Sealing({
   fail,
   onChanged,
   onSync,
+  onLocked,
+  carry,
   clear,
 }: Props) {
+  const held = isHeld(busy, card);
+  const { state, status } = useSyncSeen();
+  const [lostSaid, setLostSaid] = useState(false);
   const careful = useCareful();
   const [shown, setShown] = useState<SealShown | null>(null);
   const [asking, setAsking] = useState(false);
@@ -86,14 +97,24 @@ export default function Sealing({
         });
       });
   }, [fail, clear]);
-  useEffect(look, [look, round, phrased]);
-  const bringing = Boolean(shown?.reading);
-  const unsettled = shown?.state === "locked";
+  // A round that ends, even one refused, may have moved what this card waits on.
+  useEffect(look, [look, round, phrased, held]);
   useEffect(() => {
-    if (!unsettled && !bringing) return;
+    if (!held) void lookAgain();
+  }, [held]);
+  const locked = shown?.state === "locked";
+  useEffect(() => onLocked?.(locked), [locked, onLocked]);
+  const carded = locked ? (status?.last?.code ?? null) : null;
+  useEffect(() => {
+    carding(carded);
+    return () => carding(null);
+  }, [carded]);
+  const bringing = Boolean(shown?.reading);
+  useEffect(() => {
+    if (!locked && !bringing) return;
     const again = setInterval(look, bringing ? 5_000 : 15_000);
     return () => clearInterval(again);
-  }, [unsettled, bringing, look]);
+  }, [locked, bringing, look]);
   useEffect(() => {
     if (!shown?.wiping || wiping) return;
     const again = setInterval(look, 5_000);
@@ -146,6 +167,34 @@ export default function Sealing({
     );
   };
 
+  const keyed = () => {
+    unstuck();
+    look();
+    onChanged();
+    carry?.();
+  };
+
+  const { reconnect, form, waiting } = useReconnect({
+    card,
+    status,
+    provider: status?.provider ?? shown?.cloud ?? "google",
+    held,
+    run,
+    fail,
+    carry: () => carry?.(),
+    onSigned: () => {
+      setLostSaid(false);
+      void lookAgain();
+    },
+  });
+  const signInAgain = () => {
+    setLetting(null);
+    setLostSaid(true);
+    reconnect();
+  };
+  const gone = (lostSaid && status?.last?.code !== "ok") || accessGone(status, state?.clouds);
+  const barred = !gone && notOffered(status, state?.clouds);
+
   if (!shown)
     return (
       <Card row="sealing" which={card}>
@@ -157,7 +206,6 @@ export default function Sealing({
       </Card>
     );
   const provider = cloudNamed(shown.cloud);
-  const held = isHeld(busy, card);
 
   const sealedNow = shown.state === "sealed" && !starting;
   const wipingNow = wiping || Boolean(shown.wiping);
@@ -184,58 +232,25 @@ export default function Sealing({
           />
         )}
         {letting === "me" && (
-          <LetMeIn
-            onClose={() => setLetting(null)}
-            onIn={() => {
-              unstuck();
-              look();
-              onChanged();
-            }}
-          />
+          <LetMeIn onClose={() => setLetting(null)} onIn={keyed} onReconnect={signInAgain} />
         )}
         {letting === "them" && <LetThemIn onClose={() => setLetting(null)} />}
         {letting === "phrase" && (
-          <Entering
-            onClose={() => setLetting(null)}
-            onIn={() => {
-              unstuck();
-              look();
-              onChanged();
-            }}
-          />
+          <Entering onClose={() => setLetting(null)} onIn={keyed} onReconnect={signInAgain} />
         )}
-        {shown.state === "locked" && (
-          <>
-            <p className="text-[13px] font-semibold">{t("sealLocked")}</p>
-            <p className="mt-0.5 text-[12.5px] leading-relaxed text-soft">
-              {t(shown.joined ? "sealLockedJoined" : "sealLockedNew")}
-            </p>
-            {shown.joined && (
-              <p role="status" className="mt-2 text-[12.5px] text-faint motion-safe:animate-pulse">
-                {t("sealAskingKey")}
-              </p>
-            )}
-            <div className="mt-3 flex flex-wrap justify-end gap-2">
-              <button
-                type="button"
-                className={mild}
-                disabled={held}
-                onClick={() => setLetting("phrase")}
-              >
-                {t("enterButton")}
-              </button>
-              {!shown.joined && (
-                <button
-                  type="button"
-                  className={strong}
-                  disabled={held}
-                  onClick={() => setLetting("me")}
-                >
-                  {t("admitAskButton")}
-                </button>
-              )}
-            </div>
-          </>
+        {locked && (
+          <Locked
+            gone={gone}
+            barred={barred}
+            joined={shown.joined}
+            held={held}
+            onReconnect={reconnect}
+            onPhrase={() => setLetting("phrase")}
+            onAsk={() => setLetting("me")}
+          >
+            {form}
+            {waiting}
+          </Locked>
         )}
         {shown.state === "none" && (
           <Note kind="dep" act={onSync && <NoteButton label={t("goToSync")} onPress={onSync} />}>
@@ -325,6 +340,62 @@ export default function Sealing({
           begin={begin}
           ask={careful.ask}
         />
+      )}
+    </>
+  );
+}
+
+function Locked({
+  gone,
+  barred,
+  joined,
+  held,
+  onReconnect,
+  onPhrase,
+  onAsk,
+  children,
+}: Readonly<{
+  gone: boolean;
+  barred: boolean;
+  joined: boolean;
+  held: boolean;
+  onReconnect: () => void;
+  onPhrase: () => void;
+  onAsk: () => void;
+  children: ReactNode;
+}>) {
+  if (barred)
+    return (
+      <p className="text-[12.5px] leading-relaxed text-soft">
+        {plainly({ code: "cloudNotOffered" })}
+      </p>
+    );
+  return (
+    <>
+      <p className="text-[13px] font-semibold">{t(gone ? "stateReconnect" : "sealLocked")}</p>
+      {gone && (
+        <p className="mt-0.5 text-[12.5px] leading-relaxed text-soft">{t("stateReconnectWhy")}</p>
+      )}
+      <BackSteps
+        gone={gone}
+        locked
+        joined={joined}
+        held={held}
+        onReconnect={onReconnect}
+        onPhrase={onPhrase}
+      />
+      {children}
+      {!gone && joined && (
+        <p role="status" className="mt-2 text-[12.5px] text-faint motion-safe:animate-pulse">
+          {t("sealAskingKey")}
+        </p>
+      )}
+      {!gone && !joined && (
+        <div className="mt-3 flex justify-end">
+          <button type="button" className={mild} disabled={held} onClick={onAsk}>
+            {t("admitAskButton")}
+          </button>
+        </div>
       )}
     </>
   );

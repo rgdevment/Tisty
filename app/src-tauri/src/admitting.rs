@@ -7,7 +7,9 @@ use tisty_core::event::DeviceId;
 use tisty_share_proto::cloud::CloudKey;
 use tisty_share_proto::handing::{Ask, Giver};
 
-use crate::handed::{Here, Knocking, NEW_FOR, fits, here_now, hitched, now, seated, signer};
+use crate::handed::{
+    Here, Knocking, NEW_FOR, Unreached, fits, here_now, named, now, seated, signer,
+};
 use crate::{Answer, Refusal, Session, elsewhere, held};
 
 #[derive(Debug, Serialize, PartialEq, Eq)]
@@ -29,17 +31,18 @@ pub struct Newcomer {
 
 type Worked<T> = Result<T, Refusal>;
 
-fn trouble(why: impl ToString) -> Refusal {
+fn trouble(why: impl Into<Unreached>) -> Refusal {
+    let why = why.into();
     tisty_core::witness::note(
         tisty_core::witness::channel::CLOUD,
         "a new computer could not be let into the sealed cloud",
         &[("why", tisty_core::witness::Fact::Why(why.to_string()))],
     );
-    Refusal::of("admitNotNow")
+    why.refused("admitNotNow")
 }
 
 fn up(hitch: tisty_carrier::Hitch) -> Refusal {
-    trouble(hitched(hitch))
+    trouble(hitch)
 }
 
 async fn off_the_lock<T: Send + 'static>(
@@ -49,8 +52,10 @@ async fn off_the_lock<T: Send + 'static>(
     let app = app.clone();
     elsewhere(move || {
         let (session, knocking) = (app.state::<Mutex<Session>>(), app.state::<Knocking>());
-        let (here, key) = here_now(&session, &knocking).map_err(trouble)?;
-        work(&session, &knocking, &here, key)
+        here_now(&session, &knocking)
+            .map_err(trouble)
+            .and_then(|(here, key)| work(&session, &knocking, &here, key))
+            .map_err(|refusal| named(&session, refusal))
     })
     .await?
 }
@@ -62,8 +67,10 @@ async fn place_off_the_lock<T: Send + 'static>(
     let app = app.clone();
     elsewhere(move || {
         let (session, knocking) = (app.state::<Mutex<Session>>(), app.state::<Knocking>());
-        let (here, _) = crate::handed::place_now(&session, &knocking).map_err(trouble)?;
-        work(&knocking, &here)
+        crate::handed::place_now(&session, &knocking)
+            .map_err(trouble)
+            .and_then(|(here, _)| work(&knocking, &here))
+            .map_err(|refusal| named(&session, refusal))
     })
     .await?
 }

@@ -3,14 +3,14 @@ use std::sync::{Arc, Mutex, PoisonError};
 use std::time::{Duration, Instant};
 
 use tauri::{AppHandle, Emitter, Manager};
-use tisty_carrier::{Remote, Sealing, knock};
+use tisty_carrier::{Hitch, Remote, Sealing, knock};
 use tisty_core::Paths;
 use tisty_core::event::DeviceId;
 use tisty_core::witness::{self, Fact, channel};
 use tisty_share_proto::cloud::CloudKey;
 use tisty_share_proto::handing::{Ask, Handed, OneUse, SigningKey, handed};
 
-use crate::{Session, held};
+use crate::{Refusal, Session, held};
 
 const KEY: &str = "key";
 const JOINED_FOR: i64 = 7 * 24 * 60 * 60;
@@ -41,10 +41,67 @@ pub(crate) struct Here {
     pub(crate) home: std::path::PathBuf,
 }
 
+/// Told apart from what stood in the way on this computer, so a door shut for good is never read as one to try later.
+#[derive(Debug)]
+pub(crate) enum Unreached {
+    Cloud(Hitch),
+    Here(String),
+}
+
+impl From<Hitch> for Unreached {
+    fn from(hitch: Hitch) -> Self {
+        Self::Cloud(hitch)
+    }
+}
+
+impl From<String> for Unreached {
+    fn from(why: String) -> Self {
+        Self::Here(why)
+    }
+}
+
+impl From<&str> for Unreached {
+    fn from(why: &str) -> Self {
+        Self::Here(why.to_string())
+    }
+}
+
+impl std::fmt::Display for Unreached {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Cloud(hitch) => f.write_str(hitch.code()),
+            Self::Here(why) => f.write_str(why),
+        }
+    }
+}
+
+impl Unreached {
+    pub(crate) fn refused(self, otherwise: &'static str) -> Refusal {
+        match self {
+            Self::Cloud(Hitch::Lost) => Refusal::of("cloudLost"),
+            Self::Cloud(Hitch::Elsewhere { found }) => Refusal::about("cloudElsewhere", found),
+            _ => Refusal::of(otherwise),
+        }
+    }
+}
+
+// Who shut the door is known only where the chosen cloud is, away from what met it shut.
+pub(crate) fn named(session: &Mutex<Session>, refusal: Refusal) -> Refusal {
+    if refusal.code != "cloudLost" || refusal.name.is_some() {
+        return refusal;
+    }
+    let shown = tisty_carrier::cloud_of(held(session).config.sync.as_ref())
+        .map(|at| at.shown().to_string());
+    Refusal {
+        name: shown,
+        ..refusal
+    }
+}
+
 pub(crate) fn here_now(
     session: &Mutex<Session>,
     knocking: &Knocking,
-) -> Result<(Here, Option<CloudKey>), String> {
+) -> Result<(Here, Option<CloudKey>), Unreached> {
     let (here, keyed) = place_now(session, knocking)?;
     let key = match keyed.filter(|keyed| keyed.locked.cloud == here.cloud) {
         Some(keyed) => opened(knocking, &here, &keyed.key)?.then_some(keyed.key),
@@ -57,7 +114,7 @@ pub(crate) fn here_now(
 pub(crate) fn place_now(
     session: &Mutex<Session>,
     knocking: &Knocking,
-) -> Result<(Here, Option<crate::reaching::Keyed>), String> {
+) -> Result<(Here, Option<crate::reaching::Keyed>), Unreached> {
     let (at, home, device, paths, keyed) = {
         let session = held(session);
         let at = tisty_carrier::cloud_of(session.config.sync.as_ref())
@@ -173,11 +230,11 @@ fn tended(app: &AppHandle, knocking: &Knocking) {
     }
 }
 
-fn noted(why: String) {
+fn noted(why: Unreached) {
     witness::note(
         channel::CLOUD,
         "the cloud's key could not be asked for or handed this round",
-        &[("why", Fact::Why(why))],
+        &[("why", Fact::Why(why.to_string()))],
     );
 }
 
@@ -210,10 +267,6 @@ pub(crate) fn signer(here: &Here) -> Result<SigningKey, String> {
         .ok_or_else(|| "this machine has no signing key".to_string())
 }
 
-pub(crate) fn hitched(hitch: tisty_carrier::Hitch) -> String {
-    hitch.code().to_string()
-}
-
 pub(crate) fn name_here(session: &Mutex<Session>, device: &DeviceId) -> String {
     let session = held(session);
     session
@@ -228,7 +281,7 @@ pub(crate) fn ask_now(
     session: &Mutex<Session>,
     asked: &mut Option<(Ask, OneUse)>,
     here: &Here,
-) -> Result<(), String> {
+) -> Result<(), Unreached> {
     let one_use = OneUse::minted().ok_or("no randomness for a one-use key")?;
     let ask = Ask::signed(
         &here.device.0,
@@ -238,7 +291,7 @@ pub(crate) fn ask_now(
         &here.cloud,
         now(),
     );
-    knock::knocked(&*here.plain, &here.home, &ask).map_err(hitched)?;
+    knock::knocked(&*here.plain, &here.home, &ask)?;
     *asked = Some((ask, one_use));
     Ok(())
 }
@@ -247,7 +300,7 @@ pub(crate) fn asking(
     session: &Mutex<Session>,
     knocking: &Knocking,
     here: &Here,
-) -> Result<bool, String> {
+) -> Result<bool, Unreached> {
     let seated = joined_here(&held(session), &here.home);
     let mut asked = knocking
         .asked
@@ -264,9 +317,7 @@ pub(crate) fn asking(
     let Some((ask, one_use)) = asked.as_ref() else {
         return Ok(false);
     };
-    let Some(answer) =
-        knock::answered(&*here.plain, &here.home, &here.device.0).map_err(hitched)?
-    else {
+    let Some(answer) = knock::answered(&*here.plain, &here.home, &here.device.0)? else {
         return Ok(false);
     };
     let trusted = knocking
@@ -288,7 +339,7 @@ pub(crate) fn asking(
     };
     let Some(key) = opened else {
         // An answer that does not open, stale or forged, would keep every machine from answering again.
-        knock::unanswered(&*here.plain, &here.home, &here.device.0).map_err(hitched)?;
+        knock::unanswered(&*here.plain, &here.home, &here.device.0)?;
         return Ok(false);
     };
     took(session, here, &key)?;
@@ -300,12 +351,12 @@ pub(crate) fn asking(
     Ok(true)
 }
 
-pub(crate) fn opens(here: &Here, key: &CloudKey) -> Result<bool, String> {
-    knock::opens(&*here.plain, &here.home, key, &here.cloud).map_err(hitched)
+pub(crate) fn opens(here: &Here, key: &CloudKey) -> Result<bool, Hitch> {
+    knock::opens(&*here.plain, &here.home, key, &here.cloud)
 }
 
 // Fetched once a key, and a mark that could not be fetched is a hitch, never a wrong key.
-fn opened(knocking: &Knocking, here: &Here, key: &CloudKey) -> Result<bool, String> {
+fn opened(knocking: &Knocking, here: &Here, key: &CloudKey) -> Result<bool, Hitch> {
     let named = key.named_for(&here.cloud);
     let mut known = knocking
         .opened
@@ -359,7 +410,7 @@ fn took(session: &Mutex<Session>, here: &Here, key: &CloudKey) -> Result<(), Str
         witness::note(
             channel::CLOUD,
             "the cloud's key came, and the ask for it stays up there until the next round",
-            &[("why", Fact::Why(hitched(why)))],
+            &[("why", Fact::Code(why.code()))],
         );
     }
     tauri::async_runtime::block_on(crate::identity::seal_the_cloud(session));
@@ -367,8 +418,8 @@ fn took(session: &Mutex<Session>, here: &Here, key: &CloudKey) -> Result<(), Str
 }
 
 // One ask that cannot be answered or taken away never holds up the others.
-fn answering(session: &Mutex<Session>, here: &Here, key: &CloudKey) -> Result<(), String> {
-    let knocks = knock::knocks(&*here.plain, &here.home).map_err(hitched)?;
+fn answering(session: &Mutex<Session>, here: &Here, key: &CloudKey) -> Result<(), Unreached> {
+    let knocks = knock::knocks(&*here.plain, &here.home)?;
     let signer = signer(here)?;
     let voucher = std::cell::OnceCell::new();
     for one in knocks {
@@ -386,33 +437,37 @@ fn answered(
     signer: &SigningKey,
     voucher: &std::cell::OnceCell<Option<Voucher>>,
     one: &knock::Knock,
-) -> Result<(), String> {
+) -> Result<(), Unreached> {
     let seated = seated(session, &one.device);
     let Some(ask) = &one.ask else {
         if seated {
             return Ok(());
         }
         // An answer waits for its machine; a new one has its hour, after which nobody comes for it.
-        let fresh = knock::ask_of(&*here.plain, &here.home, &one.device)
-            .map_err(hitched)?
+        let fresh = knock::ask_of(&*here.plain, &here.home, &one.device)?
             .is_some_and(|ask| (-NEW_FOR..=NEW_FOR).contains(&(now() - ask.at)));
         return match fresh {
             true => Ok(()),
-            false => knock::withdrawn(&*here.plain, &here.home, &one.device).map_err(hitched),
+            false => Ok(knock::withdrawn(&*here.plain, &here.home, &one.device)?),
         };
     };
     let age = now() - ask.at;
     let lasts = if seated { JOINED_FOR } else { NEW_FOR };
     // The time only tidies the box; an old ask replayed opens for nobody without its one-use key.
     if age > lasts || age < -JOINED_FOR {
-        return knock::withdrawn(&*here.plain, &here.home, &one.device).map_err(hitched);
+        return Ok(knock::withdrawn(&*here.plain, &here.home, &one.device)?);
     }
     if !seated || !signs_as_known(session, ask) || !fits(ask, here) {
         return Ok(());
     }
     let voucher = voucher.get_or_init(|| self::voucher(session, here));
     let answer = sealed_for(here, ask, key, signer, voucher.as_ref())?;
-    knock::answer(&*here.plain, &here.home, &one.device, &answer).map_err(hitched)
+    Ok(knock::answer(
+        &*here.plain,
+        &here.home,
+        &one.device,
+        &answer,
+    )?)
 }
 
 pub(crate) type Voucher = (

@@ -80,6 +80,45 @@ impl Remote for Shelf {
     }
 }
 
+/// A provider that refuses everything the way it is told to.
+pub(crate) struct Shut(pub(crate) fn() -> Hitch);
+
+impl Remote for Shut {
+    fn limits(&self) -> Limits {
+        Shelf::default().limits()
+    }
+
+    fn list(&self, _: &str) -> Result<Vec<Seen>, Hitch> {
+        Err(self.0())
+    }
+
+    fn fetch(&self, _: &str, _: u64, _: &mut dyn Write) -> Result<Seen, Hitch> {
+        Err(self.0())
+    }
+
+    fn put(&self, _: &str, _: &std::path::Path, _: Expect) -> Result<Seen, Hitch> {
+        Err(self.0())
+    }
+
+    fn delete(&self, _: &str, _: Option<&str>) -> Result<(), Hitch> {
+        Err(self.0())
+    }
+
+    fn hash_of(&self, local: &std::path::Path) -> std::io::Result<String> {
+        Shelf::default().hash_of(local)
+    }
+}
+
+pub(crate) fn syncing_with_onedrive(session: &Mutex<Session>) {
+    held(session).config.sync = Some(tisty_core::config::Sync::cloud(
+        tisty_core::config::CloudAt {
+            provider: "onedrive".into(),
+            account: "0123".into(),
+            email: "mario@example.com".into(),
+        },
+    ));
+}
+
 pub(crate) fn key(n: u8) -> CloudKey {
     CloudKey::of(&Seed::from_bytes(&[n; 32]))
 }

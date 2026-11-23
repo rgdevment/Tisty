@@ -104,12 +104,14 @@ describe("your identity", () => {
     ipc.shown = { ...held, held: false, fingerprint: null, machines: [] };
     render(<Shell />);
 
-    await userEvent.click(await screen.findByRole("button", { name: "I already have my phrase" }));
+    await userEvent.click(
+      await screen.findByRole("button", { name: "Keep my phrase on this computer" }),
+    );
     expect(screen.getByLabelText(/Type your 24 words/).getAttribute("aria-describedby")).toBe(
       screen.getByText(/Type it only here, in your own Tisty/).id,
     );
     await userEvent.type(screen.getByLabelText(/Type your 24 words/), WORDS.join(" "));
-    await userEvent.click(screen.getByRole("button", { name: "Give this computer its key" }));
+    await userEvent.click(screen.getByRole("button", { name: "Keep my phrase" }));
     await waitFor(() =>
       expect(ipc.calls.find((one) => one.cmd === "identity_recover")?.args).toEqual({
         said: WORDS.join(" "),
@@ -150,7 +152,9 @@ describe("your identity", () => {
     ipc.shown = { ...held, held: false, elsewhere: true, fingerprint: null };
     render(<Shell />);
 
-    expect(await screen.findByText(/does not keep its phrase yet/)).toBeTruthy();
+    expect(
+      await screen.findByText(/This computer does not keep your phrase: you created it/),
+    ).toBeTruthy();
     expect(screen.queryByRole("button", { name: "See the phrase" })).toBeNull();
     expect(screen.queryByText("not confirmed")).toBeNull();
   });

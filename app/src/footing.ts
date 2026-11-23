@@ -1,3 +1,4 @@
+import { accessGone } from "./cloudState";
 import { choiceWaits } from "./coming";
 import type { Carrying, CloudStatus } from "./core";
 
@@ -81,7 +82,7 @@ export const footing = (seen: Seen): Footing | null => {
     status?.last ? saidOf(status.last.code, status.last.at, now) : null,
     saidOf(codeOf(seen.stuck), now, now),
   ]);
-  if (said.has("lost")) return { kind: "lost" };
+  if (said.has("lost") || accessGone(status, state?.clouds)) return { kind: "lost" };
   if (status?.pausedHere) return { kind: "paused" };
   if (seen.putOff > 0) return { kind: "look", putOff: true };
   if (seen.knocked || choiceWaits(seen.stuck) || status?.lost || said.has("look"))

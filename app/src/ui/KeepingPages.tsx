@@ -113,6 +113,7 @@ export default function KeepingPage(all: Shared) {
           onChanged={all.onChanged}
           onIdentity={all.onStanding}
           onSync={() => all.onTab("sync")}
+          carry={() => all.carry()}
           clear={all.clear}
         />
       );

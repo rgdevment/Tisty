@@ -792,7 +792,7 @@ const en = {
     "Remove it in Settings › Security › Your identity. Its key stops counting, and Folio tells whoever reads what it signed after that.",
   shareIdentityMake: "Make my identity",
   shareIdentityElsewhere:
-    "Your identity already lives on another of your computers. Type your phrase so this one can sign too.",
+    "This computer does not keep your phrase. Type it so this one can sign too.",
   cutIt: "Cut",
   editBlock: "Edit this block",
   editWholeDoc: "Edit the whole document",
@@ -2111,7 +2111,7 @@ const en = {
   cloudFull:
     "{name} has no room left. Tisty sends your tasks first; the rest, including what your other computers send, waits until you free up space in {name} or get more. Everything you write stays safe on this computer meanwhile.",
   cloudLost:
-    "{name} no longer lets Tisty in: the access was withdrawn or ran out. Connect {name} again; until then everything you write stays safe on this computer.",
+    "{name} no longer lets Tisty in: the access was withdrawn, ran out or was lost when Tisty was reinstalled. Connect {name} again; until then everything you write stays safe on this computer.",
   cloudElsewhere:
     "The cloud now answers as another account ({name}). Tisty stops rather than mix two accounts: connect the one you used before.",
   cloudNotNow: "Your cloud could not be asked first, so nothing was done. Try again in a while.",
@@ -2169,7 +2169,7 @@ const en = {
   syncUnshaped:
     "Nothing was synced, in either direction. The shared folder no longer says what shape it is in, or says it in a way that cannot be read — which is what a round that did not finish looks like. If a cloud client is still bringing the folder down, wait for it; otherwise sync from the computer that last wrote there.",
   cloudSealed:
-    "Nothing was synced, in either direction. Your cloud is encrypted and this computer does not hold its key yet. If it was already one of your computers, your others hand it the key on their own as soon as one of them is on. What you write here stays here meanwhile.",
+    "Nothing was synced, in either direction. Your cloud is encrypted and this computer cannot open it yet. Settings › Sync says what is missing. What you write here stays here meanwhile.",
   cloudOtherPhrase:
     "Nothing was synced, in either direction. Your cloud is encrypted with a different 24-word phrase from the one on this computer, so Tisty does not touch it. Check that this computer uses the phrase you chose for this cloud.",
   otherPerson:
@@ -2423,6 +2423,7 @@ const en = {
   cloudCaps: "Attachments up to 650 MB, on a task or in a document, the same as with a folder.",
   cloudOpenGoogle: "Open {maker}",
   cloudWaiting: "Finish in your browser; Tisty waits here.",
+  cloudSettling: "Reconnected; getting your cloud ready…",
   cloudConnectedTitle: "Done, your cloud is connected",
   cloudConnectedTag: "Connected",
   cloudFirstUpload: "The first upload",
@@ -2448,7 +2449,7 @@ const en = {
   cloudRevokeAll: "Remove Tisty's access on every computer",
   stateReconnect: "{maker} no longer lets Tisty in",
   stateReconnectWhy:
-    "The permission was removed or expired. Connect again; meanwhile everything stays safe here.",
+    "The permission was removed, expired or was lost when Tisty was reinstalled. Connect again; meanwhile everything stays safe here.",
   stateReconnectDo: "Reconnect",
   stateOffline: "Your cloud couldn't be reached",
   stateOfflineWhy: "What you write stays here and goes up when there's a connection.",
@@ -2464,8 +2465,14 @@ const en = {
     "They were deleted outside Tisty, perhaps with «Delete hidden app data» in {cloud} › Manage apps. Nothing here changed. Send everything again from this computer, or move to another place.",
   stateEmptiedDo: "Send it all again",
   stateSealed: "Your cloud is encrypted",
-  stateSealedWhy:
-    "This computer does not hold its key yet. If it was already one of your computers, your others hand it over on their own as soon as one of them is on. Meanwhile, what you write stays here.",
+  stateSealedWhy: "This computer does not hold its key yet. Meanwhile, what you write stays here.",
+  backTitle: "To sync on this computer",
+  backReconnect: "Reconnect {cloud}",
+  backConnected: "{cloud} is connected",
+  backPhrase: "Open your cloud with your 24-word phrase",
+  backAfter: "Available once you reconnect.",
+  backKeyed: "This computer has your cloud's key",
+  backDone: "done",
   stateSealing: "Another computer is encrypting or decrypting your cloud",
   stateSealingOn: "Another of your computers is encrypting your cloud",
   stateSealingOnWhy:
@@ -2677,6 +2684,7 @@ const en = {
   footLookWhy: "A computer waiting to be confirmed, or something sync needs you to decide.",
   footLookDocs: "A document was written on two computers. Choose which one stays.",
   revealFolder: "Open the folder",
+  syncStill: "Tried to sync, but it is not possible yet. The notice above says why.",
   syncSetUp: "Set-up:",
   syncAgain: "Send everything again",
   syncAgainWhy:
@@ -2812,7 +2820,8 @@ const en = {
   sealPhraseCreate: "Create my phrase",
   sealPhraseUnconfirmed: "Your phrase is not confirmed yet",
   sealPhraseConfirm: "Confirm it",
-  sealPhraseAway: "Your phrase is on another of your computers. Encrypt from that computer.",
+  sealPhraseAway:
+    "This computer does not keep your phrase. Keep it here in Your identity, or encrypt from the computer that has it.",
   sealRoomUnread: "Tisty could not look at the room in {name}. Try again in a moment.",
   sealRoomOk: "There is room in {name}",
   sealRoomShort: "There is not enough room in {name}",
@@ -2860,11 +2869,12 @@ const en = {
   sealSealed: "Your cloud is encrypted",
   sealOldCopy: "The old unencrypted copy stays in {name} until you delete it.",
   sealLocked: "Your cloud is encrypted, and this computer does not hold its key yet",
-  sealLockedJoined: "Your other computers hand it over on their own as soon as one of them is on.",
+  sealLockedJoined:
+    "Or wait: your other computers hand this one the key on their own as soon as one of them is on.",
   sealAskingKey:
     "Asking your other computers for the key… It can take a few minutes, and one of them needs Tisty open. You can also write your phrase.",
   sealLockedNew:
-    "To open it here, let this computer in from another of your computers that already reads the encrypted cloud.",
+    "Or let this computer in from another of your computers that already reads the encrypted cloud, in Settings › Security.",
   admitAskButton: "Let in from another computer",
   admitLetInButton: "Let a new computer in",
   admitAsk: "Let this computer in",
@@ -2903,10 +2913,12 @@ const en = {
   admitAlreadyIn: "This computer already reads your encrypted cloud.",
   admitOnList: "This computer is already one of yours: the others hand it the key on their own.",
   admitNoKey: "This computer cannot open the encrypted cloud, so it cannot let another one in.",
-  enterButton: "Type my phrase",
-  enterTitle: "Type my phrase",
+  enterButton: "Open my cloud with the phrase",
+  enterTitle: "Open my cloud with the phrase",
   enterWhat:
     "Type your 24 words in order, separated by spaces. Only the key of your cloud stays on this computer; the phrase itself is not kept.",
+  enterOther:
+    "If you also want this computer to keep the phrase, use «Keep my phrase on this computer», in Settings › Security › Your identity.",
   enterOthers:
     "Your other computers hand this one the key on their own once one of them is on. This is when each was last heard:",
   enterSeen: "last heard {name}",
@@ -2925,12 +2937,16 @@ const en = {
   identityUnborn:
     "Your identity is born when you create your 24-word phrase. You need it to encrypt your cloud and to mark your computers as yours.",
   identityCreate: "Create my phrase",
-  phraseTypeOpen: "I already have my phrase",
+  phraseTypeOpen: "Keep my phrase on this computer",
+  phraseTypeWhat:
+    "If you already have your phrase, keep it here: this computer can then show it to you, and encrypt or decrypt your cloud.",
+  phraseTypeOther:
+    "Only want to open your cloud? Use «Open my cloud with the phrase», below: it does not keep the phrase.",
   phraseTypeHow: "Type your 24 words, separated by spaces, in English or Spanish.",
-  phraseTypeGo: "Give this computer its key",
-  phraseTyped: "This computer now has your key.",
+  phraseTypeGo: "Keep my phrase",
+  phraseTyped: "This computer now keeps your phrase.",
   identityAway:
-    "Your identity lives on another of your computers, and this one does not keep its phrase yet.",
+    "This computer does not keep your phrase: you created it on another computer, or Tisty was reinstalled on this one. Your tasks and documents are still here.",
   identityPrint: "Your fingerprint. If someone asks you to prove it's you, compare them.",
   identityName: "Name",
   identityPhrase: "Phrase",
@@ -4471,7 +4487,7 @@ const es: Catalog = {
     "Quítalo en Configuración › Seguridad › Tu identidad. Su llave deja de valer, y Folio avisa a quien lea lo que firmó después de eso.",
   shareIdentityMake: "Crear mi identidad",
   shareIdentityElsewhere:
-    "Tu identidad ya vive en otro de tus computadores. Escribe tu frase para que este también pueda firmar.",
+    "Este equipo no guarda tu frase. Escríbela para que también pueda firmar.",
   cutIt: "Cortar",
   editBlock: "Editar este bloque",
   editWholeDoc: "Editar todo el documento",
@@ -5807,7 +5823,7 @@ const es: Catalog = {
   cloudFull:
     "{name} no tiene más espacio. Tisty sube primero tus tareas; lo demás, incluido lo que envían tus otros equipos, espera hasta que liberes espacio en {name} o consigas más. Mientras tanto, todo lo que escribas queda a salvo en este equipo.",
   cloudLost:
-    "{name} ya no deja entrar a Tisty: el acceso se retiró o venció. Vuelve a conectar {name}; mientras tanto, todo lo que escribas queda a salvo en este equipo.",
+    "{name} ya no deja entrar a Tisty: el acceso se retiró, venció o se perdió al reinstalar Tisty. Vuelve a conectar {name}; mientras tanto, todo lo que escribas queda a salvo en este equipo.",
   cloudElsewhere:
     "La nube ahora responde como otra cuenta ({name}). Tisty se detiene para no mezclar dos cuentas: conecta la que usabas antes.",
   cloudNotNow:
@@ -5866,7 +5882,7 @@ const es: Catalog = {
   syncUnshaped:
     "No se sincronizó nada, en ningún sentido. La carpeta compartida ya no dice en qué forma está, o lo dice de una manera que no se puede leer, que es lo que se ve cuando una ronda no llegó al final. Si un cliente de nube todavía la está bajando, espera; si no, sincroniza desde el equipo que escribió ahí por última vez.",
   cloudSealed:
-    "No se sincronizó nada, en ningún sentido. Tu nube está cifrada y este equipo todavía no tiene su llave. Si ya era uno de tus equipos, los otros se la entregan solos apenas uno de ellos esté encendido. Mientras tanto, lo que escribas aquí se queda aquí.",
+    "No se sincronizó nada, en ningún sentido. Tu nube está cifrada y este equipo todavía no puede abrirla. Configuración › Sincronización dice qué falta. Mientras tanto, lo que escribas aquí se queda aquí.",
   cloudOtherPhrase:
     "No se sincronizó nada, en ningún sentido. Tu nube está cifrada con una frase de 24 palabras distinta de la que tiene este equipo, así que Tisty no la toca. Revisa que este equipo use la frase que elegiste para esta nube.",
   otherPerson:
@@ -6120,6 +6136,7 @@ const es: Catalog = {
   cloudCaps: "Adjuntos hasta 650 MB, en una tarea o en un documento, igual que con una carpeta.",
   cloudOpenGoogle: "Abrir {maker}",
   cloudWaiting: "Termina en tu navegador; Tisty espera aquí.",
+  cloudSettling: "Reconectado; preparando tu nube…",
   cloudConnectedTitle: "Listo, tu nube está conectada",
   cloudConnectedTag: "Conectada",
   cloudFirstUpload: "La primera subida",
@@ -6145,7 +6162,7 @@ const es: Catalog = {
   cloudRevokeAll: "Quitar el acceso de Tisty en todos tus equipos",
   stateReconnect: "{maker} ya no deja entrar a Tisty",
   stateReconnectWhy:
-    "El permiso se quitó o venció. Conecta de nuevo; mientras tanto todo queda a salvo aquí.",
+    "El permiso se quitó, venció o se perdió al reinstalar Tisty. Conecta de nuevo; mientras tanto todo queda a salvo aquí.",
   stateReconnectDo: "Reconectar",
   stateOffline: "No se pudo llegar a tu nube",
   stateOfflineWhy: "Lo que escribas queda aquí y se envía cuando haya conexión.",
@@ -6162,7 +6179,14 @@ const es: Catalog = {
   stateEmptiedDo: "Subirlo todo de nuevo",
   stateSealed: "Tu nube está cifrada",
   stateSealedWhy:
-    "Este equipo todavía no tiene su llave. Si ya era uno de tus equipos, los otros se la entregan solos apenas uno de ellos esté encendido. Mientras tanto, lo que escribas queda aquí.",
+    "Este equipo todavía no tiene su llave. Mientras tanto, lo que escribas queda aquí.",
+  backTitle: "Para sincronizar en este equipo",
+  backReconnect: "Reconecta {cloud}",
+  backConnected: "{cloud} está conectado",
+  backPhrase: "Abre tu nube con tu frase de 24 palabras",
+  backAfter: "Se puede después de reconectar.",
+  backKeyed: "Este equipo ya tiene la llave de tu nube",
+  backDone: "hecho",
   stateSealing: "Otro equipo está cifrando o descifrando tu nube",
   stateSealingOn: "Otro de tus equipos está cifrando tu nube",
   stateSealingOnWhy:
@@ -6373,6 +6397,7 @@ const es: Catalog = {
   footLookWhy: "Un equipo espera que lo confirmes, o la sincronización necesita que decidas algo.",
   footLookDocs: "Un documento se escribió en dos equipos. Elige cuál se queda.",
   revealFolder: "Abrir la carpeta",
+  syncStill: "Se intentó sincronizar, pero todavía no se puede. El aviso de arriba dice por qué.",
   syncSetUp: "Configuración:",
   syncAgain: "Volver a enviar todo",
   syncAgainWhy:
@@ -6507,7 +6532,8 @@ const es: Catalog = {
   sealPhraseCreate: "Crear mi frase",
   sealPhraseUnconfirmed: "Tu frase todavía no está confirmada",
   sealPhraseConfirm: "Confirmarla",
-  sealPhraseAway: "Tu frase está en otro de tus equipos. Cifra desde ese equipo.",
+  sealPhraseAway:
+    "Este equipo no guarda tu frase. Guárdala aquí en Tu identidad, o cifra desde el equipo que la tiene.",
   sealRoomUnread: "Tisty no pudo revisar el espacio en {name}. Inténtalo de nuevo en un momento.",
   sealRoomOk: "Hay espacio en {name}",
   sealRoomShort: "No hay espacio suficiente en {name}",
@@ -6555,11 +6581,12 @@ const es: Catalog = {
   sealSealed: "Tu nube está cifrada",
   sealOldCopy: "La copia antigua sin cifrar sigue en {name} hasta que la borres.",
   sealLocked: "Tu nube está cifrada y este equipo todavía no tiene su llave",
-  sealLockedJoined: "Tus otros equipos se la entregan solos apenas uno de ellos esté encendido.",
+  sealLockedJoined:
+    "O espera: tus otros equipos le entregan la llave a este, solos, apenas uno de ellos esté encendido.",
   sealAskingKey:
     "Pidiendo la llave a tus otros equipos… Puede tardar unos minutos, y uno de ellos tiene que tener Tisty abierto. También puedes escribir tu frase.",
   sealLockedNew:
-    "Para abrirla aquí, autoriza este equipo desde otro de tus equipos que ya lea la nube cifrada.",
+    "O autoriza este equipo desde otro de tus equipos que ya lea la nube cifrada, en Configuración › Seguridad.",
   admitAskButton: "Autorizar desde otro equipo",
   admitLetInButton: "Autorizar un equipo nuevo",
   admitAsk: "Autorizar este equipo",
@@ -6599,10 +6626,12 @@ const es: Catalog = {
   admitAlreadyIn: "Este equipo ya lee tu nube cifrada.",
   admitOnList: "Este equipo ya es uno de los tuyos: los otros le entregan la llave solos.",
   admitNoKey: "Este equipo no puede abrir la nube cifrada, así que no puede autorizar a otro.",
-  enterButton: "Escribir mi frase",
-  enterTitle: "Escribir mi frase",
+  enterButton: "Abrir mi nube con la frase",
+  enterTitle: "Abrir mi nube con la frase",
   enterWhat:
     "Escribe tus 24 palabras en orden, separadas por espacios. En este equipo solo queda la llave de tu nube; la frase misma no se guarda.",
+  enterOther:
+    "Si quieres que este equipo también guarde la frase, usa «Guardar mi frase en este equipo», en Configuración › Seguridad › Tu identidad.",
   enterOthers:
     "Tus otros equipos le entregan la llave a este solos apenas uno de ellos esté encendido. Esta es la última vez que se supo de cada uno:",
   enterSeen: "última vez {name}",
@@ -6621,11 +6650,16 @@ const es: Catalog = {
   identityUnborn:
     "Tu identidad nace cuando creas tu frase de 24 palabras. La necesitas para cifrar tu nube y para marcar tus equipos como tuyos.",
   identityCreate: "Crear mi frase",
-  phraseTypeOpen: "Ya tengo mi frase",
+  phraseTypeOpen: "Guardar mi frase en este equipo",
+  phraseTypeWhat:
+    "Si ya tienes tu frase, guárdala aquí: este equipo podrá mostrártela, y cifrar o descifrar tu nube.",
+  phraseTypeOther:
+    "¿Solo quieres abrir tu nube? Usa «Abrir mi nube con la frase», más abajo: no guarda la frase.",
   phraseTypeHow: "Escribe tus 24 palabras, separadas por espacios, en español o en inglés.",
-  phraseTypeGo: "Darle a este equipo su llave",
-  phraseTyped: "Este equipo ya tiene tu llave.",
-  identityAway: "Tu identidad está en otro de tus equipos, y este todavía no guarda su frase.",
+  phraseTypeGo: "Guardar mi frase",
+  phraseTyped: "Este equipo ya guarda tu frase.",
+  identityAway:
+    "Este equipo no guarda tu frase: la creaste en otro equipo, o Tisty se reinstaló en este. Tus tareas y documentos siguen aquí.",
   identityPrint: "Tu huella. Si alguien te pide comprobar que eres tú, compárenla.",
   identityName: "Nombre",
   identityPhrase: "Frase",

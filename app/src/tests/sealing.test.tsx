@@ -376,7 +376,7 @@ describe("what stands in the way", () => {
     render(<Shell />);
     await userEvent.click(await screen.findByRole("button", { name: "Encrypt my cloud…" }));
 
-    expect(await screen.findByText(/Your phrase is on another of your computers/)).toBeTruthy();
+    expect(await screen.findByText(/This computer does not keep your phrase/)).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Create my phrase" })).toBeNull();
   });
 
@@ -397,10 +397,10 @@ describe("a cloud this computer cannot open yet", () => {
     ipc.shown = { ...plain, state: "locked" };
     render(<Shell />);
 
-    expect(await screen.findByText(/hand it over on their own/)).toBeTruthy();
+    expect(await screen.findByText(/hand this one the key on their own/)).toBeTruthy();
     expect(screen.getByRole("status").textContent).toMatch(/Asking your other computers/);
     expect(screen.queryByRole("button", { name: "Let in from another computer" })).toBeNull();
-    await userEvent.click(screen.getByRole("button", { name: "Type my phrase" }));
+    await userEvent.click(screen.getByRole("button", { name: "Open my cloud with the phrase" }));
     await waitFor(() => expect(sent("sealing_heard")).toHaveLength(1));
   });
 

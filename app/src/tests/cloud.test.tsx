@@ -104,6 +104,24 @@ describe("what the cloud's state says", () => {
     expect(cloudStanding(status({ ...lost, haltedUntil: 50 }), 100)?.said).toBe("stateReconnect");
   });
 
+  it("asks to reconnect a cloud whose access is gone, over a round that never reached it", () => {
+    const sealed = { lost: true, last: round("cloudSealed") };
+    expect(cloudStanding(status(sealed))).toMatchObject({
+      said: "stateReconnect",
+      exit: "reconnect",
+    });
+    expect(cloudStanding(status({ lost: true }), 100, ["google"])?.exit).toBe("reconnect");
+    expect(cloudStanding(status({ lost: true, haltedUntil: 200 }), 100)?.exit).toBe("reconnect");
+    expect(cloudStanding(status({ ...sealed, pausedHere: true }))?.said).toBe("stateOff");
+  });
+
+  it("never offers to reconnect a cloud this build has no way into", () => {
+    const standing = cloudStanding(status({ lost: true, last: round("cloudSealed") }), undefined, [
+      "webdav",
+    ]);
+    expect(standing).toEqual({ said: "stateFailed", told: t("cloudNotOffered") });
+  });
+
   it("names each way an encrypted cloud stops, in red only where something is wrong", () => {
     const of = (code: string) => cloudStanding(status({ last: round(code) }));
     expect(of("cloudSealed")).toMatchObject({ said: "stateSealed", urgent: true });

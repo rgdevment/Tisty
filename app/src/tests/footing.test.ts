@@ -123,6 +123,20 @@ describe("the sync foot", () => {
     expect(footing(seen({ stuck: { code: "cloudElsewhere" } }))).toEqual({ kind: "lost" });
   });
 
+  it("asks to sign in again as soon as the access kept here is gone, whatever the last round said", () => {
+    const offers = carrying({ clouds: ["google"] });
+    for (const last of [round("cloudSealed"), null]) {
+      const status = cloud({ lost: true, last });
+      expect(footing(seen({ state: offers, status }))).toEqual({ kind: "lost" });
+    }
+    const unoffered = carrying({ clouds: ["webdav"] });
+    expect(
+      footing(
+        seen({ state: unoffered, status: cloud({ lost: true, last: round("cloudSealed") }) }),
+      ),
+    ).toEqual({ kind: "look", putOff: false });
+  });
+
   it("offers to resume when the person paused it, above what the last round said", () => {
     const foot = footing(seen({ status: cloud({ pausedHere: true, last: round("cloudNotNow") }) }));
     expect(foot).toEqual({ kind: "paused" });

@@ -28,6 +28,17 @@ export const followedTo = (stuck: unknown): string | undefined => {
   return CLOUDS.find((one) => told.name?.startsWith(`${cloudNamed(one.id)} · `))?.id;
 };
 
+const offers = (status: CloudStatus, clouds?: string[]): boolean =>
+  clouds?.includes(status.provider) ?? true;
+
+/** The access kept here is gone and this build can ask for it again: a build without the provider cannot. */
+export const accessGone = (status?: CloudStatus | null, clouds?: string[]): boolean =>
+  Boolean(status?.lost) && offers(status as CloudStatus, clouds);
+
+/** This build knows no way into the chosen cloud, so connecting again would change nothing. */
+export const notOffered = (status?: CloudStatus | null, clouds?: string[]): boolean =>
+  Boolean(status?.lost) && !offers(status as CloudStatus, clouds);
+
 export const storageOf = (provider?: string | null): string | undefined =>
   cloudOf(provider ?? "google")?.storage;
 
@@ -65,6 +76,9 @@ const BY_CODE: Record<string, Standing> = {
   cloudMarkDamaged: { said: "stateMarkDamaged", why: "stateMarkDamagedWhy", urgent: true },
 };
 
+/** Connected and still without the cloud's key, said before any round meets it. */
+export const SEALED: Standing = BY_CODE.cloudSealed;
+
 const APART: Standing = {
   said: "stateApart",
   why: "stateApartWhy",
@@ -91,9 +105,16 @@ const QUIET = new Set(["ok", "deferred-changed", "deferred-paused", "deferred-bu
 const DAY = 86_400;
 
 // The switch and a pause for every machine outrank whatever the last round said, which may predate them.
-export const cloudStanding = (status: CloudStatus, now = Date.now() / 1000): Standing | null => {
+export const cloudStanding = (
+  status: CloudStatus,
+  now = Date.now() / 1000,
+  clouds?: string[],
+): Standing | null => {
   if (status.pausedHere)
     return { said: "stateOff", why: "stateOffWhy", exit: "turnOn", exitSaid: "cloudTurnOn" };
+  if (accessGone(status, clouds)) return BY_CODE.cloudLost;
+  if (notOffered(status, clouds))
+    return { said: "stateFailed", told: plainly({ code: "cloudNotOffered" }) };
   if (status.haltedUntil && status.haltedUntil > now)
     return { said: "stateHalted", why: "stateHaltedWhy" };
   const last = status.last;

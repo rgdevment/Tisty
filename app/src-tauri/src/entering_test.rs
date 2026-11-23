@@ -1,5 +1,5 @@
 use super::*;
-use crate::handed::tests::{key, sealed_with, two};
+use crate::handed::tests::{Shut, Two, key, sealed_with, syncing_with_onedrive, two};
 use tisty_core::Op;
 
 fn seed(n: u8) -> Seed {
@@ -105,4 +105,41 @@ fn a_phrase_refused_for_another_person_keeps_no_key() {
 
     assert!(crate::handed::kept(&two.cloud).unwrap().is_none());
     assert_eq!(held(&two.asker).config.key_handed, None);
+}
+
+fn refused_by(hitch: fn() -> tisty_carrier::Hitch) -> (Refusal, Two) {
+    let mut two = two();
+    syncing_with_onedrive(&two.asker);
+    two.asking.plain = std::sync::Arc::new(Shut(hitch));
+    let refused =
+        entered(&two.asker, &Knocking::default(), &two.asking, &seed(7)).expect_err("shut");
+    (refused, two)
+}
+
+#[test]
+fn a_phrase_typed_with_the_access_lost_says_who_no_longer_lets_tisty_in_and_keeps_nothing() {
+    let (refused, two) = refused_by(|| tisty_carrier::Hitch::Lost);
+
+    assert_eq!(refused.code, "cloudLost");
+    assert_eq!(refused.name.as_deref(), Some("OneDrive"));
+    assert_eq!(held(&two.asker).config.key_handed, None);
+    assert!(crate::handed::kept(&two.cloud).unwrap().is_none());
+}
+
+#[test]
+fn a_phrase_typed_into_another_account_names_the_one_that_answered() {
+    let (refused, _two) = refused_by(|| tisty_carrier::Hitch::Elsewhere {
+        found: "marisol@example.com".into(),
+    });
+
+    assert_eq!(refused.code, "cloudElsewhere");
+    assert_eq!(refused.name.as_deref(), Some("marisol@example.com"));
+}
+
+#[test]
+fn a_phrase_typed_while_the_cloud_is_out_of_reach_is_still_one_to_try_later() {
+    let (refused, _two) =
+        refused_by(|| tisty_carrier::Hitch::Unreachable(None, "no answer".into()));
+
+    assert_eq!(refused.code, "cloudNotNow");
 }

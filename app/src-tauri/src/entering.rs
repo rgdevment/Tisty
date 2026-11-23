@@ -6,7 +6,7 @@ use tisty_share_proto::cloud::CloudKey;
 use tisty_share_proto::seed::Seed;
 use zeroize::Zeroizing;
 
-use crate::handed::{Here, Knocking, here_now, kept_for, opens};
+use crate::handed::{Here, Knocking, Unreached, here_now, kept_for, named, opens};
 use crate::{Answer, Refusal, Session, elsewhere, held};
 
 #[derive(Debug, Serialize, PartialEq, Eq)]
@@ -47,25 +47,30 @@ pub fn sealing_heard(session: tauri::State<'_, Mutex<Session>>) -> Vec<Heard> {
     heard(&held(&session))
 }
 
+fn unreached(why: Unreached, what: &'static str) -> Refusal {
+    tisty_core::witness::note(
+        tisty_core::witness::channel::CLOUD,
+        what,
+        &[("why", tisty_core::witness::Fact::Why(why.to_string()))],
+    );
+    why.refused("cloudNotNow")
+}
+
 fn checked(here: &Here, key: &CloudKey) -> Answer<()> {
     match opens(here, key) {
         Ok(true) => Ok(()),
         Ok(false) => Err(Refusal::of("phraseNotThisCloud")),
-        Err(why) => {
-            tisty_core::witness::note(
-                tisty_core::witness::channel::CLOUD,
-                "the cloud's mark could not be read to check a phrase",
-                &[("why", tisty_core::witness::Fact::Why(why))],
-            );
-            Err(Refusal::of("cloudNotNow"))
-        }
+        Err(why) => Err(unreached(
+            why.into(),
+            "the cloud's mark could not be read to check a phrase",
+        )),
     }
 }
 
 // Only the cloud's key is kept, never the seed: the root signs for this computer once and is let go.
 fn entered(session: &Mutex<Session>, knocking: &Knocking, here: &Here, seed: &Seed) -> Answer<()> {
     let key = CloudKey::of(seed);
-    checked(here, &key)?;
+    checked(here, &key).map_err(|refusal| named(session, refusal))?;
     {
         // Checked and signed under one hold, so a round in between never meets a second person.
         let mut session = held(session);
@@ -110,12 +115,8 @@ pub async fn sealing_phrase(app: AppHandle, said: String) -> Answer<()> {
             entering.state::<Knocking>(),
         );
         let (here, _) = here_now(&session, &knocking).map_err(|why| {
-            tisty_core::witness::note(
-                tisty_core::witness::channel::CLOUD,
-                "the sealed cloud could not be reached to enter it with a phrase",
-                &[("why", tisty_core::witness::Fact::Why(why))],
-            );
-            Refusal::of("cloudNotNow")
+            let said = "the sealed cloud could not be reached to enter it with a phrase";
+            named(&session, unreached(why, said))
         })?;
         entered(&session, &knocking, &here, &seed)
     })

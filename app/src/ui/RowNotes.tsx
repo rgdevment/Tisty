@@ -139,6 +139,7 @@ export function Feedback({
   const { busy, said, trouble } = useRows();
   const waitedOn = holder(busy, which);
   const secs = useSeconds(waitedOn === which && !hideWorking ? busy.get(which) : undefined);
+  const waits = useSeconds(waitedOn && waitedOn !== which ? busy.get(waitedOn) : undefined);
   const told = hideSaid ? undefined : said[which];
   const wrong = hideTrouble ? undefined : trouble[which];
   return (
@@ -148,7 +149,7 @@ export function Feedback({
           {fill("rowWorkingFor", doing(which), String(secs))}
         </p>
       )}
-      {waitedOn && waitedOn !== which && !quiet && (
+      {waitedOn && waits !== null && !quiet && (
         <p className="mt-1.5 text-faint" data-waiting="">
           {fill("waitFor", t(NAMED[waitedOn]))}
         </p>

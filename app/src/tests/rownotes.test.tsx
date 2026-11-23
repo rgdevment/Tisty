@@ -250,14 +250,15 @@ describe("what hangs under a row", () => {
     ).toBeNull();
   });
 
-  it("says which work a waiting row waits for, unless the row keeps quiet", () => {
+  it("says which work a waiting row waits for once it takes a while, unless the row keeps quiet", async () => {
     render(
       <Rows busy={working("backup")}>
         <Line row="restore" which="restore" />
         <Line row="syncMachines" which="machines" quiet />
       </Rows>,
     );
-    expect(screen.getAllByText(fill("waitFor", t("backup")))).toHaveLength(1);
+    expect(screen.queryByText(fill("waitFor", t("backup")))).toBeNull();
+    expect(await screen.findAllByText(fill("waitFor", t("backup")))).toHaveLength(1);
   });
 
   it("says what went wrong, with the retry beside it", async () => {

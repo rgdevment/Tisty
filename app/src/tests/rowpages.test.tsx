@@ -319,7 +319,7 @@ describe("the bar's pages", () => {
 });
 
 describe("copies while a backup runs", () => {
-  it("keeps restore, leaving and bringing documents waiting, and says for what", () => {
+  it("keeps restore, leaving and bringing documents waiting, and says for what", async () => {
     render(
       <Rows busy={working("backup")}>
         <Yours
@@ -339,7 +339,7 @@ describe("copies while a backup runs", () => {
       const row = within(rowOf(id));
       for (const button of row.getAllByRole("button"))
         expect((button as HTMLButtonElement).disabled).toBe(true);
-      expect(row.getByText(fill("waitFor", t("backup")))).toBeTruthy();
+      expect(await row.findByText(fill("waitFor", t("backup")))).toBeTruthy();
     }
   });
 });

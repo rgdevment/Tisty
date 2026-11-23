@@ -16,7 +16,7 @@ const ipc = vi.hoisted(() => ({
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: (cmd: string, args?: Record<string, unknown>) => {
     ipc.calls.push({ cmd, args: args ?? {} });
-    if (ipc.refuse?.cmd === cmd) return Promise.reject({ code: ipc.refuse.code });
+    if (ipc.refuse?.cmd === cmd) return Promise.reject({ code: ipc.refuse.code, name: "OneDrive" });
     if (cmd === "admitting_shown") return Promise.resolve(ipc.shown);
     if (cmd === "admitting_look") return Promise.resolve(ipc.newcomers);
     return Promise.resolve(null);
@@ -44,7 +44,7 @@ beforeEach(() => {
 describe("a new computer asking to come in", () => {
   it("waits, shows the code to type on the other computer, and trusts it once taken there", async () => {
     const onIn = vi.fn();
-    render(<LetMeIn onClose={() => {}} onIn={onIn} />);
+    render(<LetMeIn onReconnect={() => {}} onClose={() => {}} onIn={onIn} />);
     expect(await screen.findByText(/This computer waits here meanwhile/)).toBeTruthy();
     expect(sent("admitting_ask")).toHaveLength(1);
 
@@ -67,7 +67,7 @@ describe("a new computer asking to come in", () => {
   it("hands nothing over when the other computer did not take the digits, and gives the ask up when closed", async () => {
     ipc.shown = { step: "compare", code: CODE, by: "Mac" } satisfies Admitted;
     const onClose = vi.fn();
-    render(<LetMeIn onClose={onClose} onIn={() => {}} />);
+    render(<LetMeIn onReconnect={() => {}} onClose={onClose} onIn={() => {}} />);
     await userEvent.click(await screen.findByRole("button", { name: "It did not take them" }));
 
     expect(screen.getByText(/nothing was handed over/)).toBeTruthy();
@@ -76,6 +76,35 @@ describe("a new computer asking to come in", () => {
     await waitFor(() => expect(sent("admitting_cancel")).toHaveLength(1));
     expect(onClose).toHaveBeenCalled();
   });
+});
+
+describe("a new computer asking to come in with the access gone", () => {
+  for (const cmd of ["admitting_ask", "admitting_shown"])
+    it(`says so, offers to reconnect and stops asking (${cmd})`, async () => {
+      ipc.refuse = { cmd, code: "cloudLost" };
+      const onReconnect = vi.fn();
+      render(<LetMeIn onReconnect={onReconnect} onClose={() => {}} onIn={() => {}} />);
+
+      expect((await screen.findByRole("alert")).textContent).toMatch(
+        /OneDrive no longer lets Tisty in/,
+      );
+      expect(screen.queryByText(/This computer waits here meanwhile/)).toBeNull();
+      const asked = ipc.calls.length;
+      await later(3100);
+      expect(ipc.calls.length).toBe(asked);
+      await userEvent.click(screen.getByRole("button", { name: "Reconnect" }));
+      expect(onReconnect).toHaveBeenCalled();
+    }, 20_000);
+
+  it("goes on asking when the cloud is only out of reach", async () => {
+    ipc.refuse = { cmd: "admitting_shown", code: "admitNotNow" };
+    render(<LetMeIn onReconnect={() => {}} onClose={() => {}} onIn={() => {}} />);
+
+    expect(await screen.findByRole("alert")).toBeTruthy();
+    await later(3100);
+    expect(sent("admitting_shown").length).toBeGreaterThan(1);
+    expect(screen.queryByRole("button", { name: "Reconnect" })).toBeNull();
+  }, 20_000);
 });
 
 describe("letting a new computer in from one that reads the cloud", () => {
