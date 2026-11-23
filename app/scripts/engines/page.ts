@@ -83,6 +83,15 @@ const hearing = (page: Document) => (event: InputEvent) => {
   });
 };
 
+// What was written shows only once the core has drawn it, so the hands ask before they aim a click or set the caret.
+let awaited = 0;
+const drawing = <T>(asked: Promise<T>): Promise<T> => {
+  awaited += 1;
+  return asked.finally(() => {
+    awaited -= 1;
+  });
+};
+
 const dressedUp = (page: Document) => {
   const reach = () => ({
     body: text,
@@ -106,13 +115,15 @@ const writtenIn = (page: Document) => {
     },
     shown: () => {},
     redraw: (now) => {
-      void docPlaced(now).then((drawn) => {
-        const sheet = page.querySelector(".page");
-        if (sheet) freshen(sheet, drawn);
-        writer?.drawn();
-      });
+      void drawing(
+        docPlaced(now).then((drawn) => {
+          const sheet = page.querySelector(".page");
+          if (sheet) freshen(sheet, drawn);
+          writer?.drawn();
+        }),
+      );
     },
-    near: docPlacedNear,
+    near: (...asked) => drawing(docPlacedNear(...asked)),
     dressed: () => {},
     translated: (_html, plain) => Promise.resolve(plain),
     ask: () => {},
@@ -178,6 +189,7 @@ Object.assign(window, {
   engines: {
     open,
     consistent,
+    drawn: () => awaited === 0,
     text: () => text,
     errors: () => [...errors],
     heard: () => [...heard],

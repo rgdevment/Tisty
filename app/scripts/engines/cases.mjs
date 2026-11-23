@@ -39,8 +39,9 @@ const NO_LINE_DELETE_ON_WINDOWS = "Windows has no key that deletes back to the s
 
 const MISSING_PICTURE = PIECES.replace("](mini.png)", "](missing.png)");
 
-const caretInWords = (frame, words, offset) =>
-  frame.evaluate(
+const caretInWords = async (frame, words, offset) => {
+  await frame.parentFrame().waitForFunction(() => window.engines.drawn());
+  await frame.evaluate(
     ([said, at]) => {
       const walk = document.createTreeWalker(document.querySelector(".page"), NodeFilter.SHOW_TEXT);
       for (let node = walk.nextNode(); node; node = walk.nextNode()) {
@@ -52,6 +53,7 @@ const caretInWords = (frame, words, offset) =>
     },
     [words, offset],
   );
+};
 
 export const CASES = [
   {

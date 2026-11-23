@@ -21,6 +21,7 @@ export const handsOn = (page, frame) => {
   let mac;
   const onMac = async () => (mac ??= await macIn(page));
   const clickAt = async (words, before = false) => {
+    await page.waitForFunction(() => window.engines.drawn());
     const spot = await frame.evaluate(
       ([said, early]) => {
         const walk = document.createTreeWalker(document.querySelector(".page"), NodeFilter.SHOW_TEXT);
