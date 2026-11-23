@@ -1292,6 +1292,130 @@ export const CASES = [
     was: "y\n\n:::details Plegable\n\nDentro\n\n:::",
     now: "X",
   },
+  {
+    name: "rightStopsAfterATagAtLineEnd",
+    doc: "# Etiquetas\n\nAntes del final #etiqueta\n\nSiguiente línea.\n",
+    run: async ({ clickAt, busyTyped, frame }) => {
+      await clickAt("Antes");
+      await caretInWords(frame, "Antes del final ", 16);
+      await busyTyped(["ArrowRight", "Backspace"], "");
+    },
+    was: "#etiqueta",
+    now: "",
+  },
+  {
+    name: "rightStopsAfterCodeAtLineEnd",
+    doc: "# Código\n\nAntes del final `cod`\n\nSiguiente línea.\n",
+    run: async ({ clickAt, busyTyped, frame }) => {
+      await clickAt("Antes");
+      await caretInWords(frame, "Antes del final ", 16);
+      await busyTyped(["ArrowRight", "Backspace"], "");
+    },
+    was: "`cod`",
+    now: "",
+  },
+  {
+    name: "rightIntoAStepStandsAfterItsBox",
+    doc: "# Pasos\n\n- [ ] uno\n- [ ] dos tres\n\nFin.\n",
+    run: async ({ clickAt, busyTyped, frame }) => {
+      await clickAt("uno");
+      await caretInWords(frame, "uno", 3);
+      await busyTyped(["ArrowRight", "Delete"], "");
+    },
+    was: "d",
+    now: "",
+  },
+  {
+    name: "leftOutOfAStepLeavesItsBoxBehind",
+    doc: "# Pasos\n\n- [ ] uno\n- [ ] dos tres\n\nFin.\n",
+    run: async ({ clickAt, typed, busyTyped, frame }) => {
+      await clickAt("uno");
+      await caretInWords(frame, "dos tres", 0);
+      await busyTyped(["ArrowLeft"], "X");
+      await caretInWords(frame, "Pasos", 0);
+      await typed("Y");
+    },
+    was: "Pasos\n\n- [ ] uno",
+    now: "YPasos\n\n- [ ] unoX",
+  },
+  {
+    name: "homeAndEndWalkToTheLineEdgesPastTags",
+    doc: "# Líneas\n\n#uno del final y #dos\n\nOtra.\n",
+    run: async ({ clickAt, busyTyped, frame }) => {
+      await clickAt("final");
+      await caretInWords(frame, " del final y ", 4);
+      await busyTyped(["End"], "E");
+      await busyTyped(["Home"], "H");
+    },
+    was: "#uno del final y #dos",
+    now: "H#uno del final y #dosE",
+  },
+  {
+    name: "shiftEndChoosesToTheLineEnd",
+    doc: "# Líneas\n\nAntes del final y #etiqueta\n\nOtra.\n",
+    run: async ({ clickAt, busyTyped, frame }) => {
+      await clickAt("final");
+      await caretInWords(frame, "Antes del final y ", 10);
+      await busyTyped(["Shift+End"], "E");
+    },
+    was: "final y #etiqueta",
+    now: "E",
+  },
+  {
+    name: "commandADeletesAPageEndingInATable",
+    doc: "# Tabla\n\nAntes y más\n\n| a | b |\n|---|---|\n| 1 | 2 |\n",
+    run: async ({ clickAt, command, press }) => {
+      await clickAt("Antes");
+      await command("a");
+      await press("Backspace");
+    },
+    was: "# Tabla\n\nAntes y más\n\n| a | b |\n|---|---|\n| 1 | 2 |\n",
+    now: "",
+  },
+  {
+    name: "commandACutsAPageOpeningWithATable",
+    doc: "| a | b |\n|---|---|\n| 1 | 2 |\n\nDespués y más\n",
+    run: async ({ clickAt, command }) => {
+      await clickAt("Después");
+      await command("a");
+      await command("x");
+    },
+    was: "| a | b |\n|---|---|\n| 1 | 2 |\n\nDespués y más",
+    now: "",
+  },
+  {
+    name: "leftAtTheFirstStepsStartStaysAfterItsBox",
+    doc: "- [ ] uno dos\n\nFin.\n",
+    run: async ({ clickAt, busyTyped, frame }) => {
+      await clickAt("dos");
+      await caretInWords(frame, "uno dos", 0);
+      await busyTyped(["ArrowLeft", "Delete"], "");
+    },
+    was: "u",
+    now: "",
+  },
+  {
+    name: "commandAThenLeftOnAPageOpeningWithStepsStaysAfterTheBox",
+    doc: "- [ ] uno dos\n\nFin.\n",
+    run: async ({ clickAt, command, busyTyped }) => {
+      await clickAt("Fin");
+      await command("a");
+      await busyTyped(["ArrowLeft", "Delete"], "");
+    },
+    was: "u",
+    now: "",
+  },
+  {
+    name: "commandAThenTypingReplacesAPageEndingInATable",
+    doc: "# Tabla\n\nAntes y más\n\n| a | b |\n|---|---|\n| 1 | 2 |\n",
+    run: async ({ clickAt, command, typed }) => {
+      await clickAt("Antes");
+      await command("a");
+      await typed("Z");
+    },
+    was: "Tabla\n\nAntes y más\n\n| a | b |\n|---|---|\n| 1 | 2 |\n",
+    now: "Z",
+  },
 ];
 
 const macIn = (frame) => frame.evaluate(() => navigator.userAgent.includes("Macintosh"));

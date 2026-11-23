@@ -8,6 +8,9 @@ import {
   lineOfCaret,
   SOLID_PIECE,
   scrolledAround,
+  shownWords,
+  unseenLetter,
+  WHOLE,
 } from "./pageNodes";
 import { placeOf, placeSaid } from "./pagePlaces";
 import { endOf, GHOST, ghostAt, sourceAt, spotOf, startOf, topsAt } from "./pageSpots";
@@ -16,8 +19,6 @@ import { choiceKept, type Point, type Writer } from "./pageWriter";
 export type Caret = ReturnType<typeof caretOn>;
 
 type Spot = [Node, number];
-
-const WHOLE = '.page > [data-at][contenteditable="false"]:not(h1, h2, h3, h4, h5, h6, .front)';
 
 export const caretOn = (writer: Writer) => {
   const { page, hands } = writer;
@@ -266,7 +267,10 @@ export const caretOn = (writer: Writer) => {
     const node = range.startContainer;
     const atom = writtenSolid(node);
     if (!atom) return;
-    const early = node.nodeType === Node.TEXT_NODE && range.startOffset * 2 < (node as Text).length;
+    const early =
+      node.nodeType === Node.TEXT_NODE &&
+      !unseenLetter(node) &&
+      range.startOffset * 2 < (node as Text).length;
     const [holder, offset] = early ? startOf(atom) : endOf(atom);
     caretLaidOn(page, holder, offset);
   };
@@ -276,7 +280,7 @@ export const caretOn = (writer: Writer) => {
     part.selectNodeContents(atom);
     if (before) part.setEnd(node, offset);
     else part.setStart(node, offset);
-    return part.toString() !== "";
+    return shownWords(part.toString()) !== "";
   };
 
   const opensIn = (atom: Element, node: Node, offset: number) =>

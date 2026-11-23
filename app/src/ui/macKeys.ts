@@ -47,6 +47,17 @@ export const edgeWalk = (event: Pressed & { readonly isComposing: boolean }): Ed
     : null;
 };
 
+const LINE_KEYS: Readonly<Record<string, boolean>> = { Home: true, End: false };
+
+export type LineKey = { readonly toStart: boolean; readonly reaching: boolean };
+
+export const lineKey = (event: Pressed & { readonly isComposing: boolean }): LineKey | null => {
+  const toStart = LINE_KEYS[event.key];
+  if (!onMac || toStart === undefined || event.isComposing) return null;
+  if (event.metaKey || event.ctrlKey || event.altKey) return null;
+  return { toStart, reaching: event.shiftKey };
+};
+
 export const MOVE_KEYS = onMac ? "⌃⌥" : "Alt";
 
 export const MOVE_SHORTCUTS = onMac

@@ -156,9 +156,7 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
   };
   const cut = () => {
     if (choosing.choosing()) return choosing.dropped();
-    const picked = caret.chosenNow();
-    const one = picked && balanced(hands.text(), picked);
-    if (one) laying.put({ ...one, insert: "" }, one.from);
+    keys.takenOut();
   };
   // Ctrl+C and Ctrl+X carry the Tisty Markdown of the words chosen, as the right-click does, never the drawn page.
   const clipped = (event: ClipboardEvent) => {

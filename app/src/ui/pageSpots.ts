@@ -201,10 +201,11 @@ export const spotOf = (
   return before ? endOf(before) : [block, block.childNodes.length];
 };
 
-const indexOf = (one: Node) => Array.prototype.indexOf.call(one.parentNode?.childNodes ?? [], one);
+export const indexOf = (one: Node) =>
+  Array.prototype.indexOf.call(one.parentNode?.childNodes ?? [], one);
 
 // A step with no words yet is written after its box, never before it.
-const boxEnd = (item: Element) => {
+export const boxEnd = (item: Element) => {
   const box = item.querySelector(":scope > .check");
   return box ? indexOf(box) + 1 : 0;
 };
@@ -232,6 +233,11 @@ const ownOf = (block: Element, selector: string) =>
 export const endIn = (block: Element): [Node, number] => {
   const last = ownOf(block, PLACED).pop();
   return last ? endOf(last) : [block, block.childNodes.length];
+};
+
+export const startIn = (block: Element): [Node, number] => {
+  const first = block.querySelector(PLACED);
+  return first ? startOf(first) : [block, 0];
 };
 
 type Spot = [Node, number];

@@ -1,6 +1,15 @@
 import { SLASHED } from "tisty-editor/edit";
 import { bytesAt, charsAt } from "tisty-editor/read";
-import { caretWalk, type Edge, edgeWalk, letterOf, modKey, moveKey } from "./macKeys";
+import {
+  caretWalk,
+  type Edge,
+  edgeWalk,
+  type LineKey,
+  letterOf,
+  lineKey,
+  modKey,
+  moveKey,
+} from "./macKeys";
 import type { Beside } from "./pageBeside";
 import type { Caret } from "./pageCaret";
 import type { Choosing } from "./pageChoosing";
@@ -8,9 +17,10 @@ import type { Formats } from "./pageFormats";
 import type { PageHistory } from "./pageHistory";
 import type { Laying } from "./pageLaying";
 import { nested } from "./pageLists";
+import { balanced } from "./pageMarks";
 import { swappedItem } from "./pageMoving";
-import { caretLaidOn, elementOf, inCode, onSheet, WRITABLE } from "./pageNodes";
-import { endIn, lineEdge, spotOf } from "./pageSpots";
+import { besideBox, caretLaidOn, elementOf, inCode, onSheet, WHOLE, WRITABLE } from "./pageNodes";
+import { endIn, indexOf, lineEdge, spotOf, startIn } from "./pageSpots";
 import type { Writer } from "./pageWriter";
 
 const KEYED: Record<string, readonly [string, string]> = {
@@ -94,6 +104,11 @@ export const keysOn = (
 
   const edgeClicked = () => edgeLetGo()?.laid(false);
 
+  const afterMove = (laid: (inView: boolean) => void) => {
+    edgeLaid();
+    edgeAwaited = { laid, timer: setTimeout(edgeLaid) };
+  };
+
   const toLineEdge = ({ toStart, visual }: Edge, outOnly = false) => {
     edgeLaid();
     const range = caret.chosen();
@@ -123,26 +138,64 @@ export const keysOn = (
       if (inView) caret.laidAt(spot);
       else caretLaidOn(page, ...spot);
     };
-    edgeAwaited = {
-      laid: (inView) => {
-        corrected(inView);
-        leftBehind(left);
-      },
-      timer: setTimeout(edgeLaid),
-    };
+    afterMove((inView) => {
+      corrected(inView);
+      leftBehind(left);
+    });
   };
 
-  const lastBlock = () =>
-    Array.from(page.querySelectorAll(".page [data-at]"))
-      .filter((one) => one.closest(WRITABLE) && !one.closest('[contenteditable="false"]'))
-      .pop();
+  const toLineKey = ({ toStart, reaching }: LineKey) => {
+    if (!reaching) toLineEdge({ toStart, visual: true });
+    const way = toStart ? "backward" : "forward";
+    page.getSelection()?.modify(reaching ? "extend" : "move", way, "lineboundary");
+  };
+
+  const sideOfBox = () => {
+    const range = caret.chosen();
+    return range?.collapsed ? besideBox(range.startContainer, range.startOffset) : null;
+  };
+
+  const pastBox = (key: string) => {
+    const held = caret.chosen();
+    if (!held?.collapsed || !page.querySelector(".page li.task")) return;
+    const back = key === "ArrowLeft";
+    const inStep = back && elementOf(held.startContainer)?.closest("li.task");
+    const from = inStep ? caret.caretSpan()?.from : undefined;
+    afterMove(() => {
+      for (let tries = 0; tries < 2; tries++) {
+        const side = sideOfBox();
+        const unmoved = side === "after" && from !== undefined && caret.caretSpan()?.from === from;
+        if (side !== "before" && !unmoved) return;
+        page.getSelection()?.modify("move", back ? "left" : "right", "character");
+      }
+      const range = caret.chosen();
+      if (range && sideOfBox() === "before")
+        caretLaidOn(page, range.startContainer, range.startOffset + 1);
+    });
+  };
+
+  const writableBlocks = () =>
+    Array.from(page.querySelectorAll(".page [data-at]")).filter(
+      (one) => one.closest(WRITABLE) && !one.closest('[contenteditable="false"]'),
+    );
+
+  const lastBlock = () => writableBlocks().pop();
+
+  const wholeBeyond = (block: Element, fromEnd: boolean) => {
+    const tops = Array.from(page.querySelectorAll(".page > [data-at]"));
+    if (fromEnd) tops.reverse();
+    const top = tops.find((one) => one.matches(WHOLE) || one.contains(block));
+    return top?.parentNode && top.matches(WHOLE) ? top : null;
+  };
+
+  const pageStart = (first: Element): [Node, number] => {
+    const top = wholeBeyond(first, false);
+    return top?.parentNode ? [top.parentNode, indexOf(top)] : startIn(first);
+  };
 
   const pageEnd = (last: Element): [Node, number] => {
-    const sheet = page.querySelector(".page");
-    const tops = sheet?.querySelectorAll(":scope > [data-at]");
-    const top = tops?.[tops.length - 1];
-    if (!sheet || !top || top.contains(last)) return endIn(last);
-    return [sheet, Array.prototype.indexOf.call(sheet.childNodes, top) + 1];
+    const top = wholeBeyond(last, true);
+    return top?.parentNode ? [top.parentNode, indexOf(top) + 1] : endIn(last);
   };
 
   // A tag or other piece drawn whole at a line's end leaves the browser no place after it, so End is placed here.
@@ -159,9 +212,46 @@ export const keysOn = (
       toLineEdge({ toStart: false, visual: true }, true);
   };
 
+  const choseAll = (event: KeyboardEvent) => {
+    const blocks = writableBlocks();
+    const first = blocks[0];
+    const last = blocks[blocks.length - 1];
+    if (!first || !last) return;
+    event.preventDefault();
+    page.getSelection()?.setBaseAndExtent(...pageStart(first), ...pageEnd(last));
+  };
+
+  const sideArrow = (event: KeyboardEvent) =>
+    (event.key === "ArrowLeft" || event.key === "ArrowRight") &&
+    !event.shiftKey &&
+    !event.ctrlKey &&
+    !event.metaKey &&
+    !event.altKey;
+
+  const takenOut = () => {
+    const picked = caret.chosenNow();
+    const one = picked && balanced(hands.text(), picked);
+    if (!one) return false;
+    put({ ...one, insert: "" }, one.from);
+    return true;
+  };
+
+  const opensBeforeWhole = () => {
+    const range = caret.chosen();
+    if (!range || range.collapsed) return false;
+    const top = range.startContainer.childNodes[range.startOffset];
+    return top?.nodeType === Node.ELEMENT_NODE && (top as Element).matches(WHOLE);
+  };
+
   const outOfSolids = (event: KeyboardEvent) => {
     if (event.isComposing || !onSheet(page, event)) return;
-    if (event.key === "Backspace" || event.key === "Delete") caret.solidsLeft();
+    if (event.key !== "Backspace" && event.key !== "Delete") return;
+    const held = event.shiftKey || event.ctrlKey || event.metaKey || event.altKey;
+    if (held || !opensBeforeWhole()) return caret.solidsLeft();
+    writer.leftFrom = undefined;
+    writer.typing = true;
+    writer.pending = null;
+    if (takenOut()) event.preventDefault();
   };
 
   const keyed = (event: KeyboardEvent) => {
@@ -171,6 +261,11 @@ export const keysOn = (
         choosing.choose(event);
       return;
     }
+    const line = lineKey(event);
+    if (line) {
+      event.preventDefault();
+      return toLineKey(line);
+    }
     if (event.key === "End" && !event.altKey) return toEnd(event);
     const edge = edgeWalk(event);
     if (edge) return toLineEdge(edge);
@@ -178,9 +273,11 @@ export const keysOn = (
       return tabbed(event);
     if (moveKey(event) && (event.key === "ArrowUp" || event.key === "ArrowDown"))
       return stepped(event);
+    if (sideArrow(event)) return pastBox(event.key);
     if (!modKey(event) || event.altKey) return;
     if (event.key === "Enter") return broke(event);
     const named = `${event.shiftKey ? "shift " : ""}${letterOf(event)}`;
+    if (named === "a") return choseAll(event);
     if (named === "z" || named === "shift z" || named === "y") {
       event.preventDefault();
       writer.pending = null;
@@ -266,5 +363,15 @@ export const keysOn = (
     tags.hide();
   };
 
-  return { keyed, noted, ticking, moved, outOfSolids, edgeLaid, edgeClicked, edgeLetGo };
+  return {
+    keyed,
+    noted,
+    ticking,
+    moved,
+    outOfSolids,
+    takenOut,
+    edgeLaid,
+    edgeClicked,
+    edgeLetGo,
+  };
 };

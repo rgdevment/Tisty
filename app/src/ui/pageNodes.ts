@@ -1,10 +1,13 @@
-import { GHOST } from "./pageSpots";
+import { boxEnd, GHOST } from "./pageSpots";
 
 export const FIELDS = "input, textarea, select";
 
 const LITERAL = "pre, code, kbd, figure.code > figcaption";
 
 export const SOLID_PIECE = '[data-src][contenteditable="false"]';
+
+export const WHOLE =
+  '.page > [data-at][contenteditable="false"]:not(h1, h2, h3, h4, h5, h6, .front)';
 
 const solidAfter = (box: Element) => {
   const next = box.nextSibling;
@@ -13,6 +16,40 @@ const solidAfter = (box: Element) => {
 
 const roomBeside = (box: Element) => {
   if (solidAfter(box)) box.after(box.ownerDocument.createElement("wbr"));
+};
+
+const LINE_PIECE = `${SOLID_PIECE}:not(br)`;
+
+const UNSEEN_LETTER = "\u200B";
+
+export const unseenLetter = (node: Node | null | undefined) =>
+  node?.nodeType === Node.TEXT_NODE && (node as Text).data === UNSEEN_LETTER;
+
+export const shownWords = (said: string) => said.split(UNSEEN_LETTER).join("");
+
+const lastOnLine = (piece: Element): Element | null => {
+  const block = piece.parentElement?.closest("[data-at]");
+  let one = piece;
+  while (block && one.parentElement !== block && !one.nextSibling && one.parentElement)
+    one = one.parentElement;
+  return block && one.parentElement === block && !one.nextSibling ? one : null;
+};
+
+const roomAfter = (piece: Element) => {
+  const end = lastOnLine(piece);
+  if (!end) return;
+  const page = piece.ownerDocument;
+  end.after(page.createTextNode(""));
+  if (piece.querySelector("math") && !unseenLetter(piece.lastChild))
+    piece.append(page.createTextNode(UNSEEN_LETTER));
+};
+
+export const besideBox = (node: Node, offset: number): "before" | "after" | null => {
+  const step = node.nodeType === Node.ELEMENT_NODE ? (node as Element) : null;
+  const after = step?.matches("li.task") ? boxEnd(step) : 0;
+  if (!after) return null;
+  if (offset === after - 1) return "before";
+  return offset === after ? "after" : null;
 };
 
 export const WRITABLE =
@@ -117,6 +154,7 @@ export const opened = (page: Document, laid?: readonly Element[]) => {
   for (const one of within(".drop-section, .doc-card, .check, .to-part"))
     said(one, "contenteditable", "false");
   for (const box of within("li.task > .check")) roomBeside(box);
+  for (const piece of within(LINE_PIECE)) roomAfter(piece);
   // Code is spelled as the language wants it, so the system's speller has nothing to say there.
   for (const one of within(LITERAL)) said(one, "spellcheck", "false");
 };

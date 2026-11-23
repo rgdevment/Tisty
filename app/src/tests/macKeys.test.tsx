@@ -908,6 +908,150 @@ describe("Cmd as the command key on a Mac, where Control is the text's", () => {
   });
 });
 
+describe("Home and End on a Mac", () => {
+  const held = {
+    ctrlKey: false,
+    metaKey: false,
+    altKey: false,
+    shiftKey: false,
+    isComposing: false,
+  };
+
+  const walked = () => {
+    const walks: string[][] = [];
+    Object.defineProperty(Selection.prototype, "modify", {
+      value: (...said: string[]) => walks.push(said),
+      configurable: true,
+    });
+    return walks;
+  };
+
+  afterEach(() => {
+    Reflect.deleteProperty(Selection.prototype, "modify");
+  });
+
+  it("reads Home and End as a line's edges on a Mac, Shift reaching there", async () => {
+    on(MAC);
+    const { lineKey } = await import("../ui/macKeys");
+    expect(lineKey({ ...held, key: "Home", code: "Home" })).toEqual({
+      toStart: true,
+      reaching: false,
+    });
+    expect(lineKey({ ...held, key: "End", code: "End", shiftKey: true })).toEqual({
+      toStart: false,
+      reaching: true,
+    });
+    expect(lineKey({ ...held, key: "End", code: "End", metaKey: true })).toBeNull();
+    expect(lineKey({ ...held, key: "Home", code: "Home", isComposing: true })).toBeNull();
+    expect(lineKey({ ...held, key: "ArrowLeft", code: "ArrowLeft" })).toBeNull();
+    on(WINDOWS);
+    const windows = await import("../ui/macKeys");
+    expect(windows.lineKey({ ...held, key: "Home", code: "Home" })).toBeNull();
+  });
+
+  it("walks the caret to the line's edge with Home and End on a Mac, where the system only scrolls", async () => {
+    on(MAC);
+    const walks = walked();
+    await written();
+    caretIn("Uno dos", 3);
+    expect(keyOn(sheet(), "Home").defaultPrevented).toBe(true);
+    expect(keyOn(sheet(), "End", { shiftKey: true }).defaultPrevented).toBe(true);
+    expect(walks).toEqual([
+      ["move", "backward", "lineboundary"],
+      ["extend", "forward", "lineboundary"],
+    ]);
+  });
+});
+
+describe("the whole page chosen with Cmd or Ctrl and A", () => {
+  it("reaches past a table that ends the page, and Backspace takes it all", async () => {
+    on(WINDOWS);
+    const said = await written(
+      "Uno dos\n\n| a |\n|---|\n| 1 |\n",
+      '<p data-at="0-7"><span data-src="0-7">Uno dos</span></p>' +
+        '<div class="table" data-at="9-26" contenteditable="false"><table><tr><td>1</td></tr></table></div>',
+    );
+    caretIn("Uno dos", 3);
+    expect(keyOn(sheet(), "a", { ctrlKey: true, code: "KeyA" }).defaultPrevented).toBe(true);
+    const held = document.getSelection();
+    expect([held?.anchorNode, held?.anchorOffset]).toEqual([piece("Uno dos"), 0]);
+    expect([held?.focusNode, held?.focusOffset]).toEqual([sheet(), 2]);
+    expect(keyOn(sheet(), "Backspace").defaultPrevented).toBe(true);
+    expect(said[said.length - 1]).toBe("\n");
+  });
+
+  it("reaches from before a table that opens the page, leaving the properties out", async () => {
+    on(MAC);
+    const said = await written(
+      "---\ntitle: X\n---\n\n| a |\n|---|\n| 1 |\n\nUno dos\n",
+      '<dl class="front" data-at="0-17"><dt>title</dt><dd>X</dd></dl>' +
+        '<div class="table" data-at="18-36" contenteditable="false"><table><tr><td>1</td></tr></table></div>' +
+        '<p data-at="37-44"><span data-src="37-44">Uno dos</span></p>',
+    );
+    caretIn("Uno dos", 3);
+    expect(keyOn(sheet(), "a", { metaKey: true, code: "KeyA" }).defaultPrevented).toBe(true);
+    const held = document.getSelection();
+    expect([held?.anchorNode, held?.anchorOffset]).toEqual([sheet(), 1]);
+    expect([held?.focusNode, held?.focusOffset]).toEqual([piece("Uno dos"), 7]);
+    expect(keyOn(sheet(), "Delete").defaultPrevented).toBe(true);
+    expect(said[said.length - 1]).toBe("---\ntitle: X\n---\n\n");
+  });
+
+  it("leaves Shift with Delete, the cut of Windows, to the system on a page that opens with a table", async () => {
+    on(WINDOWS);
+    const said = await written(
+      "| a |\n|---|\n| 1 |\n\nUno dos\n",
+      '<div class="table" data-at="0-18" contenteditable="false"><table><tr><td>1</td></tr></table></div>' +
+        '<p data-at="19-26"><span data-src="19-26">Uno dos</span></p>',
+    );
+    caretIn("Uno dos", 3);
+    keyOn(sheet(), "a", { ctrlKey: true, code: "KeyA" });
+    const before = said.length;
+    expect(keyOn(sheet(), "Delete", { shiftKey: true }).defaultPrevented).toBe(false);
+    expect(said).toHaveLength(before);
+  });
+
+  it("starts at the first words of a page that opens with steps, after the first box", async () => {
+    on(WINDOWS);
+    await written(
+      "- [ ] uno\n\nFin\n",
+      '<ul data-at="0-10"><li class="task" data-at="0-10"><span class="check"></span><span data-src="6-9">uno</span></li></ul>' +
+        '<p data-at="11-14"><span data-src="11-14">Fin</span></p>',
+    );
+    caretIn("Fin", 1);
+    keyOn(sheet(), "a", { ctrlKey: true, code: "KeyA" });
+    const held = document.getSelection();
+    expect([held?.anchorNode, held?.anchorOffset]).toEqual([piece("uno"), 0]);
+  });
+
+  it("reaches past a table before a task's last label, leaving the label out", async () => {
+    on(WINDOWS);
+    document.documentElement.classList.add("untitled");
+    try {
+      await written(
+        "Uno dos\n\n| a |\n|---|\n| 1 |\n\n## Notas\n",
+        '<p data-at="0-7"><span data-src="0-7">Uno dos</span></p>' +
+          '<div class="table" data-at="9-26" contenteditable="false"><table><tr><td>1</td></tr></table></div>' +
+          '<h2 data-at="28-37"><span data-src="31-36">Notas</span></h2>',
+      );
+      caretIn("Uno dos", 3);
+      keyOn(sheet(), "a", { ctrlKey: true, code: "KeyA" });
+      expect([document.getSelection()?.focusNode, document.getSelection()?.focusOffset]).toEqual([
+        sheet(),
+        2,
+      ]);
+      caretIn("Uno dos", 3);
+      keyOn(sheet(), "End", { ctrlKey: true, shiftKey: true });
+      expect([document.getSelection()?.focusNode, document.getSelection()?.focusOffset]).toEqual([
+        sheet(),
+        2,
+      ]);
+    } finally {
+      document.documentElement.classList.remove("untitled");
+    }
+  });
+});
+
 describe("the chord that moves a block", () => {
   it("is Control and Option on a Mac, leaving Option and Shift with Option to the text", async () => {
     on(MAC);
