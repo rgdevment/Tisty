@@ -12,14 +12,13 @@ import {
   pageReach,
 } from "./macKeys";
 import type { Beside } from "./pageBeside";
-import type { Caret } from "./pageCaret";
+import type { Caret, Taken } from "./pageCaret";
 import type { Choosing } from "./pageChoosing";
 import { colonsKept } from "./pageColons";
 import type { Formats } from "./pageFormats";
 import type { PageHistory } from "./pageHistory";
 import type { Laying } from "./pageLaying";
 import { nested } from "./pageLists";
-import { balanced } from "./pageMarks";
 import { swappedItem } from "./pageMoving";
 import {
   besideBox,
@@ -372,11 +371,9 @@ export const keysOn = (
     !event.altKey &&
     !event.isComposing;
 
-  const takenOut = () => {
-    const picked = caret.chosenWhole();
-    const one = picked && balanced(hands.text(), picked);
+  const takenOut = (one: Taken) => {
     if (!one) return false;
-    const gone = colonsKept(hands.text(), { ...one, insert: "" });
+    const gone = colonsKept(hands.text(), { from: one.from, to: one.to, insert: one.left });
     put(gone, gone.from);
     return true;
   };
@@ -397,7 +394,7 @@ export const keysOn = (
     writer.leftFrom = undefined;
     writer.typing = true;
     writer.pending = null;
-    if (takenOut()) event.preventDefault();
+    if (takenOut(caret.taken())) event.preventDefault();
   };
 
   const keyed = (event: KeyboardEvent) => {
@@ -489,10 +486,12 @@ export const keysOn = (
     beside.besideLine();
     const range = caret.chosen();
     const sheet = page.querySelector(".page");
-    if (range && !range.collapsed && sheet?.contains(range.startContainer))
+    if (range && !range.collapsed && sheet?.contains(range.startContainer)) {
       writer.lastChosen = caret.spanOfRange(range);
-    else if (range?.collapsed) {
+      writer.lastRange = page.getSelection()?.getRangeAt(0).cloneRange() ?? null;
+    } else if (range?.collapsed) {
       writer.lastChosen = null;
+      writer.lastRange = null;
       if (!outOfLetter(range) && !outOfMark(range)) caret.outOfSolid(range);
     }
     if (writer.leftFrom === undefined) return;

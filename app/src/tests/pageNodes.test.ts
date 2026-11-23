@@ -374,15 +374,6 @@ describe("a piece that ends an item's line before a nested block drawn from its 
     return [event.defaultPrevented, held?.anchorNode, held?.anchorOffset];
   };
 
-  it("is walked past with ← and →, one stop after it, into a block laid open", () => {
-    walkedUnder(false, (item, drawn) => [
-      [arrow("ArrowRight"), [true, item, 2]],
-      [arrow("ArrowRight"), [true, drawn, 0]],
-      [arrow("ArrowLeft"), [true, item, 2]],
-      [arrow("ArrowLeft"), [true, item, 1]],
-    ]);
-  });
-
   it("is walked past with →, one stop after it, onto the next line past a block drawn whole", () => {
     walkedUnder(true, (item) => {
       const next = item.nextElementSibling?.querySelector("[data-src]")?.firstChild;

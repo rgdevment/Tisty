@@ -28,6 +28,10 @@ const DRAWINGS: Record<string, string> = {
   "# T\n\nHola mundo bonitoX@\n\nSegundo párrafo\n": `${TITLE}<p data-at="5-25"><span data-src="5-24">Hola mundo bonitoX@</span></p><p data-at="26-43"><span data-src="26-42">Segundo párrafo</span></p>`,
   "# T\n\nHola mundo bonito\n\negundo párrafo\n": `${TITLE}<p data-at="5-23"><span data-src="5-22">Hola mundo bonito</span></p><p data-at="24-40"><span data-src="24-39">egundo párrafo</span></p>`,
   "# T\n\nHola mundo \n\nSegundo párrafo\n": `${TITLE}<p data-at="5-17"><span data-src="5-15">Hola mundo</span></p><p data-at="18-35"><span data-src="18-34">Segundo párrafo</span></p>`,
+  "# T\n\nAntes\n\nuno\n\n- dos\n- tres\n": `${TITLE}${ANTES}<p data-at="12-16"><span data-src="12-15">uno</span></p><ul data-at="17-30"><li data-at="17-23"><span data-src="19-22">dos</span></li><li data-at="23-30"><span data-src="25-29">tres</span></li></ul>`,
+  "Antes\n\n## Pasos\n\nuno\n\n- dos\n":
+    '<p data-at="0-6"><span data-src="0-5">Antes</span></p><h2 id="pasos" data-at="7-16"><span data-src="10-15">Pasos</span></h2><p data-at="17-21"><span data-src="17-20">uno</span></p><ul data-at="22-28"><li data-at="22-28"><span data-src="24-27">dos</span></li></ul>',
+  "# T\n\n- [ ] a\n\nb\n\n- [x] c\n": `${TITLE}<ul data-at="5-13"><li class="task" data-at="5-13"><span class="check" data-done="false"></span><span data-src="11-12">a</span></li></ul><p data-at="14-16"><span data-src="14-15">b</span></p><ul data-at="17-25"><li class="task" data-at="17-25"><span class="check" data-done="true"></span><span data-src="23-24">c</span></li></ul>`,
   [TWO]: `${TITLE}<p data-at="5-23"><span data-src="5-22">Hola mundo bonito</span></p><p data-at="24-41"><span data-src="24-40">Segundo párrafo</span></p>`,
   [LIST]: `${TITLE}${ANTES}<ul data-at="12-31"><li data-at="12-18"><span data-src="14-17">uno</span></li><li data-at="18-24"><span data-src="20-23">dos</span></li><li data-at="24-31"><span data-src="26-30">tres</span></li></ul>`,
   [PICTURE]: `${TITLE}${ANTES}<p data-at="12-30"><img src="rina.png" alt="Rina" loading="lazy" data-src="12-29" contenteditable="false"></p><p data-at="31-43"><span data-src="31-38">Tercero</span><br data-src="38-39" contenteditable="false"><span data-src="39-42">Fin</span></p>`,
@@ -157,9 +161,9 @@ describe("a delete the page cannot place yet, and nothing after it", () => {
     caretAt("uno");
     backspace();
     backspace();
-    expect(text()).toBe("# T\n\nAntes\n\nuno\n- dos\n- tres\n");
+    expect(text()).toBe("# T\n\nAntes\n\nuno\n\n- dos\n- tres\n");
     await landed();
-    expect(text()).toBe("# T\n\nAntesuno\n- dos\n- tres\n");
+    expect(text()).toBe("# T\n\nAntesuno\n\n- dos\n- tres\n");
   });
 
   it("takes a step's box, its bullet and then joins it to the step above, one drawing each", async () => {
@@ -195,7 +199,7 @@ describe("a held delete writes nothing while the page cannot show its place", ()
     backspace();
     await settled();
     writing?.drawn();
-    expect(text()).toBe("# T\n\nAntes\n\nuno\n- dos\n- tres\n");
+    expect(text()).toBe("# T\n\nAntes\n\nuno\n\n- dos\n- tres\n");
   });
 
   it("keeps the picture above an emptied line when the page still shows the line's words", async () => {
@@ -248,9 +252,9 @@ describe("a held delete keeps the page's rules once it acts", () => {
     caretAt("uno");
     backspace();
     backspace();
-    expect(text()).toBe("Antes\n\n## Pasos\n\nuno\n- dos\n");
+    expect(text()).toBe("Antes\n\n## Pasos\n\nuno\n\n- dos\n");
     await landed();
-    expect(text()).toBe("Antes\n\n## Pasos\n\nuno\n- dos\n");
+    expect(text()).toBe("Antes\n\n## Pasos\n\nuno\n\n- dos\n");
   });
 });
 
@@ -331,9 +335,9 @@ describe("a word delete that comes after a held delete at the same edge", () => 
     backspace();
     pressed("Backspace", { altKey: true });
     asked("deleteWordBackward");
-    expect(text()).toBe("# T\n\nAntes\n\nuno\n- dos\n- tres\n");
+    expect(text()).toBe("# T\n\nAntes\n\nuno\n\n- dos\n- tres\n");
     await landed();
-    expect(text()).toBe("# T\n\nuno\n- dos\n- tres\n");
+    expect(text()).toBe("# T\n\nuno\n\n- dos\n- tres\n");
   });
 });
 

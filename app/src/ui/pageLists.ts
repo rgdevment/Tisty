@@ -324,9 +324,12 @@ export const unlined = (text: string, at: number): Moved | null => {
 };
 
 const FENCE = /^((?:[ \t]*>)*)[ \t]*(`{3,}|~{3,})(.*)$/;
+const FENCE_OPENED = /^((?:[ \t]*>)*)[ \t]*(?:(?:[-*+]|\d{1,9}[.)])[ \t]+)?(`{3,}|~{3,})(.*)$/;
 const IN_QUOTE = /^[ \t]*>/;
 export const STANDS_ALONE =
   /^[ \t]*(?:>[ \t]?)*[ \t]*(?:#{1,6}(?:[ \t]|$)|`{3,}|~{3,}|\||(?:-[ \t]*){3,}$|(?:\*[ \t]*){3,}$|(?:_[ \t]*){3,}$|=+[ \t]*$)/;
+
+type Fence = { readonly mark: string; readonly quoted: boolean; readonly within: number };
 
 // A fence closes only on a run of its own mark at least as long, or where the quote it opened in ends.
 export const fenceWalker = () => {
@@ -360,8 +363,111 @@ export const headingAt = (text: string, at: number) => {
   return HEADED.test(item ? line.slice(item[0].length) : line) && !inFence(text, at);
 };
 
+export const fenceLine = (line: string) => {
+  const found = FENCE_OPENED.exec(line);
+  if (!found) return null;
+  const [, quotes, mark, rest] = found;
+  return { quotes, lead: line.slice(0, line.length - rest.length - mark.length), mark, rest };
+};
+
+const widthOf = (said: string) => said.replace(/\t/g, "    ").length;
+
+const shuts = (was: Fence, line: string) => {
+  const found = FENCE.exec(line);
+  if (!found) return false;
+  const [, , mark, rest] = found;
+  return mark[0] === was.mark[0] && mark.length >= was.mark.length && !rest.trim();
+};
+
+const leftBy = (was: Fence, line: string) =>
+  (was.quoted && !IN_QUOTE.test(line)) ||
+  (!/^[ \t>]*$/.test(line) && widthOf(/^[ \t>]*/.exec(line)?.[0] ?? "") < was.within);
+
+// A fence closes only on a run of its own mark at least as long, or where the quote or the item it opened in ends.
+const fenceAfter = (was: Fence | null, raw: string): Fence | null => {
+  const line = raw.replace(/\r$/, "");
+  if (was && shuts(was, line)) return null;
+  if (was && !leftBy(was, line)) return was;
+  const opened = fenceLine(line);
+  if (!opened || (opened.mark[0] === "`" && opened.rest.includes("`"))) return null;
+  const within = LISTED.test(line) ? widthOf(opened.lead) : 0;
+  return { mark: opened.mark, quoted: opened.quotes !== "", within };
+};
+
+const fencesBlanked = (text: string, openToEnd: boolean): string => {
+  const lines = text.split("\n");
+  const blanked = (from: number, to: number) => {
+    for (let at = from; at < to; at++) lines[at] = " ".repeat(lines[at].length);
+  };
+  let open: Fence | null = null;
+  let since = 0;
+  for (const [at, line] of lines.entries()) {
+    const was: Fence | null = open;
+    open = fenceAfter(was, line);
+    const shut = !open && FENCE.test(line.replace(/\r$/, ""));
+    if (was && open !== was) blanked(since, shut ? at + 1 : at);
+    if (open && open !== was) since = at;
+  }
+  if (open && openToEnd) blanked(since, lines.length);
+  return lines.join("\n");
+};
+
+export const fencedOut = (text: string): string => fencesBlanked(text, false);
+
+export const codeOut = (text: string): string => fencesBlanked(text, true);
+
 const paragraphLine = (line: string) =>
   !LISTED.test(line) && !wordless(line) && !STANDS_ALONE.test(line);
+
+const quotesOf = (line: string) => (/^[ \t>]*/.exec(line)?.[0].split(">").length ?? 1) - 1;
+
+const opensItem = (line: string) => {
+  const item = LISTED.exec(line);
+  const first = item?.[3] === undefined || Number(item[3]) === 1;
+  return item !== null && first && line.slice(item[0].length).trim() !== "";
+};
+
+export const linesJoin = (above: string, line: string) => {
+  const [was, now] = [above, line].map((one) => one.replace(/\r$/, ""));
+  return (
+    !opensItem(now) &&
+    !wordless(now) &&
+    !STANDS_ALONE.test(now) &&
+    !wordless(was) &&
+    !STANDS_ALONE.test(was)
+  );
+};
+
+const siblingItems = (opening: string, line: string) => {
+  const [was, now] = [LISTED.exec(opening), LISTED.exec(line)];
+  if (!was || !now) return false;
+  const kind = (item: RegExpExecArray) => (item[3] === undefined ? "bullet" : "number");
+  return widthOf(was[1]) === widthOf(now[1]) && kind(was) === kind(now);
+};
+
+export const carriesOn = (opening: string, above: string, line: string) =>
+  linesJoin(above, line) && quotesOf(line) <= quotesOf(opening) && !siblingItems(opening, line);
+
+const RULED =
+  /^[ \t]*(?:>[ \t]?)*[ \t]*(?:=+|-+|(?:-[ \t]*){3,}|(?:\*[ \t]*){3,}|(?:_[ \t]*){3,})[ \t]*$/;
+const DELIMITER_ROW =
+  /^[ \t]*(?:>[ \t]?)*[ \t]*\|?(?:[ \t]*:?-+:?[ \t]*\|)*[ \t]*:?-+:?[ \t]*\|?[ \t]*$/;
+const PIPED = /^[ \t]*(?:>[ \t]?)*[ \t]*\|/;
+
+const headsTable = (head: string, line: string) =>
+  head.includes("|") && !wordless(head) && line.includes("|") && DELIMITER_ROW.test(line);
+
+export const tablesAndRulesOut = (text: string): string => {
+  const lines = text.split("\n");
+  const said = lines.map((one) => one.replace(/\r$/, ""));
+  let table = false;
+  for (const [at, line] of said.entries()) {
+    table =
+      headsTable(line, said[at + 1] ?? "") || (table && (PIPED.test(line) || paragraphLine(line)));
+    if (table || RULED.test(line)) lines[at] = " ".repeat(lines[at].length);
+  }
+  return lines.join("\n");
+};
 
 // The numbered line was already words of a paragraph when the lines over it, up to a blank one, held no item.
 const heldBefore = (text: string, at: number) => {

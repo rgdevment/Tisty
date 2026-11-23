@@ -1,5 +1,6 @@
 import { colonLine } from "./pageColons";
 import { type Edit, lineEnd, lineStart, pastFeeds, type Span } from "./pageEdits";
+import { carriesOn, codeOut, fencedOut, linesJoin, tablesAndRulesOut } from "./pageLists";
 
 export type Marks = readonly (readonly [string, string])[];
 
@@ -186,8 +187,7 @@ const ticksAfter = (line: string, from: number, many: number) => {
 
 type Token = { readonly from: number; readonly to: number; mate: Token | null };
 
-const marksOn = (text: string, start: number, end: number): Mark[] => {
-  const line = text.slice(start, end);
+const marksOn = (line: string, start: number): Mark[] => {
   if (!MARKISH.test(line)) return [];
   const tokens: Token[] = [];
   const token = (from: number, to: number) => {
@@ -244,21 +244,75 @@ const marksOn = (text: string, start: number, end: number): Mark[] => {
 
 const QUIET = /^[^*_~=+`[\](){}]*$/;
 
+type Read = Span & { readonly known: Mark[] };
+
+const lineRead = (text: string, at: number): Read => {
+  const from = lineStart(text, at);
+  const to = lineEnd(text, at);
+  return { from, to, known: marksOn(text.slice(from, to), from) };
+};
+
+const overLines = (text: string, mark: Mark) =>
+  text.slice(Math.min(mark.to, mark.mate.to), Math.max(mark.from, mark.mate.from)).includes("\n");
+
+const wholeSpan = (mark: Mark): Span => ({
+  from: Math.min(mark.from, mark.mate.from),
+  to: Math.max(mark.to, mark.mate.to),
+});
+
+const BLANK_LINE = /\n[ \t>]*\r?\n/g;
+
+const apartBy = (text: string, from: number, to: number) => {
+  BLANK_LINE.lastIndex = from;
+  const blank = BLANK_LINE.exec(text);
+  return blank !== null && blank.index < to;
+};
+
+const ticksBeside = (text: string, at: number) => {
+  const start = lineStart(text, at);
+  const end = lineEnd(text, at);
+  const before = text.lastIndexOf("`", end);
+  const after = text.indexOf("`", start);
+  return before >= 0 && after >= 0 && !apartBy(text, before, start) && !apartBy(text, end, after);
+};
+
+const codeOverLinesRead = (text: string, at: number): Read | null => {
+  if (!ticksBeside(text, at)) return null;
+  const paragraph = paragraphAround(text, at);
+  const said = text.slice(paragraph.from, paragraph.to);
+  if (!said.includes("`")) return null;
+  const ticks = marksOn(said, paragraph.from).filter(
+    (mark) => text[mark.from] === "`" && overLines(text, mark),
+  );
+  if (!ticks.length) return null;
+  const inside = ticks.map(wholeSpan).map(({ from, to }) => ({
+    from: from - paragraph.from,
+    to: to - paragraph.from,
+  }));
+  const known = [...ticks];
+  let start = paragraph.from;
+  for (const line of blankedOver(said, inside).split("\n")) {
+    known.push(...marksOn(line, start));
+    start += line.length + 1;
+  }
+  return { ...paragraph, known: known.sort((one, other) => one.from - other.from) };
+};
+
 const markingOf = (text: string): Marking => {
-  const lines: { start: number; end: number; known: Mark[] }[] = [];
-  const lineAt = (at: number) => {
-    const held = lines.find((one) => one.start <= at && at <= one.end);
+  const read: Read[] = [];
+  const readAt = (at: number) => {
+    const held = read.find((one) => one.from <= at && at <= one.to);
     if (held) return held;
-    const start = lineStart(text, at);
-    const end = lineEnd(text, at);
-    const line = { start, end, known: marksOn(text, start, end) };
-    lines.push(line);
-    return line;
+    const fresh = codeOverLinesRead(text, at) ?? lineRead(text, at);
+    read.push(fresh);
+    return fresh;
   };
   return (one) => {
     if (QUIET.test(text.slice(Math.max(0, one.from - 1), one.to + 1))) return [];
-    const first = lineAt(one.from);
-    return first.end < one.to ? [...first.known, ...lineAt(one.to).known] : first.known;
+    const first = readAt(one.from);
+    if (first.to >= one.to) return first.known;
+    const last = readAt(one.to);
+    return last.from <= one.from ? last.known : [...first.known, ...last.known];
   };
 };
 
@@ -382,6 +436,9 @@ export const replaced = (
   return { edit: { from, to: opened.to, insert: placed }, caret };
 };
 
+export const replacedOverCode = (text: string, one: Span, insert: string): Laid =>
+  replaced(text, one, insert, markingOf(fencedOut(text)));
+
 type KeyReach = { readonly back: boolean; readonly reach: Reach };
 
 const escapedWhole = (text: string, one: Span): Span => {
@@ -444,29 +501,33 @@ export const covered = (text: string, cut: Span, open: string) => {
     const at = lone ? [...before.matchAll(lone)].pop()?.index : before.lastIndexOf(mark);
     return at === undefined || at < 0 ? one : { from: start + at, to: one.to };
   }
-  const after = text.slice(one.to);
+  const after = text.slice(one.to, paragraphAround(text, one.to - 1).to);
   const at = lone ? after.search(lone) : after.indexOf(mark);
   return at < 0 ? one : { from: one.from, to: one.to + at + mark.length };
 };
 
-// A format already around the words is taken off, as a second press of a button undoes the first.
-export const worn = (text: string, one: Span, open: string, close: string): Edit => {
+const takenOff = (text: string, words: string, one: Span, open: string, close: string) => {
   const inner = text.slice(one.from, one.to);
   // Words chosen with their marks, as a double click past them takes, are words already worn.
   const single = open.length === 1 && inner.startsWith(open.repeat(2));
   if (!single && inner.length > open.length + close.length) {
-    const within = inner.slice(open.length, inner.length - close.length);
+    const within = words.slice(one.from + open.length, one.to - close.length);
     if (inner.startsWith(open) && inner.endsWith(close) && bareOf(within, open) === within)
-      return { ...one, insert: within };
+      return { ...one, insert: inner.slice(open.length, inner.length - close.length) };
   }
   const around = /^(\*|_)\1?$/.test(open)
     ? starred(text, one, open)
     : text.slice(one.from - open.length, one.from) === open &&
       text.slice(one.to, one.to + close.length) === close;
-  return around
-    ? { from: one.from - open.length, to: one.to + close.length, insert: inner }
-    : { ...one, insert: `${open}${bareOf(inner, open)}${close}` };
+  return around ? { from: one.from - open.length, to: one.to + close.length, insert: inner } : null;
 };
+
+// A format already around the words is taken off, as a second press of a button undoes the first.
+export const worn = (text: string, one: Span, open: string, close: string): Edit =>
+  takenOff(text, text, one, open, close) ?? {
+    ...one,
+    insert: `${open}${bareOf(text.slice(one.from, one.to), open)}${close}`,
+  };
 
 const LINE_MARKS =
   /^[ \t]*(?:>[ \t]?)*[ \t]*(?:#{1,6}[ \t]+|[-*+][ \t]+(?:\[[ xX]\][ \t]+)?|\d+[.)][ \t]+(?:\[[ xX]\][ \t]+)?|\[\^[^\]\s]+\]:[ \t]*)?/;
@@ -517,31 +578,181 @@ export const joinedAcross = (text: string, at: number, back: boolean): Span | nu
   return { from, to: wordsFrom(text, lineEnd(text, pastGap(text, end, false))) };
 };
 
+const paragraphEnd = (text: string, start: number) => {
+  let end = lineEnd(text, start);
+  const opening = text.slice(start, end);
+  let above = opening;
+  while (end < text.length) {
+    const next = lineEnd(text, end + 1);
+    const line = text.slice(end + 1, next);
+    if (!carriesOn(opening, above, line)) return end;
+    above = line;
+    end = next;
+  }
+  return end;
+};
+
+const paragraphStart = (text: string, at: number) => {
+  let start = lineStart(text, at);
+  while (start > 0) {
+    const above = lineStart(text, start - 1);
+    if (!linesJoin(text.slice(above, start - 1), text.slice(start, lineEnd(text, start))))
+      return start;
+    start = above;
+  }
+  return start;
+};
+
+const paragraphAround = (text: string, at: number): Span => {
+  for (let from = paragraphStart(text, at); ; ) {
+    const to = paragraphEnd(text, from);
+    if (to >= at) return { from, to };
+    from = to + 1;
+  }
+};
+
+const paragraphsHolding = (text: string, mark: string) => {
+  const found: Span[] = [];
+  for (let start = 0, at = text.indexOf(mark); at >= 0; ) {
+    const end = paragraphEnd(text, start);
+    if (at < end) found.push({ from: start, to: end });
+    start = end + 1;
+    if (at < start) at = text.indexOf(mark, start);
+  }
+  return found;
+};
+
+const codeSpansIn = (text: string) =>
+  paragraphsHolding(text, "`").flatMap(({ from, to }) =>
+    marksOn(text.slice(from, to), from).filter(
+      (mark) => text[mark.from] === "`" && mark.mate.from >= mark.to,
+    ),
+  );
+
+const formulasOverLines = (text: string) =>
+  paragraphsHolding(text, "$$").flatMap(({ from, to }) => {
+    const walls = [...text.slice(from, to).matchAll(/\$\$/g)].map((one) => from + one.index);
+    const found: Span[] = [];
+    for (let at = 1; at < walls.length; at += 2) {
+      const formula = { from: walls[at - 1] ?? 0, to: (walls[at] ?? 0) + 2 };
+      if (text.slice(formula.from, formula.to).includes("\n")) found.push(formula);
+    }
+    return found;
+  });
+
+const blankedOver = (text: string, spans: readonly Span[]) => {
+  const said = text.split("");
+  for (const { from, to } of spans)
+    for (let at = from; at < to; at++) if (said[at] !== "\n") said[at] = " ";
+  return said.join("");
+};
+
+const spansOut = (text: string, spans = codeSpansIn(text)) =>
+  blankedOver(
+    text,
+    spans.map((mark) => ({ from: mark.to, to: mark.mate.from })),
+  ).replace(/\\[\\*_~+=`$]/g, "  ");
+
+type Views = { readonly words: string; readonly written: string };
+
+const viewsOf = (text: string): Views => {
+  const shown = codeOut(text);
+  const spans = codeSpansIn(shown);
+  const words = spansOut(shown, spans);
+  const broken = spans.filter((mark) => overLines(shown, mark)).map(wholeSpan);
+  const written = blankedOver(shown, [...broken, ...formulasOverLines(words)]);
+  return { words, written: tablesAndRulesOut(written) };
+};
+
+const lineWords = (text: string, written: string, one: Span) => {
+  const found: Span[] = [];
+  for (let start = lineStart(text, one.from); start <= one.to; start = lineEnd(text, start) + 1) {
+    let from = Math.max(one.from, wordsFrom(text, lineEnd(text, start)));
+    let to = Math.min(lineEnd(text, start), one.to);
+    while (from < to && SPACE.test(written[from] ?? "")) from++;
+    while (to > from && SPACE.test(written[to - 1] ?? "")) to--;
+    if (to > from && !colonLine(lineAt(text, start))) found.push({ from, to });
+  }
+  return found;
+};
+
+const bareWords = (text: string, one: Span): Span => {
+  let { from, to } = one;
+  while (from < to && MARK_CHAR.test(text[from] ?? "")) from++;
+  while (to > from && MARK_CHAR.test(text[to - 1] ?? "")) to--;
+  return { from, to };
+};
+
+const holdsNone = (words: string, one: Span, open: string) => {
+  const said = words.slice(one.from, one.to);
+  return bareOf(said, open) === said;
+};
+
+const lineTakenOff = (text: string, words: string, line: Span, open: string, close: string) => {
+  const bare = bareWords(text, line);
+  for (const one of bare.from < bare.to ? [line, bare] : [line]) {
+    const taken = takenOff(text, words, one, open, close);
+    if (taken && (taken.from === one.from || holdsNone(words, one, open))) return taken;
+  }
+  return null;
+};
+
+const wornLines = (text: string, one: Span, open: string, close: string, views: Views) => {
+  const lines = lineWords(text, views.written, one);
+  const taken = lines.map((line) => lineTakenOff(text, views.words, line, open, close));
+  const off = taken.every((line) => line !== null);
+  const from = Math.min(one.from, taken[0]?.from ?? one.from);
+  let at = from;
+  let insert = "";
+  const words = { from, to: from };
+  for (const [nth, line] of lines.entries()) {
+    const worn = taken[nth];
+    const inner = worn ? worn.insert : text.slice(line.from, line.to);
+    insert += text.slice(at, (worn ?? line).from);
+    if (nth === 0) words.from = from + insert.length + (off ? 0 : open.length);
+    insert += off ? inner : `${open}${inner}${close}`;
+    words.to = from + insert.length - (off ? 0 : close.length);
+    at = (worn ?? line).to;
+  }
+  const to = Math.max(one.to, at);
+  insert += text.slice(at, to);
+  return lines.length ? { edit: { from, to, insert }, words } : null;
+};
+
 // A mark never crosses a line, so words chosen over several blocks take a pair in each, past each line's own marks.
-export const wornEach = (text: string, one: Span, open: string, close: string): Edit => {
-  const lines = text.slice(one.from, one.to).split(/(\r?\n)/);
-  const insert = lines
-    .map((line, at) => {
-      if (at % 2 === 1 || colonLine(at === 0 ? lineAt(text, one.from) : line)) return line;
-      const lead = at === 0 ? "" : (LINE_MARKS.exec(line)?.[0] ?? "");
-      const body = line.slice(lead.length);
-      const words = body.trimEnd();
-      return words.trim() ? `${lead}${open}${words}${close}${body.slice(words.length)}` : line;
-    })
-    .join("");
-  return { from: one.from, to: one.to, insert };
+export const wornEach = (text: string, one: Span, open: string, close: string): Edit =>
+  wornLines(text, one, open, close, viewsOf(text))?.edit ?? {
+    ...one,
+    insert: text.slice(one.from, one.to),
+  };
+
+export const wornOver = (text: string, chosen: Span, open: string, close: string) => {
+  const views = viewsOf(text);
+  const one = covered(views.words, chosen, open);
+  const words = views.written.slice(one.from, one.to);
+  if (!words.trim()) return null;
+  if (!words.includes("\n")) {
+    const kept = {
+      from: one.from + words.length - words.trimStart().length,
+      to: one.from + words.trimEnd().length,
+    };
+    return { one: kept, change: worn(text, kept, open, close), words: null };
+  }
+  const lines = wornLines(text, one, open, close, views);
+  return lines && { one, change: lines.edit, words: lines.words };
 };
 
 // Words cut or copied carry every format they start or end inside, so no mark is left without its partner.
 export const balanced = (text: string, chosen: Span): Span => {
+  const words = spansOut(fencedOut(text));
   let one = { ...chosen };
-  for (const mark of PAIRED) one = covered(text, one, mark);
+  for (const mark of PAIRED) one = covered(words, one, mark);
   for (const mark of PAIRED) {
-    const before = text.slice(one.from - mark.length, one.from);
-    if (before === mark && text.slice(one.to, one.to + mark.length) === mark)
+    const before = words.slice(one.from - mark.length, one.from);
+    if (before === mark && words.slice(one.to, one.to + mark.length) === mark)
       one = { from: one.from - mark.length, to: one.to + mark.length };
   }
   const pen =
-    text.slice(one.to - 2, one.to) === "==" ? /^\{[a-z]+\}/.exec(text.slice(one.to)) : null;
+    words.slice(one.to - 2, one.to) === "==" ? /^\{[a-z]+\}/.exec(words.slice(one.to)) : null;
   return pen ? { from: one.from, to: one.to + pen[0].length } : one;
 };

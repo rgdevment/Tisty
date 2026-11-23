@@ -44,8 +44,10 @@ import {
   joinedAcross,
   keptGone,
   replaced,
+  replacedOverCode,
   wordsFrom,
 } from "./pageMarks";
+import { type Mend, openOf, shutOf } from "./pageMends";
 import {
   ATOMS,
   atGhost,
@@ -67,6 +69,7 @@ import {
 } from "./pageNodes";
 import { placeOf } from "./pagePlaces";
 import { endIn, indexOf, ownsWords, startIn, startOf } from "./pageSpots";
+import { mendOf, wholeReach } from "./pageWholes";
 import { choiceKept, composingKey, compositionOpened, keptUnlaid, type Writer } from "./pageWriter";
 
 const PAIRS: Record<string, string> = {
@@ -251,26 +254,47 @@ export const inputOn = (
     const asked = colonsKept(hands.text(), wanted);
     laying.put(asked, landedAfter(wanted, asked, at), whole);
   };
-  let composing: { readonly one: Span; readonly range: Range; readonly was: string } | null = null;
+  type Composing = {
+    readonly one: Span;
+    readonly range: Range;
+    readonly was: string;
+    readonly mend: Mend | null;
+  };
+  let composing: Composing | null = null;
 
-  const laidOver = (text: string, one: Span, insert: string, coded: boolean): Laid => {
+  const mendedOver = (text: string, one: Span, insert: string, mend: Mend): Laid => {
+    const shut = shutOf(text, one, insert, mend);
+    const { edit, caret } = replacedOverCode(text, one, insert + shut);
+    return {
+      edit: { ...edit, insert: edit.insert + openOf(text, edit, mend) },
+      caret: caret - shut.length,
+    };
+  };
+
+  const laidOver = (
+    text: string,
+    one: Span,
+    insert: string,
+    coded: boolean,
+    mend: Mend | null = null,
+  ): Laid => {
     if (coded) return { edit: { ...one, insert }, caret: one.from + insert.length };
-    const laid = replaced(text, one, insert);
+    const laid = mend ? mendedOver(text, one, insert, mend) : replaced(text, one, insert);
     const edit = colonsKept(text, laid.edit);
     return { edit, caret: landedAfter(laid.edit, edit, laid.caret) };
   };
 
-  const putOver = (one: Span, insert: string, coded: boolean) => {
-    const laid = laidOver(hands.text(), one, insert, coded);
+  const putOver = (one: Span, insert: string, coded: boolean, mend: Mend | null = null) => {
+    const laid = laidOver(hands.text(), one, insert, coded, mend);
     laying.put(laid.edit, laid.caret);
   };
 
-  const pasted = (one: Span, data: DataTransfer | null, coded: boolean) => {
+  const pasted = (one: Span, data: DataTransfer | null, coded: boolean, mend: Mend | null) => {
     const html = data?.getData("text/html") || null;
     const plain = data?.getData("text/plain") ?? "";
     const asked = wordsAsked(hands.text(), one);
     const landed = (insert: (now: string, at: Span) => string) => {
-      if (!late(asked, (now, at) => laidOver(now, at, insert(now, at), coded)))
+      if (!late(asked, (now, at) => laidOver(now, at, insert(now, at), coded, mend)))
         hands.lost?.(t("pastedLost"));
     };
     hands
@@ -369,8 +393,10 @@ export const inputOn = (
   const caretKept = (kind: string, from: number) =>
     forward(kind) ? Math.min(caret.caretSpan()?.from ?? from, from) : from;
 
-  const brokenAt = (text: string, at: number, to: number) => {
+  const brokenAt = (text: string, at: number, to: number, mend: Mend | null) => {
     const lead = hardBreak(text, at);
+    const laid = mend && mendedOver(text, { from: at, to }, "", mend);
+    if (laid) return put(laid.edit, laid.edit.from + laid.edit.insert.length);
     if (text.slice(to, lineEnd(text, to)).trim()) return put({ from: at, to, insert: lead });
     if (to > at) put({ from: at, to, insert: "" });
     writer.kept = { node: page.body, offset: -1, at, lead, tail: "" };
@@ -461,7 +487,7 @@ export const inputOn = (
     return line && first(line) && !headKept(line) ? unlined(text, wordsFrom(text, at)) : null;
   };
 
-  const typedIn = (one: Span, range: AbstractRange, typed: string) => {
+  const typedIn = (one: Span, range: AbstractRange, typed: string, mend: Mend | null = null) => {
     const text = hands.text();
     if (typed === "/" && slashes(text, one, range)) return hands.blocks(caret.caretPoint(), true);
     if (one.from === one.to) {
@@ -481,7 +507,7 @@ export const inputOn = (
       if (formats.carriedKey(text, one, typed)) return;
     }
     writer.carried = null;
-    putOver(one, typed, inOneCodeBlock(range));
+    putOver(one, typed, inOneCodeBlock(range), mend);
   };
 
   const inputTaken = (
@@ -506,7 +532,8 @@ export const inputOn = (
       shown && !(shown.collapsed && picked?.collapsed) ? cutAtEdge(shown, picked, kind) : undefined;
     const spread = !leftOver(picked) && Boolean(picked && !picked.collapsed);
     const pastBlock = spread && picked !== null && pastWhole(picked);
-    const range = pastBlock ? picked : (target ?? picked);
+    const reachedWhole = spread && picked !== null && wholeReach(picked) !== null;
+    const range = pastBlock || reachedWhole ? picked : (target ?? picked);
     const bare = kind === "deleteContentBackward" && !spread ? caretFreed(standing.range) : null;
     if (bare) return laying.put(bare.edit, bare.caret);
     const shelf = range && !spread ? breakAt(range) : null;
@@ -560,6 +587,7 @@ export const inputOn = (
     const kept = joining ?? reach;
     const coded = inCode(range.startContainer);
     const literal = inOneCodeBlock(range);
+    const mend = spread ? mendOf(range, text, writer.reckoned) : null;
     const one = coded ? kept : escapeTaken(text, kept);
     const typed = data ?? carried?.getData("text/plain") ?? "";
     const line = begunNow ? writer.kept : null;
@@ -567,9 +595,9 @@ export const inputOn = (
     if (line && kind === "insertText" && typed === "/")
       return hands.blocks(caret.caretPoint(), true);
     if (line) return begun.firstKey(line, typed);
-    if (kind === "insertText") return typedIn(one, range, typed);
+    if (kind === "insertText") return typedIn(one, range, typed, mend);
     writer.carried = null;
-    if (kind === "insertReplacementText") return putOver(one, typed, literal);
+    if (kind === "insertReplacementText") return putOver(one, typed, literal, mend);
     const blankLine =
       text[one.from - 1] === "\n" &&
       /\r?\n$/.test(text.slice(0, one.from - 1)) &&
@@ -605,18 +633,24 @@ export const inputOn = (
       if (kind === "insertParagraph" && coded && fenceJustOpened(text, one.from)) return;
       const at = one.from === one.to && !coded ? closedRun(text, one.from) : one.from;
       const to = Math.max(at, one.to);
-      if (kind === "insertLineBreak" && !coded) return brokenAt(text, at, to);
+      if (kind === "insertLineBreak" && !coded) return brokenAt(text, at, to, mend);
       const insert = kind === "insertLineBreak" ? "\n" : parted(text, at, coded);
-      return put({ from: at, to, insert });
+      if (!mend) return put({ from: at, to, insert });
+      const laid = mendedOver(text, { from: at, to }, insert, mend);
+      return put(laid.edit, mend.last ? laid.edit.from + laid.edit.insert.length : laid.caret);
     }
-    if (kind === "insertFromPaste") return pasted(one, carried, literal);
+    if (kind === "insertFromPaste") return pasted(one, carried, literal, mend);
     if (kind.startsWith("delete")) {
       const span = unsplit(text, one);
       const keyed =
         !joining && !spread && !kind.includes("Line") && (backward(kind) || forward(kind));
       const reachAt = (from: number) => reachIn(text, from, kind);
       const key = keyed ? { back: backward(kind), reach: reachAt } : null;
-      const gone = literal ? { ...span, insert: "" } : keptGone(text, span, key);
+      const gone = literal
+        ? { ...span, insert: "" }
+        : mend
+          ? mendedOver(text, span, "", mend).edit
+          : keptGone(text, span, key);
       // A title's mark alone is what is left of a page emptied again, so the page is left empty.
       if (titleAloneLeft(text, applied(text, gone))) return emptied(text);
       return put(gone, spread ? gone.from : caretKept(kind, gone.from));
@@ -664,7 +698,8 @@ export const inputOn = (
     const range = held?.rangeCount ? held.getRangeAt(0).cloneRange() : null;
     const spread = Boolean(range && !range.collapsed && !leftOver(range));
     const one = range && ((!spread && begun.waited("insertText", null)) || caret.spanChosen(range));
-    composing = range && one ? { one, range, was: hands.text() } : null;
+    const mend = range && spread ? mendOf(range, hands.text(), writer.reckoned) : null;
+    composing = range && one ? { one, range, was: hands.text(), mend } : null;
   };
 
   const ended = (event: CompositionEvent) => {
@@ -678,14 +713,15 @@ export const inputOn = (
     if (!held) return;
     if (!typed) {
       const same = held.was === hands.text();
-      if (same && held.one.from < held.one.to) putOver(held.one, "", inOneCodeBlock(held.range));
+      if (same && held.one.from < held.one.to)
+        putOver(held.one, "", inOneCodeBlock(held.range), held.mend);
       return;
     }
     const kept = writer.kept;
     const { startContainer, startOffset } = held.range;
     if (kept?.lead !== undefined && (kept.offset < 0 || atGhost(startContainer, startOffset)))
       return typed === "/" ? hands.blocks(caret.caretPoint(), true) : begun.firstKey(kept, typed);
-    typedIn(held.one, held.range, typed);
+    typedIn(held.one, held.range, typed, held.mend);
   };
 
   const pastedFiles = (event: ClipboardEvent) => {
@@ -729,7 +765,7 @@ export const inputOn = (
     const { range } = standing;
     const at = caret.caretSpan()?.from;
     if (!range || at === undefined) return false;
-    if (!range.collapsed && !leftOver(range) && pastWhole(range)) {
+    if (!range.collapsed && !leftOver(range) && (pastWhole(range) || wholeReach(range) !== null)) {
       inputTaken(kind, undefined, null, null, standing);
       return true;
     }

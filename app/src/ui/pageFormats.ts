@@ -5,17 +5,7 @@ import type { Edit, Span } from "./pageEdits";
 import { fieldAsked } from "./pageFields";
 import type { Laying } from "./pageLaying";
 import { closing, opening } from "./pageLists";
-import {
-  closedTokens,
-  closeOf,
-  covered,
-  openOf,
-  pastClose,
-  rejoined,
-  trimmed,
-  worn,
-  wornEach,
-} from "./pageMarks";
+import { closedTokens, closeOf, openOf, pastClose, rejoined, trimmed, wornOver } from "./pageMarks";
 import { elementOf } from "./pageNodes";
 import type { Writer } from "./pageWriter";
 import { unformattable } from "./quickly";
@@ -147,8 +137,7 @@ export const formatsOn = (writer: Writer, caret: Caret, laying: Laying) => {
     const carry = writer.carried;
     writer.carried = null;
     const text = hands.text();
-    const chosenSpan = trimmed(text, caret.chosenNow());
-    const one = chosenSpan && close !== "]()" ? covered(text, chosenSpan, open) : chosenSpan;
+    const one = trimmed(text, caret.chosenNow());
     if (!one && carry && carry.caret === caret.caretSpan()?.from && carry.close.startsWith(close))
       return;
     if (close === "]()") {
@@ -162,10 +151,11 @@ export const formatsOn = (writer: Writer, caret: Caret, laying: Laying) => {
     }
     if (!one) return waitFor(open, close);
     writer.pending = null;
-    const spread = text.slice(one.from, one.to).includes("\n");
-    const change = spread ? wornEach(text, one, open, close) : worn(text, one, open, close);
+    const wrapped = wornOver(text, one, open, close);
+    if (!wrapped) return;
+    const { change } = wrapped;
     put(change);
-    const words = wornWords(text, one, change, open, close);
+    const words = wrapped.words ?? wornWords(text, wrapped.one, change, open, close);
     if (writer.kept?.at === change.from + change.insert.length)
       writer.kept = { ...writer.kept, at: words.to, chosenFrom: words.from };
   };

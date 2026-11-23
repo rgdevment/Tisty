@@ -1,9 +1,9 @@
 import type { Slashed } from "tisty-editor/edit";
 import { begunOn } from "./pageBegun";
 import { besideOn } from "./pageBeside";
-import { caretOn } from "./pageCaret";
+import { caretOn, type Taken } from "./pageCaret";
 import { choosingOn } from "./pageChoosing";
-import { colonsCarried } from "./pageColons";
+import { colonsCarried, colonsCrossed } from "./pageColons";
 import { draggingOn } from "./pageDragging";
 import type { Edit } from "./pageEdits";
 import { formatsOn } from "./pageFormats";
@@ -11,7 +11,6 @@ import { historyOn } from "./pageHistory";
 import { inputOn } from "./pageInput";
 import { keysOn } from "./pageKeys";
 import { layingOn } from "./pageLaying";
-import { balanced } from "./pageMarks";
 import type { Act } from "./pageMoving";
 import { elementOf, inCode, onSheet, opened, shownWords, undressed } from "./pageNodes";
 import { linkList, linkMatch, tagList, tagMatch } from "./pageTags";
@@ -176,18 +175,20 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
     event.preventDefault();
     begun.intoFold(fold);
   };
-  const chosen = () => {
-    const text = hands.text();
+  const blocksChosen = () => {
     const blocks = choosing.span();
-    if (blocks) return text.slice(blocks.from, blocks.to);
-    const one = caret.chosenWhole();
-    const whole = one && balanced(text, one);
-    return whole ? colonsCarried(text, whole) : null;
+    return blocks && hands.text().slice(blocks.from, blocks.to);
   };
-  const cut = () => {
+  const carriedOut = (one: Taken) => {
+    const text = hands.text();
+    return one && (colonsCrossed(text, one) ? colonsCarried(text, one) : one.carried);
+  };
+  const chosen = () => blocksChosen() ?? carriedOut(caret.taken()) ?? null;
+  const takenAway = (taken: () => Taken) => {
     if (choosing.choosing()) return choosing.dropped();
-    keys.takenOut();
+    keys.takenOut(taken());
   };
+  const cut = () => takenAway(caret.taken);
   const unseenChosen = () => {
     const said = page.getSelection()?.toString() ?? "";
     const shown = shownWords(said);
@@ -195,11 +196,14 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
   };
   // Ctrl+C and Ctrl+X carry the Tisty Markdown of the words chosen, as the right-click does, never the drawn page.
   const clipped = (event: ClipboardEvent) => {
-    const words = onSheet(page, event) ? (chosen() ?? unseenChosen()) : null;
-    if (words === null || !event.clipboardData) return;
+    if (!onSheet(page, event) || !event.clipboardData) return;
+    const blocks = blocksChosen();
+    const taken = blocks === null ? caret.taken() : null;
+    const words = blocks ?? carriedOut(taken) ?? unseenChosen();
+    if (words === null) return;
     event.preventDefault();
     event.clipboardData.setData("text/plain", words);
-    if (event.type === "cut") cut();
+    if (event.type === "cut") takenAway(() => taken);
   };
   page.addEventListener("keydown", named, true);
   page.addEventListener("keydown", keys.outOfSolids, true);

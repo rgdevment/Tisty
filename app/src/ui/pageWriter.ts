@@ -127,6 +127,7 @@ export type Writer = {
   typing: boolean;
   whole: boolean;
   lastChosen: Span | null;
+  lastRange: Range | null;
   leftChosen: Chosen | null;
   composing: Composing | null;
   leftFrom: string | null | undefined;
@@ -143,6 +144,7 @@ export const writerOf = (page: Document, hands: Hands): Writer => ({
   typing: false,
   whole: false,
   lastChosen: null,
+  lastRange: null,
   leftChosen: null,
   composing: null,
   leftFrom: undefined,

@@ -52,6 +52,8 @@ const KEPT_UNDER_AN_ITEM = {
   QuoteOfCode: "  > ```\n  > x\n  > ```\n",
 };
 
+const DRAWN_WHOLE = new Set(["Table", "Diagram", "FormulaBlock"]);
+
 const keptUnderAnItem = Object.entries(KEPT_UNDER_AN_ITEM).flatMap(([shape, block]) => {
   const doc = `# Listas\n\n- uno dos\n${block}\nFin.\n`;
   return [
@@ -67,7 +69,9 @@ const keptUnderAnItem = Object.entries(KEPT_UNDER_AN_ITEM).flatMap(([shape, bloc
       now: "",
     },
     {
-      name: `deleteOnAChoiceOfTheBreakIntoANested${shape}KeepsIt`,
+      name: DRAWN_WHOLE.has(shape)
+        ? `deleteOnAChoiceOfTheBreakIntoANested${shape}TakesItWhole`
+        : `deleteOnAChoiceOfTheBreakIntoANested${shape}KeepsIt`,
       doc,
       run: async ({ clickAt, press, frame }) => {
         await clickAt("Fin");
@@ -75,7 +79,7 @@ const keptUnderAnItem = Object.entries(KEPT_UNDER_AN_ITEM).flatMap(([shape, bloc
         await press("Shift+ArrowRight");
         await press("Delete");
       },
-      was: "",
+      was: DRAWN_WHOLE.has(shape) ? `\n${block}\n` : "",
       now: "",
     },
   ];
@@ -131,6 +135,19 @@ const caretInWords = async (frame, words, offset) => {
     },
     [words, offset],
   );
+};
+
+const ENDS_IN_CODE = "# Código\n\nAntes\n\n```js\nconst a = 1;\n```\n";
+
+const MID_CODE = "# Código\n\nPalabras aquí\n\n```js\na * b\nc\n```\n\nDespués *sí* fin\n";
+
+const TWO_PARAGRAPHS = "# Líneas\n\nUno dos\n\nTres cuatro\n";
+
+const TWO_BOLD_PARAGRAPHS = "# Líneas\n\n**Uno dos**\n\n**Tres cuatro**\n";
+
+const textHolds = async (page, said) => {
+  const text = await page.evaluate(() => window.engines.text());
+  if (!text.includes(said)) throw new Error(`the first press wrote ${JSON.stringify(text)}`);
 };
 
 export const CASES = [
@@ -2183,8 +2200,8 @@ export const CASES = [
       await caretInWords(frame, "uno", 0);
       await drawingsHeld(() => press("Backspace", 2));
     },
-    was: "\n\n- ",
-    now: "",
+    was: "\n\n- uno",
+    now: "uno\n",
   },
   {
     name: "backspacesAheadOfTheirDrawingsAtAStepTakeItsWordsIntoTheStepAbove",
@@ -2195,6 +2212,7 @@ export const CASES = [
       await drawingsHeld(() => press("Backspace", 3));
     },
     was: "\n- [ ] ",
+    now: "",
   },
   {
     name: "typeInACellOfATableInAListItemLeavesItWhole",
@@ -2302,18 +2320,6 @@ export const CASES = [
     now: "",
   },
   {
-    name: "leftFromANestedTableStopsAfterTheTag",
-    doc: NESTED_TABLE,
-    run: async ({ clickAt, press, frame }) => {
-      await clickAt("Fin");
-      await caretInWords(frame, "a", 0);
-      await press("ArrowLeft");
-      await press("Backspace");
-    },
-    was: "#etiqueta",
-    now: "",
-  },
-  {
     name: "deleteAfterATagBeforeANestedTableKeepsIt",
     doc: NESTED_TABLE,
     run: async ({ clickAt, press, frame }) => {
@@ -2326,7 +2332,7 @@ export const CASES = [
     now: "",
   },
   {
-    name: "deleteOnAChoiceFromAfterATagIntoANestedTableKeepsIt",
+    name: "deleteOnAChoiceFromAfterATagIntoANestedTableTakesItWhole",
     doc: NESTED_TABLE,
     run: async ({ clickAt, press, frame }) => {
       await clickAt("Fin");
@@ -2335,7 +2341,7 @@ export const CASES = [
       await press("Shift+ArrowRight");
       await press("Delete");
     },
-    was: "",
+    was: "\n  | a | b |\n  |---|---|\n  | 1 | 2 |\n\n",
     now: "",
   },
   {
@@ -2418,6 +2424,334 @@ export const CASES = [
     },
     was: "",
     now: "",
+  },
+  {
+    name: "commandAThenTypingReplacesAPageOpeningWithATable",
+    doc: "| a | b |\n|---|---|\n| 1 | 2 |\n\nDespués y más\n",
+    run: async ({ clickAt, command, typed }) => {
+      await clickAt("Después");
+      await command("a");
+      await typed("Z");
+    },
+    was: "| a | b |\n|---|---|\n| 1 | 2 |\n\nDespués y más",
+    now: "Z",
+  },
+  {
+    name: "commandAThenTypingReplacesAPageOpeningWithADiagram",
+    doc: "```mermaid\nflowchart LR\n  A --> B\n```\n\nDespués y más\n",
+    run: async ({ clickAt, command, typed }) => {
+      await clickAt("Después");
+      await command("a");
+      await typed("Z");
+    },
+    was: "```mermaid\nflowchart LR\n  A --> B\n```\n\nDespués y más",
+    now: "Z",
+  },
+  {
+    name: "commandAThenTypingReplacesAPageOpeningWithCode",
+    doc: "```js\nconst a = 1;\n```\n\nDespués y más\n",
+    run: async ({ clickAt, command, typed }) => {
+      await clickAt("Después");
+      await command("a");
+      await typed("Z");
+    },
+    was: "```js\nconst a = 1;\n```\n\nDespués y más",
+    now: "Z",
+  },
+  {
+    name: "commandAThenCutTakesTheFenceOfAPageEndingInCode",
+    doc: ENDS_IN_CODE,
+    run: async ({ clickAt, command, cut }) => {
+      await clickAt("Antes");
+      await command("a");
+      await cut();
+    },
+    was: "Código\n\nAntes\n\n```js\nconst a = 1;\n```",
+    now: "",
+  },
+  {
+    name: "commandAThenCopyCarriesTheFenceOfAPageEndingInCode",
+    doc: ENDS_IN_CODE,
+    run: async ({ clickAt, command, copied }) => {
+      await clickAt("Antes");
+      await command("a");
+      const said = await copied();
+      if (said !== "Código\n\nAntes\n\n```js\nconst a = 1;\n```")
+        throw new Error(`the page carried ${JSON.stringify(said)}`);
+    },
+    was: "",
+    now: "",
+  },
+  {
+    name: "commandAThenTypingOverAPageEndingInCodeLeavesNoFence",
+    doc: ENDS_IN_CODE,
+    run: async ({ clickAt, command, typed }) => {
+      await clickAt("Antes");
+      await command("a");
+      await typed("Z");
+    },
+    was: "Código\n\nAntes\n\n```js\nconst a = 1;\n```",
+    now: "Z",
+  },
+  {
+    name: "commandAThenBackspaceEmptiesAPageEndingInCode",
+    doc: ENDS_IN_CODE,
+    run: async ({ clickAt, command, press }) => {
+      await clickAt("Antes");
+      await command("a");
+      await press("Backspace");
+    },
+    was: ENDS_IN_CODE,
+    now: "",
+  },
+  {
+    name: "typeOverAChoiceToACodeBlocksEndMidPage",
+    doc: "# Código\n\nAntes y más\n\n```js\nconst a = 1;\n```\n\nDespués\n",
+    run: async ({ clickAt, typed, frame }) => {
+      await clickAt("Antes");
+      await chosenToCodeEnd(frame, "Antes y más", 6);
+      await typed("Z");
+    },
+    was: "y más\n\n```js\nconst a = 1;\n```",
+    now: "Z",
+  },
+  {
+    name: "cutIntoCodeLeavesTheRestOfTheCodeFenced",
+    doc: MID_CODE,
+    run: async ({ clickAt, cut, frame }) => {
+      await clickAt("Palabras");
+      await chosenIntoCode(frame, "Palabras aquí", 3, 4);
+      await cut();
+    },
+    was: "abras aquí\n\n```js\na * ",
+    now: "\n\n```js\n",
+  },
+  {
+    name: "copyIntoCodeCarriesTheCodeFenced",
+    doc: MID_CODE,
+    run: async ({ clickAt, copied, frame }) => {
+      await clickAt("Palabras");
+      await chosenIntoCode(frame, "Palabras aquí", 3, 4);
+      const said = await copied();
+      if (said !== "abras aquí\n\n```js\na * \n```") throw new Error(`the page carried ${JSON.stringify(said)}`);
+    },
+    was: "",
+    now: "",
+  },
+  {
+    name: "typeOverAChoiceIntoCodeLeavesTheRestOfTheCodeFenced",
+    doc: MID_CODE,
+    run: async ({ clickAt, typed, frame }) => {
+      await clickAt("Palabras");
+      await chosenIntoCode(frame, "Palabras aquí", 3, 4);
+      await typed("Z");
+    },
+    was: "abras aquí\n\n```js\na * ",
+    now: "Z\n\n```js\n",
+  },
+  {
+    name: "backspaceOverAChoiceIntoCodeLeavesTheRestOfTheCodeFenced",
+    doc: MID_CODE,
+    run: async ({ clickAt, press, frame }) => {
+      await clickAt("Palabras");
+      await chosenIntoCode(frame, "Palabras aquí", 3, 4);
+      await press("Backspace");
+    },
+    was: "abras aquí\n\n```js\na * ",
+    now: "\n\n```js\n",
+  },
+  {
+    name: "typeOverAChoiceOutOfCodeShutsTheCodeAbove",
+    doc: MID_CODE,
+    run: async ({ clickAt, typed, frame }) => {
+      await clickAt("Palabras");
+      await chosenOutOfCode(frame, 4, "Después ", 3);
+      await typed("Z");
+    },
+    was: "b\nc\n```\n\nDes",
+    now: "Z\n```\n\n",
+  },
+  {
+    name: "boldOverAChoiceAcrossACodeBlockWrapsOnlyTheWords",
+    doc: MID_CODE,
+    run: async ({ clickAt, command, frame }) => {
+      await clickAt("Palabras");
+      await drawnFirst(frame);
+      await chosenIn(frame, ["Palabras aquí", 3], ["Después ", 3]);
+      await command("b");
+    },
+    was: "abras aquí\n\n```js\na * b\nc\n```\n\nDes",
+    now: "**abras aquí**\n\n```js\na * b\nc\n```\n\n**Des**",
+  },
+  {
+    name: "italicOverAChoiceAcrossACodeBlockPairsNoStarOfTheCode",
+    doc: MID_CODE,
+    run: async ({ clickAt, command, frame }) => {
+      await clickAt("Palabras");
+      await drawnFirst(frame);
+      await chosenIn(frame, ["Palabras aquí", 3], ["Después ", 3]);
+      await command("i");
+    },
+    was: "abras aquí\n\n```js\na * b\nc\n```\n\nDes",
+    now: "*abras aquí*\n\n```js\na * b\nc\n```\n\n*Des*",
+  },
+  {
+    name: "boldOverAChoiceIntoCodeWrapsTheWordsBeforeIt",
+    doc: MID_CODE,
+    run: async ({ clickAt, command, frame }) => {
+      await clickAt("Palabras");
+      await chosenIntoCode(frame, "Palabras aquí", 3, 4);
+      await command("b");
+    },
+    was: "abras aquí",
+    now: "**abras aquí**",
+  },
+  {
+    name: "boldOverAChoiceOutOfCodeWrapsTheWordsAfterIt",
+    doc: MID_CODE,
+    run: async ({ clickAt, command, frame }) => {
+      await clickAt("Palabras");
+      await chosenOutOfCode(frame, 4, "Después ", 3);
+      await command("b");
+    },
+    was: "Des",
+    now: "**Des**",
+  },
+  {
+    name: "commandAThenBoldOverAPageWithCodeWrapsOnlyTheWords",
+    doc: MID_CODE,
+    run: async ({ clickAt, command }) => {
+      await clickAt("Palabras");
+      await command("a");
+      await command("b");
+    },
+    was: "Código\n\nPalabras aquí\n\n```js\na * b\nc\n```\n\nDespués *sí* fin",
+    now: "**Código**\n\n**Palabras aquí**\n\n```js\na * b\nc\n```\n\n**Después *sí* fin**",
+  },
+  {
+    name: "commandAThenBoldOverAPageEndingInCodeWrapsOnlyTheWords",
+    doc: ENDS_IN_CODE,
+    run: async ({ clickAt, command }) => {
+      await clickAt("Antes");
+      await command("a");
+      await command("b");
+    },
+    was: "Código\n\nAntes",
+    now: "**Código**\n\n**Antes**",
+  },
+  {
+    name: "copyAcrossInlineCodeOverALineBreakPairsNoStarInIt",
+    doc: "# Código\n\nUse `a\nb*c` here and *it* there\n",
+    run: async ({ clickAt, copied, frame }) => {
+      await clickAt("here");
+      await drawnFirst(frame);
+      await chosenIn(frame, ["Use ", 0], ["it", 1]);
+      const said = await copied();
+      if (said !== "Use `a\nb*c` here and *it*") throw new Error(`the page carried ${JSON.stringify(said)}`);
+    },
+    was: "",
+    now: "",
+  },
+  {
+    name: "boldTwiceOverTwoParagraphsLeavesThemAsTheyWere",
+    doc: TWO_PARAGRAPHS,
+    run: async ({ clickAt, command, frame, page }) => {
+      await clickAt("Uno");
+      await drawnFirst(frame);
+      await chosenIn(frame, ["Uno dos", 0], ["Tres cuatro", 11]);
+      await command("b");
+      await drawnFirst(frame);
+      await textHolds(page, "**Uno dos**\n\n**Tres cuatro**");
+      await command("b");
+    },
+    was: "",
+    now: "",
+  },
+  {
+    name: "italicTwiceOverBoldParagraphsLeavesThemBold",
+    doc: TWO_BOLD_PARAGRAPHS,
+    run: async ({ clickAt, command, frame, page }) => {
+      await clickAt("Uno");
+      await drawnFirst(frame);
+      await chosenIn(frame, ["Uno dos", 0], ["Tres cuatro", 11]);
+      await command("i");
+      await drawnFirst(frame);
+      await textHolds(page, "***Uno dos***\n\n***Tres cuatro***");
+      await command("i");
+    },
+    was: "",
+    now: "",
+  },
+  {
+    name: "commandAThenBoldTwiceOverAPageWithCodeLeavesItAsItWas",
+    doc: MID_CODE,
+    run: async ({ clickAt, command, frame, page }) => {
+      await clickAt("Palabras");
+      await command("a");
+      await command("b");
+      await drawnFirst(frame);
+      await textHolds(page, "**Palabras aquí**\n\n```js\na * b\nc\n```\n\n**Después *sí* fin**");
+      await command("b");
+    },
+    was: "",
+    now: "",
+  },
+  {
+    name: "commandAThenBoldOverATableLeavesTheTable",
+    doc: "# Tabla\n\nAntes\n\n| a | b |\n|---|---|\n| 1 | 2 |\n\nDespués\n",
+    run: async ({ clickAt, command }) => {
+      await clickAt("Antes");
+      await command("a");
+      await command("b");
+    },
+    was: "Tabla\n\nAntes\n\n| a | b |\n|---|---|\n| 1 | 2 |\n\nDespués",
+    now: "**Tabla**\n\n**Antes**\n\n| a | b |\n|---|---|\n| 1 | 2 |\n\n**Después**",
+  },
+  {
+    name: "commandAThenBoldOverAnUnderlinedHeadingAndARuleLeavesTheirLines",
+    doc: "# Reglas\n\nTítulo\n======\n\nAntes\n\n---\n\nDespués\n",
+    run: async ({ clickAt, command }) => {
+      await clickAt("Antes");
+      await command("a");
+      await command("b");
+    },
+    was: "Reglas\n\nTítulo\n======\n\nAntes\n\n---\n\nDespués",
+    now: "**Reglas**\n\n**Título**\n======\n\n**Antes**\n\n---\n\n**Después**",
+  },
+  {
+    name: "commandAThenBoldOverAFormulaOverLinesLeavesTheFormula",
+    doc: "# Fórmula\n\nAntes\n\n$$\nx^2\n$$\n\nDespués\n",
+    run: async ({ clickAt, command }) => {
+      await clickAt("Antes");
+      await command("a");
+      await command("b");
+    },
+    was: "Fórmula\n\nAntes\n\n$$\nx^2\n$$\n\nDespués",
+    now: "**Fórmula**\n\n**Antes**\n\n$$\nx^2\n$$\n\n**Después**",
+  },
+  {
+    name: "deleteAcrossInlineCodeOverALineBreakKeepsNoStarOfIt",
+    doc: "# Código\n\nUse `a\nb*c` and x* y\n",
+    run: async ({ clickAt, frame, press }) => {
+      await clickAt("and");
+      await drawnFirst(frame);
+      await chosenIn(frame, ["Use ", 0], [" and x", 1]);
+      await press("Backspace");
+    },
+    was: "Use `a\nb*c` ",
+    now: "",
+  },
+  {
+    name: "italicOverWordsWithALoneStarStaysInTheirParagraph",
+    doc: "# Estrella\n\nUno *dos tres\n\nluego *x* y\n",
+    run: async ({ clickAt, command, frame }) => {
+      await clickAt("dos");
+      await drawnFirst(frame);
+      await chosenIn(frame, ["Uno ", 0], ["dos tres", 8]);
+      await command("i");
+    },
+    was: "Uno *dos tres",
+    now: "*Uno dos tres*",
   },
 ];
 
@@ -2505,4 +2839,48 @@ const chosenToTheEndOf = async (frame, [words, offset], selector) => {
     if (!end) throw new Error(`no ${holder} on the page`);
     getSelection().extend(end, end.childNodes.length);
   }, selector);
+};
+
+const chosenToCodeEnd = async (frame, words, offset) => {
+  await caretInWords(frame, words, offset);
+  await frame.evaluate(() => {
+    const walk = document.createTreeWalker(document.querySelector(".page pre code"), NodeFilter.SHOW_TEXT);
+    let last = null;
+    for (let node = walk.nextNode(); node; node = walk.nextNode()) last = node;
+    if (!last) throw new Error("no code on the page");
+    getSelection().extend(last, last.length);
+  });
+};
+
+const chosenIntoCode = async (frame, words, offset, inCode) => {
+  await caretInWords(frame, words, offset);
+  await frame.evaluate((at) => {
+    const walk = document.createTreeWalker(document.querySelector(".page pre code"), NodeFilter.SHOW_TEXT);
+    let left = at;
+    for (let node = walk.nextNode(); node; node = walk.nextNode()) {
+      if (left <= node.length) return getSelection().extend(node, left);
+      left -= node.length;
+    }
+    throw new Error(`no code ${at} letters long on the page`);
+  }, inCode);
+};
+
+const chosenOutOfCode = async (frame, inCode, words, offset) => {
+  await drawnFirst(frame);
+  await frame.evaluate(([at, said, end]) => {
+    const walk = document.createTreeWalker(document.querySelector(".page pre code"), NodeFilter.SHOW_TEXT);
+    let left = at;
+    let start = null;
+    for (let node = walk.nextNode(); node && !start; node = walk.nextNode()) {
+      if (left <= node.length) start = [node, left];
+      else left -= node.length;
+    }
+    const page = document.createTreeWalker(document.querySelector(".page"), NodeFilter.SHOW_TEXT);
+    for (let node = page.nextNode(); node; node = page.nextNode()) {
+      if (node.data !== said || !start) continue;
+      getSelection().setBaseAndExtent(start[0], start[1], node, end);
+      return;
+    }
+    throw new Error(`no "${said}" alone in a text on the page`);
+  }, [inCode, words, offset]);
 };

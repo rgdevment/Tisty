@@ -13,7 +13,7 @@ export const changeOf = (was, now) => {
 export const macIn = (page) => page.evaluate(() => navigator.userAgent.includes("Macintosh"));
 
 const OPTION_WORD_KEYS = new Set(["Backspace", "Delete", "ArrowLeft", "ArrowRight"]);
-const CLIPBOARD_KEY = /(?:^|\+)(?:Meta|Control)\+(?:Shift\+)?[cvx]$/i;
+const CLIPBOARD_KEY = /(?:^|\+)(?:Meta|Control)(?:\+(?:Alt|Shift))*\+[cvx]$|^Shift\+Delete$|^(?:Control|Shift)\+Insert$/i;
 
 const macOnlyKey = (key) => {
   const parts = key.split("+");
@@ -63,7 +63,7 @@ export const handsOn = (page, frame) => {
   };
   const pressable = async (key) => {
     if (CLIPBOARD_KEY.test(key))
-      throw new Error(`${key} would reach the system's clipboard: a case calls cut() or copied()`);
+      throw new Error(`${key} would reach the system's clipboard: a case calls cut() or copied(), and paste is tried in vitest`);
     if (macOnlyKey(key) && !(await onMac()))
       throw new Error(`${key} is a Mac key: off a Mac a case presses command() or wordBack(), or is macOnly`);
   };

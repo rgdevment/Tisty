@@ -40,19 +40,20 @@ const blockOf = (node: Node | null): HTMLElement | null => {
 const askedOnMac = (event: MouseEvent) =>
   onMac && (event.button === 2 || (event.button === 0 && event.ctrlKey));
 
-const inCode = (node: Node | null | undefined) =>
-  Boolean(
-    (node?.nodeType === 1 ? (node as Element) : (node?.parentElement ?? null))?.closest(
-      "pre, code",
-    ),
-  );
+const codeOf = (node: Node | null | undefined) => {
+  const element = node?.nodeType === 1 ? (node as Element) : (node?.parentElement ?? null);
+  return element?.closest("figure.code") ?? element?.closest("pre, code") ?? null;
+};
 
 // Code is written as it stands and a field writes its own words, so neither takes a format.
 export const unformattable = (page: Document): boolean => {
   if (page.activeElement?.closest("input, textarea, select")) return true;
   const chosen = page.getSelection();
   const range = chosen?.rangeCount ? chosen.getRangeAt(0) : null;
-  return inCode(range?.startContainer) || inCode(range?.endContainer);
+  const start = codeOf(range?.startContainer);
+  const end = codeOf(range?.endContainer);
+  if (start === end) return start !== null;
+  return [start, end].some((code) => code !== null && !code.matches("figure.code"));
 };
 
 export const picked = (page: Document): Omit<Formatting, "open" | "close"> | null => {

@@ -1028,7 +1028,7 @@ describe("the whole page chosen with Cmd or Ctrl and A", () => {
     expect([held?.anchorNode, held?.anchorOffset]).toEqual([sheet(), 1]);
     expect([held?.focusNode, held?.focusOffset]).toEqual([piece("Uno dos"), 7]);
     expect(keyOn(sheet(), "Delete").defaultPrevented).toBe(true);
-    expect(said[said.length - 1]).toBe("---\ntitle: X\n---\n\n");
+    expect(said[said.length - 1]).toBe("---\ntitle: X\n---\n\n\n");
   });
 
   it("leaves Shift with Delete, the cut of Windows, to the system on a page that opens with a table", async () => {

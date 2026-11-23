@@ -2,8 +2,8 @@ import type { Caret } from "./pageCaret";
 import { colonsCrossed, colonsMoved } from "./pageColons";
 import type { Edit, Span } from "./pageEdits";
 import type { Laying } from "./pageLaying";
-import { balanced } from "./pageMarks";
-import { FIELDS } from "./pageNodes";
+import { apart } from "./pageMends";
+import { FIELDS, inCode } from "./pageNodes";
 import type { Writer } from "./pageWriter";
 
 const STILL_PX = 4;
@@ -22,19 +22,30 @@ const pointAt = (page: Document, x: number, y: number): Range | null => {
   return made;
 };
 
-export const movedWords = (text: string, words: Span, to: number): [Edit, number] | null => {
+export const movedWords = (
+  text: string,
+  words: Span,
+  to: number,
+  said = text.slice(words.from, words.to),
+  left = "",
+): [Edit, number] | null => {
   if (to >= words.from && to <= words.to) return null;
-  const said = text.slice(words.from, words.to);
   if (to < words.from)
     return [
-      { from: to, to: words.to, insert: said + text.slice(to, words.from) },
+      { from: to, to: words.to, insert: said + text.slice(to, words.from) + left },
       to + said.length,
     ];
-  return [{ from: words.from, to, insert: text.slice(words.to, to) + said }, to];
+  const between = text.slice(words.to, to);
+  return [
+    { from: words.from, to, insert: left + between + said },
+    words.from + left.length + between.length + said.length,
+  ];
 };
 
-const carriedTo = (text: string, words: Span, to: number) =>
-  colonsCrossed(text, words) ? colonsMoved(text, words, to) : movedWords(text, words, to);
+const carriedTo = (text: string, words: Span, to: number, said?: string, left?: string) =>
+  colonsCrossed(text, words)
+    ? colonsMoved(text, words, to)
+    : movedWords(text, words, to, said, left);
 
 // The window takes the system's drags for its files, so words are carried by the pointer, as a block by its grip.
 export const draggingOn = (writer: Writer, caret: Caret, laying: Laying) => {
@@ -43,7 +54,16 @@ export const draggingOn = (writer: Writer, caret: Caret, laying: Laying) => {
   mark.className = "page-drop-caret";
   mark.hidden = true;
   page.body.append(mark);
-  let held: { x: number; y: number; words: Span; said: string; moved: boolean } | null = null;
+  type Held = {
+    readonly x: number;
+    readonly y: number;
+    readonly words: Span;
+    readonly said: string;
+    readonly carried: string;
+    readonly left: string;
+    moved: boolean;
+  };
+  let held: Held | null = null;
 
   const shown = (point: Range | null) => {
     const box = point?.getClientRects()[0] ?? point?.getBoundingClientRect();
@@ -77,7 +97,10 @@ export const draggingOn = (writer: Writer, caret: Caret, laying: Laying) => {
     const to = caret.spanOfRange(point)?.from;
     const text = hands.text();
     if (text.slice(was.words.from, was.words.to) !== was.said) return;
-    const moved = to === undefined ? null : carriedTo(text, was.words, to);
+    const fenced = was.carried !== was.said;
+    if (fenced && inCode(point.startContainer)) return;
+    const carried = fenced ? apart(text, to ?? 0, was.carried) : was.carried;
+    const moved = to === undefined ? null : carriedTo(text, was.words, to, carried, was.left);
     if (moved) laying.put(...moved);
   };
 
@@ -90,16 +113,17 @@ export const draggingOn = (writer: Writer, caret: Caret, laying: Laying) => {
     const point = pointAt(page, event.clientX, event.clientY);
     if (!range || range.collapsed || !point) return;
     if (range.comparePoint(point.startContainer, point.startOffset) !== 0) return;
-    const chosen = caret.chosenWhole();
-    if (!chosen) return;
+    const taken = caret.taken();
+    if (!taken) return;
     event.preventDefault();
-    const text = hands.text();
-    const words = balanced(text, chosen);
+    const { from, to, carried, left } = taken;
     held = {
       x: event.clientX,
       y: event.clientY,
-      words,
-      said: text.slice(words.from, words.to),
+      words: { from, to },
+      said: hands.text().slice(from, to),
+      carried,
+      left,
       moved: false,
     };
     page.addEventListener("mousemove", dragged);

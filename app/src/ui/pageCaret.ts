@@ -2,7 +2,8 @@ import { byteFrom, type Reckoned, unitFrom } from "../placing";
 import { blankAt, lineEnd, type Span } from "./pageEdits";
 import { foldReached } from "./pageFolds";
 import { closing, opening } from "./pageLists";
-import { wordsFrom } from "./pageMarks";
+import { balanced, wordsFrom } from "./pageMarks";
+import { carriedOf, mended } from "./pageMends";
 import {
   atGhost,
   caretLaidOn,
@@ -27,9 +28,12 @@ import {
   startOf,
   topsAt,
 } from "./pageSpots";
+import { type Choice, mendOf, spanReached, wholeReach } from "./pageWholes";
 import { choiceKept, keptUnlaid, type Point, type Writer } from "./pageWriter";
 
 export type Caret = ReturnType<typeof caretOn>;
+
+export type Taken = ReturnType<Caret["taken"]>;
 
 type Spot = [Node, number];
 
@@ -138,8 +142,8 @@ export const caretOn = (writer: Writer) => {
     return range && (unbegun("insertText", range) ?? spanOfRange(range));
   };
 
-  const spanChosen = (range: AbstractRange, reaching = false): Span | null => {
-    const span = spanOfRange(range, reaching);
+  const spanChosen = (range: AbstractRange): Span | null => {
+    const span = spanReached(range, spanOfRange(range), hands.text(), writer.reckoned);
     const reach = span && foldReached(range);
     if (!span || !reach) return span;
     const text = hands.text();
@@ -161,7 +165,31 @@ export const caretOn = (writer: Writer) => {
 
   const chosenNow = () => chosenAs(spanOfRange);
 
-  const chosenWhole = () => chosenAs(spanChosen);
+  const choiceOf = (range: AbstractRange): Choice | null => {
+    const text = hands.text();
+    const reach = wholeReach(range);
+    const span = spanReached(range, spanOfRange(range), text, writer.reckoned, reach);
+    return span && { span, mend: mendOf(range, text, writer.reckoned, reach) };
+  };
+
+  const takenFrom = (): Choice | null => {
+    const kept = choiceKept(writer.kept);
+    if (kept) return { span: kept, mend: null };
+    const range = chosen();
+    const last = writer.lastRange;
+    if (range && !range.collapsed) return choiceOf(range);
+    return last && !last.collapsed ? choiceOf(last) : null;
+  };
+
+  const taken = () => {
+    const choice = takenFrom();
+    if (!choice || choice.span.from >= choice.span.to) return null;
+    const text = hands.text();
+    const span = balanced(text, choice.span);
+    const { mend } = choice;
+    const left = mend ? mended(text, { ...span, insert: "" }, mend).insert : "";
+    return { ...span, carried: carriedOf(text, span, mend), left };
+  };
 
   // A menu of the window hands the focus back to the frame, not to the words, so the sheet takes it again.
   const focused = () => {
@@ -429,7 +457,7 @@ export const caretOn = (writer: Writer) => {
     caretSpan,
     spanChosen,
     chosenNow,
-    chosenWhole,
+    taken,
     focused,
     caretLaid,
     placeAt,
