@@ -215,7 +215,10 @@ fn judged(ledger: &Ledger, target: &Target) -> (Standing, Seen) {
 }
 
 fn weighed(ledger: &Ledger, target: &Target, wanted: &[u8], now: Option<Vec<u8>>) -> Standing {
-    let base = ledger.written(&target.at);
+    // A file the person left with the agent is theirs: a document landing on it again asks before writing.
+    let base = ledger
+        .written(&target.at)
+        .filter(|_| !ledger.stays(&target.at));
     if target.agents_own() {
         return match now {
             Some(now) if now != wanted && base != Some(printed(&now).as_str()) => {
@@ -592,6 +595,23 @@ fn holds_only(folder: &Path, files: &[&Target]) -> bool {
         }
     }
     true
+}
+
+// Taken away with no file shown to the person, so a copy changed since Tisty wrote it stays for them to see.
+pub fn removed_as_written(
+    data: &Path,
+    ledger: &mut Ledger,
+    target: &Target,
+) -> Result<bool, Refused> {
+    allowed(ledger, target)?;
+    if linked(target) {
+        return Err(Refused::Linked);
+    }
+    let now = on_disk(&target.at)?;
+    if now.is_some_and(|now| ledger.written(&target.at) != Some(printed(&now).as_str())) {
+        return Ok(false);
+    }
+    removed(data, ledger, target).map(|()| true)
 }
 
 // With Tisty's own skills turned off, a copy still as Tisty wrote it goes with a backup; one changed since stays, loose, for the person.

@@ -2,6 +2,8 @@ import { listen } from "@tauri-apps/api/event";
 import { open as pick } from "@tauri-apps/plugin-dialog";
 import { type MutableRefObject, useCallback, useEffect, useRef, useState } from "react";
 import type { Start } from "tisty-diagrams/read";
+import { dropAsked } from "./agentsDropping";
+import { agentsDrop, agentsReach, inAgents, type Reach } from "./agentsSync";
 import type { carrying } from "./carrying";
 import {
   docAway,
@@ -146,7 +148,49 @@ export function usePapers({
 
   const returnTo = (doc: Filed) => setReturning(doc.pageOf ?? doc.folder ?? "unfiled");
 
-  const dropDoc = (doc: Filed) => {
+  // What a document of Agents wrote into an agent's folder is asked about in the one question that deletes it.
+  const reached = async (going: Going[]): Promise<Reach | null> => {
+    if (!going.some((one) => inAgents(one.doc.folder, papers.folders))) return null;
+    const reach = await agentsReach(going.map((one) => one.doc.id));
+    const loose = reach.at.length + reach.changed.length + reach.paused.length;
+    return loose > 0 ? reach : null;
+  };
+
+  const dropFromAgents = async (going: Going[], reach: Reach, said: string) => {
+    const answer = await dropAsked({ said, reach });
+    if (!answer) return;
+    const done = await agentsDrop(
+      going.map((one) => one.doc.id),
+      answer === "away",
+      reach.at,
+    );
+    const went = going.filter((one) => done.gone.includes(one.doc.id));
+    for (const one of went) wentAway(one);
+    if (went[0]) returnTo(went[0].doc);
+    const titled = (id: string) =>
+      going.find((one) => one.doc.id === id)?.doc.title || t("untitledDoc");
+    const trouble = [
+      ...done.refused.map((one) => fill("dropRefused", titled(one.id), saidPlainly(one.refusal))),
+      ...done.untaken.map((one) => fill("agentsDropUntaken", one.at, saidPlainly(one.refusal))),
+      ...done.unmarked.map((one) => fill("agentsDropUnmarked", one.at, saidPlainly(one.refusal))),
+    ];
+    if (trouble.length > 0) setError(trouble.join(" · "));
+    papersChanged();
+  };
+
+  // Nothing is deleted when Agents cannot say who keeps a copy: the error is shown and the question ends there.
+  const droppedFromAgents = async (going: Going[], said: string): Promise<boolean> => {
+    try {
+      const reach = await reached(going);
+      if (!reach) return false;
+      await dropFromAgents(going, reach, said);
+    } catch (e) {
+      setError(saidPlainly(e));
+    }
+    return true;
+  };
+
+  const dropDoc = async (doc: Filed) => {
     // The languages beside it are the same row, so they go with it, and the question says so.
     const going = goingWith([doc], papers.docs);
     const [{ tongues, pages }] = going;
@@ -154,6 +198,7 @@ export function usePapers({
       tongues.length > 1
         ? fill("dropTonguesSure", doc.title || t("untitledDoc"), tonguesNamed(tongues))
         : fill(pages.length ? "dropPagesSure" : "dropDocSure", doc.title || t("untitledDoc"));
+    if (await droppedFromAgents(going, asked)) return;
     return sure(asked)
       .then((yes) => {
         if (!yes) return;
@@ -168,7 +213,9 @@ export function usePapers({
 
   const dropDocs = async (all: Filed[]) => {
     const going = goingWith(all, papers.docs);
-    if (!(await sure(dropAllAsked(going)))) return;
+    const asked = dropAllAsked(going);
+    if (await droppedFromAgents(going, asked)) return;
+    if (!(await sure(asked))) return;
     const went: Filed[] = [];
     const refused: string[] = [];
     for (const one of going) {

@@ -57,7 +57,7 @@ pub struct Gate {
     held: BTreeSet<String>,
     carded: BTreeSet<String>,
     unclaimed: BTreeSet<String>,
-    skills_named: BTreeSet<String>,
+    skills_named: BTreeMap<String, String>,
 }
 
 impl Gate {
@@ -118,8 +118,19 @@ impl Gate {
         self
     }
 
+    /// The gate as it will be once these documents are deleted, so what they leave loose can be asked before.
+    pub fn without(mut self, files: &BTreeSet<String>) -> Self {
+        self.admitted.retain(|one| !files.contains(one.file()));
+        self.seen.retain(|file, _| !files.contains(file));
+        self.held.retain(|file| !files.contains(file));
+        self.carded.retain(|file| !files.contains(file));
+        self.unclaimed.retain(|file| !files.contains(file));
+        self.skills_named.retain(|file, _| !files.contains(file));
+        self
+    }
+
     pub fn skill_named(&self, skill: &str) -> bool {
-        self.skills_named.contains(&folded(skill))
+        self.skills_named.values().any(|one| *one == folded(skill))
     }
 
     pub fn target(&self, ledger: &Ledger, root: PathBuf, at: PathBuf, assistant: &str) -> Target {
@@ -158,7 +169,7 @@ pub fn gate(asked: &Asked) -> Gate {
             gate.carded.insert(kept.file.clone());
             if card.kind == Kind::Skill {
                 gate.skills_named
-                    .insert(folded(super::skill_of(&card.name)));
+                    .insert(kept.file.clone(), folded(super::skill_of(&card.name)));
             }
         }
         if unclaimed(kept, asked.ledger, asked.me) {

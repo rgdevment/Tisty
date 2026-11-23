@@ -593,14 +593,38 @@ While syncing, Tisty puts the line `@tisty-rules.md` in your `GEMINI.md` once. I
 
 **Put the line back** adds the line again at the end of `GEMINI.md`, touching nothing else, and Tisty writes your rules to `tisty-rules.md` again. Until you do, the card and the Settings card keep saying so.
 
+### Deleting a rule or skill
+
+When you delete a rule or skill of yours from Agents, with **Delete** in its menu, and Tisty wrote it into an agent's folder, Tisty asks right there whether to take it away from your agents too. It is one box: on top it says what the usual question says (what goes with the document, its languages and its pages, and that it cannot be undone), and below it names every agent whose copy can go:
+
+- **Take away too** deletes the document and takes each of those files out of your agents' folders. A backup of each file stays on this computer first.
+- **Only from Tisty** deletes the document and leaves those files where they are, and your agents keep reading them.
+- **Cancel** deletes nothing.
+
+**An example.** Yisset wrote the Global skill **voice** in Agents, and Tisty put it in `~/.claude/skills/voice/SKILL.md` and in `~/.agents/skills/voice/SKILL.md`, which Codex and Copilot read. She no longer wants it and chooses **Delete**. The box says «Delete «voice»? The document and what it holds go for good. This cannot be undone.» and, in bold, «Take it away from Claude, Codex and Copilot too?». She chooses **Take away too**: both files go, each with its backup, and none of her agents reads that skill again. Only the files the box named go: anything that came loose some other way while it was open waits for its own question.
+
+Some copies the box says apart, and they never go without you seeing them:
+
+- **A copy changed outside Tisty**, for example one you edited by hand: «Changed outside Tisty in Codex and Copilot: that copy stays, and you see it after, on its own.». After deleting, the [Take the file away too?](#taking-a-rule-and-its-file-out) box opens for it, with its path and «It changed after Tisty last wrote it.». If it changes between the question and your answer, it stays too. **Only from Tisty** does not mark it as left: it stays for that question.
+- **A copy a paused agent reads**: «Paused: Copilot. Its copy stays, and Tisty asks again once it syncs.». That holds for any agent that reads it, also one that only shares `~/.agents/skills` with another, and for Gemini while the line `@tisty-rules.md` is missing from its `GEMINI.md`. Tisty does not touch it. When the agent syncs again, that copy counts as a loose file: the **Agents** card in Settings says so with **Review**, and Tisty asks the usual question the next time you go into Agents.
+- **A file other rules also make up**, such as a `CLAUDE.md` with a Global rule: «Claude: other rules also make up that file, so it is written again without this, with a backup first.». That file is never taken away.
+
+When every copy is changed or paused, the box still shows, with **Only from Tisty** and **Cancel**. When nothing Tisty wrote comes loose (the document was only brought and never synced, Agents does not sync on this computer, or every file is also written by another document), the usual «Delete «voice»?» is the whole question. Deleting several documents at once asks one box for all of them, with the same list the usual question shows and every agent named together.
+
+If a document cannot be deleted, for example because it is locked, none of its files is touched, and Tisty says why. If a file cannot be taken away, for example because its folder is a link, the document is still deleted and Tisty names that file and the reason; it stays for the usual question.
+
+#### Files you left with your agents
+
+What you leave with **Only from Tisty** stays yours: Tisty takes it as your file. The **Agents** card in **Settings › Agents › Agents folder** lists them apart: «2 files you left with your agents when you deleted them from Agents.», with **Review**, which asks about each one with [Take the file away too?](#taking-a-rule-and-its-file-out). Tisty never asks about them by itself and never writes over them, and a folder of Agents you empty still goes. If you later write a rule or skill that lands on the same file again, Tisty asks first, as with [a change made outside](#a-change-made-outside-bring-it-in-or-overwrite), with **Keep Tisty's** (backup first) or **Keep the file**. If you bring that same file back with [Bring another file](#bring-another-file), it is Tisty's again and leaves that list. If the document you deleted was the last one in Agents, the folder goes, but this list stays in the card with **Review**, so you can still change your mind; nothing else Agents wrote is offered there. This list is this computer's only: it does not travel to your other computers.
+
 ### Taking a rule and its file out
 
-While syncing, Tisty stops writing a document when you take it out of Agents: when you delete it, archive it or move it out, when you change its `agent:` line to another file's, and when you go back to an [earlier version](Documents#earlier-versions) that had no card, or another one.
+While syncing, Tisty stops writing a document when you take it out of Agents: when you archive it or move it out, when you change its `agent:` line to another file's, and when you go back to an [earlier version](Documents#earlier-versions) that had no card, or another one. Deleting it asks [right then](#deleting-a-rule-or-skill); this question is for every other way, and for the copies that question leaves for later.
 
 - **If the file was put together from several documents**, like `CLAUDE.md` with a Global rule, Tisty writes it again without that part, keeping a backup first.
-- **If it was the only one**, no rule writes that file any more, but it is still on disk and your agent keeps reading it. So about a second later, Tisty asks what to do with it.
+- **If it was the only one**, no rule or skill writes that file any more, but it is still on disk and your agent keeps reading it. So about a second later, Tisty asks what to do with it.
 
-**An example.** You had the rule **Tests**, from `~/.claude/rules/tests.md`, and no longer want it. You delete it, and **Take the file away too?** opens: «No rule in Agents writes this Claude file any more, but it is still on disk and Claude keeps reading it.», with the path below and «If you take it away, a backup stays on this computer.».
+**An example.** You had the rule **Tests**, from `~/.claude/rules/tests.md`, and moved it out of Agents to **Notes**. **Take the file away too?** opens: «No rule or skill in Agents writes this Claude file any more, but it is still on disk and Claude keeps reading it.», with the path below and «If you take it away, a backup stays on this computer.».
 
 - **Take the file away** keeps a backup and deletes it: Claude stops reading that rule. If it was the last file in a skill's folder, that folder goes with it; the agent's own folders, such as `rules`, stay.
 - **Leave it** leaves it where it is, and Tisty stops answering for it: it neither writes it nor asks again. If one day you want it back in Agents, it shows in [Bring another file](#bring-another-file).
@@ -609,7 +633,7 @@ If the file changed after Tisty wrote it, for example because you edited it by h
 
 If you take away `tisty-rules.md`, Gemini's rules file, Tisty also takes the line `@tisty-rules.md` out of `GEMINI.md`, and nothing else.
 
-Until you answer, the **Agents** card in **Settings › Agents › Agents folder** says «1 file no longer belongs to any rule in Agents.», with **Review** to come back to the question.
+Until you answer, the **Agents** card in **Settings › Agents › Agents folder** says «1 file no longer belongs to any rule or skill in Agents.», with **Review** to come back to the question.
 
 Tisty does not ask, and leaves the file as it is:
 
@@ -619,7 +643,7 @@ Tisty does not ask, and leaves the file as it is:
 - about a file whose document [waits for your approval](#to-approve);
 - about a file that no longer exists.
 
-Your other computers do the same: when the deleted rule reaches them through sync, each one asks about its own file the next time Tisty looks, and the backup stays on that computer.
+Your other computers do the same: when the deleted rule reaches them through sync, each one asks about its own file with this question the next time Tisty looks, and the backup stays on that computer. A document deleted on another computer never takes away a file on this one until you answer here.
 
 ### Deleting a subfolder
 
@@ -970,7 +994,7 @@ And editing the file on disk does not help either: that change stands as **Chang
 
 **Can I keep a rule on one computer only?** Yes: on the computer where you do not want it, press **Not on this computer** on its card. What each computer chooses is its own.
 
-**I deleted a rule. What happens to its file?** Tisty asks «Take the file away too?»: **Take the file away** deletes it and keeps a backup, and **Leave it** leaves it where it is, without Tisty writing it again. See [Taking a rule and its file out](#taking-a-rule-and-its-file-out).
+**I deleted a rule. What happens to its file?** As you delete it, Tisty asks in that same box «Take it away from Claude, Codex and Copilot too?», with the agents that have it: **Take away too** deletes its files and keeps a backup of each, and **Only from Tisty** leaves them where they are, listed in Settings in case you change your mind later. See [Deleting a rule or skill](#deleting-a-rule-or-skill). If you took it out some other way, for example by moving it out of Agents, Tisty asks «Take the file away too?»: see [Taking a rule and its file out](#taking-a-rule-and-its-file-out).
 
 **The first time I left a file unticked. Can I bring it now?** Yes, with **Bring another file**: by right-clicking a subfolder of Agents, such as Claude; with Agents open, from the Library's **+** button or the command palette; or from Settings › Agents › Agents folder. See [Bring another file](#bring-another-file).
 

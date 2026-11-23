@@ -11,6 +11,7 @@ import {
   agentsState,
   agentsTurn,
   askAgents,
+  askAgentsStayed,
   bringMoreAgents,
   syncAgents,
 } from "../agentsSync";
@@ -128,7 +129,24 @@ export default function AgentsSettings({
       {stage === "syncs" && look && (
         <Syncing look={look} answered={answered} hideButton={hideButton} />
       )}
+      {stage !== "syncs" && look && <Stayed look={look} />}
     </Card>
+  );
+}
+
+// What the person left with their agents stays theirs to take away, even once Agents is gone.
+function Stayed({ look }: Readonly<{ look: AgentsLook }>) {
+  const stayed = look.loose.filter((one) => one.stayed).length;
+  if (stayed === 0) return null;
+  return (
+    <>
+      <p className="mt-2 text-[12.5px] text-soft">
+        {stayed === 1 ? t("agentsSettingsStayedOne") : fill("agentsSettingsStayed", String(stayed))}
+      </p>
+      <button type="button" onClick={askAgentsStayed} className={small}>
+        {t("agentsSettingsReview")}
+      </button>
+    </>
   );
 }
 
@@ -141,6 +159,7 @@ function Syncing({
   answered: (step: Promise<unknown>) => void;
   hideButton: ReactNode;
 }>) {
+  const loose = look.loose.filter((one) => !one.stayed).length;
   return (
     <>
       {look.both.length > 0 && (
@@ -155,18 +174,17 @@ function Syncing({
           </button>
         </>
       )}
-      {look.loose.length > 0 && (
+      {loose > 0 && (
         <>
           <p className="mt-2 text-[12.5px] text-soft">
-            {look.loose.length === 1
-              ? t("agentsSettingsLooseOne")
-              : fill("agentsSettingsLoose", String(look.loose.length))}
+            {loose === 1 ? t("agentsSettingsLooseOne") : fill("agentsSettingsLoose", String(loose))}
           </p>
           <button type="button" onClick={askAgents} className={small}>
             {t("agentsSettingsReview")}
           </button>
         </>
       )}
+      <Stayed look={look} />
       <div className="flex gap-2">
         <button type="button" onClick={bringMoreAgents} className={small}>
           {t("agentsSettingsMore")}

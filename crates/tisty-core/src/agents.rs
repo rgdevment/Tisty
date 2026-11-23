@@ -32,7 +32,7 @@ pub use rooted::{
 pub use shown::{OwnFront, Shown, own_front, shown};
 pub use standing::{
     Standing, Target, adopted, bring, lacks, lead_in, lead_out, overwrite, reclaimed, removed,
-    restore, round, shipped_copy, standing, unshipped, wanted,
+    removed_as_written, restore, round, shipped_copy, standing, unshipped, wanted,
 };
 pub use subs::{sub_folders, sub_id};
 pub use twins::renamed_twins;
@@ -110,4 +110,17 @@ pub fn folder(data: &std::path::Path) -> std::path::PathBuf {
 
 fn link(at: &std::path::Path) -> bool {
     std::fs::symlink_metadata(at).is_ok_and(|meta| meta.file_type().is_symlink())
+}
+
+/// One file's key the way its file system names it: Windows and macOS keep `Voice` and `voice` in one file.
+pub fn path_key(at: &std::path::Path) -> String {
+    let said = at.to_string_lossy();
+    match cfg!(any(windows, target_os = "macos")) {
+        true => said.replace('\\', "/").to_lowercase(),
+        false => said.into_owned(),
+    }
+}
+
+pub fn same_file(one: &std::path::Path, other: &std::path::Path) -> bool {
+    path_key(one) == path_key(other)
 }

@@ -133,25 +133,16 @@ fn plugged_here(homes: &Homes, ledger: &Ledger) -> BTreeSet<&'static str> {
     }
 }
 
-// Windows and macOS keep `Tisty` and `tisty` in one file.
-fn same_file(one: &Path, other: &Path) -> bool {
-    match cfg!(any(windows, target_os = "macos")) {
-        true => {
-            let tidy = |at: &Path| at.to_string_lossy().replace('\\', "/").to_lowercase();
-            tidy(one) == tidy(other)
-        }
-        false => one == other,
-    }
-}
-
 fn placed_over(placed: &[Placed], at: &Path) -> bool {
-    placed.iter().any(|one| same_file(&one.target.at, at))
+    placed
+        .iter()
+        .any(|one| agents::same_file(&one.target.at, at))
 }
 
 const READ_AT_MOST: u64 = 512 * 1024;
 
 // Only a plain file of a skill's size is opened; a link or anything larger reads as changed and is never followed.
-fn changed_now(ledger: &Ledger, at: &Path) -> bool {
+pub(crate) fn changed_now(ledger: &Ledger, at: &Path) -> bool {
     let plain = std::fs::symlink_metadata(at)
         .is_ok_and(|meta| meta.is_file() && meta.len() <= READ_AT_MOST);
     !plain

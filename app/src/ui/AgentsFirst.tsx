@@ -205,6 +205,8 @@ interface Props {
   more?: boolean;
   /** «Look again»: the assistants are found anew and only what is new comes ticked. */
   rescan?: boolean;
+  /** The files the person let stay with their agents, asked about because they opened them. */
+  stayed?: boolean;
   onClose: () => void;
   onChanged: () => void;
 }
@@ -212,6 +214,7 @@ interface Props {
 export default function AgentsFirst({
   more = false,
   rescan = false,
+  stayed = false,
   onClose,
   onChanged,
 }: Readonly<Props>) {
@@ -230,8 +233,9 @@ export default function AgentsFirst({
         setLook(seen);
         // A folder that already syncs has nothing to pick: only what waits for the person, if anything.
         const synced = !more && seen.consented && seen.allOn && !!seen.folder;
-        const queue = waitingOf(seen);
-        if (synced) {
+        const queue = waitingOf(seen, stayed);
+        // Files left with the agents are reviewed as they are, with or without Agents around them.
+        if (synced || stayed) {
           setWaiting(queue);
           setReviewing(true);
         }
@@ -243,7 +247,7 @@ export default function AgentsFirst({
         );
       })
       .catch((e) => setTrouble(saidPlainly(e)));
-  }, [more, rescan]);
+  }, [more, rescan, stayed]);
 
   // A skill comes whole: its row ticks or unticks every file it holds.
   const toggle = (ats: string[]) => {

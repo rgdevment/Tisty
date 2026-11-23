@@ -1,7 +1,7 @@
 use super::*;
 use tisty_core::Paths;
 
-const HERE: &str = "this-computer";
+pub(crate) const HERE: &str = "this-computer";
 
 fn bring_chosen(
     session: &mut Session,
@@ -16,19 +16,19 @@ fn bring_chosen(
     brought_home(session, homes, ledger, &read, refused)
 }
 
-struct Room {
+pub(crate) struct Room {
     _tmp: tempfile::TempDir,
-    home: std::path::PathBuf,
-    homes: Homes,
-    session: Session,
+    pub(crate) home: std::path::PathBuf,
+    pub(crate) homes: Homes,
+    pub(crate) session: Session,
 }
 
-fn put(at: &Path, said: &str) {
+pub(crate) fn put(at: &Path, said: &str) {
     std::fs::create_dir_all(at.parent().unwrap()).unwrap();
     std::fs::write(at, said).unwrap();
 }
 
-fn room() -> Room {
+pub(crate) fn room() -> Room {
     let tmp = tempfile::tempdir().unwrap();
     let home = tmp.path().join("home");
     put(&home.join(".claude/CLAUDE.md"), "# Claude\nTests first.\n");
@@ -52,14 +52,14 @@ fn room() -> Room {
 }
 
 impl Room {
-    fn at(&self, name: &str) -> String {
+    pub(crate) fn at(&self, name: &str) -> String {
         name.split('/')
             .fold(self.home.clone(), |at, step| at.join(step))
             .to_string_lossy()
             .into_owned()
     }
 
-    fn look(&self) -> Look {
+    pub(crate) fn look(&self) -> Look {
         looked(
             &gathered(&self.session, HERE),
             &self.homes,
@@ -68,11 +68,11 @@ impl Room {
     }
 
     /// «Bring and sync», as the first time offered before «Bring» alone existed.
-    fn bring(&mut self, chosen: &[&str]) -> Brought {
+    pub(crate) fn bring(&mut self, chosen: &[&str]) -> Brought {
         self.bring_as(chosen, Some(true))
     }
 
-    fn bring_as(&mut self, chosen: &[&str], sync: Option<bool>) -> Brought {
+    pub(crate) fn bring_as(&mut self, chosen: &[&str], sync: Option<bool>) -> Brought {
         let chosen: Vec<String> = chosen.iter().map(|one| self.at(one)).collect();
         bring_chosen(&mut self.session, &self.homes, HERE, &chosen, sync).unwrap()
     }
@@ -89,11 +89,11 @@ impl Room {
         all
     }
 
-    fn read(&self, name: &str) -> String {
+    pub(crate) fn read(&self, name: &str) -> String {
         std::fs::read_to_string(self.at(name)).unwrap()
     }
 
-    fn kept(&self, name: &str) -> usize {
+    pub(crate) fn kept(&self, name: &str) -> usize {
         agents::kept(self.session.paths.data(), Path::new(&self.at(name))).len()
     }
 }
@@ -304,7 +304,7 @@ fn an_assistant_turned_off_is_left_as_it_is_and_nothing_in_tisty_goes() {
     assert_eq!(room.read(".claude/CLAUDE.md"), "# Claude\nTests always.\n");
 }
 
-fn doc_of_file(room: &Room, file: &str) -> tisty_core::model::DocId {
+pub(crate) fn doc_of_file(room: &Room, file: &str) -> tisty_core::model::DocId {
     room.session
         .state
         .docs
@@ -314,7 +314,7 @@ fn doc_of_file(room: &Room, file: &str) -> tisty_core::model::DocId {
         .id
 }
 
-fn file_brought_from(room: &Room, name: &str) -> String {
+pub(crate) fn file_brought_from(room: &Room, name: &str) -> String {
     bodies(&room.session)
         .into_iter()
         .find(|(_, body)| Card::of(body).is_some_and(|card| card.name == name))
@@ -322,7 +322,7 @@ fn file_brought_from(room: &Room, name: &str) -> String {
         .0
 }
 
-fn moved_out(room: &mut Room, file: &str) {
+pub(crate) fn moved_out(room: &mut Room, file: &str) {
     let id = doc_of_file(room, file);
     let ops = crate::answers::papers::beside_docs(&room.session.state, id, None, None);
     room.session.commit_all(ops).unwrap();
@@ -564,14 +564,18 @@ fn the_comparison_keeps_the_order_of_both_sides() {
     );
 }
 
-fn global_doc(room: &mut Room, said: &str) {
-    let body = agents::doc_of(
-        agents::GLOBAL,
-        agents::Kind::Rule,
-        "style.md",
-        said.as_bytes(),
-    )
-    .unwrap();
+pub(crate) fn global_doc(room: &mut Room, said: &str) {
+    doc_here(room, agents::GLOBAL, agents::Kind::Rule, "style.md", said);
+}
+
+pub(crate) fn doc_here(
+    room: &mut Room,
+    level: &str,
+    kind: agents::Kind,
+    name: &str,
+    said: &str,
+) -> String {
+    let body = agents::doc_of(level, kind, name, said.as_bytes()).unwrap();
     let root = root_of(&room.session.state).unwrap();
     let device = room.session.store.device().clone();
     let made = tisty_core::docs::create(&room.session.paths.docs(), &device, &body).unwrap();
@@ -579,7 +583,7 @@ fn global_doc(room: &mut Room, said: &str) {
         .commit(Op::DocAdd {
             id: ulid::Ulid::generate(),
             d: tisty_core::event::DocAdd {
-                file: made.id,
+                file: made.id.clone(),
                 folder: Some(root),
                 order: "a".to_string(),
                 said: Some(tisty_core::event::Said::of(&body).agreed()),
@@ -587,6 +591,7 @@ fn global_doc(room: &mut Room, said: &str) {
             },
         })
         .unwrap();
+    made.id
 }
 
 #[test]
@@ -699,7 +704,7 @@ fn from_another_computer(room: &mut Room, kind: agents::Kind, name: &str, said: 
     from_another_computer_for(room, level, kind, name, said)
 }
 
-fn from_another_computer_for(
+pub(crate) fn from_another_computer_for(
     room: &mut Room,
     level: &str,
     kind: agents::Kind,

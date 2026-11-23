@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   AGENTS_FIRST,
   AGENTS_MORE,
+  AGENTS_STAYED,
   AGENTS_SYNC,
   type AgentsLook,
   type AgentsState,
@@ -237,7 +238,9 @@ describe("the Agents card in Settings", () => {
         {(cards) => <AgentsSettings fail={cards.fail} quietly={cards.quietly} />}
       </LiveRows>,
     );
-    expect(await screen.findByText("2 files no longer belong to any rule in Agents.")).toBeTruthy();
+    expect(
+      await screen.findByText("2 files no longer belong to any rule or skill in Agents."),
+    ).toBeTruthy();
     const reviews = screen.getAllByRole("button", { name: "Review" });
     expect(reviews).toHaveLength(2);
     for (const one of reviews) await userEvent.click(one);
@@ -246,6 +249,61 @@ describe("the Agents card in Settings", () => {
     ipc.calls = [];
     await userEvent.click(screen.getByRole("button", { name: "Put the line back" }));
     await waitFor(() => expect(ipc.calls.map((one) => one.cmd)).toContain("agents_lead"));
+  });
+
+  it("still lists the files the person left once Agents is gone", async () => {
+    ipc.state = state({ folder: null, consented: true });
+    ipc.look = look({
+      folder: null,
+      docs: 0,
+      loose: [{ assistant: "claude", at: "/c/a.md", changed: false, stayed: true }],
+    });
+    const stayed = heard(AGENTS_STAYED);
+    render(
+      <LiveRows>
+        {(cards) => <AgentsSettings fail={cards.fail} quietly={cards.quietly} />}
+      </LiveRows>,
+    );
+    expect(
+      await screen.findByText("1 file you left with your agents when you deleted it from Agents."),
+    ).toBeTruthy();
+    await userEvent.click(screen.getByRole("button", { name: "Review" }));
+    expect(stayed.one).toHaveBeenCalledTimes(1);
+    stayed.off();
+  });
+
+  it("lists apart the files the person let stay and reviews them when asked", async () => {
+    ipc.state = state({ folder: "A", consented: true });
+    ipc.look = look({
+      loose: [
+        { assistant: "claude", at: "/c/a.md", changed: false, stayed: true },
+        { assistant: "claude", at: "/c/b.md", changed: false, stayed: true },
+        { assistant: "claude", at: "/c/c.md", changed: false, stayed: false },
+      ],
+    });
+    const stayed = heard(AGENTS_STAYED);
+    const first = heard(AGENTS_FIRST);
+    render(
+      <LiveRows>
+        {(cards) => <AgentsSettings fail={cards.fail} quietly={cards.quietly} />}
+      </LiveRows>,
+    );
+    expect(
+      await screen.findByText(
+        "2 files you left with your agents when you deleted them from Agents.",
+      ),
+    ).toBeTruthy();
+    expect(
+      screen.getByText("1 file no longer belongs to any rule or skill in Agents."),
+    ).toBeTruthy();
+    const [loose, left] = screen.getAllByRole("button", { name: "Review" });
+    await userEvent.click(left);
+    expect(stayed.one).toHaveBeenCalledTimes(1);
+    expect(first.one).not.toHaveBeenCalled();
+    await userEvent.click(loose);
+    expect(first.one).toHaveBeenCalledTimes(1);
+    stayed.off();
+    first.off();
   });
 
   it("says why stopping failed", async () => {

@@ -32,6 +32,8 @@ pub struct Ledger {
     waits: BTreeSet<String>,
     #[serde(default)]
     tisty_skills: bool,
+    #[serde(default)]
+    stayed: BTreeSet<String>,
 }
 
 impl Ledger {
@@ -129,7 +131,17 @@ impl Ledger {
     }
 
     pub fn settle(&mut self, at: &Path, bytes: &[u8]) {
+        self.stayed.remove(&folded(at));
         self.wrote.insert(keyed(at), crate::attach::printed(bytes));
+    }
+
+    /// The person deleted what wrote this file and chose to leave it with the agent: until Tisty writes it again, it is theirs.
+    pub fn stay(&mut self, at: &Path) {
+        self.stayed.insert(folded(at));
+    }
+
+    pub fn stays(&self, at: &Path) -> bool {
+        self.stayed.contains(&folded(at))
     }
 
     /// The person's «apply here» or «not on this computer», for this computer alone.
@@ -211,6 +223,7 @@ impl Ledger {
         self.wrote.remove(&key);
         self.applied.remove(&key);
         self.led.remove(&key);
+        self.stayed.remove(&folded(at));
     }
 
     pub fn applied(&self) -> BTreeSet<&str> {
@@ -232,6 +245,11 @@ fn documents<'a>(files: impl IntoIterator<Item = &'a str>) -> impl Iterator<Item
 
 fn keyed(at: &Path) -> String {
     at.to_string_lossy().into_owned()
+}
+
+// Windows and macOS keep `Voice` and `voice` in one file, so what the person left there is one choice.
+fn folded(at: &Path) -> String {
+    super::path_key(at)
 }
 
 #[cfg(test)]

@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
-import type { Both, Loose, Rounded } from "../agentsSync";
+import type { DropAnswer } from "../agentsDropping";
+import type { Both, Loose, Reach, Rounded } from "../agentsSync";
 import { fill, t } from "../locales";
 import ComparedLines from "./ComparedLines";
 import Modal from "./Modal";
@@ -13,9 +14,15 @@ export type Waiting =
   | { kind: "loose"; loose: Loose }
   | { kind: "unled"; assistant: string };
 
-export const waitingOf = (said: Pick<Rounded, "both" | "loose" | "unled">): Waiting[] => [
+// A file the person let stay is asked about only when they open it themselves.
+export const waitingOf = (
+  said: Pick<Rounded, "both" | "loose" | "unled">,
+  stayed = false,
+): Waiting[] => [
   ...said.both.map((both): Waiting => ({ kind: "both", both })),
-  ...(said.loose ?? []).map((loose): Waiting => ({ kind: "loose", loose })),
+  ...(said.loose ?? [])
+    .filter((loose) => stayed || !loose.stayed)
+    .map((loose): Waiting => ({ kind: "loose", loose })),
   ...(said.unled ?? []).map((assistant): Waiting => ({ kind: "unled", assistant })),
 ];
 
@@ -126,6 +133,61 @@ export function UnledReview({
         <button type="button" disabled={busy} onClick={onLead} className={primary}>
           {t("agentsLeadAgain")}
         </button>
+      </Footer>
+    </Modal>
+  );
+}
+
+export const namesJoined = (names: readonly string[]): string =>
+  names.length < 2
+    ? names.join("")
+    : `${names.slice(0, -1).join(", ")} ${t("agentsAnd")} ${names[names.length - 1]}`;
+
+export function DropReview({
+  said,
+  reach,
+  onAnswer,
+}: Readonly<{
+  said: string;
+  reach: Reach;
+  onAnswer: (answer: DropAnswer) => void;
+}>) {
+  const away = reach.agents.length > 0;
+  const paused = reach.paused.length > 1 ? "agentsDropPausedMany" : "agentsDropPaused";
+  return (
+    <Modal title={t("sureTitle")} wide onClose={() => onAnswer(null)}>
+      <p className="text-[13px] leading-relaxed whitespace-pre-line text-soft">{said}</p>
+      {away && (
+        <p className="mt-2 text-[13px] font-semibold text-ink">
+          {fill("agentsDropAsk", namesJoined(reach.agents))}
+        </p>
+      )}
+      {reach.changed.length > 0 && (
+        <p className="mt-2.5 text-[12.5px] text-hue-amber">
+          {fill("agentsDropChanged", namesJoined(reach.changed))}
+        </p>
+      )}
+      {reach.paused.length > 0 && (
+        <p className="mt-2.5 text-[12.5px] text-soft">{fill(paused, namesJoined(reach.paused))}</p>
+      )}
+      {reach.rewritten.length > 0 && (
+        <p className="mt-2.5 text-[12.5px] text-soft">
+          {fill("agentsDropRewritten", namesJoined(reach.rewritten))}
+        </p>
+      )}
+      {away && <p className="mt-2.5 text-[12.5px] text-soft">{t("agentsDropBackup")}</p>}
+      <Footer>
+        <button type="button" onClick={() => onAnswer(null)} className={button}>
+          {t("cancel")}
+        </button>
+        <button type="button" onClick={() => onAnswer("tisty")} className={away ? button : primary}>
+          {t("agentsDropOnlyTisty")}
+        </button>
+        {away && (
+          <button type="button" onClick={() => onAnswer("away")} className={primary}>
+            {t("agentsDropAway")}
+          </button>
+        )}
       </Footer>
     </Modal>
   );

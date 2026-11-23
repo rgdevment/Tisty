@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   type AgentsLook,
   type AgentsState,
+  askAgentsStayed,
   bringMoreAgents,
   type Rounded,
   syncAgents,
@@ -113,7 +114,12 @@ describe("the keeper of AGENTS", () => {
   });
 
   it("keeps an empty AGENTS, still rounds it, and asks at once about a file left behind", async () => {
-    const loose = { at: "/h/.claude/rules/tone.md", assistant: "claude", changed: false };
+    const loose = {
+      at: "/h/.claude/rules/tone.md",
+      assistant: "claude",
+      changed: false,
+      stayed: false,
+    };
     ipc.answer = (cmd) => {
       if (cmd === "agents_round")
         return Promise.resolve({ told: [], both: [], loose: [loose], unled: [] });
@@ -131,6 +137,33 @@ describe("the keeper of AGENTS", () => {
     expect(sent("agents_loose")[0].args).toEqual({ at: loose.at, away: true });
   });
 
+  it("never asks by itself about a file the person let stay, and asks once they open them", async () => {
+    const stayed = {
+      at: "/h/.claude/skills/voice/SKILL.md",
+      assistant: "claude",
+      changed: false,
+      stayed: true,
+    };
+    ipc.answer = (cmd) => {
+      if (cmd === "agents_round")
+        return Promise.resolve({ told: [], both: [], loose: [stayed], unled: [] });
+      if (cmd === "agents_look") return Promise.resolve(look({ loose: [stayed] }));
+      return Promise.resolve({ told: [], both: [], loose: [], unled: [] });
+    };
+    desk.papers = { folders: agents, docs: [doc("x", "claude")] };
+    render(<AgentsKeeper />);
+    await waitFor(() => expect(sent("agents_round")).toHaveLength(1), { timeout: 2000 });
+    expect(screen.queryByText("¿Quitar también el archivo?")).toBeNull();
+    expect(sent("agents_look")).toHaveLength(0);
+
+    act(() => askAgentsStayed());
+    await screen.findByText("¿Quitar también el archivo?");
+    await userEvent.click(screen.getByRole("button", { name: "Quitar el archivo" }));
+    await waitFor(() =>
+      expect(sent("agents_loose")[0]?.args).toEqual({ at: stayed.at, away: true }),
+    );
+  });
+
   it("lets AGENTS go once its last document leaves while the window watches, and steps out", async () => {
     ipc.answer = (cmd) => Promise.resolve(cmd === "agents_empty");
     desk.papers = { folders: agents, docs: [doc("x", "claude")] };
@@ -145,7 +178,12 @@ describe("the keeper of AGENTS", () => {
   });
 
   it("asks about the last rule's file first, and lets AGENTS go once that is answered", async () => {
-    const loose = { at: "/h/.claude/rules/tone.md", assistant: "claude", changed: false };
+    const loose = {
+      at: "/h/.claude/rules/tone.md",
+      assistant: "claude",
+      changed: false,
+      stayed: false,
+    };
     let answered = false;
     ipc.answer = (cmd) => {
       if (cmd === "agents_round")

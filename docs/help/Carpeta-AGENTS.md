@@ -593,14 +593,38 @@ Sincronizando, Tisty pone la línea `@tisty-rules.md` en tu `GEMINI.md` una vez.
 
 **Volver a ponerla** agrega otra vez la línea al final de `GEMINI.md`, sin tocar lo demás, y Tisty vuelve a escribir tus reglas en `tisty-rules.md`. Mientras no lo haces, la ficha y la tarjeta lo siguen diciendo.
 
+### Eliminar una regla o una skill
+
+Cuando eliminas de Agentes una regla o una skill tuya, con **Eliminar** en su menú, y Tisty la escribió en la carpeta de un agente, Tisty te pregunta ahí mismo si también la quita de tus agentes. Es un solo aviso: arriba dice lo mismo que la pregunta de siempre (lo que se va con el documento, sus idiomas y sus páginas, y que no se puede deshacer), y debajo nombra a cada agente cuya copia se puede quitar:
+
+- **Quitar también** elimina el documento y saca cada uno de esos archivos de las carpetas de tus agentes. Antes queda un respaldo de cada archivo en este equipo.
+- **Solo de Tisty** elimina el documento y deja esos archivos donde están, y tus agentes los siguen leyendo.
+- **Cancelar** no elimina nada.
+
+**Un ejemplo.** Yisset escribió en Agentes la skill de Global **voz**, y Tisty la puso en `~/.claude/skills/voz/SKILL.md` y en `~/.agents/skills/voz/SKILL.md`, que leen Codex y Copilot. Ya no la quiere y elige **Eliminar**. El aviso dice «¿Eliminar «voz»? El documento y lo que tiene se van para siempre. Esto no se puede deshacer.» y, en negrita, «¿Quitar también de Claude, Codex y Copilot?». Elige **Quitar también**: los dos archivos se van, cada uno con su respaldo, y ninguno de sus agentes vuelve a leer esa skill. Solo se van los archivos que el aviso nombró: lo que quedó suelto por otro camino mientras estaba abierto espera su propia pregunta.
+
+Algunas copias el aviso las dice aparte, y nunca se van sin que las veas:
+
+- **Una copia que cambió fuera de Tisty**, por ejemplo una que editaste a mano: «Cambió fuera de Tisty en Codex y Copilot: esa copia se queda y la ves después, aparte.». Después de eliminar se abre por ella el aviso [¿Quitar también el archivo?](#sacar-una-regla-y-su-archivo), con su ruta y «Cambió después de la última vez que Tisty lo escribió.». Si cambia entre la pregunta y tu respuesta, también se queda. **Solo de Tisty** no la anota como dejada: queda para esa pregunta.
+- **Una copia que lee un agente en pausa**: «En pausa: Copilot. Su copia se queda y Tisty vuelve a preguntar cuando sincronice.». Vale para cualquier agente que la lea, también uno que solo comparte `~/.agents/skills` con otro, y para Gemini mientras falta la línea `@tisty-rules.md` en su `GEMINI.md`. Tisty no la toca. Cuando el agente vuelve a sincronizar, esa copia cuenta como archivo suelto: la tarjeta **Agentes** de Configuración lo dice con **Revisar**, y Tisty hace la pregunta de siempre la próxima vez que entras en Agentes.
+- **Un archivo que también arman otras reglas**, como un `CLAUDE.md` con una regla de Global: «Claude: ese archivo también lo arman otras reglas, así que se vuelve a escribir sin esto, con respaldo antes.». Ese archivo nunca se quita.
+
+Si todas las copias cambiaron o están en pausa, el aviso igual aparece, con **Solo de Tisty** y **Cancelar**. Si no queda suelto nada que Tisty escribió (el documento solo se trajo y nunca se sincronizó, Agentes no sincroniza en este equipo, o cada archivo también lo escribe otro documento), toda la pregunta es el «¿Eliminar «voz»?» de siempre. Eliminar varios documentos a la vez hace un solo aviso para todos, con la misma lista que muestra la pregunta de siempre y todos los agentes nombrados juntos.
+
+Si un documento no se puede eliminar, por ejemplo porque está bloqueado, ninguno de sus archivos se toca, y Tisty dice por qué. Si un archivo no se puede quitar, por ejemplo porque su carpeta es un enlace, el documento igual se elimina y Tisty nombra ese archivo y el motivo; queda para la pregunta de siempre.
+
+#### Archivos que dejaste en tus agentes
+
+Lo que dejas con **Solo de Tisty** sigue siendo tuyo: Tisty lo toma como archivo tuyo. La tarjeta **Agentes** de **Configuración › Agentes › Carpeta Agentes** los lista aparte: «2 archivos que dejaste en tus agentes al eliminarlos de Agentes.», con **Revisar**, que pregunta por cada uno con [¿Quitar también el archivo?](#sacar-una-regla-y-su-archivo). Tisty nunca pregunta por ellos solo y nunca escribe encima, y una carpeta de Agentes que vacías igual se va. Si más adelante escribes una regla o skill que cae otra vez en el mismo archivo, Tisty pregunta antes, como con [un cambio por fuera](#un-cambio-por-fuera-traer-o-sobrescribir), con **Conservar el de Tisty** (con respaldo antes) o **Conservar el archivo**. Si traes ese mismo archivo con [Traer otro archivo](#traer-otro-archivo), vuelve a ser de Tisty y sale de esa lista. Si el documento que eliminaste era el último de Agentes, la carpeta se va, pero esta lista sigue en la tarjeta con **Revisar**, para que puedas cambiar de idea; nada más de lo que escribió Agentes se ofrece ahí. Esa lista es solo de este equipo: no viaja a tus otros equipos.
+
 ### Sacar una regla y su archivo
 
-Sincronizando, Tisty deja de escribir un documento cuando lo sacas de Agentes: cuando lo borras, lo archivas o lo mueves fuera, cuando cambias su línea `agent:` por la de otro archivo, y cuando vuelves a una [versión anterior](Documentos#versiones-anteriores) que no tenía ficha, o tenía otra.
+Sincronizando, Tisty deja de escribir un documento cuando lo sacas de Agentes: cuando lo archivas o lo mueves fuera, cuando cambias su línea `agent:` por la de otro archivo, y cuando vuelves a una [versión anterior](Documentos#versiones-anteriores) que no tenía ficha, o tenía otra. Eliminarlo pregunta [en ese momento](#eliminar-una-regla-o-una-skill); esta pregunta es para todos los demás caminos, y para las copias que esa pregunta deja para después.
 
 - **Si el archivo se armaba con varios documentos**, como `CLAUDE.md` con una regla de Global, Tisty lo vuelve a escribir sin esa parte, y guarda antes un respaldo.
-- **Si era el único**, ninguna regla escribe ya ese archivo, pero sigue en el disco y tu agente lo sigue leyendo. Por eso, alrededor de un segundo después, Tisty te pregunta qué hacer con él.
+- **Si era el único**, ninguna regla ni skill escribe ya ese archivo, pero sigue en el disco y tu agente lo sigue leyendo. Por eso, alrededor de un segundo después, Tisty te pregunta qué hacer con él.
 
-**Un ejemplo.** Tenías la regla **Pruebas**, de `~/.claude/rules/pruebas.md`, y ya no la quieres. La borras, y se abre **¿Quitar también el archivo?**: «Ninguna regla de Agentes escribe ya este archivo de Claude, pero sigue en el disco y Claude lo sigue leyendo.», con la ruta debajo y «Si lo quitas, queda un respaldo en este equipo.».
+**Un ejemplo.** Tenías la regla **Pruebas**, de `~/.claude/rules/pruebas.md`, y la moviste fuera de Agentes, a **Notas**. Se abre **¿Quitar también el archivo?**: «Ninguna regla ni skill de Agentes escribe ya este archivo de Claude, pero sigue en el disco y Claude lo sigue leyendo.», con la ruta debajo y «Si lo quitas, queda un respaldo en este equipo.».
 
 - **Quitar el archivo** guarda un respaldo y lo borra: Claude deja de leer esa regla. Si era el último archivo de la carpeta de una skill, esa carpeta se va con él; las carpetas propias del agente, como `rules`, quedan.
 - **Dejarlo** lo deja donde está, y Tisty deja de responder por él: no lo escribe ni te vuelve a preguntar. Si un día lo quieres de vuelta en Agentes, aparece en [Traer otro archivo](#traer-otro-archivo).
@@ -609,7 +633,7 @@ Si el archivo cambió después de que Tisty lo escribió, por ejemplo porque lo 
 
 Si quitas `tisty-rules.md`, el archivo de reglas de Gemini, Tisty también saca la línea `@tisty-rules.md` de `GEMINI.md`, y nada más.
 
-Mientras no respondes, la tarjeta **Agentes** de **Configuración › Agentes › Carpeta Agentes** dice «1 archivo ya no es de ninguna regla de Agentes.», con **Revisar** para volver a la pregunta.
+Mientras no respondes, la tarjeta **Agentes** de **Configuración › Agentes › Carpeta Agentes** dice «1 archivo ya no es de ninguna regla ni skill de Agentes.», con **Revisar** para volver a la pregunta.
 
 Tisty no pregunta, y deja el archivo como está:
 
@@ -619,7 +643,7 @@ Tisty no pregunta, y deja el archivo como está:
 - por un archivo cuyo documento [espera tu aprobación](#por-aprobar);
 - por un archivo que ya no existe.
 
-En tus otros equipos pasa lo mismo: cuando la regla borrada les llega con la sincronización, cada uno te pregunta por su propio archivo la próxima vez que Tisty lo mira, y el respaldo queda en ese equipo.
+En tus otros equipos pasa lo mismo: cuando la regla borrada les llega con la sincronización, cada uno te pregunta por su propio archivo con esta pregunta la próxima vez que Tisty lo mira, y el respaldo queda en ese equipo. Un documento eliminado en otro equipo nunca quita un archivo en este hasta que respondes aquí.
 
 ### Eliminar una subcarpeta
 
@@ -970,7 +994,7 @@ Y editar el archivo en disco tampoco sirve: ese cambio queda como **Cambiado por
 
 **¿Puedo tener una regla solo en un equipo?** Sí: en el equipo donde no la quieres, pulsa **No en este equipo** en su ficha. Lo que elige cada equipo es solo suyo.
 
-**Borré una regla. ¿Qué pasa con su archivo?** Tisty te pregunta «¿Quitar también el archivo?»: **Quitar el archivo** lo borra y guarda un respaldo, y **Dejarlo** lo deja donde está, sin que Tisty vuelva a escribirlo. Mira [Sacar una regla y su archivo](#sacar-una-regla-y-su-archivo).
+**Borré una regla. ¿Qué pasa con su archivo?** Al eliminarla, Tisty te pregunta en ese mismo aviso «¿Quitar también de Claude, Codex y Copilot?», con los agentes que la tienen: **Quitar también** borra sus archivos y guarda un respaldo de cada uno, y **Solo de Tisty** los deja donde están, listados en Configuración por si después cambias de idea. Mira [Eliminar una regla o una skill](#eliminar-una-regla-o-una-skill). Si la sacaste de otra forma, por ejemplo moviéndola fuera de Agentes, Tisty pregunta «¿Quitar también el archivo?»: mira [Sacar una regla y su archivo](#sacar-una-regla-y-su-archivo).
 
 **La primera vez dejé un archivo sin marcar. ¿Lo puedo traer ahora?** Sí, con **Traer otro archivo**: desde el botón derecho sobre una subcarpeta de Agentes, como Claude; con Agentes abierta, desde el botón **+** de la Biblioteca o la paleta de comandos; o desde Configuración › Agentes › Carpeta Agentes. Mira [Traer otro archivo](#traer-otro-archivo).
 

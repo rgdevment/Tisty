@@ -635,7 +635,12 @@ describe("a main file the bring turns away", () => {
       assistant: "codex",
       composed: true,
     };
-    const loose = { at: "/h/.claude/rules/tone.md", assistant: "claude", changed: false };
+    const loose = {
+      at: "/h/.claude/rules/tone.md",
+      assistant: "claude",
+      changed: false,
+      stayed: false,
+    };
     ipc.answer = (cmd) => {
       if (cmd === "agents_look")
         return Promise.resolve({
@@ -662,7 +667,12 @@ describe("a main file the bring turns away", () => {
 });
 
 describe("what waits for the person after a rule leaves", () => {
-  const loose = { at: "/h/.claude/rules/tone.md", assistant: "claude", changed: true };
+  const loose = {
+    at: "/h/.claude/rules/tone.md",
+    assistant: "claude",
+    changed: true,
+    stayed: false,
+  };
   const waiting = (more: Partial<AgentsLook>): AgentsLook => ({
     ...look,
     folder: "f",
@@ -670,6 +680,18 @@ describe("what waits for the person after a rule leaves", () => {
     consented: true,
     asks: true,
     ...more,
+  });
+
+  it("reviews a file the person left even once Agents is gone, and only when asked", async () => {
+    const left = { ...loose, stayed: true };
+    ipc.answer = (cmd) =>
+      cmd === "agents_look"
+        ? Promise.resolve(waiting({ folder: null, docs: 0, asks: false, loose: [left] }))
+        : Promise.resolve({ told: [], both: [], loose: [], unled: [] });
+    render(<AgentsFirst stayed onClose={() => {}} onChanged={() => {}} />);
+    await screen.findByText("¿Quitar también el archivo?");
+    await userEvent.click(screen.getByRole("button", { name: "Quitar el archivo" }));
+    await waitFor(() => expect(sent("agents_loose")[0]?.args).toEqual({ at: left.at, away: true }));
   });
 
   it("asks whether to take the file away too, says it changed, and can leave it", async () => {
@@ -791,7 +813,7 @@ describe("what Settings offers once this computer said yes", () => {
   });
 
   it("counts the files no rule writes any more and opens them for review", async () => {
-    const loose = { at: "/h/a.md", assistant: "claude", changed: false };
+    const loose = { at: "/h/a.md", assistant: "claude", changed: false, stayed: false };
     ipc.answer = (cmd) =>
       cmd === "agents_look"
         ? Promise.resolve(said({ loose: [loose, { ...loose, at: "/h/b.md" }] }))
@@ -801,11 +823,11 @@ describe("what Settings offers once this computer said yes", () => {
         {(cards) => <AgentsSettings fail={cards.fail} quietly={cards.quietly} />}
       </LiveRows>,
     );
-    await screen.findByText("2 archivos ya no son de ninguna regla de Agentes.");
+    await screen.findByText("2 archivos ya no son de ninguna regla ni skill de Agentes.");
     ipc.answer = (cmd) =>
       cmd === "agents_look" ? Promise.resolve(said({ loose: [loose] })) : Promise.resolve(null);
     act(() => window.dispatchEvent(new Event(AGENTS_CHANGED)));
-    await screen.findByText("1 archivo ya no es de ninguna regla de Agentes.");
+    await screen.findByText("1 archivo ya no es de ninguna regla ni skill de Agentes.");
   });
 
   it("says why Gemini is paused and puts the line back", async () => {

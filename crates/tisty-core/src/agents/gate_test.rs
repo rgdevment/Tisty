@@ -802,3 +802,38 @@ fn without_agents_tistys_own_skills_still_come_in_and_no_document_is_read() {
     assert_eq!(none.admitted().len(), 2);
     assert!(!none.skill_named("tisty"));
 }
+
+#[test]
+fn a_gate_without_documents_about_to_be_deleted_knows_nothing_of_them_and_keeps_the_rest() {
+    let mut world = world();
+    let (_, mine) = world.made(HERE, &rule("Mine.\n"), true);
+    world.round();
+    let (id, held) = world.made(HERE, &rule("Also mine.\n"), true);
+    world.written(AGENT, id, &held, &rule("The agent's.\n"), false);
+    let gate = world.gate();
+    assert!(gate.carded(&mine) && gate.seen(&held).is_some());
+
+    let going = BTreeSet::from([held.clone()]);
+    let gate = gate.without(&going);
+    assert_eq!(gate.seen(&held), None);
+    assert!(!gate.held(&held) && !gate.carded(&held));
+    assert!(gate.unclaimed().all(|file| file != held));
+    assert_eq!(gate.seen(&mine), Some(Seen::Admitted));
+    assert!(gate.admitted().iter().all(|one| one.file() != held));
+    assert!(gate.admitted().iter().any(|one| one.file() == mine));
+}
+
+#[test]
+fn a_skill_of_the_persons_about_to_be_deleted_lets_tistys_own_of_that_name_back_in() {
+    let mut world = world();
+    world.ledger.take_tisty_skills(true);
+    let theirs = doc_of("claude", Kind::Skill, "Tisty/SKILL.md", b"Mine.\n").unwrap();
+    let (_, file) = world.made(HERE, &theirs, true);
+    let gate = world.gate();
+    assert!(gate.skill_named("tisty"));
+
+    let mut gate = gate.without(&BTreeSet::from([file]));
+    assert!(!gate.skill_named("tisty"));
+    gate.admit_builtins(&world.ledger, &tistys_own());
+    assert!(admitted_files(&gate).contains(&"tisty:skill/tisty/SKILL.md".to_string()));
+}

@@ -5,6 +5,7 @@ import {
   AGENTS_FIRST,
   AGENTS_MORE,
   AGENTS_RESCAN,
+  AGENTS_STAYED,
   AGENTS_SYNC,
   agentsEmpty,
   agentsLit,
@@ -31,7 +32,7 @@ export { AGENTS_CHANGED, askAgents } from "../agentsSync";
 
 const SETTLE_MS = 800;
 
-type Asking = "first" | "more" | "rescan" | null;
+type Asking = "first" | "more" | "rescan" | "stayed" | null;
 
 export default function AgentsKeeper() {
   const { papers, here, setHere, papersChanged, setError } = useDesk();
@@ -68,13 +69,16 @@ export default function AgentsKeeper() {
     const first = () => setAsking("first");
     const more = () => setAsking("more");
     const rescan = () => setAsking("rescan");
+    const stayed = () => setAsking("stayed");
     window.addEventListener(AGENTS_FIRST, first);
     window.addEventListener(AGENTS_MORE, more);
     window.addEventListener(AGENTS_RESCAN, rescan);
+    window.addEventListener(AGENTS_STAYED, stayed);
     return () => {
       window.removeEventListener(AGENTS_FIRST, first);
       window.removeEventListener(AGENTS_MORE, more);
       window.removeEventListener(AGENTS_RESCAN, rescan);
+      window.removeEventListener(AGENTS_STAYED, stayed);
     };
   }, []);
 
@@ -178,7 +182,7 @@ export default function AgentsKeeper() {
       agentsRound()
         .then((round) => {
           // A rule taken out of AGENTS leaves its file behind, so the person is asked about it right away.
-          if (round?.loose?.length) setAsking((now) => now ?? "first");
+          if (round?.loose?.some((one) => !one.stayed)) setAsking((now) => now ?? "first");
           window.dispatchEvent(new Event(AGENTS_CHANGED));
         })
         .catch((e) => setError(saidPlainly(e)));
@@ -191,6 +195,7 @@ export default function AgentsKeeper() {
     <AgentsFirst
       more={asking === "more" || asking === "rescan"}
       rescan={asking === "rescan"}
+      stayed={asking === "stayed"}
       onClose={() => {
         setAsking(null);
         window.dispatchEvent(new Event(AGENTS_CHANGED));

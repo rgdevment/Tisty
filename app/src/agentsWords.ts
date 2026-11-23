@@ -199,8 +199,8 @@ const words = {
   agentsBring: ["Bring", "Traer"],
   agentsLooseTitle: ["Take the file away too?", "¿Quitar también el archivo?"],
   agentsLooseLead: [
-    "No rule in Agents writes this {name} file any more, but it is still on disk and {name} keeps reading it.",
-    "Ninguna regla de Agentes escribe ya este archivo de {name}, pero sigue en el disco y {name} lo sigue leyendo.",
+    "No rule or skill in Agents writes this {name} file any more, but it is still on disk and {name} keeps reading it.",
+    "Ninguna regla ni skill de Agentes escribe ya este archivo de {name}, pero sigue en el disco y {name} lo sigue leyendo.",
   ],
   agentsLooseChanged: [
     "It changed after Tisty last wrote it.",
@@ -212,6 +212,34 @@ const words = {
   ],
   agentsLooseAway: ["Take the file away", "Quitar el archivo"],
   agentsLooseStay: ["Leave it", "Dejarlo"],
+  agentsDropAsk: ["Take it away from {name} too?", "¿Quitar también de {name}?"],
+  agentsDropBackup: [
+    "Taking it away leaves a backup of each file on this computer. With «Only from Tisty» those copies stay where they are.",
+    "Al quitar, queda un respaldo de cada archivo en este equipo. Con «Solo de Tisty» esas copias quedan donde están.",
+  ],
+  agentsDropChanged: [
+    "Changed outside Tisty in {name}: that copy stays, and you see it after, on its own.",
+    "Cambió fuera de Tisty en {name}: esa copia se queda y la ves después, aparte.",
+  ],
+  agentsDropPaused: [
+    "Paused: {name}. Its copy stays, and Tisty asks again once it syncs.",
+    "En pausa: {name}. Su copia se queda y Tisty vuelve a preguntar cuando sincronice.",
+  ],
+  agentsDropPausedMany: [
+    "Paused: {name}. Their copies stay, and Tisty asks again once they sync.",
+    "En pausa: {name}. Sus copias se quedan y Tisty vuelve a preguntar cuando sincronicen.",
+  ],
+  agentsDropRewritten: [
+    "{name}: other rules also make up that file, so it is written again without this, with a backup first.",
+    "{name}: ese archivo también lo arman otras reglas, así que se vuelve a escribir sin esto, con respaldo antes.",
+  ],
+  agentsDropOnlyTisty: ["Only from Tisty", "Solo de Tisty"],
+  agentsDropAway: ["Take away too", "Quitar también"],
+  agentsDropUntaken: ["Not taken away: {name} ({other})", "No se quitó: {name} ({other})"],
+  agentsDropUnmarked: [
+    "Not noted as left with your agents: {name} ({other})",
+    "No se anotó como dejado en tus agentes: {name} ({other})",
+  ],
   agentsUnledTitle: ["Tisty's line is missing", "Falta la línea de Tisty"],
   agentsUnledLead: [
     "The line @tisty-rules.md is no longer in GEMINI.md, so {name} does not read your rules. Tisty does not put it back by itself: {name} stays paused until you do.",
@@ -238,12 +266,20 @@ const words = {
   agentsSettingsReview: ["Review", "Revisar"],
   agentsSettingsMore: ["Bring another file", "Traer otro archivo"],
   agentsSettingsLooseOne: [
-    "1 file no longer belongs to any rule in Agents.",
-    "1 archivo ya no es de ninguna regla de Agentes.",
+    "1 file no longer belongs to any rule or skill in Agents.",
+    "1 archivo ya no es de ninguna regla ni skill de Agentes.",
   ],
   agentsSettingsLoose: [
-    "{name} files no longer belong to any rule in Agents.",
-    "{name} archivos ya no son de ninguna regla de Agentes.",
+    "{name} files no longer belong to any rule or skill in Agents.",
+    "{name} archivos ya no son de ninguna regla ni skill de Agentes.",
+  ],
+  agentsSettingsStayedOne: [
+    "1 file you left with your agents when you deleted it from Agents.",
+    "1 archivo que dejaste en tus agentes al eliminarlo de Agentes.",
+  ],
+  agentsSettingsStayed: [
+    "{name} files you left with your agents when you deleted them from Agents.",
+    "{name} archivos que dejaste en tus agentes al eliminarlos de Agentes.",
   ],
   agentsSettingsUnled: [
     "Paused: the line @tisty-rules.md is missing from GEMINI.md.",

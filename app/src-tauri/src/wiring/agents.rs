@@ -440,6 +440,17 @@ pub fn owner_of(homes: &Homes, at: &Path) -> Option<(&'static str, PathBuf)> {
     })
 }
 
+pub fn readers_of(homes: &Homes, at: &Path, owner: &str) -> Vec<&'static Assistant> {
+    if !at.starts_with(homes.shared()) {
+        return assistant(owner).into_iter().collect();
+    }
+    homes
+        .detected()
+        .into_iter()
+        .filter(|one| SHARED_SKILLS_OWNERS.contains(&one.id))
+        .collect()
+}
+
 // A copy Tisty wrote stays its to take away even after its agent left this computer or moved its folder.
 pub fn owner_any(homes: &Homes, at: &Path) -> Option<(&'static str, PathBuf)> {
     if let Some(found) = owner_of(homes, at) {

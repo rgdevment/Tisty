@@ -30,6 +30,24 @@ export interface Loose {
   at: string;
   assistant: string;
   changed: boolean;
+  /** Left by the person when deleting: never asked about unless they open it. */
+  stayed: boolean;
+}
+
+export interface Reach {
+  /** The files «take away too» removes, handed back as they are: nothing else goes. */
+  at: string[];
+  agents: string[];
+  changed: string[];
+  paused: string[];
+  rewritten: string[];
+}
+
+export interface Dropped {
+  gone: string[];
+  refused: { id: string; refusal: unknown }[];
+  untaken: { at: string; refusal: unknown }[];
+  unmarked: { at: string; refusal: unknown }[];
 }
 
 export interface AgentsLook {
@@ -158,6 +176,11 @@ export const agentsEmpty = (): Promise<boolean> => invoke("agents_empty");
 export const agentsLoose = (at: string, away: boolean): Promise<Rounded> =>
   invoke("agents_loose", { at, away });
 export const agentsLead = (): Promise<Rounded> => invoke("agents_lead");
+export const agentsReach = (ids: string[]): Promise<Reach> => invoke("agents_reach", { ids });
+export const agentsDrop = (ids: string[], away: boolean, at: string[]): Promise<Dropped> =>
+  invoke("agents_drop", { ids, away, at });
+export const AGENTS_STAYED = "tisty:agents-stayed";
+export const askAgentsStayed = () => window.dispatchEvent(new Event(AGENTS_STAYED));
 
 export interface TistySkill {
   name: string;

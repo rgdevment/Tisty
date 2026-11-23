@@ -1,5 +1,9 @@
 use super::*;
 use crate::agents::{Admitted, BUILTIN, GLOBAL, KEPT_AT_MOST, doc_of, kept as backups, read_kept};
+use linked_test::linked_folder;
+
+#[path = "linked_test.rs"]
+mod linked_test;
 
 struct Room {
     data: tempfile::TempDir,
@@ -898,21 +902,6 @@ fn a_relative_folder_is_never_written_nor_emptied() {
     assert!(room.home.path().join(".claude/skills/tidy").is_dir());
 }
 
-fn linked_folder(from: &Path, to: &Path) {
-    #[cfg(windows)]
-    {
-        let made = std::process::Command::new("cmd")
-            .args(["/C", "mklink", "/J"])
-            .arg(from)
-            .arg(to)
-            .output()
-            .unwrap();
-        assert!(made.status.success(), "{made:?}");
-    }
-    #[cfg(not(windows))]
-    std::os::unix::fs::symlink(to, from).unwrap();
-}
-
 #[test]
 fn a_linked_skill_folder_is_never_removed_even_when_what_it_points_at_is_empty() {
     let room = room();
@@ -1592,4 +1581,138 @@ fn a_whole_skill_is_claimed_back_or_none_of_it() {
     ));
     assert!(room.ledger.written(&licence.at).is_some() && room.ledger.written(&skill.at).is_some());
     assert_eq!(room.round(&[licence, skill]), vec![Standing::UpToDate; 2]);
+}
+
+#[test]
+fn taken_away_unseen_only_a_copy_still_as_tisty_wrote_it_goes_with_a_backup() {
+    let mut room = room();
+    let placed = room.target(
+        ".codex/AGENTS.md",
+        vec![rule("codex", "AGENTS.md", "Rules.\n")],
+    );
+    room.round(std::slice::from_ref(&placed));
+    let loose = room.target(".codex/AGENTS.md", vec![]);
+    std::fs::write(&loose.at, "Changed by hand.\n").unwrap();
+    assert_eq!(
+        removed_as_written(room.data.path(), &mut room.ledger, &loose),
+        Ok(false)
+    );
+    assert_eq!(read(&loose), "Changed by hand.\n");
+    assert!(backups(room.data.path(), &loose.at).is_empty());
+    assert!(
+        room.ledger.written(&loose.at).is_some(),
+        "it stays loose for the person to see"
+    );
+
+    std::fs::write(&loose.at, "Rules.\n").unwrap();
+    assert_eq!(
+        removed_as_written(room.data.path(), &mut room.ledger, &loose),
+        Ok(true)
+    );
+    assert!(!loose.at.exists());
+    assert_eq!(backups(room.data.path(), &loose.at).len(), 1);
+    assert_eq!(room.ledger.written(&loose.at), None);
+}
+
+#[test]
+fn taken_away_unseen_never_reads_nor_deletes_through_a_real_link() {
+    let mut room = room();
+    let home = room.home.path().to_path_buf();
+    let elsewhere = home.join("dotfiles").join("voice");
+    std::fs::create_dir_all(&elsewhere).unwrap();
+    std::fs::write(elsewhere.join("SKILL.md"), "Speak plainly.\n").unwrap();
+    let skills = home.join(".claude").join("skills");
+    std::fs::create_dir_all(&skills).unwrap();
+    linked_folder(&skills.join("voice"), &elsewhere);
+    let loose = Target {
+        root: home.join(".claude"),
+        at: skills.join("voice").join("SKILL.md"),
+        ..room.target("unused", vec![])
+    };
+    room.ledger.settle(&loose.at, b"Speak plainly.\n");
+    room.ledger.applied_to(&loose.at, ["doc-voice".to_string()]);
+    assert_eq!(
+        removed_as_written(room.data.path(), &mut room.ledger, &loose),
+        Err(Refused::Linked)
+    );
+    assert_eq!(
+        std::fs::read_to_string(elsewhere.join("SKILL.md")).unwrap(),
+        "Speak plainly.\n"
+    );
+    assert!(backups(room.data.path(), &loose.at).is_empty());
+    assert!(room.ledger.written(&loose.at).is_some());
+}
+
+#[test]
+fn a_file_left_with_its_agent_is_asked_about_before_a_document_writes_over_it() {
+    let mut room = room();
+    let first = room.target(
+        ".codex/AGENTS.md",
+        vec![rule("codex", "AGENTS.md", "Rules.\n")],
+    );
+    room.round(std::slice::from_ref(&first));
+    room.ledger.stay(&first.at);
+    let again = room.target(
+        ".codex/AGENTS.md",
+        vec![rule("codex", "AGENTS.md", "Other rules.\n")],
+    );
+    assert!(matches!(
+        room.round(std::slice::from_ref(&again))[0],
+        Standing::Both { .. }
+    ));
+    assert_eq!(
+        read(&again),
+        "Rules.\n",
+        "nothing is written over it unasked"
+    );
+    assert!(room.ledger.stays(&again.at));
+
+    let same = room.target(
+        ".codex/AGENTS.md",
+        vec![rule("codex", "AGENTS.md", "Rules.\n")],
+    );
+    room.round(std::slice::from_ref(&same));
+    assert!(
+        !room.ledger.stays(&same.at),
+        "the same words placed again make it Tisty's once more"
+    );
+}
+
+#[test]
+fn taken_away_unseen_keeps_every_refusal_of_taking_away() {
+    let mut room = room();
+    let placed = room.target(
+        ".codex/AGENTS.md",
+        vec![rule("codex", "AGENTS.md", "Rules.\n")],
+    );
+    room.round(std::slice::from_ref(&placed));
+    assert_eq!(
+        removed_as_written(room.data.path(), &mut room.ledger, &placed),
+        Err(Refused::Held)
+    );
+    let mut held = room.target(".codex/AGENTS.md", vec![]);
+    held.held = true;
+    assert_eq!(
+        removed_as_written(room.data.path(), &mut room.ledger, &held),
+        Err(Refused::Held)
+    );
+    let mut linked = room.target(".codex/AGENTS.md", vec![]);
+    linked.at = room.home.path().join("..").join("AGENTS.md");
+    assert_eq!(
+        removed_as_written(room.data.path(), &mut room.ledger, &linked),
+        Err(Refused::Linked)
+    );
+    let loose = room.target(".codex/AGENTS.md", vec![]);
+    room.ledger.turn("codex", false);
+    assert_eq!(
+        removed_as_written(room.data.path(), &mut room.ledger, &loose),
+        Err(Refused::Off)
+    );
+    room.ledger = Ledger::fresh("machine-a");
+    assert_eq!(
+        removed_as_written(room.data.path(), &mut room.ledger, &loose),
+        Err(Refused::NoConsent)
+    );
+    assert_eq!(read(&placed), "Rules.\n");
+    assert!(backups(room.data.path(), &placed.at).is_empty());
 }

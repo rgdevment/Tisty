@@ -12,11 +12,11 @@ use crate::{Answer, Refusal, Session, held, signing};
 // Past 2,000 lines a side the line matcher gives up, and every line would read as changed.
 const LINES_AT_MOST: usize = 2_000;
 
-fn here() -> String {
+pub(crate) fn here() -> String {
     tisty_core::machine::here().unwrap_or_default()
 }
 
-fn homes() -> Answer<Homes> {
+pub(crate) fn homes() -> Answer<Homes> {
     Homes::here().ok_or_else(|| Refusal::about("cannotWrite", "no home folder"))
 }
 
@@ -83,6 +83,20 @@ pub(crate) fn gated_with(
     ledger: &Ledger,
     bundled: impl FnOnce() -> Vec<agents::Bundled>,
 ) -> Gate {
+    gated_from(session, ledger, &BTreeSet::new(), bundled)
+}
+
+// Tisty's own skills come in after the documents going leave, so a name those documents free is theirs again.
+pub(crate) fn gated_without(session: &Session, ledger: &Ledger, going: &BTreeSet<String>) -> Gate {
+    gated_from(session, ledger, going, super::tisty_skills::bundled_here)
+}
+
+fn gated_from(
+    session: &Session,
+    ledger: &Ledger,
+    going: &BTreeSet<String>,
+    bundled: impl FnOnce() -> Vec<agents::Bundled>,
+) -> Gate {
     let docs = session.paths.docs();
     let mut gate = agents::gate(&agents::Asked {
         state: &session.state,
@@ -90,7 +104,8 @@ pub(crate) fn gated_with(
         root: root_of(&session.state),
         ledger,
         me: session.store.device(),
-    });
+    })
+    .without(going);
     if ledger.tisty_skills() {
         gate.admit_builtins(ledger, &bundled());
     }
@@ -387,6 +402,7 @@ pub(crate) fn looked_with(
         .collect();
     let unled = unled_in(ledger, &placed);
     let writes = written_now(ledger, &placed);
+    let asked = loose.iter().filter(|one| !one.stayed).count();
     let assistants = homes
         .detected()
         .into_iter()
@@ -417,14 +433,14 @@ pub(crate) fn looked_with(
     Look {
         folder: root.map(|at| at.to_string()),
         docs,
-        changes: changes + loose.len() + unled.len(),
+        changes: changes + asked + unled.len(),
         waiting: waiting_here(seen, homes),
         unagreed: seen.gate.unagreed(),
         proposed: seen.proposed,
         // Only a folder that syncs asks on its own; one brought but not synced opens like any other.
         asks: ledger.consented()
             && ledger.syncs("")
-            && (!both.is_empty() || !loose.is_empty() || !unled.is_empty()),
+            && (!both.is_empty() || asked > 0 || !unled.is_empty()),
         consented: ledger.consented(),
         all_on: ledger.syncs(""),
         assistants,
@@ -440,6 +456,8 @@ pub struct Loose {
     pub at: String,
     pub assistant: String,
     pub changed: bool,
+    /// Left with the agent by the person when they deleted what wrote it: never asked about unless they open it.
+    pub stayed: bool,
 }
 
 // A document gone, uncarded, declined here or sent elsewhere frees its file; a Global rule only follows where the assistant reads.
@@ -457,7 +475,7 @@ fn frees(homes: &Homes, gate: &Gate, at: &Path, file: &str) -> Option<bool> {
     }
 }
 
-// With AGENTS gone, its files wait to be brought back the next first time, never to be taken away.
+// With AGENTS gone, its files wait to be brought back the next first time; only what the person chose to leave stays theirs to take away.
 pub(crate) fn loose_in(
     homes: &Homes,
     gate: &Gate,
@@ -465,18 +483,23 @@ pub(crate) fn loose_in(
     placed: &[Placed],
     rooted: bool,
 ) -> Vec<(Loose, Target)> {
-    if !rooted || !ledger.consented() {
+    if !ledger.consented() {
         return Vec::new();
     }
     let placing = |at: &Path| {
         placed.iter().any(|one| {
-            one.target.at == at || one.lead_in.as_ref().is_some_and(|lead| lead.at == at)
+            agents::same_file(&one.target.at, at)
+                || one
+                    .lead_in
+                    .as_ref()
+                    .is_some_and(|lead| agents::same_file(&lead.at, at))
         })
     };
     let mut out = Vec::new();
     for (at, files) in ledger.written_files() {
         // Tisty's own copies are offered in their card, never here.
-        if placing(at)
+        if (!rooted && !ledger.stays(at))
+            || placing(at)
             || places::agents_own(homes, at)
             || files.is_empty()
             || agents::shipped_copy(ledger, at)
@@ -486,10 +509,13 @@ pub(crate) fn loose_in(
         let Some((assistant, root)) = places::owner_of(homes, at) else {
             continue;
         };
-        let Ok(now) = std::fs::read(at) else {
+        if std::fs::symlink_metadata(at).is_err() {
             continue;
-        };
-        if !ledger.syncs(assistant) || files.iter().any(|file| gate.held(file)) {
+        }
+        let target = gate.target(ledger, root, at.to_path_buf(), assistant);
+        if !paused_readers(homes, ledger, &target).is_empty()
+            || files.iter().any(|file| gate.held(file))
+        {
             continue;
         }
         let freed: Option<Vec<bool>> = files
@@ -499,17 +525,31 @@ pub(crate) fn loose_in(
         if !freed.is_some_and(|all| all.contains(&true)) {
             continue;
         }
-        let changed = ledger.written(at) != Some(tisty_core::attach::printed(&now).as_str());
+        let changed = super::tisty_skills::changed_now(ledger, at);
         out.push((
             Loose {
                 at: at.to_string_lossy().into_owned(),
                 assistant: assistant.to_string(),
                 changed,
+                stayed: ledger.stays(at),
             },
-            gate.target(ledger, root, at.to_path_buf(), assistant),
+            target,
         ));
     }
     out
+}
+
+// A copy any paused agent reads waits for it, one in `~/.agents/skills` too; so do Gemini's rules while its line is out.
+pub(crate) fn paused_readers(homes: &Homes, ledger: &Ledger, target: &Target) -> Vec<&'static str> {
+    let mut paused: Vec<&'static str> = places::readers_of(homes, &target.at, &target.assistant)
+        .into_iter()
+        .map(|one| one.id)
+        .filter(|id| !ledger.syncs(id))
+        .collect();
+    if paused.is_empty() && places::lead_of(target).is_some_and(|lead| unled(ledger, &lead)) {
+        paused.extend(places::assistant(&target.assistant).map(|one| one.id));
+    }
+    paused
 }
 
 // Once Tisty put its line in, a line gone is the person's word: the assistant waits until they put it back.
@@ -1158,11 +1198,12 @@ pub fn loosened(
 }
 
 // With the file of rules gone, the line naming it would point at nothing.
-fn unlead(data: &Path, ledger: &mut Ledger, gone: &Target) {
+pub(crate) fn unlead(data: &Path, ledger: &mut Ledger, gone: &Target) {
     let Some(lead) = places::lead_of(gone) else {
         return;
     };
-    if agents::lead_out(data, ledger, &lead, &places::lead_in_line()).is_ok() {
+    // Only a line Tisty took out frees GEMINI.md; one the person took out keeps Gemini paused.
+    if agents::lead_out(data, ledger, &lead, &places::lead_in_line()) == Ok(true) {
         ledger.forget(&lead.at);
         let _ = ledger.keep(data);
     }
@@ -1181,7 +1222,8 @@ pub fn emptied(session: &mut Session, homes: &Homes, here: &str) -> Answer<bool>
     let ledger = Ledger::open(session.paths.data(), here);
     let gate = gated(session, &ledger);
     let placed = places::targets(homes, &gate, &ledger);
-    if !loose_in(homes, &gate, &ledger, &placed, true).is_empty() {
+    let loose = loose_in(homes, &gate, &ledger, &placed, true);
+    if loose.iter().any(|(one, _)| !one.stayed) {
         return Ok(false);
     }
     // Deepest first: a folder deleted before its children would lift them to the top.
@@ -1378,4 +1420,4 @@ pub fn agents_lead(session: tauri::State<'_, Mutex<Session>>) -> Answer<Rounded>
 
 #[cfg(test)]
 #[path = "agents_sync_test.rs"]
-mod tests;
+pub(crate) mod tests;

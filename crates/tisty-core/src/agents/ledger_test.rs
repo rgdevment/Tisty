@@ -196,3 +196,49 @@ fn a_ledger_from_before_tistys_own_skills_reads_with_them_off() {
     assert!(ledger.consented());
     assert!(!ledger.tisty_skills());
 }
+
+#[test]
+fn a_file_the_person_let_stay_is_kept_here_alone_until_tisty_writes_it_or_forgets_it() {
+    let data = tempfile::tempdir().unwrap();
+    let at = Path::new("/home/rina/.claude/skills/voice/SKILL.md");
+    let mut ledger = Ledger::fresh("machine-a");
+    ledger.consent(true);
+    ledger.settle(at, b"Speak plainly.\n");
+    assert!(!ledger.stays(at));
+    ledger.stay(at);
+    ledger.keep(data.path()).unwrap();
+    assert!(Ledger::open(data.path(), "machine-a").stays(at));
+    assert!(
+        !Ledger::open(data.path(), "machine-b").stays(at),
+        "the mark is this computer's, never another's"
+    );
+
+    ledger.settle(at, b"Speak plainly again.\n");
+    assert!(!ledger.stays(at), "written again, it is Tisty's once more");
+    ledger.stay(at);
+    ledger.forget(at);
+    assert!(!ledger.stays(at));
+}
+
+#[cfg(any(windows, target_os = "macos"))]
+#[test]
+fn a_file_left_under_one_spelling_is_left_under_every_spelling_the_file_system_folds() {
+    let mut ledger = Ledger::fresh("machine-a");
+    ledger.stay(Path::new("/home/rina/.claude/skills/Voice/SKILL.md"));
+    assert!(ledger.stays(Path::new("/home/rina/.claude/skills/voice/SKILL.md")));
+    ledger.settle(Path::new("/home/rina/.claude/skills/voice/SKILL.md"), b"x");
+    assert!(!ledger.stays(Path::new("/home/rina/.claude/skills/Voice/SKILL.md")));
+}
+
+#[test]
+fn two_spellings_are_one_file_only_where_the_file_system_folds_them() {
+    let (upper, lower) = (
+        Path::new("/home/rina/.claude/skills/Voice/SKILL.md"),
+        Path::new("/home/rina/.claude/skills/voice/SKILL.md"),
+    );
+    assert!(crate::agents::same_file(lower, lower));
+    assert_eq!(
+        crate::agents::same_file(upper, lower),
+        cfg!(any(windows, target_os = "macos"))
+    );
+}

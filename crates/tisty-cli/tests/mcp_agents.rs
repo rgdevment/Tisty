@@ -974,3 +974,46 @@ fn a_second_agents_not_yet_joined_keeps_its_documents_from_a_plain_edit() {
         );
     }
 }
+
+#[test]
+fn no_tool_deletes_a_document_of_agents_or_takes_a_file_from_an_agents_folder() {
+    let served = Served::new();
+    let listed = served.asked("tools/list", json!({}));
+    let names: Vec<String> = listed["result"]["tools"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|one| one["name"].as_str().unwrap().to_string())
+        .collect();
+    assert!(!names.is_empty());
+    let reaching: Vec<&String> = names
+        .iter()
+        .filter(|name| {
+            ["drop", "delete", "remove", "loose", "agents_"]
+                .iter()
+                .any(|word| name.contains(word))
+        })
+        .collect();
+    assert!(reaching.is_empty(), "{reaching:?}");
+
+    let rule = served.rule.clone();
+    for window_only in ["agents_drop", "agents_reach", "agents_loose", "doc_drop"] {
+        let said = served.call(
+            window_only,
+            json!({ "ids": [rule.clone()], "id": rule, "away": true }),
+        );
+        assert!(
+            said["error"].is_object() || said["result"]["isError"] == true,
+            "{window_only}: {said}"
+        );
+        assert!(
+            served.state().docs.values().any(|one| one.file == rule),
+            "{window_only} deleted it"
+        );
+    }
+    served.refuses("archive_doc", json!({ "doc": rule }));
+    served.refuses(
+        "flag_doc",
+        json!({ "doc": rule, "reason": "obsolete", "body": "Old." }),
+    );
+}
