@@ -56,13 +56,11 @@ const between = (
   offset: number,
   known: Reckoned | null,
 ): number => {
-  const page = sheet.ownerDocument;
   const tops = sheet.children;
-  const reached = (one: Element) => {
-    const start = page.createRange();
-    start.setStartBefore(one);
-    return start.comparePoint(node, offset) <= 0;
-  };
+  let own: number | null = null;
+  for (let at: Node | null = node; at && at !== sheet && own === null; at = at.parentNode)
+    if (at.parentNode === sheet) own = indexOf(at);
+  const reached = (one: Element) => (own === null ? offset : own + 1) <= indexOf(one);
   let low = 0;
   let high = tops.length;
   while (low < high) {
@@ -123,6 +121,8 @@ export const sourceAt = (
   if (!at) return null;
   // A reach that opens inside a piece that cannot be written in, as a formula's drawing, takes the piece whole.
   if (solid(placed)) return unitFrom(known, body, opening ? at[0] : at[1]);
+  if (node.nodeType === Node.TEXT_NODE && placed.firstChild === node)
+    return unitFrom(known, body, at[0]) + offset;
   const run = pointIn(placed.ownerDocument, placed, 0);
   run.setEnd(node, offset);
   return unitFrom(known, body, at[0]) + run.toString().length;

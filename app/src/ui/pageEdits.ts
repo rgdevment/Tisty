@@ -72,6 +72,21 @@ export const lineEnd = (text: string, at: number) => {
   return end < 0 ? text.length : end;
 };
 
+export const blankAt = (text: string, at: number) =>
+  text[at - 1] === "\n" && (at >= text.length || /[\r\n]/.test(text[at] ?? ""));
+
+export const pastFeeds = (text: string, at: number, back: boolean) => {
+  let edge = at;
+  if (back) while (edge > 0 && /[\r\n]/.test(text[edge - 1] ?? "")) edge--;
+  else while (edge < text.length && /[\r\n]/.test(text[edge] ?? "")) edge++;
+  return edge;
+};
+
+export const breakKept = (text: string, at: number) => {
+  const after = pastFeeds(text, at, false);
+  return after >= text.length || (text.slice(at, after).match(/\n/g)?.length ?? 0) >= 2;
+};
+
 const charBefore = (text: string, at: number) => {
   if (at <= 0) return 0;
   const start = lineStart(text, at);

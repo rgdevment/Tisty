@@ -42,8 +42,17 @@ const MISSING_PICTURE = PIECES.replace("](mini.png)", "](missing.png)");
 
 const FORMULA_IN_WORDS = "# Fórmula\n\nAntes $x^2$ después\n";
 
+const drawnFirst = (frame) => frame.parentFrame().waitForFunction(() => window.engines.drawn());
+
+const pressedOnceDrawn = async (frame, press, key, many) => {
+  for (let time = 0; time < many; time++) {
+    await drawnFirst(frame);
+    await press(key);
+  }
+};
+
 const caretInWords = async (frame, words, offset) => {
-  await frame.parentFrame().waitForFunction(() => window.engines.drawn());
+  await drawnFirst(frame);
   await frame.evaluate(
     ([said, at]) => {
       const walk = document.createTreeWalker(document.querySelector(".page"), NodeFilter.SHOW_TEXT);
@@ -1415,6 +1424,145 @@ export const CASES = [
     },
     was: "Tabla\n\nAntes y más\n\n| a | b |\n|---|---|\n| 1 | 2 |",
     now: "Z",
+  },
+  {
+    name: "keysAheadOfTheDrawingAtAParagraphStartTakeTheirOwnLettersThenJoinIt",
+    doc: "# Adelante\n\nHola mundo bonito\n\nSegundo párrafo\n\nTercero\n",
+    run: async ({ clickAt, typed, press, drawingsHeld, frame }) => {
+      await clickAt("Segundo");
+      await caretInWords(frame, "Segundo párrafo", 0);
+      await drawingsHeld(async () => {
+        await typed("abc");
+        await press("Backspace", 4);
+      });
+    },
+    was: "\n\n",
+    now: "",
+  },
+  {
+    name: "keysAheadOfTheDrawingInAnItemTakeTheirOwnLetterNotTheBullet",
+    doc: "# Adelante\n\nAntes\n\n- uno\n- dos\n- tres\n",
+    run: async ({ clickAt, typed, press, drawingsHeld, frame }) => {
+      await clickAt("dos");
+      await caretInWords(frame, "dos", 0);
+      await drawingsHeld(async () => {
+        await typed("abc");
+        await press("Backspace");
+      });
+    },
+    was: "",
+    now: "ab",
+  },
+  {
+    name: "keysAheadOfAnOlderDrawingLeaveAPictureAboveInPlace",
+    doc: "# Adelante\n\nAntes\n\n![Rina](rina.png)\n\nTercero\n",
+    run: async ({ clickAt, press, drawingsHeld, oneDrawingLet }) => {
+      await clickAt("Tercero");
+      await drawingsHeld(async () => {
+        await press("Backspace", 2);
+        await oneDrawingLet();
+        await press("Backspace", 3);
+      });
+    },
+    was: "rcero",
+    now: "",
+  },
+  {
+    name: "keysAheadOfAnOlderDrawingLeaveAPageBreakAboveInPlace",
+    doc: "# Adelante\n\nAntes\n\n---\n\nTercero\n",
+    run: async ({ clickAt, press, drawingsHeld, oneDrawingLet }) => {
+      await clickAt("Tercero");
+      await drawingsHeld(async () => {
+        await press("Backspace", 2);
+        await oneDrawingLet();
+        await press("Backspace", 3);
+      });
+    },
+    was: "rcero",
+    now: "",
+  },
+  {
+    name: "keysAheadOfAnOlderDrawingUnderATableAreNotLost",
+    doc: "# Adelante\n\nAntes\n\n| a | b |\n|---|---|\n| 1 | 2 |\n\nTercero\n",
+    run: async ({ clickAt, press, drawingsHeld, oneDrawingLet }) => {
+      await clickAt("Tercero");
+      await drawingsHeld(async () => {
+        await press("Backspace", 2);
+        await oneDrawingLet();
+        await press("Backspace", 3);
+      });
+    },
+    was: "rcero",
+    now: "",
+  },
+  {
+    name: "keysAheadOfTheDrawingAtAParagraphEndLeaveATableBelowWhole",
+    doc: "# Adelante\n\nPara\n\n| a | b |\n|---|---|\n| 1 | 2 |\n",
+    run: async ({ clickAt, typed, press, drawingsHeld }) => {
+      await clickAt("Para");
+      await drawingsHeld(async () => {
+        await typed("X");
+        await press("Delete");
+      });
+    },
+    was: "",
+    now: "X",
+  },
+  {
+    name: "backspaceAfterDeleteAtAParagraphStartJoinsItWhole",
+    doc: "# Adelante\n\nHola mundo bonito\n\nSegundo párrafo\n\nTercero\n",
+    run: async ({ clickAt, press, frame }) => {
+      await clickAt("Segundo");
+      await caretInWords(frame, "Segundo párrafo", 0);
+      await press("Delete");
+      await press("Backspace");
+    },
+    was: "\n\nS",
+    now: "",
+  },
+  {
+    name: "deleteAfterTypingAtAParagraphEndJoinsTheNextWhole",
+    doc: "# Adelante\n\nHola mundo bonito\n\nSegundo párrafo\n\nTercero\n",
+    run: async ({ clickAt, typed, press }) => {
+      await clickAt("bonito");
+      await typed("X");
+      await press("Delete");
+    },
+    was: "\n\n",
+    now: "X",
+  },
+  {
+    name: "enterThenBackspaceGivesTheParagraphBackWhole",
+    doc: "# Adelante\n\nHola mundo bonito\n\nSegundo párrafo\n\nTercero\n",
+    run: async ({ clickAt, press }) => {
+      await clickAt("Segundo");
+      await press("Enter");
+      await press("Backspace");
+    },
+    was: "",
+    now: "",
+  },
+  {
+    name: "backspaceTwiceAtAListsFirstItemTakesItIntoTheParagraphAbove",
+    doc: "# Adelante\n\nAntes\n\n- uno\n- dos\n",
+    run: async ({ clickAt, press, frame }) => {
+      await clickAt("uno");
+      await caretInWords(frame, "uno", 0);
+      await pressedOnceDrawn(frame, press, "Backspace", 2);
+    },
+    was: "\n\n- ",
+    now: "",
+  },
+  {
+    name: "backspaceThriceAtAStepTakesItsWordsIntoTheStepAbove",
+    doc: "# Adelante\n\n- [ ] a\n- [ ] b\n- [x] c\n",
+    run: async ({ clickAt, press, frame }) => {
+      await clickAt("b");
+      await caretInWords(frame, "b", 0);
+      await pressedOnceDrawn(frame, press, "Backspace", 3);
+    },
+    was: "\n- [ ] ",
+    now: "",
   },
 ];
 

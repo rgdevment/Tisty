@@ -85,11 +85,28 @@ const hearing = (page: Document) => (event: InputEvent) => {
 
 // What was written shows only once the core has drawn it, so the hands ask before they aim a click or set the caret.
 let awaited = 0;
+let answered = 0;
 const drawing = <T>(asked: Promise<T>): Promise<T> => {
   awaited += 1;
   return asked.finally(() => {
     awaited -= 1;
+    answered += 1;
   });
+};
+
+let answersHeld: (() => void)[] | null = null;
+const heldBack = <T>(answer: Promise<T>): Promise<T> => {
+  const waiting = answersHeld;
+  if (!waiting) return answer;
+  answer.catch(() => {});
+  return new Promise<T>((done, failed) => {
+    waiting.push(() => answer.then(done, failed));
+  });
+};
+const answersLet = () => {
+  const waiting = answersHeld ?? [];
+  answersHeld = null;
+  for (const one of waiting) one();
 };
 
 const dressedUp = (page: Document) => {
@@ -123,7 +140,7 @@ const writtenIn = (page: Document) => {
         }),
       );
     },
-    near: (...asked) => drawing(docPlacedNear(...asked)),
+    near: (...asked) => drawing(heldBack(docPlacedNear(...asked))),
     dressed: () => {},
     translated: (_html, plain) => Promise.resolve(plain),
     ask: () => {},
@@ -140,6 +157,7 @@ const writtenIn = (page: Document) => {
 
 const open = async (body: string) => {
   writer?.stop();
+  answersLet();
   frame?.remove();
   errors.length = 0;
   heard.length = 0;
@@ -196,6 +214,13 @@ Object.assign(window, {
     hear: () => {
       listening = true;
     },
+    hold: () => {
+      answersHeld ??= [];
+    },
+    letOne: () => answersHeld?.shift()?.(),
+    letGo: answersLet,
+    holding: () => answersHeld?.length ?? 0,
+    answered: () => answered,
   },
   enginesReady: true,
 });

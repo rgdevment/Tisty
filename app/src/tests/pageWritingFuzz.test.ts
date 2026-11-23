@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { pastFeeds } from "../ui/pageEdits";
 import { type Hands, type PageWriting, writtenOn } from "../ui/pageWriting";
 
 // Coverage slows each walk several times over, and a few hundred of them can outlast the default.
@@ -283,8 +284,9 @@ const staysAfterCaret: Check = (trace, actions) => {
       /[*_+~=`]*$/.exec(trace.start.slice(0, Math.max(0, at)))?.[0].length ?? 0;
     let reach = trace.caret - marks(trace.caret);
     for (let step = 0; step < back; step++) reach = Math.max(0, reach - 1 - marks(reach - 1));
-    // Enter or Backspace that reaches a line's marks opens a line above it or takes the marks away.
-    const floor = reach <= lead ? Math.max(0, line - back) : reach;
+    // Enter or Backspace that reaches a line's marks opens a line above it, takes the marks away or joins the line whole.
+    const joined = back ? pastFeeds(trace.start, line, true) - back + 1 : line;
+    const floor = reach <= lead ? Math.max(0, joined) : reach;
     if (kept < Math.min(floor, trace.start.length))
       return `after action ${index}: the text changed at ${kept}, before ${floor}`;
   }

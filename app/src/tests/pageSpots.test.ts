@@ -37,6 +37,13 @@ describe("the places of a page written in place", () => {
     expect(sourceAt("", empty, 0)).toBe(0);
   });
 
+  it("writes after the block before a piece of the sheet that is no block, as a note left between blocks", () => {
+    const sheet = sheetOf(PAGE.replace("<ul", '<div class="said">nota</div><ul'));
+    const note = sheet.querySelector(".said") as Element;
+    expect(sourceAt(BODY, note, 0)).toBe(17);
+    expect(sourceAt(BODY, note.firstChild as Node, 2)).toBe(17);
+  });
+
   it("lays the caret past a piece that cannot be written in, where the next words start", () => {
     sheetOf();
     const spot = spotOf(document, BODY, 9);

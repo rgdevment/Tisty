@@ -1,4 +1,4 @@
-import { type Edit, lineEnd, lineStart, type Span } from "./pageEdits";
+import { type Edit, lineEnd, lineStart, pastFeeds, type Span } from "./pageEdits";
 
 export type Marks = readonly (readonly [string, string])[];
 
@@ -479,6 +479,41 @@ export const wordsFrom = (text: string, at: number) => {
   const ends = text.indexOf("\n", start);
   const line = text.slice(start, ends < 0 ? text.length : ends);
   return Math.min(at, start + (LINE_MARKS.exec(line)?.[0].length ?? 0));
+};
+
+const MARK_ENDS = /[\s>:*_~+=`[]/;
+const OPENINGS = /^(?:[*_~+=`]|!?\[)*$/;
+const BLANKISH = /^[ \t>]*\r?$/;
+
+const lineAt = (text: string, at: number) => text.slice(lineStart(text, at), lineEnd(text, at));
+
+const wordsReached = (text: string, start: number, at: number) => {
+  if (at > start && !MARK_ENDS.test(text[at - 1] ?? "")) return null;
+  const lead = text.slice(start, at);
+  const marks = LINE_MARKS.exec(lead)?.[0].length ?? 0;
+  return OPENINGS.test(lead.slice(marks)) ? start + marks : null;
+};
+
+const pastGap = (text: string, at: number, back: boolean) => {
+  let edge = pastFeeds(text, at, back);
+  while (back ? edge > 0 : edge < text.length) {
+    if (!BLANKISH.test(lineAt(text, edge))) return edge;
+    edge = pastFeeds(text, back ? lineStart(text, edge) : lineEnd(text, edge), back);
+  }
+  return edge;
+};
+
+export const joinedAcross = (text: string, at: number, back: boolean): Span | null => {
+  if (back) {
+    const start = lineStart(text, at);
+    const to = start === 0 ? null : wordsReached(text, start, at);
+    return to === null ? null : { from: pastGap(text, start, true), to };
+  }
+  const end = lineEnd(text, at);
+  if (end >= text.length || !closingOnly(text.slice(at, end))) return null;
+  if (at === lineStart(text, at)) return { from: at, to: pastFeeds(text, end, false) };
+  const from = text[end - 1] === "\r" ? end - 1 : end;
+  return { from, to: wordsFrom(text, lineEnd(text, pastGap(text, end, false))) };
 };
 
 // A mark never crosses a line, so words chosen over several blocks take a pair in each, past each line's own marks.

@@ -1,12 +1,12 @@
 import { charsAt } from "tisty-editor/read";
 import { t } from "../locales";
 import type { Caret } from "./pageCaret";
-import { reachIn, type Span } from "./pageEdits";
+import { blankAt, hardBroken, pastFeeds, reachIn, type Span } from "./pageEdits";
 import { fieldAsked } from "./pageFields";
 import type { Laying } from "./pageLaying";
 import { closing, joinedAt, opening } from "./pageLists";
-import { closeOf, openOf } from "./pageMarks";
-import { caretLaidOn } from "./pageNodes";
+import { closeOf, joinedAcross, openOf } from "./pageMarks";
+import { caretLaidOn, inCode } from "./pageNodes";
 import { placeOf } from "./pagePlaces";
 import { GHOST, titledAfterFront } from "./pageSpots";
 import { choiceKept, type Kept, type Writer } from "./pageWriter";
@@ -18,7 +18,7 @@ export const begunOn = (writer: Writer, caret: Caret, laying: Laying) => {
   const { put } = laying;
 
   // Until the page is drawn again it shows the words before the last key, so the caret kept in the words decides.
-  const waited = (kind: string): Span | null => {
+  const waited = (kind: string, shown: AbstractRange | null): Span | null => {
     if (!writer.kept || writer.kept.lead !== undefined) return null;
     const chosen = choiceKept(writer.kept);
     if (chosen) return chosen;
@@ -33,14 +33,15 @@ export const begunOn = (writer: Writer, caret: Caret, laying: Laying) => {
     }
     const { at } = writer.kept;
     const text = hands.text();
-    const bare = text[at - 1] === "\n" && (at >= text.length || /[\r\n]/.test(text[at] ?? ""));
-    if (kind === "deleteContentBackward" && bare) {
-      let from = at - 1;
-      while (from > 0 && /[\r\n]/.test(text[from - 1] ?? "")) from--;
-      return { from, to: at };
-    }
-    if (kind.startsWith("delete")) return reachIn(text, at, kind);
-    return { from: at, to: at };
+    if (!kind.startsWith("delete")) return { from: at, to: at };
+    const reach = reachIn(text, at, kind);
+    const bare = kind === "deleteContentBackward" && blankAt(text, at);
+    if (!bare && (kind.includes("Line") || hardBroken(text.slice(reach.from, reach.to))))
+      return reach;
+    if (!shown) return bare ? { from: pastFeeds(text, at, true), to: at } : reach;
+    const across =
+      kind.startsWith("deleteContent") && joinedAcross(text, at, kind.endsWith("Backward"));
+    return across && !inCode(shown.startContainer) ? across : reach;
   };
 
   // A line begun and not written loses its stand-in on a press back, and the next key still begins it there.
@@ -115,8 +116,7 @@ export const begunOn = (writer: Writer, caret: Caret, laying: Laying) => {
     const span = placeOf(quote);
     if (!span) return;
     const text = hands.text();
-    let at = charsAt(text, span[1]);
-    while (at > 0 && /[\r\n]/.test(text[at - 1] ?? "")) at--;
+    const at = pastFeeds(text, charsAt(text, span[1]), true);
     const line = text.slice(text.lastIndexOf("\n", at - 1) + 1, at);
     const bare = /^\s*>\s*$/.test(line);
     laidGhost(quote, true, at, bare ? (line.endsWith(" ") ? "" : " ") : "\n> ", "");

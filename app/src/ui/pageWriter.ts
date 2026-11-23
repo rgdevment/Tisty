@@ -14,6 +14,9 @@ export type Kept = {
   readonly chosenFrom?: number;
 };
 
+export const keptUnlaid = (kept: Kept | null): kept is Kept =>
+  kept !== null && kept.offset < 0 && kept.lead === undefined;
+
 export const choiceKept = (kept: Kept | null): Span | null =>
   kept && kept.offset < 0 && kept.chosenFrom !== undefined
     ? { from: kept.chosenFrom, to: kept.at }

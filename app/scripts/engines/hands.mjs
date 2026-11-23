@@ -1,5 +1,6 @@
 export const KEY_MS = 80;
 const BUSY_MS = 250;
+const HELD_PATIENCE_MS = 10_000;
 
 export const changeOf = (was, now) => {
   let from = 0;
@@ -83,10 +84,47 @@ export const handsOn = (page, frame) => {
     }
     await page.waitForTimeout(Math.max(KEY_MS, BUSY_MS - (Date.now() - lastKey)));
   };
+  const drawingsHeld = async (run) => {
+    await page.evaluate(() => window.engines.hold());
+    try {
+      await run();
+    } finally {
+      await page.evaluate(() => window.engines.letGo());
+    }
+    await page.waitForFunction(() => window.engines.drawn());
+  };
+  const oneDrawingLet = async () => {
+    const before = await page.evaluate(() => {
+      if (window.engines.holding() === 0) return null;
+      const told = window.engines.answered();
+      window.engines.letOne();
+      return told;
+    });
+    if (before === null) throw new Error("no drawing of the core was held to let through");
+    const patience = { timeout: HELD_PATIENCE_MS };
+    await page.waitForFunction((told) => window.engines.answered() > told, before, patience);
+    await page.waitForFunction(
+      () => window.engines.holding() > 0 || window.engines.drawn(),
+      null,
+      patience,
+    );
+  };
   const command = async (key) => press(`${(await onMac()) ? "Meta" : "Control"}+${key}`);
   const wordBack = async () => press((await onMac()) ? "Alt+Backspace" : "Control+Backspace");
   const wordForward = async () => press((await onMac()) ? "Alt+Delete" : "Control+Delete");
-  return { clickAt, typed, press, busyTyped, command, wordBack, wordForward, page, frame };
+  return {
+    clickAt,
+    typed,
+    press,
+    busyTyped,
+    drawingsHeld,
+    oneDrawingLet,
+    command,
+    wordBack,
+    wordForward,
+    page,
+    frame,
+  };
 };
 
 export const opened = async (page, url) => {
