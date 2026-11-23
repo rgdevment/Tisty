@@ -1413,7 +1413,7 @@ export const CASES = [
       await command("a");
       await typed("Z");
     },
-    was: "Tabla\n\nAntes y más\n\n| a | b |\n|---|---|\n| 1 | 2 |\n",
+    was: "Tabla\n\nAntes y más\n\n| a | b |\n|---|---|\n| 1 | 2 |",
     now: "Z",
   },
 ];
