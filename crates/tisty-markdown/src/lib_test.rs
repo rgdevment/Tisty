@@ -552,6 +552,32 @@ fn a_piece_drawn_as_one_element_carries_its_own_place() {
     );
 }
 
+#[cfg(feature = "math")]
+#[test]
+fn a_formula_among_words_is_held_whole_by_a_span_as_mathml_takes_no_contenteditable() {
+    let text = "Antes $x^2$ y $$a$$ fin";
+    let drawn = html_placed(&read(text));
+    let maths: Vec<&str> = drawn
+        .split("<math")
+        .skip(1)
+        .filter_map(|rest| rest.split_once('>').map(|(opened, _)| opened))
+        .collect();
+    assert_eq!(maths.len(), 2, "{drawn}");
+    assert!(
+        maths.iter().all(|opened| !opened.contains("data-src")),
+        "{drawn}"
+    );
+    assert_eq!(
+        drawn.matches("contenteditable=\"false\"><math").count(),
+        2,
+        "{drawn}"
+    );
+    let pieces = placed(&drawn, text);
+    for one in ["$x^2$", "$$a$$"] {
+        assert!(pieces.iter().any(|piece| piece == one), "{pieces:?}");
+    }
+}
+
 #[test]
 fn the_page_to_read_carries_no_bytes() {
     assert!(!html(&read("# Hi **you**\n\n```js\nlet a;\n```")).contains("data-src"));

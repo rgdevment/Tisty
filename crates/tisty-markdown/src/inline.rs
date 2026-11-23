@@ -322,7 +322,7 @@ fn atomic(one: &Span, spans: &[Span], text: &str, kept: &HashSet<usize>, out: &m
     }
 }
 
-// An atom drawn as one element carries its place itself, so the page keeps the shape it has when only read.
+// An atom drawn as one HTML element carries its place itself, so the page keeps the shape it has when only read.
 fn placed_atom(drawn: &str, at: &Range<usize>, out: &mut String) {
     let place = format!(
         " data-src=\"{}-{}\" contenteditable=\"false\"",
@@ -344,14 +344,14 @@ fn placed_atom(drawn: &str, at: &Range<usize>, out: &mut String) {
 
 const VOID: [&str; 4] = ["img", "br", "hr", "wbr"];
 
-// Where the attributes of the one element `drawn` is go, or None when it is words or several elements.
+// Where the attributes of the one HTML element `drawn` is go, or None when it is words or several elements.
 fn lone_tag(drawn: &str) -> Option<usize> {
     let rest = drawn.strip_prefix('<')?;
     let name: String = rest
         .chars()
         .take_while(|c| c.is_ascii_alphanumeric())
         .collect();
-    if name.is_empty() || !name.starts_with(|c: char| c.is_ascii_alphabetic()) {
+    if name.is_empty() || !name.starts_with(|c: char| c.is_ascii_alphabetic()) || name == "math" {
         return None;
     }
     let shut = drawn.find('>')?;

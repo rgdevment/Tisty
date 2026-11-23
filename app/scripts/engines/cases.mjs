@@ -40,6 +40,8 @@ const NO_LINE_DELETE_ON_WINDOWS = "Windows has no key that deletes back to the s
 
 const MISSING_PICTURE = PIECES.replace("](mini.png)", "](missing.png)");
 
+const FORMULA_IN_WORDS = "# Fórmula\n\nAntes $x^2$ después\n";
+
 const caretInWords = async (frame, words, offset) => {
   await frame.parentFrame().waitForFunction(() => window.engines.drawn());
   await frame.evaluate(
@@ -959,6 +961,140 @@ export const CASES = [
     },
     was: "",
     now: "**X**",
+  },
+  {
+    name: "leftCrossesFormulaInWords",
+    doc: FORMULA_IN_WORDS,
+    run: async ({ clickAt, typed, press, frame }) => {
+      await clickAt("después");
+      await caretInWords(frame, " después", 0);
+      await press("ArrowLeft");
+      await typed("X");
+      await clickAt("Antes", true);
+      await typed("Y");
+    },
+    was: "Antes ",
+    now: "YAntes X",
+  },
+  {
+    name: "rightCrossesFormulaInWords",
+    doc: FORMULA_IN_WORDS,
+    run: async ({ clickAt, typed, press, frame }) => {
+      await clickAt("Antes");
+      await caretInWords(frame, "Antes ", 6);
+      await press("ArrowRight");
+      await typed("X");
+      await clickAt("Antes", true);
+      await typed("Y");
+    },
+    was: "Antes $x^2$",
+    now: "YAntes $x^2$X",
+  },
+  {
+    name: "shiftLeftChoosesFormulaWhole",
+    doc: FORMULA_IN_WORDS,
+    run: async ({ clickAt, typed, press, frame }) => {
+      await clickAt("después");
+      await caretInWords(frame, " después", 0);
+      await press("Shift+ArrowLeft");
+      await typed("X");
+    },
+    was: "$x^2$",
+    now: "X",
+  },
+  {
+    name: "shiftRightChoosesFormulaWhole",
+    doc: FORMULA_IN_WORDS,
+    run: async ({ clickAt, typed, press, frame }) => {
+      await clickAt("Antes");
+      await caretInWords(frame, "Antes ", 6);
+      await press("Shift+ArrowRight");
+      await typed("X");
+    },
+    was: "$x^2$",
+    now: "X",
+  },
+  {
+    name: "leftBeforeFormulaAtLineStart",
+    doc: "# Fórmula\n\n$x^2$ al inicio\n",
+    run: async ({ clickAt, typed, press, frame }) => {
+      await clickAt("inicio");
+      await caretInWords(frame, " al inicio", 0);
+      await press("ArrowLeft");
+      await typed("X");
+      await clickAt("inicio");
+      await typed("Y");
+    },
+    was: "$x^2$ al inicio",
+    now: "X$x^2$ al inicioY",
+  },
+  {
+    name: "rightPastFormulaAtLineEnd",
+    doc: "# Fórmula\n\nal final $x^2$\n\nOtra línea.\n",
+    run: async ({ clickAt, typed, press, frame }) => {
+      await clickAt("final");
+      await caretInWords(frame, "al final ", 9);
+      await press("ArrowRight");
+      await typed("X");
+      await clickAt("al final", true);
+      await typed("Y");
+    },
+    was: "al final $x^2$",
+    now: "Yal final $x^2$X",
+  },
+  {
+    name: "leftStopsBetweenTwoFormulas",
+    doc: "# Fórmula\n\nAntes $x^2$$y^2$ después\n",
+    run: async ({ clickAt, typed, press, frame }) => {
+      await clickAt("después");
+      await caretInWords(frame, " después", 0);
+      await press("ArrowLeft");
+      await typed("X");
+      await clickAt("Antes", true);
+      await typed("Y");
+    },
+    was: "Antes $x^2$",
+    now: "YAntes $x^2$X",
+  },
+  {
+    name: "leftCrossesFormulaInListItem",
+    doc: "# Fórmula\n\n- uno $x^2$ dos\n",
+    run: async ({ clickAt, typed, press, frame }) => {
+      await clickAt("dos");
+      await caretInWords(frame, " dos", 0);
+      await press("ArrowLeft");
+      await typed("X");
+      await clickAt("dos");
+      await typed("Y");
+    },
+    was: "$x^2$ dos",
+    now: "X$x^2$ dosY",
+  },
+  {
+    name: "leftCrossesFormulaRightAfterTaskBox",
+    doc: "# Fórmula\n\n- [ ] $x^2$ dos\n",
+    run: async ({ clickAt, typed, press, frame }) => {
+      await clickAt("dos");
+      await caretInWords(frame, " dos", 0);
+      await press("ArrowLeft");
+      await typed("X");
+      await clickAt("dos");
+      await typed("Y");
+    },
+    was: "$x^2$ dos",
+    now: "X$x^2$ dosY",
+  },
+  {
+    name: "shiftLeftChoosesDisplayFormulaAmongWords",
+    doc: "# Fórmula\n\nAntes $$x^2$$ después\n",
+    run: async ({ clickAt, typed, press, frame }) => {
+      await clickAt("después");
+      await caretInWords(frame, " después", 1);
+      await press("Shift+ArrowLeft");
+      await typed("X");
+    },
+    was: "$$x^2$$",
+    now: "X",
   },
 ];
 

@@ -1726,7 +1726,7 @@ describe("a key at the edge of a block drawn whole", () => {
   ] as const)("takes a formula in words whole on %s", (_, kind, at, from, to) => {
     const said = writer("Antes $x^2$ fin\n");
     pageOf(
-      '<p data-at="0-15"><span data-src="0-6">Antes </span><math data-src="6-11" contenteditable="false"><msup><mi>x</mi><mn>2</mn></msup></math><span data-src="11-15"> fin</span></p>',
+      '<p data-at="0-15"><span data-src="0-6">Antes </span><span data-src="6-11" contenteditable="false"><math><msup><mi>x</mi><mn>2</mn></msup></math></span><span data-src="11-15"> fin</span></p>',
     );
     writing?.drawn();
     caretIn(at[0], at[1]);
@@ -1747,7 +1747,7 @@ describe("a key at the edge of a block drawn whole", () => {
   it("leaves a formula in words when the words chosen after it only touch its edge", () => {
     const said = writer("Antes $x^2$ fin\n");
     pageOf(
-      '<p data-at="0-15"><span data-src="0-6">Antes </span><math data-src="6-11" contenteditable="false"><msup><mi>x</mi><mn>2</mn></msup></math><span data-src="11-15"> fin</span></p>',
+      '<p data-at="0-15"><span data-src="0-6">Antes </span><span data-src="6-11" contenteditable="false"><math><msup><mi>x</mi><mn>2</mn></msup></math></span><span data-src="11-15"> fin</span></p>',
     );
     writing?.drawn();
     const chosen = document.createRange();

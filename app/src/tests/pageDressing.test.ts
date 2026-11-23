@@ -92,7 +92,7 @@ const WORDS = [
   '<p data-at="0-9"><a href="tisty:doc/ab12-0002">B</a></p>',
   '<p data-at="0-9"><a href="attachments/a.pdf">x</a></p>',
   '<p data-at="0-9"><span class="tag" data-tag="work">#work</span></p>',
-  '<p data-at="0-20">Sea <math data-src="4-9" contenteditable="false"><mi>x</mi></math> y <code class="math" data-src="12-17" contenteditable="false">\fr</code></p>',
+  '<p data-at="0-20">Sea <span data-src="4-9" contenteditable="false"><math><mi>x</mi></math></span> y <code class="math" data-src="12-17" contenteditable="false">\fr</code></p>',
   '<p data-at="0-9"><img src="attachments/a.png" alt="A"><img src="https://x.y/b.png" alt="B"></p>',
   '<p data-at="0-9"><img src="attachments/walk-0006bf09.mp4" alt="A walk"></p>',
   '<p data-at="0-9"><img src="attachments/bark-0006bf10.mp3" alt="Bark"></p>',

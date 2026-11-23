@@ -324,13 +324,15 @@ describe("dressing a drawn page", () => {
 
   it("opens a formula written inline in its own window with a click", () => {
     const written = page(
-      '<p data-at="0-20">Sea <math data-src="4-9" contenteditable="false"><mi>x</mi></math> y <code class="math" data-src="12-17" contenteditable="false">\\fr</code></p>',
+      '<p data-at="0-20">Sea <span data-src="4-9" contenteditable="false"><math><mi>x</mi></math></span> y <code class="math" data-src="12-17" contenteditable="false">\\fr</code></p>',
     );
     const formulas = written.querySelectorAll("math, code.math");
     const second = went(formulas[1].firstChild?.parentElement as Element, false);
     expect(second).toEqual({ kind: "formula", at: [12, 17], nth: 1 });
     const first = went(written.querySelector("mi") as Element, false);
     expect(first).toEqual({ kind: "formula", at: [4, 9], nth: 0 });
+    const holder = written.querySelector("math")?.parentElement as Element;
+    expect(went(holder, false)).toEqual(first);
     expect(went(written.querySelector("mi") as Element, true)).toBeNull();
     const opened: unknown[] = [];
     answered(written, first, {

@@ -66,7 +66,7 @@ const UNTOUCHED = "summary, figure.widget, .media, .col-grip, .picture-away, .ta
 const SHOTS = ".page img[src], .page figure.diagram.drawn";
 
 // A formula written inline is drawn whole; one the core could not draw shows its words as code.
-const FORMULAS = ".page math[data-src], .page code.math[data-src]";
+const FORMULAS = ".page [data-src]:has(> math), .page code.math[data-src]";
 
 const lookable = (all: Iterable<Element>): Element[] =>
   Array.from(all).filter((one) => !one.closest(`.doc-card, details:not([open]), ${UNTOUCHED}`));
