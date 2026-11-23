@@ -111,6 +111,13 @@ jobs:
           key: earlier
           workspaces: ${{ steps.trees.outputs.workspaces }}
           save-if: ${{ github.ref == 'refs/heads/main' }}
+      # Downloading them on every run was most of the releases' download count.
+      - uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        id: downloaded
+        if: matrix.downloaded != ''
+        with:
+          path: earlier/downloaded
+          key: earlier-cli-${{ runner.os }}-${{ matrix.downloaded }}
       - name: The test that meets them, built once
         run: cargo test -p tisty-cli --test versions --no-run
       - name: What each earlier release and this build do to each other
@@ -140,3 +147,8 @@ jobs:
             exit 1
           fi
           echo "all $handed earlier releases were met"
+      - uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        if: matrix.downloaded != '' && github.ref == 'refs/heads/main' && steps.downloaded.outputs.cache-hit != 'true'
+        with:
+          path: earlier/downloaded
+          key: earlier-cli-${{ runner.os }}-${{ matrix.downloaded }}

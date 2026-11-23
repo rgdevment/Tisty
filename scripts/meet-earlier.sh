@@ -22,21 +22,26 @@ built_from_its_tree() {
 }
 
 released() {
-  local file got="earlier/released/$release"
+  local file kept=earlier/downloaded unpacked="earlier/released/$release"
   case "$RUNNER_OS" in
     Windows) file="tisty-cli-$release-windows-x86_64.zip" ;;
     macOS) file="tisty-cli-$release-macos-universal.tar.gz" ;;
     *) echo "::error::no command line is released for $RUNNER_OS"; exit 1 ;;
   esac
-  mkdir -p "$got/unpacked"
-  gh release download "v$release" --repo "$GITHUB_REPOSITORY" --pattern "$file" --dir "$got"
-  gh attestation verify "$got/$file" --repo "$GITHUB_REPOSITORY" \
+  mkdir -p "$kept" "$unpacked"
+  if [ -f "$kept/$file" ]; then
+    echo "$file is kept from an earlier run"
+  else
+    gh release download "v$release" --repo "$GITHUB_REPOSITORY" --pattern "$file" --dir "$kept"
+  fi
+  # A kept file is checked like a fresh one: the cache is not trusted more than the release.
+  gh attestation verify "$kept/$file" --repo "$GITHUB_REPOSITORY" \
     --signer-workflow "$GITHUB_REPOSITORY/.github/workflows/release.yml"
   case "$file" in
-    *.zip) unzip -q "$got/$file" -d "$got/unpacked" ;;
-    *) tar xzf "$got/$file" -C "$got/unpacked" ;;
+    *.zip) unzip -q "$kept/$file" -d "$unpacked" ;;
+    *) tar xzf "$kept/$file" -C "$unpacked" ;;
   esac
-  bin=$(find "$got/unpacked" -type f \( -name tisty -o -name tisty.exe \) | sed -n '1p')
+  bin=$(find "$unpacked" -type f \( -name tisty -o -name tisty.exe \) | sed -n '1p')
   [ -n "$bin" ] || { echo "::error::$file holds no tisty"; exit 1; }
 }
 

@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
 const MOST_RELEASES = 10;
-const MOST_ON_A_PULL_REQUEST = 6;
+const MOST_ON_A_PULL_REQUEST = 2;
 const PULL_REQUEST_SYSTEM = "windows-latest";
 const EVERY_SYSTEM = ["windows-latest", "macos-latest"];
 
@@ -18,6 +18,9 @@ export const wrongWith = (releases) => {
   if (new Set(releases.map((one) => one.release)).size !== releases.length) {
     wrong.push("an earlier release is listed twice");
   }
+  if (!releases.at(0)?.every_pull_request) {
+    wrong.push("the oldest earlier release is the first one listed, and every pull request meets it");
+  }
   if (!releases.at(-1)?.every_pull_request) {
     wrong.push("the newest earlier release is the last one listed, and every pull request meets it");
   }
@@ -31,7 +34,8 @@ export const metOn = (event, releases) => {
   const onPullRequest = event === "pull_request";
   const met = onPullRequest ? releases.filter((one) => one.every_pull_request) : releases;
   const systems = onPullRequest ? [PULL_REQUEST_SYSTEM] : EVERY_SYSTEM;
-  return systems.map((os) => ({ os, releases: met.map(asLine).join("\n") }));
+  const downloaded = releases.filter((one) => !one.built).map((one) => one.release).join("_");
+  return systems.map((os) => ({ os, releases: met.map(asLine).join("\n"), downloaded }));
 };
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
