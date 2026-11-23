@@ -586,6 +586,7 @@ impl Drop for Releasing<'_> {
 struct OneAtATime {
     held: std::sync::atomic::AtomicBool,
     round_began: std::sync::atomic::AtomicU64,
+    changing: Mutex<()>,
 }
 
 impl Default for OneAtATime {
@@ -599,6 +600,7 @@ impl OneAtATime {
         Self {
             held: std::sync::atomic::AtomicBool::new(false),
             round_began: std::sync::atomic::AtomicU64::new(0),
+            changing: Mutex::new(()),
         }
     }
 
@@ -608,6 +610,13 @@ impl OneAtATime {
             .compare_exchange(false, true, Ordering::AcqRel, Ordering::Acquire)
             .is_ok()
             .then(|| Releasing(self))
+    }
+
+    // Held until a change of place is told, so one told late never lands over the change after it.
+    fn changing(&self) -> std::sync::MutexGuard<'_, ()> {
+        self.changing
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
     }
 
     fn claim_round(&self) -> Option<Releasing<'_>> {

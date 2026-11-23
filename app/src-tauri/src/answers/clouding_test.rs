@@ -302,6 +302,120 @@ fn dav_server(
     (tisty_webdav::DavAt::under(&base, "mario").unwrap(), served)
 }
 
+type Asked = std::sync::mpsc::Receiver<(bool, bool)>;
+
+// The server of a cloud already carried here; each request says whether the session and the round's turn are free.
+fn carried_cloud(session: &Arc<Mutex<Session>>, alone: &Arc<OneAtATime>) -> (CloudAt, Asked) {
+    let listener = std::net::TcpListener::bind(("127.0.0.1", 0)).unwrap();
+    let base = format!(
+        "http://127.0.0.1:{}/dav/mario",
+        listener.local_addr().unwrap().port()
+    );
+    let dav = tisty_webdav::DavAt::under(&base, "mario").unwrap();
+    let at = CloudAt {
+        provider: WEBDAV.into(),
+        account: dav.account(),
+        email: dav.shown(),
+    };
+    secrets_for(&at)
+        .unwrap()
+        .write(KEPT_AS, "r0ck4me!")
+        .unwrap();
+    {
+        let mut session = held(session);
+        session
+            .keep(|config| config.sync = Some(Sync::cloud(at.clone())))
+            .unwrap();
+        let home = session.reach.home_of(&at);
+        std::fs::create_dir_all(&home).unwrap();
+        std::fs::write(home.join("carried-here"), "1").unwrap();
+    }
+    let (heard, asked) = std::sync::mpsc::channel();
+    let (session, alone) = (session.clone(), alone.clone());
+    std::thread::spawn(move || {
+        use std::io::Write;
+        for stream in listener.incoming() {
+            let free = session.try_lock().is_ok();
+            let turn = alone.claim().is_some();
+            let _ = heard.send((free, turn));
+            let _ = stream.unwrap().write_all(
+                b"HTTP/1.1 503 Service Unavailable\r\nContent-Length: 0\r\nConnection: close\r\n\r\n",
+            );
+        }
+    });
+    (at, asked)
+}
+
+fn a_session(home: &std::path::Path) -> Arc<Mutex<Session>> {
+    let paths = tisty_core::Paths::new(home.join("data"), home.join("config"));
+    Arc::new(Mutex::new(Session::at(paths).unwrap()))
+}
+
+#[test]
+fn reconnecting_the_same_cloud_reaches_it_with_the_session_let_go_of() {
+    let home = tempfile::tempdir().unwrap();
+    let session = a_session(home.path());
+    let alone = Arc::new(OneAtATime::idle());
+    let (at, asked) = carried_cloud(&session, &alone);
+
+    chosen_now(&session, &alone, at.clone()).unwrap();
+
+    let (free, turn) = asked
+        .recv_timeout(Duration::from_secs(10))
+        .expect("the cloud chosen again was never asked to forget the word left in it");
+    assert!(
+        free,
+        "the window waited on the network behind the session every command needs"
+    );
+    assert!(
+        !turn,
+        "a round could come in between and stop on the old word"
+    );
+    assert!(alone.claim().is_some(), "no round could ever run again");
+    forgotten(&at).unwrap();
+}
+
+#[test]
+fn a_change_of_place_waits_for_the_one_still_being_told() {
+    let home = tempfile::tempdir().unwrap();
+    let session = a_session(home.path());
+    let alone = Arc::new(OneAtATime::idle());
+    let (at, asked) = carried_cloud(&session, &alone);
+    let telling = alone.changing();
+    let (theirs, free, here) = (session.clone(), alone.clone(), at.clone());
+    let second = std::thread::spawn(move || chosen_now(&theirs, &free, here));
+
+    let early = asked.recv_timeout(Duration::from_millis(300));
+    drop(telling);
+    second.join().unwrap().unwrap();
+
+    assert!(
+        early.is_err(),
+        "a change began while the one before it was still being told"
+    );
+    assert!(asked.recv_timeout(Duration::from_secs(10)).is_ok());
+    forgotten(&at).unwrap();
+}
+
+#[test]
+fn a_round_already_going_keeps_its_turn_while_a_cloud_is_reconnected() {
+    let home = tempfile::tempdir().unwrap();
+    let session = a_session(home.path());
+    let alone = Arc::new(OneAtATime::idle());
+    let (at, _asked) = carried_cloud(&session, &alone);
+    let round = alone.claim().unwrap();
+
+    chosen_now(&session, &alone, at.clone()).unwrap();
+
+    assert!(
+        alone.claim().is_none(),
+        "the round going on lost its turn to the reconnection"
+    );
+    drop(round);
+    assert!(alone.claim().is_some());
+    forgotten(&at).unwrap();
+}
+
 fn kept_note(etag: &str) -> String {
     format!(
         r#"<?xml version="1.0"?><d:multistatus xmlns:d="DAV:"><d:response><d:href>/dav/mario/Tisty/a.md</d:href><d:propstat><d:prop><d:resourcetype/><d:getcontentlength>4</d:getcontentlength><d:getetag>{etag}</d:getetag></d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response></d:multistatus>"#

@@ -590,18 +590,24 @@ fn choosing(
     }
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn choose_sync(
     app: tauri::AppHandle,
     session: tauri::State<'_, Mutex<Session>>,
+    alone: tauri::State<'_, OneAtATime>,
     dest: Option<String>,
 ) -> Answer<()> {
-    choose(&mut held(&session), dest)?;
+    {
+        let _changing = alone.changing();
+        let _turn = alone.claim();
+        let after = choose(&mut held(&session), dest)?;
+        after.done();
+    }
     let _ = app.emit("unstuck", ());
     Ok(())
 }
 
-pub(crate) fn choose(session: &mut Session, dest: Option<String>) -> Answer<()> {
+pub(crate) fn choose(session: &mut Session, dest: Option<String>) -> Answer<After> {
     session.refresh_settings();
     let chosen = match dest
         .map(|one| one.trim().to_string())
@@ -643,7 +649,7 @@ pub(crate) fn changed_to<F>(
     session: &mut Session,
     chosen: tisty_core::config::Sync,
     choosing: impl Fn(tisty_core::config::Sync) -> F,
-) -> Answer<()>
+) -> Answer<After>
 where
     F: FnOnce(&mut tisty_core::Config) -> Option<Refusal>,
 {
@@ -651,9 +657,7 @@ where
         rejoined: joined_on(session, Some(&chosen)),
         left: joined_on(session, session.config.sync.as_ref()),
     };
-    let after = changed_with(session, chosen, choosing, joins)?;
-    after.done_now(session);
-    Ok(())
+    changed_with(session, chosen, choosing, joins)
 }
 
 #[derive(Clone, Copy)]
@@ -662,7 +666,10 @@ pub(crate) struct Joins {
     pub(crate) left: bool,
 }
 
+/// What the change still owes its places, which may be across the network, so it is done once the session is let go of.
+#[must_use]
 pub(crate) struct After {
+    paths: tisty_core::Paths,
     pub(crate) word: Option<(
         tisty_core::config::Sync,
         String,
@@ -673,9 +680,9 @@ pub(crate) struct After {
 }
 
 impl After {
-    fn done_now(self, session: &Session) {
+    pub(crate) fn done(self) {
         if let Some((left, said, old)) = self.word {
-            crate::leaving::left_said(&session.paths, &left, &said, old);
+            crate::leaving::left_said(&self.paths, &left, &said, old);
         }
         if let Some(now) = self.unword {
             forget_word_in(&now);
@@ -750,6 +757,7 @@ where
         .then(|| session.carrier())
         .flatten();
     Ok(After {
+        paths: session.paths.clone(),
         word,
         owes_word,
         unword,
@@ -829,7 +837,7 @@ fn held_apart(done: &Answer<Settled>) -> (&'static str, Option<String>) {
 }
 
 /// This copy raised a place the builds before 1.30 no longer write in, and the person has not been told yet.
-#[tauri::command]
+#[tauri::command(async)]
 pub fn place_raised(session: tauri::State<'_, Mutex<Session>>) -> Option<&'static str> {
     tisty_carrier::raised(held(&session).paths.data()).then_some(tisty_carrier::NEEDS)
 }

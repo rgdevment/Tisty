@@ -714,7 +714,7 @@ pub fn star_done(session: tauri::State<'_, Mutex<Session>>) -> Answer<()> {
     held(&session).keep(|c| c.asked_for_a_star = Some(true))
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn door_due(session: tauri::State<'_, Mutex<Session>>) -> Answer<Option<DoorDue>> {
     let (open, asked) = {
         let session = held(&session);

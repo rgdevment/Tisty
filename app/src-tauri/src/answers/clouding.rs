@@ -458,19 +458,32 @@ pub async fn cloud_choose(
 }
 
 fn chosen_cloud_now(app: &tauri::AppHandle, at: CloudAt) -> Answer<()> {
-    has_access(&at)?;
-    let chosen = Sync::cloud(at);
-    let state = app.state::<Mutex<Session>>();
-    let mut session = held(&state);
-    session.refresh_settings();
-    let joined = super::storing::cloud_joined(&session);
-    let home = tisty_carrier::cloud_of(Some(&chosen)).map(|at| session.reach.home_of(at));
-    super::storing::changed_to(&mut session, chosen, |one| choosing_cloud(one, joined))?;
-    drop(session);
-    if let Some(home) = home {
-        tisty_carrier::round_forgotten(&home);
-    }
+    chosen_now(
+        &app.state::<Mutex<Session>>(),
+        &app.state::<OneAtATime>(),
+        at,
+    )?;
     let _ = app.emit("unstuck", ());
+    Ok(())
+}
+
+fn chosen_now(session: &Mutex<Session>, alone: &OneAtATime, at: CloudAt) -> Answer<()> {
+    has_access(&at)?;
+    let _changing = alone.changing();
+    // A round in between would stop once more on the word about to go; one already going is not waited for.
+    let _turn = alone.claim();
+    let (after, home) = {
+        let mut session = held(session);
+        session.refresh_settings();
+        let joined = super::storing::cloud_joined(&session);
+        let home = session.reach.home_of(&at);
+        let chosen = Sync::cloud(at);
+        let after =
+            super::storing::changed_to(&mut session, chosen, |one| choosing_cloud(one, joined))?;
+        (after, home)
+    };
+    after.done();
+    tisty_carrier::round_forgotten(&home);
     Ok(())
 }
 

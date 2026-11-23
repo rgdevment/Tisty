@@ -688,7 +688,7 @@ pub(crate) fn left_for_alone(session: &mut Session) -> Answer<()> {
         rejoined: false,
         left: false,
     };
-    changed_with(session, Sync::alone(), moving_in, joins)?;
+    let _untold = changed_with(session, Sync::alone(), moving_in, joins)?;
     pending_kept(&session.paths, None);
     Ok(())
 }

@@ -157,7 +157,9 @@ fn choosing_a_folder_over_a_way_a_newer_build_wrote_meanwhile_is_refused_and_wri
         .unwrap();
     written_since_the_window_opened(&paths, Some(later()));
 
-    let stopped = choose(&mut session, Some("G:/otra".to_string())).expect_err("replaced");
+    let stopped = choose(&mut session, Some("G:/otra".to_string()))
+        .err()
+        .expect("replaced");
 
     assert_eq!(stopped.code, "syncLaterToLeave");
     let on_disk = tisty_core::Config::load(&paths.config_file())
@@ -176,7 +178,8 @@ fn a_window_that_still_believes_in_a_later_way_is_not_stuck_on_it() {
     written_since_the_window_opened(&paths, None);
 
     choose(&mut session, Some("G:/otra".to_string()))
-        .expect("a way that is no longer written refused the change");
+        .expect("a way that is no longer written refused the change")
+        .done();
 
     let on_disk = tisty_core::Config::load(&paths.config_file())
         .unwrap()
@@ -197,7 +200,9 @@ fn settings_this_version_cannot_read_are_never_written_over() {
     let stopped = session
         .keep(|c| c.locale = Some("es".into()))
         .expect_err("settings written by a newer build were overwritten");
-    let chosen = choose(&mut session, Some("G:/otra".to_string())).expect_err("overwritten");
+    let chosen = choose(&mut session, Some("G:/otra".to_string()))
+        .err()
+        .expect("overwritten");
 
     assert_eq!(stopped.code, "settingsUnreadable");
     assert_eq!(chosen.code, "settingsUnreadable");
