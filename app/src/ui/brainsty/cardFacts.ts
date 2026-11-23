@@ -1,6 +1,7 @@
 import { type Card, type Neuron, TIES, type Tie } from "../../brainsty";
 import { dayOf, numbered, weigh } from "../../format";
 import { fill, t } from "../../locales";
+import { stepsWaiting } from "../stepsWaiting";
 import { standingOf } from "./looks";
 
 export type Fact = [label: string, value: string];
@@ -23,6 +24,11 @@ const stateOf = (neuron: Neuron, card: Card): string => {
   return due && due !== "undated" ? `${state} · ${t(`brainstyDue_${due}`)}` : state;
 };
 
+const stepsOf = ([done, all]: [number, number], said?: number): string => {
+  const ticked = fill("brainstyFactStepsDone", numbered(done), numbered(all));
+  return said ? `${ticked} · ${stepsWaiting(numbered(said))}` : ticked;
+};
+
 export function factsOf(neuron: Neuron, card: Card): Fact[] {
   const size = sizeOf(card);
   const facts: (Fact | null)[] =
@@ -33,12 +39,7 @@ export function factsOf(neuron: Neuron, card: Card): Fact[] {
           card.deadline ? [t("brainstyFactDeadline"), onDay(card.deadline)] : null,
           card.part_of ? [t("brainstyFactPartOf"), card.part_of.title] : null,
           card.parts?.length ? [t("brainstyFactParts"), numbered(card.parts.length)] : null,
-          card.steps
-            ? [
-                t("brainstyFactSteps"),
-                fill("brainstyFactStepsDone", numbered(card.steps[0]), numbered(card.steps[1])),
-              ]
-            : null,
+          card.steps ? [t("brainstyFactSteps"), stepsOf(card.steps, card.steps_said)] : null,
           card.source ? [t("brainstyFactSource"), card.source] : null,
         ]
       : [

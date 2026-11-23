@@ -5,8 +5,7 @@ use super::*;
 fn at(stage: Stage, (done, all): (usize, usize), next: Option<&str>) -> Progress {
     Progress {
         stage,
-        done,
-        all,
+        count: StepCount { done, said: 0, all },
         next: next.map(str::to_string),
         state: None,
         old: false,
@@ -23,6 +22,28 @@ fn progress_says_the_stage_the_steps_and_the_next_one() {
     assert_eq!(
         at(Stage::Waiting, (2, 2), None).told(),
         "waiting on the person, all 2 steps ticked"
+    );
+}
+
+#[test]
+fn steps_an_agent_said_done_are_counted_apart_from_the_ticked_ones() {
+    let mut one = at(Stage::UnderWay, (1, 3), Some("three"));
+    one.count.said = 1;
+    assert_eq!(
+        one.told(),
+        "under way, 1 of 3 steps ticked, 1 said done and waiting on the person, next \"three\""
+    );
+    let mut into = json!({});
+    one.put(&mut into);
+    assert_eq!(into["steps"], json!([1, 3]));
+    assert_eq!(into["steps_said"], json!(1));
+
+    let mut all_said = at(Stage::UnderWay, (1, 2), None);
+    all_said.count.said = 1;
+    assert_eq!(
+        all_said.told(),
+        "under way, 1 of 2 steps ticked, 1 said done and waiting on the person",
+        "a step only said done is not ticked"
     );
 }
 
@@ -65,7 +86,7 @@ fn a_long_step_is_cut_on_a_character() {
 }
 
 #[test]
-fn a_step_given_an_agents_word_counts_as_ticked_and_is_not_next() {
+fn a_step_given_an_agents_word_is_counted_apart_and_is_not_next() {
     let mut task = Task::new(ulid::Ulid::generate(), "A part", "a0");
     let step = |text: &str, said: bool| tisty_core::model::Step {
         id: ulid::Ulid::generate(),
@@ -76,13 +97,14 @@ fn a_step_given_an_agents_word_counts_as_ticked_and_is_not_next() {
         said,
     };
     task.steps = vec![step("first", true), step("second", false)];
+    task.retally();
     let room = tempfile::tempdir().unwrap();
     let paths = Paths::new(room.path().join("data"), room.path().join("config"));
 
     let held = progress(&paths, &State::default(), &task);
     assert_eq!(
         held.told(),
-        "under way, 1 of 2 steps ticked, next \"second\""
+        "under way, 0 of 2 steps ticked, 1 said done and waiting on the person, next \"second\""
     );
 }
 
@@ -97,7 +119,13 @@ fn a_projects_row_counts_steps_as_progress_does() {
         by_agent: false,
         said: true,
     }];
-    assert_eq!(stage(&task, None), Stage::UnderWay);
+    task.retally();
+    assert_eq!(
+        stage(&task, None),
+        Stage::UnderWay,
+        "an agent's word is work under way"
+    );
     let one = row(Stage::UnderWay, jiff::Timestamp::UNIX_EPOCH, &task, None);
-    assert_eq!(one["steps"], json!([1, 1]));
+    assert_eq!(one["steps"], json!([0, 1]));
+    assert_eq!(one["steps_said"], json!(1));
 }

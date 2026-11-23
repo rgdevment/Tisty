@@ -1,5 +1,5 @@
 use serde_json::{Value, json};
-use tisty_core::model::{LogEntry, LogId, Task, TaskId};
+use tisty_core::model::{LogEntry, LogId, StepCount, Task, TaskId};
 use tisty_core::task_state::{STATE, STATE_AT_MOST, Since};
 use tisty_core::{Op, Paths, State};
 
@@ -361,16 +361,6 @@ impl<'a> Stated<'a> {
         })
     }
 
-    fn progress(&self) -> (usize, usize) {
-        let done = self
-            .task
-            .steps
-            .iter()
-            .filter(|step| step.done || step.said)
-            .count();
-        (done, self.task.steps.len())
-    }
-
     pub(super) fn structured(&self, whole: &mut Value, notes: &Window) {
         let mut kept = serde_json::Map::new();
         match &self.written {
@@ -389,11 +379,14 @@ impl<'a> Stated<'a> {
                 }
             }
             None => {
-                let (done, all) = self.progress();
-                if all > 0 {
+                let count = self.task.step_count();
+                if count.all > 0 {
                     kept.insert("built".into(), json!(true));
-                    kept.insert("done".into(), json!(done));
-                    kept.insert("of".into(), json!(all));
+                    kept.insert("done".into(), json!(count.done));
+                    kept.insert("of".into(), json!(count.all));
+                }
+                if count.said > 0 {
+                    kept.insert("said_done".into(), json!(count.said));
                 }
             }
         }
@@ -440,13 +433,12 @@ impl<'a> Stated<'a> {
                     ),
                 }
             }
-            None => match self.progress() {
-                (_, 0) => String::new(),
-                (done, all) => {
-                    format!(
-                        "\n\nNo state is written yet. Built from it: {done} of {all} steps done."
-                    )
-                }
+            None => match self.task.step_count() {
+                StepCount { all: 0, .. } => String::new(),
+                StepCount { done, said, all } => format!(
+                    "\n\nNo state is written yet. Built from it: {done} of {all} steps done{}.",
+                    super::brain::project::word_waiting(said)
+                ),
             },
         };
         if let Some((one, body, cut)) = &self.closing

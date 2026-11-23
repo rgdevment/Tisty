@@ -94,13 +94,14 @@ fn of_doc(state: &State, ground: &Ground, kept: &Kept, read: &Read) -> Own<DocFa
 }
 
 fn of_task(task: &Task, away: Vec<String>) -> Own<TaskFacts> {
-    let (done, all) = task.steps_done_or_said();
+    let count = task.step_count();
     Own {
         facts: TaskFacts {
             priority: task.priority.set().then_some(task.priority),
             date: task.date.as_ref().map(|one| one.date()),
             deadline: task.deadline.as_ref().map(|one| one.date()),
-            steps: (all > 0).then_some([done, all]),
+            steps: (count.all > 0).then_some([count.done, count.all]),
+            steps_said: (count.said > 0).then_some(count.said),
             source: task.source.clone(),
             links: away,
         },

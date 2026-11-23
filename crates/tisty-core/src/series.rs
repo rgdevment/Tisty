@@ -97,8 +97,8 @@ pub fn series(state: &State, id: TaskId) -> Option<Series> {
             told: task.weight() > 0,
             filled: task.filled,
             zone: task.closed_in.clone(),
-            steps: task.steps.len(),
-            steps_done: task.steps.iter().filter(|step| step.done).count(),
+            steps: task.step_count().all,
+            steps_done: task.step_count().done,
             said: task
                 .journal()
                 .map(|entry| entry.body.trim().to_string())

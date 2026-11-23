@@ -1,5 +1,5 @@
 use serde_json::{Value, json};
-use tisty_core::model::Task;
+use tisty_core::model::{StepCount, Task};
 use tisty_core::{Paths, State};
 
 use super::super::asked::{how_many, text};
@@ -59,8 +59,8 @@ pub(super) fn stage(task: &Task, state_line: Option<&str>) -> Stage {
     if task.resolved.is_some() {
         return Stage::Waiting;
     }
-    let (done, _) = task.steps_done_or_said();
-    match done > 0 || state_line.is_some() {
+    let count = task.step_count();
+    match count.done + count.said > 0 || state_line.is_some() {
         true => Stage::UnderWay,
         false => Stage::NotStarted,
     }
@@ -86,8 +86,7 @@ pub(super) fn state_line(paths: &Paths, state: &State, task: &Task) -> Option<St
 
 pub(in crate::mcp) struct Progress {
     stage: Stage,
-    done: usize,
-    all: usize,
+    count: StepCount,
     next: Option<String>,
     state: Option<String>,
     old: bool,
@@ -95,11 +94,9 @@ pub(in crate::mcp) struct Progress {
 
 pub(in crate::mcp) fn progress(paths: &Paths, state: &State, task: &Task) -> Progress {
     let line = state_line(paths, state, task);
-    let (done, all) = task.steps_done_or_said();
     Progress {
         stage: stage(task, line.as_deref()),
-        done,
-        all,
+        count: task.step_count(),
         next: task
             .steps
             .iter()
@@ -113,13 +110,23 @@ pub(in crate::mcp) fn progress(paths: &Paths, state: &State, task: &Task) -> Pro
 impl Progress {
     pub(in crate::mcp) fn told(&self) -> String {
         let mut said = self.stage.told().to_string();
-        match (&self.next, self.all) {
-            (_, 0) => {}
-            (None, all) => said.push_str(&format!(", all {all} steps ticked")),
-            (Some(next), all) => said.push_str(&format!(
-                ", {} of {all} steps ticked, next {next:?}",
-                self.done
-            )),
+        let StepCount {
+            done,
+            said: word,
+            all,
+        } = self.count;
+        match (&self.next, all, word) {
+            (_, 0, _) => {}
+            (None, all, 0) => said.push_str(&format!(", all {all} steps ticked")),
+            (next, all, _) => {
+                said.push_str(&format!(
+                    ", {done} of {all} steps ticked{}",
+                    word_waiting(word)
+                ));
+                if let Some(next) = next {
+                    said.push_str(&format!(", next {next:?}"));
+                }
+            }
         }
         if let Some(line) = &self.state {
             said.push_str(&format!("; state: {line}"));
@@ -132,15 +139,29 @@ impl Progress {
 
     pub(in crate::mcp) fn put(&self, into: &mut Value) {
         into["stage"] = json!(self.stage.said());
-        if self.all > 0 {
-            into["steps"] = json!([self.done, self.all]);
-        }
+        counted(into, self.count);
         if let Some(line) = &self.state {
             into["state"] = json!(line);
         }
         if self.old {
             into["state_old"] = json!(true);
         }
+    }
+}
+
+fn counted(into: &mut Value, count: StepCount) {
+    if count.all > 0 {
+        into["steps"] = json!([count.done, count.all]);
+    }
+    if count.said > 0 {
+        into["steps_said"] = json!(count.said);
+    }
+}
+
+pub(in crate::mcp) fn word_waiting(said: usize) -> String {
+    match said {
+        0 => String::new(),
+        said => format!(", {said} said done and waiting on the person"),
     }
 }
 
@@ -219,9 +240,11 @@ pub(super) fn view(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     let lines: Vec<String> = shown
         .iter()
         .map(|(stage, moved, task, line)| {
-            let steps = match task.steps_done_or_said() {
-                (_, 0) => String::new(),
-                (done, all) => format!(", {done}/{all} steps"),
+            let steps = match task.step_count() {
+                StepCount { all: 0, .. } => String::new(),
+                StepCount { done, said, all } => {
+                    format!(", {done}/{all} steps{}", word_waiting(said))
+                }
             };
             let said = line
                 .as_deref()
@@ -266,9 +289,7 @@ fn row(stage: Stage, moved: jiff::Timestamp, task: &Task, line: Option<&str>) ->
         "stage": stage.said(),
         "moved": day(moved),
     });
-    if let (done, all @ 1..) = task.steps_done_or_said() {
-        one["steps"] = json!([done, all]);
-    }
+    counted(&mut one, task.step_count());
     if let Some(line) = line {
         one["state"] = json!(line);
     }

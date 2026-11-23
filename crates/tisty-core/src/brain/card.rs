@@ -95,6 +95,8 @@ pub struct TaskFacts {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub steps: Option<[usize; 2]>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub steps_said: Option<usize>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub source: Option<String>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub links: Vec<String>,

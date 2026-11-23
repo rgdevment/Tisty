@@ -2,6 +2,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Task } from "../core";
+import { fill, t } from "../locales";
 import Detail from "../ui/Detail";
 
 vi.mock("@tauri-apps/api/core", () => ({ invoke: vi.fn(() => Promise.resolve(null)) }));
@@ -71,5 +72,37 @@ describe("the side block with the trail", () => {
     await waitFor(() => expect(screen.getAllByText("The trail").length).toBeGreaterThan(0));
 
     expect(screen.queryAllByText(/This trail is not edited/)).toHaveLength(0);
+  });
+});
+
+describe("what a task carries", () => {
+  it("counts the steps an agent said done apart, as the row does", async () => {
+    const said = { ...one("open"), volume: { steps: 3, steps_done: 1, steps_said: 1 } };
+    render(
+      <Detail
+        task={said}
+        lists={[]}
+        known={[]}
+        onCollapse={() => {}}
+        onPatch={() => {}}
+        onComplete={() => {}}
+        onDiscard={() => {}}
+        onReopen={() => {}}
+        onStillOpen={() => {}}
+        onErase={() => {}}
+        onFold={() => {}}
+        onReadAs={() => {}}
+        onClose={() => {}}
+      />,
+    );
+
+    const count = await screen.findByText(fill("stepsWaiting", "1"), { exact: false });
+    expect(count.closest("dt")?.textContent).toBe(`1/3◆1 · ${fill("stepsWaiting", "1")}`);
+  });
+
+  it("still says 0/0 for a task with no steps", async () => {
+    show("open");
+    const steps = await screen.findByText(t("factSteps"));
+    expect(steps.previousElementSibling?.textContent).toBe("0/0");
   });
 });

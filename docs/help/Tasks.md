@@ -113,7 +113,7 @@ A task opens beside the list, not on top of it: its dates, list, tags and priori
 
 ![The page of Installer: test the update from the previous version: its list, date, deadline, priority and tags on top; Description, Done when and Steps with three of seven ticked; and on the right Parts, What it carries and The trail, from Born to each step done](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/app/en-task-page-light.webp)
 
-Under the page, **History** folds away: what the task had written from before, and what an assistant notes on it. Opened to the whole page, the task gains a column with its own trail — how long it has been open, how much is done, and every change it has been through.
+Under the page, **History** folds away: what the task had written from before, and what an agent notes on it, its journal. The page does not copy it: above the page, on the right, **↓ Journal · 3 notes** takes you down to it and opens it if you folded it; with no notes, it does not show. An agent gets it the same with `read`, with how many notes it holds. Opened to the whole page, the task gains a column with its own trail — how long it has been open, how much is done, and every change it has been through.
 
 A **deadline** is different from a plan: `before`, `due`, `by` and `until` open one. See [Natural language](Natural-Language#date-versus-deadline).
 

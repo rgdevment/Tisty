@@ -1,8 +1,8 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import type { Task } from "../core";
-import { t } from "../locales";
-import History from "../ui/History";
+import { fill, t } from "../locales";
+import History, { JournalLink } from "../ui/History";
 
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: (cmd: string, args: { body?: string }) =>
@@ -54,5 +54,69 @@ describe("what happened to a task", () => {
     const { container } = render(<History task={task([{ id: "1", body: "" }])} />);
 
     expect(container.firstChild).toBeNull();
+  });
+});
+
+describe("the link beside a task's page to its journal", () => {
+  it("counts the notes and takes you down to them, opened", async () => {
+    const shown = task([
+      { id: "1", body: "spoke to accounting" },
+      { id: "2", body: "sent the report" },
+      { id: "3", body: " " },
+    ]);
+    const reached = vi.fn();
+    Element.prototype.scrollIntoView = reached;
+    render(
+      <>
+        <JournalLink task={shown} />
+        <History task={shown} />
+      </>,
+    );
+    const fold = screen.getByText(`${t("history")} · 2`).closest("details") as HTMLDetailsElement;
+    fold.open = false;
+
+    fireEvent.click(screen.getByRole("button", { name: fill("journalMany", "2") }));
+
+    expect(fold.open).toBe(true);
+    expect(reached).toHaveBeenCalledWith({ block: "start", behavior: "smooth" });
+  });
+
+  it("says one note in the singular", () => {
+    render(<JournalLink task={task([{ id: "1", body: "spoke to accounting" }])} />);
+
+    expect(screen.getByRole("button", { name: t("journalOne") })).toBeTruthy();
+  });
+
+  it("is not drawn without a note, nor fails without the journal beneath it", () => {
+    const { container } = render(<JournalLink task={task([{ id: "1", body: "" }])} />);
+    expect(container.firstChild).toBeNull();
+
+    render(<JournalLink task={task([{ id: "1", body: "alone" }])} />);
+    fireEvent.click(screen.getByRole("button", { name: t("journalOne") }));
+  });
+});
+
+describe("two panels open on the same task", () => {
+  it("open and reach only the history beside the link pressed", () => {
+    const shown = task([{ id: "1", body: "spoke to accounting" }]);
+    Element.prototype.scrollIntoView = vi.fn();
+    render(
+      <>
+        <section>
+          <JournalLink task={shown} />
+          <History task={shown} />
+        </section>
+        <section>
+          <JournalLink task={shown} />
+          <History task={shown} />
+        </section>
+      </>,
+    );
+    const folds = Array.from(document.querySelectorAll<HTMLDetailsElement>("details"));
+    for (const one of folds) one.open = false;
+
+    fireEvent.click(screen.getAllByRole("button", { name: t("journalOne") })[1]);
+
+    expect(folds.map((one) => one.open)).toEqual([false, true]);
   });
 });

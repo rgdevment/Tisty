@@ -48,6 +48,8 @@ interface Props {
   onTaskStep?: (id: string, step: string, done: boolean) => void;
   /** The page went back to an earlier version, so the task's steps may have moved with it. */
   onWentBack?: () => void;
+  /** Counts the times steps were ticked from outside the page, such as an agent's word taken. */
+  ticked?: number;
 }
 
 // The core refuses the rest the same way: a part holds no parts, and a routine holds none.
@@ -73,6 +75,7 @@ export default function TaskWords({
   onTaskDone,
   onTaskStep,
   onWentBack,
+  ticked = 0,
 }: Props) {
   const [doc, setDoc] = useState<TaskDoc | null>(null);
   const [Sheet, setSheet] = useState<LoadedSheet | null>(null);
@@ -133,6 +136,16 @@ export default function TaskWords({
   const [wentBackTo, setWentBackTo] = useState<string | null>(null);
   useEffect(() => setWentBackTo(null), [task.id]);
   const typed = useRef<() => Promise<unknown>>(() => Promise.resolve());
+  // Ticked from outside the page, its boxes are read again once what was typed is saved.
+  const tickedBefore = useRef(ticked);
+  useEffect(() => {
+    if (ticked === tickedBefore.current) return;
+    tickedBefore.current = ticked;
+    typed
+      .current()
+      .then(() => setTurn((one) => one + 1))
+      .catch(() => {});
+  }, [ticked]);
   const reread = () => {
     setTurn((one) => one + 1);
     onWentBack?.();

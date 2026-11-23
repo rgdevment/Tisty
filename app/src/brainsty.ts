@@ -62,6 +62,7 @@ export interface Card {
   date?: string;
   deadline?: string;
   steps?: [number, number];
+  steps_said?: number;
   source?: string;
   book?: Near;
   part_of?: Near;

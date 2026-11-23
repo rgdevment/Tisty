@@ -65,7 +65,7 @@ fn a_section_s_bytes_cut_the_same_text_as_its_lines() {
 }
 
 #[test]
-fn a_task_card_counts_the_steps_ticked_and_those_an_agent_said_done() {
+fn a_task_card_counts_the_steps_ticked_apart_from_those_an_agent_said_done() {
     use crate::Task;
     use crate::model::Step;
 
@@ -86,16 +86,33 @@ fn a_task_card_counts_the_steps_ticked_and_those_an_agent_said_done() {
 
     let own = super::of_task(&task, Vec::new());
 
-    assert_eq!(task.steps_done(), (1, 3), "the person ticked one");
+    assert_eq!(
+        task.step_count(),
+        crate::model::StepCount {
+            done: 1,
+            said: 1,
+            all: 3
+        },
+        "the person ticked one, and an agent said one more done"
+    );
     assert_eq!(
         own.facts.steps,
-        Some([2, 3]),
-        "the card counts the agent's word too"
+        Some([1, 3]),
+        "only the ticked count as done"
     );
     assert_eq!(
-        super::of_task(&Task::new(ulid::Ulid::generate(), "Bare", "a0"), Vec::new())
-            .facts
-            .steps,
-        None
+        own.facts.steps_said,
+        Some(1),
+        "the agent's word is counted apart"
     );
+    task.status = crate::model::Status::Dropped;
+    task.retally();
+    assert_eq!(
+        super::of_task(&task, Vec::new()).facts.steps_said,
+        None,
+        "a closed task waits on nobody"
+    );
+    let bare = super::of_task(&Task::new(ulid::Ulid::generate(), "Bare", "a0"), Vec::new());
+    assert_eq!(bare.facts.steps, None);
+    assert_eq!(bare.facts.steps_said, None);
 }

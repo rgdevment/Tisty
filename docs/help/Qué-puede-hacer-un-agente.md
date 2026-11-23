@@ -62,6 +62,7 @@ Un agente puede decir que una tarea tuya está hecha, o un paso de ella, cuando 
 
 - **Una tarea que dice hecha** se reúne bajo **Por confirmar**, como cualquier otra.
 - **Los pasos que dice listos** aparecen en la página de la tarea, bajo «Un agente dice que estos pasos están listos». **Marcarlos** toma su palabra; **Todavía no** la quita. Al cerrar la tarea también se marcan.
+- **Mientras no tomes su palabra, se cuentan aparte, no como hechos.** En «Renovar el pasaporte», con un paso que marcaste tú y otro que el agente dice que hizo, la fila de la lista muestra **1/3** y un **◆1** turquesa, que dice «1 por confirmar» al dejar el puntero encima; su ficha en [Brainsty](Red-de-Brainsty#elegir-ver-y-abrir) dice **Pasos** «1 de 3 hechos · 1 por confirmar». Al marcarlos, la fila dice **2/3** y la marca se va. En una tarea que registró el propio agente, sus marcas son marcas y cuentan como hechas.
 
 En tus tareas escribe como en un documento: la descripción, la página, los pasos abiertos, las notas, el título y la lista. Su día, sus marcas y su cierre siguen siendo tuyos, y un paso que marcaste nunca es suyo para reescribirlo ni quitarlo.
 

@@ -247,6 +247,8 @@ pub struct Volume {
     #[serde(default, skip_serializing_if = "is_zero")]
     pub steps_done: usize,
     #[serde(default, skip_serializing_if = "is_zero")]
+    pub steps_said: usize,
+    #[serde(default, skip_serializing_if = "is_zero")]
     pub journal: usize,
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub described: bool,
@@ -256,6 +258,14 @@ pub struct Volume {
     pub refs: usize,
     #[serde(default, skip_serializing_if = "is_zero")]
     pub grew: usize,
+}
+
+/// Ticked, said done by an agent and waiting on the person, and all of them: one count for every view.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct StepCount {
+    pub done: usize,
+    pub said: usize,
+    pub all: usize,
 }
 
 fn is_zero(n: &usize) -> bool {
@@ -329,17 +339,12 @@ impl Task {
         self.hidden || self.is_dropped()
     }
 
-    pub fn steps_done(&self) -> (usize, usize) {
-        (self.volume.steps_done, self.volume.steps)
-    }
-
-    pub fn steps_done_or_said(&self) -> (usize, usize) {
-        let done = self
-            .steps
-            .iter()
-            .filter(|step| step.done || step.said)
-            .count();
-        (done, self.steps.len())
+    pub fn step_count(&self) -> StepCount {
+        StepCount {
+            done: self.volume.steps_done,
+            said: self.volume.steps_said,
+            all: self.volume.steps,
+        }
     }
 
     pub fn journal_count(&self) -> usize {
@@ -382,6 +387,11 @@ impl Task {
         self.volume = Volume {
             steps: self.steps.len(),
             steps_done: self.steps.iter().filter(|s| s.done).count(),
+            // A closed task waits on nobody, so a word left on it is no longer to confirm.
+            steps_said: match self.is_open() {
+                true => self.steps.iter().filter(|s| s.said && !s.done).count(),
+                false => 0,
+            },
             journal: self
                 .log
                 .iter()

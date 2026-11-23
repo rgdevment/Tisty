@@ -9,6 +9,7 @@ const ipc = vi.hoisted(() => ({
   doc: null as unknown,
   moved: false,
   woven: true,
+  keeps: false,
   weaving: undefined as (() => void) | undefined,
   sheets: [] as {
     file?: string;
@@ -24,6 +25,7 @@ vi.mock("@tauri-apps/api/core", () => ({
   invoke: (cmd: string, args: Record<string, unknown>) => {
     ipc.calls.push({ cmd, args: args ?? {} });
     if (cmd === "task_doc_open") return Promise.resolve(ipc.doc);
+    if (cmd === "task_step_dates") return Promise.resolve([]);
     if (cmd === "doc_write" && ipc.moved && !args.anyway) {
       return Promise.reject({ code: "documentMoved", name: "t_one-0001" });
     }
@@ -31,7 +33,8 @@ vi.mock("@tauri-apps/api/core", () => ({
       ipc.weaving?.();
       return Promise.resolve(ipc.woven);
     }
-    if (cmd === "doc_write" && args.anyway) ipc.doc = { ...(ipc.doc as object), body: args.body };
+    if (cmd === "doc_write" && (args.anyway || ipc.keeps))
+      ipc.doc = { ...(ipc.doc as object), body: args.body };
     if (cmd === "task_doc_make") {
       ipc.doc = { file: "t_one-0001", body: "Words it held.\n", held: false };
       return Promise.resolve("t_one-0001");
@@ -58,6 +61,7 @@ beforeEach(() => {
   ipc.doc = null;
   ipc.moved = false;
   ipc.woven = true;
+  ipc.keeps = false;
   ipc.weaving = undefined;
   ipc.sheets = [];
 });
@@ -287,6 +291,64 @@ describe("a settle that failed", () => {
       ["a\n", "c\n"],
       ["c\n", "d\n"],
     ]);
+  });
+});
+
+describe("steps ticked from outside the page, such as an agent's word taken", () => {
+  const stepping = (said: boolean, done: boolean) =>
+    ({
+      ...task(),
+      steps: [{ id: "s1", text: "Pay the fee", done, said, order: "a0" }],
+    }) as unknown as Task;
+  const opened = () => sent("task_doc_open").length;
+
+  it("read the page again, so its box shows the tick", async () => {
+    ipc.doc = { file: "t_one-0001", body: "- [ ] Pay the fee\n", held: false };
+    const { rerender } = render(<TaskWords task={stepping(true, false)} ticked={0} />);
+    await waitFor(() => expect(opened()).toBe(1));
+
+    ipc.doc = { file: "t_one-0001", body: "- [x] Pay the fee\n", held: false };
+    rerender(<TaskWords task={stepping(false, true)} ticked={1} />);
+
+    await waitFor(() => expect(opened()).toBe(2));
+    await waitFor(() => expect(ipc.sheets[ipc.sheets.length - 1]?.value).toContain("- [x] Pay"));
+  });
+
+  it("save what was being typed first, so no letter is lost on the screen or in the file", async () => {
+    ipc.keeps = true;
+    ipc.doc = { file: "t_one-0001", body: "- [ ] Pay the fee\n", held: false };
+    const { rerender } = render(
+      <TaskWords task={stepping(true, false)} ticked={0} onSettle={() => Promise.resolve(null)} />,
+    );
+    await waitFor(() => expect(opened()).toBe(1));
+    const typing = "- [ ] Pay the fee\nThe registry wants the old one too.\n";
+    ipc.sheets[ipc.sheets.length - 1].onWrite(typing);
+
+    rerender(
+      <TaskWords task={stepping(false, true)} ticked={1} onSettle={() => Promise.resolve(null)} />,
+    );
+
+    await waitFor(() => expect(opened()).toBe(2));
+    const order = ipc.calls.map((one) => one.cmd);
+    expect(order.indexOf("doc_write")).toBeGreaterThan(-1);
+    expect(order.indexOf("doc_write")).toBeLessThan(order.lastIndexOf("task_doc_open"));
+    expect((ipc.doc as { body: string }).body).toBe(typing);
+    await waitFor(() => expect(ipc.sheets[ipc.sheets.length - 1]?.value).toBe(typing));
+  });
+
+  it("leave the page alone when its own box is ticked, so the caret stays where it was", async () => {
+    ipc.doc = { file: "t_one-0001", body: "- [ ] Pay the fee\n", held: false };
+    const { rerender } = render(<TaskWords task={stepping(true, false)} ticked={0} />);
+    await waitFor(() => expect(opened()).toBe(1));
+    const mounted = ipc.sheets.length;
+
+    rerender(<TaskWords task={stepping(false, true)} ticked={0} />);
+    await settle();
+
+    expect(opened()).toBe(1);
+    expect(ipc.sheets.slice(mounted).every((one) => one.value === "- [ ] Pay the fee\n")).toBe(
+      true,
+    );
   });
 });
 

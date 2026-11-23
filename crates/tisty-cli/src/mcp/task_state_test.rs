@@ -39,6 +39,7 @@ fn step(text: &str, done: bool) -> Step {
 fn task() -> Task {
     let mut task = Task::new(Ulid::generate(), "Move payments to v2", "a0");
     task.steps = vec![step("Sign", true), step("Upload", false)];
+    task.retally();
     task
 }
 
@@ -183,6 +184,28 @@ fn a_page_read_apart_still_gives_its_state() {
 }
 
 #[test]
+fn a_built_state_counts_a_step_an_agent_said_done_apart() {
+    let (_room, paths) = home();
+    let mut task = task();
+    task.steps[1].said = true;
+    task.retally();
+
+    let stated = Stated::of(&paths, &state(), &task, None);
+    let notes = seen(&task, &stated);
+    let mut whole = json!({});
+    stated.structured(&mut whole, &notes);
+    assert_eq!(whole["state"]["done"], 1);
+    assert_eq!(whole["state"]["said_done"], 1);
+    assert!(
+        stated
+            .told(&notes)
+            .contains("Built from it: 1 of 2 steps done, 1 said done and waiting on the person."),
+        "{}",
+        stated.told(&notes)
+    );
+}
+
+#[test]
 fn without_a_written_state_one_is_built_and_the_closing_note_is_pinned_once() {
     let (_room, paths) = home();
     let mut task = task();
@@ -230,6 +253,7 @@ fn a_task_with_nothing_to_build_from_says_nothing_of_a_state() {
     let (_room, paths) = home();
     let mut task = task();
     task.steps.clear();
+    task.retally();
 
     let stated = Stated::of(&paths, &state(), &task, None);
     let mut whole = json!({});

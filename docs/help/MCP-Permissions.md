@@ -62,6 +62,7 @@ An agent can say any of your tasks is done, or a step of one, when it did the wo
 
 - **A task said done** gathers under **To confirm** like any other.
 - **Steps said done** show on the task's page, under «An agent says these steps are done». **Tick them** takes its word; **Not yet** clears it. Closing the task ticks them too.
+- **Until you take its word, they are counted apart, not as done.** On «Renew the passport», with one step you ticked and one the agent says it did, the row in the list shows **1/3** and a turquoise **◆1**, which reads «1 to confirm» when you rest the pointer on it; its card in [Brainsty](Brainsty-Network#picking-looking-and-opening) says **Steps** «1 of 3 done · 1 to confirm». Once you tick them, the row says **2/3** and the mark goes. On a task the agent filed itself, its own ticks are ticks, and count as done.
 
 On your own tasks it writes as it does in a document: the description, the page, the open steps, the notes, the title and the list. Their day, their ticks and their closing stay yours, and a step you ticked is never its to reword or take off.
 

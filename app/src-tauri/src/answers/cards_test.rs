@@ -230,6 +230,7 @@ fn a_cited_task_brings_its_list_its_steps_and_its_parts() {
             id: quotes.to_string(),
             text: "Pedir **tres** presupuestos".into(),
             done: true,
+            said: false,
         }]
     );
     let part = task_of(&known, 1).task.as_ref().unwrap();

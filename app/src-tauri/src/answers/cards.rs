@@ -243,6 +243,7 @@ fn facts(state: &State, task: &Task, here: Option<&str>) -> cards::Task {
                 id: step.id.to_string(),
                 text: step.text.clone(),
                 done: step.done,
+                said: step.said && !step.done && task.is_open(),
             })
             .collect(),
         parts: counted(state, task.id),

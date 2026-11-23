@@ -15,6 +15,7 @@ import { modKey, onMac } from "./macKeys";
 import PaceBar, { PaceTally, paceSaid } from "./PaceBar";
 import Signature from "./Signature";
 import { Lozenge, Pip, saidWhen, spokenLabel } from "./Spoke";
+import StepCount from "./StepCount";
 
 const KEEP_SHORTCUT = onMac ? "Meta+Enter" : "Control+Enter";
 
@@ -658,16 +659,17 @@ function Volume({
     );
   }
 
-  const parts = [
-    v.steps ? `${v.steps_done ?? 0}/${v.steps}` : null,
-    v.journal ? `✎${v.journal}` : null,
-  ].filter(Boolean);
-
   return (
     <span className="flex items-baseline gap-1.5 pt-px text-[11.5px] whitespace-nowrap text-faint">
       <Lozenge task={task} />
       {counted}
-      {parts.join(" · ")}
+      {v.steps || v.journal ? (
+        <span>
+          <StepCount volume={v} />
+          {v.steps && v.journal ? " · " : null}
+          {v.journal ? `✎${v.journal}` : null}
+        </span>
+      ) : null}
     </span>
   );
 }

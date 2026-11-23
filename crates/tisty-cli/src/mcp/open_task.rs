@@ -214,7 +214,8 @@ pub(super) fn question(task: &Task, due: &Due) -> Option<Value> {
     if !task.is_open() || task.folded() || task.resolved.is_some() {
         return None;
     }
-    let all = task.steps.len();
+    let count = task.step_count();
+    let all = count.all;
     if due.only_proposed && all == 0 {
         return None;
     }
@@ -231,11 +232,16 @@ pub(super) fn question(task: &Task, due: &Due) -> Option<Value> {
             due.elsewhere
         ),
     };
+    let waiting = super::brain::project::word_waiting(count.said);
     let missing = match (all, left.first()) {
         (0, _) => String::new(),
-        (_, None) => ", and every step is ticked but it is not said done".into(),
+        (_, None) if count.said == 0 => ", and every step is ticked but it is not said done".into(),
+        (_, None) => format!(
+            ", and {} of {all} steps are ticked{waiting}, but it is not said done",
+            count.done
+        ),
         (_, Some(next)) => format!(
-            ", and {} of {all} steps {} still unticked, the next {:?}",
+            ", and {} of {all} steps {} still unticked, the next {:?}{waiting}",
             left.len(),
             match left.len() {
                 1 => "is",

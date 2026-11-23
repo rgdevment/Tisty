@@ -138,11 +138,13 @@ fn a_window_that_can_mark_the_task_gets_its_circle_and_step_boxes() {
             id: "s1".into(),
             text: "Pedir **hora**".into(),
             done: true,
+            said: false,
         },
         Step {
             id: "s2".into(),
             text: "Llevar la cartilla".into(),
             done: false,
+            said: false,
         },
     ];
     let drawn = cited(Some(open_task(steps)), true);
@@ -159,11 +161,36 @@ fn a_window_that_can_mark_the_task_gets_its_circle_and_step_boxes() {
 }
 
 #[test]
+fn a_step_an_agent_said_done_is_counted_apart_on_the_card() {
+    let step = |id: &str, done: bool, said: bool| Step {
+        id: id.into(),
+        text: format!("paso {id}"),
+        done,
+        said,
+    };
+    let drawn = cited(
+        Some(open_task(vec![
+            step("s1", true, false),
+            step("s2", false, true),
+            step("s3", false, false),
+        ])),
+        true,
+    );
+    assert!(
+        drawn.contains(r#"aria-expanded="false">1 de 3 pasos · 1 por confirmar</button>"#),
+        "{drawn}"
+    );
+    let plain = cited(Some(open_task(vec![step("s1", true, false)])), true);
+    assert!(!plain.contains("por confirmar"), "{plain}");
+}
+
+#[test]
 fn a_window_that_only_reads_shows_the_steps_without_boxes_to_press() {
     let steps = vec![Step {
         id: "s1".into(),
         text: "Pedir hora".into(),
         done: false,
+        said: false,
     }];
     let drawn = cited(Some(open_task(steps)), false);
     assert!(!drawn.contains("taskDone"));

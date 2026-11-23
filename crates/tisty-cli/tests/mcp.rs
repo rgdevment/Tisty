@@ -7297,6 +7297,88 @@ fn on_the_persons_own_task_a_tick_and_a_done_are_only_words() {
 }
 
 #[test]
+fn read_marks_a_step_an_agent_said_done_and_its_page_counts_the_journal() {
+    let served = Served::new();
+    served.person().lets_the_agent_in();
+    let task = served.person().captures("renew the certificate");
+    served.person().adds_step(task, "pay");
+    served.person().adds_step(task, "post the form");
+    let id = task.to_string();
+    served.call("tick", serde_json::json!({ "task": &id, "step": "pay" }));
+
+    let read = served.call("read", serde_json::json!({ "task": &id }));
+    let text = read["result"]["content"][0]["text"].as_str().unwrap();
+    let lines: Vec<&str> = text.lines().collect();
+    assert!(
+        lines.contains(&"[~] pay (said done, waiting on the person)"),
+        "{text}"
+    );
+    assert!(lines.contains(&"[ ] post the form"), "{text}");
+    assert_eq!(content(&read)["steps"][0]["said_done"], true, "{read}");
+    assert!(content(&read).get("journal_notes").is_none(), "{read}");
+
+    served.call(
+        "note",
+        serde_json::json!({ "task": &id, "body": "The registry wants the old passport too." }),
+    );
+    let pageless = served.call("read", serde_json::json!({ "task": &id }));
+    assert!(content(&pageless).get("document").is_none(), "{pageless}");
+    assert_eq!(
+        content(&pageless)["journal_notes"],
+        1,
+        "with no page yet, the answer itself counts the journal: {pageless}"
+    );
+
+    served.call(
+        "describe",
+        serde_json::json!({ "task": &id, "body": "The registry closes at noon." }),
+    );
+    let paged = served.call("read", serde_json::json!({ "task": &id }));
+    let text = paged["result"]["content"][0]["text"].as_str().unwrap();
+    let (page, after) = text
+        .split_once("On its page, steps an agent said done:")
+        .unwrap_or_else(|| panic!("the word is told after the page: {text}"));
+    assert!(
+        page.contains("- [ ] pay"),
+        "the page comes back as stored: {text}"
+    );
+    assert!(
+        after.contains("[~] pay (said done, waiting on the person)"),
+        "{text}"
+    );
+    assert!(!after.contains("post the form"), "{text}");
+    assert_eq!(
+        content(&paged)["document"]["journal"],
+        1,
+        "the page says how many notes its journal holds: {paged}"
+    );
+    assert!(content(&paged).get("journal_notes").is_none(), "{paged}");
+
+    // Closed from a computer that leaves the agent's word on its step, so there is a word to hide.
+    served.person().does(tisty_core::Op::TaskDone {
+        id: task,
+        filled: false,
+    });
+    assert!(served.person().state().tasks[&task].steps[0].said);
+    let closed = served.call("read", serde_json::json!({ "task": &id }));
+    assert_ne!(closed["result"]["isError"], true, "{closed}");
+    let text = closed["result"]["content"][0]["text"].as_str().unwrap();
+    assert!(
+        text.contains("nothing on it changes"),
+        "it reads as it ended: {text}"
+    );
+    assert!(text.contains("- [ ] pay"), "{text}");
+    assert!(
+        !text.contains("[~]") && !text.contains("steps an agent said done"),
+        "a closed task waits on nobody: {text}"
+    );
+    assert!(
+        content(&closed)["steps"][0].get("said_done").is_none(),
+        "the answer says what the text says: {closed}"
+    );
+}
+
+#[test]
 fn a_word_on_a_step_of_the_persons_can_be_taken_back_by_the_assistant() {
     let served = Served::new();
     served.person().lets_the_agent_in();

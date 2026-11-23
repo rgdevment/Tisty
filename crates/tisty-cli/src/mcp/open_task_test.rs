@@ -20,6 +20,7 @@ fn task_with(steps: &[(&str, bool)]) -> Task {
             said: false,
         })
         .collect();
+    task.retally();
     task
 }
 
@@ -226,6 +227,34 @@ fn every_step_ticked_asks_to_say_it_done() {
         .to_string();
 
     insta::assert_snapshot!(said);
+}
+
+#[test]
+fn steps_said_done_on_the_persons_task_are_counted_as_everywhere_else() {
+    let said = |steps: &[(&str, bool)], words: usize| {
+        let mut task = task_with(steps);
+        for step in task.steps.iter_mut().filter(|one| !one.done).take(words) {
+            step.said = true;
+        }
+        task.retally();
+        question(&task, &due(task.id)).unwrap()["said"]
+            .as_str()
+            .unwrap()
+            .to_string()
+    };
+
+    let all_said = said(&[("Write the parser", false), ("Ship it", false)], 2);
+    assert!(
+        all_said.contains(", and 0 of 2 steps are ticked, 2 said done and waiting on the person, but it is not said done."),
+        "{all_said}"
+    );
+    let one_said = said(&[("Write the parser", false), ("Ship it", false)], 1);
+    assert!(
+        one_said.contains(
+            ", and 1 of 2 steps is still unticked, the next \"Ship it\", 1 said done and waiting on the person."
+        ),
+        "{one_said}"
+    );
 }
 
 #[test]

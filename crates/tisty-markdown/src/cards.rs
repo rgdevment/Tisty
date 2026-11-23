@@ -17,6 +17,7 @@ pub struct Words {
     pub finish: &'static str,
     pub parts: &'static str,
     pub steps: &'static str,
+    pub waiting: &'static str,
     pub done: &'static str,
     pub dropped: &'static str,
     pub due: &'static str,
@@ -38,6 +39,7 @@ pub static ENGLISH: Words = Words {
     finish: "Mark it done",
     parts: "{name} of {other} parts",
     steps: "{name} of {other} steps",
+    waiting: "{name} to confirm",
     done: "Done",
     dropped: "Not doing",
     due: "due {name}",
@@ -59,6 +61,7 @@ pub static SPANISH: Words = Words {
     finish: "Marcarla hecha",
     parts: "{name} de {other} partes",
     steps: "{name} de {other} pasos",
+    waiting: "{name} por confirmar",
     done: "Hecha",
     dropped: "No se hará",
     due: "vence {name}",
@@ -261,6 +264,8 @@ pub struct Step {
     pub id: String,
     pub text: String,
     pub done: bool,
+    /// An agent's word on an open task, waiting for the person to confirm it.
+    pub said: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -344,11 +349,20 @@ fn chips(task: &Task, id: &str, words: &Words) -> String {
     }
     if !task.steps.is_empty() {
         let done = task.steps.iter().filter(|one| one.done).count();
-        let said = filled(
+        let waiting = task
+            .steps
+            .iter()
+            .filter(|one| one.said && !one.done)
+            .count();
+        let mut said = filled(
             words.steps,
             &done.to_string(),
             &task.steps.len().to_string(),
         );
+        if waiting > 0 {
+            said.push_str(" · ");
+            said.push_str(&filled(words.waiting, &waiting.to_string(), ""));
+        }
         let _ = write!(
             out,
             r#"{} class="chip card-unfold" aria-expanded="false">{said}</button>"#,

@@ -2,6 +2,7 @@ import { type ReactNode, useState } from "react";
 import { useAsked } from "../asked";
 import { partsOf, type Task, type Whole } from "../core";
 import { fill, t } from "../locales";
+import StepCount from "./StepCount";
 
 interface Props {
   task: Task;
@@ -87,7 +88,6 @@ function Row({
   onComplete: (id: string, title: string) => void;
 }) {
   const open = part.status === "open";
-  const steps = part.volume?.steps ? `${part.volume.steps_done ?? 0}/${part.volume.steps}` : "";
 
   return (
     <div className="flex items-center gap-2.5 py-1 text-[13px]">
@@ -115,9 +115,11 @@ function Row({
       </button>
       {part.resolved && open ? (
         <span className="shrink-0 text-[11.5px] text-hue-teal">◆ {t("agentBand")}</span>
-      ) : (
-        steps && <span className="shrink-0 text-[11.5px] text-faint">{steps}</span>
-      )}
+      ) : part.volume?.steps ? (
+        <span className="shrink-0 text-[11.5px] text-faint">
+          <StepCount volume={part.volume} />
+        </span>
+      ) : null}
     </div>
   );
 }

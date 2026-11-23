@@ -276,7 +276,7 @@ fn a_task_card_says_its_state_stage_and_neighbours() {
 }
 
 #[test]
-fn a_task_card_counts_a_step_the_agent_said_done_as_its_project_view_does() {
+fn a_task_card_counts_a_step_the_agent_said_done_apart_as_its_project_view_does() {
     let served = Served::new();
     served.person().lets_the_agent_in();
     let task = served.person().captures("Renew the certificate");
@@ -288,8 +288,33 @@ fn a_task_card_counts_a_step_the_agent_said_done_as_its_project_view_does() {
 
     let card = talk.brain(json!({ "task": task.to_string() }));
 
-    assert_eq!(card["steps"], json!([1, 2]), "{card}");
+    assert_eq!(
+        card["steps"],
+        json!([0, 2]),
+        "only the person ticks: {card}"
+    );
+    assert_eq!(card["steps_said"], json!(1), "{card}");
     assert_eq!(card["stage"], "under_way");
+
+    let whole = talk.call(
+        "propose",
+        json!({ "title": "Certificates", "parts": [{ "title": "Renew" }] }),
+    );
+    let whole = whole["structuredContent"]["id"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    let part = served.person().id_of("Renew");
+    served.person().adds_step(part, "Pay");
+    talk.call("tick", json!({ "task": part.to_string(), "step": "Pay" }));
+    let view = talk.brain(json!({ "part_of": whole }));
+    let row = &view["parts"][0];
+    assert_eq!(
+        row["steps"],
+        json!([1, 1]),
+        "the agent's own task takes its tick: {view}"
+    );
+    assert!(row.get("steps_said").is_none(), "{view}");
 }
 
 #[test]

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 import {
   type Change,
   erasable,
@@ -19,7 +19,7 @@ import Belongs from "./Belongs";
 import CitedBy from "./CitedBy";
 import { useEdge } from "./edging";
 import Fields from "./Fields";
-import History from "./History";
+import History, { JournalLink } from "./History";
 import Left from "./Left";
 import { type Viewing, ViewTurn } from "./liveSheet";
 import Menu, { type Choice } from "./Menu";
@@ -31,6 +31,7 @@ import Routine from "./Routine";
 import Section from "./Section";
 import Signature from "./Signature";
 import { saidBy } from "./Spoke";
+import StepCount from "./StepCount";
 import TaskWords from "./TaskWords";
 import Trail from "./Trail";
 import { typing } from "./typing";
@@ -49,7 +50,7 @@ interface Props {
   onDiscard: () => void;
   onReopen: () => void;
   onStillOpen: () => void;
-  onStepsSaid?: (keep: boolean, steps: string[]) => void;
+  onStepsSaid?: (keep: boolean, steps: string[]) => Promise<unknown>;
   onErase: () => void;
   onFold: (away: boolean) => void;
   onReadAs: (how: "story" | "trace") => void;
@@ -118,6 +119,16 @@ export default function Detail({
   const [held, setHeld] = useState(false);
   // A page written on changes nothing the task holds, so the trail is told to look again.
   const [wrote, setWrote] = useState(0);
+  // Taking an agent's word ticks the steps outside the page, so the page reads its boxes again.
+  const [ticked, setTicked] = useState(0);
+  const answer = (keep: boolean, steps: string[]) => {
+    const done = onStepsSaid?.(keep, steps);
+    if (keep)
+      done?.then(
+        () => setTicked((one) => one + 1),
+        () => {},
+      );
+  };
   const settle =
     onSettle &&
     ((before: string, now: string, renamed?: readonly [string, string][]) =>
@@ -194,8 +205,9 @@ export default function Detail({
           task.completed_at ?? "",
           task.hidden ? "hidden" : "",
           task.volume?.journal ?? 0,
-          task.steps?.length ?? task.volume?.steps ?? 0,
-          task.steps?.filter((step) => step.done).length ?? task.volume?.steps_done ?? 0,
+          task.volume?.steps ?? 0,
+          task.volume?.steps_done ?? 0,
+          task.volume?.steps_said ?? 0,
           task.description ? "described" : "",
           task.title,
           wrote,
@@ -244,9 +256,10 @@ export default function Detail({
           <span className="ml-auto font-normal text-faint">{stamped(task.resolved.at)}</span>
         </p>
       )}
-      {task.status === "open" && onStepsSaid && <Vouched task={task} onAnswer={onStepsSaid} />}
+      {task.status === "open" && onStepsSaid && <Vouched task={task} onAnswer={answer} />}
       <Fields task={task} lists={lists} known={known} onPatch={onPatch} onError={onError} />
 
+      <JournalLink task={task} />
       <TaskWords
         task={task}
         onSettle={settle}
@@ -260,6 +273,7 @@ export default function Detail({
         onTaskDone={onCompletePart}
         onTaskStep={onTaskStep}
         onWentBack={onWentBack}
+        ticked={ticked}
       />
       <History task={task} onError={onError} onDoc={onDoc} />
       <Rounds task={task} onError={onError} onDoc={onDoc} />
@@ -271,6 +285,7 @@ export default function Detail({
       <h1 className="text-[21px] leading-snug font-semibold text-balance">{task.title}</h1>
       <Stamps task={task} lists={lists} />
 
+      <JournalLink task={task} />
       <TaskWords task={task} onError={onError} onDoc={onDoc} onTask={onOpenPart} />
 
       <History task={task} onError={onError} onDoc={onDoc} />
@@ -748,9 +763,10 @@ function Stamps({ task, lists }: { task: Task; lists: List[] }) {
 
 function Facts({ task, from }: { task: Task; from: string }) {
   const days = Math.max(0, -daysFrom(from));
-  const kept: [string, string][] = [
+  const volume = task.volume ?? {};
+  const kept: [ReactNode, string][] = [
     [String(days), t("factDays")],
-    [`${task.volume?.steps_done ?? 0}/${task.volume?.steps ?? 0}`, t("factSteps")],
+    [volume.steps ? <StepCount key="steps" volume={volume} /> : "0/0", t("factSteps")],
     [String(task.volume?.journal ?? 0), t("factJournal")],
     [String(task.volume?.refs ?? 0), t("factRefs")],
   ];

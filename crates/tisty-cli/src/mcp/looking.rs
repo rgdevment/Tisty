@@ -2,7 +2,7 @@ use serde_json::{Value, json};
 use tisty_core::Paths;
 
 use tisty_core::State;
-use tisty_core::model::{Priority, Tag, Task, TaskId};
+use tisty_core::model::{Priority, Step, Tag, Task, TaskId};
 use tisty_core::standing::Standing;
 
 use super::asked::{strings, text};
@@ -19,6 +19,8 @@ use super::unpathing::unpathed_body;
 use super::{Refused, hitch, named, opened, trail, when};
 
 const TASK_ONLY: [&str; 2] = ["fields", "notes"];
+const WAITING: &str = "waiting on the person";
+const SAID_WAITING: &str = "said done, waiting on the person";
 const DOC_ONLY: [&str; 9] = [
     "section", "from", "to", "chars", "cursor", "as", "marks", "versions", "version",
 ];
@@ -126,6 +128,7 @@ fn read_task(paths: &Paths, args: &Value, said: String) -> Result<Value, Refused
     if let Some(body) = description {
         whole["description"] = json!(body);
     }
+    let waiting = |one: &Step| task.is_open() && one.said && !one.done;
     if wants("steps") && !task.steps.is_empty() {
         whole["steps"] = json!(
             task.steps
@@ -135,7 +138,7 @@ fn read_task(paths: &Paths, args: &Value, said: String) -> Result<Value, Refused
                     if one.by_agent {
                         step["by_agent"] = json!(true);
                     }
-                    if one.said {
+                    if waiting(one) {
                         step["said_done"] = json!(true);
                     }
                     step
@@ -143,9 +146,16 @@ fn read_task(paths: &Paths, args: &Value, said: String) -> Result<Value, Refused
                 .collect::<Vec<_>>()
         );
     }
+    // The page no longer copies the journal, so the answer says how many notes it holds, as the window does.
+    let noted = task.journal().count();
     if let Some(page) = &page {
         whole["document"] = page.structured();
         whole["document"]["print"] = json!(page_print);
+        if noted > 0 {
+            whole["document"]["journal"] = json!(noted);
+        }
+    } else if noted > 0 && wants("journal") {
+        whole["journal_notes"] = json!(noted);
     }
     let parts: Vec<&Task> = state
         .parts_of(task.id)
@@ -209,21 +219,28 @@ fn read_task(paths: &Paths, args: &Value, said: String) -> Result<Value, Refused
     }
     if wants("steps") && steps_apart {
         for one in &task.steps {
-            plainly.push_str(&format!(
-                "\n[{}] {}",
-                if one.done { 'x' } else { ' ' },
-                one.text
-            ));
+            plainly.push_str(&match (one.done, waiting(one)) {
+                (true, _) => format!("\n[x] {}", one.text),
+                (false, true) => format!("\n[~] {} ({SAID_WAITING})", one.text),
+                (false, false) => format!("\n[ ] {}", one.text),
+            });
         }
     }
     if let Some(page) = &page {
         plainly.push_str(&page.told());
     }
+    // The page comes back as stored, so a box an agent said done is told after it.
+    if wants("steps") && !steps_apart && task.steps.iter().any(waiting) {
+        plainly.push_str("\n\nOn its page, steps an agent said done:");
+        for one in task.steps.iter().filter(|one| waiting(one)) {
+            plainly.push_str(&format!("\n[~] {} ({SAID_WAITING})", one.text));
+        }
+    }
     if wants("parts") {
         for one in &parts {
             let (mark, waiting) = match (one.is_open(), waiting_word(one)) {
                 (false, _) => ('x', String::new()),
-                (true, Some(word)) => ('~', format!(" ({word}, waiting on the person)")),
+                (true, Some(word)) => ('~', format!(" ({word}, {WAITING})")),
                 (true, None) => (' ', String::new()),
             };
             plainly.push_str(&format!(

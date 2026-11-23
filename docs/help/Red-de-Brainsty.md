@@ -143,7 +143,7 @@ Debajo vienen sus datos, según lo que elegiste:
 | :-- | :-- |
 | Un documento | **Escrito por última vez**, **Creado**, **Tamaño**, con su peso y cuántas palabras tiene, e **Idioma**, como «ES» |
 | Una página de un libro | lo mismo, y primero **Página de**, con el título de su libro |
-| Una tarea | **Estado**, como «En curso · Por vencer»; **Día**, **Plazo**, **Parte de**, con su tarea madre, **Partes**, con cuántas tiene, **Pasos**, como «1 de 3 hechos», y **Origen**, si llegó con uno |
+| Una tarea | **Estado**, como «En curso · Por vencer»; **Día**, **Plazo**, **Parte de**, con su tarea madre, **Partes**, con cuántas tiene, **Pasos**, como «1 de 3 hechos», o «1 de 3 hechos · 1 por confirmar» cuando un agente dice que hizo un paso tuyo que espera que [tomes su palabra](Qué-puede-hacer-un-agente#su-palabra-sobre-tus-propias-tareas), y **Origen**, si llegó con uno |
 | Una etiqueta | solo la línea de arriba y sus conexiones |
 | Una imagen o un archivo | su miniatura, si es una imagen, o el ícono de su tipo; **Tipo**, **Tamaño** y **Modificado**, y **Se usa en**, con cada documento o tarea que lo usa: un clic en uno lo elige en la red. Un archivo que nada a la vista usa muestra solo su nombre |
 

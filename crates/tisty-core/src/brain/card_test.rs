@@ -240,6 +240,65 @@ fn what_cites_and_mentions_a_card_is_read_from_the_other_side() {
 }
 
 #[test]
+fn a_base_of_schema_11_is_built_again_and_its_task_cards_count_the_agent_s_word_apart() {
+    let world = World::new();
+    let mut store = world.store();
+    let id = task(&mut store, "renew the certificate", &[]);
+    let mut state = world.state();
+    if let Some(one) = state.tasks.get_mut(&id) {
+        one.steps = [(true, false), (false, true), (false, false)]
+            .iter()
+            .enumerate()
+            .map(|(at, (done, said))| Step {
+                id: Ulid::generate(),
+                text: format!("step {at}"),
+                done: *done,
+                order: format!("a{at}"),
+                by_agent: false,
+                said: *said,
+            })
+            .collect();
+        one.retally();
+    }
+    let mut brain = world.brain();
+    world.refreshed(&mut brain, &state);
+    brain
+        .db
+        .execute(
+            "UPDATE card SET said = replace(replace(said, '\"steps\":[1,3]', '\"steps\":[2,3]'), ',\"steps_said\":1', '') WHERE id = ?",
+            [id.to_string()],
+        )
+        .unwrap();
+    world.refreshed(&mut brain, &state);
+    let held = card_of(&brain, &id.to_string());
+    assert_eq!(
+        (task_facts(&held).steps, task_facts(&held).steps_said),
+        (Some([2, 3]), None),
+        "an unchanged task keeps the card an 11 wrote"
+    );
+    brain
+        .db
+        .execute("UPDATE meta SET value = '11' WHERE key = 'schema'", [])
+        .unwrap();
+    drop(brain);
+
+    let mut brain = world.brain();
+    world.refreshed(&mut brain, &state);
+
+    let built = card_of(&brain, &id.to_string());
+    assert_eq!(
+        task_facts(&built).steps,
+        Some([1, 3]),
+        "only the ticked one is done"
+    );
+    assert_eq!(
+        task_facts(&built).steps_said,
+        Some(1),
+        "the agent's word is counted apart"
+    );
+}
+
+#[test]
 fn a_task_s_card_says_how_it_stands_and_what_it_left() {
     let world = World::new();
     let mut store = world.store();

@@ -143,7 +143,7 @@ Below come its facts, by what you picked:
 | :-- | :-- |
 | A document | **Last written**, **Created**, **Size**, with its weight and how many words it has, and **Language**, like «EN» |
 | A page of a book | the same, and first **Page of**, with its book's title |
-| A task | **State**, like «Under way · Due soon»; **Day**, **Deadline**, **Part of**, with its parent task, **Parts**, with how many it has, **Steps**, like «1 of 3 done», and **Source**, if it came with one |
+| A task | **State**, like «Under way · Due soon»; **Day**, **Deadline**, **Part of**, with its parent task, **Parts**, with how many it has, **Steps**, like «1 of 3 done», or «1 of 3 done · 1 to confirm» when an agent says it did a step of yours that waits for you to [take its word](MCP-Permissions#its-word-on-your-own-tasks), and **Source**, if it came with one |
 | A tag | only the line at the top and its connections |
 | A picture or a file | its thumbnail, if it is a picture, or the icon of its type; **Type**, **Size** and **Modified**, and **Used in**, with each document or task that uses it: a click on one picks it in the network. A file nothing in sight uses shows only its name |
 

@@ -39,6 +39,7 @@ export interface LogEntry {
 export interface Volume {
   steps?: number;
   steps_done?: number;
+  steps_said?: number;
   journal?: number;
   described?: boolean;
   prose?: number;

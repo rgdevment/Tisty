@@ -304,7 +304,7 @@ fn a_summary_knows_how_much_body_it_left_behind() {
     assert!(task.log.is_empty(), "the body came along");
     assert!(task.steps.is_empty(), "the body came along");
     assert_eq!(task.journal_count(), 2);
-    assert_eq!(task.steps_done(), (0, 1));
+    assert_eq!((task.step_count().done, task.step_count().all), (0, 1));
 }
 
 #[test]
@@ -864,7 +864,7 @@ fn a_summary_keeps_the_volume_it_was_handed() {
 
     let task = &light.tasks[&f.task];
     assert_eq!(task.journal_count(), 2, "the volume was recounted from air");
-    assert_eq!(task.steps_done(), (0, 1));
+    assert_eq!((task.step_count().done, task.step_count().all), (0, 1));
 }
 
 /// The tombstone table gained a column this schema: a cache written before it must be

@@ -56,7 +56,11 @@ export const detailOf = (one: Task, h: Hands) => ({
   },
   onReopen: () => h.act(reopen(one.id)),
   onStillOpen: () => h.act(stillOpen(one.id)),
-  onStepsSaid: (keep: boolean, steps: string[]) => h.act(stepsSaid(one.id, keep, steps)),
+  onStepsSaid: (keep: boolean, steps: string[]) => {
+    const answered = stepsSaid(one.id, keep, steps);
+    h.act(answered);
+    return answered;
+  },
   onErase: () => h.wipe(one),
   onFold: (away: boolean) => h.act(fold(one.id, away)),
   onReadAs: (how: "story" | "trace") => h.act(readAs(one.id, how)),

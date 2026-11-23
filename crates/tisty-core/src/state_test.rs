@@ -1950,7 +1950,8 @@ fn steps_track_progress() {
         ),
     ]);
 
-    assert_eq!(state.tasks[&id].steps_done(), (1, 2));
+    assert_eq!(state.tasks[&id].step_count().done, 1);
+    assert_eq!(state.tasks[&id].step_count().all, 2);
 }
 
 #[test]

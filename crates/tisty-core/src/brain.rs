@@ -26,7 +26,7 @@ pub use network::{
 };
 pub use reading::{Citing, Headed, Under, cited_by};
 
-const SCHEMA: i64 = 11;
+const SCHEMA: i64 = 12;
 const FILE: &str = "brain.db";
 const WAITS_FOR_OTHERS: std::time::Duration = std::time::Duration::from_secs(5);
 const PAGES_WORTH_COMPACTING: i64 = 256;

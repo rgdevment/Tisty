@@ -145,7 +145,7 @@ fn a_task_survives_the_round_trip_through_disk() {
     assert_eq!(t.priority, Priority::Do);
     assert_eq!(t.list, Some(list));
     assert_eq!(t.tags.len(), 2);
-    assert_eq!(t.steps_done(), (2, 2));
+    assert_eq!((t.step_count().done, t.step_count().all), (2, 2));
     assert_eq!(t.log.len(), 2);
     assert!(t.description.as_ref().unwrap().contains("ABC-123"));
 

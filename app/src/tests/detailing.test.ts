@@ -57,6 +57,19 @@ describe("what the detail of a task is handed", () => {
     expect(shown.known).toEqual(["casa"]);
   });
 
+  it("hands back the answer to an agent's word, so the detail knows when it went through", async () => {
+    const h = hands();
+
+    const answered = detailOf(task, h).onStepsSaid(true, ["s1"]);
+
+    expect(h.act).toHaveBeenCalledWith(answered);
+    await expect(answered).resolves.toMatchObject({ id: "t1" });
+    expect(calls[calls.length - 1]).toEqual({
+      cmd: "steps_said",
+      args: { id: "t1", steps: ["s1"], keep: true },
+    });
+  });
+
   it("hands it the pace the core worked out, and none when it has none", () => {
     const h = hands();
     h.paces = { t1: { pace: "slow", time: 36, done: 0 } };
