@@ -1,5 +1,5 @@
 import { ideaOpened, type Slashed } from "tisty-editor/edit";
-import type { Edit } from "./pageEdits";
+import { type Edit, pastFeeds } from "./pageEdits";
 
 export type Placing =
   | { readonly edit: Edit; readonly caret: number }
@@ -35,8 +35,7 @@ export const blockPlaced = (
       caret: start + lead.length + inside,
     };
   }
-  let from = end;
-  while (from > 0 && /[\r\n]/.test(text[from - 1] ?? "")) from--;
+  const from = pastFeeds(text, end, true);
   const body = /^\r?\n/.test(text.slice(from)) ? block.replace(/\n+$/, "") : block;
   return {
     edit: { from, to: from, insert: `\n\n${body}` },

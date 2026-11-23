@@ -68,28 +68,37 @@ export const caretOn = (writer: Writer) => {
     return { from: Math.min(from, to), to: Math.max(from, to) };
   };
 
+  const shownAt = (at: number): AbstractRange | null => {
+    const text = hands.text();
+    if (blankAt(text, at)) return null;
+    const known = writer.reckoned;
+    const spot = spotOf(page, text, at, known);
+    if (!spot) return null;
+    const [node, offset] = spot;
+    const block = placeOf(elementOf(node)?.closest("[data-at]"));
+    const lineShown =
+      block !== null &&
+      unitFrom(known, text, block[0]) <= wordsFrom(text, lineEnd(text, at)) &&
+      sourceAt(text, node, offset, known) === at;
+    if (!lineShown) return null;
+    const Static = page.defaultView?.StaticRange ?? StaticRange;
+    return new Static({
+      startContainer: node,
+      startOffset: offset,
+      endContainer: node,
+      endOffset: offset,
+    });
+  };
+
   const standing = (): Standing => {
     const picked = chosen();
     const kept = writer.kept;
     if (!keptUnlaid(kept) || (picked && !picked.collapsed))
       return { range: picked, lagging: false };
-    const unread = { range: null, lagging: true };
     const text = hands.text();
-    if (blankAt(text, kept.at)) return unread;
-    const known = writer.reckoned;
+    if (blankAt(text, kept.at)) return { range: null, lagging: true };
     if (picked && spanOfRange(picked)?.from === kept.at) return { range: picked, lagging: false };
-    const spot = spotOf(page, text, kept.at, known);
-    if (!spot) return unread;
-    const [node, offset] = spot;
-    const block = placeOf(elementOf(node)?.closest("[data-at]"));
-    const lineShown =
-      block !== null &&
-      unitFrom(known, text, block[0]) <= wordsFrom(text, lineEnd(text, kept.at)) &&
-      sourceAt(text, node, offset, known) === kept.at;
-    if (!lineShown) return unread;
-    const Static = page.defaultView?.StaticRange ?? StaticRange;
-    const at = { startContainer: node, startOffset: offset, endContainer: node, endOffset: offset };
-    return { range: new Static(at), lagging: true };
+    return { range: shownAt(kept.at), lagging: true };
   };
 
   // Out of a paragraph not yet written, going back leaves it and joins the block before.
@@ -378,6 +387,7 @@ export const caretOn = (writer: Writer) => {
   return {
     chosen,
     spanOfRange,
+    shownAt,
     standing,
     unbegun,
     caretSpan,

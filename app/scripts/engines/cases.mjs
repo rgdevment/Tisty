@@ -2105,6 +2105,41 @@ export const CASES = [
     was: "- uno\n    - sub a\n    ",
     now: "uno\n\n- sub a\n",
   },
+  {
+    name: "deleteAheadOfItsDrawingAtAParagraphEndJoinsTheNextOnceDrawn",
+    doc: "# Adelante\n\nHola mundo bonito\n\nSegundo párrafo\n\nTercero\n",
+    run: async ({ clickAt, typed, press, drawingsHeld }) => {
+      await clickAt("bonito");
+      await drawingsHeld(async () => {
+        await typed("X");
+        await press("Delete");
+      });
+    },
+    was: "\n\n",
+    now: "X",
+  },
+  {
+    name: "backspacesAheadOfTheirDrawingAtAListsFirstItemTakeItIntoTheParagraphAbove",
+    doc: "# Adelante\n\nAntes\n\n- uno\n- dos\n",
+    run: async ({ clickAt, press, drawingsHeld, frame }) => {
+      await clickAt("uno");
+      await caretInWords(frame, "uno", 0);
+      await drawingsHeld(() => press("Backspace", 2));
+    },
+    was: "\n\n- ",
+    now: "",
+  },
+  {
+    name: "backspacesAheadOfTheirDrawingsAtAStepTakeItsWordsIntoTheStepAbove",
+    doc: "# Adelante\n\n- [ ] a\n- [ ] b\n- [x] c\n",
+    run: async ({ clickAt, press, drawingsHeld, frame }) => {
+      await clickAt("b");
+      await caretInWords(frame, "b", 0);
+      await drawingsHeld(() => press("Backspace", 3));
+    },
+    was: "\n- [ ] ",
+    now: "",
+  },
 ];
 
 const macIn = (frame) => frame.evaluate(() => navigator.userAgent.includes("Macintosh"));

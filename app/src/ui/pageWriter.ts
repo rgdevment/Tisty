@@ -92,6 +92,7 @@ export type Hands = {
   readonly linkable?: Asking["linkable"];
   readonly headsOf?: Asking["headsOf"];
   readonly pasted?: (files: readonly File[]) => Promise<string>;
+  readonly ours?: () => boolean;
 };
 
 export type Pending = { readonly at: number; readonly marks: Marks };

@@ -1081,10 +1081,11 @@ export default function Sheet(props: Readonly<Props>) {
     const settle = () => {
       if (onFile.current === file) settled(latest.current);
     };
+    const ours = () => said.current.file === file;
     pageWriter.current ??= {
       page,
       file,
-      hands: writtenOn(page, { ...pageHands, turns, settle }),
+      hands: writtenOn(page, { ...pageHands, turns, settle, ours }),
     };
     pageWriter.current.hands.drawn();
     // A page with nothing written yet waits at its title, so the first keys after making it are not lost.

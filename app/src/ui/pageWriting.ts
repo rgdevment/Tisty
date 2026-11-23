@@ -45,6 +45,20 @@ const SETTLED_MS = 300;
 
 const EDGE_FIRST = ["keydown", "beforeinput", "compositionstart"] as const;
 
+const LEFT_BEHIND = ["keydown", "mousedown", "compositionstart", "paste", "drop"] as const;
+
+const BESIDE_BEHIND = new Set([
+  "Backspace",
+  "Delete",
+  "Shift",
+  "Control",
+  "Alt",
+  "AltGraph",
+  "Meta",
+  "CapsLock",
+  "Fn",
+]);
+
 export const writtenOn = (page: Document, hands: Hands): PageWriting => {
   const writer = writerOf(page, hands);
   const caret = caretOn(writer);
@@ -115,6 +129,7 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
     beside.rest();
     beside.besideLine();
     choosing.shown();
+    input.caughtUp();
   };
 
   const input = inputOn(writer, caret, laying, history, formats, begun);
@@ -126,6 +141,20 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
   const unchosen = () => choosing.letGo(false);
   const dragging = draggingOn(writer, caret, laying);
 
+  const otherInput = (event: Event) => {
+    const key = "key" in event ? String(event.key) : null;
+    const deleting = key === "Backspace" || key === "Delete";
+    input.pressed(deleting && "repeat" in event && Boolean(event.repeat));
+    if (key === null || !BESIDE_BEHIND.has(key)) input.behindLeft();
+  };
+  const fromHost =
+    <Asked extends unknown[], Answer>(act: (...asked: Asked) => Answer) =>
+    (...asked: Asked) => {
+      input.behindDropped();
+      return act(...asked);
+    };
+
+  for (const one of LEFT_BEHIND) page.addEventListener(one, otherInput, true);
   for (const first of EDGE_FIRST) page.addEventListener(first, keys.edgeLaid, true);
   page.addEventListener("mousedown", keys.edgeClicked, true);
   page.addEventListener("beforeinput", input.asked);
@@ -182,32 +211,35 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
   page.addEventListener("paste", input.pastedFiles);
   page.addEventListener("copy", clipped);
   page.addEventListener("cut", clipped);
-  const away = () => hands.settle?.();
+  const away = () => {
+    input.behindDropped();
+    hands.settle?.();
+  };
   page.defaultView?.addEventListener("blur", away);
   opened(page);
   let settling: ReturnType<typeof setTimeout> | undefined;
   return {
     drawn,
-    format: formats.format,
+    format: fromHost(formats.format),
     formattable: () => !unformattable(page),
     caretAt: () => caret.caretSpan()?.from ?? null,
-    placeAt: (at: number, stays?: number) => {
+    placeAt: fromHost((at: number, stays?: number) => {
       caret.placeAt(at, stays);
       // Drawings take their height after the first paint, so the + is laid again once they have.
       clearTimeout(settling);
       settling = setTimeout(beside.besideLine, SETTLED_MS);
-    },
-    rewrite: history.rewrite,
-    outside: history.outside,
+    }),
+    rewrite: fromHost(history.rewrite),
+    outside: fromHost(history.outside),
     chosen,
-    slashed: beside.slashed,
-    unitActed: beside.unitActed,
-    begin: begun.begin,
-    hintWords: begun.hintWords,
-    heldAcross: laying.heldAcross,
-    typed: begun.typed,
+    slashed: fromHost(beside.slashed),
+    unitActed: fromHost(beside.unitActed),
+    begin: fromHost(begun.begin),
+    hintWords: fromHost(begun.hintWords),
+    heldAcross: fromHost(laying.heldAcross),
+    typed: fromHost(begun.typed),
     // Where the caret stood when a menu opened, so words it hands back land there whatever was clicked since.
-    held: () => {
+    held: fromHost(() => {
       const kept = writer.kept ? { ...writer.kept } : null;
       const at = caret.caretSpan()?.from ?? null;
       return () => {
@@ -217,9 +249,10 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
         }
         if (at !== null) caret.placeAt(at);
       };
-    },
-    cut,
+    }),
+    cut: fromHost(cut),
     stop: () => {
+      input.behindDropped();
       clearTimeout(settling);
       writer.turns.left = hands.text();
       writer.composing?.end();
@@ -247,6 +280,7 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
       page.removeEventListener("mousedown", keys.ticking);
       page.removeEventListener("keydown", keys.moved);
       page.removeEventListener("beforeinput", input.asked);
+      for (const one of LEFT_BEHIND) page.removeEventListener(one, otherInput, true);
       for (const first of EDGE_FIRST) page.removeEventListener(first, keys.edgeLaid, true);
       page.removeEventListener("mousedown", keys.edgeClicked, true);
       keys.edgeLetGo();

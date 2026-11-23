@@ -1,5 +1,6 @@
 import { charsAt } from "tisty-editor/read";
 import type { Anchor } from "./dressing";
+import { pastFeeds } from "./pageEdits";
 import { scrolledAround } from "./pageNodes";
 import { placeOf } from "./pagePlaces";
 import { movedBlock } from "./sticking";
@@ -127,8 +128,7 @@ export const acted = (
       was: unit.from,
       size: said.length,
     };
-  let cut = unit.to;
-  while (cut < body.length && /[\r\n]/.test(body[cut] ?? "")) cut++;
+  const cut = pastFeeds(body, unit.to, false);
   const kept = body.slice(0, unit.from);
   const before = cut < body.length ? kept : kept.replace(/(?:\r?\n)+$/, "\n");
   return {

@@ -4,7 +4,7 @@ import { t } from "../locales";
 import type { Begun } from "./pageBegun";
 import { blockPlaced, placed } from "./pageBlocks";
 import type { Caret } from "./pageCaret";
-import { changeOf, type Edit, type Span } from "./pageEdits";
+import { changeOf, type Edit, pastFeeds, type Span } from "./pageEdits";
 import type { Formats } from "./pageFormats";
 import { blockAsked } from "./pageLate";
 import type { Laying } from "./pageLaying";
@@ -95,11 +95,11 @@ export const besideOn = (
   // A break holds no words, so what is typed after it goes on a line begun under it.
   const lineUnder = (laid: Edit) => {
     const text = hands.text();
-    let at =
+    const laidTo =
       writer.kept && writer.kept.offset < 0
         ? writer.kept.at
         : Math.min(text.length, laid.from + laid.insert.replace(/\s+$/, "").length);
-    while (at > 0 && /[\r\n]/.test(text[at - 1] ?? "")) at--;
+    const at = pastFeeds(text, laidTo, true);
     writer.kept = {
       node: page.body,
       offset: -1,

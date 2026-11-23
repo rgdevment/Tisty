@@ -3,6 +3,7 @@ import { t } from "../locales";
 import { byteFrom, unitFrom } from "../placing";
 import { aloneOnLine, EMBED, embedGone, embedPlace, spacedOut } from "./embeds";
 import type { Begun } from "./pageBegun";
+import { behindOn } from "./pageBehind";
 import { blank, blockPlaced, pastedAround } from "./pageBlocks";
 import type { Caret, Standing } from "./pageCaret";
 import { colonsKept } from "./pageColons";
@@ -451,9 +452,8 @@ export const inputOn = (
     named: StaticRange | undefined,
     data: string | null,
     carried: DataTransfer | null,
+    standing: Standing,
   ) => {
-    const standing = caret.standing();
-    if (kind.startsWith("delete") && unplaced(kind, standing)) return;
     const broken = besideGone(kind, standing.range);
     if (!broken && edgeHeld(kind, standing.range)) return;
     writer.leftFrom = undefined;
@@ -593,12 +593,31 @@ export const inputOn = (
     return at !== undefined && headingAt(hands.text(), at) ? "insertParagraph" : kind;
   };
 
+  const behind = behindOn(writer, caret, {
+    unplaced,
+    act: ({ kind, keyed }, standing) => {
+      if (!keyed || !keyedDelete(kind, standing)) inputTaken(kind, undefined, null, null, standing);
+    },
+  });
+
+  const keyTaken = (
+    kind: string,
+    named: StaticRange | undefined,
+    data: string | null,
+    carried: DataTransfer | null,
+  ) => {
+    const standing = behind.caughtUp() ?? caret.standing();
+    if (kind.startsWith("delete") && unplaced(kind, standing)) return behind.hold(kind, false);
+    behind.dropped();
+    inputTaken(kind, named, data, carried, standing);
+  };
+
   const asked = (event: InputEvent) => {
     if (!onSheet(page, event) || event.isComposing || event.inputType === "insertCompositionText")
       return;
     event.preventDefault();
     const [named] = event.getTargetRanges?.() ?? [];
-    inputTaken(lineKind(event.inputType), named, event.data, event.dataTransfer);
+    keyTaken(lineKind(event.inputType), named, event.data, event.dataTransfer);
   };
 
   const started = (event: CompositionEvent) => {
@@ -668,23 +687,17 @@ export const inputOn = (
       .catch(() => {});
   };
 
-  const markHeld = (event: KeyboardEvent) => {
-    const back = event.key === "Backspace";
-    if ((!back && event.key !== "Delete") || event.defaultPrevented || event.isComposing) return;
-    if (!onSheet(page, event) || event.ctrlKey || event.metaKey || event.altKey || event.shiftKey)
-      return;
-    const kind = back ? "deleteContentBackward" : "deleteContentForward";
-    const standing = caret.standing();
-    if (unplaced(kind, standing)) return event.preventDefault();
+  const keyedDelete = (kind: string, standing: Standing) => {
+    const back = backward(kind);
     const { range } = standing;
     const at = caret.caretSpan()?.from;
-    if (!range || at === undefined) return;
+    if (!range || at === undefined) return false;
     if (!range.collapsed && !leftOver(range) && pastWhole(range)) {
-      event.preventDefault();
-      return inputTaken(kind, undefined, null, null);
+      inputTaken(kind, undefined, null, null, standing);
+      return true;
     }
     const amongWords = range.startContainer.nodeType === Node.TEXT_NODE;
-    if (amongWords && (!back || hands.text().lastIndexOf("\n", at - 1) >= 0)) return;
+    if (amongWords && (!back || hands.text().lastIndexOf("\n", at - 1) >= 0)) return false;
     const ahead =
       !back && range.collapsed ? letterAhead(range.startContainer, range.startOffset) : null;
     const [aheadAt, aheadOffset] = ahead ?? [range.startContainer, range.startOffset];
@@ -696,9 +709,9 @@ export const inputOn = (
     });
     const beside = besideCaret(ahead ? spot : range, back);
     if (ahead && !beside?.matches(PIECES)) {
-      event.preventDefault();
       const joining = listJoined(spot, beside);
-      return joining ? inputTaken(kind, joining, null, null) : undefined;
+      if (joining) inputTaken(kind, joining, null, null, standing);
+      return true;
     }
     const piece = beside?.matches(PIECES) ? beside : null;
     const gone =
@@ -709,14 +722,29 @@ export const inputOn = (
     const boxed = !back && Boolean(piece?.matches(".check"));
     const freed = gone || held || (!back && !boxed) ? null : caretFreed(range);
     const acted = gone || freed || held;
-    if (!acted && (!piece || wordsBeside(range, !back))) return;
-    event.preventDefault();
-    if (!gone && !freed) return;
+    if (!acted && (!piece || wordsBeside(range, !back))) return false;
+    if (!gone && !freed) return true;
     writer.leftFrom = undefined;
     writer.typing = true;
     writer.pending = null;
-    if (freed) return laying.put(freed.edit, freed.caret);
-    if (gone) tookBeside(kind, gone);
+    if (freed) laying.put(freed.edit, freed.caret);
+    else if (gone) tookBeside(kind, gone);
+    return true;
+  };
+
+  const markHeld = (event: KeyboardEvent) => {
+    const back = event.key === "Backspace";
+    if ((!back && event.key !== "Delete") || event.defaultPrevented || event.isComposing) return;
+    if (!onSheet(page, event) || event.ctrlKey || event.metaKey || event.altKey || event.shiftKey)
+      return;
+    const kind = back ? "deleteContentBackward" : "deleteContentForward";
+    const standing = behind.caughtUp() ?? caret.standing();
+    if (unplaced(kind, standing)) {
+      event.preventDefault();
+      return behind.hold(kind, true);
+    }
+    behind.dropped();
+    if (keyedDelete(kind, standing)) event.preventDefault();
   };
 
   const lineBroken = (event: KeyboardEvent) => {
@@ -724,8 +752,19 @@ export const inputOn = (
     if (event.key !== "Enter" || !event.shiftKey || !bare || event.defaultPrevented) return;
     if (!onSheet(page, event)) return;
     event.preventDefault();
-    inputTaken(lineKind("insertLineBreak"), undefined, null, null);
+    keyTaken(lineKind("insertLineBreak"), undefined, null, null);
   };
 
-  return { asked, started, ended, pastedFiles, markHeld, lineBroken };
+  return {
+    asked,
+    started,
+    ended,
+    pastedFiles,
+    markHeld,
+    lineBroken,
+    caughtUp: behind.caughtUp,
+    behindLeft: behind.left,
+    behindDropped: behind.dropped,
+    pressed: behind.pressed,
+  };
 };

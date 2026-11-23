@@ -68,6 +68,15 @@ describe("a key that comes before the page shows the last one", () => {
     expect(text()).toBe(TWO);
   });
 
+  it("reads the page once in an event that comes while a delete is held", () => {
+    typedAhead();
+    pressed("Delete");
+    const read = vi.mocked(spots.spotOf);
+    read.mockClear();
+    pressed("Delete");
+    expect(read).toHaveBeenCalledTimes(1);
+  });
+
   it("reads the page without leaving a live range behind for the page to keep up", () => {
     typedAhead();
     const made = vi.spyOn(document, "createRange");

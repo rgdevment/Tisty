@@ -1,5 +1,6 @@
 import { carrying } from "./carrying";
 import { moveKey } from "./macKeys";
+import { pastFeeds } from "./pageEdits";
 import { placeOf } from "./pagePlaces";
 
 const NOTE = '.page > blockquote[data-callout="idea"][data-at]';
@@ -84,8 +85,7 @@ export const sticking = (page: Document, moving: () => Moved | undefined) => {
 };
 
 export const movedBlock = (text: string, [from, end]: [number, number], to: number): string => {
-  let cut = end;
-  while (cut < text.length && (text[cut] === "\n" || text[cut] === "\r")) cut++;
+  const cut = pastFeeds(text, end, false);
   const home = to <= from ? /^[\r\n]*$/.test(text.slice(to, from)) : to <= cut;
   if (home) return text;
   const ending = text.includes("\r\n") ? "\r\n" : "\n";
