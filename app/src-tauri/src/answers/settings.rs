@@ -132,9 +132,11 @@ pub struct Standing {
     looked: Option<String>,
 }
 
-fn standing(session: &Session) -> Standing {
+fn standing(session: &Mutex<Session>) -> Standing {
+    let phrase = crate::identity::phrase_looked(session);
+    let session = held(session);
     Standing {
-        phrase: crate::identity::phrase_standing(session),
+        phrase,
         door: session
             .seated_agent()
             .map(|one| tisty_core::config::nicknamed(&one.0)),
@@ -330,8 +332,9 @@ pub fn licences() -> &'static str {
     LICENCES
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn about(session: tauri::State<'_, Mutex<Session>>) -> Answer<About> {
+    let standing = standing(&session);
     let session = held(&session);
     Ok(About {
         version: env!("CARGO_PKG_VERSION").to_string(),
@@ -345,7 +348,7 @@ pub fn about(session: tauri::State<'_, Mutex<Session>>) -> Answer<About> {
         candidates_apply: update::self_installs(update::route().route),
         kept_by_the_store: update::route().route == update::Route::Store,
         not_sold: update::route().route == update::Route::Store && !crate::shop::sold(),
-        standing: standing(&session),
+        standing,
     })
 }
 
@@ -487,3 +490,7 @@ pub fn guide_already_here(session: &Session) -> Option<(String, String)> {
         })
         .map(|one| (one.file.clone(), one.title.clone().unwrap_or_default()))
 }
+
+#[cfg(test)]
+#[path = "settings_test.rs"]
+mod tests;

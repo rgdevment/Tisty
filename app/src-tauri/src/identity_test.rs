@@ -250,7 +250,7 @@ fn once_an_identity_exists_its_seed_is_read_once_until_it_is_begun_or_typed_agai
     assert_eq!(first, Some(seed(7).root().person()));
     assert_eq!(again, first);
     assert_eq!(crate::reaching::reads_of(&asked) - before, 1);
-    held(&session).reach.seed_is(None);
+    held(&session).reach.seed_dropped();
     seed_person(&session).unwrap();
     assert_eq!(crate::reaching::reads_of(&asked) - before, 2);
 }
@@ -529,4 +529,92 @@ fn a_phrase_named_in_the_log_for_other_computers_stands_elsewhere() {
     session.config.device_id = tisty_core::DeviceId("dev_another0".into());
 
     assert_eq!(phrase_standing(&session), "elsewhere");
+}
+
+fn confirmed_without_its_seed(session: &Mutex<Session>) {
+    begun(&mut held(session), &seed(7)).unwrap();
+    held(session).config.phrase_confirmed = Some(seed(7).root().person().fingerprint());
+}
+
+#[test]
+fn a_confirmed_phrase_this_machine_no_longer_keeps_stands_elsewhere() {
+    let kept = tempfile::tempdir().unwrap();
+    let session = opened(&kept);
+    confirmed_without_its_seed(&session);
+
+    assert_eq!(phrase_looked(&session), "elsewhere");
+}
+
+#[test]
+fn the_phrase_standing_reads_the_seed_once_and_only_where_the_log_names_this_machine() {
+    let kept = tempfile::tempdir().unwrap();
+    let session = opened(&kept);
+    let asked = scope(&held(&session).paths).unwrap();
+    let before = crate::reaching::reads_of(&asked);
+    assert_eq!(phrase_looked(&session), "none");
+    assert_eq!(crate::reaching::reads_of(&asked), before);
+
+    keep(&held(&session).paths, &seed(7)).unwrap();
+    confirmed_without_its_seed(&session);
+    assert_eq!(phrase_looked(&session), "ok");
+    assert_eq!(phrase_looked(&session), "ok");
+    assert_eq!(crate::reaching::reads_of(&asked) - before, 1);
+
+    held(&session).reach.seed_dropped();
+    held(&session).config.device_id = DeviceId("dev_another0".into());
+    assert_eq!(phrase_looked(&session), "elsewhere");
+    assert_eq!(crate::reaching::reads_of(&asked) - before, 1);
+}
+
+#[test]
+fn a_phrase_typed_again_after_reinstalling_stands_confirmed() {
+    let kept = tempfile::tempdir().unwrap();
+    let session = opened(&kept);
+    confirmed_without_its_seed(&session);
+    phrase_looked(&session);
+
+    keep(&held(&session).paths, &seed(7)).unwrap();
+    held(&session).reach.seed_dropped();
+
+    assert_eq!(phrase_looked(&session), "ok");
+}
+
+#[test]
+fn a_seed_that_could_not_be_read_leaves_the_phrase_confirmed() {
+    let kept = tempfile::tempdir().unwrap();
+    let session = opened(&kept);
+    confirmed_without_its_seed(&session);
+    crate::reaching::unreadable(&scope(&held(&session).paths).unwrap());
+
+    assert_eq!(phrase_looked(&session), "ok");
+}
+
+#[test]
+fn a_machine_that_signs_without_ever_keeping_the_phrase_is_not_asked_to_confirm_it() {
+    let kept = tempfile::tempdir().unwrap();
+    let session = opened(&kept);
+    begun(&mut held(&session), &seed(7)).unwrap();
+
+    assert_eq!(phrase_looked(&session), "elsewhere");
+}
+
+#[test]
+fn a_read_begun_before_the_phrase_was_typed_never_hides_it() {
+    let kept = tempfile::tempdir().unwrap();
+    let session = opened(&kept);
+    confirmed_without_its_seed(&session);
+
+    let late = seed_person_by(&session, || {
+        let found = seed_here(&session)?.map(|seed| seed.root().person());
+        keep(&held(&session).paths, &seed(7))?;
+        held(&session).reach.seed_dropped();
+        Ok(found)
+    });
+
+    assert_eq!(late.unwrap(), None);
+    assert_eq!(phrase_standing(&held(&session)), "ok");
+    assert_eq!(
+        seed_person(&session).unwrap(),
+        Some(seed(7).root().person())
+    );
 }

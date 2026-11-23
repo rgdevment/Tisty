@@ -479,4 +479,13 @@ describe("the status tiles", () => {
     const old = tiles(known({ build: build({ looked: daysAgo(30) }) }), sync, NOW);
     expect(old.about?.detail).toMatch(/^buscó por última vez /);
   });
+
+  it("say a phrase this computer does not keep in both languages, and ask nobody to confirm it", () => {
+    const here = known({ build: build({ phrase: "elsewhere" }) });
+
+    expect(tiles(here, sync, NOW).security?.head).toBe("Frase en otro equipo");
+    adopt("en");
+    expect(tiles(here, sync, NOW).security?.head).toBe("Phrase on another computer");
+    expect(attention(here, NOW)?.map((one) => one.key)).not.toContain("phrase");
+  });
 });

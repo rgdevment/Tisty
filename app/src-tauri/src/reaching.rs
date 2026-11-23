@@ -28,7 +28,13 @@ pub struct Reaching {
     keyed: Mutex<Option<Keyed>>,
     tried: Mutex<Option<(Locked, usize)>>,
     unsealed: Mutex<Option<(String, i64)>>,
-    seed_of: Mutex<Option<(Option<tisty_share_proto::identity::Person>, usize)>>,
+    seed_of: Mutex<SeedKnown>,
+}
+
+#[derive(Default)]
+struct SeedKnown {
+    read: Option<(Option<tisty_share_proto::identity::Person>, usize)>,
+    dropped: u64,
 }
 
 #[derive(Debug, Clone)]
@@ -68,7 +74,7 @@ impl Reaching {
             keyed: Mutex::new(None),
             tried: Mutex::new(None),
             unsealed: Mutex::new(None),
-            seed_of: Mutex::new(None),
+            seed_of: Mutex::default(),
         }
     }
 
@@ -81,13 +87,33 @@ impl Reaching {
         self.seed_of
             .lock()
             .ok()?
+            .read
             .filter(|(_, known)| *known == forebears)
             .map(|(person, _)| person)
     }
 
-    pub fn seed_is(&self, person: Option<(Option<tisty_share_proto::identity::Person>, usize)>) {
+    pub fn seed_drops(&self) -> u64 {
+        self.seed_of.lock().map_or(0, |held| held.dropped)
+    }
+
+    /// Kept only if nothing was dropped since the read began, so a late read never hides a phrase just typed.
+    pub fn seed_is(
+        &self,
+        person: Option<tisty_share_proto::identity::Person>,
+        forebears: usize,
+        began: u64,
+    ) {
+        if let Ok(mut held) = self.seed_of.lock()
+            && held.dropped == began
+        {
+            held.read = Some((person, forebears));
+        }
+    }
+
+    pub fn seed_dropped(&self) {
         if let Ok(mut held) = self.seed_of.lock() {
-            *held = person;
+            held.read = None;
+            held.dropped += 1;
         }
     }
 
@@ -349,8 +375,27 @@ pub(crate) fn reads_of(scope: &str) -> usize {
 }
 
 #[cfg(test)]
+static UNREADABLE: Mutex<std::collections::BTreeSet<String>> =
+    Mutex::new(std::collections::BTreeSet::new());
+
+#[cfg(test)]
+pub(crate) fn unreadable(scope: &str) {
+    UNREADABLE
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner)
+        .insert(scope.to_string());
+}
+
+#[cfg(test)]
 impl Secrets for InMemory {
     fn read(&self, key: &str) -> Result<Option<String>, Hitch> {
+        if UNREADABLE
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .contains(&self.0)
+        {
+            return Err(Hitch::Broke("the keychain is locked".into()));
+        }
         *READS
             .lock()
             .unwrap_or_else(std::sync::PoisonError::into_inner)

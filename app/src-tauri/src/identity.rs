@@ -8,6 +8,7 @@ use tisty_core::event::DeviceId;
 use tisty_core::witness::{self, Fact, channel};
 use tisty_core::{Op, Paths, person};
 use tisty_share_proto::cloud::CloudKey;
+use tisty_share_proto::identity::Person;
 use tisty_share_proto::phrase::{self, Words};
 use tisty_share_proto::seed::Seed;
 use zeroize::Zeroizing;
@@ -117,6 +118,15 @@ fn unread(why: String) -> Refusal {
 fn ours(seed: &Seed, session: &Session) -> bool {
     let persons = &session.state.persons;
     persons.names(&seed.root().person(), &session.config.device_id)
+}
+
+fn keeps_ours(kept: Option<Person>, session: &Session) -> bool {
+    kept.is_some_and(|person| {
+        session
+            .state
+            .persons
+            .names(&person, &session.config.device_id)
+    })
 }
 
 type Asked = (
@@ -461,19 +471,29 @@ fn seed_here(session: &Mutex<Session>) -> Answer<Option<Seed>> {
     kept(&paths, &forebears, &fitting(persons, here)).map_err(unread)
 }
 
-fn seed_person(session: &Mutex<Session>) -> Answer<Option<tisty_share_proto::identity::Person>> {
-    let (known, forebears) = {
+fn seed_person(session: &Mutex<Session>) -> Answer<Option<Person>> {
+    seed_person_by(session, || {
+        Ok(seed_here(session)?.map(|seed| seed.root().person()))
+    })
+}
+
+fn seed_person_by(
+    session: &Mutex<Session>,
+    read: impl FnOnce() -> Answer<Option<Person>>,
+) -> Answer<Option<Person>> {
+    let (known, forebears, began) = {
         let session = held(session);
         let forebears = session.state.forebears.len();
-        (session.reach.seed_of(forebears), forebears)
+        let reach = &session.reach;
+        (reach.seed_of(forebears), forebears, reach.seed_drops())
     };
     if let Some(known) = known {
         return Ok(known);
     }
-    let person = seed_here(session)?.map(|seed| seed.root().person());
+    let person = read()?;
     let session = held(session);
     if session.state.persons.names_a_person() {
-        session.reach.seed_is(Some((person, forebears)));
+        session.reach.seed_is(person, forebears, began);
     }
     Ok(person)
 }
@@ -494,6 +514,7 @@ pub(crate) fn cloud_key(session: &Mutex<Session>, cloud: &str) -> Answer<Option<
 }
 
 pub(crate) fn confirmed_key(session: &Mutex<Session>) -> Answer<Option<CloudKey>> {
+    let began = held(session).reach.seed_drops();
     let Some(seed) = seed_here(session)? else {
         return Ok(None);
     };
@@ -501,7 +522,7 @@ pub(crate) fn confirmed_key(session: &Mutex<Session>) -> Answer<Option<CloudKey>
     let session = held(session);
     session
         .reach
-        .seed_is(Some((Some(person), session.state.forebears.len())));
+        .seed_is(Some(person), session.state.forebears.len(), began);
     let confirmed = session
         .state
         .persons
@@ -513,12 +534,7 @@ pub(crate) fn confirmed_key(session: &Mutex<Session>) -> Answer<Option<CloudKey>
 pub(crate) fn standing(session: &Mutex<Session>) -> Answer<(bool, bool)> {
     let kept = seed_person(session)?;
     let session = held(session);
-    let held = kept.is_some_and(|person| {
-        session
-            .state
-            .persons
-            .names(&person, &session.config.device_id)
-    });
+    let held = keeps_ours(kept, &session);
     let confirmed =
         held && kept.map(|person| person.fingerprint()) == session.config.phrase_confirmed;
     Ok((held, confirmed))
@@ -528,12 +544,7 @@ pub(crate) fn standing(session: &Mutex<Session>) -> Answer<(bool, bool)> {
 pub fn identity_shown(session: tauri::State<'_, Mutex<Session>>) -> Answer<Shown> {
     let kept = seed_person(&session)?;
     let session = held(&session);
-    let held = kept.is_some_and(|person| {
-        session
-            .state
-            .persons
-            .names(&person, &session.config.device_id)
-    });
+    let held = keeps_ours(kept, &session);
     let person = match kept.filter(|_| held) {
         Some(person) => Some(person),
         None => person::person_of(&session.state, &session.config.device_id),
@@ -586,7 +597,7 @@ pub fn identity_begin(session: tauri::State<'_, Mutex<Session>>) -> Answer<Strin
     let shown =
         phrase::phrase(&seed, words(&session)).ok_or_else(|| Refusal::of("identityNotKept"))?;
     session.reach.tried_for(None);
-    session.reach.seed_is(None);
+    session.reach.seed_dropped();
     begun(&mut session, &seed)?;
     Ok(shown.to_string())
 }
@@ -666,7 +677,7 @@ pub fn identity_recover(session: tauri::State<'_, Mutex<Session>>, said: String)
         _ => keep(&session.paths, &seed)?,
     }
     session.reach.tried_for(None);
-    session.reach.seed_is(None);
+    session.reach.seed_dropped();
     begun(&mut session, &seed)?;
     let fingerprint = seed.root().person().fingerprint();
     if let Err(why) = session.keep(|config| config.phrase_confirmed = Some(fingerprint)) {
@@ -687,15 +698,33 @@ pub(crate) fn seed_said(said: &str) -> Answer<Seed> {
     })
 }
 
-/// Read from the log and the config alone, so the overview never asks the keychain.
+/// Asks the keychain off the lock, once, and only for a machine the log names; a failed read leaves the log's word.
+pub(crate) fn phrase_looked(session: &Mutex<Session>) -> &'static str {
+    let named = {
+        let session = held(session);
+        person::person_of(&session.state, &session.config.device_id).is_some()
+    };
+    if named {
+        let _ = seed_person(session);
+    }
+    phrase_standing(&held(session))
+}
+
+/// Read from the log, the config and what is already known of the seed, so it never asks the keychain itself.
 pub(crate) fn phrase_standing(session: &Session) -> &'static str {
     if !session.state.persons.names_a_person() {
         return "none";
     }
-    match person::person_of(&session.state, &session.config.device_id) {
-        None => "elsewhere",
-        Some(one) if session.config.phrase_confirmed == Some(one.fingerprint()) => "ok",
-        Some(_) => "loose",
+    let Some(one) = person::person_of(&session.state, &session.config.device_id) else {
+        return "elsewhere";
+    };
+    let known = session.reach.seed_of(session.state.forebears.len());
+    if known.is_some_and(|kept| !keeps_ours(kept, session)) {
+        return "elsewhere";
+    }
+    match session.config.phrase_confirmed == Some(one.fingerprint()) {
+        true => "ok",
+        false => "loose",
     }
 }
 
