@@ -289,11 +289,61 @@ describe("Shift+Enter, which an engine may name a new paragraph", () => {
     expect(text()).toBe(PARAGRAPHS.replace("Hola mundo", "Hola mundo\\\nX"));
   });
 
-  it("in a heading starts the next line, as a heading holds no break", () => {
+  it("in a heading starts a paragraph, as Enter does, since a heading holds no break", () => {
     const text = opened(HEAD, HEAD_PLACED);
     caretOn(wordsOf("Sección"), 3);
     keyed("Enter", { shiftKey: true });
-    expect(text()).toBe(HEAD.replace("## Sección", "## Sec\nción"));
+    expect(text()).toBe(HEAD.replace("## Sección", "## Sec\n\nción"));
+  });
+
+  it("at a heading's end writes what Enter writes, never a bare line feed", () => {
+    const typedAfter = (key: () => void) => {
+      const text = opened(HEAD, HEAD_PLACED);
+      caretOn(wordsOf("Sección"), 7);
+      key();
+      asked("insertText", undefined, "X");
+      writing?.stop();
+      return text();
+    };
+    const entered = typedAfter(() => asked("insertParagraph"));
+    expect(typedAfter(() => keyed("Enter", { shiftKey: true }))).toBe(entered);
+    expect(typedAfter(() => asked("insertLineBreak"))).toBe(entered);
+    expect(entered).not.toContain("Sección\nX");
+  });
+
+  it("in a heading the engine names with no caret on the page, still starts a paragraph", () => {
+    const text = opened(HEAD, HEAD_PLACED);
+    const words = wordsOf("Sección");
+    document.getSelection()?.removeAllRanges();
+    asked("insertLineBreak", rangeOf([words, 3], [words, 3]));
+    expect(text()).toBe(HEAD.replace("## Sección", "## Sec\n\nción"));
+  });
+
+  it("in a heading inside a list item writes what Enter writes there, never a backslash", () => {
+    const itemHead = "# T\n\n- ## Título\n- dos\n";
+    const placed =
+      '<h1 data-at="0-4"><span data-src="2-3">T</span></h1>' +
+      '<ul data-at="5-24"><li data-at="5-18"><h2 data-at="7-18"><span data-src="10-17">Título</span></h2></li>' +
+      '<li data-at="18-24"><span data-src="20-23">dos</span></li></ul>';
+    const typedAfter = (key: () => void) => {
+      const text = opened(itemHead, placed);
+      caretOn(wordsOf("Título"), 3);
+      key();
+      writing?.stop();
+      return text();
+    };
+    const entered = typedAfter(() => asked("insertParagraph"));
+    expect(typedAfter(() => keyed("Enter", { shiftKey: true }))).toBe(entered);
+    expect(entered).not.toContain("\\");
+  });
+
+  it("reads the caret kept in the words when the page still shows it in a heading", () => {
+    const text = opened(HEAD, HEAD_PLACED);
+    caretOn(wordsOf("Sección"), 3);
+    const below = wordsOf("Texto bajo");
+    asked("deleteContentBackward", rangeOf([below, 4], [below, 5]));
+    keyed("Enter", { shiftKey: true });
+    expect(text()).toBe(HEAD.replace("Texto bajo", "Text\\\n bajo"));
   });
 
   it("is left to the browser while a composition is open or being committed", () => {

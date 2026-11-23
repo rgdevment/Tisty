@@ -5,17 +5,21 @@ import { aloneOnLine, EMBED, embedGone, embedPlace, spacedOut } from "./embeds";
 import type { Begun } from "./pageBegun";
 import { blank, blockPlaced, pastedAround } from "./pageBlocks";
 import type { Caret, Standing } from "./pageCaret";
+import { colonsKept } from "./pageColons";
 import {
   applied,
   blankAt,
   breakKept,
+  type Edit,
   hardBroken,
+  landedAfter,
   lineEnd,
   reachIn,
   type Span,
   unsplit,
 } from "./pageEdits";
 import { fenceJustOpened, fenceNamed, fenceOpened } from "./pageFences";
+import { foldReached } from "./pageFolds";
 import type { Formats } from "./pageFormats";
 import type { PageHistory } from "./pageHistory";
 import { blockAsked, type Laid, wordsAsked } from "./pageLate";
@@ -23,6 +27,7 @@ import type { Laying } from "./pageLaying";
 import {
   closing,
   hardBreak,
+  headingAt,
   leftBehind,
   openedAbove,
   opening,
@@ -41,15 +46,22 @@ import {
   wordsFrom,
 } from "./pageMarks";
 import {
+  ATOMS,
   atGhost,
   elementOf,
+  emptyOfWords,
   inCode,
   letterAhead,
   onSheet,
+  PIECES,
   sectioned,
   shownWords,
+  sideOf,
   unseenLetter,
   unwritable,
+  withoutDressing,
+  wordsEndAt,
+  wordsStartAt,
 } from "./pageNodes";
 import { placeOf } from "./pagePlaces";
 import { endIn, startIn, startOf } from "./pageSpots";
@@ -69,9 +81,6 @@ const SOLID_BLOCK =
 const HEADINGS = "h1, h2, h3, h4, h5, h6";
 const MARKED_LINE = `${HEADINGS}, blockquote:not([data-callout])`;
 const TITLE_PLACE = ".page > [data-at]:not(.front)";
-
-const PIECES = "[contenteditable='false'], img";
-const ATOMS = `${PIECES}, button`;
 
 const backward = (kind: string) => kind.startsWith("delete") && kind.endsWith("Backward");
 const forward = (kind: string) => kind.startsWith("delete") && kind.endsWith("Forward");
@@ -94,35 +103,9 @@ const breakAt = (range: AbstractRange): Element | null => {
     (beside.find((one) => one instanceof Element && one.matches("hr[data-at]")) as Element) ?? null
   );
 };
-const DRESSING = "button, [contenteditable='false']:not([data-src])";
-
-const undressed = (range: Range) => {
-  const between = range.cloneContents();
-  for (const one of between.querySelectorAll(DRESSING)) one.remove();
-  return between;
-};
-
-const sideOf = (holder: Element, node: Node, offset: number, back: boolean) => {
-  const side = holder.ownerDocument.createRange();
-  side.selectNodeContents(holder);
-  if (back) side.setEnd(node, offset);
-  else side.setStart(node, offset);
-  return side;
-};
-
-const emptyOfWords = (range: Range) => {
-  const between = undressed(range);
-  return shownWords(between.textContent ?? "") === "" && !between.querySelector(ATOMS);
-};
-
-const wordsStartAt = (holder: Element, node: Node, offset: number) =>
-  emptyOfWords(sideOf(holder, node, offset, true));
-
-const wordsEndAt = (holder: Element, node: Node, offset: number) =>
-  emptyOfWords(sideOf(holder, node, offset, false));
 
 const nothingPast = (edge: Range, back: boolean) => {
-  const rest = shownWords(undressed(edge).textContent ?? "");
+  const rest = shownWords(withoutDressing(edge).textContent ?? "");
   return rest === "" || (!back && rest === "\n" && inCode(edge.startContainer));
 };
 
@@ -216,7 +199,8 @@ const beforeFeeds = (text: string, one: Span): Span => {
 
 const pastWhole = (range: AbstractRange) => {
   const block = elementIn(range.endContainer.childNodes[range.endOffset - 1]);
-  return Boolean(elementIn(range.endContainer)?.matches(".page") && block && drawnWhole(block));
+  const atSheet = elementIn(range.endContainer)?.matches(".page");
+  return Boolean(atSheet && block && drawnWhole(block)) || foldReached(range) !== null;
 };
 
 export const inputOn = (
@@ -228,17 +212,23 @@ export const inputOn = (
   begun: Begun,
 ) => {
   const { page, hands } = writer;
-  const { put, late } = laying;
+  const { late } = laying;
+  const put = (wanted: Edit, at = wanted.from + wanted.insert.length, whole = false) => {
+    const asked = colonsKept(hands.text(), wanted);
+    laying.put(asked, landedAfter(wanted, asked, at), whole);
+  };
   let composing: { readonly one: Span; readonly range: Range; readonly was: string } | null = null;
 
-  const laidOver = (text: string, one: Span, insert: string, coded: boolean): Laid =>
-    coded
-      ? { edit: { ...one, insert }, caret: one.from + insert.length }
-      : replaced(text, one, insert);
+  const laidOver = (text: string, one: Span, insert: string, coded: boolean): Laid => {
+    if (coded) return { edit: { ...one, insert }, caret: one.from + insert.length };
+    const laid = replaced(text, one, insert);
+    const edit = colonsKept(text, laid.edit);
+    return { edit, caret: landedAfter(laid.edit, edit, laid.caret) };
+  };
 
   const putOver = (one: Span, insert: string, coded: boolean) => {
     const laid = laidOver(hands.text(), one, insert, coded);
-    put(laid.edit, laid.caret);
+    laying.put(laid.edit, laid.caret);
   };
 
   const pasted = (one: Span, data: DataTransfer | null, coded: boolean) => {
@@ -481,7 +471,7 @@ export const inputOn = (
     const pastBlock = spread && picked !== null && pastWhole(picked);
     const range = pastBlock ? picked : (target ?? picked);
     const bare = kind === "deleteContentBackward" && !spread ? caretFreed(standing.range) : null;
-    if (bare) return put(bare.edit, bare.caret);
+    if (bare) return laying.put(bare.edit, bare.caret);
     const shelf = range && !spread ? breakAt(range) : null;
     if (shelf) {
       const span = placeOf(shelf);
@@ -502,7 +492,7 @@ export const inputOn = (
     const spanned =
       range &&
       ((held && caret.unbegun(kind, held)) ??
-        caret.spanOfRange(range, !spread && kind.startsWith("delete")));
+        (spread ? caret.spanChosen(range) : caret.spanOfRange(range, kind.startsWith("delete"))));
     const reached =
       (!spread && begun.waited(kind, standing.range)) ||
       (spanned && pastBlock ? beforeFeeds(hands.text(), spanned) : spanned);
@@ -598,12 +588,17 @@ export const inputOn = (
     if (pair) formats.format(pair, pair);
   };
 
+  const lineKind = (kind: string) => {
+    const at = kind === "insertLineBreak" ? caret.caretSpan()?.from : undefined;
+    return at !== undefined && headingAt(hands.text(), at) ? "insertParagraph" : kind;
+  };
+
   const asked = (event: InputEvent) => {
     if (!onSheet(page, event) || event.isComposing || event.inputType === "insertCompositionText")
       return;
     event.preventDefault();
     const [named] = event.getTargetRanges?.() ?? [];
-    inputTaken(event.inputType, named, event.data, event.dataTransfer);
+    inputTaken(lineKind(event.inputType), named, event.data, event.dataTransfer);
   };
 
   const started = (event: CompositionEvent) => {
@@ -612,8 +607,7 @@ export const inputOn = (
     const held = page.getSelection();
     const range = held?.rangeCount ? held.getRangeAt(0).cloneRange() : null;
     const spread = Boolean(range && !range.collapsed && !leftOver(range));
-    const one =
-      range && ((!spread && begun.waited("insertText", null)) || caret.spanOfRange(range));
+    const one = range && ((!spread && begun.waited("insertText", null)) || caret.spanChosen(range));
     composing = range && one ? { one, range, was: hands.text() } : null;
   };
 
@@ -721,7 +715,7 @@ export const inputOn = (
     writer.leftFrom = undefined;
     writer.typing = true;
     writer.pending = null;
-    if (freed) return put(freed.edit, freed.caret);
+    if (freed) return laying.put(freed.edit, freed.caret);
     if (gone) tookBeside(kind, gone);
   };
 
@@ -730,7 +724,7 @@ export const inputOn = (
     if (event.key !== "Enter" || !event.shiftKey || !bare || event.defaultPrevented) return;
     if (!onSheet(page, event)) return;
     event.preventDefault();
-    inputTaken("insertLineBreak", undefined, null, null);
+    inputTaken(lineKind("insertLineBreak"), undefined, null, null);
   };
 
   return { asked, started, ended, pastedFiles, markHeld, lineBroken };

@@ -37,6 +37,8 @@ const { wired, worn, fitted } = await import("/src/ui/dressing.ts");
 const { diagrams, sheeting } = await import("tisty-editor/read");
 const { unnavigated } = await import("/src/unnavigated.ts");
 const { sourceAt } = await import("/src/ui/pageSpots.ts");
+const { colonPairs } = await import("/src/ui/pageColons.ts");
+const { charsAt } = await import("tisty-editor/read");
 window.addEventListener("keydown", unnavigated);
 
 const freshen = (sheet: Element, html: string) => {
@@ -203,10 +205,29 @@ const consistent = async () => {
   return shown === drawn ? "ok" : `the page shows [${shown}] but the text draws [${drawn}]`;
 };
 
+const CONTAINERS = "details[data-at], blockquote[data-callout][data-at]";
+
+const colonsDrawn = () => {
+  const sheet = frame?.contentDocument?.querySelector(".page");
+  const coloned = [...(sheet?.querySelectorAll(CONTAINERS) ?? [])].flatMap((one) => {
+    const [from = 0, to = 0] = (one.getAttribute("data-at") ?? "").split("-").map(Number);
+    const start = text.lastIndexOf("\n", charsAt(text, from) - 1) + 1;
+    const line = text.slice(start, text.indexOf("\n", start) < 0 ? text.length : text.indexOf("\n", start));
+    const end = charsAt(text, to);
+    return /^[ \t>]*:::/.test(line) ? [`${start}-${text.slice(0, end).replace(/\s+$/, "").length}`] : [];
+  });
+  const paired = colonPairs(text).map(({ from, to }: { from: number; to: number }) => `${from}-${to}`);
+  const said = (spans: string[]) => [...spans].sort().join(" ");
+  return said(coloned) === said(paired)
+    ? "ok"
+    : `the core draws [${said(coloned)}] but the editor pairs [${said(paired)}]`;
+};
+
 Object.assign(window, {
   engines: {
     open,
     consistent,
+    colonsDrawn,
     drawn: () => awaited === 0,
     text: () => text,
     errors: () => [...errors],

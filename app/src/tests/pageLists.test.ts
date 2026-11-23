@@ -2,7 +2,15 @@ import { describe, expect, it, vi } from "vitest";
 import { pastedAround } from "../ui/pageBlocks";
 import { linedAs } from "../ui/pageEdits";
 import { addressed } from "../ui/pageFormats";
-import { joinedApart, joinedAt, nested, openedAbove, outdented, unmarked } from "../ui/pageLists";
+import {
+  hardBreak,
+  joinedApart,
+  joinedAt,
+  nested,
+  openedAbove,
+  outdented,
+  unmarked,
+} from "../ui/pageLists";
 import { balanced, worn, wornEach } from "../ui/pageMarks";
 
 const applied = (text: string, moved: ReturnType<typeof nested>) =>
@@ -120,6 +128,27 @@ describe("a format over words chosen across blocks", () => {
       "- item con `palabra`\n- `otro` item",
     ],
     [
+      "a fold's opening line, left as it is",
+      "Antes y más\n\n:::details Plegable\n\nContenido",
+      "y más\n\n:::details Plegable\n\nConte",
+      "**",
+      "Antes **y más**\n\n:::details Plegable\n\n**Conte**nido",
+    ],
+    [
+      "a fold's closing line, left as it is",
+      "Otro\n\n:::\n\nDespués",
+      "ro\n\n:::\n\nDes",
+      "**",
+      "Ot**ro**\n\n:::\n\n**Des**pués",
+    ],
+    [
+      "a fold inside a quote, left as it is",
+      "> Antes\n>\n> :::details Plegable\n>\n> Contenido",
+      "Antes\n>\n> :::details Plegable\n>\n> Conte",
+      "*",
+      "> *Antes*\n>\n> :::details Plegable\n>\n> *Conte*nido",
+    ],
+    [
       "a heading and a list",
       "## Titulo con palabra\n\n- item con palabra",
       "Titulo con palabra\n\n- item",
@@ -142,13 +171,19 @@ describe("Backspace and Enter at the start of a line's words", () => {
   it.each([
     ["a step loses its box first", "- [ ] paso a\n- [x] paso b", 6, "- paso a\n- [x] paso b", 2],
     ["then the bullet", "- paso a", 2, "paso a", 0],
-    ["a bullet loses its bullet", "## Uno\n\n- uno\n- dos", 10, "## Uno\n\nuno\n- dos", 8],
+    [
+      "a bullet loses its bullet and stands apart from the items under it",
+      "## Uno\n\n- uno\n- dos",
+      10,
+      "## Uno\n\nuno\n\n- dos",
+      8,
+    ],
     ["an item in a quote keeps the quote", "> - x", 4, "> x", 2],
     [
-      "a step freed of its bullet stands apart from the step above",
+      "a step freed of its bullet stands apart from the steps around it",
       "- [ ] uno\n- dos\n- [ ] tres",
       12,
-      "- [ ] uno\n\ndos\n- [ ] tres",
+      "- [ ] uno\n\ndos\n\n- [ ] tres",
       11,
     ],
     [
@@ -166,6 +201,20 @@ describe("Backspace and Enter at the start of a line's words", () => {
       12,
     ],
     ["a nested item becomes a paragraph of the item above", "- a\n  - b", 8, "- a\n\n  b", 7],
+    [
+      "a numbered item nested deep stands apart from the numbered one beside it",
+      "1. a\n    1. b\n    2. c",
+      12,
+      "1. a\n\n    b\n\n    2. c",
+      10,
+    ],
+    [
+      "a bullet over an item indented as deep as code raises that item, which code would not take",
+      "- uno\n    - sub",
+      2,
+      "uno\n\n- sub",
+      0,
+    ],
   ])("on Backspace, %s", (_, text, at, expected, caret) => {
     const moved = unmarked(text, at);
     const applied = moved
@@ -175,9 +224,139 @@ describe("Backspace and Enter at the start of a line's words", () => {
     expect(moved?.caret).toBe(caret);
   });
 
+  it.each([
+    ["a heading", "## Sección", 6, "\n\n"],
+    ["a heading inside a quote", "> ## Cita", 7, "\n>\n> "],
+  ])("on a line break in %s, opens a paragraph as Enter does", (_, text, at, expected) => {
+    expect(hardBreak(text, at)).toBe(expected);
+  });
+
   it("leaves Backspace inside an item's words alone", () => {
     expect(unmarked("- uno", 3)).toBeNull();
   });
+
+  const backspaced = (text: string, words: string) => {
+    const moved = unmarked(text, text.indexOf(words));
+    if (!moved) return { now: text, caret: -1 };
+    const [edit, caret] = linedAs(text, ...joinedApart(text, moved.edit, moved.caret));
+    return { now: text.slice(0, edit.from) + edit.insert + text.slice(edit.to), caret };
+  };
+
+  it.each([
+    ["bullets", "- uno\n    - sub a\n    - sub b", "uno\n\n- sub a\n- sub b"],
+    [
+      "bullets two spaces in, one list with the item after",
+      "- uno\n  - sub a\n  - sub b\n- dos",
+      "uno\n\n- sub a\n- sub b\n- dos",
+    ],
+    [
+      "steps, one list with the step after",
+      "- uno\n    - [ ] sub a\n    - [x] sub b\n- [ ] dos",
+      "uno\n\n- [ ] sub a\n- [x] sub b\n- [ ] dos",
+    ],
+    [
+      "numbered ones, the numbers after left as they are",
+      "1. cero\n2. uno\n    1. sub a\n    2. sub b\n3. dos",
+      "1. cero\n\nuno\n\n1. sub a\n2. sub b\n3. dos",
+    ],
+    ["numbered ones three spaces in", "1. uno\n   1. sub a\n2. dos", "uno\n\n1. sub a\n2. dos"],
+    [
+      "the items under them, a level each",
+      "- uno\n    - sub a\n        - hondo\n    - sub b\n- dos",
+      "uno\n\n- sub a\n    - hondo\n- sub b\n- dos",
+    ],
+    [
+      "items of a nested item, inside the item above",
+      "- a\n  - uno\n    - c\n  - d",
+      "- a\n\n  uno\n\n  - c\n  - d",
+    ],
+    [
+      "items whose words go on over a second line",
+      "- uno\n    - sub a\n      más de a\n    - sub b",
+      "uno\n\n- sub a\n  más de a\n- sub b",
+    ],
+    [
+      "an item whose words go on over a line with no indent",
+      "- uno\n    - sub a\nsigue a\n    - sub b",
+      "uno\n\n- sub a\nsigue a\n- sub b",
+    ],
+    [
+      "an item holding a fence, its code as it was",
+      "- uno\n    - sub\n      ```\n      - x\n        y\n      ```\n- dos",
+      "uno\n\n- sub\n  ```\n  - x\n    y\n  ```\n- dos",
+    ],
+    [
+      "an item holding indented code, still its code",
+      "- uno\n    - sub\n\n          código\n- dos",
+      "uno\n\n- sub\n\n      código\n- dos",
+    ],
+    [
+      "a paragraph of the item after a blank line, with the items",
+      "- uno\n\n  párrafo\n\n  - sub\n- dos",
+      "uno\n\npárrafo\n\n- sub\n- dos",
+    ],
+    [
+      "bullets apart from the numbered item after them",
+      "1. uno\n    - a\n    - b\n2. dos",
+      "uno\n\n- a\n- b\n\n2. dos",
+    ],
+    [
+      "numbered ones whose words go on, one list with the item after",
+      "1. uno\n    1. a\n       más\n2. dos",
+      "uno\n\n1. a\n   más\n2. dos",
+    ],
+    [
+      "items in a quote, inside the quote",
+      "> - uno\n>     - sub a\n> - dos",
+      "> uno\n>\n> - sub a\n> - dos",
+    ],
+    [
+      "items of a file with Windows line ends",
+      "- uno\r\n    - sub a\r\n    - sub b\r\n- dos",
+      "uno\r\n\r\n- sub a\r\n- sub b\r\n- dos",
+    ],
+    [
+      "indented code first, still code",
+      "- uno\n\n      código\n- dos",
+      "uno\n\n    código\n\n- dos",
+    ],
+    [
+      "a fence whose lines open with a tab, the tab kept",
+      "- uno\n    - sub\n      ```make\n      all:\n      \tcc x\n      ```\n- dos",
+      "uno\n\n- sub\n  ```make\n  all:\n  \tcc x\n  ```\n- dos",
+    ],
+    ["an item with a tab after its bullet", "-\tuno\n\t- sub", "uno\n\n- sub"],
+    [
+      "an item indented with spaces and a tab, its tab stops read",
+      "- a\n  \t- uno\n\t\t- sub",
+      "- a\n\n  \tuno\n\n\t- sub",
+    ],
+  ])("on Backspace at an item that holds others, raises them a level: %s", (_, text, expected) => {
+    const { now, caret } = backspaced(text, "uno");
+    expect(now).toBe(expected);
+    expect(now.slice(caret)).toMatch(/^uno/);
+  });
+
+  it("takes only the bullet of an item whose words go on and hold nothing more", () => {
+    expect(unmarked("- uno\n  más\n\nPárrafo", 2)?.edit).toEqual({ from: 0, to: 5, insert: "uno" });
+  });
+
+  it("raises the items under a step once its box and then its bullet are gone", () => {
+    const text = "- [ ] uno\n    - [ ] sub a\n- [x] dos";
+    const boxed = backspaced(text, "uno").now;
+    expect(boxed).toBe("- uno\n    - [ ] sub a\n- [x] dos");
+    expect(backspaced(boxed, "uno").now).toBe("uno\n\n- [ ] sub a\n- [x] dos");
+  });
+
+  it.each([
+    ["\n", "1. uno\n   más\n2. dos", "uno\n   más\n\n2. dos"],
+    ["\r\n", "1. uno\r\n   más\r\n2. dos", "uno\r\n   más\r\n\r\n2. dos"],
+  ])(
+    "on Backspace at an item whose words go on, keeps the numbered item after it a list, with %j",
+    (_, text, expected) => {
+      expect(backspaced(text, "uno").now).toBe(expected);
+    },
+  );
 
   it.each([
     [
@@ -287,6 +466,19 @@ describe("Backspace and Enter at the start of a line's words", () => {
     const [edit] = joinedApart(text, { from, to, insert: "" });
     expect(text.slice(0, edit.from) + edit.insert + text.slice(edit.to)).toBe(expected);
   });
+
+  it.each([
+    ["\n", "- [ ] a\n\nb\n\n- [x] c", 7, 9],
+    ["\r\n", "- [ ] a\r\n\r\nb\r\n\r\n- [x] c", 7, 11],
+  ])(
+    "takes words freed of a step back into the step above as one tight list, with %j",
+    (feed, text, from, to) => {
+      const [edit] = joinedApart(text, { from, to, insert: "" });
+      expect(text.slice(0, edit.from) + edit.insert + text.slice(edit.to)).toBe(
+        `- [ ] ab${feed}- [x] c`,
+      );
+    },
+  );
 
   it("reads a quote of many tabbed marks above a join in linear time", () => {
     const quoted = `>${"\t>".repeat(40)} x`;

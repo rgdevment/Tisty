@@ -14,6 +14,7 @@ import {
 import type { Beside } from "./pageBeside";
 import type { Caret } from "./pageCaret";
 import type { Choosing } from "./pageChoosing";
+import { colonsKept } from "./pageColons";
 import type { Formats } from "./pageFormats";
 import type { PageHistory } from "./pageHistory";
 import type { Laying } from "./pageLaying";
@@ -363,10 +364,11 @@ export const keysOn = (
     !event.isComposing;
 
   const takenOut = () => {
-    const picked = caret.chosenNow();
+    const picked = caret.chosenWhole();
     const one = picked && balanced(hands.text(), picked);
     if (!one) return false;
-    put({ ...one, insert: "" }, one.from);
+    const gone = colonsKept(hands.text(), { ...one, insert: "" });
+    put(gone, gone.from);
     return true;
   };
 

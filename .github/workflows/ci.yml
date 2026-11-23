@@ -232,6 +232,7 @@ jobs:
       - run: node app/scripts/engines-pace.mjs
       - run: node app/scripts/engines-fuzz.mjs
       - run: node app/scripts/engines-paper.mjs
+      - run: node app/scripts/engines-colons.mjs
 
   engines-edge:
     name: the page writes as it should in Edge on Windows

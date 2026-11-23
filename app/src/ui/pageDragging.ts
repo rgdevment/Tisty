@@ -1,4 +1,5 @@
 import type { Caret } from "./pageCaret";
+import { colonsCrossed, colonsMoved } from "./pageColons";
 import type { Edit, Span } from "./pageEdits";
 import type { Laying } from "./pageLaying";
 import { balanced } from "./pageMarks";
@@ -31,6 +32,9 @@ export const movedWords = (text: string, words: Span, to: number): [Edit, number
     ];
   return [{ from: words.from, to, insert: text.slice(words.to, to) + said }, to];
 };
+
+const carriedTo = (text: string, words: Span, to: number) =>
+  colonsCrossed(text, words) ? colonsMoved(text, words, to) : movedWords(text, words, to);
 
 // The window takes the system's drags for its files, so words are carried by the pointer, as a block by its grip.
 export const draggingOn = (writer: Writer, caret: Caret, laying: Laying) => {
@@ -73,7 +77,7 @@ export const draggingOn = (writer: Writer, caret: Caret, laying: Laying) => {
     const to = caret.spanOfRange(point)?.from;
     const text = hands.text();
     if (text.slice(was.words.from, was.words.to) !== was.said) return;
-    const moved = to === undefined ? null : movedWords(text, was.words, to);
+    const moved = to === undefined ? null : carriedTo(text, was.words, to);
     if (moved) laying.put(...moved);
   };
 
@@ -86,7 +90,7 @@ export const draggingOn = (writer: Writer, caret: Caret, laying: Laying) => {
     const point = pointAt(page, event.clientX, event.clientY);
     if (!range || range.collapsed || !point) return;
     if (range.comparePoint(point.startContainer, point.startOffset) !== 0) return;
-    const chosen = caret.chosenNow();
+    const chosen = caret.chosenWhole();
     if (!chosen) return;
     event.preventDefault();
     const text = hands.text();

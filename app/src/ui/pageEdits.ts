@@ -54,7 +54,7 @@ export const landedAfter = (wanted: Edit, asked: Edit, at: number) => {
   if (at < wanted.from) return at;
   const before = wanted.from - asked.from;
   if (at <= wanted.from + wanted.insert.length) return at - before;
-  return at - before - (asked.to - wanted.to);
+  return at - before - (asked.to - wanted.to) + (asked.insert.length - wanted.insert.length);
 };
 
 const segmenter = (granularity: "grapheme" | "word") =>

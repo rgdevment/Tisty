@@ -3,6 +3,7 @@ import { begunOn } from "./pageBegun";
 import { besideOn } from "./pageBeside";
 import { caretOn } from "./pageCaret";
 import { choosingOn } from "./pageChoosing";
+import { colonsCarried } from "./pageColons";
 import { draggingOn } from "./pageDragging";
 import type { Edit } from "./pageEdits";
 import { formatsOn } from "./pageFormats";
@@ -150,9 +151,9 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
     const text = hands.text();
     const blocks = choosing.span();
     if (blocks) return text.slice(blocks.from, blocks.to);
-    const one = caret.chosenNow();
+    const one = caret.chosenWhole();
     const whole = one && balanced(text, one);
-    return whole ? text.slice(whole.from, whole.to) : null;
+    return whole ? colonsCarried(text, whole) : null;
   };
   const cut = () => {
     if (choosing.choosing()) return choosing.dropped();

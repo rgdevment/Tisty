@@ -52,6 +52,14 @@ const pressedOnceDrawn = async (frame, press, key, many) => {
   }
 };
 
+const FOLD_WITH_TWO =
+  "# Marcas\n\nAntes y más\n\n:::details Plegable\n\nContenido\n\nOtro\n\n:::\n\nDespués\n";
+
+const ITEMS_UNDER_ONE = "# Listas\n\n- uno\n    - sub a\n    - sub b\n- dos\n";
+
+const FOLD_AT_THE_END =
+  "# Marcas\n\nAntes y más\n\n:::details Plegable\n\nContenido\n\n| a | b |\n|---|---|\n| 1 | 2 |\n\n:::\n";
+
 const caretInWords = async (frame, words, offset) => {
   await drawnFirst(frame);
   await frame.evaluate(
@@ -244,8 +252,8 @@ export const CASES = [
     name: "backspaceListStart",
     doc: WRITING,
     run: async ({ clickAt, typed, press, page, frame }) => { await clickAt("dos", true); await press("Backspace"); },
-    was: "- ",
-    now: "\n",
+    was: "- dos",
+    now: "\ndos\n",
   },
   {
     name: "wordBackspace",
@@ -1551,8 +1559,8 @@ export const CASES = [
       await caretInWords(frame, "uno", 0);
       await pressedOnceDrawn(frame, press, "Backspace", 2);
     },
-    was: "\n\n- ",
-    now: "",
+    was: "\n\n- uno",
+    now: "uno\n",
   },
   {
     name: "backspaceThriceAtAStepTakesItsWordsIntoTheStepAbove",
@@ -1890,6 +1898,213 @@ export const CASES = [
     was: "\n  - ",
     now: "",
   },
+  {
+    name: "typeOverAChoiceToTheEndOfAClosedFold",
+    doc: FOLD_AT_THE_END,
+    run: async ({ clickAt, command, typed, frame }) => {
+      await clickAt("Antes");
+      await caretInWords(frame, "Antes y más", 6);
+      await command("Shift+End");
+      await typed("X");
+    },
+    was: "y más\n\n:::details Plegable\n\nContenido\n\n| a | b |\n|---|---|\n| 1 | 2 |\n\n:::",
+    now: "X",
+  },
+  {
+    name: "backOverAChoiceToTheEndOfAnOpenFold",
+    doc: `${FOLD_AT_THE_END}\nDespués\n`,
+    run: async ({ clickAt, press, frame }) => {
+      await clickAt("Antes");
+      await foldsOpened(frame);
+      await chosenToTheEndOf(frame, ["Antes y más", 6], ".page details .table");
+      await press("Backspace");
+    },
+    was: "y más\n\n:::details Plegable\n\nContenido\n\n| a | b |\n|---|---|\n| 1 | 2 |\n\n:::",
+    now: "",
+  },
+  {
+    name: "backspaceAtAFirstItemLeavesItsWordsApartFromTheList",
+    doc: "# Marcas\n\nAntes\n\n- uno\n- dos\n- tres\n\nDespués\n",
+    run: async ({ clickAt, press, frame }) => {
+      await clickAt("uno");
+      await caretInWords(frame, "uno", 0);
+      await press("Backspace");
+    },
+    was: "- uno",
+    now: "uno\n",
+  },
+  {
+    name: "twoBackspacesAtATaskLeaveItsWordsApartFromTheTasks",
+    doc: "# Marcas\n\n- [ ] a\n- [ ] b\n- [x] c\n",
+    run: async ({ clickAt, press, frame }) => {
+      await clickAt("b");
+      await caretInWords(frame, "b", 0);
+      await press("Backspace", 2);
+    },
+    was: "- [ ] b",
+    now: "\nb\n",
+  },
+  {
+    name: "shiftEnterInAHeadingStartsAParagraph",
+    doc: "# Marcas\n\nAntes\n\n## Sección\n\nTexto bajo\n",
+    run: async ({ clickAt, press, typed, frame }) => {
+      await clickAt("Antes");
+      await caretInWords(frame, "Sección", 3);
+      await press("Shift+Enter");
+      await typed("X");
+    },
+    was: "",
+    now: "\n\nX",
+  },
+  {
+    name: "boldOverAChoiceIntoAFoldLeavesItsOpeningLine",
+    doc: FOLD_WITH_TWO,
+    run: async ({ clickAt, command, frame }) => {
+      await clickAt("Antes");
+      await foldsOpened(frame);
+      await drawnFirst(frame);
+      await chosenIn(frame, ["Antes y más", 6], ["Contenido", 5]);
+      await command("b");
+    },
+    was: "y más\n\n:::details Plegable\n\nConte",
+    now: "**y más**\n\n:::details Plegable\n\n**Conte**",
+  },
+  {
+    name: "typeOverAChoiceIntoAnOpenFoldUndoesIt",
+    doc: `${FOLD_AT_THE_END}\nDespués\n`,
+    run: async ({ clickAt, typed, frame }) => {
+      await clickAt("Antes");
+      await foldsOpened(frame);
+      await drawnFirst(frame);
+      await chosenIn(frame, ["Antes y más", 6], ["Contenido", 5]);
+      await typed("X");
+    },
+    was: "y más\n\n:::details Plegable\n\nContenido\n\n| a | b |\n|---|---|\n| 1 | 2 |\n\n:::",
+    now: "Xnido\n\n| a | b |\n|---|---|\n| 1 | 2 |",
+  },
+  {
+    name: "cutAChoiceIntoAnOpenFoldUndoesIt",
+    doc: `${FOLD_AT_THE_END}\nDespués\n`,
+    run: async ({ clickAt, cut, frame }) => {
+      await clickAt("Antes");
+      await foldsOpened(frame);
+      await drawnFirst(frame);
+      await chosenIn(frame, ["Antes y más", 6], ["Contenido", 5]);
+      await cut();
+    },
+    was: "y más\n\n:::details Plegable\n\nContenido\n\n| a | b |\n|---|---|\n| 1 | 2 |\n\n:::",
+    now: "nido\n\n| a | b |\n|---|---|\n| 1 | 2 |",
+  },
+  {
+    name: "typeOverAChoiceIntoAClosedFoldsNameUndoesIt",
+    doc: `${FOLD_AT_THE_END}\nDespués\n`,
+    run: async ({ clickAt, typed, frame }) => {
+      await clickAt("Antes");
+      await drawnFirst(frame);
+      await chosenIn(frame, ["Antes y más", 6], ["Plegable", 4]);
+      await typed("X");
+    },
+    was: "y más\n\n:::details Plegable\n\nContenido\n\n| a | b |\n|---|---|\n| 1 | 2 |\n\n:::",
+    now: "X\n\nContenido\n\n| a | b |\n|---|---|\n| 1 | 2 |",
+  },
+  {
+    name: "backOverAChoiceOutOfAnOpenFoldKeepsItsClosingLine",
+    doc: FOLD_WITH_TWO,
+    run: async ({ clickAt, press, frame }) => {
+      await clickAt("Antes");
+      await foldsOpened(frame);
+      await drawnFirst(frame);
+      await chosenIn(frame, ["Otro", 2], ["Después", 3]);
+      await press("Backspace");
+    },
+    was: "ro\n\n:::\n\nDes",
+    now: "\n\n:::\n\n",
+  },
+  {
+    name: "typeOverWordsChosenInAFoldsNameWritesInTheName",
+    doc: FOLD_WITH_TWO,
+    run: async ({ clickAt, typed, frame }) => {
+      await clickAt("Antes");
+      await foldsOpened(frame);
+      await drawnFirst(frame);
+      await chosenIn(frame, ["Plegable", 2], ["Plegable", 4]);
+      await typed("X");
+    },
+    was: "eg",
+    now: "X",
+  },
+  {
+    name: "backspaceAtAnItemRaisesTheItemsUnderIt",
+    doc: ITEMS_UNDER_ONE,
+    run: async ({ clickAt, press, frame }) => {
+      await clickAt("uno");
+      await caretInWords(frame, "uno", 0);
+      await press("Backspace");
+    },
+    was: "- uno\n    - sub a\n    ",
+    now: "uno\n\n- sub a\n",
+  },
+  {
+    name: "backspaceAtANumberedItemRaisesItsItemsAndTheirsALevel",
+    doc: "# Listas\n\n1. cero\n2. uno\n    1. sub a\n        1. hondo\n    2. sub b\n3. dos\n",
+    run: async ({ clickAt, press, frame }) => {
+      await clickAt("uno");
+      await caretInWords(frame, "uno", 0);
+      await press("Backspace");
+    },
+    was: "2. uno\n    1. sub a\n        1. hondo\n    ",
+    now: "\nuno\n\n1. sub a\n    1. hondo\n",
+  },
+  {
+    name: "twoBackspacesAtAStepRaiseTheStepsUnderIt",
+    doc: "# Pasos\n\n- [ ] uno\n    - [ ] sub a\n      más de a\n- [x] dos\n",
+    run: async ({ clickAt, press, frame }) => {
+      await clickAt("uno");
+      await caretInWords(frame, "uno", 0);
+      await pressedOnceDrawn(frame, press, "Backspace", 2);
+    },
+    was: "- [ ] uno\n    - [ ] sub a\n    ",
+    now: "uno\n\n- [ ] sub a\n",
+  },
+  {
+    name: "backspaceAtAnItemRaisesTheItemsUnderItWithWindowsLineEnds",
+    doc: ITEMS_UNDER_ONE.replaceAll("\n", "\r\n"),
+    run: async ({ clickAt, press, frame }) => {
+      await clickAt("uno");
+      await caretInWords(frame, "uno", 0);
+      await press("Backspace");
+    },
+    was: "- uno\r\n    - sub a\r\n    ",
+    now: "uno\r\n\r\n- sub a\r\n",
+  },
+  {
+    name: "backspaceAtAnItemHoldingAFoldsOpeningLineKeepsItsClosingLine",
+    doc: "# Pliegues\n\n- uno\n\n  :::details Plegable\n\n  dentro\n\n:::\n\nFin.\n",
+    run: async ({ clickAt, press, frame }) => {
+      await clickAt("uno");
+      await caretInWords(frame, "uno", 0);
+      await press("Backspace");
+    },
+    was: "- uno\n\n  :::details Plegable\n\n  ",
+    now: "uno\n\n:::details Plegable\n\n",
+  },
+  {
+    name: "undoAfterItemsRoseGivesTheListBackWhole",
+    doc: ITEMS_UNDER_ONE,
+    run: async ({ clickAt, press, command, page, frame }) => {
+      await clickAt("uno");
+      await caretInWords(frame, "uno", 0);
+      await press("Backspace");
+      await drawnFirst(frame);
+      await command("z");
+      await drawnFirst(frame);
+      const back = await page.evaluate(() => window.engines.text());
+      if (back !== ITEMS_UNDER_ONE) throw new Error(`undo left ${JSON.stringify(back)}`);
+      await command("Shift+z");
+    },
+    was: "- uno\n    - sub a\n    ",
+    now: "uno\n\n- sub a\n",
+  },
 ];
 
 const macIn = (frame) => frame.evaluate(() => navigator.userAgent.includes("Macintosh"));
@@ -1949,4 +2164,18 @@ const chosenPastBlock = async (frame, words, offset, block) => {
     if (!one) throw new Error(`no ${said} on the page`);
     getSelection().extend(sheet, [...sheet.childNodes].indexOf(one) + 1);
   }, block);
+};
+
+const foldsOpened = (frame) =>
+  frame.evaluate(() => {
+    for (const fold of document.querySelectorAll(".page details")) fold.open = true;
+  });
+
+const chosenToTheEndOf = async (frame, [words, offset], selector) => {
+  await caretInWords(frame, words, offset);
+  await frame.evaluate((holder) => {
+    const end = document.querySelector(holder);
+    if (!end) throw new Error(`no ${holder} on the page`);
+    getSelection().extend(end, end.childNodes.length);
+  }, selector);
 };

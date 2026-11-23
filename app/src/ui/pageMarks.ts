@@ -1,3 +1,4 @@
+import { colonLine } from "./pageColons";
 import { type Edit, lineEnd, lineStart, pastFeeds, type Span } from "./pageEdits";
 
 export type Marks = readonly (readonly [string, string])[];
@@ -521,7 +522,7 @@ export const wornEach = (text: string, one: Span, open: string, close: string): 
   const lines = text.slice(one.from, one.to).split(/(\r?\n)/);
   const insert = lines
     .map((line, at) => {
-      if (at % 2 === 1) return line;
+      if (at % 2 === 1 || colonLine(at === 0 ? lineAt(text, one.from) : line)) return line;
       const lead = at === 0 ? "" : (LINE_MARKS.exec(line)?.[0] ?? "");
       const body = line.slice(lead.length);
       const words = body.trimEnd();

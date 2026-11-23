@@ -120,11 +120,11 @@ export const parted = (text: string, at: number, inCode: boolean): string => {
   return quote ? `\n${quote.trimEnd()}\n${quote}` : "\n\n";
 };
 
-const LEAD = /^[ \t]*(?:>[ \t]?)*[ \t]*/;
+export const LEAD = /^[ \t]*(?:>[ \t]?)*[ \t]*/;
 
 export const hardBreak = (text: string, at: number) => {
   const { line } = lineAt(text, at);
-  if (HEADED.test(line)) return "\n";
+  if (HEADED.test(line)) return parted(text, at, false);
   const item = LISTED.exec(line);
   const lead = item
     ? `${item[1]}${" ".repeat((item[2]?.length ?? 0) + (item[5]?.length ?? 0))}`
@@ -143,19 +143,133 @@ export const leftBehind = (text: string, at: number): { from: number; to: number
 
 const wordless = (line: string) => line.replace(/^[\s>]*/, "") === "";
 
+function* linesBelow(text: string, start: number) {
+  for (let from = text.indexOf("\n", start) + 1; from > 0; ) {
+    const ends = text.indexOf("\n", from);
+    yield { from, line: text.slice(from, ends < 0 ? text.length : ends).replace(/\r$/, "") };
+    from = ends + 1;
+  }
+}
+
+const columns = (space: string, from = 0) => {
+  let at = from;
+  for (const one of space) at = one === "\t" ? at + 4 - (at % 4) : at + 1;
+  return at - from;
+};
+
+const quotedAs = (quotes: number) => new RegExp(`^(?:[ \\t]*>){${quotes}}(?:(?<=>)[ \\t])?`);
+
+const kindOf = (line: string) => {
+  const item = LISTED.exec(line);
+  return item ? (item[4] ?? item[2]) : null;
+};
+
+const opensBlock = (words: string) =>
+  isItem(words) || STANDS_ALONE.test(words) || words.startsWith(">");
+
+const movedLeft = (line: string, quote: RegExp, by: number) => {
+  const mark = quote.exec(line)?.[0] ?? "";
+  let cut = mark.length;
+  let at = 0;
+  while (at < by && /[ \t]/.test(line[cut] ?? "")) {
+    at += columns(line[cut], at);
+    cut += 1;
+  }
+  return `${mark}${" ".repeat(Math.max(0, at - by))}${line.slice(cut)}`;
+};
+
+type Held = { readonly end: number; readonly text: string };
+
+type Indented = { readonly quote: RegExp; readonly own: number; readonly content: number };
+
+type Risen = { readonly from: number; readonly first: number; readonly apart: boolean };
+
+const linesUnder = (text: string, ends: number, said: string, indented: Indented) => {
+  const { quote, own, content } = indented;
+  const walked = fenceWalker();
+  let open = walked(said).open;
+  let goesOn = !open && !STANDS_ALONE.test(said);
+  let words = ends;
+  let end = ends;
+  let blank = -1;
+  let risen: Risen | null = null;
+  let top: string | null = null;
+  for (const { from, line } of linesBelow(text, ends)) {
+    const mark = quote.exec(line)?.[0];
+    if (mark === undefined) break;
+    const inner = line.slice(mark.length);
+    const space = /^[ \t]*/.exec(inner)?.[0] ?? "";
+    const rest = inner.slice(space.length);
+    if (!rest) {
+      if (blank < 0) blank = from;
+      continue;
+    }
+    const at = columns(space);
+    const deep = at >= content;
+    const coded = open;
+    open = walked(inner).open;
+    const opens = !coded && at - (deep ? content : own) < 4 && opensBlock(rest);
+    if (!deep && (blank >= 0 || opens || !goesOn)) break;
+    if (!risen && (blank >= 0 || opens))
+      risen = { from: blank >= 0 ? blank : from, first: at, apart: blank >= 0 };
+    if (risen) end = from + line.length;
+    else words = from + line.length;
+    if (risen && deep && at <= risen.first && !coded) top = rest;
+    blank = -1;
+    goesOn = !coded && !open && !STANDS_ALONE.test(rest);
+  }
+  return { words, end, risen, top };
+};
+
+const heldUnder = (
+  text: string,
+  [start, line]: readonly [number, string],
+  found: RegExpExecArray,
+  it: Indent,
+) => {
+  const ends = start + line.length;
+  const quote = quotedAs(it.quotes);
+  const own = columns(found[1].slice(it.quote.length));
+  const gap = columns(found[5], own + found[2].length);
+  const content = own + found[2].length + (gap > 4 ? 1 : gap);
+  const said = line.slice(found[0].length);
+  const under = linesUnder(text, ends, said, { quote, own, content });
+  const { risen, end } = under;
+  if (!risen) return { end: under.words, text: text.slice(ends, under.words), joins: () => false };
+  const shift = (risen.first - content >= 4 ? content : risen.first) - own;
+  const lifted = text
+    .slice(risen.from, end)
+    .split("\n")
+    .map((one) => movedLeft(one, quote, shift))
+    .join("\n");
+  const apart = risen.apart ? "" : `${found[1].trimEnd()}\n`;
+  const kind = under.top === null ? null : kindOf(under.top);
+  return {
+    end,
+    text: `${text.slice(ends, risen.from)}${apart}${lifted}`,
+    joins: (next: string) => kind !== null && kindOf(next) === kind,
+  };
+};
+
 const freed = (
   text: string,
   [start, line]: readonly [number, string],
   [lead, marks]: readonly [string, number],
   apartFrom: (next: string) => boolean,
+  held: Held = { end: start + line.length, text: "" },
 ): Moved => {
-  const ends = text.indexOf("\n", start);
+  const ends = text.indexOf("\n", held.end);
   const next = ends < 0 ? null : lineAt(text, ends + 1).line;
   const above = start > 0 && !wordless(lineAt(text, start - 1).line) ? `${lead.trimEnd()}\n` : "";
   const below = next !== null && apartFrom(next) ? `\n${lead.trimEnd()}` : "";
-  const insert = `${above}${lead}${line.slice(marks)}${below}`;
+  const words = start + line.length;
+  const to = below || held.text !== text.slice(words, held.end) ? held.end : words;
+  const insert = `${above}${lead}${line.slice(marks)}${to > words ? held.text : ""}${below}`;
   return {
-    edit: { from: start, to: start + line.length, insert },
+    edit:
+      to > words && ends >= 0
+        ? { from: start, to: ends + 1, insert: `${insert}${text.slice(to, ends + 1)}` }
+        : { from: start, to, insert },
     caret: start + above.length + lead.length,
   };
 };
@@ -170,9 +284,13 @@ export const unmarked = (text: string, at: number): Moved | null => {
     const from = start + found[0].length - box;
     return { edit: { from, to: start + found[0].length, insert: "" }, caret: from };
   }
-  // Words freed of their mark would read as part of the item above, or of a numbered one below, without a blank line.
-  const numbered = (next: string) => LISTED.exec(next)?.[3] !== undefined;
-  return freed(text, [start, line], [found[1] ?? "", found[0].length], numbered);
+  const it = indentOf(line);
+  const held = it ? heldUnder(text, [start, line], found, it) : null;
+  const listed = (next: string) => {
+    const below = indentOf(next);
+    return below !== null && below.lead - (it?.lead ?? 0) < 4 && !held?.joins(next);
+  };
+  return freed(text, [start, line], [found[1] ?? "", found[0].length], listed, held ?? undefined);
 };
 
 const HEADED = /^([ \t]*(?:>[ \t]?)*[ \t]*)#{1,6}[ \t]+/;
@@ -207,24 +325,39 @@ export const unlined = (text: string, at: number): Moved | null => {
 
 const FENCE = /^((?:[ \t]*>)*)[ \t]*(`{3,}|~{3,})(.*)$/;
 const IN_QUOTE = /^[ \t]*>/;
-const STANDS_ALONE =
+export const STANDS_ALONE =
   /^[ \t]*(?:>[ \t]?)*[ \t]*(?:#{1,6}(?:[ \t]|$)|`{3,}|~{3,}|\||(?:-[ \t]*){3,}$|(?:\*[ \t]*){3,}$|(?:_[ \t]*){3,}$|=+[ \t]*$)/;
 
 // A fence closes only on a run of its own mark at least as long, or where the quote it opened in ends.
-const inFence = (text: string, at: number) => {
+export const fenceWalker = () => {
   let open: { mark: string; quoted: boolean } | null = null;
-  for (const raw of text.slice(0, at).split("\n")) {
+  return (raw: string) => {
     const line = raw.replace(/\r$/, "");
     if (open?.quoted && !IN_QUOTE.test(line)) open = null;
+    const before = open !== null;
     const found = FENCE.exec(line);
-    if (!found) continue;
-    const [, quotes, mark, rest] = found;
-    if (open === null) {
-      if (mark[0] !== "`" || !rest.includes("`")) open = { mark, quoted: quotes !== "" };
-    } else if (mark[0] === open.mark[0] && mark.length >= open.mark.length && !rest.trim())
-      open = null;
-  }
-  return open !== null;
+    if (found) {
+      const [, quotes, mark, rest] = found;
+      if (open === null) {
+        if (mark[0] !== "`" || !rest.includes("`")) open = { mark, quoted: quotes !== "" };
+      } else if (mark[0] === open.mark[0] && mark.length >= open.mark.length && !rest.trim())
+        open = null;
+    }
+    return { coded: before || open !== null, open: open !== null };
+  };
+};
+
+const inFence = (text: string, at: number) => {
+  const walked = fenceWalker();
+  let inside = false;
+  for (const raw of text.slice(0, at).split("\n")) inside = walked(raw).open;
+  return inside;
+};
+
+export const headingAt = (text: string, at: number) => {
+  const { line } = lineAt(text, at);
+  const item = LISTED.exec(line);
+  return HEADED.test(item ? line.slice(item[0].length) : line) && !inFence(text, at);
 };
 
 const paragraphLine = (line: string) =>
@@ -241,6 +374,33 @@ const heldBefore = (text: string, at: number) => {
   return over > 0;
 };
 
+const tightened = (
+  text: string,
+  [asked, at]: [Edit, number],
+  left: string,
+  landed: number,
+): [Edit, number] => {
+  const { line } = lineAt(left, landed);
+  const own = indentOf(line);
+  const ends = left.indexOf("\n", landed);
+  const after = ends < 0 ? -1 : left.indexOf("\n", ends + 1);
+  const next = after < 0 ? null : indentOf(lineAt(left, after + 1).line);
+  const blank = ends >= 0 && wordless(lineAt(left, ends + 1).line);
+  const same = own && next && next.quote === own.quote && next.lead === own.lead;
+  if (!blank || !same || !paragraphLine(lineAt(text, asked.to).line) || inFence(left, ends))
+    return [asked, at];
+  const shift = asked.to - landed;
+  const gap = ends + 1 + shift;
+  return [
+    {
+      from: asked.from,
+      to: after + 1 + shift,
+      insert: `${asked.insert}${text.slice(asked.to, gap)}`,
+    },
+    at,
+  ];
+};
+
 // Words joined across a line end would take a numbered item under them, which cannot open a list there, as their own.
 export const joinedApart = (
   text: string,
@@ -253,10 +413,11 @@ export const joinedApart = (
   const left = text.slice(0, asked.from) + asked.insert + text.slice(asked.to);
   if (landed === 0 || left[landed - 1] === "\n") return kept;
   const { start, line } = lineAt(left, landed);
+  if (isItem(line)) return tightened(text, kept, left, landed);
   const ends = left.indexOf("\n", landed);
   const item = ends < 0 ? null : LISTED.exec(lineAt(left, ends + 1).line);
   const number = item?.[3];
-  const deep = (item?.[1].replace(/^.*>/, "").replace(/\t/g, "    ").length ?? 0) >= 4;
+  const deep = columns(item?.[1].replace(/^.*>/, "") ?? "") >= 4;
   if (
     !item ||
     number === undefined ||

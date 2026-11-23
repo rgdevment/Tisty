@@ -128,6 +128,35 @@ export const unwritable = (node: Node) =>
 
 export const inCode = (node: Node) => Boolean(elementOf(node)?.closest("code"));
 
+export const PIECES = "[contenteditable='false'], img";
+export const ATOMS = `${PIECES}, button`;
+const DRESSING = "button, [contenteditable='false']:not([data-src])";
+
+export const withoutDressing = (range: Range) => {
+  const between = range.cloneContents();
+  for (const one of between.querySelectorAll(DRESSING)) one.remove();
+  return between;
+};
+
+export const sideOf = (holder: Element, node: Node, offset: number, back: boolean) => {
+  const side = holder.ownerDocument.createRange();
+  side.selectNodeContents(holder);
+  if (back) side.setEnd(node, offset);
+  else side.setStart(node, offset);
+  return side;
+};
+
+export const emptyOfWords = (range: Range) => {
+  const between = withoutDressing(range);
+  return shownWords(between.textContent ?? "") === "" && !between.querySelector(ATOMS);
+};
+
+export const wordsStartAt = (holder: Element, node: Node, offset: number) =>
+  emptyOfWords(sideOf(holder, node, offset, true));
+
+export const wordsEndAt = (holder: Element, node: Node, offset: number) =>
+  emptyOfWords(sideOf(holder, node, offset, false));
+
 // A task's page keeps its sections in place, unless its shape itself is being changed.
 export const sectioned = (page: Document) => {
   const look = page.documentElement.classList;

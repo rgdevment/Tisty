@@ -11,12 +11,12 @@ const PAGES = {
     placed: `${TITLE}<p data-at="5-23"><span data-src="5-22">Hola mundo bonito</span></p><p data-at="24-41"><span data-src="24-40">Segundo párrafo</span></p>`,
   },
   freedItem: {
-    body: "# T\n\nAntes\n\nuno\n- dos\n",
-    placed: `${TITLE}${ANTES}<p data-at="12-16"><span data-src="12-15">uno</span></p><ul data-at="16-22"><li data-at="16-22"><span data-src="18-21">dos</span></li></ul>`,
+    body: "# T\n\nAntes\n\nuno\n\n- dos\n",
+    placed: `${TITLE}${ANTES}<p data-at="12-16"><span data-src="12-15">uno</span></p><ul data-at="17-23"><li data-at="17-23"><span data-src="19-22">dos</span></li></ul>`,
   },
   freedTask: {
-    body: "# T\n\n- [ ] a\n\nb\n- [x] c\n",
-    placed: `${TITLE}<ul data-at="5-14"><li class="task" data-at="5-14"><span class="check" data-done="false"></span><span data-src="11-12">a</span></li></ul><p data-at="14-16"><span data-src="14-15">b</span></p><ul data-at="16-24"><li class="task" data-at="16-24"><span class="check" data-done="true"></span><span data-src="22-23">c</span></li></ul>`,
+    body: "# T\n\n- [ ] a\n\nb\n\n- [x] c\n",
+    placed: `${TITLE}<ul data-at="5-14"><li class="task" data-at="5-14"><span class="check" data-done="false"></span><span data-src="11-12">a</span></li></ul><p data-at="14-16"><span data-src="14-15">b</span></p><ul data-at="17-25"><li class="task" data-at="17-25"><span class="check" data-done="true"></span><span data-src="23-24">c</span></li></ul>`,
   },
   split: {
     body: "# T\n\nSegundo\n\n párrafo\n",
@@ -206,7 +206,7 @@ describe("a key on the caret laid at a line's edge", () => {
     const text = opened(PAGES.freedItem);
     writing?.placeAt(12);
     asked("deleteContentBackward", between(wordsEnd("Antes"), wordsStart("uno")));
-    expect(text()).toBe("# T\n\nAntesuno\n- dos\n");
+    expect(text()).toBe("# T\n\nAntesuno\n\n- dos\n");
   });
 
   it("takes a step's words, freed of their box and bullet, back into the step above", () => {

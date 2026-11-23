@@ -1,5 +1,6 @@
 import { byteFrom, unitFrom } from "../placing";
 import { blankAt, lineEnd, type Span } from "./pageEdits";
+import { foldReached } from "./pageFolds";
 import { closing, opening } from "./pageLists";
 import { wordsFrom } from "./pageMarks";
 import {
@@ -14,7 +15,7 @@ import {
   WHOLE,
 } from "./pageNodes";
 import { placeOf, placeSaid } from "./pagePlaces";
-import { endOf, GHOST, ghostAt, sourceAt, spotOf, startOf, topsAt } from "./pageSpots";
+import { endIn, endOf, GHOST, ghostAt, sourceAt, spotOf, startOf, topsAt } from "./pageSpots";
 import { choiceKept, keptUnlaid, type Point, type Writer } from "./pageWriter";
 
 export type Caret = ReturnType<typeof caretOn>;
@@ -31,6 +32,27 @@ export const caretOn = (writer: Writer) => {
     return held?.rangeCount ? held.getRangeAt(0) : null;
   };
 
+  const nameLine = (text: string, box: Element | null | undefined) => {
+    const span = placeOf(box);
+    if (!span) return null;
+    const start = unitFrom(writer.reckoned, text, span[0]);
+    const ends = text.indexOf("\n", start);
+    const line = text.slice(start, ends < 0 ? text.length : ends).replace(/\r$/, "");
+    const named = /^[ \t]*(?:>[ \t]?)*[ \t]*:::[ \t]*details[ \t]*/.exec(line);
+    const name = start + (named?.[0].length ?? line.length);
+    return { name, end: start + line.length, colon: named !== null };
+  };
+
+  const nameSource = (text: string, node: Node, offset: number) => {
+    const summary = elementOf(node)?.closest(".page details[data-at] > summary");
+    const line = summary && nameLine(text, summary.parentElement);
+    if (!summary || !line?.colon) return null;
+    const before = page.createRange();
+    before.selectNodeContents(summary);
+    before.setEnd(node, offset);
+    return Math.min(line.name + before.toString().length, line.end);
+  };
+
   const spanOfRange = (range: AbstractRange, reached = false): Span | null => {
     const text = hands.text();
     const same = writer.kept && range.collapsed && range.startContainer === writer.kept.node;
@@ -38,8 +60,10 @@ export const caretOn = (writer: Writer) => {
       return { from: writer.kept.at, to: writer.kept.at };
     const known = writer.reckoned;
     const opening = reached && !range.collapsed;
-    const from = sourceAt(text, range.startContainer, range.startOffset, known, opening);
-    const to = range.collapsed ? from : sourceAt(text, range.endContainer, range.endOffset, known);
+    const pointAt = (node: Node, offset: number, opens: boolean) =>
+      nameSource(text, node, offset) ?? sourceAt(text, node, offset, known, opens);
+    const from = pointAt(range.startContainer, range.startOffset, opening);
+    const to = range.collapsed ? from : pointAt(range.endContainer, range.endOffset, false);
     if (from === null || to === null) return null;
     return { from: Math.min(from, to), to: Math.max(from, to) };
   };
@@ -87,13 +111,30 @@ export const caretOn = (writer: Writer) => {
     return range && (unbegun("insertText", range) ?? spanOfRange(range));
   };
 
-  const chosenNow = () => {
+  const spanChosen = (range: AbstractRange, reaching = false): Span | null => {
+    const span = spanOfRange(range, reaching);
+    const reach = span && foldReached(range);
+    if (!span || !reach) return span;
+    const text = hands.text();
+    const place = reach.whole ? placeOf(reach.block) : null;
+    let end = place
+      ? unitFrom(writer.reckoned, text, place[1])
+      : (sourceAt(text, ...endIn(reach.block), writer.reckoned) ?? span.to);
+    while (end > span.from && /[\r\n]/.test(text[end - 1] ?? "")) end--;
+    return { from: span.from, to: end };
+  };
+
+  const chosenAs = (spanOf: (range: AbstractRange) => Span | null) => {
     const kept = choiceKept(writer.kept);
     if (kept) return kept;
     const range = chosen();
-    const one = range && !range.collapsed ? spanOfRange(range) : writer.lastChosen;
+    const one = range && !range.collapsed ? spanOf(range) : writer.lastChosen;
     return one && one.from < one.to ? one : null;
   };
+
+  const chosenNow = () => chosenAs(spanOfRange);
+
+  const chosenWhole = () => chosenAs(spanChosen);
 
   // A menu of the window hands the focus back to the frame, not to the words, so the sheet takes it again.
   const focused = () => {
@@ -142,17 +183,11 @@ export const caretOn = (writer: Writer) => {
   const summaryAt = (found: [Node, number], at: number): [Node, number] | null => {
     const box = elementOf(found[0])?.closest("details[data-at]");
     const summary = box?.querySelector(":scope > summary");
-    const span = placeOf(box);
-    if (!summary || !span) return null;
-    const text = hands.text();
-    const start = unitFrom(writer.reckoned, text, span[0]);
-    const ends = text.indexOf("\n", start);
-    const line = text.slice(start, ends < 0 ? text.length : ends).replace(/\r$/, "");
-    const name = start + (/^:::\s*details\s?/.exec(line)?.[0].length ?? line.length);
-    if (at < name || at > start + line.length) return null;
+    const line = nameLine(hands.text(), box);
+    if (!summary || !line || at < line.name || at > line.end) return null;
     const words = summary.firstChild;
     if (words?.nodeType !== Node.TEXT_NODE) return [summary, 0];
-    return [words, Math.min(at - name, (words as Text).length)];
+    return [words, Math.min(at - line.name, (words as Text).length)];
   };
 
   // A block drawn whole, as a widget, a formula, a table or a break, takes no caret in its source.
@@ -346,7 +381,9 @@ export const caretOn = (writer: Writer) => {
     standing,
     unbegun,
     caretSpan,
+    spanChosen,
     chosenNow,
+    chosenWhole,
     focused,
     caretLaid,
     placeAt,
