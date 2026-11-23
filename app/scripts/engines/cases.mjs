@@ -1231,7 +1231,7 @@ export const CASES = [
       await command("Shift+End");
       await typed("X");
     },
-    was: "y más\n\n| a | b |\n|---|---|\n| 1 | 2 |\n",
+    was: "y más\n\n| a | b |\n|---|---|\n| 1 | 2 |",
     now: "X",
   },
   {
@@ -1243,7 +1243,7 @@ export const CASES = [
       await command("Shift+End");
       await press("Backspace");
     },
-    was: "y más\n\n| a | b |\n|---|---|\n| 1 | 2 |\n",
+    was: "y más\n\n| a | b |\n|---|---|\n| 1 | 2 |",
     now: "",
   },
   {
@@ -1269,6 +1269,28 @@ export const CASES = [
     },
     was: "",
     now: "",
+  },
+  {
+    name: "typeOverAChoiceEndingRightAfterATableMidPage",
+    doc: "# Marcas\n\nAntes y\n\n| a | b |\n|---|---|\n| 1 | 2 |\n\nDespués\n",
+    run: async ({ clickAt, typed, frame }) => {
+      await clickAt("Antes");
+      await chosenPastBlock(frame, "Antes y", 6, ".page > .table");
+      await typed("X");
+    },
+    was: "y\n\n| a | b |\n|---|---|\n| 1 | 2 |",
+    now: "X",
+  },
+  {
+    name: "typeOverAChoiceEndingRightAfterAFoldMidPage",
+    doc: "# Marcas\n\nAntes y\n\n:::details Plegable\n\nDentro\n\n:::\n\nDespués\n",
+    run: async ({ clickAt, typed, frame }) => {
+      await clickAt("Antes");
+      await chosenPastBlock(frame, "Antes y", 6, ".page > details");
+      await typed("X");
+    },
+    was: "y\n\n:::details Plegable\n\nDentro\n\n:::",
+    now: "X",
   },
 ];
 
@@ -1319,4 +1341,14 @@ const caretBeforeCodeEnd = async (frame) => {
     if (!last?.data.endsWith("\n")) throw new Error("no code that ends with its line feed");
     getSelection().collapse(last, last.length - 1);
   });
+};
+
+const chosenPastBlock = async (frame, words, offset, block) => {
+  await caretInWords(frame, words, offset);
+  await frame.evaluate((said) => {
+    const sheet = document.querySelector(".page");
+    const one = document.querySelector(said);
+    if (!one) throw new Error(`no ${said} on the page`);
+    getSelection().extend(sheet, [...sheet.childNodes].indexOf(one) + 1);
+  }, block);
 };

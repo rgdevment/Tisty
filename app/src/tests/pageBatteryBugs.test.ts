@@ -399,14 +399,14 @@ describe("a choice that reaches past a table at the page's end", () => {
     const text = opened(TABLED, TABLED_PLACED);
     const words = choseToTheEnd();
     asked("insertText", rangeOf([words, 6], [words, 6]), "X");
-    expect(text()).toBe("# T\n\nAntes X");
+    expect(text()).toBe("# T\n\nAntes X\n");
   });
 
   it("is taken whole by Backspace, though the engine names the letter before it", () => {
     const text = opened(TABLED, TABLED_PLACED);
     const words = choseToTheEnd();
     asked("deleteContentBackward", rangeOf([words, 5], [words, 6]));
-    expect(text()).toBe("# T\n\nAntes ");
+    expect(text()).toBe("# T\n\nAntes \n");
   });
 
   it("only touching a table, keeps the blank line that parts the table from the words", () => {
@@ -438,11 +438,26 @@ describe("a choice that reaches past a table at the page's end", () => {
     expect(text()).toBe("# T\n\nAntes\n\n| a | b |\n|---|---|\n| 1 | 2 |\n\nmundo\n");
   });
 
+  it("ending right after a table mid-page, keeps the paragraph under it apart", () => {
+    const text = opened(
+      "# T\n\nAntes y\n\n| a | b |\n|---|---|\n| 1 | 2 |\n\nDespués\n",
+      '<h1 data-at="0-4"><span data-src="2-3">T</span></h1>' +
+        '<p data-at="5-13"><span data-src="5-12">Antes y</span></p>' +
+        '<div class="table celled" data-at="14-44" contenteditable="false"><table><tbody>' +
+        "<tr><td>1</td><td>2</td></tr></tbody></table></div>" +
+        '<p data-at="45-54"><span data-src="45-53">Después</span></p>',
+    );
+    const words = wordsOf("Antes y");
+    chose([words, 6], [document.querySelector(".page") as Node, 3]);
+    asked("insertText", rangeOf([words, 6], [words, 6]), "X");
+    expect(text()).toBe("# T\n\nAntes X\n\nDespués\n");
+  });
+
   it("is taken whole by Delete, though the engine sends nothing for it", () => {
     const text = opened(TABLED, TABLED_PLACED);
     choseToTheEnd();
     keyed("Delete");
-    expect(text()).toBe("# T\n\nAntes ");
+    expect(text()).toBe("# T\n\nAntes \n");
   });
 });
 

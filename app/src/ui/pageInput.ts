@@ -179,6 +179,12 @@ const drawnWhole = (one: Element) => {
   return copy.textContent?.trim() === "";
 };
 
+const beforeFeeds = (text: string, one: Span): Span => {
+  let to = one.to;
+  while (to > one.from && /[\r\n]/.test(text[to - 1] ?? "")) to--;
+  return { from: one.from, to };
+};
+
 const pastWhole = (range: AbstractRange) => {
   const block = elementIn(range.endContainer.childNodes[range.endOffset - 1]);
   return Boolean(elementIn(range.endContainer)?.matches(".page") && block && drawnWhole(block));
@@ -406,7 +412,8 @@ export const inputOn = (
     const target =
       named && !(named.collapsed && picked?.collapsed) ? cutAtEdge(named, picked, kind) : undefined;
     const spread = !leftOver(picked) && Boolean(picked && !picked.collapsed);
-    const range = spread && picked && pastWhole(picked) ? picked : (target ?? picked);
+    const pastBlock = spread && picked !== null && pastWhole(picked);
+    const range = pastBlock ? picked : (target ?? picked);
     const bare = kind === "deleteContentBackward" && !spread ? caretFreed() : null;
     if (bare) return put(bare.edit, bare.caret);
     const shelf = range && !spread ? breakAt(range) : null;
@@ -426,11 +433,13 @@ export const inputOn = (
       writer.kept?.lead !== undefined &&
       (writer.kept.offset < 0 || Boolean(held && atGhost(held.startContainer, held.startOffset)));
     if (begunNow && kind.startsWith("delete")) return begun.dropBegun();
+    const spanned =
+      range &&
+      ((held && caret.unbegun(kind, held)) ??
+        caret.spanOfRange(range, !spread && kind.startsWith("delete")));
     const reached =
       (!spread && begun.waited(kind)) ||
-      (range &&
-        ((held && caret.unbegun(kind, held)) ??
-          caret.spanOfRange(range, !spread && kind.startsWith("delete"))));
+      (spanned && pastBlock ? beforeFeeds(hands.text(), spanned) : spanned);
     if (!range || !reached) return;
     const text = hands.text();
     const missed = !spread && reached.from === reached.to && (backward(kind) || forward(kind));
