@@ -1,10 +1,9 @@
 use serde_json::{Value, json};
 use tisty_core::{Paths, State};
 
-use super::super::chores::still_in_sight as in_sight;
 use super::super::jsonrpc::mirrored;
 use super::super::looking::counted_tags;
-use super::super::{Refused, opened, papers, trail};
+use super::super::{Refused, lists, opened, papers, trail};
 
 const TAGS_SHOWN: usize = 40;
 
@@ -14,25 +13,22 @@ pub(super) fn documents(paths: &Paths, args: &Value) -> Result<Value, Refused> {
 
 pub(super) fn all(paths: &Paths) -> Result<Value, Refused> {
     let (state, _) = opened(paths)?;
-    let lists = lists(&state);
+    let listed = listed(&state);
     let folders = folders(&state);
     let tags = counted_tags(&state);
-    let inbox = state
-        .tasks
-        .values()
-        .filter(|one| one.list.is_none() && in_sight(one))
-        .count();
+    let inbox = lists::open_in_the_inbox(&state);
+    let inbox_named = lists::inbox_named(&state);
     let shown_tags: Vec<Value> = tags
         .iter()
         .take(TAGS_SHOWN)
         .map(|(tag, times)| json!({ "tag": tag, "times": times }))
         .collect();
     let mut kept = json!({
-        "lists": lists,
+        "lists": listed,
         "inbox": inbox,
         "folders": folders,
         "tags": shown_tags,
-        "next": "`brain` with `list`, `folder` or `tag` shows what one holds; with `query`, what says some words.",
+        "next": format!("`brain` with `list`, `folder` or `tag` shows what one holds, `list` «{inbox_named}» the tasks in no list; `scope` «open» leaves out the archived ones, which these counts do not hold. With `query`, what says some words."),
     });
     if tags.len() > TAGS_SHOWN {
         kept["tags_more"] = json!(tags.len() - TAGS_SHOWN);
@@ -44,8 +40,8 @@ pub(super) fn all(paths: &Paths) -> Result<Value, Refused> {
             .join(", ")
     };
     let text = format!(
-        "Lists, with their open tasks: {}; the inbox ({inbox}).\nFolders, with their documents: {}.\nTags, most used first: {}{}.",
-        told(&lists, "list", "open"),
+        "Lists, with their open tasks: {}; the inbox ({inbox}), which `list` «{inbox_named}» brings.\nFolders, with their documents: {}.\nTags, most used first: {}{}.",
+        told(&listed, "list", "open"),
         match folders.is_empty() {
             true => "none yet".to_string(),
             false => told(&folders, "folder", "docs"),
@@ -67,22 +63,8 @@ pub(super) fn all(paths: &Paths) -> Result<Value, Refused> {
     Ok(mirrored(text, kept))
 }
 
-fn lists(state: &State) -> Vec<Value> {
-    let mut named: Vec<(&str, usize)> = state
-        .lists
-        .values()
-        .filter(|one| !one.archived)
-        .map(|one| {
-            let open = state
-                .tasks
-                .values()
-                .filter(|task| task.list == Some(one.id) && in_sight(task))
-                .count();
-            (one.name.as_str(), open)
-        })
-        .collect();
-    named.sort_unstable();
-    named
+fn listed(state: &State) -> Vec<Value> {
+    lists::open_by_name(state)
         .into_iter()
         .map(|(list, open)| json!({ "list": list, "open": open }))
         .collect()

@@ -1172,3 +1172,351 @@ fn an_exact_task_title_comes_first_and_links_leave_the_order_alone() {
     );
     assert_ne!(symbols["isError"], true, "{symbols}");
 }
+
+fn refused(talk: &mut Connection, args: Value) -> String {
+    let said = talk.asked("brain", args);
+    assert_eq!(said["isError"], true, "{said}");
+    said["content"][0]["text"].as_str().unwrap().to_string()
+}
+
+fn both(talk: &mut Connection, args: Value) -> (Value, String) {
+    let said = talk.call("brain", args);
+    (
+        said["structuredContent"].clone(),
+        said["content"][0]["text"].as_str().unwrap().to_string(),
+    )
+}
+
+#[test]
+fn the_inbox_is_asked_for_as_a_list_and_the_zones_say_how() {
+    let served = Served::new();
+    let mut talk = served.connect();
+    talk.call(
+        "propose",
+        json!({ "title": "Pay the rent", "list": "Work" }),
+    );
+    let done = served.person().captures("Return the book");
+    served.person().closes(done);
+
+    let (zones, said) = both(&mut talk, json!({}));
+    assert_eq!(zones["inbox"], 1, "{zones}");
+    assert!(
+        zones["next"].as_str().unwrap().contains("`list` «inbox»"),
+        "{zones}"
+    );
+    assert!(
+        said.contains("the inbox (1), which `list` «inbox» brings."),
+        "{said}"
+    );
+
+    for name in ["inbox", "The Inbox", "Bandeja de entrada", "sin lista"] {
+        let (found, said) = both(&mut talk, json!({ "list": name, "scope": "open" }));
+        assert_eq!(titles(&found, "matches"), ["algo mio"], "{name}");
+        assert!(said.contains("match \"in the inbox\""), "{said}");
+    }
+
+    served.person().adds_list("Inbox");
+    assert_eq!(
+        talk.brain(json!({ "list": "inbox" }))["total"],
+        0,
+        "a list of that name wins"
+    );
+    let (zones, said) = both(&mut talk, json!({}));
+    assert!(
+        said.contains("which `list` «the inbox» brings."),
+        "and the name that still reaches it is the one said: {said}"
+    );
+    assert!(
+        zones["next"].as_str().unwrap().contains("«the inbox»"),
+        "{zones}"
+    );
+}
+
+#[test]
+fn a_list_that_does_not_exist_is_refused_with_the_ones_that_do() {
+    let served = Served::new();
+    served.person().adds_list("Trabajo");
+    let mut talk = served.connect();
+
+    let why = refused(&mut talk, json!({ "list": "Trabajos" }));
+    assert!(
+        why.contains("there is no list called \"Trabajos\"") && why.contains("Trabajo, "),
+        "{why}"
+    );
+    assert!(
+        why.contains("`list` «inbox» brings the tasks in no list"),
+        "{why}"
+    );
+
+    let moving = served.person().id_of("algo mio");
+    let moved = talk.asked(
+        "move",
+        json!({ "task": moving.to_string(), "list": "Trabajos" }),
+    );
+    let said = moved["content"][0]["text"].as_str().unwrap();
+    assert!(why.starts_with(said), "one refusal for both: {said}");
+}
+
+#[test]
+fn a_list_put_away_still_answers_with_what_it_held() {
+    let served = Served::new();
+    let person = served.person();
+    person.adds_list("Mudanza");
+    let at = person
+        .state()
+        .lists
+        .values()
+        .find(|one| one.name == "Mudanza")
+        .unwrap()
+        .id;
+    let id = person.captures("Hire the van");
+    person.does(tisty_core::Op::TaskMove {
+        id,
+        d: tisty_core::event::TaskMove {
+            list: Some(Some(at)),
+            ..Default::default()
+        },
+    });
+    person.closes(id);
+    person.does(tisty_core::Op::ListArchive { id: at });
+    let mut talk = served.connect();
+
+    assert_eq!(
+        titles(&talk.brain(json!({ "list": "mudanza" })), "matches"),
+        ["Hire the van"]
+    );
+
+    let (none, said) = both(&mut talk, json!({ "list": "Mudanza", "scope": "open" }));
+    assert_eq!(none["total"], 0);
+    let hint = none["try"].as_str().unwrap();
+    assert!(hint.contains("«either» brings 1"), "{hint}");
+    assert!(said.contains(hint), "both readers are told: {said}");
+}
+
+#[test]
+fn a_list_answers_with_the_open_count_announced_beside_its_archived_ones() {
+    let served = Served::new();
+    let person = served.person();
+    let mut talk = served.connect();
+    for title in ["Pay the rent", "Buy paint", "Call the bank"] {
+        talk.call("propose", json!({ "title": title, "list": "Work" }));
+    }
+    person.dates(person.id_of("Buy paint"), "today");
+    let called = person.id_of("Call the bank").to_string();
+    talk.call(
+        "say_done",
+        json!({ "task": called, "body": "Called, they said yes." }),
+    );
+    person.closes(person.id_of("Pay the rent"));
+
+    let announced = talk.brain(json!({}))["lists"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|one| one["list"] == "Work")
+        .unwrap()["open"]
+        .clone();
+    let (found, said) = both(&mut talk, json!({ "list": "Work" }));
+
+    assert_eq!(found["total"], 3);
+    assert_eq!(found["counts"]["open"], announced);
+    assert_eq!(found["counts"]["archived"], 1);
+    assert_eq!(found["counts"]["today"], 1);
+    assert_eq!(found["counts"]["to_confirm"], 1);
+    assert!(
+        said.contains(
+            "In all: 2 open (1 today); 1 of them an agent said done or not doing, and 1 \
+             archived, which `scope` «open» leaves out."
+        ),
+        "{said}"
+    );
+
+    let open = talk.brain(json!({ "list": "Work", "scope": "open" }));
+    assert_eq!(open["total"], announced);
+    assert!(
+        open.get("counts").is_none(),
+        "all of it is in sight already: {open}"
+    );
+    let cut = talk.brain(json!({ "list": "Work", "scope": "open", "limit": 1 }));
+    assert_eq!(
+        cut["counts"],
+        json!({ "open": 2, "overdue": 0, "due_soon": 0, "today": 1, "late": 0, "to_confirm": 1 })
+    );
+}
+
+#[test]
+fn an_answer_with_nothing_says_what_to_try_in_both_the_text_and_the_json() {
+    let served = Served::new();
+    let mut talk = served.connect();
+    talk.call("propose", json!({ "title": "Pay", "tags": ["home"] }));
+
+    for (args, hint) in [
+        (
+            json!({ "tag": "#homes" }),
+            "Nothing carries #homes. These exist, the closest first: #home, #agent.",
+        ),
+        (
+            json!({ "query": "zebra", "scope": "open" }),
+            "Nothing in that `scope`: «either» searches the rest too.",
+        ),
+    ] {
+        let (none, said) = both(&mut talk, args);
+        assert_eq!(none["try"], hint);
+        assert!(said.ends_with(hint), "{said}");
+    }
+    for args in [
+        json!({ "query": "zebra" }),
+        json!({ "tag": "home", "from": "2030-01-01" }),
+        json!({ "tag": "home", "from": "2030-01-01", "scope": "open" }),
+    ] {
+        let none = talk.brain(args);
+        assert_eq!(none["total"], 0);
+        assert!(none.get("try").is_none(), "{none}");
+    }
+}
+
+#[test]
+fn leaving_out_what_an_agent_said_done_says_how_many_so_the_counts_add_up() {
+    let served = Served::new();
+    let person = served.person();
+    let mut talk = served.connect();
+    for title in ["Pay the rent", "Call the bank"] {
+        talk.call("propose", json!({ "title": title, "list": "Work" }));
+    }
+    let called = person.id_of("Call the bank").to_string();
+    talk.call(
+        "say_done",
+        json!({ "task": called, "body": "They said yes." }),
+    );
+
+    let (found, said) = both(
+        &mut talk,
+        json!({ "list": "Work", "scope": "open", "said_done": false }),
+    );
+
+    assert_eq!(found["total"], 1);
+    assert_eq!(found["counts"]["to_confirm_left_out"], 1);
+    assert!(
+        said.contains(
+            "In all: 1 open; 1 more an agent said done or not doing, left out by `said_done`."
+        ),
+        "{said}"
+    );
+
+    person.closes(person.id_of("Pay the rent"));
+    let none = talk.brain(json!({ "list": "Work", "scope": "open", "said_done": false }));
+    assert_eq!(none["total"], 0);
+    assert_eq!(
+        none["counts"]["to_confirm_left_out"], 1,
+        "nothing left is not nothing there: {none}"
+    );
+}
+
+#[test]
+fn a_reader_of_the_text_alone_sees_the_day_and_the_deadline() {
+    let served = Served::new();
+    let mut talk = served.connect();
+    talk.call(
+        "propose",
+        json!({ "title": "Enroll Rina", "list": "Work", "date": "2099-01-04", "deadline": "2099-02-09" }),
+    );
+
+    let (_, said) = both(&mut talk, json!({ "list": "Work" }));
+
+    assert!(
+        said.contains("(open, ahead, 2099-01-04, due 2099-02-09)"),
+        "{said}"
+    );
+}
+
+#[test]
+fn two_lists_of_one_name_are_announced_once_with_what_both_hold() {
+    let served = Served::new();
+    let person = served.person();
+    for title in ["Paint the gate", "Mow the lawn"] {
+        let at = ulid::Ulid::generate();
+        person.does(tisty_core::Op::ListAdd {
+            id: at,
+            d: tisty_core::event::ListAdd {
+                name: "Garden".into(),
+                order: "a0".into(),
+                color: None,
+            },
+        });
+        let id = person.captures(title);
+        person.does(tisty_core::Op::TaskMove {
+            id,
+            d: tisty_core::event::TaskMove {
+                list: Some(Some(at)),
+                ..Default::default()
+            },
+        });
+    }
+    let mut talk = served.connect();
+
+    let (zones, said) = both(&mut talk, json!({}));
+    let gardens: Vec<&Value> = zones["lists"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|one| one["list"] == "Garden")
+        .collect();
+    assert_eq!(gardens, [&json!({ "list": "Garden", "open": 2 })]);
+    assert!(said.contains("Garden (2)"), "{said}");
+
+    let caught = talk.call("catch_up", json!({}));
+    assert_eq!(caught["structuredContent"]["open_by_list"]["Garden"], 2);
+    let said = caught["content"][0]["text"].as_str().unwrap();
+    assert!(said.contains("Garden 2, "), "{said}");
+
+    assert_eq!(
+        talk.brain(json!({ "list": "Garden", "scope": "open" }))["total"],
+        2
+    );
+}
+
+#[test]
+fn a_sift_with_no_scope_brings_the_open_first_and_pages_on_into_the_archived() {
+    let served = Served::new();
+    let person = served.person();
+    let mut talk = served.connect();
+    for title in ["Done one", "Done two", "Open loose", "Open dated"] {
+        talk.call("propose", json!({ "title": title, "list": "Work" }));
+    }
+    person.dates(person.id_of("Open dated"), "today");
+    person.dates(person.id_of("Done two"), "today");
+    for title in ["Done one", "Done two"] {
+        person.closes(person.id_of(title));
+    }
+    let open_first = ["Open loose", "Open dated", "Done one", "Done two"];
+    let as_dated = ["Done one", "Open loose", "Done two", "Open dated"];
+
+    let whole = talk.brain(json!({ "list": "Work" }));
+    assert_eq!(titles(&whole, "matches"), open_first);
+
+    let first = talk.brain(json!({ "list": "Work", "limit": 1 }));
+    let crossing = talk.brain(json!({ "list": "Work", "limit": 2, "after": 1 }));
+    let rest = talk.brain(json!({ "list": "Work", "limit": 2, "after": 3 }));
+    assert_eq!(titles(&first, "matches"), open_first[..1]);
+    assert_eq!(titles(&crossing, "matches"), open_first[1..3]);
+    assert_eq!(titles(&rest, "matches"), open_first[3..]);
+    assert_eq!(
+        crossing["next"],
+        "`after` 3 brings the next of the 4 tasks."
+    );
+    assert!(rest.get("next").is_none(), "{rest}");
+
+    let either = talk.brain(json!({ "list": "Work", "scope": "either" }));
+    assert_eq!(
+        titles(&either, "matches"),
+        as_dated,
+        "a scope asked for keeps its order"
+    );
+    person.notes(person.id_of("Open dated"), "Not done yet.");
+    let worded = talk.brain(json!({ "query": "done", "list": "Work" }));
+    assert_eq!(
+        titles(&worded, "matches").last().unwrap(),
+        "Open dated",
+        "words rank as they did: {worded}"
+    );
+}

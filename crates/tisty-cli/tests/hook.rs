@@ -186,6 +186,10 @@ fn the_hook_and_catch_up_say_the_same_of_the_task_left_open() {
     assert_eq!(last["stage"], "blocked", "{last}");
     assert_eq!(last["steps"], json!([1, 2]), "{last}");
     assert_eq!(
+        last["said"], "blocked, 1 of 2 steps ticked, next \"two\"",
+        "a reader of the JSON alone is told in words too: {last}"
+    );
+    assert_eq!(
         last["state"], "Blocked: waiting for the signing key.",
         "{last}"
     );

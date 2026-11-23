@@ -1262,13 +1262,7 @@ fn with_the_names(said: Refused, state: &State) -> Refused {
     if !said.contains("list") {
         return Refused::Tool(said);
     }
-    let mut all: Vec<&str> = state
-        .lists
-        .values()
-        .filter(|one| !one.archived)
-        .map(|one| one.name.as_str())
-        .collect();
-    all.sort_unstable();
+    let all = super::lists::names(state);
     Refused::Tool(match all.is_empty() {
         true => format!("{said} There are no lists at all yet."),
         false => format!("{said} These exist: {}.", all.join(", ")),

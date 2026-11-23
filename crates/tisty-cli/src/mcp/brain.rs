@@ -13,6 +13,7 @@ mod cards;
 pub(super) mod project;
 mod ranking;
 pub(super) mod search;
+mod tally;
 mod zones;
 
 const SIFTS: [&str; 8] = [

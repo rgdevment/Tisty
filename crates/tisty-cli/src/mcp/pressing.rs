@@ -16,10 +16,15 @@ const PRESSING_SHOWN: usize = 5;
 
 /// What an agent said done or not doing waits for the person, not for work, so it is left out.
 pub(super) fn pressing(state: &State, today: jiff::civil::Date) -> Vec<(Standing, &Task)> {
-    let mut all: Vec<(usize, &Task)> = state
-        .tasks
-        .values()
-        .filter(|one| !one.folded() && one.resolved.is_none())
+    pressing_among(state.tasks.values().filter(|one| !one.folded()), today)
+}
+
+pub(super) fn pressing_among<'a>(
+    tasks: impl Iterator<Item = &'a Task>,
+    today: jiff::civil::Date,
+) -> Vec<(Standing, &'a Task)> {
+    let mut all: Vec<(usize, &Task)> = tasks
+        .filter(|one| one.resolved.is_none())
         .filter_map(|one| {
             let how = standing_of(one, today)?;
             Some((PRESSING.iter().position(|was| *was == how)?, one))
@@ -69,6 +74,7 @@ pub(super) fn pressed(tally: &[(String, usize)]) -> String {
 pub(super) fn name_pressing(
     state: &State,
     pressing: &[(Standing, &Task)],
+    open: usize,
     today: jiff::civil::Date,
     kept: &mut serde_json::Map<String, Value>,
 ) -> Option<String> {
@@ -108,11 +114,17 @@ pub(super) fn name_pressing(
         _ => {
             kept.insert("pressing_more".into(), json!(more));
             let near = today.saturating_add(jiff::Span::new().days(DUE_SOON_DAYS));
-            format!(
-                " {more} more: `brain` with `scope` «open», `said_done` false and `to` {near} \
-                 brings them among the near ones; the pressing carry a `standing` of \
-                 `overdue`, `due_soon`, `today` or `late`."
-            )
+            let how = format!(
+                "{open} tasks are open and {} of them press; {} are named here. Say in your answer \
+                 that {more} more press: with the counts, that answers what is pending. Only if \
+                 the person asks for them: `brain` with `scope` «open», `said_done` false and \
+                 `to` {near} brings them among the near ones; the pressing carry a `standing` of \
+                 `overdue`, `due_soon`, `today` or `late`.",
+                pressing.len(),
+                shown.len()
+            );
+            kept.insert("pressing_rest".into(), json!(how));
+            format!(" {how}")
         }
     };
     Some(format!(

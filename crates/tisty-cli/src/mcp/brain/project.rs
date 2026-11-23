@@ -108,7 +108,7 @@ pub(in crate::mcp) fn progress(paths: &Paths, state: &State, task: &Task) -> Pro
 }
 
 impl Progress {
-    pub(in crate::mcp) fn told(&self) -> String {
+    pub(in crate::mcp) fn how_far(&self) -> String {
         let mut said = self.stage.told().to_string();
         let StepCount {
             done,
@@ -128,6 +128,11 @@ impl Progress {
                 }
             }
         }
+        said
+    }
+
+    pub(in crate::mcp) fn told(&self) -> String {
+        let mut said = self.how_far();
         if let Some(line) = &self.state {
             said.push_str(&format!("; state: {line}"));
             if self.old {

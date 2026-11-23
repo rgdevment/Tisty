@@ -7,6 +7,7 @@ use tisty_core::standing::Standing;
 
 use super::asked::{strings, text};
 use super::jsonrpc::{mirrored, told};
+use super::lists;
 use super::mistaken::not_a_task_id;
 use super::pressing::{name_pressing, pressed, pressing, tallied};
 use super::resuming::{
@@ -294,13 +295,8 @@ pub(super) fn catch_up(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     let (state, store) = opened(paths)?;
     let today = jiff::Zoned::now().date();
 
-    let mut named: Vec<&str> = state
-        .lists
-        .values()
-        .filter(|one| !one.archived)
-        .map(|one| one.name.as_str())
-        .collect();
-    named.sort_unstable();
+    let listed = lists::open_by_name(&state);
+    let named: Vec<&str> = listed.iter().map(|(name, _)| *name).collect();
 
     let mut folders: Vec<String> = state
         .folders
@@ -376,6 +372,7 @@ pub(super) fn catch_up(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         ));
         let mut last = json!({ "id": task.id.to_string(), "title": task.title });
         progress.put(&mut last);
+        last["said"] = json!(progress.how_far());
         if let Some(list) = list_of(&state, task) {
             last["list"] = json!(list);
         }
@@ -492,7 +489,18 @@ pub(super) fn catch_up(paths: &Paths, args: &Value) -> Result<Value, Refused> {
             tags.len(),
             pressed(&tally),
         ));
-        if let Some(named) = name_pressing(&state, &pressing, today, &mut kept) {
+        let inbox = (lists::inbox_named(&state), lists::open_in_the_inbox(&state));
+        said.push(open_by_list(&listed, inbox));
+        kept.insert(
+            "open_by_list".into(),
+            listed
+                .iter()
+                .chain([&inbox])
+                .map(|(name, open)| (name.to_string(), json!(open)))
+                .collect::<serde_json::Map<_, _>>()
+                .into(),
+        );
+        if let Some(named) = name_pressing(&state, &pressing, open, today, &mut kept) {
             said.push(named);
         }
         if folders.len() > AT_A_GLANCE {
@@ -518,6 +526,16 @@ pub(super) fn catch_up(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     let mut kept = Value::Object(kept);
     super::each::said_once(&mut kept, &["tasks", "docs", "pressing"]);
     Ok(told(said.join(" "), kept))
+}
+
+fn open_by_list(listed: &[(&str, usize)], (named, inbox): (&str, usize)) -> String {
+    let all: String = listed
+        .iter()
+        .map(|(name, open)| format!("{name} {open}, "))
+        .collect();
+    format!(
+        "Open by list: {all}and {inbox} in no list, which `brain` with `list` «{named}» brings."
+    )
 }
 
 pub(super) fn counted_tags(state: &State) -> Vec<(&str, usize)> {

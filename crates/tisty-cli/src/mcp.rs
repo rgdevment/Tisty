@@ -12,6 +12,7 @@ mod handing;
 mod helping;
 mod ideas;
 mod jsonrpc;
+mod lists;
 mod looking;
 mod masking;
 mod mending;

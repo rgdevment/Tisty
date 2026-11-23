@@ -6,7 +6,7 @@ use tisty_core::{Paths, State};
 use super::asked::text;
 use super::chores::{reaching, still_in_sight};
 use super::jsonrpc::told;
-use super::{Refused, hitch, moved, opened};
+use super::{Refused, hitch, lists, moved, opened};
 
 enum Whole {
     Untouched,
@@ -146,28 +146,14 @@ pub(super) fn move_task(paths: &Paths, args: &Value) -> Result<Value, Refused> {
 }
 
 fn list_named(state: &State, name: &str) -> Result<ListId, Refused> {
-    let all = state.find_list(name);
-    match all.as_slice() {
+    match lists::called(state, name)
+        .map_err(Refused::Tool)?
+        .as_slice()
+    {
         [one] if one.archived => Err(Refused::Tool(format!(
             "the list {name:?} is put away, so nothing new goes in it."
         ))),
         [one] => Ok(one.id),
-        [] => {
-            let mut names: Vec<&str> = state
-                .lists
-                .values()
-                .filter(|one| !one.archived)
-                .map(|one| one.name.as_str())
-                .collect();
-            names.sort_unstable();
-            Err(Refused::Tool(match names.is_empty() {
-                true => format!("there is no list called {name:?}, and there are none yet."),
-                false => format!(
-                    "there is no list called {name:?}, and you cannot make one. These exist: {}.",
-                    names.join(", ")
-                ),
-            }))
-        }
         _ => Err(Refused::Tool(format!(
             "{name:?} matches more than one list. Send the whole name."
         ))),

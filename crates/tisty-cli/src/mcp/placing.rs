@@ -140,23 +140,15 @@ pub(super) fn loose_doc(state: &State, title: &str, body: &str) -> String {
 }
 
 pub(super) fn loose_task(state: &State, title: &str) -> String {
-    let mut all: Vec<&str> = state
-        .lists
-        .values()
-        .filter(|one| !one.archived)
-        .map(|one| one.name.as_str())
-        .collect();
+    let all = super::lists::names(state);
     if all.is_empty() {
         return String::new();
     }
     match closest_lists(state, title).as_slice() {
-        [] => {
-            all.sort_unstable();
-            format!(
-                " It waits in the inbox; the lists are {}. `move` with `list` puts it in one.",
-                all.join(", ")
-            )
-        }
+        [] => format!(
+            " It waits in the inbox; the lists are {}. `move` with `list` puts it in one.",
+            all.join(", ")
+        ),
         near => format!(
             " It waits in the inbox; the closest list by name: {}. `move` with `list` puts it \
              in one.",

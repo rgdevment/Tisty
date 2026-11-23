@@ -111,7 +111,14 @@ fn catching_up_names_the_five_that_slipped_longest_ago_and_how_to_find_the_rest(
     }
     let mut kept = serde_json::Map::new();
 
-    let said = name_pressing(&state, &pressing(&state, today()), today(), &mut kept).unwrap();
+    let said = name_pressing(
+        &state,
+        &pressing(&state, today()),
+        state.tasks.len(),
+        today(),
+        &mut kept,
+    )
+    .unwrap();
 
     let named: Vec<&str> = kept["pressing"]
         .as_array()
@@ -138,9 +145,18 @@ fn catching_up_names_the_five_that_slipped_longest_ago_and_how_to_find_the_rest(
     );
     assert!(said.contains("`read` one before you take it up"), "{said}");
     assert!(
-        said.contains("2 more: `brain` with `scope` «open», `said_done` false and `to` 2026-10-30"),
+        said.contains("`brain` with `scope` «open», `said_done` false and `to` 2026-10-30"),
         "{said}"
     );
+    let rest = kept["pressing_rest"].as_str().unwrap();
+    assert!(
+        rest.starts_with(
+            "7 tasks are open and 7 of them press; 5 are named here. Say in your answer that 2 \
+             more press: with the counts, that answers what is pending."
+        ),
+        "{rest}"
+    );
+    assert!(said.contains(rest), "both readers are told: {said}");
 }
 
 #[test]
@@ -153,7 +169,14 @@ fn a_task_that_presses_is_named_by_its_list_and_alone_says_nothing_more() {
     state.tasks.insert(task.id, task);
     let mut kept = serde_json::Map::new();
 
-    let said = name_pressing(&state, &pressing(&state, today()), today(), &mut kept).unwrap();
+    let said = name_pressing(
+        &state,
+        &pressing(&state, today()),
+        state.tasks.len(),
+        today(),
+        &mut kept,
+    )
+    .unwrap();
 
     assert_eq!(kept["pressing"][0]["list"], json!("Tisty"));
     assert_eq!(kept["pressing"][0]["standing"], json!("today"));
@@ -161,12 +184,13 @@ fn a_task_that_presses_is_named_by_its_list_and_alone_says_nothing_more() {
     assert!(said.contains("(today)"), "{said}");
     assert!(!said.contains("more"), "{said}");
     assert!(kept.get("pressing_more").is_none(), "{kept:?}");
+    assert!(kept.get("pressing_rest").is_none(), "{kept:?}");
 }
 
 #[test]
 fn nothing_pressing_names_nothing() {
     let mut kept = serde_json::Map::new();
 
-    assert!(name_pressing(&State::default(), &[], today(), &mut kept).is_none());
+    assert!(name_pressing(&State::default(), &[], 0, today(), &mut kept).is_none());
     assert!(kept.is_empty(), "{kept:?}");
 }

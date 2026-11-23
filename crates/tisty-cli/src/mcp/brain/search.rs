@@ -1,18 +1,22 @@
 use serde_json::{Value, json};
-use tisty_core::model::{Task, TaskId};
+use tisty_core::model::{DateSpec, ListId, Task, TaskId};
 use tisty_core::{Paths, State};
 
 use tisty_core::docs::Sighting;
+use tisty_core::view::Scope;
 
 use super::super::asked::{how_many, text};
 use super::super::jsonrpc::{mirrored, told};
 use super::super::looking::{
-    UNPATHED, brief, how_it_ended, kept_here, list_of, placed, standing, standing_of,
+    UNPATHED, brief, how_it_ended, kept_here, placed, standing, standing_of,
 };
 use super::super::mistaken::no_document_called;
 use super::super::unpathing::{PATH_MARK, fenced_in};
-use super::super::{Refused, alike, already, doc_named, hitch, named_doc, opened, said, scoped};
+use super::super::{
+    Refused, alike, already, doc_named, hitch, lists, named_doc, opened, said, scoped,
+};
 use super::ranking::{Ranked, newest_line, newest_paper_line, ranked};
+use super::tally::{Tally, what_to_try};
 
 pub(in crate::mcp) fn found(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     let (state, _) = opened(paths)?;
@@ -25,62 +29,14 @@ pub(in crate::mcp) fn found(paths: &Paths, args: &Value) -> Result<Value, Refuse
                     .into(),
             ));
         }
-        let filed = already(&state, &source);
-        if let Some(id) = filed.filter(|id| state.is_erased(*id)) {
-            return Ok(told(
-                "Already proposed from that source, and erased since: the person let it go. A \
-                 new filing from this source takes `again`, and only if they want it back."
-                    .into(),
-                json!({ "found": { "id": id.to_string(), "erased": true } }),
-            ));
-        }
-        if let Some(task) = filed
-            .and_then(|id| state.tasks.get(&id))
-            .filter(|one| one.hidden)
-        {
-            return Ok(told(
-                format!(
-                    "Already proposed from that source, and the person put it out of sight. {}",
-                    super::super::chores::out_of_sight_again(task)
-                ),
-                json!({ "found": { "hidden": true } }),
-            ));
-        }
-        if filed
-            .and_then(|id| state.tasks.get(&id))
-            .is_some_and(Task::is_dropped)
-        {
-            return Ok(told(
-                format!(
-                    "{} A new filing from this source takes `again`, and only if they want it \
-                     back.",
-                    super::super::chores::LET_GO
-                ),
-                json!({ "found": { "let_go": true } }),
-            ));
-        }
-        let held = filed.and_then(|id| state.tasks.get(&id));
-        return Ok(told(
-            match held {
-                Some(task) if !task.is_open() => format!(
-                    "Already proposed from that source, and closed since ({}): {:?}. {}; a new \
-                     filing from this source takes `again`.",
-                    standing(task),
-                    task.title,
-                    how_it_ended(task)
-                ),
-                Some(task) => format!("Already proposed from that source: {:?}", task.title),
-                None => "Nothing here came from that source.".into(),
-            },
-            json!({ "found": held.map(|task| brief(task, &state, today)) }),
-        ));
+        return Ok(filed_from(&state, &source, today));
     }
 
     if let Some(which) = text(args, "doc") {
         return inside_a_doc(paths, &state, &which, args);
     }
 
-    let sifted = Sifted::asked(args)?;
+    let sifted = Sifted::asked(args, &state)?;
     let query = text(args, "query");
     if query.is_none() && sifted.none() {
         return Err(Refused::Tool(
@@ -119,7 +75,11 @@ pub(in crate::mcp) fn found(paths: &Paths, args: &Value) -> Result<Value, Refuse
         Some(query) => ranked(paths, &state, query, scope, &keeps, &paper_kept),
         None => {
             let mut all: Vec<&Task> = state.tasks.values().filter(|one| keeps(one)).collect();
-            all.sort_by_key(|one| (one.date.as_ref().map(|d| d.date()), one.id));
+            let open_first = text(args, "scope").is_none();
+            all.sort_by_key(|one| {
+                let after_the_open = open_first && !one.is_open();
+                (after_the_open, one.date.as_ref().map(|d| d.date()), one.id)
+            });
             Ranked {
                 tasks: all,
                 lined: Default::default(),
@@ -129,6 +89,13 @@ pub(in crate::mcp) fn found(paths: &Paths, args: &Value) -> Result<Value, Refuse
         }
     };
     let all = hits.len();
+    let tally = query.is_none().then(|| {
+        let left_out = match sifted.said_done {
+            Some(false) => sifted_but_said(&state, &sifted, scope),
+            _ => 0,
+        };
+        Tally::of(&hits, left_out, today)
+    });
     let hits: Vec<&Task> = hits.into_iter().skip(past).take(most).collect();
     let mut hid = false;
     let wheres: Vec<Option<(&str, String)>> = hits
@@ -244,6 +211,20 @@ pub(in crate::mcp) fn found(paths: &Paths, args: &Value) -> Result<Value, Refuse
         whole["every_word"] = json!(false);
         lines.insert(0, NOT_EVERY_WORD.to_string());
     }
+    if let Some(tally) = tally.filter(|one| one.worth_saying(found.len())) {
+        whole["counts"] = tally.counts();
+        lines.insert(0, tally.told());
+    }
+    if all == 0 && papers_all == 0 {
+        let anywhere = |one: &&Task| !one.folded() && sifted.keeps(one, &state);
+        let beyond = query
+            .is_none()
+            .then(|| state.tasks.values().filter(anywhere).count());
+        if let Some(hint) = what_to_try(&state, scope, beyond, sifted.tag.as_deref()) {
+            whole["try"] = json!(hint);
+            lines.push(hint);
+        }
+    }
     if past + found.len() < all {
         whole["next"] = json!(format!(
             "`after` {} brings the next of the {all} tasks.",
@@ -268,9 +249,98 @@ pub(in crate::mcp) fn found(paths: &Paths, args: &Value) -> Result<Value, Refuse
         whole,
     ))
 }
+fn filed_from(state: &State, source: &str, today: jiff::civil::Date) -> Value {
+    let filed = already(state, source);
+    if let Some(id) = filed.filter(|id| state.is_erased(*id)) {
+        return told(
+            "Already proposed from that source, and erased since: the person let it go. A \
+             new filing from this source takes `again`, and only if they want it back."
+                .into(),
+            json!({ "found": { "id": id.to_string(), "erased": true } }),
+        );
+    }
+    if let Some(task) = filed
+        .and_then(|id| state.tasks.get(&id))
+        .filter(|one| one.hidden)
+    {
+        return told(
+            format!(
+                "Already proposed from that source, and the person put it out of sight. {}",
+                super::super::chores::out_of_sight_again(task)
+            ),
+            json!({ "found": { "hidden": true } }),
+        );
+    }
+    if filed
+        .and_then(|id| state.tasks.get(&id))
+        .is_some_and(Task::is_dropped)
+    {
+        return told(
+            format!(
+                "{} A new filing from this source takes `again`, and only if they want it \
+                 back.",
+                super::super::chores::LET_GO
+            ),
+            json!({ "found": { "let_go": true } }),
+        );
+    }
+    let held = filed.and_then(|id| state.tasks.get(&id));
+    told(
+        match held {
+            Some(task) if !task.is_open() => format!(
+                "Already proposed from that source, and closed since ({}): {:?}. {}; a new \
+                 filing from this source takes `again`.",
+                standing(task),
+                task.title,
+                how_it_ended(task)
+            ),
+            Some(task) => format!("Already proposed from that source: {:?}", task.title),
+            None => "Nothing here came from that source.".into(),
+        },
+        json!({ "found": held.map(|task| brief(task, state, today)) }),
+    )
+}
+
+enum Held {
+    Inbox,
+    In(Vec<ListId>, String),
+}
+
+impl Held {
+    fn called(state: &State, said: &str) -> Result<Self, Refused> {
+        if lists::is_the_inbox(state, said) {
+            return Ok(Self::Inbox);
+        }
+        let all = lists::called(state, said).map_err(|why| {
+            Refused::Tool(format!(
+                "{why} `list` «{}» brings the tasks in no list.",
+                lists::inbox_named(state)
+            ))
+        })?;
+        Ok(Self::In(
+            all.iter().map(|one| one.id).collect(),
+            all[0].name.clone(),
+        ))
+    }
+
+    fn named(&self) -> &str {
+        match self {
+            Self::Inbox => "the inbox",
+            Self::In(_, name) => name,
+        }
+    }
+
+    fn holds(&self, task: &Task) -> bool {
+        match self {
+            Self::Inbox => task.list.is_none(),
+            Self::In(all, _) => task.list.is_some_and(|at| all.contains(&at)),
+        }
+    }
+}
+
 struct Sifted {
     tag: Option<String>,
-    list: Option<String>,
+    list: Option<Held>,
     by_agent: Option<bool>,
     said_done: Option<bool>,
     part_of: Option<TaskId>,
@@ -562,7 +632,7 @@ pub(super) fn sightings(paths: &Paths, query: &str) -> Vec<tisty_core::docs::Sig
 }
 
 impl Sifted {
-    fn asked(args: &Value) -> Result<Self, Refused> {
+    fn asked(args: &Value, state: &State) -> Result<Self, Refused> {
         let on = |key: &str| -> Result<Option<jiff::civil::Date>, Refused> {
             let Some(said) = text(args, key) else {
                 return Ok(None);
@@ -575,7 +645,10 @@ impl Sifted {
         };
         Ok(Self {
             tag: text(args, "tag").map(|one| one.trim_start_matches('#').to_lowercase()),
-            list: text(args, "list").map(|one| one.to_lowercase()),
+            list: match text(args, "list") {
+                None => None,
+                Some(said) => Some(Held::called(state, &said)?),
+            },
             by_agent: args.get("by_agent").and_then(Value::as_bool),
             said_done: args.get("said_done").and_then(Value::as_bool),
             part_of: match text(args, "part_of") {
@@ -609,7 +682,7 @@ impl Sifted {
             all.push(format!("#{one}"));
         }
         if let Some(one) = &self.list {
-            all.push(format!("in {one}"));
+            all.push(format!("in {}", one.named()));
         }
         match self.by_agent {
             Some(true) => all.push("filed by an agent".into()),
@@ -638,6 +711,11 @@ impl Sifted {
     }
 
     fn keeps(&self, task: &Task, state: &State) -> bool {
+        let said = task.resolved.is_some() && task.is_open();
+        self.said_done.is_none_or(|want| said == want) && self.keeps_but_for_the_word(task, state)
+    }
+
+    fn keeps_but_for_the_word(&self, task: &Task, state: &State) -> bool {
         if let Some(want) = &self.tag
             && !task
                 .tags
@@ -646,11 +724,8 @@ impl Sifted {
         {
             return false;
         }
-        if let Some(want) = &self.list {
-            let named = list_of(state, task).map(str::to_lowercase);
-            if named.as_deref() != Some(want.as_str()) {
-                return false;
-            }
+        if self.list.as_ref().is_some_and(|want| !want.holds(task)) {
+            return false;
         }
         if let Some(want) = self.by_agent {
             let by = task
@@ -660,11 +735,6 @@ impl Sifted {
             if by != want {
                 return false;
             }
-        }
-        if let Some(want) = self.said_done
-            && (task.resolved.is_some() && task.is_open()) != want
-        {
-            return false;
         }
         if let Some(want) = self.part_of
             && task.part_of != Some(want)
@@ -698,13 +768,29 @@ impl Sifted {
     }
 }
 
-// A reader of the text alone still learns what presses, not only what `structuredContent` says.
+// A reader of the text alone still learns what presses and when, not only what `structuredContent` says.
 fn standing_said(task: &Task, today: jiff::civil::Date) -> String {
     let status = standing(task);
-    match standing_of(task, today)
+    let Some(how) = standing_of(task, today)
         .and_then(|how| json!(how).as_str().map(|one| one.replace('_', " ")))
-    {
-        Some(how) => format!("{status}, {how}"),
-        None => status,
-    }
+    else {
+        return status;
+    };
+    let on = |said: &str, day: Option<&DateSpec>| {
+        day.map_or_else(String::new, |one| format!(", {said}{}", one.date()))
+    };
+    format!(
+        "{status}, {how}{}{}",
+        on("", task.date.as_ref()),
+        on("due ", task.deadline.as_ref())
+    )
+}
+
+fn sifted_but_said(state: &State, sifted: &Sifted, scope: Scope) -> usize {
+    state
+        .tasks
+        .values()
+        .filter(|one| one.is_open() && scope.keeps(one) && !one.folded())
+        .filter(|one| one.resolved.is_some() && sifted.keeps_but_for_the_word(one, state))
+        .count()
 }

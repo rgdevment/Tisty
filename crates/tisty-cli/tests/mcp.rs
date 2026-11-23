@@ -2457,6 +2457,18 @@ fn one_call_says_where_things_stand_before_anything_is_asked_for() {
     assert_eq!(kept["lists"][0], serde_json::json!("Casa"), "{kept}");
     assert_eq!(kept["tags"][0]["tag"], serde_json::json!("casa"), "{kept}");
     assert_eq!(kept["counts"]["docs"], serde_json::json!(1), "{kept}");
+    assert_eq!(
+        kept["open_by_list"]["inbox"],
+        serde_json::json!(2),
+        "{kept}"
+    );
+    assert_eq!(kept["open_by_list"]["Casa"], serde_json::json!(0), "{kept}");
+    let text = text_of(&back);
+    assert!(text.contains("Open by list: Casa 0, "), "{text}");
+    assert!(
+        text.contains("and 2 in no list, which `brain` with `list` «inbox» brings."),
+        "{text}"
+    );
     assert!(kept["cursor"].is_string(), "{kept}");
     assert!(kept["newest"].is_array(), "{kept}");
 }
