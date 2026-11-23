@@ -21,6 +21,7 @@ import { sure } from "../sure";
 import { useKeptHeight } from "./heights";
 import type { CardsShown } from "./liveCards";
 import type { Viewing } from "./liveSheet";
+import type { Seat } from "./pageWriter";
 import Skeleton from "./Skeleton";
 import { type LoadedSheet, sheetLoaded } from "./sheetLoaded";
 import { StirredBar } from "./Tidied";
@@ -81,6 +82,7 @@ export default function TaskWords({
   const [Sheet, setSheet] = useState<LoadedSheet | null>(null);
   const [seen, setSeen] = useState(0);
   const [turn, setTurn] = useState(0);
+  const seat = useRef<Seat["current"]>(null);
   const failed = useRef(onError);
   failed.current = onError;
   const holding = useRef(onHeld);
@@ -193,6 +195,7 @@ export default function TaskWords({
         Sheet={Sheet}
         task={task}
         doc={doc}
+        seat={seat}
         make={make}
         label={task.title}
         onSettle={doc.held ? undefined : onSettle}
@@ -244,6 +247,7 @@ function Written({
   Sheet,
   task,
   doc,
+  seat,
   make,
   label,
   onSettle,
@@ -264,6 +268,7 @@ function Written({
   Sheet: LoadedSheet;
   task: Task;
   doc: TaskDoc;
+  seat: Seat;
   make?: (body: string) => Promise<string>;
   label: string;
   onSettle?: (
@@ -466,6 +471,7 @@ function Written({
       <Sheet
         file={doc.file || `unwritten:${task.id}`}
         fileNow={() => file.current}
+        seat={seat}
         value={text}
         label={label}
         reading={doc.held}

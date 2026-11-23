@@ -20,6 +20,7 @@ export function useTaskAsks(
     () =>
       papers && {
         kinds: whole ? ["doc", "newTask", "task", "icon", "file"] : ["doc", "task", "icon", "file"],
+        lost: (notice) => failed.current?.(notice ?? t("attachmentLost")),
         ask: (kind, at, put) => {
           const said = (text: string) => failed.current?.(text);
           if (kind !== "file") return setPicked({ kind, at, put, whole });

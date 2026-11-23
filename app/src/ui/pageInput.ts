@@ -1,4 +1,5 @@
 import { charsAt } from "tisty-editor/read";
+import { t } from "../locales";
 import { byteFrom, unitFrom } from "../placing";
 import { aloneOnLine, EMBED, embedGone, embedPlace, spacedOut } from "./embeds";
 import type { Begun } from "./pageBegun";
@@ -17,6 +18,7 @@ import {
 import { fenceJustOpened, fenceNamed, fenceOpened } from "./pageFences";
 import type { Formats } from "./pageFormats";
 import type { PageHistory } from "./pageHistory";
+import { blockAsked, type Laid, wordsAsked } from "./pageLate";
 import type { Laying } from "./pageLaying";
 import {
   closing,
@@ -226,22 +228,31 @@ export const inputOn = (
   begun: Begun,
 ) => {
   const { page, hands } = writer;
-  const { put } = laying;
+  const { put, late } = laying;
   let composing: { readonly one: Span; readonly range: Range; readonly was: string } | null = null;
 
+  const laidOver = (text: string, one: Span, insert: string, coded: boolean): Laid =>
+    coded
+      ? { edit: { ...one, insert }, caret: one.from + insert.length }
+      : replaced(text, one, insert);
+
   const putOver = (one: Span, insert: string, coded: boolean) => {
-    if (coded) return put({ ...one, insert });
-    const laid = replaced(hands.text(), one, insert);
+    const laid = laidOver(hands.text(), one, insert, coded);
     put(laid.edit, laid.caret);
   };
 
   const pasted = (one: Span, data: DataTransfer | null, coded: boolean) => {
     const html = data?.getData("text/html") || null;
     const plain = data?.getData("text/plain") ?? "";
+    const asked = wordsAsked(hands.text(), one);
+    const landed = (insert: (now: string, at: Span) => string) => {
+      if (!late(asked, (now, at) => laidOver(now, at, insert(now, at), coded)))
+        hands.lost?.(t("pastedLost"));
+    };
     hands
       .translated(html, plain)
-      .then((said) => putOver(one, pastedAround(hands.text(), one.from, one.to, said), coded))
-      .catch(() => putOver(one, plain, coded));
+      .then((said) => landed((now, at) => pastedAround(now, at.from, at.to, said)))
+      .catch(() => landed(() => plain));
   };
 
   // A slash opens the blocks where a word could start, as it always did; inside code it is only a slash.
@@ -641,23 +652,24 @@ export const inputOn = (
     const span = caret.caretSpan();
     if (!span) return;
     const end = Math.max(span.to, caret.blockEnd(span.to));
+    const asked = blockAsked(hands.text(), span.from, end);
     attach(files)
       .then((said) => {
         if (!said) return;
-        const now = hands.text();
-        const at = Math.min(span.from, now.length);
-        const laid = blockPlaced(now, at, Math.min(end, now.length), said, said.length);
-        put(laid.edit, laid.caret);
-        // The words typed next go under the file just laid, never into its line.
-        const after = hands.text();
-        const under = laid.edit.from + laid.edit.insert.replace(/\s+$/, "").length;
-        writer.kept = {
-          node: page.body,
-          offset: -1,
-          at: under,
-          lead: opening(after, under, ""),
-          tail: closing(after, under),
-        };
+        const laid = (now: string, at: Span) => blockPlaced(now, at.from, at.to, said, said.length);
+        const placed = late(asked, laid, ({ edit }) => {
+          // The words typed next go under the file just laid, never into its line.
+          const after = hands.text();
+          const under = edit.from + edit.insert.replace(/\s+$/, "").length;
+          writer.kept = {
+            node: page.body,
+            offset: -1,
+            at: under,
+            lead: opening(after, under, ""),
+            tail: closing(after, under),
+          };
+        });
+        if (!placed) hands.lost?.(t("attachmentLost"));
       })
       .catch(() => {});
   };

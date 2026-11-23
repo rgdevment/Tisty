@@ -41,7 +41,7 @@ export type Asking = {
   readonly kinds: readonly Asked[];
   readonly tags?: readonly string[];
   readonly pasted?: (files: readonly File[]) => Promise<string>;
-  readonly lost?: () => void;
+  readonly lost?: (notice?: string) => void;
   readonly failed?: (problem: unknown) => void;
   /** A table was just put in, starting at this place of the block: it is written from the page from here on. */
   readonly tabled?: (at: number) => void;

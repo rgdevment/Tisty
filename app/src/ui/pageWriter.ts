@@ -70,10 +70,14 @@ export const recorded = (turns: Turns, turn: Turn) => {
 
 export type Point = { readonly x: number; readonly y: number; readonly top?: number };
 
+export type Seat = { current: ((next: (now: string) => string | null) => boolean) | null };
+
 export type Hands = {
   readonly turns?: Turns;
   /** A block, the window or the page was left: what was written there is told once, never each key. */
   readonly settle?: () => void;
+  readonly seat?: () => Seat | null;
+  readonly lost?: (notice: string) => void;
   readonly text: () => string;
   readonly write: (next: string) => void;
   readonly shown: (now: string) => void;

@@ -56,6 +56,7 @@ import { mended as mendedText } from "./mending";
 import Page from "./Page";
 import type { Act } from "./pageMoving";
 import { placedAt, placeOf } from "./pagePlaces";
+import type { Seat } from "./pageWriter";
 import {
   type Hands,
   type PageWriting,
@@ -70,6 +71,7 @@ import { laid } from "./parting";
 import type { Formatting, Menued } from "./quickly";
 import { type Reshape, reshaped } from "./recarding";
 import Skeleton from "./Skeleton";
+import { useSeated } from "./seated";
 import { ASIDE_MARGIN, settles } from "./seeking";
 import { editorAsking } from "./sheetAsking";
 import { carried, firstInSight } from "./sighted";
@@ -83,6 +85,7 @@ const BAR = { buttons: formatButtons, css: BAR_CSS };
 type Props = {
   readonly file?: string;
   readonly fileNow?: () => string | null | undefined;
+  readonly seat?: Seat;
   readonly value: string;
   readonly label: string;
   readonly reading?: boolean;
@@ -828,9 +831,13 @@ export default function Sheet(props: Readonly<Props>) {
   };
 
   const dropped = (text: string, at?: { left: number; top: number }) => {
-    if (said.current.inline && said.current.shaping) return;
+    if (reading) return false;
+    if (said.current.inline && said.current.shaping) return true;
     const editing = open.current;
-    if (editing) return putBlock(editing.view, text);
+    if (editing) {
+      putBlock(editing.view, text);
+      return true;
+    }
     const now = latest.current;
     // A page still drawing names bytes of an older text, so the file then goes at the end.
     const fresh = showing.current === now;
@@ -845,15 +852,30 @@ export default function Sheet(props: Readonly<Props>) {
     const span = placeOf(block);
     const next = laid(now, span ? charsAt(now, span[1]) : now.length, text);
     whole(next);
+    return true;
   };
   const dropping = useRef(dropped);
   dropping.current = dropped;
 
+  const lateLanded = (next: (now: string) => string | null) => {
+    const now = reading || open.current ? null : next(latest.current);
+    if (now === null) return false;
+    rewritten(now);
+    return true;
+  };
+  const seated = useSeated(file, props.seat, lateLanded);
+
   useEffect(() => {
     const box = room.current;
     if (!box || reading) return;
-    return takesFiles(box, (text, at) => dropping.current(text, at));
-  }, [reading]);
+    return takesFiles(box, (at) => {
+      const asked = seated.current;
+      return (text) =>
+        asked && asked === seated.current
+          ? dropping.current(text, at)
+          : (asked?.current?.((now) => laid(now, now.length, text)) ?? false);
+    });
+  }, [reading, seated]);
 
   // On the page written in place a change from beside it is laid block by block, so nothing above it moves.
   const rewritten = (next: string) => {
@@ -1008,6 +1030,8 @@ export default function Sheet(props: Readonly<Props>) {
     linkable: (asked) => said.current.asking?.linkable?.(asked) ?? [],
     headsOf: (asked, head, ready) => said.current.asking?.headsOf?.(asked, head, ready) ?? [],
     pasted: (files) => said.current.asking?.pasted?.(files) ?? Promise.resolve(""),
+    seat: () => seated.current,
+    lost: (notice) => (said.current.asking?.lost ?? said.current.onFail)?.(notice),
     translated: (html, plain) =>
       html ? HOST.fromHtml(html) : HOST.fromText(plain).then((said) => said ?? plain),
   };

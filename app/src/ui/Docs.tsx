@@ -653,7 +653,7 @@ export default function Docs({
                 ),
                 onError,
               ),
-            lost: () => onError(t("attachmentLost")),
+            lost: (notice) => onError(notice ?? t("attachmentLost")),
             ask: (kind, at, put, first, before) => {
               if (kind === "file") {
                 // An attachment as a document's first words would become its title.

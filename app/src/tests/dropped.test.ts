@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { CATCHES, handTo, takesFiles, whenFilesLand } from "../dropped";
+import { CATCHES, caughtBy, takesFiles, whenFilesLand } from "../dropped";
 
 type Payload =
   | { type: "enter"; paths: string[]; position: { x: number; y: number } }
@@ -131,21 +131,30 @@ describe("handing the file to the field", () => {
   it("goes to the element that registered, not to a name", () => {
     const one = field();
     const other = field();
-    const took = vi.fn();
-    takesFiles(one, took);
+    const took = vi.fn(() => true);
+    takesFiles(one, () => took);
 
-    expect(handTo(other, "![a](<b>)")).toBe(false);
+    expect(caughtBy(other)).toBeNull();
     expect(took).not.toHaveBeenCalled();
 
-    expect(handTo(one, "![a](<b>)")).toBe(true);
-    expect(took).toHaveBeenCalledWith("![a](<b>)", undefined);
+    expect(caughtBy(one)?.("![a](<b>)")).toBe(true);
+    expect(took).toHaveBeenCalledWith("![a](<b>)");
+  });
+
+  it("is caught where the drop fell, before the files are read", () => {
+    const box = field();
+    const caught = vi.fn(() => () => true);
+    takesFiles(box, caught);
+
+    caughtBy(box, { left: 4, top: 9 });
+    expect(caught).toHaveBeenCalledWith({ left: 4, top: 9 });
   });
 
   it("says no once the field is gone, instead of losing the file", () => {
     const box = field();
-    const off = takesFiles(box, vi.fn());
+    const off = takesFiles(box, () => () => true);
     off();
 
-    expect(handTo(box, "![a](<b>)")).toBe(false);
+    expect(caughtBy(box)).toBeNull();
   });
 });

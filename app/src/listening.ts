@@ -6,7 +6,7 @@ import { heard, play } from "./chime";
 import { type Afoot, type DoorDue, doorDue, keptForTheEnd, syncState } from "./core";
 import { decideAll, putOffSaid } from "./deciding";
 import { departing } from "./departing";
-import { CALENDAR, handTo, whenFilesLand } from "./dropped";
+import { CALENDAR, caughtBy, whenFilesLand } from "./dropped";
 import { keptAll } from "./kept";
 import { t } from "./locales";
 import { saidPlainly } from "./refusal";
@@ -200,10 +200,11 @@ export function useListening({
     () =>
       whenFilesLand((target, paths, at) => {
         setError(null);
+        const landing = caughtBy(target, at);
         attachedAll(paths)
           .then((all) => keptAll(all, setError))
           .then((written) => {
-            if (written && !handTo(target, written, at)) setError(t("attachmentLost"));
+            if (written && !landing?.(written)) setError(t("attachmentLost"));
           }, setError);
       }, calendarsDropped),
     [setError],

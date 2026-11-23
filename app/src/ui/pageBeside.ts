@@ -4,8 +4,9 @@ import { t } from "../locales";
 import type { Begun } from "./pageBegun";
 import { blockPlaced, placed } from "./pageBlocks";
 import type { Caret } from "./pageCaret";
-import { changeOf, type Edit } from "./pageEdits";
+import { changeOf, type Edit, type Span } from "./pageEdits";
 import type { Formats } from "./pageFormats";
+import { blockAsked } from "./pageLate";
 import type { Laying } from "./pageLaying";
 import { closing, opening } from "./pageLists";
 import { type Act, acted, gripped, type Moved, movedTo, roomy, topsOf, unitOf } from "./pageMoving";
@@ -32,7 +33,7 @@ export const besideOn = (
   formats: Formats,
 ) => {
   const { page, hands } = writer;
-  const { put } = laying;
+  const { put, late } = laying;
 
   // The blocks wait on the sheet's left edge, beside the line being written, as the folded bar did.
   const plus = page.createElement("button");
@@ -143,26 +144,27 @@ export const besideOn = (
       return how.edit;
     }
     const before = text.slice(0, span.from);
+    const there = blockAsked(text, span.from, end);
+    const laidOf = (said: string) => (now: string, place: Span) => {
+      const at = place.from;
+      // An icon is drawn only with a space on each side, so it never sticks to the words around it.
+      const icon = !how.block && /^::[\w-]+::$/.test(said);
+      const lead = icon && at > 0 && !/\s/.test(now[at - 1] ?? "") ? " " : "";
+      const inline = `${lead}${said}${icon && !/^[ \t]/.test(now.slice(at)) ? " " : ""}`;
+      return how.block
+        ? blockPlaced(now, at, place.to, said, said.length)
+        : { edit: { from: at, to: at, insert: inline }, caret: at + inline.length };
+    };
     hands.ask(
       how.ask,
       caret.caretPoint(),
-      (said) => {
-        const now = hands.text();
-        const at = Math.min(span.from, now.length);
-        // An icon is drawn only with a space on each side, so it never sticks to the words around it.
-        const icon = !how.block && /^::[\w-]+::$/.test(said);
-        const lead = icon && at > 0 && !/\s/.test(now[at - 1] ?? "") ? " " : "";
-        const inline = `${lead}${said}${icon && !/^[ \t]/.test(now.slice(at)) ? " " : ""}`;
-        const laid = how.block
-          ? blockPlaced(now, at, Math.min(end, now.length), said, said.length)
-          : { edit: { from: at, to: at, insert: inline }, caret: at + inline.length };
-        put(laid.edit, laid.caret);
-        if (how.block) lineUnder(laid.edit);
-        // The picker held the keys; once it closes they belong to the page again.
-        page.defaultView?.focus();
-        page.querySelector<HTMLElement>(".page")?.focus({ preventScroll: true });
-        return true;
-      },
+      (said) =>
+        late(there, laidOf(said), (laid) => {
+          if (how.block) lineUnder(laid.edit);
+          // The picker held the keys; once it closes they belong to the page again.
+          page.defaultView?.focus();
+          page.querySelector<HTMLElement>(".page")?.focus({ preventScroll: true });
+        }),
       !before.trim(),
       before,
     );

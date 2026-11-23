@@ -10,6 +10,7 @@ import {
   unsplitPairs,
 } from "./pageEdits";
 import { type Change, holdingOn } from "./pageHolding";
+import { lateOn } from "./pageLate";
 import { joinedApart } from "./pageLists";
 import { opened } from "./pageNodes";
 import { patched } from "./pagePatching";
@@ -199,5 +200,7 @@ export const layingOn = (
     holding.before({ from, removed, by: bytesIn(one.insert) - removed });
   };
 
-  return { put, laidOut, stop, landed: holding.landed, heldAcross };
+  const late = lateOn(writer, put, () => over);
+
+  return { put, late, laidOut, stop, landed: holding.landed, heldAcross };
 };

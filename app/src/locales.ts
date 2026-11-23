@@ -2092,6 +2092,7 @@ const en = {
   importedFromTisty:
     "That file is one Tisty already keeps, so it is not brought in again as a new document. Duplicate the document instead.",
   attachmentLost: "The file came in, but the field it was for is gone",
+  pastedLost: "What you pasted came in, but the place it was for is gone",
   taskCardLost: "The task was chosen, but the place it was for is gone",
   taskMadeCardLost: "The task is made, but the place for its card is gone",
   fileNeedsTitle:
@@ -5787,6 +5788,7 @@ const es: Catalog = {
   importedFromTisty:
     "Ese archivo ya lo guarda Tisty, así que no se trae de nuevo como un documento nuevo. Duplica el documento en su lugar.",
   attachmentLost: "El archivo entró, pero el campo al que iba ya no está",
+  pastedLost: "Lo que pegaste llegó, pero el lugar al que iba ya no está",
   taskCardLost: "Elegiste la tarea, pero el lugar al que iba ya no está",
   taskMadeCardLost: "La tarea quedó creada, pero el lugar de su tarjeta ya no está",
   fileNeedsTitle:

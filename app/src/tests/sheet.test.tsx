@@ -1,7 +1,7 @@
 import { render, waitFor } from "@testing-library/react";
 import { sheetFor } from "tisty-editor/read";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { handTo } from "../dropped";
+import { caughtBy } from "../dropped";
 import { closed, laid, parting } from "../ui/parting";
 import Sheet from "../ui/Sheet";
 
@@ -413,7 +413,7 @@ describe("the sheet in the main window", () => {
     );
     await loaded(await shown(view.container));
     const room = view.container.querySelector("[data-catches-files]") as Element;
-    expect(handTo(room, "![foto](foto.png)")).toBe(true);
+    expect(caughtBy(room)?.("![foto](foto.png)")).toBe(true);
     expect(writes[writes.length - 1]).toBe("# Compras\n\nleche\n\npan\n\n![foto](foto.png)\n");
   });
 
@@ -422,7 +422,7 @@ describe("the sheet in the main window", () => {
     await loaded(await shown(view.container));
     expect(view.container.querySelector("[data-catches-files]")).toBeNull();
     const room = view.container.querySelector(".gutter") as Element;
-    expect(handTo(room, "![foto](foto.png)")).toBe(false);
+    expect(caughtBy(room)).toBeNull();
   });
 
   it("ticks a stage from its box on the page without opening the block", async () => {

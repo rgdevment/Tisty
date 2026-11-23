@@ -5,26 +5,21 @@ export const CATCHES = "data-catches-files";
 
 type Caught = (target: Element, paths: string[], at: { left: number; top: number }) => void;
 
-type Put = (written: string, at?: { left: number; top: number }) => void;
+type Landing = (written: string) => boolean;
 
-const takers = new WeakMap<Element, Put>();
+type Catching = (at?: { left: number; top: number }) => Landing;
 
-export function takesFiles(target: Element, put: Put): () => void {
-  takers.set(target, put);
+const takers = new WeakMap<Element, Catching>();
+
+export function takesFiles(target: Element, catching: Catching): () => void {
+  takers.set(target, catching);
   return () => {
-    if (takers.get(target) === put) takers.delete(target);
+    if (takers.get(target) === catching) takers.delete(target);
   };
 }
 
-export function handTo(
-  target: Element,
-  written: string,
-  at?: { left: number; top: number },
-): boolean {
-  const put = takers.get(target);
-  put?.(written, at);
-  return put !== undefined;
-}
+export const caughtBy = (target: Element, at?: { left: number; top: number }): Landing | null =>
+  takers.get(target)?.(at) ?? null;
 
 export const asCss = (x: number, y: number, mac: boolean, scale: number): [number, number] =>
   mac ? [x, y] : [x / (scale || 1), y / (scale || 1)];
