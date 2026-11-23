@@ -2095,6 +2095,19 @@ const en = {
   pastedLost: "What you pasted came in, but the place it was for is gone",
   taskCardLost: "The task was chosen, but the place it was for is gone",
   taskMadeCardLost: "The task is made, but the place for its card is gone",
+  docCardLost: "You chose the document, but the place it was for is gone",
+  docMadeCardLost: "The document is made, but the place for its card is gone",
+  tableLost: "The change to the table came back, but the page it was for is gone",
+  tableKept:
+    "The change to the table came after you left its page, so Tisty kept it aside there to recover",
+  tableKeptOver:
+    "The page changed in the same place while the table was saved, so Tisty kept the table's change aside to recover",
+  tableNotLaid:
+    "The page changed in the same place while the table was saved, so the table's change was not made. Make it again.",
+  tableKeysUnder: "The next cell could not open, so what you typed for it is under the table",
+  tableKeysLost:
+    "The next cell could not open, and there was nowhere to put what you typed for it: {name}",
+  choiceLost: "You chose it, but the page it was for is gone",
   fileNeedsTitle:
     "Write the document's title first: a file as its first line would become its name.",
   cannotOpen: "Nothing on this machine opens {name}",
@@ -5852,6 +5865,20 @@ const es: Catalog = {
   pastedLost: "Lo que pegaste llegó, pero el lugar al que iba ya no está",
   taskCardLost: "Elegiste la tarea, pero el lugar al que iba ya no está",
   taskMadeCardLost: "La tarea quedó creada, pero el lugar de su tarjeta ya no está",
+  docCardLost: "Elegiste el documento, pero el lugar al que iba ya no está",
+  docMadeCardLost: "El documento quedó creado, pero el lugar de su tarjeta ya no está",
+  tableLost: "El cambio de la tabla llegó, pero la página a la que iba ya no está",
+  tableKept:
+    "El cambio de la tabla llegó cuando ya habías dejado su página, así que Tisty lo guardó aparte allí para que lo recuperes",
+  tableKeptOver:
+    "La página cambió en el mismo lugar mientras se guardaba la tabla, así que Tisty guardó aparte el cambio de la tabla para que lo recuperes",
+  tableNotLaid:
+    "La página cambió en el mismo lugar mientras se guardaba la tabla, así que el cambio de la tabla no se hizo. Vuelve a hacerlo.",
+  tableKeysUnder:
+    "La celda siguiente no se pudo abrir, así que lo que escribiste para ella quedó bajo la tabla",
+  tableKeysLost:
+    "La celda siguiente no se pudo abrir y no hubo dónde poner lo que escribiste para ella: {name}",
+  choiceLost: "Lo elegiste, pero la página a la que iba ya no está",
   fileNeedsTitle:
     "Escribe primero el título del documento: un archivo como primera línea pasaría a ser su nombre.",
   cannotOpen: "Nada en este equipo abre {name}",

@@ -69,6 +69,9 @@ const Room = ({ turned, page, ways, seen }: Held & { turned: number }) => {
     leave: ways.leave,
     markdown: ways.markdown,
     fail: ways.fail,
+    seat: () => null,
+    lost: ways.fail,
+    aside: () => null,
     turned,
   });
   seen.onTable = tables.onTable;

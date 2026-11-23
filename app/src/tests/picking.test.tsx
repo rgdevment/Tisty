@@ -94,7 +94,9 @@ describe("what the / menu asks the window for", () => {
     const { lost } = shown("newPage", false);
     await userEvent.type(screen.getByRole("textbox"), "Capítulo{enter}");
     await waitFor(() =>
-      expect(lost).toHaveBeenCalledWith({ file: "ab12-0009", title: "Capítulo" }),
+      expect(lost).toHaveBeenCalledWith(
+        expect.objectContaining({ file: "ab12-0009", title: "Capítulo" }),
+      ),
     );
   });
 
@@ -131,7 +133,9 @@ describe("what the / menu asks the window for", () => {
     document.body.innerHTML = "";
     const late = shown("page", false);
     await userEvent.click(screen.getByText("Rina"));
-    expect(late.lost).toHaveBeenCalledWith({ file: "ab12-0003", title: "Rina" });
+    expect(late.lost).toHaveBeenCalledWith(
+      expect.objectContaining({ file: "ab12-0003", title: "Rina" }),
+    );
   });
 
   it("writes Tisty's icons in its own words and an emoji as itself", async () => {
@@ -149,6 +153,66 @@ describe("what the / menu asks the window for", () => {
       document.querySelector("[aria-hidden='true'][data-keeps-writing]") as Element,
     );
     expect(done).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe("a document's card whose place is gone when it comes", () => {
+  const picking = (kind: Picked["kind"], onLost: (doc: { file: string }) => boolean) => {
+    const error = vi.fn();
+    const element = (lost: typeof onLost) => (
+      <Picking
+        picked={{ kind, at: { x: 40, y: 40 }, put: () => false }}
+        own={book}
+        pages={[rina]}
+        others={[rina]}
+        onMade={vi.fn()}
+        onLost={lost}
+        onError={error}
+        onDone={vi.fn()}
+      />
+    );
+    const view = render(element(onLost));
+    return { error, moved: (lost: typeof onLost) => view.rerender(element(lost)) };
+  };
+
+  it("asks the window as it stands once the document is made, and says the card is lost", async () => {
+    made.waits = () => {};
+    const before = vi.fn(() => true);
+    const after = vi.fn(() => false);
+    const { error, moved } = picking("newDoc", before);
+    await userEvent.type(screen.getByRole("textbox"), "Notas{enter}");
+
+    moved(after);
+    made.waits?.();
+
+    await waitFor(() =>
+      expect(after).toHaveBeenCalledWith(
+        expect.objectContaining({ file: "ab12-0009", title: "Notas" }),
+      ),
+    );
+    expect(before).not.toHaveBeenCalled();
+    expect(error).toHaveBeenCalledWith(t("docMadeCardLost"));
+  });
+
+  it("says a chosen document's card is lost when nothing else takes it", async () => {
+    const { error } = picking("doc", () => false);
+    await userEvent.click(screen.getByText("Rina"));
+
+    expect(error).toHaveBeenCalledWith(t("docCardLost"));
+  });
+
+  it("says an icon chosen for a place now gone came too late", async () => {
+    const { error } = shown("icon", false);
+    await userEvent.click(screen.getByText("star"));
+
+    expect(error).toHaveBeenCalledWith(t("choiceLost"));
+  });
+
+  it("says nothing when the window lays the card elsewhere", async () => {
+    const { error } = picking("doc", () => true);
+    await userEvent.click(screen.getByText("Rina"));
+
+    expect(error).not.toHaveBeenCalled();
   });
 });
 

@@ -11,9 +11,11 @@ import {
 } from "../tables";
 import { cellBar } from "./cellBar";
 import Menu, { type Choice } from "./Menu";
+import { type Seated, seatedNow } from "./pageLate";
 import { placeOf } from "./pagePlaces";
 import type { TableWent } from "./paging";
 import { type Mark, type Peeled, peeled, toggled } from "./peeled";
+import { seatedChoices } from "./seated";
 import TableEditor, { type Picked } from "./TableEditor";
 import { columnChoices, wordsOf } from "./tableChoices";
 import {
@@ -30,6 +32,7 @@ import {
   type Viewing,
   viewed,
 } from "./tabled";
+import { endAfter, laidOver, rowAskedAgain } from "./tableMeanwhile";
 
 type Ways = {
   /** The text as it is now, and as the page on screen was drawn from. */
@@ -39,11 +42,14 @@ type Ways = {
   readonly frame: () => DOMRect | undefined;
   readonly whole: (next: string) => void;
   /** Enter on the last row leaves the table: a line begins under it, at this place in the text. */
-  readonly passed?: (end: number, table: readonly [number, number]) => void;
+  readonly passed?: (end: number, table: readonly [number, number], typed?: string) => boolean;
   readonly writing: () => boolean;
   readonly leave: () => void;
   readonly markdown: (at: [number, number], box: HTMLElement) => void;
   readonly fail: (problem: unknown) => void;
+  readonly seat: () => Seated["seat"];
+  readonly lost: (notice: string) => void;
+  readonly aside: () => ((words: string) => void) | null;
   /** Counts each new drawing of the page. */
   readonly turned: number;
 };
@@ -52,6 +58,13 @@ type Ways = {
 const PICKED = new Set(["date", "select", "tags", "link"]);
 
 type Place = { readonly nth: number; readonly row: number; readonly column: number };
+
+type Started = Seated & {
+  readonly was: string;
+  readonly aside: ((words: string) => void) | null;
+};
+
+type Opened = Started & { readonly at: [number, number] };
 
 // A column's options are the values its cells already hold, a tag list split into its tags.
 const optionsIn = (page: Document, nth: number, column: number, tags: boolean): string[] => {
@@ -78,13 +91,13 @@ const moved = (view: Viewing, to: (column: number) => number | null): Viewing =>
   };
 };
 
+const unlanded = (then: Place, edits: readonly TableEdit[]): Place | null => {
+  if (edits.some((one) => one.kind === "rowAdd")) return null;
+  const move = edits.find((one) => one.kind === "rowMove");
+  return move?.kind === "rowMove" ? { ...then, row: move.from } : then;
+};
+
 /** What the page's tables do when they are written in place: cells, rows, columns, and how each is shown. */
-const BYTES = new TextEncoder();
-
-// The table's end in the text after its own edit, the only change between the two.
-const endAfter = (was: string, next: string, at: [number, number]) =>
-  charsAt(next, at[1] + BYTES.encode(next).length - BYTES.encode(was).length);
-
 export const useTables = (
   ways: Ways,
 ): {
@@ -109,17 +122,20 @@ export const useTables = (
     idle.current = [];
     for (const one of waiting) one();
   };
-  const wanted = useRef<Place | null>(null);
+  const wanted = useRef<{ place: Place; seat: Seated["seat"] } | null>(null);
   // Keys pressed while the next cell is saved and opened are held for it instead of falling on the page.
-  const ahead = useRef<{ said: string; stop: () => void } | null>(null);
+  const ahead = useRef<{ said: string; stop: () => void; seat: Seated["seat"] } | null>(null);
   const leftover = useRef("");
+  const backed = useRef<{ words: string; nth: number } | null>(null);
   const [picking, setPicking] = useState<{
     kind: Picked;
     at: { x: number; y: number; above: number };
     was: string;
     shown: string;
     options: string[];
+    typed: string;
     place: Place;
+    here: Opened;
   } | null>(null);
   const [menu, setMenu] = useState<{
     x: number;
@@ -135,6 +151,77 @@ export const useTables = (
   // A click on a page still on screen while the next one is drawn names bytes of an older text.
   const fresh = () => said.current.drawn.current === said.current.latest.current;
 
+  const seatedHere = () => seatedNow(() => said.current.seat());
+
+  const started = (): Started => ({
+    ...seatedHere(),
+    was: said.current.latest.current,
+    aside: said.current.aside(),
+  });
+
+  const letGo = (here: Seated) => {
+    if (ahead.current?.seat === here.seat) ahead.current.stop();
+    const clicked = wanted.current;
+    wanted.current = null;
+    if (clicked && clicked.seat !== here.seat) opened(clicked.place);
+  };
+
+  const keptAway = (here: Started, next: string) => {
+    if (here.seat?.current?.((now) => laidOver(here.was, next, now))) return;
+    if (!here.aside) return said.current.lost(t("tableLost"));
+    here.aside(next);
+    said.current.lost(t("tableKept"));
+  };
+
+  const heldWords = (): string => {
+    const held = ahead.current;
+    held?.stop();
+    return held ? held.said.replace(/[\t\n]+/g, " ").trim() : "";
+  };
+
+  const laidUnder = () => {
+    const back = backed.current;
+    if (!back || !fresh()) return;
+    backed.current = null;
+    const page = said.current.page();
+    const at = page && tablePlace(page, back.nth);
+    const end = at ? charsAt(said.current.latest.current, at[1]) : 0;
+    if (at && said.current.passed?.(end, at, back.words))
+      return said.current.lost(t("tableKeysUnder"));
+    said.current.lost(fill("tableKeysLost", back.words));
+  };
+
+  const handedBack = (nth: number): boolean => {
+    const words = heldWords();
+    if (!words) return false;
+    backed.current = { words, nth };
+    laidUnder();
+    return true;
+  };
+
+  const goneOn = (open: Place | null, toward: Place | null) => {
+    const next = wanted.current?.place ?? open;
+    wanted.current = null;
+    if (next) opened(next);
+    else handedBack(toward?.nth ?? -1);
+  };
+
+  const keptOver = (here: Started, next: string, toward: Place | null) => {
+    goneOn(null, toward);
+    if (!here.aside) return said.current.lost(t("tableNotLaid"));
+    here.aside(next);
+    said.current.lost(t("tableKeptOver"));
+  };
+
+  const movedOff = (here: Opened, edits: TableEdit[]) => {
+    letGo(here);
+    if (!here.seat?.current && !here.aside) return said.current.lost(t("tableLost"));
+    tableEdit(here.was, here.at, ...edits).then(
+      (next) => keptAway(here, next),
+      () => said.current.lost(t("tableLost")),
+    );
+  };
+
   const edited = (
     at: [number, number],
     edits: TableEdit[],
@@ -144,20 +231,31 @@ export const useTables = (
   ) => {
     if (!fresh()) return;
     saving.current += 1;
-    const was = said.current.latest.current;
-    tableEdit(was, at, ...edits)
-      .then((next) => {
+    const here = started();
+    const missed = (was: string, next: string) => {
+      if (here.still()) return keptOver(here, next, then);
+      letGo(here);
+      keptAway({ ...here, was }, next);
+    };
+    const asked = (was: string, table: [number, number]): Promise<void> =>
+      tableEdit(was, table, ...edits).then((next) => {
+        if (!here.still()) return missed(was, next);
+        const now = said.current.latest.current;
+        const again = now === next ? null : rowAskedAgain(was, now, table);
+        if (again) return asked(now, again).catch(() => missed(was, next));
+        const laid = laidOver(was, next, now);
+        if (laid === null) return missed(was, next);
         settled?.();
-        pending.current = then ?? wanted.current;
+        pending.current = then ?? wanted.current?.place ?? null;
         wanted.current = null;
-        said.current.whole(next);
-        if (passing) said.current.passed?.(endAfter(was, next, at), at);
-      })
+        said.current.whole(laid);
+        if (passing && laid === next) said.current.passed?.(endAfter(was, next, table), table);
+      });
+    asked(here.was, at)
       .catch((why) => {
+        if (here.still()) goneOn(then && unlanded(then, edits), then);
+        else letGo(here);
         said.current.fail(refused(why));
-        const next = wanted.current;
-        wanted.current = null;
-        if (next) opened(next);
       })
       .finally(saved);
   };
@@ -207,13 +305,18 @@ export const useTables = (
     return tableCanon(words || "text", typed).catch(() => typed);
   };
 
-  const written = (place: Place, typed: string) => {
+  const written = (place: Place, typed: string, here: Opened) => {
     const page = said.current.page();
     if (!page) return;
+    const cells = (said: string): TableEdit[] => [
+      { kind: "cell", row: place.row, column: place.column, said },
+    ];
+    if (!here.still()) return movedOff(here, cells(typed));
     canonical(page, place, typed)
       .then((said) => {
+        if (!here.still()) return movedOff(here, cells(said));
         const at = tablePlace(page, place.nth);
-        if (at) edited(at, [{ kind: "cell", row: place.row, column: place.column, said }]);
+        if (at) edited(at, cells(said));
       })
       .catch((why) => said.current.fail(refused(why)));
   };
@@ -223,20 +326,24 @@ export const useTables = (
     cell: Peeled,
     now: string,
     how: Leaving,
-    marks: readonly Mark[] = cell.marks,
+    marks: readonly Mark[],
+    here: Opened,
   ) => {
-    const page = said.current.page();
-    const at = page && tablePlace(page, place.nth);
-    if (how === "cancel" || !page || !at || !fresh()) return;
-    if (how !== "blur") awaited(page);
-    const { row, column } = place;
+    if (how === "cancel") return;
     const restyled = JSON.stringify(marks) !== JSON.stringify(cell.marks);
     const changed = restyled || now.trim() !== cell.words.trim();
+    const { row, column } = place;
+    const words = (said: string): TableEdit[] =>
+      row < 0
+        ? [{ kind: "rename", column, said: cell.wrap(said, marks) }]
+        : [{ kind: "cell", row, column, said: cell.wrap(said, marks) }];
+    if (!here.still()) return changed ? movedOff(here, words(now)) : letGo(here);
+    const page = said.current.page();
+    const at = page && tablePlace(page, place.nth);
+    if (!page || !at || !fresh()) return;
+    if (how !== "blur") awaited(page);
     if (row < 0) {
-      const named: TableEdit[] = changed
-        ? [{ kind: "rename", column, said: cell.wrap(now, marks) }]
-        : [];
-      onward(place, named, how);
+      onward(place, changed ? words(now) : [], how);
       return;
     }
     if (!changed) {
@@ -248,15 +355,18 @@ export const useTables = (
     // The words take the column's form first; the marks around the cell then wrap that form.
     canonical(page, place, now)
       .then((said) =>
-        onward(place, [{ kind: "cell", row, column, said: cell.wrap(said, marks) }], how),
+        here.still() ? onward(place, words(said), how) : movedOff(here, words(said)),
       )
-      .catch((why) => said.current.fail(refused(why)))
+      .catch((why) => {
+        if (here.still()) handedBack(place.nth);
+        said.current.fail(refused(why));
+      })
       .finally(saved);
   };
 
   const awaited = (page: Document) => {
     if (ahead.current) return;
-    const held = { said: leftover.current, stop: () => {} };
+    const held = { said: leftover.current, stop: () => {}, seat: said.current.seat() };
     leftover.current = "";
     const caught = (event: KeyboardEvent) => {
       if ((event.target as Element | null)?.closest?.(".table-input")) return;
@@ -319,14 +429,19 @@ export const useTables = (
     const page = said.current.page();
     const at = page && tablePlace(page, place.nth);
     const holder = page && cellOf(page, place.nth, place.row, place.column);
-    if (!page || !at || !holder) return;
+    if (!page || !at || !holder) {
+      handedBack(place.nth);
+      return;
+    }
     if (!fresh()) {
       pending.current = place;
       return;
     }
     const type = cellOf(page, place.nth, -1, place.column)?.dataset.type ?? "";
+    const here: Opened = { ...started(), at };
     tableWritten(said.current.latest.current, at)
       .then((written) => {
+        if (!here.still()) return letGo(here);
         const was =
           place.row < 0 ? written.heads[place.column] : written.rows[place.row]?.[place.column];
         if (place.row >= 0 && PICKED.has(type)) {
@@ -342,7 +457,9 @@ export const useTables = (
             was: was ?? "",
             shown: holder.textContent?.trim() ?? "",
             options: optionsIn(page, place.nth, place.column, type === "tags"),
+            typed: heldWords(),
             place,
+            here,
           });
           return;
         }
@@ -358,7 +475,7 @@ export const useTables = (
         const typed = step < 0 ? held : held.slice(0, step);
         const input = typing(holder, typed || cell.words, label, (now, how) => {
           unbar();
-          finished(place, cell, now, how, marks);
+          finished(place, cell, now, how, marks, here);
         });
         if (typed) input.setSelectionRange(typed.length, typed.length);
         if (step >= 0) {
@@ -380,7 +497,11 @@ export const useTables = (
             },
           );
       })
-      .catch((why) => said.current.fail(refused(why)));
+      .catch((why) => {
+        if (!here.still()) letGo(here);
+        else if (handedBack(place.nth)) return;
+        said.current.fail(refused(why));
+      });
   };
 
   // Each new drawing of the page comes plain: what is shown on screen is laid on it again.
@@ -404,6 +525,7 @@ export const useTables = (
     const next = pending.current;
     pending.current = null;
     if (next) opened(next);
+    laidUnder();
   };
   const relay = useRef(relaid);
   relay.current = relaid;
@@ -537,9 +659,12 @@ export const useTables = (
       ...(asked.right !== undefined && { right: left + asked.right }),
     };
     const name = headsNamed(page as Document, nth)[asked.column] ?? "";
+    const here = seatedHere();
+    const kept = (choices: Choice[]) =>
+      seatedChoices(choices, here.still, () => said.current.lost(t("choiceLost")));
     if (asked.act === "cell") {
       const place = { nth, row: asked.row, column: asked.column };
-      if (saving.current > 0) wanted.current = place;
+      if (saving.current > 0) wanted.current = { place, seat: said.current.seat() };
       else opened(place);
     }
     if (asked.act === "star" || asked.act === "toggle") {
@@ -577,9 +702,9 @@ export const useTables = (
       return;
     }
     if (asked.act === "row")
-      setMenu({ ...at, label: t("tableRow"), choices: rowChoices(asked, nth) });
+      setMenu({ ...at, label: t("tableRow"), choices: kept(rowChoices(asked, nth)) });
     if (asked.act === "column")
-      setMenu({ ...at, label: fill("tableColumn", name), choices: columnMenu(asked, nth) });
+      setMenu({ ...at, label: fill("tableColumn", name), choices: kept(columnMenu(asked, nth)) });
   };
 
   const open = () => Boolean(said.current.page()?.querySelector(".table-input"));
@@ -613,9 +738,10 @@ export const useTables = (
             was={picking.was}
             shown={picking.shown}
             options={picking.options}
+            typed={picking.typed}
             onWrite={(typed) => {
               setPicking(null);
-              written(picking.place, typed);
+              written(picking.place, typed, picking.here);
             }}
             onClose={() => setPicking(null)}
           />

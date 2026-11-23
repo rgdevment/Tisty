@@ -68,7 +68,7 @@ const opened = (asked: Partial<Picked> = {}) => {
       pages={[]}
       others={[]}
       onMade={() => {}}
-      onLost={() => {}}
+      onLost={() => false}
       onError={onError}
       onDone={onDone}
     />,

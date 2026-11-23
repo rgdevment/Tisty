@@ -36,6 +36,7 @@ import type { Today } from "../diary";
 import { viewDiagram } from "../drawing";
 import { brainstormIn, notedIn, withLandscape, withPaper, withSheets } from "../front";
 import { keptAll, PASTED_UP_TO } from "../kept";
+import { setAside } from "../keptAside";
 import { DOC_ASIDE_FROM } from "../layout";
 import { fill, t } from "../locales";
 import { filed, inTextOrder, type Moved, namesIn, pagesOf, under } from "../paging";
@@ -1197,6 +1198,7 @@ export default function Docs({
                   }
                   onOpen={(reference) => opened(reference).catch((e) => onError(saidPlainly(e)))}
                   onWrite={wrote}
+                  onAside={setAside}
                   onOutline={setHeads}
                   onInsert={(put) => {
                     const named =
@@ -1407,10 +1409,7 @@ export default function Docs({
           pages={pages}
           others={known.filter((one) => one.file !== open?.file && !one.away)}
           onMade={onKept}
-          onLost={(doc) => {
-            if (picked.file !== open?.file) return;
-            putting.current?.({ ...doc, id: doc.file, folder: null, archived: false, away: false });
-          }}
+          onLost={(doc) => picked.file === open?.file && putting.current?.(doc) === true}
           onError={(problem) => onError(saidPlainly(problem))}
           onDone={() => setPicked(null)}
           onDrawn={drawNew}

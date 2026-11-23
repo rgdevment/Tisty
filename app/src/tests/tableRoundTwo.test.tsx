@@ -45,7 +45,7 @@ const Room = ({
   seen: Seen;
   turned: number;
   whole: (next: string) => void;
-  passed?: (end: number, table: readonly [number, number]) => void;
+  passed?: (end: number, table: readonly [number, number]) => boolean;
 }) => {
   const tables = useTables({
     latest: { current: BODY },
@@ -58,6 +58,9 @@ const Room = ({
     leave: () => {},
     markdown: () => {},
     fail: () => {},
+    seat: () => null,
+    lost: () => {},
+    aside: () => null,
     turned,
   });
   seen.onTable = tables.onTable;
@@ -70,7 +73,7 @@ const made = (html = NAMED) => {
   tabled(page);
   const seen: Seen = { onTable: () => {} };
   const whole = vi.fn();
-  const passed = vi.fn();
+  const passed = vi.fn<(end: number, table: readonly [number, number]) => boolean>(() => true);
   const view = render(<Room page={page} seen={seen} turned={1} whole={whole} passed={passed} />);
   const turn = (turned: number) =>
     view.rerender(<Room page={page} seen={seen} turned={turned} whole={whole} passed={passed} />);

@@ -41,7 +41,7 @@ export function useTaskAsks(
       pages={[]}
       others={papers.filter((one) => !one.away)}
       onMade={() => {}}
-      onLost={() => failed.current?.(t("attachmentLost"))}
+      onLost={() => false}
       onError={(problem) => failed.current?.(problem)}
       onDone={() => setPicked(null)}
     />

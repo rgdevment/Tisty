@@ -10,15 +10,17 @@ const leftOpen = () => {};
 
 export default function Papers({
   all: given,
+  first = "",
   onPick,
   onError,
 }: {
   all?: Filed[];
+  first?: string;
   onPick: (doc: Filed) => void;
   onError?: (problem: unknown) => void;
 }) {
   const [found, setFound] = useState<Filed[] | null>(null);
-  const [word, setWord] = useState("");
+  const [word, setWord] = useState(first);
 
   useEffect(() => {
     if (given) return;

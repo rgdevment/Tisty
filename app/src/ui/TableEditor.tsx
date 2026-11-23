@@ -15,6 +15,7 @@ type Props = {
   readonly was: string;
   /** The cell as it reads, marks aside, which is how an option or a tag is told. */
   readonly shown: string;
+  readonly typed?: string;
   /** The values the column already holds, for an option or a tag. */
   readonly options: string[];
   readonly onWrite: (said: string) => void;
@@ -30,12 +31,20 @@ const tagsOf = (said: string): string[] =>
     .filter(Boolean);
 
 // One field to type in what the list does not offer; Enter writes it.
-function Typed({ label, onTyped }: Readonly<{ label: string; onTyped: (said: string) => void }>) {
+function Typed({
+  label,
+  typed = "",
+  onTyped,
+}: Readonly<{ label: string; typed?: string; onTyped: (said: string) => void }>) {
   const field = useRef<HTMLInputElement>(null);
-  useEffect(() => field.current?.focus(), []);
+  useEffect(() => {
+    field.current?.focus();
+    field.current?.setSelectionRange(typed.length, typed.length);
+  }, [typed]);
   return (
     <input
       ref={field}
+      defaultValue={typed}
       aria-label={label}
       placeholder={label}
       className="w-full rounded-md border border-line bg-sheet px-2 py-1 text-[13px] outline-none focus:border-accent"
@@ -56,7 +65,16 @@ const option =
 // About as tall as the calendar or a list grows, to know whether it fits under the cell.
 const TALL = { date: 380, select: 260, tags: 260, link: 360 };
 
-export default function TableEditor({ kind, at, was, shown, options, onWrite, onClose }: Props) {
+export default function TableEditor({
+  kind,
+  at,
+  was,
+  shown,
+  typed,
+  options,
+  onWrite,
+  onClose,
+}: Props) {
   const [tags, setTags] = useState(() => tagsOf(shown));
   const tagsNow = useRef(tags);
   tagsNow.current = tags;
@@ -98,7 +116,7 @@ export default function TableEditor({ kind, at, was, shown, options, onWrite, on
       >
         {kind === "date" && (
           <>
-            <Typed label={t("tableDateSaid")} onTyped={onWrite} />
+            <Typed label={t("tableDateSaid")} typed={typed} onTyped={onWrite} />
             <Calendar
               inline
               value={ISO.test(was) ? was : undefined}
@@ -129,6 +147,7 @@ export default function TableEditor({ kind, at, was, shown, options, onWrite, on
             </div>
             <Typed
               label={kind === "tags" ? t("tableTagNew") : t("tableOptionNew")}
+              typed={typed}
               onTyped={(said) => (kind === "tags" ? toggled(said) : onWrite(said))}
             />
             {kind === "select" && was && (
@@ -141,7 +160,10 @@ export default function TableEditor({ kind, at, was, shown, options, onWrite, on
         {kind === "link" && (
           <>
             <span className="px-1 text-[11.5px] text-faint">{t("tableDocPick")}</span>
-            <Papers onPick={(doc) => onWrite(docCard(doc.file, doc.title || t("untitledDoc")))} />
+            <Papers
+              first={typed}
+              onPick={(doc) => onWrite(docCard(doc.file, doc.title || t("untitledDoc")))}
+            />
           </>
         )}
       </dialog>

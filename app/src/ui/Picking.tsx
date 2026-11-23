@@ -3,7 +3,7 @@ import { fenced, nameOf, STARTS, startOf } from "tisty-diagrams/read";
 import type { Asked } from "tisty-editor/edit";
 import { known } from "tisty-editor/read";
 import type { Filed } from "../core";
-import { locale, t } from "../locales";
+import { locale, t, type Word } from "../locales";
 import { spawned } from "../making";
 import { docCard, taskCard } from "../markdown";
 import Asking from "./Asking";
@@ -46,7 +46,7 @@ export default function Picking({
   pages: Filed[];
   others: Filed[];
   onMade: (doc: { id: string; title: string }) => void;
-  onLost: (doc: { file: string; title: string }) => void;
+  onLost: (doc: Filed) => boolean;
   onError: (problem: unknown) => void;
   onDone: () => void;
   onDrawn?: (source: string, write: () => boolean) => void;
@@ -67,9 +67,20 @@ export default function Picking({
     ...(below ? { top: at.y + 6 } : { bottom: Math.max(8, window.innerHeight - at.y + 24) }),
   };
   const making = useRef(false);
+  const told = useRef({ onLost, onError });
+  told.current = { onLost, onError };
   const done = (text?: string): boolean => {
     onDone();
     return text ? put(text) : true;
+  };
+  const landed = (text: string, lost: Word) => {
+    const laid = done(text);
+    if (!laid) told.current.onError(t(lost));
+    return laid;
+  };
+  const carded = (file: string, title: string, card: string, lost: Word) => {
+    const doc = { id: file, file, title, folder: null, archived: false, away: false };
+    if (!done(card) && !told.current.onLost(doc)) told.current.onError(t(lost));
   };
   // A name already on its way to disk is not cancelled: its card has to land where it was asked for.
   const dismissed = () => {
@@ -107,11 +118,11 @@ export default function Picking({
                 .then((born) => {
                   onMade({ id: born.id, title: name });
                   // The block may have closed while the name was typed; the card then goes at the end.
-                  if (!done(born.said)) onLost({ file: born.id, title: name });
+                  carded(born.id, name, born.said, "docMadeCardLost");
                 })
                 .catch((problem) => {
                   done();
-                  onError(problem);
+                  told.current.onError(problem);
                 });
             }}
           />
@@ -121,7 +132,7 @@ export default function Picking({
             all={kind === "page" ? pages : others}
             onPick={(one) => {
               const title = one.title || t("untitledDoc");
-              if (!done(docCard(one.file, title))) onLost({ file: one.file, title });
+              carded(one.file, title, docCard(one.file, title), "docCardLost");
             }}
           />
         )}
@@ -134,19 +145,24 @@ export default function Picking({
               making.current = now;
             }}
             onMade={(task) => {
-              if (!done(taskCard(task.id, task.title))) onError(t("taskMadeCardLost"));
+              landed(taskCard(task.id, task.title), "taskMadeCardLost");
             }}
           />
         )}
         {kind === "task" && (
           <TaskPick
             onPick={(one) => {
-              if (!done(taskCard(one.id, one.title))) onError(t("taskCardLost"));
+              landed(taskCard(one.id, one.title), "taskCardLost");
             }}
             onError={onError}
           />
         )}
-        {finding && <DiagramFinder onPick={(source) => done(fenced(source))} onError={onError} />}
+        {finding && (
+          <DiagramFinder
+            onPick={(source) => landed(fenced(source), "choiceLost")}
+            onError={onError}
+          />
+        )}
         {kind === "diagram" && !finding && (
           <div role="menu" aria-label={t("newDiagram")} className="flex flex-col">
             {STARTS.map((one) => (
@@ -157,7 +173,7 @@ export default function Picking({
                 className="rounded-md px-2.5 py-1.5 text-left text-[13px] hover:bg-hover"
                 onClick={() => {
                   const source = startOf(one, locale());
-                  const write = () => done(fenced(source));
+                  const write = () => landed(fenced(source), "choiceLost");
                   if (onDrawn) onDrawn(source, write);
                   else write();
                 }}
@@ -178,7 +194,7 @@ export default function Picking({
         {kind === "icon" && (
           <Glyphs
             onPick={(key, hue) =>
-              done(!known(key) ? key : hue ? `::${key} ${hue}::` : `::${key}::`)
+              landed(!known(key) ? key : hue ? `::${key} ${hue}::` : `::${key}::`, "choiceLost")
             }
           />
         )}

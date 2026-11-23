@@ -1,9 +1,16 @@
 import { applied, changeOf, type Edit, linedAs, type Span } from "./pageEdits";
-import type { Writer } from "./pageWriter";
+import type { Seat, Writer } from "./pageWriter";
 
 export type Laid = { readonly edit: Edit; readonly caret: number };
 
 export type Asked = (now: string) => Span | null;
+
+export type Seated = { readonly seat: Seat | null; readonly still: () => boolean };
+
+export const seatedNow = (now: () => Seat | null | undefined): Seated => {
+  const seat = now() ?? null;
+  return { seat, still: () => (now() ?? null) === seat };
+};
 
 export type Late = (
   asked: Asked,
@@ -44,13 +51,13 @@ export const lateOn = (
   stopped: () => boolean,
 ): Late => {
   const { hands } = writer;
-  const seat = hands.seat?.();
+  const { seat, still } = seatedNow(() => hands.seat?.());
   return (asked, laid, after) => {
     const landed = (now: string) => {
       const at = asked(now);
       return at && laid(now, at);
     };
-    if (hands.seat?.() === seat && !stopped()) {
+    if (still() && !stopped()) {
       const one = landed(hands.text());
       if (!one) return false;
       put(one.edit, one.caret);

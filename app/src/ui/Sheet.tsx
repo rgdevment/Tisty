@@ -54,6 +54,7 @@ import Menu, { type Choice } from "./Menu";
 import { MOVE_KEYS } from "./macKeys";
 import { mended as mendedText } from "./mending";
 import Page from "./Page";
+import { seatedNow } from "./pageLate";
 import type { Act } from "./pageMoving";
 import { placedAt, placeOf } from "./pagePlaces";
 import type { Seat } from "./pageWriter";
@@ -71,7 +72,7 @@ import { laid } from "./parting";
 import type { Formatting, Menued } from "./quickly";
 import { type Reshape, reshaped } from "./recarding";
 import Skeleton from "./Skeleton";
-import { useSeated } from "./seated";
+import { seatedChoices, useSeated } from "./seated";
 import { ASIDE_MARGIN, settles } from "./seeking";
 import { editorAsking } from "./sheetAsking";
 import { carried, firstInSight } from "./sighted";
@@ -99,6 +100,7 @@ type Props = {
   readonly onSettle?: (before: string, now: string, renamed?: readonly [string, string][]) => void;
   readonly onOwn?: (file: string) => void;
   readonly onFail?: (problem: unknown) => void;
+  readonly onAside?: (file: string, words: string) => void;
   readonly onNote?: (text: string) => void;
   readonly onDoc?: (file: string, heading?: string) => void;
   readonly onTag?: (tag: string) => void;
@@ -141,6 +143,18 @@ type Props = {
 
 // A block named by its first byte in the new words, and where on the window's screen it should stand.
 type Landing = { bytes: number; y: number; turn: number };
+
+type MenuShown = {
+  x: number;
+  y: number;
+  top?: number;
+  right?: number;
+  choices: Choice[];
+  label?: string;
+  find?: string;
+  foot?: string;
+  unpicked?: (sought?: string) => void;
+};
 
 const cameTo = (view: EditorView | undefined) => {
   if (!view) return;
@@ -279,17 +293,7 @@ export default function Sheet(props: Readonly<Props>) {
   turnedNow.current = turned;
   const kept = useKeptHeight<HTMLDivElement>(file ?? label);
   const [more, setMore] = useState<Extract<Went, { kind: "more" }> | null>(null);
-  const [menu, setMenu] = useState<{
-    x: number;
-    y: number;
-    top?: number;
-    right?: number;
-    choices: Choice[];
-    label?: string;
-    find?: string;
-    foot?: string;
-    unpicked?: (sought?: string) => void;
-  } | null>(null);
+  const [menu, setMenu] = useState<MenuShown | null>(null);
   const askedOn = useRef("");
   const landing = useRef<Landing | null>(null);
   const holdingNow = useRef(() => {});
@@ -618,6 +622,18 @@ export default function Sheet(props: Readonly<Props>) {
     veiled.current = null;
   };
 
+  const shownOn = (asked: MenuShown) => {
+    const { still } = seatedNow(() => seated.current);
+    const unpicked = asked.unpicked;
+    setMenu({
+      ...asked,
+      choices: seatedChoices(asked.choices, still, () => lost(t("choiceLost"))),
+      unpicked: unpicked && ((sought) => still() && unpicked(sought)),
+    });
+  };
+
+  const liveWriter = (opened: PageWriting) => pageWriter.current?.hands ?? opened;
+
   // The blocks the `/` menu offers, put where the caret stands on the page; a slash left unanswered is written.
   const blockMenu = (at: { x: number; y: number; top?: number }, slash: boolean) => {
     const writer = pageWriter.current?.hands;
@@ -650,7 +666,7 @@ export default function Sheet(props: Readonly<Props>) {
           onPick: () => {
             picked = true;
             back();
-            writer.slashed({ ...one, put: { inline: named, at: named.length } });
+            liveWriter(writer).slashed({ ...one, put: { inline: named, at: named.length } });
           },
         };
       });
@@ -666,7 +682,7 @@ export default function Sheet(props: Readonly<Props>) {
         back();
         // A table is written from its cells, so the page is drawn whole and its first head opens.
         const table = one.key === "table";
-        const laid = writer.slashed(one, table);
+        const laid = liveWriter(writer).slashed(one, table);
         if (table && laid)
           tables.freshAt(bytesAt(latest.current, laid.from + laid.insert.indexOf("|")));
       },
@@ -682,9 +698,9 @@ export default function Sheet(props: Readonly<Props>) {
         back();
         if (!slash) return stoodAgain(stood);
         resume();
-        writer.typed(`/${sought}`);
+        liveWriter(writer).typed(`/${sought}`);
       });
-    setMenu({
+    shownOn({
       ...at,
       label: t("blocksOf"),
       choices,
@@ -713,7 +729,7 @@ export default function Sheet(props: Readonly<Props>) {
     };
     const plain = !now || now === "text";
     const [left, top] = [frame?.left ?? 0, frame?.top ?? 0];
-    setMenu({
+    shownOn({
       x: left + near.x,
       y: top + near.y + 4,
       ...(near.top !== undefined && { top: top + near.top }),
@@ -742,9 +758,9 @@ export default function Sheet(props: Readonly<Props>) {
     const act = (kind: Act) => () => {
       picked = true;
       shown.current?.focus();
-      writer.unitActed(top, kind);
+      liveWriter(writer).unitActed(top, kind);
     };
-    setMenu({
+    shownOn({
       ...at,
       // The menu closes before it hands over what was picked, so the caret waits to see whether anything was.
       unpicked: () =>
@@ -793,7 +809,7 @@ export default function Sheet(props: Readonly<Props>) {
           apart: choices.length > 0,
           onPick: () =>
             void copied(words).then(() => {
-              writer.cut();
+              liveWriter(writer).cut();
               back();
             }),
         },
@@ -804,12 +820,12 @@ export default function Sheet(props: Readonly<Props>) {
           apart: index === 0,
           onPick: () => {
             back();
-            writer.format(mark, close);
+            liveWriter(writer).format(mark, close);
           },
         })),
       );
     }
-    if (choices.length > 0) setMenu({ ...at, choices });
+    if (choices.length > 0) shownOn({ ...at, choices });
   };
 
   const menued = (asked: Menued) => {
@@ -856,6 +872,8 @@ export default function Sheet(props: Readonly<Props>) {
   };
   const dropping = useRef(dropped);
   dropping.current = dropped;
+
+  const lost = (notice: string) => (said.current.asking?.lost ?? said.current.onFail)?.(notice);
 
   const lateLanded = (next: (now: string) => string | null) => {
     const now = reading || open.current ? null : next(latest.current);
@@ -923,14 +941,17 @@ export default function Sheet(props: Readonly<Props>) {
     const title = line && steppedTitle(line);
     if (!asked || !line || !title) return;
     hanging.current = true;
+    const seat = seated.current;
     asked(title)
       .then((id) => {
+        if (!id) return;
         // The part is there either way; the step makes room for it only where it still stands untouched.
-        const now = latest.current;
-        const after = now.slice(at[0] + line.length);
-        const still = now.slice(at[0], at[0] + line.length) === line && /^(\r?\n|$)/.test(after);
-        if (!id || !still || open.current || showing.current !== now) return;
-        rewritten(cardedAt(now, at[0], at[0] + line.length, taskCard(id, title)));
+        const carded = (now: string) => {
+          const after = now.slice(at[0] + line.length);
+          const still = now.slice(at[0], at[0] + line.length) === line && /^(\r?\n|$)/.test(after);
+          return still ? cardedAt(now, at[0], at[0] + line.length, taskCard(id, title)) : null;
+        };
+        if (!seat?.current?.(carded)) lost(t("taskMadeCardLost"));
       })
       .catch((e) => said.current.onFail?.(e))
       .finally(() => {
@@ -956,13 +977,15 @@ export default function Sheet(props: Readonly<Props>) {
     page: () => shown.current?.document ?? null,
     frame: () => shown.current?.frameElement?.getBoundingClientRect(),
     whole: rewritten,
-    passed: (end, table) => {
+    passed: (end, table, typed) => {
       const writer = pageWriter.current?.hands;
       const page = shown.current?.document;
       const near = page && placedAt(page, ".page > .table", table);
-      if (!writer || !near) return;
+      if (!writer || !near) return false;
       shown.current?.focus();
       writer.begin(Math.min(end, latest.current.length), "", near);
+      if (typed) writer.typed(typed);
+      return true;
     },
     writing: () => Boolean(open.current),
     leave: left,
@@ -973,6 +996,13 @@ export default function Sheet(props: Readonly<Props>) {
       tables.whenIdle(() => piece("table", { at: at[0], nth }));
     },
     fail: (problem) => said.current.onFail?.(problem),
+    seat: () => seated.current,
+    lost,
+    aside: () => {
+      const keep = said.current.onAside;
+      const named = said.current.file;
+      return keep && named ? (words) => keep(named, words) : null;
+    },
     turned,
   });
 
@@ -1031,7 +1061,7 @@ export default function Sheet(props: Readonly<Props>) {
     headsOf: (asked, head, ready) => said.current.asking?.headsOf?.(asked, head, ready) ?? [],
     pasted: (files) => said.current.asking?.pasted?.(files) ?? Promise.resolve(""),
     seat: () => seated.current,
-    lost: (notice) => (said.current.asking?.lost ?? said.current.onFail)?.(notice),
+    lost,
     translated: (html, plain) =>
       html ? HOST.fromHtml(html) : HOST.fromText(plain).then((said) => said ?? plain),
   };
