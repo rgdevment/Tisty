@@ -3205,7 +3205,7 @@ DEALINGS IN THE SOFTWARE.
 
 ## Text 43
 
-Carried by `cookie` 0.18.2.
+Carried by `cookie` 0.18.3.
 
 ```text
 Apache License
@@ -3414,7 +3414,7 @@ limitations under the License.
 
 ## Text 44
 
-Carried by `cookie` 0.18.2.
+Carried by `cookie` 0.18.3.
 
 ```text
 Copyright (c) 2017 Sergio Benitez

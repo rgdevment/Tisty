@@ -217,7 +217,7 @@ written once with the crates that carry it.
 | `cmov` | 0.5.4 | Apache-2.0 OR MIT |
 | `color_quant` | 1.1.0 | MIT |
 | `const-oid` | 0.10.2 | Apache-2.0 OR MIT |
-| `cookie` | 0.18.2 | MIT OR Apache-2.0 |
+| `cookie` | 0.18.3 | MIT OR Apache-2.0 |
 | `core_detect` | 1.0.0 | MIT/Apache-2.0 |
 | `core-foundation` | 0.9.4 | MIT OR Apache-2.0 |
 | `core-foundation` | 0.10.1 | MIT OR Apache-2.0 |
