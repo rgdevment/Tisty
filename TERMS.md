@@ -53,7 +53,7 @@ through MCP, within the limits described in the
 anything on its own: when it says a task is done, you decide. What the
 assistant reads is sent to whoever runs it, under that provider's terms. You
 choose which assistants to connect, and you can close the door to all of them
-in Settings › Assistants › Door.
+in Settings › Agents › Door.
 
 ## Updates
 

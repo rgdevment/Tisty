@@ -746,7 +746,7 @@ happens on its own:
   with no port, no account and no token. It is not a server and nothing can
   reach it from the network.
 - **You hold the door.** It comes open on its own until you choose — on a new
-  install, and on an update if you never closed it — and Settings › Assistants ›
+  install, and on an update if you never closed it — and Settings › Agents ›
   Door closes it with **Stop it**; while it is closed, everything an assistant
   tries is refused. Letting an assistant in and throwing it out are events in
   your log, not lines in a settings file, so an assistant cannot let itself in
@@ -780,7 +780,7 @@ happens on its own:
   replace a whole document it has to send back the print it read that document
   at, so what you wrote while it was thinking cannot be taken. What it reads
   comes back without the paths of your disk.
-- **Its hooks, if you add them.** Settings › Assistants › Connected can add
+- **Its hooks, if you add them.** Settings › Agents › Connected can add
   Tisty's hooks to an assistant's own settings file; it names the file and asks
   first, and leaves the rest of that file as it is. With them, a session starts
   with the tasks it left open, and after each edit and each call to Tisty a mark

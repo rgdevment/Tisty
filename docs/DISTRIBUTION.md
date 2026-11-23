@@ -99,7 +99,7 @@ Little, and all of it reversible.
 - **Some things stay on purpose.** An assistant you connected keeps its entry
   for Tisty, because uninstalling never edits another program's settings and
   an update must not cut an assistant off. To take it out, use *Remove* under
-  Settings › Assistants › Connected before uninstalling; if you install Tisty again
+  Settings › Agents › Connected before uninstalling; if you install Tisty again
   instead, that list shows the entry pointing at a Tisty that is no longer
   there and offers to repair it. On Windows the window's view preferences stay
   in `%LOCALAPPDATA%\dev.rgdevment.tisty` unless you tick the box to delete the
