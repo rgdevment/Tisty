@@ -1494,3 +1494,102 @@ fn a_junction_on_the_way_to_tistys_skill_is_never_written_through() {
             .is_none()
     );
 }
+
+#[test]
+fn a_copy_with_the_very_bytes_this_release_ships_is_claimed_back_when_the_ledger_forgot_it() {
+    let mut room = room();
+    let target = room.shipped("Tisty 1.50.\n");
+    room.put(&target, "Tisty 1.50.\n");
+    assert_eq!(
+        room.one_round(&target),
+        Standing::Foreign { changed: false }
+    );
+    assert!(reclaimed(&mut room.ledger, std::slice::from_ref(&target)));
+    assert_eq!(room.one_round(&target), Standing::UpToDate);
+    let newer = room.shipped("Tisty 1.51.\n");
+    assert_eq!(
+        room.one_round(&newer),
+        Standing::Wrote,
+        "Tisty's again, it updates"
+    );
+}
+
+#[test]
+fn only_the_very_bytes_are_claimed_back_and_only_with_their_yes() {
+    let mut mine = room();
+    let target = mine.shipped("Tisty 1.50.\n");
+    mine.put(&target, "Tisty 1.50, and mine.\n");
+    assert!(!reclaimed(&mut mine.ledger, std::slice::from_ref(&target)));
+    assert_eq!(
+        mine.one_round(&target),
+        Standing::Foreign { changed: false }
+    );
+
+    let mut off = room();
+    let target = off.shipped("Tisty 1.50.\n");
+    off.put(&target, "Tisty 1.50.\n");
+    off.ledger.take_tisty_skills(false);
+    assert!(!reclaimed(&mut off.ledger, std::slice::from_ref(&target)));
+    assert_eq!(off.ledger.written(&target.at), None);
+}
+
+#[test]
+fn a_path_a_document_wrote_is_never_claimed_back() {
+    let mut room = room();
+    let theirs = room.target(
+        ".claude/skills/tisty/SKILL.md",
+        vec![rule(GLOBAL, "tisty/SKILL.md", "Tisty 1.50.\n")],
+    );
+    room.one_round(&theirs);
+    let target = room.shipped("Tisty 1.50.\n");
+    assert!(!reclaimed(&mut room.ledger, std::slice::from_ref(&target)));
+    assert!(
+        !room
+            .ledger
+            .applied_at(&target.at)
+            .any(crate::agents::builtin)
+    );
+}
+
+#[test]
+fn a_whole_skill_is_claimed_back_or_none_of_it() {
+    let mut room = room();
+    let [licence, skill] = room.next_agent("Tisty's.\n", "MIT.\n");
+    room.put(&skill, "Tisty's.\n");
+    room.put(&licence, "MIT, my way.\n");
+    assert!(!reclaimed(
+        &mut room.ledger,
+        &[licence.clone(), skill.clone()]
+    ));
+    assert_eq!(
+        room.ledger.written(&skill.at),
+        None,
+        "its SKILL.md alone is never claimed"
+    );
+    assert_eq!(
+        room.round(&[licence.clone(), skill.clone()]),
+        vec![Standing::Foreign { changed: false }; 2]
+    );
+
+    std::fs::remove_file(&licence.at).unwrap();
+    assert!(
+        !reclaimed(&mut room.ledger, &[licence.clone(), skill.clone()]),
+        "nor with its licence gone"
+    );
+
+    room.put(&licence, "MIT.\n");
+    let stray = skill.at.with_file_name("notes.md");
+    std::fs::write(&stray, "Mine.\n").unwrap();
+    assert!(
+        !reclaimed(&mut room.ledger, &[licence.clone(), skill.clone()]),
+        "nor beside a file of the person's"
+    );
+
+    std::fs::remove_file(&stray).unwrap();
+    assert!(reclaimed(
+        &mut room.ledger,
+        &[licence.clone(), skill.clone()]
+    ));
+    assert!(room.ledger.written(&licence.at).is_some() && room.ledger.written(&skill.at).is_some());
+    assert_eq!(room.round(&[licence, skill]), vec![Standing::UpToDate; 2]);
+}

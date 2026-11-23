@@ -173,7 +173,7 @@ export interface TistySkills {
   skills: TistySkill[];
   landing: { assistant: string; at: string; standing: string }[];
   plugged: string[];
-  leftover: { assistant: string; at: string; changed: boolean }[];
+  leftover: { assistant: string; at: string; changed: boolean | null }[];
 }
 
 // The sidebar and the folder view ask at once after each round; one answer serves both, never one asked before a change.

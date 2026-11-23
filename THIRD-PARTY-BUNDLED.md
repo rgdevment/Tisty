@@ -567,7 +567,7 @@ Open Multilingual Wordnet 2.0. The English side of the same table, and how often
 
 ### [mattpocock/skills](https://github.com/mattpocock/skills) — MIT
 
-Tisty's own skill `writing-for-the-next-agent`, shipped in `resources/skills/` from `rgdevment/mcp-plugins` at commit `466820291eaf75c04718218909b0c0ec25e1d4a3` (see `app/src-tauri/skills.lock`), adapts `writing-for-agents` from it, at commit `321658273cb1d20b76026717d027d505790106d4`. Its licence travels beside it as `LICENSE`.
+Tisty's own skill `writing-for-the-next-agent`, shipped in `resources/skills/` from `rgdevment/mcp-plugins` at commit `6dc3701bd0fbb35775bbb405b021bbf5b21466f8` (see `app/src-tauri/skills.lock`), adapts `writing-for-agents` from it, at commit `321658273cb1d20b76026717d027d505790106d4`. Its licence travels beside it as `LICENSE`.
 
 ```text
 MIT License

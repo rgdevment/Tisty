@@ -31,8 +31,8 @@ pub use rooted::{
 };
 pub use shown::{OwnFront, Shown, own_front, shown};
 pub use standing::{
-    Standing, Target, adopted, bring, lacks, lead_in, lead_out, overwrite, removed, restore, round,
-    shipped_copy, standing, unshipped, wanted,
+    Standing, Target, adopted, bring, lacks, lead_in, lead_out, overwrite, reclaimed, removed,
+    restore, round, shipped_copy, standing, unshipped, wanted,
 };
 pub use subs::{sub_folders, sub_id};
 pub use twins::renamed_twins;

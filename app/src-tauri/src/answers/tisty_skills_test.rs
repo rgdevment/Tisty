@@ -183,7 +183,7 @@ fn their_own_yes_writes_them_with_agents_off_and_reads_the_plugin_then() {
             .into_owned()
     };
     assert_eq!(over, [claude("consolidate"), claude("tisty")]);
-    assert!(said.leftover.iter().all(|one| !one.changed));
+    assert!(said.leftover.iter().all(|one| one.changed == Some(false)));
     assert!(
         room.at(".claude/skills/tisty/SKILL.md").is_file(),
         "never taken away alone"
@@ -240,12 +240,12 @@ fn turning_them_off_takes_the_intact_copies_away_and_keeps_the_changed_one_in_th
         std::fs::read_to_string(&mine).unwrap(),
         "My own lines now.\n"
     );
-    let over: Vec<(String, bool)> = said
+    let over: Vec<(String, Option<bool>)> = said
         .leftover
         .iter()
         .map(|one| (one.at.clone(), one.changed))
         .collect();
-    assert_eq!(over, [(mine.to_string_lossy().into_owned(), true)]);
+    assert_eq!(over, [(mine.to_string_lossy().into_owned(), Some(true))]);
 
     let ledger = room.ledger();
     let gate = gated(&room.session, &ledger);
@@ -339,7 +339,7 @@ fn a_computer_that_cannot_name_itself_cannot_turn_them_on() {
 }
 
 #[test]
-fn with_neither_yes_a_copy_left_over_is_still_listed_and_taken_as_changed() {
+fn with_neither_yes_a_copy_left_over_is_still_listed_and_said_nothing_of() {
     let mut room = room();
     room.yes();
     let ledger = room.written_with_the_switch_on();
@@ -351,12 +351,16 @@ fn with_neither_yes_a_copy_left_over_is_still_listed_and_taken_as_changed() {
     ledger_now.keep(room.session.paths.data()).unwrap();
     drop(ledger);
     let said = room.summed();
-    let over: Vec<(String, bool)> = said
+    let over: Vec<(String, Option<bool>)> = said
         .leftover
         .iter()
         .map(|one| (one.at.clone(), one.changed))
         .collect();
-    assert_eq!(over, [(mine.to_string_lossy().into_owned(), true)]);
+    assert_eq!(
+        over,
+        [(mine.to_string_lossy().into_owned(), None)],
+        "not opened, so neither changed nor untouched"
+    );
     std::fs::remove_file(&mine).unwrap();
     assert!(room.summed().leftover.is_empty());
 }
@@ -548,4 +552,38 @@ fn with_the_ledger_gone_a_file_with_tistys_very_bytes_is_still_never_brought_in(
     assert_eq!(refused[0].reason, "skip_tisty");
     brought_home(&mut room.session, &room.homes, ledger, &read, refused).unwrap();
     assert!(!room.summed().skills.iter().any(|one| one.yours));
+}
+
+#[test]
+fn with_the_ledger_begun_anew_their_own_copies_are_claimed_back_and_turned_off_again() {
+    let room = room();
+    room.skills_yes();
+    let tisty = room.at(".claude/skills/tisty/SKILL.md");
+    let theirs = room.at(".cursor/skills/consolidate/SKILL.md");
+    put(&theirs, "Mine, named alike.\n");
+    std::fs::remove_file(agents::folder(room.session.paths.data()).join("ledger.json")).unwrap();
+    let mut ledger = room.ledger();
+    ledger.take_tisty_skills(true);
+    ledger.keep(room.session.paths.data()).unwrap();
+
+    let mut ledger = room.ledger();
+    shipped_round(&room.session, &room.homes, &mut ledger, &shipped());
+    assert!(
+        agents::shipped_copy(&ledger, &tisty),
+        "the very bytes are Tisty's again"
+    );
+    assert!(
+        !agents::shipped_copy(&ledger, &theirs),
+        "other bytes stay the person's"
+    );
+
+    taken_from(&room.session, &room.homes, HERE, false, &shipped()).unwrap();
+    assert!(
+        !tisty.exists(),
+        "claimed back, it goes when they are turned off"
+    );
+    assert_eq!(
+        std::fs::read_to_string(&theirs).unwrap(),
+        "Mine, named alike.\n"
+    );
 }

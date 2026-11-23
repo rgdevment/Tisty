@@ -531,6 +531,69 @@ pub fn removed(data: &Path, ledger: &mut Ledger, target: &Target) -> Result<(), 
     Ok(())
 }
 
+/// A skill folder whose every file is one this release ships, with the very bytes and nothing in the ledger for any,
+/// is Tisty's copy again: the ledger was lost or began anew on this computer. One file off, and none is claimed.
+pub fn reclaimed(ledger: &mut Ledger, targets: &[Target]) -> bool {
+    if !ledger.tisty_skills() {
+        return false;
+    }
+    let mut skills: std::collections::BTreeMap<PathBuf, Vec<&Target>> = Default::default();
+    for target in targets.iter().filter(|one| one.shipped()) {
+        if let Some(folder) = skill_folder(target) {
+            skills.entry(folder).or_default().push(target);
+        }
+    }
+    let mut claimed = false;
+    for (folder, files) in skills {
+        let Some(bytes) = files
+            .iter()
+            .map(|target| as_shipped(ledger, target))
+            .collect::<Option<Vec<Vec<u8>>>>()
+        else {
+            continue;
+        };
+        if !holds_only(&folder, &files) {
+            continue;
+        }
+        for (target, bytes) in files.iter().zip(bytes) {
+            target.settled_in(ledger, &bytes);
+        }
+        claimed = true;
+    }
+    claimed
+}
+
+// The file is there as this release ships it, with no record of anyone's, and no link on the way.
+fn as_shipped(ledger: &Ledger, target: &Target) -> Option<Vec<u8>> {
+    let unrecorded =
+        ledger.written(&target.at).is_none() && ledger.applied_at(&target.at).next().is_none();
+    if !unrecorded || linked(target) {
+        return None;
+    }
+    let wanted = wanted(target).ok()?;
+    matches!(on_disk(&target.at), Ok(Some(now)) if now == wanted).then_some(wanted)
+}
+
+// Nothing in the folder but the files the release ships: no file of the person's, no link, no deeper folder.
+fn holds_only(folder: &Path, files: &[&Target]) -> bool {
+    let Ok(entries) = std::fs::read_dir(folder) else {
+        return false;
+    };
+    let mut seen = 0;
+    for entry in entries {
+        let Ok(entry) = entry else {
+            return false;
+        };
+        seen += 1;
+        let at = entry.path();
+        let plain = std::fs::symlink_metadata(&at).is_ok_and(|meta| meta.is_file());
+        if !plain || seen > SKILL_FOLDER_AT_MOST || !files.iter().any(|one| one.at == at) {
+            return false;
+        }
+    }
+    true
+}
+
 // With Tisty's own skills turned off, a copy still as Tisty wrote it goes with a backup; one changed since stays, loose, for the person.
 pub fn unshipped(data: &Path, ledger: &mut Ledger, target: &Target) -> Result<bool, Refused> {
     if !target.pieces.is_empty() || !shipped_copy(ledger, &target.at) {

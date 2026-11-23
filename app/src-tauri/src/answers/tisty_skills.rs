@@ -49,7 +49,8 @@ pub struct Landing {
 pub struct Leftover {
     pub assistant: String,
     pub at: String,
-    pub changed: bool,
+    /// Left out, never guessed, when neither yes lets Tisty open it.
+    pub changed: Option<bool>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
@@ -176,7 +177,7 @@ fn leftovers(
             let one = Leftover {
                 assistant: assistant.to_string(),
                 at: at.to_string_lossy().into_owned(),
-                changed: !looks || changed_now(ledger, at),
+                changed: looks.then(|| changed_now(ledger, at)),
             };
             Some((one, root, assistant))
         })
@@ -242,6 +243,16 @@ pub(crate) fn shipped_round(
     }
     let gate = shipped_gate(session, ledger, bundled).shipped_only();
     let placed = places::targets(homes, &gate, ledger);
+    let targets: Vec<agents::Target> = placed.iter().map(|one| one.target.clone()).collect();
+    if agents::reclaimed(ledger, &targets) {
+        ledger.keep(session.paths.data()).unwrap_or_else(|why| {
+            tisty_core::witness::warn(
+                tisty_core::witness::channel::AGENT,
+                "copies of Tisty's own skills were claimed back but the ledger could not be kept",
+                &[("why", tisty_core::witness::Fact::Why(why.to_string()))],
+            );
+        });
+    }
     rounded(session.paths.data(), ledger, &placed)
 }
 

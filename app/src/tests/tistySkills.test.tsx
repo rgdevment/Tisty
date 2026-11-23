@@ -402,3 +402,14 @@ describe("every state a copy of Tisty's skill can be in", () => {
     }
   });
 });
+
+describe("a copy left over that Tisty may not open", () => {
+  it("says nothing of whether it changed", async () => {
+    const over = { assistant: "claude", at: "/h/.claude/skills/tisty/SKILL.md", changed: null };
+    answering(skills({ leftover: [over] }));
+    render(<TistySkillsSettingsRow />);
+    await userEvent.click(await screen.findByRole("button", { name: "See" }));
+    expect(screen.getByText(over.at)).toBeTruthy();
+    expect(screen.queryByText("Changed outside Tisty")).toBeNull();
+  });
+});
