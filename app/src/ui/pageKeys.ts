@@ -1,6 +1,5 @@
 import { SLASHED } from "tisty-editor/edit";
 import { bytesAt, charsAt } from "tisty-editor/read";
-import { unitFrom } from "../placing";
 import {
   caretWalk,
   type Edge,
@@ -10,6 +9,7 @@ import {
   lineKey,
   modKey,
   moveKey,
+  pageReach,
 } from "./macKeys";
 import type { Beside } from "./pageBeside";
 import type { Caret } from "./pageCaret";
@@ -26,12 +26,15 @@ import {
   caretLaidOn,
   elementOf,
   inCode,
+  letterAhead,
   onSheet,
+  pieceEnding,
+  SOLID_PIECE,
+  shownWords,
   unseenLetter,
   WHOLE,
   WRITABLE,
 } from "./pageNodes";
-import { placeOf } from "./pagePlaces";
 import {
   endIn,
   endOf,
@@ -191,6 +194,13 @@ export const keysOn = (
   let keptBehind = false;
   let lastWay = 0;
 
+  const outOfMark = (range: AbstractRange) => {
+    const ahead = letterAhead(range.startContainer, range.startOffset);
+    if (!ahead || ahead[0] === range.startContainer) return false;
+    caretLaidOn(page, ...ahead);
+    return true;
+  };
+
   const outOfLetter = (range: AbstractRange) => {
     const letter = range.startContainer;
     const piece = letter.previousSibling;
@@ -198,7 +208,8 @@ export const keysOn = (
       return false;
     const beyond = brokenBy(piece as Element);
     const onward = beyond && range.startOffset > 0 && lastWay > 0;
-    caretLaidOn(page, ...(onward ? lineAfter(beyond) : endOf(piece as Element)));
+    const before: Spot = [letter.parentNode, indexOf(letter)];
+    caretLaidOn(page, ...(onward ? lineAfter(beyond) : before));
     return true;
   };
 
@@ -219,6 +230,20 @@ export const keysOn = (
     return (way === "ArrowRight") !== rtl;
   };
 
+  const nothingBetween = (from: Spot, to: Spot, until?: Spot) => {
+    const gap = page.createRange();
+    gap.setStart(...from);
+    if (gap.comparePoint(...to) < 0) return false;
+    if (until) gap.setEnd(...until);
+    if (until && gap.comparePoint(...to) > 0) return false;
+    gap.setEnd(...to);
+    if (shownWords(gap.toString()) !== "") return false;
+    return !gap.cloneContents().querySelector(`${SOLID_PIECE}, img, br, [data-at]`);
+  };
+
+  const sameBlock = (one: Spot, other: Spot) =>
+    elementOf(one[0])?.closest("[data-at]") === elementOf(other[0])?.closest("[data-at]");
+
   const acrossBreak = (way: Way, reaching: boolean): Spot | null => {
     const held = page.getSelection();
     const focus = held?.focusNode;
@@ -226,20 +251,20 @@ export const keysOn = (
     const pieces = brokenNear(focus);
     const holder = elementOf(focus);
     if (!pieces.length || !holder) return null;
-    const text = hands.text();
-    const known = writer.reckoned;
-    const at = sourceAt(text, focus, held.focusOffset, known);
     const ahead = aheadOf(way, holder);
+    const at: Spot = [focus, held.focusOffset];
     for (const piece of pieces) {
       const beyond = brokenBy(piece);
-      const own = placeOf(piece, "data-src");
-      if (!beyond || !own) continue;
+      const ending = pieceEnding(piece);
+      if (!beyond || !ending || !piece.parentNode) continue;
+      const before = startOf(ending);
+      const after: Spot = [piece.parentNode, indexOf(piece) + 1];
+      const broken: Spot = [piece.parentNode, indexOf(beyond)];
       const next = lineAfter(beyond);
-      const end = unitFrom(known, text, own[1]);
-      if (ahead && at === unitFrom(known, text, own[0])) return endOf(piece);
-      if (ahead && at === end) return next;
-      if (!ahead && at === sourceAt(text, ...next, known)) return endOf(piece);
-      if (!ahead && at === end) return startOf(piece);
+      if (ahead && sameBlock(at, before) && nothingBetween(at, before)) return after;
+      if (ahead && nothingBetween(after, at, broken)) return next;
+      if (!ahead && sameBlock(at, next) && nothingBetween(next, at)) return after;
+      if (!ahead && nothingBetween(after, at, broken)) return before;
     }
     return null;
   };
@@ -268,7 +293,12 @@ export const keysOn = (
       (one) => one.closest(WRITABLE) && !one.closest('[contenteditable="false"]'),
     );
 
-  const lastBlock = () => writableBlocks().pop();
+  const pageEdges = () => {
+    const blocks = writableBlocks();
+    return [blocks[0], blocks[blocks.length - 1]] as const;
+  };
+
+  const lastBlock = () => pageEdges()[1];
 
   const wholeBeyond = (block: Element, fromEnd: boolean) => {
     const tops = Array.from(page.querySelectorAll(".page > [data-at]"));
@@ -290,21 +320,27 @@ export const keysOn = (
   // A tag or other piece drawn whole at a line's end leaves the browser no place after it, so End is placed here.
   const toEnd = (event: KeyboardEvent) => {
     if (modKey(event)) {
+      if (event.shiftKey) return;
       const last = lastBlock();
       if (!last) return;
       event.preventDefault();
-      if (event.shiftKey) caret.reachedTo(pageEnd(last));
-      else caret.laidAt(endIn(last));
+      caret.laidAt(endIn(last));
       return;
     }
     if (!event.shiftKey && !event.ctrlKey && !event.metaKey)
       toLineEdge({ toStart: false, visual: true }, true);
   };
 
+  const reachedPage = (event: KeyboardEvent, toStart: boolean) => {
+    const [first, last] = pageEdges();
+    const edge = toStart ? first : last;
+    if (!edge) return;
+    event.preventDefault();
+    caret.reachedTo(toStart ? pageStart(edge) : pageEnd(edge));
+  };
+
   const choseAll = (event: KeyboardEvent) => {
-    const blocks = writableBlocks();
-    const first = blocks[0];
-    const last = blocks[blocks.length - 1];
+    const [first, last] = pageEdges();
     if (!first || !last) return;
     event.preventDefault();
     page.getSelection()?.setBaseAndExtent(...pageStart(first), ...pageEnd(last));
@@ -342,6 +378,7 @@ export const keysOn = (
   };
 
   const outOfSolids = (event: KeyboardEvent) => {
+    keptBehind = keptUnlaid(writer.kept);
     if (event.isComposing || !onSheet(page, event)) return;
     if (event.key !== "Backspace" && event.key !== "Delete") return;
     const held = event.shiftKey || event.ctrlKey || event.metaKey || event.altKey;
@@ -364,6 +401,8 @@ export const keysOn = (
       event.preventDefault();
       return toLineKey(line);
     }
+    const reach = pageReach(event);
+    if (reach) return reachedPage(event, reach === "start");
     if (event.key === "End" && !event.altKey) return toEnd(event);
     const edge = edgeWalk(event);
     if (edge) return toLineEdge(edge);
@@ -443,7 +482,7 @@ export const keysOn = (
       writer.lastChosen = caret.spanOfRange(range);
     else if (range?.collapsed) {
       writer.lastChosen = null;
-      if (!outOfLetter(range)) caret.outOfSolid(range);
+      if (!outOfLetter(range) && !outOfMark(range)) caret.outOfSolid(range);
     }
     if (writer.leftFrom === undefined) return;
     const from = writer.leftFrom;
@@ -457,7 +496,6 @@ export const keysOn = (
 
   // The page's events come from its own window, so a key is told by what it carries, not by its class.
   const moved = (event: Event) => {
-    keptBehind = keptUnlaid(writer.kept);
     const key = "key" in event ? String(event.key) : null;
     const held = event as KeyboardEvent;
     const walked = key === null || held.isComposing ? null : caretWalk(held);

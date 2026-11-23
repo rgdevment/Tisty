@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { besideBox, brokenBy, opened } from "../ui/pageNodes";
+import { besideBox, brokenBy, letterAhead, opened } from "../ui/pageNodes";
 import { writtenOn } from "../ui/pageWriting";
 
 const PAGE =
@@ -274,17 +274,30 @@ const DRAWN_WHOLE =
   '<br data-src="45-47" contenteditable="false"><span data-src="47-50">dos</span></p>';
 
 describe("a piece the caret never stands beside", () => {
-  it("is left undressed inside a block drawn whole or inside marks", () => {
+  it("is left undressed inside a block drawn whole, and dressed past the marks around it", () => {
     document.body.innerHTML = `<article class="page">${DRAWN_WHOLE}</article>`;
     opened(document);
     expect(document.querySelector(".table")?.textContent).toBe("#etibx");
-    expect(document.querySelector(".page")?.textContent).not.toContain("\u200B");
-    expect(nextOf("strong")?.nodeName).toBe("BR");
+    expect(nextOf("strong")?.textContent).toBe("\u200B");
+    expect(nextOf("strong")?.nextSibling?.nodeName).toBe("BR");
+    expect(document.querySelector("strong")?.textContent).toBe("#eti");
+  });
+
+  it("is dressed before a nested block that is not a list", () => {
+    document.body.innerHTML =
+      '<article class="page"><ul data-at="0-30"><li data-at="0-30"><span data-src="2-6">uno </span>' +
+      '<span class="tag" data-src="6-10" contenteditable="false">#eti</span>' +
+      '<figure class="code" data-at="13-30"><pre><code data-src="19-21">x\n</code></pre></figure></li></ul></article>';
+    opened(document);
+    expect(nextOf('[data-src="6-10"]')?.textContent).toBe("\u200B");
+    expect(brokenBy(document.querySelector('[data-src="6-10"]') as Element)?.nodeName).toBe(
+      "FIGURE",
+    );
   });
 });
 
 const EVERY_BODY =
-  "uno #eti\\\ndos $x$\n\n- tres `c`\n  - dentro\n\n**#b**\\\n[enlace](u)\n\n| #t |\n|---|\n| x |\n";
+  "uno #eti\\\ndos $x$\n\n- tres `c`\n  - dentro\n\n**#b**\\\n[enlace](u)\n\n| #t |\n|---|\n| x |\n\n- cinco `d`\n  ```\n  y\n  ```\n";
 const EVERY_PIECE =
   '<p data-at="0-17"><span data-src="0-4">uno </span><span class="tag" data-src="4-8" contenteditable="false">#eti</span>' +
   '<br data-src="8-10" contenteditable="false"><span data-src="10-14">dos </span>' +
@@ -295,7 +308,9 @@ const EVERY_PIECE =
   '<br data-src="48-50" contenteditable="false"><a href="u"><span data-src="51-57">enlace</span></a></p>' +
   '<div class="table" data-at="63-82" contenteditable="false"><table><tr><td>' +
   '<span class="tag" data-src="65-67" contenteditable="false">#t</span><br data-src="67-67" contenteditable="false">x' +
-  "</td></tr></table></div>";
+  "</td></tr></table></div>" +
+  '<ul data-at="83-111"><li data-at="83-111"><span data-src="85-91">cinco </span><code data-src="91-94" contenteditable="false">d</code>' +
+  '<figure class="code" data-at="95-111"><pre><code data-src="103-105">y\n</code></pre></figure></li></ul>';
 
 describe("the letter that shows nothing", () => {
   it("never leaves the page through a copy or a cut, whatever pieces it stands beside", () => {
@@ -318,10 +333,10 @@ describe("the letter that shows nothing", () => {
       acts: () => {},
     });
     const sheet = document.querySelector(".page") as Element;
-    expect(sheet.textContent?.split("\u200B")).toHaveLength(4);
+    expect(sheet.textContent?.split("\u200B")).toHaveLength(6);
     const words = (src: string) =>
       document.querySelector(`[data-src="${src}"]`)?.firstChild as Text;
-    document.getSelection()?.setBaseAndExtent(words("0-4"), 0, words("51-57"), 6);
+    document.getSelection()?.setBaseAndExtent(words("0-4"), 0, words("103-105"), 1);
     const clipped: string[] = [];
     for (const type of ["copy", "cut"]) {
       const asked = new Event(type, { bubbles: true, cancelable: true });
@@ -363,5 +378,21 @@ describe("the letter that shows nothing", () => {
     expect(clipped).toEqual([""]);
     writing.stop();
     expect(sheet.textContent).not.toContain("\u200B");
+  });
+});
+
+describe("the letter ahead of a caret", () => {
+  it("is found from the end inside the marks around a piece, and only there", () => {
+    document.body.innerHTML =
+      '<article class="page"><p data-at="0-30"><span data-src="0-4">uno </span><strong><span data-src="6-10">bold </span>' +
+      '<span class="tag" data-src="10-14" contenteditable="false">#eti</span></strong><br data-src="16-18" contenteditable="false">' +
+      '<span data-src="18-21">dos</span></p></article>';
+    opened(document);
+    const line = document.querySelector("p") as Element;
+    const bold = document.querySelector("strong") as Element;
+    expect(letterAhead(bold, bold.childNodes.length)).toEqual([line, 2]);
+    expect(letterAhead(line, 2)).toEqual([line, 2]);
+    expect(letterAhead(bold, 1)).toBeNull();
+    expect(letterAhead(line, 3)).toBeNull();
   });
 });

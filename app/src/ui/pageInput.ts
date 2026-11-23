@@ -42,6 +42,7 @@ import {
   atGhost,
   elementOf,
   inCode,
+  letterAhead,
   onSheet,
   sectioned,
   shownWords,
@@ -365,8 +366,7 @@ export const inputOn = (
   };
 
   const listJoined = (range: AbstractRange, beside: Element | null) => {
-    if (!beside?.matches("ul[data-at], ol[data-at]")) return null;
-    if (!unseenLetter(range.startContainer.childNodes[range.startOffset])) return null;
+    if (!beside?.matches("ul, ol")) return null;
     const [endContainer, endOffset] = startIn(beside);
     const { startContainer, startOffset } = range;
     return new StaticRange({ startContainer, startOffset, endContainer, endOffset });
@@ -679,11 +679,20 @@ export const inputOn = (
     }
     const amongWords = range.startContainer.nodeType === Node.TEXT_NODE;
     if (amongWords && (!back || hands.text().lastIndexOf("\n", at - 1) >= 0)) return;
-    const beside = besideCaret(range, back);
-    const joining = back ? null : listJoined(range, beside);
-    if (joining) {
+    const ahead =
+      !back && range.collapsed ? letterAhead(range.startContainer, range.startOffset) : null;
+    const [aheadAt, aheadOffset] = ahead ?? [range.startContainer, range.startOffset];
+    const spot = new StaticRange({
+      startContainer: aheadAt,
+      startOffset: aheadOffset,
+      endContainer: aheadAt,
+      endOffset: aheadOffset,
+    });
+    const beside = besideCaret(ahead ? spot : range, back);
+    if (ahead && !beside?.matches(PIECES)) {
       event.preventDefault();
-      return inputTaken(kind, joining, null, null);
+      const joining = listJoined(spot, beside);
+      return joining ? inputTaken(kind, joining, null, null) : undefined;
     }
     const piece = beside?.matches(PIECES) ? beside : null;
     const gone =

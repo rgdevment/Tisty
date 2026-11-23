@@ -1,4 +1,4 @@
-import { letterOf, onMac } from "tisty-diagrams/macKeys";
+import { letterOf, modKey, onMac } from "tisty-diagrams/macKeys";
 
 export { keyOf, letterOf, modKey, onMac, onWindows, shortcut } from "tisty-diagrams/macKeys";
 
@@ -56,6 +56,22 @@ export const lineKey = (event: Pressed & { readonly isComposing: boolean }): Lin
   if (!onMac || toStart === undefined || event.isComposing) return null;
   if (event.metaKey || event.ctrlKey || event.altKey) return null;
   return { toStart, reaching: event.shiftKey };
+};
+
+const PAGE_EDGES: Readonly<Record<string, "start" | "end">> = { Home: "start", End: "end" };
+
+const MAC_PAGE_EDGES: Readonly<Record<string, "start" | "end">> = {
+  ...PAGE_EDGES,
+  ArrowUp: "start",
+  ArrowDown: "end",
+};
+
+export const pageReach = (
+  event: Pressed & { readonly isComposing: boolean },
+): "start" | "end" | null => {
+  if (!event.shiftKey || event.altKey || event.isComposing || !modKey(event)) return null;
+  if (onMac && event.ctrlKey && event.key.startsWith("Arrow")) return null;
+  return (onMac ? MAC_PAGE_EDGES : PAGE_EDGES)[event.key] ?? null;
 };
 
 export const MOVE_KEYS = onMac ? "⌃⌥" : "Alt";

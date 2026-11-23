@@ -912,6 +912,36 @@ describe("Cmd as the command key on a Mac, where Control is the text's", () => {
   });
 });
 
+describe("the page's edges reached with Shift", () => {
+  const held = {
+    ctrlKey: false,
+    metaKey: false,
+    altKey: false,
+    shiftKey: true,
+    isComposing: false,
+  };
+  const key = (name: string) => ({ key: name, code: name });
+
+  it("reads Cmd, Shift and Up or Home as the page's start on a Mac, and Down or End as its end", async () => {
+    on(MAC);
+    const { pageReach } = await import("../ui/macKeys");
+    expect(pageReach({ ...held, metaKey: true, ...key("ArrowUp") })).toBe("start");
+    expect(pageReach({ ...held, metaKey: true, ...key("Home") })).toBe("start");
+    expect(pageReach({ ...held, metaKey: true, ...key("ArrowDown") })).toBe("end");
+    expect(pageReach({ ...held, metaKey: true, ...key("End") })).toBe("end");
+    expect(pageReach({ ...held, metaKey: true, ctrlKey: true, ...key("ArrowUp") })).toBeNull();
+    expect(pageReach({ ...held, metaKey: true, ctrlKey: true, ...key("End") })).toBe("end");
+    expect(pageReach({ ...held, metaKey: true, isComposing: true, ...key("Home") })).toBeNull();
+    expect(pageReach({ ...held, ctrlKey: true, ...key("Home") })).toBeNull();
+    expect(pageReach({ ...held, shiftKey: false, metaKey: true, ...key("ArrowUp") })).toBeNull();
+    on(WINDOWS);
+    const windows = await import("../ui/macKeys");
+    expect(windows.pageReach({ ...held, ctrlKey: true, ...key("Home") })).toBe("start");
+    expect(windows.pageReach({ ...held, ctrlKey: true, ...key("End") })).toBe("end");
+    expect(windows.pageReach({ ...held, ctrlKey: true, ...key("ArrowUp") })).toBeNull();
+  });
+});
+
 describe("Home and End on a Mac", () => {
   const held = {
     ctrlKey: false,

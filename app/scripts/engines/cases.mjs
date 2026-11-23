@@ -12,6 +12,7 @@ export const WRITING = [
 
 const LINE_WALKS_ONLY_ON_A_MAC = "Control+A and Control+E walk to a line's edges only on a Mac";
 const COMMAND_WALKS_ONLY_ON_A_MAC = "Cmd with a side arrow walks to a line's edge only on a Mac";
+const PAGE_REACH_ONLY_ON_A_MAC = "Cmd, Shift and Down choose to the page's end only on a Mac";
 
 export const PIECES = [
   "# Objetos", "",
@@ -1758,6 +1759,136 @@ export const CASES = [
     },
     was: "Pasos\n\n- uno #etiqueta\n  - [ ] ",
     now: "YPasos\n\n- uno #etiqueta\n  - [ ] X",
+  },
+  {
+    name: "rightStopsAfterATagBeforeANestedCodeBlock",
+    doc: "# Listas\n\n- uno #etiqueta\n  ```\n  x\n  ```\n\nFin.\n",
+    run: async ({ clickAt, press, frame }) => {
+      await clickAt("Fin");
+      await caretInWords(frame, "uno ", 4);
+      await press("ArrowRight");
+      await press("Backspace");
+    },
+    was: "#etiqueta",
+    now: "",
+  },
+  {
+    name: "leftFromANestedQuoteStopsAfterTheTag",
+    doc: "# Listas\n\n- uno #etiqueta\n  > cita\n\nFin.\n",
+    run: async ({ clickAt, press, frame }) => {
+      await clickAt("cita");
+      await caretInWords(frame, "cita", 0);
+      await press("ArrowLeft");
+      await press("Backspace");
+    },
+    was: "#etiqueta",
+    now: "",
+  },
+  {
+    name: "deleteAfterATagBeforeANestedCodeBlockKeepsItsFence",
+    doc: "# Listas\n\n- uno #etiqueta\n  ```\n  x\n  ```\n\nFin.\n",
+    run: async ({ clickAt, press, frame }) => {
+      await clickAt("Fin");
+      await caretInWords(frame, "uno ", 4);
+      await press("ArrowRight");
+      await press("Delete");
+    },
+    was: "",
+    now: "",
+  },
+  {
+    name: "deleteAfterATagBeforeANestedQuoteKeepsIt",
+    doc: "# Listas\n\n- uno #etiqueta\n  > cita\n\nFin.\n",
+    run: async ({ clickAt, press, frame }) => {
+      await clickAt("cita");
+      await caretInWords(frame, "uno ", 4);
+      await press("ArrowRight");
+      await press("Delete");
+    },
+    was: "",
+    now: "",
+  },
+  {
+    name: "rightIntoBoldWordsAfterALineBreakMovesALetter",
+    doc: "# B\n\nuno #etiqueta\\\n**bold #otra**\\\nc\n\nFin.\n",
+    run: async ({ clickAt, press, typed, frame }) => {
+      await clickAt("bold");
+      await caretInWords(frame, "uno ", 4);
+      await press("ArrowRight", 3);
+      await typed("X");
+      await caretInWords(frame, "B", 0);
+      await typed("Y");
+    },
+    was: "B\n\nuno #etiqueta\\\n**b",
+    now: "YB\n\nuno #etiqueta\\\n**bX",
+  },
+  {
+    name: "aCaretInTheLetterAfterBoldStandsOutsideTheBold",
+    doc: "# B\n\nuno **#etiqueta**\\\ndos tres\n\nFin.\n",
+    run: async ({ clickAt, typed, frame }) => {
+      await clickAt("dos");
+      await drawnFirst(frame);
+      await frame.evaluate(() => {
+        const letter = document.querySelector(".page strong")?.nextSibling;
+        if (!letter) throw new Error("no letter after the bold");
+        getSelection().collapse(letter, 1);
+      });
+      await typed("X");
+      await caretInWords(frame, "B", 0);
+      await typed("Y");
+    },
+    was: "B\n\nuno **#etiqueta**",
+    now: "YB\n\nuno **#etiqueta**X",
+  },
+  {
+    name: "rightPastABoldTagBeforeALineBreakReachesTheNextLine",
+    doc: "# Saltos\n\nuno **#etiqueta**\\\ndos tres\n\nFin.\n",
+    run: async ({ clickAt, press, frame }) => {
+      await clickAt("dos");
+      await caretInWords(frame, "uno ", 4);
+      await press("ArrowRight", 2);
+      await press("Backspace");
+    },
+    was: "\\\n",
+    now: "",
+  },
+  {
+    name: "commandShiftHomeChoosesUpToATableThatOpensThePage",
+    doc: "| a | b |\n|---|---|\n| 1 | 2 |\n\nDespués y más\n",
+    run: async ({ clickAt, command, press, frame }) => {
+      await clickAt("Después");
+      await caretInWords(frame, "Después y más", 3);
+      await command("Shift+Home");
+      await press("Backspace");
+    },
+    was: "| a | b |\n|---|---|\n| 1 | 2 |\n\nDes",
+    now: "",
+  },
+  {
+    name: "commandShiftDownChoosesPastATableThatEndsThePage",
+    macOnly: PAGE_REACH_ONLY_ON_A_MAC,
+    doc: "# Tabla\n\nAntes y más\n\n| a | b |\n|---|---|\n| 1 | 2 |\n",
+    run: async ({ clickAt, press, frame }) => {
+      await clickAt("Antes");
+      await caretInWords(frame, "Antes y más", 3);
+      await press("Meta+Shift+ArrowDown");
+      await press("Backspace");
+    },
+    was: "es y más\n\n| a | b |\n|---|---|\n| 1 | 2 |",
+    now: "",
+  },
+  {
+    name: "deleteOnAChoiceFromAfterATagIntoANestedItemTakesIt",
+    doc: "# Listas\n\n- uno #etiqueta\n  - dentro\n\nFin.\n",
+    run: async ({ clickAt, press, frame }) => {
+      await clickAt("dentro");
+      await caretInWords(frame, "uno ", 4);
+      await press("ArrowRight");
+      await press("Shift+ArrowRight");
+      await press("Delete");
+    },
+    was: "\n  - ",
+    now: "",
   },
 ];
 

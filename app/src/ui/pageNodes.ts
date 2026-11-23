@@ -1,4 +1,4 @@
-import { boxEnd, GHOST } from "./pageSpots";
+import { boxEnd, GHOST, indexOf } from "./pageSpots";
 
 export const FIELDS = "input, textarea, select";
 
@@ -20,7 +20,7 @@ const roomBeside = (box: Element) => {
 
 const LINE_PIECE = `${SOLID_PIECE}:not(br)`;
 
-const BREAKS = "br, ul, ol";
+const BREAKS = "br, ul[data-at], ol[data-at], blockquote[data-at], figure.code[data-at]";
 
 const UNSEEN_LETTER = "\u200B";
 
@@ -44,16 +44,48 @@ const breaking = (node: Node | null | undefined) =>
     ? (node as Element)
     : null;
 
+export const pieceEnding = (line: Element): Element | null => {
+  let one: Element | null = line;
+  while (one && !one.matches(LINE_PIECE)) {
+    const last: Node | null = one.lastChild;
+    one = last?.nodeType === Node.ELEMENT_NODE ? (last as Element) : null;
+  }
+  return one;
+};
+
+export const letterAhead = (node: Node, offset: number): [Node, number] | null => {
+  let holder = node;
+  let at = offset;
+  while (
+    holder.nodeType === Node.ELEMENT_NODE &&
+    at === holder.childNodes.length &&
+    !(holder as Element).matches("[data-at]") &&
+    holder.parentNode
+  ) {
+    at = indexOf(holder) + 1;
+    holder = holder.parentNode;
+  }
+  return unseenLetter(holder.childNodes[at]) ? [holder, at] : null;
+};
+
 export const brokenBy = (piece: Element): Element | null => {
   const letter = piece.nextSibling;
   return unseenLetter(letter) ? breaking(letter?.nextSibling) : null;
 };
 
+const lineEndOf = (piece: Element): Element | null => {
+  let one = piece;
+  while (!one.nextSibling && one.parentElement && !one.parentElement.matches("[data-at]"))
+    one = one.parentElement;
+  return one.parentElement?.matches("[data-at]") ? one : null;
+};
+
 const roomAfter = (piece: Element) => {
   const page = piece.ownerDocument;
-  if (!piece.parentElement?.matches("[data-at]") || unwritable(piece)) return;
-  if (breaking(piece.nextSibling)) return piece.after(page.createTextNode(UNSEEN_LETTER));
-  if (piece.nextSibling) return;
+  if (unwritable(piece)) return;
+  const outer = lineEndOf(piece);
+  if (outer && breaking(outer.nextSibling)) return outer.after(page.createTextNode(UNSEEN_LETTER));
+  if (!piece.parentElement?.matches("[data-at]") || piece.nextSibling) return;
   piece.after(page.createTextNode(""));
   if (piece.querySelector("math") && !unseenLetter(piece.lastChild))
     piece.append(page.createTextNode(UNSEEN_LETTER));
