@@ -65,7 +65,7 @@ import {
   wordsStartAt,
 } from "./pageNodes";
 import { placeOf } from "./pagePlaces";
-import { endIn, startIn, startOf } from "./pageSpots";
+import { endIn, indexOf, ownsWords, startIn, startOf } from "./pageSpots";
 import { choiceKept, composingKey, compositionOpened, keptUnlaid, type Writer } from "./pageWriter";
 
 const PAIRS: Record<string, string> = {
@@ -77,7 +77,7 @@ const PAIRS: Record<string, string> = {
 
 // Blocks a key never joins to its neighbour: their marks hold what they are, and the browser's own reach skips them whole.
 const SOLID_BLOCK =
-  ".table, figure, details, hr, blockquote[data-callout], .front, [contenteditable='false']";
+  ".table, figure, .math, details, hr, blockquote[data-callout], .front, [contenteditable='false']";
 
 const HEADINGS = "h1, h2, h3, h4, h5, h6";
 const MARKED_LINE = `${HEADINGS}, blockquote:not([data-callout])`;
@@ -192,6 +192,37 @@ const drawnWhole = (one: Element) => {
   return shownWords(copy.textContent ?? "").trim() === "";
 };
 
+const nestedAfter = (node: Node, offset: number): Element | null => {
+  const item = blockOf(node);
+  const nested = item?.matches("li")
+    ? Array.from(item.children).find((one) => one.matches("[data-at]"))
+    : null;
+  if (!item || !nested) return null;
+  const gap = item.ownerDocument.createRange();
+  gap.setStart(node, offset);
+  if (gap.comparePoint(item, indexOf(nested)) < 0) return null;
+  gap.setEnd(item, indexOf(nested));
+  return emptyOfWords(gap) ? nested : null;
+};
+
+const wordsOpen = (block: Element) => {
+  const line = blockOf(startIn(block)[0]);
+  return Boolean(line && ownsWords(line) && !drawnWhole(line));
+};
+
+const keptApart = (nested: Element) =>
+  nested.matches(SOLID_BLOCK) || (nested.matches("blockquote") && !wordsOpen(nested));
+
+const onlyInto = (range: AbstractRange, nested: Element) => {
+  const { endContainer, endOffset } = range;
+  const atStart = endContainer === nested.parentNode && endOffset === indexOf(nested);
+  if (!atStart && !nested.contains(endContainer)) return false;
+  const chosen = nested.ownerDocument.createRange();
+  chosen.setStart(range.startContainer, range.startOffset);
+  chosen.setEnd(endContainer, endOffset);
+  return emptyOfWords(chosen);
+};
+
 const beforeFeeds = (text: string, one: Span): Span => {
   let to = one.to;
   while (to > one.from && /[\r\n]/.test(text[to - 1] ?? "")) to--;
@@ -297,7 +328,11 @@ export const inputOn = (
   const edgeHeld = (kind: string, range: AbstractRange | null) => {
     const back = backward(kind);
     if (!back && !forward(kind)) return false;
-    if (!range?.collapsed) return false;
+    if (!range) return false;
+    const reaching = !back || !range.collapsed;
+    const nested = reaching ? nestedAfter(range.startContainer, range.startOffset) : null;
+    if (nested && (range.collapsed || onlyInto(range, nested))) return keptApart(nested);
+    if (!range.collapsed) return false;
     const inner = elementOf(range.startContainer)?.closest(".page [data-at]");
     if (!inner) return false;
     const edge = sideOf(inner, range.startContainer, range.startOffset, back);
@@ -367,8 +402,8 @@ export const inputOn = (
     return elementIn(holder.childNodes[at]);
   };
 
-  const listJoined = (range: AbstractRange, beside: Element | null) => {
-    if (!beside?.matches("ul, ol")) return null;
+  const nestedJoined = (range: AbstractRange, beside: Element | null) => {
+    if (!beside?.matches("ul, ol, blockquote") || keptApart(beside)) return null;
     const [endContainer, endOffset] = startIn(beside);
     const { startContainer, startOffset } = range;
     return new StaticRange({ startContainer, startOffset, endContainer, endOffset });
@@ -709,7 +744,7 @@ export const inputOn = (
     });
     const beside = besideCaret(ahead ? spot : range, back);
     if (ahead && !beside?.matches(PIECES)) {
-      const joining = listJoined(spot, beside);
+      const joining = nestedJoined(spot, beside);
       if (joining) inputTaken(kind, joining, null, null, standing);
       return true;
     }

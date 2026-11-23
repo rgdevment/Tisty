@@ -296,8 +296,107 @@ describe("a piece the caret never stands beside", () => {
   });
 });
 
+const DRAWN_UNDER_BODY =
+  "- uno #eti\n  | a |\n  |---|\n  | 1 |\n- tres `c`\n  ```mermaid\n  flowchart LR\n  ```\n- cinco $x$\n  ```math\n  y\n  ```\n" +
+  "- seis `d`\n  ```widget\n  <b>4</b>\n  ```\n- siete `e`\n  <div>hola</div>\n";
+const DRAWN_UNDER =
+  '<ul data-at="0-182"><li data-at="0-34"><span data-src="2-6">uno </span><span class="tag" data-src="6-10" contenteditable="false">#eti</span>' +
+  '<div class="table" data-at="13-34"><table><tr><th>a</th></tr><tr><td>1</td></tr></table></div></li>' +
+  '<li data-at="34-74"><span data-src="36-41">tres </span><code data-src="41-44" contenteditable="false">c</code>' +
+  '<figure class="diagram" data-at="47-74"><pre><code class="language-mermaid">flowchart LR\n</code></pre></figure></li>' +
+  '<li data-at="74-96"><span data-src="76-82">cinco </span><span data-src="82-85" contenteditable="false"><math><mi>x</mi></math></span>' +
+  '<div class="math" data-at="88-96"><math display="block"><mi>y</mi></math></div></li>' +
+  '<li data-at="112-152"><span data-src="114-119">seis </span><code data-src="119-122" contenteditable="false">d</code>' +
+  '<figure class="widget" data-at="125-151"><div class="widget-bar"><span class="widget-name"></span></div><div></div></figure></li>' +
+  '<li data-at="152-182"><span data-src="154-160">siete </span><code data-src="160-163" contenteditable="false">e</code>' +
+  '<div data-at="166-182"><div>hola</div></div></li></ul>';
+
+const UNDER = [
+  ['[data-src="2-6"]', '[data-src="6-10"]', ".table"],
+  ['[data-src="36-41"]', '[data-src="41-44"]', "figure.diagram"],
+  ['[data-src="76-82"]', '[data-src="82-85"]', ".math"],
+  ['[data-src="114-119"]', '[data-src="119-122"]', "figure.widget"],
+  ['[data-src="154-160"]', '[data-src="160-163"]', '[data-at="166-182"]'],
+];
+
+const SHAPES = [
+  ["laid open", false],
+  ["drawn whole", true],
+] as const;
+
+const laidUnder = (whole: boolean) => {
+  document.body.innerHTML = `<article class="page">${DRAWN_UNDER}</article>`;
+  if (whole)
+    for (const [, , block] of UNDER)
+      document.querySelector(block)?.setAttribute("contenteditable", "false");
+};
+
+describe("a piece that ends an item's line before a nested block drawn from its source", () => {
+  it.each(SHAPES)("gets a letter after it and none inside the block, %s", (_, whole) => {
+    laidUnder(whole);
+    opened(document);
+    for (const [, one, block] of UNDER) {
+      const piece = document.querySelector(one) as Element;
+      expect(piece.nextSibling?.textContent).toBe("\u200B");
+      expect(brokenBy(piece)).toBe(document.querySelector(block));
+      expect(document.querySelector(block)?.textContent).not.toContain("\u200B");
+    }
+  });
+
+  const walkedUnder = (whole: boolean, walk: (item: Element, drawn: Element) => unknown[][]) => {
+    laidUnder(whole);
+    const writing = writtenOn(document, {
+      text: () => DRAWN_UNDER_BODY,
+      write: () => {},
+      shown: () => {},
+      redraw: () => {},
+      near: () => Promise.reject(new Error("no core here")),
+      dressed: () => {},
+      translated: (_, plain) => Promise.resolve(plain),
+      ask: () => {},
+      blocks: () => {},
+      acts: () => {},
+    });
+    const steps = UNDER.map(([words, , block]) => {
+      const drawn = document.querySelector(block) as Element;
+      const own = document.querySelector(words)?.firstChild as Text;
+      document.getSelection()?.collapse(own, own.length);
+      return walk(drawn.parentNode as Element, drawn);
+    });
+    writing.stop();
+    for (const walk of steps) for (const [went, should] of walk) expect(went).toEqual(should);
+  };
+
+  const arrow = (key: string) => {
+    const event = new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true });
+    document.querySelector(".page")?.dispatchEvent(event);
+    const held = document.getSelection();
+    return [event.defaultPrevented, held?.anchorNode, held?.anchorOffset];
+  };
+
+  it("is walked past with ← and →, one stop after it, into a block laid open", () => {
+    walkedUnder(false, (item, drawn) => [
+      [arrow("ArrowRight"), [true, item, 2]],
+      [arrow("ArrowRight"), [true, drawn, 0]],
+      [arrow("ArrowLeft"), [true, item, 2]],
+      [arrow("ArrowLeft"), [true, item, 1]],
+    ]);
+  });
+
+  it("is walked past with →, one stop after it, onto the next line past a block drawn whole", () => {
+    walkedUnder(true, (item) => {
+      const next = item.nextElementSibling?.querySelector("[data-src]")?.firstChild;
+      return [
+        [arrow("ArrowRight"), [true, item, 2]],
+        [arrow("ArrowRight"), [true, ...(next ? [next, 0] : [item, 4])]],
+      ];
+    });
+  });
+});
+
 const EVERY_BODY =
-  "uno #eti\\\ndos $x$\n\n- tres `c`\n  - dentro\n\n**#b**\\\n[enlace](u)\n\n| #t |\n|---|\n| x |\n\n- cinco `d`\n  ```\n  y\n  ```\n";
+  "uno #eti\\\ndos $x$\n\n- tres `c`\n  - dentro\n\n**#b**\\\n[enlace](u)\n\n| #t |\n|---|\n| x |\n\n- cinco `d`\n  ```\n  y\n  ```\n" +
+  "\n- seis #u\n  | a |\n  |---|\n  | #v<br>z |\n\n- siete `e`\n  ```mermaid\n  flowchart LR\n  ```\n";
 const EVERY_PIECE =
   '<p data-at="0-17"><span data-src="0-4">uno </span><span class="tag" data-src="4-8" contenteditable="false">#eti</span>' +
   '<br data-src="8-10" contenteditable="false"><span data-src="10-14">dos </span>' +
@@ -310,7 +409,12 @@ const EVERY_PIECE =
   '<span class="tag" data-src="65-67" contenteditable="false">#t</span><br data-src="67-67" contenteditable="false">x' +
   "</td></tr></table></div>" +
   '<ul data-at="83-111"><li data-at="83-111"><span data-src="85-91">cinco </span><code data-src="91-94" contenteditable="false">d</code>' +
-  '<figure class="code" data-at="95-111"><pre><code data-src="103-105">y\n</code></pre></figure></li></ul>';
+  '<figure class="code" data-at="95-111"><pre><code data-src="103-105">y\n</code></pre></figure></li></ul>' +
+  '<ul data-at="112-153"><li data-at="112-153"><span data-src="114-119">seis </span><span class="tag" data-src="119-121" contenteditable="false">#u</span>' +
+  '<div class="table" data-at="124-152"><table><tr><th>a</th></tr><tr><td><span class="tag" data-src="142-144" contenteditable="false">#v</span>' +
+  '<br data-src="144-148" contenteditable="false">z</td></tr></table></div></li></ul>' +
+  '<ul data-at="153-199"><li data-at="153-199"><span data-src="155-161">siete </span><code data-src="161-164" contenteditable="false">e</code>' +
+  '<figure class="diagram" data-at="167-198"><pre><code class="language-mermaid">flowchart LR\n</code></pre></figure></li></ul>';
 
 describe("the letter that shows nothing", () => {
   it("never leaves the page through a copy or a cut, whatever pieces it stands beside", () => {
@@ -333,10 +437,13 @@ describe("the letter that shows nothing", () => {
       acts: () => {},
     });
     const sheet = document.querySelector(".page") as Element;
-    expect(sheet.textContent?.split("\u200B")).toHaveLength(6);
+    expect(sheet.textContent?.split("\u200B")).toHaveLength(8);
+    for (const drawn of document.querySelectorAll(".table, figure.diagram"))
+      expect(drawn.textContent).not.toContain("\u200B");
     const words = (src: string) =>
       document.querySelector(`[data-src="${src}"]`)?.firstChild as Text;
-    document.getSelection()?.setBaseAndExtent(words("0-4"), 0, words("103-105"), 1);
+    const diagram = document.querySelector("figure.diagram code")?.firstChild as Text;
+    document.getSelection()?.setBaseAndExtent(words("0-4"), 0, diagram, 3);
     const clipped: string[] = [];
     for (const type of ["copy", "cut"]) {
       const asked = new Event(type, { bubbles: true, cancelable: true });

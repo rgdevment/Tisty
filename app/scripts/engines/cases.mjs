@@ -43,6 +43,48 @@ const MISSING_PICTURE = PIECES.replace("](mini.png)", "](missing.png)");
 
 const FORMULA_IN_WORDS = "# Fórmula\n\nAntes $x^2$ después\n";
 
+const KEPT_UNDER_AN_ITEM = {
+  CodeBlock: "  ```js\n  x\n  y\n  ```\n",
+  Table: "  | a | b |\n  |---|---|\n  | 1 | 2 |\n",
+  Diagram: "  ```mermaid\n  flowchart LR\n    A --> B\n  ```\n",
+  FormulaBlock: "  ```math\n  x^2\n  ```\n",
+  Callout: "  > [!NOTE]\n  > nota\n",
+  QuoteOfCode: "  > ```\n  > x\n  > ```\n",
+};
+
+const keptUnderAnItem = Object.entries(KEPT_UNDER_AN_ITEM).flatMap(([shape, block]) => {
+  const doc = `# Listas\n\n- uno dos\n${block}\nFin.\n`;
+  return [
+    {
+      name: `deleteAfterWordsBeforeANested${shape}KeepsIt`,
+      doc,
+      run: async ({ clickAt, press, frame }) => {
+        await clickAt("Fin");
+        await caretInWords(frame, "uno dos", 7);
+        await press("Delete");
+      },
+      was: "",
+      now: "",
+    },
+    {
+      name: `deleteOnAChoiceOfTheBreakIntoANested${shape}KeepsIt`,
+      doc,
+      run: async ({ clickAt, press, frame }) => {
+        await clickAt("Fin");
+        await caretInWords(frame, "uno dos", 7);
+        await press("Shift+ArrowRight");
+        await press("Delete");
+      },
+      was: "",
+      now: "",
+    },
+  ];
+});
+
+const NESTED_TABLE = "# Listas\n\n- uno #etiqueta\n  | a | b |\n  |---|---|\n  | 1 | 2 |\n\nFin.\n";
+
+const NESTED_DIAGRAM = "# Listas\n\n- uno `c`\n  ```mermaid\n  flowchart LR\n    A --> B\n  ```\n\nFin.\n";
+
 const drawnFirst = (frame) => frame.parentFrame().waitForFunction(() => window.engines.drawn());
 
 const pressedOnceDrawn = async (frame, press, key, many) => {
@@ -1805,15 +1847,15 @@ export const CASES = [
     now: "",
   },
   {
-    name: "deleteAfterATagBeforeANestedQuoteKeepsIt",
-    doc: "# Listas\n\n- uno #etiqueta\n  > cita\n\nFin.\n",
+    name: "deleteAfterATagBeforeANestedQuoteJoinsItsFirstLine",
+    doc: "# Listas\n\n- uno #etiqueta\n  > cita\n  > más\n\nFin.\n",
     run: async ({ clickAt, press, frame }) => {
       await clickAt("cita");
       await caretInWords(frame, "uno ", 4);
       await press("ArrowRight");
       await press("Delete");
     },
-    was: "",
+    was: "\n  > ",
     now: "",
   },
   {
@@ -2140,7 +2182,146 @@ export const CASES = [
     was: "\n- [ ] ",
     now: "",
   },
+  ...keptUnderAnItem,
+  {
+    name: "rightStopsAfterATagBeforeANestedTable",
+    doc: NESTED_TABLE,
+    run: async ({ clickAt, press, frame }) => {
+      await clickAt("Fin");
+      await caretInWords(frame, "uno ", 4);
+      await press("ArrowRight");
+      await press("Backspace");
+    },
+    was: "#etiqueta",
+    now: "",
+  },
+  {
+    name: "leftFromANestedTableStopsAfterTheTag",
+    doc: NESTED_TABLE,
+    run: async ({ clickAt, press, frame }) => {
+      await clickAt("Fin");
+      await caretInWords(frame, "a", 0);
+      await press("ArrowLeft");
+      await press("Backspace");
+    },
+    was: "#etiqueta",
+    now: "",
+  },
+  {
+    name: "deleteAfterATagBeforeANestedTableKeepsIt",
+    doc: NESTED_TABLE,
+    run: async ({ clickAt, press, frame }) => {
+      await clickAt("Fin");
+      await caretInWords(frame, "uno ", 4);
+      await press("ArrowRight");
+      await press("Delete");
+    },
+    was: "",
+    now: "",
+  },
+  {
+    name: "deleteOnAChoiceFromAfterATagIntoANestedTableKeepsIt",
+    doc: NESTED_TABLE,
+    run: async ({ clickAt, press, frame }) => {
+      await clickAt("Fin");
+      await caretInWords(frame, "uno ", 4);
+      await press("ArrowRight");
+      await press("Shift+ArrowRight");
+      await press("Delete");
+    },
+    was: "",
+    now: "",
+  },
+  {
+    name: "secondRightLeavesTheStopAfterCodeBeforeANestedDiagram",
+    doc: NESTED_DIAGRAM,
+    run: async ({ clickAt, press, frame }) => {
+      await clickAt("Fin");
+      await caretInWords(frame, "uno ", 4);
+      await press("ArrowRight", 2);
+      await press("ArrowLeft");
+      await press("Backspace");
+    },
+    was: "`c`",
+    now: "",
+  },
+  {
+    name: "secondRightPassesANestedTableDrawnWholeAndLeftComesBack",
+    doc: NESTED_TABLE,
+    run: async ({ clickAt, press, frame }) => {
+      await clickAt("Fin");
+      await drawnWholeUnder(frame);
+      await caretInWords(frame, "uno ", 4);
+      await press("ArrowRight", 2);
+      await press("ArrowLeft");
+      await press("Backspace");
+    },
+    was: "#etiqueta",
+    now: "",
+  },
+  {
+    name: "rightStopsAfterCodeBeforeANestedWidget",
+    doc: "# Listas\n\n- uno `c`\n  ```widget\n  <b>42</b>\n  ```\n\nFin.\n",
+    run: async ({ clickAt, press, frame }) => {
+      await clickAt("Fin");
+      await caretInWords(frame, "uno ", 4);
+      await press("ArrowRight", 2);
+      await press("ArrowLeft");
+      await press("Backspace");
+    },
+    was: "`c`",
+    now: "",
+  },
+  {
+    name: "rightStopsAfterCodeBeforeNestedHtml",
+    doc: "# Listas\n\n- uno `c`\n  <div>hola</div>\n\nFin.\n",
+    run: async ({ clickAt, press, frame }) => {
+      await clickAt("Fin");
+      await caretInWords(frame, "uno ", 4);
+      await press("ArrowRight", 2);
+      await press("ArrowLeft");
+      await press("Backspace");
+    },
+    was: "`c`",
+    now: "",
+  },
+  {
+    name: "secondRightPastANestedTableDrawnWholeWritesOnTheNextLine",
+    doc: NESTED_TABLE,
+    run: async ({ clickAt, press, typed, frame }) => {
+      await clickAt("Fin");
+      await drawnWholeUnder(frame);
+      await caretInWords(frame, "uno ", 4);
+      await press("ArrowRight", 2);
+      await typed("X");
+      await caretInWords(frame, "Listas", 0);
+      await typed("Y");
+    },
+    was: "Listas\n\n- uno #etiqueta\n  | a | b |\n  |---|---|\n  | 1 | 2 |\n\n",
+    now: "YListas\n\n- uno #etiqueta\n  | a | b |\n  |---|---|\n  | 1 | 2 |\n\nX",
+  },
+  {
+    name: "deleteAfterCodeBeforeANestedDiagramDrawnWholeKeepsIt",
+    doc: NESTED_DIAGRAM,
+    run: async ({ clickAt, press, frame }) => {
+      await clickAt("Fin");
+      await drawnWholeUnder(frame);
+      await caretInWords(frame, "uno ", 4);
+      await press("ArrowRight");
+      await press("Delete");
+    },
+    was: "",
+    now: "",
+  },
 ];
+
+const drawnWholeUnder = async (frame) => {
+  await drawnFirst(frame);
+  await frame.evaluate(() => {
+    for (const one of document.querySelectorAll(".page li > :is(.table, figure.diagram, .math)"))
+      one.setAttribute("contenteditable", "false");
+  });
+};
 
 const macIn = (frame) => frame.evaluate(() => navigator.userAgent.includes("Macintosh"));
 

@@ -20,7 +20,9 @@ const roomBeside = (box: Element) => {
 
 const LINE_PIECE = `${SOLID_PIECE}:not(br)`;
 
-const BREAKS = "br, ul[data-at], ol[data-at], blockquote[data-at], figure.code[data-at]";
+export const DRAWN_BLOCK = "figure.diagram[data-at], figure.widget[data-at], div[data-at]";
+
+const BREAKS = `br, ul[data-at], ol[data-at], blockquote[data-at], figure.code[data-at], ${DRAWN_BLOCK}`;
 
 const UNSEEN_LETTER = "\u200B";
 

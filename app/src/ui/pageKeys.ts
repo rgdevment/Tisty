@@ -25,6 +25,7 @@ import {
   besideBox,
   brokenBy,
   caretLaidOn,
+  DRAWN_BLOCK,
   elementOf,
   inCode,
   letterAhead,
@@ -222,8 +223,14 @@ export const keysOn = (
     );
   };
 
-  const lineAfter = (beyond: Element): Spot =>
-    beyond.matches("br") ? endOf(beyond) : startIn(beyond);
+  const lineAfter = (beyond: Element): Spot => {
+    if (beyond.matches("br")) return endOf(beyond);
+    if (!beyond.matches('[contenteditable="false"]')) return startIn(beyond);
+    const next = writableBlocks().find(
+      (one) => beyond.compareDocumentPosition(one) & Node.DOCUMENT_POSITION_FOLLOWING,
+    );
+    return next ? startIn(next) : endOf(beyond);
+  };
 
   const aheadOf = (way: Way, holder: Element) => {
     if (way === "forward" || way === "backward") return way === "forward";
@@ -421,7 +428,7 @@ export const keysOn = (
       event.preventDefault();
       if (event.shiftKey) return caret.reachedTo(across);
       const line = elementOf(across[0])?.closest("[data-at]");
-      const empty = line && !ownsWords(line);
+      const empty = line && !ownsWords(line) && !line.matches(DRAWN_BLOCK);
       const at = empty ? sourceAt(hands.text(), ...across, writer.reckoned) : null;
       return at === null ? caret.laidAt(across) : caret.placeAt(at);
     }
