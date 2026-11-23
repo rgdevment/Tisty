@@ -1,6 +1,6 @@
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Showing } from "../core";
 import { fill, t } from "../locales";
 import type { Held } from "../pieceWindow";
@@ -93,6 +93,41 @@ describe("the viewer", () => {
 
     expect(screen.queryByText("<p>hola</p>")).toBeNull();
     expect(screen.getByText(new RegExp(`${t("viewTablet")} · 820 px`))).toBeTruthy();
+  });
+});
+
+const MAC = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)";
+const WINDOWS = "Mozilla/5.0 (Windows NT 10.0; Win64; x64)";
+
+const reloadTitleOn = async (agent: string) => {
+  vi.resetModules();
+  vi.spyOn(navigator, "userAgent", "get").mockReturnValue(agent);
+  const { default: Header } = await import("../ui/viewer/Header");
+  const fresh = await import("../locales");
+  render(
+    <Header
+      shown={widget}
+      preset="390"
+      menu={false}
+      onPreset={() => {}}
+      onAgain={() => {}}
+      onMore={() => {}}
+    />,
+  );
+  return screen.getByRole("button", { name: fresh.t("viewReload") }).title;
+};
+
+describe("the viewer's reload button", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("names Cmd on a Mac, the key the viewer answers there", async () => {
+    expect(await reloadTitleOn(MAC)).toMatch(/ \(⌘R\)$/);
+  });
+
+  it("names Ctrl on Windows", async () => {
+    expect(await reloadTitleOn(WINDOWS)).toMatch(/ \(Ctrl\+R\)$/);
   });
 });
 

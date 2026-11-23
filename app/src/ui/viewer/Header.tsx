@@ -2,6 +2,7 @@ import { useRef } from "react";
 import type { Showing } from "../../core";
 import { fill, t, type Word } from "../../locales";
 import type { Held } from "../../pieceWindow";
+import { shortcut } from "../macKeys";
 import { Glyph, Segments, tool } from "./Glyphs";
 import { PRESETS, type Preset } from "./Stage";
 import TitleBar from "./TitleBar";
@@ -65,7 +66,7 @@ export default function Header(props: Props) {
           <button
             type="button"
             className={tool}
-            title={`${t("viewReload")} (Ctrl+R)`}
+            title={`${t("viewReload")} (${shortcut("R")})`}
             aria-label={t("viewReload")}
             onClick={props.onAgain}
           >

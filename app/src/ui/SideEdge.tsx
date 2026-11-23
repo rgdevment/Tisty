@@ -12,12 +12,12 @@ import {
 } from "../breadth";
 import { t } from "../locales";
 import { covered } from "./finding";
-import { letterOf, modKey, onMac } from "./macKeys";
+import { letterOf, modKey, shortcut } from "./macKeys";
 
 const STEP = 16;
 const STILL = 3;
 
-export const FOLD_KEY = onMac ? "⌘B" : "Ctrl+B";
+export const FOLD_KEY = shortcut("B");
 
 const writable = (target: EventTarget | null): boolean =>
   target instanceof Element &&

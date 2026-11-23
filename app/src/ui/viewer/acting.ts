@@ -1,7 +1,7 @@
 import { type Showing, viewGo } from "../../core";
 import { t } from "../../locales";
 import type { Choice } from "../Menu";
-import { letterOf } from "../macKeys";
+import { keyOf, shortcut } from "../macKeys";
 import { darkNow } from "../theming";
 import { PRESETS, type Preset } from "./Stage";
 
@@ -33,7 +33,7 @@ export const choicesFor = (a: Acts): Choice[] => {
   ];
   if (shown.held !== "widget") return own;
   return [
-    { key: "again", label: t("viewReload"), hint: "Ctrl+R", onPick: a.again },
+    { key: "again", label: t("viewReload"), hint: shortcut("R"), onPick: a.again },
     ...own,
     {
       key: "dark",
@@ -44,14 +44,14 @@ export const choicesFor = (a: Acts): Choice[] => {
     {
       key: "actual",
       label: `${a.actual ? "✓ " : ""}${t("viewActual")}`,
-      hint: "Ctrl+0",
+      hint: shortcut("0"),
       onPick: a.fit,
     },
   ];
 };
 
 export const keysFor = (a: Acts, e: KeyboardEvent): (() => void) | undefined => {
-  const key = letterOf(e) || e.key.toLowerCase();
+  const key = keyOf(e);
   const doing: Record<string, () => void> = { w: a.close, r: a.again };
   const shown = a.shown;
   if (shown?.kind === "piece" && shown.held === "widget") {

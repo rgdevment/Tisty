@@ -1,9 +1,9 @@
 import { useEffect } from "react";
 import { fold } from "../breadth";
-import { letterOf, modKey, onMac } from "./macKeys";
+import { letterOf, modKey, shortcut } from "./macKeys";
 
 export const FINDER = "side-finder";
-export const FIND_KEY = onMac ? "⌘K" : "Ctrl+K";
+export const FIND_KEY = shortcut("K");
 
 export function useFindKey(shown: boolean, onFind: () => void) {
   useEffect(() => {

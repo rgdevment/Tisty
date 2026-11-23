@@ -59,6 +59,45 @@ describe("the command key", () => {
     expect(press({ key: "w", ctrlKey: true }).acts.close).toHaveBeenCalled();
   });
 
+  it("follows the key pressed on a layout that writes no Latin letters", async () => {
+    const mac = await pressing(MAC);
+    expect(mac.press({ key: "а", code: "KeyF", metaKey: true }).acts.find).toHaveBeenCalled();
+    expect(
+      mac.press({ key: "Ь", code: "KeyM", metaKey: true, shiftKey: true }).acts.source,
+    ).toHaveBeenCalled();
+    const plain = mac.press({ key: "0", code: "Digit0", metaKey: true });
+    expect(plain.acts.zoom).toHaveBeenCalledWith(0);
+
+    const windows = await pressing(WINDOWS);
+    expect(windows.press({ key: "ไ", code: "KeyW", ctrlKey: true }).acts.close).toHaveBeenCalled();
+    expect(windows.press({ key: "з", code: "KeyP", ctrlKey: true }).acts.print).toHaveBeenCalled();
+  });
+
+  it("is no shortcut with Option, which writes a Greek letter on a Latin Mac", async () => {
+    const { press } = await pressing(MAC);
+
+    const option = press({ key: "π", code: "KeyP", metaKey: true, altKey: true });
+    expect(option.acts.print).not.toHaveBeenCalled();
+    expect(option.event.defaultPrevented).toBe(false);
+  });
+
+  it("takes a sign written with AltGr, as Ctrl+\\ is on a German Windows", async () => {
+    const { press } = await pressing(WINDOWS);
+
+    const side = press({ key: "\\", code: "Minus", ctrlKey: true, altKey: true });
+    expect(side.acts.side).toHaveBeenCalled();
+  });
+
+  it("brings the true size back by the zero key where it writes a letter, as AZERTY and Thai do", async () => {
+    const mac = await pressing(MAC);
+    const azerty = mac.press({ key: "à", code: "Digit0", metaKey: true });
+    expect(azerty.acts.zoom).toHaveBeenCalledWith(0);
+
+    const windows = await pressing(WINDOWS);
+    const thai = windows.press({ key: "จ", code: "Digit0", ctrlKey: true });
+    expect(thai.acts.zoom).toHaveBeenCalledWith(0);
+  });
+
   it("is the one the menu names", async () => {
     expect((await pressing(MAC)).shortcut("F")).toBe("⌘F");
     expect((await pressing(WINDOWS)).shortcut("F")).toBe("Ctrl+F");

@@ -4,7 +4,7 @@ import { waysOut } from "./leaving";
 import { t } from "./locales";
 import { FIND_KEY } from "./ui/finding";
 import type { Choice } from "./ui/Menu";
-import { onMac } from "./ui/macKeys";
+import { shortcut } from "./ui/macKeys";
 import type { Pickable } from "./ui/Picker";
 import { FOLD_KEY } from "./ui/SideEdge";
 import { WHOLE_ASKED } from "./ui/wholeKeys";
@@ -26,7 +26,7 @@ export interface Acting {
   fold: () => void;
 }
 
-const WHOLE_KEY = onMac ? "⌘E" : "Ctrl+E";
+const WHOLE_KEY = shortcut("E");
 
 const choices = (group: string, all: Choice[]): Pickable[] =>
   all

@@ -1,12 +1,13 @@
-type Held = { readonly ctrlKey: boolean; readonly metaKey: boolean };
-type Moving = Held & { readonly altKey: boolean; readonly shiftKey: boolean };
+import { letterOf, onMac } from "tisty-diagrams/macKeys";
 
-export const onMac = typeof navigator !== "undefined" && navigator.userAgent.includes("Macintosh");
-export const onWindows =
-  typeof navigator !== "undefined" && navigator.userAgent.includes("Windows");
+export { keyOf, letterOf, modKey, onMac, onWindows, shortcut } from "tisty-diagrams/macKeys";
 
-export const modKey = (event: Held): boolean =>
-  onMac ? event.metaKey : event.ctrlKey || event.metaKey;
+type Moving = {
+  readonly ctrlKey: boolean;
+  readonly metaKey: boolean;
+  readonly altKey: boolean;
+  readonly shiftKey: boolean;
+};
 
 export const moveKey = (event: Moving): boolean =>
   onMac ? event.ctrlKey && event.altKey && !event.metaKey && !event.shiftKey : event.altKey;
@@ -21,14 +22,6 @@ const WALKS: Readonly<Record<string, Walk>> = {
   a: "start",
   e: "end",
   v: "line",
-};
-
-export const letterOf = (event: { readonly key: string; readonly code: string }) => {
-  if (/^[a-z]$/i.test(event.key)) return event.key.toLowerCase();
-  const pressed = /^Key([A-Z])$/.exec(event.code)?.[1] ?? "";
-  return /^[\p{L}\p{M}]$/u.test(event.key) && !/\p{Script=Latin}/u.test(event.key)
-    ? pressed.toLowerCase()
-    : "";
 };
 
 type Pressed = Moving & { readonly key: string; readonly code: string };

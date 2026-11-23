@@ -1,4 +1,6 @@
-import { modKey, onMac } from "tisty-sheet";
+import { keyOf, modKey } from "tisty-sheet";
+
+export { shortcut } from "tisty-sheet";
 
 export type Keyed = {
   readonly find: () => void;
@@ -13,10 +15,8 @@ export type Keyed = {
   readonly escape: () => void;
 };
 
-export const shortcut = (key: string): string => `${onMac ? "⌘" : "Ctrl+"}${key}`;
-
 const withCommand = (keyed: Keyed, e: KeyboardEvent): (() => void) | undefined => {
-  const key = e.key.toLowerCase();
+  const key = keyOf(e);
   if (e.shiftKey) {
     if (key === "m") return keyed.source;
     if (key === "l") return keyed.theme;

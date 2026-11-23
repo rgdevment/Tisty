@@ -1,6 +1,6 @@
 import { useReactFlow } from "@xyflow/react";
 import { type KeyboardEvent, useRef } from "react";
-import { modKey } from "./macKeys";
+import { letterOf, modKey } from "./macKeys";
 
 type Point = { readonly x: number; readonly y: number };
 type Act = (() => void) | null | undefined;
@@ -33,15 +33,15 @@ export const useCanvasHands = (acts: {
   const keyed = (e: KeyboardEvent) => {
     if (elsewhere(e)) return;
     const mod = modKey(e);
-    const key = e.key.toLowerCase();
+    const letter = letterOf(e);
     const act = (did: Act) => {
       e.preventDefault();
       did?.();
     };
-    if ((key === "delete" || key === "backspace") && acts.remove) act(acts.remove);
-    else if (mod && key === "z") act(e.shiftKey ? acts.redo : acts.undo);
-    else if (mod && key === "y") act(acts.redo);
-    else if (mod && key === "d" && acts.duplicate !== undefined) act(acts.duplicate);
+    if ((e.key === "Delete" || e.key === "Backspace") && acts.remove) act(acts.remove);
+    else if (mod && letter === "z") act(e.shiftKey ? acts.redo : acts.undo);
+    else if (mod && letter === "y") act(acts.redo);
+    else if (mod && letter === "d" && acts.duplicate !== undefined) act(acts.duplicate);
   };
   return { pane, middleOfPane, droppedAt, keyed };
 };

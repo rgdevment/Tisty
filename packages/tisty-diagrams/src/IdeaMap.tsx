@@ -9,7 +9,7 @@ import {
 import Board from "./Board";
 import { useSay } from "./handing";
 import { MindSketch } from "./MindSketch";
-import { modKey } from "./macKeys";
+import { letterOf, modKey } from "./macKeys";
 import {
   type Changed,
   moved,
@@ -108,10 +108,10 @@ export default function IdeaMap({
   const keyed = (e: KeyboardEvent) => {
     if (renaming) return;
     const mod = modKey(e);
-    const key = e.key.toLowerCase();
-    if (mod && (key === "z" || key === "y")) {
+    const letter = letterOf(e);
+    if (mod && (letter === "z" || letter === "y")) {
       e.preventDefault();
-      (key === "y" || e.shiftKey ? redo : undo)?.();
+      (letter === "y" || e.shiftKey ? redo : undo)?.();
       return;
     }
     if (!(e.target as Element).closest("[data-idea]")) return;

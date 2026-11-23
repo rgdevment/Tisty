@@ -7,11 +7,11 @@ import { jumps } from "../jumping";
 import { t } from "../locales";
 import { covered, findNow } from "./finding";
 import { useHeldFocus } from "./heldFocus";
-import { letterOf, modKey, onMac } from "./macKeys";
+import { letterOf, modKey, onMac, shortcut } from "./macKeys";
 import { optionOf, PickList, usePicker } from "./Picker";
 import { useSearch } from "./Search";
 
-export const PALETTE_KEY = onMac ? "⌘P" : "Ctrl+P";
+export const PALETTE_KEY = shortcut("P");
 export const ACTIONS_KEY = onMac ? "⇧⌘P" : "Ctrl+Shift+P";
 
 export function usePaletteKey(open: boolean, onOpen: (asked: string) => void) {

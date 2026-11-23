@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Showing } from "../core";
 import { t } from "../locales";
 import { darkNow } from "../ui/theming";
@@ -102,6 +102,15 @@ describe("the viewer's keys", () => {
     expect(a.again).toHaveBeenCalled();
   });
 
+  it("picks a width and the true size by the digit keys where they write letters, as AZERTY and Thai do", () => {
+    const a = acts(widget);
+    keysFor(a, new KeyboardEvent("keydown", { key: "à", code: "Digit0" }))?.();
+    keysFor(a, new KeyboardEvent("keydown", { key: "ๅ", code: "Digit1" }))?.();
+
+    expect(a.fit).toHaveBeenCalled();
+    expect(a.preset).toHaveBeenCalledWith("fit");
+  });
+
   it("offers a formula, a table or the properties only their code and their document", () => {
     const formula: Showing = { ...widget, held: "formula" };
     const a = acts(formula);
@@ -110,5 +119,35 @@ describe("the viewer's keys", () => {
     expect(all.map((one) => one.key)).toEqual(["code", "doc"]);
     keysFor(a, key("2"))?.();
     expect(a.preset).not.toHaveBeenCalled();
+  });
+});
+
+const MAC = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)";
+const WINDOWS = "Mozilla/5.0 (Windows NT 10.0; Win64; x64)";
+
+const hintsOn = async (agent: string) => {
+  vi.resetModules();
+  vi.spyOn(navigator, "userAgent", "get").mockReturnValue(agent);
+  const fresh = await import("../ui/viewer/acting");
+  return fresh.choicesFor(acts(widget)).flatMap((one) => (one.hint ? [[one.key, one.hint]] : []));
+};
+
+describe("the viewer's menu hints", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("name Cmd on a Mac, the key the viewer answers there", async () => {
+    expect(await hintsOn(MAC)).toEqual([
+      ["again", "⌘R"],
+      ["actual", "⌘0"],
+    ]);
+  });
+
+  it("name Ctrl on Windows", async () => {
+    expect(await hintsOn(WINDOWS)).toEqual([
+      ["again", "Ctrl+R"],
+      ["actual", "Ctrl+0"],
+    ]);
   });
 });

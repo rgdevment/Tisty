@@ -25,7 +25,7 @@ import {
 } from "./dragging";
 import Glyph from "./Glyph";
 import { painted } from "./Hue";
-import { letterOf, modKey, onMac } from "./macKeys";
+import { letterOf, modKey, shortcut } from "./macKeys";
 
 const STIRS = 4;
 
@@ -1075,7 +1075,7 @@ export default function Tree({
           role="status"
           className="mx-1 mb-1 rounded-md bg-accent-soft px-2 py-1 text-[11.5px] text-accent"
         >
-          {fill("liftedHint", lifted.name, onMac ? "⌘" : "Ctrl+")}
+          {fill("liftedHint", lifted.name, shortcut("V"))}
         </li>
       )}
       {pinShown && paper(pinShown, 0)}

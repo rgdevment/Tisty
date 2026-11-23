@@ -458,6 +458,7 @@ describe("the document tree", () => {
 
     screen.getByRole("button", { name: "Compras" }).focus();
     await userEvent.keyboard("{Control>}x{/Control}");
+    expect(screen.getByRole("status").textContent).toContain("press Ctrl+V, or Escape");
     await userEvent.keyboard("{Escape}");
 
     expect(screen.queryByRole("status")).toBeNull();

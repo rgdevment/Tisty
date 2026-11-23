@@ -275,15 +275,6 @@ describe("Control moving the caret on a Mac", () => {
 });
 
 describe("letter shortcuts on a layout that writes no Latin letters", () => {
-  it("name no letter for a key that holds none, as a Thai digit or a Hindi nukta", async () => {
-    const { letterOf } = await import("../ui/macKeys");
-    expect(letterOf({ key: "ภ", code: "Digit4" })).toBe("");
-    expect(letterOf({ key: "़", code: "BracketRight" })).toBe("");
-    expect(letterOf({ key: "ว", code: "Semicolon" })).toBe("");
-    expect(letterOf({ key: "ф", code: "KeyA" })).toBe("a");
-    expect(letterOf({ key: "ิ", code: "KeyB" })).toBe("b");
-  });
-
   it("formats and undoes by the key pressed, and by the letter written on a Latin layout", async () => {
     on(WINDOWS);
     const said = await written();
