@@ -971,7 +971,8 @@ describe("a body written with CRLF", () => {
   it("keeps CRLF when Shift+Enter breaks a line", () => {
     open("Uno\r\n\r\nDos\r\n", 3);
     shiftEnter();
-    expect(text()).toBe("Uno\r\n\r\n\r\nDos\r\n");
+    type("X");
+    expect(text()).toBe("Uno\\\r\nX\r\n\r\nDos\r\n");
   });
 
   it("keeps CRLF when Enter adds an item", () => {
@@ -1032,7 +1033,7 @@ describe("Enter and Shift+Enter past the marks closing a format opened on the li
   it("steps Shift+Enter past the closing marks", () => {
     open("**dos** tres\n", 5);
     shiftEnter();
-    expect(text()).toBe("**dos**\n tres\n");
+    expect(text()).toBe("**dos**\\\n tres\n");
   });
 
   it("steps past two closings at once", () => {
@@ -1079,12 +1080,13 @@ describe("blocks made on the page", () => {
     expect(text()).toBe("> uno\n> dos\n\notro\n");
   });
 
-  it("makes a quote of a line made with Shift+Enter", () => {
+  it("makes a quote of a line made with Shift+Enter", async () => {
     open("uno\n", 3);
     shiftEnter();
     type("dos");
+    await flush();
     writing?.slashed(block("quote"));
-    expect(text()).toBe("> uno\n> dos\n");
+    expect(text()).toBe("> uno\\\n> dos\n");
   });
 
   it("makes a one-line quote of a paragraph of one line", () => {

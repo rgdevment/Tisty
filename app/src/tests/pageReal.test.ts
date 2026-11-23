@@ -245,4 +245,34 @@ describe("Enter pressed on a collapsible's name", () => {
     asked("insertText", "Z");
     expect(text()).toContain(":::details Plegable\n\nZ\n\n");
   });
+
+  it("opens the same line with Shift+Enter, never breaking the name in two", () => {
+    const text = opened("foldEmpty");
+    const name = document.querySelector("summary")?.firstChild as Text;
+    document.getSelection()?.collapse(name, 3);
+    const press = new KeyboardEvent("keydown", {
+      key: "Enter",
+      shiftKey: true,
+      bubbles: true,
+      cancelable: true,
+    });
+    document.querySelector("summary")?.dispatchEvent(press);
+    asked("insertText", "Z");
+    expect(text()).toContain(":::details Plegable\n\nZ\n\n");
+  });
+
+  it("leaves Shift+Enter to a composition it commits, never opening a line", () => {
+    opened("foldEmpty");
+    const name = document.querySelector("summary")?.firstChild as Text;
+    document.getSelection()?.collapse(name, 3);
+    const press = new KeyboardEvent("keydown", {
+      key: "Enter",
+      shiftKey: true,
+      keyCode: 229,
+      bubbles: true,
+      cancelable: true,
+    });
+    document.querySelector("summary")?.dispatchEvent(press);
+    expect(press.defaultPrevented).toBe(false);
+  });
 });

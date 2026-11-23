@@ -14,7 +14,7 @@ import { balanced } from "./pageMarks";
 import type { Act } from "./pageMoving";
 import { elementOf, inCode, onSheet, opened } from "./pageNodes";
 import { linkList, linkMatch, tagList, tagMatch } from "./pageTags";
-import { type Hands, writerOf } from "./pageWriter";
+import { composingKey, type Hands, writerOf } from "./pageWriter";
 import { unformattable } from "./quickly";
 
 export type { Hands, Turns } from "./pageWriter";
@@ -137,8 +137,8 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
   page.addEventListener("selectionchange", keys.noted);
   // Enter on a collapsible's name would fold it, as a click does, so it opens a line under the name instead.
   const named = (event: KeyboardEvent) => {
-    if (event.key !== "Enter" || event.shiftKey || event.ctrlKey || event.metaKey || event.altKey)
-      return;
+    if (event.key !== "Enter" || event.ctrlKey || event.metaKey || event.altKey) return;
+    if (event.shiftKey && composingKey(event)) return;
     const fold = elementOf(caret.chosen()?.startContainer)?.closest(
       ".page details[data-at] > summary",
     )?.parentElement as HTMLDetailsElement | null | undefined;
@@ -173,6 +173,7 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
   page.addEventListener("keydown", chooser);
   page.addEventListener("keydown", keys.keyed);
   page.addEventListener("keydown", input.markHeld);
+  page.addEventListener("keydown", input.lineBroken);
   page.addEventListener("mousedown", unchosen);
   page.addEventListener("paste", input.pastedFiles);
   page.addEventListener("copy", clipped);
@@ -226,6 +227,7 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
       page.removeEventListener("selectionchange", keys.noted);
       page.removeEventListener("keydown", keys.keyed);
       page.removeEventListener("keydown", input.markHeld);
+      page.removeEventListener("keydown", input.lineBroken);
       page.removeEventListener("keydown", chooser);
       page.removeEventListener("mousedown", unchosen);
       page.removeEventListener("keydown", named, true);

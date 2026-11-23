@@ -85,7 +85,8 @@ export const handsOn = (page, frame) => {
   };
   const command = async (key) => press(`${(await onMac()) ? "Meta" : "Control"}+${key}`);
   const wordBack = async () => press((await onMac()) ? "Alt+Backspace" : "Control+Backspace");
-  return { clickAt, typed, press, busyTyped, command, wordBack, page, frame };
+  const wordForward = async () => press((await onMac()) ? "Alt+Delete" : "Control+Delete");
+  return { clickAt, typed, press, busyTyped, command, wordBack, wordForward, page, frame };
 };
 
 export const opened = async (page, url) => {

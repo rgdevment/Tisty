@@ -9,7 +9,7 @@ import { closeOf, openOf } from "./pageMarks";
 import { caretLaidOn } from "./pageNodes";
 import { placeOf } from "./pagePlaces";
 import { GHOST, titledAfterFront } from "./pageSpots";
-import type { Kept, Writer } from "./pageWriter";
+import { choiceKept, type Kept, type Writer } from "./pageWriter";
 
 export type Begun = ReturnType<typeof begunOn>;
 
@@ -20,6 +20,8 @@ export const begunOn = (writer: Writer, caret: Caret, laying: Laying) => {
   // Until the page is drawn again it shows the words before the last key, so the caret kept in the words decides.
   const waited = (kind: string): Span | null => {
     if (!writer.kept || writer.kept.lead !== undefined) return null;
+    const chosen = choiceKept(writer.kept);
+    if (chosen) return chosen;
     if (writer.kept.offset >= 0) {
       const range = caret.chosen();
       const here =

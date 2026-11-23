@@ -119,6 +119,27 @@ const wordAfter = (text: string, at: number) => {
   return at + run.length - chunk.length + reach;
 };
 
+const BROKEN = /(?<!\\)(?:\\\\)*\\\r?$/;
+const LEAD_ONLY = /^[ \t>]*$/;
+
+export const hardBroken = (said: string) => /^\\\r?\n[ \t>]*$/.test(said);
+
+const breakBefore = (text: string, at: number) => {
+  const start = lineStart(text, at);
+  if (start === 0 || !LEAD_ONLY.test(text.slice(start, at))) return null;
+  const above = text.slice(lineStart(text, start - 1), start - 1);
+  return BROKEN.test(above) ? start - 1 - above.length + above.lastIndexOf("\\") : null;
+};
+
+const breakAfter = (text: string, at: number) => {
+  const end = lineEnd(text, at);
+  const line = text.slice(lineStart(text, at), end);
+  if (end >= text.length || !BROKEN.test(line) || text.slice(at, end).replace(/\r$/, "") !== "\\")
+    return null;
+  const next = lineEnd(text, end + 1);
+  return end + 1 + (/^[ \t>]*/.exec(text.slice(end + 1, next))?.[0].length ?? 0);
+};
+
 export const reachIn = (text: string, at: number, kind: string): Span => {
   const back = kind.endsWith("Backward");
   if (kind.includes("Line")) {
@@ -137,5 +158,6 @@ export const reachIn = (text: string, at: number, kind: string): Span => {
     const to = wordAfter(text, at);
     return { from: at, to: to > at ? to : charAfter(text, at) };
   }
-  return back ? { from: charBefore(text, at), to: at } : { from: at, to: charAfter(text, at) };
+  if (back) return { from: breakBefore(text, at) ?? charBefore(text, at), to: at };
+  return { from: at, to: breakAfter(text, at) ?? charAfter(text, at) };
 };

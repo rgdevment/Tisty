@@ -120,6 +120,18 @@ export const parted = (text: string, at: number, inCode: boolean): string => {
   return quote ? `\n${quote.trimEnd()}\n${quote}` : "\n\n";
 };
 
+const LEAD = /^[ \t]*(?:>[ \t]?)*[ \t]*/;
+
+export const hardBreak = (text: string, at: number) => {
+  const { line } = lineAt(text, at);
+  if (HEADED.test(line)) return "\n";
+  const item = LISTED.exec(line);
+  const lead = item
+    ? `${item[1]}${" ".repeat((item[2]?.length ?? 0) + (item[5]?.length ?? 0))}`
+    : (LEAD.exec(line)?.[0] ?? "");
+  return `\\\n${lead}`;
+};
+
 export const leftBehind = (text: string, at: number): { from: number; to: number } | null => {
   const { start, line } = lineAt(text, at);
   if (at < start + line.length || !(EMPTY_ITEM.test(line) || EMPTY_QUOTE.test(line))) return null;
@@ -131,6 +143,23 @@ export const leftBehind = (text: string, at: number): { from: number; to: number
 
 const wordless = (line: string) => line.replace(/^[\s>]*/, "") === "";
 
+const freed = (
+  text: string,
+  [start, line]: readonly [number, string],
+  [lead, marks]: readonly [string, number],
+  apartFrom: (next: string) => boolean,
+): Moved => {
+  const ends = text.indexOf("\n", start);
+  const next = ends < 0 ? null : lineAt(text, ends + 1).line;
+  const above = start > 0 && !wordless(lineAt(text, start - 1).line) ? `${lead.trimEnd()}\n` : "";
+  const below = next !== null && apartFrom(next) ? `\n${lead.trimEnd()}` : "";
+  const insert = `${above}${lead}${line.slice(marks)}${below}`;
+  return {
+    edit: { from: start, to: start + line.length, insert },
+    caret: start + above.length + lead.length,
+  };
+};
+
 // Backspace at the start of an item's words takes its bullet or its box away first, and the words stay.
 export const unmarked = (text: string, at: number): Moved | null => {
   const { start, line } = lineAt(text, at);
@@ -141,17 +170,39 @@ export const unmarked = (text: string, at: number): Moved | null => {
     const from = start + found[0].length - box;
     return { edit: { from, to: start + found[0].length, insert: "" }, caret: from };
   }
-  const lead = found[1] ?? "";
-  const ends = text.indexOf("\n", start);
-  const next = ends < 0 ? null : lineAt(text, ends + 1).line;
   // Words freed of their mark would read as part of the item above, or of a numbered one below, without a blank line.
-  const above = start > 0 && !wordless(lineAt(text, start - 1).line) ? `${lead.trimEnd()}\n` : "";
-  const below = next !== null && LISTED.exec(next)?.[3] !== undefined ? `\n${lead.trimEnd()}` : "";
-  const insert = `${above}${lead}${line.slice(found[0].length)}${below}`;
+  const numbered = (next: string) => LISTED.exec(next)?.[3] !== undefined;
+  return freed(text, [start, line], [found[1] ?? "", found[0].length], numbered);
+};
+
+const HEADED = /^([ \t]*(?:>[ \t]?)*[ \t]*)#{1,6}[ \t]+/;
+const QUOTE_MARK = /^([ \t]*(?:>[ \t]?)*)>[ \t]*/;
+
+const UNDERLINE = /^[ \t]*(?:>[ \t]?)*[ \t]*(?:=+|-+)[ \t]*$/;
+
+const underlined = (text: string, at: number): Moved | null => {
+  const { start, line } = lineAt(text, at);
+  const lead = QUOTED.exec(line)?.[1] ?? "";
+  const ends = text.indexOf("\n", start);
+  const under = ends < 0 ? null : lineAt(text, ends + 1).line;
+  if (at !== start + lead.length || under === null || !UNDERLINE.test(under)) return null;
+  const past = text.indexOf("\n", ends + 1);
+  const next = past < 0 ? null : lineAt(text, past + 1).line;
+  const below = next !== null && !wordless(next) ? `\n${lead.trimEnd()}` : "";
   return {
-    edit: { from: start, to: start + line.length, insert },
-    caret: start + above.length + lead.length,
+    edit: { from: start + line.length, to: ends + 1 + under.length, insert: below },
+    caret: at,
   };
+};
+
+export const unlined = (text: string, at: number): Moved | null => {
+  const setext = underlined(text, at);
+  if (setext) return setext;
+  const { start, line } = lineAt(text, at);
+  const found = HEADED.exec(line) ?? QUOTE_MARK.exec(line);
+  if (!found || at !== start + found[0].length) return null;
+  const worded = (next: string) => !wordless(next);
+  return freed(text, [start, line], [found[1] ?? "", found[0].length], worded);
 };
 
 const FENCE = /^((?:[ \t]*>)*)[ \t]*(`{3,}|~{3,})(.*)$/;

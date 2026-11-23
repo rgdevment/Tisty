@@ -339,14 +339,14 @@ describe("words chosen into a format and typed over", () => {
 });
 
 describe("a key whose browser names no reach at the start of a line's words", () => {
-  it("takes nothing of a heading's mark", () => {
+  it("takes a heading's mark whole, turning the heading into words", () => {
     const text = opened(
       "Uno\n\n# Dos\n",
       '<p data-at="0-4"><span data-src="0-3">Uno</span></p><h1 data-at="5-11"><span data-src="7-10">Dos</span></h1>',
     );
     document.getSelection()?.collapse(wordsIn("7-10"), 0);
     asked("deleteContentBackward", { reach: null });
-    expect(text()).toBe("Uno\n\n# Dos\n");
+    expect(text()).toBe("Uno\n\nDos\n");
   });
 
   it("takes nothing of an item's mark on a line's delete", () => {

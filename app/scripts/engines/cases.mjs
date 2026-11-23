@@ -1096,6 +1096,180 @@ export const CASES = [
     was: "$$x^2$$",
     now: "X",
   },
+  {
+    name: "deleteAtCodeBlockEndKeepsItsFence",
+    doc: "# Marcas\n\nAntes\n\n```js\nconst a = 1;\nconst b = 2;\n```\n\nDespués\n",
+    run: async ({ clickAt, press, frame }) => {
+      await clickAt("Antes");
+      await caretBeforeCodeEnd(frame);
+      await press("Delete");
+    },
+    was: "",
+    now: "",
+  },
+  {
+    name: "titleTypedAgainAfterItsLettersGo",
+    doc: "",
+    run: async ({ typed, press }) => {
+      await typed("Hola");
+      await press("Backspace", 4);
+      await typed("Otra");
+    },
+    was: "",
+    now: "# Otra",
+  },
+  {
+    name: "titleTypedAgainAfterAllIsChosenAndDeleted",
+    doc: "# Título\n\nHola mundo\n",
+    run: async ({ clickAt, command, press, typed }) => {
+      await clickAt("Hola");
+      await command("a");
+      await press("Backspace");
+      await typed("Nuevo");
+    },
+    was: "Título\n\nHola mundo\n",
+    now: "Nuevo",
+  },
+  {
+    name: "backAtHeadingStartTurnsItIntoWords",
+    doc: "# Marcas\n\nAntes\n\n## Sección\n\nTexto bajo\n",
+    run: async ({ clickAt, press, frame }) => {
+      await clickAt("Antes");
+      await caretInWords(frame, "Sección", 0);
+      await press("Backspace");
+    },
+    was: "## ",
+    now: "",
+  },
+  {
+    name: "backAtQuoteStartTurnsItsFirstLineIntoWords",
+    doc: "# Marcas\n\nAntes\n\n> una cita\n> segunda línea\n\nDespués\n",
+    run: async ({ clickAt, press, frame }) => {
+      await clickAt("Antes");
+      await caretInWords(frame, "una cita", 0);
+      await press("Backspace");
+    },
+    was: "> una cita",
+    now: "una cita\n",
+  },
+  {
+    name: "shiftEnterBreaksTheLineInAParagraph",
+    doc: "# Marcas\n\nHola mundo bonito\n\nSegundo\n",
+    run: async ({ clickAt, press, typed, frame }) => {
+      await clickAt("Segundo");
+      await caretInWords(frame, "Hola mundo bonito", 4);
+      await press("Shift+Enter");
+      await typed("X");
+    },
+    was: "",
+    now: "\\\nX",
+  },
+  {
+    name: "shiftEnterBreaksTheLineInAListItem",
+    doc: "# Marcas\n\n- uno\n- dos\n- tres\n",
+    run: async ({ clickAt, press, typed, frame }) => {
+      await clickAt("uno");
+      await caretInWords(frame, "dos", 3);
+      await press("Shift+Enter");
+      await typed("más");
+    },
+    was: "",
+    now: "\\\n  más",
+  },
+  {
+    name: "wordBackAtParagraphStartOnlyJoinsIt",
+    doc: "# Marcas\n\nHola mundo bonito\n\nSegundo párrafo\n",
+    run: async ({ clickAt, wordBack, frame }) => {
+      await clickAt("Hola");
+      await caretInWords(frame, "Segundo párrafo", 0);
+      await wordBack();
+    },
+    was: "\n\n",
+    now: "",
+  },
+  {
+    name: "wordForwardAtParagraphEndOnlyJoinsIt",
+    doc: "# Marcas\n\nHola mundo bonito\n\nSegundo párrafo\n",
+    run: async ({ clickAt, wordForward, frame }) => {
+      await clickAt("Hola");
+      await caretInWords(frame, "Hola mundo bonito", 17);
+      await wordForward();
+    },
+    was: "\n\n",
+    now: "",
+  },
+  {
+    name: "wordForwardAtItemEndOnlyJoinsTheItemUnderIt",
+    doc: "# Marcas\n\n- Item\n  - Sub\n",
+    run: async ({ clickAt, wordForward, frame }) => {
+      await clickAt("Marcas");
+      await caretInWords(frame, "Item", 4);
+      await wordForward();
+    },
+    was: "\n  - ",
+    now: "",
+  },
+  {
+    name: "twoWordsBackAtParagraphEndLeaveOneSpace",
+    doc: "# Marcas\n\nHola mundo bonito\n\nSegundo\n",
+    run: async ({ clickAt, wordBack, page, frame }) => {
+      await clickAt("Segundo");
+      await caretInWords(frame, "Hola mundo bonito", 17);
+      await wordBack();
+      await page.waitForFunction(() => window.engines.drawn());
+      await wordBack();
+    },
+    was: "mundo bonito",
+    now: "",
+  },
+  {
+    name: "typeOverAChoicePastATableAtTheEnd",
+    doc: "# Marcas\n\nAntes y más\n\n| a | b |\n|---|---|\n| 1 | 2 |\n",
+    run: async ({ clickAt, command, typed, frame }) => {
+      await clickAt("Antes");
+      await caretInWords(frame, "Antes y más", 6);
+      await command("Shift+End");
+      await typed("X");
+    },
+    was: "y más\n\n| a | b |\n|---|---|\n| 1 | 2 |\n",
+    now: "X",
+  },
+  {
+    name: "backOverAChoicePastATableAtTheEnd",
+    doc: "# Marcas\n\nAntes y más\n\n| a | b |\n|---|---|\n| 1 | 2 |\n",
+    run: async ({ clickAt, command, press, frame }) => {
+      await clickAt("Antes");
+      await caretInWords(frame, "Antes y más", 6);
+      await command("Shift+End");
+      await press("Backspace");
+    },
+    was: "y más\n\n| a | b |\n|---|---|\n| 1 | 2 |\n",
+    now: "",
+  },
+  {
+    name: "boldThenItalicOnTheWordsStillChosen",
+    doc: "# Marcas\n\nHola mundo bonito\n",
+    run: async ({ clickAt, command, frame }) => {
+      await clickAt("Hola");
+      await chosenIn(frame, ["Hola mundo bonito", 5], ["Hola mundo bonito", 10]);
+      await command("b");
+      await command("i");
+    },
+    was: "mundo",
+    now: "***mundo***",
+  },
+  {
+    name: "boldTwiceOnTheWordsStillChosenTakesItOff",
+    doc: "# Marcas\n\nHola mundo bonito\n",
+    run: async ({ clickAt, command, frame }) => {
+      await clickAt("Hola");
+      await chosenIn(frame, ["Hola mundo bonito", 5], ["Hola mundo bonito", 10]);
+      await command("b");
+      await command("b");
+    },
+    was: "",
+    now: "",
+  },
 ];
 
 const macIn = (frame) => frame.evaluate(() => navigator.userAgent.includes("Macintosh"));
@@ -1135,3 +1309,14 @@ const caretAtEndOf = (frame, selector) =>
     if (!last) throw new Error(`no words in ${said}`);
     getSelection().collapse(last, last.length);
   }, selector);
+
+const caretBeforeCodeEnd = async (frame) => {
+  await frame.parentFrame().waitForFunction(() => window.engines.drawn());
+  await frame.evaluate(() => {
+    const walk = document.createTreeWalker(document.querySelector(".page pre code"), NodeFilter.SHOW_TEXT);
+    let last = null;
+    for (let node = walk.nextNode(); node; node = walk.nextNode()) last = node;
+    if (!last?.data.endsWith("\n")) throw new Error("no code that ends with its line feed");
+    getSelection().collapse(last, last.length - 1);
+  });
+};

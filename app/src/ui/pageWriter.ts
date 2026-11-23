@@ -11,7 +11,13 @@ export type Kept = {
   readonly at: number;
   readonly lead?: string;
   readonly tail?: string;
+  readonly chosenFrom?: number;
 };
+
+export const choiceKept = (kept: Kept | null): Span | null =>
+  kept && kept.offset < 0 && kept.chosenFrom !== undefined
+    ? { from: kept.chosenFrom, to: kept.at }
+    : null;
 
 export type Turn = {
   readonly from: number;
@@ -83,6 +89,11 @@ export type Hands = {
 
 export type Pending = { readonly at: number; readonly marks: Marks };
 export type Composing = { readonly over: Promise<void>; readonly end: () => void };
+
+const COMPOSING_KEY = 229;
+
+export const composingKey = (event: KeyboardEvent) =>
+  event.isComposing || event.keyCode === COMPOSING_KEY;
 
 export const compositionOpened = (): Composing => {
   let end = () => {};

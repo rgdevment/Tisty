@@ -1,7 +1,7 @@
 import { t } from "../locales";
 import { blank } from "./pageBlocks";
 import type { Caret } from "./pageCaret";
-import type { Span } from "./pageEdits";
+import type { Edit, Span } from "./pageEdits";
 import { fieldAsked } from "./pageFields";
 import type { Laying } from "./pageLaying";
 import { closing, opening } from "./pageLists";
@@ -53,6 +53,15 @@ export const writtenLink = (text: string, at: Span): Written | null => {
 };
 
 const sameLink = (link: Written) => `[${link.label}](${link.address}${link.title})`;
+
+export const wornWords = (text: string, one: Span, change: Edit, open: string, close: string) => {
+  const end = change.from + change.insert.length;
+  const within = text.slice(one.from + open.length, one.to - close.length);
+  if (change.from < one.from || change.insert === within) return { from: change.from, to: end };
+  const words = change.insert.trimEnd();
+  const from = change.from + (words.startsWith(open) ? open.length : 0);
+  return { from, to: change.from + words.length - (words.endsWith(close) ? close.length : 0) };
+};
 
 export const formatsOn = (writer: Writer, caret: Caret, laying: Laying) => {
   const { page, hands } = writer;
@@ -155,7 +164,10 @@ export const formatsOn = (writer: Writer, caret: Caret, laying: Laying) => {
     writer.pending = null;
     const spread = text.slice(one.from, one.to).includes("\n");
     const change = spread ? wornEach(text, one, open, close) : worn(text, one, open, close);
-    put(change, change.from + change.insert.length);
+    put(change);
+    const words = wornWords(text, one, change, open, close);
+    if (writer.kept?.at === change.from + change.insert.length)
+      writer.kept = { ...writer.kept, at: words.to, chosenFrom: words.from };
   };
 
   const pendingKey = (at: number, typed: string) => {

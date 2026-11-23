@@ -11,7 +11,7 @@ import {
 } from "./pageNodes";
 import { placeOf, placeSaid } from "./pagePlaces";
 import { endOf, GHOST, ghostAt, sourceAt, spotOf, startOf, topsAt } from "./pageSpots";
-import type { Point, Writer } from "./pageWriter";
+import { choiceKept, type Point, type Writer } from "./pageWriter";
 
 export type Caret = ReturnType<typeof caretOn>;
 
@@ -60,6 +60,8 @@ export const caretOn = (writer: Writer) => {
   };
 
   const chosenNow = () => {
+    const kept = choiceKept(writer.kept);
+    if (kept) return kept;
     const range = chosen();
     const one = range && !range.collapsed ? spanOfRange(range) : writer.lastChosen;
     return one && one.from < one.to ? one : null;
@@ -186,6 +188,8 @@ export const caretOn = (writer: Writer) => {
     else if (bare?.matches("li") && elementOf(bare.childNodes[spot[1]])?.matches("ul, ol"))
       bare.insertBefore(page.createElement("br"), bare.childNodes[spot[1]] ?? null);
     caretLaidOn(page, spot[0], spot[1]);
+    const from = writer.kept.chosenFrom === undefined ? null : spotAt(writer.kept.chosenFrom);
+    if (from) page.getSelection()?.setBaseAndExtent(...from, ...spot);
     writer.kept = { ...writer.kept, node: spot[0], offset: spot[1] };
     inSight(holder);
   };
