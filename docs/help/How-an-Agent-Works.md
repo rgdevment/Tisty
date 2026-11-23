@@ -48,7 +48,7 @@ Without hooks, or to see everything, the agent calls `catch_up`: the lists, the 
 
 ### 2. It searches with `brain`
 
-`brain` with a few words searches the open tasks, the archive and the documents at once. First what holds the words in its title; then what moved more recently. Each one comes with the line that says them: here the task matched in one of its steps.
+`brain` with a few words searches the open tasks, the archive and the documents at once. First what holds the words in its title, and a title saying exactly those words ahead of the rest; then what moved more recently. Each one comes with the line that says them: here the task matched in one of its steps.
 
 ```json
 > brain {"query": "webhook signature"}

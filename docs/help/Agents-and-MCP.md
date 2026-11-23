@@ -139,7 +139,7 @@ Each one takes a word after it, like `/mcp__tisty__solved_before timeouts`, or n
 
 **A `consolidate` pass, start to finish.** Mario types `/mcp__tisty__consolidate Kitchen`. The agent first reads the tidying rules (`rules` with `topic: "tidying"`) and what moved (`catch_up`), then looks at the folder without changing anything:
 
-- `brain` with `{ "folder": "Kitchen" }` brings each document with the summary an agent left; one written before the document last changed comes with `"stale": true`.
+- `brain` with `{ "folder": "Kitchen" }` brings each document with its size in characters and the summary an agent left; one written before the document last changed comes with `"stale": true`.
 - `brain` with `{ "doc": … }` brings each document's card: `dead` names the links that lead nowhere, and `alike`, `repeated` and `mislabeled` what is doubled or misnamed.
 - On a task's card, `brain` with `{ "task": … }`, `state_old` says the state was written before its steps changed or a decision came.
 

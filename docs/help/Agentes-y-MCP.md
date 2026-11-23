@@ -139,7 +139,7 @@ Cada uno toma una palabra detrás, como `/mcp__tisty__solved_before timeouts`, o
 
 **Una pasada de `consolidate`, de principio a fin.** Mario escribe `/mcp__tisty__consolidate Cocina`. El agente lee primero las reglas de orden (`rules` con `topic: "tidying"`) y lo que se movió (`catch_up`), y después mira la carpeta sin cambiar nada:
 
-- `brain` con `{ "folder": "Cocina" }` le trae cada documento con el resumen que dejó un agente; uno escrito antes del último cambio del documento llega con `"stale": true`.
+- `brain` con `{ "folder": "Cocina" }` le trae cada documento con su tamaño en caracteres y el resumen que dejó un agente; uno escrito antes del último cambio del documento llega con `"stale": true`.
 - `brain` con `{ "doc": … }` le trae la ficha de cada documento: `dead` nombra los enlaces que no llevan a ninguna parte, y `alike`, `repeated` y `mislabeled`, lo repetido o mal nombrado.
 - En la ficha de una tarea, `brain` con `{ "task": … }`, `state_old` dice que el estado se escribió antes de que cambiaran sus pasos o llegara una decisión.
 

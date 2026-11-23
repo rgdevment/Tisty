@@ -95,6 +95,7 @@ pub(in crate::mcp) fn docs(paths: &Paths, args: &Value) -> Result<Value, Refused
                 kept_of.insert("flagged".into(), json!(true));
             }
             if let Some(card) = card {
+                kept_of.insert("chars".into(), json!(card.chars));
                 kept_of.insert("words".into(), json!(card.words));
                 if !card.outline.is_empty() {
                     kept_of.insert("sections".into(), json!(card.outline.len()));
@@ -127,6 +128,10 @@ pub(in crate::mcp) fn docs(paths: &Paths, args: &Value) -> Result<Value, Refused
                 Some(up) => format!("page of {up}"),
                 None => one["folder"].as_str().unwrap_or("no folder").to_string(),
             };
+            let size = match one["chars"].as_u64() {
+                Some(chars) => format!(", {chars} chars"),
+                None => String::new(),
+            };
             let holds = match one["pages"].as_u64().unwrap_or(0) {
                 0 => String::new(),
                 1 => ", 1 page".into(),
@@ -155,7 +160,7 @@ pub(in crate::mcp) fn docs(paths: &Paths, args: &Value) -> Result<Value, Refused
                 _ => String::new(),
             };
             format!(
-                "{} — {} ({where_at}{holds}{put_away}{shut}{marked}){gist}",
+                "{} — {} ({where_at}{size}{holds}{put_away}{shut}{marked}){gist}",
                 said(one, "doc"),
                 said(one, "title")
             )

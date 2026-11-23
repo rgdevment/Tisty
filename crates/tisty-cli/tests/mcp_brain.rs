@@ -40,7 +40,7 @@ impl Served {
             .stderr(Stdio::null())
             .spawn()
             .unwrap();
-        let into = child.stdin.take().unwrap();
+        let into = child.stdin.take();
         let from = BufReader::new(child.stdout.take().unwrap());
         Connection {
             child,
@@ -53,7 +53,7 @@ impl Served {
 
 struct Connection {
     child: Child,
-    into: ChildStdin,
+    into: Option<ChildStdin>,
     from: BufReader<ChildStdout>,
     next: u64,
 }
@@ -65,8 +65,9 @@ impl Connection {
             "jsonrpc": "2.0", "id": self.next, "method": "tools/call",
             "params": { "name": name, "arguments": args },
         });
-        writeln!(self.into, "{asked}").unwrap();
-        self.into.flush().unwrap();
+        let into = self.into.as_mut().unwrap();
+        writeln!(into, "{asked}").unwrap();
+        into.flush().unwrap();
         let mut line = String::new();
         self.from.read_line(&mut line).unwrap();
         let said: Value = serde_json::from_str(&line).unwrap();
@@ -84,8 +85,14 @@ impl Connection {
     }
 }
 
+// The server ends when its input closes, so a coverage run keeps what it measured.
 impl Drop for Connection {
     fn drop(&mut self) {
+        drop(self.into.take());
+        let until = std::time::Instant::now() + std::time::Duration::from_secs(10);
+        while matches!(self.child.try_wait(), Ok(None)) && std::time::Instant::now() < until {
+            std::thread::sleep(std::time::Duration::from_millis(20));
+        }
         let _ = self.child.kill();
         let _ = self.child.wait();
     }
@@ -480,10 +487,25 @@ fn a_folder_alone_lists_its_documents() {
         json!({ "body": "# Pancakes\n\nFlour.\n", "folder": "Recipes" }),
     );
 
-    let listed = talk.brain(json!({ "folder": "Recipes" }));
+    let said = talk.call("brain", json!({ "folder": "Recipes" }));
+    let listed = &said["structuredContent"];
 
     assert_eq!(listed["total"], 1);
     assert_eq!(listed["docs"][0]["title"], "Pancakes");
+    let file = served
+        .home
+        .path()
+        .join("data/docs")
+        .join(format!("{}.md", listed["docs"][0]["doc"].as_str().unwrap()));
+    let chars = std::fs::read_to_string(file).unwrap().chars().count();
+    assert_eq!(listed["docs"][0]["chars"], json!(chars), "{listed}");
+    assert!(
+        said["content"][0]["text"]
+            .as_str()
+            .unwrap()
+            .contains(&format!(", {chars} chars")),
+        "{said}"
+    );
 }
 
 #[test]
@@ -1080,4 +1102,48 @@ fn what_tisty_guesses_alike_stays_off_an_export_and_off_the_markdown_read_hands_
             "{gone} went out: {told:?}"
         );
     }
+}
+
+#[test]
+fn an_exact_title_comes_before_a_newer_document_that_says_it_too() {
+    let served = Served::new();
+    let exact = served.person().wrote_doc_days_ago("# Rina\n\nA dog.\n", 30);
+    served
+        .person()
+        .wrote_doc_days_ago("# Rina: health\n\nShots.\n", 1);
+    let mut talk = served.connect();
+
+    let found = talk.brain(json!({ "query": "rina" }));
+
+    assert_eq!(
+        titles(&found, "docs")[..2],
+        ["Rina", "Rina: health"],
+        "{found}"
+    );
+    assert_eq!(found["docs"][0]["doc"], json!(exact));
+}
+
+#[test]
+fn an_exact_task_title_comes_first_and_links_leave_the_order_alone() {
+    let served = Served::new();
+    let exact = served.person().captures("Book the vet");
+    let cited = served.person().captures("Book the vet for Rina");
+    let newer = served.person().captures("Book the vet for Roger");
+    let mut talk = served.connect();
+    for title in ["Pets", "Week"] {
+        talk.call(
+            "write_doc",
+            json!({ "body": format!("# {title}\n\n[The vet](tisty:task/{cited}).\n") }),
+        );
+    }
+
+    let found = talk.brain(json!({ "query": "book the vet" }));
+    let symbols = talk.call("brain", json!({ "query": "\u{1f4cc}" }));
+
+    assert_eq!(
+        ids(&found, "matches"),
+        [exact.to_string(), newer.to_string(), cited.to_string()],
+        "{found}"
+    );
+    assert_ne!(symbols["isError"], true, "{symbols}");
 }

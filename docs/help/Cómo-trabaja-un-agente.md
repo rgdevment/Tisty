@@ -48,7 +48,7 @@ Sin hooks, o para ver todo, el agente llama a `catch_up`: las listas, las carpet
 
 ### 2. Busca con `brain`
 
-`brain` con unas palabras busca en las tareas abiertas, en el archivo y en los documentos a la vez. Primero va lo que tiene las palabras en su título; después, lo que se movió hace menos. Cada documento trae la línea que las dice.
+`brain` con unas palabras busca en las tareas abiertas, en el archivo y en los documentos a la vez. Primero va lo que tiene las palabras en su título, y delante el título que dice justo esas palabras; después, lo que se movió hace menos. Cada documento trae la línea que las dice.
 
 ```json
 > brain {"query": "webhook firma"}

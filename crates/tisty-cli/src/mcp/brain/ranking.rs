@@ -55,12 +55,15 @@ pub(super) fn ranked<'a>(
         false => whole,
     };
     let every_word = found.is_empty() && papers.is_empty() || !(none && terms.len() > 1);
+    let query_words = bare_words(query);
+    let exact = |title: &str| !query_words.is_empty() && bare_words(title) == query_words;
     let mut tasks: Vec<(&Task, usize)> = found.into_values().collect();
     tasks.sort_by_cached_key(|(task, found)| {
         let named = terms.len() - tisty_core::view::unnamed(task, &terms).len();
         (
             std::cmp::Reverse(*found),
             std::cmp::Reverse(named),
+            std::cmp::Reverse(exact(&task.title)),
             std::cmp::Reverse(last_moved(task)),
             task.id,
         )
@@ -76,6 +79,7 @@ pub(super) fn ranked<'a>(
         (
             std::cmp::Reverse(one.found),
             std::cmp::Reverse(one.named),
+            std::cmp::Reverse(exact(&one.sighting.title)),
             std::cmp::Reverse(wrote),
             one.sighting.id.clone(),
         )
@@ -86,6 +90,15 @@ pub(super) fn ranked<'a>(
         papers: papers.into_iter().map(|one| one.sighting).collect(),
         every_word,
     }
+}
+
+// Marks and emoji left out, so «🍚 Arroz árabe» is the exact title «arroz arabe» asks for.
+fn bare_words(said: &str) -> Vec<String> {
+    tisty_core::text::folded(said)
+        .split(|c: char| !c.is_alphanumeric())
+        .filter(|word| !word.is_empty())
+        .map(str::to_string)
+        .collect()
 }
 
 // A phrase stays a phrase when it is asked alone, as it was within the whole query.
